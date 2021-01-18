@@ -1,14 +1,4 @@
 #[macro_export]
-macro_rules! message {
-    (
-        $Msg: ident { $( $arg: ident: $type: ty ),* }
-    ) => {
-        #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-        pub struct $Msg { pub $($arg: $type),* }
-    }
-}
-
-#[macro_export]
 macro_rules! contract {
     (
         $ConfigKey:literal
@@ -140,6 +130,16 @@ macro_rules! state {
             self::state::config(&mut $InitDeps.storage).save(&state)?;
             Ok(InitResponse::default())
         }
+    }
+}
+
+#[macro_export]
+macro_rules! message {
+    (
+        $Msg: ident { $( $arg: ident: $type: ty ),* }
+    ) => {
+        #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+        pub struct $Msg { pub $($arg: $type),* }
     }
 }
 
