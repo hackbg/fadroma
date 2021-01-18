@@ -12,7 +12,8 @@ macro_rules! contract {
         }
 
         $QueryMsgEnum:ident (
-            $QueryDeps:ident, $QueryMsg:ident
+            $QueryDeps:ident,
+            $QueryMsg:ident
         ) {
             $($QueryMsgType:ident (
                 $($QueryMsgArg:ident : $QueryMsgArgType:ty),*
@@ -20,19 +21,20 @@ macro_rules! contract {
         }
 
         $HandleMsgEnum:ident (
-            $HandleDeps:ident, $HandleEnv:ident, $HandleMsg:ident
-        ) {
-            $($HandleMsgType:ident {
+            $HandleDeps:ident,
+            $HandleEnv:ident,
+            $HandleMsg:ident
+        ) { $(
+            $HandleMsgType:ident {
                 $($HandleMsgArg:ident : $HandleMsgArgType:ty),*
-            } (&mut $HandleMsgState:ident) $HandleMsgHandler:block)*
-        }
+            } (&mut $HandleMsgState:ident) $HandleMsgHandler:block
+        ),* }
 
         $ResponseEnum:ident {
             $($Response:ident {
                 $($ResponseArg:ident : $ResponseArgType:ty),*
             }),*
         }
-
     ) => {
         // Contract interface
         pub mod msg {
@@ -40,12 +42,8 @@ macro_rules! contract {
             use serde::{Deserialize, Serialize};
             message!($InitMsgType { $($InitMsgArg: $InitMsgArgType),* });
             messages!(
-                $QueryMsgEnum {
-                    $($QueryMsgType { $($QueryMsgArg: $QueryMsgArgType),* })*
-                }
-                $HandleMsgEnum {
-                    $($HandleMsgType { $($HandleMsgArg: $HandleMsgArgType),* })*
-                }
+                $QueryMsgEnum  {$($QueryMsgType {$($QueryMsgArg: $QueryMsgArgType),*})*}
+                $HandleMsgEnum {$($HandleMsgType {$($HandleMsgArg: $HandleMsgArgType),*})*}
             );
             $(message!($Response { $($ResponseArg: $ResponseArgType),* });),*
         }
@@ -55,12 +53,34 @@ macro_rules! contract {
             state!($ConfigKey, $StateType ($InitDeps, $InitEnv, $InitMsg) {
                 $($StateKey : $StateKeyType = $StateKeyValue),*
             }, config, config_read);
-            query!($QueryMsgEnum ($QueryDeps, $QueryMsg) {
-                $($QueryMsgType ($($QueryMsgArg),*) $QueryMsgHandler)*
-            });
-            handle!($HandleMsgEnum {
-                $($HandleMsgType (&mut $HandleMsgState, $($HandleMsgArg),*) $HandleMsgHandler)*
-            });
+
+            use cosmwasm_std::{to_binary, Binary};
+            use super::msg::$QueryMsgEnum;
+            use self::state::config_read;
+            pub fn query <S: Storage, A: Api, Q: Querier> (
+                $QueryDeps: &Extern<S, A, Q>,
+                $QueryMsg:  $QueryMsgEnum,
+            ) -> StdResult<Binary> {
+                match $QueryMsg { $(
+                    $QueryMsgEnum::$QueryMsgType { $(QueryMsgArg,)* } => $handler,
+                )* }
+            }
+
+            use cosmwasm_std::HandleResponse;
+            use super::msg::$HandleMsgEnum;
+            use self::state::config;
+            pub fn handle <S: Storage, A: Api, Q: Querier> (
+                $HandleDeps: &mut Extern<S, A, Q>,
+                $HandleEnv:  Env,
+                $HandleMsg:  $HandleMsgEnum,
+            ) -> StdResult<HandleResponse> {
+                match $HandleMsg { $(
+                    $HandleMsgEnum::$HandleMsgType { $($HandleMsgArg),* } => {
+                        config(&mut $HandleDeps.storage).update(|mut $HandleMsgState| $HandleMsgHandler)?;
+                        Ok(HandleResponse::default())
+                    }
+                )* }
+            }
         }
 
         // Entry point
@@ -103,7 +123,7 @@ macro_rules! state {
         pub mod state {
             use schemars::JsonSchema;
             use serde::{Deserialize, Serialize};
-            use cosmwasm_std::{CanonicalAddr, Storage};
+            use cosmwasm_std::Storage;
             use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
             pub static CONFIG_KEY: &[u8] = $ConfigKey;
             #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -134,76 +154,26 @@ macro_rules! state {
 }
 
 #[macro_export]
+macro_rules! messages {
+    (
+        $( $group: ident {
+            $($Msg: ident { $( $arg: ident : $type: ty ),* })*
+        } )*
+    ) => {
+        $(
+            #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+            #[serde(rename_all = "snake_case")]
+            pub enum $group { $($Msg { $($arg : $type),* }),* }
+            $(message!($Msg { $($arg: $type),* }););*
+        )* }
+}
+
+#[macro_export]
 macro_rules! message {
     (
         $Msg: ident { $( $arg: ident: $type: ty ),* }
     ) => {
         #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-        pub struct $Msg { pub $($arg: $type),* }
-    }
-}
-
-#[macro_export]
-macro_rules! messages {
-    (
-        $( $group: ident {
-            $($Msg: ident { $( $arg: ident : $type: ty ),* })+
-        } )+
-    ) => {
-        $(
-            $(
-                #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-                pub struct $Msg { $(pub $arg: $type),* }
-            )+
-
-            #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-            #[serde(rename_all = "snake_case")]
-            pub enum $group { $($Msg { $($arg : $type),* }),* }
-        )+ }
-}
-
-#[macro_export]
-macro_rules! handle {
-    (
-        $Enum:ident { $(
-            $Msg:ident ( &mut $state:ident $(,$arg1:ident),* ) $handler:block
-        )+ }
-    ) => {
-        use cosmwasm_std::HandleResponse;
-        use crate::msg::$Enum;
-        use self::state::config;
-        pub fn handle <S: Storage, A: Api, Q: Querier> (
-            deps: &mut Extern<S, A, Q>,
-            env:  Env,
-            msg:  $Enum,
-        ) -> StdResult<HandleResponse> {
-            match msg { $(
-                $Enum::$Msg { $($arg1),* } => {
-                    config(&mut deps.storage).update(|mut $state| $handler)?;
-                    Ok(HandleResponse::default())
-                }
-            )+ }
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! query {
-    (
-        $Enum:ident ($Deps:ident, $Msg:ident) { $(
-            $MsgType:ident ( $(,$arg1:ident),* ) $handler:block
-        )+ }
-    ) => {
-        use cosmwasm_std::{to_binary, Binary};
-        use crate::msg::$Enum;
-        use self::state::config_read;
-        pub fn query <S: Storage, A: Api, Q: Querier> (
-            $Deps: &Extern<S, A, Q>,
-            $Msg:  $Enum,
-        ) -> StdResult<Binary> {
-            match $Msg { $(
-                $Enum::$MsgType { $($arg1),* } => $handler,
-            )+ }
-        }
+        pub struct $Msg { $(pub $arg: $type),* }
     }
 }

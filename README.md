@@ -1,10 +1,10 @@
 # fadroma
 
-Contains the `contract!` macro and its modules,
-`state!`, `message!`, `messages!`, `handle!` and `query!`.
+Contains the `contract!` macro.
 
-The aim of these macros is to reduce the boilerplate around writing CosmWasm
-contracts, leaving just the actual business logic in view.
+The aim of this macro is to cut away all the repetitive boilerplate code
+around writing CosmWasm contracts, leaving just the actual implementation
+in view.
 
 ## Example usage
 
@@ -14,9 +14,10 @@ contracts, leaving just the actual business logic in view.
 #[macro_use] extern crate fadroma;
 contract!(
     b"config"
-    InitMsg (deps, env, msg: { value: i32 }) -> State {
-        value: i32           = msg.value,
-        owner: CanonicalAddr = deps.api.canonical_address(&env.message.sender)?
+    InitMsg (deps, env, msg: {}) -> State {
+        token_contract: None,
+        admin:          None,
+        launched:       None
     }
     QueryMsg (deps, msg) {
         Equals () {
