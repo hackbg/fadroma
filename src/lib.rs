@@ -52,18 +52,45 @@ macro_rules! contract {
 
         // Contract implementation
         pub mod contract {
-            state!($ConfigKey, $StateType ($InitDeps, $InitEnv, $InitMsg) {
-                $($StateKey : $StateKeyType = $StateKeyValue),*
-            }, config, config_read);
+            //state!($ConfigKey, $StateType ($InitDeps, $InitEnv, $InitMsg) {
+                //$($StateKey : $StateKeyType = $StateKeyValue),*
+            //}, config, config_read);
+            use schemars::JsonSchema;
+            use serde::{Deserialize, Serialize};
+            use cosmwasm_std::Storage;
+            use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
+            pub static CONFIG_KEY: &[u8] = $ConfigKey;
+            #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+            pub struct $StateType {
+                $(pub $StateKey: $StateKeyType),*
+            }
+            pub fn config<S: Storage>(storage: &mut S) -> Singleton<S, $StateType> {
+                singleton(storage, CONFIG_KEY)
+            }
+            pub fn config_read<S: Storage>(storage: &S) -> ReadonlySingleton<S, $StateType> {
+                singleton_read(storage, CONFIG_KEY)
+            }
+
+            use cosmwasm_std::{Api, Env, Extern, InitResponse, Querier, StdResult};
+            pub fn init<S: Storage, A: Api, Q: Querier>(
+                $InitDeps: &mut Extern<S, A, Q>,
+                $InitEnv:  Env,
+                $InitMsg:  crate::msg::InitMsg,
+            ) -> StdResult<InitResponse> {
+                let state = self::State {
+                    $( $StateKey: $StateKeyValue ),*
+                };
+                self::config(&mut $InitDeps.storage).save(&state)?;
+                Ok(InitResponse::default())
+            }
 
             use cosmwasm_std::{to_binary, Binary};
             use super::msg::$QueryMsgEnum;
-            use self::state::config_read;
             pub fn query <S: Storage, A: Api, Q: Querier> (
                 $QueryDeps: &Extern<S, A, Q>,
                 $QueryMsg:  $QueryMsgEnum,
             ) -> StdResult<Binary> {
-                let state = config_read(&$QueryDeps.storage).load()?;
+                let $QueryState = config_read(&$QueryDeps.storage).load()?;
                 match $QueryMsg { $(
                     $QueryMsgEnum::$QueryMsgType { $($QueryMsgArg,)* } => $QueryMsgHandler,
                 )* }
@@ -71,7 +98,6 @@ macro_rules! contract {
 
             use cosmwasm_std::HandleResponse;
             use super::msg::$HandleMsgEnum;
-            use self::state::config;
             pub fn handle <S: Storage, A: Api, Q: Querier> (
                 $HandleDeps: &mut Extern<S, A, Q>,
                 $HandleEnv:  Env,
@@ -111,47 +137,6 @@ macro_rules! contract {
             }
             // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
             // automatically because we `use cosmwasm_std`.
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! state {
-    (
-        $ConfigKey:literal,
-        $State:ident ( $InitDeps:ident, $InitEnv:ident, $InitMsg:ident )
-        { $( $StateKey:ident : $StateType:ty = $StateInitValue:expr ),* },
-        $Config:ident, $ConfigRead:ident
-    ) => {
-        pub mod state {
-            use schemars::JsonSchema;
-            use serde::{Deserialize, Serialize};
-            use cosmwasm_std::Storage;
-            use cosmwasm_storage::{singleton, singleton_read, ReadonlySingleton, Singleton};
-            pub static CONFIG_KEY: &[u8] = $ConfigKey;
-            #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-            pub struct $State {
-                $(pub $StateKey: $StateType),*
-            }
-            pub fn $Config<S: Storage>(storage: &mut S) -> Singleton<S, $State> {
-                singleton(storage, CONFIG_KEY)
-            }
-            pub fn $ConfigRead<S: Storage>(storage: &S) -> ReadonlySingleton<S, $State> {
-                singleton_read(storage, CONFIG_KEY)
-            }
-        }
-
-        use cosmwasm_std::{Api, Env, Extern, InitResponse, Querier, StdResult, Storage};
-        pub fn init<S: Storage, A: Api, Q: Querier>(
-            $InitDeps: &mut Extern<S, A, Q>,
-            $InitEnv:  Env,
-            $InitMsg:  crate::msg::InitMsg,
-        ) -> StdResult<InitResponse> {
-            let state = self::state::State {
-                $( $StateKey: $StateInitValue ),*
-            };
-            self::state::config(&mut $InitDeps.storage).save(&state)?;
-            Ok(InitResponse::default())
         }
     }
 }
