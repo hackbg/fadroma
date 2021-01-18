@@ -22,6 +22,7 @@ macro_rules! contract {
         }
 
         $HandleMsgEnum:ident (
+            $HandleSender:ident,
             $HandleMsg:ident,
             &mut $HandleState:ident,
             $HandleEnv:ident,
@@ -71,7 +72,10 @@ macro_rules! contract {
                 singleton_read(storage, CONFIG_KEY)
             }
 
-            use cosmwasm_std::{Api, Env, Extern, InitResponse, Querier, StdResult};
+            use cosmwasm_std::{
+                Api, Env, Extern, InitResponse,
+                Querier, StdResult, StdError
+            };
             pub fn init<S: Storage, A: Api, Q: Querier>(
                 $InitDeps: &mut Extern<S, A, Q>,
                 $InitEnv:  Env,
@@ -105,6 +109,7 @@ macro_rules! contract {
             ) -> StdResult<HandleResponse> {
                 match $HandleMsg { $(
                     $HandleMsgEnum::$HandleMsgType { $($HandleMsgArg),* } => {
+                        let $HandleSender = $HandleDeps.api.canonical_address(&$HandleEnv.message.sender)?;
                         config(&mut $HandleDeps.storage).update(|mut $HandleState| $HandleMsgHandler)?;
                         Ok(HandleResponse::default())
                     }
