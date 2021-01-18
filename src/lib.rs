@@ -12,8 +12,9 @@ macro_rules! contract {
         }
 
         $QueryMsgEnum:ident (
-            $QueryDeps:ident,
-            $QueryMsg:ident
+            $QueryMsg:ident,
+            $QueryState:ident,
+            $QueryDeps:ident
         ) {
             $($QueryMsgType:ident (
                 $($QueryMsgArg:ident : $QueryMsgArgType:ty),*
@@ -21,14 +22,15 @@ macro_rules! contract {
         }
 
         $HandleMsgEnum:ident (
-            $HandleDeps:ident,
+            $HandleMsg:ident,
+            &mut $HandleState:ident,
             $HandleEnv:ident,
-            $HandleMsg:ident
-        ) { $(
-            $HandleMsgType:ident {
+            $HandleDeps:ident
+        ) {
+            $($HandleMsgType:ident (
                 $($HandleMsgArg:ident : $HandleMsgArgType:ty),*
-            } (&mut $HandleMsgState:ident) $HandleMsgHandler:block
-        ),* }
+            ) $HandleMsgHandler:block),*
+        }
 
         $ResponseEnum:ident {
             $($Response:ident {
@@ -41,11 +43,11 @@ macro_rules! contract {
             use schemars::JsonSchema;
             use serde::{Deserialize, Serialize};
             message!($InitMsgType { $($InitMsgArg: $InitMsgArgType),* });
+            $(message!($Response { $($ResponseArg: $ResponseArgType),* });),*
             messages!(
                 $QueryMsgEnum  {$($QueryMsgType {$($QueryMsgArg: $QueryMsgArgType),*})*}
                 $HandleMsgEnum {$($HandleMsgType {$($HandleMsgArg: $HandleMsgArgType),*})*}
             );
-            $(message!($Response { $($ResponseArg: $ResponseArgType),* });),*
         }
 
         // Contract implementation
@@ -61,8 +63,9 @@ macro_rules! contract {
                 $QueryDeps: &Extern<S, A, Q>,
                 $QueryMsg:  $QueryMsgEnum,
             ) -> StdResult<Binary> {
+                let state = config_read(&$QueryDeps.storage).load()?;
                 match $QueryMsg { $(
-                    $QueryMsgEnum::$QueryMsgType { $(QueryMsgArg,)* } => $handler,
+                    $QueryMsgEnum::$QueryMsgType { $($QueryMsgArg,)* } => $QueryMsgHandler,
                 )* }
             }
 
@@ -76,7 +79,7 @@ macro_rules! contract {
             ) -> StdResult<HandleResponse> {
                 match $HandleMsg { $(
                     $HandleMsgEnum::$HandleMsgType { $($HandleMsgArg),* } => {
-                        config(&mut $HandleDeps.storage).update(|mut $HandleMsgState| $HandleMsgHandler)?;
+                        config(&mut $HandleDeps.storage).update(|mut $HandleState| $HandleMsgHandler)?;
                         Ok(HandleResponse::default())
                     }
                 )* }
