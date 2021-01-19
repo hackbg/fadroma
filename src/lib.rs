@@ -118,14 +118,25 @@ macro_rules! contract {
             $(
                 message!($NS { $($Key: $Type),* });
                 impl $NS {
+
+                    pub fn save <
+                        S: Storage
+                    > (storage: &mut S, data: $NS) -> StdResult<()> {
+                        Singleton::new(
+                            storage,
+                            &to_vec(stringify!($NS)).unwrap()
+                        ).save(&data)
+                    }
+
                     pub fn read <
                         S: Storage
-                    > (storage: &S) -> ReadonlySingleton<S, $NS> {
+                    > (storage: &S) -> StdResult<$NS> {
                         ReadonlySingleton::new(
                             storage,
                             &to_vec(stringify!($NS)).unwrap()
-                        )
+                        ).load()
                     }
+
                     pub fn update <
                         S: Storage,
                         A: FnOnce($NS) -> StdResult<$NS>
@@ -138,6 +149,7 @@ macro_rules! contract {
                 }
             )*
         }
+        $(use self::state::$NS;)*
     };
 
     (@init (
@@ -157,9 +169,9 @@ macro_rules! contract {
             $Env:  cosmwasm_std::Env,
             $Msg:  msg::InitMsg,
         ) -> cosmwasm_std::StdResult<cosmwasm_std::InitResponse> {
-            $(state::$StateNS::update(
+            $(state::$StateNS::save(
                 &mut $Deps.storage,
-                |_| $StateNS { $($StateField: $StateValue),* }
+                $StateNS { $($StateField: $StateValue),* }
             );)*
             Ok(cosmwasm_std::InitResponse::default())
         }
@@ -172,29 +184,32 @@ macro_rules! contract {
                     $Code:block
                 )*
             })*
-        }) => {
-            pub fn query <
-                S: cosmwasm_std::Storage,
-                A: cosmwasm_std::Api,
-                Q: cosmwasm_std::Querier
-            > (
-                $Deps: &cosmwasm_std::Extern<S, A, Q>,
-                $Msg:  msg::$NS
-            ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> {
-                match $Msg { $(
-                    msg::$NS::$MsgType { $($Arg,)* } => {
-                        $(
-                            contract!(@query_stage $State $StateNS $Code);
-                            let $State = $StateNS::read(&$Deps.storage)?;
-                            cosmwasm_std::to_binary(&$Code)
-                        );*
-                    }
-                )* }
-            }
-        };
+        }
+    ) => {
+        pub fn query <
+            S: cosmwasm_std::Storage,
+            A: cosmwasm_std::Api,
+            Q: cosmwasm_std::Querier
+        > (
+            $Deps: &cosmwasm_std::Extern<S, A, Q>,
+            $Msg:  msg::$NS
+        ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> {
+            match $Msg { $(
+                msg::$NS::$MsgType { $($Arg,)* } => cosmwasm_std::to_binary("")
+                    //$(
+                        //contract!(@query_stage $Deps ($State: $StateNS) { $Code })
+                    //),*
+                //}
+            )* }
+        }
+    };
 
     (@query_stage
-        $State:ident $StateNS:ident $Code:block) => {};
+        $Deps:ident ($($State:ident : $StateNS:ident),*) { $Code:block }
+    ) => {
+        $(let $State = $StateNS::read(&$Deps.storage)?);*;
+        cosmwasm_std::to_binary(&$Code)
+    };
 
     (@handle
         $NS:ident (
