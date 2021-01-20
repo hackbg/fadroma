@@ -180,9 +180,7 @@ macro_rules! contract {
     (@query
         $NS:ident ( $Deps:ident, $Msg:ident ) {
             $($MsgType:ident ( $($Arg:ident : $ArgType:ty),* ) {
-                $(($State:ident : $StateNS:ident)
-                    $Code:block
-                )*
+                ($($State:ident : $StateNS:ident),*) $Code:block
             })*
         }
     ) => {
@@ -194,30 +192,17 @@ macro_rules! contract {
             $Deps: &cosmwasm_std::Extern<S, A, Q>,
             $Msg:  msg::$NS
         ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> {
-            match $Msg { $(
-                msg::$NS::$MsgType { $($Arg,)* } => cosmwasm_std::to_binary("")
-                    //$(
-                        //contract!(@query_stage $Deps ($State: $StateNS) { $Code })
-                    //),*
-                //}
-            )* }
+            match $Msg {
+                $(msg::$NS::$MsgType { $($Arg,)* } => {//cosmwasm_std::to_binary("")
+                    $(let $State = $StateNS::read(&$Deps.storage)?);*;
+                    cosmwasm_std::to_binary(&$Code)
+                })*
+            }
         }
     };
 
-    (@query_stage
-        $Deps:ident ($($State:ident : $StateNS:ident),*) { $Code:block }
-    ) => {
-        $(let $State = $StateNS::read(&$Deps.storage)?);*;
-        cosmwasm_std::to_binary(&$Code)
-    };
-
     (@handle
-        $NS:ident (
-            $Deps:ident,
-            $Env:ident,
-            $Sender:ident,
-            $Msg:ident
-        ) {
+        $NS:ident ($Deps:ident, $Env:ident, $Sender:ident, $Msg:ident) {
             $($MsgType:ident ( $($MsgArg:ident : $MsgArgType:ty),* ) {
                 $(($HandleState:ident : $(&mut)? $HandleStateNS:ident)
                     $HandleMsgHandler:block)*
@@ -233,53 +218,46 @@ macro_rules! contract {
                 $Env:  cosmwasm_std::Env,
                 $Msg:  msg::$NS,
             ) -> cosmwasm_std::StdResult<cosmwasm_std::HandleResponse> {
-                match $Msg { $(
-                    msg::$NS::$MsgType { $($MsgArg),* } => {
-
+                match $Msg {
+                    $(msg::$NS::$MsgType { $($MsgArg),* } => {
                         let $Sender = $Deps.api.canonical_address(
                             &$Env.message.sender
                         )?;
-
                         Ok(cosmwasm_std::HandleResponse::default())
-
-                    }
-                )* }
+                    })*
+                }
             }
         };
 
     (@handle_stage
-        $State:ident &mut $StateNS:ident $Code:block) => {};
+        $Deps:ident $State:ident &mut $StateNS:ident $Code:block
+    ) => {
+        state::$StateNS::update(
+            &mut $Deps.storage,
+            |mut $State: $StateNS| {
+                match $Code {
+                    Ok ($HandleState) => Ok ($HandleState),
+                    Err(msg)          => Err(msg)
+                }
+            }
+        );
+    };
 
     (@handle_stage
-        $State:ident $StateNS:ident $Code:block) => {};
-
-    //// Handle stage: TODO document
-    //(@handle_stage
-        //$HandleStateNS:ident,
-        //$HandleDeps:ident,
-        //$HandleEnv:ident,
-        //$HandleMsg:ident,
-        //$HandleMsgEnum:ident
-    //)=>{
-        //state::$HandleStateNS::update(
-            //&mut $HandleDeps.storage,
-            //|mut $HandleState: $HandleStateNS| {
-                //let result = $HandleMsgHandler;
-                //match result {
-                    //Ok ($HandleState) => Ok ($HandleState),
-                    //Err(msg)          => Err(msg)
-                //}
-            //}
-        //);
-    //};
+        $State:ident $StateNS:ident $Code:block
+    ) => {
+        $(let $State = $StateNS::read(&$Deps.storage)?);*;
+        $Code
+    };
 
     (@responses
         $ResponseEnum:ident {
             $($Response:ident {
                 $($ResponseArg:ident : $ResponseArgType:ty),*
             }),*
-        }) => {
-        };
+        }
+    ) => {
+    };
 }
 
 #[macro_export]
