@@ -60,10 +60,6 @@ macro_rules! contract {
             $($HandleMsgType ($($HandleArg : $HandleArgType),*) $HandleMsgBody),*
         });
 
-        //contract!(@responses $RespEnum {
-            //$($Resp { $RespField : $RespFieldType }),*
-        //});
-
         // Public interface to the contract
         pub mod msg {
             message!($InitMsgType { $($InitMsgArg: $InitMsgArgType),* });
@@ -192,20 +188,19 @@ macro_rules! contract {
             $Deps: &cosmwasm_std::Extern<S, A, Q>,
             $Msg:  msg::$NS
         ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> {
-            match $Msg {
-                $(msg::$NS::$MsgType { $($Arg,)* } => {//cosmwasm_std::to_binary("")
+            cosmwasm_std::to_binary(&match $Msg {
+                $(msg::$NS::$MsgType { $($Arg,)* } => {
                     $(let $State = $StateNS::read(&$Deps.storage)?);*;
-                    cosmwasm_std::to_binary(&$Code)
+                    $Code
                 })*
-            }
+            })
         }
     };
 
     (@handle
         $NS:ident ($Deps:ident, $Env:ident, $Sender:ident, $Msg:ident) {
             $($MsgType:ident ( $($MsgArg:ident : $MsgArgType:ty),* ) {
-                $(($HandleState:ident : $(&mut)? $HandleStateNS:ident)
-                    $HandleMsgHandler:block)*
+                $(($State:ident : $(&mut)? $StateNS:ident) $Code:block)*
             }),*
         }) => {
             // Action handling
@@ -250,14 +245,6 @@ macro_rules! contract {
         $Code
     };
 
-    (@responses
-        $ResponseEnum:ident {
-            $($Response:ident {
-                $($ResponseArg:ident : $ResponseArgType:ty),*
-            }),*
-        }
-    ) => {
-    };
 }
 
 #[macro_export]
