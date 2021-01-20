@@ -13,28 +13,30 @@ macro_rules! contract {
             $InitDeps:ident, $InitEnv:ident, $InitMsg:ident : {
                 $($InitMsgArg:ident : $InitMsgArgType:ty),*
             }
-        ) $InitBody:tt
+        ) $InitBody:block
 
         // Define query messages and how they're handled
-        $QueryMsgEnum:ident (
+        $QueryNS:ident (
             $QueryDeps:ident,
+            $QueryState:ident,
             $QueryMsg:ident
         ) {
-            $($QueryMsgType:ident (
-                $($QueryArg:ident : $QueryArgType:ty),*
-            ) $QueryMsgBody:tt)*
+            $($QueryMsgType:ident ($(
+                $QueryMsgArg:ident : $QueryMsgArgType:ty
+            ),*) $QueryMsgBody:tt)*
         }
 
         // Define transaction messages and how they're handled
-        $HandleMsgEnum:ident (
+        $HandleNS:ident (
             $HandleDeps:ident,
             $HandleEnv:ident,
             $HandleSender:ident,
+            $HandleState:ident,
             $HandleMsg:ident
         ) {
-            $($HandleMsgType:ident (
-                $($HandleArg:ident : $HandleArgType:ty),*
-            ) $HandleMsgBody:tt),*
+            $($HandleMsgType:ident ($(
+                $HandleMsgArg:ident : $HandleMsgArgType:ty
+            ),*) $HandleMsgBody:tt)*
         }
 
         // Define possible responses
@@ -42,7 +44,12 @@ macro_rules! contract {
             $($Resp:ident { $($RespField:ident : $RespFieldType:ty),* }),*
         }
 
-    )=> {
+    ) => {
+
+        // This macro has several sub-sections.
+        // (An earlier version, as published [here](https://github.com/hackbg/hello-secret-network/blob/97b85f426b07751a40e628d7d237155c335216b6/src/macros.rs)
+        // has them implemented as separate macros.)
+        // They are called in turn below:
 
         contract!(@state $StateType $StateBody);
 
@@ -50,31 +57,42 @@ macro_rules! contract {
             $($InitMsgArg : $InitMsgArgType),*
         }) $InitBody);
 
-        contract!(@query $QueryMsgEnum ($QueryDeps, $QueryMsg) {
-            $($QueryMsgType ($($QueryArg : $QueryArgType),*) $QueryMsgBody)*
+        contract!(@query $QueryNS ($QueryDeps, $QueryState, $QueryMsg) {
+            $($QueryMsgType ($($QueryMsgArg:$QueryMsgArgType),*)
+                $QueryMsgBody)*
         });
 
-        contract!(@handle $HandleMsgEnum (
-            $HandleDeps, $HandleEnv, $HandleSender, $HandleMsg
-        ) {
-            $($HandleMsgType ($($HandleArg : $HandleArgType),*) $HandleMsgBody),*
-        });
+        contract!(@handle $HandleNS (
+            $HandleDeps, $HandleEnv, $HandleSender, $HandleState, $HandleMsg
+        ) { $(
+            $HandleMsgType
+            ($($HandleMsgArg:$HandleMsgArgType),*)
+            $HandleMsgBody
+        )* });
 
-        // Public interface to the contract
+        // The reason sub-section parameters are not just passed as a `tt`
+        // but need to be expanded in the initial invocation of the macro
+        // is the following module, which represents the public interface
+        // of the contract:
         pub mod msg {
+            // The argument sets of the {Init,Query,Handle}Msg handlers
+            // are used to automatically generate the corresponding
+            // protocol messages; only responses can't be inferred.
+            // TODO or can they?
             message!($InitMsgType { $($InitMsgArg: $InitMsgArgType),* });
-            $(message!($Resp { $($RespField: $RespFieldType),* });),*
             messages!(
-                $QueryMsgEnum {
-                    $($QueryMsgType {$($QueryArg: $QueryArgType),*})*
+                $QueryNS {
+                    $($QueryMsgType {$($QueryMsgArg: $QueryMsgArgType),*})*
                 }
-                $HandleMsgEnum {
-                    $($HandleMsgType {$($HandleArg: $HandleArgType),*})*
+                $HandleNS {
+                    $($HandleMsgType {$($HandleMsgArg: $HandleMsgArgType),*})*
                 }
             );
+            $(message!($Resp { $($RespField: $RespFieldType),* });),*
         }
 
         // WASM interface (entry point)
+        // This is mostly to be left alone.
         #[cfg(target_arch = "wasm32")]
         mod wasm {
             use super::contract;
@@ -103,94 +121,55 @@ macro_rules! contract {
     };
 
     (@state
-        $Root:ident { $($NS:ident { $($Key:ident : $Type:ty),* })*
-    }) => {
-        pub mod state {
-            use cosmwasm_std::{StdResult, Storage, to_vec};
-            use cosmwasm_storage::{
-                singleton, singleton_read,
-                ReadonlySingleton, Singleton
-            };
-            $(
-                message!($NS { $($Key: $Type),* });
-                impl $NS {
-
-                    pub fn save <
-                        S: Storage
-                    > (storage: &mut S, data: $NS) -> StdResult<()> {
-                        Singleton::new(
-                            storage,
-                            &to_vec(stringify!($NS)).unwrap()
-                        ).save(&data)
-                    }
-
-                    pub fn read <
-                        S: Storage
-                    > (storage: &S) -> StdResult<$NS> {
-                        ReadonlySingleton::new(
-                            storage,
-                            &to_vec(stringify!($NS)).unwrap()
-                        ).load()
-                    }
-
-                    pub fn update <
-                        S: Storage,
-                        A: FnOnce($NS) -> StdResult<$NS>
-                    > (storage: &mut S, action: A) -> StdResult<$NS> {
-                        Singleton::new(
-                            storage,
-                            &to_vec(stringify!($NS)).unwrap()
-                        ).update(action)
-                    }
-                }
-            )*
+        $State:ident { $($Key:ident : $Type:ty),* }
+    ) => {
+        message!($State { $($Key:$Type),* });
+        pub static CONFIG_KEY: &[u8] = b"";
+        pub fn get_state_rw<S: cosmwasm_std::Storage>(storage: &mut S)
+            -> cosmwasm_storage::Singleton<S, $State> {
+            cosmwasm_storage::singleton(storage, CONFIG_KEY)
         }
-        $(use self::state::$NS;)*
+        pub fn get_state_ro<S: cosmwasm_std::Storage>(storage: &S)
+            -> cosmwasm_storage::ReadonlySingleton<S, $State> {
+            cosmwasm_storage::singleton_read(storage, CONFIG_KEY)
+        }
     };
 
-    (@init (
-        $Deps:ident, $Env:ident, $Msg:ident : {
-            $($MsgField:ident : $MsgFieldType:ty),*
-        }
-    ) {
-        $($StateNS:ident : { $($StateField:ident : $StateValue:expr),* })*
-    }) => {
+    (@init ($deps:ident, $env:ident, $msg:ident : {
+        $($msg_field:ident : $msg_field_type:ty),*
+    }) $body:block
+    ) => {
         // Contract initialisation
         pub fn init<
             S: cosmwasm_std::Storage,
             A: cosmwasm_std::Api,
             Q: cosmwasm_std::Querier
         >(
-            $Deps: &mut cosmwasm_std::Extern<S, A, Q>,
-            $Env:  cosmwasm_std::Env,
-            $Msg:  msg::InitMsg,
+            $deps: &mut cosmwasm_std::Extern<S, A, Q>,
+            $env:  cosmwasm_std::Env,
+            $msg:  msg::InitMsg,
         ) -> cosmwasm_std::StdResult<cosmwasm_std::InitResponse> {
-            $(state::$StateNS::save(
-                &mut $Deps.storage,
-                $StateNS { $($StateField: $StateValue),* }
-            );)*
+            get_state_rw(&mut $deps.storage).save(&$body);
             Ok(cosmwasm_std::InitResponse::default())
         }
-        };
+    };
 
     (@query
-        $NS:ident ( $Deps:ident, $Msg:ident ) {
-            $($MsgType:ident ( $($Arg:ident : $ArgType:ty),* ) {
-                ($($State:ident : $StateNS:ident),*) $Code:block
-            })*
-        }
+        $NS:ident ( $deps:ident, $state:ident, $msg:ident ) {
+            $($Msg:ident ( $($msg_field:ident : $msg_field_type:ty),* )
+                $Code:block)* }
     ) => {
         pub fn query <
             S: cosmwasm_std::Storage,
             A: cosmwasm_std::Api,
             Q: cosmwasm_std::Querier
         > (
-            $Deps: &cosmwasm_std::Extern<S, A, Q>,
-            $Msg:  msg::$NS
+            $deps: &cosmwasm_std::Extern<S, A, Q>,
+            $msg:  msg::$NS
         ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> {
-            cosmwasm_std::to_binary(&match $Msg {
-                $(msg::$NS::$MsgType { $($Arg,)* } => {
-                    $(let $State = $StateNS::read(&$Deps.storage)?);*;
+            cosmwasm_std::to_binary(&match $msg {
+                $(msg::$NS::$Msg { $($msg_field,)* } => {
+                    let $state = get_state_ro(&$deps.storage).load()?;
                     $Code
                 })*
             })
@@ -198,11 +177,12 @@ macro_rules! contract {
     };
 
     (@handle
-        $NS:ident ($Deps:ident, $Env:ident, $Sender:ident, $Msg:ident) {
-            $($MsgType:ident ( $($MsgArg:ident : $MsgArgType:ty),* ) {
-                $(($State:ident : $(&mut)? $StateNS:ident) $Code:block)*
-            }),*
-        }) => {
+        $NS:ident (
+            $Deps:ident, $Env:ident, $Sender:ident, $State:ident, $Msg:ident
+        ) {
+            $($MsgType:ident ( $($MsgArg:ident : $MsgArgType:ty),* )
+                $Code:block)* }
+    ) => {
             // Action handling
             pub fn handle <
                 S: cosmwasm_std::Storage,
@@ -223,27 +203,6 @@ macro_rules! contract {
                 }
             }
         };
-
-    (@handle_stage
-        $Deps:ident $State:ident &mut $StateNS:ident $Code:block
-    ) => {
-        state::$StateNS::update(
-            &mut $Deps.storage,
-            |mut $State: $StateNS| {
-                match $Code {
-                    Ok ($HandleState) => Ok ($HandleState),
-                    Err(msg)          => Err(msg)
-                }
-            }
-        );
-    };
-
-    (@handle_stage
-        $State:ident $StateNS:ident $Code:block
-    ) => {
-        $(let $State = $StateNS::read(&$Deps.storage)?);*;
-        $Code
-    };
 
 }
 
