@@ -178,9 +178,9 @@ macro_rules! contract {
 
     (@handle
         $NS:ident (
-            $Deps:ident, $Env:ident, $Sender:ident, $State:ident, $Msg:ident
+            $deps:ident, $env:ident, $sender:ident, $state:ident, $msg:ident
         ) {
-            $($MsgType:ident ( $($MsgArg:ident : $MsgArgType:ty),* )
+            $($Msg:ident ( $($arg:ident : $arg_type:ty),* )
                 $Code:block)* }
     ) => {
             // Action handling
@@ -189,15 +189,16 @@ macro_rules! contract {
                 A: cosmwasm_std::Api,
                 Q: cosmwasm_std::Querier
             > (
-                $Deps: &mut cosmwasm_std::Extern<S, A, Q>,
-                $Env:  cosmwasm_std::Env,
-                $Msg:  msg::$NS,
+                $deps: &mut cosmwasm_std::Extern<S, A, Q>,
+                $env:  cosmwasm_std::Env,
+                $msg:  msg::$NS,
             ) -> cosmwasm_std::StdResult<cosmwasm_std::HandleResponse> {
-                match $Msg {
-                    $(msg::$NS::$MsgType { $($MsgArg),* } => {
-                        let $Sender = $Deps.api.canonical_address(
-                            &$Env.message.sender
+                match $msg {
+                    $(msg::$NS::$Msg { $($arg),* } => {
+                        let $sender = $deps.api.canonical_address(
+                            &$env.message.sender
                         )?;
+                        get_state_rw(&mut $deps.storage).update(|mut $state| $Code)?;
                         Ok(cosmwasm_std::HandleResponse::default())
                     })*
                 }
