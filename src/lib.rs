@@ -70,6 +70,8 @@ macro_rules! contract {
             $HandleMsgBody
         )* });
 
+        contract!(@handle_results);
+
         // The reason sub-section parameters are not just passed as a `tt`
         // but need to be expanded in the initial invocation of the macro
         // is the following module, which represents the public interface
@@ -149,8 +151,10 @@ macro_rules! contract {
             $env:  cosmwasm_std::Env,
             $msg:  msg::InitMsg,
         ) -> cosmwasm_std::StdResult<cosmwasm_std::InitResponse> {
-            get_state_rw(&mut $deps.storage).save(&$body);
-            Ok(cosmwasm_std::InitResponse::default())
+            match get_state_rw(&mut $deps.storage).save(&$body) {
+                Err(e) => Err(e),
+                Ok (_) => Ok(cosmwasm_std::InitResponse::default())
+            }
         }
     };
 
@@ -200,12 +204,73 @@ macro_rules! contract {
                         )?;
                         let mut $state = get_state_rw(&mut $deps.storage).load()?;
                         let (new_state, response) = (|| $Code)();
-                        get_state_rw(&mut $deps.storage).save(&new_state);
-                        response
+                        match get_state_rw(&mut $deps.storage).save(&new_state) {
+                            Err(e) => Err(e),
+                            Ok(_) => response
+                        }
                     })*
                 }
             }
         };
+
+    (@handle_results) => {
+
+        fn ok (
+            state: State
+        ) -> (
+            State,
+            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
+        ) {
+            (state, Ok(cosmwasm_std::HandleResponse::default()))
+        }
+
+        fn ok_send (
+            state:        State,
+            from_address: cosmwasm_std::HumanAddr,
+            to_address:   cosmwasm_std::HumanAddr,
+            amount:       Vec<cosmwasm_std::Coin>
+        ) -> (
+            State,
+            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
+        ) {
+            let msg = cosmwasm_std::BankMsg::Send {
+                from_address,
+                to_address,
+                amount
+            };
+            (state, Ok(cosmwasm_std::HandleResponse {
+                log:      vec![],
+                data:     None,
+                messages: vec![cosmwasm_std::CosmosMsg::Bank(msg)],
+            }))
+        }
+
+        fn err_msg (
+            mut state: State,
+            msg:       &str
+        ) -> (
+            State,
+            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
+        ) {
+            state.errors += 1;
+            (state, Err(cosmwasm_std::StdError::GenericErr {
+                msg: String::from(msg),
+                backtrace: None
+            }))
+        }
+
+        fn err_auth (
+            mut state: State
+        ) -> (
+            State,
+            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
+        ) {
+            state.errors += 1;
+            (state, Err(cosmwasm_std::StdError::Unauthorized {
+                backtrace: None
+            }))
+        }
+    };
 
 }
 
