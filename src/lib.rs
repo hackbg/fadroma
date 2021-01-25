@@ -5,43 +5,47 @@ macro_rules! contract {
     (
         // Define the shape of the local datastore
         // which is essentially a collection of singletons.
-        $StateType:ident $StateBody:tt
+        [$State:ident] $state_body:tt
 
         // Define the signature of the init message,
         // and the initial state that an instance starts with.
-        $InitMsgType:ident (
-            $InitDeps:ident, $InitEnv:ident, $InitMsg:ident : {
-                $($InitMsgArg:ident : $InitMsgArgType:ty),*
+        [$InitMsg:ident] (
+            $init_deps:ident,
+            $init_env:ident,
+            $init_msg:ident : {
+                $($init_field:ident : $init_field_type:ty),*
             }
-        ) $InitBody:block
+        ) $init_body:block
 
         // Define query messages and how they're handled
-        $QueryNS:ident (
-            $QueryDeps:ident,
-            $QueryState:ident,
-            $QueryMsg:ident
+        [$QueryMsg:ident] (
+            $query_deps:ident,
+            $query_state:ident,
+            $query_msg:ident
         ) {
             $($QueryMsgType:ident ($(
-                $QueryMsgArg:ident : $QueryMsgArgType:ty
-            ),*) $QueryMsgBody:tt)*
+                $query_field:ident : $query_field_type:ty
+            ),*) $query_msg_body:tt)*
+        }
+
+        // Define possible query responses
+        [$Response:ident] {
+            $($RespMsgType:ident { $(
+                $resp_field:ident : $resp_field_type:ty
+            ),* })*
         }
 
         // Define transaction messages and how they're handled
-        $HandleNS:ident (
-            $HandleDeps:ident,
-            $HandleEnv:ident,
-            $HandleSender:ident,
-            $HandleState:ident,
-            $HandleMsg:ident
+        [$HandleMsg:ident] (
+            $handle_deps:ident,
+            $handle_env:ident,
+            $handle_sender:ident,
+            $handle_state:ident,
+            $handle_msg:ident
         ) {
             $($HandleMsgType:ident ($(
-                $HandleMsgArg:ident : $HandleMsgArgType:ty
-            ),*) $HandleMsgBody:tt)*
-        }
-
-        // Define possible responses
-        $RespEnum:ident {
-            $($Resp:ident { $($RespField:ident : $RespFieldType:ty),* }),*
+                $handle_field:ident : $handle_field_type:ty
+            ),*) $handle_msg_body:tt)*
         }
 
     ) => {
@@ -51,50 +55,34 @@ macro_rules! contract {
         // has them implemented as separate macros.)
         // They are called in turn below:
 
-        contract!(@state $StateType $StateBody);
-
-        contract!(@init ($InitDeps, $InitEnv, $InitMsg : {
-            $($InitMsgArg : $InitMsgArgType),*
-        }) $InitBody);
-
-        contract!(@query $QueryNS ($QueryDeps, $QueryState, $QueryMsg) {
-            $($QueryMsgType ($($QueryMsgArg:$QueryMsgArgType),*)
-                $QueryMsgBody)*
-        });
-
-        contract!(@handle $HandleNS (
-            $HandleDeps, $HandleEnv, $HandleSender, $HandleState, $HandleMsg
-        ) { $(
-            $HandleMsgType
-            ($($HandleMsgArg:$HandleMsgArgType),*)
-            $HandleMsgBody
-        )* });
-
-        contract!(@handle_results);
-
-        // The reason sub-section parameters are not just passed as a `tt`
-        // but need to be expanded in the initial invocation of the macro
-        // is the following module, which represents the public interface
-        // of the contract:
+        // First, create the `msg` submodule,
+        // which is used for automatic schema generation.
+        // It roughly represents the public interface of the contract.
+        // This is why the sub-section parameters are not just passed down
+        // as opaque `tt`s, but need to be expanded in the root section:
+        use msg::*;
         pub mod msg {
             // The argument sets of the {Init,Query,Handle}Msg handlers
             // are used to automatically generate the corresponding
             // protocol messages; only responses can't be inferred.
             // TODO or can they?
-            message!($InitMsgType { $($InitMsgArg: $InitMsgArgType),* });
+            message!($InitMsg { $($init_field: $init_field_type),* });
             messages!(
-                $QueryNS {
-                    $($QueryMsgType {$($QueryMsgArg: $QueryMsgArgType),*})*
+                $QueryMsg {
+                    $($QueryMsgType {$($query_field: $query_field_type),*})*
                 }
-                $HandleNS {
-                    $($HandleMsgType {$($HandleMsgArg: $HandleMsgArgType),*})*
+                $HandleMsg {
+                    $($HandleMsgType {$($handle_field: $handle_field_type),*})*
+                }
+                $Response {
+                    $($RespMsgType {$($resp_field: $resp_field_type),*})*
                 }
             );
-            $(message!($Resp { $($RespField: $RespFieldType),* });),*
         }
 
         // WASM interface (entry point)
         // This is mostly to be left alone.
+        // TODO optionally support `migrate`?
         #[cfg(target_arch = "wasm32")]
         mod wasm {
             use super::contract;
@@ -120,10 +108,42 @@ macro_rules! contract {
             // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
             // automatically because we `use cosmwasm_std`.
         }
+
+        // See individual subsections for info on what they do:
+        contract!(@state $State $state_body);
+
+        contract!(@init [$InitMsg] (
+            $init_deps,
+            $init_env,
+            $init_msg : { $($init_field : $init_field_type),* }
+        ) $init_body);
+
+        contract!(@query [$QueryMsg -> $Response] (
+            $query_deps,
+            $query_state,
+            $query_msg
+        ) { $(
+            $QueryMsgType ($($query_field:$query_field_type),*)
+                $query_msg_body
+        )* });
+
+        contract!(@handle [$HandleMsg] (
+            $handle_deps,
+            $handle_env,
+            $handle_sender,
+            $handle_state,
+            $handle_msg
+        ) { $(
+            $HandleMsgType ($($handle_field:$handle_field_type),*)
+                $handle_msg_body
+        )* });
+
+        contract!(@handle_results);
+
     };
 
     (@state
-        $State:ident { $($Key:ident : $Type:ty),* }
+        $State:ident { $($Key:ident : $Type:ident),* }
     ) => {
         message!($State { $($Key:$Type),* });
         pub static CONFIG_KEY: &[u8] = b"";
@@ -137,9 +157,13 @@ macro_rules! contract {
         }
     };
 
-    (@init ($deps:ident, $env:ident, $msg:ident : {
-        $($msg_field:ident : $msg_field_type:ty),*
-    }) $body:block
+    (@init
+        [$InitMsg:ident] (
+            $deps:ident,
+            $env:ident,
+            $msg:ident : { $($field:ident : $field_type:ty),* }
+        )
+        $body:block
     ) => {
         // Contract initialisation
         pub fn init<
@@ -149,7 +173,7 @@ macro_rules! contract {
         >(
             $deps: &mut cosmwasm_std::Extern<S, A, Q>,
             $env:  cosmwasm_std::Env,
-            $msg:  msg::InitMsg,
+            $msg:  $InitMsg,
         ) -> cosmwasm_std::StdResult<cosmwasm_std::InitResponse> {
             match get_state_rw(&mut $deps.storage).save(&$body) {
                 Err(e) => Err(e),
@@ -159,9 +183,13 @@ macro_rules! contract {
     };
 
     (@query
-        $NS:ident ( $deps:ident, $state:ident, $msg:ident ) {
-            $($Msg:ident ( $($msg_field:ident : $msg_field_type:ty),* )
-                $Code:block)* }
+        [$QueryMsg:ident -> $Response:ident] (
+            $deps:ident,
+            $state:ident,
+            $msg:ident
+        ) {
+            $($Msg:ident ( $($field:ident : $field_type:ty),* ) $USER:block)*
+        }
     ) => {
         pub fn query <
             S: cosmwasm_std::Storage,
@@ -169,23 +197,24 @@ macro_rules! contract {
             Q: cosmwasm_std::Querier
         > (
             $deps: &cosmwasm_std::Extern<S, A, Q>,
-            $msg:  msg::$NS
+            $msg:  $QueryMsg
         ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> {
-            cosmwasm_std::to_binary(&match $msg {
-                $(msg::$NS::$Msg { $($msg_field,)* } => {
+            let response: $Response = &match $msg {
+                $($QueryMsg::$Msg { $($field,)* } => {
                     let $state = get_state_ro(&$deps.storage).load()?;
-                    $Code
+                    $USER
                 })*
-            })
+            };
+            cosmwasm_std::to_binary(response)
         }
     };
 
     (@handle
-        $NS:ident (
+        [$HandleMsg:ident] (
             $deps:ident, $env:ident, $sender:ident, $state:ident, $msg:ident
         ) {
-            $($Msg:ident ( $($arg:ident : $arg_type:ty),* )
-                $Code:block)* }
+            $($Msg:ident ( $($field:ident : $field_type:ty),* ) $USER:block)*
+        }
     ) => {
             // Action handling
             pub fn handle <
@@ -195,15 +224,15 @@ macro_rules! contract {
             > (
                 $deps: &mut cosmwasm_std::Extern<S, A, Q>,
                 $env:  cosmwasm_std::Env,
-                $msg:  msg::$NS,
+                $msg:  $HandleMsg,
             ) -> cosmwasm_std::StdResult<cosmwasm_std::HandleResponse> {
                 match $msg {
-                    $(msg::$NS::$Msg { $($arg),* } => {
+                    $($HandleMsg::$Msg { $($field),* } => {
                         let $sender = $deps.api.canonical_address(
                             &$env.message.sender
                         )?;
                         let mut $state = get_state_rw(&mut $deps.storage).load()?;
-                        let (new_state, response) = (|| $Code)();
+                        let (new_state, response) = (|| $USER)();
                         match get_state_rw(&mut $deps.storage).save(&new_state) {
                             Err(e) => Err(e),
                             Ok(_) => response
@@ -277,36 +306,30 @@ macro_rules! contract {
 #[macro_export]
 macro_rules! messages {
     (
-        $( $group: ident {
-            $($Msg: ident { $( $arg: ident : $type: ty ),* })*
+        $( $group:ident {
+            $($Msg:ident { $( $field:ident : $type:ty ),* })*
         } )*
-    ) => {
-        $(
-            #[derive(
-                serde::Serialize, serde::Deserialize,
-                Clone, Debug, PartialEq,
-                schemars::JsonSchema
-            )]
-            #[serde(rename_all = "snake_case")]
-            pub enum $group { $($Msg { $($arg : $type),* }),* }
-
-            $(message!($Msg { $($arg: $type),* });)*
-        )* }
-}
-
-#[macro_export]
-macro_rules! message {
-    (
-        $Msg:ident
-        { $( $arg:ident : $type:ty ),* }
-    ) => {
+    ) => { $(
         #[derive(
             serde::Serialize, serde::Deserialize,
             Clone, Debug, PartialEq,
             schemars::JsonSchema
         )]
-        pub struct $Msg { $(pub $arg: $type),* }
-    }
+        #[serde(rename_all = "snake_case")]
+        pub enum $group { $($Msg { $($field : $type),* }),* }
+
+        $(message!($Msg { $($field: $type),* });)*
+    )* }
 }
 
-// TODO: fadroma_derive! to cover types as well as structs
+#[macro_export]
+macro_rules! message {
+    ( $Msg:ident { $( $field:ident : $type:ty ),* } ) => {
+        #[derive(
+            serde::Serialize, serde::Deserialize,
+            Clone, Debug, PartialEq,
+            schemars::JsonSchema
+        )]
+        pub struct $Msg { $(pub $field: $type),* }
+    }
+}
