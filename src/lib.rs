@@ -96,6 +96,7 @@ macro_rules! contract {
             // are used to automatically generate the corresponding
             // protocol messages; only responses can't be inferred.
             // TODO or can they?
+
             message!(pub $Init { $($init_field: $init_field_type),* });
             messages!(
                 $Query {
@@ -158,7 +159,7 @@ macro_rules! contract {
                 $query_msg_body
         )* });
 
-        contract!(@Handle [$Handle] (
+        contract!(@Handle [$Handle $State] (
             $handle_deps,
             $handle_env,
             $handle_sender,
@@ -169,13 +170,11 @@ macro_rules! contract {
                 $handle_msg_body
         )* });
 
-        contract!(@HandleResults);
+        contract!(@HandleResults $State);
 
     };
 
-    (@State
-        $State:ident { $($Key:ident : $Type:ident),* }
-    ) => {
+    (@State $State:ident { $($Key:ident : $Type:ident),* }) => {
         message!(pub $State { $($Key:$Type),* });
         pub static CONFIG_KEY: &[u8] = b"";
         pub fn get_state_rw<S: cosmwasm_std::Storage>(storage: &mut S)
@@ -188,14 +187,15 @@ macro_rules! contract {
         }
     };
 
-    (@Init
-        [$Init:ident] (
-            $deps:ident,
-            $env:ident,
-            $msg:ident : { $($field:ident : $field_type:ty),* }
-        )
-        $body:block
-    ) => {
+    (@Init [$Init:ident] (
+        $deps:ident,
+        $env:ident,
+        $msg:ident : { $($field:ident : $field_type:ty),* }
+    ) $body:block) => {
+
+        type InitResult =
+            cosmwasm_std::StdResult<cosmwasm_std::InitResponse>;
+
         // Contract initialisation
         pub fn init<
             S: cosmwasm_std::Storage,
@@ -205,7 +205,7 @@ macro_rules! contract {
             $deps: &mut cosmwasm_std::Extern<S, A, Q>,
             $env:  cosmwasm_std::Env,
             $msg:  $Init,
-        ) -> cosmwasm_std::StdResult<cosmwasm_std::InitResponse> {
+        ) -> InitResult {
             match get_state_rw(&mut $deps.storage).save(&$body) {
                 Err(e) => Err(e),
                 Ok (_) => Ok(cosmwasm_std::InitResponse::default())
@@ -219,13 +219,18 @@ macro_rules! contract {
     // simultaneously the type definition for its corresponding message.
     // This is used both in Query and Handle with slightly different scopes.
 
-    (@Query
-        [$Query:ident -> $Response:ident] ( // arrow is just for clarity
-            $deps:ident, $state:ident, $msg:ident
-        ) {
-            $($Msg:ident ( $($field:ident : $field_type:ty),* ) $USER:block)*
-        }
-    ) => {
+    // Free stateless queries
+    (@Query [$Query:ident -> $Response:ident] ( // arrow is just for clarity
+        $deps:ident,
+        $state:ident,
+        $msg:ident
+    ) {
+        $($Msg:ident ( $($field:ident : $field_type:ty),* ) $USER:block)*
+    }) => {
+
+        type BinaryResult =
+            cosmwasm_std::StdResult<cosmwasm_std::Binary>;
+
         pub fn query <
             S: cosmwasm_std::Storage,
             A: cosmwasm_std::Api,
@@ -233,70 +238,79 @@ macro_rules! contract {
         > (
             $deps: &cosmwasm_std::Extern<S, A, Q>,
             $msg:  $Query
-        ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> {
-            let response: $Response = match $msg {
+        ) -> BinaryResult {
+            match $msg {
                 $($Query::$Msg { $($field,)* } => {
                     let $state = get_state_ro(&$deps.storage).load()?;
-                    $USER
-                })*
+                    return cosmwasm_std::to_binary(&$USER);
+                },)*
             };
-            cosmwasm_std::to_binary(&response)
         }
+
     };
 
-    (@Handle
-        [$Handle:ident] (
-            $deps:ident, $env:ident, $sender:ident, $state:ident, $msg:ident
-        ) {
-            $($Msg:ident ( $($field:ident : $field_type:ty),* ) $USER:block)*
-        }
-    ) => {
-            // Action handling
-            pub fn handle <
-                S: cosmwasm_std::Storage,
-                A: cosmwasm_std::Api,
-                Q: cosmwasm_std::Querier
-            > (
-                $deps: &mut cosmwasm_std::Extern<S, A, Q>,
-                $env:  cosmwasm_std::Env,
-                $msg:  $Handle,
-            ) -> cosmwasm_std::StdResult<cosmwasm_std::HandleResponse> {
-                match $msg {
-                    $($Handle::$Msg { $($field),* } => {
-                        let $sender = $deps.api.canonical_address(
-                            &$env.message.sender
-                        )?;
-                        let mut $state = get_state_rw(&mut $deps.storage).load()?;
-                        let (new_state, response) = (|| $USER)();
-                        match get_state_rw(&mut $deps.storage).save(&new_state) {
-                            Err(e) => Err(e),
-                            Ok(_) => response
-                        }
-                    })*
-                }
-            }
-        };
+    // Stateful transactions
+    (@Handle [$Handle:ident $State:ident] (
+        $deps:ident,
+        $env:ident,
+        $sender:ident,
+        $state:ident,
+        $msg:ident
+    ) {
+        $($Msg:ident ( $($field:ident : $field_type:ty),* ) $USER:block)*
+    }) => {
 
-    (@HandleResults) => {
+        type HandleResult =
+            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>;
+
+        pub fn handle <
+            S: cosmwasm_std::Storage,
+            A: cosmwasm_std::Api,
+            Q: cosmwasm_std::Querier
+        > (
+            $deps: &mut cosmwasm_std::Extern<S, A, Q>,
+            $env:  cosmwasm_std::Env,
+            $msg:  $Handle,
+        ) -> HandleResult {
+            let $sender = $deps.api.canonical_address(
+                &$env.message.sender
+            )?;
+            let mut store = cosmwasm_storage::singleton(
+                &mut $deps.storage,
+                CONFIG_KEY
+            );
+            let mut $state: State = store.load()?;
+            let (new_state, result) = match $msg {
+                $($Handle::$Msg { $($field),* } => $USER,)*
+            };
+            store.save(&new_state).unwrap();
+            let mut store = cosmwasm_storage::singleton(
+                &mut $deps.storage,
+                CONFIG_KEY
+            );
+            let mut $state: State = store.load().unwrap();
+            result
+        }
+
+    };
+
+    (@HandleResults $State:ident) => {
+
+        type StatefulHandleResult =
+            ($State, cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>);
 
         fn ok (
-            state: State
-        ) -> (
-            State,
-            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
-        ) {
+            state: $State
+        ) -> StatefulHandleResult {
             (state, Ok(cosmwasm_std::HandleResponse::default()))
         }
 
         fn ok_send (
-            state:        State,
+            state:        $State,
             from_address: cosmwasm_std::HumanAddr,
             to_address:   cosmwasm_std::HumanAddr,
             amount:       Vec<cosmwasm_std::Coin>
-        ) -> (
-            State,
-            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
-        ) {
+        ) -> StatefulHandleResult {
             let msg = cosmwasm_std::BankMsg::Send {
                 from_address,
                 to_address,
@@ -310,12 +324,9 @@ macro_rules! contract {
         }
 
         fn err_msg (
-            mut state: State,
+            mut state: $State,
             msg:       &str
-        ) -> (
-            State,
-            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
-        ) {
+        ) -> StatefulHandleResult {
             state.errors += 1;
             (state, Err(cosmwasm_std::StdError::GenericErr {
                 msg: String::from(msg),
@@ -324,16 +335,14 @@ macro_rules! contract {
         }
 
         fn err_auth (
-            mut state: State
-        ) -> (
-            State,
-            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>
-        ) {
+            mut state: $State
+        ) -> StatefulHandleResult {
             state.errors += 1;
             (state, Err(cosmwasm_std::StdError::Unauthorized {
                 backtrace: None
             }))
         }
+
     };
 
 }
