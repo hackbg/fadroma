@@ -198,10 +198,10 @@ macro_rules! contract {
                         let $sender = $deps.api.canonical_address(
                             &$env.message.sender
                         )?;
-                        let $state = get_state_ro(&$deps.storage).load()?;
-                        let (new_state, handle_response) = $Code;
-                        get_state_rw(&$deps.storage).save(&new_state);
-                        Ok(handle_response)
+                        let mut $state = get_state_rw(&mut $deps.storage).load()?;
+                        let (new_state, response) = (|| $Code)();
+                        get_state_rw(&mut $deps.storage).save(&new_state);
+                        response
                     })*
                 }
             }
@@ -243,3 +243,5 @@ macro_rules! message {
         pub struct $Msg { $(pub $arg: $type),* }
     }
 }
+
+// TODO: fadroma_derive! to cover types as well as structs
