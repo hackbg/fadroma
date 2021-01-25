@@ -198,8 +198,10 @@ macro_rules! contract {
                         let $sender = $deps.api.canonical_address(
                             &$env.message.sender
                         )?;
-                        get_state_rw(&mut $deps.storage).update(|mut $state| $Code)?;
-                        Ok(cosmwasm_std::HandleResponse::default())
+                        let $state = get_state_ro(&$deps.storage).load()?;
+                        let (new_state, handle_response) = $Code;
+                        get_state_rw(&$deps.storage).save(&new_state);
+                        Ok(handle_response)
                     })*
                 }
             }
