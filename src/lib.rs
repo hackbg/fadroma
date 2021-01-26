@@ -117,23 +117,23 @@ macro_rules! contract {
         // TODO optionally support `migrate`?
         #[cfg(target_arch = "wasm32")]
         mod wasm {
-            use super::contract;
+            //use super::contract;
             use cosmwasm_std::{ExternalApi, ExternalQuerier, ExternalStorage};
             #[no_mangle] extern "C" fn init (env_ptr: u32, msg_ptr: u32) -> u32 {
                 cosmwasm_std::do_init(
-                    &self::init::<ExternalStorage, ExternalApi, ExternalQuerier>,
+                    &super::init::<ExternalStorage, ExternalApi, ExternalQuerier>,
                     env_ptr, msg_ptr,
                 )
             }
             #[no_mangle] extern "C" fn handle (env_ptr: u32, msg_ptr: u32) -> u32 {
                 cosmwasm_std::do_handle(
-                    &self::handle::<ExternalStorage, ExternalApi, ExternalQuerier>,
+                    &super::handle::<ExternalStorage, ExternalApi, ExternalQuerier>,
                     env_ptr, msg_ptr,
                 )
             }
             #[no_mangle] extern "C" fn query (msg_ptr: u32) -> u32 {
                 cosmwasm_std::do_query(
-                    &self::query::<ExternalStorage, ExternalApi, ExternalQuerier>,
+                    &super::query::<ExternalStorage, ExternalApi, ExternalQuerier>,
                     msg_ptr,
                 )
             }
