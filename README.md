@@ -1,50 +1,60 @@
 # fadroma
 
-Contains the `contract!` macro.
-
-The aim of this macro is to cut away all the repetitive boilerplate code
-around writing CosmWasm contracts, leaving just the actual implementation
-in view.
+Contains the `contract!` macro, which bulldozes all the repetitive
+boilerplate code around writing CosmWasm contracts, and lets you
+define the skeleton of your actual contract logic in a terse syntax.
 
 ## Example usage
 
-(Compare with https://github.com/enigmampc/secret-template/tree/master/src)
+This contract implements a basic calculator. Compare it with
+[the counter implementation in secret-template](https://github.com/enigmampc/secret-template/tree/master/src)
+for perspective.
 
 ```rust
 #[macro_use] extern crate fadroma;
 contract!(
-    b"config"
-    InitMsg (deps, env, msg: {}) -> State {
-        token_contract: None,
-        admin:          None,
-        launched:       None
+    [State] {
+        value: i64
     }
-    QueryMsg (deps, msg) {
+
+    [Init] (deps, env, msg: {
+        initial_value: i64
+    }) {
+        State { value: initial_value }
+    }
+
+    [Query] (deps, state, msg) {
         Equals () {
-            let state = config_read(&deps.storage).load()?;
-            to_binary(&crate::msg::EqualsResponse { value: state.value })
+            state.value
         }
     }
-    HandleMsg (deps, env, msg) {
-        Add {augend:     i32} (&mut state) {
+
+    [Response] {
+        [Equals] { value: i64 }
+    }
+
+    [Handle] (deps, env, sender, state, msg) {
+        Add (augend: i64) {
             state.value += augend;
-            Ok(state)
+            ok(state)
         }
-        Sub {subtrahend: i32} (&mut state) {
+        Sub (subtrahend: i64) {
             state.value -= subtrahend;
-            Ok(state)
+            ok(state)
         }
-        Mul {multiplier: i32} (&mut state) {
+        Mul (multiplier: i64) {
             state.value *= multiplier;
-            Ok(state)
+            ok(state)
         }
-        Div {divisor:    i32} (&mut state) {
-            state.value /= divisor;
-            Ok(state)
+        Div (divisor: i64) {
+            match divisor {
+                0 => err_msg(state, "division by zero"),
+                _ => {
+                    state.value /= divisor;
+                    ok(state)
+                }
+            }
         }
-    }
-    Response {
-        EqualsResponse { value: i32 }
     }
 );
 ```
