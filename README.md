@@ -4,6 +4,15 @@ Contains the `contract!` macro, which bulldozes all the repetitive
 boilerplate code around writing CosmWasm contracts, and lets you
 define the skeleton of your actual contract logic in a terse syntax.
 
+## Limitations
+Method bodies (`Query` and `Handle` blocks) are actually expressions, not blocks.
+This means that early `return` is not supported, and will fail with:
+```
+# TODO add error message
+```
+This is because those "methods" are not actually functions - the macro inlines
+them to `match` cases in a single handler function.
+
 ## Example usage
 
 This contract implements a basic calculator. Compare it with
