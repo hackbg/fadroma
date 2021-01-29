@@ -1,12 +1,22 @@
 #[macro_export]
 macro_rules! message {
-    ( $pub:vis $Msg:ident { $( $field:ident : $type:ty ),* } ) => {
+    ( $pub:vis $Msg:ident {
+        $(
+            $(#[$meta:meta])*
+            $field:ident : $type:ty
+        ),*
+    } ) => {
         #[derive(
             serde::Serialize, serde::Deserialize,
             Clone, Debug, PartialEq,
             schemars::JsonSchema
         )]
-        $pub struct $Msg { $(pub $field: $type),* }
+        $pub struct $Msg {
+            $(
+                $(#[$meta])*
+                $pub $field: $type
+            ),*
+        }
     }
 }
 
@@ -174,8 +184,13 @@ macro_rules! contract {
 
     };
 
-    (@State $State:ident { $($Key:ident : $Type:ident),* }) => {
-        message!(pub $State { $($Key:$Type),* });
+    (@State $State:ident { $(
+        $(#[$meta:meta])*
+        $Key:ident : $Type:ident
+    ),* }) => {
+        message!(pub $State {
+            $($(#[$meta])* $Key:$Type),*
+        });
         pub static CONFIG_KEY: &[u8] = b"";
         pub fn get_state_rw<S: cosmwasm_std::Storage>(storage: &mut S)
             -> cosmwasm_storage::Singleton<S, $State> {
