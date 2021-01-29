@@ -320,6 +320,15 @@ macro_rules! contract {
             (state, Ok(cosmwasm_std::HandleResponse::default()))
         }
 
+        fn ok_msg (
+            state:    $State,
+            messages: Vec<cosmwasm_std::CosmosMsg>
+        ) -> StatefulHandleResult {
+            (state, Ok(cosmwasm_std::HandleResponse {
+                log: vec![], data: None, messages
+            }))
+        }
+
         fn ok_send (
             state:        $State,
             from_address: cosmwasm_std::HumanAddr,
@@ -331,11 +340,7 @@ macro_rules! contract {
                 to_address,
                 amount
             };
-            (state, Ok(cosmwasm_std::HandleResponse {
-                log:      vec![],
-                data:     None,
-                messages: vec![cosmwasm_std::CosmosMsg::Bank(msg)],
-            }))
+            ok_msg(state, [ cosmwasm_std::CosmosMsg::Bank(msg) ])
         }
 
         fn err_msg (
