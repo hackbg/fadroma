@@ -340,7 +340,7 @@ macro_rules! contract {
                 to_address,
                 amount
             };
-            ok_msg(state, [ cosmwasm_std::CosmosMsg::Bank(msg) ])
+            ok_msg(state, vec![ cosmwasm_std::CosmosMsg::Bank(msg) ])
         }
 
         fn err_msg (
