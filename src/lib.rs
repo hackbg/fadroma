@@ -186,7 +186,7 @@ macro_rules! contract {
 
     (@State $State:ident { $(
         $(#[$meta:meta])*
-        $Key:ident : $Type:ident
+        $Key:ident : $Type:ty
     ),* }) => {
         message!(pub $State {
             $($(#[$meta])* $Key:$Type),*
