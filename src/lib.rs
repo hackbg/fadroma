@@ -299,11 +299,6 @@ macro_rules! contract {
                 $($Handle::$Msg { $($field),* } => $USER,)*
             };
             store.save(&new_state).unwrap();
-            let mut store = cosmwasm_storage::singleton(
-                &mut $deps.storage,
-                CONFIG_KEY
-            );
-            let mut $state: State = store.load().unwrap();
             result
         }
 
