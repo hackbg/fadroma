@@ -101,6 +101,7 @@ macro_rules! contract {
         // It roughly represents the public interface of the contract.
         // This is why the sub-section parameters are not just passed down
         // as opaque `tt`s, but need to be expanded in the root section:
+        /// This contract's API.
         pub mod msg {
             // The argument sets of the {Init,Query,Handle}Msg handlers
             // are used to automatically generate the corresponding
@@ -188,6 +189,7 @@ macro_rules! contract {
         $(#[$meta:meta])*
         $Key:ident : $Type:ty
     ),* }) => {
+        /// The contract's state.
         message!(pub $State {
             $($(#[$meta])* $Key:$Type),*
         });
@@ -211,7 +213,7 @@ macro_rules! contract {
         type InitResult =
             cosmwasm_std::StdResult<cosmwasm_std::InitResponse>;
 
-        // Contract initialisation
+        /// Handle initialization.
         pub fn init<
             S: cosmwasm_std::Storage,
             A: cosmwasm_std::Api,
@@ -246,6 +248,7 @@ macro_rules! contract {
         type BinaryResult =
             cosmwasm_std::StdResult<cosmwasm_std::Binary>;
 
+        /// Handle read-only queries.
         pub fn query <
             S: cosmwasm_std::Storage,
             A: cosmwasm_std::Api,
@@ -278,6 +281,7 @@ macro_rules! contract {
         type HandleResult =
             cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>;
 
+        /// Handle transactions.
         pub fn handle <
             S: cosmwasm_std::Storage,
             A: cosmwasm_std::Api,
