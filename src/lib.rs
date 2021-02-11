@@ -22,18 +22,21 @@ macro_rules! message {
 
 #[macro_export]
 macro_rules! messages {
-    (
-        $( $group:ident {
-            $($Msg:ident { $( $field:ident : $type:ty ),* })*
-        } )*
-    ) => { $(
+    ( $( $Enum:ident { $(
+        $(#[$MsgMeta:meta])*
+        $Msg:ident { $(
+            $field:ident : $type:ty
+        ),* }
+    )* } )* ) => { $(
         #[derive(
             serde::Serialize, serde::Deserialize,
             Clone, Debug, PartialEq,
             schemars::JsonSchema
         )]
         #[serde(rename_all = "snake_case")]
-        pub enum $group { $($Msg { $($field : $type),* }),* }
+        pub enum $Enum { $(
+            $(#[$MsgMeta])* $Msg { $($field : $type),* }
+        ),* }
 
         //$(message!($Msg { $($field: $type),* });)*
     )* }
@@ -50,7 +53,7 @@ macro_rules! contract {
 
         // Define the signature of the init message,
         // and the initial state that an instance starts with.
-        [$Init:ident] (
+        $(#[$InitMeta:meta])* [$Init:ident] (
             $init_deps:ident,
             $init_env:ident,
             $init_msg:ident : {
@@ -84,7 +87,7 @@ macro_rules! contract {
             $handle_state:ident,
             $handle_msg:ident
         ) {
-            $($HandleMsg:ident ($(
+            $($(#[$HandleMsgMeta:meta])*  $HandleMsg:ident ($(
                 $handle_field:ident : $handle_field_type:ty
             ),*) $handle_msg_body:tt)*
         }
@@ -110,15 +113,16 @@ macro_rules! contract {
 
             message!(pub $Init { $($init_field: $init_field_type),* });
             messages!(
-                $Query {
-                    $($QueryMsg {$($query_field: $query_field_type),*})*
-                }
-                $Handle {
-                    $($HandleMsg {$($handle_field: $handle_field_type),*})*
-                }
-                $Response {
-                    $($ResponseMsg {$($resp_field: $resp_field_type),*})*
-                }
+                $Query { $(
+                    $QueryMsg {$($query_field: $query_field_type),*}
+                )* }
+                $Handle { $(
+                    $(#[$HandleMsgMeta])*
+                    $HandleMsg {$($handle_field: $handle_field_type),*}
+                )* }
+                $Response { $(
+                    $ResponseMsg {$($resp_field: $resp_field_type),*}
+                )* }
             );
         }
         use msg::{$Init,$Query,$Handle,$Response};
@@ -155,7 +159,7 @@ macro_rules! contract {
         // See individual subsections for info on what they do:
         contract!(@State $State $state_body);
 
-        contract!(@Init [$Init] (
+        contract!(@Init $(#[$InitMeta])* [$Init] (
             $init_deps,
             $init_env,
             $init_msg : { $($init_field : $init_field_type),* }
@@ -177,8 +181,9 @@ macro_rules! contract {
             $handle_state,
             $handle_msg
         ) { $(
-            $HandleMsg ($($handle_field:$handle_field_type),*)
-                $handle_msg_body
+            $HandleMsg (
+                $($handle_field:$handle_field_type),*
+            ) $handle_msg_body
         )* });
 
         contract!(@HandleResults $State);
@@ -204,7 +209,7 @@ macro_rules! contract {
         }
     };
 
-    (@Init [$Init:ident] (
+    (@Init $(#[$meta:meta])* [$Init:ident] (
         $deps:ident,
         $env:ident,
         $msg:ident : { $($field:ident : $field_type:ty),* }
@@ -214,6 +219,7 @@ macro_rules! contract {
             cosmwasm_std::StdResult<cosmwasm_std::InitResponse>;
 
         /// Handle initialization.
+        $(#[$meta])*
         pub fn init<
             S: cosmwasm_std::Storage,
             A: cosmwasm_std::Api,
@@ -242,7 +248,7 @@ macro_rules! contract {
         $state:ident,
         $msg:ident
     ) {
-        $($Msg:ident ( $($field:ident : $field_type:ty),* ) $USER:block)*
+        $($Msg:ident ( $($field:ident : $field_type:ty),* ) $YOUR_CODE_HERE:block)*
     }) => {
 
         type BinaryResult =
@@ -260,7 +266,7 @@ macro_rules! contract {
             match $msg {
                 $($Query::$Msg { $($field,)* } => {
                     let $state = get_state_ro(&$deps.storage).load()?;
-                    return cosmwasm_std::to_binary(&$USER);
+                    return cosmwasm_std::to_binary(&$YOUR_CODE_HERE);
                 },)*
             };
         }
@@ -275,7 +281,11 @@ macro_rules! contract {
         $state:ident,
         $msg:ident
     ) {
-        $($Msg:ident ( $($field:ident : $field_type:ty),* ) $USER:block)*
+        $(
+            $Msg:ident (
+                $($field:ident : $field_type:ty),*
+            ) $YOUR_CODE_HERE:block
+        )*
     }) => {
 
         type HandleResult =
@@ -300,7 +310,7 @@ macro_rules! contract {
             );
             let mut $state: State = store.load()?;
             let (new_state, result) = match $msg {
-                $($Handle::$Msg { $($field),* } => $USER,)*
+                $($Handle::$Msg { $($field),* } => $YOUR_CODE_HERE,)*
             };
             store.save(&new_state).unwrap();
             result
