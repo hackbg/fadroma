@@ -1,6 +1,6 @@
 [package]
 name = "fadroma"
-version = "0.1.0"
+version = "1.0.0-rc1"
 authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
 
