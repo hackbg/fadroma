@@ -1,377 +1,303 @@
-#[macro_export]
-macro_rules! message {
-    ( $pub:vis $Msg:ident {
-        $(
-            $(#[$meta:meta])*
-            $field:ident : $type:ty
-        ),*
-    } ) => {
-        #[derive(
-            serde::Serialize, serde::Deserialize,
-            Clone, Debug, PartialEq,
-            schemars::JsonSchema
-        )]
-        $pub struct $Msg {
-            $(
-                $(#[$meta])*
-                $pub $field: $type
-            ),*
-        }
-    }
-}
-
-#[macro_export]
-macro_rules! messages {
-    ( $( $Enum:ident { $(
-        $(#[$MsgMeta:meta])*
-        $Msg:ident { $(
-            $field:ident : $type:ty
-        ),* }
-    )* } )* ) => { $(
-        #[derive(
-            serde::Serialize, serde::Deserialize,
-            Clone, Debug, PartialEq,
-            schemars::JsonSchema
-        )]
+/// define an enum that implements the required traits
+#[macro_export] macro_rules! message {
+    ( $Msg:ident { $( $(#[$meta:meta])* $field:ident : $type:ty ),* } ) => {
+        #[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
         #[serde(rename_all = "snake_case")]
-        pub enum $Enum { $(
-            $(#[$MsgMeta])* $Msg { $($field : $type),* }
-        ),* }
+        pub struct $Msg { $( $(#[$meta])* pub $field: $type ),* } } }
 
-        //$(message!($Msg { $($field: $type),* });)*
-    )* }
-}
+/// define an enum with variants that implement the required traits
+#[macro_export] macro_rules! messages {
+    ( $( $Enum:ident { $( $(#[$meta:meta])* $Msg:ident { $( $field:ident : $type:ty ),* } )* } )*
+    ) => { $(
+        #[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
+        #[serde(rename_all = "snake_case")]
+        pub enum $Enum { $( $(#[$meta])* $Msg { $($field : $type),* } ),* } )* } }
 
-#[macro_export]
-macro_rules! contract {
-
-    // Entry point of the macro.
+/// Provides the scaffolding for a smart contract.
+#[macro_export] macro_rules! contract {
+    // Entry point of the macro. Call this to define a contract
     (
-        // Define the shape of the local datastore
-        // which is essentially a collection of singletons.
-        [$State:ident] $state_body:tt
+        // Define the shape of the local datastore.
+        [$State:ident]
+        $state_body:tt
 
         // Define the signature of the init message,
         // and the initial state that an instance starts with.
-        $(#[$InitMeta:meta])* [$Init:ident] (
-            $init_deps:ident,
-            $init_env:ident,
-            $init_msg:ident : {
-                $($init_field:ident : $init_field_type:ty),*
-            }
+        $(#[$InitMeta:meta])*
+        [$Init:ident]
+        ( $init_deps:ident
+        , $init_env:ident
+        , $init_msg:ident : { $($init_field:ident : $init_field_type:ty),* }
         ) $init_body:block
 
-        // Define query messages and how they're handled
-        [$Query:ident] (
-            $query_deps:ident,
-            $query_state:ident,
-            $query_msg:ident
-        ) {
-            $($QueryMsg:ident ($(
-                $query_field:ident : $query_field_type:ty
-            ),*) $query_msg_body:tt)*
-        }
+        // Define query messages and how they're handled:
+        [$Q:ident]
+        ( $q_deps:ident
+        , $q_state:ident
+        , $q_msg:ident)
+        { $($QMsg:ident ($($q_field:ident : $q_field_type:ty),*) $q_msg_body:tt )* }
 
-        // Define possible query responses
-        [$Response:ident] {
-            $($ResponseMsg:ident { $(
-                $resp_field:ident : $resp_field_type:ty
-            ),* })*
-        }
+        // Define possible responses:
+        [$Response:ident]
+        { $($ResponseMsg:ident { $($resp_field:ident : $resp_field_type:ty),* })* }
 
-        // Define transaction messages and how they're handled
-        [$Handle:ident] (
-            $handle_deps:ident,
-            $handle_env:ident,
-            $handle_sender:ident,
-            $handle_state:ident,
-            $handle_msg:ident
-        ) {
-            $($(#[$HandleMsgMeta:meta])*  $HandleMsg:ident ($(
-                $handle_field:ident : $handle_field_type:ty
-            ),*) $handle_msg_body:tt)*
-        }
-
+        // Define transaction messages and how they're handled:
+        [$TX:ident]
+        ( $tx_deps:ident
+        , $tx_env:ident
+        , $tx_state:ident
+        , $tx_msg:ident )
+        { $( $(#[$TXMsgMeta:meta])* $TXMsg:ident
+             ($( $tx_field:ident : $tx_field_type:ty),*)
+             $tx_msg_body:tt )* }
     ) => {
-
-        // This macro has several sub-sections.
-        // (An earlier version, as published [here](https://github.com/hackbg/hello-secret-network/blob/97b85f426b07751a40e628d7d237155c335216b6/src/macros.rs)
-        // has them implemented as separate macros.)
-        // They are called in turn below:
-
-        // First, create the `msg` submodule,
-        // which is used for automatic schema generation.
-        // It roughly represents the public interface of the contract.
-        // This is why the sub-section parameters are not just passed down
-        // as opaque `tt`s, but need to be expanded in the root section:
-        /// This contract's API.
+        /// import commonly used things that need to be available everywhere in the contract
+        macro_rules! prelude {
+            () => { pub use cosmwasm_std::{
+                Storage, Api, Querier, Extern, Env,
+                HumanAddr, CanonicalAddr, Coin, Uint128,
+                StdResult, StdError,
+                InitResponse, HandleResponse, LogAttribute, Binary,
+                CosmosMsg, BankMsg }; }; }
+        /// This contract's on-chain API.
         pub mod msg {
-            // The argument sets of the {Init,Query,Handle}Msg handlers
-            // are used to automatically generate the corresponding
-            // protocol messages; only responses can't be inferred.
-            // TODO or can they?
-
-            message!(pub $Init { $($init_field: $init_field_type),* });
+            // * The argument sets of the {Init,Query,Handle}Msg handlers
+            //   are used to automatically generate the corresponding
+            //   protocol messages.
+            //   * This is why the @Q/@TX/@Response sub-sections are not just passed in as opaque `tt`s
+            //   * Only responses can't be inferred and need to be pre-defined.
+            //   * Although, with some more macro trickery, they could be defined in place
+            //     (e.g. the return types of $Q handlers could be defined as
+            //     `-> Foo { field: type }` and then populated with `return Self { field: value }`
+            //   * Let's revisit this once some we have some more examples of custom responses
+            message!($Init { $($init_field: $init_field_type),* });
             messages!(
-                $Query { $(
-                    $QueryMsg {$($query_field: $query_field_type),*}
-                )* }
-                $Handle { $(
-                    $(#[$HandleMsgMeta])*
-                    $HandleMsg {$($handle_field: $handle_field_type),*}
-                )* }
-                $Response { $(
-                    $ResponseMsg {$($resp_field: $resp_field_type),*}
-                )* }
+                $Q        { $( $QMsg {$($q_field: $q_field_type),*} )* }
+                $TX       { $( $(#[$TXMsgMeta])* $TXMsg {$($tx_field: $tx_field_type),*} )* }
+                $Response { $( $ResponseMsg {$($resp_field: $resp_field_type),*} )* }
             );
         }
-        use msg::{$Init,$Query,$Handle,$Response};
+        use msg::{$Init,$Q,$TX,$Response};
 
-        // WASM interface (entry point)
-        // This is mostly to be left alone.
+        // WASM interface (entry point). Similar in spirit to `create_entry_points`:
+        // https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49
+        // but it doesn't need the `init/handle/query` trinity to be defined in a
+        // separate sibling module (the `super::contract` on line 65 of `entry_points.rs`)
         // TODO optionally support `migrate`?
         #[cfg(target_arch = "wasm32")]
         mod wasm {
             //use super::contract;
-            use cosmwasm_std::{ExternalApi, ExternalQuerier, ExternalStorage};
+            use cosmwasm_std::{
+                ExternalStorage as Storage, ExternalApi as Api, ExternalQuerier as Querier,
+                do_init, do_handle, do_query
+            };
+            use super::{init, handle, query};
             #[no_mangle] extern "C" fn init (env_ptr: u32, msg_ptr: u32) -> u32 {
-                cosmwasm_std::do_init(
-                    &super::init::<ExternalStorage, ExternalApi, ExternalQuerier>,
-                    env_ptr, msg_ptr,
-                )
+                do_init(&init::<Storage, Api, Querier>, env_ptr, msg_ptr)
             }
             #[no_mangle] extern "C" fn handle (env_ptr: u32, msg_ptr: u32) -> u32 {
-                cosmwasm_std::do_handle(
-                    &super::handle::<ExternalStorage, ExternalApi, ExternalQuerier>,
-                    env_ptr, msg_ptr,
-                )
+                do_handle(&handle::<Storage, Api, Querier>, env_ptr, msg_ptr)
             }
             #[no_mangle] extern "C" fn query (msg_ptr: u32) -> u32 {
-                cosmwasm_std::do_query(
-                    &super::query::<ExternalStorage, ExternalApi, ExternalQuerier>,
-                    msg_ptr,
-                )
+                do_query(&query::<Storage, Api, Querier>, msg_ptr,)
             }
             // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
             // automatically because we `use cosmwasm_std`.
         }
 
-        // See individual subsections for info on what they do:
-        contract!(@State $State $state_body);
-
-        contract!(@Init $(#[$InitMeta])* [$Init] (
-            $init_deps,
-            $init_env,
-            $init_msg : { $($init_field : $init_field_type),* }
-        ) $init_body);
-
-        contract!(@Query [$Query -> $Response] (
-            $query_deps,
-            $query_state,
-            $query_msg
-        ) { $(
-            $QueryMsg ($($query_field:$query_field_type),*)
-                $query_msg_body
-        )* });
-
-        contract!(@Handle [$Handle $State] (
-            $handle_deps,
-            $handle_env,
-            $handle_sender,
-            $handle_state,
-            $handle_msg
-        ) { $(
-            $HandleMsg (
-                $($handle_field:$handle_field_type),*
-            ) $handle_msg_body
-        )* });
-
-        contract!(@HandleResults $State);
+        prelude!();
+        use cosmwasm_storage::singleton;
+        contract!(@State; $State $state_body);
+        contract!(@Init; $(#[$InitMeta])* [$Init]
+            ($init_deps, $init_env, $init_msg : { $($init_field : $init_field_type),* })
+            $init_body);
+        contract!(@Q; $Q ( $q_deps, $q_state: $State, $q_msg ) -> $Response
+            { $( $QMsg ($($q_field:$q_field_type),*) $q_msg_body )* });
+        contract!(@TX; $TX ($tx_deps, $tx_env, $tx_state: $State, $tx_msg)
+            { $( $TXMsg ( $($tx_field:$tx_field_type),* ) $tx_msg_body )* });
 
     };
 
-    (@State $State:ident { $(
-        $(#[$meta:meta])*
-        $Key:ident : $Type:ty
-    ),* }) => {
+    (@State; // define the state struct and methods to access it
+        $State:ident
+        { $( $(#[$meta:meta])* $Key:ident : $Type:ty ),* }
+    ) => {
         /// The contract's state.
-        message!(pub $State {
-            $($(#[$meta])* $Key:$Type),*
-        });
+        message!($State { $($(#[$meta])* $Key:$Type),* });
+        use cosmwasm_storage::{Singleton, ReadonlySingleton, singleton_read};
         pub static CONFIG_KEY: &[u8] = b"";
-        pub fn get_state_rw<S: cosmwasm_std::Storage>(storage: &mut S)
-            -> cosmwasm_storage::Singleton<S, $State> {
-            cosmwasm_storage::singleton(storage, CONFIG_KEY)
+        pub fn get_store_rw<S: Storage>(storage: &mut S) -> Singleton<S, $State> {
+            singleton(storage, CONFIG_KEY)
         }
-        pub fn get_state_ro<S: cosmwasm_std::Storage>(storage: &S)
-            -> cosmwasm_storage::ReadonlySingleton<S, $State> {
-            cosmwasm_storage::singleton_read(storage, CONFIG_KEY)
+        pub fn get_store_ro<S: Storage>(storage: &S) -> ReadonlySingleton<S, $State> {
+            singleton_read(storage, CONFIG_KEY)
         }
     };
 
-    (@Init $(#[$meta:meta])* [$Init:ident] (
-        $deps:ident,
-        $env:ident,
-        $msg:ident : { $($field:ident : $field_type:ty),* }
-    ) $body:block) => {
-
-        type InitResult =
-            cosmwasm_std::StdResult<cosmwasm_std::InitResponse>;
-
-        /// Handle initialization.
+    (@Init; // define the handler for the init message
+        $(#[$meta:meta])* [$Init:ident]
+        ( $deps:ident, $env:ident, $msg:ident : { $($field:ident : $field_type:ty),* })
+        $body:block
+    ) => {
+        /// Handle init message.
         $(#[$meta])*
-        pub fn init<
-            S: cosmwasm_std::Storage,
-            A: cosmwasm_std::Api,
-            Q: cosmwasm_std::Querier
-        >(
-            $deps: &mut cosmwasm_std::Extern<S, A, Q>,
-            $env:  cosmwasm_std::Env,
-            $msg:  $Init,
+        pub fn init<S: Storage, A: Api, Q: Querier>(
+            $deps: &mut Extern<S, A, Q>, $env: Env, $msg: $Init,
         ) -> InitResult {
-            match get_state_rw(&mut $deps.storage).save(&$body) {
-                Err(e) => Err(e),
-                Ok (_) => Ok(cosmwasm_std::InitResponse::default())
+            get_store_rw(&mut $deps.storage).save(&$body)?;
+            Ok(InitResponse::default())
+        }
+        type InitResult = StdResult<InitResponse>;
+    };
+
+    (@Q; // define query message variants and their handlers
+        $Q:ident ($deps:ident, $state:ident : $State:ty, $msg:ident) -> $Response:ident
+        { $($Msg:ident ( $($field:ident : $field_type:ty),* ) $method_body:block)* }
+    ) => {
+        /// Query dispatcher.
+        pub fn query <S: Storage, A: Api, Q: Querier> (
+            $deps: &Extern<S, A, Q>, $msg: $Q
+        ) -> StdResult<Binary> {
+            // get a read-only snapshot of the contract state
+            let $state = get_store_ro(&$deps.storage).load()?;
+            // find the matching handler and return
+            // TODO remove the `to_binary`/make it optional?
+            let result = cosmwasm_std::to_binary(&match $msg {
+                $( $Q::$Msg {..} => self::query::$Msg($deps, $state, $msg), )*
+            })?;
+            Ok(result)
+        }
+        mod query {
+            prelude!();
+            use super::*;
+            use super::msg::$Response;
+            // define a handler for every query message variant
+            $(pub fn $Msg <S: Storage, A: Api, Q: Querier>(
+                $deps: &Extern<S, A, Q>, $state: $State, $msg: $Q,
+            ) -> $Response {
+                // destructure the message
+                if let super::$Q::$Msg {$($field),*} = $msg {
+                    // perform user-specified actions
+                    $method_body
+                } else {
+                    unreachable!()
+                }
+            })*
+        }
+    };
+
+    (@TX; // define transaction message variants and their handlers
+        $TX:ident ( $deps:ident, $env:ident, $state:ident : $State:ty, $msg:ident )
+        { $($Msg:ident ( $($field:ident : $field_type:ty),* ) $method_body:block)* }
+    ) => {
+        /// Error type containing mutated state that will be saved
+        pub struct HandleError((StdError, Option<$State>));
+        impl From<StdError> for HandleError {
+            /// **WARNING**: if `?` operator returns error, any state changes will be ignored
+            /// * That's where the abstraction leaks, if only a tiny bit.
+            ///   * Maybe implement handlers as closures that keep the state around.
+            fn from (error: StdError) -> Self {
+                HandleError((error, None))
             }
         }
-    };
-
-    // PATTERN:
-    // Simulated "closures" (lexical contexts) provide a familiar interface
-    // over simulated "methods" (`match` branches) whose arguments are
-    // simultaneously the type definition for its corresponding message.
-    // This is used both in Query and Handle with slightly different scopes.
-
-    // Free stateless queries
-    (@Query [$Query:ident -> $Response:ident] ( // arrow is just for clarity
-        $deps:ident,
-        $state:ident,
-        $msg:ident
-    ) {
-        $($Msg:ident ( $($field:ident : $field_type:ty),* ) $YOUR_CODE_HERE:block)*
-    }) => {
-
-        type BinaryResult =
-            cosmwasm_std::StdResult<cosmwasm_std::Binary>;
-
-        /// Handle read-only queries.
-        pub fn query <
-            S: cosmwasm_std::Storage,
-            A: cosmwasm_std::Api,
-            Q: cosmwasm_std::Querier
-        > (
-            $deps: &cosmwasm_std::Extern<S, A, Q>,
-            $msg:  $Query
-        ) -> BinaryResult {
-            match $msg {
-                $($Query::$Msg { $($field,)* } => {
-                    let $state = get_state_ro(&$deps.storage).load()?;
-                    return cosmwasm_std::to_binary(&$YOUR_CODE_HERE);
-                },)*
+        /// Result type containing mutated state that will be saved
+        pub type HandleResult = Result<(HandleResponse, Option<$State>), HandleError>;
+        /// Transaction dispatcher
+        pub fn handle <S: Storage, A: Api, Q: Querier> (
+            $deps: &mut Extern<S, A, Q>, $env: Env, $msg: $TX,
+        ) -> StdResult<HandleResponse> {
+            // pick the handler that matches the message and call it:
+            let result = match $msg {
+                $( $TX::$Msg {..} => self::handle::$Msg($deps, $env, $msg), )*
             };
+            // separate the state from the rest of the result
+            let state: Option<$State>;
+            let returned: StdResult<HandleResponse>;
+            match result {
+                Ok((response, next_state)) => {
+                    state = next_state;
+                    returned = Ok(response);
+                },
+                Err(HandleError((error, next_state))) => {
+                    state = next_state;
+                    returned = Err(error);
+                }
+            }
+            // if there was a state update in the result, save it now
+            if let Some(state) = state {
+                let mut store = cosmwasm_storage::singleton(&mut $deps.storage, CONFIG_KEY);
+                store.save(&state)?;
+            }
+            return returned;
         }
-
-    };
-
-    // Stateful transactions
-    (@Handle [$Handle:ident $State:ident] (
-        $deps:ident,
-        $env:ident,
-        $sender:ident,
-        $state:ident,
-        $msg:ident
-    ) {
-        $(
-            $Msg:ident (
-                $($field:ident : $field_type:ty),*
-            ) $YOUR_CODE_HERE:block
-        )*
-    }) => {
-
-        type HandleResult =
-            cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>;
-
-        /// Handle transactions.
-        pub fn handle <
-            S: cosmwasm_std::Storage,
-            A: cosmwasm_std::Api,
-            Q: cosmwasm_std::Querier
-        > (
-            $deps: &mut cosmwasm_std::Extern<S, A, Q>,
-            $env:  cosmwasm_std::Env,
-            $msg:  $Handle,
-        ) -> HandleResult {
-            let $sender = $deps.api.canonical_address(
-                &$env.message.sender
-            )?;
-            let mut store = cosmwasm_storage::singleton(
-                &mut $deps.storage,
-                CONFIG_KEY
-            );
-            let mut $state: State = store.load()?;
-            let (new_state, result) = match $msg {
-                $($Handle::$Msg { $($field),* } => $YOUR_CODE_HERE,)*
-            };
-            store.save(&new_state).unwrap();
-            result
+        mod handle {
+            prelude!();
+            use super::*;
+            /// `ok!` is a variadic macro that takes up to 4 arguments:
+            /// * `next`: the modified state to be saved
+            /// * `msgs`: messages to return to the chain
+            /// * `logs`: custom data to log
+            /// * `data`: blob of data to return
+            macro_rules! ok {
+                (_, $msgs:expr, $logs:expr, $data: expr) => {
+                    Ok((HandleResponse { messages: $msgs, log: $logs, data: Some($data) }, None))
+                };
+                ($next:ident, $msgs:expr, $logs:expr, $data: expr) => {
+                    Ok((HandleResponse { messages: $msgs, log: $logs, data: Some($data) }, Some($next)))
+                };
+                (_, $msgs:expr, $logs:expr) => {
+                    Ok((HandleResponse { messages: $msgs, log: $logs, data: None }, None))
+                };
+                ($next:ident, $msgs:expr, $logs:expr) => {
+                    Ok((HandleResponse { messages: $msgs, log: $logs, data: None }, Some($next)))
+                };
+                (_, $msgs:expr) => {
+                    Ok((HandleResponse { messages: $msgs, log: vec![], data: None }, None))
+                };
+                ($next:ident, $msgs:expr) => {
+                    Ok((HandleResponse { messages: $msgs, log: vec![], data: None }, Some($next)))
+                };
+                ($next:ident) => {
+                    Ok((HandleResponse::default(), Some($next)))
+                };
+                () => {
+                    Ok((HandleResponse::default(), None))
+                };
+            }
+            // define a handler for every tx message variant
+            $(pub fn $Msg <S: Storage, A: Api, Q: Querier>(
+                $deps: &mut Extern<S, A, Q>,
+                $env:  Env,
+                $msg:  $TX,
+            ) -> HandleResult {
+                // get mutable snapshot of current state:
+                //let mut store: Singleton<'_, S, $State> =
+                    //cosmwasm_storage::singleton(&mut $deps.storage, CONFIG_KEY);
+                let mut store = get_store_rw(&mut $deps.storage);
+                match store.load() {
+                    Ok(mut $state) => {
+                        // destructure the message
+                        if let super::$TX::$Msg {$($field),*} = $msg {
+                            // perform user-specified actions
+                            $method_body
+                        } else {
+                            unreachable!()
+                        }
+                    },
+                    Err(e) => Err(e.into())
+                }
+            })*
+            fn err (mut state: $State, err: StdError) -> HandleResult {
+                state.errors += 1;
+                Err(HandleError((err, Some(state))))
+            }
+            fn err_msg (mut state: $State, msg: &str) -> HandleResult {
+                return err(state, StdError::GenericErr { msg: String::from(msg), backtrace: None })
+            }
+            fn err_auth (mut state: $State) -> HandleResult {
+                return err(state, StdError::Unauthorized { backtrace: None })
+            }
         }
-
-    };
-
-    (@HandleResults $State:ident) => {
-
-        type StatefulHandleResult =
-            ($State, cosmwasm_std::StdResult<cosmwasm_std::HandleResponse>);
-
-        fn ok (
-            state: $State
-        ) -> StatefulHandleResult {
-            (state, Ok(cosmwasm_std::HandleResponse::default()))
-        }
-
-        fn ok_msg (
-            state:    $State,
-            messages: Vec<cosmwasm_std::CosmosMsg>
-        ) -> StatefulHandleResult {
-            (state, Ok(cosmwasm_std::HandleResponse {
-                log: vec![], data: None, messages
-            }))
-        }
-
-        fn ok_send (
-            state:        $State,
-            from_address: cosmwasm_std::HumanAddr,
-            to_address:   cosmwasm_std::HumanAddr,
-            amount:       Vec<cosmwasm_std::Coin>
-        ) -> StatefulHandleResult {
-            let msg = cosmwasm_std::BankMsg::Send {
-                from_address,
-                to_address,
-                amount
-            };
-            ok_msg(state, vec![ cosmwasm_std::CosmosMsg::Bank(msg) ])
-        }
-
-        fn err_msg (
-            mut state: $State,
-            msg:       &str
-        ) -> StatefulHandleResult {
-            state.errors += 1;
-            (state, Err(cosmwasm_std::StdError::GenericErr {
-                msg: String::from(msg),
-                backtrace: None
-            }))
-        }
-
-        fn err_auth (
-            mut state: $State
-        ) -> StatefulHandleResult {
-            state.errors += 1;
-            (state, Err(cosmwasm_std::StdError::Unauthorized {
-                backtrace: None
-            }))
-        }
-
     };
 
 }
