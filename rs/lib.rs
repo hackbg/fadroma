@@ -53,12 +53,12 @@
     ) => {
         // import commonly used things that need to be available everywhere in the contract
         macro_rules! prelude {
-            () => { pub use cosmwasm_std::{
+            () => { use cosmwasm_std::{
                 Storage, Api, Querier, Extern, Env,
                 HumanAddr, CanonicalAddr, Coin, Uint128,
                 StdResult, StdError,
                 InitResponse, HandleResponse, LogAttribute, Binary,
-                CosmosMsg, BankMsg }; }; }
+                CosmosMsg, BankMsg, WasmMsg, to_binary }; }; }
         /// This contract's on-chain API.
         pub mod msg {
             // The argument sets of the {Init,Query,Handle}Msg handlers
