@@ -70,6 +70,8 @@
             //   (e.g. the return types of $Q handlers could be defined as
             //   `-> Foo { field: type }` and then populated with `return Self { field: value }`
             // * Let's revisit this once some we have some more examples of custom responses
+            prelude!();
+            use super::*;
             message!($Init { $($init_field: $init_field_type),* });
             messages!(
                 $Q { $(
