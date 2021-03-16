@@ -131,6 +131,7 @@
         pub fn init<S: Storage, A: Api, Q: Querier>(
             $init_deps: &mut Extern<S, A, Q>, $init_env: Env, $init_msg: $Init,
         ) -> InitResult {
+            $(let $init_field : $init_field_type = $init_msg.$init_field;)*
             get_store_rw(&mut $init_deps.storage).save(&$init_body)?;
             Ok(InitResponse::default())
         }
