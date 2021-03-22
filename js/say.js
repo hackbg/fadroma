@@ -1,10 +1,13 @@
-const colors = require('colors/safe')
+import colors from 'colors/safe.js'
+import { render } from 'prettyjson'
 
-module.exports = (function sayer (prefix = '') {
+export function sayer (prefixes = []) {
 
   return Object.assign(say, { tag })
 
   function say (x = {}) {
+
+    const prefix = `#` + prefixes.map(renderPrefix).join(` #`)
 
     if (x instanceof Object) {
       if (x.data instanceof Uint8Array) {
@@ -12,23 +15,36 @@ module.exports = (function sayer (prefix = '') {
       }
       console.log(colors.yellow(`\n${prefix}`))
       if (Object.keys(x).length > 0) {
-        console.log(require('prettyjson').render(x))
+        console.log(render(x))
       }
     } else {
-      console.log(colors.yellow(`\n${prefix}`), require('prettyjson').render(x))
+      console.log(colors.yellow(`\n${prefix}`), render(x))
     }
 
     return x
   }
 
   function tag (x) {
-    return sayer(`${prefix}${x}`)
+    return sayer([...prefixes, x])
   }
 
-})()
+  function renderPrefix (x) {
+    if (x instanceof Function) {
+      return x()
+    } else {
+      return x
+    }
+  }
 
-module.exports.mute = function muteSayer () {
-  Object.assign(x=>x, {
-    tag: () => muteSayer()
+}
+
+const say = sayer()
+
+export default say
+
+export function muted () {
+  return Object.assign(x=>x, {
+    tag: () => muted()
   })
 }
+

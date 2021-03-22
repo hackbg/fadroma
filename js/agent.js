@@ -1,4 +1,15 @@
-module.exports = module.exports.default = class SecretNetworkAgent {
+import { muted } from './say.js'
+import Gas from './gas.js'
+
+import { execFileSync } from 'child_process'
+import { existsSync } from 'fs'
+import { resolve } from 'path'
+import { readFile, writeFile } from 'fs/promises'
+import { Bip39 } from '@cosmjs/crypto'
+import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey, pubkeyToAddress
+       , makeSignBytes } from 'secretjs'
+
+export default class SecretNetworkAgent {
 
   // the API endpoint
 
@@ -7,35 +18,35 @@ module.exports = module.exports.default = class SecretNetworkAgent {
   // ways of creating authenticated clients
 
   static async fromKeyPair ({
-    say     = require('./say').mute(),
+    say     = muted(),
     name    = "",
-    keyPair = require('secretjs').EnigmaUtils.GenerateNewKeyPair()
+    keyPair = EnigmaUtils.GenerateNewKeyPair(),
+    ...args
   }={}) {
-    const mnemonic = require('@cosmjs/crypto').Bip39.encode(keyPair.privkey).data
-    return await SecretNetworkAgent.fromMnemonic({name, mnemonic, keyPair, say})
+    const mnemonic = Bip39.encode(keyPair.privkey).data
+    return await this.fromMnemonic({name, mnemonic, keyPair, say, ...args})
   }
 
   static async fromMnemonic ({
-    say      = require('./say').mute(),
+    say      = muted(),
     name     = "",
     mnemonic = process.env.MNEMONIC,
-    keyPair // optional
+    keyPair, // optional
+    ...args
   }={}) {
-    const pen = await require('secretjs').Secp256k1Pen.fromMnemonic(mnemonic)
-    return new SecretNetworkAgent({name, pen, keyPair, say, mnemonic})
+    const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
+    return new this({name, mnemonic, keyPair, say, pen, ...args})
   }
 
   // initial setup
 
   constructor ({
-    say  = require('./say').mute(),
+    say  = muted(),
     name = "",
     pen,
     keyPair,
     mnemonic,
-    fees = require('./gas').defaultFees,
-    secretjs: { encodeSecp256k1Pubkey, pubkeyToAddress, EnigmaUtils, SigningCosmWasmClient
-              } = require('secretjs')
+    fees = Gas.defaultFees,
   }) {
     Object.assign(this, {
       name, keyPair, pen, mnemonic, fees,
@@ -45,8 +56,9 @@ module.exports = module.exports.default = class SecretNetworkAgent {
     this.address = pubkeyToAddress(this.pubkey, 'secret')
     this.seed    = EnigmaUtils.GenerateNewSeed()
     this.sign    = pen.sign.bind(pen)
-    this.API     = new (require('secretjs').SigningCosmWasmClient)(
-      SecretNetworkAgent.APIURL, this.address, this.sign, this.seed, this.fees)
+    this.API     = new SigningCosmWasmClient(
+      SecretNetworkAgent.APIURL, this.address, this.sign, this.seed, this.fees
+    )
     return this
   }
 
@@ -62,7 +74,6 @@ module.exports = module.exports.default = class SecretNetworkAgent {
   }
 
   async account () {
-    const {execFileSync} = require('child_process')
     const account = JSON.parse(execFileSync('secretcli', [ 'query', 'account', this.address ]))
     return this.say.tag(` #account`)(account)
   }
@@ -102,11 +113,8 @@ module.exports = module.exports.default = class SecretNetworkAgent {
     say=this.say,
     binary
   }) {
-    const {existsSync} = require('fs')
-    const {exists, readFile, writeFile} = require('fs').promises
-
     // resolve binary from build folder
-    binary = require('path').resolve(__dirname, '../../dist', binary)
+    binary = resolve(__dirname, '../../../build/outputs', binary)
 
     // check for past upload receipt
     const receipt = `${binary}.${await this.API.getChainId()}.upload`
@@ -115,8 +123,9 @@ module.exports = module.exports.default = class SecretNetworkAgent {
     }
 
     // if no receipt, upload anew
-    say.tag(' #uploading')(binary)
-    const result = say.tag(' #uploaded')(await this.API.upload(await readFile(binary), {}));
+    say.tag('uploading')(binary)
+    const result = await this.API.upload(await readFile(binary), {})
+    say.tag('uploaded')(result)
     await writeFile(receipt, JSON.stringify(result), 'utf8')
     return result
   }
@@ -124,12 +133,33 @@ module.exports = module.exports.default = class SecretNetworkAgent {
   async instantiate ({ // call init on a new instance
     id, data = {}, label = ''
   }) {
-    const {contractAddress} = await this.API.instantiate(id, data, label)
-    return {
-      id, label,
-      address: contractAddress,
-      hash:    await this.API.getCodeHashByContractAddr(contractAddress)
+    const {contractAddress: address} = await this.API.instantiate(id, data, label)
+    const hash = await this.API.getCodeHashByContractAddr(contractAddress)
+    return { id, label, address, hash }
+  }
+
+  async send (recipient, amount, memo = "") {
+    this.say.tag(' #send')({recipient, amount, memo})
+    if (typeof amount === 'number') amount = String(amount)
+    return await this.API.sendTokens(recipient, [{denom: 'uscrt', amount}], memo)
+  }
+
+  async sendMany (txs = [], memo = "") {
+    this.say.tag(' #sendMany')({txs})
+    const chainId = await this.API.getChainId()
+    const from_address = this.address
+    const {accountNumber, sequence} = await this.API.getNonce(from_address)
+    const msg = []
+    for (let [ to_address, amount ] of txs) {
+      const {accountNumber, sequence} = await this.API.getNonce(from_address)
+      if (typeof amount === 'number') amount = String(amount)
+      const value = {from_address, to_address, amount: [{denom: 'uscrt', amount}]}
+      msg.push({ type: 'cosmos-sdk/MsgSend', value })
     }
+    const fee = this.fees.send
+    const bytes = makeSignBytes(msg, fee, chainId, memo, accountNumber, sequence)
+    const signatures = [await this.sign(bytes)]
+    const { logs, transactionHash } = await this.API.postTx({ msg, fee, memo, signatures })
   }
 
 }

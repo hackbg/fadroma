@@ -2,8 +2,10 @@
   "name": "@hackbg/fadroma",
   "version": "1.1.0",
   "main": "./js/index.js",
+  "type": "module",
   "dependencies": {
     "colors": "^1.4.0",
+    "dockerode": "^3.2.1",
     "prettyjson": "^1.2.1"
   },
   "peerDependencies": {
