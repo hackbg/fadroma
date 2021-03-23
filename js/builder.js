@@ -11,10 +11,10 @@ export default class SecretNetworkBuilder {
     say = mute(),
     buildRoot,
     buildOutputs = resolve(buildRoot, 'outputs'),
-    buildCommand,
+    buildCmd,
     agent
   }) {
-    Object.assign(this, { say, agent, buildCommand, buildOutputs })
+    Object.assign(this, { say, agent, buildCmd, buildOutputs })
   }
 
   async deploy (
@@ -27,7 +27,7 @@ export default class SecretNetworkBuilder {
       commit = 'main',
       agent  = this.agent,
       output = resolve(this.buildOutputs, `${commit}-${name}.wasm`),
-      binary = await this.build(commit, output),
+      binary = await this.build(name, commit, output),
       label  = basename(binary),
       upload = await this.upload(binary, agent),
       codeId = upload.codeId
@@ -35,15 +35,16 @@ export default class SecretNetworkBuilder {
     return new cls({ id: codeId, label, data })
   }
 
-  async build (commit, binary) {
+  async build (name, commit, binary) {
     const say = this.say.tag('build')
     if (existsSync(binary)) {
       say('cached', { binary }) // TODO compare against checksums
     } else {
       say('building', { binary })
-      const [{Error:err, StatusCode:code}, container] = await buildInDocker({
+      const [{Error:err, StatusCode:code}, container] = await buildCommit({
+        name,
         commit,
-        outputs: this.buildOutputs
+        buildOutputs: this.buildOutputs
       })
       await container.remove()
       if (err) throw new Error(err)
@@ -74,38 +75,57 @@ export default class SecretNetworkBuilder {
 
 }
 
-function buildInDocker ({
+export const buildWorkingTree = ({
   builder = 'hackbg/secret-contract-optimizer:latest',
-  origin  = 'git@github.com:hackbg/sienna-secret-token.git',
+  buildAs = 'root',
+  projectRoot,
+  name,
+  buildOutputs,
+} = {}) => new Docker()
+  .run(builder
+      , [name]
+      , process.stdout
+      , { Env: buildEnv()
+        , Tty: true
+        , AttachStdin: true
+        , HostConfig:
+          { Binds: [ `sienna_cache_worktree:/code/target`
+                   , `cargo_cache_worktree:/usr/local/cargo/`
+                   , `${projectRoot}:/contract:rw` ] } })
+
+export const buildCommit = ({
+  builder  = 'hackbg/secret-contract-optimizer:latest',
+  buildAs  = 'root',
+  buildCmd = ['-c', buildCommands(origin, commit, name, buildAs).join(' && ')],
+  origin   = 'git@github.com:hackbg/sienna-secret-token.git',
   commit,
   name,
-  user = 'root',
-  outputs
-}={}) {
-  return new Docker().run(
-    builder,
-    ['-c', [
-      `whoami && pwd && ls / && cat /root/.ssh/known_hosts`,
-      `mkdir -p /contract`,
-      `cd /contract`,
-      `git clone --recursive -n ${origin} .`,
-      `git checkout ${commit}`,
-      `git submodule update`,
-      `chown -r ${user} /contract`,
-      `/entrypoint.sh ${name}`,
-      `ls -al`,
-      `mv ${name}.wasm /output/${commit}-${name}.wasm`
-    ].join(' && ')],
-    process.stdout,
-    { Env: [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
-           , 'CARGO_TERM_VERBOSE=true'
-           , 'CARGO_HTTP_TIMEOUT=240' ]
-    , Entrypoint: '/bin/sh'
-    , HostConfig:
-      { Binds:
-        [ `${outputs}:/output:rw`
-        , `/root/.ssh/id_rsa:/root/.ssh/id_rsa:ro`
-        , `/root/.ssh/known_hosts:/root/.ssh/known_hosts:ro`
-        , `sienna_cache_${commit}:/code/target`
-        , `registry_cache_${commit}:/usr/local/cargo/` ] } })
-}
+  buildOutputs,
+}={}) => new Docker()
+  .run(builder
+      , buildCmd
+      , process.stdout
+      , { Env: buildEnv()
+        , Tty: true
+        , AttachStdin: true
+        , Entrypoint: '/bin/sh'
+        , HostConfig:
+          { Binds: [ `sienna_cache_${commit}:/code/target`
+                   , `cargo_cache_${commit}:/usr/local/cargo/`
+                   , `${buildOutputs}:/output:rw`
+                   , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
+
+export const buildCommands = (origin, commit, name, buildAs) =>
+  [ `mkdir -p /contract && cd /contract`   // establish working directory
+  , `git clone --recursive -n ${origin} .` // get the code
+  , `git checkout ${commit}`               // checkout the expected commit
+  , `git submodule update`                 // update submodules for that commit
+  , `chown -R ${buildAs} /contract && ls`
+  , `/entrypoint.sh ${name}`
+  , `ls -al`
+  , `mv ${name}.wasm /output/${commit}-${name}.wasm` ]
+
+export const buildEnv = () =>
+  [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
+  , 'CARGO_TERM_VERBOSE=true'
+  , 'CARGO_HTTP_TIMEOUT=240' ]

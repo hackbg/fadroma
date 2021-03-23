@@ -18,5 +18,5 @@ export const SecretNetwork = {
   Agent:    SecretNetworkAgent,
   Builder:  SecretNetworkBuilder,
   Contract: SecretNetworkContract,
-  Gas
+  Gas,
 }
