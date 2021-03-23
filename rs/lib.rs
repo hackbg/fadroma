@@ -168,19 +168,18 @@
             })*
         }
 
-        /// Error type containing mutated state to be saved
-        pub struct HandleError((StdError, Option<$State>));
-        impl From<StdError> for HandleError {
+        /// Ok/Err variants containing mutated state to be saved
+        pub type HandleResult = StatefulResult<HandleResponse>;
+        pub type StatefulResult<T> = Result<(T, Option<$State>), StatefulError>;
+        pub struct StatefulError((StdError, Option<$State>));
+        impl From<StdError> for StatefulError {
             /// **WARNING**: if `?` operator returns error, any state changes will be ignored
             /// * That's where the abstraction leaks, if only a tiny bit.
             ///   * Maybe implement handlers as closures that keep the state around.
             fn from (error: StdError) -> Self {
-                HandleError((error, None))
+                StatefulError((error, None))
             }
         }
-
-        /// Result type containing mutated state to be saved
-        pub type HandleResult = Result<(HandleResponse, Option<$State>), HandleError>;
 
         /// Transaction dispatcher
         pub fn handle <S: Storage, A: Api, Q: Querier> (
@@ -198,7 +197,7 @@
                     state = next_state;
                     returned = Ok(response);
                 },
-                Err(HandleError((error, next_state))) => {
+                Err(StatefulError((error, next_state))) => {
                     state = next_state;
                     returned = Err(error);
                 }
@@ -209,6 +208,15 @@
                 store.save(&state)?;
             }
             return returned;
+        }
+        pub fn err<T> (state: $State, err: StdError) -> StatefulResult<T> {
+            Err(StatefulError((err, Some(state))))
+        }
+        pub fn err_msg<T> (state: $State, msg: &str) -> StatefulResult<T> {
+            return err(state, StdError::GenericErr { msg: String::from(msg), backtrace: None })
+        }
+        pub fn err_auth<T> (state: $State) -> StatefulResult<T> {
+            return err(state, StdError::Unauthorized { backtrace: None })
         }
         /// Transaction handlers
         mod handle {
@@ -268,16 +276,6 @@
                     Err(e) => Err(e.into())
                 }
             })*
-            fn err (mut state: $State, err: StdError) -> HandleResult {
-                state.errors += 1;
-                Err(HandleError((err, Some(state))))
-            }
-            fn err_msg (mut state: $State, msg: &str) -> HandleResult {
-                return err(state, StdError::GenericErr { msg: String::from(msg), backtrace: None })
-            }
-            fn err_auth (mut state: $State) -> HandleResult {
-                return err(state, StdError::Unauthorized { backtrace: None })
-            }
         }
     };
 
