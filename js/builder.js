@@ -83,7 +83,7 @@ export const buildWorkingTree = ({
   buildOutputs,
 } = {}) => new Docker()
   .run(builder
-      , [name]
+      , [name, 'HEAD']
       , process.stdout
       , { Env: buildEnv()
         , Tty: true
@@ -91,6 +91,7 @@ export const buildWorkingTree = ({
         , HostConfig:
           { Binds: [ `sienna_cache_worktree:/code/target`
                    , `cargo_cache_worktree:/usr/local/cargo/`
+                   , `${buildOutputs}:/output:rw`
                    , `${projectRoot}:/contract:rw` ] } })
 
 export const buildCommit = ({
@@ -121,7 +122,7 @@ export const buildCommands = (origin, commit, name, buildAs) =>
   , `git checkout ${commit}`               // checkout the expected commit
   , `git submodule update`                 // update submodules for that commit
   , `chown -R ${buildAs} /contract && ls`
-  , `/entrypoint.sh ${name}`
+  , `/entrypoint.sh ${name} ${commit}`
   , `ls -al`
   , `mv ${name}.wasm /output/${commit}-${name}.wasm` ]
 
