@@ -99,15 +99,14 @@
                 ExternalStorage as Storage, ExternalApi as Api, ExternalQuerier as Querier,
                 do_init, do_handle, do_query
             };
-            use super::{init, handle, query};
             #[no_mangle] extern "C" fn init (env_ptr: u32, msg_ptr: u32) -> u32 {
-                do_init(&init::<Storage, Api, Querier>, env_ptr, msg_ptr)
+                do_init(&super::init::<Storage, Api, Querier>, env_ptr, msg_ptr)
             }
             #[no_mangle] extern "C" fn handle (env_ptr: u32, msg_ptr: u32) -> u32 {
-                do_handle(&handle::<Storage, Api, Querier>, env_ptr, msg_ptr)
+                do_handle(&super::handle::<Storage, Api, Querier>, env_ptr, msg_ptr)
             }
             #[no_mangle] extern "C" fn query (msg_ptr: u32) -> u32 {
-                do_query(&query::<Storage, Api, Querier>, msg_ptr,)
+                do_query(&super::query::<Storage, Api, Querier>, msg_ptr,)
             }
             // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
             // automatically because we `use cosmwasm_std`.
