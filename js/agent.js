@@ -93,19 +93,29 @@ export default class SecretNetworkAgent {
     }
   }
 
-  async query ({ name, address }, method='', args={}) {
-    const say = this.say.tag(name).tag(`${method}?`)
-    const response = await this.API.queryContractSmart(address, {[method]:say(args)})
-    return say.tag('returned')(response)
+  async send (recipient, amount, memo = "") {
+    this.say.tag(' #send')({recipient, amount, memo})
+    if (typeof amount === 'number') amount = String(amount)
+    return await this.API.sendTokens(recipient, [{denom: 'uscrt', amount}], memo)
   }
 
-  async execute ({ name, address }, method='', args={}) {
-    const say = this.say.tag(name).tag(`${method}!`)
-    const response = await this.API.execute(address, {[method]:say(args)})
-    return say.tag('returned')(response)
+  async sendMany (txs = [], memo = "") {
+    this.say.tag(' #sendMany')({txs})
+    const chainId = await this.API.getChainId()
+    const from_address = this.address
+    const {accountNumber, sequence} = await this.API.getNonce(from_address)
+    const msg = []
+    for (let [ to_address, amount ] of txs) {
+      const {accountNumber, sequence} = await this.API.getNonce(from_address)
+      if (typeof amount === 'number') amount = String(amount)
+      const value = {from_address, to_address, amount: [{denom: 'uscrt', amount}]}
+      msg.push({ type: 'cosmos-sdk/MsgSend', value })
+    }
+    const fee = this.fees.send
+    const bytes = makeSignBytes(msg, fee, chainId, memo, accountNumber, sequence)
+    const signatures = [await this.sign(bytes)]
+    const { logs, transactionHash } = await this.API.postTx({ msg, fee, memo, signatures })
   }
-
-  // deploy smart contracts to the network:
 
   async upload ({ // upload code blob to the chain
     say=this.say,
@@ -136,28 +146,16 @@ export default class SecretNetworkAgent {
     return { codeId, label, address, hash }
   }
 
-  async send (recipient, amount, memo = "") {
-    this.say.tag(' #send')({recipient, amount, memo})
-    if (typeof amount === 'number') amount = String(amount)
-    return await this.API.sendTokens(recipient, [{denom: 'uscrt', amount}], memo)
+  async query ({ name, address }, method='', args={}) {
+    const say = this.say.tag(name).tag(`${method}?`)
+    const response = await this.API.queryContractSmart(address, {[method]:say(args)})
+    return say.tag('returned')(response)
   }
 
-  async sendMany (txs = [], memo = "") {
-    this.say.tag(' #sendMany')({txs})
-    const chainId = await this.API.getChainId()
-    const from_address = this.address
-    const {accountNumber, sequence} = await this.API.getNonce(from_address)
-    const msg = []
-    for (let [ to_address, amount ] of txs) {
-      const {accountNumber, sequence} = await this.API.getNonce(from_address)
-      if (typeof amount === 'number') amount = String(amount)
-      const value = {from_address, to_address, amount: [{denom: 'uscrt', amount}]}
-      msg.push({ type: 'cosmos-sdk/MsgSend', value })
-    }
-    const fee = this.fees.send
-    const bytes = makeSignBytes(msg, fee, chainId, memo, accountNumber, sequence)
-    const signatures = [await this.sign(bytes)]
-    const { logs, transactionHash } = await this.API.postTx({ msg, fee, memo, signatures })
+  async execute ({ name, address }, method='', args={}) {
+    const say = this.say.tag(name).tag(`${method}!`)
+    const response = await this.API.execute(address, {[method]:say(args)})
+    return say.tag('returned')(response)
   }
 
 }

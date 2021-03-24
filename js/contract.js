@@ -45,24 +45,20 @@ function extendWithSchema (SecretNetworkContract, schema) {
 
     // read-only: the queries generated from the schema
     get q () {
-      return methodsFromSchema(
-        this, this.constructor.schema.queryMsg, (self, methodName) => ({
-          async [methodName] (args, agent = self.agent) {
-            return await self.query(methodName, args, agent)
-          }
-        })
-      )
+      return methodsFromSchema(this, this.constructor.schema.queryMsg, (self, methodName) => ({
+        async [methodName] (args, agent = self.agent) {
+          return await self.query(methodName, args, agent)
+        }
+      }))
     }
 
     // read-only: the transactions generated from the schema
     get tx () {
-      return methodsFromSchema(
-        this, this.constructor.schema.handleMsg, (self, methodName) => ({
-          async [methodName] (args, agent = self.agent) {
-            return await self.execute(methodName, args, agent)
-          }
-        })
-      )
+      return methodsFromSchema(this, this.constructor.schema.handleMsg, (self, methodName) => ({
+        async [methodName] (args, agent = self.agent) {
+          return await self.execute(methodName, args, agent)
+        }
+      }))
     }
   }
 
