@@ -66,7 +66,7 @@ export default class SecretNetworkAgent {
 
   async status () {
     const {header:{time,height}} = await this.API.getBlock()
-    return this.say.tag(' #status')({
+    return this.say.tag('status')({
       time,
       height,
       account: await this.API.getAccount(this.address)
@@ -75,12 +75,12 @@ export default class SecretNetworkAgent {
 
   async account () {
     const account = JSON.parse(execFileSync('secretcli', [ 'query', 'account', this.address ]))
-    return this.say.tag(` #account`)(account)
+    return this.say.tag(`account`)(account)
   }
 
   async time () {
     const {header:{time,height}} = await this.API.getBlock()
-    return this.say.tag(' #time')({time,height})
+    return this.say.tag('time')({time,height})
   }
 
   async waitForNextBlock () {
@@ -94,17 +94,15 @@ export default class SecretNetworkAgent {
   }
 
   async query ({ name, address }, method='', args={}) {
-    this.say.tag(` #${name} #${method}?`)(args)
-    const response = await this.API.queryContractSmart(address, {[method]:args})
-    this.say.tag(` #${name} #${method}? #returned`)(response)
-    return response
+    const say = this.say.tag(name).tag(`${method}?`)
+    const response = await this.API.queryContractSmart(address, {[method]:say(args)})
+    return say.tag('returned')(response)
   }
 
   async execute ({ name, address }, method='', args={}) {
-    this.say.tag(` #${name} #${method}!`)(args)
-    const response = await this.API.execute(address, {[method]:args})
-    this.say.tag(` #${name} #${method}! #returned`)(response)
-    return response
+    const say = this.say.tag(name).tag(`${method}!`)
+    const response = await this.API.execute(address, {[method]:say(args)})
+    return say.tag('returned')(response)
   }
 
   // deploy smart contracts to the network:
