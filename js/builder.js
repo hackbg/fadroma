@@ -22,12 +22,13 @@ export default class SecretNetworkBuilder {
       commit,
       output = resolve(this.outputDir, `${commit}-${name}.wasm`),
       binary = await this.build({name, repo, commit, output}),
-      label  = basename(binary),
+      label  = `${+new Date()}-${basename(binary)}`,
       agent  = this.agent,
       upload = await this.upload(binary, agent),
-      codeId = upload.codeId
+      codeId = upload.codeId,
+      say = muted()
     } = options
-    return new cls({codeId, agent}).init({label, data})
+    return new cls({codeId, agent, say}).init({label, data})
   }
 
   async build ({name, repo, commit, output}) {
