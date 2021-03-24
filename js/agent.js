@@ -134,7 +134,7 @@ export default class SecretNetworkAgent {
     codeId, data = {}, label = ''
   }) {
     const {contractAddress: address} = await this.API.instantiate(codeId, data, label)
-    const hash = await this.API.getCodeHashByContractAddr(contractAddress)
+    const hash = await this.API.getCodeHashByContractAddr(address)
     return { codeId, label, address, hash }
   }
 
