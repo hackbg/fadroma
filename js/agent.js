@@ -131,11 +131,11 @@ export default class SecretNetworkAgent {
   }
 
   async instantiate ({ // call init on a new instance
-    id, data = {}, label = ''
+    codeId, data = {}, label = ''
   }) {
-    const {contractAddress: address} = await this.API.instantiate(id, data, label)
+    const {contractAddress: address} = await this.API.instantiate(codeId, data, label)
     const hash = await this.API.getCodeHashByContractAddr(contractAddress)
-    return { id, label, address, hash }
+    return { codeId, label, address, hash }
   }
 
   async send (recipient, amount, memo = "") {

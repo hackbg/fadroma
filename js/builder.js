@@ -27,7 +27,7 @@ export default class SecretNetworkBuilder {
       upload = await this.upload(binary, agent),
       codeId = upload.codeId
     } = options
-    return new cls({ id: codeId, label, data })
+    return new cls({codeId, agent}).init({label, data})
   }
 
   async build ({name, repo, commit, output}) {

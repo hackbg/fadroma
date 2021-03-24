@@ -12,15 +12,16 @@ export default class SecretNetworkContract {
     return extendWithSchema(this, schema)
   }
 
-  constructor (properties = {}) {
-    return Object.assign(this, properties)
+  constructor ({codeId, agent}={}) {
+    return Object.assign(this, {codeId, agent})
   }
 
-  async init () {
-    const {id, label, data} = this
-    const {address, hash} = await this.agent.instantiate({id, label, data})
-    this.say.tag(` #instantiated`)({ address, hash })
+  async init ({label, data}) {
+    const {codeId} = this
+    const {address, hash} = await this.agent.instantiate({codeId, label, data})
     Object.assign(this, { address, hash })
+    this.say.tag(` #instantiated`)({ address, hash })
+    return this
   }
 
   async query (method = '', args = {}, agent = this.agent) {
