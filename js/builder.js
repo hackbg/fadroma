@@ -1,5 +1,5 @@
 import { existsSync } from 'fs'
-import { readFile } from 'fs/promises'
+import { readFile, writeFile } from 'fs/promises'
 import { resolve, basename } from 'path'
 import { spawnSync } from 'child_process'
 import { homedir} from 'os'
@@ -7,14 +7,8 @@ import Docker from 'dockerode'
 
 export default class SecretNetworkBuilder {
 
-  constructor ({
-    say = mute(),
-    buildRoot,
-    buildOutputs = resolve(buildRoot, 'outputs'),
-    buildCmd,
-    agent
-  }) {
-    Object.assign(this, { say, agent, buildCmd, buildOutputs })
+  constructor ({ say = mute(), outputDir, agent }) {
+    Object.assign(this, { say, agent, outputDir })
   }
 
   async deploy (
@@ -24,42 +18,44 @@ export default class SecretNetworkBuilder {
   ) {
     const {
       name,
-      commit = 'main',
-      agent  = this.agent,
-      output = resolve(this.buildOutputs, `${commit}-${name}.wasm`),
-      binary = await this.build(name, commit, output),
+      repo,
+      commit,
+      output = resolve(this.outputDir, `${commit}-${name}.wasm`),
+      binary = await this.build({name, repo, commit, output}),
       label  = basename(binary),
+      agent  = this.agent,
       upload = await this.upload(binary, agent),
       codeId = upload.codeId
     } = options
     return new cls({ id: codeId, label, data })
   }
 
-  async build (name, commit, binary) {
-    const say = this.say.tag('build')
-    if (existsSync(binary)) {
-      say('cached', { binary }) // TODO compare against checksums
+  async build ({name, repo, commit, output}) {
+    const say = this.say.tag(`build(${name}@${commit})`)
+    if (existsSync(output)) {
+      say.tag('cached')(output) // TODO compare against checksums
     } else {
-      say('building', { binary })
-      const [{Error:err, StatusCode:code}, container] = await buildCommit({
-        name,
-        commit,
-        buildOutputs: this.buildOutputs
-      })
+      say.tag('building')(output)
+      const { outputDir } = this
+      const [{Error:err, StatusCode:code}, container] =
+        (commit === 'HEAD')
+        ? await buildWorkingTree({ name, repo, outputDir })
+        : await buildCommit({ name, commit, outputDir })
       await container.remove()
       if (err) throw new Error(err)
       if (code !== 0) throw new Error(`build exited with status ${code}`)
-      say('built', { binary })
+      say.tag('built')(output)
     }
-    return binary
+    return output
   }
 
   async upload (binary) {
-    const say = this.say.tag('upload')
+    const say = this.say.tag(`upload(${basename(binary)})`)
 
     // check for past upload receipt
     const chainId = await this.agent.API.getChainId()
     const receipt = `${binary}.${chainId}.upload`
+    say({receipt})
     if (existsSync(receipt)) {
       const result = JSON.parse(await readFile(receipt, 'utf8'))
       return say.tag('cached')(result)
@@ -78,9 +74,9 @@ export default class SecretNetworkBuilder {
 export const buildWorkingTree = ({
   builder = 'hackbg/secret-contract-optimizer:latest',
   buildAs = 'root',
-  projectRoot,
+  repo,
   name,
-  buildOutputs,
+  outputDir,
 } = {}) => new Docker()
   .run(builder
       , [name, 'HEAD']
@@ -91,20 +87,20 @@ export const buildWorkingTree = ({
         , HostConfig:
           { Binds: [ `sienna_cache_worktree:/code/target`
                    , `cargo_cache_worktree:/usr/local/cargo/`
-                   , `${buildOutputs}:/output:rw`
-                   , `${projectRoot}:/contract:rw` ] } })
+                   , `${outputDir}:/output:rw`
+                   , `${repo}:/contract:rw` ] } })
 
 export const buildCommit = ({
-  builder  = 'hackbg/secret-contract-optimizer:latest',
-  buildAs  = 'root',
-  buildCmd = ['-c', buildCommands(origin, commit, name, buildAs).join(' && ')],
-  origin   = 'git@github.com:hackbg/sienna-secret-token.git',
+  builder = 'hackbg/secret-contract-optimizer:latest',
+  buildAs = 'root',
+  origin  = 'git@github.com:hackbg/sienna-secret-token.git',
   commit,
   name,
-  buildOutputs,
+  outputDir,
+  buildCommand = ['-c', buildCommands(origin, commit, name, buildAs).join(' && ')],
 }={}) => new Docker()
   .run(builder
-      , buildCmd
+      , buildCommand
       , process.stdout
       , { Env: buildEnv()
         , Tty: true
@@ -113,7 +109,7 @@ export const buildCommit = ({
         , HostConfig:
           { Binds: [ `sienna_cache_${commit}:/code/target`
                    , `cargo_cache_${commit}:/usr/local/cargo/`
-                   , `${buildOutputs}:/output:rw`
+                   , `${outputDir}:/output:rw`
                    , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
 
 export const buildCommands = (origin, commit, name, buildAs) =>
