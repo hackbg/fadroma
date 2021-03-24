@@ -1,3 +1,5 @@
+// https://en.wikipedia.org/wiki/Pointing_and_calling
+
 import colors from 'colors/safe.js'
 import { render } from 'prettyjson'
 
