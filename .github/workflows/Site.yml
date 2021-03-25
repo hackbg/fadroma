@@ -1,0 +1,33 @@
+on: [push]
+name: Publish documentation to GH Pages
+jobs:
+  docs:
+    name: build docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+      - name: document
+        uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --locked
+      - name: publish
+        run: |
+          ls
+          rm .gitignore
+          git add -f target/doc/
+          git config --global user.email "hack@hack.bg"
+          git config --global user.name "hack.bg"
+          git commit -m "🤖 built docs @ $(date -u)"
+          git subtree split --branch gh-pages --prefix target/doc/
+          git push --force origin gh-pages
