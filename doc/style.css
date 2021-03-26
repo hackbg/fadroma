@@ -28,7 +28,8 @@ a, a:focus, a:visited, a:active, a:hover {
 }
 
 h1 {
-  font-size
+  font-size: 2em;
+  letter-spacing: 0.25em;
 }
 
 button, .button {
