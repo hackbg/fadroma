@@ -26,9 +26,10 @@ jobs:
           ls
           rm .gitignore
           cp -r doc/* target/doc/
+          echo "fadroma.tech" > target/doc/CNAME
           git add -f target/doc/
           git config --global user.email "hack@hack.bg"
           git config --global user.name "hack.bg"
           git commit -m "🤖 built docs @ $(date -u)"
           git subtree split --branch gh-pages --prefix target/doc/
-          git push origin gh-pages
+          git push --force origin gh-pages
