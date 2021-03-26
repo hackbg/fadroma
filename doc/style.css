@@ -1,0 +1,42 @@
+* {
+  margin: 0;
+  padding: 0;
+  line-height: 2;
+  font-size: 20px;
+  font-family: sans-serif;
+  text-align: center;
+}
+
+body {
+  font-size: 20px;
+  background-image: url(bg.svg);
+  color: #111;
+}
+
+body, header, section, footer {
+  padding: 1em;
+}
+
+a {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+a, a:focus, a:visited, a:active, a:hover {
+  color: #9013fe
+}
+
+h1 {
+  font-size
+}
+
+button, .button {
+  display: inline-block;
+  background: #9013fe;
+  color: white;
+  padding: 0 1em;
+  margin: 1em 0;
+  text-shadow: -1px -1px 0 black;
+  box-shadow: 1px 1px 0 black;
+}

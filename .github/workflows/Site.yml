@@ -25,7 +25,7 @@ jobs:
         run: |
           ls
           rm .gitignore
-          cp doc/index.html target/doc/index.html
+          cp -r doc/* target/doc/
           git add -f target/doc/
           git config --global user.email "hack@hack.bg"
           git config --global user.name "hack.bg"
