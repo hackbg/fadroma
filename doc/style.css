@@ -27,6 +27,11 @@ a, a:focus, a:visited, a:active, a:hover {
   color: #9013fe
 }
 
+.logo {
+  height: 23em;
+  margin: -5em;
+}
+
 h1 {
   font-size: 2em;
   letter-spacing: 0.25em;
