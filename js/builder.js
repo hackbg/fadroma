@@ -17,11 +17,11 @@ export default class SecretNetworkBuilder {
     options = {}
   ) {
     const {
-      name,
+      packageName,
       repo,
       commit,
-      output = resolve(this.outputDir, `${commit}-${name}.wasm`),
-      binary = await this.build({name, repo, commit, output}),
+      output = resolve(this.outputDir, `${commit}-${packageName}.wasm`),
+      binary = await this.build({packageName, repo, commit, output}),
       label  = `${+new Date()}-${basename(binary)}`,
       agent  = this.agent,
       upload = await this.upload(binary, agent),
@@ -31,8 +31,8 @@ export default class SecretNetworkBuilder {
     return new cls({codeId, agent, say}).init({label, data})
   }
 
-  async build ({name, repo, commit, output}) {
-    const say = this.say.tag(`build(${name}@${commit})`)
+  async build ({packageName, repo, origin, commit, output}) {
+    const say = this.say.tag(`build(${packageName}@${commit})`)
     if (existsSync(output)) {
       say.tag('cached')(output) // TODO compare against checksums
     } else {
@@ -40,8 +40,8 @@ export default class SecretNetworkBuilder {
       const { outputDir } = this
       const [{Error:err, StatusCode:code}, container] =
         (commit === 'HEAD')
-        ? await buildWorkingTree({ name, repo, outputDir })
-        : await buildCommit({ name, commit, outputDir })
+        ? await buildWorkingTree({ repo, packageName, outputDir })
+        : await buildCommit({ origin, commit, packageName, outputDir })
       await container.remove()
       if (err) throw new Error(err)
       if (code !== 0) throw new Error(`build exited with status ${code}`)
@@ -76,11 +76,11 @@ export const buildWorkingTree = ({
   builder = 'hackbg/secret-contract-optimizer:latest',
   buildAs = 'root',
   repo,
-  name,
+  packageName,
   outputDir,
 } = {}) => new Docker()
   .run(builder
-      , [name, 'HEAD']
+      , [packageName, 'HEAD']
       , process.stdout
       , { Env: buildEnv()
         , Tty: true
@@ -94,11 +94,11 @@ export const buildWorkingTree = ({
 export const buildCommit = ({
   builder = 'hackbg/secret-contract-optimizer:latest',
   buildAs = 'root',
-  origin  = 'git@github.com:hackbg/sienna-secret-token.git',
+  origin,
   commit,
-  name,
+  packageName,
   outputDir,
-  buildCommand = ['-c', buildCommands(origin, commit, name, buildAs).join(' && ')],
+  buildCommand = ['-c', buildCommands(origin, commit, packageName, buildAs).join(' && ')],
 }={}) => new Docker()
   .run(builder
       , buildCommand
@@ -113,15 +113,15 @@ export const buildCommit = ({
                    , `${outputDir}:/output:rw`
                    , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
 
-export const buildCommands = (origin, commit, name, buildAs) =>
+export const buildCommands = (origin, commit, packageName, buildAs) =>
   [ `mkdir -p /contract && cd /contract`   // establish working directory
   , `git clone --recursive -n ${origin} .` // get the code
   , `git checkout ${commit}`               // checkout the expected commit
   , `git submodule update`                 // update submodules for that commit
   , `chown -R ${buildAs} /contract && ls`
-  , `/entrypoint.sh ${name} ${commit}`
+  , `/entrypoint.sh ${packageName} ${commit}`
   , `ls -al`
-  , `mv ${name}.wasm /output/${commit}-${name}.wasm` ]
+  , `mv ${packageName}.wasm /output/${commit}-${packageName}.wasm` ]
 
 export const buildEnv = () =>
   [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
