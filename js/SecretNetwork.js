@@ -1,10 +1,3 @@
-import { fileURLToPath } from 'url'
-import { readFileSync, existsSync } from 'fs'
-import { stat, readFile, writeFile } from 'fs/promises'
-import { resolve, dirname, basename } from 'path'
-import { execFileSync, spawnSync } from 'child_process'
-import { homedir } from 'os'
-
 import Docker from 'dockerode'
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey, pubkeyToAddress
@@ -12,11 +5,19 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey
 
 import say, { sayer, muted } from './say.js'
 import { loadJSON, loadSchemas } from './schema.js'
+import { freePort, waitPort } from './net.js'
+import {
+  mkdirp, readFile, readFileSync, writeFile, existsSync, stat,
+  execFileSync, spawnSync, onExit, 
+  fileURLToPath, resolve, dirname, basename, homedir
+} from './sys.js'
 
 export default class SecretNetwork {
-
-  static isFSPath = x => ['.','/','file://'].some(y=>x.startsWith(y))
-
+  // `destination` can be:
+  // * empty or "mainnet" (not implemented)
+  // * "holodeck-2" (not implemented)
+  // * host:port (not implemented)
+  // * fs path to localnet
   static async connect (destination, callback) {
     let agent, builder
     if (this.isFSPath(destination)) {
@@ -31,63 +32,129 @@ export default class SecretNetwork {
       return {agent, builder}
     }
   }
-
-  static async localnet (root) {
+  // used by `connect()` to determine if the destination is a filesystem path
+  static isFSPath = x =>
+    ['.','/','file://'].some(y=>x.startsWith(y))
+  // run a node in a docker container
+  // return a SecretNetwork instance bound to that node
+  // with corresponding agent and builder
+  static async localnet (stateRoot) {
     const { Node, Agent, Builder } = this
-    if (root.startsWith('file://')) root = fileURLToPath(root)
-    const stats = await stat(root)
-    if (stats.isFile()) root = dirname(root)
-    root = resolve(root, '.localnet')
-    const localnet = new Node(root)
-    const agentKey = resolve(root, 'keys', 'ADMIN.json')
-    const {mnemonic} = loadJSON(agentKey)
-    const agent = await Agent.fromMnemonic({ name: 'ADMIN', mnemonic })
-    const builder = new Builder()
-    return {agent, builder}
+    if (stateRoot.startsWith('file://')) stateRoot = fileURLToPath(stateRoot)
+    const stats = await stat(stateRoot)
+    if (stats.isFile()) stateRoot = dirname(stateRoot)
+    const node = await Node.spawn(resolve(stateRoot, '.localnet'))
+    const {host, port} = node
+    const chain = new this(host, port)
+    await chain.ready
+    const agent = await chain.agent({ name: 'ADMIN', ...node.genesisAccount('ADMIN') })
+    const builder = localnet.builder()
+    return {network, agent, builder}
   }
-
+  // create instance bound to given REST API endpoint
+  constructor (host, port) {
+    Object.assign(this, { host, port })
+    const ready = waitPort({ host, port })
+    Object.defineProperty(this, 'ready', { get () { return ready } })
+  }
+  // create agent operating on the bound endpoint
+  agent = (options={}) =>
+    this.constructor.Agent.create({ url: this.url, ...options })
+  // create builder operating on the bound endpoint
+  builder = (options={}) =>
+    this.constructor.Builder.create({ url: this.url, ...options })
+  // manages lifecycle of docker container for localnet
   static Node = class SecretNetworkNode {
-    constructor (root, {
-      image = "hackbg/secret-network-sw-dev",
-      init  = resolve(root, 'init.sh'),
-      keys  = resolve(root, 'keys'),
-      time  = resolve(root, 'time'),
-      dockerOptions = { socketPath: '/var/run/docker.sock' }
-    }={}) {
-      Object.assign(this, { image, root, init, keys, time })
-      this.docker = new Docker(dockerOptions)
-      this.container = this.docker.createContainer(
-        { Image: this.image
-        , Entrypoint: [ 'faketime' ]
-        , Cmd: [ 'bash', '/init.sh' ]
-        , AttachStdin: true
-        , Tty:         true
-        , HostConfig:
-          { NetworkMode: 'host'
-          , Env:
-            [ 'FAKETIME_TIMESTAMP_FILE=/time'
-            , 'FAKETIME_UPDATE_TIMESTAMP_FILE=1' ]
-          , Binds:
-            [ `${init}:/init.sh:ro`
-            , `${keys}:/shared-keys:rw`
-            //, `${time}:/time:rw` // TODO make Go secretd understand faketime
-            , 'secretd:/root/.secretd:rw'
-            , 'secretcli:/root/.secretcli:rw'
-            , 'sgx-secrets:/root/.sgx-secrets:rw' ] } }) }
-    run = () => this.container.then(container=>{
-      console.debug(`starting localnet at ${this.root}...`)
-      return container.start({})
-    })
+    // path to the custom init script that saves the genesis wallets
+    static initScript =
+      resolve(dirname(fileURLToPath(import.meta.url)), 'SecretNetwork.init.sh')
+    // create a node
+    static async spawn (stateRoot, options={}) {
+      // name and storage paths for this node
+      const { chain     = `fadroma-localnet`
+            , stateDir  = resolve(stateRoot, chain)
+            , keysDir   = resolve(stateDir, 'keys')
+            , stateFile = resolve(stateDir, 'state.json')
+            } = options
+      // ensure storage directories exist
+      await Promise.all([stateDir,keysDir].map(mkdirp))
+      // get interface to docker daemon
+      const { dockerOptions = { socketPath: '/var/run/docker.sock' }
+            , docker        = new Docker(dockerOptions)
+            } = options
+      // if a localnet was already created
+      if (existsSync(stateFile)) {
+        const {id, port} = JSON.parse(await readFile(stateFile, 'utf8'))
+        const container = docker.getContainer(id)
+        // respawn container
+        const {State:{Running}} = await container.inspect()
+        if (!Running) {
+          await container.start({})
+          process.on('beforeExit', async ()=>{
+            console.debug(`killing ${container.id}`)
+            await container.kill()
+            console.debug(`killed ${container.id}`)
+          })
+        }
+        // return interface to this node/chain
+        return new this({ chain, stateDir, keysDir, container, port })
+      } else {
+        // configure a new localnet container
+        const { image = // the original
+                  "enigmampc/secret-network-sw-dev"
+              , port = // random port
+                  await freePort()
+              , init = // modified genesis that keeps the keys
+                  this.initScript
+              , genesisAccounts = // who gets an initial balance
+                  ['ADMIN', 'ALICE', 'BOB', 'MALLORY']
+              , containerOptions = // actual container options
+                { Image: image
+                , Entrypoint: [ '/bin/bash' ]
+                , Cmd: [ '/init.sh' ]
+                , AttachStdin:  true
+                , AttachStdout: true
+                , AttachStderr: true
+                , Tty:          true
+                , Env:
+                  [ `Port=${port}`
+                  , `ChainID=${chain}`
+                  , `GenesisAccounts=(${genesisAccounts.join(' ')})` ]
+                , HostConfig:
+                  { NetworkMode: 'host'
+                   , Binds:
+                    [ `${init}:/init.sh:ro`
+                    , `${keysDir}:/shared-keys:rw`
+                    , `${resolve(stateDir, 'secretd')}:/root/.secretd:rw`
+                    , `${resolve(stateDir, 'secretcli')}:/root/.secretcli:rw`
+                    , `${resolve(stateDir, 'sgx-secrets')}:/root/.sgx-secrets:rw` ] } }
+              } = options
+        // create container with the above options
+        const container = await docker.createContainer(containerOptions)
+        const {id} = container
+        // record its existence for subsequent runs
+        await writeFile(stateFile, JSON.stringify({ id, port }, null, 2), 'utf8')
+        return new this({ chain, stateDir, keysDir, container, port })
+      }
+    }
+    constructor (fields) {
+      Object.assign(this, fields, { host: 'localhost' /* lol */ })
+    }
+    start = () => {
+      console.debug(`starting localnet from ${this.stateDir} on ${this.host}:${this.port}...`)
+      process.on('beforeExit', () => console.log(123))
+      return this.container.start({})
+    }
+    genesisAccount = name =>
+      loadJSON(resolve(this.keysDir, `${name}.json`))
   }
-
+  // `Agent`: tells time, sends transactions, executes contracts;
+  // operates on a particular chain.
   static Agent = class SecretNetworkAgent {
+    static async create ({ name, keyPair, mnemonic }={}) {
 
-    // the API endpoint
-
-    static APIURL = process.env.SECRET_REST_URL || 'http://localhost:1337'
-
+    }
     // ways of creating authenticated clients
-
     static async fromKeyPair ({
       say     = muted(),
       name    = "",
@@ -97,7 +164,6 @@ export default class SecretNetwork {
       const mnemonic = Bip39.encode(keyPair.privkey).data
       return await this.fromMnemonic({name, mnemonic, keyPair, say, ...args})
     }
-
     static async fromMnemonic ({
       say      = muted(),
       name     = "",
@@ -108,10 +174,9 @@ export default class SecretNetwork {
       const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
       return new this({name, mnemonic, keyPair, say, pen, ...args})
     }
-
     // initial setup
-
     constructor ({
+      URL,
       say  = muted(),
       name = "",
       pen,
@@ -127,14 +192,10 @@ export default class SecretNetwork {
       this.address = pubkeyToAddress(this.pubkey, 'secret')
       this.seed    = EnigmaUtils.GenerateNewSeed()
       this.sign    = pen.sign.bind(pen)
-      this.API     = new SigningCosmWasmClient(
-        SecretNetworkAgent.APIURL, this.address, this.sign, this.seed, this.fees
-      )
+      this.API     = new SigningCosmWasmClient(URL, this.address, this.sign, this.seed, this.fees)
       return this
     }
-
     // interact with the network:
-
     async status () {
       const {header:{time,height}} = await this.API.getBlock()
       return this.say.tag('status')({
@@ -222,7 +283,6 @@ export default class SecretNetwork {
   }
 
   static Builder = class SecretNetworkBuilder {
-
     static buildWorkingTree = ({
       builder = 'hackbg/secret-contract-optimizer:latest',
       buildAs = 'root',
@@ -242,7 +302,6 @@ export default class SecretNetwork {
                        , `cargo_cache_worktree:/usr/local/cargo/`
                        , `${outputDir}:/output:rw`
                        , `${repo}:/src:rw` ] } })
-
     static buildCommit = ({
       builder = 'hackbg/secret-contract-optimizer:latest',
       buildAs = 'root',
@@ -264,7 +323,6 @@ export default class SecretNetwork {
                        , `cargo_cache_${commit}:/usr/local/cargo/`
                        , `${outputDir}:/output:rw`
                        , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
-
     constructor ({ say = muted(), outputDir, agent } = {}) {
       Object.assign(this, { say, agent, outputDir })
     }
@@ -331,6 +389,7 @@ export default class SecretNetwork {
       return result
     }
   }
+
   static Contract = class SecretNetworkContract {
     // create subclass with methods based on the schema
     // TODO validate schema and req/res arguments with `ajv` etc.
@@ -402,31 +461,22 @@ export const getBuildEnv = () =>
 
 // extend SecretNetworkContract
 function extendWithSchema (SecretNetworkContract, schema) {
-
   return class SecretNetworkContractWithSchema extends SecretNetworkContract {
-
     // read-only: the parsed schema
     static get schema () { return schema }
-
     // read-only: the queries generated from the schema
     get q () {
-      return methodsFromSchema(this, this.constructor.schema.queryMsg, (self, methodName) => ({
-        async [methodName] (args, agent = self.agent) {
-          return await self.query(methodName, args, agent)
-        }
+      return methodsFromSchema(this, this.constructor.schema.queryMsg, (self, method) => ({
+        async [method] (args, agent = self.agent) { return await self.query(method, args, agent) }
       }))
     }
-
     // read-only: the transactions generated from the schema
     get tx () {
-      return methodsFromSchema(this, this.constructor.schema.handleMsg, (self, methodName) => ({
-        async [methodName] (args, agent = self.agent) {
-          return await self.execute(methodName, args, agent)
-        }
+      return methodsFromSchema(this, this.constructor.schema.handleMsg, (self, method) => ({
+        async [method] (args, agent = self.agent) { return await self.execute(method, args, agent) }
       }))
     }
   }
-
   // TODO: memoize this, so that methods aren't regenerated until the schema updates
   // TODO: generate TypeScript types from autogenerated method lists and/or from schema
   function methodsFromSchema (self, schema, getWrappedMethod) {
@@ -439,7 +489,6 @@ function extendWithSchema (SecretNetworkContract, schema) {
       return Object.assign(methods, methodWrapper)
     }, {})
   }
-
 }
 
 function gas (x) {

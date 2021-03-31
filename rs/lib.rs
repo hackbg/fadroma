@@ -225,7 +225,7 @@
             /// `ok!` is a variadic macro that takes up to 4 arguments:
             /// * `next`: the modified state to be saved
             /// * `msgs`: messages to return to the chain
-            /// * `logs`: custom data to log
+            /// * `logs`: vector of `LogAttribute`s to log
             /// * `data`: blob of data to return
             macro_rules! ok {
                 (_, $msgs:expr, $logs:expr, $data: expr) => {
