@@ -4,6 +4,7 @@
   "main": "./js/index.js",
   "type": "module",
   "dependencies": {
+    "@cosmjs/crypto": "^0.24.1",
     "colors": "^1.4.0",
     "dockerode": "^3.2.1",
     "prettyjson": "^1.2.1"
