@@ -4,6 +4,7 @@ import { resolve, basename } from 'path'
 import { spawnSync } from 'child_process'
 import { homedir} from 'os'
 import Docker from 'dockerode'
+import { muted } from './say.js'
 
 export default class SecretNetworkBuilder {
 
@@ -11,28 +12,37 @@ export default class SecretNetworkBuilder {
     Object.assign(this, { say, agent, outputDir })
   }
 
+  workspace = repo => ({
+    repo,
+    crate: crate => ({
+      repo,
+      crate,
+      deploy: (Contract, initData) => this.deploy(Contract, initData, { repo, crate })
+    })
+  })
+
   async deploy (
-    cls,
+    Contract,
     data = {},
     options = {}
   ) {
     const {
-      packageName,
       repo,
+      crate,
       commit = 'HEAD',
-      output = resolve(this.outputDir, `${packageName}@${commit}.wasm`),
-      binary = await this.build({packageName, repo, commit, output}),
+      output = resolve(this.outputDir, `${crate}@${commit}.wasm`),
+      binary = await this.build({crate, repo, commit, output}),
       label  = `${+new Date()}-${basename(binary)}`,
       agent  = this.agent,
       upload = await this.upload(binary, agent),
       codeId = upload.codeId,
       say = muted()
     } = options
-    return new cls({codeId, agent, say}).init({label, data})
+    return new Contract({codeId, agent, say}).init({label, data})
   }
 
-  async build ({packageName, repo, origin, commit, output}) {
-    const say = this.say.tag(`build(${packageName}@${commit})`)
+  async build ({crate, repo, origin, commit, output}) {
+    const say = this.say.tag(`build(${crate}@${commit})`)
     if (existsSync(output)) {
       say.tag('cached')(output) // TODO compare against checksums
     } else {
@@ -40,8 +50,8 @@ export default class SecretNetworkBuilder {
       const { outputDir } = this
       const [{Error:err, StatusCode:code}, container] =
         (commit && commit !== 'HEAD')
-        ? await buildCommit({ origin, commit, packageName, outputDir })
-        : await buildWorkingTree({ repo, packageName, outputDir })
+        ? await buildCommit({ origin, commit, crate, outputDir })
+        : await buildWorkingTree({ repo, crate, outputDir })
       await container.remove()
       if (err) throw new Error(err)
       if (code !== 0) throw new Error(`build exited with status ${code}`)
@@ -76,14 +86,14 @@ export const buildWorkingTree = ({
   builder = 'hackbg/secret-contract-optimizer:latest',
   buildAs = 'root',
   repo,
-  packageName,
+  crate,
   outputDir,
-  buildCommand = ['-c', buildCommands({packageName, buildAs}).join(' && ')],
+  buildCommand = ['-c', getBuildCommand({crate, buildAs}).join(' && ')],
 } = {}) => new Docker()
   .run(builder
-      , [packageName, 'HEAD']
+      , [crate, 'HEAD']
       , process.stdout
-      , { Env: buildEnv()
+      , { Env: getBuildEnv()
         , Tty: true
         , AttachStdin: true
         , HostConfig:
@@ -97,14 +107,14 @@ export const buildCommit = ({
   buildAs = 'root',
   origin,
   commit,
-  packageName,
+  crate,
   outputDir,
-  buildCommand = ['-c', buildCommands({origin, commit, packageName, buildAs}).join(' && ')],
+  buildCommand = ['-c', getBuildCommand({origin, commit, crate, buildAs}).join(' && ')],
 }={}) => new Docker()
   .run(builder
       , buildCommand
       , process.stdout
-      , { Env: buildEnv()
+      , { Env: getBuildEnv()
         , Tty: true
         , AttachStdin: true
         , Entrypoint: '/bin/sh'
@@ -114,7 +124,7 @@ export const buildCommit = ({
                    , `${outputDir}:/output:rw`
                    , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
 
-export const buildCommands = ({origin, commit, packageName, buildAs}) => {
+export const getBuildCommand = ({origin, commit, crate, buildAs}) => {
   let commands = [`mkdir -p /src && cd /src`]
   if (origin || commit) {
     commands = commands.concat(
@@ -125,13 +135,13 @@ export const buildCommands = ({origin, commit, packageName, buildAs}) => {
   }
   commands = commands.concat(
     [ `chown -R ${buildAs} /src && ls`
-    , `/entrypoint.sh ${packageName} ${commit}`
-    , `mv ${packageName}.wasm /output/${packageName}@${commit}.wasm`
+    , `/entrypoint.sh ${crate} ${commit}`
+    , `mv ${crate}.wasm /output/${crate}@${commit}.wasm`
     ])
   return commands
 }
 
-export const buildEnv = () =>
+export const getBuildEnv = () =>
   [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
   , 'CARGO_TERM_VERBOSE=true'
   , 'CARGO_HTTP_TIMEOUT=240' ]
