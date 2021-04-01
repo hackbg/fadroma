@@ -263,16 +263,14 @@ export default class SecretNetwork {
   static Builder = class SecretNetworkBuilder {
     constructor (fields) { this.configure(fields) }
     configure = (fields={}) => Object.assign(this, fields)
-    workspace = repo => Object.assign(this, {
-      repo, crate: crate => Object.assign(this, {
-        repo, crate, deploy (Contract, initData) {
-          return this._deploy(Contract, initData, { repo, crate })
-        }
-      })
+    crate = crate => ({
+      deploy: (Contract, initMsg) => this.deploy(Contract, initMsg, { crate })
     })
-    async _deploy (Contract, data = {}, options = {}) {
+    async deploy (Contract, data = {}, options = {}) {
       const {
-        repo, crate, commit = 'HEAD',
+        repo = this.repo,
+        crate,
+        commit = 'HEAD',
         output = resolve(this.outputDir, `${crate}@${commit}.wasm`),
         binary = await this.build({crate, repo, commit, output}),
         label  = `${+new Date()}-${basename(binary)}`,
@@ -284,33 +282,29 @@ export default class SecretNetwork {
       return new Contract({codeId, agent, say}).init({label, data})
     }
     async upload (binary) {
-      const say = this.say.tag(`upload(${basename(binary)})`)
       // check for past upload receipt
       const chainId = await this.agent.API.getChainId()
       const receipt = `${binary}.${chainId}.upload`
-      say({receipt})
       if (existsSync(receipt)) {
-        const result = JSON.parse(await readFile(receipt, 'utf8'))
-        return say.tag('cached')(result)
+        return JSON.parse(await readFile(receipt, 'utf8'))
       }
       // if no receipt, upload anew
-      say.tag('uploading')(binary)
       const result = await this.agent.API.upload(await readFile(binary), {})
-      say.tag('uploaded')(result)
       await writeFile(receipt, JSON.stringify(result), 'utf8')
       return result
     }
     async build ({crate, repo, origin, commit, output}) {
       //const say = this.say.tag(`build(${crate}@${commit})`)
       if (existsSync(output)) {
-        say.tag('cached')(output) // TODO compare against checksums
+        say.tag('build-exists')(output) // TODO compare against checksums
       } else {
         say.tag('building')(output)
+        say.tag('building-as')(this)
         const { outputDir } = this
         const [{Error:err, StatusCode:code}, container] =
           (commit && commit !== 'HEAD')
-          ? await this.buildCommit({ origin, commit, crate, outputDir })
-          : await this.buildWorkingTree({ repo, crate, outputDir })
+          ? await this.buildCommit({ origin, commit, crate })
+          : await this.buildWorkingTree({ repo, crate })
         await container.remove()
         if (err) throw new Error(err)
         if (code !== 0) throw new Error(`build exited with status ${code}`)
@@ -318,24 +312,26 @@ export default class SecretNetwork {
       }
       return output
     }
-
     buildWorkingTree = ({
-      builder = this.buildImage, buildAs = this.buildUser,
-      repo, crate, outputDir,
+      outputDir = this.outputDir,
+      builder = this.buildImage,
+      buildAs = this.buildUser,
+      repo, crate,
       buildCommand = ['-c', getBuildCommand({crate, buildAs}).join(' && ')],
     } = {}) => new Docker().run(builder, [crate, 'HEAD'], process.stdout,
-      { Env: getBuildEnv()
+      say.tag(builder)({ Env: getBuildEnv()
       , Tty: true
       , AttachStdin: true
       , HostConfig:
       { Binds: [ `sienna_cache_worktree:/code/target`
                , `cargo_cache_worktree:/usr/local/cargo/`
                , `${outputDir}:/output:rw`
-               , `${repo}:/src:rw` ] } })
-
+               , `${repo}:/src:rw` ] } }))
     buildCommit = ({
-      builder = this.buildImage, buildAs = this.buildUser,
-      origin, commit, crate, outputDir,
+      outputDir = this.outputDir,
+      builder = this.buildImage,
+      buildAs = this.buildUser,
+      origin, commit, crate,
       buildCommand = ['-c', getBuildCommand({origin, commit, crate, buildAs}).join(' && ')],
     }={}) => new Docker().run(builder, buildCommand, process.stdout,
       { Env: getBuildEnv()
