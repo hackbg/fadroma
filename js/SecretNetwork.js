@@ -11,17 +11,34 @@ import { mkdirp, readFile, readFileSync, writeFile, existsSync, stat
 export default class SecretNetwork {
   // `destination` can be:
   // * empty or "mainnet" (not implemented)
-  // * "holodeck-2" (not implemented)
+  // * "testnet"
   // * host:port (not implemented)
   // * fs path to localnet
   static async connect (destination, callback) {
+
     let chain, agent, builder
+
     if (this.isFSPath(destination)) {
       ({chain, agent, builder} = await this.localnet(destination))
+
+    } else if ("testnet" === destination) {
+      const host = 'bootstrap.secrettestnet.io'
+      const port = 80
+      chain = new this('holodeck-2', host, port)
+      await chain.ready
+      // can't get balance from genesis accounts,
+      // need to feed a real testnet wallet from https://faucet.secrettestnet.io/
+      const address  = 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy'
+      const mnemonic = "genius supply lecture echo follow that silly meadow used gym nerve together"
+      agent = await chain.getAgent("ADMIN", { mnemonic, address })
+      console.log(agent)
+      builder = chain.getBuilder(agent)
+
     } else {
-      // TODO holodeck-2, mainnet
+      // TODO mainnet
       throw new Error('not implemented')
     }
+
     if (callback) {
       return callback({chain, agent, builder})
     } else {
@@ -161,7 +178,7 @@ export default class SecretNetwork {
     }) {
       const pubkey = encodeSecp256k1Pubkey(pen.pubkey)
       return Object.assign(this, {
-        name, keyPair, mnemonic, pen, pubkey, say,
+        chain, name, keyPair, mnemonic, pen, pubkey, say,
         API: new SigningCosmWasmClient(
           chain.url,
           this.address = pubkeyToAddress(pubkey, 'secret'),
@@ -175,19 +192,19 @@ export default class SecretNetwork {
     async status () {
       const {header:{time,height}} = await this.API.getBlock()
       const account = await this.API.getAccount(this.address)
-      return this.say.tag('status')({ time, height, account })
+      return { time, height, account }
     }
     async account () {
       const account = JSON.parse(execFileSync('secretcli', [ 'query', 'account', this.address ]))
-      return this.say.tag(`account`)(account)
+      return account
     }
     async time () {
       const {header:{time,height}} = await this.API.getBlock()
-      return this.say.tag('time')({time,height})
+      return {time, height}
     }
     async waitForNextBlock () {
       const {header:{height}} = await this.API.getBlock()
-      this.say('waiting for next block before continuing...')
+      //this.say('waiting for next block before continuing...')
       while (true) {
         await new Promise(ok=>setTimeout(ok, 1000))
         const now = await this.API.getBlock()
@@ -199,7 +216,6 @@ export default class SecretNetwork {
       return await this.API.sendTokens(recipient, [{denom: 'uscrt', amount}], memo)
     }
     async sendMany (txs = [], memo = "") {
-      const chainId = await this.API.getChainId()
       const from_address = this.address
       const {accountNumber, sequence} = await this.API.getNonce(from_address)
       const msg = []
@@ -210,9 +226,9 @@ export default class SecretNetwork {
         msg.push({ type: 'cosmos-sdk/MsgSend', value })
       }
       const fee = this.fees.send
-      const bytes = makeSignBytes(msg, fee, chainId, memo, accountNumber, sequence)
-      const signatures = [await this.sign(bytes)]
-      const { logs, transactionHash } = await this.API.postTx({ msg, fee, memo, signatures })
+      return this.API.postTx({ msg, memo, fee, signatures: [
+        await this.sign(makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence))
+      ] })
     }
     async upload ({ // upload code blob to the chain
       say=this.say,
@@ -225,32 +241,23 @@ export default class SecretNetwork {
       if (existsSync(receipt)) {
         return say.tag('receipt-exists')(JSON.parse(await readFile(receipt, 'utf8')))
       }
-      // if no receipt, upload anew
+      // if no receipt, upload anew:
       say.tag('uploading')(binary)
       const result = await this.API.upload(await readFile(binary), {})
       say.tag('uploaded')(result)
+      // keep receip
       await writeFile(receipt, JSON.stringify(result), 'utf8')
       return result
     }
-    async instantiate ({ // call init on a new instance
-      codeId, data = {}, label = ''
-    }) {
-      let {contractAddress: address, logs} = await this.API.instantiate(codeId, data, label)
-      const hash = await this.API.getCodeHashByContractAddr(address)
-      //logs = logs.reduce((log, {key,value})=>Object.assign(log, {[key]:value}), {})
-      return { codeId, label, address, hash, logs }
+    async instantiate ({ codeId, initMsg = {}, label = '' }) { // call init on a new instance
+      const initTx = await this.API.instantiate(codeId, initMsg, label)
+      const codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
+      return { ...initTx, codeId, label, codeHash }
     }
-    async query ({ name, address }, method='', args={}) {
-      const say = this.say.tag(name).tag(`${method}?`)
-      const response = await this.API.queryContractSmart(address, {[method]:say(args)})
-      return say.tag('returned')(response)
-    }
-    async execute ({ name, address }, method='', args={}) {
-      const say = this.say.tag(name).tag(`${method}!`)
-      const response = await this.API.execute(address, {[method]:say(args)})
-      //response.logs = response.logs.reduce((log, {key,value})=>Object.assign(log, {[key]:value}), {})
-      return say.tag('returned')(response)
-    }
+    query = (contract, method='', args={}) =>
+      this.API.queryContractSmart(contract.address, {[method]: args})
+    execute = (contract, method='', args={}) =>
+      this.API.execute(contract.address, {[method]: args})
   }
   // create builder operating on the current instance's endpoint
   getBuilder = agent => new this.constructor.Builder({chain: this, agent})
@@ -260,13 +267,30 @@ export default class SecretNetwork {
     crate = crate => ({
       deploy: (Contract, initMsg) => this.deploy(Contract, initMsg, { crate })
     })
+    async getUploadReceipt (workspace, crate, commit = 'HEAD') {
+      // output filename contains crate name and git ref
+      const output = resolve(this.outputDir, `${crate}@${commit}.wasm`)
+      // if the output doesnt exist, built it now
+      if (!existsSync(output)) this.build({workspace, crate, commit, output})
+      // check for past upload receipt
+      const receipt = `${output}.${this.chain.id}.upload`
+      if (existsSync(receipt)) {
+        // TODO compare hash in receipt with on-chain hash from codeid
+        // and invalidate receipt if they don't match
+        return JSON.parse(await readFile(receipt, 'utf8'))
+      }
+      // if no receipt, upload anew
+      const result = await this.agent.API.upload(await readFile(binary), {})
+      await writeFile(receipt, JSON.stringify(result), 'utf8')
+      return result
+    }
     async deploy (Contract, data = {}, options = {}) {
       const {
-        repo = this.repo,
+        workspace = this.workspace,
         crate,
         commit = 'HEAD',
         output = resolve(this.outputDir, `${crate}@${commit}.wasm`),
-        binary = await this.build({crate, repo, commit, output}),
+        binary = await this.build({crate, workspace, commit, output}),
         label  = `${+new Date()}-${basename(binary)}`,
         agent  = this.agent,
         upload = await this.upload(binary, agent),
@@ -289,30 +313,23 @@ export default class SecretNetwork {
       await writeFile(receipt, JSON.stringify(result), 'utf8')
       return result
     }
-    async build ({crate, repo, origin, commit, output}) {
+    async build ({origin, workspace, crate, commit, output}) {
       //const say = this.say.tag(`build(${crate}@${commit})`)
-      if (existsSync(output)) {
-        say.tag('build-exists')(output) // TODO compare against checksums
-      } else {
-        say.tag('building')(output)
-        say.tag('building-as')(this)
-        const { outputDir } = this
-        const [{Error:err, StatusCode:code}, container] =
-          (commit && commit !== 'HEAD')
-          ? await this.buildCommit({ origin, commit, crate })
-          : await this.buildWorkingTree({ repo, crate })
-        await container.remove()
-        if (err) throw new Error(err)
-        if (code !== 0) throw new Error(`build exited with status ${code}`)
-        say.tag('built')(output)
-      }
+      const { outputDir } = this
+      const [{Error:err, StatusCode:code}, container] =
+        (commit && commit !== 'HEAD')
+        ? await this.buildCommit({ origin, commit, crate })
+        : await this.buildWorkingTree({ workspace, crate })
+      await container.remove()
+      if (err) throw new Error(err)
+      if (code !== 0) throw new Error(`build exited with status ${code}`)
       return output
     }
     buildWorkingTree = ({
       outputDir = this.outputDir,
       builder = this.buildImage,
       buildAs = this.buildUser,
-      repo, crate,
+      workspace, crate,
       buildCommand = ['-c', getBuildCommand({crate, buildAs}).join(' && ')],
     } = {}) => new Docker().run(builder, [crate, 'HEAD'], process.stdout,
       say.tag(builder)({ Env: getBuildEnv()
@@ -322,7 +339,7 @@ export default class SecretNetwork {
       { Binds: [ `sienna_cache_worktree:/code/target`
                , `cargo_cache_worktree:/usr/local/cargo/`
                , `${outputDir}:/output:rw`
-               , `${repo}:/src:rw` ] } }))
+               , `${workspace}:/src:rw` ] } }))
     buildCommit = ({
       outputDir = this.outputDir,
       builder = this.buildImage,
@@ -344,48 +361,33 @@ export default class SecretNetwork {
   static Contract = class SecretNetworkContract {
     // create subclass with methods based on the schema
     // TODO validate schema and req/res arguments with `ajv` etc.
-    static withSchema (schema={}) {
-      return extendWithSchema(this, schema)
+    static withSchema = (schema={}) =>
+      extendWithSchema(this, schema)
+    constructor (fields={}) { return Object.assign(this, fields) }
+    async init ({
+      agent   = this.agent,
+      codeId  = this.codeId,
+      label   = this.label,
+      initMsg = this.initMsg,
+    } = {}) {
+      const initTx = await agent.instantiate({codeId, label, initMsg})
+      const {contractAddress: address, codeHash} = initTx
+      Object.assign(this, { address, codeHash })
+      return initTx.transactionHash
     }
-    constructor ({codeId, agent, say=muted()}={}) {
-      return Object.assign(this, {codeId, agent, say})
-    }
-    async init ({label, data}) {
-      const {codeId} = this
-      this.say.tag(`init(${codeId})`)({label, data})
-      const {address, hash} = await this.agent.instantiate({codeId, label, data})
-      Object.assign(this, { address, hash })
-      this.say.tag(`ready`)({ address, hash })
-      return this
-    }
-    async query (method = '', args = {}, agent = this.agent) {
-      return await agent.query(this, method, args)
-    }
-    async execute (method = '', args = {}, agent = this.agent) {
-      return await agent.execute(this, method, args)
-    }
+    query = (method = '', args = {}, agent = this.agent) =>
+      agent.query(this, method, args)
+    execute = (method = '', args = {}, agent = this.agent) =>
+      agent.execute(this, method, args)
   }
 
   static Gas = Object.assign(gas, { defaultFees: {
     upload: gas(2000000),
     init:   gas( 500000),
     exec:   gas( 400000),
-    send:   gas( 600000),
+    send:   gas( 500000),
   } })
 
-  // local testnet
-  //const localnetRoot = resolve(dirname(fileURLToPath(import.meta.url)), 'localnet')
-  //const localnet = new SecretNetwork.Node(localnetRoot)
-  //localnet.run().then(console.log).then(prepare).then(deploy).then(test)
-  // get mnemonic of admin wallet from file generated by localnet genesis
-  //const {mnemonic} = loadJSON(`../integration/localnet/keys/ADMIN.json`, import.meta.url)
-  // create agent wrapping the admin wallet (used to deploy and control the contracts)
-  //const ADMIN = await SecretNetwork.Agent.fromMnemonic({ say, name: 'ADMIN', mnemonic })
-  //const commit    = 'HEAD' // git ref
-  //const buildRoot = fileURLToPath(new URL('../build', import.meta.url))
-  //const outputDir = resolve(buildRoot, 'outputs')
-  //const builder   = new SecretNetwork.Builder({ say: say.tag('builder'), outputDir, agent: ADMIN })
-  //// proceed to the next stage with these handles:
 }
 
 export const getBuildCommand = ({origin, commit, crate, buildAs}) => {
@@ -412,6 +414,7 @@ export const getBuildEnv = () =>
 
 // extend SecretNetworkContract
 function extendWithSchema (SecretNetworkContract, schema) {
+
   return class SecretNetworkContractWithSchema extends SecretNetworkContract {
     // read-only: the parsed schema
     static get schema () { return schema }
@@ -428,6 +431,7 @@ function extendWithSchema (SecretNetworkContract, schema) {
       }))
     }
   }
+
   // TODO: memoize this, so that methods aren't regenerated until the schema updates
   // TODO: generate TypeScript types from autogenerated method lists and/or from schema
   function methodsFromSchema (self, schema, getWrappedMethod) {
@@ -440,6 +444,7 @@ function extendWithSchema (SecretNetworkContract, schema) {
       return Object.assign(methods, methodWrapper)
     }, {})
   }
+
 }
 
 function gas (x) {

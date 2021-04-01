@@ -15,12 +15,12 @@ export function sayer (prefixes = []) {
       if (x.data instanceof Uint8Array) {
         x.data = new TextDecoder('utf-8').decode(x.data)
       }
-      console.log(colors.yellow(`\n${prefix}`))
+      console.log(colors.yellow(`${prefix}`))
       if (Object.keys(x).length > 0) {
         console.log(render(x))
       }
     } else {
-      console.log(colors.yellow(`\n${prefix}`), render(x))
+      console.log(colors.yellow(`${prefix}`), render(x))
     }
 
     return x
