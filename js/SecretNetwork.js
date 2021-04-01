@@ -19,17 +19,17 @@ export default class SecretNetwork {
   // * host:port (not implemented)
   // * fs path to localnet
   static async connect (destination, callback) {
-    let agent, builder
+    let chain, agent, builder
     if (this.isFSPath(destination)) {
-      ({agent, builder} = await this.localnet(destination))
+      ({chain, agent, builder} = await this.localnet(destination))
     } else {
       // TODO holodeck-2, mainnet
       throw new Error('not implemented')
     }
     if (callback) {
-      return callback({agent, builder})
+      return callback({chain, agent, builder})
     } else {
-      return {agent, builder}
+      return {chain, agent, builder}
     }
   }
   // used by `connect()` to determine if the destination is a filesystem path
@@ -48,8 +48,8 @@ export default class SecretNetwork {
     const chain = new this(host, port)
     await chain.ready
     const agent = await chain.agent({ name: 'ADMIN', ...node.genesisAccount('ADMIN') })
-    const builder = localnet.builder()
-    return {network, agent, builder}
+    const builder = chain.builder()
+    return {chain, agent, builder}
   }
   // create instance bound to given REST API endpoint
   constructor (host, port) {
@@ -57,12 +57,6 @@ export default class SecretNetwork {
     const ready = waitPort({ host, port })
     Object.defineProperty(this, 'ready', { get () { return ready } })
   }
-  // create agent operating on the bound endpoint
-  agent = (options={}) =>
-    this.constructor.Agent.create({ url: this.url, ...options })
-  // create builder operating on the bound endpoint
-  builder = (options={}) =>
-    this.constructor.Builder.create({ url: this.url, ...options })
   // manages lifecycle of docker container for localnet
   static Node = class SecretNetworkNode {
     // path to the custom init script that saves the genesis wallets
@@ -77,7 +71,7 @@ export default class SecretNetwork {
             , stateFile = resolve(stateDir, 'state.json')
             } = options
       // ensure storage directories exist
-      await Promise.all([stateDir,keysDir].map(mkdirp))
+      await Promise.all([stateDir,keysDir].map(x=>mkdirp(x, {mode:0o770})))
       // get interface to docker daemon
       const { dockerOptions = { socketPath: '/var/run/docker.sock' }
             , docker        = new Docker(dockerOptions)
@@ -87,15 +81,13 @@ export default class SecretNetwork {
         const {id, port} = JSON.parse(await readFile(stateFile, 'utf8'))
         const container = docker.getContainer(id)
         // respawn container
+        process.on('beforeExit', async ()=>{
+          console.debug(`killing ${container.id}`)
+          await container.kill()
+          console.debug(`killed ${container.id}`)
+        })
         const {State:{Running}} = await container.inspect()
-        if (!Running) {
-          await container.start({})
-          process.on('beforeExit', async ()=>{
-            console.debug(`killing ${container.id}`)
-            await container.kill()
-            console.debug(`killed ${container.id}`)
-          })
-        }
+        if (!Running) await container.start({})
         // return interface to this node/chain
         return new this({ chain, stateDir, keysDir, container, port })
       } else {
@@ -119,7 +111,7 @@ export default class SecretNetwork {
                 , Env:
                   [ `Port=${port}`
                   , `ChainID=${chain}`
-                  , `GenesisAccounts=(${genesisAccounts.join(' ')})` ]
+                  , `GenesisAccounts=${genesisAccounts.join(' ')}` ]
                 , HostConfig:
                   { NetworkMode: 'host'
                    , Binds:
@@ -138,71 +130,56 @@ export default class SecretNetwork {
       }
     }
     constructor (fields) {
-      Object.assign(this, fields, { host: 'localhost' /* lol */ })
-    }
-    start = () => {
-      console.debug(`starting localnet from ${this.stateDir} on ${this.host}:${this.port}...`)
-      process.on('beforeExit', () => console.log(123))
-      return this.container.start({})
+      Object.assign(this, { host: 'localhost' /* lol */ }, fields)
     }
     genesisAccount = name =>
       loadJSON(resolve(this.keysDir, `${name}.json`))
   }
+  get url () { return `http://${this.host}:${this.port}` }
+  // create agent operating on the current instance's endpoint
+  agent = (options={}) =>
+    this.constructor.Agent.create({ chain: this, ...options })
   // `Agent`: tells time, sends transactions, executes contracts;
   // operates on a particular chain.
   static Agent = class SecretNetworkAgent {
-    static async create ({ name, keyPair, mnemonic }={}) {
-
-    }
-    // ways of creating authenticated clients
-    static async fromKeyPair ({
-      say     = muted(),
-      name    = "",
-      keyPair = EnigmaUtils.GenerateNewKeyPair(),
-      ...args
-    }={}) {
-      const mnemonic = Bip39.encode(keyPair.privkey).data
-      return await this.fromMnemonic({name, mnemonic, keyPair, say, ...args})
-    }
-    static async fromMnemonic ({
-      say      = muted(),
-      name     = "",
-      mnemonic = process.env.MNEMONIC,
-      keyPair, // optional
-      ...args
-    }={}) {
+    static async create ({ name = 'Anonymous', mnemonic, keyPair, ...args }={}) {
+      if (mnemonic) {
+        // if keypair doesnt correspond to the same mnemonic, delete the keypair
+        if (keyPair && mnemonic !== Bip39.encode(keyPair.privkey).data) keyPair = null
+      } else if (keyPair) {
+        // if there's a keypair but no mnemonic, generate mnemonic from keyapir
+        mnemonic = Bip39.encode(keyPair.privkey).data
+      } else {
+        // if there isn't either, generate a new keypair and corresponding mnemonic
+        keyPair = EnigmaUtils.GenerateNewKeyPair()
+        mnemonic = Bip39.encode(keyPair.privkey).data
+      }
       const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
       return new this({name, mnemonic, keyPair, say, pen, ...args})
     }
     // initial setup
     constructor ({
-      URL,
-      say  = muted(),
-      name = "",
-      pen,
-      keyPair,
-      mnemonic,
+      chain, name = "", mnemonic, keyPair, pen,
       fees = SecretNetwork.Gas.defaultFees,
+      say = muted()
     }) {
-      Object.assign(this, {
-        name, keyPair, pen, mnemonic, fees,
-        say: say.tag(`@${name}`)
+      const pubkey = encodeSecp256k1Pubkey(pen.pubkey)
+      return Object.assign(this, {
+        name, keyPair, mnemonic, pen, pubkey, say,
+        API: new SigningCosmWasmClient(
+          chain.url,
+          this.address = pubkeyToAddress(pubkey, 'secret'),
+          this.sign = pen.sign.bind(pen),
+          this.seed = EnigmaUtils.GenerateNewSeed(),
+          this.fees = fees
+        )
       })
-      this.pubkey  = encodeSecp256k1Pubkey(this.pen.pubkey)
-      this.address = pubkeyToAddress(this.pubkey, 'secret')
-      this.seed    = EnigmaUtils.GenerateNewSeed()
-      this.sign    = pen.sign.bind(pen)
-      this.API     = new SigningCosmWasmClient(URL, this.address, this.sign, this.seed, this.fees)
-      return this
     }
     // interact with the network:
     async status () {
       const {header:{time,height}} = await this.API.getBlock()
-      return this.say.tag('status')({
-        time,
-        height,
-        account: await this.API.getAccount(this.address)
-      })
+      const account = await this.API.getAccount(this.address)
+      return this.say.tag('status')({ time, height, account })
     }
     async account () {
       const account = JSON.parse(execFileSync('secretcli', [ 'query', 'account', this.address ]))
@@ -227,7 +204,7 @@ export default class SecretNetwork {
       return await this.API.sendTokens(recipient, [{denom: 'uscrt', amount}], memo)
     }
     async sendMany (txs = [], memo = "") {
-      this.say.tag(' #sendMany')({txs})
+      this.say.tag('sendMany')({txs})
       const chainId = await this.API.getChainId()
       const from_address = this.address
       const {accountNumber, sequence} = await this.API.getNonce(from_address)
@@ -281,51 +258,21 @@ export default class SecretNetwork {
       return say.tag('returned')(response)
     }
   }
-
+  // create builder operating on the current instance's endpoint
+  builder = (options={}) =>
+    new this.constructor.Builder({ chain: this, ...options })
   static Builder = class SecretNetworkBuilder {
-    static buildWorkingTree = ({
-      builder = 'hackbg/secret-contract-optimizer:latest',
-      buildAs = 'root',
-      repo,
-      crate,
+
+    constructor ({
+      url,
+      buildImage = 'hackbg/secret-contract-optimizer:latest',
+      buildUser  = 'root',
       outputDir,
-      buildCommand = ['-c', getBuildCommand({crate, buildAs}).join(' && ')],
-    } = {}) => new Docker()
-      .run(builder
-          , [crate, 'HEAD']
-          , process.stdout
-          , { Env: getBuildEnv()
-            , Tty: true
-            , AttachStdin: true
-            , HostConfig:
-              { Binds: [ `sienna_cache_worktree:/code/target`
-                       , `cargo_cache_worktree:/usr/local/cargo/`
-                       , `${outputDir}:/output:rw`
-                       , `${repo}:/src:rw` ] } })
-    static buildCommit = ({
-      builder = 'hackbg/secret-contract-optimizer:latest',
-      buildAs = 'root',
-      origin,
-      commit,
-      crate,
-      outputDir,
-      buildCommand = ['-c', getBuildCommand({origin, commit, crate, buildAs}).join(' && ')],
-    }={}) => new Docker()
-      .run(builder
-          , buildCommand
-          , process.stdout
-          , { Env: getBuildEnv()
-            , Tty: true
-            , AttachStdin: true
-            , Entrypoint: '/bin/sh'
-            , HostConfig:
-              { Binds: [ `sienna_cache_${commit}:/code/target`
-                       , `cargo_cache_${commit}:/usr/local/cargo/`
-                       , `${outputDir}:/output:rw`
-                       , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
-    constructor ({ say = muted(), outputDir, agent } = {}) {
-      Object.assign(this, { say, agent, outputDir })
+      agent
+    } = {}) {
+      Object.assign(this, { url, buildImage, buildUser, outputDir, agent })
     }
+
     workspace = repo => ({
       repo,
       crate: crate => ({
@@ -334,6 +281,7 @@ export default class SecretNetwork {
         deploy: (Contract, initData) => this.deploy(Contract, initData, { repo, crate })
       })
     })
+
     async deploy (
       Contract,
       data = {},
@@ -353,6 +301,7 @@ export default class SecretNetwork {
       } = options
       return new Contract({codeId, agent, say}).init({label, data})
     }
+
     async build ({crate, repo, origin, commit, output}) {
       const say = this.say.tag(`build(${crate}@${commit})`)
       if (existsSync(output)) {
@@ -371,6 +320,43 @@ export default class SecretNetwork {
       }
       return output
     }
+
+    static buildWorkingTree = ({
+      builder = 'hackbg/secret-contract-optimizer:latest',
+      buildAs = 'root',
+      repo,
+      crate,
+      outputDir,
+      buildCommand = ['-c', getBuildCommand({crate, buildAs}).join(' && ')],
+    } = {}) => new Docker().run(builder, [crate, 'HEAD'], process.stdout,
+      { Env: getBuildEnv()
+      , Tty: true
+      , AttachStdin: true
+      , HostConfig:
+      { Binds: [ `sienna_cache_worktree:/code/target`
+               , `cargo_cache_worktree:/usr/local/cargo/`
+               , `${outputDir}:/output:rw`
+               , `${repo}:/src:rw` ] } })
+
+    static buildCommit = ({
+      builder = 'hackbg/secret-contract-optimizer:latest',
+      buildAs = 'root',
+      origin,
+      commit,
+      crate,
+      outputDir,
+      buildCommand = ['-c', getBuildCommand({origin, commit, crate, buildAs}).join(' && ')],
+    }={}) => new Docker().run(builder, buildCommand, process.stdout,
+      { Env: getBuildEnv()
+      , Tty: true
+      , AttachStdin: true
+      , Entrypoint: '/bin/sh'
+      , HostConfig:
+      { Binds: [ `sienna_cache_${commit}:/code/target`
+               , `cargo_cache_${commit}:/usr/local/cargo/`
+               , `${outputDir}:/output:rw`
+               , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
+
     async upload (binary) {
       const say = this.say.tag(`upload(${basename(binary)})`)
       // check for past upload receipt
