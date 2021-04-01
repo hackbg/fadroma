@@ -44,17 +44,15 @@ export default class SecretNetwork {
     const stats = await stat(stateRoot)
     if (stats.isFile()) stateRoot = dirname(stateRoot)
     const node = await Node.spawn(resolve(stateRoot, '.localnet'))
-    const {host, port} = node
-    const chain = new this(host, port)
-    await chain.ready
-    const agent = await chain.agent({ name: 'ADMIN', ...node.genesisAccount('ADMIN') })
-    const builder = chain.builder()
-    return {chain, agent, builder}
+    const {chainId, host, port} = node
+    const chain = await (new this(chainId, host, port)).ready
+    const agent = await chain.getAgent('ADMIN', node.genesisAccount('ADMIN'))
+    return { chain, agent, builder: chain.getBuilder(agent) }
   }
   // create instance bound to given REST API endpoint
-  constructor (host, port) {
-    Object.assign(this, { host, port })
-    const ready = waitPort({ host, port })
+  constructor (id, host, port) {
+    Object.assign(this, { id, host, port })
+    const ready = waitPort({ host, port }).then(()=>this)
     Object.defineProperty(this, 'ready', { get () { return ready } })
   }
   // manages lifecycle of docker container for localnet
@@ -65,8 +63,8 @@ export default class SecretNetwork {
     // create a node
     static async spawn (stateRoot, options={}) {
       // name and storage paths for this node
-      const { chain     = `fadroma-localnet`
-            , stateDir  = resolve(stateRoot, chain)
+      const { chainId   = `fadroma-localnet`
+            , stateDir  = resolve(stateRoot, chainId)
             , keysDir   = resolve(stateDir, 'keys')
             , stateFile = resolve(stateDir, 'state.json')
             } = options
@@ -89,7 +87,7 @@ export default class SecretNetwork {
         const {State:{Running}} = await container.inspect()
         if (!Running) await container.start({})
         // return interface to this node/chain
-        return new this({ chain, stateDir, keysDir, container, port })
+        return new this({ chainId, stateDir, keysDir, container, port })
       } else {
         // configure a new localnet container
         const { image = // the original
@@ -110,7 +108,7 @@ export default class SecretNetwork {
                 , Tty:          true
                 , Env:
                   [ `Port=${port}`
-                  , `ChainID=${chain}`
+                  , `ChainID=${chainId}`
                   , `GenesisAccounts=${genesisAccounts.join(' ')}` ]
                 , HostConfig:
                   { NetworkMode: 'host'
@@ -126,10 +124,12 @@ export default class SecretNetwork {
         const {id} = container
         // record its existence for subsequent runs
         await writeFile(stateFile, JSON.stringify({ id, port }, null, 2), 'utf8')
-        return new this({ chain, stateDir, keysDir, container, port })
+        return new this({ chainId, stateDir, keysDir, container, port })
       }
     }
     constructor (fields) {
+      this.host = 'localhost'
+      this.agents = {}
       Object.assign(this, { host: 'localhost' /* lol */ }, fields)
     }
     genesisAccount = name =>
@@ -137,12 +137,12 @@ export default class SecretNetwork {
   }
   get url () { return `http://${this.host}:${this.port}` }
   // create agent operating on the current instance's endpoint
-  agent = (options={}) =>
-    this.constructor.Agent.create({ chain: this, ...options })
+  getAgent = (name, options={}) =>
+    this.constructor.Agent.create(name, { chain: this, ...options })
   // `Agent`: tells time, sends transactions, executes contracts;
   // operates on a particular chain.
   static Agent = class SecretNetworkAgent {
-    static async create ({ name = 'Anonymous', mnemonic, keyPair, ...args }={}) {
+    static async create (name = 'Anonymous', { mnemonic, keyPair, ...args }={}) {
       if (mnemonic) {
         // if keypair doesnt correspond to the same mnemonic, delete the keypair
         if (keyPair && mnemonic !== Bip39.encode(keyPair.privkey).data) keyPair = null
@@ -259,38 +259,20 @@ export default class SecretNetwork {
     }
   }
   // create builder operating on the current instance's endpoint
-  builder = (options={}) =>
-    new this.constructor.Builder({ chain: this, ...options })
+  getBuilder = agent => new this.constructor.Builder({chain: this, agent})
   static Builder = class SecretNetworkBuilder {
-
-    constructor ({
-      url,
-      buildImage = 'hackbg/secret-contract-optimizer:latest',
-      buildUser  = 'root',
-      outputDir,
-      agent
-    } = {}) {
-      Object.assign(this, { url, buildImage, buildUser, outputDir, agent })
-    }
-
-    workspace = repo => ({
-      repo,
-      crate: crate => ({
-        repo,
-        crate,
-        deploy: (Contract, initData) => this.deploy(Contract, initData, { repo, crate })
+    constructor (fields) { this.configure(fields) }
+    configure = (fields={}) => Object.assign(this, fields)
+    workspace = repo => Object.assign(this, {
+      repo, crate: crate => Object.assign(this, {
+        repo, crate, deploy (Contract, initData) {
+          return this._deploy(Contract, initData, { repo, crate })
+        }
       })
     })
-
-    async deploy (
-      Contract,
-      data = {},
-      options = {}
-    ) {
+    async _deploy (Contract, data = {}, options = {}) {
       const {
-        repo,
-        crate,
-        commit = 'HEAD',
+        repo, crate, commit = 'HEAD',
         output = resolve(this.outputDir, `${crate}@${commit}.wasm`),
         binary = await this.build({crate, repo, commit, output}),
         label  = `${+new Date()}-${basename(binary)}`,
@@ -301,62 +283,6 @@ export default class SecretNetwork {
       } = options
       return new Contract({codeId, agent, say}).init({label, data})
     }
-
-    async build ({crate, repo, origin, commit, output}) {
-      const say = this.say.tag(`build(${crate}@${commit})`)
-      if (existsSync(output)) {
-        say.tag('cached')(output) // TODO compare against checksums
-      } else {
-        say.tag('building')(output)
-        const { outputDir } = this
-        const [{Error:err, StatusCode:code}, container] =
-          (commit && commit !== 'HEAD')
-          ? await buildCommit({ origin, commit, crate, outputDir })
-          : await buildWorkingTree({ repo, crate, outputDir })
-        await container.remove()
-        if (err) throw new Error(err)
-        if (code !== 0) throw new Error(`build exited with status ${code}`)
-        say.tag('built')(output)
-      }
-      return output
-    }
-
-    static buildWorkingTree = ({
-      builder = 'hackbg/secret-contract-optimizer:latest',
-      buildAs = 'root',
-      repo,
-      crate,
-      outputDir,
-      buildCommand = ['-c', getBuildCommand({crate, buildAs}).join(' && ')],
-    } = {}) => new Docker().run(builder, [crate, 'HEAD'], process.stdout,
-      { Env: getBuildEnv()
-      , Tty: true
-      , AttachStdin: true
-      , HostConfig:
-      { Binds: [ `sienna_cache_worktree:/code/target`
-               , `cargo_cache_worktree:/usr/local/cargo/`
-               , `${outputDir}:/output:rw`
-               , `${repo}:/src:rw` ] } })
-
-    static buildCommit = ({
-      builder = 'hackbg/secret-contract-optimizer:latest',
-      buildAs = 'root',
-      origin,
-      commit,
-      crate,
-      outputDir,
-      buildCommand = ['-c', getBuildCommand({origin, commit, crate, buildAs}).join(' && ')],
-    }={}) => new Docker().run(builder, buildCommand, process.stdout,
-      { Env: getBuildEnv()
-      , Tty: true
-      , AttachStdin: true
-      , Entrypoint: '/bin/sh'
-      , HostConfig:
-      { Binds: [ `sienna_cache_${commit}:/code/target`
-               , `cargo_cache_${commit}:/usr/local/cargo/`
-               , `${outputDir}:/output:rw`
-               , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
-
     async upload (binary) {
       const say = this.say.tag(`upload(${basename(binary)})`)
       // check for past upload receipt
@@ -374,6 +300,53 @@ export default class SecretNetwork {
       await writeFile(receipt, JSON.stringify(result), 'utf8')
       return result
     }
+    async build ({crate, repo, origin, commit, output}) {
+      //const say = this.say.tag(`build(${crate}@${commit})`)
+      if (existsSync(output)) {
+        say.tag('cached')(output) // TODO compare against checksums
+      } else {
+        say.tag('building')(output)
+        const { outputDir } = this
+        const [{Error:err, StatusCode:code}, container] =
+          (commit && commit !== 'HEAD')
+          ? await this.buildCommit({ origin, commit, crate, outputDir })
+          : await this.buildWorkingTree({ repo, crate, outputDir })
+        await container.remove()
+        if (err) throw new Error(err)
+        if (code !== 0) throw new Error(`build exited with status ${code}`)
+        say.tag('built')(output)
+      }
+      return output
+    }
+
+    buildWorkingTree = ({
+      builder = this.buildImage, buildAs = this.buildUser,
+      repo, crate, outputDir,
+      buildCommand = ['-c', getBuildCommand({crate, buildAs}).join(' && ')],
+    } = {}) => new Docker().run(builder, [crate, 'HEAD'], process.stdout,
+      { Env: getBuildEnv()
+      , Tty: true
+      , AttachStdin: true
+      , HostConfig:
+      { Binds: [ `sienna_cache_worktree:/code/target`
+               , `cargo_cache_worktree:/usr/local/cargo/`
+               , `${outputDir}:/output:rw`
+               , `${repo}:/src:rw` ] } })
+
+    buildCommit = ({
+      builder = this.buildImage, buildAs = this.buildUser,
+      origin, commit, crate, outputDir,
+      buildCommand = ['-c', getBuildCommand({origin, commit, crate, buildAs}).join(' && ')],
+    }={}) => new Docker().run(builder, buildCommand, process.stdout,
+      { Env: getBuildEnv()
+      , Tty: true
+      , AttachStdin: true
+      , Entrypoint: '/bin/sh'
+      , HostConfig:
+      { Binds: [ `sienna_cache_${commit}:/code/target`
+               , `cargo_cache_${commit}:/usr/local/cargo/`
+               , `${outputDir}:/output:rw`
+               , `${resolve(homedir(), '.ssh')}:/root/.ssh:ro` ] } })
   }
 
   static Contract = class SecretNetworkContract {
