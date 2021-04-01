@@ -2,16 +2,12 @@ import Docker from 'dockerode'
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey, pubkeyToAddress
        , makeSignBytes } from 'secretjs'
-
 import say, { sayer, muted } from './say.js'
 import { loadJSON, loadSchemas } from './schema.js'
 import { freePort, waitPort } from './net.js'
-import {
-  mkdirp, readFile, readFileSync, writeFile, existsSync, stat,
-  execFileSync, spawnSync, onExit, 
-  fileURLToPath, resolve, dirname, basename, homedir
-} from './sys.js'
-
+import { mkdirp, readFile, readFileSync, writeFile, existsSync, stat
+       , execFileSync, spawnSync, onExit
+       , fileURLToPath, resolve, dirname, basename, homedir } from './sys.js'
 export default class SecretNetwork {
   // `destination` can be:
   // * empty or "mainnet" (not implemented)
@@ -199,12 +195,10 @@ export default class SecretNetwork {
       }
     }
     async send (recipient, amount, memo = "") {
-      this.say.tag(' #send')({recipient, amount, memo})
       if (typeof amount === 'number') amount = String(amount)
       return await this.API.sendTokens(recipient, [{denom: 'uscrt', amount}], memo)
     }
     async sendMany (txs = [], memo = "") {
-      this.say.tag('sendMany')({txs})
       const chainId = await this.API.getChainId()
       const from_address = this.address
       const {accountNumber, sequence} = await this.API.getNonce(from_address)
@@ -229,7 +223,7 @@ export default class SecretNetwork {
       // check for past upload receipt
       const receipt = `${binary}.${await this.API.getChainId()}.upload`
       if (existsSync(receipt)) {
-        return say.tag(' #cached')(JSON.parse(await readFile(receipt, 'utf8')))
+        return say.tag('receipt-exists')(JSON.parse(await readFile(receipt, 'utf8')))
       }
       // if no receipt, upload anew
       say.tag('uploading')(binary)
@@ -254,7 +248,7 @@ export default class SecretNetwork {
     async execute ({ name, address }, method='', args={}) {
       const say = this.say.tag(name).tag(`${method}!`)
       const response = await this.API.execute(address, {[method]:say(args)})
-      response.logs = response.logs.reduce((log, {key,value})=>Object.assign(log, {[key]:value}), {})
+      //response.logs = response.logs.reduce((log, {key,value})=>Object.assign(log, {[key]:value}), {})
       return say.tag('returned')(response)
     }
   }
@@ -286,6 +280,8 @@ export default class SecretNetwork {
       const chainId = await this.agent.API.getChainId()
       const receipt = `${binary}.${chainId}.upload`
       if (existsSync(receipt)) {
+        // TODO compare hash in receipt with on-chain hash from codeid
+        // and invalidate receipt if they don't match
         return JSON.parse(await readFile(receipt, 'utf8'))
       }
       // if no receipt, upload anew
