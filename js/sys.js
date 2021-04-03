@@ -1,14 +1,32 @@
 import { fileURLToPath } from 'url'
-import { readFileSync, existsSync } from 'fs'
-import { stat, readFile, writeFile } from 'fs/promises'
+import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from 'fs'
+import { stat, readFile, writeFile, unlink } from 'fs/promises'
 import { resolve, dirname, basename } from 'path'
 import { execFileSync, spawnSync } from 'child_process'
 import { homedir } from 'os'
+import { cwd } from 'process'
 import mkdirp from 'mkdirp'
 import onExit from 'signal-exit'
+import xdgAppPaths from 'xdg-app-paths'
 
-export {
-  mkdirp, readFile, readFileSync, writeFile, existsSync, stat,
-  execFileSync, spawnSync, onExit, 
-  fileURLToPath, resolve, dirname, basename, homedir
-}
+export const defaultDataDir = () => xdgAppPaths.data()
+export const mkdir = (...fragments) => {
+  const path = resolve(...fragments)
+  if (!existsSync(path)) console.debug('creating', path)
+  mkdirp.sync(path, {mode: 0o770})
+  return path }
+export const touch = (...fragments) => {
+  const path = resolve(...fragments)
+  if (!existsSync(path)) console.debug('creating', path)
+  writeFileSync(path, '')
+  return path }
+export const makeStateDir = (path, ...subdirs) => {
+  // somewhere to store localnet state,
+  // as well as upload receipts for all networks:
+  if (path.startsWith('file://')) path = fileURLToPath(path)
+  if (existsSync(path) && (statSync(path)).isFile()) path = dirname(path)
+  return mkdir(path, ...subdirs) }
+
+export { resolve, dirname, basename
+       , fileURLToPath, cwd, homedir
+       , existsSync, readFile, writeFile, unlink }

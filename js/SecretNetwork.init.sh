@@ -2,12 +2,12 @@
 
 echo $Port
 
-# look around
-date
-cd ~
-whoami
-pwd
-ls -alh
+# lookarounds:
+#date
+#cd ~
+#whoami
+#pwd
+#ls -alh
 
 # config
 #ChainID=enigma-pub-testnet-3
@@ -55,6 +55,7 @@ if [ ! -e "$Genesis" ]; then
   echo "stage 2--------------------------------"
   secretd init-bootstrap
   secretd validate-genesis
+  echo "GENESIS COMPLETE ======================"
 fi
 
 secretcli rest-server --trust-node=true --chain-id enigma-pub-testnet-3 --laddr tcp://0.0.0.0:1336 &
