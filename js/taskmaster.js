@@ -13,7 +13,7 @@ export default function taskmaster ({
     const t2 = new Date()
     say(`⏱️  took ${t2-t1}msec`)
     if (agent && reports.length > 0) {
-      const txs = await Promise.all(reports.map(getTx))
+      const txs = await Promise.all(reports.map(getTx.bind(null, agent)))
       const totalGasUsed = txs.map(x=>Number(x.gas_used)).reduce((x,y)=>x+y, 0)
       const t3 = new Date()
       say(`⛽ cost ${totalGasUsed} gas`)
@@ -29,7 +29,7 @@ export default function taskmaster ({
   return Object.assign(task, { done, parallel })
 
   async function done () {
-    if (output) await T.write(output)
+    if (output) await table.write(output)
   }
 
   async function parallel (description, ...tasks) { // TODO subtotal?
@@ -40,23 +40,22 @@ export default function taskmaster ({
     const t1      = new Date()
     say(`\n${description}`)
     const reports = []
-    const report  = tx => { txs.push(tx); return tx }
+    const report  = r => { reports.push(r); return r }
     const result  = await Promise.resolve(operation(report))
     await afterEach(t1, description, reports)
     return result
   }
 
-  // TODO decouple this
-  async function getTx (tx) {
-    return backOff(async ()=>{
-      try {
-        return await agent.API.restClient.get(`/txs/${tx}`)
-      } catch (e) {
-        console.warn(e.message)
-        console.debug('waiting for transaction info...')
-        throw e
-      }
-    })
-  }
+}
 
+async function getTx ({API:{restClient}}, tx) {
+  return backOff(async ()=>{
+    try {
+      return await restClient.get(`/txs/${tx}`)
+    } catch (e) {
+      console.warn(e.message)
+      console.debug('waiting for transaction info...')
+      throw e
+    }
+  })
 }

@@ -37,7 +37,7 @@ export default class SecretNetwork {
     await node.ready
     console.debug(`localnet ready @ ${node.state}`)
     const {host, port} = node
-    const network = new this({chainId, host, port})
+    const network = new this({chainId, host, port, state})
     const agent = await network.getAgent('ADMIN', node.genesisAccount('ADMIN'))
     return { node, network, agent, builder: network.getBuilder(agent) }
   }
@@ -253,7 +253,7 @@ export default class SecretNetwork {
       }
       const fee = this.fees.send
       return this.API.postTx({ msg, memo, fee, signatures: [
-        await this.sign(makeSignBytes(msg, fee, this.network.id, memo, accountNumber, sequence))
+        await this.sign(makeSignBytes(msg, fee, this.network.chainId, memo, accountNumber, sequence))
       ] })
     }
     // upload code blob to the chain
@@ -344,6 +344,7 @@ export default class SecretNetwork {
       const receiptPath = this.getReceiptPath(artifact)
       if (existsSync(receiptPath)) {
         const receiptData = await readFile(receiptPath, 'utf8')
+        console.debug(`found upload receipt for ${artifact} at ${receiptPath}`)
         return JSON.parse(receiptData)
       } else {
         return this.upload(artifact)
@@ -361,20 +362,10 @@ export default class SecretNetwork {
   // Can be subclassed with schema to auto-generate methods
   // TODO connect to existing contract
   static Contract = class SecretNetworkContract {
+    constructor (fields={}) { Object.assign(this, fields) }
 
-    // create subclass with methods based on the schema
-    // TODO validate schema and req/res arguments with `ajv` etc.
-    static withSchema = (schema={}) =>
-      extendWithSchema(this, schema)
-
-    constructor (fields={}) { return Object.assign(this, fields) }
-
-    async init ({
-      agent   = this.agent,
-      codeId  = this.codeId,
-      label   = this.label,
-      initMsg = this.initMsg,
-    } = {}) {
+    async init ({ label = this.label, initMsg = this.initMsg } = {}) {
+      const {agent, codeId} = this
       const initTx = await agent.instantiate({codeId, label, initMsg})
       const {contractAddress: address, codeHash} = initTx
       Object.assign(this, { address, codeHash })
@@ -386,6 +377,11 @@ export default class SecretNetwork {
 
     execute = (method = '', args = {}, agent = this.agent) =>
       agent.execute(this, method, args)
+
+    // create subclass with methods based on the schema
+    // TODO validate schema and req/res arguments with `ajv` etc.
+    static withSchema = (schema={}) =>
+      extendWithSchema(this, schema)
   }
 
   static Gas = Object.assign(gas, { defaultFees: {
