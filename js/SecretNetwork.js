@@ -17,12 +17,14 @@ export default class SecretNetwork {
     chainId  = 'localnet',
     state    = makeStateDir(defaultDataDir(), 'fadroma', chainId),
     receipts = mkdir(state, 'uploaded'),
+    protocol = 'http',
     host     = 'localhost',
-    port     = 1337
+    port     = 1337,
+    path     = ''
   }) {
-    Object.assign(this, { chainId, state, receipts, host, port })
+    Object.assign(this, { chainId, state, receipts, protocol, host, port, path })
   }
-  get url () { return `http://${this.host}:${this.port}` }
+  get url () { return `${this.protocol}://${this.host}:${this.port}${this.path||''}` }
 
   // run a node in a docker container
   // return a SecretNetwork instance bound to that node
@@ -43,16 +45,24 @@ export default class SecretNetwork {
   }
 
   static async testnet ({
-    host     = 'bootstrap.secrettestnet.io',
-    port     = 80,
-    // can't get balance from genesis accounts -
-    // needs a real testnet wallet - load it from https://faucet.secrettestnet.io/
-    // TODO automate this
+    // chain info:
+    chainId   = 'holodeck-2',
+    stateBase = resolve(defaultDataDir(), 'fadroma'),
+    state     = makeStateDir(stateBase, chainId),
+    // connection info:
+    protocol = 'https',
+    host     = 'secret-holodeck-2--lcd--full.datahub.figment.io',
+    path     = '/apikey/5043dd0099ce34f9e6a0d7d6aa1fa6a8/',
+    //host     = 'bootstrap.secrettestnet.io',
+    port     = 443,
+    // admin account info:
+    // can't get balance from genesis accounts - needs a real testnet wallet
+    // load it from https://faucet.secrettestnet.io/ (TODO automate this)
     address  = 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
     mnemonic = 'genius supply lecture echo follow that silly meadow used gym nerve together'
   }={}) {
-    const network = new this('holodeck-2', host, port)
-    await network.ready
+    console.log('connect testnet', protocol, host, port)
+    const network = new this({chainId, state, protocol, host, port, path})
     const agent = await network.getAgent("ADMIN", { mnemonic, address })
     return { network, agent, builder: network.getBuilder(agent) }
   }
@@ -175,7 +185,6 @@ export default class SecretNetwork {
     genesisAccount = name =>
       loadJSON(resolve(this.keysState, `${name}.json`))
   }
-  get url () { return `http://${this.host}:${this.port}` }
   // create agent operating on the current instance's endpoint
   // > observation: simpification of subsequent API layers reified
   // > as changing individual named args to positional + remaining options
@@ -241,7 +250,7 @@ export default class SecretNetwork {
       if (typeof amount === 'number') amount = String(amount)
       return await this.API.sendTokens(recipient, [{denom: 'uscrt', amount}], memo)
     }
-    async sendMany (txs = [], memo = "") {
+    async sendMany (txs = [], memo = "", fee = this.fees.send) {
       const from_address = this.address
       const {accountNumber, sequence} = await this.API.getNonce(from_address)
       const msg = []
@@ -251,10 +260,8 @@ export default class SecretNetwork {
         const value = {from_address, to_address, amount: [{denom: 'uscrt', amount}]}
         msg.push({ type: 'cosmos-sdk/MsgSend', value })
       }
-      const fee = this.fees.send
-      return this.API.postTx({ msg, memo, fee, signatures: [
-        await this.sign(makeSignBytes(msg, fee, this.network.chainId, memo, accountNumber, sequence))
-      ] })
+      const signBytes = makeSignBytes(msg, fee, this.network.chainId, memo, accountNumber, sequence)
+      return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
     }
     // upload code blob to the chain
     async upload (pathToBinary) {
