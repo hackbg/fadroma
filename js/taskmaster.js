@@ -53,8 +53,8 @@ async function getTx ({API:{restClient}}, tx) {
     try {
       return await restClient.get(`/txs/${tx}`)
     } catch (e) {
-      console.warn(e.message)
-      console.debug('waiting for transaction info...')
+      console.warn(`failed to get tx info: ${e.message}`)
+      console.debug('retrying...')
       throw e
     }
   })
