@@ -394,7 +394,7 @@ export default class SecretNetwork {
   static Gas = Object.assign(gas, { defaultFees: {
     upload: gas(2000000),
     init:   gas( 500000),
-    exec:   gas( 400000),
+    exec:   gas(1000000),
     send:   gas( 500000),
   } })
 
