@@ -143,11 +143,10 @@
             // get a read-only snapshot of the contract state
             let state = get_store_ro(&$q_deps.storage).load()?;
             // find the matching handler and return
-            // TODO remove the `to_binary`/make it optional?
-            let result = cosmwasm_std::to_binary(&match $q_msg {
+            let result = match $q_msg {
                 $( $Q::$QMsg {..} => self::queries::$QMsg($q_deps, state, $q_msg), )*
-            })?;
-            Ok(result)
+            };
+            Ok(cosmwasm_std::to_binary(&result?)?)
         }
         /// Query handlers.
         mod queries {
@@ -157,7 +156,7 @@
             // define a handler for every query message variant
             $(#[allow(non_snake_case)] pub fn $QMsg <S: Storage, A: Api, Q: Querier>(
                 $q_deps: &Extern<S, A, Q>, $q_state: $State, $q_msg: $Q,
-            ) -> $Response {
+            ) -> StdResult<$Response> {
                 // destructure the message
                 if let super::$Q::$QMsg {$($q_field),*} = $q_msg {
                     // perform user-specified actions
