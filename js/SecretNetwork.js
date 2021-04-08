@@ -11,6 +11,10 @@ import { defaultDataDir, mkdir, touch, makeStateDir
        , fileURLToPath, cwd, homedir
        , existsSync, readFile, writeFile, unlink } from './sys.js'
 
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export const defaultStateBase = resolve(defaultDataDir(), '.fadroma')
+
 export default class SecretNetwork {
   // create instance bound to given REST API endpoint
   constructor ({
@@ -34,48 +38,87 @@ export default class SecretNetwork {
   // with corresponding agent and builder
   static async localnet ({
     chainId   = 'enigma-pub-testnet-3',
-    stateBase = resolve(defaultDataDir(), 'fadroma'),
+    stateBase = defaultStateBase,
     state     = makeStateDir(stateBase, chainId)
   }={}) {
     console.debug(`preparing localnet "${chainId}" @ ${state}`)
     const node = await this.Node.respawn({state, chainId})
     await node.ready
     console.debug(`localnet ready @ ${node.state}`)
-    const {host, port} = node
-    const network = new this({chainId, host, port, state})
-    const agent = await network.getAgent('ADMIN', node.genesisAccount('ADMIN'))
-    return { node, network, agent, builder: network.getBuilder(agent) }
+    const { protocol, host, port } = node
+    const agent = await node.genesisAccount('ADMIN')
+    const options = { chainId, state, protocol, host, port, agent }
+    return { node, ...await this.connect(options) }
   }
 
   static async testnet ({
     // chain info:
     chainId   = 'holodeck-2',
-    stateBase = resolve(defaultDataDir(), 'fadroma'),
+    stateBase = defaultStateBase,
     state     = makeStateDir(stateBase, chainId),
     // connection info:
     protocol = 'https',
     host     = 'secret-holodeck-2--lcd--full.datahub.figment.io',
     path     = '/apikey/5043dd0099ce34f9e6a0d7d6aa1fa6a8/',
-    //host     = 'bootstrap.secrettestnet.io',
     port     = 443,
     // admin account info:
     // can't get balance from genesis accounts - needs a real testnet wallet
     // load it from https://faucet.secrettestnet.io/ (TODO automate this)
-    address  = 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-    mnemonic = 'genius supply lecture echo follow that silly meadow used gym nerve together'
+    agent = {
+      address:  'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+      mnemonic: 'genius supply lecture echo follow that silly meadow used gym nerve together'
+    }
   }={}) {
-    console.debug('connect to testnet', protocol, host, port)
-    const network = new this({chainId, state, protocol, host, port, path})
-    const agent = await network.getAgent("ADMIN", { mnemonic, address })
-    return { network, agent, builder: network.getBuilder(agent) }
+    const options = { chainId, state, protocol, host, port, path, agent }
+    return await this.connect(options)
   }
 
-  static async mainnet () {
-    throw new Error('not implemented')
+  static async mainnet ({
+    // chain info:
+    chainId   = 'secret-2',
+    stateBase = defaultStateBase,
+    state     = makeStateDir(stateBase, chainId),
+    // connection info:
+    protocol = 'https',
+    host     = 'secret-2--lcd--full.datahub.figment.io',
+    path     = '/apikey/5043dd0099ce34f9e6a0d7d6aa1fa6a8/',
+    port     = 443,
+    // admin account info:
+    agent = {
+      address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
+      mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC
+    }
+  }) {
+    const options = { chainId, state, protocol, host, port, path, agent }
+    return await this.connect(options)
+  }
+
+  static async connect ({
+    state,
+    chainId, protocol, host, port, path='',
+    agent: { mnemonic, address }
+  }) {
+    console.debug(`connecting to ${chainId} via ${protocol} on ${host}:${port}`)
+    const network = new this({chainId, state, protocol, host, port, path})
+    const agent = await network.getAgent("ADMIN", { mnemonic, address })
+    console.debug(`operating as ${address}`)
+    return { network, agent, builder: network.getBuilder(agent) }
   }
 
   // manage lifecycle of docker container for localnet
   static Node = class SecretNetworkNode {
+    constructor (options) {
+      const defaults = { chainId:  'enigma-pub-testnet-3'
+                       , protocol: 'http'
+                       , host:     'localhost'
+                       , port:     1337 }
+      Object.assign(this, defaults, options)
+
+      const ready = waitPort({ host: this.host, port: this.port }).then(()=>this)
+      Object.defineProperty(this, 'ready', { get () { return ready } })
+    }
+    genesisAccount = name => loadJSON(resolve(this.keysState, `${name}.json`))
+
     // wake up a stopped localnet container, or create one
     static async respawn (options={}) {
       // chain id and storage paths for this node
@@ -87,7 +130,7 @@ export default class SecretNetwork {
       if (!existsSync(state)) {
         options.state     = makeStateDir(state)
         options.nodeState = resolve(state, 'node.json')
-        options.keysState = mkdir(state, 'keys')
+        options.keysState = mkdir(state, 'wallets')
         return await this.spawn(options)
       }
       if (!existsSync(nodeState)) {
@@ -124,8 +167,10 @@ export default class SecretNetwork {
         }
       })
       // return interface to this node/node
-      return new this({ state, nodeState, keysState, chainId, container, port })
+      return new this({ state, nodeState, keysState
+                      , chainId, container, port })
     }
+
     // configure a new localnet container:
     static async spawn (options={}) {
       console.debug('spawning a new localnet container...')
@@ -135,7 +180,7 @@ export default class SecretNetwork {
             // where to keep state
             , state       = makeStateDir(defaultDataDir(), 'fadroma', chainId)
             , nodeState   = touch(state, 'node.json')
-            , keysState   = mkdir(state, 'keys')
+            , keysState   = mkdir(state, 'wallets')
             , daemonState = mkdir(state, '.secretd')
             , cliState    = mkdir(state, '.secretcli')
             , sgxState    = mkdir(state, '.sgx-secrets')
@@ -144,8 +189,8 @@ export default class SecretNetwork {
             , docker        = new Docker(dockerOptions)
             , image         = await pull("enigmampc/secret-network-sw-dev", docker)
             // modified genesis that keeps the keys
-            , init = resolve(dirname(fileURLToPath(import.meta.url)), 'SecretNetwork.init.sh')  
-            , genesisAccounts = ['ADMIN', 'ALICE', 'BOB', 'MALLORY'] 
+            , init = resolve(__dirname, 'SecretNetwork.init.sh')
+            , genesisAccounts = ['ADMIN', 'ALICE', 'BOB', 'MALLORY']
             , containerOptions = // stuff dockerode passes to docker
               { Image: image
               , Entrypoint: [ '/bin/bash' ]
@@ -174,19 +219,9 @@ export default class SecretNetwork {
       await writeFile(nodeState, JSON.stringify(stored, null, 2), 'utf8')
       // wait for logs to confirm that the genesis is done
       await waitUntilLogsSay(container, 'GENESIS COMPLETE')
-      return new this({ chainId, state, keysState, container, port })
+      return new this({ state, keysState
+                      , chainId, container, port })
     }
-    constructor (options) {
-      const defaults = { chainId: 'enigma-pub-testnet-3'
-                       , host:    'localhost'
-                       , port:    1337 }
-      Object.assign(this, defaults, options)
-
-      const ready = waitPort({ host: this.host, port: this.port }).then(()=>this)
-      Object.defineProperty(this, 'ready', { get () { return ready } })
-    }
-    genesisAccount = name =>
-      loadJSON(resolve(this.keysState, `${name}.json`))
   }
   // create agent operating on the current instance's endpoint
   // > observation: simpification of subsequent API layers reified
@@ -234,7 +269,7 @@ export default class SecretNetwork {
         this.API.getBlock(),
         this.API.getAccount(this.address)
       ])
-      const {header:{time,height}} = block 
+      const {header:{time,height}} = block
       return { time, height, account }
     }
     get nextBlock () {
@@ -292,7 +327,7 @@ export default class SecretNetwork {
       const docker       = new Docker()
       const buildImage   = await pull('enigmampc/secret-contract-optimizer:latest', docker)
       const buildCommand = this.getBuildCommand(options)
-      const entrypoint   = resolve(dirname(fileURLToPath(import.meta.url)), 'SecretNetwork.build.sh')
+      const entrypoint   = resolve(__dirname, 'SecretNetwork.build.sh')
       const buildOptions = {
         Env: this.getBuildEnv(),
         Tty: true,
