@@ -284,6 +284,7 @@ export default class SecretNetwork {
   static Builder = class SecretNetworkBuilder {
     constructor (fields) { this.configure(fields) }
     configure = (fields={}) => { Object.assign(this, fields) }
+    get address () { return this.agent ? this.agent.address : undefined }
     async build (options) {
       const docker       = new Docker()
       const buildImage   = await pull('enigmampc/secret-contract-optimizer:latest', docker)
@@ -341,7 +342,6 @@ export default class SecretNetwork {
       , 'CARGO_TERM_VERBOSE=true'
       , 'CARGO_HTTP_TIMEOUT=240' ]
 
-    deployFromCrate = (workspace, crate) => {}
     crate = crate => ({
       deploy: (Contract, initMsg) => this.deploy(Contract, initMsg, { crate })
     })
