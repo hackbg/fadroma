@@ -41,10 +41,10 @@ export default class SecretNetwork {
     stateBase = defaultStateBase,
     state     = makeStateDir(stateBase, chainId)
   }={}) {
-    console.debug(`preparing localnet "${chainId}" @ ${state}`)
+    console.debug(`⏳ preparing localnet "${chainId}" @ ${state}`)
     const node = await this.Node.respawn({state, chainId})
     await node.ready
-    console.debug(`localnet ready @ ${node.state}`)
+    console.debug(`🟢 localnet ready @ ${node.state}`)
     const { protocol, host, port } = node
     const agent = await node.genesisAccount('ADMIN')
     const options = { chainId, state, protocol, host, port, agent }
@@ -98,10 +98,11 @@ export default class SecretNetwork {
     chainId, protocol, host, port, path='',
     agent: { mnemonic, address }
   }) {
-    console.debug(`connecting to ${chainId} via ${protocol} on ${host}:${port}`)
+
+    console.info(`⏳ connecting to ${chainId} via ${protocol} on ${host}:${port}`)
     const network = new this({chainId, state, protocol, host, port, path})
     const agent = await network.getAgent("ADMIN", { mnemonic, address })
-    console.debug(`operating as ${address}`)
+    console.info(`🟢 connected, operating as ${address}`)
     return { network, agent, builder: network.getBuilder(agent) }
   }
 

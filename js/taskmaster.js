@@ -11,13 +11,13 @@ export default function taskmaster ({
   agent,
   afterEach = async (t1, description, reports=[]) => {
     const t2 = new Date()
-    say(`⏱️  took ${t2-t1}msec`)
+    say(`🟢 +${t2-t1}msec`)
     if (agent && reports.length > 0) {
       const txs = await Promise.all(reports.map(getTx.bind(null, agent)))
       const totalGasUsed = txs.map(x=>Number(x.gas_used)).reduce((x,y)=>x+y, 0)
       const t3 = new Date()
       say(`⛽ cost ${totalGasUsed} gas`)
-      say(`🔍 gas check took ${t3-t2}msec`)
+      say(`🔍 gas check: +${t3-t2}msec`)
       table.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
     } else {
       table.push([t1.toISOString(), description, t2-t1])
@@ -38,7 +38,7 @@ export default function taskmaster ({
 
   async function task (description, operation = () => {}) {
     const t1      = new Date()
-    say(`\n${description}`)
+    say(`\n👉 ${description}`)
     const reports = []
     const report  = r => { reports.push(r); return r }
     const result  = await Promise.resolve(operation(report))
