@@ -14,15 +14,16 @@ import { defaultDataDir, mkdir, touch, makeStateDir
 export default class SecretNetwork {
   // create instance bound to given REST API endpoint
   constructor ({
-    chainId  = 'localnet',
-    state    = makeStateDir(defaultDataDir(), 'fadroma', chainId),
-    receipts = mkdir(state, 'uploaded'),
-    wallets  = mkdir(state, 'wallets'),
-    protocol = 'http', host = 'localhost', port = 1337, path = ''
+    chainId   = 'localnet',
+    state     = makeStateDir(defaultDataDir(), 'fadroma', chainId),
+    receipts  = mkdir(state, 'uploads'),
+    wallets   = mkdir(state, 'wallets'),
+    instances = mkdir(state, 'instances'),
+    protocol  = 'http', host = 'localhost', port = 1337, path = ''
   }) {
     Object.assign(this, {
       chainId,
-      state, receipts, wallets,
+      state, receipts, wallets, instances,
       protocol, host, port, path
     })
   }
@@ -269,9 +270,9 @@ export default class SecretNetwork {
     async upload (pathToBinary) {
       return this.API.upload(await readFile(pathToBinary), {})
     }
-    // call init on a new instance
+    // call init, creating a new instance
     async instantiate ({ codeId, initMsg = {}, label = '' }) {
-      const initTx = await this.API.instantiate(codeId, initMsg, label)
+      const initTx   = await this.API.instantiate(codeId, initMsg, label)
       const codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
       return { ...initTx, codeId, label, codeHash }
     }
@@ -372,13 +373,15 @@ export default class SecretNetwork {
   // TODO connect to existing contract
   static Contract = class SecretNetworkContract {
     constructor (fields={}) { Object.assign(this, fields) }
+    get receiptPath () { return resolve(this.network.instances, `${this.label}.json`) }
+    get network () { return this.agent.network }
+    get address () { return this.contractAddress }
 
-    async init ({ label = this.label, initMsg = this.initMsg } = {}) {
-      const {agent, codeId} = this
-      const initTx = await agent.instantiate({codeId, label, initMsg})
-      const {contractAddress: address, codeHash} = initTx
-      Object.assign(this, { address, codeHash })
-      return initTx.transactionHash
+    static async init ({ agent, codeId, label, initMsg } = {}) {
+      const receipt = await agent.instantiate({codeId, label, initMsg})
+      const instance = new this({ agent, ...receipt })
+      await writeFile(instance.receiptPath, JSON.stringify(receipt, null, 2), 'utf8')
+      return instance
     }
 
     query = (method = '', args = {}, agent = this.agent) =>
