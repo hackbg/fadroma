@@ -17,12 +17,14 @@ export default class SecretNetwork {
     chainId  = 'localnet',
     state    = makeStateDir(defaultDataDir(), 'fadroma', chainId),
     receipts = mkdir(state, 'uploaded'),
-    protocol = 'http',
-    host     = 'localhost',
-    port     = 1337,
-    path     = ''
+    wallets  = mkdir(state, 'wallets'),
+    protocol = 'http', host = 'localhost', port = 1337, path = ''
   }) {
-    Object.assign(this, { chainId, state, receipts, protocol, host, port, path })
+    Object.assign(this, {
+      chainId,
+      state, receipts, wallets,
+      protocol, host, port, path
+    })
   }
   get url () { return `${this.protocol}://${this.host}:${this.port}${this.path||''}` }
 
