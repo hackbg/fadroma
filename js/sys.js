@@ -4,7 +4,7 @@ import { stat, readFile, writeFile, unlink } from 'fs/promises'
 import { resolve, dirname, basename, extname } from 'path'
 import { execFileSync, spawnSync } from 'child_process'
 import { homedir } from 'os'
-import { cwd } from 'process'
+import { cwd, stderr } from 'process'
 import mkdirp from 'mkdirp'
 import onExit from 'signal-exit'
 import xdgAppPaths from 'xdg-app-paths'
@@ -27,6 +27,7 @@ export const makeStateDir = (path, ...subdirs) => {
   if (existsSync(path) && (statSync(path)).isFile()) path = dirname(path)
   return mkdir(path, ...subdirs) }
 
-export { resolve, dirname, basename, extname
+export { stderr
+       , resolve, dirname, basename, extname
        , fileURLToPath, cwd, homedir
        , existsSync, readFile, writeFile, unlink }

@@ -82,7 +82,7 @@ export default class SecretNetwork {
       const { chainId   = 'enigma-pub-testnet-3'
             , state     = makeStateDir(defaultDataDir(), 'fadroma', chainId)
             , nodeState = resolve(state, 'node.json')
-            , keysState = mkdir(state, 'keys')
+            , keysState = mkdir(state, 'wallets')
             } = options
       if (!existsSync(state)) {
         options.state     = makeStateDir(state)
