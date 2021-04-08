@@ -61,7 +61,7 @@ export default class SecretNetwork {
     address  = 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
     mnemonic = 'genius supply lecture echo follow that silly meadow used gym nerve together'
   }={}) {
-    console.log('connect testnet', protocol, host, port)
+    console.debug('connect to testnet', protocol, host, port)
     const network = new this({chainId, state, protocol, host, port, path})
     const agent = await network.getAgent("ADMIN", { mnemonic, address })
     return { network, agent, builder: network.getBuilder(agent) }
