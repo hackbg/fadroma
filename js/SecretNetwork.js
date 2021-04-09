@@ -29,14 +29,16 @@ export class SecretNetworkNode {
    * @param {string} options.protocol - http or https
    * @param {string} options.host - normally localhost
    * @param {number} options.port - normally 1337
+   * @param {number} options.keysState - directory to store genesis accounts
    */
   constructor ({
     chainId  = 'enigma-pub-testnet-3',
     protocol = 'http',
     host     = 'localhost',
-    port     = 1337
+    port     = 1337,
+    keysState
   } = {}) {
-    Object.assign(this, { chainId, protocol, host, port })
+    Object.assign(this, { chainId, protocol, host, port, keysState })
     const ready = waitPort({ host: this.host, port: this.port }).then(()=>this)
     Object.defineProperty(this, 'ready', { get () { return ready } })
   }
@@ -398,7 +400,9 @@ export default class SecretNetwork {
   static Agent    = SecretNetworkAgent
   static Builder  = SecretNetworkBuilder
   static Contract = SecretNetworkContract
-  static Gas      = SecretNetworkGas
+  static Gas = Object.assign(gas, {
+    defaultFees: { upload: gas(2000000), init: gas(500000), exec: gas(1000000), send: gas(500000) }
+  })
 
   /**Interface to a REST API endpoint. Can store wallets and results of contract uploads/inits.
    * @constructor
