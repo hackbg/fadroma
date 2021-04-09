@@ -16,5 +16,12 @@
   },
   "peerDependencies": {
     "secretjs": "^0.10.3"
+  },
+  "devDependencies": {
+    "documentation": "^13.2.1"
+  },
+  "scripts": {
+    "docs": "documentation build js/** -f html --github -o doc/js",
+    "docserv": "documentation serve --watch js/**"
   }
 }
