@@ -3,7 +3,7 @@
   padding: 0;
   line-height: 2;
   font-size: 20px;
-  font-family: sans-serif;
+  font-family: "Jost", sans-serif;
   text-align: center;
 }
 
@@ -49,4 +49,6 @@ button, .button {
 }
 a.button:focus, a.button:visited, a.button:active, a.button:hover {
   color: white;
+  font-weight: bold;
+  font-weight: 900;
 }
