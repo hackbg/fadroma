@@ -131,7 +131,10 @@
             $init_deps: &mut Extern<S, A, Q>, $init_env: Env, $init_msg: $Init,
         ) -> InitResult {
             $(let $init_field : $init_field_type = $init_msg.$init_field;)*
-            get_store_rw(&mut $init_deps.storage).save(&$init_body)?;
+            match $init_body {
+                Some(initial_state) => get_store_rw(&mut $init_deps.storage).save(&$init_body)?,
+                None => {}
+            };
             Ok(InitResponse::default())
         }
         type InitResult = StdResult<InitResponse>;
