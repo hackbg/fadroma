@@ -46,9 +46,9 @@ button, .button {
   margin: 1em 0;
   text-shadow: -1px -1px 0 black;
   box-shadow: 1px 1px 0 black;
+  font-weight: bold;
+  font-weight: 900;
 }
 a.button:focus, a.button:visited, a.button:active, a.button:hover {
   color: white;
-  font-weight: bold;
-  font-weight: 900;
 }

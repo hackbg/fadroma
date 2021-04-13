@@ -13,6 +13,8 @@ import { defaultDataDir, mkdir, touch, makeStateDir
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
+const {warn, debug, info} = console
+
 export const defaultStateBase = resolve(defaultDataDir(), '.fadroma')
 
 /* TODO: Remove rest arguments (`...args`) from constructors.
@@ -31,13 +33,12 @@ export class SecretNetworkNode {
    * @param {number} options.port - normally 1337
    * @param {number} options.keysState - directory to store genesis accounts
    */
-  constructor ({
-    chainId  = 'enigma-pub-testnet-3',
-    protocol = 'http',
-    host     = 'localhost',
-    port     = 1337,
-    keysState
-  } = {}) {
+  constructor (options = {}) {
+    const { chainId  = 'enigma-pub-testnet-3'
+          , protocol = 'http'
+          , host     = 'localhost'
+          , port     = 1337
+          , keysState } = options
     Object.assign(this, { chainId, protocol, host, port, keysState })
     const ready = waitPort({ host: this.host, port: this.port }).then(()=>this)
     Object.defineProperty(this, 'ready', { get () { return ready } })
@@ -70,7 +71,7 @@ export class SecretNetworkNode {
     try {
       restored = JSON.parse(await readFile(nodeState, 'utf8'))
     } catch (e) {
-      console.warn(`reading ${nodeState} failed, trying to spawn a new node...`)
+      warn(`reading ${nodeState} failed, trying to spawn a new node...`)
       return this.spawn(options)
     }
     const { containerId
@@ -82,16 +83,16 @@ export class SecretNetworkNode {
       container = docker.getContainer(containerId)
       ;({State:{Running}} = await container.inspect())
     } catch (e) {
-      console.warn(`getting container ${containerId} failed, trying to spawn a new node...`)
+      warn(`getting container ${containerId} failed, trying to spawn a new node...`)
       return this.spawn(options)
     }
     if (!Running) await container.start({})
     process.on('beforeExit', async ()=>{
       const {State:{Running}} = await container.inspect()
       if (Running) {
-        console.debug(`killing ${container.id}`)
+        debug(`killing ${container.id}`)
         await container.kill()
-        console.debug(`killed ${container.id}`)
+        debug(`killed ${container.id}`)
         process.exit()
       }
     })
@@ -103,7 +104,7 @@ export class SecretNetworkNode {
   /**Configure a new localnet container
    */
   static async spawn (options={}) {
-    console.debug('spawning a new localnet container...')
+    debug('spawning a new localnet container...')
     const { chainId = "enigma-pub-testnet-3"
           // what port to listen on
           , port    = await freePort()
@@ -157,28 +158,33 @@ export class SecretNetworkNode {
 /** Queries and transacts on an instance of the Secret Network
  */
 export class SecretNetworkAgent {
-  /** Create a new agent with signing pen from mnemonic or keyPair.
-   */
+  /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create ({ name = 'Anonymous', mnemonic, keyPair, ...args }={}) {
     if (mnemonic) {
-      // if keypair doesnt correspond to the same mnemonic, delete the keypair
-      if (keyPair && mnemonic !== Bip39.encode(keyPair.privkey).data) keyPair = null
+      // if keypair doesnt correspond to the mnemonic, delete the keypair
+      if (keyPair && mnemonic !== Bip39.encode(keyPair.privkey).data) {
+        warn(`keypair doesn't match mnemonic, ignoring keypair`)
+        keyPair = null
+      }
     } else if (keyPair) {
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
       mnemonic = Bip39.encode(keyPair.privkey).data
     } else {
-      // if there isn't either, generate a new keypair and corresponding mnemonic
+      // if there is neither, generate a new keypair and corresponding mnemonic
       keyPair = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = Bip39.encode(keyPair.privkey).data
     }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
     return new this({name, mnemonic, keyPair, say, pen, ...args})
   }
-  /**Create a new agent from signing pen.
-   */
-  constructor ({
-    network, name = "", pen, mnemonic, keyPair, fees = SecretNetwork.Gas.defaultFees,
-  }) {
+  /**Create a new agent from a signing pen.*/
+  constructor (options = {}) {
+    const { network
+          , name = ""
+          , pen
+          , mnemonic
+          , keyPair
+          , fees = SecretNetwork.Gas.defaultFees } = options
     const pubkey = encodeSecp256k1Pubkey(pen.pubkey)
     return Object.assign(this, {
       network, name, keyPair, mnemonic, pen, pubkey,
@@ -191,18 +197,43 @@ export class SecretNetworkAgent {
       )
     })
   }
-  /**Get network status.
-   */
-  async status () {
-    const [block, account] = await Promise.all([
-      this.API.getBlock(),
-      this.API.getAccount(this.address)
-    ])
-    const {header:{time,height}} = block
-    return { time, height, account }
+  /**Get the current balance in a specified denomination.*/
+  async getBalance (inDenom = 'uscrt') {
+    const { balance = [] } = (await this.account) || {}
+    const [ balanceInDenom = { amount: null } ] = balance.filter(({denom,amount})=>denom===inDenom)
+    return balanceInDenom.amount
   }
-  /**Wait for the next block.
-   */
+  /**Send some `uscrt` to an address.*/
+  async send (recipient, amount, denom = 'uscrt', memo = "") {
+    if (typeof amount === 'number') amount = String(amount)
+    return await this.API.sendTokens(recipient, [{denom, amount}], memo)
+  }
+  /**Send `uscrt` to multiple addresses.*/
+  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = this.fees.send) {
+    if (txs.length < 0) {
+      throw new Error('tried to send to 0 recipients')
+    }
+    const from_address = this.address
+    //const {accountNumber, sequence} = await this.API.getNonce(from_address)
+    let accountNumber, sequence
+    const msg = await Promise.all(txs.map(async ([to_address, amount])=>{
+      ({accountNumber, sequence} = await this.API.getNonce(from_address)) // increment nonce?
+      if (typeof amount === 'number') amount = String(amount)
+      const value = {from_address, to_address, amount: [{denom, amount}]}
+      return { type: 'cosmos-sdk/MsgSend', value }
+    }))
+    const signBytes = makeSignBytes(msg, fee, this.network.chainId, memo, accountNumber, sequence)
+    return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
+  }
+  /**`await` this to get info about the current block of the network. */
+  get block () { return this.API.getBlock() }
+  /**`await` this to get the account info for this agent's address.*/
+  get account () { return this.API.getAccount(this.address) }
+  /**`await` this to get the current balance in the native
+   * coin of the network, in its most granular denomination */
+  get balance () { return this.getBalance() }
+  /**`await` this to pause until the block height has increased.
+   * (currently this queries the block height in 1000msec intervals) */
   get nextBlock () {
     return this.API.getBlock().then(({header:{height}})=>new Promise(async resolve=>{
       while (true) {
@@ -215,45 +246,18 @@ export class SecretNetworkAgent {
       }
     }))
   }
-  /**Send some `uscrt`.
-   */
-  async send (recipient, amount, memo = "") {
-    if (typeof amount === 'number') amount = String(amount)
-    return await this.API.sendTokens(recipient, [{denom: 'uscrt', amount}], memo)
-  }
-  /**Send `uscrt` to multiple addresses.
-   */
-  async sendMany (txs = [], memo = "", fee = this.fees.send) {
-    const from_address = this.address
-    const {accountNumber, sequence} = await this.API.getNonce(from_address)
-    const msg = []
-    for (let [ to_address, amount ] of txs) {
-      const {accountNumber, sequence} = await this.API.getNonce(from_address)
-      if (typeof amount === 'number') amount = String(amount)
-      const value = {from_address, to_address, amount: [{denom: 'uscrt', amount}]}
-      msg.push({ type: 'cosmos-sdk/MsgSend', value })
-    }
-    const signBytes = makeSignBytes(msg, fee, this.network.chainId, memo, accountNumber, sequence)
-    return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
-  }
-  /**Upload a compiled binary to the chain, returning the code ID (among other things).
-   */
-  async upload (pathToBinary) {
-    return this.API.upload(await readFile(pathToBinary), {})
-  }
-  /**Instantiate a contract from a code ID and an init message.
-   */
+  /**Upload a compiled binary to the chain, returning the code ID (among other things). */
+  async upload (pathToBinary) { return this.API.upload(await readFile(pathToBinary), {}) }
+  /**Instantiate a contract from a code ID and an init message. */
   async instantiate ({ codeId, initMsg = {}, label = '' }) {
     const initTx   = await this.API.instantiate(codeId, initMsg, label)
     const codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
     return { ...initTx, codeId, label, codeHash }
   }
-  /**Query a contract.
-   */
+  /**Query a contract. */
   query = (contract, method='', args={}) =>
     this.API.queryContractSmart(contract.address, {[method]: args})
-  /**Execute a contract transaction.
-   */
+  /**Execute a contract transaction. */
   execute = (contract, method='', args={}) =>
     this.API.execute(contract.address, {[method]: args})
 }
@@ -288,7 +292,7 @@ export class SecretNetworkBuilder {
     }
     options.ref = options.ref || 'HEAD'
     if (options.ref === 'HEAD') { // when building working tree
-      console.debug(`building working tree at ${options.workspace} into ${options.outputDir}...`)
+      debug(`building working tree at ${options.workspace} into ${options.outputDir}...`)
       buildOptions.HostConfig.Binds.push(`${options.workspace}:/contract:rw`)
     }
     const args = [buildImage, buildCommand, process.stdout, buildOptions]
@@ -309,7 +313,7 @@ export class SecretNetworkBuilder {
     const commands = []
     if (ref !== 'HEAD') {
       assert(origin && ref, 'to build a ref from origin, specify both')
-      console.debug('building ref from origin...')
+      debug('building ref from origin...')
       commands.push('mkdir -p /contract')
       commands.push('cd /contract')
       commands.push(`git clone --recursive -n ${origin} .`) // clone the repo with submodules
@@ -334,7 +338,7 @@ export class SecretNetworkBuilder {
     const receiptPath = this.getReceiptPath(artifact)
     if (existsSync(receiptPath)) {
       const receiptData = await readFile(receiptPath, 'utf8')
-      console.debug(`found upload receipt for ${artifact} at ${receiptPath}`)
+      debug(`found upload receipt for ${artifact} at ${receiptPath}`)
       return JSON.parse(receiptData)
     } else {
       return this.upload(artifact)
@@ -389,8 +393,8 @@ export class SecretNetworkContract {
     extendWithSchema(this, schema)
 }
 
-function gas (x) {
-  return {amount:[{amount:String(x),denom:'uscrt'}], gas:String(x)}
+const gas = function formatGas (x) {
+  return {amount:[{amount:String(x),denom:'uscrt'}], gas: String(x)}
 }
 
 /** @class
@@ -400,9 +404,13 @@ export default class SecretNetwork {
   static Agent    = SecretNetworkAgent
   static Builder  = SecretNetworkBuilder
   static Contract = SecretNetworkContract
-  static Gas = Object.assign(gas, {
-    defaultFees: { upload: gas(2000000), init: gas(500000), exec: gas(1000000), send: gas(500000) }
-  })
+
+  static Gas = Object.assign(gas, { defaultFees: {
+    upload: gas(2000000),
+    init:   gas( 500000),
+    exec:   gas(1000000),
+    send:   gas( 500000),
+  } })
 
   /**Interface to a REST API endpoint. Can store wallets and results of contract uploads/inits.
    * @constructor
@@ -454,10 +462,10 @@ export default class SecretNetwork {
     stateBase = defaultStateBase,
     state     = makeStateDir(stateBase, chainId)
   }={}) {
-    console.debug(`⏳ preparing localnet "${chainId}" @ ${state}`)
+    debug(`⏳ preparing localnet "${chainId}" @ ${state}`)
     const node = await this.Node.respawn({state, chainId})
     await node.ready
-    console.debug(`🟢 localnet ready @ ${node.state}`)
+    debug(`🟢 localnet ready @ ${node.state}`)
     const { protocol, host, port } = node
     const agent = await node.genesisAccount('ADMIN')
     const options = { chainId, state, protocol, host, port, agent }
@@ -520,19 +528,13 @@ export default class SecretNetwork {
     chainId, protocol, host, port, path='',
     agent: { mnemonic, address }
   }) {
-    console.info(`⏳ connecting to ${chainId} via ${protocol} on ${host}:${port}`)
+    info(`⏳ connecting to ${chainId} via ${protocol} on ${host}:${port}`)
     const network = new this({chainId, state, protocol, host, port, path})
     const agent = await network.getAgent("ADMIN", { mnemonic, address })
-    console.info(`🟢 connected, operating as ${address}`)
+    info(`🟢 connected, operating as ${address}`)
     return { network, agent, builder: network.getBuilder(agent) }
   }
 
-  static Gas = Object.assign(gas, { defaultFees: {
-    upload: gas(2000000),
-    init:   gas( 500000),
-    exec:   gas(1000000),
-    send:   gas( 500000),
-  } })
 
 }
 
