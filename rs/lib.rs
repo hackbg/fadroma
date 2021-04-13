@@ -1,19 +1,57 @@
-/// define an enum that implements the required traits
+/// Define an enum that implements the required traits for a message. Those are
+/// * `serde::Serialize`, `serde::Deserialize`
+/// * `schemars::JsonSchema`
+/// * `Clone`, `Debug`, `PartialEq`
 #[macro_export] macro_rules! message {
     ( $Msg:ident { $( $(#[$meta:meta])* $field:ident : $type:ty ),* } ) => {
-        #[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
+        #[derive(serde::Serialize,serde::Deserialize,schemars::JsonSchema,Clone,Debug,PartialEq)]
         #[serde(rename_all = "snake_case")]
         pub struct $Msg { $( $(#[$meta])* pub $field: $type ),* } } }
 
-/// define an enum with variants that implement the required traits
+/// Define an enum with variants that implement the message traits
 #[macro_export] macro_rules! messages {
     ( $( $Enum:ident { $( $(#[$meta:meta])* $Msg:ident { $( $field:ident : $type:ty ),* } )* } )*
     ) => { $(
-        #[derive(serde::Serialize,serde::Deserialize,Clone,Debug,PartialEq,schemars::JsonSchema)]
+        #[derive(serde::Serialize,serde::Deserialize,schemars::JsonSchema,Clone,Debug,PartialEq)]
         #[serde(rename_all = "snake_case")]
         pub enum $Enum { $( $(#[$meta])* $Msg { $($field : $type),* } ),* } )* } }
 
-/// Provides the scaffolding for a smart contract.
+/// This helper macro is called internally by `contract!` to define the `ok!` macro.
+/// `ok!` is available in `Handle` methods, and takes up to 4 arguments:
+/// * `next`: the modified state to be saved (use `_` to signify no changes to the state)
+/// * `msgs`: messages to return to the chain
+/// * `logs`: vector of `LogAttribute`s to log
+/// * `data`: blob of data to return
+#[macro_export] macro_rules! define_ok {
+    ($HandleResponse:ty) => { macro_rules! ok {
+        (_, $msgs:expr, $logs:expr, $data: expr) => {
+            Ok((HandleResponse { messages: $msgs, log: $logs, data: Some($data) }, None))
+        };
+        ($next:ident, $msgs:expr, $logs:expr, $data: expr) => {
+            Ok((HandleResponse { messages: $msgs, log: $logs, data: Some($data) }, Some($next)))
+        };
+        (_, $msgs:expr, $logs:expr) => {
+            Ok((HandleResponse { messages: $msgs, log: $logs, data: None }, None))
+        };
+        ($next:ident, $msgs:expr, $logs:expr) => {
+            Ok((HandleResponse { messages: $msgs, log: $logs, data: None }, Some($next)))
+        };
+        (_, $msgs:expr) => {
+            Ok((HandleResponse { messages: $msgs, log: vec![], data: None }, None))
+        };
+        ($next:ident, $msgs:expr) => {
+            Ok((HandleResponse { messages: $msgs, log: vec![], data: None }, Some($next)))
+        };
+        ($n:ident) => {
+            Ok((HandleResponse::default(), Some($next)))
+        };
+        () => {
+            Ok((HandleResponse::default(), None))
+        };
+    } }
+}
+
+/// Define a smart contract.
 #[macro_export] macro_rules! contract {
     // Entry point of the macro. Call this to define a contract
     (
@@ -114,7 +152,24 @@
 
         prelude!();
 
-        /// The contract's state.
+        /// Result types:
+        type InitResult = StdResult<InitResponse>;
+        type QueryResult = StdResult<Binary>;
+        pub type HandleResult = StatefulResult<HandleResponse>;
+
+        /// Ok/Err result types containing mutated state to be saved
+        pub type StatefulResult<T> = Result<(T, Option<$State>), StatefulError>;
+        pub struct StatefulError((StdError, Option<$State>));
+        impl From<StdError> for StatefulError {
+            /// **WARNING**: if `?` operator returns error, any state changes will be ignored
+            /// * That's where the abstraction leaks, if only a tiny bit.
+            ///   * Maybe implement handlers as closures that keep the state around.
+            fn from (error: StdError) -> Self {
+                StatefulError((error, None))
+            }
+        }
+
+        /// State handling.
         message!($State { $($(#[$meta])* $state_field:$state_field_type),* });
         use cosmwasm_storage::{Singleton, singleton, ReadonlySingleton, singleton_read};
         pub static CONFIG_KEY: &[u8] = b"";
@@ -131,25 +186,25 @@
             $init_deps: &mut Extern<S, A, Q>, $init_env: Env, $init_msg: $Init,
         ) -> InitResult {
             $(let $init_field : $init_field_type = $init_msg.$init_field;)*
-            match $init_body {
+            let init = $init_body?;
+            match init {
                 Some(initial_state) => get_store_rw(&mut $init_deps.storage).save(&$init_body)?,
                 None => {}
             };
             Ok(InitResponse::default())
         }
-        type InitResult = StdResult<InitResponse>;
 
         /// Query dispatcher.
         pub fn query <S: Storage, A: Api, Q: Querier> (
             $q_deps: &Extern<S, A, Q>, $q_msg: $Q
-        ) -> StdResult<Binary> {
+        ) -> QueryResult {
             // get a read-only snapshot of the contract state
             let state = get_store_ro(&$q_deps.storage).load()?;
             // find the matching handler and return
             let result = match $q_msg {
                 $( $Q::$QMsg {..} => self::queries::$QMsg($q_deps, state, $q_msg), )*
-            };
-            Ok(cosmwasm_std::to_binary(&result?)?)
+            }?;
+            Ok(cosmwasm_std::to_binary(&result)?)
         }
         /// Query handlers.
         mod queries {
@@ -168,19 +223,6 @@
                     unreachable!()
                 }
             })*
-        }
-
-        /// Ok/Err variants containing mutated state to be saved
-        pub type HandleResult = StatefulResult<HandleResponse>;
-        pub type StatefulResult<T> = Result<(T, Option<$State>), StatefulError>;
-        pub struct StatefulError((StdError, Option<$State>));
-        impl From<StdError> for StatefulError {
-            /// **WARNING**: if `?` operator returns error, any state changes will be ignored
-            /// * That's where the abstraction leaks, if only a tiny bit.
-            ///   * Maybe implement handlers as closures that keep the state around.
-            fn from (error: StdError) -> Self {
-                StatefulError((error, None))
-            }
         }
 
         /// Transaction dispatcher
@@ -224,37 +266,7 @@
         mod handle {
             prelude!();
             use super::*;
-            /// `ok!` is a variadic macro that takes up to 4 arguments:
-            /// * `next`: the modified state to be saved
-            /// * `msgs`: messages to return to the chain
-            /// * `logs`: vector of `LogAttribute`s to log
-            /// * `data`: blob of data to return
-            macro_rules! ok {
-                (_, $msgs:expr, $logs:expr, $data: expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: $logs, data: Some($data) }, None))
-                };
-                ($next:ident, $msgs:expr, $logs:expr, $data: expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: $logs, data: Some($data) }, Some($next)))
-                };
-                (_, $msgs:expr, $logs:expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: $logs, data: None }, None))
-                };
-                ($next:ident, $msgs:expr, $logs:expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: $logs, data: None }, Some($next)))
-                };
-                (_, $msgs:expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: vec![], data: None }, None))
-                };
-                ($next:ident, $msgs:expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: vec![], data: None }, Some($next)))
-                };
-                ($next:ident) => {
-                    Ok((HandleResponse::default(), Some($next)))
-                };
-                () => {
-                    Ok((HandleResponse::default(), None))
-                };
-            }
+            define_ok!(HandleResponse);
             // define a handler for every tx message variant
             $(#[allow(non_snake_case)] pub fn $TXMsg <S: Storage, A: Api, Q: Querier>(
                 $tx_deps: &mut Extern<S, A, Q>,
