@@ -200,7 +200,7 @@ export class SecretNetworkAgent {
   /**Get the current balance in a specified denomination.*/
   async getBalance (inDenom = 'uscrt') {
     const { balance = [] } = (await this.account) || {}
-    const [ balanceInDenom = { amount: null } ] = balance.filter(({denom,amount})=>denom===inDenom)
+    const [ balanceInDenom = { amount: 0 } ] = balance.filter(({denom,amount})=>denom===inDenom)
     return balanceInDenom.amount
   }
   /**Send some `uscrt` to an address.*/
