@@ -1,3 +1,5 @@
+/// # Fadroma
+
 /// Define an enum that implements the necessary traits
 /// (de/serialization, schema generation, cloning, debug printing, equality comparison)
 #[macro_export] macro_rules! message {
@@ -34,6 +36,44 @@
     }
 }
 
+/// Instantiation interface.
+#[macro_export] macro_rules! define_init_message {
+    // if imported:
+    ($ExtStruct:ident) => { pub use super::$ExtStruct; };
+    // if defined in place:
+    ({ $(
+        $(#[$meta:meta])* $Variant:ident ( $($arg:ident : $type:ty),*)
+    )* }) => {
+        message!($Init { $($arg: $type),* });
+    }
+}
+
+/// Query interface.
+#[macro_export] macro_rules! define_q_messages {
+    // if imported:
+    ($ExtStruct:ident { $($_:tt)+ }) => { pub use super::$ExtStruct; };
+    // if defined in place:
+    ({ $(
+        $(#[$meta:meta])* $Variant:ident ( $($arg:ident : $type:ty),*)
+    )* }) => {
+        messages!($Q { $(
+            $(#[$meta])* $Variant {$($arg: $type),*}
+        )* }) };
+}
+
+/// Transaction interface.
+#[macro_export] macro_rules! define_tx_messages {
+    // if imported:
+    ($ExtStruct:ident { $($_:tt)+ }) => { pub use super::$ExtStruct; };
+    // if defined in place:
+    ({ $(
+        $(#[$meta:meta])* $TXMsg:ident ($($arg:ident : $type:ty),*)
+    )* }) => {
+        messages!($TX { $(
+            $(#[$meta])* $TXMsg {$($arg: $type),*}
+        )* }) };
+}
+
 /// Instatiation. Either defines or imports `InitMsg`, and hooks up your init logic to it.
 #[macro_export] macro_rules! implement_init {
     // define the InitMsg in place:
@@ -53,7 +93,7 @@
     };
     // or import it from an external module:
     (   $(#[$InitMeta:meta])*
-        [init]
+        [$_:ident]
         ($deps:ident, $env:ident, $msg:ident : $external_msg:ty )
         $body:block
     ) => {
@@ -68,26 +108,14 @@
     };
 }
 
-/// Query interface
-#[macro_export] macro_rules! define_q_messages {
-    ($msg_ext:ident, $body:tt) => { pub use super::$msg_ext; };
-    //({ $(
-        //$(#[$q_meta:meta])* $QMsg:ident ( $($q_field:ident : $q_field_type:ty),*)
-        //$q_method_body:tt
-    //)* }) => {
-        //messages!($Q { $(
-            //$(#[$q_meta])* $QMsg {$($q_field: $q_field_type),*}
-        //)* }) };
-}
-
-/// Query implementations
+/// Query implementations.
 #[macro_export] macro_rules! implement_queries {
     // for external query message type, ignore the name in the brackets
     // and pass through to the next macro variantb
     (   $State:ident, $Response:ident, $Enum:ident, $_:ident
-        ( $deps:ident, $state:ident, $msg:ident ) $bodies:tt
+        ( $deps:ident, $state:ident, $msg:ident ) { $($bodies:tt)* }
     ) => {
-        implement_queries!($State, $Response, $Enum ( $deps, $state, $msg ) $bodies);
+        implement_queries!($State, $Response, $Enum ( $deps, $state, $msg ) { $($bodies)* });
     };
     // implement queries defined in $body
     (   $State:ident, $Response:ident, $Enum:ident
@@ -127,24 +155,12 @@
     }
 }
 
-/// Transaction interface
-#[macro_export] macro_rules! define_tx_messages {
-    ($tx_msg_ext:ident, $tx_body:tt) => { pub use super::$tx_msg_ext; };
-    //({ $(
-        //$(#[$tx_meta:meta])* $TXMsg:ident ($($tx_field:ident : $tx_field_type:ty),*)
-        //$tx_method_body:tt )*
-    //}) => {
-        //messages!($TX { $(
-            //$(#[$tx_meta])* $TXMsg {$($tx_field: $tx_field_type),*}
-        //)* }) };
-}
-
 /// Transaction implementations
 #[macro_export] macro_rules! implement_transactions {
     (   $State:ident, $Response:ident, $Enum:ident, $_:ident
         ($deps:ident, $env:ident, $state:ident, $msg:ident) $bodies:tt
     ) => {
-        implement_transactions!($State, $Response, $Enum ($deps, $env, $state, $msg) $bodies);
+        //implement_transactions!($State, $Response, $Enum ($deps, $env, $state, $msg) $bodies);
     };
     (   $State:ident, $Response:ident, $Enum:ident
         ($deps:ident, $env:ident, $state:ident, $msg:ident) {
@@ -263,6 +279,17 @@
     };
 }
 
+/// Import commonly used things that need to be available everywhere in the contract
+#[macro_export] macro_rules! prelude {
+    () => { use cosmwasm_std::{
+        //Storage, Api, Querier, Extern, Env,
+        //HumanAddr, CanonicalAddr, Coin, Uint128,
+        //StdResult, StdError,
+        //InitResponse, HandleResponse, LogAttribute, Binary,
+        //CosmosMsg, BankMsg, WasmMsg, to_binary
+    }; };
+}
+
 /// Define a smart contract
 #[macro_export] macro_rules! contract {
     (
@@ -280,7 +307,10 @@
         // Define query messages and how they're handled:
         [$Q:ident]
         ( $q_deps:ident, $q_state:ident, $q_msg:ident $( : $q_msg_external:ident)? )
-        $q_body:tt
+        -> $QResponse:ident
+        { $($(#[$QMsgMeta:meta])*
+            $QMsg:ident ($($q_field:ident $(: $q_field_type:ty)?),*)
+            $q_body:tt)* }
 
         // Define possible responses:
         [$Response:ident] {
@@ -289,67 +319,14 @@
         // Define transaction messages and how they're handled:
         [$TX:ident]
         ( $tx_deps:ident, $tx_env:ident, $tx_state:ident, $tx_msg:ident $( : $tx_msg_external:ident)? )
-        $tx_body:tt
+        -> $TXResponse:ident
+        { $( $(#[$TXMsgMeta:meta])*
+            $TXMsg:ident ($( $tx_field:ident $(: $tx_field_type:ty)?),*)
+            $tx_body:tt )* }
+
     ) => {
 
-        /// Import commonly used things that need to be available everywhere in the contract
-        macro_rules! prelude {
-            () => { use cosmwasm_std::{
-                Storage, Api, Querier, Extern, Env,
-                HumanAddr, CanonicalAddr, Coin, Uint128,
-                StdResult, StdError,
-                InitResponse, HandleResponse, LogAttribute, Binary,
-                CosmosMsg, BankMsg, WasmMsg, to_binary
-            }; };
-        }
-
         prelude!();
-
-        use msg::{$Init,$Q,$TX,$Response};
-
-        define_state_singleton!(
-            $State { $( $(#[$meta])* $state_field : $state_field_type ),* }
-        );
-
-        implement_init!(
-            $(#[$InitMeta])* [$Init] ($init_deps, $init_env, $init_msg : $init_msg_definition)
-            $init_body
-        );
-
-        implement_queries!(
-            $State, $Response, $($q_msg_external,)?
-            $Q ($q_deps, $q_state, $q_msg)
-            $q_body
-        );
-
-        implement_transactions!(
-            $State, $Response, $($tx_msg_external,)?
-            $TX ($tx_deps, $tx_env, $tx_state, $tx_msg)
-            $tx_body
-        );
-
-        /// This contract's on-chain API.
-        pub mod msg {
-            // The argument sets of the {Init,Query,Handle}Msg handlers
-            // are used to automatically generate the corresponding
-            // protocol messages.
-            // * This is why the @Q/@TX/@Response sub-sections are not just passed in as opaque `tt`s
-            // * Only responses can't be inferred and need to be pre-defined.
-            // * Although, with some more macro trickery, they could be defined in place
-            //   (e.g. the return types of $Q handlers could be defined as
-            //   `-> Foo { field: type }` and then populated with `return Self { field: value }`
-            // * Let's revisit this once some we have some more examples of custom responses
-            prelude!();
-            use super::*;
-            define_init_message!($init_msg_definition);
-            define_q_messages!($($q_msg_external,)?, $q_body);
-            define_tx_messages!($($tx_msg_external,)?, $tx_body);
-            messages!(
-                $Response { $(
-                    $(#[$response_meta])* $ResponseMsg {$($resp_field: $resp_field_type),*}
-                )* }
-            );
-        }
 
         /// WASM entry points.
         // Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
@@ -373,6 +350,61 @@
             }
             // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
             // automatically because we `use cosmwasm_std`.
+        }
+
+        /// This contract's on-chain API.
+        pub mod msg {
+            // The argument sets of the {Init,Query,Handle}Msg handlers
+            // are used to automatically generate the corresponding
+            // protocol messages.
+            // * This is why the @Q/@TX/@Response sub-sections are not just passed in as opaque `tt`s
+            // * Only responses can't be inferred and need to be pre-defined.
+            // * Although, with some more macro trickery, they could be defined in place
+            //   (e.g. the return types of $Q handlers could be defined as
+            //   `-> Foo { field: type }` and then populated with `return Self { field: value }`
+            // * Let's revisit this once some we have some more examples of custom responses
+            //
+            prelude!();
+
+            use super::*;
+
+            define_init_message!($init_msg_definition);
+
+            define_q_messages!($($q_msg_external)? {
+                $( $(#[$QMsgMeta])* $QMsg ($($q_field $(: $q_field_type)?),*) $q_body)*
+            });
+
+            define_tx_messages!($($tx_msg_external)? {
+                $( $(#[$TXMsgMeta])* $TXMsg ($( $tx_field $(: $tx_field_type)?),*) $tx_body )*
+            });
+
+            messages!(
+                $Response { $(
+                    $(#[$response_meta])* $ResponseMsg {$($resp_field: $resp_field_type),*}
+                )* }
+            );
+        }
+
+        /// Implementations
+        //use msg::{$Init,$Q,$TX,$Response};
+
+        define_state_singleton! {
+            $State { $( $(#[$meta])* $state_field : $state_field_type ),* }
+        }
+
+        implement_init! {
+            $(#[$InitMeta])* [$Init] ($init_deps, $init_env, $init_msg : $init_msg_definition)
+            $init_body
+        }
+
+        implement_queries! {
+            $State, $QResponse, $($q_msg_external,)? $Q ($q_deps, $q_state, $q_msg)
+            { $($(#[$QMsgMeta])* $QMsg ($($q_field $(: $q_field_type)?),*) $q_body)* }
+        }
+
+        implement_transactions! {
+            $State, $TXResponse, $($tx_msg_external,)? $TX ($tx_deps, $tx_env, $tx_state, $tx_msg)
+            { $( $(#[$TXMsgMeta])* $TXMsg ($( $tx_field $(: $tx_field_type)?),*) $tx_body )* }
         }
 
     };
