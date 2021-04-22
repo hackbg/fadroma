@@ -282,11 +282,11 @@
 /// Import commonly used things that need to be available everywhere in the contract
 #[macro_export] macro_rules! prelude {
     () => { use cosmwasm_std::{
-        //Storage, Api, Querier, Extern, Env,
-        //HumanAddr, CanonicalAddr, Coin, Uint128,
-        //StdResult, StdError,
-        //InitResponse, HandleResponse, LogAttribute, Binary,
-        //CosmosMsg, BankMsg, WasmMsg, to_binary
+        Storage, Api, Querier, Extern, Env,
+        HumanAddr, CanonicalAddr, Coin, Uint128,
+        StdResult, StdError,
+        InitResponse, HandleResponse, LogAttribute, Binary,
+        CosmosMsg, BankMsg, WasmMsg, to_binary
     }; };
 }
 
