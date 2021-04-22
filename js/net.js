@@ -45,7 +45,7 @@ export const waitUntilLogsSay = (container, string) => new Promise((ok, fail)=>
     console.debug('trailing logs...')
     stream.on('data', function read (data) {
       data = String(data)
-      console.debug('container says:', String(data).trim())
+      console.debug(container.id.slice(0,8), `says:`, String(data).trim())
       if (data.indexOf(string)>-1) {
         stream.destroy()
         console.debug('waiting for good measure...')

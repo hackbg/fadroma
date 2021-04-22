@@ -16,7 +16,7 @@ export default function taskmaster ({
       const txs = await Promise.all(reports.map(getTx.bind(null, agent)))
       const totalGasUsed = txs.map(x=>Number(x.gas_used)).reduce((x,y)=>x+y, 0)
       const t3 = new Date()
-      say(`⛽ cost ${totalGasUsed} gas`)
+      say(`⛽ gas cost: ${totalGasUsed} uSCRT`)
       say(`🔍 gas check: +${t3-t2}msec`)
       table.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
     } else {
@@ -53,8 +53,7 @@ async function getTx ({API:{restClient}}, tx) {
     try {
       return await restClient.get(`/txs/${tx}`)
     } catch (e) {
-      console.warn(`failed to get tx info: ${e.message}`)
-      console.debug('retrying...')
+      console.warn(`failed to get tx info: ${e.message}, retrying...`)
       throw e
     }
   })

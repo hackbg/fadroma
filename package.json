@@ -15,7 +15,7 @@
     "xdg-app-paths": "^7.3.0"
   },
   "peerDependencies": {
-    "secretjs": "^0.10.3"
+    "secretjs": "^0.11.0"
   },
   "devDependencies": {
     "documentation": "^13.2.1"

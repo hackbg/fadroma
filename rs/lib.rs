@@ -60,7 +60,7 @@
             }
         }
 
-        /// Init interface
+        /// Instatiation interface
         macro_rules! def_init_msg {
             // To import an InitMsg from an external module:
             ($init_msg_ext:path) => { pub use $init_msg_ext; };
@@ -70,7 +70,7 @@
             //};
         }
 
-        /// Init implementation
+        /// Instantiation logic
         macro_rules! impl_init_msg {
             /// Handle init message.
             $(#[$InitMeta])*
