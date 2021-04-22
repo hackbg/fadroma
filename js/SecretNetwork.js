@@ -197,11 +197,15 @@ export class SecretNetworkAgent {
       )
     })
   }
+  /**Create a builder that uses this agent to deploy contracts.*/
+  getBuilder = () => new SecretNetworkBuilder({network: this.network, agent: this})
   /**Get the current balance in a specified denomination.*/
-  async getBalance (inDenom = 'uscrt') {
-    const { balance = [] } = (await this.account) || {}
-    const [ balanceInDenom = { amount: 0 } ] = balance.filter(({denom,amount})=>denom===inDenom)
-    return balanceInDenom.amount
+  async getBalance (denomination = 'uscrt') {
+    const account = await this.API.getAccount(this.address) || {}
+    const balance = account.balance || []
+    const inDenom = ({denom, amount}) => denom === denomination
+    const balanceInDenom = balance.filter(inDenom)[0] || {}
+    return balanceInDenom.amount || 0
   }
   /**Send some `uscrt` to an address.*/
   async send (recipient, amount, denom = 'uscrt', memo = "") {
@@ -360,7 +364,9 @@ export class SecretNetworkBuilder {
  * Can be subclassed with schema to auto-generate methods
  * TODO connect to existing contract */
 export class SecretNetworkContract {
-  constructor (fields={}) { Object.assign(this, fields) }
+  constructor (fields={}) {
+    Object.assign(this, fields)
+  }
   /**Get the path to the upload receipt for the contract's code.
    */
   get receiptPath () { return resolve(this.network.instances, `${this.label}.json`) }
