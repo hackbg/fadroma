@@ -1,4 +1,4 @@
-/// # Fadroma
+//! # Fadroma
 
 /// Define an enum that implements the necessary traits
 /// (de/serialization, schema generation, cloning, debug printing, equality comparison)
@@ -39,49 +39,50 @@
 /// Instantiation interface.
 #[macro_export] macro_rules! define_init_message {
     // if imported:
-    ($ExtStruct:ident) => { pub use super::$ExtStruct; };
+    ($_:ident, $Import:ident) => { pub use super::$Import; };
     // if defined in place:
-    ({ $(
-        $(#[$meta:meta])* $Variant:ident ( $($arg:ident : $type:ty),*)
-    )* }) => {
-        message!($Init { $($arg: $type),* });
+    ($Name:ident, { $(
+        $(#[$meta:meta])* $arg:ident : $type:ty
+    ),* }) => {
+        message!($Name { $($arg: $type),* });
     }
 }
 
 /// Query interface.
 #[macro_export] macro_rules! define_q_messages {
     // if imported:
-    ($ExtStruct:ident { $($_:tt)+ }) => { pub use super::$ExtStruct; };
+    ($_1:tt, $Import:ident, { $($_2:tt)* }) => { pub use super::$Import; };
     // if defined in place:
-    ({ $(
-        $(#[$meta:meta])* $Variant:ident ( $($arg:ident : $type:ty),*)
+    ($Name:ident, { $(
+        $(#[$meta:meta])* $Variant:ident ( $($arg:ident : $type:ty),* )
     )* }) => {
-        messages!($Q { $(
+        messages!($Name { $(
             $(#[$meta])* $Variant {$($arg: $type),*}
-        )* }) };
+        )* }); };
 }
 
 /// Transaction interface.
 #[macro_export] macro_rules! define_tx_messages {
     // if imported:
-    ($ExtStruct:ident { $($_:tt)+ }) => { pub use super::$ExtStruct; };
+    ($_1:tt, $Import:ident, { $($_2:tt)* }) => { pub use super::$Import; };
     // if defined in place:
-    ({ $(
-        $(#[$meta:meta])* $TXMsg:ident ($($arg:ident : $type:ty),*)
+    ($Name:ident, { $(
+        $(#[$meta:meta])* $Variant:ident ( $($arg:ident : $type:ty),* )
     )* }) => {
-        messages!($TX { $(
-            $(#[$meta])* $TXMsg {$($arg: $type),*}
-        )* }) };
+        messages!($Name { $(
+            $(#[$meta])* $Variant {$($arg: $type),*}
+        )* }); };
 }
 
-/// Instatiation. Either defines or imports `InitMsg`, and hooks up your init logic to it.
+/// Instatiation. Either defines or imports an `InitMsg`, and hooks up your init logic to it.
+/// Function body must return the initial value of `State`.
 #[macro_export] macro_rules! implement_init {
     // define the InitMsg in place:
-    (   $(#[$InitMeta:meta])*
-        [$Init:ident]
-        ($deps:ident, $env:ident, $msg:ident :{ $($field:ident : $type:ty),* })
-        $body:block
+    (
+        $(#[$InitMeta:meta])* [$Init:ident]
+        ($deps:ident, $env:ident, $msg:ident :{ $($field:ident : $type:ty),* }) $body:block
     ) => {
+        use msg::$Init;
         $(#[$InitMeta])*
         pub fn init <S: Storage, A: Api, Q: Querier>(
             $deps: &mut Extern<S, A, Q>, $env: Env, $msg: $Init
@@ -92,14 +93,13 @@
         }
     };
     // or import it from an external module:
-    (   $(#[$InitMeta:meta])*
-        [$_:ident]
-        ($deps:ident, $env:ident, $msg:ident : $external_msg:ty )
-        $body:block
+    (
+        $(#[$InitMeta:meta])* [$_:ident]
+        ($deps:ident, $env:ident, $msg:ident : $InitExt:ty ) $body:block
     ) => {
         $(#[$InitMeta])*
         pub fn init <S: Storage, A: Api, Q: Querier>(
-            $deps: &mut Extern<S, A, Q>, $env: Env, $msg: $external_msg
+            $deps: &mut Extern<S, A, Q>, $env: Env, $msg: $InitExt
         ) -> StdResult<InitResponse> {
             // no auto-destructuring
             get_store_rw(&mut $deps.storage).save(&$body)?;
@@ -112,25 +112,28 @@
 #[macro_export] macro_rules! implement_queries {
     // for external query message type, ignore the name in the brackets
     // and pass through to the next macro variantb
-    (   $State:ident, $Response:ident, $Enum:ident, $_:ident
-        ( $deps:ident, $state:ident, $msg:ident ) { $($bodies:tt)* }
+    (
+        $State:ident, $EnumExt:ident, $_:ident
+        ( $deps:ident, $state:ident, $msg:ident ) -> $Response:ident { $($bodies:tt)* }
     ) => {
-        implement_queries!($State, $Response, $Enum ( $deps, $state, $msg ) { $($bodies)* });
+        implement_queries!($State, $EnumExt ( $deps, $state, $msg ) -> $Response { $($bodies)* });
     };
+
     // implement queries defined in $body
-    (   $State:ident, $Response:ident, $Enum:ident
-        ( $deps:ident, $state:ident, $msg:ident ) { $(
+    (
+        $State:ident, $Enum:ident
+        ( $deps:ident, $state:ident, $msg:ident ) -> $Response:ident { $(
             $(#[$meta:meta])* $Variant:ident ( $($field:ident : $type:ty),*)
             $body:tt
-        )*
-    }) => {
+        )* }
+    ) => {
         /// Query dispatcher.
         pub fn query <S: Storage, A: Api, Q: Querier> (
-            $deps: &Extern<S, A, Q>, $msg: $Enum
+            $deps: &Extern<S, A, Q>, $msg: msg::$Enum
         ) -> StdResult<Binary> {
             let state = get_store_ro(&$deps.storage).load()?; // get snapshot of contract state
             let result = match $msg { $( // find the matching handler
-                $Enum::$Variant {..} => self::queries::$Variant($deps, state, $msg),
+                msg::$Enum::$Variant {..} => self::queries::$Variant($deps, state, $msg),
             )* };
             Ok(cosmwasm_std::to_binary(&result?)?) // return handler result
         }
@@ -143,9 +146,9 @@
                 $(#[$meta])*
                 #[allow(non_snake_case)]
                 pub fn $Variant <S: Storage, A: Api, Q: Querier>(
-                    $deps: &Extern<S, A, Q>, $state: $State, $msg: $Enum,
+                    $deps: &Extern<S, A, Q>, $state: $State, $msg: msg::$Enum,
                 ) -> StdResult<$Response> {
-                    if let super::$Enum::$Variant {$($field),*} = $msg { // destructure the message
+                    if let super::msg::$Enum::$Variant {$($field),*} = $msg { // destructure the message
                         $body // perform user-specified actions
                     } else { unreachable!() }
                 }
@@ -157,14 +160,14 @@
 
 /// Transaction implementations
 #[macro_export] macro_rules! implement_transactions {
-    (   $State:ident, $Response:ident, $Enum:ident, $_:ident
-        ($deps:ident, $env:ident, $state:ident, $msg:ident) $bodies:tt
+    (   $State:ident, $Enum:ident, $_:ident
+        ($deps:ident, $env:ident, $state:ident, $msg:ident) -> $Response:ident { $($bodies:tt)* }
     ) => {
-        //implement_transactions!($State, $Response, $Enum ($deps, $env, $state, $msg) $bodies);
+        implement_transactions!($State, $Enum ($deps, $env, $state, $msg) -> $Response { $($bodies)* });
     };
-    (   $State:ident, $Response:ident, $Enum:ident
-        ($deps:ident, $env:ident, $state:ident, $msg:ident) {
-            $($Variant:ident ( $($arg:ident : $type:ty)* ) $body:block)*
+    (   $State:ident, $Enum:ident
+        ($deps:ident, $env:ident, $state:ident, $msg:ident) -> $Response:ident {
+            $($(#[$meta:meta])* $Variant:ident ( $($arg:ident $(: $type:ty)?),* ) $body:block)*
         }
     ) => {
         // Ok/Err variants containing mutated state to be saved
@@ -182,25 +185,18 @@
 
         /// Transaction dispatcher
         pub fn handle <S: Storage, A: Api, Q: Querier> (
-            $deps: &mut Extern<S, A, Q>, $env: Env, $msg: $Enum,
+            $deps: &mut Extern<S, A, Q>, $env: Env, $msg: msg::$Enum,
         ) -> StdResult<HandleResponse> {
             // pick the handler that matches the message and call it:
             let result = match $msg {
-                $( $Enum::$Variant {..} => self::handle::$Variant($deps, $env, $msg), )*
+                $( msg::$Enum::$Variant {..} => self::handle::$Variant($deps, $env, $msg), )*
             };
             // separate the state from the rest of the result
             let state: Option<$State>;
-            let returned: StdResult<HandleResponse>;
-            match result {
-                Ok((response, next_state)) => {
-                    state = next_state;
-                    returned = Ok(response);
-                },
-                Err(StatefulError((error, next_state))) => {
-                    state = next_state;
-                    returned = Err(error);
-                }
-            }
+            let (state, returned) = match result {
+                Ok((response, next_state)) => (next_state, Ok(response)),
+                Err(StatefulError((error, next_state))) => (next_state, Err(error))
+            };
             // if there was a state update in the result, save it now
             if let Some(state) = state {
                 let mut store = get_store_rw(&mut $deps.storage);
@@ -256,7 +252,7 @@
             $(#[allow(non_snake_case)] pub fn $Variant <S: Storage, A: Api, Q: Querier>(
                 $deps: &mut Extern<S, A, Q>,
                 $env:  Env,
-                $msg:  $Enum,
+                $msg:  msg::$Enum,
             ) -> HandleResult {
                 // get mutable snapshot of current state:
                 //let mut store: Singleton<'_, S, $State> =
@@ -265,9 +261,9 @@
                 match store.load() {
                     Ok(mut $state) => {
                         // destructure the message
-                        if let super::$Enum::$Variant {$($field),*} = $msg {
+                        if let super::msg::$Enum::$Variant {$($arg),*} = $msg {
                             // perform user-specified actions
-                            $method_body
+                            $body
                         } else {
                             unreachable!()
                         }
@@ -292,25 +288,27 @@
 
 /// Define a smart contract
 #[macro_export] macro_rules! contract {
+
+    // This pattern matching is ugly!
     (
-        // Define the shape of the local datastore.
+        // passed to `define_state_singleton!`
         [$State:ident]
         { $( $(#[$meta:meta])* $state_field:ident : $state_field_type:ty ),* }
 
         // Define the signature of the init message, how it's handled.
-        // Must return and the initial state that an instance starts with.
+        //
         $(#[$InitMeta:meta])*
         [$Init:ident]
-        ( $init_deps:ident, $init_env:ident, $init_msg:ident : $init_msg_definition:tt
+        ( $init_deps:ident, $init_env:ident, $init_msg:ident : $($init_msg_definition:tt)+
         ) $init_body:block
 
         // Define query messages and how they're handled:
         [$Q:ident]
-        ( $q_deps:ident, $q_state:ident, $q_msg:ident $( : $q_msg_external:ident)? )
-        -> $QResponse:ident
-        { $($(#[$QMsgMeta:meta])*
-            $QMsg:ident ($($q_field:ident $(: $q_field_type:ty)?),*)
-            $q_body:tt)* }
+        ( $q_deps:ident, $q_state:ident, $q_msg:ident $( : $ExtQ:ident)? )
+        -> $QResponse:ident { $(
+            $(#[$QVariantMeta:meta])* $QVariant:ident
+            ($($q_arg:ident $(: $q_arg_type:ty)?),*) $q_body:tt
+        )* }
 
         // Define possible responses:
         [$Response:ident] {
@@ -318,11 +316,11 @@
 
         // Define transaction messages and how they're handled:
         [$TX:ident]
-        ( $tx_deps:ident, $tx_env:ident, $tx_state:ident, $tx_msg:ident $( : $tx_msg_external:ident)? )
-        -> $TXResponse:ident
-        { $( $(#[$TXMsgMeta:meta])*
-            $TXMsg:ident ($( $tx_field:ident $(: $tx_field_type:ty)?),*)
-            $tx_body:tt )* }
+        ( $tx_deps:ident, $tx_env:ident, $tx_state:ident, $tx_msg:ident $( : $ExtTX:ident)? )
+        -> $TXResponse:ident { $(
+            $(#[$TXVariantMeta:meta])* $TXVariant:ident
+            ($($tx_arg:ident $(: $tx_arg_type:ty)?),*) $tx_body:tt
+        )* }
 
     ) => {
 
@@ -368,21 +366,19 @@
 
             use super::*;
 
-            define_init_message!($init_msg_definition);
+            define_init_message!($Init, $($init_msg_definition)+);
 
-            define_q_messages!($($q_msg_external)? {
-                $( $(#[$QMsgMeta])* $QMsg ($($q_field $(: $q_field_type)?),*) $q_body)*
+            define_q_messages!($Q, $($ExtQ,)? {
+                $( $(#[$QVariantMeta])* $QVariant ($($q_arg $(: $q_arg_type)?),*))*
             });
 
-            define_tx_messages!($($tx_msg_external)? {
-                $( $(#[$TXMsgMeta])* $TXMsg ($( $tx_field $(: $tx_field_type)?),*) $tx_body )*
+            define_tx_messages!($TX, $($ExtTX,)? {
+                $( $(#[$TXVariantMeta])* $TXVariant ($( $tx_arg $(: $tx_arg_type)?),*))*
             });
 
-            messages!(
-                $Response { $(
-                    $(#[$response_meta])* $ResponseMsg {$($resp_field: $resp_field_type),*}
-                )* }
-            );
+            messages!($Response { $(
+                $(#[$response_meta])* $ResponseMsg {$($resp_field: $resp_field_type),*}
+            )* });
         }
 
         /// Implementations
@@ -393,18 +389,22 @@
         }
 
         implement_init! {
-            $(#[$InitMeta])* [$Init] ($init_deps, $init_env, $init_msg : $init_msg_definition)
-            $init_body
+            $(#[$InitMeta])* [$Init]
+            ($init_deps, $init_env, $init_msg : $($init_msg_definition)+) $init_body
         }
 
         implement_queries! {
-            $State, $QResponse, $($q_msg_external,)? $Q ($q_deps, $q_state, $q_msg)
-            { $($(#[$QMsgMeta])* $QMsg ($($q_field $(: $q_field_type)?),*) $q_body)* }
+            $State, $($ExtQ,)? $Q ($q_deps, $q_state, $q_msg) -> $QResponse { $(
+                $(#[$QVariantMeta])* $QVariant
+                ($($q_arg $(: $q_arg_type)?),*) $q_body
+            )* }
         }
 
         implement_transactions! {
-            $State, $TXResponse, $($tx_msg_external,)? $TX ($tx_deps, $tx_env, $tx_state, $tx_msg)
-            { $( $(#[$TXMsgMeta])* $TXMsg ($( $tx_field $(: $tx_field_type)?),*) $tx_body )* }
+            $State, $($ExtTX,)? $TX ($tx_deps, $tx_env, $tx_state, $tx_msg) -> $TXResponse { $(
+                $(#[$TXVariantMeta])* $TXVariant
+                ($( $tx_arg $(: $tx_arg_type)?),*) $tx_body
+            )* }
         }
 
     };
