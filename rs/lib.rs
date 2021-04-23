@@ -56,9 +56,8 @@
     ($Name:ident, { $(
         $(#[$meta:meta])* $Variant:ident ( $($arg:ident : $type:ty),* )
     )* }) => {
-        messages!($Name { $(
-            $(#[$meta])* $Variant {$($arg: $type),*}
-        )* }); };
+        messages!($Name { $( $(#[$meta])* $Variant {$($arg: $type),*} )* });
+    };
 }
 
 /// Transaction interface.
@@ -69,9 +68,8 @@
     ($Name:ident, { $(
         $(#[$meta:meta])* $Variant:ident ( $($arg:ident : $type:ty),* )
     )* }) => {
-        messages!($Name { $(
-            $(#[$meta])* $Variant {$($arg: $type),*}
-        )* }); };
+        messages!($Name { $( $(#[$meta])* $Variant {$($arg: $type),*} )* });
+    };
 }
 
 /// Instatiation. Either defines or imports an `InitMsg`, and hooks up your init logic to it.
