@@ -282,7 +282,8 @@
         HumanAddr, CanonicalAddr, Coin, Uint128,
         StdResult, StdError,
         InitResponse, HandleResponse, LogAttribute, Binary,
-        CosmosMsg, BankMsg, WasmMsg, to_binary
+        CosmosMsg, BankMsg, WasmMsg, to_binary,
+        log
     }; };
 }
 
