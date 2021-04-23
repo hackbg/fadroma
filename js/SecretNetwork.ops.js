@@ -1,8 +1,12 @@
+import SecretNetwork from './SecretNetwork.js'
+import taskmaster from './taskmaster.js'
+import { resolve } from './sys.js'
+import { pull } from './net.js'
+
 export async function build (CONTRACTS, options = {}) {
-  console.log('hi')
   const { task      = taskmaster()
         , builder   = new SecretNetwork.Builder()
-        , workspace = __dirname
+        , workspace
         , outputDir = resolve(workspace, 'artifacts') } = options
 
   // pull build container
