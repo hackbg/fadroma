@@ -521,7 +521,7 @@ export default class SecretNetwork {
       address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
       mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC
     }
-  }) {
+  }={}) {
     const options = { chainId, state, protocol, host, port, path, agent }
     return await this.connect(options)
   }
