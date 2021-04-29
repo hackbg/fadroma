@@ -15,7 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const {warn, debug, info} = console
 
-export const defaultStateBase = resolve(defaultDataDir(), '.fadroma')
+export const defaultStateBase = resolve(process.cwd(), 'artifacts')
 
 /* TODO: Remove rest arguments (`...args`) from constructors.
  * Define exactly what goes where. */
