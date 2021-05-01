@@ -342,7 +342,7 @@ export class SecretNetworkBuilder {
     const receiptPath = this.getReceiptPath(artifact)
     if (existsSync(receiptPath)) {
       const receiptData = await readFile(receiptPath, 'utf8')
-      debug(`found upload receipt for ${artifact} at ${receiptPath}`)
+      info(`${receiptPath} exists. Delete it to reupload that contract.`)
       return JSON.parse(receiptData)
     } else {
       return this.upload(artifact)
@@ -413,7 +413,7 @@ export default class SecretNetwork {
 
   static Gas = Object.assign(gas, { defaultFees: {
     upload: gas(2000000),
-    init:   gas( 500000),
+    init:   gas(1000000),
     exec:   gas(1000000),
     send:   gas( 500000),
   } })
