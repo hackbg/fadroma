@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "3.0.0-rc1",
+  "version": "0.0.0",
   "main": "./js/index.js",
   "type": "module",
   "dependencies": {
