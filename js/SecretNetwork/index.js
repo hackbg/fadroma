@@ -277,18 +277,23 @@ export default class SecretNetwork {
       protocol, host, port, path
     })
   }
+
   /**The API URL that this instance talks to.
-   * @type {string}
-   */
+   * @type {string} */
   get url () { return `${this.protocol}://${this.host}:${this.port}${this.path||''}` }
-  /** create agent operating on the current instance's endpoint
-   */
+
+  /** create agent operating on the current instance's endpoint*/
   getAgent = (name, options={}) =>
     this.constructor.Agent.create({ ...options, network: this, name })
-  /** create builder operating on the current instance's endpoint
-   */
+
+  /** create builder operating on the current instance's endpoint */
   getBuilder = agent =>
     new this.constructor.Builder({network: this, agent})
+
+  /** create contract instance from interface class and address */
+  getContract (Contract, contractAddress, agent = this.agent) {
+    return new Contract({ contractAddress, agent })
+  }
 
   /**Run a node in a docker container and return a connection to it. 
    * @return {Connection} - connection with interface to container

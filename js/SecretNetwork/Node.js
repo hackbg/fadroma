@@ -1,7 +1,9 @@
 import Docker from 'dockerode'
 
 import { loadJSON } from '../schema.js'
-import { resolve, mkdir, existsSync, touch, dirname, fileURLToPath, writeFile } from '../sys.js'
+import {
+  resolve, mkdir, existsSync, touch, dirname, fileURLToPath, readFile, writeFile
+} from '../sys.js'
 import { waitPort, freePort, pull, waitUntilLogsSay } from '../net.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -59,6 +61,7 @@ export default class SecretNetworkNode {
     try {
       restored = JSON.parse(await readFile(nodeState, 'utf8'))
     } catch (e) {
+      console.warn(e)
       warn(`reading ${nodeState} failed, trying to spawn a new node...`)
       return this.spawn(options)
     }
