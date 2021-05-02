@@ -1,3 +1,4 @@
+import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey, pubkeyToAddress
        , makeSignBytes } from 'secretjs'
 
