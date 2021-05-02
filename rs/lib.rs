@@ -168,105 +168,36 @@
             $($(#[$meta:meta])* $Variant:ident ( $($arg:ident $(: $type:ty)?),* ) $body:block)*
         }
     ) => {
-        // Ok/Err variants containing mutated state to be saved
-        pub type HandleResult = StatefulResult<HandleResponse>;
-        pub type StatefulResult<T> = Result<(T, Option<$State>), StatefulError>;
-        pub struct StatefulError((StdError, Option<$State>));
-        impl From<StdError> for StatefulError {
-            /// **WARNING**: if `?` operator returns error, any state changes will be ignored
-            /// * That's where the abstraction leaks, if only a tiny bit.
-            ///   * Maybe implement handlers as closures that keep the state around.
-            fn from (error: StdError) -> Self {
-                StatefulError((error, None))
-            }
-        }
-
         /// Transaction dispatcher
         pub fn handle <S: Storage, A: Api, Q: Querier> (
             $deps: &mut Extern<S, A, Q>, $env: Env, $msg: msg::$Enum,
         ) -> StdResult<HandleResponse> {
             // pick the handler that matches the message and call it:
-            let result = match $msg {
-                $( msg::$Enum::$Variant {..} => self::handle::$Variant($deps, $env, $msg), )*
-            };
-            // separate the state from the rest of the result
-            let state: Option<$State>;
-            let (state, returned) = match result {
-                Ok((response, next_state)) => (next_state, Ok(response)),
-                Err(StatefulError((error, next_state))) => (next_state, Err(error))
-            };
-            // if there was a state update in the result, save it now
-            if let Some(state) = state {
-                let mut store = get_store_rw(&mut $deps.storage);
-                store.save(&state)?;
-            }
-            return returned;
-        }
-        pub fn err<T> (state: $State, err: StdError) -> StatefulResult<T> {
-            Err(StatefulError((err, Some(state))))
-        }
-        pub fn err_msg<T> (state: $State, msg: &str) -> StatefulResult<T> {
-            return err(state, StdError::GenericErr { msg: String::from(msg), backtrace: None })
-        }
-        pub fn err_auth<T> (state: $State) -> StatefulResult<T> {
-            return err(state, StdError::Unauthorized { backtrace: None })
+            match $msg { $(
+                msg::$Enum::$Variant {..} => self::handle::$Variant($deps, $env, $msg),
+            )* }
         }
         /// Transaction handlers
         mod handle {
             prelude!();
             use super::*;
-            /// `ok!` is a variadic macro that takes up to 4 arguments:
-            /// * `next`: the modified state to be saved
-            /// * `msgs`: messages to return to the chain
-            /// * `logs`: vector of `LogAttribute`s to log
-            /// * `data`: blob of data to return
-            macro_rules! ok {
-                (_, $msgs:expr, $logs:expr, $data: expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: $logs, data: Some($data) }, None))
-                };
-                ($next:ident, $msgs:expr, $logs:expr, $data: expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: $logs, data: Some($data) }, Some($next)))
-                };
-                (_, $msgs:expr, $logs:expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: $logs, data: None }, None))
-                };
-                ($next:ident, $msgs:expr, $logs:expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: $logs, data: None }, Some($next)))
-                };
-                (_, $msgs:expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: vec![], data: None }, None))
-                };
-                ($next:ident, $msgs:expr) => {
-                    Ok((HandleResponse { messages: $msgs, log: vec![], data: None }, Some($next)))
-                };
-                ($next:ident) => {
-                    Ok((HandleResponse::default(), Some($next)))
-                };
-                () => {
-                    Ok((HandleResponse::default(), None))
-                };
-            }
+            // shorthand for saving state
             // define a handler for every tx message variant
             $(#[allow(non_snake_case)] pub fn $Variant <S: Storage, A: Api, Q: Querier>(
                 $deps: &mut Extern<S, A, Q>,
                 $env:  Env,
                 $msg:  msg::$Enum,
-            ) -> HandleResult {
+            ) -> StdResult<HandleResponse> {
                 // get mutable snapshot of current state:
-                //let mut store: Singleton<'_, S, $State> =
-                    //cosmwasm_storage::singleton(&mut $deps.storage, CONFIG_KEY);
-                let mut store = get_store_rw(&mut $deps.storage);
-                match store.load() {
-                    Ok(mut $state) => {
-                        // destructure the message
-                        if let super::msg::$Enum::$Variant {$($arg),*} = $msg {
-                            // perform user-specified actions
-                            $body
-                        } else {
-                            unreachable!()
-                        }
-                    },
-                    Err(e) => Err(e.into())
+                let mut $state = get_store_rw(&mut $deps.storage).load()?;
+                macro_rules! save_state {
+                    () => { get_store_rw(&mut $deps.storage).save(&$state)?; }
+                };
+                if let super::msg::$Enum::$Variant {$($arg),*} = $msg {
+                    // perform user-specified actions
+                    $body
+                } else {
+                    unreachable!()
                 }
             })*
         }
