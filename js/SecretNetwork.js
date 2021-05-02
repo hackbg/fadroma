@@ -213,7 +213,7 @@ export class SecretNetworkAgent {
     return await this.API.sendTokens(recipient, [{denom, amount}], memo)
   }
   /**Send `uscrt` to multiple addresses.*/
-  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = this.fees.send) {
+  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = SecretNetwork.Gas(500000 * txs.length)) {
     if (txs.length < 0) {
       throw new Error('tried to send to 0 recipients')
     }
