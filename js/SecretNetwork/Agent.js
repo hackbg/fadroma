@@ -2,6 +2,7 @@ import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey, pubkeyToAddress
        , makeSignBytes } from 'secretjs'
 
+import { readFile } from '../sys.js'
 import SecretNetwork, { SecretNetworkBuilder } from './index.js'
 
 /** Queries and transacts on an instance of the Secret Network
