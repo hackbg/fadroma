@@ -1,5 +1,17 @@
 //! # Fadroma
 
+/// Import commonly used definitions that need to be available everywhere in the contract
+#[macro_export] macro_rules! prelude {
+    () => { use cosmwasm_std::{
+        Storage, Api, Querier, Extern, Env,
+        HumanAddr, CanonicalAddr, Coin, Uint128,
+        StdResult, StdError,
+        InitResponse, HandleResponse, LogAttribute, Binary,
+        CosmosMsg, BankMsg, WasmMsg, to_binary,
+        log
+    }; };
+}
+
 /// Define an enum that implements the necessary traits
 /// (de/serialization, schema generation, cloning, debug printing, equality comparison)
 #[macro_export] macro_rules! message {
@@ -202,18 +214,6 @@
             })*
         }
     };
-}
-
-/// Import commonly used things that need to be available everywhere in the contract
-#[macro_export] macro_rules! prelude {
-    () => { use cosmwasm_std::{
-        Storage, Api, Querier, Extern, Env,
-        HumanAddr, CanonicalAddr, Coin, Uint128,
-        StdResult, StdError,
-        InitResponse, HandleResponse, LogAttribute, Binary,
-        CosmosMsg, BankMsg, WasmMsg, to_binary,
-        log
-    }; };
 }
 
 /// Define a smart contract
