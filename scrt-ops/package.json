@@ -1,0 +1,9 @@
+{
+  "name": "@hackbg/fadroma-scrt-ops",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "ops.js",
+  "dependencies": {
+    "@hackbg/fadroma-scrt-client": "*"
+  }
+}

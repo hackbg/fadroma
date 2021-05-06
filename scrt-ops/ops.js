@@ -4,7 +4,7 @@ import taskmaster from '../taskmaster.js'
 import { resolve } from '../sys.js'
 import { pull } from '../net.js'
 
-import SecretNetwork from './index.js'
+import SecretNetwork from '@hackbg/fadroma-scrt-client'
 
 export async function build (CONTRACTS, options = {}) {
   const { task      = taskmaster()
