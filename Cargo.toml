@@ -1,11 +1,2 @@
-[package]
-name = "fadroma-scrt-contract"
-version = "0.1.0"
-authors = ["Adam Avramov <adam@hack.bg>"]
-edition = "2018"
-
-[lib]
-path = "lib.rs"
-doctest = false # ???
-
-[dependencies]
+[workspace]
+members = [ "scrt-contract" ]
