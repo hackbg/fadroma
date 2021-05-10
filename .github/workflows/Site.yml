@@ -3,6 +3,7 @@ name: Publish documentation to GH Pages
 jobs:
   docs:
     name: build docs
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: checkout
