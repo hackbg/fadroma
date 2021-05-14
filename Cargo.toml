@@ -1,2 +1,2 @@
 [workspace]
-members = [ "scrt-contract" ]
+members = [ "scrt-contract", "scrt-migrate" ]
