@@ -1,5 +1,4 @@
 pub use cosmwasm_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
-pub use require_auth::require_sender_auth;
 
 use cosmwasm_std::{
     StdResult, Extern, Env, Api, Querier, Storage,
@@ -122,16 +121,6 @@ pub fn authenticate(
     return Err(StdError::unauthorized());
 }
 
-pub fn authenticate_sender<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    env: &Env,
-    key: &ViewingKey
-) -> StdResult<()> {
-    let address = deps.api.canonical_address(&env.message.sender)?;
-
-    authenticate(&deps.storage, key, address.as_slice())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -158,10 +147,10 @@ mod tests {
         
         assert_eq!(created_vk, load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
 
-        let auth_result = authenticate_sender(deps, &env, &ViewingKey("invalid".into()));
+        let auth_result = authenticate(&deps.storage, &ViewingKey("invalid".into()), sender_canonical.as_slice());
         assert_eq!(auth_result.unwrap_err(), StdError::unauthorized());
 
-        let auth_result = authenticate_sender(deps, &env, &created_vk);
+        let auth_result = authenticate(&deps.storage, &created_vk, sender_canonical.as_slice());
         assert!(auth_result.is_ok());
 
         let new_key = String::from("new_key");
@@ -175,8 +164,7 @@ mod tests {
 
         assert_eq!(ViewingKey(new_key.clone()), load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
 
-        let auth_result = authenticate_sender(deps, &env, &ViewingKey(new_key));
+        let auth_result = authenticate(&deps.storage, &ViewingKey(new_key), sender_canonical.as_slice());
         assert!(auth_result.is_ok());
-
     }
 }
