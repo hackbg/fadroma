@@ -1,3 +1,6 @@
 [submodule "scrt-utils"]
 	path = scrt-utils
 	url = git@github.com:hackbg/cosmwasm-utils.git
+[submodule "scrt-admin"]
+	path = scrt-admin
+	url = git@github.com:hackbg/composable-admin.git
