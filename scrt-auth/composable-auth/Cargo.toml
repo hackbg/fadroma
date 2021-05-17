@@ -1,0 +1,21 @@
+[package]
+name = "composable-auth"
+version = "0.1.0"
+authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+schemars = "0.7"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+snafu = { version = "0.6.3" }
+cosmwasm-utils = { git = "https://github.com/hackbg/cosmwasm-utils", rev = "949116e" }
+require-auth = { path = "../require-auth", optional = true }
+
+[features]
+default = ["derive"]
+derive = ["require-auth"]
