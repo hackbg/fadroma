@@ -38,7 +38,7 @@
         /// State singleton
         message!($State { $($(#[$meta])* $state_field:$state_field_type),* });
         use cosmwasm_storage::{Singleton, singleton, ReadonlySingleton, singleton_read};
-        pub static CONFIG_KEY: &[u8] = b"fadroma";
+        pub static CONFIG_KEY: &[u8] = b"fadroma_root_state";
         pub fn get_store_rw<S: Storage>(storage: &mut S) -> Singleton<S, $State> {
             singleton(storage, CONFIG_KEY)
         }
