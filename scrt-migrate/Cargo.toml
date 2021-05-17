@@ -9,7 +9,8 @@ name = "fadroma_scrt_migrate"
 path = "lib.rs"
 
 [dependencies]
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
-snafu        = { version = "0.6.3", features = ["backtraces"] }
-serde        = { version = "1.0.103", default-features = false, features = ["derive"] }
-schemars     = "0.7"
+cosmwasm-std   = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-utils = { path = "../scrt-utils" }
+snafu          = { version = "0.6.3", features = ["backtraces"] }
+serde          = { version = "1.0.103", default-features = false, features = ["derive"] }
+schemars       = "0.7"
