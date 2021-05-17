@@ -1,0 +1,12 @@
+[package]
+name    = "fadroma-scrt-canon"
+version = "0.1.0"
+authors = ["Adam A. <adam@hack.bg>"]
+edition = "2018"
+
+[lib]
+name = "fadroma_scrt_canon"
+path = "lib.rs"
+
+[dependencies]
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
