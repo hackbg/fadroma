@@ -6,7 +6,7 @@ use crate::{
     checks::{is_operational, can_check_status}
 };
 
-pub enum MigrationState {
+pub enum MigrationStore {
     pub const STORAGE_KEY: &[u8] = b"fadroma_migration_state";
     pub fn load (storage: &S) -> StdResult<ContractStatus<HumanAddr>> {
         load(storage, Self::STORAGE_KEY)?
