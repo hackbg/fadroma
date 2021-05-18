@@ -1,11 +1,11 @@
 [package]
-name    = "fadroma-scrt-canon"
+name    = "fadroma-scrt-addr"
 version = "0.1.0"
 authors = ["Adam A. <adam@hack.bg>"]
 edition = "2018"
 
 [lib]
-name = "fadroma_scrt_canon"
+name = "fadroma_scrt_addr"
 path = "lib.rs"
 
 [dependencies]
