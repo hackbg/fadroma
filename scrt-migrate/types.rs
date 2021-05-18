@@ -3,13 +3,21 @@ use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 use fadroma_scrt_addr::{Humanize, Canonize};
 
+/// Possible states of a contract.
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub enum ContractStatusLevel {
+    /// Live
     Operational,
+    /// Temporarily disabled
     Paused,
+    /// Permanently disabled
     Migrating,
 }
 
+// TODO once serde-json-wasm finally supports serializing Rusty enums,
+// this structure can be merged with `ContractStatusLevel`, with
+// `reason` and `new_address` becoming propeties of `Migrating`
+/// Current state of a contract w/ optional description and pointer to new version
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ContractStatus<A> {
     pub level:       ContractStatusLevel,

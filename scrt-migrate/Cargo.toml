@@ -14,4 +14,6 @@ cosmwasm-utils = { path = "../scrt-utils" }
 snafu          = { version = "0.6.3", features = ["backtraces"] }
 serde          = { version = "1.0.103", default-features = false, features = ["derive"] }
 schemars       = "0.7"
+
+composable-admin  = { path = "../scrt-admin/composable-admin" }
 fadroma-scrt-addr = { path = "../scrt-addr" }
