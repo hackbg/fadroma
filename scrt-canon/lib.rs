@@ -10,13 +10,11 @@ impl<T: Humanize<U>, U> Humanize<Vec<U>> for Vec<T> {
         self.iter().map(|x|x.humanize(api)).collect()
     }
 }
-pub fn humanize <S: Storage, A: Api, Q: Querier> (
-    deps: &Extern<S, A, Q>, addr: &CanonicalAddr
-) -> StdResult<HumanAddr> {
+pub fn humanize <A: Api> (api: &A, addr: &CanonicalAddr) -> StdResult<HumanAddr> {
     if *addr == CanonicalAddr::default() {
         Ok(HumanAddr::default())
     } else {
-        deps.api.human_address(addr)
+        api.human_address(addr)
     }
 }
 
@@ -28,12 +26,10 @@ impl<T: Canonize<U>, U> Canonize<Vec<U>> for Vec<T> {
         self.iter().map(|x|x.canonize(api)).collect()
     }
 }
-pub fn canonize <S: Storage, A: Api, Q: Querier> (
-    deps: &mut Extern<S, A, Q>, addr: &HumanAddr
-) -> StdResult<CanonicalAddr> {
+pub fn canonize <A: Api> (api: &A, addr: &HumanAddr) -> StdResult<CanonicalAddr> {
     if *addr == HumanAddr::default() {
         Ok(CanonicalAddr::default())
     } else {
-        deps.api.canonical_address(addr)
+        api.canonical_address(addr)
     }
 }
