@@ -1,5 +1,5 @@
 use cosmwasm_std::{StdResult, StdError, HumanAddr};
-use crate::types::ContractStatus;
+use crate::types::{ContractStatus, ContractStatusLevel};
 
 macro_rules! migration_message {
     (paused: $reason:expr) => { format!(
@@ -13,7 +13,7 @@ macro_rules! migration_message {
     ) };
 }
 
-pub fn is_operational (status: &ContractStatus) -> StdResult<()> {
+pub fn is_operational (status: &ContractStatus<HumanAddr>) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = status;
     match level {
         ContractStatusLevel::Operational => Ok(()),
@@ -29,7 +29,7 @@ pub fn is_operational (status: &ContractStatus) -> StdResult<()> {
 }
 
 pub fn can_set_status (
-    status:           &ContractStatus,
+    status:           &ContractStatus<HumanAddr>,
     new_status_level: &ContractStatusLevel
 ) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = status;

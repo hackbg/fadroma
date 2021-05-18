@@ -1,23 +1,20 @@
-use cosmwasm_std::{StdResult, HumanAddr};
-use cosmwasm_utils::storage::{load, save};
+use cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Storage};
+use crate::{types::{ContractStatus, ContractStatusLevel}};
 
-use crate::{
-    types::{ContractStatus, ContractStatusLevel},
-    checks::{is_operational, can_check_status}
-};
+pub const PREFIX: &[u8] = b"fadroma_migration_state";
 
-pub enum MigrationStore {
-    pub const STORAGE_KEY: &[u8] = b"fadroma_migration_state";
-    pub fn load (storage: &S) -> StdResult<ContractStatus<HumanAddr>> {
-        load(storage, Self::STORAGE_KEY)?
+pub fn load (storage: &impl Storage) -> StdResult<ContractStatus<HumanAddr>> {
+    match cosmwasm_utils::storage::load(storage, PREFIX)? {
+        Some(status) => status,
+        None => Ok(ContractStatus::default())
     }
-    pub fn save (storage: &S, status: ContractStatus<HumanAddr>) -> StdResult<()> {
-        save(storage, Self::STORAGE_KEY, status)?
-    }
-    pub fn is_operational (storage: &S) -> StdResult<()> {
-        is_operational(Self::load(storage)?)?
-    }
-    pub fn can_check_status (storage: &S, level: &ContractStatusLevel) -> StdResult<()> {
-        can_check_status(Self::load(storage)?, level)?
-    }
+}
+pub fn save (storage: &mut impl Storage, status: &ContractStatus<CanonicalAddr>) -> StdResult<()> {
+    cosmwasm_utils::storage::save(storage, PREFIX, status)
+}
+pub fn is_operational (storage: &impl Storage) -> StdResult<()> {
+    crate::checks::is_operational(&load(storage)?)
+}
+pub fn can_set_status (storage: &impl Storage, level: &ContractStatusLevel) -> StdResult<()> {
+    crate::checks::can_set_status(&load(storage)?, level)
 }
