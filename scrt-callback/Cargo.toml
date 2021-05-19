@@ -1,0 +1,18 @@
+[package]
+name = "fadroma-scrt-callback"
+version = "0.1.0"
+authors = ["Asparuh Kamenov <aakamenov@hack.bg>"]
+edition = "2018"
+
+[lib]
+path = "lib.rs"
+doctest = false # ???
+
+[dependencies]
+schemars = "0.7"
+serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+
+fadroma-scrt-addr = { path = "../scrt-addr" }
