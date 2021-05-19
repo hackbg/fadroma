@@ -1,5 +1,5 @@
-use cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Storage};
-use crate::{types::{ContractStatus, ContractStatusLevel}};
+use cosmwasm_std::{StdResult, CanonicalAddr, Storage};
+use crate::types::ContractStatus;
 
 pub const PREFIX: &[u8] = b"fadroma_migration_state";
 
