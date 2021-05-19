@@ -32,7 +32,7 @@ impl<A> Default for ContractStatus<A> {
     } }
 }
 impl Humanize<ContractStatus<HumanAddr>> for ContractStatus<CanonicalAddr> {
-    fn humanize <A: Api> (&self, api: &A) -> StdResult<ContractStatus<HumanAddr>> {
+    fn humanize (&self, api: &impl Api) -> StdResult<ContractStatus<HumanAddr>> {
         Ok(ContractStatus {
             level: self.level.clone(),
             reason: self.reason.clone(),
@@ -44,7 +44,7 @@ impl Humanize<ContractStatus<HumanAddr>> for ContractStatus<CanonicalAddr> {
     }
 }
 impl Canonize<ContractStatus<CanonicalAddr>> for ContractStatus<HumanAddr> {
-    fn canonize <A: Api> (&self, api: &A) -> StdResult<ContractStatus<CanonicalAddr>> {
+    fn canonize (&self, api: &impl Api) -> StdResult<ContractStatus<CanonicalAddr>> {
         Ok(ContractStatus {
             level: self.level.clone(),
             reason: self.reason.clone(),

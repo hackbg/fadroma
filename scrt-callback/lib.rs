@@ -17,7 +17,7 @@ pub struct ContractInstance<A> {
     pub code_hash: String
 }
 impl Canonize<ContractInstance<CanonicalAddr>> for ContractInstance<HumanAddr> {
-    fn canonize <A: Api> (&self, api: &A) -> StdResult<ContractInstance<CanonicalAddr>> {
+    fn canonize (&self, api: &impl Api) -> StdResult<ContractInstance<CanonicalAddr>> {
         Ok(ContractInstance {
             address:   self.address.canonize(api)?,
             code_hash: self.code_hash.clone()
@@ -25,7 +25,7 @@ impl Canonize<ContractInstance<CanonicalAddr>> for ContractInstance<HumanAddr> {
     }
 }
 impl Humanize<ContractInstance<HumanAddr>> for ContractInstance<CanonicalAddr> {
-    fn humanize <A: Api> (&self, api: &A) -> StdResult<ContractInstance<HumanAddr>> {
+    fn humanize (&self, api: &impl Api) -> StdResult<ContractInstance<HumanAddr>> {
         Ok(ContractInstance {
             address:   self.address.humanize(api)?,
             code_hash: self.code_hash.clone()
@@ -48,12 +48,12 @@ pub struct Callback<A> {
     pub contract: ContractInstance<A>
 }
 impl Canonize<Callback<CanonicalAddr>> for Callback<HumanAddr> {
-    fn canonize <A: Api> (&self, api: &A) -> StdResult<Callback<CanonicalAddr>> {
+    fn canonize (&self, api: &impl Api) -> StdResult<Callback<CanonicalAddr>> {
         Ok(Callback { msg: self.msg.clone(), contract: self.contract.canonize(api)? })
     }
 }
 impl Humanize<Callback<HumanAddr>> for Callback<CanonicalAddr> {
-    fn humanize <A: Api> (&self, api: &A) -> StdResult<Callback<HumanAddr>> {
+    fn humanize (&self, api: &impl Api) -> StdResult<Callback<HumanAddr>> {
         Ok(Callback { msg: self.msg.clone(), contract: self.contract.humanize(api)? })
     }
 }

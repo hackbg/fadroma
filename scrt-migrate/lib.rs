@@ -4,7 +4,7 @@ mod checks;
 
 use cosmwasm_std::{Extern, Storage, Api, Querier, Env, HumanAddr, StdResult};
 use composable_admin::{require_admin, admin::assert_admin};
-use fadroma_scrt_addr::{Humanize, canonize};
+use fadroma_scrt_addr::{Humanize, Canonize};
 
 /// Return the current contract status. Defaults to operational if nothing was stored.
 pub fn get_status <S: Storage, A: Api, Q: Querier> (
@@ -38,7 +38,7 @@ pub fn set_status <S: Storage, A: Api, Q: Querier> (
     new_address: Option<HumanAddr>
 ) -> StdResult<()> {
     storage::save(&mut deps.storage, &types::ContractStatus { level, reason, new_address: match new_address {
-        Some(new_address) => Some(canonize(&deps.api, &new_address)?),
+        Some(new_address) => Some(new_address.canonize(&deps.api)?),
         None => None
     } })
 }
