@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'url'
 import { readFileSync, existsSync, statSync, writeFileSync, unlinkSync } from 'fs'
 import { stat, readFile, writeFile, unlink } from 'fs/promises'
-import { resolve, dirname, basename, extname } from 'path'
+import { resolve, relative, dirname, basename, extname } from 'path'
 import { execFileSync, spawnSync } from 'child_process'
 import { homedir } from 'os'
 import { cwd, stderr } from 'process'
@@ -28,6 +28,6 @@ export const makeStateDir = (path, ...subdirs) => {
   return mkdir(path, ...subdirs) }
 
 export { stderr
-       , resolve, dirname, basename, extname
+       , resolve, relative, dirname, basename, extname
        , fileURLToPath, cwd, homedir
        , existsSync, readFile, writeFile, unlink }

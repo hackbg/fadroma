@@ -5,7 +5,7 @@ import { Bip39 } from '@cosmjs/crypto'
 import { loadJSON, loadSchemas } from '../schema.js'
 import { freePort, waitPort, pull, waitUntilLogsSay } from '../net.js'
 import { defaultDataDir, mkdir, touch, makeStateDir
-       , resolve, dirname, basename
+       , resolve, relative, dirname, basename
        , fileURLToPath, cwd, homedir
        , existsSync, readFile, writeFile, unlink } from '../sys.js'
 
@@ -113,7 +113,7 @@ export class SecretNetworkBuilder {
     const receiptPath = this.getReceiptPath(artifact)
     if (existsSync(receiptPath)) {
       const receiptData = await readFile(receiptPath, 'utf8')
-      info(`ℹ️  ${receiptPath} exists. Delete it to reupload that contract.`)
+      info(`ℹ️  ${relative(process.cwd(),receiptPath)} exists, delete to reupload`)
       return JSON.parse(receiptData)
     } else {
       return this.upload(artifact)
@@ -208,9 +208,9 @@ export default class SecretNetwork {
     state     = makeStateDir(stateBase, chainId)
   }={}) {
     debug(`⏳ preparing localnet "${chainId}" @ ${state}`)
-    const node = await this.Node.respawn({state, chainId})
+    const node = await this.Node.respawn({chainId, state})
     await node.ready
-    debug(`🟢 localnet ready @ ${node.state}`)
+    debug(`🟢 localnet ready @ ${state}`)
     const { protocol, host, port } = node
     const agent = await node.genesisAccount('ADMIN')
     const options = { chainId, state, protocol, host, port, agent }

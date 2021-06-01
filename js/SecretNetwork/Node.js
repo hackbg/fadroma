@@ -28,9 +28,10 @@ export default class SecretNetworkNode {
           , protocol = 'http'
           , host     = 'localhost'
           , port     = 1337
+          , state
           , nodeState
           , keysState } = options
-    Object.assign(this, { chainId, protocol, host, port, nodeState, keysState })
+    Object.assign(this, { chainId, protocol, host, port, state, nodeState, keysState })
     const ready = waitPort({ host, port }).then(()=>this)
     Object.defineProperty(this, 'ready', { get () { return ready } })
   }
@@ -41,16 +42,31 @@ export default class SecretNetworkNode {
   genesisAccount = name =>
     loadJSON(resolve(this.keysState, `${name}.json`))
 
-  /**Kill the node but keep the state.
+  /**Kill the node but keep its state.
    */
   pause = async () => {
     await this.container.kill()
   }
 
-  /**Kill the node and delete the state.
+  /**Kill the node and delete its state.
    */
   remove = async () => {
+    console.info(`removing ${this.state}...`)
     await this.container.kill()
+    await this.container.run({
+      Cmd: [
+        'rm', '-rf',
+        '/shared-keys',
+        '/root/.secretd',
+        '/root/.secretcli',
+        '/root/.sgx-secrets'
+      ]
+    })
+    await Promise.all([
+      rimraf(this.nodeState),
+      rimraf(this.keysState),
+      rimraf(this.state)
+    ])
   }
 
   /**Wake up a stopped localnet container, or create one

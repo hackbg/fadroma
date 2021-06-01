@@ -1,7 +1,7 @@
 import bignum from 'bignumber.js'
 
 import taskmaster from '../taskmaster.js'
-import { resolve, existsSync } from '../sys.js'
+import { resolve, relative, existsSync } from '../sys.js'
 import { pull } from '../net.js'
 
 import SecretNetwork from './index.js'
@@ -32,7 +32,7 @@ export async function build (CONTRACTS, options = {}) {
       await task(`build ${name}`, async report => {
         const buildOutput = resolve(outputDir, `${crate}@HEAD.wasm`)
         if (existsSync(buildOutput)) {
-          console.info(`${buildOutput} exists. Delete it to rebuild that contract.`)
+          console.info(`ℹ️  ${relative(process.cwd(),buildOutput)} exists, delete to rebuild.`)
           binaries[name] = buildOutput
         } else {
           binaries[name] = await builder.build({outputDir, workspace, crate})
