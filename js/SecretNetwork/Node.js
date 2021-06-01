@@ -28,35 +28,54 @@ export default class SecretNetworkNode {
           , protocol = 'http'
           , host     = 'localhost'
           , port     = 1337
+          , nodeState
           , keysState } = options
-    Object.assign(this, { chainId, protocol, host, port, keysState })
-    const ready = waitPort({ host: this.host, port: this.port }).then(()=>this)
+    Object.assign(this, { chainId, protocol, host, port, nodeState, keysState })
+    const ready = waitPort({ host, port }).then(()=>this)
     Object.defineProperty(this, 'ready', { get () { return ready } })
   }
+
   /**Return one of the genesis accounts stored when creating the node.
-   * @param {string} name - the name of the account. */
+   * @param {string} name - the name of the account.
+   */
   genesisAccount = name =>
     loadJSON(resolve(this.keysState, `${name}.json`))
+
+  /**Kill the node but keep the state.
+   */
+  pause = async () => {
+    await this.container.kill()
+  }
+
+  /**Kill the node and delete the state.
+   */
+  remove = async () => {
+    await this.container.kill()
+  }
 
   /**Wake up a stopped localnet container, or create one
    */
   static async respawn (options={}) {
+
     // chain id and storage paths for this node
     const { chainId   = 'enigma-pub-testnet-3'
           , state     = makeStateDir(defaultDataDir(), 'fadroma', chainId)
           , nodeState = resolve(state, 'node.json')
           , keysState = mkdir(state, 'wallets')
           } = options
+
     if (!existsSync(state)) {
       options.state     = makeStateDir(state)
       options.nodeState = resolve(state, 'node.json')
       options.keysState = mkdir(state, 'wallets')
       return await this.spawn(options)
     }
+
     if (!existsSync(nodeState)) {
       touch(nodeState)
       return await this.spawn(options)
     }
+
     let restored
     try {
       restored = JSON.parse(await readFile(nodeState, 'utf8'))
@@ -65,8 +84,8 @@ export default class SecretNetworkNode {
       warn(`reading ${nodeState} failed, trying to spawn a new node...`)
       return this.spawn(options)
     }
-    const { containerId
-          , port } = restored
+
+    const { containerId, port } = restored
     const { dockerOptions = { socketPath: '/var/run/docker.sock' }
           , docker        = new Docker(dockerOptions) } = options
     let container, Running
@@ -77,6 +96,7 @@ export default class SecretNetworkNode {
       warn(`getting container ${containerId} failed, trying to spawn a new node...`)
       return this.spawn(options)
     }
+
     if (!Running) await container.start({})
     process.on('beforeExit', async ()=>{
       const {State:{Running}} = await container.inspect()
@@ -87,9 +107,9 @@ export default class SecretNetworkNode {
         process.exit()
       }
     })
+
     // return interface to this node/node
-    return new this({ state, nodeState, keysState
-                    , chainId, container, port })
+    return new this({ state, nodeState, keysState, chainId, container, port })
   }
 
   /**Configure a new localnet container
@@ -97,8 +117,10 @@ export default class SecretNetworkNode {
   static async spawn (options={}) {
     debug('spawning a new localnet container...')
     const { chainId = "enigma-pub-testnet-3"
+
           // what port to listen on
           , port    = await freePort()
+
           // where to keep state
           , state       = makeStateDir(defaultDataDir(), 'fadroma', chainId)
           , nodeState   = touch(state, 'node.json')
@@ -106,13 +128,16 @@ export default class SecretNetworkNode {
           , daemonState = mkdir(state, '.secretd')
           , cliState    = mkdir(state, '.secretcli')
           , sgxState    = mkdir(state, '.sgx-secrets')
+
           // get interface to docker daemon and fetch node image
           , dockerOptions = { socketPath: '/var/run/docker.sock' }
           , docker        = new Docker(dockerOptions)
           , image         = await pull("enigmampc/secret-network-sw-dev", docker)
+
           // modified genesis that keeps the keys
           , init = resolve(__dirname, 'init.sh')
           , genesisAccounts = ['ADMIN', 'ALICE', 'BOB', 'MALLORY']
+
           , containerOptions = // stuff dockerode passes to docker
             { Image: image
             , Entrypoint: [ '/bin/bash' ]
@@ -132,16 +157,18 @@ export default class SecretNetworkNode {
                        , `${cliState}:/root/.secretcli:rw`
                        , `${sgxState}:/root/.sgx-secrets:rw` ] } }
           } = options
+
     // create container with the above options
     const container = await docker.createContainer(containerOptions)
     const {id} = container
     await container.start()
+
     // record its existence for subsequent runs
     const stored = { chainId, containerId: id, port }
     await writeFile(nodeState, JSON.stringify(stored, null, 2), 'utf8')
+
     // wait for logs to confirm that the genesis is done
     await waitUntilLogsSay(container, 'GENESIS COMPLETE')
-    return new this({ state, keysState
-                    , chainId, container, port })
+    return new this({ state, keysState, chainId, container, port })
   }
 }

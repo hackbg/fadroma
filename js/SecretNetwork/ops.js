@@ -1,15 +1,18 @@
 import bignum from 'bignumber.js'
 
 import taskmaster from '../taskmaster.js'
-import { resolve } from '../sys.js'
+import { resolve, existsSync } from '../sys.js'
 import { pull } from '../net.js'
 
 import SecretNetwork from './index.js'
 
+const required = label =>
+  () => { throw new Error(`required: ${label}`) }
+
 export async function build (CONTRACTS, options = {}) {
   const { task      = taskmaster()
         , builder   = new SecretNetwork.Builder()
-        , workspace
+        , workspace = required('workspace')
         , outputDir = resolve(workspace, 'artifacts')
         , parallel  = true } = options
 
