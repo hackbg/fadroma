@@ -6,6 +6,9 @@ import { pull } from '../net.js'
 
 import SecretNetwork from './index.js'
 
+import colors from 'colors/safe.js'
+const {bold} = colors
+
 const required = label =>
   () => { throw new Error(`required: ${label}`) }
 
@@ -32,7 +35,7 @@ export async function build (CONTRACTS, options = {}) {
       await task(`build ${name}`, async report => {
         const buildOutput = resolve(outputDir, `${crate}@HEAD.wasm`)
         if (existsSync(buildOutput)) {
-          console.info(`ℹ️  ${relative(process.cwd(),buildOutput)} exists, delete to rebuild.`)
+          console.info(`ℹ️  ${bold(relative(process.cwd(),buildOutput))} exists, delete to rebuild.`)
           binaries[name] = buildOutput
         } else {
           binaries[name] = await builder.build({outputDir, workspace, crate})

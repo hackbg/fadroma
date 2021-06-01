@@ -13,6 +13,9 @@ import SecretNetworkNode from './Node.js'
 import SecretNetworkAgent from './Agent.js'
 import SecretNetworkContract from './Contract.js'
 
+import colors from 'colors/safe.js'
+const {bold} = colors
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const {warn, debug, info} = console
@@ -113,7 +116,7 @@ export class SecretNetworkBuilder {
     const receiptPath = this.getReceiptPath(artifact)
     if (existsSync(receiptPath)) {
       const receiptData = await readFile(receiptPath, 'utf8')
-      info(`ℹ️  ${relative(process.cwd(),receiptPath)} exists, delete to reupload`)
+      info(`ℹ️  ${bold(relative(process.cwd(),receiptPath))} exists, delete to reupload`)
       return JSON.parse(receiptData)
     } else {
       return this.upload(artifact)
@@ -207,10 +210,10 @@ export default class SecretNetwork {
     stateBase = defaultStateBase,
     state     = makeStateDir(stateBase, chainId)
   }={}) {
-    debug(`⏳ preparing localnet "${chainId}" @ ${state}`)
+    debug(`⏳ preparing localnet ${bold(chainId)} @ ${bold(state)}`)
     const node = await this.Node.respawn({chainId, state})
     await node.ready
-    debug(`🟢 localnet ready @ ${state}`)
+    debug(`🟢 localnet ready @ ${bold(state)}`)
     const { protocol, host, port } = node
     const agent = await node.genesisAccount('ADMIN')
     const options = { chainId, state, protocol, host, port, agent }
@@ -273,10 +276,10 @@ export default class SecretNetwork {
     chainId, protocol, host, port, path='',
     agent: { mnemonic, address }
   }) {
-    info(`⏳ connecting to ${chainId} via ${protocol} on ${host}:${port}`)
+    info(`⏳ connecting to ${bold(chainId)} via ${bold(protocol)} on ${bold(host)}:${bold(port)}`)
     const network = new this({chainId, state, protocol, host, port, path})
     const agent = await network.getAgent("ADMIN", { mnemonic, address })
-    info(`🟢 connected, operating as ${address}`)
+    info(`🟢 connected, operating as ${bold(address)}`)
     return { network, agent, builder: network.getBuilder(agent) }
   }
 

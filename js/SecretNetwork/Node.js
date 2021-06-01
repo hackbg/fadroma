@@ -6,6 +6,9 @@ import {
 } from '../sys.js'
 import { waitPort, freePort, pull, waitUntilLogsSay } from '../net.js'
 
+import colors from 'colors/safe.js'
+const {bold} = colors
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const {warn, debug, info} = console
@@ -51,7 +54,7 @@ export default class SecretNetworkNode {
   /**Kill the node and delete its state.
    */
   remove = async () => {
-    console.info(`removing ${this.state}...`)
+    info(`removing ${bold(this.state)}...`)
     await this.container.kill()
     await this.container.run({
       Cmd: [
@@ -96,8 +99,8 @@ export default class SecretNetworkNode {
     try {
       restored = JSON.parse(await readFile(nodeState, 'utf8'))
     } catch (e) {
-      console.warn(e)
-      warn(`reading ${nodeState} failed, trying to spawn a new node...`)
+      warn(e)
+      warn(`reading ${bold(nodeState)} failed, trying to spawn a new node...`)
       return this.spawn(options)
     }
 
@@ -109,7 +112,7 @@ export default class SecretNetworkNode {
       container = docker.getContainer(containerId)
       ;({State:{Running}} = await container.inspect())
     } catch (e) {
-      warn(`getting container ${containerId} failed, trying to spawn a new node...`)
+      warn(`getting container ${bold(containerId)} failed, trying to spawn a new node...`)
       return this.spawn(options)
     }
 
@@ -117,9 +120,9 @@ export default class SecretNetworkNode {
     process.on('beforeExit', async ()=>{
       const {State:{Running}} = await container.inspect()
       if (Running) {
-        debug(`killing ${container.id}`)
+        debug(`killing ${bold(container.id)}`)
         await container.kill()
-        debug(`killed ${container.id}`)
+        debug(`killed ${bold(container.id)}`)
         process.exit()
       }
     })
