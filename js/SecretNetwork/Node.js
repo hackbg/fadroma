@@ -4,7 +4,7 @@ import colors from 'colors/safe.js'
 import { loadJSON } from '../schema.js'
 import {
   resolve, mkdir, existsSync, touch, dirname, fileURLToPath, readFile, writeFile, rimraf,
-  readFileSync
+  readFileSync, unlinkSync
 } from '../sys.js'
 import { waitPort, freePort, pull, waitUntilLogsSay } from '../net.js'
 import { defaultStateBase } from './index.js'
@@ -37,7 +37,14 @@ export default class SecretNetworkNode {
         .catch(e=>error('failed to pull image', e))
     })
 
-    if (existsSync(this.state) && existsSync(this.nodeStateFile)) this.load()
+    if (existsSync(this.state) && existsSync(this.nodeStateFile)) {
+      try {
+        this.load()
+      } catch (e) {
+        warn(e)
+        unlinkSync(this.nodeStateFile)
+      }
+    }
   }
 
   load () {
