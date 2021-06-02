@@ -10,7 +10,7 @@ import { waitPort, freePort, pull, waitUntilLogsSay } from '../net.js'
 import { defaultStateBase } from './index.js'
 
 const { bold } = colors
-const { warn, log, info, debug } = console
+const { warn, log, info, debug, error } = console
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /** @class
