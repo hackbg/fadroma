@@ -253,10 +253,7 @@ export default class SecretNetworkNode {
   get cleanupContainerOptions () {
     const Cmd = [
       '-rvf',
-      '/shared-keys',
-      '/root/.secretd',
-      '/root/.secretcli',
-      '/root/.sgx-secrets'
+      '/state',
     ]
     return this.image.then(Image=>({
       Image,
@@ -268,7 +265,7 @@ export default class SecretNetworkNode {
       AttachStderr: true,
       HostConfig: {
         NetworkMode: 'host',
-        Binds:       this.binds
+        Binds: [`${this.state}:/state:rw`]
       },
     }))
   }
