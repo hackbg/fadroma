@@ -2,7 +2,7 @@ import Docker from 'dockerode'
 
 import { loadJSON } from '../schema.js'
 import {
-  resolve, mkdir, existsSync, touch, dirname, fileURLToPath, readFile, writeFile
+  resolve, mkdir, existsSync, touch, dirname, fileURLToPath, readFile, writeFile, rimraf
 } from '../sys.js'
 import { waitPort, freePort, pull, waitUntilLogsSay } from '../net.js'
 
@@ -33,8 +33,9 @@ export default class SecretNetworkNode {
           , port     = 1337
           , state
           , nodeState
-          , keysState } = options
-    Object.assign(this, { chainId, protocol, host, port, state, nodeState, keysState })
+          , keysState
+          , container } = options
+    Object.assign(this, { chainId, protocol, host, port, state, nodeState, keysState, container })
     const ready = waitPort({ host, port }).then(()=>this)
     Object.defineProperty(this, 'ready', { get () { return ready } })
   }
@@ -54,9 +55,9 @@ export default class SecretNetworkNode {
   /**Kill the node and delete its state.
    */
   remove = async () => {
-    info(`removing ${bold(this.state)}...`)
-    await this.container.kill()
-    await this.container.run({
+    info(`🚮 removing ${bold(this.state)}...`)
+    console.log(this)
+    await this.container.exec({
       Cmd: [
         'rm', '-rf',
         '/shared-keys',
@@ -65,6 +66,7 @@ export default class SecretNetworkNode {
         '/root/.sgx-secrets'
       ]
     })
+    await this.container.kill()
     await Promise.all([
       rimraf(this.nodeState),
       rimraf(this.keysState),

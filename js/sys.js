@@ -6,6 +6,7 @@ import { execFileSync, spawnSync } from 'child_process'
 import { homedir } from 'os'
 import { cwd, stderr } from 'process'
 import mkdirp from 'mkdirp'
+import rimraf from 'rimraf'
 import onExit from 'signal-exit'
 import xdgAppPaths from 'xdg-app-paths'
 
@@ -30,4 +31,4 @@ export const makeStateDir = (path, ...subdirs) => {
 export { stderr
        , resolve, relative, dirname, basename, extname
        , fileURLToPath, cwd, homedir
-       , existsSync, readFile, writeFile, unlink }
+       , existsSync, readFile, writeFile, unlink, rimraf }

@@ -283,7 +283,6 @@ export default class SecretNetwork {
     return { network, agent, builder: network.getBuilder(agent) }
   }
 
-
 }
 
 /**@typedef {Object} Connection
