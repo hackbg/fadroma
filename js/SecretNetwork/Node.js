@@ -36,7 +36,6 @@ export default class SecretNetworkNode {
       image: Promise.resolve(image)
         .catch(e=>error('failed to pull image', e))
     })
-    debug('new', this)
 
     if (existsSync(this.state) && existsSync(this.nodeStateFile)) this.load()
   }
