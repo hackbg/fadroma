@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo $Port
+echo Port=$Port
 
 # lookarounds:
 #date

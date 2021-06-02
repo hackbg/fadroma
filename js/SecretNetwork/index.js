@@ -12,6 +12,7 @@ import { defaultDataDir, mkdir, touch, makeStateDir
 import SecretNetworkNode from './Node.js'
 import SecretNetworkAgent from './Agent.js'
 import SecretNetworkContract from './Contract.js'
+import SecretNetworkContractEnsemble from './Ensemble.js'
 
 import colors from 'colors/safe.js'
 const {bold} = colors
@@ -147,6 +148,7 @@ export default class SecretNetwork {
   static Agent    = SecretNetworkAgent
   static Builder  = SecretNetworkBuilder
   static Contract = SecretNetworkContract
+  static Ensemble = SecretNetworkContractEnsemble
 
   static Gas = Object.assign(gas, { defaultFees: {
     upload: gas(2000000),
@@ -211,7 +213,8 @@ export default class SecretNetwork {
     state     = makeStateDir(stateBase, chainId)
   }={}) {
     debug(`⏳ preparing localnet ${bold(chainId)} @ ${bold(state)}`)
-    const node = await this.Node.respawn({chainId, state})
+    const node = new this.Node({chainId, state})
+    await node.respawn()
     await node.ready
     debug(`🟢 localnet ready @ ${bold(state)}`)
     const { protocol, host, port } = node

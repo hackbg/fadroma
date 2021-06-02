@@ -42,7 +42,7 @@ export const pull = async (image, docker = new Docker()) => {
 export const waitUntilLogsSay = (container, string) => new Promise((ok, fail)=>
   container.logs({stdout: true, stderr: true, follow: true, tail: 100}, (err, stream) => {
     if (err) return fail(err)
-    console.debug('trailing logs...')
+    console.debug('⬇️  trailing logs...')
     stream.on('data', function read (data) {
       data = String(data)
       console.debug(container.id.slice(0,8), `says:`, String(data).trim())

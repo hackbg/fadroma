@@ -1,73 +1,11 @@
 import bignum from 'bignumber.js'
-
 import taskmaster from '../taskmaster.js'
-import { resolve, relative, existsSync } from '../sys.js'
-import { pull } from '../net.js'
-
+import { resolve } from '../sys.js'
 import SecretNetwork from './index.js'
-
 import colors from 'colors/safe.js'
 const {bold} = colors
 
-const required = label =>
-  () => { throw new Error(`required: ${label}`) }
-
-export async function build (CONTRACTS, options = {}) {
-  const { task      = taskmaster()
-        , builder   = new SecretNetwork.Builder()
-        , workspace = required('workspace')
-        , outputDir = resolve(workspace, 'artifacts')
-        , parallel  = true } = options
-
-  // pull build container
-  await pull('enigmampc/secret-contract-optimizer:latest')
-
-  // build all contracts
-  const binaries = {}
-  if (parallel) {
-    await task.parallel('build project',
-      ...Object.entries(CONTRACTS).map(([name, {crate}])=>
-        task(`build ${name}`, async report => {
-          binaries[name] = await builder.build({outputDir, workspace, crate})
-        })))
-  } else {
-    for (const [name, {crate}] of Object.entries(CONTRACTS)) {
-      await task(`build ${name}`, async report => {
-        const buildOutput = resolve(outputDir, `${crate}@HEAD.wasm`)
-        if (existsSync(buildOutput)) {
-          console.info(`ℹ️  ${bold(relative(process.cwd(),buildOutput))} exists, delete to rebuild.`)
-          binaries[name] = buildOutput
-        } else {
-          binaries[name] = await builder.build({outputDir, workspace, crate})
-        }
-      })
-    }
-  }
-
-  return binaries
-}
-
-export async function upload (CONTRACTS, options = {}) {
-  const { task     = taskmaster()
-        , binaries = await build() // if binaries are not passed, build 'em
-        } = options
-
-  let { builder
-      , network = builder ? null : await SecretNetwork.localnet({stateBase}) } = options
-  if (typeof network === 'string') network = await SecretNetwork[network]({stateBase})
-  if (!builder) builder = network.builder
-
-  const receipts = {}
-  for (let contract of Object.keys(CONTRACTS)) {
-    await task(`upload ${contract}`, async report => {
-      const receipt = receipts[contract] = await builder.uploadCached(binaries[contract])
-      console.log(`⚖️  compressed size ${receipt.compressedSize} bytes`)
-      report(receipt.transactionHash) }) }
-
-  return receipts
-}
-
-export async function ensureWallets (options = {}) {
+export default async function ensureWallets (options = {}) {
 
   let { recipientGasBudget = bignum("5000000")
       , connection         = 'testnet' } = options
