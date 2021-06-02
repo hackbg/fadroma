@@ -2,7 +2,10 @@ import Docker from 'dockerode'
 import colors from 'colors/safe.js'
 
 import { loadJSON } from '../schema.js'
-import { resolve, mkdir, existsSync, touch, dirname, fileURLToPath, readFile, writeFile, rimraf } from '../sys.js'
+import {
+  resolve, mkdir, existsSync, touch, dirname, fileURLToPath, readFile, writeFile, rimraf,
+  readFileSync
+} from '../sys.js'
 import { waitPort, freePort, pull, waitUntilLogsSay } from '../net.js'
 import { defaultStateBase } from './index.js'
 
@@ -22,8 +25,26 @@ export default class SecretNetworkNode {
       chainId         = 'enigma-pub-testnet-3',
       state           = resolve(defaultStateBase, chainId),
       genesisAccounts = ['ADMIN', 'ALICE', 'BOB', 'MALLORY'],
+      image           = pull("enigmampc/secret-network-sw-dev", docker)
     } = options
-    Object.assign(this, { state, docker, chainId, genesisAccounts })
+
+    Object.assign(this, {
+      state,
+      docker,
+      chainId,
+      genesisAccounts,
+      image: Promise.resolve(image)
+        .catch(e=>error('failed to pull image', e))
+    })
+    debug('new', this)
+
+    if (existsSync(this.state) && existsSync(this.nodeStateFile)) this.load()
+  }
+
+  load () {
+    const data = JSON.parse(readFileSync(this.nodeStateFile, 'utf8'))
+    debug('load', data)
+    return data
   }
 
   async save () {
@@ -34,9 +55,31 @@ export default class SecretNetworkNode {
     }, null, 2), 'utf8')
   }
 
-  async load () {
-    return JSON.parse(await readFile(this.nodeStateFile, 'utf8'))
+  /** Outside environment needs to be returned to a pristine state via Docker.
+   *  (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.)
+   */
+  async erase () {
+    try {
+      // try without root first
+      if (existsSync(this.state)) {
+        info(`erasing ${bold(this.state)}`)
+        await rimraf(this.state)
+      } else {
+        info(`${bold(this.state)} does not exist`)
+      }
+    } catch (e) {
+      warn(`failed to delete ${bold(this.state)}, because:`)
+      warn(e)
+      warn(`running cleanup container`)
+      const container = await this.docker.createContainer(await this.cleanupContainerOptions)
+      await container.start()
+      info('waiting for erase to finish')
+      await container.wait()
+      info(`erased ${bold(this.state)}`)
+    }
   }
+
+  // pile of files:
 
   get initScript () {
     return resolve(__dirname, 'init.sh')
@@ -85,48 +128,11 @@ export default class SecretNetworkNode {
   }
 
   /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
-   *  in order to launch a cleanup container.
-   */
-  get cleanupContainerOptions () {
-    const Cmd = [
-      'rm',
-      '-rf',
-      '/shared-keys',
-      '/root/.secretd',
-      '/root/.secretcli',
-      '/root/.sgx-secrets'
-    ]
-    return {
-      Image:      this.image,
-      Entrypoint: [ '/bin/sh' ],
-      Tty:          true,
-      AttachStdin:  true,
-      AttachStdout: true,
-      AttachStderr: true,
-      HostConfig: {
-        NetworkMode: 'host',
-        Binds:       this.binds
-      },
-    }
-  }
-
-  /** Outside environment needs to be returned to a pristine state via Docker.
-   *  (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.)
-   */
-  async cleanup () {
-    const container = await this.docker.createContainer(this.cleanupContainerOptions)
-    await container.start()
-    info('waiting for cleanup to finish')
-    await container.wait()
-    rimraf(this.nodeStateFile)
-  }
-
-  /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
    *  in order to launch a localnet container.
    */
   get spawnContainerOptions () {
-    return {
-      Image:        this.image,
+    return this.image.then(Image=>({
+      Image,
       Entrypoint:   [ '/bin/bash' ],
       Cmd:          [ '/init.sh' ],
       Tty:          true,
@@ -138,7 +144,7 @@ export default class SecretNetworkNode {
         NetworkMode: 'host',
         Binds:       this.binds
       },
-    }
+    }))
   }
 
   async respawn () {
@@ -166,7 +172,7 @@ export default class SecretNetworkNode {
     } catch (e) {
       warn(`✋ getting container ${bold(containerId)} failed, trying to spawn a new node...`)
       info(`⏳ cleaning up outdated state`)
-      await this.cleanup()
+      await this.erase()
       return this.spawn()
     }
 
@@ -194,9 +200,10 @@ export default class SecretNetworkNode {
       protocol: 'http',
       host:     'localhost',
       port:     await freePort(),
-      image:    await pull("enigmampc/secret-network-sw-dev", this.docker)
     })
-    this.container = await this.docker.createContainer(this.spawnContainerOptions)
+    this.container = await this.docker.createContainer(
+      await this.spawnContainerOptions
+    )
     const {id: containerId} = this.container
     await this.container.start()
     await this.save()
@@ -237,7 +244,33 @@ export default class SecretNetworkNode {
 
   async terminate () {
     await this.suspend()
-    await this.cleanup()
+    await this.erase()
+  }
+
+  /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
+   *  in order to launch a cleanup container.
+   */
+  get cleanupContainerOptions () {
+    const Cmd = [
+      '-rvf',
+      '/shared-keys',
+      '/root/.secretd',
+      '/root/.secretcli',
+      '/root/.sgx-secrets'
+    ]
+    return this.image.then(Image=>({
+      Image,
+      Entrypoint: [ '/bin/rm' ],
+      Cmd,
+      Tty:          true,
+      AttachStdin:  true,
+      AttachStdout: true,
+      AttachStderr: true,
+      HostConfig: {
+        NetworkMode: 'host',
+        Binds:       this.binds
+      },
+    }))
   }
 
 }

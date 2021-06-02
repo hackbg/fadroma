@@ -45,4 +45,4 @@ export const rimraf = path => new Promise((resolve, reject)=>{
 export { stderr
        , resolve, relative, dirname, basename, extname
        , fileURLToPath, cwd, homedir
-       , existsSync, readFile, writeFile, unlink }
+       , existsSync, readFile, readFileSync, writeFile, unlink }
