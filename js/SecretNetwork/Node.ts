@@ -1,14 +1,35 @@
 import Docker from "https://deno.land/x/denocker/index.ts"
+import {fileURLToPath} from "https://deno.land/std/node/url.ts"
+import {resolve,dirname,join} from "https://deno.land/std/path/mod.ts"
+
+const {cwd} = Deno
+
+const touch = (...args:any) => new Promise(ok=>{})
+const mkdir = (...args:any) => new Promise(ok=>{})
+const freePort = (...args:any) => new Promise(ok=>{})
+const waitPort = (...args:any) => new Promise(ok=>{})
+const waitUntilLogsSay = (...args:any) => new Promise(ok=>{})
+const pull = (...args:any) => new Promise(ok=>{})
+
+const {debug}=console
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+const encoder = new TextEncoder()
+const write = (path:string, data:any) =>
+  Deno.writeFile(path, encoder.encode(JSON.stringify(data, null, 2)))
 
 /** @class
  * Run a pausable Secret Network localnet in a Docker container and manage its lifecycle
  */
 export default class SecretNetworkNode {
 
-  stateBase: string        = process.cwd()
-  chainId:   string        = 'enigma-pub-testnet-3';
-  state:     string        = join(stateBase, chainId)
-  docker:    Docker        = new Docker({ socketPath: '/var/run/docker.sock' })
+  stateBase: string = cwd()
+  chainId:   string = 'enigma-pub-testnet-3';
+  state:     string = join(this.stateBase, this.chainId)
+  docker:    Docker = new Docker('/var/run/docker.sock')
+  image:     any
+
   genesis:   Array<string> = ['ADMIN', 'ALICE', 'BOB', 'MALLORY']
 
   protocol: string = 'http'
@@ -65,15 +86,15 @@ export default class SecretNetworkNode {
       Env: [
         `Port=${this.port}`,
         `ChainID=${this.chainId}`,
-        `GenesisAccounts=${this.genesisAccounts.join(' ')}`
+        `GenesisAccounts=${this.genesis.join(' ')}`
       ],
       HostConfig: {
         NetworkMode: 'host',
         Binds: [
-          `${this.initScript}:/init.sh:ro`
-          `${this.keysStateDir}:/shared-keys:rw`
-          `${this.daemonStateDir}:/root/.secretd:rw`
-          `${this.cliStateDir}:/root/.secretcli:rw`
+          `${this.initScript}:/init.sh:ro`,
+          `${this.keysStateDir}:/shared-keys:rw`,
+          `${this.daemonStateDir}:/root/.secretd:rw`,
+          `${this.cliStateDir}:/root/.secretcli:rw`,
           `${this.sgxStateDir}:/root/.sgx-secrets:rw`
         ]
       } 
@@ -93,21 +114,19 @@ export default class SecretNetworkNode {
       protocol: 'http',
       host:     'localhost',
       port:     await freePort(),
-      image:    await pull("enigmampc/secret-network-sw-dev", docker)
+      image:    await pull("enigmampc/secret-network-sw-dev", this.docker)
     })
 
-    this.container = await docker.createContainer(this.containerOptions)
-
-    // create container with the above options
-    const container = await docker.createContainer(containerOptions)
-    const {id: containerId} = container
-    await container.start()
+    this.container = await this.docker.containers.create(this.chainId, this.containerOptions)
+    console.log({container:this.container})
+    const {id: containerId} = this.container
+    await this.container.start()
 
     // store a handle to the container
     await this.save()
 
     // wait for logs to confirm that the genesis is done
-    await waitUntilLogsSay(container, 'GENESIS COMPLETE')
+    await waitUntilLogsSay(this.container, 'GENESIS COMPLETE')
 
     // wait for port to be open
     waitPort({
@@ -117,11 +136,7 @@ export default class SecretNetworkNode {
   }
 
   async save () {
-    await writeFile(this.nodeStateFile, JSON.stringify(pick(this,
-      'chainId',
-      'containerId',
-      'port"
-    }, null, 2), 'utf8')
+    await write(this.nodeStateFile, pick(this, 'chainId', 'containerId', 'port'))
   }
 
   async suspend () {
@@ -140,7 +155,7 @@ export default class SecretNetworkNode {
 
 }
 
-function pick (obj: Record<string,any>, ...keys:any) {
+function pick (obj: any, ...keys:any) {
   return Object.keys(obj)
     .filter(key=>keys.indexOf(key)>-1)
     .reduce((obj2: Record<string,any>, key: any)=>
