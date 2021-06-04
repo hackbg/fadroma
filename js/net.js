@@ -41,7 +41,7 @@ export const pull = async (image, docker = new Docker()) => {
   return image
 }
 
-export const waitUntilLogsSay = (container, string) => new Promise((ok, fail)=>
+export const waitUntilLogsSay = (container, string, thenDetach = false) => new Promise((ok, fail)=>
   container.logs({stdout: true, stderr: true, follow: true, tail: 100}, (err, stream) => {
     if (err) return fail(err)
     console.debug('⬇️  trailing logs...')
@@ -49,8 +49,8 @@ export const waitUntilLogsSay = (container, string) => new Promise((ok, fail)=>
       data = String(data)
       console.debug('📦', bold(`${container.id.slice(0,8)} says:`), String(data).trim())
       if (data.indexOf(string)>-1) {
-        stream.destroy()
-        const seconds = 5
+        if (thenDetach) stream.destroy()
+        const seconds = 7
         console.debug(`⏳`, bold(`waiting ${seconds} seconds`), `for good measure...`)
         return setTimeout(ok, seconds * 1000)
       }
