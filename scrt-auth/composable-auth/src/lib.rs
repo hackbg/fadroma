@@ -43,8 +43,8 @@ pub trait AuthHandle {
         Ok(HandleResponse {
             messages: vec![],
             log: vec![],
-            data: Some(to_binary(&CreateViewingKeyData {
-                key: key.0
+            data: Some(to_binary(&HandleAnswer::CreateViewingKey {
+                key
             })?)
         })
     }
@@ -78,8 +78,10 @@ pub enum AuthHandleMsg {
 
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub struct CreateViewingKeyData {
-    pub key: String
+pub enum HandleAnswer {
+    CreateViewingKey {
+        key: ViewingKey,
+    },
 }
 
 pub struct DefaultHandleImpl;
