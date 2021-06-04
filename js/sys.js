@@ -9,19 +9,22 @@ import mkdirp from 'mkdirp'
 import _rimraf from 'rimraf'
 import onExit from 'signal-exit'
 import xdgAppPaths from 'xdg-app-paths'
+import colors from 'colors/safe.js'
+
+const {bold} = colors
 
 export const defaultDataDir = () =>
   xdgAppPaths.data()
 
 export const mkdir = (...fragments) => {
   const path = resolve(...fragments)
-  if (!existsSync(path)) console.debug('📁 creating', path)
+  if (!existsSync(path)) console.debug('📁 creating', bold(path))
   mkdirp.sync(path, {mode: 0o770})
   return path }
 
 export const touch = (...fragments) => {
   const path = resolve(...fragments)
-  if (!existsSync(path)) console.debug('🧾 creating', path)
+  if (!existsSync(path)) console.debug('🧾 creating', bold(path))
   writeFileSync(path, '')
   return path }
 
