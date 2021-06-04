@@ -68,18 +68,20 @@ export default class SecretNetworkNode {
     try {
       // try without root first
       if (existsSync(this.state)) {
-        info(`erasing ${bold(this.state)}`)
+        info(`⏳ erasing ${bold(this.state)}`)
         await rimraf(this.state)
       } else {
         info(`${bold(this.state)} does not exist`)
       }
     } catch (e) {
-      warn(`failed to delete ${bold(this.state)}, because:`)
-      warn(e)
-      warn(`running cleanup container`)
+      if (e.code !== 'EACCES') {
+        warn(`failed to delete ${bold(this.state)}, because:`)
+        warn(e)
+      }
+      warn(`⏳ running cleanup container`)
       const container = await this.docker.createContainer(await this.cleanupContainerOptions)
       await container.start()
-      info('waiting for erase to finish')
+      info('⏳ waiting for erase to finish')
       await container.wait()
       info(`erased ${bold(this.state)}`)
     }
@@ -139,6 +141,8 @@ export default class SecretNetworkNode {
   get spawnContainerOptions () {
     return this.image.then(Image=>({
       Image,
+      Hostname:     this.chainId,
+      Domainname:   this.chainId,
       Entrypoint:   [ '/bin/bash' ],
       Cmd:          [ '/init.sh' ],
       Tty:          true,
@@ -197,6 +201,7 @@ export default class SecretNetworkNode {
   async spawn () {
     debug(`⏳ spawning new localnet at ${bold(this.nodeStateFile)}...`)
 
+    mkdir(this.state)
     touch(this.nodeStateFile)
     for (const dir of this.stateDirs) {
       mkdir(dir)

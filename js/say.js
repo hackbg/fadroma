@@ -1,7 +1,8 @@
 // https://en.wikipedia.org/wiki/Pointing_and_calling
 
 import colors from 'colors/safe.js'
-import { render } from 'prettyjson'
+import * as prettyjson from 'prettyjson'
+const { render } = prettyjson
 
 export function sayer (prefixes = []) {
 

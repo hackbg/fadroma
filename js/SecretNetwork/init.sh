@@ -34,6 +34,7 @@ if [ ! -e "$Genesis" ]; then
 
   echo "prepare genesis accounts =============="
   for Name in ${GenesisAccounts[@]}; do
+    echo
     echo "[$Name] 1. create key"
     Key=`secretcli keys add $Name 2>&1`
     echo "[$Name] 2. store key"

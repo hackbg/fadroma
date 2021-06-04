@@ -1,6 +1,8 @@
 import { createServer } from 'net'
 import Docker from 'dockerode'
 import waitPort from 'wait-port'
+import colors from 'colors/safe.js'
+const {bold} = colors
 
 export { waitPort }
 
@@ -30,7 +32,7 @@ export const pull = async (image, docker = new Docker()) => {
           },
           event => {
             event = ['id', 'status', 'progress'].map(x=>event[x]).join('│')
-            console.debug(`docker pull says:`, event)
+            console.debug(`📦 docker pull says:`, event)
           }
         )
       })
@@ -45,11 +47,12 @@ export const waitUntilLogsSay = (container, string) => new Promise((ok, fail)=>
     console.debug('⬇️  trailing logs...')
     stream.on('data', function read (data) {
       data = String(data)
-      console.debug(container.id.slice(0,8), `says:`, String(data).trim())
+      console.debug('📦', bold(`${container.id.slice(0,8)} says:`), String(data).trim())
       if (data.indexOf(string)>-1) {
         stream.destroy()
-        console.debug('waiting for good measure...')
-        return setTimeout(ok, 7000)
+        const seconds = 5
+        console.debug(`⏳`, bold(`waiting ${seconds} seconds`), `for good measure...`)
+        return setTimeout(ok, seconds * 1000)
       }
       //if (data.indexOf('ERROR')>-1) { // TODO ignore benign error
         //stream.destroy()

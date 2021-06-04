@@ -6,6 +6,10 @@ import extendWithSchema from './extendWithSchema.js'
  * TODO connect to existing contract */
 export default class SecretNetworkContract {
 
+  network: SecretNetwork        | null;
+  builder: SecretNetworkBuilder | null;
+  agent:   SecretNetworkAgent   | null;
+
   constructor (fields={}) {
     Object.assign(this, fields)
   }

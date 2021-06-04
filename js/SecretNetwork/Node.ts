@@ -1,6 +1,6 @@
 import Docker from "https://deno.land/x/denocker/index.ts"
-import {fileURLToPath} from "https://deno.land/std/node/url.ts"
-import {resolve,dirname,join} from "https://deno.land/std/path/mod.ts"
+import {fileURLToPath} from "url"
+import {resolve,dirname,join} from "path"
 
 const {cwd} = Deno
 
@@ -43,29 +43,12 @@ export default class SecretNetworkNode {
     Object.assign(this, pick(options, 'chainId', 'state', 'docker', 'genesis'))
   }
 
-  get initScript () {
-    return resolve(__dirname, 'init.sh')
-  }
-
-  get nodeStateFile () {
-    return resolve(this.state, 'node.json')
-  }
-
-  get keysStateDir () {
-    return resolve(this.state, 'wallets')
-  }
-
-  get daemonStateDir () {
-    return resolve(this.state, '.secretd')
-  }
-
-  get cliStateDir () {
-    return resolve(this.state, '.secretcli')
-  }
-
-  get sgxStateDir () {
-    return resolve(this.state, '.sgx-secrets')
-  }
+  get initScript     () { return resolve(__dirname, 'init.sh') }
+  get nodeStateFile  () { return resolve(this.state, 'node.json') }
+  get keysStateDir   () { return resolve(this.state, 'wallets') }
+  get daemonStateDir () { return resolve(this.state, '.secretd') }
+  get cliStateDir    () { return resolve(this.state, '.secretcli') }
+  get sgxStateDir    () { return resolve(this.state, '.sgx-secrets') }
 
   get stateDirs () {
     return [this.keysStateDir, this.daemonStateDir, this.cliStateDir, this.sgxStateDir]
@@ -111,10 +94,8 @@ export default class SecretNetworkNode {
     }
 
     Object.assign(this, {
-      protocol: 'http',
-      host:     'localhost',
-      port:     await freePort(),
-      image:    await pull("enigmampc/secret-network-sw-dev", this.docker)
+      port:  await freePort(),
+      image: await pull("enigmampc/secret-network-sw-dev", this.docker)
     })
 
     this.container = await this.docker.containers.create(this.chainId, this.containerOptions)

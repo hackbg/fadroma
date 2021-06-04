@@ -1,5 +1,7 @@
-import { backOff } from "exponential-backoff"
 import tabulate from './table.js'
+
+import * as exponentialBackoff from "exponential-backoff"
+const { backOff } = exponentialBackoff
 
 export default function taskmaster ({
   say    = console.debug,

@@ -15,13 +15,13 @@ export const defaultDataDir = () =>
 
 export const mkdir = (...fragments) => {
   const path = resolve(...fragments)
-  if (!existsSync(path)) console.debug('creating', path)
+  if (!existsSync(path)) console.debug('📁 creating', path)
   mkdirp.sync(path, {mode: 0o770})
   return path }
 
 export const touch = (...fragments) => {
   const path = resolve(...fragments)
-  if (!existsSync(path)) console.debug('creating', path)
+  if (!existsSync(path)) console.debug('🧾 creating', path)
   writeFileSync(path, '')
   return path }
 
