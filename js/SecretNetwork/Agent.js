@@ -111,7 +111,7 @@ export default class SecretNetworkAgent {
   get nextBlock () {
     return this.API.getBlock().then(({header:{height}})=>new Promise(async resolve=>{
       while (true) {
-        await new Promise(ok=>setTimeout(ok, 1000))
+        await new Promise(ok=>setTimeout(ok, 500))
         const now = await this.API.getBlock()
         if (now.header.height > height) {
           resolve()
