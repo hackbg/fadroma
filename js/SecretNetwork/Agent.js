@@ -3,7 +3,7 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey
        , makeSignBytes } from 'secretjs'
 
 import { readFile } from '../sys.js'
-import SecretNetwork, { SecretNetworkBuilder } from './index.js'
+import SecretNetwork  from './index.js'
 
 /** Queries and transacts on an instance of the Secret Network
  */
@@ -54,7 +54,7 @@ export default class SecretNetworkAgent {
 
   /**Create a builder that uses this agent to deploy contracts.
    */
-  getBuilder = () => new SecretNetworkBuilder({network: this.network, agent: this})
+  getBuilder = () => new SecretNetwork.Builder({network: this.network, agent: this})
 
   /**Get the current balance in a specified denomination.
    */
