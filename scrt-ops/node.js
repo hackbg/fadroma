@@ -1,10 +1,10 @@
 import Docker from 'dockerode'
 
-import { loadJSON } from '../schema.js'
+import { loadJSON } from '@fadroma/utilities/schema.js'
 import {
   resolve, mkdir, existsSync, touch, dirname, fileURLToPath, readFile, writeFile
-} from '../sys.js'
-import { waitPort, freePort, pull, waitUntilLogsSay } from '../net.js'
+} from '@fadroma/utilities/sys.js'
+import { waitPort, freePort, pull, waitUntilLogsSay } from '@fadroma/utilities/net.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

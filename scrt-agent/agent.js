@@ -2,7 +2,7 @@ import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey, pubkeyToAddress
        , makeSignBytes } from 'secretjs'
 
-import { readFile } from '@fadroma-utilities/sys.js'
+import { readFile } from '@fadroma/utilities/sys.js'
 
 import { gas } from './network.js'
 import SecretNetworkBuilder from './builder.js'

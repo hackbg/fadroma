@@ -1,10 +1,10 @@
 import bignum from 'bignumber.js'
 
-import taskmaster from '../taskmaster.js'
-import { resolve } from '../sys.js'
-import { pull } from '../net.js'
+import taskmaster from '@fadroma/utilities/taskmaster.js'
+import { resolve } from '@fadroma/utilities/sys.js'
+import { pull } from '@fadroma/utilities/net.js'
 
-import SecretNetwork from '@hackbg/fadroma-scrt-client'
+import SecretNetwork from '@fadroma/scrt-client'
 
 export async function build (CONTRACTS, options = {}) {
   const { task      = taskmaster()

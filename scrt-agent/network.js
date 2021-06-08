@@ -2,12 +2,12 @@ import assert from 'assert'
 import Docker from 'dockerode'
 import { Bip39 } from '@cosmjs/crypto'
 
-import { loadJSON, loadSchemas } from '@hackbg/fadroma-utilities/schema.js'
-import { freePort, waitPort, pull, waitUntilLogsSay } from '@hackbg/fadroma-utilities/net.js'
+import { loadJSON, loadSchemas } from '@fadroma/utilities/schema.js'
+import { freePort, waitPort, pull, waitUntilLogsSay } from '@fadroma/utilities/net.js'
 import { defaultDataDir, mkdir, touch, makeStateDir
        , resolve, dirname, basename
        , fileURLToPath, cwd, homedir
-       , existsSync, readFile, writeFile, unlink } from '@hackbg/fadroma-utilities/sys.js'
+       , existsSync, readFile, writeFile, unlink } from '@fadroma/utilities/sys.js'
 
 import SecretNetworkAgent from './agent.js'
 import SecretNetworkContract from './contract.js'

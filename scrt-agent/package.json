@@ -1,5 +1,5 @@
 {
-  "name": "@hackbg/fadroma-scrt-client",
+  "name": "@fadroma/scrt-agent",
   "version": "0.1.0",
   "type": "module",
   "main": "network.js"
