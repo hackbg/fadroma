@@ -3,6 +3,7 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey
        , makeSignBytes } from 'secretjs'
 
 import { readFile } from '@fadroma/utilities/sys.js'
+import { gas, defaultFees } from './gas.js'
 
 /** Queries and transacts on an instance of the Secret Network
  */
@@ -18,24 +19,21 @@ export default class SecretNetworkAgent {
       }
     } else if (keyPair) {
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-      mnemonic = Bip39.encode(keyPair.privkey).data
+      mnemonic  = Bip39.encode(keyPair.privkey).data
     } else {
       // if there is neither, generate a new keypair and corresponding mnemonic
-      keyPair = EnigmaUtils.GenerateNewKeyPair()
-      mnemonic = Bip39.encode(keyPair.privkey).data
+      keyPair   = EnigmaUtils.GenerateNewKeyPair()
+      mnemonic  = Bip39.encode(keyPair.privkey).data
     }
-    const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
+    const pen   = await Secp256k1Pen.fromMnemonic(mnemonic)
     return new this({name, mnemonic, keyPair, pen, ...args})
   }
 
   /**Create a new agent from a signing pen.*/
   constructor (options = {}) {
-    const { network
+    const { network, pen, mnemonic, keyPair
           , name = ""
-          , pen
-          , mnemonic
-          , keyPair
-          , fees = SecretNetwork.Gas.defaultFees } = options
+          , fees = defaultFees } = options
     const pubkey = encodeSecp256k1Pubkey(pen.pubkey)
     return Object.assign(this, {
       network, name, keyPair, mnemonic, pen, pubkey,
@@ -65,7 +63,7 @@ export default class SecretNetworkAgent {
   }
 
   /**Send `uscrt` to multiple addresses.*/
-  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = SecretNetwork.Gas(500000 * txs.length)) {
+  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = gas(500000 * txs.length)) {
     if (txs.length < 0) {
       throw new Error('tried to send to 0 recipients')
     }

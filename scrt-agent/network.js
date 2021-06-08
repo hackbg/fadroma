@@ -11,6 +11,12 @@ import { defaultDataDir, mkdir, touch, makeStateDir
 
 import SecretNetworkAgent from './agent.js'
 import SecretNetworkContract from './contract.js'
+import { gas, defaultFees } from './gas.js'
+
+import SecretNetworkNode from '@fadroma/scrt-ops/localnet.js'
+
+import colors from 'colors/safe.js'
+const {bold} = colors
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -21,16 +27,6 @@ export const defaultStateBase = resolve(process.cwd(), 'artifacts')
 /* TODO: Remove rest arguments (`...args`) from constructors.
  * Define exactly what goes where. */
 
-/**@typedef {Object} Connection
- * @property {SecretNetworkNode} [node] - (if localnet) interface to docker container
- * @property {SecretNetwork} network - interface to the node's REST API endpoint.
- * @property {SecretNetworkAgent} agent - a default agent to query and transact on that network.
- * @property {SecretNetworkBuilder} builder - can upload contracts to that network as that agent.
- */
-
-export const gas = function formatGas (x) {
-  return {amount:[{amount:String(x),denom:'uscrt'}], gas: String(x)}
-}
 
 /** @class
  */
@@ -39,12 +35,7 @@ export default class SecretNetwork {
   //static Builder  = SecretNetworkBuilder
   static Contract = SecretNetworkContract
 
-  static Gas = Object.assign(gas, { defaultFees: {
-    upload: gas(2000000),
-    init:   gas(1000000),
-    exec:   gas(1000000),
-    send:   gas( 500000),
-  } })
+  static Gas = Object.assign(gas, { defaultFees })
 
   /**Interface to a REST API endpoint. Can store wallets and results of contract uploads/inits.
    * @constructor
@@ -101,10 +92,11 @@ export default class SecretNetwork {
     stateBase = defaultStateBase,
     state     = makeStateDir(stateBase, chainId)
   }={}) {
-    debug(`⏳ preparing localnet "${chainId}" @ ${state}`)
-    const node = await this.Node.respawn({state, chainId})
+    debug(`⏳ preparing localnet ${bold(chainId)} @ ${bold(state)}`)
+    const node = new SecretNetworkNode({chainId, state})
+    await node.respawn()
     await node.ready
-    debug(`🟢 localnet ready @ ${node.state}`)
+    debug(`🟢 localnet ready @ ${bold(state)}`)
     const { protocol, host, port } = node
     const agent = await node.genesisAccount('ADMIN')
     const options = { chainId, state, protocol, host, port, agent }
