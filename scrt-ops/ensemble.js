@@ -3,6 +3,7 @@ import { resolve, relative, existsSync } from '@fadroma/utilities/sys.js'
 import { pull } from '@fadroma/utilities/net.js'
 
 import {SecretNetwork} from '@fadroma/scrt-agent'
+import Builder from './builder.js'
 
 import assert from 'assert'
 
@@ -17,7 +18,7 @@ export default class ContractEnsemble {
 
   async build (options = {}) {
     const { task      = taskmaster()
-          , builder   = new SecretNetwork.Builder()
+          , builder   = new Builder()
           , workspace = this.workspace || required('workspace')
           , outputDir = resolve(this.workspace, 'artifacts')
           , parallel  = true } = options
@@ -78,8 +79,10 @@ export default class ContractEnsemble {
           } = options
 
     let { agent
-        , builder = agent ? agent.getBuilder() : undefined
-        , network = builder ? builder.network : await pickNetwork()
+        , builder = agent? new Builder({network: agent.network, agent})
+                         : undefined
+        , network = builder? builder.network
+                           : await pickNetwork()
         } = options
 
     if (typeof network === 'string') {

@@ -1,7 +1,14 @@
+import Docker from 'dockerode'
+import { resolve, dirname, fileURLToPath } from '@fadroma/utilities/sys.js'
+import { pull } from '@fadroma/utilities/net.js'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const {debug} = console
+
 /** Builds contracts and optionally uploads them as an agent on the Secret Network.
  * Stores upload results as receipts.
  */
-export class SecretNetworkBuilder {
+export default class SecretNetworkBuilder {
   constructor (fields) { this.configure(fields) }
   configure = (fields={}) => { Object.assign(this, fields) }
   get address () { return this.agent ? this.agent.address : undefined }
