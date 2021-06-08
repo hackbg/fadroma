@@ -1,0 +1,4 @@
+var searchIndex = JSON.parse('{\
+"fadroma":{"doc":"Fadroma","t":[14,14,14,14,14,14,14,14,14,14,14],"n":["prelude","message","messages","define_state_singleton","define_init_message","define_q_messages","define_tx_messages","implement_init","implement_queries","implement_transactions","contract"],"q":["fadroma","","","","","","","","","",""],"d":["Import commonly used definitions that need to be …","Define an enum that implements the necessary traits …","Define an enum with variants that implement the necessary …","Define the state singleton.","Instantiation interface.","Query interface.","Transaction interface.","Instatiation. Either defines or imports an <code>InitMsg</code>, and …","Query implementations.","Transaction implementations","Define a smart contract"],"i":[0,0,0,0,0,0,0,0,0,0,0],"f":[null,null,null,null,null,null,null,null,null,null,null],"p":[]}\
+}');
+initSearch(searchIndex);
