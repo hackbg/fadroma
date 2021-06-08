@@ -2,19 +2,20 @@ import taskmaster from '@fadroma/utilities/taskmaster.js'
 import { resolve, relative, existsSync } from '@fadroma/utilities/sys.js'
 import { pull } from '@fadroma/utilities/net.js'
 
-import { SecretNetwork } from '@fadroma/scrt-agent'
+import {SecretNetwork} from '@fadroma/scrt-agent'
+
+import assert from 'assert'
 
 import colors from 'colors/safe.js'
-import assert from 'assert'
 const {bold} = colors
 
 const required = label => { throw new Error(`required override: ${label}`) }
 
 export default class ContractEnsemble {
 
-  static contracts = {}
+  contracts = {}
 
-  static async build (options = {}) {
+  async build (options = {}) {
     const { task      = taskmaster()
           , builder   = new SecretNetwork.Builder()
           , workspace = this.workspace || required('workspace')
@@ -49,7 +50,7 @@ export default class ContractEnsemble {
     return binaries
   }
 
-  static async upload (options = {}) {
+  async upload (options = {}) {
     const { task     = taskmaster()
           , binaries = await build() // if binaries are not passed, build 'em
           } = options
@@ -69,12 +70,11 @@ export default class ContractEnsemble {
     return receipts
   }
 
-  static initialize = async () => { throw new Error('not implemented!') }
+  initialize = async () => { throw new Error('not implemented!') }
 
-  static async deploy (options = {}) {
+  async deploy (options = {}) {
     const { task     = taskmaster()
           , initMsgs = {}
-          , schedule = getDefaultSchedule()
           } = options
 
     let { agent
@@ -93,12 +93,12 @@ export default class ContractEnsemble {
     return await task('build, upload, and initialize contracts', async () => {
       const binaries  = await this.build({ task, builder })
       const receipts  = await this.upload({ task, builder, binaries })
-      const contracts = await this.initialize({ task, receipts, agent, schedule })
+      const contracts = await this.initialize({ task, receipts, agent })
     })
   }
 
-  static configure = async () => { throw new Error('not implemented!') }
+  configure = async () => { throw new Error('not implemented!') }
 
-  static transferOwnership = async () => { throw new Error('not implemented!') }
+  transferOwnership = async () => { throw new Error('not implemented!') }
 
 }
