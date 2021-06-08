@@ -4,12 +4,10 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey
 
 import { readFile } from '@fadroma/utilities/sys.js'
 
-import { gas } from './network.js'
-import SecretNetworkBuilder from './builder.js'
-
 /** Queries and transacts on an instance of the Secret Network
  */
 export default class SecretNetworkAgent {
+
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create ({ name = 'Anonymous', mnemonic, keyPair, ...args }={}) {
     if (mnemonic) {
@@ -29,6 +27,7 @@ export default class SecretNetworkAgent {
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
     return new this({name, mnemonic, keyPair, pen, ...args})
   }
+
   /**Create a new agent from a signing pen.*/
   constructor (options = {}) {
     const { network
@@ -49,8 +48,7 @@ export default class SecretNetworkAgent {
       )
     })
   }
-  /**Create a builder that uses this agent to deploy contracts.*/
-  getBuilder = () => new SecretNetworkBuilder({network: this.network, agent: this})
+
   /**Get the current balance in a specified denomination.*/
   async getBalance (denomination = 'uscrt') {
     const account = await this.API.getAccount(this.address) || {}
@@ -59,11 +57,13 @@ export default class SecretNetworkAgent {
     const balanceInDenom = balance.filter(inDenom)[0] || {}
     return balanceInDenom.amount || 0
   }
+
   /**Send some `uscrt` to an address.*/
   async send (recipient, amount, denom = 'uscrt', memo = "") {
     if (typeof amount === 'number') amount = String(amount)
     return await this.API.sendTokens(recipient, [{denom, amount}], memo)
   }
+
   /**Send `uscrt` to multiple addresses.*/
   async sendMany (txs = [], memo = "", denom = 'uscrt', fee = SecretNetwork.Gas(500000 * txs.length)) {
     if (txs.length < 0) {
@@ -81,15 +81,20 @@ export default class SecretNetworkAgent {
     const signBytes = makeSignBytes(msg, fee, this.network.chainId, memo, accountNumber, sequence)
     return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
+
   /**`await` this to get info about the current block of the network. */
   get block () { return this.API.getBlock() }
+
   /**`await` this to get the account info for this agent's address.*/
   get account () { return this.API.getAccount(this.address) }
+
   /**`await` this to get the current balance in the native
    * coin of the network, in its most granular denomination */
   get balance () { return this.getBalance() }
+
   /**`await` this to pause until the block height has increased.
    * (currently this queries the block height in 1000msec intervals) */
+
   get nextBlock () {
     return this.API.getBlock().then(({header:{height}})=>new Promise(async resolve=>{
       while (true) {
@@ -102,17 +107,21 @@ export default class SecretNetworkAgent {
       }
     }))
   }
+
   /**Upload a compiled binary to the chain, returning the code ID (among other things). */
   async upload (pathToBinary) { return this.API.upload(await readFile(pathToBinary), {}) }
+
   /**Instantiate a contract from a code ID and an init message. */
   async instantiate ({ codeId, initMsg = {}, label = '' }) {
     const initTx   = await this.API.instantiate(codeId, initMsg, label)
     const codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
     return { ...initTx, codeId, label, codeHash }
   }
+
   /**Query a contract. */
   query = (contract, method='', args={}) =>
     this.API.queryContractSmart(contract.address, {[method]: args})
+
   /**Execute a contract transaction. */
   execute = (contract, method='', args={}) =>
     this.API.execute(contract.address, {[method]: args})

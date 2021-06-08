@@ -1,4 +1,4 @@
-import { writeFile, resolve } from '../sys.js'
+import { writeFile, resolve } from '@fadroma/utilities/sys.js'
 
 /** Interface to a contract instance.
  * Can be subclassed with schema to auto-generate methods

@@ -28,7 +28,7 @@ export const defaultStateBase = resolve(process.cwd(), 'artifacts')
  * @property {SecretNetworkBuilder} builder - can upload contracts to that network as that agent.
  */
 
-const gas = function formatGas (x) {
+export const gas = function formatGas (x) {
   return {amount:[{amount:String(x),denom:'uscrt'}], gas: String(x)}
 }
 
@@ -36,7 +36,7 @@ const gas = function formatGas (x) {
  */
 export default class SecretNetwork {
   static Agent    = SecretNetworkAgent
-  static Builder  = SecretNetworkBuilder
+  //static Builder  = SecretNetworkBuilder
   static Contract = SecretNetworkContract
 
   static Gas = Object.assign(gas, { defaultFees: {
