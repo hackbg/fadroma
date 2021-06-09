@@ -3,6 +3,7 @@ import { existsSync, unlinkSync, readFileSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
 import { cwd, stderr } from 'process'
 import { fileURLToPath } from 'url'
+import { randomBytes } from 'crypto'
 
 import bignum from 'bignumber.js'
 import {render} from 'prettyjson'
@@ -27,6 +28,7 @@ export {
   loadSchemas,
   makeStateDir,
   mkdir,
+  randomBytes,
   readFile,
   readFileSync,
   render,
@@ -42,16 +44,20 @@ export {
 }
 
 export const Console = filename => {
-
   filename = relative(process.cwd(), fileURLToPath(filename))
-
   const format = arg => '\n'+((typeof arg === 'object') ? render(arg) : arg)
-
   const debug = process.env.NODEBUG ? () => {} : function debug (...args) {
     console.debug('\n' + colors.yellow(filename), ...args.map(format))
     return args[0]
   }
-
-  return { filename, format, debug }
-
+  return {
+    filename,
+    format,
+    debug,
+    info:  (...args) => console.info('ℹ️ ', ...args),
+    log:   (...args) => console.log(...args),
+    warn:  (...args) => console.warn('⚠️ ', ...args),
+    error: (...args) => console.error('🦋', ...args),
+    table: rows => console.log(table(rows))
+  }
 }
