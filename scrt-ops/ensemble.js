@@ -1,18 +1,14 @@
-import taskmaster from '@fadroma/utilities/taskmaster.js'
-import { resolve, relative, existsSync } from '@fadroma/utilities/sys.js'
-import { pull } from '@fadroma/utilities/net.js'
-
-import {SecretNetwork} from '@fadroma/scrt-agent'
-import Builder from './builder.js'
-
 import assert from 'assert'
-
-import colors from 'colors/safe.js'
-const {bold} = colors
+import { bold, resolve, relative, existsSync, taskmaster } from '@fadroma/utilities'
+import {SecretNetwork} from '@fadroma/scrt-agent'
+import { pull } from './net.js'
+import Builder from './builder.js'
 
 const required = label => { throw new Error(`required override: ${label}`) }
 
 export default class ContractEnsemble {
+
+  prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
 
   contracts = {}
 

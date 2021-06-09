@@ -1,12 +1,12 @@
 import Docker from 'dockerode'
 import colors from 'colors/safe.js'
-
-import { loadJSON } from '@fadroma/utilities/schema.js'
 import {
-  resolve, mkdir, existsSync, touch, dirname, fileURLToPath, readFile, writeFile, rimraf,
-  readFileSync, unlinkSync
-} from '@fadroma/utilities/sys.js'
-import { waitPort, freePort, pull, waitUntilLogsSay } from '@fadroma/utilities/net.js'
+  resolve, dirname, fileURLToPath,
+  mkdir, existsSync, touch, rimraf,
+  readFile, writeFile, readFileSync, unlinkSync,
+  loadJSON,
+} from '@fadroma/utilities'
+import { waitPort, freePort, pull, waitUntilLogsSay } from './net.js'
 
 export const defaultStateBase = resolve(process.cwd(), 'artifacts')
 

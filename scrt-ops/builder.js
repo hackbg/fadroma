@@ -1,6 +1,6 @@
 import Docker from 'dockerode'
-import { resolve, basename, dirname, existsSync, fileURLToPath, writeFile } from '@fadroma/utilities/sys.js'
-import { pull } from '@fadroma/utilities/net.js'
+import { resolve, basename, dirname, existsSync, fileURLToPath, writeFile } from '@fadroma/utilities'
+import { pull } from './net.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const {debug} = console

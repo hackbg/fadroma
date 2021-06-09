@@ -4,6 +4,11 @@
   "type": "module",
   "main": "index.js",
   "dependencies": {
-    "@fadroma/utilities": "*"
+    "@fadroma/utilities": "*",
+    "@cosmjs/crypto": "^0.24.1",
+    "dockerode": "^3.2.1",
+    "exponential-backoff": "^3.1.0",
+    "mkdirp": "^1.0.4",
+    "secretjs": "^0.11.0"
   }
 }

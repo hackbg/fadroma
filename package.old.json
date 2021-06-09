@@ -1,18 +1,25 @@
 {
-  "name": "@fadroma/utilities",
-  "version": "0.1.0",
+  "name": "@hackbg/fadroma",
+  "version": "0.0.0",
+  "main": "./js/index.js",
   "type": "module",
-  "main": "index.js",
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",
     "colors": "^1.4.0",
+    "dockerode": "^3.2.1",
     "exponential-backoff": "^3.1.0",
     "mkdirp": "^1.0.4",
     "prettyjson": "^1.2.1",
-    "rimraf": "^3.0.2",
     "secretjs": "^0.11.0",
     "signal-exit": "^3.0.3",
     "wait-port": "^0.2.9",
     "xdg-app-paths": "^7.3.0"
+  },
+  "devDependencies": {
+    "documentation": "^13.2.1"
+  },
+  "scripts": {
+    "docs": "documentation build js/** -f html --github -o doc/js",
+    "docserv": "documentation serve --watch js/**"
   }
 }

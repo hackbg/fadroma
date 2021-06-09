@@ -2,19 +2,14 @@ import assert from 'assert'
 import Docker from 'dockerode'
 import { Bip39 } from '@cosmjs/crypto'
 
-import { loadJSON, loadSchemas } from '@fadroma/utilities/schema.js'
-import { freePort, waitPort, pull, waitUntilLogsSay } from '@fadroma/utilities/net.js'
-import { defaultDataDir, mkdir, touch, makeStateDir
-       , resolve, dirname, basename
-       , fileURLToPath, cwd, homedir
-       , existsSync, readFile, writeFile, unlink } from '@fadroma/utilities/sys.js'
+import { mkdir, makeStateDir, resolve, dirname, fileURLToPath, cwd } from '@fadroma/utilities'
+
+import SecretNetworkNode from '@fadroma/scrt-ops/localnet.js'
+import SecretNetworkBuilder from '@fadroma/scrt-ops/builder.js'
 
 import SecretNetworkAgent from './agent.js'
 import SecretNetworkContract from './contract.js'
 import { gas, defaultFees } from './gas.js'
-
-import SecretNetworkNode from '@fadroma/scrt-ops/localnet.js'
-import SecretNetworkBuilder from '@fadroma/scrt-ops/builder.js'
 
 import colors from 'colors/safe.js'
 const {bold} = colors
@@ -23,7 +18,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 const {warn, debug, info} = console
 
-export const defaultStateBase = resolve(process.cwd(), 'artifacts')
+export const defaultStateBase = resolve(cwd(), 'artifacts')
 
 /* TODO: Remove rest arguments (`...args`) from constructors.
  * Define exactly what goes where. */

@@ -1,9 +1,6 @@
-import bignum from 'bignumber.js'
-import taskmaster from '@fadroma/utilities/taskmaster.js'
-import { resolve } from '@fadroma/utilities/sys.js'
+import { taskmaster, resolve, bold, bignum } from '@fadroma/utilities'
 import SecretNetwork from './network.js'
 import colors from 'colors/safe.js'
-const {bold} = colors
 
 export default async function fundAgents (options = {}) {
 

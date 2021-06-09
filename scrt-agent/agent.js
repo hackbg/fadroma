@@ -2,8 +2,10 @@ import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey, pubkeyToAddress
        , makeSignBytes } from 'secretjs'
 
-import { readFile } from '@fadroma/utilities/sys.js'
+import { readFile, Console, bold } from '@fadroma/utilities'
 import { gas, defaultFees } from './gas.js'
+
+const { debug } = Console(import.meta.url)
 
 /** Queries and transacts on an instance of the Secret Network
  */
@@ -47,22 +49,54 @@ export default class SecretNetworkAgent {
     })
   }
 
-  /**Get the current balance in a specified denomination.*/
+  // block time //
+
+  /**`await` this to pause until the block height has increased.
+   * (currently this queries the block height in 1000msec intervals) */
+  get nextBlock () {
+    return this.API.getBlock().then(({header:{height}})=>new Promise(async resolve=>{
+      while (true) {
+        await new Promise(ok=>setTimeout(ok, 1000))
+        const now = await this.API.getBlock()
+        if (now.header.height > height) {
+          resolve()
+          break
+        }
+      }
+    }))
+  }
+
+  /**`await` this to get info about the current block of the network. */
+  get block () { return this.API.getBlock() }
+
+  // native token //
+
+  /**`await` this to get the account info for this agent's address.*/
+  get account () { return this.API.getAccount(this.address) }
+
+  /**`await` this to get the current balance in the native
+   * coin of the network, in its most granular denomination */
+  get balance () { return this.getBalance() }
+
+  /**Get the current balance in a specified denomination.
+   * TODO support SNIP20 tokens */
   async getBalance (denomination = 'uscrt') {
-    const account = await this.API.getAccount(this.address) || {}
+    const account = await this.account || {}
     const balance = account.balance || []
     const inDenom = ({denom, amount}) => denom === denomination
     const balanceInDenom = balance.filter(inDenom)[0] || {}
     return balanceInDenom.amount || 0
   }
 
-  /**Send some `uscrt` to an address.*/
+  /**Send some `uscrt` to an address.
+   * TODO support sending SNIP20 tokens */
   async send (recipient, amount, denom = 'uscrt', memo = "") {
     if (typeof amount === 'number') amount = String(amount)
     return await this.API.sendTokens(recipient, [{denom, amount}], memo)
   }
 
-  /**Send `uscrt` to multiple addresses.*/
+  /**Send `uscrt` to multiple addresses.
+   * TODO support sending SNIP20 tokens */
   async sendMany (txs = [], memo = "", denom = 'uscrt', fee = gas(500000 * txs.length)) {
     if (txs.length < 0) {
       throw new Error('tried to send to 0 recipients')
@@ -80,47 +114,47 @@ export default class SecretNetworkAgent {
     return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  /**`await` this to get info about the current block of the network. */
-  get block () { return this.API.getBlock() }
-
-  /**`await` this to get the account info for this agent's address.*/
-  get account () { return this.API.getAccount(this.address) }
-
-  /**`await` this to get the current balance in the native
-   * coin of the network, in its most granular denomination */
-  get balance () { return this.getBalance() }
-
-  /**`await` this to pause until the block height has increased.
-   * (currently this queries the block height in 1000msec intervals) */
-
-  get nextBlock () {
-    return this.API.getBlock().then(({header:{height}})=>new Promise(async resolve=>{
-      while (true) {
-        await new Promise(ok=>setTimeout(ok, 1000))
-        const now = await this.API.getBlock()
-        if (now.header.height > height) {
-          resolve()
-          break
-        }
-      }
-    }))
-  }
+  // compute //
 
   /**Upload a compiled binary to the chain, returning the code ID (among other things). */
-  async upload (pathToBinary) { return this.API.upload(await readFile(pathToBinary), {}) }
+  async upload (pathToBinary) {
+    const data = await readFile(pathToBinary)
+    return this.API.upload(data, {})
+  }
 
   /**Instantiate a contract from a code ID and an init message. */
-  async instantiate ({ codeId, initMsg = {}, label = '' }) {
-    const initTx   = await this.API.instantiate(codeId, initMsg, label)
+  async instantiate (Contract, { codeId, initMsg = {}, label = '' }) {
+    debug(`⭕`+bold('init'), { codeId, label, initMsg })
+    const initTx = await this.API.instantiate(codeId, initMsg, label)
+    debug(`⭕`+bold('instantiated'), { codeId, label, initTx })
     const codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
-    return { ...initTx, codeId, label, codeHash }
+    const instance = new Contract({ agent, initTx, codeId, label, codeHash })
+    await instance.save()
+    return instance
+  }
+
+  /**Tell an agent to instantiate this contract from codeId, label, and initMsg.
+   */
+  static async init ({ agent, codeId, label, initMsg } = {}) {
+    const receipt = await agent.instantiate({codeId, label, initMsg})
+    return instance
   }
 
   /**Query a contract. */
-  query = (contract, method='', args={}) =>
-    this.API.queryContractSmart(contract.address, {[method]: args})
+  query = ({ label, address }, method='', args={}) => {
+    const msg = {[method]: args}
+    debug(`❔ `+bold('query'), { label, address, method, args })
+    const response = this.API.queryContractSmart(address, msg)
+    debug(`❔ `+bold('response'), { address, method, response })
+    return response
+  }
 
   /**Execute a contract transaction. */
-  execute = (contract, method='', args={}) =>
-    this.API.execute(contract.address, {[method]: args})
+  execute = ({ label, address }, method='', args={}) => {
+    const msg = {[method]: args}
+    debug(`❗ `+bold('execute'), { label, address, method, args })
+    const result = this.API.execute(address, msg)
+    debug(`❗ `+bold('result'), { label, address, method, result })
+    return result
+  }
 }
