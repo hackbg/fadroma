@@ -2,8 +2,11 @@
   "name": "@fadroma/scrt-ops",
   "version": "0.1.0",
   "type": "module",
-  "main": "ops.js",
+  "main": "index.js",
   "dependencies": {
-    "@fadroma/scrt-agent": "*"
+    "@fadroma/scrt-agent": "*",
+    "@fadroma/utilities": "*",
+    "dockerode": "^3.3.0",
+    "wait-port": "^0.2.9"
   }
 }

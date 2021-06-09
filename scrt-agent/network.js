@@ -1,22 +1,14 @@
-import assert from 'assert'
-import Docker from 'dockerode'
-import { Bip39 } from '@cosmjs/crypto'
-
-import { mkdir, makeStateDir, resolve, dirname, fileURLToPath, cwd } from '@fadroma/utilities'
-
-import SecretNetworkNode from '@fadroma/scrt-ops/localnet.js'
-import SecretNetworkBuilder from '@fadroma/scrt-ops/builder.js'
-
+import {
+  mkdir, makeStateDir, resolve, dirname, fileURLToPath, cwd, bold, Console
+} from '@fadroma/utilities'
+import { SecretNetworkNode, SecretNetworkBuilder } from '@fadroma/scrt-ops'
 import SecretNetworkAgent from './agent.js'
 import SecretNetworkContract from './contract.js'
 import { gas, defaultFees } from './gas.js'
 
-import colors from 'colors/safe.js'
-const {bold} = colors
-
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-const {warn, debug, info} = console
+const {warn, debug, info} = Console(import.meta.url)
 
 export const defaultStateBase = resolve(cwd(), 'artifacts')
 

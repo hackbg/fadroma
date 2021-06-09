@@ -1,17 +1,15 @@
 import Docker from 'dockerode'
-import colors from 'colors/safe.js'
 import {
   resolve, dirname, fileURLToPath,
   mkdir, existsSync, touch, rimraf,
   readFile, writeFile, readFileSync, unlinkSync,
-  loadJSON,
+  loadJSON, bold, Console
 } from '@fadroma/utilities'
 import { waitPort, freePort, pull, waitUntilLogsSay } from './net.js'
 
 export const defaultStateBase = resolve(process.cwd(), 'artifacts')
 
-const { bold } = colors
-const { warn, log, info, debug, error } = console
+const { warn, log, info, debug, error } = Console(import.meta.url)
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /** @class

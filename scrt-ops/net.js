@@ -1,8 +1,7 @@
 import { createServer } from 'net'
 import Docker from 'dockerode'
 import waitPort from 'wait-port'
-import colors from 'colors/safe.js'
-const {bold} = colors
+import { bold } from '@fadroma/utilities'
 
 export { waitPort }
 
