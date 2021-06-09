@@ -57,8 +57,8 @@ export const waitUntilLogsSay = (container, string, thenDetach = false) => new P
         !data.startsWith('Storing key:') &&
         !RE_GARBAGE.test(data) &&
         !data.startsWith('{"app_message":') &&
-        !data.startsWith('configuration saved to')
-        !data.length>1000,
+        !data.startsWith('configuration saved to') &&
+        !(data.length>1000)
       ) {
         console.debug('📦', bold(`${container.id.slice(0,8)} says:`), String(data).trim())
       }
