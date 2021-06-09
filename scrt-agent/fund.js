@@ -2,6 +2,9 @@ import { taskmaster, resolve, bold, bignum } from '@fadroma/utilities'
 import SecretNetwork from './network.js'
 import colors from 'colors/safe.js'
 
+/** In testing scenarios requiring multiple agents,
+ * this function distributes funds among the extra agents
+ * so as to create them on-chain. */
 export default async function fundAgents (options = {}) {
 
   let { recipientGasBudget = bignum("5000000")
@@ -39,6 +42,7 @@ export default async function fundAgents (options = {}) {
       `with ${agent.address} to get 200 testnet SCRT`
     console.error(message)
     process.exit(1) }
+
   await task(`ensure ${wallets.length} test accounts have balance`, async report => {
     const tx = await agent.sendMany(wallets, 'create recipient accounts')
     report(tx.transactionHash)})
@@ -58,20 +62,22 @@ export default async function fundAgents (options = {}) {
     }
     return recipients
   }
+
   async function recipientsToWallets (recipients) {
     return Promise.all(Object.values(recipients).map(({address, agent})=>{
       return agent.balance.then(balance=>[address, recipientGasBudget, bignum(balance) ])
     }))
   }
+
   async function fetchAdminAndRecipientBalances () {
-    const balance = bignum(await agent.getBalance())
+    const balance = bignum(await agent.balance)
     console.info('Admin balance:', balance.toString())
     const withBalance = async ({agent}) => [agent.name, bignum(await agent.balance)]
     const recipientBalances = []
     console.info('\nRecipient balances:')
     for (const {agent} of Object.values(recipients)) {
       recipientBalances.push([agent.name, bignum(await agent.balance)])
-      console.info(name.padEnd(10), fmtSCRT(balance))
+      //console.info(agent.name.padEnd(10), fmtSCRT(balance))
     }
     return {balance, recipientBalances}
   }

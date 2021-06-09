@@ -76,11 +76,11 @@ export default class SecretNetworkAgent {
 
   /**`await` this to get the current balance in the native
    * coin of the network, in its most granular denomination */
-  get balance () { return this.getBalance() }
+  get balance () { return this.getBalance('uscrt') }
 
   /**Get the current balance in a specified denomination.
    * TODO support SNIP20 tokens */
-  async getBalance (denomination = 'uscrt') {
+  async getBalance (denomination) {
     const account = await this.account || {}
     const balance = account.balance || []
     const inDenom = ({denom, amount}) => denom === denomination
