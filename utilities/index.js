@@ -1,5 +1,5 @@
-import { resolve, relative, dirname, basename } from 'path'
-import { existsSync, unlinkSync, readFileSync } from 'fs'
+import { resolve, relative, dirname, basename, extname } from 'path'
+import { existsSync, unlinkSync, readFileSync, writeFileSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
 import { cwd, stderr } from 'process'
 import { fileURLToPath } from 'url'
@@ -23,6 +23,7 @@ export {
   cwd,
   dirname,
   existsSync,
+  extname,
   fileURLToPath,
   loadJSON,
   loadSchemas,
@@ -41,23 +42,25 @@ export {
   touch,
   unlinkSync,
   writeFile,
+  writeFileSync
 }
 
 export const Console = filename => {
   filename = relative(process.cwd(), fileURLToPath(filename))
   const format = arg => '\n'+((typeof arg === 'object') ? render(arg) : arg)
-  const debug = process.env.NODEBUG ? () => {} : function debug (...args) {
-    console.debug('\n' + colors.yellow(filename), ...args.map(format))
-    return args[0]
-  }
   return {
     filename,
     format,
-    debug,
+    table: rows      => console.log(table(rows)),
     info:  (...args) => console.info('ℹ️ ', ...args),
     log:   (...args) => console.log(...args),
     warn:  (...args) => console.warn('⚠️ ', ...args),
     error: (...args) => console.error('🦋', ...args),
-    table: rows => console.log(table(rows))
+    debug: (...args) => {
+      if (!process.env.NODEBUG) {
+        console.debug('\n' + colors.yellow(filename), ...args.map(format))
+      }
+      return args[0]
+    }
   }
 }
