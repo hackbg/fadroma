@@ -123,12 +123,16 @@ export default class SecretNetworkAgent {
   }
 
   /**Instantiate a contract from a code ID and an init message. */
-  async instantiate (Contract, { codeId, initMsg = {}, label = '' }) {
+  async instantiate (instance) {
+    const { codeId, initMsg = {}, label = '' } = instance
+    instance.agent = this
+
     debug(`⭕`+bold('init'), { codeId, label, initMsg })
-    const initTx = await this.API.instantiate(codeId, initMsg, label)
+    const initTx = instance.initTx = await this.API.instantiate(codeId, initMsg, label)
+
     debug(`⭕`+bold('instantiated'), { codeId, label, initTx })
-    const codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
-    const instance = new Contract({ agent, initTx, codeId, label, codeHash })
+    instance.codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
+
     await instance.save()
     return instance
   }

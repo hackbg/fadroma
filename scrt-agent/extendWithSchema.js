@@ -3,33 +3,34 @@
  * from provided JSON schema. */
 export default function extendWithSchema (
   SecretNetworkContract,
-  schema
+  { queryMsg, handleMsg }
 ) {
 
   return class SecretNetworkContractWithSchema extends SecretNetworkContract {
 
-    /** Fixes TypeScript's lack of static inheritance */
-    static init = (...args) =>
-      super.init(...args)
-
-    // read-only: the parsed schema
-    static get schema () { return schema }
-    // read-only: the queries generated from the schema
+    /* Returns a function binding the executing agent
+     * to a collection of possible queries */
     get q () {
-      return agent => methodsFromSchema(
-        this, this.constructor.schema.queryMsg, (instance, method) => ({
-          async [method] (args) { return await instance.query(method, args, agent) }
-        })
-      )
+      return (agent = this.agent) =>
+        methodsFromSchema(this, queryMsg, (instance, method) => ({
+          async [method] (args) {
+            return await instance.query(method, args, agent)
+          }
+        }))
     }
-    // read-only: the transactions generated from the schema
+
+    /* Returns a function binding the executing agent
+     * to a collection of possible transactions */
     get tx () {
-      return agent => methodsFromSchema(
-        this, this.constructor.schema.handleMsg, (instance, method) => ({
-          async [method] (args) { return await instance.execute(method, args, agent) }
-        })
-      )
+      return (agent = this.agent) =>
+        methodsFromSchema(
+          this, handleMsg, (instance, method) => ({
+            async [method] (args) {
+              return await instance.execute(method, args, agent)
+            }
+          }))
     }
+
   }
 
   // TODO: memoize this, so that methods aren't regenerated until the schema updates

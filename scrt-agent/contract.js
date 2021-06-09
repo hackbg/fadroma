@@ -14,9 +14,43 @@ export default class SecretNetworkContract {
   /** Create an object representing a remote smart contract instance.
    */
   constructor (options={}) {
-    const { agent, label, codeId, codehash, initTx } = options
-    Object.assign(this, { agent, label, codeId, codehash, initTx })
+    const { agent, label, codeId, codeHash, initMsg, initTx } = options
+    Object.assign(this, { agent, label, codeId, codeHash, initMsg, initTx })
   }
+
+  /**Get the address of the contract.
+   */
+  get address () {
+    return this.initTx.contractAddress
+  }
+
+  /**Get a reference to the contract (address + code_hash)
+   * in a format matching `scrt-callback`'s `ContractInstance`
+   */
+  get reference () {
+    return {
+      address:   this.address,
+      code_hash: this.codeHash
+    }
+  }
+
+  /**Query the contract.
+   */
+  query = (method = '', args = {}, agent = this.agent) =>
+    agent.query(this, method, args)
+
+  /**Execute a contract transaction.
+   */
+  execute = (method = '', args = {}, agent = this.agent) =>
+    agent.execute(this, method, args)
+
+  /** Save the contract's instantiation receipt.
+   */
+  save = () => writeFile(
+    this.receiptPath,
+    JSON.stringify(this.receipt, null, 2),
+    'utf8'
+  )
 
   /** Get the path to the contract receipt for the contract's code.
    */
@@ -38,34 +72,9 @@ export default class SecretNetworkContract {
     }
   }
  
-  /** Save the contract's instantiation receipt.
-   */
-  save = () => writeFile(
-    this.receiptPath,
-    JSON.stringify(this.receipt, null, 2),
-    'utf8'
-  )
-
   /**Get an interface to the network where the contract is deployed.
    */
-  get network () { return this.agent.network }
-
-  /**Get the address of the contract.
-   */
-  get address () { return this.contractAddress }
-
-  /**Get a reference to the contract (address + code_hash)
-   * in a format matching `scrt-callback`'s `ContractInstance`
-   */
-  get reference () { return { address: this.address, code_hash: this.codeHash } }
-
-  /**Query the contract.
-   */
-  query = (method = '', args = {}, agent = this.agent) =>
-    agent.query(this, method, args)
-
-  /**Execute a contract transaction.
-   */
-  execute = (method = '', args = {}, agent = this.agent) =>
-    agent.execute(this, method, args)
+  get network () {
+    return this.agent.network
+  }
 }
