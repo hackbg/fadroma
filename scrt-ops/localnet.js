@@ -50,7 +50,6 @@ export default class SecretNetworkNode {
 
   load () {
     const data = JSON.parse(readFileSync(this.nodeStateFile, 'utf8'))
-    debug('load', data)
     return data
   }
 

@@ -67,8 +67,6 @@ export default class ContractEnsemble {
     return receipts
   }
 
-  initialize = async () => { throw new Error('not implemented!') }
-
   async deploy (options = {}) {
     const { task     = taskmaster()
           , initMsgs = {}
@@ -95,9 +93,5 @@ export default class ContractEnsemble {
       const contracts = await this.initialize({ task, receipts, agent })
     })
   }
-
-  configure = async () => { throw new Error('not implemented!') }
-
-  transferOwnership = async () => { throw new Error('not implemented!') }
 
 }
