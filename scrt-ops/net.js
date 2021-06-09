@@ -45,6 +45,7 @@ export const waitUntilLogsSay = (container, string, thenDetach = false) => new P
   container.logs({stdout: true, stderr: true, follow: true, tail: 100}, (err, stream) => {
     if (err) return fail(err)
     console.debug('⬇️  trailing logs...')
+    const RE_GARBAGE = /[\x00-\x1F]/
     stream.on('data', function read (data) {
       data = String(data).trim()
       if (
@@ -53,7 +54,8 @@ export const waitUntilLogsSay = (container, string, thenDetach = false) => new P
         !data.startsWith('DEBUG ') &&
         !data.startsWith('INFO ') &&
         !data.startsWith('I[') &&
-        !data.startsWith('Storing key:')
+        !data.startsWith('Storing key:') &&
+        !RE_GARBAGE.test(data)
       ) {
         console.debug('📦', bold(`${container.id.slice(0,8)} says:`), String(data).trim())
       }
