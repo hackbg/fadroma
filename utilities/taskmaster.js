@@ -8,12 +8,12 @@ export default function taskmaster (options={}) {
         , table  = tabulate(header)
         , output
         , agent
-        , afterEach = async (t1, description, reports=[]) => {
+        , afterEach = async function gasCheck (t1, description, reports=[]) {
             const t2 = new Date()
             say(`🟢 +${t2-t1}msec`)
             if (agent && reports.length > 0) {
               const txs          = await Promise.all(reports.map(getTx.bind(null, agent)))
-                  , totalGasUsed = txs.map(x=>Number(x.gas_used)).reduce((x,y)=>x+y, 0)
+                  , totalGasUsed = txs.map(x=>Number(x||{}.gas_used||0)).reduce((x,y)=>x+y, 0)
                   , t3           = new Date()
               say(`⛽ gas cost: ${totalGasUsed} uSCRT`)
               say(`🔍 gas check: +${t3-t2}msec`)
@@ -51,8 +51,9 @@ async function getTx ({API:{restClient}}, tx) {
     try {
       return await restClient.get(`/txs/${tx}`)
     } catch (e) {
-      console.warn(`failed to get tx info: ${e.message}, retrying...`)
-      throw e
+      console.warn(`failed to get info for tx ${tx}`)
+      console.debug(e)
+      console.info(`retrying...`)
     }
   })
 }
