@@ -1,6 +1,6 @@
 import { writeFile } from 'fs/promises'
 
-export default function table (header) {
+export default function markdownTable (header) {
   const rows = [ header, header.map((()=>'---')) ]
   return {
     push (row) {
@@ -17,4 +17,3 @@ export default function table (header) {
     }
   }
 }
-
