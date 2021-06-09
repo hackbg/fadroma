@@ -14,6 +14,7 @@ import SecretNetworkContract from './contract.js'
 import { gas, defaultFees } from './gas.js'
 
 import SecretNetworkNode from '@fadroma/scrt-ops/localnet.js'
+import SecretNetworkBuilder from '@fadroma/scrt-ops/builder.js'
 
 import colors from 'colors/safe.js'
 const {bold} = colors
@@ -77,7 +78,7 @@ export default class SecretNetwork {
 
   /** create builder operating on the current instance's endpoint */
   getBuilder = agent =>
-    new this.constructor.Builder({network: this, agent})
+    new SecretNetworkBuilder({network: this, agent})
 
   /** create contract instance from interface class and address */
   getContract (Contract, contractAddress, agent = this.agent) {
