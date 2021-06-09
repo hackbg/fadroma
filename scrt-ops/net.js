@@ -40,11 +40,12 @@ export const pull = async (image, docker = new Docker()) => {
   return image
 }
 
+const RE_GARBAGE = /[\x00-\x1F]/
+
 export const waitUntilLogsSay = (container, string, thenDetach = false) => new Promise((ok, fail)=>
   container.logs({stdout: true, stderr: true, follow: true, tail: 100}, (err, stream) => {
     if (err) return fail(err)
     console.debug('⬇️  trailing logs...')
-    const RE_GARBAGE = /[\x00-\x1F]/
     stream.on('data', function read (data) {
       data = String(data).trim()
       if (
