@@ -1,9 +1,12 @@
 import Docker from 'dockerode'
-import { resolve, basename, dirname, existsSync, fileURLToPath, writeFile } from '@fadroma/utilities'
+import {
+  resolve, basename, dirname, existsSync, fileURLToPath, readFile, writeFile,
+  Console
+} from '@fadroma/utilities'
 import { pull } from './net.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const {debug} = console
+const {debug, info} = Console(import.meta.url)
 
 /** Builds contracts and optionally uploads them as an agent on the Secret Network.
  * Stores upload results as receipts.
