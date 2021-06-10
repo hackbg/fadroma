@@ -137,13 +137,6 @@ export default class SecretNetworkAgent {
     return instance
   }
 
-  /**Tell an agent to instantiate this contract from codeId, label, and initMsg.
-   */
-  static async init ({ agent, codeId, label, initMsg } = {}) {
-    const receipt = await agent.instantiate({codeId, label, initMsg})
-    return instance
-  }
-
   /**Query a contract. */
   query = ({ label, address }, method='', args={}) => {
     const msg = {[method]: args}

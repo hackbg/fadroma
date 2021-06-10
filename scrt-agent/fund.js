@@ -1,6 +1,5 @@
 import { taskmaster, resolve, bold, bignum } from '@fadroma/utilities'
 import SecretNetwork from './network.js'
-import colors from 'colors/safe.js'
 
 /** In testing scenarios requiring multiple agents,
  * this function distributes funds among the extra agents

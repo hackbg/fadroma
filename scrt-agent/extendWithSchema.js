@@ -23,12 +23,11 @@ export default function extendWithSchema (
      * to a collection of possible transactions */
     get tx () {
       return (agent = this.agent) =>
-        methodsFromSchema(
-          this, handleMsg, (instance, method) => ({
-            async [method] (args) {
-              return await instance.execute(method, args, agent)
-            }
-          }))
+        methodsFromSchema(this, handleMsg, (instance, method) => ({
+          async [method] (args) {
+            return await instance.execute(method, args, agent)
+          }
+        }))
     }
 
   }
