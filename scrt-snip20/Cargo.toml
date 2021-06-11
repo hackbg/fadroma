@@ -19,13 +19,8 @@ schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
 bincode2 = "2.0.1"
-subtle = { version = "2.2.3", default-features = false }
-base64 = "0.12.3"
-hex = "0.4.2"
 
-rand_chacha = { version = "0.2.2", default-features = false }
-rand_core = { version =  "0.5.1", default-features = false }
-sha2 = { version = "0.9.1", default-features = false }
+cosmwasm-utils = { path = "../scrt-utils" }
 
 [dev-dependencies]
 cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }

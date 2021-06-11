@@ -5,9 +5,10 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{Binary, HumanAddr, StdError, StdResult, Uint128};
 
+use cosmwasm_utils::viewing_key::ViewingKey;
+
 use crate::batch;
 use crate::transaction_history::{RichTx, Tx};
-use crate::viewing_key::ViewingKey;
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
 pub struct InitialBalance {
