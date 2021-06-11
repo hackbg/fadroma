@@ -1,0 +1,31 @@
+[package]
+name = "composable-snip20"
+version = "0.1.0"
+authors = ["Itzik <itzik@keytango.io>"]
+edition = "2018"
+
+[features]
+# for quicker tests, cargo test --lib
+# for more explicit tests, cargo test --features=backtraces
+#default = ["debug-print"]
+backtraces = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]
+debug-print = ["cosmwasm-std/debug-print"]
+
+[dependencies]
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+secret-toolkit = { git = "https://github.com/enigmampc/secret-toolkit", rev = "v0.1.1-debug-print" }
+schemars = "0.7"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+snafu = { version = "0.6.3" }
+bincode2 = "2.0.1"
+subtle = { version = "2.2.3", default-features = false }
+base64 = "0.12.3"
+hex = "0.4.2"
+
+rand_chacha = { version = "0.2.2", default-features = false }
+rand_core = { version =  "0.5.1", default-features = false }
+sha2 = { version = "0.9.1", default-features = false }
+
+[dev-dependencies]
+cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
