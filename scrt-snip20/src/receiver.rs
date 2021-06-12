@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{to_binary, Binary, CosmosMsg, HumanAddr, StdResult, Uint128, WasmMsg};
 
-use crate::{contract::RESPONSE_BLOCK_SIZE, msg::space_pad};
+use crate::utils::{RESPONSE_BLOCK_SIZE, space_pad};
 
 /// Snip20ReceiveMsg should be de/serialized under `Receive()` variant in a HandleMsg
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]

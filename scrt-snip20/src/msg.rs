@@ -310,7 +310,6 @@ pub enum HandleAnswer {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     TokenInfo {},
-    TokenConfig {},
     ContractStatus {},
     ExchangeRate {},
     Allowance {
@@ -364,13 +363,6 @@ pub enum QueryAnswer {
         symbol: String,
         decimals: u8,
         total_supply: Option<Uint128>,
-    },
-    TokenConfig {
-        public_total_supply: bool,
-        deposit_enabled: bool,
-        redeem_enabled: bool,
-        mint_enabled: bool,
-        burn_enabled: bool,
     },
     ContractStatus {
         status: ContractStatusLevel,

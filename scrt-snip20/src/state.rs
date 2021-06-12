@@ -14,20 +14,19 @@ use cosmwasm_utils::viewing_key::ViewingKey;
 
 use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
 
-pub static CONFIG_KEY: &[u8] = b"config";
-pub const PREFIX_TXS: &[u8] = b"transfers";
+pub const PREFIX_TXS: &[u8] = b"YteGsgSZyO";
 
-pub const KEY_CONSTANTS: &[u8] = b"constants";
-pub const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
-pub const KEY_CONTRACT_STATUS: &[u8] = b"contract_status";
-pub const KEY_MINTERS: &[u8] = b"minters";
-pub const KEY_TX_COUNT: &[u8] = b"tx-count";
+pub const KEY_CONSTANTS: &[u8] = b"N3QP0mNoPG";
+pub const KEY_TOTAL_SUPPLY: &[u8] = b"bx98UUOWYa";
+pub const KEY_CONTRACT_STATUS: &[u8] = b"EhYS9rzai1";
+pub const KEY_MINTERS: &[u8] = b"wpitCjS7wB";
+pub const KEY_TX_COUNT: &[u8] = b"n8BHFWp7eT";
 
-pub const PREFIX_CONFIG: &[u8] = b"config";
-pub const PREFIX_BALANCES: &[u8] = b"balances";
-pub const PREFIX_ALLOWANCES: &[u8] = b"allowances";
-pub const PREFIX_VIEW_KEY: &[u8] = b"viewingkey";
-pub const PREFIX_RECEIVERS: &[u8] = b"receivers";
+pub const PREFIX_CONFIG: &[u8] = b"YywNU6aiTV";
+pub const PREFIX_BALANCES: &[u8] = b"DyCKbmlEL8";
+pub const PREFIX_ALLOWANCES: &[u8] = b"eXDXajOxRG";
+pub const PREFIX_VIEW_KEY: &[u8] = b"MLRCoHCV8x";
+pub const PREFIX_RECEIVERS: &[u8] = b"V1SJqXtGju";
 
 // Config
 

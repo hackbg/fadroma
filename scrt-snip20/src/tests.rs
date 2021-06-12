@@ -1,16 +1,16 @@
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{
-        from_binary, to_binary, Api, Binary, Coin, CosmosMsg, Env, Extern,
+        from_binary, to_binary, Binary, Coin, CosmosMsg, Env, Extern,
         StdError, StdResult, Uint128, BlockInfo, ContractInfo, MessageInfo,
         QueryResponse, WasmMsg, HandleResponse, HumanAddr, InitResponse,
+        Storage, Api, Querier
     };
     use cosmwasm_std::testing::*;
     use cosmwasm_utils::crypto::sha_256;
     use cosmwasm_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
     use std::any::Any;
 
-    use crate::contract::{init, handle, query};
     use crate::receiver::Snip20ReceiveMsg;
     use crate::batch;
     use crate::state::{
@@ -18,6 +18,30 @@ mod tests {
         ReadonlyBalances, ReadonlyConfig,
     };
     use crate::msg::*;
+    use crate::{snip20_handle, snip20_init, snip20_query, DefaultSnip20Impl};
+
+    fn init<S: Storage, A: Api, Q: Querier>(
+        deps: &mut Extern<S, A, Q>,
+        env: Env,
+        msg: InitMsg,
+    ) -> StdResult<InitResponse> {
+        snip20_init(deps, env, msg, DefaultSnip20Impl)
+    }
+
+    fn handle<S: Storage, A: Api, Q: Querier>(
+        deps: &mut Extern<S, A, Q>,
+        env: Env,
+        msg: HandleMsg,
+    ) -> StdResult<HandleResponse> {
+        snip20_handle(deps, env, msg, DefaultSnip20Impl)
+    }
+
+    fn query<S: Storage, A: Api, Q: Querier>(
+        deps: &Extern<S, A, Q>,
+        msg: QueryMsg,
+    ) -> StdResult<Binary> {
+        snip20_query(deps, msg, DefaultSnip20Impl)
+    }
 
     // Helper functions
 
@@ -1969,74 +1993,6 @@ mod tests {
                 assert_eq!(symbol, init_symbol);
                 assert_eq!(decimals, init_decimals);
                 assert_eq!(total_supply, Some(Uint128(5000)));
-            }
-            _ => panic!("unexpected"),
-        }
-    }
-
-    #[test]
-    fn test_query_token_config() {
-        let init_name = "sec-sec".to_string();
-        let init_admin = HumanAddr("admin".to_string());
-        let init_symbol = "SECSEC".to_string();
-        let init_decimals = 8;
-        let init_config: InitConfig = from_binary(&Binary::from(
-            format!(
-                "{{\"public_total_supply\":{},
-            \"enable_deposit\":{},
-            \"enable_redeem\":{},
-            \"enable_mint\":{},
-            \"enable_burn\":{}}}",
-                true, false, false, true, false
-            )
-            .as_bytes(),
-        ))
-        .unwrap();
-
-        let init_supply = Uint128(5000);
-
-        let mut deps = mock_dependencies(20, &[]);
-        let env = mock_env("instantiator", &[]);
-        let init_msg = InitMsg {
-            name: init_name.clone(),
-            admin: Some(init_admin.clone()),
-            symbol: init_symbol.clone(),
-            decimals: init_decimals.clone(),
-            initial_balances: Some(vec![InitialBalance {
-                address: HumanAddr("giannis".to_string()),
-                amount: init_supply,
-            }]),
-            prng_seed: Binary::from("lolz fun yay".as_bytes()),
-            config: Some(init_config),
-        };
-        let init_result = init(&mut deps, env, init_msg);
-        assert!(
-            init_result.is_ok(),
-            "Init failed: {}",
-            init_result.err().unwrap()
-        );
-
-        let query_msg = QueryMsg::TokenConfig {};
-        let query_result = query(&deps, query_msg);
-        assert!(
-            query_result.is_ok(),
-            "Init failed: {}",
-            query_result.err().unwrap()
-        );
-        let query_answer: QueryAnswer = from_binary(&query_result.unwrap()).unwrap();
-        match query_answer {
-            QueryAnswer::TokenConfig {
-                public_total_supply,
-                deposit_enabled,
-                redeem_enabled,
-                mint_enabled,
-                burn_enabled,
-            } => {
-                assert_eq!(public_total_supply, true);
-                assert_eq!(deposit_enabled, false);
-                assert_eq!(redeem_enabled, false);
-                assert_eq!(mint_enabled, true);
-                assert_eq!(burn_enabled, false);
             }
             _ => panic!("unexpected"),
         }
