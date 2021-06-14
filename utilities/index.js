@@ -15,6 +15,8 @@ import markdownTable from './table.js'
 import taskmaster from './taskmaster.js'
 import { mkdir, makeStateDir, touch, rimraf } from './sys.js'
 
+import { runCommand, printUsage } from './cli-kit.js'
+
 const {bold} = colors
 
 export {
@@ -45,7 +47,10 @@ export {
   touch,
   unlinkSync,
   writeFile,
-  writeFileSync
+  writeFileSync,
+
+  runCommand,
+  printUsage
 }
 
 export const Console = filename => {
