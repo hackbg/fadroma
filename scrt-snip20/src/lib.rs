@@ -1,5 +1,5 @@
 pub use snip20::*;
-pub use fadroma_scrt_callback::Callback;
+pub use fadroma_scrt_callback::{Callback, ContractInstance};
 
 pub mod msg;
 pub mod receiver;

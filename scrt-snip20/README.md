@@ -1,5 +1,6 @@
 # Composable SNIP-20
 **Based on the SNIP-20 Reference Implementation in:** [https://github.com/enigmampc/snip20-reference-impl](https://github.com/enigmampc/snip20-reference-impl)
+**Forked at:** [5bde578](https://github.com/enigmampc/snip20-reference-impl/tree/5bde5789a856462d1b77b02018867c56620022c5)
 
 This is an implementation of a [SNIP-20](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-20.md), [SNIP-21](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-21.md), and [SNIP-22](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-22.md) compliant token contract.
 At the time of token creation you may configure:
