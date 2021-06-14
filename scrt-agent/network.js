@@ -151,7 +151,9 @@ export default class SecretNetwork {
     const network = new this({chainId, state, protocol, host, port, path})
     const agent = await network.getAgent("ADMIN", { mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
-    return { network, agent, builder: network.getBuilder(agent) }
+    network.agent   = agent
+    network.builder = network.getBuilder(agent)
+    return { network, agent, builder: network.builder }
   }
 
 

@@ -17,11 +17,19 @@ export default class ContractEnsemble {
   }
 
   get localCommands () {
-    return [ /* implement in subclass */ ]
+    return [
+      ["build",  '👷 Compile contracts from working tree',
+        (context, sequential) => this.build({...context, parallel: !sequential})],
+      /* implement other commands in subclass */
+    ]
   }
 
   get remoteCommands () {
-    return [ /* implement in subclass */ ]
+    return [
+      ["deploy", '🚀 Build, init, and deploy this component',
+        (context) => this.deploy(context).then(console.info)]
+      /* implement other commands in subclass */
+    ]
   }
 
   async build (options = {}) {
