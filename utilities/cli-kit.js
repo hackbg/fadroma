@@ -45,8 +45,8 @@ export async function runCommand (context, commands, commandToRun, ...args) {
 }
 
 export function printUsage (context, commands) {
-  const prefix = context.command.length > 0 ? ((context.command||[]).join(' ') + ' ') : ' '
-  console.log(`sienna ${prefix}[COMMAND...]\n`)
+  const prefix = context.command.length > 0 ? ((context.command||[]).join(' ')) : ''
+  console.log(`\nsienna ${prefix}[COMMAND...]\n`)
   const tableData = collectUsage(context, commands)
   process.stdout.write(table(tableData, noBorders))
 }
@@ -55,6 +55,10 @@ function collectUsage (context = {}, commands, tableData = [], visited = new Set
   const maxDepth = -1 // increment to display command tree in depth
   const indent = Array(depth+1).join('  ')
   for (const commandSpec of commands) {
+    if (!commandSpec) {
+      tableData.push(['','',''])
+      continue
+    }
     let [command, docstring, fn, subcommands] = commandSpec
     if (visited.has(commandSpec)) {
       tableData.push([`  ${indent}${bold(command)}`, '(see above)', ''])

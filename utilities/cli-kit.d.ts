@@ -1,4 +1,4 @@
-export interface CommandList extends Array<Command> {}
+export interface CommandList extends Array<Command|null> {}
 export type Command      = [CommandNames, CommandInfo, Function|null, CommandList]
 export type CommandNames = CommandName|Array<CommandName>
 export type CommandName  = string
