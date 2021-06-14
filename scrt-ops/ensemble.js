@@ -69,7 +69,7 @@ export default class ContractEnsemble {
 
   async upload (options = {}) {
     const { task      = taskmaster()
-          , stateBase = process.cwd()
+          , stateBase = resolve(process.cwd(), 'artifacts')
           , binaries  = await build() // if binaries are not passed, build 'em
           } = options
 
