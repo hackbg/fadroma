@@ -40,7 +40,8 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
         return Err(StdError::generic_err("Decimals must not exceed 18"));
     }
 
-    let init_config = msg.config();
+    let init_config = msg.config.unwrap_or_default();
+    
     let admin = msg.admin.unwrap_or(env.message.sender);
     let canon_admin = deps.api.canonical_address(&admin)?;
 

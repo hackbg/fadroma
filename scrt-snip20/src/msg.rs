@@ -27,12 +27,6 @@ pub struct InitMsg {
     pub callback: Option<Callback<HumanAddr>>
 }
 
-impl InitMsg {
-    pub fn config(&self) -> InitConfig {
-        self.config.clone().unwrap_or_default()
-    }
-}
-
 /// This type represents optional configuration values which can be overridden.
 /// All values are optional and have defaults which are more private by default,
 /// but can be overridden if necessary
@@ -41,22 +35,26 @@ impl InitMsg {
 pub struct InitConfig {
     /// Indicates whether the total supply is public or should be kept secret.
     /// default: False
-    public_total_supply: Option<bool>,
+    pub public_total_supply: Option<bool>,
     /// Indicates whether deposit functionality should be enabled
     /// default: False
-    enable_deposit: Option<bool>,
+    pub enable_deposit: Option<bool>,
     /// Indicates whether redeem functionality should be enabled
     /// default: False
-    enable_redeem: Option<bool>,
+    pub enable_redeem: Option<bool>,
     /// Indicates whether mint functionality should be enabled
     /// default: False
-    enable_mint: Option<bool>,
+    pub enable_mint: Option<bool>,
     /// Indicates whether burn functionality should be enabled
     /// default: False
-    enable_burn: Option<bool>,
+    pub enable_burn: Option<bool>
 }
 
 impl InitConfig {
+    pub fn builder() -> InitConfigBuilder {
+        InitConfigBuilder::new()
+    }
+
     pub fn public_total_supply(&self) -> bool {
         self.public_total_supply.unwrap_or(false)
     }
@@ -75,6 +73,66 @@ impl InitConfig {
 
     pub fn burn_enabled(&self) -> bool {
         self.enable_burn.unwrap_or(false)
+    }
+}
+
+#[derive(Default)]
+pub struct InitConfigBuilder {
+    /// Indicates whether the total supply is public or should be kept secret.
+    /// default: False
+    public_total_supply: Option<bool>,
+    /// Indicates whether deposit functionality should be enabled
+    /// default: False
+    enable_deposit: Option<bool>,
+    /// Indicates whether redeem functionality should be enabled
+    /// default: False
+    enable_redeem: Option<bool>,
+    /// Indicates whether mint functionality should be enabled
+    /// default: False
+    enable_mint: Option<bool>,
+    /// Indicates whether burn functionality should be enabled
+    /// default: False
+    enable_burn: Option<bool>
+}
+
+impl InitConfigBuilder {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn build(self) -> InitConfig {
+        InitConfig {
+            public_total_supply: self.public_total_supply,
+            enable_deposit: self.enable_deposit,
+            enable_redeem: self.enable_redeem,
+            enable_mint: self.enable_mint,
+            enable_burn: self.enable_burn
+        }
+    }
+
+    pub fn public_total_supply(mut self) -> Self {
+        self.public_total_supply = Some(true);
+        self
+    }
+
+    pub fn enable_deposit(mut self) -> Self {
+        self.enable_deposit = Some(true);
+        self
+    }
+
+    pub fn enable_redeem(mut self) -> Self {
+        self.enable_redeem = Some(true);
+        self
+    }
+
+    pub fn enable_mint(mut self) -> Self {
+        self.enable_mint = Some(true);
+        self
+    }
+
+    pub fn enable_burn(mut self) -> Self {
+        self.enable_burn = Some(true);
+        self
     }
 }
 
