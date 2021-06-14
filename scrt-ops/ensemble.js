@@ -60,8 +60,9 @@ export default class ContractEnsemble {
   }
 
   async upload (options = {}) {
-    const { task     = taskmaster()
-          , binaries = await build() // if binaries are not passed, build 'em
+    const { task      = taskmaster()
+          , stateBase = process.cwd()
+          , binaries  = await build() // if binaries are not passed, build 'em
           } = options
 
     let { builder
