@@ -8,13 +8,11 @@ import { cwd, stderr } from 'process'
 import mkdirp from 'mkdirp'
 import _rimraf from 'rimraf'
 import onExit from 'signal-exit'
-import xdgAppPaths from 'xdg-app-paths'
 import colors from 'colors/safe.js'
 
 const {bold} = colors
 
-export const defaultDataDir = () =>
-  xdgAppPaths.data()
+export const defaultDataDir = () => cwd()
 
 export const mkdir = (...fragments) => {
   const path = resolve(...fragments)
@@ -45,7 +43,20 @@ export const rimraf = path => new Promise((resolve, reject)=>{
   })
 })
 
-export { stderr
-       , resolve, relative, dirname, basename, extname
-       , fileURLToPath, cwd, homedir
-       , existsSync, readFile, readFileSync, writeFile, unlink, unlinkSync }
+export {
+  basename,
+  cwd,
+  dirname,
+  existsSync,
+  extname,
+  fileURLToPath,
+  homedir,
+  readFile,
+  readFileSync,
+  relative,
+  resolve,
+  stderr,
+  unlink,
+  unlinkSync,
+  writeFile,
+}
