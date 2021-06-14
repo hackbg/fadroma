@@ -10,7 +10,8 @@ import {render} from 'prettyjson'
 import colors from 'colors/safe.js'
 
 import { loadJSON, loadSchemas } from './schema.js'
-import table from './table.js'
+import { table, getBorderCharacters } from 'table'
+import markdownTable from './table.js'
 import taskmaster from './taskmaster.js'
 import { mkdir, makeStateDir, touch, rimraf } from './sys.js'
 
@@ -25,9 +26,11 @@ export {
   existsSync,
   extname,
   fileURLToPath,
+  getBorderCharacters,
   loadJSON,
   loadSchemas,
   makeStateDir,
+  markdownTable,
   mkdir,
   randomBytes,
   readFile,
@@ -63,4 +66,10 @@ export const Console = filename => {
       return args[0]
     }
   }
+}
+
+export const noBorders = {
+  border: getBorderCharacters('void'),
+  columnDefault: { paddingLeft: 0, paddingRight: 2 },
+  drawHorizontalLine: () => false
 }
