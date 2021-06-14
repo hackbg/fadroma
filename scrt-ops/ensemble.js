@@ -67,6 +67,7 @@ export default class ContractEnsemble {
 
     let { builder
         , network = builder ? null : await SecretNetwork.localnet({stateBase}) } = options
+    network = await Promise.resolve(network)
     if (typeof network === 'string') network = await SecretNetwork[network]({stateBase})
     if (!builder) builder = network.builder
 
@@ -81,6 +82,7 @@ export default class ContractEnsemble {
   }
 
   async deploy (options = {}) {
+
     const { task     = taskmaster()
           , initMsgs = {}
           } = options
@@ -92,6 +94,7 @@ export default class ContractEnsemble {
                            : await pickNetwork()
         } = options
 
+    network = await Promise.resolve(network)
     if (typeof network === 'string') {
       assert(['localnet','testnet','mainnet'].indexOf(network) > -1)
       const conn = await SecretNetwork[network]()
@@ -102,8 +105,8 @@ export default class ContractEnsemble {
 
     return await task('build, upload, and initialize contracts', async () => {
       const binaries  = await this.build({ task, builder })
-      const receipts  = await this.upload({ task, builder, binaries })
-      const contracts = await this.initialize({ task, receipts, agent })
+      const receipts  = await this.upload({ task, network, builder, binaries })
+      const contracts = await this.initialize({ task, network, receipts, agent })
     })
   }
 
