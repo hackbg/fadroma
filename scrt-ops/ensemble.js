@@ -12,6 +12,18 @@ export default class ContractEnsemble {
 
   contracts = {}
 
+  get commands () {
+    return [this.localCommands, null, this.remoteCommands]
+  }
+
+  get localCommands () {
+    return [ /* implement in subclass */ ]
+  }
+
+  get remoteCommands () {
+    return [ /* implement in subclass */ ]
+  }
+
   async build (options = {}) {
     const { task      = taskmaster()
           , builder   = new Builder()
