@@ -3,7 +3,7 @@ use std::ops::Range;
 use cosmwasm_std::{
     log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg,
     Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
-    ReadonlyStorage, StdError, StdResult, Storage, Uint128,
+    ReadonlyStorage, StdError, StdResult, Storage, Uint128, WasmMsg
 };
 
 use cosmwasm_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
@@ -101,7 +101,26 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
 
     config.set_minters(minters)?;
 
-    Ok(InitResponse::default())
+    let mut messages = vec![];
+
+    if let Some(callback) = msg.callback {
+        messages.push(
+            CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: callback.contract.address,
+                callback_code_hash: callback.contract.code_hash,
+                msg: callback.msg,
+                send: vec![],
+            })
+        )
+    }
+    
+    Ok(InitResponse {
+        messages,
+        log: vec![
+            log("token_address", env.contract.address),
+            log("token_code_hash", env.contract_code_hash)
+        ]
+    })
 }
 
 pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(

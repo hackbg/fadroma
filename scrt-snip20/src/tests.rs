@@ -4,7 +4,7 @@ mod tests {
         from_binary, to_binary, Binary, Coin, CosmosMsg, Env, Extern,
         StdError, StdResult, Uint128, BlockInfo, ContractInfo, MessageInfo,
         QueryResponse, WasmMsg, HandleResponse, HumanAddr, InitResponse,
-        Storage, Api, Querier
+        Storage, Api, Querier, log
     };
     use cosmwasm_std::testing::*;
     use cosmwasm_utils::crypto::sha_256;
@@ -62,6 +62,7 @@ mod tests {
             initial_balances: Some(initial_balances),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: None,
+            callback: None
         };
 
         (init(&mut deps, env, init_msg), deps)
@@ -107,6 +108,7 @@ mod tests {
             initial_balances: Some(initial_balances),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: Some(init_config),
+            callback: None
         };
 
         (init(&mut deps, env, init_msg), deps)
@@ -192,7 +194,13 @@ mod tests {
             address: HumanAddr("lebron".to_string()),
             amount: Uint128(5000),
         }]);
-        assert_eq!(init_result.unwrap(), InitResponse::default());
+        assert_eq!(init_result.unwrap(), InitResponse {
+            messages: vec![],
+            log: vec![
+                log("token_address", "cosmos2contract"),
+                log("token_code_hash", "")
+            ]
+        });
 
         let config = ReadonlyConfig::from_storage(&deps.storage);
         let constants = config.constants().unwrap();
@@ -222,7 +230,13 @@ mod tests {
             true,
             0,
         );
-        assert_eq!(init_result.unwrap(), InitResponse::default());
+        assert_eq!(init_result.unwrap(), InitResponse {
+            messages: vec![],
+            log: vec![
+                log("token_address", "cosmos2contract"),
+                log("token_code_hash", "")
+            ]
+        });
 
         let config = ReadonlyConfig::from_storage(&deps.storage);
         let constants = config.constants().unwrap();
@@ -1966,6 +1980,7 @@ mod tests {
             }]),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: Some(init_config),
+            callback: None
         };
         let init_result = init(&mut deps, env, init_msg);
         assert!(
@@ -2033,6 +2048,7 @@ mod tests {
             }]),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: Some(init_config),
+            callback: None
         };
         let init_result = init(&mut deps, env, init_msg);
         assert!(
@@ -2090,6 +2106,7 @@ mod tests {
             }]),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: Some(init_config),
+            callback: None
         };
         let init_result = init(&mut deps, env, init_msg);
         assert!(
@@ -2147,6 +2164,7 @@ mod tests {
             }]),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: Some(init_config),
+            callback: None
         };
         let init_result = init(&mut deps, env, init_msg);
         assert!(
@@ -2192,6 +2210,7 @@ mod tests {
             }]),
             prng_seed: Binary::from("lolz fun yay".as_bytes()),
             config: None,
+            callback: None
         };
         let init_result = init(&mut deps, env, init_msg);
         assert!(

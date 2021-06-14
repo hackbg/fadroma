@@ -21,6 +21,7 @@ snafu = { version = "0.6.3" }
 bincode2 = "2.0.1"
 
 cosmwasm-utils = { path = "../scrt-utils" }
+fadroma-scrt-callback = { path = "../scrt-callback" }
 
 [dev-dependencies]
 cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }

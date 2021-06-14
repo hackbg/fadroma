@@ -2,10 +2,9 @@
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
 use cosmwasm_std::{Binary, HumanAddr, StdError, StdResult, Uint128};
-
 use cosmwasm_utils::viewing_key::ViewingKey;
+use fadroma_scrt_callback::Callback;
 
 use crate::batch;
 use crate::transaction_history::{RichTx, Tx};
@@ -25,6 +24,7 @@ pub struct InitMsg {
     pub initial_balances: Option<Vec<InitialBalance>>,
     pub prng_seed: Binary,
     pub config: Option<InitConfig>,
+    pub callback: Option<Callback<HumanAddr>>
 }
 
 impl InitMsg {
