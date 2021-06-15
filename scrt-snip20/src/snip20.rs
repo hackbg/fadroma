@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::ops::RangeInclusive;
 
 use cosmwasm_std::{
     log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg,
@@ -252,12 +252,12 @@ pub fn snip20_query<S: Storage, A: Api, Q: Querier>(
 }
 
 pub trait Snip20  {
-    fn symbol_range(&self) -> Range<usize> {
-        3..7
+    fn symbol_range(&self) -> RangeInclusive<usize> {
+        3..=6
     }
 
-    fn name_range(&self) -> Range<usize> {
-        3..31
+    fn name_range(&self) -> RangeInclusive<usize> {
+        3..=30
     }
 
     // Handle
@@ -1602,7 +1602,7 @@ pub fn check_if_admin<S: Storage>(config: &Config<S>, account: &HumanAddr) -> St
     Ok(())
 }
 
-pub fn assert_valid_name(name: &str, range: Range<usize>) -> StdResult<()> {
+pub fn assert_valid_name(name: &str, range: RangeInclusive<usize>) -> StdResult<()> {
     if range.contains(&name.len()) {
         return Ok(());
     }
@@ -1610,13 +1610,13 @@ pub fn assert_valid_name(name: &str, range: Range<usize>) -> StdResult<()> {
     Err(StdError::generic_err(
         format!(
             "Name is not in the expected format ({}-{} UTF-8 bytes)",
-            range.start,
-            range.end
+            range.start(),
+            range.end()
         ),
     ))
 }
 
-pub fn assert_valid_symbol(symbol: &str, range: Range<usize>) -> StdResult<()> {
+pub fn assert_valid_symbol(symbol: &str, range: RangeInclusive<usize>) -> StdResult<()> {
     let len = symbol.len();
     let len_is_valid = range.contains(&len);
 
@@ -1627,8 +1627,9 @@ pub fn assert_valid_symbol(symbol: &str, range: Range<usize>) -> StdResult<()> {
     return Err(StdError::generic_err(
         format!(
             "Ticker symbol is not in expected format [A-Z]{{{},{}}}",
-            range.start,
-            range.end)
+            range.start(),
+            range.end()
+        )
     ));
 }
 
