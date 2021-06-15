@@ -1,3 +1,5 @@
+use std::fmt;
+use std::fmt::Write;
 use std::ops::RangeInclusive;
 
 use cosmwasm_std::{
@@ -34,7 +36,7 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<InitResponse> {
     // Check name, symbol, decimals
     assert_valid_name(&msg.name, snip20.name_range())?;
-    assert_valid_symbol(&msg.symbol, snip20.symbol_range())?;
+    assert_valid_symbol(&msg.symbol, snip20.symbol_validation())?;
 
     if msg.decimals > 18 {
         return Err(StdError::generic_err("Decimals must not exceed 18"));
@@ -252,8 +254,14 @@ pub fn snip20_query<S: Storage, A: Api, Q: Querier>(
 }
 
 pub trait Snip20  {
-    fn symbol_range(&self) -> RangeInclusive<usize> {
-        3..=6
+    fn symbol_validation(&self) -> SymbolValidation {
+        SymbolValidation {
+            length: 3..=6,
+            allow_upper: true,
+            allow_lower: false,
+            allow_numeric: false,
+            allowed_special: None
+        }
     }
 
     fn name_range(&self) -> RangeInclusive<usize> {
@@ -1616,21 +1624,82 @@ pub fn assert_valid_name(name: &str, range: RangeInclusive<usize>) -> StdResult<
     ))
 }
 
-pub fn assert_valid_symbol(symbol: &str, range: RangeInclusive<usize>) -> StdResult<()> {
-    let len = symbol.len();
-    let len_is_valid = range.contains(&len);
+pub fn assert_valid_symbol(symbol: &str, validation: SymbolValidation) -> StdResult<()> {
+    let len_is_valid = validation.length.contains(&symbol.len());
 
-    if len_is_valid && symbol.bytes().all(|byte| (b'A'..=b'Z').contains(&byte)) {
-        return Ok(())
+    if len_is_valid {
+        let mut cond = Vec::new();
+
+        if validation.allow_upper {
+            cond.push(b'A'..=b'Z');
+        }
+
+        if validation.allow_lower {
+            cond.push(b'a'..=b'z');
+        }
+
+        if validation.allow_numeric {
+            cond.push(b'0'..=b'9');
+        }
+
+        let special = validation.allowed_special.clone().unwrap_or_default();
+
+        let valid = symbol.bytes().all(|x| 
+            cond.iter().any(|c| 
+                c.contains(&x) || special.contains(&x)
+            )
+        );
+
+        if valid {
+            return Ok(())
+        }
     }
-    
+
     return Err(StdError::generic_err(
         format!(
-            "Ticker symbol is not in expected format [A-Z]{{{},{}}}",
-            range.start(),
-            range.end()
+            "Token symbol is not in the expected format: {}", validation
         )
     ));
+}
+
+#[derive(Clone)]
+pub struct SymbolValidation {
+    pub length: RangeInclusive<usize>,
+    pub allow_upper: bool,
+    pub allow_lower: bool,
+    pub allow_numeric: bool,
+    pub allowed_special: Option<Vec<u8>>
+}
+
+impl fmt::Display for SymbolValidation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!("{{{} - {}}}", self.length.start(), self.length.end()))?;
+        
+        if self.allow_upper {
+            f.write_str(" [A-Z]")?;
+        }
+
+        if self.allow_lower {
+            f.write_str(" [a-z]")?;
+        }
+
+        if self.allow_numeric {
+            f.write_str(" [0-9]")?;
+        }
+
+        if let Some(chars) = self.allowed_special.clone() {
+            f.write_str(" [")?;
+
+            for c in chars {
+                f.write_char(c.into())?;
+                f.write_char(',')?;
+            }
+
+            f.write_char(']')?;
+        }
+
+        Ok(())
+    }
 }
 
 fn authenticated_queries<S: Storage, A: Api, Q: Querier>(

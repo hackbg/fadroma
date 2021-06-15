@@ -18,7 +18,10 @@ mod tests {
         ReadonlyBalances, ReadonlyConfig,
     };
     use crate::msg::*;
-    use crate::{snip20_handle, snip20_init, snip20_query, DefaultSnip20Impl};
+    use crate::{
+        snip20_handle, snip20_init, snip20_query, DefaultSnip20Impl,
+        SymbolValidation, assert_valid_symbol
+    };
 
     fn init<S: Storage, A: Api, Q: Querier>(
         deps: &mut Extern<S, A, Q>,
@@ -2741,5 +2744,56 @@ mod tests {
         ];
 
         assert_eq!(transfers, expected_transfers);
+    }
+
+    #[test]
+    fn test_symbol_validation() {
+        let config = SymbolValidation {
+            length: 3..=6,
+            allow_upper: true,
+            allow_lower: false,
+            allow_numeric: false,
+            allowed_special: None
+        };
+
+        assert_valid_symbol("TOKENA", config.clone()).unwrap();
+        assert_valid_symbol("TOK", config.clone()).unwrap();
+        assert_valid_symbol("TO", config.clone()).unwrap_err();
+        assert_valid_symbol("TOOLONG", config.clone()).unwrap_err();
+        assert_valid_symbol("TOken", config.clone()).unwrap_err();
+        assert_valid_symbol("T0K3N", config.clone()).unwrap_err();
+        assert_valid_symbol("TOK-EN", config).unwrap_err();
+
+        let config = SymbolValidation {
+            length: 3..=6,
+            allow_upper: true,
+            allow_lower: true,
+            allow_numeric: false,
+            allowed_special: None
+        };
+
+        assert_valid_symbol("TOKena", config.clone()).unwrap();
+
+        let config = SymbolValidation {
+            length: 3..=6,
+            allow_upper: false,
+            allow_lower: true,
+            allow_numeric: true,
+            allowed_special: None
+        };
+
+        assert_valid_symbol("t0k3n", config.clone()).unwrap();
+        assert_valid_symbol("T0K3N", config).unwrap_err();
+
+        let config = SymbolValidation {
+            length: 3..=6,
+            allow_upper: true,
+            allow_lower: false,
+            allow_numeric: true,
+            allowed_special: Some(vec![ b'-', b'@' ])
+        };
+
+        assert_valid_symbol("T@K3N-", config.clone()).unwrap();
+        assert_valid_symbol("!@K3N-", config).unwrap_err();
     }
 }
