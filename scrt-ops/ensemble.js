@@ -157,6 +157,7 @@ export default class ContractEnsemble {
       const binaries  = await this.build({ task, builder })
       const receipts  = await this.upload({ task, network, builder, binaries })
       const contracts = await this.initialize({ task, network, receipts, agent })
+      return contracts
     })
   }
 

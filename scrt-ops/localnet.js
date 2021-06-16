@@ -27,14 +27,12 @@ export default class SecretNetworkNode {
       image           = pull("enigmampc/secret-network-sw-dev", docker)
     } = options
 
-
     Object.assign(this, {
       state,
       docker,
       chainId,
       genesisAccounts,
-      image: Promise.resolve(image)
-        .catch(e=>error('failed to pull image', e))
+      image: Promise.resolve(image).catch(e=>error('failed to pull image', e))
     })
 
     if (existsSync(this.state) && existsSync(this.nodeStateFile)) {

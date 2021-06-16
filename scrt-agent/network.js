@@ -107,7 +107,7 @@ export default class SecretNetwork {
     wallets   = mkdir(state, 'wallets'),
     receipts  = mkdir(state, 'uploads'),
     instances = mkdir(state, 'instances'),
-    node      = Promise.resolve(false)
+    node      = null
   }) {
     Object.assign(this, {
       chainId, state, receipts, wallets, instances, protocol, host, port, path, node
@@ -116,22 +116,24 @@ export default class SecretNetwork {
 
   /**Establish a connection to the Secret Network HTTP API.*/
   async connect () {
-    const { chainId, protocol, host, port, state } = this
     let { mnemonic, address } = this
-    info(`⏳ connecting to ${chainId} via ${protocol} on ${host}:${port}`)
     // if this is a localnet handle, wait for the localnet to start
-    if (this.node) {
-      debug(`⏳ preparing localnet ${bold(chainId)} @ ${bold(state)}`)
-      await this.node.respawn()
-      await this.node.ready
-      info(`🟢 localnet ready`)
-      debug(`🟢 localnet ready @ ${bold(state)}`)
+    let node
+    if (node = await Promise.resolve(this.node)) {
+      debug(`⏳ preparing localnet ${bold(this.chainId)} @ ${bold(this.state)}`)
+      await node.respawn()
+      await node.ready
+      this.port = node.port
+      info(`🟢 localnet ready @ port ${bold(this.port)}`)
       ;({mnemonic, address} = await this.node.genesisAccount('ADMIN'))
+      // recreate state dirs nuked by localnet reset
+      ;['wallets','uploads','instances'].forEach(x=>mkdir(this.state, x))
     }
+    info(`⏳ connecting to ${this.chainId} via ${this.protocol} on ${this.host}:${this.port}`)
     const agent = this.agent = await this.getAgent("ADMIN", { mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
     const builder = this.getBuilder(agent)
-    return { network: this, agent, builder }
+    return { node, network: this, agent, builder }
   }
 
   /**The API URL that this instance talks to.
