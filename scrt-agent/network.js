@@ -128,7 +128,7 @@ export default class SecretNetwork {
       debug(`🟢 localnet ready @ ${bold(state)}`)
       ;({mnemonic, address} = await this.node.genesisAccount('ADMIN'))
     }
-    const agent = await this.getAgent("ADMIN", { mnemonic, address })
+    const agent = this.agent = await this.getAgent("ADMIN", { mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
     const builder = this.getBuilder(agent)
     return { network: this, agent, builder }
@@ -136,15 +136,19 @@ export default class SecretNetwork {
 
   /**The API URL that this instance talks to.
    * @type {string} */
-  get url () { return `${this.protocol}://${this.host}:${this.port}${this.path||''}` }
+  get url () {
+    return `${this.protocol}://${this.host}:${this.port}${this.path||''}`
+  }
 
   /** create agent operating on the current instance's endpoint*/
-  getAgent = (name, options={}) =>
-    SecretNetworkAgent.create({ ...options, network: this, name })
+  getAgent (name, options={}) {
+    return SecretNetworkAgent.create({ ...options, network: this, name })
+  }
 
   /** create builder operating on the current instance's endpoint */
-  getBuilder = agent =>
-    new SecretNetworkBuilder({network: this, agent})
+  getBuilder (agent) {
+    return new SecretNetworkBuilder({network: this, agent})
+  }
 
   /** create contract instance from interface class and address */
   getContract (ContractAPI, contractAddress, agent = this.agent) {

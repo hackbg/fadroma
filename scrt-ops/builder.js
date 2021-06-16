@@ -15,10 +15,11 @@ export default class SecretNetworkBuilder {
 
   constructor ({ network, agent }={}) {
     if (!network) {
-      networn = agent.network
+      network = agent.network
     } else if (!agent) {
       agent = network.agent
     }
+    Object.assign(this, { network, agent })
   }
 
   get address () {
