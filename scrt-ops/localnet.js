@@ -24,7 +24,7 @@ export default class SecretNetworkNode {
       chainId         = 'enigma-pub-testnet-3',
       state           = resolve(defaultStateBase, chainId),
       genesisAccounts = ['ADMIN', 'ALICE', 'BOB', 'MALLORY'],
-      image           = pull("enigmampc/secret-network-sw-dev", docker)
+      image           = "enigmampc/secret-network-sw-dev",
     } = options
 
     Object.assign(this, {
@@ -136,7 +136,7 @@ export default class SecretNetworkNode {
    *  in order to launch a localnet container.
    */
   get spawnContainerOptions () {
-    return this.image.then(Image=>({
+    return pull(this.image, this.docker).then(Image=>({
       Image,
       name: `${this.chainId}-${this.port}`,
       Hostname:     this.chainId,
@@ -272,7 +272,7 @@ export default class SecretNetworkNode {
       '-rvf',
       '/state',
     ]
-    return this.image.then(Image=>({
+    return pull(this.image, this.docker).then(Image=>({
       Image,
       Entrypoint: [ '/bin/rm' ],
       Cmd,
