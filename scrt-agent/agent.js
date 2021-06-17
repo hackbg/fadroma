@@ -138,8 +138,16 @@ export default class SecretNetworkAgent {
   }
 
   /**Query a contract. */
-  query = ({ label, address }, method='', args={}) => {
-    const msg = {[method]: args}
+  query = ({ label, address }, method='', args = null) => {
+    let msg;
+
+    if (args === null) {
+      msg = method
+    }
+    else {
+      msg = {[method]: args}
+    }
+    
     debug(`❔ `+bold('query'), { label, address, method, args })
     const response = this.API.queryContractSmart(address, msg)
     debug(`❔ `+bold('response'), { address, method, response })
@@ -147,8 +155,16 @@ export default class SecretNetworkAgent {
   }
 
   /**Execute a contract transaction. */
-  execute = ({ label, address }, method='', args={}) => {
-    const msg = {[method]: args}
+  execute = ({ label, address }, method='', args = null) => {
+    let msg;
+
+    if (args === null) {
+      msg = method
+    }
+    else {
+      msg = {[method]: args}
+    }
+    
     debug(`❗ `+bold('execute'), { label, address, method, args })
     const result = this.API.execute(address, msg)
     debug(`❗ `+bold('result'), { label, address, method, result })
