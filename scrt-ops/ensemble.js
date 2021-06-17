@@ -18,8 +18,6 @@ export default class ContractEnsemble {
 
   prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
 
-  builder = new Builder()
-
   contracts = {}
 
   /** Commands to expose to the CLI. */
@@ -57,37 +55,37 @@ export default class ContractEnsemble {
   constructor (options = {}) {
     let { network, agent, builder = this.builder } = options
 
-    if (network) {
-      if (typeof network === 'string') {
-        assert(['localnet','testnet','mainnet'].indexOf(network) > -1)
-        network = SecretNetwork[network]()
-      }
-      if (!agent && !builder) {
-        agent = network.agent
-        builder = network.getBuilder(agent)
-      } else if (!agent) {
-        agent = builder.agent
-      } else if (!builder) {
-        builder = network.getBuilder(agent)
-      }
-    } else if (agent) {
-      network = agent.network
-      if (!builder) {
-        builder = network.getBuilder(agent)
-      }
-    } else if (builder && builder.agent) {
-      network = builder.agent.network
-      agent = builder.agent
-    }/* else {
-      throw new Error(ContractEnsembleErrors.NOTHING)
-    }*/
+    if (typeof network === 'string') {
+      assert(['localnet','testnet','mainnet'].indexOf(network) > -1)
+      network = SecretNetwork[network]()
+    }
+    //if (network) {
+      //if (!agent && !builder) {
+        //agent = network.agent
+        //builder = network.getBuilder(agent)
+      //} else if (!agent) {
+        //agent = builder.agent
+      //} else if (!builder) {
+        //builder = network.getBuilder(agent)
+      //}
+    //} else if (agent) {
+      //network = agent.network
+      //if (!builder) {
+        //builder = network.getBuilder(agent)
+      //}
+    //} else if (builder && builder.agent) {
+      //network = builder.agent.network
+      //agent = builder.agent
+    //}[> else {
+      //throw new Error(ContractEnsembleErrors.NOTHING)
+    //}*/
 
-    if (agent && agent.network !== network) {
-      throw new Error(ContractEnsembleErrors.AGENT)
-    }
-    if (builder && builder.agent && builder.agent.network !== network) {
-      throw new Error(ContractEnsembleErrors.BUILDER)
-    }
+    //if (agent && agent.network !== network) {
+      //throw new Error(ContractEnsembleErrors.AGENT)
+    //}
+    //if (builder && builder.agent && builder.agent.network !== network) {
+      //throw new Error(ContractEnsembleErrors.BUILDER)
+    //}
 
     Object.assign(this, { network, agent, builder })
   }
@@ -96,7 +94,7 @@ export default class ContractEnsemble {
 
   async build (options = {}) {
     const { task      = taskmaster()
-          , builder   = this.builder
+          , builder   = this.builder   || new Builder()
           , workspace = this.workspace || required('workspace')
           , outputDir = resolve(this.workspace, 'artifacts')
           , parallel  = true } = options
@@ -136,10 +134,10 @@ export default class ContractEnsemble {
   }
 
   async upload (options = {}) {
-    const { builder   = this.builder
-          , task      = taskmaster()
-          , stateBase = resolve(process.cwd(), 'artifacts')
-          , binaries  = await build() // if binaries are not passed, build 'em
+    const { task     = taskmaster()
+          , network  = this.network
+          , builder  = this.builder
+          , binaries = await build() // if binaries are not passed, build 'em
           } = options
     const receipts = {}
     for (const contract of Object.keys(this.contracts)) {
@@ -153,7 +151,9 @@ export default class ContractEnsemble {
   }
 
   async deploy (options = {}) {
-    const { network, builder, agent } = this
+    const { network
+          , agent   = this.agent   || network.agent || await network.getAgent()
+          , builder = this.builder || network.getBuilder(agent) } = this
     const { task = taskmaster(), initMsgs = {} } = options
     return await task('build, upload, and initialize contracts', async () => {
       const binaries  = await this.build({ task, builder })
