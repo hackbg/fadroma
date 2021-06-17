@@ -12,9 +12,20 @@ const {debug, info} = Console(import.meta.url)
  * Stores upload results as receipts.
  */
 export default class SecretNetworkBuilder {
-  constructor (fields) { this.configure(fields) }
-  configure = (fields={}) => { Object.assign(this, fields) }
-  get address () { return this.agent ? this.agent.address : undefined }
+
+  constructor ({ network, agent }={}) {
+    if (!network && agent) {
+      network = agent.network
+    } else if (!agent && network) {
+      agent = network.agent
+    }
+    Object.assign(this, { network, agent })
+  }
+
+  get address () {
+    return this.agent ? this.agent.address : undefined
+  }
+
   /** Build from source in a Docker container.
    */
   async build (options) {
@@ -48,6 +59,7 @@ export default class SecretNetworkBuilder {
     if (code !== 0) throw new Error(`build exited with status ${code}`)
     return resolve(options.outputDir, `${options.crate}@${options.ref}.wasm`)
   }
+
   /** Generate the command line for the container.
    */
   getBuildCommand ({
@@ -71,12 +83,14 @@ export default class SecretNetworkBuilder {
     //commands.push(`pwd && ls -al && mv ${crate}.wasm /output/${crate}@${ref}.wasm`)
     return commands.join(' && ')
   }
+
   /** Get environment variables for the container.
    */
   getBuildEnv = () =>
     [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
     , 'CARGO_TERM_VERBOSE=true'
     , 'CARGO_HTTP_TIMEOUT=240' ]
+
   /** Try to upload a binary to the network but return a pre-existing receipt if one exists.
    *  TODO also code checksums should be validated
    */
@@ -90,8 +104,10 @@ export default class SecretNetworkBuilder {
       return this.upload(artifact)
     }
   }
+
   getReceiptPath = path =>
     resolve(this.network.receipts, `${basename(path)}.upload.json`)
+
   /** Upload a binary to the network.
    */
   async upload (artifact) {

@@ -36,12 +36,12 @@ export default class SecretNetworkContract {
 
   /**Query the contract.
    */
-  query = (method = '', args = {}, agent = this.agent) =>
+  query = (method = '', args = null, agent = this.agent) =>
     agent.query(this, method, args)
 
   /**Execute a contract transaction.
    */
-  execute = (method = '', args = {}, agent = this.agent) =>
+  execute = (method = '', args = null, agent = this.agent) =>
     agent.execute(this, method, args)
 
   /** Save the contract's instantiation receipt.

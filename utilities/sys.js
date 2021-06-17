@@ -18,20 +18,23 @@ export const mkdir = (...fragments) => {
   const path = resolve(...fragments)
   if (!existsSync(path)) console.debug('📁 creating', bold(path))
   mkdirp.sync(path, {mode: 0o770})
-  return path }
+  return path
+}
 
 export const touch = (...fragments) => {
   const path = resolve(...fragments)
   if (!existsSync(path)) console.debug('🧾 creating', bold(path))
   writeFileSync(path, '')
-  return path }
+  return path
+}
 
 export const makeStateDir = (path, ...subdirs) => {
   // somewhere to store localnet state,
   // as well as upload receipts for all networks:
   if (path.startsWith('file://')) path = fileURLToPath(path)
   if (existsSync(path) && (statSync(path)).isFile()) path = dirname(path)
-  return mkdir(path, ...subdirs) }
+  return mkdir(path, ...subdirs)
+}
 
 export const rimraf = path => new Promise((resolve, reject)=>{
   _rimraf(path, (err) => {

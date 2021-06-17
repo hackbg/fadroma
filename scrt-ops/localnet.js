@@ -24,7 +24,7 @@ export default class SecretNetworkNode {
       chainId         = 'enigma-pub-testnet-3',
       state           = resolve(defaultStateBase, chainId),
       genesisAccounts = ['ADMIN', 'ALICE', 'BOB', 'MALLORY'],
-      image           = pull("enigmampc/secret-network-sw-dev", docker)
+      image           = "enigmampc/secret-network-sw-dev",
     } = options
 
     Object.assign(this, {
@@ -136,8 +136,9 @@ export default class SecretNetworkNode {
    *  in order to launch a localnet container.
    */
   get spawnContainerOptions () {
-    return this.image.then(Image=>({
+    return pull(this.image, this.docker).then(Image=>({
       Image,
+      name: `${this.chainId}-${this.port}`,
       Hostname:     this.chainId,
       Domainname:   this.chainId,
       Entrypoint:   [ '/bin/bash' ],
@@ -146,10 +147,17 @@ export default class SecretNetworkNode {
       AttachStdin:  true,
       AttachStdout: true,
       AttachStderr: true,
-      Env:          this.env,
+      Env: this.env,
+      ExposedPorts: {
+        [`${this.port}/tcp`]: {}
+      },
+      AutoRemove: true,
       HostConfig: {
-        NetworkMode: 'host',
-        Binds:       this.binds
+        NetworkMode: 'bridge',
+        Binds: this.binds,
+        PortBindings: {
+          [`${this.port}/tcp`]: [{HostPort: `${this.port}`}],
+        },
       },
     }))
   }
@@ -203,7 +211,6 @@ export default class SecretNetworkNode {
     for (const dir of this.stateDirs) {
       mkdir(dir)
     }
-
     Object.assign(this, {
       protocol: 'http',
       host:     'localhost',
@@ -212,12 +219,14 @@ export default class SecretNetworkNode {
     this.container = await this.docker.createContainer(
       await this.spawnContainerOptions
     )
-    const {id: containerId} = this.container
+    const { id: containerId, Warnings: w } = this.container
+    if (w) console.warn(w)
     await this.container.start()
     await this.save()
 
     // wait for logs to confirm that the genesis is done
     await waitUntilLogsSay(this.container, 'GENESIS COMPLETE')
+
 
     // wait for port to be open
     await waitPort({
@@ -263,7 +272,7 @@ export default class SecretNetworkNode {
       '-rvf',
       '/state',
     ]
-    return this.image.then(Image=>({
+    return pull(this.image, this.docker).then(Image=>({
       Image,
       Entrypoint: [ '/bin/rm' ],
       Cmd,
