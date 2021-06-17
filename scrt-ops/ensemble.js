@@ -18,6 +18,8 @@ export default class ContractEnsemble {
 
   prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
 
+  builder = new Builder()
+
   contracts = {}
 
   /** Commands to expose to the CLI. */
@@ -53,7 +55,7 @@ export default class ContractEnsemble {
     * It is also possible to instantiate an Ensemble without network,
     * agent, or builder; it would only be able to run local commands. */
   constructor (options = {}) {
-    let { network, agent, builder } = options
+    let { network, agent, builder = this.builder } = options
 
     if (network) {
       if (typeof network === 'string') {
@@ -73,7 +75,7 @@ export default class ContractEnsemble {
       if (!builder) {
         builder = network.getBuilder(agent)
       }
-    } else if (builder) {
+    } else if (builder && builder.agent) {
       network = builder.agent.network
       agent = builder.agent
     }/* else {

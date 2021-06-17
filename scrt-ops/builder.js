@@ -14,9 +14,9 @@ const {debug, info} = Console(import.meta.url)
 export default class SecretNetworkBuilder {
 
   constructor ({ network, agent }={}) {
-    if (!network) {
+    if (!network && agent) {
       network = agent.network
-    } else if (!agent) {
+    } else if (!agent && network) {
       agent = network.agent
     }
     Object.assign(this, { network, agent })
