@@ -32,8 +32,7 @@ export default class SecretNetworkNode {
       docker,
       chainId,
       genesisAccounts,
-      image: Promise.resolve(image)
-        .catch(e=>error('failed to pull image', e))
+      image,
     })
 
     if (existsSync(this.state) && existsSync(this.nodeStateFile)) {
