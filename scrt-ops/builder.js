@@ -13,7 +13,11 @@ const {debug, info} = Console(import.meta.url)
  */
 export default class SecretNetworkBuilder {
 
-  constructor ({ network, agent }={}) {
+  docker = new Docker({ socketPath: '/var/run/docker.sock' })
+
+  constructor (options={}) {
+    let { docker, network, agent } = options
+    if (docker) this.docker = docker
     if (!network && agent) {
       network = agent.network
     } else if (!agent && network) {
@@ -29,8 +33,7 @@ export default class SecretNetworkBuilder {
   /** Build from source in a Docker container.
    */
   async build (options) {
-    const docker       = new Docker()
-    const buildImage   = await pull('enigmampc/secret-contract-optimizer:latest', docker)
+    const buildImage   = await pull('enigmampc/secret-contract-optimizer:latest', this.docker)
     const buildCommand = this.getBuildCommand(options)
     const entrypoint   = resolve(__dirname, 'build.sh')
     const buildOptions = {
@@ -53,7 +56,7 @@ export default class SecretNetworkBuilder {
       buildOptions.HostConfig.Binds.push(`${options.workspace}:/contract:rw`)
     }
     const args = [buildImage, buildCommand, process.stdout, buildOptions]
-    const [{Error:err, StatusCode:code}, container] = await docker.run(...args)
+    const [{Error:err, StatusCode:code}, container] = await this.docker.run(...args)
     await container.remove()
     if (err) throw new Error(err)
     if (code !== 0) throw new Error(`build exited with status ${code}`)

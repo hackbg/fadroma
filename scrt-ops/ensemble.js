@@ -1,4 +1,5 @@
 import assert from 'assert'
+import Docker from 'dockerode'
 import { bold, resolve, relative, existsSync, taskmaster } from '@fadroma/utilities'
 import {SecretNetwork} from '@fadroma/scrt-agent'
 import { pull } from './net.js'
@@ -15,6 +16,8 @@ export const ContractEnsembleErrors = {
 export default class ContractEnsemble {
 
   static Errors = ContractEnsembleErrors
+
+  docker = new Docker({ socketPath: '/var/run/docker.sock' })
 
   prefix = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
 
@@ -54,39 +57,6 @@ export default class ContractEnsemble {
     * agent, or builder; it would only be able to run local commands. */
   constructor (options = {}) {
     let { network, agent, builder = this.builder } = options
-
-    if (typeof network === 'string') {
-      assert(['localnet','testnet','mainnet'].indexOf(network) > -1)
-      network = SecretNetwork[network]()
-    }
-    //if (network) {
-      //if (!agent && !builder) {
-        //agent = network.agent
-        //builder = network.getBuilder(agent)
-      //} else if (!agent) {
-        //agent = builder.agent
-      //} else if (!builder) {
-        //builder = network.getBuilder(agent)
-      //}
-    //} else if (agent) {
-      //network = agent.network
-      //if (!builder) {
-        //builder = network.getBuilder(agent)
-      //}
-    //} else if (builder && builder.agent) {
-      //network = builder.agent.network
-      //agent = builder.agent
-    //}[> else {
-      //throw new Error(ContractEnsembleErrors.NOTHING)
-    //}*/
-
-    //if (agent && agent.network !== network) {
-      //throw new Error(ContractEnsembleErrors.AGENT)
-    //}
-    //if (builder && builder.agent && builder.agent.network !== network) {
-      //throw new Error(ContractEnsembleErrors.BUILDER)
-    //}
-
     Object.assign(this, { network, agent, builder })
   }
 
@@ -94,12 +64,12 @@ export default class ContractEnsemble {
 
   async build (options = {}) {
     const { task      = taskmaster()
-          , builder   = this.builder   || new Builder()
+          , builder   = this.builder   || new Builder({ docker: this.docker })
           , workspace = this.workspace || required('workspace')
-          , outputDir = resolve(this.workspace, 'artifacts')
+          , outputDir = resolve(workspace, 'artifacts')
           , parallel  = true } = options
     // pull build container
-    await pull(this.buildImage)
+    await pull(this.buildImage, this.docker)
     // build all contracts
     const { contracts, constructor: { name: myName } } = this
     return await (parallel ? buildParallel() : buildSeries())
@@ -151,9 +121,13 @@ export default class ContractEnsemble {
   }
 
   async deploy (options = {}) {
-    const { network
-          , agent   = this.agent   || network.agent || await network.getAgent()
-          , builder = this.builder || network.getBuilder(agent) } = this
+    let network = SecretNetwork.hydrate(options.network || this.network)
+    if (!(network instanceof SecretNetwork)) {
+      throw new Error('need a SecretNetwork connection to deploy')
+    }
+    const connection = await network.connect()
+    const agent   = options.agent   || connection.agent   || this.agent   || network.agent || await network.getAgent()
+    const builder = options.builder || connection.builder || this.builder || network.getBuilder(agent)
     const { task = taskmaster(), initMsgs = {} } = options
     return await task('build, upload, and initialize contracts', async () => {
       const binaries  = await this.build({ task, builder })

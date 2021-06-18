@@ -21,6 +21,19 @@ export default class SecretNetwork {
   static Contract = SecretNetworkContract
   static Node     = SecretNetworkNode
 
+  /** Used to allow the network to be specified as a string by
+   *  turning a well-known network name into a SecretNetwork instance. */
+  static hydrate = network => {
+    if (typeof network === 'string') {
+      const networks = ['localnet','testnet','mainnet']
+      if (networks.indexOf(network) < 0) {
+        throw new Error(`Unknown network type: "${network}", valid ones are: ${networks.join(' ')}`)
+      }
+      network = this[network]()
+    }
+    return network
+  }
+
   /**Run a node in a docker container and return a connection to it. 
    * @return {Connection} - connection with interface to container
    */
@@ -98,19 +111,25 @@ export default class SecretNetwork {
    * @param {string} options.node      - promise to localnet node (if applicable) */
   constructor ({
     chainId   = 'enigma-pub-testnet-3',
+    // connection details
     protocol  = 'http',
     host      = 'localhost',
     port      = 1337,
     path      = '',
+    // state directories
     stateBase = defaultStateBase,
     state     = makeStateDir(stateBase, chainId),
     wallets   = mkdir(state, 'wallets'),
     receipts  = mkdir(state, 'uploads'),
     instances = mkdir(state, 'instances'),
-    node      = null
+    // handle to localnet node if this is localnet
+    node      = null,
+    // credentials of the default agent:
+    agent: { address, mnemonic } = {}
   }) {
     Object.assign(this, {
-      chainId, state, receipts, wallets, instances, protocol, host, port, path, node
+      chainId, state, receipts, wallets, instances, protocol, host, port, path, node,
+      address, mnemonic
     })
   }
 
