@@ -173,7 +173,10 @@ export default class SecretNetwork {
 
   /** create contract instance from interface class and address */
   getContract (ContractAPI, contractAddress, agent = this.agent) {
-    return new ContractAPI({ contractAddress, agent })
+    return new ContractAPI({
+      initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
+      agent
+    })
   }
 
 }
