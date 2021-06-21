@@ -125,9 +125,7 @@ export default class ContractEnsemble {
     if (!(network instanceof SecretNetwork)) {
       throw new Error('need a SecretNetwork connection to deploy')
     }
-    const connection = await network.connect()
-    const agent   = options.agent   || connection.agent   || this.agent   || network.agent || await network.getAgent()
-    const builder = options.builder || connection.builder || this.builder || network.getBuilder(agent)
+    const { agent, builder } = await network.connect()
     const { task = taskmaster(), initMsgs = {} } = options
     return await task('build, upload, and initialize contracts', async () => {
       const binaries  = await this.build({ task, builder })
