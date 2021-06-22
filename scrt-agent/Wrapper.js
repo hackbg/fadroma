@@ -62,12 +62,16 @@ const getAjv = () => {
   return ajv;
 };
 /**
- * Wrapper creator that hold all the definitions
+ * Wrapper factory that hold all the definitions
  * for methods and will run validation
  *
  * @class
  */
 class Factory {
+  /**
+   * @param {object} schema 
+   * @param {SecretNetworkContract} contract 
+   */
   constructor(schema, contract) {
     if (typeof schema !== "object" || schema === null) {
       throw new Error("Schema must be an object");
@@ -113,7 +117,7 @@ class Factory {
    * Make a call on an agent and allow it to be overriden with custom
    *
    * @param {SecretNetworkAgent} [agent]
-   * @returns {SecretNetworkAgent}
+   * @returns {SecretNetworkContract}
    */
   getContract(agent) {
     if (isAgent(agent) && typeof this.contract.copy === "function") {
@@ -125,7 +129,7 @@ class Factory {
 
   /**
    * Generates the definitions and loads the wrapper with them
-   * @returns {SchemaWrapper}
+   * @returns {Wrapper}
    */
   create() {
     this.generate();
@@ -230,10 +234,10 @@ class Wrapper {
   /**
    * Construct the instance wrapper.
    *
-   * @param creator
+   * @param factory
    */
-  constructor(creator) {
-    this.creator = creator;
+  constructor(factory) {
+    this.factory = factory;
   }
 
   /**
@@ -248,7 +252,7 @@ class Wrapper {
   _run(method, args, agent) {
     method = snakeCaseString(method);
 
-    for (const action of this.creator.string) {
+    for (const action of this.factory.string) {
       if (action.method === method) {
         if (isAgent(args) && !isAgent(agent)) {
           agent = args;
@@ -258,7 +262,7 @@ class Wrapper {
       }
     }
 
-    for (const action of this.creator.object) {
+    for (const action of this.factory.object) {
       if (action.method === method) {
         return this._callObject(action, args, agent);
       }
@@ -275,9 +279,9 @@ class Wrapper {
    * @param {SecretNetworkAgent} [agent]
    */
   _callString(action, agent) {
-    const contract = this.creator.getContract(agent);
+    const contract = this.factory.getContract(agent);
 
-    return contract[this.creator.caller()](action.method, null);
+    return contract[this.factory.caller()](action.method, null);
   }
 
   /**
@@ -290,12 +294,12 @@ class Wrapper {
     if (action.emptyArgs) {
       args = {};
     } else {
-      this.creator.validate(action, args);
+      this.factory.validate(action, args);
     }
 
-    const contract = this.creator.getContract(agent);
+    const contract = this.factory.getContract(agent);
 
-    return contract[this.creator.caller()](action.method, args);
+    return contract[this.factory.caller()](action.method, args);
   }
 }
 
@@ -304,7 +308,7 @@ class Wrapper {
  *
  * @param schema
  * @param instance
- * @returns {RedisPromise}
+ * @returns {Wrapper}
  */
 const proxy = (schema, instance) =>
   new Proxy(new Factory(schema, instance).create(), {
