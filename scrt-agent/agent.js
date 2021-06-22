@@ -123,7 +123,7 @@ export default class SecretNetworkAgent {
   }
 
   /**Instantiate a contract from a code ID and an init message. */
-  async instantiate (instance) {
+  async instantiate(instance) {
     const { codeId, initMsg = {}, label = '' } = instance
     instance.agent = this
 

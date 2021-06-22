@@ -2,14 +2,14 @@ import SecretNetworkAgent from './agent.js'
 import SecretCLIAgent from './agent-secretcli.js'
 import SecretNetworkContract from './contract.js'
 import SecretNetwork from './network.js'
-//import { loadSchemas } from '@fadroma/utilites/schema.js'
+import SecretNetworkContractWithSchema from './contractWithSchema.js'
 
 export {
   SecretNetwork,
   SecretNetworkAgent,
   SecretCLIAgent,
   SecretNetworkContract,
-  //loadSchemas
+  SecretNetworkContractWithSchema,
 }
 
 /**@typedef {Object} Connection
