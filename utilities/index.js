@@ -1,5 +1,5 @@
 import { resolve, relative, dirname, basename, extname } from 'path'
-import { existsSync, unlinkSync, readFileSync, writeFileSync } from 'fs'
+import { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
 import { cwd, stderr } from 'process'
 import { fileURLToPath } from 'url'
@@ -35,6 +35,7 @@ export {
   markdownTable,
   mkdir,
   randomBytes,
+  readdirSync,
   readFile,
   readFileSync,
   render,

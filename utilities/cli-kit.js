@@ -16,7 +16,7 @@ export async function runCommand (context, commands, commandToRun, ...args) {
       const [nameOrNames, info, fn, subcommands] = command
       if (
         (typeof nameOrNames === 'string' && nameOrNames === commandToRun) ||
-        (nameOrNames instanceof Array  && nameOrNames.indexOf(commandToRun) > -1)
+        (nameOrNames instanceof Array && nameOrNames.indexOf(commandToRun) > -1)
       ) {
         notFound = false
         let notImplemented = true

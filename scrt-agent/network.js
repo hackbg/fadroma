@@ -90,7 +90,7 @@ export default class SecretNetwork {
     this.stateBase = options.stateBase || defaultStateBase,
     this.state     = options.state     || makeStateDir(this.stateBase, this.chainId)
     this.wallets   = options.state     || mkdir(this.state, 'wallets')
-    this.receipts  = options.receipts  || mkdir(this.state, 'receipts')
+    this.receipts  = options.receipts  || mkdir(this.state, 'uploads')
     this.instances = options.instances || mkdir(this.state, 'instances')
     // handle to localnet node if this is localnet
     this.node = options.node || null
