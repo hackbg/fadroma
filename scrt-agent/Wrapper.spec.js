@@ -93,6 +93,12 @@ const instance2 = {
 const wrapper = SchemaWrapper(schema, instance);
 
 describe("Schema wrapper", function () {
+  it("Has all the methods", function () {
+    const methods = Object.keys(wrapper).join(",");
+
+    assert.strictEqual(methods, "pools,total_rewards_supply,totalRewardsSupply,contract_status,contractStatus,admin,transaction_history,transactionHistory");
+  });
+
   it("Works on string items", function () {
     const res = wrapper.pools();
     assert.strictEqual(res.method, "pools");

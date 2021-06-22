@@ -17,26 +17,20 @@ const isAgent = (maybeAgent) => {
 };
 
 /**
- * Convert camel case string into a snake case
+ * Convert snake case to camel case
  *
  * @param {string} str
- * @returns
+ * @returns {string}
  */
-const snakeCaseString = (str) => {
-  return (
-    str &&
-    str
-      .match(
-        /[A-Z]{2,}(?=[A-Z][a-z]+[0-9]*|\b)|[A-Z]?[a-z]+[0-9]*|[A-Z]|[0-9]+/g
-      )
-      .map((s) => s.toLowerCase())
-      .join("_")
-  );
+const camelCaseString = (str) => {
+  return str.replace(/(\_\w)/g, function (m) {
+    return m[1].toUpperCase();
+  });
 };
 
 /**
- * Creates Ajv instance for schema validation 
- * 
+ * Creates Ajv instance for schema validation
+ *
  * @returns {Ajv}
  */
 const getAjv = () => {
@@ -62,15 +56,14 @@ const getAjv = () => {
   return ajv;
 };
 /**
- * Wrapper factory that hold all the definitions
- * for methods and will run validation
+ * Wrapper factory that will create all the methods
  *
  * @class
  */
 class Factory {
   /**
-   * @param {object} schema 
-   * @param {SecretNetworkContract} contract 
+   * @param {object} schema
+   * @param {SecretNetworkContract} contract
    */
   constructor(schema, contract) {
     if (typeof schema !== "object" || schema === null) {
@@ -94,22 +87,13 @@ class Factory {
         $schema: undefined,
       })
     );
-    this.string = [];
-    this.object = [];
-
+    this.methods = [];
     this.ajv = getAjv();
-  }
 
-  /**
-   * Figure out what kind of a call we are making based on schema
-   *
-   * @returns {string}
-   */
-  caller() {
     if (this.schema.title.toLowerCase().startsWith("query")) {
-      return "query";
+      this.caller = "query";
     } else if (this.schema.title.toLowerCase().startsWith("handle")) {
-      return "execute";
+      this.caller = "execute";
     }
   }
 
@@ -128,22 +112,28 @@ class Factory {
   }
 
   /**
-   * Generates the definitions and loads the wrapper with them
-   * @returns {Wrapper}
+   * Create the object with generated methods
+   * @returns {object}
    */
   create() {
-    this.generate();
+    this.parse();
 
-    return new Wrapper(this);
+    return this.methods.reduce((handlers, action) => {
+      handlers[camelCaseString(action.method)] = handlers[action.method] =
+        function (args, agent) {
+          return this.run(action.method, args, agent);
+        }.bind(this);
+
+      return handlers;
+    }, {});
   }
 
   /**
-   * Runs the generation of definitions that will be used by the wrapper
+   * Parse the schema and generate method definitions
    * @returns {void}
    */
-  generate() {
+  parse() {
     if (Array.isArray(this.schema.anyOf)) {
-
       for (const item of this.schema.anyOf) {
         if (item.type === "string") {
           this.onlyMethod(item);
@@ -159,24 +149,24 @@ class Factory {
   }
 
   /**
-   * Handles the validation of items that only have a method name
-   *
+   * Parse schema items that only have a method call without arguments
    * @param {object} item
    */
   onlyMethod(item) {
     if (Array.isArray(item.enum)) {
       for (const m of item.enum) {
-        this.string.push({
+        this.methods.push({
           method: m,
           description: item.description,
+          string: true,
+          emptyArgs: true,
         });
       }
     }
   }
 
   /**
-   * Handles the items that have method and also receive some arguments
-   *
+   * Parse schema item that has arguments
    * @param {object} item
    */
   methodWithArgs(item) {
@@ -188,15 +178,17 @@ class Factory {
         Object.keys(item.properties[m]).length === 1 &&
         item.properties[m].type === "object"
       ) {
-        this.object.push({
+        this.methods.push({
           method: m,
           description: item.description,
+          string: false,
           emptyArgs: true,
         });
       } else {
-        this.object.push({
+        this.methods.push({
           method: m,
           description: item.description,
+          string: false,
           emptyArgs: false,
         });
       }
@@ -204,8 +196,7 @@ class Factory {
   }
 
   /**
-   * Run validation on arguments sent based on the provided schema
-   *
+   * Run schema validation on passed arguments
    * @param {object} action
    * @param {object} [args]
    */
@@ -228,46 +219,32 @@ class Factory {
       );
     }
   }
-}
-
-class Wrapper {
-  /**
-   * Construct the instance wrapper.
-   *
-   * @param factory
-   */
-  constructor(factory) {
-    this.factory = factory;
-  }
 
   /**
-   * Dynamically parse schema and convert it into methods on an instance
-   *
+   * Try to find method in the parsed stack and run it
    * @param {string} method
    * @param {object} [args]
    * @param {SecretNetworkAgent} [agent]
    * @returns {Promise<any>}
    * @private
    */
-  _run(method, args, agent) {
-    method = snakeCaseString(method);
-
-    for (const action of this.factory.string) {
+  run(method, args, agent) {
+    for (const action of this.methods) {
       if (action.method === method) {
         if (isAgent(args) && !isAgent(agent)) {
           agent = args;
+          args = {};
         }
 
-        return this._callString(action, agent);
+        if (action.string) {
+          return this._callString(action, agent);
+        } else {
+          return this._callObject(action, args, agent);
+        }
       }
     }
 
-    for (const action of this.factory.object) {
-      if (action.method === method) {
-        return this._callObject(action, args, agent);
-      }
-    }
-
+    // This is unreacheable
     throw new Error(
       `Method '${method}' couldn't be found in schema definition`
     );
@@ -279,9 +256,9 @@ class Wrapper {
    * @param {SecretNetworkAgent} [agent]
    */
   _callString(action, agent) {
-    const contract = this.factory.getContract(agent);
+    const contract = this.getContract(agent);
 
-    return contract[this.factory.caller()](action.method, null);
+    return contract[this.caller](action.method, null);
   }
 
   /**
@@ -294,12 +271,12 @@ class Wrapper {
     if (action.emptyArgs) {
       args = {};
     } else {
-      this.factory.validate(action, args);
+      this.validate(action, args);
     }
 
-    const contract = this.factory.getContract(agent);
+    const contract = this.getContract(agent);
 
-    return contract[this.factory.caller()](action.method, args);
+    return contract[this.caller](action.method, args);
   }
 }
 
@@ -308,17 +285,8 @@ class Wrapper {
  *
  * @param schema
  * @param instance
- * @returns {Wrapper}
+ * @returns {object}
  */
-const proxy = (schema, instance) =>
-  new Proxy(new Factory(schema, instance).create(), {
-    get(target, name) {
-      return function wrapper() {
-        const [args, agent] = Object.keys(arguments).map((k) => arguments[k]);
-
-        return target._run(name, args, agent);
-      };
-    },
-  });
-
-export default proxy;
+export default (schema, instance) => {
+  return new Factory(schema, instance).create();
+};
