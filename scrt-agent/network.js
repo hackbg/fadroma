@@ -2,7 +2,8 @@ import {
   mkdir, makeStateDir, resolve, dirname, fileURLToPath, cwd, bold, Console
 } from '@fadroma/utilities'
 import { SecretNetworkNode, SecretNetworkBuilder } from '@fadroma/scrt-ops'
-import SecretNetworkAgent from './agent.js'
+import SecretJSAgent from './agent.js'
+import SecretCLIAgent from './agent-secretcli.js'
 import SecretNetworkContract from './contract.js'
 import { gas, defaultFees } from './gas.js'
 
@@ -16,13 +17,13 @@ export const defaultStateBase = resolve(cwd(), 'artifacts')
  */
 export default class SecretNetwork {
   // TODO get rid of these shortcuts and/or use dynamic imports of ops classes
-  static Agent    = SecretNetworkAgent
   static Builder  = SecretNetworkBuilder
   static Contract = SecretNetworkContract
   static Node     = SecretNetworkNode
 
   /** Used to allow the network to be specified as a string by
-   *  turning a well-known network name into a SecretNetwork instance. */
+   *  turning a well-known network name into a SecretNetwork instance.
+   *  @return {SecretNetwork} */
   static hydrate = network => {
     if (typeof network === 'string') {
       const networks = ['localnet','testnet','mainnet']
@@ -34,125 +35,108 @@ export default class SecretNetwork {
     return network
   }
 
-  /**Run a node in a docker container and return a connection to it. 
-   * @return {Connection} - connection with interface to container
-   */
+  /** Create an instance that runs a node in a local Docker container and talks to it via SecretJS
+   *  @return {SecretNetwork} */
   static localnet ({
-    chainId   = 'enigma-pub-testnet-3',
-    stateBase = defaultStateBase,
-    state     = makeStateDir(stateBase, chainId)
+    chainId = 'enigma-pub-testnet-3',
+    node    = new SecretNetworkNode({chainId, state}),
+    apiURL  = `${node.protocol}://${node.host}:${node.port}`
   }={}) {
-    const node = new SecretNetworkNode({chainId, state})
-    const { protocol, host, port } = node
-    return new this({ chainId, state, protocol, host, port, node })
+    // no default agent name/address/mnemonic:
+    // connect() gets them from genesis accounts
+    return new this({ chainId, node, apiURL })
   }
 
-  /**Return a connection to the Holodeck-2 Secret Network Testnet
-   * @return {Connection} - connection with interface to container
-   */
+  /** Create an instance that talks to to holodeck-2 (Secret Network testnet) via SecretJS
+   *  @return {SecretNetwork} */
   static testnet ({
-    // chain info:
-    chainId   = 'holodeck-2',
-    stateBase = defaultStateBase,
-    state     = makeStateDir(stateBase, chainId),
-    // connection info:
-    protocol = 'https',
-    host     = 'secret-holodeck-2--lcd--full.datahub.figment.io',
-    path     = '/apikey/5043dd0099ce34f9e6a0d7d6aa1fa6a8/',
-    port     = 443,
-    // admin account info:
-    // can't get balance from genesis accounts - needs a real testnet wallet
-    // load it from https://faucet.secrettestnet.io/ (TODO automate this)
-    agent = {
-      address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-      mnemonic: process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
-    }
+    chainId = 'holodeck-2',
+    apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+    apiURL  = `https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`,
+    defaultAgentName     = process.env.SECRET_NETWORK_TESTNET_NAME,
+    defaultAgentAddress  = process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+    defaultAgentMnemonic = process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
   }={}) {
-    return new this({ chainId, state, protocol, host, port, path, agent })
+    return new this({ chainId, apiURL, defaultAgentName, defaultAgentAddress, defaultAgentMnemonic })
   }
 
-  /**Return a connection to the Secret Network Mainnet
-   * @return {Connection} - connection with interface to container
-   */
+  /** Create an instance that talks to to the Secret Network mainnet via SecretJS
+   *  @return {SecretNetwork} */
   static mainnet ({
-    // chain info:
-    chainId   = 'secret-2',
-    stateBase = defaultStateBase,
-    state     = makeStateDir(stateBase, chainId),
-    // connection info:
-    protocol = 'https',
-    host     = 'secret-2--lcd--full.datahub.figment.io',
-    path     = '/apikey/5043dd0099ce34f9e6a0d7d6aa1fa6a8/',
-    port     = 443,
-    // admin account info:
-    agent = {
-      address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
-      mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC
-    }
+    chainId = 'secret-2',
+    apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+    apiURL  = `https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`,
+    defaultAgentName     = process.env.SECRET_NETWORK_MAINNET_NAME,
+    defaultAgentAddress  = process.env.SECRET_NETWORK_MAINNET_ADDRESS,
+    defaultAgentMnemonic = process.env.SECRET_NETWORK_MAINNET_MNEMONIC
   }={}) {
-    return new this({ chainId, state, protocol, host, port, path, agent })
+    return new this({ chainId, apiURL, defaultAgentName, defaultAgentAddress, defaultAgentMnemonic })
   }
 
-  /**Interface to a Secret Network REST API endpoint.
-   * Can store wallets and results of contract uploads/inits.
+  /** Interface to a Secret Network REST API endpoint.
+   *  Can store wallets and results of contract uploads/inits.
    *
    * @constructor
    * @param {Object} options           - the configuration options
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
-   * @param {string} options.protocol  - the protocol to use for the connection (`http` or `https`)
-   * @param {string} options.host      - the hostname to connect to
-   * @param {string} options.port      - the port to connect to (default `1337`)
-   * @param {string} options.path      - API URL path prefix. Used to provide Figment API key.
-   * @param {string} options.stateBase - default location for state directories.
-   * @param {string} options.state     - path to directory to store state; created at `stateBase/chainId` by default
-   * @param {string} options.wallets   - path to directory holding wallet keys; created under `state` by default
-   * @param {string} options.receipts  - path to directory holding upload results; created under `state` by deault
-   * @param {string} options.instances - path to directory holding init results (pointing to contract instances)
-   * @param {string} options.node      - promise to localnet node (if applicable) */
-  constructor ({
-    chainId   = 'enigma-pub-testnet-3',
-    // connection details
-    protocol  = 'http',
-    host      = 'localhost',
-    port      = 1337,
-    path      = '',
-    // state directories
-    stateBase = defaultStateBase,
-    state     = makeStateDir(stateBase, chainId),
-    wallets   = mkdir(state, 'wallets'),
-    receipts  = mkdir(state, 'uploads'),
-    instances = mkdir(state, 'instances'),
+   *
+   * TODO document the remaining options
+   */
+  constructor (options = {}) {
+    // info needed to connect to the chain's REST API
+    this.chainId = options.chainId || node.chainId || 'enigma-pub-testnet-3'
+    this.apiURL  = new URL(options.apiURL || node.apiURL || 'http://localhost:1337/')
+    // directories to store state.
+    this.stateBase = options.stateBase || defaultStateBase,
+    this.state     = options.state     || makeStateDir(this.stateBase, this.chainId)
+    this.wallets   = options.state     || mkdir(this.state, 'wallets')
+    this.receipts  = options.receipts  || mkdir(this.state, 'receipts')
+    this.instances = options.instances || mkdir(this.state, 'instances')
     // handle to localnet node if this is localnet
-    node      = null,
-    // credentials of the default agent:
-    agent: { address, mnemonic } = {}
-  }) {
-    Object.assign(this, {
-      chainId, state, receipts, wallets, instances, protocol, host, port, path, node,
-      address, mnemonic
-    })
+    this.node = options.node || null
+    // default agent credentials
+    this.defaultAgentName     = options.defaultAgentInfo
+    this.defaultAgentAddress  = options.defaultAgentAddress
+    this.defaultAgentMnemonic = options.defaultAgentMnemonic
   }
 
-  /**Establish a connection to the Secret Network HTTP API.*/
+  /**Instantiate Agent and Builder objects to talk to the API,
+   * respawning the node container if this is a localnet. */
   async connect () {
-    let { mnemonic, address } = this
+
+    // default credentials will be used as-is unless using localnet
+    let { defaultAgentMnemonic: mnemonic
+        , defaultAgentAddress:  address } = this
+
     // if this is a localnet handle, wait for the localnet to start
     let node
     if (node = await Promise.resolve(this.node)) {
+
+      // respawn that container
       debug(`⏳ preparing localnet ${bold(this.chainId)} @ ${bold(this.state)}`)
       await node.respawn()
       await node.ready
-      this.port = node.port
+
+      // set the correct port to connect to
+      this.apiURL.port = node.port
       info(`🟢 localnet ready @ port ${bold(this.port)}`)
-      ;({mnemonic, address} = await this.node.genesisAccount('ADMIN'))
+
+      // get the default account for the node
+      const adminAccount = await this.node.genesisAccount('ADMIN')
+      mnemonic = adminAccount.mnemonic
+      address  = adminAccount.address
+
       // recreate state dirs nuked by localnet reset
-      ;['wallets','uploads','instances'].forEach(x=>mkdir(this.state, x))
+      for (const dir of [this.wallets, this.uploads, this.instances]) {
+        mkdir(dir)
+      }
     }
-    info(`⏳ connecting to ${this.chainId} via ${this.protocol} on ${this.host}:${this.port}`)
-    const agent = this.agent = await this.getAgent("ADMIN", { mnemonic, address })
+
+    const { protocol, host, port } = this.apiURL
+    info(`⏳ connecting to ${this.chainId} via ${protocol} on ${host}:${port}`)
+    const agent = this.defaultAgent = await this.getAgent("ADMIN", { mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
-    const builder = this.getBuilder(agent)
-    return { node, network: this, agent, builder }
+    return { node, network: this, agent, builder: this.getBuilder(agent) }
   }
 
   /**The API URL that this instance talks to.
@@ -163,7 +147,18 @@ export default class SecretNetwork {
 
   /** create agent operating on the current instance's endpoint*/
   getAgent (name, options={}) {
-    return SecretNetworkAgent.create({ ...options, network: this, name })
+    if (options.mnemonic || options.keyPair) {
+      info(`Using a SecretJS-based agent.`)
+      return SecretJSAgent.create({ ...options, network: this, name })
+    } else if (name) {
+      info(`Using a secretcli-based agent.`)
+      return new SecretCLIAgent({ name })
+    } else {
+      throw new Error(
+        'need a name to create a secretcli-backed agent, ' +
+        'or a mnemonic or keypair to create a SecretJS-backed one.'
+      )
+    }
   }
 
   /** create builder operating on the current instance's endpoint */

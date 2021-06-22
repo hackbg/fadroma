@@ -1,5 +1,7 @@
-import { execFile } from 'child_process'
-import { promisify } from 'util'
+import { execFile, spawn } from 'child_process'
+import { Console } from '@fadroma/utilities'
+
+const {warn, error, debug, info} = Console(import.meta.url)
 
 const secretcli = (...args) => new Promise((resolve, reject)=>{
   execFile('secretcli', args, (err, stdout, stderr) => {
@@ -8,9 +10,38 @@ const secretcli = (...args) => new Promise((resolve, reject)=>{
   })
 })
 
+const tryToUnlockKeyring = async () => new Promise((resolve, reject)=>{
+  warn("Pretending to add a key in order to refresh the keyring...")
+  const unlock = spawn('secretcli', ['keys', 'add'])
+  unlock.on('spawn', () => {
+    unlock.on('close', resolve)
+    setTimeout(()=>{ unlock.kill() }, 1000)
+  })
+  unlock.on('error', reject)
+})
+
 export default class SecretCLIAgent {
 
+  static async pick () {
+    if (!process.stdin.isTTY) {
+      throw new Error("Input is not a TTY - can't interactively pick an identity")
+    }
+    let keys = secretcli('keys', 'list')
+    if (keys.length < 1) {
+      warn("Empty key list returned from secretcli. Retrying once:")
+      await tryToUnlockKeyring()
+      keys = secretcli('keys', 'list')
+      if (keys.length < 1) {
+        warn(
+          "Still empty. To proceed, add your key to secretcli " +
+          "(or set the mnemonic in the environment to use the SecretJS-based agent)"
+        )
+      }
+    }
+  }
+
   constructor (options = {}) {
+    debug({options})
     const { name, address } = options
     this.nameOrAddress = this.name || this.address
   }
