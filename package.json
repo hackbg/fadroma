@@ -3,16 +3,32 @@
   "version": "0.0.0",
   "main": "./index.js",
   "type": "module",
+  "workspaces": [
+    "./utilities",
+    "./scrt-agent",
+    "./scrt-ops"
+  ],
   "dependencies": {
-    "@fadroma/utilities": "*",
-    "@fadroma/scrt-agent": "*",
-    "@fadroma/scrt-ops": "*"
+    "@cosmjs/crypto": "^0.24.1",
+    "ajv": "^8.6.0",
+    "dockerode": "^3.3.0",
+    "secretjs": "^0.11.0",
+    "wait-port": "^0.2.9"
   },
   "devDependencies": {
-    "documentation": "^13.2.1"
+    "chai": "^4.3.4",
+    "documentation": "^13.2.1",
+    "eslint": "^7.29.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-plugin-import": "^2.23.4",
+    "@babel/eslint-parser": "^7.14.7",
+    "@babel/eslint-plugin": "^7.14.5",
+    "mocha": "^8.0.1"
   },
   "scripts": {
     "docs": "documentation build js/** -f html --github -o doc/js",
-    "docserv": "documentation serve --watch js/**"
+    "docserv": "documentation serve --watch js/**",
+    "test": "DEBUG=out node_modules/.bin/mocha test/index.js",
+    "lint": "node_modules/.bin/eslint -c ./.eslintrc  --ignore-path ./.eslintignore ./index.js ./scrt-agent/*.js ./scrt-ops/*.js ./utilities/*.js"
   }
 }

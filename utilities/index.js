@@ -1,23 +1,29 @@
-import { resolve, relative, dirname, basename, extname } from 'path'
-import { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync } from 'fs'
-import { readFile, writeFile } from 'fs/promises'
-import { cwd, stderr } from 'process'
-import { fileURLToPath } from 'url'
-import { randomBytes } from 'crypto'
+import {
+  resolve, relative, dirname, basename, extname,
+} from 'path';
+import {
+  existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync,
+} from 'fs';
+import { readFile, writeFile } from 'fs/promises';
+import { cwd, stderr } from 'process';
+import { fileURLToPath } from 'url';
+import { randomBytes } from 'crypto';
 
-import bignum from 'bignumber.js'
-import {render} from 'prettyjson'
-import colors from 'colors/safe.js'
+import bignum from 'bignumber.js';
+import { render } from 'prettyjson';
+import colors from 'colors/safe.js';
 
-import { loadJSON, loadSchemas } from './schema.js'
-import { table, getBorderCharacters } from 'table'
-import markdownTable from './table.js'
-import taskmaster from './taskmaster.js'
-import { mkdir, makeStateDir, touch, rimraf } from './sys.js'
+import { loadJSON, loadSchemas } from './schema.js';
+import { table, getBorderCharacters } from 'table';
+import markdownTable from './table.js';
+import taskmaster from './taskmaster.js';
+import {
+  mkdir, makeStateDir, touch, rimraf,
+} from './sys.js';
 
-import { runCommand, printUsage } from './cli-kit.js'
+import { runCommand, printUsage } from './cli-kit.js';
 
-const {bold} = colors
+const { bold } = colors;
 
 export {
   basename,
@@ -51,31 +57,31 @@ export {
   writeFileSync,
 
   runCommand,
-  printUsage
-}
+  printUsage,
+};
 
-export const Console = filename => {
-  filename = relative(process.cwd(), fileURLToPath(filename))
-  const format = arg => '\n'+((typeof arg === 'object') ? render(arg) : arg)
+export const Console = (filename) => {
+  filename = relative(process.cwd(), fileURLToPath(filename));
+  const format = (arg) => `\n${(typeof arg === 'object') ? render(arg) : arg}`;
   return {
     filename,
     format,
-    table: rows      => console.log(table(rows)),
-    info:  (...args) => console.info('ℹ️ ', ...args),
-    log:   (...args) => console.log(...args),
-    warn:  (...args) => console.warn('⚠️ ', ...args),
+    table: (rows) => console.log(table(rows)),
+    info: (...args) => console.info('ℹ️ ', ...args),
+    log: (...args) => console.log(...args),
+    warn: (...args) => console.warn('⚠️ ', ...args),
     error: (...args) => console.error('🦋', ...args),
     debug: (...args) => {
       if (!process.env.NODEBUG) {
-        console.debug('\n' + colors.yellow(filename), ...args.map(format))
+        console.debug(`\n${colors.yellow(filename)}`, ...args.map(format));
       }
-      return args[0]
-    }
-  }
-}
+      return args[0];
+    },
+  };
+};
 
 export const noBorders = {
   border: getBorderCharacters('void'),
   columnDefault: { paddingLeft: 0, paddingRight: 2 },
-  drawHorizontalLine: () => false
-}
+  drawHorizontalLine: () => false,
+};

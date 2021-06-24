@@ -1,5 +1,5 @@
-import Wrapper from "./Wrapper.js";
-import SecretNetworkContract from "./contract.js";
+import Wrapper from './Wrapper.js';
+import SecretNetworkContract from './contract.js';
 
 export default class SecretNetworkContractWithSchema extends SecretNetworkContract {
   constructor(options = {}, schema) {

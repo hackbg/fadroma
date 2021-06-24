@@ -1,4 +1,4 @@
-import { writeFile, resolve } from "@fadroma/utilities";
+import { writeFile, resolve } from '@fadroma/utilities';
 
 /** Interface to a contract instance.
  * Can be subclassed with schema to auto-generate methods
@@ -7,17 +7,21 @@ export default class SecretNetworkContract {
   /** Create an object representing a remote smart contract instance.
    */
   constructor(options = {}) {
-    const { agent, label, codeId, codeHash, initMsg, initTx } = options;
-    Object.assign(this, { agent, label, codeId, codeHash, initMsg, initTx });
+    const {
+      agent, label, codeId, codeHash, initMsg, initTx,
+    } = options;
+    Object.assign(this, {
+      agent, label, codeId, codeHash, initMsg, initTx,
+    });
   }
 
-  /**Get the address of the contract.
+  /** Get the address of the contract.
    */
   get address() {
     return this.initTx.contractAddress;
   }
 
-  /**Get a reference to the contract (address + code_hash)
+  /** Get a reference to the contract (address + code_hash)
    * in a format matching `scrt-callback`'s `ContractInstance`
    */
   get reference() {
@@ -27,20 +31,23 @@ export default class SecretNetworkContract {
     };
   }
 
-  /**Query the contract.
+  /** Query the contract.
    */
-  query = (method = "", args = null, agent = this.agent) =>
-    agent.query(this, method, args);
+  query(method = '', args = null, agent = this.agent) {
+    return agent.query(this, method, args);
+  }
 
-  /**Execute a contract transaction.
+  /** Execute a contract transaction.
    */
-  execute = (method = "", args = null, agent = this.agent) =>
-    agent.execute(this, method, args);
+  execute(method = '', args = null, agent = this.agent) {
+    return agent.execute(this, method, args);
+  }
 
   /** Save the contract's instantiation receipt.
    */
-  save = () =>
-    writeFile(this.receiptPath, JSON.stringify(this.receipt, null, 2), "utf8");
+  save() {
+    return writeFile(this.receiptPath, JSON.stringify(this.receipt, null, 2), 'utf8');
+  }
 
   /**
    * Create a temporary copy of a contract with a different agent
@@ -48,17 +55,17 @@ export default class SecretNetworkContract {
    * @param {SecretNetworkAgent} [agent]
    * @returns
    */
-  copy = (agent) => {
+  copy(agent) {
     if (
-      agent &&
-      typeof agent.query === "function" &&
-      typeof agent.execute === "function"
+      agent
+      && typeof agent.query === 'function'
+      && typeof agent.execute === 'function'
     ) {
       return new SecretNetworkContract({ ...this, agent });
     }
 
     return new SecretNetworkContract(this);
-  };
+  }
 
   /** Get the path to the contract receipt for the contract's code.
    */
@@ -77,7 +84,7 @@ export default class SecretNetworkContract {
     };
   }
 
-  /**Get an interface to the network where the contract is deployed.
+  /** Get an interface to the network where the contract is deployed.
    */
   get network() {
     return this.agent.network;

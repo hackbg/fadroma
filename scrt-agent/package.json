@@ -3,9 +3,6 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
-    "@cosmjs/crypto": "^0.24.1",
-    "@fadroma/utilities": "*",
-    "ajv": "^8.6.0",
-    "secretjs": "^0.11.0"
+    "@fadroma/utilities": "*"
   }
 }

@@ -1,4 +1,4 @@
-import Ajv from "ajv";
+import Ajv from 'ajv';
 
 /**
  * Check if the passed instance has required methods
@@ -9,10 +9,10 @@ import Ajv from "ajv";
  */
 const isAgent = (maybeAgent) => {
   return (
-    maybeAgent &&
-    typeof maybeAgent === "object" &&
-    typeof maybeAgent.query === "function" &&
-    typeof maybeAgent.execute === "function"
+    maybeAgent
+    && typeof maybeAgent === 'object'
+    && typeof maybeAgent.query === 'function'
+    && typeof maybeAgent.execute === 'function'
   );
 };
 
@@ -23,7 +23,7 @@ const isAgent = (maybeAgent) => {
  * @returns {string}
  */
 const camelCaseString = (str) => {
-  return str.replace(/(\_\w)/g, function (m) {
+  return str.replace(/(_\w)/g, function (m) {
     return m[1].toUpperCase();
   });
 };
@@ -39,19 +39,19 @@ const getAjv = () => {
   // Add type validation for intN and add automatically uintN
   const n = (name, max, min) => {
     ajv.addFormat(name, {
-      type: "number",
+      type: 'number',
       validate: (x) => !isNaN(x) && x >= min && x <= max,
     });
     ajv.addFormat(`u${name}`, {
-      type: "number",
+      type: 'number',
       validate: (x) => !isNaN(x) && x >= 0 && x <= max,
     });
   };
 
-  n("int8", 127, -128);
-  n("int16", 32767, -32768);
-  n("int32", 2147483647, -2147483648);
-  n("int64", 9223372036854775807n, -9223372036854775808n);
+  n('int8', 127, -128);
+  n('int16', 32767, -32768);
+  n('int32', 2147483647, -2147483648);
+  n('int64', 9223372036854775807n, -9223372036854775808n);
 
   return ajv;
 };
@@ -66,16 +66,16 @@ class Factory {
    * @param {SecretNetworkContract} contract
    */
   constructor(schema, contract) {
-    if (typeof schema !== "object" || schema === null) {
-      throw new Error("Schema must be an object");
+    if (typeof schema !== 'object' || schema === null) {
+      throw new Error('Schema must be an object');
     }
 
     if (
-      !schema.title.toLowerCase().startsWith("query") &&
-      !schema.title.toLowerCase().startsWith("handle")
+      !schema.title.toLowerCase().startsWith('query')
+      && !schema.title.toLowerCase().startsWith('handle')
     ) {
       throw new Error(
-        `Unsupported schema, at the time, only supported are some variants that have title starting with 'Query' or 'Handle'`
+        'Unsupported schema, at the time, only supported are some variants that have title starting with \'Query\' or \'Handle\'',
       );
     }
 
@@ -83,17 +83,17 @@ class Factory {
     this.schema = JSON.parse(
       JSON.stringify({
         ...schema,
-        type: "object",
+        type: 'object',
         $schema: undefined,
-      })
+      }),
     );
     this.methods = [];
     this.ajv = getAjv();
 
-    if (this.schema.title.toLowerCase().startsWith("query")) {
-      this.caller = "query";
-    } else if (this.schema.title.toLowerCase().startsWith("handle")) {
-      this.caller = "execute";
+    if (this.schema.title.toLowerCase().startsWith('query')) {
+      this.caller = 'query';
+    } else if (this.schema.title.toLowerCase().startsWith('handle')) {
+      this.caller = 'execute';
     }
   }
 
@@ -104,7 +104,7 @@ class Factory {
    * @returns {SecretNetworkContract}
    */
   getContract(agent) {
-    if (isAgent(agent) && typeof this.contract.copy === "function") {
+    if (isAgent(agent) && typeof this.contract.copy === 'function') {
       return this.contract.copy(agent);
     }
 
@@ -119,10 +119,12 @@ class Factory {
     this.parse();
 
     return this.methods.reduce((handlers, action) => {
-      handlers[camelCaseString(action.method)] = handlers[action.method] =
-        function (args, agent) {
-          return this.run(action.method, args, agent);
-        }.bind(this);
+      const handler = function (args, agent) {
+        return this.run(action.method, args, agent);
+      }.bind(this);
+
+      handlers[action.method] = handler;
+      handlers[camelCaseString(action.method)] = handler;
 
       return handlers;
     }, {});
@@ -135,15 +137,15 @@ class Factory {
   parse() {
     if (Array.isArray(this.schema.anyOf)) {
       for (const item of this.schema.anyOf) {
-        if (item.type === "string") {
+        if (item.type === 'string') {
           this.onlyMethod(item);
-        } else if (item.type === "object") {
+        } else if (item.type === 'object') {
           this.methodWithArgs(item);
         }
       }
     }
 
-    if (this.schema.type === "string" && Array.isArray(this.schema.enum)) {
+    if (this.schema.type === 'string' && Array.isArray(this.schema.enum)) {
       this.onlyMethod(this.schema);
     }
   }
@@ -175,8 +177,8 @@ class Factory {
 
       // This is to handle those enum variants that have arguments but it's only an empty object
       if (
-        Object.keys(item.properties[m]).length === 1 &&
-        item.properties[m].type === "object"
+        Object.keys(item.properties[m]).length === 1
+        && item.properties[m].type === 'object'
       ) {
         this.methods.push({
           method: m,
@@ -214,8 +216,8 @@ class Factory {
             validationErrors: validate.errors,
           },
           null,
-          2
-        )}`
+          2,
+        )}`,
       );
     }
   }
@@ -238,15 +240,14 @@ class Factory {
 
         if (action.string) {
           return this._callString(action, agent);
-        } else {
-          return this._callObject(action, args, agent);
         }
+        return this._callObject(action, args, agent);
       }
     }
 
     // This is unreacheable
     throw new Error(
-      `Method '${method}' couldn't be found in schema definition`
+      `Method '${method}' couldn't be found in schema definition`,
     );
   }
 
