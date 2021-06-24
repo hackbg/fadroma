@@ -2,10 +2,12 @@
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "dbaeumer.vscode-eslint",
   "[js]": {
-    "editor.defaultFormatter": null
+    "editor.defaultFormatter": null,
+    "editor.tabSize": 2
   },
   "[ts]": {
-    "editor.defaultFormatter": null
+    "editor.defaultFormatter": null,
+    "editor.tabSize": 2
   },
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"

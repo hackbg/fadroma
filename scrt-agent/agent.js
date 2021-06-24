@@ -54,7 +54,7 @@ export default class SecretNetworkAgent {
       pen,
       pubkey,
       API: new SigningCosmWasmClient(
-        network.url,
+        network.apiURL.toString(),
         this.address = pubkeyToAddress(pubkey, 'secret'),
         this.sign = pen.sign.bind(pen),
         this.seed = EnigmaUtils.GenerateNewSeed(),

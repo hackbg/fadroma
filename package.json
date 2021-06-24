@@ -28,7 +28,7 @@
   "scripts": {
     "docs": "documentation build js/** -f html --github -o doc/js",
     "docserv": "documentation serve --watch js/**",
-    "test": "DEBUG=out node_modules/.bin/mocha test/index.js",
+    "test": "DEBUG=out node_modules/.bin/mocha --timeout 5000 --exit test/index.js",
     "lint": "node_modules/.bin/eslint -c ./.eslintrc  --ignore-path ./.eslintignore ./index.js ./scrt-agent/*.js ./scrt-ops/*.js ./utilities/*.js"
   }
 }
