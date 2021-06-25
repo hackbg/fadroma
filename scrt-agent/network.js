@@ -37,14 +37,15 @@ export default class SecretNetwork {
 
   /** Create an instance that runs a node in a local Docker container and talks to it via SecretJS
    *  @return {SecretNetwork} */
-  static localnet ({
-    chainId = 'enigma-pub-testnet-3',
-    node    = new SecretNetworkNode({chainId, state}),
-    apiURL  = `${node.protocol}://${node.host}:${node.port}`
-  }={}) {
+  static localnet (options = {}) {
+    options.chainId = options.chainId || 'enigma-pub-testnet-3';
+    options.apiURL = options.apiURL || 'http://localhost:1337';
+    const node = options.node || new SecretNetworkNode(options);
+    options.node = node;
+
     // no default agent name/address/mnemonic:
     // connect() gets them from genesis accounts
-    return new this({ chainId, node, apiURL })
+    return new this(options)
   }
 
   /** Create an instance that talks to to holodeck-2 (Secret Network testnet) via SecretJS
@@ -89,7 +90,7 @@ export default class SecretNetwork {
     // directories to store state.
     this.stateBase = options.stateBase || defaultStateBase,
     this.state     = options.state     || makeStateDir(this.stateBase, this.chainId)
-    this.wallets   = options.state     || mkdir(this.state, 'wallets')
+    this.wallets   = options.wallets   || mkdir(this.state, 'wallets')
     this.receipts  = options.receipts  || mkdir(this.state, 'uploads')
     this.instances = options.instances || mkdir(this.state, 'instances')
     // handle to localnet node if this is localnet
@@ -109,8 +110,9 @@ export default class SecretNetwork {
         , defaultAgentAddress:  address } = this
 
     // if this is a localnet handle, wait for the localnet to start
-    let node
-    if (node = await Promise.resolve(this.node)) {
+    const node = await Promise.resolve(this.node);
+    if (node) {
+      this.node = node;
 
       // respawn that container
       debug(`⏳ preparing localnet ${bold(this.chainId)} @ ${bold(this.state)}`)
@@ -119,21 +121,16 @@ export default class SecretNetwork {
 
       // set the correct port to connect to
       this.apiURL.port = node.port
-      info(`🟢 localnet ready @ port ${bold(this.port)}`)
+      info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
 
       // get the default account for the node
       const adminAccount = await this.node.genesisAccount('ADMIN')
       mnemonic = adminAccount.mnemonic
       address  = adminAccount.address
-
-      // recreate state dirs nuked by localnet reset
-      for (const dir of [this.wallets, this.uploads, this.instances]) {
-        mkdir(dir)
-      }
     }
 
-    const { protocol, host, port } = this.apiURL
-    info(`⏳ connecting to ${this.chainId} via ${protocol} on ${host}:${port}`)
+    const { protocol, hostname, port } = this.apiURL
+    info(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
     const agent = this.defaultAgent = await this.getAgent("ADMIN", { mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
     return { node, network: this, agent, builder: this.getBuilder(agent) }
@@ -142,7 +139,7 @@ export default class SecretNetwork {
   /**The API URL that this instance talks to.
    * @type {string} */
   get url () {
-    return `${this.protocol}://${this.host}:${this.port}${this.path||''}`
+    return this.apiURL.toString()
   }
 
   /** create agent operating on the current instance's endpoint*/

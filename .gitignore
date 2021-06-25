@@ -3,3 +3,6 @@ scratch.rs
 node_modules
 Cargo.lock
 yarn-error.log
+.vscode
+package-lock.json
+artifacts
