@@ -1,6 +1,14 @@
 import SecretCLIAgent from "@fadroma/scrt-agent/agent-secretcli.js";
 import SecretNetwork from "@fadroma/scrt-agent/network.js";
 import SecretNetworkNode from "@fadroma/scrt-ops/localnet.js";
+import { gas } from "@fadroma/scrt-agent/gas.js";
+
+const fees = {
+  upload: gas(20000000),
+  init: gas(1000000),
+  exec: gas(1000000),
+  send: gas(500000),
+};
 
 /**
  * Function that takes an object and attaches testing parameters to it,
@@ -17,12 +25,14 @@ import SecretNetworkNode from "@fadroma/scrt-ops/localnet.js";
 export async function localnet(ctx = {}) {
   // Does not require us to actually be connected
   const localnet = SecretNetwork.localnet();
-  const { node, agent: admin, network } = await localnet.connect();
+  const { node, agent: admin, network, builder } = await localnet.connect();
   await admin.nextBlock;
+  admin.API.fees = fees;
 
   ctx.admin = admin;
   ctx.node = node;
   ctx.network = network;
+  ctx.builder = builder;
 
   return ctx;
 }

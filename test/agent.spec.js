@@ -1,13 +1,13 @@
-import SecretNetworkAgent from './agent.js';
-import SecretCLIAgent from './agent-secretcli.js';
+import SecretNetworkAgent from '../scrt-agent/agent.js';
+import SecretCLIAgent from '../scrt-agent/agent-secretcli.js';
 
-import SecretNetwork from './network.js';
+import SecretNetwork from '../scrt-agent/network.js';
 import debug from 'debug';
 import { assert } from 'chai';
 import { Bip39 } from '@cosmjs/crypto';
 import { EnigmaUtils, Secp256k1Pen } from 'secretjs';
 const log = debug('out');
-import { localnet } from '../test/helper.js';
+import { localnet } from './helper.js';
 
 const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
 const mnemonic1 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
