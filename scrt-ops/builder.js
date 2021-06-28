@@ -58,7 +58,7 @@ export default class SecretNetworkBuilder {
     const args = [buildImage, buildCommand, process.stdout, buildOptions]
     const [{Error:err, StatusCode:code}, container] = await this.docker.run(...args)
     await container.remove()
-    if (err) throw new Error(err)
+    if (err) throw err
     if (code !== 0) throw new Error(`build exited with status ${code}`)
     return resolve(options.outputDir, `${options.crate}@${options.ref}.wasm`)
   }

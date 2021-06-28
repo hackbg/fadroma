@@ -56,8 +56,8 @@ export default class ContractEnsemble {
     * It is also possible to instantiate an Ensemble without network,
     * agent, or builder; it would only be able to run local commands. */
   constructor (options = {}) {
-    let { network, agent, builder = this.builder } = options
-    Object.assign(this, { network, agent, builder })
+    let { network, agent, builder = this.builder, workspace } = options
+    Object.assign(this, { network, agent, builder, workspace })
   }
 
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
@@ -128,7 +128,7 @@ export default class ContractEnsemble {
     const { agent, builder } = await network.connect()
     const { task = taskmaster(), initMsgs = {} } = options
     return await task('build, upload, and initialize contracts', async () => {
-      const binaries  = await this.build({ task, builder })
+      const binaries  = await this.build({ task, builder, workspace: options.workspace || this.workspace })
       const receipts  = await this.upload({ task, network, builder, binaries })
       const contracts = await this.initialize({ task, network, receipts, agent })
       return contracts

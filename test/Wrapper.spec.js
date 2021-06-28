@@ -1,5 +1,5 @@
 import { assert } from "chai";
-import SchemaWrapper from "./Wrapper.js";
+import SchemaWrapper from "../scrt-agent/Wrapper.js";
 
 const schema = {
   $schema: "http://json-schema.org/draft-07/schema#",
