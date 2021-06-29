@@ -16,7 +16,12 @@ describe("Secret Network Ensemble", function () {
         };
       },
     };
+
+    async initialize () {
+      return 1
+    }
   }
+  
   beforeEach(function () {
     e = new TestEnsemble({
       network: 'localnet',

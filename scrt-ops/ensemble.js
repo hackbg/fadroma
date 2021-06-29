@@ -128,8 +128,7 @@ export default class ContractEnsemble {
     const { agent, builder } = await network.connect()
     const { task = taskmaster(), initMsgs = {} } = options
     return await task('build, upload, and initialize contracts', async () => {
-      console.log(options)
-      const binaries  = await this.build({ task, builder, workspace: options.workspace || this.workspace })
+      const binaries = await this.build({ task, builder, workspace: options.workspace || this.workspace })
       const receipts  = await this.upload({ task, network, builder, binaries })
       const contracts = await this.initialize({ task, network, receipts, agent })
       return contracts
