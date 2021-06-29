@@ -1,0 +1,5 @@
+/target
+contract.wasm
+contract.wasm.gz
+hash.txt
+!Cargo.lock

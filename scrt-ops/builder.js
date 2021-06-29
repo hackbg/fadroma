@@ -56,10 +56,14 @@ export default class SecretNetworkBuilder {
       buildOptions.HostConfig.Binds.push(`${options.workspace}:/contract:rw`)
     }
     const args = [buildImage, buildCommand, process.stdout, buildOptions]
-    const [{Error:err, StatusCode:code}, container] = await this.docker.run(...args)
+    const [response, container] = await this.docker.run(...args)
+    const { Error: err, StatusCode: code } = response;
     await container.remove()
     if (err) throw err
-    if (code !== 0) throw new Error(`build exited with status ${code}`)
+    if (code !== 0) {
+      console.log(response)
+      throw new Error(`build exited with status ${code}`)
+    }
     return resolve(options.outputDir, `${options.crate}@${options.ref}.wasm`)
   }
 

@@ -1,12 +1,11 @@
 import assert from "assert";
 import Ensemble from "@fadroma/scrt-ops/ensemble.js";
 import path from "path";
-const context = {};
 
-describe("Secret Network Ensemble", () => {
+describe("Secret Network Ensemble", function () {
   let e;
   class TestEnsemble extends Ensemble {
-    contracts = { TEST: { crate: "test" } };
+    contracts = { TEST: { crate: "votes" } };
     docker = {
       async getImage() {
         //console.debug('mock getImage')
@@ -18,10 +17,10 @@ describe("Secret Network Ensemble", () => {
       },
     };
   }
-  beforeEach(() => {
+  beforeEach(function () {
     e = new TestEnsemble({
       network: 'localnet',
-      workspace: path.resolve('./artifacts'),
+      workspace: path.resolve('./test/assets/contract'),
       builder: {
         async build(...args) {
           //console.debug('mock Builder.build', ...args)
@@ -37,14 +36,14 @@ describe("Secret Network Ensemble", () => {
   });
 
   it("has a local build command", async function () {
-    this.timeout(120000);
+    this.timeout(0);
     assert(e.localCommands.map((x) => x[0]).indexOf("build") > -1);
     await e.build();
   });
 
   it("has a remote deploy command", async function () {
-    this.timeout(120000);
+    this.timeout(0);
     assert(e.remoteCommands.map((x) => x[0]).indexOf("deploy") > -1);
-    await e.deploy();
+    await e.deploy({workspace: path.resolve('./test/assets/contract')});
   });
 });
