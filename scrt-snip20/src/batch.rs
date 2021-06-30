@@ -1,9 +1,7 @@
 //! Types used in batch operations
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use cosmwasm_std::{Binary, HumanAddr, Uint128};
+use fadroma::scrt::cosmwasm_std::{Binary, HumanAddr, Uint128};
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]

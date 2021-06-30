@@ -1,11 +1,11 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use cosmwasm_std::{to_binary, Binary, CosmosMsg, HumanAddr, StdResult, Uint128, WasmMsg};
-
-use crate::utils::{RESPONSE_BLOCK_SIZE, space_pad};
+use fadroma::scrt::{
+    BLOCK_SIZE,
+    cosmwasm_std::{to_binary, Binary, CosmosMsg, HumanAddr, StdResult, Uint128, WasmMsg}
+};
+use crate::utils::{space_pad};
 
 /// Snip20ReceiveMsg should be de/serialized under `Receive()` variant in a HandleMsg
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
@@ -40,7 +40,7 @@ impl Snip20ReceiveMsg {
     pub fn into_binary(self) -> StdResult<Binary> {
         let msg = ReceiverHandleMsg::Receive(self);
         let mut data = to_binary(&msg)?;
-        space_pad(RESPONSE_BLOCK_SIZE, &mut data.0);
+        space_pad(BLOCK_SIZE, &mut data.0);
         Ok(data)
     }
 

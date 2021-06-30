@@ -1,13 +1,15 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{Binary, HumanAddr, StdError, StdResult, Uint128};
-use cosmwasm_utils::viewing_key::ViewingKey;
-use fadroma_scrt_callback::Callback;
-
-use crate::batch;
-use crate::transaction_history::{RichTx, Tx};
+use fadroma::scrt::{
+    cosmwasm_std::{Binary, HumanAddr, StdError, StdResult, Uint128},
+    callback::Callback,
+    utils::viewing_key::ViewingKey,
+};
+use crate::{
+    batch,
+    transaction_history::{RichTx, Tx}
+};
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
 pub struct InitialBalance {
@@ -508,7 +510,7 @@ pub fn space_pad(block_size: usize, message: &mut Vec<u8>) -> &mut Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{from_slice, StdResult};
+    use fadroma::scrt::cosmwasm_std::{from_slice, StdResult};
 
     #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
     #[serde(rename_all = "snake_case")]

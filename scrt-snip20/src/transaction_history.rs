@@ -1,12 +1,13 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use cosmwasm_std::{
-    Api, CanonicalAddr, Coin, HumanAddr, ReadonlyStorage, StdError, StdResult, Storage, Uint128,
+use fadroma::scrt::{
+    cosmwasm_std::{
+        Uint128, HumanAddr, CanonicalAddr, StdError, StdResult, Coin,
+        Api, Storage, ReadonlyStorage, BlockInfo, debug_print
+    },
+    cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage},
+    toolkit::storage::{AppendStore, AppendStoreMut},
 };
-use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
-
-use secret_toolkit::storage::{AppendStore, AppendStoreMut};
 
 use crate::state::Config;
 
@@ -249,7 +250,7 @@ impl StoredRichTx {
         action: StoredTxAction,
         coins: Coin,
         memo: Option<String>,
-        block: &cosmwasm_std::BlockInfo,
+        block: &BlockInfo,
     ) -> Self {
         Self {
             id,
@@ -303,7 +304,7 @@ pub fn store_transfer<S: Storage>(
     amount: Uint128,
     denom: String,
     memo: Option<String>,
-    block: &cosmwasm_std::BlockInfo,
+    block: &BlockInfo,
 ) -> StdResult<()> {
     let id = increment_tx_count(store)?;
     let coins = Coin { denom, amount };
@@ -321,18 +322,18 @@ pub fn store_transfer<S: Storage>(
 
     // Write to the owners history if it's different from the other two addresses
     if owner != sender && owner != receiver {
-        cosmwasm_std::debug_print("saving transaction history for owner");
+        debug_print("saving transaction history for owner");
         append_tx(store, &tx, owner)?;
         append_transfer(store, &transfer, owner)?;
     }
     // Write to the sender's history if it's different from the receiver
     if sender != receiver {
-        cosmwasm_std::debug_print("saving transaction history for sender");
+        debug_print("saving transaction history for sender");
         append_tx(store, &tx, sender)?;
         append_transfer(store, &transfer, sender)?;
     }
     // Always write to the recipient's history
-    cosmwasm_std::debug_print("saving transaction history for receiver");
+    debug_print("saving transaction history for receiver");
     append_tx(store, &tx, receiver)?;
     append_transfer(store, &transfer, receiver)?;
 
@@ -346,7 +347,7 @@ pub fn store_mint<S: Storage>(
     amount: Uint128,
     denom: String,
     memo: Option<String>,
-    block: &cosmwasm_std::BlockInfo,
+    block: &BlockInfo,
 ) -> StdResult<()> {
     let id = increment_tx_count(store)?;
     let coins = Coin { denom, amount };
@@ -368,7 +369,7 @@ pub fn store_burn<S: Storage>(
     amount: Uint128,
     denom: String,
     memo: Option<String>,
-    block: &cosmwasm_std::BlockInfo,
+    block: &BlockInfo,
 ) -> StdResult<()> {
     let id = increment_tx_count(store)?;
     let coins = Coin { denom, amount };
@@ -388,7 +389,7 @@ pub fn store_deposit<S: Storage>(
     recipient: &CanonicalAddr,
     amount: Uint128,
     denom: String,
-    block: &cosmwasm_std::BlockInfo,
+    block: &BlockInfo,
 ) -> StdResult<()> {
     let id = increment_tx_count(store)?;
     let coins = Coin { denom, amount };
@@ -405,7 +406,7 @@ pub fn store_redeem<S: Storage>(
     redeemer: &CanonicalAddr,
     amount: Uint128,
     denom: String,
-    block: &cosmwasm_std::BlockInfo,
+    block: &BlockInfo,
 ) -> StdResult<()> {
     let id = increment_tx_count(store)?;
     let coins = Coin { denom, amount };

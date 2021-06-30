@@ -1,11 +1,11 @@
-use cosmwasm_std::{StdResult, HandleResponse};
+use fadroma::scrt::{BLOCK_SIZE, cosmwasm_std::{StdResult, HandleResponse}};
 
-pub const RESPONSE_BLOCK_SIZE: usize = 256;
+//pub const RESPONSE_BLOCK_SIZE: usize = 256;
 
 pub fn pad_response(response: StdResult<HandleResponse>) -> StdResult<HandleResponse> {
     response.map(|mut response| {
         response.data = response.data.map(|mut data| {
-            space_pad(RESPONSE_BLOCK_SIZE, &mut data.0);
+            space_pad(BLOCK_SIZE, &mut data.0);
             data
         });
         response

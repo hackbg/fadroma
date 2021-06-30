@@ -1,32 +1,35 @@
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;
-
-use cosmwasm_std::{
-    log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg,
-    Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
-    ReadonlyStorage, StdError, StdResult, Storage, Uint128, WasmMsg
+use fadroma::scrt::{
+    cosmwasm_std::{
+        log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg,
+        Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
+        ReadonlyStorage, StdError, StdResult, Storage, Uint128, WasmMsg, BlockInfo
+    },
+    utils::{
+        viewing_key::{ViewingKey, VIEWING_KEY_SIZE},
+        crypto::sha_256
+    }
 };
-
-use cosmwasm_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
-use cosmwasm_utils::crypto::sha_256;
-
-use crate::msg::{
-    ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg,
-    QueryAnswer, ResponseStatus, QueryMsg
+use crate::{
+    msg::{
+        ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg,
+        QueryAnswer, ResponseStatus, QueryMsg
+    },
+    receiver::Snip20ReceiveMsg,
+    state::{
+        get_receiver_hash, read_allowance, set_receiver_hash, write_allowance,
+        read_viewing_key, write_viewing_key, Balances, Config, Constants,
+        ReadonlyBalances, ReadonlyConfig
+    },
+    transaction_history::{
+        get_transfers, get_txs, store_burn, store_deposit, store_mint,
+        store_redeem, store_transfer,
+    },
+    batch,
+    utils::pad_response,
 };
-use crate::receiver::Snip20ReceiveMsg;
-use crate::state::{
-    get_receiver_hash, read_allowance, set_receiver_hash, write_allowance,
-    read_viewing_key, write_viewing_key, Balances, Config, Constants,
-    ReadonlyBalances, ReadonlyConfig
-};
-use crate::transaction_history::{
-    get_transfers, get_txs, store_burn, store_deposit, store_mint,
-    store_redeem, store_transfer,
-};
-use crate::batch;
-use crate::utils::pad_response;
 
 pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -1366,7 +1369,7 @@ pub fn transfer_impl<S: Storage, A: Api, Q: Querier>(
     recipient: &CanonicalAddr,
     amount: Uint128,
     memo: Option<String>,
-    block: &cosmwasm_std::BlockInfo,
+    block: &BlockInfo,
 ) -> StdResult<()> {
     perform_transfer(&mut deps.storage, &sender, &recipient, amount.u128())?;
 
@@ -1424,7 +1427,7 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
     amount: Uint128,
     memo: Option<String>,
     msg: Option<Binary>,
-    block: &cosmwasm_std::BlockInfo,
+    block: &BlockInfo,
 ) -> StdResult<()> {
     let recipient_canon = deps.api.canonical_address(&recipient)?;
 
@@ -1573,7 +1576,7 @@ pub fn mint_impl<S: Storage>(
     amount: Uint128,
     denom: String,
     memo: Option<String>,
-    block: &cosmwasm_std::BlockInfo,
+    block: &BlockInfo,
 ) -> StdResult<()> {
     let raw_amount = amount.u128();
 

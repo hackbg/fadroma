@@ -1,16 +1,16 @@
 use std::any::type_name;
 use std::convert::TryFrom;
-
-use cosmwasm_std::{CanonicalAddr, HumanAddr, ReadonlyStorage, StdError, StdResult, Storage};
-use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
-
-use secret_toolkit::storage::{TypedStore, TypedStoreMut};
-
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-
-use cosmwasm_utils::viewing_key::ViewingKey;
+use fadroma::scrt::{
+    cosmwasm_std::{
+        CanonicalAddr, HumanAddr, ReadonlyStorage, StdError, StdResult, Storage, BlockInfo
+    },
+    cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage},
+    toolkit::storage::{TypedStore, TypedStoreMut},
+    utils::viewing_key::ViewingKey
+};
 
 use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
 
@@ -304,7 +304,7 @@ pub struct Allowance {
 }
 
 impl Allowance {
-    pub fn is_expired_at(&self, block: &cosmwasm_std::BlockInfo) -> bool {
+    pub fn is_expired_at(&self, block: &BlockInfo) -> bool {
         match self.expiration {
             Some(time) => block.time >= time,
             None => false, // allowance has no expiration
