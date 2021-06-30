@@ -24,7 +24,7 @@ contract!(
             voted: Vec::new(),
         };
 
-        // save_state!(state);
+        save_state!(state);
     }
 
     [Query] (_deps, state, msg) -> Response {
