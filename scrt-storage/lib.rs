@@ -1,6 +1,6 @@
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-use cosmwasm_std::{ReadonlyStorage, StdResult, Storage, from_slice, to_vec};
+pub use fadroma_scrt_base::cosmwasm_std::{ReadonlyStorage, StdResult, Storage, from_slice, to_vec};
 
 pub fn save<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], value: &T) -> StdResult<()> {
     storage.set(key, &to_vec(value)?);

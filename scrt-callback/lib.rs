@@ -3,18 +3,21 @@ use fadroma_scrt_addr::{Humanize, Canonize};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+pub type CodeId = u64;
+pub type CodeHash = String;
+
 /// Info needed to instantiate a contract.
 #[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
 pub struct ContractInstantiationInfo {
-    pub code_hash: String,
-    pub id: u64
+    pub code_hash: CodeHash,
+    pub id:        CodeId
 }
 
 /// Info needed to talk to a contract instance.
 #[derive(Default, Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
 pub struct ContractInstance<A> {
-    pub address: A,
-    pub code_hash: String
+    pub address:   A,
+    pub code_hash: CodeHash
 }
 impl Canonize<ContractInstance<CanonicalAddr>> for ContractInstance<HumanAddr> {
     fn canonize (&self, api: &impl Api) -> StdResult<ContractInstance<CanonicalAddr>> {

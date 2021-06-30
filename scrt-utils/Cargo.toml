@@ -1,5 +1,5 @@
 [package]
-name = "cosmwasm-utils"
+name = "fadroma-scrt-utils"
 version = "0.1.0"
 authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 edition = "2018"

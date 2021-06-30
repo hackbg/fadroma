@@ -1,0 +1,27 @@
+[package]
+name = "fadroma"
+version = "21.7.0"
+authors = ["Adam A. <adam@hack.bg>"]
+edition = "2018"
+
+[lib]
+name = "fadroma"
+path = "lib.rs"
+
+[dependencies]
+secret-toolkit   = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
+
+fadroma-scrt-base     = { optional = true, path = "../scrt" }
+fadroma-scrt-addr     = { optional = true, path = "../scrt-addr" }
+fadroma-scrt-callback = { optional = true, path = "../scrt-callback" }
+fadroma-scrt-contract = { optional = true, path = "../scrt-contract" }
+fadroma-scrt-migrate  = { optional = true, path = "../scrt-migrate" }
+fadroma-scrt-storage  = { optional = true, path = "../scrt-storage" }
+
+[features]
+scrt          = ["fadroma-scrt-base"]
+scrt-addr     = ["scrt", "fadroma-scrt-addr"]
+scrt-callback = ["scrt", "fadroma-scrt-callback"]
+scrt-contract = ["scrt", "fadroma-scrt-contract"]
+scrt-migrate  = ["scrt", "fadroma-scrt-migrate"]
+scrt-storage  = ["scrt", "fadroma-scrt-storage"]
