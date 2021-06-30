@@ -26,7 +26,7 @@ describe("Secret Network Ensemble", function () {
   beforeEach(function () {
     e = new TestEnsemble({
       network: 'localnet',
-      workspace: path.resolve('./test/assets/contract'),
+      workspace: path.resolve('./'),
       builder: {
         async build(...args) {
           //console.debug('mock Builder.build', ...args)
@@ -49,13 +49,15 @@ describe("Secret Network Ensemble", function () {
 
   it("has a remote deploy command", async function () {
     this.timeout(0);
-    const p = path.resolve('./test/assets');
-    const workspace = path.resolve(p, 'contract');
-    assert(e.remoteCommands.map((x) => x[0]).indexOf("deploy") > -1);
-    await e.deploy({ workspace });
 
-    const builtContract = path.resolve(workspace, 'artifacts', 'votes@HEAD.wasm');
-    const preparedContract = path.resolve(p, 'votes@HEAD.wasm');
+    const p = path.resolve('./test');
+    const contract = path.resolve(p, 'contract');
+
+    assert(e.remoteCommands.map((x) => x[0]).indexOf("deploy") > -1);
+    await e.deploy({ workspace: contract });
+
+    const builtContract = path.resolve(contract, 'artifacts', 'votes@HEAD.wasm');
+    const preparedContract = path.resolve(p, 'assets', 'votes@HEAD.wasm');
     
     assert.strictEqual(fs.existsSync(builtContract), true);
 

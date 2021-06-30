@@ -24,7 +24,7 @@ fadroma = { git="https://github.com/hackbg/fadroma", branch="21.07", features = 
     "scrt-migrate",
     "scrt-storage"
 ] }
-# fadroma = { path = "../../../core", features = [
+# fadroma = { path = "../../core", features = [
 #     "scrt-addr",
 #     "scrt-callback",
 #     "scrt-contract",

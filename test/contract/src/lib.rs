@@ -18,11 +18,13 @@ contract!(
             votes.push((option, 0));
         }
 
-        State {
+        let state = State {
             creator: deps.api.canonical_address(&env.message.sender)?,
             votes,
             voted: Vec::new(),
-        }
+        };
+
+        // save_state!(state);
     }
 
     [Query] (_deps, state, msg) -> Response {
