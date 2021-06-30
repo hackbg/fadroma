@@ -1,6 +1,7 @@
 import assert from "assert";
 import Ensemble from "@fadroma/scrt-ops/ensemble.js";
 import path from "path";
+import fs from "fs";
 
 describe("Secret Network Ensemble", function () {
   let e;
@@ -48,7 +49,20 @@ describe("Secret Network Ensemble", function () {
 
   it("has a remote deploy command", async function () {
     this.timeout(0);
+    const p = path.resolve('./test/assets');
+    const workspace = path.resolve(p, 'contract');
     assert(e.remoteCommands.map((x) => x[0]).indexOf("deploy") > -1);
-    await e.deploy({workspace: path.resolve('./test/assets/contract')});
+    await e.deploy({ workspace });
+
+    const builtContract = path.resolve(workspace, 'artifacts', 'votes@HEAD.wasm');
+    const preparedContract = path.resolve(p, 'votes@HEAD.wasm');
+    
+    assert.strictEqual(fs.existsSync(builtContract), true);
+
+    if (fs.existsSync(preparedContract)) {
+      fs.unlinkSync(preparedContract);
+    }
+
+    fs.renameSync(builtContract, preparedContract);
   });
 });
