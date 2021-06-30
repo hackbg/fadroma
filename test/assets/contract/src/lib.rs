@@ -1,13 +1,12 @@
 #![allow(clippy::needless_question_mark)] // There are some needles question marks in the contract! macro
-#[macro_use]
-extern crate fadroma_scrt_contract;
+use fadroma::scrt::contract::*;
 
 contract!(
 
     [State] {
         creator: CanonicalAddr,
         votes: Vec<(String, u32)>,
-        voted: Vec<cosmwasm_std::CanonicalAddr>
+        voted: Vec<CanonicalAddr>
     }
 
     [Init] (deps, env, msg: {
@@ -26,7 +25,7 @@ contract!(
         }
     }
 
-    [Q] (_deps, state, msg) -> Response {
+    [Query] (_deps, state, msg) -> Response {
         Status () {
             Ok(Response::Results { votes: state.votes })
         }
@@ -63,8 +62,9 @@ contract!(
 #[cfg(test)]
 mod test {
     use super::*;
-    use cosmwasm_std::from_binary;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage};
+    use fadroma::scrt::cosmwasm_std::{Extern};
+    use fadroma::scrt::cosmwasm_std::from_binary;
+    use fadroma::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env, MockApi, MockQuerier, MockStorage};
 
     /// Query for right amount of votes
     fn assert_query_ok(
@@ -77,7 +77,7 @@ mod test {
             ("option2".to_string(), option2),
         ];
 
-        let query_response = query(deps, msg::Q::Status {}).expect("Querying went wrong");
+        let query_response = query(deps, msg::Query::Status {}).expect("Querying went wrong");
         let res = from_binary::<msg::Response>(&query_response)
             .expect("Converting query response from binary went wrong");
         match res {
