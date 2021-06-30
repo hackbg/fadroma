@@ -126,7 +126,10 @@
             $deps: &mut Extern<S, A, Q>, $env: Env, $msg: $Init
         ) -> StdResult<InitResponse> {
             $(let $field : $type = $msg.$field;)*
-            get_store_rw(&mut $deps.storage).save(&$body)?;
+            macro_rules! save_state {
+                () => { get_store_rw(&mut $deps.storage).save(&$state)?; }
+            };
+            $body;
             Ok(InitResponse::default())
         }
     };
@@ -139,8 +142,11 @@
         pub fn init <S: Storage, A: Api, Q: Querier>(
             $deps: &mut Extern<S, A, Q>, $env: Env, $msg: $InitExt
         ) -> StdResult<InitResponse> {
-            // no auto-destructuring
-            get_store_rw(&mut $deps.storage).save(&$body)?;
+            // no auto-destructuring because the macro is not aware of the struct fields
+            macro_rules! save_state {
+                () => { get_store_rw(&mut $deps.storage).save(&$state)?; }
+            };
+            $body;
             Ok(InitResponse::default())
         }
     };
