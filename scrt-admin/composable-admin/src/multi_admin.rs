@@ -1,11 +1,11 @@
 use cosmwasm_std::{
     HumanAddr, CanonicalAddr, StdResult, Extern, Env,
-    Api, Querier, Storage, to_vec, StdError, HandleResponse,
-    Binary, to_binary, from_slice, ReadonlyStorage
+    Api, Querier, Storage, StdError, HandleResponse,
+    Binary, to_binary
 };
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
-use serde::de::DeserializeOwned;
+use fadroma_scrt_storage::{save, load};
 
 const ADMINS_KEY: &[u8] = b"i801onL3kf";
 
@@ -90,23 +90,21 @@ pub fn save_admins<S: Storage, A: Api, Q: Querier>(
     addresses: &Vec<HumanAddr>
 ) -> StdResult<()> {
     let mut admins: Vec<CanonicalAddr> = 
-        load(&deps.storage, ADMINS_KEY).unwrap_or(vec![]);
+        load(&deps.storage, ADMINS_KEY)?.unwrap_or(vec![]);
     
     for address in addresses {
         let canonical = deps.api.canonical_address(address)?;
         admins.push(canonical);
     }
 
-    deps.storage.set(ADMINS_KEY, &to_vec(&admins)?);
-
-    Ok(())
+    save(&mut deps.storage, ADMINS_KEY, &admins)
 }
 
 pub fn load_admins<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
 ) -> StdResult<Vec<HumanAddr>> {
     let admins: Vec<CanonicalAddr> =
-        load(&deps.storage, ADMINS_KEY).unwrap_or(vec![]);
+        load(&deps.storage, ADMINS_KEY)?.unwrap_or(vec![]);
     
     let mut result = Vec::with_capacity(admins.len());
 
@@ -128,18 +126,6 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
     }
 
     Err(StdError::unauthorized())
-}
-
-fn load<T: DeserializeOwned, S: ReadonlyStorage>(storage: &S, key: &[u8]) -> StdResult<T> {
-    let result = storage.get(key).ok_or_else(||
-        StdError::SerializeErr { 
-            source: "load".into(),
-            msg: "key not found".into(),
-            backtrace: None
-        }
-    )?;
-    
-    from_slice(&result)
 }
 
 #[cfg(test)]
