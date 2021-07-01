@@ -31,49 +31,47 @@ export default class SecretNetworkBuilder {
     return this.agent ? this.agent.address : undefined
   }
 
-  /** Build from source in a Docker container.
-   */
-  async build (options) {
-    const buildImage   = await pull('enigmampc/secret-contract-optimizer:latest', this.docker)
-    const buildCommand = this.getBuildCommand(options)
-    const entrypoint   = resolve(__dirname, 'build.sh')
-    const buildOptions = {
-      Env: this.getBuildEnv(),
-      Tty: true,
-      AttachStdin: true,
-      Entrypoint: ['/bin/sh', '-c'],
-      HostConfig: {
-        Binds: [
-          `${entrypoint}:/entrypoint.sh:ro`,
-          `${options.outputDir}:/output:rw`,
-          `sienna_cache_${options.ref||'HEAD'}:/code/target:rw`,
-          `cargo_cache_${options.ref||'HEAD'}:/usr/local/cargo:rw`,
-        ]
-      }
+  /** Build from source in a Docker container. */
+  async build (options = {}) {
+    const { buildAs   = 'root'
+          , origin
+          , ref       = 'HEAD'
+          , workspace
+          , crate
+          , outputDir = resolve(workspace, 'artifacts') } = options
+        , buildImage   = await pull('enigmampc/secret-contract-optimizer:latest', this.docker)
+        , buildCommand = this.getBuildCommand({buildAs, origin, ref, crate})
+        , entrypoint   = resolve(__dirname, 'build.sh')
+        , buildOptions =
+          { Env: this.getBuildEnv()
+          , Tty: true
+          , AttachStdin: true
+          , Entrypoint: ['/bin/sh', '-c']
+          , HostConfig: { Binds: [ `${entrypoint}:/entrypoint.sh:ro`
+                                 , `${outputDir}:/output:rw`
+                                 , `sienna_cache_${ref}:/code/target:rw`
+                                 , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
+    if (ref === 'HEAD') { // when building working tree
+      debug(`building working tree at ${workspace} into ${outputDir}...`)
+      buildOptions.HostConfig.Binds.push(`${workspace}:/contract:rw`)
     }
-    options.ref = options.ref || 'HEAD'
-    if (options.ref === 'HEAD') { // when building working tree
-      debug(`building working tree at ${options.workspace} into ${options.outputDir}...`)
-      buildOptions.HostConfig.Binds.push(`${options.workspace}:/contract:rw`)
-    }
-    const args = [buildImage, buildCommand, process.stdout, buildOptions]
-    const [response, container] = await this.docker.run(...args)
-    const { Error: err, StatusCode: code } = response;
+
+    const [{Error:err, StatusCode:code}, container] = await this.docker.run(
+      buildImage, buildCommand, process.stdout, buildOptions
+    )
+
     await container.remove()
-    if (err || code !== 0) {
-      throw new Error(err || `build exited with status ${code}`)
-    }
-    return resolve(options.outputDir, `${options.crate}@${options.ref}.wasm`)
+
+    if (err) throw err
+
+    if (code !== 0) throw new Error(`build exited with status ${code}`)
+
+    return resolve(outputDir, `${crate}@${ref}.wasm`)
   }
 
   /** Generate the command line for the container.
    */
-  getBuildCommand ({
-    buildAs = 'root',
-    origin  = 'git@github.com:hackbg/sienna-secret-token.git',
-    ref     = 'HEAD',
-    crate,
-  }) {
+  getBuildCommand ({ buildAs, origin, ref, crate }) {
     const commands = []
     if (ref !== 'HEAD') {
       assert(origin && ref, 'to build a ref from origin, specify both')

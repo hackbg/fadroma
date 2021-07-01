@@ -128,7 +128,7 @@
             $(let $field : $type = $msg.$field;)*
             macro_rules! save_state {
                 // Storing the global state of the contract with this macro
-                ($global_state:ident) => { get_store_rw(&mut $deps.storage).save(&$global_state)?; }
+                ($global_state:expr) => { get_store_rw(&mut $deps.storage).save(&$global_state)?; }
             };
             $body;
             Ok(InitResponse::default())
@@ -146,7 +146,7 @@
             // no auto-destructuring because the macro is not aware of the struct fields
             macro_rules! save_state {
                 // Storing the global state of the contract with this macro
-                ($global_state:ident) => { get_store_rw(&mut $deps.storage).save(&$global_state)?; }
+                ($global_state:expr) => { get_store_rw(&mut $deps.storage).save(&$global_state)?; }
             };
             $body;
             Ok(InitResponse::default())

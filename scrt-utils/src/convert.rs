@@ -45,7 +45,7 @@ pub fn convert_token(
         let compensation = Some(U256::from(compensation));
 
         result = u256_math::div(Some(result), compensation).ok_or_else(|| 
-            StdError::generic_err(err_msg) 
+            StdError::generic_err("Divison by zero.") 
         )?;
     }
 
@@ -67,14 +67,9 @@ pub fn convert_token(
 
 /// Get the amount needed to represent 1 whole token given its decimals.
 /// Ex. Given token A that has 3 decimals, 1 A == 1000
+#[inline]
 pub fn get_whole_token_representation(decimals: u8) -> u128 {
-    let mut whole_token = 1u128;
-
-    for _ in 0..decimals {
-        whole_token *= 10;
-    };
-
-    whole_token
+    1 * 10u128.pow(decimals.into())
 }
 
 #[cfg(test)]

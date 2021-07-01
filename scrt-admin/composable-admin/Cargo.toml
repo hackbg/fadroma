@@ -4,16 +4,18 @@ version = "0.1.0"
 authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 edition = "2018"
 
+[[example]]
+name = "contract"
+crate-type = ["staticlib"]
+test = true
+
 [dependencies]
+cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
-snafu = { version = "0.6.3" }
-
-cosmwasm-schema  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 
 require-admin = { path = "../require-admin", optional = true }
+fadroma-scrt-storage = { path = "../../scrt-storage" }
 
 [features]
 default = ["derive"]

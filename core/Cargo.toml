@@ -17,6 +17,7 @@ fadroma-scrt-callback = { optional = true, path = "../scrt-callback" }
 fadroma-scrt-contract = { optional = true, path = "../scrt-contract" }
 fadroma-scrt-migrate  = { optional = true, path = "../scrt-migrate" }
 fadroma-scrt-storage  = { optional = true, path = "../scrt-storage" }
+fadroma-scrt-utils    = { optional = true, path = "../scrt-utils" }
 
 [features]
 scrt          = ["fadroma-scrt-base"]
@@ -25,3 +26,4 @@ scrt-callback = ["scrt", "fadroma-scrt-callback"]
 scrt-contract = ["scrt", "fadroma-scrt-contract"]
 scrt-migrate  = ["scrt", "fadroma-scrt-migrate"]
 scrt-storage  = ["scrt", "fadroma-scrt-storage"]
+scrt-utils    = ["scrt", "fadroma-scrt-utils"]

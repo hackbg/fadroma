@@ -15,4 +15,7 @@ pub mod scrt {
 
     #[cfg(feature="scrt-migrate")]
     pub use fadroma_scrt_migrate  as migrate;
+
+    #[cfg(feature="scrt-utils")]
+    pub use fadroma_scrt_utils    as utils;
 }
