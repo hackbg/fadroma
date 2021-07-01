@@ -22,7 +22,7 @@ export default class SecretNetworkBuilder {
     if (!network && agent) {
       network = agent.network
     } else if (!agent && network) {
-      agent = network.agent
+      agent = network.defaultAgent
     }
     Object.assign(this, { network, agent })
   }
