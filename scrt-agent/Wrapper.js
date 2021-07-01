@@ -70,15 +70,6 @@ class Factory {
       throw new Error("Schema must be an object");
     }
 
-    if (
-      !schema.title.toLowerCase().startsWith("query") &&
-      !schema.title.toLowerCase().startsWith("handle")
-    ) {
-      throw new Error(
-        `Unsupported schema, at the time, only supported are some variants that have title starting with 'Query' or 'Handle'`
-      );
-    }
-
     this.contract = contract;
     this.schema = JSON.parse(
       JSON.stringify({

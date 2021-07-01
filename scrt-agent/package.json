@@ -1,5 +1,6 @@
 {
   "name": "@fadroma/scrt-agent",
   "version": "0.1.0",
-  "type": "module"
+  "type": "module",
+  "main": "index.js"
 }

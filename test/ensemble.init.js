@@ -1,12 +1,12 @@
 import assert from "assert";
 import Ensemble from "@fadroma/scrt-ops/ensemble.js";
 import path from "path";
-const context = {};
+import fs from "fs";
 
-describe("Secret Network Ensemble", () => {
+describe("Secret Network Ensemble", function () {
   let e;
   class TestEnsemble extends Ensemble {
-    contracts = { TEST: { crate: "test" } };
+    contracts = { TEST: { crate: "votes" } };
     docker = {
       async getImage() {
         //console.debug('mock getImage')
@@ -17,11 +17,16 @@ describe("Secret Network Ensemble", () => {
         };
       },
     };
+
+    async initialize () {
+      return 1
+    }
   }
-  beforeEach(() => {
+  
+  beforeEach(function () {
     e = new TestEnsemble({
       network: 'localnet',
-      workspace: path.resolve('./artifacts'),
+      workspace: path.resolve('./'),
       builder: {
         async build(...args) {
           //console.debug('mock Builder.build', ...args)
@@ -37,14 +42,20 @@ describe("Secret Network Ensemble", () => {
   });
 
   it("has a local build command", async function () {
-    this.timeout(120000);
+    this.timeout(0);
     assert(e.localCommands.map((x) => x[0]).indexOf("build") > -1);
     await e.build();
   });
 
   it("has a remote deploy command", async function () {
-    this.timeout(120000);
+    this.timeout(0);
+    const contract = path.resolve('./test', 'contract');
+
     assert(e.remoteCommands.map((x) => x[0]).indexOf("deploy") > -1);
-    await e.deploy();
+    await e.deploy({ workspace: contract });
+
+    const builtContract = path.resolve(contract, 'artifacts', 'votes@HEAD.wasm');
+    
+    assert.strictEqual(fs.existsSync(builtContract), true);
   });
 });

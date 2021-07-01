@@ -1,5 +1,5 @@
 import { resolve, relative, dirname, basename, extname } from 'path'
-import { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync } from 'fs'
+import { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
 import { readFile, writeFile } from 'fs/promises'
 import { cwd, stderr } from 'process'
 import { fileURLToPath } from 'url'
@@ -26,6 +26,7 @@ export {
   cwd,
   dirname,
   existsSync,
+  statSync,
   extname,
   fileURLToPath,
   getBorderCharacters,

@@ -4,6 +4,7 @@ import {
   Console
 } from '@fadroma/utilities'
 import { pull } from './net.js'
+import { mkdir } from '../utilities/sys.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const {debug, info} = Console(import.meta.url)
@@ -21,7 +22,7 @@ export default class SecretNetworkBuilder {
     if (!network && agent) {
       network = agent.network
     } else if (!agent && network) {
-      agent = network.agent
+      agent = network.defaultAgent
     }
     Object.assign(this, { network, agent })
   }
@@ -115,8 +116,21 @@ export default class SecretNetworkBuilder {
    */
   async upload (artifact) {
     const uploadResult = await this.agent.upload(artifact)
-    const receiptData  = JSON.stringify(uploadResult, null, 2)
-    await writeFile(this.getReceiptPath(artifact), receiptData, 'utf8')
+    const receiptData = JSON.stringify(uploadResult, null, 2)
+    const receiptPath = this.getReceiptPath(artifact);
+
+    const elements = receiptPath.slice(1, receiptPath.length).split('/');
+    
+    let path = `/`;
+    for (const item of elements) {
+      if (!existsSync(path)) {
+        mkdir(path);
+      }
+
+      path += `/${item}`;
+    }
+
+    await writeFile(receiptPath, receiptData, 'utf8')
     return uploadResult
   }
 }

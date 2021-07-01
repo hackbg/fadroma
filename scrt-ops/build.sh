@@ -12,6 +12,7 @@ useradd -m -g$GROUP -u$USER build || true
 # This makes sure it is accessible to non-root users, which is the whole point:
 mkdir -p /usr/local/cargo/registry
 chown -R $USER /usr/local/cargo/registry
+chown -R $USER /contract
 chown $USER /output
 # Execute a release build then optimize it with Binaryen
 echo "Building $Package as user build ($USER:$GROUP)..."

@@ -1,20 +1,32 @@
-import SecretNetworkContract from "../scrt-agent/contract.js";
+import { SecretNetworkContract, SecretNetworkContractWithSchema } from "@fadroma/scrt-agent";
+import { loadSchemas } from "@fadroma/utilities";
 import { localnet } from './helper.js';
 import path from "path";
 import debug from 'debug';
 import { assert } from "chai";
 const log = debug('out');
 
+export const schema = loadSchemas(import.meta.url, {
+  queryMsg: "./contract/schema/q.json",
+  handleMsg: "./contract/schema/t_x.json",
+});
+
 const context = {};
+
+class Votes extends SecretNetworkContractWithSchema {
+  constructor(options = {}) {
+    super(options, schema);
+  }
+}
 
 describe('SecretNetworkContract', function () {
   before(async function () {
     this.timeout(0);
     await localnet(context);
 
-    const { codeId } = await context.builder.uploadCached(path.resolve("./test/assets/votes.wasm"));
+    const { codeId } = await context.builder.uploadCached(path.resolve("./test/contract/artifacts/votes@HEAD.wasm"));
 
-    context.contract = await context.admin.instantiate(new SecretNetworkContract({
+    context.contract = await context.admin.instantiate(new Votes({
       label: `test-contract-${parseInt(Math.random() * 100000)}`,
       codeId: codeId,
       initMsg: {options: ["a", "b"]},
@@ -46,4 +58,12 @@ describe('SecretNetworkContract', function () {
     await context.contract.execute('vote', { option: 'a' });
     await context.checkResults(1, 0);
   });
+
+  it('knows its own methods if provided with a schema', async function () {
+    const q = Object.keys(context.contract.q).join(",");
+    const tx = Object.keys(context.contract.tx).join(",");
+
+    assert.strictEqual(q, "status");
+    assert.strictEqual(tx, "vote");
+   });
 });
