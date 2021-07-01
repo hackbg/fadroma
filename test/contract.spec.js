@@ -12,7 +12,7 @@ describe('SecretNetworkContract', function () {
     this.timeout(0);
     await localnet(context);
 
-    const { codeId } = await context.builder.uploadCached(path.resolve("./test/assets/votes@HEAD.wasm"));
+    const { codeId } = await context.builder.uploadCached(path.resolve("./test/contract/artifacts/votes@HEAD.wasm"));
 
     context.contract = await context.admin.instantiate(new SecretNetworkContract({
       label: `test-contract-${parseInt(Math.random() * 100000)}`,

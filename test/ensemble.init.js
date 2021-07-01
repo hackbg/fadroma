@@ -49,22 +49,13 @@ describe("Secret Network Ensemble", function () {
 
   it("has a remote deploy command", async function () {
     this.timeout(0);
-
-    const p = path.resolve('./test');
-    const contract = path.resolve(p, 'contract');
+    const contract = path.resolve('./test', 'contract');
 
     assert(e.remoteCommands.map((x) => x[0]).indexOf("deploy") > -1);
-    await e.deploy({ workspace: contract, skipOutput: true });
+    await e.deploy({ workspace: contract });
 
-    // const builtContract = path.resolve(contract, 'artifacts', 'votes@HEAD.wasm');
-    // const preparedContract = path.resolve(p, 'assets', 'votes@HEAD.wasm');
+    const builtContract = path.resolve(contract, 'artifacts', 'votes@HEAD.wasm');
     
-    // assert.strictEqual(fs.existsSync(builtContract), true);
-
-    // if (fs.existsSync(preparedContract)) {
-    //   fs.unlinkSync(preparedContract);
-    // }
-
-    // fs.renameSync(builtContract, preparedContract);
+    assert.strictEqual(fs.existsSync(builtContract), true);
   });
 });
