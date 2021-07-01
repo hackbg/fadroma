@@ -48,9 +48,15 @@ export default class SecretNetworkBuilder {
           , AttachStdin: true
           , Entrypoint: ['/bin/sh', '-c']
           , HostConfig: { Binds: [ `${entrypoint}:/entrypoint.sh:ro`
-                                 , `${outputDir}:/output:rw`
                                  , `sienna_cache_${ref}:/code/target:rw`
-                                 , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
+                                 , `cargo_cache_${ref}:/usr/local/cargo:rw`]
+          }
+        }
+    // For tests, sometimes we might not want this to output anything anywhere because of OS issues.
+    if (!options.skipOutput) {
+      buildOptions.HostConfig.Binds.push(`${outputDir}:/output:rw`);
+    }
+
     if (ref === 'HEAD') { // when building working tree
       debug(`building working tree at ${workspace} into ${outputDir}...`)
       buildOptions.HostConfig.Binds.push(`${workspace}:/contract:rw`)

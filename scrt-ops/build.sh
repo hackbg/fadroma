@@ -14,6 +14,7 @@ mkdir -p /usr/local/cargo/registry
 chown -R $USER /usr/local/cargo/registry
 chown $USER /output
 # Execute a release build then optimize it with Binaryen
+whoami
 echo "Building $Package as user build ($USER:$GROUP)..."
 Output=`echo "$Package" | tr '-' '_'`
 su build -c "env RUSTFLAGS='-C link-arg=-s' \
