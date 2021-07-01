@@ -11,10 +11,9 @@ useradd -m -g$GROUP -u$USER build || true
 # The local registry is stored in a Docker volume mounted at /usr/local.
 # This makes sure it is accessible to non-root users, which is the whole point:
 mkdir -p /usr/local/cargo/registry
-chown -R $USER /usr/local/cargo/registry
-chown $USER /output
+#chown -R $USER /usr/local/cargo/registry
+#chown $USER /output
 # Execute a release build then optimize it with Binaryen
-whoami
 echo "Building $Package as user build ($USER:$GROUP)..."
 Output=`echo "$Package" | tr '-' '_'`
 su build -c "env RUSTFLAGS='-C link-arg=-s' \
