@@ -5,9 +5,6 @@ name: Run tests
 
 on: [pull_request]
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   unit:
     runs-on: ubuntu-latest
