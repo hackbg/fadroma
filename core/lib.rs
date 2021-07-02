@@ -4,6 +4,9 @@
 pub mod scrt {
     pub use fadroma_scrt_base::*;
 
+    #[cfg(feature="scrt-addr")]
+    pub use fadroma_scrt_addr     as addr;
+
     #[cfg(feature="scrt-storage")]
     pub use fadroma_scrt_storage  as storage;
 
