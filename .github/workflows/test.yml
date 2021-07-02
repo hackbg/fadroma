@@ -6,12 +6,12 @@ name: Run tests
 on: [pull_request]
 
 jobs:
-  unit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run Rust contract example unit tests
-      - uses: actions/checkout@v2
-      - run: cd example && cargo test --verbose
+  # unit:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Run Rust contract example unit tests
+  #     - uses: actions/checkout@v2
+  #     - run: cd example && cargo test --verbose
 
   integration:
     runs-on: ubuntu-latest
