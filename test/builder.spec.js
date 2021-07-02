@@ -7,7 +7,7 @@ import path from "path";
 const log = debug("out");
 const context = {};
 
-const workspace = path.resolve("./test", "contract");
+const workspace = path.resolve("example");
 const crate = "votes";
 
 describe("SecretNetworkBuilder", function () {
@@ -37,7 +37,17 @@ describe("SecretNetworkBuilder", function () {
     this.timeout(0);
     const builder = new SecretNetworkBuilder({ network: context.network });
 
-    const wasmPath = await builder.build({ workspace, crate });
+    const wasmPath = await builder.build({ workspace, crate, additionalBinds: [
+      `${path.resolve('core')}:/core:rw`,
+      `${path.resolve('scrt')}:/scrt:rw`,
+      `${path.resolve('scrt-addr')}:/scrt-addr:rw`,
+      `${path.resolve('scrt-admin')}:/scrt-admin:rw`,
+      `${path.resolve('scrt-callback')}:/scrt-callback:rw`,
+      `${path.resolve('scrt-contract')}:/scrt-contract:rw`,
+      `${path.resolve('scrt-migrate')}:/scrt-migrate:rw`,
+      `${path.resolve('scrt-storage')}:/scrt-storage:rw`,
+      `${path.resolve('scrt-utils')}:/scrt-utils:rw`,
+    ]  });
 
     assert.strictEqual(
       wasmPath,

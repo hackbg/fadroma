@@ -1,30 +1,18 @@
-import { SecretNetworkContract, SecretNetworkContractWithSchema } from "@fadroma/scrt-agent";
-import { loadSchemas } from "@fadroma/utilities";
 import { localnet } from './helper.js';
 import path from "path";
 import debug from 'debug';
 import { assert } from "chai";
+import Votes from "../example/index.js";
 const log = debug('out');
-
-export const schema = loadSchemas(import.meta.url, {
-  queryMsg: "./contract/schema/q.json",
-  handleMsg: "./contract/schema/t_x.json",
-});
 
 const context = {};
 
-class Votes extends SecretNetworkContractWithSchema {
-  constructor(options = {}) {
-    super(options, schema);
-  }
-}
-
-describe('SecretNetworkContract', function () {
+describe('SecretNetworkContract and SecretNetworkContractWithSchema', function () {
   before(async function () {
     this.timeout(0);
     await localnet(context);
 
-    const { codeId } = await context.builder.uploadCached(path.resolve("./test/contract/artifacts/votes@HEAD.wasm"));
+    const { codeId } = await context.builder.uploadCached(path.resolve("./example/artifacts/votes@HEAD.wasm"));
 
     context.contract = await context.admin.instantiate(new Votes({
       label: `test-contract-${parseInt(Math.random() * 100000)}`,

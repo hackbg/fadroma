@@ -1,0 +1,7 @@
+{
+  "name": "@fadroma/example",
+  "version": "1.0.0",
+  "description": "Example contract build with Fadroma",
+  "main": "index.js",
+  "type": "module"
+}

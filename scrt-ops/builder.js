@@ -56,6 +56,12 @@ export default class SecretNetworkBuilder {
       buildOptions.HostConfig.Binds.push(`${workspace}:/contract:rw`)
     }
 
+    if (Array.isArray(options.additionalBinds)) {
+      for (const bind of options.additionalBinds) {
+        buildOptions.HostConfig.Binds.push(bind)
+      }
+    }
+
     const [{Error:err, StatusCode:code}, container] = await this.docker.run(
       buildImage, buildCommand, process.stdout, buildOptions
     )
