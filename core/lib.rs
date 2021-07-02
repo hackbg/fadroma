@@ -1,6 +1,4 @@
 #[cfg(feature="scrt")]
-
-#[cfg(feature="scrt")]
 pub mod scrt {
     pub use fadroma_scrt_base::*;
 
