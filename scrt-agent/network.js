@@ -144,7 +144,7 @@ export default class SecretNetwork {
 
   /** create agent operating on the current instance's endpoint*/
   getAgent (name, options={}) {
-    if (options.mnemonic || options.keyPair) {
+    if (options.mnemonic || options.keyPair || options.js) {
       info(`Using a SecretJS-based agent.`)
       return SecretJSAgent.create({ ...options, network: this, name })
     } else if (name) {
