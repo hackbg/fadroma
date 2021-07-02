@@ -17,23 +17,13 @@ doctest = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-fadroma = { git="https://github.com/hackbg/fadroma", branch="21.07", features = [
+fadroma = { path = "../core", features = [
     "scrt-addr",
     "scrt-callback",
     "scrt-contract",
     "scrt-migrate",
     "scrt-storage"
 ] }
-# fadroma = { path = "../../core", features = [
-#     "scrt-addr",
-#     "scrt-callback",
-#     "scrt-contract",
-#     "scrt-migrate",
-#     "scrt-storage"
-# ] }
-cosmwasm-schema = { git="https://github.com/enigmampc/SecretNetwork", tag="v1.0.0" }
-cosmwasm-std = { git="https://github.com/enigmampc/SecretNetwork", tag="v1.0.0" }
-cosmwasm-storage = { git="https://github.com/enigmampc/SecretNetwork", tag="v1.0.0" }
 serde = { version="1.0.103", default-features=false, features=["derive"] }
 schemars = "0.7"
 

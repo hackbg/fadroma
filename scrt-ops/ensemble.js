@@ -79,7 +79,7 @@ export default class ContractEnsemble {
       await task.parallel(`build ${myName}`,
         ...Object.entries(contracts).map(([name, {crate}])=>
           task(`build ${name}`, async report => {
-            binaries[name] = await builder.build({outputDir, workspace, crate})
+            binaries[name] = await builder.build({...options, outputDir, workspace, crate})
           })
         )
       )
