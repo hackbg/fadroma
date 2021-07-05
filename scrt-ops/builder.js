@@ -1,6 +1,6 @@
 import Docker from 'dockerode'
 import {
-  resolve, basename, dirname, existsSync, fileURLToPath, readFile, writeFile,
+  resolve, basename, dirname, existsSync, fileURLToPath, readFile, writeFile, mkdir,
   Console
 } from '@fadroma/utilities'
 import { pull } from './net.js'
@@ -106,11 +106,12 @@ export default class SecretNetworkBuilder {
    */
   async uploadCached (artifact) {
     const receiptPath = this.getReceiptPath(artifact)
-    if (existsSync(receiptPath)) {
+    try {
       const receiptData = await readFile(receiptPath, 'utf8')
       info(`${receiptPath} exists. Delete it to reupload that contract.`)
       return JSON.parse(receiptData)
-    } else {
+    } catch (e) {
+      info(`${receiptPath}: ${e.message}`)
       return this.upload(artifact)
     }
   }
@@ -123,7 +124,9 @@ export default class SecretNetworkBuilder {
   async upload (artifact) {
     const uploadResult = await this.agent.upload(artifact)
     const receiptData  = JSON.stringify(uploadResult, null, 2)
-    await writeFile(this.getReceiptPath(artifact), receiptData, 'utf8')
+    const receiptPath  = this.getReceiptPath(artifact)
+    mkdir(dirname(receiptPath)) // meh
+    await writeFile(receiptPath, receiptData, 'utf8')
     return uploadResult
   }
 }

@@ -1,4 +1,4 @@
-import { writeFile, resolve } from "@fadroma/utilities";
+import { writeFile, resolve, mkdir, dirname } from "@fadroma/utilities";
 
 /** Interface to a contract instance.
  * Can be subclassed with schema to auto-generate methods
@@ -39,8 +39,10 @@ export default class SecretNetworkContract {
 
   /** Save the contract's instantiation receipt.
    */
-  save = () =>
-    writeFile(this.receiptPath, JSON.stringify(this.receipt, null, 2), "utf8");
+  async save () {
+    mkdir(dirname(this.receiptPath))
+    await writeFile(this.receiptPath, JSON.stringify(this.receipt, null, 2), "utf8")
+  }
 
   /**
    * Create a temporary copy of a contract with a different agent
