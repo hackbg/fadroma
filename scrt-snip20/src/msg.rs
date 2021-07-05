@@ -17,6 +17,13 @@ pub struct InitialBalance {
     pub amount: Uint128,
 }
 
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
+pub struct InitialAllowance {
+    pub spender: HumanAddr,
+    pub amount: Uint128,
+    pub expiration: Option<u64>,
+}
+
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct InitMsg {
     pub name: String,
@@ -24,6 +31,7 @@ pub struct InitMsg {
     pub symbol: String,
     pub decimals: u8,
     pub initial_balances: Option<Vec<InitialBalance>>,
+    pub initial_allowances: Option<Vec<InitialAllowance>>,
     pub prng_seed: Binary,
     pub config: Option<InitConfig>,
     pub callback: Option<Callback<HumanAddr>>

@@ -21,7 +21,7 @@ use crate::{
     batch,
     state::{
         get_receiver_hash, read_allowance, read_viewing_key,
-        ReadonlyBalances, ReadonlyConfig,
+        ReadonlyBalances, ReadonlyConfig
     },
     msg::*
 };
@@ -52,7 +52,7 @@ fn query<S: Storage, A: Api, Q: Querier>(
 // Helper functions
 
 fn init_helper(
-    initial_balances: Vec<InitialBalance>,
+    initial_balances: Vec<InitialBalance>
 ) -> (
     StdResult<InitResponse>,
     Extern<MockStorage, MockApi, MockQuerier>,
@@ -66,6 +66,7 @@ fn init_helper(
         symbol: "SECSEC".to_string(),
         decimals: 8,
         initial_balances: Some(initial_balances),
+        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: None,
         callback: None
@@ -112,6 +113,7 @@ fn init_helper_with_config(
         symbol: "SECSEC".to_string(),
         decimals: 8,
         initial_balances: Some(initial_balances),
+        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
         callback: None
@@ -1984,6 +1986,7 @@ fn test_query_token_info() {
             address: HumanAddr("giannis".to_string()),
             amount: init_supply,
         }]),
+        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
         callback: None
@@ -2052,6 +2055,7 @@ fn test_query_exchange_rate() {
             address: HumanAddr("giannis".to_string()),
             amount: init_supply,
         }]),
+        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
         callback: None
@@ -2110,6 +2114,7 @@ fn test_query_exchange_rate() {
             address: HumanAddr("giannis".to_string()),
             amount: init_supply,
         }]),
+        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
         callback: None
@@ -2168,6 +2173,7 @@ fn test_query_exchange_rate() {
             address: HumanAddr("giannis".to_string()),
             amount: init_supply,
         }]),
+        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
         callback: None
@@ -2214,6 +2220,7 @@ fn test_query_exchange_rate() {
             address: HumanAddr("giannis".to_string()),
             amount: init_supply,
         }]),
+        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: None,
         callback: None
@@ -2244,28 +2251,31 @@ fn test_query_exchange_rate() {
 
 #[test]
 fn test_query_allowance() {
-    let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: HumanAddr("giannis".to_string()),
-        amount: Uint128(5000),
-    }]);
-    assert!(
-        init_result.is_ok(),
-        "Init failed: {}",
-        init_result.err().unwrap()
-    );
+    let mut deps = mock_dependencies(20, &[]);
+    let env = mock_env("giannis", &[]);
 
-    let handle_msg = HandleMsg::IncreaseAllowance {
-        spender: HumanAddr("lebron".to_string()),
-        amount: Uint128(2000),
-        padding: None,
-        expiration: None,
+    let init_msg = InitMsg {
+        name: "sec-sec".to_string(),
+        admin: Some(HumanAddr("admin".to_string())),
+        symbol: "SECSEC".to_string(),
+        decimals: 8,
+        initial_balances: Some(vec![InitialBalance {
+            address: HumanAddr("giannis".to_string()),
+            amount: Uint128(5000),
+        }]),
+        initial_allowances: Some(vec![
+            InitialAllowance {
+                spender: "lebron".into(),
+                amount: Uint128(2000),
+                expiration: None
+            }
+        ]),
+        prng_seed: Binary::from("lolz fun yay".as_bytes()),
+        config: None,
+        callback: None
     };
-    let handle_result = handle(&mut deps, mock_env("giannis", &[]), handle_msg);
-    assert!(
-        handle_result.is_ok(),
-        "handle() failed: {}",
-        handle_result.err().unwrap()
-    );
+
+    init(&mut deps, env, init_msg).unwrap();
 
     let vk1 = ViewingKey("key1".to_string());
     let vk2 = ViewingKey("key2".to_string());

@@ -21,7 +21,7 @@ use crate::{
     state::{
         get_receiver_hash, read_allowance, set_receiver_hash, write_allowance,
         read_viewing_key, write_viewing_key, Balances, Config, Constants,
-        ReadonlyBalances, ReadonlyConfig
+        ReadonlyBalances, ReadonlyConfig, Allowance
     },
     transaction_history::{
         get_transfers, get_txs, store_burn, store_deposit, store_mint,
@@ -47,7 +47,7 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
 
     let init_config = msg.config.unwrap_or_default();
     
-    let admin = msg.admin.unwrap_or(env.message.sender);
+    let admin = msg.admin.unwrap_or(env.message.sender.clone());
     let canon_admin = deps.api.canonical_address(&admin)?;
 
     let mut total_supply: u128 = 0;
@@ -77,6 +77,24 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
                 msg.symbol.clone(),
                 Some("Initial Balance".to_string()),
                 &env.block,
+            )?;
+        }
+    }
+
+    if let Some(allowances) = msg.initial_allowances {
+        let sender = deps.api.canonical_address(&env.message.sender)?;
+
+        for ia in allowances {
+            let spender = deps.api.canonical_address(&ia.spender)?;
+
+            write_allowance(
+                &mut deps.storage,
+                &sender,
+                &spender,
+                &Allowance {
+                    amount: ia.amount.u128(),
+                    expiration: ia.expiration
+                },
             )?;
         }
     }
@@ -615,12 +633,14 @@ pub trait Snip20  {
         if expiration.is_some() {
             allowance.expiration = expiration;
         }
+
         let new_amount = allowance.amount;
+
         write_allowance(
             &mut deps.storage,
             &owner_address,
             &spender_address,
-            allowance,
+            &allowance,
         )?;
     
         let res = HandleResponse {
@@ -661,12 +681,14 @@ pub trait Snip20  {
         if expiration.is_some() {
             allowance.expiration = expiration;
         }
+
         let new_amount = allowance.amount;
+
         write_allowance(
             &mut deps.storage,
             &owner_address,
             &spender_address,
-            allowance,
+            &allowance,
         )?;
     
         let res = HandleResponse {
@@ -1525,7 +1547,7 @@ pub fn use_allowance<S: Storage>(
         return Err(insufficient_allowance(allowance.amount, amount));
     }
 
-    write_allowance(storage, owner, spender, allowance)?;
+    write_allowance(storage, owner, spender, &allowance)?;
 
     Ok(())
 }

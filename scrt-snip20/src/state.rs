@@ -328,13 +328,13 @@ pub fn write_allowance<S: Storage>(
     store: &mut S,
     owner: &CanonicalAddr,
     spender: &CanonicalAddr,
-    allowance: Allowance,
+    allowance: &Allowance,
 ) -> StdResult<()> {
     let mut owner_store =
         PrefixedStorage::multilevel(&[PREFIX_ALLOWANCES, owner.as_slice()], store);
     let mut owner_store = TypedStoreMut::attach(&mut owner_store);
 
-    owner_store.store(spender.as_slice(), &allowance)
+    owner_store.store(spender.as_slice(), allowance)
 }
 
 // Viewing Keys
