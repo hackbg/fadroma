@@ -104,6 +104,7 @@ export default class SecretNetwork {
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
   async connect () {
+    if (this._connected) return this._connected
 
     // default credentials will be used as-is unless using localnet
     let { defaultAgentMnemonic: mnemonic
@@ -133,7 +134,8 @@ export default class SecretNetwork {
     info(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
     const agent = this.defaultAgent = await this.getAgent("ADMIN", { mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
-    return { node, network: this, agent, builder: this.getBuilder(agent) }
+
+    return this._connected = { node, network: this, agent, builder: this.getBuilder(agent) }
   }
 
   /**The API URL that this instance talks to.
