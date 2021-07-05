@@ -1,7 +1,12 @@
 import { Bip39 } from '@cosmjs/crypto'
-import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient, encodeSecp256k1Pubkey, pubkeyToAddress
-       , makeSignBytes } from 'secretjs'
-
+import {
+  EnigmaUtils,
+  Secp256k1Pen,
+  SigningCosmWasmClient,
+  encodeSecp256k1Pubkey,
+  pubkeyToAddress,
+  makeSignBytes
+} from 'secretjs'
 import { readFile, Console, bold } from '@fadroma/utilities'
 import { gas, defaultFees } from './gas.js'
 
@@ -56,6 +61,7 @@ export default class SecretNetworkAgent {
   get nextBlock () {
     return this.API.getBlock().then(({header:{height}})=>new Promise(async resolve=>{
       while (true) {
+        console.debug('waiting for next block...')
         await new Promise(ok=>setTimeout(ok, 1000))
         const now = await this.API.getBlock()
         if (now.header.height > height) {
@@ -97,21 +103,43 @@ export default class SecretNetworkAgent {
 
   /**Send `uscrt` to multiple addresses.
    * TODO support sending SNIP20 tokens */
-  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = gas(500000 * txs.length)) {
-    if (txs.length < 0) {
-      throw new Error('tried to send to 0 recipients')
-    }
+  async sendMany (
+    txs   = [/*[address, amount]*/],
+    memo  = "",
+    denom = 'uscrt',
+    fee   = gas(500000 * txs.length)
+  ) {
+    // maybe this should be just a warning
+    if (txs.length < 0) throw new Error('tried to send to 0 recipients')
+
+    // we'll manually increment this to fit multiple transactions in one block
+    // this can fail if someone else is sending from the same address simultaneously
+    // (e.g. when using the hardcoded testnet account)
     const from_address = this.address
-    //const {accountNumber, sequence} = await this.API.getNonce(from_address)
-    let accountNumber, sequence
-    const msg = await Promise.all(txs.map(async ([to_address, amount])=>{
-      ({accountNumber, sequence} = await this.API.getNonce(from_address)) // increment nonce?
-      if (typeof amount === 'number') amount = String(amount)
-      const value = {from_address, to_address, amount: [{denom, amount}]}
-      return { type: 'cosmos-sdk/MsgSend', value }
-    }))
-    const signBytes = makeSignBytes(msg, fee, this.network.chainId, memo, accountNumber, sequence)
-    return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
+    let {accountNumber, sequence} = await this.API.getNonce(from_address)
+    const results = []
+    let t = + new Date()
+    for (let [to_address, amount] of txs) {
+      // amount needs to be a string
+      amount = String(amount)
+
+      // submit transaction
+      results.push(await this.API.postTx(
+        await this.API.signAdapter([{
+          type: 'cosmos-sdk/MsgSend',
+          value: {from_address, to_address, amount: [{denom, amount}]}
+        }], fee, this.network.chainId, memo, accountNumber, sequence)
+      ))
+
+      // increment nonce
+      sequence++
+
+      // report time
+      console.debug(`#${accountNumber}.${sequence}: ${amount} to ${to_address} (${new Date()-t}msec)`)
+      t = new Date()
+    }
+
+    return results
   }
 
   // compute //
