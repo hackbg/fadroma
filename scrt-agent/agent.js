@@ -127,10 +127,10 @@ export default class SecretNetworkAgent {
     const { codeId, initMsg = {}, label = '' } = instance
     instance.agent = this
 
-    debug(`⭕`+bold('init'), { codeId, label, initMsg })
+    debug(`⭕${this.address} `+bold('init'), { codeId, label, initMsg })
     const initTx = instance.initTx = await this.API.instantiate(codeId, initMsg, label)
 
-    debug(`⭕`+bold('instantiated'), { codeId, label, initTx })
+    debug(`⭕${this.address} `+bold('instantiated'), { codeId, label, initTx })
     instance.codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
 
     await instance.save()
@@ -148,9 +148,9 @@ export default class SecretNetworkAgent {
       msg = {[method]: args}
     }
     
-    debug(`❔ `+bold('query'), { label, address, method, args })
+    debug(`❔ ${this.address} `+bold('query'), { label, address, method, args })
     const response = this.API.queryContractSmart(address, msg)
-    debug(`❔ `+bold('response'), { address, method, response })
+    debug(`❔ ${this.address} `+bold('response'), { address, method, response })
     return response
   }
 
@@ -165,9 +165,9 @@ export default class SecretNetworkAgent {
       msg = {[method]: args}
     }
     
-    debug(`❗ `+bold('execute'), { label, address, method, args })
+    debug(`❗ ${this.address} `+bold('execute'), { label, address, method, args })
     const result = this.API.execute(address, msg)
-    debug(`❗ `+bold('result'), { label, address, method, result })
+    debug(`❗ ${this.address} `+bold('result'), { label, address, method, result })
     return result
   }
 }
