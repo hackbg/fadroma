@@ -2265,6 +2265,7 @@ fn test_query_allowance() {
         }]),
         initial_allowances: Some(vec![
             InitialAllowance {
+                owner: "giannis".into(),
                 spender: "lebron".into(),
                 amount: Uint128(2000),
                 expiration: None

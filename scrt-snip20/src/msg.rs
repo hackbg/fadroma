@@ -19,6 +19,7 @@ pub struct InitialBalance {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
 pub struct InitialAllowance {
+    pub owner: HumanAddr,
     pub spender: HumanAddr,
     pub amount: Uint128,
     pub expiration: Option<u64>,

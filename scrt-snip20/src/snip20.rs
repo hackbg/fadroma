@@ -82,14 +82,13 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
     }
 
     if let Some(allowances) = msg.initial_allowances {
-        let sender = deps.api.canonical_address(&env.message.sender)?;
-
         for ia in allowances {
-            let spender = deps.api.canonical_address(&ia.spender)?;
+            let owner = deps.api.canonical_address(&ia.owner)?;
+            let spender  = deps.api.canonical_address(&ia.spender)?;
 
             write_allowance(
                 &mut deps.storage,
-                &sender,
+                &owner,
                 &spender,
                 &Allowance {
                     amount: ia.amount.u128(),
