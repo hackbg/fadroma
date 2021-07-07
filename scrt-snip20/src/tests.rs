@@ -2251,8 +2251,12 @@ fn test_query_exchange_rate() {
 
 #[test]
 fn test_query_allowance() {
+    const ADMIN:   &str = "giannis";
+    const OWNER:   &str = "kobe";
+    const SPENDER: &str = "lebron";
+
     let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("giannis", &[]);
+    let env = mock_env(ADMIN, &[]);
 
     let init_msg = InitMsg {
         name: "sec-sec".to_string(),
@@ -2260,13 +2264,13 @@ fn test_query_allowance() {
         symbol: "SECSEC".to_string(),
         decimals: 8,
         initial_balances: Some(vec![InitialBalance {
-            address: HumanAddr("giannis".to_string()),
+            address: HumanAddr(ADMIN.to_string()),
             amount: Uint128(5000),
         }]),
         initial_allowances: Some(vec![
             InitialAllowance {
-                owner: "giannis".into(),
-                spender: "lebron".into(),
+                owner: OWNER.into(),
+                spender: SPENDER.into(),
                 amount: Uint128(2000),
                 expiration: None
             }
@@ -2282,8 +2286,8 @@ fn test_query_allowance() {
     let vk2 = ViewingKey("key2".to_string());
 
     let query_msg = QueryMsg::Allowance {
-        owner: HumanAddr("giannis".to_string()),
-        spender: HumanAddr("lebron".to_string()),
+        owner: HumanAddr(OWNER.to_string()),
+        spender: HumanAddr(SPENDER.to_string()),
         key: vk1.0.clone(),
     };
     let query_result = query(&deps, query_msg);
@@ -2299,7 +2303,7 @@ fn test_query_allowance() {
         key: vk1.0.clone(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("lebron", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(SPENDER, &[]), handle_msg);
     let unwrapped_result: HandleAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
@@ -2314,7 +2318,7 @@ fn test_query_allowance() {
         key: vk2.0.clone(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("giannis", &[]), handle_msg);
+    let handle_result = handle(&mut deps, mock_env(OWNER, &[]), handle_msg);
     let unwrapped_result: HandleAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
@@ -2326,8 +2330,8 @@ fn test_query_allowance() {
     );
 
     let query_msg = QueryMsg::Allowance {
-        owner: HumanAddr("giannis".to_string()),
-        spender: HumanAddr("lebron".to_string()),
+        owner: HumanAddr(OWNER.to_string()),
+        spender: HumanAddr(SPENDER.to_string()),
         key: vk1.0.clone(),
     };
     let query_result = query(&deps, query_msg);
@@ -2336,10 +2340,11 @@ fn test_query_allowance() {
         _ => panic!("Unexpected"),
     };
     assert_eq!(allowance, Uint128(2000));
+    println!("{}", &allowance);
 
     let query_msg = QueryMsg::Allowance {
-        owner: HumanAddr("giannis".to_string()),
-        spender: HumanAddr("lebron".to_string()),
+        owner: HumanAddr(OWNER.to_string()),
+        spender: HumanAddr(SPENDER.to_string()),
         key: vk2.0.clone(),
     };
     let query_result = query(&deps, query_msg);
@@ -2350,8 +2355,8 @@ fn test_query_allowance() {
     assert_eq!(allowance, Uint128(2000));
 
     let query_msg = QueryMsg::Allowance {
-        owner: HumanAddr("lebron".to_string()),
-        spender: HumanAddr("giannis".to_string()),
+        owner: HumanAddr(SPENDER.to_string()),
+        spender: HumanAddr(OWNER.to_string()),
         key: vk2.0.clone(),
     };
     let query_result = query(&deps, query_msg);
