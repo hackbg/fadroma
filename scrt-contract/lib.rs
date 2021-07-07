@@ -130,8 +130,7 @@
                 // Storing the global state of the contract with this macro
                 ($global_state:expr) => { get_store_rw(&mut $deps.storage).save(&$global_state)?; }
             };
-            $body;
-            Ok(InitResponse::default())
+            Ok($body)
         }
     };
     // or import it from an external module:
