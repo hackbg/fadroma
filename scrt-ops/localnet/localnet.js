@@ -201,7 +201,7 @@ export default class ScrtNode {
 
     mkdir(this.state)
     touch(this.files.nodeState)
-    for (const dir of this.dirs) {
+    for (const dir of Object.values(this.dirs)) {
       mkdir(dir)
     }
     Object.assign(this, {

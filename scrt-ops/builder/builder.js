@@ -4,7 +4,7 @@ import {
   readFile, writeFile, mkdir,
   Console
 } from '@fadroma/utilities'
-import { pull } from '../netutil.js'
+import { pulled } from '../netutil.js'
 
 /** I wonder, what does the documentation generator do
  *  when I document a dual defintition? */
@@ -35,7 +35,7 @@ export class ScrtBuilder {
           , workspace
           , crate
           , outputDir = resolve(workspace, 'artifacts') } = options
-        , buildImage    = await pull('enigmampc/secret-contract-optimizer:latest', this.docker)
+        , buildImage    = await pulled('enigmampc/secret-contract-optimizer:latest', this.docker)
         , buildCommand  = this.getBuildCommand({buildAs, origin, ref, crate})
         , entrypoint    = resolve(__dirname, 'build.sh')
         , buildOptions  =

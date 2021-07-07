@@ -2,8 +2,8 @@
 import Docker from 'dockerode'
 import {bold, resolve, relative, existsSync, taskmaster} from '@fadroma/utilities'
 import {SecretNetwork} from '@fadroma/scrt-agent'
-import {pull} from '../netutil.js'
-import Builder from '../builder/Builder.js'
+import {pulled} from '../netutil.js'
+import Builder from '../builder/builder.js'
 
 const required = label => { throw new Error(`required override: ${label}`) }
 
@@ -69,7 +69,7 @@ export default class ScrtEnsemble {
           , outputDir = resolve(workspace, 'artifacts')
           , parallel  = true } = options
     // pull build container
-    await pull(this.buildImage, this.docker)
+    await pulled(this.buildImage, this.docker)
     // build all contracts
     const { contracts, constructor: { name: myName } } = this
     return await (parallel ? buildInParallel() : buildInSeries())
