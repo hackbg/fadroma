@@ -1,17 +1,14 @@
+import Scrt from './network.js'
 import SecretNetworkAgent from './agent.js'
 import SecretCLIAgent from './agent-secretcli.js'
 import SecretNetworkContract from './contract.js'
-import SecretNetwork from './network.js'
 import SecretNetworkContractWithSchema from './contractWithSchema.js'
 import SchemaWrapper from './Wrapper.js'
 
 export {
-  SchemaWrapper,
-  SecretNetwork,
-  SecretNetworkAgent,
-  SecretCLIAgent,
-  SecretNetworkContract,
-  SecretNetworkContractWithSchema,
+  Scrt, Scrt as SecretNetwork,
+  SecretNetworkAgent, SecretCLIAgent,
+  SecretNetworkContract, SchemaWrapper, SecretNetworkContractWithSchema,
 }
 
 /**@typedef {Object} Connection
