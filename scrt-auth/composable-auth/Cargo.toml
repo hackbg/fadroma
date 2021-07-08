@@ -11,4 +11,4 @@ cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-cosmwasm-utils = { path = "../../scrt-utils" }
+fadroma-scrt-utils = { path = "../../scrt-utils" }
