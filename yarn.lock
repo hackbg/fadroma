@@ -325,16 +325,6 @@
     "table" "^6.6.0"
     "wait-port" "^0.2.9"
 
-"@hackbg/fadroma@file:":
-  "resolved" "file:"
-  "version" "0.0.0"
-  dependencies:
-    "@cosmjs/crypto" "^0.24.1"
-    "@hackbg/fadroma" "file:"
-    "ajv" "^8.6.0"
-    "bignumber.js" "^9.0.1"
-    "secretjs" "^0.11.0"
-
 "@iov/crypto@^2.1.0":
   "integrity" "sha512-lEqrMRagPyv9S0KQG2c1OfacspHZUTyC2neyy/7mKSfOaJZABJiMzZEHi0Z/aCJOo34Wd/DQqfbaG9o2gtBKnw=="
   "resolved" "https://registry.npmjs.org/@iov/crypto/-/crypto-2.5.0.tgz"
