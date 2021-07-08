@@ -25,6 +25,8 @@ contract!(
         };
 
         save_state!(state);
+
+        InitResponse::<State>::default()
     }
 
     [Query] (_deps, state, msg) -> Response {
