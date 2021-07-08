@@ -1,7 +1,7 @@
-import SecretCLIAgent from "@fadroma/scrt-agent/agent-secretcli.js";
-import SecretNetwork from "@fadroma/scrt-agent/network.js";
-import SecretNetworkNode from "@fadroma/scrt-ops/localnet.js";
-import { gas } from "@fadroma/scrt-agent/gas.js";
+import SecretCLIAgent from "../scrt-agent/agent-secretcli.js";
+import SecretNetwork from "../scrt-agent/network.js";
+import SecretNetworkNode from "../scrt-ops/localnet.js";
+import { gas } from "../scrt-agent/gas.js";
 
 const fees = {
   upload: gas(20000000),

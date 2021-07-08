@@ -1,5 +1,5 @@
 import assert from "assert";
-import Ensemble from "@fadroma/scrt-ops/ensemble.js";
+import Ensemble from "../scrt-ops/ensemble.js";
 import path from "path";
 import fs from "fs";
 
