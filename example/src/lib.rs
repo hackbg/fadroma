@@ -1,5 +1,6 @@
 #![allow(clippy::needless_question_mark)] // There are some needles question marks in the contract! macro
 use fadroma::scrt::contract::*;
+use fadroma::scrt::cosmwasm_std::Empty;
 
 contract!(
 
@@ -26,7 +27,7 @@ contract!(
 
         save_state!(state);
 
-        InitResponse::<State>::default()
+        InitResponse::<Empty>::default()
     }
 
     [Query] (_deps, state, msg) -> Response {
