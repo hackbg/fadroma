@@ -1,5 +1,5 @@
 import { localnet } from "./helper.js";
-import { SecretNetworkBuilder } from "../scrt-ops";
+import { SecretNetworkBuilder } from "../scrt-ops/index.js";
 import { assert } from "chai";
 import debug from "debug";
 import path from "path";

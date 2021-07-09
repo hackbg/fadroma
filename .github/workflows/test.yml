@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: 16
+      - run: node --version
       - run: npm install -g npm
+      - run: npm --version
       - run: npm install
       - run: npm test
