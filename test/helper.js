@@ -1,6 +1,6 @@
 import SecretCLIAgent from "../scrt-agent/agent-secretcli.js";
 import SecretNetwork from "../scrt-agent/network.js";
-import SecretNetworkNode from "../scrt-ops/localnet.js";
+import { ScrtNode } from "../scrt-ops/index.js";
 import { gas } from "../scrt-agent/gas.js";
 
 const fees = {
@@ -18,7 +18,7 @@ const fees = {
  * @return {{
  *  ...ctx,
  *  admin: SecretCLIAgent,
- *  node: SecretNetworkNode,
+ *  node: ScrtNode,
  *  network: SecretNetwork,
  * }}
  */

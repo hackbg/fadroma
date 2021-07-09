@@ -5,7 +5,7 @@ import {
 } from '@fadroma/scrt-agent'
 
 import {
-  ContractEnsemble,
+  ScrtEnsemble,
   SecretNetworkNode,
   SecretNetworkBuilder
 } from '@fadroma/scrt-ops'
@@ -15,7 +15,7 @@ export {
   SecretNetworkAgent,
   SecretNetworkContract,
 
-  ContractEnsemble,
+  ScrtEnsemble,
   SecretNetworkNode,
   SecretNetworkBuilder
 }

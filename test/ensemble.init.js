@@ -1,31 +1,12 @@
 import assert from "assert";
 import path from "path";
 import fs from "fs";
-
-import {
-  SecretNetwork,
-  SecretNetworkAgent,
-  SecretNetworkContract,
-
-  ContractEnsemble,
-  SecretNetworkNode,
-  SecretNetworkBuilder
-} from "../index.js";
+import { ScrtEnsemble } from "../scrt-ops/index.js";
 
 describe("Secret Network Ensemble", function () {
   let e;
-  class TestEnsemble extends ContractEnsemble {
+  class TestEnsemble extends ScrtEnsemble {
     contracts = { TEST: { crate: "votes" } };
-    docker = {
-      async getImage() {
-        //console.debug('mock getImage')
-        return {
-          async inspect() {
-            //console.debug('mock inspect')
-          },
-        };
-      },
-    };
 
     async initialize () {
       return 1
