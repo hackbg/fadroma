@@ -1,7 +1,7 @@
 import {
   mkdir, makeStateDir, resolve, dirname, fileURLToPath, cwd, bold, Console
 } from '@fadroma/utilities'
-import { SecretNetworkNode, SecretNetworkBuilder } from '@fadroma/scrt-ops'
+import { SecretNetworkNode, ScrtBuilderWithUploader } from '@fadroma/scrt-ops'
 import SecretJSAgent from './agent.js'
 import SecretCLIAgent from './agent-secretcli.js'
 import SecretNetworkContract from './contract.js'
@@ -17,7 +17,7 @@ export const defaultStateBase = resolve(cwd(), 'artifacts')
  */
 export default class SecretNetwork {
   // TODO get rid of these shortcuts and/or use dynamic imports of ops classes
-  static Builder  = SecretNetworkBuilder
+  // static Builder  = ScrtBuilderWithUploader
   static Contract = SecretNetworkContract
   static Node     = SecretNetworkNode
 
@@ -160,7 +160,7 @@ export default class SecretNetwork {
 
   /** create builder operating on the current instance's endpoint */
   getBuilder (agent) {
-    return new SecretNetworkBuilder({network: this, agent})
+    return new ScrtBuilderWithUploader({network: this, agent})
   }
 
   /** create contract instance from interface class and address */

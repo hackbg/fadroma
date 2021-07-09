@@ -1,22 +1,12 @@
 import assert from "assert";
-import Ensemble from "@fadroma/scrt-ops/ensemble.js";
 import path from "path";
 import fs from "fs";
+import { ScrtEnsemble } from "../scrt-ops/index.js";
 
 describe("Secret Network Ensemble", function () {
   let e;
-  class TestEnsemble extends Ensemble {
+  class TestEnsemble extends ScrtEnsemble {
     contracts = { TEST: { crate: "votes" } };
-    docker = {
-      async getImage() {
-        //console.debug('mock getImage')
-        return {
-          async inspect() {
-            //console.debug('mock inspect')
-          },
-        };
-      },
-    };
 
     async initialize () {
       return 1

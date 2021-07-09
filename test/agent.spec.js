@@ -1,7 +1,9 @@
-import SecretNetworkAgent from '../scrt-agent/agent.js';
-import SecretCLIAgent from '../scrt-agent/agent-secretcli.js';
+import {
+  SecretNetworkAgent,
+  SecretCLIAgent,
+  SecretNetwork
+} from '../scrt-agent/index.js';
 
-import SecretNetwork from '../scrt-agent/network.js';
 import debug from 'debug';
 import { assert } from 'chai';
 import { Bip39 } from '@cosmjs/crypto';

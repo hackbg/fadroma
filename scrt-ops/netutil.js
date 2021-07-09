@@ -15,13 +15,14 @@ export const freePort = () => new Promise((ok, fail)=>{
 })
 
 export const pulled = async (imageName, docker = new Docker()) => {
+
   try {
     // throws if inspected image does not exist:
     const image = docker.getImage(imageName)
     await image.inspect()
   } catch (e) {
     console.debug(`docker pulling ${imageName}...`)
-    await new Promise((ok, fail)=>{
+    await new Promise((ok, fail)=>{  console.log(docker, docker.pull)
       docker.pull(imageName, (err, stream) => {
         if (err) return fail(err)
         docker.modem.followProgress(stream,

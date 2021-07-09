@@ -3,8 +3,10 @@ import SecretCLIAgent from './agent-secretcli.js'
 import SecretNetworkContract from './contract.js'
 import SecretNetwork from './network.js'
 import SecretNetworkContractWithSchema from './contractWithSchema.js'
+import SchemaWrapper from './Wrapper.js'
 
 export {
+  SchemaWrapper,
   SecretNetwork,
   SecretNetworkAgent,
   SecretCLIAgent,
