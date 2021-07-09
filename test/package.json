@@ -1,0 +1,13 @@
+{
+  "name": "@fadroma/test",
+  "version": "1.0.0",
+  "description": "Test cases",
+  "main": "helper.js",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@fadroma/scrt-agent": "*",
+    "@fadroma/scrt-ops": "*",
+    "@fadroma/utilities": "*"
+  }
+}

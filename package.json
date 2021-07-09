@@ -6,7 +6,8 @@
   "workspaces": [
     "./utilities",
     "./scrt-agent",
-    "./scrt-ops"
+    "./scrt-ops",
+    "./test"
   ],
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",

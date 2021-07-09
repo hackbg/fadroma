@@ -302,7 +302,7 @@
   "resolved" "file:scrt-agent"
   "version" "0.1.0"
 
-"@fadroma/scrt-ops@file:/Users/thudik/code/htunlogic/fadroma/scrt-ops":
+"@fadroma/scrt-ops@*", "@fadroma/scrt-ops@file:/Users/thudik/code/htunlogic/fadroma/scrt-ops":
   "resolved" "file:scrt-ops"
   "version" "0.1.0"
   dependencies:
@@ -310,6 +310,14 @@
     "@fadroma/utilities" "*"
     "dockerode" "^3.3.0"
     "wait-port" "^0.2.9"
+
+"@fadroma/test@file:/Users/thudik/code/htunlogic/fadroma/test":
+  "resolved" "file:test"
+  "version" "1.0.0"
+  dependencies:
+    "@fadroma/scrt-agent" "*"
+    "@fadroma/scrt-ops" "*"
+    "@fadroma/utilities" "*"
 
 "@fadroma/utilities@*", "@fadroma/utilities@file:/Users/thudik/code/htunlogic/fadroma/utilities":
   "resolved" "file:utilities"
