@@ -63,7 +63,7 @@ pub fn ns_load <T: DeserializeOwned, S: ReadonlyStorage> (
 }
 
 #[inline]
-fn concat(
+pub fn concat(
     namespace: &[u8],
     key:       &[u8]
 ) -> Vec<u8> {
@@ -72,3 +72,50 @@ fn concat(
     k
 }
 
+pub trait Readonly <S: ReadonlyStorage> {
+    fn storage (&self) -> &S;
+    fn load <T: DeserializeOwned> (&self, key: &[u8]) -> StdResult<Option<T>> {
+        match self.storage().get(key) {
+            Some(data) => from_slice(&data),
+            None => Ok(None)
+        }
+    }
+    fn load_ns <T: DeserializeOwned> (&self, ns: &[u8], key: &[u8]) -> StdResult<Option<T>> {
+        self.load(&concat(ns, key))
+    }
+}
+
+pub trait Writable <S: Storage>: Readonly<S> {
+    fn storage_mut (&mut self) -> &mut S;
+    fn save <T: Serialize> (&mut self, key: &[u8], val: T) -> StdResult<()> {
+        self.storage_mut().set(&key, &to_vec(&val)?);
+        Ok(())
+    }
+    fn save_ns <T: Serialize> (&mut self, ns: &[u8], key: &[u8], val: T) -> StdResult<()> {
+        self.save(&concat(ns, key), val)
+    }
+}
+
+//#[macro_export] macro_rules! load {
+    //($self:ident, $key:expr) => {
+        //fadroma::scrt::storage::load(&$self.0, $key)
+    //};
+//}
+
+//#[macro_export] macro_rules! save {
+    //($self:ident, $key:expr, $val:expr) => {
+        //$self.0.as_mut().set(&$key, &to_vec(&$val)?);
+    //};
+//}
+
+//#[macro_export] macro_rules! ns_load {
+    //($self:ident, $ns:expr, $key:expr) => {
+        //fadroma::scrt::storage::ns_load(&$self.0, $ns, $key.as_slice())
+    //};
+//}
+
+//#[macro_export] macro_rules! ns_save {
+    //($self:ident, $ns:expr, $key:expr, $val:expr) => {
+        //$self.0.as_mut().set(&concat($ns, $key.as_slice()), &to_vec(&$val)?)
+    //}
+//}
