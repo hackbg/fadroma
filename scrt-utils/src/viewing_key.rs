@@ -58,3 +58,9 @@ impl fmt::Display for ViewingKey {
         write!(f, "{}", self.0)
     }
 }
+
+impl From<&str> for ViewingKey {
+    fn from (vk: &str) -> Self {
+        ViewingKey(vk.into())
+    }
+}
