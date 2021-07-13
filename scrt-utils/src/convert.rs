@@ -1,6 +1,6 @@
-use cosmwasm_std::{StdResult, StdError};
-use crate::u256_math;
-use crate::u256_math::U256;
+use cosmwasm_std::StdResult;
+
+use crate::uint256::Uint256;
 
 /// Convert between tokens with different decimals.
 ///
@@ -16,59 +16,39 @@ pub fn convert_token(
     input_decimals: u8,
     output_decimals: u8
 ) -> StdResult<u128> {
-    let err_msg = "u128 overflow detected.";
-
     // result = amount * rate / one whole output token
  
-    let amount = Some(U256::from(amount));
-    let rate = Some(U256::from(rate));
+    let amount = Uint256::from(amount);
+    let rate = Uint256::from(rate);
 
-    let mut result = u256_math::mul(amount, rate).ok_or_else(|| 
-        StdError::generic_err(err_msg)
-    )?;
+    let mut result = (amount * rate)?;
 
     // But, if tokens have different number of decimals, we need to compensate either by 
     // dividing or multiplying (depending on which token has more decimals) the difference
     if input_decimals < output_decimals {
-        let compensation = get_whole_token_representation(
+        let compensation = one_token(
             output_decimals - input_decimals
         );
-        let compensation = Some(U256::from(compensation));
 
-        result = u256_math::mul(Some(result), compensation).ok_or_else(|| 
-            StdError::generic_err(err_msg) 
-        )?;
+        result = (result * Uint256::from(compensation))?;
     } else if output_decimals < input_decimals {
-        let compensation = get_whole_token_representation(
+        let compensation = one_token(
             input_decimals - output_decimals
         );
-        let compensation = Some(U256::from(compensation));
 
-        result = u256_math::div(Some(result), compensation).ok_or_else(|| 
-            StdError::generic_err("Divison by zero.") 
-        )?;
+        result = (result / Uint256::from(compensation))?;
     }
 
-    let whole_token = Some(U256::from(
-        get_whole_token_representation(output_decimals)
-    ));
+    let whole_token = Uint256::from(one_token(output_decimals));
+    let result = (result / whole_token)?;
 
-    let result = u256_math::div(Some(result), whole_token).ok_or_else(||
-        StdError::generic_err(err_msg)
-    )?;
-
-    // Check if resulting u128 would overflow
-    if result.0[3] > 0 {
-        return Err(StdError::generic_err(err_msg));
-    }
-
-    Ok(result.low_u128())
+    result.clamp_u128()
 }
 
 /// Get the amount needed to represent 1 whole token given its decimals.
 /// Ex. Given token A that has 3 decimals, 1 A == 1000
 #[inline]
-pub fn get_whole_token_representation(decimals: u8) -> u128 {
+pub fn one_token(decimals: u8) -> u128 {
     1 * 10u128.pow(decimals.into())
 }
 

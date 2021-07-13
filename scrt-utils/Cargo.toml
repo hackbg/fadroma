@@ -20,7 +20,7 @@ rand_chacha     = { version = "0.2.2", default-features = false }
 rand_core       = { version = "0.5.1", default-features = false }
 sha2            = { version = "0.9.1", default-features = false }
 subtle          = { version = "2.4.0", default-features = false }
-primitive-types = { version = "0.9.0", default-features = false }
+primitive-types = { version = "0.10.1", default-features = false }
 
 cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
