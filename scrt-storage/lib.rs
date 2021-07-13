@@ -87,11 +87,11 @@ pub trait Readonly <S: ReadonlyStorage> {
 
 pub trait Writable <S: Storage>: Readonly<S> {
     fn storage_mut (&mut self) -> &mut S;
-    fn save <T: Serialize> (&mut self, key: &[u8], val: T) -> StdResult<()> {
+    fn save <T: Serialize> (&mut self, key: &[u8], val: T) -> StdResult<&mut Self> {
         self.storage_mut().set(&key, &to_vec(&val)?);
-        Ok(())
+        Ok(self)
     }
-    fn save_ns <T: Serialize> (&mut self, ns: &[u8], key: &[u8], val: T) -> StdResult<()> {
+    fn save_ns <T: Serialize> (&mut self, ns: &[u8], key: &[u8], val: T) -> StdResult<&mut Self> {
         self.save(&concat(ns, key), val)
     }
 }
