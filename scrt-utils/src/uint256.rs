@@ -61,6 +61,18 @@ impl Uint256 {
         return Ok(z);
     }
 
+    /// returns self * nom / denom
+    pub fn multiply_ratio<A: Into<Self>, B: Into<Self>>(self, nom: A, denom: B) -> StdResult<Uint256> {
+        let nominator = nom.into();
+        let denominator = denom.into();
+
+        if denominator == Self::zero() {
+            return Err(StdError::generic_err("Denominator cannot be zero"));
+        }
+
+        (self * Uint256::from(nominator))? / Uint256::from(denominator)
+    }
+
     pub fn is_zero(&self) -> bool {
         self.0.is_zero()
     }
@@ -378,5 +390,27 @@ mod tests {
         assert_eq!((a / b).unwrap(), Uint256::from(500));
         assert_eq!((a * b).unwrap(), Uint256::from(2000));
         assert_eq!((a.checked_pow(b)).unwrap(), Uint256::from(1000000));
+    }
+
+    #[test]
+    fn multiply_ratio() {
+        let base = Uint256::from(500);
+
+        // factor 1/1
+        assert_eq!(base.multiply_ratio(1u128, 1u128).unwrap(), Uint256::from(500));
+        assert_eq!(base.multiply_ratio(3u128, 3u128).unwrap(), Uint256::from(500));
+        assert_eq!(base.multiply_ratio(654321u128, 654321u128).unwrap(), Uint256::from(500));
+
+        // factor 3/2
+        assert_eq!(base.multiply_ratio(3u128, 2u128).unwrap(), Uint256::from(750));
+        assert_eq!(base.multiply_ratio(333333u128, 222222u128).unwrap(), Uint256::from(750));
+
+        // factor 2/3 (integer devision always floors the result)
+        assert_eq!(base.multiply_ratio(2u128, 3u128).unwrap(), Uint256::from(333));
+        assert_eq!(base.multiply_ratio(222222u128, 333333u128).unwrap(), Uint256::from(333));
+
+        // factor 5/6 (integer devision always floors the result)
+        assert_eq!(base.multiply_ratio(5u128, 6u128).unwrap(), Uint256::from(416));
+        assert_eq!(base.multiply_ratio(100u128, 120u128).unwrap(), Uint256::from(416));
     }
 }
