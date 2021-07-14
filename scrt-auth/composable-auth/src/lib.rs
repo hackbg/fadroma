@@ -76,6 +76,7 @@ pub enum AuthHandleMsg {
     }
 }
 
+// Enum with one variant because Keplr expects this format.
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum HandleAnswer {
@@ -144,8 +145,12 @@ mod tests {
             DefaultHandleImpl
         ).unwrap();
 
-        let created_vk: CreateViewingKeyData = from_binary(&result.data.unwrap()).unwrap();
-        let created_vk = ViewingKey(created_vk.key);
+        let result: HandleAnswer = from_binary(&result.data.unwrap()).unwrap();
+        let created_vk = match result {
+            HandleAnswer::CreateViewingKey { key } => {
+                key
+            }
+        };
         
         assert_eq!(created_vk, load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
 
