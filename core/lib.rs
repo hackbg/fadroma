@@ -3,10 +3,10 @@ pub mod scrt {
     pub use fadroma_scrt_base::*;
 
     #[cfg(feature="scrt-addr")]
-    pub use fadroma_scrt_addr     as addr;
+    pub use fadroma_scrt_addr as addr;
 
     #[cfg(feature="scrt-storage")]
-    pub use fadroma_scrt_storage  as storage;
+    pub use fadroma_scrt_storage as storage;
 
     #[cfg(feature="scrt-callback")]
     pub use fadroma_scrt_callback as callback;
@@ -15,8 +15,11 @@ pub mod scrt {
     pub use fadroma_scrt_contract as contract;
 
     #[cfg(feature="scrt-migrate")]
-    pub use fadroma_scrt_migrate  as migrate;
+    pub use fadroma_scrt_migrate as migrate;
+
+    #[cfg(feature="scrt-snip20-api")]
+    pub use fadroma_scrt_snip20_api as snip20_api;
 
     #[cfg(feature="scrt-utils")]
-    pub use fadroma_scrt_utils    as utils;
+    pub use fadroma_scrt_utils as utils;
 }

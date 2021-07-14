@@ -11,19 +11,23 @@ path = "lib.rs"
 [dependencies]
 secret-toolkit   = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
 
-fadroma-scrt-base     = { optional = true, path = "../scrt" }
-fadroma-scrt-addr     = { optional = true, path = "../scrt-addr" }
-fadroma-scrt-callback = { optional = true, path = "../scrt-callback" }
-fadroma-scrt-contract = { optional = true, path = "../scrt-contract" }
-fadroma-scrt-migrate  = { optional = true, path = "../scrt-migrate" }
-fadroma-scrt-storage  = { optional = true, path = "../scrt-storage" }
-fadroma-scrt-utils    = { optional = true, path = "../scrt-utils" }
+fadroma-scrt-base       = { optional = true, path = "../scrt" }
+fadroma-scrt-addr       = { optional = true, path = "../scrt-addr" }
+fadroma-scrt-callback   = { optional = true, path = "../scrt-callback" }
+fadroma-scrt-contract   = { optional = true, path = "../scrt-contract" }
+fadroma-scrt-migrate    = { optional = true, path = "../scrt-migrate" }
+fadroma-scrt-storage    = { optional = true, path = "../scrt-storage" }
+fadroma-scrt-snip20-api = { optional = true, path = "../scrt-snip20-api" }
+fadroma-scrt-utils      = { optional = true, path = "../scrt-utils" }
+
+#composable-snip20   = { optional = true, path = "../scrt-snip20" }
 
 [features]
-scrt          = ["fadroma-scrt-base"]
-scrt-addr     = ["scrt", "fadroma-scrt-addr"]
-scrt-callback = ["scrt", "fadroma-scrt-callback"]
-scrt-contract = ["scrt", "fadroma-scrt-contract"]
-scrt-migrate  = ["scrt", "fadroma-scrt-migrate"]
-scrt-storage  = ["scrt", "fadroma-scrt-storage"]
-scrt-utils    = ["scrt", "fadroma-scrt-utils"]
+scrt            = ["fadroma-scrt-base"]
+scrt-addr       = ["scrt", "fadroma-scrt-addr"]
+scrt-callback   = ["scrt", "fadroma-scrt-callback"]
+scrt-contract   = ["scrt", "fadroma-scrt-contract"]
+scrt-migrate    = ["scrt", "fadroma-scrt-migrate"]
+scrt-snip20-api = ["scrt", "fadroma-scrt-snip20-api"]
+scrt-storage    = ["scrt", "fadroma-scrt-storage"]
+scrt-utils      = ["scrt", "fadroma-scrt-utils"]

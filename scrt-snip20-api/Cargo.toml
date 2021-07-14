@@ -1,0 +1,13 @@
+[package]
+name    = "fadroma-scrt-snip20-api"
+version = "0.1.0"
+edition = "2018"
+authors = ["Adam A. <adam@hack.bg>"]
+
+[lib]
+name = "fadroma_scrt_snip20_api"
+path = "snip20api.rs"
+
+[dependencies]
+fadroma-scrt-base     = { path = "../scrt" }
+fadroma-scrt-callback = { path = "../scrt-callback" }
