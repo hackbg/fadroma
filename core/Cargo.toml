@@ -15,6 +15,7 @@ fadroma-scrt-base       = { optional = true, path = "../scrt" }
 fadroma-scrt-addr       = { optional = true, path = "../scrt-addr" }
 fadroma-scrt-callback   = { optional = true, path = "../scrt-callback" }
 fadroma-scrt-contract   = { optional = true, path = "../scrt-contract" }
+fadroma-scrt-harness    = { optional = true, path = "../scrt-harness" }
 fadroma-scrt-migrate    = { optional = true, path = "../scrt-migrate" }
 fadroma-scrt-storage    = { optional = true, path = "../scrt-storage" }
 fadroma-scrt-snip20-api = { optional = true, path = "../scrt-snip20-api" }
@@ -27,6 +28,7 @@ scrt            = ["fadroma-scrt-base"]
 scrt-addr       = ["scrt", "fadroma-scrt-addr"]
 scrt-callback   = ["scrt", "fadroma-scrt-callback"]
 scrt-contract   = ["scrt", "fadroma-scrt-contract"]
+scrt-harness    = ["scrt", "fadroma-scrt-harness"]
 scrt-migrate    = ["scrt", "fadroma-scrt-migrate"]
 scrt-snip20-api = ["scrt", "fadroma-scrt-snip20-api"]
 scrt-storage    = ["scrt", "fadroma-scrt-storage"]
