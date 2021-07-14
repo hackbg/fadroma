@@ -1,3 +1,4 @@
+#[cfg(derive)]
 pub use require_admin::require_admin;
 
 pub mod multi_admin;
