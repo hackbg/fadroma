@@ -87,6 +87,7 @@ pub struct ISnip20Querier <'a, Q: Querier> {
 }
 
 impl <'a, Q: Querier> ISnip20Querier <'a, Q> {
+
     pub fn balance (&self, address: &HumanAddr, vk: &str) -> StdResult<Uint128> {
         Ok(snip20::balance_query(
             self.querier,
@@ -96,4 +97,14 @@ impl <'a, Q: Querier> ISnip20Querier <'a, Q> {
             self.snip20.address.clone()
         )?.amount)
     }
+
+    pub fn token_info (&self) -> StdResult<snip20::TokenInfo> {
+        snip20::token_info_query(
+            self.querier,
+            self.snip20.block_size,
+            self.snip20.code_hash.clone(),
+            self.snip20.address.clone()
+        )
+    }
+
 }
