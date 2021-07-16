@@ -34,8 +34,8 @@ export default class SecretNetworkContract {
 
   /**Execute a contract transaction.
    */
-  execute = (method = "", args = null, agent = this.agent) =>
-    agent.execute(this, method, args);
+  execute = (method = "", args = null, agent = this.agent, memo, transferAmount, fee) =>
+    agent.execute(this, method, args, memo, transferAmount, fee);
 
   /** Save the contract's instantiation receipt.
    */

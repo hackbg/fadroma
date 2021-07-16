@@ -33,7 +33,7 @@ const camelCaseString = (str) => {
  *
  * @returns {Ajv}
  */
-const getAjv = () => {
+export const getAjv = () => {
   const ajv = new Ajv({ strict: false });
 
   // Add type validation for intN and add automatically uintN
@@ -111,8 +111,16 @@ class Factory {
 
     return this.methods.reduce((handlers, action) => {
       handlers[camelCaseString(action.method)] = handlers[action.method] =
-        function (args, agent) {
-          return this.run(action.method, args, agent);
+        /**
+         * @param {object} [args] 
+         * @param {SecretNetworkAgent} [agent] 
+         * @param {string} [memo] 
+         * @param {Coin[]} [transferAmount] 
+         * @param {StdFee} [fee] 
+         * @returns 
+         */
+        function (args, agent, memo, transferAmount, fee) {
+          return this.run(action.method, args, agent, memo, transferAmount, fee);
         }.bind(this);
 
       return handlers;
@@ -216,10 +224,13 @@ class Factory {
    * @param {string} method
    * @param {object} [args]
    * @param {SecretNetworkAgent} [agent]
+   * @param {string} [memo] 
+   * @param {Coin[]} [transferAmount] 
+   * @param {StdFee} [fee] 
    * @returns {Promise<any>}
    * @private
    */
-  run(method, args, agent) {
+  run(method, args, agent, memo, transferAmount, fee) {
     for (const action of this.methods) {
       if (action.method === method) {
         if (isAgent(args) && !isAgent(agent)) {
@@ -228,9 +239,9 @@ class Factory {
         }
 
         if (action.string) {
-          return this._callString(action, agent);
+          return this._callString(action, agent, memo, transferAmount, fee);
         } else {
-          return this._callObject(action, args, agent);
+          return this._callObject(action, args, agent, memo, transferAmount, fee);
         }
       }
     }
@@ -245,11 +256,14 @@ class Factory {
    * Make a call to a simple function on a contract
    * @param {object} action
    * @param {SecretNetworkAgent} [agent]
+   * @param {string} [memo] 
+   * @param {Coin[]} [transferAmount] 
+   * @param {StdFee} [fee] 
    */
-  _callString(action, agent) {
+  _callString(action, agent, memo, transferAmount, fee) {
     const contract = this.getContract(agent);
 
-    return contract[this.caller](action.method, null);
+    return contract[this.caller](action.method, null, undefined, memo, transferAmount, fee);
   }
 
   /**
@@ -257,8 +271,11 @@ class Factory {
    * @param {object} action
    * @param {object} args
    * @param {SecretNetworkAgent} [agent]
+   * @param {string} [memo] 
+   * @param {Coin[]} [transferAmount] 
+   * @param {StdFee} [fee] 
    */
-  _callObject(action, args, agent) {
+  _callObject(action, args, agent, memo, transferAmount, fee) {
     if (action.emptyArgs) {
       args = {};
     } else {
@@ -267,7 +284,7 @@ class Factory {
 
     const contract = this.getContract(agent);
 
-    return contract[this.caller](action.method, args);
+    return contract[this.caller](action.method, args, undefined, memo, transferAmount, fee);
   }
 }
 
