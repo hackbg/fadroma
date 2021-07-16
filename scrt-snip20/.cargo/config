@@ -1,3 +1,3 @@
 [alias]
-unit-test = "test --lib --features backtraces"
-integration-test = "test --test integration"
+snip21-test = "test --features snip21"
+snip22-test = "test --features snip22"

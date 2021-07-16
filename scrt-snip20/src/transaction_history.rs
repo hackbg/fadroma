@@ -302,10 +302,11 @@ pub fn store_transfer<S: Storage>(
     sender: &CanonicalAddr,
     receiver: &CanonicalAddr,
     amount: Uint128,
-    denom: String,
     memo: Option<String>,
     block: &BlockInfo,
 ) -> StdResult<()> {
+    let denom = Config::from_storage(store).constants()?.symbol;
+
     let id = increment_tx_count(store)?;
     let coins = Coin { denom, amount };
     let transfer = StoredLegacyTransfer {

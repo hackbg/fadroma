@@ -8,13 +8,6 @@ authors = [
   "Adam A. <adam@hack.bg>"
 ]
 
-[features]
-# for quicker tests, cargo test --lib
-# for more explicit tests, cargo test --features=backtraces
-#default = ["debug-print"]
-#backtraces  = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]
-#debug-print = ["cosmwasm-std/debug-print"]
-
 [dependencies]
 serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
 schemars = "0.7"
@@ -26,3 +19,7 @@ fadroma = { path = "../core", features = [
 
 [dev-dependencies]
 cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+
+[features]
+snip21 = []
+snip22 = []

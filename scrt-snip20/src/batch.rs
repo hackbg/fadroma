@@ -8,6 +8,7 @@ use fadroma::scrt::cosmwasm_std::{Binary, HumanAddr, Uint128};
 pub struct TransferAction {
     pub recipient: HumanAddr,
     pub amount: Uint128,
+    #[cfg(feature = "snip21")]
     pub memo: Option<String>,
 }
 
@@ -17,6 +18,7 @@ pub struct SendAction {
     pub recipient: HumanAddr,
     pub amount: Uint128,
     pub msg: Option<Binary>,
+    #[cfg(feature = "snip21")]
     pub memo: Option<String>,
 }
 
@@ -26,6 +28,7 @@ pub struct TransferFromAction {
     pub owner: HumanAddr,
     pub recipient: HumanAddr,
     pub amount: Uint128,
+    #[cfg(feature = "snip21")]
     pub memo: Option<String>,
 }
 
@@ -36,6 +39,7 @@ pub struct SendFromAction {
     pub recipient: HumanAddr,
     pub amount: Uint128,
     pub msg: Option<Binary>,
+    #[cfg(feature = "snip21")]
     pub memo: Option<String>,
 }
 
@@ -44,6 +48,7 @@ pub struct SendFromAction {
 pub struct MintAction {
     pub recipient: HumanAddr,
     pub amount: Uint128,
+    #[cfg(feature = "snip21")]
     pub memo: Option<String>,
 }
 
@@ -52,5 +57,6 @@ pub struct MintAction {
 pub struct BurnFromAction {
     pub owner: HumanAddr,
     pub amount: Uint128,
+    #[cfg(feature = "snip21")]
     pub memo: Option<String>,
 }

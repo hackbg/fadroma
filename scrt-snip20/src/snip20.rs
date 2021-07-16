@@ -1,11 +1,12 @@
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;
+
 use fadroma::scrt::{
     cosmwasm_std::{
         log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg,
         Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
-        ReadonlyStorage, StdError, StdResult, Storage, Uint128, WasmMsg, BlockInfo
+        ReadonlyStorage, StdError, StdResult, Storage, Uint128, WasmMsg
     },
     utils::{
         viewing_key::{ViewingKey, VIEWING_KEY_SIZE},
@@ -23,13 +24,20 @@ use crate::{
         read_viewing_key, write_viewing_key, Balances, Config, Constants,
         ReadonlyBalances, ReadonlyConfig, Allowance
     },
-    transaction_history::{
-        get_transfers, get_txs, store_burn, store_deposit, store_mint,
-        store_redeem, store_transfer,
-    },
-    batch,
     utils::pad_response,
 };
+
+#[cfg(feature = "snip21")]
+use crate::transaction_history::{
+    get_transfers, get_txs, store_burn, store_deposit,
+    store_mint, store_redeem, store_transfer,
+};
+
+#[cfg(feature = "snip21")]
+use fadroma::scrt::cosmwasm_std::BlockInfo;
+
+#[cfg(feature = "snip22")]
+use crate::batch;
 
 pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -48,6 +56,8 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
     let init_config = msg.config.unwrap_or_default();
     
     let admin = msg.admin.unwrap_or(env.message.sender.clone());
+
+    #[cfg(feature = "snip21")]
     let canon_admin = deps.api.canonical_address(&admin)?;
 
     let mut total_supply: u128 = 0;
@@ -69,6 +79,7 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
                 ));
             }
 
+            #[cfg(feature = "snip21")]
             store_mint(
                 &mut deps.storage,
                 &canon_admin,
@@ -181,17 +192,44 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Transfer {
             recipient,
             amount,
+            #[cfg(feature = "snip21")]
             memo,
             ..
-        } => snip20.transfer(deps, env, recipient, amount, memo),
+        } => snip20.transfer(
+                deps,
+                env,
+                recipient,
+                amount,
+                #[cfg(feature = "snip21")]
+                memo
+            ),
         HandleMsg::Send {
             recipient,
             amount,
             msg,
+            #[cfg(feature = "snip21")]
             memo,
             ..
-        } => snip20.send(deps, env, recipient, amount, memo, msg),
-        HandleMsg::Burn { amount, memo, .. } => snip20.burn(deps, env, amount, memo),
+        } => snip20.send(
+            deps,
+            env,
+            recipient,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo,
+            msg
+        ),
+        HandleMsg::Burn { 
+            amount,
+            #[cfg(feature = "snip21")]
+            memo, .. 
+        } => snip20.burn(
+            deps,
+            env,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo
+        ),
         HandleMsg::RegisterReceive { code_hash, .. } => snip20.register_receive(deps, env, code_hash),
         HandleMsg::CreateViewingKey { entropy, .. } => snip20.create_viewing_key(deps, env, entropy),
         HandleMsg::SetViewingKey { key, .. } => snip20.set_viewing_key(deps, env, key),
@@ -213,31 +251,66 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
             owner,
             recipient,
             amount,
+            #[cfg(feature = "snip21")]
             memo,
             ..
-        } => snip20.transfer_from(deps, env, owner, recipient, amount, memo),
+        } => snip20.transfer_from(
+            deps,
+            env,
+            owner,
+            recipient,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo
+        ),
         HandleMsg::SendFrom {
             owner,
             recipient,
             amount,
             msg,
+            #[cfg(feature = "snip21")]
             memo,
             ..
-        } => snip20.send_from(deps, env, owner, recipient, amount, memo, msg),
+        } => snip20.send_from(
+            deps,
+            env,
+            owner,
+            recipient,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo,
+            msg
+        ),
         HandleMsg::BurnFrom {
             owner,
             amount,
+            #[cfg(feature = "snip21")]
             memo,
             ..
-        } => snip20.burn_from(deps, env, owner, amount, memo),
+        } => snip20.burn_from(
+            deps,
+            env,
+            owner,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo
+        ),
 
         // Mint
         HandleMsg::Mint {
             recipient,
             amount,
+            #[cfg(feature = "snip21")]
             memo,
             ..
-        } => snip20.mint(deps, env, recipient, amount, memo),
+        } => snip20.mint(
+            deps,
+            env,
+            recipient,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo
+        ),
 
         // Other
         HandleMsg::ChangeAdmin { address, .. } => snip20.change_admin(deps, env, address),
@@ -247,13 +320,19 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::SetMinters { minters, .. } => snip20.set_minters(deps, env, minters),
 
         // SNIP22
+        #[cfg(feature = "snip22")]
         HandleMsg::BatchTransfer { actions, .. } => snip20.batch_transfer(deps, env, actions),
+        #[cfg(feature = "snip22")]
         HandleMsg::BatchSend { actions, .. } => snip20.batch_send(deps, env, actions),
+        #[cfg(feature = "snip22")]
         HandleMsg::BatchTransferFrom { actions, .. } => {
             snip20.batch_transfer_from(deps, env, actions)
         }
+        #[cfg(feature = "snip22")]
         HandleMsg::BatchSendFrom { actions, .. } => snip20.batch_send_from(deps, env, actions),
+        #[cfg(feature = "snip22")]
         HandleMsg::BatchBurnFrom { actions, .. } => snip20.batch_burn_from(deps, env, actions),
+        #[cfg(feature = "snip22")]
         HandleMsg::BatchMint { actions, .. } => snip20.batch_mint(deps, env, actions)
     };
 
@@ -340,7 +419,8 @@ pub trait Snip20  {
                 "This deposit would overflow your balance",
             ));
         }
-    
+        
+        #[cfg(feature = "snip21")]
         store_deposit(
             &mut deps.storage,
             &sender_address,
@@ -412,6 +492,7 @@ pub trait Snip20  {
             amount,
         }];
     
+        #[cfg(feature = "snip21")]
         store_redeem(
             &mut deps.storage,
             &sender_address,
@@ -439,13 +520,23 @@ pub trait Snip20  {
         env: Env,
         recipient: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
         let sender = deps.api.canonical_address(&env.message.sender)?;
         let recipient = deps.api.canonical_address(&recipient)?;
+        
+        transfer_impl(
+            deps,
+            &sender,
+            &recipient,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo,
+            #[cfg(feature = "snip21")]
+            &env.block
+        )?;
 
-        transfer_impl(deps, &sender, &recipient, amount, memo, &env.block)?;
-    
         let res = HandleResponse {
             messages: vec![],
             log: vec![],
@@ -460,12 +551,15 @@ pub trait Snip20  {
         env: Env,
         recipient: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         msg: Option<Binary>,
     ) -> StdResult<HandleResponse> {
         let mut messages = vec![];
+
         let sender = env.message.sender;
         let sender_canon = deps.api.canonical_address(&sender)?;
+
         send_impl(
             deps,
             &mut messages,
@@ -473,8 +567,10 @@ pub trait Snip20  {
             &sender_canon,
             recipient,
             amount,
+            #[cfg(feature = "snip21")]
             memo,
             msg,
+            #[cfg(feature = "snip21")]
             &env.block,
         )?;
     
@@ -491,6 +587,7 @@ pub trait Snip20  {
         deps: &mut Extern<S, A, Q>,
         env: Env,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
         let config = ReadonlyConfig::from_storage(&deps.storage);
@@ -529,6 +626,7 @@ pub trait Snip20  {
         }
         config.set_total_supply(total_supply);
     
+        #[cfg(feature = "snip21")]
         store_burn(
             &mut deps.storage,
             &sender_address,
@@ -709,13 +807,23 @@ pub trait Snip20  {
         owner: HumanAddr,
         recipient: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
         let spender = deps.api.canonical_address(&env.message.sender)?;
         let owner = deps.api.canonical_address(&owner)?;
         let recipient = deps.api.canonical_address(&recipient)?;
 
-        transfer_from_impl(deps, &env, &spender, &owner, &recipient, amount, memo)?;
+        transfer_from_impl(
+            deps,
+            &env,
+            &spender,
+            &owner,
+            &recipient,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo
+        )?;
     
         let res = HandleResponse {
             messages: vec![],
@@ -732,6 +840,7 @@ pub trait Snip20  {
         owner: HumanAddr,
         recipient: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         msg: Option<Binary>,
     ) -> StdResult<HandleResponse> {
@@ -748,6 +857,7 @@ pub trait Snip20  {
             owner,
             recipient,
             amount,
+            #[cfg(feature = "snip21")]
             memo,
             msg,
         )?;
@@ -766,6 +876,7 @@ pub trait Snip20  {
         env: Env,
         owner: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
         let config = ReadonlyConfig::from_storage(&deps.storage);
@@ -807,7 +918,8 @@ pub trait Snip20  {
             ));
         }
         config.set_total_supply(total_supply);
-    
+
+        #[cfg(feature = "snip21")]
         store_burn(
             &mut deps.storage,
             &owner,
@@ -833,6 +945,7 @@ pub trait Snip20  {
         env: Env,
         recipient: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
         let mut config = Config::from_storage(&mut deps.storage);
@@ -859,17 +972,18 @@ pub trait Snip20  {
             ));
         }
         config.set_total_supply(total_supply);
-    
-        let minter = &deps.api.canonical_address(&env.message.sender)?;
-        let recipient = &deps.api.canonical_address(&recipient)?;
 
         mint_impl(
             &mut deps.storage,
-            &minter,
-            &recipient,
+            #[cfg(feature = "snip21")]
+            &deps.api.canonical_address(&env.message.sender)?,
+            &deps.api.canonical_address(&recipient)?,
             amount,
+            #[cfg(feature = "snip21")]
             constants.symbol,
+            #[cfg(feature = "snip21")]
             memo,
+            #[cfg(feature = "snip21")]
             &env.block,
         )?;
     
@@ -1002,6 +1116,7 @@ pub trait Snip20  {
 
     // SNIP22 Handle
 
+    #[cfg(feature = "snip22")]
     fn batch_transfer<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &mut Extern<S, A, Q>,
@@ -1018,7 +1133,9 @@ pub trait Snip20  {
                 &sender,
                 &recipient,
                 action.amount,
+                #[cfg(feature = "snip21")]
                 action.memo,
+                #[cfg(feature = "snip21")]
                 &env.block,
             )?;
         }
@@ -1031,6 +1148,7 @@ pub trait Snip20  {
         Ok(res)
     }
 
+    #[cfg(feature = "snip22")]
     fn batch_send<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &mut Extern<S, A, Q>,
@@ -1049,8 +1167,10 @@ pub trait Snip20  {
                 &sender_canon,
                 action.recipient,
                 action.amount,
+                #[cfg(feature = "snip21")]
                 action.memo,
                 action.msg,
+                #[cfg(feature = "snip21")]
                 &env.block,
             )?;
         }
@@ -1063,6 +1183,7 @@ pub trait Snip20  {
         Ok(res)
     }
 
+    #[cfg(feature = "snip22")]
     fn batch_transfer_from<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &mut Extern<S, A, Q>,
@@ -1081,6 +1202,7 @@ pub trait Snip20  {
                 &owner,
                 &recipient,
                 action.amount,
+                #[cfg(feature = "snip21")]
                 action.memo,
             )?;
         }
@@ -1095,6 +1217,7 @@ pub trait Snip20  {
         Ok(res)
     }
 
+    #[cfg(feature = "snip22")]
     fn batch_send_from<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &mut Extern<S, A, Q>,
@@ -1114,6 +1237,7 @@ pub trait Snip20  {
                 action.owner,
                 action.recipient,
                 action.amount,
+                #[cfg(feature = "snip21")]
                 action.memo,
                 action.msg,
             )?;
@@ -1127,6 +1251,7 @@ pub trait Snip20  {
         Ok(res)
     }
 
+    #[cfg(feature = "snip22")]
     fn batch_burn_from<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &mut Extern<S, A, Q>,
@@ -1173,7 +1298,8 @@ pub trait Snip20  {
                     action
                 )));
             }
-    
+
+            #[cfg(feature = "snip21")]    
             store_burn(
                 &mut deps.storage,
                 &owner,
@@ -1197,6 +1323,7 @@ pub trait Snip20  {
         Ok(res)
     }
 
+    #[cfg(feature = "snip22")]
     fn batch_mint<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &mut Extern<S, A, Q>,
@@ -1232,17 +1359,23 @@ pub trait Snip20  {
         }
         config.set_total_supply(total_supply);
     
+        #[cfg(feature = "snip21")]
         let minter = &deps.api.canonical_address(&env.message.sender)?;
+
         for action in actions {
             let recipient = &deps.api.canonical_address(&action.recipient)?;
 
             mint_impl(
                 &mut deps.storage,
+                #[cfg(feature = "snip21")]
                 &minter,
                 &recipient,
                 action.amount,
+                #[cfg(feature = "snip21")]
                 constants.symbol.clone(),
+                #[cfg(feature = "snip21")]
                 action.memo,
+                #[cfg(feature = "snip21")]
                 &env.block,
             )?;
         }
@@ -1349,6 +1482,7 @@ pub trait Snip20  {
 
     // SNIP21 Query 
 
+    #[cfg(feature = "snip21")]
     fn query_transfers<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
@@ -1365,7 +1499,8 @@ pub trait Snip20  {
         };
         to_binary(&result)
     }
-    
+
+    #[cfg(feature = "snip21")]
     fn query_transactions<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
@@ -1389,20 +1524,20 @@ pub fn transfer_impl<S: Storage, A: Api, Q: Querier>(
     sender: &CanonicalAddr,
     recipient: &CanonicalAddr,
     amount: Uint128,
+    #[cfg(feature = "snip21")]
     memo: Option<String>,
+    #[cfg(feature = "snip21")]
     block: &BlockInfo,
 ) -> StdResult<()> {
     perform_transfer(&mut deps.storage, &sender, &recipient, amount.u128())?;
 
-    let symbol = Config::from_storage(&mut deps.storage).constants()?.symbol;
-
+    #[cfg(feature = "snip21")]
     store_transfer(
         &mut deps.storage,
         &sender,
         &sender,
         &recipient,
         amount,
-        symbol,
         memo,
         block,
     )?;
@@ -1446,8 +1581,10 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
     sender_canon: &CanonicalAddr, // redundant but more efficient
     recipient: HumanAddr,
     amount: Uint128,
+    #[cfg(feature = "snip21")]
     memo: Option<String>,
     msg: Option<Binary>,
+    #[cfg(feature = "snip21")]
     block: &BlockInfo,
 ) -> StdResult<()> {
     let recipient_canon = deps.api.canonical_address(&recipient)?;
@@ -1457,7 +1594,9 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
         &sender_canon,
         &recipient_canon,
         amount,
+        #[cfg(feature = "snip21")]
         memo.clone(),
+        #[cfg(feature = "snip21")]
         block,
     )?;
 
@@ -1469,6 +1608,7 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
         sender.clone(),
         sender,
         amount,
+        #[cfg(feature = "snip21")]
         memo,
     )?;
 
@@ -1484,12 +1624,20 @@ pub fn add_receiver_api_callback<S: ReadonlyStorage>(
     sender: HumanAddr,
     from: HumanAddr,
     amount: Uint128,
+    #[cfg(feature = "snip21")]
     memo: Option<String>,
 ) -> StdResult<()> {
     let receiver_hash = get_receiver_hash(storage, &recipient);
     if let Some(receiver_hash) = receiver_hash {
         let receiver_hash = receiver_hash?;
-        let receiver_msg = Snip20ReceiveMsg::new(sender, from, amount, memo, msg);
+        let receiver_msg = Snip20ReceiveMsg::new(
+            sender,
+            from,
+            amount,
+            #[cfg(feature = "snip21")]
+            memo,
+            msg
+        );
         let callback_msg = receiver_msg.into_cosmos_msg(receiver_hash, recipient)?;
 
         messages.push(callback_msg);
@@ -1504,6 +1652,7 @@ pub fn transfer_from_impl<S: Storage, A: Api, Q: Querier>(
     owner: &CanonicalAddr,
     recipient: &CanonicalAddr,
     amount: Uint128,
+    #[cfg(feature = "snip21")]
     memo: Option<String>,
 ) -> StdResult<()> {
     let raw_amount = amount.u128();
@@ -1512,15 +1661,13 @@ pub fn transfer_from_impl<S: Storage, A: Api, Q: Querier>(
 
     perform_transfer(&mut deps.storage, owner, recipient, raw_amount)?;
 
-    let symbol = Config::from_storage(&mut deps.storage).constants()?.symbol;
-
+    #[cfg(feature = "snip21")]
     store_transfer(
         &mut deps.storage,
         owner,
         spender,
         recipient,
         amount,
-        symbol,
         memo,
         &env.block,
     )?;
@@ -1560,6 +1707,7 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
     owner: HumanAddr,
     recipient: HumanAddr,
     amount: Uint128,
+    #[cfg(feature = "snip21")]
     memo: Option<String>,
     msg: Option<Binary>,
 ) -> StdResult<()> {
@@ -1573,6 +1721,7 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
         &owner_canon,
         &recipient_canon,
         amount,
+        #[cfg(feature = "snip21")]
         memo.clone(),
     )?;
 
@@ -1584,6 +1733,7 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
         env.message.sender,
         owner,
         amount,
+        #[cfg(feature = "snip21")]
         memo,
     )?;
 
@@ -1592,11 +1742,15 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
 
 pub fn mint_impl<S: Storage>(
     storage: &mut S,
+    #[cfg(feature = "snip21")]
     minter: &CanonicalAddr,
     recipient: &CanonicalAddr,
     amount: Uint128,
+    #[cfg(feature = "snip21")]
     denom: String,
+    #[cfg(feature = "snip21")]
     memo: Option<String>,
+    #[cfg(feature = "snip21")]
     block: &BlockInfo,
 ) -> StdResult<()> {
     let raw_amount = amount.u128();
@@ -1619,6 +1773,7 @@ pub fn mint_impl<S: Storage>(
 
     balances.set_account_balance(recipient, account_balance);
 
+    #[cfg(feature = "snip21")]
     store_mint(storage, minter, recipient, amount, denom, memo, block)?;
 
     Ok(())
@@ -1746,12 +1901,14 @@ fn authenticated_queries<S: Storage, A: Api, Q: Querier>(
             return match msg {
                 // Base
                 QueryMsg::Balance { address, .. } => snip20.query_balance(&deps, &address),
+                #[cfg(feature = "snip21")]
                 QueryMsg::TransferHistory {
                     address,
                     page,
                     page_size,
                     ..
                 } => snip20.query_transfers(&deps, &address, page.unwrap_or(0), page_size),
+                #[cfg(feature = "snip21")]
                 QueryMsg::TransactionHistory {
                     address,
                     page,

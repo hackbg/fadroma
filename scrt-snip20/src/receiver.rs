@@ -15,6 +15,7 @@ pub struct Snip20ReceiveMsg {
     pub from: HumanAddr,
     pub amount: Uint128,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg(feature = "snip21")]
     pub memo: Option<String>,
     pub msg: Option<Binary>,
 }
@@ -24,6 +25,7 @@ impl Snip20ReceiveMsg {
         sender: HumanAddr,
         from: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         msg: Option<Binary>,
     ) -> Self {
@@ -31,6 +33,7 @@ impl Snip20ReceiveMsg {
             sender,
             from,
             amount,
+            #[cfg(feature = "snip21")]
             memo,
             msg,
         }

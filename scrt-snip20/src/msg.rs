@@ -6,10 +6,12 @@ use fadroma::scrt::{
     callback::Callback,
     utils::viewing_key::ViewingKey,
 };
-use crate::{
-    batch,
-    transaction_history::{RichTx, Tx}
-};
+
+#[cfg(feature = "snip21")]
+use crate::transaction_history::{RichTx, Tx};
+#[cfg(feature = "snip22")]
+use crate::batch;
+
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
 pub struct InitialBalance {
@@ -164,6 +166,7 @@ pub enum HandleMsg {
     Transfer {
         recipient: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         padding: Option<String>,
     },
@@ -171,19 +174,23 @@ pub enum HandleMsg {
         recipient: HumanAddr,
         amount: Uint128,
         msg: Option<Binary>,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         padding: Option<String>,
     },
+    #[cfg(feature = "snip22")]
     BatchTransfer {
         actions: Vec<batch::TransferAction>,
         padding: Option<String>,
     },
+    #[cfg(feature = "snip22")]
     BatchSend {
         actions: Vec<batch::SendAction>,
         padding: Option<String>,
     },
     Burn {
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         padding: Option<String>,
     },
@@ -217,6 +224,7 @@ pub enum HandleMsg {
         owner: HumanAddr,
         recipient: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         padding: Option<String>,
     },
@@ -225,13 +233,16 @@ pub enum HandleMsg {
         recipient: HumanAddr,
         amount: Uint128,
         msg: Option<Binary>,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         padding: Option<String>,
     },
+    #[cfg(feature = "snip22")]
     BatchTransferFrom {
         actions: Vec<batch::TransferFromAction>,
         padding: Option<String>,
     },
+    #[cfg(feature = "snip22")]
     BatchSendFrom {
         actions: Vec<batch::SendFromAction>,
         padding: Option<String>,
@@ -239,9 +250,11 @@ pub enum HandleMsg {
     BurnFrom {
         owner: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         padding: Option<String>,
     },
+    #[cfg(feature = "snip22")]
     BatchBurnFrom {
         actions: Vec<batch::BurnFromAction>,
         padding: Option<String>,
@@ -251,9 +264,11 @@ pub enum HandleMsg {
     Mint {
         recipient: HumanAddr,
         amount: Uint128,
+        #[cfg(feature = "snip21")]
         memo: Option<String>,
         padding: Option<String>,
     },
+    #[cfg(feature = "snip22")]
     BatchMint {
         actions: Vec<batch::MintAction>,
         padding: Option<String>,
@@ -390,12 +405,14 @@ pub enum QueryMsg {
         address: HumanAddr,
         key: String,
     },
+    #[cfg(feature = "snip21")]
     TransferHistory {
         address: HumanAddr,
         key: String,
         page: Option<u32>,
         page_size: u32,
     },
+    #[cfg(feature = "snip21")]
     TransactionHistory {
         address: HumanAddr,
         key: String,
@@ -409,7 +426,9 @@ impl QueryMsg {
     pub fn get_validation_params(&self) -> (Vec<&HumanAddr>, ViewingKey) {
         match self {
             Self::Balance { address, key } => (vec![address], ViewingKey(key.clone())),
+            #[cfg(feature = "snip21")]
             Self::TransferHistory { address, key, .. } => (vec![address], ViewingKey(key.clone())),
+            #[cfg(feature = "snip21")]
             Self::TransactionHistory { address, key, .. } => {
                 (vec![address], ViewingKey(key.clone()))
             }
@@ -449,10 +468,12 @@ pub enum QueryAnswer {
     Balance {
         amount: Uint128,
     },
+    #[cfg(feature = "snip21")]
     TransferHistory {
         txs: Vec<Tx>,
         total: Option<u64>,
     },
+    #[cfg(feature = "snip21")]
     TransactionHistory {
         txs: Vec<RichTx>,
         total: Option<u64>,
