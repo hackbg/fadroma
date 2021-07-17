@@ -1,8 +1,5 @@
 pub use serde::{Serialize, de::DeserializeOwned};
-pub use fadroma_scrt_base::cosmwasm_std::{
-    Storage, ReadonlyStorage, StdResult,
-    to_vec, from_slice
-};
+pub use fadroma_scrt_base::cosmwasm_std::{Storage, ReadonlyStorage, StdResult, to_vec, from_slice};
 
 use crate::concat;
 

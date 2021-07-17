@@ -385,3 +385,9 @@
     };
 
 }
+
+// TODO proposed action against the triple generic:
+// scrt-contract automatically aliases `storage`, `api`,
+// and `querier` (also maybe the contents of `env`?)
+// so that it becomes less verbose to pass just the ones you use
+// (...that, or let's just give contracts a `self` already?)

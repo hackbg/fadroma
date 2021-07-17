@@ -1,23 +1,23 @@
 use fadroma_scrt_base::{
-    cosmwasm_std::{Uint128, HumanAddr, CosmosMsg, StdResult, Querier},
+    cosmwasm_std::{Uint128, HumanAddr, Binary, CosmosMsg, StdResult, Querier},
     toolkit::snip20,
     BLOCK_SIZE
 };
 use fadroma_scrt_callback::ContractInstance;
 
-pub struct ISnip20 {
-    address:    HumanAddr,
-    code_hash:  String,
+pub struct ISnip20 <'a> {
+    address:    &'a HumanAddr,
+    code_hash:  &'a String,
     padding:    Option<String>,
     block_size: usize
 }
 
-impl ISnip20 {
+impl<'a> ISnip20<'a> {
 
-    pub fn connect (link: ContractInstance<HumanAddr>) -> Self {
+    pub fn attach (link: &'a ContractInstance<HumanAddr>) -> Self {
         Self {
-            address:    link.address,
-            code_hash:  link.code_hash,
+            address:    &link.address,
+            code_hash:  &link.code_hash,
             padding:    None,
             block_size: BLOCK_SIZE
         }
@@ -38,6 +38,27 @@ impl ISnip20 {
     ) -> StdResult<CosmosMsg> {
         snip20::set_minters_msg(
             minters.clone(),
+            self.padding.clone(), self.block_size,
+            self.code_hash.clone(), self.address.clone()
+        )
+    }
+
+    pub fn send (
+        &self, recipient: &HumanAddr, amount: Uint128, msg: Option<Binary>
+    ) -> StdResult<CosmosMsg> {
+        snip20::send_msg(
+            recipient.clone(), amount, msg,
+            self.padding.clone(), self.block_size,
+            self.code_hash.clone(), self.address.clone()
+        )
+    }
+
+    pub fn send_from (
+        &self, owner: &HumanAddr, recipient: &HumanAddr,
+        amount: Uint128, msg: Option<Binary>
+    ) -> StdResult<CosmosMsg> {
+        snip20::send_from_msg(
+            owner.clone(), recipient.clone(), amount, msg,
             self.padding.clone(), self.block_size,
             self.code_hash.clone(), self.address.clone()
         )
@@ -73,20 +94,20 @@ impl ISnip20 {
         )
     }
 
-    pub fn query <'a, Q: Querier> (
-        &'a self, querier: &'a Q
-    ) -> ISnip20Querier<'a, Q> {
+    pub fn query <'q, Q: Querier> (
+        &'q self, querier: &'q Q
+    ) -> ISnip20Querier<'q, Q> {
         ISnip20Querier { snip20: &self, querier }
     }
 
 }
 
-pub struct ISnip20Querier <'a, Q: Querier> {
-    snip20:  &'a ISnip20,
-    querier: &'a Q
+pub struct ISnip20Querier <'q, Q: Querier> {
+    snip20:  &'q ISnip20<'q>,
+    querier: &'q Q
 }
 
-impl <'a, Q: Querier> ISnip20Querier <'a, Q> {
+impl <'q, Q: Querier> ISnip20Querier <'q, Q> {
 
     pub fn balance (&self, address: &HumanAddr, vk: &str) -> StdResult<Uint128> {
         Ok(snip20::balance_query(
