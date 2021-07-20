@@ -299,7 +299,7 @@
         // Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
         // but doesn't need the implementation to be in a sibling module (the `super::contract` on L65)
         // TODO custom `migrate` for SecretNetwork
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(target_arch = "wasm32", not(feature = "browser")))]
         mod wasm {
             //use super::contract;
             use fadroma::scrt::cosmwasm_std::{
@@ -317,6 +317,74 @@
             }
             // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
             // automatically because we `use cosmwasm_std`.
+        }
+
+        #[cfg(all(target_arch = "wasm32", feature = "browser"))]
+        mod wasm {
+            use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+            use fadroma::scrt::cosmwasm_std as cw;
+
+            // can't augment structs we don't own, so wrap 'em:
+            #[wasm_bindgen] pub struct Env(cw::Env);
+            #[wasm_bindgen] pub struct Init(super::msg::$Init);
+            #[wasm_bindgen] pub struct InitResponse(cw::InitResponse);
+            #[wasm_bindgen] pub struct Q(super::msg::$Q);
+            #[wasm_bindgen] pub struct Binary(cw::Binary);
+            #[wasm_bindgen] pub struct TX(super::msg::$TX);
+            #[wasm_bindgen] pub struct HandleResponse(cw::HandleResponse);
+            #[wasm_bindgen] pub struct Response(super::msg::$Response);
+            #[wasm_bindgen] pub struct Extern(cw::Extern<cw::MemoryStorage, Api, Querier>);
+            #[wasm_bindgen] pub struct HumanAddr(cw::HumanAddr);
+            #[wasm_bindgen] pub struct CanonicalAddr(cw::CanonicalAddr);
+            #[wasm_bindgen] pub struct StdError(cw::StdError);
+
+            #[wasm_bindgen]
+            #[derive(Copy, Clone)]
+            pub struct Api {}
+            impl cw::Api for Api {
+                fn canonical_address (&self, addr: &cw::HumanAddr) -> cw::StdResult<cw::CanonicalAddr> {
+                    Ok(cw::CanonicalAddr(cw::Binary(Vec::from(addr.as_str()))))
+                }
+                fn human_address (&self, addr: &cw::CanonicalAddr) -> cw::StdResult<cw::HumanAddr> {
+                    let trimmed: Vec<u8> = addr.as_slice().iter().cloned().filter(|&x| x != 0).collect();
+                    // decode UTF-8 bytes into string
+                    Ok(cw::HumanAddr(String::from_utf8(trimmed).map_err(cw::StdError::invalid_utf8)?))
+                }
+            }
+
+            impl From<cw::StdError> for StdError {
+                fn from (err: cw::StdError) -> Self {
+                    Self(err)
+                }
+            }
+
+            #[wasm_bindgen] pub struct Querier {}
+            impl cw::Querier for Querier {
+                fn raw_query (&self, bin_request: &[u8]) -> cw::QuerierResult {
+                    Ok(cw::to_binary(&[] as &[u8]))
+                }
+            }
+
+            #[wasm_bindgen] pub fn init (deps: &mut Extern, env: Env, msg: Init) -> Result<InitResponse, JsValue> {
+                match super::init(&mut deps.0, env.0, msg.0) {
+                    Ok(res) => Ok(InitResponse(res)),
+                    Err(e) => Err(StdError(e).into())
+                }
+            }
+
+            #[wasm_bindgen] pub fn handle (deps: &mut Extern, env: Env, msg: TX) -> Result<HandleResponse, JsValue> {
+                match super::handle(&mut deps.0, env.0, msg.0) {
+                    Ok(res) => Ok(HandleResponse(res)),
+                    Err(e) => Err(StdError(e).into())
+                }
+            }
+
+            #[wasm_bindgen] pub fn query (deps: &Extern, msg: Q) -> Result<Binary, JsValue> {
+                match super::query(&deps.0, msg.0) {
+                    Ok(res) => Ok(Binary(res)),
+                    Err(e) => Err(StdError(e).into())
+                }
+            }
         }
 
         /// This contract's on-chain API.
