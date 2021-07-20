@@ -9,3 +9,7 @@ path = "lib.rs"
 doctest = false # ???
 
 [dependencies]
+wasm-bindgen = { optional = true, version = "0.2" }
+
+[features]
+browser = ["wasm-bindgen"]
