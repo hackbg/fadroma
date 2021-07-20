@@ -25,4 +25,17 @@ pub mod scrt {
 
     #[cfg(feature="scrt-utils")]
     pub use fadroma_scrt_utils as utils;
+
+    #[cfg(feature="scrt-vk")]
+    pub mod vk {
+        pub use composable_auth::*;
+        pub use fadroma_scrt_utils::viewing_key::*;
+    }
+
+    #[cfg(feature="scrt-admin")]
+    pub mod admin {
+        pub use composable_admin::admin::*;
+        pub use composable_admin::multi_admin as multi;
+        pub use require_admin::*;
+    }
 }
