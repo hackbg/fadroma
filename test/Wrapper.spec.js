@@ -1,7 +1,5 @@
 import { assert } from "chai";
-import {
-  SchemaWrapper
-} from "../scrt-agent/index.js";
+import { SchemaWrapper } from "../scrt-agent/index.js";
 
 const schema = {
   $schema: "http://json-schema.org/draft-07/schema#",
@@ -69,17 +67,44 @@ const schema = {
   },
 };
 
+const handleSchema = {
+  $schema: "http://json-schema.org/draft-07/schema#",
+  title: "HandleMsg",
+  anyOf: [
+    {
+      type: "object",
+      required: ["swap"],
+      properties: {
+        swap: {
+          type: "object",
+          required: ["amount"],
+          properties: {
+            amount: {
+              $ref: "#/definitions/Uint128",
+            },
+          },
+        },
+      },
+    },
+  ],
+  definitions: {
+    Uint128: {
+      type: "string",
+    },
+  },
+};
+
 // This is a mock instance of a SecretNetworkContract
 const instance = {
   query: (method, args) => {
     return { method, args };
   },
-  execute: (method, args) => {
-    return { method, args };
+  execute: (method = "", args = null, agent = instance, memo, transferAmount, fee) => {
+    return { method, args, memo, transferAmount, fee };
   },
   copy: (agent) => {
     return agent;
-  }
+  },
 };
 
 // This is a mock instance of some random contract
@@ -87,18 +112,22 @@ const instance2 = {
   query: (method, args) => {
     return { method, args, identity: "second" };
   },
-  execute: (method, args) => {
-    return { method, args, identity: "second" };
+  execute: (method = "", args = null, agent = instance2, memo, transferAmount, fee) => {
+    return { method, args, identity: "second", memo, transferAmount, fee };
   },
 };
 
 const wrapper = SchemaWrapper(schema, instance);
+const wrapperHandle = SchemaWrapper(handleSchema, instance);
 
 describe("Schema wrapper", function () {
   it("Has all the methods", function () {
     const methods = Object.keys(wrapper).join(",");
 
-    assert.strictEqual(methods, "pools,total_rewards_supply,totalRewardsSupply,contract_status,contractStatus,admin,transaction_history,transactionHistory");
+    assert.strictEqual(
+      methods,
+      "pools,total_rewards_supply,totalRewardsSupply,contract_status,contractStatus,admin,transaction_history,transactionHistory"
+    );
   });
 
   it("Works on string items", function () {
@@ -124,7 +153,7 @@ describe("Schema wrapper", function () {
   });
 
   it("Works when calling nested argumented object", function () {
-    const res = wrapper.admin('admin');
+    const res = wrapper.admin("admin");
     assert.strictEqual(res.method, "admin");
     assert.strictEqual(res.args, "admin");
   });
@@ -139,6 +168,24 @@ describe("Schema wrapper", function () {
 
     const res = wrapper.transaction_history(args);
     assert.strictEqual(res.method, "transaction_history");
+    assert.strictEqual(JSON.stringify(res.args), JSON.stringify(args));
+  });
+
+  it("Works when calling object with correct arguments and adding memo and transferAmount", function () {
+    const args = {
+      amount: "1",
+    };
+
+    const transferAmount = [{ amount: "1", denom: "uscrt" }];
+
+    const res = wrapperHandle.swap(args, instance2, "random memo", transferAmount);
+    assert.strictEqual(res.identity, "second");
+    assert.strictEqual(res.method, "swap");
+    assert.strictEqual(res.memo, "random memo");
+    assert.strictEqual(
+      JSON.stringify(res.transferAmount),
+      JSON.stringify(transferAmount)
+    );
     assert.strictEqual(JSON.stringify(res.args), JSON.stringify(args));
   });
 

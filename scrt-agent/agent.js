@@ -155,9 +155,9 @@ export default class SecretNetworkAgent {
   }
 
   /**Execute a contract transaction. */
-  execute = ({ label, address }, method='', args = null) => {
+  execute = ({ label, address }, method='', args = null, memo, transferAmount, fee) => {
     let msg;
-
+    
     if (args === null) {
       msg = method
     }
@@ -165,8 +165,8 @@ export default class SecretNetworkAgent {
       msg = {[method]: args}
     }
     
-    debug(`❗ ${this.address} ${bold('execute')} ${method}`, { label, address, method, args })
-    const result = this.API.execute(address, msg)
+    debug(`❗ ${this.address} ${bold('execute')} ${method}`, { label, address, method, args, memo, transferAmount, fee })
+    const result = this.API.execute(address, msg, memo, transferAmount, fee)
     debug(`❗ ${this.address} ${bold('result')} ${method}`, { label, address, method, result })
     return result
   }
