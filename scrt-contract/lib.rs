@@ -251,10 +251,57 @@
     };
 }
 
+/// λ binding. Injects a few things into a struct definition to
+/// implement compatibility via wasm_bindgen, i.e. the defined methods
+/// can be called from JS on the underlying private API struct.
+///
+/// Rust doesn't allow for monkey-patching (i.e. we can't impl things
+/// on things that we don't own), so we need to wrap 'em in locally defined structs
+/// and call wasm_bindgen on the wrapper and its methods.
+//// `attempted to repeat an expression containing no syntax variables matched
+//// as repeating at this depth` - best error message ever.
+//// or `this file contains an unclosed delimiter` but it already
+//// optimized away that info by design so now we don't know where
+//// or `repetition matches empty token tree` - @#$%, Rust, are you gonna
+//// loop back on yourself if you do that?!
+//// macros are truly a blessing in the disguise of a curse.
+#[macro_export] macro_rules! binding {
+    ( $(
+        $struct:ident /// the name of the resulting new binding struct
+        $fields:tt    /// `(cw::WrapAStruct)` or `{define: Custom, fields: Innit}`
+
+        $( // if there are any functions defined below
+        $( // each one will be implemented on the new struct
+            $(#[$meta:meta])* // allow doc strings, marking as constructor, etc
+            fn $name:ident    // single point of adding `pub` marker
+            ($($args:tt)*) -> // arguments as called from JS-land
+            $returns:ty       // return type is wrapped for error handling
+            $body:block       // implementation of function that returns `Ok($returns)`
+        )+ // end iteration over each input function
+        )? // end check for presence of input functions
+
+    )* ) => { $(
+        // generate a new struct and derive the wasm_bindgen trait suite for it
+        #[wasm_bindgen] pub struct $struct $fields;
+
+        // if there are bound functions wrap em with da `impl` wrapper
+        $(#[wasm_bindgen] impl $struct {
+            $( // and output each one as a public bound method
+            $(#[$meta])* // it's as meta as it gets...
+            pub fn $name ($($args)*) -> Result<$returns, JsValue> {
+                match $body { // single point of error serialization
+                    Ok(res) => Ok(res),
+                    Err(e) => Err(StdError(e).into())
+                }
+            })+ // end iteration
+        })? // end conditional
+    )* };
+}
+
 /// Define a smart contract
 #[macro_export] macro_rules! contract {
 
-    // This pattern matching is ugly!
+    // this pattern matching is stable
     (
         // passed to `define_state_singleton!`
         [$State:ident]
@@ -323,58 +370,10 @@
         mod wasm {
             use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
             use fadroma::scrt::cosmwasm_std as cw;
+            use fadroma::scrt::contract::binding;
 
-            // can't augment structs we don't own, so wrap 'em:
-            #[wasm_bindgen] pub struct Deps(cw::Extern<cw::MemoryStorage, Api, Querier>);
-
-            #[wasm_bindgen] pub struct Env(cw::Env);
-            #[wasm_bindgen] impl Env {
-                #[wasm_bindgen(constructor)] pub fn new () -> Self {
-                    Self(cw::Env {
-                        block: cw::BlockInfo {
-                            height:   0u64,
-                            time:     0u64,
-                            chain_id: String::new()
-                        },
-                        message: cw::MessageInfo {
-                            sender:     cw::HumanAddr::from(""),
-                            sent_funds: vec![]
-                        },
-                        contract: cw::ContractInfo {
-                            address: cw::HumanAddr::from("")
-                        },
-                        contract_key: Some(String::new()),
-                        contract_code_hash: String::new()
-                    })
-                }
-            }
-
-            #[wasm_bindgen] pub struct Init(super::msg::$Init);
-            #[wasm_bindgen] impl Init {
-                #[wasm_bindgen(constructor)] pub fn new (json: &[u8]) -> Result<Init, JsValue> {
-                    match cw::from_slice(json) {
-                        Ok(res) => Ok(Self(res)),
-                        Err(e) => Err(StdError(e).into())
-                    }
-                }
-            }
-            #[wasm_bindgen] pub struct InitResponse(cw::InitResponse);
-
-            #[wasm_bindgen] pub struct Q(super::msg::$Q);
-            #[wasm_bindgen] pub struct Binary(cw::Binary);
-            #[wasm_bindgen] pub struct Response(super::msg::$Response);
-
-            #[wasm_bindgen] pub struct TX(super::msg::$TX);
-            #[wasm_bindgen] pub struct HandleResponse(cw::HandleResponse);
-
-            #[wasm_bindgen] pub struct HumanAddr(cw::HumanAddr);
-            #[wasm_bindgen] pub struct CanonicalAddr(cw::CanonicalAddr);
-
-            #[wasm_bindgen] pub struct StdError(cw::StdError);
-
-            #[wasm_bindgen]
-            #[derive(Copy, Clone)]
-            pub struct Api {}
+            // TODO: minimal implementations of these
+            #[wasm_bindgen] #[derive(Copy, Clone)] pub struct Api {}
             impl cw::Api for Api {
                 fn canonical_address (&self, addr: &cw::HumanAddr) -> cw::StdResult<cw::CanonicalAddr> {
                     Ok(cw::CanonicalAddr(cw::Binary(Vec::from(addr.as_str()))))
@@ -386,12 +385,6 @@
                 }
             }
 
-            impl From<cw::StdError> for StdError {
-                fn from (err: cw::StdError) -> Self {
-                    Self(err)
-                }
-            }
-
             #[wasm_bindgen] pub struct Querier {}
             impl cw::Querier for Querier {
                 fn raw_query (&self, bin_request: &[u8]) -> cw::QuerierResult {
@@ -399,41 +392,83 @@
                 }
             }
 
-            #[wasm_bindgen] pub struct Contract {
-                deps: Deps,
+            impl From<cw::StdError> for StdError {
+                fn from (err: cw::StdError) -> Self {
+                    Self(format!("bound error {:#?}", &err).into())
+                }
             }
 
-            #[wasm_bindgen] impl Contract {
+            binding! {
 
-                #[wasm_bindgen(constructor)] pub fn new () -> Self {
-                    Self {
-                        deps: Deps(cw::Extern {
-                            storage:  cw::MemoryStorage::default(),
-                            api:      Api {},
-                            querier:  Querier {}
-                        })
-                    }
+                Env(cw::Env)
+                #[wasm_bindgen(constructor)] fn new (height: u64) -> Env {
+                    Env(cw::Env {
+                        block: cw::BlockInfo {
+                            height,
+                            time: height * 5,
+                            chain_id: "".into()
+                        },
+                        message: cw::MessageInfo {
+                            sender:     cw::HumanAddr::from(""),
+                            sent_funds: vec![]
+                        },
+                        contract: cw::ContractInfo {
+                            address: cw::HumanAddr::from("")
+                        },
+                        contract_key: Some("".into()),
+                        contract_code_hash: "".into()
+                    })
                 }
 
-                pub fn init (&mut self, env: Env, msg: Init) -> Result<InitResponse, JsValue> {
-                    match super::init(&mut self.deps.0, env.0, msg.0) {
-                        Ok(res) => Ok(InitResponse(res)),
-                        Err(e) => Err(StdError(e).into())
-                    }
+                HumanAddr(cw::HumanAddr)
+                CanonicalAddr(cw::CanonicalAddr)
+
+                StdError(String)
+
+                InitMsg(super::msg::$Init)
+                #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> InitMsg {
+                    cw::from_slice(json)
                 }
 
-                pub fn handle (&mut self, env: Env, msg: TX) -> Result<HandleResponse, JsValue> {
-                    match super::handle(&mut self.deps.0, env.0, msg.0) {
-                        Ok(res) => Ok(HandleResponse(res)),
-                        Err(e) => Err(StdError(e).into())
-                    }
+                InitResponse(cw::InitResponse)
+
+                HandleMsg(super::msg::$TX)
+
+                HandleResponse(cw::HandleResponse)
+                #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> HandleMsg {
+                    cw::from_slice(json)
                 }
 
-                pub fn query (&self, msg: Q) -> Result<Binary, JsValue> {
-                    match super::query(&self.deps.0, msg.0) {
-                        Ok(res) => Ok(Binary(res)),
+                QueryMsg(super::msg::$Q)
+                #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> QueryMsg {
+                    cw::from_slice(json)
+                }
+
+                Binary(cw::Binary)
+                Response(super::msg::$Response)
+
+                Contract(cw::Extern<cw::MemoryStorage, Api, Querier> /* ha! */)
+                #[wasm_bindgen(constructor)] fn new () -> Contract {
+                    Ok(Self(cw::Extern {
+                        storage:  cw::MemoryStorage::default(),
+                        api:      Api {},
+                        querier:  Querier {}
+                    }))
+                }
+                fn init (&mut self, env: Env, msg: InitMsg) -> InitResponse {
+                    Ok(InitResponse(super::init(&mut self.0, env.0, msg.0)?))
+                }
+                fn handle (&mut self, env: Env, msg: HandleMsg) -> HandleResponse {
+                    Ok(HandleResponse(super::handle(&mut self.0, env.0, msg.0)?))
+                }
+                fn query (&self, msg: QueryMsg) -> Response {
+                    Ok(match super::query(&self.0, msg.0) {
+                        Ok(res) => match cw::from_binary(&res) {
+                            Ok(res) => Ok(Response(res)),
+                            Err(e)  => Err(StdError(e).into())
+                        },
                         Err(e) => Err(StdError(e).into())
-                    }
+                    })
                 }
 
             }
