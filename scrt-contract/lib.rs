@@ -325,17 +325,51 @@
             use fadroma::scrt::cosmwasm_std as cw;
 
             // can't augment structs we don't own, so wrap 'em:
+            #[wasm_bindgen] pub struct Deps(cw::Extern<cw::MemoryStorage, Api, Querier>);
+
             #[wasm_bindgen] pub struct Env(cw::Env);
+            #[wasm_bindgen] impl Env {
+                #[wasm_bindgen(constructor)] pub fn new () -> Self {
+                    Self(cw::Env {
+                        block: cw::BlockInfo {
+                            height:   0u64,
+                            time:     0u64,
+                            chain_id: String::new()
+                        },
+                        message: cw::MessageInfo {
+                            sender:     cw::HumanAddr::from(""),
+                            sent_funds: vec![]
+                        },
+                        contract: cw::ContractInfo {
+                            address: cw::HumanAddr::from("")
+                        },
+                        contract_key: Some(String::new()),
+                        contract_code_hash: String::new()
+                    })
+                }
+            }
+
             #[wasm_bindgen] pub struct Init(super::msg::$Init);
+            #[wasm_bindgen] impl Init {
+                #[wasm_bindgen(constructor)] pub fn new (json: &[u8]) -> Result<Init, JsValue> {
+                    match cw::from_slice(json) {
+                        Ok(res) => Ok(Self(res)),
+                        Err(e) => Err(StdError(e).into())
+                    }
+                }
+            }
             #[wasm_bindgen] pub struct InitResponse(cw::InitResponse);
+
             #[wasm_bindgen] pub struct Q(super::msg::$Q);
             #[wasm_bindgen] pub struct Binary(cw::Binary);
+            #[wasm_bindgen] pub struct Response(super::msg::$Response);
+
             #[wasm_bindgen] pub struct TX(super::msg::$TX);
             #[wasm_bindgen] pub struct HandleResponse(cw::HandleResponse);
-            #[wasm_bindgen] pub struct Response(super::msg::$Response);
-            #[wasm_bindgen] pub struct Extern(cw::Extern<cw::MemoryStorage, Api, Querier>);
+
             #[wasm_bindgen] pub struct HumanAddr(cw::HumanAddr);
             #[wasm_bindgen] pub struct CanonicalAddr(cw::CanonicalAddr);
+
             #[wasm_bindgen] pub struct StdError(cw::StdError);
 
             #[wasm_bindgen]
@@ -365,26 +399,45 @@
                 }
             }
 
-            #[wasm_bindgen] pub fn init (deps: &mut Extern, env: Env, msg: Init) -> Result<InitResponse, JsValue> {
-                match super::init(&mut deps.0, env.0, msg.0) {
-                    Ok(res) => Ok(InitResponse(res)),
-                    Err(e) => Err(StdError(e).into())
-                }
+            #[wasm_bindgen] pub struct Contract {
+                deps: Deps,
             }
 
-            #[wasm_bindgen] pub fn handle (deps: &mut Extern, env: Env, msg: TX) -> Result<HandleResponse, JsValue> {
-                match super::handle(&mut deps.0, env.0, msg.0) {
-                    Ok(res) => Ok(HandleResponse(res)),
-                    Err(e) => Err(StdError(e).into())
+            #[wasm_bindgen] impl Contract {
+
+                #[wasm_bindgen(constructor)] pub fn new () -> Self {
+                    Self {
+                        deps: Deps(cw::Extern {
+                            storage:  cw::MemoryStorage::default(),
+                            api:      Api {},
+                            querier:  Querier {}
+                        })
+                    }
                 }
+
+                pub fn init (&mut self, env: Env, msg: Init) -> Result<InitResponse, JsValue> {
+                    match super::init(&mut self.deps.0, env.0, msg.0) {
+                        Ok(res) => Ok(InitResponse(res)),
+                        Err(e) => Err(StdError(e).into())
+                    }
+                }
+
+                pub fn handle (&mut self, env: Env, msg: TX) -> Result<HandleResponse, JsValue> {
+                    match super::handle(&mut self.deps.0, env.0, msg.0) {
+                        Ok(res) => Ok(HandleResponse(res)),
+                        Err(e) => Err(StdError(e).into())
+                    }
+                }
+
+                pub fn query (&self, msg: Q) -> Result<Binary, JsValue> {
+                    match super::query(&self.deps.0, msg.0) {
+                        Ok(res) => Ok(Binary(res)),
+                        Err(e) => Err(StdError(e).into())
+                    }
+                }
+
             }
 
-            #[wasm_bindgen] pub fn query (deps: &Extern, msg: Q) -> Result<Binary, JsValue> {
-                match super::query(&deps.0, msg.0) {
-                    Ok(res) => Ok(Binary(res)),
-                    Err(e) => Err(StdError(e).into())
-                }
-            }
         }
 
         /// This contract's on-chain API.
