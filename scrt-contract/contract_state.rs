@@ -1,3 +1,5 @@
+//! Inefficient, use <../fadroma_scrt_storage> instead
+
 /// Define the state singleton.
 // TODO: Support other shapes of state
 #[macro_export] macro_rules! define_state_singleton {

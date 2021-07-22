@@ -1,37 +1,22 @@
-/// λ binding that exposes a wrapped Rust structs to JavaScript,
-/// which allow for interfacing with the WASM smart contract.
-///
-/// Rust doesn't allow for monkey-patching
-/// (we can't impl things on things that we don't own),
-/// so we need to wrap each struct from the Rust API
-/// in our own locally defined struct and expose that to wasm_bindgen.
-///
-/// From JS-land, tthe wrapped struct looks like an object
-/// containing an opaque pointer to JS memory.
-/// This macro also supports adding methods to the binding,
-/// which methods will be exposed on the JS object.
-// Macros are truly a blessing in the disguise of a curse.
-//
-// * `attempted to repeat an expression containing no syntax variables matched
-//   as repeating at this depth` - best error message ever.
-// * or `this file contains an unclosed delimiter` (but it already
-//   optimized away that info by design so now we don't know where)
-// * or `repetition matches empty token tree` - jeez rustc, are you
-//   gonna loop back on yourself if you do that?!
-#[macro_export] macro_rules! binding {
+//! Macros are truly a blessing in the disguise of a curse.
+//!
+//! * `attempted to repeat an expression containing no syntax variables matched
+//!   as repeating at this depth` - best error message ever.
+//! * or `this file contains an unclosed delimiter` (but it already
+//!   optimized away that info by design so now we don't know where)
+//! * or `repetition matches empty token tree` - jeez rustc, are you
+//!   gonna loop back on yourself if you do that?!
 
-    // Entry point - generates module with all bindings
-    // Arguments are methods and corresponding request/response types
-    (
-        $mod:ident, 
-        $Init:path, $TX:path, $Q:path, $Response:path
-    ) => {
-
+/// A binding that exposes the default CosmWasm entry points.
+/// This lets you compile a WASM contract to a form that runs on a
+/// SecretNetwork blockchain.
+#[macro_export] macro_rules! bind_chain {
+    ($mod:ident /* module that exports you init, handle and query functions */) => {
         /// WASM entry points for running on chain.
         // Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
         // but doesn't need the implementation to be in a sibling module (the `super::contract` on L65)
         // TODO custom `migrate` for SecretNetwork
-        #[cfg(all(not(feature = "browser"), target_arch = "wasm32"))] mod wasm {
+        mod wasm {
             use fadroma::scrt::cosmwasm_std::{
                 ExternalStorage as Storage, ExternalApi as Api, ExternalQuerier as Querier,
                 do_init, do_handle, do_query
@@ -48,13 +33,38 @@
             // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
             // automatically because we `use cosmwasm_std`.
         }
+    }
+}
+
+/// λ binding that exposes one or more wrapped Rust structs to JavaScript.
+/// This lets you load a WASM contract in a browser and talk to it from JS.
+///
+/// Rust doesn't allow for monkey-patching
+/// (we can't impl things on things that we don't own),
+/// so we need to wrap each struct from the Rust API
+/// in our own locally defined struct and expose that to wasm_bindgen.
+///
+/// From JS-land, tthe wrapped struct looks like an object
+/// containing an opaque pointer to JS memory.
+/// This macro also supports adding methods to the binding,
+/// which methods will be exposed on the JS object.
+#[macro_export] macro_rules! bind_js {
+
+    // Entry point - generates module with all bindings
+    // Arguments are methods and corresponding request/response types
+    (
+        $mod:ident,
+        $Init:path, $TX:path, $Q:path, $Response:path
+    ) => {
 
         /// WASM entry points for running in browser with stub chain
-        #[cfg(all(feature = "browser", target_arch = "wasm32"))] mod wasm {
+        mod wasm {
 
             use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
             use fadroma::scrt::cosmwasm_std as cw;
-            use fadroma::scrt::contract::binding;
+
+            // but a macro with a recursive dependency on itself? no problem
+            use fadroma::scrt::contract::bind_js;
 
             #[derive(Copy, Clone)] pub struct Api;
             impl cw::Api for Api {
@@ -81,7 +91,7 @@
                 }
             }
 
-            binding! {
+            bind_js! {
 
                 HumanAddr(cw::HumanAddr)
 

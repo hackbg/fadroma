@@ -62,10 +62,16 @@ pub mod contract_state;
 
     ) => {
 
+        /// Import common platform types.
         prelude!();
 
-        /// This contract's entry point.
-        binding!(
+        /// Entry point when building for blockchain.
+        #[cfg(all(not(feature = "browser"), target_arch = "wasm32"))]
+        bind_chain!(super);
+
+        /// Entry point when building for browser.
+        #[cfg(all(feature = "browser", target_arch = "wasm32"))]
+        bind_js!(
             super,
             super::msg::$Init,
             super::msg::$TX,
@@ -73,7 +79,7 @@ pub mod contract_state;
             super::msg::$Response
         );
 
-        /// This contract's on-chain API.
+        /// This contract's API schema.
         pub mod msg {
             // The argument sets of the {Init,Query,Handle}Msg handlers
             // are used to automatically generate the corresponding
