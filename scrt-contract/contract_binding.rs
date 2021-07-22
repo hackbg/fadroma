@@ -44,7 +44,7 @@
 /// so we need to wrap each struct from the Rust API
 /// in our own locally defined struct and expose that to wasm_bindgen.
 ///
-/// From JS-land, tthe wrapped struct looks like an object
+/// From JS-land, the wrapped struct looks like an object
 /// containing an opaque pointer to JS memory.
 /// This macro also supports adding methods to the binding,
 /// which methods will be exposed on the JS object.
