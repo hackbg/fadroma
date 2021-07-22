@@ -56,23 +56,28 @@
             use fadroma::scrt::cosmwasm_std as cw;
             use fadroma::scrt::contract::binding;
 
-            // TODO: minimal implementations of these
-            #[wasm_bindgen] #[derive(Copy, Clone)] pub struct Api {}
+            #[derive(Copy, Clone)] pub struct Api;
             impl cw::Api for Api {
                 fn canonical_address (&self, addr: &cw::HumanAddr) -> cw::StdResult<cw::CanonicalAddr> {
                     Ok(cw::CanonicalAddr(cw::Binary(Vec::from(addr.as_str()))))
                 }
                 fn human_address (&self, addr: &cw::CanonicalAddr) -> cw::StdResult<cw::HumanAddr> {
-                    let trimmed: Vec<u8> = addr.as_slice().iter().cloned().filter(|&x| x != 0).collect();
+                    let trimmed: Vec<u8> = addr.as_slice().iter().cloned()
+                        .filter(|&x| x != 0).collect();
                     // decode UTF-8 bytes into string
-                    Ok(cw::HumanAddr(String::from_utf8(trimmed).map_err(cw::StdError::invalid_utf8)?))
+                    Ok(cw::HumanAddr(String::from_utf8(trimmed)
+                        .map_err(cw::StdError::invalid_utf8)?))
                 }
             }
 
-            #[wasm_bindgen] pub struct Querier {}
+            pub struct Querier {
+                pub next_response: Option<cw::Binary>
+            }
+
             impl cw::Querier for Querier {
                 fn raw_query (&self, bin_request: &[u8]) -> cw::QuerierResult {
-                    Ok(cw::to_binary(&[] as &[u8]))
+                    let response = self.next_response.clone().unwrap();
+                    Ok(Ok(response))
                 }
             }
 
@@ -109,7 +114,11 @@
                     }
                 }
 
-                InitResponse(cw::InitResponse)
+                InitResponse(cw::InitResponse) {
+                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
+                        cw::to_vec(&self.0)
+                    }
+                }
 
                 HandleMsg($TX) {
                     #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> HandleMsg {
@@ -117,7 +126,11 @@
                     }
                 }
 
-                HandleResponse(cw::HandleResponse)
+                HandleResponse(cw::HandleResponse) {
+                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
+                        cw::to_vec(&self.0)
+                    }
+                }
 
                 QueryMsg($Q) {
                     #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> QueryMsg {
@@ -125,16 +138,32 @@
                     }
                 }
 
-                QueryResponse($Response)
+                QueryResponse($Response) {
+                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> QueryResponse {
+                        cw::from_slice(json).map(|msg|QueryResponse(msg))
+                    }
+                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
+                        cw::to_vec(&self.0)
+                    }
+                }
 
                 Contract(cw::Extern<cw::MemoryStorage, Api, Querier> /* ha! */) {
                     #[wasm_bindgen(constructor)] fn new () -> Contract {
                         Ok(Self(cw::Extern {
                             storage:  cw::MemoryStorage::default(),
                             api:      Api {},
-                            querier:  Querier {}
+                            querier:  Querier {
+                                next_response: None
+                            }
                         }))
                     }
+
+                    #[wasm_bindgen(setter)]
+                    fn set_next_query_response (&mut self, response: &[u8]) -> () {
+                        self.0.querier.next_response = Some(response.into());
+                        Ok(())
+                    }
+
                     fn init (&mut self, env: Env, msg: InitMsg) -> InitResponse {
                         $mod::init(&mut self.0, env.0, msg.0).map(|res|InitResponse(res))
                     }
@@ -155,7 +184,8 @@
 
     };
 
-    // Generate single binding
+    // Subroutine to generate every individual struct that is visible from JS
+    // and define its bound methods.
     ( $(
         $struct:ident // the name of the resulting new binding struct
         $fields:tt    // `(cw::WrapAStruct)` or `{define: Custom, fields: Innit}`
@@ -172,7 +202,8 @@
 
     )* ) => { $(
         // generate a new struct and derive the wasm_bindgen trait suite for it
-        #[wasm_bindgen] pub struct $struct $fields;
+        // https://rustwasm.github.io/wasm-bindgen/reference/attributes/on-rust-exports/inspectable.html
+        #[wasm_bindgen(inspectable)] pub struct $struct $fields;
 
         // if there are bound functions wrap em with da `impl` wrapper
         $(#[wasm_bindgen] impl $struct {
