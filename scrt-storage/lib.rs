@@ -1,3 +1,5 @@
+//! Our attempts to interact with the storage system of the underlying platform in an orderly way.
+
 pub mod traits; pub use traits::Storable;
 pub mod traits2;
 
@@ -5,6 +7,7 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 pub use fadroma_scrt_base::cosmwasm_std::{ReadonlyStorage, StdResult, Storage, from_slice, to_vec};
 
+/// Save something to the storage.
 #[inline]
 pub fn save <T: Serialize, S: Storage> (
     storage: &mut S,
@@ -15,6 +18,7 @@ pub fn save <T: Serialize, S: Storage> (
     Ok(())
 }
 
+/// Remove something from the storage.
 #[inline]
 pub fn remove <S: Storage> (
     storage: &mut S,
@@ -23,6 +27,7 @@ pub fn remove <S: Storage> (
     storage.remove(key);
 }
 
+/// Load something from the storage.
 #[inline]
 pub fn load <T: DeserializeOwned, S: ReadonlyStorage> (
     storage: &S,
@@ -34,6 +39,7 @@ pub fn load <T: DeserializeOwned, S: ReadonlyStorage> (
     }
 }
 
+/// Save something to the storage under a namespaced key.
 #[inline]
 pub fn ns_save <T: Serialize, S: Storage> (
     storage:   &mut S,
@@ -45,6 +51,7 @@ pub fn ns_save <T: Serialize, S: Storage> (
     Ok(())
 }
 
+/// Remove the value of a namespaced key from the storage.
 #[inline]
 pub fn ns_remove <S: Storage> (
     storage:   &mut S,
@@ -55,6 +62,7 @@ pub fn ns_remove <S: Storage> (
     storage.remove(&key);
 }
 
+/// Load the value of a namespaced key.
 #[inline]
 pub fn ns_load <T: DeserializeOwned, S: ReadonlyStorage> (
     storage:   &S,
@@ -64,6 +72,7 @@ pub fn ns_load <T: DeserializeOwned, S: ReadonlyStorage> (
     load(storage, &concat(namespace, key))
 }
 
+/// Concatenate a namespace and a key to get a namespaced key.
 #[inline]
 pub fn concat(
     namespace: &[u8],
