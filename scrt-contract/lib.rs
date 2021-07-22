@@ -393,15 +393,7 @@
                 }
             }
 
-            //impl From<cw::StdError> for StdError {
-                //fn from (err: cw::StdError) -> Self {
-                    //Self(format!("bound error {:#?}", &err).into())
-                //}
-            //}
-
             binding! {
-
-                //StdError(String)
 
                 HumanAddr(cw::HumanAddr)
 
