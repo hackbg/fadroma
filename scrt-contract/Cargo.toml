@@ -5,11 +5,8 @@ authors = ["Adam Avramov <adam@hack.bg>"]
 edition = "2018"
 
 [lib]
-path = "lib.rs"
+path = "contract.rs"
 doctest = false # ???
 
-[dependencies]
-wasm-bindgen = { optional = true, version = "0.2" }
-
 [features]
-browser = ["wasm-bindgen"]
+browser = []
