@@ -251,26 +251,31 @@
     };
 }
 
-/// λ binding. Injects a few things into a struct definition to
-/// implement compatibility via wasm_bindgen, i.e. the defined methods
-/// can be called from JS on the underlying private API struct.
+/// λ binding exposing a wrapped Rust struct to JavaScript.
 ///
-/// Rust doesn't allow for monkey-patching (i.e. we can't impl things
-/// on things that we don't own), so we need to wrap 'em in locally defined structs
-/// and call wasm_bindgen on the wrapper and its methods.
-//// `attempted to repeat an expression containing no syntax variables matched
-//// as repeating at this depth` - best error message ever.
-//// or `this file contains an unclosed delimiter` but it already
-//// optimized away that info by design so now we don't know where
-//// or `repetition matches empty token tree` - @#$%, Rust, are you gonna
-//// loop back on yourself if you do that?!
-//// macros are truly a blessing in the disguise of a curse.
+/// Rust doesn't allow for monkey-patching
+/// (we can't impl things on things that we don't own),
+/// so we need to wrap each struct from the Rust API
+/// in our own locally defined struct and expose that to wasm_bindgen.
+///
+/// From JS-land, tthe wrapped struct looks like an object
+/// containing an opaque pointer to JS memory.
+/// This macro also supports adding methods to the binding,
+/// which methods will be exposed on the JS object.
+// Macros are truly a blessing in the disguise of a curse.
+//
+// * `attempted to repeat an expression containing no syntax variables matched
+//   as repeating at this depth` - best error message ever.
+// * or `this file contains an unclosed delimiter` (but it already
+//   optimized away that info by design so now we don't know where)
+// * or `repetition matches empty token tree` - jeez rustc, are you
+//   gonna loop back on yourself if you do that?!
 #[macro_export] macro_rules! binding {
     ( $(
         $struct:ident /// the name of the resulting new binding struct
         $fields:tt    /// `(cw::WrapAStruct)` or `{define: Custom, fields: Innit}`
 
-        $( // if there are any functions defined below
+        $({ // if there are any functions defined below
         $( // each one will be implemented on the new struct
             $(#[$meta:meta])* // allow doc strings, marking as constructor, etc
             fn $name:ident    // single point of adding `pub` marker
@@ -278,7 +283,7 @@
             $returns:ty       // return type is wrapped for error handling
             $body:block       // implementation of function that returns `Ok($returns)`
         )+ // end iteration over each input function
-        )? // end check for presence of input functions
+        })? // end check for presence of input functions
 
     )* ) => { $(
         // generate a new struct and derive the wasm_bindgen trait suite for it
@@ -289,10 +294,7 @@
             $( // and output each one as a public bound method
             $(#[$meta])* // it's as meta as it gets...
             pub fn $name ($($args)*) -> Result<$returns, JsValue> {
-                match $body { // single point of error serialization
-                    Ok(res) => Ok(res),
-                    Err(e) => Err(StdError(e).into())
-                }
+                $body.map_err(|e: cw::StdError| format!("{:#?}", &e).into())
             })+ // end iteration
         })? // end conditional
     )* };
@@ -301,7 +303,6 @@
 /// Define a smart contract
 #[macro_export] macro_rules! contract {
 
-    // this pattern matching is stable
     (
         // passed to `define_state_singleton!`
         [$State:ident]
@@ -392,83 +393,85 @@
                 }
             }
 
-            impl From<cw::StdError> for StdError {
-                fn from (err: cw::StdError) -> Self {
-                    Self(format!("bound error {:#?}", &err).into())
-                }
-            }
+            //impl From<cw::StdError> for StdError {
+                //fn from (err: cw::StdError) -> Self {
+                    //Self(format!("bound error {:#?}", &err).into())
+                //}
+            //}
 
             binding! {
 
-                Env(cw::Env)
-                #[wasm_bindgen(constructor)] fn new (height: u64) -> Env {
-                    Env(cw::Env {
-                        block: cw::BlockInfo {
-                            height,
-                            time: height * 5,
-                            chain_id: "".into()
-                        },
-                        message: cw::MessageInfo {
-                            sender:     cw::HumanAddr::from(""),
-                            sent_funds: vec![]
-                        },
-                        contract: cw::ContractInfo {
-                            address: cw::HumanAddr::from("")
-                        },
-                        contract_key: Some("".into()),
-                        contract_code_hash: "".into()
-                    })
-                }
+                //StdError(String)
 
                 HumanAddr(cw::HumanAddr)
+
                 CanonicalAddr(cw::CanonicalAddr)
 
-                StdError(String)
+                Env(cw::Env) {
+                    #[wasm_bindgen(constructor)] fn new (height: u64) -> Env {
+                        Ok(Env(cw::Env {
+                            block: cw::BlockInfo {
+                                height,
+                                time: height * 5,
+                                chain_id: "".into()
+                            },
+                            message: cw::MessageInfo {
+                                sender:     cw::HumanAddr::from(""),
+                                sent_funds: vec![]
+                            },
+                            contract: cw::ContractInfo {
+                                address: cw::HumanAddr::from("")
+                            },
+                            contract_key: Some("".into()),
+                            contract_code_hash: "".into()
+                        }))
+                    }
+                }
 
-                InitMsg(super::msg::$Init)
-                #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> InitMsg {
-                    cw::from_slice(json)
+                InitMsg(super::msg::$Init) {
+                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> InitMsg {
+                        cw::from_slice(json).map(|msg|InitMsg(msg))
+                    }
                 }
 
                 InitResponse(cw::InitResponse)
 
-                HandleMsg(super::msg::$TX)
+                HandleMsg(super::msg::$TX) {
+                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> HandleMsg {
+                        cw::from_slice(json).map(|msg|HandleMsg(msg))
+                    }
+                }
 
                 HandleResponse(cw::HandleResponse)
-                #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> HandleMsg {
-                    cw::from_slice(json)
+
+                QueryMsg(super::msg::$Q) {
+                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> QueryMsg {
+                        cw::from_slice(json).map(|msg|QueryMsg(msg))
+                    }
                 }
 
-                QueryMsg(super::msg::$Q)
-                #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> QueryMsg {
-                    cw::from_slice(json)
-                }
+                QueryResponse(super::msg::$Response)
 
-                Binary(cw::Binary)
-                Response(super::msg::$Response)
-
-                Contract(cw::Extern<cw::MemoryStorage, Api, Querier> /* ha! */)
-                #[wasm_bindgen(constructor)] fn new () -> Contract {
-                    Ok(Self(cw::Extern {
-                        storage:  cw::MemoryStorage::default(),
-                        api:      Api {},
-                        querier:  Querier {}
-                    }))
-                }
-                fn init (&mut self, env: Env, msg: InitMsg) -> InitResponse {
-                    Ok(InitResponse(super::init(&mut self.0, env.0, msg.0)?))
-                }
-                fn handle (&mut self, env: Env, msg: HandleMsg) -> HandleResponse {
-                    Ok(HandleResponse(super::handle(&mut self.0, env.0, msg.0)?))
-                }
-                fn query (&self, msg: QueryMsg) -> Response {
-                    Ok(match super::query(&self.0, msg.0) {
-                        Ok(res) => match cw::from_binary(&res) {
-                            Ok(res) => Ok(Response(res)),
-                            Err(e)  => Err(StdError(e).into())
-                        },
-                        Err(e) => Err(StdError(e).into())
-                    })
+                Contract(cw::Extern<cw::MemoryStorage, Api, Querier> /* ha! */) {
+                    #[wasm_bindgen(constructor)] fn new () -> Contract {
+                        Ok(Self(cw::Extern {
+                            storage:  cw::MemoryStorage::default(),
+                            api:      Api {},
+                            querier:  Querier {}
+                        }))
+                    }
+                    fn init (&mut self, env: Env, msg: InitMsg) -> InitResponse {
+                        super::init(&mut self.0, env.0, msg.0).map(|res|InitResponse(res))
+                    }
+                    fn handle (&mut self, env: Env, msg: HandleMsg) -> HandleResponse {
+                        super::handle(&mut self.0, env.0, msg.0).map(|res|HandleResponse(res))
+                    }
+                    fn query (&self, msg: QueryMsg) -> QueryResponse {
+                        match super::query(&self.0, msg.0) {
+                            Ok(res) => cw::from_binary(&res).map(|res|QueryResponse(res)),
+                            Err(e) => Err(e)
+                        }
+                    }
                 }
 
             }
