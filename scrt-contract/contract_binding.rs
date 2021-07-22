@@ -93,10 +93,6 @@
 
             bind_js! {
 
-                HumanAddr(cw::HumanAddr)
-
-                CanonicalAddr(cw::CanonicalAddr)
-
                 Env(cw::Env) {
                     #[wasm_bindgen(constructor)] fn new (height: u64) -> Env {
                         Ok(Env(cw::Env {
@@ -118,53 +114,12 @@
                     }
                 }
 
-                InitMsg($Init) {
-                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> InitMsg {
-                        cw::from_slice(json).map(|msg|InitMsg(msg))
-                    }
-                }
-
-                InitResponse(cw::InitResponse) {
-                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
-                        cw::to_vec(&self.0)
-                    }
-                }
-
-                HandleMsg($TX) {
-                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> HandleMsg {
-                        cw::from_slice(json).map(|msg|HandleMsg(msg))
-                    }
-                }
-
-                HandleResponse(cw::HandleResponse) {
-                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
-                        cw::to_vec(&self.0)
-                    }
-                }
-
-                QueryMsg($Q) {
-                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> QueryMsg {
-                        cw::from_slice(json).map(|msg|QueryMsg(msg))
-                    }
-                }
-
-                QueryResponse($Response) {
-                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> QueryResponse {
-                        cw::from_slice(json).map(|msg|QueryResponse(msg))
-                    }
-                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
-                        cw::to_vec(&self.0)
-                    }
-                }
-
                 Contract(cw::Extern<cw::MemoryStorage, Api, Querier> /* ha! */) {
                     #[wasm_bindgen(constructor)] fn new () -> Contract {
                         Ok(Self(cw::Extern {
                             storage:  cw::MemoryStorage::default(),
+                            querier:  Querier { next_response: None },
                             api:      Api {},
-                            querier:  Querier {
-                                next_response: None
-                            }
                         }))
                     }
 
@@ -174,17 +129,49 @@
                         Ok(())
                     }
 
-                    fn init (&mut self, env: Env, msg: InitMsg) -> InitResponse {
-                        $mod::init(&mut self.0, env.0, msg.0).map(|res|InitResponse(res))
-                    }
-                    fn handle (&mut self, env: Env, msg: HandleMsg) -> HandleResponse {
-                        $mod::handle(&mut self.0, env.0, msg.0).map(|res|HandleResponse(res))
-                    }
-                    fn query (&self, msg: QueryMsg) -> QueryResponse {
-                        match $mod::query(&self.0, msg.0) {
-                            Ok(res) => cw::from_binary(&res).map(|res|QueryResponse(res)),
-                            Err(e) => Err(e)
+                    fn init (&mut self, env: Env, msg: &[u8]) -> InitResponse {
+                        match cw::from_slice(msg) {
+                            Err(e)  => Err(e.into()),
+                            Ok(msg) => $mod::init(&mut self.0, env.0, msg)
+                                .map(|res|InitResponse(res)),
                         }
+                    }
+                    fn handle (&mut self, env: Env, msg: &[u8]) -> HandleResponse {
+                        match cw::from_slice(msg) {
+                            Err(e)  => Err(e.into()),
+                            Ok(msg) => $mod::handle(&mut self.0, env.0, msg)
+                                .map(|res|HandleResponse(res))
+                        }
+                    }
+                    fn query (&self, msg: &[u8]) -> QueryResponse {
+                        match cw::from_slice(msg) {
+                            Err(e)  => Err(e.into()),
+                            Ok(msg) => match $mod::query(&self.0, msg) {
+                                Ok(res) => cw::from_binary(&res).map(|res|QueryResponse(res)),
+                                Err(e) => Err(e)
+                            }
+                        }
+                    }
+                }
+
+                InitResponse(cw::InitResponse) {
+                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
+                        cw::to_vec(&self.0)
+                    }
+                }
+
+                HandleResponse(cw::HandleResponse) {
+                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
+                        cw::to_vec(&self.0)
+                    }
+                }
+
+                QueryResponse($Response) {
+                    #[wasm_bindgen(constructor)] fn new (json: &[u8]) -> QueryResponse {
+                        cw::from_slice(json).map(|msg|QueryResponse(msg))
+                    }
+                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
+                        cw::to_vec(&self.0)
                     }
                 }
 
