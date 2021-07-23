@@ -132,11 +132,16 @@
                         Ok(())
                     }
 
-                    fn init (&mut self, env: Env, msg: &[u8]) -> InitResponse {
+                    fn init (&mut self, env: Env, msg: &[u8]) -> Vec<u8> {
                         match cw::from_slice(msg) {
                             Err(e)  => Err(e.into()),
-                            Ok(msg) => $mod::init(&mut self.0, env.0, msg)
-                                .map(|res|InitResponse(res)),
+                            Ok(msg) => match $mod::init(&mut self.0, env.0, msg) {
+                                Err(e)  => Err(e.into()),
+                                Ok(res) => match cw::to_vec(&res) {
+                                    Err(e)  => Err(e.into()),
+                                    Ok(vec) => Ok(vec)
+                                }
+                            }
                         }
                     }
                     fn handle (&mut self, env: Env, msg: &[u8]) -> HandleResponse {
@@ -154,12 +159,6 @@
                                 Err(e) => Err(e)
                             }
                         }
-                    }
-                }
-
-                InitResponse(cw::InitResponse) {
-                    #[wasm_bindgen(getter)] fn json (&self) -> Vec<u8> {
-                        cw::to_vec(&self.0)
                     }
                 }
 
@@ -193,17 +192,17 @@
         $({ // if there are any functions defined below
         $(  // each one will be implemented on the new struct
 
-            // 1.             2.             3.               4.
-            $(#[$meta:meta])* fn $name:ident ($($args:tt)*) -> $returns:ty
+            // 1.             2.             3.               4.           5.
+            $(#[$meta:meta])* fn $name:ident ($($args:tt)*) -> $returns:ty $body:block
 
             // 1. allows attribute macros such as doc strings to pass through
             // 2. `pub` will be added automatically
             // 3. positional arguments of bound function (&self, bla, bla...)
             // 4. the actual return type of the generated function is Result<$returns, JsValue>
-            //    but the $body must return Result<$returns, StdError> which gets converted to
+            // 5. but the $body must return `Result<$returns, StdError>`, which gets converted to
             //    JsValue via MapErr because we can't implement a conversion trait between two
             //    structs that we do not own
-            //
+
         )+  // end iteration over each input function
         })? // end check for presence of input functions
 
@@ -217,7 +216,7 @@
             $( // and output each one as a public bound method
             $(#[$meta])* // it's as meta as it gets...
             pub fn $name ($($args)*) -> Result<$returns, JsValue> {
-                // single poit of eror handling
+                // single poit of error handling
                 $body.map_err(|e: cw::StdError| format!("{:#?}", &e).into())
             })+ // end iteration
         })? // end conditional
