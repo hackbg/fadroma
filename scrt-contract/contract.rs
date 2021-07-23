@@ -4,8 +4,8 @@
 //! along with some extra amenities (global state), in order to generate a contract
 //! implementation from user-provided function names/args/bodies.
 
-pub mod contract_api;
 pub mod contract_binding;
+pub mod contract_api;
 pub mod contract_impl;
 
 pub mod contract_state;
@@ -26,8 +26,8 @@ pub mod contract_state;
 #[macro_export] macro_rules! contract {
 
     (
-        // global state: considering deprecation
-        // passed to `contract_state::define_state_singleton!`
+        // global state: passed to `contract_state::define_state_singleton!`
+        // considering deprecation in favor of fadroma_scrt_storage
         [$State:ident] // name of state struct, followed by state fields
         { $( $(#[$meta:meta])* $state_field:ident : $state_field_type:ty ),* }
 
@@ -59,37 +59,42 @@ pub mod contract_state;
                 ),*) $tx_body:tt
             )* }
 
+        // Q and TX are basically `Readonly` and `Writable`
+        // so the future `struct Contract` might implement those directly
+        // to collapse one more layer of the API
+
     ) => {
 
-        /// Import common platform types.
+        /// Imports common platform types into the module.
         prelude!();
 
-        /// Entry point when building for blockchain.
         #[cfg(all(not(feature = "browser"), target_arch = "wasm32"))]
-        bind_chain!(super);
+        /// Entry points for running this contract on a blockchain (testnet or mainnet).
+        /// Build with `features = ["fadroma/browser"]` to build for browser instead.
+        mod wasm {
+            crate::bind_chain!(super);
+        }
 
-        /// Entry point when building for browser.
         #[cfg(all(feature = "browser", target_arch = "wasm32"))]
-        bind_js!(
-            super,
-            super::msg::$Init,
-            super::msg::$TX,
-            super::msg::$Q,
-            super::msg::$Response
-        );
+        /// Entry point for running this contract in a browser using `wasm-pack`/`wasm-bindgen`.
+        /// Build without `features = ["fadroma/browser"]` to build for blockchain instead.
+        mod wasm {
+            crate::bind_js!(super);
+        }
 
-        /// This contract's API schema.
+        /// Contains the contract's API schema.
+        ///
+        /// `fadroma_scrt_contract` automatically generates this module
+        /// containing the protocol messages determined by the argument sets
+        /// of the methods specified by the user of the `contract!` macro.
+        ///
+        // * This is why the @Q/@TX/@Response sub-sections are not just passed as opaque `tt`s
+        // * Only responses can't be inferred and need to be pre-defined.
+        // * Although, with some more macro trickery, they could be defined in place
+        //   (e.g. the return types of $Q handlers could be defined as
+        //   `-> Foo { field: type }` and then populated with `return Self { field: value }`
+        // * Let's revisit this once some we have some more examples of custom responses
         pub mod msg {
-            // The argument sets of the {Init,Query,Handle}Msg handlers
-            // are used to automatically generate the corresponding
-            // protocol messages.
-            // * This is why the @Q/@TX/@Response sub-sections are not just passed in as opaque `tt`s
-            // * Only responses can't be inferred and need to be pre-defined.
-            // * Although, with some more macro trickery, they could be defined in place
-            //   (e.g. the return types of $Q handlers could be defined as
-            //   `-> Foo { field: type }` and then populated with `return Self { field: value }`
-            // * Let's revisit this once some we have some more examples of custom responses
-            //
             prelude!();
             use super::*;
             define_init_message!($Init, $($init_msg_definition)+);
@@ -110,7 +115,10 @@ pub mod contract_state;
             )* });
         }
 
-        /// Implementations
+        // Lol how the hell did this `crate::` path work
+
+        // Generate the implementations from user-provided code.
+
         define_state_singleton! {
             $State { $( $(#[$meta])* $state_field : $state_field_type ),* }
         }
