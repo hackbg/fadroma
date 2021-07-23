@@ -107,7 +107,7 @@
                             block: cw::BlockInfo {
                                 height: 0,
                                 time:   0,
-                                chain_id: "".into()
+                                chain_id: "fadroma".into()
                             },
                             message: cw::MessageInfo {
                                 sender:     cw::HumanAddr::from(""),
@@ -123,12 +123,6 @@
                 }
 
                 #[wasm_bindgen(setter)]
-                fn set_next_query_response (&mut self, response: &[u8]) -> () {
-                    self.0.querier.next_response = Some(response.into());
-                    Ok(())
-                }
-
-                #[wasm_bindgen(setter)]
                 fn set_sender (&mut self, sender: &[u8]) -> () {
                     match cw::from_slice(&sender) {
                         Err(e) => Err(e.into()),
@@ -137,6 +131,24 @@
                             Ok(())
                         }
                     }
+                }
+
+                #[wasm_bindgen(setter)]
+                fn set_block (&mut self, height: u64) -> () {
+                    self.1.block.height = height;
+                    self.1.block.time   = height * 5;
+                    Ok(())
+                }
+
+                #[wasm_bindgen(getter)]
+                fn get_block (&mut self) -> u64 {
+                    Ok(self.1.block.height)
+                }
+
+                #[wasm_bindgen(setter)]
+                fn set_next_query_response (&mut self, response: &[u8]) -> () {
+                    self.0.querier.next_response = Some(response.into());
+                    Ok(())
                 }
 
                 fn init (&mut self, msg: &[u8]) -> Vec<u8> {
