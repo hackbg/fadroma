@@ -4,11 +4,10 @@
 //! along with some extra amenities (global state), in order to generate a contract
 //! implementation from user-provided function names/args/bodies.
 
-pub mod contract_msg;
+pub mod contract_api;
 pub mod contract_binding;
-pub mod contract_init;
-pub mod contract_query;
-pub mod contract_handle;
+pub mod contract_impl;
+
 pub mod contract_state;
 
 /// Import commonly used definitions that need to be available everywhere in the contract
