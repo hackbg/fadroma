@@ -11,7 +11,7 @@
 /// This lets you compile a WASM contract to a form that runs on a
 /// SecretNetwork blockchain.
 #[macro_export] macro_rules! bind_chain {
-    ($mod:ident /* module that exports you init, handle and query functions */) => {
+    ($mod:ident /* module that exports your init, handle and query functions */) => {
         /// WASM entry points for running on chain.
         // Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
         // but doesn't need the implementation to be in a sibling module (the `super::contract` on L65)
@@ -53,8 +53,11 @@
     // Entry point - generates module with all bindings
     // Arguments are methods and corresponding request/response types
     (
-        $mod:ident,
-        $Init:path, $TX:path, $Q:path, $Response:path
+        $mod:ident,    /* module that exports your init, handle and query functions */
+        $Init:path,    /* name of your init message struct */
+        $TX:path,      /* name of your tx handle message enum */
+        $Q:path,       /* name of your query message enum */
+        $Response:path /* name of your query response enum */
     ) => {
 
         /// WASM entry points for running in browser with stub chain
@@ -189,11 +192,18 @@
 
         $({ // if there are any functions defined below
         $(  // each one will be implemented on the new struct
-            $(#[$meta:meta])* // allowing doc strings, marking as constructor, etc
-            fn $name:ident    // with as single point of adding `pub` marker
-            ($($args:tt)*) -> // and positional arguments from JS-land
-            $returns:ty       // with return type wrapped for error handling
-            $body:block       // and an implementation that returns `Ok($returns)`
+
+            // 1.             2.             3.               4.
+            $(#[$meta:meta])* fn $name:ident ($($args:tt)*) -> $returns:ty
+
+            // 1. allows attribute macros such as doc strings to pass through
+            // 2. `pub` will be added automatically
+            // 3. positional arguments of bound function (&self, bla, bla...)
+            // 4. the actual return type of the generated function is Result<$returns, JsValue>
+            //    but the $body must return Result<$returns, StdError> which gets converted to
+            //    JsValue via MapErr because we can't implement a conversion trait between two
+            //    structs that we do not own
+            //
         )+  // end iteration over each input function
         })? // end check for presence of input functions
 
@@ -207,6 +217,7 @@
             $( // and output each one as a public bound method
             $(#[$meta])* // it's as meta as it gets...
             pub fn $name ($($args)*) -> Result<$returns, JsValue> {
+                // single poit of eror handling
                 $body.map_err(|e: cw::StdError| format!("{:#?}", &e).into())
             })+ // end iteration
         })? // end conditional
