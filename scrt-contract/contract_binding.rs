@@ -88,44 +88,47 @@
 
         bind_js! {
 
-            Env(cw::Env) {
-                #[wasm_bindgen(constructor)] fn new (height: u64) -> Env {
-                    Ok(Env(cw::Env {
-                        block: cw::BlockInfo {
-                            height,
-                            time: height * 5,
-                            chain_id: "".into()
-                        },
-                        message: cw::MessageInfo {
-                            sender:     cw::HumanAddr::from(""),
-                            sent_funds: vec![]
-                        },
-                        contract: cw::ContractInfo {
-                            address: cw::HumanAddr::from("")
-                        },
-                        contract_key: Some("".into()),
-                        contract_code_hash: "".into()
-                    }))
-                }
-            }
+            Contract(
+                cw::Extern<cw::MemoryStorage, Api, Querier>, /* ha! */
+                cw::Env
+            ) {
 
-            Contract(cw::Extern<cw::MemoryStorage, Api, Querier> /* ha! */) {
                 #[wasm_bindgen(constructor)] fn new () -> Contract {
-                    Ok(Self(cw::Extern {
-                        storage:  cw::MemoryStorage::default(),
-                        querier:  Querier { next_response: None },
-                        api:      Api {},
-                    }))
+                    Ok(Self(
+                        cw::Extern {
+                            storage:  cw::MemoryStorage::default(),
+                            querier:  Querier { next_response: None },
+                            api:      Api {},
+                        },
+                        cw::Env {
+                            block: cw::BlockInfo {
+                                height: 0,
+                                time:   0,
+                                chain_id: "".into()
+                            },
+                            message: cw::MessageInfo {
+                                sender:     cw::HumanAddr::from(""),
+                                sent_funds: vec![]
+                            },
+                            contract: cw::ContractInfo {
+                                address: cw::HumanAddr::from("")
+                            },
+                            contract_key: Some("".into()),
+                            contract_code_hash: "".into()
+                        }
+                    ))
                 }
+
                 #[wasm_bindgen(setter)]
                 fn set_next_query_response (&mut self, response: &[u8]) -> () {
                     self.0.querier.next_response = Some(response.into());
                     Ok(())
                 }
-                fn init (&mut self, env: Env, msg: &[u8]) -> Vec<u8> {
+
+                fn init (&mut self, msg: &[u8]) -> Vec<u8> {
                     match cw::from_slice(&msg) {
                         Err(e)  => Err(e.into()),
-                        Ok(msg) => match $mod::init(&mut self.0, env.0, msg) {
+                        Ok(msg) => match $mod::init(&mut self.0, self.1.clone(), msg) {
                             Err(e)  => Err(e.into()),
                             Ok(res) => match cw::to_vec(&res) {
                                 Err(e)  => Err(e.into()),
@@ -134,10 +137,11 @@
                         }
                     }
                 }
-                fn handle (&mut self, env: Env, msg: &[u8]) -> Vec<u8> {
+
+                fn handle (&mut self, msg: &[u8]) -> Vec<u8> {
                     match cw::from_slice(msg) {
                         Err(e)  => Err(e.into()),
-                        Ok(msg) => match $mod::handle(&mut self.0, env.0, msg) {
+                        Ok(msg) => match $mod::handle(&mut self.0, self.1.clone(), msg) {
                             Err(e) => Err(e.into()),
                             Ok(res) => match cw::to_vec(&res) {
                                 Err(e)  => Err(e.into()),
@@ -146,6 +150,7 @@
                         }
                     }
                 }
+
                 fn query (&self, msg: &[u8]) -> Vec<u8> {
                     match cw::from_slice(msg) {
                         Err(e) => Err(e.into()), // stairway to hecc
