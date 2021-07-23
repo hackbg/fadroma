@@ -12,11 +12,14 @@
 /// SecretNetwork blockchain.
 #[macro_export] macro_rules! bind_chain {
 
-    ($mod:ident /* module that exports your init, handle and query functions */) => {
-        /// WASM entry points for running on chain.
-        // Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
-        // but doesn't need the implementation to be in a sibling module (the `super::contract` on L65)
+    ($mod:ident /* pass me a module that exports your init, handle and query functions */) => {
+
+        //! WASM entry points for running on chain.
+        //! Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
+        //! but doesn't need the implementation to be in a sibling module (the `super::contract` on L65)
+
         // TODO custom `migrate` for SecretNetwork
+
         use fadroma::scrt::cosmwasm_std::{
             ExternalStorage as Storage, ExternalApi as Api, ExternalQuerier as Querier,
             do_init, do_handle, do_query
@@ -53,7 +56,7 @@
     // Entry point: generates the contents of a `mod wasm`
     // containing all the bindings for running in a browser.
 
-    ( $mod:ident /* module that exports your init, handle and query functions */ ) => {
+    ( $mod:ident /* pass me a module that exports your init, handle and query functions */ ) => {
 
         use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
         use fadroma::scrt::cosmwasm_std as cw;
@@ -123,6 +126,17 @@
                 fn set_next_query_response (&mut self, response: &[u8]) -> () {
                     self.0.querier.next_response = Some(response.into());
                     Ok(())
+                }
+
+                #[wasm_bindgen(setter)]
+                fn set_sender (&mut self, sender: &[u8]) -> () {
+                    match cw::from_slice(&sender) {
+                        Err(e) => Err(e.into()),
+                        Ok(sender) => {
+                            self.1.message.sender = sender;
+                            Ok(())
+                        }
+                    }
                 }
 
                 fn init (&mut self, msg: &[u8]) -> Vec<u8> {
