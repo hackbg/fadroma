@@ -1,7 +1,7 @@
 //! Our attempts to interact with the storage system of the underlying platform in an orderly way.
 
 pub mod traits; pub use traits::Storable;
-pub mod traits2;
+pub mod traits2; pub use traits2::*;
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;
