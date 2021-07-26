@@ -14,9 +14,9 @@
 
     ($mod:ident /* pass me a module that exports your init, handle and query functions */) => {
 
-        //! WASM entry points for running on chain.
-        //! Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
-        //! but doesn't need the implementation to be in a sibling module (the `super::contract` on L65)
+        // WASM entry points for running on chain.
+        // Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
+        // but doesn't need the implementation to be in a sibling module (the `super::contract` on L65)
 
         // TODO custom `migrate` for SecretNetwork
 
