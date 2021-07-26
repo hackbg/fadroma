@@ -25,13 +25,13 @@
             do_init, do_handle, do_query
         };
         #[no_mangle] extern "C" fn init (env_ptr: u32, msg_ptr: u32) -> u32 {
-            do_init($mod::init::<Storage, Api, Querier>, env_ptr, msg_ptr)
+            do_init(&$mod::init::<Storage, Api, Querier>, env_ptr, msg_ptr)
         }
         #[no_mangle] extern "C" fn handle (env_ptr: u32, msg_ptr: u32) -> u32 {
-            do_handle($mod::handle::<Storage, Api, Querier>, env_ptr, msg_ptr)
+            do_handle(&$mod::handle::<Storage, Api, Querier>, env_ptr, msg_ptr)
         }
         #[no_mangle] extern "C" fn query (msg_ptr: u32) -> u32 {
-            do_query($mod::query::<Storage, Api, Querier>, msg_ptr,)
+            do_query(&$mod::query::<Storage, Api, Querier>, msg_ptr,)
         }
         // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
         // automatically because we `use cosmwasm_std`.
