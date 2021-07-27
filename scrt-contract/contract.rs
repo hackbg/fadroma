@@ -48,7 +48,8 @@ pub mod contract_state;
 
         // Define possible query responses:
         [$Response:ident] {
-        $( $(#[$response_meta:meta])* $ResponseMsg:ident { $($resp_field:ident : $resp_field_type:ty),* } )* }
+        $( $(#[$response_meta:meta])* $ResponseMsg:ident {
+            $($(#[$response_field_meta:meta])* $resp_field:ident : $resp_field_type:ty),* } )* }
 
         // Define transaction messages and how they're handled:
         [$TX:ident]
@@ -111,7 +112,9 @@ pub mod contract_state;
                 ))*
             });
             messages!($Response { $(
-                $(#[$response_meta])* $ResponseMsg {$($resp_field: $resp_field_type),*}
+                $(#[$response_meta])* $ResponseMsg {
+                    $($(#[$response_field_meta])* $resp_field: $resp_field_type),*
+                }
             )* });
         }
 
