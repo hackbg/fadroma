@@ -3,21 +3,19 @@ use fadroma_scrt_base::{
     toolkit::snip20,
     BLOCK_SIZE
 };
-use fadroma_scrt_callback::ContractInstance;
+use fadroma_scrt_callback::ContractInstance as ContractLink;
 
 pub struct ISnip20 <'a> {
-    address:    &'a HumanAddr,
-    code_hash:  &'a String,
+    pub link:   &'a ContractLink<HumanAddr>,
     padding:    Option<String>,
     block_size: usize
 }
 
 impl<'a> ISnip20<'a> {
 
-    pub fn attach (link: &'a ContractInstance<HumanAddr>) -> Self {
+    pub fn attach (link: &'a ContractLink<HumanAddr>) -> Self {
         Self {
-            address:    &link.address,
-            code_hash:  &link.code_hash,
+            link,
             padding:    None,
             block_size: BLOCK_SIZE
         }
@@ -29,7 +27,7 @@ impl<'a> ISnip20<'a> {
         snip20::mint_msg(
             recipient.clone(), amount,
             self.padding.clone(), self.block_size,
-            self.code_hash.clone(), self.address.clone()
+            self.link.code_hash.clone(), self.link.address.clone()
         )
     }
 
@@ -39,7 +37,7 @@ impl<'a> ISnip20<'a> {
         snip20::set_minters_msg(
             minters.clone(),
             self.padding.clone(), self.block_size,
-            self.code_hash.clone(), self.address.clone()
+            self.link.code_hash.clone(), self.link.address.clone()
         )
     }
 
@@ -49,7 +47,7 @@ impl<'a> ISnip20<'a> {
         snip20::send_msg(
             recipient.clone(), amount, msg,
             self.padding.clone(), self.block_size,
-            self.code_hash.clone(), self.address.clone()
+            self.link.code_hash.clone(), self.link.address.clone()
         )
     }
 
@@ -60,7 +58,7 @@ impl<'a> ISnip20<'a> {
         snip20::send_from_msg(
             owner.clone(), recipient.clone(), amount, msg,
             self.padding.clone(), self.block_size,
-            self.code_hash.clone(), self.address.clone()
+            self.link.code_hash.clone(), self.link.address.clone()
         )
     }
 
@@ -70,7 +68,7 @@ impl<'a> ISnip20<'a> {
         snip20::transfer_msg(
             recipient.clone(), amount,
             self.padding.clone(), self.block_size,
-            self.code_hash.clone(), self.address.clone()
+            self.link.code_hash.clone(), self.link.address.clone()
         )
     }
 
@@ -80,7 +78,7 @@ impl<'a> ISnip20<'a> {
         snip20::transfer_from_msg(
             owner.clone(), recipient.clone(), amount,
             self.padding.clone(), self.block_size,
-            self.code_hash.clone(), self.address.clone()
+            self.link.code_hash.clone(), self.link.address.clone()
         )
     }
 
@@ -90,7 +88,7 @@ impl<'a> ISnip20<'a> {
         snip20::set_viewing_key_msg(
             vk.into(),
             None, BLOCK_SIZE,
-            self.code_hash.clone(), self.address.clone()
+            self.link.code_hash.clone(), self.link.address.clone()
         )
     }
 
@@ -114,8 +112,8 @@ impl <'q, Q: Querier> ISnip20Querier <'q, Q> {
             self.querier,
             address.clone(), vk.into(),
             self.snip20.block_size,
-            self.snip20.code_hash.clone(),
-            self.snip20.address.clone()
+            self.snip20.link.code_hash.clone(),
+            self.snip20.link.address.clone()
         )?.amount)
     }
 
@@ -123,8 +121,8 @@ impl <'q, Q: Querier> ISnip20Querier <'q, Q> {
         snip20::token_info_query(
             self.querier,
             self.snip20.block_size,
-            self.snip20.code_hash.clone(),
-            self.snip20.address.clone()
+            self.snip20.link.code_hash.clone(),
+            self.snip20.link.address.clone()
         )
     }
 

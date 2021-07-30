@@ -16,3 +16,6 @@ secret-toolkit   = { git = "https://github.com/enigmampc/secret-toolkit", branch
 snafu            = { version = "0.6.3", features = ["backtraces"] }
 schemars         = "0.7"
 #serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+[features]
+backtraces = [ "cosmwasm-std/backtraces" ]
