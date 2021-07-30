@@ -10,7 +10,7 @@ path = "lib.rs"
 
 [dependencies]
 cosmwasm-schema  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print", features = ["debug-print"] }
+cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 secret-toolkit   = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 snafu            = { version = "0.6.3", features = ["backtraces"] }
