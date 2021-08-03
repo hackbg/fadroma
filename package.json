@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "0.0.0",
+  "version": "21.08.0",
   "main": "./index.js",
   "type": "module",
   "workspaces": [
