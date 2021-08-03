@@ -1,21 +1,43 @@
 [package]
-name    = "fadroma-scrt-base"
-version = "0.1.0"
+name = "fadroma"
+version = "21.7.0"
 authors = ["Adam A. <adam@hack.bg>"]
 edition = "2018"
 
 [lib]
-name = "fadroma_scrt_base"
+name = "fadroma"
 path = "lib.rs"
 
 [dependencies]
-cosmwasm-schema  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-secret-toolkit   = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-snafu            = { version = "0.6.3", features = ["backtraces"] }
-schemars         = "0.7"
-#serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
+secret-toolkit   = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
+
+fadroma-scrt-base       = { optional = true, path = "../scrt" }
+fadroma-scrt-addr       = { optional = true, path = "../scrt-addr" }
+fadroma-scrt-callback   = { optional = true, path = "../scrt-callback" }
+fadroma-scrt-contract   = { optional = true, path = "../scrt-contract" }
+fadroma-scrt-harness    = { optional = true, path = "../scrt-harness" }
+fadroma-scrt-migrate    = { optional = true, path = "../scrt-migrate" }
+fadroma-scrt-storage    = { optional = true, path = "../scrt-storage" }
+fadroma-scrt-snip20-api = { optional = true, path = "../scrt-snip20-api" }
+fadroma-scrt-utils      = { optional = true, path = "../scrt-utils" }
+
+composable-auth  = { optional = true, path = "../scrt-auth/composable-auth" }
+composable-admin = { optional = true, path = "../scrt-admin/composable-admin" }
+require-admin    = { optional = true, path = "../scrt-admin/require-admin" }
+
+#composable-snip20   = { optional = true, path = "../scrt-snip20" }
 
 [features]
-backtraces = [ "cosmwasm-std/backtraces" ]
+scrt            = ["fadroma-scrt-base"]
+scrt-addr       = ["scrt", "fadroma-scrt-addr"]
+scrt-admin      = ["scrt", "fadroma-scrt-utils", "composable-admin", "require-admin"]
+scrt-callback   = ["scrt", "fadroma-scrt-callback"]
+scrt-contract   = ["scrt", "fadroma-scrt-contract"]
+scrt-harness    = ["scrt", "fadroma-scrt-harness"]
+scrt-migrate    = ["scrt", "fadroma-scrt-migrate"]
+scrt-snip20-api = ["scrt", "fadroma-scrt-snip20-api"]
+scrt-storage    = ["scrt", "fadroma-scrt-storage"]
+scrt-utils      = ["scrt", "fadroma-scrt-utils"]
+scrt-vk         = ["scrt", "fadroma-scrt-utils", "composable-auth"]
+
+browser = ["fadroma-scrt-contract/browser", "fadroma-scrt-base/backtraces" ]
