@@ -1,4 +1,4 @@
-# Fadroma SCRT Address 0.1.0
+# Fadroma Addressing for Secret Network
 
 ## Overview
 

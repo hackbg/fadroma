@@ -1,4 +1,6 @@
-# Example usage
+# Fadroma Contract Scaffold for Secret Network
+
+## Example usage
 
 This contract implements a basic calculator. Compare it with
 [the counter implementation in secret-template](https://github.com/enigmampc/secret-template/tree/master/src)
