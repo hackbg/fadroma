@@ -1,13 +1,19 @@
 {
-  "name": "@hackbg/fadroma",
+  "name": "@hackbg/fadroma-workspace",
   "version": "21.08.0",
   "main": "./index.js",
   "type": "module",
+  "private": true,
   "workspaces": [
-    "./utilities",
-    "./scrt-agent",
-    "./scrt-ops",
-    "./test"
+    "./util/cli",
+    "./util/net",
+    "./util/sys",
+    "./util/test",
+    "./scrt-js/agent",
+    "./scrt-js/builder",
+    "./scrt-js/contract",
+    "./scrt-js/ensemble",
+    "./scrt-js/localnet"
   ],
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",
