@@ -23,6 +23,8 @@ throughout code, terminal and GUI.
 * [ ] Install the whole toolkit with `nix-shell https://advanced.fadroma.tech`
 
 ### GUI
+* [ ] Package as Electron and Web app, posslbly other platforms
+      with corresponding capabilities 
 * [ ] Embed [Monaco](https://github.com/microsoft/monaco-editor)-based editor
       with targeted IDE utilities to provide a familiar text editing experience.
       Becoming an IDE is not a goal for Fadroma, however well-provisioned fields
