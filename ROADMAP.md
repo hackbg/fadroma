@@ -1,7 +1,3 @@
----
-breaks: false
----
-
 # Fadroma Public Beta
 
 ## Value proposal
