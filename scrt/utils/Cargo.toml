@@ -6,6 +6,7 @@ edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
+path = "scrt_utils"
 
 [features]
 # for quicker tests, cargo test --lib
@@ -25,4 +26,4 @@ primitive-types = { version = "0.9.1", default-features = false }
 cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 
-fadroma-scrt-storage = { path = "../scrt-storage" }
+fadroma-scrt-storage = { path = "../storage" }

@@ -14,5 +14,6 @@ path = "lib.rs"
 #backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-fadroma-scrt-base = { path = "../scrt" }
-serde             = { version = "1.0.103", default-features = false, features = ["derive"] }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+fadroma-scrt-base = { path = "../base" }

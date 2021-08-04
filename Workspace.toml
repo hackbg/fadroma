@@ -1,0 +1,32 @@
+# This file is not called Cargo.toml in order to allow
+# using Fadroma as a Git submodule in repos that are
+# already workspaces (because Cargo doesn't support
+# nested workspaces). See `package.lock` for usage info.
+
+[workspace]
+members = [
+  "scrt/addr",
+  "scrt/admin/composable-admin", # proc macro for `require_admin` attribute
+  "scrt/admin/require-admin",    # implementation of admin check
+  "scrt/auth",
+  "scrt/base",
+  "scrt/contract",               # contract wrapper macro
+  "scrt/core",
+  "scrt/icc",
+  "scrt/migrate",                # pause contracts and mark them for upgrade
+  "scrt/snip20/api",             # interface to external snip20 token
+  #"scrt/snip20/impl",            # composable snip20
+  "scrt/storage",                # storage access shorthand functions
+  "scrt/utils",                  # grab bag of utility functions
+]
+
+[profile.release]
+opt-level        = 3
+debug            = false
+rpath            = false
+lto              = true
+debug-assertions = false
+codegen-units    = 1
+panic            = 'abort'
+incremental      = false
+overflow-checks  = true

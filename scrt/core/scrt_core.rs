@@ -14,9 +14,6 @@ pub mod scrt {
     #[cfg(feature="scrt-contract")]
     pub use fadroma_scrt_contract as contract;
 
-    #[cfg(feature="scrt-harness")]
-    pub use fadroma_scrt_harness as harness;
-
     #[cfg(feature="scrt-migrate")]
     pub use fadroma_scrt_migrate as migrate;
 

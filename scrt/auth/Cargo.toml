@@ -4,11 +4,14 @@ version = "0.1.0"
 authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 edition = "2018"
 
+[lib]
+path = "scrt_icc.rs"
+doctest = false
+
 [dependencies]
-cosmwasm-schema = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 snafu = { version = "0.6.3" }
-fadroma-scrt-utils = { path = "../../scrt-utils" }
+
+fadroma-scrt-base  = { path = "../base" }
+fadroma-scrt-utils = { path = "../utils" }

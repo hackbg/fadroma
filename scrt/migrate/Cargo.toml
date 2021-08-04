@@ -6,7 +6,7 @@ edition = "2018"
 
 [lib]
 name = "fadroma_scrt_migrate"
-path = "lib.rs"
+path = "scrt_migrate.rs"
 
 [dependencies]
 cosmwasm-std   = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
@@ -14,6 +14,6 @@ snafu          = { version = "0.6.3", features = ["backtraces"] }
 serde          = { version = "1.0.103", default-features = false, features = ["derive"] }
 schemars       = "0.7"
 
-fadroma-scrt-utils = { path = "../scrt-utils" }
-composable-admin   = { path = "../scrt-admin/composable-admin" }
-fadroma-scrt-addr  = { path = "../scrt-addr" }
+composable-admin   = { path = "../admin/composable-admin" }
+fadroma-scrt-addr  = { path = "../addr" }
+fadroma-scrt-utils = { path = "../utils" }

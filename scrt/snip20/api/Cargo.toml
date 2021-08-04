@@ -6,8 +6,8 @@ authors = ["Adam A. <adam@hack.bg>"]
 
 [lib]
 name = "fadroma_scrt_snip20_api"
-path = "snip20api.rs"
+path = "scrt_snip20_api.rs"
 
 [dependencies]
-fadroma-scrt-base     = { path = "../scrt" }
-fadroma-scrt-callback = { path = "../scrt-callback" }
+fadroma-scrt-base = { path = "../../base" }
+fadroma-scrt-icc  = { path = "../../icc" }

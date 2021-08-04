@@ -1,18 +1,17 @@
 [package]
-name = "fadroma-scrt-callback"
+name = "fadroma-scrt-icc"
 version = "0.1.0"
-authors = ["Asparuh Kamenov <aakamenov@hack.bg>"]
+authors = ["Asparuh Kamenov <aakamenov@hack.bg>",
+           "Adam Avramov <adam@hack.bg>"]
 edition = "2018"
 
 [lib]
-path = "lib.rs"
+path = "scrt_icc.rs"
 doctest = false # ???
 
 [dependencies]
 schemars = "0.7"
 serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
 
-cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-
-fadroma-scrt-addr = { path = "../scrt-addr" }
+fadroma-scrt-base = { path = "../base" }
+fadroma-scrt-addr = { path = "../addr" }
