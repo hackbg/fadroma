@@ -1,9 +1,9 @@
 name: Publish documentation
 on: [push]
 jobs:
-  
-  docs:
-    name: build docs
+  site:
+    if: github.ref == 'refs/heads/main'
+    name: build website
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -16,21 +16,17 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
-      - name: rs-document
+      - name: generate Rust documentation
         uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          #args: --locked
-      - name: js-document
-        run: |
-          yarn
-          yarn docs
+        with: { command: doc }
+      - name: generate JS documentation
+        run: yarn && yarn docs
       - name: publish
-        if: github.ref == 'refs/heads/main'
         run: |
           ls
           rm .gitignore
           cp -r doc/* target/doc/
+          tar -cvf target/doc/nix shell.nix
           echo "fadroma.tech" > target/doc/CNAME
           git add -f target/doc/
           git config --global user.email "hello@hack.bg"
