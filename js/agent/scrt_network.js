@@ -1,8 +1,7 @@
-import { mkdir, makeStateDir, resolve, cwd, bold, Console } from '@fadroma/utilities'
+import { mkdir, makeStateDir, resolve, cwd, bold, Console } from '@fadroma/util-sys'
 import { ScrtNode, ScrtBuilderWithUploader } from '@fadroma/scrt-ops'
-import ScrtAgentJS from './agent.js'
-import ScrtAgentCLI from './agent-secretcli.js'
-import ScrtContract from './contract.js'
+import ScrtAgentJS from './scrt_agent_secretjs.js'
+import ScrtAgentCLI from './scrt_agent_secretcli.js'
 
 const {debug, info} = Console(import.meta.url)
 

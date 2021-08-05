@@ -4,8 +4,8 @@ import {
   mkdir, existsSync, touch, rimraf,
   writeFile, readFileSync, unlinkSync,
   loadJSON, bold, Console
-} from '@fadroma/utilities'
-import { waitPort, freePort, pulled, waitUntilLogsSay } from '../netutil.js'
+} from '@fadroma/util-sys'
+import { waitPort, freePort, pulled, waitUntilLogsSay } from '@fadroma/util-net'
 
 const { warn, info, debug } = Console(import.meta.url)
 const __dirname = dirname(fileURLToPath(import.meta.url))

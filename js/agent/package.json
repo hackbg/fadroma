@@ -2,5 +2,8 @@
   "name": "@fadroma/scrt-agent",
   "version": "0.1.0",
   "type": "module",
-  "main": "index.js"
+  "main": "index.js",
+  "dependencies": {
+    "@fadroma/util-sys": "*"
+  }
 }

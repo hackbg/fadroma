@@ -1,11 +1,10 @@
 {
-  "name": "@fadroma/scrt-ops",
+  "name": "@fadroma/util-net",
   "version": "0.1.0",
   "type": "module",
-  "main": "index.js",
+  "main": "util_net.js",
   "dependencies": {
-    "@fadroma/scrt-agent": "*",
-    "@fadroma/utilities": "*",
+    "@fadroma/util-sys": "*",
     "dockerode": "^3.3.0",
     "wait-port": "^0.2.9"
   }

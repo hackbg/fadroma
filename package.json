@@ -13,7 +13,9 @@
     "./js/builder",
     "./js/contract",
     "./js/ensemble",
-    "./js/localnet"
+    "./js/localnet",
+    "./js/util/net",
+    "./js/util/sys"
   ],
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",

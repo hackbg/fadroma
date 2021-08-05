@@ -1,34 +1,34 @@
 import {
-  SecretNetworkAgent,
-  SecretCLIAgent,
-  SecretNetwork
-} from '../scrt-agent/index.js';
+  Scrt,
+  ScrtAgentJS,
+  ScrtAgentCLI,
+} from './index.js';
 
 import debug from 'debug';
 import { assert } from 'chai';
 import { Bip39 } from '@cosmjs/crypto';
 import { EnigmaUtils, Secp256k1Pen } from 'secretjs';
 const log = debug('out');
-import { localnet } from './helper.js';
+import { localnet } from '../test_helper.js';
 
 const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
 const mnemonic1 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
 const mnemonic2 = 'element dial search ticket feed lounge gasp wide uphold reflect hand lunch primary swamp wage vessel riot modify dinosaur laundry segment purpose secret asthma';
 const keypair = EnigmaUtils.GenerateNewKeyPairFromSeed(Bip39.decode(mnemonic));
 
-describe('SecretNetworkAgent', function () {
+describe('ScrtAgentJS', function () {
   before(async function () {
     this.timeout(0);
     await localnet(context);
 
     context.pen = await Secp256k1Pen.fromMnemonic(mnemonic);
-    context.agent = await SecretNetworkAgent.create({
+    context.agent = await ScrtAgentJS.create({
       mnemonic,
       network: context.network,
     });
 
     // Testing the secretcli agent instance
-    // context.agent = new SecretCLIAgent({
+    // context.agent = new ScrtAgentCLI({
     //   mnemonic,
     //   network: context.network,
     // });
@@ -44,17 +44,17 @@ describe('SecretNetworkAgent', function () {
   });
 
   it('can be created from a keypair', async function () {
-    const keypairAgent = await SecretNetworkAgent.create({ keyPair: keypair, network: context.network });
+    const keypairAgent = await ScrtAgentJS.create({ keyPair: keypair, network: context.network });
     assert.strictEqual(JSON.stringify(context.agent.keyPair), JSON.stringify(keypairAgent.keyPiar));
   });
 
   it('can be created from a signing pen', async function () {
-    const penAgent = await SecretNetworkAgent.create({ pen: context.pen, network: context.network });
+    const penAgent = await ScrtAgentJS.create({ pen: context.pen, network: context.network });
     assert.strictEqual((await context.agent.API.signer('test')).signature, (await penAgent.API.signer('test')).signature);
   });
 
   it('can have a name', async function () {
-    const namedAgent = await SecretNetworkAgent.create({ name: 'TEST', mnemonic, network: context.network });
+    const namedAgent = await ScrtAgentJS.create({ name: 'TEST', mnemonic, network: context.network });
     assert.strictEqual(namedAgent.name, 'TEST');
     assert.strictEqual(context.agent.name, 'Anonymous');
   });
@@ -78,11 +78,11 @@ describe('SecretNetworkAgent', function () {
 
   it('can send SCRT to many addresses in one go', async function () {
     this.timeout(120000);
-    const agent1 = await SecretNetworkAgent.create({
+    const agent1 = await ScrtAgentJS.create({
       mnemonic1,
       network: context.network,
     });
-    const agent2 = await SecretNetworkAgent.create({
+    const agent2 = await ScrtAgentJS.create({
       mnemonic2,
       network: context.network,
     });

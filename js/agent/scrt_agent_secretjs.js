@@ -4,7 +4,7 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          makeSignBytes } from 'secretjs'
 
 import { readFile, Console, bold } from '@fadroma/utilities'
-import { gas, defaultFees } from './gas.js'
+import { gas, defaultFees } from './scrt_gas.js'
 
 const { debug } = Console(import.meta.url)
 
