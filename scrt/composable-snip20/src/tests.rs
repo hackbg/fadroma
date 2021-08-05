@@ -1,18 +1,6 @@
 #![cfg(test)]
 
-use fadroma::scrt::{
-    cosmwasm_std::{
-        from_binary, to_binary, Binary, Coin, CosmosMsg, Env, Extern,
-        StdError, StdResult, Uint128, BlockInfo, ContractInfo, MessageInfo,
-        QueryResponse, WasmMsg, HandleResponse, HumanAddr, InitResponse,
-        Storage, Api, Querier, log,
-        testing::*
-    },
-    utils::{
-        crypto::sha_256,
-        viewing_key::{ViewingKey, VIEWING_KEY_SIZE}
-    },
-};
+use fadroma::{*, testing::*};
 use std::any::Any;
 use crate::{
     snip20_handle, snip20_init, snip20_query, DefaultSnip20Impl,

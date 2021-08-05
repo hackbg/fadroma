@@ -1,11 +1,6 @@
-use cosmwasm_std::{
-    HumanAddr, CanonicalAddr, StdResult, Extern, Env,
-    Api, Querier, Storage, StdError, HandleResponse,
-    Binary, to_binary
-};
+use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
-use fadroma_scrt_storage::{save, load};
 
 const ADMINS_KEY: &[u8] = b"i801onL3kf";
 

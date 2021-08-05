@@ -1,17 +1,7 @@
+use fadroma::*;
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;
-use fadroma::scrt::{
-    cosmwasm_std::{
-        log, to_binary, Api, BankMsg, Binary, CanonicalAddr, Coin, CosmosMsg,
-        Env, Extern, HandleResponse, HumanAddr, InitResponse, Querier,
-        ReadonlyStorage, StdError, StdResult, Storage, Uint128, WasmMsg, BlockInfo
-    },
-    utils::{
-        viewing_key::{ViewingKey, VIEWING_KEY_SIZE},
-        crypto::sha_256
-    }
-};
 use crate::{
     msg::{
         ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg,

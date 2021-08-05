@@ -1,11 +1,7 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
+use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use fadroma::scrt::{
-    cosmwasm_std::{Binary, HumanAddr, StdError, StdResult, Uint128},
-    callback::Callback,
-    utils::viewing_key::ViewingKey,
-};
 use crate::{
     batch,
     transaction_history::{RichTx, Tx}
@@ -519,7 +515,7 @@ pub fn space_pad(block_size: usize, message: &mut Vec<u8>) -> &mut Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fadroma::scrt::cosmwasm_std::{from_slice, StdResult};
+    use fadroma::*;
 
     #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
     #[serde(rename_all = "snake_case")]

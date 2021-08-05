@@ -1,13 +1,6 @@
+use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use fadroma::scrt::{
-    cosmwasm_std::{
-        Uint128, HumanAddr, CanonicalAddr, StdError, StdResult, Coin,
-        Api, Storage, ReadonlyStorage, BlockInfo, debug_print
-    },
-    cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage},
-    toolkit::storage::{AppendStore, AppendStoreMut},
-};
 
 use crate::state::Config;
 

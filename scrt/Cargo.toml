@@ -1,5 +1,5 @@
 [package]
-name    = "fadroma-scrt"
+name    = "fadroma"
 version = "0.1.0"
 edition = "2018"
 authors = ["Asparuh Kamenov <aakamenov@hack.bg>",
@@ -17,24 +17,34 @@ primitive-types   = { optional = true, version = "0.9.1", default-features = fal
 rand_chacha       = { optional = true, version = "0.2.2", default-features = false }
 rand_core         = { optional = true, version = "0.5.1", default-features = false }
 schemars          = { optional = true, version = "0.7" }
-secret-toolkit    = { optional = true, git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
+#secret-toolkit    = { optional = true, git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 secret-toolkit    = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
-serde             = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
 serde             = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
 sha2              = { optional = true, version = "0.9.1", default-features = false }
 snafu             = { optional = true, version = "0.6.3" }
 subtle            = { optional = true, version = "2.4.0", default-features = false }
 
+# Terra
+#cosmwasm-std     = { version = "0.15.0" }
+#cosmwasm-storage = { version = "0.15.0" }
+#cw-storage-plus  = { version = "0.7.0", features = ["iterator"] }
+#cw20             = { version = "0.7.0" }
+#schemars         = "0.8.3"
+#serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
+#thiserror        = { version = "1.0.24" }
+
 [features]
 browser         = ["backtraces"]
 backtraces      = ["cosmwasm-std/backtraces", "snafu/backtraces"]
 harness         = []
-scrt-addr       = []
-scrt-admin      = []
-scrt-contract   = []
-scrt-icc        = []
-scrt-migrate    = []
-scrt-snip20-api = []
-scrt-storage    = []
-scrt-utils      = []
-scrt-vk         = []
+scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu", "schemars", "secret-toolkit"]
+scrt-addr       = ["scrt"]
+scrt-admin      = ["scrt"]
+scrt-contract   = ["scrt"]
+scrt-icc        = ["scrt"]
+scrt-migrate    = ["scrt"]
+scrt-snip20-api = ["scrt"]
+scrt-storage    = ["scrt"]
+scrt-utils      = ["scrt"]
+scrt-vk         = ["scrt"]
+terra           = []

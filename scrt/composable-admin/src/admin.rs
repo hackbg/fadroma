@@ -1,8 +1,4 @@
-use cosmwasm_std::{
-    HumanAddr, CanonicalAddr, StdResult, Extern, Env,
-    Api, Querier, Storage, StdError, HandleResponse,
-    Binary, to_binary
-};
+use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 

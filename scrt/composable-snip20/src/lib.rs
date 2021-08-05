@@ -1,4 +1,4 @@
-pub use fadroma::scrt::callback::{Callback, ContractInstance};
+use fadroma::*;
 
 pub mod msg;
 pub mod receiver;

@@ -1,4 +1,4 @@
-use fadroma::scrt::{BLOCK_SIZE, cosmwasm_std::{StdResult, HandleResponse}};
+use fadroma::*;
 
 //pub const RESPONSE_BLOCK_SIZE: usize = 256;
 

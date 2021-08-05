@@ -3,14 +3,7 @@ use std::convert::TryFrom;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-use fadroma::scrt::{
-    cosmwasm_std::{
-        CanonicalAddr, HumanAddr, ReadonlyStorage, StdError, StdResult, Storage, BlockInfo
-    },
-    cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage},
-    toolkit::storage::{TypedStore, TypedStoreMut},
-    utils::viewing_key::ViewingKey
-};
+use fadroma::*;
 
 use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
 

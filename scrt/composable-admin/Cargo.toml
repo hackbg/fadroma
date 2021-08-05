@@ -10,12 +10,15 @@ crate-type = ["staticlib"]
 test = true
 
 [dependencies]
+fadroma = { path = "../", features = [
+  "scrt-storage"
+] }
+
 cosmwasm-std = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 schemars = "0.7"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 
 require-admin = { path = "../require-admin", optional = true }
-fadroma-scrt-storage = { path = "../../storage" }
 
 [features]
 default = ["derive"]
