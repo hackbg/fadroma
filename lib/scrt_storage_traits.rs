@@ -17,8 +17,7 @@ use serde::{de::DeserializeOwned, Serialize};
 /// 
 /// ```rust
 /// use serde::{Deserialize, Serialize};
-/// use fadroma_scrt_base::cosmwasm_std::{Api, Extern, Querier, ReadonlyStorage, StdResult, Storage, to_vec};
-/// use fadroma_scrt_storage::Storable;
+/// use fadroma::{scrt::*, scrt_storage_traits::*};
 /// 
 /// #[derive(Deserialize, Serialize)]
 /// struct Config {

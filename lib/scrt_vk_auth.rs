@@ -37,7 +37,7 @@ pub trait AuthHandle {
         Ok(HandleResponse {
             messages: vec![],
             log: vec![],
-            data: Some(to_binary(&HandleAnswer::CreateViewingKey {
+            data: Some(to_binary(&AuthHandleAnswer::CreateViewingKey {
                 key
             })?)
         })
@@ -73,7 +73,7 @@ pub enum AuthHandleMsg {
 // Enum with one variant because Keplr expects this format.
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum HandleAnswer {
+pub enum AuthHandleAnswer {
     CreateViewingKey {
         key: ViewingKey,
     },
@@ -139,9 +139,9 @@ mod tests {
             DefaultHandleImpl
         ).unwrap();
 
-        let result: HandleAnswer = from_binary(&result.data.unwrap()).unwrap();
+        let result: AuthHandleAnswer = from_binary(&result.data.unwrap()).unwrap();
         let created_vk = match result {
-            HandleAnswer::CreateViewingKey { key } => {
+            AuthHandleAnswer::CreateViewingKey { key } => {
                 key
             }
         };

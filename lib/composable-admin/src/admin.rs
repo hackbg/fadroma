@@ -120,8 +120,7 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::from_binary;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use fadroma::testing::*;
 
     #[test]
     fn test_handle() {
