@@ -9,11 +9,11 @@
     "./util/net",
     "./util/sys",
     "./util/test",
-    "./scrt-js/agent",
-    "./scrt-js/builder",
-    "./scrt-js/contract",
-    "./scrt-js/ensemble",
-    "./scrt-js/localnet"
+    "./js/agent",
+    "./js/builder",
+    "./js/contract",
+    "./js/ensemble",
+    "./js/localnet"
   ],
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",
@@ -28,7 +28,7 @@
   },
   "scripts": {
     "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",
-    "test-js": "DEBUG=out mocha --timeout 5000 --exit test/ensemble.init.js && DEBUG=out mocha --timeout 5000 --exit test/*.spec.js",
+    "test-js": "DEBUG=out mocha --timeout 5000 --exit js/*/*.spec.js",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc ; rm Cargo.toml"
