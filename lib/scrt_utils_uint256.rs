@@ -3,7 +3,7 @@ use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::ops::{Add, Sub, Mul, Div};
 
-use cosmwasm_std::{StdResult, StdError, Uint128};
+use crate::{scrt::*};
 use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use schemars::JsonSchema;
 use primitive_types::U256;

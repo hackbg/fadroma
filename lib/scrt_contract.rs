@@ -4,12 +4,6 @@
 //! along with some extra amenities (global state), in order to generate a contract
 //! implementation from user-provided function names/args/bodies.
 
-pub mod contract_binding;
-pub mod contract_api;
-pub mod contract_impl;
-
-pub mod contract_state;
-
 /// Import commonly used definitions that need to be available everywhere in the contract
 #[macro_export] macro_rules! prelude {
     () => { use fadroma::scrt::cosmwasm_std::{

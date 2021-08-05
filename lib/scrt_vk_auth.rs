@@ -1,12 +1,6 @@
-pub use fadroma_scrt_utils::viewing_key::{ViewingKey, VIEWING_KEY_SIZE};
-
-use cosmwasm_std::{
-    StdResult, Extern, Env, Api, Querier, Storage,
-    StdError, HandleResponse, to_binary
-};
+use crate::{scrt::*, scrt_storage::*, scrt_vk::*};
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
-use fadroma_scrt_utils::storage::{ns_save, ns_load};
 
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 

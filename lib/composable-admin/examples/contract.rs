@@ -1,15 +1,9 @@
 // The example contract from https://github.com/enigmampc/secret-template
 // implemented with fadroma and composable-admin
 
-use cosmwasm_std::{
-    debug_print, to_binary, Api, Binary, Env, Extern,
-    HandleResponse, InitResponse, Querier, StdError,
-    StdResult, Storage, HumanAddr
-};
+use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-
-use fadroma_scrt_storage::{save, load};
 use composable_admin::require_admin;
 use composable_admin::admin::{
     AdminQueryMsg, AdminHandleMsg, AdminQuery,

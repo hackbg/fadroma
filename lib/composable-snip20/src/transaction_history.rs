@@ -1,4 +1,4 @@
-use fadroma::*;
+use fadroma::{*, secret_toolkit::storage::*};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

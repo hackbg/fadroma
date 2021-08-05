@@ -1,4 +1,4 @@
-use cosmwasm_std::{HumanAddr, CanonicalAddr, StdResult, Api};
+use crate::{scrt::*, scrt_addr::*};
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 use fadroma_scrt_addr::{Humanize, Canonize};

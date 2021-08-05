@@ -17,9 +17,10 @@ authors = [
 
 [dependencies]
 fadroma = { path = "../", features = [
-  "scrt-vk",
   "scrt-icc",
-  "scrt-utils"
+  "scrt-storage",
+  "scrt-utils",
+  "scrt-vk"
 ] }
 
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }

@@ -1,6 +1,6 @@
 //! `HumanAddr`<->`CanonicalAddr` conversion
 
-use cosmwasm_std::{Api, CanonicalAddr, HumanAddr, StdResult};
+use crate::scrt::*;
 
 pub trait Humanize<T> {
     fn humanize (&self, api: &impl Api) -> StdResult<T>;

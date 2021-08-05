@@ -1,7 +1,5 @@
 pub use serde::{Serialize, de::DeserializeOwned};
-pub use fadroma_scrt_base::cosmwasm_std::{Storage, ReadonlyStorage, StdResult, to_vec, from_slice};
-
-use crate::concat;
+use crate::{scrt::*, concat};
 
 /// Trait for actor that operates in a context with readonly access to the storage.
 pub trait Readonly <S: ReadonlyStorage> {

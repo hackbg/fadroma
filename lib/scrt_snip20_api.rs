@@ -1,8 +1,4 @@
-use fadroma_scrt_base::{
-    cosmwasm_std::{Uint128, HumanAddr, Binary, CosmosMsg, StdResult, Querier},
-    toolkit::snip20,
-    BLOCK_SIZE
-};
+use crate::{scrt::*, scrt::toolkit::*};
 use fadroma_scrt_icc::ContractLink;
 
 pub struct ISnip20 <'a> {

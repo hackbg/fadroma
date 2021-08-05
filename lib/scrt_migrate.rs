@@ -1,10 +1,5 @@
-mod scrt_migrate_types;   pub use scrt_migrate_types   as types;
-mod scrt_migrate_storage; pub use scrt_migrate_storage as storage;
-mod scrt_migrate_checks;  pub use scrt_migrate_checks  as checks;
-
-use cosmwasm_std::{Extern, Storage, Api, Querier, Env, HumanAddr, StdResult};
+use crate::{scrt::*, scrt_addr::*}
 use composable_admin::{require_admin, admin::assert_admin};
-use fadroma_scrt_addr::{Humanize, Canonize};
 
 /// Return the current contract status. Defaults to operational if nothing was stored.
 pub fn get_status <S: Storage, A: Api, Q: Querier> (

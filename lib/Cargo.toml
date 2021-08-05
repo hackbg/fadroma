@@ -7,7 +7,7 @@ authors = ["Asparuh Kamenov <aakamenov@hack.bg>",
 
 [lib]
 name = "fadroma"
-path = "scrt.rs"
+path = "lib.rs"
 
 [dependencies]
 cosmwasm-schema   = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
@@ -17,8 +17,8 @@ primitive-types   = { optional = true, version = "0.9.1", default-features = fal
 rand_chacha       = { optional = true, version = "0.2.2", default-features = false }
 rand_core         = { optional = true, version = "0.5.1", default-features = false }
 schemars          = { optional = true, version = "0.7" }
-#secret-toolkit    = { optional = true, git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-secret-toolkit    = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
+secret-toolkit    = { optional = true, git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
+#secret-toolkit    = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
 serde             = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
 sha2              = { optional = true, version = "0.9.1", default-features = false }
 snafu             = { optional = true, version = "0.6.3" }
@@ -41,10 +41,10 @@ scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu
 scrt-addr       = ["scrt"]
 scrt-admin      = ["scrt"]
 scrt-contract   = ["scrt"]
-scrt-icc        = ["scrt"]
+scrt-icc        = ["scrt", "scrt-addr"]
 scrt-migrate    = ["scrt"]
 scrt-snip20-api = ["scrt"]
-scrt-storage    = ["scrt"]
-scrt-utils      = ["scrt"]
+scrt-storage    = ["scrt", "serde"]
+scrt-utils      = ["scrt", "rand_chacha", "rand_core", "sha2", "subtle", "primitive-types"]
 scrt-vk         = ["scrt"]
 terra           = []

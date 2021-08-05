@@ -1,6 +1,10 @@
-use fadroma_scrt_base::cosmwasm_std::{Api, Extern, Querier, StdResult, Storage};
 use crate::{
-    load as storage_load, remove as storage_remove, save as storage_save,
+    scrt::*,
+    scrt_storage::{
+        load as storage_load,
+        remove as storage_remove,
+        save as storage_save,
+    }
 };
 use serde::{de::DeserializeOwned, Serialize};
 

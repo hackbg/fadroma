@@ -1,15 +1,6 @@
-//! Our attempts to interact with the storage system of the underlying platform in an orderly way.
-
-pub mod scrt_storage_traits;
-pub use scrt_storage_traits as traits;
-pub use scrt_storage_traits::Storable;
-
-mod scrt_storage_traits2;
-pub use scrt_storage_traits2::*;
-
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-pub use fadroma_scrt_base::cosmwasm_std::{ReadonlyStorage, StdResult, Storage, from_slice, to_vec};
+pub use crate::{scrt::{ReadonlyStorage, StdResult, Storage, from_slice, to_vec}};
 
 /// Save something to the storage.
 #[inline]

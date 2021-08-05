@@ -5,4 +5,4 @@ pub use cosmwasm_storage::*;
 pub use cosmwasm_schema::*;
 pub use snafu;
 pub use schemars;
-pub use secret_toolkit as toolkit;
+pub use secret_toolkit;

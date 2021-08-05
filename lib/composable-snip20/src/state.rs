@@ -1,10 +1,9 @@
+use fadroma::{*, secret_toolkit::storage::*};
 use std::any::type_name;
 use std::convert::TryFrom;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-use fadroma::*;
-
 use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
 
 pub const PREFIX_TXS: &[u8] = b"YteGsgSZyO";

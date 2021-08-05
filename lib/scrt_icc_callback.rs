@@ -1,8 +1,6 @@
-use fadroma_scrt_base::cosmwasm_std::{HumanAddr, CanonicalAddr, StdResult, Api, Binary};
-use fadroma_scrt_addr::{Humanize, Canonize};
+use crate::{scrt::*, scrt_addr::*, scrt_icc::*};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use crate::scrt_icc_link::ContractLink;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 /// Info needed to have the other contract respond.
