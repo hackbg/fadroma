@@ -17,6 +17,7 @@ authors = [
 
 [dependencies]
 fadroma = { path = "../", features = [
+  "scrt-vk",
   "scrt-icc",
   "scrt-utils"
 ] }

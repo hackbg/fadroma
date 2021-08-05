@@ -5,10 +5,10 @@
 
 [workspace]
 members = [
-  "scrt/",
-  "scrt/composable-admin",
-  "scrt/composable-snip20",
-  "scrt/require-admin",
+  "lib/",
+  "lib/composable-admin",
+  "lib/composable-snip20",
+  "lib/require-admin",
 ]
 
 [profile.release]

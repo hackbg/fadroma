@@ -6,7 +6,7 @@ use cosmwasm_std::{Env, Binary};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::crypto::{sha_256, Prng, compare_slice_ct_time};
+use crate::scrt_utils_crypto::{sha_256, Prng, compare_slice_ct_time};
 
 pub const VIEWING_KEY_SIZE: usize = 32;
 const VIEWING_KEY_PREFIX: &str = "api_key_";
