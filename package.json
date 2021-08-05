@@ -27,8 +27,8 @@
     "mocha": "^8.0.1"
   },
   "scripts": {
-    "docs": "documentation build js/** -f html --github -o doc/js",
-    "test": "DEBUG=out mocha --timeout 5000 --exit test/ensemble.init.js && DEBUG=out mocha --timeout 5000 --exit test/*.spec.js",
+    "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",
+    "test-js": "DEBUG=out mocha --timeout 5000 --exit test/ensemble.init.js && DEBUG=out mocha --timeout 5000 --exit test/*.spec.js",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc ; rm Cargo.toml"

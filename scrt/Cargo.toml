@@ -1,0 +1,40 @@
+[package]
+name    = "fadroma-scrt"
+version = "0.1.0"
+edition = "2018"
+authors = ["Asparuh Kamenov <aakamenov@hack.bg>",
+           "Adam A. <adam@hack.bg>"]
+
+[lib]
+name = "fadroma"
+path = "scrt.rs"
+
+[dependencies]
+cosmwasm-schema   = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-std      = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage  = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+primitive-types   = { optional = true, version = "0.9.1", default-features = false }
+rand_chacha       = { optional = true, version = "0.2.2", default-features = false }
+rand_core         = { optional = true, version = "0.5.1", default-features = false }
+schemars          = { optional = true, version = "0.7" }
+secret-toolkit    = { optional = true, git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
+secret-toolkit    = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
+serde             = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
+serde             = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
+sha2              = { optional = true, version = "0.9.1", default-features = false }
+snafu             = { optional = true, version = "0.6.3" }
+subtle            = { optional = true, version = "2.4.0", default-features = false }
+
+[features]
+browser         = ["backtraces"]
+backtraces      = ["cosmwasm-std/backtraces", "snafu/backtraces"]
+harness         = []
+scrt-addr       = []
+scrt-admin      = []
+scrt-contract   = []
+scrt-icc        = []
+scrt-migrate    = []
+scrt-snip20-api = []
+scrt-storage    = []
+scrt-utils      = []
+scrt-vk         = []

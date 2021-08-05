@@ -1,0 +1,6 @@
+{
+  "name": "@fadroma/scrt-builder",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.js"
+}

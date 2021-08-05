@@ -2,11 +2,23 @@ name: Run tests
 on: [push, pull_request]
 jobs:
 
-  unit:
+  rust-lib:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: cd example && cargo test
+      - uses: actions/setup-node@v1
+        with: { node-version: 14 }
+      - name: test example
+        run: yarn test-rs
+
+  example:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with: { node-version: 14 }
+      - name: test example
+        run: cd example && cargo test
 
   integration:
     runs-on: ubuntu-latest
@@ -14,9 +26,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
-        with: { node-version: 16 }
-      - run: node --version
-      - run: npm install -g npm
-      - run: npm --version
-      - run: npm install
-      - run: npm test
+        with: { node-version: 14 }
+      - run: yarn test-js

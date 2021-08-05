@@ -1,19 +1,9 @@
-import Scrt from './network.js'
-import SecretNetworkAgent from './agent.js'
-import SecretCLIAgent from './agent-secretcli.js'
-import SecretNetworkContract from './contract.js'
-import SecretNetworkContractWithSchema from './contractWithSchema.js'
-import SchemaWrapper from './Wrapper.js'
+import Scrt from './scrt_network.js'
+import ScrtAgentJS from './scrt_agent.js'
+import ScrtAgentCLI from './scrt_agent_secretcli.js'
 
 export {
-  Scrt, Scrt as SecretNetwork,
-  SecretNetworkAgent, SecretCLIAgent,
-  SecretNetworkContract, SchemaWrapper, SecretNetworkContractWithSchema,
+  Scrt,
+  ScrtAgentJS, ScrtAgentCLI,
+  ScrtContract, SchemaWrapper, ScrtContractWithSchema,
 }
-
-/**@typedef {Object} Connection
- * @property {SecretNetworkNode} [node] - (if localnet) interface to docker container
- * @property {SecretNetwork} network - interface to the node's REST API endpoint.
- * @property {SecretNetworkAgent} agent - a default agent to query and transact on that network.
- * @property {SecretNetworkBuilder} builder - can upload contracts to that network as that agent.
- */

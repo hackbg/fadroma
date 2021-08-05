@@ -18,9 +18,9 @@ throughout code, terminal and GUI.
 
 ### Delivery
 
-* [ ] Publish JS components to NPM
-* [ ] Publish Rust components to Cargo
-* [ ] Install the whole toolkit with `nix-shell https://advanced.fadroma.tech`
+* **TODO:** Publish JS packages to NPM
+* **TODO:** Publish Rust crates to Cargo
+* **WIP:** Install the whole toolkit with `nix-shell https://fadroma.tech/nix`
 
 ### GUI
 * [ ] Package as Electron and Web app, posslbly other platforms
