@@ -34,57 +34,61 @@ async function build () {
 
   del.sync(['dist/electron/*', '!.gitkeep'])
 
-  const tasks = ['main', 'renderer']
-  const m = new Multispinner(tasks, {
-    preText: 'building',
-    postText: 'process'
-  })
-
-  let results = ''
-
-  const tasks = new Listr(
-    [
-      {
-        title: 'building master process',
-        task: async () => {
-          await pack(mainConfig)
-            .then(result => {
-              results += result + '\n\n'
-            })
-            .catch(err => {
-              console.log(`\n  ${errorLog}failed to build main process`)
-              console.error(`\n${err}\n`)
-            })
-        }
-      },
-      {
-        title: 'building renderer process',
-        task: async () => {
-          await pack(rendererConfig)
-            .then(result => {
-              results += result + '\n\n'
-            })
-            .catch(err => {
-              console.log(`\n  ${errorLog}failed to build renderer process`)
-              console.error(`\n${err}\n`)
-            })
-        }
-      }
-    ],
-    { concurrent: 2 }
-  )
-
-  await tasks
-    .run()
-    .then(() => {
-      process.stdout.write('\x1B[2J\x1B[0f')
-      console.log(`\n\n${results}`)
-      console.log(`${okayLog}take it away ${chalk.yellow('`electron-builder`')}\n`)
-      process.exit()
+  {
+    const tasks = ['main', 'renderer']
+    const m = new Multispinner(tasks, {
+      preText: 'building',
+      postText: 'process'
     })
-    .catch(err => {
-      process.exit(1)
-    })
+  }
+
+  {
+    let results = ''
+
+    const tasks = new Listr(
+      [
+        {
+          title: 'building master process',
+          task: async () => {
+            await pack(mainConfig)
+              .then(result => {
+                results += result + '\n\n'
+              })
+              .catch(err => {
+                console.log(`\n  ${errorLog}failed to build main process`)
+                console.error(`\n${err}\n`)
+              })
+          }
+        },
+        {
+          title: 'building renderer process',
+          task: async () => {
+            await pack(rendererConfig)
+              .then(result => {
+                results += result + '\n\n'
+              })
+              .catch(err => {
+                console.log(`\n  ${errorLog}failed to build renderer process`)
+                console.error(`\n${err}\n`)
+              })
+          }
+        }
+      ],
+      { concurrent: 2 }
+    )
+
+    await tasks
+      .run()
+      .then(() => {
+        process.stdout.write('\x1B[2J\x1B[0f')
+        console.log(`\n\n${results}`)
+        console.log(`${okayLog}take it away ${chalk.yellow('`electron-builder`')}\n`)
+        process.exit()
+      })
+      .catch(err => {
+        process.exit(1)
+      })
+  }
 }
 
 function pack (config) {
