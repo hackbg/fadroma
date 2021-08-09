@@ -6,6 +6,7 @@
   "private": true,
   "workspaces": [
     "./ui/cli",
+    "./ui/gui",
     "./util/net",
     "./util/sys",
     "./util/test",
