@@ -1,31 +1,20 @@
 {
-  pkgs ? import <nixpkgs> {
-    overlays = [
-      (import (builtins.fetchTarball
-      https://github.com/mozilla/nixpkgs-mozilla/archive/master.tar.gz ))
-    ];
-  }
-}:
-
-pkgs.mkShell {
-
-  name = "fadroma";
-
-  nativeBuildInputs = with pkgs; [
-    nodejs-14_x
-    yarn
-    (rustChannelOfTargets "nightly" "2021-08-04" ["wasm32-unknown-unknown"])
-    binaryen
-    wabt
-    wasm-pack
-    wasm-bindgen-cli
+  arsenal ? (builtins.fetchGit {
+    url = "git@github.com:hackbg/arsenal.git";
+    rev = "68dba155a4a1c8c036c7cf255728b411a92e0223";
+    ref = "refactor-1";
+  }),
+  pkgs    ? import <nixpkgs> { overlays = [ (import arsenal) ]; },
+  ...
+}: pkgs.mkShell {
+  name = "hackbg-fadroma-dev";
+  buildInputs = with pkgs; [
+    hackbg.js
+    hackbg.neovim
+    hackbg.rust
+    hackbg.util
   ];
-
   shellHook = ''
-    export RUST_BACKTRACE=1
-    export RUSTFLAGS="-Zmacro-backtrace"
-    #rustup component add llvm-tools-preview rls rust-analysis rust-src
-    export PATH="$PATH:$HOME/.cargo/bin"
+    export PS1='\n\e[0;35mғᴀᴅʀᴏᴍᴀ ⬢ \w\e[0m '
   '';
-
 }
