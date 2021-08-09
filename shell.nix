@@ -13,8 +13,10 @@
     hackbg.neovim
     hackbg.rust
     hackbg.util
+    electron_6
   ];
   shellHook = ''
     export PS1='\n\e[0;35mғᴀᴅʀᴏᴍᴀ ⬢ \w\e[0m '
+    export ELECTRON_RUNTIME='${pkgs.electron_6.out}/bin/electron'
   '';
 }

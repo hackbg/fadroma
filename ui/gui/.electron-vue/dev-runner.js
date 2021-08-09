@@ -1,13 +1,15 @@
 'use strict'
 
 const chalk = require('chalk')
-const electron = require('electron')
+const electron = process.env.ELECTRON_RUNTIME || require('electron')
+console.debug('electron runtime:', electron)
 const path = require('path')
 const { say } = require('cfonts')
 const { spawn } = require('child_process')
 const webpack = require('webpack')
 const WebpackDevServer = require('webpack-dev-server')
 const webpackHotMiddleware = require('webpack-hot-middleware')
+
 
 const mainConfig = require('./webpack.main.config')
 const rendererConfig = require('./webpack.renderer.config')
