@@ -27,7 +27,9 @@ export default defineComponent({
         <div>Secret Network Mainnet</div>
         <code>secret-2</code>
         <div class="Separator" />
-        <button>Explore...</button>
+        <div class="Actions">
+          <button>Explore...</button>
+        </div>
       </div>
     </section>
 
@@ -37,7 +39,9 @@ export default defineComponent({
         <div>Secret Network Testnet</div>
         <code>holodeck-2</code>
         <div class="Separator" />
-        <button>Explore...</button>
+        <div class="Actions">
+          <button>Explore...</button>
+        </div>
       </div>
     </section>
 
@@ -47,9 +51,11 @@ export default defineComponent({
         <div>Secret Network Localnet</div>
         <code>enigma-pub-mpc-3</code>
         <div class="Separator" />
-        <button>Start</button>
-        <button>View logs...</button>
-        <button>Explore...</button>
+        <div class="Actions">
+          <button>Start</button>
+          <button>View logs...</button>
+          <button>Explore...</button>
+        </div>
       </div>
     </section>
 
@@ -57,7 +63,9 @@ export default defineComponent({
       <label class="Chain icon-chain"></label>
       <div>
         <div>Secret Network Mocknet</div>
-        <div class="Separator" />
+        <div class="Actions">
+          <div class="Separator" />
+        </div>
       </div>
     </section>
 

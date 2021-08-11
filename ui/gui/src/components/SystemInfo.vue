@@ -105,6 +105,7 @@ export default defineComponent({
 </script>
 
 <style scoped lang="scss">
+@import '../components/box.scss';
 .title {
   color: #888;
   font-size: 18px;

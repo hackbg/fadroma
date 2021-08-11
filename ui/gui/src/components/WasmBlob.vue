@@ -35,7 +35,7 @@ export default defineComponent({
     <section>
       <label class="Upload icon-upload"></label>
       <div>
-        <div class="Info">Not uploaded to any chains.</div>
+        <div class="Info">No known uploads.</div>
         <div class="Separator" />
         <button>Look for matching code hashes...</button>
         <button>Upload to chain...</button>
@@ -45,7 +45,7 @@ export default defineComponent({
     <section>
       <label class="Instance icon-instance"></label>
       <div>
-        <div class="Info">No instances registered.</div>
+        <div class="Info">No known instances.</div>
         <div class="Separator" />
         <button>Import instance...</button>
         <button>Deploy instance...</button>

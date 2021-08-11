@@ -2,11 +2,11 @@
 
 @font-face {
   font-family: '#{$icomoon-font-family}';
-  src:  url('#{$icomoon-font-path}/#{$icomoon-font-family}.eot?j84tj2');
-  src:  url('#{$icomoon-font-path}/#{$icomoon-font-family}.eot?j84tj2#iefix') format('embedded-opentype'),
-    url('#{$icomoon-font-path}/#{$icomoon-font-family}.ttf?j84tj2') format('truetype'),
-    url('#{$icomoon-font-path}/#{$icomoon-font-family}.woff?j84tj2') format('woff'),
-    url('#{$icomoon-font-path}/#{$icomoon-font-family}.svg?j84tj2##{$icomoon-font-family}') format('svg');
+  src:  url('#{$icomoon-font-path}/#{$icomoon-font-family}.eot?fgkdy8');
+  src:  url('#{$icomoon-font-path}/#{$icomoon-font-family}.eot?fgkdy8#iefix') format('embedded-opentype'),
+    url('#{$icomoon-font-path}/#{$icomoon-font-family}.ttf?fgkdy8') format('truetype'),
+    url('#{$icomoon-font-path}/#{$icomoon-font-family}.woff?fgkdy8') format('woff'),
+    url('#{$icomoon-font-path}/#{$icomoon-font-family}.svg?fgkdy8##{$icomoon-font-family}') format('svg');
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -35,6 +35,11 @@
 .icon-blob {
   &:before {
     content: $icon-blob; 
+  }
+}
+.icon-storage {
+  &:before {
+    content: $icon-storage; 
   }
 }
 .icon-search {
