@@ -6,6 +6,7 @@
     @drop="drop"
   >
     <SystemInfo />
+    <Networks />
     <WasmBlob
       v-for="[id, blob] of Object.entries(blobs)"
       :key="id"
@@ -20,6 +21,7 @@ import "../icons/style.scss"
 import { defineComponent } from "vue";
 import SystemInfo from "@/components/SystemInfo.vue";
 import WasmBlob from "@/components/WasmBlob.vue";
+import Networks from "@/components/Networks.vue";
 import { State } from "../types";
 
 export default defineComponent({
@@ -27,6 +29,7 @@ export default defineComponent({
   components: {
     SystemInfo,
     WasmBlob,
+    Networks,
   },
   data(): State {
     return {
