@@ -63,8 +63,9 @@ export default defineComponent({
       <label class="Chain icon-chain"></label>
       <div>
         <div>Secret Network Mocknet</div>
+        <div class="Separator" />
         <div class="Actions">
-          <div class="Separator" />
+          <button>Configure...</button>
         </div>
       </div>
     </section>

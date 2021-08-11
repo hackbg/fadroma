@@ -15,25 +15,88 @@ export default defineComponent({
   <div class="WasmBlob Box">
 
     <section>
-      <label class="Blob icon-blob"></label>
+      <label class="icon-git"></label>
       <div>
-        <strong>{{ blob.name }}</strong>
+        <strong>git@github.com:hackbg/sienna.git</strong>
         <div class="Separator" />
-        <code>{{ blob.codeHash }}</code>
+        <code>0c6401afecd518dc5221b7679c2795ee031e3193</code>
       </div>
     </section>
 
     <section>
-      <label class="Schema icon-schema"></label>
+      <label class="icon-folder"></label>
       <div>
-        <div class="Info">No schema loaded.</div>
+        <div>
+          <strong>contracts/snip20-sienna</strong>
+        </div>
         <div class="Separator" />
-        <button>Provide schema...</button>
+        <div class="Actions">
+          <button>Browse...</button>
+          <button>Dependencies...</button>
+          <button>Build...</button>
+        </div>
       </div>
     </section>
 
     <section>
-      <label class="Upload icon-upload"></label>
+      <label class="icon-checkmark"></label>
+      <div>
+        <div>
+          All <strong>10</strong> unit tests passed,
+          achieving <strong>99.9%</strong> coverage.
+        </div>
+        <div class="Separator" />
+        <div class="Actions">
+          <button>Run unit tests...</button>
+          <button>View report...</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <label class="icon-blob"></label>
+      <div>
+        <div>
+          <strong>{{ blob.name }}</strong>
+          <br>
+          (12345 bytes raw, 2345 bytes compressed)
+        </div>
+        <div class="Separator" />
+        <code>
+          {{ blob.codeHash.slice(0, Math.floor(blob.codeHash.length/2)) }}
+          <br>
+          {{ blob.codeHash.slice(Math.floor(blob.codeHash.length/2)) }}
+        </code>
+      </div>
+    </section>
+
+    <section>
+      <label class="icon-warning"></label>
+      <div>
+        <div>
+          <strong>2</strong> integration tests failed,
+          <strong>15</strong> passed.
+        </div>
+        <div class="Separator" />
+        <div class="Actions">
+          <button>Run integration tests...</button>
+          <button>View report...</button>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <label class="icon-schema"></label>
+      <div>
+        <div class="Info">No schema provided.</div>
+        <div class="Separator" />
+        <button>Export schema...</button>
+        <button>Import schema...</button>
+      </div>
+    </section>
+
+    <section>
+      <label class="icon-upload"></label>
       <div>
         <div class="Info">No known uploads.</div>
         <div class="Separator" />
@@ -43,7 +106,7 @@ export default defineComponent({
     </section>
 
     <section>
-      <label class="Instance icon-instance"></label>
+      <label class="icon-instance"></label>
       <div>
         <div class="Info">No known instances.</div>
         <div class="Separator" />

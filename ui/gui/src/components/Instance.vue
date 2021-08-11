@@ -12,35 +12,52 @@ export default defineComponent({
 </script>
 
 <template @mouseenter="mouseenter">
-  <div class="Networks Box">
+  <div class="Instance Box">
 
     <section>
       <label class="icon-instance"></label>
       <div>
         <strong>Instance</strong>
         <div class="Separator" />
-        <code>secret1n5xe4hs4xuk6fkatkpqpgpzcqrhwcx29hlkpjd</code>
+        <div class="Actions">
+          <code>secret1n5xe4hs4xuk6fkatkpqpgpzcqrhwcx29hlkpjd</code>
+          on
+          <code>holodeck-2</code>
+          <button>History...</button>
+        </div>
       </div>
     </section>
 
     <section>
       <label class="icon-storage"></label>
       <div>
-        <strong>0 KV pairs in storage</strong>
+        <div>0 KV pairs in storage</div>
+        <div class="Separator" />
+        <div class="Actions">
+          <button>Browse storage...</button>
+        </div>
       </div>
     </section>
 
     <section>
-      <label class="icon-storage"></label>
+      <label class="logogram">Q</label>
       <div>
-        <strong>No queries available</strong>
+        <div>No queries available</div>
+        <div class="Separator" />
+        <div class="Actions">
+          <button>Submit query...</button>
+        </div>
       </div>
     </section>
 
     <section>
-      <label class="icon-storage"></label>
+      <label class="logogram">TX</label>
       <div>
-        <strong>No transactions available</strong>
+        <div>No transactions available</div>
+        <div class="Separator" />
+        <div class="Actions">
+          <button>Submit transaction...</button>
+        </div>
       </div>
     </section>
 

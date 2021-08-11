@@ -69,14 +69,31 @@
     &:hover {
       opacity: 1.0;
     }
+    &.logogram {
+      font-size: 0.75rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      border: 2px solid rgba(255,255,255,1);
+      align-self: flex-start;
+      justify-self: center;
+      width: 2rem;
+      height: 2rem;
+      line-height: 1rem;
+    }
   }
 
   code {
+    font-weight: bold;
     white-space: nowrap;
     border: 1px solid #777;
     padding: 0.5em;
     border-radius: 2px;
     background: #000;
+    margin-left: 1em;
+    opacity: 0.5;
+    &:hover {
+      opacity: 0.75;
+    }
   }
 
   .Separator {
@@ -89,8 +106,11 @@
     grid-template-areas: "Button1 Content";
     color: white;
     min-height: 3rem;
-    align-items: flex-start;
-    &>:nth-child(1) { grid-area: Button1; }
+    align-items: center;
+    &>:nth-child(1) {
+      grid-area: Button1;
+      align-self: flex-start;
+    }
     &>:nth-child(2) {
       grid-area: Content;
       padding: 0 1em 0 0.5em;
@@ -105,6 +125,7 @@
     display: flex;
     flex-flow: row wrap;
     justify-content: flex-end;
+    align-items: center;
   }
 
   & > .Header {

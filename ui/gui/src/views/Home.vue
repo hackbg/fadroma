@@ -19,7 +19,7 @@ export default defineComponent({
     return {
       blobs: {
         0: {
-          name: "/path/to/MyCodeBlob.wasm",
+          name: "artifacts/MyCodeBlob@0c6401a.wasm",
           codeHash:
             "7536621f5ba32eeddde858143acd6d993e9e36b98df4588df58ae718891090a6",
           instances: [],
