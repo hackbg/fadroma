@@ -1,8 +1,8 @@
 {
   arsenal ? (builtins.fetchGit {
     url = "git@github.com:hackbg/arsenal.git";
-    rev = "68dba155a4a1c8c036c7cf255728b411a92e0223";
-    ref = "refactor-1";
+    rev = "8af955d6e7830dff332e04fcb8480ef8d260a55f";
+    ref = "next";
   }),
   pkgs    ? import <nixpkgs> { overlays = [ (import arsenal) ]; },
   ...

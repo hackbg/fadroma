@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="SystemInfo Box">
     <div class="title">SecretCLI Config</div>
     <div class="items">
       <div class="item">

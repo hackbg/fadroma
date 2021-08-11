@@ -24,6 +24,10 @@ async function createWindow() {
     },
   });
 
+  // prevent main window navigation to allow dropping files onto it
+  // based on https://stackoverflow.com/a/49304541
+  win.webContents.on('will-navigate', e => e.preventDefault())
+
   if (process.env.WEBPACK_DEV_SERVER_URL) {
     // Load the url of the dev server if in development mode
     await win.loadURL(process.env.WEBPACK_DEV_SERVER_URL as string);
