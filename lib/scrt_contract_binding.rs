@@ -56,7 +56,8 @@
     // Entry point: generates the contents of a `mod wasm`
     // containing all the bindings for running in a browser.
 
-    ( $mod:ident /* pass me a module that exports your init, handle and query functions */ ) => {
+    ( $mod:ident /* pass me a module that exports your init, handle and query functions */
+    , $msg:ident /* and another that exports your message types */) => {
 
         use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
         use fadroma::scrt::cosmwasm_std as cw;
@@ -120,6 +121,11 @@
                             contract_code_hash: "".into()
                         }
                     ))
+                }
+
+                #[wasm_bindgen(getter)]
+                fn get_schema (&self) -> Vec<u8> {
+                    Ok(fadroma::scrt::cosmwasm_std::schema_for!(msg::Init))
                 }
 
                 #[wasm_bindgen(setter)]

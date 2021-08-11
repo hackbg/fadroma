@@ -60,24 +60,10 @@
 
     ) => {
 
-        /// Imports common platform types into the module.
+        /// Import common platform types into the module.
         prelude!();
 
-        #[cfg(all(not(feature = "browser"), target_arch = "wasm32"))]
-        /// Entry points for running this contract on a blockchain (testnet or mainnet).
-        /// Build with `features = ["fadroma/browser"]` to build for browser instead.
-        mod wasm {
-            crate::bind_chain!(super);
-        }
-
-        #[cfg(all(feature = "browser", target_arch = "wasm32"))]
-        /// Entry point for running this contract in a browser using `wasm-pack`/`wasm-bindgen`.
-        /// Build without `features = ["fadroma/browser"]` to build for blockchain instead.
-        mod wasm {
-            crate::bind_js!(super);
-        }
-
-        /// Contains the contract's API schema.
+        /// Define the contract's API schema.
         ///
         /// `fadroma_scrt_contract` automatically generates this module
         /// containing the protocol messages determined by the argument sets
@@ -112,10 +98,21 @@
             )* });
         }
 
-        // Lol how the hell did this `crate::` path work
+        #[cfg(all(not(feature = "browser"), target_arch = "wasm32"))]
+        /// Entry points for running this contract on a blockchain (testnet or mainnet).
+        /// Build with `features = ["fadroma/browser"]` to build for browser instead.
+        mod wasm {
+            crate::bind_chain!(super);
+        }
+
+        #[cfg(all(feature = "browser", target_arch = "wasm32"))]
+        /// Entry point for running this contract in a browser using `wasm-pack`/`wasm-bindgen`.
+        /// Build without `features = ["fadroma/browser"]` to build for blockchain instead.
+        mod wasm {
+            crate::bind_js!(super, msg);
+        }
 
         // Generate the implementations from user-provided code.
-
         define_state_singleton! {
             $State { $( $(#[$meta])* $state_field : $state_field_type ),* }
         }
