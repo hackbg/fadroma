@@ -1,8 +1,8 @@
 export type State = {
-  blobs: Record<number, WasmBlob>;
+  blobs: Record<number, Instance>;
 };
 
-export type WasmBlob = {
+export type Instance = {
   name: CodeName;
   codeHash: CodeHash;
   instances: Array<ContractLink>;

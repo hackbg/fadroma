@@ -1,8 +1,10 @@
 <script lang="ts">
 import { defineComponent } from "vue";
+import Collapsible from '@/components/Collapsible.vue';
 export default defineComponent({
   name: "Networks",
   props: ["id", "blob"],
+  components: { Collapsible },
   methods: {
     mouseenter(event: Event) {
       console.log("mouseenter", event)
@@ -12,68 +14,70 @@ export default defineComponent({
 </script>
 
 <template @mouseenter="mouseenter">
-  <div class="Networks Box">
 
-    <section>
-      <label></label>
-      <div>
-        <strong>Networks</strong>
-      </div>
-    </section>
+  <Collapsible class="Networks">
 
-    <section>
-      <label class="Chain icon-chain"></label>
-      <div>
-        <div>Secret Network Mainnet</div>
-        <code>secret-2</code>
-        <div class="Separator" />
-        <div class="Actions">
-          <button>Explore...</button>
+    <template v-slot:header>
+      <label class="icon-chain"></label>
+      <h2>Networks</h2>
+    </template>
+
+    <template v-slot:body>
+
+      <section>
+        <label></label>
+        <div>
+          <div>Secret Network Mainnet</div>
+          <code>secret-2</code>
+          <div class="Separator" />
+          <div class="Actions">
+            <button>Explore...</button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section>
-      <label class="Chain icon-chain"></label>
-      <div>
-        <div>Secret Network Testnet</div>
-        <code>holodeck-2</code>
-        <div class="Separator" />
-        <div class="Actions">
-          <button>Explore...</button>
+      <section>
+        <label></label>
+        <div>
+          <div>Secret Network Testnet</div>
+          <code>holodeck-2</code>
+          <div class="Separator" />
+          <div class="Actions">
+            <button>Explore...</button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section>
-      <label class="Chain icon-chain"></label>
-      <div>
-        <div>Secret Network Localnet</div>
-        <code>enigma-pub-mpc-3</code>
-        <div class="Separator" />
-        <div class="Actions">
-          <button>Start</button>
-          <button>View logs...</button>
-          <button>Explore...</button>
+      <section>
+        <label></label>
+        <div>
+          <div>Secret Network Localnet</div>
+          <code>enigma-pub-mpc-3</code>
+          <div class="Separator" />
+          <div class="Actions">
+            <button>Start</button>
+            <button>View logs...</button>
+            <button>Explore...</button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <section>
-      <label class="Chain icon-chain"></label>
-      <div>
-        <div>Secret Network Mocknet</div>
-        <div class="Separator" />
-        <div class="Actions">
-          <button>Configure...</button>
+      <section>
+        <label></label>
+        <div>
+          <div>Secret Network Mocknet</div>
+          <div class="Separator" />
+          <div class="Actions">
+            <button>Configure...</button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </template>
 
-  </div>
+  </Collapsible>
+
 </template>
 
-<style scoped lang="scss">
-@import './box.scss';
+<style lang="sass">
 .Networks code { margin-left: 1em; }
 </style>

@@ -6,6 +6,19 @@
   border: none;
 }
 
+hr {
+  border-bottom: 1px solid rgba(0,0,0,0.5);
+  margin: 0 -0.5rem 1rem;
+}
+
+h2 {
+  //margin-left: 3.5rem;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 .View {
   box-sizing: border-box;
   min-height: 100vh;
@@ -19,14 +32,15 @@
 
 .Box {
   box-shadow: 0.25em 0.25em 0.5em rgba(0,0,0,0.25) inset;
+  border: 1px solid rgba(0,0,0,0.5);
   color: white;
-  display: grid;
+  display: grid !important;
   max-width: 100vh;
-  padding: 1em 0.5em 0em;
+  padding: 0.5em !important;
   text-align: left;
   margin: 0.5em;
 
-  background: rgba(16,16,16,0.5);
+  background: rgba(0,0,0,0.05);
   border-radius: 0.5rem;
 
   display: flex;
@@ -88,11 +102,11 @@
     border: 1px solid #777;
     padding: 0.5em;
     border-radius: 2px;
-    background: #000;
-    margin-left: 1em;
-    opacity: 0.5;
+    background: rgba(0,0,0,0.5);
+    //margin-left: 1em;
+    opacity: 0.75;
     &:hover {
-      opacity: 0.75;
+      opacity: 1;
     }
   }
 
@@ -101,31 +115,37 @@
   }
 
   & > section {
-    display: grid;
-    grid-template-columns: 3rem 1fr;
-    grid-template-areas: "Button1 Content";
+    display: flex;
+    flex-flow: row nowrap;
     color: white;
     min-height: 3rem;
     align-items: center;
     &>:nth-child(1) {
-      grid-area: Button1;
+      width: 3rem;
       align-self: flex-start;
     }
     &>:nth-child(2) {
-      grid-area: Content;
       padding: 0 1em 0 0.5em;
       display: flex;
       flex-flow: row nowrap;
       align-items: flex-start;
+      flex-grow: 1;
+      a[href] {
+        color: white;
+        margin-left: 1rem;
+        font-style: italic;
+        text-decoration: none;
+        border-bottom: 1px dotted white;
+      }
     }
     &>:nth-child(3) { grid-area: Button2; }
   }
 
   .Actions {
     display: flex;
-    flex-flow: row wrap;
-    justify-content: flex-end;
-    align-items: center;
+    flex-flow: column nowrap;
+    align-items: flex-end;
+    margin-top: -0.33rem;
   }
 
   & > .Header {

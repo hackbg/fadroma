@@ -3,17 +3,23 @@
 </template>
 
 <style lang="scss">
+html {
+  height: 100%;
+}
 body {
+  min-height: 100%;
   position: relative;
   margin: 0;
-  background: #312;
+  background: #423;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: flex-start;
+  align-items: center;
 }
 
 #app {
   position: absolute;
   index: 0;
-  width: 100vw;
-  height: 100vh;
   z-index: 1;
   display: flex;
   flex-flow: column nowrap;
@@ -38,4 +44,6 @@ body {
     }
   }
 }
+
+@import "./components/box.scss";
 </style>

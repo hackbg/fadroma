@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'icomoon';
-  src:  url('fonts/icomoon.eot?6czme9');
-  src:  url('fonts/icomoon.eot?6czme9#iefix') format('embedded-opentype'),
-    url('fonts/icomoon.ttf?6czme9') format('truetype'),
-    url('fonts/icomoon.woff?6czme9') format('woff'),
-    url('fonts/icomoon.svg?6czme9#icomoon') format('svg');
+  src:  url('fonts/icomoon.eot?nhrgho');
+  src:  url('fonts/icomoon.eot?nhrgho#iefix') format('embedded-opentype'),
+    url('fonts/icomoon.ttf?nhrgho') format('truetype'),
+    url('fonts/icomoon.woff?nhrgho') format('woff'),
+    url('fonts/icomoon.svg?nhrgho#icomoon') format('svg');
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -61,11 +61,29 @@
 .icon-run:before {
   content: "\ea1c";
 }
+.icon-circle-up:before {
+  content: "\ea41";
+}
+.icon-circle-right:before {
+  content: "\ea42";
+}
+.icon-circle-down:before {
+  content: "\ea43";
+}
+.icon-circle-left:before {
+  content: "\ea44";
+}
 .icon-filter:before {
   content: "\ea5b";
 }
-.icon-schema:before {
+.icon-section:before {
+  content: "\ea76";
+}
+.icon-code:before {
   content: "\ea7f";
+}
+.icon-terminal:before {
+  content: "\ea81";
 }
 .icon-git:before {
   content: "\eae7";
