@@ -34,6 +34,7 @@
     "test-js": "DEBUG=out mocha --timeout 5000 --exit js/*/*.spec.js",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
-    "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc ; rm Cargo.toml"
+    "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc ; rm Cargo.toml",
+    "dev-gui": "cd ui/gui; yarn electron:serve"
   }
 }
