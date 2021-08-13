@@ -98,3 +98,25 @@ pub trait Harness <Q: Querier, InitMsg, TXMsg, QueryMsg, Response: DeserializeOw
         }
     }
 }
+
+#[macro_export] macro_rules! assert_error {
+    ($response:expr, $msg:expr) => { assert_eq!($response, Err(StdError::generic_err($msg))) }
+}
+
+#[macro_export] macro_rules! assert_fields {
+    ($instance:expr ; $variant:path {
+        $($var:ident: $expected:expr),+
+    }) => { {
+        let mut tw = tabwriter::TabWriter::new(std::io::stdout());
+        write!(&mut tw, "field\texpected\tactual\t\n");
+        $(
+            write!(&mut tw, "{}\t", stringify!($var));
+            write!(&mut tw, "{:?}\t", $expected);
+            write!(&mut tw, "{:?}\t\n", (if $var == $expected {
+                yansi::Paint::green
+            } else {
+                yansi::Paint::red
+            })(format!("{}", &$var)));
+        )+;
+    }; }
+}
