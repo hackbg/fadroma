@@ -127,3 +127,42 @@ impl <'q, Q: Querier> ISnip20Querier <'q, Q> {
     }
 
 }
+
+pub mod mock {
+    pub struct Snip20;
+
+    use fadroma_scrt_base::cosmwasm_std::{Uint128};
+
+    impl Snip20 {
+        pub fn set_viewing_key (key: &str) -> String {
+            format!(
+                "{{\"set_viewing_key\":{{\"key\":\"{}\",\"padding\":null}}}}",
+                key
+            ).into()
+        }
+        pub fn transfer_from (owner: &str, recipient: &str, amount: &str) -> String {
+            format!(
+                "{{\"transfer_from\":{{\"owner\":\"{}\",\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
+                owner, recipient, amount
+            ).into()
+        }
+        pub fn transfer (recipient: &str, amount: &str) -> String {
+            format!(
+                "{{\"transfer\":{{\"recipient\":\"{}\",\"amount\":\"{}\",\"padding\":null}}}}",
+                recipient, amount
+            ).into()
+        }
+    }
+
+    #[derive(serde::Serialize,serde::Deserialize)]
+    #[serde(rename_all="snake_case")]
+    pub enum Snip20Query {
+        Balance {}
+    }
+
+    #[derive(serde::Serialize,serde::Deserialize)]
+    #[serde(rename_all="snake_case")]
+    pub enum Snip20QueryAnswer {
+        Balance { amount: Uint128 }
+    }
+}

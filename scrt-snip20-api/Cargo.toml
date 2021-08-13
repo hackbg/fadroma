@@ -11,3 +11,4 @@ path = "snip20api.rs"
 [dependencies]
 fadroma-scrt-base     = { path = "../scrt" }
 fadroma-scrt-callback = { path = "../scrt-callback" }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
