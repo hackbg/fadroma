@@ -40,4 +40,5 @@ scrt-storage    = ["scrt", "fadroma-scrt-storage"]
 scrt-utils      = ["scrt", "fadroma-scrt-utils"]
 scrt-vk         = ["scrt", "fadroma-scrt-utils", "composable-auth"]
 
-browser = ["fadroma-scrt-contract/browser", "fadroma-scrt-base/backtraces" ]
+backtraces = ["fadroma-scrt-base/backtraces", "fadroma-scrt-utils/backtraces"]
+browser    = ["fadroma-scrt-contract/browser", "backtraces" ]
