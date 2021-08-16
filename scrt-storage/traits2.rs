@@ -37,23 +37,25 @@ pub trait Writable <S: Storage>: Readonly<S> {
 
 #[macro_export] macro_rules! stateful {
     (
-        $Obj:ident ($($storage:tt)+): /*{ $($accessors:tt)* } no traits no accessors */
+        $Obj:ident
+        $(<$($p:tt),+>)?
+        ($($storage:tt)+): /*{ $($accessors:tt)* } no traits no accessors */
         $Readonly:ident { $($readonlies:tt)* }
         $Writable:ident { $($writables:tt)* }
     ) => {
-        impl<S: ReadonlyStorage> $Readonly<S> for $Obj<&S> {
+        impl<$($($p,)+)? S: ReadonlyStorage> $Readonly<S> for $Obj<$($($p,)+)? &S> {
             fn storage (&self) -> &S { &self.$($storage)+ }
         }
-        impl<S: ReadonlyStorage> $Readonly<S> for $Obj<&mut S> {
+        impl<$($($p,)+)? S: ReadonlyStorage> $Readonly<S> for $Obj<$($($p,)+)? &mut S> {
             fn storage (&self) -> &S { &self.$($storage)+ }
         }
-        impl<S: Storage> $Writable<S> for $Obj<&mut S> {
+        impl<$($($p,)+)? S: Storage> $Writable<S> for $Obj<$($($p,)+)? &mut S> {
             fn storage_mut (&mut self) -> &mut S { &mut self.$($storage)+ }
         }
-        impl<S: ReadonlyStorage> $Obj<&S> {
+        impl<$($($p,)+)? S: ReadonlyStorage> $Obj<$($($p,)+)? &S> {
             $($readonlies)*
         }
-        impl<S: Storage> $Obj<&mut S> {
+        impl<$($($p,)+)? S: Storage> $Obj<$($($p,)+)? &mut S> {
             $($readonlies)*
             $($writables)*
         }
