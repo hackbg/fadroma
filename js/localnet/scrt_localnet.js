@@ -1,9 +1,7 @@
 import Docker from 'dockerode'
-import { resolve, dirname, fileURLToPath,
-         mkdir, existsSync, touch, rimraf,
-         writeFile, readFileSync, unlinkSync,
-         loadJSON, Console } from '@fadroma/util-sys'
-import { bold } from '@fadroma/cli'
+import { Console, bold } from '@fadroma/cli'
+import { resolve, dirname, fileURLToPath, mkdir, existsSync, touch, rimraf,
+         writeFile, readFileSync, unlinkSync, loadJSON } from '@fadroma/util-sys'
 import { waitPort, freePort, pulled, waitUntilLogsSay } from '@fadroma/util-net'
 
 const { warn, info, debug } = Console(import.meta.url)

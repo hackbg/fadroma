@@ -2,7 +2,7 @@
   "name": "@fadroma/ensemble",
   "version": "0.1.0",
   "type": "module",
-  "main": "scrt_ensemble.js",
+  "main": "scrt_ensemble.ts",
   "dependencies": {
     "@fadroma/builder": "*"
   }

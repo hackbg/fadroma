@@ -3,8 +3,7 @@ import { createServer } from 'net'
 import Docker from 'dockerode'
 import waitPort from 'wait-port'
 
-const {bold} = colors
-export { bold, waitPort }
+export { waitPort }
 
 export const freePort = () => new Promise((ok, fail)=>{
   let port = 0

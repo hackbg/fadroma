@@ -5,8 +5,8 @@
   "type": "module",
   "private": true,
   "workspaces": [
+    ".",
     "./ui/cli",
-    "./ui/gui",
     "./util/net",
     "./util/sys",
     "./util/test",
@@ -15,11 +15,19 @@
     "./js/contract",
     "./js/ensemble",
     "./js/localnet",
-    "./js/util/net",
-    "./js/util/sys"
+    "./js/util-net",
+    "./js/util-sys"
   ],
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",
+    "@fadroma/agent": "*",
+    "@fadroma/builder": "*",
+    "@fadroma/cli": "*",
+    "@fadroma/contract": "*",
+    "@fadroma/ensemble": "*",
+    "@fadroma/localnet": "*",
+    "@fadroma/util-net": "*",
+    "@fadroma/util-sys": "*",
     "ajv": "^8.6.0",
     "bignumber.js": "^9.0.1",
     "secretjs": "^0.11.0"
@@ -27,7 +35,8 @@
   "devDependencies": {
     "chai": "^4.3.4",
     "documentation": "^13.2.1",
-    "mocha": "^8.0.1"
+    "mocha": "^8.0.1",
+    "typedoc": "^0.21.6"
   },
   "scripts": {
     "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",

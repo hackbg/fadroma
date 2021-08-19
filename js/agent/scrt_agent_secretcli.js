@@ -1,5 +1,5 @@
 import { execFile, spawn } from 'child_process'
-import { Console } from '@fadroma/util-sys'
+import { Console } from '@fadroma/cli'
 
 const {warn, debug} = Console(import.meta.url)
 

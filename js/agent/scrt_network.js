@@ -1,6 +1,5 @@
-import { mkdir, makeStateDir, resolve, cwd, Console } from '@fadroma/util-sys'
-import { bold } from '@fadroma/cli'
-
+import { mkdir, makeStateDir, resolve, cwd } from '@fadroma/util-sys'
+import { bold, Console } from '@fadroma/cli'
 import { ScrtNode } from '@fadroma/localnet'
 import { BuilderWithUploader } from '@fadroma/builder'
 
@@ -154,7 +153,7 @@ export default class Scrt {
 
   /** create builder operating on the current instance's endpoint */
   getBuilder (agent) {
-    return new ScrtBuilderWithUploader({network: this, agent})
+    return new BuilderWithUploader({network: this, agent})
   }
 
   /** create contract instance from interface class and address */

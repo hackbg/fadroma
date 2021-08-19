@@ -2,9 +2,9 @@
   "name": "@fadroma/builder",
   "version": "0.1.0",
   "type": "module",
-  "main": "scrt_builder.js",
+  "main": "scrt_builder.ts",
   "dependencies": {
-    "@fadroma/util-sys": "*",
-    "@fadroma/util-net": "*"
+    "@fadroma/util-net": "*",
+    "@fadroma/util-sys": "*"
   }
 }

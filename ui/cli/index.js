@@ -3,6 +3,7 @@ import { table, getBorderCharacters } from 'table'
 import { render } from 'prettyjson'
 import { printUsage, runCommand } from './cli-kit.js'
 import taskmaster from './taskmaster.js'
+import Console from './console.js'
 
 export {
   table, getBorderCharacters, colors, render,
@@ -16,3 +17,5 @@ export const noBorders = {
 }
 
 export const bold = colors.bold
+
+export { Console }
