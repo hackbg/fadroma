@@ -4,13 +4,16 @@ import { readFile, writeFile } from 'fs/promises'
 import { cwd, stderr } from 'process'
 import { fileURLToPath } from 'url'
 import { randomBytes } from 'crypto'
-
 import bignum from 'bignumber.js'
-
 import { loadJSON, loadSchemas } from './schema.js'
 import { mkdir, makeStateDir, touch, rimraf } from './sys.js'
 
-const {bold} = colors
+export const randomHex = (bytes) =>
+  randomBytes(bytes).toString("hex")
+
+const decoder = new TextDecoder();
+export const decode = (buffer) =>
+  decoder.decode(buffer).trim()
 
 export {
   basename,

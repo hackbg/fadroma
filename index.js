@@ -1,21 +1,14 @@
-import {
-  SecretNetwork,
-  SecretNetworkAgent,
-  SecretNetworkContract
-} from '@fadroma/scrt-agent'
-
-import {
-  ScrtEnsemble,
-  SecretNetworkNode,
-  SecretNetworkBuilder
-} from '@fadroma/scrt-ops'
+import { Scrt, Agent, Contract } from '@fadroma/agent'
+import { Builder, BuilderWithUploader } from '@fadroma/builder'
+import { Ensemble } from '@fadroma/ensemble'
+import { ScrtNode } from '@fadroma/localnet'
 
 export {
-  SecretNetwork,
-  SecretNetworkAgent,
-  SecretNetworkContract,
-
-  ScrtEnsemble,
-  SecretNetworkNode,
-  SecretNetworkBuilder
+  ScrtNode,
+  Scrt,
+  Agent,
+  Contract,
+  Ensemble,
+  Builder,
+  BuilderWithUploader
 }

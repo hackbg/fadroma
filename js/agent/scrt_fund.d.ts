@@ -1,1 +1,1 @@
-declare module '@fadroma/scrt-agent/fund.js'
+declare module '@fadroma/agent/fund.js'

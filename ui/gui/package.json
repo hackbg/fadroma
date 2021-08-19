@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "author": "Milen Radkov <milen@hack.bg>",
   "description": "Secret Network Multisig made easy",
-  "license": null,
   "main": "./dist/electron/main.js",
   "scripts": {
     "build": "node .electron-vue/build.js && electron-builder",

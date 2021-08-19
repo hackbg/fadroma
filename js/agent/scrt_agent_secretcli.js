@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'child_process'
-import { Console } from '@fadroma/utilities'
+import { Console } from '@fadroma/util-sys'
 
-const {warn, error, debug, info} = Console(import.meta.url)
+const {warn, debug} = Console(import.meta.url)
 
 const secretcli = (...args) => new Promise((resolve, reject)=>{
   execFile('secretcli', args, (err, stdout, stderr) => {

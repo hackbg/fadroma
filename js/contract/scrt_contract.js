@@ -1,4 +1,4 @@
-import { writeFile, resolve } from "@fadroma/utilities";
+import { writeFile, resolve } from "@fadroma/util-sys";
 
 /** Interface to a contract instance.
   * Can be subclassed with schema to auto-generate methods

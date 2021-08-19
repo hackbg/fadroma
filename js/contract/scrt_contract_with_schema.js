@@ -1,5 +1,5 @@
-import Wrapper, { getAjv } from "./Wrapper.js";
-import SecretNetworkContract from "./contract.js";
+import Wrapper, { getAjv } from "./schema_wrapper.js";
+import SecretNetworkContract from "./scrt_contract.js";
 
 export default class SecretNetworkContractWithSchema extends SecretNetworkContract {
   constructor(options = {}, schema) {

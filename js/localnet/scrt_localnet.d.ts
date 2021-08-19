@@ -1,1 +1,1 @@
-declare module '@fadroma/scrt-ops/localnet.js'
+declare module '@fadroma/localnet'

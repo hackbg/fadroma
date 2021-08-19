@@ -1,9 +1,11 @@
+import { readFile, Console } from '@fadroma/util-sys'
+import { bold } from '@fadroma/cli'
+
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
          makeSignBytes } from 'secretjs'
 
-import { readFile, Console, bold } from '@fadroma/utilities'
 import { gas, defaultFees } from './scrt_gas.js'
 
 const { debug } = Console(import.meta.url)

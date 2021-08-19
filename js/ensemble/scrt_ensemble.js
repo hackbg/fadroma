@@ -1,9 +1,10 @@
-//import assert from 'assert'
 import Docker from 'dockerode'
-import {bold, resolve, relative, existsSync, taskmaster} from '@fadroma/utilities'
-import {SecretNetwork} from '@fadroma/scrt-agent'
-import {pulled} from '../netutil.js'
-import Builder from '../builder/builder.js'
+
+import {Scrt} from '@fadroma/agent'
+import {Builder} from '@fadroma/builder'
+import {pulled} from '@fadroma/util-net'
+import {resolve, relative, existsSync} from '@fadroma/util-sys'
+import {taskmaster, bold} from '@fadroma/cli'
 
 const required = label => { throw new Error(`required override: ${label}`) }
 
@@ -13,7 +14,7 @@ export const ContractEnsembleErrors = {
   BUILDER: "Can't use builder with different network",
 }
 
-export default class ScrtEnsemble {
+export class Ensemble {
 
   static Errors = ContractEnsembleErrors
 
@@ -26,29 +27,23 @@ export default class ScrtEnsemble {
   contracts = {}
 
   /** Commands to expose to the CLI. */
-  get commands () {
-    return [this.localCommands, null, this.remoteCommands]
-  }
+  commands = [
+    [this.localCommands, null, this.remoteCommands]]
 
   /** Commands that can be executed locally. */
-  get localCommands () {
-    return [
-      ["build", '👷 Compile contracts from working tree',
-        (context, sequential) => this.build({...context, parallel: !sequential})],
-      /* implement other commands in subclass */
-    ]
-  }
+  localCommands = [
+    [ "build",
+      '👷 Compile contracts from working tree',
+      (context, sequential) => this.build({...context, parallel: !sequential})],]
 
   /** Commands that require a connection to a network. */
-  get remoteCommands () {
-    // TODO return empty array (or handles to network commands)
-    // if this Ensemble instance does not have a network */
-    return [
-      ["deploy", '🚀 Build, init, and deploy this component',
-        (context) => this.deploy(context).then(console.info)]
-      /* implement other commands in subclass */
-    ]
-  }
+  // TODO return empty array (or handles to network commands)
+  // if this Ensemble instance does not have a network */
+  remoteCommands = [
+    [ "deploy",
+      '🚀 Build, init, and deploy this component',
+      (context) => this.deploy(context).then(console.info) ]
+      /* implement other commands in subclass */]
 
   /** Composition goes `builder { agent { network } }`.
     * `agent` and `builder` can be different if you want the contract
@@ -122,9 +117,9 @@ export default class ScrtEnsemble {
   }
 
   async deploy (options = {}) {
-    let network = SecretNetwork.hydrate(options.network || this.network)
-    if (!(network instanceof SecretNetwork)) {
-      throw new Error('need a SecretNetwork connection to deploy')
+    let network = Scrt.hydrate(options.network || this.network)
+    if (!(network instanceof Scrt)) {
+      throw new Error('need a Scrt connection to deploy')
     }
     const { agent, builder } = await network.connect()
     const { task = taskmaster(), initMsgs = {} } = options

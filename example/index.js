@@ -1,4 +1,4 @@
-import { SecretNetworkContractWithSchema } from "@fadroma/scrt-agent";
+import { ScrtContractWithSchema } from "@fadroma/agent";
 import { loadSchemas } from "@fadroma/utilities";
 
 export const schema = loadSchemas(import.meta.url, {
@@ -8,8 +8,8 @@ export const schema = loadSchemas(import.meta.url, {
   queryAnswer: "./schema/response.json",
 });
 
-export default class Votes extends SecretNetworkContractWithSchema {
+export default class Votes extends ScrtContractWithSchema {
   constructor(options = {}) {
-    super(options, schema);
+    super(options, schema)
   }
 }

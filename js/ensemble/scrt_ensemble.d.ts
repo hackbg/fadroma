@@ -1,1 +1,1 @@
-declare module '@fadroma/scrt-js-ensemble/scrt_ensemble.js'
+declare module '@fadroma/ensemble'

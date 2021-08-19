@@ -1,2 +1,2 @@
-declare module '@fadroma/scrt-agent';
+declare module '@fadroma/agent';
 

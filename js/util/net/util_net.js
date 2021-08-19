@@ -1,9 +1,10 @@
+import * as colors from 'colors/safe.js'
 import { createServer } from 'net'
 import Docker from 'dockerode'
 import waitPort from 'wait-port'
-import { bold } from '@fadroma/utilities'
 
-export { waitPort }
+const {bold} = colors
+export { bold, waitPort }
 
 export const freePort = () => new Promise((ok, fail)=>{
   let port = 0

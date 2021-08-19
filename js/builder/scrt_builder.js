@@ -1,10 +1,7 @@
 import Docker from 'dockerode'
-import {
-  resolve, basename, dirname, existsSync, fileURLToPath, 
-  readFile, writeFile, mkdir,
-  Console
-} from '@fadroma/utilities'
-import { pulled } from '../netutil.js'
+import { pulled } from '@fadroma/util-net'
+import { resolve, basename, dirname, existsSync, fileURLToPath, 
+         readFile, writeFile, mkdir, Console } from '@fadroma/util-sys'
 
 /** I wonder, what does the documentation generator do
  *  when I document a dual defintition? */
@@ -17,7 +14,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 /** Builds contracts and optionally uploads them as an agent on the Secret Network.
  *  Stores upload results as receipts. Not really worthy of more than a function
  *  but that's how it ended up, conjoined with the uploader below. */
-export class ScrtBuilder {
+export class Builder {
 
   docker = new Docker({
     socketPath: '/var/run/docker.sock' })
@@ -99,7 +96,7 @@ export class ScrtBuilder {
  *  should be accessed primarily via the Contract object and not as currently,
  *  and be separate features of it (dynamically loaded if not using fadroma.js in a browser
  *  which currently noone does anyway). */
-export default class ScrtBuilderWithUploader extends ScrtBuilder {
+export class BuilderWithUploader extends Builder {
 
   constructor (options={}) {
     super(options)

@@ -1,5 +1,5 @@
 {
-  "name": "@fadroma/scrt-localnet",
+  "name": "@fadroma/localnet",
   "version": "0.1.0",
   "type": "module",
   "main": "index.js"

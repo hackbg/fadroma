@@ -17,9 +17,3 @@ export default function markdownTable (header) {
     }
   }
 }
-
-export const noBorders = {
-  border: getBorderCharacters('void'),
-  columnDefault: { paddingLeft: 0, paddingRight: 2 },
-  drawHorizontalLine: () => false
-}
