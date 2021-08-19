@@ -51,6 +51,12 @@ export type DeployArgs = { network?:  Network
                          , initMsgs:  Record<string, any>
                          , workspace: string }
 
+const timestamp = (d = new Date()) =>
+  d.toISOString()
+    .replace(/[-:\.Z]/g, '')
+    .replace(/[T]/g, '_')
+    .slice(0, -3)
+
 export class Ensemble {
 
   static Errors = {
@@ -64,7 +70,7 @@ export class Ensemble {
 
   docker     = new Docker({ socketPath: '/var/run/docker.sock' })
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
-  prefix     = new Date().toISOString().replace(/[-:\.]/g, '-').replace(/[TZ]/g, '_')
+  prefix     = `${timestamp()}`
   contracts: Record<string, Contract>
 
   workspace: string  | null
