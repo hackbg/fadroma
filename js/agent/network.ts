@@ -1,4 +1,4 @@
-import { mkdir, makeStateDir, resolve, cwd } from '@fadroma/util-sys'
+import { bold, mkdir, makeStateDir, resolve, cwd } from '@fadroma/util-sys'
 import { Console } from '@fadroma/cli'
 import { ScrtNode } from '@fadroma/localnet'
 import { BuilderWithUploader } from '@fadroma/builder'
@@ -6,8 +6,6 @@ import { BuilderWithUploader } from '@fadroma/builder'
 import { Agent, JSAgent, JSAgentCreateArgs } from './agent'
 import { CLIAgent } from './agent_native'
 
-import colors from 'colors'
-const { bold } = colors
 const {debug, info} = Console(import.meta.url)
 
 export const defaultStateBase = resolve(cwd(), 'artifacts')
@@ -47,9 +45,12 @@ export interface NetworkCtorOptions extends NetworkOptions {
 export interface Network extends NetworkOptions {
   get url        (): string
   connect        (): Promise<Connection>
-  getAgent       (name: string, options: any): Agent
+  getAgent       (name?: string, options?: any): Agent
   getBuilder     (agent: Agent): BuilderWithUploader
   getContract<T> (api: T, address: string, agent: any): T
+
+  readonly wallets:  string
+  readonly receipts: string
 }
 
 export class Scrt implements Network {
@@ -177,7 +178,7 @@ export class Scrt implements Network {
     return this.apiURL.toString() }
 
   /** create agent operating on the current instance's endpoint*/
-  getAgent (name: string, options: JSAgentCreateArgs = {}): Promise<Agent> {
+  getAgent (name: string = 'agent', options: JSAgentCreateArgs = {}): Promise<Agent> {
     if (options.mnemonic || options.keyPair) {
       info(`Using a SecretJS-based agent.`)
       return JSAgent.create({ ...options, network: this, name }) }

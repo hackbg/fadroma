@@ -5,6 +5,7 @@
   "main": "index.ts",
   "dependencies": {
     "@fadroma/builder": "*",
+    "@fadroma/cli": "*",
     "@fadroma/localnet": "*",
     "@fadroma/util-sys": "*"
   }

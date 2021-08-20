@@ -1,4 +1,5 @@
-export { Scrt }             from './network'
-export { JSAgent }          from './agent'
+export { Network, Scrt }    from './network'
+export { Agent, JSAgent }   from './agent'
 export { CLIAgent }         from './agent_native'
 export { gas, defaultFees } from './gas'
+export { prefund }          from './prefund'

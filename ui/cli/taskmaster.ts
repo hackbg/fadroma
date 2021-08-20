@@ -1,7 +1,7 @@
 import { backOff } from "exponential-backoff"
 import tabulate from './table.js'
 
-export default function taskmaster (options={}) {
+export function taskmaster (options={}) {
 
   const { say    = console.debug
         , header = []

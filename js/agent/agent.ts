@@ -12,6 +12,11 @@ import { Network } from './network'
 const { debug, warn } = Console(import.meta.url)
 
 export interface Agent {
+  fees: Record<string, any>
+  readonly name:    string
+  readonly address: string
+  readonly network: Network
+
   get nextBlock (): Promise<void>
   get block     (): Promise<any>
   get account   (): Promise<any>
@@ -84,17 +89,17 @@ export class JSAgent implements Agent {
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
     return new this({name, mnemonic, keyPair, pen, ...args}) }
 
-  network:  Network
-  name:     string
-  keyPair:  any
-  mnemonic: any
-  pen:      any
-  sign:     any
-  pubkey:   any
-  address:  string
-  seed:     any
-  fees:     any
-  API:      SigningCosmWasmClient
+  readonly network: Network
+  readonly API:     SigningCosmWasmClient
+  readonly name:    string
+  readonly keyPair:  any
+  readonly mnemonic: any
+  readonly pen:      any
+  readonly sign:     any
+  readonly pubkey:   any
+  readonly seed:     any
+  readonly address:  string
+  fees = defaultFees
 
   /** Create a new agent from a signing pen. */
   constructor (options: JSAgentCtorArgs) {
@@ -103,12 +108,12 @@ export class JSAgent implements Agent {
     this.keyPair  = options.keyPair
     this.mnemonic = options.mnemonic
     this.pen      = options.pen
+    this.fees     = options.fees || defaultFees
 
-    this.pubkey   = encodeSecp256k1Pubkey(options.pen.pubkey)
-    this.address  = pubkeyToAddress(this.pubkey, 'secret')
-    this.sign     = this.pen.sign.bind(this.pen)
-    this.seed     = EnigmaUtils.GenerateNewSeed()
-    this.fees     = options.fees||defaultFees
+    this.pubkey  = encodeSecp256k1Pubkey(options.pen.pubkey)
+    this.address = pubkeyToAddress(this.pubkey, 'secret')
+    this.sign    = this.pen.sign.bind(this.pen)
+    this.seed    = EnigmaUtils.GenerateNewSeed()
 
     this.API = new SigningCosmWasmClient(
       options.network.url, this.address, this.sign, this.seed, this.fees) }
