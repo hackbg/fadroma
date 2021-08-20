@@ -1,11 +1,13 @@
 import { mkdir, makeStateDir, resolve, cwd } from '@fadroma/util-sys'
-import { bold, Console } from '@fadroma/cli'
+import { Console } from '@fadroma/cli'
 import { ScrtNode } from '@fadroma/localnet'
 import { BuilderWithUploader } from '@fadroma/builder'
 
 import ScrtAgentJS from './scrt_agent_secretjs.js'
 import ScrtAgentCLI from './scrt_agent_secretcli.js'
 
+import colors from 'colors'
+const { bold } = colors
 const {debug, info} = Console(import.meta.url)
 
 export const defaultStateBase = resolve(cwd(), 'artifacts')

@@ -1,9 +1,11 @@
 import Docker from 'dockerode'
-import { Console, bold } from '@fadroma/cli'
+import { Console } from '@fadroma/cli'
 import { resolve, dirname, fileURLToPath, mkdir, existsSync, touch, rimraf,
          writeFile, readFileSync, unlinkSync, loadJSON } from '@fadroma/util-sys'
 import { waitPort, freePort, pulled, waitUntilLogsSay } from '@fadroma/util-net'
 
+import colors from 'colors'
+const {bold} = colors
 const { warn, info, debug } = Console(import.meta.url)
 const __dirname = dirname(fileURLToPath(import.meta.url))
 export const defaultStateBase = resolve(process.cwd(), 'artifacts')
@@ -78,7 +80,7 @@ export default class ScrtNode {
 
   // piles of files:
   get files () {
-    return { initScript: resolve(__dirname, 'init.sh')
+    return { initScript: resolve(__dirname, 'scrt_localnet_init.sh')
            , nodeState:  resolve(this.state, 'node.json') } }
   // and dirs:
   get dirs () {

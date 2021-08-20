@@ -5,6 +5,7 @@ import {pulled}                        from '@fadroma/util-net'
 import {resolve, relative, existsSync} from '@fadroma/util-sys'
 import {taskmaster}                    from '@fadroma/cli'
 
+import {table} from 'table'
 import colors from 'colors'
 const {bold} = colors
 
@@ -119,8 +120,8 @@ export class Ensemble {
     const { contracts, constructor: { name: ensembleName } } = this
     const artifacts = {}
     await (parallel ? buildInParallel() : buildInSeries())
-    console.table(Object.entries(artifacts).map(([name, path])=>
-      ({name, path: relative(process.cwd(), path)})))
+    console.log(table(Object.entries(artifacts).map(
+      ([name, path])=>([bold(name), relative(process.cwd(), path)]))))
     return artifacts
 
     async function buildInParallel () {

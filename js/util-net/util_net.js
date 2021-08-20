@@ -1,9 +1,11 @@
-import * as colors from 'colors/safe.js'
 import { createServer } from 'net'
 import Docker from 'dockerode'
 import waitPort from 'wait-port'
 
-export { waitPort }
+import colors from 'colors/safe.js'
+const {bold} = colors
+
+export {waitPort}
 
 export const freePort = () => new Promise((ok, fail)=>{
   let port = 0
