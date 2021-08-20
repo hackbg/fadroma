@@ -22,7 +22,7 @@ export type Path = string
 
 export type BuildArgs = {
   /* Set this to build a remote commit instead of the working tree. */
-  clone?:           { origin: string, ref: string },
+  repo?:           { origin: string, ref: string },
   /* Path to root Cargo workspace of project. */
   workspace:        Path
   /* Name of contract crate to build. */
@@ -46,14 +46,14 @@ export class Builder {
 
   /** Build from source in a Docker container. */
   async build (options: BuildArgs) {
-    const { clone
+    const { repo
           , workspace
           , crate
           , outputDir = resolve(workspace, 'artifacts') } = options
 
-    const ref          = clone?.ref || 'HEAD'
+    const ref          = repo?.ref || 'HEAD'
         , buildImage   = await pulled('enigmampc/secret-contract-optimizer:latest', this.docker)
-        , buildCommand = this.getBuildCommand({clone, crate})
+        , buildCommand = this.getBuildCommand({repo, crate})
         , entrypoint   = resolve(__dirname, 'scrt_build.sh')
 
     const buildArgs =
@@ -68,7 +68,7 @@ export class Builder {
                                  , `sienna_cache_${ref}:/code/target:rw`
                                  , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
 
-    if (!clone) { // when building working tree
+    if (!repo) { // when building working tree
       // TODO is there any other option supported anymore? maybe the parameter is reduntant
       debug(`building working tree at ${workspace} into ${outputDir}...`)
       buildArgs.HostConfig.Binds.push(`${workspace}:/contract:rw`) }
@@ -86,10 +86,10 @@ export class Builder {
 
     if (code !== 0) throw new Error(`build exited with status ${code}`)
 
-    return resolve(outputDir, `${crate}@${clone?.ref||'HEAD'}.wasm`) }
+    return resolve(outputDir, `${crate}@${repo?.ref||'HEAD'}.wasm`) }
 
   /** Generate the command line for the container. */
-  getBuildCommand ({ clone: {origin, ref}, crate }) {
+  getBuildCommand ({ repo: { origin='', ref='HEAD' }={}, crate }) {
     const commands = []
     if (ref !== 'HEAD') {
       if (!(origin && ref)) {
