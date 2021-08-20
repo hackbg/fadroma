@@ -71,8 +71,7 @@ export class JSAgent implements Agent {
     let { mnemonic, keyPair } = options
     if (mnemonic) {
       // if keypair doesnt correspond to the mnemonic, delete the keypair
-      const mnemonicFromPrivKey = (Bip39.encode(keyPair.privkey) as any).data
-      if (keyPair && mnemonic !== mnemonicFromPrivKey) {
+      if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
         warn(`keypair doesn't match mnemonic, ignoring keypair`)
         keyPair = null } }
     else if (keyPair) {
