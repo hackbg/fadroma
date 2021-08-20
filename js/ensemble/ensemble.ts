@@ -42,7 +42,7 @@ export type Receipt    = any
 export type Receipts   = Record<string, Receipt>
 
 export type InitArgs   = { task?:      Function
-                         , initMsgs:   Record<string, any>
+                         , initMsgs?:  Record<string, any>
                          , network?:   Network
                          , receipts?:  Receipts
                          , agent?:     Agent }
