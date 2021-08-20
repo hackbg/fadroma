@@ -4,9 +4,13 @@
   "type": "module",
   "main": "index.ts",
   "dependencies": {
+    "@cosmjs/crypto": "^0.24.1",
     "@fadroma/builder": "*",
     "@fadroma/cli": "*",
     "@fadroma/localnet": "*",
-    "@fadroma/sys": "*"
+    "@fadroma/sys": "*",
+    "ajv": "^8.6.0",
+    "bignumber.js": "^9.0.1",
+    "secretjs": "^0.11.0"
   }
 }

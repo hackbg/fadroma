@@ -2,7 +2,7 @@
   "name": "@fadroma/sys",
   "version": "0.1.0",
   "type": "module",
-  "main": "index.js",
+  "main": "sys.ts",
   "dependencies": {
     "colors": "^1.4.0",
     "exponential-backoff": "^3.1.0",

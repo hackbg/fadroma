@@ -1,12 +1,13 @@
-import * as colors from 'colors/safe.js'
-export const bold = colors.bold
-
-export { render } from 'prettyjson'
+export { Console } from './console'
 
 export { printUsage, runCommand } from './cli-kit.js'
 
-export { Console } from './console'
+import * as colors from 'colors/safe.js'
+const { bold } = colors
+export { colors, bold }
 
-export { taskmaster } from './taskmaster'
+export { render } from 'prettyjson'
 
 export { table, getBorderCharacters, noBorders, markdownTable } from './table'
+
+export { taskmaster } from './taskmaster'

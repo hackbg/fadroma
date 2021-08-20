@@ -1,11 +1,11 @@
 import { backOff } from "exponential-backoff"
-import tabulate from './table.js'
+import { markdownTable } from './table.js'
 
 export function taskmaster (options={}) {
 
   const { say    = console.debug
         , header = []
-        , table  = tabulate(header)
+        , table  = markdownTable(header)
         , output
         , agent
         , afterEach = async function gasCheck (t1, description, reports=[]) {
