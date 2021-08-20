@@ -1,8 +1,8 @@
 import Docker from 'dockerode'
-import { pulled } from '@fadroma/util-net'
+import { pulled } from '@fadroma/net'
 import { Console } from '@fadroma/cli'
 import { resolve, relative, basename, dirname, fileURLToPath, 
-         existsSync, readFile, writeFile, mkdir } from '@fadroma/util-sys'
+         existsSync, readFile, writeFile, mkdir } from '@fadroma/sys'
 import colors from 'colors'
 const {bold} = colors
 

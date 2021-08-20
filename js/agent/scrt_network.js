@@ -1,4 +1,4 @@
-import { mkdir, makeStateDir, resolve, cwd } from '@fadroma/util-sys'
+import { mkdir, makeStateDir, resolve, cwd } from '@fadroma/sys'
 import { Console } from '@fadroma/cli'
 import { ScrtNode } from '@fadroma/localnet'
 import { BuilderWithUploader } from '@fadroma/builder'

@@ -6,6 +6,6 @@
   "dependencies": {
     "@fadroma/builder": "*",
     "@fadroma/localnet": "*",
-    "@fadroma/util-sys": "*"
+    "@fadroma/sys": "*"
   }
 }

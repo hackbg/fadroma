@@ -5,41 +5,25 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    ".",
-    "./ui/cli",
-    "./util/net",
-    "./util/sys",
-    "./util/test",
     "./js/agent",
     "./js/builder",
+    "./js/cli",
     "./js/contract",
     "./js/ensemble",
     "./js/localnet",
-    "./js/util-net",
-    "./js/util-sys"
+    "./js/net",
+    "./js/sys"
   ],
-  "dependencies": {
-    "@cosmjs/crypto": "^0.24.1",
-    "@fadroma/agent": "*",
-    "@fadroma/builder": "*",
-    "@fadroma/cli": "*",
-    "@fadroma/contract": "*",
-    "@fadroma/ensemble": "*",
-    "@fadroma/localnet": "*",
-    "@fadroma/util-net": "*",
-    "@fadroma/util-sys": "*",
-    "ajv": "^8.6.0",
-    "bignumber.js": "^9.0.1",
-    "secretjs": "^0.11.0"
-  },
   "devDependencies": {
     "chai": "^4.3.4",
     "documentation": "^13.2.1",
+    "esmo": "^0.9.1",
     "mocha": "^8.0.1",
     "typedoc": "^0.21.6"
   },
   "scripts": {
     "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",
+    "docs-ts": "typedoc --output doc/typedoc js/agent js/builder js/cli js/contract js/ensemble js/localnet js/net js/sys",
     "test-js": "DEBUG=out mocha --timeout 5000 --exit js/*/*.spec.js",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",

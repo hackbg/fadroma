@@ -1,5 +1,5 @@
 import { taskmaster } from '@fadroma/cli'
-import { resolve, bignum } from '@fadroma/util-sys'
+import { resolve, bignum } from '@fadroma/sys'
 import Scrt from './scrt_network.js'
 
 /** In testing scenarios requiring multiple agents,

@@ -4,7 +4,7 @@
   "type": "module",
   "main": "scrt_builder.ts",
   "dependencies": {
-    "@fadroma/util-net": "*",
-    "@fadroma/util-sys": "*"
+    "@fadroma/net": "*",
+    "@fadroma/sys": "*"
   }
 }
