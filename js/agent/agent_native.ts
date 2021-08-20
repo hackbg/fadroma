@@ -1,92 +1,73 @@
 import { execFile, spawn } from 'child_process'
 import { Console } from '@fadroma/cli'
+import { Agent } from './agent'
 
 const {warn, debug} = Console(import.meta.url)
 
-const secretcli = (...args) => new Promise((resolve, reject)=>{
+const secretcli = (...args): Promise<any> => new Promise((resolve, reject)=>{
   execFile('secretcli', args, (err, stdout, stderr) => {
     if (err) return reject(err)
-    return JSON.parse(String(stdout))
-  })
-})
+    return JSON.parse(String(stdout)) }) })
 
 const tryToUnlockKeyring = async () => new Promise((resolve, reject)=>{
   warn("Pretending to add a key in order to refresh the keyring...")
   const unlock = spawn('secretcli', ['keys', 'add'])
   unlock.on('spawn', () => {
     unlock.on('close', resolve)
-    setTimeout(()=>{ unlock.kill() }, 1000)
-  })
-  unlock.on('error', reject)
-})
+    setTimeout(()=>{ unlock.kill() }, 1000) })
+  unlock.on('error', reject) })
 
-export default class SecretCLIAgent {
+export class CLIAgent implements Agent {
 
   static async pick () {
     if (!process.stdin.isTTY) {
       throw new Error("Input is not a TTY - can't interactively pick an identity")
     }
-    let keys = secretcli('keys', 'list')
+    let keys = (await secretcli('keys', 'list'))
     if (keys.length < 1) {
       warn("Empty key list returned from secretcli. Retrying once:")
       await tryToUnlockKeyring()
-      keys = secretcli('keys', 'list')
+      keys = (await secretcli('keys', 'list'))
       if (keys.length < 1) {
         warn(
           "Still empty. To proceed, add your key to secretcli " +
-          "(or set the mnemonic in the environment to use the SecretJS-based agent)"
-        )
-      }
-    }
-  }
+          "(or set the mnemonic in the environment to use the SecretJS-based agent)") } } }
 
   constructor (options = {}) {
     debug({options})
     const { name, address } = options
-    this.nameOrAddress = this.name || this.address
-  }
+    this.nameOrAddress = this.name || this.address }
 
   get nextBlock () {
     return this.block.then(async T1=>{
       while (true) {
         await new Promise(ok=>setTimeout(ok, 1000))
         const {sync_info:{latest_block_height:T2}} = await this.block
-        if (T2 > T1) return
-      }
-    })
-  }
+        if (T2 > T1) return } }) }
 
   get block () {
-    return secretcli('status').then(({sync_info:{latest_block_height:T2}})=>T2)
-  }
+    return secretcli('status').then(({sync_info:{latest_block_height:T2}})=>T2) }
 
   get account () {
-    return secretcli('q', 'account', this.nameOrAddress)
-  }
+    return secretcli('q', 'account', this.nameOrAddress) }
 
   get balance () {
-    return this.getBalance('uscrt')
-  }
+    return this.getBalance('uscrt') }
 
   async getBalance (denomination) {
-    return (this.account.value.coins.filter(x=>x.denom===denomination)[0]||{}).amount
-  }
+    return (this.account.value.coins.filter(x=>x.denom===denomination)[0]||{}).amount }
 
   async send (recipient, amount, denom = 'uscrt', memo = '') {
-    throw new Error('not implemented')
-  }
+    throw new Error('not implemented') }
 
   async sendMany (txs = [], memo = '', denom = 'uscrt', fee) {
-    throw new Error('not implemented')
-  }
+    throw new Error('not implemented') }
 
   async upload (pathToBinary) {
     return secretcli(
       'tx', 'compute', 'store',
       pathToBinary,
-      '--from', this.nameOrAddress
-    )
-  }
+      '--from', this.nameOrAddress ) }
 
   async instantiate (pathToBinary) {
     const { codeId, initMsg = {}, label = '' } = instance
@@ -101,8 +82,7 @@ export default class SecretCLIAgent {
     debug(`⭕`+bold('instantiated'), { codeId, label, initTx })
     instance.codeHash = await secretcli('q', 'compute', 'contract-hash', initTx.contractAddress)
     await instance.save()
-    return instance
-  }
+    return instance }
 
   async query ({ label, address }, method='', args = undefined) {
     const msg = (args === undefined) ? method : { [method]: args }
@@ -112,8 +92,7 @@ export default class SecretCLIAgent {
       address, JSON.stringify(msg),
     )
     debug(`❔ `+bold('response'), { address, method, response })
-    return response
-  }
+    return response }
 
   async execute ({ label, address }, method='', args = undefined) {
     const msg = (args === undefined) ? method : { [method]: args }
@@ -124,8 +103,5 @@ export default class SecretCLIAgent {
       '--from', this.nameOrAddress
     )
     debug(`❗ `+bold('result'), { label, address, method, result })
-    return result
-  }
-
-}
+    return result } }
 

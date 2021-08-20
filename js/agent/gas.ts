@@ -8,4 +8,3 @@ export const defaultFees = {
   exec:   gas(1000000),
   send:   gas( 500000),
 }
-

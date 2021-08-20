@@ -1,6 +1,7 @@
 import { taskmaster } from '@fadroma/cli'
 import { resolve, bignum } from '@fadroma/util-sys'
-import Scrt from './scrt_network.js'
+
+import { Scrt } from './network'
 
 /** In testing scenarios requiring multiple agents,
  * this function distributes funds among the extra agents

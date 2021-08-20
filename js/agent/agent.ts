@@ -6,7 +6,8 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
          makeSignBytes } from 'secretjs'
 
-import { gas, defaultFees } from './scrt_gas.js'
+import { gas, defaultFees } from './gas'
+import { Network } from './network'
 
 const { debug, warn } = Console(import.meta.url)
 
@@ -46,13 +47,14 @@ export interface Agent {
 }
 
 export interface JSAgentCreateArgs {
-  name:     string,
-  mnemonic: string,
-  keyPair:  any
+  name?:     string,
+  mnemonic?: string,
+  keyPair?:  any
+  network?:  Network
 }
 
 export interface JSAgentCtorArgs {
-  network?:  any
+  network?:  Network
   pen?:      any
   mnemonic?: any
   keyPair?:  any
@@ -61,7 +63,7 @@ export interface JSAgentCtorArgs {
 }
 
 /** Queries and transacts on an instance of the Secret Network */
-export class JSAgent {
+export class JSAgent implements Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create (options: JSAgentCreateArgs) {
@@ -83,29 +85,34 @@ export class JSAgent {
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
     return new this({name, mnemonic, keyPair, pen, ...args}) }
 
-  address: any
-  sign:    Function
-  seed:    any
-  fees:    any
-  API:     any
+  network:  Network
+  name:     string
+  keyPair:  any
+  mnemonic: any
+  pen:      any
+  sign:     any
+  pubkey:   any
+  address:  string
+  seed:     any
+  fees:     any
+  API:      SigningCosmWasmClient
 
-  /**Create a new agent from a signing pen.*/
+  /** Create a new agent from a signing pen. */
   constructor (options: JSAgentCtorArgs) {
-    const { network
-          , pen
-          , mnemonic
-          , keyPair
-          , name = ""
-          , fees = defaultFees } = options
-    const pubkey = encodeSecp256k1Pubkey(pen.pubkey)
-    return Object.assign(this, {
-      network, name, keyPair, mnemonic, pen, pubkey,
-      API: new SigningCosmWasmClient(
-        network.url,
-        this.address = pubkeyToAddress(pubkey, 'secret'),
-        this.sign = pen.sign.bind(pen),
-        this.seed = EnigmaUtils.GenerateNewSeed(),
-        this.fees = fees) }) }
+    this.network  = options.network
+    this.name     = options.name || ''
+    this.keyPair  = options.keyPair
+    this.mnemonic = options.mnemonic
+    this.pen      = options.pen
+
+    this.pubkey   = encodeSecp256k1Pubkey(options.pen.pubkey)
+    this.address  = pubkeyToAddress(this.pubkey, 'secret')
+    this.sign     = this.pen.sign.bind(this.pen)
+    this.seed     = EnigmaUtils.GenerateNewSeed()
+    this.fees     = options.fees||defaultFees
+
+    this.API = new SigningCosmWasmClient(
+      options.network.url, this.address, this.sign, this.seed, this.fees) }
 
   // block time //
 
@@ -157,8 +164,8 @@ export class JSAgent {
       throw new Error('tried to send to 0 recipients') }
     const from_address = this.address
     //const {accountNumber, sequence} = await this.API.getNonce(from_address)
-    let accountNumber
-      , sequence
+    let accountNumber: any
+      , sequence:      any
     const msg = await Promise.all(txs.map(async ([to_address, amount])=>{
       ({accountNumber, sequence} = await this.API.getNonce(from_address)) // increment nonce?
       if (typeof amount === 'number') amount = String(amount)
@@ -170,12 +177,12 @@ export class JSAgent {
   // compute //
 
   /**Upload a compiled binary to the chain, returning the code ID (among other things). */
-  async upload (pathToBinary) {
+  async upload (pathToBinary: string) {
     const data = await readFile(pathToBinary)
     return this.API.upload(data, {}) }
 
   /**Instantiate a contract from a code ID and an init message. */
-  async instantiate (instance) {
+  async instantiate (instance: any) {
     const { codeId, initMsg = {}, label = '' } = instance
     instance.agent = this
 
