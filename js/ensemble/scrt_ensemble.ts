@@ -126,9 +126,8 @@ export class Ensemble {
 
     async function buildInParallel () {
       await task.parallel(`build ${ensembleName}`,
-        ...Object.entries(contracts).map(([contractName, {crate}])=>
-          buildOne(ensembleName, contractName, crate).then(output=>
-            artifacts[contractName] = output)))
+        ...Object.entries(contracts).map(async ([contractName, {crate}])=>
+          artifacts[contractName] = await buildOne(ensembleName, contractName, crate)))
       return artifacts }
 
     async function buildInSeries () {

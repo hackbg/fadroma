@@ -18,12 +18,18 @@ export type CtorArgs = {
   docker?: Docker
 }
 
+export type Path = string
+
 export type BuildArgs = {
-  origin:           string
-  ref?:             string
-  workspace:        string
+  /* Set this to build a remote commit instead of the working tree. */
+  clone?:           { origin: string, ref: string },
+  /* Path to root Cargo workspace of project. */
+  workspace:        Path
+  /* Name of contract crate to build. */
   crate:            string
+  /* Path where the build artifacts will be produced. */
   outputDir?:       string
+  /* Allows additional directories to be bound to the build container. */
   additionalBinds?: Array<any>
 }
 
@@ -40,27 +46,29 @@ export class Builder {
 
   /** Build from source in a Docker container. */
   async build (options: BuildArgs) {
-    const { origin
-          , ref       = 'HEAD'
+    const { clone
           , workspace
           , crate
           , outputDir = resolve(workspace, 'artifacts') } = options
-        , buildImage    = await pulled('enigmampc/secret-contract-optimizer:latest', this.docker)
-        , buildCommand  = this.getBuildCommand({origin, ref, crate})
-        , entrypoint    = resolve(__dirname, 'scrt_build.sh')
-        , buildArgs  =
-          { Env:         [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
-                         , 'CARGO_TERM_VERBOSE=true'
-                         , 'CARGO_HTTP_TIMEOUT=240' ]
-          , Tty:         true
-          , AttachStdin: true
-          , Entrypoint:  ['/bin/sh', '-c']
-          , HostConfig:  { Binds: [ `${entrypoint}:/entrypoint.sh:ro`
-                                  , `${outputDir}:/output:rw`
-                                  , `sienna_cache_${ref}:/code/target:rw`
-                                  , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
 
-    if (ref === 'HEAD') { // when building working tree
+    const ref          = clone?.ref || 'HEAD'
+        , buildImage   = await pulled('enigmampc/secret-contract-optimizer:latest', this.docker)
+        , buildCommand = this.getBuildCommand({clone, crate})
+        , entrypoint   = resolve(__dirname, 'scrt_build.sh')
+
+    const buildArgs =
+          { Env: [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
+                 , 'CARGO_TERM_VERBOSE=true'
+                 , 'CARGO_HTTP_TIMEOUT=240' ]
+          , Tty: true
+          , AttachStdin: true
+          , Entrypoint: ['/bin/sh', '-c']
+          , HostConfig: { Binds: [ `${entrypoint}:/entrypoint.sh:ro`
+                                 , `${outputDir}:/output:rw`
+                                 , `sienna_cache_${ref}:/code/target:rw`
+                                 , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
+
+    if (!clone) { // when building working tree
       // TODO is there any other option supported anymore? maybe the parameter is reduntant
       debug(`building working tree at ${workspace} into ${outputDir}...`)
       buildArgs.HostConfig.Binds.push(`${workspace}:/contract:rw`) }
@@ -78,10 +86,10 @@ export class Builder {
 
     if (code !== 0) throw new Error(`build exited with status ${code}`)
 
-    return resolve(outputDir, `${crate}@${ref}.wasm`) }
+    return resolve(outputDir, `${crate}@${clone?.ref||'HEAD'}.wasm`) }
 
   /** Generate the command line for the container. */
-  getBuildCommand ({ origin, ref, crate }) {
+  getBuildCommand ({ clone: {origin, ref}, crate }) {
     const commands = []
     if (ref !== 'HEAD') {
       if (!(origin && ref)) {
