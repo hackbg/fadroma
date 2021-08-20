@@ -1,5 +1,5 @@
 import Docker                          from 'dockerode'
-import {Scrt, ScrtAgentJS as Agent}    from '@fadroma/agent'
+import {Scrt}                          from '@fadroma/agent'
 import {Builder}                       from '@fadroma/builder'
 import {pulled}                        from '@fadroma/util-net'
 import {resolve, relative, existsSync} from '@fadroma/util-sys'
@@ -11,37 +11,40 @@ const {bold} = colors
 const required = label => {
   throw new Error(`required key: ${label}`) }
 
-export type Network = any
+// TODO specify these
+export type Network    = any
+export type Agent      = any
+export type Path       = string
 
-export type CtorArgs   = { network?:   any
-                         , agent?:     any
+export type CtorArgs   = { network?:   Network
+                         , agent?:     Agent
                          , builder?:   Builder
-                         , workspace?: any }
+                         , workspace?: Path }
 
 export type Contract   = { crate: string }
 
 export type BuildArgs  = { task?:      Function
                          , builder?:   Builder
-                         , workspace?: string
-                         , outputDir?: string
+                         , workspace?: Path
+                         , outputDir?: Path
                          , parallel?:  boolean }
 
 export type Artifact   = any
 export type Artifacts  = Record<string, Artifact>
 
-export type UploadArgs = { task?:     Function
-                         , network?:  any
-                         , builder?:  Builder
-                         , artifacts?: any }
+export type UploadArgs = { task?:      Function
+                         , network?:   Network
+                         , builder?:   Builder
+                         , artifacts?: Artifacts }
 
 export type Receipt    = any
 export type Receipts   = Record<string, Receipt>
 
-export type InitArgs   = { task?:     Function
-                         , initMsgs:  Record<string, any>
-                         , network?:  any
-                         , receipts?: any
-                         , agent?:    any }
+export type InitArgs   = { task?:      Function
+                         , initMsgs:   Record<string, any>
+                         , network?:   Network
+                         , receipts?:  Receipts
+                         , agent?:     Agent }
 
 export type Instance   = any
 export type Instances  = Record<string, Instance>
@@ -49,7 +52,7 @@ export type Instances  = Record<string, Instance>
 export type DeployArgs = { network?:  Network
                          , task?:     Function
                          , initMsgs:  Record<string, any>
-                         , workspace: string }
+                         , workspace: Path }
 
 const timestamp = (d = new Date()) =>
   d.toISOString()
@@ -73,9 +76,9 @@ export class Ensemble {
   prefix     = `${timestamp()}`
   contracts: Record<string, Contract>
 
-  workspace: string  | null
-  network:   any     | null
-  agent:     any     | null
+  workspace: Path    | null
+  network:   Network | null
+  agent:     Agent   | null
   builder:   Builder | null
 
   /** Composition goes `builder { agent { network } }`.
