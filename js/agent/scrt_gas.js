@@ -3,7 +3,7 @@ export const gas = function formatGas (x) {
 }
 
 export const defaultFees = {
-  upload: gas(2000000),
+  upload: gas(3000000),
   init:   gas(1000000),
   exec:   gas(1000000),
   send:   gas( 500000),
