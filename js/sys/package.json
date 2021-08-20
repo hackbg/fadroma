@@ -1,5 +1,5 @@
 {
-  "name": "@fadroma/util-sys",
+  "name": "@fadroma/sys",
   "version": "0.1.0",
   "type": "module",
   "main": "index.js",

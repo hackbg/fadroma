@@ -1,4 +1,4 @@
-import { readFile, bold } from '@fadroma/util-sys'
+import { readFile, bold } from '@fadroma/sys'
 import { Console } from '@fadroma/cli'
 
 import { Bip39 } from '@cosmjs/crypto'

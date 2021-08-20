@@ -1,8 +1,8 @@
 import Docker                          from 'dockerode'
 import {Scrt}                          from '@fadroma/agent'
 import {Builder}                       from '@fadroma/builder'
-import {pulled}                        from '@fadroma/util-net'
-import {resolve, relative, existsSync} from '@fadroma/util-sys'
+import {pulled}                        from '@fadroma/net'
+import {resolve, relative, existsSync} from '@fadroma/sys'
 import {taskmaster}                    from '@fadroma/cli'
 
 import {table} from 'table'

@@ -1,7 +1,7 @@
 import assert from 'assert'
 
 import { taskmaster } from '@fadroma/cli'
-import { resolve, readdirSync, readFileSync } from '@fadroma/util-sys'
+import { resolve, readdirSync, readFileSync } from '@fadroma/sys'
 
 import { Agent } from './agent'
 import { Network, Scrt } from './network'

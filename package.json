@@ -5,18 +5,14 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    ".",
-    "./ui/cli",
-    "./util/net",
-    "./util/sys",
-    "./util/test",
+    "./js/cli",
     "./js/agent",
     "./js/builder",
     "./js/contract",
     "./js/ensemble",
     "./js/localnet",
-    "./js/util-net",
-    "./js/util-sys"
+    "./js/net",
+    "./js/sys"
   ],
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",
@@ -26,8 +22,8 @@
     "@fadroma/contract": "*",
     "@fadroma/ensemble": "*",
     "@fadroma/localnet": "*",
-    "@fadroma/util-net": "*",
-    "@fadroma/util-sys": "*",
+    "@fadroma/net": "*",
+    "@fadroma/sys": "*",
     "ajv": "^8.6.0",
     "bignumber.js": "^9.0.1",
     "secretjs": "^0.11.0"

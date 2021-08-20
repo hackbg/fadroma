@@ -7,6 +7,6 @@
     "@fadroma/builder": "*",
     "@fadroma/cli": "*",
     "@fadroma/localnet": "*",
-    "@fadroma/util-sys": "*"
+    "@fadroma/sys": "*"
   }
 }

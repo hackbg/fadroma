@@ -5,7 +5,7 @@
 import { Console }
   from '@fadroma/cli'
 import { bold, existsSync, readFile, relative, resolve, basename, mkdir, writeFile }
-  from '@fadroma/util-sys'
+  from '@fadroma/sys'
 import { Network, Agent }
   from '@fadroma/agent'
 import { Builder }
