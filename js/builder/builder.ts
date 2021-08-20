@@ -1,14 +1,10 @@
-import Docker from 'dockerode'
-import { pulled } from '@fadroma/net'
+import { Docker, pulled } from '@fadroma/net'
 import { Console } from '@fadroma/cli'
-import { resolve, relative, basename, dirname, fileURLToPath, 
-         existsSync, readFile, writeFile, mkdir } from '@fadroma/sys'
-import colors from 'colors'
-const {bold} = colors
+import { resolve, dirname, fileURLToPath } from '@fadroma/sys'
 
 /** I wonder, what does the documentation generator do
  *  when I document a dual defintition? */
-const {debug, info} = Console(import.meta.url)
+const {debug} = Console(import.meta.url)
 
 /** Why did they kill __dirname of all things.
  *  Part of the 'extinguish' phase? */

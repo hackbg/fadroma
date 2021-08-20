@@ -1,11 +1,12 @@
+import { bold } from '@fadroma/cli'
+
 import { createServer } from 'net'
+
 import Docker from 'dockerode'
+export { Docker }
+
 import waitPort from 'wait-port'
-
-import colors from 'colors/safe.js'
-const {bold} = colors
-
-export {waitPort}
+export { waitPort }
 
 export const freePort = () => new Promise((ok, fail)=>{
   let port = 0
@@ -13,37 +14,28 @@ export const freePort = () => new Promise((ok, fail)=>{
   server.on('listening', () => { port = server.address().port; server.close() })
   server.on('close', () => ok(port))
   server.on('error', fail)
-  server.listen(0, '127.0.0.1')
-})
+  server.listen(0, '127.0.0.1') })
 
-export const pulled = async (imageName, docker = new Docker()) => {
-
+export const pulled = async (imageName: string, docker = new Docker()) => {
   try {
     // throws if inspected image does not exist:
     const image = docker.getImage(imageName)
-    await image.inspect()
-  } catch (e) {
+    await image.inspect() }
+  catch (e) {
     console.debug(`docker pulling ${imageName}...`)
-    await new Promise((ok, fail)=>{  console.log(docker, docker.pull)
+    await new Promise<void>((ok, fail)=>{
       docker.pull(imageName, (err, stream) => {
         if (err) return fail(err)
         docker.modem.followProgress(stream,
           (err, output) => {
             if (err) return fail(err)
             console.log(`pull ok`)
-            ok()
-          },
+            ok() },
           event => {
             event = ['id', 'status', 'progress'].map(x=>event[x]).join('│')
-            console.debug(`📦 docker pull says:`, event)
-          }
-        )
-      })
-    })
-  }
+            console.debug(`📦 docker pull says:`, event) } ) }) }) }
   // return just the name
-  return imageName
-}
+  return imageName }
 
 const RE_GARBAGE = /[\x00-\x1F]/
 
@@ -57,32 +49,22 @@ export const waitUntilLogsSay = (container, string, thenDetach = false) => new P
     console.debug('⬇️  trailing logs...')
     stream.on('data', function read (data) {
       data = String(data).trim()
-      if (
-        data.length > 0 &&
-        !data.startsWith('TRACE ') &&
-        !data.startsWith('DEBUG ') &&
-        !data.startsWith('INFO ') &&
-        !data.startsWith('I[') &&
-        !data.startsWith('Storing key:') &&
-        !RE_GARBAGE.test(data) &&
-        !data.startsWith('{"app_message":') &&
-        !data.startsWith('configuration saved to') &&
-        !(data.length>1000)
-      ) {
-        console.debug('📦', bold(`${container.id.slice(0,8)} says:`), String(data).trim())
-      }
+      if (logFilter(data)) {
+        console.debug('📦', bold(`${container.id.slice(0,8)} says:`), String(data).trim()) }
       if (data.indexOf(string)>-1) {
         if (thenDetach) stream.destroy()
         const seconds = 7
         console.debug(`⏳`, bold(`waiting ${seconds} seconds`), `for good measure...`)
-        return setTimeout(ok, seconds * 1000)
-      }
-      //if (data.indexOf('ERROR')>-1) { // TODO ignore benign error
-        //stream.destroy()
-        //console.error(`localnet failed to spawn: ${data}`)
-        //container.stop().then(()=>container.remove().then(()=>console.debug(`removed ${id}`)))
-        //unlink(nodeState).then(()=>console.debug(`deleted ${nodeState}`))
-        //return fail(data)
-      //}
-    })
-  }))
+        return setTimeout(ok, seconds * 1000) } }) }))
+
+function logFilter (data: string) {
+  return (data.length > 0                            &&
+          !data.startsWith('TRACE ')                 &&
+          !data.startsWith('DEBUG ')                 &&
+          !data.startsWith('INFO ')                  &&
+          !data.startsWith('I[')                     &&
+          !data.startsWith('Storing key:')           &&
+          !RE_GARBAGE.test(data)                     &&
+          !data.startsWith('{"app_message":')        &&
+          !data.startsWith('configuration saved to') &&
+          !(data.length>1000))}

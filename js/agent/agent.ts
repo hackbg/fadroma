@@ -1,5 +1,6 @@
-import { readFile, bold } from '@fadroma/sys'
-import { Console } from '@fadroma/cli'
+import { Console, bold } from '@fadroma/cli'
+
+import { readFile } from '@fadroma/sys'
 
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,

@@ -5,9 +5,9 @@
   "type": "module",
   "private": true,
   "workspaces": [
-    "./js/cli",
     "./js/agent",
     "./js/builder",
+    "./js/cli",
     "./js/contract",
     "./js/ensemble",
     "./js/localnet",

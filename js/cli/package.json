@@ -2,5 +2,8 @@
   "name": "@fadroma/cli",
   "version": "0.1.0",
   "type": "module",
-  "main": "index.ts"
+  "main": "index.ts",
+  "dependencies": {
+    "prettyjson": "^1.2.1"
+  }
 }

@@ -1,7 +1,7 @@
 import { bold, mkdir, makeStateDir, resolve, cwd } from '@fadroma/sys'
 import { Console } from '@fadroma/cli'
 import { ScrtNode } from '@fadroma/localnet'
-import { BuilderWithUploader } from '@fadroma/builder'
+import { BuildUploader } from '@fadroma/builder'
 
 import { Agent, JSAgent, JSAgentCreateArgs } from './agent'
 import { CLIAgent } from './agent_native'

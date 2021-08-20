@@ -1,9 +1,10 @@
 import { writeFile, resolve } from "@fadroma/sys";
+import Wrapper, { getAjv } from "./wrapper.js";
 
 /** Interface to a contract instance.
   * Can be subclassed with schema to auto-generate methods
   * TODO connect to existing contract */
-export default class SecretNetworkContract {
+export default class Contract {
   /** Create an object representing a remote smart contract instance.
    */
   constructor(options = {}) {
@@ -45,7 +46,7 @@ export default class SecretNetworkContract {
   /**
    * Create a temporary copy of a contract with a different agent
    *
-   * @param {SecretNetworkAgent} [agent]
+   * @param {Agent} [agent]
    * @returns
    */
   copy = (agent) => {
@@ -54,10 +55,10 @@ export default class SecretNetworkContract {
       typeof agent.query === "function" &&
       typeof agent.execute === "function"
     ) {
-      return new SecretNetworkContract({ ...this, agent });
+      return new Contract({ ...this, agent });
     }
 
-    return new SecretNetworkContract(this);
+    return new Contract(this);
   };
 
   /** Get the path to the contract receipt for the contract's code.
@@ -81,5 +82,27 @@ export default class SecretNetworkContract {
    */
   get network() {
     return this.agent.network;
+  }
+}
+
+export default class ContractWithSchema extends Contract {
+  constructor(options = {}, schema) {
+    if (schema && schema.initMsg) {
+      const ajv = getAjv();
+      const validate = ajv.compile(schema.initMsg);
+      if (!validate(options.initMsg)) {
+        throw new Error(
+          `Schema validation for initMsg returned an error: \n${JSON.stringify(
+            validate.errors,
+            null,
+            2
+          )}`
+        );
+      }
+    }
+
+    super(options);
+    this.q = Wrapper(schema.queryMsg, this);
+    this.tx = Wrapper(schema.handleMsg, this);
   }
 }

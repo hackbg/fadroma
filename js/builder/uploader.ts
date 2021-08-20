@@ -2,9 +2,9 @@
  *  primarily via the Contract object and not as currently; and be separate features
  *  (dynamically loaded unless using fadroma.js in a browser) */
 
-import { Console }
+import { Console, bold }
   from '@fadroma/cli'
-import { bold, existsSync, readFile, relative, resolve, basename, mkdir, writeFile }
+import { existsSync, readFile, relative, resolve, basename, mkdir, writeFile }
   from '@fadroma/sys'
 import { Network, Agent }
   from '@fadroma/agent'
