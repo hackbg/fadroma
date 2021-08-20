@@ -72,15 +72,16 @@ export class Ensemble {
     BUILD:  '👷 Compile contracts from working tree',
     DEPLOY: '🚀 Build, init, and deploy this component' }
 
-  docker     = new Docker({ socketPath: '/var/run/docker.sock' })
-  buildImage = 'enigmampc/secret-contract-optimizer:latest'
   prefix     = `${timestamp()}`
   contracts: Record<string, Contract>
 
   workspace: Path    | null
   network:   Network | null
   agent:     Agent   | null
+
   builder:   Builder | null
+  docker     = new Docker({ socketPath: '/var/run/docker.sock' })
+  buildImage = 'enigmampc/secret-contract-optimizer:latest'
 
   /** Composition goes `builder { agent { network } }`.
     * `agent` and `builder` can be different if you want the contract
@@ -95,6 +96,7 @@ export class Ensemble {
     this.builder   = provided.builder   || null
     this.workspace = provided.workspace || null }
 
+  /* Build, upload, and instantiate the contracts. */
   async deploy (options: DeployArgs): Promise<Instances> {
     let network = Scrt.hydrate(options.network || this.network)
     if (!(network instanceof Scrt)) {
@@ -108,6 +110,7 @@ export class Ensemble {
       const instances = await this.initialize({ task, network, receipts, agent, initMsgs })
       return instances }) }
 
+  /* Compile the contracts for production. */
   async build (options: BuildArgs = {}): Promise<Artifacts> {
     const { task      = taskmaster()
           , builder   = this.builder   || new Builder({ docker: this.docker })
@@ -144,6 +147,8 @@ export class Ensemble {
         else {
           return await builder.build({...options, outputDir, workspace, crate}) } }) } }
 
+  /* Upload the contracts to the network, and write upload receipts in the corresponding directory.
+   * If receipts are already present, return their contents instead of uploading. */
   async upload ({
     task    = taskmaster(),
     network = this.network,
@@ -168,12 +173,14 @@ export class Ensemble {
 
   /** Commands to expose to the CLI. */
   commands () {
-    return [[this.localCommands(), null, this.remoteCommands()]] }
+    return [[ ...this.localCommands(), null, ...this.remoteCommands() ]] }
+
   /** Commands that can be executed locally. */
   localCommands () {
     return [[ "build"
             , Ensemble.Info.BUILD
             , (ctx: any, sequential: boolean) => this.build({...ctx, parallel: !sequential})]] }
+
   /** Commands that require a connection to a network. */
   remoteCommands () {
     return [[ "deploy"
