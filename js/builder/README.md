@@ -1,1 +1,3 @@
-# Fadroma Contract Builder for Secret Network
+# Fadroma Builder
+
+Tools for building and uploading contracts.

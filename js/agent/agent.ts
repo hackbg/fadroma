@@ -52,16 +52,17 @@ export interface Agent {
                fee?:      any): Promise<any>
 }
 
-export interface JSAgentCreateArgs {
+export interface JSAgentCreateArgs<N extends Network> {
   name?:     string,
   address?:  string,
   mnemonic?: string,
   keyPair?:  any
-  network?:  Network|string
+  network?:  N|string
 }
 
-export interface JSAgentCtorArgs {
-  network?:  Network|string
+export interface JSAgentCtorArgs<N extends Network> {
+  Network?:  N
+  network?:  N|string
   pen?:      any
   mnemonic?: any
   keyPair?:  any
@@ -70,10 +71,13 @@ export interface JSAgentCtorArgs {
 }
 
 /** Queries and transacts on an instance of the Secret Network */
-export class JSAgent implements Agent {
+export class JSAgent<N extends Network> implements Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
-  static async create (options: JSAgentCreateArgs) {
+  static async create (
+    Network: new () => Network,
+    options: JSAgentCreateArgs<Network>
+  ) {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
     if (mnemonic) {
@@ -89,9 +93,9 @@ export class JSAgent implements Agent {
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new JSAgent({name, mnemonic, keyPair, pen, ...args}) }
+    return new JSAgent<Network>(Network, {name, mnemonic, keyPair, pen, ...args}) }
 
-  readonly network: Network
+  readonly network: N
   readonly API:     SigningCosmWasmClient
   readonly name:    string
   readonly keyPair:  any
@@ -104,8 +108,12 @@ export class JSAgent implements Agent {
   fees = defaultFees
 
   /** Create a new agent from a signing pen. */
-  constructor (options: JSAgentCtorArgs) {
-    this.network  = options.network
+  constructor (Network: new () => N, options: JSAgentCtorArgs<N>) {
+    const network = this.network =
+      (typeof options.network === 'string')
+        ? options.Network[options.network].hydrate()
+        : options.network
+
     this.name     = options.name || ''
     this.keyPair  = options.keyPair
     this.mnemonic = options.mnemonic
@@ -118,7 +126,7 @@ export class JSAgent implements Agent {
     this.seed    = EnigmaUtils.GenerateNewSeed()
 
     this.API = new SigningCosmWasmClient(
-      options.network.url, this.address, this.sign, this.seed, this.fees) }
+      network.url, this.address, this.sign, this.seed, this.fees) }
 
   // block time //
 
@@ -227,3 +235,10 @@ export class JSAgent implements Agent {
     debug(`❗ ${this.address} ${bold('result')} ${method}`,
       { label, address, method, result })
     return result } }
+
+/** Check if the passed instance has required methods to behave like an Agent */
+export const isAgent = (maybeAgent: any): boolean => (
+  maybeAgent &&
+  typeof maybeAgent === "object" &&
+  typeof maybeAgent.query === "function" &&
+  typeof maybeAgent.execute === "function");

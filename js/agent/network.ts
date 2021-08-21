@@ -45,7 +45,7 @@ export interface NetworkCtorOptions extends NetworkOptions {
 export interface Network extends NetworkOptions {
   get url        (): string
   connect        (): Promise<Connection>
-  getAgent       (name?: string, options?: any): Agent
+  getAgent       (options?: JSAgentCreateArgs<Network>): Promise<Agent>
   getBuilder     (agent: Agent): BuildUploader
   getContract<T> (api: T, address: string, agent: any): T
 
@@ -169,7 +169,7 @@ export class Scrt implements Network {
 
     const { protocol, hostname, port } = this.apiURL
     info(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
-    const agent = this.defaultAgent = this.getAgent({ name: "ADMIN", mnemonic, address })
+    const agent: Agent = this.defaultAgent = await this.getAgent({ name: "ADMIN", mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
     return { node, network: this, agent, builder: this.getBuilder(agent) } }
 
@@ -179,11 +179,11 @@ export class Scrt implements Network {
     return this.apiURL.toString() }
 
   /** create agent operating on the current instance's endpoint*/
-  getAgent (options: JSAgentCreateArgs = {}) {
+  async getAgent (options: JSAgentCreateArgs<Scrt> = {}) {
     if (options.mnemonic || options.keyPair) {
       info(`Using a SecretJS-based agent.`)
       const network = this
-      return JSAgent.create({ ...options, network }) }
+      return await JSAgent.create(Scrt, { ...options, network }) }
     else if (options.name) {
       info(`Using a secretcli-based agent.`)
       return new CLIAgent({ name: options.name }) }
@@ -193,7 +193,7 @@ export class Scrt implements Network {
         'or a mnemonic or keypair to create a SecretJS-backed one.')}}
 
   /** create builder operating on the current instance's endpoint */
-  getBuilder (agent: Agent) {
+  getBuilder (agent: Agent): BuildUploader {
     return new BuildUploader({network: this, agent}) }
 
   /** create contract instance from interface class and address */

@@ -1,62 +1,49 @@
 import assert from "assert";
-import path from "path";
-import fs from "fs";
+import { resolve, existsSync } from '@fadroma/sys';
+import { Scrt } from "@fadroma/agent";
 import { Ensemble } from "../ensemble";
 
 describe("Secret Network Ensemble", function () {
-  let e;
-  class TestEnsemble extends Ensemble {
-    contracts = { TEST: { crate: "votes" } };
 
-    async initialize () {
-      return {}
-    }
-  }
+  let e: Ensemble<Scrt>;
+
+  class TestEnsemble extends Ensemble<Scrt> {
+    contracts = { TEST: { crate: "votes" } };
+    async initialize () { return {} } }
   
   beforeEach(function () {
     e = new TestEnsemble({
-      network: 'localnet',
-      workspace: path.resolve('./'),
-      builder: {
-        async build(...args) {
-          //console.debug('mock Builder.build', ...args)
-        },
-      },
-    });
-  });
+      network:   'localnet',
+      workspace: resolve('./'),
+      builder:   { async build(..._: Array<any>) { return '' } } as any
+    }); });
 
   it("has a list of commands", function () {
-    assert(e.commands instanceof Array);
-    assert(e.localCommands instanceof Array);
-    assert(e.remoteCommands instanceof Array);
-  });
+    assert(e.commands() instanceof Array);
+    assert(e.localCommands() instanceof Array);
+    assert(e.remoteCommands() instanceof Array); });
 
   it("has a local build command", async function () {
     this.timeout(0);
-    assert(e.localCommands.map((x) => x[0]).indexOf("build") > -1);
-    await e.build();
-  });
+    assert(e.localCommands().map((x: any) => x[0]).indexOf("build") > -1);
+    await e.build(); });
 
   it("has a remote deploy command", async function () {
     this.timeout(0);
-    const contract = path.resolve('example');
-    
-    assert(e.remoteCommands.map((x) => x[0]).indexOf("deploy") > -1);
-    await e.deploy({
-      workspace: contract, additionalBinds: [
-      `${path.resolve('core')}:/core:rw`,
-      `${path.resolve('scrt')}:/scrt:rw`,
-      `${path.resolve('scrt-addr')}:/scrt-addr:rw`,
-      `${path.resolve('scrt-admin')}:/scrt-admin:rw`,
-      `${path.resolve('scrt-callback')}:/scrt-callback:rw`,
-      `${path.resolve('scrt-contract')}:/scrt-contract:rw`,
-      `${path.resolve('scrt-migrate')}:/scrt-migrate:rw`,
-      `${path.resolve('scrt-storage')}:/scrt-storage:rw`,
-      `${path.resolve('scrt-utils')}:/scrt-utils:rw`,
-    ] });
-
-    const builtContract = path.resolve(contract, 'artifacts', 'votes@HEAD.wasm');
-    
-    assert.strictEqual(fs.existsSync(builtContract), true);
+    const workspace = resolve('example');
+    assert(e.remoteCommands().map((x: any) => x[0]).indexOf("deploy") > -1);
+    const additionalBinds = [
+      `${resolve('core')}:/core:rw`,
+      `${resolve('scrt')}:/scrt:rw`,
+      `${resolve('scrt-addr')}:/scrt-addr:rw`,
+      `${resolve('scrt-admin')}:/scrt-admin:rw`,
+      `${resolve('scrt-callback')}:/scrt-callback:rw`,
+      `${resolve('scrt-contract')}:/scrt-contract:rw`,
+      `${resolve('scrt-migrate')}:/scrt-migrate:rw`,
+      `${resolve('scrt-storage')}:/scrt-storage:rw`,
+      `${resolve('scrt-utils')}:/scrt-utils:rw` ]
+    await e.deploy({ workspace, additionalBinds })
+    const builtContract = resolve(workspace, 'artifacts', 'votes@HEAD.wasm');
+    assert.strictEqual(existsSync(builtContract), true);
   });
 });

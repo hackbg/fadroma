@@ -1,1 +1,1 @@
-# Fadroma Node Manager for Secret Network
+# Fadroma Localnet

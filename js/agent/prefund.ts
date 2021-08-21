@@ -35,7 +35,7 @@ export async function prefund (options: Prefund = {}) {
 
   const { task      = taskmaster()
         , count     = 16 // give or take
-        , agent      = (network as Network).getAgent()
+        , agent      = await Promise.resolve((network as Network).getAgent())
         // {address:{agent,address}}
         , recipients = await getDefaultRecipients()
         // [[address,budget]]
@@ -70,7 +70,7 @@ export async function prefund (options: Prefund = {}) {
       .map(x=>JSON.parse(x))
     const network = agent.network
     for (const {address, mnemonic} of wallets) {
-      const agent = network.getAgent(address, {mnemonic})
+      const agent = await network.getAgent({address, mnemonic})
       assert(address === agent.address)
       recipients[address] = { agent, address } }
     return recipients }

@@ -1,7 +1,6 @@
-import Docker                          from 'dockerode'
-import {Scrt}                          from '@fadroma/agent'
+import {Network, Scrt, Agent}          from '@fadroma/agent'
 import {BuildUploader}                 from '@fadroma/builder'
-import {pulled}                        from '@fadroma/net'
+import {Docker, pulled}                from '@fadroma/net'
 import {resolve, relative, existsSync} from '@fadroma/sys'
 import {Taskmaster, taskmaster}        from '@fadroma/cli'
 
@@ -9,51 +8,54 @@ import {table} from 'table'
 import colors from 'colors'
 const {bold} = colors
 
-const required = label => {
-  throw new Error(`required key: ${label}`) }
+const required = (label: string) => { throw new Error(`required key: ${label}`) }
 
-// TODO specify these
-export type Network    = any
-export type Agent      = any
-export type Path       = string
+export type Path = string
 
-export type CtorArgs   = { network?:   Network
-                         , agent?:     Agent
-                         , builder?:   BuildUploader
-                         , workspace?: Path }
+export type ContractInfo = { crate: string }
 
-export type Contract   = { crate: string }
+export type CtorArgs<N extends Network> =
+  { Network?:   NetworkType<N>
+  , network?:   Network|string
+  , agent?:     Agent
+  , builder?:   BuildUploader
+  , workspace?: Path }
 
-export type BuildArgs  = { task?:      Taskmaster
-                         , builder?:   BuildUploader
-                         , workspace?: Path
-                         , outputDir?: Path
-                         , parallel?:  boolean }
+export type NetworkType<N> = (new () => N) & { hydrate: any }
 
-export type Artifact   = any
-export type Artifacts  = Record<string, Artifact>
+export type BuildArgs =
+  { task?:      Taskmaster
+  , builder?:   BuildUploader
+  , workspace?: Path
+  , outputDir?: Path
+  , parallel?:  boolean }
+export type Artifact  = any
+export type Artifacts = Record<string, Artifact>
 
-export type UploadArgs = { task?:      Function
-                         , network?:   Network
-                         , builder?:   BuildUploader
-                         , artifacts?: Artifacts }
+export type UploadArgs =
+  { task?:      Function
+  , network?:   Network
+  , builder?:   BuildUploader
+  , artifacts?: Artifacts }
+export type Upload  = any
+export type Uploads = Record<string, Upload>
 
-export type Receipt    = any
-export type Receipts   = Record<string, Receipt>
+export type InitArgs =
+  { task?:      Taskmaster
+  , initMsgs?:  Record<string, any>
+  , network?:   Network
+  , receipts?:  Uploads
+  , agent?:     Agent }
 
-export type InitArgs   = { task?:      Function
-                         , initMsgs?:  Record<string, any>
-                         , network?:   Network
-                         , receipts?:  Receipts
-                         , agent?:     Agent }
+export type Instance  = any
+export type Instances = Record<string, Instance>
 
-export type Instance   = any
-export type Instances  = Record<string, Instance>
-
-export type DeployArgs = { network?:  Network
-                         , task?:     Function
-                         , initMsgs:  Record<string, any>
-                         , workspace: Path }
+export type DeployArgs =
+  { network?:   Network
+  , task?:      Taskmaster
+  , initMsgs?:  Record<string, any>
+  , workspace:  Path
+  , additionalBinds: Array<string> }
 
 const timestamp = (d = new Date()) =>
   d.toISOString()
@@ -61,7 +63,7 @@ const timestamp = (d = new Date()) =>
     .replace(/[T]/g, '_')
     .slice(0, -3)
 
-export class Ensemble {
+export class Ensemble<N extends Network> {
 
   static Errors = {
     NOTHING: "Please specify a network, agent, or builder",
@@ -73,13 +75,12 @@ export class Ensemble {
     DEPLOY: '🚀 Build, init, and deploy this component' }
 
   prefix     = `${timestamp()}`
-  contracts: Record<string, Contract>
-
-  workspace: Path    | null
-  network:   Network | null
-  agent:     Agent   | null
-
-  builder:   BuildUploader | null
+  contracts: Record<string, ContractInfo>
+  workspace: Path           | null
+  Network:   NetworkType<N> | null
+  network:   N              | null
+  agent:     Agent          | null
+  builder:   BuildUploader  | null
   docker     = new Docker({ socketPath: '/var/run/docker.sock' })
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
 
@@ -90,17 +91,20 @@ export class Ensemble {
     *
     * It is also possible to instantiate an Ensemble without network,
     * agent, or builder; it would only be able to run local commands. */
-  constructor (provided: CtorArgs = {}) {
-    this.network   = provided.network   || null
+  constructor (provided: CtorArgs<N> = {}) {
+    this.Network = provided.Network   || null
+    this.network = (typeof provided.network === 'string')
+      ? provided.Network[provided.network].hydrate()
+      : provided.network
     this.agent     = provided.agent     || null
     this.builder   = provided.builder   || null
     this.workspace = provided.workspace || null }
 
   /* Build, upload, and instantiate the contracts. */
   async deploy (options: DeployArgs): Promise<Instances> {
-    let network = Scrt.hydrate(options.network || this.network)
-    if (!(network instanceof Scrt)) {
-      throw new Error('need a Scrt connection to deploy') }
+    let network = this.Network.hydrate(options.network || this.network)
+    if (!(network instanceof this.Network)) {
+      throw new Error('need a Network to deploy to') }
     const { agent, builder } = await network.connect()
     const { task = taskmaster(), initMsgs = {} } = options
     return await task('build, upload, and initialize contracts', async () => {
@@ -153,7 +157,7 @@ export class Ensemble {
     network = this.network,
     builder = this.builder,
     artifacts
-  }: UploadArgs): Promise<Receipts> {
+  }: UploadArgs): Promise<Uploads> {
     // if artifacts are not passed, build 'em
     artifacts = artifacts || await this.build()
     const receipts = {}
