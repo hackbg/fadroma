@@ -1,9 +1,12 @@
+import { decode } from '@fadroma/sys'
+
+import { backOff } from "exponential-backoff"
 import { cwd } from 'process'
 import { relative } from 'path'
 import { fileURLToPath } from 'url'
 import { render } from 'prettyjson'
+import { table } from 'table'
 import colors from 'colors'
-import { decode } from '@fadroma/sys'
 
 const { bold } = colors
 export { colors, bold }
@@ -40,7 +43,7 @@ export function markdownTable (header: Array<string>) {
       const sum = (col:any) => rows
         .slice(2)
         .map(x=>x[col])
-        .reduce((x,y)=>(x||0)+(y||0), 0)
+        .reduce((x:any,y:any)=>(x||0)+(y||0), 0)
       rows.push(["", '**total**', sum(2), sum(3), sum(4)]) },
     write (file:any) {
       this.total()
@@ -112,65 +115,54 @@ function collectUsage (context = {}, commands, tableData = [], visited = new Set
 
 // Taskmaster //////////////////////////////////////////////////////////////////////////////////////
 
-import { backOff } from "exponential-backoff"
-import { markdownTable } from './table'
+export type Taskmaster = Function & {
+  done:     Function
+  parallel: Function
+}
 
-export function taskmaster (options={}) {
+export function taskmaster (options: any = {}): Taskmaster {
 
   const { say    = console.debug
         , header = []
         , table  = markdownTable(header)
         , output
         , agent
-        , afterEach = async function gasCheck (t1, description, reports=[]) {
-            const t2 = new Date()
+        , afterEach = async function gasCheck (t1, info, reports=[]) {
+            const t2 = +new Date()
             say(`🟢 +${t2-t1}msec`)
             if (agent && reports.length > 0) {
-              const txs          = await Promise.all(reports.map(getTx.bind(null, agent)))
-                  , totalGasUsed = txs.map(x=>Number(x||{}.gas_used||0)).reduce((x,y)=>x+y, 0)
-                  , t3           = new Date()
-              say(`⛽ gas cost: ${totalGasUsed} uSCRT`)
+              const txs      = await Promise.all(reports.map(getTx.bind(null, agent)))
+                  , gasTotal = txs.map(x=>Number(((x||{}) as any).gas_used||0)).reduce((x,y)=>x+y, 0)
+                  , t3       = +new Date()
+              say(`⛽ gas cost: ${gasTotal} uSCRT`)
               say(`🔍 gas check: +${t3-t2}msec`)
-              table.push([t1.toISOString(), description, t2-t1, totalGasUsed, t3-t2])
-            } else {
-              table.push([t1.toISOString(), description, t2-t1])
-            }
-          }
-        } = options
+              table.push([t1.toISOString(), info, t2-t1, gasTotal, t3-t2]) }
+            else {
+              table.push([t1.toISOString(), info, t2-t1]) } } } = options
 
   return Object.assign(task, { done, parallel })
 
   async function done () {
-    if (output) await table.write(output)
-  }
-
-  async function parallel (description, ...tasks) { // TODO subtotal?
-    return await task(description, () => Promise.all(tasks.map(x=>Promise.resolve(x))))
-  }
-
-  async function task (description, operation = () => {}) {
-    say(`\n👉 ${description}`)
+    if (output) await table.write(output) }
+  async function parallel (info: string, ...tasks: Array<Function>) { // TODO subtotal?
+    return await task(info, () => Promise.all(tasks.map(x=>Promise.resolve(x)))) }
+  async function task (info: string, operation = (report: Function) => {}) {
+    say(`\n👉 ${info}`)
     const t1      = new Date()
         , reports = []
         , report  = r => { reports.push(r); return r }
         , result  = await Promise.resolve(operation(report))
-    await afterEach(t1, description, reports)
-    return result
-  }
-
-}
+    await afterEach(t1, info, reports)
+    return result } }
 
 async function getTx ({API:{restClient}}, tx) {
   return backOff(async ()=>{
     try {
-      return await restClient.get(`/txs/${tx}`)
-    } catch (e) {
+      return await restClient.get(`/txs/${tx}`) }
+    catch (e) {
       console.warn(`failed to get info for tx ${tx}`)
       console.debug(e)
-      console.info(`retrying...`)
-    }
-  })
-}
+      console.info(`retrying...`) } }) }
 
 /// https://en.wikipedia.org/wiki/Pointing_and_calling /////////////////////////////////////////////
 

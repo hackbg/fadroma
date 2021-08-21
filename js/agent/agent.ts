@@ -54,13 +54,14 @@ export interface Agent {
 
 export interface JSAgentCreateArgs {
   name?:     string,
+  address?:  string,
   mnemonic?: string,
   keyPair?:  any
-  network?:  Network
+  network?:  Network|string
 }
 
 export interface JSAgentCtorArgs {
-  network?:  Network
+  network?:  Network|string
   pen?:      any
   mnemonic?: any
   keyPair?:  any
@@ -88,7 +89,7 @@ export class JSAgent implements Agent {
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new this({name, mnemonic, keyPair, pen, ...args}) }
+    return new JSAgent({name, mnemonic, keyPair, pen, ...args}) }
 
   readonly network: Network
   readonly API:     SigningCosmWasmClient
@@ -150,11 +151,12 @@ export class JSAgent implements Agent {
   /**Get the current balance in a specified denomination.
    * TODO support SNIP20 tokens */
   async getBalance (denomination: string) {
-    const account = await this.account || {}
+    const account = await this.account
     const balance = account.balance || []
     const inDenom = ({denom}) => denom === denomination
-    const balanceInDenom = balance.filter(inDenom)[0] || {}
-    return balanceInDenom.amount || 0 }
+    const balanceInDenom = balance.filter(inDenom)[0]
+    if (!balanceInDenom) return 0
+    return balanceInDenom.amount }
 
   /**Send some `uscrt` to an address.
    * TODO support sending SNIP20 tokens */
@@ -208,7 +210,7 @@ export class JSAgent implements Agent {
     debug(`❔ ${this.address} ${bold('query')} ${method}`,
       { label, address, method, args })
     const response = this.API.queryContractSmart(
-      address, msg)
+      address, msg as any)
     debug(`❔ ${this.address} ${bold('response')} ${method}`,
       { address, method, response })
     return response }
@@ -221,7 +223,7 @@ export class JSAgent implements Agent {
     debug(`❗ ${this.address} ${bold('execute')} ${method}`,
       { label, address, method, args, memo, transferAmount, fee })
     const result = this.API.execute(
-      address, msg, memo, transferAmount, fee)
+      address, msg as any, memo, transferAmount, fee)
     debug(`❗ ${this.address} ${bold('result')} ${method}`,
       { label, address, method, result })
     return result } }

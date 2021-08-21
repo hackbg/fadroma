@@ -2,7 +2,7 @@
   "name": "@fadroma/builder",
   "version": "0.1.0",
   "type": "module",
-  "main": "builder.ts",
+  "main": "index.ts",
   "dependencies": {
     "@fadroma/net": "*",
     "@fadroma/sys": "*"

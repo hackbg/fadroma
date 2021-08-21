@@ -1,6 +1,7 @@
 import { execFile, spawn } from 'child_process'
-import { Console } from '@fadroma/cli'
+import { Console, bold } from '@fadroma/cli'
 import { Agent } from './agent'
+import { Network } from './network'
 
 const {warn, debug} = Console(import.meta.url)
 
@@ -19,10 +20,17 @@ const tryToUnlockKeyring = async () => new Promise((resolve, reject)=>{
 
 export class CLIAgent implements Agent {
 
+  network: Network
+
+  name: string
+  address: string
+  nameOrAddress: string
+
+  fees: any
+
   static async pick () {
     if (!process.stdin.isTTY) {
-      throw new Error("Input is not a TTY - can't interactively pick an identity")
-    }
+      throw new Error("Input is not a TTY - can't interactively pick an identity") }
     let keys = (await secretcli('keys', 'list'))
     if (keys.length < 1) {
       warn("Empty key list returned from secretcli. Retrying once:")
@@ -33,9 +41,11 @@ export class CLIAgent implements Agent {
           "Still empty. To proceed, add your key to secretcli " +
           "(or set the mnemonic in the environment to use the SecretJS-based agent)") } } }
 
-  constructor (options = {}) {
+  constructor (options: any = {}) {
     debug({options})
     const { name, address } = options
+    this.name = name
+    this.address = address
     this.nameOrAddress = this.name || this.address }
 
   get nextBlock () {
@@ -54,8 +64,8 @@ export class CLIAgent implements Agent {
   get balance () {
     return this.getBalance('uscrt') }
 
-  async getBalance (denomination) {
-    return (this.account.value.coins.filter(x=>x.denom===denomination)[0]||{}).amount }
+  async getBalance (denomination: string) {
+    return ((await this.account).value.coins.filter(x=>x.denom===denomination)[0]||{}).amount }
 
   async send (recipient, amount, denom = 'uscrt', memo = '') {
     throw new Error('not implemented') }
@@ -63,13 +73,13 @@ export class CLIAgent implements Agent {
   async sendMany (txs = [], memo = '', denom = 'uscrt', fee) {
     throw new Error('not implemented') }
 
-  async upload (pathToBinary) {
+  async upload (pathToBinary: string) {
     return secretcli(
       'tx', 'compute', 'store',
       pathToBinary,
       '--from', this.nameOrAddress ) }
 
-  async instantiate (pathToBinary) {
+  async instantiate (instance: any) {
     const { codeId, initMsg = {}, label = '' } = instance
     instance.agent = this
     debug(`⭕`+bold('init'), { codeId, label, initMsg })
@@ -77,8 +87,7 @@ export class CLIAgent implements Agent {
       'tx', 'compute', 'instantiate',
       codeId, JSON.stringify(initMsg),
       '--label', label,
-      '--from', this.nameOrAddress
-    )
+      '--from', this.nameOrAddress)
     debug(`⭕`+bold('instantiated'), { codeId, label, initTx })
     instance.codeHash = await secretcli('q', 'compute', 'contract-hash', initTx.contractAddress)
     await instance.save()

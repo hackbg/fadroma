@@ -3,7 +3,7 @@ import {Scrt}                          from '@fadroma/agent'
 import {BuildUploader}                 from '@fadroma/builder'
 import {pulled}                        from '@fadroma/net'
 import {resolve, relative, existsSync} from '@fadroma/sys'
-import {taskmaster}                    from '@fadroma/cli'
+import {Taskmaster, taskmaster}        from '@fadroma/cli'
 
 import {table} from 'table'
 import colors from 'colors'
@@ -24,7 +24,7 @@ export type CtorArgs   = { network?:   Network
 
 export type Contract   = { crate: string }
 
-export type BuildArgs  = { task?:      Function
+export type BuildArgs  = { task?:      Taskmaster
                          , builder?:   BuildUploader
                          , workspace?: Path
                          , outputDir?: Path

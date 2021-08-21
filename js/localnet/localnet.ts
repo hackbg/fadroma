@@ -33,7 +33,7 @@ export interface Node {
  *  Run a pausable Secret Network localnet in a Docker container and manage its lifecycle.
  *  State is stored as a pile of files in directories.
  */
-export default class ScrtNode implements ScrtNode {
+export class ScrtNode implements ScrtNode {
   docker:    Docker
   image:     string
   container: any

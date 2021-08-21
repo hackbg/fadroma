@@ -1,5 +1,5 @@
-import { bold, mkdir, makeStateDir, resolve, cwd } from '@fadroma/sys'
-import { Console } from '@fadroma/cli'
+import { mkdir, makeStateDir, resolve, cwd } from '@fadroma/sys'
+import { Console, bold } from '@fadroma/cli'
 import { ScrtNode } from '@fadroma/localnet'
 import { BuildUploader } from '@fadroma/builder'
 
@@ -46,11 +46,12 @@ export interface Network extends NetworkOptions {
   get url        (): string
   connect        (): Promise<Connection>
   getAgent       (name?: string, options?: any): Agent
-  getBuilder     (agent: Agent): BuilderWithUploader
+  getBuilder     (agent: Agent): BuildUploader
   getContract<T> (api: T, address: string, agent: any): T
 
-  readonly wallets:  string
-  readonly receipts: string
+  readonly wallets:   string
+  readonly receipts:  string
+  readonly instances: string
 }
 
 export class Scrt implements Network {
@@ -168,7 +169,7 @@ export class Scrt implements Network {
 
     const { protocol, hostname, port } = this.apiURL
     info(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
-    const agent = this.defaultAgent = await this.getAgent("ADMIN", { mnemonic, address })
+    const agent = this.defaultAgent = this.getAgent({ name: "ADMIN", mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
     return { node, network: this, agent, builder: this.getBuilder(agent) } }
 
@@ -178,13 +179,14 @@ export class Scrt implements Network {
     return this.apiURL.toString() }
 
   /** create agent operating on the current instance's endpoint*/
-  getAgent (name: string = 'agent', options: JSAgentCreateArgs = {}): Promise<Agent> {
+  getAgent (options: JSAgentCreateArgs = {}) {
     if (options.mnemonic || options.keyPair) {
       info(`Using a SecretJS-based agent.`)
-      return JSAgent.create({ ...options, network: this, name }) }
-    else if (name) {
+      const network = this
+      return JSAgent.create({ ...options, network }) }
+    else if (options.name) {
       info(`Using a secretcli-based agent.`)
-      return new CLIAgent({ name }) }
+      return new CLIAgent({ name: options.name }) }
     else {
       throw new Error(
         'need a name to create a secretcli-backed agent, ' +
@@ -192,10 +194,10 @@ export class Scrt implements Network {
 
   /** create builder operating on the current instance's endpoint */
   getBuilder (agent: Agent) {
-    return new BuilderWithUploader({network: this, agent}) }
+    return new BuildUploader({network: this, agent}) }
 
   /** create contract instance from interface class and address */
-  getContract (ContractAPI, contractAddress, agent = this.agent) {
+  getContract (ContractAPI: any, contractAddress: string, agent = this.defaultAgent) {
     return new ContractAPI({
       initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
       agent }) } }
