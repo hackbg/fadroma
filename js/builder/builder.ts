@@ -27,6 +27,8 @@ export type BuildArgs = {
   outputDir?:       string
   /* Allows additional directories to be bound to the build container. */
   additionalBinds?: Array<any>
+  /* Allow user to specify that the contracts shouldn't be built in parallel. */
+  sequential?:      boolean
 }
 
 /** Builds contracts and optionally uploads them as an agent on the Secret Network.

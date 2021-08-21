@@ -1,8 +1,8 @@
-import {Network, Scrt, Agent}          from '@fadroma/agent'
-import {BuildUploader}                 from '@fadroma/builder'
-import {Docker, pulled}                from '@fadroma/net'
-import {resolve, relative, existsSync} from '@fadroma/sys'
-import {Taskmaster, taskmaster}        from '@fadroma/cli'
+import {Network, Scrt, Agent}             from '@fadroma/agent'
+import {BuildUploader}                    from '@fadroma/builder'
+import {Docker, pulled}                   from '@fadroma/net'
+import {resolve, relative, existsSync}    from '@fadroma/sys'
+import {Commands, Taskmaster, taskmaster} from '@fadroma/cli'
 
 import {table} from 'table'
 import colors from 'colors'
@@ -33,7 +33,8 @@ export type Artifact  = any
 export type Artifacts = Record<string, Artifact>
 
 export type UploadArgs =
-  { task?:      Function
+  { task?:      Taskmaster
+  , agent?:     Agent
   , network?:   Network
   , builder?:   BuildUploader
   , artifacts?: Artifacts }
@@ -44,7 +45,7 @@ export type InitArgs =
   { task?:      Taskmaster
   , initMsgs?:  Record<string, any>
   , network?:   Network
-  , receipts?:  Uploads
+  , uploads?:   Uploads
   , agent?:     Agent }
 
 export type Instance  = any
@@ -110,8 +111,8 @@ export class Ensemble<N extends Network> {
     return await task('build, upload, and initialize contracts', async () => {
       const workspace = options.workspace || this.workspace
       const artifacts = await this.build({ ...options, task, builder, workspace })
-      const receipts  = await this.upload({ task, network, builder, artifacts })
-      const instances = await this.initialize({ task, network, receipts, agent, initMsgs })
+      const uploads   = await this.upload({ task, network, builder, artifacts })
+      const instances = await this.initialize({ task, network, uploads, agent, initMsgs })
       return instances }) }
 
   /* Compile the contracts for production. */
@@ -160,13 +161,13 @@ export class Ensemble<N extends Network> {
   }: UploadArgs): Promise<Uploads> {
     // if artifacts are not passed, build 'em
     artifacts = artifacts || await this.build()
-    const receipts = {}
+    const uploads = {}
     for (const contract of Object.keys(this.contracts)) {
       await task(`upload ${contract}`, async (report: Function) => {
-        const receipt = receipts[contract] = await builder.uploadCached(artifacts[contract])
+        const receipt = uploads[contract] = await builder.uploadCached(artifacts[contract])
         console.log(`⚖️  compressed size ${receipt.compressedSize} bytes`)
         report(receipt.transactionHash) }) }
-    return receipts }
+    return uploads }
 
   /** Stub to be implemented by the subclass.
    *  In the future it might be interesting to see if we can add some basic dependency resolution.
@@ -175,17 +176,17 @@ export class Ensemble<N extends Network> {
     throw new Error('You need to implement the initialize() method.') }
 
   /** Commands to expose to the CLI. */
-  commands () {
-    return [[ ...this.localCommands(), null, ...this.remoteCommands() ]] }
+  commands (): Commands {
+    return [ ...this.localCommands(), null, ...this.remoteCommands() ] }
 
   /** Commands that can be executed locally. */
-  localCommands () {
+  localCommands (): Commands {
     return [[ "build"
             , Ensemble.Info.BUILD
             , (ctx: any, sequential: boolean) => this.build({...ctx, parallel: !sequential})]] }
 
   /** Commands that require a connection to a network. */
-  remoteCommands () {
+  remoteCommands (): Commands {
     return [[ "deploy"
             , Ensemble.Info.DEPLOY
             , (ctx: any) => this.deploy(ctx).then(console.info) ]] } }

@@ -4,6 +4,7 @@
   "type": "module",
   "main": "index.ts",
   "dependencies": {
+    "@types/prettyjson": "^0.0.30",
     "prettyjson": "^1.2.1"
   }
 }

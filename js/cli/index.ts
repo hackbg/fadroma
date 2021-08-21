@@ -4,12 +4,15 @@ import { backOff } from "exponential-backoff"
 import { cwd } from 'process'
 import { relative } from 'path'
 import { fileURLToPath } from 'url'
+
 import { render } from 'prettyjson'
-import { table } from 'table'
+export { render }
+
 import colors from 'colors'
 
 const { bold } = colors
 export { colors, bold }
+
 
 // Console /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -50,14 +53,19 @@ export function markdownTable (header: Array<string>) {
       const data = rows.filter(Boolean).map(row=>`| `+row.join(' | ')+` |`).join('\n')
       return writeFile(file, data, 'utf8') } } }
 
-export { table, getBorderCharacters } from 'table'
-import { getBorderCharacters } from 'table'
+import { table, getBorderCharacters } from 'table'
+export { table, getBorderCharacters }
 export const noBorders = {
   border: getBorderCharacters('void'),
   columnDefault: { paddingLeft: 0, paddingRight: 2 },
   drawHorizontalLine: () => false }
 
 // Commands ////////////////////////////////////////////////////////////////////////////////////////
+
+export type CommandName = string
+export type CommandInfo = string
+export type Command     = [CommandName|Array<CommandName>, CommandInfo, Function, Commands?]
+export type Commands    = Array<Command|null>
 
 export async function runCommand (context, commands, commandToRun, ...args) {
   if (commandToRun) {
