@@ -5,18 +5,20 @@ import { Network } from './network'
 
 const {warn, debug} = Console(import.meta.url)
 
-const secretcli = (...args): Promise<any> => new Promise((resolve, reject)=>{
-  execFile('secretcli', args, (err, stdout, stderr) => {
-    if (err) return reject(err)
-    return JSON.parse(String(stdout)) }) })
+const secretcli = (...args: Array<any>): Promise<any> => new Promise(
+  (resolve, reject)=>{
+    execFile('secretcli', args, (err: any, stdout: any) => {
+      if (err) return reject(err)
+      resolve(JSON.parse(String(stdout))) }) })
 
-const tryToUnlockKeyring = async () => new Promise((resolve, reject)=>{
-  warn("Pretending to add a key in order to refresh the keyring...")
-  const unlock = spawn('secretcli', ['keys', 'add'])
-  unlock.on('spawn', () => {
-    unlock.on('close', resolve)
-    setTimeout(()=>{ unlock.kill() }, 1000) })
-  unlock.on('error', reject) })
+const tryToUnlockKeyring = async () => new Promise(
+  (resolve, reject)=>{
+    warn("Pretending to add a key in order to refresh the keyring...")
+    const unlock = spawn('secretcli', ['keys', 'add'])
+    unlock.on('spawn', () => {
+      unlock.on('close', resolve)
+      setTimeout(()=>{ unlock.kill() }, 1000) })
+    unlock.on('error', reject) })
 
 export class CLIAgent implements Agent {
 

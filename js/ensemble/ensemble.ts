@@ -1,4 +1,4 @@
-import {Network, Scrt, Agent}             from '@fadroma/agent'
+import {Network, Agent}                   from '@fadroma/agent'
 import {BuildUploader}                    from '@fadroma/builder'
 import {Docker, pulled}                   from '@fadroma/net'
 import {resolve, relative, existsSync}    from '@fadroma/sys'
@@ -12,51 +12,51 @@ const required = (label: string) => { throw new Error(`required key: ${label}`) 
 
 export type Path = string
 
-export type ContractInfo = { crate: string }
+export type EnsembleContractInfo = { crate: string }
 
-export type CtorArgs<N extends Network> =
-  { Network?:   NetworkType<N>
-  , network?:   Network|string
+export type EnsembleOptions =
+  { network?:   Network
   , agent?:     Agent
   , builder?:   BuildUploader
   , workspace?: Path }
 
-export type NetworkType<N> = (new () => N) & { hydrate: any }
+export type EnsembleDeployOptions =
+  { task?:      Taskmaster
+  , network?:   Network
+  , agent?:     Agent
+  , builder?:   BuildUploader
+  , workspace?: Path
+  , initMsgs?:  Record<string, any>
+  , additionalBinds?: Array<string> }
 
-export type BuildArgs =
+export type EnsembleBuildOptions =
   { task?:      Taskmaster
   , builder?:   BuildUploader
   , workspace?: Path
   , outputDir?: Path
-  , parallel?:  boolean }
-export type Artifact  = any
-export type Artifacts = Record<string, Artifact>
+  , parallel?:  boolean
+  , additionalBinds?: Array<string> }
 
-export type UploadArgs =
+export type EnsembleUploadOptions =
   { task?:      Taskmaster
   , agent?:     Agent
   , network?:   Network
   , builder?:   BuildUploader
   , artifacts?: Artifacts }
-export type Upload  = any
-export type Uploads = Record<string, Upload>
 
-export type InitArgs =
+export type EnsembleInitOptions =
   { task?:      Taskmaster
   , initMsgs?:  Record<string, any>
   , network?:   Network
   , uploads?:   Uploads
   , agent?:     Agent }
 
+export type Artifact  = any
+export type Artifacts = Record<string, Artifact>
+export type Upload    = any
+export type Uploads   = Record<string, Upload>
 export type Instance  = any
 export type Instances = Record<string, Instance>
-
-export type DeployArgs =
-  { network?:   Network
-  , task?:      Taskmaster
-  , initMsgs?:  Record<string, any>
-  , workspace:  Path
-  , additionalBinds: Array<string> }
 
 const timestamp = (d = new Date()) =>
   d.toISOString()
@@ -64,7 +64,7 @@ const timestamp = (d = new Date()) =>
     .replace(/[T]/g, '_')
     .slice(0, -3)
 
-export class Ensemble<N extends Network> {
+export class Ensemble {
 
   static Errors = {
     NOTHING: "Please specify a network, agent, or builder",
@@ -76,52 +76,47 @@ export class Ensemble<N extends Network> {
     DEPLOY: '🚀 Build, init, and deploy this component' }
 
   prefix     = `${timestamp()}`
-  contracts: Record<string, ContractInfo>
-  workspace: Path           | null
-  Network:   NetworkType<N> | null
-  network:   N              | null
-  agent:     Agent          | null
-  builder:   BuildUploader  | null
+  contracts: Record<string, EnsembleContractInfo>
+  workspace: Path          | null
+  network:   Network       | null
+  agent:     Agent         | null
+  builder:   BuildUploader | null
   docker     = new Docker({ socketPath: '/var/run/docker.sock' })
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
 
-  /** Composition goes `builder { agent { network } }`.
-    * `agent` and `builder` can be different if you want the contract
-    * to be uploaded from one address and instantiated from another,
-    * but obviously they both need to reference the same network.
-    *
-    * It is also possible to instantiate an Ensemble without network,
-    * agent, or builder; it would only be able to run local commands. */
-  constructor (provided: CtorArgs<N> = {}) {
-    this.Network = provided.Network   || null
-    this.network = (typeof provided.network === 'string')
-      ? provided.Network[provided.network].hydrate()
-      : provided.network
-    this.agent     = provided.agent     || null
-    this.builder   = provided.builder   || null
+  constructor (provided: EnsembleOptions = {}) {
+    this.network   = provided.network   || null
+    console.trace(this.network)
+    this.agent     = provided.agent     || this.network?.defaultAgent || null
+    this.builder   = provided.builder   || this.network?.getBuilder(this.agent) || null
     this.workspace = provided.workspace || null }
 
   /* Build, upload, and instantiate the contracts. */
-  async deploy (options: DeployArgs): Promise<Instances> {
-    let network = this.Network.hydrate(options.network || this.network)
-    if (!(network instanceof this.Network)) {
-      throw new Error('need a Network to deploy to') }
-    const { agent, builder } = await network.connect()
-    const { task = taskmaster(), initMsgs = {} } = options
+  async deploy ({
+    task      = taskmaster(),
+    network   = this.network,
+    agent     = this.agent,
+    builder   = this.builder,
+    initMsgs  = {},
+    workspace = this.workspace,
+    additionalBinds
+  }: EnsembleDeployOptions = {}): Promise<Instances> {
+    if (!network) throw new Error('need a Network to deploy to')
     return await task('build, upload, and initialize contracts', async () => {
-      const workspace = options.workspace || this.workspace
-      const artifacts = await this.build({ ...options, task, builder, workspace })
+      const artifacts = await this.build({ task, builder, workspace, additionalBinds })
       const uploads   = await this.upload({ task, network, builder, artifacts })
       const instances = await this.initialize({ task, network, uploads, agent, initMsgs })
       return instances }) }
 
   /* Compile the contracts for production. */
-  async build (options: BuildArgs = {}): Promise<Artifacts> {
-    const { task      = taskmaster()
-          , builder   = this.builder   || new BuildUploader({ docker: this.docker })
-          , workspace = this.workspace || required('workspace')
-          , outputDir = resolve(workspace, 'artifacts')
-          , parallel  = true } = options || {}
+  async build ({
+    task      = taskmaster(),
+    builder   = this.builder   || new BuildUploader({ docker: this.docker }),
+    workspace = this.workspace || required('workspace'),
+    outputDir = resolve(workspace, 'artifacts'),
+    parallel  = true,
+    additionalBinds
+  }: EnsembleBuildOptions = {}): Promise<Artifacts> {
     // pull build container
     await pulled(this.buildImage, this.docker)
     // build all contracts
@@ -149,16 +144,15 @@ export class Ensemble<N extends Network> {
           console.info(`ℹ️  ${bold(path)} exists, delete to rebuild.`)
           return buildOutput }
         else {
-          return await builder.build({...options, outputDir, workspace, crate}) } }) } }
+          return await builder.build({workspace, crate, outputDir, additionalBinds}) } }) } }
 
   /* Upload the contracts to the network, and write upload receipts in the corresponding directory.
    * If receipts are already present, return their contents instead of uploading. */
   async upload ({
     task    = taskmaster(),
-    network = this.network,
     builder = this.builder,
     artifacts
-  }: UploadArgs): Promise<Uploads> {
+  }: EnsembleUploadOptions): Promise<Uploads> {
     // if artifacts are not passed, build 'em
     artifacts = artifacts || await this.build()
     const uploads = {}
@@ -172,7 +166,7 @@ export class Ensemble<N extends Network> {
   /** Stub to be implemented by the subclass.
    *  In the future it might be interesting to see if we can add some basic dependency resolution.
    *  It just needs to be standardized on the Rust side (in scrt-callback)? */
-  async initialize (_: InitArgs): Promise<Instances> {
+  async initialize (_: InitOptions): Promise<Instances> {
     throw new Error('You need to implement the initialize() method.') }
 
   /** Commands to expose to the CLI. */

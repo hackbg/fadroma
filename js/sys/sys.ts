@@ -58,13 +58,6 @@ export const randomHex = (bytes: number) => randomBytes(bytes).toString("hex")
 const decoder = new TextDecoder();
 export const decode = (buffer: Buffer) => decoder.decode(buffer).trim()
 
-export const loadSchemas = (
-  base:    string,
-  schemas: Record<string,string> = {}
-) =>
-  Object.entries(schemas).reduce((output, [name, path])=>
-    Object.assign(output, { [name]: loadJSON(path, base) }), {})
-
 export const loadJSON = (path: string, base?: string) =>
   JSON.parse(String(
     base ? readFileSync(new URL(path, base))

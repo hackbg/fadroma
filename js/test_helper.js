@@ -1,5 +1,5 @@
-import { Scrt, ScrtAgentCLI, ScrtAgentJS, ScrtGas } from "./agent/index.js";
-import { ScrtNode } from "./localnet/index.js";
+import { Scrt, ScrtAgentCLI, ScrtAgentJS, ScrtGas } from "./agent";
+import { ScrtNode } from "./localnet";
 
 const fees = {
   upload: ScrtGas.gas(20000000),

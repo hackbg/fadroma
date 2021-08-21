@@ -1,5 +1,5 @@
-import { writeFile, resolve } from "@fadroma/sys"
-import { Agent, isAgent } from '@fadroma/agent'
+import { resolve, writeFile, readFileSync, loadJSON } from "@fadroma/sys"
+//import { Agent, isAgent } from '@fadroma/agent'
 
 import { Factory, getAjv } from "./wrapper"
 
@@ -80,3 +80,10 @@ export class ContractWithSchema extends Contract {
     super(options)
     this.q  = new Factory(schema.queryMsg,  this).create()
     this.tx = new Factory(schema.handleMsg, this).create() } }
+
+export const loadSchemas = (
+  base:    string,
+  schemas: Record<string,string> = {}
+) =>
+  Object.entries(schemas).reduce((output, [name, path])=>
+    Object.assign(output, { [name]: loadJSON(path, base) }), {})

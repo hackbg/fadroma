@@ -12,6 +12,13 @@ import { Network } from './network'
 
 const { debug, warn } = Console(import.meta.url)
 
+/** Check if the passed instance has required methods to behave like an Agent */
+export const isAgent = (maybeAgent: any): boolean => (
+  maybeAgent &&
+  typeof maybeAgent === "object" &&
+  typeof maybeAgent.query === "function" &&
+  typeof maybeAgent.execute === "function");
+
 export interface Agent {
   fees: Record<string, any>
   readonly name:    string
@@ -212,7 +219,7 @@ export class JSAgent<N extends Network> implements Agent {
 
   /**Query a contract. */
   query = (
-    { label, address }, method='', args = null
+    { label, address }, method = '', args = null
   ) => {
     const msg = (args === null) ? method : { [method]: args }
     debug(`❔ ${this.address} ${bold('query')} ${method}`,
@@ -235,10 +242,3 @@ export class JSAgent<N extends Network> implements Agent {
     debug(`❗ ${this.address} ${bold('result')} ${method}`,
       { label, address, method, result })
     return result } }
-
-/** Check if the passed instance has required methods to behave like an Agent */
-export const isAgent = (maybeAgent: any): boolean => (
-  maybeAgent &&
-  typeof maybeAgent === "object" &&
-  typeof maybeAgent.query === "function" &&
-  typeof maybeAgent.execute === "function");

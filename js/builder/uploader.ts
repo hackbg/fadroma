@@ -2,14 +2,10 @@
  *  primarily via the Contract object and not as currently; and be separate features
  *  (dynamically loaded unless using fadroma.js in a browser) */
 
-import { Console, bold }
-  from '@fadroma/cli'
-import { existsSync, readFile, relative, resolve, basename, mkdir, writeFile }
-  from '@fadroma/sys'
-import { Network, Agent }
-  from '@fadroma/agent'
-import { Builder }
-  from './builder'
+import { Console, bold } from '@fadroma/cli'
+import { existsSync, readFile, relative, resolve, basename, mkdir, writeFile } from '@fadroma/sys'
+import { Network, Agent } from '@fadroma/agent'
+import { Builder } from './builder'
 
 const {info} = Console(import.meta.url)
 

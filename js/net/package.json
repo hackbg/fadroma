@@ -2,7 +2,7 @@
   "name": "@fadroma/net",
   "version": "0.1.0",
   "type": "module",
-  "main": "net.ts",
+  "main": "netutil.ts",
   "dependencies": {
     "@fadroma/sys": "*",
     "dockerode": "^3.3.0",

@@ -49,6 +49,8 @@ export interface Network extends NetworkOptions {
   getBuilder     (agent: Agent): BuildUploader
   getContract<T> (api: T, address: string, agent: any): T
 
+  defaultAgent: Agent
+
   readonly wallets:   string
   readonly receipts:  string
   readonly instances: string
