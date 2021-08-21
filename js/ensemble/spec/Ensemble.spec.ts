@@ -1,15 +1,15 @@
 import assert from "assert";
 import path from "path";
 import fs from "fs";
-import { ScrtEnsemble } from "../scrt-ops/index.js";
+import { Ensemble } from "../ensemble";
 
 describe("Secret Network Ensemble", function () {
   let e;
-  class TestEnsemble extends ScrtEnsemble {
+  class TestEnsemble extends Ensemble {
     contracts = { TEST: { crate: "votes" } };
 
     async initialize () {
-      return 1
+      return {}
     }
   }
   

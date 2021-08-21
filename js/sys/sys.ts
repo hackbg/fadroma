@@ -65,7 +65,7 @@ export const loadSchemas = (
   Object.entries(schemas).reduce((output, [name, path])=>
     Object.assign(output, { [name]: loadJSON(path, base) }), {})
 
-export const loadJSON = (path: string, base: string) =>
+export const loadJSON = (path: string, base?: string) =>
   JSON.parse(String(
     base ? readFileSync(new URL(path, base))
          : readFileSync(path)))

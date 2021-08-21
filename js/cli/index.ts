@@ -3,6 +3,10 @@ import { relative } from 'path'
 import { fileURLToPath } from 'url'
 import { render } from 'prettyjson'
 import colors from 'colors'
+import { decode } from '@fadroma/sys'
+
+const { bold } = colors
+export { colors, bold }
 
 // Console /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -22,21 +26,6 @@ export const Console = filename => {
       if (!process.env.NODEBUG) {
         console.debug('\n' + colors.yellow(filename), ...args.map(format)) }
       return args[0] } } }
-
-import * as colors from 'colors/safe.js'
-const { bold } = colors
-export { colors, bold }
-export { render } from 'prettyjson'
-
-import colors from 'colors/safe.js'
-import { table, getBorderCharacters } from 'table'
-
-const {bold} = colors
-const noBorders = {
-  border: getBorderCharacters('void'),
-  columnDefault: { paddingLeft: 0, paddingRight: 2 },
-  drawHorizontalLine: () => false
-}
 
 // Table ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -185,45 +174,26 @@ async function getTx ({API:{restClient}}, tx) {
 
 /// https://en.wikipedia.org/wiki/Pointing_and_calling /////////////////////////////////////////////
 
-import colors from 'colors/safe.js'
-import { render } from 'prettyjson'
-
 export function sayer (prefixes = []) {
-
   return Object.assign(say, { tag })
-
-  function say (x = {}) {
-
+  function say (x: any = {}) {
     const prefix = `#` + prefixes.map(renderPrefix).join(` #`)
-
     if (x instanceof Object) {
       if (x.data instanceof Uint8Array) {
-        x.data = new TextDecoder('utf-8').decode(x.data)
-      }
+        x.data = decode(x.data) }
       console.log(colors.yellow(`${prefix}`))
       if (Object.keys(x).length > 0) {
-        console.log(render(x))
-      }
-    } else {
-      console.log(colors.yellow(`${prefix}`), render(x))
-    }
-
-    return x
-  }
-
-  function tag (x) {
-    return sayer([...prefixes, x])
-  }
-
-  function renderPrefix (x) {
+        console.log(render(x)) } }
+    else {
+      console.log(colors.yellow(`${prefix}`), render(x)) }
+    return x }
+  function tag (x: any) {
+    return sayer([...prefixes, x]) }
+  function renderPrefix (x: any) {
     if (x instanceof Function) {
-      return x()
-    } else {
-      return x
-    }
-  }
-
-}
+      return x() }
+    else {
+      return x } } }
 
 const say = sayer()
 

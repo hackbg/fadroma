@@ -2,7 +2,7 @@
   "name": "@fadroma/contract",
   "version": "0.1.0",
   "type": "module",
-  "main": "index.js",
+  "main": "contract.ts",
   "dependencies": {
     "@fadroma/sys": "*"
   }

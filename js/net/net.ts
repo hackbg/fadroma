@@ -11,7 +11,7 @@ export { waitPort }
 export const freePort = () => new Promise((ok, fail)=>{
   let port = 0
   const server = createServer()
-  server.on('listening', () => { port = server.address().port; server.close() })
+  server.on('listening', () => { port = (server.address() as any).port; server.close() })
   server.on('close', () => ok(port))
   server.on('error', fail)
   server.listen(0, '127.0.0.1') })

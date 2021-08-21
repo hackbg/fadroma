@@ -2,5 +2,9 @@
   "name": "@fadroma/localnet",
   "version": "0.1.0",
   "type": "module",
-  "main": "localnet.js"
+  "main": "localnet.ts",
+  "dependencies": {
+    "@fadroma/net": "*",
+    "@fadroma/sys": "*"
+  }
 }

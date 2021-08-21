@@ -4,6 +4,7 @@
   "type": "module",
   "main": "ensemble.ts",
   "dependencies": {
-    "@fadroma/builder": "*"
+    "@fadroma/builder": "*",
+    "@types/mocha": "^9.0.0"
   }
 }

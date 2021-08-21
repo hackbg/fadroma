@@ -1,4 +1,4 @@
-import Ajv from "ajv";
+import {Ajv} from "ajv";
 
 /**
  * Check if the passed instance has required methods
@@ -36,31 +36,37 @@ const camelCaseString = (str) => {
 export const getAjv = () => {
   const ajv = new Ajv({ strict: false });
 
-  // Add type validation for intN and add automatically uintN
-  const n = (name, max, min) => {
-    ajv.addFormat(name, {
-      type: "number",
-      validate: (x) => !isNaN(x) && x >= min && x <= max,
-    });
-    ajv.addFormat(`u${name}`, {
-      type: "number",
-      validate: (x) => !isNaN(x) && x >= 0 && x <= max,
-    });
-  };
-
-  n("int8", 127, -128);
-  n("int16", 32767, -32768);
-  n("int32", 2147483647, -2147483648);
-  n("int64", 9223372036854775807n, -9223372036854775808n);
+  addNumberType("int8",  127, -128);
+  addNumberType("int16", 32767, -32768);
+  addNumberType("int32", 2147483647, -2147483648);
+  addNumberType("int64", BigInt("9223372036854775807"), BigInt("-9223372036854775808"));
 
   return ajv;
+
+  // Add type validation for intN and add automatically uintN
+  function addNumberType (name: string, max: number|bigint, min: number|bigint) {
+    ajv.addFormat(name, {
+      type:     "number",
+      validate: (x: any) => (!isNaN(x) && x >= min && x <= max) });
+    ajv.addFormat(`u${name}`, {
+      type:     "number",
+      validate: (x: any) => (!isNaN(x) && x >= 0 && x <= max)});
+  };
 };
+
 /**
  * Wrapper factory that will create all the methods
  *
  * @class
  */
 class Factory {
+
+  caller:   string
+  methods:  Array<any>
+  ajv:      any
+  schema:   any
+  contract: any
+
   /**
    * @param {object} schema
    * @param {SecretNetworkContract} contract

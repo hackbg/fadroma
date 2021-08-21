@@ -1,6 +1,6 @@
 import Docker                          from 'dockerode'
 import {Scrt}                          from '@fadroma/agent'
-import {Builder}                       from '@fadroma/builder'
+import {BuildUploader}                 from '@fadroma/builder'
 import {pulled}                        from '@fadroma/net'
 import {resolve, relative, existsSync} from '@fadroma/sys'
 import {taskmaster}                    from '@fadroma/cli'
@@ -19,13 +19,13 @@ export type Path       = string
 
 export type CtorArgs   = { network?:   Network
                          , agent?:     Agent
-                         , builder?:   Builder
+                         , builder?:   BuildUploader
                          , workspace?: Path }
 
 export type Contract   = { crate: string }
 
 export type BuildArgs  = { task?:      Function
-                         , builder?:   Builder
+                         , builder?:   BuildUploader
                          , workspace?: Path
                          , outputDir?: Path
                          , parallel?:  boolean }
@@ -35,7 +35,7 @@ export type Artifacts  = Record<string, Artifact>
 
 export type UploadArgs = { task?:      Function
                          , network?:   Network
-                         , builder?:   Builder
+                         , builder?:   BuildUploader
                          , artifacts?: Artifacts }
 
 export type Receipt    = any
@@ -79,7 +79,7 @@ export class Ensemble {
   network:   Network | null
   agent:     Agent   | null
 
-  builder:   Builder | null
+  builder:   BuildUploader | null
   docker     = new Docker({ socketPath: '/var/run/docker.sock' })
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
 
@@ -113,7 +113,7 @@ export class Ensemble {
   /* Compile the contracts for production. */
   async build (options: BuildArgs = {}): Promise<Artifacts> {
     const { task      = taskmaster()
-          , builder   = this.builder   || new Builder({ docker: this.docker })
+          , builder   = this.builder   || new BuildUploader({ docker: this.docker })
           , workspace = this.workspace || required('workspace')
           , outputDir = resolve(workspace, 'artifacts')
           , parallel  = true } = options || {}
@@ -124,14 +124,13 @@ export class Ensemble {
     const artifacts = {}
     await (parallel ? buildInParallel() : buildInSeries())
     console.log(table(Object.entries(artifacts).map(
-      ([name, path])=>([bold(name), relative(process.cwd(), path)]))))
+      ([name, path])=>([bold(name), relative(process.cwd(), path as string)]))))
     return artifacts
 
     async function buildInParallel () {
       await task.parallel(`build ${ensembleName}`,
         ...Object.entries(contracts).map(async ([contractName, {crate}])=>
-          artifacts[contractName] = await buildOne(ensembleName, contractName, crate)))
-      return artifacts }
+          artifacts[contractName] = await buildOne(ensembleName, contractName, crate))) }
 
     async function buildInSeries () {
       for (const [contractName, {crate}] of Object.entries(contracts)) {
