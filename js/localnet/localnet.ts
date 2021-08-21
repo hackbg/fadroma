@@ -1,4 +1,3 @@
-
 import { Console, bold } from '@fadroma/cli'
 const { warn, info, debug } = Console(import.meta.url)
 
