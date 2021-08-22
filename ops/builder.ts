@@ -93,25 +93,25 @@ const {info} = Console(import.meta.url)
 
 export class ScrtUploader extends ScrtBuilder implements BuildUploader {
 
-  network: Chain
-  agent:   Agent
+  chain: Chain
+  agent: Agent
 
   constructor (options={}) {
     super(options)
     // some puny dependency auto negotiation so you can pass partial objects
-    let { network, agent } = options as any
-    if (!network && agent) {
-      network = agent.network }
-    else if (!agent && network) {
-      agent = network.defaultAgent }
-    this.network = network
+    let { chain, agent } = options as any
+    if (!chain && agent) {
+      chain = agent.chain }
+    else if (!agent && chain) {
+      agent = chain.defaultAgent }
+    this.chain = chain
     this.agent   = agent }
 
   /* Contracts will be deployed from this address. */
   get address () {
     return this.agent ? this.agent.address : undefined }
 
-  /** Try to upload a binary to the network but return a pre-existing receipt if one exists.
+  /** Try to upload a binary to the chain but return a pre-existing receipt if one exists.
    *  TODO also code checksums should be validated */
   async uploadCached (artifact: any) {
     const receiptPath = this.getReceiptPath(artifact)
@@ -123,9 +123,9 @@ export class ScrtUploader extends ScrtBuilder implements BuildUploader {
       return this.upload(artifact) } }
 
   getReceiptPath = (path: string) =>
-    resolve(this.network.receipts, `${basename(path)}.upload.json`)
+    resolve(this.chain.receipts, `${basename(path)}.upload.json`)
 
-  /** Upload a binary to the network. */
+  /** Upload a binary to the chain. */
   async upload (artifact: any) {
     const uploadResult = await this.agent.upload(artifact)
         , receiptData  = JSON.stringify(uploadResult, null, 2)

@@ -1,3 +1,6 @@
+import open from 'open'
+export { open }
+
 export { cwd, stderr, env } from 'process'
 import { cwd } from 'process'
 

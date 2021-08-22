@@ -1,12 +1,15 @@
 import type {
-  Path, Commands, Chain, Agent, BuildUploader,
-  EnsembleContractInfo, EnsembleOptions, EnsembleDeploy,
+  Path, Commands,
+  Chain, Agent,
+  BuildUploader,
+  Ensemble, EnsembleContractInfo, EnsembleOptions, EnsembleDeploy,
   EnsembleBuild, EnsembleUpload, EnsembleInit,
   Artifacts, Uploads, Instances } from './types'
 
 import {Docker, pulled} from './network'
 import {resolve, relative, existsSync} from './system'
 import {taskmaster} from './command'
+import {ScrtBuilder} from './builder'
 
 import {table} from 'table'
 import colors from 'colors'
@@ -20,7 +23,7 @@ const timestamp = (d = new Date()) =>
     .replace(/[T]/g, '_')
     .slice(0, -3)
 
-export class Ensemble {
+export class ContractEnsemble implements Ensemble {
 
   static Errors = {
     NOTHING: "Please specify a chain, agent, or builder",
@@ -41,7 +44,7 @@ export class Ensemble {
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
 
   constructor (provided: EnsembleOptions = {}) {
-    this.chain   = provided.chain   || null
+    this.chain     = provided.chain   || null
     this.agent     = provided.agent     || this.chain?.defaultAgent || null
     this.builder   = provided.builder   || this.chain?.getBuilder(this.agent) || null
     this.workspace = provided.workspace || null }
@@ -66,7 +69,7 @@ export class Ensemble {
   /* Compile the contracts for production. */
   async build ({
     task      = taskmaster(),
-    builder   = this.builder   || new BuildUploader({ docker: this.docker }),
+    builder   = this.builder   || new ScrtBuilder({ docker: this.docker }),
     workspace = this.workspace || required('workspace'),
     outputDir = resolve(workspace, 'artifacts'),
     parallel  = true,
@@ -131,11 +134,11 @@ export class Ensemble {
   /** Commands that can be executed locally. */
   localCommands (): Commands {
     return [[ "build"
-            , Ensemble.Info.BUILD
+            , ContractEnsemble.Info.BUILD
             , (ctx: any, sequential: boolean) => this.build({...ctx, parallel: !sequential})]] }
 
   /** Commands that require a connection to a chain. */
   remoteCommands (): Commands {
     return [[ "deploy"
-            , Ensemble.Info.DEPLOY
+            , ContractEnsemble.Info.DEPLOY
             , (ctx: any) => this.deploy(ctx).then(console.info) ]] } }

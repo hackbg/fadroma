@@ -1,5 +1,4 @@
-import { Agent } from './agent'
-import { Chain } from './chain'
+import type { Chain, Agent } from './types'
 import { Console, bold } from './command'
 
 import { execFile, spawn } from 'child_process'
@@ -23,7 +22,7 @@ const tryToUnlockKeyring = async () => new Promise(
 
 export class CLIAgent implements Agent {
 
-  network: Chain
+  chain: Chain
 
   name: string
   address: string
@@ -70,7 +69,7 @@ export class CLIAgent implements Agent {
   async getBalance (denomination: string) {
     return ((await this.account).value.coins.filter(x=>x.denom===denomination)[0]||{}).amount }
 
-  async send (recipient, amount, denom = 'uscrt', memo = '') {
+  async send (recipient: any, amount: any, denom = 'uscrt', memo = '') {
     throw new Error('not implemented') }
 
   async sendMany (txs = [], memo = '', denom = 'uscrt', fee) {

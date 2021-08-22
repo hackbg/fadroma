@@ -1,9 +1,10 @@
 import type {
-  Chain, ChainOptions, ChainConnectOptions,
+  Chain, ChainNode, ChainState, ChainConnectOptions, Connection,
   Agent, JSAgentCreateArgs,
-  BuildUploader } from './types'
+  BuildUploader,
+  Ensemble, EnsembleOptions } from './types'
 import { defaultStateBase } from './constants'
-import { mkdir, makeStateDir } from './system'
+import { mkdir, makeStateDir, open } from './system'
 import { ScrtNode } from './localnet'
 import { ScrtUploader } from './builder'
 import { JSAgent } from './agent-secretjs'
@@ -13,23 +14,23 @@ const {debug, info} = Console(import.meta.url)
 
 export class Scrt implements Chain {
 
-  /** Used to allow the network to be specified as a string by
-   *  turning a well-known network name into a Scrt instance. */
-  static hydrate (network: any): Scrt {
-    if (typeof network === 'string') {
-      const networks = ['localnet','testnet','mainnet']
-      if (networks.indexOf(network) < 0) {
-        throw new Error(`Unknown network type: "${network}", valid ones are: ${networks.join(' ')}`) }
-      network = Scrt[network]() }
-    return network }
+  /** Used to allow the chain to be specified as a string by
+   *  turning a well-known chain name into a Scrt instance. */
+  static hydrate (chain: any): Scrt {
+    if (typeof chain === 'string') {
+      const chains = ['localnet','testnet','mainnet']
+      if (chains.indexOf(chain) < 0) {
+        throw new Error(`Unknown chain type: "${chain}", valid ones are: ${chains.join(' ')}`) }
+      chain = Scrt[chain]() }
+    return chain }
 
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
   static localnet (options: ChainConnectOptions = {}): Scrt {
     options.chainId = options.chainId || 'enigma-pub-testnet-3';
-    options.apiURL  = options.apiURL  || 'http://localhost:1337';
+    options.apiURL  = options.apiURL  || new URL('http://localhost:1337');
     const node = options.node || new ScrtNode(options);
-    options.node = node;
+    options.node = node as ChainNode;
     // no default agent name/address/mnemonic:
     // connect() gets them from genesis accounts
     return new Scrt(options) }
@@ -39,7 +40,7 @@ export class Scrt implements Chain {
   static testnet ({
     chainId = 'holodeck-2',
     apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-    apiURL  = `https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`,
+    apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
     defaultAgentName     = process.env.SECRET_NETWORK_TESTNET_NAME,
     defaultAgentAddress  = process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
     defaultAgentMnemonic = process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
@@ -51,7 +52,7 @@ export class Scrt implements Chain {
   static mainnet ({
     chainId = 'secret-2',
     apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-    apiURL  = `https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`,
+    apiURL  = new URL(`https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
     defaultAgentName     = process.env.SECRET_NETWORK_MAINNET_NAME,
     defaultAgentAddress  = process.env.SECRET_NETWORK_MAINNET_ADDRESS,
     defaultAgentMnemonic = process.env.SECRET_NETWORK_MAINNET_MNEMONIC
@@ -60,7 +61,7 @@ export class Scrt implements Chain {
 
   chainId: string
   apiURL:  URL
-  node:    Node
+  node:    ChainNode
 
   defaultAgentName:     string
   defaultAgentAddress:  string
@@ -79,12 +80,12 @@ export class Scrt implements Chain {
    * @param {Object} options           - the configuration options
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
    * TODO document the remaining options */
-  constructor (options: ChainOptions = {}) {
+  constructor (options: ChainState = {}) {
     const node = this.node = options.node || null
 
     // info needed to connect to the chain's REST API
     this.chainId = options.chainId || node?.chainId || 'enigma-pub-testnet-3'
-    this.apiURL  = new URL(options.apiURL || node?.apiURL || 'http://localhost:1337/')
+    this.apiURL  = options.apiURL || node?.apiURL || new URL('http://localhost:1337/')
     // directories to store state.
     this.stateBase = options.stateBase || defaultStateBase,
     this.state     = options.state     || makeStateDir(this.stateBase, this.chainId)
@@ -93,13 +94,13 @@ export class Scrt implements Chain {
     this.instances = options.instances || mkdir(this.state, 'instances')
     // handle to localnet node if this is localnet
     // default agent credentials
-    this.defaultAgentName     = options.defaultAgentName
+    this.defaultAgentName     = options.defaultAgentName || 'agent'
     this.defaultAgentAddress  = options.defaultAgentAddress
     this.defaultAgentMnemonic = options.defaultAgentMnemonic }
 
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
-  async connect () {
+  async connect (): Promise<Connection> {
     // default credentials will be used as-is unless using localnet
     let { defaultAgentMnemonic: mnemonic
         , defaultAgentAddress:  address } = this
@@ -115,7 +116,7 @@ export class Scrt implements Chain {
       await node.ready
 
       // set the correct port to connect to
-      this.apiURL.port = node.port
+      this.apiURL.port = String(node.port)
       info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
 
       // get the default account for the node
@@ -127,7 +128,7 @@ export class Scrt implements Chain {
     info(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
     const agent: Agent = this.defaultAgent = await this.getAgent({ name: "ADMIN", mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
-    return { node, network: this, agent, builder: this.getBuilder(agent) } }
+    return { node, chain: this, agent, builder: this.getBuilder(agent) } }
 
   /**The API URL that this instance talks to.
    * @type {string} */
@@ -135,14 +136,14 @@ export class Scrt implements Chain {
     return this.apiURL.toString() }
 
   /** create agent operating on the current instance's endpoint*/
-  async getAgent (options: JSAgentCreateArgs<Scrt> = {}) {
+  async getAgent (options: JSAgentCreateArgs = {}): Promise<Agent> {
     if (options.mnemonic || options.keyPair) {
       info(`Using a SecretJS-based agent.`)
-      const network = this
-      return await JSAgent.create(Scrt, { ...options, network }) }
-    else if (options.name) {
+      return await JSAgent.create({ ...options, chain: this as Chain }) }
+    else if (options.name || this.defaultAgentName) {
       info(`Using a secretcli-based agent.`)
-      return new CLIAgent({ name: options.name }) }
+      const name = options.name || this.defaultAgentName
+      return new CLIAgent({ chain: this, name }) as Agent }
     else {
       throw new Error(
         'need a name to create a secretcli-backed agent, ' +
@@ -150,10 +151,41 @@ export class Scrt implements Chain {
 
   /** create builder operating on the current instance's endpoint */
   getBuilder (agent: Agent): BuildUploader {
-    return new ScrtUploader({network: this, agent}) }
+    return new ScrtUploader({chain: this, agent}) }
 
   /** create contract instance from interface class and address */
   getContract (ContractAPI: any, contractAddress: string, agent = this.defaultAgent) {
     return new ContractAPI({
       initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
       agent }) } }
+
+
+export function onChain (
+  E: new (args: EnsembleOptions) => Ensemble
+) {
+  return [
+    ["mainnet", "Deploy and run contracts on the mainnet with real money.",
+      on.mainnet,  new E({chain: Scrt.mainnet() as Chain}).remoteCommands()],
+    ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.",
+      on.testnet,  new E({chain: Scrt.testnet() as Chain}).remoteCommands()],
+    ["localnet", "Deploy and run contracts in a local container.",
+      on.localnet, new E({chain: Scrt.localnet() as Chain}).remoteCommands()] ] }
+
+export const on = {
+  localnet (context: any = {}) {
+    console.debug(`Running on ${bold('localnet')}:`)
+    context.chain = Scrt.localnet() },
+  testnet (context: any = {}) {
+    console.debug(`Running on ${bold('testnet')}:`)
+    context.chain = Scrt.testnet() },
+  mainnet (context: any = {}) {
+    console.debug(`Running on ${bold('mainnet')}:`)
+    context.chain = Scrt.mainnet() } }
+
+export function resetLocalnet () {
+  return new ScrtNode().terminate() }
+
+export function openFaucet () {
+  const url = `https://faucet.secrettestnet.io/`
+  console.debug(`Opening ${url}...`)
+  open(url) }

@@ -6,18 +6,19 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
          makeSignBytes } from 'secretjs'
 
-import { Chain, Agent } from './types'
+import { Chain, Agent, JSAgentCtorArgs, JSAgentCreateArgs } from './types'
 import { gas, defaultFees } from './gas'
 
 const { debug, warn } = Console(import.meta.url)
 
 /** Queries and transacts on an instance of the Secret Chain */
-export class JSAgent<N extends Chain> implements Agent {
+export class JSAgent implements Agent {
+
+  chain: Chain
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create (
-    Chain: new () => Chain,
-    options: JSAgentCreateArgs<Chain>
+    options: JSAgentCreateArgs
   ) {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
@@ -34,7 +35,7 @@ export class JSAgent<N extends Chain> implements Agent {
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new JSAgent<Chain>(Chain, {name, mnemonic, keyPair, pen, ...args}) }
+    return new JSAgent({name, mnemonic, keyPair, pen, ...args}) }
 
   readonly network: N
   readonly API:     SigningCosmWasmClient
@@ -49,7 +50,7 @@ export class JSAgent<N extends Chain> implements Agent {
   fees = defaultFees
 
   /** Create a new agent from a signing pen. */
-  constructor (Chain: new () => N, options: JSAgentCtorArgs<N>) {
+  constructor (options: JSAgentCtorArgs) {
     const network = this.network =
       (typeof options.network === 'string')
         ? options.Chain[options.network].hydrate()

@@ -1,5 +1,7 @@
 import type { Docker } from './network'
 
+export type Path = string
+
 export type CommandName = string
 export type CommandInfo = string
 export type Command  = [CommandName|Array<CommandName>, CommandInfo, Function, Commands?]
@@ -10,19 +12,10 @@ export type Taskmaster = Function & {
   parallel: Function
 }
 
-export type Path    = string
-
-export type Connection = {
-  node:    Path
-  chain:   Chain
-  agent:   Agent
-  builder: BuildUploader
-}
-
 export interface Chain extends ChainState {
   get url        (): string
   connect        (): Promise<Connection>
-  getAgent       (options?: JSAgentCreateArgs<Chain>): Promise<Agent>
+  getAgent       (options?: JSAgentCreateArgs): Promise<Agent>
   getBuilder     (agent: Agent): BuildUploader
   getContract<T> (api: T, address: string, agent: any): T
 
@@ -43,8 +36,8 @@ export interface ChainState extends ChainOptions {
 
 export interface ChainOptions {
   chainId?: string
-  apiURL?:  URL|string
-  node?:    Node
+  apiURL?:  URL
+  node?:    ChainNode
   defaultAgentName?:     string
   defaultAgentAddress?:  string
   defaultAgentMnemonic?: string
@@ -52,6 +45,40 @@ export interface ChainOptions {
 
 export interface ChainConnectOptions extends ChainOptions {
   apiKey?: string
+}
+
+export type Connection = {
+  node:    ChainNode
+  chain:   Chain
+  agent:   Agent
+  builder: BuildUploader
+}
+
+export interface ChainNode {
+  chainId?: string
+  apiURL?:  URL
+  port:     number
+
+  readonly ready: Promise<any>
+
+  new       (args: ChainNodeOptions)
+  load      (): Record<any, any>
+  save      (): Promise<void>
+  erase     (): Promise<void>
+  respawn   (): Promise<void>
+  spawn     (): Promise<void>
+  suspend   (): Promise<void>
+  terminate (): Promise<void>
+
+  genesisAccount(name: string): any
+}
+
+export type ChainNodeOptions = {
+  docker?:  Docker
+  image?:   string
+  chainId?: string
+  genesisAccounts?: Array<string>
+  state?:   string,
 }
 
 export interface Agent {
@@ -101,17 +128,16 @@ export const isAgent = (maybeAgent: any): boolean => (
   typeof maybeAgent.query === "function" &&
   typeof maybeAgent.execute === "function");
 
-export interface JSAgentCreateArgs<N extends Chain> {
+export interface JSAgentCreateArgs {
   name?:     string,
   address?:  string,
   mnemonic?: string,
   keyPair?:  any
-  chain?:    N|string
+  chain?:    Chain
 }
 
-export interface JSAgentCtorArgs<N extends Chain> {
-  Chain?:    N
-  chain?:    N|string
+export interface JSAgentCtorArgs {
+  chain?:    Chain
   pen?:      any
   mnemonic?: any
   keyPair?:  any
@@ -120,7 +146,8 @@ export interface JSAgentCtorArgs<N extends Chain> {
 }
 
 export interface BuildUploader {
-  build (options: BuildArgs): Promise<Path>
+  build        (options: BuildArgs): Promise<Path>
+  uploadCached (artifact: Artifact): Promise<Upload>
 }
 
 export type BuilderOptions = {
@@ -154,23 +181,15 @@ export type Prefund = {
   wallets?:    any
 }
 
-export type NodeCtorArgs = {
-  docker?:  Docker
-  image?:   string
-  chainId?: string
-  genesisAccounts?: Array<string>
-  state?:   string,
-}
+export interface Ensemble {
+  deploy     (options: EnsembleDeploy): Promise<Instances>
+  build      (options: EnsembleBuild):  Promise<Artifacts>
+  upload     (options: EnsembleUpload): Promise<Uploads>
+  initialize (options: EnsembleInit):   Promise<Instances>
 
-export interface Node {
-  new       (args: NodeCtorArgs)
-  load      (): Record<any, any>
-  save      (): Promise<void>
-  erase     (): Promise<void>
-  respawn   (): Promise<void>
-  spawn     (): Promise<void>
-  suspend   (): Promise<void>
-  terminate (): Promise<void>
+  commands       (): Commands
+  localCommands  (): Commands
+  remoteCommands (): Commands
 }
 
 export type EnsembleContractInfo = { crate: string }
