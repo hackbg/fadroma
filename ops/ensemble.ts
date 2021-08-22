@@ -1,6 +1,8 @@
 import type {
   Path, Commands, Chain, Agent, BuildUploader,
-  EnsembleContractInfo, EnsembleOptions, Instances } from './types'
+  EnsembleContractInfo, EnsembleOptions, EnsembleDeploy,
+  EnsembleBuild, EnsembleUpload, EnsembleInit,
+  Artifacts, Uploads, Instances } from './types'
 
 import {Docker, pulled} from './network'
 import {resolve, relative, existsSync} from './system'
@@ -47,7 +49,7 @@ export class Ensemble {
   /* Build, upload, and instantiate the contracts. */
   async deploy ({
     task      = taskmaster(),
-    chain   = this.chain,
+    chain     = this.chain,
     agent     = this.agent,
     builder   = this.builder,
     initMsgs  = {},

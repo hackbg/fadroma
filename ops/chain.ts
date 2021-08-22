@@ -5,6 +5,7 @@ import type {
 import { defaultStateBase } from './constants'
 import { mkdir, makeStateDir } from './system'
 import { ScrtNode } from './localnet'
+import { ScrtUploader } from './builder'
 import { JSAgent } from './agent-secretjs'
 import { CLIAgent } from './agent-secretcli'
 import { Console, bold } from './command'
@@ -149,7 +150,7 @@ export class Scrt implements Chain {
 
   /** create builder operating on the current instance's endpoint */
   getBuilder (agent: Agent): BuildUploader {
-    return new BuildUploader({network: this, agent}) }
+    return new ScrtUploader({network: this, agent}) }
 
   /** create contract instance from interface class and address */
   getContract (ContractAPI: any, contractAddress: string, agent = this.defaultAgent) {
