@@ -21,13 +21,13 @@ export const Console = (context: string) => {
   const format = (arg:any) =>
     '\n'+((typeof arg === 'object') ? render(arg) : arg)
   return {
-    context,
-    format,
-    table: (rows:    any) => console.log(table(rows)),
+    context, format,
+    table: (rows: any) => console.log(table(rows)),
     info:  (...args: any) => console.info('ℹ️ ', ...args),
     log:   (...args: any) => console.log(...args),
     warn:  (...args: any) => console.warn('⚠️ ', ...args),
     error: (...args: any) => console.error('🦋', ...args),
+    trace: (...args: any) => console.trace('🦋', ...args),
     debug: (...args: any) => {
       if (!process.env.NO_DEBUG) {
         console.debug('\n' + colors.yellow(`[${context}]`),

@@ -1,87 +1,156 @@
+import type { Path, JSONFile, Directory } from './system'
 import type { Docker } from './network'
 
-export type Path = string
+export { Path }
 
 export type CommandName = string
 export type CommandInfo = string
 export type Command  = [CommandName|Array<CommandName>, CommandInfo, Function, Commands?]
 export type Commands = Array<Command|null>
 
+/* Taskmaster is a quick and dirty stopwatch/logging helper that can
+ * generate a rough profile of one or more contract operations
+ * in terms of time and gas. */
 export type Taskmaster = Function & {
+  /* Call when complete. */
   done:     Function
+  /* Run several operations in parallel. */
   parallel: Function
 }
 
+/* Represents an interface to a particular Cosmos blockchain.
+ * Used to construct agents, builders, and contracts that are
+ * bound to a particular chain. */
 export interface Chain extends ChainState {
-  get url        (): string
-  connect        (): Promise<Connection>
-  getAgent       (options?: JSAgentCreateArgs): Promise<Agent>
-  getBuilder     (agent: Agent): BuildUploader
+  /* Stuff that should be in the constructor but is asynchronous.
+   *
+   * FIXME: How come nobody has proposed sugar for async constructors yet?
+   * Feeling like writing a `@babel/plugin-async-constructor`, as always
+   * bonus internet points for whoever beats me to it. */
+  init (): Promise<Chain>
+
+  /* The connection address is stored internally as a URL object,
+   * but returned as a string.
+   *
+   * FIXME why so? */
+  get url (): string
+
+  /* Get an Agent that works with this Chain. */
+  getAgent (options?: Identity): Promise<Agent>
+
+  /* Get a Builder that works with this Chain,
+   * optionally providing a specific Agent to perform
+   * the contract upload operation. */
+  getBuilder (agent?: Agent): Promise<BuildUploader>
+
+  /* Get a Contract that exists on this Chain, or a non-existent one
+   * which you can then create via Agent#instantiate
+   *
+   * FIXME: awkward inversion of control */
   getContract<T> (api: T, address: string, agent: any): T
 
-  defaultAgent: Agent
+  /* Credentials of the default agent for this network.
+   * Picked up from environment variable, see the subclass
+   * implementation for more info. */
+  defaultAgent: Identity
 
-  readonly wallets:   string
-  readonly receipts:  string
-  readonly instances: string
+  /* This directory stores all private keys that are available for use. */
+  readonly identities: Directory
+
+  /* This directory stores receipts from the upload transactions,
+   * containing provenance info for uploaded code blobs. */
+  readonly uploads:   Directory
+
+  /* This directory stores receipts from the instantiation (init) transactions,
+   * containing provenance info for initialized contract instances.
+   *
+   * NOTE: the current domain vocabulary considers initialization and instantiation,
+   * as pertaining to contracts on the blockchain, to be the same thing. */
+  readonly instances: Directory
 }
 
 export interface ChainState extends ChainOptions {
-  stateBase?: Path
-  state?:     Path
-  wallets?:   Path
-  receipts?:  Path
-  instances?: Path
+  stateRoot?:  Path
+  state?:      Path
+  identities?: Directory
+  uploads?:    Directory
+  instances?:  Directory
 }
 
 export interface ChainOptions {
   chainId?: string
   apiURL?:  URL
   node?:    ChainNode
-  defaultAgentName?:     string
-  defaultAgentAddress?:  string
-  defaultAgentMnemonic?: string
+  defaultAgent?: {
+    name?: string,
+    address?: string,
+    mnemonic?: string
+  }
 }
 
 export interface ChainConnectOptions extends ChainOptions {
   apiKey?: string
 }
 
-export type Connection = {
-  node:    ChainNode
-  chain:   Chain
-  agent:   Agent
-  builder: BuildUploader
-}
-
 export interface ChainNode {
-  chainId?: string
-  apiURL?:  URL
-  port:     number
-
-  readonly ready: Promise<any>
-
-  new       (args: ChainNodeOptions)
-  load      (): Record<any, any>
-  save      (): Promise<void>
-  erase     (): Promise<void>
-  respawn   (): Promise<void>
+  chainId: string
+  apiURL:  URL
+  port:    number
+  /* Resolved when the node is ready */
+  readonly ready: Promise<void>
+  /* Path to the node state directory */
+  readonly stateRoot: Directory
+  /* Path to the node state file */
+  readonly nodeState: JSONFile
+  /* Path to the directory containing the keys to the genesis accounts. */
+  readonly identities: Directory
+  /* Retrieve the node state */
+  load      (): ChainNodeState
+  /* Start the node */
   spawn     (): Promise<void>
-  suspend   (): Promise<void>
-  terminate (): Promise<void>
-
-  genesisAccount(name: string): any
+  /* Save the info needed to respawn the node */
+  save      (): this
+  /* Stop the node */
+  kill      (): Promise<void>
+  /* Start the node if stopped */
+  respawn   (): Promise<void>
+  /* Erase the state of the node */
+  erase     (): Promise<void>
+  /** Stop the node and erase its state from the filesystem. */
+  terminate () : Promise<void>
+  /** Retrieve one of the genesis accounts stored when creating the node. */
+  genesisAccount (name: string): Identity
 }
+
+export type ChainNodeState = Record<any, any>
 
 export type ChainNodeOptions = {
-  docker?:  Docker
-  image?:   string
-  chainId?: string
-  genesisAccounts?: Array<string>
-  state?:   string,
+  /** Handle to Dockerode or compatible
+   *  TODO mock! */
+  docker?:    Docker
+  /** Docker image of the chain's runtime. */
+  image?:     string
+  /** Internal name that will be given to chain. */
+  chainId?:   string
+  /** Path to directory where state will be stored. */
+  stateRoot?: string,
+  /** Names of genesis accounts to be created with the node */
+  identities?: Array<string>
 }
 
-export interface Agent {
+export type Identity = {
+  chain?:    Chain,
+  name?:     string,
+  type?:     string,
+  address?:  string
+  pubkey?:   string
+  mnemonic?: string
+  keyPair?:  any
+  pen?:      any
+  fees?:     any
+}
+
+export interface Agent extends Identity {
   fees: Record<string, any>
   readonly name:    string
   readonly address: string
@@ -126,28 +195,14 @@ export const isAgent = (maybeAgent: any): boolean => (
   maybeAgent &&
   typeof maybeAgent === "object" &&
   typeof maybeAgent.query === "function" &&
-  typeof maybeAgent.execute === "function");
-
-export interface JSAgentCreateArgs {
-  name?:     string,
-  address?:  string,
-  mnemonic?: string,
-  keyPair?:  any
-  chain?:    Chain
-}
-
-export interface JSAgentCtorArgs {
-  chain?:    Chain
-  pen?:      any
-  mnemonic?: any
-  keyPair?:  any
-  name?:     any
-  fees?:     any
-}
+  typeof maybeAgent.execute === "function"
+)
 
 export interface BuildUploader {
-  build        (options: BuildArgs): Promise<Path>
-  uploadCached (artifact: Artifact): Promise<Upload>
+  build          (options: BuildArgs): Promise<Path>
+  buildOrCached  (options: BuildArgs): Promise<Path>
+  upload         (artifact: Artifact): Promise<Upload>
+  uploadOrCached (artifact: Artifact): Promise<Upload>
 }
 
 export type BuilderOptions = {
@@ -170,25 +225,45 @@ export type BuildArgs = {
 }
 
 export type Prefund = {
+  /** Taskmaster. TODO replace with generic observability mechanism (RxJS?) */
   task?:       Function
+  /** How many identities to create */
   count?:      number
+  /** How many native tokens to send to each identity */
   budget?:     bigint
-
-  chain?:      Chain|string
+  /** On which chain is this meant to happen? */
+  chain?:      Chain
+  /** Agent that distributes the tokens -
+   *  needs to have sufficient balance 
+   *  e.g. genesis account on localnet) */
   agent?:      Agent
-
+  /** Map of specific recipients to receive funds. */
   recipients?: Record<any, {agent: Agent}>
-  wallets?:    any
+  /** Map of specific identities to receive funds.
+   *  FIXME redundant with the above*/
+  identities?:    any
 }
 
 export interface Ensemble {
-  deploy     (options: EnsembleDeploy): Promise<Instances>
-  build      (options: EnsembleBuild):  Promise<Artifacts>
-  upload     (options: EnsembleUpload): Promise<Uploads>
+  /* Build, upload, and initialize. */
+  deploy (options: EnsembleDeploy): Promise<Instances>
+
+  /* Compile the contracts from source using a Builder. */
+  build (options: EnsembleBuild):  Promise<Artifacts>
+
+  /* Upload the contracts to a Chain using a BuildUploader. */
+  upload (options: EnsembleUpload): Promise<Uploads>
+
+  /* Init instances of uploaded contracts using an Agent. */
   initialize (options: EnsembleInit):   Promise<Instances>
 
+  /* Definitions of all user-available actions for this ensemble. */
   commands       (): Commands
+
+  /* Definitions of commands that don't require a connection. */
   localCommands  (): Commands
+
+  /* Definitions of commands that require a connection. */
   remoteCommands (): Commands
 }
 

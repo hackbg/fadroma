@@ -9,7 +9,7 @@ import type {
 import {Docker, pulled} from './network'
 import {resolve, relative, existsSync} from './system'
 import {taskmaster} from './command'
-import {ScrtBuilder} from './builder'
+import {ScrtUploader} from './builder'
 
 import {table} from 'table'
 import colors from 'colors'
@@ -44,10 +44,16 @@ export class ContractEnsemble implements Ensemble {
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
 
   constructor (provided: EnsembleOptions = {}) {
-    this.chain     = provided.chain   || null
-    this.agent     = provided.agent     || this.chain?.defaultAgent || null
-    this.builder   = provided.builder   || this.chain?.getBuilder(this.agent) || null
+    this.chain     = provided.chain     || null
+    this.agent     = provided.agent     || null
+    this.builder   = provided.builder   || null
     this.workspace = provided.workspace || null }
+
+  async init () {
+    await this.chain.init()
+    this.agent   = this.agent   || await this.chain.getAgent()
+    this.builder = this.builder || await this.chain.getBuilder(this.agent)
+    return this }
 
   /* Build, upload, and instantiate the contracts. */
   async deploy ({
@@ -59,6 +65,7 @@ export class ContractEnsemble implements Ensemble {
     workspace = this.workspace,
     additionalBinds
   }: EnsembleDeploy = {}): Promise<Instances> {
+    await this.init()
     if (!chain) throw new Error('need a Chain to deploy to')
     return await task('build, upload, and initialize contracts', async () => {
       const artifacts = await this.build({ task, builder, workspace, additionalBinds })
@@ -69,20 +76,27 @@ export class ContractEnsemble implements Ensemble {
   /* Compile the contracts for production. */
   async build ({
     task      = taskmaster(),
-    builder   = this.builder   || new ScrtBuilder({ docker: this.docker }),
     workspace = this.workspace || required('workspace'),
     outputDir = resolve(workspace, 'artifacts'),
     parallel  = true,
     additionalBinds
   }: EnsembleBuild = {}): Promise<Artifacts> {
+    await this.init()
+
     // pull build container
     await pulled(this.buildImage, this.docker)
+
     // build all contracts
-    const { contracts, constructor: { name: ensembleName } } = this
+    const { contracts
+          , constructor: { name: ensembleName }
+          , builder = new ScrtUploader({ docker: this.docker }) } = this
+
     const artifacts = {}
     await (parallel ? buildInParallel() : buildInSeries())
-    console.log(table(Object.entries(artifacts).map(
-      ([name, path])=>([bold(name), relative(process.cwd(), path as string)]))))
+
+    console.log(table(Object.entries(artifacts).map(([name, path])=>
+      ([bold(name), relative(process.cwd(), path as string)]))))
+
     return artifacts
 
     async function buildInParallel () {
@@ -107,16 +121,16 @@ export class ContractEnsemble implements Ensemble {
   /* Upload the contracts to the chain, and write upload receipts in the corresponding directory.
    * If receipts are already present, return their contents instead of uploading. */
   async upload ({
-    task    = taskmaster(),
-    builder = this.builder,
+    task = taskmaster(),
     artifacts
   }: EnsembleUpload): Promise<Uploads> {
+    await this.init()
     // if artifacts are not passed, build 'em
     artifacts = artifacts || await this.build()
     const uploads = {}
     for (const contract of Object.keys(this.contracts)) {
       await task(`upload ${contract}`, async (report: Function) => {
-        const receipt = uploads[contract] = await builder.uploadCached(artifacts[contract])
+        const receipt = uploads[contract] = await this.builder.uploadCached(artifacts[contract])
         console.log(`⚖️  compressed size ${receipt.compressedSize} bytes`)
         report(receipt.transactionHash) }) }
     return uploads }

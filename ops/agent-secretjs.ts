@@ -6,20 +6,16 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
          makeSignBytes } from 'secretjs'
 
-import { Chain, Agent, JSAgentCtorArgs, JSAgentCreateArgs } from './types'
+import { Scrt, Agent, Identity } from './types'
 import { gas, defaultFees } from './gas'
 
 const { debug, warn } = Console(import.meta.url)
 
 /** Queries and transacts on an instance of the Secret Chain */
-export class JSAgent implements Agent {
-
-  chain: Chain
+export class ScrtJSAgent implements Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
-  static async create (
-    options: JSAgentCreateArgs
-  ) {
+  static async create (options: Identity) {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
     if (mnemonic) {
@@ -35,11 +31,11 @@ export class JSAgent implements Agent {
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new JSAgent({name, mnemonic, keyPair, pen, ...args}) }
+    return new ScrtJSAgent({name, mnemonic, keyPair, pen, ...args}) }
 
-  readonly network: N
-  readonly API:     SigningCosmWasmClient
-  readonly name:    string
+  readonly chain:    Scrt
+  readonly API:      SigningCosmWasmClient
+  readonly name:     string
   readonly keyPair:  any
   readonly mnemonic: any
   readonly pen:      any
@@ -50,11 +46,11 @@ export class JSAgent implements Agent {
   fees = defaultFees
 
   /** Create a new agent from a signing pen. */
-  constructor (options: JSAgentCtorArgs) {
-    const network = this.network =
-      (typeof options.network === 'string')
-        ? options.Chain[options.network].hydrate()
-        : options.network
+  constructor (options: Identity) {
+    const chain = this.chain =
+      (typeof options.chain === 'string')
+        ? options.Chain[options.chain].hydrate()
+        : options.chain
 
     this.name     = options.name || ''
     this.keyPair  = options.keyPair
@@ -68,7 +64,7 @@ export class JSAgent implements Agent {
     this.seed    = EnigmaUtils.GenerateNewSeed()
 
     this.API = new SigningCosmWasmClient(
-      network.url, this.address, this.sign, this.seed, this.fees) }
+      chain.url, this.address, this.sign, this.seed, this.fees) }
 
   // block time //
 
@@ -83,7 +79,7 @@ export class JSAgent implements Agent {
           resolve()
           break } } })) }
 
-  /**`await` this to get info about the current block of the network. */
+  /**`await` this to get info about the current block of the chain. */
   get block () {
     return this.API.getBlock() }
 
@@ -94,7 +90,7 @@ export class JSAgent implements Agent {
     return this.API.getAccount(this.address) }
 
   /**`await` this to get the current balance in the native
-   * coin of the network, in its most granular denomination */
+   * coin of the chain, in its most granular denomination */
   get balance () {
     return this.getBalance('uscrt') }
 
@@ -128,7 +124,7 @@ export class JSAgent implements Agent {
       if (typeof amount === 'number') amount = String(amount)
       const value = {from_address, to_address, amount: [{denom, amount}]}
       return { type: 'cosmos-sdk/MsgSend', value } }))
-    const signBytes = makeSignBytes(msg, fee, this.network.chainId, memo, accountNumber, sequence)
+    const signBytes = makeSignBytes(msg, fee, this.chain.chainId, memo, accountNumber, sequence)
     return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] }) }
 
   // compute //

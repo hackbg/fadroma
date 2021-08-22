@@ -1,255 +1,274 @@
-import { resolve, mkdir, existsSync, touch, rimraf,
-         writeFile, readFileSync, unlinkSync, loadJSON } from './system'
-import { Docker, waitPort, freePort, pulled, waitUntilLogsSay } from './network'
+import { ChainNode, ChainNodeOptions } from './types'
 import { __dirname, defaultStateBase } from './constants'
+
+import { resolve, loadJSON, rimraf, TextFile, JSONFile, Directory } from './system'
+import { Docker, waitPort, freePort, pulled, waitUntilLogsSay } from './network'
 import { Console, bold } from './command'
-const { warn, info, debug } = Console(import.meta.url)
 
-/** @class
- *  Run a pausable Secret Network localnet in a Docker container and manage its lifecycle.
- *  State is stored as a pile of files in directories.
- */
-export class ScrtNode implements ScrtNode {
-  docker:    Docker
-  image:     string
-  container: any
-  protocol:  string
-  host:      string
-  port:      number
-  state:     string | null
-  chainId:   string
-  genesisAccounts: Array<string>
+const console = Console(import.meta.url)
 
-  constructor ({
-    docker  = new Docker({ socketPath: '/var/run/docker.sock' }),
-    image   = "enigmampc/secret-network-sw-dev",
-    chainId = 'enigma-pub-testnet-3',
-    genesisAccounts = ['ADMIN', 'ALICE', 'BOB', 'MALLORY'],
-    state   = resolve(defaultStateBase, chainId),
-  }: NodeCtorArgs = {}) {
-    Object.assign(this, { state, docker, chainId, genesisAccounts, image }) }
+export abstract class BaseChainNode implements ChainNode {
+  chainId: string
+  apiURL:  URL
+  port:    number
+  ready:   Promise<void>
 
+  /* This directory is created to remember the state of the localnet setup. */
+  readonly stateRoot:  Directory
+
+  /* This file contains the id of the current localnet container.
+   * TODO store multiple containers */
+  readonly nodeState:  JSONFile
+
+  /* This directory is mounted out of the localnet container
+   * in order to persist the state of the chain. */
+  readonly daemonDir:  Directory
+
+  /* This directory is mounted out of the localnet container
+   * in order to persist the state of the container's built-in secretcli. */
+  readonly clientDir:  Directory
+
+  /* This directory is mounted out of the localnet container
+   * in order to persist the state of the SGX modules. */
+  readonly sgxDir:     Directory
+
+  /* This directory is mounted out of the localnet container
+   * to persist the keys of the genesis wallets. */
+  readonly identities: Directory
+
+  /* List of genesis accounts that have been given an initial balance
+   * when creating the localnet container for the first time. */
+  identitiesToCreate: Array<string> = []
+
+  /* Retrieve an identity */
+  genesisAccount = (name: string) =>
+    loadJSON(resolve(this.identities.path, `${name}.json`))
+
+  /* Restore this node from the info stored in nodeState */
   load () {
-    let data: Record<any, any>
-    debug('loading localnet node', { from: this.files.nodeState })
-    if (existsSync(this.state) && existsSync(this.files.nodeState)) {
-      try {
-        this.load() }
-      catch (e) {
-        warn(e)
-        unlinkSync(this.files.nodeState) } }
-    data = JSON.parse(readFileSync(this.files.nodeState, 'utf8'))
-    debug('loaded localnet node', data)
-    return data }
-
-  async save () {
-    debug('saving localnet node', { to: this.files.nodeState })
-    await writeFile(this.files.nodeState, JSON.stringify({
-      containerId: this.container.id,
-      chainId:     this.chainId,
-      port:        this.port, }, null, 2), 'utf8') }
-
-  /** Outside environment needs to be returned to a pristine state via Docker.
-   *  (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.)*/
-  async erase () {
+    console.debug('loading localnet node', { from: this.nodeState.path })
+    this.stateRoot.assert()
+    this.nodeState.assert()
     try {
-      // try without root first
-      if (existsSync(this.state)) {
-        info(`⏳ erasing ${bold(this.state)}`)
-        await rimraf(this.state) }
-      else {
-        info(`${bold(this.state)} does not exist`) } }
+      return this.nodeState.load() }
     catch (e) {
-      if (e.code !== 'EACCES') {
-        warn(`failed to delete ${bold(this.state)}, because:`)
-        warn(e) }
-      warn(`⏳ running cleanup container`)
-      const container = await this.docker.createContainer(await this.cleanupContainerOptions)
-      await container.start()
-      info('⏳ waiting for erase to finish')
-      await container.wait()
-      info(`erased ${bold(this.state)}`) } }
+      console.warn(`failed to parse ${this.nodeState.path}`)
+      this.stateRoot.delete()
+      throw e } }
 
-  // piles of files:
-  get files () {
-    return { initScript: resolve(__dirname, 'scrt_localnet_init.sh')
-           , nodeState:  resolve(this.state, 'node.json') } }
-  // and dirs:
-  get dirs () {
-    return { state:      this.state
-           , wallets:    resolve(this.state, 'wallets')
-           , secretd:    resolve(this.state, '.secretd')
-           , secretcli:  resolve(this.state, '.secretcli')
-           , sgxSecrets: resolve(this.state, '.sgx-secrets') } }
-  // volume mounts
+  /* Stop this node and delete its state. */
+  async terminate () {
+    await this.kill()
+    await this.erase() }
+
+  abstract respawn (): Promise<void>
+  abstract spawn   (): Promise<void>
+  abstract kill    (): Promise<void>
+  abstract erase   (): Promise<void>
+  abstract save    (): this }
+
+
+/** Run a pausable Secret Network localnet in a Docker container and manage its lifecycle.
+ *  State is stored as a pile of files in a directory. */
+export class ScrtNode extends BaseChainNode {
+
+  /* Resolved when ready.
+   * TODO check */
+  readonly ready: Promise<void> = Promise.resolve()
+
+  docker:    Docker
+
+  container: any
+
+  /* This should point to the standard production docker image for Secret Network. */
+  image = "enigmampc/secret-network-sw-dev"
+
+  /* This file is mounted into the localnet container
+   * in place of its default init script in order to
+   * add custom genesis accounts with initial balances. */
+  readonly initScript = new TextFile(__dirname, 'scrt_localnet_init.sh')
+
+  chainId = 'enigma-pub-testnet-3'
+
+  identitiesToCreate: Array<string>
+
+  protocol:  string = 'http'
+  host:      string = 'localhost'
+  port:      number
+
+  constructor (options: ChainNodeOptions = {}) {
+    super()
+    if (options.docker)     this.docker           = options.docker
+    if (options.image)      this.image            = options.image
+    if (options.chainId)    this.chainId          = options.chainId
+    if (options.identities) this.identitiesToCreate = options.identities
+    const stateRoot = options.stateRoot || resolve(defaultStateBase, this.chainId)
+    Object.assign(this, {stateRoot:  new Directory(stateRoot),
+                         identities: new Directory(stateRoot, 'identities'),
+                         nodeState:  new JSONFile(stateRoot,  'node.json'),
+                         daemonDir:  new Directory(stateRoot, '_secretd'),
+                         clientDir:  new Directory(stateRoot, '_secretcli'),
+                         sgxDir:     new Directory(stateRoot, '_sgx-secrets') }) }
+
+  /* Write the state of the localnet to a file. */
+  save () {
+    console.debug('saving localnet node', { to: this.nodeState.path })
+    const data = { containerId: this.container.id, chainId: this.chainId, port: this.port }
+    this.nodeState.save(data)
+    return this }
+
+  /* All the directories that need to be mounted into/out of the container,
+   * in a Dockerode-friendly format. */
   get binds () {
-    return [`${this.files.initScript}:/init.sh:ro`
-           ,`${this.dirs.wallets}:/shared-keys:rw`
-           ,`${this.dirs.secretd}:/root/.secretd:rw`
-           ,`${this.dirs.secretcli}:/root/.secretcli:rw`
-           ,`${this.dirs.sgxSecrets}:/root/.sgx-secrets:rw`]}
-  // environment
+    return { [this.initScript.path]: `/init.sh:ro`,
+             [this.identities.path]: `/shared-keys:rw`,
+             [this.daemonDir.path]:  `/root/.secretd:rw`,
+             [this.clientDir.path]:  `/root/.secretcli:rw`,
+             [this.sgxDir.path]:     `/root/.sgx-secrets:rw` } }
+
+  /* Environment variables that will be set in the container.
+   * Use them to pass parameters to the init script. */
   get env () {
-    return [
-      `Port=${this.port}`,
-      `ChainID=${this.chainId}`,
-      `GenesisAccounts=${this.genesisAccounts.join(' ')}`]}
+    return [`Port=${this.port}`
+           ,`ChainID=${this.chainId}`
+           ,`GenesisAccounts=${this.identitiesToCreate.join(' ')}`]}
 
-  // deprecati:
-  get initScript     () { return this.files.initScript    }
-  get nodeStateFile  () { return this.files.nodeState     }
-  get keysStateDir   () { return this.dirs.wallets        }
-  get daemonStateDir () { return this.dirs.secretd        }
-  get cliStateDir    () { return this.dirs.secretcli      }
-  get sgxStateDir    () { return this.dirs.sgxSecrets     }
-  get stateDirs      () { return Object.values(this.dirs) }
-
-  /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
-   *  in order to launch a localnet container. */
+  /** Dockerode passes these to the Docker API in order to launch a localnet container. */
   get spawnContainerOptions () {
     return pulled(this.image, this.docker).then((Image: string)=>({
-      Image,
-      Name:         `${this.chainId}-${this.port}`,
-      Hostname:     this.chainId,
-      Domainname:   this.chainId,
-      Entrypoint:   [ '/bin/bash' ],
-      Cmd:          [ '/init.sh' ],
-      Tty:          true,
-      AttachStdin:  true,
-      AttachStdout: true,
-      AttachStderr: true,
-      Env:          this.env,
-      ExposedPorts: { [`${this.port}/tcp`]: {} },
       AutoRemove: true,
-      HostConfig: {
-        NetworkMode: 'bridge',
-        Binds: this.binds,
-        PortBindings: {
-          [`${this.port}/tcp`]: [{HostPort: `${this.port}`}], }, }, })) }
+      Image, Name: `${this.chainId}-${this.port}`,
+      Env: this.env, Entrypoint: [ '/bin/bash' ], Cmd: [ '/init.sh' ],
+      Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
+      Hostname: this.chainId, Domainname: this.chainId, ExposedPorts: { [`${this.port}/tcp`]: {} },
+      HostConfig: { NetworkMode:  'bridge',
+                    Binds:        Object.entries(this.binds).map(pair=>pair.join(':')),
+                    PortBindings: { [`${this.port}/tcp`]: [{HostPort: `${this.port}`}] } } })) }
+
+  /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
+   *  in order to launch a cleanup container. */
+  get cleanupContainerOptions () {
+    return pulled(this.image, this.docker).then((Image:string)=>({
+      Image, Name: `${this.chainId}-${this.port}-cleanup`,
+      Entrypoint: [ '/bin/rm' ], Cmd: ['-rvf', '/state',],
+      Tty: true, AttachStdin:  true, AttachStdout: true, AttachStderr: true,
+      HostConfig: { NetworkMode: 'host',
+                    Binds: [`${this.stateRoot}:/state:rw`] }, })) }
 
   async respawn () {
-    debug(`⏳ respawning localnet at ${bold(this.files.nodeState)}...`)
-
-    if (!existsSync(this.files.nodeState)) {
-      debug(`✋ no localnet found at ${bold(this.files.nodeState)}`)
-      return this.spawn()
-    }
-
+    console.debug(`⏳ respawning localnet at ${bold(this.nodeState.path)}...`)
+    // if no node state, spawn
+    if (!this.nodeState.exists()) {
+      console.debug(`✋ no localnet found at ${bold(this.nodeState.path)}`)
+      return this.spawn() }
     // get stored info about the container was supposed to be
-    let restored
-    try {
-      restored = await this.load() }
-    catch (e) {
-      // spawn a new one if the node state is corrupted
-      warn(e)
-      warn(`✋ reading ${bold(this.files.nodeState)} failed`)
+    let id: any; try { id = this.load().containerId } catch (e) {
+      // if node state is corrupted, spawn
+      console.warn(e)
+      console.warn(`✋ reading ${bold(this.nodeState.path)} failed`)
       return this.spawn() }
-
-    // what was the container id supposed to be
-    const id = restored.containerId
-    let container: any
-      , Running:   any
-    try {
-      // if it exists then we can see if it's running
-      container = this.docker.getContainer(id)
-      ;({State:{Running}} = await container.inspect()) }
-    catch (e) {
-      // if it doesn't we need to spawn a new one
-      warn(`✋ getting container ${bold(id)} failed, trying to spawn a new node...`)
-      info(`⏳ cleaning up outdated state`)
+    // check if contract is running
+    let running: any; try { running = this.isRunning(id) } catch (e) {
+      // if error when checking, RESPAWN
+      console.warn(`✋ failed to get container ${bold(id)}`)
+      console.info('Error was:', e)
+      console.info(`⏳ cleaning up outdated state...`)
       await this.erase()
+      console.info(`⏳ trying to spawn a new node...`)
       return this.spawn() }
-
-    // if the container exists and isn't running then we JUST have to start it...
-    if (!Running) await container.start({})
-
+    // if not running, RESPAWN
+    if (!running) this.startContainer(id)
     // ...and try to make sure it dies when the Node process dies
-    // TODO although that's a preference and should be optional:
-    // attaching multiple times to the same development localnet
-    // has definite merit in not having to wait through the setup phase each time...
-    process.on('beforeExit', async ()=>{
-      const {State:{Running}} = await container.inspect()
-      if (Running) {
-        debug(`killing ${bold(container.id)}`)
-        await container.kill()
-        debug(`killed ${bold(container.id)}`)
-        process.exit() // do I need to call this?
-        // i doubt the event prevents the process from exiting if bound
-        // but who knows all is possible in dynamic lang
-      } else {
-        debug(`${bold(container.id)} was dead on arrival`) } }) }
+    process.on('beforeExit', () => { this.killContainer(id) })
+    // if running, do nothing
+    // TODO allow attaching multiple times to the same localnet
+  }
 
+  private createContainer = async (options: Promise<any>) =>
+    await this.docker.createContainer(await options)
+
+  private startContainer = async (id: string = this.container.id) =>
+    await this.docker.getContainer(id).start()
+
+  private killContainer = async (id: string = this.container.id) => {
+    if (await this.isRunning(id)) {
+      console.info(`killing ${bold(id)}...`)
+      await this.docker.getContainer(id).kill()
+      console.info(`killed ${bold(id)}`) }
+    else {
+      console.debug(`${bold(id)} was dead on arrival`) } }
+
+  private isRunning = async (id: string = this.container.id) =>
+    (await this.docker.getContainer(id).inspect()).State.Running
+
+  /** Spawn a new localnet instance from scratch */
   async spawn () {
-    debug(`⏳ spawning new localnet at ${bold(this.files.nodeState)}...`)
-    mkdir(this.state)
-    touch(this.files.nodeState)
-    for (const dir of Object.values(this.dirs)) {
-      mkdir(dir) }
-    Object.assign(this, {
-      protocol: 'http',
-      host: 'localhost',
-      port: await freePort() })
-    this.container = await this.docker.createContainer(
-      await this.spawnContainerOptions)
-    const { id: containerId, Warnings: w } = this.container
-    if (w) console.warn(w)
-    await this.container.start()
-    await this.save()
+    // tell the user that we have begun
+    console.debug(`⏳ spawning new localnet...`)
+    // get a free port
+    this.port = (await freePort()) as number
+    // create the state dirs and files
+    for (const item of [
+      this.stateRoot, this.nodeState,
+      this.daemonDir, this.clientDir, this.sgxDir
+    ]) item.make()
+    // create the container
+    this.container = await this.createContainer(this.spawnContainerOptions)
+    // emit any warnings
+    if (this.container.Warnings) {
+      console.warn(`Creating container ${this.container.id} emitted warnings:`)
+      console.info(this.container.Warnings) }
+    // report progress
+    console.info(`Created container ${this.container.id} (${bold(this.nodeState.path)})...`)
+    // start the container
+    await this.startContainer(this.container.id)
+    console.info(`Started container ${this.container.id}...`)
+    // update the
+    this.save()
     // wait for logs to confirm that the genesis is done
     await waitUntilLogsSay(this.container, 'GENESIS COMPLETE')
     // wait for port to be open
     await waitPort({ host: this.host, port: this.port }) }
 
-  /**Return one of the genesis accounts stored when creating the node.
-   * @param {string} name - the name of the account.
-   */
-  genesisAccount = (name: string) =>
-    loadJSON(resolve(this.keysStateDir, `${name}.json`))
-
-  async terminate () {
-    await this.suspend()
-    await this.erase() }
-
-  async suspend () {
+  /** Kill the container, if necessary find it first */
+  async kill () {
     if (this.container) {
       await this.container.kill() }
     else {
       try {
-        info(`seeing if any container needs to be killed`)
-        const { containerId } = await this.load()
-        info(`to kill container ${bold(containerId)}`)
+        console.info(`seeing if any container needs to be killed`)
+        const { containerId } = this.load()
+        console.info(`to kill container ${bold(containerId)}`)
         const container = await this.docker.getContainer(containerId)
-        info(`killing container ${bold(containerId)}`)
+        console.info(`killing container ${bold(containerId)}`)
         await container.kill()
-        info(`killed container ${bold(containerId)}`) }
+        console.info(`killed container ${bold(containerId)}`) }
       catch (e) {
-        info("didn't kill any container") } } }
+        console.info("didn't kill any container") } } }
 
-  /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
-   *  in order to launch a cleanup container.
-   */
-  get cleanupContainerOptions () {
-    return pulled(this.image, this.docker).then((Image:string)=>({
-      Image,
-      Entrypoint:   [ '/bin/rm' ],
-      Cmd:          ['-rvf', '/state',],
-      Tty:          true,
-      AttachStdin:  true,
-      AttachStdout: true,
-      AttachStderr: true,
-      HostConfig: {
-        NetworkMode: 'host',
-        Binds: [`${this.state}:/state:rw`] }, })) }
+  /** Outside environment needs to be returned to a pristine state via Docker.
+   *  (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.)*/
+  async erase () {
+    try {
+      if (this.stateRoot.exists()) {
+        console.info(`⏳ erasing ${bold(this.stateRoot.path)}`)
+        await rimraf(this.stateRoot.path) } }
+    catch (e) {
+      if (e.code !== 'EACCES') {
+        console.warn(`failed to delete ${bold(this.stateRoot.path)}, because:`)
+        console.warn(e) }
+      console.warn(`⏳ running cleanup container`)
+      const container = await this.docker.createContainer(
+        this.cleanupContainerOptions)
+      await container.start()
+      console.info('⏳ waiting for erase to finish')
+      await container.wait()
+      console.info(`erased ${bold(this.stateRoot.path)}`) } } }
 
-}
-
-function pick (obj, ...keys) {
+export function pick (obj: Record<any, any>, ...keys: Array<any>) {
   return Object.keys(obj).filter(key=>keys.indexOf(key)>-1).reduce((obj2,key)=>{
     obj2[key] = obj[key]
-    return obj2
-  }, {})
-}
+    return obj2 }, {}) }
 
-function required (label) {
-  return () => { throw new Error(`required: ${label}`) }
-}
+export function required (label: string) {
+  return () => { throw new Error(`required: ${label}`) } }

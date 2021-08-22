@@ -1,72 +1,24 @@
 import type {
   Chain, ChainNode, ChainState, ChainConnectOptions, Connection,
-  Agent, JSAgentCreateArgs,
+  Agent, Identity,
   BuildUploader,
   Ensemble, EnsembleOptions } from './types'
 import { defaultStateBase } from './constants'
 import { mkdir, makeStateDir, open } from './system'
 import { ScrtNode } from './localnet'
 import { ScrtUploader } from './builder'
-import { JSAgent } from './agent-secretjs'
-import { CLIAgent } from './agent-secretcli'
+import { ScrtJSAgent } from './agent-secretjs'
+import { ScrtCLIAgent } from './agent-secretcli'
 import { Console, bold } from './command'
 const {debug, info} = Console(import.meta.url)
 
 export class Scrt implements Chain {
 
-  /** Used to allow the chain to be specified as a string by
-   *  turning a well-known chain name into a Scrt instance. */
-  static hydrate (chain: any): Scrt {
-    if (typeof chain === 'string') {
-      const chains = ['localnet','testnet','mainnet']
-      if (chains.indexOf(chain) < 0) {
-        throw new Error(`Unknown chain type: "${chain}", valid ones are: ${chains.join(' ')}`) }
-      chain = Scrt[chain]() }
-    return chain }
-
-  /** Create an instance that runs a node in a local Docker container
-   *  and talks to it via SecretJS */
-  static localnet (options: ChainConnectOptions = {}): Scrt {
-    options.chainId = options.chainId || 'enigma-pub-testnet-3';
-    options.apiURL  = options.apiURL  || new URL('http://localhost:1337');
-    const node = options.node || new ScrtNode(options);
-    options.node = node as ChainNode;
-    // no default agent name/address/mnemonic:
-    // connect() gets them from genesis accounts
-    return new Scrt(options) }
-
-  /** Create an instance that talks to to holodeck-2
-   * (Secret Chain testnet) via SecretJS */
-  static testnet ({
-    chainId = 'holodeck-2',
-    apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-    apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
-    defaultAgentName     = process.env.SECRET_NETWORK_TESTNET_NAME,
-    defaultAgentAddress  = process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-    defaultAgentMnemonic = process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
-  }: ChainConnectOptions = {}): Scrt {
-    return new Scrt({ chainId, apiURL, defaultAgentName, defaultAgentAddress, defaultAgentMnemonic }) }
-
-  /** Create an instance that talks to to the Secret Chain
-   *  mainnet via SecretJS */
-  static mainnet ({
-    chainId = 'secret-2',
-    apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-    apiURL  = new URL(`https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
-    defaultAgentName     = process.env.SECRET_NETWORK_MAINNET_NAME,
-    defaultAgentAddress  = process.env.SECRET_NETWORK_MAINNET_ADDRESS,
-    defaultAgentMnemonic = process.env.SECRET_NETWORK_MAINNET_MNEMONIC
-  }: ChainConnectOptions = {}): Scrt {
-    return new Scrt({ chainId, apiURL, defaultAgentName, defaultAgentAddress, defaultAgentMnemonic }) }
-
   chainId: string
   apiURL:  URL
   node:    ChainNode
 
-  defaultAgentName:     string
-  defaultAgentAddress:  string
-  defaultAgentMnemonic: string
-  defaultAgent:         Agent
+  defaultAgent: { name?: string, address?: string, mnemonic?: string }
 
   stateBase: string
   state:     string
@@ -94,16 +46,13 @@ export class Scrt implements Chain {
     this.instances = options.instances || mkdir(this.state, 'instances')
     // handle to localnet node if this is localnet
     // default agent credentials
-    this.defaultAgentName     = options.defaultAgentName || 'agent'
-    this.defaultAgentAddress  = options.defaultAgentAddress
-    this.defaultAgentMnemonic = options.defaultAgentMnemonic }
+    this.defaultAgent = options.defaultAgent }
 
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
-  async connect (): Promise<Connection> {
+  async init (): Promise<Chain> {
     // default credentials will be used as-is unless using localnet
-    let { defaultAgentMnemonic: mnemonic
-        , defaultAgentAddress:  address } = this
+    let { mnemonic, address } = this.defaultAgent||{}
 
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node);
@@ -126,9 +75,45 @@ export class Scrt implements Chain {
 
     const { protocol, hostname, port } = this.apiURL
     info(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
-    const agent: Agent = this.defaultAgent = await this.getAgent({ name: "ADMIN", mnemonic, address })
+    this.defaultAgent = await this.getAgent({ name: "ADMIN", mnemonic, address })
     info(`🟢 connected, operating as ${address}`)
-    return { node, chain: this, agent, builder: this.getBuilder(agent) } }
+    return this as Chain }
+
+  /** Create an instance that runs a node in a local Docker container
+   *  and talks to it via SecretJS */
+  static localnet (options: ChainConnectOptions = {}): Scrt {
+    if (!options.node) options.node = new ScrtNode(options)
+    options.chainId = options.chainId || 'enigma-pub-testnet-3'
+    options.apiURL  = options.apiURL  || new URL('http://localhost:1337')
+    // no default agent name/address/mnemonic:
+    // connect() gets them from genesis accounts
+    return new Scrt(options) }
+
+  /** Create an instance that talks to to holodeck-2
+   * (Secret Chain testnet) via SecretJS */
+  static testnet ({
+    chainId = 'holodeck-2',
+    apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+    apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+    defaultAgent = {
+      name:     process.env.SECRET_NETWORK_TESTNET_NAME,
+      address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+      mnemonic: process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together' }
+  }: ChainConnectOptions = {}): Scrt {
+    return new Scrt({ chainId, apiURL, defaultAgent }) }
+
+  /** Create an instance that talks to to the Secret Chain
+   *  mainnet via SecretJS */
+  static mainnet ({
+    chainId = 'secret-2',
+    apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+    apiURL  = new URL(`https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+    defaultAgent = {
+      name:     process.env.SECRET_NETWORK_MAINNET_NAME,
+      address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
+      mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC }
+  }: ChainConnectOptions = {}): Scrt {
+    return new Scrt({ chainId, apiURL, defaultAgent }) }
 
   /**The API URL that this instance talks to.
    * @type {string} */
@@ -136,21 +121,23 @@ export class Scrt implements Chain {
     return this.apiURL.toString() }
 
   /** create agent operating on the current instance's endpoint*/
-  async getAgent (options: JSAgentCreateArgs = {}): Promise<Agent> {
+  async getAgent (options: Identity = this.defaultAgent): Promise<Agent> {
     if (options.mnemonic || options.keyPair) {
       info(`Using a SecretJS-based agent.`)
-      return await JSAgent.create({ ...options, chain: this as Chain }) }
-    else if (options.name || this.defaultAgentName) {
-      info(`Using a secretcli-based agent.`)
-      const name = options.name || this.defaultAgentName
-      return new CLIAgent({ chain: this, name }) as Agent }
+      return await ScrtJSAgent.create({ ...options, chain: this as Chain }) }
     else {
-      throw new Error(
-        'need a name to create a secretcli-backed agent, ' +
-        'or a mnemonic or keypair to create a SecretJS-backed one.')}}
+      const name = options.name || this.defaultAgent?.name
+      if (name) {
+        info(`Using a secretcli-based agent.`)
+        return new ScrtCLIAgent({ chain: this, name }) as Agent }
+      else {
+        throw new Error(
+          'need a name to create a secretcli-backed agent, ' +
+          'or a mnemonic or keypair to create a SecretJS-backed one.')}}}
 
   /** create builder operating on the current instance's endpoint */
-  getBuilder (agent: Agent): BuildUploader {
+  async getBuilder (agent?: Agent): Promise<BuildUploader> {
+    agent = agent || await this.getAgent()
     return new ScrtUploader({chain: this, agent}) }
 
   /** create contract instance from interface class and address */

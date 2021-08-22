@@ -1,7 +1,7 @@
-import type { Chain, Agent } from './types'
+import type { Agent } from './types'
+import { Scrt } from './chain'
 import { Console, bold } from './command'
-
-import { execFile, spawn } from 'child_process'
+import { execFile, spawn } from './system'
 
 const {warn, debug} = Console(import.meta.url)
 
@@ -20,9 +20,9 @@ const tryToUnlockKeyring = async () => new Promise(
       setTimeout(()=>{ unlock.kill() }, 1000) })
     unlock.on('error', reject) })
 
-export class CLIAgent implements Agent {
+export class ScrtCLIAgent implements Agent {
 
-  chain: Chain
+  chain: Scrt
 
   name: string
   address: string
