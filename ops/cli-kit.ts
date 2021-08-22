@@ -1,4 +1,4 @@
-import { decode } from '@fadroma/sys'
+import { decode } from './system'
 
 import { backOff } from "exponential-backoff"
 import { cwd } from 'process'

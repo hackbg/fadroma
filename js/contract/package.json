@@ -1,9 +1,0 @@
-{
-  "name": "@fadroma/contract",
-  "version": "0.1.0",
-  "type": "module",
-  "main": "contract.ts",
-  "dependencies": {
-    "@fadroma/sys": "*"
-  }
-}

@@ -1,4 +1,4 @@
-import {Agent, isAgent} from '@fadroma/agent';
+import {Agent, isAgent} from './agent';
 import {Contract} from './contract'
 import Ajv, { Ajv as TAjv } from "ajv";
 

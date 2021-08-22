@@ -1,8 +1,8 @@
-import {Network, Agent}                   from '@fadroma/agent'
-import {BuildUploader}                    from '@fadroma/builder'
-import {Docker, pulled}                   from '@fadroma/net'
-import {resolve, relative, existsSync}    from '@fadroma/sys'
-import {Commands, Taskmaster, taskmaster} from '@fadroma/cli'
+import {Network, Agent}                   from './agent'
+import {BuildUploader}                    from './builder'
+import {Docker, pulled}                   from './network'
+import {resolve, relative, existsSync}    from './system'
+import {Commands, Taskmaster, taskmaster} from './cli-kit'
 
 import {table} from 'table'
 import colors from 'colors'
@@ -20,7 +20,7 @@ export type EnsembleOptions =
   , builder?:   BuildUploader
   , workspace?: Path }
 
-export type EnsembleDeployOptions =
+export type EnsembleDeploy =
   { task?:      Taskmaster
   , network?:   Network
   , agent?:     Agent
@@ -29,7 +29,7 @@ export type EnsembleDeployOptions =
   , initMsgs?:  Record<string, any>
   , additionalBinds?: Array<string> }
 
-export type EnsembleBuildOptions =
+export type EnsembleBuild =
   { task?:      Taskmaster
   , builder?:   BuildUploader
   , workspace?: Path
@@ -37,14 +37,14 @@ export type EnsembleBuildOptions =
   , parallel?:  boolean
   , additionalBinds?: Array<string> }
 
-export type EnsembleUploadOptions =
+export type EnsembleUpload =
   { task?:      Taskmaster
   , agent?:     Agent
   , network?:   Network
   , builder?:   BuildUploader
   , artifacts?: Artifacts }
 
-export type EnsembleInitOptions =
+export type EnsembleInit =
   { task?:      Taskmaster
   , initMsgs?:  Record<string, any>
   , network?:   Network
@@ -86,7 +86,6 @@ export class Ensemble {
 
   constructor (provided: EnsembleOptions = {}) {
     this.network   = provided.network   || null
-    console.trace(this.network)
     this.agent     = provided.agent     || this.network?.defaultAgent || null
     this.builder   = provided.builder   || this.network?.getBuilder(this.agent) || null
     this.workspace = provided.workspace || null }
@@ -100,7 +99,7 @@ export class Ensemble {
     initMsgs  = {},
     workspace = this.workspace,
     additionalBinds
-  }: EnsembleDeployOptions = {}): Promise<Instances> {
+  }: EnsembleDeploy = {}): Promise<Instances> {
     if (!network) throw new Error('need a Network to deploy to')
     return await task('build, upload, and initialize contracts', async () => {
       const artifacts = await this.build({ task, builder, workspace, additionalBinds })
@@ -116,7 +115,7 @@ export class Ensemble {
     outputDir = resolve(workspace, 'artifacts'),
     parallel  = true,
     additionalBinds
-  }: EnsembleBuildOptions = {}): Promise<Artifacts> {
+  }: EnsembleBuild = {}): Promise<Artifacts> {
     // pull build container
     await pulled(this.buildImage, this.docker)
     // build all contracts
@@ -152,7 +151,7 @@ export class Ensemble {
     task    = taskmaster(),
     builder = this.builder,
     artifacts
-  }: EnsembleUploadOptions): Promise<Uploads> {
+  }: EnsembleUpload): Promise<Uploads> {
     // if artifacts are not passed, build 'em
     artifacts = artifacts || await this.build()
     const uploads = {}
@@ -166,7 +165,7 @@ export class Ensemble {
   /** Stub to be implemented by the subclass.
    *  In the future it might be interesting to see if we can add some basic dependency resolution.
    *  It just needs to be standardized on the Rust side (in scrt-callback)? */
-  async initialize (_: InitOptions): Promise<Instances> {
+  async initialize (_: EnsembleInit): Promise<Instances> {
     throw new Error('You need to implement the initialize() method.') }
 
   /** Commands to expose to the CLI. */

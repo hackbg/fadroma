@@ -1,6 +1,6 @@
-import { Docker, pulled } from '@fadroma/net'
-import { Console } from '@fadroma/cli'
-import { resolve, dirname, fileURLToPath } from '@fadroma/sys'
+import { resolve, dirname, fileURLToPath } from './system'
+import { Docker, pulled } from './network'
+import { Console } from './cli-kit'
 
 /** I wonder, what does the documentation generator do
  *  when I document a dual defintition? */
@@ -31,7 +31,7 @@ export type BuildArgs = {
   sequential?:      boolean
 }
 
-/** Builds contracts and optionally uploads them as an agent on the Secret Network.
+/** Builds contracts and optionally uploads them as an agent on the Secret Chain.
  *  Stores upload results as receipts. Not really worthy of more than a function
  *  but that's how it ended up, conjoined with the uploader below. */
 export class Builder {
@@ -103,5 +103,5 @@ export class Builder {
     //commands.push(`pwd && ls -al && mv ${crate}.wasm /output/${crate}@${ref}.wasm`)
     return commands.join(' && ') } }
 
-type Network = any
+type Chain = any
 type Agent   = any

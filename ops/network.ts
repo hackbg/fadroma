@@ -1,4 +1,4 @@
-import { bold } from '@fadroma/cli'
+import { bold } from './cli-kit'
 
 import { createServer } from 'net'
 

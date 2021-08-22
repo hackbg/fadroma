@@ -1,10 +1,9 @@
-import { mkdir, makeStateDir, resolve, cwd } from '@fadroma/sys'
-import { Console, bold } from '@fadroma/cli'
-import { ScrtNode } from '@fadroma/localnet'
-import { BuildUploader } from '@fadroma/builder'
-
+import { mkdir, makeStateDir, resolve, cwd } from './system'
+import { Console, bold } from './cli-kit'
+import { ScrtNode } from './localnet'
+import { BuildUploader } from './uploader'
 import { Agent, JSAgent, JSAgentCreateArgs } from './agent'
-import { CLIAgent } from './agent_native'
+import { CLIAgent } from './agent-native'
 
 const {debug, info} = Console(import.meta.url)
 
@@ -16,12 +15,12 @@ export type Builder = any
 
 export type Connection = {
   node:    Path
-  network: Network
+  network: Chain
   agent:   Agent
   builder: Builder
 }
 
-export interface NetworkOptions {
+export interface ChainOptions {
   chainId?: string
   apiURL?:  URL|string
   node?:    Node
@@ -30,11 +29,11 @@ export interface NetworkOptions {
   defaultAgentMnemonic?: string
 }
 
-export interface NetworkConnectOptions extends NetworkOptions {
+export interface ChainConnectOptions extends ChainOptions {
   apiKey?: string
 }
 
-export interface NetworkCtorOptions extends NetworkOptions {
+export interface ChainCtorOptions extends ChainOptions {
   stateBase?: Path
   state?:     Path
   wallets?:   Path
@@ -42,10 +41,10 @@ export interface NetworkCtorOptions extends NetworkOptions {
   instances?: Path
 }
 
-export interface Network extends NetworkOptions {
+export interface Chain extends ChainOptions {
   get url        (): string
   connect        (): Promise<Connection>
-  getAgent       (options?: JSAgentCreateArgs<Network>): Promise<Agent>
+  getAgent       (options?: JSAgentCreateArgs<Chain>): Promise<Agent>
   getBuilder     (agent: Agent): BuildUploader
   getContract<T> (api: T, address: string, agent: any): T
 
@@ -56,7 +55,7 @@ export interface Network extends NetworkOptions {
   readonly instances: string
 }
 
-export class Scrt implements Network {
+export class Scrt implements Chain {
 
   /** Used to allow the network to be specified as a string by
    *  turning a well-known network name into a Scrt instance. */
@@ -70,7 +69,7 @@ export class Scrt implements Network {
 
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
-  static localnet (options: NetworkConnectOptions = {}): Scrt {
+  static localnet (options: ChainConnectOptions = {}): Scrt {
     options.chainId = options.chainId || 'enigma-pub-testnet-3';
     options.apiURL  = options.apiURL  || 'http://localhost:1337';
     const node = options.node || new ScrtNode(options);
@@ -80,7 +79,7 @@ export class Scrt implements Network {
     return new Scrt(options) }
 
   /** Create an instance that talks to to holodeck-2
-   * (Secret Network testnet) via SecretJS */
+   * (Secret Chain testnet) via SecretJS */
   static testnet ({
     chainId = 'holodeck-2',
     apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
@@ -88,10 +87,10 @@ export class Scrt implements Network {
     defaultAgentName     = process.env.SECRET_NETWORK_TESTNET_NAME,
     defaultAgentAddress  = process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
     defaultAgentMnemonic = process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
-  }: NetworkConnectOptions = {}): Scrt {
+  }: ChainConnectOptions = {}): Scrt {
     return new Scrt({ chainId, apiURL, defaultAgentName, defaultAgentAddress, defaultAgentMnemonic }) }
 
-  /** Create an instance that talks to to the Secret Network
+  /** Create an instance that talks to to the Secret Chain
    *  mainnet via SecretJS */
   static mainnet ({
     chainId = 'secret-2',
@@ -100,7 +99,7 @@ export class Scrt implements Network {
     defaultAgentName     = process.env.SECRET_NETWORK_MAINNET_NAME,
     defaultAgentAddress  = process.env.SECRET_NETWORK_MAINNET_ADDRESS,
     defaultAgentMnemonic = process.env.SECRET_NETWORK_MAINNET_MNEMONIC
-  }: NetworkConnectOptions = {}): Scrt {
+  }: ChainConnectOptions = {}): Scrt {
     return new Scrt({ chainId, apiURL, defaultAgentName, defaultAgentAddress, defaultAgentMnemonic }) }
 
   chainId: string
@@ -118,13 +117,13 @@ export class Scrt implements Network {
   receipts:  string
   instances: string
 
-  /** Interface to a Secret Network REST API endpoint.
+  /** Interface to a Secret Chain REST API endpoint.
    *  Can store wallets and results of contract uploads/inits.
    * @constructor
    * @param {Object} options           - the configuration options
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
    * TODO document the remaining options */
-  constructor (options: NetworkCtorOptions = {}) {
+  constructor (options: ChainCtorOptions = {}) {
     const node = this.node = options.node || null
 
     // info needed to connect to the chain's REST API
@@ -145,7 +144,6 @@ export class Scrt implements Network {
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
   async connect () {
-
     // default credentials will be used as-is unless using localnet
     let { defaultAgentMnemonic: mnemonic
         , defaultAgentAddress:  address } = this

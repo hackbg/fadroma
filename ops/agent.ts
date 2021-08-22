@@ -1,6 +1,5 @@
-import { Console, bold } from '@fadroma/cli'
-
-import { readFile } from '@fadroma/sys'
+import { Console, bold } from './cli-kit'
+import { readFile } from './system'
 
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
@@ -8,7 +7,7 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          makeSignBytes } from 'secretjs'
 
 import { gas, defaultFees } from './gas'
-import { Network } from './network'
+import { Chain } from './chain'
 
 const { debug, warn } = Console(import.meta.url)
 
@@ -23,7 +22,7 @@ export interface Agent {
   fees: Record<string, any>
   readonly name:    string
   readonly address: string
-  readonly network: Network
+  readonly network: Chain
 
   get nextBlock (): Promise<void>
   get block     (): Promise<any>
@@ -59,7 +58,7 @@ export interface Agent {
                fee?:      any): Promise<any>
 }
 
-export interface JSAgentCreateArgs<N extends Network> {
+export interface JSAgentCreateArgs<N extends Chain> {
   name?:     string,
   address?:  string,
   mnemonic?: string,
@@ -67,8 +66,8 @@ export interface JSAgentCreateArgs<N extends Network> {
   network?:  N|string
 }
 
-export interface JSAgentCtorArgs<N extends Network> {
-  Network?:  N
+export interface JSAgentCtorArgs<N extends Chain> {
+  Chain?:  N
   network?:  N|string
   pen?:      any
   mnemonic?: any
@@ -77,13 +76,13 @@ export interface JSAgentCtorArgs<N extends Network> {
   fees?:     any
 }
 
-/** Queries and transacts on an instance of the Secret Network */
-export class JSAgent<N extends Network> implements Agent {
+/** Queries and transacts on an instance of the Secret Chain */
+export class JSAgent<N extends Chain> implements Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create (
-    Network: new () => Network,
-    options: JSAgentCreateArgs<Network>
+    Chain: new () => Chain,
+    options: JSAgentCreateArgs<Chain>
   ) {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
@@ -100,7 +99,7 @@ export class JSAgent<N extends Network> implements Agent {
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new JSAgent<Network>(Network, {name, mnemonic, keyPair, pen, ...args}) }
+    return new JSAgent<Chain>(Chain, {name, mnemonic, keyPair, pen, ...args}) }
 
   readonly network: N
   readonly API:     SigningCosmWasmClient
@@ -115,10 +114,10 @@ export class JSAgent<N extends Network> implements Agent {
   fees = defaultFees
 
   /** Create a new agent from a signing pen. */
-  constructor (Network: new () => N, options: JSAgentCtorArgs<N>) {
+  constructor (Chain: new () => N, options: JSAgentCtorArgs<N>) {
     const network = this.network =
       (typeof options.network === 'string')
-        ? options.Network[options.network].hydrate()
+        ? options.Chain[options.network].hydrate()
         : options.network
 
     this.name     = options.name || ''

@@ -1,7 +1,6 @@
-import { resolve, writeFile, readFileSync, loadJSON } from "@fadroma/sys"
-//import { Agent, isAgent } from '@fadroma/agent'
-
-import { Factory, getAjv } from "./wrapper"
+import { resolve, writeFile, readFileSync, loadJSON } from './system'
+import { Agent, isAgent } from './agent'
+import { Factory, getAjv } from './contract-wrapper'
 
 /** Interface to a contract instance.
   * Can be subclassed with schema to auto-generate methods

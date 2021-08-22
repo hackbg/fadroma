@@ -1,24 +1,32 @@
 {
-  "name": "@hackbg/fadroma-workspace",
+  "name": "@hackbg/fadroma",
   "version": "21.08.0",
-  "main": "./index.js",
+  "main": "./ops/index.ts",
   "type": "module",
-  "private": true,
-  "workspaces": [
-    "./js/agent",
-    "./js/builder",
-    "./js/cli",
-    "./js/contract",
-    "./js/ensemble",
-    "./js/localnet",
-    "./js/net",
-    "./js/sys"
-  ],
   "devDependencies": {
+    "@types/mocha": "^9.0.0",
     "chai": "^4.3.4",
     "documentation": "^13.2.1",
     "mocha": "^8.0.1",
     "typedoc": "^0.21.6"
+  },
+  "dependencies": {
+    "@cosmjs/crypto": "^0.24.1",
+    "@types/prettyjson": "^0.0.30",
+    "ajv": "^8.6.0",
+    "bignumber.js": "^9.0.1",
+    "colors": "^1.4.0",
+    "dockerode": "^3.3.0",
+    "exponential-backoff": "^3.1.0",
+    "mkdirp": "^1.0.4",
+    "prettyjson": "^1.2.1",
+    "prettyjson": "^1.2.1",
+    "rimraf": "^3.0.2",
+    "secretjs": "^0.11.0",
+    "secretjs": "^0.11.0",
+    "signal-exit": "^3.0.3",
+    "table": "^6.6.0",
+    "wait-port": "^0.2.9"
   },
   "scripts": {
     "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",

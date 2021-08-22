@@ -1,13 +1,13 @@
-import { Console, bold } from '@fadroma/cli'
+import { Console, bold } from './cli-kit'
 const { warn, info, debug } = Console(import.meta.url)
 
 import { resolve, dirname, fileURLToPath, mkdir, existsSync, touch, rimraf,
-         writeFile, readFileSync, unlinkSync, loadJSON, cwd } from '@fadroma/sys'
+         writeFile, readFileSync, unlinkSync, loadJSON, cwd } from './system'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 export const defaultStateBase = resolve(cwd(), 'artifacts')
 
-import { Docker, waitPort, freePort, pulled, waitUntilLogsSay } from '@fadroma/net'
+import { Docker, waitPort, freePort, pulled, waitUntilLogsSay } from './network'
 
 export type NodeCtorArgs = {
   docker?:  Docker
@@ -50,17 +50,18 @@ export class ScrtNode implements ScrtNode {
     genesisAccounts = ['ADMIN', 'ALICE', 'BOB', 'MALLORY'],
     state   = resolve(defaultStateBase, chainId),
   }: NodeCtorArgs = {}) {
-    Object.assign(this, { state, docker, chainId, genesisAccounts, image })
+    Object.assign(this, { state, docker, chainId, genesisAccounts, image }) }
+
+  load () {
+    let data: Record<any, any>
+    debug('loading localnet node', { from: this.files.nodeState })
     if (existsSync(this.state) && existsSync(this.files.nodeState)) {
       try {
         this.load() }
       catch (e) {
         warn(e)
-        unlinkSync(this.files.nodeState) } } }
-
-  load () {
-    debug('loading localnet node', { from: this.files.nodeState })
-    const data = JSON.parse(readFileSync(this.files.nodeState, 'utf8'))
+        unlinkSync(this.files.nodeState) } }
+    data = JSON.parse(readFileSync(this.files.nodeState, 'utf8'))
     debug('loaded localnet node', data)
     return data }
 

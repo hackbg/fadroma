@@ -1,7 +1,8 @@
-import { execFile, spawn } from 'child_process'
-import { Console, bold } from '@fadroma/cli'
 import { Agent } from './agent'
-import { Network } from './network'
+import { Chain } from './chain'
+import { Console, bold } from './cli-kit'
+
+import { execFile, spawn } from 'child_process'
 
 const {warn, debug} = Console(import.meta.url)
 
@@ -22,7 +23,7 @@ const tryToUnlockKeyring = async () => new Promise(
 
 export class CLIAgent implements Agent {
 
-  network: Network
+  network: Chain
 
   name: string
   address: string
