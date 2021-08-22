@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "21.08.0",
+  "version": "0.0.0",
   "main": "./ops/index.ts",
   "type": "module",
   "devDependencies": {
@@ -20,9 +20,7 @@
     "exponential-backoff": "^3.1.0",
     "mkdirp": "^1.0.4",
     "prettyjson": "^1.2.1",
-    "prettyjson": "^1.2.1",
     "rimraf": "^3.0.2",
-    "secretjs": "^0.11.0",
     "secretjs": "^0.11.0",
     "signal-exit": "^3.0.3",
     "table": "^6.6.0",

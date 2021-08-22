@@ -1,6 +1,6 @@
 import { Agent } from './agent'
 import { Chain } from './chain'
-import { Console, bold } from './cli-kit'
+import { Console, bold } from './command'
 
 import { execFile, spawn } from 'child_process'
 

@@ -1,6 +1,9 @@
-import { resolve, dirname, fileURLToPath } from './system'
+import { resolve, dirname, fileURLToPath, relative, basename,
+         mkdir, existsSync, readFile, writeFile } from './system'
 import { Docker, pulled } from './network'
-import { Console } from './cli-kit'
+import { Console, bold } from './command'
+
+import type { Chain, Agent, BuildUploader, BuilderOptions, BuildArgs } from './types'
 
 /** I wonder, what does the documentation generator do
  *  when I document a dual defintition? */
@@ -10,36 +13,15 @@ const {debug} = Console(import.meta.url)
  *  Part of the 'extinguish' phase? */
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export type CtorArgs = {
-  docker?: Docker
-}
-
-export type Path = string
-
-export type BuildArgs = {
-  /* Set this to build a remote commit instead of the working tree. */
-  repo?:           { origin: string, ref: string },
-  /* Path to root Cargo workspace of project. */
-  workspace:        Path
-  /* Name of contract crate to build. */
-  crate:            string
-  /* Path where the build artifacts will be produced. */
-  outputDir?:       string
-  /* Allows additional directories to be bound to the build container. */
-  additionalBinds?: Array<any>
-  /* Allow user to specify that the contracts shouldn't be built in parallel. */
-  sequential?:      boolean
-}
-
 /** Builds contracts and optionally uploads them as an agent on the Secret Chain.
  *  Stores upload results as receipts. Not really worthy of more than a function
  *  but that's how it ended up, conjoined with the uploader below. */
-export class Builder {
+export class ScrtBuilder {
 
   docker = new Docker({
     socketPath: '/var/run/docker.sock' })
 
-  constructor (options: CtorArgs = {}) {
+  constructor (options: BuilderOptions = {}) {
     if (options.docker) this.docker = options.docker }
 
   /** Build from source in a Docker container. */
@@ -103,5 +85,55 @@ export class Builder {
     //commands.push(`pwd && ls -al && mv ${crate}.wasm /output/${crate}@${ref}.wasm`)
     return commands.join(' && ') } }
 
-type Chain = any
-type Agent   = any
+/** I'm starting to think that the builder and uploader phases should be accessed
+ *  primarily via the Contract object and not as currently; and be separate features
+ *  (dynamically loaded unless using fadroma.js in a browser) */
+
+const {info} = Console(import.meta.url)
+
+export class ScrtUploader extends ScrtBuilder implements BuildUploader {
+
+  network: Chain
+  agent:   Agent
+
+  constructor (options={}) {
+    super(options)
+    // some puny dependency auto negotiation so you can pass partial objects
+    let { network, agent } = options as any
+    if (!network && agent) {
+      network = agent.network }
+    else if (!agent && network) {
+      agent = network.defaultAgent }
+    this.network = network
+    this.agent   = agent }
+
+  /* Contracts will be deployed from this address. */
+  get address () {
+    return this.agent ? this.agent.address : undefined }
+
+  /** Try to upload a binary to the network but return a pre-existing receipt if one exists.
+   *  TODO also code checksums should be validated */
+  async uploadCached (artifact: any) {
+    const receiptPath = this.getReceiptPath(artifact)
+    if (existsSync(receiptPath)) {
+      const receiptData = await readFile(receiptPath, 'utf8')
+      info(`${bold(relative(process.cwd(), receiptPath))} exists, delete to reupload`)
+      return JSON.parse(receiptData) }
+    else {
+      return this.upload(artifact) } }
+
+  getReceiptPath = (path: string) =>
+    resolve(this.network.receipts, `${basename(path)}.upload.json`)
+
+  /** Upload a binary to the network. */
+  async upload (artifact: any) {
+    const uploadResult = await this.agent.upload(artifact)
+        , receiptData  = JSON.stringify(uploadResult, null, 2)
+        , receiptPath  = this.getReceiptPath(artifact)
+        , elements     = receiptPath.slice(1, receiptPath.length).split('/');
+    let path = `/`
+    for (const item of elements) {
+      if (!existsSync(path)) mkdir(path)
+      path += `/${item}` }
+    await writeFile(receiptPath, receiptData, 'utf8')
+    return uploadResult } }

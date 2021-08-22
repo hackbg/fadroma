@@ -1,59 +1,14 @@
-import { mkdir, makeStateDir, resolve, cwd } from './system'
-import { Console, bold } from './cli-kit'
+import type {
+  Chain, ChainOptions, ChainConnectOptions,
+  Agent, JSAgentCreateArgs,
+  BuildUploader } from './types'
+import { defaultStateBase } from './constants'
+import { mkdir, makeStateDir } from './system'
 import { ScrtNode } from './localnet'
-import { BuildUploader } from './uploader'
-import { Agent, JSAgent, JSAgentCreateArgs } from './agent'
-import { CLIAgent } from './agent-native'
-
+import { JSAgent } from './agent-secretjs'
+import { CLIAgent } from './agent-secretcli'
+import { Console, bold } from './command'
 const {debug, info} = Console(import.meta.url)
-
-export const defaultStateBase = resolve(cwd(), 'artifacts')
-
-export type Path    = string
-export type Node    = any
-export type Builder = any
-
-export type Connection = {
-  node:    Path
-  network: Chain
-  agent:   Agent
-  builder: Builder
-}
-
-export interface ChainOptions {
-  chainId?: string
-  apiURL?:  URL|string
-  node?:    Node
-  defaultAgentName?:     string
-  defaultAgentAddress?:  string
-  defaultAgentMnemonic?: string
-}
-
-export interface ChainConnectOptions extends ChainOptions {
-  apiKey?: string
-}
-
-export interface ChainCtorOptions extends ChainOptions {
-  stateBase?: Path
-  state?:     Path
-  wallets?:   Path
-  receipts?:  Path
-  instances?: Path
-}
-
-export interface Chain extends ChainOptions {
-  get url        (): string
-  connect        (): Promise<Connection>
-  getAgent       (options?: JSAgentCreateArgs<Chain>): Promise<Agent>
-  getBuilder     (agent: Agent): BuildUploader
-  getContract<T> (api: T, address: string, agent: any): T
-
-  defaultAgent: Agent
-
-  readonly wallets:   string
-  readonly receipts:  string
-  readonly instances: string
-}
 
 export class Scrt implements Chain {
 
@@ -123,7 +78,7 @@ export class Scrt implements Chain {
    * @param {Object} options           - the configuration options
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
    * TODO document the remaining options */
-  constructor (options: ChainCtorOptions = {}) {
+  constructor (options: ChainOptions = {}) {
     const node = this.node = options.node || null
 
     // info needed to connect to the chain's REST API

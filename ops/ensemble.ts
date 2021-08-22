@@ -1,62 +1,16 @@
-import {Network, Agent}                   from './agent'
-import {BuildUploader}                    from './builder'
-import {Docker, pulled}                   from './network'
-import {resolve, relative, existsSync}    from './system'
-import {Commands, Taskmaster, taskmaster} from './cli-kit'
+import type {
+  Path, Commands, Chain, Agent, BuildUploader,
+  EnsembleContractInfo, EnsembleOptions, Instances } from './types'
+
+import {Docker, pulled} from './network'
+import {resolve, relative, existsSync} from './system'
+import {taskmaster} from './command'
 
 import {table} from 'table'
 import colors from 'colors'
 const {bold} = colors
 
 const required = (label: string) => { throw new Error(`required key: ${label}`) }
-
-export type Path = string
-
-export type EnsembleContractInfo = { crate: string }
-
-export type EnsembleOptions =
-  { network?:   Network
-  , agent?:     Agent
-  , builder?:   BuildUploader
-  , workspace?: Path }
-
-export type EnsembleDeploy =
-  { task?:      Taskmaster
-  , network?:   Network
-  , agent?:     Agent
-  , builder?:   BuildUploader
-  , workspace?: Path
-  , initMsgs?:  Record<string, any>
-  , additionalBinds?: Array<string> }
-
-export type EnsembleBuild =
-  { task?:      Taskmaster
-  , builder?:   BuildUploader
-  , workspace?: Path
-  , outputDir?: Path
-  , parallel?:  boolean
-  , additionalBinds?: Array<string> }
-
-export type EnsembleUpload =
-  { task?:      Taskmaster
-  , agent?:     Agent
-  , network?:   Network
-  , builder?:   BuildUploader
-  , artifacts?: Artifacts }
-
-export type EnsembleInit =
-  { task?:      Taskmaster
-  , initMsgs?:  Record<string, any>
-  , network?:   Network
-  , uploads?:   Uploads
-  , agent?:     Agent }
-
-export type Artifact  = any
-export type Artifacts = Record<string, Artifact>
-export type Upload    = any
-export type Uploads   = Record<string, Upload>
-export type Instance  = any
-export type Instances = Record<string, Instance>
 
 const timestamp = (d = new Date()) =>
   d.toISOString()
@@ -67,9 +21,9 @@ const timestamp = (d = new Date()) =>
 export class Ensemble {
 
   static Errors = {
-    NOTHING: "Please specify a network, agent, or builder",
-    AGENT:   "Can't use agent with different network",
-    BUILDER: "Can't use builder with different network", }
+    NOTHING: "Please specify a chain, agent, or builder",
+    AGENT:   "Can't use agent with different chain",
+    BUILDER: "Can't use builder with different chain", }
 
   static Info = {
     BUILD:  '👷 Compile contracts from working tree',
@@ -78,33 +32,33 @@ export class Ensemble {
   prefix     = `${timestamp()}`
   contracts: Record<string, EnsembleContractInfo>
   workspace: Path          | null
-  network:   Network       | null
+  chain:     Chain         | null
   agent:     Agent         | null
   builder:   BuildUploader | null
   docker     = new Docker({ socketPath: '/var/run/docker.sock' })
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
 
   constructor (provided: EnsembleOptions = {}) {
-    this.network   = provided.network   || null
-    this.agent     = provided.agent     || this.network?.defaultAgent || null
-    this.builder   = provided.builder   || this.network?.getBuilder(this.agent) || null
+    this.chain   = provided.chain   || null
+    this.agent     = provided.agent     || this.chain?.defaultAgent || null
+    this.builder   = provided.builder   || this.chain?.getBuilder(this.agent) || null
     this.workspace = provided.workspace || null }
 
   /* Build, upload, and instantiate the contracts. */
   async deploy ({
     task      = taskmaster(),
-    network   = this.network,
+    chain   = this.chain,
     agent     = this.agent,
     builder   = this.builder,
     initMsgs  = {},
     workspace = this.workspace,
     additionalBinds
   }: EnsembleDeploy = {}): Promise<Instances> {
-    if (!network) throw new Error('need a Network to deploy to')
+    if (!chain) throw new Error('need a Chain to deploy to')
     return await task('build, upload, and initialize contracts', async () => {
       const artifacts = await this.build({ task, builder, workspace, additionalBinds })
-      const uploads   = await this.upload({ task, network, builder, artifacts })
-      const instances = await this.initialize({ task, network, uploads, agent, initMsgs })
+      const uploads   = await this.upload({ task, chain, builder, artifacts })
+      const instances = await this.initialize({ task, chain, uploads, agent, initMsgs })
       return instances }) }
 
   /* Compile the contracts for production. */
@@ -145,7 +99,7 @@ export class Ensemble {
         else {
           return await builder.build({workspace, crate, outputDir, additionalBinds}) } }) } }
 
-  /* Upload the contracts to the network, and write upload receipts in the corresponding directory.
+  /* Upload the contracts to the chain, and write upload receipts in the corresponding directory.
    * If receipts are already present, return their contents instead of uploading. */
   async upload ({
     task    = taskmaster(),
@@ -178,7 +132,7 @@ export class Ensemble {
             , Ensemble.Info.BUILD
             , (ctx: any, sequential: boolean) => this.build({...ctx, parallel: !sequential})]] }
 
-  /** Commands that require a connection to a network. */
+  /** Commands that require a connection to a chain. */
   remoteCommands (): Commands {
     return [[ "deploy"
             , Ensemble.Info.DEPLOY

@@ -1,4 +1,4 @@
-export { cwd, stderr } from 'process'
+export { cwd, stderr, env } from 'process'
 import { cwd } from 'process'
 
 import onExit from 'signal-exit'

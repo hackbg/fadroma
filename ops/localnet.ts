@@ -1,32 +1,9 @@
-import { Console, bold } from './cli-kit'
-const { warn, info, debug } = Console(import.meta.url)
-
-import { resolve, dirname, fileURLToPath, mkdir, existsSync, touch, rimraf,
-         writeFile, readFileSync, unlinkSync, loadJSON, cwd } from './system'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-export const defaultStateBase = resolve(cwd(), 'artifacts')
-
+import { resolve, mkdir, existsSync, touch, rimraf,
+         writeFile, readFileSync, unlinkSync, loadJSON } from './system'
 import { Docker, waitPort, freePort, pulled, waitUntilLogsSay } from './network'
-
-export type NodeCtorArgs = {
-  docker?:  Docker
-  image?:   string
-  chainId?: string
-  genesisAccounts?: Array<string>
-  state?:   string,
-}
-
-export interface Node {
-  new       (args: NodeCtorArgs)
-  load      (): Record<any, any>
-  save      (): Promise<void>
-  erase     (): Promise<void>
-  respawn   (): Promise<void>
-  spawn     (): Promise<void>
-  suspend   (): Promise<void>
-  terminate (): Promise<void>
-}
+import { __dirname, defaultStateBase } from './constants'
+import { Console, bold } from './command'
+const { warn, info, debug } = Console(import.meta.url)
 
 /** @class
  *  Run a pausable Secret Network localnet in a Docker container and manage its lifecycle.

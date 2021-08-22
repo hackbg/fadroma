@@ -1,22 +1,9 @@
 import assert from 'assert'
 
-import { taskmaster } from '@fadroma/cli'
-import { resolve, readdirSync, readFileSync } from '@fadroma/sys'
-
-import { Agent } from './agent'
-import { Network, Scrt } from './network'
-
-export type Prefund = {
-  task?:       Function
-  count?:      number
-  budget?:     bigint
-
-  network?:    Network|string
-  agent?:      Agent
-
-  recipients?: Record<any, {agent: Agent}>
-  wallets?:    any
-}
+import { Chain, Agent, Prefund } from './types'
+import { taskmaster } from './command'
+import { resolve, readdirSync, readFileSync } from './system'
+import { Scrt } from './chain'
 
 /** In testing scenarios requiring multiple agents,
  * this function distributes funds among the extra agents
@@ -24,18 +11,18 @@ export type Prefund = {
 export async function prefund (options: Prefund = {}) {
 
   let { budget  = BigInt("5000000")
-      , network = 'testnet' } = options
+      , chain = 'testnet' } = options
 
   // allow passing strings:
   budget = BigInt(budget)
-  if (typeof network === 'string') {
-    if (!['localnet','testnet','mainnet'].includes(network)) {
-      throw new Error(`invalid network: ${network}`)}
-    network = await Scrt[network]({stateBase: process.cwd()}) }
+  if (typeof chain === 'string') {
+    if (!['localnet','testnet','mainnet'].includes(chain)) {
+      throw new Error(`invalid chain: ${chain}`)}
+    chain = await Scrt[chain]({stateBase: process.cwd()}) }
 
   const { task      = taskmaster()
         , count     = 16 // give or take
-        , agent      = await Promise.resolve((network as Network).getAgent())
+        , agent      = await Promise.resolve((chain as Network).getAgent())
         // {address:{agent,address}}
         , recipients = await getDefaultRecipients()
         // [[address,budget]]
@@ -64,13 +51,13 @@ export async function prefund (options: Prefund = {}) {
 
   async function getDefaultRecipients () {
     const recipients = {}
-    const wallets = readdirSync(agent.network.wallets)
+    const wallets = readdirSync(agent.chain.wallets)
       .filter(x=>x.endsWith('.json'))
-      .map(x=>readFileSync(resolve(agent.network.wallets, x), 'utf8'))
+      .map(x=>readFileSync(resolve(agent.chain.wallets, x), 'utf8'))
       .map(x=>JSON.parse(x))
-    const network = agent.network
+    const chain = agent.chain
     for (const {address, mnemonic} of wallets) {
-      const agent = await network.getAgent({address, mnemonic})
+      const agent = await chain.getAgent({address, mnemonic})
       assert(address === agent.address)
       recipients[address] = { agent, address } }
     return recipients }

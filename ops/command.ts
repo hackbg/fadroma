@@ -13,24 +13,25 @@ import colors from 'colors'
 const { bold } = colors
 export { colors, bold }
 
-
 // Console /////////////////////////////////////////////////////////////////////////////////////////
 
 /** Prettier console. */
-export const Console = filename => {
-  filename = relative(cwd(), fileURLToPath(filename))
-  const format = arg => '\n'+((typeof arg === 'object') ? render(arg) : arg)
+export const Console = (context: string) => {
+  context = relative(cwd(), fileURLToPath(context))
+  const format = (arg:any) =>
+    '\n'+((typeof arg === 'object') ? render(arg) : arg)
   return {
-    filename,
+    context,
     format,
-    table: rows      => console.log(table(rows)),
-    info:  (...args) => console.info('ℹ️ ', ...args),
-    log:   (...args) => console.log(...args),
-    warn:  (...args) => console.warn('⚠️ ', ...args),
-    error: (...args) => console.error('🦋', ...args),
-    debug: (...args) => {
-      if (!process.env.NODEBUG) {
-        console.debug('\n' + colors.yellow(filename), ...args.map(format)) }
+    table: (rows:    any) => console.log(table(rows)),
+    info:  (...args: any) => console.info('ℹ️ ', ...args),
+    log:   (...args: any) => console.log(...args),
+    warn:  (...args: any) => console.warn('⚠️ ', ...args),
+    error: (...args: any) => console.error('🦋', ...args),
+    debug: (...args: any) => {
+      if (!process.env.NO_DEBUG) {
+        console.debug('\n' + colors.yellow(`[${context}]`),
+                      ...args.map(format)) }
       return args[0] } } }
 
 // Table ///////////////////////////////////////////////////////////////////////////////////////////
@@ -62,12 +63,9 @@ export const noBorders = {
 
 // Commands ////////////////////////////////////////////////////////////////////////////////////////
 
-export type CommandName = string
-export type CommandInfo = string
-export type Command     = [CommandName|Array<CommandName>, CommandInfo, Function, Commands?]
-export type Commands    = Array<Command|null>
-
-export async function runCommand (context, commands, commandToRun, ...args) {
+export async function runCommand (
+  context: any, commands: any, commandToRun: any, ...args: Array<any>
+) {
   if (commandToRun) {
     let notFound = true
     for (const command of commands.filter(Boolean)) {
@@ -94,20 +92,22 @@ export async function runCommand (context, commands, commandToRun, ...args) {
   else {
     printUsage(context, commands) } }
 
-export function printUsage (context, commands) {
+export function printUsage (context: any, commands: any) {
   const prefix = context.command.length > 0 ? ((context.command||[]).join(' ')) : ''
   console.log(`\nsienna ${prefix}[COMMAND...]\n`)
   const tableData = collectUsage(context, commands)
   process.stdout.write(table(tableData, noBorders)) }
 
-function collectUsage (context = {}, commands, tableData = [], visited = new Set(), depth = 0) {
+function collectUsage (
+  context = {}, commands: any, tableData = [], visited = new Set(), depth = 0
+) {
   const maxDepth = -1 // increment to display command tree in depth
   const indent = Array(depth+1).join('  ')
   for (const commandSpec of commands) {
     if (!commandSpec) {
       tableData.push(['','',''])
       continue }
-    let [command, docstring, fn, subcommands] = commandSpec
+    let [command, docstring, _, subcommands] = commandSpec
     if (visited.has(commandSpec)) {
       tableData.push([`  ${indent}${bold(command)}`, '(see above)', '']) }
     else {
@@ -123,11 +123,6 @@ function collectUsage (context = {}, commands, tableData = [], visited = new Set
 
 // Taskmaster //////////////////////////////////////////////////////////////////////////////////////
 
-export type Taskmaster = Function & {
-  done:     Function
-  parallel: Function
-}
-
 export function taskmaster (options: any = {}): Taskmaster {
 
   const { say    = console.debug
@@ -135,18 +130,21 @@ export function taskmaster (options: any = {}): Taskmaster {
         , table  = markdownTable(header)
         , output
         , agent
-        , afterEach = async function gasCheck (t1, info, reports=[]) {
+        , afterEach = async function gasCheck (
+            t1: Date, info: string, reports=[]
+          ) {
             const t2 = +new Date()
-            say(`🟢 +${t2-t1}msec`)
+            const elapsed = t2 - (+t1)
+            say(`🟢 +${elapsed}msec`)
             if (agent && reports.length > 0) {
               const txs      = await Promise.all(reports.map(getTx.bind(null, agent)))
                   , gasTotal = txs.map(x=>Number(((x||{}) as any).gas_used||0)).reduce((x,y)=>x+y, 0)
                   , t3       = +new Date()
               say(`⛽ gas cost: ${gasTotal} uSCRT`)
               say(`🔍 gas check: +${t3-t2}msec`)
-              table.push([t1.toISOString(), info, t2-t1, gasTotal, t3-t2]) }
+              table.push([t1.toISOString(), info, elapsed, gasTotal, t3-t2]) }
             else {
-              table.push([t1.toISOString(), info, t2-t1]) } } } = options
+              table.push([t1.toISOString(), info, elapsed]) } } } = options
 
   return Object.assign(task, { done, parallel })
 
@@ -195,13 +193,8 @@ export function sayer (prefixes = []) {
     else {
       return x } } }
 
-const say = sayer()
-
-export default say
+export const say = sayer()
 
 export function muted () {
-  return Object.assign(x=>x, {
-    tag: () => muted()
-  })
-}
+  return Object.assign((x:any)=>x, { tag: () => muted() }) }
 

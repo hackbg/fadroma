@@ -1,4 +1,4 @@
-import { bold } from './cli-kit'
+import { bold } from './command'
 
 import { createServer } from 'net'
 

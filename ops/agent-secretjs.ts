@@ -1,4 +1,4 @@
-import { Console, bold } from './cli-kit'
+import { Console, bold } from './command'
 import { readFile } from './system'
 
 import { Bip39 } from '@cosmjs/crypto'
@@ -6,75 +6,10 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
          makeSignBytes } from 'secretjs'
 
+import { Chain, Agent } from './types'
 import { gas, defaultFees } from './gas'
-import { Chain } from './chain'
 
 const { debug, warn } = Console(import.meta.url)
-
-/** Check if the passed instance has required methods to behave like an Agent */
-export const isAgent = (maybeAgent: any): boolean => (
-  maybeAgent &&
-  typeof maybeAgent === "object" &&
-  typeof maybeAgent.query === "function" &&
-  typeof maybeAgent.execute === "function");
-
-export interface Agent {
-  fees: Record<string, any>
-  readonly name:    string
-  readonly address: string
-  readonly network: Chain
-
-  get nextBlock (): Promise<void>
-  get block     (): Promise<any>
-  get account   (): Promise<any>
-  get balance   (): Promise<any>
-
-  getBalance (denomination: string): Promise<any>
-
-  send       (recipient:        any,
-              amount: string|number,
-              denom?:           any,
-              memo?:            any,
-              fee?:             any): Promise<any>
-
-  sendMany   (txs: Array<any>,
-              memo?:   string,
-              denom?:  string,
-              fee?:       any): Promise<any>
-
-  upload      (path:   string): Promise<any>
-
-  instantiate (instance:  any): Promise<any>
-
-  query       (link:      any,
-               method: string,
-               args?:     any): Promise<any>
-
-  execute     (link:      any,
-               method: string,
-               args?:     any,
-               memo?:     any,
-               transfer?: any,
-               fee?:      any): Promise<any>
-}
-
-export interface JSAgentCreateArgs<N extends Chain> {
-  name?:     string,
-  address?:  string,
-  mnemonic?: string,
-  keyPair?:  any
-  network?:  N|string
-}
-
-export interface JSAgentCtorArgs<N extends Chain> {
-  Chain?:  N
-  network?:  N|string
-  pen?:      any
-  mnemonic?: any
-  keyPair?:  any
-  name?:     any
-  fees?:     any
-}
 
 /** Queries and transacts on an instance of the Secret Chain */
 export class JSAgent<N extends Chain> implements Agent {
