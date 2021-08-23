@@ -89,11 +89,7 @@ export const touch = (...fragments: Array<string>) => {
 import _rimraf from 'rimraf'
 export const rimraf = (path: string) =>
   new Promise<void>((resolve, reject)=>{
-    _rimraf(path, (err) => {
-      if (err) {
-        reject(err) }
-      else {
-        resolve() } }) })
+    _rimraf(path, (err) => { if (err) { reject(err) } else { resolve() } }) })
 
 import { randomBytes } from 'crypto'
 export const randomHex = (bytes: number) => randomBytes(bytes).toString("hex")

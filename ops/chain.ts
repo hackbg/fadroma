@@ -4,7 +4,7 @@ import type {
   BuildUploader,
   Ensemble, EnsembleOptions } from './types'
 import { defaultStateBase } from './constants'
-import { open, Directory, JSONDirectory } from './system'
+import { open, resolve, Directory, JSONDirectory } from './system'
 import { ScrtNode } from './localnet'
 import { ScrtUploader } from './builder'
 import { ScrtJSAgent } from './agent-secretjs'
@@ -57,7 +57,7 @@ export class Scrt implements Chain {
     this.chainId = options.chainId || node?.chainId || 'enigma-pub-testnet-3'
     this.apiURL  = options.apiURL || node?.apiURL || new URL('http://localhost:1337/')
     // directories to store state.
-    const stateRoot = options.stateRoot  || defaultStateBase
+    const stateRoot = options.stateRoot || resolve(defaultStateBase, this.chainId)
     this.stateRoot   = new Directory(stateRoot),
     this.identities  = new JSONDirectory(stateRoot, 'identities')
     this.uploads     = new JSONDirectory(stateRoot, 'uploads')
@@ -194,18 +194,19 @@ export class Scrt implements Chain {
     const data = []
     // uploads table - lists code blobs
     data.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
-    for (const name of this.uploads.list()) {
-      const row = []
-          , { codeId,
-              originalSize,
-              compressedSize,
-              originalChecksum,
-              compressedChecksum } = this.uploads.load(name)
-      row.push(`  ${codeId}`)
-      row.push(`${bold(name)}\ncompressed:\n`)
-      row.push(`${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,)
-      row.push(`${originalChecksum}\n${compressedChecksum}`)
-      data.push(row) }
+    if (this.uploads.exists()) {
+      for (const name of this.uploads.list()) {
+        const row = []
+            , { codeId,
+                originalSize,
+                compressedSize,
+                originalChecksum,
+                compressedChecksum } = this.uploads.load(name)
+        row.push(`  ${codeId}`)
+        row.push(`${bold(name)}\ncompressed:\n`)
+        row.push(`${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,)
+        row.push(`${originalChecksum}\n${compressedChecksum}`)
+        data.push(row) } }
     return data }
 
   private get instancesTable () {
@@ -213,12 +214,13 @@ export class Scrt implements Chain {
         , initReceipts = []
     // inits table - list contracts
     initReceipts.push([[bold('  label')+'\n  address', '(code id) binary name\ncode hash\ninit tx\n']])
-    for (const name of this.instances.list()) {
-      const row = []
-          , { codeId
-            , codeHash
-            , initTx: {contractAddress, transactionHash} } = this.instances.load(name)
-      row.push(`  ${bold(name)}\n  ${contractAddress}`)
-      row.push(`(${codeId}) ${idToName[codeId]||''}\n${codeHash}\n${transactionHash}\n`)
-      initReceipts.push(row) }
+    if (this.instances.exists()) {
+      for (const name of this.instances.list()) {
+        const row = []
+            , { codeId
+              , codeHash
+              , initTx: {contractAddress, transactionHash} } = this.instances.load(name)
+        row.push(`  ${bold(name)}\n  ${contractAddress}`)
+        row.push(`(${codeId}) ${idToName[codeId]||''}\n${codeHash}\n${transactionHash}\n`)
+        initReceipts.push(row) } }
     return initReceipts } }
