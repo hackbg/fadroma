@@ -3,7 +3,7 @@ import { resolve, dirname, fileURLToPath, relative, basename,
 import { Docker, pulled } from './network'
 import { Console, bold } from './command'
 
-import type { Chain, Agent, BuildUploader, BuilderOptions, BuildArgs } from './types'
+import type { Chain, Agent, BuildUploader, BuilderOptions, BuildOptions } from './types'
 
 /** I wonder, what does the documentation generator do
  *  when I document a dual defintition? */
@@ -25,11 +25,13 @@ export class ScrtBuilder {
     if (options.docker) this.docker = options.docker }
 
   /** Build from source in a Docker container. */
-  async build (options: BuildArgs) {
-    const { repo
-          , workspace
-          , crate
-          , outputDir = resolve(workspace, 'artifacts') } = options
+  async build ({
+    repo,
+    workspace,
+    crate,
+    outputDir = resolve(workspace, 'artifacts'),
+    additionalBinds = []
+  }: BuildOptions) {
 
     const ref          = repo?.ref || 'HEAD'
         , buildImage   = await pulled('enigmampc/secret-contract-optimizer:latest', this.docker)
@@ -53,9 +55,7 @@ export class ScrtBuilder {
       debug(`building working tree at ${workspace} into ${outputDir}...`)
       buildArgs.HostConfig.Binds.push(`${workspace}:/contract:rw`) }
 
-    if (Array.isArray(options.additionalBinds)) {
-      for (const bind of options.additionalBinds) {
-        buildArgs.HostConfig.Binds.push(bind) } }
+    additionalBinds.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
 
     const [{Error:err, StatusCode:code}, container] = await this.docker.run(
       buildImage, buildCommand, process.stdout, buildArgs )
@@ -67,6 +67,10 @@ export class ScrtBuilder {
     if (code !== 0) throw new Error(`build exited with status ${code}`)
 
     return resolve(outputDir, `${crate}@${repo?.ref||'HEAD'}.wasm`) }
+
+  async buildOrCached (options: BuildOptions) {
+    console.warn('TODO buildOrCached')
+    return this.build(options) }
 
   /** Generate the command line for the container. */
   getBuildCommand ({ repo: { origin='', ref='HEAD' }={}, crate }) {
@@ -85,9 +89,9 @@ export class ScrtBuilder {
     //commands.push(`pwd && ls -al && mv ${crate}.wasm /output/${crate}@${ref}.wasm`)
     return commands.join(' && ') } }
 
-/** I'm starting to think that the builder and uploader phases should be accessed
- *  primarily via the Contract object and not as currently; and be separate features
- *  (dynamically loaded unless using fadroma.js in a browser) */
+// I'm starting to think that the builder and uploader phases should be accessed
+// primarily via the Contract object and not as currently; and be separate features
+// (dynamically loaded unless using fadroma.js in a browser) */
 
 const {info} = Console(import.meta.url)
 
@@ -113,7 +117,7 @@ export class ScrtUploader extends ScrtBuilder implements BuildUploader {
 
   /** Try to upload a binary to the chain but return a pre-existing receipt if one exists.
    *  TODO also code checksums should be validated */
-  async uploadCached (artifact: any) {
+  async uploadOrCached (artifact: any) {
     const receiptPath = this.getReceiptPath(artifact)
     if (existsSync(receiptPath)) {
       const receiptData = await readFile(receiptPath, 'utf8')
@@ -123,7 +127,7 @@ export class ScrtUploader extends ScrtBuilder implements BuildUploader {
       return this.upload(artifact) } }
 
   getReceiptPath = (path: string) =>
-    resolve(this.chain.receipts, `${basename(path)}.upload.json`)
+    this.chain.uploads.load(`${basename(path)}.upload.json`)
 
   /** Upload a binary to the chain. */
   async upload (artifact: any) {

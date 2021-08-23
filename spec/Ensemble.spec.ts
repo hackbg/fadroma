@@ -1,22 +1,21 @@
 import assert from "assert";
-import { resolve, existsSync } from '@fadroma/sys';
-import { Scrt } from "@fadroma/agent";
-import { Ensemble } from "../ensemble";
+import { resolve, existsSync, BaseEnsemble } from "../ops";
 
 describe("Secret Network Ensemble", function () {
 
-  let e: Ensemble<Scrt>;
-
-  class TestEnsemble extends Ensemble<Scrt> {
+  class TestEnsemble extends BaseEnsemble {
+    buildImage = ''
     contracts = { TEST: { crate: "votes" } };
     async initialize () { return {} } }
+
+  let e: TestEnsemble;
   
   beforeEach(function () {
-    e = new TestEnsemble({
+    e = new TestEnsemble(/*{
       network:   'localnet',
       workspace: resolve('./'),
       builder:   { async build(..._: Array<any>) { return '' } } as any
-    }); });
+    }*/); });
 
   it("has a list of commands", function () {
     assert(e.commands() instanceof Array);

@@ -18,21 +18,21 @@ export async function prefund (options: Prefund = {}) {
   if (typeof chain === 'string') {
     if (!['localnet','testnet','mainnet'].includes(chain)) {
       throw new Error(`invalid chain: ${chain}`)}
-    chain = await Scrt[chain]({stateBase: process.cwd()}) }
+    chain = await Scrt[chain]({stateRoot: process.cwd()}) }
 
   const { task      = taskmaster()
         , count     = 16 // give or take
-        , agent      = await Promise.resolve((chain as Network).getAgent())
+        , agent      = await Promise.resolve((chain as Chain).getAgent())
         // {address:{agent,address}}
         , recipients = await getDefaultRecipients()
         // [[address,budget]]
-        , wallets    = await recipientsToWallets(recipients)
+        , identities    = await recipientsToWallets(recipients)
         } = options
 
   // check that admin has enough balance to create the wallets
   const {balance} = await fetchAdminAndRecipientBalances()
       , fee = BigInt(agent.fees.send)
-      , total = fee + BigInt(wallets.length) * budget
+      , total = fee + BigInt(identities.length) * budget
   if (total > balance) {
     const message =
       `admin wallet does not have enough balance to preseed test wallets ` +
@@ -43,20 +43,20 @@ export async function prefund (options: Prefund = {}) {
     console.error(message)
     process.exit(1) }
 
-  await task(`ensure ${wallets.length} test accounts have balance`, async (report: Function) => {
-    const tx = await agent.sendMany(wallets, 'create recipient accounts')
+  await task(`ensure ${identities.length} test accounts have balance`, async (report: Function) => {
+    const tx = await agent.sendMany(identities, 'create recipient accounts')
     report(tx.transactionHash)})
 
   await fetchAdminAndRecipientBalances()
 
   async function getDefaultRecipients () {
     const recipients = {}
-    const wallets = readdirSync(agent.chain.wallets)
+    const identities = agent.chain.identities.list()
       .filter(x=>x.endsWith('.json'))
-      .map(x=>readFileSync(resolve(agent.chain.wallets, x), 'utf8'))
+      .map(x=>readFileSync(resolve(agent.chain.identities.path, x), 'utf8'))
       .map(x=>JSON.parse(x))
     const chain = agent.chain
-    for (const {address, mnemonic} of wallets) {
+    for (const {address, mnemonic} of identities) {
       const agent = await chain.getAgent({address, mnemonic})
       assert(address === agent.address)
       recipients[address] = { agent, address } }

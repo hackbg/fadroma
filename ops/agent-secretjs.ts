@@ -1,13 +1,13 @@
 import { Console, bold } from './command'
 import { readFile } from './system'
+import { Agent, Identity } from './types'
+import { Scrt } from './chain'
+import { ScrtGas, defaultFees } from './gas'
 
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
          makeSignBytes } from 'secretjs'
-
-import { Scrt, Agent, Identity } from './types'
-import { gas, defaultFees } from './gas'
 
 const { debug, warn } = Console(import.meta.url)
 
@@ -47,11 +47,7 @@ export class ScrtJSAgent implements Agent {
 
   /** Create a new agent from a signing pen. */
   constructor (options: Identity) {
-    const chain = this.chain =
-      (typeof options.chain === 'string')
-        ? options.Chain[options.chain].hydrate()
-        : options.chain
-
+    this.chain    = options.chain
     this.name     = options.name || ''
     this.keyPair  = options.keyPair
     this.mnemonic = options.mnemonic
@@ -64,7 +60,7 @@ export class ScrtJSAgent implements Agent {
     this.seed    = EnigmaUtils.GenerateNewSeed()
 
     this.API = new SigningCosmWasmClient(
-      chain.url, this.address, this.sign, this.seed, this.fees) }
+      this.chain.url, this.address, this.sign, this.seed, this.fees) }
 
   // block time //
 
@@ -112,7 +108,7 @@ export class ScrtJSAgent implements Agent {
 
   /**Send `uscrt` to multiple addresses.
    * TODO support sending SNIP20 tokens */
-  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = gas(500000 * txs.length)) {
+  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = new ScrtGas(500000 * txs.length)) {
     if (txs.length < 0) {
       throw new Error('tried to send to 0 recipients') }
     const from_address = this.address

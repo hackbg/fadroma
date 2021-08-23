@@ -21,60 +21,61 @@ export type Taskmaster = Function & {
 /* Represents an interface to a particular Cosmos blockchain.
  * Used to construct agents, builders, and contracts that are
  * bound to a particular chain. */
-export interface Chain extends ChainState {
-  /* Stuff that should be in the constructor but is asynchronous.
-   *
-   * FIXME: How come nobody has proposed sugar for async constructors yet?
-   * Feeling like writing a `@babel/plugin-async-constructor`, as always
-   * bonus internet points for whoever beats me to it. */
+export interface Chain extends ChainOptions {
+
+  /** Stuff that should be in the constructor but is asynchronous.
+    * FIXME: How come nobody has proposed sugar for async constructors yet?
+    * Feeling like writing a `@babel/plugin-async-constructor`, as always
+    * bonus internet points for whoever beats me to it. */
   init (): Promise<Chain>
 
-  /* The connection address is stored internally as a URL object,
-   * but returned as a string.
-   *
-   * FIXME why so? */
+  /** The connection address is stored internally as a URL object,
+    * but returned as a string.
+    * FIXME why so? */
   get url (): string
 
-  /* Get an Agent that works with this Chain. */
+  /** Get an Agent that works with this Chain. */
   getAgent (options?: Identity): Promise<Agent>
 
-  /* Get a Builder that works with this Chain,
-   * optionally providing a specific Agent to perform
-   * the contract upload operation. */
+  /** Get a Builder that works with this Chain,
+    * optionally providing a specific Agent to perform
+    * the contract upload operation. */
   getBuilder (agent?: Agent): Promise<BuildUploader>
 
-  /* Get a Contract that exists on this Chain, or a non-existent one
-   * which you can then create via Agent#instantiate
-   *
-   * FIXME: awkward inversion of control */
+  /** Get a Contract that exists on this Chain, or a non-existent one
+    * which you can then create via Agent#instantiate
+    *
+    * FIXME: awkward inversion of control */
   getContract<T> (api: T, address: string, agent: any): T
 
-  /* Credentials of the default agent for this network.
-   * Picked up from environment variable, see the subclass
-   * implementation for more info. */
+  /** Credentials of the default agent for this network.
+    * Picked up from environment variable, see the subclass
+    * implementation for more info. */
   defaultAgent: Identity
 
-  /* This directory stores all private keys that are available for use. */
+  /** This directory contains all the others. */
+  readonly stateRoot: Directory
+
+  /** This directory stores all private keys that are available for use. */
   readonly identities: Directory
 
-  /* This directory stores receipts from the upload transactions,
-   * containing provenance info for uploaded code blobs. */
-  readonly uploads:   Directory
+  /** This directory stores receipts from the upload transactions,
+    * containing provenance info for uploaded code blobs. */
+  readonly uploads: Directory
 
-  /* This directory stores receipts from the instantiation (init) transactions,
-   * containing provenance info for initialized contract instances.
-   *
-   * NOTE: the current domain vocabulary considers initialization and instantiation,
-   * as pertaining to contracts on the blockchain, to be the same thing. */
+  /** This directory stores receipts from the instantiation (init) transactions,
+    * containing provenance info for initialized contract instances.
+    *
+    * NOTE: the current domain vocabulary considers initialization and instantiation,
+    * as pertaining to contracts on the blockchain, to be the same thing. */
   readonly instances: Directory
 }
 
 export interface ChainState extends ChainOptions {
-  stateRoot?:  Path
-  state?:      Path
-  identities?: Directory
-  uploads?:    Directory
-  instances?:  Directory
+  readonly stateRoot?:  string
+  readonly identities?: string
+  readonly uploads?:    string
+  readonly instances?:  string
 }
 
 export interface ChainOptions {
@@ -82,8 +83,8 @@ export interface ChainOptions {
   apiURL?:  URL
   node?:    ChainNode
   defaultAgent?: {
-    name?: string,
-    address?: string,
+    name?:     string,
+    address?:  string,
     mnemonic?: string
   }
 }
@@ -96,25 +97,25 @@ export interface ChainNode {
   chainId: string
   apiURL:  URL
   port:    number
-  /* Resolved when the node is ready */
+  /** Resolved when the node is ready */
   readonly ready: Promise<void>
-  /* Path to the node state directory */
+  /** Path to the node state directory */
   readonly stateRoot: Directory
-  /* Path to the node state file */
+  /** Path to the node state file */
   readonly nodeState: JSONFile
-  /* Path to the directory containing the keys to the genesis accounts. */
+  /** Path to the directory containing the keys to the genesis accounts. */
   readonly identities: Directory
-  /* Retrieve the node state */
+  /** Retrieve the node state */
   load      (): ChainNodeState
-  /* Start the node */
+  /** Start the node */
   spawn     (): Promise<void>
-  /* Save the info needed to respawn the node */
+  /** Save the info needed to respawn the node */
   save      (): this
-  /* Stop the node */
+  /** Stop the node */
   kill      (): Promise<void>
-  /* Start the node if stopped */
+  /** Start the node if stopped */
   respawn   (): Promise<void>
-  /* Erase the state of the node */
+  /** Erase the state of the node */
   erase     (): Promise<void>
   /** Stop the node and erase its state from the filesystem. */
   terminate () : Promise<void>
@@ -198,18 +199,30 @@ export const isAgent = (maybeAgent: any): boolean => (
   typeof maybeAgent.execute === "function"
 )
 
+export interface Gas {
+  amount: Array<{amount: string, denom: string}>
+  gas:    string
+}
+
+export type Fees = {
+  upload: Gas
+  init:   Gas
+  exec:   Gas
+  send:   Gas
+}
+
 export interface BuildUploader {
-  build          (options: BuildArgs): Promise<Path>
-  buildOrCached  (options: BuildArgs): Promise<Path>
+  build          (options: BuildOptions): Promise<Path>
+  buildOrCached  (options: BuildOptions): Promise<Path>
   upload         (artifact: Artifact): Promise<Upload>
   uploadOrCached (artifact: Artifact): Promise<Upload>
 }
-
+ 
 export type BuilderOptions = {
   docker?: Docker
 }
 
-export type BuildArgs = {
+export type BuildOptions = {
   /* Set this to build a remote commit instead of the working tree. */
   repo?:           { origin: string, ref: string },
   /* Path to root Cargo workspace of project. */
@@ -241,7 +254,7 @@ export type Prefund = {
   recipients?: Record<any, {agent: Agent}>
   /** Map of specific identities to receive funds.
    *  FIXME redundant with the above*/
-  identities?:    any
+  identities?: any
 }
 
 export interface Ensemble {

@@ -48,15 +48,14 @@ export class JSONFile extends TextFile {
 export class Directory extends FSCRUD {
   make () { mkdirp.sync(this.path) }
   protected resolve (name: Path) {
-    if (name.startsWith('.')||name.includes('/')) {
-      throw new Error(`invalid name: ${name}`) }
+    if (name.startsWith('.')||name.includes('/')) { throw new Error(`invalid name: ${name}`) }
     return resolve(this.path, name) }
   list () { return readdirSync(this.path) }
   load (name: Path) { return readFileSync(this.resolve(name), 'utf8') }
   save (name: Path, data: any) { writeFileSync(this.resolve(name), data, 'utf8') } }
 
 export class JSONDirectory extends Directory {
-  load (name: Path) { return JSON.parse(super.load(name)) }
+  load (name: Path) { return JSON.parse(super.load(`${name}.json`)) }
   save (name: Path, data: any) {
     if (name.includes('/')) throw new Error(`invalid name: ${name}`)
     writeFileSync(resolve(this.path, name), data, 'utf8') } }

@@ -23,7 +23,7 @@ const timestamp = (d = new Date()) =>
     .replace(/[T]/g, '_')
     .slice(0, -3)
 
-export class ContractEnsemble implements Ensemble {
+export abstract class BaseEnsemble implements Ensemble {
 
   static Errors = {
     NOTHING: "Please specify a chain, agent, or builder",
@@ -34,14 +34,16 @@ export class ContractEnsemble implements Ensemble {
     BUILD:  '👷 Compile contracts from working tree',
     DEPLOY: '🚀 Build, init, and deploy this component' }
 
-  prefix     = `${timestamp()}`
+  prefix:    string = `${timestamp()}`
+  docker:    Docker = new Docker({ socketPath: '/var/run/docker.sock' })
   contracts: Record<string, EnsembleContractInfo>
   workspace: Path          | null
   chain:     Chain         | null
   agent:     Agent         | null
-  builder:   BuildUploader | null
-  docker     = new Docker({ socketPath: '/var/run/docker.sock' })
-  buildImage = 'enigmampc/secret-contract-optimizer:latest'
+
+  BuildUploader: new () => BuildUploader
+  builder:       BuildUploader | null
+  buildImage:    string
 
   constructor (provided: EnsembleOptions = {}) {
     this.chain     = provided.chain     || null
@@ -130,14 +132,14 @@ export class ContractEnsemble implements Ensemble {
     const uploads = {}
     for (const contract of Object.keys(this.contracts)) {
       await task(`upload ${contract}`, async (report: Function) => {
-        const receipt = uploads[contract] = await this.builder.uploadCached(artifacts[contract])
+        const receipt = uploads[contract] = await this.builder.uploadOrCached(artifacts[contract])
         console.log(`⚖️  compressed size ${receipt.compressedSize} bytes`)
         report(receipt.transactionHash) }) }
     return uploads }
 
   /** Stub to be implemented by the subclass.
    *  In the future it might be interesting to see if we can add some basic dependency resolution.
-   *  It just needs to be standardized on the Rust side (in scrt-callback)? */
+   *  It just needs to be standardized on the Rust side (in fadroma-callback)? */
   async initialize (_: EnsembleInit): Promise<Instances> {
     throw new Error('You need to implement the initialize() method.') }
 
@@ -148,11 +150,15 @@ export class ContractEnsemble implements Ensemble {
   /** Commands that can be executed locally. */
   localCommands (): Commands {
     return [[ "build"
-            , ContractEnsemble.Info.BUILD
+            , BaseEnsemble.Info.BUILD
             , (ctx: any, sequential: boolean) => this.build({...ctx, parallel: !sequential})]] }
 
   /** Commands that require a connection to a chain. */
   remoteCommands (): Commands {
     return [[ "deploy"
-            , ContractEnsemble.Info.DEPLOY
+            , BaseEnsemble.Info.DEPLOY
             , (ctx: any) => this.deploy(ctx).then(console.info) ]] } }
+
+export class ScrtEnsemble extends BaseEnsemble {
+  BuildUploader = ScrtUploader
+  buildImage = 'enigmampc/secret-contract-optimizer:latest' }

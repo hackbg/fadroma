@@ -41,7 +41,7 @@ export class Contract {
 
   /** Save the contract's instantiation receipt.*/
   save = () =>
-    writeFile(this.receiptPath, JSON.stringify(this.receipt, null, 2), "utf8");
+    writeFile(this.instanceReceiptPath, JSON.stringify(this.receipt, null, 2), "utf8");
 
   /** Create a temporary copy of a contract with a different agent */
   copy = (agent: Agent) => {
@@ -49,8 +49,8 @@ export class Contract {
                           : new Contract(this); };
 
   /** Get the path to the contract receipt for the contract's code. */
-  get receiptPath() {
-    return resolve(this.network.instances, `${this.label}.json`); }
+  get instanceReceiptPath() {
+    return resolve(this.chain.instances.path, `${this.label}.json`); }
 
   /** Get the contents of the contract instantiation receipt. */
   get receipt() {
@@ -60,9 +60,9 @@ export class Contract {
       codeHash: this.codeHash,
       initTx: this.initTx, }; }
 
-  /**Get an interface to the network where the contract is deployed.*/
-  get network() {
-    return this.agent.network; } }
+  /** Get an interface to the chain where the contract is deployed.*/
+  get chain () {
+    return this.agent.chain } }
 
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
@@ -229,7 +229,7 @@ export class Factory {
     return contract[this.caller](action.method, args, undefined, memo, transferAmount, fee); } }
 
 /** Creates Ajv instance for schema validation*/
-export function getAjv (): TAjv {
+export function getAjv (): Ajv {
   const ajv = new Ajv({ strict: false } as any);
   addNumberType("int8",  127, -128);
   addNumberType("int16", 32767, -32768);

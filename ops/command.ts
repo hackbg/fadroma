@@ -1,3 +1,4 @@
+import { Taskmaster } from './types'
 import { decode } from './system'
 
 import { backOff } from "exponential-backoff"
@@ -114,11 +115,16 @@ function collectUsage (
       visited.add(commandSpec)
       if (command instanceof Array) command = command.join(', ')
       if (depth > maxDepth && subcommands && subcommands.length > 0) {
-        tableData.push([`  ${indent}${bold(command)}`, docstring, bold(`(${subcommands.length} commands)`)]) }
+        tableData.push([
+          `  ${indent}${bold(command)}`,
+          docstring, bold(`${subcommands.length} subcommand${subcommands.length>1?'s':''}...`)]) }
       else {
-        tableData.push([`  ${indent}${bold(command)}`, docstring, ''])
+        tableData.push([
+          `  ${indent}${bold(command)}`,
+          docstring, ''])
         if (subcommands) {
           collectUsage(context, subcommands, tableData, visited, depth+1) } } } }
+  tableData.push(['','',''])
   return tableData }
 
 // Taskmaster //////////////////////////////////////////////////////////////////////////////////////

@@ -1,10 +1,10 @@
 import type {
-  Chain, ChainNode, ChainState, ChainConnectOptions, Connection,
+  Chain, ChainNode, ChainState, ChainConnectOptions,
   Agent, Identity,
   BuildUploader,
   Ensemble, EnsembleOptions } from './types'
 import { defaultStateBase } from './constants'
-import { mkdir, makeStateDir, open } from './system'
+import { open, Directory, JSONDirectory } from './system'
 import { ScrtNode } from './localnet'
 import { ScrtUploader } from './builder'
 import { ScrtJSAgent } from './agent-secretjs'
@@ -14,20 +14,19 @@ const {debug, info} = Console(import.meta.url)
 
 export class Scrt implements Chain {
 
-  chainId: string
-  apiURL:  URL
-  node:    ChainNode
+  chainId?: string
+  apiURL?:  URL
+  node?:   ChainNode
 
   defaultAgent: { name?: string, address?: string, mnemonic?: string }
 
-  stateBase: string
-  state:     string
-  wallets:   string
-  receipts:  string
-  instances: string
+  stateRoot:  Directory
+  identities: JSONDirectory
+  uploads:    JSONDirectory
+  instances:  JSONDirectory
 
   /** Interface to a Secret Chain REST API endpoint.
-   *  Can store wallets and results of contract uploads/inits.
+   *  Can store identities and results of contract uploads/inits.
    * @constructor
    * @param {Object} options           - the configuration options
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
@@ -39,11 +38,11 @@ export class Scrt implements Chain {
     this.chainId = options.chainId || node?.chainId || 'enigma-pub-testnet-3'
     this.apiURL  = options.apiURL || node?.apiURL || new URL('http://localhost:1337/')
     // directories to store state.
-    this.stateBase = options.stateBase || defaultStateBase,
-    this.state     = options.state     || makeStateDir(this.stateBase, this.chainId)
-    this.wallets   = options.wallets   || mkdir(this.state, 'wallets')
-    this.receipts  = options.receipts  || mkdir(this.state, 'uploads')
-    this.instances = options.instances || mkdir(this.state, 'instances')
+    const stateRoot = options.stateRoot  || defaultStateBase
+    this.stateRoot   = new Directory(stateRoot),
+    this.identities  = new JSONDirectory(stateRoot, 'identities')
+    this.uploads     = new JSONDirectory(stateRoot, 'uploads')
+    this.instances   = new JSONDirectory(stateRoot, 'instances')
     // handle to localnet node if this is localnet
     // default agent credentials
     this.defaultAgent = options.defaultAgent }
@@ -55,12 +54,11 @@ export class Scrt implements Chain {
     let { mnemonic, address } = this.defaultAgent||{}
 
     // if this is a localnet handle, wait for the localnet to start
-    const node = await Promise.resolve(this.node);
-    if (node) {
+    const node = await Promise.resolve(this.node); if (node) {
       this.node = node;
 
       // respawn that container
-      debug(`⏳ preparing localnet ${bold(this.chainId)} @ ${bold(this.state)}`)
+      debug(`⏳ preparing localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
       await node.respawn()
       await node.ready
 
@@ -69,7 +67,7 @@ export class Scrt implements Chain {
       info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
 
       // get the default account for the node
-      const adminAccount = await this.node.genesisAccount('ADMIN')
+      const adminAccount = this.node.genesisAccount('ADMIN')
       mnemonic = adminAccount.mnemonic
       address  = adminAccount.address }
 
