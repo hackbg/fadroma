@@ -131,7 +131,7 @@ export class ScrtNode extends BaseChainNode {
                          clientDir:  new Directory(stateRoot, '_secretcli'),
                          sgxDir:     new Directory(stateRoot, '_sgx-secrets') }) }
 
-  /* Load stored data and assign to self. */
+  /** Load stored data and assign to self. */
   load () {
     const {containerId, chainId, port} = super.load()
     this.container = { id: containerId }
@@ -139,7 +139,7 @@ export class ScrtNode extends BaseChainNode {
     this.port      = port
     return {containerId, chainId, port} }
 
-  /* Write the state of the localnet to a file. */
+  /** Write the state of the localnet to a file. */
   save () {
     console.debug('saving localnet node', { to: this.nodeState.path })
     const data = { containerId: this.container.id, chainId: this.chainId, port: this.port }
@@ -216,8 +216,8 @@ export class ScrtNode extends BaseChainNode {
                     Binds:        Object.entries(this.binds).map(pair=>pair.join(':')),
                     PortBindings: { [`${this.port}/tcp`]: [{HostPort: `${this.port}`}] } } })) }
 
-  /* All the directories that need to be mounted into/out of the container,
-   * in a Dockerode-friendly format. */
+  /** All the directories that need to be mounted into/out of the container,
+    * in a Dockerode-friendly format. */
   get binds () {
     return { [this.initScript.path]: `/init.sh:ro`,
              [this.identities.path]: `/shared-keys:rw`,
@@ -225,8 +225,8 @@ export class ScrtNode extends BaseChainNode {
              [this.clientDir.path]:  `/root/.secretcli:rw`,
              [this.sgxDir.path]:     `/root/.sgx-secrets:rw` } }
 
-  /* Environment variables that will be set in the container.
-   * Use them to pass parameters to the init script. */
+  /** Environment variables that will be set in the container.
+    * Use them to pass parameters to the init script. */
   get env () {
     return [`Port=${this.port}`
            ,`ChainID=${this.chainId}`
@@ -268,7 +268,7 @@ export class ScrtNode extends BaseChainNode {
         console.info(`Deleted ${path} via cleanup container.`) } } }
 
   /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
-   *  in order to launch a cleanup container. */
+    * in order to launch a cleanup container. */
   get cleanupContainerOptions () {
     return pulled(this.image, this.docker).then((Image:string)=>({
       Image, Name: `${this.chainId}-${this.port}-cleanup`,
