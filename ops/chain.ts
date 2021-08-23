@@ -145,15 +145,13 @@ export class Scrt implements Chain {
       agent }) } }
 
 
-export function onChain (
-  E: new (args: EnsembleOptions) => Ensemble
-) {
+export function onChain (E: new (args: EnsembleOptions) => Ensemble) {
   return [
-    ["mainnet", "Deploy and run contracts on the mainnet with real money.",
-      on.mainnet,  new E({chain: Scrt.mainnet() as Chain}).remoteCommands()],
-    ["testnet",  "Deploy and run contracts on the holodeck-2 testnet.",
-      on.testnet,  new E({chain: Scrt.testnet() as Chain}).remoteCommands()],
-    ["localnet", "Deploy and run contracts in a local container.",
+    ["mainnet",  "Run on mainnet",
+      on.mainnet,  new E({chain: Scrt.mainnet()  as Chain}).remoteCommands()],
+    ["testnet",  "Run on testnet",
+      on.testnet,  new E({chain: Scrt.testnet()  as Chain}).remoteCommands()],
+    ["localnet", "Run on localnet",
       on.localnet, new E({chain: Scrt.localnet() as Chain}).remoteCommands()] ] }
 
 export const on = {
