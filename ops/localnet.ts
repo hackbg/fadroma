@@ -46,16 +46,16 @@ export abstract class BaseChainNode implements ChainNode {
   /** Restore this node from the info stored in nodeState */
   load () {
     const path = bold(relative(cwd(), this.nodeState.path))
-    console.info(`Loading localnet node from ${path}`)
     if (this.stateRoot.exists() && this.nodeState.exists()) {
-      this.stateRoot.assert()
-      this.nodeState.assert()
+      console.info(`Loading localnet node from ${path}`)
       try {
         return this.nodeState.load() }
       catch (e) {
         console.warn(`Failed to load ${path}`)
         this.stateRoot.delete()
-        throw e } } }
+        throw e } }
+    else {
+      console.info(`${path} does not exist.`) }}
 
   /** Stop this node and delete its state. */
   async terminate () {
@@ -153,9 +153,8 @@ export class ScrtNode extends BaseChainNode {
     return pulled(this.image, this.docker).then((Image:string)=>({
       Image, Name: `${this.chainId}-${this.port}-cleanup`,
       Entrypoint: [ '/bin/rm' ], Cmd: ['-rvf', '/state',],
-      Tty: true, AttachStdin:  true, AttachStdout: true, AttachStderr: true,
-      HostConfig: { NetworkMode: 'host',
-                    Binds: [`${this.stateRoot.path}:/state:rw`] }, })) }
+      //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
+      HostConfig: { Binds: [`${this.stateRoot.path}:/state:rw`] }, })) }
 
   async respawn () {
     console.debug(`⏳ respawning localnet at ${bold(this.nodeState.path)}...`)
@@ -259,13 +258,13 @@ export class ScrtNode extends BaseChainNode {
       console.warn(`Failed to delete ${path}, because:`)
       console.warn(e)
       if (e.code === 'EACCES') {
-        console.debug(`⏳ Creating cleanup container...`, await this.cleanupContainerOptions)
-        const container = await this.docker.createContainer(this.cleanupContainerOptions)
-        console.debug(`⏳ Starting cleanup container...`)
+        console.log(`⏳ Creating cleanup container...`, await this.cleanupContainerOptions)
+        const container = await this.createContainer(this.cleanupContainerOptions)
+        console.log(`⏳ Starting cleanup container...`)
         await container.start()
-        console.info('⏳ Waiting for erase to finish...')
+        console.log('⏳ Waiting for cleanup to finish...')
         await container.wait()
-        console.info(`erased ${path}`) } } } }
+        console.info(`Deleted ${path} via cleanup container.`) } } } }
 
 export function pick (obj: Record<any, any>, ...keys: Array<any>) {
   return Object.keys(obj).filter(key=>keys.indexOf(key)>-1).reduce((obj2,key)=>{
