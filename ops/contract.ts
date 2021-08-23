@@ -119,12 +119,11 @@ export class Factory {
   /** Create the object with generated methods */
   create(): Record<any, any> {
     this.parse();
-    return this.methods.reduce(collectMethod, {})
+    return this.methods.reduce(collectMethod.bind(this), {})
     function collectMethod (handlers: Record<any, any>, action: any) {
-      const handler = function (
+      const handler = (
         args: Record<any, any>, agent: Agent, memo: string, transferAmount: Array<any>, fee: any
-      ) {
-        return this.run(action.method, args, agent, memo, transferAmount, fee); }
+      ) => this.run(action.method, args, agent, memo, transferAmount, fee);
       handlers[camelCaseString(action.method)] = handlers[action.method] = handler.bind(this)
       return handlers; } }
 

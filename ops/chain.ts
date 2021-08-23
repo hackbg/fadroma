@@ -197,11 +197,11 @@ export class Scrt implements Chain {
     if (this.uploads.exists()) {
       for (const name of this.uploads.list()) {
         const row = []
-            , { codeId,
-                originalSize,
-                compressedSize,
-                originalChecksum,
-                compressedChecksum } = this.uploads.load(name)
+            , { codeId
+              , originalSize
+              , compressedSize
+              , originalChecksum
+              , compressedChecksum } = this.uploads.load(name)
         row.push(`  ${codeId}`)
         row.push(`${bold(name)}\ncompressed:\n`)
         row.push(`${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,)
