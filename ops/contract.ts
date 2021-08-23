@@ -1,4 +1,4 @@
-import { resolve, writeFile, loadJSON } from './system'
+import { resolve, JSONFile, loadJSON } from './system'
 import { Agent, isAgent } from './types'
 import Ajv from 'ajv'
 
@@ -41,24 +41,16 @@ export class Contract {
 
   /** Save the contract's instantiation receipt.*/
   save = () =>
-    writeFile(this.instanceReceiptPath, JSON.stringify(this.receipt, null, 2), "utf8");
-
-  /** Create a temporary copy of a contract with a different agent */
-  copy = (agent: Agent) => {
-    return isAgent(agent) ? new Contract({ ...this, agent })
-                          : new Contract(this); };
-
-  /** Get the path to the contract receipt for the contract's code. */
-  get instanceReceiptPath() {
-    return resolve(this.chain.instances.path, `${this.label}.json`); }
+    new JSONFile(this.chain.instances.path, this.label).save(this.receipt)
 
   /** Get the contents of the contract instantiation receipt. */
-  get receipt() {
-    return {
-      label: this.label,
-      codeId: this.codeId,
-      codeHash: this.codeHash,
-      initTx: this.initTx, }; }
+  get receipt () {
+    return {label: this.label, codeId: this.codeId, codeHash: this.codeHash, initTx: this.initTx} }
+
+  /** Create a temporary copy of a contract with a different agent */
+  copy = (agent: Agent) => { // FIXME runtime typecheck fails silently
+    return isAgent(agent) ? new Contract({ ...this, agent })
+                          : new Contract(this); };
 
   /** Get an interface to the chain where the contract is deployed.*/
   get chain () {
