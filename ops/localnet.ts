@@ -247,8 +247,8 @@ export class ScrtNode extends BaseChainNode {
       catch (e) {
         console.info("Didn't stop any container.") } } }
 
-  /** Outside environment needs to be returned to a pristine state via Docker.
-    * (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.)*/
+  /** External environment needs to be returned to a pristine state via Docker.
+    * (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.) */
   async erase () {
     const path = bold(relative(cwd(), this.stateRoot.path))
     try {

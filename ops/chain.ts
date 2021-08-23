@@ -9,8 +9,27 @@ import { ScrtNode } from './localnet'
 import { ScrtUploader } from './builder'
 import { ScrtJSAgent } from './agent-secretjs'
 import { ScrtCLIAgent } from './agent-secretcli'
-import { Console, bold } from './command'
+import { Console, bold, table, noBorders } from './command'
 const console = Console(import.meta.url)
+
+export const on = {
+  localnet (context: any = {}) {
+    console.info(`Running on ${bold('localnet')}:`)
+    context.chain = Scrt.localnet() },
+  testnet (context: any = {}) {
+    console.info(`Running on ${bold('testnet')}:`)
+    context.chain = Scrt.testnet() },
+  mainnet (context: any = {}) {
+    console.info(`Running on ${bold('mainnet')}:`)
+    context.chain = Scrt.mainnet() } }
+
+export function resetLocalnet () {
+  return new ScrtNode().terminate() }
+
+export function openFaucet () {
+  const url = `https://faucet.secrettestnet.io/`
+  console.debug(`Opening ${url}...`)
+  open(url) }
 
 export class Scrt implements Chain {
 
@@ -77,6 +96,18 @@ export class Scrt implements Chain {
     console.info(`🟢 connected, operating as ${address}`)
     return this as Chain }
 
+  /* Plugs into the CLI command parser to select the chain
+   * onto which an ensemble is deployed */
+  static chainSelector (E: new (args: EnsembleOptions) => Ensemble) {
+    // TODO make this independent of Ensemble - or better yet, move it into Ensemble
+    return [
+      ["mainnet",  "Run on mainnet",
+        on.mainnet,  new E({chain: Scrt.mainnet()  as Chain}).remoteCommands()],
+      ["testnet",  "Run on testnet",
+        on.testnet,  new E({chain: Scrt.testnet()  as Chain}).remoteCommands()],
+      ["localnet", "Run on localnet",
+        on.localnet, new E({chain: Scrt.localnet() as Chain}).remoteCommands()] ] }
+
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
   static localnet (options: ChainConnectOptions = {}): Scrt {
@@ -121,12 +152,12 @@ export class Scrt implements Chain {
   /** create agent operating on the current instance's endpoint*/
   async getAgent (options: Identity = this.defaultAgent): Promise<Agent> {
     if (options.mnemonic || options.keyPair) {
-      console.info(`Using a SecretJS-based agent.`)
+      console.info(`Using a ${bold('SecretJS')}-based agent.`)
       return await ScrtJSAgent.create({ ...options, chain: this as Chain }) }
     else {
       const name = options.name || this.defaultAgent?.name
       if (name) {
-        console.info(`Using a secretcli-based agent.`)
+        console.info(`Using a ${bold('secretcli')}-based agent.`)
         return new ScrtCLIAgent({ chain: this, name }) as Agent }
       else {
         throw new Error(
@@ -142,33 +173,52 @@ export class Scrt implements Chain {
   getContract (ContractAPI: any, contractAddress: string, agent = this.defaultAgent) {
     return new ContractAPI({
       initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
-      agent }) } }
+      agent }) }
 
+  printStatusTables () {
+    const id = bold(this.chainId)
 
-export function onChain (E: new (args: EnsembleOptions) => Ensemble) {
-  return [
-    ["mainnet",  "Run on mainnet",
-      on.mainnet,  new E({chain: Scrt.mainnet()  as Chain}).remoteCommands()],
-    ["testnet",  "Run on testnet",
-      on.testnet,  new E({chain: Scrt.testnet()  as Chain}).remoteCommands()],
-    ["localnet", "Run on localnet",
-      on.localnet, new E({chain: Scrt.localnet() as Chain}).remoteCommands()] ] }
+    if (this.uploadsTable.length > 1) {
+      console.log(`\nUploaded binaries on ${id}:`)
+      console.log('\n' + table(this.uploadsTable, noBorders)) }
+    else {
+      console.log(`\n  No known uploaded binaries on ${id}`) }
 
-export const on = {
-  localnet (context: any = {}) {
-    console.info(`Running on ${bold('localnet')}:`)
-    context.chain = Scrt.localnet() },
-  testnet (context: any = {}) {
-    console.info(`Running on ${bold('testnet')}:`)
-    context.chain = Scrt.testnet() },
-  mainnet (context: any = {}) {
-    console.info(`Running on ${bold('mainnet')}:`)
-    context.chain = Scrt.mainnet() } }
+    if (this.instancesTable.length > 1) {
+      console.log(`Instantiated contracts on ${id}:`)
+      console.log('\n' + table(this.instancesTable, noBorders)) }
+    else {
+      console.log(`\n  No known contracts on ${id}`) } }
 
-export function resetLocalnet () {
-  return new ScrtNode().terminate() }
+  private get uploadsTable () {
+    const data = []
+    // uploads table - lists code blobs
+    data.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
+    for (const name of this.uploads.list()) {
+      const row = []
+          , { codeId,
+              originalSize,
+              compressedSize,
+              originalChecksum,
+              compressedChecksum } = this.uploads.load(name)
+      row.push(`  ${codeId}`)
+      row.push(`${bold(name)}\ncompressed:\n`)
+      row.push(`${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,)
+      row.push(`${originalChecksum}\n${compressedChecksum}`)
+      data.push(row) }
+    return data }
 
-export function openFaucet () {
-  const url = `https://faucet.secrettestnet.io/`
-  console.debug(`Opening ${url}...`)
-  open(url) }
+  private get instancesTable () {
+    const idToName     = {}
+        , initReceipts = []
+    // inits table - list contracts
+    initReceipts.push([[bold('  label')+'\n  address', '(code id) binary name\ncode hash\ninit tx\n']])
+    for (const name of this.instances.list()) {
+      const row = []
+          , { codeId
+            , codeHash
+            , initTx: {contractAddress, transactionHash} } = this.instances.load(name)
+      row.push(`  ${bold(name)}\n  ${contractAddress}`)
+      row.push(`(${codeId}) ${idToName[codeId]||''}\n${codeHash}\n${transactionHash}\n`)
+      initReceipts.push(row) }
+    return initReceipts } }

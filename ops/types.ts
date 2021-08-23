@@ -69,6 +69,8 @@ export interface Chain extends ChainOptions {
     * NOTE: the current domain vocabulary considers initialization and instantiation,
     * as pertaining to contracts on the blockchain, to be the same thing. */
   readonly instances: Directory
+
+  printStatusTables (): void
 }
 
 export interface ChainState extends ChainOptions {

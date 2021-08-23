@@ -59,6 +59,7 @@ export class Directory extends FSCRUD {
   save (name: Path, data: any) { writeFileSync(this.resolve(name), data, 'utf8') } }
 
 export class JSONDirectory extends Directory {
+  list () { return super.list().filter(x=>x.endsWith('.json')).map(x=>basename(x, '.json')) }
   load (name: Path) { return JSON.parse(super.load(`${name}.json`)) }
   save (name: Path, data: any) {
     if (name.includes('/')) throw new Error(`invalid name: ${name}`)
