@@ -36,7 +36,7 @@ export abstract class BaseChainNode implements ChainNode {
     * to persist the keys of the genesis wallets. */
   readonly identities: JSONDirectory
 
-  /** List of genesis accounts that have been given an initial balance
+  /** List of genesis accounts that will be given an initial balance
     * when creating the localnet container for the first time. */
   identitiesToCreate: Array<string> = []
 

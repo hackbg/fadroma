@@ -25,7 +25,7 @@ export class Scrt implements Chain {
   uploads:    JSONDirectory
   instances:  JSONDirectory
 
-  /** Interface to a Secret Chain REST API endpoint.
+  /** Interface to a Secret Network REST API endpoint.
    *  Can store identities and results of contract uploads/inits.
    * @constructor
    * @param {Object} options           - the configuration options
@@ -88,7 +88,7 @@ export class Scrt implements Chain {
     return new Scrt(options) }
 
   /** Create an instance that talks to to holodeck-2
-   * (Secret Chain testnet) via SecretJS */
+   * (Secret Network testnet) via SecretJS */
   static testnet ({
     chainId = 'holodeck-2',
     apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
@@ -100,7 +100,7 @@ export class Scrt implements Chain {
   }: ChainConnectOptions = {}): Scrt {
     return new Scrt({ chainId, apiURL, defaultAgent }) }
 
-  /** Create an instance that talks to to the Secret Chain
+  /** Create an instance that talks to to the Secret Network
    *  mainnet via SecretJS */
   static mainnet ({
     chainId = 'secret-2',
