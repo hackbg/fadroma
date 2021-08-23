@@ -2,7 +2,6 @@ import open from 'open'
 export { open }
 
 export { cwd, stderr, env } from 'process'
-import { cwd } from 'process'
 
 import onExit from 'signal-exit'
 export { onExit }
@@ -12,7 +11,7 @@ export { execFile, execFileSync, spawn, spawnSync } from 'child_process'
 export { homedir } from 'os'
 
 export { resolve, relative, dirname, basename, extname } from 'path'
-import { resolve, dirname } from 'path'
+import { resolve, dirname, basename } from 'path'
 
 export { fileURLToPath } from 'url'
 import { fileURLToPath } from 'url'
@@ -47,10 +46,9 @@ export class JSONFile extends TextFile {
 
 export class Directory extends FSCRUD {
   make () { mkdirp.sync(this.path) }
-  protected resolve (name: Path) {
-    if (name.startsWith('.')||name.includes('/')) { throw new Error(`invalid name: ${name}`) }
-    return resolve(this.path, name) }
+  resolve (name: Path) { return resolve(this.path, basename(name)) }
   list () { return readdirSync(this.path) }
+  has  (name: Path) { return existsSync(this.resolve(name)) }
   load (name: Path) { return readFileSync(this.resolve(name), 'utf8') }
   save (name: Path, data: any) { writeFileSync(this.resolve(name), data, 'utf8') } }
 

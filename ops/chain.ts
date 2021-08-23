@@ -10,7 +10,7 @@ import { ScrtUploader } from './builder'
 import { ScrtJSAgent } from './agent-secretjs'
 import { ScrtCLIAgent } from './agent-secretcli'
 import { Console, bold } from './command'
-const {debug, info} = Console(import.meta.url)
+const console = Console(import.meta.url)
 
 export class Scrt implements Chain {
 
@@ -58,13 +58,13 @@ export class Scrt implements Chain {
       this.node = node;
 
       // respawn that container
-      debug(`⏳ preparing localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
+      console.info(`Running on localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
       await node.respawn()
       await node.ready
 
       // set the correct port to connect to
       this.apiURL.port = String(node.port)
-      info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
+      console.info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
 
       // get the default account for the node
       const adminAccount = this.node.genesisAccount('ADMIN')
@@ -72,9 +72,9 @@ export class Scrt implements Chain {
       address  = adminAccount.address }
 
     const { protocol, hostname, port } = this.apiURL
-    info(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
+    console.log(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
     this.defaultAgent = await this.getAgent({ name: "ADMIN", mnemonic, address })
-    info(`🟢 connected, operating as ${address}`)
+    console.info(`🟢 connected, operating as ${address}`)
     return this as Chain }
 
   /** Create an instance that runs a node in a local Docker container
@@ -121,12 +121,12 @@ export class Scrt implements Chain {
   /** create agent operating on the current instance's endpoint*/
   async getAgent (options: Identity = this.defaultAgent): Promise<Agent> {
     if (options.mnemonic || options.keyPair) {
-      info(`Using a SecretJS-based agent.`)
+      console.info(`Using a SecretJS-based agent.`)
       return await ScrtJSAgent.create({ ...options, chain: this as Chain }) }
     else {
       const name = options.name || this.defaultAgent?.name
       if (name) {
-        info(`Using a secretcli-based agent.`)
+        console.info(`Using a secretcli-based agent.`)
         return new ScrtCLIAgent({ chain: this, name }) as Agent }
       else {
         throw new Error(
@@ -158,13 +158,13 @@ export function onChain (
 
 export const on = {
   localnet (context: any = {}) {
-    console.debug(`Running on ${bold('localnet')}:`)
+    console.info(`Running on ${bold('localnet')}:`)
     context.chain = Scrt.localnet() },
   testnet (context: any = {}) {
-    console.debug(`Running on ${bold('testnet')}:`)
+    console.info(`Running on ${bold('testnet')}:`)
     context.chain = Scrt.testnet() },
   mainnet (context: any = {}) {
-    console.debug(`Running on ${bold('mainnet')}:`)
+    console.info(`Running on ${bold('mainnet')}:`)
     context.chain = Scrt.mainnet() } }
 
 export function resetLocalnet () {

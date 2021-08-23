@@ -18,6 +18,7 @@ GenesisKeys=/shared-keys
 # run genesis once
 if [ ! -e "$Genesis" ]; then
 
+  echo
   echo "prepare for genesis ==================="
   echo "clear state ---------------------------"
   rm -rf ~/.secretd/* ~/.secretcli/* ~/.sgx_secrets/*
@@ -30,8 +31,9 @@ if [ ! -e "$Genesis" ]; then
   echo "initialize secretd---------------------"
   secretd init banana --chain-id $ChainID
   cp ~/node_key.json ~/.secretd/config/node_key.json
-  perl -i -pe 's/"stake"/"uscrt"/g' ~/.secretd/config/genesis.json # wtf is going on here
+  perl -i -pe 's/"stake"/"uscrt"/g' ~/.secretd/config/genesis.json
 
+  echo
   echo "prepare genesis accounts =============="
   for Name in ${GenesisAccounts[@]}; do
     echo "[$Name] 1. create key"
@@ -48,6 +50,7 @@ if [ ! -e "$Genesis" ]; then
     secretd gentx --name $Name --keyring-backend test --amount 1000000uscrt
   done
 
+  echo
   echo "perform genesis ======================="
   echo "stage 1--------------------------------"
   secretd collect-gentxs
