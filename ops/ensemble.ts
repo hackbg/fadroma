@@ -7,7 +7,7 @@ import type {
   Artifacts, Uploads, Instances } from './types'
 
 import {Docker, pulled} from './network'
-import {BinaryFile, Directory, relative} from './system'
+import {BinaryFile, Directory, relative, timestamp} from './system'
 import {taskmaster} from './command'
 import {ScrtBuilder, ScrtUploader} from './builder'
 
@@ -16,12 +16,6 @@ import colors from 'colors'
 const {bold} = colors
 
 const required = (label: string) => { throw new Error(`required key: ${label}`) }
-
-const timestamp = (d = new Date()) =>
-  d.toISOString()
-    .replace(/[-:\.Z]/g, '')
-    .replace(/[T]/g, '_')
-    .slice(0, -3)
 
 export abstract class BaseEnsemble implements Ensemble {
 
@@ -34,22 +28,23 @@ export abstract class BaseEnsemble implements Ensemble {
     BUILD:  '👷 Compile contracts from working tree',
     DEPLOY: '🚀 Build, init, and deploy this component' }
 
-  prefix:    string = `${timestamp()}`
-  docker:    Docker = new Docker({ socketPath: '/var/run/docker.sock' })
-  contracts: Record<string, EnsembleContractInfo>
-  workspace: Path          | null
-  chain:     Chain         | null
-  agent:     Agent         | null
+  prefix:     string = `${timestamp()}`
+  docker:     Docker = new Docker({ socketPath: '/var/run/docker.sock' })
+  contracts:  Record<string, EnsembleContractInfo>
+  workspace?: Path
+  chain?:     Chain
+  agent?:     Agent
 
   BuildUploader: new () => BuildUploader
-  builder:       BuildUploader | null
+  builder?:      BuildUploader
   buildImage:    string
 
   constructor (provided: EnsembleOptions = {}) {
-    this.chain     = provided.chain     || null
-    this.agent     = provided.agent     || null
-    this.builder   = provided.builder   || null
-    this.workspace = provided.workspace || null }
+    this.prefix    = provided.prefix    || this.prefix
+    this.chain     = provided.chain     || this.chain
+    this.agent     = provided.agent     || this.agent
+    this.builder   = provided.builder   || this.builder
+    this.workspace = provided.workspace || this.workspace }
 
   async init () {
     if (this.chain) {
@@ -152,15 +147,13 @@ export abstract class BaseEnsemble implements Ensemble {
 
   /** Commands that can be executed locally. */
   localCommands (): Commands {
-    return [[ "build"
-            , BaseEnsemble.Info.BUILD
-            , (ctx: any, sequential: boolean) => this.build({...ctx, parallel: !sequential})]] }
+    return [[ "build", BaseEnsemble.Info.BUILD, (ctx: any, sequential: boolean) =>
+                this.build({...ctx, parallel: !sequential})]] }
 
   /** Commands that require a connection to a chain. */
   remoteCommands (): Commands {
-    return [[ "deploy"
-            , BaseEnsemble.Info.DEPLOY
-            , (ctx: any) => this.deploy(ctx).then(console.info) ]] } }
+    return [[ "deploy", BaseEnsemble.Info.DEPLOY, (ctx: any) =>
+                this.deploy(ctx).then(console.info) ]] } }
 
 export class ScrtEnsemble extends BaseEnsemble {
   BuildUploader = ScrtUploader

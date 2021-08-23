@@ -127,7 +127,7 @@ export class ScrtUploader extends ScrtBuilder implements BuildUploader {
       return this.upload(artifact) } }
 
   getReceiptPath = (path: string) =>
-    this.chain.uploads.resolve(basename(path))
+    this.chain.uploads.resolve(`${basename(path)}.json`)
 
   /** Upload a binary to the chain. */
   async upload (artifact: any) {

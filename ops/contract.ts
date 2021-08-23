@@ -1,4 +1,4 @@
-import { resolve, JSONFile, loadJSON } from './system'
+import { loadJSON } from './system'
 import { Agent, isAgent } from './types'
 import Ajv from 'ajv'
 
@@ -28,6 +28,10 @@ export class Contract {
   get reference() {
     return { address: this.address, code_hash: this.codeHash, }; }
 
+  /** Get a reference to the contract (address + code_hash) as a tuple */
+  get referencePair() {
+    return [this.address, this.codeHash]; }
+
   /** Query the contract. */
   query = (method = "", args = null, agent = this.agent) =>
     agent.query(this, method, args);
@@ -40,8 +44,10 @@ export class Contract {
     agent.execute(this, method, args, memo, transferAmount, fee);
 
   /** Save the contract's instantiation receipt.*/
-  save = () =>
-    new JSONFile(this.chain.instances.path, this.label).save(this.receipt)
+  save () {
+    console.log(this.chain.instances)
+    this.chain.instances.save(this.label, this.receipt)
+  }
 
   /** Get the contents of the contract instantiation receipt. */
   get receipt () {

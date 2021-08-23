@@ -1,6 +1,7 @@
 import { Console, bold } from './command'
 import { readFile } from './system'
 import { Agent, Identity } from './types'
+import { Contract } from './contract'
 import { Scrt } from './chain'
 import { ScrtGas, defaultFees } from './gas'
 
@@ -125,13 +126,13 @@ export class ScrtJSAgent implements Agent {
 
   // compute //
 
-  /**Upload a compiled binary to the chain, returning the code ID (among other things). */
+  /** Upload a compiled binary to the chain, returning the code ID (among other things). */
   async upload (pathToBinary: string) {
     const data = await readFile(pathToBinary)
     return this.API.upload(data, {}) }
 
-  /**Instantiate a contract from a code ID and an init message. */
-  async instantiate (instance: any) {
+  /** Instantiate a contract from a code ID and an init message. */
+  async instantiate (instance: Contract) {
     const { codeId, initMsg = {}, label = '' } = instance
     instance.agent = this
 
@@ -141,10 +142,10 @@ export class ScrtJSAgent implements Agent {
     console.debug(`⭕${this.address} ${bold('instantiated')} ${label}`, { codeId, label, initTx })
     instance.codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
 
-    await instance.save()
+    instance.save()
     return instance }
 
-  /**Query a contract. */
+  /** Query a contract. */
   query = (
     { label, address }, method = '', args = null
   ) => {

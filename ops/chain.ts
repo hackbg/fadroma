@@ -58,10 +58,10 @@ export class Scrt implements Chain {
     this.apiURL  = options.apiURL || node?.apiURL || new URL('http://localhost:1337/')
     // directories to store state.
     const stateRoot = options.stateRoot || resolve(defaultStateBase, this.chainId)
-    this.stateRoot   = new Directory(stateRoot),
-    this.identities  = new JSONDirectory(stateRoot, 'identities')
-    this.uploads     = new JSONDirectory(stateRoot, 'uploads')
-    this.instances   = new JSONDirectory(stateRoot, 'instances')
+    this.stateRoot  = new Directory(stateRoot),
+    this.identities = new JSONDirectory(stateRoot, 'identities')
+    this.uploads    = new JSONDirectory(stateRoot, 'uploads')
+    this.instances  = new JSONDirectory(stateRoot, 'instances')
     // handle to localnet node if this is localnet
     // default agent credentials
     this.defaultAgent = options.defaultAgent }

@@ -36,7 +36,7 @@ export abstract class FSCRUD {
   abstract make (): void }
 
 abstract class File extends FSCRUD {
-  make () { touch(this.path) } }
+  make () { mkdirp.sync(dirname(this.path)); touch(this.path) } }
 
 export class BinaryFile extends File {
   load () { return readFileSync(this.path) }
@@ -44,7 +44,7 @@ export class BinaryFile extends File {
 
 export class TextFile extends File {
   load () { return readFileSync(this.path, 'utf8') }
-  save (data: any) { writeFileSync(this.path, data, 'utf8') } }
+  save (data: any) { this.make(); writeFileSync(this.path, data, 'utf8') } }
 
 export class JSONFile extends TextFile {
   load () { return JSON.parse(super.load()) }
@@ -52,18 +52,21 @@ export class JSONFile extends TextFile {
 
 export class Directory extends FSCRUD {
   make () { mkdirp.sync(this.path) }
-  resolve (name: Path) { return resolve(this.path, basename(name)) }
+  resolve (name: Path) {
+    if (name.includes('/')) throw new Error(`invalid name: ${name}`)
+    return resolve(this.path, basename(name)) }
   list () { return readdirSync(this.path) }
   has  (name: Path) { return existsSync(this.resolve(name)) }
   load (name: Path) { return readFileSync(this.resolve(name), 'utf8') }
-  save (name: Path, data: any) { writeFileSync(this.resolve(name), data, 'utf8') } }
+  save (name: Path, data: any) {
+    this.make()
+    writeFileSync(this.resolve(name), data, 'utf8') } }
 
 export class JSONDirectory extends Directory {
   list () { return super.list().filter(x=>x.endsWith('.json')).map(x=>basename(x, '.json')) }
   load (name: Path) { return JSON.parse(super.load(`${name}.json`)) }
   save (name: Path, data: any) {
-    if (name.includes('/')) throw new Error(`invalid name: ${name}`)
-    writeFileSync(resolve(this.path, name), data, 'utf8') } }
+    super.save(`${name}.json`, JSON.stringify(data, null, 2)) } }
 
 // fs functions ////////////////////////////////////////////////////////////////////////////////////
 
@@ -101,3 +104,9 @@ export const loadJSON = (path: string, base?: string) =>
   JSON.parse(String(
     base ? readFileSync(new URL(path, base))
          : readFileSync(path)))
+
+export const timestamp = (d = new Date()) =>
+  d.toISOString()
+    .replace(/[-:\.Z]/g, '')
+    .replace(/[T]/g, '_')
+    .slice(0, -3)

@@ -285,44 +285,45 @@ export interface Ensemble {
 export type EnsembleContractInfo = { crate: string }
 
 export type EnsembleOptions = {
-  chain?:     Chain,
-  agent?:     Agent,
-  builder?:   BuildUploader,
+  prefix?:    string
+  chain?:     Chain
+  agent?:     Agent
+  builder?:   BuildUploader
   workspace?: Path
 }
 
 export type EnsembleDeploy = {
-  task?:      Taskmaster,
-  chain?:     Chain,
-  agent?:     Agent,
-  builder?:   BuildUploader,
-  workspace?: Path,
-  initMsgs?:  Record<string, any>,
+  task?:      Taskmaster
+  chain?:     Chain
+  agent?:     Agent
+  builder?:   BuildUploader
+  workspace?: Path
+  initMsgs?:  Record<string, any>
   additionalBinds?: Array<string>
 }
 
 export type EnsembleBuild = {
-  task?:      Taskmaster,
-  builder?:   BuildUploader,
-  workspace?: Path,
-  outputDir?: Path,
-  parallel?:  boolean,
+  task?:      Taskmaster
+  builder?:   BuildUploader
+  workspace?: Path
+  outputDir?: Path
+  parallel?:  boolean
   additionalBinds?: Array<string>
 }
 
 export type EnsembleUpload = {
-  task?:      Taskmaster,
-  agent?:     Agent,
-  chain?:     Chain,
-  builder?:   BuildUploader,
+  task?:      Taskmaster
+  agent?:     Agent
+  chain?:     Chain
+  builder?:   BuildUploader
   artifacts?: Artifacts
 }
 
 export type EnsembleInit = {
-  task?:      Taskmaster,
-  initMsgs?:  Record<string, any>,
-  chain?:     Chain,
-  uploads?:   Uploads,
+  task?:      Taskmaster
+  initMsgs?:  Record<string, any>
+  chain?:     Chain
+  uploads?:   Uploads
   agent?:     Agent
 }
 
