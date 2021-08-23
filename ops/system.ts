@@ -35,10 +35,16 @@ export abstract class FSCRUD {
   delete () { _rimraf.sync(this.path) }
   abstract make (): void }
 
-export class TextFile extends FSCRUD {
-  make () { touch(this.path) }
-  load () { return readFileSync(this.path, 'utf8') }
+abstract class File extends FSCRUD {
+  make () { touch(this.path) } }
+
+export class BinaryFile extends File {
+  load () { return readFileSync(this.path) }
   save (data: any) { writeFileSync(this.path, data) } }
+
+export class TextFile extends File {
+  load () { return readFileSync(this.path, 'utf8') }
+  save (data: any) { writeFileSync(this.path, data, 'utf8') } }
 
 export class JSONFile extends TextFile {
   load () { return JSON.parse(super.load()) }
