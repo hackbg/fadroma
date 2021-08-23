@@ -9,7 +9,7 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
          makeSignBytes } from 'secretjs'
 
-const { debug, warn } = Console(import.meta.url)
+const console = Console(import.meta.url)
 
 /** Queries and transacts on an instance of the Secret Chain */
 export class ScrtJSAgent implements Agent {
@@ -21,7 +21,7 @@ export class ScrtJSAgent implements Agent {
     if (mnemonic) {
       // if keypair doesnt correspond to the mnemonic, delete the keypair
       if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
-        warn(`keypair doesn't match mnemonic, ignoring keypair`)
+        console.warn(`keypair doesn't match mnemonic, ignoring keypair`)
         keyPair = null } }
     else if (keyPair) {
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
@@ -132,13 +132,14 @@ export class ScrtJSAgent implements Agent {
 
   /**Instantiate a contract from a code ID and an init message. */
   async instantiate (instance: any) {
+    console.debug(this)
     const { codeId, initMsg = {}, label = '' } = instance
     instance.agent = this
 
-    debug(`⭕${this.address} ${bold('init')} ${label}`, { codeId, label, initMsg })
+    console.debug(`⭕${this.address} ${bold('init')} ${label}`, { codeId, label, initMsg })
     const initTx = instance.initTx = await this.API.instantiate(codeId, initMsg, label)
 
-    debug(`⭕${this.address} ${bold('instantiated')} ${label}`, { codeId, label, initTx })
+    console.debug(`⭕${this.address} ${bold('instantiated')} ${label}`, { codeId, label, initTx })
     instance.codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
 
     await instance.save()
@@ -149,11 +150,11 @@ export class ScrtJSAgent implements Agent {
     { label, address }, method = '', args = null
   ) => {
     const msg = (args === null) ? method : { [method]: args }
-    debug(`❔ ${this.address} ${bold('query')} ${method}`,
+    console.debug(`❔ ${this.address} ${bold('query')} ${method}`,
       { label, address, method, args })
     const response = this.API.queryContractSmart(
       address, msg as any)
-    debug(`❔ ${this.address} ${bold('response')} ${method}`,
+    console.debug(`❔ ${this.address} ${bold('response')} ${method}`,
       { address, method, response })
     return response }
 
@@ -162,10 +163,10 @@ export class ScrtJSAgent implements Agent {
     { label, address }, method='', args = null, memo: any, transferAmount: any, fee: any
   ) => {
     const msg = (args === null) ? method : { [method]: args }
-    debug(`❗ ${this.address} ${bold('execute')} ${method}`,
+    console.debug(`❗ ${this.address} ${bold('execute')} ${method}`,
       { label, address, method, args, memo, transferAmount, fee })
     const result = this.API.execute(
       address, msg as any, memo, transferAmount, fee)
-    debug(`❗ ${this.address} ${bold('result')} ${method}`,
+    console.debug(`❗ ${this.address} ${bold('result')} ${method}`,
       { label, address, method, result })
     return result } }
