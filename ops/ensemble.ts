@@ -7,9 +7,9 @@ import type {
   Artifacts, Uploads, Instances } from './types'
 
 import {Docker, pulled} from './network'
-import {resolve, relative, existsSync} from './system'
+import {BinaryFile, Directory, relative} from './system'
 import {taskmaster} from './command'
-import {ScrtUploader} from './builder'
+import {ScrtBuilder, ScrtUploader} from './builder'
 
 import {table} from 'table'
 import colors from 'colors'
@@ -52,9 +52,13 @@ export abstract class BaseEnsemble implements Ensemble {
     this.workspace = provided.workspace || null }
 
   async init () {
-    await this.chain.init()
-    this.agent   = this.agent   || await this.chain.getAgent()
-    this.builder = this.builder || await this.chain.getBuilder(this.agent)
+    if (this.chain) {
+      await this.chain.init()
+      this.agent   = this.agent   || await this.chain.getAgent()
+      this.builder = this.builder || await this.chain.getBuilder(this.agent) }
+    else {
+      // FIXME move the uploader code goes into Chain to remove the dependency in Builder
+      this.builder = new ScrtBuilder() as unknown as BuildUploader }
     return this }
 
   /* Build, upload, and instantiate the contracts. */
@@ -79,7 +83,7 @@ export abstract class BaseEnsemble implements Ensemble {
   async build ({
     task      = taskmaster(),
     workspace = this.workspace || required('workspace'),
-    outputDir = resolve(workspace, 'artifacts'),
+    outputDir = new Directory(workspace, 'artifacts').path,
     parallel  = true,
     additionalBinds
   }: EnsembleBuild = {}): Promise<Artifacts> {
@@ -112,11 +116,10 @@ export abstract class BaseEnsemble implements Ensemble {
 
     function buildOne (ensembleName: string, contractName: string, crate: string) {
       return task(`build ${ensembleName}/${contractName}`, async () => {
-        const buildOutput = resolve(outputDir, `${crate}@HEAD.wasm`)
-        if (existsSync(buildOutput)) {
-          const path = relative(process.cwd(), buildOutput)
-          console.info(`ℹ️  ${bold(path)} exists, delete to rebuild.`)
-          return buildOutput }
+        const buildOutput = new BinaryFile(outputDir, `${crate}@HEAD.wasm`)
+        if (buildOutput.exists()) {
+          console.info(`ℹ️  ${bold(relative(process.cwd(), buildOutput.path))} exists, delete to rebuild.`)
+          return buildOutput.path }
         else {
           return await builder.build({workspace, crate, outputDir, additionalBinds}) } }) } }
 
