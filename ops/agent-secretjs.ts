@@ -132,7 +132,6 @@ export class ScrtJSAgent implements Agent {
 
   /**Instantiate a contract from a code ID and an init message. */
   async instantiate (instance: any) {
-    console.debug(this)
     const { codeId, initMsg = {}, label = '' } = instance
     instance.agent = this
 
