@@ -1,13 +1,20 @@
 import { Taskmaster } from './types'
 import { decode } from './system'
 
-import { backOff } from "exponential-backoff"
+import * as repl from 'repl'
+import * as vm from 'vm'
 import { cwd } from 'process'
 import { relative } from 'path'
 import { fileURLToPath } from 'url'
+import { execFileSync } from 'child_process'
+
+import { backOff } from "exponential-backoff"
 
 import { render } from 'prettyjson'
 export { render }
+
+import prompts from 'prompts'
+export { prompts }
 
 import colors from 'colors'
 
@@ -204,3 +211,55 @@ export const say = sayer()
 export function muted () {
   return Object.assign((x:any)=>x, { tag: () => muted() }) }
 
+/// Interactive shell with the contracts and connections ///////////////////////////////////////////
+
+export class REPL {
+  loop:        repl.REPLServer
+  prompt:      string
+  context:     Record<string, any>
+  historyFile: '.fadroma_repl_history'
+  constructor (context: Record<string, any>) {
+    this.context = context
+    this.prompt = `[${context.chain.chainId}]> ` }
+  async run () {
+    console.info(`Launching shell...`)
+    console.info(`Available entities:`)
+    console.info('  ' +
+      Object.keys(this.context).join('\n  '))
+    this.loop = repl.start({
+      prompt: this.prompt,
+      eval:   this.evaluate.bind(this)})
+    await this.setupHistory()
+    Object.assign(this.loop.context, this.context) }
+  setupHistory = () => new Promise((resolve, reject)=>
+    this.loop.setupHistory(this.historyFile, (err, repl) => {
+      if (err) return reject(err)
+      resolve(repl)}))
+  async evaluate (
+    cmd:      string,
+    context:  Record<any, any>,
+    _:        any,
+    callback: Function
+  ) {
+    try {
+      return callback(null, await Promise.resolve(
+        vm.runInContext(cmd, context))) }
+    catch (e) {
+      console.error(e)
+      return callback() } }}
+
+/// Command runners ////////////////////////////////////////////////////////////////////////////////
+
+export const clear = () =>
+  process.env.TMUX && run('sh', '-c', 'clear && tmux clear-history')
+
+export const cargo = (...args: Array<any>) =>
+  run('cargo', '--color=always', ...args)
+
+export const run = (cmd: string, ...args: Array<any>) => {
+  process.stderr.write(`\n🏃 running:\n${cmd} ${args.join(' ')}\n\n`)
+  return execFileSync(cmd, [...args], {stdio:'inherit'}) }
+
+export const outputOf = (cmd: string, ...args: Array<any>) => {
+  process.stderr.write(`\n🏃 running:\n${cmd} ${args.join(' ')}\n\n`)
+  return String(execFileSync(cmd, [...args])) }

@@ -8,16 +8,6 @@ export type CommandInfo = string
 export type Command  = [CommandName|Array<CommandName>, CommandInfo, Function, Commands?]
 export type Commands = Array<Command|null>
 
-/* Taskmaster is a quick and dirty stopwatch/logging helper that can
- * generate a rough profile of one or more contract operations
- * in terms of time and gas. */
-export type Taskmaster = Function & {
-  /* Call when complete. */
-  done:     Function
-  /* Run several operations in parallel. */
-  parallel: Function
-}
-
 /* Represents an interface to a particular Cosmos blockchain.
  * Used to construct agents, builders, and contracts that are
  * bound to a particular chain. */
@@ -333,3 +323,13 @@ export type Upload    = any
 export type Uploads   = Record<string, Upload>
 export type Instance  = any
 export type Instances = Record<string, Instance>
+
+/* Taskmaster is a quick and dirty stopwatch/logging helper that can
+ * generate a rough profile of one or more contract operations
+ * in terms of time and gas. */
+export type Taskmaster = Function & {
+  /* Call when complete. */
+  done:     Function
+  /* Run several operations in parallel. */
+  parallel: Function
+}
