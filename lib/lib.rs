@@ -5,13 +5,7 @@
 #[cfg(feature="scrt-admin")]      pub use composable_admin::admin::*;
 #[cfg(feature="scrt-admin")]      pub use composable_admin::multi_admin as multi;
 #[cfg(feature="scrt-admin")]      pub use require_admin::*;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_api;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_binding;
 #[cfg(feature="scrt-contract")]   pub mod scrt_contract_harness;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_impl;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_state;
-#[cfg(feature="scrt-contract")]   pub use scrt_contract::*;
 #[cfg(feature="scrt-icc")]        pub mod scrt_icc;
 #[cfg(feature="scrt-icc")]        pub mod scrt_icc_callback;
 #[cfg(feature="scrt-icc")]        pub use scrt_icc::*;
@@ -36,5 +30,12 @@
 #[cfg(feature="scrt-vk")]         pub use scrt_vk::*;
 #[cfg(feature="scrt-vk")]         pub use scrt_vk_auth::*;
 
-#[cfg(feature="terra")] mod terra; 
+#[cfg(feature="terra")] pub mod terra; 
 #[cfg(feature="terra")] pub use terra::*;
+
+pub mod contract;
+pub mod contract_api;
+pub mod contract_binding;
+pub mod contract_impl;
+pub mod contract_state;
+pub use contract::*;

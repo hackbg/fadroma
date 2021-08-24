@@ -5,6 +5,7 @@
 //! implementation from user-provided function names/args/bodies.
 
 /// Import commonly used definitions that need to be available everywhere in the contract
+#[cfg(feature="scrt-contract")]
 #[macro_export] macro_rules! prelude {
     () => { use fadroma::scrt::cosmwasm_std::{
         ReadonlyStorage, Storage, Api, Querier, Extern, Env,
@@ -16,7 +17,21 @@
     }; };
 }
 
+#[cfg(feature="terra-contract")]
+#[macro_export] macro_rules! prelude {
+    () => { pub use fadroma::terra::{
+        Storage, Api, Querier, Env,
+        Deps, DepsMut, MessageInfo, QueryResponse, Response,
+        Addr, Coin, Uint128,
+        Binary, Event, StdError, Error,
+        CosmosMsg, BankMsg, WasmMsg, to_binary,
+        attr, ContractError
+    };};
+}
+
+
 /// Define a smart contract
+#[cfg(feature="scrt-contract")]
 #[macro_export] macro_rules! contract {
 
     (
@@ -131,6 +146,110 @@
         }
         implement_transactions! {
             $State, $($ExtTX,)? $TX ($tx_deps, $tx_env, $tx_state, $tx_msg) -> $TXResponse { $(
+                $(#[$TXVariantMeta])* $TXVariant
+                ($( $tx_arg $(: $tx_arg_type)?),*) $tx_body
+            )* }
+        }
+
+    };
+
+}
+
+#[cfg(feature="terra-contract")]
+#[macro_export] macro_rules! contract {
+
+    (
+        // global state: passed to `contract_state::define_state_singleton!`
+        // considering deprecation in favor of fadroma_scrt_storage
+        [$State:ident] // name of state struct, followed by state fields
+        { $( $(#[$meta:meta])* $state_field:ident : $state_field_type:ty ),* }
+
+        // Define the signature of the init message, and how it's handled.
+        $(#[$InitMeta:meta])*
+        [$Instantiate:ident]
+        ( $init_deps:ident, $init_env:ident, $init_info:ident, $init_msg:ident : $($init_msg_definition:tt)+)
+            $init_body:block
+
+        // Define query messages and how they're handled:
+        [$Q:ident]
+        ( $q_deps:ident, $q_state:ident, $q_env:ident, $q_msg:ident $( : $ExtQ:ident)? )
+            -> $QResponse:ident { $(
+                $(#[$QVariantMeta:meta])* $QVariant:ident ($(
+                    $(#[$QVariantArgMeta:meta])* $q_arg:ident $(: $q_arg_type:ty)?
+                ),*) $q_body:tt
+            )* }
+
+        // Define possible query responses:
+        [$Res:ident] {
+        $( $(#[$response_meta:meta])* $ResponseMsg:ident {
+            $($(#[$response_field_meta:meta])* $resp_field:ident : $resp_field_type:ty),* } )* }
+
+        // Define transaction messages and how they're handled:
+        [$TX:ident]
+        ( $tx_deps:ident, $tx_env:ident, $tx_info:ident, $tx_state:ident, $tx_msg:ident $( : $ExtTX:ident)? )
+            -> $TXResponse:ident { $(
+                $(#[$TXVariantMeta:meta])* $TXVariant:ident ($(
+                    $(#[$TXVariantArgMeta:meta])* $tx_arg:ident $(: $tx_arg_type:ty)?
+                ),*) $tx_body:tt
+            )* }
+    ) => {
+
+        prelude!();
+
+        #[cfg(all(not(feature = "browser"), target_arch = "wasm32"))]
+        mod wasm {
+            bind_chain!(super);
+        }
+
+        // #[cfg(all(feature = "browser", target_arch = "wasm32"))]
+        // /// Entry point for running this contract in a browser using `wasm-pack`/`wasm-bindgen`.
+        // /// Build without `features = ["fadroma/browser"]` to build for blockchain instead.
+        // mod wasm {
+        //     crate::bind_js!(super);
+        // }
+
+        pub mod msg {
+            prelude!();
+            use super::*;
+            define_init_message!($Instantiate, $($init_msg_definition)+);
+            define_q_messages!($Q, $($ExtQ,)? {
+                $( $(#[$QVariantMeta])* $QVariant ($(
+                    $(#[$QVariantArgMeta])*
+                    $q_arg $(: $q_arg_type)?
+                ),*))*
+            });
+            define_tx_messages!($TX, $($ExtTX,)? {
+                $( $(#[$TXVariantMeta])* $TXVariant ($(
+                    $(#[$TXVariantArgMeta])*
+                    $tx_arg $(: $tx_arg_type)?),*
+                ))*
+            });
+            messages!($Res { $(
+                $(#[$response_meta])* $ResponseMsg {
+                    $($(#[$response_field_meta])* $resp_field: $resp_field_type),*
+                }
+            )* });
+        }
+
+        // Lol how the hell did this `crate::` path work
+
+        // Generate the implementations from user-provided code.
+
+        define_state_singleton! {
+            $State { $( $(#[$meta])* $state_field : $state_field_type ),* }
+        }
+        implement_init! {
+            $(#[$InitMeta])* [$Instantiate]
+            ($init_deps, $init_env, $init_info, $init_msg : $($init_msg_definition)+) $init_body
+        }
+        implement_queries! {
+            $State, $($ExtQ,)? $Q ($q_deps, $q_state, $q_env, $q_msg) -> $QResponse { $(
+                $(#[$QVariantMeta])* $QVariant
+                ($($q_arg $(: $q_arg_type)?),*) $q_body
+            )* }
+        }
+        implement_transactions! {
+            $State, $($ExtTX,)? $TX ($tx_deps, $tx_env, $tx_info, $tx_state, $tx_msg) -> $TXResponse { $(
                 $(#[$TXVariantMeta])* $TXVariant
                 ($( $tx_arg $(: $tx_arg_type)?),*) $tx_body
             )* }

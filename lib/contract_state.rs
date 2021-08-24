@@ -2,6 +2,7 @@
 
 /// Define the state singleton.
 // TODO: Support other shapes of state
+#[cfg(feature="scrt-contract")]
 #[macro_export] macro_rules! define_state_singleton {
     (
         $State:ident
@@ -17,5 +18,19 @@
         pub fn get_store_ro<S: Storage>(storage: &S) -> ReadonlySingleton<S, $State> {
             singleton_read(storage, CONFIG_KEY)
         }
+    }
+}
+
+
+#[cfg(feature="terra-contract")]
+#[macro_export] macro_rules! define_state_singleton {
+    (
+        $State:ident
+        { $( $(#[$meta:meta])* $state_field:ident : $state_field_type:ty ),* }
+    ) => {
+        /// State singleton
+        message!($State { $($(#[$meta])* $state_field:$state_field_type),* });
+        use fadroma::terra::{Item, Map, U32Key};
+        pub const CONFIG: Item<$State> = Item::new("fadroma_root_state");
     }
 }

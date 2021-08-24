@@ -10,6 +10,7 @@
 /// A binding that exposes the default CosmWasm entry points.
 /// This lets you compile a WASM contract to a form that runs on a
 /// SecretNetwork blockchain.
+#[cfg(feature="scrt-contract")]
 #[macro_export] macro_rules! bind_chain {
 
     ($mod:ident /* pass me a module that exports your init, handle and query functions */) => {
@@ -35,6 +36,27 @@
         }
         // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
         // automatically because we `use cosmwasm_std`.
+    };
+
+}
+
+#[cfg(feature="terra-contract")]
+#[macro_export] macro_rules! bind_chain {
+
+    ($mod:ident /* pass me a module that exports your init, handle and query functions */) => {
+        use fadroma::terra::{
+            ExternalStorage as Storage, ExternalApi as Api, ExternalQuerier as Querier, Deps, DepsMut,
+            do_instantiate, do_execute, do_query
+        };
+        #[no_mangle] extern "C" fn instantiate (env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+            do_instantiate(&$mod::instantiate, env_ptr, info_ptr, msg_ptr)
+        }
+        #[no_mangle] extern "C" fn execute (env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+            do_execute(&$mod::execute, env_ptr, info_ptr, msg_ptr)
+        }
+        #[no_mangle] extern "C" fn query (env_ptr: u32, msg_ptr: u32) -> u32 {
+            do_query(&$mod::query, env_ptr, msg_ptr,)
+        }
     };
 
 }

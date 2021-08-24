@@ -25,13 +25,13 @@ snafu             = { optional = true, version = "0.6.3" }
 subtle            = { optional = true, version = "2.4.0", default-features = false }
 
 # Terra
-#cosmwasm-std     = { version = "0.15.0" }
-#cosmwasm-storage = { version = "0.15.0" }
-#cw-storage-plus  = { version = "0.7.0", features = ["iterator"] }
-#cw20             = { version = "0.7.0" }
-#schemars         = "0.8.3"
-#serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
-#thiserror        = { version = "1.0.24" }
+cosmwasm-std-terra     = { package="cosmwasm-std", version = "0.16.0", optional = true }
+cosmwasm-storage-terra = { package="cosmwasm-storage", version = "0.16.0", optional = true }
+cw-storage-plus  = { version = "0.8.0", optional=true}
+schemars-terra    = { package = "schemars", version = "0.8.1", optional = true}
+thiserror        = { version = "1.0.24", optional=true }
+cosmwasm-schema-terra = { package = "cosmwasm-schema", version = "0.16.0", optional=true}
+
 
 [features]
 browser         = ["backtraces"]
@@ -47,4 +47,5 @@ scrt-snip20-api = ["scrt"]
 scrt-storage    = ["scrt", "serde"]
 scrt-utils      = ["scrt", "rand_chacha", "rand_core", "sha2", "subtle", "primitive-types"]
 scrt-vk         = ["scrt"]
-terra           = []
+terra           = ["cosmwasm-std-terra", "cosmwasm-storage-terra", "cw-storage-plus", "schemars-terra", "cosmwasm-schema-terra", "thiserror"]
+terra-contract  = ["terra"]
