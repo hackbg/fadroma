@@ -72,14 +72,12 @@ export const noBorders = {
 // Commands ////////////////////////////////////////////////////////////////////////////////////////
 
 export async function runCommand (
-  context: any, commands: any, commandToRun: any, ...args: Array<any>
+  context: any, commands: any, commandToRun: string, ...args: Array<any>
 ) {
   if (commandToRun) {
     let notFound = true
-    for (const command of commands.filter(Boolean)) {
-      if (!command) continue
-      const [nameOrNames, info, fn, subcommands] = command
-          , singleMatch = (typeof nameOrNames === 'string' && nameOrNames === commandToRun)
+    for (const [nameOrNames, info, fn, subcommands] of commands.filter(Boolean)) {
+      const singleMatch = (typeof nameOrNames === 'string' && nameOrNames === commandToRun)
           , multiMatch  = (nameOrNames instanceof Array && nameOrNames.indexOf(commandToRun) > -1)
       if (singleMatch || multiMatch) {
         notFound = false
@@ -89,6 +87,14 @@ export async function runCommand (
           // but preserve it if they return nothing (they can still mutate it)
           context = await Promise.resolve(fn(context, ...args)) || context
           notImplemented = false }
+        let arg
+        while (arg = args.shift()) {
+          if (arg.includes('=')) {
+            const [key, val] = arg.split('=')
+            context.options = Object.assign(context.options || {}, { [key]: val }) }
+          else {
+            args.unshift(arg)
+            break } }
         if (subcommands && subcommands.length > 0) {
           context.command.push(args[0])
           runCommand(context, subcommands, args[0], ...args.slice(1))
@@ -151,7 +157,7 @@ export function taskmaster (options: any = {}): Taskmaster {
             say(`🟢 +${elapsed}msec`)
             if (agent && reports.length > 0) {
               const txs      = await Promise.all(reports.map(getTx.bind(null, agent)))
-                  , gasTotal = txs.map(x=>Number(((x||{}) as any).gas_used||0)).reduce((x,y)=>x+y, 0)
+              const gasTotal = txs.map(x=>Number(((x||{}) as any).gas_used||0)).reduce((x,y)=>x+y, 0)
                   , t3       = +new Date()
               say(`⛽ gas cost: ${gasTotal} uSCRT`)
               say(`🔍 gas check: +${t3-t2}msec`)
