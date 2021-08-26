@@ -1,11 +1,11 @@
-import { Scrt, ScrtAgentCLI, ScrtAgentJS, ScrtGas } from "./agent";
-import { ScrtNode } from "./localnet";
+import { Scrt, ScrtCLIAgent, ScrtJSAgent, ScrtGas } from "./index.ts";
+import { ScrtNode } from "./localnet.ts";
 
 const fees = {
-  upload: ScrtGas.gas(20000000),
-  init:   ScrtGas.gas(1000000),
-  exec:   ScrtGas.gas(1000000),
-  send:   ScrtGas.gas(500000),
+  upload: new ScrtGas(20000000),
+  init:   new ScrtGas(1000000),
+  exec:   new ScrtGas(1000000),
+  send:   new ScrtGas(500000),
 };
 
 /**
@@ -15,7 +15,7 @@ const fees = {
  * @param {any} [ctx]
  * @return {{
  *  ...ctx,
- *  admin: ScrtAgentCLI,
+ *  admin: ScrtCLIAgent,
  *  node: ScrtNode,
  *  network: Scrt,
  * }}

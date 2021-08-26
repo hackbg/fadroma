@@ -1,4 +1,4 @@
-import { localnet } from "./helper.js";
+import { localnet } from "./test_helper.js";
 const context = {};
 
 describe('SecretNetworkNode', function () {

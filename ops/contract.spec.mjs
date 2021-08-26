@@ -1,8 +1,8 @@
-import { localnet } from './helper.js';
+import { localnet } from './test_helper.js';
 import path from "path";
 import debug from 'debug';
 import { assert } from "chai";
-import { SchemaWrapper } from "../scrt-agent/index.js";
+import { Wrapper } from "../ops/index.ts";
 import Votes from "../example/index.js";
 const log = debug('out');
 
@@ -175,8 +175,8 @@ describe("Schema wrapper", function () {
     },
   };
 
-  const wrapper = SchemaWrapper(schema, instance);
-  const wrapperHandle = SchemaWrapper(handleSchema, instance);
+  const wrapper = Wrapper(schema, instance);
+  const wrapperHandle = Wrapper(handleSchema, instance);
 
   it("Has all the methods", function () {
     const methods = Object.keys(wrapper).join(",");

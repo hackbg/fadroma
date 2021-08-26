@@ -1,5 +1,5 @@
 import assert from "assert";
-import { resolve, existsSync, BaseEnsemble } from "../ops";
+import { resolve, existsSync, BaseEnsemble } from "../ops/index.ts";
 
 describe("Secret Network Ensemble", function () {
 
@@ -8,7 +8,7 @@ describe("Secret Network Ensemble", function () {
     contracts = { TEST: { crate: "votes" } };
     async initialize () { return {} } }
 
-  let e: TestEnsemble;
+  let e;
   
   beforeEach(function () {
     e = new TestEnsemble(/*{
@@ -24,13 +24,13 @@ describe("Secret Network Ensemble", function () {
 
   it("has a local build command", async function () {
     this.timeout(0);
-    assert(e.localCommands().map((x: any) => x[0]).indexOf("build") > -1);
+    assert(e.localCommands().map((x) => x[0]).indexOf("build") > -1);
     await e.build(); });
 
   it("has a remote deploy command", async function () {
     this.timeout(0);
     const workspace = resolve('example');
-    assert(e.remoteCommands().map((x: any) => x[0]).indexOf("deploy") > -1);
+    assert(e.remoteCommands().map((x) => x[0]).indexOf("deploy") > -1);
     const additionalBinds = [
       `${resolve('core')}:/core:rw`,
       `${resolve('scrt')}:/scrt:rw`,

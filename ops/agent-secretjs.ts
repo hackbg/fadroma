@@ -48,7 +48,7 @@ export class ScrtJSAgent implements Agent {
 
   /** Create a new agent from a signing pen. */
   constructor (options: Identity) {
-    this.chain    = options.chain
+    this.chain    = options.chain as Scrt
     this.name     = options.name || ''
     this.keyPair  = options.keyPair
     this.mnemonic = options.mnemonic

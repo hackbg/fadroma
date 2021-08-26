@@ -2,6 +2,7 @@ import type { Agent } from './types'
 import { Scrt } from './chain'
 import { Console, bold } from './command'
 import { execFile, spawn } from './system'
+import { ScrtJSAgent } from './agent-secretjs'
 
 const {warn, debug} = Console(import.meta.url)
 
@@ -22,26 +23,24 @@ const tryToUnlockKeyring = async () => new Promise(
 
 export class ScrtCLIAgent implements Agent {
 
-  chain: Scrt
-
-  name: string
-  address: string
+  chain:         Scrt
+  name:          string
+  address:       string
   nameOrAddress: string
+  fees:          any
 
-  fees: any
+  static fromAgent (agent: ScrtJSAgent) {
+    return new ScrtCLIAgent() }
 
   static async pick () {
     if (!process.stdin.isTTY) {
-      throw new Error("Input is not a TTY - can't interactively pick an identity") }
+      throw new Error(Help.NOT_A_TTY) }
     let keys = (await secretcli('keys', 'list'))
     if (keys.length < 1) {
-      warn("Empty key list returned from secretcli. Retrying once:")
+      warn(Help.NO_KEYS_1)
       await tryToUnlockKeyring()
       keys = (await secretcli('keys', 'list'))
-      if (keys.length < 1) {
-        warn(
-          "Still empty. To proceed, add your key to secretcli " +
-          "(or set the mnemonic in the environment to use the SecretJS-based agent)") } } }
+      if (keys.length < 1) warn(Help.NO_KEYS_2) } }
 
   constructor (options: any = {}) {
     debug({options})
@@ -54,7 +53,7 @@ export class ScrtCLIAgent implements Agent {
     return this.block.then(async T1=>{
       while (true) {
         await new Promise(ok=>setTimeout(ok, 1000))
-        const {sync_info:{latest_block_height:T2}} = await this.block
+        const T2 = (await this.block).sync_info.latest_block_height
         if (T2 > T1) return } }) }
 
   get block () {
@@ -100,8 +99,7 @@ export class ScrtCLIAgent implements Agent {
     debug(`❔ `+bold('query'), { label, address, method, args })
     const response = await secretcli(
       'q', 'compute', 'query',
-      address, JSON.stringify(msg),
-    )
+      address, JSON.stringify(msg))
     debug(`❔ `+bold('response'), { address, method, response })
     return response }
 
@@ -111,8 +109,13 @@ export class ScrtCLIAgent implements Agent {
     const result = await secretcli(
       'tx', 'compute',
       address, JSON.stringify(msg),
-      '--from', this.nameOrAddress
-    )
+      '--from', this.nameOrAddress)
     debug(`❗ `+bold('result'), { label, address, method, result })
     return result } }
 
+export const Help = {
+  NOT_A_TTY: "Input is not a TTY - can't interactively pick an identity",
+  NO_KEYS_1: "Empty key list returned from secretcli. Retrying once...",
+  NO_KEYS_2: "Still empty. To proceed, add your key to secretcli " +
+             "(or set the mnemonic in the environment to use the SecretJS-based agent)"
+}
