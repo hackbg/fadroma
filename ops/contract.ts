@@ -5,12 +5,12 @@ import Ajv from 'ajv'
 
 export class ContractCode {
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
+
   protected code: {
     workspace:  string
     crate:      string
     artifact?:  string
-    codeHash?:  string
-  }
+    codeHash?:  string }
 
   /** Path to source workspace */
   get workspace () { return this.code.workspace }
@@ -34,8 +34,11 @@ export class ContractUpload extends ContractCode {
     chain:   Chain
     agent:   Agent
     receipt: any
-    codeId:  number
-  }
+    codeId:  number }
+
+  constructor (agent: Agent) {
+    super()
+    this.blob.agent = agent }
 
   /** The chain where the contract is deployed. */
   get chain () { return this.blob.chain }
@@ -48,8 +51,11 @@ export class ContractUpload extends ContractCode {
 
   /** Upload the contract to a specified chain as a specified agent. */
   async upload (chain?: Chain, agent?: Agent) {
-    if (chain) this.blob.chain = chain
     if (agent) this.blob.agent = agent
+    if (chain) {
+      this.blob.chain = chain }
+    else {
+      this.blob.chain = agent.chain }
     if (this.chain.chainId !== this.uploader.chain.chainId) throw new Error(
       `tried to deploy to ${this.chain.chainId} `+
       `with agent from ${this.uploader.chain.chainId}`)
@@ -64,9 +70,12 @@ export class ContractInit extends ContractUpload {
     agent?:   Agent
     address?: string
     label:    string,
-    initMsg?: any
-    initTx?:  any
-  }
+    msg?:     any
+    tx?:      any }
+
+  constructor (agent: Agent) {
+    super(agent)
+    this.init.agent = agent }
 
   /** The agent that initialized this instance of the contract. */
   get instantiator () { return this.init.agent }
@@ -79,10 +88,9 @@ export class ContractInit extends ContractUpload {
   /** The on-chain label of this contract instance (must be unique) */
   get label () { return this.init.label }
   /** The message that was used to initialize this instance. */
-  get initMsg () { return this.init.initMsg }
+  get initMsg () { return this.init.msg }
   /** The response from the init transaction. */
-  get initTx () { return this.init.initTx }
-
+  get initTx () { return this.init.tx }
   /** The full result of the init transaction. */
   get initReceipt () {
     return { label:    this.label
@@ -90,13 +98,10 @@ export class ContractInit extends ContractUpload {
            , codeHash: this.codeHash
            , initTx:   this.initTx } }
 
-  async instantiate (label: string, initMsg: any, agent?: Agent) {
-    this.init.label = label
-    this.init.initMsg = initMsg
-    this.init.agent = agent || this.uploader
-    if (!this.codeId) 
+  async instantiate () {
+    if (!this.codeId) await this.upload()
     this.init.initTx = await this.instantiator.instantiate(
-      this.codeId, initMsg, label)
+      this.codeId, this.initMsg, this.label)
     this.save() }
 
   /** Save the contract's instantiation receipt.*/
@@ -126,14 +131,14 @@ export class BaseContractAPI extends ContractInit {
 export class ContractWithSchema extends BaseContractAPI {
   q:  Record<string, Function>
   tx: Record<string, Function>
-  constructor(options: any = {}, schema: any) {
+  constructor(agent: Agent, options: any = {}, schema: any) {
     if (schema && schema.initMsg) {
       const ajv = getAjv();
       const validate = ajv.compile(schema.initMsg);
       if (!validate(options.initMsg)) {
         const err = JSON.stringify(validate.errors, null, 2)
         throw new Error(`Schema validation for initMsg returned an error: \n${err}`); } }
-    super()
+    super(agent)
     this.q  = new Factory(schema.queryMsg,  this).create()
     this.tx = new Factory(schema.handleMsg, this).create() } }
 
@@ -162,7 +167,7 @@ export class Factory {
   schema:   any
   contract: any
 
-  constructor(schema: Record<any, any>, contract: Contract) {
+  constructor(schema: Record<any, any>, contract: ContractWithSchema) {
     if (typeof schema !== "object" || schema === null) {
       throw new Error("Schema must be an object"); }
     this.contract = contract;
