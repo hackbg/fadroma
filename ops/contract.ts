@@ -1,70 +1,129 @@
 import { loadJSON } from './system'
-import { Agent, isAgent } from './types'
+import { Chain, Contract, Agent, isAgent } from './types'
+import { ScrtBuilder, ScrtUploader } from './builder'
 import Ajv from 'ajv'
 
-/** Interface to a contract instance.
-  * Can be subclassed with schema to auto-generate methods
-  * TODO connect to existing contract */
-export class Contract {
+export class ContractCode {
+  buildImage = 'enigmampc/secret-contract-optimizer:latest'
+  protected code: {
+    workspace:  string
+    crate:      string
+    artifact?:  string
+    codeHash?:  string
+  }
 
-  agent:    Agent
-  label:    string
-  codeId:   number
-  codeHash: string
-  initMsg:  any
-  initTx:   any
+  /** Path to source workspace */
+  get workspace () { return this.code.workspace }
+  /** Name of source crate within workspace */
+  get crate () { return this.code.crate }
+  /** Name of compiled binary */
+  get artifact () { return this.code.artifact }
+  /** SHA256 hash of the uncompressed artifact */
+  get codeHash () { return this.code.codeHash }
 
-  /** Create an object representing a remote smart contract instance. */
-  constructor(options: any = {}) {
-    const { agent, label, codeId, codeHash, initMsg, initTx } = options;
-    Object.assign(this, { agent, label, codeId, codeHash, initMsg, initTx }); }
+  /** Compile a contract from source */
+  async build (workspace?: string, crate?: string) {
+    if (workspace) this.code.workspace = workspace
+    if (crate) this.code.crate = crate
+    return this.code.artifact = await new ScrtBuilder().buildOrCached({
+      workspace: this.workspace,
+      crate:     this.crate }) } }
 
-  /** Get the address of the contract. */
-  get address() {
-    return this.initTx.contractAddress; }
+export class ContractUpload extends ContractCode {
+  protected blob: {
+    chain:   Chain
+    agent:   Agent
+    receipt: any
+    codeId:  number
+  }
 
-  /** Get a reference to the contract (address + code_hash)
-   *  in a format matching `scrt-callback`'s `ContractInstance` */
-  get reference() {
-    return { address: this.address, code_hash: this.codeHash, }; }
+  /** The chain where the contract is deployed. */
+  get chain () { return this.blob.chain }
+  /** The agent that deployed the contract. */
+  get uploader () { return this.blob.agent }
+  /** The result of the upload transaction. */
+  get uploadReceipt () { return this.blob.receipt }
+  /** The auto-incrementing id of the uploaded code */
+  get codeId () { return this.blob.codeId }
 
-  /** Get a reference to the contract (address + code_hash) as a tuple */
-  get referencePair() {
-    return [this.address, this.codeHash]; }
+  /** Upload the contract to a specified chain as a specified agent. */
+  async upload (chain?: Chain, agent?: Agent) {
+    if (chain) this.blob.chain = chain
+    if (agent) this.blob.agent = agent
+    if (this.chain.chainId !== this.uploader.chain.chainId) throw new Error(
+      `tried to deploy to ${this.chain.chainId} `+
+      `with agent from ${this.uploader.chain.chainId}`)
+    if (!this.artifact) await this.build()
+    return this.blob.receipt = await new ScrtUploader({
+      chain: this.chain,
+      agent: this.uploader
+    }).uploadOrCached(this.artifact) } }
 
-  /** Query the contract. */
-  query = (method = "", args = null, agent = this.agent) =>
-    agent.query(this, method, args);
+export class ContractInit extends ContractUpload {
+  protected init: {
+    agent?:   Agent
+    address?: string
+    label:    string,
+    initMsg?: any
+    initTx?:  any
+  }
 
-  /** Execute a contract transaction. */
-  execute = (
-    method = "", args = null, agent = this.agent,
-    memo: string, transferAmount: Array<any>, fee: any
-  ) =>
-    agent.execute(this, method, args, memo, transferAmount, fee);
+  /** The agent that initialized this instance of the contract. */
+  get instantiator () { return this.init.agent }
+  /** The on-chain address of this contract instance */
+  get address () { return this.init.address }
+  /** A reference to the contract in the format that ICC callbacks expect. */
+  get link () { return { address: this.address, code_hash: this.codeHash } }
+  /** A reference to the contract as an array */
+  get linkPair () { return [ this.address, this.codeHash ] as [string, string] }
+  /** The on-chain label of this contract instance (must be unique) */
+  get label () { return this.init.label }
+  /** The message that was used to initialize this instance. */
+  get initMsg () { return this.init.initMsg }
+  /** The response from the init transaction. */
+  get initTx () { return this.init.initTx }
+
+  /** The full result of the init transaction. */
+  get initReceipt () {
+    return { label:    this.label
+           , codeId:   this.codeId
+           , codeHash: this.codeHash
+           , initTx:   this.initTx } }
+
+  async instantiate (label: string, initMsg: any, agent?: Agent) {
+    this.init.label = label
+    this.init.initMsg = initMsg
+    this.init.agent = agent || this.uploader
+    if (!this.codeId) 
+    this.init.initTx = await this.instantiator.instantiate(
+      this.codeId, initMsg, label)
+    this.save() }
 
   /** Save the contract's instantiation receipt.*/
   save () {
     console.log(this.chain.instances)
-    this.chain.instances.save(this.label, this.receipt)
-  }
+    this.chain.instances.save(this.label, this.initReceipt) } }
 
-  /** Get the contents of the contract instantiation receipt. */
-  get receipt () {
-    return {label: this.label, codeId: this.codeId, codeHash: this.codeHash, initTx: this.initTx} }
+export class BaseContractAPI extends ContractInit {
+  /** Query the contract. */
+  query (method = "", args = null, agent = this.instantiator) {
+    return agent.query(this, method, args) }
+
+  /** Execute a contract transaction. */
+  execute (
+    method = "", args = null, memo: string,
+    transferAmount: Array<any>, fee: any, agent = this.instantiator
+  ) {
+    return agent.execute(this, method, args, memo, transferAmount, fee) }
 
   /** Create a temporary copy of a contract with a different agent */
-  copy = (agent: Agent) => { // FIXME runtime typecheck fails silently
-    return isAgent(agent) ? new Contract({ ...this, agent })
-                          : new Contract(this); };
-
-  /** Get an interface to the chain where the contract is deployed.*/
-  get chain () {
-    return this.agent.chain } }
+  /*copy = (agent: Agent) => { // FIXME runtime typecheck fails silently
+    return isAgent(agent) ? new BaseContract({ ...this, agent })
+                          : new BaseContract(this); };*/ }
 
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
-export class ContractWithSchema extends Contract {
+export class ContractWithSchema extends BaseContractAPI {
   q:  Record<string, Function>
   tx: Record<string, Function>
   constructor(options: any = {}, schema: any) {
@@ -74,7 +133,7 @@ export class ContractWithSchema extends Contract {
       if (!validate(options.initMsg)) {
         const err = JSON.stringify(validate.errors, null, 2)
         throw new Error(`Schema validation for initMsg returned an error: \n${err}`); } }
-    super(options)
+    super()
     this.q  = new Factory(schema.queryMsg,  this).create()
     this.tx = new Factory(schema.handleMsg, this).create() } }
 

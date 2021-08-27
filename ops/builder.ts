@@ -104,12 +104,10 @@ export class ScrtUploader extends ScrtBuilder implements BuildUploader {
     super(options)
     // some puny dependency auto negotiation so you can pass partial objects
     let { chain, agent } = options as any
-    if (!chain && agent) {
-      chain = agent.chain }
-    else if (!agent && chain) {
-      agent = chain.defaultAgent }
+    if (!chain && agent) chain = agent.chain
+    else if (!agent && chain) agent = chain.defaultAgent
     this.chain = chain
-    this.agent   = agent }
+    this.agent = agent }
 
   /* Contracts will be deployed from this address. */
   get address () {

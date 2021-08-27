@@ -85,7 +85,7 @@ export class ScrtNode extends BaseChainNode {
   image = "enigmampc/secret-network-sw-dev"
 
   /** The created container */
-  container: any
+  container: { id: string }
 
   private isRunning = async (id: string = this.container.id) =>
     (await this.docker.getContainer(id).inspect()).State.Running
@@ -97,12 +97,13 @@ export class ScrtNode extends BaseChainNode {
     await this.docker.getContainer(id).start()
 
   private killContainer = async (id: string = this.container.id) => {
+    const prettyId = bold(id.slice(0,8))
     if (await this.isRunning(id)) {
-      console.info(`Stopping ${bold(id)}...`)
+      console.info(`Stopping ${prettyId}...`)
       await this.docker.getContainer(id).kill()
-      console.info(`Stopped ${bold(id)}`) }
+      console.info(`Stopped ${prettyId}`) }
     else {
-      console.debug(`${bold(id)} was dead on arrival`) } }
+      console.trace(`${prettyId} was dead on arrival`) } }
 
   /** This file is mounted into the localnet container
     * in place of its default init script in order to
@@ -170,7 +171,7 @@ export class ScrtNode extends BaseChainNode {
     // if not running, RESPAWN
     if (!running) this.startContainer(id)
     // ...and try to make sure it dies when the Node process dies
-    process.on('beforeExit', () => { this.killContainer(id) })
+    //process.on('beforeExit', () => { this.killContainer(id) })
     // if running, do nothing
     console.info(`Localnet already running`) }
 
@@ -181,10 +182,8 @@ export class ScrtNode extends BaseChainNode {
     // get a free port
     this.port = (await freePort()) as number
     // create the state dirs and files
-    for (const item of [
-      this.stateRoot, this.nodeState,
-      this.daemonDir, this.clientDir, this.sgxDir
-    ]) item.make()
+    const items = [this.stateRoot, this.nodeState, this.daemonDir, this.clientDir, this.sgxDir]
+    for (const item of items) item.make()
     // create the container
     console.debug('Spawning...', await this.spawnContainerOptions)
     this.container = await this.createContainer(this.spawnContainerOptions)
@@ -235,14 +234,14 @@ export class ScrtNode extends BaseChainNode {
   /** Kill the container, if necessary find it first */
   async kill () {
     if (this.container) {
-      await this.container.kill()
-      console.info(`Stopped container ${bold(this.container.id)}.`)}
+      const { id } = this.container
+      await this.killContainer(id)
+      console.info(`Stopped container ${bold(id)}.`)}
     else {
       console.info(`Checking if there's an old node that needs to be stopped...`)
       try {
         const { containerId } = this.load()
-        const container = await this.docker.getContainer(containerId)
-        await container.kill()
+        await this.killContainer(containerId)
         console.info(`Stopped container ${bold(containerId)}.`) }
       catch (e) {
         console.info("Didn't stop any container.") } } }

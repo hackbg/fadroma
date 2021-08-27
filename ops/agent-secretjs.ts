@@ -131,19 +131,21 @@ export class ScrtJSAgent implements Agent {
     const data = await readFile(pathToBinary)
     return this.API.upload(data, {}) }
 
-  /** Instantiate a contract from a code ID and an init message. */
-  async instantiate (instance: Contract) {
-    const { codeId, initMsg = {}, label = '' } = instance
-    instance.agent = this
+  async getHashById (codeId: number) {
+    return await this.API.getCodeHashByCodeId(codeId)
+  }
 
+  async getHashByAddress (address: string) {
+    return await this.API.getCodeHashByContractAddr(address)
+  }
+
+  /** Instantiate a contract from a code ID and an init message. */
+  async instantiate (codeId: number, label: string, initMsg: any) {
     console.debug(`⭕${this.address} ${bold('init')} ${label}`, { codeId, label, initMsg })
-    const initTx = instance.initTx = await this.API.instantiate(codeId, initMsg, label)
+    const initTx = await this.API.instantiate(codeId, initMsg, label)
 
     console.debug(`⭕${this.address} ${bold('instantiated')} ${label}`, { codeId, label, initTx })
-    instance.codeHash = await this.API.getCodeHashByContractAddr(initTx.contractAddress)
-
-    instance.save()
-    return instance }
+    return initTx }
 
   /** Query a contract. */
   query = (

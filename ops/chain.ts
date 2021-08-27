@@ -150,12 +150,12 @@ export class Scrt implements Chain {
     return this.apiURL.toString() }
 
   /** create agent operating on the current instance's endpoint*/
-  async getAgent (options: Identity = this.defaultAgent): Promise<Agent> {
-    if (options.mnemonic || options.keyPair) {
+  async getAgent (identity: Identity = this.defaultAgent): Promise<Agent> {
+    if (identity.mnemonic || identity.keyPair) {
       console.info(`Using a ${bold('SecretJS')}-based agent.`)
-      return await ScrtJSAgent.create({ ...options, chain: this as Chain }) }
+      return await ScrtJSAgent.create({ ...identity, chain: this as Chain }) }
     else {
-      const name = options.name || this.defaultAgent?.name
+      const name = identity.name || this.defaultAgent?.name
       if (name) {
         console.info(`Using a ${bold('secretcli')}-based agent.`)
         return new ScrtCLIAgent({ chain: this, name }) as Agent }

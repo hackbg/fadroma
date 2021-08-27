@@ -1,160 +1,87 @@
 import type {
-  Path, Commands,
-  Chain, Agent,
-  BuildUploader,
-  Ensemble, EnsembleContractInfo, EnsembleOptions, EnsembleDeploy,
-  EnsembleBuild, EnsembleUpload, EnsembleInit,
+  Commands, Taskmaster,
+  Chain, Agent, Contract, ContractConfig, Ensemble, EnsembleOptions,
   Artifacts, Uploads, Instances } from './types'
 
-import {Docker, pulled} from './network'
-import {BinaryFile, Directory, relative, timestamp} from './system'
+import {relative, timestamp} from './system'
 import {taskmaster} from './command'
-import {ScrtBuilder, ScrtUploader} from './builder'
+import {ScrtUploader} from './builder'
 
 import {table} from 'table'
 import colors from 'colors'
 const {bold} = colors
 
-const required = (label: string) => { throw new Error(`required key: ${label}`) }
+const Errors = {
+  NOTHING: "Please specify a chain, agent, or builder",
+  AGENT:   "Can't use agent with different chain",
+  BUILDER: "Can't use builder with different chain", }
+
+const Info = {
+  BUILD:  '👷 Compile contracts from working tree',
+  DEPLOY: '🚀 Build, init, and deploy this component' }
 
 export abstract class BaseEnsemble implements Ensemble {
-
-  static Errors = {
-    NOTHING: "Please specify a chain, agent, or builder",
-    AGENT:   "Can't use agent with different chain",
-    BUILDER: "Can't use builder with different chain", }
-
-  static Info = {
-    BUILD:  '👷 Compile contracts from working tree',
-    DEPLOY: '🚀 Build, init, and deploy this component' }
-
-  prefix:     string = `${timestamp()}`
-  docker:     Docker = new Docker({ socketPath: '/var/run/docker.sock' })
-  contracts:  Record<string, EnsembleContractInfo>
-  workspace?: Path
-  chain?:     Chain
-  agent?:     Agent
-
-  BuildUploader: new () => BuildUploader
-  builder?:      BuildUploader
-  buildImage:    string
-
-  constructor (provided: EnsembleOptions = {}) {
-    this.prefix    = provided.prefix    || this.prefix
-    this.chain     = provided.chain     || this.chain
-    this.agent     = provided.agent     || this.agent
-    this.builder   = provided.builder   || this.builder
-    this.workspace = provided.workspace || this.workspace }
-
-  async init () {
-    if (this.chain) {
-      await this.chain.init()
-      this.agent   = this.agent   || await this.chain.getAgent()
-      this.builder = this.builder || await this.chain.getBuilder(this.agent) }
-    else {
-      // FIXME move the uploader code goes into Chain to remove the dependency in Builder
-      this.builder = new ScrtBuilder() as unknown as BuildUploader }
-    return this }
-
+  name:      string = this.constructor.name
+  prefix:    string = `${timestamp()}`
+  contracts: Record<string, ContractConfig>
+  protected instances: Record<string, Contract>
+  readonly  task:      Taskmaster = taskmaster()
+  readonly  chain:     Chain
+  readonly  agent?:    Agent
+  readonly  additionalBinds?: Array<any>
+  constructor ({ task, chain, agent, additionalBinds }: EnsembleOptions) {
+    if (agent.chain.chainId !== chain.chainId) throw new Error(Errors.AGENT)
+    this.task  = task || taskmaster()
+    this.chain = chain
+    this.agent = agent
+    this.additionalBinds = additionalBinds }
+  /** Commands to expose to the CLI. */
+  commands (): Commands {
+    return [...this.localCommands(), null, ...this.remoteCommands()]}
+  /** Commands that can be executed locally. */
+  localCommands (): Commands {
+    return [["build", Info.BUILD, (_: any, seq: boolean)=>this.build(!seq)]]}
+  /** Commands that require a connection to a chain. */
+  remoteCommands (): Commands {
+    return [["deploy", Info.DEPLOY, (_: any)=>this.deploy().then(console.info)]]}
   /* Build, upload, and instantiate the contracts. */
-  async deploy ({
-    task      = taskmaster(),
-    chain     = this.chain,
-    agent     = this.agent,
-    builder   = this.builder,
-    initMsgs  = {},
-    workspace = this.workspace,
-    additionalBinds
-  }: EnsembleDeploy = {}): Promise<Instances> {
-    await this.init()
-    if (!chain) throw new Error('need a Chain to deploy to')
-    return await task('build, upload, and initialize contracts', async () => {
-      const artifacts = await this.build({ task, builder, workspace, additionalBinds })
-      const uploads   = await this.upload({ task, chain, builder, artifacts })
-      const instances = await this.initialize({ task, chain, uploads, agent, initMsgs })
-      return instances }) }
-
+  async deploy (): Promise<Instances> {
+    return this.task('build, upload, and initialize contracts', async () => {
+      await this.build()
+      await this.upload()
+      return await this.initialize() }) }
   /* Compile the contracts for production. */
-  async build ({
-    task      = taskmaster(),
-    workspace = this.workspace || required('workspace'),
-    outputDir = new Directory(workspace, 'artifacts').path,
-    parallel  = true,
-    additionalBinds
-  }: EnsembleBuild = {}): Promise<Artifacts> {
-    await this.init()
-
-    // pull build container
-    await pulled(this.buildImage, this.docker)
-
-    // build all contracts
-    const { contracts
-          , constructor: { name: ensembleName }
-          , builder = new ScrtUploader({ docker: this.docker }) } = this
-
+  async build (parallel = false): Promise<Artifacts> {
     const artifacts = {}
-    await (parallel ? buildInParallel() : buildInSeries())
-
-    console.log(table(Object.entries(artifacts).map(([name, path])=>
-      ([bold(name), relative(process.cwd(), path as string)]))))
-
-    return artifacts
-
-    async function buildInParallel () {
-      await task.parallel(`build ${ensembleName}`,
-        ...Object.entries(contracts).map(async ([contractName, {crate}])=>
-          artifacts[contractName] = await buildOne(ensembleName, contractName, crate))) }
-
-    async function buildInSeries () {
-      for (const [contractName, {crate}] of Object.entries(contracts)) {
-        artifacts[contractName] = await buildOne(ensembleName, contractName, crate) } }
-
-    function buildOne (ensembleName: string, contractName: string, crate: string) {
-      return task(`build ${ensembleName}/${contractName}`, async () => {
-        const buildOutput = new BinaryFile(outputDir, `${crate}@HEAD.wasm`)
-        if (buildOutput.exists()) {
-          console.info(`ℹ️  ${bold(relative(process.cwd(), buildOutput.path))} exists, delete to rebuild.`)
-          return buildOutput.path }
-        else {
-          return await builder.build({workspace, crate, outputDir, additionalBinds}) } }) } }
-
+    await (parallel ? this.buildParallel(artifacts) : this.buildSeries(artifacts))
+    const row = ([name, path])=>[bold(name), relative(process.cwd(), path as string)]
+    console.log(table(Object.entries(artifacts).map(row)))
+    return artifacts }
+  private buildParallel = (artifacts = {}) =>
+    this.task.parallel(`build ${bold(this.name)}`,
+      ...Object.entries(this.contracts).map(async ([name, contract])=>
+        artifacts[name] = await this.buildOne(name, contract)))
+  private buildSeries = async (artifacts = {}) => {
+    for (const [name, contract] of Object.entries(this.contracts)) {
+      artifacts[name] = await this.buildOne(name, contract) } }
+  private buildOne = (name: string, contract: ContractConfig) =>
+    this.task(`build ${this.name}_${name}`, () => contract.build())
   /* Upload the contracts to the chain, and write upload receipts in the corresponding directory.
    * If receipts are already present, return their contents instead of uploading. */
-  async upload ({
-    task = taskmaster(),
-    artifacts
-  }: EnsembleUpload): Promise<Uploads> {
-    await this.init()
-    // if artifacts are not passed, build 'em
-    artifacts = artifacts || await this.build()
+  async upload (): Promise<Uploads> {
     const uploads = {}
-    for (const contract of Object.keys(this.contracts)) {
-      await task(`upload ${contract}`, async (report: Function) => {
-        const receipt = uploads[contract] = await this.builder.uploadOrCached(artifacts[contract])
-        console.log(`⚖️  compressed size ${receipt.compressedSize} bytes`)
-        report(receipt.transactionHash) }) }
+    for (const [name, contract] of Object.entries(this.contracts)) {
+      await this.task(`upload ${name}`, async (report: Function) => {
+        const {compressedSize, transactionHash} = await contract.upload()
+        console.log(`⚖️  compressed size ${compressedSize} bytes`)
+        report(transactionHash) }) }
     return uploads }
-
   /** Stub to be implemented by the subclass.
    *  In the future it might be interesting to see if we can add some basic dependency resolution.
    *  It just needs to be standardized on the Rust side (in fadroma-callback)? */
-  async initialize (_: EnsembleInit): Promise<Instances> {
-    throw new Error('You need to implement the initialize() method.') }
-
-  /** Commands to expose to the CLI. */
-  commands (): Commands {
-    return [ ...this.localCommands(), null, ...this.remoteCommands() ] }
-
-  /** Commands that can be executed locally. */
-  localCommands (): Commands {
-    return [[ "build", BaseEnsemble.Info.BUILD, (ctx: any, sequential: boolean) =>
-                this.build({...ctx, parallel: !sequential})]] }
-
-  /** Commands that require a connection to a chain. */
-  remoteCommands (): Commands {
-    return [[ "deploy", BaseEnsemble.Info.DEPLOY, (ctx: any) =>
-                this.deploy(ctx).then(console.info) ]] } }
+  async initialize (): Promise<Instances> {
+    throw new Error('You need to implement the initialize() method.') } }
 
 export class ScrtEnsemble extends BaseEnsemble {
   BuildUploader = ScrtUploader
-  buildImage = 'enigmampc/secret-contract-optimizer:latest' }
+  buildImage    = 'enigmampc/secret-contract-optimizer:latest' }

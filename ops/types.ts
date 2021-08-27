@@ -156,31 +156,33 @@ export interface Agent extends Identity {
 
   getBalance (denomination: string): Promise<any>
 
-  send       (recipient:        any,
-              amount: string|number,
-              denom?:           any,
-              memo?:            any,
-              fee?:             any): Promise<any>
+  send (recipient:        any,
+        amount: string|number,
+        denom?:           any,
+        memo?:            any,
+        fee?:             any): Promise<any>
 
-  sendMany   (txs: Array<any>,
-              memo?:   string,
-              denom?:  string,
-              fee?:       any): Promise<any>
+  sendMany (txs: Array<any>,
+            memo?:   string,
+            denom?:  string,
+            fee?:       any): Promise<any>
 
-  upload      (path:   string): Promise<any>
+  upload (path:   string): Promise<any>
 
-  instantiate (instance:  any): Promise<any>
+  instantiate (codeId: number,
+               label:  string,
+               initMsg:   any): Promise<any>
 
-  query       (link:      any,
-               method: string,
-               args?:     any): Promise<any>
+  query (link:      any,
+         method: string,
+         args?:     any): Promise<any>
 
-  execute     (link:      any,
-               method: string,
-               args?:     any,
-               memo?:     any,
-               transfer?: any,
-               fee?:      any): Promise<any>
+  execute (link:      any,
+           method: string,
+           args?:     any,
+           memo?:     any,
+           transfer?: any,
+           fee?:      any): Promise<any>
 }
 
 /** Check if the passed instance has required methods to behave like an Agent */
@@ -249,18 +251,55 @@ export type Prefund = {
   identities?: any
 }
 
+export abstract class ContractConfig {
+  readonly workspace: string
+  readonly crate:     string
+  readonly label:     string
+  readonly initMsg:   any = {}
+}
+
+export interface Contract {
+  readonly workspace?: string
+  readonly crate?:     string
+  readonly artifact?:  string
+  readonly codeHash?:  string
+  build (workspace?: string, crate?: string): Promise<any>
+
+  readonly chain:         Chain
+  readonly uploader:      Agent
+  readonly uploadReceipt: any
+  readonly codeId:        number
+  upload (chain?: Chain, agent?: Agent): Promise<any>
+
+  readonly instantiator: Agent
+  readonly address:      string
+  readonly link:         { address: string, code_hash: string }
+  readonly linkPair:     [ string, string ]
+  readonly label:        string
+  readonly initMsg:      any
+  readonly initTx:       any
+  readonly initReceipt:  any
+  init (label: string, initMsg: any, agent?: Agent): Promise<any>
+
+  query (method: string, args: any, agent?: Agent): any
+  execute (method: string, args: any, memo: string, 
+           transferAmount: Array<any>, fee: any, agent?: Agent): any
+
+  save (): void
+}
+
 export interface Ensemble {
   /* Build, upload, and initialize. */
-  deploy (options: EnsembleDeploy): Promise<Instances>
+  deploy (): Promise<Instances>
 
   /* Compile the contracts from source using a Builder. */
-  build (options: EnsembleBuild):  Promise<Artifacts>
+  build (parallel: boolean):  Promise<Artifacts>
 
   /* Upload the contracts to a Chain using a BuildUploader. */
-  upload (options: EnsembleUpload): Promise<Uploads>
+  upload (): Promise<Uploads>
 
   /* Init instances of uploaded contracts using an Agent. */
-  initialize (options: EnsembleInit):   Promise<Instances>
+  initialize ():   Promise<Instances>
 
   /* Definitions of all user-available actions for this ensemble. */
   commands       (): Commands
@@ -275,11 +314,10 @@ export interface Ensemble {
 export type EnsembleContractInfo = { crate: string }
 
 export type EnsembleOptions = {
-  prefix?:    string
-  chain?:     Chain
-  agent?:     Agent
-  builder?:   BuildUploader
-  workspace?: Path
+  task?:  Taskmaster
+  chain?: Chain
+  agent?: Agent
+  additionalBinds?: Array<any>
 }
 
 export type EnsembleDeploy = {

@@ -33,7 +33,7 @@
   "scripts": {
     "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",
     "docs-ts": "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
-    "test-ts": "DEBUG=out esmo --enable-source-maps run-tests.mjs",
+    "test-ts": "DEBUG=out esmo --async-stack-traces --enable-source-maps run-tests.mjs",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc ; rm Cargo.toml"

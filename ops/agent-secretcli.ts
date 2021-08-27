@@ -1,8 +1,10 @@
-import type { Agent } from './types'
+import type { Agent, Identity } from './types'
 import { Scrt } from './chain'
 import { Console, bold } from './command'
 import { execFile, spawn } from './system'
 import { ScrtJSAgent } from './agent-secretjs'
+import { Bip39 } from '@cosmjs/crypto'
+import { EnigmaUtils } from 'secretjs';
 
 const {warn, debug} = Console(import.meta.url)
 
@@ -23,14 +25,29 @@ const tryToUnlockKeyring = async () => new Promise(
 
 export class ScrtCLIAgent implements Agent {
 
+  /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
+  static async create (options: Identity) {
+    const { name = 'Anonymous', ...args } = options
+    let { mnemonic, keyPair } = options
+    if (mnemonic) {
+      // if keypair doesnt correspond to the mnemonic, delete the keypair
+      if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
+        console.warn(`keypair doesn't match mnemonic, ignoring keypair`)
+        keyPair = null } }
+    else if (keyPair) {
+      // if there's a keypair but no mnemonic, generate mnemonic from keyapir
+      mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
+    else {
+      // if there is neither, generate a new keypair and corresponding mnemonic
+      keyPair  = EnigmaUtils.GenerateNewKeyPair()
+      mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
+    return new ScrtCLIAgent({name, mnemonic, keyPair, ...args}) }
+
   chain:         Scrt
   name:          string
   address:       string
   nameOrAddress: string
   fees:          any
-
-  static fromAgent (agent: ScrtJSAgent) {
-    return new ScrtCLIAgent() }
 
   static async pick () {
     if (!process.stdin.isTTY) {
@@ -66,7 +83,9 @@ export class ScrtCLIAgent implements Agent {
     return this.getBalance('uscrt') }
 
   async getBalance (denomination: string) {
-    return ((await this.account).value.coins.filter(x=>x.denom===denomination)[0]||{}).amount }
+    return ((await this.account).value.coins
+      .filter((x:any)=>x.denom===denomination)[0]||{})
+      .amount }
 
   async send (recipient: any, amount: any, denom = 'uscrt', memo = '') {
     throw new Error('not implemented') }
