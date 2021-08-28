@@ -1,4 +1,4 @@
-import { loadJSON } from './system'
+import { loadJSON, JSONDirectory } from './system'
 import { Chain, Contract, Agent, isAgent } from './types'
 import { ScrtBuilder, ScrtUploader } from './builder'
 import Ajv from 'ajv'
@@ -82,9 +82,10 @@ export class ContractUpload extends ContractCode {
 
 export class ContractInit extends ContractUpload {
   protected init: {
+    prefix?:  string
     agent?:   Agent
     address?: string
-    label?:   string,
+    label?:   string
     msg?:     any
     tx?: {
       contractAddress: string
@@ -129,7 +130,9 @@ export class ContractInit extends ContractUpload {
 
   /** Save the contract's instantiation receipt.*/
   save () {
-    this.chain.instances.save(this.label, this.initReceipt) } }
+    let dir = this.chain.instances
+    if (this.init.prefix) dir = dir.sub(this.init.prefix, JSONDirectory)
+    dir.save(this.label, this.initReceipt) } }
 
 export class ContractCaller extends ContractInit {
   /** Query the contract. */

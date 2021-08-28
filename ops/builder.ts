@@ -37,8 +37,7 @@ export class ScrtBuilder {
         , buildImage   = await pulled('enigmampc/secret-contract-optimizer:latest', this.docker)
         , buildCommand = this.getBuildCommand({repo, crate})
         , entrypoint   = resolve(__dirname, 'scrt_build.sh')
-
-    const buildArgs =
+        , buildArgs =
           { Env: [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
                  , 'CARGO_TERM_VERBOSE=true'
                  , 'CARGO_HTTP_TIMEOUT=240' ]

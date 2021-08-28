@@ -29,44 +29,74 @@ export type Path = string
 
 export abstract class FSCRUD {
   readonly path: Path
-  constructor (...fragments: Array<Path>) { this.path = resolve(...fragments) }
-  exists () { return existsSync(this.path) }
-  assert () { if (!this.exists()) throw new Error(`${this.path} does not exist`) }
-  delete () { _rimraf.sync(this.path) }
+  constructor (...fragments: Array<Path>) {
+    this.path = resolve(...fragments) }
+  exists () {
+    return existsSync(this.path) }
+  assert () {
+    if (!this.exists()) throw new Error(`${this.path} does not exist`)
+    return this }
+  delete () {
+    _rimraf.sync(this.path)
+    return this }
   abstract make (): void }
 
 abstract class File extends FSCRUD {
-  make () { mkdirp.sync(dirname(this.path)); touch(this.path) } }
+  make () {
+    mkdirp.sync(dirname(this.path))
+    touch(this.path)
+    return this } }
 
 export class BinaryFile extends File {
-  load () { return readFileSync(this.path) }
-  save (data: any) { writeFileSync(this.path, data) } }
+  load () {
+    return readFileSync(this.path) }
+  save (data: any) {
+    writeFileSync(this.path, data)
+    return this } }
 
 export class TextFile extends File {
-  load () { return readFileSync(this.path, 'utf8') }
-  save (data: any) { this.make(); writeFileSync(this.path, data, 'utf8') } }
+  load () {
+    return readFileSync(this.path, 'utf8') }
+  save (data: any) {
+    this.make()
+    writeFileSync(this.path, data, 'utf8')
+    return this } }
 
 export class JSONFile extends TextFile {
-  load () { return JSON.parse(super.load()) }
-  save (data: any) { super.save(JSON.stringify(data, null, 2)) } }
+  load () {
+    return JSON.parse(super.load()) }
+  save (data: any) {
+    super.save(JSON.stringify(data, null, 2))
+    return this } }
 
 export class Directory extends FSCRUD {
-  make () { mkdirp.sync(this.path) }
+  make () {
+    mkdirp.sync(this.path)
+    return this }
   resolve (name: Path) {
     if (name.includes('/')) throw new Error(`invalid name: ${name}`)
     return resolve(this.path, basename(name)) }
-  list () { return readdirSync(this.path) }
-  has  (name: Path) { return existsSync(this.resolve(name)) }
-  load (name: Path) { return readFileSync(this.resolve(name), 'utf8') }
+  list () {
+    return readdirSync(this.path) }
+  has  (name: Path) {
+    return existsSync(this.resolve(name)) }
+  load (name: Path) {
+    return readFileSync(this.resolve(name), 'utf8') }
   save (name: Path, data: any) {
     this.make()
-    writeFileSync(this.resolve(name), data, 'utf8') } }
+    writeFileSync(this.resolve(name), data, 'utf8')
+    return this }
+  sub (name: string, Dir: typeof Directory) {
+    return new Dir(this.path, name) } }
 
 export class JSONDirectory extends Directory {
-  list () { return super.list().filter(x=>x.endsWith('.json')).map(x=>basename(x, '.json')) }
-  load (name: Path) { return JSON.parse(super.load(`${name}.json`)) }
+  list () {
+    return super.list().filter(x=>x.endsWith('.json')).map(x=>basename(x, '.json')) }
+  load (name: Path) {
+    return JSON.parse(super.load(`${name}.json`)) }
   save (name: Path, data: any) {
-    super.save(`${name}.json`, JSON.stringify(data, null, 2)) } }
+    super.save(`${name}.json`, JSON.stringify(data, null, 2))
+    return this } }
 
 // fs functions ////////////////////////////////////////////////////////////////////////////////////
 

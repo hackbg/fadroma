@@ -84,7 +84,7 @@ export abstract class BaseEnsemble implements Ensemble {
   async initialize (): Promise<Instances> {
     await this.chain.init()
     this.agent = await this.chain.getAgent()
-    throw new Error('You need to implement the initialize() method.') } }
+    return {} } }
 
 export class ScrtEnsemble extends BaseEnsemble {
   BuildUploader = ScrtUploader
