@@ -292,7 +292,7 @@ export interface Contract {
   readonly initMsg:      any
   readonly initTx:       any
   readonly initReceipt:  any
-  init (label: string, initMsg: any, agent?: Agent): Promise<any>
+  instantiate (agent?: Agent): Promise<any>
 
   query (method: string, args: any, agent?: Agent): any
   execute (method: string, args: any, memo: string, 

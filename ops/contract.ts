@@ -150,7 +150,7 @@ export class ContractCaller extends ContractInit {
 
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
-export class ContractAPI extends ContractCaller {
+export class ContractAPI extends ContractCaller implements Contract {
   protected schema: {
     initMsg?:        any
     queryMsg?:       any

@@ -82,6 +82,8 @@ export abstract class BaseEnsemble implements Ensemble {
    *  In the future it might be interesting to see if we can add some basic dependency resolution.
    *  It just needs to be standardized on the Rust side (in fadroma-callback)? */
   async initialize (): Promise<Instances> {
+    await this.chain.init()
+    this.agent = await this.chain.getAgent()
     throw new Error('You need to implement the initialize() method.') } }
 
 export class ScrtEnsemble extends BaseEnsemble {
