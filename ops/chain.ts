@@ -1,8 +1,9 @@
 import type {
-  Chain, ChainNode, ChainState, ChainConnectOptions,
+  ChainNode, ChainState, ChainConnectOptions,
   Agent, Identity,
   BuildUploader,
   Ensemble, EnsembleOptions } from './types'
+import { Chain } from './types'
 import { defaultStateBase } from './constants'
 import { open, resolve, Directory, JSONDirectory } from './system'
 import { ScrtNode } from './localnet'
@@ -31,7 +32,7 @@ export function openFaucet () {
   console.debug(`Opening ${url}...`)
   open(url) }
 
-export class Scrt implements Chain {
+export class Scrt extends Chain {
 
   chainId?: string
   apiURL?:  URL
@@ -51,11 +52,11 @@ export class Scrt implements Chain {
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
    * TODO document the remaining options */
   constructor (options: ChainState = {}) {
+    super()
     const node = this.node = options.node || null
-
     // info needed to connect to the chain's REST API
     this.chainId = options.chainId || node?.chainId || 'enigma-pub-testnet-3'
-    this.apiURL  = options.apiURL || node?.apiURL || new URL('http://localhost:1337/')
+    this.apiURL  = options.apiURL  || node?.apiURL  || new URL('http://localhost:1337/')
     // directories to store state.
     const stateRoot = options.stateRoot || resolve(defaultStateBase, this.chainId)
     this.stateRoot  = new Directory(stateRoot),
@@ -69,28 +70,22 @@ export class Scrt implements Chain {
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
   async init (): Promise<Chain> {
-    // default credentials will be used as-is unless using localnet
-    let { mnemonic, address } = this.defaultAgent||{}
-
     // if this is a localnet handle, wait for the localnet to start
-    const node = await Promise.resolve(this.node); if (node) {
-      this.node = node;
-
+    const node = await Promise.resolve(this.node)
+    if (node) {
+      this.node = node
       // respawn that container
       console.info(`Running on localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
       await node.respawn()
       await node.ready
-
       // set the correct port to connect to
       this.apiURL.port = String(node.port)
       console.info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
-
       // get the default account for the node
-      const adminAccount = this.node.genesisAccount('ADMIN')
-      mnemonic = adminAccount.mnemonic
-      address  = adminAccount.address }
-
-    const { protocol, hostname, port } = this.apiURL
+      this.defaultAgent = this.node.genesisAccount('ADMIN') }
+    // default credentials will be used as-is unless using localnet
+    const { mnemonic, address } = this.defaultAgent
+        , { protocol, hostname, port } = this.apiURL
     console.log(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
     this.defaultAgent = await this.getAgent({ name: "ADMIN", mnemonic, address })
     console.info(`🟢 connected, operating as ${address}`)
@@ -177,13 +172,11 @@ export class Scrt implements Chain {
 
   printStatusTables () {
     const id = bold(this.chainId)
-
     if (this.uploadsTable.length > 1) {
       console.log(`\nUploaded binaries on ${id}:`)
       console.log('\n' + table(this.uploadsTable, noBorders)) }
     else {
       console.log(`\n  No known uploaded binaries on ${id}`) }
-
     if (this.instancesTable.length > 1) {
       console.log(`Instantiated contracts on ${id}:`)
       console.log('\n' + table(this.instancesTable, noBorders)) }

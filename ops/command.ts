@@ -26,8 +26,9 @@ export { colors, bold }
 /** Prettier console. */
 export const Console = (context: string) => {
   context = relative(cwd(), fileURLToPath(context))
-  const format = (arg:any) =>
-    '\n'+((typeof arg === 'object') ? render(arg) : arg)
+  const format = (arg:any) => {
+    //console.trace(arg)
+    return '\n'+((typeof arg === 'object') ? render(arg) : arg) }
   return {
     context, format,
     table: (rows: any) => console.log(table(rows)),

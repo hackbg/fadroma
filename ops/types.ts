@@ -8,40 +8,61 @@ export type CommandInfo = string
 export type Command  = [CommandName|Array<CommandName>, CommandInfo, Function, Commands?]
 export type Commands = Array<Command|null>
 
+// Chain ///////////////////////////////////////////////////////////////////////////////////////////
+
+export interface ChainOptions {
+  chainId?: string
+  apiURL?:  URL
+  node?:    ChainNode
+  defaultAgent?: Identity
+}
+
+export interface ChainConnectOptions extends ChainOptions {
+  apiKey?: string
+}
+
+export interface ChainState extends ChainOptions {
+  readonly stateRoot?:  string
+  readonly identities?: string
+  readonly uploads?:    string
+  readonly instances?:  string
+}
+
 /* Represents an interface to a particular Cosmos blockchain.
  * Used to construct agents, builders, and contracts that are
  * bound to a particular chain. */
-export interface Chain extends ChainOptions {
+export abstract class Chain implements ChainOptions {
+  chainId?: string
+  apiURL?:  URL
+  node?:    ChainNode
+
+  /** Credentials of the default agent for this network. */
+  defaultAgent?: Identity
 
   /** Stuff that should be in the constructor but is asynchronous.
     * FIXME: How come nobody has proposed sugar for async constructors yet?
     * Feeling like writing a `@babel/plugin-async-constructor`, as always
     * bonus internet points for whoever beats me to it. */
-  init (): Promise<Chain>
+  abstract init (): Promise<Chain>
 
   /** The connection address is stored internally as a URL object,
     * but returned as a string.
     * FIXME why so? */
-  get url (): string
+  abstract get url (): string
 
   /** Get an Agent that works with this Chain. */
-  getAgent (options?: Identity): Promise<Agent>
+  abstract getAgent (options?: Identity): Promise<Agent>
 
   /** Get a Builder that works with this Chain,
     * optionally providing a specific Agent to perform
     * the contract upload operation. */
-  getBuilder (agent?: Agent): Promise<BuildUploader>
+  abstract getBuilder (agent?: Agent): Promise<BuildUploader>
 
   /** Get a Contract that exists on this Chain, or a non-existent one
     * which you can then create via Agent#instantiate
     *
     * FIXME: awkward inversion of control */
-  getContract<T> (api: T, address: string, agent: any): T
-
-  /** Credentials of the default agent for this network.
-    * Picked up from environment variable, see the subclass
-    * implementation for more info. */
-  defaultAgent: Identity
+  abstract getContract<T> (api: T, address: string, agent: any): T
 
   /** This directory contains all the others. */
   readonly stateRoot: Directory
@@ -60,30 +81,10 @@ export interface Chain extends ChainOptions {
     * as pertaining to contracts on the blockchain, to be the same thing. */
   readonly instances: Directory
 
-  printStatusTables (): void
+  abstract printStatusTables (): void
 }
 
-export interface ChainState extends ChainOptions {
-  readonly stateRoot?:  string
-  readonly identities?: string
-  readonly uploads?:    string
-  readonly instances?:  string
-}
-
-export interface ChainOptions {
-  chainId?: string
-  apiURL?:  URL
-  node?:    ChainNode
-  defaultAgent?: {
-    name?:     string,
-    address?:  string,
-    mnemonic?: string
-  }
-}
-
-export interface ChainConnectOptions extends ChainOptions {
-  apiKey?: string
-}
+// Node ////////////////////////////////////////////////////////////////////////////////////////////
 
 export interface ChainNode {
   chainId: string
@@ -131,6 +132,8 @@ export type ChainNodeOptions = {
   identities?: Array<string>
 }
 
+// Identities //////////////////////////////////////////////////////////////////////////////////////
+
 export type Identity = {
   chain?:    Chain,
   name?:     string,
@@ -143,46 +146,52 @@ export type Identity = {
   fees?:     any
 }
 
-export interface Agent extends Identity {
-  fees: Record<string, any>
-  readonly name:    string
+export abstract class Agent implements Identity {
+  readonly chain:   Chain
   readonly address: string
-  readonly chain: Chain
+  readonly name:    string
+  fees: Record<string, any>
 
-  get nextBlock (): Promise<void>
-  get block     (): Promise<any>
-  get account   (): Promise<any>
-  get balance   (): Promise<any>
+  type?:     string
+  pubkey?:   string
+  mnemonic?: string
+  keyPair?:  any
+  pen?:      any
 
-  getBalance (denomination: string): Promise<any>
+  abstract get nextBlock (): Promise<void>
+  abstract get block     (): Promise<any>
+  abstract get account   (): Promise<any>
+  abstract get balance   (): Promise<any>
 
-  send (recipient:        any,
-        amount: string|number,
-        denom?:           any,
-        memo?:            any,
-        fee?:             any): Promise<any>
+  abstract getBalance (denomination: string): Promise<any>
 
-  sendMany (txs: Array<any>,
-            memo?:   string,
-            denom?:  string,
-            fee?:       any): Promise<any>
+  abstract send (recipient:        any,
+                 amount: string|number,
+                 denom?:           any,
+                 memo?:            any,
+                 fee?:             any): Promise<any>
 
-  upload (path:   string): Promise<any>
+  abstract sendMany (txs: Array<any>,
+                     memo?:   string,
+                     denom?:  string,
+                     fee?:       any): Promise<any>
 
-  instantiate (codeId: number,
-               label:  string,
-               initMsg:   any): Promise<any>
+  abstract upload (path:   string): Promise<any>
 
-  query (link:      any,
-         method: string,
-         args?:     any): Promise<any>
+  abstract instantiate (codeId: number,
+                        label:  string,
+                        initMsg:   any): Promise<any>
 
-  execute (link:      any,
-           method: string,
-           args?:     any,
-           memo?:     any,
-           transfer?: any,
-           fee?:      any): Promise<any>
+  abstract query (link:      any,
+                  method: string,
+                  args?:     any): Promise<any>
+
+  abstract execute (link:      any,
+                    method: string,
+                    args?:     any,
+                    memo?:     any,
+                    transfer?: any,
+                    fee?:      any): Promise<any>
 }
 
 /** Check if the passed instance has required methods to behave like an Agent */
@@ -192,44 +201,6 @@ export const isAgent = (maybeAgent: any): boolean => (
   typeof maybeAgent.query === "function" &&
   typeof maybeAgent.execute === "function"
 )
-
-export interface Gas {
-  amount: Array<{amount: string, denom: string}>
-  gas:    string
-}
-
-export type Fees = {
-  upload: Gas
-  init:   Gas
-  exec:   Gas
-  send:   Gas
-}
-
-export interface BuildUploader {
-  build          (options: BuildOptions): Promise<Path>
-  buildOrCached  (options: BuildOptions): Promise<Path>
-  upload         (artifact: Artifact): Promise<Upload>
-  uploadOrCached (artifact: Artifact): Promise<Upload>
-}
- 
-export type BuilderOptions = {
-  docker?: Docker
-}
-
-export type BuildOptions = {
-  /* Set this to build a remote commit instead of the working tree. */
-  repo?:           { origin: string, ref: string },
-  /* Path to root Cargo workspace of project. */
-  workspace:        Path
-  /* Name of contract crate to build. */
-  crate:            string
-  /* Path where the build artifacts will be produced. */
-  outputDir?:       string
-  /* Allows additional directories to be bound to the build container. */
-  additionalBinds?: Array<any>
-  /* Allow user to specify that the contracts shouldn't be built in parallel. */
-  sequential?:      boolean
-}
 
 export type Prefund = {
   /** Taskmaster. TODO replace with generic observability mechanism (RxJS?) */
@@ -251,6 +222,48 @@ export type Prefund = {
   identities?: any
 }
 
+// Gas fees ////////////////////////////////////////////////////////////////////////////////////////
+
+export interface Gas {
+  amount: Array<{amount: string, denom: string}>
+  gas:    string
+}
+
+export type Fees = {
+  upload: Gas
+  init:   Gas
+  exec:   Gas
+  send:   Gas
+}
+
+// Contract deployment /////////////////////////////////////////////////////////////////////////////
+
+export interface BuildUploader {
+  build          (options: BuildOptions): Promise<Path>
+  buildOrCached  (options: BuildOptions): Promise<Path>
+  upload         (artifact: any): Promise<any>
+  uploadOrCached (artifact: any): Promise<any>
+}
+ 
+export type BuilderOptions = {
+  docker?: Docker
+}
+
+export type BuildOptions = {
+  /* Set this to build a remote commit instead of the working tree. */
+  repo?:           { origin: string, ref: string },
+  /* Path to root Cargo workspace of project. */
+  workspace:        Path
+  /* Name of contract crate to build. */
+  crate:            string
+  /* Path where the build artifacts will be produced. */
+  outputDir?:       string
+  /* Allows additional directories to be bound to the build container. */
+  additionalBinds?: Array<any>
+  /* Allow user to specify that the contracts shouldn't be built in parallel. */
+  sequential?:      boolean
+}
+
 export abstract class ContractConfig {
   readonly workspace: string
   readonly crate:     string
@@ -269,7 +282,7 @@ export interface Contract {
   readonly uploader:      Agent
   readonly uploadReceipt: any
   readonly codeId:        number
-  upload (chain?: Chain, agent?: Agent): Promise<any>
+  upload (chainOrAgent?: Chain|Agent): Promise<any>
 
   readonly instantiator: Agent
   readonly address:      string
@@ -293,25 +306,23 @@ export interface Ensemble {
   deploy (): Promise<Instances>
 
   /* Compile the contracts from source using a Builder. */
-  build (parallel: boolean):  Promise<Artifacts>
+  build (parallel: boolean): Promise<Artifacts>
 
   /* Upload the contracts to a Chain using a BuildUploader. */
   upload (): Promise<Uploads>
 
   /* Init instances of uploaded contracts using an Agent. */
-  initialize ():   Promise<Instances>
+  initialize (): Promise<Instances>
 
   /* Definitions of all user-available actions for this ensemble. */
-  commands       (): Commands
+  commands (): Commands
 
   /* Definitions of commands that don't require a connection. */
-  localCommands  (): Commands
+  localCommands (): Commands
 
   /* Definitions of commands that require a connection. */
   remoteCommands (): Commands
 }
-
-export type EnsembleContractInfo = { crate: string }
 
 export type EnsembleOptions = {
   task?:  Taskmaster
@@ -320,47 +331,10 @@ export type EnsembleOptions = {
   additionalBinds?: Array<any>
 }
 
-export type EnsembleDeploy = {
-  task?:      Taskmaster
-  chain?:     Chain
-  agent?:     Agent
-  builder?:   BuildUploader
-  workspace?: Path
-  initMsgs?:  Record<string, any>
-  additionalBinds?: Array<string>
-}
-
-export type EnsembleBuild = {
-  task?:      Taskmaster
-  builder?:   BuildUploader
-  workspace?: Path
-  outputDir?: Path
-  parallel?:  boolean
-  additionalBinds?: Array<string>
-}
-
-export type EnsembleUpload = {
-  task?:      Taskmaster
-  agent?:     Agent
-  chain?:     Chain
-  builder?:   BuildUploader
-  artifacts?: Artifacts
-}
-
-export type EnsembleInit = {
-  task?:      Taskmaster
-  initMsgs?:  Record<string, any>
-  chain?:     Chain
-  uploads?:   Uploads
-  agent?:     Agent
-}
-
-export type Artifact  = any
-export type Artifacts = Record<string, Artifact>
-export type Upload    = any
-export type Uploads   = Record<string, Upload>
-export type Instance  = any
-export type Instances = Record<string, Instance>
+// TODO populate with correct contract parent classes
+export type Artifacts = Record<string, any>
+export type Uploads   = Record<string, any>
+export type Instances = Record<string, any>
 
 /* Taskmaster is a quick and dirty stopwatch/logging helper that can
  * generate a rough profile of one or more contract operations

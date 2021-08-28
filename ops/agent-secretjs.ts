@@ -13,7 +13,7 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
 const console = Console(import.meta.url)
 
 /** Queries and transacts on an instance of the Secret Chain */
-export class ScrtJSAgent implements Agent {
+export class ScrtJSAgent extends Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create (options: Identity) {
@@ -48,6 +48,7 @@ export class ScrtJSAgent implements Agent {
 
   /** Create a new agent from a signing pen. */
   constructor (options: Identity) {
+    super()
     this.chain    = options.chain as Scrt
     this.name     = options.name || ''
     this.keyPair  = options.keyPair
@@ -132,18 +133,15 @@ export class ScrtJSAgent implements Agent {
     return this.API.upload(data, {}) }
 
   async getHashById (codeId: number) {
-    return await this.API.getCodeHashByCodeId(codeId)
-  }
+    return await this.API.getCodeHashByCodeId(codeId) }
 
   async getHashByAddress (address: string) {
-    return await this.API.getCodeHashByContractAddr(address)
-  }
+    return await this.API.getCodeHashByContractAddr(address) }
 
   /** Instantiate a contract from a code ID and an init message. */
   async instantiate (codeId: number, label: string, initMsg: any) {
     console.debug(`⭕${this.address} ${bold('init')} ${label}`, { codeId, label, initMsg })
     const initTx = await this.API.instantiate(codeId, initMsg, label)
-
     console.debug(`⭕${this.address} ${bold('instantiated')} ${label}`, { codeId, label, initTx })
     return initTx }
 

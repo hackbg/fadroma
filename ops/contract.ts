@@ -7,10 +7,11 @@ export class ContractCode {
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
 
   protected code: {
-    workspace:  string
-    crate:      string
+    workspace?: string
+    crate?:     string
     artifact?:  string
-    codeHash?:  string }
+    codeHash?:  string
+  } = {}
 
   /** Path to source workspace */
   get workspace () { return this.code.workspace }
@@ -31,12 +32,22 @@ export class ContractCode {
 
 export class ContractUpload extends ContractCode {
   protected blob: {
-    chain:   Chain
-    agent:   Agent
-    receipt: any
-    codeId:  number }
+    chain?:    Chain
+    agent?:    Agent
+    codeId?:   number
+    codeHash?: string
+    receipt?: {
+      codeId:             number
+      compressedChecksum: string
+      compressedSize:     string
+      logs:               Array<any>
+      originalChecksum:   string
+      originalSize:       number
+      transactionHash:    string
+    }
+  } = {}
 
-  constructor (agent: Agent) {
+  constructor (agent?: Agent) {
     super()
     this.blob.agent = agent }
 
@@ -48,30 +59,40 @@ export class ContractUpload extends ContractCode {
   get uploadReceipt () { return this.blob.receipt }
   /** The auto-incrementing id of the uploaded code */
   get codeId () { return this.blob.codeId }
+  /** The auto-incrementing id of the uploaded code */
+  get codeHash () { return this.blob.codeHash }
 
   /** Upload the contract to a specified chain as a specified agent. */
-  async upload (chain?: Chain, agent?: Agent) {
-    if (agent) this.blob.agent = agent
-    if (chain) {
-      this.blob.chain = chain }
+  async upload (chainOrAgent: Agent|Chain) {
+    if (chainOrAgent instanceof Chain) {
+      this.blob.chain = chainOrAgent
+      this.blob.agent = await this.blob.chain.getAgent() }
+    else if (chainOrAgent instanceof Agent) {
+      this.blob.agent = chainOrAgent
+      this.blob.chain = this.blob.agent.chain }
     else {
-      this.blob.chain = agent.chain }
-    if (this.chain.chainId !== this.uploader.chain.chainId) throw new Error(
-      `tried to deploy to ${this.chain.chainId} `+
-      `with agent from ${this.uploader.chain.chainId}`)
-    if (!this.artifact) await this.build()
-    return this.blob.receipt = await new ScrtUploader({
-      chain: this.chain,
-      agent: this.uploader
-    }).uploadOrCached(this.artifact) } }
+      throw new Error('You must provide a Chain or Agent to use for deployment') }
+    if (!this.artifact) {
+      await this.build() }
+    const uploader = new ScrtUploader(this.chain, this.uploader)
+    this.blob.receipt  = await uploader.uploadOrCached(this.artifact)
+    this.blob.codeId   = this.blob.receipt.codeId
+    this.blob.codeHash = this.blob.receipt.originalChecksum
+    return this.blob.receipt } }
 
 export class ContractInit extends ContractUpload {
   protected init: {
     agent?:   Agent
     address?: string
-    label:    string,
+    label?:   string,
     msg?:     any
-    tx?:      any }
+    tx?: {
+      contractAddress: string
+      data:            string
+      logs:            Array<any>
+      transactionHash: string
+    }
+  } = {}
 
   constructor (agent: Agent) {
     super(agent)
@@ -98,18 +119,19 @@ export class ContractInit extends ContractUpload {
            , codeHash: this.codeHash
            , initTx:   this.initTx } }
 
-  async instantiate () {
-    if (!this.codeId) await this.upload()
-    this.init.initTx = await this.instantiator.instantiate(
-      this.codeId, this.initMsg, this.label)
+  async instantiate (agent?: Agent) {
+    this.init.agent = agent
+    if (!this.codeId) {
+      throw new Error('Contract must be uploaded before instantiating') }
+    this.init.tx = await this.instantiator.instantiate(this.codeId, this.label, this.initMsg)
+    this.init.address = this.init.tx.contractAddress
     this.save() }
 
   /** Save the contract's instantiation receipt.*/
   save () {
-    console.log(this.chain.instances)
     this.chain.instances.save(this.label, this.initReceipt) } }
 
-export class BaseContractAPI extends ContractInit {
+export class ContractCaller extends ContractInit {
   /** Query the contract. */
   query (method = "", args = null, agent = this.instantiator) {
     return agent.query(this, method, args) }
@@ -128,19 +150,49 @@ export class BaseContractAPI extends ContractInit {
 
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
-export class ContractWithSchema extends BaseContractAPI {
+export class ContractAPI extends ContractCaller {
+  protected schema: {
+    initMsg?:        any
+    queryMsg?:       any
+    queryResponse?:  any
+    handleMsg?:      any
+    handleResponse?: any
+  }
+
+  private ajv = getAjv()
+
+  private validate: {
+    initMsg?:        Function
+    queryMsg?:       Function
+    queryResponse?:  Function
+    handleMsg?:      Function
+    handleResponse?: Function
+  } = {}
+
   q:  Record<string, Function>
   tx: Record<string, Function>
-  constructor(agent: Agent, options: any = {}, schema: any) {
-    if (schema && schema.initMsg) {
-      const ajv = getAjv();
-      const validate = ajv.compile(schema.initMsg);
-      if (!validate(options.initMsg)) {
-        const err = JSON.stringify(validate.errors, null, 2)
-        throw new Error(`Schema validation for initMsg returned an error: \n${err}`); } }
+
+  constructor (schema: Record<string, any>, agent?: Agent) {
     super(agent)
-    this.q  = new Factory(schema.queryMsg,  this).create()
-    this.tx = new Factory(schema.handleMsg, this).create() } }
+    this.schema = schema
+    this.q  = new Factory(this, this.schema?.queryMsg).create()
+    this.tx = new Factory(this, this.schema?.handleMsg).create()
+    for (const msg of ['initMsg', 'queryMsg', 'queryResponse', 'handleMsg', 'handleResponse']) {
+      if (this.schema[msg]) this.validate[msg] = this.ajv.compile(this.schema[msg]) } } }
+
+//export class ContractWithSchema extends BaseContractAPI {
+  //q:  Record<string, Function>
+  //tx: Record<string, Function>
+  //constructor(agent: Agent, options: any = {}, schema: any) {
+    //if (schema && schema.initMsg) {
+      //const ajv = getAjv();
+      //const validate = ajv.compile(schema.initMsg);
+      //if (!validate(options.initMsg)) {
+        //const err = JSON.stringify(validate.errors, null, 2)
+        //throw new Error(`Schema validation for initMsg returned an error: \n${err}`); } }
+    //super(agent)
+    //this.q  = new Factory(schema.queryMsg,  this).create()
+    //this.tx = new Factory(schema.handleMsg, this).create() } }
 
 export const loadSchemas = (
   base:    string,
@@ -158,32 +210,32 @@ const camelCaseString = (str: string): string => {
 export function Wrapper (schema: any, instance: any) {
   return new Factory(schema, instance).create(); };
 
+const clone = (x: any) => JSON.parse(JSON.stringify(x))
+
 /** Wrapper factory that will create all the methods */
 export class Factory {
 
-  caller:   string
-  methods:  Array<any>
-  ajv:      any
-  schema:   any
-  contract: any
+  caller:  string
+  methods: Array<any> = []
+  ajv:     Ajv = getAjv()
 
-  constructor(schema: Record<any, any>, contract: ContractWithSchema) {
+  constructor(
+    public contract: { copy?: Function, label: string },
+    public schema:   Record<any, any>
+  ) {
     if (typeof schema !== "object" || schema === null) {
       throw new Error("Schema must be an object"); }
-    this.contract = contract;
-    this.schema = JSON.parse(JSON.stringify(
-      { ...schema, type: "object", $schema: undefined, }));
-    this.methods = [];
-    this.ajv = getAjv();
-    if (this.schema.title.toLowerCase().startsWith("query")) {
+    this.schema = clone({ ...schema, type: "object", $schema: undefined, });
+    const title = this.schema.title.toLowerCase()
+    if (title.startsWith("query")) {
       this.caller = "query"; }
-    else if (this.schema.title.toLowerCase().startsWith("handle")) {
+    else if (title.startsWith("handle")) {
       this.caller = "execute"; } }
 
   /** Make a call on an agent and allow it to be overriden with custom */
-  getContract(agent: Agent): Contract {
-    if (isAgent(agent) && typeof this.contract.copy === "function") {
-      return this.contract.copy(agent); }
+  getContract(agent: Agent): any {
+    if (isAgent(agent) && typeof this.contract['copy'] === "function") {
+      return this.contract['copy'](agent); }
     return this.contract; }
 
   /** Create the object with generated methods */
@@ -246,9 +298,9 @@ export class Factory {
     const message = { [action.method]: args || {} };
     if (!validate(message)) {
       const msg =  {
-        title:            this.schema.title,
-        label:            this.contract.label,
-        calledAction:     { ...action, message },
+        title: this.schema.title,
+        label: this.contract.label,
+        calledAction: { ...action, message },
         validationErrors: validate.errors, }
       throw new Error(`Arguments validation returned error:\n${JSON.stringify(msg, null, 2)}`) } }
 

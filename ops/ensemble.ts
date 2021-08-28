@@ -1,6 +1,6 @@
 import type {
   Commands, Taskmaster,
-  Chain, Agent, Contract, ContractConfig, Ensemble, EnsembleOptions,
+  Chain, Agent, Contract, Ensemble, EnsembleOptions,
   Artifacts, Uploads, Instances } from './types'
 
 import {relative, timestamp} from './system'
@@ -23,14 +23,15 @@ const Info = {
 export abstract class BaseEnsemble implements Ensemble {
   name:      string = this.constructor.name
   prefix:    string = `${timestamp()}`
-  contracts: Record<string, ContractConfig>
+  contracts: Record<string, Contract>
+  agent:     Agent
+  readonly  chain:     Chain
   protected instances: Record<string, Contract>
   readonly  task:      Taskmaster = taskmaster()
-  readonly  chain:     Chain
-  readonly  agent?:    Agent
   readonly  additionalBinds?: Array<any>
-  constructor ({ task, chain, agent, additionalBinds }: EnsembleOptions) {
-    if (agent.chain.chainId !== chain.chainId) throw new Error(Errors.AGENT)
+  constructor (options: EnsembleOptions = {}) {
+    const { task, chain, agent, additionalBinds } = options
+    if (agent && chain && agent.chain.chainId !== chain.chainId) throw new Error(Errors.AGENT)
     this.task  = task || taskmaster()
     this.chain = chain
     this.agent = agent
@@ -64,15 +65,16 @@ export abstract class BaseEnsemble implements Ensemble {
   private buildSeries = async (artifacts = {}) => {
     for (const [name, contract] of Object.entries(this.contracts)) {
       artifacts[name] = await this.buildOne(name, contract) } }
-  private buildOne = (name: string, contract: ContractConfig) =>
+  private buildOne = (name: string, contract: Contract) =>
     this.task(`build ${this.name}_${name}`, () => contract.build())
   /* Upload the contracts to the chain, and write upload receipts in the corresponding directory.
    * If receipts are already present, return their contents instead of uploading. */
   async upload (): Promise<Uploads> {
+    await this.chain.init()
     const uploads = {}
     for (const [name, contract] of Object.entries(this.contracts)) {
       await this.task(`upload ${name}`, async (report: Function) => {
-        const {compressedSize, transactionHash} = await contract.upload()
+        const {compressedSize, transactionHash} = await contract.upload(this.agent||this.chain)
         console.log(`⚖️  compressed size ${compressedSize} bytes`)
         report(transactionHash) }) }
     return uploads }

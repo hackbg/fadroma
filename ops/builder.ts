@@ -69,7 +69,16 @@ export class ScrtBuilder {
     return resolve(outputDir, `${crate}@${repo?.ref||'HEAD'}.wasm`) }
 
   async buildOrCached (options: BuildOptions) {
-    console.warn('TODO buildOrCached')
+    const {
+      workspace,
+      outputDir = resolve(workspace, 'artifacts'),
+      crate,
+      repo
+    } = options
+    const output = resolve(outputDir, `${crate}@${repo?.ref||'HEAD'}.wasm`)
+    if (existsSync(output)) {
+      console.info(`${bold(relative(process.cwd(), output))} exists, delete to rebuild`)
+      return output }
     return this.build(options) }
 
   /** Generate the command line for the container. */
@@ -97,17 +106,12 @@ const {info} = Console(import.meta.url)
 
 export class ScrtUploader extends ScrtBuilder implements BuildUploader {
 
-  chain: Chain
-  agent: Agent
-
-  constructor (options={}) {
-    super(options)
-    // some puny dependency auto negotiation so you can pass partial objects
-    let { chain, agent } = options as any
-    if (!chain && agent) chain = agent.chain
-    else if (!agent && chain) agent = chain.defaultAgent
-    this.chain = chain
-    this.agent = agent }
+  constructor (
+    readonly chain: Chain,
+    readonly agent: Agent
+  ) {
+    super()
+  }
 
   /* Contracts will be deployed from this address. */
   get address () {

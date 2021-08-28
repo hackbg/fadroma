@@ -1,4 +1,4 @@
-import type { Agent, Identity } from './types'
+import { Agent, Identity } from './types'
 import { Scrt } from './chain'
 import { Console, bold } from './command'
 import { execFile, spawn } from './system'
@@ -23,7 +23,7 @@ const tryToUnlockKeyring = async () => new Promise(
       setTimeout(()=>{ unlock.kill() }, 1000) })
     unlock.on('error', reject) })
 
-export class ScrtCLIAgent implements Agent {
+export class ScrtCLIAgent extends Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create (options: Identity) {
@@ -60,6 +60,7 @@ export class ScrtCLIAgent implements Agent {
       if (keys.length < 1) warn(Help.NO_KEYS_2) } }
 
   constructor (options: any = {}) {
+    super()
     debug({options})
     const { name, address } = options
     this.name = name

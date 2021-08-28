@@ -11,7 +11,9 @@ export abstract class BaseChainNode implements ChainNode {
   chainId: string
   apiURL:  URL
   port:    number
-  ready:   Promise<void>
+
+  #ready: Promise<void>
+  get ready() { return this.#ready }
 
   /** This directory is created to remember the state of the localnet setup. */
   readonly stateRoot:  Directory
@@ -76,7 +78,8 @@ export class ScrtNode extends BaseChainNode {
 
   /** Resolved when ready.
     * TODO check */
-  readonly ready: Promise<void> = Promise.resolve()
+  #ready: Promise<void> = Promise.resolve()
+  get ready() { return this.#ready }
 
   /** Used to command the container engine. */
   docker: Docker = new Docker({ sockerPath: '/var/run/docker.sock' })
@@ -85,7 +88,7 @@ export class ScrtNode extends BaseChainNode {
   image = "enigmampc/secret-network-sw-dev"
 
   /** The created container */
-  container: { id: string }
+  container: { id: string, Warnings: any }
 
   private isRunning = async (id: string = this.container.id) =>
     (await this.docker.getContainer(id).inspect()).State.Running
@@ -103,7 +106,7 @@ export class ScrtNode extends BaseChainNode {
       await this.docker.getContainer(id).kill()
       console.info(`Stopped ${prettyId}`) }
     else {
-      console.trace(`${prettyId} was dead on arrival`) } }
+      console.info(`${prettyId} was dead on arrival`) } }
 
   /** This file is mounted into the localnet container
     * in place of its default init script in order to
@@ -177,6 +180,8 @@ export class ScrtNode extends BaseChainNode {
 
   /** Spawn a new localnet instance from scratch */
   async spawn () {
+    let done: Function
+    this.#ready = new Promise(resolve=>done=resolve)
     // tell the user that we have begun
     console.debug(`⏳ Spawning new node...`)
     // get a free port
@@ -201,7 +206,8 @@ export class ScrtNode extends BaseChainNode {
     // wait for logs to confirm that the genesis is done
     await waitUntilLogsSay(this.container, 'GENESIS COMPLETE')
     // wait for port to be open
-    await waitPort({ host: this.host, port: this.port }) }
+    await waitPort({ host: this.host, port: this.port })
+    done() }
 
   /** Dockerode passes these to the Docker API in order to launch a localnet container. */
   get spawnContainerOptions () {
