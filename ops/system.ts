@@ -89,10 +89,12 @@ export class Directory extends FSCRUD {
     return this }
   subdirs () {
     return readdirSync(this.path).filter(x=>statSync(this.resolve(x)).isDirectory()) }
-  subdir (name: string, Dir: typeof Directory) {
+  subdir (name: string, Dir: typeof Directory = Directory) {
     return new Dir(this.path, name) } }
 
 export class JSONDirectory extends Directory {
+  has (name: Path) {
+    return existsSync(this.resolve(`${name}.json`)) }
   list () {
     return super.list().filter(x=>x.endsWith('.json')).map(x=>basename(x, '.json')) }
   load (name: Path) {
