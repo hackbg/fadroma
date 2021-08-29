@@ -298,7 +298,8 @@ export interface Contract {
   execute (method: string, args: any, memo: string, 
            transferAmount: Array<any>, fee: any, agent?: Agent): any
 
-  save (): void
+  setPrefix (prefix: string): this
+  save (): this
 }
 
 export interface Ensemble {

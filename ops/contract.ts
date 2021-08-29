@@ -107,8 +107,12 @@ export class ContractInit extends ContractUpload {
   get link () { return { address: this.address, code_hash: this.codeHash } }
   /** A reference to the contract as an array */
   get linkPair () { return [ this.address, this.codeHash ] as [string, string] }
-  /** The on-chain label of this contract instance (must be unique) */
-  get label () { return this.init.label }
+  /** The on-chain label of this contract instance.
+    * The chain requires these to be unique.
+    * If a prefix is set, it is appended to the label. */
+  get label () { return this.init.prefix
+    ? `${this.init.prefix}/${this.init.label}`
+    : this.init.label }
   /** The message that was used to initialize this instance. */
   get initMsg () { return this.init.msg }
   /** The response from the init transaction. */
@@ -128,11 +132,18 @@ export class ContractInit extends ContractUpload {
     this.init.address = this.init.tx.contractAddress
     this.save() }
 
-  /** Save the contract's instantiation receipt.*/
+  /** Used by Ensemble to save multiple instantiation receipts in a subdir. */
+  setPrefix (prefix: string) {
+    this.init.prefix = prefix
+    return this }
+
+  /** Save the contract's instantiation receipt in the instances directory for this chain.
+    * If prefix is set, creates subdir grouping contracts with the same prefix. */
   save () {
     let dir = this.chain.instances
-    if (this.init.prefix) dir = dir.sub(this.init.prefix, JSONDirectory)
-    dir.save(this.label, this.initReceipt) } }
+    if (this.init.prefix) dir = dir.sub(this.init.prefix, JSONDirectory).make()
+    dir.save(this.init.label, this.initReceipt)
+    return this } }
 
 export class ContractCaller extends ContractInit {
   /** Query the contract. */
@@ -256,7 +267,7 @@ export class Factory {
   parse() {
     if (Array.isArray(this.schema.anyOf)) {
       for (const item of this.schema.anyOf) {
-        if (item.type === "string") {
+        if (item.type === "string") {https://getsol.us/home/
           this.onlyMethod(item); }
         else if (item.type === "object") {
           this.methodWithArgs(item); } } }

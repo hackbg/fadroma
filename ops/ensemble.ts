@@ -67,8 +67,8 @@ export abstract class BaseEnsemble implements Ensemble {
       artifacts[name] = await this.buildOne(name, contract) } }
   private buildOne = (name: string, contract: Contract) =>
     this.task(`build ${this.name}_${name}`, () => contract.build())
-  /* Upload the contracts to the chain, and write upload receipts in the corresponding directory.
-   * If receipts are already present, return their contents instead of uploading. */
+  /** Upload the contracts to the chain, and write upload receipts in the corresponding directory.
+    * If receipts are already present, return their contents instead of uploading. */
   async upload (): Promise<Uploads> {
     await this.chain.init()
     const uploads = {}
@@ -78,12 +78,16 @@ export abstract class BaseEnsemble implements Ensemble {
         console.log(`⚖️  compressed size ${compressedSize} bytes`)
         report(transactionHash) }) }
     return uploads }
-  /** Stub to be implemented by the subclass.
-   *  In the future it might be interesting to see if we can add some basic dependency resolution.
-   *  It just needs to be standardized on the Rust side (in fadroma-callback)? */
+  /** Instantiate the contracts from this ensemble.
+    * As each deployment is different, the actual instantiations
+    * must be implemented in a subclass downstream.
+    * In the future, it might be interesting to see if we can
+    * add some basic dependency resolution. It just needs to be
+    * standardized on the Rust side (in fadroma-callback)? */
   async initialize (): Promise<Instances> {
     await this.chain.init()
     this.agent = await this.chain.getAgent()
+    Object.values(this.contracts).forEach(contract=>contract.setPrefix(this.prefix))
     return {} } }
 
 export class ScrtEnsemble extends BaseEnsemble {

@@ -77,6 +77,7 @@ export class Directory extends FSCRUD {
     if (name.includes('/')) throw new Error(`invalid name: ${name}`)
     return resolve(this.path, basename(name)) }
   list () {
+    if (!this.exists()) return []
     return readdirSync(this.path) }
   has  (name: Path) {
     return existsSync(this.resolve(name)) }
@@ -86,7 +87,9 @@ export class Directory extends FSCRUD {
     this.make()
     writeFileSync(this.resolve(name), data, 'utf8')
     return this }
-  sub (name: string, Dir: typeof Directory) {
+  subdirs () {
+    return readdirSync(this.path).filter(x=>statSync(this.resolve(x)).isDirectory()) }
+  subdir (name: string, Dir: typeof Directory) {
     return new Dir(this.path, name) } }
 
 export class JSONDirectory extends Directory {
