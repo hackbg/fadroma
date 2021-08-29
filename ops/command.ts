@@ -145,6 +145,8 @@ function collectUsage (
 
 export function taskmaster (options: any = {}): Taskmaster {
 
+  let step = 0
+
   const { say    = console.debug
         , header = []
         , table  = markdownTable(header)
@@ -173,10 +175,10 @@ export function taskmaster (options: any = {}): Taskmaster {
   async function parallel (info: string, ...tasks: Array<Function>) { // TODO subtotal?
     return await task(info, () => Promise.all(tasks.map(x=>Promise.resolve(x)))) }
   async function task (info: string, operation = (report: Function) => {}) {
-    say(`\n👉 ${info}`)
+    say(`\n👉 ${bold(`Step ${step++}:`)} ${info}`)
     const t1      = new Date()
         , reports = []
-        , report  = r => { reports.push(r); return r }
+        , report  = (r: any) => { reports.push(r); return r }
         , result  = await Promise.resolve(operation(report))
     await afterEach(t1, info, reports)
     return result } }
