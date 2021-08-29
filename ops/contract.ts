@@ -141,7 +141,7 @@ export class ContractInit extends ContractUpload {
     * If prefix is set, creates subdir grouping contracts with the same prefix. */
   save () {
     let dir = this.chain.instances
-    if (this.init.prefix) dir = dir.sub(this.init.prefix, JSONDirectory).make()
+    if (this.init.prefix) dir = dir.subdir(this.init.prefix, JSONDirectory).make()
     dir.save(this.init.label, this.initReceipt)
     return this } }
 
@@ -255,13 +255,16 @@ export class Factory {
   /** Create the object with generated methods */
   create(): Record<any, any> {
     this.parse();
-    return this.methods.reduce(collectMethod.bind(this), {})
-    function collectMethod (handlers: Record<any, any>, action: any) {
-      const handler = (
-        args: Record<any, any>, agent: Agent, memo: string, transferAmount: Array<any>, fee: any
-      ) => this.run(action.method, args, agent, memo, transferAmount, fee);
-      handlers[camelCaseString(action.method)] = handlers[action.method] = handler.bind(this)
-      return handlers; } }
+    const handlers: Record<any, any> = {};
+    for (const {method} of this.methods) {
+      handlers[method] = handlers[camelCaseString(method)] = (
+        args:     Record<any, any>,
+        agent:    Agent,
+        memo:     string,
+        transfer: Array<any>,
+        fee:      any
+      ) => this.run(method, args, agent, memo, transfer, fee); }
+    return handlers; }
 
   /** Parse the schema and generate method definitions */
   parse() {
