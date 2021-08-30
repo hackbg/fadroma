@@ -92,7 +92,9 @@ export class ContractInit extends ContractUpload {
       contractAddress: string
       data:            string
       logs:            Array<any>
-      transactionHash: string } } = {}
+      transactionHash: string
+    }
+  } = {}
 
   constructor (agent: Agent) {
     super(agent)
@@ -123,23 +125,11 @@ export class ContractInit extends ContractUpload {
            , codeHash: this.codeHash
            , initTx:   this.initTx } }
 
-  protected backoffOptions = {
-    retry (error: any, attempt: number) {
-      if (error.message.includes('502')) {
-        console.warn(`Error 502, retry #${attempt}...`)
-        return true }
-      else {
-        return false } } }
-
-  protected backoff (fn: ()=>Promise<any>) {
-    return backOff(fn, this.backoffOptions) }
-
   async instantiate (agent?: Agent) {
     this.init.agent = agent
     if (!this.codeId) {
       throw new Error('Contract must be uploaded before instantiating') }
-    this.init.tx = await this.backoff(() =>
-      this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
+    this.init.tx = await this.instantiator.instantiate(this.codeId, this.label, this.initMsg)
     this.init.address = this.init.tx.contractAddress
     this.save() }
 
@@ -157,6 +147,17 @@ export class ContractInit extends ContractUpload {
     return this } }
 
 export class ContractCaller extends ContractInit {
+
+  private backoffOptions = {
+    retry (error: any, attempt: number) {
+      if (error.message.includes('502')) {
+        console.warn(`Error 502, retry #${attempt}...`)
+        return true }
+      else {
+        return false } } }
+
+  private backoff (fn: ()=>Promise<any>) {
+    return backOff(fn, this.backoffOptions) }
 
   /** Query the contract. */
   query (method = "", args = null, agent = this.instantiator) {
