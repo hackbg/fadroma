@@ -21,6 +21,7 @@
     "colors": "^1.4.0",
     "dockerode": "^3.3.0",
     "exponential-backoff": "^3.1.0",
+    "json-schema-to-typescript": "^10.1.4",
     "mkdirp": "^1.0.4",
     "open": "^8.0.2",
     "prettyjson": "^1.2.1",

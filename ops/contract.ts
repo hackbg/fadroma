@@ -1,8 +1,9 @@
-import { loadJSON, JSONDirectory } from './system'
+import { loadJSON, JSONDirectory, writeFileSync, basename, dirname } from './system'
 import { Chain, Contract, Agent, isAgent } from './types'
 import { ScrtBuilder, ScrtUploader } from './builder'
 import Ajv from 'ajv'
 import { backOff } from 'exponential-backoff'
+import { compileFromFile } from 'json-schema-to-typescript'
 
 export class ContractCode {
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
@@ -388,3 +389,10 @@ export function getAjv (): Ajv {
     ajv.addFormat(`u${name}`, {
       type:     "number",
       validate: (x: any) => (!isNaN(x) && x >= 0 && x <= max)}); }; };
+
+export function schemaToTypes (...schemas: Array<string>) {
+  return Promise.all(schemas.map(schema=>
+    compileFromFile(schema).then(ts=>{
+      const output = `${dirname(schema)}/${basename(schema, '.json')}.d.ts`
+      writeFileSync(output, ts)
+      console.info(`Generated ${output}`)}))) }
