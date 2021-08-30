@@ -88,6 +88,7 @@ export class Directory extends FSCRUD {
     writeFileSync(this.resolve(name), data, 'utf8')
     return this }
   subdirs () {
+    if (!this.exists()) return []
     return readdirSync(this.path).filter(x=>statSync(this.resolve(x)).isDirectory()) }
   subdir (name: string, Dir: typeof Directory = Directory) {
     return new Dir(this.path, name) } }
