@@ -2,6 +2,7 @@ import { loadJSON, JSONDirectory } from './system'
 import { Chain, Contract, Agent, isAgent } from './types'
 import { ScrtBuilder, ScrtUploader } from './builder'
 import Ajv from 'ajv'
+import { backOff } from 'exponential-backoff'
 
 export class ContractCode {
   buildImage = 'enigmampc/secret-contract-optimizer:latest'
@@ -91,9 +92,7 @@ export class ContractInit extends ContractUpload {
       contractAddress: string
       data:            string
       logs:            Array<any>
-      transactionHash: string
-    }
-  } = {}
+      transactionHash: string } } = {}
 
   constructor (agent: Agent) {
     super(agent)
@@ -124,11 +123,23 @@ export class ContractInit extends ContractUpload {
            , codeHash: this.codeHash
            , initTx:   this.initTx } }
 
+  protected backoffOptions = {
+    retry (error: any, attempt: number) {
+      if (error.message.includes('502')) {
+        console.warn(`Error 502, retry #${attempt}...`)
+        return true }
+      else {
+        return false } } }
+
+  protected backoff (fn: ()=>Promise<any>) {
+    return backOff(fn, this.backoffOptions) }
+
   async instantiate (agent?: Agent) {
     this.init.agent = agent
     if (!this.codeId) {
       throw new Error('Contract must be uploaded before instantiating') }
-    this.init.tx = await this.instantiator.instantiate(this.codeId, this.label, this.initMsg)
+    this.init.tx = await this.backoff(() =>
+      this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
     this.init.address = this.init.tx.contractAddress
     this.save() }
 
@@ -146,16 +157,17 @@ export class ContractInit extends ContractUpload {
     return this } }
 
 export class ContractCaller extends ContractInit {
+
   /** Query the contract. */
   query (method = "", args = null, agent = this.instantiator) {
-    return agent.query(this, method, args) }
+    return this.backoff(() => agent.query(this, method, args)) }
 
   /** Execute a contract transaction. */
   execute (
     method = "", args = null, memo: string,
-    transferAmount: Array<any>, fee: any, agent = this.instantiator
+    amount: Array<any>, fee: any, agent = this.instantiator
   ) {
-    return agent.execute(this, method, args, memo, transferAmount, fee) }
+    return this.backoff(() => agent.execute(this, method, args, memo, amount, fee)) }
 
   /** Create a temporary copy of a contract with a different agent */
   /*copy = (agent: Agent) => { // FIXME runtime typecheck fails silently
