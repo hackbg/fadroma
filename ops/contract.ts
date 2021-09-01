@@ -284,7 +284,7 @@ export class Factory {
   parse() {
     if (Array.isArray(this.schema.anyOf)) {
       for (const item of this.schema.anyOf) {
-        if (item.type === "string") {https://getsol.us/home/
+        if (item.type === "string") {
           this.onlyMethod(item); }
         else if (item.type === "object") {
           this.methodWithArgs(item); } } }
