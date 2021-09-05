@@ -1,4 +1,4 @@
-import { resolve, dirname, fileURLToPath, cwd } from './system'
+import { resolve, dirname, fileURLToPath, cwd } from './ToolsSystem'
 
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 

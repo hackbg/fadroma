@@ -1,0 +1,18 @@
+{
+  "name": "@fadroma/tools",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "dockerode": "^3.3.0",
+    "exponential-backoff": "^3.1.0",
+    "mkdirp": "^1.0.4",
+    "open": "^8.0.2",
+    "prettyjson": "^1.2.1",
+    "rimraf": "^3.0.2",
+    "signal-exit": "^3.0.3",
+    "table": "^6.6.0",
+    "wait-port": "^0.2.9"
+  }
+}

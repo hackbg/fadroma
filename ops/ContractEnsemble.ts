@@ -1,15 +1,49 @@
-import type {
-  Commands, Taskmaster,
-  Chain, Agent, Contract, Ensemble, EnsembleOptions,
-  Artifacts, Uploads, Instances } from './types'
+import type { Commands, Taskmaster } from '@fadroma/tools'
+import {relative, timestamp, taskmaster} from '@fadroma/tools'
 
-import {relative, timestamp} from './system'
-import {taskmaster} from './command'
-import {ScrtUploader} from './builder'
+import {Chain} from './ChainAPI'
+import {Agent} from './Agent'
+import {Contract} from './Contract'
+import {ScrtUploader} from './ContractUpload'
 
 import {table} from 'table'
 import colors from 'colors'
 const {bold} = colors
+
+export interface Ensemble {
+  /* Build, upload, and initialize. */
+  deploy (): Promise<Instances>
+
+  /* Compile the contracts from source using a Builder. */
+  build (parallel: boolean): Promise<Artifacts>
+
+  /* Upload the contracts to a Chain using a BuildUploader. */
+  upload (): Promise<Uploads>
+
+  /* Init instances of uploaded contracts using an Agent. */
+  initialize (): Promise<Instances>
+
+  /* Definitions of all user-available actions for this ensemble. */
+  commands (): Commands
+
+  /* Definitions of commands that don't require a connection. */
+  localCommands (): Commands
+
+  /* Definitions of commands that require a connection. */
+  remoteCommands (): Commands
+}
+
+export type EnsembleOptions = {
+  task?:  Taskmaster
+  chain?: Chain
+  agent?: Agent
+  additionalBinds?: Array<any>
+}
+
+// TODO populate with correct contract parent classes
+export type Artifacts = Record<string, any>
+export type Uploads   = Record<string, any>
+export type Instances = Record<string, any>
 
 const Errors = {
   NOTHING: "Please specify a chain, agent, or builder",

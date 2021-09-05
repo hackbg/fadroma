@@ -1,9 +1,29 @@
 import assert from 'assert'
+import { taskmaster, resolve, readFileSync } from '@fadroma/tools'
 
-import { Chain, Agent, Prefund } from './types'
-import { taskmaster } from './command'
-import { resolve, readdirSync, readFileSync } from './system'
-import { Scrt } from './chain'
+import type { Agent } from '.'
+
+import { Chain } from './ChainAPI'
+
+export type Prefund = {
+  /** Taskmaster. TODO replace with generic observability mechanism (RxJS?) */
+  task?:       Function
+  /** How many identities to create */
+  count?:      number
+  /** How many native tokens to send to each identity */
+  budget?:     bigint
+  /** On which chain is this meant to happen? */
+  chain?:      Chain
+  /** Agent that distributes the tokens -
+   *  needs to have sufficient balance 
+   *  e.g. genesis account on localnet) */
+  agent?:      Agent
+  /** Map of specific recipients to receive funds. */
+  recipients?: Record<any, {agent: Agent}>
+  /** Map of specific identities to receive funds.
+   *  FIXME redundant with the above*/
+  identities?: any
+}
 
 /** In testing scenarios requiring multiple agents,
  * this function distributes funds among the extra agents
@@ -18,7 +38,7 @@ export async function prefund (options: Prefund = {}) {
   if (typeof chain === 'string') {
     if (!['localnet','testnet','mainnet'].includes(chain)) {
       throw new Error(`invalid chain: ${chain}`)}
-    chain = await Scrt[chain]({stateRoot: process.cwd()}) }
+    chain = await Chain[chain]({stateRoot: process.cwd()}) }
 
   const { task      = taskmaster()
         , count     = 16 // give or take

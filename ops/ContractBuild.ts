@@ -1,28 +1,76 @@
-import { resolve, dirname, fileURLToPath, relative, basename,
-         mkdir, existsSync, readFile, writeFile } from './system'
-import { Docker, pulled } from './network'
-import { Console, bold } from './command'
+import {
+  resolve, dirname, fileURLToPath, relative, existsSync, Docker, pulled, Console, bold, Path
+} from '@fadroma/tools'
 
-import type { Chain, Agent, BuildUploader, BuilderOptions, BuildOptions } from './types'
+export interface BuildUploader {
+  build          (options: BuildOptions): Promise<Path>
+  buildOrCached  (options: BuildOptions): Promise<Path>
+  upload         (artifact: any): Promise<any>
+  uploadOrCached (artifact: any): Promise<any>
+}
+ 
+export type BuilderOptions = {
+  docker?: Docker
+}
 
-/** I wonder, what does the documentation generator do
- *  when I document a dual defintition? */
+export type BuildOptions = {
+  /* Set this to build a remote commit instead of the working tree. */
+  repo?:           { origin: string, ref: string },
+  /* Path to root Cargo workspace of project. */
+  workspace:        Path
+  /* Name of contract crate to build. */
+  crate:            string
+  /* Path where the build artifacts will be produced. */
+  outputDir?:       string
+  /* Allows additional directories to be bound to the build container. */
+  additionalBinds?: Array<any>
+  /* Allow user to specify that the contracts shouldn't be built in parallel. */
+  sequential?:      boolean
+}
+
+export class ContractCode {
+  buildImage = 'enigmampc/secret-contract-optimizer:latest'
+
+  protected code: {
+    workspace?: string
+    crate?:     string
+    artifact?:  string
+    codeHash?:  string
+  } = {}
+
+  /** Path to source workspace */
+  get workspace () { return this.code.workspace }
+  /** Name of source crate within workspace */
+  get crate () { return this.code.crate }
+  /** Name of compiled binary */
+  get artifact () { return this.code.artifact }
+  /** SHA256 hash of the uncompressed artifact */
+  get codeHash () { return this.code.codeHash }
+
+  /** Compile a contract from source */
+  async build (workspace?: string, crate?: string) {
+    if (workspace) this.code.workspace = workspace
+    if (crate) this.code.crate = crate
+    return this.code.artifact = await new ScrtBuilder().buildOrCached({
+      workspace: this.workspace,
+      crate:     this.crate }) } }
+
 const {debug} = Console(import.meta.url)
 
-/** Why did they kill __dirname of all things.
- *  Part of the 'extinguish' phase? */
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-/** Builds contracts and optionally uploads them as an agent on the Secret Chain.
+/** Builds contracts and optionally uploads them as an agent on the chain.
  *  Stores upload results as receipts. Not really worthy of more than a function
  *  but that's how it ended up, conjoined with the uploader below. */
-export class ScrtBuilder {
+export abstract class Builder {
 
   docker = new Docker({
     socketPath: '/var/run/docker.sock' })
 
   constructor (options: BuilderOptions = {}) {
     if (options.docker) this.docker = options.docker }
+
+  abstract readonly buildImage: string
 
   /** Build from source in a Docker container. */
   async build ({
@@ -34,7 +82,7 @@ export class ScrtBuilder {
   }: BuildOptions) {
 
     const ref          = repo?.ref || 'HEAD'
-        , buildImage   = await pulled('enigmampc/secret-contract-optimizer:latest', this.docker)
+        , buildImage   = await pulled(this.buildImage, this.docker)
         , buildCommand = this.getBuildCommand({repo, crate})
         , entrypoint   = resolve(__dirname, 'scrt_build.sh')
         , buildArgs =
@@ -46,7 +94,7 @@ export class ScrtBuilder {
           , Entrypoint: ['/bin/sh', '-c']
           , HostConfig: { Binds: [ `${entrypoint}:/entrypoint.sh:ro`
                                  , `${outputDir}:/output:rw`
-                                 , `sienna_cache_${ref}:/code/target:rw`
+                                 , `project_cache_${ref}:/code/target:rw`
                                  , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
 
     if (!repo) { // when building working tree
@@ -96,49 +144,3 @@ export class ScrtBuilder {
     commands.push(`bash /entrypoint.sh ${crate} ${ref||''}`)
     //commands.push(`pwd && ls -al && mv ${crate}.wasm /output/${crate}@${ref}.wasm`)
     return commands.join(' && ') } }
-
-// I'm starting to think that the builder and uploader phases should be accessed
-// primarily via the Contract object and not as currently; and be separate features
-// (dynamically loaded unless using fadroma.js in a browser) */
-
-const {info} = Console(import.meta.url)
-
-export class ScrtUploader extends ScrtBuilder implements BuildUploader {
-
-  constructor (
-    readonly chain: Chain,
-    readonly agent: Agent
-  ) {
-    super()
-  }
-
-  /* Contracts will be deployed from this address. */
-  get address () {
-    return this.agent ? this.agent.address : undefined }
-
-  /** Try to upload a binary to the chain but return a pre-existing receipt if one exists.
-   *  TODO also code checksums should be validated */
-  async uploadOrCached (artifact: any) {
-    const receiptPath = this.getReceiptPath(artifact)
-    if (existsSync(receiptPath)) {
-      const receiptData = await readFile(receiptPath, 'utf8')
-      info(`${bold(relative(process.cwd(), receiptPath))} exists, delete to reupload`)
-      return JSON.parse(receiptData) }
-    else {
-      return this.upload(artifact) } }
-
-  getReceiptPath = (path: string) =>
-    this.chain.uploads.resolve(`${basename(path)}.json`)
-
-  /** Upload a binary to the chain. */
-  async upload (artifact: any) {
-    const uploadResult = await this.agent.upload(artifact)
-        , receiptData  = JSON.stringify(uploadResult, null, 2)
-        , receiptPath  = this.getReceiptPath(artifact)
-        , elements     = receiptPath.slice(1, receiptPath.length).split('/');
-    let path = `/`
-    for (const item of elements) {
-      if (!existsSync(path)) mkdir(path)
-      path += `/${item}` }
-    await writeFile(receiptPath, receiptData, 'utf8')
-    return uploadResult } }

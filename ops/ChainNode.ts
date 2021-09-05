@@ -1,15 +1,62 @@
-import { ChainNode, ChainNodeOptions } from './types'
-import { __dirname, defaultStateBase } from './constants'
+import type { Identity } from './Agent'
 
-import { resolve, relative, cwd, TextFile, JSONFile, Directory, JSONDirectory } from './system'
-import { Docker, waitPort, freePort, pulled, waitUntilLogsSay } from './network'
-import { Console, bold } from './command'
+import {
+  __dirname,
+  relative, cwd, TextFile, JSONFile, Directory, JSONDirectory,
+  Docker, waitPort, freePort, pulled, waitUntilLogsSay,
+  Console, bold } from '@fadroma/tools'
 
 const console = Console(import.meta.url)
 
+export interface ChainNode {
+  chainId: string
+  apiURL:  string
+  port:    number
+  /** Resolved when the node is ready */
+  readonly ready: Promise<void>
+  /** Path to the node state directory */
+  readonly stateRoot: Directory
+  /** Path to the node state file */
+  readonly nodeState: JSONFile
+  /** Path to the directory containing the keys to the genesis accounts. */
+  readonly identities: Directory
+  /** Retrieve the node state */
+  load      (): ChainNodeState
+  /** Start the node */
+  spawn     (): Promise<void>
+  /** Save the info needed to respawn the node */
+  save      (): this
+  /** Stop the node */
+  kill      (): Promise<void>
+  /** Start the node if stopped */
+  respawn   (): Promise<void>
+  /** Erase the state of the node */
+  erase     (): Promise<void>
+  /** Stop the node and erase its state from the filesystem. */
+  terminate () : Promise<void>
+  /** Retrieve one of the genesis accounts stored when creating the node. */
+  genesisAccount (name: string): Identity
+}
+
+export type ChainNodeState = Record<any, any>
+
+export type ChainNodeOptions = {
+  /** Handle to Dockerode or compatible
+   *  TODO mock! */
+  docker?:    Docker
+  /** Docker image of the chain's runtime. */
+  image?:     string
+  /** Internal name that will be given to chain. */
+  chainId?:   string
+  /** Path to directory where state will be stored. */
+  stateRoot?: string,
+  /** Names of genesis accounts to be created with the node */
+  identities?: Array<string>
+}
+
 export abstract class BaseChainNode implements ChainNode {
   chainId: string
-  apiURL:  URL
+  apiURL:  string
   port:    number
 
   #ready: Promise<void>
@@ -27,7 +74,7 @@ export abstract class BaseChainNode implements ChainNode {
   readonly daemonDir:  Directory
 
   /** This directory is mounted out of the localnet container
-    * in order to persist the state of the container's built-in secretcli. */
+    * in order to persist the state of the container's built-in cli. */
   readonly clientDir:  Directory
 
   /** This directory is mounted out of the localnet container
@@ -72,9 +119,19 @@ export abstract class BaseChainNode implements ChainNode {
   abstract erase   (): Promise<void>
   abstract save    (): this }
 
-/** Run a pausable Secret Network localnet in a Docker container and manage its lifecycle.
+/** Run a pausable localnet in a Docker container and manage its lifecycle.
  *  State is stored as a pile of files in a directory. */
-export class ScrtNode extends BaseChainNode {
+export abstract class DockerizedChainNode extends BaseChainNode {
+
+  /** This should point to the standard production docker image for the network. */
+  abstract readonly image: string
+
+  /** This file is mounted into the localnet container
+    * in place of its default init script in order to
+    * add custom genesis accounts with initial balances. */
+  abstract readonly initScript: TextFile
+
+  abstract readonly chainId: string
 
   /** Resolved when ready.
     * TODO check */
@@ -83,9 +140,6 @@ export class ScrtNode extends BaseChainNode {
 
   /** Used to command the container engine. */
   docker: Docker = new Docker({ sockerPath: '/var/run/docker.sock' })
-
-  /** This should point to the standard production docker image for Secret Network. */
-  image = "enigmampc/secret-network-sw-dev"
 
   /** The created container */
   container: { id: string, Warnings: any }
@@ -108,13 +162,6 @@ export class ScrtNode extends BaseChainNode {
     else {
       console.info(`${prettyId} was dead on arrival`) } }
 
-  /** This file is mounted into the localnet container
-    * in place of its default init script in order to
-    * add custom genesis accounts with initial balances. */
-  readonly initScript = new TextFile(__dirname, 'scrt_localnet_init.sh')
-
-  chainId = 'enigma-pub-testnet-3'
-
   identitiesToCreate: Array<string> = ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
 
   protocol:  string = 'http'
@@ -124,21 +171,12 @@ export class ScrtNode extends BaseChainNode {
   constructor (options: ChainNodeOptions = {}) {
     super()
     if (options.docker)     this.docker  = options.docker
-    if (options.image)      this.image   = options.image
-    if (options.chainId)    this.chainId = options.chainId
-    if (options.identities) this.identitiesToCreate = options.identities
-    const stateRoot = options.stateRoot || resolve(defaultStateBase, this.chainId)
-    Object.assign(this, {stateRoot:  new Directory(stateRoot),
-                         identities: new JSONDirectory(stateRoot, 'identities'),
-                         nodeState:  new JSONFile(stateRoot,  'node.json'),
-                         daemonDir:  new Directory(stateRoot, '_secretd'),
-                         clientDir:  new Directory(stateRoot, '_secretcli'),
-                         sgxDir:     new Directory(stateRoot, '_sgx-secrets') }) }
+    if (options.identities) this.identitiesToCreate = options.identities }
 
   /** Load stored data and assign to self. */
   load () {
     const {containerId, chainId, port} = super.load()
-    this.container = { id: containerId }
+    this.container = { id: containerId, Warnings: null }
     this.chainId   = chainId
     this.port      = port
     return {containerId, chainId, port} }
@@ -187,7 +225,7 @@ export class ScrtNode extends BaseChainNode {
     // get a free port
     this.port = (await freePort()) as number
     // create the state dirs and files
-    const items = [this.stateRoot, this.nodeState, this.daemonDir, this.clientDir, this.sgxDir]
+    const items = [this.stateRoot, this.nodeState, this.daemonDir, this.clientDir]
     for (const item of items) item.make()
     // create the container
     console.debug('Spawning...', await this.spawnContainerOptions)
@@ -225,10 +263,7 @@ export class ScrtNode extends BaseChainNode {
     * in a Dockerode-friendly format. */
   get binds () {
     return { [this.initScript.path]: `/init.sh:ro`,
-             [this.identities.path]: `/shared-keys:rw`,
-             [this.daemonDir.path]:  `/root/.secretd:rw`,
-             [this.clientDir.path]:  `/root/.secretcli:rw`,
-             [this.sgxDir.path]:     `/root/.sgx-secrets:rw` } }
+             [this.identities.path]: `/shared-keys:rw` } }
 
   /** Environment variables that will be set in the container.
     * Use them to pass parameters to the init script. */

@@ -1,9 +1,8 @@
-import { Console, bold } from './command'
-import { readFile } from './system'
-import { Agent, Identity } from './types'
-import { Contract } from './contract'
-import { Scrt } from './chain'
-import { ScrtGas, defaultFees } from './gas'
+import { Console, bold, readFile } from '@fadroma/tools'
+
+import { Agent, Identity, Contract } from '@fadroma/ops'
+import { Scrt } from './ScrtChain'
+import { ScrtGas, defaultFees } from './ScrtAgentGas'
 
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,

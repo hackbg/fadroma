@@ -1,5 +1,4 @@
-import { Taskmaster } from './types'
-import { decode } from './system'
+import { decode } from './ToolsSystem'
 
 import * as repl from 'repl'
 import * as vm from 'vm'
@@ -20,6 +19,11 @@ import colors from 'colors'
 
 const { bold } = colors
 export { colors, bold }
+
+export type CommandName = string
+export type CommandInfo = string
+export type Command  = [CommandName|Array<CommandName>, CommandInfo, Function, Commands?]
+export type Commands = Array<Command|null>
 
 // Console /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -142,6 +146,16 @@ function collectUsage (
   return tableData }
 
 // Taskmaster //////////////////////////////////////////////////////////////////////////////////////
+
+/* Taskmaster is a quick and dirty stopwatch/logging helper that can
+ * generate a rough profile of one or more contract operations
+ * in terms of time and gas. */
+export type Taskmaster = Function & {
+  /* Call when complete. */
+  done:     Function
+  /* Run several operations in parallel. */
+  parallel: Function
+}
 
 export function taskmaster (options: any = {}): Taskmaster {
 

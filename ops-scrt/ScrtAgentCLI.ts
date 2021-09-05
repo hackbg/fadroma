@@ -1,10 +1,11 @@
-import { Agent, Identity } from './types'
-import { Scrt } from './chain'
-import { Console, bold } from './command'
-import { execFile, spawn } from './system'
-import { ScrtJSAgent } from './agent-secretjs'
 import { Bip39 } from '@cosmjs/crypto'
-import { EnigmaUtils } from 'secretjs';
+import { EnigmaUtils } from 'secretjs'
+
+import { Agent, Identity } from '@fadroma/ops'
+import { Console, bold, execFile, spawn } from '@fadroma/tools'
+
+import { Scrt } from './ScrtChain'
+import { ScrtJSAgent } from './ScrtAgentJS'
 
 const {warn, debug} = Console(import.meta.url)
 

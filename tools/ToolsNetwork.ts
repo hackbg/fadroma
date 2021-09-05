@@ -1,4 +1,4 @@
-import { bold } from './command'
+import { bold } from './ToolsCLI'
 
 import { createServer } from 'net'
 

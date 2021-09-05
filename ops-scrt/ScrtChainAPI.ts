@@ -1,42 +1,12 @@
-import type {
-  ChainNode, ChainState, ChainConnectOptions,
-  Agent, Identity,
-  BuildUploader,
-  Ensemble, EnsembleOptions } from './types'
-import { Chain } from './types'
-import { defaultStateBase } from './constants'
-import { open, resolve, Directory, JSONDirectory } from './system'
-import { ScrtNode } from './localnet'
-import { ScrtUploader } from './builder'
-import { ScrtJSAgent } from './agent-secretjs'
-import { ScrtCLIAgent } from './agent-secretcli'
-import { Console, bold, table, noBorders } from './command'
-const console = Console(import.meta.url)
-
-export const on = {
-  localnet (context: any = {}) {
-    console.info(`Running on ${bold('localnet')}:`)
-    context.chain = Scrt.localnet() },
-  testnet (context: any = {}) {
-    console.info(`Running on ${bold('testnet')}:`)
-    context.chain = Scrt.testnet() },
-  mainnet (context: any = {}) {
-    console.info(`Running on ${bold('mainnet')}:`)
-    context.chain = Scrt.mainnet() } }
-
-export function resetLocalnet () {
-  return new ScrtNode().terminate() }
-
-export function openFaucet () {
-  const url = `https://faucet.secrettestnet.io/`
-  console.debug(`Opening ${url}...`)
-  open(url) }
+import type { ChainNode } from '@fadroma/ops'
+import { Chain } from '@fadroma/ops'
+import { Directory, JSONDirectory } from '@fadroma/tools'
 
 export class Scrt extends Chain {
 
   chainId?: string
   apiURL?:  URL
-  node?:   ChainNode
+  node?:    ChainNode
 
   defaultAgent: { name?: string, address?: string, mnemonic?: string }
 
@@ -116,9 +86,14 @@ export class Scrt extends Chain {
   /** Create an instance that talks to to holodeck-2
    * (Secret Network testnet) via SecretJS */
   static testnet ({
+    //chainId = 'supernova-1',
+    //apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+    //apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+    //apiURL = new URL('https://api.holodeck.stakeordie.com'),
+    //apiURL = new URL('http://bootstrap.supernova.enigma.co'),
     chainId = 'holodeck-2',
-    apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-    apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+    apiURL  = new URL('http://96.44.145.210/'),
+    //apiURL  = new URL('https://bridgeapi.azure-api.net/testnet/'),
     defaultAgent = {
       name:     process.env.SECRET_NETWORK_TESTNET_NAME,
       address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
