@@ -11,7 +11,7 @@ import { compileFromFile } from 'json-schema-to-typescript'
 
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
-export class ContractAPI extends ContractCaller implements Contract {
+export abstract class ContractAPI extends ContractCaller implements Contract {
   protected schema: {
     initMsg?:        any
     queryMsg?:       any
@@ -36,8 +36,8 @@ export class ContractAPI extends ContractCaller implements Contract {
   constructor (schema: Record<string, any>, agent?: Agent) {
     super(agent)
     this.schema = schema
-    this.q  = new Factory(this, this.schema?.queryMsg).create()
-    this.tx = new Factory(this, this.schema?.handleMsg).create()
+    this.q  = new SchemaFactory(this, this.schema?.queryMsg).create()
+    this.tx = new SchemaFactory(this, this.schema?.handleMsg).create()
     for (const msg of ['initMsg', 'queryMsg', 'queryResponse', 'handleMsg', 'handleResponse']) {
       if (this.schema[msg]) this.validate[msg] = this.ajv.compile(this.schema[msg]) } } }
 
@@ -52,8 +52,8 @@ export class ContractAPI extends ContractCaller implements Contract {
         //const err = JSON.stringify(validate.errors, null, 2)
         //throw new Error(`Schema validation for initMsg returned an error: \n${err}`); } }
     //super(agent)
-    //this.q  = new Factory(schema.queryMsg,  this).create()
-    //this.tx = new Factory(schema.handleMsg, this).create() } }
+    //this.q  = new SchemaFactory(schema.queryMsg,  this).create()
+    //this.tx = new SchemaFactory(schema.handleMsg, this).create() } }
 
 export const loadSchemas = (
   base:    string,
@@ -69,12 +69,12 @@ const camelCaseString = (str: string): string => {
 
 /** Wrap the class in proxy in order to work dynamically. */
 export function Wrapper (schema: any, instance: any) {
-  return new Factory(schema, instance).create(); };
+  return new SchemaFactory(schema, instance).create(); };
 
 const clone = (x: any) => JSON.parse(JSON.stringify(x))
 
 /** Wrapper factory that will create all the methods */
-export class Factory {
+export class SchemaFactory {
 
   caller:  string
   methods: Array<any> = []
@@ -85,7 +85,7 @@ export class Factory {
     public schema:   Record<any, any>
   ) {
     if (typeof schema !== "object" || schema === null) {
-      throw new Error("Schema must be an object"); }
+      throw new Error(`Schema must be an object, got: ${schema}`); }
     this.schema = clone({ ...schema, type: "object", $schema: undefined, });
     const title = this.schema.title.toLowerCase()
     if (title.startsWith("query")) {
