@@ -19,10 +19,13 @@ export class ContractCode {
 
   /** Path to source workspace */
   get workspace () { return this.code.workspace }
+
   /** Name of source crate within workspace */
   get crate () { return this.code.crate }
+
   /** Name of compiled binary */
   get artifact () { return this.code.artifact }
+
   /** SHA256 hash of the uncompressed artifact */
   get codeHash () { return this.code.codeHash }
 
@@ -38,11 +41,8 @@ export class ContractCode {
         , outputDir = resolve(this.workspace, 'artifacts')
         , output    = resolve(outputDir, `${crate}@${ref}.wasm`)
 
-    if (existsSync(output)) {
-      console.info(`${bold(relative(process.cwd(), output))} exists, delete to rebuild`) }
-    else {
+    if (!existsSync(output)) {
       const image   = await pulled(this.buildImage, this.docker)
-          , command = this.getBuildCommand({repo, crate})
           , entry   = resolve(__dirname, 'ScrtBuild.sh')
           , buildArgs =
             { Env:
@@ -60,31 +60,17 @@ export class ContractCode {
                          , `${outputDir}:/output:rw`
                          , `project_cache_${ref}:/code/target:rw`
                          , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
+          , command = `bash /entrypoint.sh ${crate} ${ref}`
       debug(`building working tree at ${workspace} into ${outputDir}...`)
       buildArgs.HostConfig.Binds.push(`${workspace}:/contract:rw`)
-      additionalBinds.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
+      additionalBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
       const [{Error:err, StatusCode:code}, container] =
         await this.docker.run(image, command, process.stdout, buildArgs )
       await container.remove()
 
       if (err) throw err
       if (code !== 0) throw new Error(`build exited with status ${code}`) }
+    else {
+      console.info(`${bold(relative(process.cwd(), output))} exists, delete to rebuild`) }
 
-    return this.code.artifact = output }
-
-  /** Generate the command line for the container. */
-  getBuildCommand ({ repo: { origin='', ref='HEAD' }={}, crate }) {
-    const commands = []
-    if (ref !== 'HEAD') {
-      if (!(origin && ref)) {
-        throw new Error('to build a ref from an origin, specify both') }
-      debug('building ref from origin...')
-      commands.push('mkdir -p /contract')
-      commands.push('cd /contract')
-      commands.push(`git clone --recursive -n ${origin} .`) // clone the repo with submodules
-      commands.push(`git checkout ${ref}`) // check out the interesting ref
-      commands.push(`git submodule update`) // update submodules for the new checkout
-      /*commands.push(`chown -R ${buildUser} /contract`)*/ }
-    commands.push(`bash /entrypoint.sh ${crate} ${ref||''}`)
-    //commands.push(`pwd && ls -al && mv ${crate}.wasm /output/${crate}@${ref}.wasm`)
-    return commands.join(' && ') } }
+    return this.code.artifact = output } }

@@ -4,6 +4,7 @@
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
+    "@cosmjs/crypto": "^0.24.1",
     "@fadroma/ops": "*"
   }
 }

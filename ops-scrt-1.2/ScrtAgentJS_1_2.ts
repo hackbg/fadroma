@@ -1,6 +1,6 @@
 import { SigningCosmWasmClient } from 'secretjs'
-import { ScrtJSAgent } from '@fadroma/scrt'
+import { ScrtAgentJS } from '@fadroma/scrt'
 
-export class ScrtJSAgent_1_2 extends ScrtJSAgent {
+export class ScrtAgentJS_1_2 extends ScrtAgentJS {
   APIConstructor = SigningCosmWasmClient
 }

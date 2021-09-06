@@ -1,11 +1,18 @@
-import { DockerizedChainNode, ChainNodeOptions } from '@fadroma/ops'
-import { TextFile, Directory, defaultStateBase, resolve, JSONDirectory, JSONFile } from '@fadroma/tools'
+import { ChainNode, DockerizedChainNode, ChainNodeOptions } from '@fadroma/ops'
+import { Path, Directory, TextFile, JSONFile, JSONDirectory, defaultStateBase, resolve,
+         dirname, fileURLToPath } from '@fadroma/tools'
 
-export class DockerizedScrtNode extends DockerizedChainNode {
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
-  readonly chainId: string = 'enigma-pub-testnet-3'
+type ScrtNodeConstructor = new (options?: ChainNodeOptions) => ChainNode
 
-  readonly image: string = "enigmampc/secret-network-sw-dev"
+export function resetLocalnet (Node: ScrtNodeConstructor) {
+  return new Node().terminate() }
+
+export abstract class DockerizedScrtNode extends DockerizedChainNode {
+
+  abstract readonly chainId: string
+  abstract readonly image:   string
 
   readonly initScript = new TextFile(__dirname, 'scrt_localnet_init.sh')
 
@@ -13,17 +20,15 @@ export class DockerizedScrtNode extends DockerizedChainNode {
     * in order to persist the state of the SGX component. */
   readonly sgxDir: Directory
 
-  constructor (options: ChainNodeOptions = {}) {
-    super()
-    if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
-    const stateRoot = options.stateRoot || resolve(defaultStateBase, this.chainId)
-    Object.assign(this, {stateRoot:  new Directory(stateRoot),
-                         identities: new JSONDirectory(stateRoot, 'identities'),
-                         nodeState:  new JSONFile(stateRoot,  'node.json'),
-                         daemonDir:  new Directory(stateRoot, '_secretd'),
-                         clientDir:  new Directory(stateRoot, '_secretcli'),
-                         sgxDir:     new Directory(this.stateRoot.path, '_sgx-secrets')}) }
+  protected setDirectories (stateRoot?: Path) {
+    stateRoot = stateRoot || resolve(defaultStateBase, this.chainId)
+    Object.assign(this, { stateRoot: new Directory(stateRoot) })
+    Object.assign(this, {
+      identities: this.stateRoot.subdir('identities', JSONDirectory),
+      nodeState:  new JSONFile(stateRoot,  'node.json'),
+      daemonDir:  this.stateRoot.subdir('_secretd'),
+      clientDir:  this.stateRoot.subdir('_secretcli'),
+      sgxDir:     this.stateRoot.subdir('_sgx-secrest') }) }
 
   async spawn () {
     this.sgxDir.make()
@@ -35,3 +40,21 @@ export class DockerizedScrtNode extends DockerizedChainNode {
       [this.sgxDir.path]:    '/root/.sgx-secrets:rw',
       [this.daemonDir.path]: `/root/.secretd:rw`,
       [this.clientDir.path]: `/root/.secretcli:rw`, } } }
+
+export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
+  readonly chainId: string = 'enigma-pub-testnet-3'
+  readonly image:   string = "enigmampc/secret-network-sw-dev"
+  constructor (options: ChainNodeOptions = {}) {
+    super()
+    if (options.image)   this.image   = options.image
+    if (options.chainId) this.chainId = options.chainId
+    this.setDirectories(options.stateRoot) } }
+
+export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
+  readonly chainId: string = 'supernova-1-localnet'
+  readonly image:   string = "enigmampc/secret-network-node:v1.2.0-beta1-2-gbe1ca55e-testnet"
+  constructor (options: ChainNodeOptions = {}) {
+    super()
+    if (options.image)   this.image   = options.image
+    if (options.chainId) this.chainId = options.chainId
+    this.setDirectories(options.stateRoot) } }

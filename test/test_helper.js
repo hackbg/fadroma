@@ -1,4 +1,4 @@
-import { Scrt, ScrtCLIAgent, ScrtJSAgent, ScrtGas } from "./index.ts";
+import { Scrt, ScrtCLIAgent, ScrtAgentJS, ScrtGas } from "./index.ts";
 import { ScrtNode } from "./localnet.ts";
 
 const fees = {

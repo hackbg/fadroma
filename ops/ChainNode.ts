@@ -1,5 +1,6 @@
 import type { Identity } from './Agent'
 
+import { URL } from 'url'
 import {
   __dirname,
   relative, cwd, TextFile, JSONFile, Directory, JSONDirectory,
@@ -10,7 +11,7 @@ const console = Console(import.meta.url)
 
 export interface ChainNode {
   chainId: string
-  apiURL:  string
+  apiURL:  URL
   port:    number
   /** Resolved when the node is ready */
   readonly ready: Promise<void>
@@ -56,7 +57,7 @@ export type ChainNodeOptions = {
 
 export abstract class BaseChainNode implements ChainNode {
   chainId: string
-  apiURL:  string
+  apiURL:  URL
   port:    number
 
   #ready: Promise<void>

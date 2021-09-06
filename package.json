@@ -19,7 +19,6 @@
     "typedoc": "^0.21.6"
   },
   "dependencies": {
-    "@cosmjs/crypto": "^0.24.1",
     "@types/mkdirp": "^1.0.2",
     "@types/prettyjson": "^0.0.30",
     "@types/rimraf": "^3.0.2",

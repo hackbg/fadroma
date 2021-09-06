@@ -1,3 +1,11 @@
+      //chainId = 'supernova-1',
+      //apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+      //apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+      //apiURL = new URL('https://api.holodeck.stakeordie.com'),
+      //apiURL = new URL('http://bootstrap.supernova.enigma.co'),
+      //apiURL  = new URL('https://bridgeapi.azure-api.net/testnet/'),
+//
+//
 //export const conformNetworkToChainId = network => {
   //switch (network) {
     //case 'secret-2': case 'holodeck-2': case 'enigma-pub-testnet-3': return network

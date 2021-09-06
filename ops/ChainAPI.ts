@@ -1,11 +1,12 @@
-import { Directory } from '@fadroma/tools'
-
 import type { ChainNode } from './ChainNode'
 import type { Identity, Agent } from './Agent'
 
+import { URL } from 'url'
+import { Directory } from '@fadroma/tools'
+
 export interface ChainOptions {
   chainId?:      string
-  apiURL?:       string
+  apiURL?:       URL
   node?:         ChainNode
   defaultAgent?: Identity
 }
@@ -22,11 +23,11 @@ export interface ChainState extends ChainOptions {
 }
 
 /* Represents an interface to a particular Cosmos blockchain.
- * Used to construct agents, builders, and contracts that are
+ * Used to construct `Agent`s and `Contract`s that are
  * bound to a particular chain. */
 export abstract class Chain implements ChainOptions {
   chainId?: string
-  apiURL?:  string
+  apiURL?:  URL
   node?:    ChainNode
 
   /** Credentials of the default agent for this network. */

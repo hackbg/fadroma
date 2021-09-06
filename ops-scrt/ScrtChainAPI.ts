@@ -1,13 +1,170 @@
-import type { ChainNode } from '@fadroma/ops'
+import type {
+  ChainNode, ChainState, ChainOptions, ChainConnectOptions,
+  Identity, Agent } from '@fadroma/ops'
+import type { Commands } from '@fadroma/tools'
+
+import { URL } from 'url'
+
 import { Chain } from '@fadroma/ops'
-import { Directory, JSONDirectory } from '@fadroma/tools'
+import { prefund } from '@fadroma/ops'
+import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from '@fadroma/scrt'
+import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@fadroma/tools'
+
+import { DockerizedScrtNode_1_0, DockerizedScrtNode_1_2 } from './ScrtChainNode'
+
+type AgentConstructor = new (options: Identity) => Agent
+
+export interface ScrtChainOptions extends ChainOptions {
+  Agent?: AgentConstructor
+}
+
+export interface ScrtChainState extends ChainState {
+  Agent?: AgentConstructor
+}
+
+export const on = {
+  'localnet-1.0' (context: any = {}) {
+    console.info(`Running on ${bold('localnet-1.0')}:`)
+    context.chain = Scrt.localnet_1_0() },
+  'localnet-1.2' (context: any = {}) {
+    console.info(`Running on ${bold('localnet-1.2')}:`)
+    context.chain = Scrt.localnet_1_2() },
+  'holodeck-2' (context: any = {}) {
+    console.info(`Running on ${bold('holodeck-2')}:`)
+    context.chain = Scrt.holodeck_2() },
+  'supernova-1' (context: any = {}) {
+    console.info(`Running on ${bold('supernova-1')}:`)
+    context.chain = Scrt.supernova_1() },
+  'mainnet' (context: any = {}) {
+    console.info(`Running on ${bold('mainnet')}:`)
+    context.chain = Scrt.mainnet() } }
+
+export function openFaucet () {
+  const url = `https://faucet.secrettestnet.io/`
+  console.debug(`Opening ${url}...`)
+  open(url) }
+
+type RemoteCommands = (x: Chain) => Commands
+
+export const Help = {
+  FAUCET: "🚰 Open a faucet for this network in your default browser",
+  FUND:   "👛 Create test wallets by sending native token to them."}
 
 export class Scrt extends Chain {
+
+  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
+  static mainnet (options: ChainConnectOptions = {}): Scrt {
+    const {
+      chainId = 'secret-2',
+      apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+      apiURL  = new URL(`https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+      defaultAgent = {
+        name:     process.env.SECRET_NETWORK_MAINNET_NAME,
+        address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
+        mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC
+      }
+    } = options
+    return new Scrt({
+      chainId,
+      apiURL, 
+      defaultAgent,
+      Agent: ScrtCLIAgent
+    }) }
+
+  /** Generate command lists for known testnets. */
+  static testnetCommands = (getCommands: RemoteCommands): Commands =>
+    ['holodeck-2', 'supernova-1'].map((testnet: string)=>[
+      testnet,
+      `Run commands on ${testnet} testnet`,
+      on[testnet],
+      [
+        ["faucet", Help.FAUCET, openFaucet],
+        ["fund",   Help.FUND,   prefund],
+        ...getCommands(Scrt[testnet.replace(/[-.]/g, '_')]())
+      ]
+    ])
+      //[testnet, , [
+        //["shell",  Help.SHELL,  runShell],
+        //["faucet", Help.FAUCET, openFaucet],
+        //["fund",   Help.FUND,   prefund],
+        //...getCommands(Scrt[testnet.replace(/-/g, '_')]())]])
+
+  /** Create an instance that talks to holodeck-2 testnet via SecretJS */
+  static holodeck_2 (options: ChainConnectOptions = {}): Scrt {
+    const {
+      chainId = 'holodeck-2',
+      apiURL  = new URL('http://96.44.145.210/'),
+      defaultAgent = {
+        name:     process.env.SECRET_NETWORK_TESTNET_NAME,
+        address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+        mnemonic: process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
+      }
+    } = options
+    return new Scrt({
+      chainId,
+      apiURL,
+      defaultAgent,
+      Agent: ScrtAgentJS_1_0
+    }) }
+
+  /** Create an instance that talks to to supernova-1 testnet via SecretJS */
+  static supernova_1 (options: ChainConnectOptions = {}): Scrt {
+    const {
+      chainId = 'supernova-1',
+      apiURL  = new URL('http://bootstrap.supernova.enigma.co'),
+      defaultAgent = {
+        name:     process.env.SECRET_NETWORK_TESTNET_NAME,
+        address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+        mnemonic: process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
+      }
+    } = options
+    return new Scrt({
+      chainId,
+      apiURL,
+      defaultAgent,
+      Agent: ScrtAgentJS_1_2
+    }) }
+
+  /* Generate command lists for known localnet variants. */
+  static localnetCommands = (getCommands: RemoteCommands): Commands =>
+    ['localnet-1.0', 'localnet-1.2'].map((localnet: string)=>[
+      localnet,
+      `Run commands on ${localnet}`,
+      on[localnet],
+      getCommands(Scrt[localnet.replace(/[-.]/g, '_')]())
+    ])
+
+  /** Create an instance that runs a node in a local Docker container
+   *  and talks to it via SecretJS */
+  static localnet_1_0 (options: ChainConnectOptions = {}): Scrt {
+    // no default agent name/address/mnemonic:
+    // connect() gets them from genesis accounts
+    return new Scrt({
+      ...options,
+      node:    options.node    || new DockerizedScrtNode_1_0(options),
+      chainId: options.chainId || 'enigma-pub-testnet-3',
+      apiURL:  options.apiURL  || new URL('http://localhost:1337'),
+      Agent:   ScrtAgentJS_1_0
+    }) }
+
+  /** Create an instance that runs a node in a local Docker container
+   *  and talks to it via SecretJS */
+  static localnet_1_2 (options: ChainConnectOptions = {}): Scrt {
+    // no default agent name/address/mnemonic:
+    // connect() gets them from genesis accounts
+    return new Scrt({
+      ...options,
+      node:    options.node    || new DockerizedScrtNode_1_2(options),
+      chainId: options.chainId || 'enigma-pub-testnet-3',
+      apiURL:  options.apiURL  || new URL('http://localhost:1337'),
+      Agent:   ScrtAgentJS_1_0
+    }) }
 
   chainId?: string
   apiURL?:  URL
   node?:    ChainNode
 
+  Agent: AgentConstructor
   defaultAgent: { name?: string, address?: string, mnemonic?: string }
 
   stateRoot:  Directory
@@ -21,7 +178,7 @@ export class Scrt extends Chain {
    * @param {Object} options           - the configuration options
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
    * TODO document the remaining options */
-  constructor (options: ChainState = {}) {
+  constructor (options: ScrtChainState = {}) {
     super()
     const node = this.node = options.node || null
     // info needed to connect to the chain's REST API
@@ -35,6 +192,7 @@ export class Scrt extends Chain {
     this.instances  = new JSONDirectory(stateRoot, 'instances')
     // handle to localnet node if this is localnet
     // default agent credentials
+    if (options.Agent) this.Agent = options.Agent
     this.defaultAgent = options.defaultAgent }
 
   /**Instantiate Agent and Builder objects to talk to the API,
@@ -61,59 +219,6 @@ export class Scrt extends Chain {
     console.info(`🟢 connected, operating as ${address}`)
     return this as Chain }
 
-  /* Plugs into the CLI command parser to select the chain
-   * onto which an ensemble is deployed */
-  static chainSelector (E: new (args: EnsembleOptions) => Ensemble) {
-    // TODO make this independent of Ensemble - or better yet, move it into Ensemble
-    return [
-      ["mainnet",  "Run on mainnet",
-        on.mainnet,  new E({chain: Scrt.mainnet()  as Chain}).remoteCommands()],
-      ["testnet",  "Run on testnet",
-        on.testnet,  new E({chain: Scrt.testnet()  as Chain}).remoteCommands()],
-      ["localnet", "Run on localnet",
-        on.localnet, new E({chain: Scrt.localnet() as Chain}).remoteCommands()] ] }
-
-  /** Create an instance that runs a node in a local Docker container
-   *  and talks to it via SecretJS */
-  static localnet (options: ChainConnectOptions = {}): Scrt {
-    if (!options.node) options.node = new ScrtNode(options)
-    options.chainId = options.chainId || 'enigma-pub-testnet-3'
-    options.apiURL  = options.apiURL  || new URL('http://localhost:1337')
-    // no default agent name/address/mnemonic:
-    // connect() gets them from genesis accounts
-    return new Scrt(options) }
-
-  /** Create an instance that talks to to holodeck-2
-   * (Secret Network testnet) via SecretJS */
-  static testnet ({
-    //chainId = 'supernova-1',
-    //apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-    //apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
-    //apiURL = new URL('https://api.holodeck.stakeordie.com'),
-    //apiURL = new URL('http://bootstrap.supernova.enigma.co'),
-    chainId = 'holodeck-2',
-    apiURL  = new URL('http://96.44.145.210/'),
-    //apiURL  = new URL('https://bridgeapi.azure-api.net/testnet/'),
-    defaultAgent = {
-      name:     process.env.SECRET_NETWORK_TESTNET_NAME,
-      address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-      mnemonic: process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together' }
-  }: ChainConnectOptions = {}): Scrt {
-    return new Scrt({ chainId, apiURL, defaultAgent }) }
-
-  /** Create an instance that talks to to the Secret Network
-   *  mainnet via SecretJS */
-  static mainnet ({
-    chainId = 'secret-2',
-    apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-    apiURL  = new URL(`https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
-    defaultAgent = {
-      name:     process.env.SECRET_NETWORK_MAINNET_NAME,
-      address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
-      mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC }
-  }: ChainConnectOptions = {}): Scrt {
-    return new Scrt({ chainId, apiURL, defaultAgent }) }
-
   /**The API URL that this instance talks to.
    * @type {string} */
   get url () {
@@ -123,7 +228,7 @@ export class Scrt extends Chain {
   async getAgent (identity: Identity = this.defaultAgent): Promise<Agent> {
     if (identity.mnemonic || identity.keyPair) {
       console.info(`Using a ${bold('SecretJS')}-based agent.`)
-      return await ScrtJSAgent.create({ ...identity, chain: this as Chain }) }
+      return await ScrtAgentJS.create({ ...identity, chain: this as Chain }) }
     else {
       const name = identity.name || this.defaultAgent?.name
       if (name) {

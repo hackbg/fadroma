@@ -1,6 +1,6 @@
 import {
   Scrt,
-  ScrtJSAgent,
+  ScrtAgentJS,
   ScrtCLIAgent,
 } from '../ops/index.ts';
 
@@ -16,7 +16,7 @@ const mnemonic1 = 'bounce orphan vicious end identify universe excess miss rando
 const mnemonic2 = 'element dial search ticket feed lounge gasp wide uphold reflect hand lunch primary swamp wage vessel riot modify dinosaur laundry segment purpose secret asthma';
 const keypair = EnigmaUtils.GenerateNewKeyPairFromSeed(Bip39.decode(mnemonic));
 
-test(ScrtJSAgent)
+test(ScrtAgentJS)
 test(ScrtCLIAgent)
 
 function test (Agent) {

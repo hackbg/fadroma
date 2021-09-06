@@ -1,7 +1,7 @@
 import { Console, bold, readFile } from '@fadroma/tools'
 
 import { Agent, Identity, Contract } from '@fadroma/ops'
-import { Scrt } from './ScrtChain'
+import { Scrt } from './ScrtChainAPI'
 import { ScrtGas, defaultFees } from './ScrtAgentGas'
 
 import { Bip39 } from '@cosmjs/crypto'
@@ -12,7 +12,7 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
 const console = Console(import.meta.url)
 
 /** Queries and transacts on an instance of the Secret Chain */
-export class ScrtJSAgent extends Agent {
+export class ScrtAgentJS extends Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create (options: Identity) {
@@ -31,7 +31,7 @@ export class ScrtJSAgent extends Agent {
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new ScrtJSAgent({name, mnemonic, keyPair, pen, ...args}) }
+    return new ScrtAgentJS({name, mnemonic, keyPair, pen, ...args}) }
 
   readonly chain:    Scrt
   readonly API:      SigningCosmWasmClient

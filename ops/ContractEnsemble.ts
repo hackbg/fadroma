@@ -8,7 +8,7 @@ export interface Ensemble {
   /* Build, upload, and initialize. */
   deploy (): Promise<Instances>
 
-  /* Compile the contracts from source using a Builder. */
+  /* Compile this ensemble's contracts from source. */
   build (parallel: boolean): Promise<Artifacts>
 
   /* Upload this ensemble's contracts to the chain. */
@@ -49,14 +49,23 @@ const Info = {
   DEPLOY: '🚀 Build, init, and deploy this component' }
 
 export abstract class BaseEnsemble implements Ensemble {
-  name:      string = this.constructor.name
-  prefix:    string = `${timestamp()}`
+
+  name: string = this.constructor.name
+
+  prefix: string = `${timestamp()}`
+
   contracts: Record<string, Contract>
-  agent:     Agent
-  readonly  chain:     Chain
+
+  agent: Agent
+
+  readonly chain:     Chain
+
+  readonly task:      Taskmaster = taskmaster()
+
+  readonly additionalBinds?: Array<any>
+
   protected instances: Record<string, Contract>
-  readonly  task:      Taskmaster = taskmaster()
-  readonly  additionalBinds?: Array<any>
+
   constructor (options: EnsembleOptions = {}) {
     const { task, chain, agent, additionalBinds } = options
     if (agent && chain && agent.chain.chainId !== chain.chainId) throw new Error(Errors.AGENT)
@@ -64,21 +73,26 @@ export abstract class BaseEnsemble implements Ensemble {
     this.chain = chain
     this.agent = agent
     this.additionalBinds = additionalBinds }
+
   /** Commands to expose to the CLI. */
   commands (): Commands {
     return [...this.localCommands(), null, ...this.remoteCommands()]}
+
   /** Commands that can be executed locally. */
   localCommands (): Commands {
     return [["build", Info.BUILD, (_: any, seq: boolean)=>this.build(!seq)]]}
+
   /** Commands that require a connection to a chain. */
   remoteCommands (): Commands {
     return [["deploy", Info.DEPLOY, (_: any)=>this.deploy().then(console.info)]]}
+
   /* Build, upload, and instantiate the contracts. */
   async deploy (): Promise<Instances> {
     return this.task('build, upload, and initialize contracts', async () => {
       await this.build()
       await this.upload()
       return await this.initialize() }) }
+
   /* Compile the contracts for production. */
   async build (parallel = false): Promise<Artifacts> {
     const artifacts = {}
@@ -86,15 +100,19 @@ export abstract class BaseEnsemble implements Ensemble {
     const row = ([name, path])=>[bold(name), relative(process.cwd(), path as string)]
     console.log(table(Object.entries(artifacts).map(row)))
     return artifacts }
+
   private buildParallel = (artifacts = {}) =>
     this.task.parallel(`build ${bold(this.name)}`,
       ...Object.entries(this.contracts).map(async ([name, contract])=>
         artifacts[name] = await this.buildOne(name, contract)))
+
   private buildSeries = async (artifacts = {}) => {
     for (const [name, contract] of Object.entries(this.contracts)) {
       artifacts[name] = await this.buildOne(name, contract) } }
+
   private buildOne = (name: string, contract: Contract) =>
     this.task(`build ${this.name}_${name}`, () => contract.build())
+
   /** Upload the contracts to the chain, and write upload receipts in the corresponding directory.
     * If receipts are already present, return their contents instead of uploading. */
   async upload (): Promise<Uploads> {
@@ -106,6 +124,7 @@ export abstract class BaseEnsemble implements Ensemble {
         console.log(`⚖️  compressed size ${compressedSize} bytes`)
         report(transactionHash) }) }
     return uploads }
+
   /** Instantiate the contracts from this ensemble.
     * As each deployment is different, the actual instantiations
     * must be implemented in a subclass downstream.

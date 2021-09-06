@@ -5,7 +5,7 @@ import { Agent, Identity } from '@fadroma/ops'
 import { Console, bold, execFile, spawn } from '@fadroma/tools'
 
 import { Scrt } from './ScrtChain'
-import { ScrtJSAgent } from './ScrtAgentJS'
+import { ScrtAgentJS } from './ScrtAgentJS'
 
 const {warn, debug} = Console(import.meta.url)
 

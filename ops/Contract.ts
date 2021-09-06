@@ -1,4 +1,5 @@
-// Contract deployment /////////////////////////////////////////////////////////////////////////////
+import type { Chain } from './ChainAPI'
+import type { Agent } from './Agent'
 
 export abstract class ContractConfig {
   readonly workspace: string
