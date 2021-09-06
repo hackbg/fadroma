@@ -133,11 +133,6 @@ export class Scrt extends Chain {
         'You need to provide a name to get a secretcli-backed agent, ' +
         'or a mnemonic or keypair to get a SecretJS-backed agent.')}}
 
-  /** create builder operating on the current instance's endpoint */
-  async getBuilder (agent?: Agent): Promise<BuildUploader> {
-    agent = agent || await this.getAgent()
-    return new ScrtUploader(this, agent) }
-
   /** create contract instance from interface class and address */
   getContract (ContractAPI: any, contractAddress: string, agent = this.defaultAgent) {
     return new ContractAPI({

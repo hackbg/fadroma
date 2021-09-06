@@ -2,7 +2,6 @@ import { Directory } from '@fadroma/tools'
 
 import type { ChainNode } from './ChainNode'
 import type { Identity, Agent } from './Agent'
-import type { BuildUploader } from './ContractBuild'
 
 export interface ChainOptions {
   chainId?:      string
@@ -46,11 +45,6 @@ export abstract class Chain implements ChainOptions {
 
   /** Get an Agent that works with this Chain. */
   abstract getAgent (options?: Identity): Promise<Agent>
-
-  /** Get a Builder that works with this Chain,
-    * optionally providing a specific Agent to perform
-    * the contract upload operation. */
-  abstract getBuilder (agent?: Agent): Promise<BuildUploader>
 
   /** Get a Contract that exists on this Chain, or a non-existent one
     * which you can then create via Agent#instantiate

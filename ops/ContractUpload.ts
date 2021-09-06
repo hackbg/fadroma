@@ -1,7 +1,12 @@
-import type { Chain, Agent } from '.'
+import { Agent } from './Agent'
+import { Chain } from './ChainAPI'
 import { ContractCode } from './ContractBuild'
+import { Console, existsSync, readFile, bold, relative, basename, mkdir, writeFile } from '@fadroma/tools'
+
+const {info} = Console(import.meta.url)
 
 export class ContractUpload extends ContractCode {
+
   protected blob: {
     chain?:    Chain
     agent?:    Agent
@@ -14,9 +19,7 @@ export class ContractUpload extends ContractCode {
       logs:               Array<any>
       originalChecksum:   string
       originalSize:       number
-      transactionHash:    string
-    }
-  } = {}
+      transactionHash:    string } } = {}
 
   constructor (agent?: Agent) {
     super()
@@ -28,6 +31,8 @@ export class ContractUpload extends ContractCode {
   get uploader () { return this.blob.agent }
   /** The result of the upload transaction. */
   get uploadReceipt () { return this.blob.receipt }
+  /** Path to where the result of the upload transaction is stored */
+  get uploadReceiptPath () { return this.chain.uploads.resolve(`${basename(this.artifact)}.json`) }
   /** The auto-incrementing id of the uploaded code */
   get codeId () { return this.blob.codeId }
   /** The auto-incrementing id of the uploaded code */
@@ -35,6 +40,8 @@ export class ContractUpload extends ContractCode {
 
   /** Upload the contract to a specified chain as a specified agent. */
   async upload (chainOrAgent: Agent|Chain) {
+
+    // resolve chain/agent references
     if (chainOrAgent instanceof Chain) {
       this.blob.chain = chainOrAgent
       this.blob.agent = await this.blob.chain.getAgent() }
@@ -43,56 +50,28 @@ export class ContractUpload extends ContractCode {
       this.blob.chain = this.blob.agent.chain }
     else {
       throw new Error('You must provide a Chain or Agent to use for deployment') }
-    if (!this.artifact) {
-      await this.build() }
-    const uploader = new ScrtUploader(this.chain, this.uploader)
-    this.blob.receipt  = await uploader.uploadOrCached(this.artifact)
+
+    // build if not already built
+    if (!this.artifact) await this.build()
+
+    // upload if not already uploaded
+    // TODO: flag to force reupload
+    if (existsSync(this.uploadReceiptPath)) {
+      const receiptData = await readFile(this.uploadReceiptPath, 'utf8')
+      info(`${bold(relative(process.cwd(), this.uploadReceiptPath))} exists, delete to reupload`)
+      this.blob.receipt = JSON.parse(receiptData) }
+    else {
+      const uploadResult = await this.blob.agent.upload(this.artifact)
+          , receiptData  = JSON.stringify(uploadResult, null, 2)
+          , elements     = this.uploadReceiptPath.slice(1, this.uploadReceiptPath.length).split('/');
+      let path = `/`
+      for (const item of elements) {
+        if (!existsSync(path)) mkdir(path)
+        path += `/${item}` }
+      await writeFile(this.uploadReceiptPath, receiptData, 'utf8')
+      this.blob.receipt = uploadResult }
+
+    // set code it and code hash to allow instantiation of uploaded code
     this.blob.codeId   = this.blob.receipt.codeId
     this.blob.codeHash = this.blob.receipt.originalChecksum
     return this.blob.receipt } }
-
-// I'm starting to think that the builder and uploader phases should be accessed
-// primarily via the Contract object and not as currently; and be separate features
-// (dynamically loaded unless using fadroma.js in a browser) */
-
-const {info} = Console(import.meta.url)
-
-export class ScrtUploader extends ScrtBuilder implements BuildUploader {
-
-  constructor (
-    readonly chain: Chain,
-    readonly agent: Agent
-  ) {
-    super()
-  }
-
-  /* Contracts will be deployed from this address. */
-  get address () {
-    return this.agent ? this.agent.address : undefined }
-
-  /** Try to upload a binary to the chain but return a pre-existing receipt if one exists.
-   *  TODO also code checksums should be validated */
-  async uploadOrCached (artifact: any) {
-    const receiptPath = this.getReceiptPath(artifact)
-    if (existsSync(receiptPath)) {
-      const receiptData = await readFile(receiptPath, 'utf8')
-      info(`${bold(relative(process.cwd(), receiptPath))} exists, delete to reupload`)
-      return JSON.parse(receiptData) }
-    else {
-      return this.upload(artifact) } }
-
-  getReceiptPath = (path: string) =>
-    this.chain.uploads.resolve(`${basename(path)}.json`)
-
-  /** Upload a binary to the chain. */
-  async upload (artifact: any) {
-    const uploadResult = await this.agent.upload(artifact)
-        , receiptData  = JSON.stringify(uploadResult, null, 2)
-        , receiptPath  = this.getReceiptPath(artifact)
-        , elements     = receiptPath.slice(1, receiptPath.length).split('/');
-    let path = `/`
-    for (const item of elements) {
-      if (!existsSync(path)) mkdir(path)
-      path += `/${item}` }
-    await writeFile(receiptPath, receiptData, 'utf8')
-    return uploadResult } }

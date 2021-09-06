@@ -1,14 +1,8 @@
-import type { Commands, Taskmaster } from '@fadroma/tools'
-import {relative, timestamp, taskmaster} from '@fadroma/tools'
+import {Commands, Taskmaster, table, bold, relative, timestamp, taskmaster} from '@fadroma/tools'
 
 import {Chain} from './ChainAPI'
 import {Agent} from './Agent'
 import {Contract} from './Contract'
-import {ScrtUploader} from './ContractUpload'
-
-import {table} from 'table'
-import colors from 'colors'
-const {bold} = colors
 
 export interface Ensemble {
   /* Build, upload, and initialize. */
@@ -17,7 +11,7 @@ export interface Ensemble {
   /* Compile the contracts from source using a Builder. */
   build (parallel: boolean): Promise<Artifacts>
 
-  /* Upload the contracts to a Chain using a BuildUploader. */
+  /* Upload this ensemble's contracts to the chain. */
   upload (): Promise<Uploads>
 
   /* Init instances of uploaded contracts using an Agent. */
@@ -123,7 +117,3 @@ export abstract class BaseEnsemble implements Ensemble {
     this.agent = await this.chain.getAgent()
     Object.values(this.contracts).forEach(contract=>contract.setPrefix(this.prefix))
     return {} } }
-
-export class ScrtEnsemble extends BaseEnsemble {
-  BuildUploader = ScrtUploader
-  buildImage    = 'enigmampc/secret-contract-optimizer:latest' }
