@@ -89,8 +89,11 @@ export class Scrt extends Chain {
   /** Create an instance that talks to holodeck-2 testnet via SecretJS */
   static holodeck_2 (options: ChainConnectOptions = {}): Scrt {
     const {
+      //chainId = 'holodeck-2',
+      //apiURL  = new URL('http://96.44.145.210/'),
       chainId = 'holodeck-2',
-      apiURL  = new URL('http://96.44.145.210/'),
+      apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+      apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
       defaultAgent = {
         name:     process.env.SECRET_NETWORK_TESTNET_NAME,
         address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
