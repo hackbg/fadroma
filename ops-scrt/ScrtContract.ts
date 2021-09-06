@@ -1,5 +1,6 @@
 import type { Ensemble, EnsembleOptions, Chain } from '@fadroma/ops'
-import { BaseEnsemble } from '@fadroma/ops'
+import { BaseEnsemble, ContractAPI } from '@fadroma/ops'
+import { resolve, dirname, fileURLToPath } from '@fadroma/tools'
 import { Scrt, on } from './ScrtChainAPI'
 
 type EnsembleConstructor = new (args: EnsembleOptions) => Ensemble
@@ -21,6 +22,9 @@ export class ScrtEnsemble extends BaseEnsemble {
       ["localnet",    "Run on localnet v1.2",
         on['localnet-1.2'], new E({chain: Scrt.localnet_1_2() as Chain}).remoteCommands()] ] } }
 
-//export class ScrtBuilder extends Builder {
-  //buildImage = 'enigmampc/secret-contract-optimizer:latest'
-//}
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export class ScrtContract extends ContractAPI {
+  buildImage  = 'enigmampc/secret-contract-optimizer:latest'
+  buildScript = resolve(__dirname, 'ScrtBuild.sh')
+}

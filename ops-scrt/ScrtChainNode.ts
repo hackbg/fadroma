@@ -6,15 +6,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 type ScrtNodeConstructor = new (options?: ChainNodeOptions) => ChainNode
 
-export function resetLocalnet (Node: ScrtNodeConstructor) {
-  return new Node().terminate() }
-
 export abstract class DockerizedScrtNode extends DockerizedChainNode {
 
   abstract readonly chainId: string
   abstract readonly image:   string
 
-  readonly initScript = new TextFile(__dirname, 'scrt_localnet_init.sh')
+  readonly initScript = new TextFile(__dirname, 'ScrtChainNodeInit.sh')
 
   /** This directory is mounted out of the localnet container
     * in order to persist the state of the SGX component. */
@@ -25,7 +22,7 @@ export abstract class DockerizedScrtNode extends DockerizedChainNode {
     Object.assign(this, { stateRoot: new Directory(stateRoot) })
     Object.assign(this, {
       identities: this.stateRoot.subdir('identities', JSONDirectory),
-      nodeState:  new JSONFile(stateRoot,  'node.json'),
+      nodeState:  new JSONFile(stateRoot, 'node.json'),
       daemonDir:  this.stateRoot.subdir('_secretd'),
       clientDir:  this.stateRoot.subdir('_secretcli'),
       sgxDir:     this.stateRoot.subdir('_sgx-secrest') }) }
@@ -58,3 +55,6 @@ export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
     if (options.image)   this.image   = options.image
     if (options.chainId) this.chainId = options.chainId
     this.setDirectories(options.stateRoot) } }
+
+export function resetLocalnet ({ chain }: any) {
+  return chain.node.terminate() }

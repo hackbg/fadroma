@@ -19,14 +19,17 @@ export class ScrtAgentJS extends Agent {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
     if (mnemonic) {
+      console.info('creating agent from mnemonic')
       // if keypair doesnt correspond to the mnemonic, delete the keypair
       if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
         console.warn(`keypair doesn't match mnemonic, ignoring keypair`)
         keyPair = null } }
     else if (keyPair) {
+      console.info('creating agent from keypair')
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
     else {
+      console.info('creating new agent')
       // if there is neither, generate a new keypair and corresponding mnemonic
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }

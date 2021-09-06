@@ -5,10 +5,10 @@ import type { Commands } from '@fadroma/tools'
 
 import { URL } from 'url'
 
-import { Chain } from '@fadroma/ops'
-import { prefund } from '@fadroma/ops'
+import { Chain, prefund } from '@fadroma/ops'
 import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from '@fadroma/scrt'
 import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@fadroma/tools'
+import { resetLocalnet } from './ScrtChainNode'
 
 import { DockerizedScrtNode_1_0, DockerizedScrtNode_1_2 } from './ScrtChainNode'
 
@@ -47,10 +47,15 @@ export function openFaucet () {
 type RemoteCommands = (x: Chain) => Commands
 
 export const Help = {
-  FAUCET: "🚰 Open a faucet for this network in your default browser",
-  FUND:   "👛 Create test wallets by sending native token to them."}
+  RESET:   "✨ Erase the state of this localnet",
+  MAINNET: "💰 Interact with the Secret Network mainnet",
+  FAUCET:  "🚰 Open a faucet for this network in your default browser",
+  FUND:    "👛 Create test wallets by sending native token to them" }
 
 export class Scrt extends Chain {
+
+  static mainnetCommands = (getCommands: RemoteCommands): Commands =>
+    [['mainnet', Help.MAINNET, on.mainnet, getCommands(Scrt.mainnet())]]
 
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
   static mainnet (options: ChainConnectOptions = {}): Scrt {
@@ -77,17 +82,9 @@ export class Scrt extends Chain {
       testnet,
       `Run commands on ${testnet} testnet`,
       on[testnet],
-      [
-        ["faucet", Help.FAUCET, openFaucet],
-        ["fund",   Help.FUND,   prefund],
-        ...getCommands(Scrt[testnet.replace(/[-.]/g, '_')]())
-      ]
-    ])
-      //[testnet, , [
-        //["shell",  Help.SHELL,  runShell],
-        //["faucet", Help.FAUCET, openFaucet],
-        //["fund",   Help.FUND,   prefund],
-        //...getCommands(Scrt[testnet.replace(/-/g, '_')]())]])
+      [ ["faucet", Help.FAUCET, openFaucet]
+      , ["fund",   Help.FUND,   prefund]
+      , ...getCommands(Scrt[testnet.replace(/[-.]/g, '_')]())]])
 
   /** Create an instance that talks to holodeck-2 testnet via SecretJS */
   static holodeck_2 (options: ChainConnectOptions = {}): Scrt {
@@ -131,7 +128,10 @@ export class Scrt extends Chain {
       localnet,
       `Run commands on ${localnet}`,
       on[localnet],
-      getCommands(Scrt[localnet.replace(/[-.]/g, '_')]())
+      [
+        ['reset', Help.RESET, resetLocalnet],
+        ...getCommands(Scrt[localnet.replace(/[-.]/g, '_')]())
+      ]
     ])
 
   /** Create an instance that runs a node in a local Docker container

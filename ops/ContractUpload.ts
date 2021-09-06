@@ -61,7 +61,8 @@ export class ContractUpload extends ContractCode {
       info(`${bold(relative(process.cwd(), this.uploadReceiptPath))} exists, delete to reupload`)
       this.blob.receipt = JSON.parse(receiptData) }
     else {
-      const uploadResult = await this.blob.agent.upload(this.artifact)
+      console.log(this.artifact)
+      const uploadResult = await this.uploader.upload(this.artifact)
           , receiptData  = JSON.stringify(uploadResult, null, 2)
           , elements     = this.uploadReceiptPath.slice(1, this.uploadReceiptPath.length).split('/');
       let path = `/`
@@ -72,6 +73,6 @@ export class ContractUpload extends ContractCode {
       this.blob.receipt = uploadResult }
 
     // set code it and code hash to allow instantiation of uploaded code
-    this.blob.codeId   = this.blob.receipt.codeId
-    this.blob.codeHash = this.blob.receipt.originalChecksum
+    this.blob.codeId   = this.uploadReceipt.codeId
+    this.blob.codeHash = this.uploadReceipt.originalChecksum
     return this.blob.receipt } }

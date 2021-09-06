@@ -4,11 +4,10 @@ import {
 
 const {debug} = Console(import.meta.url)
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+export abstract class ContractCode {
 
-export class ContractCode {
-
-  buildImage = 'enigmampc/secret-contract-optimizer:latest'
+  abstract buildImage:  string
+  abstract buildScript: string
 
   protected code: {
     workspace?: string
@@ -39,11 +38,11 @@ export class ContractCode {
 
     const ref       = 'HEAD'
         , outputDir = resolve(this.workspace, 'artifacts')
-        , output    = resolve(outputDir, `${crate}@${ref}.wasm`)
+        , output    = resolve(outputDir, `${this.crate}@${ref}.wasm`)
 
     if (!existsSync(output)) {
+      console.debug('pull', this, this.buildImage)
       const image   = await pulled(this.buildImage, this.docker)
-          , entry   = resolve(__dirname, 'ScrtBuild.sh')
           , buildArgs =
             { Env:
                 [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
@@ -56,13 +55,14 @@ export class ContractCode {
             , Entrypoint:
                 ['/bin/sh', '-c']
             , HostConfig:
-                { Binds: [ `${entry}:/entrypoint.sh:ro`
+                { Binds: [ `${this.buildScript}:/entrypoint.sh:ro`
                          , `${outputDir}:/output:rw`
                          , `project_cache_${ref}:/code/target:rw`
                          , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
-          , command = `bash /entrypoint.sh ${crate} ${ref}`
-      debug(`building working tree at ${workspace} into ${outputDir}...`)
-      buildArgs.HostConfig.Binds.push(`${workspace}:/contract:rw`)
+          , command = `bash /entrypoint.sh ${this.crate} ${ref}`
+      console.log({entry: this.buildScript})
+      debug(`building working tree at ${this.workspace} into ${outputDir}...`)
+      buildArgs.HostConfig.Binds.push(`${this.workspace}:/contract:rw`)
       additionalBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
       const [{Error:err, StatusCode:code}, container] =
         await this.docker.run(image, command, process.stdout, buildArgs )
