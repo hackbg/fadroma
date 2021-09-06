@@ -1,10 +1,11 @@
 import { Fees, BaseGas } from '@fadroma/ops'
 
+export const denom = 'uscrt'
+
 export class ScrtGas extends BaseGas {
-  denom = 'uscrt'
   constructor (x: number) {
     super(x)
-    this.amount.push({amount: String(x), denom: this.denom}) } }
+    this.amount.push({amount: String(x), denom}) } }
 
 export const defaultFees: Fees = {
   upload: new ScrtGas(3000000),
