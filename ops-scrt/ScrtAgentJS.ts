@@ -7,15 +7,18 @@ import { ScrtGas, defaultFees } from './ScrtAgentGas'
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
-         makeSignBytes } from 'secretjs'
+         makeSignBytes, BroadcastMode } from 'secretjs'
 
 const console = Console(import.meta.url)
 
+type AgentConstructor = new(...args:any)=>ScrtAgentJS
+type APIConstructor   = new(...args:any)=>any
+
 /** Queries and transacts on an instance of the Secret Chain */
-export class ScrtAgentJS extends Agent {
+export abstract class ScrtAgentJS extends Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
-  static async create (options: Identity) {
+  static async createSub (AgentConstructor: AgentConstructor, options: Identity) {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
     if (mnemonic) {
@@ -34,10 +37,11 @@ export class ScrtAgentJS extends Agent {
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new ScrtAgentJS({name, mnemonic, keyPair, pen, ...args}) }
+    return new AgentConstructor({name, mnemonic, keyPair, pen, ...args}) }
+
+  readonly API: SigningCosmWasmClient
 
   readonly chain:    Scrt
-  readonly API:      SigningCosmWasmClient
   readonly name:     string
   readonly keyPair:  any
   readonly mnemonic: any
@@ -49,7 +53,7 @@ export class ScrtAgentJS extends Agent {
   fees = defaultFees
 
   /** Create a new agent from a signing pen. */
-  constructor (options: Identity) {
+  constructor (APIConstructor: APIConstructor, options: Identity) {
     super()
     this.chain    = options.chain as Scrt
     this.name     = options.name || ''
@@ -63,8 +67,10 @@ export class ScrtAgentJS extends Agent {
     this.sign    = this.pen.sign.bind(this.pen)
     this.seed    = EnigmaUtils.GenerateNewSeed()
 
-    this.API = new SigningCosmWasmClient(
-      this.chain.url, this.address, this.sign, this.seed, this.fees) }
+    this.API = new APIConstructor(
+      this.chain.url, this.address,
+      this.sign, this.seed, this.fees,
+      BroadcastMode.Sync) }
 
   // block time //
 

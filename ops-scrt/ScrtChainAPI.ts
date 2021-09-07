@@ -231,7 +231,7 @@ export class Scrt extends Chain {
   async getAgent (identity: Identity = this.defaultAgent): Promise<Agent> {
     if (identity.mnemonic || identity.keyPair) {
       console.info(`Using a ${bold('SecretJS')}-based agent.`)
-      return await ScrtAgentJS.create({ ...identity, chain: this as Chain }) }
+      return await ScrtAgentJS_1_0.create({ ...identity, chain: this as Chain }) }
     else {
       const name = identity.name || this.defaultAgent?.name
       if (name) {
