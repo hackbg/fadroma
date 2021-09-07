@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v1
         with: { node-version: 14 }
       - name: test js modules
-        run: yarn && yarn test-js
+        run: yarn && yarn test-ts
 
   example:
     runs-on: ubuntu-latest

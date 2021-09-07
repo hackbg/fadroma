@@ -4,6 +4,7 @@
     "module": "es2020",
     "moduleResolution": "node",
     "inlineSourceMap": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "lib": ["ES2020", "node"]
   }
 }

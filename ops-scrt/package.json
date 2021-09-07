@@ -1,0 +1,10 @@
+{
+  "name": "@fadroma/scrt",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "dependencies": {
+    "@cosmjs/crypto": "^0.24.1",
+    "@fadroma/ops": "*"
+  }
+}

@@ -1,5 +1,4 @@
-import { ScrtContractWithSchema } from "@fadroma/agent";
-import { loadSchemas } from "@fadroma/utilities";
+import { ContractWithSchema, loadSchemas } from "@hackbg/fadroma";
 
 export const schema = loadSchemas(import.meta.url, {
   initMsg: "./schema/init.json",
@@ -8,7 +7,7 @@ export const schema = loadSchemas(import.meta.url, {
   queryAnswer: "./schema/response.json",
 });
 
-export default class Votes extends ScrtContractWithSchema {
+export default class Votes extends ContractWithSchema {
   constructor(options = {}) {
     super(options, schema)
   }

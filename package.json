@@ -1,36 +1,33 @@
 {
   "name": "@hackbg/fadroma",
   "version": "0.0.0",
-  "main": "./ops/index.ts",
   "type": "module",
+  "workspace": true,
+  "packages": [
+    "./ops",
+    "./ops-scrt",
+    "./ops-scrt-1.0",
+    "./ops-scrt-1.2",
+    "./tools"
+  ],
   "devDependencies": {
     "@types/mocha": "^9.0.0",
     "chai": "^4.3.4",
     "documentation": "^13.2.1",
+    "esmo": "^0.9.1",
     "mocha": "^8.0.1",
     "typedoc": "^0.21.6"
   },
   "dependencies": {
-    "@cosmjs/crypto": "^0.24.1",
+    "@types/mkdirp": "^1.0.2",
     "@types/prettyjson": "^0.0.30",
-    "ajv": "^8.6.0",
-    "bignumber.js": "^9.0.1",
-    "colors": "^1.4.0",
-    "dockerode": "^3.3.0",
-    "exponential-backoff": "^3.1.0",
-    "mkdirp": "^1.0.4",
-    "open": "^8.0.2",
-    "prettyjson": "^1.2.1",
-    "rimraf": "^3.0.2",
-    "secretjs": "^0.11.0",
-    "signal-exit": "^3.0.3",
-    "table": "^6.6.0",
-    "wait-port": "^0.2.9"
+    "@types/rimraf": "^3.0.2",
+    "bignumber.js": "^9.0.1"
   },
   "scripts": {
     "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",
     "docs-ts": "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
-    "test-js": "DEBUG=out mocha --timeout 5000 --exit js/*/*.spec.js",
+    "test-ts": "DEBUG=out esmo --async-stack-traces --enable-source-maps run-tests.mjs",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc ; rm Cargo.toml"

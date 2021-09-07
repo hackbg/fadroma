@@ -4,41 +4,22 @@ Industrial-strength tooling and components for WASM-based smart contracts.
 
 ![](https://github.com/hackbg/fadroma/blob/21.08/doc/logo.svg)
 
-## User quick start
+## Writing smart contracts with Fadroma
 
 `TODO`
 
-## Dev quick start
+## Deploying smart contracts with Fadroma
 
 `TODO`
 
-* Make sure to run `yarn` separately in `ui/gui` if you'll be hacking on the GUI.
-  Otherwise eslint can't find its formatter module
+## Contributing to Fadroma
+
+`TODO`
 
 ## Contents
 
-### Fadroma Agent
-
-Provides primitives for connecting to a Cosmos network and talking to the contracts on it.
-
-### Fadroma Builder
-
-Tools for building and uploading contracts.
-
-### Fadroma CliKit
-
-### Fadroma Contract
-
-Provides `Contract` and `ContractWithSchema` classes for talking to contracts more easily.
-
-### Fadroma Ensemble
-
-An Ensemble is a primitive for uploading and initializing multiple contracts in concert.
-
-### Fadroma Localnet
-
-Runs an ephemeral instance of the blockchain in a local Docker container for testing.
-
-### Fadroma Network Utilities
-
-### Fadroma System Utilities
+* `lib/` - Rust components. (**TODO:** separate SecretNetwork-specific stuff from the rest)
+* `ops/` - Generic deployment code.
+* `ops-scrt/` - SecretNetwork-specific deployment code
+* `ops-scrt-1.0/`, `ops-scrt-1.2` - compatibility between holodeck-2/supernova-1
+* `tools` - General JS utilities used across the library

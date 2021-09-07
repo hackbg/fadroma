@@ -1,0 +1,11 @@
+{
+  "name": "@fadroma/ops",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./index.ts",
+  "dependencies": {
+    "ajv": "^8.6.0",
+    "exponential-backoff": "^3.1.0",
+    "json-schema-to-typescript": "^10.1.4"
+  }
+}
