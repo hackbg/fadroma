@@ -6,7 +6,7 @@ import {Contract} from './Contract'
 
 export interface Ensemble {
   /* Build, upload, and initialize. */
-  deploy (): Promise<Instances>
+  deploy (): Promise<InstancesTable>
 
   /* Compile this ensemble's contracts from source. */
   build (parallel: boolean): Promise<Artifacts>
@@ -15,7 +15,7 @@ export interface Ensemble {
   upload (): Promise<Uploads>
 
   /* Init instances of uploaded contracts using an Agent. */
-  initialize (): Promise<Instances>
+  initialize (): Promise<InstancesTable>
 
   /* Definitions of all user-available actions for this ensemble. */
   commands (): Commands
@@ -39,6 +39,8 @@ export type Artifacts = Record<string, any>
 export type Uploads   = Record<string, any>
 export type Instances = Record<string, any>
 
+export type InstancesTable = string[][]
+
 const Errors = {
   NOTHING: "Please specify a chain, agent, or builder",
   AGENT:   "Can't use agent with different chain",
@@ -58,9 +60,9 @@ export abstract class BaseEnsemble implements Ensemble {
 
   agent: Agent
 
-  readonly chain:     Chain
+  readonly chain: Chain
 
-  readonly task:      Taskmaster = taskmaster()
+  readonly task: Taskmaster = taskmaster()
 
   readonly additionalBinds?: Array<any>
 
@@ -87,7 +89,7 @@ export abstract class BaseEnsemble implements Ensemble {
     return [["deploy", Info.DEPLOY, (_: any)=>this.deploy().then(console.info)]]}
 
   /* Build, upload, and instantiate the contracts. */
-  async deploy (): Promise<Instances> {
+  async deploy (): Promise<InstancesTable> {
     return this.task('build, upload, and initialize contracts', async () => {
       await this.build()
       await this.upload()
@@ -130,9 +132,10 @@ export abstract class BaseEnsemble implements Ensemble {
     * must be implemented in a subclass downstream.
     * In the future, it might be interesting to see if we can
     * add some basic dependency resolution. It just needs to be
-    * standardized on the Rust side (in fadroma-callback)? */
-  async initialize (): Promise<Instances> {
+    * standardized on the Rust side (in fadroma-callback)?
+    * @returns Table of resulting contract instances. */
+  async initialize (): Promise<InstancesTable> {
     await this.chain.init()
     this.agent = await this.chain.getAgent()
     Object.values(this.contracts).forEach(contract=>contract.setPrefix(this.prefix))
-    return {} } }
+    return [] } }

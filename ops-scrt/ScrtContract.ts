@@ -11,15 +11,15 @@ export class ScrtEnsemble extends BaseEnsemble {
   static chainSelector (E: EnsembleConstructor) {
     // TODO make this independent of Ensemble - or better yet, move it into Ensemble
     return [
-      ["mainnet",     "Run on mainnet",
+      ["mainnet",      "Run on mainnet",
         on['mainnet'],      new E({chain: Scrt.mainnet()      as Chain}).remoteCommands()],
-      ["holodeck-2",  "Run on holodeck2",
+      ["holodeck-2",   "Run on holodeck2",
         on['holodeck-2'],   new E({chain: Scrt.holodeck_2()   as Chain}).remoteCommands()],
-      ["supernova-1", "Run on supernova1",
+      ["supernova-1",  "Run on supernova1",
         on['supernova-1'],  new E({chain: Scrt.supernova_1()  as Chain}).remoteCommands()],
-      ["localnet",    "Run on localnet v1.0",
+      ["localnet-1.0", "Run on localnet v1.0",
         on['localnet-1.0'], new E({chain: Scrt.localnet_1_0() as Chain}).remoteCommands()],
-      ["localnet",    "Run on localnet v1.2",
+      ["localnet-1.2", "Run on localnet v1.2",
         on['localnet-1.2'], new E({chain: Scrt.localnet_1_2() as Chain}).remoteCommands()] ] } }
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

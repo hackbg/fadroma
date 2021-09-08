@@ -8,26 +8,26 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
      the tx hash is then queried to get the full transaction result
      or, if the transaction didn't actually commit, to retry it */
   async postTx (tx: any): Promise<any> {
-    let submitRetries = 5
+    let submitRetries = 10
     while (submitRetries--) {
       // get current block number
       const sent = (await this.getBlock()).header.height
       // submit the transaction and get its id
       const submitResult = await super.postTx(tx)
-      console.debug({submitResult})
+      //console.debug({submitResult})
       const id = submitResult.transactionHash
       // wait for next block
       while (true) {
         await new Promise(ok=>setTimeout(ok, 1000))
         const now = (await this.getBlock()).header.height
-        console.debug(id, sent, now)
+        //console.debug(id, sent, now)
         if (now > sent) break }
       // once the block has incremented, get the full transaction result
-      let resultRetries = 5
+      let resultRetries = 10
       while (resultRetries--) {
         try {
           const result = await this.restClient.get(`/txs/${id}`)
-          console.debug({result})
+          Object.assign(result, { transactionHash: id })
           return result }
         catch (e) {
           // handle only 404s

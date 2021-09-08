@@ -66,8 +66,9 @@ export class ContractInit extends ContractUpload {
     if (!this.codeId) {
       throw new Error('Contract must be uploaded before instantiating') }
     this.init.tx = await this.initBackoff(()=>this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
-    this.init.address = this.init.tx.contractAddress
-    this.save() }
+    this.init.address = this.initTx.contractAddress
+    this.save()
+    return this.initTx }
 
   /** Used by Ensemble to save multiple instantiation receipts in a subdir. */
   setPrefix (prefix: string) {
