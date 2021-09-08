@@ -14,7 +14,7 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
       const sent = (await this.getBlock()).header.height
       // submit the transaction and get its id
       const submitResult = await super.postTx(tx)
-      //console.debug({submitResult})
+      console.debug({submitResult})
       const id = submitResult.transactionHash
       // wait for next block
       while (true) {
@@ -27,10 +27,15 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
       while (resultRetries--) {
         try {
           const result = await this.restClient.get(`/txs/${id}`)
-          Object.assign(result, { transactionHash: id })
+          console.debug('<',result)
+          // if result contains error, throw it
+          const {raw_log} = result as any
+          if (raw_log.includes('failed')) throw new Error(raw_log)
+          Object.assign(result, { transactionHash: id, logs: ((result as any).logs)||[] })
           return result }
         catch (e) {
-          // handle only 404s
+          // retry only on 404, throw all other errors to decrypt them
+          if (!e.message.includes('404')) throw e
           console.warn(`failed to query result of tx ${id} with the following error, ${resultRetries} retries left`)
           console.warn(e)
           await new Promise(ok=>setTimeout(ok, 2000))
