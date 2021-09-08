@@ -131,7 +131,10 @@ export const rimraf = (path: string) =>
     _rimraf(path, (err) => { if (err) { reject(err) } else { resolve() } }) })
 
 import { randomBytes } from 'crypto'
-export const randomHex = (bytes: number) => randomBytes(bytes).toString("hex")
+export const randomHex = (bytes: number) =>
+  randomBytes(bytes).toString("hex")
+export const randomBase64 = (bytes: number) =>
+  randomBytes(bytes).toString("base64")
 
 const decoder = new TextDecoder();
 export const decode = (buffer: Buffer) => decoder.decode(buffer).trim()
