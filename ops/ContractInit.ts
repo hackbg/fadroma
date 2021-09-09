@@ -6,7 +6,7 @@ import { backOff } from 'exponential-backoff'
 
 import { ContractUpload } from './ContractUpload'
 
-export class ContractInit extends ContractUpload {
+export abstract class ContractInit extends ContractUpload {
   protected init: {
     prefix?:  string
     agent?:   Agent
