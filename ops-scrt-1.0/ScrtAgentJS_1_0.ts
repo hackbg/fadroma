@@ -1,4 +1,4 @@
-import { SigningCosmWasmClient } from 'secretjs'
+import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
 import { ScrtAgentJS, Identity } from '@fadroma/scrt'
 
 export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
@@ -8,6 +8,11 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
      the tx hash is then queried to get the full transaction result
      or, if the transaction didn't actually commit, to retry it */
   async postTx (tx: any): Promise<any> {
+    // only override for non-default broadcast modes
+    if ((this.restClient as any).broadcastMode === BroadcastMode.Block) {
+      console.info('broadcast mode is block, bypassing patch')
+      return super.postTx(tx) }
+    // try posting the transaction
     let submitRetries = 10
     while (submitRetries--) {
       // get current block number
@@ -45,5 +50,4 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
 
 export class ScrtAgentJS_1_0 extends ScrtAgentJS {
   static create = (options: Identity) => ScrtAgentJS.createSub(ScrtAgentJS_1_0, options)
-  constructor (options: Identity) { super(PatchedSigningCosmWasmClient, options) }
-}
+  constructor (options: Identity) { super(PatchedSigningCosmWasmClient, options) } }
