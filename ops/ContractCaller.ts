@@ -23,8 +23,8 @@ export class ContractCaller extends ContractInit {
 
   /** Execute a contract transaction. */
   execute (
-    method = "", args = null, memo: string,
-    amount: Array<any>, fee: any, agent = this.instantiator
+    method = "", args = null, memo: string = '',
+    amount: Array<any> = [], fee: any = undefined, agent = this.instantiator
   ) {
     return this.backoff(() => agent.execute(this, method, args, memo, amount, fee)) }
 
