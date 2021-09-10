@@ -7,7 +7,7 @@ import { backOff } from 'exponential-backoff'
 import { ContractUpload } from './ContractUpload'
 
 export abstract class ContractInit extends ContractUpload {
-  protected init: {
+  init: {
     prefix?:  string
     agent?:   Agent
     address?: string
@@ -62,12 +62,15 @@ export abstract class ContractInit extends ContractUpload {
     return backOff(fn, this.initBackoffOptions) }
 
   async instantiate (agent?: Agent) {
-    this.init.agent = agent
-    if (!this.codeId) {
-      throw new Error('Contract must be uploaded before instantiating') }
-    this.init.tx = await this.initBackoff(()=>this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
-    this.init.address = this.initTx.contractAddress
-    this.save()
+    if (!this.address) {
+      this.init.agent = agent
+      if (!this.codeId) {
+        throw new Error('Contract must be uploaded before instantiating') }
+      this.init.tx = await this.initBackoff(()=>this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
+      this.init.address = this.initTx.contractAddress
+      this.save() }
+    else if (this.address) {
+      throw new Error(`This contract has already been instantiated at ${this.address}`) }
     return this.initTx }
 
   /** Used by Ensemble to save multiple instantiation receipts in a subdir. */

@@ -1,7 +1,7 @@
 import { backOff } from 'exponential-backoff'
 import { ContractInit } from './ContractInit'
 
-export class ContractCaller extends ContractInit {
+export abstract class ContractCaller extends ContractInit {
 
   private backoffOptions = {
     retry (error: any, attempt: number) {

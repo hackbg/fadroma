@@ -7,7 +7,7 @@ const {info} = Console(import.meta.url)
 
 export class ContractUpload extends ContractCode {
 
-  protected blob: {
+  blob: {
     chain?:    Chain
     agent?:    Agent
     codeId?:   number

@@ -1,4 +1,4 @@
-import type { Ensemble, EnsembleOptions, Chain } from '@fadroma/ops'
+import type { Agent, Ensemble, EnsembleOptions, Chain } from '@fadroma/ops'
 import { BaseEnsemble, ContractAPI } from '@fadroma/ops'
 import { resolve, dirname, fileURLToPath } from '@fadroma/tools'
 import { Scrt, on } from './ScrtChainAPI'
@@ -26,5 +26,4 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export class ScrtContract extends ContractAPI {
   buildImage  = 'enigmampc/secret-contract-optimizer:latest'
-  buildScript = resolve(__dirname, 'ScrtBuild.sh')
-}
+  buildScript = resolve(__dirname, 'ScrtBuild.sh') }

@@ -9,7 +9,7 @@ export abstract class ContractCode {
   abstract buildImage:  string
   abstract buildScript: string
 
-  protected code: {
+  code: {
     workspace?: string
     crate?:     string
     artifact?:  string
