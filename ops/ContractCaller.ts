@@ -7,9 +7,11 @@ export abstract class ContractCaller extends ContractInit {
     retry (error: any, attempt: number) {
       if (error.message.includes('500')) {
         console.warn(`Error 500, retry #${attempt}...`)
+        console.warn(error)
         return true }
       if (error.message.includes('502')) {
         console.warn(`Error 502, retry #${attempt}...`)
+        console.warn(error)
         return true }
       else {
         return false } } }
