@@ -26,15 +26,14 @@
 #[cfg(feature="scrt-storage")]    pub mod scrt_storage_traits;
 #[cfg(feature="scrt-storage")]    pub mod scrt_storage_traits2;
 #[cfg(feature="scrt-storage")]    pub use scrt_storage::*;
-#[cfg(feature="scrt-utils")]      pub mod scrt_utils;
-#[cfg(feature="scrt-utils")]      pub mod scrt_utils_convert;
-#[cfg(feature="scrt-utils")]      pub mod scrt_utils_crypto;
-#[cfg(feature="scrt-utils")]      pub mod scrt_utils_uint256;
-#[cfg(feature="scrt-utils")]      pub use scrt_utils::*;
+#[cfg(feature="scrt-utils")]      pub mod scrt_decimal;
+#[cfg(feature="scrt-utils")]      pub mod scrt_crypto;
+#[cfg(feature="scrt-utils")]      pub mod scrt_uint256;
 #[cfg(feature="scrt-vk")]         pub mod scrt_vk;
 #[cfg(feature="scrt-vk")]         pub mod scrt_vk_auth;
 #[cfg(feature="scrt-vk")]         pub use scrt_vk::*;
 #[cfg(feature="scrt-vk")]         pub use scrt_vk_auth::*;
+#[cfg(feature="derive")]          pub use derive_contract;
 
 #[cfg(feature="terra")] mod terra; 
 #[cfg(feature="terra")] pub use terra::*;

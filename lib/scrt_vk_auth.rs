@@ -1,30 +1,18 @@
-use crate::{scrt::*, scrt_storage::*, scrt_vk::*};
+use crate::{
+    scrt::*,
+    scrt_storage::*,
+    scrt_vk::*,
+    derive_contract::{contract, handle}
+};
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 
-pub fn auth_handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: AuthHandleMsg,
-    handle: impl AuthHandle,
-) -> StdResult<HandleResponse> {
-    match msg {
-        AuthHandleMsg::CreateViewingKey { entropy, .. } =>
-            handle.create_viewing_key(deps, env, entropy),
-        AuthHandleMsg::SetViewingKey { key, .. } => 
-            handle.set_viewing_key(deps, env, key)
-    }
-}
-
-pub trait AuthHandle {
-    fn create_viewing_key<S: Storage, A: Api, Q: Querier>(
-        &self,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
-        entropy: String
-    ) -> StdResult<HandleResponse> {
+#[contract]
+pub trait Auth {
+    #[handle]
+    fn create_viewing_key(entropy: String, padding: Option<String>) -> StdResult<HandleResponse> {
         let prng_seed = [ 
             env.block.time.to_be_bytes(),
             env.block.height.to_be_bytes() 
@@ -43,30 +31,13 @@ pub trait AuthHandle {
         })
     }
 
-    fn set_viewing_key<S: Storage, A: Api, Q: Querier>(
-        &self,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
-        key: String
-    ) -> StdResult<HandleResponse> {
+    #[handle]
+    fn set_viewing_key(key: String, padding: Option<String>) -> StdResult<HandleResponse> {
         let key = ViewingKey(key);
         let address = deps.api.canonical_address(&env.message.sender)?;
         save_viewing_key(deps, address.as_slice(), &key)?;
 
         Ok(HandleResponse::default())
-    }
-}
-
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum AuthHandleMsg {
-    CreateViewingKey {
-        entropy: String,
-        padding: Option<String>,
-    },
-    SetViewingKey {
-        key: String,
-        padding: Option<String>,
     }
 }
 
@@ -76,12 +47,8 @@ pub enum AuthHandleMsg {
 pub enum AuthHandleAnswer {
     CreateViewingKey {
         key: ViewingKey,
-    },
+    }
 }
-
-pub struct DefaultHandleImpl;
-
-impl AuthHandle for DefaultHandleImpl { }
 
 #[inline]
 pub fn save_viewing_key<S: Storage, A: Api, Q: Querier>(
@@ -132,11 +99,11 @@ mod tests {
         let sender_canonical = deps.api.canonical_address(&sender).unwrap();
         let env = mock_env(sender, &[]);
 
-        let result = auth_handle(
+        let result = handle(
             deps,
             env.clone(),
-            AuthHandleMsg::CreateViewingKey { entropy: "123".into(), padding: None },
-            DefaultHandleImpl
+            HandleMsg::CreateViewingKey { entropy: "123".into(), padding: None },
+            DefaultImpl
         ).unwrap();
 
         let result: AuthHandleAnswer = from_binary(&result.data.unwrap()).unwrap();
@@ -156,11 +123,11 @@ mod tests {
 
         let new_key = String::from("new_key");
 
-        auth_handle(
+        handle(
             deps,
             env.clone(),
-            AuthHandleMsg::SetViewingKey { key: new_key.clone(), padding: None },
-            DefaultHandleImpl
+            HandleMsg::SetViewingKey { key: new_key.clone(), padding: None },
+            DefaultImpl
         ).unwrap();
 
         assert_eq!(ViewingKey(new_key.clone()), load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());

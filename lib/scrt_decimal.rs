@@ -1,4 +1,4 @@
-use crate::{scrt::*, scrt_utils_uint256::Uint256};
+use crate::{scrt::*, scrt_uint256::Uint256};
 
 /// Convert between tokens with different decimals.
 ///

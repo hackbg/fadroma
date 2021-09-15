@@ -23,6 +23,7 @@ serde             = { optional = true, version = "1.0.103", default-features = f
 sha2              = { optional = true, version = "0.9.1", default-features = false }
 snafu             = { optional = true, version = "0.6.3" }
 subtle            = { optional = true, version = "2.4.0", default-features = false }
+derive-contract   = { optional = true, path = "derive-contract" }
 
 # Terra
 #cosmwasm-std     = { version = "0.15.0" }
@@ -37,6 +38,7 @@ subtle            = { optional = true, version = "2.4.0", default-features = fal
 browser         = ["backtraces"]
 backtraces      = ["cosmwasm-std/backtraces", "snafu/backtraces"]
 harness         = []
+derive = ["derive-contract"]
 scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu", "schemars", "secret-toolkit"]
 scrt-addr       = ["scrt"]
 scrt-admin      = ["scrt"]
@@ -46,5 +48,5 @@ scrt-migrate    = ["scrt"]
 scrt-snip20-api = ["scrt"]
 scrt-storage    = ["scrt", "serde"]
 scrt-utils      = ["scrt", "rand_chacha", "rand_core", "sha2", "subtle", "primitive-types"]
-scrt-vk         = ["scrt"]
+scrt-vk         = ["derive", "scrt-storage", "scrt-utils"]
 terra           = []
