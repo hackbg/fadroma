@@ -1,16 +1,32 @@
 import type { Chain } from './ChainAPI'
 import type { Agent } from './Agent'
 
-export abstract class ContractConfig {
-  readonly workspace: string
-  readonly crate:     string
-  readonly label:     string
-  readonly initMsg:   any = {}
+export type ContractCodeOptions = {
+  workspace?: string
+  crate?:     string
+  artifact?:  string
+  codeHash?:  string
+}
+
+export type ContractUploadOptions = ContractCodeOptions & {
+  chain?:    Chain
+  codeId?:   number
+}
+
+export type ContractInitOptions = ContractUploadOptions & {
+  agent?:   Agent
+  address?: string
+  prefix?:  string
+  label?:   string
+  initMsg?: Record<any, any>
+}
+
+export type ContractAPIOptions = ContractInitOptions & {
+  schema?: Record<string, any>,
 }
 
 export interface Contract {
 
-  setPrefix (prefix: string): this
   save (): this
 
   // Compilation. Implemented in ContractBuild

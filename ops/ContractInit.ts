@@ -1,10 +1,8 @@
-import { JSONDirectory } from '@fadroma/tools'
-
 import type { Agent } from './Agent'
-
-import { backOff } from 'exponential-backoff'
-
+import type { ContractInitOptions } from './Contract'
 import { ContractUpload } from './ContractUpload'
+import { JSONDirectory } from '@fadroma/tools'
+import { backOff } from 'exponential-backoff'
 
 export abstract class ContractInit extends ContractUpload {
   init: {
@@ -21,9 +19,12 @@ export abstract class ContractInit extends ContractUpload {
     }
   } = {}
 
-  constructor (agent: Agent) {
-    super(agent)
-    this.init.agent = agent }
+  constructor (options?: ContractInitOptions) {
+    super(options)
+    this.init.prefix  = options?.prefix
+    this.init.agent   = options?.agent
+    this.init.address = options?.address
+    this.init.msg     = options?.initMsg }
 
   /** The agent that initialized this instance of the contract. */
   get instantiator () { return this.init.agent }

@@ -4,17 +4,18 @@ import {
 
 const {debug} = Console(import.meta.url)
 
+import type { ContractCodeOptions } from './Contract'
+
 export abstract class ContractCode {
+
+  constructor (options?: ContractCodeOptions) {
+    if (options) this.code = options
+  }
 
   abstract buildImage:  string
   abstract buildScript: string
 
-  code: {
-    workspace?: string
-    crate?:     string
-    artifact?:  string
-    codeHash?:  string
-  } = {}
+  code: ContractCodeOptions = {}
 
   /** Path to source workspace */
   get workspace () { return this.code.workspace }
