@@ -2,20 +2,23 @@ import {
   resolve, dirname, fileURLToPath, relative, existsSync, Docker, pulled, Console, bold, Path
 } from '@fadroma/tools'
 
-const {debug} = Console(import.meta.url)
+const console = Console(import.meta.url)
 
 import type { ContractCodeOptions } from './Contract'
 
 export abstract class ContractCode {
 
-  constructor (options?: ContractCodeOptions) {
-    if (options) this.code = options
-  }
-
   abstract buildImage:  string
   abstract buildScript: string
 
   code: ContractCodeOptions = {}
+
+  constructor (options: ContractCodeOptions = {}) {
+    if (options.workspace) this.code.workspace = options.workspace
+    if (options.crate)     this.code.crate = options.crate
+    if (options.artifact)  this.code.artifact = options.artifact
+    if (options.codeHash)  this.code.codeHash = options.codeHash
+  }
 
   /** Path to source workspace */
   get workspace () { return this.code.workspace }
@@ -42,7 +45,6 @@ export abstract class ContractCode {
         , output    = resolve(outputDir, `${this.crate}@${ref}.wasm`)
 
     if (!existsSync(output)) {
-      console.debug('pull', this, this.buildImage)
       const image   = await pulled(this.buildImage, this.docker)
           , buildArgs =
             { Env:

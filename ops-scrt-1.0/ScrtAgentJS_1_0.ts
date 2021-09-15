@@ -19,7 +19,6 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
       const sent = (await this.getBlock()).header.height
       // submit the transaction and get its id
       const submitResult = await super.postTx(tx)
-      console.debug({submitResult})
       const id = submitResult.transactionHash
       // wait for next block
       while (true) {

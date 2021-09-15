@@ -18,7 +18,7 @@ export abstract class ContractAPI extends ContractCaller implements Contract {
     queryResponse?:  any
     handleMsg?:      any
     handleResponse?: any
-  }
+  } = {}
 
   private ajv = getAjv()
 
@@ -33,9 +33,9 @@ export abstract class ContractAPI extends ContractCaller implements Contract {
   q:  Record<string, Function>
   tx: Record<string, Function>
 
-  constructor (options?: ContractAPIOptions) {
+  constructor (options: ContractAPIOptions = {}) {
     super(options)
-    this.schema = options?.schema
+    if (options.schema) this.schema = options.schema
     this.q  = new SchemaFactory(this, this.schema?.queryMsg).create()
     this.tx = new SchemaFactory(this, this.schema?.handleMsg).create()
     for (const msg of ['initMsg', 'queryMsg', 'queryResponse', 'handleMsg', 'handleResponse']) {
