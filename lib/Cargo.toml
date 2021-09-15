@@ -24,6 +24,7 @@ sha2              = { optional = true, version = "0.9.1", default-features = fal
 snafu             = { optional = true, version = "0.6.3" }
 subtle            = { optional = true, version = "2.4.0", default-features = false }
 derive-contract   = { optional = true, path = "derive-contract" }
+require-admin     = { optional = true, path = "./composable-admin/require-admin" }
 
 # Terra
 #cosmwasm-std     = { version = "0.15.0" }
@@ -41,7 +42,7 @@ harness         = []
 derive = ["derive-contract"]
 scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu", "schemars", "secret-toolkit"]
 scrt-addr       = ["scrt"]
-scrt-admin      = ["scrt"]
+scrt-admin      = ["derive", "scrt-storage", "require-admin"]
 scrt-contract   = ["scrt"]
 scrt-icc        = ["scrt", "scrt-addr"]
 scrt-migrate    = ["scrt"]

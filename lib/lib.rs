@@ -1,8 +1,11 @@
+#[cfg(feature="scrt-admin")]
+mod composable_admin;
+
 #[cfg(feature="scrt")]            pub mod scrt;
 #[cfg(feature="scrt")]            pub use scrt::*;
 #[cfg(feature="scrt-addr")]       pub mod scrt_addr;
 #[cfg(feature="scrt-addr")]       use scrt_addr::*;
-#[cfg(feature="scrt-admin")]      pub use composable_admin::admin::*;
+#[cfg(feature="scrt-admin")]      pub use composable_admin::admin;
 #[cfg(feature="scrt-admin")]      pub use composable_admin::multi_admin as multi;
 #[cfg(feature="scrt-admin")]      pub use require_admin::*;
 #[cfg(feature="scrt-contract")]   pub mod scrt_contract;
