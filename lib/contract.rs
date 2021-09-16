@@ -21,7 +21,7 @@
 #[macro_export] macro_rules! prelude {
     () => { pub use fadroma::terra::{
         Storage, Api, Querier, Env,
-        Deps, DepsMut, MessageInfo, QueryResponse, Response,
+        Deps, DepsMut, MessageInfo, QueryResponse, Response as CwResponse,
         Addr, Coin, Uint128,
         Binary, Event, StdError, Error,
         CosmosMsg, BankMsg, WasmMsg, to_binary,

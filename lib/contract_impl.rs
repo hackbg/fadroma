@@ -56,7 +56,7 @@
         $(#[$InitMeta])*
         pub fn instantiate (
             mut $deps: DepsMut, $env: Env, $info: MessageInfo, $msg: $Instantiate
-        ) -> Result<Response, ContractError> {
+        ) -> Result<CwResponse, ContractError> {
             $(let $field : $type = $msg.$field;)*
             macro_rules! save_state {
                 // Storing the global state of the contract with this macro
@@ -75,7 +75,7 @@
         $(#[$InitMeta])*
         pub fn instantiate (
             $deps: DepsMut, $env: Env, $info: MessageInfo, $msg: $InitExt
-        ) -> Result(Response, ContractError) {
+        ) -> Result<CwResponse, ContractError> {
             // no auto-destructuring because the macro is not aware of the struct fields
             macro_rules! save_state {
                 // Storing the global state of the contract with this macro
@@ -147,15 +147,15 @@
     // and pass through to the next macro variantb
     (
         $State:ident, $EnumExt:ident, $_:ident
-        ( $deps:ident, $state:ident, $env:ident, $msg:ident ) -> $Res:ident { $($bodies:tt)* }
+        ( $deps:ident, $state:ident, $env:ident, $msg:ident ) -> $Response:ident { $($bodies:tt)* }
     ) => {
-        implement_queries!($State, $EnumExt ( $deps, $state, $env, $msg ) -> $Res { $($bodies)* });
+        implement_queries!($State, $EnumExt ( $deps, $state, $env, $msg ) -> $Response { $($bodies)* });
     };
 
     // implement queries defined in $body
     (
         $State:ident, $Enum:ident
-        ( $deps:ident, $state:ident, $env:ident, $msg:ident ) -> $Res:ident { $(
+        ( $deps:ident, $state:ident, $env:ident, $msg:ident ) -> $Response:ident { $(
             $(#[$meta:meta])* $Variant:ident ( $($field:ident : $type:ty),*)
             $body:tt
         )* }
@@ -173,14 +173,14 @@
         /// Query handlers.
         mod queries {
             prelude!();
-            pub use super::{*, msg::Res};
+            pub use super::{*, msg::Response};
             // for every query message variant, define a handler
             $(
                 $(#[$meta])*
                 #[allow(non_snake_case)]
                 pub fn $Variant (
                     $deps: Deps, $state: $State, $msg: msg::$Enum,
-                ) -> Result<$Res, ContractError> {
+                ) -> Result<$Response, ContractError> {
                     if let super::msg::$Enum::$Variant {$($field),*} = $msg { // destructure the message
                         $body // perform user-specified actions
                     } else { unreachable!() }
@@ -260,7 +260,7 @@
         /// Transaction dispatcher
         pub fn execute(
             $deps: DepsMut, $env: Env, $info: MessageInfo, $msg: msg::$Enum,
-        ) -> Result<Response, ContractError> {
+        ) -> Result<CwResponse, ContractError> {
             // pick the handler that matches the message and call it:
             match $msg { $(
                 msg::$Enum::$Variant {..} => self::execute::$Variant($deps, $env, $info, $msg),
@@ -277,7 +277,7 @@
                 $env:  Env,
                 $info: MessageInfo,
                 $msg:  msg::$Enum,
-            ) -> Result<Response, ContractError> {
+            ) -> Result<CwResponse, ContractError> {
                 // get mutable snapshot of current state:
                 let mut $state = CONFIG.load($deps.storage)?;
                 macro_rules! save_state {
