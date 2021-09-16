@@ -224,7 +224,7 @@
                     $tx_arg $(: $tx_arg_type)?),*
                 ))*
             });
-            messages!($Res { $(
+            messages!($Response { $(
                 $(#[$response_meta])* $ResponseMsg {
                     $($(#[$response_field_meta])* $resp_field: $resp_field_type),*
                 }
