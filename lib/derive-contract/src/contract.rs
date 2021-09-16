@@ -295,9 +295,7 @@ impl Contract {
                     #arg
                 ) -> cosmwasm_std::StdResult<cosmwasm_std::InitResponse> { }
             };
-    
-            let ref method_name = init.sig.ident;
-    
+        
             let mut args = Punctuated::<ExprField, Comma>::new();
     
             for input in &init.sig.inputs {
@@ -308,6 +306,7 @@ impl Contract {
             }
     
             let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
+            let ref method_name = init.sig.ident;
     
             let call: Expr = parse_quote!(#arg_name.#method_name(#args deps, env));
             result.block.stmts.push(Stmt::Expr(call));
@@ -684,7 +683,13 @@ fn extract_query_name_ident(method: &TraitItemMethod) -> syn::Result<Ident> {
 
 fn require_pat_ident(pat: Pat) -> syn::Result<Ident> {
     if let Pat::Ident(pat_ident) = pat {
-        Ok(pat_ident.ident)
+        // Strip leading underscores because we might want to include a field in the 
+        // generated message, but not actually use it in the impl. A very rare case,
+        // but it is used in the SNIP-20 implementation ('padding' field), for example.
+        let name = pat_ident.ident.to_string();
+        let name = name.trim_start_matches('_');
+
+        Ok(Ident::new(name, pat_ident.ident.span()))
     } else {
         return Err(syn::Error::new(pat.span(), "Expected identifier."));
     }

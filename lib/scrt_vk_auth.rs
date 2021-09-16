@@ -12,7 +12,7 @@ const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 #[contract]
 pub trait Auth {
     #[handle]
-    fn create_viewing_key(entropy: String, padding: Option<String>) -> StdResult<HandleResponse> {
+    fn create_viewing_key(entropy: String, _padding: Option<String>) -> StdResult<HandleResponse> {
         let prng_seed = [ 
             env.block.time.to_be_bytes(),
             env.block.height.to_be_bytes() 
@@ -32,7 +32,7 @@ pub trait Auth {
     }
 
     #[handle]
-    fn set_viewing_key(key: String, padding: Option<String>) -> StdResult<HandleResponse> {
+    fn set_viewing_key(key: String, _padding: Option<String>) -> StdResult<HandleResponse> {
         let key = ViewingKey(key);
         let address = deps.api.canonical_address(&env.message.sender)?;
         save_viewing_key(deps, address.as_slice(), &key)?;
