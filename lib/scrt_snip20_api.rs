@@ -1,5 +1,12 @@
-use crate::{scrt::*, scrt::toolkit::*};
-use fadroma_scrt_icc::ContractLink;
+use crate::{
+    scrt::{
+        BLOCK_SIZE, HumanAddr, StdResult,
+        CosmosMsg, Uint128, Binary, Querier
+    },
+    scrt_link::ContractLink,
+    secret_toolkit::snip20
+};
+
 
 pub struct ISnip20 <'a> {
     pub link:   &'a ContractLink<HumanAddr>,
