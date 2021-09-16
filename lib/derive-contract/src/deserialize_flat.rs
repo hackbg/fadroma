@@ -1,7 +1,7 @@
 use syn::{
     ItemImpl, Stmt, ItemEnum, ImplItemMethod, ImplItem,
     Visibility, Ident, Item, Fields, ExprMatch, Arm,
-    parse_quote
+    Expr, ExprIf, parse_quote
 };
 use syn::token::Comma;
 use syn::punctuated::Punctuated;
@@ -26,11 +26,11 @@ pub fn impl_deserialize_flat(item: &ItemEnum) -> ItemImpl {
         let #value_ident = serde_json::Value::deserialize(deserializer)?;
     });
 
+    let mut if_stmts = Vec::<Stmt>::new();
+
     // Try do deserialize the nested variant directly
     // in order to support the flat JSON structure.
     for variant in item.variants.iter() {
-        // TODO: add skip attribute
-
         if let Fields::Unnamed(fields) = &variant.fields {
             if fields.unnamed.len() > 1 {
                 panic!("Tuple variant can only contain a single field.")
@@ -40,16 +40,13 @@ pub fn impl_deserialize_flat(item: &ItemEnum) -> ItemImpl {
             let ref field_type = field.ty;
             let ref variant_name = variant.ident;
 
-            // TODO: Check if calling "deserialize" on the helper struct would succeed as well.
-            // If it does, should throw an error saying that the full path should be used
-            // in order to disambiguate.
             let stmt = parse_quote! {
                 if let Ok(val) = #field_type::deserialize(&#value_ident) {
                     return Ok(#enum_name::#variant_name(val));
                 }
             };
 
-            method_impl.block.stmts.push(stmt);
+            if_stmts.push(stmt);
         }
     }
 
@@ -57,19 +54,27 @@ pub fn impl_deserialize_flat(item: &ItemEnum) -> ItemImpl {
     let helper_enum = Ident::new(HELPER_ENUM_NAME, Span::call_site());
 
     method_impl.block.stmts.push(parse_quote! {
-        let #deserialize_result = #helper_enum::deserialize(&#value_ident).map_err(serde::de::Error::custom)?;
+        let #deserialize_result = #helper_enum::deserialize(&#value_ident).map_err(serde::de::Error::custom);
     });
 
-    let match_expr = create_fallback_match_expr(item, deserialize_result, helper_enum);
+    let match_expr = create_helper_match_expr(item, &deserialize_result, helper_enum);
     let result_ident = Ident::new("result", Span::call_site());
 
-    method_impl.block.stmts.push(parse_quote! {
-        let #result_ident = #match_expr;
-    });
+    // Try to deserialize the nested variant directly, only after
+    // we have failed to deserialize using the original structure
+    let if_expr: ExprIf = parse_quote! {
+        if let Err(error) = #deserialize_result {
+            #(#if_stmts)*
 
-    method_impl.block.stmts.push(parse_quote! {
-        return Ok(#result_ident);
-    });
+            return Err(error);
+        } else {
+            let #result_ident = #match_expr;
+
+            return Ok(#result_ident);
+        }
+    };
+
+    method_impl.block.stmts.push(Stmt::Expr(Expr::If(if_expr)));
 
     let mut impl_stmt: ItemImpl = parse_quote! {
         #[automatically_derived]
@@ -98,15 +103,15 @@ fn create_helper_enum_stmt(mut item: ItemEnum) -> Stmt {
     Stmt::Item(Item::Enum(item))
 }
 
-fn create_fallback_match_expr(
+fn create_helper_match_expr(
     item: &ItemEnum,
-    deserialize_result: Ident,
+    deserialize_result: &Ident,
     helper_enum: Ident
 ) -> ExprMatch {
     let ref enum_name = item.ident;
 
     let mut result: ExprMatch = parse_quote! {
-        match #deserialize_result {
+        match #deserialize_result.unwrap() {
 
         }
     };
