@@ -64,7 +64,7 @@ export abstract class ContractCode {
                          , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
           , command = `bash /entrypoint.sh ${this.crate} ${ref}`
       console.log({entry: this.buildScript})
-      debug(`building working tree at ${this.workspace} into ${outputDir}...`)
+      console.debug(`building working tree at ${this.workspace} into ${outputDir}...`)
       buildArgs.HostConfig.Binds.push(`${this.workspace}:/contract:rw`)
       additionalBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
       const [{Error:err, StatusCode:code}, container] =
