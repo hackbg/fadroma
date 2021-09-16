@@ -1,6 +1,6 @@
 use syn::{
     TraitItemMethod, Path, AttributeArgs, ItemTrait, Meta, Lit,
-    TraitItem, AttrStyle, ReturnType, Type, Ident, ItemEnum, TypePath,
+    TraitItem, ReturnType, Type, Ident, ItemEnum, TypePath,
     Variant, FnArg, FieldsNamed, Field, Visibility, Pat, NestedMeta,
     Fields, ItemStruct, ItemFn, Stmt, Expr, ExprMatch, ExprField,
     GenericArgument, PathArguments, parse_quote
@@ -71,10 +71,6 @@ impl Contract {
         for item in item_trait.items.into_iter() {
             if let TraitItem::Method(method) = item {
                 for attr in method.attrs.iter() {
-                    if let AttrStyle::Inner(_) = attr.style {
-                        return Err(syn::Error::new(attr.span(), "Invalid attribute style"));
-                    }
-
                     let segment = attr.path.segments.last().unwrap();
                     let path = format!("{}", quote!{ #segment });
     
