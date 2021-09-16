@@ -41,6 +41,10 @@ backtraces      = ["cosmwasm-std/backtraces", "snafu/backtraces"]
 harness         = []
 derive          = ["derive-contract"]
 
+scrt-all        = [
+                    "scrt", "scrt-addr", "scrt-admin", "scrt-contract", "scrt-icc", "scrt-vk",
+                    "scrt-migrate", "scrt-snip20-api", "scrt-storage", "scrt-utils"
+                  ]
 scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu", "schemars", "secret-toolkit"]
 scrt-addr       = ["scrt"]
 scrt-admin      = ["derive", "scrt-storage", "require-admin"]
