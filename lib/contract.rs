@@ -180,7 +180,7 @@
             )* }
 
         // Define possible query responses:
-        [$Res:ident] {
+        [$Response:ident] {
         $( $(#[$response_meta:meta])* $ResponseMsg:ident {
             $($(#[$response_field_meta:meta])* $resp_field:ident : $resp_field_type:ty),* } )* }
 

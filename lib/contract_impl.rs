@@ -247,13 +247,13 @@
 #[macro_export] macro_rules! implement_transactions {
 
     (   $State:ident, $Enum:ident, $_:ident
-        ($deps:ident, $env:ident, $info:ident, $state:ident, $msg:ident) -> $Res:ident { $($bodies:tt)* }
+        ($deps:ident, $env:ident, $info:ident, $state:ident, $msg:ident) -> $Response:ident { $($bodies:tt)* }
     ) => {
-        implement_transactions!($State, $Enum ($deps, $env, $state, $msg) -> $Res { $($bodies)* });
+        implement_transactions!($State, $Enum ($deps, $env, $state, $msg) -> $Response { $($bodies)* });
     };
 
     (   $State:ident, $Enum:ident
-        ($deps:ident, $env:ident, $info:ident, $state:ident, $msg:ident) -> $Res:ident {
+        ($deps:ident, $env:ident, $info:ident, $state:ident, $msg:ident) -> $Response:ident {
             $($(#[$meta:meta])* $Variant:ident ( $($arg:ident $(: $type:ty)?),* ) $body:block)*
         }
     ) => {
