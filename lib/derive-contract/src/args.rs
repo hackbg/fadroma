@@ -13,6 +13,7 @@ use proc_macro2::Span;
 
 use crate::contract::{DEFAULT_IMPL_STRUCT, ContractType};
 use crate::utils::to_pascal;
+use crate::attr;
 
 pub struct ContractArgs {
     pub is_entry: bool,
@@ -41,33 +42,15 @@ impl ContractArgs {
             if let NestedMeta::Meta(meta) = arg {
                 match meta {
                     Meta::List(list) => {
-                        let segment = list.path.segments.first().unwrap();
-                        let name = segment.ident.to_string();
-
-                        if name == "component" {
-                            components.push(Component::parse(list.nested, ty)?)
-                        } else {
-                            return Err(syn::Error::new(
-                                segment.span(),
-                                format!("Unexpected attribute: \"{}\"", name)
-                            ));
-                        }
+                        validate_first_segment(list.path, attr::COMPONENT)?;
+                        components.push(Component::parse(list.nested, ty)?);
                     },
                     Meta::NameValue(name_val) if ty.is_impl() => {
                         parser.parse(name_val)?;
                     }
                     Meta::Path(path) if !ty.is_interface() => {
-                        let segment = path.segments.first().unwrap();
-                        let name = segment.ident.to_string();
-
-                        if name.as_str() == "entry" {
-                            is_entry = true;
-                        } else {
-                            return Err(syn::Error::new(
-                                segment.span(),
-                                format!("Unexpected attribute: \"{}\"", name)
-                            ));
-                        }
+                        validate_first_segment(path, attr::ENTRY)?;
+                        is_entry = true;
                     },
                     _ => {
                         return Err(syn::Error::new(meta.span(), "Unexpected meta attribute."));
@@ -79,7 +62,7 @@ impl ContractArgs {
         }
 
         let interface_path = if ty.is_impl() {
-            Some(parser.require("path")?)
+            Some(parser.require(attr::PATH)?)
         } else {
             None
         };
@@ -128,19 +111,23 @@ impl Component {
                             let name = extract_path_ident_name(&list.path)?;
 
                             match name.as_str() {
-                                "skip" => {
+                                attr::SKIP => {
                                     for arg in list.nested {
                                         if let NestedMeta::Meta(meta) = arg {
                                             if let Meta::Path(skip_arg) = meta {
                                                 let skipable = extract_path_ident_name(&skip_arg)?;
 
                                                 match skipable.as_str() {
-                                                    "handle" => skip_handle = true,
-                                                    "query" => skip_query = true,
+                                                    attr::HANDLE => skip_handle = true,
+                                                    attr::QUERY => skip_query = true,
                                                     _ =>{
                                                         return Err(syn::Error::new(
                                                             skip_arg.span(),
-                                                            format!("Unexpected argument in \"skip\" attribute: \"{}\"", skipable)
+                                                            format!(
+                                                                "Unexpected argument in \"{}\" attribute: \"{}\"",
+                                                                attr::SKIP,
+                                                                skipable
+                                                            )
                                                         ));
                                                     }
                                                 }
@@ -167,14 +154,17 @@ impl Component {
             }
         }
 
-        let path = parser.require("path")?;
-        let custom_impl = parser.get("custom_impl")?;
+        let path = parser.require(attr::PATH)?;
+        let custom_impl = parser.get(attr::CUSTOM_IMPL)?;
 
         if ty.is_interface() && custom_impl.is_some() {
             return Err(syn::Error::new(
                 Span::call_site(),
-                "Interfaces cannot have the \"custom_impl\" attribute. Specify this on the implementing trait instead.")
-            );
+                format!(
+                    "Interfaces cannot have the \"{}\" attribute. Specify this on the implementing trait instead.",
+                    attr::CUSTOM_IMPL
+                )
+            ));
         }
 
         parser.finalize()?;
@@ -299,4 +289,18 @@ fn extract_path_ident_name(path: &Path) -> syn::Result<String> {
     }
 
     Ok(name.ident.to_string())
+}
+
+fn validate_first_segment(path: Path, arg: &'static str) -> syn::Result<()> {
+    let segment = path.segments.first().unwrap();
+    let name = segment.ident.to_string();
+
+    if name == arg {
+        return Ok(());
+    }
+
+    return Err(syn::Error::new(
+        segment.span(),
+        format!("Unexpected attribute: \"{}\"", name)
+    ));
 }

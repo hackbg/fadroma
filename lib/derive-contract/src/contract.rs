@@ -13,15 +13,17 @@ use proc_macro2::{TokenStream, Span};
 
 use crate::args::ContractArgs;
 use crate::utils::to_pascal;
+use crate::attr;
 
-pub const INIT_MSG: &str = "InitMsg";
-pub const HANDLE_MSG: &str = "HandleMsg";
-pub const QUERY_MSG: &str = "QueryMsg";
-pub const RESPONSE_MSG: &str = "QueryResponse";
 pub const DEFAULT_IMPL_STRUCT: &str = "DefaultImpl";
-pub const INIT_FN: &str = "init";
-pub const HANDLE_FN: &str = "handle";
-pub const QUERY_FN: &str = "query";
+
+const INIT_MSG: &str = "InitMsg";
+const HANDLE_MSG: &str = "HandleMsg";
+const QUERY_MSG: &str = "QueryMsg";
+const RESPONSE_MSG: &str = "QueryResponse";
+const INIT_FN: &str = "init";
+const HANDLE_FN: &str = "handle";
+const QUERY_FN: &str = "query";
 
 const CONTRACT_ARG: &str = "contract";
 
@@ -75,7 +77,7 @@ impl Contract {
                     let path = format!("{}", quote!{ #segment });
     
                     match path.as_str() {
-                        "init" => {
+                        attr::INIT => {
                             if init.is_some() {
                                 return Err(syn::Error::new(segment.span(), "Only one method can be annotated as #[init]."));
                             }
@@ -85,13 +87,13 @@ impl Contract {
     
                             break;
                         },
-                        "handle" => {
+                        attr::HANDLE => {
                             validate_method(&method, Some(parse_quote!(HandleResponse)), ty)?;
                             handle.push(method);
     
                             break;
                         },
-                        "query" => {
+                        attr::QUERY => {
                             validate_method(&method, None, ty)?;
                             query.push(method);
     
@@ -643,7 +645,7 @@ fn extract_std_result_type(return_ty: &ReturnType) -> syn::Result<&TypePath> {
         }
     }
 
-    Err(syn::Error::new(return_ty.span(), "Expecting return type: StdResult<T>"))
+    Err(syn::Error::new(return_ty.span(), "Expecting return type: StdResult<T>."))
 }
 
 fn extract_fn_arg_ident(arg: &FnArg) -> syn::Result<Ident> {
@@ -651,18 +653,26 @@ fn extract_fn_arg_ident(arg: &FnArg) -> syn::Result<Ident> {
         FnArg::Typed(pat_type) => {
             require_pat_ident(*pat_type.pat.to_owned())
         },
-        FnArg::Receiver(_) => Err(syn::Error::new(arg.span(), "Method definition cannot contain \"self\""))
+        FnArg::Receiver(_) => Err(syn::Error::new(arg.span(), "Method definition cannot contain \"self\"."))
     }
 }
 
 fn extract_query_name_ident(method: &TraitItemMethod) -> syn::Result<Ident> {
+    fn lit_error() -> String {
+        format!(
+            "Expected 1 string literal argument in \"{}\" attribute that will be used as the \"{}\" enum variant field name.",
+            attr::QUERY,
+            RESPONSE_MSG
+        )
+    }
+
     let mut field_name = None;
 
     for attr in &method.attrs {
         if let Ok(meta) = attr.parse_meta() {
             if let Meta::List(meta_list) = meta {
                 if meta_list.nested.len() != 1 {
-                    return Err(syn::Error::new(meta_list.span(), "Expected 1 string literal argument in \"query\" attribute."));
+                    return Err(syn::Error::new(meta_list.span(), lit_error()));
                 }
                 
                 if let NestedMeta::Lit(lit) = meta_list.nested.first().unwrap() {
@@ -677,7 +687,7 @@ fn extract_query_name_ident(method: &TraitItemMethod) -> syn::Result<Ident> {
     if let Some(field_name) = field_name {
         Ok(Ident::new(&field_name.value(), Span::call_site()))
     } else {
-        Err(syn::Error::new(method.span(), "Expected 1 string literal argument in \"query\" attribute."))
+        Err(syn::Error::new(method.span(), lit_error()))
     }
 }
 

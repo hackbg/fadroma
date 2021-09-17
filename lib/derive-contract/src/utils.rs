@@ -29,6 +29,7 @@ mod tests {
     #[test]
     fn test_to_pascal() {
         assert_eq!(to_pascal(&"to_pascal"), String::from("ToPascal"));
+        assert_eq!(to_pascal(&"__to_pascal"), String::from("ToPascal"));
         assert_eq!(to_pascal(&"Very_Long_string"), String::from("VeryLongString"));
     }
 }

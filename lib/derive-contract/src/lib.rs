@@ -11,6 +11,7 @@ mod contract;
 mod args;
 mod utils;
 mod deserialize_flat;
+mod attr;
 
 #[proc_macro_attribute]
 pub fn contract(args: proc_macro::TokenStream, trait_: proc_macro::TokenStream) -> proc_macro::TokenStream {
