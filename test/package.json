@@ -1,0 +1,23 @@
+{
+  "name": "@fadroma/test",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./test.mjs",
+  "dependencies": {
+    "@fadroma/ops": "*",
+    "@fadroma/scrt": "*",
+    "@fadroma/scrt-1.0": "*",
+    "@fadroma/scrt-1.2": "*",
+    "freeport-async": "^2.0.0",
+    "tap": "^15.0.9"
+  },
+  "scripts": {
+    "test": "tap --node-arg=--experimental-loader=esbuild-node-loader test_agent.ts",
+    "watch": "tap -w --node-arg=--experimental-loader=esbuild-node-loader test_agent.ts"
+  },
+  "devDependencies": {
+    "@types/tap": "^15.0.5",
+    "esbuild-node-loader": "^0.3.1",
+    "express": "^4.17.1"
+  }
+}

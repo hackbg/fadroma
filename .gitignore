@@ -1,3 +1,4 @@
+.nyc_output
 target
 scratch.rs
 node_modules

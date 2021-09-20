@@ -2,7 +2,7 @@ import Mocha from 'mocha'
 import {resolve, dirname} from 'path'
 import {fileURLToPath} from 'url'
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), 'ops')
+const root = resolve(dirname(fileURLToPath(import.meta.url)))
 const mocha = new Mocha()
 
 mocha.addFile(resolve(root, 'agent.spec.mjs'))

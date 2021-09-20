@@ -1,15 +1,12 @@
-import {
-  Scrt,
-  ScrtAgentJS,
-  ScrtCLIAgent,
-} from '../ops/index.ts';
+import { Scrt, ScrtAgentJS, ScrtCLIAgent, } from '@fadroma/scrt';
 
 import debug from 'debug';
+const log = debug('out');
+
 import { assert } from 'chai';
 import { Bip39 } from '@cosmjs/crypto';
 import { EnigmaUtils, Secp256k1Pen } from 'secretjs';
-const log = debug('out');
-import { localnet } from '../ops/test_helper.js';
+import { localnet } from './test_helper.js';
 
 const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
 const mnemonic1 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';

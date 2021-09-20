@@ -1,5 +1,4 @@
-import { Scrt, ScrtCLIAgent, ScrtAgentJS, ScrtGas } from "./index.ts";
-import { ScrtNode } from "./localnet.ts";
+import { Scrt, ScrtCLIAgent, ScrtAgentJS, ScrtGas, ScrtNode } from "@fadroma/scrt";
 
 const fees = {
   upload: new ScrtGas(20000000),
