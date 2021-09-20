@@ -195,10 +195,9 @@ impl Contract {
         };
 
         let enum_name = msg_type.to_ident();
-        let deserialize = self.create_deserialize_arg(msg_type);
 
         let mut result: ItemEnum = parse_quote!{
-            #[derive(serde::Serialize, #deserialize, schemars::JsonSchema)]
+            #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
             #[serde(rename_all = "snake_case")]
             pub enum #enum_name {
 
@@ -537,22 +536,6 @@ impl Contract {
         let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
 
         parse_quote!(#arg_name: impl #trait_name)
-    }
-
-    fn create_deserialize_arg(&self, msg_type: MsgType) -> NestedMeta {
-        let count = match msg_type {
-            MsgType::Handle => self.args.handle_components().count(),
-            MsgType::Query => self.args.query_components().count()
-        };
-
-        if count == 0 {
-            parse_quote!(serde::Deserialize)
-        } else {
-            let crate_name = std::env!("CARGO_CRATE_NAME");
-            let mod_ident = Ident::new(crate_name, Span::call_site());
-
-            parse_quote!(#mod_ident::DeserializeFlat)
-        }
     }
 }
 
