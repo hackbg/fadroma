@@ -1,11 +1,23 @@
 import { Identity, Agent, Chain } from '@fadroma/ops'
+import { randomHex } from '@fadroma/tools'
+
 import freePort from 'freeport-async'
 import Express from 'express'
+import bodyParser from 'body-parser'
 
 export class MockChain extends Chain {
+
+  state = {
+    balances: {},
+    txs: {}
+  }
+
   async init () { return this }
+
   async getAgent (options?: Identity) { return MockAgent.create(options) }
+
   getContract<T> (API: new()=>T, address: string, agent: any) { return new API() }
+
   printStatusTables () {}
 
   get url () { return this.#url }
@@ -22,8 +34,10 @@ export class MockChain extends Chain {
     const port = await freePort(10000 + Math.floor(Math.random()*10000))
     const app = new Express()
 
+    app.use(bodyParser.json())
+
     app.use((req, res, next)=>{
-      console.log(req.url)
+      console.debug(`${req.method} ${req.url}`)
       next() })
 
     app.get('/blocks/latest', (req, res, next)=>{
@@ -84,11 +98,100 @@ export class MockChain extends Chain {
         "result": {
           "type": "cosmos-sdk/Account",
           "value": {
-            "address": "secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy",
-            "coins": [ { "denom": "uscrt", "amount": "79347500" } ],
+            "address": req.params.address,
+            "coins": [ { "denom": "uscrt", "amount": String(this.state.balances[req.params.address]) } ],
             "public_key": "secretpub1addwnpepqghcej6wkd6gazdkx55e920tpehu906jdzpqhtgjuct9gvrzcfjeclrccvm",
             "account_number": 1073,
             "sequence": 1801 } }
+      })).end() })
+
+    app.get('/node_info', (req, res, next)=>{
+      res.status(200).send(JSON.stringify({
+        "node_info": {
+          "protocol_version": {
+            "p2p": "7",
+            "block": "10",
+            "app": "0" },
+          "id": "64b03220d97e5dc21ec65bf7ee1d839afb6f7193",
+          "listen_addr": "tcp://0.0.0.0:26656",
+          "network": "holodeck-2",
+          "version": "0.33.8",
+          "channels": "4020212223303800",
+          "moniker": "ChainofSecretsBootstrap",
+          "other": {
+            "tx_index": "on",
+            "rpc_address": "tcp://0.0.0.0:26657" } },
+        "application_version": {
+          "name": "SecretNetwork",
+          "server_name": "secretd",
+          "client_name": "secretcli",
+          "version": "1.0.4-2-ge24cdfde",
+          "commit": "e24cdfde5cd3b4bdd9b6ca429aafaa552b95e2bf",
+          "build_tags": "netgo ledger hw develop",
+          "go": "go version go1.13.4 linux/amd64" }
+      })).end() })
+
+    app.post('/txs', (req, res, next)=>{
+      const txhash = randomHex(16).toUpperCase()
+      for (const {type, value} of req.body.tx.msg) {
+        switch (type) {
+          case 'cosmos-sdk/MsgSend':
+            const {from_address, to_address, amount} = value
+            for (const {denom, amount: x} of amount) {
+              if (denom === 'uscrt') {
+                this.state.balances[from_address] -= BigInt(x)
+                this.state.balances[to_address]   += BigInt(x) } }
+            this.state.txs[txhash] = {
+              txhash,
+              raw_log: "" }
+            break
+          case 'wasm/MsgStoreCode':
+            this.state.txs[txhash] = {
+              txhash, raw_log: "", logs: [{
+                events: [{
+                  type:'message',
+                  attributes:[{
+                    key:'code_id',
+                    value:1}]}] }] }
+            break
+          case 'wasm/MsgInstantiateContract':
+            this.state.txs[txhash] = {
+              txhash, raw_log: "", logs: [{
+                events: [{
+                  type:'message',
+                  attributes:[{
+                    key:'contract_address',
+                    value:'secret1l3j38zr0xrcv4ywt7p87mpm93vh7erly3yd0nl'}]}] }] }
+          default:
+            console.warn(type, value) } }
+      res.status(200).send(JSON.stringify({ txhash })).end() })
+
+    app.get('/txs/:txhash', (req, res, next)=>{
+      const response = this.state.txs[req.params.txhash]
+      console.debug('response', response)
+      if (response) {
+        res.status(200).send(JSON.stringify(response)).end() }
+      else {
+        res.status(404).end() } })
+
+    app.get('/wasm/code/:id/hash', (req, res, next)=>{
+      res.status(200).send(JSON.stringify({
+        result: 'e87c2d9ec2cc89f19b60e4b927b96d4e6b5a309200f4f303f96b666546dcea33'
+      })).end() })
+
+    app.get('/wasm/contract/:address/code-hash', (req, res, next)=>{
+      res.status(200).send(JSON.stringify({
+        result: 'e87c2d9ec2cc89f19b60e4b927b96d4e6b5a309200f4f303f96b666546dcea33'
+      })).end() })
+
+    app.get('/wasm/contract/:address/query/:query', (req, res, next)=>{
+      res.status(200).send(JSON.stringify({
+        result: { smart: '' }
+      })).end() })
+
+    app.get('/reg/consensus-io-exch-pubkey', (req, res, next)=>{
+      res.status(200).send(JSON.stringify({
+        result: { ioExchPubkey: "0jyiOQXsuaJzXX7KzsZJRsPqA8XQyt79mpciYm4uPkE=" }
       })).end() })
 
     const server = app.listen(port, 'localhost', () => {

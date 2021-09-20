@@ -51,7 +51,7 @@ export abstract class Chain implements ChainOptions {
     * which you can then create via Agent#instantiate
     *
     * FIXME: awkward inversion of control */
-  abstract getContract<T> (api: T, address: string, agent: any): T
+  abstract getContract<T> (api: new()=>T, address: string, agent: any): T
 
   /** This directory contains all the others. */
   readonly stateRoot: Directory

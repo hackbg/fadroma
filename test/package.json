@@ -16,7 +16,9 @@
     "watch": "tap -w --node-arg=--experimental-loader=esbuild-node-loader test_agent.ts"
   },
   "devDependencies": {
+    "@types/express": "^4.17.13",
     "@types/tap": "^15.0.5",
+    "body-parser": "^1.19.0",
     "esbuild-node-loader": "^0.3.1",
     "express": "^4.17.1"
   }

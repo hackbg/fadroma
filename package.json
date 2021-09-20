@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@types/mkdirp": "^1.0.2",
+    "@types/node": "^16.9.4",
     "@types/prettyjson": "^0.0.30",
     "@types/rimraf": "^3.0.2",
     "bignumber.js": "^9.0.1"
