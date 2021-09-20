@@ -137,5 +137,6 @@ export abstract class BaseEnsemble implements Ensemble {
   async initialize (): Promise<InstancesTable> {
     await this.chain.init()
     this.agent = await this.chain.getAgent()
-    Object.values(this.contracts).forEach(contract=>contract.setPrefix(this.prefix))
+    Object.values(this.contracts)
+      .forEach(contract=>contract.init.prefix = this.prefix)
     return [] } }

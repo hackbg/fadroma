@@ -1,7 +1,7 @@
 import { loadJSON, writeFileSync, basename, dirname } from '@fadroma/tools'
 
-import type { Contract } from './Contract'
 import type { Agent } from './Agent'
+import type { Contract, ContractAPIOptions } from './Contract'
 
 import { ContractCaller } from './ContractCaller'
 import { isAgent } from './Agent'
@@ -18,7 +18,7 @@ export abstract class ContractAPI extends ContractCaller implements Contract {
     queryResponse?:  any
     handleMsg?:      any
     handleResponse?: any
-  }
+  } = {}
 
   private ajv = getAjv()
 
@@ -33,9 +33,9 @@ export abstract class ContractAPI extends ContractCaller implements Contract {
   q:  Record<string, Function>
   tx: Record<string, Function>
 
-  constructor (schema: Record<string, any>, agent?: Agent) {
-    super(agent)
-    this.schema = schema
+  constructor (options: ContractAPIOptions = {}) {
+    super(options)
+    if (options.schema) this.schema = options.schema
     this.q  = new SchemaFactory(this, this.schema?.queryMsg).create()
     this.tx = new SchemaFactory(this, this.schema?.handleMsg).create()
     for (const msg of ['initMsg', 'queryMsg', 'queryResponse', 'handleMsg', 'handleResponse']) {

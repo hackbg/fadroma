@@ -19,7 +19,6 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
       const sent = (await this.getBlock()).header.height
       // submit the transaction and get its id
       const submitResult = await super.postTx(tx)
-      console.debug({submitResult})
       const id = submitResult.transactionHash
       // wait for next block
       while (true) {
@@ -32,7 +31,6 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
       while (resultRetries--) {
         try {
           const result = await this.restClient.get(`/txs/${id}`)
-          console.debug('<',result)
           // if result contains error, throw it
           const {raw_log} = result as any
           if (raw_log.includes('failed')) throw new Error(raw_log)

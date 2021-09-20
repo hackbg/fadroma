@@ -159,9 +159,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     if (await this.isRunning(id)) {
       console.info(`Stopping ${prettyId}...`)
       await this.docker.getContainer(id).kill()
-      console.info(`Stopped ${prettyId}`) }
-    else {
-      console.info(`${prettyId} was dead on arrival`) } }
+      console.info(`Stopped ${prettyId}`) } }
 
   identitiesToCreate: Array<string> = ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
 
@@ -202,7 +200,8 @@ export abstract class DockerizedChainNode extends BaseChainNode {
       console.info(`✋ Reading ${bold(this.nodeState.path)} failed`)
       return this.spawn() }
     // check if contract is running
-    let running: any; try { running = this.isRunning(id) } catch (e) {
+    let running: any
+    try { running = await this.isRunning(id) } catch (e) {
       // if error when checking, RESPAWN
       //console.info(`✋ Failed to get container ${bold(id)}`)
       //console.info('Error was:', e)

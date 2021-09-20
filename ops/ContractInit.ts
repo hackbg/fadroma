@@ -1,10 +1,8 @@
-import { JSONDirectory } from '@fadroma/tools'
-
 import type { Agent } from './Agent'
-
-import { backOff } from 'exponential-backoff'
-
+import type { ContractInitOptions } from './Contract'
 import { ContractUpload } from './ContractUpload'
+import { JSONDirectory } from '@fadroma/tools'
+import { backOff } from 'exponential-backoff'
 
 export abstract class ContractInit extends ContractUpload {
   init: {
@@ -21,9 +19,13 @@ export abstract class ContractInit extends ContractUpload {
     }
   } = {}
 
-  constructor (agent: Agent) {
-    super(agent)
-    this.init.agent = agent }
+  constructor (options: ContractInitOptions = {}) {
+    super(options)
+    if (options.prefix)  this.init.prefix  = options.prefix
+    if (options.label)   this.init.label   = options.label
+    if (options.agent)   this.init.agent   = options.agent
+    if (options.address) this.init.address = options.address
+    if (options.initMsg) this.init.msg     = options.initMsg }
 
   /** The agent that initialized this instance of the contract. */
   get instantiator () { return this.init.agent }
@@ -66,7 +68,8 @@ export abstract class ContractInit extends ContractUpload {
       this.init.agent = agent
       if (!this.codeId) {
         throw new Error('Contract must be uploaded before instantiating') }
-      this.init.tx = await this.initBackoff(()=>this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
+      this.init.tx = await this.initBackoff(()=>
+        this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
       this.init.address = this.initTx.contractAddress
       this.save() }
     else if (this.address) {

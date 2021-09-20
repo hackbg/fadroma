@@ -1,15 +1,16 @@
 import { Agent } from './Agent'
 import { Chain } from './ChainAPI'
+import type { ContractUploadOptions } from './Contract'
 import { ContractCode } from './ContractBuild'
 import { Console, existsSync, readFile, bold, relative, basename, mkdir, writeFile } from '@fadroma/tools'
 
 const {info} = Console(import.meta.url)
 
-export class ContractUpload extends ContractCode {
+export abstract class ContractUpload extends ContractCode {
 
   blob: {
-    chain?:    Chain
     agent?:    Agent
+    chain?:    Chain
     codeId?:   number
     codeHash?: string
     receipt?: {
@@ -21,9 +22,12 @@ export class ContractUpload extends ContractCode {
       originalSize:       number
       transactionHash:    string } } = {}
 
-  constructor (agent?: Agent) {
-    super()
-    this.blob.agent = agent }
+  constructor (options?: ContractUploadOptions) {
+    super(options)
+    this.blob.chain    = options?.chain
+    this.blob.codeId   = options?.codeId
+    this.blob.codeHash = options?.codeHash
+  }
 
   /** The chain where the contract is deployed. */
   get chain () { return this.blob.chain }
@@ -36,7 +40,7 @@ export class ContractUpload extends ContractCode {
   /** The auto-incrementing id of the uploaded code */
   get codeId () { return this.blob.codeId }
   /** The auto-incrementing id of the uploaded code */
-  get codeHash () { return this.blob.codeHash }
+  get codeHash () { return this.blob.codeHash||this.code.codeHash }
 
   /** Upload the contract to a specified chain as a specified agent. */
   async upload (chainOrAgent: Agent|Chain) {
@@ -61,7 +65,6 @@ export class ContractUpload extends ContractCode {
       info(`${bold(relative(process.cwd(), this.uploadReceiptPath))} exists, delete to reupload`)
       this.blob.receipt = JSON.parse(receiptData) }
     else {
-      console.log(this.artifact)
       const uploadResult = await this.uploader.upload(this.artifact)
           , receiptData  = JSON.stringify(uploadResult, null, 2)
           , elements     = this.uploadReceiptPath.slice(1, this.uploadReceiptPath.length).split('/');

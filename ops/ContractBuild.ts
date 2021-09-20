@@ -2,19 +2,23 @@ import {
   resolve, dirname, fileURLToPath, relative, existsSync, Docker, pulled, Console, bold, Path
 } from '@fadroma/tools'
 
-const {debug} = Console(import.meta.url)
+const console = Console(import.meta.url)
+
+import type { ContractCodeOptions } from './Contract'
 
 export abstract class ContractCode {
 
   abstract buildImage:  string
   abstract buildScript: string
 
-  code: {
-    workspace?: string
-    crate?:     string
-    artifact?:  string
-    codeHash?:  string
-  } = {}
+  code: ContractCodeOptions = {}
+
+  constructor (options: ContractCodeOptions = {}) {
+    if (options.workspace) this.code.workspace = options.workspace
+    if (options.crate)     this.code.crate = options.crate
+    if (options.artifact)  this.code.artifact = options.artifact
+    if (options.codeHash)  this.code.codeHash = options.codeHash
+  }
 
   /** Path to source workspace */
   get workspace () { return this.code.workspace }
@@ -41,7 +45,6 @@ export abstract class ContractCode {
         , output    = resolve(outputDir, `${this.crate}@${ref}.wasm`)
 
     if (!existsSync(output)) {
-      console.debug('pull', this, this.buildImage)
       const image   = await pulled(this.buildImage, this.docker)
           , buildArgs =
             { Env:
@@ -61,7 +64,7 @@ export abstract class ContractCode {
                          , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
           , command = `bash /entrypoint.sh ${this.crate} ${ref}`
       console.log({entry: this.buildScript})
-      debug(`building working tree at ${this.workspace} into ${outputDir}...`)
+      console.debug(`building working tree at ${this.workspace} into ${outputDir}...`)
       buildArgs.HostConfig.Binds.push(`${this.workspace}:/contract:rw`)
       additionalBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
       const [{Error:err, StatusCode:code}, container] =

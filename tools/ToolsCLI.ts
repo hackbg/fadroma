@@ -43,8 +43,12 @@ export const Console = (context: string) => {
     trace: (...args: any) => console.trace('🦋', ...args),
     debug: (...args: any) => {
       if (!process.env.NO_DEBUG) {
-        console.debug('\n' + colors.yellow(`[${context}]`),
-                      ...args.map(format)) }
+        const tag = `[${context}] `
+        console.debug(
+          '\n' +
+          colors.yellow(tag),
+          //[...Array(process.stdout.columns - tag.length)].map(()=>'─').join(''),
+          ...args.map(format)) }
       return args[0] } } }
 
 // Table ///////////////////////////////////////////////////////////////////////////////////////////
@@ -189,7 +193,8 @@ export function taskmaster (options: any = {}): Taskmaster {
   async function parallel (info: string, ...tasks: Array<Function>) { // TODO subtotal?
     return await task(info, () => Promise.all(tasks.map(x=>Promise.resolve(x)))) }
   async function task (info: string, operation = (report: Function) => {}) {
-    say(`\n👉 ${bold(`Step ${step++}:`)} ${info}`)
+    const tag = `👉 ${bold(`Step ${step++}:`)} ${info} `
+    say('\n' + tag + [...Array(process.stdout.columns - tag.length)].map(()=>'─').join(''))
     const t1      = new Date()
         , reports = []
         , report  = (r: any) => { reports.push(r); return r }
@@ -205,34 +210,6 @@ async function getTx ({API:{restClient}}, tx) {
       console.warn(`failed to get info for tx ${tx}`)
       console.debug(e)
       console.info(`retrying...`) } }) }
-
-/// https://en.wikipedia.org/wiki/Pointing_and_calling /////////////////////////////////////////////
-
-export function sayer (prefixes = []) {
-  return Object.assign(say, { tag })
-  function say (x: any = {}) {
-    const prefix = `#` + prefixes.map(renderPrefix).join(` #`)
-    if (x instanceof Object) {
-      if (x.data instanceof Uint8Array) {
-        x.data = decode(x.data) }
-      console.log(colors.yellow(`${prefix}`))
-      if (Object.keys(x).length > 0) {
-        console.log(render(x)) } }
-    else {
-      console.log(colors.yellow(`${prefix}`), render(x)) }
-    return x }
-  function tag (x: any) {
-    return sayer([...prefixes, x]) }
-  function renderPrefix (x: any) {
-    if (x instanceof Function) {
-      return x() }
-    else {
-      return x } } }
-
-export const say = sayer()
-
-export function muted () {
-  return Object.assign((x:any)=>x, { tag: () => muted() }) }
 
 /// Interactive shell with the contracts and connections ///////////////////////////////////////////
 
