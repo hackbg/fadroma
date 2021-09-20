@@ -84,7 +84,7 @@ export abstract class ContractInit extends ContractUpload {
   /** Save the contract's instantiation receipt in the instances directory for this chain.
     * If prefix is set, creates subdir grouping contracts with the same prefix. */
   save () {
-    let dir = this.chain.instances
+    let dir = this.init.agent.chain.instances
     if (this.init.prefix) dir = dir.subdir(this.init.prefix, JSONDirectory).make()
     dir.save(this.init.label, this.initReceipt)
     return this } }

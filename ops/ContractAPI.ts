@@ -81,7 +81,7 @@ export class SchemaFactory {
   ajv:     Ajv = getAjv()
 
   constructor(
-    public contract: { copy?: Function, label: string },
+    public contract: { copy: Function, label: string },
     public schema:   Record<any, any>
   ) {
     if (typeof schema !== "object" || schema === null) {
