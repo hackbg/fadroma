@@ -8,6 +8,8 @@
     "./ops-scrt",
     "./ops-scrt-1.0",
     "./ops-scrt-1.2",
+    "./platforms/scrt-1.0",
+    "./platforms/scrt-1.2",
     "./tools",
     "./test"
   ],
@@ -32,6 +34,6 @@
     "test-ts": "DEBUG=out esmo --async-stack-traces --enable-source-maps test/test.mjs",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
-    "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc ; rm Cargo.toml"
+    "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc; rm Cargo.toml"
   }
 }

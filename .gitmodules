@@ -1,0 +1,10 @@
+[submodule "scrt-1.0"] # secret network with modifications to secretjs error handling
+  update = rebase
+	path = platforms/scrt-1.0
+	url = git@github.com:hackbg/SecretNetwork.git
+	branch = v1.0
+[submodule "scrt-1.2"] # secret network with modifications to secretjs error handling
+  update = rebase
+	path = platforms/scrt-1.2
+	url = git@github.com:hackbg/SecretNetwork.git
+	branch = v1.2
