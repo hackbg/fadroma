@@ -5,6 +5,6 @@
   "main": "./index.ts",
   "dependencies": {
     "@fadroma/scrt": "*",
-    "secretjs": "^0.16.4"
+    "secretjs": "workspace:^0.17.0"
   }
 }
