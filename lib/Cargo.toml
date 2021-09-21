@@ -18,11 +18,13 @@ rand_chacha       = { optional = true, version = "0.2.2", default-features = fal
 rand_core         = { optional = true, version = "0.5.1", default-features = false }
 schemars          = { optional = true, version = "0.7" }
 secret-toolkit    = { optional = true, git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-#secret-toolkit    = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
+#secret-toolkit   = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
 serde             = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
 sha2              = { optional = true, version = "0.9.1", default-features = false }
 snafu             = { optional = true, version = "0.6.3" }
 subtle            = { optional = true, version = "2.4.0", default-features = false }
+derive-contract   = { optional = true, path = "derive-contract" }
+require-admin     = { optional = true, path = "./composable-admin/require-admin" }
 
 # Terra
 #cosmwasm-std     = { version = "0.15.0" }
@@ -37,14 +39,21 @@ subtle            = { optional = true, version = "2.4.0", default-features = fal
 browser         = ["backtraces"]
 backtraces      = ["cosmwasm-std/backtraces", "snafu/backtraces"]
 harness         = []
+derive          = ["derive-contract"]
+
+scrt-all        = [
+                    "scrt", "scrt-addr", "scrt-admin", "scrt-contract", "scrt-icc", "scrt-vk",
+                    "scrt-migrate", "scrt-snip20-api", "scrt-storage", "scrt-utils"
+                  ]
 scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu", "schemars", "secret-toolkit"]
 scrt-addr       = ["scrt"]
-scrt-admin      = ["scrt"]
-scrt-contract   = ["scrt"]
-scrt-icc        = ["scrt", "scrt-addr"]
-scrt-migrate    = ["scrt"]
+scrt-admin      = ["derive", "scrt-storage", "require-admin"]
+scrt-contract   = ["scrt", "serde"]
+scrt-icc        = ["scrt", "scrt-addr", "serde"]
+scrt-migrate    = ["scrt-icc", "scrt-admin"]
 scrt-snip20-api = ["scrt"]
 scrt-storage    = ["scrt", "serde"]
 scrt-utils      = ["scrt", "rand_chacha", "rand_core", "sha2", "subtle", "primitive-types"]
-scrt-vk         = ["scrt"]
+scrt-vk         = ["derive", "scrt-storage", "scrt-utils"]
+
 terra           = []

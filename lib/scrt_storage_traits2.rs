@@ -1,5 +1,5 @@
 pub use serde::{Serialize, de::DeserializeOwned};
-use crate::{scrt::*, concat};
+use crate::{scrt::*, scrt_storage::concat};
 
 /// Trait for actor that operates in a context with readonly access to the storage.
 pub trait Readonly <S: ReadonlyStorage> {
