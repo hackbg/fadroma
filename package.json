@@ -8,8 +8,8 @@
     "./ops-scrt",
     "./ops-scrt-1.0",
     "./ops-scrt-1.2",
-    "./platforms/scrt-1.0",
-    "./platforms/scrt-1.2",
+    "./platforms/scrt-1.0/cosmwasm-js/packages/sdk",
+    "./platforms/scrt-1.2/cosmwasm-js/packages/sdk",
     "./tools",
     "./test"
   ],

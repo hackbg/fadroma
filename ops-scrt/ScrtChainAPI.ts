@@ -12,7 +12,9 @@ import { resetLocalnet } from './ScrtChainNode'
 
 import { DockerizedScrtNode_1_0, DockerizedScrtNode_1_2 } from './ScrtChainNode'
 
-type AgentConstructor = new (options: Identity) => Agent
+type AgentConstructor = new (options: Identity) => Agent & {
+  create: () => Promise<Agent>
+}
 
 export interface ScrtChainOptions extends ChainOptions {
   Agent?: AgentConstructor
@@ -35,9 +37,12 @@ export const on = {
   'supernova-1' (context: any = {}) {
     console.info(`Running on ${bold('supernova-1')}:`)
     context.chain = Scrt.supernova_1() },
-  'mainnet' (context: any = {}) {
-    console.info(`Running on ${bold('mainnet')}:`)
-    context.chain = Scrt.mainnet() } }
+  'secret-2' (context: any = {}) {
+    console.info(`Running on ${bold('secret-2')}:`)
+    context.chain = Scrt.secret_2() },
+  'secret-3' (context: any = {}) {
+    console.info(`Running on ${bold('secret-3')}:`)
+    context.chain = Scrt.secret_3() } }
 
 export function openFaucet () {
   const url = `https://faucet.secrettestnet.io/`
@@ -55,10 +60,11 @@ export const Help = {
 export class Scrt extends Chain {
 
   static mainnetCommands = (getCommands: RemoteCommands): Commands =>
-    [['mainnet', Help.MAINNET, on.mainnet, getCommands(Scrt.mainnet())]]
+    [['secret-2', Help.MAINNET, on['secret-2'], getCommands(Scrt.secret_2())]
+    ,['secret-3', Help.MAINNET, on['secret-3'], getCommands(Scrt.secret_3())]]
 
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  static mainnet (options: ChainConnectOptions = {}): Scrt {
+  static secret_2 (options: ChainConnectOptions = {}): Scrt {
     const {
       chainId = 'secret-2',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
@@ -71,7 +77,26 @@ export class Scrt extends Chain {
     } = options
     return new Scrt({
       chainId,
-      apiURL, 
+      apiURL,
+      defaultAgent,
+      Agent: ScrtCLIAgent
+    }) }
+
+  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
+  static secret_3 (options: ChainConnectOptions = {}): Scrt {
+    const {
+      chainId = 'secret-3',
+      apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+      apiURL  = new URL(`https://secret-3--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+      defaultAgent = {
+        name:     process.env.SECRET_NETWORK_MAINNET_NAME,
+        address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
+        mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC
+      }
+    } = options
+    return new Scrt({
+      chainId,
+      apiURL,
       defaultAgent,
       Agent: ScrtCLIAgent
     }) }
@@ -231,7 +256,7 @@ export class Scrt extends Chain {
   async getAgent (identity: Identity = this.defaultAgent): Promise<Agent> {
     if (identity.mnemonic || identity.keyPair) {
       console.info(`Using a ${bold('SecretJS')}-based agent.`)
-      return await ScrtAgentJS_1_0.create({ ...identity, chain: this as Chain }) }
+      return await this.Agent.create({ ...identity, chain: this as Chain }) }
     else {
       const name = identity.name || this.defaultAgent?.name
       if (name) {
