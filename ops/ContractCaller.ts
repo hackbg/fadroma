@@ -1,5 +1,6 @@
 import { backOff } from 'exponential-backoff'
 import { ContractInit } from './ContractInit'
+import { isAgent, Agent } from './Agent'
 
 export abstract class ContractCaller extends ContractInit {
 
@@ -31,6 +32,19 @@ export abstract class ContractCaller extends ContractInit {
     return this.backoff(() => agent.execute(this, method, args, memo, amount, fee)) }
 
   /** Create a temporary copy of a contract with a different agent */
-  /*copy = (agent: Agent) => { // FIXME runtime typecheck fails silently
-    return isAgent(agent) ? new BaseContract({ ...this, agent })
-                          : new BaseContract(this); };*/ }
+  copy = (agent: Agent) => {
+    let addon = {};
+
+    if (isAgent(agent)) {
+      // @ts-ignore
+      addon.init = {...this.init, agent};
+    }
+
+      return Object.assign(
+        Object.create(
+          Object.getPrototypeOf(this)
+        ),
+        addon
+      );
+  };
+}

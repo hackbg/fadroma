@@ -2,7 +2,7 @@
 use std::fmt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use crate::{scrt::*, scrt_utils_crypto::{sha_256, Prng, compare_slice_ct_time}};
+use crate::{scrt::*, scrt_crypto::{sha_256, Prng, compare_slice_ct_time}};
 
 pub const VIEWING_KEY_SIZE: usize = 32;
 const VIEWING_KEY_PREFIX: &str = "api_key_";
@@ -15,7 +15,6 @@ pub fn create_hashed_password(s1: &str) -> [u8; VIEWING_KEY_SIZE] {
 }
 
 impl ViewingKey {
-    ///A good source for the `seed` and `entropy` values is https://www.random.org/strings/
     pub fn new(env: &Env, seed: &[u8], entropy: &[u8]) -> Self {
         // 16 here represents the lengths in bytes of the block height and time.
         let entropy_len = 16 + env.message.sender.len() + entropy.len();

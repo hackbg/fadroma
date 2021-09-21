@@ -1,83 +1,45 @@
-use fadroma::*;
-use schemars::JsonSchema;
-use serde::{Serialize, Deserialize};
+use crate::{
+    scrt::{
+        HumanAddr, StdResult, InitResponse, HandleResponse,
+        Extern, Env, Querier, Storage, Api, StdError, CanonicalAddr
+    },
+    scrt_storage::*,
+    derive_contract::{contract, init, handle, query}
+};
+use schemars;
+use serde;
 
 const ADMINS_KEY: &[u8] = b"i801onL3kf";
 
-pub fn multi_admin_handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: MultiAdminHandleMsg,
-    handle: impl MultiAdminHandle,
-) -> StdResult<HandleResponse> {
-    match msg {
-        MultiAdminHandleMsg::AddAdmins { addresses } => handle.add_admins(deps, env, addresses)
-    }
-}
+#[contract]
+pub trait MultiAdmin {
+    #[init]
+    fn new(admins: Option<Vec<HumanAddr>>) -> StdResult<InitResponse> {
+        let admins = if let Some(addresses) = admins {
+            addresses
+        } else {
+            vec![ env.message.sender ]
+        };
 
-pub fn multi_admin_query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: MultiAdminQueryMsg,
-    query: impl MultiAdminQuery,
-) -> StdResult<Binary> {
-    match msg {
-        MultiAdminQueryMsg::Admins => query.query_admins(deps)
-    }
-}
+        save_admins(deps, &admins)?;
 
-pub trait MultiAdminHandle {
-    fn add_admins<S: Storage, A: Api, Q: Querier>(
-        &self,
-        deps: &mut Extern<S, A, Q>,
-        env: Env,
-        addresses: Vec<HumanAddr>,
-    ) -> StdResult<HandleResponse> {
+        Ok(InitResponse::default())
+    }
+
+    #[handle]
+    fn add_admins(addresses: Vec<HumanAddr>) -> StdResult<HandleResponse> {
         assert_admin(deps, &env)?;
         save_admins(deps, &addresses)?;
     
         Ok(HandleResponse::default())
     }
-}
 
-pub trait MultiAdminQuery {
-    fn query_admins<S: Storage, A: Api, Q: Querier>(
-        &self,
-        deps: &Extern<S, A, Q>
-    )-> StdResult<Binary> {
+    #[query("addresses")]
+    fn admins() -> StdResult<Vec<HumanAddr>> {
         let addresses = load_admins(deps)?;
-    
-        to_binary(&MultiAdminQueryResponse { 
-            addresses
-        })
+
+        Ok(addresses)
     }
-}
-
-pub struct DefaultHandleImpl;
-
-impl MultiAdminHandle for DefaultHandleImpl { }
-
-pub struct DefaultQueryImpl;
-
-impl MultiAdminQuery for DefaultQueryImpl { }
-
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum MultiAdminHandleMsg {
-    AddAdmins {
-        addresses: Vec<HumanAddr>,
-    }
-}
-
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum MultiAdminQueryMsg {
-    Admins
-}
-
-#[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub struct MultiAdminQueryResponse {
-    pub addresses: Vec<HumanAddr>
 }
 
 pub fn save_admins<S: Storage, A: Api, Q: Querier>(
@@ -126,7 +88,7 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fadroma::testing::*;
+    use crate::scrt::{mock_dependencies, mock_env};
 
     #[test]
     fn test_handle() {
@@ -137,15 +99,15 @@ mod tests {
             addresses: Vec<HumanAddr>,
             assert_len: usize
         ) {
-            let msg = MultiAdminHandleMsg::AddAdmins {
+            let msg = HandleMsg::AddAdmins {
                 addresses
             };
     
-            let result = multi_admin_handle(
+            let result = handle(
                 deps,
                 mock_env(HumanAddr::from(ADMIN), &[]),
                 msg,
-                DefaultHandleImpl
+                DefaultImpl
             );
     
             assert!(result.is_ok());
@@ -162,15 +124,15 @@ mod tests {
         let admin = HumanAddr::from("goshu");
         save_admins(deps, &vec![ admin.clone() ]).unwrap();
 
-        let msg = MultiAdminHandleMsg::AddAdmins {
+        let msg = HandleMsg::AddAdmins {
             addresses: vec![ HumanAddr::from("will fail") ]
         };
 
-        let result = multi_admin_handle(
+        let result = handle(
             deps,
             mock_env(HumanAddr::from("unauthorized"), &[]),
             msg,
-            DefaultHandleImpl
+            DefaultImpl
         )
         .unwrap_err();
 
@@ -203,10 +165,13 @@ mod tests {
     fn test_query() {
         let ref mut deps = mock_dependencies(10, &[]);
 
-        let result = multi_admin_query(deps, MultiAdminQueryMsg::Admins, DefaultQueryImpl).unwrap();
-
-        let response: MultiAdminQueryResponse = from_binary(&result).unwrap();
-        assert!(response.addresses.len() == 0);
+        let result = query(deps, QueryMsg::Admins {}, DefaultImpl).unwrap();
+        
+        match result {
+            QueryResponse::Admins { addresses } => {
+                assert!(addresses.len() == 0);
+            }
+        }
 
         let admins = vec![
             HumanAddr::from("archer"),
@@ -215,9 +180,11 @@ mod tests {
 
         save_admins(deps, &admins).unwrap();
 
-        let result = multi_admin_query(deps, MultiAdminQueryMsg::Admins, DefaultQueryImpl).unwrap();
-
-        let response: MultiAdminQueryResponse = from_binary(&result).unwrap();
-        assert!(response.addresses == admins);
+        let result = query(deps, QueryMsg::Admins {}, DefaultImpl).unwrap();
+        match result {
+            QueryResponse::Admins { addresses } => {
+                assert!(addresses == admins);
+            }
+        }
     }
 }
