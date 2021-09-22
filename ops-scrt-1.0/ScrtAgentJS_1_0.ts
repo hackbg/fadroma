@@ -26,6 +26,7 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
         const now = (await this.getBlock()).header.height
         //console.debug(id, sent, now)
         if (now > sent) break }
+      await new Promise(ok=>setTimeout(ok, 1000))
       // once the block has incremented, get the full transaction result
       let resultRetries = 10
       while (resultRetries--) {
