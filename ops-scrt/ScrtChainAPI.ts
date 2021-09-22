@@ -25,7 +25,7 @@ export interface ScrtChainState extends ChainState {
 }
 
 export const on = {
-  'localnet-1.0' (context: any = {}) {
+  'localnet-1.0' (context: any = {}) {http://bootstrap.supernova.enigma.co/auth/accounts/secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy
     console.info(`Running on ${bold('localnet-1.0')}:`)
     context.chain = Scrt.localnet_1_0() },
   'localnet-1.2' (context: any = {}) {
@@ -57,6 +57,13 @@ export const Help = {
   FAUCET:  "🚰 Open a faucet for this network in your default browser",
   FUND:    "👛 Create test wallets by sending native token to them" }
 
+const {
+  SCRT_API_URL,
+  SCRT_AGENT_NAME,
+  SCRT_AGENT_ADDRESS,
+  SCRT_AGENT_MNEMONIC
+} = process.env
+
 export class Scrt extends Chain {
 
   static mainnetCommands = (getCommands: RemoteCommands): Commands =>
@@ -68,18 +75,18 @@ export class Scrt extends Chain {
     const {
       chainId = 'secret-2',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      apiURL  = new URL(`https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
-      defaultAgent = {
-        name:     process.env.SECRET_NETWORK_MAINNET_NAME,
-        address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
-        mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC
+      apiURL  = new URL(SCRT_API_URL||`https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+      defaultIdentity = {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS,
+        mnemonic: SCRT_AGENT_MNEMONIC
       }
     } = options
     return new Scrt({
       chainId,
       apiURL,
-      defaultAgent,
-      Agent: ScrtCLIAgent
+      defaultIdentity,
+      Agent: ScrtAgentJS_1_0
     }) }
 
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
@@ -87,18 +94,18 @@ export class Scrt extends Chain {
     const {
       chainId = 'secret-3',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      apiURL  = new URL(`https://secret-3--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
-      defaultAgent = {
-        name:     process.env.SECRET_NETWORK_MAINNET_NAME,
-        address:  process.env.SECRET_NETWORK_MAINNET_ADDRESS,
-        mnemonic: process.env.SECRET_NETWORK_MAINNET_MNEMONIC
+      apiURL  = new URL(SCRT_API_URL||`https://secret-3--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+      defaultIdentity = {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS,
+        mnemonic: SCRT_AGENT_MNEMONIC
       }
     } = options
     return new Scrt({
       chainId,
       apiURL,
-      defaultAgent,
-      Agent: ScrtCLIAgent
+      defaultIdentity,
+      Agent: ScrtAgentJS_1_0
     }) }
 
   /** Generate command lists for known testnets. */
@@ -115,20 +122,20 @@ export class Scrt extends Chain {
   static holodeck_2 (options: ChainConnectOptions = {}): Scrt {
     const {
       //chainId = 'holodeck-2',
-      //apiURL  = new URL('http://96.44.145.210/'),
+      apiURL  = new URL(SCRT_API_URL||'http://96.44.145.210/'),
       chainId = 'holodeck-2',
-      apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
-      defaultAgent = {
-        name:     process.env.SECRET_NETWORK_TESTNET_NAME,
-        address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-        mnemonic: process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
+      //apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+      //apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+      defaultIdentity = {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+        mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
       }
     } = options
     return new Scrt({
       chainId,
       apiURL,
-      defaultAgent,
+      defaultIdentity,
       Agent: ScrtAgentJS_1_0
     }) }
 
@@ -136,17 +143,17 @@ export class Scrt extends Chain {
   static supernova_1 (options: ChainConnectOptions = {}): Scrt {
     const {
       chainId = 'supernova-1',
-      apiURL  = new URL('http://bootstrap.supernova.enigma.co'),
-      defaultAgent = {
-        name:     process.env.SECRET_NETWORK_TESTNET_NAME,
-        address:  process.env.SECRET_NETWORK_TESTNET_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-        mnemonic: process.env.SECRET_NETWORK_TESTNET_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
+      apiURL  = new URL(SCRT_API_URL||'http://bootstrap.supernova.enigma.co'),
+      defaultIdentity = {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+        mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
       }
     } = options
     return new Scrt({
       chainId,
       apiURL,
-      defaultAgent,
+      defaultIdentity,
       Agent: ScrtAgentJS_1_2
     }) }
 
@@ -193,7 +200,7 @@ export class Scrt extends Chain {
   node?:    ChainNode
 
   Agent: AgentConstructor
-  defaultAgent: { name?: string, address?: string, mnemonic?: string }
+  defaultIdentity: { name?: string, address?: string, mnemonic?: string }
 
   stateRoot:  Directory
   identities: JSONDirectory
@@ -221,7 +228,7 @@ export class Scrt extends Chain {
     // handle to localnet node if this is localnet
     // default agent credentials
     if (options.Agent) this.Agent = options.Agent
-    this.defaultAgent = options.defaultAgent }
+    this.defaultIdentity = options.defaultIdentity }
 
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
@@ -238,12 +245,12 @@ export class Scrt extends Chain {
       this.apiURL.port = String(node.port)
       console.info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
       // get the default account for the node
-      this.defaultAgent = this.node.genesisAccount('ADMIN') }
+      this.defaultIdentity = this.node.genesisAccount('ADMIN') }
     // default credentials will be used as-is unless using localnet
-    const { mnemonic, address } = this.defaultAgent
+    const { mnemonic, address } = this.defaultIdentity
         , { protocol, hostname, port } = this.apiURL
     console.log(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
-    this.defaultAgent = await this.getAgent({ name: "ADMIN", mnemonic, address })
+    this.defaultIdentity = await this.getAgent({ name: "ADMIN", mnemonic, address })
     console.info(`🟢 connected, operating as ${address}`)
     return this as Chain }
 
@@ -253,12 +260,12 @@ export class Scrt extends Chain {
     return this.apiURL.toString() }
 
   /** create agent operating on the current instance's endpoint*/
-  async getAgent (identity: Identity = this.defaultAgent): Promise<Agent> {
+  async getAgent (identity: Identity = this.defaultIdentity): Promise<Agent> {
     if (identity.mnemonic || identity.keyPair) {
       console.info(`Using a ${bold('SecretJS')}-based agent.`)
       return await this.Agent.create({ ...identity, chain: this as Chain }) }
     else {
-      const name = identity.name || this.defaultAgent?.name
+      const name = identity.name || this.defaultIdentity?.name
       if (name) {
         console.info(`Using a ${bold('secretcli')}-based agent.`)
         return new ScrtCLIAgent({ chain: this, name }) as Agent }
@@ -267,7 +274,7 @@ export class Scrt extends Chain {
         'or a mnemonic or keypair to get a SecretJS-backed agent.')}}
 
   /** create contract instance from interface class and address */
-  getContract (ContractAPI: any, contractAddress: string, agent = this.defaultAgent) {
+  getContract (ContractAPI: any, contractAddress: string, agent = this.defaultIdentity) {
     return new ContractAPI({
       initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
       agent }) }

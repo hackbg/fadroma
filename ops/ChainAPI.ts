@@ -5,10 +5,10 @@ import { URL } from 'url'
 import { Directory } from '@fadroma/tools'
 
 export interface ChainOptions {
-  chainId?:      string
-  apiURL?:       URL
-  node?:         ChainNode
-  defaultAgent?: Identity
+  chainId?: string
+  apiURL?:  URL
+  node?:    ChainNode
+  defaultIdentity?: Identity
 }
 
 export interface ChainConnectOptions extends ChainOptions {
@@ -31,7 +31,7 @@ export abstract class Chain implements ChainOptions {
   node?:    ChainNode
 
   /** Credentials of the default agent for this network. */
-  defaultAgent?: Identity
+  defaultIdentity?: Identity
 
   /** Stuff that should be in the constructor but is asynchronous.
     * FIXME: How come nobody has proposed sugar for async constructors yet?
