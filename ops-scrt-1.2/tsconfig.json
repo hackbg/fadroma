@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "secretjs": ["../platforms/scrt-1.2/cosmwasm-js/packages/sdk/src/index.ts"]
+    }
+  }
+}

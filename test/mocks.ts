@@ -1,6 +1,8 @@
 import { Identity, Agent, Chain } from '@fadroma/ops'
 import { randomHex } from '@fadroma/tools'
 
+import { fromUtf8, fromHex, fromBase64, toBase64 } from '@iov/encoding'
+
 import freePort from 'freeport-async'
 import Express from 'express'
 import bodyParser from 'body-parser'
@@ -184,14 +186,49 @@ export class MockChain extends Chain {
         result: 'e87c2d9ec2cc89f19b60e4b927b96d4e6b5a309200f4f303f96b666546dcea33'
       })).end() })
 
-    app.get('/wasm/contract/:address/query/:query', (req, res, next)=>{
+    // echoes input query
+    app.get('/wasm/contract/:address/query/:query', async(req, res, next)=>{
+      const encrypted = req.params.query
+      const nonce = encrypted.slice(0, 32)
+      console.debug('--------------==================', encrypted)
+      const step1 = encoding_1.Encoding.fromHex(responseData.result.smart)
+      console.debug(1,{step1_fromHex:step1})
+      const step2 = await this.enigmautils.decrypt(step1, nonce)
+      console.debug(2,{step2_decrypt:step2})
+      const step3 = encoding_1.Encoding.fromUtf8(step2)
+      console.debug(3,{step3_fromutf8:step3})
+
+      let query = req.params.query
+      console.log(1, query)
+      query = fromHex(query)
+      console.log(2, query.toString())
+      query = fromUtf8(query)
+      console.log(3, query.toString())
+      query = fromBase64(query)
+      console.log(4, query.toString())
+      query = query.slice(64)
+      console.log(5, query.toString())
+      query = toBase64(query)
+      console.log(6, query.toString())
       res.status(200).send(JSON.stringify({
-        result: { smart: '' }
+        result: { smart: query }
       })).end() })
 
     app.get('/reg/consensus-io-exch-pubkey', (req, res, next)=>{
       res.status(200).send(JSON.stringify({
         result: { ioExchPubkey: "0jyiOQXsuaJzXX7KzsZJRsPqA8XQyt79mpciYm4uPkE=" }
+      })).end() })
+
+    // new in 1.2
+    app.get('/bank/balances/:address', (req, res, next) => {
+      res.status(200).send(JSON.stringify({
+        height: this.#blockHeight,
+        result: 0 })).end() })
+
+    // new in 1.2
+    app.get('/reg/tx-key', (req, res, next)=>{
+      res.status(200).send(JSON.stringify({
+        result: { TxKey: "0jyiOQXsuaJzXX7KzsZJRsPqA8XQyt79mpciYm4uPkE=" }
       })).end() })
 
     const server = app.listen(port, 'localhost', () => {

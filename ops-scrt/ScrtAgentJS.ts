@@ -150,6 +150,7 @@ export abstract class ScrtAgentJS extends Agent {
   async instantiate (codeId: number, label: string, initMsg: any) {
     console.debug(`⭕${this.address} ${bold('init')} ${label}`, { codeId, label, initMsg })
     const initTx = await this.API.instantiate(codeId, initMsg, label)
+    Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[0].value })
     console.debug(`⭕${this.address} ${bold('instantiated')} ${label}`, { codeId, label, initTx })
     return initTx }
 

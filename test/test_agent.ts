@@ -14,13 +14,13 @@ function validateImplementation (Agent: any) {
 
   todo(
     `create ${Agent.name} from mnemonic`,
-    async ({ match }) => {
+    async ({ equal }) => {
       const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
       const chain = await new MockChain().ready
       const agent = await Agent.create({ chain, mnemonic })
-      match(agent.mnemonic, mnemonic)
-      match(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
-      match(agent.pubkey, {
+      equal(agent.mnemonic, mnemonic)
+      equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
+      equal(agent.pubkey, {
         type:  'tendermint/PubKeySecp256k1',
         value: 'AoHyO3IEIOuffrGJoxwcYQnK+G1uMX/vQkzrjTXxMqTv' })
       chain.close() })
@@ -33,7 +33,7 @@ function validateImplementation (Agent: any) {
 
   todo(
     `${Agent.name} reads state and can wait for next block`,
-    async ({ match }) => {
+    async ({ equal }) => {
       const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
       const chain = await new MockChain().ready
       const agent = await Agent.create({ chain, mnemonic })
@@ -42,57 +42,73 @@ function validateImplementation (Agent: any) {
       await agent.nextBlock
       const [ {header:{height:block2}}, account2, balance2 ] =
         await Promise.all([ agent.block, agent.account, agent.balance ])
-      match(block1 + 1, block2)
-      match(account1, account2)
-      match(balance1, balance2)
+      equal(block1 + 1, block2)
+      equal(account1, account2)
+      equal(balance1, balance2)
       chain.close() })
 
   todo(
     `${Agent.name} supports native token`,
-    async ({ match }) => {
+    async ({ equal }) => {
       const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
       const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
       const chain = await new MockChain().ready
       const agent1 = await Agent.create({ chain, mnemonic: mnemonic1 })
       const agent2 = await Agent.create({ chain, mnemonic: mnemonic2 })
       chain.state.balances = { [agent1.address]: BigInt("2000"), [agent2.address]: BigInt("3000") }
-      match(await agent1.balance, "2000")
-      match(await agent2.balance, "3000")
+      equal(await agent1.balance, "2000")
+      equal(await agent2.balance, "3000")
       await agent1.send(agent2.address, "1000")
-      match(await agent1.balance, "1000")
-      match(await agent2.balance, "4000")
+      equal(await agent1.balance, "1000")
+      equal(await agent2.balance, "4000")
       await agent2.send(agent1.address, 500)
-      match(await agent1.balance, "1500")
-      match(await agent2.balance, "3500")
+      equal(await agent1.balance, "1500")
+      equal(await agent2.balance, "3500")
       chain.close() })
 
   //todo(`${Agent.name} can send native token to many recipients`, async () => {})
 
   test(
     `${Agent.name} uploads, instantiates, queries, and transacts with contract`,
-    async ({ match }) => {
+    async ({ ok, equal, same }) => {
       const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
       const chain = await new MockChain().ready
-      const agent = await Agent.create({ chain, mnemonic })
-      const uploadReceipt = await agent.upload('empty.wasm')
-      match(uploadReceipt, {})
-      const initReceipt = await agent.instantiate(uploadReceipt.codeId, 'contract label', {})
-      match(initReceipt, {})
-      const address = initReceipt.contractAddress
+      const agent = await Agent.create({ ok, chain, mnemonic })
+
+      // upload ------------------------------------------------------------------------------------
+      const { originalSize, originalChecksum,
+              compressedSize, compressedChecksum,
+              codeId, logs: uploadLogs } = await agent.upload('empty.wasm')
+      equal(originalSize,
+        0)
+      equal(originalChecksum,
+        "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+      equal(compressedSize,
+        20) // lol
+      equal(compressedChecksum,
+        "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec")
+      equal(codeId,
+        1)
+      same(uploadLogs,
+        [ { events: [ { type: "message", attributes: [ { key: 'code_id', value: 1 } ] } ] } ])
+
+      // init --------------------------------------------------------------------------------------
+      const { contractAddress: address, logs: initLogs } = await agent.instantiate(
+        codeId, `contract_deployed_by_${Agent.name}`, {})
+      ok(address,
+        'init tx returns contract address')
+      same(initLogs,
+        [ { events: [ { type: "message", attributes: [ { key: "contract_address", value: address } ] } ] } ],
+        'init logs contain contract address')
+
+      // query -------------------------------------------------------------------------------------
+      console.debug(`test q ${address}`)
       const queryResult = await agent.query({ address }, 'status')
-      match(queryResult, { votes: [
-        ["Marxism-Nixonism",                      0],
-        ["Third-Worldist Neoconservatism",        0],
-        ["Transhumanist Dynastic Muskism",        0],
-        ["Trans-Supremacist Catgirl Syndicalism", 0],
-        ["I just wanna grill",                    0] ] })
-      const txResult = await agent.execute({ address }, 'vote', { option: "IJustWannaGrill" })
-      match(txResult, {})
-      match(queryResult, { votes: [
-        ["Marxism-Nixonism",                      0],
-        ["Third-Worldist Neoconservatism",        0],
-        ["Transhumanist Dynastic Muskism",        0],
-        ["Trans-Supremacist Catgirl Syndicalism", 0],
-        ["I just wanna grill",                    1] ] }) })
+      equal(queryResult, 'status')
+
+      // transact ----------------------------------------------------------------------------------
+      console.debug(`test tx ${address}`)
+      const txResult = await agent.execute({ address }, 'tx', { option: "value" })
+      equal(txResult, {}) })
 
 }

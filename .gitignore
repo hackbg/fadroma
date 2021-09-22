@@ -6,6 +6,7 @@ Cargo.lock
 yarn-error.log
 .vscode
 package-lock.json
+yarn.lock
 artifacts
 .DS_Store
 dist/

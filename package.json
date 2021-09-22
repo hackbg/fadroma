@@ -4,6 +4,7 @@
   "type": "module",
   "workspace": true,
   "packages": [
+    "./ganesha",
     "./ops",
     "./ops-scrt",
     "./ops-scrt-1.0",
@@ -14,10 +15,10 @@
     "./test"
   ],
   "devDependencies": {
+    "@hackbg/ganesha": "workspace:*",
     "@types/mocha": "^9.0.0",
     "chai": "^4.3.4",
     "documentation": "^13.2.1",
-    "esmo": "^0.9.1",
     "mocha": "^8.0.1",
     "typedoc": "^0.21.6"
   },
@@ -31,7 +32,7 @@
   "scripts": {
     "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",
     "docs-ts": "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
-    "test-ts": "DEBUG=out esmo --async-stack-traces --enable-source-maps test/test.mjs",
+    "test-ts": "DEBUG=out ganesha run-module --async-stack-traces --enable-source-maps test/test.mjs",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc; rm Cargo.toml"

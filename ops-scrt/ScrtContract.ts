@@ -11,8 +11,10 @@ export class ScrtEnsemble extends BaseEnsemble {
   static chainSelector (E: EnsembleConstructor) {
     // TODO make this independent of Ensemble - or better yet, move it into Ensemble
     return [
-      ["mainnet",      "Run on mainnet",
-        on['mainnet'],      new E({chain: Scrt.mainnet()      as Chain}).remoteCommands()],
+      ["secret_2",     "Run on secret_2",
+        on['secret_2'],     new E({chain: Scrt.secret_2()      as Chain}).remoteCommands()],
+      ["secret_3",     "Run on secret_3",
+        on['secret_3'],     new E({chain: Scrt.secret_3()      as Chain}).remoteCommands()],
       ["holodeck-2",   "Run on holodeck2",
         on['holodeck-2'],   new E({chain: Scrt.holodeck_2()   as Chain}).remoteCommands()],
       ["supernova-1",  "Run on supernova1",
