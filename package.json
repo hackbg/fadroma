@@ -4,11 +4,11 @@
   "type": "module",
   "workspace": true,
   "packages": [
-    "./ganesha",
     "./ops",
     "./ops-scrt",
     "./ops-scrt-1.0",
     "./ops-scrt-1.2",
+    "./platforms/ganesha",
     "./platforms/scrt-1.0/cosmwasm-js/packages/sdk",
     "./platforms/scrt-1.2/cosmwasm-js/packages/sdk",
     "./tools",
