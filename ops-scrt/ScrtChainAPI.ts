@@ -6,7 +6,7 @@ import type { Commands } from '@fadroma/tools'
 import { URL } from 'url'
 
 import { Chain, prefund } from '@fadroma/ops'
-import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from '@fadroma/scrt'
+import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from './index'
 import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@fadroma/tools'
 import { resetLocalnet } from './ScrtChainNode'
 

@@ -4,6 +4,7 @@
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
+    "@fadroma/tools": "workspace:*",
     "ajv": "^8.6.0",
     "exponential-backoff": "^3.1.0",
     "json-schema-to-typescript": "^10.1.4"

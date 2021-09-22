@@ -7,7 +7,7 @@ import { ScrtGas, defaultFees } from './ScrtAgentGas'
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
-         makeSignBytes, BroadcastMode } from 'secretjs'
+         makeSignBytes, BroadcastMode } from 'secretjs/src/index.ts'
 
 const console = Console(import.meta.url)
 

@@ -10,6 +10,7 @@
     "mkdirp": "^1.0.4",
     "open": "^8.0.2",
     "prettyjson": "^1.2.1",
+    "prompts": "^2.4.1",
     "rimraf": "^3.0.2",
     "signal-exit": "^3.0.3",
     "table": "^6.6.0",

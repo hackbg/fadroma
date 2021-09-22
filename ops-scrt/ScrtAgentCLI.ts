@@ -1,5 +1,5 @@
 import { Bip39 } from '@cosmjs/crypto'
-import { EnigmaUtils } from 'secretjs'
+import { EnigmaUtils } from 'secretjs/src/index.ts'
 
 import { Agent, Identity } from '@fadroma/ops'
 import { Console, bold, execFile, spawn } from '@fadroma/tools'

@@ -5,9 +5,8 @@
   "main": "./index.ts",
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",
-    "@fadroma/ops": "*"
-  },
-  "peerDependencies": {
-    "secretjs": "*"
+    "@fadroma/ops": "workspace:*",
+    "@fadroma/tools": "workspace:*",
+    "secretjs": "workspace:*"
   }
 }
