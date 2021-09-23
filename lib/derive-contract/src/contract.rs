@@ -471,61 +471,52 @@ impl Contract {
         parse_quote! {
             #[cfg(target_arch = "wasm32")]
             mod wasm {
-                use cosmwasm_std::{
-                    do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
-                    QueryResult, to_binary, StdResult, InitResponse, HandleResponse, Storage, Api,
-                    Querier, Extern, Env
+                use super::cosmwasm_std::{
+                    do_execute, do_instantiate, do_query, QueryResponse, to_binary,
+                    StdResult, Response, Env, MessageInfo, Deps, DepsMut
                 };
 
-                fn entry_init<S: Storage, A: Api, Q: Querier>(
-                    deps: &mut Extern<S, A, Q>,
+                fn entry_init(
+                    deps: DepsMut,
                     env: Env,
+                    info: MessageInfo,
                     msg: super::#init_msg,
-                ) -> StdResult<InitResponse> {
-                    super::#init_fn(deps, env, msg, super::DefaultImpl)
+                ) -> StdResult<Response> {
+                    super::#init_fn(deps, env, info, msg, super::DefaultImpl)
                 }
 
-                pub fn entry_handle<S: Storage, A: Api, Q: Querier>(
-                    deps: &mut Extern<S, A, Q>,
+                pub fn entry_handle(
+                    deps: DepsMut,
                     env: Env,
+                    info: MessageInfo,
                     msg: super::#handle_msg,
-                ) -> StdResult<HandleResponse> {
-                    super::#handle_fn(deps, env, msg, super::DefaultImpl)
+                ) -> StdResult<Response> {
+                    super::#handle_fn(deps, env, info, msg, super::DefaultImpl)
                 }
 
-                fn entry_query<S: Storage, A: Api, Q: Querier>(
-                    deps: &Extern<S, A, Q>,
+                fn entry_query(
+                    deps: Deps,
+                    env: Env,
                     msg: super::#query_msg
-                ) -> StdResult<QueryResult> {
-                    let result = super::#query_fn(deps, msg, super::DefaultImpl)?;
+                ) -> StdResult<QueryResponse> {
+                    let result = super::#query_fn(deps, env, msg, super::DefaultImpl)?;
 
                     to_binary(&result)
                 }
 
                 #[no_mangle]
-                extern "C" fn init(env_ptr: u32, msg_ptr: u32) -> u32 {
-                    do_init(
-                        &entry_init::<ExternalStorage, ExternalApi, ExternalQuerier>,
-                        env_ptr,
-                        msg_ptr,
-                    )
+                extern "C" fn init(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+                    do_instantiate(&entry_init, env_ptr, info_ptr, msg_ptr)
                 }
 
                 #[no_mangle]
-                extern "C" fn handle(env_ptr: u32, msg_ptr: u32) -> u32 {
-                    do_handle(
-                        &entry_handle::<ExternalStorage, ExternalApi, ExternalQuerier>,
-                        env_ptr,
-                        msg_ptr,
-                    )
+                extern "C" fn handle(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+                    do_execute(&entry_handle, env_ptr, info_ptr, msg_ptr)
                 }
 
                 #[no_mangle]
-                extern "C" fn query(msg_ptr: u32) -> u32 {
-                    do_query(
-                        &entry_query::<ExternalStorage, ExternalApi, ExternalQuerier>,
-                        msg_ptr,
-                    )
+                extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
+                    do_query(&entry_query, env_ptr, msg_ptr)
                 }
 
                 // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
