@@ -6,42 +6,46 @@ use crate::scrt::*;
 pub type TxResult = StdResult<(Vec<String>, usize, usize)>;
 
 //pub struct Contract <S: Storage, A: Api, Q: Querier, InitMsg, TXMsg, QueryMsg> {
-    //init:   fn (&Extern<S, A, Q>, Env, InitMsg)   -> StdResult<InitResponse>,
-    //handle: fn (&mut Extern<S, A, Q>, Env, TXMsg) -> StdResult<HandleResponse>,
-    //query:  fn (&Extern<S, A, Q>, QueryMsg)       -> StdResult<Binary>,
+    //init:   fn (DepsMut, Env, InitMsg)   -> StdResult<Response>,
+    //handle: fn (DepsMut, Env, TXMsg)     -> StdResult<Response>,
+    //query:  fn (Deps, QueryMsg)          -> StdResult<QueryResponse>,
 //}
 
-pub type InitFn   <D, M> = fn (&mut D, Env, M) -> StdResult<InitResponse>;
-pub type HandleFn <D, M> = fn (&mut D, Env, M) -> StdResult<HandleResponse>;
-pub type QueryFn  <D, M> = fn (&D, M) -> StdResult<Binary>;
+pub type InitFn   <M> = fn (DepsMut, Env, MessageInfo, M) -> StdResult<Response>;
+pub type HandleFn <M> = fn (DepsMut, Env, MessageInfo, M) -> StdResult<Response>;
+pub type QueryFn  <M> = fn (Deps, M) -> StdResult<QueryResponse>;
 
 /// Reusable test harness with overridable post processing
 /// for init and tx response messages.
-pub trait Harness <Q: Querier, InitMsg, TXMsg, QueryMsg, Response: DeserializeOwned> {
+pub trait Harness <Q: Querier, InitMsg, TXMsg, QueryMsg, Resp: DeserializeOwned> {
 
-    type Deps;
-    fn deps       (&self)     -> &Self::Deps;
-    fn deps_mut   (&mut self) -> &mut Self::Deps;
-    fn get_init   (&mut self) -> InitFn<Self::Deps,   InitMsg>;
-    fn get_handle (&mut self) -> HandleFn<Self::Deps, TXMsg>;
-    fn get_query  (&self)     -> QueryFn<Self::Deps,  QueryMsg>;
+    fn deps       (&self)     -> Deps;
+    fn deps_mut   (&mut self) -> DepsMut;
+    fn get_init   (&mut self) -> InitFn<InitMsg>;
+    fn get_handle (&mut self) -> HandleFn<TXMsg>;
+    fn get_query  (&self)     -> QueryFn<QueryMsg>;
 
-    fn init (&mut self, height: u64, agent: &HumanAddr, msg: InitMsg) -> TxResult {
-        (self.get_init())(self.deps_mut(), Env {
-            block:    BlockInfo    { height, time: height * 5, chain_id: "secret".into() },
-            message:  MessageInfo  { sender: agent.into(), sent_funds: vec![] },
-            contract: ContractInfo { address: "contract_addr".into() },
-            contract_key:       Some("contract_key".into()),
-            contract_code_hash: "contract_hash".into()
-        }, msg).map(|result|Self::postprocess_init(result))?
+    fn init (&mut self, height: u64, agent: Addr, msg: InitMsg) -> TxResult {
+        (self.get_init())(
+            self.deps_mut(),
+            Env {
+                block:    BlockInfo    { height,  time: Timestamp::from_seconds(height * 5), chain_id: "secret".into() },
+                contract: ContractInfo { address: Addr::unchecked("contract_addr"), code_hash: "contract_hash".into() }
+            },
+            MessageInfo {
+                sender: agent,
+                funds: Vec::new()
+            },
+            msg
+        ).map(|result|Self::postprocess_init(result))?
     }
 
-    fn postprocess_init (result: InitResponse) -> TxResult {
+    fn postprocess_init (result: Response) -> TxResult {
         let mut relevant = vec![];
         let mut other    = 0;
         let mut invalid  = 0;
-        for cosmos_msg in result.messages.iter() {
-            match cosmos_msg {
+        for msg in result.messages.iter() {
+            match &msg.msg {
                 CosmosMsg::Wasm(wasm_msg) => match wasm_msg {
                     WasmMsg::Execute { msg, .. } => match from_utf8(msg.as_slice()) {
                         Ok(msg) => relevant.push(msg.trim().into()),
@@ -55,22 +59,27 @@ pub trait Harness <Q: Querier, InitMsg, TXMsg, QueryMsg, Response: DeserializeOw
         Ok((relevant, other, invalid))
     }
 
-    fn tx (&mut self, height: u64, agent: &HumanAddr, tx: TXMsg) -> TxResult {
-        (self.get_handle())(self.deps_mut(), Env {
-            block:    BlockInfo    { height, time: height * 5, chain_id: "secret".into() },
-            message:  MessageInfo  { sender: agent.into(), sent_funds: vec![] },
-            contract: ContractInfo { address: "contract_addr".into() },
-            contract_key:       Some("contract_key".into()),
-            contract_code_hash: "contract_hash".into()
-        }, tx).map(|result|Self::postprocess_tx(result))?
+    fn tx (&mut self, height: u64, agent: Addr, tx: TXMsg) -> TxResult {
+        (self.get_handle())(
+            self.deps_mut(),
+            Env {
+                block:    BlockInfo    { height,  time: Timestamp::from_seconds(height * 5), chain_id: "secret".into() },
+                contract: ContractInfo { address: Addr::unchecked("contract_addr"), code_hash: "contract_hash".into() }
+            },
+            MessageInfo {
+                sender: agent,
+                funds: Vec::new()
+            },
+            tx
+        ).map(|result|Self::postprocess_tx(result))?
     }
 
-    fn postprocess_tx (result: HandleResponse) -> TxResult {
+    fn postprocess_tx (result: Response) -> TxResult {
         let mut relevant = vec![];
         let mut other    = 0;
         let mut invalid  = 0;
-        for cosmos_msg in result.messages.iter() {
-            match cosmos_msg {
+        for msg in result.messages.iter() {
+            match &msg.msg {
                 CosmosMsg::Wasm(wasm_msg) => match wasm_msg {
                     WasmMsg::Execute { msg, .. } => match from_utf8(msg.as_slice()) {
                         Ok(msg) => relevant.push(msg.trim().into()),
@@ -84,7 +93,7 @@ pub trait Harness <Q: Querier, InitMsg, TXMsg, QueryMsg, Response: DeserializeOw
         Ok((relevant, other, invalid))
     }
 
-    fn q (&self, q: QueryMsg) -> StdResult<Response> {
+    fn q (&self, q: QueryMsg) -> StdResult<Resp> {
         match (self.get_query())(self.deps(), q) {
             Ok(response) => from_binary(&response),
             Err(e)       => Err(e)

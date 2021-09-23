@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use syn::{FnArg, ItemFn, PathArguments, Stmt, Type, parse_macro_input, parse_quote, Pat, PatIdent};
+use syn::{FnArg, ItemFn, Stmt, Type, parse_macro_input, parse_quote, Pat, PatIdent};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use quote::quote;
@@ -22,49 +22,21 @@ pub fn require_admin(_attr: TokenStream, func: TokenStream) -> TokenStream {
 
 fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
     let mut deps: Option<PatIdent> = None;
-    let mut env: Option<PatIdent> = None;
+    let mut info: Option<PatIdent> = None;
 
     for arg in args {
         match arg {
             FnArg::Typed(item) => {
                 match item.ty.as_ref() {
-                    Type::Reference(reference) => {
-                        match reference.elem.as_ref() {
-                            Type::Path(type_path) => {
-                                let result = type_path.path.segments.iter()
-                                    .find(|i| {
-                                        if let PathArguments::AngleBracketed(_) = i.arguments {
-                                            if i.ident.to_string() == "Extern" {
-                                                return true
-                                            }
-                                        }
+                    Type::Path(type_path) => {                    
+                        if let Pat::Ident(ident) = item.pat.as_ref() {
+                            let last = type_path.path.segments.last().unwrap();
 
-                                        false
-                                    });
-
-                                if let Some(_) = result {
-                                    if let Pat::Ident(ident) = item.pat.as_ref() {
-                                        deps = Some(ident.clone())
-                                    }
-                                }
-                            },
-                            _ => continue
-                        }
-                    },
-                    Type::Path(type_path) => {
-                        let result = type_path.path.segments.iter()
-                            .find(|i| {
-                                if i.ident.to_string() == "Env" {
-                                    return true
-                                }
-                    
-                                false
-                            });
-                
-                        if let Some(_) = result {
-                            if let Pat::Ident(ident) = item.pat.as_ref() {
-                                env = Some(ident.clone())
-                            }
+                            match last.ident.to_string().as_str() {
+                                "MessageInfo" => info = Some(ident.clone()),
+                                "DepsMut" => deps = Some(ident.clone()),
+                                _ => continue
+                            };
                         }
                     }
                     _ => continue
@@ -75,14 +47,14 @@ fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
     }
     
     return (
-        deps.unwrap_or_else(|| panic!("Couldn't find argument of type \"Extern<Storage, Api, Querier>\"")),
-        env.unwrap_or_else(|| panic!("Couldn't find arguments of type \"Env\""))
+        deps.unwrap_or_else(|| panic!("Couldn't find argument of type \"DepsMut\"")),
+        info.unwrap_or_else(|| panic!("Couldn't find arguments of type \"MessageInfo\""))
     );
 }
 
-fn create_require_admin_stmt(deps: PatIdent, env: PatIdent) -> Stmt {
+fn create_require_admin_stmt(deps: PatIdent, info: PatIdent) -> Stmt {
     let code = quote! {
-        assert_admin(#deps, &#env)?;
+        assert_admin(#deps.as_ref(), &#info)?;
     };
 
     parse_quote!(#code)

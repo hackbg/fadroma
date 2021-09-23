@@ -1,6 +1,6 @@
 use crate::{
     scrt::{
-        BLOCK_SIZE, HumanAddr, StdResult,
+        BLOCK_SIZE, Addr, StdResult,
         CosmosMsg, Uint128, Binary, Querier
     },
     scrt_link::ContractLink,
@@ -9,14 +9,14 @@ use crate::{
 
 
 pub struct ISnip20 <'a> {
-    pub link:   &'a ContractLink<HumanAddr>,
+    pub link:   &'a ContractLink<Addr>,
     padding:    Option<String>,
     block_size: usize
 }
 
 impl<'a> ISnip20<'a> {
 
-    pub fn attach (link: &'a ContractLink<HumanAddr>) -> Self {
+    pub fn attach (link: &'a ContractLink<Addr>) -> Self {
         Self {
             link,
             padding:    None,
@@ -25,7 +25,7 @@ impl<'a> ISnip20<'a> {
     }
 
     pub fn mint (
-        &self, recipient: &HumanAddr, amount: Uint128
+        &self, recipient: &Addr, amount: Uint128
     ) -> StdResult<CosmosMsg> {
         snip20::mint_msg(
             recipient.clone(), amount,
@@ -35,7 +35,7 @@ impl<'a> ISnip20<'a> {
     }
 
     pub fn set_minters (
-        &self, minters: &Vec<HumanAddr>
+        &self, minters: &Vec<Addr>
     ) -> StdResult<CosmosMsg> {
         snip20::set_minters_msg(
             minters.clone(),
@@ -45,7 +45,7 @@ impl<'a> ISnip20<'a> {
     }
 
     pub fn send (
-        &self, recipient: &HumanAddr, amount: Uint128, msg: Option<Binary>
+        &self, recipient: &Addr, amount: Uint128, msg: Option<Binary>
     ) -> StdResult<CosmosMsg> {
         snip20::send_msg(
             recipient.clone(), amount, msg,
@@ -55,7 +55,7 @@ impl<'a> ISnip20<'a> {
     }
 
     pub fn send_from (
-        &self, owner: &HumanAddr, recipient: &HumanAddr,
+        &self, owner: &Addr, recipient: &Addr,
         amount: Uint128, msg: Option<Binary>
     ) -> StdResult<CosmosMsg> {
         snip20::send_from_msg(
@@ -66,7 +66,7 @@ impl<'a> ISnip20<'a> {
     }
 
     pub fn transfer (
-        &self, recipient: &HumanAddr, amount: Uint128
+        &self, recipient: &Addr, amount: Uint128
     ) -> StdResult<CosmosMsg> {
         snip20::transfer_msg(
             recipient.clone(), amount,
@@ -76,7 +76,7 @@ impl<'a> ISnip20<'a> {
     }
 
     pub fn transfer_from (
-        &self, owner: &HumanAddr, recipient: &HumanAddr, amount: Uint128
+        &self, owner: &Addr, recipient: &Addr, amount: Uint128
     ) -> StdResult<CosmosMsg> {
         snip20::transfer_from_msg(
             owner.clone(), recipient.clone(), amount,
@@ -110,7 +110,7 @@ pub struct ISnip20Querier <'q, Q: Querier> {
 
 impl <'q, Q: Querier> ISnip20Querier <'q, Q> {
 
-    pub fn balance (&self, address: &HumanAddr, vk: &str) -> StdResult<Uint128> {
+    pub fn balance (&self, address: &Addr, vk: &str) -> StdResult<Uint128> {
         Ok(snip20::balance_query(
             self.querier,
             address.clone(), vk.into(),

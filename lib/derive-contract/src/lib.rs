@@ -32,7 +32,6 @@ pub fn contract_impl(args: proc_macro::TokenStream, trait_: proc_macro::TokenStr
 pub fn init(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_deps_generics(&mut ast);
     add_fn_args(&mut ast, true);
 
     let result = quote! {
@@ -46,7 +45,6 @@ pub fn init(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> pr
 pub fn handle(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_deps_generics(&mut ast);
     add_fn_args(&mut ast, true);
 
     let result = quote! {
@@ -60,7 +58,6 @@ pub fn handle(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> 
 pub fn query(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_deps_generics(&mut ast);
     add_fn_args(&mut ast, false);
 
     let result = quote! {
@@ -110,19 +107,15 @@ fn generate_contract(
     proc_macro::TokenStream::from(result)
 }
 
-fn add_deps_generics(func: &mut TraitItemMethod) {    
-    func.sig.generics.params.push(parse_quote!(S: cosmwasm_std::Storage));
-    func.sig.generics.params.push(parse_quote!(A: cosmwasm_std::Api));
-    func.sig.generics.params.push(parse_quote!(Q: cosmwasm_std::Querier));
-}
-
 fn add_fn_args(func: &mut TraitItemMethod, is_tx: bool) {
     func.sig.inputs.insert(0, parse_quote!(&self));
     
     if is_tx {
-        func.sig.inputs.push(parse_quote!(deps: &mut cosmwasm_std::Extern<S, A, Q>));
+        func.sig.inputs.push(parse_quote!(deps: cosmwasm_std::DepsMut));
         func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
+        func.sig.inputs.push(parse_quote!(info: cosmwasm_std::MessageInfo));
     } else {
-        func.sig.inputs.push(parse_quote!(deps: &cosmwasm_std::Extern<S, A, Q>));
+        func.sig.inputs.push(parse_quote!(deps: cosmwasm_std::Deps));
+        func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
     }
 }

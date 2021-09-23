@@ -1,7 +1,8 @@
-use cosmwasm_std::{StdResult, InitResponse, HandleResponse, Storage, to_vec, from_slice};
-use cosmwasm_std::testing::{mock_dependencies, mock_env};
+use fadroma::scrt::{StdResult, Response, Storage, to_vec, from_slice};
+use fadroma::cosmwasm_std;
+use fadroma::scrt::testing::{mock_dependencies, mock_env, mock_info};
 use derive_contract::*;
-use schemars;
+use fadroma::schemars;
 use serde;
 
 pub mod string_component {
@@ -11,15 +12,15 @@ pub mod string_component {
 
     #[contract]
     pub trait StringComponent {
-        fn new(storage: &mut impl Storage, string: String) -> StdResult<()> {
+        fn new(storage: &mut dyn Storage, string: String) -> StdResult<()> {
             Ok(storage.set(KEY_STRING, &to_vec(&string)?))
         }
 
         #[handle]
-        fn set_string(string: String) -> StdResult<HandleResponse> {
+        fn set_string(string: String) -> StdResult<Response> {
             deps.storage.set(KEY_STRING, &to_vec(&string)?);
 
-            Ok(HandleResponse::default())
+            Ok(Response::default())
         }
 
         #[query("string")]
@@ -45,26 +46,26 @@ impl string_component::StringComponent for CustomStringImpl {
 #[contract(component(path = "string_component", custom_impl = "CustomStringImpl", skip(handle)))]
 pub trait CustomImplContract {
     #[init]
-    fn new(string: String) -> StdResult<InitResponse> {
-        CustomStringImpl::new(&mut deps.storage, string)?;
+    fn new(string: String) -> StdResult<Response> {
+        CustomStringImpl::new(deps.storage, string)?;
 
-        Ok(InitResponse::default())
+        Ok(Response::default())
     }
 }
 
 #[test]
 fn uses_custom_impl() {
-    let ref mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("sender", &[]);
+    let ref mut deps = mock_dependencies(&[]);
 
     let msg = InitMsg {
         string: String::from("test")
     };
 
-    init(deps, env.clone(), msg, DefaultImpl).unwrap();
+    init(deps.as_mut(), mock_env(), mock_info("sender", &[]), msg, DefaultImpl).unwrap();
 
     let result = query(
-        deps,
+        deps.as_ref(),
+        mock_env(),
         QueryMsg::StringComponent(
             string_component::QueryMsg::GetString { padding: None }
         ),

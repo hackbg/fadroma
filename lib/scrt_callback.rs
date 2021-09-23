@@ -1,5 +1,5 @@
 use crate::{
-    scrt::{StdResult, HumanAddr, CanonicalAddr, Api, Binary},
+    scrt::{StdResult, Addr, CanonicalAddr, Api, Binary},
     scrt_link::ContractLink,
     scrt_addr::{Canonize, Humanize}
 };
@@ -14,13 +14,13 @@ pub struct Callback<A> {
     /// Info about the contract requesting the callback.
     pub contract: ContractLink<A>
 }
-impl Canonize<Callback<CanonicalAddr>> for Callback<HumanAddr> {
-    fn canonize (&self, api: &impl Api) -> StdResult<Callback<CanonicalAddr>> {
+impl Canonize<Callback<CanonicalAddr>> for Callback<Addr> {
+    fn canonize (&self, api: &dyn Api) -> StdResult<Callback<CanonicalAddr>> {
         Ok(Callback { msg: self.msg.clone(), contract: self.contract.canonize(api)? })
     }
 }
-impl Humanize<Callback<HumanAddr>> for Callback<CanonicalAddr> {
-    fn humanize (&self, api: &impl Api) -> StdResult<Callback<HumanAddr>> {
+impl Humanize<Callback<Addr>> for Callback<CanonicalAddr> {
+    fn humanize (&self, api: &dyn Api) -> StdResult<Callback<Addr>> {
         Ok(Callback { msg: self.msg.clone(), contract: self.contract.humanize(api)? })
     }
 }

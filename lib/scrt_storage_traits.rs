@@ -30,12 +30,12 @@ use serde::{de::DeserializeOwned, Serialize};
 ///     }
 /// }
 /// 
-/// fn init<S: Storage, A: Api, Q: Querier>(deps: &mut Extern<S, A, Q>) -> StdResult<()> {
+/// fn init(mut deps: DepsMut) -> StdResult<()> {
 ///     let config = Config { some_value: "foo".to_string() };
 /// 
-///     config.save(deps)?;
+///     config.save(deps.branch())?;
 /// 
-///     let maybe_config: Option<Config> = Config::load(&deps, b"some_key")?;
+///     let maybe_config: Option<Config> = Config::load(deps.as_ref(), b"some_key")?;
 /// 
 ///     Ok(())
 /// }
@@ -45,7 +45,7 @@ pub trait Storable: Serialize + DeserializeOwned {
     fn key(&self) -> StdResult<Vec<u8>>;
 
     /// Save Self in the storage
-    fn save<S: Storage, A: Api, Q: Querier>(&self, deps: &mut Extern<S, A, Q>) -> StdResult<()> {
+    fn save(&self, deps: DepsMut) -> StdResult<()> {
         let key = self.key()?;
         let key = key.as_slice();
 
@@ -53,7 +53,7 @@ pub trait Storable: Serialize + DeserializeOwned {
     }
 
     /// Remove Self from storage
-    fn remove<S: Storage, A: Api, Q: Querier>(self, deps: &mut Extern<S, A, Q>) -> StdResult<()> {
+    fn remove(self, deps: DepsMut) -> StdResult<()> {
         let key = self.key()?;
         let key = key.as_slice();
 
@@ -74,32 +74,27 @@ pub trait Storable: Serialize + DeserializeOwned {
     }
 
     /// Static: Load Self from the storage
-    fn load<S: Storage, A: Api, Q: Querier>(
-        deps: &Extern<S, A, Q>,
-        key: &[u8],
-    ) -> StdResult<Option<Self>> {
+    fn load(deps: Deps, key: &[u8]) -> StdResult<Option<Self>> {
         let key = Self::concat_key(key);
 
-        storage_load::<Self, S>(&deps.storage, key.as_slice())
+        storage_load::<Self>(deps.storage, key.as_slice())
     }
 
     /// Static: Save Self in the storage
-    fn static_save<S: Storage, A: Api, Q: Querier>(
-        deps: &mut Extern<S, A, Q>,
+    fn static_save(
+        deps: DepsMut,
         key: &[u8],
         item: &Self,
     ) -> StdResult<()> {
         let key = Self::concat_key(key);
-        storage_save::<Self, S>(&mut deps.storage, &key.as_slice(), item)
+        storage_save::<Self>(deps.storage, &key.as_slice(), item)
     }
 
     /// Static: Remove Self from storage
-    fn static_remove<S: Storage, A: Api, Q: Querier>(
-        deps: &mut Extern<S, A, Q>,
-        key: &[u8],
+    fn static_remove(deps: DepsMut, key: &[u8]
     ) -> StdResult<()> {
         let key = Self::concat_key(key);
-        storage_remove(&mut deps.storage, &key.as_slice());
+        storage_remove(deps.storage, &key.as_slice());
 
         Ok(())
     }

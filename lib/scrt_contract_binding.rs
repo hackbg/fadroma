@@ -66,14 +66,14 @@
 
         #[derive(Copy, Clone)] pub struct Api;
         impl cw::Api for Api {
-            fn canonical_address (&self, addr: &cw::HumanAddr) -> cw::StdResult<cw::CanonicalAddr> {
+            fn canonical_address (&self, addr: &cw::Addr) -> cw::StdResult<cw::CanonicalAddr> {
                 Ok(cw::CanonicalAddr(cw::Binary(Vec::from(addr.as_str()))))
             }
-            fn human_address (&self, addr: &cw::CanonicalAddr) -> cw::StdResult<cw::HumanAddr> {
+            fn human_address (&self, addr: &cw::CanonicalAddr) -> cw::StdResult<cw::Addr> {
                 let trimmed: Vec<u8> = addr.as_slice().iter().cloned()
                     .filter(|&x| x != 0).collect();
                 // decode UTF-8 bytes into string
-                Ok(cw::HumanAddr(String::from_utf8(trimmed)
+                Ok(cw::Addr(String::from_utf8(trimmed)
                     .map_err(cw::StdError::invalid_utf8)?))
             }
         }
@@ -110,11 +110,11 @@
                                 chain_id: "fadroma".into()
                             },
                             message: cw::MessageInfo {
-                                sender:     cw::HumanAddr::from(""),
+                                sender:     cw::Addr::from(""),
                                 sent_funds: vec![]
                             },
                             contract: cw::ContractInfo {
-                                address: cw::HumanAddr::from("")
+                                address: cw::Addr::from("")
                             },
                             contract_key: Some("".into()),
                             contract_code_hash: "".into()

@@ -2,7 +2,7 @@ pub use serde::{Serialize, de::DeserializeOwned};
 use crate::{scrt::*, scrt_storage::concat};
 
 /// Trait for actor that operates in a context with readonly access to the storage.
-pub trait Readonly <S: ReadonlyStorage> {
+pub trait Readonly <S: Storage> {
     /// Get the storage handle
     fn storage (&self) -> &S;
     /// Load a global

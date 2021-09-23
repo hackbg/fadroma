@@ -1,61 +1,61 @@
-//! `HumanAddr`<->`CanonicalAddr` conversion
+//! `Addr`<->`CanonicalAddr` conversion
 
-use crate::scrt::*;
+use crate::scrt::{Api, StdResult, Addr, CanonicalAddr, Binary};
 
 pub trait Humanize<T> {
-    fn humanize (&self, api: &impl Api) -> StdResult<T>;
+    fn humanize (&self, api: &dyn Api) -> StdResult<T>;
 }
 
 pub trait Canonize<T> {
-    fn canonize (&self, api: &impl Api) -> StdResult<T>;
+    fn canonize (&self, api: &dyn Api) -> StdResult<T>;
 }
 
 /// Attempting to canonicalize an empty address will fail. 
 /// This function skips calling `canonical_address` if the input is empty
 /// and returns `CanonicalAddr::default()` instead.
-pub fn canonize_maybe_empty(api: &impl Api, addr: &HumanAddr) -> StdResult<CanonicalAddr> {
+pub fn canonize_maybe_empty(api: &dyn Api, addr: &Addr) -> StdResult<CanonicalAddr> {
     Ok(
-        if *addr == HumanAddr::default() {
-            CanonicalAddr::default()
+        if *addr == Addr::unchecked("") {
+            CanonicalAddr(Binary(Vec::new()))
         } else {
-            api.canonical_address(addr)?
+            api.addr_canonicalize(addr.as_str())?
         }
     )
 }
 
 /// Attempting to humanize an empty address will fail. 
 /// This function skips calling `human_address` if the input is empty
-/// and returns `HumanAddr::default()` instead.
-pub fn humanize_maybe_empty(api: &impl Api, addr: &CanonicalAddr) -> StdResult<HumanAddr> {
+/// and returns `Addr::default()` instead.
+pub fn humanize_maybe_empty(api: &dyn Api, addr: &CanonicalAddr) -> StdResult<Addr> {
     Ok(
-        if *addr == CanonicalAddr::default() {
-            HumanAddr::default()
+        if *addr == CanonicalAddr(Binary(Vec::new())) {
+            Addr::unchecked("")
         } else {
-            api.human_address(addr)?
+            api.addr_humanize(addr)?
         }
     )
 }
 
-impl Humanize<HumanAddr> for CanonicalAddr {
-    fn humanize (&self, api: &impl Api) -> StdResult<HumanAddr> {
+impl Humanize<Addr> for CanonicalAddr {
+    fn humanize (&self, api: &dyn Api) -> StdResult<Addr> {
         humanize_maybe_empty(api, self)
     }
 }
 
 impl<T: Humanize<U>, U> Humanize<Vec<U>> for Vec<T> {
-    fn humanize (&self, api: &impl Api) -> StdResult<Vec<U>> {
+    fn humanize (&self, api: &dyn Api) -> StdResult<Vec<U>> {
         self.iter().map(|x|x.humanize(api)).collect()
     }
 }
 
-impl Canonize<CanonicalAddr> for HumanAddr {
-    fn canonize (&self, api: &impl Api) -> StdResult<CanonicalAddr> {
+impl Canonize<CanonicalAddr> for Addr {
+    fn canonize (&self, api: &dyn Api) -> StdResult<CanonicalAddr> {
         canonize_maybe_empty(api, self)
     }
 }
 
 impl<T: Canonize<U>, U> Canonize<Vec<U>> for Vec<T> {
-    fn canonize (&self, api: &impl Api) -> StdResult<Vec<U>> {
+    fn canonize (&self, api: &dyn Api) -> StdResult<Vec<U>> {
         self.iter().map(|x|x.canonize(api)).collect()
     }
 }

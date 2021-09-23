@@ -8,7 +8,7 @@
 #[macro_export] macro_rules! prelude {
     () => { use fadroma::scrt::cosmwasm_std::{
         ReadonlyStorage, Storage, Api, Querier, Extern, Env,
-        HumanAddr, CanonicalAddr, Coin, Uint128,
+        Addr, CanonicalAddr, Coin, Uint128,
         StdResult, StdError,
         InitResponse, HandleResponse, LogAttribute, Binary,
         CosmosMsg, BankMsg, WasmMsg, to_binary,

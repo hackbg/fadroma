@@ -1,10 +1,10 @@
 use crate::{
     scrt::{
-        StdResult, CanonicalAddr, Storage, Api,
-        Querier, Extern, Env, HumanAddr, StdError
+        StdResult, CanonicalAddr, Api, MessageInfo,
+        Deps, DepsMut, Addr, StdError
     },
     scrt_addr::{Humanize, Canonize},
-    scrt_storage,
+    scrt_storage::{load, save},
     composable_admin::admin::assert_admin,
     require_admin::require_admin
 };
@@ -40,13 +40,23 @@ macro_rules! migration_message {
          "This contract has been paused. Reason: {}",
          &$reason
     ) };
-    (migration: $reason:expr, $new_address:expr) => { format!(
-         "This contract is being migrated to {}, please use that address instead. Reason: {}",
-         &$new_address.unwrap_or(HumanAddr::default()),
-         &$reason
-    ) };
-}
+    (migration: $reason:expr, $new_address:expr) => {
+        if let Some(address) = $new_address {
+            format!(
+                "This contract is being migrated to {}, please use that address instead. Reason: {}",
+                address,
+                &$reason
+            ) 
+        } else {
+            format!(
+                "This contract is being migrated. Reason: {}",
+                &$reason
+            ) 
+        }
 
+    };
+}
+/*
 pub fn load (storage: &impl Storage) -> StdResult<ContractStatus<CanonicalAddr>> {
     match scrt_storage::load(storage, PREFIX)? {
         Some(status) => status,
@@ -56,7 +66,7 @@ pub fn load (storage: &impl Storage) -> StdResult<ContractStatus<CanonicalAddr>>
 pub fn save (storage: &mut impl Storage, status: &ContractStatus<CanonicalAddr>) -> StdResult<()> {
     scrt_storage::save(storage, PREFIX, status)
 }
-
+*/
 /// Possible states of a contract.
 #[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
 pub enum ContractStatusLevel {
@@ -85,25 +95,25 @@ impl<A> Default for ContractStatus<A> {
         new_address: None
     } }
 }
-impl Humanize<ContractStatus<HumanAddr>> for ContractStatus<CanonicalAddr> {
-    fn humanize (&self, api: &impl Api) -> StdResult<ContractStatus<HumanAddr>> {
+impl Humanize<ContractStatus<Addr>> for ContractStatus<CanonicalAddr> {
+    fn humanize (&self, api: &dyn Api) -> StdResult<ContractStatus<Addr>> {
         Ok(ContractStatus {
             level: self.level.clone(),
             reason: self.reason.clone(),
             new_address: match &self.new_address {
-                Some(canon_addr) => Some(api.human_address(&canon_addr)?),
+                Some(canon_addr) => Some(api.addr_humanize(&canon_addr)?),
                 None => None
             }
         })
     }
 }
-impl Canonize<ContractStatus<CanonicalAddr>> for ContractStatus<HumanAddr> {
-    fn canonize (&self, api: &impl Api) -> StdResult<ContractStatus<CanonicalAddr>> {
+impl Canonize<ContractStatus<CanonicalAddr>> for ContractStatus<Addr> {
+    fn canonize (&self, api: &dyn Api) -> StdResult<ContractStatus<CanonicalAddr>> {
         Ok(ContractStatus {
             level: self.level.clone(),
             reason: self.reason.clone(),
             new_address: match &self.new_address {
-                Some(human_addr) => Some(api.canonical_address(&human_addr)?),
+                Some(human_addr) => Some(api.addr_canonicalize(human_addr.as_str())?),
                 None => None
             }
         })
@@ -111,35 +121,32 @@ impl Canonize<ContractStatus<CanonicalAddr>> for ContractStatus<HumanAddr> {
 }
 
 /// Return the current contract status. Defaults to operational if nothing was stored.
-pub fn get_status <S: Storage, A: Api, Q: Querier> (
-    deps: &Extern<S, A, Q>
-) -> StdResult<ContractStatus<HumanAddr>> {
-    load(&deps.storage)?.humanize(&deps.api)
+pub fn get_status (deps: Deps) -> StdResult<ContractStatus<Addr>> {
+    let result: Option<ContractStatus<CanonicalAddr>> = load(deps.storage, PREFIX)?;
+
+    match result {
+        Some(status) => status.humanize(deps.api),
+        None => Ok(ContractStatus::default())
+    }
 }
 
 /// Fail if the current contract status level is other than `Operational`.
-pub fn is_operational <S: Storage, A: Api, Q: Querier> (
-    deps: &Extern<S, A, Q>
-) -> StdResult<()> {
+pub fn is_operational(deps: Deps) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = get_status(deps)?;
 
     match level {
         ContractStatusLevel::Operational => Ok(()),
         ContractStatusLevel::Paused => Err(StdError::GenericErr {
-            backtrace: None,
             msg: migration_message!(paused: reason)
         }),
         ContractStatusLevel::Migrating => Err(StdError::GenericErr {
-            backtrace: None,
             msg: migration_message!(migration: reason, new_address.clone())
         }),
     }
 }
 
 /// Fail if trying to return from `Migrating` status.
-pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
-    deps: &Extern<S, A, Q>,
-    to_level: &ContractStatusLevel
+pub fn can_set_status(deps: Deps, to_level: &ContractStatusLevel
 ) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = get_status(deps)?;
 
@@ -151,7 +158,6 @@ pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
             ContractStatusLevel::Migrating => Ok(()),
             // but prevent reverting from migration status
             _ => Err(StdError::GenericErr {
-                backtrace: None,
                 msg: migration_message!(migration: reason, new_address.clone())
             })
         }
@@ -160,15 +166,15 @@ pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
 
 /// Store a new contract status.
 #[require_admin]
-pub fn set_status <S: Storage, A: Api, Q: Querier> (
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
+pub fn set_status(
+    deps: DepsMut,
+    info: MessageInfo,
     level: ContractStatusLevel,
     reason: String,
-    new_address: Option<HumanAddr>
+    new_address: Option<Addr>
 ) -> StdResult<()> {
-    save(&mut deps.storage, &ContractStatus { level, reason, new_address: match new_address {
-        Some(new_address) => Some(new_address.canonize(&deps.api)?),
+    save(deps.storage, PREFIX, &ContractStatus { level, reason, new_address: match new_address {
+        Some(new_address) => Some(new_address.canonize(deps.api)?),
         None => None
     } })
 }

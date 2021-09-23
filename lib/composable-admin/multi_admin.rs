@@ -1,7 +1,7 @@
 use crate::{
     scrt::{
-        HumanAddr, StdResult, InitResponse, HandleResponse,
-        Extern, Env, Querier, Storage, Api, StdError, CanonicalAddr
+        Addr, StdResult, Response, Api, MessageInfo,
+        DepsMut, Deps, StdError, CanonicalAddr
     },
     scrt_storage::*,
     derive_contract::{contract, init, handle, query}
@@ -14,89 +14,90 @@ const ADMINS_KEY: &[u8] = b"i801onL3kf";
 #[contract]
 pub trait MultiAdmin {
     #[init]
-    fn new(admins: Option<Vec<HumanAddr>>) -> StdResult<InitResponse> {
-        let admins = if let Some(addresses) = admins {
-            addresses
+    fn new(admins: Option<Vec<String>>) -> StdResult<Response> {
+        let admins: Vec<Addr> = if let Some(addresses) = admins {
+            validate_addresses(addresses, deps.api)?
         } else {
-            vec![ env.message.sender ]
+            vec![ info.sender ]
         };
 
         save_admins(deps, &admins)?;
 
-        Ok(InitResponse::default())
+        Ok(Response::default())
     }
 
     #[handle]
-    fn add_admins(addresses: Vec<HumanAddr>) -> StdResult<HandleResponse> {
-        assert_admin(deps, &env)?;
+    fn add_admins(addresses: Vec<String>) -> StdResult<Response> {
+        assert_admin(deps.as_ref(), &info)?;
+
+        let addresses = validate_addresses(addresses, deps.api)?;
         save_admins(deps, &addresses)?;
     
-        Ok(HandleResponse::default())
+        Ok(Response::default())
     }
 
     #[query("addresses")]
-    fn admins() -> StdResult<Vec<HumanAddr>> {
+    fn admins() -> StdResult<Vec<Addr>> {
         let addresses = load_admins(deps)?;
 
         Ok(addresses)
     }
 }
 
-pub fn save_admins<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    addresses: &Vec<HumanAddr>
-) -> StdResult<()> {
+pub fn save_admins(deps: DepsMut, addresses: &Vec<Addr>) -> StdResult<()> {
     let mut admins: Vec<CanonicalAddr> = 
-        load(&deps.storage, ADMINS_KEY)?.unwrap_or(vec![]);
+        load(deps.storage, ADMINS_KEY)?.unwrap_or(vec![]);
     
     for address in addresses {
-        let canonical = deps.api.canonical_address(address)?;
+        let canonical = deps.api.addr_canonicalize(address.as_str())?;
         admins.push(canonical);
     }
 
-    save(&mut deps.storage, ADMINS_KEY, &admins)
+    save(deps.storage, ADMINS_KEY, &admins)
 }
 
-pub fn load_admins<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
-) -> StdResult<Vec<HumanAddr>> {
+pub fn load_admins(deps: Deps) -> StdResult<Vec<Addr>> {
     let admins: Vec<CanonicalAddr> =
-        load(&deps.storage, ADMINS_KEY)?.unwrap_or(vec![]);
+        load(deps.storage, ADMINS_KEY)?.unwrap_or(vec![]);
     
     let mut result = Vec::with_capacity(admins.len());
 
     for admin in admins {
-        result.push(deps.api.human_address(&admin)?)
+        result.push(deps.api.addr_humanize(&admin)?)
     }
 
     Ok(result)
 }
 
-pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    env: &Env,
-) -> StdResult<()> {
+pub fn assert_admin(deps: Deps, info: &MessageInfo) -> StdResult<()> {
     let admins = load_admins(deps)?;
 
-    if admins.contains(&env.message.sender) {
+    if admins.contains(&info.sender) {
         return Ok(());
     }
 
-    Err(StdError::unauthorized())
+    Err(StdError::generic_err("Unauthorized"))
+}
+
+pub fn validate_addresses(addresses: Vec<String>, api: &dyn Api) -> StdResult<Vec<Addr>> {
+    addresses
+        .iter()
+        .map(|x| api.addr_validate(x))
+        .collect::<StdResult<Vec<Addr>>>()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scrt::{mock_dependencies, mock_env};
+    use crate::scrt::{mock_dependencies, mock_env, mock_info};
 
     #[test]
     fn test_handle() {
         const ADMIN: &str = "goshu";
 
-        fn run_msg<S: Storage, A: Api, Q: Querier>(
-            deps: &mut Extern<S, A, Q>,
-            addresses: Vec<HumanAddr>,
+        fn run_msg(
+            deps: &mut DepsMut,
+            addresses: Vec<String>,
             assert_len: usize
         ) {
             let msg = HandleMsg::AddAdmins {
@@ -104,58 +105,62 @@ mod tests {
             };
     
             let result = handle(
-                deps,
-                mock_env(HumanAddr::from(ADMIN), &[]),
+                deps.branch(),
+                mock_env(),
+                mock_info(ADMIN, &[]),
                 msg,
                 DefaultImpl
             );
     
             assert!(result.is_ok());
     
-            let admins = load_admins(deps).unwrap();
+            let admins = load_admins(deps.as_ref()).unwrap();
             assert!(
                 admins.len() == assert_len,
                 "Assert admins.len() failed: Expected: {}, Got: {}", admins.len(), assert_len
             );
         }
 
-        let ref mut deps = mock_dependencies(10, &[]);
+        let ref mut deps = mock_dependencies(&[]);
 
-        let admin = HumanAddr::from("goshu");
-        save_admins(deps, &vec![ admin.clone() ]).unwrap();
+        let admin = Addr::unchecked("goshu");
+        save_admins(deps.as_mut(), &vec![ admin.clone() ]).unwrap();
 
         let msg = HandleMsg::AddAdmins {
-            addresses: vec![ HumanAddr::from("will fail") ]
+            addresses: vec![ String::from("will fail") ]
         };
 
         let result = handle(
-            deps,
-            mock_env(HumanAddr::from("unauthorized"), &[]),
+            deps.as_mut(),
+            mock_env(),
+            mock_info("unauthorized", &[]),
             msg,
             DefaultImpl
         )
         .unwrap_err();
 
         match result {
-            StdError::Unauthorized { .. } => { },
+            StdError::GenericErr { msg } => {
+                assert_eq!(msg, "Unauthorized")
+            },
             _ => panic!("Expected \"StdError::Unauthorized\"")
         };
 
-        run_msg(deps, vec![], 1);
+        run_msg(&mut deps.as_mut(), vec![], 1);
 
         run_msg(
-            deps,
+            &mut deps.as_mut(),
             vec![
-                HumanAddr::from("archer"),
-                HumanAddr::from("lana")
+                "archer".into(),
+                "lana".into()
             ],
             3
         );
 
         run_msg(
-            deps,
+            &mut deps.as_mut(),
             vec![
-                HumanAddr::from("pam"),
+                "pam".into(),
             ],
             4
         );
@@ -163,9 +168,9 @@ mod tests {
 
     #[test]
     fn test_query() {
-        let ref mut deps = mock_dependencies(10, &[]);
+        let ref mut deps = mock_dependencies(&[]);
 
-        let result = query(deps, QueryMsg::Admins {}, DefaultImpl).unwrap();
+        let result = query(deps.as_ref(), mock_env(), QueryMsg::Admins {}, DefaultImpl).unwrap();
         
         match result {
             QueryResponse::Admins { addresses } => {
@@ -174,13 +179,13 @@ mod tests {
         }
 
         let admins = vec![
-            HumanAddr::from("archer"),
-            HumanAddr::from("lana")
+            Addr::unchecked("archer"),
+            Addr::unchecked("lana")
         ];
 
-        save_admins(deps, &admins).unwrap();
+        save_admins(deps.as_mut(), &admins).unwrap();
 
-        let result = query(deps, QueryMsg::Admins {}, DefaultImpl).unwrap();
+        let result = query(deps.as_ref(), mock_env(), QueryMsg::Admins {}, DefaultImpl).unwrap();
         match result {
             QueryResponse::Admins { addresses } => {
                 assert!(addresses == admins);

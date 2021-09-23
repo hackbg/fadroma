@@ -1,4 +1,7 @@
-use crate::{scrt::*, scrt_addr::*};
+use crate::{
+    scrt::{StdResult, Addr, CanonicalAddr, Api},
+    scrt_addr::{Humanize, Canonize}
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -18,16 +21,16 @@ pub struct ContractLink<A> {
     pub address:   A,
     pub code_hash: CodeHash
 }
-impl Canonize<ContractLink<CanonicalAddr>> for ContractLink<HumanAddr> {
-    fn canonize (&self, api: &impl Api) -> StdResult<ContractLink<CanonicalAddr>> {
+impl Canonize<ContractLink<CanonicalAddr>> for ContractLink<Addr> {
+    fn canonize (&self, api: &dyn Api) -> StdResult<ContractLink<CanonicalAddr>> {
         Ok(ContractLink {
             address:   self.address.canonize(api)?,
             code_hash: self.code_hash.clone()
         })
     }
 }
-impl Humanize<ContractLink<HumanAddr>> for ContractLink<CanonicalAddr> {
-    fn humanize (&self, api: &impl Api) -> StdResult<ContractLink<HumanAddr>> {
+impl Humanize<ContractLink<Addr>> for ContractLink<CanonicalAddr> {
+    fn humanize (&self, api: &dyn Api) -> StdResult<ContractLink<Addr>> {
         Ok(ContractLink {
             address:   self.address.humanize(api)?,
             code_hash: self.code_hash.clone()

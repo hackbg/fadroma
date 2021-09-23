@@ -1,6 +1,7 @@
-use cosmwasm_std::{StdResult, HandleResponse, InitResponse, to_vec, from_slice};
+use fadroma::scrt::{StdResult, Response, to_vec, from_slice};
+use fadroma::cosmwasm_std;
 use derive_contract::*;
-use schemars;
+use fadroma::schemars;
 use serde;
 
 const KEY_STRING: &[u8] = b"string_data";
@@ -8,17 +9,17 @@ const KEY_STRING: &[u8] = b"string_data";
 #[contract(entry)]
 pub trait StringComponent {
     #[init]
-    fn new(string: String) -> StdResult<InitResponse> {
+    fn new(string: String) -> StdResult<Response> {
         deps.storage.set(KEY_STRING, &to_vec(&string)?);
 
-        Ok(InitResponse::default())
+        Ok(Response::default())
     }
 
     #[handle]
-    fn set_string(string: String) -> StdResult<HandleResponse> {
+    fn set_string(string: String) -> StdResult<Response> {
         deps.storage.set(KEY_STRING, &to_vec(&string)?);
 
-        Ok(HandleResponse::default())
+        Ok(Response::default())
     }
 
     #[query("string")]

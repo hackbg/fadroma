@@ -1,6 +1,7 @@
-use cosmwasm_std::{StdResult, InitResponse, HandleResponse, Storage, to_vec, from_slice};
+use fadroma::scrt::{StdResult, Response, Storage, to_vec, from_slice};
+use fadroma::cosmwasm_std;
 use derive_contract::*;
-use schemars;
+use fadroma::schemars;
 use serde;
 
 pub mod string_component {
@@ -10,15 +11,15 @@ pub mod string_component {
 
     #[contract]
     pub trait StringComponent {
-        fn new(storage: &mut impl Storage, string: String) -> StdResult<()> {
+        fn new(storage: &mut dyn Storage, string: String) -> StdResult<()> {
             Ok(storage.set(KEY_STRING, &to_vec(&string)?))
         }
 
         #[handle]
-        fn set_string(string: String) -> StdResult<HandleResponse> {
+        fn set_string(string: String) -> StdResult<Response> {
             deps.storage.set(KEY_STRING, &to_vec(&string)?);
 
-            Ok(HandleResponse::default())
+            Ok(Response::default())
         }
 
         #[query("string")]
@@ -36,10 +37,10 @@ pub mod number_interface {
     #[interface(component(path = "string_component"))]
     pub trait NumberInterface {
         #[init]
-        fn new(number: u8, string: String) -> StdResult<InitResponse>;
+        fn new(number: u8, string: String) -> StdResult<Response>;
 
         #[handle]
-        fn set_number(number: u8) -> StdResult<HandleResponse>;
+        fn set_number(number: u8) -> StdResult<Response>;
 
         #[query("number")]
         fn get_number() -> StdResult<u8>;
@@ -57,18 +58,18 @@ pub mod number_contract {
     )]
     pub trait NumberContract {
         #[init]
-        fn new(number: u8, string: String) -> StdResult<InitResponse> {
-            string_component::DefaultImpl::new(&mut deps.storage, string)?;
+        fn new(number: u8, string: String) -> StdResult<Response> {
+            string_component::DefaultImpl::new(deps.storage, string)?;
             deps.storage.set(KEY_NUMBER, &to_vec(&number)?);
 
-            Ok(InitResponse::default())
+            Ok(Response::default())
         }
 
         #[handle]
-        fn set_number(number: u8) -> StdResult<HandleResponse> {
+        fn set_number(number: u8) -> StdResult<Response> {
             deps.storage.set(KEY_NUMBER, &to_vec(&number)?);
 
-            Ok(HandleResponse::default())
+            Ok(Response::default())
         }
 
         #[query("number")]
@@ -81,8 +82,8 @@ pub mod number_contract {
 }
 
 mod tests {
-    use cosmwasm_std::{Storage, Api, Querier, Extern};
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use fadroma::cosmwasm_std::Deps;
+    use fadroma::cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     use super::string_component;
     use super::number_contract::{init, handle, query, DefaultImpl};
@@ -90,8 +91,8 @@ mod tests {
 
     #[test]
     fn contract_functions() {
-        let ref mut deps = mock_dependencies(20, &[]);
-        let env = mock_env("sender", &[]);
+        let ref mut deps = mock_dependencies(&[]);
+        let sender = "sender";
 
         let string = String::from("test");
         let number = 5;
@@ -101,17 +102,18 @@ mod tests {
             number
         };
 
-        init(deps, env.clone(), msg, DefaultImpl).unwrap();
+        init(deps.as_mut(), mock_env(), mock_info(sender, &[]), msg, DefaultImpl).unwrap();
 
-        test_queries(deps, number, string);
+        test_queries(deps.as_ref(), number, string);
 
         let string = String::from("test_2");
         let number = 10;
 
-        handle(deps, env.clone(), HandleMsg::SetNumber { number }, DefaultImpl).unwrap();
+        handle(deps.as_mut(), mock_env(), mock_info(sender, &[]), HandleMsg::SetNumber { number }, DefaultImpl).unwrap();
         handle(
-            deps,
-            env,
+            deps.as_mut(),
+            mock_env(),
+            mock_info(sender, &[]),
             HandleMsg::StringComponent(
                 string_component::HandleMsg::SetString {
                     string: string.clone()
@@ -121,15 +123,15 @@ mod tests {
         )
         .unwrap();
 
-        test_queries(deps, number, string);
+        test_queries(deps.as_ref(), number, string);
     }
 
-    fn test_queries<S: Storage, A: Api, Q: Querier>(
-        deps: &Extern<S,A,Q>,
+    fn test_queries(
+        deps: Deps,
         expected_num: u8,
         expected_str: String
     ) {
-        let result = query(deps, QueryMsg::GetNumber { }, DefaultImpl).unwrap();
+        let result = query(deps, mock_env(), QueryMsg::GetNumber { }, DefaultImpl).unwrap();
 
         match result {
             QueryResponse::GetNumber { number } => {
@@ -140,6 +142,7 @@ mod tests {
 
         let result = query(
             deps,
+            mock_env(),
             QueryMsg::StringComponent(
                 string_component::QueryMsg::GetString { }
             ),

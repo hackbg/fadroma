@@ -21,8 +21,10 @@ mod composable_admin;
 #[cfg(feature="scrt-icc")]        pub use scrt_link::*;
 #[cfg(feature="scrt-migrate")]    pub mod scrt_migrate;
 #[cfg(feature="scrt-migrate")]    pub use scrt_migrate::*;
+/* secret-toolkit not updated to cosmwasm 0.16
 #[cfg(feature="scrt-snip20-api")] pub mod scrt_snip20_api;
 #[cfg(feature="scrt-snip20-api")] pub use scrt_snip20_api::*;
+*/
 #[cfg(feature="scrt-storage")]    pub mod scrt_storage;
 #[cfg(feature="scrt-storage")]    pub mod scrt_storage_traits;
 #[cfg(feature="scrt-storage")]    pub mod scrt_storage_traits2;
