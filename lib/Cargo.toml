@@ -47,7 +47,7 @@ scrt-all        = [
                   ]
 scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu", "schemars"]
 scrt-addr       = ["scrt"]
-scrt-admin      = ["derive", "scrt-storage", "require-admin"]
+scrt-admin      = ["derive", "scrt-storage", "require-admin", "scrt-addr"]
 scrt-contract   = ["scrt", "serde"]
 scrt-icc        = ["scrt", "scrt-addr", "serde"]
 scrt-migrate    = ["scrt-icc", "scrt-admin"]

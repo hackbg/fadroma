@@ -1,8 +1,9 @@
 use crate::{
     scrt::{
-        Addr, StdResult, Response, Api, MessageInfo,
+        Addr, StdResult, Response, MessageInfo,
         DepsMut, Deps, StdError, CanonicalAddr
     },
+    scrt_addr::validate_addresses,
     scrt_storage::*,
     derive_contract::{contract, init, handle, query}
 };
@@ -16,7 +17,7 @@ pub trait MultiAdmin {
     #[init]
     fn new(admins: Option<Vec<String>>) -> StdResult<Response> {
         let admins: Vec<Addr> = if let Some(addresses) = admins {
-            validate_addresses(addresses, deps.api)?
+            validate_addresses(deps.api, addresses)?
         } else {
             vec![ info.sender ]
         };
@@ -30,7 +31,7 @@ pub trait MultiAdmin {
     fn add_admins(addresses: Vec<String>) -> StdResult<Response> {
         assert_admin(deps.as_ref(), &info)?;
 
-        let addresses = validate_addresses(addresses, deps.api)?;
+        let addresses = validate_addresses(deps.api, addresses)?;
         save_admins(deps, &addresses)?;
     
         Ok(Response::default())
@@ -77,13 +78,6 @@ pub fn assert_admin(deps: Deps, info: &MessageInfo) -> StdResult<()> {
     }
 
     Err(StdError::generic_err("Unauthorized"))
-}
-
-pub fn validate_addresses(addresses: Vec<String>, api: &dyn Api) -> StdResult<Vec<Addr>> {
-    addresses
-        .iter()
-        .map(|x| api.addr_validate(x))
-        .collect::<StdResult<Vec<Addr>>>()
 }
 
 #[cfg(test)]

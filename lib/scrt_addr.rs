@@ -36,6 +36,14 @@ pub fn humanize_maybe_empty(api: &dyn Api, addr: &CanonicalAddr) -> StdResult<Ad
     )
 }
 
+/// Helper function that validates a collection of expected address strings.
+pub fn validate_addresses(api: &dyn Api, mut addresses: Vec<String>) -> StdResult<Vec<Addr>> {
+    addresses
+        .drain(..)
+        .map(|x| api.addr_validate(&x))
+        .collect::<StdResult<Vec<Addr>>>()
+}
+
 impl Humanize<Addr> for CanonicalAddr {
     fn humanize (self, api: &dyn Api) -> StdResult<Addr> {
         humanize_maybe_empty(api, &self)
