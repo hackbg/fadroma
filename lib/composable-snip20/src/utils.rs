@@ -1,8 +1,6 @@
-use fadroma::*;
+use fadroma::scrt::{Response, StdResult, BLOCK_SIZE};
 
-//pub const RESPONSE_BLOCK_SIZE: usize = 256;
-
-pub fn pad_response(response: StdResult<HandleResponse>) -> StdResult<HandleResponse> {
+pub fn pad_response(response: StdResult<Response>) -> StdResult<Response> {
     response.map(|mut response| {
         response.data = response.data.map(|mut data| {
             space_pad(BLOCK_SIZE, &mut data.0);

@@ -1,4 +1,11 @@
-use fadroma::*;
+use fadroma::{
+    scrt::{
+        Response, StdResult, Env, MessageInfo, Deps, DepsMut, Coin, BlockInfo,
+        BankMsg, StdError, CosmosMsg, WasmMsg, Binary, Uint128, CanonicalAddr,
+        Addr, Storage, to_binary
+    },
+    scrt_crypto::sha_256
+};
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;
@@ -8,11 +15,7 @@ use crate::{
         QueryAnswer, ResponseStatus, QueryMsg
     },
     receiver::Snip20ReceiveMsg,
-    state::{
-        get_receiver_hash, read_allowance, set_receiver_hash, write_allowance,
-        read_viewing_key, write_viewing_key, Balances, Config, Constants,
-        ReadonlyBalances, ReadonlyConfig, Allowance
-    },
+    state::{Config, Constants, Account},
     transaction_history::{
         get_transfers, get_txs, store_burn, store_deposit, store_mint,
         store_redeem, store_transfer,
@@ -21,12 +24,13 @@ use crate::{
     utils::pad_response,
 };
 
-pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+pub fn init(
+    deps: DepsMut,
     env: Env,
+    info: MessageInfo,
     msg: InitMsg,
     snip20: impl Snip20
-) -> StdResult<InitResponse> {
+) -> StdResult<Response> {
     // Check name, symbol, decimals
     assert_valid_name(&msg.name, snip20.name_range())?;
     assert_valid_symbol(&msg.symbol, snip20.symbol_validation())?;
@@ -45,11 +49,10 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
         let initial_balances = msg.initial_balances.unwrap_or_default();
 
         for balance in initial_balances {
-            let balance_address = deps.api.canonical_address(&balance.address)?;
             let amount = balance.amount.u128();
 
-            let mut balances = Balances::from_storage(&mut deps.storage);
-            balances.set_account_balance(&balance_address, amount);
+            let account = Account::of(deps.api, &balance.address)?;
+            account.set_balance(deps.storage, amount)?;
 
             if let Some(new_total_supply) = total_supply.checked_add(amount) {
                 total_supply = new_total_supply;
@@ -62,7 +65,7 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
             store_mint(
                 &mut deps.storage,
                 &canon_admin,
-                &balance_address,
+                account.addr(),
                 balance.amount,
                 msg.symbol.clone(),
                 Some("Initial Balance".to_string()),
@@ -71,27 +74,10 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    if let Some(allowances) = msg.initial_allowances {
-        for ia in allowances {
-            let owner = deps.api.canonical_address(&ia.owner)?;
-            let spender  = deps.api.canonical_address(&ia.spender)?;
-
-            write_allowance(
-                &mut deps.storage,
-                &owner,
-                &spender,
-                &Allowance {
-                    amount: ia.amount.u128(),
-                    expiration: ia.expiration
-                },
-            )?;
-        }
-    }
-
     let prng_seed_hashed = sha_256(&msg.prng_seed.0);
 
     let mut config = Config::from_storage(&mut deps.storage);
-    config.set_constants(&Constants {
+    Config::set_constants(deps.storage, &Constants {
         name: msg.name,
         symbol: msg.symbol,
         decimals: msg.decimals,
@@ -103,8 +89,8 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
         mint_is_enabled: init_config.mint_enabled(),
         burn_is_enabled: init_config.burn_enabled(),
     })?;
-    config.set_total_supply(total_supply);
-    config.set_contract_status(ContractStatusLevel::NormalRun);
+    Config::increase_total_supply(deps.storage, total_supply);
+    Config::set_contract_status(deps.storage, ContractStatusLevel::NormalRun);
 
     let minters = if init_config.mint_enabled() {
         Vec::from([admin])
@@ -120,29 +106,27 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
         messages.push(
             CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: callback.contract.address,
-                callback_code_hash: callback.contract.code_hash,
+                code_hash: callback.contract.code_hash,
                 msg: callback.msg,
-                send: vec![],
+                funds: vec![],
             })
         )
     }
     
-    Ok(InitResponse {
-        messages,
-        log: vec![
-            log("token_address", env.contract.address),
-            log("token_code_hash", env.contract_code_hash)
-        ]
-    })
+    Ok(Response::new()
+        .add_messages(messages)
+        .add_attribute("token_address", env.contract.address)
+        .add_attribute("token_code_hash", env.contract_code_hash))
 }
 
-pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+pub fn handle(
+    deps: DepsMut,
     env: Env,
+    info: MessageInfo,
     msg: HandleMsg,
     snip20: impl Snip20
-) -> StdResult<HandleResponse> {
-    let contract_status = ReadonlyConfig::from_storage(&deps.storage).contract_status();
+) -> StdResult<Response> {
+    let contract_status = Config::get_contract_status(deps.storage)?;
 
     match contract_status {
         ContractStatusLevel::StopAll | ContractStatusLevel::StopAllButRedeems => {
@@ -164,7 +148,7 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
 
     let response = match msg {
         // Native
-        HandleMsg::Deposit { .. } => snip20.deposit(deps, env),
+        HandleMsg::Deposit { .. } => snip20.deposit(deps, env, info),
         HandleMsg::Redeem { amount, .. } => snip20.redeem(deps, env, amount),
 
         // Base
@@ -250,8 +234,10 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
     pad_response(response)
 }
 
-pub fn snip20_query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>, msg: QueryMsg,
+pub fn query(
+    deps: Deps,
+    env: Env,
+    msg: QueryMsg,
     snip20: impl Snip20
 ) -> StdResult<Binary> {
     match msg {
@@ -280,19 +266,20 @@ pub trait Snip20  {
 
     // Handle
 
-    fn deposit<S: Storage, A: Api, Q: Querier>(
+    fn deposit(
         &self,
-        deps: &mut Extern<S, A, Q>,
+        deps: DepsMut,
         env: Env,
-    ) -> StdResult<HandleResponse> {
+        info: MessageInfo
+    ) -> StdResult<Response> {
         let mut amount = Uint128::zero();
     
-        for coin in &env.message.sent_funds {
+        for coin in &info.funds {
             if coin.denom == "uscrt" {
                 amount = coin.amount
             } else {
                 return Err(StdError::generic_err(
-                    "Tried to deposit an unsupported token",
+                    "Trying to deposit an unsupported token",
                 ));
             }
         }
@@ -302,95 +289,60 @@ pub trait Snip20  {
         }
     
         let raw_amount = amount.u128();
-    
-        let mut config = Config::from_storage(&mut deps.storage);
-        let constants = config.constants()?;
+
+        let constants = Config::get_constants(deps.storage)?;
         if !constants.deposit_is_enabled {
             return Err(StdError::generic_err(
                 "Deposit functionality is not enabled for this token.",
             ));
         }
-        let total_supply = config.total_supply();
-        if let Some(total_supply) = total_supply.checked_add(raw_amount) {
-            config.set_total_supply(total_supply);
-        } else {
-            return Err(StdError::generic_err(
-                "This deposit would overflow the currency's total supply",
-            ));
-        }
+
+        Config::increase_total_supply(deps.storage, raw_amount)?;
     
-        let sender_address = deps.api.canonical_address(&env.message.sender)?;
-    
-        let mut balances = Balances::from_storage(&mut deps.storage);
-        let account_balance = balances.balance(&sender_address);
-        if let Some(account_balance) = account_balance.checked_add(raw_amount) {
-            balances.set_account_balance(&sender_address, account_balance);
-        } else {
-            return Err(StdError::generic_err(
-                "This deposit would overflow your balance",
-            ));
-        }
-    
+        let account = Account::of(&info.sender)?;
+        account.add_balance(deps.storage, raw_amount);
+
         store_deposit(
             &mut deps.storage,
-            &sender_address,
+            account.addr(),
             amount,
             "uscrt".to_string(),
             &env.block,
         )?;
     
-        let res = HandleResponse {
-            messages: vec![],
-            log: vec![],
-            data: Some(to_binary(&HandleAnswer::Deposit { status: ResponseStatus::Success })?),
-        };
-    
-        Ok(res)
+        Ok(Response::new()
+            .set_data(to_binary(
+                &HandleAnswer::Deposit { status: ResponseStatus::Success })?
+            )
+        )
     }
     
-    fn redeem<S: Storage, A: Api, Q: Querier>(
+    fn redeem(
         &self,
-        deps: &mut Extern<S, A, Q>,
+        deps: DepsMut,
         env: Env,
+        info: MessageInfo,
         amount: Uint128,
-    ) -> StdResult<HandleResponse> {
-        let config = ReadonlyConfig::from_storage(&deps.storage);
-        let constants = config.constants()?;
+    ) -> StdResult<Response> {
+        let constants = Config::get_constants(deps.storage)?;
         if !constants.redeem_is_enabled {
             return Err(StdError::generic_err(
                 "Redeem functionality is not enabled for this token.",
             ));
         }
     
-        let sender_address = deps.api.canonical_address(&env.message.sender)?;
         let amount_raw = amount.u128();
+
+        let account = Account::of(deps.api, &info.sender)?;
+        account.subtract_balance(deps.storage, amount_raw)?;
     
-        let mut balances = Balances::from_storage(&mut deps.storage);
-        let account_balance = balances.balance(&sender_address);
-    
-        if let Some(account_balance) = account_balance.checked_sub(amount_raw) {
-            balances.set_account_balance(&sender_address, account_balance);
-        } else {
-            return Err(StdError::generic_err(format!(
-                "insufficient funds to redeem: balance={}, required={}",
-                account_balance, amount_raw
-            )));
-        }
-    
-        let mut config = Config::from_storage(&mut deps.storage);
-        let total_supply = config.total_supply();
-        if let Some(total_supply) = total_supply.checked_sub(amount_raw) {
-            config.set_total_supply(total_supply);
-        } else {
-            return Err(StdError::generic_err(
-                "You are trying to redeem more tokens than what is available in the total supply",
-            ));
-        }
+        Config::decrease_total_supply(deps.storage, amount_raw)?;
     
         let token_reserve = deps
             .querier
-            .query_balance(&env.contract.address, "uscrt")?
+            .query_balance(env.contract.address, "uscrt")?
             .amount;
+
         if amount > token_reserve {
             return Err(StdError::generic_err(
                 "You are trying to redeem for more SCRT than the token has in its deposit reserve.",
@@ -404,63 +356,63 @@ pub trait Snip20  {
     
         store_redeem(
             &mut deps.storage,
-            &sender_address,
+            &account.addr(),
             amount,
             constants.symbol,
             &env.block,
         )?;
-    
-        let res = HandleResponse {
-            messages: vec![CosmosMsg::Bank(BankMsg::Send {
+        
+        Ok(Response::new()
+            .add_message(CosmosMsg::Bank(BankMsg::Send {
                 from_address: env.contract.address,
                 to_address: env.message.sender,
                 amount: withdrawal_coins,
-            })],
-            log: vec![],
-            data: Some(to_binary(&HandleAnswer::Redeem { status: ResponseStatus::Success })?),
-        };
-    
-        Ok(res)
+            }))
+            .set_data(to_binary(
+                &HandleAnswer::Redeem { status: ResponseStatus::Success })?
+            )
+        )
     }
 
-    fn transfer<S: Storage, A: Api, Q: Querier>(
+    fn transfer(
         &self,
-        deps: &mut Extern<S, A, Q>,
+        deps: DepsMut,
         env: Env,
-        recipient: HumanAddr,
+        info: MessageInfo,
+        recipient: String,
         amount: Uint128,
         memo: Option<String>,
-    ) -> StdResult<HandleResponse> {
-        let sender = deps.api.canonical_address(&env.message.sender)?;
-        let recipient = deps.api.canonical_address(&recipient)?;
+    ) -> StdResult<Response> {
+        let sender = Account::of(deps.api, &info.sender)?;
+        let recipient = Account::of(deps.api, &deps.api.addr_validate(&recipient))?;
 
         transfer_impl(deps, &sender, &recipient, amount, memo, &env.block)?;
     
-        let res = HandleResponse {
-            messages: vec![],
-            log: vec![],
-            data: Some(to_binary(&HandleAnswer::Transfer { status: ResponseStatus::Success })?),
-        };
-        Ok(res)
+        Ok(Response::new()
+            .set_data(to_binary(
+                &HandleAnswer::Transfer { status: ResponseStatus::Success })?
+            )
+        )
     }
 
-    fn send<S: Storage, A: Api, Q: Querier>(
+    fn send(
         &self,
-        deps: &mut Extern<S, A, Q>,
+        deps: DepsMut,
         env: Env,
-        recipient: HumanAddr,
+        info: MessageInfo,
+        recipient: String,
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
-    ) -> StdResult<HandleResponse> {
-        let mut messages = vec![];
-        let sender = env.message.sender;
-        let sender_canon = deps.api.canonical_address(&sender)?;
-        send_impl(
+    ) -> StdResult<Response> {
+        let sender = Account::of(deps.api, &info.sender)?;
+        let recipient = deps.api.addr_validate(&recipient)?;
+
+        let messages = send_impl(
             deps,
-            &mut messages,
-            sender,
-            &sender_canon,
+            &sender,
+            info.sender,
+            &Account::of(deps.api, &recipient)?,
             recipient,
             amount,
             memo,
@@ -468,93 +420,69 @@ pub trait Snip20  {
             &env.block,
         )?;
     
-        let res = HandleResponse {
-            messages,
-            log: vec![],
-            data: Some(to_binary(&HandleAnswer::Send { status: ResponseStatus::Success })?),
-        };
-        Ok(res)
+        Ok(Response::new()
+            .add_messages(messages)
+            .set_data(to_binary(
+                &HandleAnswer::Send { status: ResponseStatus::Success })?
+            )
+        )
     }
 
-    fn burn<S: Storage, A: Api, Q: Querier>(
+    fn burn(
         &self,
-        deps: &mut Extern<S, A, Q>,
+        deps: DepsMut,
         env: Env,
+        info: MessageInfo,
         amount: Uint128,
         memo: Option<String>,
-    ) -> StdResult<HandleResponse> {
-        let config = ReadonlyConfig::from_storage(&deps.storage);
-        let constants = config.constants()?;
+    ) -> StdResult<Response> {
+        let constants = Config::get_constants(deps.storage)?;
         if !constants.burn_is_enabled {
             return Err(StdError::generic_err(
                 "Burn functionality is not enabled for this token.",
             ));
         }
     
-        let sender_address = deps.api.canonical_address(&env.message.sender)?;
         let raw_amount = amount.u128();
-    
-        let mut balances = Balances::from_storage(&mut deps.storage);
-        let mut account_balance = balances.balance(&sender_address);
-    
-        if let Some(new_account_balance) = account_balance.checked_sub(raw_amount) {
-            account_balance = new_account_balance;
-        } else {
-            return Err(StdError::generic_err(format!(
-                "insufficient funds to burn: balance={}, required={}",
-                account_balance, raw_amount
-            )));
-        }
-    
-        balances.set_account_balance(&sender_address, account_balance);
-    
-        let mut config = Config::from_storage(&mut deps.storage);
-        let mut total_supply = config.total_supply();
-        if let Some(new_total_supply) = total_supply.checked_sub(raw_amount) {
-            total_supply = new_total_supply;
-        } else {
-            return Err(StdError::generic_err(
-                "You're trying to burn more than is available in the total supply",
-            ));
-        }
-        config.set_total_supply(total_supply);
+
+        let account = Account::of(deps.api, &info.sender)?;
+        account.subtract_balance(deps.storage, raw_amount)?;
+
+        Config::decrease_total_supply(deps.storage, raw_amount)?;
     
         store_burn(
             &mut deps.storage,
-            &sender_address,
-            &sender_address,
+            account.addr(),
+            account.addr(),
             amount,
             constants.symbol,
             memo,
             &env.block,
         )?;
-    
-        let res = HandleResponse {
-            messages: vec![],
-            log: vec![],
-            data: Some(to_binary(&HandleAnswer::Burn { status: ResponseStatus::Success })?),
-        };
-    
-        Ok(res)
+
+        Ok(Response::new()
+            .set_data(to_binary(
+                &HandleAnswer::Burn { status: ResponseStatus::Success })?
+            )
+        )
     }
 
-    fn register_receive<S: Storage, A: Api, Q: Querier>(
+    fn register_receive(
         &self,
-        deps: &mut Extern<S, A, Q>,
+        deps: DepsMut,
         env: Env,
-        code_hash: String,
-    ) -> StdResult<HandleResponse> {
-        set_receiver_hash(&mut deps.storage, &env.message.sender, code_hash);
+        info: MessageInfo,
+        code_hash: String
+    ) -> StdResult<Response> {
+        Account::of(deps.api, info.sender)?
+            .set_receiver_hash(&mut deps.storage, code_hash)?;
 
-        let res = HandleResponse {
-            messages: vec![],
-            log: vec![log("register_status", "success")],
-            data: Some(to_binary(&HandleAnswer::RegisterReceive {
-                status: ResponseStatus::Success,
-            })?),
-        };
-
-        Ok(res)
+        Ok(Response::new()
+            .add_attribute("register_status", "success")
+            .set_data(to_binary(
+                &HandleAnswer::RegisterReceive { status: ResponseStatus::Success })?
+            )
+        )
     }
 
     fn set_viewing_key<S: Storage, A: Api, Q: Querier>(
@@ -1374,23 +1302,23 @@ pub trait Snip20  {
     }
 }
 
-pub fn transfer_impl<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    sender: &CanonicalAddr,
-    recipient: &CanonicalAddr,
+pub fn transfer_impl(
+    deps: DepsMut,
+    sender: &Account,
+    recipient: &Account,
     amount: Uint128,
     memo: Option<String>,
     block: &BlockInfo,
 ) -> StdResult<()> {
-    perform_transfer(&mut deps.storage, &sender, &recipient, amount.u128())?;
+    perform_transfer(deps.storage, sender, recipient, amount.u128())?;
 
     let symbol = Config::from_storage(&mut deps.storage).constants()?.symbol;
 
     store_transfer(
         &mut deps.storage,
-        &sender,
-        &sender,
-        &recipient,
+        sender.addr(),
+        sender.addr(),
+        recipient.addr(),
         amount,
         symbol,
         memo,
@@ -1400,91 +1328,71 @@ pub fn transfer_impl<S: Storage, A: Api, Q: Querier>(
     Ok(())
 }
 
-pub fn perform_transfer<T: Storage>(
-    store: &mut T,
-    from: &CanonicalAddr,
-    to: &CanonicalAddr,
+#[inline]
+pub fn perform_transfer(
+    storage: &mut dyn Storage,
+    from: &Account,
+    to: &Account,
     amount: u128,
 ) -> StdResult<()> {
-    let mut balances = Balances::from_storage(store);
-
-    let mut from_balance = balances.balance(from);
-    if let Some(new_from_balance) = from_balance.checked_sub(amount) {
-        from_balance = new_from_balance;
-    } else {
-        return Err(StdError::generic_err(format!(
-            "insufficient funds: balance={}, required={}",
-            from_balance, amount
-        )));
-    }
-    balances.set_account_balance(from, from_balance);
-
-    let mut to_balance = balances.balance(to);
-    to_balance = to_balance.checked_add(amount).ok_or_else(|| {
-        StdError::generic_err("This tx will literally make them too rich. Try transferring less")
-    })?;
-    balances.set_account_balance(to, to_balance);
-
-    Ok(())
+    from.subtract_balance(storage, amount)?;
+    to.add_balance(storage, amount)
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn send_impl<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    messages: &mut Vec<CosmosMsg>,
-    sender: HumanAddr,
-    sender_canon: &CanonicalAddr, // redundant but more efficient
-    recipient: HumanAddr,
+pub fn send_impl(
+    deps: DepsMut,
+    sender: &Account,
+    sender_addr: Addr,
+    recipient: &Account,
+    recipient_addr: Addr,
     amount: Uint128,
     memo: Option<String>,
     msg: Option<Binary>,
     block: &BlockInfo,
-) -> StdResult<()> {
-    let recipient_canon = deps.api.canonical_address(&recipient)?;
-
+) -> StdResult<Vec<CosmosMsg>> {
     transfer_impl(
         deps,
-        &sender_canon,
-        &recipient_canon,
+        sender,
+        recipient,
         amount,
         memo.clone(),
         block,
     )?;
 
     add_receiver_api_callback(
-        &deps.storage,
-        messages,
+        deps.storage,
         recipient,
+        recipient_addr,
         msg,
-        sender.clone(),
-        sender,
+        sender_addr.clone(),
+        sender_addr,
         amount,
         memo,
-    )?;
-
-    Ok(())
+    )
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn add_receiver_api_callback<S: ReadonlyStorage>(
-    storage: &S,
-    messages: &mut Vec<CosmosMsg>,
-    recipient: HumanAddr,
+pub fn add_receiver_api_callback(
+    storage: &dyn Storage,
+    recipient: &Account,
+    recipient_addr: Addr,
     msg: Option<Binary>,
-    sender: HumanAddr,
-    from: HumanAddr,
+    sender: Addr,
+    from: Addr,
     amount: Uint128,
     memo: Option<String>,
-) -> StdResult<()> {
-    let receiver_hash = get_receiver_hash(storage, &recipient);
+) -> StdResult<Vec<CosmosMsg>> {
+    let receiver_hash = recipient.get_receiver_hash(storage)?;
+
     if let Some(receiver_hash) = receiver_hash {
-        let receiver_hash = receiver_hash?;
         let receiver_msg = Snip20ReceiveMsg::new(sender, from, amount, memo, msg);
         let callback_msg = receiver_msg.into_cosmos_msg(receiver_hash, recipient)?;
 
-        messages.push(callback_msg);
+        return Ok(vec![ callback_msg ]);
     }
-    Ok(())
+
+    Ok(vec![])
 }
 
 pub fn transfer_from_impl<S: Storage, A: Api, Q: Querier>(
