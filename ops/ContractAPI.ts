@@ -191,7 +191,7 @@ export class SchemaFactory {
     memo: string, transferAmount: Array<any>, fee: any
   ) {
     const contract = this.getContract(agent);
-    return contract[this.caller](action.method, null, undefined, memo, transferAmount, fee); }
+    return contract[this.caller](action.method, null, memo, transferAmount, fee); }
 
   /** Make a call to a method that receives arguments */
   private callObject(
@@ -203,7 +203,7 @@ export class SchemaFactory {
     else {
       this.validate(action, args); }
     const contract = this.getContract(agent);
-    return contract[this.caller](action.method, args, undefined, memo, transferAmount, fee); } }
+    return contract[this.caller](action.method, args, memo, transferAmount, fee); } }
 
 /** Creates Ajv instance for schema validation*/
 export function getAjv (): Ajv {
