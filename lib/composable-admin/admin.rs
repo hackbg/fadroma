@@ -26,8 +26,10 @@ pub trait Admin {
     }
 
     #[handle]
-    fn change_admin(address: Addr) -> StdResult<Response> {
+    fn change_admin(address: String) -> StdResult<Response> {
         assert_admin(deps.as_ref(), &info)?;
+
+        let address = deps.api.addr_validate(address.as_str())?;
         save_admin(deps, &address)?;
     
         Ok(Response::default())
@@ -83,7 +85,7 @@ mod tests {
         save_admin(deps.as_mut(), &admin).unwrap();
 
         let msg = HandleMsg::ChangeAdmin { 
-            address: Addr::unchecked("will fail")
+            address: String::from("will fail")
         };
 
         let result = handle(
@@ -104,7 +106,7 @@ mod tests {
         let new_admin = Addr::unchecked("new_admin");
 
         let msg = HandleMsg::ChangeAdmin { 
-            address: new_admin.clone()
+            address: new_admin.to_string()
         };
 
         handle(
