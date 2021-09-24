@@ -30,10 +30,10 @@ impl Canonize<ContractLink<CanonicalAddr>> for ContractLink<Addr> {
     }
 }
 impl Humanize<ContractLink<Addr>> for ContractLink<CanonicalAddr> {
-    fn humanize (&self, api: &dyn Api) -> StdResult<ContractLink<Addr>> {
+    fn humanize (self, api: &dyn Api) -> StdResult<ContractLink<Addr>> {
         Ok(ContractLink {
             address:   self.address.humanize(api)?,
-            code_hash: self.code_hash.clone()
+            code_hash: self.code_hash
         })
     }
 }

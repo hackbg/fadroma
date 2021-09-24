@@ -96,11 +96,11 @@ impl<A> Default for ContractStatus<A> {
     } }
 }
 impl Humanize<ContractStatus<Addr>> for ContractStatus<CanonicalAddr> {
-    fn humanize (&self, api: &dyn Api) -> StdResult<ContractStatus<Addr>> {
+    fn humanize (self, api: &dyn Api) -> StdResult<ContractStatus<Addr>> {
         Ok(ContractStatus {
-            level: self.level.clone(),
-            reason: self.reason.clone(),
-            new_address: match &self.new_address {
+            level: self.level,
+            reason: self.reason,
+            new_address: match self.new_address {
                 Some(canon_addr) => Some(api.addr_humanize(&canon_addr)?),
                 None => None
             }

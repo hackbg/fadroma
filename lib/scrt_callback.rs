@@ -20,7 +20,7 @@ impl Canonize<Callback<CanonicalAddr>> for Callback<Addr> {
     }
 }
 impl Humanize<Callback<Addr>> for Callback<CanonicalAddr> {
-    fn humanize (&self, api: &dyn Api) -> StdResult<Callback<Addr>> {
-        Ok(Callback { msg: self.msg.clone(), contract: self.contract.humanize(api)? })
+    fn humanize (self, api: &dyn Api) -> StdResult<Callback<Addr>> {
+        Ok(Callback { msg: self.msg, contract: self.contract.humanize(api)? })
     }
 }
