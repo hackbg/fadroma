@@ -230,9 +230,15 @@ export class Scrt extends Chain {
     if (options.Agent) this.Agent = options.Agent
     this.defaultIdentity = options.defaultIdentity }
 
+  #ready: Promise<any>
+  get ready () {
+    if (this.#ready) return this.#ready
+    return this.#ready = this.init() }
+
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
   async init (): Promise<Chain> {
+    console.warn('@fadroma/ops-scrt: Chain#init is deprecated, use "await new Chain().ready" for one-time initialization')
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
     if (node) {
