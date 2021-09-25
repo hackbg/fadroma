@@ -24,7 +24,8 @@ export abstract class ContractUpload extends ContractCode {
 
   constructor (options?: ContractUploadOptions) {
     super(options)
-    this.blob.chain    = options?.chain
+    this.blob.agent    = options?.agent
+    this.blob.chain    = options?.chain || options?.agent?.chain
     this.blob.codeId   = options?.codeId
     this.blob.codeHash = options?.codeHash
   }
@@ -43,7 +44,7 @@ export abstract class ContractUpload extends ContractCode {
   get codeHash () { return this.blob.codeHash||this.code.codeHash }
 
   /** Upload the contract to a specified chain as a specified agent. */
-  async upload (chainOrAgent: Agent|Chain) {
+  async upload (chainOrAgent?: Agent|Chain) {
 
     // resolve chain/agent references
     if (chainOrAgent instanceof Chain) {
@@ -52,7 +53,7 @@ export abstract class ContractUpload extends ContractCode {
     else if (chainOrAgent instanceof Agent) {
       this.blob.agent = chainOrAgent
       this.blob.chain = this.blob.agent.chain }
-    else {
+    else if (!this.blob.agent) {
       throw new Error('You must provide a Chain or Agent to use for deployment') }
 
     // build if not already built

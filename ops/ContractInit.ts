@@ -65,9 +65,8 @@ export abstract class ContractInit extends ContractUpload {
 
   async instantiate (agent?: Agent) {
     if (!this.address) {
-      this.init.agent = agent
-      if (!this.codeId) {
-        throw new Error('Contract must be uploaded before instantiating') }
+      if (agent) this.init.agent = agent
+      if (!this.codeId) throw new Error('Contract must be uploaded before instantiating')
       this.init.tx = await this.initBackoff(()=>
         this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
       this.init.address = this.initTx.contractAddress

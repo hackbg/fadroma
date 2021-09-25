@@ -9,8 +9,9 @@ export type ContractCodeOptions = {
 }
 
 export type ContractUploadOptions = ContractCodeOptions & {
-  chain?:    Chain
-  codeId?:   number
+  agent?:  Agent
+  chain?:  Chain
+  codeId?: number
 }
 
 export type ContractInitOptions = ContractUploadOptions & {
