@@ -42,6 +42,8 @@ export abstract class ContractUpload extends ContractCode {
   get codeId () { return this.blob.codeId }
   /** The auto-incrementing id of the uploaded code */
   get codeHash () { return this.blob.codeHash||this.code.codeHash }
+  /** Code ID + code hash pair in Sienna Swap Factory format */
+  get template () { return { id: this.codeId, code_hash: this.codeHash } }
 
   /** Upload the contract to a specified chain as a specified agent. */
   async upload (chainOrAgent?: Agent|Chain) {
