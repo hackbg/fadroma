@@ -4,8 +4,8 @@ import type { Identity, Agent } from './Agent'
 import { URL } from 'url'
 import { Directory, symlinkDir, mkdirp } from '@fadroma/tools'
 
-import { readdirSync, statSync, existsSync } from 'fs'
-import { resolve } from 'path'
+import { readdirSync, statSync, existsSync, readlinkSync, readFileSync } from 'fs'
+import { resolve, basename } from 'path'
 
 export interface ChainOptions {
   chainId?: string
@@ -94,9 +94,15 @@ export class ChainInstancesDir extends Directory {
   KEY = '.active'
 
   get active () {
-    if (existsSync(resolve(this.path, this.KEY))) {
-      const name = ''
+    const path = resolve(this.path, this.KEY)
+    if (existsSync(path)) {
+      const name = basename(readlinkSync(path))
       const contracts = {}
+      for (const contract of readdirSync(path)) {
+        contracts[basename(contract, '.json')] = JSON.parse(
+          readFileSync(resolve(path, contract), 'utf8')
+        )
+      }
       return { name, contracts }
     } else {
       return null
