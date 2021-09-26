@@ -47,7 +47,6 @@ export abstract class ContractUpload extends ContractCode {
 
   /** Upload the contract to a specified chain as a specified agent. */
   async upload (chainOrAgent?: Agent|Chain) {
-
     // resolve chain/agent references
     if (chainOrAgent instanceof Chain) {
       this.blob.chain = chainOrAgent

@@ -2,7 +2,10 @@ import type { ChainNode } from './ChainNode'
 import type { Identity, Agent } from './Agent'
 
 import { URL } from 'url'
-import { Directory } from '@fadroma/tools'
+import { Directory, symlinkDir, mkdirp } from '@fadroma/tools'
+
+import { readdirSync, statSync, existsSync } from 'fs'
+import { resolve } from 'path'
 
 export interface ChainOptions {
   chainId?: string
@@ -16,6 +19,10 @@ export interface ChainConnectOptions extends ChainOptions {
 }
 
 export interface ChainState extends ChainOptions {
+  readonly isMainnet?:  boolean
+  readonly isTestnet?:  boolean
+  readonly isLocalnet?: boolean
+
   readonly stateRoot?:  string
   readonly identities?: string
   readonly uploads?:    string
@@ -68,7 +75,49 @@ export abstract class Chain implements ChainOptions {
     *
     * NOTE: the current domain vocabulary considers initialization and instantiation,
     * as pertaining to contracts on the blockchain, to be the same thing. */
-  readonly instances: Directory
+  abstract readonly instances: ChainInstancesDir
 
   abstract printStatusTables (): void
+
+  readonly isMainnet?:  boolean
+  readonly isTestnet?:  boolean
+  readonly isLocalnet?: boolean
+  constructor ({ chainId, isMainnet, isTestnet, isLocalnet }: ChainState) {
+    this.isMainnet  = isMainnet
+    this.isTestnet  = isTestnet
+    this.isLocalnet = isLocalnet
+  }
+}
+
+export class ChainInstancesDir extends Directory {
+
+  KEY = '.active'
+
+  get active () {
+    if (existsSync(resolve(this.path, this.KEY))) {
+      const name = ''
+      const contracts = {}
+      return { name, contracts }
+    } else {
+      return null
+    }
+  }
+
+  async select (id: string) {
+    const selection = resolve(this.path, id)
+    if (!existsSync(selection)) throw new Error(
+      `@fadroma/ops: ${id} does not exist`)
+    await symlinkDir(selection, resolve(this.path, this.KEY))
+  }
+
+  async list () {
+    if (!existsSync(this.path)) {
+      console.info(`\n${this.path} does not exist, creating`)
+      await mkdirp(this.path)
+      return [] }
+
+    return readdirSync(this.path)
+      .filter(x=>x!=this.KEY)
+      .filter(x=>statSync(resolve(this.path, x)).isDirectory())
+  }
 }
