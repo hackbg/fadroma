@@ -1,11 +1,12 @@
 import type {
   ChainNode, ChainState, ChainOptions, ChainConnectOptions,
-  Identity, Agent } from '@fadroma/ops'
+  Identity, Agent
+} from '@fadroma/ops'
 import type { Commands } from '@fadroma/tools'
 
 import { URL } from 'url'
 
-import { Chain, prefund } from '@fadroma/ops'
+import { Chain, ChainInstancesDir, prefund } from '@fadroma/ops'
 import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from './index'
 import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@fadroma/tools'
 import { resetLocalnet } from './ScrtChainNode'
@@ -83,6 +84,7 @@ export class Scrt extends Chain {
       }
     } = options
     return new Scrt({
+      isMainnet: true,
       chainId,
       apiURL,
       defaultIdentity,
@@ -102,6 +104,7 @@ export class Scrt extends Chain {
       }
     } = options
     return new Scrt({
+      isMainnet: true,
       chainId,
       apiURL,
       defaultIdentity,
@@ -133,6 +136,7 @@ export class Scrt extends Chain {
       }
     } = options
     return new Scrt({
+      isTestnet: true,
       chainId,
       apiURL,
       defaultIdentity,
@@ -151,6 +155,7 @@ export class Scrt extends Chain {
       }
     } = options
     return new Scrt({
+      isTestnet: true,
       chainId,
       apiURL,
       defaultIdentity,
@@ -175,6 +180,7 @@ export class Scrt extends Chain {
     // no default agent name/address/mnemonic:
     // connect() gets them from genesis accounts
     return new Scrt({
+      isLocalnet: true,
       ...options,
       node:    options.node    || new DockerizedScrtNode_1_0(options),
       chainId: options.chainId || 'enigma-pub-testnet-3',
@@ -188,6 +194,7 @@ export class Scrt extends Chain {
     // no default agent name/address/mnemonic:
     // connect() gets them from genesis accounts
     return new Scrt({
+      isLocalnet: true,
       ...options,
       node:    options.node    || new DockerizedScrtNode_1_2(options),
       chainId: options.chainId || 'enigma-pub-testnet-3',
@@ -205,7 +212,7 @@ export class Scrt extends Chain {
   stateRoot:  Directory
   identities: JSONDirectory
   uploads:    JSONDirectory
-  instances:  JSONDirectory
+  instances:  ChainInstancesDir
 
   /** Interface to a Secret Network REST API endpoint.
    *  Can store identities and results of contract uploads/inits.
@@ -214,7 +221,7 @@ export class Scrt extends Chain {
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
    * TODO document the remaining options */
   constructor (options: ScrtChainState = {}) {
-    super()
+    super(options)
     const node = this.node = options.node || null
     // info needed to connect to the chain's REST API
     this.chainId = options.chainId || node?.chainId || 'enigma-pub-testnet-3'
@@ -224,7 +231,7 @@ export class Scrt extends Chain {
     this.stateRoot  = new Directory(stateRoot)
     this.identities = new JSONDirectory(stateRoot, 'identities')
     this.uploads    = new JSONDirectory(stateRoot, 'uploads')
-    this.instances  = new JSONDirectory(stateRoot, 'instances')
+    this.instances  = new ChainInstancesDir(stateRoot, 'instances')
     // handle to localnet node if this is localnet
     // default agent credentials
     if (options.Agent) this.Agent = options.Agent
