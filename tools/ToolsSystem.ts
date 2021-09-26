@@ -23,6 +23,9 @@ export { readFile, writeFile, stat, unlink } from 'fs/promises'
 import mkdirp from 'mkdirp'
 export { mkdirp }
 
+import symlinkDir from 'symlink-dir'
+export { symlinkDir }
+
 // class-based atomic fs handles ///////////////////////////////////////////////////////////////////
 
 export type Path = string

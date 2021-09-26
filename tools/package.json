@@ -13,6 +13,7 @@
     "prompts": "^2.4.1",
     "rimraf": "^3.0.2",
     "signal-exit": "^3.0.3",
+    "symlink-dir": "^5.0.1",
     "table": "^6.6.0",
     "wait-port": "^0.2.9"
   }
