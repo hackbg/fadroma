@@ -20,7 +20,7 @@ export abstract class ContractAPI extends ContractCaller implements Contract {
     handleResponse?: any
   } = {}
 
-  private ajv = getAjv()
+  #ajv = getAjv()
 
   private validate: {
     initMsg?:        Function
@@ -39,7 +39,7 @@ export abstract class ContractAPI extends ContractCaller implements Contract {
     this.q  = new SchemaFactory(this, this.schema?.queryMsg).create()
     this.tx = new SchemaFactory(this, this.schema?.handleMsg).create()
     for (const msg of ['initMsg', 'queryMsg', 'queryResponse', 'handleMsg', 'handleResponse']) {
-      if (this.schema[msg]) this.validate[msg] = this.ajv.compile(this.schema[msg]) } } }
+      if (this.schema[msg]) this.validate[msg] = this.#ajv.compile(this.schema[msg]) } } }
 
 //export class ContractWithSchema extends BaseContractAPI {
   //q:  Record<string, Function>
