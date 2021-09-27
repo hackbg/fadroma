@@ -4,7 +4,7 @@ import type { Identity, Agent } from './Agent'
 import { URL } from 'url'
 import { Directory, symlinkDir, mkdirp } from '@fadroma/tools'
 
-import { readdirSync, statSync, existsSync, readlinkSync, readFileSync } from 'fs'
+import { readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync } from 'fs'
 import { resolve, basename } from 'path'
 
 export interface ChainOptions {
@@ -113,7 +113,9 @@ export class ChainInstancesDir extends Directory {
     const selection = resolve(this.path, id)
     if (!existsSync(selection)) throw new Error(
       `@fadroma/ops: ${id} does not exist`)
-    await symlinkDir(selection, resolve(this.path, this.KEY))
+    const active = resolve(this.path, this.KEY)
+    unlinkSync(active)
+    await symlinkDir(selection, active)
   }
 
   async list () {
@@ -125,5 +127,10 @@ export class ChainInstancesDir extends Directory {
     return readdirSync(this.path)
       .filter(x=>x!=this.KEY)
       .filter(x=>statSync(resolve(this.path, x)).isDirectory())
+  }
+
+  save (name: string, data: any) {
+    if (data instanceof Object) data = JSON.stringify(data, null, 2)
+    return super.save(`${name}.json`, data)
   }
 }
