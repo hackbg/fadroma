@@ -75,7 +75,8 @@ export abstract class ContractUpload extends ContractCode {
         if (!existsSync(path)) mkdir(path)
         path += `/${item}` }
       await writeFile(this.uploadReceiptPath, receiptData, 'utf8')
-      this.blob.receipt = uploadResult }
+      this.blob.receipt = uploadResult
+      await this.uploader.nextBlock }
 
     // set code it and code hash to allow instantiation of uploaded code
     this.blob.codeId   = this.uploadReceipt.codeId
