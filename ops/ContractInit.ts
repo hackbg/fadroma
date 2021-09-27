@@ -1,6 +1,7 @@
 import type { Agent } from './Agent'
 import type { ContractInitOptions } from './Contract'
 import { ContractUpload } from './ContractUpload'
+import { ChainInstancesDir } from './ChainAPI'
 import { JSONDirectory } from '@fadroma/tools'
 import { backOff } from 'exponential-backoff'
 
@@ -38,9 +39,10 @@ export abstract class ContractInit extends ContractUpload {
   /** The on-chain label of this contract instance.
     * The chain requires these to be unique.
     * If a prefix is set, it is appended to the label. */
-  get label () { return this.init.prefix
-    ? `${this.init.prefix}/${this.init.label}`
-    : this.init.label }
+  get label () {
+    return this.init.prefix
+      ? `${this.init.prefix}/${this.init.label}`
+      : this.init.label }
   /** The message that was used to initialize this instance. */
   get initMsg () { return this.init.msg }
   /** The response from the init transaction. */
@@ -75,6 +77,17 @@ export abstract class ContractInit extends ContractUpload {
       throw new Error(`This contract has already been instantiated at ${this.address}`) }
     return this.initTx }
 
+  async instantiateOrExisting (receipt: any, agent?: Agent) {
+    if (receipt) {
+      this.blob.codeHash = receipt.codeHash
+      this.init.address  = receipt.initTx.contractAddress
+      this.init.label    = receipt.label.split('/')[1]
+      if (agent) this.init.agent = agent
+      console.info(`${this.label}: already exists at ${this.address}`)
+      return receipt }
+    else {
+      return await this.instantiate(agent) } }
+
   /** Used by Ensemble to save multiple instantiation receipts in a subdir. */
   setPrefix (prefix: string) {
     this.init.prefix = prefix
@@ -84,6 +97,6 @@ export abstract class ContractInit extends ContractUpload {
     * If prefix is set, creates subdir grouping contracts with the same prefix. */
   save () {
     let dir = this.init.agent.chain.instances
-    if (this.init.prefix) dir = dir.subdir(this.init.prefix, JSONDirectory).make()
+    if (this.init.prefix) dir = dir.subdir(this.init.prefix, ChainInstancesDir).make()
     dir.save(this.init.label, this.initReceipt)
     return this } }
