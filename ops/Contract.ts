@@ -95,3 +95,15 @@ export interface Contract {
   execute (method: string, args: any, memo: string, 
            transferAmount: Array<any>, fee: any, agent?: Agent): any
 }
+
+export const attachable = (Constructor: new()=>Contract) => (
+  address:  string,
+  codeHash: string,
+  agent:    Agent
+) => {
+  const instance = new Constructor({})
+  instance.init.agent = agent
+  instance.init.address = address
+  instance.blob.codeHash = codeHash
+  return instance
+}
