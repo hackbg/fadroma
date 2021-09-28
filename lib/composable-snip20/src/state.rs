@@ -14,11 +14,11 @@ use serde::{Deserialize, Serialize};
 use crate::msg::ContractStatusLevel;
 
 pub const PREFIX_TXS: &[u8] = b"YteGsgSZyO";
+const KEY_ADMIN: &[u8] = b"9Fk1xtMbGg";
 
 #[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema)]
 pub struct Constants {
     pub name: String,
-    pub admin: Addr,
     pub symbol: String,
     pub decimals: u8,
     pub prng_seed: Vec<u8>,
@@ -47,6 +47,21 @@ impl Allowance {
             None => false, // allowance has no expiration
         }
     }
+}
+
+pub fn get_admin(deps: Deps) -> StdResult<Addr> {
+    let result: Option<CanonicalAddr> = load(deps.storage, KEY_ADMIN)?;
+
+    match result {
+        Some(admin) => deps.api.addr_humanize(&admin),
+        None => Err(StdError::generic_err("No admin is set in storage."))
+    }
+}
+
+pub fn set_admin(deps: DepsMut, admin: &Addr) -> StdResult<()> {
+    let admin = deps.api.addr_canonicalize(admin)?;
+
+    save(deps.storage, KEY_ADMIN)
 }
 
 pub struct Config;
@@ -97,6 +112,11 @@ impl Config {
                 "This operation would underflow the currency's total supply.",
             ));
         }
+    }
+
+    #[inline]
+    pub fn set_total_supply(storage: &mut dyn Storage, supply: u128) -> StdResult<()> {
+        save(storage, Self::KEY_TOTAL_SUPPLY, &Uint128::new(supply))
     }
 
     pub fn get_contract_status(storage: &dyn Storage) -> StdResult<ContractStatusLevel> {
@@ -151,11 +171,6 @@ impl Config {
 
     pub fn set_tx_count(storage: &mut dyn Storage, count: u64) -> StdResult<()> {
         save(storage, Self::KEY_TX_COUNT, count)
-    }
-
-    #[inline]
-    fn set_total_supply(storage: &mut dyn Storage, supply: u128) -> StdResult<()> {
-        save(storage, Self::KEY_TOTAL_SUPPLY, &Uint128::new(supply))
     }
 }
 
@@ -213,23 +228,31 @@ impl Account {
         }
     }
 
+    pub fn update_allowance<F>(
+        &self,
+        storage: &mut dyn Storage,
+        spender: &CanonicalAddr,
+        func: F
+    ) -> StdResult<Allowance>
+        where F: FnOnce(&mut Allowance) -> StdResult<()>
+    {
+        let ns = self.create_allowance_ns();
+        
+        let mut allowance =
+            ns_load(storage, ns, spender.as_slice())?
+            .unwrap_or_default();
+
+        func(&mut allowance)?;
+        ns_save(storage, ns, spender.as_slice(), &allowance)?;
+
+        Ok(allowance)
+    }
+
     pub fn get_allowance(&self, deps: Deps, spender: &Addr) -> StdResult<Allowance> {
         let spender = spender.canonize(deps.api)?;
         let ns = self.create_allowance_ns();
 
         ns_load(deps.storage, ns, spender.as_slice())?.unwrap_or_default()
-    }
-
-    pub fn set_allowance(
-        &self,
-        deps: DepsMut,
-        spender: &Addr,
-        allowance: &Allowance
-    ) -> StdResult<()> {
-        let spender = spender.canonize(deps.api)?;
-        let ns = self.create_allowance_ns();
-
-        ns_save(deps.storage, ns, spender.as_slice(), allowance)
     }
 
     pub fn get_viewing_key(&self, storage: &dyn Storage) -> StdResult<Option<Vec<u8>>> {

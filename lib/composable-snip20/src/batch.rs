@@ -1,12 +1,13 @@
 //! Types used in batch operations
-use schemars::JsonSchema;
+use fadroma::scrt::{Uint128, Binary};
+use fadroma::schemars;
+use fadroma::schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use fadroma::*;
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct TransferAction {
-    pub recipient: HumanAddr,
+    pub recipient: String,
     pub amount: Uint128,
     pub memo: Option<String>,
 }
@@ -14,7 +15,7 @@ pub struct TransferAction {
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct SendAction {
-    pub recipient: HumanAddr,
+    pub recipient: String,
     pub amount: Uint128,
     pub msg: Option<Binary>,
     pub memo: Option<String>,
@@ -23,8 +24,8 @@ pub struct SendAction {
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct TransferFromAction {
-    pub owner: HumanAddr,
-    pub recipient: HumanAddr,
+    pub owner: String,
+    pub recipient: String,
     pub amount: Uint128,
     pub memo: Option<String>,
 }
@@ -32,8 +33,8 @@ pub struct TransferFromAction {
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct SendFromAction {
-    pub owner: HumanAddr,
-    pub recipient: HumanAddr,
+    pub owner: String,
+    pub recipient: String,
     pub amount: Uint128,
     pub msg: Option<Binary>,
     pub memo: Option<String>,
@@ -42,7 +43,7 @@ pub struct SendFromAction {
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct MintAction {
-    pub recipient: HumanAddr,
+    pub recipient: String,
     pub amount: Uint128,
     pub memo: Option<String>,
 }
@@ -50,7 +51,7 @@ pub struct MintAction {
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct BurnFromAction {
-    pub owner: HumanAddr,
+    pub owner: String,
     pub amount: Uint128,
     pub memo: Option<String>,
 }

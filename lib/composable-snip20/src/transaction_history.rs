@@ -14,9 +14,9 @@ const PREFIX_TRANSFERS: &[u8] = b"transfers";
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 pub struct Tx {
     pub id: u64,
-    pub from: HumanAddr,
-    pub sender: HumanAddr,
-    pub receiver: HumanAddr,
+    pub from: Addr,
+    pub sender: Addr,
+    pub receiver: Addr,
     pub coins: Coin,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub memo: Option<String>,
@@ -30,17 +30,17 @@ pub struct Tx {
 #[serde(rename_all = "snake_case")]
 pub enum TxAction {
     Transfer {
-        from: HumanAddr,
-        sender: HumanAddr,
-        recipient: HumanAddr,
+        from: Addr,
+        sender: Addr,
+        recipient: Addr,
     },
     Mint {
-        minter: HumanAddr,
-        recipient: HumanAddr,
+        minter: Addr,
+        recipient: Addr,
     },
     Burn {
-        burner: HumanAddr,
-        owner: HumanAddr,
+        burner: Addr,
+        owner: Addr,
     },
     Deposit {},
     Redeem {},
@@ -315,18 +315,15 @@ pub fn store_transfer<S: Storage>(
 
     // Write to the owners history if it's different from the other two addresses
     if owner != sender && owner != receiver {
-        debug_print("saving transaction history for owner");
         append_tx(store, &tx, owner)?;
         append_transfer(store, &transfer, owner)?;
     }
     // Write to the sender's history if it's different from the receiver
     if sender != receiver {
-        debug_print("saving transaction history for sender");
         append_tx(store, &tx, sender)?;
         append_transfer(store, &transfer, sender)?;
     }
     // Always write to the recipient's history
-    debug_print("saving transaction history for receiver");
     append_tx(store, &tx, receiver)?;
     append_transfer(store, &transfer, receiver)?;
 

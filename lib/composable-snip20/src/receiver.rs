@@ -2,14 +2,14 @@
 use fadroma::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use crate::utils::{space_pad};
+use crate::utils::space_pad;
 
 /// Snip20ReceiveMsg should be de/serialized under `Receive()` variant in a HandleMsg
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Snip20ReceiveMsg {
-    pub sender: HumanAddr,
-    pub from: HumanAddr,
+    pub sender: String,
+    pub from: String,
     pub amount: Uint128,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub memo: Option<String>,
@@ -18,8 +18,8 @@ pub struct Snip20ReceiveMsg {
 
 impl Snip20ReceiveMsg {
     pub fn new(
-        sender: HumanAddr,
-        from: HumanAddr,
+        sender: String,
+        from: String,
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
@@ -44,16 +44,18 @@ impl Snip20ReceiveMsg {
     /// creates a cosmos_msg sending this struct to the named contract
     pub fn into_cosmos_msg(
         self,
-        callback_code_hash: String,
-        contract_addr: HumanAddr,
+        code_hash: String,
+        contract_addr: String,
     ) -> StdResult<CosmosMsg> {
         let msg = self.into_binary()?;
+
         let execute = WasmMsg::Execute {
             msg,
-            callback_code_hash,
+            code_hash,
             contract_addr,
-            send: vec![],
+            funds: vec![],
         };
+        
         Ok(execute.into())
     }
 }
