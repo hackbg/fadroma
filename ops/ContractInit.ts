@@ -58,6 +58,7 @@ export abstract class ContractInit extends ContractUpload {
     retry (error: any, attempt: number) {
       if (error.message.includes('500')) {
         console.warn(`Error 500, retry #${attempt}...`)
+        console.error(error)
         return true }
       else {
         return false } } }
