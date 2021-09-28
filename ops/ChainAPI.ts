@@ -1,8 +1,9 @@
 import type { ChainNode } from './ChainNode'
 import type { Identity, Agent } from './Agent'
+import type { Contract } from './Contract'
 
 import { URL } from 'url'
-import { Directory, symlinkDir, mkdirp } from '@fadroma/tools'
+import { bold, Directory, symlinkDir, mkdirp } from '@fadroma/tools'
 
 import { readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync } from 'fs'
 import { resolve, basename } from 'path'
@@ -103,7 +104,25 @@ export class ChainInstancesDir extends Directory {
           readFileSync(resolve(path, contract), 'utf8')
         )
       }
-      return { name, contracts }
+      return {
+        name,
+        contracts,
+        getContract (
+          Class: (new () => Contract) & {attach: Function},
+          contractName: string,
+          admin: Agent
+        ) {
+          const receipt = contracts[contractName]
+          if (!receipt) {
+            throw new Error(
+              `@fadroma/ops: no contract ${bold(contractName)}` +
+              ` in deployment ${bold(name)}`
+            )
+          }
+          const {initTx:{contractAddress}, codeId, codeHash} = receipt
+          return Class.attach(contractAddress, codeHash, admin)
+        }
+      }
     } else {
       return null
     }
@@ -114,7 +133,7 @@ export class ChainInstancesDir extends Directory {
     if (!existsSync(selection)) throw new Error(
       `@fadroma/ops: ${id} does not exist`)
     const active = resolve(this.path, this.KEY)
-    unlinkSync(active)
+    if (existsSync(active)) unlinkSync(active)
     await symlinkDir(selection, active)
   }
 
