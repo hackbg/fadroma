@@ -8,8 +8,8 @@ use crate::utils::space_pad;
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct Snip20ReceiveMsg {
-    pub sender: String,
-    pub from: String,
+    pub sender: Addr,
+    pub from: Addr,
     pub amount: Uint128,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub memo: Option<String>,
@@ -18,8 +18,8 @@ pub struct Snip20ReceiveMsg {
 
 impl Snip20ReceiveMsg {
     pub fn new(
-        sender: String,
-        from: String,
+        sender: Addr,
+        from: Addr,
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,

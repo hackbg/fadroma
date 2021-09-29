@@ -6,7 +6,7 @@ use fadroma::{
     },
     scrt_crypto::sha_256,
     scrt_vk::{ViewingKey, VIEWING_KEY_SIZE},
-    scrt_addr::validate_addresses
+    scrt_addr::Canonize
 };
 use std::fmt;
 use std::fmt::Write;
@@ -47,22 +47,19 @@ pub fn init(
     let init_config = msg.config.unwrap_or_default();
     
     let admin = match msg.admin {
-        Some(admin) => deps.api.addr_validate(&admin)?,
-        None => info.sender
+        Some(admin) => deps.api.addr_canonicalize(&admin)?,
+        None => deps.api.addr_canonicalize(info.sender.as_str())?
     };
-    let canon_admin = deps.api.canonical_address(&admin)?;
 
-    let mut total_supply: u128 = 0;
+    let mut total_supply = Uint128::zero();
     {
         let initial_balances = msg.initial_balances.unwrap_or_default();
 
         for balance in initial_balances {
-            let amount = balance.amount.u128();
+            let account = Account::of(deps.api.addr_canonicalize(&balance.address)?);
+            account.add_balance(deps.storage, balance.amount)?;
 
-            let account = Account::of(deps.api, &balance.address)?;
-            account.set_balance(deps.storage, amount)?;
-
-            if let Some(new_total_supply) = total_supply.checked_add(amount) {
+            if let Ok(new_total_supply) = total_supply.checked_add(balance.amount) {
                 total_supply = new_total_supply;
             } else {
                 return Err(StdError::generic_err(
@@ -71,8 +68,8 @@ pub fn init(
             }
 
             store_mint(
-                &mut deps.storage,
-                &canon_admin,
+                deps.storage,
+                &admin,
                 account.addr(),
                 balance.amount,
                 msg.symbol.clone(),
@@ -84,7 +81,6 @@ pub fn init(
 
     let prng_seed_hashed = sha_256(&msg.prng_seed.0);
 
-    let mut config = Config::from_storage(&mut deps.storage);
     Config::set_constants(deps.storage, &Constants {
         name: msg.name,
         symbol: msg.symbol,
@@ -96,10 +92,11 @@ pub fn init(
         mint_is_enabled: init_config.mint_enabled(),
         burn_is_enabled: init_config.burn_enabled(),
     })?;
-    Config::increase_total_supply(deps.storage, total_supply);
-    Config::set_contract_status(deps.storage, ContractStatusLevel::NormalRun);
 
-    set_admin(deps, &admin)?;
+    Config::increase_total_supply(deps.storage, total_supply)?;
+    Config::set_contract_status(deps.storage, ContractStatusLevel::NormalRun)?;
+
+    set_admin(deps.storage, &admin)?;
 
     let minters = if init_config.mint_enabled() {
         Vec::from([admin])
@@ -107,7 +104,7 @@ pub fn init(
         Vec::new()
     };
 
-    config.set_minters(minters)?;
+    Config::set_minters(deps.storage, minters)?;
 
     let mut messages = vec![];
 
@@ -125,7 +122,7 @@ pub fn init(
     Ok(Response::new()
         .add_messages(messages)
         .add_attribute("token_address", env.contract.address)
-        .add_attribute("token_code_hash", env.contract_code_hash))
+        .add_attribute("token_code_hash", env.contract.code_hash))
 }
 
 pub fn handle(
@@ -140,11 +137,11 @@ pub fn handle(
     match contract_status {
         ContractStatusLevel::StopAll | ContractStatusLevel::StopAllButRedeems => {
             let response = match msg {
-                HandleMsg::SetContractStatus { level, .. } => snip20.set_contract_status(deps, env, level),
+                HandleMsg::SetContractStatus { level, .. } => snip20.set_contract_status(deps, env, info, level),
                 HandleMsg::Redeem { amount, .. }
                     if contract_status == ContractStatusLevel::StopAllButRedeems =>
                 {
-                    snip20.redeem(deps, env, amount)
+                    snip20.redeem(deps, env, info, amount)
                 }
                 _ => Err(StdError::generic_err(
                     "This contract is stopped and this action is not allowed",
@@ -158,7 +155,7 @@ pub fn handle(
     let response = match msg {
         // Native
         HandleMsg::Deposit { .. } => snip20.deposit(deps, env, info),
-        HandleMsg::Redeem { amount, .. } => snip20.redeem(deps, env, amount),
+        HandleMsg::Redeem { amount, .. } => snip20.redeem(deps, env, info, amount),
 
         // Base
         HandleMsg::Transfer {
@@ -166,18 +163,18 @@ pub fn handle(
             amount,
             memo,
             ..
-        } => snip20.transfer(deps, env, recipient, amount, memo),
+        } => snip20.transfer(deps, env, info, recipient, amount, memo),
         HandleMsg::Send {
             recipient,
             amount,
             msg,
             memo,
             ..
-        } => snip20.send(deps, env, recipient, amount, memo, msg),
-        HandleMsg::Burn { amount, memo, .. } => snip20.burn(deps, env, amount, memo),
-        HandleMsg::RegisterReceive { code_hash, .. } => snip20.register_receive(deps, env, code_hash),
-        HandleMsg::CreateViewingKey { entropy, .. } => snip20.create_viewing_key(deps, env, entropy),
-        HandleMsg::SetViewingKey { key, .. } => snip20.set_viewing_key(deps, env, key),
+        } => snip20.send(deps, env, info, recipient, amount, memo, msg),
+        HandleMsg::Burn { amount, memo, .. } => snip20.burn(deps, env, info, amount, memo),
+        HandleMsg::RegisterReceive { code_hash, .. } => snip20.register_receive(deps, env, info, code_hash),
+        HandleMsg::CreateViewingKey { entropy, .. } => snip20.create_viewing_key(deps, env, info, entropy),
+        HandleMsg::SetViewingKey { key, .. } => snip20.set_viewing_key(deps, env, info, key),
 
         // Allowance
         HandleMsg::IncreaseAllowance {
@@ -185,20 +182,20 @@ pub fn handle(
             amount,
             expiration,
             ..
-        } => snip20.increase_allowance(deps, env, spender, amount, expiration),
+        } => snip20.increase_allowance(deps, env, info, spender, amount, expiration),
         HandleMsg::DecreaseAllowance {
             spender,
             amount,
             expiration,
             ..
-        } => snip20.decrease_allowance(deps, env, spender, amount, expiration),
+        } => snip20.decrease_allowance(deps, env, info, spender, amount, expiration),
         HandleMsg::TransferFrom {
             owner,
             recipient,
             amount,
             memo,
             ..
-        } => snip20.transfer_from(deps, env, owner, recipient, amount, memo),
+        } => snip20.transfer_from(deps, env, info, owner, recipient, amount, memo),
         HandleMsg::SendFrom {
             owner,
             recipient,
@@ -206,13 +203,13 @@ pub fn handle(
             msg,
             memo,
             ..
-        } => snip20.send_from(deps, env, owner, recipient, amount, memo, msg),
+        } => snip20.send_from(deps, env, info, owner, recipient, amount, memo, msg),
         HandleMsg::BurnFrom {
             owner,
             amount,
             memo,
             ..
-        } => snip20.burn_from(deps, env, owner, amount, memo),
+        } => snip20.burn_from(deps, env, info, owner, amount, memo),
 
         // Mint
         HandleMsg::Mint {
@@ -220,24 +217,24 @@ pub fn handle(
             amount,
             memo,
             ..
-        } => snip20.mint(deps, env, recipient, amount, memo),
+        } => snip20.mint(deps, env, info, recipient, amount, memo),
 
         // Other
-        HandleMsg::ChangeAdmin { address, .. } => snip20.change_admin(deps, env, address),
-        HandleMsg::SetContractStatus { level, .. } => snip20.set_contract_status(deps, env, level),
-        HandleMsg::AddMinters { minters, .. } => snip20.add_minters(deps, env, minters),
-        HandleMsg::RemoveMinters { minters, .. } => snip20.remove_minters(deps, env, minters),
-        HandleMsg::SetMinters { minters, .. } => snip20.set_minters(deps, env, minters),
+        HandleMsg::ChangeAdmin { address, .. } => snip20.change_admin(deps, env, info, address),
+        HandleMsg::SetContractStatus { level, .. } => snip20.set_contract_status(deps, env, info, level),
+        HandleMsg::AddMinters { minters, .. } => snip20.add_minters(deps, env, info, minters),
+        HandleMsg::RemoveMinters { minters, .. } => snip20.remove_minters(deps, env, info, minters),
+        HandleMsg::SetMinters { minters, .. } => snip20.set_minters(deps, env, info, minters),
 
         // SNIP22
-        HandleMsg::BatchTransfer { actions, .. } => snip20.batch_transfer(deps, env, actions),
-        HandleMsg::BatchSend { actions, .. } => snip20.batch_send(deps, env, actions),
+        HandleMsg::BatchTransfer { actions, .. } => snip20.batch_transfer(deps, env, info, actions),
+        HandleMsg::BatchSend { actions, .. } => snip20.batch_send(deps, env, info, actions),
         HandleMsg::BatchTransferFrom { actions, .. } => {
-            snip20.batch_transfer_from(deps, env, actions)
+            snip20.batch_transfer_from(deps, env, info, actions)
         }
-        HandleMsg::BatchSendFrom { actions, .. } => snip20.batch_send_from(deps, env, actions),
-        HandleMsg::BatchBurnFrom { actions, .. } => snip20.batch_burn_from(deps, env, actions),
-        HandleMsg::BatchMint { actions, .. } => snip20.batch_mint(deps, env, actions)
+        HandleMsg::BatchSendFrom { actions, .. } => snip20.batch_send_from(deps, env, info, actions),
+        HandleMsg::BatchBurnFrom { actions, .. } => snip20.batch_burn_from(deps, env, info, actions),
+        HandleMsg::BatchMint { actions, .. } => snip20.batch_mint(deps, env, info, actions)
     };
 
     pad_response(response)
@@ -250,11 +247,11 @@ pub fn query(
     snip20: impl Snip20
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::TokenInfo {} => snip20.query_token_info(&deps.storage),
-        QueryMsg::ContractStatus {} => snip20.query_contract_status(&deps.storage),
-        QueryMsg::ExchangeRate {} => snip20.query_exchange_rate(&deps.storage),
-        QueryMsg::Minters { .. } => snip20.query_minters(deps),
-        _ => authenticated_queries(deps, msg, snip20)
+        QueryMsg::TokenInfo {} => snip20.query_token_info(deps, env),
+        QueryMsg::ContractStatus {} => snip20.query_contract_status(deps, env),
+        QueryMsg::ExchangeRate {} => snip20.query_exchange_rate(deps, env),
+        QueryMsg::Minters { .. } => snip20.query_minters(deps, env),
+        _ => authenticated_queries(deps, env, msg, snip20)
     }
 }
 
@@ -297,8 +294,6 @@ pub trait Snip20  {
             return Err(StdError::generic_err("No funds were sent to be deposited"));
         }
     
-        let raw_amount = amount.u128();
-
         let constants = Config::get_constants(deps.storage)?;
         if !constants.deposit_is_enabled {
             return Err(StdError::generic_err(
@@ -306,13 +301,13 @@ pub trait Snip20  {
             ));
         }
 
-        Config::increase_total_supply(deps.storage, raw_amount)?;
+        Config::increase_total_supply(deps.storage, amount)?;
     
-        let account = Account::of(&info.sender)?;
-        account.add_balance(deps.storage, raw_amount);
+        let account = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
+        account.add_balance(deps.storage, amount)?;
 
         store_deposit(
-            &mut deps.storage,
+            deps.storage,
             account.addr(),
             amount,
             "uscrt".to_string(),
@@ -340,12 +335,10 @@ pub trait Snip20  {
             ));
         }
     
-        let amount_raw = amount.u128();
-
-        let account = Account::of(deps.api, &info.sender)?;
-        account.subtract_balance(deps.storage, amount_raw)?;
+        let account = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
+        account.subtract_balance(deps.storage, amount)?;
     
-        Config::decrease_total_supply(deps.storage, amount_raw)?;
+        Config::decrease_total_supply(deps.storage, amount)?;
     
         let token_reserve = deps
             .querier
@@ -364,7 +357,7 @@ pub trait Snip20  {
         }];
     
         store_redeem(
-            &mut deps.storage,
+            deps.storage,
             &account.addr(),
             amount,
             constants.symbol,
@@ -373,8 +366,7 @@ pub trait Snip20  {
         
         Ok(Response::new()
             .add_message(CosmosMsg::Bank(BankMsg::Send {
-                from_address: env.contract.address,
-                to_address: env.message.sender,
+                to_address: info.sender.into_string(),
                 amount: withdrawal_coins,
             }))
             .set_data(to_binary(
@@ -392,8 +384,8 @@ pub trait Snip20  {
         amount: Uint128,
         memo: Option<String>,
     ) -> StdResult<Response> {
-        let sender = Account::of(deps.api, &info.sender)?;
-        let recipient = Account::of(deps.api, &deps.api.addr_validate(&recipient))?;
+        let sender = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
+        let recipient = Account::of(deps.api.addr_canonicalize(&recipient)?);
 
         transfer_impl(deps, &sender, &recipient, amount, memo, &env.block)?;
     
@@ -414,15 +406,13 @@ pub trait Snip20  {
         memo: Option<String>,
         msg: Option<Binary>,
     ) -> StdResult<Response> {
-        let sender = Account::of(deps.api, &info.sender)?;
-        let recipient = deps.api.addr_validate(&recipient)?;
+        let sender = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
+        let recipient = Account::of(deps.api.addr_canonicalize(&recipient)?);
 
         let messages = send_impl(
             deps,
             &sender,
-            info.sender,
-            &Account::of(deps.api, &recipient)?,
-            recipient,
+            &recipient,
             amount,
             memo,
             msg,
@@ -452,15 +442,13 @@ pub trait Snip20  {
             ));
         }
     
-        let raw_amount = amount.u128();
+        let account = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
+        account.subtract_balance(deps.storage, amount)?;
 
-        let account = Account::of(deps.api, &info.sender)?;
-        account.subtract_balance(deps.storage, raw_amount)?;
-
-        Config::decrease_total_supply(deps.storage, raw_amount)?;
+        Config::decrease_total_supply(deps.storage, amount)?;
     
         store_burn(
-            &mut deps.storage,
+            deps.storage,
             account.addr(),
             account.addr(),
             amount,
@@ -479,12 +467,12 @@ pub trait Snip20  {
     fn register_receive(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         code_hash: String
     ) -> StdResult<Response> {
-        Account::of(deps.api, info.sender)?
-            .set_receiver_hash(&mut deps.storage, code_hash)?;
+        Account::of(deps.api.addr_canonicalize(info.sender.as_str())?)
+            .set_receiver_hash(deps.storage, code_hash)?;
 
         Ok(Response::new()
             .add_attribute("register_status", "success")
@@ -497,11 +485,11 @@ pub trait Snip20  {
     fn set_viewing_key(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         key: String,
     ) -> StdResult<Response> {
-        Account::of(deps.api, &info.sender)?
+        Account::of(deps.api.addr_canonicalize(info.sender.as_str())?)
             .set_viewing_key(deps.storage, &ViewingKey(key))?;
 
         Ok(Response::new()
@@ -518,12 +506,12 @@ pub trait Snip20  {
         info: MessageInfo,
         entropy: String,
     ) -> StdResult<Response> {
-        let constants = Config::constants(deps.storage)?;
+        let constants = Config::get_constants(deps.storage)?;
         let prng_seed = constants.prng_seed;
     
-        let key = ViewingKey::new(&env, &prng_seed, entropy.as_bytes());
+        let key = ViewingKey::new(&env, &info, &prng_seed, entropy.as_bytes());
     
-        Account::of(deps.api, &info.sender)?
+        Account::of(deps.api.addr_canonicalize(info.sender.as_str())?)
             .set_viewing_key(deps.storage, &key)?;
 
         Ok(Response::new()
@@ -542,31 +530,33 @@ pub trait Snip20  {
         amount: Uint128,
         expiration: Option<u64>,
     ) -> StdResult<Response> {
-        let account = Account::of(deps.api, &info.sender)?;
-        let spender = deps.api.addr_canonicalize(&deps.api.addr_validate(&spender)?)?;
+        let account = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
+        let spender_canon = deps.api.addr_canonicalize(&spender)?;
     
-        let result = account.update_allowance(deps.storage, &spender, |allowance| {
+        let new_allowance = account.update_allowance(deps.storage, &spender_canon, |allowance| {
             // If the previous allowance has expired, reset the allowance.
             // Without this users can take advantage of an expired allowance given to
             // them long ago.
             if allowance.is_expired_at(&env.block) {
-                allowance.amount = amount.u128();
+                allowance.amount = amount;
                 allowance.expiration = None;
             } else {
-                allowance.amount = allowance.amount.saturating_add(amount.u128());
+                allowance.amount = allowance.amount.saturating_add(amount);
             }
         
             if expiration.is_some() {
                 allowance.expiration = expiration;
             }
+
+            Ok(())
         })?;
 
         Ok(Response::new()
             .set_data(to_binary(
                 &HandleAnswer::IncreaseAllowance {
-                    owner: env.message.sender,
-                    spender,
-                    allowance: result.allowance.amount,
+                    owner: info.sender,
+                    spender: Addr::unchecked(spender),
+                    allowance: new_allowance.amount,
                 })?
             )
         )
@@ -581,30 +571,32 @@ pub trait Snip20  {
         amount: Uint128,
         expiration: Option<u64>,
     ) -> StdResult<Response> {
-        let account = Account::of(deps.api, &info.sender)?;
-        let spender = deps.api.addr_canonicalize(&deps.api.addr_validate(&spender)?)?;
+        let account = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
+        let spender_canon = deps.api.addr_canonicalize(&spender)?;
     
-        let new_allowance = account.update_allowance(deps.storage, &spender, |allowance| {
+        let new_allowance = account.update_allowance(deps.storage, &spender_canon, |allowance| {
             // If the previous allowance has expired, reset the allowance.
             // Without this users can take advantage of an expired allowance given to
             // them long ago.
             if allowance.is_expired_at(&env.block) {
-                allowance.amount = 0;
+                allowance.amount = Uint128::zero();
                 allowance.expiration = None;
             } else {
-                allowance.amount = allowance.amount.saturating_sub(amount.u128());
+                allowance.amount = allowance.amount.saturating_sub(amount);
             }
         
             if expiration.is_some() {
                 allowance.expiration = expiration;
             }
+
+            Ok(())
         })?;
 
         Ok(Response::new()
             .set_data(to_binary(
                 &HandleAnswer::DecreaseAllowance {
-                    owner: env.message.sender,
-                    spender,
+                    owner: info.sender,
+                    spender: Addr::unchecked(spender),
                     allowance: new_allowance.amount,
                 })?
             )
@@ -621,9 +613,9 @@ pub trait Snip20  {
         amount: Uint128,
         memo: Option<String>,
     ) -> StdResult<Response> {
-        let spender = deps.api.canonical_address(&env.message.sender)?;
-        let owner = deps.api.canonical_address(&owner)?;
-        let recipient = deps.api.canonical_address(&recipient)?;
+        let spender = deps.api.addr_canonicalize(info.sender.as_str())?;
+        let owner = Account::of(deps.api.addr_canonicalize(&owner)?);
+        let recipient = Account::of(deps.api.addr_canonicalize(&recipient)?);
 
         transfer_from_impl(deps, &env, &spender, &owner, &recipient, amount, memo)?;
 
@@ -645,22 +637,16 @@ pub trait Snip20  {
         memo: Option<String>,
         msg: Option<Binary>,
     ) -> StdResult<Response> {
-        let spender_canon = deps.api.addr_canonicalize(info.sender)?;
-
-        let owner_addr = deps.api.addr_validate(&owner)?;
-        let owner = Account::of(deps.api, &owner_addr)?;
-
-        let recipient_addr = deps.api.addr_validate(&recipient)?;
-        let recipient = Account::of(deps.api, &recipient_addr)?;
+        let spender = deps.api.addr_canonicalize(info.sender.as_str())?;
+        let owner = Account::of(deps.api.addr_canonicalize(&owner)?);
+        let recipient = Account::of(deps.api.addr_canonicalize(&recipient)?);
 
         let messages = send_from_impl(
             deps,
-            env,
-            &spender_canon,
+            &env,
+            &spender,
             &owner,
-            owner_addr,
-            recipient,
-            recipient_addr,
+            &recipient,
             amount,
             memo,
             msg,
@@ -690,18 +676,17 @@ pub trait Snip20  {
             ));
         }
     
-        let owner = Account::of(deps.api, deps.api.addr_validate(&owner)?)?;
-        let raw_amount = amount.u128();
+        let owner = Account::of(deps.api.addr_canonicalize(&owner)?);
 
-        let spender = deps.api.addr_canonicalize(info.sender)?;
-        use_allowance(deps.storage, &env, &owner, &spender, raw_amount)?;
+        let spender = deps.api.addr_canonicalize(info.sender.as_str())?;
+        use_allowance(deps.storage, &env, &owner, &spender, amount)?;
 
-        owner.subtract_balance(deps.storage, raw_amount)?;
+        owner.subtract_balance(deps.storage, amount)?;
 
-        Config::decrease_total_supply(deps.storage, raw_amount)?;
+        Config::decrease_total_supply(deps.storage, amount)?;
     
         store_burn(
-            &mut deps.storage,
+            deps.storage,
             owner.addr(),
             &spender,
             amount,
@@ -733,20 +718,20 @@ pub trait Snip20  {
             ));
         }
     
-        let minters = Config::get_minters(deps)?;
-        if !minters.contains(&env.message.sender) {
+        let minters = Config::get_minters(deps.as_ref())?;
+        if !minters.contains(&info.sender) {
             return Err(StdError::generic_err(
                 "Minting is allowed to minter accounts only",
             ));
         }
 
-        Config::increase_total_supply(deps.storage, amount.u128())?;
+        Config::increase_total_supply(deps.storage, amount)?;
     
-        let minter = &deps.api.canonical_address(&info.sender)?;
-        let recipient = Account::of(deps.api, deps.api.addr_validate(&recipient)?)?;
+        let minter = deps.api.addr_canonicalize(info.sender.as_str())?;
+        let recipient = Account::of(deps.api.addr_canonicalize(&recipient)?);
 
         mint_impl(
-            &mut deps.storage,
+            deps.storage,
             &minter,
             &recipient,
             amount,
@@ -765,14 +750,13 @@ pub trait Snip20  {
     fn change_admin(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         address: String,
     ) -> StdResult<Response> {
-        let address = deps.api.addr_validate(address)?;
-        check_if_admin(deps, &info.sender)?;
+        check_if_admin(deps.as_ref(), &info.sender)?;
 
-        set_admin(deps, &address)?;
+        set_admin(deps.storage, &deps.api.addr_canonicalize(&address)?)?;
 
         Ok(Response::new()
             .set_data(to_binary(
@@ -784,15 +768,13 @@ pub trait Snip20  {
     fn set_contract_status(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         status_level: ContractStatusLevel,
     ) -> StdResult<Response> {
-        let mut config = Config::from_storage(&mut deps.storage);
+        check_if_admin(deps.as_ref(), &info.sender)?;
     
-        check_if_admin(&config, &env.message.sender)?;
-    
-        config.set_contract_status(status_level);
+        Config::set_contract_status(deps.storage, status_level)?;
 
         Ok(Response::new()
             .set_data(to_binary(
@@ -804,7 +786,7 @@ pub trait Snip20  {
     fn add_minters(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         minters_to_add: Vec<String>,
     ) -> StdResult<Response> {
@@ -815,9 +797,9 @@ pub trait Snip20  {
             ));
         }
     
-        check_if_admin(deps, &info.sender)?;
+        check_if_admin(deps.as_ref(), &info.sender)?;
     
-        Config::add_minters(deps, validate_addresses(deps.api, minters_to_add)?)?;
+        Config::add_minters(deps.storage, minters_to_add.canonize(deps.api)?)?;
     
         Ok(Response::new()
             .set_data(to_binary(
@@ -829,7 +811,7 @@ pub trait Snip20  {
     fn remove_minters(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         minters_to_remove: Vec<String>,
     ) -> StdResult<Response> {
@@ -840,9 +822,9 @@ pub trait Snip20  {
             ));
         }
     
-        check_if_admin(deps, &info.sender)?;
+        check_if_admin(deps.as_ref(), &info.sender)?;
     
-        Config::remove_minters(deps, validate_addresses(deps.api, minters_to_remove)?)?;
+        Config::remove_minters(deps.storage, minters_to_remove.canonize(deps.api)?)?;
     
         Ok(Response::new()
             .set_data(to_binary(
@@ -854,7 +836,7 @@ pub trait Snip20  {
     fn set_minters(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         minters_to_set: Vec<String>,
     ) -> StdResult<Response> {
@@ -865,9 +847,9 @@ pub trait Snip20  {
             ));
         }
     
-        check_if_admin(deps, &info.sender)?;
+        check_if_admin(deps.as_ref(), &info.sender)?;
     
-        Config::set_minters(deps, validate_addresses(deps.api, minters_to_set)?)?;
+        Config::set_minters(deps.storage, minters_to_set.canonize(deps.api)?)?;
     
         Ok(Response::new()
             .set_data(to_binary(
@@ -880,18 +862,18 @@ pub trait Snip20  {
 
     fn batch_transfer(
         &self,
-        deps: DepsMut,
+        mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
         actions: Vec<batch::TransferAction>,
     ) -> StdResult<Response> {
-        let sender = Account::of(deps.api, &info.sender)?;
+        let sender = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
 
         for action in actions {
-            let recipient = Account::of(deps.api, deps.api.addr_validate(&action.recipient)?)?;
+            let recipient = Account::of(deps.api.addr_canonicalize(&action.recipient)?);
 
             transfer_impl(
-                deps,
+                deps.branch(),
                 &sender,
                 &recipient,
                 action.amount,
@@ -909,26 +891,22 @@ pub trait Snip20  {
 
     fn batch_send(
         &self,
-        deps: DepsMut,
+        mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
         actions: Vec<batch::SendAction>,
     ) -> StdResult<Response> {
-        let mut messages = vec![];
-        let sender = Account::of(deps.api, &info.sender)?;
+        let sender = Account::of(deps.api.addr_canonicalize(info.sender.as_str())?);
 
         let mut messages = Vec::with_capacity(actions.len());
 
         for action in actions {
-            let recipient_addr = deps.api.addr_validate(&action.recipient)?;
-            let recipient = Account::of(deps.api, &recipient_addr)?;
+            let recipient = Account::of(deps.api.addr_canonicalize(&action.recipient)?);
 
             let msgs = send_impl(
-                deps,
+                deps.branch(),
                 &sender,
-                info.sender.clone(),
                 &recipient,
-                recipient_addr,
                 action.amount,
                 action.memo,
                 action.msg,
@@ -948,19 +926,19 @@ pub trait Snip20  {
 
     fn batch_transfer_from(
         &self,
-        deps: DepsMut,
+        mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
         actions: Vec<batch::TransferFromAction>,
     ) -> StdResult<Response> {
-        let spender = deps.api.addr_canonicalize(&env.message.sender)?;
+        let spender = deps.api.addr_canonicalize(info.sender.as_str())?;
 
         for action in actions {
-            let owner = Account::of(deps.api, deps.api.addr_validate(&action.owner)?)?;
-            let recipient = Account::of(deps.api, deps.api.addr_validate(&action.owner)?)?;
+            let owner = Account::of(deps.api.addr_canonicalize(&action.owner)?);
+            let recipient = Account::of(deps.api.addr_canonicalize(&action.recipient)?);
 
             transfer_from_impl(
-                deps,
+                deps.branch(),
                 &env,
                 &spender,
                 &owner,
@@ -979,31 +957,25 @@ pub trait Snip20  {
 
     fn batch_send_from(
         &self,
-        deps: DepsMut,
+        mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
         actions: Vec<batch::SendFromAction>,
     ) -> StdResult<Response> {
-        let spender = &env.message.sender;
-        let spender_canon = deps.api.addr_canonicalize(spender)?;
+        let spender = deps.api.addr_canonicalize(info.sender.as_str())?;
 
         let mut messages = Vec::with_capacity(actions.len());
     
         for action in actions {
-            let owner_addr = deps.api.addr_validate(&action.owner)?;
-            let owner = Account::of(deps.api, &owner_addr)?;
-
-            let recipient_addr = deps.api.addr_validate(&action.recipient)?;
-            let recipient = Account::of(deps.api, &recipient_addr)?;
+            let owner = Account::of(deps.api.addr_canonicalize(&action.owner)?);
+            let recipient = Account::of(deps.api.addr_canonicalize(&action.recipient)?);
             
             let msgs = send_from_impl(
-                deps,
+                deps.branch(),
                 &env,
-                &spender_canon,
+                &spender,
                 &owner,
-                owner_addr,
                 &recipient,
-                recipient_addr,
                 action.amount,
                 action.memo,
                 action.msg,
@@ -1034,20 +1006,19 @@ pub trait Snip20  {
             ));
         }
     
-        let spender = deps.api.addr_canonicalize(&info.sender)?;
+        let spender = deps.api.addr_canonicalize(info.sender.as_str())?;
     
         let mut total_supply = Config::get_total_supply(deps.storage)?;
     
         for action in actions {
-            let owner = Account::of(deps.api, &deps.api.addr_validate(&action.owner)?)?;
+            let owner = Account::of(deps.api.addr_canonicalize(&action.owner)?);
 
-            let amount = action.amount.u128();
-            use_allowance(deps.storage, &env, &owner, &spender, amount)?;
+            use_allowance(deps.storage, &env, &owner, &spender, action.amount)?;
 
-            owner.subtract_balance(deps.storage, amount)?;
+            owner.subtract_balance(deps.storage, action.amount)?;
     
             // remove from supply
-            if let Some(new_total_supply) = total_supply.checked_sub(amount) {
+            if let Ok(new_total_supply) = total_supply.checked_sub(action.amount) {
                 total_supply = new_total_supply;
             } else {
                 return Err(StdError::generic_err(format!(
@@ -1057,7 +1028,7 @@ pub trait Snip20  {
             }
     
             store_burn(
-                &mut deps.storage,
+                deps.storage,
                 owner.addr(),
                 &spender,
                 action.amount,
@@ -1090,8 +1061,8 @@ pub trait Snip20  {
             ));
         }
     
-        let minters = Config::get_minters(deps)?;
-        if !minters.contains(&env.message.sender) {
+        let minters = Config::get_minters(deps.as_ref())?;
+        if !minters.contains(&info.sender) {
             return Err(StdError::generic_err(
                 "Minting is allowed to minter accounts only",
             ));
@@ -1101,7 +1072,7 @@ pub trait Snip20  {
     
         // Quick loop to check that the total of amounts is valid
         for action in &actions {
-            if let Some(new_total_supply) = total_supply.checked_add(action.amount.u128()) {
+            if let Ok(new_total_supply) = total_supply.checked_add(action.amount) {
                 total_supply = new_total_supply;
             } else {
                 return Err(StdError::generic_err(
@@ -1112,13 +1083,13 @@ pub trait Snip20  {
 
         Config::set_total_supply(deps.storage, total_supply)?;
     
-        let minter = deps.api.addr_canonicalize(&info.sender)?;
+        let minter = deps.api.addr_canonicalize(info.sender.as_str())?;
 
         for action in actions {
-            let recipient = Account::of(deps.api, deps.api.addr_validate(&action.recipient))?;
+            let recipient = Account::of(deps.api.addr_canonicalize(&action.recipient)?);
 
             mint_impl(
-                &mut deps.storage,
+                deps.storage,
                 &minter,
                 &recipient,
                 action.amount,
@@ -1137,7 +1108,7 @@ pub trait Snip20  {
 
     // Query
 
-    fn query_exchange_rate(&self, deps: Deps, env: Env) -> StdResult<Binary> {
+    fn query_exchange_rate(&self, deps: Deps, _env: Env) -> StdResult<Binary> {
         let constants = Config::get_constants(deps.storage)?;
     
         if constants.deposit_is_enabled || constants.redeem_is_enabled {
@@ -1161,11 +1132,11 @@ pub trait Snip20  {
         })
     }
     
-    fn query_token_info(&self, deps: Deps, env: Env) -> StdResult<Binary> {
+    fn query_token_info(&self, deps: Deps, _env: Env) -> StdResult<Binary> {
         let constants = Config::get_constants(deps.storage)?;
     
         let total_supply = if constants.total_supply_is_public {
-            Some(Uint128::new(Config::get_total_supply(deps.storage)?))
+            Some(Config::get_total_supply(deps.storage)?)
         } else {
             None
         };
@@ -1178,13 +1149,13 @@ pub trait Snip20  {
         })
     }
 
-    fn query_contract_status(&self, deps: Deps, env: Env) -> StdResult<Binary> {    
+    fn query_contract_status(&self, deps: Deps, _env: Env) -> StdResult<Binary> {    
         to_binary(&QueryAnswer::ContractStatus {
             status: Config::get_contract_status(deps.storage)?,
         })
     }
 
-    fn query_minters(&self, deps: Deps, env: Env) -> StdResult<Binary> {    
+    fn query_minters(&self, deps: Deps, _env: Env) -> StdResult<Binary> {    
         to_binary(&QueryAnswer::Minters {
             minters: Config::get_minters(deps)?
         })
@@ -1193,10 +1164,10 @@ pub trait Snip20  {
     fn query_balance(
         &self,
         deps: Deps,
-        env: Env,
+        _env: Env,
         account: Account,
     ) -> StdResult<Binary> {    
-        let amount = Uint128::new(account.get_balance(deps.storage)?);
+        let amount = account.get_balance(deps.storage)?;
 
         to_binary(&QueryAnswer::Balance {
             amount
@@ -1206,19 +1177,20 @@ pub trait Snip20  {
     fn query_allowance(
         &self,
         deps: Deps,
-        env: Env,
-        owner: Addr,
-        spender: Addr,
+        _env: Env,
+        owner: CanonicalAddr,
+        spender: CanonicalAddr,
     ) -> StdResult<Binary> {
-        let account = Account::of(deps.api, &owner)?;
-        let allowance = account.get_allowance(deps, &spender)?;
+        let account = Account::of(owner);
+        let allowance = account.get_allowance(deps.storage, &spender)?;
 
         let response = QueryAnswer::Allowance {
-            owner,
-            spender,
+            owner: deps.api.addr_humanize(account.addr())?,
+            spender: deps.api.addr_humanize(&spender)?,
             allowance: allowance.amount,
             expiration: allowance.expiration,
         };
+
         to_binary(&response)
     }
 
@@ -1227,31 +1199,30 @@ pub trait Snip20  {
     fn query_transfers(
         &self,
         deps: Deps,
-        env: Env,
+        _env: Env,
         account: Account,
         page: u32,
         page_size: u32,
     ) -> StdResult<Binary> {
-        let address = deps.api.canonical_address(account)?;
-        let (txs, total) = get_transfers(&deps.api, &deps.storage, &address, page, page_size)?;
+        let (txs, total) = get_transfers(deps, account.addr(), page, page_size)?;
     
         let result = QueryAnswer::TransferHistory {
             txs,
             total: Some(total),
         };
+
         to_binary(&result)
     }
     
     fn query_transactions(
         &self,
         deps: Deps,
-        env: Env,
+        _env: Env,
         account: Account,
         page: u32,
         page_size: u32,
     ) -> StdResult<Binary> {
-        let address = deps.api.canonical_address(account)?;
-        let (txs, total) = get_txs(&deps.api, &deps.storage, &address, page, page_size)?;
+        let (txs, total) = get_txs(deps, account.addr(), page, page_size)?;
     
         let result = QueryAnswer::TransactionHistory {
             txs,
@@ -1269,12 +1240,12 @@ pub fn transfer_impl(
     memo: Option<String>,
     block: &BlockInfo,
 ) -> StdResult<()> {
-    perform_transfer(deps.storage, sender, recipient, amount.u128())?;
+    perform_transfer(deps.storage, sender, recipient, amount)?;
 
-    let symbol = Config::from_storage(&mut deps.storage).constants()?.symbol;
+    let symbol = Config::get_constants(deps.storage)?.symbol;
 
     store_transfer(
-        &mut deps.storage,
+        deps.storage,
         sender.addr(),
         sender.addr(),
         recipient.addr(),
@@ -1292,7 +1263,7 @@ pub fn perform_transfer(
     storage: &mut dyn Storage,
     from: &Account,
     to: &Account,
-    amount: u128,
+    amount: Uint128,
 ) -> StdResult<()> {
     from.subtract_balance(storage, amount)?;
     to.add_balance(storage, amount)
@@ -1300,18 +1271,16 @@ pub fn perform_transfer(
 
 #[allow(clippy::too_many_arguments)]
 pub fn send_impl(
-    deps: DepsMut,
+    mut deps: DepsMut,
     sender: &Account,
-    sender_addr: Addr,
     recipient: &Account,
-    recipient_addr: Addr,
     amount: Uint128,
     memo: Option<String>,
     msg: Option<Binary>,
     block: &BlockInfo
 ) -> StdResult<Vec<CosmosMsg>> {
     transfer_impl(
-        deps,
+        deps.branch(),
         sender,
         recipient,
         amount,
@@ -1319,10 +1288,11 @@ pub fn send_impl(
         block,
     )?;
 
+    let sender_addr = deps.api.addr_humanize(sender.addr())?;
+
     add_receiver_api_callback(
-        deps.storage,
+        deps.as_ref(),
         recipient,
-        recipient_addr,
         msg,
         sender_addr.clone(),
         sender_addr,
@@ -1333,19 +1303,20 @@ pub fn send_impl(
 
 #[allow(clippy::too_many_arguments)]
 pub fn add_receiver_api_callback(
-    storage: &dyn Storage,
+    deps: Deps,
     recipient: &Account,
-    recipient_addr: Addr,
     msg: Option<Binary>,
     sender: Addr,
     from: Addr,
     amount: Uint128,
     memo: Option<String>,
 ) -> StdResult<Vec<CosmosMsg>> {
-    let receiver_hash = recipient.get_receiver_hash(storage)?;
+    let receiver_hash = recipient.get_receiver_hash(deps.storage)?;
 
     if let Some(receiver_hash) = receiver_hash {
         let receiver_msg = Snip20ReceiveMsg::new(sender, from, amount, memo, msg);
+
+        let recipient_addr = deps.api.addr_humanize(recipient.addr())?.to_string();
         let callback_msg = receiver_msg.into_cosmos_msg(receiver_hash, recipient_addr)?;
 
         return Ok(vec![ callback_msg ]);
@@ -1363,15 +1334,13 @@ pub fn transfer_from_impl(
     amount: Uint128,
     memo: Option<String>,
 ) -> StdResult<()> {
-    let raw_amount = amount.u128();
+    use_allowance(deps.storage, env, owner, spender, amount)?;
+    perform_transfer(deps.storage, owner, recipient, amount)?;
 
-    use_allowance(&mut deps.storage, env, owner, spender, raw_amount)?;
-    perform_transfer(&mut deps.storage, owner, recipient, raw_amount)?;
-
-    let symbol = Config::constants(deps.storage)?.symbol;
+    let symbol = Config::get_constants(deps.storage)?.symbol;
 
     store_transfer(
-        &mut deps.storage,
+        deps.storage,
         owner.addr(),
         spender,
         recipient.addr(),
@@ -1389,9 +1358,9 @@ pub fn use_allowance(
     env: &Env,
     owner: &Account,
     spender: &CanonicalAddr,
-    amount: u128,
+    amount: Uint128,
 ) -> StdResult<Allowance> {
-    fn insufficient_allowance(allowance: u128, required: u128) -> StdError {
+    fn insufficient_allowance(allowance: Uint128, required: Uint128) -> StdError {
         StdError::generic_err(format!(
             "insufficient allowance: allowance={}, required={}",
             allowance, required
@@ -1400,31 +1369,32 @@ pub fn use_allowance(
 
     owner.update_allowance(storage, spender, |allowance| {
         if allowance.is_expired_at(&env.block) {
-            return Err(insufficient_allowance(0, amount));
+            return Err(insufficient_allowance(Uint128::zero(), amount));
         }
-        if let Some(new_allowance) = allowance.amount.checked_sub(amount) {
+
+        if let Ok(new_allowance) = allowance.amount.checked_sub(amount) {
             allowance.amount = new_allowance;
         } else {
             return Err(insufficient_allowance(allowance.amount, amount));
         }
+
+        Ok(())
     })
 }
 
 #[allow(clippy::too_many_arguments)]
 pub fn send_from_impl(
-    deps: DepsMut,
+    mut deps: DepsMut,
     env: &Env,
     spender_canon: &CanonicalAddr,
     owner: &Account,
-    owner_addr: Addr,
     recipient: &Account,
-    recipient_addr: Addr,
     amount: Uint128,
     memo: Option<String>,
     msg: Option<Binary>,
 ) -> StdResult<Vec<CosmosMsg>> {
     transfer_from_impl(
-        deps,
+        deps.branch(),
         &env,
         spender_canon,
         owner,
@@ -1434,19 +1404,18 @@ pub fn send_from_impl(
     )?;
 
     add_receiver_api_callback(
-        deps.storage,
+        deps.as_ref(),
         recipient,
-        recipient_addr,
         msg,
-        env.message.sender.clone(),
-        owner_addr,
+        deps.api.addr_humanize(spender_canon)?,
+        deps.api.addr_humanize(owner.addr())?,
         amount,
         memo,
     )
 }
 
-pub fn mint_impl<S: Storage>(
-    storage: &mut S,
+pub fn mint_impl(
+    storage: &mut dyn Storage,
     minter: &CanonicalAddr,
     recipient: &Account,
     amount: Uint128,
@@ -1454,12 +1423,12 @@ pub fn mint_impl<S: Storage>(
     memo: Option<String>,
     block: &BlockInfo,
 ) -> StdResult<()> {
-    recipient.add_balance(storage, amount.u128())?;
+    recipient.add_balance(storage, amount)?;
 
     store_mint(storage, minter, recipient.addr(), amount, denom, memo, block)
 }
 
-pub fn check_if_admin(deps: DepsMut, account: &Addr) -> StdResult<()> {
+pub fn check_if_admin(deps: Deps, account: &Addr) -> StdResult<()> {
     let admin = get_admin(deps)?;
 
     if admin != *account {
@@ -1565,13 +1534,14 @@ impl fmt::Display for SymbolValidation {
 
 fn authenticated_queries(
     deps: Deps,
+    env: Env,
     msg: QueryMsg,
     snip20: impl Snip20
 ) -> StdResult<Binary> {
     let (addresses, key) = msg.get_validation_params();
 
-    for address in validate_addresses(deps.api, addresses)? {
-        let account = Account::of(deps.api, &address)?;
+    for address in addresses {
+        let account = Account::of(deps.api.addr_canonicalize(address)?);
         let expected_key = account.get_viewing_key(deps.storage)?;
 
         match expected_key {
@@ -1579,22 +1549,22 @@ fn authenticated_queries(
                 if key.check_viewing_key(expected_key.as_slice()) {
                     return match msg {
                         // Base
-                        QueryMsg::Balance { .. } => snip20.query_balance(deps, account),
+                        QueryMsg::Balance { .. } => snip20.query_balance(deps, env, account),
                         QueryMsg::TransferHistory {
                             page,
                             page_size,
                             ..
-                        } => snip20.query_transfers(deps, account, page.unwrap_or(0), page_size),
+                        } => snip20.query_transfers(deps, env, account, page.unwrap_or(0), page_size),
                         QueryMsg::TransactionHistory {
                             page,
                             page_size,
                             ..
-                        } => snip20.query_transactions(deps, account, page.unwrap_or(0), page_size),
+                        } => snip20.query_transactions(deps, env, account, page.unwrap_or(0), page_size),
                         QueryMsg::Allowance { owner, spender, .. } => {
-                            let owner = deps.api.addr_validate(owner)?;
-                            let spender = deps.api.addr_validate(spender)?;
+                            let owner = deps.api.addr_canonicalize(&owner)?;
+                            let spender = deps.api.addr_canonicalize(&spender)?;
 
-                            snip20.query_allowance(deps, owner, spender)
+                            snip20.query_allowance(deps, env, owner, spender)
                         },
                         _ => panic!("This query type does not require authentication"),
                     };

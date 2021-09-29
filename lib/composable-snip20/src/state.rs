@@ -1,10 +1,10 @@
 use fadroma::{
     scrt::{
-        Addr, CanonicalAddr, StdError, StdResult, Api,
-        Uint128, Deps, DepsMut, BlockInfo, Storage
+        Addr, CanonicalAddr, StdError, StdResult,
+        Uint128, Deps, BlockInfo, Storage
     },
     scrt_storage::{save, load, ns_save, ns_load},
-    scrt_addr::{Canonize, Humanize},
+    scrt_addr::Humanize,
     scrt_vk::ViewingKey
 };
 use fadroma::schemars;
@@ -43,7 +43,7 @@ pub struct Allowance {
 impl Allowance {
     pub fn is_expired_at(&self, block: &BlockInfo) -> bool {
         match self.expiration {
-            Some(time) => block.time >= time,
+            Some(time) => block.time.seconds() >= time,
             None => false, // allowance has no expiration
         }
     }
@@ -58,16 +58,13 @@ pub fn get_admin(deps: Deps) -> StdResult<Addr> {
     }
 }
 
-pub fn set_admin(deps: DepsMut, admin: &Addr) -> StdResult<()> {
-    let admin = deps.api.addr_canonicalize(admin)?;
-
-    save(deps.storage, KEY_ADMIN)
+pub fn set_admin(storage: &mut dyn Storage, admin: &CanonicalAddr) -> StdResult<()> {
+    save(storage, KEY_ADMIN, admin)
 }
 
 pub struct Config;
 
 impl Config {
-    const PREFIX_CONFIG: &'static [u8] = b"YywNU6aiTV";
     const KEY_CONSTANTS: &'static [u8] = b"N3QP0mNoPG";
     const KEY_TOTAL_SUPPLY: &'static [u8] = b"bx98UUOWYa";
     const KEY_CONTRACT_STATUS: &'static [u8] = b"EhYS9rzai1";
@@ -84,39 +81,39 @@ impl Config {
         )
     }
 
-    pub fn get_total_supply(storage: &dyn Storage) -> StdResult<u128> {
+    pub fn get_total_supply(storage: &dyn Storage) -> StdResult<Uint128> {
         let result: Uint128 = load(storage, Self::KEY_TOTAL_SUPPLY)?.unwrap_or_default();
 
-        Ok(result.u128())
+        Ok(result)
     }
 
-    pub fn increase_total_supply(storage: &mut dyn Storage, amount: u128) -> StdResult<()> {
-        let mut total_supply = Self::get_total_supply(storage)?;
+    pub fn increase_total_supply(storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
+        let total_supply = Self::get_total_supply(storage)?;
 
-        if let Some(new_total) = total_supply.checked_add(amount) {
+        if let Ok(new_total) = total_supply.checked_add(amount) {
             Self::set_total_supply(storage, new_total)
         } else {
             Err(StdError::generic_err(
                 "This operation would overflow the currency's total supply.",
-            ));
+            ))
         }
     }
 
-    pub fn decrease_total_supply(storage: &mut dyn Storage, amount: u128) -> StdResult<()> {
-        let mut total_supply = Self::get_total_supply(storage)?;
+    pub fn decrease_total_supply(storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
+        let total_supply = Self::get_total_supply(storage)?;
 
-        if let Some(new_total) = total_supply.checked_sub(amount) {
+        if let Ok(new_total) = total_supply.checked_sub(amount) {
             Self::set_total_supply(storage, new_total)
         } else {
             Err(StdError::generic_err(
                 "This operation would underflow the currency's total supply.",
-            ));
+            ))
         }
     }
 
     #[inline]
-    pub fn set_total_supply(storage: &mut dyn Storage, supply: u128) -> StdResult<()> {
-        save(storage, Self::KEY_TOTAL_SUPPLY, &Uint128::new(supply))
+    pub fn set_total_supply(storage: &mut dyn Storage, supply: Uint128) -> StdResult<()> {
+        save(storage, Self::KEY_TOTAL_SUPPLY, &supply)
     }
 
     pub fn get_contract_status(storage: &dyn Storage) -> StdResult<ContractStatusLevel> {
@@ -126,7 +123,7 @@ impl Config {
     }
 
     pub fn set_contract_status(storage: &mut dyn Storage, status: ContractStatusLevel) -> StdResult<()> {
-        save(storage, Self::KEY_CONTRACT_STATUS, status)
+        save(storage, Self::KEY_CONTRACT_STATUS, &status)
     }
 
     pub fn get_minters(deps: Deps) -> StdResult<Vec<Addr>> {
@@ -136,41 +133,37 @@ impl Config {
         minters.humanize(deps.api)
     }
 
-    pub fn set_minters(deps: DepsMut, minters: Vec<Addr>) -> StdResult<()> {
-        let minters = minters.canonize(deps.api)?;
-
-        save(deps.storage, Self::KEY_MINTERS, &minters)
+    pub fn set_minters(storage: &mut dyn Storage, minters: Vec<CanonicalAddr>) -> StdResult<()> {
+        save(storage, Self::KEY_MINTERS, &minters)
     }
 
-    pub fn add_minters(deps: DepsMut, new_minters: Vec<Addr>) -> StdResult<()> {
-        let minters: Vec<CanonicalAddr> = 
-            load(deps.storage, Self::KEY_MINTERS)?.unwrap_or(vec![]);
+    pub fn add_minters(storage: &mut dyn Storage, new_minters: Vec<CanonicalAddr>) -> StdResult<()> {
+        let mut minters: Vec<CanonicalAddr> = 
+            load(storage, Self::KEY_MINTERS)?.unwrap_or(vec![]);
 
-        let new_minters = new_minters.canonize(deps.api);
         minters.extend(new_minters);
 
-        save(deps.storage, Self::KEY_MINTERS, &minters)
+        save(storage, Self::KEY_MINTERS, &minters)
     }
 
-    pub fn remove_minters(deps: DepsMut, to_remove: Vec<Addr>) -> StdResult<()> {
-        let minters: Vec<CanonicalAddr> = 
-            load(deps.storage, Self::KEY_MINTERS)?.unwrap_or(vec![]);
-
-        let to_remove = to_remove.canonize(deps.api);
+    pub fn remove_minters(storage: &mut dyn Storage, to_remove: Vec<CanonicalAddr>) -> StdResult<()> {
+        let mut minters: Vec<CanonicalAddr> = 
+            load(storage, Self::KEY_MINTERS)?.unwrap_or(vec![]);
 
         for minter in to_remove {
-            minters.retain(|x| x != &minter);
+            minters.retain(|x| *x != minter);
         }
 
-        save(deps.storage, Self::KEY_MINTERS, &minters)
+        save(storage, Self::KEY_MINTERS, &minters)
     }
 
-    pub fn load_tx_count(storage: &dyn Storage) -> StdResult<u64> {
-        load(storage, Self::KEY_TX_COUNT)?.unwrap_or(0)
-    }
+    pub fn increment_tx_count(storage: &mut dyn Storage) -> StdResult<u64> {
+        let current: u64 = load(storage, Self::KEY_TX_COUNT)?.unwrap_or(0);
 
-    pub fn set_tx_count(storage: &mut dyn Storage, count: u64) -> StdResult<()> {
-        save(storage, Self::KEY_TX_COUNT, count)
+        let new = current + 1;
+        save(storage, Self::KEY_TX_COUNT, &new)?;
+
+        Ok(new)
     }
 }
 
@@ -184,47 +177,47 @@ impl Account {
     const NS_RECEIVERS: &'static [u8] = b"V1SJqXtGju";
     const PREFIX_ALLOWANCES: &'static [u8] = b"eXDXajOxRG";
 
-    pub fn of(api: &dyn Api, addr: &Addr) -> StdResult<Self> {
-        Ok(Self {
-            addr: addr.canonize(api)?
-        })
+    pub fn of(addr: CanonicalAddr) -> Self {
+        Self {
+            addr
+        }
     }
 
     pub fn addr(&self) -> &CanonicalAddr {
         &self.addr
     }
     
-    pub fn get_balance(&self, storage: &dyn Storage) -> StdResult<u128> {
+    pub fn get_balance(&self, storage: &dyn Storage) -> StdResult<Uint128> {
         let result: Option<Uint128> = ns_load(storage, Self::NS_BALANCES, self.addr.as_slice())?;
 
-        match result {
-            Some(amount) => amount.u128(),
-            None => 0
-        }
+        Ok(match result {
+            Some(amount) => amount,
+            None => Uint128::zero()
+        })
     }
 
-    pub fn add_balance(&self, storage: &mut dyn Storage, amount: u128) -> StdResult<()> {
+    pub fn add_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
         let account_balance = self.get_balance(storage)?;
 
-        if let Some(new_balance) = account_balance.checked_add(amount) {
-            self.set_balance(new_balance)
+        if let Ok(new_balance) = account_balance.checked_add(amount) {
+            self.set_balance(storage, new_balance)
         } else {
             Err(StdError::generic_err(
                 "This deposit would overflow your balance",
-            ));
+            ))
         }
     }
 
-    pub fn subtract_balance(&self, storage: &mut dyn Storage, amount: u128) -> StdResult<()> {
+    pub fn subtract_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
         let account_balance = self.get_balance(storage)?;
 
-        if let Some(new_balance) = account_balance.checked_sub(amount) {
-            self.set_balance(new_balance)
+        if let Ok(new_balance) = account_balance.checked_sub(amount) {
+            self.set_balance(storage, new_balance)
         } else {
             Err(StdError::generic_err(format!(
                 "insufficient funds: balance={}, required={}",
                 account_balance, amount
-            )));
+            )))
         }
     }
 
@@ -239,20 +232,21 @@ impl Account {
         let ns = self.create_allowance_ns();
         
         let mut allowance =
-            ns_load(storage, ns, spender.as_slice())?
+            ns_load(storage, &ns, spender.as_slice())?
             .unwrap_or_default();
 
         func(&mut allowance)?;
-        ns_save(storage, ns, spender.as_slice(), &allowance)?;
+        ns_save(storage, &ns, spender.as_slice(), &allowance)?;
 
         Ok(allowance)
     }
 
-    pub fn get_allowance(&self, deps: Deps, spender: &Addr) -> StdResult<Allowance> {
-        let spender = spender.canonize(deps.api)?;
+    pub fn get_allowance(&self, storage: &dyn Storage, spender: &CanonicalAddr) -> StdResult<Allowance> {
         let ns = self.create_allowance_ns();
 
-        ns_load(deps.storage, ns, spender.as_slice())?.unwrap_or_default()
+        let result: Option<Allowance> = ns_load(storage, &ns, spender.as_slice())?;
+
+        Ok(result.unwrap_or_default())
     }
 
     pub fn get_viewing_key(&self, storage: &dyn Storage) -> StdResult<Option<Vec<u8>>> {
@@ -260,30 +254,23 @@ impl Account {
     }
 
     pub fn set_viewing_key(&self, storage: &mut dyn Storage, key: &ViewingKey) -> StdResult<()> {
-        ns_save(storage, Self::NS_VIEWING_KEY, self.addr.as_slice(), key.to_hashed())
+        ns_save(storage, Self::NS_VIEWING_KEY, self.addr.as_slice(), &key.to_hashed())
     }
 
     pub fn get_receiver_hash(&self, storage: &dyn Storage) -> StdResult<Option<String>> {
-        ns_load(storage, Self::KEY_RECEIVERS, self.addr.as_slice())?
-            .map(|data| {
-                String::from_utf8(data).map_err(|_err|
-                    StdError::invalid_utf8("Stored code hash was not a valid String")
-                )
-            })
+        ns_load(storage, Self::NS_RECEIVERS, self.addr.as_slice())
     }
 
-    pub fn set_receiver_hash(&self, storage: &mut dyn Storage, code_hash: &String) -> StdResult<()> {
-        let bytes = code_hash.as_bytes();
-
-        ns_save(storage, Self::KEY_RECEIVERS, self.addr.as_slice(), bytes)
+    pub fn set_receiver_hash(&self, storage: &mut dyn Storage, code_hash: String) -> StdResult<()> {
+        ns_save(storage, Self::NS_RECEIVERS, self.addr.as_slice(), &code_hash)
     }
 
     #[inline]
-    fn set_balance(&self, storage: &mut dyn Storage, amount: u128) -> StdResult<()> {
-        ns_save(storage, Self::NS_BALANCES, self.addr.as_slice(), Uint128::new(amount))
+    fn set_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
+        ns_save(storage, Self::NS_BALANCES, self.addr.as_slice(), &amount)
     }
 
-    fn create_allowance_ns(&self) -> &[u8] {
+    fn create_allowance_ns(&self) -> Vec<u8> {
         [ Self::PREFIX_ALLOWANCES, self.addr.as_slice() ].concat()
     }
 }
