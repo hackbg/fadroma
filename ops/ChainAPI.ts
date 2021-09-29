@@ -99,10 +99,10 @@ export class ChainInstancesDir extends Directory {
     if (existsSync(path)) {
       const name = basename(readlinkSync(path))
       const contracts = {}
-      for (const contract of readdirSync(path)) {
-        contracts[basename(contract, '.json')] = JSON.parse(
-          readFileSync(resolve(path, contract), 'utf8')
-        )
+      for (const contract of readdirSync(path).sort()) {
+        const [name, version] = basename(contract, '.json').split('@')
+        const location = resolve(path, contract)
+        contracts[name] = JSON.parse(readFileSync(location, 'utf8'))
       }
       return {
         name,
