@@ -62,6 +62,12 @@ impl Canonize<CanonicalAddr> for Addr {
     }
 }
 
+impl Canonize<CanonicalAddr> for String {
+    fn canonize (&self, api: &dyn Api) -> StdResult<CanonicalAddr> {
+        api.addr_canonicalize(self.as_str())
+    }
+}
+
 impl<T: Canonize<U>, U> Canonize<Vec<U>> for Vec<T> {
     fn canonize (&self, api: &dyn Api) -> StdResult<Vec<U>> {
         self.iter().map(|x|x.canonize(api)).collect()
