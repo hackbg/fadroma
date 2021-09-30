@@ -1,12 +1,13 @@
 use crate::{
     scrt::{
         Addr, StdResult, Response, MessageInfo,
-        DepsMut, Deps, StdError, CanonicalAddr
+        Deps, StdError, CanonicalAddr, Storage
     },
-    scrt_addr::validate_addresses,
-    scrt_storage::*,
-    derive_contract::{contract, init, handle, query}
+    derive_contract::{contract, init, handle, query},
+    scrt_addr::Canonize,
+    scrt_storage::{load, save}
 };
+
 use schemars;
 use serde;
 
@@ -16,13 +17,15 @@ const ADMINS_KEY: &[u8] = b"i801onL3kf";
 pub trait MultiAdmin {
     #[init]
     fn new(admins: Option<Vec<String>>) -> StdResult<Response> {
-        let admins: Vec<Addr> = if let Some(addresses) = admins {
-            validate_addresses(deps.api, addresses)?
+        let admins = if let Some(addresses) = admins {
+            addresses.canonize(deps.api)?
         } else {
-            vec![ info.sender ]
+            let sender = deps.api.addr_canonicalize(info.sender.as_str())?;
+
+            vec![ sender ]
         };
 
-        save_admins(deps, &admins)?;
+        add_admins(deps.storage, admins)?;
 
         Ok(Response::default())
     }
@@ -31,30 +34,25 @@ pub trait MultiAdmin {
     fn add_admins(addresses: Vec<String>) -> StdResult<Response> {
         assert_admin(deps.as_ref(), &info)?;
 
-        let addresses = validate_addresses(deps.api, addresses)?;
-        save_admins(deps, &addresses)?;
+        let addresses = addresses.canonize(deps.api)?;
+        add_admins(deps.storage, addresses)?;
     
         Ok(Response::default())
     }
 
     #[query("addresses")]
     fn admins() -> StdResult<Vec<Addr>> {
-        let addresses = load_admins(deps)?;
-
-        Ok(addresses)
+        load_admins(deps)
     }
 }
 
-pub fn save_admins(deps: DepsMut, addresses: &Vec<Addr>) -> StdResult<()> {
+pub fn add_admins(storage: &mut dyn Storage, addresses: Vec<CanonicalAddr>) -> StdResult<()> {
     let mut admins: Vec<CanonicalAddr> = 
-        load(deps.storage, ADMINS_KEY)?.unwrap_or(vec![]);
-    
-    for address in addresses {
-        let canonical = deps.api.addr_canonicalize(address.as_str())?;
-        admins.push(canonical);
-    }
+        load(storage, ADMINS_KEY)?.unwrap_or(vec![]);
 
-    save(deps.storage, ADMINS_KEY, &admins)
+    admins.extend(addresses);
+
+    save(storage, ADMINS_KEY, &admins)
 }
 
 pub fn load_admins(deps: Deps) -> StdResult<Vec<Addr>> {
@@ -82,15 +80,17 @@ pub fn assert_admin(deps: Deps, info: &MessageInfo) -> StdResult<()> {
 
 #[cfg(test)]
 mod tests {
+    use cosmwasm_std::Api;
+
     use super::*;
-    use crate::scrt::{mock_dependencies, mock_env, mock_info};
+    use crate::scrt::{mock_dependencies, mock_env, mock_info, DepsMut};
 
     #[test]
     fn test_handle() {
         const ADMIN: &str = "goshu";
 
         fn run_msg(
-            deps: &mut DepsMut,
+            mut deps: DepsMut,
             addresses: Vec<String>,
             assert_len: usize
         ) {
@@ -117,8 +117,8 @@ mod tests {
 
         let ref mut deps = mock_dependencies(&[]);
 
-        let admin = Addr::unchecked("goshu");
-        save_admins(deps.as_mut(), &vec![ admin.clone() ]).unwrap();
+        let admin = deps.api.addr_canonicalize(ADMIN).unwrap();
+        add_admins(deps.as_mut().storage, vec![ admin ]).unwrap();
 
         let msg = HandleMsg::AddAdmins {
             addresses: vec![ String::from("will fail") ]
@@ -140,10 +140,10 @@ mod tests {
             _ => panic!("Expected \"StdError::Unauthorized\"")
         };
 
-        run_msg(&mut deps.as_mut(), vec![], 1);
+        run_msg(deps.as_mut(), vec![], 1);
 
         run_msg(
-            &mut deps.as_mut(),
+            deps.as_mut(),
             vec![
                 "archer".into(),
                 "lana".into()
@@ -152,7 +152,7 @@ mod tests {
         );
 
         run_msg(
-            &mut deps.as_mut(),
+            deps.as_mut(),
             vec![
                 "pam".into(),
             ],
@@ -162,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_query() {
-        let ref mut deps = mock_dependencies(&[]);
+        let mut deps = mock_dependencies(&[]);
 
         let result = query(deps.as_ref(), mock_env(), QueryMsg::Admins {}, DefaultImpl).unwrap();
         
@@ -177,7 +177,9 @@ mod tests {
             Addr::unchecked("lana")
         ];
 
-        save_admins(deps.as_mut(), &admins).unwrap();
+        let admins_cannon = admins.canonize(deps.as_ref().api).unwrap();
+
+        add_admins(deps.as_mut().storage, admins_cannon).unwrap();
 
         let result = query(deps.as_ref(), mock_env(), QueryMsg::Admins {}, DefaultImpl).unwrap();
         match result {

@@ -1,7 +1,7 @@
 use crate::{
     scrt::{
         Addr, StdResult, Response, MessageInfo,
-        Deps, DepsMut, StdError, CanonicalAddr
+        Deps, Storage, StdError, CanonicalAddr
     },
     derive_contract::{contract, init, handle, query}
 };
@@ -15,12 +15,12 @@ pub trait Admin {
     #[init]
     fn new(admin: Option<String>) -> StdResult<Response> {
         let admin = if let Some(addr) = admin {
-            deps.api.addr_validate(addr.as_str())?
+            deps.api.addr_canonicalize(&addr)?
         } else {
-            info.sender
+            deps.api.addr_canonicalize(info.sender.as_str())?
         };
 
-        save_admin(deps, &admin)?;
+        save_admin(deps.storage, &admin);
 
         Ok(Response::default())
     }
@@ -29,44 +29,42 @@ pub trait Admin {
     fn change_admin(address: String) -> StdResult<Response> {
         assert_admin(deps.as_ref(), &info)?;
 
-        let address = deps.api.addr_validate(address.as_str())?;
-        save_admin(deps, &address)?;
+        let address = deps.api.addr_canonicalize(&address)?;
+        save_admin(deps.storage, &address);
     
         Ok(Response::default())
     }
 
     #[query("address")]
-    fn admin() -> StdResult<Addr> {
-        let address = load_admin(deps)?;
-
-        Ok(address)
+    fn admin() -> StdResult<Option<Addr>> {
+        load_admin(deps)
     }
 }
 
-pub fn load_admin(deps: Deps) -> StdResult<Addr> {
+pub fn load_admin(deps: Deps) -> StdResult<Option<Addr>> {
     let result = deps.storage.get(ADMIN_KEY);
 
-    if let Some(bytes) = result {
-        let admin = CanonicalAddr::from(bytes);
+    match result {
+        Some(bytes) => {
+            let admin = CanonicalAddr::from(bytes);
 
-        deps.api.addr_humanize(&admin)
-    } else {
-        Ok(Addr::unchecked(""))
+            Ok(Some(deps.api.addr_humanize(&admin)?))
+        },
+        None => Ok(None)
     }
 }
 
-pub fn save_admin(deps: DepsMut, address: &Addr) -> StdResult<()> {
-    let admin = deps.api.addr_canonicalize(address.as_str())?;
-    deps.storage.set(ADMIN_KEY, &admin.as_slice());
-
-    Ok(())
+pub fn save_admin(storage: &mut dyn Storage, address: &CanonicalAddr) {
+    storage.set(ADMIN_KEY, address.as_slice())
 }
 
 pub fn assert_admin(deps: Deps, info: &MessageInfo) -> StdResult<()> {
     let admin = load_admin(deps)?;
 
-    if admin == info.sender {
-        return Ok(());
+    if let Some(addr) = admin {
+        if addr == info.sender {
+            return Ok(());
+        }
     }
 
     Err(StdError::generic_err("Unauthorized"))
@@ -77,12 +75,21 @@ mod tests {
     use super::*;
     use crate::scrt::{mock_dependencies, mock_env, mock_info};
 
+    const ADMIN: &str = "admin";
+
     #[test]
     fn test_handle() {
         let ref mut deps = mock_dependencies(&[]);
 
-        let admin = Addr::unchecked("admin");
-        save_admin(deps.as_mut(), &admin).unwrap();
+        init(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(ADMIN, &[]),
+            InitMsg {
+                admin: None
+            },
+            DefaultImpl
+        ).unwrap();
 
         let msg = HandleMsg::ChangeAdmin { 
             address: String::from("will fail")
@@ -112,12 +119,12 @@ mod tests {
         handle(
             deps.as_mut(),
             mock_env(),
-            mock_info(admin.as_str(), &[]),
+            mock_info(ADMIN, &[]),
             msg,
             DefaultImpl
         ).unwrap();
 
-        assert!(load_admin(deps.as_ref()).unwrap() == new_admin);
+        assert!(load_admin(deps.as_ref()).unwrap().unwrap() == new_admin);
     }
 
     #[test]
@@ -128,18 +135,27 @@ mod tests {
 
         match result {
             QueryResponse::Admin { address } => {
-                assert!(address == Addr::unchecked(""));
+                assert!(address == None);
             }
         }
 
-        let admin = Addr::unchecked("admin");
-        save_admin(deps.as_mut(), &admin).unwrap();
+        let custom_admin = "custom_admin";
+
+        init(
+            deps.as_mut(),
+            mock_env(),
+            mock_info(ADMIN, &[]),
+            InitMsg {
+                admin: Some(custom_admin.into())
+            },
+            DefaultImpl
+        ).unwrap();
 
         let result = query(deps.as_ref(), mock_env(), QueryMsg::Admin {}, DefaultImpl).unwrap();
 
         match result {
             QueryResponse::Admin { address } => {
-                assert!(address == admin);
+                assert!(address.unwrap() == custom_admin);
             }
         }
     }
