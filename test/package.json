@@ -8,6 +8,7 @@
     "@fadroma/scrt": "workspace:*",
     "@fadroma/scrt-1.0": "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
+    "@fadroma/tools": "workspace:*",
     "@hackbg/ganesha": "workspace:*",
     "@iov/encoding": "^2.1.0",
     "@types/express": "^4.17.13",
@@ -19,7 +20,7 @@
     "tap": "^15.0.9"
   },
   "scripts": {
-    "test": "tap --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs test_agent.ts",
+    "test": "tap --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs test_chain.ts",
     "watch": "tap -w --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs test_agent.ts"
   }
 }

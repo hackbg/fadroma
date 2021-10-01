@@ -1,3 +1,4 @@
+import * as net from 'net'
 import { Identity, Agent, Chain } from '@fadroma/ops'
 import { randomHex } from '@fadroma/tools'
 
@@ -253,4 +254,48 @@ export class MockAgent extends Agent {
   async instantiate () {}
   async query () {}
   async execute () {}
+}
+
+export class MockDocker {
+
+  getImage () {
+    return {
+      async inspect () {}
+    }
+  }
+
+  pull (image: any, callback: Function) {
+    callback()
+  }
+
+  modem = {
+    followProgress (stream: any, callback: Function, progress: Function) {
+      callback()
+    }
+  }
+
+  getContainer (id: any) {
+    return {
+      id: 'mockGottenContainer',
+      async start () {},
+    }
+  }
+
+  createContainer (options: any) {
+    console.trace('MockDocker.createContainer', arguments)
+    return {
+      id: 'mockCreatedContainer',
+      logs (_, callback) {
+        const port = Object.keys(options.ExposedPorts)[0].split('/')[0]
+        const server = net.createServer()
+        server.on('connection', () => server.close())
+        server.listen(port, 'localhost', () => {
+          callback(null, { on (_, callback) {
+            callback('GENESIS COMPLETE')
+          } })
+        })
+      }
+    }
+  }
+
 }
