@@ -1,5 +1,5 @@
 import type {
-  ChainNode, ChainState, ChainOptions, ChainConnectOptions,
+  ChainNode, ChainState, ChainConnectOptions,
   Identity, Agent
 } from '@fadroma/ops'
 import type { Commands } from '@fadroma/tools'
@@ -17,12 +17,9 @@ type AgentConstructor = new (options: Identity) => Agent & {
   create: () => Promise<Agent>
 }
 
-export interface ScrtChainOptions extends ChainOptions {
-  Agent?: AgentConstructor
-}
-
-export interface ScrtChainState extends ChainState {
-  Agent?: AgentConstructor
+export type ScrtChainState = ChainState & {
+  Agent?:      AgentConstructor
+  identities?: Array<string>
 }
 
 export const on = {
@@ -181,8 +178,7 @@ export class Scrt extends Chain {
     // connect() gets them from genesis accounts
     return new Scrt({
       isLocalnet: true,
-      ...options,
-      node:    options.node    || new DockerizedScrtNode_1_0(options),
+      node:    options.node    || new DockerizedScrtNode_1_0({ identities: options.identities }),
       chainId: options.chainId || 'enigma-pub-testnet-3',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_0
@@ -207,7 +203,7 @@ export class Scrt extends Chain {
   node?:    ChainNode
 
   Agent: AgentConstructor
-  defaultIdentity: { name?: string, address?: string, mnemonic?: string }
+  defaultIdentity: null | string | { name?: string, address?: string, mnemonic?: string } | Agent
 
   stateRoot:  Directory
   identities: JSONDirectory
@@ -235,7 +231,8 @@ export class Scrt extends Chain {
     // handle to localnet node if this is localnet
     // default agent credentials
     if (options.Agent) this.Agent = options.Agent
-    this.defaultIdentity = options.defaultIdentity }
+    this.defaultIdentity = options.defaultIdentity
+  }
 
   #ready: Promise<any>
   get ready () {
@@ -258,14 +255,20 @@ export class Scrt extends Chain {
       this.apiURL.port = String(node.port)
       console.info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
       // get the default account for the node
-      this.defaultIdentity = this.node.genesisAccount('ADMIN') }
-    // default credentials will be used as-is unless using localnet
-    const { mnemonic, address } = this.defaultIdentity
-        , { protocol, hostname, port } = this.apiURL
+      if (typeof this.defaultIdentity === 'string') {
+        this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
+      }
+    }
+    const { protocol, hostname, port } = this.apiURL
     console.log(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
-    this.defaultIdentity = await this.getAgent({ name: "ADMIN", mnemonic, address })
-    console.info(`🟢 connected, operating as ${address}`)
-    return this as Chain }
+    if (this.defaultIdentity) {
+      // default credentials will be used as-is unless using localnet
+      const { mnemonic, address } = this.defaultIdentity
+      this.defaultIdentity = await this.getAgent({ name: "ADMIN", mnemonic, address })
+      console.info(`🟢 operating as ${address}`)
+    }
+    return this as Chain
+  }
 
   /**The API URL that this instance talks to.
    * @type {string} */
@@ -273,7 +276,8 @@ export class Scrt extends Chain {
     return this.apiURL.toString() }
 
   /** create agent operating on the current instance's endpoint*/
-  async getAgent (identity: Identity = this.defaultIdentity): Promise<Agent> {
+  async getAgent (identity: string|Identity = this.defaultIdentity): Promise<Agent> {
+    if (typeof identity === 'string') identity = this.node.genesisAccount(identity)
     if (identity.mnemonic || identity.keyPair) {
       console.info(`Using a ${bold('SecretJS')}-based agent.`)
       return await this.Agent.create({ ...identity, chain: this as Chain }) }

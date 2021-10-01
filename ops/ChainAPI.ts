@@ -16,7 +16,8 @@ export interface ChainOptions {
 }
 
 export interface ChainConnectOptions extends ChainOptions {
-  apiKey?: string
+  apiKey?:     string
+  identities?: Array<string>
 }
 
 export interface ChainState extends ChainOptions {

@@ -169,7 +169,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
 
   constructor (options: ChainNodeOptions = {}) {
     super()
-    if (options.docker)     this.docker  = options.docker
+    if (options.docker) this.docker = options.docker
     if (options.identities) this.identitiesToCreate = options.identities }
 
   /** Load stored data and assign to self. */

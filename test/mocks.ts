@@ -282,7 +282,6 @@ export class MockDocker {
   }
 
   createContainer (options: any) {
-    console.trace('MockDocker.createContainer', arguments)
     return {
       id: 'mockCreatedContainer',
       logs (_, callback) {

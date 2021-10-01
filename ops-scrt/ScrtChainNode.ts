@@ -43,8 +43,9 @@ export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
   readonly image:   string = "enigmampc/secret-network-sw-dev"
   constructor (options: ChainNodeOptions = {}) {
     super()
-    if (options.image)   this.image   = options.image
+    if (options.image) this.image = options.image
     if (options.chainId) this.chainId = options.chainId
+    if (options.identities) this.identitiesToCreate = options.identities
     this.setDirectories(options.stateRoot) } }
 
 export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
@@ -52,8 +53,9 @@ export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
   readonly image:   string = "enigmampc/secret-network-node:v1.2.0-beta1-2-gbe1ca55e-testnet"
   constructor (options: ChainNodeOptions = {}) {
     super()
-    if (options.image)   this.image   = options.image
+    if (options.image) this.image = options.image
     if (options.chainId) this.chainId = options.chainId
+    if (options.identities) this.identitiesToCreate = options.identities
     this.setDirectories(options.stateRoot) } }
 
 export function resetLocalnet ({ chain }: any) {
