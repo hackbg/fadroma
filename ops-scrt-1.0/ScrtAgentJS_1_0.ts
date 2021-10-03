@@ -13,7 +13,7 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
       console.info('broadcast mode is block, bypassing patch')
       return super.postTx(tx) }
     // try posting the transaction
-    let submitRetries = 10
+    let submitRetries = 20
     while (submitRetries--) {
       // get current block number
       const sent = (await this.getBlock()).header.height
@@ -28,7 +28,7 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
         if (now > sent) break }
       await new Promise(ok=>setTimeout(ok, 1000))
       // once the block has incremented, get the full transaction result
-      let resultRetries = 10
+      let resultRetries = 20
       while (resultRetries--) {
         try {
           const result = await this.restClient.get(`/txs/${id}`)
@@ -45,7 +45,33 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
           await new Promise(ok=>setTimeout(ok, 2000))
           continue } }
       console.warn(`failed to submit tx ${id}, ${submitRetries} retries left...`)
-      await new Promise(ok=>setTimeout(ok, 1000)) } } }
+      await new Promise(ok=>setTimeout(ok, 1000)) } }
+
+  async queryContractSmart (
+    contractAddress:   string,
+    query:             object,
+    addedParams?:      object,
+    contractCodeHash?: string
+  ): Promise<any> {
+    let retries = 20
+    while (retries--) {
+      try {
+        return super.queryContractSmart(
+          contractAddress,
+          query,
+          addedParams,
+          contractCodeHash) }
+      catch (e) {
+        if (
+          e.message.includes('socket hang up') ||
+          e.code === 'ECONNRESET'
+        ) {
+          await new Promise(ok=>setTimeout(ok, 2000))
+          continue }
+        else {
+          throw e } } } }
+
+}
 
 export class ScrtAgentJS_1_0 extends ScrtAgentJS {
   static create = (options: Identity) => ScrtAgentJS.createSub(ScrtAgentJS_1_0, options)
