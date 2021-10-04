@@ -23,7 +23,7 @@ export type ScrtChainState = ChainState & {
 }
 
 export const on = {
-  'localnet-1.0' (context: any = {}) {http://bootstrap.supernova.enigma.co/auth/accounts/secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy
+  'localnet-1.0' (context: any = {}) {
     console.info(`Running on ${bold('localnet-1.0')}:`)
     context.chain = Scrt.localnet_1_0() },
   'localnet-1.2' (context: any = {}) {
@@ -181,7 +181,8 @@ export class Scrt extends Chain {
       node:    options.node    || new DockerizedScrtNode_1_0({ identities: options.identities }),
       chainId: options.chainId || 'enigma-pub-testnet-3',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
-      Agent:   ScrtAgentJS_1_0
+      Agent:   ScrtAgentJS_1_0,
+      defaultIdentity: 'ADMIN'
     }) }
 
   /** Create an instance that runs a node in a local Docker container
@@ -195,7 +196,8 @@ export class Scrt extends Chain {
       node:    options.node    || new DockerizedScrtNode_1_2(options),
       chainId: options.chainId || 'enigma-pub-testnet-3',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
-      Agent:   ScrtAgentJS_1_0
+      Agent:   ScrtAgentJS_1_0,
+      defaultIdentity: 'ADMIN'
     }) }
 
   chainId?: string
@@ -277,7 +279,8 @@ export class Scrt extends Chain {
 
   /** create agent operating on the current instance's endpoint*/
   async getAgent (identity: string|Identity = this.defaultIdentity): Promise<Agent> {
-    if (typeof identity === 'string') identity = this.node.genesisAccount(identity)
+    if (typeof identity === 'string')
+      identity = this.node.genesisAccount(identity)
     if (identity.mnemonic || identity.keyPair) {
       console.info(`Using a ${bold('SecretJS')}-based agent.`)
       return await this.Agent.create({ ...identity, chain: this as Chain }) }
