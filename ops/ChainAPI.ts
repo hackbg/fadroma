@@ -107,6 +107,8 @@ export class ChainInstancesDir extends Directory {
       }
       return {
         name,
+        path,
+        resolve: (...fragments: Array<string>) => resolve(path, ...fragments),
         contracts,
         getContract (
           Class: (new () => Contract) & {attach: Function},
