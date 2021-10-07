@@ -29,7 +29,7 @@ export type Commands = Array<Command|null>
 
 /** Prettier console. */
 export const Console = (context: string) => {
-  context = relative(cwd(), fileURLToPath(context))
+  try { context = relative(cwd(), fileURLToPath(context)) } catch {}
   const format = (arg:any) => {
     //console.trace(arg)
     return '\n'+((typeof arg === 'object') ? render(arg) : arg) }
@@ -45,8 +45,7 @@ export const Console = (context: string) => {
       if (!process.env.NO_DEBUG) {
         const tag = `[${context}] `
         console.debug(
-          '\n' +
-          colors.yellow(tag),
+          `\n${colors.yellow(tag)}`,
           //[...Array(process.stdout.columns - tag.length)].map(()=>'─').join(''),
           ...args.map(format)) }
       return args[0] } } }
