@@ -9,7 +9,7 @@ import { EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
          encodeSecp256k1Pubkey, pubkeyToAddress,
          makeSignBytes, BroadcastMode } from 'secretjs/src/index.ts'
 
-const console = Console(import.meta.url)
+const console = Console('@fadroma/ops-scrt/ScrtAgentJS')
 
 type AgentConstructor = new(...args:any)=>ScrtAgentJS
 type APIConstructor   = new(...args:any)=>any
@@ -148,34 +148,31 @@ export abstract class ScrtAgentJS extends Agent {
 
   /** Instantiate a contract from a code ID and an init message. */
   async instantiate (codeId: number, label: string, initMsg: any) {
-    console.debug(`⭕${this.address} ${bold('init')} ${label}`, { codeId, label, initMsg })
+    const from = this.address
+    console.debug(`${bold('  INIT >')} ${label}`, { from, codeId, label, initMsg })
     const initTx = await this.API.instantiate(codeId, initMsg, label)
     Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
-    console.debug(`⭕${this.address} ${bold('instantiated')} ${label}`, { codeId, label, initTx })
+    console.debug(`${bold('< INIT  ')} ${label}`, { from, codeId, label, initTx })
     return initTx }
 
   /** Query a contract. */
   query = (
     { label, address }, method = '', args = null
   ) => {
+    const from = this.address
     const msg = (args === null) ? method : { [method]: args }
-    console.debug(`❔ ${this.address} ${bold('query')} ${method}`,
-      { label, address, method, args })
-    const response = this.API.queryContractSmart(
-      address, msg as any)
-    console.debug(`❔ ${this.address} ${bold('response')} ${method}`,
-      { address, method, response })
+    console.debug(`${bold('> QUERY >')} ${method}`, { from, label, address, method, args })
+    const response = this.API.queryContractSmart(address, msg as any)
+    console.debug(`${bold('< QUERY <')} ${method}`, { from, address, method, response })
     return response }
 
   /**Execute a contract transaction. */
   execute = (
-    { label, address }, method='', args = null, memo: any, transferAmount: any, fee: any
+    { label, address }, method='', args = null, memo: any, amount: any, fee: any
   ) => {
+    const from = this.address
     const msg = (args === null) ? method : { [method]: args }
-    console.debug(`❗ ${this.address} ${bold('execute')} ${method}`,
-      { label, address, method, args, memo, transferAmount, fee })
-    const result = this.API.execute(
-      address, msg as any, memo, transferAmount, fee)
-    console.debug(`❗ ${this.address} ${bold('result')} ${method}`,
-      { label, address, method, result })
+    console.debug(`${bold('  TX >')} ${method}`, { from, label, address, method, args, memo, amount, fee })
+    const result = this.API.execute(address, msg as any, memo, amount, fee)
+    console.debug(`${bold('< TX  ')} ${method}`, { from, label, address, method, result })
     return result } }
