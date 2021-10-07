@@ -73,7 +73,7 @@ export class Scrt extends Chain {
     const {
       chainId = 'secret-2',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      apiURL  = new URL(SCRT_API_URL||`https://secret-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+      apiURL  = new URL(SCRT_API_URL||`https://secret-2--lcd--full.datahub.figment.io/apikey/${apiKey}/`),
       defaultIdentity = {
         name:     SCRT_AGENT_NAME,
         address:  SCRT_AGENT_ADDRESS,
@@ -93,7 +93,7 @@ export class Scrt extends Chain {
     const {
       chainId = 'secret-3',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      apiURL  = new URL(SCRT_API_URL||`https://secret-3--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
+      apiURL  = new URL(SCRT_API_URL||`https://secret-3--lcd--full.datahub.figment.io/apikey/${apiKey}/`),
       defaultIdentity = {
         name:     SCRT_AGENT_NAME,
         address:  SCRT_AGENT_ADDRESS,
