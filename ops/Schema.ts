@@ -1,59 +1,6 @@
-import { loadJSON, writeFileSync, basename, dirname } from '@fadroma/tools'
-
-import type { Agent } from './Agent'
-import type { Contract, ContractAPIOptions } from './Contract'
-
-import { ContractCaller } from './ContractCaller'
-import { isAgent } from './Agent'
-
 import Ajv from 'ajv'
 import { compileFromFile } from 'json-schema-to-typescript'
-
-/** A contract with auto-generated methods for invoking
- *  queries and transactions */
-export abstract class ContractAPI extends ContractCaller implements Contract {
-  protected schema: {
-    initMsg?:        any
-    queryMsg?:       any
-    queryResponse?:  any
-    handleMsg?:      any
-    handleResponse?: any
-  } = {}
-
-  #ajv = getAjv()
-
-  private validate: {
-    initMsg?:        Function
-    queryMsg?:       Function
-    queryResponse?:  Function
-    handleMsg?:      Function
-    handleResponse?: Function
-  } = {}
-
-  q:  Record<string, Function>
-  tx: Record<string, Function>
-
-  constructor (options: ContractAPIOptions = {}) {
-    super(options)
-    if (options.schema) this.schema = options.schema
-    this.q  = new SchemaFactory(this, this.schema?.queryMsg).create()
-    this.tx = new SchemaFactory(this, this.schema?.handleMsg).create()
-    for (const msg of ['initMsg', 'queryMsg', 'queryResponse', 'handleMsg', 'handleResponse']) {
-      if (this.schema[msg]) this.validate[msg] = this.#ajv.compile(this.schema[msg]) } } }
-
-//export class ContractWithSchema extends BaseContractAPI {
-  //q:  Record<string, Function>
-  //tx: Record<string, Function>
-  //constructor(agent: Agent, options: any = {}, schema: any) {
-    //if (schema && schema.initMsg) {
-      //const ajv = getAjv();
-      //const validate = ajv.compile(schema.initMsg);
-      //if (!validate(options.initMsg)) {
-        //const err = JSON.stringify(validate.errors, null, 2)
-        //throw new Error(`Schema validation for initMsg returned an error: \n${err}`); } }
-    //super(agent)
-    //this.q  = new SchemaFactory(schema.queryMsg,  this).create()
-    //this.tx = new SchemaFactory(schema.handleMsg, this).create() } }
+import { loadJSON, writeFileSync, basename, dirname } from '@fadroma/tools'
 
 export const loadSchemas = (
   base:    string,
@@ -85,7 +32,8 @@ export class SchemaFactory {
     public schema:   Record<any, any>
   ) {
     if (typeof schema !== "object" || schema === null) {
-      throw new Error(`Schema must be an object, got: ${schema}`); }
+      console.warn(`Schema must be an object, got: ${schema}`);
+      return }
     this.schema = clone({ ...schema, type: "object", $schema: undefined, });
     const title = this.schema.title.toLowerCase()
     if (title.startsWith("query")) {
@@ -101,6 +49,9 @@ export class SchemaFactory {
 
   /** Create the object with generated methods */
   create(): Record<any, any> {
+    if (typeof this.schema !== "object" || this.schema === null) {
+      console.warn(`Schema must be an object, got: ${this.schema}`);
+      return }
     this.parse();
     const handlers: Record<any, any> = {};
     for (const {method} of this.methods) {

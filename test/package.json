@@ -20,7 +20,7 @@
     "tap": "^15.0.9"
   },
   "scripts": {
-    "test": "tap --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs test_chain.ts",
+    "test": "tap --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs --coverage-report=html test_*.ts",
     "watch": "tap -w --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs test_agent.ts"
   }
 }

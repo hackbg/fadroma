@@ -1,58 +1,76 @@
-import type { Identity } from './Agent'
-
+import type { Identity, IChain, IChainNode } from './Model'
 import { URL } from 'url'
 import {
   __dirname,
   relative, cwd, TextFile, JSONFile, Directory, JSONDirectory,
   Docker, waitPort, freePort, pulled, waitUntilLogsSay,
-  Console, bold } from '@fadroma/tools'
+  Console, bold
+} from '@fadroma/tools'
+import type { Contract } from './Contract'
+import { bold, Directory, symlinkDir, mkdirp } from '@fadroma/tools'
+import { readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync } from 'fs'
+import { resolve, basename } from 'path'
 
 const console = Console(import.meta.url)
 
-export interface ChainNode {
-  chainId: string
-  apiURL:  URL
-  port:    number
-  /** Resolved when the node is ready */
-  readonly ready: Promise<void>
-  /** Path to the node state directory */
+/* Represents an interface to a particular Cosmos blockchain.
+ * Used to construct `Agent`s and `Contract`s that are
+ * bound to a particular chain. */
+export abstract class BaseChain implements IChain {
+  chainId?: string
+  apiURL?:  URL
+  node?:    IChainNode
+
+  /** Credentials of the default agent for this network. */
+  defaultIdentity?: Identity
+
+  /** Stuff that should be in the constructor but is asynchronous.
+    * FIXME: How come nobody has proposed sugar for async constructors yet?
+    * Feeling like writing a `@babel/plugin-async-constructor`, as always
+    * bonus internet points for whoever beats me to it. */
+  abstract init (): Promise<this>
+
+  /** The connection address is stored internally as a URL object,
+    * but returned as a string.
+    * FIXME why so? */
+  abstract get url (): string
+
+  /** Get an Agent that works with this Chain. */
+  abstract getAgent (options?: Identity): Promise<Agent>
+
+  /** Get a Contract that exists on this Chain, or a non-existent one
+    * which you can then create via Agent#instantiate
+    *
+    * FIXME: awkward inversion of control */
+  abstract getContract<T> (api: new()=>T, address: string, agent: any): T
+
+  /** This directory contains all the others. */
   readonly stateRoot: Directory
-  /** Path to the node state file */
-  readonly nodeState: JSONFile
-  /** Path to the directory containing the keys to the genesis accounts. */
+
+  /** This directory stores all private keys that are available for use. */
   readonly identities: Directory
-  /** Retrieve the node state */
-  load      (): ChainNodeState
-  /** Start the node */
-  spawn     (): Promise<void>
-  /** Save the info needed to respawn the node */
-  save      (): this
-  /** Stop the node */
-  kill      (): Promise<void>
-  /** Start the node if stopped */
-  respawn   (): Promise<void>
-  /** Erase the state of the node */
-  erase     (): Promise<void>
-  /** Stop the node and erase its state from the filesystem. */
-  terminate () : Promise<void>
-  /** Retrieve one of the genesis accounts stored when creating the node. */
-  genesisAccount (name: string): Identity
-}
 
-export type ChainNodeState = Record<any, any>
+  /** This directory stores receipts from the upload transactions,
+    * containing provenance info for uploaded code blobs. */
+  readonly uploads: Directory
 
-export type ChainNodeOptions = {
-  /** Handle to Dockerode or compatible
-   *  TODO mock! */
-  docker?:    Docker
-  /** Docker image of the chain's runtime. */
-  image?:     string
-  /** Internal name that will be given to chain. */
-  chainId?:   string
-  /** Path to directory where state will be stored. */
-  stateRoot?: string,
-  /** Names of genesis accounts to be created with the node */
-  identities?: Array<string>
+  /** This directory stores receipts from the instantiation (init) transactions,
+    * containing provenance info for initialized contract instances.
+    *
+    * NOTE: the current domain vocabulary considers initialization and instantiation,
+    * as pertaining to contracts on the blockchain, to be the same thing. */
+  abstract readonly instances: ChainInstancesDir
+
+  abstract printStatusTables (): void
+
+  readonly isMainnet?:  boolean
+  readonly isTestnet?:  boolean
+  readonly isLocalnet?: boolean
+  constructor ({ chainId, isMainnet, isTestnet, isLocalnet }: ChainState) {
+    this.isMainnet  = isMainnet
+    this.isTestnet  = isTestnet
+    this.isLocalnet = isLocalnet
+  }
 }
 
 export abstract class BaseChainNode implements ChainNode {
@@ -323,3 +341,69 @@ export function pick (obj: Record<any, any>, ...keys: Array<any>) {
 
 export function required (label: string) {
   return () => { throw new Error(`required: ${label}`) } }
+
+export class ChainInstancesDir extends Directory {
+
+  KEY = '.active'
+
+  get active () {
+    const path = resolve(this.path, this.KEY)
+    if (existsSync(path)) {
+      const name = basename(readlinkSync(path))
+      const contracts = {}
+      for (const contract of readdirSync(path).sort()) {
+        const [name, version] = basename(contract, '.json').split('@')
+        const location = resolve(path, contract)
+        contracts[name] = JSON.parse(readFileSync(location, 'utf8'))
+      }
+      return {
+        name,
+        path,
+        resolve: (...fragments: Array<string>) => resolve(path, ...fragments),
+        contracts,
+        getContract (
+          Class: (new () => Contract) & {attach: Function},
+          contractName: string,
+          admin: Agent
+        ) {
+          const receipt = contracts[contractName]
+          if (!receipt) {
+            throw new Error(
+              `@fadroma/ops: no contract ${bold(contractName)}` +
+              ` in deployment ${bold(name)}`
+            )
+          }
+          const {initTx:{contractAddress}, codeId, codeHash} = receipt
+          return Class.attach(contractAddress, codeHash, admin)
+        }
+      }
+    } else {
+      return null
+    }
+  }
+
+  async select (id: string) {
+    const selection = resolve(this.path, id)
+    if (!existsSync(selection)) throw new Error(
+      `@fadroma/ops: ${id} does not exist`)
+    const active = resolve(this.path, this.KEY)
+    if (existsSync(active)) unlinkSync(active)
+    await symlinkDir(selection, active)
+  }
+
+  async list () {
+    if (!existsSync(this.path)) {
+      console.info(`\n${this.path} does not exist, creating`)
+      await mkdirp(this.path)
+      return [] }
+
+    return readdirSync(this.path)
+      .filter(x=>x!=this.KEY)
+      .filter(x=>statSync(resolve(this.path, x)).isDirectory())
+  }
+
+  save (name: string, data: any) {
+    if (data instanceof Object) data = JSON.stringify(data, null, 2)
+    return super.save(`${name}.json`, data)
+  }
+}

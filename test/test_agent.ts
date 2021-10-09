@@ -6,13 +6,13 @@ import { MockChain } from './mocks'
 
 ;(()=>{
   for (const Agent of [ ScrtAgentJS_1_0, ScrtAgentJS_1_2 ]) {
-    validateImplementation(Agent)
+    testAgent(Agent)
   }
 })()
 
-function validateImplementation (Agent: any) {
+function testAgent (Agent: any) {
 
-  todo(
+  test(
     `create ${Agent.name} from mnemonic`,
     async ({ equal }) => {
       const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
@@ -23,7 +23,8 @@ function validateImplementation (Agent: any) {
       equal(agent.pubkey, {
         type:  'tendermint/PubKeySecp256k1',
         value: 'AoHyO3IEIOuffrGJoxwcYQnK+G1uMX/vQkzrjTXxMqTv' })
-      chain.close() })
+      chain.close()
+    })
 
   //todo(`create ${Agent.name} from keypair`, async () => {})
 
@@ -31,7 +32,7 @@ function validateImplementation (Agent: any) {
 
   //todo(`${Agent.name} has name`, async () => {})
 
-  todo(
+  test(
     `${Agent.name} reads state and can wait for next block`,
     async ({ equal }) => {
       const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
@@ -45,9 +46,10 @@ function validateImplementation (Agent: any) {
       equal(block1 + 1, block2)
       equal(account1, account2)
       equal(balance1, balance2)
-      chain.close() })
+      chain.close()
+    })
 
-  todo(
+  test(
     `${Agent.name} supports native token`,
     async ({ equal }) => {
       const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
@@ -64,7 +66,8 @@ function validateImplementation (Agent: any) {
       await agent2.send(agent1.address, 500)
       equal(await agent1.balance, "1500")
       equal(await agent2.balance, "3500")
-      chain.close() })
+      chain.close()
+    })
 
   //todo(`${Agent.name} can send native token to many recipients`, async () => {})
 
@@ -109,6 +112,7 @@ function validateImplementation (Agent: any) {
       // transact ----------------------------------------------------------------------------------
       console.debug(`test tx ${address}`)
       const txResult = await agent.execute({ address }, 'tx', { option: "value" })
-      equal(txResult, {}) })
+      equal(txResult, {})
+    })
 
 }

@@ -97,7 +97,7 @@ export class Scrt extends Chain {
       defaultIdentity = {
         name:     SCRT_AGENT_NAME,
         address:  SCRT_AGENT_ADDRESS,
-        mnemonic: SCRT_AGENT_MNEMONIC
+        mnemonic: SCRT_AGENT_MNEMONIC||'glance hope warm silk amazing feel mind spy wink riot exhibit solid'
       }
     } = options
     return new Scrt({
