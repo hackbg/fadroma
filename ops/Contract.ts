@@ -1,41 +1,29 @@
 import type {
-  Chain.
-  Agent,
-  Contract,
-  ContractAPIOptions,
+  IChain, IAgent, IContract,
+  ContractCodeOptions,
+  ContractUploadOptions,
+  ContractInitOptions,
+  ContractAPIOptions
 } from './Model'
-import { ContractCaller } from './ContractCaller'
-import { isAgent } from './Agent'
-import {
-  resolve, dirname, fileURLToPath, relative, existsSync, Docker, pulled, Console, bold, Path
-} from '@fadroma/tools'
-import type { ContractCodeOptions } from './Contract'
-import { Agent } from './Agent'
-import { Chain } from './ChainAPI'
-import type { ContractUploadOptions } from './Contract'
-import { ContractCode } from './ContractBuild'
-import { Console, existsSync, readFile, bold, relative, basename, mkdir, writeFile } from '@fadroma/tools'
-import type { Agent } from './Agent'
-import type { ContractInitOptions } from './Contract'
-import { ContractUpload } from './ContractUpload'
-import { ChainInstancesDir } from './ChainAPI'
-import { JSONDirectory } from '@fadroma/tools'
-import { backOff } from 'exponential-backoff'
-import { backOff } from 'exponential-backoff'
-import { ContractInit } from './ContractInit'
-import { isAgent, Agent } from './Agent'
+import { BaseAgent, isAgent } from './Agent'
+import { BaseChain, ChainInstancesDir } from './Chain'
 
-export const attachable = (Constructor: new()=>Contract) => (
-  address:  string,
-  codeHash: string,
-  agent:    Agent
-) => {
-  const instance = new Constructor({})
-  instance.init.agent = agent
-  instance.init.address = address
-  instance.blob.codeHash = codeHash
-  return instance
-}
+import {
+  resolve, existsSync, Docker, pulled, Console,
+  readFile, bold, relative, basename, mkdir, writeFile,
+} from '@fadroma/tools'
+
+import { backOff } from 'exponential-backoff'
+
+export const attachable =
+  (Constructor: new (options: any) => IContract) =>
+    (address: string, codeHash: string, agent: IAgent) => {
+      const instance = new Constructor({})
+      instance.init.agent = agent
+      instance.init.address = address
+      instance.blob.codeHash = codeHash
+      return instance
+    }
 
 const console = Console(import.meta.url)
 
@@ -109,15 +97,17 @@ export abstract class ContractCode {
     else {
       console.info(`${bold(relative(process.cwd(), output))} exists, delete to rebuild`) }
 
-    return this.code.artifact = output } }
+    return this.code.artifact = output
+  }
+}
 
 const {info} = Console(import.meta.url)
 
 export abstract class ContractUpload extends ContractCode {
 
   blob: {
-    agent?:    Agent
-    chain?:    Chain
+    agent?:    IAgent
+    chain?:    IChain
     codeId?:   number
     codeHash?: string
     receipt?: {
@@ -153,16 +143,17 @@ export abstract class ContractUpload extends ContractCode {
   get template () { return { id: this.codeId, code_hash: this.codeHash } }
 
   /** Upload the contract to a specified chain as a specified agent. */
-  async upload (chainOrAgent?: Agent|Chain) {
+  async upload (chainOrAgent?: IAgent|IChain) {
     // resolve chain/agent references
-    if (chainOrAgent instanceof Chain) {
-      this.blob.chain = chainOrAgent
-      this.blob.agent = await this.blob.chain.getAgent() }
-    else if (chainOrAgent instanceof Agent) {
-      this.blob.agent = chainOrAgent
-      this.blob.chain = this.blob.agent.chain }
-    else if (!this.blob.agent) {
-      throw new Error('You must provide a Chain or Agent to use for deployment') }
+    if (chainOrAgent instanceof BaseChain) {
+      this.blob.chain = chainOrAgent as IChain
+      this.blob.agent = await this.blob.chain.getAgent()
+    } else if (chainOrAgent instanceof BaseAgent) {
+      this.blob.agent = chainOrAgent as IAgent
+      this.blob.chain = this.blob.agent.chain
+    } else if (!this.blob.agent) {
+      throw new Error('You must provide a Chain or Agent to use for deployment')
+    }
 
     // build if not already built
     if (!this.artifact) await this.build()
@@ -211,45 +202,61 @@ export abstract class ContractInit extends ContractUpload {
     if (options.label)   this.init.label   = options.label
     if (options.agent)   this.init.agent   = options.agent
     if (options.address) this.init.address = options.address
-    if (options.initMsg) this.init.msg     = options.initMsg }
+    if (options.initMsg) this.init.msg     = options.initMsg
+  }
 
   /** The agent that initialized this instance of the contract. */
   get instantiator () { return this.init.agent }
+
   /** The on-chain address of this contract instance */
   get address () { return this.init.address }
+
   /** A reference to the contract in the format that ICC callbacks expect. */
   get link () { return { address: this.address, code_hash: this.codeHash } }
+
   /** A reference to the contract as an array */
   get linkPair () { return [ this.address, this.codeHash ] as [string, string] }
+
   /** The on-chain label of this contract instance.
     * The chain requires these to be unique.
     * If a prefix is set, it is appended to the label. */
   get label () {
     return this.init.prefix
       ? `${this.init.prefix}/${this.init.label}`
-      : this.init.label }
+      : this.init.label
+  }
+
   /** The message that was used to initialize this instance. */
   get initMsg () { return this.init.msg }
+
   /** The response from the init transaction. */
   get initTx () { return this.init.tx }
+
   /** The full result of the init transaction. */
   get initReceipt () {
-    return { label:    this.label
-           , codeId:   this.codeId
-           , codeHash: this.codeHash
-           , initTx:   this.initTx } }
+    return {
+      label:    this.label,
+      codeId:   this.codeId,
+      codeHash: this.codeHash,
+      initTx:   this.initTx
+    }
+  }
 
   private initBackoffOptions = {
     retry (error: any, attempt: number) {
       if (error.message.includes('500')) {
         console.warn(`Error 500, retry #${attempt}...`)
         console.error(error)
-        return true }
-      else {
-        return false } } }
+        return true
+      } else {
+        return false
+      }
+    }
+  }
 
   private initBackoff (fn: ()=>Promise<any>) {
-    return backOff(fn, this.initBackoffOptions) }
+    return backOff(fn, this.initBackoffOptions)
+  }
 
   async instantiate (agent?: Agent) {
     if (!this.address) {
@@ -258,10 +265,12 @@ export abstract class ContractInit extends ContractUpload {
       this.init.tx = await this.initBackoff(()=>
         this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
       this.init.address = this.initTx.contractAddress
-      this.save() }
-    else if (this.address) {
-      throw new Error(`This contract has already been instantiated at ${this.address}`) }
-    return this.initTx }
+      this.save()
+    } else if (this.address) {
+      throw new Error(`This contract has already been instantiated at ${this.address}`)
+    }
+    return this.initTx
+  }
 
   async instantiateOrExisting (receipt: any, agent?: Agent) {
     if (receipt) {
@@ -270,14 +279,17 @@ export abstract class ContractInit extends ContractUpload {
       this.init.label    = receipt.label.split('/')[1]
       if (agent) this.init.agent = agent
       console.info(`${this.label}: already exists at ${this.address}`)
-      return receipt }
-    else {
-      return await this.instantiate(agent) } }
+      return receipt
+    } else {
+      return await this.instantiate(agent)
+    }
+  }
 
   /** Used by Ensemble to save multiple instantiation receipts in a subdir. */
   setPrefix (prefix: string) {
     this.init.prefix = prefix
-    return this }
+    return this
+  }
 
   /** Save the contract's instantiation receipt in the instances directory for this chain.
     * If prefix is set, creates subdir grouping contracts with the same prefix. */
@@ -285,7 +297,9 @@ export abstract class ContractInit extends ContractUpload {
     let dir = this.init.agent.chain.instances
     if (this.init.prefix) dir = dir.subdir(this.init.prefix, ChainInstancesDir).make()
     dir.save(this.init.label, this.initReceipt)
-    return this } }
+    return this
+  }
+}
 
 export abstract class ContractCaller extends ContractInit {
 
@@ -336,7 +350,7 @@ export abstract class ContractCaller extends ContractInit {
 
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
-export abstract class ContractAPI extends ContractCaller implements Contract {
+export abstract class ContractAPI extends ContractCaller implements IContract {
   protected schema: {
     initMsg?:        any
     queryMsg?:       any

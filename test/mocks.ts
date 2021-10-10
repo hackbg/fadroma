@@ -1,5 +1,5 @@
 import * as net from 'net'
-import { Identity, Agent, Chain } from '@fadroma/ops'
+import { Identity, BaseAgent, BaseChain } from '@fadroma/ops'
 import { randomHex } from '@fadroma/tools'
 
 import { fromUtf8, fromHex, fromBase64, toBase64 } from '@iov/encoding'
@@ -8,7 +8,7 @@ import freePort from 'freeport-async'
 import Express from 'express'
 import bodyParser from 'body-parser'
 
-export class MockChain extends Chain {
+export class MockChain extends BaseChain {
 
   state = {
     balances: {},
@@ -242,7 +242,7 @@ export class MockChain extends Chain {
       server.close()
     } }) }
 
-export class MockAgent extends Agent {
+export class MockAgent extends BaseAgent {
   static async create (options?: Identity) { return new this() }
   get nextBlock () { return Promise.resolve() }
   get block () { return Promise.resolve()}

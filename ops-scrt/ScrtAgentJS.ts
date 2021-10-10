@@ -1,6 +1,6 @@
 import { Console, bold, readFile } from '@fadroma/tools'
 
-import { Agent, Identity, Contract } from '@fadroma/ops'
+import { BaseAgent, Identity } from '@fadroma/ops'
 import { Scrt } from './ScrtChainAPI'
 import { ScrtGas, defaultFees } from './ScrtAgentGas'
 
@@ -15,7 +15,7 @@ type AgentConstructor = new(...args:any)=>ScrtAgentJS
 type APIConstructor   = new(...args:any)=>any
 
 /** Queries and transacts on an instance of the Secret Chain */
-export abstract class ScrtAgentJS extends Agent {
+export abstract class ScrtAgentJS extends BaseAgent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async createSub (AgentConstructor: AgentConstructor, options: Identity) {

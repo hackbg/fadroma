@@ -6,7 +6,7 @@ import type { Commands } from '@fadroma/tools'
 
 import { URL } from 'url'
 
-import { Chain, ChainInstancesDir, prefund } from '@fadroma/ops'
+import { BaseChain, ChainInstancesDir, prefund } from '@fadroma/ops'
 import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from './index'
 import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@fadroma/tools'
 import { resetLocalnet } from './ScrtChainNode'
@@ -62,7 +62,7 @@ const {
   SCRT_AGENT_MNEMONIC
 } = process.env
 
-export class Scrt extends Chain {
+export class Scrt extends BaseChain {
 
   static mainnetCommands = (getCommands: RemoteCommands): Commands =>
     [['secret-2', Help.MAINNET, on['secret-2'], getCommands(Scrt.secret_2())]
@@ -86,7 +86,8 @@ export class Scrt extends Chain {
       apiURL,
       defaultIdentity,
       Agent: ScrtAgentJS_1_0
-    }) }
+    })
+  }
 
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
   static secret_3 (options: ChainConnectOptions = {}): Scrt {
@@ -106,7 +107,8 @@ export class Scrt extends Chain {
       apiURL,
       defaultIdentity,
       Agent: ScrtAgentJS_1_0
-    }) }
+    })
+  }
 
   /** Generate command lists for known testnets. */
   static testnetCommands = (getCommands: RemoteCommands): Commands =>
@@ -138,7 +140,8 @@ export class Scrt extends Chain {
       apiURL,
       defaultIdentity,
       Agent: ScrtAgentJS_1_0
-    }) }
+    })
+  }
 
   /** Create an instance that talks to to supernova-1 testnet via SecretJS */
   static supernova_1 (options: ChainConnectOptions = {}): Scrt {
@@ -157,7 +160,8 @@ export class Scrt extends Chain {
       apiURL,
       defaultIdentity,
       Agent: ScrtAgentJS_1_2
-    }) }
+    })
+  }
 
   /* Generate command lists for known localnet variants. */
   static localnetCommands = (getCommands: RemoteCommands): Commands =>
@@ -183,7 +187,8 @@ export class Scrt extends Chain {
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_0,
       defaultIdentity: 'ADMIN'
-    }) }
+    })
+  }
 
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
@@ -198,7 +203,8 @@ export class Scrt extends Chain {
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_0,
       defaultIdentity: 'ADMIN'
-    }) }
+    })
+  }
 
   chainId?: string
   apiURL?:  URL
@@ -239,7 +245,8 @@ export class Scrt extends Chain {
   #ready: Promise<any>
   get ready () {
     if (this.#ready) return this.#ready
-    return this.#ready = this.init() }
+    return this.#ready = this.init()
+  }
 
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
@@ -275,7 +282,8 @@ export class Scrt extends Chain {
   /**The API URL that this instance talks to.
    * @type {string} */
   get url () {
-    return this.apiURL.toString() }
+    return this.apiURL.toString()
+  }
 
   /** create agent operating on the current instance's endpoint*/
   async getAgent (identity: string|Identity = this.defaultIdentity): Promise<Agent> {
@@ -291,26 +299,34 @@ export class Scrt extends Chain {
         return new ScrtCLIAgent({ chain: this, name }) as Agent }
       else throw new Error(
         'You need to provide a name to get a secretcli-backed agent, ' +
-        'or a mnemonic or keypair to get a SecretJS-backed agent.')}}
+        'or a mnemonic or keypair to get a SecretJS-backed agent.')}
+  }
 
   /** create contract instance from interface class and address */
   getContract (ContractAPI: any, contractAddress: string, agent = this.defaultIdentity) {
     return new ContractAPI({
       initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
-      agent }) }
+      agent
+    })
+  }
 
   printStatusTables () {
     const id = bold(this.chainId)
+
     if (this.uploadsTable.length > 1) {
       console.log(`\nUploaded binaries on ${id}:`)
-      console.log('\n' + table(this.uploadsTable, noBorders)) }
-    else {
-      console.log(`\n  No known uploaded binaries on ${id}`) }
+      console.log('\n' + table(this.uploadsTable, noBorders))
+    } else {
+      console.log(`\n  No known uploaded binaries on ${id}`)
+    }
+
     if (this.instancesTable.length > 1) {
       console.log(`Instantiated contracts on ${id}:`)
-      console.log('\n' + table(this.instancesTable, noBorders)) }
-    else {
-      console.log(`\n  No known contracts on ${id}`) } }
+      console.log('\n' + table(this.instancesTable, noBorders))
+    } else {
+      console.log(`\n  No known contracts on ${id}`)
+    }
+  }
 
   /** List of code blobs in human-readable form */
   private get uploadsTable () {
@@ -329,8 +345,11 @@ export class Scrt extends Chain {
         row.push(`${bold(name)}\ncompressed:\n`)
         row.push(`${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,)
         row.push(`${originalChecksum}\n${compressedChecksum}`)
-        rows.push(row) } }
-    return rows.sort((x,y)=>x[0]-y[0]) }
+        rows.push(row)
+      }
+    }
+    return rows.sort((x,y)=>x[0]-y[0])
+  }
 
   /** List of contracts in human-readable from */
   private get instancesTable () {
@@ -339,11 +358,14 @@ export class Scrt extends Chain {
     if (this.instances.exists()) {
       for (const name of this.instances.list()) {
         const row = []
-            , { codeId
-              , codeHash
-              , initTx: {contractAddress, transactionHash} } = this.instances.load(name)
+        const { codeId, codeHash, initTx } = this.instances.load(name)
+        const {contractAddress, transactionHash} = initTx
         row.push(`  ${bold(name)}\n  ${contractAddress}`)
         row.push(String(codeId))
         row.push(`${codeHash}\n${transactionHash}\n`)
-        rows.push(row) } }
-    return rows } }
+        rows.push(row)
+      }
+    }
+    return rows
+  }
+}

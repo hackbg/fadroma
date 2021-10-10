@@ -69,7 +69,7 @@ export abstract class BaseChain implements IChain {
   readonly isMainnet?:  boolean
   readonly isTestnet?:  boolean
   readonly isLocalnet?: boolean
-  constructor ({ isMainnet, isTestnet, isLocalnet }: IChainState) {
+  constructor ({ isMainnet, isTestnet, isLocalnet }: IChainState = {}) {
     this.isMainnet  = isMainnet
     this.isTestnet  = isTestnet
     this.isLocalnet = isLocalnet

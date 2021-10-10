@@ -1,7 +1,7 @@
 import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils } from 'secretjs/src/index.ts'
 
-import { Agent, Identity } from '@fadroma/ops'
+import { BaseAgent, Identity } from '@fadroma/ops'
 import { Console, bold, execFile, spawn } from '@fadroma/tools'
 
 import { Scrt } from './ScrtChain'
@@ -24,7 +24,7 @@ const tryToUnlockKeyring = async () => new Promise(
       setTimeout(()=>{ unlock.kill() }, 1000) })
     unlock.on('error', reject) })
 
-export class ScrtCLIAgent extends Agent {
+export class ScrtCLIAgent extends BaseAgent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create (options: Identity) {
