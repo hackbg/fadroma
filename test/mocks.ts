@@ -264,17 +264,21 @@ export class MockDocker {
     }
   }
 
-  pull (image: any, callback: Function) {
+  pull (_image: any, callback: Function) {
     callback()
   }
 
   modem = {
-    followProgress (stream: any, callback: Function, progress: Function) {
+    followProgress (
+      _stream: any,
+      callback: Function,
+      _progress: Function
+    ) {
       callback()
     }
   }
 
-  getContainer (id: any) {
+  getContainer (_id: any) {
     return {
       id: 'mockGottenContainer',
       async start () {},
@@ -284,7 +288,7 @@ export class MockDocker {
   createContainer (options: any) {
     return {
       id: 'mockCreatedContainer',
-      logs (_, callback) {
+      logs (_container: any, callback: Function) {
         const port = Object.keys(options.ExposedPorts)[0].split('/')[0]
         const server = net.createServer()
         server.on('connection', () => server.close())

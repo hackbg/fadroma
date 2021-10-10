@@ -1,15 +1,18 @@
-import type { Identity, IChain, IChainNode } from './Model'
-import { URL } from 'url'
+import type {
+  IChain, IChainNode, ChainNodeOptions, IChainState,
+  Identity, IAgent,
+  IContract,
+} from './Model'
+
 import {
   __dirname,
   relative, cwd, TextFile, JSONFile, Directory, JSONDirectory,
   Docker, waitPort, freePort, pulled, waitUntilLogsSay,
-  Console, bold
+  Console, bold, symlinkDir, mkdirp, resolve, basename,
+  readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync
 } from '@fadroma/tools'
-import type { Contract } from './Contract'
-import { bold, Directory, symlinkDir, mkdirp } from '@fadroma/tools'
-import { readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync } from 'fs'
-import { resolve, basename } from 'path'
+
+import { URL } from 'url'
 
 const console = Console(import.meta.url)
 
@@ -36,7 +39,7 @@ export abstract class BaseChain implements IChain {
   abstract get url (): string
 
   /** Get an Agent that works with this Chain. */
-  abstract getAgent (options?: Identity): Promise<Agent>
+  abstract getAgent (options?: Identity): Promise<IAgent>
 
   /** Get a Contract that exists on this Chain, or a non-existent one
     * which you can then create via Agent#instantiate
@@ -66,14 +69,91 @@ export abstract class BaseChain implements IChain {
   readonly isMainnet?:  boolean
   readonly isTestnet?:  boolean
   readonly isLocalnet?: boolean
-  constructor ({ chainId, isMainnet, isTestnet, isLocalnet }: ChainState) {
+  constructor ({ isMainnet, isTestnet, isLocalnet }: IChainState) {
     this.isMainnet  = isMainnet
     this.isTestnet  = isTestnet
     this.isLocalnet = isLocalnet
   }
 }
 
-export abstract class BaseChainNode implements ChainNode {
+
+/// ### Instances
+/// The instance directory is where results of deployments are stored.
+
+
+export class ChainInstancesDir extends Directory {
+
+  KEY = '.active'
+
+  get active () {
+    const path = resolve(this.path, this.KEY)
+    if (!existsSync(path)) {
+      return null
+    }
+
+    const instanceName = basename(readlinkSync(path))
+    const contracts = {}
+    for (const contract of readdirSync(path).sort()) {
+      const [contractName, _version] = basename(contract, '.json').split('@')
+      const location = resolve(path, contract)
+      contracts[contractName] = JSON.parse(readFileSync(location, 'utf8'))
+    }
+
+    return {
+      name: instanceName,
+      path,
+      resolve: (...fragments: Array<string>) => resolve(path, ...fragments),
+      contracts,
+      getContract (
+        Class: (new () => IContract) & {attach: Function},
+        contractName: string,
+        admin:        IAgent
+      ) {
+        const receipt = contracts[contractName]
+        if (!receipt) {
+          throw new Error(
+            `@fadroma/ops: no contract ${bold(contractName)}` +
+            ` in deployment ${bold(instanceName)}`
+          )
+        }
+        const {initTx:{contractAddress}, codeId: _codeId, codeHash} = receipt
+        return Class.attach(contractAddress, codeHash, admin)
+      }
+    }
+  }
+
+  async select (id: string) {
+    const selection = resolve(this.path, id)
+    if (!existsSync(selection)) throw new Error(
+      `@fadroma/ops: ${id} does not exist`)
+    const active = resolve(this.path, this.KEY)
+    if (existsSync(active)) unlinkSync(active)
+    await symlinkDir(selection, active)
+  }
+
+  list () {
+    if (!existsSync(this.path)) {
+      console.info(`\n${this.path} does not exist, creating`)
+      mkdirp.sync(this.path)
+      return []
+    }
+
+    return readdirSync(this.path)
+      .filter(x=>x!=this.KEY)
+      .filter(x=>statSync(resolve(this.path, x)).isDirectory())
+  }
+
+  save (name: string, data: any) {
+    if (data instanceof Object) data = JSON.stringify(data, null, 2)
+    return super.save(`${name}.json`, data)
+  }
+}
+
+
+/// ## Chain backends
+
+
+export abstract class BaseChainNode implements IChainNode {
   chainId: string
   apiURL:  URL
   port:    number
@@ -130,13 +210,19 @@ export abstract class BaseChainNode implements ChainNode {
   /** Stop this node and delete its state. */
   async terminate () {
     await this.kill()
-    await this.erase() }
+    await this.erase()
+  }
 
   abstract respawn (): Promise<void>
   abstract spawn   (): Promise<void>
   abstract kill    (): Promise<void>
   abstract erase   (): Promise<void>
-  abstract save    (): this }
+  abstract save    (): this
+}
+
+
+/// ### Docker backend
+
 
 /** Run a pausable localnet in a Docker container and manage its lifecycle.
  *  State is stored as a pile of files in a directory. */
@@ -193,17 +279,21 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   /** Load stored data and assign to self. */
   load () {
     const {containerId, chainId, port} = super.load()
+    if (this.chainId !== chainId) {
+      console.warn(`Loading state of ${chainId} into ChainNode with id ${this.chainId}`)
+    }
     this.container = { id: containerId, Warnings: null }
-    this.chainId   = chainId
-    this.port      = port
-    return {containerId, chainId, port} }
+    this.port = port
+    return {containerId, chainId, port}
+  }
 
   /** Write the state of the localnet to a file. */
   save () {
     console.debug('saving localnet node', { to: this.nodeState.path })
     const data = { containerId: this.container.id, chainId: this.chainId, port: this.port }
     this.nodeState.save(data)
-    return this }
+    return this
+  }
 
   async respawn () {
     console.log(`⏳ Trying to respawn localnet from ${bold(this.nodeState.path)}...`)
@@ -216,23 +306,28 @@ export abstract class DockerizedChainNode extends BaseChainNode {
       // if node state is corrupted, spawn
       console.warn(e)
       console.info(`✋ Reading ${bold(this.nodeState.path)} failed`)
-      return this.spawn() }
+      return this.spawn()
+    }
     // check if contract is running
     let running: any
-    try { running = await this.isRunning(id) } catch (e) {
+    try {
+      running = await this.isRunning(id)
+    } catch (e) {
       // if error when checking, RESPAWN
       //console.info(`✋ Failed to get container ${bold(id)}`)
       //console.info('Error was:', e)
       console.log(`⏳ Cleaning up outdated state...`)
       await this.erase()
       console.log(`⏳ Trying to launch a new node...`)
-      return this.spawn() }
+      return this.spawn()
+    }
     // if not running, RESPAWN
     if (!running) this.startContainer(id)
     // ...and try to make sure it dies when the Node process dies
     //process.on('beforeExit', () => { this.killContainer(id) })
     // if running, do nothing
-    console.info(`Localnet already running`) }
+    console.info(`Localnet already running`)
+  }
 
   /** Spawn a new localnet instance from scratch */
   async spawn () {
@@ -251,7 +346,8 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     // emit any warnings
     if (this.container.Warnings) {
       console.warn(`Creating container ${this.container.id} emitted warnings:`)
-      console.info(this.container.Warnings) }
+      console.info(this.container.Warnings)
+    }
     // report progress
     console.info(`Created container ${this.container.id} (${bold(this.nodeState.path)})...`)
     // start the container
@@ -263,19 +359,33 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     await waitUntilLogsSay(this.container, 'GENESIS COMPLETE')
     // wait for port to be open
     await waitPort({ host: this.host, port: this.port })
-    done() }
+    done()
+  }
 
   /** Dockerode passes these to the Docker API in order to launch a localnet container. */
   get spawnContainerOptions () {
-    return pulled(this.image, this.docker).then((Image: string)=>({
-      AutoRemove: true,
-      Image, Name: `${this.chainId}-${this.port}`,
-      Env: this.env, Entrypoint: [ '/bin/bash' ], Cmd: [ '/init.sh' ],
-      Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
-      Hostname: this.chainId, Domainname: this.chainId, ExposedPorts: { [`${this.port}/tcp`]: {} },
-      HostConfig: { NetworkMode:  'bridge',
-                    Binds:        Object.entries(this.binds).map(pair=>pair.join(':')),
-                    PortBindings: { [`${this.port}/tcp`]: [{HostPort: `${this.port}`}] } } })) }
+    return pulled(this.image, this.docker)
+      .then((Image: string)=>({
+        AutoRemove: true,
+        Image,
+        Name:         `${this.chainId}-${this.port}`,
+        Env:          this.env,
+        Entrypoint:   [ '/bin/bash' ],
+        Cmd:          [ '/init.sh' ],
+        Tty:          true,
+        AttachStdin:  true,
+        AttachStdout: true,
+        AttachStderr: true,
+        Hostname:     this.chainId,
+        Domainname:   this.chainId,
+        ExposedPorts: { [`${this.port}/tcp`]: {} },
+        HostConfig: {
+          NetworkMode:  'bridge',
+          Binds:        Object.entries(this.binds).map(pair=>pair.join(':')),
+          PortBindings: { [`${this.port}/tcp`]: [{HostPort: `${this.port}`}] }
+        }
+      }))
+  }
 
   /** All the directories that need to be mounted into/out of the container,
     * in a Dockerode-friendly format. */
@@ -295,15 +405,19 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     if (this.container) {
       const { id } = this.container
       await this.killContainer(id)
-      console.info(`Stopped container ${bold(id)}.`)}
-    else {
-      console.info(`Checking if there's an old node that needs to be stopped...`)
-      try {
-        const { containerId } = this.load()
-        await this.killContainer(containerId)
-        console.info(`Stopped container ${bold(containerId)}.`) }
-      catch (e) {
-        console.info("Didn't stop any container.") } } }
+      console.info(`Stopped container ${bold(id)}.`)
+      return
+    }
+
+    console.info(`Checking if there's an old node that needs to be stopped...`)
+    try {
+      const { containerId } = this.load()
+      await this.killContainer(containerId)
+      console.info(`Stopped container ${bold(containerId)}.`)
+    } catch (e) {
+      console.info("Didn't stop any container.")
+    }
+  }
 
   /** External environment needs to be returned to a pristine state via Docker.
     * (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.) */
@@ -312,8 +426,9 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     try {
       if (this.stateRoot.exists()) {
         console.log(`⏳ Deleting ${path}...`)
-        this.stateRoot.delete() } }
-    catch (e) {
+        this.stateRoot.delete()
+      }
+    } catch (e) {
       console.warn(`Failed to delete ${path}, because:`)
       console.warn(e)
       if (e.code === 'EACCES') {
@@ -323,87 +438,33 @@ export abstract class DockerizedChainNode extends BaseChainNode {
         await container.start()
         console.log('⏳ Waiting for cleanup to finish...')
         await container.wait()
-        console.info(`Deleted ${path} via cleanup container.`) } } }
+        console.info(`Deleted ${path} via cleanup container.`)
+      }
+    }
+  }
 
   /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
     * in order to launch a cleanup container. */
   get cleanupContainerOptions () {
     return pulled(this.image, this.docker).then((Image:string)=>({
-      Image, Name: `${this.chainId}-${this.port}-cleanup`,
-      Entrypoint: [ '/bin/rm' ], Cmd: ['-rvf', '/state',],
+      Image,
+      Name:       `${this.chainId}-${this.port}-cleanup`,
+      Entrypoint: [ '/bin/rm' ],
+      Cmd:        ['-rvf', '/state',],
+      HostConfig: { Binds: [`${this.stateRoot.path}:/state:rw`] }
       //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
-      HostConfig: { Binds: [`${this.stateRoot.path}:/state:rw`] }, })) } }
+    }))
+  }
+}
 
 export function pick (obj: Record<any, any>, ...keys: Array<any>) {
-  return Object.keys(obj).filter(key=>keys.indexOf(key)>-1).reduce((obj2,key)=>{
-    obj2[key] = obj[key]
-    return obj2 }, {}) }
+  return Object.keys(obj)
+    .filter(key=>keys.indexOf(key)>-1)
+    .reduce((obj2,key)=>{
+      obj2[key] = obj[key]
+      return obj2 }, {})
+}
 
 export function required (label: string) {
-  return () => { throw new Error(`required: ${label}`) } }
-
-export class ChainInstancesDir extends Directory {
-
-  KEY = '.active'
-
-  get active () {
-    const path = resolve(this.path, this.KEY)
-    if (existsSync(path)) {
-      const name = basename(readlinkSync(path))
-      const contracts = {}
-      for (const contract of readdirSync(path).sort()) {
-        const [name, version] = basename(contract, '.json').split('@')
-        const location = resolve(path, contract)
-        contracts[name] = JSON.parse(readFileSync(location, 'utf8'))
-      }
-      return {
-        name,
-        path,
-        resolve: (...fragments: Array<string>) => resolve(path, ...fragments),
-        contracts,
-        getContract (
-          Class: (new () => Contract) & {attach: Function},
-          contractName: string,
-          admin: Agent
-        ) {
-          const receipt = contracts[contractName]
-          if (!receipt) {
-            throw new Error(
-              `@fadroma/ops: no contract ${bold(contractName)}` +
-              ` in deployment ${bold(name)}`
-            )
-          }
-          const {initTx:{contractAddress}, codeId, codeHash} = receipt
-          return Class.attach(contractAddress, codeHash, admin)
-        }
-      }
-    } else {
-      return null
-    }
-  }
-
-  async select (id: string) {
-    const selection = resolve(this.path, id)
-    if (!existsSync(selection)) throw new Error(
-      `@fadroma/ops: ${id} does not exist`)
-    const active = resolve(this.path, this.KEY)
-    if (existsSync(active)) unlinkSync(active)
-    await symlinkDir(selection, active)
-  }
-
-  async list () {
-    if (!existsSync(this.path)) {
-      console.info(`\n${this.path} does not exist, creating`)
-      await mkdirp(this.path)
-      return [] }
-
-    return readdirSync(this.path)
-      .filter(x=>x!=this.KEY)
-      .filter(x=>statSync(resolve(this.path, x)).isDirectory())
-  }
-
-  save (name: string, data: any) {
-    if (data instanceof Object) data = JSON.stringify(data, null, 2)
-    return super.save(`${name}.json`, data)
-  }
+  return () => { throw new Error(`required: ${label}`) }
 }

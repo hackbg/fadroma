@@ -16,7 +16,7 @@ import { resolve, dirname, basename } from 'path'
 export { fileURLToPath } from 'url'
 import { fileURLToPath } from 'url'
 
-export { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
+export { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync, statSync, readlinkSync } from 'fs'
 import { existsSync, readFileSync, writeFileSync, statSync, readdirSync } from 'fs'
 export { readFile, writeFile, stat, unlink } from 'fs/promises'
 

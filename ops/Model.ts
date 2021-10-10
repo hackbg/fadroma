@@ -1,8 +1,179 @@
 /// # Data model of Fadroma Ops
+///
+/// As of 2021-10-10 there are 22 types/interfaces
+/// exported from this module. This is way too many,
+/// and measures should be taken to remove
+/// redundant/single-use interfaces.
 
 
 import { URL } from 'url'
 import { Directory, JSONFile } from '@fadroma/tools'
+
+
+/// ## Contracts
+/// Managing smart contracts is the whole point of this library.
+/// There are quite a few bits of state to manage about them!
+/// The overall pipeline goes like this:
+
+
+export interface IContract {
+
+  save (): this
+
+
+  /// ### Compiling from source
+  ///
+  /// This part can be done offline:
+  ///
+  /// * A contract's source code is a Rust `crate` within a Cargo `workspace`.
+
+
+  code: ContractCodeOptions
+  readonly workspace?: string
+  readonly crate?:     string
+
+
+  /// * The code is compiled in a build container (TODO specify here?),
+  ///   which results in an `artifact` (WASM blob) with a particular `codeHash`.
+
+
+  build (workspace?: string, crate?: string): Promise<any>
+  readonly artifact?: string
+  readonly codeHash?: string
+
+
+  /// ### Uploading to a chain
+  ///
+  /// This is the point where the contract is bound to a particular chain:
+  ///
+  /// * You need to specify the `chain` and `uploader`.
+
+
+  blob: UploadState
+  readonly chain:    IChain
+  readonly uploader: IAgent
+
+
+  /// * Uploading the artifact to a chain results in an `uploadReceipt`
+  ///   that contains a `codeId` corresponding to that artifact.
+
+
+  upload (chainOrAgent?: IChain|IAgent): Promise<any>
+  readonly uploadReceipt: any
+  readonly codeId:        number
+
+
+  /// ### Instantiation and operation
+  ///
+  /// * Given a `codeId` and an `instantiator`, an instance of the contract
+  ///   can be created on the chain where this contract was uploaded.
+
+
+  init: InitState
+  readonly instantiator: IAgent
+  instantiate (agent?: IAgent): Promise<any>
+
+
+  /// * A `label` needs to be specified for each instance.
+  ///   That label needs to be unique for that chain,
+  ///   otherwise the instantiation fill fail.
+  ///   (TODO: document `prefix`.)
+  /// * The contract's `initMsg` contains the
+  ///   constructor arguments for that instance.
+
+
+  readonly label:   string
+  readonly initMsg: any
+
+
+  /// * Once a contract is instantiated, it gets an `address`.
+  ///   The address and code hash constitute the `link` to the contract.
+  ///   The contract link is expressed in a bunch of different formats
+  ///   across our codebase - here we provide two of them.
+
+
+  readonly address:  string
+  readonly link:     { address: string, code_hash: string }
+  readonly linkPair: [ string, string ]
+
+
+  /// * The instantiation transaction is available at `initTx`
+  ///   and the response from it in `initReceipt`.
+
+
+  readonly initTx:      any
+  readonly initReceipt: any
+
+
+  /// * Finally, a contract instance can be queried with the `query` method,
+  ///   and transactions can be executed with `execute`.
+  /// * The schema helpers in [Schema.ts](./Schema.ts)
+  ///   automatically generate wrapper methods around `query` and `execute`.
+
+
+  query   (method: string, args: any, agent?: IAgent): any
+  execute (method: string, args: any, memo: string, send: Array<any>, fee: any, agent?: IAgent): any
+
+}
+
+export type UploadState = {
+  chain?:    IChain
+  agent?:    IAgent
+  codeId?:   number
+  codeHash?: string
+  receipt?:  UploadReceipt
+}
+
+export type UploadReceipt = {
+  codeId:             number
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               Array<any>
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
+}
+
+export type InitState = {
+  prefix?:  string
+  agent?:   IAgent
+  address?: string
+  label?:   string
+  msg?:     any
+  tx?:      InitReceipt
+}
+
+export type InitReceipt = {
+  contractAddress: string
+  data:            string
+  logs:            Array<any>
+  transactionHash: string
+}
+
+export type ContractCodeOptions = {
+  workspace?: string
+  crate?:     string
+  artifact?:  string
+  codeHash?:  string
+}
+
+export type ContractUploadOptions = ContractCodeOptions & {
+  agent?:  IAgent
+  chain?:  IChain
+  codeId?: number
+}
+
+export type ContractInitOptions = ContractUploadOptions & {
+  agent?:   IAgent
+  address?: string
+  prefix?:  string
+  label?:   string
+  initMsg?: Record<any, any>
+}
+
+export type ContractAPIOptions = ContractInitOptions & {
+  schema?: Record<string, any>,
+}
 
 
 /// ## Chain
@@ -95,6 +266,34 @@ export interface IChainNode {
 }
 
 
+/// #### Docker backend
+/// These are the endpoints from [Dockerode](https://github.com/apocas/dockerode)
+/// that are used to instantiate a chain locally.
+
+
+export interface IDocker {
+  getImage (): {
+    inspect (): Promise<any>
+  }
+  pull (image: any, callback: Function): void
+  modem: {
+    followProgress (
+      stream:   any,
+      callback: Function,
+      progress: Function
+    ): any
+  }
+  getContainer (id: any): {
+    id: string,
+    start (): Promise<any>
+  }
+  createContainer (options: any): {
+    id: string
+    logs (_: any, callback: Function): void
+  }
+}
+
+
 /// ### Gas handling
 
 
@@ -120,7 +319,7 @@ export type Prefund = {
   /** On which chain is this meant to happen? */
   chain?:      IChain
   /** Agent that distributes the tokens -
-   *  needs to have sufficient balance 
+   *  needs to have sufficient balance
    *  e.g. genesis account on localnet) */
   agent?:      IAgent
   /** Map of specific recipients to receive funds. */
@@ -169,110 +368,4 @@ export interface IAgent extends Identity {
   instantiate (codeId: number, label: string, initMsg: any): Promise<any>
   query       (link: any, method: string, args?: any): Promise<any>
   execute     (link: any, method: string, args?: any, memo?: any, send?: any, fee?: any): Promise<any>
-}
-
-
-/// ## Contracts
-
-
-export interface IContract {
-
-  save (): this
-
-
-  // ### Compilation
-  // Info needed to compile a contract from source to WASM blob:
-
-
-  code: ContractCodeOptions
-  readonly workspace?: string
-  readonly crate?:     string
-  readonly artifact?:  string
-  readonly codeHash?:  string
-  build (workspace?: string, crate?: string): Promise<any>
-
-
-  // ### Upload
-  // Info needed to upload a WASM blob to a chain,
-  // resulting in a code id:
-
-
-  blob: {
-    chain?:    IChain
-    agent?:    IAgent
-    codeId?:   number
-    codeHash?: string
-    receipt?: {
-      codeId:             number
-      compressedChecksum: string
-      compressedSize:     string
-      logs:               Array<any>
-      originalChecksum:   string
-      originalSize:       number
-      transactionHash:    string
-    }
-  }
-  readonly chain:         IChain
-  readonly uploader:      IAgent
-  readonly uploadReceipt: any
-  readonly codeId:        number
-  upload (chainOrAgent?: IChain|IAgent): Promise<any>
-
-
-  // ### Instantiation and operation
-  // Info needed to create a contract instance
-  // from a code id and an init message,
-  // as well as perform queries and transactions
-  // on that instance:
-
-
-  init: {
-    prefix?:  string
-    agent?:   IAgent
-    address?: string
-    label?:   string
-    msg?:     any
-    tx?: {
-      contractAddress: string
-      data:            string
-      logs:            Array<any>
-      transactionHash: string
-    }
-  }
-  readonly instantiator: IAgent
-  readonly address:      string
-  readonly link:         { address: string, code_hash: string }
-  readonly linkPair:     [ string, string ]
-  readonly label:        string
-  readonly initMsg:      any
-  readonly initTx:       any
-  readonly initReceipt:  any
-  instantiate (agent?: IAgent): Promise<any>
-  query   (method: string, args: any, agent?: IAgent): any
-  execute (method: string, args: any, memo: string, send: Array<any>, fee: any, agent?: IAgent): any
-}
-
-export type ContractCodeOptions = {
-  workspace?: string
-  crate?:     string
-  artifact?:  string
-  codeHash?:  string
-}
-
-export type ContractUploadOptions = ContractCodeOptions & {
-  agent?:  IAgent
-  chain?:  IChain
-  codeId?: number
-}
-
-export type ContractInitOptions = ContractUploadOptions & {
-  agent?:   IAgent
-  address?: string
-  prefix?:  string
-  label?:   string
-  initMsg?: Record<any, any>
-}
-
-export type ContractAPIOptions = ContractInitOptions & {
-  schema?: Record<string, any>,
 }
