@@ -49,7 +49,7 @@ export interface IContract {
   /// * You need to specify the `chain` and `uploader`.
 
 
-  blob: UploadState
+  blob: UploadConfig
   readonly chain:    IChain
   readonly uploader: IAgent
 
@@ -116,7 +116,7 @@ export interface IContract {
 
 }
 
-export type UploadState = {
+export type UploadConfig = {
   chain?:    IChain
   agent?:    IAgent
   codeId?:   number

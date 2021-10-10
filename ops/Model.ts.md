@@ -1,9 +1,6 @@
 # Data model of Fadroma Ops
 
-As of 2021-10-10 there are 22 types/interfaces
-exported from this module. This is way too many,
-and measures should be taken to remove
-redundant/single-use interfaces.
+This part is generic to all Cosmos networks.
 
 ```typescript
 import { URL } from 'url'
@@ -11,9 +8,10 @@ import { Directory, JSONFile } from '@fadroma/tools'
 ```
 
 ## Contracts
-Managing smart contracts is the whole point of this library.
+
+The purpose of this library is to manage smart contracts.
 There are quite a few bits of state to manage about them!
-The overall pipeline goes like this:
+The available interfaces are as follows:
 
 ```typescript
 export interface IContract {
@@ -21,7 +19,7 @@ export interface IContract {
   save (): this
 ```
 
-### Compiling from source
+### Compiling a smart contract from source into a WASM artifact
 
 This part can be done offline:
 
@@ -42,14 +40,14 @@ This part can be done offline:
   readonly codeHash?:                         string
 ```
 
-### Uploading to a chain
+### Uploading a WASM artifact to a blockchain
 
 This is the point where the contract is bound to a particular chain:
 
 * You need to specify the `chain` and `uploader`.
 
 ```typescript
-  blob:              UploadState
+  blob:              UploadConfig
   readonly chain:    IChain
   readonly uploader: IAgent
 ```
@@ -63,17 +61,10 @@ This is the point where the contract is bound to a particular chain:
   readonly codeId:                       number
 ```
 
-### Instantiation and operation
+### Instantiating a smart contract from an uploaded WASM artifact
 
 * Given a `codeId` and an `deployer`, an instance of the contract
   can be created on the chain where this contract was uploaded.
-
-```typescript
-  init:                         InitState
-  readonly deployer:            IAgent
-  instantiate (agent?: IAgent): Promise<any>
-```
-
 * A `label` needs to be specified for each instance.
   That label needs to be unique for that chain,
   otherwise the instantiation fill fail.
@@ -82,28 +73,32 @@ This is the point where the contract is bound to a particular chain:
   constructor arguments for that instance.
 
 ```typescript
-  readonly label:   string
-  readonly initMsg: any
+  init:                         InitConfig
+  readonly deployer:            IAgent
+  readonly label:               string
+  readonly initMsg:             any
+  instantiate (agent?: IAgent): Promise<any>
 ```
+
+### Referencing a smart contract
 
 * Once a contract is instantiated, it gets an `address`.
-  The address and code hash constitute the `link` to the contract.
+  The address and code hash constitute a `link` to the contract.
   The contract link is expressed in a bunch of different formats
   across our codebase - here we provide two of them.
+* The result of the transaction is available at `initTx`,
+  and the response from it is in `initReceipt`.
+* TODO: document attaching to a smart contract
 
 ```typescript
-  readonly address:  string
-  readonly link:     { address: string, code_hash: string }
-  readonly linkPair: [ string, string ]
-```
-
-* The instantiation transaction is available at `initTx`
-  and the response from it in `initReceipt`.
-
-```typescript
+  readonly address:     string
+  readonly link:        { address: string, code_hash: string }
+  readonly linkPair:    [ string, string ]
   readonly initTx:      any
   readonly initReceipt: any
 ```
+
+### Interacting with a smart contract
 
 * Finally, a contract instance can be queried with the `query` method,
   and transactions can be executed with `execute`.
@@ -117,11 +112,36 @@ This is the point where the contract is bound to a particular chain:
 }
 ```
 
-### Utility types
-Reduce those!
+### State types
+
+The `IContract` interface requires 3 properties which are kind of magic:
+* `code: ContractCodeOptions`
+* `blob: UploadConfig`
+* `init: InitConfig`
+
+These hold the contract state, select fields of which are exposed via
+the getters on `IContract` (as implemented by [`BaseContract`](./Contract.ts)).
+The intent behind this is threefold:
+* To group internal state for each stage of the process
+* To provide quick access to commonly needed values
+* To discourage mutation of internal state
+
+#### Build config
 
 ```typescript
-export type UploadState = {
+export type ContractCodeOptions = {
+  workspace?: string
+  crate?:     string
+  artifact?:  string
+  codeHash?:  string
+}
+
+```
+
+#### Upload config and result
+
+```typescript
+export type UploadConfig = {
   chain?:    IChain
   agent?:    IAgent
   codeId?:   number
@@ -138,8 +158,12 @@ export type UploadReceipt = {
   originalSize:       number
   transactionHash:    string
 }
+```
 
-export type InitState = {
+#### Init config and result
+
+```typescript
+export type InitConfig = {
   prefix?:  string
   agent?:   IAgent
   address?: string
@@ -154,14 +178,16 @@ export type InitReceipt = {
   logs:            Array<any>
   transactionHash: string
 }
+```
 
-export type ContractCodeOptions = {
-  workspace?: string
-  crate?:     string
-  artifact?:  string
-  codeHash?:  string
-}
+### Constructor option types
 
+A series of types that inherit from each other,
+representing the constructor arguments that can be
+passed to each stage of the abstract inheritance chain
+in [./Contract.ts](./Contract.ts).
+
+```typescript
 export type ContractUploadOptions = ContractCodeOptions & {
   agent?:  IAgent
   chain?:  IChain
@@ -183,12 +209,38 @@ export type ContractAPIOptions = ContractInitOptions & {
 
 ## Chain
 
+Implementors of this class represent existing blockchains,
+and provide access to the identities and smart contracts
+that exist on those blockchains.
+
+Furthermore, `Chain`s keep track of keys to identities,
+and info about uploaded and instantiated contracts
+belonging to a project. This data is normally stored
+in a subdirectory called `artifacts` and is meant to
+be committed to Git in the case of testnet and mainnet
+deployments.
+
+**TODO** Rename `instances` to `deployments`?
+
 ```typescript
 export interface IChainOptions {
   chainId?: string
   apiURL?:  URL
   node?:    IChainNode
   defaultIdentity?: Identity
+}
+
+export interface IChain extends IChainOptions {
+  readonly url:   string
+  readonly ready: Promise<this>
+
+  getAgent (options?: Identity): Promise<IAgent>
+  getContract<T> (api: new()=>T, address: string, agent: IAgent): T
+
+  readonly stateRoot?:  Directory
+  readonly identities?: Directory
+  readonly uploads?:    Directory
+  readonly instances?:  Directory
 }
 
 export interface IChainConnectOptions extends IChainOptions {
@@ -206,22 +258,13 @@ export interface IChainState extends IChainOptions {
   readonly uploads?:    string
   readonly instances?:  string
 }
-
-export interface IChain extends IChainOptions {
-  readonly url:   string
-  readonly ready: Promise<this>
-
-  getAgent (options?: Identity): Promise<IAgent>
-  getContract<T> (api: new()=>T, address: string, agent: IAgent): T
-
-  readonly stateRoot?:  Directory
-  readonly identities?: Directory
-  readonly uploads?:    Directory
-  readonly instances?:  Directory
-}
 ```
 
-### Chain in container (a.k.a. localnet/devnet)
+### Chain in a box (a.k.a. localnet/devnet)
+
+If your workstation's CPU supports SGX,
+you can run your own temporary networks
+in a local Docker container.
 
 ```typescript
 export type ChainNodeState = Record<any, any>
@@ -269,9 +312,12 @@ export interface IChainNode {
   /** Retrieve one of the genesis accounts stored when creating the node. */
   genesisAccount (name: string): Identity
 }
+
+export type ChainNodeConstructor = new (options?: ChainNodeOptions) => IChainNode
 ```
 
 #### Docker backend
+
 These are the endpoints from [Dockerode](https://github.com/apocas/dockerode)
 that are used to instantiate a chain locally.
 * **Mock** in [/test/mocks.ts](../test/mocks.ts)
@@ -379,15 +425,10 @@ export interface IAgent extends Identity {
   query       (link: any, method: string, args?: any): Promise<any>
   execute     (link: any, method: string, args?: any, memo?: any, send?: any, fee?: any): Promise<any>
 }
+
+export type AgentConstructor = new (...args: any) => IAgent
 ```
 
 ```typescript
-export type Constructor =
-  new (...args: any) => any
-
-export type AgentConstructor =
-  new (...args: any) => IAgent
-
-export type ChainNodeConstructor =
-  new (options?: ChainNodeOptions) => IChainNode
+export type Constructor = new (...args: any) => any
 ```
