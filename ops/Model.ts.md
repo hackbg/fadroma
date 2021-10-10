@@ -28,7 +28,7 @@ This part can be done offline:
 * A contract's source code is a Rust `crate` within a Cargo `workspace`.
 
 ```typescript
-  code: ContractCodeOptions
+  code:                ContractCodeOptions
   readonly workspace?: string
   readonly crate?:     string
 ```
@@ -38,8 +38,8 @@ This part can be done offline:
 
 ```typescript
   build (workspace?: string, crate?: string): Promise<any>
-  readonly artifact?: string
-  readonly codeHash?: string
+  readonly artifact?:                         string
+  readonly codeHash?:                         string
 ```
 
 ### Uploading to a chain
@@ -49,7 +49,7 @@ This is the point where the contract is bound to a particular chain:
 * You need to specify the `chain` and `uploader`.
 
 ```typescript
-  blob: UploadState
+  blob:              UploadState
   readonly chain:    IChain
   readonly uploader: IAgent
 ```
@@ -59,18 +59,18 @@ This is the point where the contract is bound to a particular chain:
 
 ```typescript
   upload (chainOrAgent?: IChain|IAgent): Promise<any>
-  readonly uploadReceipt: any
-  readonly codeId:        number
+  readonly uploadReceipt:                any
+  readonly codeId:                       number
 ```
 
 ### Instantiation and operation
 
-* Given a `codeId` and an `instantiator`, an instance of the contract
+* Given a `codeId` and an `deployer`, an instance of the contract
   can be created on the chain where this contract was uploaded.
 
 ```typescript
-  init: InitState
-  readonly instantiator: IAgent
+  init:                         InitState
+  readonly deployer:            IAgent
   instantiate (agent?: IAgent): Promise<any>
 ```
 
