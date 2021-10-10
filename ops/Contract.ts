@@ -7,6 +7,7 @@ import type {
 } from './Model'
 import { BaseAgent, isAgent } from './Agent'
 import { BaseChain, ChainInstancesDir } from './Chain'
+import { getAjv, SchemaFactory } from './Schema'
 
 import {
   resolve, existsSync, Docker, pulled, Console,
