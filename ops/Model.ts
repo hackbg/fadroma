@@ -203,9 +203,9 @@ export interface IChainState extends IChainOptions {
 }
 
 export interface IChain extends IChainOptions {
-  readonly url: string
+  readonly url:   string
+  readonly ready: Promise<this>
 
-  init (): Promise<this>
   getAgent (options?: Identity): Promise<IAgent>
   getContract<T> (api: new()=>T, address: string, agent: IAgent): T
 
@@ -269,6 +269,7 @@ export interface IChainNode {
 /// #### Docker backend
 /// These are the endpoints from [Dockerode](https://github.com/apocas/dockerode)
 /// that are used to instantiate a chain locally.
+/// * **Mock** in [/test/mocks.ts](../test/mocks.ts)
 
 
 export interface IDocker {
@@ -369,3 +370,12 @@ export interface IAgent extends Identity {
   query       (link: any, method: string, args?: any): Promise<any>
   execute     (link: any, method: string, args?: any, memo?: any, send?: any, fee?: any): Promise<any>
 }
+
+export type Constructor =
+  new (...args: any) => any
+
+export type AgentConstructor =
+  new (...args: any) => IAgent
+
+export type ChainNodeConstructor =
+  new (options?: ChainNodeOptions) => IChainNode

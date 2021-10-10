@@ -31,7 +31,7 @@ export abstract class BaseChain implements IChain {
     * FIXME: How come nobody has proposed sugar for async constructors yet?
     * Feeling like writing a `@babel/plugin-async-constructor`, as always
     * bonus internet points for whoever beats me to it. */
-  abstract init (): Promise<this>
+  abstract readonly ready: Promise<this>
 
   /** The connection address is stored internally as a URL object,
     * but returned as a string.
@@ -48,14 +48,14 @@ export abstract class BaseChain implements IChain {
   abstract getContract<T> (api: new()=>T, address: string, agent: any): T
 
   /** This directory contains all the others. */
-  readonly stateRoot: Directory
+  readonly stateRoot:  Directory
 
   /** This directory stores all private keys that are available for use. */
   readonly identities: Directory
 
   /** This directory stores receipts from the upload transactions,
     * containing provenance info for uploaded code blobs. */
-  readonly uploads: Directory
+  readonly uploads:    Directory
 
   /** This directory stores receipts from the instantiation (init) transactions,
     * containing provenance info for initialized contract instances.

@@ -1,14 +1,11 @@
 import { test, todo } from 'tap'
 
-import { ScrtAgentJS_1_0 } from '@fadroma/scrt-1.0'
-import { ScrtAgentJS_1_2 } from '@fadroma/scrt-1.2'
+import { ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from '@fadroma/scrt'
 import { MockChain } from './mocks'
 
-;(()=>{
-  for (const Agent of [ ScrtAgentJS_1_0, ScrtAgentJS_1_2 ]) {
-    testAgent(Agent)
-  }
-})()
+for (const Agent of [ ScrtAgentJS_1_0, ScrtAgentJS_1_2 ]) {
+  testAgent(Agent)
+}
 
 function testAgent (Agent: any) {
 

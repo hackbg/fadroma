@@ -57,47 +57,60 @@ export abstract class ContractCode {
 
   /** Compile a contract from source */
   // TODO support clone & build contract from external repo+ref
-  async build (workspace?: string, crate?: string, additionalBinds?: Array<string>) {
+  async build (workspace?: string, crate?: string, extraBinds?: string[]) {
     if (workspace) this.code.workspace = workspace
-    if (crate) this.code.crate = crate
+    if (crate)     this.code.crate = crate
 
     const ref       = 'HEAD'
         , outputDir = resolve(this.workspace, 'artifacts')
-        , output    = resolve(outputDir, `${this.crate}@${ref}.wasm`)
+        , artifact  = resolve(outputDir, `${this.crate}@${ref}.wasm`)
 
-    if (!existsSync(output)) {
-      const image   = await pulled(this.buildImage, this.docker)
-          , buildArgs =
-            { Env:
-                [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
-                , 'CARGO_TERM_VERBOSE=true'
-                , 'CARGO_HTTP_TIMEOUT=240' ]
-            , Tty:
-                true
-            , AttachStdin:
-                true
-            , Entrypoint:
-                ['/bin/sh', '-c']
-            , HostConfig:
-                { Binds: [ `${this.buildScript}:/entrypoint.sh:ro`
-                         , `${outputDir}:/output:rw`
-                         , `project_cache_${ref}:/code/target:rw`
-                         , `cargo_cache_${ref}:/usr/local/cargo:rw` ] } }
-          , command = `bash /entrypoint.sh ${this.crate} ${ref}`
-      console.log({entry: this.buildScript})
+    if (!existsSync(artifact)) {
+
       console.debug(`building working tree at ${this.workspace} into ${outputDir}...`)
-      buildArgs.HostConfig.Binds.push(`${this.workspace}:/contract:rw`)
-      additionalBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
-      const [{Error:err, StatusCode:code}, container] =
-        await this.docker.run(image, command, process.stdout, buildArgs )
+
+      const [
+        { Error:err, StatusCode:code },
+        container
+      ] = await this.docker.run(
+        await pulled(this.buildImage, this.docker),
+        `bash /entrypoint.sh ${this.crate} ${ref}`,
+        process.stdout,
+        this.getBuildArgs(ref, resolve(this.workspace, 'artifacts'), extraBinds)
+      )
+
       await container.remove()
-
       if (err) throw err
-      if (code !== 0) throw new Error(`build exited with status ${code}`) }
-    else {
-      console.info(`${bold(relative(process.cwd(), output))} exists, delete to rebuild`) }
+      if (code !== 0) throw new Error(`build exited with status ${code}`)
 
-    return this.code.artifact = output
+    } else {
+      console.info(`${bold(relative(process.cwd(), artifact))} exists, delete to rebuild`)
+    }
+
+    return this.code.artifact = artifact
+  }
+
+  private getBuildArgs (ref: string, outputDir: string, extraBinds?: string[]) {
+    const buildArgs = {
+      Tty:         true,
+      AttachStdin: true,
+      Entrypoint:  ['/bin/sh', '-c'],
+      Env: [
+        'CARGO_NET_GIT_FETCH_WITH_CLI=true',
+        'CARGO_TERM_VERBOSE=true',
+        'CARGO_HTTP_TIMEOUT=240'
+      ],
+      HostConfig: {
+        Binds: [
+          `${this.buildScript}:/entrypoint.sh:ro`,
+          `${outputDir}:/output:rw`,
+          `project_cache_${ref}:/code/target:rw`,
+          `cargo_cache_${ref}:/usr/local/cargo:rw`,
+          `${this.workspace}:/contract:rw`
+        ]
+      }
+    }
+    extraBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
   }
 }
 
@@ -114,10 +127,12 @@ export abstract class ContractUpload extends ContractCode {
       codeId:             number
       compressedChecksum: string
       compressedSize:     string
-      logs:               Array<any>
+      logs:               any[]
       originalChecksum:   string
       originalSize:       number
-      transactionHash:    string } } = {}
+      transactionHash:    string
+    }
+  } = {}
 
   constructor (options?: ContractUploadOptions) {
     super(options)
@@ -179,19 +194,21 @@ export abstract class ContractUpload extends ContractCode {
     // set code it and code hash to allow instantiation of uploaded code
     this.blob.codeId   = this.uploadReceipt.codeId
     this.blob.codeHash = this.uploadReceipt.originalChecksum
-    return this.blob.receipt } }
+    return this.blob.receipt
+  }
+}
 
 export abstract class ContractInit extends ContractUpload {
   init: {
     prefix?:  string
-    agent?:   Agent
+    agent?:   IAgent
     address?: string
     label?:   string
     msg?:     any
     tx?: {
       contractAddress: string
       data:            string
-      logs:            Array<any>
+      logs:            any[]
       transactionHash: string
     }
   } = {}
@@ -258,7 +275,7 @@ export abstract class ContractInit extends ContractUpload {
     return backOff(fn, this.initBackoffOptions)
   }
 
-  async instantiate (agent?: Agent) {
+  async instantiate (agent?: IAgent) {
     if (!this.address) {
       if (agent) this.init.agent = agent
       if (!this.codeId) throw new Error('Contract must be uploaded before instantiating')
@@ -272,7 +289,7 @@ export abstract class ContractInit extends ContractUpload {
     return this.initTx
   }
 
-  async instantiateOrExisting (receipt: any, agent?: Agent) {
+  async instantiateOrExisting (receipt: any, agent?: IAgent) {
     if (receipt) {
       this.blob.codeHash = receipt.codeHash
       this.init.address  = receipt.initTx.contractAddress
@@ -308,44 +325,52 @@ export abstract class ContractCaller extends ContractInit {
       if (error.message.includes('500')) {
         console.warn(`Error 500, retry #${attempt}...`)
         console.warn(error)
-        return true }
+        return false
+      }
       if (error.message.includes('502')) {
         console.warn(`Error 502, retry #${attempt}...`)
         console.warn(error)
-        return true }
-      else {
-        return false } } }
+        return true
+      }
+      return false
+    }
+  }
 
   private backoff (fn: ()=>Promise<any>) {
-    return backOff(fn, this.backoffOptions) }
+    return backOff(fn, this.backoffOptions)
+  }
 
   /** Query the contract. */
   query (method = "", args = null, agent = this.instantiator) {
-    return this.backoff(() => agent.query(this, method, args)) }
+    return this.backoff(() => agent.query(this, method, args))
+  }
 
   /** Execute a contract transaction. */
   execute (
-    method = "", args = null, memo: string = '',
-    amount: Array<any> = [], fee: any = undefined, agent = this.instantiator
+    method         = "",
+    args           = null,
+    memo:   string = '',
+    amount: any[]  = [],
+    fee:    any    = undefined,
+    agent:  IAgent = this.instantiator
   ) {
-    return this.backoff(() => agent.execute(this, method, args, memo, amount, fee)) }
+    return this.backoff(() => agent.execute(this, method, args, memo, amount, fee))
+  }
 
-  /** Create a temporary copy of a contract with a different agent */
-  copy = (agent: Agent) => {
+  /** Create a temporary copy of a contract with a different agent.
+    * FIXME: Broken - see uploader/instantiator/admin */
+  copy = (agent: IAgent) => {
     let addon = {};
-
     if (isAgent(agent)) {
       // @ts-ignore
       addon.init = {...this.init, agent};
     }
-
-      return Object.assign(
-        Object.create(
-          Object.getPrototypeOf(this)
-        ),
-        addon
-      );
+    return Object.assign(
+      Object.create(Object.getPrototypeOf(this)),
+      addon
+    );
   };
+
 }
 
 /** A contract with auto-generated methods for invoking
@@ -378,7 +403,10 @@ export abstract class ContractAPI extends ContractCaller implements IContract {
     this.q  = new SchemaFactory(this, this.schema?.queryMsg).create()
     this.tx = new SchemaFactory(this, this.schema?.handleMsg).create()
     for (const msg of ['initMsg', 'queryMsg', 'queryResponse', 'handleMsg', 'handleResponse']) {
-      if (this.schema[msg]) this.validate[msg] = this.#ajv.compile(this.schema[msg]) } } }
+      if (this.schema[msg]) this.validate[msg] = this.#ajv.compile(this.schema[msg])
+    }
+  }
+}
 
 //export class ContractWithSchema extends BaseContractAPI {
   //q:  Record<string, Function>

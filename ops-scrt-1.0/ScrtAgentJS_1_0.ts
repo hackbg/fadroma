@@ -1,7 +1,6 @@
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
-import { ScrtAgentJS, Identity } from '@fadroma/scrt'
 
-export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
+export class PatchedSigningCosmWasmClient_1_0 extends SigningCosmWasmClient {
   /* this assumes broadcastMode is set to BroadcastMode.Sync
      which it is, via the constructor of the base ScrtAgentJS class
      which, in turn, assumes the logs array is empty and just a tx hash is returned
@@ -72,7 +71,3 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
           throw e } } } }
 
 }
-
-export class ScrtAgentJS_1_0 extends ScrtAgentJS {
-  static create = (options: Identity) => ScrtAgentJS.createSub(ScrtAgentJS_1_0, options)
-  constructor (options: Identity) { super(PatchedSigningCosmWasmClient, options) } }

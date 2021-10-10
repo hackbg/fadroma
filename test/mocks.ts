@@ -245,15 +245,15 @@ export class MockChain extends BaseChain {
 export class MockAgent extends BaseAgent {
   static async create (options?: Identity) { return new this() }
   get nextBlock () { return Promise.resolve() }
-  get block () { return Promise.resolve()}
-  get account () { return Promise.resolve()}
-  get balance () { return Promise.resolve()}
-  async send () {}
-  async sendMany () {}
-  async upload () {}
+  get block     () { return Promise.resolve()}
+  get account   () { return Promise.resolve()}
+  get balance   () { return Promise.resolve()}
+  async send        () {}
+  async sendMany    () {}
+  async upload      () {}
   async instantiate () {}
-  async query () {}
-  async execute () {}
+  async query       () {}
+  async execute     () {}
 }
 
 export class MockDocker {

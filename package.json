@@ -33,7 +33,7 @@
     "docs-js": "documentation build scrt-js/** -f html --github -o doc/scrt-js",
     "docs-ts": "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
     "test-ts": "DEBUG=out ganesha run-module --async-stack-traces --enable-source-maps test/test.mjs",
-    "test-tap": "./test/node_modules/.bin/tap --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs --coverage-report=html ./test/test_*.ts",
+    "test-tap": "cd test && pnpm test",
     "docserv": "documentation serve --watch js/**",
     "test-rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "docs-rs": "cp Workspace.toml Cargo.toml; cargo doc; rm Cargo.toml"

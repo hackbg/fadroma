@@ -1,7 +1,6 @@
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
-import { ScrtAgentJS, Identity } from '@fadroma/scrt'
 
-export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
+export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   /* this assumes broadcastMode is set to BroadcastMode.Sync
      which it is, via the constructor of the base ScrtAgentJS class
      which, in turn, assumes the logs array is empty and just a tx hash is returned
@@ -47,8 +46,3 @@ export class PatchedSigningCosmWasmClient extends SigningCosmWasmClient {
           continue } }
       console.warn(`failed to submit tx ${id}, ${submitRetries} retries left...`)
       await new Promise(ok=>setTimeout(ok, 1000)) } } }
-
-export class ScrtAgentJS_1_2 extends ScrtAgentJS {
-  static create = (options: Identity) => ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
-  constructor (options: Identity) { super(PatchedSigningCosmWasmClient, options) }
-}

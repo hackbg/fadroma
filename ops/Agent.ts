@@ -1,8 +1,10 @@
-import type { IChain, IAgent } from './Model'
+import type { IChain, IAgent, Identity } from './Model'
 import { taskmaster, resolve, readFileSync } from '@fadroma/tools'
 import assert from 'assert'
 
 export abstract class BaseAgent implements IAgent {
+  constructor (_options: Identity) {}
+
   readonly chain:   IChain
   readonly address: string
   readonly name:    string
