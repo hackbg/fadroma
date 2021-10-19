@@ -1,6 +1,16 @@
 #![cfg(test)]
 
-use fadroma::{*, testing::*};
+use fadroma::{
+    scrt::{
+        Storage, ContractInfo, Api, Querier, Extern, StdResult,
+        StdError, InitResponse, HandleResponse, Uint128, WasmMsg,
+        MessageInfo, CosmosMsg, Binary, Coin, HumanAddr, QueryResponse,
+        Env, BlockInfo, log, to_binary, from_binary
+    },
+    testing::*,
+    scrt_vk::{ViewingKey, VIEWING_KEY_SIZE},
+    scrt_crypto::sha_256
+};
 use std::any::Any;
 use crate::{
     snip20_handle, snip20_init, snip20_query, DefaultSnip20Impl,

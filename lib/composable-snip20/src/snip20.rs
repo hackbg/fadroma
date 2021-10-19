@@ -1,4 +1,13 @@
-use fadroma::*;
+use fadroma::{
+    scrt::{
+        Storage, ReadonlyStorage, Api, Querier, Extern, StdResult,
+        StdError, InitResponse, HandleResponse, Uint128, WasmMsg,
+        BankMsg, CosmosMsg, Binary, Coin, HumanAddr, CanonicalAddr,
+        Env, BlockInfo, log, to_binary
+    },
+    scrt_vk::{ViewingKey, VIEWING_KEY_SIZE},
+    scrt_crypto::sha_256
+};
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;

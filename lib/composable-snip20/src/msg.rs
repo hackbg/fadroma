@@ -1,6 +1,12 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
 
-use fadroma::*;
+use fadroma::{
+    scrt::{
+        HumanAddr, Uint128, Binary, StdError, StdResult
+    },
+    scrt_callback::Callback,
+    scrt_vk::ViewingKey
+};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use crate::{
@@ -516,7 +522,7 @@ pub fn space_pad(block_size: usize, message: &mut Vec<u8>) -> &mut Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fadroma::*;
+    use fadroma::scrt::from_slice;
 
     #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
     #[serde(rename_all = "snake_case")]
