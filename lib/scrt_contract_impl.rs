@@ -71,7 +71,7 @@
             let result = match $msg { $( // find the matching handler
                 msg::$Enum::$Variant {..} => self::queries::$Variant($deps, state, $msg),
             )* };
-            Ok(fadroma::scrt::cosmwasm_std::to_binary(&result?)?) // return handler result
+            Ok(fadroma::scrt::to_binary(&result?)?) // return handler result
         }
         /// Query handlers.
         mod queries {
