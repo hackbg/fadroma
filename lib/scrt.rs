@@ -6,3 +6,4 @@ pub use cosmwasm_schema::*;
 pub use snafu;
 pub use schemars;
 pub use secret_toolkit;
+pub use cosmwasm_std;
