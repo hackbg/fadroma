@@ -23,6 +23,9 @@ serde             = { optional = true, version = "1.0.103", default-features = f
 sha2              = { optional = true, version = "0.9.1", default-features = false }
 snafu             = { optional = true, version = "0.6.3" }
 subtle            = { optional = true, version = "2.4.0", default-features = false }
+remain            = { optional = true, version = "0.2.2" }
+ripemd160         = { optional = true, version = "0.9.1" }
+secp256k1         = { optional = true, version = "0.20.3" }
 derive-contract   = { optional = true, path = "derive-contract" }
 require-admin     = { optional = true, path = "./composable-admin/require-admin" }
 
@@ -43,10 +46,11 @@ derive          = ["derive-contract"]
 
 scrt-all        = [
                     "scrt", "scrt-addr", "scrt-admin", "scrt-contract", "scrt-icc", "scrt-vk",
-                    "scrt-migrate", "scrt-snip20-api", "scrt-storage", "scrt-utils"
+                    "scrt-migrate", "scrt-snip20-api", "scrt-storage", "scrt-utils", "scrt-permit"
                   ]
 scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu", "schemars", "secret-toolkit"]
 scrt-addr       = ["scrt"]
+scrt-permit     = ["scrt", "serde", "sha2", "remain", "ripemd160", "secp256k1"]
 scrt-admin      = ["derive", "scrt-storage", "require-admin"]
 scrt-contract   = ["scrt", "serde"]
 scrt-icc        = ["scrt", "scrt-addr", "serde"]
