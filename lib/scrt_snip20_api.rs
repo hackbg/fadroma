@@ -1,7 +1,9 @@
 use crate::{
+    composable::BaseComposable,
     scrt::{
         BLOCK_SIZE, HumanAddr, StdResult,
-        CosmosMsg, Uint128, Binary, Querier
+        CosmosMsg, Uint128, Binary,
+        Querier
     },
     scrt_link::ContractLink,
     secret_toolkit::snip20
@@ -95,37 +97,26 @@ impl<'a> ISnip20<'a> {
         )
     }
 
-    pub fn query <'q, Q: Querier> (
-        &'q self, querier: &'q Q
-    ) -> ISnip20Querier<'q, Q> {
-        ISnip20Querier { snip20: &self, querier }
-    }
-
-}
-
-pub struct ISnip20Querier <'q, Q: Querier> {
-    snip20:  &'q ISnip20<'q>,
-    querier: &'q Q
-}
-
-impl <'q, Q: Querier> ISnip20Querier <'q, Q> {
-
-    pub fn balance (&self, address: &HumanAddr, vk: &str) -> StdResult<Uint128> {
+    pub fn query_balance (
+        &self, querier: &impl Querier, address: &HumanAddr, vk: &str
+    ) -> StdResult<Uint128> {
         Ok(snip20::balance_query(
-            self.querier,
+            querier,
             address.clone(), vk.into(),
-            self.snip20.block_size,
-            self.snip20.link.code_hash.clone(),
-            self.snip20.link.address.clone()
+            self.block_size,
+            self.link.code_hash.clone(),
+            self.link.address.clone()
         )?.amount)
     }
 
-    pub fn token_info (&self) -> StdResult<snip20::TokenInfo> {
+    pub fn query_token_info (
+        &self, querier: &impl Querier
+    ) -> StdResult<snip20::TokenInfo> {
         snip20::token_info_query(
-            self.querier,
-            self.snip20.block_size,
-            self.snip20.link.code_hash.clone(),
-            self.snip20.link.address.clone()
+            querier,
+            self.block_size,
+            self.link.code_hash.clone(),
+            self.link.address.clone()
         )
     }
 
