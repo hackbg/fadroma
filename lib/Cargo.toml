@@ -36,24 +36,82 @@ require-admin     = { optional = true, path = "./composable-admin/require-admin"
 #thiserror        = { version = "1.0.24" }
 
 [features]
-browser         = ["backtraces"]
-backtraces      = ["cosmwasm-std/backtraces", "snafu/backtraces"]
-harness         = []
-derive          = ["derive-contract"]
+browser = [
+  "backtraces"
+]
 
-scrt-all        = [
-                    "scrt", "scrt-addr", "scrt-admin", "scrt-contract", "scrt-icc", "scrt-vk",
-                    "scrt-migrate", "scrt-snip20-api", "scrt-storage", "scrt-utils"
-                  ]
-scrt            = ["cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema", "snafu", "schemars", "secret-toolkit"]
-scrt-addr       = ["scrt"]
-scrt-admin      = ["derive", "scrt-storage", "require-admin"]
-scrt-contract   = ["scrt", "serde"]
-scrt-icc        = ["scrt", "scrt-addr", "serde"]
-scrt-migrate    = ["scrt-icc", "scrt-admin"]
-scrt-snip20-api = ["scrt"]
-scrt-storage    = ["scrt", "serde"]
-scrt-utils      = ["scrt", "rand_chacha", "rand_core", "sha2", "subtle", "primitive-types"]
-scrt-vk         = ["derive", "scrt-storage", "scrt-utils"]
+backtraces = [
+  "cosmwasm-std/backtraces",
+  "snafu/backtraces"
+]
 
-terra           = []
+harness = []
+
+derive = [
+  "derive-contract"
+]
+
+scrt-all = [
+  "scrt",
+  "scrt-addr",
+  "scrt-admin",
+  "scrt-contract",
+  "scrt-icc",
+  "scrt-vk",
+  "scrt-migrate",
+  "scrt-snip20-api",
+  "scrt-storage",
+  "scrt-utils",
+  "serde"
+]
+scrt = [
+  "cosmwasm-std",
+  "cosmwasm-storage",
+  "cosmwasm-schema", 
+  "snafu",
+  "schemars",
+  "secret-toolkit"
+]
+scrt-addr = [
+  "scrt"
+]
+scrt-admin = [
+  "derive",
+  "scrt-storage",
+  "require-admin"
+]
+scrt-contract = [
+  "scrt",
+  "serde"
+]
+scrt-icc = [
+  "scrt",
+  "scrt-addr",
+  "serde"
+]
+scrt-migrate = [
+  "scrt-icc",
+  "scrt-admin"
+]
+scrt-snip20-api = [
+  "scrt"
+]
+scrt-storage = [
+  "scrt",
+  "serde"
+]
+scrt-utils = [
+  "scrt",
+  "rand_chacha",
+  "rand_core",
+  "sha2",
+  "subtle",
+  "primitive-types"
+]
+scrt-vk = [
+  "derive",
+  "scrt-storage",
+  "scrt-utils"
+]
+
+terra = []
