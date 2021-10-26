@@ -48,8 +48,7 @@ export abstract class ContractCode {
       const image   = await pulled(this.buildImage, this.docker)
           , buildArgs =
             { Env:
-                [ 'CARGO_NET_GIT_FETCH_WITH_CLI=true'
-                , 'CARGO_TERM_VERBOSE=true'
+                [ 'CARGO_TERM_VERBOSE=true'
                 , 'CARGO_HTTP_TIMEOUT=240' ]
             , Tty:
                 true

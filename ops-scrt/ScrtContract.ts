@@ -27,5 +27,5 @@ export class ScrtEnsemble extends BaseEnsemble {
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export class ScrtContract extends ContractAPI {
-  buildImage  = 'enigmampc/secret-contract-optimizer:latest'
+  buildImage  = 'enigmampc/secret-contract-optimizer:1.0.5'
   buildScript = resolve(__dirname, 'ScrtBuild.sh') }
