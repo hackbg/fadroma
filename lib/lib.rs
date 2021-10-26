@@ -1,8 +1,20 @@
 pub mod composable;
 pub use composable::*;
 
-#[cfg(feature="scrt")]            pub mod scrt;
-#[cfg(feature="scrt")]            pub use scrt::*;
+#[cfg(feature="scrt")]
+pub mod scrt {
+    pub const BLOCK_SIZE: usize = 256;
+    pub use cosmwasm_std::*;
+    #[cfg(test)] pub use cosmwasm_std::testing::*;
+    pub use cosmwasm_storage::*;
+    pub use cosmwasm_schema::*;
+    pub use snafu;
+    pub use schemars;
+    pub use secret_toolkit;
+}
+
+#[cfg(feature="scrt")]
+pub use scrt::*;
 
 #[cfg(feature="scrt-addr")]       pub mod scrt_addr;
 #[cfg(feature="scrt-addr")]       pub use scrt_addr::*;
@@ -20,6 +32,7 @@ pub use composable::*;
 #[cfg(feature="scrt-contract")]   pub mod scrt_contract_state;
 #[cfg(feature="scrt-contract")]   pub use scrt_contract::*;
 #[cfg(feature="scrt-contract")]   pub use scrt_contract_api::*;
+#[cfg(all(test, feature="scrt-contract"))]   pub use scrt_contract_harness::*;
 
 #[cfg(feature="scrt-icc")]        pub mod scrt_callback;
 #[cfg(feature="scrt-icc")]        pub use scrt_callback::*;
