@@ -7,3 +7,4 @@ pub use snafu;
 pub use schemars;
 pub use secret_toolkit;
 pub use cosmwasm_std;
+pub use cosmwasm_storage;

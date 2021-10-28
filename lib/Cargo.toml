@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 cosmwasm-schema   = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-std      = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage  = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage  = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print", features = ["iterator"] }
 primitive-types   = { optional = true, version = "0.9.1", default-features = false }
 rand_chacha       = { optional = true, version = "0.2.2", default-features = false }
 rand_core         = { optional = true, version = "0.5.1", default-features = false }
