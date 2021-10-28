@@ -70,7 +70,7 @@ impl Uint256 {
             return Err(StdError::generic_err("Denominator cannot be zero"));
         }
 
-        (self * Uint256::from(nominator))? / Uint256::from(denominator)
+        (self * nominator)? / denominator
     }
 
     pub fn is_zero(&self) -> bool {
