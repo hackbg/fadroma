@@ -34,6 +34,7 @@ mod composable_admin;
 #[cfg(feature="scrt-vk")]         pub mod scrt_vk_auth;
 #[cfg(feature="scrt-vk")]         pub use scrt_vk::*;
 #[cfg(feature="scrt-vk")]         pub use scrt_vk_auth::*;
+#[cfg(feature="scrt-permit")]     pub mod scrt_permit;
 #[cfg(feature="derive")]          pub use derive_contract;
 
 #[cfg(feature="terra")] mod terra; 
