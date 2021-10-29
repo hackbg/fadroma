@@ -34,6 +34,14 @@ impl Humanize<ContractLink<HumanAddr>> for ContractLink<CanonicalAddr> {
         })
     }
 }
+impl From<Env> for ContractLink<HumanAddr> {
+    fn from (env: Env) -> ContractLink<HumanAddr> {
+        ContractLink {
+            address:   env.contract.address,
+            code_hash: env.contract_code_hash,
+        }
+    }
+}
 
 #[deprecated(note="Please use the type ContractLink<A> instead")]
 pub type ContractInstance<A> = ContractLink<A>;
