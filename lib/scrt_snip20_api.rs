@@ -9,15 +9,15 @@ use crate::{
 };
 
 
-pub struct ISnip20 <'a> {
-    pub link:   &'a ContractLink<HumanAddr>,
+pub struct ISnip20 {
+    pub link:   ContractLink<HumanAddr>,
     padding:    Option<String>,
     block_size: usize
 }
 
-impl<'a> ISnip20<'a> {
+impl ISnip20 {
 
-    pub fn attach (link: &'a ContractLink<HumanAddr>) -> Self {
+    pub fn attach (link: ContractLink<HumanAddr>) -> Self {
         Self {
             link,
             padding:    None,
