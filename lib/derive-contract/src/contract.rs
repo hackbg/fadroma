@@ -468,10 +468,10 @@ impl Contract {
         parse_quote! {
             #[cfg(target_arch = "wasm32")]
             mod wasm {
-                use cosmwasm_std::{
+                use super::cosmwasm_std::{
                     do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
-                    QueryResult, to_binary, StdResult, InitResponse, HandleResponse, Storage, Api,
-                    Querier, Extern, Env
+                    to_binary, StdResult, InitResponse, HandleResponse, Storage, Api, Querier,
+                    Extern, Env, Binary
                 };
 
                 fn entry_init<S: Storage, A: Api, Q: Querier>(
@@ -482,7 +482,7 @@ impl Contract {
                     super::#init_fn(deps, env, msg, super::DefaultImpl)
                 }
 
-                pub fn entry_handle<S: Storage, A: Api, Q: Querier>(
+                fn entry_handle<S: Storage, A: Api, Q: Querier>(
                     deps: &mut Extern<S, A, Q>,
                     env: Env,
                     msg: super::#handle_msg,
@@ -493,7 +493,7 @@ impl Contract {
                 fn entry_query<S: Storage, A: Api, Q: Querier>(
                     deps: &Extern<S, A, Q>,
                     msg: super::#query_msg
-                ) -> StdResult<QueryResult> {
+                ) -> StdResult<Binary> {
                     let result = super::#query_fn(deps, msg, super::DefaultImpl)?;
 
                     to_binary(&result)
