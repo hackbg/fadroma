@@ -1,5 +1,4 @@
 use crate::{
-    composable::BaseComposable,
     scrt::{
         BLOCK_SIZE, HumanAddr, StdResult,
         CosmosMsg, Uint128, Binary,
@@ -97,15 +96,22 @@ impl<'a> ISnip20<'a> {
         )
     }
 
+    pub fn increase_allowance (
+        &self, recipient: &HumanAddr, amount: Uint128, duration: Option<u64>
+    ) -> StdResult<CosmosMsg> {
+        snip20::increase_allowance_msg(
+            recipient.clone(), amount, duration,
+            None, BLOCK_SIZE,
+            self.link.code_hash.clone(), self.link.address.clone()
+        )
+    }
+
     pub fn query_balance (
         &self, querier: &impl Querier, address: &HumanAddr, vk: &str
     ) -> StdResult<Uint128> {
         Ok(snip20::balance_query(
-            querier,
-            address.clone(), vk.into(),
-            self.block_size,
-            self.link.code_hash.clone(),
-            self.link.address.clone()
+            querier, address.clone(), vk.into(),
+            self.block_size, self.link.code_hash.clone(), self.link.address.clone()
         )?.amount)
     }
 
@@ -114,9 +120,7 @@ impl<'a> ISnip20<'a> {
     ) -> StdResult<snip20::TokenInfo> {
         snip20::token_info_query(
             querier,
-            self.block_size,
-            self.link.code_hash.clone(),
-            self.link.address.clone()
+            self.block_size, self.link.code_hash.clone(), self.link.address.clone()
         )
     }
 
