@@ -1,5 +1,8 @@
-pub mod composable;
+mod composable;
 pub use composable::*;
+
+mod response_builder;
+pub use response_builder::*;
 
 #[cfg(feature="scrt")]
 pub mod scrt {
@@ -13,8 +16,7 @@ pub mod scrt {
     pub use secret_toolkit;
 }
 
-#[cfg(feature="scrt")]
-pub use scrt::*;
+#[cfg(feature="scrt")] pub use scrt::*;
 
 #[cfg(feature="scrt-addr")]       pub mod scrt_addr;
 #[cfg(feature="scrt-addr")]       pub use scrt_addr::*;
