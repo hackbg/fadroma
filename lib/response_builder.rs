@@ -6,7 +6,7 @@ use crate::*;
 pub trait HandleResponseBuilder {
     fn msg (mut self, msg: CosmosMsg) ->
         StdResult<Self> where Self: Sized;
-    fn log (mut self, key: String, value: String) ->
+    fn log (mut self, key: &str, value: &str) ->
         StdResult<Self> where Self: Sized;
     fn data <T: serde::Serialize> (mut self, data: &T) ->
         StdResult<Self> where Self: Sized;
@@ -17,8 +17,8 @@ impl HandleResponseBuilder for HandleResponse {
         self.messages.push(msg);
         Ok(self)
     }
-    fn log (mut self, key: String, value: String) -> StdResult<Self> {
-        self.log.push(LogAttribute { key, value });
+    fn log (mut self, key: &str, value: &str) -> StdResult<Self> {
+        self.log.push(LogAttribute { key: key.to_string(), value: value.to_string() });
         Ok(self)
     }
     fn data <T: serde::Serialize> (mut self, data: &T) -> StdResult<Self> {
