@@ -5,7 +5,8 @@ use fadroma::{
         HumanAddr, Uint128, Binary, StdError, StdResult
     },
     scrt_callback::Callback,
-    scrt_vk::ViewingKey
+    scrt_vk::ViewingKey,
+    scrt_permit::Permit
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -285,6 +286,12 @@ pub enum HandleMsg {
         level: ContractStatusLevel,
         padding: Option<String>,
     },
+
+    // Permit
+    RevokePermit {
+        permit_name: String,
+        padding: Option<String>,
+    }
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
@@ -378,6 +385,11 @@ pub enum HandleAnswer {
     SetContractStatus {
         status: ResponseStatus,
     },
+
+    // Permit
+    RevokePemit {
+        status: ResponseStatus,
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -408,6 +420,47 @@ pub enum QueryMsg {
         page_size: u32,
     },
     Minters {},
+    WithPermit {
+        permit: Permit<QueryPermission>,
+        query: QueryWithPermit,
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum QueryWithPermit {
+    Allowance {
+        owner: HumanAddr,
+        spender: HumanAddr,
+    },
+    Balance {},
+    TransferHistory {
+        page: Option<u32>,
+        page_size: u32,
+    },
+    TransactionHistory {
+        page: Option<u32>,
+        page_size: u32,
+    },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum QueryPermission {
+    /// Allowance for SNIP-20 - Permission to query allowance of the owner & spender
+    Allowance,
+    /// Balance for SNIP-20 - Permission to query balance
+    Balance,
+    /// History for SNIP-20 - Permission to query transfer_history & transaction_hisotry
+    History,
+    /// Owner permission indicates that the bearer of this permit should be granted all
+    /// the access of the creator/signer of the permit.  SNIP-721 uses this to grant
+    /// viewing access to all data that the permit creator owns and is whitelisted for.
+    /// For SNIP-721 use, a permit with Owner permission should NEVER be given to
+    /// anyone else.  If someone wants to share private data, they should whitelist
+    /// the address they want to share with via a SetWhitelistedApproval tx, and that
+    /// address will view the data by creating their own permit with Owner permission
+    Owner,
 }
 
 impl QueryMsg {

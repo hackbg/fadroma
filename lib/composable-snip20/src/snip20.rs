@@ -6,7 +6,8 @@ use fadroma::{
         Env, BlockInfo, log, to_binary
     },
     scrt_vk::{ViewingKey, VIEWING_KEY_SIZE},
-    scrt_crypto::sha_256
+    scrt_crypto::sha_256,
+    scrt_permit::Permit
 };
 use std::fmt;
 use std::fmt::Write;
@@ -14,7 +15,8 @@ use std::ops::RangeInclusive;
 use crate::{
     msg::{
         ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg,
-        QueryAnswer, ResponseStatus, QueryMsg
+        QueryAnswer, ResponseStatus, QueryMsg, QueryWithPermit,
+        QueryPermission
     },
     receiver::Snip20ReceiveMsg,
     state::{
@@ -114,6 +116,7 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
     })?;
     config.set_total_supply(total_supply);
     config.set_contract_status(ContractStatusLevel::NormalRun);
+    config.set_self_address(&env.contract.address)?;
 
     let minters = if init_config.mint_enabled() {
         Vec::from([admin])
@@ -255,7 +258,10 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
         }
         HandleMsg::BatchSendFrom { actions, .. } => snip20.batch_send_from(deps, env, actions),
         HandleMsg::BatchBurnFrom { actions, .. } => snip20.batch_burn_from(deps, env, actions),
-        HandleMsg::BatchMint { actions, .. } => snip20.batch_mint(deps, env, actions)
+        HandleMsg::BatchMint { actions, .. } => snip20.batch_mint(deps, env, actions),
+
+        // SNIP24
+        HandleMsg::RevokePermit { permit_name, .. } => snip20.revoke_permit(deps, env, permit_name)
     };
 
     pad_response(response)
@@ -270,7 +276,8 @@ pub fn snip20_query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::ContractStatus {} => snip20.query_contract_status(&deps.storage),
         QueryMsg::ExchangeRate {} => snip20.query_exchange_rate(&deps.storage),
         QueryMsg::Minters { .. } => snip20.query_minters(deps),
-        _ => authenticated_queries(deps, msg, snip20)
+        QueryMsg::WithPermit { permit, query } => permit_queries(deps, snip20, permit, query),
+        _ => viewing_keys_queries(deps, msg, snip20)
     }
 }
 
@@ -1263,6 +1270,27 @@ pub trait Snip20  {
         Ok(res)
     }
 
+    // SNIP24
+
+    fn revoke_permit<S: Storage, A: Api, Q: Querier>(
+        &self,
+        deps: &mut Extern<S, A, Q>,
+        env: Env,
+        permit_name: String
+    ) -> StdResult<HandleResponse> {
+        Permit::<QueryPermission>::revoke(
+            &mut deps.storage,
+            &env.message.sender,
+            &permit_name
+        );
+    
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![],
+            data: Some(to_binary(&HandleAnswer::RevokePemit { status: ResponseStatus::Success })?),
+        })
+    }
+
     // Query
 
     fn query_exchange_rate(&self, storage: &impl ReadonlyStorage) -> StdResult<Binary> {
@@ -1746,7 +1774,7 @@ impl fmt::Display for SymbolValidation {
     }
 }
 
-fn authenticated_queries<S: Storage, A: Api, Q: Querier>(
+fn viewing_keys_queries<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     msg: QueryMsg,
     snip20: impl Snip20
@@ -1784,9 +1812,71 @@ fn authenticated_queries<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    Ok(to_binary(&QueryAnswer::ViewingKeyError {
+    to_binary(&QueryAnswer::ViewingKeyError {
         msg: "Wrong viewing key for this address or viewing key not set".to_string(),
-    })?)
+    })
+}
+
+fn permit_queries<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    snip20: impl Snip20,
+    permit: Permit<QueryPermission>,
+    query: QueryWithPermit,
+) -> Result<Binary, StdError> {
+    let token_address = ReadonlyConfig::from_storage(&deps.storage)
+        .self_address()?;
+
+    let account = permit.validate(deps, token_address)?;
+
+    match query {
+        QueryWithPermit::Balance {} => {
+            if !permit.check_permission(&QueryPermission::Balance) {
+                return Err(StdError::generic_err(format!(
+                    "No permission to query balance, got permissions {:?}",
+                    permit.params.permissions
+                )));
+            }
+
+            snip20.query_balance(deps, &account)
+        }
+        QueryWithPermit::TransferHistory { page, page_size } => {
+            if !permit.check_permission(&QueryPermission::History) {
+                return Err(StdError::generic_err(format!(
+                    "No permission to query history, got permissions {:?}",
+                    permit.params.permissions
+                )));
+            }
+
+            snip20.query_transfers(deps, &account, page.unwrap_or(0), page_size)
+        }
+        QueryWithPermit::TransactionHistory { page, page_size } => {
+            if !permit.check_permission(&QueryPermission::History) {
+                return Err(StdError::generic_err(format!(
+                    "No permission to query history, got permissions {:?}",
+                    permit.params.permissions
+                )));
+            }
+
+            snip20.query_transactions(deps, &account, page.unwrap_or(0), page_size)
+        }
+        QueryWithPermit::Allowance { owner, spender } => {
+            if !permit.check_permission(&QueryPermission::Allowance) {
+                return Err(StdError::generic_err(format!(
+                    "No permission to query allowance, got permissions {:?}",
+                    permit.params.permissions
+                )));
+            }
+
+            if account != owner && account != spender {
+                return Err(StdError::generic_err(format!(
+                    "Cannot query allowance. Requires permit for either owner {:?} or spender {:?}, got permit for {:?}",
+                    owner.as_str(), spender.as_str(), account.as_str()
+                )));
+            }
+
+            snip20.query_allowance(deps, owner, spender)
+        }
+    }
 }
 
 fn is_admin<S: Storage>(config: &Config<S>, account: &HumanAddr) -> StdResult<bool> {

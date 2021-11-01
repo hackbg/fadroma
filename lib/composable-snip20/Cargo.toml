@@ -20,7 +20,8 @@ fadroma = { path = "../", features = [
   "scrt-icc",
   "scrt-storage",
   "scrt-utils",
-  "scrt-vk"
+  "scrt-vk",
+  "scrt-permit"
 ] }
 
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
