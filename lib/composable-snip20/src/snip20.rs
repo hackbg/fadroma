@@ -185,11 +185,12 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
         } => snip20.transfer(deps, env, recipient, amount, memo),
         HandleMsg::Send {
             recipient,
+            recipient_code_hash,
             amount,
             msg,
             memo,
             ..
-        } => snip20.send(deps, env, recipient, amount, memo, msg),
+        } => snip20.send(deps, env, recipient, recipient_code_hash, amount, memo, msg),
         HandleMsg::Burn { amount, memo, .. } => snip20.burn(deps, env, amount, memo),
         HandleMsg::RegisterReceive { code_hash, .. } => snip20.register_receive(deps, env, code_hash),
         HandleMsg::CreateViewingKey { entropy, .. } => snip20.create_viewing_key(deps, env, entropy),
@@ -218,11 +219,12 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::SendFrom {
             owner,
             recipient,
+            recipient_code_hash,
             amount,
             msg,
             memo,
             ..
-        } => snip20.send_from(deps, env, owner, recipient, amount, memo, msg),
+        } => snip20.send_from(deps, env, owner, recipient, recipient_code_hash, amount, memo, msg),
         HandleMsg::BurnFrom {
             owner,
             amount,
@@ -458,6 +460,7 @@ pub trait Snip20  {
         deps: &mut Extern<S, A, Q>,
         env: Env,
         recipient: HumanAddr,
+        recipient_code_hash: Option<String>,
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
@@ -471,6 +474,7 @@ pub trait Snip20  {
             sender,
             &sender_canon,
             recipient,
+            recipient_code_hash,
             amount,
             memo,
             msg,
@@ -730,6 +734,7 @@ pub trait Snip20  {
         env: Env,
         owner: HumanAddr,
         recipient: HumanAddr,
+        recipient_code_hash: Option<String>,
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
@@ -746,6 +751,7 @@ pub trait Snip20  {
             &spender_canon,
             owner,
             recipient,
+            recipient_code_hash,
             amount,
             memo,
             msg,
@@ -1047,6 +1053,7 @@ pub trait Snip20  {
                 sender.clone(),
                 &sender_canon,
                 action.recipient,
+                action.recipient_code_hash,
                 action.amount,
                 action.memo,
                 action.msg,
@@ -1112,6 +1119,7 @@ pub trait Snip20  {
                 &spender_canon,
                 action.owner,
                 action.recipient,
+                action.recipient_code_hash,
                 action.amount,
                 action.memo,
                 action.msg,
@@ -1444,6 +1452,7 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
     sender: HumanAddr,
     sender_canon: &CanonicalAddr, // redundant but more efficient
     recipient: HumanAddr,
+    recipient_code_hash: Option<String>,
     amount: Uint128,
     memo: Option<String>,
     msg: Option<Binary>,
@@ -1464,6 +1473,7 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
         &deps.storage,
         messages,
         recipient,
+        recipient_code_hash,
         msg,
         sender.clone(),
         sender,
@@ -1479,12 +1489,21 @@ pub fn add_receiver_api_callback<S: ReadonlyStorage>(
     storage: &S,
     messages: &mut Vec<CosmosMsg>,
     recipient: HumanAddr,
+    recipient_code_hash: Option<String>,
     msg: Option<Binary>,
     sender: HumanAddr,
     from: HumanAddr,
     amount: Uint128,
     memo: Option<String>,
 ) -> StdResult<()> {
+    if let Some(receiver_hash) = recipient_code_hash {
+        let receiver_msg = Snip20ReceiveMsg::new(sender, from, amount, memo, msg);
+        let callback_msg = receiver_msg.into_cosmos_msg(receiver_hash, recipient)?;
+
+        messages.push(callback_msg);
+        return Ok(());
+    }
+
     let receiver_hash = get_receiver_hash(storage, &recipient);
     if let Some(receiver_hash) = receiver_hash {
         let receiver_hash = receiver_hash?;
@@ -1558,6 +1577,7 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
     spender_canon: &CanonicalAddr, // redundant but more efficient
     owner: HumanAddr,
     recipient: HumanAddr,
+    recipient_code_hash: Option<String>,
     amount: Uint128,
     memo: Option<String>,
     msg: Option<Binary>,
@@ -1579,6 +1599,7 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
         &deps.storage,
         messages,
         recipient,
+        recipient_code_hash,
         msg,
         env.message.sender,
         owner,

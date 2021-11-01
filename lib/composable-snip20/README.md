@@ -2,7 +2,8 @@
 **Based on the SNIP-20 Reference Implementation in:** [https://github.com/enigmampc/snip20-reference-impl](https://github.com/enigmampc/snip20-reference-impl)
 **Forked at:** [5bde578](https://github.com/enigmampc/snip20-reference-impl/tree/5bde5789a856462d1b77b02018867c56620022c5)
 
-This is an implementation of a [SNIP-20](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-20.md), [SNIP-21](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-21.md), and [SNIP-22](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-22.md) compliant token contract.
+This is an implementation of a [SNIP-20](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-20.md), [SNIP-21](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-21.md), [SNIP-22](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-22.md) and [SNIP-23](https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-23.md) compliant token contract.
+
 At the time of token creation you may configure:
 * Public Total Supply:  If you enable this, the token's total supply will be displayed whenever a TokenInfo query is performed.  DEFAULT: false
 * Enable Deposit: If you enable this, you will be able to convert from SCRT to the token.*  DEFAULT: false

@@ -360,6 +360,7 @@ fn test_handle_send() {
 
     let handle_msg = HandleMsg::Send {
         recipient: HumanAddr("contract".to_string()),
+        recipient_code_hash: None,
         amount: Uint128(100),
         memo: Some("my memo".to_string()),
         padding: None,
@@ -371,6 +372,47 @@ fn test_handle_send() {
     assert!(result.messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: HumanAddr("contract".to_string()),
         callback_code_hash: "this_is_a_hash_of_a_code".to_string(),
+        msg: Snip20ReceiveMsg::new(
+            HumanAddr("bob".to_string()),
+            HumanAddr("bob".to_string()),
+            Uint128(100),
+            Some("my memo".to_string()),
+            Some(to_binary("hey hey you you").unwrap())
+        )
+        .into_binary()
+        .unwrap(),
+        send: vec![]
+    })));
+}
+
+#[test]
+fn test_handle_send_with_code_hash() {
+    let (init_result, mut deps) = init_helper(vec![InitialBalance {
+        address: HumanAddr("bob".to_string()),
+        amount: Uint128(5000),
+    }]);
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    let code_hash = "code_hash_of_recipient";
+
+    let handle_msg = HandleMsg::Send {
+        recipient: HumanAddr("contract".to_string()),
+        recipient_code_hash: Some(code_hash.into()),
+        amount: Uint128(100),
+        memo: Some("my memo".to_string()),
+        padding: None,
+        msg: Some(to_binary("hey hey you you").unwrap()),
+    };
+    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let result = handle_result.unwrap();
+    assert!(ensure_success(result.clone()));
+    assert!(result.messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: HumanAddr("contract".to_string()),
+        callback_code_hash: code_hash.into(),
         msg: Snip20ReceiveMsg::new(
             HumanAddr("bob".to_string()),
             HumanAddr("bob".to_string()),
@@ -634,6 +676,7 @@ fn test_handle_send_from() {
     let handle_msg = HandleMsg::SendFrom {
         owner: HumanAddr("bob".to_string()),
         recipient: HumanAddr("alice".to_string()),
+        recipient_code_hash: None,
         amount: Uint128(2500),
         memo: None,
         msg: None,
@@ -659,6 +702,7 @@ fn test_handle_send_from() {
     let handle_msg = HandleMsg::SendFrom {
         owner: HumanAddr("bob".to_string()),
         recipient: HumanAddr("alice".to_string()),
+        recipient_code_hash: None,
         amount: Uint128(2500),
         memo: None,
         msg: None,
@@ -690,6 +734,7 @@ fn test_handle_send_from() {
     let handle_msg = HandleMsg::SendFrom {
         owner: HumanAddr("bob".to_string()),
         recipient: HumanAddr("contract".to_string()),
+        recipient_code_hash: None,
         amount: Uint128(2000),
         memo: Some("my memo".to_string()),
         msg: Some(send_msg),
@@ -727,6 +772,7 @@ fn test_handle_send_from() {
     let handle_msg = HandleMsg::SendFrom {
         owner: HumanAddr("bob".to_string()),
         recipient: HumanAddr("alice".to_string()),
+        recipient_code_hash: None,
         amount: Uint128(1),
         memo: None,
         msg: None,
@@ -735,6 +781,61 @@ fn test_handle_send_from() {
     let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
+}
+
+#[test]
+fn test_handle_send_from_with_code_hash() {
+    let (init_result, mut deps) = init_helper(vec![InitialBalance {
+        address: HumanAddr("bob".to_string()),
+        amount: Uint128(5000),
+    }]);
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
+
+    let handle_msg = HandleMsg::IncreaseAllowance {
+        spender: HumanAddr("alice".to_string()),
+        amount: Uint128(2000),
+        padding: None,
+        expiration: None,
+    };
+    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    assert!(
+        handle_result.is_ok(),
+        "handle() failed: {}",
+        handle_result.err().unwrap()
+    );
+
+    let code_hash = "code_hash_of_recipient";
+
+    let handle_msg = HandleMsg::SendFrom {
+        owner: "bob".into(),
+        recipient: HumanAddr("contract".to_string()),
+        recipient_code_hash: Some(code_hash.into()),
+        amount: Uint128(2000),
+        memo: Some("my memo".to_string()),
+        padding: None,
+        msg: Some(to_binary("hey hey you you").unwrap()),
+    };
+    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let result = handle_result.unwrap();
+    assert!(ensure_success(result.clone()));
+    assert!(result.messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: HumanAddr("contract".to_string()),
+        callback_code_hash: code_hash.into(),
+        msg: Snip20ReceiveMsg::new(
+            HumanAddr("alice".to_string()),
+            "bob".into(),
+            Uint128(2000),
+            Some("my memo".to_string()),
+            Some(to_binary("hey hey you you").unwrap())
+        )
+        .into_binary()
+        .unwrap(),
+        send: vec![]
+    })));
 }
 
 #[test]
