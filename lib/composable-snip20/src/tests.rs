@@ -11,7 +11,7 @@ use crate::{
         get_receiver_hash, read_allowance, read_viewing_key,
         ReadonlyBalances, ReadonlyConfig
     },
-    msg::*
+    msg::{*, ContractStatusLevel}
 };
 
 fn init<S: Storage, A: Api, Q: Querier>(

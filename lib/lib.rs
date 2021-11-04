@@ -50,9 +50,6 @@ pub mod scrt {
 #[cfg(feature="scrt-icc")]        pub mod scrt_link;
 #[cfg(feature="scrt-icc")]        pub use scrt_link::*;
 
-#[cfg(feature="scrt-migrate")]    pub mod scrt_migrate;
-#[cfg(feature="scrt-migrate")]    pub use scrt_migrate::*;
-
 #[cfg(feature="scrt-snip20-api")] pub mod scrt_snip20_api;
 #[cfg(feature="scrt-snip20-api")] pub use scrt_snip20_api::*;
 
@@ -62,9 +59,17 @@ pub mod scrt {
 #[cfg(feature="scrt-storage")]    pub use scrt_storage::*;
 
 #[cfg(feature="scrt-vk")]         pub mod scrt_vk;
-#[cfg(feature="scrt-vk")]         pub mod scrt_vk_auth;
 #[cfg(feature="scrt-vk")]         pub use scrt_vk::*;
-#[cfg(feature="scrt-vk")]         pub use scrt_vk_auth::*;
+
+#[cfg(feature="scrt-vk")]         pub mod scrt_vk_auth;
+//#[cfg(feature="scrt-vk")]         pub use scrt_vk_auth::*;
+// pollutes namespace with generated HandleMsg/QueryMsg enums
+
+// also pollutes namespace but can't be disabled due to the macro contained within
+// (or can it?)
+#[cfg(feature="scrt-migrate")]    pub mod scrt_migrate;
+#[cfg(feature="scrt-migrate")]    pub use scrt_migrate::*;
+
 
 #[cfg(feature="derive")]          pub use derive_contract;
 
