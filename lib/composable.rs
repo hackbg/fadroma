@@ -1,6 +1,4 @@
-use crate::scrt::{Extern, Storage, Api, Querier, StdResult, /*StdError,*/ to_vec, from_slice};
-use crate::scrt_addr::{Humanize, Canonize};
-use crate::scrt_storage::concat;
+use crate::*;
 use serde::{Serialize, de::DeserializeOwned};
 
 pub trait BaseComposable<S, A, Q> {

@@ -1,6 +1,6 @@
+use crate::*;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
-pub use crate::scrt::{ReadonlyStorage, StdResult, Storage, from_slice, to_vec};
 
 /// Save something to the storage.
 #[inline]

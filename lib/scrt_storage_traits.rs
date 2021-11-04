@@ -1,11 +1,4 @@
-use crate::{
-    scrt::*,
-    scrt_storage::{
-        load as storage_load,
-        remove as storage_remove,
-        save as storage_save,
-    }
-};
+use crate::*;
 use serde::{de::DeserializeOwned, Serialize};
 
 /// Trait that will add storage options to your struct,

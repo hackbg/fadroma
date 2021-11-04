@@ -8,6 +8,8 @@ members = [
   "lib/",
   "lib/composable-admin",
   "lib/composable-snip20",
+  "lib/declare-contract",
+  "lib/derive-contract",
   "lib/require-admin",
 ]
 

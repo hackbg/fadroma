@@ -16,12 +16,7 @@ authors = [
 #debug-print = ["cosmwasm-std/debug-print"]
 
 [dependencies]
-fadroma = { path = "../", features = [
-  "scrt-icc",
-  "scrt-storage",
-  "scrt-utils",
-  "scrt-vk"
-] }
+fadroma = { path = "../" }
 
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 schemars = "0.7"

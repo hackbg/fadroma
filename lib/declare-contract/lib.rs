@@ -1,3 +1,17 @@
+mod api;
+use api::*;
+
+mod binding;
+use binding::*;
+
+mod impl;
+use impl::*;
+
+mod state;
+use state::*;
+#[cfg(test)] mod harness;
+#[cfg(test)] use harness:*;
+
 //! # Fadroma SCRT Contract macro.
 //!
 //! Incorporates the actual syntactic structure of a SCRT contract implementation,
