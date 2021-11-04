@@ -1,15 +1,6 @@
-name: Run tests
+name: Run JS tests
 on: [push, pull_request]
 jobs:
-
-  rs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-        with: { node-version: 14 }
-      - name: test rust modules
-        run: yarn && yarn test-rs
 
   js:
     runs-on: ubuntu-latest
