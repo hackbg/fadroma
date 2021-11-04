@@ -18,13 +18,13 @@
     "@hackbg/ganesha": "workspace:*",
     "@types/mocha": "^9.0.0",
     "chai": "^4.3.4",
-    "documentation": "^13.2.1",
-    "mocha": "^8.0.1",
-    "typedoc": "^0.21.6"
+    "documentation": "^13.2.5",
+    "mocha": "^8.4.0",
+    "typedoc": "^0.21.9"
   },
   "dependencies": {
     "@types/mkdirp": "^1.0.2",
-    "@types/node": "^16.9.4",
+    "@types/node": "^16.11.6",
     "@types/prettyjson": "^0.0.30",
     "@types/rimraf": "^3.0.2",
     "bignumber.js": "^9.0.1"
