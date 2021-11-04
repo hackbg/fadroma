@@ -4,6 +4,15 @@ pub use composable::*;
 mod response_builder;
 pub use response_builder::*;
 
+mod crypto;
+pub use crypto::*;
+
+mod decimal;
+pub use decimal::*;
+
+mod uint256;
+pub use uint256::*;
+
 #[cfg(feature="scrt")]
 pub mod scrt {
     pub const BLOCK_SIZE: usize = 256;
@@ -51,10 +60,6 @@ pub mod scrt {
 #[cfg(feature="scrt-storage")]    pub mod scrt_storage_traits;
 #[cfg(feature="scrt-storage")]    pub mod scrt_storage_traits2;
 #[cfg(feature="scrt-storage")]    pub use scrt_storage::*;
-
-#[cfg(feature="scrt-utils")]      pub mod scrt_decimal;
-#[cfg(feature="scrt-utils")]      pub mod scrt_crypto;
-#[cfg(feature="scrt-utils")]      pub mod scrt_uint256;
 
 #[cfg(feature="scrt-vk")]         pub mod scrt_vk;
 #[cfg(feature="scrt-vk")]         pub mod scrt_vk_auth;

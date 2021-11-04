@@ -1,4 +1,4 @@
-use crate::scrt::{Extern, Storage, Api, Querier, StdResult, StdError, to_vec, from_slice};
+use crate::scrt::{Extern, Storage, Api, Querier, StdResult, /*StdError,*/ to_vec, from_slice};
 use crate::scrt_addr::{Humanize, Canonize};
 use crate::scrt_storage::concat;
 use serde::{Serialize, de::DeserializeOwned};
@@ -25,30 +25,30 @@ impl<S: Storage, A: Api, Q: Querier> BaseComposable<S, A, Q> for Extern<S, A, Q>
     }
 }
 
+pub type UsuallyOk = StdResult<()>;
+
+pub type Eventually<Value> = StdResult<Option<Value>>;
+
 pub trait Composable<S, A, Q>: BaseComposable<S, A, Q> {
-    fn set <V: Serialize> (&mut self, key: &[u8], value: V)
-        -> StdResult<()>;
-    fn set_ns <V: Serialize> (&mut self, ns: &[u8], key: &[u8], value: V)
-        -> StdResult<()>;
-    fn get <V: DeserializeOwned> (&self, key: &[u8])
-        -> StdResult<Option<V>>;
-    fn get_ns <V: DeserializeOwned> (&self, ns: &[u8], key: &[u8])
-        -> StdResult<Option<V>>;
-    fn humanize <V: Humanize<U>, U: Canonize<V>> (&self, value: V) ->
-        StdResult<U>;
-    fn canonize <V: Canonize<U>, U: Humanize<V>> (&self, value: V)
-        -> StdResult<U>;
+    fn set    <Value: Serialize> (&mut self, key: &[u8], value: Value) -> UsuallyOk;
+    fn set_ns <Value: Serialize> (&mut self, ns: &[u8], key: &[u8], value: Value) -> UsuallyOk;
+
+    fn get    <Value: DeserializeOwned> (&self, key: &[u8]) -> Eventually<Value>;
+    fn get_ns <Value: DeserializeOwned> (&self, ns: &[u8], key: &[u8]) -> Eventually<Value>;
+
+    fn humanize <Value: Humanize<U>, U: Canonize<Value>> (&self, value: Value) -> StdResult<U>;
+    fn canonize <Value: Canonize<U>, U: Humanize<Value>> (&self, value: Value) -> StdResult<U>;
 }
 
 impl<S: Storage, A: Api, Q: Querier> Composable<S, A, Q> for Extern<S, A, Q> {
-    fn set <V: Serialize> (&mut self, key: &[u8], value: V) -> StdResult<()> {
+    fn set <Value: Serialize> (&mut self, key: &[u8], value: Value) -> UsuallyOk {
         self.storage.set(key, &to_vec(&Some(value))?);
         Ok(())
     }
-    fn set_ns <V: Serialize> (&mut self, ns: &[u8], key: &[u8], value: V) -> StdResult<()> {
+    fn set_ns <Value: Serialize> (&mut self, ns: &[u8], key: &[u8], value: Value) -> UsuallyOk {
         self.set(&concat(ns, key), value)
     }
-    fn get <V: DeserializeOwned> (&self, key: &[u8]) -> StdResult<Option<V>> {
+    fn get <Value: DeserializeOwned> (&self, key: &[u8]) -> Eventually<Value> {
         if let Some(data) = self.storage.get(key) {
             Ok(from_slice(&data)?)
         } else {
@@ -56,13 +56,13 @@ impl<S: Storage, A: Api, Q: Querier> Composable<S, A, Q> for Extern<S, A, Q> {
             //Err(StdError::generic_err(format!("{:?}: not found in storage", &key)))
         }
     }
-    fn get_ns <V: DeserializeOwned> (&self, ns: &[u8], key: &[u8]) -> StdResult<Option<V>> {
+    fn get_ns <Value: DeserializeOwned> (&self, ns: &[u8], key: &[u8]) -> Eventually<Value> {
         self.get(&concat(ns, key))
     }
-    fn humanize <V: Humanize<U>, U: Canonize<V>> (&self, value: V) -> StdResult<U> {
+    fn humanize <Value: Humanize<U>, U: Canonize<Value>> (&self, value: Value) -> StdResult<U> {
         value.humanize(&self.api)
     }
-    fn canonize <V: Canonize<U>, U: Humanize<V>> (&self, value: V) -> StdResult<U> {
+    fn canonize <Value: Canonize<U>, U: Humanize<Value>> (&self, value: Value) -> StdResult<U> {
         value.canonize(&self.api)
     }
 }

@@ -9,6 +9,7 @@ use crate::{
 };
 
 
+#[derive(Clone, Debug)]
 pub struct ISnip20 {
     pub link:   ContractLink<HumanAddr>,
     padding:    Option<String>,

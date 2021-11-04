@@ -21,52 +21,26 @@
 //! (e.g. if you have a separate API crate defining the interface for multiple contracts),
 //! these macros allow for `contract!` to just import and use the external message structs/enums.
 
-/// Define an struct that implements the necessary traits to be used as message.
+/// Define a struct that implements the necessary traits to be used as message.
 /// (de/serialization, schema generation, cloning, debug printing, equality comparison)
 #[macro_export] macro_rules! message {
-    ( // 1.        2
-      $Msg:ident { $(
-          // 3.             4.             5.
-          $(#[$meta:meta])* $field:ident : $type:ty
-      // 6.
-      ),* }
-
-      // Arguments correspond to the body of a struct definition
-      // and are passed through to a public struct with the required attributes.
-      // 1. Name of the message you're defining
-      // 2. For every field...
-      // 3. Passthru attribute macros, doc comments, etc
-      // 4. The field name. `pub` is added automatically
-      // 5. The field type.
-      // 6. Repeat 2 one or more times for every comma-separated field
-) => {
+    ($Msg:ident $body:tt) => {
         #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
         #[serde(rename_all="snake_case")]
-        pub struct $Msg { $( $(#[$meta])* pub $field: $type ),* }
+        pub struct $Msg $body
     }
 }
 
 /// Define an enum that implements the necessary traits to be used as message.
 /// (de/serialization, schema generation, cloning, debug printing, equality comparison)
 #[macro_export] macro_rules! messages {
-
-    ( $( $Enum:ident {
-        $( $(#[$meta:meta])* $Msg:ident { $(
-            $(#[$field_meta:meta])*
-            $field:ident : $type:ty
-        ),* } )*
-    } )*
-    ) => { $(
+    ( $( $Enum:ident { $( $(#[$meta:meta])* $Msg:ident $($body:tt)? )* } )* ) => { $(
         #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
         #[serde(rename_all="snake_case")]
         pub enum $Enum { $(
-            $(#[$meta])* $Msg { $(
-                $(#[$field_meta])*
-                $field : $type
-            ),* }
+            $(#[$meta])* $Msg $($body)?
         ),* } )*
     }
-
 }
 
 /// Define instantiation API. Normally called by `contract!` within the auto-generated `mod msg`.
