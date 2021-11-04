@@ -486,8 +486,6 @@ importers:
     specifiers:
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-1.0': workspace:*
-      '@fadroma/scrt-1.2': workspace:*
       '@fadroma/tools': workspace:*
       '@hackbg/ganesha': workspace:*
       '@iov/encoding': ^2.1.0
@@ -501,8 +499,6 @@ importers:
     dependencies:
       '@fadroma/ops': link:../ops
       '@fadroma/scrt': link:../ops-scrt
-      '@fadroma/scrt-1.0': link:../ops-scrt-1.0
-      '@fadroma/scrt-1.2': link:../ops-scrt-1.2
       '@fadroma/tools': link:../tools
       '@hackbg/ganesha': link:../platforms/ganesha
       '@iov/encoding': 2.5.0
