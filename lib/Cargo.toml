@@ -23,8 +23,8 @@ serde             = { version = "1.0.103", default-features = false, features = 
 sha2              = { version = "0.9.1", default-features = false }
 snafu             = { version = "0.6.3" }
 subtle            = { version = "2.4.0", default-features = false }
-derive-contract   = { path = "./derive-contract" }
-require-admin     = { path = "./composable-admin/require-admin" }
+derive-contract   = { path = "../derive-contract" }
+require-admin     = { path = "../require-admin" }
 
 # Terra
 #cosmwasm-std     = { version = "0.15.0" }
@@ -36,7 +36,7 @@ require-admin     = { path = "./composable-admin/require-admin" }
 #thiserror        = { version = "1.0.24" }
 
 [features]
-default    = [ "scrt" ]
+default    = [ "scrt", "derive" ]
 browser    = [ "backtraces" ]
 backtraces = [ "cosmwasm-std/backtraces", "snafu/backtraces" ]
 harness    = []

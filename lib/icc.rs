@@ -1,4 +1,4 @@
-use crate::{scrt::*, scrt_addr::*};
+use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -8,20 +8,26 @@ pub type CodeHash = String;
 /// Info needed to instantiate a contract.
 #[derive(Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
 pub struct ContractInstantiationInfo {
+    pub id:        CodeId,
+
+    #[cfg(feature="scrt")]
     pub code_hash: CodeHash,
-    pub id:        CodeId
 }
 
 /// Info needed to talk to a contract instance.
 #[derive(Default, Serialize, Deserialize, JsonSchema, Clone, PartialEq, Debug)]
 pub struct ContractLink<A> {
     pub address:   A,
+
+    #[cfg(feature="scrt")]
     pub code_hash: CodeHash
 }
 impl Canonize<ContractLink<CanonicalAddr>> for ContractLink<HumanAddr> {
     fn canonize (&self, api: &impl Api) -> StdResult<ContractLink<CanonicalAddr>> {
         Ok(ContractLink {
             address:   self.address.canonize(api)?,
+
+            #[cfg(feature="scrt")]
             code_hash: self.code_hash.clone()
         })
     }
@@ -30,6 +36,8 @@ impl Humanize<ContractLink<HumanAddr>> for ContractLink<CanonicalAddr> {
     fn humanize (&self, api: &impl Api) -> StdResult<ContractLink<HumanAddr>> {
         Ok(ContractLink {
             address:   self.address.humanize(api)?,
+
+            #[cfg(feature="scrt")]
             code_hash: self.code_hash.clone()
         })
     }
@@ -38,6 +46,8 @@ impl From<Env> for ContractLink<HumanAddr> {
     fn from (env: Env) -> ContractLink<HumanAddr> {
         ContractLink {
             address:   env.contract.address,
+
+            #[cfg(feature="scrt")]
             code_hash: env.contract_code_hash,
         }
     }
@@ -45,3 +55,22 @@ impl From<Env> for ContractLink<HumanAddr> {
 
 #[deprecated(note="Please use the type ContractLink<A> instead")]
 pub type ContractInstance<A> = ContractLink<A>;
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+/// Info needed to have the other contract respond.
+pub struct Callback<A> {
+    /// The message to call.
+    pub msg: Binary,
+    /// Info about the contract requesting the callback.
+    pub contract: ContractLink<A>
+}
+impl Canonize<Callback<CanonicalAddr>> for Callback<HumanAddr> {
+    fn canonize (&self, api: &impl Api) -> StdResult<Callback<CanonicalAddr>> {
+        Ok(Callback { msg: self.msg.clone(), contract: self.contract.canonize(api)? })
+    }
+}
+impl Humanize<Callback<HumanAddr>> for Callback<CanonicalAddr> {
+    fn humanize (&self, api: &impl Api) -> StdResult<Callback<HumanAddr>> {
+        Ok(Callback { msg: self.msg.clone(), contract: self.contract.humanize(api)? })
+    }
+}

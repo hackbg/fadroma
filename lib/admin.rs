@@ -1,10 +1,4 @@
-use crate::{
-    scrt::{
-        HumanAddr, StdResult, InitResponse, HandleResponse,
-        Extern, Env, Querier, Storage, Api, StdError, CanonicalAddr
-    },
-    derive_contract::{contract, init, handle, query}
-};
+use crate::*;
 use schemars;
 use serde;
 
@@ -81,7 +75,6 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scrt::{mock_dependencies, mock_env};
 
     #[test]
     fn test_handle() {

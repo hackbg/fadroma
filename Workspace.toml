@@ -6,11 +6,10 @@
 [workspace]
 members = [
   "lib/",
-  "lib/composable-admin",
-  "lib/composable-snip20",
-  "lib/declare-contract",
-  "lib/derive-contract",
-  "lib/require-admin",
+  "composable-snip20",
+  "declare-contract",
+  "derive-contract",
+  "require-admin",
 ]
 
 [profile.release]

@@ -1,13 +1,4 @@
-use crate::{
-    scrt::{
-        BLOCK_SIZE, HumanAddr, StdResult,
-        CosmosMsg, Uint128, Binary,
-        Querier
-    },
-    scrt_link::ContractLink,
-    secret_toolkit::snip20
-};
-
+use crate::{*, secret_toolkit::snip20};
 
 #[derive(Clone, Debug)]
 pub struct ISnip20 {

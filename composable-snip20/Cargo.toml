@@ -16,7 +16,7 @@ authors = [
 #debug-print = ["cosmwasm-std/debug-print"]
 
 [dependencies]
-fadroma = { path = "../" }
+fadroma = { path = "../lib" }
 
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 schemars = "0.7"
