@@ -1,4 +1,4 @@
-use crate::*;
+use crate::{*, derive_contract::*};
 use schemars;
 use serde;
 
@@ -122,7 +122,7 @@ mod tests {
         let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
 
         match result {
-            QueryResponse::Admin { address } => {
+            admin::QueryResponse::Admin { address } => {
                 assert!(address == HumanAddr::default());
             }
         }
@@ -133,7 +133,7 @@ mod tests {
         let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
 
         match result {
-            QueryResponse::Admin { address } => {
+            admin::QueryResponse::Admin { address } => {
                 assert!(address == admin);
             }
         }

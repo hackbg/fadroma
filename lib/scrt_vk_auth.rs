@@ -1,9 +1,4 @@
-use crate::{
-    scrt::*,
-    scrt_storage::*,
-    scrt_vk::*,
-    derive_contract::{contract, handle}
-};
+use crate::{*, derive_contract::{contract, handle}};
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};
 
