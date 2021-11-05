@@ -246,7 +246,7 @@ impl<'a, T: DeserializeOwned, S: Storage> ExactSizeIterator for StorageIterator<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{mock_dependencies};
+    use crate::mock_dependencies;
 
     #[test]
     fn iterable_storage_insertion() {
