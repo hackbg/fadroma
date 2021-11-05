@@ -23,7 +23,6 @@ pub const PREFIX: &[u8] = b"fadroma_migration_state";
     // but an alternative name can be passed
     ($HandleMsg:ty, $deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {
         if let HandleMsg::SetStatus { level, reason, new_address } = $msg {
-            scrt_migrate::can_set_status(&$deps, &level)?;
             scrt_migrate::set_status($deps, $env, level, reason, new_address)?;
             Ok(HandleResponse::default())
         } else {
@@ -62,7 +61,7 @@ pub fn save (storage: &mut impl Storage, status: &ContractStatus<CanonicalAddr>)
 }
 
 /// Possible states of a contract.
-#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone, Copy)]
 pub enum ContractStatusLevel {
     /// Live
     Operational,
@@ -143,7 +142,7 @@ pub fn is_operational <S: Storage, A: Api, Q: Querier> (
 /// Fail if trying to return from `Migrating` status.
 pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
     deps: &Extern<S, A, Q>,
-    to_level: &ContractStatusLevel
+    to_level: ContractStatusLevel
 ) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = get_status(deps)?;
 
@@ -171,6 +170,8 @@ pub fn set_status <S: Storage, A: Api, Q: Querier> (
     reason: String,
     new_address: Option<HumanAddr>
 ) -> StdResult<()> {
+    can_set_status(deps, level)?;
+    
     save(&mut deps.storage, &ContractStatus { level, reason, new_address: match new_address {
         Some(new_address) => Some(new_address.canonize(&deps.api)?),
         None => None
@@ -195,9 +196,9 @@ mod tests {
         let current = get_status(deps).unwrap();
         assert_eq!(current.level, ContractStatusLevel::Operational);
 
-        can_set_status(deps, &ContractStatusLevel::Operational).unwrap();
-        can_set_status(deps, &ContractStatusLevel::Paused).unwrap();
-        can_set_status(deps, &ContractStatusLevel::Migrating).unwrap();
+        can_set_status(deps, ContractStatusLevel::Operational).unwrap();
+        can_set_status(deps, ContractStatusLevel::Paused).unwrap();
+        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
         is_operational(deps).unwrap();
 
         let reason = String::from("Reason");
@@ -221,9 +222,9 @@ mod tests {
             None
         ).unwrap();
 
-        can_set_status(deps, &ContractStatusLevel::Operational).unwrap();
-        can_set_status(deps, &ContractStatusLevel::Paused).unwrap();
-        can_set_status(deps, &ContractStatusLevel::Migrating).unwrap();
+        can_set_status(deps, ContractStatusLevel::Operational).unwrap();
+        can_set_status(deps, ContractStatusLevel::Paused).unwrap();
+        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
         is_operational(deps).unwrap_err();
 
         let current = get_status(deps).unwrap();
@@ -241,9 +242,9 @@ mod tests {
             None
         ).unwrap();
 
-        can_set_status(deps, &ContractStatusLevel::Operational).unwrap_err();
-        can_set_status(deps, &ContractStatusLevel::Paused).unwrap_err();
-        can_set_status(deps, &ContractStatusLevel::Migrating).unwrap();
+        can_set_status(deps, ContractStatusLevel::Operational).unwrap_err();
+        can_set_status(deps, ContractStatusLevel::Paused).unwrap_err();
+        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
         is_operational(deps).unwrap_err();
 
         let current = get_status(deps).unwrap();
