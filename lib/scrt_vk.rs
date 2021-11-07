@@ -2,7 +2,7 @@
 use std::fmt;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use crate::{*, scrt::*};
+use crate::*;
 
 pub const VIEWING_KEY_SIZE: usize = 32;
 const VIEWING_KEY_PREFIX: &str = "api_key_";
