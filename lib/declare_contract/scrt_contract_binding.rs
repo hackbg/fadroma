@@ -7,6 +7,8 @@
 //! * or `repetition matches empty token tree` - jeez rustc, are you
 //!   gonna loop back on yourself if you do that?!
 
+use cosmwasm_std as cw;
+
 /// A binding that exposes the default CosmWasm entry points.
 /// This lets you compile a WASM contract to a form that runs on a
 /// SecretNetwork blockchain.
@@ -59,31 +61,28 @@
     ( $mod:ident /* pass me a module that exports your init, handle and query functions */ ) => {
 
         use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
-        use fadroma::scrt::cosmwasm_std as cw;
-
-        // but a macro with a recursive dependency on itself? no problem
-        use fadroma::scrt::contract::bind_js;
+        use fadroma::{*, Api as IApi, Querier as IQuerier};
 
         #[derive(Copy, Clone)] pub struct Api;
-        impl cw::Api for Api {
-            fn canonical_address (&self, addr: &cw::HumanAddr) -> cw::StdResult<cw::CanonicalAddr> {
-                Ok(cw::CanonicalAddr(cw::Binary(Vec::from(addr.as_str()))))
+        impl IApi for Api {
+            fn canonical_address (&self, addr: &HumanAddr) -> StdResult<CanonicalAddr> {
+                Ok(CanonicalAddr(Binary(Vec::from(addr.as_str()))))
             }
-            fn human_address (&self, addr: &cw::CanonicalAddr) -> cw::StdResult<cw::HumanAddr> {
+            fn human_address (&self, addr: &CanonicalAddr) -> StdResult<HumanAddr> {
                 let trimmed: Vec<u8> = addr.as_slice().iter().cloned()
                     .filter(|&x| x != 0).collect();
                 // decode UTF-8 bytes into string
-                Ok(cw::HumanAddr(String::from_utf8(trimmed)
-                    .map_err(cw::StdError::invalid_utf8)?))
+                Ok(HumanAddr(String::from_utf8(trimmed)
+                    .map_err(StdError::invalid_utf8)?))
             }
         }
 
         pub struct Querier {
-            pub next_response: Option<cw::Binary>
+            pub next_response: Option<Binary>
         }
 
-        impl cw::Querier for Querier {
-            fn raw_query (&self, bin_request: &[u8]) -> cw::QuerierResult {
+        impl IQuerier for Querier {
+            fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
                 let response = self.next_response.clone().unwrap();
                 Ok(Ok(response))
             }
@@ -92,29 +91,29 @@
         bind_js! {
 
             Contract(
-                cw::Extern<cw::MemoryStorage, Api, Querier>, /* ha! */
-                cw::Env
+                Extern<MemoryStorage, Api, Querier>, /* ha! */
+                Env
             ) {
 
                 #[wasm_bindgen(constructor)] fn new () -> Contract {
                     Ok(Self(
-                        cw::Extern {
-                            storage:  cw::MemoryStorage::default(),
+                        Extern {
+                            storage:  MemoryStorage::default(),
                             querier:  Querier { next_response: None },
                             api:      Api {},
                         },
-                        cw::Env {
-                            block: cw::BlockInfo {
+                        Env {
+                            block: BlockInfo {
                                 height: 0,
                                 time:   0,
                                 chain_id: "fadroma".into()
                             },
-                            message: cw::MessageInfo {
-                                sender:     cw::HumanAddr::from(""),
+                            message: MessageInfo {
+                                sender:     HumanAddr::from(""),
                                 sent_funds: vec![]
                             },
-                            contract: cw::ContractInfo {
-                                address: cw::HumanAddr::from("")
+                            contract: ContractInfo {
+                                address: HumanAddr::from("")
                             },
                             contract_key: Some("".into()),
                             contract_code_hash: "".into()
@@ -124,7 +123,7 @@
 
                 #[wasm_bindgen(setter)]
                 fn set_sender (&mut self, sender: &[u8]) -> () {
-                    match cw::from_slice(&sender) {
+                    match from_slice(&sender) {
                         Err(e) => Err(e.into()),
                         Ok(sender) => {
                             self.1.message.sender = sender;
@@ -136,7 +135,6 @@
                 #[wasm_bindgen(setter)]
                 fn set_block (&mut self, height: u64) -> () {
                     self.1.block.height = height;
-                    self.1.block.time   = height * 5;
                     Ok(())
                 }
 
@@ -146,17 +144,28 @@
                 }
 
                 #[wasm_bindgen(setter)]
+                fn set_time (&mut self, time: u64) -> () {
+                    self.1.block.time = time;
+                    Ok(())
+                }
+
+                #[wasm_bindgen(getter)]
+                fn get_time (&mut self) -> u64 {
+                    Ok(self.1.block.time)
+                }
+
+                #[wasm_bindgen(setter)]
                 fn set_next_query_response (&mut self, response: &[u8]) -> () {
                     self.0.querier.next_response = Some(response.into());
                     Ok(())
                 }
 
                 fn init (&mut self, msg: &[u8]) -> Vec<u8> {
-                    match cw::from_slice(&msg) {
+                    match from_slice(&msg) {
                         Err(e)  => Err(e.into()),
                         Ok(msg) => match $mod::init(&mut self.0, self.1.clone(), msg) {
                             Err(e)  => Err(e.into()),
-                            Ok(res) => match cw::to_vec(&res) {
+                            Ok(res) => match to_vec(&res) {
                                 Err(e)  => Err(e.into()),
                                 Ok(vec) => Ok(vec)
                             }
@@ -165,11 +174,11 @@
                 }
 
                 fn handle (&mut self, msg: &[u8]) -> Vec<u8> {
-                    match cw::from_slice(msg) {
+                    match from_slice(msg) {
                         Err(e)  => Err(e.into()),
                         Ok(msg) => match $mod::handle(&mut self.0, self.1.clone(), msg) {
                             Err(e) => Err(e.into()),
-                            Ok(res) => match cw::to_vec(&res) {
+                            Ok(res) => match to_vec(&res) {
                                 Err(e)  => Err(e.into()),
                                 Ok(vec) => Ok(vec)
                             }
@@ -178,7 +187,7 @@
                 }
 
                 fn query (&self, msg: &[u8]) -> Vec<u8> {
-                    match cw::from_slice(msg) {
+                    match from_slice(msg) {
                         Err(e) => Err(e.into()), // stairway to hecc
                         Ok(msg) => match $mod::query(&self.0, msg) {
                             Err(e) => Err(e.into()),
@@ -227,7 +236,7 @@
             $(#[$meta])* // it's as meta as it gets...
             pub fn $name ($($args)*) -> Result<$returns, JsValue> {
                 // single poit of error handling
-                $body.map_err(|e: cw::StdError| format!("{:#?}", &e).into())
+                $body.map_err(|e: StdError| format!("{:#?}", &e).into())
             })+ // end iteration
         })? // end conditional
     )* };

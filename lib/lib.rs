@@ -1,5 +1,5 @@
-mod composable;
-pub use composable::*;
+mod composable_core;
+pub use composable_core::*;
 
 mod response_builder;
 pub use response_builder::*;
@@ -13,19 +13,51 @@ pub use decimal::*;
 mod uint256;
 pub use uint256::*;
 
-#[cfg(feature="scrt")]
-pub mod scrt {
-    pub const BLOCK_SIZE: usize = 256;
+#[cfg(feature="scrt")] pub use scrt::*;
+#[cfg(feature="scrt")] pub mod scrt {
+
     pub use cosmwasm_std::*;
     #[cfg(test)] pub use cosmwasm_std::testing::*;
-    pub use cosmwasm_storage::*;
-    pub use cosmwasm_schema::*;
-    pub use snafu;
-    pub use schemars;
-    pub use secret_toolkit;
-}
 
-#[cfg(feature="scrt")] pub use scrt::*;
+    pub use cosmwasm_storage::*;
+
+    pub use cosmwasm_schema::*;
+
+    pub use snafu;
+
+    pub use schemars;
+
+    pub use secret_toolkit;
+
+    pub const BLOCK_SIZE: usize = 256;
+
+    pub fn to_cosmos_msg (
+        contract_addr:      HumanAddr,
+        callback_code_hash: String,
+        msg:                &impl serde::Serialize,
+    ) -> StdResult<CosmosMsg> {
+        let mut msg = to_binary(msg)?;
+        space_pad(&mut msg.0, BLOCK_SIZE);
+        let send = Vec::new();
+        Ok(WasmMsg::Execute { msg, contract_addr, callback_code_hash, send }.into())
+    }
+
+    /// Take a Vec<u8> and pad it up to a multiple of `block_size`,
+    /// using spaces at the end.
+    pub fn space_pad (
+        message:    &mut Vec<u8>,
+        block_size: usize
+    ) -> &mut Vec<u8> {
+        let len     = message.len();
+        let surplus = len % block_size;
+        if surplus == 0 { return message; }
+        let missing = block_size - surplus;
+        message.reserve(missing);
+        message.extend(std::iter::repeat(b' ').take(missing));
+        message
+    }
+
+}
 
 #[cfg(feature="scrt-addr")]       pub mod scrt_addr;
 #[cfg(feature="scrt-addr")]       pub use scrt_addr::*;
@@ -35,18 +67,12 @@ pub mod scrt {
 #[cfg(feature="scrt-admin")]      pub use composable_admin::multi_admin as multi;
 #[cfg(feature="scrt-admin")]      pub use require_admin;
 
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_api;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_binding;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_harness;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_impl;
-#[cfg(feature="scrt-contract")]   pub mod scrt_contract_state;
-#[cfg(feature="scrt-contract")]   pub use scrt_contract::*;
-#[cfg(feature="scrt-contract")]   pub use scrt_contract_api::*;
-#[cfg(all(test, feature="scrt-contract"))]   pub use scrt_contract_harness::*;
+#[cfg(feature="scrt-contract")]   mod declare_contract;
+#[cfg(feature="scrt-contract")]   pub use declare_contract::*;
 
 #[cfg(feature="scrt-icc")]        pub mod scrt_callback;
 #[cfg(feature="scrt-icc")]        pub use scrt_callback::*;
+
 #[cfg(feature="scrt-icc")]        pub mod scrt_link;
 #[cfg(feature="scrt-icc")]        pub use scrt_link::*;
 

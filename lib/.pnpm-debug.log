@@ -1,0 +1,24 @@
+{
+  "0 debug pnpm:scope": {
+    "selected": 1,
+    "workspacePrefix": "/home/user/lab1/sienna/libraries/fadroma-next"
+  },
+  "1 info pnpm": {
+    "err": {
+      "name": "Error",
+      "message": "not found: wasm",
+      "code": "ENOENT",
+      "stack": "Error: not found: wasm\n    at getNotFoundError (/nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:48028:51)\n    at Function.whichSync [as sync] (/nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:48105:13)\n    at getCommandAbsolutePathSync (/nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:49670:44)\n    at Object.default_1 [as default] (/nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:49679:32)\n    at /nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:129961:34"
+    }
+  },
+  "2 error pnpm": {
+    "code": "ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL",
+    "prefix": "/home/user/lab1/sienna/libraries/fadroma-next",
+    "err": {
+      "name": "pnpm",
+      "message": "not found: wasm",
+      "code": "ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL",
+      "stack": "Error: not found: wasm\n    at getNotFoundError (/nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:48028:51)\n    at Function.whichSync [as sync] (/nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:48105:13)\n    at getCommandAbsolutePathSync (/nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:49670:44)\n    at Object.default_1 [as default] (/nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:49679:32)\n    at /nix/store/n1d5rfz4gnrpiz71bxca9dyc1b9mmhmz-pnpm-6.17.1/lib/node_modules/pnpm/dist/pnpm.cjs:129961:34"
+    }
+  }
+}
