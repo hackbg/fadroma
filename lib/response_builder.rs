@@ -3,17 +3,26 @@
 
 use crate::*;
 
-pub trait HandleResponseBuilder {
+pub trait HandleResponseBuilder: Sized {
     fn msg (mut self, msg: CosmosMsg) ->
-        StdResult<Self> where Self: Sized;
+        StdResult<Self>;
+    fn msg_to (mut self, contract: ContractLink<HumanAddr>, msg: &impl serde::Serialize) ->
+        StdResult<Self>;
     fn log (mut self, key: &str, value: &str) ->
-        StdResult<Self> where Self: Sized;
+        StdResult<Self>;
     fn data <T: serde::Serialize> (mut self, data: &T) ->
-        StdResult<Self> where Self: Sized;
+        StdResult<Self>;
 }
 
 impl HandleResponseBuilder for HandleResponse {
     fn msg (mut self, msg: CosmosMsg) -> StdResult<Self> {
+        self.messages.push(msg);
+        Ok(self)
+    }
+    fn msg_to (
+        mut self, contract: ContractLink<HumanAddr>, msg: &impl serde::Serialize
+    ) -> StdResult<Self> {
+        let msg = to_cosmos_msg(contract.address, contract.code_hash, msg)?;
         self.messages.push(msg);
         Ok(self)
     }
