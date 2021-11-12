@@ -49,8 +49,8 @@ export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
     this.setDirectories(options.stateRoot) } }
 
 export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
-  readonly chainId: string = 'supernova-1-localnet'
-  readonly image:   string = "enigmampc/secret-network-node:v1.2.0-beta1-2-gbe1ca55e-testnet"
+  readonly chainId: string = 'secret-testnet-1'
+  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
   constructor (options: ChainNodeOptions = {}) {
     super()
     if (options.image) this.image = options.image

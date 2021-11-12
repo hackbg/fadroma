@@ -194,7 +194,7 @@ export class Scrt extends Chain {
       isLocalnet: true,
       ...options,
       node:    options.node    || new DockerizedScrtNode_1_2(options),
-      chainId: options.chainId || 'enigma-pub-testnet-3',
+      chainId: options.chainId || 'secret-testnet-1',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_0,
       defaultIdentity: 'ADMIN'
@@ -222,7 +222,7 @@ export class Scrt extends Chain {
     super(options)
     const node = this.node = options.node || null
     // info needed to connect to the chain's REST API
-    this.chainId = options.chainId || node?.chainId || 'enigma-pub-testnet-3'
+    this.chainId = options.chainId || node?.chainId || 'secret-testnet-1'
     this.apiURL  = options.apiURL  || node?.apiURL  || new URL('http://localhost:1337/')
     // directories to store state.
     const stateRoot = options.stateRoot || resolve(defaultStateBase, this.chainId)
