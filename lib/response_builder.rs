@@ -4,14 +4,12 @@
 use crate::*;
 
 pub trait HandleResponseBuilder: Sized {
-    fn msg (mut self, msg: CosmosMsg) ->
-        StdResult<Self>;
-    fn msg_to (mut self, contract: ContractLink<HumanAddr>, msg: &impl serde::Serialize) ->
-        StdResult<Self>;
-    fn log (mut self, key: &str, value: &str) ->
-        StdResult<Self>;
-    fn data <T: serde::Serialize> (mut self, data: &T) ->
-        StdResult<Self>;
+    fn msg (mut self, msg: CosmosMsg) -> StdResult<Self>;
+    fn msg_to (mut self, contract: ContractLink<HumanAddr>, msg: &impl serde::Serialize)
+        -> StdResult<Self>;
+    fn log (mut self, key: &str, value: &str) -> StdResult<Self>;
+    fn data <T: serde::Serialize> (mut self, data: &T) -> StdResult<Self>;
+    fn merge (mut self, mut other: HandleResponse) -> StdResult<HandleResponse>;
 }
 
 impl HandleResponseBuilder for HandleResponse {
@@ -34,5 +32,9 @@ impl HandleResponseBuilder for HandleResponse {
         self.data = Some(to_binary(data)?);
         Ok(self)
     }
+    fn merge (mut self, mut other: HandleResponse) -> StdResult<HandleResponse> {
+        self.messages.append(&mut other.messages);
+        self.log.append(&mut other.log);
+        Ok(self)
+    }
 }
-
