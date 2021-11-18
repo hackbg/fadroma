@@ -182,7 +182,7 @@ impl<'a, T: DeserializeOwned, S: Storage> StorageIterator<'a, T, S> {
     }
 
     pub fn len(&self) -> u64 {
-        self.end
+        self.end.saturating_sub(self.current)
     }
 }
 
@@ -300,12 +300,19 @@ mod tests {
         assert_eq!(iter.len(), 6);
         
         assert_eq!(iter.next().unwrap().unwrap(), 1);
+        assert_eq!(iter.len(), 5);
         assert_eq!(iter.next_back().unwrap().unwrap(), 6);
+        assert_eq!(iter.len(), 4);
         assert_eq!(iter.next_back().unwrap().unwrap(), 5);
+        assert_eq!(iter.len(), 3);
         assert_eq!(iter.next().unwrap().unwrap(), 2);
+        assert_eq!(iter.len(), 2);
         assert_eq!(iter.next().unwrap().unwrap(), 3);
+        assert_eq!(iter.len(), 1);
         assert_eq!(iter.next().unwrap().unwrap(), 4);
+        assert_eq!(iter.len(), 0);
         assert_eq!(iter.next(), None);
+        assert_eq!(iter.len(), 0);
         assert_eq!(iter.next_back(), None);
 
         let mut iter = storage.iter(&deps.storage).unwrap();
