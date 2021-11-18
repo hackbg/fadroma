@@ -7,9 +7,12 @@
 //!   directly. However this introduces a clash between `Storage::get/set` and
 //!   `Composable::get/set`, therefor the latter will need to be renamed once again
 
-use crate::scrt::{Extern, Storage, Api, Querier, Env, StdResult, to_vec, from_slice, HandleResponse};
-use crate::scrt_addr::{Humanize, Canonize};
-use crate::scrt_storage::concat;
+use crate::{
+    scrt::{Extern, Storage, Api, Querier, Env, StdResult, to_vec, from_slice, HandleResponse, ReadonlyStorage, testing::MockApi},
+    scrt_addr::{Humanize, Canonize},
+    scrt_storage::concat
+};
+
 use serde::{Serialize, de::DeserializeOwned};
 
 pub type UsuallyOk = StdResult<()>;
@@ -81,8 +84,40 @@ pub struct MockExtern<S: Storage, A: Api, Q: Querier> {
     pub api: A,
     pub querier: Q,
 }
+impl<Q: Querier> MockExtern<ClonableMemoryStorage, MockApi, Q> {
+    pub fn new (querier: Q) -> Self {
+        Self {
+            storage: ClonableMemoryStorage::default(),
+            api:     MockApi::new(20),
+            querier
+        }
+    }
+}
 
 make_composable!(MockExtern<S, A, Q>);
+
+#[derive(Default, Clone)]
+pub struct ClonableMemoryStorage {
+    data: std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
+}
+impl ClonableMemoryStorage {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+impl ReadonlyStorage for ClonableMemoryStorage {
+    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+        self.data.get(key).cloned()
+    }
+}
+impl Storage for ClonableMemoryStorage {
+    fn set(&mut self, key: &[u8], value: &[u8]) {
+        self.data.insert(key.to_vec(), value.to_vec());
+    }
+    fn remove(&mut self, key: &[u8]) {
+        self.data.remove(key);
+    }
+}
 
 /// Trait for handle messages
 pub trait HandleDispatch <S, A, Q, C> where
