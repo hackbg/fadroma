@@ -131,6 +131,28 @@ impl<T: DeserializeOwned + Serialize> IterableStorage<T> {
         ns_load(storage, self.ns, &index.to_be_bytes())
     }
 
+    /// Returns `true` if the item was updated and `false` if no item is stored at that `index`.
+    pub fn update_at<F>(
+        &self,
+        storage: &mut impl Storage,
+        index: u64,
+        update: F
+    ) -> StdResult<bool>
+        where F: FnOnce(T) -> StdResult<T>
+    {
+        let item = self.get_at(storage, index)?;
+
+        match item {
+            Some(item) => {
+                let item = update(item)?;
+                ns_save(storage, self.ns, &index.to_be_bytes(), &item)?;
+
+                Ok(true)
+            },
+            None => Ok(false)
+        }
+    }
+
     pub fn len(&self, storage: &impl Storage) -> StdResult<u64> {
         if let Some(len) = self.len {
             return Ok(len)
@@ -284,6 +306,20 @@ mod tests {
 
         let item = storage.get_at(&deps.storage, 4).unwrap();
         assert!(item.is_none());
+
+        let update = |mut x| {
+            x += 1;
+            Ok(x)
+        };
+
+        let result = storage.update_at(&mut deps.storage, 4, update).unwrap();
+        assert!(result == false);
+
+        let result = storage.update_at(&mut deps.storage, 3, update).unwrap();
+        assert!(result);
+
+        let item = storage.get_at(&deps.storage, 3).unwrap();
+        assert_eq!(item.unwrap(), 4);
     }
 
     #[test]
