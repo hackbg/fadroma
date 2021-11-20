@@ -1,0 +1,11 @@
+[package]
+name    = "fadroma-bind-js"
+version = "0.1.0"
+edition = "2018"
+authors = ["Adam A. <adam@hack.bg>"]
+
+[lib]
+path = "bind_js.rs"
+
+[dependencies]
+cosmwasm-std = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
