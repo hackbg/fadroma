@@ -1,6 +1,9 @@
 mod composable_core;
 pub use composable_core::*;
 
+mod dispatch;
+pub use dispatch::*;
+
 mod response_builder;
 pub use response_builder::*;
 
@@ -17,7 +20,9 @@ pub use uint256::*;
 #[cfg(feature="scrt")] pub mod scrt {
 
     pub use cosmwasm_std::*;
-    #[cfg(test)] pub use cosmwasm_std::testing::*;
+
+    #[cfg(test)]
+    pub use cosmwasm_std::testing::*;
 
     pub use cosmwasm_storage::*;
 

@@ -8,7 +8,7 @@
 //!   `Composable::get/set`, therefor the latter will need to be renamed once again
 
 use crate::{
-    scrt::{Extern, Storage, Api, Querier, Env, StdResult, to_vec, from_slice, HandleResponse, ReadonlyStorage, testing::MockApi},
+    scrt::{Extern, Storage, Api, Querier, Env, StdResult, to_vec, from_slice, HandleResponse, ReadonlyStorage},
     scrt_addr::{Humanize, Canonize},
     scrt_storage::concat
 };
@@ -77,64 +77,53 @@ macro_rules! make_composable {
 
 make_composable!(Extern<S, A, Q>);
 
-#[derive(Clone)]
-/// Same as regular Extern but clonable.
-pub struct MockExtern<S: Storage, A: Api, Q: Querier> {
-    pub storage: S,
-    pub api: A,
-    pub querier: Q,
-}
-impl<Q: Querier> MockExtern<ClonableMemoryStorage, MockApi, Q> {
-    pub fn new (querier: Q) -> Self {
-        Self {
-            storage: ClonableMemoryStorage::default(),
-            api:     MockApi::new(20),
-            querier
+#[cfg(test)]
+mod testing {
+    use super::*;
+    use crate::scrt::testing::MockApi;
+
+    #[derive(Clone)]
+    /// Same as regular Extern but clonable.
+    pub struct MockExtern<S: Storage, A: Api, Q: Querier> {
+        pub storage: S,
+        pub api: A,
+        pub querier: Q,
+    }
+    impl<Q: Querier> MockExtern<ClonableMemoryStorage, MockApi, Q> {
+        pub fn new (querier: Q) -> Self {
+            Self {
+                storage: ClonableMemoryStorage::default(),
+                api:     MockApi::new(20),
+                querier
+            }
+        }
+    }
+
+    make_composable!(MockExtern<S, A, Q>);
+
+    #[derive(Default, Clone)]
+    pub struct ClonableMemoryStorage {
+        data: std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
+    }
+    impl ClonableMemoryStorage {
+        pub fn new() -> Self {
+            Self::default()
+        }
+    }
+    impl ReadonlyStorage for ClonableMemoryStorage {
+        fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
+            self.data.get(key).cloned()
+        }
+    }
+    impl Storage for ClonableMemoryStorage {
+        fn set(&mut self, key: &[u8], value: &[u8]) {
+            self.data.insert(key.to_vec(), value.to_vec());
+        }
+        fn remove(&mut self, key: &[u8]) {
+            self.data.remove(key);
         }
     }
 }
 
-make_composable!(MockExtern<S, A, Q>);
-
-#[derive(Default, Clone)]
-pub struct ClonableMemoryStorage {
-    data: std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
-}
-impl ClonableMemoryStorage {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-impl ReadonlyStorage for ClonableMemoryStorage {
-    fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
-        self.data.get(key).cloned()
-    }
-}
-impl Storage for ClonableMemoryStorage {
-    fn set(&mut self, key: &[u8], value: &[u8]) {
-        self.data.insert(key.to_vec(), value.to_vec());
-    }
-    fn remove(&mut self, key: &[u8]) {
-        self.data.remove(key);
-    }
-}
-
-/// Trait for handle messages
-pub trait HandleDispatch <S, A, Q, C> where
-    S: Storage,
-    A: Api,
-    Q: Querier,
-    C: Composable<S, A, Q>
-{
-    fn dispatch_handle (self, core: &mut C, env: Env) -> StdResult<HandleResponse>;
-}
-
-/// Trait for query messages
-pub trait QueryDispatch <S, A, Q, C, R> where
-    S: Storage,
-    A: Api,
-    Q: Querier,
-    C: Composable<S, A, Q>
-{
-    fn dispatch_query (self, core: &C) -> StdResult<R>;
-}
+#[cfg(test)]
+pub use self::testing::*;
