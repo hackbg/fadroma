@@ -15,10 +15,13 @@
     // Entry point: generates the contents of a `mod wasm`
     // containing all the bindings for running in a browser.
 
-    ( $($mod:ident)::+ /* pass me a module that exports your init, handle and query functions */ ) => {
+    (
+        $($std:ident)::+, /* pass me the path to cosmwasm_std */
+        $($mod:ident)::+  /* pass me a module that exports your init, handle and query functions */
+    ) => {
 
         use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
-        use cosmwasm_std::{*, Api as IApi, Querier as IQuerier};
+        use $($std)::+::{*, Api as IApi, Querier as IQuerier};
 
         #[derive(Copy, Clone)] pub struct Api;
         impl IApi for Api {
