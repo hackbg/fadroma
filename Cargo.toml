@@ -9,3 +9,6 @@ path = "rs/lib.rs"
 doctest = false # ???
 
 [dependencies]
+
+[features]
+browser = []

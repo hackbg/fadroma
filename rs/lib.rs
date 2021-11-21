@@ -260,7 +260,7 @@
         // Similar in spirit to [`create_entry_points`](https://docs.rs/cosmwasm-std/0.10.1/src/cosmwasm_std/entry_points.rs.html#49),
         // but doesn't need the implementation to be in a sibling module (the `super::contract` on L65)
         // TODO custom `migrate` for SecretNetwork
-        #[cfg(target_arch = "wasm32")]
+        #[cfg(all(not(feature = "browser"), target_arch = "wasm32"))]
         mod wasm {
             //use super::contract;
             use cosmwasm_std::{

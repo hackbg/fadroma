@@ -4,4 +4,4 @@ version = 3
 
 [[package]]
 name = "fadroma"
-version = "2.1.2"
+version = "3.0.0-rc1"
