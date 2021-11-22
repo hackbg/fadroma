@@ -28,4 +28,4 @@ schemars = "0.7"
 bincode2 = "2.0.1"
 
 [dev-dependencies]
-cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.0" }
+cosmwasm-vm = { package = "cosmwasm-sgx-vm", git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }

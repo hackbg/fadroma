@@ -6,7 +6,7 @@
 
 /// Import commonly used definitions that need to be available everywhere in the contract
 #[macro_export] macro_rules! prelude {
-    () => { use fadroma::scrt::cosmwasm_std::{
+    () => { use fadroma::scrt::{
         ReadonlyStorage, Storage, Api, Querier, Extern, Env,
         HumanAddr, CanonicalAddr, Coin, Uint128,
         StdResult, StdError,

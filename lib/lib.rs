@@ -1,19 +1,22 @@
-mod composable_core;
+pub mod composable_core;
 pub use composable_core::*;
 
-mod dispatch;
+pub mod composable_core_test;
+pub use composable_core_test::*;
+
+pub mod dispatch;
 pub use dispatch::*;
 
-mod response_builder;
+pub mod response_builder;
 pub use response_builder::*;
 
-mod crypto;
+pub mod crypto;
 pub use crypto::*;
 
-mod decimal;
+pub mod decimal;
 pub use decimal::*;
 
-mod uint256;
+pub mod uint256;
 pub use uint256::*;
 
 #[cfg(feature="scrt")] pub use scrt::*;

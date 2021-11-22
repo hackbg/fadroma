@@ -7,8 +7,6 @@
 //! * or `repetition matches empty token tree` - jeez rustc, are you
 //!   gonna loop back on yourself if you do that?!
 
-use cosmwasm_std as cw;
-
 /// A binding that exposes the default CosmWasm entry points.
 /// This lets you compile a WASM contract to a form that runs on a
 /// SecretNetwork blockchain.
@@ -41,7 +39,7 @@ use cosmwasm_std as cw;
 
 }
 
-/// λ binding that exposes one or more wrapped Rust structs to JavaScript.
+/// A binding that exposes one or more wrapped Rust structs to JavaScript.
 /// This lets you load a WASM contract in a browser and talk to it from JS.
 ///
 /// Rust doesn't allow for monkey-patching
