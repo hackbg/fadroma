@@ -4,56 +4,28 @@ Industrial-strength tooling and components for WASM-based smart contracts.
 
 ![](https://github.com/hackbg/fadroma/blob/21.08/doc/logo.svg)
 
-## Writing smart contracts with Fadroma
+## Features
 
-```rust
-#[macro_use] extern crate fadroma;
-contract!(
-    [State] {
-        value: i64
-    }
+In no particular order:
 
-    [Init] (deps, env, msg: {
-        initial_value: i64
-    }) {
-        State { value: initial_value }
-    }
-
-    [Query] (deps, state, msg) {
-        Equals () {
-            state.value
-        }
-    }
-
-    [Response] {
-        [Equals] { value: i64 }
-    }
-
-    [Handle] (deps, env, sender, state, msg) {
-        Add (augend: i64) {
-            state.value += augend;
-            ok!(state)
-        }
-        Sub (subtrahend: i64) {
-            state.value -= subtrahend;
-            ok!(state)
-        }
-        Mul (multiplier: i64) {
-            state.value *= multiplier;
-            ok!(state)
-        }
-        Div (divisor: i64) {
-            match divisor {
-                0 => err_msg(state, "division by zero"),
-                _ => {
-                    state.value /= divisor;
-                    ok!(state)
-                }
-            }
-        }
-    }
-);
-```
+* Auto-generate typed contract APIs from JSON schema
+* Build/upload/deploy contracts from TypeScript
+* Builder pattern for response messages
+* Composable admin authentication
+* Composable contract core
+* Composable snip20
+* Contract links and callbacks
+* Declare contract
+* Derive contract
+* Dispatch traits for handle/query message types
+* Hash/checksum (SHA256)
+* Humanize/Canonize traits 
+* Patched SigningCosmWasmClient with async broadcast mode and retries
+* Pseudorandom number generator (ChaCha)
+* Storage helpers
+* TODO: Terra support
+* Uint256 and Decimal types
+* Viewing key authentication
 
 ## Deploying smart contracts with Fadroma
 
