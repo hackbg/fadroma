@@ -46,24 +46,34 @@
 
         impl Querier for JSQuerier {
             fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
+
                 if let Some(response) = &self.next_response {
                     Ok(Ok(response.clone()))
+
                 } else if let Some(callback) = &self.callback {
                     let this    = JsValue::null();
                     let request = match std::str::from_utf8(bin_request) {
                         Ok(v)  => v,
-                        Err(_) => panic!("non-utf queries not supported")
+                        Err(_) => return Err(SystemError::InvalidRequest {
+                            error:   "could not deserialize request".to_string(),
+                            request: to_binary("").unwrap()
+                        })
                     };
                     let request = JsValue::from_str(request);
                     let result  = callback.call1(&this, &request).unwrap();
                     let result = match result.into_serde() {
                         Ok(v) => v,
-                        Err(_) => panic!("could not serialize result")
+                        Err(_) => return Err(SystemError::InvalidResponse {
+                            error:    "could not serialize response".to_string(),
+                            response: to_binary("").unwrap()
+                        })
                     };
                     Ok(Ok(result))
+
                 } else {
-                    panic!("querier: no callback or response configured")
+                    Ok(Err(StdError::generic_err("querier: no callback or response configured")))
                 }
+
             }
         }
 
@@ -74,7 +84,10 @@
                 Env
             ) {
 
-                #[wasm_bindgen(constructor)] fn new () -> Contract {
+                #[wasm_bindgen(constructor)] fn new (
+                    address:   &[u8],
+                    code_hash: &[u8]
+                ) -> Contract {
                     Ok(Self(
                         Extern {
                             storage: MemoryStorage::default(),
@@ -140,6 +153,11 @@
                 fn set_next_query_response (&mut self, response: &[u8]) -> () {
                     self.0.querier.next_response = Some(response.into());
                     Ok(())
+                }
+
+                #[wasm_bindgen(getter)]
+                fn has_querier_callback (&mut self) -> bool {
+                    Ok(self.0.querier.callback.is_some())
                 }
 
                 #[wasm_bindgen(setter)]
