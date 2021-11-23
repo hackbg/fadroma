@@ -8,7 +8,7 @@
 //!   `Composable::get/set`, therefor the latter will need to be renamed once again
 
 use crate::{
-    scrt::{Extern, Storage, Api, Querier, Env, StdResult, to_vec, from_slice, HandleResponse, ReadonlyStorage},
+    scrt::{Extern, Storage, Api, Querier, StdResult, to_vec, from_slice},
     scrt_addr::{Humanize, Canonize},
     scrt_storage::concat
 };
