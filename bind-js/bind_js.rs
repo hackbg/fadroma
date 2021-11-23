@@ -20,11 +20,13 @@
         $($mod:ident)::+  /* pass me a module that exports your init, handle and query functions */
     ) => {
 
-        use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
-        use $($std)::+::{*, Api as IApi, Querier as IQuerier};
+        use wasm_bindgen::prelude::*;//{wasm_bindgen, JsValue, js_sys::Function};
+        use $($std)::+::*;
 
-        #[derive(Copy, Clone)] pub struct Api;
-        impl IApi for Api {
+        #[derive(Copy, Clone)]
+        pub struct JSApi;
+
+        impl Api for JSApi {
             fn canonical_address (&self, addr: &HumanAddr) -> StdResult<CanonicalAddr> {
                 Ok(CanonicalAddr(Binary(Vec::from(addr.as_str()))))
             }
@@ -37,30 +39,50 @@
             }
         }
 
-        pub struct Querier {
-            pub next_response: Option<Binary>
+        pub struct JSQuerier {
+            pub next_response: Option<Binary>,
+            pub callback:      Option<js_sys::Function>
         }
 
-        impl IQuerier for Querier {
+        impl Querier for JSQuerier {
             fn raw_query (&self, bin_request: &[u8]) -> QuerierResult {
-                let response = self.next_response.clone().unwrap();
-                Ok(Ok(response))
+                if let Some(response) = &self.next_response {
+                    Ok(Ok(response.clone()))
+                } else if let Some(callback) = &self.callback {
+                    let this    = JsValue::null();
+                    let request = match std::str::from_utf8(bin_request) {
+                        Ok(v)  => v,
+                        Err(_) => panic!("non-utf queries not supported")
+                    };
+                    let request = JsValue::from_str(request);
+                    let result  = callback.call1(&this, &request).unwrap();
+                    let result = match result.into_serde() {
+                        Ok(v) => v,
+                        Err(_) => panic!("could not serialize result")
+                    };
+                    Ok(Ok(result))
+                } else {
+                    panic!("querier: no callback or response configured")
+                }
             }
         }
 
         fadroma_bind_js::bind_js! {
 
             Contract(
-                Extern<MemoryStorage, Api, Querier>, /* ha! */
+                Extern<MemoryStorage, JSApi, JSQuerier>, /* ha! */
                 Env
             ) {
 
                 #[wasm_bindgen(constructor)] fn new () -> Contract {
                     Ok(Self(
                         Extern {
-                            storage:  MemoryStorage::default(),
-                            querier:  Querier { next_response: None },
-                            api:      Api {},
+                            storage: MemoryStorage::default(),
+                            api:     JSApi {},
+                            querier: JSQuerier {
+                                next_response: None,
+                                callback:      None
+                            },
                         },
                         Env {
                             block: BlockInfo {
@@ -117,6 +139,12 @@
                 #[wasm_bindgen(setter)]
                 fn set_next_query_response (&mut self, response: &[u8]) -> () {
                     self.0.querier.next_response = Some(response.into());
+                    Ok(())
+                }
+
+                #[wasm_bindgen(setter)]
+                fn set_querier_callback (&mut self, callback: &js_sys::Function) -> () {
+                    self.0.querier.callback = Some(callback.clone());
                     Ok(())
                 }
 
