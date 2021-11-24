@@ -67,7 +67,7 @@
                     ) {
                         Ok(v)  => v,
                         Err(e) => return Err(SystemError::UnsupportedRequest {
-                            kind: "invoking querier callback failed".to_string()
+                            kind: format!("invoking querier callback failed: {:?}", e).to_string()
                         })
                     };
 
