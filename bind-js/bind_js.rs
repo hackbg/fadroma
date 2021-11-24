@@ -56,7 +56,7 @@
                         Ok(v)  => v,
                         Err(_) => return Err(SystemError::InvalidRequest {
                             error:   "could not deserialize request".to_string(),
-                            request: to_binary("").unwrap()
+                            request: to_binary(&format!("{:?}", bin_request)).unwrap()
                         })
                     };
                     let request = JsValue::from_str(request);
@@ -65,7 +65,7 @@
                         Ok(v) => v,
                         Err(_) => return Err(SystemError::InvalidResponse {
                             error:    "could not serialize response".to_string(),
-                            response: to_binary("").unwrap()
+                            response: to_binary(&format!("{:?}", result)).unwrap()
                         })
                     };
                     Ok(Ok(result))
@@ -79,41 +79,28 @@
 
         fadroma_bind_js::bind_js! {
 
-            Contract(
-                Extern<MemoryStorage, JSApi, JSQuerier>, /* ha! */
-                Env
-            ) {
+            Contract(Extern<MemoryStorage, JSApi, JSQuerier>, Env) {
 
                 #[wasm_bindgen(constructor)] fn new (
                     address:   &[u8],
                     code_hash: &[u8]
                 ) -> Contract {
-                    Ok(Self(
-                        Extern {
-                            storage: MemoryStorage::default(),
-                            api:     JSApi {},
-                            querier: JSQuerier {
-                                next_response: None,
-                                callback:      None
-                            },
-                        },
-                        Env {
-                            block: BlockInfo {
-                                height: 0,
-                                time:   0,
-                                chain_id: "fadroma".into()
-                            },
-                            message: MessageInfo {
-                                sender:     HumanAddr::from(""),
-                                sent_funds: vec![]
-                            },
-                            contract: ContractInfo {
-                                address: HumanAddr::from("")
-                            },
-                            contract_key: Some("".into()),
-                            contract_code_hash: "".into()
-                        }
-                    ))
+                    let deps = Extern {
+                        storage: MemoryStorage::default(),
+                        api:     JSApi {},
+                        querier: JSQuerier { next_response: None, callback: None },
+                    };
+                    let sender = HumanAddr::from("Admin");
+                    let address = HumanAddr::from(std::str::from_utf8(address).unwrap().to_string());
+                    let contract_code_hash = std::str::from_utf8(code_hash).unwrap().to_string();
+                    let env = Env {
+                        block:    BlockInfo    { height: 0, time: 0, chain_id: "fadroma".into() },
+                        message:  MessageInfo  { sender, sent_funds: vec![] },
+                        contract: ContractInfo { address },
+                        contract_key: Some("".into()),
+                        contract_code_hash
+                    };
+                    Ok(Self(deps, env))
                 }
 
                 #[wasm_bindgen(setter)]
