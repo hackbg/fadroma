@@ -22,6 +22,7 @@
 
         use wasm_bindgen::prelude::*;//{wasm_bindgen, JsValue, js_sys::Function};
         use $($std)::+::*;
+        use std::str::from_utf8;
 
         #[derive(Copy, Clone)]
         pub struct JSApi;
@@ -51,24 +52,32 @@
                     Ok(Ok(response.clone()))
 
                 } else if let Some(callback) = &self.callback {
-                    let this    = JsValue::null();
-                    let request = match std::str::from_utf8(bin_request) {
+
+                    let request = match from_utf8(bin_request) {
                         Ok(v)  => v,
-                        Err(_) => return Err(SystemError::InvalidRequest {
+                        Err(e) => return Err(SystemError::InvalidRequest {
                             error:   "could not deserialize request".to_string(),
-                            request: to_binary(&format!("{:?}", bin_request)).unwrap()
+                            request: to_binary(&format!("{:?} ({})", bin_request, e)).unwrap()
                         })
                     };
-                    let request = JsValue::from_str(request);
-                    let result  = callback.call1(&this, &request).unwrap();
-                    let result = match result.into_serde() {
-                        Ok(v) => v,
-                        Err(_) => return Err(SystemError::InvalidResponse {
-                            error:    "could not serialize response".to_string(),
-                            response: to_binary(&format!("{:?}", result)).unwrap()
+
+                    let result = match callback.call1(
+                        &JsValue::null(),
+                        &JsValue::from_str(request)
+                    ) {
+                        Ok(v)  => v,
+                        Err(e) => return Err(SystemError::UnsupportedRequest {
+                            kind: "invoking querier callback failed".to_string()
                         })
                     };
-                    Ok(Ok(result))
+
+                    match result.as_string() {
+                        Some(v) => Ok(Binary::from_base64(&v)),
+                        None => Err(SystemError::InvalidResponse {
+                            error:    "querier callback must return b64-encoded JSON (1)".to_string(),
+                            response: to_binary("").unwrap()//to_binary(&format!("{:?}", &result)).unwrap()
+                        })
+                    }
 
                 } else {
                     Ok(Err(StdError::generic_err("querier: no callback or response configured")))
@@ -82,8 +91,8 @@
             Contract(Extern<MemoryStorage, JSApi, JSQuerier>, Env) {
 
                 #[wasm_bindgen(constructor)] fn new (
-                    address:   &[u8],
-                    code_hash: &[u8]
+                    addr: String,
+                    hash: String
                 ) -> Contract {
                     let deps = Extern {
                         storage: MemoryStorage::default(),
@@ -91,8 +100,8 @@
                         querier: JSQuerier { next_response: None, callback: None },
                     };
                     let sender = HumanAddr::from("Admin");
-                    let address = HumanAddr::from(std::str::from_utf8(address).unwrap().to_string());
-                    let contract_code_hash = std::str::from_utf8(code_hash).unwrap().to_string();
+                    let address = HumanAddr::from(addr);
+                    let contract_code_hash = hash;
                     let env = Env {
                         block:    BlockInfo    { height: 0, time: 0, chain_id: "fadroma".into() },
                         message:  MessageInfo  { sender, sent_funds: vec![] },
