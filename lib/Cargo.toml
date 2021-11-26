@@ -12,7 +12,7 @@ path = "lib.rs"
 [dependencies]
 cosmwasm-schema   = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-std      = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage  = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+cosmwasm-storage  = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print", features = ["iterator"] }
 primitive-types   = { optional = true, version = "0.9.1", default-features = false }
 rand_chacha       = { optional = true, version = "0.2.2", default-features = false }
 rand_core         = { optional = true, version = "0.5.1", default-features = false }
@@ -23,6 +23,9 @@ serde             = { optional = true, version = "1.0.103", default-features = f
 sha2              = { optional = true, version = "0.9.1", default-features = false }
 snafu             = { optional = true, version = "0.6.3" }
 subtle            = { optional = true, version = "2.4.0", default-features = false }
+remain            = { optional = true, version = "0.2.2" }
+ripemd160         = { optional = true, version = "0.9.1" }
+secp256k1         = { optional = true, version = "0.20.3" }
 derive-contract   = { optional = true, path = "derive-contract" }
 require-admin     = { optional = true, path = "./composable-admin/require-admin" }
 
@@ -36,82 +39,22 @@ require-admin     = { optional = true, path = "./composable-admin/require-admin"
 #thiserror        = { version = "1.0.24" }
 
 [features]
-browser = [
-  "backtraces"
-]
+backtraces = [ "cosmwasm-std/backtraces", "snafu/backtraces" ]
+browser    = [ "backtraces" ]
+derive     = [ "derive-contract" ]
+harness    = []
 
-backtraces = [
-  "cosmwasm-std/backtraces",
-  "snafu/backtraces"
-]
-
-harness = []
-
-derive = [
-  "derive-contract"
-]
-
-scrt-all = [
-  "scrt",
-  "scrt-addr",
-  "scrt-admin",
-  "scrt-contract",
-  "scrt-icc",
-  "scrt-vk",
-  "scrt-migrate",
-  "scrt-snip20-api",
-  "scrt-storage",
-  "scrt-utils",
-  "serde"
-]
-scrt = [
-  "cosmwasm-std",
-  "cosmwasm-storage",
-  "cosmwasm-schema", 
-  "snafu",
-  "schemars",
-  "secret-toolkit"
-]
-scrt-addr = [
-  "scrt"
-]
-scrt-admin = [
-  "derive",
-  "scrt-storage",
-  "require-admin"
-]
-scrt-contract = [
-  "scrt",
-  "serde"
-]
-scrt-icc = [
-  "scrt",
-  "scrt-addr",
-  "serde"
-]
-scrt-migrate = [
-  "scrt-icc",
-  "scrt-admin"
-]
-scrt-snip20-api = [
-  "scrt"
-]
-scrt-storage = [
-  "scrt",
-  "serde"
-]
-scrt-utils = [
-  "scrt",
-  "rand_chacha",
-  "rand_core",
-  "sha2",
-  "subtle",
-  "primitive-types"
-]
-scrt-vk = [
-  "derive",
-  "scrt-storage",
-  "scrt-utils"
-]
+scrt            = [ "cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema",  "snafu", "schemars", "secret-toolkit" ]
+scrt-addr       = [ "scrt" ]
+scrt-admin      = [ "derive", "scrt-storage", "require-admin" ]
+scrt-all        = [ "scrt", "scrt-addr", "scrt-admin", "scrt-contract", "scrt-icc", "scrt-vk", "scrt-migrate", "scrt-snip20-api", "scrt-storage", "scrt-utils", "scrt-permit" ]
+scrt-contract   = [ "scrt", "serde" ]
+scrt-icc        = [ "scrt", "scrt-addr", "serde" ]
+scrt-migrate    = [ "scrt-icc", "scrt-admin" ]
+scrt-permit     = [ "scrt", "serde", "sha2", "remain", "ripemd160", "secp256k1" ]
+scrt-snip20-api = [ "scrt" ]
+scrt-storage    = [ "scrt", "serde" ]
+scrt-utils      = [ "scrt", "rand_chacha", "rand_core", "sha2", "subtle", "primitive-types" ]
+scrt-vk         = [ "derive", "scrt-storage", "scrt-utils" ]
 
 terra = []

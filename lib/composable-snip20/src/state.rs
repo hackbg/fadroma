@@ -13,6 +13,7 @@ pub const KEY_TOTAL_SUPPLY: &[u8] = b"bx98UUOWYa";
 pub const KEY_CONTRACT_STATUS: &[u8] = b"EhYS9rzai1";
 pub const KEY_MINTERS: &[u8] = b"wpitCjS7wB";
 pub const KEY_TX_COUNT: &[u8] = b"n8BHFWp7eT";
+pub const KEY_SELF: &[u8] = b"Qdfh7Fshg2";
 
 pub const PREFIX_CONFIG: &[u8] = b"YywNU6aiTV";
 pub const PREFIX_BALANCES: &[u8] = b"DyCKbmlEL8";
@@ -58,6 +59,10 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfig<'a, S> {
 
     pub fn constants(&self) -> StdResult<Constants> {
         self.as_readonly().constants()
+    }
+
+    pub fn self_address(&self) -> StdResult<HumanAddr> {
+        self.as_readonly().self_address()
     }
 
     pub fn total_supply(&self) -> u128 {
@@ -122,6 +127,10 @@ impl<'a, S: Storage> Config<'a, S> {
 
     pub fn set_constants(&mut self, constants: &Constants) -> StdResult<()> {
         set_bin_data(&mut self.storage, KEY_CONSTANTS, constants)
+    }
+
+    pub fn set_self_address(&mut self, address: &HumanAddr) -> StdResult<()> {
+        set_bin_data(&mut self.storage, KEY_SELF, address)
     }
 
     pub fn total_supply(&self) -> u128 {
@@ -200,6 +209,16 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfigImpl<'a, S> {
             .expect("no total supply stored in config");
         // This unwrap is ok because we know we stored things correctly
         slice_to_u128(&supply_bytes).unwrap()
+    }
+
+    fn self_address(&self) -> StdResult<HumanAddr> {
+        let bytes = self
+            .0
+            .get(KEY_SELF)
+            .ok_or_else(|| StdError::generic_err("no constants stored in configuration"))?;
+
+        bincode2::deserialize::<HumanAddr>(&bytes)
+            .map_err(|e| StdError::serialize_err(type_name::<HumanAddr>(), e))
     }
 
     fn contract_status(&self) -> ContractStatusLevel {

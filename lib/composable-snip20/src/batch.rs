@@ -15,6 +15,7 @@ pub struct TransferAction {
 #[serde(rename_all = "snake_case")]
 pub struct SendAction {
     pub recipient: HumanAddr,
+    pub recipient_code_hash: Option<String>,
     pub amount: Uint128,
     pub msg: Option<Binary>,
     pub memo: Option<String>,
@@ -33,6 +34,7 @@ pub struct TransferFromAction {
 #[serde(rename_all = "snake_case")]
 pub struct SendFromAction {
     pub owner: HumanAddr,
+    pub recipient_code_hash: Option<String>,
     pub recipient: HumanAddr,
     pub amount: Uint128,
     pub msg: Option<Binary>,

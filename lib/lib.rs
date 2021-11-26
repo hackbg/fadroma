@@ -19,6 +19,9 @@ pub use decimal::*;
 pub mod uint256;
 pub use uint256::*;
 
+#[cfg(feature="derive")]
+pub use derive_contract;
+
 #[cfg(feature="scrt")] pub use scrt::*;
 #[cfg(feature="scrt")] pub mod scrt {
 
@@ -96,6 +99,7 @@ pub use uint256::*;
 #[cfg(feature="scrt-vk")]         pub use scrt_vk::*;
 
 #[cfg(feature="scrt-vk")]         pub mod scrt_vk_auth;
+#[cfg(feature="scrt-permit")]     pub mod scrt_permit;
 //#[cfg(feature="scrt-vk")]         pub use scrt_vk_auth::*;
 // pollutes namespace with generated HandleMsg/QueryMsg enums
 
@@ -103,9 +107,6 @@ pub use uint256::*;
 // (or can it?)
 #[cfg(feature="scrt-migrate")]    pub mod scrt_migrate;
 #[cfg(feature="scrt-migrate")]    pub use scrt_migrate::*;
-
-
-#[cfg(feature="derive")]          pub use derive_contract;
 
 #[cfg(feature="terra")] mod terra; 
 #[cfg(feature="terra")] pub use terra::*;

@@ -61,7 +61,7 @@ if [ ! -e "$Genesis" ]; then
   echo "GENESIS COMPLETE ======================"
 fi
 
-secretcli rest-server --trust-node=true --chain-id enigma-pub-testnet-3 --laddr tcp://0.0.0.0:1336 &
+secretcli rest-server --trust-node=true --chain-id $ChainID --laddr tcp://0.0.0.0:1336 &
 lcp --proxyUrl http://localhost:1336 --port $Port --proxyPartial '' &
 
 # sleep infinity

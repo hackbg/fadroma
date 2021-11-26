@@ -14,6 +14,7 @@ use schemars::JsonSchema;
 pub const PREFIX: &[u8] = b"fadroma_migration_state";
 
 /// Wrap status levels around the `match` statement that does your handle dispatch.
+/// Requires the `composable_admin::admin` module.
 #[macro_export] macro_rules! with_status {
     // by default, assumes the handle msg enum is called `HandleMsg` and imported
     ($deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {
@@ -22,7 +23,6 @@ pub const PREFIX: &[u8] = b"fadroma_migration_state";
     // but an alternative name can be passed
     ($HandleMsg:ty, $deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {
         if let HandleMsg::SetStatus { level, reason, new_address } = $msg {
-            scrt_migrate::can_set_status(&$deps, &level)?;
             scrt_migrate::set_status($deps, $env, level, reason, new_address)?;
             Ok(HandleResponse::default())
         } else {
@@ -48,8 +48,11 @@ macro_rules! migration_message {
 }
 
 pub fn load (storage: &impl Storage) -> StdResult<ContractStatus<CanonicalAddr>> {
-    match scrt_storage::load(storage, PREFIX)? {
-        Some(status) => status,
+    let result: Option<ContractStatus<CanonicalAddr>> =
+        scrt_storage::load(storage, PREFIX)?;
+
+    match result {
+        Some(status) => Ok(status),
         None => Ok(ContractStatus::default())
     }
 }
@@ -58,7 +61,7 @@ pub fn save (storage: &mut impl Storage, status: &ContractStatus<CanonicalAddr>)
 }
 
 /// Possible states of a contract.
-#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone, Copy)]
 pub enum ContractStatusLevel {
     /// Live
     Operational,
@@ -139,7 +142,7 @@ pub fn is_operational <S: Storage, A: Api, Q: Querier> (
 /// Fail if trying to return from `Migrating` status.
 pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
     deps: &Extern<S, A, Q>,
-    to_level: &ContractStatusLevel
+    to_level: ContractStatusLevel
 ) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = get_status(deps)?;
 
@@ -167,8 +170,103 @@ pub fn set_status <S: Storage, A: Api, Q: Querier> (
     reason: String,
     new_address: Option<HumanAddr>
 ) -> StdResult<()> {
+    can_set_status(deps, level)?;
+    
     save(&mut deps.storage, &ContractStatus { level, reason, new_address: match new_address {
         Some(new_address) => Some(new_address.canonize(&deps.api)?),
         None => None
     } })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::{mock_dependencies, mock_env};
+    use crate::composable_admin::admin;
+    use crate::composable_admin::admin::Admin;
+
+    #[test]
+    fn test_migrate() {
+        let ref mut deps = mock_dependencies(20, &[]);
+        let admin = "admin";
+
+        admin::DefaultImpl.new(Some(admin.into()), deps, mock_env(admin, &[])).unwrap();
+
+        let current = get_status(deps).unwrap();
+        assert_eq!(current.level, ContractStatusLevel::Operational);
+
+        can_set_status(deps, ContractStatusLevel::Operational).unwrap();
+        can_set_status(deps, ContractStatusLevel::Paused).unwrap();
+        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
+        is_operational(deps).unwrap();
+
+        let reason = String::from("Reason");
+        let new_address = HumanAddr("new_address".into());
+
+        let err = set_status(
+            deps,
+            mock_env("not_admin", &[]),
+            ContractStatusLevel::Paused,
+            "Test reason".into(),
+            None
+        ).unwrap_err();
+
+        assert_eq!(err, StdError::unauthorized());
+
+        set_status(
+            deps,
+            mock_env(admin, &[]),
+            ContractStatusLevel::Paused,
+            reason.clone(),
+            None
+        ).unwrap();
+
+        can_set_status(deps, ContractStatusLevel::Operational).unwrap();
+        can_set_status(deps, ContractStatusLevel::Paused).unwrap();
+        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
+        is_operational(deps).unwrap_err();
+
+        let current = get_status(deps).unwrap();
+        assert_eq!(current, ContractStatus {
+            level: ContractStatusLevel::Paused,
+            reason: reason.clone(),
+            new_address: None
+        });
+
+        set_status(
+            deps,
+            mock_env(admin, &[]),
+            ContractStatusLevel::Migrating,
+            reason.clone(),
+            None
+        ).unwrap();
+
+        can_set_status(deps, ContractStatusLevel::Operational).unwrap_err();
+        can_set_status(deps, ContractStatusLevel::Paused).unwrap_err();
+        can_set_status(deps, ContractStatusLevel::Migrating).unwrap();
+        is_operational(deps).unwrap_err();
+
+        let current = get_status(deps).unwrap();
+        assert_eq!(current, ContractStatus {
+            level: ContractStatusLevel::Migrating,
+            reason: reason.clone(),
+            new_address: None
+        });
+
+        set_status(
+            deps,
+            mock_env(admin, &[]),
+            ContractStatusLevel::Migrating,
+            reason.clone(),
+            Some(new_address.clone())
+        ).unwrap();
+
+        let current = get_status(deps).unwrap();
+        assert_eq!(current, ContractStatus {
+            level: ContractStatusLevel::Migrating,
+            reason,
+            new_address: Some(new_address)
+        });
+    }
 }

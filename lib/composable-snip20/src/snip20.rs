@@ -1,11 +1,22 @@
-use fadroma::*;
+use fadroma::{
+    scrt::{
+        Storage, ReadonlyStorage, Api, Querier, Extern, StdResult,
+        StdError, InitResponse, HandleResponse, Uint128, WasmMsg,
+        BankMsg, CosmosMsg, Binary, Coin, HumanAddr, CanonicalAddr,
+        Env, BlockInfo, log, to_binary
+    },
+    scrt_vk::{ViewingKey, VIEWING_KEY_SIZE},
+    scrt_crypto::sha_256,
+    scrt_permit::Permit
+};
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;
 use crate::{
     msg::{
         ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg,
-        QueryAnswer, ResponseStatus, QueryMsg
+        QueryAnswer, ResponseStatus, QueryMsg, QueryWithPermit,
+        QueryPermission
     },
     receiver::Snip20ReceiveMsg,
     state::{
@@ -105,6 +116,7 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
     })?;
     config.set_total_supply(total_supply);
     config.set_contract_status(ContractStatusLevel::NormalRun);
+    config.set_self_address(&env.contract.address)?;
 
     let minters = if init_config.mint_enabled() {
         Vec::from([admin])
@@ -176,11 +188,12 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
         } => snip20.transfer(deps, env, recipient, amount, memo),
         HandleMsg::Send {
             recipient,
+            recipient_code_hash,
             amount,
             msg,
             memo,
             ..
-        } => snip20.send(deps, env, recipient, amount, memo, msg),
+        } => snip20.send(deps, env, recipient, recipient_code_hash, amount, memo, msg),
         HandleMsg::Burn { amount, memo, .. } => snip20.burn(deps, env, amount, memo),
         HandleMsg::RegisterReceive { code_hash, .. } => snip20.register_receive(deps, env, code_hash),
         HandleMsg::CreateViewingKey { entropy, .. } => snip20.create_viewing_key(deps, env, entropy),
@@ -209,11 +222,12 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::SendFrom {
             owner,
             recipient,
+            recipient_code_hash,
             amount,
             msg,
             memo,
             ..
-        } => snip20.send_from(deps, env, owner, recipient, amount, memo, msg),
+        } => snip20.send_from(deps, env, owner, recipient, recipient_code_hash, amount, memo, msg),
         HandleMsg::BurnFrom {
             owner,
             amount,
@@ -244,7 +258,10 @@ pub fn snip20_handle<S: Storage, A: Api, Q: Querier>(
         }
         HandleMsg::BatchSendFrom { actions, .. } => snip20.batch_send_from(deps, env, actions),
         HandleMsg::BatchBurnFrom { actions, .. } => snip20.batch_burn_from(deps, env, actions),
-        HandleMsg::BatchMint { actions, .. } => snip20.batch_mint(deps, env, actions)
+        HandleMsg::BatchMint { actions, .. } => snip20.batch_mint(deps, env, actions),
+
+        // SNIP24
+        HandleMsg::RevokePermit { permit_name, .. } => snip20.revoke_permit(deps, env, permit_name)
     };
 
     pad_response(response)
@@ -259,7 +276,8 @@ pub fn snip20_query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::ContractStatus {} => snip20.query_contract_status(&deps.storage),
         QueryMsg::ExchangeRate {} => snip20.query_exchange_rate(&deps.storage),
         QueryMsg::Minters { .. } => snip20.query_minters(deps),
-        _ => authenticated_queries(deps, msg, snip20)
+        QueryMsg::WithPermit { permit, query } => permit_queries(deps, snip20, permit, query),
+        _ => viewing_keys_queries(deps, msg, snip20)
     }
 }
 
@@ -449,6 +467,7 @@ pub trait Snip20  {
         deps: &mut Extern<S, A, Q>,
         env: Env,
         recipient: HumanAddr,
+        recipient_code_hash: Option<String>,
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
@@ -462,6 +481,7 @@ pub trait Snip20  {
             sender,
             &sender_canon,
             recipient,
+            recipient_code_hash,
             amount,
             memo,
             msg,
@@ -721,6 +741,7 @@ pub trait Snip20  {
         env: Env,
         owner: HumanAddr,
         recipient: HumanAddr,
+        recipient_code_hash: Option<String>,
         amount: Uint128,
         memo: Option<String>,
         msg: Option<Binary>,
@@ -737,6 +758,7 @@ pub trait Snip20  {
             &spender_canon,
             owner,
             recipient,
+            recipient_code_hash,
             amount,
             memo,
             msg,
@@ -1038,6 +1060,7 @@ pub trait Snip20  {
                 sender.clone(),
                 &sender_canon,
                 action.recipient,
+                action.recipient_code_hash,
                 action.amount,
                 action.memo,
                 action.msg,
@@ -1103,6 +1126,7 @@ pub trait Snip20  {
                 &spender_canon,
                 action.owner,
                 action.recipient,
+                action.recipient_code_hash,
                 action.amount,
                 action.memo,
                 action.msg,
@@ -1244,6 +1268,27 @@ pub trait Snip20  {
         };
     
         Ok(res)
+    }
+
+    // SNIP24
+
+    fn revoke_permit<S: Storage, A: Api, Q: Querier>(
+        &self,
+        deps: &mut Extern<S, A, Q>,
+        env: Env,
+        permit_name: String
+    ) -> StdResult<HandleResponse> {
+        Permit::<QueryPermission>::revoke(
+            &mut deps.storage,
+            &env.message.sender,
+            &permit_name
+        );
+    
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![],
+            data: Some(to_binary(&HandleAnswer::RevokePemit { status: ResponseStatus::Success })?),
+        })
     }
 
     // Query
@@ -1435,6 +1480,7 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
     sender: HumanAddr,
     sender_canon: &CanonicalAddr, // redundant but more efficient
     recipient: HumanAddr,
+    recipient_code_hash: Option<String>,
     amount: Uint128,
     memo: Option<String>,
     msg: Option<Binary>,
@@ -1455,6 +1501,7 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
         &deps.storage,
         messages,
         recipient,
+        recipient_code_hash,
         msg,
         sender.clone(),
         sender,
@@ -1470,12 +1517,21 @@ pub fn add_receiver_api_callback<S: ReadonlyStorage>(
     storage: &S,
     messages: &mut Vec<CosmosMsg>,
     recipient: HumanAddr,
+    recipient_code_hash: Option<String>,
     msg: Option<Binary>,
     sender: HumanAddr,
     from: HumanAddr,
     amount: Uint128,
     memo: Option<String>,
 ) -> StdResult<()> {
+    if let Some(receiver_hash) = recipient_code_hash {
+        let receiver_msg = Snip20ReceiveMsg::new(sender, from, amount, memo, msg);
+        let callback_msg = receiver_msg.into_cosmos_msg(receiver_hash, recipient)?;
+
+        messages.push(callback_msg);
+        return Ok(());
+    }
+
     let receiver_hash = get_receiver_hash(storage, &recipient);
     if let Some(receiver_hash) = receiver_hash {
         let receiver_hash = receiver_hash?;
@@ -1549,6 +1605,7 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
     spender_canon: &CanonicalAddr, // redundant but more efficient
     owner: HumanAddr,
     recipient: HumanAddr,
+    recipient_code_hash: Option<String>,
     amount: Uint128,
     memo: Option<String>,
     msg: Option<Binary>,
@@ -1570,6 +1627,7 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
         &deps.storage,
         messages,
         recipient,
+        recipient_code_hash,
         msg,
         env.message.sender,
         owner,
@@ -1716,7 +1774,7 @@ impl fmt::Display for SymbolValidation {
     }
 }
 
-fn authenticated_queries<S: Storage, A: Api, Q: Querier>(
+fn viewing_keys_queries<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>,
     msg: QueryMsg,
     snip20: impl Snip20
@@ -1754,9 +1812,71 @@ fn authenticated_queries<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    Ok(to_binary(&QueryAnswer::ViewingKeyError {
+    to_binary(&QueryAnswer::ViewingKeyError {
         msg: "Wrong viewing key for this address or viewing key not set".to_string(),
-    })?)
+    })
+}
+
+fn permit_queries<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    snip20: impl Snip20,
+    permit: Permit<QueryPermission>,
+    query: QueryWithPermit,
+) -> Result<Binary, StdError> {
+    let token_address = ReadonlyConfig::from_storage(&deps.storage)
+        .self_address()?;
+
+    let account = permit.validate(deps, token_address)?;
+
+    match query {
+        QueryWithPermit::Balance {} => {
+            if !permit.check_permission(&QueryPermission::Balance) {
+                return Err(StdError::generic_err(format!(
+                    "No permission to query balance, got permissions {:?}",
+                    permit.params.permissions
+                )));
+            }
+
+            snip20.query_balance(deps, &account)
+        }
+        QueryWithPermit::TransferHistory { page, page_size } => {
+            if !permit.check_permission(&QueryPermission::History) {
+                return Err(StdError::generic_err(format!(
+                    "No permission to query history, got permissions {:?}",
+                    permit.params.permissions
+                )));
+            }
+
+            snip20.query_transfers(deps, &account, page.unwrap_or(0), page_size)
+        }
+        QueryWithPermit::TransactionHistory { page, page_size } => {
+            if !permit.check_permission(&QueryPermission::History) {
+                return Err(StdError::generic_err(format!(
+                    "No permission to query history, got permissions {:?}",
+                    permit.params.permissions
+                )));
+            }
+
+            snip20.query_transactions(deps, &account, page.unwrap_or(0), page_size)
+        }
+        QueryWithPermit::Allowance { owner, spender } => {
+            if !permit.check_permission(&QueryPermission::Allowance) {
+                return Err(StdError::generic_err(format!(
+                    "No permission to query allowance, got permissions {:?}",
+                    permit.params.permissions
+                )));
+            }
+
+            if account != owner && account != spender {
+                return Err(StdError::generic_err(format!(
+                    "Cannot query allowance. Requires permit for either owner {:?} or spender {:?}, got permit for {:?}",
+                    owner.as_str(), spender.as_str(), account.as_str()
+                )));
+            }
+
+            snip20.query_allowance(deps, owner, spender)
+        }
+    }
 }
 
 fn is_admin<S: Storage>(config: &Config<S>, account: &HumanAddr) -> StdResult<bool> {
