@@ -1,17 +1,23 @@
 use cosmwasm_std::{
     Binary, HumanAddr, Uint128, Extern, Storage, Api,
-    Querier, StdError, StdResult, CanonicalAddr, to_binary
+    Querier, StdError, StdResult, to_binary
 };
+#[cfg(not(test))]
+use cosmwasm_std::CanonicalAddr;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+#[cfg(not(test))]
 use ripemd160::{Digest, Ripemd160};
+#[cfg(not(test))]
 use secp256k1::Secp256k1;
+#[cfg(not(test))]
 use sha2::Sha256;
 
 pub trait Permission: Serialize + JsonSchema + Clone + PartialEq { }
 
 impl<T: Serialize + JsonSchema + Clone + PartialEq> Permission for T { }
 
+#[cfg(not(test))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Permit<P: Permission> {
@@ -19,33 +25,87 @@ pub struct Permit<P: Permission> {
     pub signature: PermitSignature
 }
 
+#[cfg(test)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct Permit<P: Permission> {
+    pub params: PermitParams<P>,
+    pub address: HumanAddr
+}
+
+#[cfg(test)]
+impl<P: Permission> Permit<P> {
+    pub fn new(
+        address: impl Into<HumanAddr>,
+        permissions: Vec<P>,
+        allowed_tokens: Vec<HumanAddr>,
+        permit_name: impl Into<String>
+    ) -> Self {
+        Self {
+            params: PermitParams {
+                permissions,
+                permit_name: permit_name.into(),
+                allowed_tokens,
+                chain_id: "cosmos-testnet-14002".into()
+            },
+            address: address.into()
+        }
+    }
+}
+
 impl<P: Permission> Permit<P> {
     const NS_PERMITS: &'static [u8] = b"GAl8kO8Z8w";
 
+    #[inline]
     pub fn check_token(&self, token: &HumanAddr) -> bool {
         self.params.allowed_tokens.contains(token)
     }
 
+    #[inline]
     pub fn check_permission(&self, permission: &P) -> bool {
         self.params.permissions.contains(permission)
     }
 
-    pub fn validate<S: Storage, A: Api, Q: Querier>(
+    pub fn validate_with_permissions<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
         current_contract_addr: HumanAddr,
+        expected_permissions: Vec<P>
+    ) -> StdResult<HumanAddr> {
+        if !expected_permissions.iter().all(|x| self.check_permission(x)) {
+            return Err(StdError::generic_err(format!(
+                "Expected permission(s): {}, got: {}",
+                Self::print_permissions(&expected_permissions)?,
+                Self::print_permissions(&self.params.permissions)?
+            )));
+        }
+
+        self.validate(deps, current_contract_addr)
+    }
+
+    #[cfg(test)]
+    pub fn validate<S: Storage, A: Api, Q: Querier>(
+        &self,
+        deps: &Extern<S, A, Q>,
+        current_contract_addr: HumanAddr
     ) -> StdResult<HumanAddr> {
         if !self.check_token(&current_contract_addr) {
-            return Err(StdError::generic_err(format!(
-                "Permit doesn't apply to contract {:?}, allowed contracts: {:?}",
-                current_contract_addr.as_str(),
-                self
-                    .params
-                    .allowed_tokens
-                    .iter()
-                    .map(|a| a.as_str())
-                    .collect::<Vec<&str>>()
-            )));
+            return Err(StdError::generic_err(self.check_token_err(current_contract_addr)));
+        }
+    
+        Self::assert_not_revoked(&deps.storage, &self.address, &self.params.permit_name)?;
+
+        Ok(self.address.clone())
+    }
+
+    #[cfg(not(test))]
+    pub fn validate<S: Storage, A: Api, Q: Querier>(
+        &self,
+        deps: &Extern<S, A, Q>,
+        current_contract_addr: HumanAddr
+    ) -> StdResult<HumanAddr> {
+        if !self.check_token(&current_contract_addr) {
+            return Err(StdError::generic_err(self.check_token_err(current_contract_addr)));
         }
     
         // Derive account from pubkey
@@ -113,7 +173,38 @@ impl<P: Permission> Permit<P> {
     
         storage.set(&key, &[])
     }
-    
+
+    pub fn print_permissions(permissions: &Vec<P>) -> StdResult<String> {
+        let mut result = Vec::with_capacity(permissions.len());
+
+        for permission in permissions {
+            let bin = to_binary(&permission)?;
+            let string = String::from_utf8(bin.0);
+
+            match string {
+                Ok(string) => result.push(string),
+                Err(err) => return Err(StdError::generic_err(err.to_string()))
+            }
+        }
+
+        Ok(result.join(", "))
+    }
+
+    fn check_token_err(&self, current_contract_addr: HumanAddr) -> String {
+        format!(
+            "Permit doesn't apply to contract {}, allowed contracts: {}",
+            current_contract_addr.0,
+            self
+                .params
+                .allowed_tokens
+                .iter()
+                .map(|a| a.0.as_str())
+                .collect::<Vec<&str>>()
+                .join(", ")
+        )
+    }
+
+    #[cfg(not(test))]
     fn pubkey_to_account(&self, pubkey: &Binary) -> CanonicalAddr {
         let mut hasher = Ripemd160::new();
         hasher.update(Sha256::digest(&pubkey.0));
@@ -249,5 +340,78 @@ impl<P: Permission> PermitContent<P> {
             permit_name: params.permit_name.clone(),
             permissions: params.permissions.clone()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cosmwasm_std::testing::mock_dependencies;
+
+    #[test]
+    fn test_permission() {
+        #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+        #[serde(rename_all = "snake_case")]
+        enum Permission {
+            One,
+            Two
+        }
+
+        let ref mut deps = mock_dependencies(20, &[]);
+
+        let contract_addr = HumanAddr::from("contract");
+        let permissions = vec![ Permission::One ];
+        let sender = HumanAddr::from("sender");
+
+        let permit = Permit::new(
+            sender.clone(),
+            permissions.clone(),
+            vec![ contract_addr.clone() ],
+            "permit"
+        );
+
+        let wrong_contract = HumanAddr::from("wrong_contract");
+        let err = permit.validate_with_permissions(
+            deps,
+            wrong_contract.clone(),
+            permissions.clone()
+        ).unwrap_err();
+
+        match err {
+            StdError::GenericErr { msg, .. } => {
+                assert_eq!(msg, format!(
+                    "Permit doesn't apply to contract {}, allowed contracts: {}",
+                    wrong_contract.0.as_str(),
+                    contract_addr.0.as_str()
+                ))
+            },
+            _ => panic!("Expected StdError::GenericErr")
+        }
+
+        let expected_permissions = vec![ Permission::One, Permission::Two ];
+        let err = permit.validate_with_permissions(
+            deps,
+            contract_addr.clone(),
+            expected_permissions.clone()
+        ).unwrap_err();
+
+        match err {
+            StdError::GenericErr { msg, .. } => {
+                assert_eq!(msg, format!(
+                    "Expected permission(s): {}, got: {}",
+                    Permit::print_permissions(&expected_permissions).unwrap(),
+                    Permit::print_permissions(&permissions).unwrap()
+                ))
+            },
+            _ => panic!("Expected StdError::GenericErr")
+        }
+
+        let result = permit.validate_with_permissions(
+            deps,
+            contract_addr,
+            permissions.clone()
+        ).unwrap();
+
+        assert_eq!(result, sender);
     }
 }
