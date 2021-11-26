@@ -2,6 +2,12 @@
 
 Industrial-strength tooling and components for WASM-based smart contracts.
 
+```
+"I was always willing to be reasonable until I had to be unreasonable.
+ Sometimes reasonable men must do unreasonable things."
+                                     - Marvin Heemeyer
+```
+
 ![](https://github.com/hackbg/fadroma/blob/21.08/doc/logo.svg)
 
 ## Features
