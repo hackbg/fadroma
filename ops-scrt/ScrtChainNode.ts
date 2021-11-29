@@ -30,7 +30,11 @@ export abstract class DockerizedScrtNode extends DockerizedChainNode {
   }
 
   async spawn () {
-    this.sgxDir.make()
+    try {
+      this.sgxDir.make()
+    } catch (e) {
+      console.warn(`Failed to create ${this.sgxDir.path}: ${e.message}`)
+    }
     return await super.spawn()
   }
 
@@ -41,30 +45,6 @@ export abstract class DockerizedScrtNode extends DockerizedChainNode {
       [this.daemonDir.path]: `/root/.secretd:rw`,
       [this.clientDir.path]: `/root/.secretcli:rw`,
     }
-  }
-}
-
-export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
-  readonly chainId: string = 'enigma-pub-testnet-3'
-  readonly image:   string = "enigmampc/secret-network-sw-dev"
-  constructor (options: ChainNodeOptions = {}) {
-    super()
-    if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
-    if (options.identities) this.identitiesToCreate = options.identities
-    this.setDirectories(options.stateRoot)
-  }
-}
-
-export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
-  readonly chainId: string = 'secret-testnet-1'
-  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
-  constructor (options: ChainNodeOptions = {}) {
-    super()
-    if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
-    if (options.identities) this.identitiesToCreate = options.identities
-    this.setDirectories(options.stateRoot)
   }
 }
 

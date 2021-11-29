@@ -16,9 +16,9 @@ const console = Console(import.meta.url)
 
 
 export abstract class BaseChainNode implements IChainNode {
-  chainId: string
-  apiURL:  URL
-  port:    number
+  chainId = ''
+  apiURL: URL
+  port = 0
 
   #ready: Promise<void>
   get ready() { return this.#ready }
@@ -109,7 +109,10 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   docker: Docker = new Docker({ sockerPath: '/var/run/docker.sock' })
 
   /** The created container */
-  container: { id: string, Warnings: any }
+  container: {
+    id:       string,
+    Warnings: any
+  }
 
   private isRunning = async (id: string = this.container.id) =>
     (await this.docker.getContainer(id).inspect()).State.Running
@@ -125,13 +128,16 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     if (await this.isRunning(id)) {
       console.info(`Stopping ${prettyId}...`)
       await this.docker.getContainer(id).kill()
-      console.info(`Stopped ${prettyId}`) } }
+      console.info(`Stopped ${prettyId}`)
+    }
+  }
 
-  identitiesToCreate: Array<string> = ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
+  identitiesToCreate: Array<string> =
+    ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
 
-  protocol:  string = 'http'
-  host:      string = 'localhost'
-  port:      number
+  protocol = 'http'
+  host = 'localhost'
+  port:     number
 
   constructor (options: ChainNodeOptions = {}) {
     super()
@@ -159,22 +165,29 @@ export abstract class DockerizedChainNode extends BaseChainNode {
 
   async respawn () {
     console.info(`Trying to respawn localnet from ${bold(this.nodeState.path)}...`)
+
     // if no node state, spawn
     if (!this.nodeState.exists()) {
       console.info(`No localnet found at ${bold(this.nodeState.path)}`)
-      return this.spawn() }
+      return this.spawn()
+    }
+
     // get stored info about the container was supposed to be
-    let id: any; try { id = this.load().containerId } catch (e) {
+    let id: string
+    try {
+      id = this.load().containerId
+    } catch (e) {
       // if node state is corrupted, spawn
       console.warn(e)
       console.info(`Reading ${bold(this.nodeState.path)} failed`)
       return this.spawn()
     }
+
     // check if contract is running
-    let running: any
+    let running: boolean
     try {
       running = await this.isRunning(id)
-    } catch (e) {
+    } catch (_e) {
       // if error when checking, RESPAWN
       //console.info(`✋ Failed to get container ${bold(id)}`)
       //console.info('Error was:', e)
@@ -183,6 +196,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
       console.info(`Trying to launch a new node...`)
       return this.spawn()
     }
+
     // if not running, RESPAWN
     if (!running) this.startContainer(id)
     // ...and try to make sure it dies when the Node process dies
@@ -227,20 +241,22 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     console.info(`Created container ${this.container.id} (${bold(this.nodeState.path)})...`)
 
     // start the container
-    await this.startContainer(this.container.id)
+    await this.startContainer(this.container.idget)
     console.info(`Started container ${this.container.id}...`)
 
     // update the record
     this.save()
 
     // wait for logs to confirm that the genesis is done
-    await waitUntilLogsSay(this.container, 'GENESIS COMPLETE')
+    await waitUntilLogsSay(this.container, this.readyPhrase)
 
     // wait for port to be open
     await waitPort({ host: this.host, port: this.port })
 
     done()
   }
+  
+  abstract readyPhrase: string
 
   /** Dockerode passes these to the Docker API in order to launch a localnet container. */
   get spawnContainerOptions () {
@@ -270,15 +286,21 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   /** All the directories that need to be mounted into/out of the container,
     * in a Dockerode-friendly format. */
   get binds () {
-    return { [this.initScript.path]: `/init.sh:ro`,
-             [this.identities.path]: `/shared-keys:rw` } }
+    return {
+      [this.initScript.path]: `/init.sh:ro`,
+      [this.identities.path]: `/shared-keys:rw`
+    }
+  }
 
   /** Environment variables that will be set in the container.
     * Use them to pass parameters to the init script. */
   get env () {
-    return [`Port=${this.port}`
-           ,`ChainID=${this.chainId}`
-           ,`GenesisAccounts=${this.identitiesToCreate.join(' ')}`]}
+    return [
+      `Port=${this.port}`,
+      `ChainID=${this.chainId}`,
+      `GenesisAccounts=${this.identitiesToCreate.join(' ')}`
+    ]
+  }
 
   /** Kill the container, if necessary find it first */
   async kill () {
@@ -290,11 +312,12 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     }
 
     console.info(`Checking if there's an old node that needs to be stopped...`)
+
     try {
       const { containerId } = this.load()
       await this.killContainer(containerId)
       console.info(`Stopped container ${bold(containerId)}.`)
-    } catch (e) {
+    } catch (_e) {
       console.info("Didn't stop any container.")
     }
   }
@@ -302,7 +325,9 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   /** External environment needs to be returned to a pristine state via Docker.
     * (Otherwise, root-owned dotdirs leak and have to be manually removed with sudo.) */
   async erase () {
+
     const path = bold(relative(cwd(), this.stateRoot.path))
+
     try {
       if (this.stateRoot.exists()) {
         console.log(`⏳ Deleting ${path}...`)
@@ -321,6 +346,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
         console.info(`Deleted ${path} via cleanup container.`)
       }
     }
+
   }
 
   /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
@@ -335,5 +361,5 @@ export abstract class DockerizedChainNode extends BaseChainNode {
       //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
     }))
   }
-}
 
+}

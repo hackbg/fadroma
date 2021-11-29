@@ -1,14 +1,19 @@
-import type {
+import {
   ChainNode, ChainState, ChainConnectOptions,
+  BaseChain, ChainInstancesDir, prefund,
   Identity, Agent
 } from '@fadroma/ops'
-import type { Commands } from '@fadroma/tools'
+
+import { Commands, Console } from '@fadroma/tools'
+
 import { URL } from 'url'
-import { Chain, ChainInstancesDir, prefund } from '@fadroma/ops'
 import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from './index'
 import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@fadroma/tools'
 import { resetLocalnet } from './ScrtChainNode'
-import { DockerizedScrtNode_1_0, DockerizedScrtNode_1_2 } from './ScrtChainNode'
+import * as Scrt_1_0 from '@fadroma/scrt-1.0'
+import * as Scrt_1_2 from '@fadroma/scrt-1.2'
+
+const console = Console(import.meta.url)
 
 type AgentConstructor = new (options: Identity) => Agent & {
   create: () => Promise<Agent>
@@ -19,25 +24,38 @@ export type ScrtChainState = ChainState & {
   identities?: Array<string>
 }
 
+
 export const on = {
   'localnet-1.0' (context: any = {}) {
     console.info(`Running on ${bold('localnet-1.0')}:`)
-    context.chain = Scrt.localnet_1_0() },
+    context.chain = Scrt.localnet_1_0()
+  },
+
   'localnet-1.2' (context: any = {}) {
     console.info(`Running on ${bold('localnet-1.2')}:`)
-    context.chain = Scrt.localnet_1_2() },
+    context.chain = Scrt.localnet_1_2()
+  },
+
   'holodeck-2' (context: any = {}) {
     console.info(`Running on ${bold('holodeck-2')}:`)
-    context.chain = Scrt.holodeck_2() },
+    context.chain = Scrt.holodeck_2()
+  },
+
   'supernova-1' (context: any = {}) {
     console.info(`Running on ${bold('supernova-1')}:`)
-    context.chain = Scrt.supernova_1() },
+    context.chain = Scrt.supernova_1()
+  },
+
   'secret-2' (context: any = {}) {
     console.info(`Running on ${bold('secret-2')}:`)
-    context.chain = Scrt.secret_2() },
+    context.chain = Scrt.secret_2()
+  },
+
   'secret-3' (context: any = {}) {
     console.info(`Running on ${bold('secret-3')}:`)
-    context.chain = Scrt.secret_3() } }
+    context.chain = Scrt.secret_3()
+  }
+}
 
 export function openFaucet () {
   const url = `https://faucet.secrettestnet.io/`
@@ -50,7 +68,8 @@ export const Help = {
   RESET:   "✨ Erase the state of this localnet",
   MAINNET: "💰 Interact with the Secret Network mainnet",
   FAUCET:  "🚰 Open a faucet for this network in your default browser",
-  FUND:    "👛 Create test wallets by sending native token to them" }
+  FUND:    "👛 Create test wallets by sending native token to them"
+}
 
 const {
   SCRT_API_URL,
@@ -59,7 +78,7 @@ const {
   SCRT_AGENT_MNEMONIC
 } = process.env
 
-export class Scrt extends Chain {
+export class Scrt extends BaseChain {
 
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
   static secret_2 (options: ChainConnectOptions = {}): Scrt {
@@ -149,7 +168,7 @@ export class Scrt extends Chain {
     // connect() gets them from genesis accounts
     return new Scrt({
       isLocalnet: true,
-      node:    options.node    || new DockerizedScrtNode_1_0({ identities: options.identities }),
+      node:    options.node    || new Scrt_1_0.DockerizedScrtNode_1_0({ identities: options.identities }),
       chainId: options.chainId || 'enigma-pub-testnet-3',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_0,
@@ -165,7 +184,7 @@ export class Scrt extends Chain {
     return new Scrt({
       isLocalnet: true,
       ...options,
-      node:    options.node    || new DockerizedScrtNode_1_2(options),
+      node:    options.node    || new Scrt_1_2.DockerizedScrtNode_1_2(options),
       chainId: options.chainId || 'secret-testnet-1',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_0,
@@ -240,7 +259,11 @@ export class Scrt extends Chain {
 
       // get the default account for the node
       if (typeof this.defaultIdentity === 'string') {
-        this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
+        try {
+          this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
+        } catch (e) {
+          console.warn(`Could not load default identity ${this.defaultIdentity}: ${e.message}`)
+        }
       }
 
     }
@@ -281,7 +304,7 @@ export class Scrt extends Chain {
         return new ScrtCLIAgent({ chain: this, name }) as Agent
       } else throw new Error(
         'You need to provide a name to get a secretcli-backed agent, ' +
-        'or a mnemonic or keypair to get a SecretJS-backed agent.'\
+        'or a mnemonic or keypair to get a SecretJS-backed agent.'
       )
     }
 
@@ -373,8 +396,11 @@ export class Scrt extends Chain {
       localnet,
       `Run commands on ${localnet}`,
       on[localnet],
-      [ ['reset', Help.RESET, resetLocalnet]\
-      , ...getCommands(Scrt[localnet.replace(/[-.]/g, '_')]())]])
+      [
+        ['reset', Help.RESET, resetLocalnet],
+        ...getCommands(Scrt[localnet.replace(/[-.]/g, '_')]())
+      ]
+    ])
   }
 
   /** Generate command lists for known testnets. */
@@ -384,9 +410,12 @@ export class Scrt extends Chain {
       testnet,
       `Run commands on ${testnet} testnet`,
       on[testnet],
-      [ ["faucet", Help.FAUCET, openFaucet]
-      , ["fund",   Help.FUND,   prefund]
-      , ...getCommands(Scrt[testnet.replace(/[-.]/g, '_')]())]])
+      [
+        ["faucet", Help.FAUCET, openFaucet],
+        ["fund",   Help.FUND,   prefund],
+        ...getCommands(Scrt[testnet.replace(/[-.]/g, '_')]())
+      ]
+    ])
   }
 
   static mainnetCommands = (getCommands: RemoteCommands): Commands => {

@@ -171,6 +171,8 @@ export const rimraf = (path: string) =>
   new Promise<void>((resolve, reject)=>{
     _rimraf(path, (err) => { if (err) { reject(err) } else { resolve() } }) })
 
+// misc data functions /////////////////////////////////////////////////////////////////////////////
+
 import { randomBytes } from 'crypto'
 export const randomHex = (bytes: number) =>
   randomBytes(bytes).toString("hex")
