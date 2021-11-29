@@ -3,6 +3,12 @@
 
 import { BaseAgent } from '@fadroma/ops'
 import { readFile, bold } from '@fadroma/tools'
+import { Bip39 } from '@cosmjs/crypto'
+import {
+  EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
+  encodeSecp256k1Pubkey, pubkeyToAddress,
+  makeSignBytes, BroadcastMode
+} from 'secretjs/src/index.ts'
 
 /** Queries and transacts on an instance of the Secret Chain */
 export abstract class ScrtAgentJS extends BaseAgent {

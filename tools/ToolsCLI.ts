@@ -29,26 +29,46 @@ export type Commands = Array<Command|null>
 
 /** Prettier console. */
 export const Console = (context: string) => {
-  try { context = relative(cwd(), fileURLToPath(context)) } catch {}
-  const format = (arg:any) => {
+
+  try {
+    context = relative(cwd(), fileURLToPath(context))
+  } catch {
+    //
+  }
+
+  const INDENT = "\n      "
+
+  const format = (arg: any) => {
     //console.trace(arg)
-    return '\n'+((typeof arg === 'object') ? render(arg) : arg) }
+    return INDENT +
+      ((typeof arg === 'object')
+        ? render(arg).replace(/\n/g, INDENT)
+        : arg)
+      + '\n'
+  }
+
   return {
     context, format,
     table: (rows: any) => console.log(table(rows)),
-    log:   (...args: any) => console.log(...args),
-    info:  (...args: any) => console.info(bold(colors.green('INFO ')), ...args),
-    warn:  (...args: any) => console.warn(bold(colors.yellow('WARN ')), ...args),
-    error: (...args: any) => console.error(bold(colors.red('ERROR')), ...args),
-    trace: (...args: any) => console.trace(bold(colord.pink('TRACE')), ...args),
-    debug: (...args: any) => {
+    log:   (...args: Array<any>) => console.log(...args),
+    info:  (...args: Array<any>) => console.info(bold(colors.green('INFO ')), ...args),
+    warn:  (...args: Array<any>) => console.warn(bold(colors.yellow('WARN ')), ...args),
+    error: (...args: Array<any>) => console.error(bold(colors.red('ERROR')), ...args),
+    trace: (...args: Array<any>) => console.trace(bold(colors.pink('TRACE')), ...args),
+
+    debug: (...args: Array<any>) => {
       if (!process.env.NO_DEBUG) {
-        const tag = `[${context}] `
+        //const tag = `[${context}] `
         console.debug(
-          `\n${colors.yellow(tag)}`,
+          //`\n${colors.yellow(tag)}`,
           //[...Array(process.stdout.columns - tag.length)].map(()=>'─').join(''),
-          ...args.map(format)) }
-      return args[0] } } }
+          ...args.map(format))
+      }
+      return args[0]
+    }
+  }
+
+}
 
 // Table ///////////////////////////////////////////////////////////////////////////////////////////
 

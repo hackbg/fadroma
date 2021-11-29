@@ -2,7 +2,7 @@ import type { IChain, IChainNode, IChainState, Identity, IAgent, IContract } fro
 
 import {
   __dirname,
-  relative, cwd, JSONFile, Directory, JSONDirectory,
+  Directory,
   Console, bold, symlinkDir, mkdirp, resolve, basename,
   readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync
 } from '@fadroma/tools'

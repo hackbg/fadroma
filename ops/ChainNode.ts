@@ -1,11 +1,15 @@
+import { IChainNode } from '@fadroma/ops'
+
 import {
-  IChainNode, Directory, JSONFile, JSONDirectory,
+  Directory, JSONFile, JSONDirectory,
   relative, cwd, TextFile,
   Docker, waitPort, freePort, pulled, waitUntilLogsSay,
-  bold
+  bold, Console
 } from '@fadroma/tools'
 
 import { URL } from 'url'
+
+const console = Console(import.meta.url)
 
 
 /// # Chain backends
@@ -147,23 +151,23 @@ export abstract class DockerizedChainNode extends BaseChainNode {
 
   /** Write the state of the localnet to a file. */
   save () {
-    console.debug('saving localnet node', { to: this.nodeState.path })
+    console.info(`Saving localnet node to ${this.nodeState.path}`)
     const data = { containerId: this.container.id, chainId: this.chainId, port: this.port }
     this.nodeState.save(data)
     return this
   }
 
   async respawn () {
-    console.log(`⏳ Trying to respawn localnet from ${bold(this.nodeState.path)}...`)
+    console.info(`Trying to respawn localnet from ${bold(this.nodeState.path)}...`)
     // if no node state, spawn
     if (!this.nodeState.exists()) {
-      console.info(`✋ No localnet found at ${bold(this.nodeState.path)}`)
+      console.info(`No localnet found at ${bold(this.nodeState.path)}`)
       return this.spawn() }
     // get stored info about the container was supposed to be
     let id: any; try { id = this.load().containerId } catch (e) {
       // if node state is corrupted, spawn
       console.warn(e)
-      console.info(`✋ Reading ${bold(this.nodeState.path)} failed`)
+      console.info(`Reading ${bold(this.nodeState.path)} failed`)
       return this.spawn()
     }
     // check if contract is running
@@ -174,9 +178,9 @@ export abstract class DockerizedChainNode extends BaseChainNode {
       // if error when checking, RESPAWN
       //console.info(`✋ Failed to get container ${bold(id)}`)
       //console.info('Error was:', e)
-      console.log(`⏳ Cleaning up outdated state...`)
+      console.info(`Cleaning up outdated state...`)
       await this.erase()
-      console.log(`⏳ Trying to launch a new node...`)
+      console.info(`Trying to launch a new node...`)
       return this.spawn()
     }
     // if not running, RESPAWN
@@ -189,34 +193,52 @@ export abstract class DockerizedChainNode extends BaseChainNode {
 
   /** Spawn a new localnet instance from scratch */
   async spawn () {
-    let done: Function
-    this.#ready = new Promise(resolve=>done=resolve)
+    let done = () => {}
+    this.#ready = new Promise(resolve => done = resolve)
+
     // tell the user that we have begun
-    console.debug(`⏳ Spawning new node...`)
+    console.info(`Spawning new node...`)
+
     // get a free port
     this.port = (await freePort()) as number
+
     // create the state dirs and files
     const items = [this.stateRoot, this.nodeState, this.daemonDir, this.clientDir]
-    for (const item of items) item.make()
+    for (const item of items) {
+      try {
+        item.make()
+      } catch (e) {
+        console.warn(`Failed to create ${item.path}: ${e.message}`)
+      }
+    }
+
     // create the container
-    console.debug('Spawning...', await this.spawnContainerOptions)
+    console.info('Spawning a container with the following options:')
+    console.debug(await this.spawnContainerOptions)
     this.container = await this.createContainer(this.spawnContainerOptions)
+
     // emit any warnings
     if (this.container.Warnings) {
       console.warn(`Creating container ${this.container.id} emitted warnings:`)
       console.info(this.container.Warnings)
     }
+
     // report progress
     console.info(`Created container ${this.container.id} (${bold(this.nodeState.path)})...`)
+
     // start the container
     await this.startContainer(this.container.id)
     console.info(`Started container ${this.container.id}...`)
-    // update the
+
+    // update the record
     this.save()
+
     // wait for logs to confirm that the genesis is done
     await waitUntilLogsSay(this.container, 'GENESIS COMPLETE')
+
     // wait for port to be open
     await waitPort({ host: this.host, port: this.port })
+
     done()
   }
 

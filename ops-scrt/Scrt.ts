@@ -1,5 +1,5 @@
 import {
-  Identity, DefaultIdentity, IAgent, BaseAgent, Fees,
+  Identity, DefaultIdentity, IAgent, Fees,
   IChain, IChainNode, IChainState, IChainConnectOptions,
   BaseChain, ChainInstancesDir, prefund,
   Ensemble, EnsembleOptions,
