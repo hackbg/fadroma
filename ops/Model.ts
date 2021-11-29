@@ -179,11 +179,19 @@ export type ContractAPIOptions = ContractInitOptions & {
 /// ## Chain
 
 
+export type DefaultIdentity =
+  null |
+  string |
+  { name?: string, address?: string, mnemonic?: string } |
+  IAgent
+
 export interface IChainOptions {
   chainId?: string
   apiURL?:  URL
   node?:    IChainNode
-  defaultIdentity?: Identity
+
+  /** Credentials of the default agent for this network. */
+  defaultIdentity?: DefaultIdentity
 }
 
 export interface IChainConnectOptions extends IChainOptions {

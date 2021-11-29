@@ -25,18 +25,24 @@ export abstract class DockerizedScrtNode extends DockerizedChainNode {
       nodeState:  new JSONFile(stateRoot, 'node.json'),
       daemonDir:  this.stateRoot.subdir('_secretd'),
       clientDir:  this.stateRoot.subdir('_secretcli'),
-      sgxDir:     this.stateRoot.subdir('_sgx-secrest') }) }
+      sgxDir:     this.stateRoot.subdir('_sgx-secrets')
+    })
+  }
 
   async spawn () {
     this.sgxDir.make()
-    return await super.spawn() }
+    return await super.spawn()
+  }
 
   get binds () {
     return {
       ...super.binds,
       [this.sgxDir.path]:    '/root/.sgx-secrets:rw',
       [this.daemonDir.path]: `/root/.secretd:rw`,
-      [this.clientDir.path]: `/root/.secretcli:rw`, } } }
+      [this.clientDir.path]: `/root/.secretcli:rw`,
+    }
+  }
+}
 
 export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
   readonly chainId: string = 'enigma-pub-testnet-3'
@@ -46,7 +52,9 @@ export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
     if (options.image) this.image = options.image
     if (options.chainId) this.chainId = options.chainId
     if (options.identities) this.identitiesToCreate = options.identities
-    this.setDirectories(options.stateRoot) } }
+    this.setDirectories(options.stateRoot)
+  }
+}
 
 export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
   readonly chainId: string = 'secret-testnet-1'
@@ -56,7 +64,10 @@ export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
     if (options.image) this.image = options.image
     if (options.chainId) this.chainId = options.chainId
     if (options.identities) this.identitiesToCreate = options.identities
-    this.setDirectories(options.stateRoot) } }
+    this.setDirectories(options.stateRoot)
+  }
+}
 
 export function resetLocalnet ({ chain }: any) {
-  return chain.node.terminate() }
+  return chain.node.terminate()
+}

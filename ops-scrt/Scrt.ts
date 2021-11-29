@@ -1,7 +1,5 @@
-export * from '@fadroma/ops'
-
 import {
-  Identity, IAgent, BaseAgent, Fees,
+  Identity, DefaultIdentity, IAgent, BaseAgent, Fees,
   IChain, IChainNode, IChainState, IChainConnectOptions,
   BaseChain, ChainInstancesDir, prefund,
   Ensemble, EnsembleOptions,
@@ -11,9 +9,9 @@ import {
   BaseGas
 } from '@fadroma/ops'
 
-import { PatchedSigningCosmWasmClient_1_0 } from '@fadroma/scrt-1.0'
-
-import { PatchedSigningCosmWasmClient_1_2 } from '@fadroma/scrt-1.2'
+import { ScrtAgentJS_1_0 } from '@fadroma/scrt-1.0'
+import { ScrtAgentJS_1_2 } from '@fadroma/scrt-1.2'
+import { ScrtCLIAgent } from './ScrtAgentCLI'
 
 import {
   open, defaultStateBase, resolve, table, noBorders,
@@ -69,13 +67,12 @@ export class ScrtEnsemble extends BaseEnsemble {
   }
 }
 
-export const denom = 'uscrt'
-
 export class ScrtGas extends BaseGas {
-  denom = denom
+  static denom = 'uscrt'
+  denom = ScrtGas.denom
   constructor (x: number) {
     super(x)
-    this.amount.push({amount: String(x), denom})
+    this.amount.push({amount: String(x), denom: this.denom})
   }
 }
 
@@ -86,371 +83,8 @@ export const defaultFees: Fees = {
   send:   new ScrtGas( 500000),
 }
 
-
-/// ## Agents
-///
-/// ### SecretJS-based
-
-
-/** Queries and transacts on an instance of the Secret Chain */
-export abstract class ScrtAgentJS extends BaseAgent {
-
-  /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
-  static async createSub (AgentClass: AgentClass, options: Identity) {
-    const { name = 'Anonymous', ...args } = options
-    let { mnemonic, keyPair } = options
-    if (mnemonic) {
-      console.info('creating agent from mnemonic')
-      // if keypair doesnt correspond to the mnemonic, delete the keypair
-      if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
-        console.warn(`keypair doesn't match mnemonic, ignoring keypair`)
-        keyPair = null } }
-    else if (keyPair) {
-      console.info('creating agent from keypair')
-      // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
-    else {
-      console.info('creating new agent')
-      // if there is neither, generate a new keypair and corresponding mnemonic
-      keyPair  = EnigmaUtils.GenerateNewKeyPair()
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
-    const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new AgentClass({name, mnemonic, keyPair, pen, ...args}) }
-
-  readonly API: SigningCosmWasmClient
-
-  readonly chain:    Scrt
-  readonly name:     string
-  readonly keyPair:  any
-  readonly mnemonic: any
-  readonly pen:      any
-  readonly sign:     any
-  readonly pubkey:   any
-  readonly seed:     any
-  readonly address:  string
-  fees = defaultFees
-
-  /** Create a new agent from a signing pen. */
-  constructor (APIConstructor: APIConstructor, options: Identity) {
-    super(options)
-    this.chain    = options.chain as Scrt
-    this.name     = options.name || ''
-    this.keyPair  = options.keyPair
-    this.mnemonic = options.mnemonic
-    this.pen      = options.pen
-    this.fees     = options.fees || defaultFees
-
-    this.pubkey  = encodeSecp256k1Pubkey(options.pen.pubkey)
-    this.address = pubkeyToAddress(this.pubkey, 'secret')
-    this.sign    = this.pen.sign.bind(this.pen)
-    this.seed    = EnigmaUtils.GenerateNewSeed()
-
-    this.API = new APIConstructor(
-      this.chain.url, this.address,
-      this.sign, this.seed, this.fees,
-      BroadcastMode.Sync
-    )
-  }
-
-  // block time //
-
-  /**`await` this to pause until the block height has increased.
-   * (currently this queries the block height in 1000msec intervals) */
-  get nextBlock () {
-    return this.API.getBlock().then(({header:{height}})=>new Promise<void>(async resolve=>{
-      while (true) {
-        await new Promise(ok=>setTimeout(ok, 1000))
-        const now = await this.API.getBlock()
-        if (now.header.height > height) {
-          resolve()
-          break
-        }
-      }
-    }))
-  }
-
-  /**`await` this to get info about the current block of the chain. */
-  get block () {
-    return this.API.getBlock()
-  }
-
-  // native token //
-
-  /**`await` this to get the account info for this agent's address.*/
-  get account () {
-    return this.API.getAccount(this.address)
-  }
-
-  /**`await` this to get the current balance in the native
-   * coin of the chain, in its most granular denomination */
-  get balance () {
-    return this.getBalance('uscrt')
-  }
-
-  /**Get the current balance in a specified denomination.
-   * TODO support SNIP20 tokens */
-  async getBalance (denomination: string) {
-    const account = await this.account
-    const balance = account.balance || []
-    const inDenom = ({denom}) => denom === denomination
-    const balanceInDenom = balance.filter(inDenom)[0]
-    if (!balanceInDenom) return 0
-    return balanceInDenom.amount
-  }
-
-  /**Send some `uscrt` to an address.
-   * TODO support sending SNIP20 tokens */
-  async send (recipient: any, amount: string|number, denom = 'uscrt', memo = "") {
-    if (typeof amount === 'number') amount = String(amount)
-    return await this.API.sendTokens(recipient, [{denom, amount}], memo)
-  }
-
-  /**Send `uscrt` to multiple addresses.
-   * TODO support sending SNIP20 tokens */
-  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = new ScrtGas(500000 * txs.length)) {
-    if (txs.length < 0) {
-      throw new Error('tried to send to 0 recipients') }
-    const from_address = this.address
-    //const {accountNumber, sequence} = await this.API.getNonce(from_address)
-    let accountNumber: any
-      , sequence:      any
-    const msg = await Promise.all(txs.map(async ([to_address, amount])=>{
-      ({accountNumber, sequence} = await this.API.getNonce(from_address)) // increment nonce?
-      if (typeof amount === 'number') amount = String(amount)
-      const value = {from_address, to_address, amount: [{denom, amount}]}
-      return { type: 'cosmos-sdk/MsgSend', value }
-    }))
-    const signBytes = makeSignBytes(msg, fee, this.chain.chainId, memo, accountNumber, sequence)
-    return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
-  }
-
-  // compute //
-
-  /** Upload a compiled binary to the chain, returning the code ID (among other things). */
-  async upload (pathToBinary: string) {
-    const data = await readFile(pathToBinary)
-    return this.API.upload(data, {})
-  }
-
-  async getHashById (codeId: number) {
-    return await this.API.getCodeHashByCodeId(codeId)
-  }
-
-  async getHashByAddress (address: string) {
-    return await this.API.getCodeHashByContractAddr(address)
-  }
-
-  /** Instantiate a contract from a code ID and an init message. */
-  async instantiate (codeId: number, label: string, initMsg: any) {
-    const from = this.address
-    console.debug(`${bold('  INIT >')} ${label}`, { from, codeId, label, initMsg })
-    const initTx = await this.API.instantiate(codeId, initMsg, label)
-    console.trace(initTx)
-    Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
-    console.debug(`${bold('< INIT  ')} ${label}`, { from, codeId, label, initTx })
-    return initTx
-  }
-
-  /** Query a contract. */
-  query = (
-    { label, address }, method = '', args = null
-  ) => {
-    const from = this.address
-    const msg = (args === null) ? method : { [method]: args }
-    console.debug(`${bold('> QUERY >')} ${method}`, { from, label, address, method, args })
-    const response = this.API.queryContractSmart(address, msg as any)
-    console.debug(`${bold('< QUERY <')} ${method}`, { from, address, method, response })
-    return response
-  }
-
-  /**Execute a contract transaction. */
-  execute = (
-    { label, address }, method='', args = null, memo: any, amount: any, fee: any
-  ) => {
-    const from = this.address
-    const msg = (args === null) ? method : { [method]: args }
-    console.debug(`${bold('  TX >')} ${method}`, { from, label, address, method, args, memo, amount, fee })
-    const result = this.API.execute(address, msg as any, memo, amount, fee)
-    console.debug(`${bold('< TX  ')} ${method}`, { from, label, address, method, result })
-    return result
-  }
-}
-
-export class ScrtAgentJS_1_0 extends ScrtAgentJS {
-  static create = (options: Identity): Promise<IAgent> =>
-    ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
-  constructor (options: Identity) { super(PatchedSigningCosmWasmClient_1_0, options) }
-}
-
-export class ScrtAgentJS_1_2 extends ScrtAgentJS {
-  static create = (options: Identity): Promise<IAgent> =>
-    ScrtAgentJS.createSub(ScrtAgentJS_1_2 as unknown as AgentClass, options)
-  constructor (options: Identity) { super(PatchedSigningCosmWasmClient_1_2, options) }
-}
-
 type AgentClass = new (options: Identity) => IAgent &
   { create: (options: Identity) => Promise<IAgent> }
-
-
-/// ## secretcli-based
-
-
-export class ScrtCLIAgent extends BaseAgent {
-
-  /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
-  static async create (options: Identity) {
-    const { name = 'Anonymous', ...args } = options
-    let { mnemonic, keyPair } = options
-
-    if (mnemonic) {
-      // if keypair doesnt correspond to the mnemonic, delete the keypair
-      if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
-        console.warn(`keypair doesn't match mnemonic, ignoring keypair`)
-        keyPair = null
-      }
-    } else if (keyPair) {
-      // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-    } else {
-      // if there is neither, generate a new keypair and corresponding mnemonic
-      keyPair  = EnigmaUtils.GenerateNewKeyPair()
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-    }
-
-    return new ScrtCLIAgent({name, mnemonic, keyPair, ...args})
-  }
-
-  chain:         Scrt
-  name:          string
-  address:       string
-  nameOrAddress: string
-  fees:          any
-
-  static Help = {
-    NOT_A_TTY: "Input is not a TTY - can't interactively pick an identity",
-    NO_KEYS_1: "Empty key list returned from secretcli. Retrying once...",
-    NO_KEYS_2: "Still empty. To proceed, add your key to secretcli " +
-               "(or set the mnemonic in the environment to use the SecretJS-based agent)"
-  }
-
-  static async pick () {
-    if (!process.stdin.isTTY) {
-      throw new Error(ScrtCLIAgent.Help.NOT_A_TTY) }
-    let keys = (await secretcli('keys', 'list'))
-    if (keys.length < 1) {
-      console.warn(ScrtCLIAgent.Help.NO_KEYS_1)
-      await tryToUnlockKeyring()
-      keys = (await secretcli('keys', 'list'))
-      if (keys.length < 1) console.warn(ScrtCLIAgent.Help.NO_KEYS_2)
-    }
-  }
-
-  constructor (options: any = {}) {
-    super()
-    console.debug({options})
-    const { name, address } = options
-    this.name = name
-    this.address = address
-    this.nameOrAddress = this.name || this.address
-  }
-
-  get nextBlock () {
-    return this.block.then(async T1=>{
-      while (true) {
-        await new Promise(ok=>setTimeout(ok, 1000))
-        const T2 = (await this.block).sync_info.latest_block_height
-        if (T2 > T1) return
-      }
-    })
-  }
-
-  get block () {
-    return secretcli('status').then(({sync_info:{latest_block_height:T2}})=>T2)
-  }
-
-  get account () {
-    return secretcli('q', 'account', this.nameOrAddress)
-  }
-
-  get balance () {
-    return this.getBalance('uscrt')
-  }
-
-  async getBalance (denomination: string) {
-    return ((await this.account).value.coins
-      .filter((x:any)=>x.denom===denomination)[0]||{})
-      .amount
-  }
-
-  async send (recipient: any, amount: any, denom = 'uscrt', memo = '') {
-    throw new Error('not implemented')
-  }
-
-  async sendMany (txs = [], memo = '', denom = 'uscrt', fee) {
-    throw new Error('not implemented')
-  }
-
-  async upload (pathToBinary: string) {
-    return secretcli(
-      'tx', 'compute', 'store',
-      pathToBinary,
-      '--from', this.nameOrAddress )
-  }
-
-  async instantiate (instance: any) {
-    const { codeId, initMsg = {}, label = '' } = instance
-    instance.agent = this
-    console.debug(`⭕`+bold('init'), { codeId, label, initMsg })
-    const initTx = instance.initTx = await secretcli(
-      'tx', 'compute', 'instantiate',
-      codeId, JSON.stringify(initMsg),
-      '--label', label,
-      '--from', this.nameOrAddress)
-    console.debug(`⭕`+bold('instantiated'), { codeId, label, initTx })
-    instance.codeHash = await secretcli('q', 'compute', 'contract-hash', initTx.contractAddress)
-    await instance.save()
-    return instance
-  }
-
-  async query ({ label, address }, method='', args = undefined) {
-    const msg = (args === undefined) ? method : { [method]: args }
-    console.debug(`❔ `+bold('query'), { label, address, method, args })
-    const response = await secretcli(
-      'q', 'compute', 'query',
-      address, JSON.stringify(msg))
-    console.debug(`❔ `+bold('response'), { address, method, response })
-    return response
-  }
-
-  async execute ({ label, address }, method='', args = undefined) {
-    const msg = (args === undefined) ? method : { [method]: args }
-    console.debug(`❗ `+bold('execute'), { label, address, method, args })
-    const result = await secretcli(
-      'tx', 'compute',
-      address, JSON.stringify(msg),
-      '--from', this.nameOrAddress)
-    console.debug(`❗ `+bold('result'), { label, address, method, result })
-    return result
-  }
-}
-
-const secretcli = (...args: Array<any>): Promise<any> =>
-  new Promise((resolve, reject)=>{
-    execFile('secretcli', args, (err: any, stdout: any) => {
-      if (err) return reject(err)
-      resolve(JSON.parse(String(stdout)))
-    })
-  })
-
-const tryToUnlockKeyring = async () =>
-  new Promise((resolve, reject)=>{
-    console.warn("Pretending to add a key in order to refresh the keyring...")
-    const unlock = spawn('secretcli', ['keys', 'add'])
-    unlock.on('spawn', () => {
-      unlock.on('close', resolve)
-      setTimeout(()=>{ unlock.kill() }, 1000) })
-    unlock.on('error', reject)
-  })
 
 export type ScrtChainState = IChainState & {
   Agent?:      AgentClass
@@ -523,18 +157,12 @@ export class Scrt extends BaseChain {
     return this.apiURL.toString()
   }
 
-  node?:    IChainNode
-
-  Agent: AgentClass
-  defaultIdentity: null
-    | string
-    | { name?: string, address?: string, mnemonic?: string }
-    | IAgent
-
-  stateRoot:  Directory
-  identities: JSONDirectory
-  uploads:    JSONDirectory
-  instances:  ChainInstancesDir
+  node?:           IChainNode
+  Agent:           AgentClass
+  stateRoot:       Directory
+  identities:      JSONDirectory
+  uploads:         JSONDirectory
+  instances:       ChainInstancesDir
 
   /** Interface to a Secret Network REST API endpoint.
    *  Can store identities and results of contract uploads/inits.
@@ -566,36 +194,49 @@ export class Scrt extends BaseChain {
   /// If this chain is backed by a localnet, respawns it.
 
 
-  #ready: Promise<any>
+  #ready: Promise<this>|null = null
   get ready () {
     if (this.#ready) return this.#ready
     return this.#ready = this.init()
   }
   private async init (): Promise<this> {
+
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
     if (node) {
       this.node = node
+
       // respawn that container
       console.info(`Running on localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
       await node.respawn()
       await node.ready
+
       // set the correct port to connect to
       this.apiURL.port = String(node.port)
       console.info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
+
       // get the default account for the node
       if (typeof this.defaultIdentity === 'string') {
-        this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
+        try {
+          this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
+        } catch (e) {
+          console.warn(`Could not get default identity: ${e.message}`)
+          this.defaultIdentity = null
+        }
       }
     }
+
     const { protocol, hostname, port } = this.apiURL
+
     console.log(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
+
     if (this.defaultIdentity) {
       // default credentials will be used as-is unless using localnet
       const { mnemonic, address } = this.defaultIdentity as { mnemonic: string, address: string }
       this.defaultIdentity = await this.getAgent({ name: "ADMIN", mnemonic, address })
       console.info(`🟢 operating as ${address}`)
     }
+
     return this
   }
 
@@ -605,38 +246,38 @@ export class Scrt extends BaseChain {
 
   /** create agent operating on the current instance's endpoint*/
   async getAgent (
-    identity: string|Identity = this.defaultIdentity,
+    identity: DefaultIdentity = this.defaultIdentity,
     Agent                     = this.Agent
   ): Promise<IAgent> {
-    if (typeof identity === 'string')
-      identity = this.node.genesisAccount(identity)
+    if (identity) {
+      if (typeof identity === 'string')
+        identity = this.node.genesisAccount(identity)
 
-    if (identity.mnemonic || identity.keyPair) {
-      console.info(
-        `Using a ${bold('SecretJS')}-based agent ` +
-        `because a mnemonic or keypair was passed.`
-      )
-      return await Agent.create({
-        ...identity,
-        chain: this as IChain
-      })
-    }
+      if (identity.mnemonic || identity.keyPair) {
+        console.info(
+          `Using a ${bold('SecretJS')}-based agent ` +
+          `because a mnemonic or keypair was passed.`
+        )
+        const chain = this as IChain
+        return await Agent.create({ ...identity, chain })
+      }
 
-    const name = identity.name || this.defaultIdentity?.name
-    if (name) {
-      console.info(
-        `Using a ${bold('secretcli')}-based agent `+
-        `because a name was passed.`
-      )
-      return new ScrtCLIAgent({
-        chain: this,
-        name
-      }) as IAgent
+      const name = identity.name || this.defaultIdentity?.name
+      if (name) {
+        console.info(
+          `Using a ${bold('secretcli')}-based agent `+
+          `because a name was passed.`
+        )
+        return new ScrtCLIAgent({
+          chain: this,
+          name
+        }) as IAgent
+      }
     }
 
     throw new Error(
       'You need to provide a name to get a secretcli-backed agent, ' +
-      `or a mnemonic or keypair to get a SecretJS-backed agent ` +
+      `or a mnemonic/keypair to get a SecretJS-backed agent ` +
       `on chain ${this.chainId}`
     )
   }

@@ -2,7 +2,7 @@
   "name": "@fadroma/scrt-1.0",
   "version": "0.0.0",
   "type": "module",
-  "main": "./ScrtAgentJS_1_0.ts",
+  "main": "./index.ts",
   "dependencies": {
     "@fadroma/scrt": "*",
     "secretjs": "workspace:^0.16.5"

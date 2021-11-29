@@ -2,7 +2,7 @@
   "name": "@fadroma/scrt",
   "version": "0.0.0",
   "type": "module",
-  "main": "./Scrt.ts",
+  "main": "./index.ts",
   "dependencies": {
     "@cosmjs/crypto": "^0.24.1",
     "@fadroma/ops": "workspace:*",

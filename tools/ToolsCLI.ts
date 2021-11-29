@@ -36,11 +36,11 @@ export const Console = (context: string) => {
   return {
     context, format,
     table: (rows: any) => console.log(table(rows)),
-    info:  (...args: any) => console.info('ℹ️ ', ...args),
     log:   (...args: any) => console.log(...args),
-    warn:  (...args: any) => console.warn('⚠️ ', ...args),
-    error: (...args: any) => console.error('🦋', ...args),
-    trace: (...args: any) => console.trace('🦋', ...args),
+    info:  (...args: any) => console.info(bold(colors.green('INFO ')), ...args),
+    warn:  (...args: any) => console.warn(bold(colors.yellow('WARN ')), ...args),
+    error: (...args: any) => console.error(bold(colors.red('ERROR')), ...args),
+    trace: (...args: any) => console.trace(bold(colord.pink('TRACE')), ...args),
     debug: (...args: any) => {
       if (!process.env.NO_DEBUG) {
         const tag = `[${context}] `

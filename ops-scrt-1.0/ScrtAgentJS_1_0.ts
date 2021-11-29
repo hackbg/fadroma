@@ -1,4 +1,5 @@
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
+import { ScrtAgentJS } from '@fadroma/scrt/ScrtAgentJS.ts'
 
 export class PatchedSigningCosmWasmClient_1_0 extends SigningCosmWasmClient {
   /* this assumes broadcastMode is set to BroadcastMode.Sync
@@ -70,4 +71,10 @@ export class PatchedSigningCosmWasmClient_1_0 extends SigningCosmWasmClient {
         else {
           throw e } } } }
 
+}
+
+export class ScrtAgentJS_1_0 extends ScrtAgentJS {
+  static create = (options: Identity): Promise<IAgent> =>
+    ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
+  constructor (options: Identity) { super(PatchedSigningCosmWasmClient_1_0, options) }
 }
