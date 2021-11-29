@@ -2,16 +2,14 @@ use cosmwasm_std::{
     Binary, HumanAddr, Uint128, Extern, Storage, Api,
     Querier, StdError, StdResult, to_binary
 };
-#[cfg(not(test))]
-use cosmwasm_std::CanonicalAddr;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-#[cfg(not(test))]
-use ripemd160::{Digest, Ripemd160};
-#[cfg(not(test))]
-use secp256k1::Secp256k1;
-#[cfg(not(test))]
-use sha2::Sha256;
+
+#[cfg(not(test))] use cosmwasm_std::CanonicalAddr;
+#[cfg(not(test))] use ripemd160::{Digest, Ripemd160};
+#[cfg(not(test))] use secp256k1::Secp256k1;
+#[cfg(not(test))] use sha2::Sha256;
 
 pub trait Permission: Serialize + JsonSchema + Clone + PartialEq { }
 
