@@ -102,7 +102,13 @@ export class JSONDirectory extends Directory {
   list () {
     return super.list().filter(x=>x.endsWith('.json')).map(x=>basename(x, '.json')) }
   load (name: Path) {
-    return JSON.parse(super.load(`${name}.json`)) }
+    name = `${name}.json`
+    try {
+      return JSON.parse(super.load(name))
+    } catch (e) {
+      throw new Error(`failed to load ${name}: ${e.message}`)
+    }
+  }
   save (name: Path, data: any) {
     super.save(`${name}.json`, JSON.stringify(data, null, 2))
     return this } }
