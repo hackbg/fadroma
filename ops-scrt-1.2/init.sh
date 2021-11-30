@@ -14,7 +14,7 @@ then
   if [ -z "${CHAINID}" ]; then
     chain_id="$CHAINID"
   else
-    chain_id="supernova-1"
+    chain_id="secret-testnet-1"
   fi
 
   mkdir -p ./.sgx_secrets

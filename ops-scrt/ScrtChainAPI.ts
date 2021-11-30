@@ -187,7 +187,7 @@ export class Scrt extends BaseChain {
       node:    options.node    || new Scrt_1_2.DockerizedScrtNode_1_2(options),
       chainId: options.chainId || 'secret-testnet-1',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
-      Agent:   ScrtAgentJS_1_0,
+      Agent:   ScrtAgentJS_1_2,
       defaultIdentity: 'ADMIN'
     })
   }
