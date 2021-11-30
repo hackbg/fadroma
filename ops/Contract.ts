@@ -115,6 +115,7 @@ async function upload (
 
   } else {
 
+    console.info(`Uploading ${bold(artifact)}`)
     const uploadResult = await uploader.upload(artifact)
     const receiptData  = JSON.stringify(uploadResult, null, 2)
     const elements     = uploadReceiptPath.slice(1, uploadReceiptPath.length).split('/');

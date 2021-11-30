@@ -54,7 +54,10 @@ export const Console = (context: string) => {
     info:  (...args: Array<any>) => console.info(bold(colors.green('INFO ')), ...args),
     warn:  (...args: Array<any>) => console.warn(bold(colors.yellow('WARN ')), ...args),
     error: (...args: Array<any>) => console.error(bold(colors.red('ERROR')), ...args),
-    trace: (...args: Array<any>) => console.trace(bold(colors.pink('TRACE')), ...args),
+    trace: (...args: Array<any>) => {
+      console.debug(bold(colors.magenta('TRACE')), ...args.map(format))
+      console.trace()
+    },
 
     debug: (...args: Array<any>) => {
       if (!process.env.NO_DEBUG) {

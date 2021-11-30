@@ -14,7 +14,7 @@ then
   if [ -z "${CHAINID}" ]; then
     chain_id="$CHAINID"
   else
-    chain_id="secret-testnet-1"
+    chain_id="supernova-1"
   fi
 
   mkdir -p ./.sgx_secrets
@@ -52,7 +52,7 @@ then
   echo "3. Add genesis transactions"
   for Name in ${GenesisAccounts[@]}; do
     echo "$Name..."
-    secretd gentx "$Name" 1000000uscrt --chain-id "$chain_id"
+    secretd gentx "$Name" 1000000uscrt --chain-id "$chain_id" --keyring-backend test
     break
   done
 

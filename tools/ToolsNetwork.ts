@@ -65,41 +65,48 @@ export const pulled = async (imageName: string, docker = new Docker()) => {
 }
 
 const RE_GARBAGE = /[\x00-\x1F]/
+type Stream = { on: Function, destroy: Function }
+type StreamData = { indexOf: Function }
+const logsOptions = {
+  stdout: true,
+  stderr: true,
+  follow: true,
+  tail:   100
+}
 
 /** The caveman solution to detecting when the node is ready to start receiving requests:
   * trail node logs until a certain string is encountered */
-export const waitUntilLogsSay = (
+export function waitUntilLogsSay (
   container: { id: string, logs: Function },
   expected:  string,
-  thenDetach = false
-) => new Promise((ok, fail)=> container.logs(
+  thenDetach = true
+) {
+  return new Promise((ok, fail)=>{
 
-  { stdout: true, stderr: true, follow: true, tail: 100 },
+    container.logs(logsOptions, onStream)
 
-  (err: Error, stream: { on: Function, destroy: Function }) => {
+    function onStream (err: Error, stream: Stream) {
+      if (err) return fail(err)
 
-    if (err) return fail(err)
+      console.info('Trailing logs...')
+      stream.on('data', onData)
 
-    console.info('Trailing logs...')
-
-    stream.on('data', function read (data: { indexOf: Function }) {
-
-      const dataStr = String(data).trim()
-
-      if (logFilter(dataStr)) {
-        console.info(bold(`${container.id.slice(0,8)} says:`), dataStr)
+      function onData (data: StreamData) {
+        const dataStr = String(data).trim()
+        if (logFilter(dataStr)) {
+          console.info(bold(`${container.id.slice(0,8)} says:`), dataStr)
+        }
+        if (dataStr.indexOf(expected)>-1) {
+          if (thenDetach) stream.destroy()
+          const seconds = 7
+          console.info(bold(`Waiting ${seconds} seconds`), `for good measure...`)
+          return setTimeout(ok, seconds * 1000)
+        }
       }
+    }
 
-      if (dataStr.indexOf(expected)>-1) {
-        if (thenDetach) stream.destroy()
-        const seconds = 7
-        console.info(bold(`Waiting ${seconds} seconds`), `for good measure...`)
-        return setTimeout(ok, seconds * 1000)
-      }
-
-    })
-  }
-))
+  })
+}
 
 function logFilter (data: string) {
   return (data.length > 0                            &&

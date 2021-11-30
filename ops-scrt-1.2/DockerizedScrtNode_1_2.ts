@@ -5,7 +5,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
 
-  readonly chainId: string = 'secret-testnet-1'
+  readonly chainId: string = 'supernova-1'
 
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
 

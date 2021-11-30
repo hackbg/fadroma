@@ -185,7 +185,7 @@ export class Scrt extends BaseChain {
       isLocalnet: true,
       ...options,
       node:    options.node    || new Scrt_1_2.DockerizedScrtNode_1_2(options),
-      chainId: options.chainId || 'secret-testnet-1',
+      chainId: options.chainId || 'supernova-1',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_2,
       defaultIdentity: 'ADMIN'
@@ -215,7 +215,7 @@ export class Scrt extends BaseChain {
     const node = this.node = options.node || null
 
     // info needed to connect to the chain's REST API
-    this.chainId = options.chainId || node?.chainId || 'secret-testnet-1'
+    this.chainId = options.chainId || node?.chainId || 'supernova-1'
     this.apiURL  = options.apiURL  || node?.apiURL  || new URL('http://localhost:1337/')
 
     // directories to store state
@@ -255,7 +255,7 @@ export class Scrt extends BaseChain {
 
       // set the correct port to connect to
       this.apiURL.port = String(node.port)
-      console.info(`🟢 localnet ready @ port ${bold(this.apiURL.port)}`)
+      console.info(`Localnet ready @ port ${bold(this.apiURL.port)}`)
 
       // get the default account for the node
       if (typeof this.defaultIdentity === 'string') {

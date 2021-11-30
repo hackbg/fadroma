@@ -339,16 +339,17 @@ export abstract class DockerizedChainNode extends BaseChainNode {
         this.stateRoot.delete()
       }
     } catch (e) {
-      console.warn(`Failed to delete ${path}, because:`)
-      console.warn(e)
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
-        console.info(`Creating cleanup container...`)
+        console.warn(`Failed to delete ${path}: ${e.message}; trying cleanup container...`)
         const container = await this.createContainer(this.cleanupContainerOptions)
         console.info(`Starting cleanup container...`)
         await container.start()
         console.info('Waiting for cleanup to finish...')
         await container.wait()
         console.info(`Deleted ${path} via cleanup container.`)
+      } else {
+        console.warn(`Failed to delete ${path}: ${e.message}`)
+        throw e
       }
     }
 

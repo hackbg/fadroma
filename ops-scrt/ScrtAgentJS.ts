@@ -1,10 +1,8 @@
 /// # SecretJS-based agent
 
-import { Console } from '@fadroma/tools'
+import { Console, readFile, bold } from '@fadroma/tools'
 const console = Console(import.meta.url)
 
-import { BaseAgent } from '@fadroma/ops'
-import { readFile, bold } from '@fadroma/tools'
 import { Bip39 } from '@cosmjs/crypto'
 import {
   EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
@@ -12,36 +10,45 @@ import {
   makeSignBytes, BroadcastMode
 } from 'secretjs'
 
-import { defaultFees } from './ScrtGas'
+import { BaseAgent, IAgent, Identity } from '@fadroma/ops'
+import { ScrtGas, defaultFees } from './ScrtGas'
+import type { Scrt } from './ScrtChainAPI'
 
 /** Queries and transacts on an instance of the Secret Chain */
 export abstract class ScrtAgentJS extends BaseAgent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
-  static async createSub (AgentClass: AgentClass, options: Identity) {
+  static async createSub (
+    AgentClass: new(...args:any)=>IAgent,
+    options: Identity
+  ): Promise<IAgent> {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
     let info = ''
+
     if (mnemonic) {
-      info = 'Creating SecretJS agent from mnemonic'
+      info = `Creating SecretJS agent ${bold(name)} from mnemonic`
       // if keypair doesnt correspond to the mnemonic, delete the keypair
       if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
         console.warn(`ScrtAgentJS: Keypair doesn't match mnemonic, ignoring keypair`)
         keyPair = null
       }
     } else if (keyPair) {
-      info = 'ScrtAgentJS: generating mnemonic from keypair'
+      info = `ScrtAgentJS: generating mnemonic from keypair for agent ${bold(name)}`
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
     } else {
-      info = 'ScrtAgentJS: creating new SecretJS agent'
+      info = `ScrtAgentJS: creating new SecretJS agent: ${bold(name)}`
       // if there is neither, generate a new keypair and corresponding mnemonic
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
     }
-    console.info(`${info}: ${bold(name)}`) // TODO add address here
+
+    console.info(info)
+
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
     return new AgentClass({name, mnemonic, keyPair, pen, ...args})
+
   }
 
   readonly API: SigningCosmWasmClient
@@ -134,20 +141,30 @@ export abstract class ScrtAgentJS extends BaseAgent {
 
   /**Send `uscrt` to multiple addresses.
    * TODO support sending SNIP20 tokens */
-  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = new ScrtGas(500000 * txs.length)) {
+  async sendMany (
+    txs   = [],
+    memo  = "",
+    denom = 'uscrt',
+    fee   = new ScrtGas(500000 * txs.length)
+  ) {
     if (txs.length < 0) {
-      throw new Error('tried to send to 0 recipients') }
+      throw new Error('tried to send to 0 recipients')
+    }
+
     const from_address = this.address
     //const {accountNumber, sequence} = await this.API.getNonce(from_address)
+
     let accountNumber: any
-      , sequence:      any
+    let sequence:      any
     const msg = await Promise.all(txs.map(async ([to_address, amount])=>{
       ({accountNumber, sequence} = await this.API.getNonce(from_address)) // increment nonce?
       if (typeof amount === 'number') amount = String(amount)
       const value = {from_address, to_address, amount: [{denom, amount}]}
       return { type: 'cosmos-sdk/MsgSend', value }
     }))
+
     const signBytes = makeSignBytes(msg, fee, this.chain.chainId, memo, accountNumber, sequence)
+
     return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
@@ -155,31 +172,15 @@ export abstract class ScrtAgentJS extends BaseAgent {
 
   /** Upload a compiled binary to the chain, returning the code ID (among other things). */
   async upload (pathToBinary: string) {
-    const data = await readFile(pathToBinary)
-    const result = await this.API.upload(data, {})
-
-    // non-blocking broadcast mode returns code id -1
-    // so we gotta manually fish it out from the transaction logs
-    if (result.codeId === -1) {
-      for (const log of result.logs) {
-        for (const event of log.events) {
-          for (const attribute of event.attributes) {
-            if (attribute.key === 'code_id') {
-              Object.assign(result, { codeId: Number(attribute.value) })
-              break
-            }
-          }
-        }
-      }
-    }
-
-    return result
+    return await this.API.upload(await readFile(pathToBinary), {})
   }
 
+  /** Get the code hash of the contract code corresponding to a code id. */
   async getHashById (codeId: number) {
     return await this.API.getCodeHashByCodeId(codeId)
   }
 
+  /** Get the code hash of the contract at an address. */
   async getHashByAddress (address: string) {
     return await this.API.getCodeHashByContractAddr(address)
   }
@@ -195,9 +196,11 @@ export abstract class ScrtAgentJS extends BaseAgent {
   }
 
   /** Query a contract. */
-  query = (
-    { label, address }, method = '', args = null
-  ) => {
+  query (
+    { label, address },
+    method = '',
+    args   = null
+  ) {
     const from = this.address
     const msg = (args === null) ? method : { [method]: args }
     console.debug(`${bold('> QUERY >')} ${method}`, { from, label, address, method, args })
@@ -206,10 +209,15 @@ export abstract class ScrtAgentJS extends BaseAgent {
     return response
   }
 
-  /**Execute a contract transaction. */
-  execute = (
-    { label, address }, method='', args = null, memo: any, amount: any, fee: any
-  ) => {
+  /** Execute a contract transaction. */
+  execute (
+    { label, address },
+    method = '',
+    args   = null,
+    memo:   any,
+    amount: any,
+    fee:    any
+  ) {
     const from = this.address
     const msg = (args === null) ? method : { [method]: args }
     console.debug(`${bold('  TX >')} ${method}`, { from, label, address, method, args, memo, amount, fee })
