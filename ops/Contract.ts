@@ -68,17 +68,16 @@ export abstract class ContractCode {
 
     if (!existsSync(artifact)) {
 
-      console.debug(`building working tree at ${this.workspace} into ${outputDir}...`)
+      console.info(`Building working tree at ${bold(this.workspace)} into ${bold(outputDir)}...`)
 
-      const [
-        { Error:err, StatusCode:code },
-        container
-      ] = await this.docker.run(
-        await pulled(this.buildImage, this.docker),
-        `bash /entrypoint.sh ${this.crate} ${ref}`,
-        process.stdout,
-        this.getBuildArgs(ref, resolve(this.workspace, 'artifacts'), extraBinds)
-      )
+      const buildImage = await pulled(this.buildImage, this.docker)
+      const buildCommand = `bash /entrypoint.sh ${this.crate} ${ref}`
+      const buildArgs = this.getBuildArgs(ref, resolve(this.workspace, 'artifacts'), extraBinds)
+
+      console.debug(`Running ${bold(buildCommand)} the following build container:`, buildArgs)
+
+      const [{ Error:err, StatusCode:code }, container] =
+        await this.docker.run(buildImage, buildCommand, process.stdout, buildArgs)
 
       await container.remove()
       if (err) throw err
@@ -112,6 +111,7 @@ export abstract class ContractCode {
       }
     }
     extraBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
+    return buildArgs
   }
 }
 
