@@ -36,6 +36,14 @@ impl ReadonlyStorage for ClonableMemoryStorage {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         self.data.get(key).cloned()
     }
+    fn range<'a>(
+        &'a self,
+        start: Option<&[u8]>,
+        end: Option<&[u8]>,
+        order: Order,
+    ) -> Box<dyn Iterator<Item = KV> + 'a> {
+        unimplemented!()
+    }
 }
 
 impl Storage for ClonableMemoryStorage {
