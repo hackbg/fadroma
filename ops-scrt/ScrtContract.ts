@@ -19,6 +19,8 @@ export class ScrtEnsemble extends BaseEnsemble {
         on['holodeck-2'],   new E({chain: Scrt.holodeck_2()   as Chain}).remoteCommands()],
       ["supernova-1",  "Run on supernova1",
         on['supernova-1'],  new E({chain: Scrt.supernova_1()  as Chain}).remoteCommands()],
+      ["pulsar-1",  "Run on pulsar1",
+        on['pulsar-1'],  new E({chain: Scrt.pulsar_1()  as Chain}).remoteCommands()],
       ["localnet-1.0", "Run on localnet v1.0",
         on['localnet-1.0'], new E({chain: Scrt.localnet_1_0() as Chain}).remoteCommands()],
       ["localnet-1.2", "Run on localnet v1.2",
