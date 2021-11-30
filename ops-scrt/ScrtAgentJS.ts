@@ -10,7 +10,7 @@ import {
   EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
   encodeSecp256k1Pubkey, pubkeyToAddress,
   makeSignBytes, BroadcastMode
-} from 'secretjs/src/index.ts'
+} from 'secretjs'
 
 import { defaultFees } from './ScrtGas'
 
