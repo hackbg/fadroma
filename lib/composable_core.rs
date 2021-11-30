@@ -7,11 +7,7 @@
 //!   directly. However this introduces a clash between `Storage::get/set` and
 //!   `Composable::get/set`, therefor the latter will need to be renamed once again
 
-use crate::{
-    scrt::{Extern, Storage, Api, Querier, StdResult, to_vec, from_slice},
-    scrt_addr::{Humanize, Canonize},
-    scrt_storage::concat
-};
+use crate::*;
 
 use serde::{Serialize, de::DeserializeOwned};
 

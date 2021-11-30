@@ -1,7 +1,9 @@
 pub mod composable_core;
 pub use composable_core::*;
 
+#[cfg(any(test,not(target_arch="wasm32")))]
 pub mod composable_core_test;
+#[cfg(any(test,not(target_arch="wasm32")))]
 pub use composable_core_test::*;
 
 pub mod dispatch;
@@ -27,7 +29,7 @@ pub use derive_contract;
 
     pub use cosmwasm_std::*;
 
-    #[cfg(test)]
+    #[cfg(any(test,not(target_arch="wasm32")))]
     pub use cosmwasm_std::testing::*;
 
     pub use cosmwasm_storage::*;
