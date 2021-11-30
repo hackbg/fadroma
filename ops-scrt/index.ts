@@ -1,9 +1,9 @@
 export * from '@fadroma/ops'
-export * from './ScrtContract'
+export * from './ScrtAgentCLI'
+export * from './ScrtAgentJS'
 export * from './ScrtChainAPI'
 export * from './ScrtChainNode'
-export * from './ScrtAgentJS'
-export * from './ScrtAgentCLI'
+export * from './ScrtContract'
 export * from './ScrtGas'
 
 export * from '@fadroma/scrt-1.0'

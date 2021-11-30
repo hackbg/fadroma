@@ -2,6 +2,8 @@
 
 set -e
 
+echo "API on port $Port"
+
 file=~/.secretd/config/genesis.json
 if [ ! -e "$file" ]
 then
@@ -63,7 +65,7 @@ then
   secretd validate-genesis
 fi
 
-lcp --proxyUrl http://localhost:1317 --port 1337 --proxyPartial '' &
+lcp --proxyUrl http://localhost:1317 --port $Port --proxyPartial '' &
 
 # sleep infinity
 source /opt/sgxsdk/environment && RUST_BACKTRACE=1 secretd start --rpc.laddr tcp://0.0.0.0:26657 --bootstrap
