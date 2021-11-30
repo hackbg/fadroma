@@ -54,9 +54,8 @@ export class ScrtCLIAgent extends BaseAgent {
     }
   }
 
-  constructor (options: any = {}) {
+  constructor (options: { name: string, address: string }) {
     super()
-    console.debug({options})
     const { name, address } = options
     this.name = name
     this.address = address

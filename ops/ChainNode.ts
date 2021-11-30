@@ -141,8 +141,13 @@ export abstract class DockerizedChainNode extends BaseChainNode {
 
   constructor (options: ChainNodeOptions = {}) {
     super()
-    if (options.docker) this.docker = options.docker
-    if (options.identities) this.identitiesToCreate = options.identities }
+    if (options.docker) {
+      this.docker = options.docker
+    }
+    if (options.identities) {
+      this.identitiesToCreate = options.identities
+    }
+  }
 
   /** Load stored data and assign to self. */
   load () {
@@ -330,18 +335,18 @@ export abstract class DockerizedChainNode extends BaseChainNode {
 
     try {
       if (this.stateRoot.exists()) {
-        console.log(`⏳ Deleting ${path}...`)
+        console.info(`Deleting ${path}...`)
         this.stateRoot.delete()
       }
     } catch (e) {
       console.warn(`Failed to delete ${path}, because:`)
       console.warn(e)
       if (e.code === 'EACCES') {
-        console.log(`⏳ Creating cleanup container...`)
+        console.info(`Creating cleanup container...`)
         const container = await this.createContainer(this.cleanupContainerOptions)
-        console.log(`⏳ Starting cleanup container...`)
+        console.info(`Starting cleanup container...`)
         await container.start()
-        console.log('⏳ Waiting for cleanup to finish...')
+        console.info('Waiting for cleanup to finish...')
         await container.wait()
         console.info(`Deleted ${path} via cleanup container.`)
       }

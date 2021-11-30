@@ -10,6 +10,8 @@ import {
   makeSignBytes, BroadcastMode
 } from 'secretjs/src/index.ts'
 
+import { defaultFees } from './ScrtGas'
+
 /** Queries and transacts on an instance of the Secret Chain */
 export abstract class ScrtAgentJS extends BaseAgent {
 

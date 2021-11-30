@@ -1,28 +1,7 @@
-import {
-  Identity, DefaultIdentity, IAgent, Fees,
-  IChain, IChainNode, IChainState, IChainConnectOptions,
-  BaseChain, ChainInstancesDir, prefund,
-  Ensemble, EnsembleOptions,
-  BaseEnsemble,
-  ContractAPI,
-  DockerizedChainNode, ChainNodeOptions,
-  BaseGas
-} from '@fadroma/ops'
-
-import { ScrtAgentJS_1_0 } from '@fadroma/scrt-1.0'
-import { ScrtAgentJS_1_2 } from '@fadroma/scrt-1.2'
-import { ScrtCLIAgent } from './ScrtAgentCLI'
-
-import {
-  open, defaultStateBase, resolve, table, noBorders,
-  Commands, Console, bold, Path, Directory, TextFile,
-  JSONFile, JSONDirectory, dirname, fileURLToPath
-} from '@fadroma/tools'
-
-import { URL } from 'url'
-
+import { Ensemble, EnsembleOptions, BaseEnsemble, ContractAPI } from '@fadroma/ops'
+import { open, resolve, Console, dirname, fileURLToPath } from '@fadroma/tools'
+import { Scrt } from './ScrtChainAPI'
 const __dirname = dirname(fileURLToPath(import.meta.url))
-
 const console = Console('@fadroma/ops-scrt/ScrtAgentJS')
 
 export class ScrtContract extends ContractAPI {
@@ -36,7 +15,7 @@ export class ScrtEnsemble extends BaseEnsemble {
   /* Plugs into the CLI command parser to select the chain
    * onto which an ensemble is deployed */
   static chainSelector (E: EnsembleConstructor) {
-    // TODO make this independent of Ensemble - or better yet, move it into Ensemble
+    console.warn('ScrtEnsemble.chainSelector: deprecated!')
     return [
       [ "secret_2",    "Run on secret_2",      on['secret_2']
       , new E({chain: Scrt.secret_2()}).remoteCommands() ],
@@ -57,22 +36,6 @@ export class ScrtEnsemble extends BaseEnsemble {
       , new E({chain: Scrt.localnet_1_2()}).remoteCommands()]
     ]
   }
-}
-
-export class ScrtGas extends BaseGas {
-  static denom = 'uscrt'
-  denom = ScrtGas.denom
-  constructor (x: number) {
-    super(x)
-    this.amount.push({amount: String(x), denom: this.denom})
-  }
-}
-
-export const defaultFees: Fees = {
-  upload: new ScrtGas(3000000),
-  init:   new ScrtGas(1000000),
-  exec:   new ScrtGas(1000000),
-  send:   new ScrtGas( 500000),
 }
 
 export function openFaucet () {

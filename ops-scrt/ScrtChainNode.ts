@@ -8,10 +8,9 @@ type ScrtNodeConstructor = new (options?: ChainNodeOptions) => ChainNode
 
 export abstract class DockerizedScrtNode extends DockerizedChainNode {
 
-  abstract readonly chainId: string
-  abstract readonly image:   string
-
-  readonly initScript = new TextFile(__dirname, 'ScrtChainNodeInit.sh')
+  abstract readonly chainId:    string
+  abstract readonly image:      string
+  abstract readonly initScript: TextFile
 
   /** This directory is mounted out of the localnet container
     * in order to persist the state of the SGX component. */

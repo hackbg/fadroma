@@ -1,5 +1,7 @@
 import { ChainNodeOptions } from '@fadroma/ops'
 import { DockerizedScrtNode } from '@fadroma/scrt/ScrtChainNode.ts'
+import { TextFile, dirname, fileURLToPath } from '@fadroma/tools'
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
 
@@ -8,6 +10,8 @@ export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.0.4-5"
 
   readonly readyPhrase = 'GENESIS COMPLETE'
+
+  readonly initScript = new TextFile(__dirname, 'init.sh')
 
   constructor (options: ChainNodeOptions = {}) {
     super()

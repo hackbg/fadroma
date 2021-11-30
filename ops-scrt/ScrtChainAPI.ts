@@ -269,13 +269,13 @@ export class Scrt extends BaseChain {
     }
 
     const { protocol, hostname, port } = this.apiURL
-    console.log(`⏳ connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
+    console.info(`Connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
 
     if (this.defaultIdentity) {
       // default credentials will be used as-is unless using localnet
       const { mnemonic, address } = this.defaultIdentity
       this.defaultIdentity = await this.getAgent({ name: "ADMIN", mnemonic, address })
-      console.info(`🟢 operating as ${address}`)
+      console.info(`Operating as ${address}`)
     }
 
     return this as Chain
@@ -327,17 +327,17 @@ export class Scrt extends BaseChain {
     const id = bold(this.chainId)
 
     if (this.uploadsTable.length > 1) {
-      console.log(`\nUploaded binaries on ${id}:`)
+      console.info(`Uploaded binaries on ${id}:`)
       console.log('\n' + table(this.uploadsTable, noBorders))
     } else {
-      console.log(`\n  No known uploaded binaries on ${id}`)
+      console.info(`No known uploaded binaries on ${id}`)
     }
 
     if (this.instancesTable.length > 1) {
-      console.log(`Instantiated contracts on ${id}:`)
+      console.info(`Instantiated contracts on ${id}:`)
       console.log('\n' + table(this.instancesTable, noBorders))
     } else {
-      console.log(`\n  No known contracts on ${id}`)
+      console.info(`\n  No known contracts on ${id}`)
     }
 
   }
