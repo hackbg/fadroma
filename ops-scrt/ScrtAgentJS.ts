@@ -21,24 +21,25 @@ export abstract class ScrtAgentJS extends BaseAgent {
   static async createSub (AgentClass: AgentClass, options: Identity) {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
+    let info = ''
     if (mnemonic) {
-      console.info('Creating SecretJS agent from mnemonic')
+      info = 'Creating SecretJS agent from mnemonic'
       // if keypair doesnt correspond to the mnemonic, delete the keypair
       if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
-        console.warn(`keypair doesn't match mnemonic, ignoring keypair`)
+        console.warn(`ScrtAgentJS: Keypair doesn't match mnemonic, ignoring keypair`)
         keyPair = null
       }
-    }
-    else if (keyPair) {
-      console.info('Creating SecretJS agent from keypair')
+    } else if (keyPair) {
+      info = 'ScrtAgentJS: generating mnemonic from keypair'
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
     } else {
-      console.info('Creating new SecretJS agent')
+      info = 'ScrtAgentJS: creating new SecretJS agent'
       // if there is neither, generate a new keypair and corresponding mnemonic
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
     }
+    console.info(`${info}: ${bold(name)}`) // TODO add address here
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
     return new AgentClass({name, mnemonic, keyPair, pen, ...args})
   }
@@ -155,7 +156,24 @@ export abstract class ScrtAgentJS extends BaseAgent {
   /** Upload a compiled binary to the chain, returning the code ID (among other things). */
   async upload (pathToBinary: string) {
     const data = await readFile(pathToBinary)
-    return this.API.upload(data, {})
+    const result = await this.API.upload(data, {})
+
+    // non-blocking broadcast mode returns code id -1
+    // so we gotta manually fish it out from the transaction logs
+    if (result.codeId === -1) {
+      for (const log of result.logs) {
+        for (const event of log.events) {
+          for (const attribute of event.attributes) {
+            if (attribute.key === 'code_id') {
+              Object.assign(result, { codeId: Number(attribute.value) })
+              break
+            }
+          }
+        }
+      }
+    }
+
+    return result
   }
 
   async getHashById (codeId: number) {
@@ -169,11 +187,10 @@ export abstract class ScrtAgentJS extends BaseAgent {
   /** Instantiate a contract from a code ID and an init message. */
   async instantiate (codeId: number, label: string, initMsg: any) {
     const from = this.address
-    console.debug(`${bold('  INIT >')} ${label}`, { from, codeId, label, initMsg })
+    console.debug(`${bold('> INIT >')} ${label}`, { from, codeId, label, initMsg })
     const initTx = await this.API.instantiate(codeId, initMsg, label)
-    console.trace(initTx)
     Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
-    console.debug(`${bold('< INIT  ')} ${label}`, { from, codeId, label, initTx })
+    console.debug(`${bold('< INIT <')} ${label}`, { from, codeId, label, initTx })
     return initTx
   }
 
