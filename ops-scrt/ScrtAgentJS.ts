@@ -1,5 +1,7 @@
 /// # SecretJS-based agent
 
+import { Console } from '@fadroma/tools'
+const console = Console(import.meta.url)
 
 import { BaseAgent } from '@fadroma/ops'
 import { readFile, bold } from '@fadroma/tools'
@@ -20,22 +22,26 @@ export abstract class ScrtAgentJS extends BaseAgent {
     const { name = 'Anonymous', ...args } = options
     let { mnemonic, keyPair } = options
     if (mnemonic) {
-      console.info('creating agent from mnemonic')
+      console.info('Creating SecretJS agent from mnemonic')
       // if keypair doesnt correspond to the mnemonic, delete the keypair
       if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
         console.warn(`keypair doesn't match mnemonic, ignoring keypair`)
-        keyPair = null } }
+        keyPair = null
+      }
+    }
     else if (keyPair) {
-      console.info('creating agent from keypair')
+      console.info('Creating SecretJS agent from keypair')
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
-    else {
-      console.info('creating new agent')
+      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
+    } else {
+      console.info('Creating new SecretJS agent')
       // if there is neither, generate a new keypair and corresponding mnemonic
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data }
+      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
+    }
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new AgentClass({name, mnemonic, keyPair, pen, ...args}) }
+    return new AgentClass({name, mnemonic, keyPair, pen, ...args})
+  }
 
   readonly API: SigningCosmWasmClient
 

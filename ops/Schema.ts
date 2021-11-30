@@ -1,6 +1,8 @@
 import Ajv from 'ajv'
 import { compileFromFile } from 'json-schema-to-typescript'
 import { loadJSON, writeFileSync, basename, dirname } from '@fadroma/tools'
+import { IAgent } from './Model'
+import { isAgent } from './Agent'
 
 export const loadSchemas = (
   base:    string,
@@ -10,155 +12,270 @@ export const loadSchemas = (
     Object.assign(output, { [name]: loadJSON(path, base) }), {})
 
 /** Convert snake case to camel case */
-const camelCaseString = (str: string): string => {
-  return str.replace(/(\_\w)/g, function (m) {
-    return m[1].toUpperCase(); }); };
+const camelCaseString = (str: string) =>
+  str.replace(/(\_\w)/g, (m: string) =>
+    m[1].toUpperCase())
+
+type Contract = {
+  copy:  Function;
+  label: string
+}
+
+type Schema   = {
+  title?:      string,
+  type?:       string,
+  anyOf?:      Array<Schema>,
+  description: string,
+  required?:   Array<string>,
+  emptyArgs?:  unknown,
+  method:      string,
+  string:      boolean
+  properties?: Record<string, Record<string, unknown>>
+}
+
+type Handlers = Record<string, Function>
 
 /** Wrap the class in proxy in order to work dynamically. */
-export function Wrapper (schema: any, instance: any) {
-  return new SchemaFactory(schema, instance).create(); };
+export function Wrapper (instance: Contract, schema: Schema) {
+  return new SchemaFactory(instance, schema).create();
+}
 
-const clone = (x: any) => JSON.parse(JSON.stringify(x))
+const clone = (x: unknown) => JSON.parse(JSON.stringify(x))
 
 /** Wrapper factory that will create all the methods */
 export class SchemaFactory {
 
-  caller:  string
-  methods: Array<any> = []
-  ajv:     Ajv = getAjv()
+  caller?: "query"|"execute"
 
-  constructor(
-    public contract: { copy: Function, label: string },
-    public schema:   Record<any, any>
+  methods: Array<Schema> = []
+
+  ajv: Ajv = getAjv()
+
+  constructor (
+    public contract: Contract,
+    public schema:   Schema,
   ) {
+
     if (typeof schema !== "object" || schema === null) {
       console.warn(`Schema must be an object, got: ${schema}`);
-      return }
+      return
+    }
+
     this.schema = clone({ ...schema, type: "object", $schema: undefined, });
+
     const title = this.schema.title.toLowerCase()
+
     if (title.startsWith("query")) {
-      this.caller = "query"; }
-    else if (title.startsWith("handle")) {
-      this.caller = "execute"; } }
+      this.caller = "query";
+    } else if (title.startsWith("handle")) {
+      this.caller = "execute";
+    }
+
+  }
 
   /** Make a call on an agent and allow it to be overriden with custom */
-  getContract(agent: Agent): any {
+  getContract (agent: IAgent): Contract {
+
     if (isAgent(agent) && typeof this.contract['copy'] === "function") {
-      return this.contract['copy'](agent); }
-    return this.contract; }
+      return this.contract['copy'](agent);
+    }
+
+    return this.contract;
+
+  }
 
   /** Create the object with generated methods */
-  create(): Record<any, any> {
+  create (): Handlers {
+
+    const handlers: Handlers = {};
+
     if (typeof this.schema !== "object" || this.schema === null) {
+
+      handlers['_ERROR_schema_must_be_an_object_'] = () => {}
+
       console.warn(`Schema must be an object, got: ${this.schema}`);
-      return }
-    this.parse();
-    const handlers: Record<any, any> = {};
-    for (const {method} of this.methods) {
-      handlers[method] = handlers[camelCaseString(method)] = (
-        args:     Record<any, any>,
-        agent:    Agent,
-        memo:     string,
-        transfer: Array<any>,
-        fee:      any
-      ) => this.run(method, args, agent, memo, transfer, fee); }
-    return handlers; }
+
+    } else {
+
+      this.parse();
+
+      for (const {method} of this.methods) {
+        handlers[method] = handlers[camelCaseString(method)] = (
+          args:     Record<string, unknown>,
+          agent:    IAgent,
+          memo:     string,
+          transfer: Array<unknown>,
+          fee:      unknown
+        ) => this.run(method, args, agent, memo, transfer, fee);
+      }
+
+    }
+
+    return handlers;
+
+  }
 
   /** Parse the schema and generate method definitions */
-  parse() {
+  parse () {
+
     if (Array.isArray(this.schema.anyOf)) {
       for (const item of this.schema.anyOf) {
         if (item.type === "string") {
-          this.onlyMethod(item); }
-        else if (item.type === "object") {
-          this.methodWithArgs(item); } } }
-    if (this.schema.type === "string" && Array.isArray(this.schema.enum)) {
-      this.onlyMethod(this.schema); } }
+          this.onlyMethod(item);
+        } else if (item.type === "object") {
+          this.methodWithArgs(item);
+        }
+      }
+    }
+
+    if (
+      this.schema.type === "string" &&
+      Array.isArray(this.schema.enum)
+    ) {
+      this.onlyMethod(this.schema);
+    }
+  }
 
   /** Parse schema items that only have a method call without arguments */
-  onlyMethod (item: Record<any, any>) {
+  onlyMethod (item: Schema) {
     if (Array.isArray(item.enum)) {
       for (const m of item.enum) {
         this.methods.push({
           method: m,
           description: item.description,
           string: true,
-          emptyArgs: true, }); } } }
+          emptyArgs: true,
+        });
+      }
+    }
+  }
 
   /** Parse schema item that has arguments */
-  methodWithArgs(item: Record<any, any>) {
-    if (Array.isArray(item.required)) {
-      const m = item.required[0];
+  methodWithArgs (item: Schema) {
 
-      // This is to handle those enum variants that have arguments but it's only an empty object
-      if (
+    if (Array.isArray(item.required)) {
+
+      const m = item.required[0]
+
+      // This is to handle those enum variants
+      // that have arguments but it's only an empty object
+      const emptyArgs =(
         Object.keys(item.properties[m]).length === 1 &&
         item.properties[m].type === "object"
-      ) {
-        this.methods.push({
-          method: m,
-          description: item.description,
-          string: false,
-          emptyArgs: true, }); }
-      else {
-        this.methods.push({
-          method: m,
-          description: item.description,
-          string: false,
-          emptyArgs: false, }); } } }
+      ) 
+
+      this.methods.push({
+        method:      m,
+        description: item.description,
+        string:      false,
+        emptyArgs,
+      })
+
+    }
+
+  }
 
   /** Run schema validation on passed arguments */
-  validate(action: Record<any, any>, args: Record<any, any>) {
+  validate(
+    action: { method: string },
+    args:   Record<string, unknown>
+  ) {
+
     const validate = this.ajv.compile(this.schema);
-    const message = { [action.method]: args || {} };
+
+    const message = {
+      [action.method]: args || {}
+    };
+
     if (!validate(message)) {
-      const msg =  {
+
+      const msg = {
         title: this.schema.title,
         label: this.contract.label,
         calledAction: { ...action, message },
-        validationErrors: validate.errors, }
-      throw new Error(`Arguments validation returned error:\n${JSON.stringify(msg, null, 2)}`) } }
+        validationErrors: validate.errors,
+      }
+
+      throw new Error(`Arguments validation returned error:\n${JSON.stringify(msg, null, 2)}`)
+    }
+
+  }
 
   /** Try to find method in the parsed stack and run it */
   run(
-    method: string, args: any, agent: Agent,
-    memo: string, transferAmount: Array<any>, fee: any
+    method: string,
+    args:   IAgent|Record<string, unknown>,
+    agent:  IAgent|Record<string, unknown>,
+    memo:   string,
+    send:   Array<unknown>,
+    fee:    unknown
   ) {
     for (const action of this.methods) {
+
       if (action.method === method) {
+
         if (isAgent(args) && !isAgent(agent)) {
           agent = args;
-          args = {}; }
+          args = {};
+        }
+
+        const tail: [
+          IAgent, string, Array<unknown>, unknown
+        ] = [
+          agent as IAgent, memo, send, fee
+        ]
+
         if (action.string) {
-          return this.callString(action, agent, memo, transferAmount, fee); }
-        else {
-          return this.callObject(action, args, agent, memo, transferAmount, fee); } } }
+          return this.callString(action, ...tail)
+        } else {
+          return this.callObject(action, args as Record<string, unknown>, ...tail)
+        }
+
+      }
+
+    }
+
     // This is unreachable
-    throw new Error(`Method '${method}' couldn't be found in schema definition`); }
+    throw new Error(`Method '${method}' couldn't be found in schema definition`);
+  }
 
   /** Make a call to a simple function on a contract */
   private callString(
-    action: Record<any, any>, agent: Agent,
-    memo: string, transferAmount: Array<any>, fee: any
+    action: Schema,
+    agent:  IAgent,
+    memo:   string,
+    send:   Array<unknown>,
+    fee:    unknown
   ) {
-    const contract = this.getContract(agent);
-    return contract[this.caller](action.method, null, memo, transferAmount, fee); }
+    return this.getContract(agent)[this.caller](
+      action.method, null, memo, send, fee
+    );
+  }
 
   /** Make a call to a method that receives arguments */
   private callObject(
-    action: Record<any, any>, args: Record<any, any>, agent: Agent,
-    memo: string, transferAmount: Array<any>, fee: any
+    action: Schema,
+    args:   Record<string, unknown>,
+    agent:  IAgent,
+    memo:   string,
+    send:   Array<unknown>,
+    fee:    unknown
   ) {
     if (action.emptyArgs) {
-      args = {}; }
-    else {
-      this.validate(action, args); }
-    const contract = this.getContract(agent);
-    return contract[this.caller](action.method, args, memo, transferAmount, fee); } }
+      args = {};
+    } else {
+      this.validate(action, args);
+    }
+    return this.getContract(agent)[this.caller](
+      action.method, args, memo, send, fee
+    );
+  }
+
+}
 
 /** Creates Ajv instance for schema validation*/
 export function getAjv (): Ajv {
-  const ajv = new Ajv({ strict: false } as any);
+  const ajv = new Ajv({ strict: false } as unknown);
   addNumberType("int8",  127, -128);
   addNumberType("int16", 32767, -32768);
   addNumberType("int32", 2147483647, -2147483648);
@@ -167,16 +284,25 @@ export function getAjv (): Ajv {
 
   // Add type validation for intN and add automatically uintN
   function addNumberType (name: string, max: number|bigint, min: number|bigint) {
+
     ajv.addFormat(name, {
       type:     "number",
-      validate: (x: any) => (!isNaN(x) && x >= min && x <= max) });
+      validate: (x: number) => (!isNaN(x) && x >= min && x <= max)
+    })
+
     ajv.addFormat(`u${name}`, {
       type:     "number",
-      validate: (x: any) => (!isNaN(x) && x >= 0 && x <= max)}); }; };
+      validate: (x: number) => (!isNaN(x) && x >= 0 && x <= max)
+    })
+
+  }
+}
 
 export function schemaToTypes (...schemas: Array<string>) {
   return Promise.all(schemas.map(schema=>
-    compileFromFile(schema).then(ts=>{
+    compileFromFile(schema).then((ts: unknown)=>{
       const output = `${dirname(schema)}/${basename(schema, '.json')}.d.ts`
       writeFileSync(output, ts)
-      console.info(`Generated ${output}`)}))) }
+      console.info(`Generated ${output}`)
+    })))
+}

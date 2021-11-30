@@ -16,8 +16,10 @@ import {
 
 import { backOff } from 'exponential-backoff'
 
+type ContractConstructor = new (options: unknown) => IContract
+
 export const attachable =
-  (Constructor: new (options: any) => IContract) =>
+  (Constructor: ContractConstructor) =>
     (address: string, codeHash: string, agent: IAgent) => {
       const instance = new Constructor({})
       instance.init.agent = agent
@@ -59,22 +61,26 @@ export abstract class ContractCode {
   /** Compile a contract from source */
   // TODO support clone & build contract from external repo+ref
   async build (workspace?: string, crate?: string, extraBinds?: string[]) {
+
     if (workspace) this.code.workspace = workspace
     if (crate)     this.code.crate = crate
 
     const ref       = 'HEAD'
-        , outputDir = resolve(this.workspace, 'artifacts')
-        , artifact  = resolve(outputDir, `${this.crate}@${ref}.wasm`)
+    const outputDir = resolve(this.workspace, 'artifacts')
+    const artifact  = resolve(outputDir, `${this.crate}@${ref}.wasm`)
 
     if (!existsSync(artifact)) {
 
       console.info(`Building working tree at ${bold(this.workspace)} into ${bold(outputDir)}...`)
 
-      const buildImage = await pulled(this.buildImage, this.docker)
+      const buildImage   = await pulled(this.buildImage, this.docker)
       const buildCommand = `bash /entrypoint.sh ${this.crate} ${ref}`
-      const buildArgs = this.getBuildArgs(ref, resolve(this.workspace, 'artifacts'), extraBinds)
+      const buildArgs    = this.getBuildArgs(ref, resolve(this.workspace, 'artifacts'), extraBinds)
 
-      console.debug(`Running ${bold(buildCommand)} the following build container:`, buildArgs)
+      console.debug(
+        `Running ${bold(buildCommand)} in ${bold(buildImage)} with the following options:`,
+        buildArgs
+      )
 
       const [{ Error:err, StatusCode:code }, container] =
         await this.docker.run(buildImage, buildCommand, process.stdout, buildArgs)
@@ -88,9 +94,11 @@ export abstract class ContractCode {
     }
 
     return this.code.artifact = artifact
+
   }
 
   private getBuildArgs (ref: string, outputDir: string, extraBinds?: string[]) {
+
     const buildArgs = {
       Tty:         true,
       AttachStdin: true,
@@ -110,12 +118,14 @@ export abstract class ContractCode {
         ]
       }
     }
-    extraBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
-    return buildArgs
-  }
-}
 
-const {info} = Console(import.meta.url)
+    extraBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
+
+    return buildArgs
+
+  }
+
+}
 
 export abstract class ContractUpload extends ContractCode {
 
@@ -128,7 +138,7 @@ export abstract class ContractUpload extends ContractCode {
       codeId:             number
       compressedChecksum: string
       compressedSize:     string
-      logs:               any[]
+      logs:               unknown[]
       originalChecksum:   string
       originalSize:       number
       transactionHash:    string
@@ -160,6 +170,7 @@ export abstract class ContractUpload extends ContractCode {
 
   /** Upload the contract to a specified chain as a specified agent. */
   async upload (chainOrAgent?: IAgent|IChain) {
+
     // resolve chain/agent references
     if (chainOrAgent instanceof BaseChain) {
       this.blob.chain = chainOrAgent as IChain
@@ -178,9 +189,9 @@ export abstract class ContractUpload extends ContractCode {
     // TODO: flag to force reupload
     if (existsSync(this.uploadReceiptPath)) {
       const receiptData = await readFile(this.uploadReceiptPath, 'utf8')
-      info(`${bold(relative(process.cwd(), this.uploadReceiptPath))} exists, delete to reupload`)
-      this.blob.receipt = JSON.parse(receiptData) }
-    else {
+      console.info(`${bold(relative(process.cwd(), this.uploadReceiptPath))} exists, delete to reupload`)
+      this.blob.receipt = JSON.parse(receiptData)
+    } else {
       const uploadResult = await this.uploader.upload(this.artifact)
           , receiptData  = JSON.stringify(uploadResult, null, 2)
           , elements     = this.uploadReceiptPath.slice(1, this.uploadReceiptPath.length).split('/');
@@ -190,28 +201,40 @@ export abstract class ContractUpload extends ContractCode {
         path += `/${item}` }
       await writeFile(this.uploadReceiptPath, receiptData, 'utf8')
       this.blob.receipt = uploadResult
-      await this.uploader.nextBlock }
+      await this.uploader.nextBlock
+    }
 
     // set code it and code hash to allow instantiation of uploaded code
-    this.blob.codeId   = this.uploadReceipt.codeId
-    this.blob.codeHash = this.uploadReceipt.originalChecksum
+    this.blob.codeId   = this.uploadReceipt?.codeId
+    this.blob.codeHash = this.uploadReceipt?.originalChecksum
     return this.blob.receipt
+
   }
 }
 
+export type InitReceipt = {
+  label:    string,
+  codeId:   number,
+  codeHash: string,
+  initTx:   InitTX
+}
+
+export type InitTX = {
+  contractAddress: string
+  data:            string
+  logs:            unknown[]
+  transactionHash: string
+}
+
 export abstract class ContractInit extends ContractUpload {
+
   init: {
     prefix?:  string
     agent?:   IAgent
     address?: string
     label?:   string
-    msg?:     any
-    tx?: {
-      contractAddress: string
-      data:            string
-      logs:            any[]
-      transactionHash: string
-    }
+    msg?:     unknown
+    tx?:      InitTX
   } = {}
 
   constructor (options: ContractInitOptions = {}) {
@@ -261,7 +284,7 @@ export abstract class ContractInit extends ContractUpload {
   }
 
   private initBackoffOptions = {
-    retry (error: any, attempt: number) {
+    retry (error: Error, attempt: number) {
       if (error.message.includes('500')) {
         console.warn(`Error 500, retry #${attempt}...`)
         console.error(error)
@@ -272,7 +295,7 @@ export abstract class ContractInit extends ContractUpload {
     }
   }
 
-  private initBackoff (fn: ()=>Promise<any>) {
+  private initBackoff (fn: ()=>Promise<InitTX>) {
     return backOff(fn, this.initBackoffOptions)
   }
 
@@ -280,9 +303,10 @@ export abstract class ContractInit extends ContractUpload {
     if (!this.address) {
       if (agent) this.init.agent = agent
       if (!this.codeId) throw new Error('Contract must be uploaded before instantiating')
-      this.init.tx = await this.initBackoff(()=>
-        this.instantiator.instantiate(this.codeId, this.label, this.initMsg))
-      this.init.address = this.initTx.contractAddress
+      this.init.tx = await this.initBackoff(()=>{
+        return this.instantiator.instantiate(this.codeId, this.label, this.initMsg)
+      })
+      this.init.address = this.initTx?.contractAddress
       this.save()
     } else if (this.address) {
       throw new Error(`This contract has already been instantiated at ${this.address}`)
@@ -290,7 +314,7 @@ export abstract class ContractInit extends ContractUpload {
     return this.initTx
   }
 
-  async instantiateOrExisting (receipt: any, agent?: IAgent) {
+  async instantiateOrExisting (receipt: InitReceipt, agent?: IAgent) {
     if (receipt) {
       this.blob.codeHash = receipt.codeHash
       this.init.address  = receipt.initTx.contractAddress
@@ -317,12 +341,13 @@ export abstract class ContractInit extends ContractUpload {
     dir.save(this.init.label, this.initReceipt)
     return this
   }
+
 }
 
 export abstract class ContractCaller extends ContractInit {
 
   private backoffOptions = {
-    retry (error: any, attempt: number) {
+    retry (error: Error, attempt: number) {
       if (error.message.includes('500')) {
         console.warn(`Error 500, retry #${attempt}...`)
         console.warn(error)
@@ -337,7 +362,7 @@ export abstract class ContractCaller extends ContractInit {
     }
   }
 
-  private backoff (fn: ()=>Promise<any>) {
+  private backoff (fn: ()=>Promise<unknown>) {
     return backOff(fn, this.backoffOptions)
   }
 
@@ -348,12 +373,12 @@ export abstract class ContractCaller extends ContractInit {
 
   /** Execute a contract transaction. */
   execute (
-    method         = "",
-    args           = null,
-    memo:   string = '',
-    amount: any[]  = [],
-    fee:    any    = undefined,
-    agent:  IAgent = this.instantiator
+    method = "",
+    args   = null,
+    memo   = '',
+    amount: unknown[] = [],
+    fee:    unknown   = undefined,
+    agent:  IAgent    = this.instantiator
   ) {
     return this.backoff(() => agent.execute(this, method, args, memo, amount, fee))
   }
@@ -361,9 +386,9 @@ export abstract class ContractCaller extends ContractInit {
   /** Create a temporary copy of a contract with a different agent.
     * FIXME: Broken - see uploader/instantiator/admin */
   copy = (agent: IAgent) => {
-    let addon = {};
+    const addon = {};
     if (isAgent(agent)) {
-      // @ts-ignore
+      // @ts-ignore: ???
       addon.init = {...this.init, agent};
     }
     return Object.assign(
@@ -374,51 +399,44 @@ export abstract class ContractCaller extends ContractInit {
 
 }
 
+export type Schema   = Record<string, unknown>
+export type Validate = (object: unknown) => unknown
+export type Method   = (...args: Array<unknown>) => unknown
+
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
 export abstract class ContractAPI extends ContractCaller implements IContract {
+
   protected schema: {
-    initMsg?:        any
-    queryMsg?:       any
-    queryResponse?:  any
-    handleMsg?:      any
-    handleResponse?: any
+    initMsg?:        Schema
+    queryMsg?:       Schema
+    queryResponse?:  Schema
+    handleMsg?:      Schema
+    handleResponse?: Schema
   } = {}
 
   #ajv = getAjv()
 
   private validate: {
-    initMsg?:        Function
-    queryMsg?:       Function
-    queryResponse?:  Function
-    handleMsg?:      Function
-    handleResponse?: Function
+    initMsg?:        Validate
+    queryMsg?:       Validate
+    queryResponse?:  Validate
+    handleMsg?:      Validate
+    handleResponse?: Validate
   } = {}
 
-  q:  Record<string, Function>
-  tx: Record<string, Function>
+  q:  Record<string, Method>
+  tx: Record<string, Method>
 
   constructor (options: ContractAPIOptions = {}) {
     super(options)
     if (options.schema) this.schema = options.schema
     this.q  = new SchemaFactory(this, this.schema?.queryMsg).create()
     this.tx = new SchemaFactory(this, this.schema?.handleMsg).create()
-    for (const msg of ['initMsg', 'queryMsg', 'queryResponse', 'handleMsg', 'handleResponse']) {
-      if (this.schema[msg]) this.validate[msg] = this.#ajv.compile(this.schema[msg])
+    for (const [msg, schema] of Object.entries(this.schema)) {
+      if (schema) {
+        this.validate[msg] = this.#ajv.compile(schema)
+      }
     }
   }
 }
-
-//export class ContractWithSchema extends BaseContractAPI {
-  //q:  Record<string, Function>
-  //tx: Record<string, Function>
-  //constructor(agent: Agent, options: any = {}, schema: any) {
-    //if (schema && schema.initMsg) {
-      //const ajv = getAjv();
-      //const validate = ajv.compile(schema.initMsg);
-      //if (!validate(options.initMsg)) {
-        //const err = JSON.stringify(validate.errors, null, 2)
-        //throw new Error(`Schema validation for initMsg returned an error: \n${err}`); } }
-    //super(agent)
-    //this.q  = new SchemaFactory(schema.queryMsg,  this).create()
-    //this.tx = new SchemaFactory(schema.handleMsg, this).create() } }

@@ -295,7 +295,7 @@ export class Scrt extends BaseChain {
     }
 
     if (identity.mnemonic || identity.keyPair) {
-      console.info(`Using a ${bold('SecretJS')}-based agent.`)
+      //console.info(`Using a ${bold('SecretJS')}-based agent.`)
       return await this.Agent.create({ ...identity, chain: this as Chain })
     } else {
       const name = identity.name || this.defaultIdentity?.name

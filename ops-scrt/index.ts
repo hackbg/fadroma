@@ -8,3 +8,9 @@ export * from './ScrtGas'
 
 export * from '@fadroma/scrt-1.0'
 export * from '@fadroma/scrt-1.2'
+
+export function openFaucet () {
+  const url = `https://faucet.secrettestnet.io/`
+  console.debug(`Opening ${url}...`)
+  open(url)
+}
