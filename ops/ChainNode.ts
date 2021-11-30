@@ -341,7 +341,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     } catch (e) {
       console.warn(`Failed to delete ${path}, because:`)
       console.warn(e)
-      if (e.code === 'EACCES') {
+      if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
         console.info(`Creating cleanup container...`)
         const container = await this.createContainer(this.cleanupContainerOptions)
         console.info(`Starting cleanup container...`)
