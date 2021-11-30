@@ -6,7 +6,7 @@ import type {
 } from './Model'
 import { BaseAgent, isAgent } from './Agent'
 import { BaseChain, ChainInstancesDir } from './Chain'
-import { getAjv, SchemaFactory } from './Schema'
+import { loadSchemas, getAjv, SchemaFactory } from './Schema'
 
 import { existsSync, Console, readFile, bold, relative, basename, mkdir, writeFile } from '@fadroma/tools'
 
@@ -329,6 +329,8 @@ export type Method   = (...args: Array<unknown>) => unknown
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
 export abstract class ContractAPI extends ContractCaller implements IContract {
+
+  static loadSchemas = loadSchemas
 
   protected schema: {
     initMsg?:        Schema
