@@ -1,4 +1,4 @@
-import type { IChain, IAgent, Identity } from './Model'
+import type { IChain, IAgent, Identity, Gas } from './Model'
 import { taskmaster, resolve, readFileSync } from '@fadroma/tools'
 import assert from 'assert'
 
@@ -74,12 +74,14 @@ export const isAgent = (maybeAgent: any): boolean => (
   && typeof maybeAgent.execute === "function")
 
 export abstract class BaseGas implements Gas {
-  readonly abstract denom: string
+  //readonly abstract denom: string
   amount: Array<{amount: string, denom: string}> = []
   gas:    string
   constructor (x: number) {
     const amount = String(x)
-    this.gas = amount } }
+    this.gas = amount
+  }
+}
 
 /** In testing scenarios requiring multiple agents,
  * this function distributes funds among the extra agents

@@ -3,10 +3,10 @@ import { BaseGas } from '@fadroma/ops'
 
 export class ScrtGas extends BaseGas {
   static denom = 'uscrt'
-  denom = ScrtGas.denom
+  //denom = ScrtGas.denom
   constructor (x: number) {
     super(x)
-    this.amount.push({amount: String(x), denom: this.denom})
+    this.amount.push({amount: String(x), denom: ScrtGas.denom})
   }
 }
 
