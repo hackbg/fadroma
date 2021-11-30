@@ -1,7 +1,6 @@
 import { Identity, IAgent } from '@fadroma/ops'
 import { ScrtAgentJS } from '@fadroma/scrt/ScrtAgentJS.ts'
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
-import type { StdTx, PostTxResult } from 'secretjs'
 
 import { Console } from '@fadroma/tools'
 const console = Console(import.meta.url)
@@ -20,7 +19,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     * This, in turn, assumes the logs array is empty and just a tx hash is returned.
     * The tx hash is then queried to get the full transaction result -
     * or, if the transaction didn't actually commit, to retry it. */
-  async postTx (tx: StdTx): Promise<any> {
+  async postTx (tx: any): Promise<any> {
 
     // Only override for non-default broadcast modes
     if (this.restClient.broadcastMode === BroadcastMode.Block) {
@@ -28,24 +27,35 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
       return super.postTx(tx)
     }
 
-    // 1. Submit the transaction
-    // 2. Poll for block height to increment
-    // 3. Start querying for the full resul.
     let submitRetries = this.submitRetries
     while (submitRetries--) {
+
+      // 1. Submit the transaction
       const sent = (await this.getBlock()).header.height
       const {transactionHash: id} = await super.postTx(tx)
+
+      // 2. Poll for block height to increment
       await this.waitForNextBlock(sent)
+
+      // 3. Start querying for the full result.
       try {
         return await this.getTxResult(id)
       } catch (error) {
+
         if (error.rethrow) {
+
+          // 4. If the transaction resulted in an error, rethrow it so it can be decrypted
           console.warn(`Transaction ${id} returned error: ${error.message}`)
           throw error
+
         } else {
+
+          // 5. If the transaction simply hasn't committed yet, query for the result again.
           console.info(`Submit tx: ${submitRetries} retries left...`)
           await new Promise(ok=>setTimeout(ok, this.resubmitDelay))
+
         }
+
       }
     }
 
@@ -115,8 +125,9 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
 
   async upload (pathToBinary: string) {
     const result = await super.upload(pathToBinary)
-    // non-blocking broadcast mode returns code id -1
-    // so we gotta manually fish it out from the transaction logs
+
+    // Non-blocking broadcast mode returns code ID = -1,
+    // so we need to find the code ID manually from the output
     if (result.codeId === -1) {
       for (const log of result.logs) {
         for (const event of log.events) {
