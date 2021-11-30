@@ -17,7 +17,7 @@ const camelCaseString = (str: string) =>
     m[1].toUpperCase())
 
 type Contract = {
-  copy:  Function;
+  copy:  Function
   label: string
 }
 

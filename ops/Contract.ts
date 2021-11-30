@@ -1,6 +1,5 @@
 import type {
   IChain, IAgent, IContract,
-  ContractCodeOptions,
   ContractUploadOptions,
   ContractInitOptions,
   ContractAPIOptions
@@ -9,12 +8,11 @@ import { BaseAgent, isAgent } from './Agent'
 import { BaseChain, ChainInstancesDir } from './Chain'
 import { getAjv, SchemaFactory } from './Schema'
 
-import {
-  resolve, existsSync, Docker, pulled, Console,
-  readFile, bold, relative, basename, mkdir, writeFile,
-} from '@fadroma/tools'
+import { existsSync, Console, readFile, bold, relative, basename, mkdir, writeFile } from '@fadroma/tools'
 
 import { backOff } from 'exponential-backoff'
+
+import { ContractCode } from './ContractBuild'
 
 type ContractConstructor = new (options: unknown) => IContract
 
@@ -30,101 +28,14 @@ export const attachable =
 
 const console = Console(import.meta.url)
 
-export abstract class ContractCode {
-
-  abstract buildImage:  string
-  abstract buildScript: string
-
-  code: ContractCodeOptions = {}
-
-  constructor (options: ContractCodeOptions = {}) {
-    if (options.workspace) this.code.workspace = options.workspace
-    if (options.crate)     this.code.crate = options.crate
-    if (options.artifact)  this.code.artifact = options.artifact
-    if (options.codeHash)  this.code.codeHash = options.codeHash
-  }
-
-  /** Path to source workspace */
-  get workspace () { return this.code.workspace }
-
-  /** Name of source crate within workspace */
-  get crate () { return this.code.crate }
-
-  /** Name of compiled binary */
-  get artifact () { return this.code.artifact }
-
-  /** SHA256 hash of the uncompressed artifact */
-  get codeHash () { return this.code.codeHash }
-
-  private docker = new Docker({ socketPath: '/var/run/docker.sock' })
-
-  /** Compile a contract from source */
-  // TODO support clone & build contract from external repo+ref
-  async build (workspace?: string, crate?: string, extraBinds?: string[]) {
-
-    if (workspace) this.code.workspace = workspace
-    if (crate)     this.code.crate = crate
-
-    const ref       = 'HEAD'
-    const outputDir = resolve(this.workspace, 'artifacts')
-    const artifact  = resolve(outputDir, `${this.crate}@${ref}.wasm`)
-
-    if (!existsSync(artifact)) {
-
-      console.info(`Building working tree at ${bold(this.workspace)} into ${bold(outputDir)}...`)
-
-      const buildImage   = await pulled(this.buildImage, this.docker)
-      const buildCommand = `bash /entrypoint.sh ${this.crate} ${ref}`
-      const buildArgs    = this.getBuildArgs(ref, resolve(this.workspace, 'artifacts'), extraBinds)
-
-      console.debug(
-        `Running ${bold(buildCommand)} in ${bold(buildImage)} with the following options:`,
-        buildArgs
-      )
-
-      const [{ Error:err, StatusCode:code }, container] =
-        await this.docker.run(buildImage, buildCommand, process.stdout, buildArgs)
-
-      await container.remove()
-      if (err) throw err
-      if (code !== 0) throw new Error(`build exited with status ${code}`)
-
-    } else {
-      console.info(`${bold(relative(process.cwd(), artifact))} exists, delete to rebuild`)
-    }
-
-    return this.code.artifact = artifact
-
-  }
-
-  private getBuildArgs (ref: string, outputDir: string, extraBinds?: string[]) {
-
-    const buildArgs = {
-      Tty:         true,
-      AttachStdin: true,
-      Entrypoint:  ['/bin/sh', '-c'],
-      Env: [
-        'CARGO_NET_GIT_FETCH_WITH_CLI=true',
-        'CARGO_TERM_VERBOSE=true',
-        'CARGO_HTTP_TIMEOUT=240'
-      ],
-      HostConfig: {
-        Binds: [
-          `${this.buildScript}:/entrypoint.sh:ro`,
-          `${outputDir}:/output:rw`,
-          `project_cache_${ref}:/code/target:rw`,
-          `cargo_cache_${ref}:/usr/local/cargo:rw`,
-          `${this.workspace}:/contract:rw`
-        ]
-      }
-    }
-
-    extraBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))
-
-    return buildArgs
-
-  }
-
+type UploadReceipt = {
+  codeId:             number
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               unknown[]
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
 }
 
 export abstract class ContractUpload extends ContractCode {
@@ -134,15 +45,7 @@ export abstract class ContractUpload extends ContractCode {
     chain?:    IChain
     codeId?:   number
     codeHash?: string
-    receipt?: {
-      codeId:             number
-      compressedChecksum: string
-      compressedSize:     string
-      logs:               unknown[]
-      originalChecksum:   string
-      originalSize:       number
-      transactionHash:    string
-    }
+    receipt?:  UploadReceipt
   } = {}
 
   constructor (options?: ContractUploadOptions) {
@@ -186,23 +89,7 @@ export abstract class ContractUpload extends ContractCode {
     if (!this.artifact) await this.build()
 
     // upload if not already uploaded
-    // TODO: flag to force reupload
-    if (existsSync(this.uploadReceiptPath)) {
-      const receiptData = await readFile(this.uploadReceiptPath, 'utf8')
-      console.info(`${bold(relative(process.cwd(), this.uploadReceiptPath))} exists, delete to reupload`)
-      this.blob.receipt = JSON.parse(receiptData)
-    } else {
-      const uploadResult = await this.uploader.upload(this.artifact)
-          , receiptData  = JSON.stringify(uploadResult, null, 2)
-          , elements     = this.uploadReceiptPath.slice(1, this.uploadReceiptPath.length).split('/');
-      let path = `/`
-      for (const item of elements) {
-        if (!existsSync(path)) mkdir(path)
-        path += `/${item}` }
-      await writeFile(this.uploadReceiptPath, receiptData, 'utf8')
-      this.blob.receipt = uploadResult
-      await this.uploader.nextBlock
-    }
+    this.blob.receipt = await upload(this.uploader, this.artifact, this.uploadReceiptPath)
 
     // set code it and code hash to allow instantiation of uploaded code
     this.blob.codeId   = this.uploadReceipt?.codeId
@@ -210,6 +97,41 @@ export abstract class ContractUpload extends ContractCode {
     return this.blob.receipt
 
   }
+}
+
+async function upload (
+  uploader:          IAgent,
+  artifact:          string,
+  uploadReceiptPath: string,
+  forceReupload = false
+  // TODO: flag to force reupload
+) {
+
+  if (existsSync(uploadReceiptPath) && !forceReupload) {
+
+    const receiptData = await readFile(uploadReceiptPath, 'utf8')
+    console.info(`${bold(relative(process.cwd(), uploadReceiptPath))} exists, delete to reupload`)
+    return JSON.parse(receiptData)
+
+  } else {
+
+    const uploadResult = await uploader.upload(artifact)
+    const receiptData  = JSON.stringify(uploadResult, null, 2)
+    const elements     = uploadReceiptPath.slice(1, uploadReceiptPath.length).split('/');
+
+    let path = `/`
+    for (const item of elements) {
+      if (!existsSync(path)) mkdir(path)
+      path += `/${item}`
+    }
+
+    await writeFile(uploadReceiptPath, receiptData, 'utf8')
+
+    await uploader.nextBlock
+    return uploadResult
+
+  }
+
 }
 
 export type InitReceipt = {
