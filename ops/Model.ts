@@ -219,7 +219,10 @@ export interface IChain extends IChainOptions {
   getContract<T> (api: new()=>T, address: string, agent: IAgent): T
 
   readonly stateRoot?:  Directory
+
   readonly identities?: Directory
+  printIdentities (): void
+
   readonly uploads?:    Directory
 
   readonly instances?:  ChainInstancesDir

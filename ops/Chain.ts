@@ -79,11 +79,20 @@ export abstract class BaseChain implements IChain {
 
   printActiveInstance () {
     if (this.instances.active) {
-      console.log(`\nActive instance:`)
+      console.log(`\nSelected instance:`)
       console.log(`  ${bold(this.instances.active.name)}`)
       for (const contract of Object.keys(this.instances.active.contracts)) {
         console.log(`    ${colors.green('✓')}  ${contract}`)
       }
+    } else {
+      console.log(`\nNo selected instance.`)
+    }
+  }
+
+  printIdentities () {
+    console.log('\nAvailable identities:')
+    for (const identity of this.identities.list()) {
+      console.log(`  ${this.identities.load(identity).address} (${bold(identity)})`)
     }
   }
 }
