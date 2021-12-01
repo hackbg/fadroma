@@ -11,7 +11,7 @@ export class ScrtGas extends BaseGas {
 }
 
 export const defaultFees: Fees = {
-  upload: new ScrtGas(3000000),
+  upload: new ScrtGas(4000000),
   init:   new ScrtGas(1000000),
   exec:   new ScrtGas(1000000),
   send:   new ScrtGas( 500000),
