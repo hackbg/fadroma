@@ -46,7 +46,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
         if (error.rethrow) {
 
           // 4. If the transaction resulted in an error, rethrow it so it can be decrypted
-          console.warn(`Transaction ${id} returned error: ${error.message}`)
+          console.warn(`Transaction ${id} returned error:\n${error.message}`)
           throw error
 
         } else {
