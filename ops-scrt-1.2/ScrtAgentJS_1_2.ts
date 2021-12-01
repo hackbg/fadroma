@@ -81,6 +81,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
         // if result contains error, throw it so it can be decrypted
         const {raw_log, logs = []} = result as any
         if (raw_log.includes('failed')) {
+          console.debug(`Transaction ${id} failed`, result)
           const error = new Error(raw_log)
           Object.assign(error, { rethrow: true })
           throw new Error(raw_log)
@@ -109,6 +110,11 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   async instantiate (...args: Array<any>) {
     let {transactionHash:id} = await super.instantiate(...args)
+    return await this.getTxResult(id)
+  }
+
+  async execute (...args: Array<any>) {
+    let {transactionHash:id} = await super.execute(...args)
     return await this.getTxResult(id)
   }
 

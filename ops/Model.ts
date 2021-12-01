@@ -8,6 +8,7 @@
 
 import { URL } from 'url'
 import { Directory, JSONFile } from '@fadroma/tools'
+import type { ChainInstancesDir } from './Chain'
 
 
 /// ## Contracts
@@ -220,7 +221,9 @@ export interface IChain extends IChainOptions {
   readonly stateRoot?:  Directory
   readonly identities?: Directory
   readonly uploads?:    Directory
-  readonly instances?:  Directory
+
+  readonly instances?:  ChainInstancesDir
+  printActiveInstance (): void
 }
 
 

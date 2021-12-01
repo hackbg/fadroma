@@ -4,7 +4,8 @@ import {
   __dirname,
   Directory,
   Console, bold, symlinkDir, mkdirp, resolve, basename,
-  readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync
+  readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync,
+  colors
 } from '@fadroma/tools'
 
 import { URL } from 'url'
@@ -74,6 +75,16 @@ export abstract class BaseChain implements IChain {
     this.isMainnet  = isMainnet
     this.isTestnet  = isTestnet
     this.isLocalnet = isLocalnet
+  }
+
+  printActiveInstance () {
+    if (this.instances.active) {
+      console.log(`\nActive instance:`)
+      console.log(`  ${bold(this.instances.active.name)}`)
+      for (const contract of Object.keys(this.instances.active.contracts)) {
+        console.log(`    ${colors.green('✓')}  ${contract}`)
+      }
+    }
   }
 }
 

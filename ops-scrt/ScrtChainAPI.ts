@@ -1,3 +1,4 @@
+import type { IChain } from '@fadroma/ops'
 import {
   ChainNode, ChainState, ChainConnectOptions,
   BaseChain, ChainInstancesDir, prefund,
@@ -23,7 +24,6 @@ export type ScrtChainState = ChainState & {
   Agent?:      AgentConstructor
   identities?: Array<string>
 }
-
 
 export const on = {
   'localnet-1.0' (context: any = {}) {
@@ -239,7 +239,7 @@ export class Scrt extends BaseChain {
 
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
-  async init (): Promise<Chain> {
+  async init (): Promise<IChain> {
 
     console.warn('@fadroma/ops-scrt: Chain#init is deprecated, use "await new Chain().ready" for one-time initialization')
 
@@ -278,7 +278,7 @@ export class Scrt extends BaseChain {
       console.info(`Operating as ${address}`)
     }
 
-    return this as Chain
+    return this as IChain
   }
 
   /**The API URL that this instance talks to.
@@ -294,8 +294,8 @@ export class Scrt extends BaseChain {
       identity = this.node.genesisAccount(identity)
     }
 
-    if (identity.mnemonic || identity.keyPair) {
-      //console.info(`Using a ${bold('SecretJS')}-based agent.`)
+    const { mnemonic, keyPair } = identity as Identity
+    if (mnemonic || keyPair) {
       return await this.Agent.create({ ...identity, chain: this as Chain })
     } else {
       const name = identity.name || this.defaultIdentity?.name
@@ -425,6 +425,15 @@ export class Scrt extends BaseChain {
       ['secret-3', Help.MAINNET, on['secret-3'], getCommands(Scrt.secret_3())]
     ]
   }
+}
+
+export const CHAINS: Record<string, Function> = {
+  'localnet-1.0': Scrt.localnet_1_0,
+  'localnet-1.2': Scrt.localnet_1_2,
+  'holodeck-2':   Scrt.holodeck_2,
+  'supernova-1':  Scrt.supernova_1,
+  'secret-2':     Scrt.secret_2,
+  'secret-3':     Scrt.secret_3
 }
 
 function deprecationWarning () {

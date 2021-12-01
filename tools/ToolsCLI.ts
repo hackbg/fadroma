@@ -103,39 +103,86 @@ export const noBorders = {
 // Commands ////////////////////////////////////////////////////////////////////////////////////////
 
 export async function runCommand (
-  context: any, commands: any, commandToRun: string, ...args: Array<any>
+  context:      any,
+  commands:     any,
+  commandToRun: string,
+  ...args:      Array<any>
 ) {
   if (commandToRun) {
+
     let notFound = true
+
     for (const [nameOrNames, info, fn, subcommands] of commands.filter(Boolean)) {
+
       const singleMatch = (typeof nameOrNames === 'string' && nameOrNames === commandToRun)
-          , multiMatch  = (nameOrNames instanceof Array && nameOrNames.indexOf(commandToRun) > -1)
+
+      const multiMatch  = (nameOrNames instanceof Array && nameOrNames.indexOf(commandToRun) > -1)
+
       if (singleMatch || multiMatch) {
+
         notFound = false
         let notImplemented = true
+
         if (fn) {
           // allow subcommands to add to the context by returning an updated value
           // but preserve it if they return nothing (they can still mutate it)
           context = await Promise.resolve(fn(context, ...args)) || context
-          notImplemented = false }
+          notImplemented = false
+        }
+
         let arg
+
         while (arg = args.shift()) {
           if (arg.includes('=')) {
             const [key, val] = arg.split('=')
-            context.options = Object.assign(context.options || {}, { [key]: val }) }
-          else {
+            context.options = Object.assign(context.options || {}, { [key]: val })
+          } else {
             args.unshift(arg)
-            break } }
+            break
+          }
+        }
+
         if (subcommands && subcommands.length > 0) {
           context.command.push(args[0])
           runCommand(context, subcommands, args[0], ...args.slice(1))
-          notImplemented = false }
+          notImplemented = false
+        }
+
         if (notImplemented) {
-          console.warn(`${commandToRun}: not implemented`) } } }
+          console.warn(`${commandToRun}: not implemented`)
+        }
+      }
+    }
     if (notFound) {
-      console.warn(`${commandToRun}: no such command`) } }
-  else {
-    printUsage(context, commands) } }
+      console.warn(`${commandToRun}: no such command`)
+    }
+  } else {
+    printUsage(context, commands)
+  }
+}
+
+export async function runCommands (
+  commands: Record<string, any>,
+  words:    Array<string>,
+  usage:    (command: any)=>any
+) {
+
+  let command = commands
+  let wordIndex: number
+
+  for (wordIndex = 0; wordIndex < words.length; wordIndex++) {
+    const word = words[wordIndex]
+    if (typeof command === 'object' && command[word]) command = command[word]
+    if (command instanceof Function) break
+  }
+
+  if (command instanceof Function) {
+    return await Promise.resolve(command(...words.slice(wordIndex + 1)))
+  } else {
+    return await Promise.resolve(usage(command))
+  }
+
+}
 
 export function printUsage (context: any, commands: any) {
   const prefix = context.command.length > 0 ? ((context.command||[]).join(' ')) : ''
@@ -211,9 +258,13 @@ export function taskmaster (options: any = {}): Taskmaster {
   return Object.assign(task, { done, parallel })
 
   async function done () {
-    if (output) await table.write(output) }
+    if (output) await table.write(output)
+  }
+
   async function parallel (info: string, ...tasks: Array<Function>) { // TODO subtotal?
-    return await task(info, () => Promise.all(tasks.map(x=>Promise.resolve(x)))) }
+    return await task(info, () => Promise.all(tasks.map(x=>Promise.resolve(x))))
+  }
+
   async function task (info: string, operation = (report: Function) => {}) {
     const tag = `👉 ${bold(`Step ${step++}:`)} ${info} `
     say('\n' + tag + [...Array(process.stdout.columns - tag.length)].map(()=>'─').join(''))
@@ -222,16 +273,22 @@ export function taskmaster (options: any = {}): Taskmaster {
         , report  = (r: any) => { reports.push(r); return r }
         , result  = await Promise.resolve(operation(report))
     await afterEach(t1, info, reports)
-    return result } }
+    return result
+  }
+
+}
 
 async function getTx ({API:{restClient}}, tx) {
   return backOff(async ()=>{
     try {
-      return await restClient.get(`/txs/${tx}`) }
-    catch (e) {
+      return await restClient.get(`/txs/${tx}`)
+    } catch (e) {
       console.warn(`failed to get info for tx ${tx}`)
       console.debug(e)
-      console.info(`retrying...`) } }) }
+      console.info(`retrying...`)
+    }
+  })
+}
 
 /// Interactive shell with the contracts and connections ///////////////////////////////////////////
 
@@ -285,3 +342,9 @@ export const run = (cmd: string, ...args: Array<any>) => {
 export const outputOf = (cmd: string, ...args: Array<any>) => {
   process.stderr.write(`\n🏃 running:\n${cmd} ${args.join(' ')}\n\n`)
   return String(execFileSync(cmd, [...args])) }
+
+export function entrypoint (url: any, main: Function) {
+  if (process.argv[1] === fileURLToPath(url)) {
+    main(process.argv.slice(2)).then(()=>process.exit(0))
+  }
+}
