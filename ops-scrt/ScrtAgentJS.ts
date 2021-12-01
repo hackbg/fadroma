@@ -188,10 +188,10 @@ export abstract class ScrtAgentJS extends BaseAgent {
   /** Instantiate a contract from a code ID and an init message. */
   async instantiate (codeId: number, label: string, initMsg: any) {
     const from = this.address
-    console.debug(`${bold('> INIT >')} ${label}`, { from, codeId, label, initMsg })
+    console.debug(`${bold('> INIT >')} ${this.constructor.name} ${label}`, { from, codeId, label, initMsg })
     const initTx = await this.API.instantiate(codeId, initMsg, label)
     Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
-    console.debug(`${bold('< INIT <')} ${label}`, { from, codeId, label, initTx })
+    console.debug(`${bold('< INIT <')} ${this.constructor.name} ${label}`, { from, codeId, label, initTx })
     return initTx
   }
 
@@ -203,9 +203,9 @@ export abstract class ScrtAgentJS extends BaseAgent {
   ) {
     const from = this.address
     const msg = (args === null) ? method : { [method]: args }
-    console.debug(`${bold('> QUERY >')} ${method}`, { from, label, address, method, args })
+    console.debug(`${bold('> QUERY >')} ${this.constructor.name}::${method}`, { from, label, address, method, args })
     const response = this.API.queryContractSmart(address, msg as any)
-    console.debug(`${bold('< QUERY <')} ${method}`, { from, address, method, response })
+    console.debug(`${bold('< QUERY <')} ${this.constructor.name}::${method}`, { from, address, method, response })
     return response
   }
 
@@ -220,9 +220,9 @@ export abstract class ScrtAgentJS extends BaseAgent {
   ) {
     const from = this.address
     const msg = (args === null) ? method : { [method]: args }
-    console.debug(`${bold('  TX >')} ${method}`, { from, label, address, method, args, memo, amount, fee })
+    console.debug(`${bold('> TX >')} ${this.constructor.name}::${method}`, { from, label, address, method, args, memo, amount, fee })
     const result = this.API.execute(address, msg as any, memo, amount, fee)
-    console.debug(`${bold('< TX  ')} ${method}`, { from, label, address, method, result })
+    console.debug(`${bold('< TX <')} ${this.constructor.name}::${method}`, { from, label, address, method, result })
     return result
   }
 }

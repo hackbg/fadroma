@@ -1,4 +1,5 @@
 import { Identity, IAgent } from '@fadroma/ops'
+import { bold } from '@fadroma/tools'
 import { ScrtAgentJS } from '@fadroma/scrt/ScrtAgentJS.ts'
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
 
@@ -80,7 +81,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
         // if result contains error, throw it so it can be decrypted
         const {raw_log, logs = []} = result as any
-        if (raw_log.includes('failed')) {
+        if (raw_log.includes('failed') || raw_log.includes('out of gas')) {
           console.debug(`Transaction ${id} failed`, result)
           const error = new Error(raw_log)
           Object.assign(error, { rethrow: true })
@@ -135,15 +136,21 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
     // Non-blocking broadcast mode returns code ID = -1,
     // so we need to find the code ID manually from the output
     if (result.codeId === -1) {
-      for (const log of result.logs) {
-        for (const event of log.events) {
-          for (const attribute of event.attributes) {
-            if (attribute.key === 'code_id') {
-              Object.assign(result, { codeId: Number(attribute.value) })
-              break
+      try {
+        for (const log of result.logs) {
+          for (const event of log.events) {
+            for (const attribute of event.attributes) {
+              if (attribute.key === 'code_id') {
+                Object.assign(result, { codeId: Number(attribute.value) })
+                break
+              }
             }
           }
         }
+      } catch (e) {
+        console.warn(`Could not get code ID for ${bold(pathToBinary)}: ${e.message}`)
+        console.debug(`Result of upload transaction:`, result)
+        throw e
       }
     }
     
