@@ -1,7 +1,7 @@
 import { Identity, IAgent } from '@fadroma/ops'
 import { bold } from '@fadroma/tools'
 import { ScrtAgentJS } from '@fadroma/scrt/ScrtAgentJS.ts'
-import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
+import { SigningCosmWasmClient, BroadcastMode } from 'secretjs/src/index.ts'
 
 import { Console } from '@fadroma/tools'
 const console = Console(import.meta.url)

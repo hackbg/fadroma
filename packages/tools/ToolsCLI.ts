@@ -2,8 +2,6 @@ import { decode } from './ToolsSystem'
 
 import * as repl from 'repl'
 import * as vm from 'vm'
-import { cwd } from 'process'
-import { relative } from 'path'
 import { fileURLToPath } from 'url'
 import { execFileSync } from 'child_process'
 
@@ -27,51 +25,8 @@ export type Commands = Array<Command|null>
 
 // Console /////////////////////////////////////////////////////////////////////////////////////////
 
-/** Prettier console. */
-export const Console = (context: string) => {
-
-  try {
-    context = relative(cwd(), fileURLToPath(context))
-  } catch {
-    //
-  }
-
-  const INDENT = "\n      "
-
-  const format = (arg: any) => {
-    //console.trace(arg)
-    return INDENT +
-      ((typeof arg === 'object')
-        ? render(arg).replace(/\n/g, INDENT)
-        : arg)
-      + '\n'
-  }
-
-  return {
-    context, format,
-    table: (rows: any) => console.log(table(rows)),
-    log:   (...args: Array<any>) => console.log(...args),
-    info:  (...args: Array<any>) => console.info(bold(colors.green('INFO ')), ...args),
-    warn:  (...args: Array<any>) => console.warn(bold(colors.yellow('WARN ')), ...args),
-    error: (...args: Array<any>) => console.error(bold(colors.red('ERROR')), ...args),
-    trace: (...args: Array<any>) => {
-      console.debug(bold(colors.magenta('TRACE')), ...args.map(format))
-      console.trace()
-    },
-
-    debug: (...args: Array<any>) => {
-      if (!process.env.NO_DEBUG) {
-        //const tag = `[${context}] `
-        console.debug(
-          //`\n${colors.yellow(tag)}`,
-          //[...Array(process.stdout.columns - tag.length)].map(()=>'─').join(''),
-          ...args.map(format))
-      }
-      return args[0]
-    }
-  }
-
-}
+import Console from '@hackbg/konzola'
+export { Console }
 
 // Table ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -161,28 +116,8 @@ export async function runCommand (
   }
 }
 
-export async function runCommands (
-  commands: Record<string, any>,
-  words:    Array<string>,
-  usage:    (command: any)=>any
-) {
-
-  let command = commands
-  let wordIndex: number
-
-  for (wordIndex = 0; wordIndex < words.length; wordIndex++) {
-    const word = words[wordIndex]
-    if (typeof command === 'object' && command[word]) command = command[word]
-    if (command instanceof Function) break
-  }
-
-  if (command instanceof Function) {
-    return await Promise.resolve(command(...words.slice(wordIndex + 1)))
-  } else {
-    return await Promise.resolve(usage(command))
-  }
-
-}
+import runCommands from '@hackbg/komandi'
+export { runCommands }
 
 export function printUsage (context: any, commands: any) {
   const prefix = context.command.length > 0 ? ((context.command||[]).join(' ')) : ''

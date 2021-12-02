@@ -9,5 +9,5 @@
 	url = git@github.com:hackbg/SecretNetwork.git
 	branch = v1.2
 [submodule "platforms/ganesha"]
-	path = platforms/ganesha
+	path = packages/ganesha
 	url = git@github.com:hackbg/ganesha.git
