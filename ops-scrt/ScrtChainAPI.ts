@@ -451,6 +451,7 @@ export const CHAINS: Record<string, Function> = {
   'localnet-1.2': Scrt.localnet_1_2,
   'holodeck-2':   Scrt.holodeck_2,
   'supernova-1':  Scrt.supernova_1,
+  'pulsar-1':     Scrt.pulsar_1,
   'secret-2':     Scrt.secret_2,
   'secret-3':     Scrt.secret_3
 }
