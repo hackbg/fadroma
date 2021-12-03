@@ -1,14 +1,22 @@
+---
+literate: typescript
+---
 # `@hackbg/kabinet`
 
 Classes for accessing the filesystem.
 
 ```javascript
-import { Directory, TextFile } from '@hackbg/kabinet'
+import { Directory, TextFile, JSONFile } from '@hackbg/kabinet'
 
-new Directory(__dirname, 'data')
-  .make()
-  .save('file.txt', 'my data')
+const root = process.cwd()
 
-new TextFile(__dirname, 'data', 'file.txt')
-  .load()
+// Access files through a directory
+const dir = new Directory(root, 'data').make()
+dir.file(TextFile, 'file.txt').save('my data')
+dir.file(JSONFile, 'file.json').save({my:'data'})
+console.log(dir.list())
+
+// Or directly
+console.log(new TextFile(root, 'data', 'file.txt').load())
+console.log(new JSONFile(root, 'data', 'file.json').load())
 ```

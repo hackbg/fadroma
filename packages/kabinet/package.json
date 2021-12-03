@@ -1,9 +1,16 @@
 {
   "name": "@hackbg/kabinet",
   "version": "0.1.0",
+  "type": "module",
   "main": "index.ts",
   "dependencies": {
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2"
+  },
+  "devDependencies": {
+    "@hackbg/ganesha": "workspace:*"
+  },
+  "scripts": {
+    "test": "ganesha run-module README.md"
   }
 }
