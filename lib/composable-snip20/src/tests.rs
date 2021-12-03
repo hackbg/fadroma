@@ -9,7 +9,7 @@ use fadroma::{
     },
     testing::*,
     scrt_vk::{ViewingKey, VIEWING_KEY_SIZE},
-    scrt_crypto::sha_256
+    crypto::sha_256
 };
 use std::any::Any;
 use crate::{

@@ -28,7 +28,7 @@ impl ResponseBuilder for InitResponse {
         self.log.push(LogAttribute { key: key.to_string(), value: value.to_string() });
         Ok(self)
     }
-    fn data <T: serde::Serialize> (mut self, _: &T) -> StdResult<Self> {
+    fn data <T: serde::Serialize> (self, _: &T) -> StdResult<Self> {
         unimplemented!(); // InitResponse does not have data field
     }
     fn merge (mut self, mut other: Self) -> StdResult<Self> {

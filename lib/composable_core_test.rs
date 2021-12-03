@@ -1,5 +1,4 @@
 use crate::*;
-use crate::testing::*;
 
 #[derive(Clone)]
 /// Same as regular Extern but clonable.
@@ -38,9 +37,9 @@ impl ReadonlyStorage for ClonableMemoryStorage {
     }
     fn range<'a>(
         &'a self,
-        start: Option<&[u8]>,
-        end: Option<&[u8]>,
-        order: Order,
+        _start: Option<&[u8]>,
+        _end: Option<&[u8]>,
+        _order: Order,
     ) -> Box<dyn Iterator<Item = KV> + 'a> {
         unimplemented!()
     }
