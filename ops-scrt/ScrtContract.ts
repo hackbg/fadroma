@@ -12,13 +12,15 @@ export class ScrtEnsemble extends BaseEnsemble {
     // TODO make this independent of Ensemble - or better yet, move it into Ensemble
     return [
       ["secret_2",     "Run on secret_2",
-        on['secret_2'],     new E({chain: Scrt.secret_2()      as Chain}).remoteCommands()],
+        on['secret_2'],     new E({chain: Scrt.secret_2()     as Chain}).remoteCommands()],
       ["secret_3",     "Run on secret_3",
-        on['secret_3'],     new E({chain: Scrt.secret_3()      as Chain}).remoteCommands()],
+        on['secret_3'],     new E({chain: Scrt.secret_3()     as Chain}).remoteCommands()],
       ["holodeck-2",   "Run on holodeck2",
         on['holodeck-2'],   new E({chain: Scrt.holodeck_2()   as Chain}).remoteCommands()],
       ["supernova-1",  "Run on supernova1",
         on['supernova-1'],  new E({chain: Scrt.supernova_1()  as Chain}).remoteCommands()],
+      ["pulsar-1",  "Run on pulsar1",
+        on['pulsar-1'],  new E({chain: Scrt.pulsar_1()        as Chain}).remoteCommands()],
       ["localnet-1.0", "Run on localnet v1.0",
         on['localnet-1.0'], new E({chain: Scrt.localnet_1_0() as Chain}).remoteCommands()],
       ["localnet-1.2", "Run on localnet v1.2",

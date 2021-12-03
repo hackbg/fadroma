@@ -161,6 +161,25 @@ export class Scrt extends BaseChain {
       Agent: ScrtAgentJS_1_2
     }) }
 
+  /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
+  static pulsar_1 (options: ChainConnectOptions = {}): Scrt {
+    const {
+      chainId = 'pulsar-1',
+      apiURL  = new URL(SCRT_API_URL||'http://testnet.securesecrets.org:1317'),
+      defaultIdentity = {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+        mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
+      }
+    } = options
+    return new Scrt({
+      isTestnet: true,
+      chainId,
+      apiURL,
+      defaultIdentity,
+      Agent: ScrtAgentJS_1_2
+    }) }
+
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
   static localnet_1_0 (options: ChainConnectOptions = {}): Scrt {
