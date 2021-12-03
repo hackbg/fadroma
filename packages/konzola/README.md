@@ -1,8 +1,11 @@
+---
+literate: typescript
+---
 # `@hackbg/konzola`
 
 Pretty console logger.
 
-```javascript
+```typescript
 import Console from '@hackbg/konzola'
 const console = new Console(import.meta.url)
 console.info('hello')

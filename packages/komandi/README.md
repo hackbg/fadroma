@@ -1,8 +1,11 @@
+---
+literate: typescript
+---
 # `@hackbg/komandi`
 
 Mini command parser.
 
-```javascript
+```typescript
 import runCommands from '@hackbg/komandi'
 
 const commands = {}

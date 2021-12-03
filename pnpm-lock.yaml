@@ -22,7 +22,7 @@ importers:
       '@types/rimraf': 3.0.2
       bignumber.js: 9.0.1
     devDependencies:
-      '@hackbg/ganesha': link:platforms/ganesha
+      '@hackbg/ganesha': link:packages/ganesha/loader
       '@types/mocha': 9.0.0
       chai: 4.3.4
       documentation: 13.2.5
@@ -32,19 +32,73 @@ importers:
   example:
     specifiers: {}
 
+  packages/ganesha:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      tap: ^15.0.9
+    devDependencies:
+      '@hackbg/ganesha': link:loader
+      tap: 15.0.10
+
+  packages/ganesha/examples/example:
+    specifiers: {}
+
+  packages/ganesha/language-client:
+    specifiers: {}
+
+  packages/ganesha/language-server:
+    specifiers: {}
+
+  packages/ganesha/loader:
+    specifiers:
+      cross-spawn: ^7.0.3
+      esbuild: ^0.13.0
+      front-matter: ^4.0.2
+      get-package-name: ^2.2.0
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+      pirates: ^4.0.1
+      source-map-support: ^0.5.20
+      tree-sitter: ^0.19.0
+      tree-sitter-markdown: github:egasimus/tree-sitter-markdown
+    dependencies:
+      cross-spawn: 7.0.3
+      esbuild: 0.13.3
+      front-matter: 4.0.2
+      get-package-name: 2.2.0
+      joycon: 3.0.1
+      jsonc-parser: 3.0.0
+      pirates: 4.0.1
+      source-map-support: 0.5.20
+      tree-sitter: 0.19.0
+      tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
+
+  packages/ganesha/rollup-plugin:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+    dependencies:
+      '@hackbg/ganesha': link:../loader
+
   packages/kabinet:
     specifiers:
+      '@hackbg/ganesha': workspace:*
       mkdirp: ^1.0.4
       rimraf: ^3.0.2
     dependencies:
       mkdirp: 1.0.4
       rimraf: 3.0.2
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
 
   packages/komandi:
-    specifiers: {}
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
 
   packages/konzola:
     specifiers:
+      '@hackbg/ganesha': workspace:*
       colors: ^1.4.0
       prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: ^6.6.0
@@ -52,6 +106,8 @@ importers:
       colors: 1.4.0
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: 6.7.2
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
 
   packages/ops:
     specifiers:
@@ -126,34 +182,6 @@ importers:
       symlink-dir: 5.0.1
       table: 6.7.2
       wait-port: 0.2.9
-
-  platforms/ganesha:
-    specifiers:
-      cross-spawn: ^7.0.3
-      esbuild: ^0.12.25
-      front-matter: ^4.0.2
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-      pirates: ^4.0.1
-      source-map-support: ^0.5.20
-      tap: ^15.0.9
-      tree-sitter: ^0.19.0
-      tree-sitter-markdown: github:egasimus/tree-sitter-markdown
-    dependencies:
-      cross-spawn: 7.0.3
-      esbuild: 0.12.29
-      front-matter: 4.0.2
-      joycon: 3.0.1
-      jsonc-parser: 3.0.0
-      pirates: 4.0.1
-      source-map-support: 0.5.20
-      tree-sitter: 0.19.0
-      tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
-    devDependencies:
-      tap: 15.0.10
-
-  platforms/ganesha/examples/example:
-    specifiers: {}
 
   platforms/scrt-1.0:
     specifiers:
@@ -555,7 +583,7 @@ importers:
       '@fadroma/ops': link:../packages/ops
       '@fadroma/scrt': link:../packages/ops-scrt
       '@fadroma/tools': link:../packages/tools
-      '@hackbg/ganesha': link:../platforms/ganesha
+      '@hackbg/ganesha': link:../packages/ganesha/loader
       '@iov/encoding': 2.5.0
       '@types/express': 4.17.13
       '@types/tap': 15.0.5
@@ -598,10 +626,10 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/code-frame': 7.16.0
-      '@babel/generator': 7.12.1
+      '@babel/generator': 7.16.0
       '@babel/helper-module-transforms': 7.16.0
       '@babel/helpers': 7.16.0
-      '@babel/parser': 7.12.3
+      '@babel/parser': 7.16.2
       '@babel/template': 7.16.0
       '@babel/traverse': 7.16.0
       '@babel/types': 7.16.0
@@ -622,6 +650,7 @@ packages:
       '@babel/types': 7.16.0
       jsesc: 2.5.2
       source-map: 0.5.7
+    dev: true
 
   /@babel/generator/7.15.4:
     resolution: {integrity: sha512-d3itta0tu+UayjEORPNz6e1T3FtvWlP5N4V5M+lhp/CxT4oAA7/NcScnpRyspUMLK6tu9MNHmQHxRykuN2R7hw==}
@@ -644,7 +673,7 @@ packages:
     resolution: {integrity: sha512-QwrtdNvUNsPCj2lfNQacsGSQvGX8ee1ttrBrcozUP2Sv/jylewBP/8QFe6ZkBsC8T/GYWonNAWJV4aRR9AL2DA==}
     engines: {node: '>=6.9.0'}
     dependencies:
-      '@babel/types': 7.15.6
+      '@babel/types': 7.16.0
 
   /@babel/helper-builder-binary-assignment-operator-visitor/7.15.4:
     resolution: {integrity: sha512-P8o7JP2Mzi0SdC6eWr1zF+AEYvrsZa7GSY1lTayjF5XJhVH0kjLYUZPvTMflP7tBgZoe9gIhTa60QwFpqh/E0Q==}
@@ -780,6 +809,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/types': 7.15.6
+    dev: true
 
   /@babel/helper-module-imports/7.16.0:
     resolution: {integrity: sha512-kkH7sWzKPq0xt3H1n+ghb4xEMP8k0U7XV3kkB+ZGy69kDk2ySFW1qPi06sjKzFY3t1j6XbJSqr4mF9L7CYVyhg==}
@@ -953,6 +983,7 @@ packages:
     resolution: {integrity: sha512-kFsOS0IbsuhO5ojF8Hc8z/8vEIOkylVBrjiZUbLTE3XFe0Qi+uu6HjzQixkFaqr0ZPAMZcBVxEwmsnsLPZ2Xsw==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+    dev: true
 
   /@babel/parser/7.15.7:
     resolution: {integrity: sha512-rycZXvQ+xS9QyIcJ9HXeDWf1uxqlbVFAUq0Rq0dbc50Zb/+wUe/ehyfzGfm9KZZF0kBejYgxltBXocP+gKdL2g==}
@@ -1592,10 +1623,10 @@ packages:
     dependencies:
       '@babel/core': 7.12.3
       '@babel/helper-annotate-as-pure': 7.15.4
-      '@babel/helper-module-imports': 7.15.4
+      '@babel/helper-module-imports': 7.16.0
       '@babel/helper-plugin-utils': 7.14.5
       '@babel/plugin-syntax-jsx': 7.14.5_@babel+core@7.12.3
-      '@babel/types': 7.15.6
+      '@babel/types': 7.16.0
 
   /@babel/plugin-transform-regenerator/7.14.5_@babel+core@7.12.3:
     resolution: {integrity: sha512-NVIY1W3ITDP5xQl50NgTKlZ0GrotKtLna08/uGY6ErQt6VEQZXla86x/CTddm5gZdcr+5GSsvMeTmWA5Ii6pkg==}
@@ -1866,6 +1897,7 @@ packages:
     dependencies:
       '@babel/helper-validator-identifier': 7.15.7
       to-fast-properties: 2.0.0
+    dev: true
 
   /@babel/types/7.16.0:
     resolution: {integrity: sha512-PJgg/k3SdLsGb3hhisFvtLOw5ts113klrpLuIPtCJIU+BB24fqq6lf8RWqKJEjzqXR9AEH1rIb5XTqwBHB+kQg==}
@@ -7201,12 +7233,6 @@ packages:
     dev: false
     optional: true
 
-  /esbuild/0.12.29:
-    resolution: {integrity: sha512-w/XuoBCSwepyiZtIRsKsetiLDUVGPVw1E/R3VTFSecIy8UR7Cq3SOtwKHJMFoVqqVG36aGkzh4e8BvpO1Fdc7g==}
-    hasBin: true
-    requiresBuild: true
-    dev: false
-
   /esbuild/0.13.3:
     resolution: {integrity: sha512-98xovMLKnyhv3gcReUuAEi5Ig1rK6SIgvsJuBIcfwzqGSEHsV8UJjMlmkhHoHMf9XZybMpE9Zax8AA8f7i2hlQ==}
     hasBin: true
@@ -8112,6 +8138,11 @@ packages:
       has: 1.0.3
       has-symbols: 1.0.2
 
+  /get-package-name/2.2.0:
+    resolution: {integrity: sha512-LmCKVxioe63Fy6KDAQ/mmCSOSSRUE/x4zdrMD+7dU8quF3bGpzvP8mOmq4Dgce3nzU9AgkVDotucNOOg7c27BQ==}
+    engines: {node: '>= 12.0.0'}
+    dev: false
+
   /get-package-type/0.1.0:
     resolution: {integrity: sha512-pjzuKtY64GYfWizNAJ0fr9VqttZkNiK2iS430LtIHzjBEr6bX8Am2zm4sW4Ro5wjWW5cAlRL1qAMTcXbjNAO2Q==}
     engines: {node: '>=8.0.0'}
@@ -8341,6 +8372,7 @@ packages:
       minimatch: 3.0.4
       once: 1.4.0
       path-is-absolute: 1.0.1
+    dev: true
 
   /glob/7.2.0:
     resolution: {integrity: sha512-lmLf6gtyrPq8tTjSmrO94wBeQbFR3HbLHbuyD69wuyQkImp2hWqMGB47OX65FBkPffO641IP9jWa1z4ivqG26Q==}
@@ -11622,7 +11654,7 @@ packages:
       find-up: 4.1.0
       foreground-child: 2.0.0
       get-package-type: 0.1.0
-      glob: 7.1.7
+      glob: 7.2.0
       istanbul-lib-coverage: 3.0.1
       istanbul-lib-hook: 3.0.0
       istanbul-lib-instrument: 4.0.3
@@ -14700,7 +14732,7 @@ packages:
       debug: 4.3.2
       diff: 4.0.2
       escape-string-regexp: 2.0.0
-      glob: 7.1.7
+      glob: 7.2.0
       tap-parser: 10.1.0
       tap-yaml: 1.0.0
       unicode-length: 2.0.2
@@ -14742,7 +14774,7 @@ packages:
       findit: 2.0.0
       foreground-child: 2.0.0
       fs-exists-cached: 1.0.0
-      glob: 7.1.7
+      glob: 7.2.0
       import-jsx: 4.0.0
       isexe: 2.0.0
       istanbul-lib-processinfo: 2.0.2
@@ -14876,7 +14908,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       '@istanbuljs/schema': 0.1.3
-      glob: 7.1.7
+      glob: 7.2.0
       minimatch: 3.0.4
 
   /text-extensions/1.9.0:
