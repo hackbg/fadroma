@@ -76,7 +76,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     while (resultRetries--) {
       try {
 
-        console.info(`Querying result of tx ${id}`)
+        console.info(`Requesting result of tx ${id}`)
         const result = await this.restClient.get(`/txs/${id}`)
 
         // if result contains error, throw it so it can be decrypted
@@ -100,7 +100,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
         }
 
         console.warn(`Failed to query result of tx ${id}: ${error.message}`)
-        console.info(`Querying result of ${id}: ${resultRetries} retries left`)
+        console.info(`Requesting result of ${id}: ${resultRetries} retries left`)
         await new Promise(ok=>setTimeout(ok, this.resultRetryDelay))
         continue
       }

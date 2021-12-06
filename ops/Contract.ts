@@ -183,7 +183,7 @@ export abstract class ContractInit extends ContractUpload {
 
   /** The on-chain label of this contract instance.
     * The chain requires these to be unique.
-    * If a prefix is set, it is appended to the label. */
+    * If a prefix is set, it is prepended to the label. */
   get label () {
     return this.init.prefix
       ? `${this.init.prefix}/${this.init.label}`
