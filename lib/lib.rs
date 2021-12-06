@@ -28,6 +28,7 @@ pub use derive_contract;
 #[cfg(feature="scrt")] pub mod scrt {
 
     pub use cosmwasm_std::*;
+    pub use cosmwasm_std;
 
     #[cfg(any(test,not(target_arch="wasm32")))]
     pub use cosmwasm_std::testing::*;
