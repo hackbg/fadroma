@@ -8,7 +8,7 @@ Industrial-strength tooling and components for WASM-based smart contracts.
                                      - Marvin Heemeyer
 ```
 
-![](https://github.com/hackbg/fadroma/blob/21.08/doc/logo.svg)
+![](/doc/logo.svg)
 
 ## Features
 
