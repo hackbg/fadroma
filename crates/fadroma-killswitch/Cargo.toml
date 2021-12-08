@@ -1,0 +1,8 @@
+[package]
+name    = "fadroma-killswitch"
+version = "0.1.0"
+edition = "2018"
+authors = ["Adam A. <adam@hack.bg>"]
+
+[lib]
+path = "killswitch.rs"

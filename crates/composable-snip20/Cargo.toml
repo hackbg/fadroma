@@ -1,0 +1,25 @@
+[package]
+name    = "composable-snip20"
+version = "0.1.0"
+edition = "2018"
+authors = [
+  "Itzik <itzik@keytango.io>",
+  "Asparuh Kamenov <aakamenov@hack.bg>",
+  "Adam A. <adam@hack.bg>"
+]
+
+[features]
+# for quicker tests, cargo test --lib
+# for more explicit tests, cargo test --features=backtraces
+#default = ["debug-print"]
+#backtraces  = ["cosmwasm-std/backtraces", "cosmwasm-vm/backtraces"]
+#debug-print = ["cosmwasm-std/debug-print"]
+
+[dependencies]
+fadroma-auth    = { path = "../fadroma-auth" }
+fadroma-scrt    = { path = "../fadroma-scrt" }
+fadroma-storage = { path = "../fadroma-storage" }
+
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+schemars = "0.7"
+bincode2 = "2.0.1"

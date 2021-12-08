@@ -1,0 +1,12 @@
+[package]
+name    = "fadroma-auth"
+version = "0.1.0"
+edition = "2018"
+authors = ["Adam A. <adam@hack.bg>"]
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+fadroma-scrt    = { path = "../fadroma-scrt"    }
+fadroma-storage = { path = "../fadroma-storage" }

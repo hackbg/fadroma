@@ -1,0 +1,8 @@
+[package]
+name    = "fadroma-declare-contract"
+version = "0.1.0"
+edition = "2018"
+authors = ["Adam A. <adam@hack.bg>"]
+
+[lib]
+path = "scrt_contract.rs"
