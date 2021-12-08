@@ -18,11 +18,6 @@ import colors from 'colors'
 const { bold } = colors
 export { colors, bold }
 
-export type CommandName = string
-export type CommandInfo = string
-export type Command  = [CommandName|Array<CommandName>, CommandInfo, Function, Commands?]
-export type Commands = Array<Command|null>
-
 // Console /////////////////////////////////////////////////////////////////////////////////////////
 
 import Console from '@hackbg/konzola'

@@ -4,6 +4,8 @@
   "type": "module",
   "main": "./api.ts",
   "dependencies": {
+    "@fadroma/scrt":  "workspace:*",
+    "@fadroma/tools": "workspace:*"
   }
 }
 

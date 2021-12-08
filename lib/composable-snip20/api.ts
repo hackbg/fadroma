@@ -1,7 +1,6 @@
 import type { IAgent, ContractAPIOptions } from "@fadroma/scrt";
 import { ScrtContract, loadSchemas } from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
-import { abs } from "../ops/index";
 
 // @ts-ignore
 const decoder = new TextDecoder();
