@@ -1,0 +1,12 @@
+{
+  "name": "@hackbg/komandi",
+  "version": "0.1.0",
+  "main": "komandi.ts",
+  "type": "module",
+  "devDependencies": {
+    "@hackbg/ganesha": "workspace:*"
+  },
+  "scripts": {
+    "test": "ganesha run-module README.md"
+  }
+}

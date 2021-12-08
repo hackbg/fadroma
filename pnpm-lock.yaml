@@ -22,7 +22,7 @@ importers:
       '@types/rimraf': 3.0.2
       bignumber.js: 9.0.1
     devDependencies:
-      '@hackbg/ganesha': link:platforms/ganesha
+      '@hackbg/ganesha': link:packages/ganesha/loader
       '@types/mocha': 9.0.0
       chai: 4.3.4
       documentation: 13.2.5
@@ -32,7 +32,84 @@ importers:
   example:
     specifiers: {}
 
-  ops:
+  packages/ganesha:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      tap: ^15.0.9
+    devDependencies:
+      '@hackbg/ganesha': link:loader
+      tap: 15.0.10
+
+  packages/ganesha/examples/example:
+    specifiers: {}
+
+  packages/ganesha/language-client:
+    specifiers: {}
+
+  packages/ganesha/language-server:
+    specifiers: {}
+
+  packages/ganesha/loader:
+    specifiers:
+      cross-spawn: ^7.0.3
+      esbuild: ^0.13.0
+      front-matter: ^4.0.2
+      get-package-name: ^2.2.0
+      joycon: ^3.0.1
+      jsonc-parser: ^3.0.0
+      pirates: ^4.0.1
+      source-map-support: ^0.5.20
+      tree-sitter: ^0.19.0
+      tree-sitter-markdown: github:egasimus/tree-sitter-markdown
+    dependencies:
+      cross-spawn: 7.0.3
+      esbuild: 0.13.3
+      front-matter: 4.0.2
+      get-package-name: 2.2.0
+      joycon: 3.0.1
+      jsonc-parser: 3.0.0
+      pirates: 4.0.1
+      source-map-support: 0.5.20
+      tree-sitter: 0.19.0
+      tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
+
+  packages/ganesha/rollup-plugin:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+    dependencies:
+      '@hackbg/ganesha': link:../loader
+
+  packages/kabinet:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      mkdirp: ^1.0.4
+      rimraf: ^3.0.2
+    dependencies:
+      mkdirp: 1.0.4
+      rimraf: 3.0.2
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
+
+  packages/komandi:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
+
+  packages/konzola:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      colors: ^1.4.0
+      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      table: ^6.6.0
+    dependencies:
+      colors: 1.4.0
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      table: 6.7.2
+    devDependencies:
+      '@hackbg/ganesha': link:../ganesha/loader
+
+  packages/ops:
     specifiers:
       '@fadroma/tools': workspace:*
       ajv: ^8.6.0
@@ -44,61 +121,67 @@ importers:
       exponential-backoff: 3.1.0
       json-schema-to-typescript: 10.1.5
 
-  ops-scrt:
+  packages/ops-scrt:
     specifiers:
-      '@cosmjs/crypto': ^0.24.1
+      '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
       '@fadroma/tools': workspace:*
-      secretjs: workspace:*
+      secretjs: 0.17.5
     dependencies:
-      '@cosmjs/crypto': 0.24.1
+      '@cosmjs/crypto': 0.20.1
       '@fadroma/ops': link:../ops
       '@fadroma/tools': link:../tools
-      secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
-  ops-scrt-1.0:
+  packages/ops-scrt-1.0:
     specifiers:
-      '@fadroma/scrt': '*'
-      secretjs: workspace:^0.16.5
+      '@fadroma/scrt': workspace:*
+      secretjs: 0.16.5
     dependencies:
       '@fadroma/scrt': link:../ops-scrt
-      secretjs: link:../platforms/scrt-1.0/cosmwasm-js/packages/sdk
+      secretjs: link:../../platforms/scrt-1.0/cosmwasm-js/packages/sdk
 
-  ops-scrt-1.2:
+  packages/ops-scrt-1.2:
     specifiers:
-      '@fadroma/scrt': '*'
-      secretjs: workspace:^0.17.0
+      '@fadroma/scrt': workspace:*
+      secretjs: workspace:0.17.5
     dependencies:
       '@fadroma/scrt': link:../ops-scrt
-      secretjs: link:../platforms/scrt-1.2/cosmwasm-js/packages/sdk
+      secretjs: link:../../platforms/scrt-1.2/cosmwasm-js/packages/sdk
 
-  platforms/ganesha:
+  packages/tools:
     specifiers:
-      cross-spawn: ^7.0.3
-      esbuild: ^0.12.25
-      front-matter: ^4.0.2
-      joycon: ^3.0.1
-      jsonc-parser: ^3.0.0
-      pirates: ^4.0.1
-      source-map-support: ^0.5.20
-      tap: ^15.0.9
-      tree-sitter: ^0.19.0
-      tree-sitter-markdown: github:egasimus/tree-sitter-markdown
+      '@hackbg/kabinet': workspace:^0.1.0
+      '@hackbg/komandi': workspace:^0.1.0
+      '@hackbg/konzola': workspace:^0.1.0
+      colors: ^1.4.0
+      dockerode: ^3.3.0
+      exponential-backoff: ^3.1.0
+      mkdirp: ^1.0.4
+      open: ^8.0.2
+      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      prompts: ^2.4.1
+      rimraf: ^3.0.2
+      signal-exit: ^3.0.3
+      symlink-dir: ^5.0.1
+      table: ^6.6.0
+      wait-port: ^0.2.9
     dependencies:
-      cross-spawn: 7.0.3
-      esbuild: 0.12.29
-      front-matter: 4.0.2
-      joycon: 3.0.1
-      jsonc-parser: 3.0.0
-      pirates: 4.0.1
-      source-map-support: 0.5.20
-      tree-sitter: 0.19.0
-      tree-sitter-markdown: github.com/egasimus/tree-sitter-markdown/18c3f1ccd3e27051273caa6d721d1c033e63741d
-    devDependencies:
-      tap: 15.0.10
-
-  platforms/ganesha/examples/example:
-    specifiers: {}
+      '@hackbg/kabinet': link:../kabinet
+      '@hackbg/komandi': link:../komandi
+      '@hackbg/konzola': link:../konzola
+      colors: 1.4.0
+      dockerode: 3.3.1
+      exponential-backoff: 3.1.0
+      mkdirp: 1.0.4
+      open: 8.2.1
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      prompts: 2.4.1
+      rimraf: 3.0.2
+      signal-exit: 3.0.5
+      symlink-dir: 5.0.1
+      table: 6.7.2
+      wait-port: 0.2.9
 
   platforms/scrt-1.0:
     specifiers:
@@ -497,10 +580,10 @@ importers:
       freeport-async: ^2.0.0
       tap: ^15.0.9
     dependencies:
-      '@fadroma/ops': link:../ops
-      '@fadroma/scrt': link:../ops-scrt
-      '@fadroma/tools': link:../tools
-      '@hackbg/ganesha': link:../platforms/ganesha
+      '@fadroma/ops': link:../packages/ops
+      '@fadroma/scrt': link:../packages/ops-scrt
+      '@fadroma/tools': link:../packages/tools
+      '@hackbg/ganesha': link:../packages/ganesha/loader
       '@iov/encoding': 2.5.0
       '@types/express': 4.17.13
       '@types/tap': 15.0.5
@@ -509,34 +592,6 @@ importers:
       express: 4.17.1
       freeport-async: 2.0.0
       tap: 15.0.10
-
-  tools:
-    specifiers:
-      colors: ^1.4.0
-      dockerode: ^3.3.0
-      exponential-backoff: ^3.1.0
-      mkdirp: ^1.0.4
-      open: ^8.0.2
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: ^2.4.1
-      rimraf: ^3.0.2
-      signal-exit: ^3.0.3
-      symlink-dir: ^5.0.1
-      table: ^6.6.0
-      wait-port: ^0.2.9
-    dependencies:
-      colors: 1.4.0
-      dockerode: 3.3.1
-      exponential-backoff: 3.1.0
-      mkdirp: 1.0.4
-      open: 8.2.1
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: 2.4.1
-      rimraf: 3.0.2
-      signal-exit: 3.0.5
-      symlink-dir: 5.0.1
-      table: 6.7.2
-      wait-port: 0.2.9
 
 packages:
 
@@ -571,10 +626,10 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/code-frame': 7.16.0
-      '@babel/generator': 7.12.1
+      '@babel/generator': 7.16.0
       '@babel/helper-module-transforms': 7.16.0
       '@babel/helpers': 7.16.0
-      '@babel/parser': 7.12.3
+      '@babel/parser': 7.16.2
       '@babel/template': 7.16.0
       '@babel/traverse': 7.16.0
       '@babel/types': 7.16.0
@@ -595,6 +650,7 @@ packages:
       '@babel/types': 7.16.0
       jsesc: 2.5.2
       source-map: 0.5.7
+    dev: true
 
   /@babel/generator/7.15.4:
     resolution: {integrity: sha512-d3itta0tu+UayjEORPNz6e1T3FtvWlP5N4V5M+lhp/CxT4oAA7/NcScnpRyspUMLK6tu9MNHmQHxRykuN2R7hw==}
@@ -617,7 +673,7 @@ packages:
     resolution: {integrity: sha512-QwrtdNvUNsPCj2lfNQacsGSQvGX8ee1ttrBrcozUP2Sv/jylewBP/8QFe6ZkBsC8T/GYWonNAWJV4aRR9AL2DA==}
     engines: {node: '>=6.9.0'}
     dependencies:
-      '@babel/types': 7.15.6
+      '@babel/types': 7.16.0
 
   /@babel/helper-builder-binary-assignment-operator-visitor/7.15.4:
     resolution: {integrity: sha512-P8o7JP2Mzi0SdC6eWr1zF+AEYvrsZa7GSY1lTayjF5XJhVH0kjLYUZPvTMflP7tBgZoe9gIhTa60QwFpqh/E0Q==}
@@ -753,6 +809,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/types': 7.15.6
+    dev: true
 
   /@babel/helper-module-imports/7.16.0:
     resolution: {integrity: sha512-kkH7sWzKPq0xt3H1n+ghb4xEMP8k0U7XV3kkB+ZGy69kDk2ySFW1qPi06sjKzFY3t1j6XbJSqr4mF9L7CYVyhg==}
@@ -926,6 +983,7 @@ packages:
     resolution: {integrity: sha512-kFsOS0IbsuhO5ojF8Hc8z/8vEIOkylVBrjiZUbLTE3XFe0Qi+uu6HjzQixkFaqr0ZPAMZcBVxEwmsnsLPZ2Xsw==}
     engines: {node: '>=6.0.0'}
     hasBin: true
+    dev: true
 
   /@babel/parser/7.15.7:
     resolution: {integrity: sha512-rycZXvQ+xS9QyIcJ9HXeDWf1uxqlbVFAUq0Rq0dbc50Zb/+wUe/ehyfzGfm9KZZF0kBejYgxltBXocP+gKdL2g==}
@@ -1565,10 +1623,10 @@ packages:
     dependencies:
       '@babel/core': 7.12.3
       '@babel/helper-annotate-as-pure': 7.15.4
-      '@babel/helper-module-imports': 7.15.4
+      '@babel/helper-module-imports': 7.16.0
       '@babel/helper-plugin-utils': 7.14.5
       '@babel/plugin-syntax-jsx': 7.14.5_@babel+core@7.12.3
-      '@babel/types': 7.15.6
+      '@babel/types': 7.16.0
 
   /@babel/plugin-transform-regenerator/7.14.5_@babel+core@7.12.3:
     resolution: {integrity: sha512-NVIY1W3ITDP5xQl50NgTKlZ0GrotKtLna08/uGY6ErQt6VEQZXla86x/CTddm5gZdcr+5GSsvMeTmWA5Ii6pkg==}
@@ -1839,6 +1897,7 @@ packages:
     dependencies:
       '@babel/helper-validator-identifier': 7.15.7
       to-fast-properties: 2.0.0
+    dev: true
 
   /@babel/types/7.16.0:
     resolution: {integrity: sha512-PJgg/k3SdLsGb3hhisFvtLOw5ts113klrpLuIPtCJIU+BB24fqq6lf8RWqKJEjzqXR9AEH1rIb5XTqwBHB+kQg==}
@@ -1864,23 +1923,6 @@ packages:
       type-tagger: 1.0.0
       unorm: 1.6.0
 
-  /@cosmjs/crypto/0.24.1:
-    resolution: {integrity: sha512-GPhaWmQO06mXldKj/b+oKF5o3jMNfRKpAw+Q8XQhrD7ItinVPDMu8Xgl6frUXWTUdgpYwqpvqOcpm85QUsYV0Q==}
-    dependencies:
-      '@cosmjs/encoding': 0.24.1
-      '@cosmjs/math': 0.24.1
-      '@cosmjs/utils': 0.24.1
-      bip39: 3.0.4
-      bn.js: 4.12.0
-      elliptic: 6.5.4
-      js-sha3: 0.8.0
-      libsodium-wrappers: 0.7.9
-      pbkdf2: 3.1.2
-      ripemd160: 2.0.2
-      sha.js: 2.4.11
-      unorm: 1.6.0
-    dev: false
-
   /@cosmjs/encoding/0.20.1:
     resolution: {integrity: sha512-aBp153iq2LD4GwDGwodDWZk/eyAUZ8J8bbiqZ1uK8rrylzm9Rdw84aa6JxykezJe+uBPtoI4lx9eH7VQXCGDXw==}
     dependencies:
@@ -1888,31 +1930,13 @@ packages:
       bech32: 1.1.4
       readonly-date: 1.0.0
 
-  /@cosmjs/encoding/0.24.1:
-    resolution: {integrity: sha512-PMr+gaXAuM0XgjeXwB1zdX1QI0t+PgVhbmjgI/RSgswDzdExNH97qUopecL0/HG3p64vhIT/6ZjXYYTljZL7WA==}
-    dependencies:
-      base64-js: 1.5.1
-      bech32: 1.1.4
-      readonly-date: 1.0.0
-    dev: false
-
   /@cosmjs/math/0.20.1:
     resolution: {integrity: sha512-xt7BmpSw2OVGM2+JhlJvKv9OJs9+3DqgVL6+byUDC355CSISrZhFjJg9GFko1EFssDXz5YgvBZR5FkifC0xazw==}
     dependencies:
       bn.js: 4.12.0
 
-  /@cosmjs/math/0.24.1:
-    resolution: {integrity: sha512-eBQk8twgzmpHFCVkoNjTZhsZwWRbR+JXt0FhjXJoD85SBm4K8b2OnOyTg68uPHVKOJjLRwzyRVYgMrg5TBVgwQ==}
-    dependencies:
-      bn.js: 4.12.0
-    dev: false
-
   /@cosmjs/utils/0.20.1:
     resolution: {integrity: sha512-xl9YnIrAAaBd6nFffwFbyrnKjqjD9zKGP8OBKxzyglxamHfqAS+PcJPEiaEpt+oUt7HAIOyhL3KK75Dh52hGvA==}
-
-  /@cosmjs/utils/0.24.1:
-    resolution: {integrity: sha512-VA3WFx1lMFb7esp9BqHWkDgMvHoA3D9w+uDRvWhVRpUpDc7RYHxMbWExASjz+gNblTCg556WJGzF64tXnf9tdQ==}
-    dev: false
 
   /@cosmwasm/bcp/0.8.1:
     resolution: {integrity: sha512-VlSIBQKEMi6cleRIhzH+bmTP4NbR0HhsUDA9nii7rvTXp2wDmIrb392AWHtw9c1UijdIl/gJorKmMAdOt7gsGw==}
@@ -3088,6 +3112,7 @@ packages:
     dependencies:
       '@types/minimatch': 3.0.5
       '@types/node': 16.9.6
+    dev: true
 
   /@types/glob/7.2.0:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
@@ -7208,12 +7233,6 @@ packages:
     dev: false
     optional: true
 
-  /esbuild/0.12.29:
-    resolution: {integrity: sha512-w/XuoBCSwepyiZtIRsKsetiLDUVGPVw1E/R3VTFSecIy8UR7Cq3SOtwKHJMFoVqqVG36aGkzh4e8BvpO1Fdc7g==}
-    hasBin: true
-    requiresBuild: true
-    dev: false
-
   /esbuild/0.13.3:
     resolution: {integrity: sha512-98xovMLKnyhv3gcReUuAEi5Ig1rK6SIgvsJuBIcfwzqGSEHsV8UJjMlmkhHoHMf9XZybMpE9Zax8AA8f7i2hlQ==}
     hasBin: true
@@ -8119,6 +8138,11 @@ packages:
       has: 1.0.3
       has-symbols: 1.0.2
 
+  /get-package-name/2.2.0:
+    resolution: {integrity: sha512-LmCKVxioe63Fy6KDAQ/mmCSOSSRUE/x4zdrMD+7dU8quF3bGpzvP8mOmq4Dgce3nzU9AgkVDotucNOOg7c27BQ==}
+    engines: {node: '>= 12.0.0'}
+    dev: false
+
   /get-package-type/0.1.0:
     resolution: {integrity: sha512-pjzuKtY64GYfWizNAJ0fr9VqttZkNiK2iS430LtIHzjBEr6bX8Am2zm4sW4Ro5wjWW5cAlRL1qAMTcXbjNAO2Q==}
     engines: {node: '>=8.0.0'}
@@ -8298,14 +8322,14 @@ packages:
     dependencies:
       is-glob: 4.0.3
 
-  /glob-promise/3.4.0_glob@7.1.7:
+  /glob-promise/3.4.0_glob@7.2.0:
     resolution: {integrity: sha512-q08RJ6O+eJn+dVanerAndJwIcumgbDdYiUT7zFQl3Wm1xD6fBKtah7H8ZJChj4wP+8C+QfeVy8xautR7rdmKEw==}
     engines: {node: '>=4'}
     peerDependencies:
       glob: '*'
     dependencies:
-      '@types/glob': 7.1.4
-      glob: 7.1.7
+      '@types/glob': 7.2.0
+      glob: 7.2.0
     dev: false
 
   /glob-stream/6.1.0:
@@ -8348,6 +8372,7 @@ packages:
       minimatch: 3.0.4
       once: 1.4.0
       path-is-absolute: 1.0.1
+    dev: true
 
   /glob/7.2.0:
     resolution: {integrity: sha512-lmLf6gtyrPq8tTjSmrO94wBeQbFR3HbLHbuyD69wuyQkImp2hWqMGB47OX65FBkPffO641IP9jWa1z4ivqG26Q==}
@@ -8358,7 +8383,6 @@ packages:
       minimatch: 3.0.4
       once: 1.4.0
       path-is-absolute: 1.0.1
-    dev: true
 
   /global-dirs/2.1.0:
     resolution: {integrity: sha512-MG6kdOUh/xBnyo9cJFeIKkLEc1AyFq42QTU4XiX51i2NEdxLxLWXIjEjmqKeSuKR7pAZjTqUVoT2b2huxVLgYQ==}
@@ -9422,6 +9446,7 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       is-extglob: 2.1.1
+    dev: true
 
   /is-glob/4.0.3:
     resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==}
@@ -9871,9 +9896,9 @@ packages:
       '@types/prettier': 2.4.1
       cli-color: 2.0.0
       get-stdin: 8.0.0
-      glob: 7.1.7
-      glob-promise: 3.4.0_glob@7.1.7
-      is-glob: 4.0.1
+      glob: 7.2.0
+      glob-promise: 3.4.0_glob@7.2.0
+      is-glob: 4.0.3
       json-schema-ref-parser: 9.0.9
       json-stringify-safe: 5.0.1
       lodash: 4.17.21
@@ -11629,7 +11654,7 @@ packages:
       find-up: 4.1.0
       foreground-child: 2.0.0
       get-package-type: 0.1.0
-      glob: 7.1.7
+      glob: 7.2.0
       istanbul-lib-coverage: 3.0.1
       istanbul-lib-hook: 3.0.0
       istanbul-lib-instrument: 4.0.3
@@ -13615,7 +13640,7 @@ packages:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
     hasBin: true
     dependencies:
-      glob: 7.1.7
+      glob: 7.2.0
 
   /ripemd160/2.0.2:
     resolution: {integrity: sha512-ii4iagi25WusVoiC4B4lq7pbXfAp3D9v5CwfkY33vffw2+pkDjY1D8GaN7spsxvCSx8dkPqOZCEZyfxcmJG2IA==}
@@ -14707,7 +14732,7 @@ packages:
       debug: 4.3.2
       diff: 4.0.2
       escape-string-regexp: 2.0.0
-      glob: 7.1.7
+      glob: 7.2.0
       tap-parser: 10.1.0
       tap-yaml: 1.0.0
       unicode-length: 2.0.2
@@ -14749,7 +14774,7 @@ packages:
       findit: 2.0.0
       foreground-child: 2.0.0
       fs-exists-cached: 1.0.0
-      glob: 7.1.7
+      glob: 7.2.0
       import-jsx: 4.0.0
       isexe: 2.0.0
       istanbul-lib-processinfo: 2.0.2
@@ -14883,7 +14908,7 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       '@istanbuljs/schema': 0.1.3
-      glob: 7.1.7
+      glob: 7.2.0
       minimatch: 3.0.4
 
   /text-extensions/1.9.0:

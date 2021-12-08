@@ -4,6 +4,9 @@
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
+    "@hackbg/komandi": "workspace:^0.1.0",
+    "@hackbg/konzola": "workspace:^0.1.0",
+    "@hackbg/kabinet": "workspace:^0.1.0",
     "colors": "^1.4.0",
     "dockerode": "^3.3.0",
     "exponential-backoff": "^3.1.0",

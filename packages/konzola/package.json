@@ -1,0 +1,17 @@
+{
+  "name": "@hackbg/konzola",
+  "version": "0.1.0",
+  "main": "konzola.ts",
+  "type": "module",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "prettyjson": "github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f",
+    "table": "^6.6.0"
+  },
+  "devDependencies": {
+    "@hackbg/ganesha": "workspace:*"
+  },
+  "scripts": {
+    "test": "ganesha run-module README.md"
+  }
+}

@@ -8,7 +8,7 @@ import {
   EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
   encodeSecp256k1Pubkey, pubkeyToAddress,
   makeSignBytes, BroadcastMode
-} from 'secretjs'
+} from 'secretjs/src/index.ts'
 
 import { BaseAgent, IAgent, Identity } from '@fadroma/ops'
 import { ScrtGas, defaultFees } from './ScrtGas'

@@ -1,4 +1,4 @@
-import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
+import { SigningCosmWasmClient, BroadcastMode } from 'secretjs/src/index.ts'
 import { ScrtAgentJS } from '@fadroma/scrt/ScrtAgentJS.ts'
 
 import { Console } from '@fadroma/tools'
