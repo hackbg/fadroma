@@ -2,6 +2,7 @@
 #![allow(patterns_in_fns_without_body)]
 
 use crate::*;
+use fadroma_platform_scrt::*;
 
 pub trait ResponseBuilder: Sized {
     fn msg (mut self, msg: CosmosMsg) -> StdResult<Self>;

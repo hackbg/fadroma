@@ -20,3 +20,12 @@ path = "terra.rs"
 #serde             = { version = "1.0.103", default-features = false, features = ["derive"] }
 #snafu             = { version = "0.6.3" }
 
+
+# Terra
+#cosmwasm-std     = { version = "0.15.0" }
+#cosmwasm-storage = { version = "0.15.0" }
+#cw-storage-plus  = { version = "0.7.0", features = ["iterator"] }
+#cw20             = { version = "0.7.0" }
+#schemars         = "0.8.3"
+#serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
+#thiserror        = { version = "1.0.24" }

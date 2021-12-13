@@ -1,5 +1,6 @@
 use crate::vk::*;
-use fadroma_scrt::*;
+use fadroma_platform_scrt::*;
+use fadroma_derive_contract::*;
 use fadroma_storage::*;
 use schemars::JsonSchema;
 use serde::{Serialize, Deserialize};

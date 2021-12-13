@@ -1,4 +1,5 @@
-use crate::*;
+use fadroma_platform_scrt::*;
+use crate::core::*;
 
 /// Trait for handle messages
 pub trait HandleDispatch <S, A, Q, C> where

@@ -1,4 +1,4 @@
-mod admin;
-mod permit;
-mod vk;
-mod vk_auth;
+pub mod admin;
+pub mod permit;
+pub mod vk;
+pub mod vk_auth;

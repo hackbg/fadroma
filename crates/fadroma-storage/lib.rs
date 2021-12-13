@@ -1,3 +1,5 @@
-mod storage;
-mod traits1;
-mod traits2;
+pub mod storage;
+pub use storage::*;
+
+pub mod traits1;
+pub mod traits2;

@@ -11,19 +11,6 @@ authors = [
 path = "lib.rs"
 
 [dependencies]
-cosmwasm-schema   = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-std      = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
-cosmwasm-storage  = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print", features = ["iterator"] }
-primitive-types   = { optional = true, version = "0.9.1", default-features = false }
-schemars          = { optional = true, version = "0.7" }
-secret-toolkit    = { optional = true, git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
-#secret-toolkit   = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
-serde             = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
-snafu             = { optional = true, version = "0.6.3" }
-remain            = { optional = true, version = "0.2.2" }
-ripemd160         = { optional = true, version = "0.9.1" }
-secp256k1         = { optional = true, version = "0.20.3" }
-
 fadroma-platform-scrt    = { optional = true, path = "../fadroma-platform-scrt" }
 fadroma-platform-terra   = { optional = true, path = "../fadroma-platform-terra" }
 
@@ -31,7 +18,7 @@ fadroma-auth             = { path = "../fadroma-auth" }
 fadroma-auth-proc        = { path = "../fadroma-auth-proc" }
 fadroma-bind-js          = { path = "../fadroma-bind-js" }
 fadroma-composability    = { path = "../fadroma-composability" }
-fadroma-declare-contract = { path = "../fadroma-declare-contract" }
+fadroma-declare-contract = { optional = true, path = "../fadroma-declare-contract" }
 fadroma-derive-contract  = { optional = true, path = "../fadroma-derive-contract" }
 fadroma-killswitch       = { path = "../fadroma-killswitch" }
 fadroma-math             = { path = "../fadroma-math" }
@@ -39,18 +26,10 @@ fadroma-snip20-api       = { path = "../fadroma-snip20-api" }
 fadroma-snip20-impl      = { path = "../fadroma-snip20-impl" }
 fadroma-storage          = { path = "../fadroma-storage" }
 
-# Terra
-#cosmwasm-std     = { version = "0.15.0" }
-#cosmwasm-storage = { version = "0.15.0" }
-#cw-storage-plus  = { version = "0.7.0", features = ["iterator"] }
-#cw20             = { version = "0.7.0" }
-#schemars         = "0.8.3"
-#serde            = { version = "1.0.103", default-features = false, features = ["derive"] }
-#thiserror        = { version = "1.0.24" }
-
 [features]
-backtraces = [ "cosmwasm-std/backtraces", "snafu/backtraces" ]
+backtraces = [] # TODO set backtraces on components
 browser    = [ "backtraces" ]
+declare    = [ "fadroma-declare-contract" ]
 derive     = [ "fadroma-derive-contract" ]
 harness    = []
 
