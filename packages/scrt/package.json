@@ -1,0 +1,14 @@
+{
+  "name":    "@fadroma/scrt",
+  "version": "0.0.0",
+  "type":    "module",
+  "main":    "./index.ts",
+  "dependencies": {
+    "@cosmjs/crypto":    "^0.20.0",
+    "@fadroma/ops":      "workspace:*",
+    "@fadroma/scrt-1.0": "workspace:*",
+    "@fadroma/scrt-1.2": "workspace:*",
+    "@fadroma/tools":    "workspace:*",
+    "secretjs":          "workspace:0.17.5"
+  }
+}

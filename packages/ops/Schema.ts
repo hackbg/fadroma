@@ -1,15 +1,25 @@
 import Ajv from 'ajv'
 import { compileFromFile } from 'json-schema-to-typescript'
-import { loadJSON, writeFileSync, basename, dirname } from '@fadroma/tools'
+import { loadJSON, writeFileSync, basename, dirname, Console } from '@fadroma/tools'
 import { IAgent } from './Model'
 import { isAgent } from './Agent'
 
-export const loadSchemas = (
+const console = Console(import.meta.url)
+
+export function loadSchemas (
   base:    string,
   schemas: Record<string,string> = {}
-) =>
-  Object.entries(schemas).reduce((output, [name, path])=>
-    Object.assign(output, { [name]: loadJSON(path, base) }), {})
+) {
+  const output = {}
+  for (const [name, path] of Object.entries(schemas)) {
+    try {
+      output[name] = loadJSON(path, base)
+    } catch (e) {
+      console.warn(`Could not load schema ${name} from ${base}: ${e.message}`)
+    }
+  }
+  return output
+}
 
 /** Convert snake case to camel case */
 const camelCaseString = (str: string) =>
