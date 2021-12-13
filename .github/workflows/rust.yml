@@ -6,6 +6,7 @@ jobs:
     name: Rust documentation
     runs-on: ubuntu-latest
     steps:
+
       - name: Install stable toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -15,20 +16,23 @@ jobs:
             target: wasm32-unknown-unknown,
             override: true,
           }
+
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
+
+      - name: Prepare workspace
+        run: cp Workspace.toml Cargo.toml
+
       - uses: Swatinem/rust-cache@v1
+
       - name: Generate documentation
         run: cargo doc
 
   coverage:
-    name: Unit test coverage report
+    name: Run unit tests and publish coverage report
     runs-on: ubuntu-latest
     steps:
-      - name: Install Node and Yarn
-        uses: actions/setup-node@v2
-        with: { node-version: "14.x" }
 
       - name: Install toolchain that works with Tarpaulin
         uses: actions-rs/toolchain@v1
@@ -44,6 +48,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v2
         with: { submodules: true }
+
+      - name: Prepare workspace
+        run: cp Workspace.toml Cargo.toml
 
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
