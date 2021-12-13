@@ -83,8 +83,6 @@ mod composable_admin;
 #[cfg(feature="scrt-admin")]
 pub use composable_admin::admin;
 #[cfg(feature="scrt-admin")]
-pub use composable_admin::multi_admin as multi;
-#[cfg(feature="scrt-admin")]
 pub use require_admin;
 
 #[cfg(feature="scrt-contract")]
