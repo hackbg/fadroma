@@ -130,7 +130,6 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fadroma_platform_scrt::*;
 
     #[test]
     fn test_handle() {

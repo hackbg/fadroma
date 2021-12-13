@@ -1,13 +1,8 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
 
-use fadroma::{
-    scrt::{
-        HumanAddr, Uint128, Binary, StdError, StdResult
-    },
-    scrt_callback::Callback,
-    scrt_vk::ViewingKey,
-    scrt_permit::Permit
-};
+use fadroma_platform_scrt::*;
+use fadroma_auth::*;
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use crate::{

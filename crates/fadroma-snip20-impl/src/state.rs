@@ -1,4 +1,6 @@
-use fadroma::{*, secret_toolkit::storage::*};
+use fadroma_platform_scrt::{*, secret_toolkit::storage::*};
+use fadroma_auth::*;
+
 use std::any::type_name;
 use std::convert::TryFrom;
 use schemars::JsonSchema;

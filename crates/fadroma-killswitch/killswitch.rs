@@ -1,4 +1,7 @@
 use fadroma_platform_scrt::*;
+use fadroma_auth::admin::*;
+use fadroma_auth_proc::*;
+use fadroma_storage::*;
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 
@@ -40,15 +43,16 @@ macro_rules! migration_message {
 
 pub fn load (storage: &impl Storage) -> StdResult<ContractStatus<CanonicalAddr>> {
     let result: Option<ContractStatus<CanonicalAddr>> =
-        scrt_storage::load(storage, PREFIX)?;
+        fadroma_storage::load(storage, PREFIX)?;
 
     match result {
         Some(status) => Ok(status),
         None => Ok(ContractStatus::default())
     }
 }
+
 pub fn save (storage: &mut impl Storage, status: &ContractStatus<CanonicalAddr>) -> StdResult<()> {
-    scrt_storage::save(storage, PREFIX, status)
+    fadroma_storage::save(storage, PREFIX, status)
 }
 
 /// Possible states of a contract.

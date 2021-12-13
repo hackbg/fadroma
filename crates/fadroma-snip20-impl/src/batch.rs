@@ -1,7 +1,8 @@
 //! Types used in batch operations
+
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use fadroma::*;
+use fadroma_platform_scrt::*;
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]

@@ -1,4 +1,7 @@
-use fadroma::{*,scrt::Coin};
+use fadroma_platform_scrt::*;
+use fadroma_auth::*;
+use fadroma_math::*;
+
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;

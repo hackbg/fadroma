@@ -1,4 +1,4 @@
-use fadroma::*;
+use fadroma_platform_scrt::*;
 
 //pub const RESPONSE_BLOCK_SIZE: usize = 256;
 
