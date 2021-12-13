@@ -1,5 +1,5 @@
 use serde::{de::DeserializeOwned, Serialize};
-use fadroma_scrt::*;
+use fadroma_platform_scrt::*;
 use crate::storage::{
     load as storage_load,
     remove as storage_remove,

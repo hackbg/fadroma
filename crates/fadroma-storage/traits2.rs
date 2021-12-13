@@ -1,5 +1,5 @@
 pub use serde::{Serialize, de::DeserializeOwned};
-use fadroma_scrt::*;
+use fadroma_platform_scrt::*;
 use crate::storage::concat;
 
 /// Trait for actor that operates in a context with readonly access to the storage.

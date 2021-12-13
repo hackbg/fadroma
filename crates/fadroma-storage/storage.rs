@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-use fadroma_scrt::*;
+use fadroma_platform_scrt::*;
 
 /// Save something to the storage.
 #[inline]
@@ -265,7 +265,7 @@ impl<'a, T: DeserializeOwned, S: Storage> ExactSizeIterator for StorageIterator<
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::mock_dependencies;
+    use fadroma_platform_scrt::mock_dependencies;
 
     #[test]
     fn iterable_storage_insertion() {

@@ -1,4 +1,5 @@
-use crate::*;
+use fadroma_platform_scrt::*;
+use fadroma_platform_scrt::testing::MockApi;
 
 #[derive(Clone)]
 /// Same as regular Extern but clonable.
@@ -11,7 +12,7 @@ impl<Q: Querier> MockExtern<ClonableMemoryStorage, MockApi, Q> {
     pub fn new (querier: Q) -> Self {
         Self {
             storage: ClonableMemoryStorage::default(),
-            api:     crate::scrt::testing::MockApi::new(40),
+            api:     MockApi::new(40),
             querier
         }
     }

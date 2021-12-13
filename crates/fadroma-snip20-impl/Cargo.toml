@@ -1,5 +1,5 @@
 [package]
-name    = "composable-snip20"
+name    = "fadroma-snip20-impl"
 version = "0.1.0"
 edition = "2018"
 authors = [
@@ -16,8 +16,9 @@ authors = [
 #debug-print = ["cosmwasm-std/debug-print"]
 
 [dependencies]
+fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
+
 fadroma-auth    = { path = "../fadroma-auth" }
-fadroma-scrt    = { path = "../fadroma-scrt" }
 fadroma-storage = { path = "../fadroma-storage" }
 
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }

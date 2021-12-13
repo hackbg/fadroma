@@ -1,4 +1,4 @@
-use fadroma_scrt::*;
+use fadroma_platform_scrt::*;
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 
@@ -173,9 +173,8 @@ pub fn set_status <S: Storage, A: Api, Q: Querier> (
 mod tests {
     use super::*;
 
-    use crate::{mock_dependencies, mock_env};
-    use crate::composable_admin::admin;
-    use crate::composable_admin::admin::Admin;
+    use fadroma_platform_scrt::{mock_dependencies, mock_env};
+    use fadroma_auth::{admin, admin::Admin};
 
     #[test]
     fn test_migrate() {

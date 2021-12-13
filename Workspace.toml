@@ -5,19 +5,7 @@
 
 [workspace]
 members = [
-  "crates/auth/",
-  "crates/bind-js/",
-  "crates/composability/",
-  "crates/composable-snip20/",
-  "crates/declare-contract/",
-  "crates/derive-contract/",
-  "crates/killswitch/",
-  "crates/math/",
-  "crates/require-admin/",
-  "crates/scrt/",
-  "crates/snip20-api/",
-  "crates/storage/",
-  "crates/terra/",
+  "crates/*",
 ]
 
 [profile.release]

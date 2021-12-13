@@ -1,6 +1,6 @@
 //! `HumanAddr`<->`CanonicalAddr` conversion
 
-use crate::scrt::*;
+use crate::*;
 
 pub trait Humanize<T> {
     fn humanize (&self, api: &impl Api) -> StdResult<T>;

@@ -1,8 +1,4 @@
-use crate::{
-    scrt::{StdResult, HumanAddr, CanonicalAddr, Api, Binary},
-    scrt_link::ContractLink,
-    scrt_addr::{Canonize, Humanize}
-};
+use crate::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 

@@ -7,7 +7,7 @@
 //!   directly. However this introduces a clash between `Storage::get/set` and
 //!   `Composable::get/set`, therefor the latter will need to be renamed once again
 
-use crate::*;
+use fadroma_platform_scrt::*;
 
 use serde::{Serialize, de::DeserializeOwned};
 

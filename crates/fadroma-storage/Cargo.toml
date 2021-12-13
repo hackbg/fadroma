@@ -12,5 +12,5 @@ authors = [
 path = "lib.rs"
 
 [dependencies]
-fadroma-scrt  = { path = "../fadroma-scrt" }
-serde         = { version = "1.0.103", default-features = false, features = ["derive"] }
+fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
+serde                 = { version = "1.0.103", default-features = false, features = ["derive"] }

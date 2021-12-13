@@ -1,4 +1,5 @@
-use crate::{*, scrt::*};
+use fadroma_platform_scrt::*;
+use crate::uint256::Uint256;
 
 /// Convert between tokens with different decimals.
 ///

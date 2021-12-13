@@ -3,7 +3,7 @@ use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::ops::{Add, Sub, Mul, Div};
 
-use crate::{scrt::*};
+use fadroma_platform_scrt::*;
 use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use schemars::JsonSchema;
 use primitive_types::U256;

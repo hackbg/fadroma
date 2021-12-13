@@ -1,5 +1,5 @@
 [package]
-name    = "derive-contract"
+name    = "fadroma-derive-contract"
 version = "0.1.0"
 authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 edition = "2018"

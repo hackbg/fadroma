@@ -1,5 +1,5 @@
 use cosmwasm_std::{StdResult, InitResponse, HandleResponse, Storage, to_vec, from_slice};
-use derive_contract::*;
+use fadroma_derive_contract::*;
 use schemars;
 use serde;
 

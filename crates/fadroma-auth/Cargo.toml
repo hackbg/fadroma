@@ -8,5 +8,13 @@ authors = ["Adam A. <adam@hack.bg>"]
 path = "lib.rs"
 
 [dependencies]
-fadroma-scrt    = { path = "../fadroma-scrt"    }
-fadroma-storage = { path = "../fadroma-storage" }
+fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
+
+fadroma-derive-contract = { path = "../fadroma-derive-contract" }
+fadroma-storage         = { path = "../fadroma-storage" }
+
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+ripemd160 = { version = "0.9.1"  }
+secp256k1 = { version = "0.20.3" }
+sha2      = { version = "0.9.1", default-features = false }

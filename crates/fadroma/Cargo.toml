@@ -1,12 +1,13 @@
 [package]
 name    = "fadroma"
-version = "0.1.0"
+version = "100.0.0"
 edition = "2018"
-authors = ["Asparuh Kamenov <aakamenov@hack.bg>",
-           "Adam A. <adam@hack.bg>"]
+authors = [
+  "Asparuh Kamenov <aakamenov@hack.bg>",
+  "Adam A. <adam@hack.bg>"
+]
 
 [lib]
-name = "fadroma"
 path = "lib.rs"
 
 [dependencies]
@@ -14,22 +15,29 @@ cosmwasm-schema   = { optional = true, git = "https://github.com/enigmampc/Secre
 cosmwasm-std      = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 cosmwasm-storage  = { optional = true, git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print", features = ["iterator"] }
 primitive-types   = { optional = true, version = "0.9.1", default-features = false }
-rand_chacha       = { optional = true, version = "0.2.2", default-features = false }
-rand_core         = { optional = true, version = "0.5.1", default-features = false }
 schemars          = { optional = true, version = "0.7" }
 secret-toolkit    = { optional = true, git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }
 #secret-toolkit   = { optional = true, git = "https://github.com/hackbg/secret-toolkit", rev = "9a33d7b" }
 serde             = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
-sha2              = { optional = true, version = "0.9.1", default-features = false }
 snafu             = { optional = true, version = "0.6.3" }
-subtle            = { optional = true, version = "2.4.0", default-features = false }
 remain            = { optional = true, version = "0.2.2" }
 ripemd160         = { optional = true, version = "0.9.1" }
 secp256k1         = { optional = true, version = "0.20.3" }
 
-fadroma-scrt    = { optional = true, path = "../fadroma-scrt" }
-derive-contract = { optional = true, path = "../fadroma-derive-contract" }
-require-admin   = { optional = true, path = "../fadroma-require-admin" }
+fadroma-platform-scrt    = { optional = true, path = "../fadroma-platform-scrt" }
+fadroma-platform-terra   = { optional = true, path = "../fadroma-platform-terra" }
+
+fadroma-auth             = { path = "../fadroma-auth" }
+fadroma-auth-proc        = { path = "../fadroma-auth-proc" }
+fadroma-bind-js          = { path = "../fadroma-bind-js" }
+fadroma-composability    = { path = "../fadroma-composability" }
+fadroma-declare-contract = { path = "../fadroma-declare-contract" }
+fadroma-derive-contract  = { optional = true, path = "../fadroma-derive-contract" }
+fadroma-killswitch       = { path = "../fadroma-killswitch" }
+fadroma-math             = { path = "../fadroma-math" }
+fadroma-snip20-api       = { path = "../fadroma-snip20-api" }
+fadroma-snip20-impl      = { path = "../fadroma-snip20-impl" }
+fadroma-storage          = { path = "../fadroma-storage" }
 
 # Terra
 #cosmwasm-std     = { version = "0.15.0" }
@@ -43,20 +51,8 @@ require-admin   = { optional = true, path = "../fadroma-require-admin" }
 [features]
 backtraces = [ "cosmwasm-std/backtraces", "snafu/backtraces" ]
 browser    = [ "backtraces" ]
-derive     = [ "derive-contract" ]
+derive     = [ "fadroma-derive-contract" ]
 harness    = []
 
-scrt            = [ "cosmwasm-std", "cosmwasm-storage", "cosmwasm-schema",  "snafu", "schemars", "secret-toolkit" ]
-scrt-addr       = [ "scrt" ]
-scrt-admin      = [ "derive", "scrt-storage", "require-admin" ]
-scrt-all        = [ "scrt", "scrt-addr", "scrt-admin", "scrt-contract", "scrt-icc", "scrt-vk", "scrt-migrate", "scrt-snip20-api", "scrt-storage", "scrt-utils", "scrt-permit" ]
-scrt-contract   = [ "scrt", "serde" ]
-scrt-icc        = [ "scrt", "scrt-addr", "serde" ]
-scrt-migrate    = [ "scrt-icc", "scrt-admin" ]
-scrt-permit     = [ "scrt", "serde", "sha2", "remain", "ripemd160", "secp256k1" ]
-scrt-snip20-api = [ "scrt" ]
-scrt-storage    = [ "scrt", "serde" ]
-scrt-utils      = [ "scrt", "rand_chacha", "rand_core", "sha2", "subtle", "primitive-types" ]
-scrt-vk         = [ "derive", "scrt-storage", "scrt-utils" ]
-
-terra = []
+scrt  = [ "fadroma-platform-scrt" ]
+terra = [ "fadroma-platform-terra" ]
