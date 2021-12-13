@@ -1,7 +1,8 @@
 use crate::{
     scrt::{
         HumanAddr, StdResult, InitResponse, HandleResponse,
-        Extern, Env, Querier, Storage, Api, StdError, CanonicalAddr
+        Extern, Env, Querier, Storage, Api, StdError,
+        CanonicalAddr, log
     },
     derive_contract::{contract, init, handle, query}
 };
@@ -9,6 +10,7 @@ use schemars;
 use serde;
 
 const ADMIN_KEY: &[u8] = b"ltp5P6sFZT";
+const PENDING_ADMIN_KEY: &[u8] = b"b5QaJXDibK";
 
 #[contract]
 pub trait Admin {
@@ -28,9 +30,31 @@ pub trait Admin {
     #[handle]
     fn change_admin(address: HumanAddr) -> StdResult<HandleResponse> {
         assert_admin(deps, &env)?;
-        save_admin(deps, &address)?;
+        save_pending_admin(deps, &address)?;
     
-        Ok(HandleResponse::default())
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![log("pending_admin", address)],
+            data: None
+        })
+    }
+
+    #[handle]
+    fn accept_admin() -> StdResult<HandleResponse> {
+        let pending = load_pending_admin(deps)?;
+
+        if pending != env.message.sender {
+            return Err(StdError::unauthorized())
+        }
+
+        save_admin(deps, &pending)?;
+        deps.storage.remove(PENDING_ADMIN_KEY);
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![log("new_admin", env.message.sender)],
+            data: None
+        })
     }
 
     #[query("address")]
@@ -46,12 +70,15 @@ pub fn load_admin<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<HumanAddr> {
     let result = deps.storage.get(ADMIN_KEY);
 
-    if let Some(bytes) = result {
-        let admin = CanonicalAddr::from(bytes);
+    match result {
+        Some(bytes) => {
+            let admin = CanonicalAddr::from(bytes);
 
-        deps.api.human_address(&admin)
-    } else {
-        Ok(HumanAddr::default())
+            deps.api.human_address(&admin)
+        },
+        None => {
+            Ok(HumanAddr::default())
+        }
     }
 }
 
@@ -61,6 +88,34 @@ pub fn save_admin<S: Storage, A: Api, Q: Querier>(
 ) -> StdResult<()> {
     let admin = deps.api.canonical_address(address)?;
     deps.storage.set(ADMIN_KEY, &admin.as_slice());
+
+    Ok(())
+}
+
+
+pub fn load_pending_admin<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>
+) -> StdResult<HumanAddr> {
+    let result = deps.storage.get(PENDING_ADMIN_KEY);
+
+    match result {
+        Some(bytes) => {
+            let admin = CanonicalAddr::from(bytes);
+
+            deps.api.human_address(&admin)
+        },
+        None => {
+            Err(StdError::generic_err("New admin not set."))
+        }
+    }
+}
+
+pub fn save_pending_admin<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    address: &HumanAddr
+) -> StdResult<()> {
+    let admin = deps.api.canonical_address(address)?;
+    deps.storage.set(PENDING_ADMIN_KEY, &admin.as_slice());
 
     Ok(())
 }
@@ -81,14 +136,14 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scrt::{mock_dependencies, mock_env};
+    use crate::scrt::{mock_dependencies, mock_env, ReadonlyStorage};
 
     #[test]
     fn test_handle() {
         let ref mut deps = mock_dependencies(10, &[]);
 
-        let admin = HumanAddr::from("admin");
-        save_admin(deps, &admin).unwrap();
+        let admin = "admin";
+        save_admin(deps, &HumanAddr::from(admin)).unwrap();
 
         let msg = HandleMsg::ChangeAdmin { 
             address: HumanAddr::from("will fail")
@@ -108,6 +163,20 @@ mod tests {
 
         let new_admin = HumanAddr::from("new_admin");
 
+        let result = handle(
+            deps,
+            mock_env(new_admin.clone(), &[]),
+            HandleMsg::AcceptAdmin {},
+            DefaultImpl
+        ).unwrap_err();
+
+        match result {
+            StdError::GenericErr { msg, .. } => {
+                assert_eq!(msg, "New admin not set.")
+            },
+            _ => panic!("Expected \"StdError::GenericErr\"")
+        };
+
         let msg = HandleMsg::ChangeAdmin { 
             address: new_admin.clone()
         };
@@ -119,7 +188,43 @@ mod tests {
             DefaultImpl
         ).unwrap();
 
-        assert!(load_admin(deps).unwrap() == new_admin);
+        assert_eq!(load_pending_admin(deps).unwrap(), new_admin);
+
+        let result = handle(
+            deps,
+            mock_env("unauthorized", &[]),
+            HandleMsg::AcceptAdmin {},
+            DefaultImpl
+        ).unwrap_err();
+
+        match result {
+            StdError::Unauthorized { .. } => { },
+            _ => panic!("Expected \"StdError::Unauthorized\"")
+        };
+
+        let result = handle(
+            deps,
+            mock_env(admin, &[]),
+            HandleMsg::AcceptAdmin {},
+            DefaultImpl
+        ).unwrap_err();
+
+        match result {
+            StdError::Unauthorized { .. } => { },
+            _ => panic!("Expected \"StdError::Unauthorized\"")
+        };
+
+        assert_eq!(load_admin(deps).unwrap(), HumanAddr::from(admin));
+
+        handle(
+            deps,
+            mock_env(new_admin.clone(), &[]),
+            HandleMsg::AcceptAdmin {},
+            DefaultImpl
+        ).unwrap();
+
+        assert_eq!(load_admin(deps).unwrap(), new_admin);
+        assert!(deps.storage.get(PENDING_ADMIN_KEY).is_none())
     }
 
     #[test]
