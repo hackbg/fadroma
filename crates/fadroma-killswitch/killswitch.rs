@@ -1,7 +1,7 @@
 use fadroma_platform_scrt::*;
 use fadroma_auth::admin::*;
 use fadroma_auth_proc::*;
-use fadroma_storage::*;
+
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 

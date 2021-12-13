@@ -1,6 +1,6 @@
 [package]
 name    = "fadroma"
-version = "100.0.0"
+version = "21.12.0"
 edition = "2018"
 authors = [
   "Asparuh Kamenov <aakamenov@hack.bg>",
@@ -27,6 +27,8 @@ fadroma-snip20-impl      = { path = "../fadroma-snip20-impl" }
 fadroma-storage          = { path = "../fadroma-storage" }
 
 [features]
+default = [ "fadroma-platform-scrt" ]
+
 backtraces = [] # TODO set backtraces on components
 browser    = [ "backtraces" ]
 declare    = [ "fadroma-declare-contract" ]

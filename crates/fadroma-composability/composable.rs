@@ -8,6 +8,7 @@
 //!   `Composable::get/set`, therefor the latter will need to be renamed once again
 
 use fadroma_platform_scrt::*;
+use fadroma_storage::*;
 
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -34,23 +35,35 @@ pub trait Composable<S, A, Q>: BaseComposable<S, A, Q> {
 }
 
 #[macro_export] macro_rules! make_composable {
+
     ($Struct:ty) => {
-        // base trait with no generic methods to support `dyn`
+
+        // base trait with no generic methods, in order to to support `dyn`
         impl<S: Storage, A: Api, Q: Querier> BaseComposable<S, A, Q> for $Struct {
             fn storage     (&self)     -> &S { &self.storage }
             fn storage_mut (&mut self) -> &mut S { &mut self.storage }
             fn api         (&self)     -> &A { &self.api }
             fn querier     (&self)     -> &Q { &self.querier }
         }
+
         impl<S: Storage, A: Api, Q: Querier> Composable<S, A, Q> for $Struct {
-            fn set <Value: serde::Serialize> (&mut self, key: &[u8], value: Value) -> UsuallyOk {
+
+            fn set <Value: serde::Serialize> (&mut self, key: &[u8], value: Value)
+                -> UsuallyOk
+            {
                 self.storage.set(key, &to_vec(&Some(value))?);
                 Ok(())
             }
-            fn set_ns <Value: serde::Serialize> (&mut self, ns: &[u8], key: &[u8], value: Value) -> UsuallyOk {
+
+            fn set_ns <Value: serde::Serialize> (&mut self, ns: &[u8], key: &[u8], value: Value)
+                -> UsuallyOk
+            {
                 self.set(&concat(ns, key), value)
             }
-            fn get <Value: serde::de::DeserializeOwned> (&self, key: &[u8]) -> Eventually<Value> {
+
+            fn get <Value: serde::de::DeserializeOwned> (&self, key: &[u8])
+                -> Eventually<Value>
+            {
                 if let Some(data) = self.storage.get(key) {
                     Ok(from_slice(&data)?)
                 } else {
@@ -58,16 +71,27 @@ pub trait Composable<S, A, Q>: BaseComposable<S, A, Q> {
                     //Err(StdError::generic_err(format!("{:?}: not found in storage", &key)))
                 }
             }
-            fn get_ns <Value: serde::de::DeserializeOwned> (&self, ns: &[u8], key: &[u8]) -> Eventually<Value> {
+
+            fn get_ns <Value: serde::de::DeserializeOwned> (&self, ns: &[u8], key: &[u8])
+                -> Eventually<Value>
+            {
                 self.get(&concat(ns, key))
             }
-            fn humanize <Value: Humanize<U>, U: Canonize<Value>> (&self, value: Value) -> StdResult<U> {
+
+            fn humanize <Value: Humanize<U>, U: Canonize<Value>> (&self, value: Value)
+                -> StdResult<U>
+            {
                 value.humanize(&self.api)
             }
-            fn canonize <Value: Canonize<U>, U: Humanize<Value>> (&self, value: Value) -> StdResult<U> {
+
+            fn canonize <Value: Canonize<U>, U: Humanize<Value>> (&self, value: Value)
+                -> StdResult<U>
+            {
                 value.canonize(&self.api)
             }
+
         }
+
     }
 }
 

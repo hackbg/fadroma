@@ -1,7 +1,6 @@
 //! note: see issue #35203 <https://github.com/rust-lang/rust/issues/35203>
 #![allow(patterns_in_fns_without_body)]
 
-use crate::*;
 use fadroma_platform_scrt::*;
 
 pub trait ResponseBuilder: Sized {

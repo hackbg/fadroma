@@ -1,6 +1,5 @@
 //Copied from https://github.com/enigmampc/snip20-reference-impl/blob/master/src/viewing_key.rs
 use fadroma_platform_scrt::*;
-use fadroma_storage::*;
 use fadroma_math::*;
 use std::fmt;
 use schemars::JsonSchema;

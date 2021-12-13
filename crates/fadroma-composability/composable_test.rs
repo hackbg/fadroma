@@ -1,5 +1,8 @@
 use fadroma_platform_scrt::*;
 use fadroma_platform_scrt::testing::MockApi;
+use fadroma_storage::*;
+use crate::*;
+use crate::make_composable;
 
 #[derive(Clone)]
 /// Same as regular Extern but clonable.
@@ -18,7 +21,6 @@ impl<Q: Querier> MockExtern<ClonableMemoryStorage, MockApi, Q> {
     }
 }
 
-use crate::make_composable;
 make_composable!(MockExtern<S, A, Q>);
 
 #[derive(Default, Clone)]

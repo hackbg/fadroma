@@ -8,7 +8,7 @@ pub mod scrt_contract_binding;
 pub use scrt_contract_binding::*;
 
 pub mod scrt_contract_harness;
-#[cfg(test))] pub use scrt_contract_harness::*;
+#[cfg(test)] pub use scrt_contract_harness::*;
 
 pub mod scrt_contract_impl;
 
