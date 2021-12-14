@@ -17,10 +17,10 @@ pub const PREFIX: &[u8] = b"fadroma_migration_state";
     // but an alternative name can be passed
     ($HandleMsg:ty, $deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {
         if let HandleMsg::SetStatus { level, reason, new_address } = $msg {
-            scrt_migrate::set_status($deps, $env, level, reason, new_address)?;
+            fadroma::killswitch::set_status($deps, $env, level, reason, new_address)?;
             Ok(HandleResponse::default())
         } else {
-            scrt_migrate::is_operational(&$deps)?;
+            fadroma::killswitch::is_operational(&$deps)?;
             match $msg {
                 HandleMsg::SetStatus { .. } => unreachable!(),
                 $($rest)*
