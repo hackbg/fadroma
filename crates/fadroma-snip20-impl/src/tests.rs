@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use fadroma_scrt::*;
+use fadroma_platform_scrt::*;
 use fadroma_auth::vk::*;
 
 use std::any::Any;
@@ -15,6 +15,9 @@ use crate::{
     },
     msg::{*, ContractStatusLevel}
 };
+
+use crate::msg::InitMsg;
+use fadroma_math::crypto::sha_256;
 
 fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,

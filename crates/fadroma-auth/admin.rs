@@ -227,7 +227,7 @@ mod tests {
         let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
 
         match result {
-            QueryResponse::Admin { address } => {
+            super::QueryResponse::Admin { address } => {
                 assert!(address == HumanAddr::default());
             }
         }
@@ -238,7 +238,7 @@ mod tests {
         let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
 
         match result {
-            QueryResponse::Admin { address } => {
+            super::QueryResponse::Admin { address } => {
                 assert!(address == admin);
             }
         }
