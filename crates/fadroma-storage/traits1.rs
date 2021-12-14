@@ -1,9 +1,9 @@
 use serde::{de::DeserializeOwned, Serialize};
 use fadroma_platform_scrt::*;
 use crate::storage::{
-    load as storage_load,
+    load   as storage_load,
     remove as storage_remove,
-    save as storage_save,
+    save   as storage_save,
 };
 
 /// Trait that will add storage options to your struct,
@@ -15,7 +15,10 @@ use crate::storage::{
 /// 
 /// ```rust
 /// use serde::{Deserialize, Serialize};
-/// use fadroma::{scrt::*, scrt_storage_traits::*};
+///
+/// // use fadroma::{platform::*, storage::traits1::*};
+/// use fadroma_platform_scrt::*;
+/// use fadroma_storage::traits1::*;
 /// 
 /// #[derive(Deserialize, Serialize)]
 /// struct Config {

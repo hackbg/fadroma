@@ -2,6 +2,9 @@ pub use cosmwasm_std;
 pub use cosmwasm_std::*;
 
 #[cfg(any(test,not(target_arch="wasm32")))]
+pub use cosmwasm_std::testing;
+
+#[cfg(any(test,not(target_arch="wasm32")))]
 pub use cosmwasm_std::testing::*;
 
 pub use cosmwasm_storage;
