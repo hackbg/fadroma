@@ -1,0 +1,15 @@
+[package]
+name    = "fadroma-snip20-api"
+version = "0.1.0"
+edition = "2018"
+authors = [
+  "Adam A. <adam@hack.bg>",
+  "Asparuh Kamenov <aakamenov@hack.bg>",
+]
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
+secret-toolkit        = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }

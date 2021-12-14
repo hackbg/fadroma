@@ -1,0 +1,39 @@
+[package]
+name    = "fadroma"
+version = "21.12.0"
+edition = "2018"
+authors = [
+  "Asparuh Kamenov <aakamenov@hack.bg>",
+  "Adam A. <adam@hack.bg>"
+]
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+fadroma-platform-scrt    = { optional = true, path = "../fadroma-platform-scrt" }
+fadroma-platform-terra   = { optional = true, path = "../fadroma-platform-terra" }
+
+fadroma-auth             = { path = "../fadroma-auth" }
+fadroma-auth-proc        = { path = "../fadroma-auth-proc" }
+fadroma-bind-js          = { path = "../fadroma-bind-js" }
+fadroma-composability    = { path = "../fadroma-composability" }
+fadroma-declare-contract = { path = "../fadroma-declare-contract" }
+fadroma-derive-contract  = { path = "../fadroma-derive-contract" }
+fadroma-killswitch       = { path = "../fadroma-killswitch" }
+fadroma-math             = { path = "../fadroma-math" }
+fadroma-snip20-api       = { path = "../fadroma-snip20-api" }
+fadroma-snip20-impl      = { path = "../fadroma-snip20-impl" }
+fadroma-storage          = { path = "../fadroma-storage" }
+
+[features]
+default = [ "fadroma-platform-scrt" ]
+
+backtraces = [] # TODO set backtraces on components
+browser    = [ "backtraces" ]
+declare    = []
+derive     = []
+harness    = []
+
+scrt  = [ "fadroma-platform-scrt" ]
+terra = [ "fadroma-platform-terra" ]

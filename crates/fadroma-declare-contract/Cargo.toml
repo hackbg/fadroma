@@ -1,0 +1,12 @@
+[package]
+name    = "fadroma-declare-contract"
+version = "0.1.0"
+edition = "2018"
+authors = ["Adam A. <adam@hack.bg>"]
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
+serde                 = { version = "1.0.103", default-features = false, features = ["derive"] }

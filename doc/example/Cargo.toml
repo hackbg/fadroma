@@ -1,0 +1,31 @@
+[package]
+name = "fadroma-example-votes"
+version = "0.1.0"
+authors = ["Tibor Hudik <tibor@barrage.net>"]
+edition = "2018"
+
+exclude = [
+    "contract.wasm.gz",
+    "contract.wasm",
+    "hash.txt",
+] # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fadroma = { path = "../core", features = [
+    "scrt-addr",
+    "scrt-callback",
+    "scrt-contract",
+    "scrt-migrate",
+    "scrt-storage"
+] }
+serde = { version="1.0.103", default-features=false, features=["derive"] }
+schemars = "0.7"
+
+[dev-dependencies]
+kukumba = "0.1.0"

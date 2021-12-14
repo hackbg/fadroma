@@ -1,0 +1,20 @@
+[package]
+name    = "fadroma-derive-contract"
+version = "0.1.0"
+authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "^1.0.20"
+syn = { version = "1.0", features = ["full", "extra-traits"] }
+quote = "1.0"
+
+[dev-dependencies]
+cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print", features = ["debug-print"] }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+serde_json = "1.0.66"
+schemars = "0.7"

@@ -5,10 +5,7 @@
 
 [workspace]
 members = [
-  "lib/",
-  "lib/composable-admin",
-  "lib/composable-snip20",
-  "lib/require-admin",
+  "crates/*",
 ]
 
 [profile.release]
