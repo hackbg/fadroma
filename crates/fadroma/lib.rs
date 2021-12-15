@@ -20,5 +20,7 @@ pub use fadroma_platform_scrt::*;
 
 pub use fadroma_snip20_api::*;
 
+pub use fadroma_snip20_impl as snip20_impl;
+
 pub use fadroma_storage as storage;
 pub use fadroma_storage::*;

@@ -1,0 +1,13 @@
+[package]
+name    = "fadroma-ensemble"
+version = "0.1.0"
+authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "lib.rs"
+
+[dependencies]
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
