@@ -17,37 +17,37 @@ targeting CosmWasm-based blockchains. Our primary focus has been Secret Network.
 
 ### Rust
 
-| Crate                    | Purpose                                                      | Version |
-| ------------------------ | ------------------------------------------------------------ | ------- |
-| fadroma                  | Reexports all other crates.                                  | 21.12.0 |
-| fadroma-auth             | Provides authentication primitives.                          | 0.1.0   |
-| fadroma-auth-proc        | Defines the `#[require_admin]` macro.                        | 0.1.0   |
-| fadroma-bind-js          | Allows contracts to be loaded in the browser.                | 0.1.0   |
-| fadroma-composability    | Helpers for building contracts out of reusable Rust traits.  | 0.1.0   |
-| fadroma-declare-contract | Deprecated. An attempt at a smart contract DSL.              | 0.1.0   |
-| fadroma-derive-contract  | Provides the `#[init]`, `#[handle]` and `#[query]` macros.   | 0.1.0   |
-| fadroma-ensemble         | Enables multiple contracts to be tested in Rust.             | 0.1.0   |
-| fadroma-killswitch       | Emergency pause and termination for smart contracts.         | 0.1.0   |
-| fadroma-math             | 256-bit integers, SHA256 checksum, ChaCha RNG                | 0.1.0   |
-| fadroma-platform-scrt    | Support for [Secret Network](https://scrt.network/)          | 0.1.0   |
-| fadroma-platform-terra   | Support for [Terra](https://www.terra.money/)                | TODO    |
-| fadroma-snip20-api       | Provides `ISNIP20` for talking to SNIP20 tokens              | 0.1.0   |
-| fadroma-snip20-impl      | Reusable implementation of a SNIP20 token                    | 0.1.0   |
-| fadroma-storage          | Different ways of interacting with the storage APIs.         | 0.1.0   |
+| Crate                                                         | Version | Purpose                                                      |
+| ------------------------------------------------------------- | ------- | ------------------------------------------------------------ |
+| [fadroma](./crates/fadroma)                                   | 21.12.0 | Reexports all other crates.                                  |
+| [fadroma-auth](./crates/fadroma-auth)                         | 0.1.0   | Provides authentication primitives.                          |
+| [fadroma-auth-proc](./crates/fadroma-auth-proc)               | 0.1.0   | Defines the `#[require_admin]` macro.                        |
+| [fadroma-bind-js](./crates/fadroma-bind-js)                   | 0.1.0   | Allows contracts to be loaded in the browser.                |
+| [fadroma-composability](./crates/fadroma-composability)       | 0.1.0   | Helpers for building contracts out of reusable Rust traits.  |
+| [fadroma-declare-contract](./crates/fadroma-declare-contract) | 0.1.0   | Deprecated. Our first attempt at smoothing out the verbosity of the CW0.10 API. |
+| [fadroma-derive-contract](./crates/fadroma-derive-contract)   | 0.1.0   | Provides the `#[init]`, `#[handle]` and `#[query]` macros.   |
+| [fadroma-ensemble](./crates/fadroma-ensemble)                 | 0.1.0   | Enables multiple contracts to be tested in Rust.             |
+| [fadroma-killswitch](./crates/fadroma-killswitch)             | 0.1.0   | Emergency pause and termination for smart contracts.         |
+| [fadroma-math](./crates/fadroma-math)                         | 0.1.0   | 256-bit integers, SHA256 checksum, ChaCha RNG                |
+| [fadroma-platform-scrt](./crates/fadroma-platform-scrt)       | 0.1.0   | Support for [Secret Network](https://scrt.network/), including inter-contract communication. |
+| [fadroma-platform-terra](./crates/fadroma-platform-terra)     | TODO    | Support for [Terra](https://www.terra.money/)                |
+| [fadroma-snip20-api](./crates/fadroma-snip20-api)             | 0.1.0   | Provides `ISNIP20` for talking to SNIP20 tokens              |
+| [fadroma-snip20-impl](./crates/fadroma-snip20-impl)           | 0.1.0   | Reusable implementation of a SNIP20 token                    |
+| [fadroma-storage](./crates/fadroma-storage)                   | 0.1.0   | Different ways of interacting with the storage APIs.         |
 
 ### TypeScript
 
-| Package   | Purpose                                                                 |
-| --------- | ----------------------------------------------------------------------- |
-| ganesha   | Allows TypeScript to be used without an intermediate compilation step.  |
-| kabinet   | Class-based interface to the filesystem. Ops uses this to store config. |
-| komandi   | Simple command line parser.                                             |
-| konzola   | Console output formatter.                                               |
-| ops       | Classes representing the CosmWasm build/upload/deploy workflow.         |
-| scrt      | Specialization of the `ops` classes for Secret Network                  |
-| scrt-1.0  | Secret Network 1.0 support.                                             |
-| scrt-1.2  | Secret Network 1.2 support.                                             |
-| tools     | Various utilities.                                                      |
+| Package                                      | Purpose                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------- |
+| [ganesha](https://github.com/hackbg/ganesha) | Allows TypeScript to be used without an intermediate compilation step.  |
+| [kabinet](./packages/kabinet)                | Class-based interface to the filesystem. Ops uses this to store config. |
+| [komandi](./packages/komandi)                | Simple command line parser.                                             |
+| [konzola](./packages/konzola)                | Console output formatter.                                               |
+| [ops](./packages/ops)                        | Classes representing the CosmWasm build/upload/deploy workflow.         |
+| [scrt](./packages/scrt)                      | Specialization of the `ops` classes for Secret Network                  |
+| [scrt-1.0](./packages/scrt-1.0)              | Secret Network 1.0 support.                                             |
+| [scrt-1.2](./packages/scrt-1.2)              | Secret Network 1.2 support.                                             |
+| [tools](./packages/tools)                    | Various utilities.                                                      |
 
 ## Contributing to Fadroma
 
