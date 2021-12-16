@@ -10,39 +10,45 @@ Industrial-strength tooling and components for WASM-based smart contracts.
 
 ![](/doc/logo.svg)
 
-## Features
+## Contents
 
-In no particular order:
+Fadroma is Hack.bg's attempt to define and standardize unified development practices
+targeting CosmWasm-based blockchains. Our primary focus has been Secret Network.
 
-* Auto-generate typed contract APIs from JSON schema
-* Build/upload/deploy contracts from TypeScript
-* Builder pattern for response messages
-* Composable admin authentication
-* Composable contract core
-* Composable snip20
-* Contract links and callbacks
-* Declare contract
-* Derive contract
-* Dispatch traits for handle/query message types
-* Hash/checksum (SHA256)
-* Humanize/Canonize traits 
-* Patched SigningCosmWasmClient with async broadcast mode and retries
-* Pseudorandom number generator (ChaCha)
-* Storage helpers
-* TODO: Terra support
-* Uint256 and Decimal types
-* Viewing key authentication
+### Rust
 
-## Deploying smart contracts with Fadroma
+| Crate                    | Purpose                                                      | Version |
+| ------------------------ | ------------------------------------------------------------ | ------- |
+| fadroma                  | Reexports all other crates.                                  | 21.12.0 |
+| fadroma-auth             | Provides authentication primitives.                          | 0.1.0   |
+| fadroma-auth-proc        | Defines the `#[require_admin]` macro.                        | 0.1.0   |
+| fadroma-bind-js          | Allows contracts to be loaded in the browser.                | 0.1.0   |
+| fadroma-composability    | Helpers for building contracts out of reusable Rust traits.  | 0.1.0   |
+| fadroma-declare-contract | Deprecated. An attempt at a smart contract DSL.              | 0.1.0   |
+| fadroma-derive-contract  | Provides the `#[init]`, `#[handle]` and `#[query]` macros.   | 0.1.0   |
+| fadroma-ensemble         | Enables multiple contracts to be tested in Rust.             | 0.1.0   |
+| fadroma-killswitch       | Emergency pause and termination for smart contracts.         | 0.1.0   |
+| fadroma-math             | 256-bit integers, SHA256 checksum, ChaCha RNG                | 0.1.0   |
+| fadroma-platform-scrt    | Support for [Secret Network](https://scrt.network/)          | 0.1.0   |
+| fadroma-platform-terra   | Support for [Terra](https://www.terra.money/)                | TODO    |
+| fadroma-snip20-api       | Provides `ISNIP20` for talking to SNIP20 tokens              | 0.1.0   |
+| fadroma-snip20-impl      | Reusable implementation of a SNIP20 token                    | 0.1.0   |
+| fadroma-storage          | Different ways of interacting with the storage APIs.         | 0.1.0   |
+
+### TypeScript
+
+| Package   | Purpose                                                                 |
+| --------- | ----------------------------------------------------------------------- |
+| ganesha   | Allows TypeScript to be used without an intermediate compilation step.  |
+| kabinet   | Class-based interface to the filesystem. Ops uses this to store config. |
+| komandi   | Simple command line parser.                                             |
+| konzola   | Console output formatter.                                               |
+| ops       | Classes representing the CosmWasm build/upload/deploy workflow.         |
+| scrt      | Specialization of the `ops` classes for Secret Network                  |
+| scrt-1.0  | Secret Network 1.0 support.                                             |
+| scrt-1.2  | Secret Network 1.2 support.                                             |
+| tools     | Various utilities.                                                      |
 
 ## Contributing to Fadroma
 
 Please see the [contribution guidelines](CONTRIBUTING.md).
-
-## Contents
-
-* `lib/` - Rust components. 
-* `ops/` - Generic deployment code.
-* `ops-scrt/` - SecretNetwork-specific deployment code
-* `ops-scrt-1.0/`, `ops-scrt-1.2` - compatibility between holodeck-2/supernova-1
-* `tools` - General JS utilities used across the library
