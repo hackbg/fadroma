@@ -1,11 +1,9 @@
-use fadroma::{
+use fadroma_platform_scrt::{
     schemars,
     schemars::JsonSchema,
-    scrt_link::ContractLink,
-    cosmwasm_std::{
-        Env, HumanAddr, Coin,
-        testing:: mock_env
-    }
+    Env, HumanAddr, Coin,
+    ContractLink,
+    testing::mock_env
 };
 
 use serde::{Serialize, Deserialize};

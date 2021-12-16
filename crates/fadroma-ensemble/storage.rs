@@ -34,8 +34,8 @@ impl ReadonlyStorage for Revertable<TestStorage> {
         &'a self,
         start: Option<&[u8]>,
         end: Option<&[u8]>,
-        order: fadroma::Order,
-    ) -> Box<dyn Iterator<Item = fadroma::KV> + 'a> {
+        order: Order,
+    ) -> Box<dyn Iterator<Item = KV> + 'a> {
         self.readable().range(start, end, order)
     }
 }

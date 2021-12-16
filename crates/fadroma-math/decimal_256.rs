@@ -4,10 +4,8 @@ use std::fmt::{self, Write};
 use std::ops;
 use std::str::FromStr;
 
-use fadroma::{StdResult, schemars};
-use fadroma::schemars::JsonSchema;
-use fadroma::cosmwasm_std::{Decimal, StdError};
-use fadroma::uint256::Uint256;
+use fadroma_platform_scrt::{StdResult, Decimal, StdError, schemars, schemars::JsonSchema};
+use crate::uint256::Uint256;
 use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use primitive_types::U256;
 

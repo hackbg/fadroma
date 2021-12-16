@@ -1,16 +1,15 @@
-use fadroma::{
-    scrt_callback::Callback,
-    scrt_link::{ContractLink, ContractInstantiationInfo},
-    scrt_storage::{save, load},
+use fadroma_platform_scrt::{
+    Callback,
+    ContractLink,
+    ContractInstantiationInfo,
     schemars,
     schemars::JsonSchema,
-    cosmwasm_std::{
-        HumanAddr, StdResult, StdError, InitResponse,
-        HandleResponse, Binary, Env, CosmosMsg, WasmMsg,
-        Uint128, Storage, Empty, QueryRequest, WasmQuery,
-        Querier, from_binary, to_binary, coin, to_vec
-    }
+    HumanAddr, StdResult, StdError, InitResponse,
+    HandleResponse, Binary, Env, CosmosMsg, WasmMsg,
+    Uint128, Storage, Empty, QueryRequest, WasmQuery,
+    Querier, from_binary, to_binary, coin, to_vec
 };
+use fadroma_storage::{save, load};
 use crate::{ContractEnsemble, MockEnv, ContractHarness, MockDeps};
 
 use serde::{Serialize, Deserialize};

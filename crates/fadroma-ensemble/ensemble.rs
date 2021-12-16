@@ -5,8 +5,11 @@ use fadroma_platform_scrt::{
     Extern, Env, StdResult, InitResponse, Coin,
     HandleResponse, Binary, HumanAddr, CosmosMsg,
     WasmMsg, BlockInfo, to_binary, from_binary,
+    ContractLink,
+    ContractInstantiationInfo,
     testing::MockApi
 };
+
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
