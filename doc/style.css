@@ -24,7 +24,7 @@ a:hover {
   text-decoration: underline;
 }
 a, a:focus, a:visited, a:active, a:hover {
-  color: #9013fe
+  color: rgb(101, 179, 76)
 }
 
 .logo {
@@ -37,10 +37,18 @@ h1 {
   letter-spacing: 0.25em;
   text-transform: uppercase;
 }
+h2 {
+  font-size: 2em;
+}
+h3 {
+  font-size: 1.5em;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
 
 button, .button {
   display: inline-block;
-  background: #9013fe;
+  background: rgb(101, 179, 76);
   color: white;
   padding: 0 1em;
   margin: 1em 0;
@@ -51,4 +59,17 @@ button, .button {
 }
 a.button:focus, a.button:visited, a.button:active, a.button:hover {
   color: white;
+}
+
+table {
+  width: 50%;
+  width: 50vw;
+  margin: 0 auto 5em;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  padding-right: 5em
 }

@@ -7,19 +7,163 @@
     <link href="https://fonts.googleapis.com/css?family=Jost:400|Jost:900&display=swap" rel="stylesheet">
   </head>
   <body>
-    <header>
-      <img class="logo" src="logo.svg">
-      <h1>Fadroma</h1>
-    </header>
-    <section>
-      <h2>Smart contract operations framework.</h2>
-      <p>Currently supports <a href="https://scrt.network/">Secret Network</a>.</p>
-      <a class="button" href="js/index.html">View the JS documentation</a>
-      <a class="button" href="fadroma/index.html">View the Rust documentation</a>
-      <a class="button" href="https://github.com/hackbg/fadroma">View the full source on GitHub</a>
-    </section>
-    <footer>
-      Made at <a href="https://hack.bg">Hack.bg</a>.
-    </footer>
+
+<div data-align="center">
+<!--
+ I was always willing to be reasonable until I had to be unreasonable.
+ Sometimes reasonable men must do unreasonable things.
+ - Marvin Heemeyer
+-->
+<p><img src="./logo.svg" height="300" /></p>
+<p>Made with 💚 at <a href="https://hack.bg">Hack.bg</a>.</p>
+<p><a href="https://coveralls.io/github/hackbg/fadroma?branch=21.12"><img src="https://coveralls.io/repos/github/hackbg/fadroma/badge.svg?branch=21.12" alt="Coverage Status" /></a></p>
+</div>
+<h2 id="contents">Contents</h2>
+<h3 id="rust">Rust</h3>
+<table>
+<colgroup>
+<col style="width: 47%" />
+<col style="width: 5%" />
+<col style="width: 46%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Crate</th>
+<th>Version</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma">fadroma</a></td>
+<td>21.12.0</td>
+<td>Reexports all the following crates:</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-auth">fadroma-auth</a></td>
+<td>0.1.0</td>
+<td>Provides authentication primitives.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-auth-proc">fadroma-auth-proc</a></td>
+<td>0.1.0</td>
+<td>Defines the <code>#[require_admin]</code> macro.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-bind-js">fadroma-bind-js</a></td>
+<td>0.1.0</td>
+<td>Allows contracts to be loaded in the browser.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-composability">fadroma-composability</a></td>
+<td>0.1.0</td>
+<td>Helpers for building contracts out of reusable Rust traits.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-declare-contract">fadroma-declare-contract</a></td>
+<td>0.1.0</td>
+<td>Deprecated. Our first attempt at smoothing out the verbosity of the CW0.10 API.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-derive-contract">fadroma-derive-contract</a></td>
+<td>0.1.0</td>
+<td>Provides the <code>#[init]</code>, <code>#[handle]</code> and <code>#[query]</code> macros.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-ensemble">fadroma-ensemble</a></td>
+<td>0.1.0</td>
+<td>Enables multiple contracts to be tested in Rust.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-killswitch">fadroma-killswitch</a></td>
+<td>0.1.0</td>
+<td>Emergency pause and termination for smart contracts.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-math">fadroma-math</a></td>
+<td>0.1.0</td>
+<td>256-bit integers, SHA256 checksum, ChaCha RNG</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-platform-scrt">fadroma-platform-scrt</a></td>
+<td>0.1.0</td>
+<td>Support for <a href="https://scrt.network/">Secret Network</a>, including inter-contract communication.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-platform-terra">fadroma-platform-terra</a></td>
+<td>TODO</td>
+<td>Support for <a href="https://www.terra.money/">Terra</a></td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-snip20-api">fadroma-snip20-api</a></td>
+<td>0.1.0</td>
+<td>Provides <code>ISNIP20</code> for talking to SNIP20 tokens</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-snip20-impl">fadroma-snip20-impl</a></td>
+<td>0.1.0</td>
+<td>Reusable implementation of a SNIP20 token</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/crates/fadroma-storage">fadroma-storage</a></td>
+<td>0.1.0</td>
+<td>Different ways of interacting with the storage APIs.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="typescript">TypeScript</h3>
+<table>
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 61%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Package</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/ganesha">ganesha</a></td>
+<td>Allows TypeScript to be used without an intermediate compilation step.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/packages/kabinet">kabinet</a></td>
+<td>Class-based interface to the filesystem. Ops uses this to store config.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/packages/komandi">komandi</a></td>
+<td>Simple command line parser.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/packages/konzola">konzola</a></td>
+<td>Console output formatter.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/packages/ops">ops</a></td>
+<td>Classes representing the CosmWasm build/upload/deploy workflow.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/packages/scrt">scrt</a></td>
+<td>Specialization of the <code>ops</code> classes for Secret Network</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/packages/scrt-1.0">scrt-1.0</a></td>
+<td>Secret Network 1.0 support.</td>
+</tr>
+<tr class="even">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/packages/scrt-1.2">scrt-1.2</a></td>
+<td>Secret Network 1.2 support.</td>
+</tr>
+<tr class="odd">
+<td><a href="https://github.com/hackbg/fadroma/tree/21.12/packages/tools">tools</a></td>
+<td>Various utilities.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="contributing-to-fadroma">Contributing to Fadroma</h2>
+<p>Please see the <a href="CONTRIBUTING.md">contribution guidelines</a>.</p>
+
   </body>
 </html>
