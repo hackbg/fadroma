@@ -23,6 +23,7 @@
     "bignumber.js":      "^9.0.1"
   },
   "scripts": {
+    "docs:pan": "pandoc README.md | sed -e 's|./crates|https://github.com/hackbg/fadroma/tree/21.12/crates|' | sed -e 's|./packages|https://github.com/hackbg/fadroma/tree/21.12/packages|' > doc/index.html",
     "docs:rs":  "cp Workspace.toml Cargo.toml; cargo doc; rm Cargo.toml",
     "docs:ts":  "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
     "test:rs":  "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
