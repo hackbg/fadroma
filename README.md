@@ -1,6 +1,4 @@
-# [Fadroma](https://fadroma.tech)
-
-Industrial-strength tooling and components for WASM-based smart contracts.
+<div align="center">
 
 ```
 "I was always willing to be reasonable until I had to be unreasonable.
@@ -10,16 +8,19 @@ Industrial-strength tooling and components for WASM-based smart contracts.
 
 ![](/doc/logo.svg)
 
-## Contents
+Made with 💚  at [Hack.bg](https://hack.bg).
 
-Fadroma is Hack.bg's attempt to define and standardize unified development practices
-targeting CosmWasm-based blockchains. Our primary focus has been Secret Network.
+[![Coverage Status](https://coveralls.io/repos/github/hackbg/fadroma/badge.svg?branch=refactor/crates)](https://coveralls.io/github/hackbg/fadroma?branch=refactor/crates)
+
+</div>
+
+## Contents
 
 ### Rust
 
 | Crate                                                         | Version | Purpose                                                      |
 | ------------------------------------------------------------- | ------- | ------------------------------------------------------------ |
-| [fadroma](./crates/fadroma)                                   | 21.12.0 | Reexports all other crates.                                  |
+| [fadroma](./crates/fadroma)                                   | 21.12.0 | Reexports all the following crates:                          |
 | [fadroma-auth](./crates/fadroma-auth)                         | 0.1.0   | Provides authentication primitives.                          |
 | [fadroma-auth-proc](./crates/fadroma-auth-proc)               | 0.1.0   | Defines the `#[require_admin]` macro.                        |
 | [fadroma-bind-js](./crates/fadroma-bind-js)                   | 0.1.0   | Allows contracts to be loaded in the browser.                |
