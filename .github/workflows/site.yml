@@ -2,26 +2,39 @@ name: Publish documentation
 on: [push]
 jobs:
   site:
-    if: github.ref == 'refs/heads/main'
     name: build website
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+
+      - name: Checkout
         uses: actions/checkout@v2
-        with: { fetch-depth: 0 }
-      - name: rs-toolchain
+        with: { submodules: true }
+
+      - name: Determine default branch
+        run: |
+          DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+          echo "default_branch=$DEFAULT_BRANCH" >> $GITHUB_ENV
+          echo "default_branch_ref=refs/heads/$DEFAULT_BRANCH" >> $GITHUB_ENV
+
+      - name: Get Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
-      - name: generate Rust documentation
+
+      - run: cp Workspace.toml Cargo.toml
+
+      - name: Generate Rust documentation
         uses: actions-rs/cargo@v1
         with: { command: doc }
-      - name: generate JS documentation
-        run: yarn && yarn docs
-      - name: publish
+
+      #- name: Generate JS documentation
+        #run: yarn && yarn docs
+
+      - name: Publish
+        if:   github.ref == env.default_branch_ref
         run: |
           ls
           rm .gitignore
