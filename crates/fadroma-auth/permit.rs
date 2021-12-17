@@ -2,16 +2,16 @@ use fadroma_platform_scrt::*;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[cfg(not(test))] use cosmwasm_std::CanonicalAddr;
-#[cfg(not(test))] use ripemd160::{Digest, Ripemd160};
-#[cfg(not(test))] use secp256k1::Secp256k1;
-#[cfg(not(test))] use sha2::Sha256;
+#[cfg(target_arch = "wasm32")] use cosmwasm_std::CanonicalAddr;
+#[cfg(target_arch = "wasm32")] use ripemd160::{Digest, Ripemd160};
+#[cfg(target_arch = "wasm32")] use secp256k1::Secp256k1;
+#[cfg(target_arch = "wasm32")] use sha2::Sha256;
 
 pub trait Permission: Serialize + JsonSchema + Clone + PartialEq { }
 
 impl<T: Serialize + JsonSchema + Clone + PartialEq> Permission for T { }
 
-#[cfg(not(test))]
+#[cfg(target_arch = "wasm32")]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Permit<P: Permission> {
@@ -19,7 +19,7 @@ pub struct Permit<P: Permission> {
     pub signature: PermitSignature
 }
 
-#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub struct Permit<P: Permission> {
@@ -27,7 +27,7 @@ pub struct Permit<P: Permission> {
     pub address: HumanAddr
 }
 
-#[cfg(test)]
+#[cfg(not(target_arch = "wasm32"))]
 impl<P: Permission> Permit<P> {
     pub fn new(
         address: impl Into<HumanAddr>,
@@ -77,7 +77,7 @@ impl<P: Permission> Permit<P> {
         self.validate(deps, current_contract_addr)
     }
 
-    #[cfg(test)]
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn validate<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
@@ -92,7 +92,7 @@ impl<P: Permission> Permit<P> {
         Ok(self.address.clone())
     }
 
-    #[cfg(not(test))]
+    #[cfg(target_arch = "wasm32")]
     pub fn validate<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
@@ -198,7 +198,7 @@ impl<P: Permission> Permit<P> {
         )
     }
 
-    #[cfg(not(test))]
+    #[cfg(target_arch = "wasm32")]
     fn pubkey_to_account(&self, pubkey: &Binary) -> CanonicalAddr {
         let mut hasher = Ripemd160::new();
         hasher.update(Sha256::digest(&pubkey.0));
