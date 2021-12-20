@@ -83,7 +83,7 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scrt::{mock_dependencies, mock_env};
+    use fadroma_platform_scrt::{mock_dependencies, mock_env};
 
     #[test]
     fn test_handle() {
@@ -163,7 +163,7 @@ mod tests {
         let result = query(deps, QueryMsg::Admins {}, DefaultImpl).unwrap();
         
         match result {
-            QueryResponse::Admins { addresses } => {
+            super::QueryResponse::Admins { addresses } => {
                 assert!(addresses.len() == 0);
             }
         }
@@ -177,7 +177,7 @@ mod tests {
 
         let result = query(deps, QueryMsg::Admins {}, DefaultImpl).unwrap();
         match result {
-            QueryResponse::Admins { addresses } => {
+            super::QueryResponse::Admins { addresses } => {
                 assert!(addresses == admins);
             }
         }
