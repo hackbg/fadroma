@@ -1,5 +1,6 @@
 use fadroma_platform_scrt::*;
 use fadroma_derive_contract::{contract, init, handle, query};
+use fadroma_storage::*;
 use schemars;
 use serde;
 
