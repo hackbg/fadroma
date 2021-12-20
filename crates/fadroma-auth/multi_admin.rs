@@ -1,11 +1,5 @@
-use crate::{
-    scrt::{
-        HumanAddr, StdResult, InitResponse, HandleResponse,
-        Extern, Env, Querier, Storage, Api, StdError, CanonicalAddr
-    },
-    scrt_storage::*,
-    derive_contract::{contract, init, handle, query}
-};
+use fadroma_platform_scrt::*;
+use fadroma_derive_contract::{contract, init, handle, query};
 use schemars;
 use serde;
 
