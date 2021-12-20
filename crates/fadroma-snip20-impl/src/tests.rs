@@ -16,7 +16,7 @@ use crate::{
     msg::{*, ContractStatusLevel}
 };
 
-use crate::msg::InitMsg;
+use crate::msg::{InitMsg, HandleMsg, QueryMsg};
 use fadroma_math::crypto::sha_256;
 
 fn init<S: Storage, A: Api, Q: Querier>(
