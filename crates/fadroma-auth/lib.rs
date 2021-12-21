@@ -12,8 +12,6 @@ pub use admin::{
     // If you need those, `use fadroma::admin::{InitMsg, ...}`
 };
 
-pub mod multi_admin;
-
 pub mod permit;
 pub use permit::*;
 
