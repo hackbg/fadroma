@@ -18,6 +18,14 @@ impl ISnip20 {
         }
     }
 
+    pub fn attach_to (address: &HumanAddr, code_hash: &String) -> Self {
+        Self {
+            link: ContractLink { address: address.clone(), code_hash: code_hash.clone() },
+            padding:    None,
+            block_size: BLOCK_SIZE
+        }
+    }
+
     pub fn mint (
         &self, recipient: &HumanAddr, amount: Uint128
     ) -> StdResult<CosmosMsg> {
@@ -54,6 +62,14 @@ impl ISnip20 {
     ) -> StdResult<CosmosMsg> {
         snip20::send_from_msg(
             owner.clone(), recipient.clone(), amount, msg,
+            self.padding.clone(), self.block_size,
+            self.link.code_hash.clone(), self.link.address.clone()
+        )
+    }
+
+    pub fn register_receive (&self, hash: String) -> StdResult<CosmosMsg> {
+        snip20::register_receive_msg(
+            hash,
             self.padding.clone(), self.block_size,
             self.link.code_hash.clone(), self.link.address.clone()
         )
