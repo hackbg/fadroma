@@ -1,43 +1,63 @@
+import { basename, dirname } from 'path'
 import { bold, Console } from './ToolsCLI'
 
 const console = Console(import.meta.url)
 
 import { createServer } from 'net'
 
-import Docker from 'dockerode'
-export { Docker }
-
 import waitPort from 'wait-port'
 export { waitPort }
 
 /** Get a random free port number by briefly running a server on a random unused port,
   * then stopping the server and returning the port number. */
-export const freePort = () => new Promise((ok, fail)=>{
-  let port = 0
-  const server = createServer()
-  server.on('listening', () => {
-    port = (server.address() as { port: number }).port
-    server.close()
+export function freePort () {
+  return new Promise((ok, fail)=>{
+    let port = 0
+    const server = createServer()
+    server.on('listening', () => {
+      port = (server.address() as { port: number }).port
+      server.close()
+    })
+    server.on('close', () => ok(port))
+    server.on('error', fail)
+    server.listen(0, '127.0.0.1')
   })
-  server.on('close', () => ok(port))
-  server.on('error', fail)
-  server.listen(0, '127.0.0.1')
-})
+}
 
-/** Make sure an image is present in the Docker cache
-  * (by pulling it if `docker.getImage` throws). */
-export const pulled = async (imageName: string, docker = new Docker()) => {
+import Docker from 'dockerode';
+export { Docker }
+
+/** Make sure an image is present in the Docker cache,
+  * by pulling it if `docker.getImage` throws,
+  * or by building it if `docker.pull` throws. */
+export async function ensureDockerImage (
+  imageName:      string,
+  dockerfilePath: string,
+  docker = new Docker()
+): Promise<string> {
 
   try {
+    await checkImage()
+  } catch (_e) {
+    try {
+      console.warn(`Image ${imageName} not found, pulling...`)
+      await pullImage()
+    } catch (_e) {
+      console.warn(`Image ${imageName} not found upstream, building...`)
+      await buildImage()
+    }
+  }
 
-    // throws if inspected image does not exist:
+  return imageName // return just the name
+
+  /** Throws if inspected image does not exist locally. */
+  async function checkImage (): Promise<void> {
     const image = docker.getImage(imageName)
     await image.inspect()
+  }
 
-  } catch (_e) {
-
-    console.warn(`Image ${imageName} not found, pulling...`)
-
+  /** Throws if inspected image does not exist in Docker Hub. */
+  async function pullImage (): Promise<void> {
     await new Promise<void>((ok, fail)=>docker.pull(
       imageName,
       (err: Error, stream: unknown) => {
@@ -56,11 +76,26 @@ export const pulled = async (imageName: string, docker = new Docker()) => {
         )
       }
     ))
-
   }
 
-  // return just the name
-  return imageName
+  /* Throws if the build fails, and then you have to fix stuff. */
+  async function buildImage (): Promise<void> {
+    const context = dirname(dockerfilePath)
+    const src     = [basename(dockerfilePath)]
+    const stream = await docker.buildImage({ context, src }, { t: imageName })
+    await new Promise<void>((ok, fail)=>docker.modem.followProgress(
+      stream,
+      (err: Error, _output: unknown) => {
+        if (err) return fail(err)
+        console.info(`build ok`)
+        ok()
+      },
+      (event: Record<string, unknown>) => console.info(
+        `📦 docker build says:`,
+        JSON.stringify(event)
+      )
+    ))
+  }
 
 }
 
