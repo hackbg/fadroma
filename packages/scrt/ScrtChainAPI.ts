@@ -253,14 +253,12 @@ export class Scrt extends BaseChain {
   #ready: Promise<any>|null = null
   get ready () {
     if (this.#ready) return this.#ready
-    return this.#ready = this.init()
+    return this.#ready = this.#init()
   }
 
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
-  async init (): Promise<IChain> {
-
-    console.warn('@fadroma/ops-scrt: Chain#init is deprecated, use "await new Chain().ready" for one-time initialization')
+  async #init (): Promise<IChain> {
 
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
