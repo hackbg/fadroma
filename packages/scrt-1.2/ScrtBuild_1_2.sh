@@ -17,6 +17,7 @@ chown -R $USER /contract
 chown $USER /output
 # Execute a release build then optimize it with Binaryen
 echo "Building $Package as user build ($USER:$GROUP)..."
+cd /contract
 Output=`echo "$Package" | tr '-' '_'`
 su build -c "env RUSTFLAGS='-C link-arg=-s' \
   cargo build -p $Package --release --target wasm32-unknown-unknown --locked --verbose \

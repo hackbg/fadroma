@@ -1,12 +1,13 @@
 import type { ContractCodeOptions } from './Model'
-import { resolve, existsSync, Docker, pulled, Console, bold, relative } from '@fadroma/tools'
+import { resolve, existsSync, Docker, ensureDockerImage, Console, bold, relative } from '@fadroma/tools'
 
 const console = Console(import.meta.url)
 
 export abstract class ContractCode {
 
-  abstract buildImage:  string
-  abstract buildScript: string
+  abstract buildImage:      string|null
+  abstract buildDockerfile: string|null
+  abstract buildScript:     string|null
 
   code: ContractCodeOptions = {}
 
@@ -44,11 +45,15 @@ export abstract class ContractCode {
 
     if (!existsSync(artifact)) {
 
-      console.info(`Building working tree at ${bold(this.workspace)} into ${bold(outputDir)}...`)
+      console.info(
+        `Building crate ${bold(this.crate)} `           +
+        `from working tree at ${bold(this.workspace)} ` +
+        `into ${bold(outputDir)}...`
+      )
 
-      const buildImage   = await pulled(this.buildImage, this.docker)
+      const buildImage = await ensureDockerImage(this.buildImage, this.buildDockerfile, this.docker)
       const buildCommand = `bash /entrypoint.sh ${this.crate} ${ref}`
-      const buildArgs    = this.getBuildArgs(ref, outputDir, extraBinds)
+      const buildArgs = this.getBuildArgs(ref, outputDir, extraBinds)
 
       console.debug(
         `Running ${bold(buildCommand)} in ${bold(buildImage)} with the following options:`,
@@ -73,24 +78,27 @@ export abstract class ContractCode {
 
   private getBuildArgs (ref: string, outputDir: string, extraBinds?: string[]) {
 
+    const binds = [
+      `${outputDir}:/output:rw`,
+      `project_cache_${ref}:/code/target:rw`,
+      `cargo_cache_${ref}:/usr/local/cargo:rw`,
+      `${this.workspace}:/contract:rw`
+    ]
+
+    if (this.buildScript) {
+      binds.push(`${this.buildScript}:/entrypoint.sh:ro`)
+    }
+
     const buildArgs = {
       Tty:         true,
       AttachStdin: true,
       Entrypoint:  ['/bin/sh', '-c'],
+      HostConfig:  { Binds: binds },
       Env: [
         'CARGO_NET_GIT_FETCH_WITH_CLI=true',
         'CARGO_TERM_VERBOSE=true',
         'CARGO_HTTP_TIMEOUT=240'
       ],
-      HostConfig: {
-        Binds: [
-          `${this.buildScript}:/entrypoint.sh:ro`,
-          `${outputDir}:/output:rw`,
-          `project_cache_${ref}:/code/target:rw`,
-          `cargo_cache_${ref}:/usr/local/cargo:rw`,
-          `${this.workspace}:/contract:rw`
-        ]
-      }
     }
 
     extraBinds?.forEach(bind=>buildArgs.HostConfig.Binds.push(bind))

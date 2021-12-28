@@ -31,20 +31,28 @@ export { Docker }
   * by pulling it if `docker.getImage` throws,
   * or by building it if `docker.pull` throws. */
 export async function ensureDockerImage (
-  imageName:      string,
-  dockerfilePath: string,
-  docker = new Docker()
+  imageName:      string|null = null,
+  dockerfilePath: string|null = null,
+  docker:         Docker      = new Docker()
 ): Promise<string> {
+
+  const PULLING  = `Image ${imageName} not found, pulling...`
+  const BUILDING = `Image ${imageName} not found upstream, building from ${dockerfilePath}...`
+  const NO_DOCKERFILE = `Image ${imageName} not found and no Dockerfile provided; can't proceed.`
 
   try {
     await checkImage()
   } catch (_e) {
     try {
-      console.warn(`Image ${imageName} not found, pulling...`)
+      console.warn(PULLING)
       await pullImage()
     } catch (_e) {
-      console.warn(`Image ${imageName} not found upstream, building...`)
-      await buildImage()
+      if (!dockerfilePath) {
+        throw new Error(NO_DOCKERFILE)
+      } else {
+        console.warn(BUILDING)
+        await buildImage()
+      }
     }
   }
 
@@ -80,9 +88,10 @@ export async function ensureDockerImage (
 
   /* Throws if the build fails, and then you have to fix stuff. */
   async function buildImage (): Promise<void> {
+    const dockerfile = basename(dockerfilePath)
     const context = dirname(dockerfilePath)
-    const src     = [basename(dockerfilePath)]
-    const stream = await docker.buildImage({ context, src }, { t: imageName })
+    const src     = [dockerfile]
+    const stream = await docker.buildImage({ context, src }, { t: imageName, dockerfile })
     await new Promise<void>((ok, fail)=>docker.modem.followProgress(
       stream,
       (err: Error, _output: unknown) => {

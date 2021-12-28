@@ -3,7 +3,7 @@ import { IChainNode } from '@fadroma/ops'
 import {
   Directory, JSONFile, JSONDirectory,
   relative, cwd, TextFile,
-  Docker, waitPort, freePort, pulled, waitUntilLogsSay,
+  Docker, waitPort, freePort, ensureDockerImage, waitUntilLogsSay,
   bold, Console
 } from '@fadroma/tools'
 
@@ -265,7 +265,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
 
   /** Dockerode passes these to the Docker API in order to launch a localnet container. */
   get spawnContainerOptions () {
-    return pulled(this.image, this.docker)
+    return ensureDockerImage(this.image, this.docker)
       .then((Image: string)=>({
         AutoRemove: true,
         Image,
@@ -358,7 +358,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   /** What Dockerode (https://www.npmjs.com/package/dockerode) passes to the Docker API
     * in order to launch a cleanup container. */
   get cleanupContainerOptions () {
-    return pulled(this.image, this.docker).then((Image:string)=>({
+    return ensureDockerImage(this.image, this.docker).then((Image:string)=>({
       Image,
       Name:       `${this.chainId}-${this.port}-cleanup`,
       Entrypoint: [ '/bin/rm' ],

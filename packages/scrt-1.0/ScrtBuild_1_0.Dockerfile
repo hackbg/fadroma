@@ -12,6 +12,8 @@ ENV USER 1000
 ENV GROUP 1000
 # ensure mountpoint for source
 WORKDIR /src
-ADD entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT [ "/entrypoint.sh" ]
+
+# mounted instead:
+#ADD ScrtBuild_1_0.sh /entrypoint.sh
+#RUN chmod +x /entrypoint.sh
+#ENTRYPOINT [ "/entrypoint.sh" ]

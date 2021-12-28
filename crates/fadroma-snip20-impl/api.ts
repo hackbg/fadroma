@@ -1,5 +1,10 @@
 import type { IAgent, ContractAPIOptions } from "@fadroma/scrt";
-import { ScrtContract, loadSchemas } from "@fadroma/scrt";
+import {
+  ScrtContract,
+  ScrtContract_1_0,
+  ScrtContract_1_2,
+  loadSchemas
+} from "@fadroma/scrt";
 import { randomHex } from "@fadroma/tools";
 
 // @ts-ignore
@@ -208,7 +213,7 @@ export class SNIP20Contract extends ScrtContract {
     );
 
   /**
-   * Perform locking of the funds in launchpad contract
+   * Perform unlocking of the funds in launchpad contract
    *
    * @param {string} contractAddress Address of the Launchpad contract
    * @param {number} entries Number of entries to unlock
@@ -242,4 +247,28 @@ export class SNIP20Contract extends ScrtContract {
       }
     }
   }
+}
+
+// Set build config:
+
+const scrtContract_1_0 = new ScrtContract_1_0()
+export class SNIP20Contract_1_0 extends SNIP20Contract {
+  // @ts-ignore
+  buildImage      = scrtContract_1_0.buildImage
+
+  buildDockerfile = scrtContract_1_0.buildDockerfile
+
+  // @ts-ignore
+  buildScript     = scrtContract_1_0.buildScript
+}
+
+const scrtContract_1_2 = new ScrtContract_1_2()
+export class SNIP20Contract_1_2 extends SNIP20Contract {
+  // @ts-ignore
+  buildImage      = scrtContract_1_2.buildImage
+
+  buildDockerfile = scrtContract_1_2.buildDockerfile
+
+  // @ts-ignore
+  buildScript     = scrtContract_1_2.buildScript
 }
