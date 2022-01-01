@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -aemu
-apt update && apt install -y git
 # The Cargo package that contains the contract
 Package=$1
 Tag=$2
