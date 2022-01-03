@@ -13,6 +13,7 @@ const PREFIX_TRANSFERS: &[u8] = b"transfers";
 // over 11 billion years for it to rollback. I'm pretty sure
 // we'll have bigger issues by then.
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct Tx {
     pub id: u64,
     pub from: HumanAddr,
@@ -29,6 +30,7 @@ pub struct Tx {
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum TxAction {
     Transfer {
         from: HumanAddr,
@@ -53,6 +55,7 @@ pub enum TxAction {
 // we'll have bigger issues by then.
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct RichTx {
     pub id: u64,
     pub action: TxAction,
@@ -68,6 +71,7 @@ pub struct RichTx {
 /// This type is the stored version of the legacy transfers
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 struct StoredLegacyTransfer {
     id: u64,
     from: CanonicalAddr,
@@ -128,6 +132,7 @@ impl TxCode {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 struct StoredTxAction {
     tx_type: u8,
     address1: Option<CanonicalAddr>,
@@ -229,6 +234,7 @@ impl StoredTxAction {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 struct StoredRichTx {
     id: u64,
     action: StoredTxAction,

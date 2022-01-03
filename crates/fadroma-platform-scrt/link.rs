@@ -7,6 +7,7 @@ pub type CodeHash = String;
 
 /// Info needed to instantiate a contract.
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct ContractInstantiationInfo {
     pub code_hash: CodeHash,
     pub id:        CodeId
@@ -24,6 +25,7 @@ impl PartialEq for ContractInstantiationInfo {
 
 /// Info needed to talk to a contract instance.
 #[derive(Default, Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct ContractLink<A> {
     pub address:   A,
     pub code_hash: CodeHash

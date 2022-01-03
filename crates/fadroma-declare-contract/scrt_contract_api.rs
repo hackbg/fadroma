@@ -27,6 +27,7 @@
     ($Msg:ident $body:tt) => {
         #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
         #[serde(rename_all="snake_case")]
+        #[serde(deny_unknown_fields)]
         pub struct $Msg $body
     }
 }
@@ -37,6 +38,7 @@
     ( $( $Enum:ident { $( $(#[$meta:meta])* $Msg:ident $($body:tt)? )* } )* ) => { $(
         #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
         #[serde(rename_all="snake_case")]
+        #[serde(deny_unknown_fields)]
         pub enum $Enum { $(
             $(#[$meta])* $Msg $($body)?
         ),* } )*

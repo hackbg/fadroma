@@ -11,12 +11,14 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct InitialBalance {
     pub address: HumanAddr,
     pub amount: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct InitialAllowance {
     pub owner: HumanAddr,
     pub spender: HumanAddr,
@@ -25,6 +27,7 @@ pub struct InitialAllowance {
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct InitMsg {
     pub name: String,
     pub admin: Option<HumanAddr>,
@@ -42,6 +45,7 @@ pub struct InitMsg {
 /// but can be overridden if necessary
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Default, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct InitConfig {
     /// Indicates whether the total supply is public or should be kept secret.
     /// default: False
@@ -148,6 +152,7 @@ impl InitConfigBuilder {
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum HandleMsg {
     // Native coin interactions
     Redeem {
@@ -291,6 +296,7 @@ pub enum HandleMsg {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum HandleAnswer {
     // Native
     Deposit {
@@ -389,6 +395,7 @@ pub enum HandleAnswer {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum QueryMsg {
     TokenInfo {},
     ContractStatus {},
@@ -423,6 +430,7 @@ pub enum QueryMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum QueryWithPermit {
     Allowance {
         owner: HumanAddr,
@@ -441,6 +449,7 @@ pub enum QueryWithPermit {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum QueryPermission {
     /// Allowance for SNIP-20 - Permission to query allowance of the owner & spender
     Allowance,
@@ -479,6 +488,7 @@ impl QueryMsg {
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum QueryAnswer {
     TokenInfo {
         name: String,
@@ -519,12 +529,14 @@ pub enum QueryAnswer {
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateViewingKeyResponse {
     pub key: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum ResponseStatus {
     Success,
     Failure,
@@ -532,6 +544,7 @@ pub enum ResponseStatus {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum ContractStatusLevel {
     NormalRun,
     StopAllButRedeems,
@@ -576,6 +589,7 @@ mod tests {
 
     #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
     #[serde(rename_all = "snake_case")]
+    #[serde(deny_unknown_fields)]
     pub enum Something {
         Var { padding: Option<String> },
     }

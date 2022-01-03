@@ -14,6 +14,7 @@ impl<T: Serialize + JsonSchema + Clone + PartialEq> Permission for T { }
 #[cfg(target_arch = "wasm32")]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Permit<P: Permission> {
     pub params: PermitParams<P>,
     pub signature: PermitSignature
@@ -22,6 +23,7 @@ pub struct Permit<P: Permission> {
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Permit<P: Permission> {
     pub params: PermitParams<P>,
     pub address: HumanAddr
@@ -208,6 +210,7 @@ impl<P: Permission> Permit<P> {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct PermitParams<P: Permission> {
     pub allowed_tokens: Vec<HumanAddr>,
     pub permit_name: String,
@@ -217,6 +220,7 @@ pub struct PermitParams<P: Permission> {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct PermitSignature {
     pub pub_key: PubKey,
     pub signature: Binary
@@ -224,6 +228,7 @@ pub struct PermitSignature {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct PubKey {
     /// ignored, but must be "tendermint/PubKeySecp256k1" otherwise the verification will fail
     pub r#type: String,
@@ -235,6 +240,7 @@ pub struct PubKey {
 #[remain::sorted]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct SignedPermit<P: Permission> {
     /// ignored
     pub account_number: Uint128,
@@ -267,6 +273,7 @@ impl<P: Permission> SignedPermit<P> {
 #[remain::sorted]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Fee {
     pub amount: Vec<Coin>,
     pub gas: Uint128
@@ -285,6 +292,7 @@ impl Fee {
 #[remain::sorted]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct Coin {
     pub amount: Uint128,
     pub denom: String
@@ -303,6 +311,7 @@ impl Coin {
 #[remain::sorted]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct PermitMsg<P: Permission> {
     pub r#type: String,
     pub value: PermitContent<P>
@@ -321,6 +330,7 @@ impl<P: Permission> PermitMsg<P> {
 #[remain::sorted]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub struct PermitContent<P: Permission> {
     pub allowed_tokens: Vec<HumanAddr>,
     pub permissions: Vec<P>,
@@ -346,6 +356,7 @@ mod tests {
     fn test_permission() {
         #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
         #[serde(rename_all = "snake_case")]
+        #[serde(deny_unknown_fields)]
         enum Permission {
             One,
             Two

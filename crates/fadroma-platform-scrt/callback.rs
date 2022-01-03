@@ -3,6 +3,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(deny_unknown_fields)]
 /// Info needed to have the other contract respond.
 pub struct Callback<A> {
     /// The message to call.

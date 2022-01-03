@@ -9,6 +9,7 @@ pub const VIEWING_KEY_SIZE: usize = 32;
 const VIEWING_KEY_PREFIX: &str = "api_key_";
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct ViewingKey(pub String);
 
 pub fn create_hashed_password(s1: &str) -> [u8; VIEWING_KEY_SIZE] {
