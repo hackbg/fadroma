@@ -1,7 +1,12 @@
 export default async function runCommands (
   commands: Record<string, any>,
   words:    Array<string>,
-  usage:    (command: any)=>any
+  usage:    (command: any) => any = command => {
+    console.log('Available commands:')
+    for (const name of Object.keys(command)) {
+      console.log(`  ${name}`)
+    }
+  }
 ) {
 
   let command = commands
