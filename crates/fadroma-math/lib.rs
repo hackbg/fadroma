@@ -9,3 +9,5 @@ pub use uint256::*;
 
 pub mod decimal_256;
 pub use decimal_256::*;
+
+mod common;

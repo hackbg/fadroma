@@ -2,9 +2,8 @@
 
 Math implementations for CosmWasm environments.
 
-## `Uint256`: 256-bit integers for EVM interop
-
-## Fixed decimal point
+## `Uint256` and `Decimal256`
+ - Based on [cosmwasm-bignumber](https://crates.io/crates/cosmwasm-bignumber) but with safer API.
 
 ## SHA256 hashing
 

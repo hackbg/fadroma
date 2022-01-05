@@ -8,38 +8,16 @@ use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use schemars::JsonSchema;
 use primitive_types::U256;
 
-macro_rules! error {
-    (OVERFLOW: $lhs:expr, $op:expr, $rhs:expr) => {
-        error!(format!("Overflow when calculating {} {} {}", $lhs, $op, $rhs))
-    };
-    (UNDERFLOW: $lhs:expr, $op:expr, $rhs:expr) => {
-        error!(format!("Underflow when calculating {} {} {}", $lhs, $op, $rhs))
-    };
-    ($msg:expr) => {
-        StdError::generic_err($msg)
-    };
-}
+use crate::{
+    common::{error, impl_common_api},
+    decimal_256::Decimal256
+};
 
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, JsonSchema)]
 pub struct Uint256(#[schemars(with = "String")] pub U256);
 
 impl Uint256 {
     /// U256 sqrt ported from here: https://ethereum.stackexchange.com/a/87713/12112
-    ///
-    /// function sqrt(uint y) internal pure returns (uint z) {
-    ///     if (y > 3) {
-    ///         z = y;
-    ///         uint x = y / 2 + 1;
-    ///         while (x < z) {
-    ///             z = x;
-    ///             x = (y / x + x) / 2;
-    ///         }
-    ///     } else if (y != 0) {
-    ///         z = 1;
-    ///     }
-    /// }
-    ///
-    /// Tested it here: https://github.com/enigmampc/u256-sqrt-test/blob/aa7693/src/main.rs
     pub fn sqrt(self) -> StdResult<Self> {
         let mut z = Self::from(0);
 
@@ -73,30 +51,27 @@ impl Uint256 {
         (self * nominator)? / denominator
     }
 
-    pub fn is_zero(&self) -> bool {
-        self.0.is_zero()
+    pub fn decimal_mul(self, b: Decimal256) -> StdResult<Uint256> {
+        if self.is_zero() || b.is_zero() {
+            return Ok(Uint256::zero());
+        }
+    
+        self.multiply_ratio(b.0, Decimal256::DECIMAL_FRACTIONAL)
+    }
+    
+    pub fn decimal_div(self, b: Decimal256) -> StdResult<Uint256> {
+        if b.is_zero() {
+            return Err(error!(DIV: self))
+        }
+    
+        if self.is_zero() {
+            return Ok(Uint256::zero());
+        }
+    
+        self.multiply_ratio(Decimal256::DECIMAL_FRACTIONAL, b.0)
     }
 
-    pub fn zero() -> Self {
-        Uint256(U256::zero())
-    }
-
-    pub fn checked_div(self, rhs: Self) -> StdResult<Self> {
-        self / rhs
-    }
-
-    pub fn checked_mul(self, rhs: Self) -> StdResult<Self> {
-        self * rhs
-    }
-
-    pub fn checked_sub(self, rhs: Self) -> StdResult<Self> {
-        self - rhs
-    }
-
-    pub fn checked_add(self, rhs: Self) -> StdResult<Self> {
-        self + rhs
-    }
-
+    #[inline]
     pub fn checked_pow(self, rhs: Self) -> StdResult<Self> {
         match self.0.checked_pow(rhs.0) {
             Some(res) => Ok(res.into()),
@@ -105,6 +80,7 @@ impl Uint256 {
     }
 
     /// Return the first 128 bits.
+    #[inline]
     pub fn low_u128(self) -> u128 {
         self.0.low_u128()
     }
@@ -117,6 +93,8 @@ impl Uint256 {
 
         Ok(self.0.low_u128())
     }
+
+    impl_common_api!();
 }
 
 impl Add for Uint256 {
@@ -124,7 +102,7 @@ impl Add for Uint256 {
 
     fn add(self, rhs: Self) -> Self::Output {
         match self.0.checked_add(rhs.0) {
-            Some(res) => Ok(res.into()),
+            Some(res) => Ok(Self(res)),
             None => Err(error!(OVERFLOW: self, '+', rhs))
         }
     }
@@ -135,7 +113,7 @@ impl Sub for Uint256 {
 
     fn sub(self, rhs: Self) -> Self::Output {
         match self.0.checked_sub(rhs.0) {
-            Some(res) => Ok(res.into()),
+            Some(res) => Ok(Self(res)),
             None => Err(error!(UNDERFLOW: self, '-', rhs))
         }
     }
@@ -146,7 +124,7 @@ impl Mul for Uint256 {
 
     fn mul(self, rhs: Self) -> Self::Output {
         match self.0.checked_mul(rhs.0) {
-            Some(res) => Ok(res.into()),
+            Some(res) => Ok(Self(res)),
             None => Err(error!(OVERFLOW: self, '*', rhs))
         }
     }
@@ -157,8 +135,8 @@ impl Div for Uint256 {
 
     fn div(self, rhs: Self) -> Self::Output {
         match self.0.checked_div(rhs.0) {
-            Some(res) => Ok(res.into()),
-            None => Err(StdError::generic_err("Division by zero"))
+            Some(res) => Ok(Self(res)),
+            None => Err(error!(DIV: self))
         }
     }
 }
@@ -175,20 +153,8 @@ impl From<U256> for Uint256 {
     }
 }
 
-impl From<i128> for Uint256 {
-    fn from(value: i128) -> Self {
-        Uint256(U256::from(value))
-    }
-}
-
 impl From<u128> for Uint256 {
     fn from(value: u128) -> Self {
-        Uint256(U256::from(value))
-    }
-}
-
-impl From<i64> for Uint256 {
-    fn from(value: i64) -> Self {
         Uint256(U256::from(value))
     }
 }
@@ -211,20 +177,8 @@ impl From<u32> for Uint256 {
     }
 }
 
-impl From<i16> for Uint256 {
-    fn from(value: i16) -> Self {
-        Uint256(U256::from(value))
-    }
-}
-
 impl From<u16> for Uint256 {
     fn from(value: u16) -> Self {
-        Uint256(U256::from(value))
-    }
-}
-
-impl From<i8> for Uint256 {
-    fn from(value: i8) -> Self {
         Uint256(U256::from(value))
     }
 }
@@ -412,5 +366,42 @@ mod tests {
         // factor 5/6 (integer devision always floors the result)
         assert_eq!(base.multiply_ratio(5u128, 6u128).unwrap(), Uint256::from(416));
         assert_eq!(base.multiply_ratio(100u128, 120u128).unwrap(), Uint256::from(416));
+    }
+
+
+    #[test]
+    fn decimal_mul() {
+        let left = Uint256::from(300u64);
+        let right = (Decimal256::one() + Decimal256::percent(50)).unwrap(); // 1.5
+
+        assert_eq!(left.decimal_mul(right).unwrap(), Uint256::from(450u64));
+
+        let left = Uint256::from(300u64);
+        let right = Decimal256::zero();
+
+        assert_eq!(left.decimal_mul(right).unwrap(), Uint256::from(0u64));
+
+        let left = Uint256::from(0u64);
+        let right = (Decimal256::one() + Decimal256::percent(50)).unwrap(); // 1.5
+
+        assert_eq!(left.decimal_mul(right).unwrap(), Uint256::from(0u64));
+    }
+
+    #[test]
+    fn decimal_div() {
+        let left = Uint256::from(300u64);
+        let right = (Decimal256::one() + Decimal256::percent(50)).unwrap(); // 1.5
+
+        assert_eq!(left.decimal_div(right).unwrap(), Uint256::from(200u64));
+
+        let left = Uint256::from(300u64);
+        let right = Decimal256::zero();
+
+        assert_eq!(left.decimal_div(right).unwrap_err(), error!(DIV: 300));
+
+        let left = Uint256::from(0u64);
+        let right = (Decimal256::one() + Decimal256::percent(50)).unwrap(); // 1.5
+
+        assert_eq!(left.decimal_div(right).unwrap(), Uint256::from(0u32));
     }
 }
