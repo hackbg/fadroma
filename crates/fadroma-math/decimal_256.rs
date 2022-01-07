@@ -22,24 +22,24 @@ impl Decimal256 {
 
     #[inline]
     /// Create a 1.0 Decimal256
-    pub const fn one() -> Decimal256 {
+    pub const fn one() -> Self {
         Decimal256(Decimal256::DECIMAL_FRACTIONAL)
     }
 
     #[inline]
     /// Convert x% into Decimal256
-    pub fn percent(x: u64) -> Decimal256 {
+    pub fn percent(x: u64) -> Self {
         Decimal256(U256::from(x) * U256::from(10_000_000_000_000_000u64))
     }
 
     #[inline]
     /// Convert permille (x/1000) into Decimal256
-    pub fn permille(x: u64) -> Decimal256 {
+    pub fn permille(x: u64) -> Self {
         Decimal256(U256::from(x) * U256::from(1_000_000_000_000_000u64))
     }
 
     /// Returns the ratio (nominator / denominator) as a Decimal256
-    pub fn from_ratio<A: Into<U256>, B: Into<U256>>(nominator: A, denominator: B) -> StdResult<Decimal256> {
+    pub fn from_ratio<A: Into<U256>, B: Into<U256>>(nominator: A, denominator: B) -> StdResult<Self> {
         let nominator: U256 = nominator.into();
         let denominator: U256 = denominator.into();
 
@@ -52,6 +52,12 @@ impl Decimal256 {
         )?;
 
         Ok(Self(nominator / denominator))
+    }
+
+    pub fn from_uint256(value: impl Into<Uint256>) -> StdResult<Self> {
+        let value = value.into();
+
+        Self::try_from(value)
     }
 
     #[inline]
