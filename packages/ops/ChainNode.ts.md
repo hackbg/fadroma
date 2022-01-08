@@ -8,6 +8,7 @@ in a local Docker container. The code below implements that.
 
 ```typescript
 import { Directory, JSONFile } from '@fadroma/tools'
+import { Identity } from './Agent.ts.md'
 export interface IChainNode {
   chainId: string
   apiURL:  URL
@@ -185,10 +186,11 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   /** Used to command the container engine. */
   docker: Docker = new Docker({ sockerPath: '/var/run/docker.sock' })
 
-  /** The created container */
+  /** The created container. */
   container: {
-    id:       string,
+    id:       string
     Warnings: any
+    logs:     Function
   }
 
   private isRunning = async (id: string = this.container.id) =>
@@ -232,7 +234,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     if (this.chainId !== chainId) {
       console.warn(`Loading state of ${chainId} into ChainNode with id ${this.chainId}`)
     }
-    this.container = { id: containerId, Warnings: null }
+    this.container = { id: containerId, Warnings: null, logs: () => {} }
     this.port = port
     return {containerId, chainId, port}
   }
@@ -323,7 +325,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     console.info(`Created container ${this.container.id} (${bold(this.nodeState.path)})...`)
 
     // start the container
-    await this.startContainer(this.container.idget)
+    await this.startContainer(this.container.id)
     console.info(`Started container ${this.container.id}...`)
 
     // update the record

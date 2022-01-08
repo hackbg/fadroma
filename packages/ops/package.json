@@ -13,6 +13,6 @@
     "@ganesha/tsc": "workspace:*"
   },
   "scripts": {
-    "build": "mkdir -p dist && ganesha-tsc --outDir dist/ index.ts"
+    "build": "rm -rf dist/ && mkdir dist/ && ganesha-tsc --project ./tsconfig.json"
   }
 }

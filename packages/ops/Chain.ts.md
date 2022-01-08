@@ -17,6 +17,10 @@ deployments.
 ## API
 
 ```typescript
+import type { IChainNode } from './ChainNode.ts.md'
+import type { Identity, IAgent } from './Agent.ts.md'
+import type { IContract } from './ContractClient.ts.md'
+
 export interface IChainOptions {
   chainId?: string
   apiURL?:  URL
@@ -57,19 +61,20 @@ export interface IChainState extends IChainOptions {
 ## Implementation
 
 ```typescript
-import type { IChain, IChainNode, IChainState, Identity, IAgent, IContract } from './Model'
+import { Console } from '@fadroma/tools'
+import { URL } from 'url'
+const console = Console(import.meta.url)
+```
 
+```typescript
 import {
   __dirname,
   Directory,
-  Console, bold, symlinkDir, mkdirp, resolve, basename,
+  bold, symlinkDir, mkdirp, resolve, basename,
   readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync,
   colors
 } from '@fadroma/tools'
 
-import { URL } from 'url'
-
-const console = Console(import.meta.url)
 
 export type DefaultIdentity =
   null |

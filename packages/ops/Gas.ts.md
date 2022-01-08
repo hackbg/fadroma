@@ -15,6 +15,16 @@ export type Fees = {
   exec:   Gas
   send:   Gas
 }
+
+export abstract class BaseGas implements Gas {
+  //readonly abstract denom: string
+  amount: Array<{amount: string, denom: string}> = []
+  gas:    string
+  constructor (x: number) {
+    const amount = String(x)
+    this.gas = amount
+  }
+}
 ```
 
 ## Pre-funding
@@ -27,6 +37,8 @@ to send native tokens to multiple accounts so that they can pay
 for gas.
 
 ```typescript
+import { IAgent } from './Agent.ts.md'
+import { IChain } from './Chain.ts.md'
 export type Prefund = {
   /** Taskmaster. TODO replace with generic observability mechanism (RxJS?) */
   task?:       Function

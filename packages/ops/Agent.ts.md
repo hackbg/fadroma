@@ -4,6 +4,7 @@
 ## Identities
 
 ```typescript
+import { IChain } from './Chain.ts.md'
 export type Identity = {
   chain?:    IChain,
   address?:  string
@@ -17,6 +18,8 @@ export type Identity = {
   fees?:     any
 }
 ```
+
+## Agents
 
 ```typescript
 export interface IAgent extends Identity {
@@ -49,7 +52,6 @@ export type Constructor = new (...args: any) => any
 ## Implementation
 
 ```typescript
-import type { IChain, IAgent, Identity, Gas } from './Model'
 import { taskmaster, resolve, readFileSync } from '@fadroma/tools'
 import assert from 'assert'
 
@@ -123,14 +125,4 @@ export const isAgent = (maybeAgent: any): boolean => (
   && typeof maybeAgent         === "object"
   && typeof maybeAgent.query   === "function"
   && typeof maybeAgent.execute === "function")
-
-export abstract class BaseGas implements Gas {
-  //readonly abstract denom: string
-  amount: Array<{amount: string, denom: string}> = []
-  gas:    string
-  constructor (x: number) {
-    const amount = String(x)
-    this.gas = amount
-  }
-}
 ```

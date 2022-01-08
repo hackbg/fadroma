@@ -1,11 +1,40 @@
 # Fadroma Ops: ContractBuild
 # or, automating the contract build procedure
 
+This part can be done offline, but cannot be performed from a browser.
+
+* A contract's source code is a Rust `crate` within a Cargo `workspace`.
+* The code is compiled in a build container (TODO specify here?),
+  which results in an `artifact` (WASM blob) with a particular `codeHash`.
+
 ```typescript
-import type { ContractCodeOptions } from './Model'
+```
+
+```typescript
 import { resolve, existsSync, Docker, ensureDockerImage, Console, bold, relative } from '@fadroma/tools'
 
 const console = Console(import.meta.url)
+
+export type Buildable = {
+
+  code:                BuildState
+  readonly workspace?: string
+  readonly crate?:     string
+
+  build (workspace?: string, crate?: string): Promise<any>
+  readonly artifact?:                         string
+  readonly codeHash?:                         string
+
+}
+
+export type BuildState = {
+  workspace?: string
+  crate?:     string
+  artifact?:  string
+  codeHash?:  string
+}
+
+export type BuildOptions = BuildState
 
 export abstract class ContractCode {
 
@@ -13,9 +42,9 @@ export abstract class ContractCode {
   abstract buildDockerfile: string|null
   abstract buildScript:     string|null
 
-  code: ContractCodeOptions = {}
+  code: BuildState = {}
 
-  constructor (options: ContractCodeOptions = {}) {
+  constructor (options: BuildOptions = {}) {
     if (options.workspace) this.code.workspace = options.workspace
     if (options.crate)     this.code.crate = options.crate
     if (options.artifact)  this.code.artifact = options.artifact

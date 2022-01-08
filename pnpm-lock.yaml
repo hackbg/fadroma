@@ -4,7 +4,7 @@ importers:
 
   .:
     specifiers:
-      '@ganesha/nodejs-loader': workspace:*
+      '@hackbg/ganesha': workspace:*
       '@types/mkdirp': ^1.0.2
       '@types/node': ^16.11.6
       '@types/prettyjson': ^0.0.30
@@ -18,7 +18,7 @@ importers:
       '@types/rimraf': 3.0.2
       bignumber.js: 9.0.1
     devDependencies:
-      '@ganesha/nodejs-loader': link:packages/ganesha/nodejs-loader
+      '@hackbg/ganesha': link:packages/ganesha
       typedoc: 0.21.9
 
   crates/fadroma-snip20-impl:

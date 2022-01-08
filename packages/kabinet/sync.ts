@@ -1,7 +1,7 @@
 import { resolve, dirname, basename } from 'path'
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
-import rimraf from 'rimraf'
-import mkdirp from 'mkdirp'
+import * as rimraf from 'rimraf'
+import * as mkdirp from 'mkdirp'
 
 export type Path = string
 
@@ -91,7 +91,10 @@ export class Directory extends FSCRUD {
   subdir (name: string, Dir: typeof Directory = Directory) {
     return new Dir(this.path, name)
   }
-  file (File: File = TextFile, ...fragments: Array<Path>) {
-    return new File(this.path, ...fragments)
+  file (
+    F: new(...fragments:Path[])=>File = TextFile,
+    ...fragments: Array<Path>
+  ) {
+    return new F(...fragments)
   }
 }

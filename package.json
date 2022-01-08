@@ -9,8 +9,8 @@
     "./packages/*"
   ],
   "devDependencies": {
-    "@ganesha/nodejs-loader": "workspace:*",
-    "typedoc":                "^0.21.9"
+    "@hackbg/ganesha": "workspace:*",
+    "typedoc":         "^0.21.9"
   },
   "dependencies": {
     "@types/mkdirp":     "^1.0.2",

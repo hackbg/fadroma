@@ -66,7 +66,7 @@ export const decode = (buffer: Buffer) => decoder.decode(buffer).trim()
 
 export const loadJSON = (path: string, base?: string) =>
   JSON.parse(String(
-    base ? readFileSync(new URL(path, base))
+    base ? readFileSync(resolve(base, path))
          : readFileSync(path)))
 
 export const timestamp = (d = new Date()) =>
