@@ -1,7 +1,71 @@
-import { IChainNode } from '@fadroma/ops'
+# Fadroma Ops: The `IChainNode` family of interfaces,
+# or, how to run a chain in a box
 
+If your workstation's CPU supports SGX,
+you can run your own temporary networks
+in a local Docker container.
+
+## API
+
+```typescript
+export type ChainNodeState = Record<any, any>
+
+export type ChainNodeConstructor = new (options?: ChainNodeOptions) => IChainNode
+
+import type { IDocker } from './Docker.ts.md'
+export type ChainNodeOptions = {
+  /** Handle to Dockerode or compatible
+   *  TODO mock! */
+  docker?:    IDocker
+  /** Docker image of the chain's runtime. */
+  image?:     string
+  /** Internal name that will be given to chain. */
+  chainId?:   string
+  /** Path to directory where state will be stored. */
+  stateRoot?: string,
+  /** Names of genesis accounts to be created with the node */
+  identities?: Array<string>
+}
+```
+
+```typescript
+import { Directory, JSONFile } from '@fadroma/tools'
+export interface IChainNode {
+  chainId: string
+  apiURL:  URL
+  port:    number
+  /** Resolved when the node is ready */
+  readonly ready: Promise<void>
+  /** Path to the node state directory */
+  readonly stateRoot: Directory
+  /** Path to the node state file */
+  readonly nodeState: JSONFile
+  /** Path to the directory containing the keys to the genesis accounts. */
+  readonly identities: Directory
+  /** Retrieve the node state */
+  load      (): ChainNodeState
+  /** Start the node */
+  spawn     (): Promise<void>
+  /** Save the info needed to respawn the node */
+  save      (): this
+  /** Stop the node */
+  kill      (): Promise<void>
+  /** Start the node if stopped */
+  respawn   (): Promise<void>
+  /** Erase the state of the node */
+  erase     (): Promise<void>
+  /** Stop the node and erase its state from the filesystem. */
+  terminate () : Promise<void>
+  /** Retrieve one of the genesis accounts stored when creating the node. */
+  genesisAccount (name: string): Identity
+}
+```
+
+## Implementation
+
+```typescript
 import {
-  Directory, JSONFile, JSONDirectory,
+  JSONDirectory,
   relative, cwd, TextFile,
   Docker, waitPort, freePort, ensureDockerImage, waitUntilLogsSay,
   bold, Console
@@ -10,11 +74,15 @@ import {
 import { URL } from 'url'
 
 const console = Console(import.meta.url)
+```
 
+## Base class
 
-/// # Chain backends
+There may be other ways to run a chain node besides Docker;
+the shared functionaliy between them is confined to the following
+state management:
 
-
+```typescript
 export abstract class BaseChainNode implements IChainNode {
   chainId = ''
   apiURL: URL
@@ -55,19 +123,25 @@ export abstract class BaseChainNode implements IChainNode {
 
   /** Restore this node from the info stored in nodeState */
   load () {
+
     const path = bold(relative(cwd(), this.nodeState.path))
+
     if (this.stateRoot.exists() && this.nodeState.exists()) {
       console.info(`Loading localnet node from ${path}`)
       try {
         const data = this.nodeState.load()
         console.debug(`Contents of ${path}:`, data)
-        return data }
-      catch (e) {
+        return data
+      } catch (e) {
         console.warn(`Failed to load ${path}`)
         this.stateRoot.delete()
-        throw e } }
-    else {
-      console.info(`${path} does not exist.`) }}
+        throw e
+      }
+    } else {
+      console.info(`${path} does not exist.`) 
+    }
+
+  }
 
   /** Stop this node and delete its state. */
   async terminate () {
@@ -81,13 +155,19 @@ export abstract class BaseChainNode implements IChainNode {
   abstract erase   (): Promise<void>
   abstract save    (): this
 }
+```
 
+## Docker backend
 
-/// ## Docker backend
+This subclass of `BaseChainNode` contains the functionality
+for running a pausable localnet in a Docker container and manages its lifecycle.
+It is still `abstract` to allow the final implementation to provide
+platform- and version-dependent Docker image and init script.
 
+One important feature is the **cleanup container**, which deletes
+any root-owned files created by the main container.
 
-/** Run a pausable localnet in a Docker container and manage its lifecycle.
- *  State is stored as a pile of files in a directory. */
+```typescript
 export abstract class DockerizedChainNode extends BaseChainNode {
 
   /** This should point to the standard production docker image for the network. */
@@ -369,3 +449,4 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   }
 
 }
+```
