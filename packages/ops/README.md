@@ -13,9 +13,15 @@ Made with 💚  at [Hack.bg](https://hack.bg).
 **Fadroma Ops** is an opinionated framework providing an idiomatic way to
 **build, deploy, and interact with smart contracts** on Cosmos-based networks.
 
-Currently, there exists support for **Secret Network** via [`@fadroma/scrt`](../scrt),
-more specifically the [`@fadroma/scrt-1.0`](../scrt-1.0) and
-[`@fadroma/scrt-1.2`](../scrt-1.2) modules.
+## How to use
+
+Not directly. You need to install [`@fadroma/scrt-1.2`](../scrt-1.2),
+which extends this module with support for **Secret Network 1.2**. There also exists
+`@fadroma/scrt-1.0` (legacy). Both inherit this module through [`@fadroma/scrt`](../scrt).
+
+You only want to install this module if you're implementing support for
+another Cosmos-based chain. If you do, we'd love to hear about it -
+get in touch at `hello@hack.bg` so we can link to your repo here.
 
 > 🐘 ℹ️  This library is written in the form of [literate](https://github.com/hackbg/ganesha)
 > modules with the `.ts.md` extension. That's right, TypeScript in Markdown!
@@ -23,10 +29,6 @@ more specifically the [`@fadroma/scrt-1.0`](../scrt-1.0) and
 > as well as the documented source code.
 
 ## Table of contents
-
-Fadroma Ops defines the following entities. Some of them are isomorphic, and work the same
-in Node.js and browsers. Others only make sense outside of a browser - mainly because the workflows
-that they represent depend on Docker.
 
 <div align="center">
 
