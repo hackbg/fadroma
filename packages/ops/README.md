@@ -25,8 +25,8 @@ get in touch at `hello@hack.bg` so we can link to your repo here.
 
 > 🐘 ℹ️  This library is written in the form of [literate](https://github.com/hackbg/ganesha)
 > modules with the `.ts.md` extension. That's right, TypeScript in Markdown!
-> When you download it from NPM, you get the compiled `*.js` and `*.d.ts`,
-> as well as the documented source code.
+> When you download it from NPM, you get the usual compiled `*.js` and `*.d.ts`,
+> as well as the documented source code, which can be compiled on demand with [Ganesha](https://github.com/hackbg/ganesha).
 
 ## Table of contents
 

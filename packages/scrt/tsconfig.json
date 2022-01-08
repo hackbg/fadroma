@@ -7,9 +7,6 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "target": "es2020",
-    "outDir": "dist/",
-    "paths": {
-      "secretjs": ["../platforms/scrt-1.0/cosmwasm-js/packages/sdk/src/index.ts"]
-    }
+    "outDir": "dist/"
   }
 }

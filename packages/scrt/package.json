@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type":    "module",
-  "main":    "./index.ts",
+  "main":    "./dist/index.js",
+  "browser": "./dist/index.browser.js",
   "dependencies": {
     "@cosmjs/crypto":    "^0.20.0",
     "@fadroma/ops":      "workspace:*",
@@ -10,5 +11,11 @@
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/tools":    "workspace:*",
     "secretjs":          "workspace:0.17.5"
+  },
+  "devDependencies": {
+    "@ganesha/tsc": "workspace:*"
+  },
+  "scripts": {
+    "build": "rm -rf dist/ && mkdir dist/ && ganesha-tsc --project ./tsconfig.json"
   }
 }

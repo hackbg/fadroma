@@ -1,6 +1,13 @@
 {
-  "extends": "../tsconfig.json",
+  "extends": "../../tsconfig.json",
+  "include": [
+    "src/*.ts",
+    "src/*.ts.md"
+  ],
   "compilerOptions": {
+    "esModuleInterop": true,
+    "target": "es2020",
+    "outDir": "dist/",
     "paths": {
       "secretjs": ["../platforms/scrt-1.2/cosmwasm-js/packages/sdk/src/index.ts"]
     }
