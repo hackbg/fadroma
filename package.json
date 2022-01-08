@@ -9,11 +9,8 @@
     "./packages/*"
   ],
   "devDependencies": {
-    "@hackbg/ganesha":   "workspace:*",
-    "@types/mocha":      "^9.0.0",
-    "chai":              "^4.3.4",
-    "mocha":             "^8.4.0",
-    "typedoc":           "^0.21.9"
+    "@ganesha/nodejs-loader": "workspace:*",
+    "typedoc":                "^0.21.9"
   },
   "dependencies": {
     "@types/mkdirp":     "^1.0.2",
@@ -28,6 +25,6 @@
     "docs:ts":  "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
     "test:rs":  "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "test:tap": "cd test && pnpm test",
-    "test:ts":  "DEBUG=out ganesha run-module --async-stack-traces --enable-source-maps test/test.mjs"
+    "test:ts":  "DEBUG=out ganesha --async-stack-traces --enable-source-maps test/test.mjs"
   }
 }

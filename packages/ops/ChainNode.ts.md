@@ -1,32 +1,10 @@
 # Fadroma Ops: The `IChainNode` family of interfaces,
 # or, how to run a chain in a box
 
-If your workstation's CPU supports SGX,
-you can run your own temporary networks
-in a local Docker container.
+If your workstation's CPU supports SGX, you can run your own temporary networks
+in a local Docker container. The code below implements that.
 
 ## API
-
-```typescript
-export type ChainNodeState = Record<any, any>
-
-export type ChainNodeConstructor = new (options?: ChainNodeOptions) => IChainNode
-
-import type { IDocker } from './Docker.ts.md'
-export type ChainNodeOptions = {
-  /** Handle to Dockerode or compatible
-   *  TODO mock! */
-  docker?:    IDocker
-  /** Docker image of the chain's runtime. */
-  image?:     string
-  /** Internal name that will be given to chain. */
-  chainId?:   string
-  /** Path to directory where state will be stored. */
-  stateRoot?: string,
-  /** Names of genesis accounts to be created with the node */
-  identities?: Array<string>
-}
-```
 
 ```typescript
 import { Directory, JSONFile } from '@fadroma/tools'
@@ -59,6 +37,25 @@ export interface IChainNode {
   /** Retrieve one of the genesis accounts stored when creating the node. */
   genesisAccount (name: string): Identity
 }
+
+export type ChainNodeState = Record<any, any>
+
+export type ChainNodeConstructor = new (options?: ChainNodeOptions) => IChainNode
+
+import type { IDocker } from './Docker.ts.md'
+export type ChainNodeOptions = {
+  /** Handle to Dockerode or compatible
+   *  TODO mock! */
+  docker?:    IDocker
+  /** Docker image of the chain's runtime. */
+  image?:     string
+  /** Internal name that will be given to chain. */
+  chainId?:   string
+  /** Path to directory where state will be stored. */
+  stateRoot?: string,
+  /** Names of genesis accounts to be created with the node */
+  identities?: Array<string>
+}
 ```
 
 ## Implementation
@@ -76,7 +73,7 @@ import { URL } from 'url'
 const console = Console(import.meta.url)
 ```
 
-## Base class
+### Base class
 
 There may be other ways to run a chain node besides Docker;
 the shared functionaliy between them is confined to the following
@@ -157,7 +154,7 @@ export abstract class BaseChainNode implements IChainNode {
 }
 ```
 
-## Docker backend
+### Docker-based backend
 
 This subclass of `BaseChainNode` contains the functionality
 for running a pausable localnet in a Docker container and manages its lifecycle.

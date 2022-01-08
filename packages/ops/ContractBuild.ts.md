@@ -1,3 +1,7 @@
+# Fadroma Ops: ContractBuild
+# or, automating the contract build procedure
+
+```typescript
 import type { ContractCodeOptions } from './Model'
 import { resolve, existsSync, Docker, ensureDockerImage, Console, bold, relative } from '@fadroma/tools'
 
@@ -108,3 +112,4 @@ export abstract class ContractCode {
   }
 
 }
+```

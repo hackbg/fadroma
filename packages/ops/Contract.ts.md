@@ -58,16 +58,17 @@ This requires a connection via `IChain` and cannot be performed from a browser.
   that contains a `codeId` corresponding to that artifact.
 
 ```typescript
-export type Uploadable = Buildable & {
+import type { IChain } from './Chain.ts.md'
+import type { IAgent } from './Chain.ts.md'
 
-  blob:              UploadConfig
+export type Uploadable = Buildable & {
+  blob:              UploadState
   readonly chain:    IChain
   readonly uploader: IAgent
 
   upload (chainOrAgent?: IChain|IAgent): Promise<any>
   readonly uploadReceipt: any
   readonly codeId:        number
-
 }
 
 export type ContractUploadOptions = ContractCodeOptions & {
@@ -76,7 +77,7 @@ export type ContractUploadOptions = ContractCodeOptions & {
   codeId?: number
 }
 
-export type UploadConfig = {
+export type UploadState = {
   chain?:    IChain
   agent?:    IAgent
   codeId?:   number
@@ -93,149 +94,10 @@ export type UploadReceipt = {
   originalSize:       number
   transactionHash:    string
 }
-```
 
-### Instantiating a smart contract from an uploaded WASM artifact
-
-* Given a `codeId` and an `deployer`, an instance of the contract
-  can be created on the chain where this contract was uploaded.
-* A `label` needs to be specified for each instance.
-  That label needs to be unique for that chain,
-  otherwise the instantiation fill fail.
-  (TODO: document `prefix`.)
-* The contract's `initMsg` contains the
-  constructor arguments for that instance.
-* Once a contract is instantiated, it gets an `address`.
-  The address and code hash constitute a `link` to the contract.
-  The contract link is expressed in a bunch of different formats
-  across our codebase - here we provide two of them.
-* The result of the transaction is available at `initTx`,
-  and the response from it is in `initReceipt`.
-* TODO: document attaching to a smart contract
-
-```typescript
-export type Addressable = {
-  readonly address:     string
-  readonly link:        { address: string, code_hash: string }
-  readonly linkPair:    [ string, string ]
-}
-
-export type Instantiable = Uploadable & Addressable & {
-  init:                 InitConfig
-  readonly deployer:    IAgent
-  readonly label:       string
-  readonly initMsg:     any
-  instantiate (agent?: IAgent): Promise<any>
-  readonly initTx:      any
-  readonly initReceipt: any
-}
-
-export type ContractInitOptions = ContractUploadOptions & {
-  agent?:   IAgent
-  address?: string
-  prefix?:  string
-  label?:   string
-  initMsg?: Record<any, any>
-}
-
-export type InitConfig = {
-  prefix?:  string
-  agent?:   IAgent
-  address?: string
-  label?:   string
-  msg?:     any
-  tx?:      InitReceipt
-}
-
-export type InitReceipt = {
-  contractAddress: string
-  data:            string
-  logs:            Array<any>
-  transactionHash: string
-}
-```
-
-### Interacting with a smart contract
-
-* Finally, a contract instance can be queried with the `query` method,
-  and transactions can be executed with `execute`.
-* The schema helpers in [Schema.ts](./Schema.ts)
-  automatically generate wrapper methods around `query` and `execute`.
-
-```typescript
-export type Contract = Instantiable & {
-  query   (method: string, args: any, agent?: IAgent): any
-  execute (method: string, args: any, memo: string, send: Array<any>, fee: any, agent?: IAgent): any
-}
-
-export type ContractAPIOptions = ContractInitOptions & {
-  schema?: Record<string, any>,
-}
-```
-
-### State types
-
-The `IContract` interface requires 3 properties which are kind of magic:
-* `code: ContractCodeOptions`
-* `blob: UploadConfig`
-* `init: InitConfig`
-
-These hold the contract state, select fields of which are exposed via
-the getters on `IContract` (as implemented by [`BaseContract`](./Contract.ts)).
-The intent behind this is threefold:
-* To group internal state for each stage of the process
-* To provide quick access to commonly needed values
-* To discourage mutation of internal state
-
-
-## Implementation
-
-```typescript
-import type {
-  IChain, IAgent, IContract,
-  ContractUploadOptions,
-  ContractInitOptions,
-  ContractAPIOptions
-} from './Model'
-import { BaseAgent, isAgent } from './Agent'
-import { BaseChain, ChainInstancesDir } from './Chain'
-import { loadSchemas, getAjv, SchemaFactory } from './Schema'
-
-import { existsSync, Console, readFile, bold, relative, basename, mkdir, writeFile } from '@fadroma/tools'
-
-import { backOff } from 'exponential-backoff'
-
-import { ContractCode } from './ContractBuild'
-
-type ContractConstructor = new (options: unknown) => IContract
-
-export const attachable =
-  (Constructor: ContractConstructor) =>
-    (address: string, codeHash: string, agent: IAgent) => {
-      const instance = new Constructor({})
-      instance.init.agent = agent
-      instance.init.address = address
-      instance.blob.codeHash = codeHash
-      return instance
-    }
-
-const console = Console(import.meta.url)
-
-```
-
-### ContractUpload
-
-```typescript
-type UploadReceipt = {
-  codeId:             number
-  compressedChecksum: string
-  compressedSize:     string
-  logs:               unknown[]
-  originalChecksum:   string
-  originalSize:       number
-  transactionHash:    string
-}
-
+import { BaseAgent } from './Agent.ts.md'
+import { BaseChain } from './Chain.ts.md'
+import { basename } from '@fadroma/tools'
 export abstract class ContractUpload extends ContractCode {
 
   blob: {
@@ -298,9 +160,10 @@ export abstract class ContractUpload extends ContractCode {
 }
 ```
 
-#### The upload procedure
+#### The upload procedure itself
 
 ```typescript
+import { existsSync, readFile, bold, relative, mkdir, writeFile } from '@fadroma/tools'
 async function upload (
   uploader:          IAgent,
   artifact:          string,
@@ -338,7 +201,58 @@ async function upload (
 }
 ```
 
+### Instantiating a smart contract from an uploaded WASM artifact
+
+* Given a `codeId` and an `deployer`, an instance of the contract
+  can be created on the chain where this contract was uploaded.
+* A `label` needs to be specified for each instance.
+  That label needs to be unique for that chain,
+  otherwise the instantiation fill fail.
+  (TODO: document `prefix`.)
+* The contract's `initMsg` contains the
+  constructor arguments for that instance.
+* Once a contract is instantiated, it gets an `address`.
+  The address and code hash constitute a `link` to the contract.
+  The contract link is expressed in a bunch of different formats
+  across our codebase - here we provide two of them.
+* The result of the transaction is available at `initTx`,
+  and the response from it is in `initReceipt`.
+* TODO: document attaching to a smart contract
+
 ```typescript
+export type Addressable = {
+  readonly address:     string
+  readonly link:        { address: string, code_hash: string }
+  readonly linkPair:    [ string, string ]
+}
+
+export type Instantiable = Uploadable & Addressable & {
+  init:                 InitState
+  readonly deployer:    IAgent
+  readonly label:       string
+  readonly initMsg:     any
+  instantiate (agent?: IAgent): Promise<any>
+  readonly initTx:      any
+  readonly initReceipt: any
+}
+
+export type ContractInitOptions = ContractUploadOptions & {
+  agent?:   IAgent
+  address?: string
+  prefix?:  string
+  label?:   string
+  initMsg?: Record<any, any>
+}
+
+export type InitState = {
+  prefix?:  string
+  agent?:   IAgent
+  address?: string
+  label?:   string
+  msg?:     any
+  tx?:      InitReceipt
+}
+
 export type InitReceipt = {
   label:    string,
   codeId:   number,
@@ -353,6 +267,8 @@ export type InitTX = {
   transactionHash: string
 }
 
+import { ChainInstancesDir } from './Chain'
+import { backOff } from 'exponential-backoff'
 export abstract class ContractInit extends ContractUpload {
 
   init: {
@@ -472,9 +388,24 @@ export abstract class ContractInit extends ContractUpload {
 }
 ```
 
-### ContractCaller
+### Interacting with a smart contract
+
+* Finally, a contract instance can be queried with the `query` method,
+  and transactions can be executed with `execute`.
+* The schema helpers in [Schema.ts](./Schema.ts)
+  automatically generate wrapper methods around `query` and `execute`.
 
 ```typescript
+export type Contract = Instantiable & {
+  query   (method: string, args: any, agent?: IAgent): any
+  execute (method: string, args: any, memo: string, send: Array<any>, fee: any, agent?: IAgent): any
+}
+
+export type ContractAPIOptions = ContractInitOptions & {
+  schema?: Record<string, any>,
+}
+
+import { isAgent } from './Agent.ts.md'
 export abstract class ContractCaller extends ContractInit {
 
   private backoffOptions = {
@@ -529,14 +460,12 @@ export abstract class ContractCaller extends ContractInit {
   };
 
 }
-```
 
-## ContractAPI
-
-```typescript
 export type Schema   = Record<string, unknown>
 export type Validate = (object: unknown) => unknown
 export type Method   = (...args: Array<unknown>) => unknown
+
+import { loadSchemas, getAjv, SchemaFactory } from './Schema'
 /** A contract with auto-generated methods for invoking
  *  queries and transactions */
 export abstract class ContractAPI extends ContractCaller implements IContract {
@@ -575,5 +504,44 @@ export abstract class ContractAPI extends ContractCaller implements IContract {
       }
     }
   }
+
 }
+```
+
+### State types
+
+The `IContract` interface requires 3 properties which are kind of magic:
+* `code: ContractCodeOptions`
+* `blob: UploadState`
+* `init: InitState`
+
+These hold the contract state, select fields of which are exposed via
+the getters on `IContract` (as implemented by [`BaseContract`](./Contract.ts)).
+The intent behind this is threefold:
+* To group internal state for each stage of the process
+* To provide quick access to commonly needed values
+* To discourage mutation of internal state
+
+
+## Implementation
+
+```typescript
+
+
+import { ContractCode } from './ContractBuild'
+
+type ContractConstructor = new (options: unknown) => IContract
+
+export const attachable =
+  (Constructor: ContractConstructor) =>
+    (address: string, codeHash: string, agent: IAgent) => {
+      const instance = new Constructor({})
+      instance.init.agent = agent
+      instance.init.address = address
+      instance.blob.codeHash = codeHash
+      return instance
+    }
+
+import { Console } from '@fadroma/tools'
+const console = Console(import.meta.url)
 ```
