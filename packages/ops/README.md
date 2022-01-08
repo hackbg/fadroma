@@ -1,33 +1,46 @@
+<div align="center">
+
+![](/doc/logo.svg)
+
 # Fadroma Ops
 
-This is an opinionated framework providing an idiomatic way to
+Made with 💚  at [Hack.bg](https://hack.bg).
+
+---
+
+</div>
+
+**Fadroma Ops** is an opinionated framework providing an idiomatic way to
 **build, deploy, and interact with smart contracts** on Cosmos-based networks.
 
-Currently, only Secret Network is supported via [`@fadroma/scrt`](../scrt),
+Currently, there exists support for **Secret Network** via [`@fadroma/scrt`](../scrt),
 more specifically the [`@fadroma/scrt-1.0`](../scrt-1.0) and
 [`@fadroma/scrt-1.2`](../scrt-1.2) modules.
 
-This library consists of literate modules. The actual library code is contained in
-the Markdown files that document it, and is loaded from this Markdown file
-via the [`@hackbg/ganesha`](https://github.com/hackbg/ganesha) family of tools.
+> 🐘 ℹ️  This library is written in the form of [literate](https://github.com/hackbg/ganesha)
+> modules with the `.ts.md` extension. That's right, TypeScript in Markdown!
+> When you download it from NPM, you get the compiled `*.js` and `*.d.ts`,
+> as well as the documented source code.
 
 ## Table of contents
 
-* A [ChainNode](./ChainNode.ts.md) lets you run a blockchain node
-  running in a container. We call this *localnet*, or *devnet*. 
-* A [Chain](./Chain.ts.md) object lets you reference a specific
-  localnet, testnet, or mainnet; by creating one, you specify on which
-  chain you will be operating.
-* An [Agent](./Agent.ts) represents the identity under which
-  you are operating, i.e. your crypto wallet and address.
-  [`@fadroma/scrt`](../scrt) provides implementations based on SecretJS and secretcli.
-* A Smart [Contract](./Contract.ts.md) is a program running on the blockchain.
-  This library automates building them from Rust code, deploying them to a specific
-  `Chain` in the name of a specific `Agent`, and then interacting with them as
-  the same or a different `Agent`.
-* The `Agent` that performs a transaction pays for the computational resources
-  in gas fees; the [Gas](./Gas.ts.md) module contains types for specifying the
-  maximum gas fee per operation.
+Fadroma Ops defines the following entities. Some of them are isomorphic, and work the same
+in Node.js and browsers. Others only make sense outside of a browser - mainly because the workflows
+that they represent depend on Docker.
+
+<div align="center">
+
+|Interface                                     |Description                                                |Works in Node.js|Works in browsers|
+|----------------------------------------------|-----------------------------------------------------------|----------------|-----------------|
+|[`ChainNode`](./src/ChainNode.ts.md)          |Runs a temporary blockchain node.                          |🟩 Yes          |❌ No            |
+|[`Chain`](./src/Chain.ts.md)                  |Specifies on which localnet, testnet or mainnet to operate.|🟩 Yes          |🟩 Yes           |
+|[`Agent`](./src/Agent.ts.md)                  |Specifies under which identity to operate.                 |🟩 Yes          |🟩 Yes           |
+|[`Gas`](./src/Gas.ts.md)                      |Specifies the maximum gas fee per operation.               |🟩 Yes          |🟩 Yes           |
+|[`ContractBuild`](./src/ContractBuild.ts.md)  |Builds smart contracts from Rust to WASM in Docker.        |🟩 Yes          |❌ No            |
+|[`ContractDeploy`](./src/ContractDeploy.ts.md)|Deploys compiled smart contracts to a `Chain`              |🟩 Yes          |⌛ Planned       |
+|[`ContractClient`](./src/ContractClient.ts.md)|Talks to smart contracts on a `Chain` via an `Agent`       |🟩 Yes          |🟩 Yes           |
+
+</div>
 
 ## Tutorial: Managing a smart contract's lifecycle with Fadroma Ops
 

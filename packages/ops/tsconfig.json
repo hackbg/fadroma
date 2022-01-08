@@ -1,9 +1,12 @@
 {
   "extends": "../../tsconfig.json",
+  "include": [
+    "src/*.ts",
+    "src/*.ts.md"
+  ],
   "compilerOptions": {
     "esModuleInterop": true,
     "target": "es2020",
-    "outDir": "dist/",
-    "include": [ "*.ts.md" ]
+    "outDir": "dist/"
   }
 }

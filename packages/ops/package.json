@@ -2,7 +2,8 @@
   "name":    "@fadroma/ops",
   "version": "0.0.0",
   "type":    "module",
-  "main":    "./index.ts",
+  "main":    "./dist/index.js",
+  "browser": "./dist/index.browser.js",
   "dependencies": {
     "@fadroma/tools":            "workspace:*",
     "ajv":                       "^8.6.0",
