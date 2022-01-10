@@ -9,9 +9,11 @@
     "table": "^6.6.0"
   },
   "devDependencies": {
+    "@ganesha/tsc":           "workspace:*",
     "@ganesha/nodejs-loader": "workspace:*"
   },
   "scripts": {
-    "test": "ganesha README.md"
+    "build": "rm -rf dist && mkdir -p dist && ganesha-tsc --outDir dist konzola.ts",
+    "test":  "ganesha README.md"
   }
 }

@@ -4,9 +4,11 @@
   "main": "komandi.ts",
   "type": "module",
   "devDependencies": {
+    "typescript":             "latest",
     "@ganesha/nodejs-loader": "workspace:*"
   },
   "scripts": {
-    "test": "ganesha README.md"
+    "build": "rm -rf dist && mkdir -p dist && tsc --outDir dist komandi.ts",
+    "test":  "node --experimental-loader=@ganesha/nodejs-loader README.md"
   }
 }

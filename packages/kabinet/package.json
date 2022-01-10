@@ -8,9 +8,11 @@
     "rimraf": "^3.0.2"
   },
   "devDependencies": {
+    "@ganesha/tsc":           "workspace:*",
     "@ganesha/nodejs-loader": "workspace:*"
   },
   "scripts": {
-    "test": "ganesha README.md"
+    "build": "rm -rf dist && mkdir -p dist && tsc --outDir dist index.ts",
+    "test":  "ganesha README.md"
   }
 }

@@ -1,7 +1,7 @@
 {
-  "name":     "@hackbg/fadroma",
-  "version":  "0.0.0",
-  "type":     "module",
+  "name": "@hackbg/fadroma",
+  "version": "0.0.0",
+  "type": "module",
   "workspace": true,
   "packages": [
     "./platforms/scrt-1.0/cosmwasm-js/packages/sdk",
@@ -10,24 +10,22 @@
   ],
   "devDependencies": {
     "@ganesha/nodejs-loader": "workspace:*",
-    "@types/mocha":           "^9.0.0",
-    "chai":                   "^4.3.4",
-    "mocha":                  "^8.4.0",
-    "typedoc":                "^0.21.9"
+    "typedoc":                "^0.21.9",
+    "typescript":             "^4.5.4"
   },
   "dependencies": {
     "@types/mkdirp":     "^1.0.2",
-    "@types/node":       "^16.11.6",
+    "@types/node":       "^16.11.19",
     "@types/prettyjson": "^0.0.30",
     "@types/rimraf":     "^3.0.2",
-    "bignumber.js":      "^9.0.1"
+    "bignumber.js":      "^9.0.2"
   },
   "scripts": {
     "docs:pan": "pandoc README.md | sed -e 's|./crates|https://github.com/hackbg/fadroma/tree/21.12/crates|' | sed -e 's|./packages|https://github.com/hackbg/fadroma/tree/21.12/packages|' > doc/index.html",
-    "docs:rs":  "cp Workspace.toml Cargo.toml; cargo doc; rm Cargo.toml",
-    "docs:ts":  "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
-    "test:rs":  "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
+    "docs:rs": "cp Workspace.toml Cargo.toml; cargo doc; rm Cargo.toml",
+    "docs:ts": "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
+    "test:rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "test:tap": "cd test && pnpm test",
-    "test:ts":  "DEBUG=out ganesha run-module --async-stack-traces --enable-source-maps test/test.mjs"
+    "test:ts": "DEBUG=out ganesha run-module --async-stack-traces --enable-source-maps test/test.mjs"
   }
 }

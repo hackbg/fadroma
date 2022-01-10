@@ -1,0 +1,48 @@
+name: test js mini-libs
+on: [push, pull_request]
+jobs:
+  kabinet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile, --strict-peer-dependencies]
+      - name: test js modules
+        run: cd packages/kabinet && pnpm build && pnpm test
+  komandi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile, --strict-peer-dependencies]
+      - name: test js modules
+        run: cd packages/komandi && pnpm build && pnpm test
+  konzola:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile, --strict-peer-dependencies]
+      - name: test js modules
+        run: cd packages/konzola && pnpm build && pnpm test
