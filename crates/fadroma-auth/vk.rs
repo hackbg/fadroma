@@ -61,3 +61,9 @@ impl From<&str> for ViewingKey {
         ViewingKey(vk.into())
     }
 }
+
+impl From<String> for ViewingKey {
+    fn from (vk: String) -> Self {
+        ViewingKey(vk.into())
+    }
+}
