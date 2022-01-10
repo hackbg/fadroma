@@ -4,9 +4,9 @@
   "main": "komandi.ts",
   "type": "module",
   "devDependencies": {
-    "@hackbg/ganesha": "workspace:*"
+    "@ganesha/nodejs-loader": "workspace:*"
   },
   "scripts": {
-    "test": "ganesha run-module README.md"
+    "test": "ganesha README.md"
   }
 }

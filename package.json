@@ -9,11 +9,11 @@
     "./packages/*"
   ],
   "devDependencies": {
-    "@hackbg/ganesha":   "workspace:*",
-    "@types/mocha":      "^9.0.0",
-    "chai":              "^4.3.4",
-    "mocha":             "^8.4.0",
-    "typedoc":           "^0.21.9"
+    "@ganesha/nodejs-loader": "workspace:*",
+    "@types/mocha":           "^9.0.0",
+    "chai":                   "^4.3.4",
+    "mocha":                  "^8.4.0",
+    "typedoc":                "^0.21.9"
   },
   "dependencies": {
     "@types/mkdirp":     "^1.0.2",

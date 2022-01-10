@@ -9,9 +9,9 @@
     "table": "^6.6.0"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "workspace:*"
+    "@ganesha/nodejs-loader": "workspace:*"
   },
   "scripts": {
-    "test": "ganesha run-module README.md"
+    "test": "ganesha README.md"
   }
 }
