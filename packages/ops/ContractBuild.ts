@@ -66,7 +66,7 @@ export abstract class ContractCode {
 
       await container.remove()
       if (err) throw err
-      if (code !== 0) throw new Error(`build exited with status ${code}`)
+      if (code !== 0) throw new Error(`build of ${this.crate} exited with status ${code}`)
 
     } else {
       console.info(`${bold(relative(process.cwd(), artifact))} exists, delete to rebuild`)

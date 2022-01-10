@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -aemu
-apt update && apt install -y git
 # The Cargo package that contains the contract
 Package=$1
 Tag=$2
@@ -17,6 +16,7 @@ chown -R $USER /contract
 chown $USER /output
 # Execute a release build then optimize it with Binaryen
 echo "Building $Package as user build ($USER:$GROUP)..."
+cd /contract
 Output=`echo "$Package" | tr '-' '_'`
 su build -c "env RUSTFLAGS='-C link-arg=-s' \
   cargo build -p $Package --release --target wasm32-unknown-unknown --locked --verbose \
