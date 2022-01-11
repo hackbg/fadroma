@@ -212,6 +212,10 @@ export interface IChainState extends IChainOptions {
 }
 
 export interface IChain extends IChainOptions {
+  readonly isMainnet?:  boolean
+  readonly isTestnet?:  boolean
+  readonly isLocalnet?: boolean
+
   readonly url:   string
   readonly ready: Promise<this>
 
