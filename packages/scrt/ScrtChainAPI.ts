@@ -1,8 +1,8 @@
 import type { IChain } from '@fadroma/ops'
 import {
-  ChainNode, ChainState, ChainConnectOptions,
+  IChainNode, IChainState, IChainConnectOptions,
   BaseChain, ChainInstancesDir, prefund,
-  Identity, Agent
+  Identity, IAgent
 } from '@fadroma/ops'
 
 import { Commands, Console } from '@fadroma/tools'
@@ -16,45 +16,13 @@ import * as Scrt_1_2 from '@fadroma/scrt-1.2'
 
 const console = Console(import.meta.url)
 
-type AgentConstructor = new (options: Identity) => Agent & {
-  create: () => Promise<Agent>
+type AgentConstructor = new (options: Identity) => IAgent & {
+  create: () => Promise<IAgent>
 }
 
-export type ScrtChainState = ChainState & {
+export type ScrtChainState = IChainState & {
   Agent?:      AgentConstructor
   identities?: Array<string>
-}
-
-export const on = {
-  'localnet-1.0' (context: any = {}) {
-    console.info(`Running on ${bold('localnet-1.0')}:`)
-    context.chain = Scrt.localnet_1_0()
-  },
-
-  'localnet-1.2' (context: any = {}) {
-    console.info(`Running on ${bold('localnet-1.2')}:`)
-    context.chain = Scrt.localnet_1_2()
-  },
-
-  'holodeck-2' (context: any = {}) {
-    console.info(`Running on ${bold('holodeck-2')}:`)
-    context.chain = Scrt.holodeck_2()
-  },
-
-  'supernova-1' (context: any = {}) {
-    console.info(`Running on ${bold('supernova-1')}:`)
-    context.chain = Scrt.supernova_1()
-  },
-
-  'secret-2' (context: any = {}) {
-    console.info(`Running on ${bold('secret-2')}:`)
-    context.chain = Scrt.secret_2()
-  },
-
-  'secret-3' (context: any = {}) {
-    console.info(`Running on ${bold('secret-3')}:`)
-    context.chain = Scrt.secret_3()
-  }
 }
 
 export function openFaucet () {
@@ -62,7 +30,7 @@ export function openFaucet () {
   console.debug(`Opening ${url}...`)
   open(url) }
 
-type RemoteCommands = (x: Chain) => Commands
+type RemoteCommands = (x: IChain) => Commands
 
 export const Help = {
   RESET:   "✨ Erase the state of this localnet",
@@ -81,7 +49,7 @@ const {
 export class Scrt extends BaseChain {
 
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  static secret_2 (options: ChainConnectOptions = {}): Scrt {
+  static secret_2 (options: IChainConnectOptions = {}): Scrt {
     const {
       chainId = 'secret-2',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
@@ -101,7 +69,7 @@ export class Scrt extends BaseChain {
     }) }
 
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  static secret_3 (options: ChainConnectOptions = {}): Scrt {
+  static secret_3 (options: IChainConnectOptions = {}): Scrt {
     const {
       chainId = 'secret-3',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
@@ -134,13 +102,10 @@ export class Scrt extends BaseChain {
         mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
       }
     } = options
-    return new Scrt({
-      isTestnet: true,
-      chainId,
-      apiURL,
-      defaultIdentity,
-      Agent: ScrtAgentJS_1_0
-    }) }
+    const isTestnet = true
+    const Agent = ScrtAgentJS_1_0
+    return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
+  }
 
   /** Create an instance that talks to to supernova-1 testnet via SecretJS */
   static supernova_1 (options: ChainConnectOptions = {}): Scrt {
@@ -153,13 +118,10 @@ export class Scrt extends BaseChain {
         mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
       }
     } = options
-    return new Scrt({
-      isTestnet: true,
-      chainId,
-      apiURL,
-      defaultIdentity,
-      Agent: ScrtAgentJS_1_2
-    }) }
+    const isTestnet = true
+    const Agent = ScrtAgentJS_1_2
+    return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
+  }
 
   /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
   static pulsar_1 (options: ChainConnectOptions = {}): Scrt {
@@ -172,13 +134,26 @@ export class Scrt extends BaseChain {
         mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
       }
     } = options
-    return new Scrt({
-      isTestnet: true,
-      chainId,
-      apiURL,
-      defaultIdentity,
-      Agent: ScrtAgentJS_1_2
-    }) }
+    const isTestnet = true
+    const Agent = ScrtAgentJS_1_2
+    return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
+  }
+
+  /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
+  static pulsar_2 (options: ChainConnectOptions = {}): Scrt {
+    const {
+      chainId = 'pulsar-2',
+      apiURL  = new URL(SCRT_API_URL||'http://testnet.securesecrets.org:1317'),
+      defaultIdentity = {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
+        mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
+      }
+    } = options
+    const isTestnet = true
+    const Agent = ScrtAgentJS_1_2
+    return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
+  }
 
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
@@ -405,43 +380,6 @@ export class Scrt extends BaseChain {
     }
     return rows
   }
-
-  /* Generate command lists for known localnet variants. */
-  static localnetCommands = (getCommands: RemoteCommands): Commands => {
-    deprecationWarning()
-    return ['localnet-1.0', 'localnet-1.2'].map((localnet: string)=>[
-      localnet,
-      `Run commands on ${localnet}`,
-      on[localnet],
-      [
-        ['reset', Help.RESET, resetLocalnet],
-        ...getCommands(Scrt[localnet.replace(/[-.]/g, '_')]())
-      ]
-    ])
-  }
-
-  /** Generate command lists for known testnets. */
-  static testnetCommands = (getCommands: RemoteCommands): Commands => {
-    deprecationWarning()
-    return ['holodeck-2', 'supernova-1'].map((testnet: string)=>[
-      testnet,
-      `Run commands on ${testnet} testnet`,
-      on[testnet],
-      [
-        ["faucet", Help.FAUCET, openFaucet],
-        ["fund",   Help.FUND,   prefund],
-        ...getCommands(Scrt[testnet.replace(/[-.]/g, '_')]())
-      ]
-    ])
-  }
-
-  static mainnetCommands = (getCommands: RemoteCommands): Commands => {
-    deprecationWarning()
-    return [
-      ['secret-2', Help.MAINNET, on['secret-2'], getCommands(Scrt.secret_2())],
-      ['secret-3', Help.MAINNET, on['secret-3'], getCommands(Scrt.secret_3())]
-    ]
-  }
 }
 
 export const CHAINS: Record<string, Function> = {
@@ -450,6 +388,7 @@ export const CHAINS: Record<string, Function> = {
   'holodeck-2':   Scrt.holodeck_2,
   'supernova-1':  Scrt.supernova_1,
   'pulsar-1':     Scrt.pulsar_1,
+  'pulsar-2':     Scrt.pulsar_2,
   'secret-2':     Scrt.secret_2,
   'secret-3':     Scrt.secret_3
 }
