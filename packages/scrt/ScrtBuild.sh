@@ -1,24 +1,34 @@
 #!/usr/bin/env bash
 set -aemu
-# The Cargo package that contains the contract
+
+# The Cargo package that contains the contract.
 Package=$1
-Tag=$2
-# Switch to non-root user
+
+# The commit to build.
+Ref=$2
+
+# Create a non-root user.
 USER=${USER:-1000}
 GROUP=${GROUP:-1000}
 groupadd -g$GROUP $GROUP || true
 useradd -m -g$GROUP -u$USER build || true
+
 # The local registry is stored in a Docker volume mounted at /usr/local.
-# This makes sure it is accessible to non-root users, which is the whole point:
+# This makes sure it is accessible to non-root users.
 mkdir -p /usr/local/cargo/registry
 chown -R $USER /usr/local/cargo/registry
 chown -R $USER /contract
 chown $USER /output
-# Execute a release build then optimize it with Binaryen
-echo "Building $Package as user build ($USER:$GROUP)..."
+
+# As a non-root user,
+# execute a release build,
+# then optimize it with Binaryen.
+echo "Building $Package..."
 cd /contract
 Output=`echo "$Package" | tr '-' '_'`
+FinalOutput="$Package@$Ref.wasm"
 su build -c "env RUSTFLAGS='-C link-arg=-s' \
   cargo build -p $Package --release --target wasm32-unknown-unknown --locked --verbose \
-  && wasm-opt -Oz ./target/wasm32-unknown-unknown/release/$Output.wasm -o /output/$Package@$Tag.wasm \
-  && cd /output/ && sha256sum -b *.wasm > checksums.sha256.txt"
+  && wasm-opt -Oz ./target/wasm32-unknown-unknown/release/$Output.wasm -o /output/$FinalOutput \
+  && cd /output/ && sha256sum -b $FinalOutput > $FinalOutput.sha256"
+

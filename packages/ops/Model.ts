@@ -154,6 +154,8 @@ export type InitReceipt = {
 export type ContractCodeOptions = {
   workspace?: string
   crate?:     string
+  repo?:      string
+  ref?:       string
   artifact?:  string
   codeHash?:  string
 }

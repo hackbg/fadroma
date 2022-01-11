@@ -16,3 +16,9 @@ export function openFaucet () {
   console.debug(`Opening ${url}...`)
   open(url)
 }
+
+import { resolve, dirname, fileURLToPath } from '@fadroma/tools'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export const buildScript = resolve(__dirname, 'ScrtBuild.sh')

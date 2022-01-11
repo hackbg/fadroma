@@ -115,9 +115,11 @@ export class ChainInstancesDir extends Directory {
     const instanceName = basename(readlinkSync(path))
     const contracts = {}
     for (const contract of readdirSync(path).sort()) {
-      const [contractName, _version] = basename(contract, '.json').split('@')
+      const [contractName, _version] = basename(contract, '.json').split('+')
       const location = resolve(path, contract)
-      contracts[contractName] = JSON.parse(readFileSync(location, 'utf8'))
+      if (statSync(location).isFile()) {
+        contracts[contractName] = JSON.parse(readFileSync(location, 'utf8'))
+      }
     }
 
     return {
@@ -168,4 +170,5 @@ export class ChainInstancesDir extends Directory {
     if (data instanceof Object) data = JSON.stringify(data, null, 2)
     return super.save(`${name}.json`, data)
   }
+
 }

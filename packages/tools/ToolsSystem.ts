@@ -26,6 +26,12 @@ export { mkdirp }
 import symlinkDir from 'symlink-dir'
 export { symlinkDir }
 
+import tmp from 'tmp'
+export { tmp }
+
+import copy from 'recursive-copy'
+export { copy }
+
 import { Console } from './ToolsCLI'
 const console = Console(import.meta.url)
 

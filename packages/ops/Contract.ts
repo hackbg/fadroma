@@ -364,4 +364,5 @@ export abstract class ContractAPI extends ContractCaller implements IContract {
       }
     }
   }
+
 }
