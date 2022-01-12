@@ -33,7 +33,7 @@ import copy from 'recursive-copy'
 export { copy }
 
 import { Console } from './cli'
-const console = Console(import.meta.url)
+const console = Console(__dirname)
 
 // class-based atomic fs handles ///////////////////////////////////////////////////////////////////
 

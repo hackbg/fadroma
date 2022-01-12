@@ -1,7 +1,7 @@
 import { basename, dirname } from 'path'
 import { bold, Console } from './cli'
 
-const console = Console(import.meta.url)
+const console = Console(__dirname)
 
 import { createServer } from 'net'
 
