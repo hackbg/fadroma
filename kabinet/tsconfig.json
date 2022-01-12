@@ -1,15 +1,13 @@
 {
   "include": [ "*.ts" ],
+  "emit": { "outDir": "dist" },
   "compilerOptions": {
-    "emit": {
-      "outDir": "dist"
-    },
     "target": "es2020",
     "module": "es2020",
     "moduleResolution": "node",
     "inlineSourceMap": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "lib": ["ES2020", "node"]
+    "lib": ["es2020"]
   }
 }

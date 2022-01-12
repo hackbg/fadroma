@@ -91,7 +91,7 @@ export class Directory extends FSCRUD {
   subdir (name: string, Dir: typeof Directory = Directory) {
     return new Dir(this.path, name)
   }
-  file (File: File = TextFile, ...fragments: Array<Path>) {
+  file (File: any = TextFile, ...fragments: Array<Path>) {
     return new File(this.path, ...fragments)
   }
 }

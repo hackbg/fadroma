@@ -1,7 +1,7 @@
 import { existsSync } from 'fs'
 import { basename } from 'path'
 
-import type Path from './sync'
+import type { Path } from './sync'
 import { TextFile, Directory } from './sync'
 
 export class JSONFile extends TextFile {
@@ -22,7 +22,7 @@ export class JSONDirectory extends Directory {
   list () {
     const matchExtension = (x:string)=>x.endsWith(JSONDirectory.extension)
     const stripExtension = (x:string) =>basename(x, JSONDirectory.extension)
-    return super.list().filter(stripExtension).map(matchExtension)
+    return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name: Path) {
     name = `${name}.json`

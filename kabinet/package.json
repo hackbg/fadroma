@@ -1,18 +1,18 @@
 {
   "name": "@hackbg/kabinet",
   "version": "1.0.0",
-  "type": "module",
   "main": "index.ts",
   "dependencies": {
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2"
   },
-  "devDependencies": {
-    "@ganesha/tsc":           "workspace:*",
-    "@ganesha/nodejs-loader": "workspace:*"
+  "peerDependencies": {
+    "@ganesha/tsc":    "workspace:*",
+    "@ganesha/nodejs": "workspace:*"
   },
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && tsc --outDir dist index.ts",
+    "build":       "rm -rf dist && mkdir -p dist && tsc --outDir dist -p tsconfig.json",
+    "postinstall": "rm -rf dist && mkdir -p dist && tsc --outDir dist -p tsconfig.json",
     "test":  "ganesha README.md"
   }
 }

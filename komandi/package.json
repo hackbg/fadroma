@@ -1,14 +1,16 @@
 {
   "name": "@hackbg/komandi",
   "version": "1.0.0",
-  "main": "komandi.ts",
-  "type": "module",
+  "main": "dist/komandi.js",
   "devDependencies": {
-    "typescript":             "latest",
-    "@ganesha/nodejs-loader": "workspace:*"
+    "typescript": "latest"
+  },
+  "peerDependencies": {
+    "@ganesha/nodejs": "workspace:*"
   },
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && tsc --outDir dist komandi.ts",
+    "build":       "rm -rf dist && mkdir -p dist && tsc --outDir dist komandi.ts",
+    "postinstall": "rm -rf dist && mkdir -p dist && tsc --outDir dist komandi.ts",
     "test":  "node --experimental-loader=@ganesha/nodejs-loader README.md"
   }
 }

@@ -4,9 +4,9 @@
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
-    "@hackbg/kabinet": "workspace:^0.1.0",
-    "@hackbg/komandi": "workspace:^0.1.0",
-    "@hackbg/konzola": "workspace:^0.1.0",
+    "@hackbg/kabinet": "workspace:^1.0.0",
+    "@hackbg/komandi": "workspace:^1.0.0",
+    "@hackbg/konzola": "workspace:^1.0.0",
     "colors": "^1.4.0",
     "dockerode": "^3.3.0",
     "exponential-backoff": "^3.1.0",
@@ -21,5 +21,9 @@
     "table": "^6.6.0",
     "tmp": "^0.2.1",
     "wait-port": "^0.2.9"
+  },
+  "scripts": {
+    "build":       "rm -rf dist && mkdir -p dist && tsc --outDir dist index.ts",
+    "postinstall": "rm -rf dist && mkdir -p dist && tsc --outDir dist index.ts"
   }
 }
