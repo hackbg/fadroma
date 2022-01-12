@@ -96,6 +96,7 @@ export abstract class ContractCode {
           workspace = tmpDir.name
 
           console.info(`Cleaning untracked files from ${bold(workspace)}...`)
+          spawnSync('git', ['reset', '--hard'], { cwd: workspace, stdio: 'inherit' })
           spawnSync('git', ['clean', '-f', '-d', '-x'], { cwd: workspace, stdio: 'inherit' })
 
           console.info(`Checking out ${bold(ref)} in ${bold(workspace)}...`)
@@ -105,6 +106,8 @@ export abstract class ContractCode {
           spawnSync('git', ['submodule', 'update', '--init', '--recursive'], { cwd: workspace, stdio: 'inherit' })
 
         }
+
+        spawnSync('git', ['log', '-1'], { cwd: workspace, stdio: 'inherit' })
 
         const buildImage   = await ensureDockerImage(this.buildImage, this.buildDockerfile, this.docker)
         const buildCommand = `bash /entrypoint.sh ${this.crate} ${ref}`
