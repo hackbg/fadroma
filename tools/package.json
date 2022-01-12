@@ -2,11 +2,11 @@
   "name": "@hackbg/tools",
   "version": "1.0.0",
   "type": "module",
-  "main": "./index.ts",
+  "main": "./dist/index.js",
   "dependencies": {
-    "@hackbg/kabinet": "workspace:^1.0.0",
-    "@hackbg/komandi": "workspace:^1.0.0",
-    "@hackbg/konzola": "workspace:^1.0.0",
+    "@hackbg/kabinet": "workspace:*",
+    "@hackbg/komandi": "workspace:*",
+    "@hackbg/konzola": "workspace:*",
     "colors": "^1.4.0",
     "dockerode": "^3.3.0",
     "exponential-backoff": "^3.1.0",
@@ -23,7 +23,7 @@
     "wait-port": "^0.2.9"
   },
   "scripts": {
-    "build":       "rm -rf dist && mkdir -p dist && tsc --outDir dist index.ts",
-    "postinstall": "rm -rf dist && mkdir -p dist && tsc --outDir dist index.ts"
+    "build":       "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
+    "postinstall": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json"
   }
 }

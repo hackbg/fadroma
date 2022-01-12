@@ -67,9 +67,11 @@ export const randomHex = (bytes: number) =>
 export const randomBase64 = (bytes: number) =>
   randomBytes(bytes).toString("base64")
 
+import { TextDecoder } from 'util'
 const decoder = new TextDecoder();
 export const decode = (buffer: Buffer) => decoder.decode(buffer).trim()
 
+import { URL } from 'url'
 export const loadJSON = (path: string, base?: string) =>
   JSON.parse(String(
     base ? readFileSync(new URL(path, base))

@@ -6,11 +6,11 @@
     "typescript": "latest"
   },
   "peerDependencies": {
-    "@ganesha/nodejs": "workspace:*"
+    "@ganesha/node": "workspace:*"
   },
   "scripts": {
-    "build":       "rm -rf dist && mkdir -p dist && tsc --outDir dist komandi.ts",
-    "postinstall": "rm -rf dist && mkdir -p dist && tsc --outDir dist komandi.ts",
+    "build":       "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
+    "postinstall": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
     "test":  "node --experimental-loader=@ganesha/nodejs-loader README.md"
   }
 }
