@@ -6,6 +6,7 @@ export default async function runCommands (
     for (const key of Object.keys(command)) {
       console.log(`  ${key}`)
     }
+    process.exit(1)
   }
 ) {
 
