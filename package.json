@@ -4,14 +4,15 @@
   "type": "module",
   "workspace": true,
   "packages": [
-    "./platforms/scrt-1.0/cosmwasm-js/packages/sdk",
-    "./platforms/scrt-1.2/cosmwasm-js/packages/sdk",
-    "./packages/*"
+    "./deps/ganesha",
+    "./deps/toolbox/*",
+    "./deps/scrt-1.0/cosmwasm-js/packages/sdk",
+    "./deps/scrt-1.2/cosmwasm-js/packages/sdk"
   ],
   "devDependencies": {
-    "@ganesha/nodejs-loader": "workspace:*",
-    "typedoc":                "^0.21.9",
-    "typescript":             "^4.5.4"
+    "@ganesha/node": "workspace:*",
+    "typedoc":       "^0.21.9",
+    "typescript":    "^4.5.4"
   },
   "dependencies": {
     "@types/mkdirp":     "^1.0.2",
@@ -22,10 +23,10 @@
   },
   "scripts": {
     "docs:pan": "pandoc README.md | sed -e 's|./crates|https://github.com/hackbg/fadroma/tree/21.12/crates|' | sed -e 's|./packages|https://github.com/hackbg/fadroma/tree/21.12/packages|' > doc/index.html",
-    "docs:rs": "cp Workspace.toml Cargo.toml; cargo doc; rm Cargo.toml",
-    "docs:ts": "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
-    "test:rs": "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
+    "docs:rs":  "cp Workspace.toml Cargo.toml; cargo doc; rm Cargo.toml",
+    "docs:ts":  "typedoc --out doc/typedoc --exclude **/*+(index|.spec|.e2e).ts js/sys js/net js/cli js/agent js/builder js/ensemble",
+    "test:rs":  "cp Workspace.toml Cargo.toml; cargo test; rm Cargo.toml",
     "test:tap": "cd test && pnpm test",
-    "test:ts": "DEBUG=out ganesha run-module --async-stack-traces --enable-source-maps test/test.mjs"
+    "test:ts":  "DEBUG=out ganesha run-module --async-stack-traces --enable-source-maps test/test.mjs"
   }
 }

@@ -1,0 +1,7 @@
+{
+  "name": "@fadroma/cli",
+  "version": "0.0.0",
+  "dependencies": {
+    "@ganesha/node": "workspace:*"
+  }
+}
