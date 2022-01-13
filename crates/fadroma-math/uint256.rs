@@ -141,6 +141,12 @@ impl Div for Uint256 {
     }
 }
 
+impl From<Decimal256> for Uint256 {
+    fn from(value: Decimal256) -> Self {
+        value.round()
+    }
+}
+
 impl From<Uint128> for Uint256 {
     fn from(value: Uint128) -> Self {
         Uint256::from(value.u128())

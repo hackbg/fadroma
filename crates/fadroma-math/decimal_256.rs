@@ -70,6 +70,11 @@ impl Decimal256 {
         Ok(Decimal256(rhs.decimal_div(self)?.0))
     }
 
+    #[inline]
+    pub fn round(self) -> Uint256 {
+        Uint256(self.0 / Self::DECIMAL_FRACTIONAL)
+    }
+
     impl_common_api!();
 }
 
@@ -623,5 +628,21 @@ mod tests {
         let right = Uint256::from(0u64);
 
         assert_eq!(left.uint_div(right).unwrap(), Decimal256::zero());
+    }
+
+    #[test]
+    fn round() {
+        let number = Decimal256::from_str("100").unwrap();
+        assert_eq!(number.round(), Uint256::from(100));
+
+        let number = Decimal256::from_str("100.4").unwrap();
+        assert_eq!(number.round(), Uint256::from(100));
+
+        let number = Decimal256::from_str("20.3").unwrap();
+        assert_eq!(number.round(), Uint256::from(20));
+
+        let raw = Uint256::from(123 * 10u128.pow(18));
+        let number = Decimal256::try_from(raw).unwrap();
+        assert_eq!(number.round(), Uint256::from(raw));
     }
 }
