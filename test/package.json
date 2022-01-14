@@ -4,18 +4,17 @@
   "type": "module",
   "main": "./test.mjs",
   "dependencies": {
-    "@fadroma/ops": "workspace:*",
-    "@fadroma/scrt": "workspace:*",
-    "@fadroma/tools": "workspace:*",
+    "@fadroma/ops":    "workspace:*",
+    "@fadroma/scrt":   "workspace:*",
+    "@hackbg/tools":   "workspace:*",
     "@hackbg/ganesha": "workspace:*",
-    "@iov/encoding": "^2.1.0",
-    "@types/express": "^4.17.13",
-    "@types/tap": "^15.0.5",
-    "body-parser": "^1.19.0",
-    "esbuild-node-loader": "^0.3.1",
-    "express": "^4.17.1",
-    "freeport-async": "^2.0.0",
-    "tap": "^15.0.9"
+    "@iov/encoding":   "^2.1.0",
+    "@types/express":  "^4.17.13",
+    "@types/tap":      "^15.0.5",
+    "body-parser":     "^1.19.0",
+    "express":         "^4.17.1",
+    "freeport-async":  "^2.0.0",
+    "tap":             "^15.0.9"
   },
   "scripts": {
     "test": "tap --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs",

@@ -4,8 +4,8 @@
   "type":    "module",
   "main":    "./index.ts",
   "dependencies": {
-    "@fadroma/scrt":  "workspace:*",
-    "@fadroma/tools": "workspace:*",
-    "secretjs":       "workspace:0.17.5"
+    "@fadroma/scrt": "workspace:*",
+    "@hackbg/tools": "workspace:*",
+    "secretjs":      "workspace:0.17.5"
   }
 }

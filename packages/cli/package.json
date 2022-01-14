@@ -2,6 +2,13 @@
   "name": "@fadroma/cli",
   "version": "0.0.0",
   "dependencies": {
-    "@ganesha/node": "workspace:*"
+    "@ganesha/node": "workspace:*",
+    "@hackbg/komandi": "workspace:*",
+    "cross-spawn": "^7.0.3",
+    "mkdirp": "^1.0.4",
+    "prompts": "^2.4.1"
+  },
+  "scripts": {
+    "start": "ganesha-node fadroma"
   }
 }
