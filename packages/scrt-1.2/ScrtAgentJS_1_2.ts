@@ -1,9 +1,9 @@
 import { Identity, IAgent } from '@fadroma/ops'
-import { bold } from '@fadroma/tools'
+import { bold } from '@hackbg/tools'
 import { ScrtAgentJS } from '@fadroma/scrt/ScrtAgentJS.ts'
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs/src/index.ts'
 
-import { Console } from '@fadroma/tools'
+import { Console } from '@hackbg/tools'
 const console = Console(import.meta.url)
 
 export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {

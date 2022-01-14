@@ -1,6 +1,6 @@
 import { ChainNodeOptions } from '@fadroma/ops'
 import { DockerizedScrtNode } from '@fadroma/scrt/ScrtChainNode.ts'
-import { TextFile, dirname, fileURLToPath } from '@fadroma/tools'
+import { TextFile, dirname, fileURLToPath } from '@hackbg/tools'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {

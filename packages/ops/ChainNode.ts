@@ -5,7 +5,7 @@ import {
   relative, cwd, TextFile,
   Docker, waitPort, freePort, ensureDockerImage, waitUntilLogsSay,
   bold, Console
-} from '@fadroma/tools'
+} from '@hackbg/tools'
 
 import { URL } from 'url'
 

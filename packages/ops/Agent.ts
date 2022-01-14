@@ -1,5 +1,5 @@
 import type { IChain, IAgent, Identity, Gas } from './Model'
-import { taskmaster, resolve, readFileSync } from '@fadroma/tools'
+import { taskmaster, resolve, readFileSync } from '@hackbg/tools'
 import assert from 'assert'
 
 export abstract class BaseAgent implements IAgent {

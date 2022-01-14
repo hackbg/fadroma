@@ -1,6 +1,6 @@
 import * as net from 'net'
 import { Identity, BaseAgent, BaseChain } from '@fadroma/ops'
-import { randomHex } from '@fadroma/tools'
+import { randomHex } from '@hackbg/tools'
 
 import { fromUtf8, fromHex, fromBase64, toBase64 } from '@iov/encoding'
 

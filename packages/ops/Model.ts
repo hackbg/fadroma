@@ -7,7 +7,7 @@
 
 
 import { URL } from 'url'
-import { Directory, JSONFile } from '@fadroma/tools'
+import { Directory, JSONFile } from '@hackbg/tools'
 import type { ChainInstancesDir } from './Chain'
 
 

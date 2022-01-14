@@ -1,6 +1,6 @@
 /// # SecretJS-based agent
 
-import { Console, readFile, bold } from '@fadroma/tools'
+import { Console, readFile, bold } from '@hackbg/tools'
 const console = Console(import.meta.url)
 
 import { Bip39 } from '@cosmjs/crypto'

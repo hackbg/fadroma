@@ -6,7 +6,7 @@ import {
   Console, bold, symlinkDir, mkdirp, resolve, basename,
   readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync,
   colors
-} from '@fadroma/tools'
+} from '@hackbg/tools'
 
 import { URL } from 'url'
 

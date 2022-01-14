@@ -5,7 +5,7 @@ import {
   ScrtContract_1_2,
   loadSchemas
 } from "@fadroma/scrt";
-import { randomHex } from "@fadroma/tools";
+import { randomHex } from "@hackbg/tools";
 
 // @ts-ignore
 const decoder = new TextDecoder();

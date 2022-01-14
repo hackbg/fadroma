@@ -1,6 +1,6 @@
 import Ajv from 'ajv'
 import { compileFromFile } from 'json-schema-to-typescript'
-import { loadJSON, writeFileSync, basename, dirname, Console } from '@fadroma/tools'
+import { loadJSON, writeFileSync, basename, dirname, Console } from '@hackbg/tools'
 import { IAgent } from './Model'
 import { isAgent } from './Agent'
 

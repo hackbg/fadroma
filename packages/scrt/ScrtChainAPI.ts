@@ -5,11 +5,11 @@ import {
   Identity, IAgent
 } from '@fadroma/ops'
 
-import { Commands, Console } from '@fadroma/tools'
+import { Commands, Console } from '@hackbg/tools'
 
 import { URL } from 'url'
 import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from './index'
-import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@fadroma/tools'
+import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@hackbg/tools'
 import { resetLocalnet } from './ScrtChainNode'
 import * as Scrt_1_0 from '@fadroma/scrt-1.0'
 import * as Scrt_1_2 from '@fadroma/scrt-1.2'

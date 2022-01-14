@@ -8,7 +8,7 @@ import { BaseAgent, isAgent } from './Agent'
 import { BaseChain, ChainInstancesDir } from './Chain'
 import { loadSchemas, getAjv, SchemaFactory } from './Schema'
 
-import { existsSync, Console, readFile, bold, relative, basename, mkdir, writeFile } from '@fadroma/tools'
+import { existsSync, Console, readFile, bold, relative, basename, mkdir, writeFile } from '@hackbg/tools'
 
 import { backOff } from 'exponential-backoff'
 

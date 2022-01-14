@@ -1,5 +1,5 @@
 import { ContractAPI, buildScript } from '@fadroma/scrt'
-import { resolve, dirname, fileURLToPath } from '@fadroma/tools'
+import { resolve, dirname, fileURLToPath } from '@hackbg/tools'
 
 const
   __dirname       = dirname(fileURLToPath(import.meta.url)),

@@ -1,6 +1,6 @@
 import { ChainNode, DockerizedChainNode, ChainNodeOptions } from '@fadroma/ops'
 import { Path, Directory, TextFile, JSONFile, JSONDirectory, defaultStateBase, resolve,
-         dirname, fileURLToPath } from '@fadroma/tools'
+         dirname, fileURLToPath } from '@hackbg/tools'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

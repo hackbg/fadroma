@@ -4,7 +4,7 @@ This part is generic to all Cosmos networks.
 
 ```typescript
 import { URL } from 'url'
-import { Directory, JSONFile } from '@fadroma/tools'
+import { Directory, JSONFile } from '@hackbg/tools'
 ```
 
 ## Contracts

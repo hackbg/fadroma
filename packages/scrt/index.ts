@@ -10,14 +10,14 @@ export * from './ScrtGas'
 export * from '@fadroma/scrt-1.0'
 export * from '@fadroma/scrt-1.2'
 
-import { open } from '@fadroma/tools'
+import { open } from '@hackbg/tools'
 export function openFaucet () {
   const url = `https://faucet.secrettestnet.io/`
   console.debug(`Opening ${url}...`)
   open(url)
 }
 
-import { resolve, dirname, fileURLToPath } from '@fadroma/tools'
+import { resolve, dirname, fileURLToPath } from '@hackbg/tools'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

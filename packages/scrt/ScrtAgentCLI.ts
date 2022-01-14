@@ -2,7 +2,7 @@
 
 
 import { BaseAgent } from '@fadroma/ops'
-import { bold, execFile, spawn } from '@fadroma/tools'
+import { bold, execFile, spawn } from '@hackbg/tools'
 
 export class ScrtCLIAgent extends BaseAgent {
 
