@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 
 import { render } from 'prettyjson'
 import { table } from 'table'
-import * as colors from 'colors'
+import colors from 'colors'
 const { bold, red, green, yellow, magenta } = colors
 
 export default function Console (context: string) {
