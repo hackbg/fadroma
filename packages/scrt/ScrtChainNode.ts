@@ -1,5 +1,5 @@
 import { ChainNode, DockerizedChainNode, ChainNodeOptions } from '@fadroma/ops'
-import { Path, Directory, TextFile, JSONFile, JSONDirectory, defaultStateBase, resolve,
+import { Path, Directory, TextFile, JSONFile, JSONDirectory, resolve,
          dirname, fileURLToPath } from '@hackbg/tools'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -17,7 +17,7 @@ export abstract class DockerizedScrtNode extends DockerizedChainNode {
   readonly sgxDir: Directory
 
   protected setDirectories (stateRoot?: Path) {
-    stateRoot = stateRoot || resolve(defaultStateBase, this.chainId)
+    stateRoot = stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
     Object.assign(this, { stateRoot: new Directory(stateRoot) })
     Object.assign(this, {
       identities: this.stateRoot.subdir('identities', JSONDirectory),

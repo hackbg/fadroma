@@ -9,7 +9,7 @@ import { Commands, Console } from '@hackbg/tools'
 
 import { URL } from 'url'
 import { ScrtCLIAgent, ScrtAgentJS, ScrtAgentJS_1_0, ScrtAgentJS_1_2 } from './index'
-import { Directory, JSONDirectory, bold, open, defaultStateBase, resolve, table, noBorders } from '@hackbg/tools'
+import { Directory, JSONDirectory, bold, open, resolve, table, noBorders } from '@hackbg/tools'
 import { resetLocalnet } from './ScrtChainNode'
 import * as Scrt_1_0 from '@fadroma/scrt-1.0'
 import * as Scrt_1_2 from '@fadroma/scrt-1.2'
@@ -213,7 +213,7 @@ export class Scrt extends BaseChain {
     this.apiURL  = options.apiURL  || node?.apiURL  || new URL('http://localhost:1337/')
 
     // directories to store state
-    const stateRoot = options.stateRoot || resolve(defaultStateBase, this.chainId)
+    const stateRoot = options.stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
     this.stateRoot  = new Directory(stateRoot)
     this.identities = new JSONDirectory(stateRoot, 'identities')
     this.uploads    = new JSONDirectory(stateRoot, 'uploads')
