@@ -1,7 +1,7 @@
 {
   "name": "@hackbg/kabinet",
   "version": "1.0.0",
-  "main": "index.ts",
+  "main": "dist/index.js",
   "dependencies": {
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2"
