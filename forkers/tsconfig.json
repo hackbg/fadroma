@@ -8,7 +8,7 @@
     "inlineSourceMap": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "lib": ["es2020"],
+    "lib": ["es2020", "DOM"],
     "types": ["@types/node"]
   }
 }
