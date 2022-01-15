@@ -2,7 +2,23 @@ name: test js mini-libs
 on: [push, pull_request]
 jobs:
 
-  setup:
+  # parallel aint working
+  #setup:
+    #runs-on: ubuntu-latest
+    #steps:
+      #- uses: actions/checkout@v2
+        #with: { submodules: recursive }
+      #- uses: actions/setup-node@v1
+        #with: { node-version: 16 }
+      #- uses: pnpm/action-setup@v2.0.1
+        #with:
+          #version: 6.22.2
+          #run_install: |
+            #- recursive: true
+              ##args: [--frozen-lockfile, --strict-peer-dependencies]
+
+  kabinet:
+    #needs: setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -15,38 +31,73 @@ jobs:
           run_install: |
             - recursive: true
               #args: [--frozen-lockfile, --strict-peer-dependencies]
-
-  kabinet:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
       - name: check that TypeScript compiles
         run: cd kabinet && pnpm build
 
   komandi:
-    needs: setup
+    #needs: setup
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              #args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: check that TypeScript compiles
         run: cd komandi && pnpm build
 
   konzola:
-    needs: setup
+    #needs: setup
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              #args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: check that TypeScript compiles
         run: cd konzola && pnpm build
 
   tools:
-    needs: setup
+    #needs: setup
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              #args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: check that TypeScript compiles
         run: cd tools && pnpm build
 
   forkers:
-    needs: setup
+    #needs: setup
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              #args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: check that TypeScript compiles
         run: cd forkers && pnpm build
