@@ -1,8 +1,16 @@
 {
   "name": "@hackbg/forkers",
   "version": "0.1.0",
+  "devDependencies": {
+    "typescript":  "latest",
+    "@types/node": "latest"
+  },
   "dependencies": {
     "@types/zen-observable": "^0.8.3",
     "zen-observable": "^0.8.15"
+  },
+  "scripts": {
+    "build":       "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
+    "postinstall": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json"
   }
 }

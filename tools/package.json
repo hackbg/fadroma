@@ -2,6 +2,10 @@
   "name": "@hackbg/tools",
   "version": "1.0.0",
   "main": "./dist/index.js",
+  "devDependencies": {
+    "typescript":  "latest",
+    "@types/node": "latest"
+  },
   "dependencies": {
     "@hackbg/kabinet": "workspace:*",
     "@hackbg/komandi": "workspace:*",

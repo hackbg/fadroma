@@ -3,14 +3,15 @@
   "version": "1.0.0",
   "main": "dist/komandi.js",
   "devDependencies": {
-    "typescript": "latest"
+    "typescript":  "latest",
+    "@types/node": "latest"
   },
   "peerDependencies": {
     "@ganesha/node": "workspace:*"
   },
   "scripts": {
-    "build":       "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
+    "build": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
     "postinstall": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
-    "test":  "node --experimental-loader=@ganesha/nodejs-loader README.md"
+    "test": "node --experimental-loader=@ganesha/nodejs-loader README.md"
   }
 }

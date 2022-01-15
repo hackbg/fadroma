@@ -2,6 +2,10 @@
   "name": "@hackbg/konzola",
   "version": "1.0.0",
   "main": "dist/konzola.js",
+  "devDependencies": {
+    "typescript":  "latest",
+    "@types/node": "latest"
+  },
   "dependencies": {
     "colors": "^1.4.0",
     "prettyjson": "github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f",

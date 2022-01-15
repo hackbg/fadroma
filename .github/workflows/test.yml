@@ -14,9 +14,9 @@ jobs:
           version: 6.22.2
           run_install: |
             - recursive: true
-              args: [--frozen-lockfile, --strict-peer-dependencies]
+              #args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: test js modules
-        run: cd kabinet && pnpm build && pnpm test
+        run: cd kabinet && pnpm build
 
   komandi:
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
             - recursive: true
               #args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: test js modules
-        run: cd komandi && pnpm build && pnpm test
+        run: cd komandi && pnpm build
 
   konzola:
     runs-on: ubuntu-latest
@@ -46,6 +46,38 @@ jobs:
           version: 6.22.2
           run_install: |
             - recursive: true
-              args: [--frozen-lockfile, --strict-peer-dependencies]
+              #args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: test js modules
-        run: cd konzola && pnpm build && pnpm test
+        run: cd konzola && pnpm build
+
+  tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              #args: [--frozen-lockfile, --strict-peer-dependencies]
+      - name: test js modules
+        run: cd tools && pnpm build
+
+  forkers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: actions/setup-node@v1
+        with: { node-version: 16 }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.22.2
+          run_install: |
+            - recursive: true
+              #args: [--frozen-lockfile, --strict-peer-dependencies]
+      - name: test js modules
+        run: cd forkers && pnpm build
