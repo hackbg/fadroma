@@ -53,3 +53,38 @@ export async function buildAndUpload (contracts: Array<ContractUpload>) {
     await contract.upload()
   }
 }
+
+import { resolve } from 'path'
+import { readdirSync, readFileSync, writeFileSync } from 'fs'
+import TOML from 'toml'
+import { schemaToTypes } from './Schema'
+import { cargo } from '@hackbg/tools'
+export async function generateSchema (projectRoot: string, dirs: Array<string>) {
+
+  for (const dir of dirs) {
+
+    // Generate JSON schema
+    const cargoToml = resolve(projectRoot, 'contracts', dir, 'Cargo.toml')
+    const {package:{name}} = TOML.parse(readFileSync(cargoToml, 'utf8'))
+    cargo('run', '-p', name, '--example', 'schema')
+
+    // Collect generated schema definitions
+    const schemaDir = resolve(projectRoot, 'contracts', dir, 'schema')
+    const schemas = readdirSync(schemaDir)
+      .filter(x=>x.endsWith('.json'))
+      .map(x=>resolve(schemaDir, x))
+
+    // Remove `For_HumanAddr` suffix from generic structs
+    // This does a naive find'n' replace, not sure what it'll do for
+    // types that are genericized over HumanAddr AND something else?
+    for (const schema of schemas) {
+      const content = readFileSync(schema, 'utf8')
+      writeFileSync(schema, content.replace(/_for_HumanAddr/g, ''), 'utf8')
+    }
+
+    // Generate type definitions from JSON schema
+    await schemaToTypes(...schemas)
+
+  }
+
+}

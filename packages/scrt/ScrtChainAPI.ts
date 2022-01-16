@@ -382,7 +382,7 @@ export class Scrt extends BaseChain {
   }
 }
 
-export const CHAINS: Record<string, Function> = {
+export const CHAINS: Record<string, (options: IChainConnectOptions)=>IChain> = {
   'localnet-1.0': Scrt.localnet_1_0,
   'localnet-1.2': Scrt.localnet_1_2,
   'holodeck-2':   Scrt.holodeck_2,

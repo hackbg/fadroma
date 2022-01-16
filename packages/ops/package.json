@@ -7,6 +7,7 @@
     "@hackbg/tools":             "workspace:*",
     "ajv":                       "^8.6.0",
     "exponential-backoff":       "^3.1.0",
-    "json-schema-to-typescript": "^10.1.4"
+    "json-schema-to-typescript": "^10.1.4",
+    "toml":                      "^3.0.0"
   }
 }
