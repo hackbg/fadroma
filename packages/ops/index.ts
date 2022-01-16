@@ -63,6 +63,8 @@ export async function generateSchema (projectRoot: string, dirs: Array<string>) 
 
   for (const dir of dirs) {
 
+    console.info(`Generating schema for ${bold(dir)}`)
+
     // Generate JSON schema
     const cargoToml = resolve(projectRoot, 'contracts', dir, 'Cargo.toml')
     const {package:{name}} = TOML.parse(readFileSync(cargoToml, 'utf8'))
