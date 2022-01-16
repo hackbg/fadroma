@@ -1,7 +1,7 @@
 {
-  "name": "@hackbg/fadroma",
-  "version": "0.0.0",
-  "type": "module",
+  "name":    "@hackbg/fadroma",
+  "version": "22.01.0",
+  "type":    "module",
   "workspace": true,
   "packages": [
     "./deps/ganesha",
