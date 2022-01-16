@@ -22,3 +22,11 @@ import { resolve, dirname, fileURLToPath } from '@hackbg/tools'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export const buildScript = resolve(__dirname, 'ScrtBuild.sh')
+
+import type { IChain, IAgent } from '@fadroma/ops'
+import { init as _init } from '@fadroma/ops'
+import { CHAINS } from './ScrtChainAPI'
+export type Context = { chain: IChain, admin: IAgent }
+export async function init (chainName: string): Promise<Context> {
+  return _init(CHAINS, chainName)
+}
