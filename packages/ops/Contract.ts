@@ -5,7 +5,7 @@ import type {
   ContractAPIOptions
 } from './Model'
 import { BaseAgent, isAgent } from './Agent'
-import { BaseChain, ChainInstancesDir } from './Chain'
+import { BaseChain, DeploymentsDir } from './Chain'
 import { loadSchemas, getAjv, SchemaFactory } from './Schema'
 
 import { existsSync, Console, readFile, bold, relative, basename, mkdir, writeFile } from '@hackbg/tools'
@@ -260,7 +260,7 @@ export abstract class ContractInit extends ContractUpload {
     * If prefix is set, creates subdir grouping contracts with the same prefix. */
   save () {
     let dir = this.init.agent.chain.instances
-    if (this.init.prefix) dir = dir.subdir(this.init.prefix, ChainInstancesDir).make()
+    if (this.init.prefix) dir = dir.subdir(this.init.prefix, DeploymentsDir).make()
     dir.save(this.init.label, this.initReceipt)
     return this
   }
@@ -356,13 +356,6 @@ export abstract class ContractAPI extends ContractCaller implements IContract {
   constructor (options: ContractAPIOptions = {}) {
     super(options)
     if (options.schema) this.schema = options.schema
-    this.q  = new SchemaFactory(this, this.schema?.queryMsg).create()
-    this.tx = new SchemaFactory(this, this.schema?.handleMsg).create()
-    for (const [msg, schema] of Object.entries(this.schema)) {
-      if (schema) {
-        this.validate[msg] = this.#ajv.compile(schema)
-      }
-    }
   }
 
 }

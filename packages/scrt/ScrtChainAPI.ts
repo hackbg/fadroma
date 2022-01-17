@@ -1,7 +1,7 @@
 import type { IChain } from '@fadroma/ops'
 import {
   IChainNode, IChainState, IChainConnectOptions,
-  BaseChain, ChainInstancesDir, prefund,
+  BaseChain, DeploymentsDir, prefund,
   Identity, IAgent
 } from '@fadroma/ops'
 
@@ -196,7 +196,7 @@ export class Scrt extends BaseChain {
   stateRoot:  Directory
   identities: JSONDirectory
   uploads:    JSONDirectory
-  instances:  ChainInstancesDir
+  instances:  DeploymentsDir
 
   /** Interface to a Secret Network REST API endpoint.
    *  Can store identities and results of contract uploads/inits.
@@ -217,7 +217,7 @@ export class Scrt extends BaseChain {
     this.stateRoot  = new Directory(stateRoot)
     this.identities = new JSONDirectory(stateRoot, 'identities')
     this.uploads    = new JSONDirectory(stateRoot, 'uploads')
-    this.instances  = new ChainInstancesDir(stateRoot, 'instances')
+    this.instances  = new DeploymentsDir(stateRoot, 'instances')
 
     // handle to localnet node if this is localnet
     // default agent credentials

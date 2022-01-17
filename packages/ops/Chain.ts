@@ -64,7 +64,7 @@ export abstract class BaseChain implements IChain {
     *
     * NOTE: the current domain vocabulary considers initialization and instantiation,
     * as pertaining to contracts on the blockchain, to be the same thing. */
-  abstract readonly instances: ChainInstancesDir
+  abstract readonly instances: DeploymentsDir
 
   abstract printStatusTables (): void
 
@@ -98,21 +98,58 @@ export abstract class BaseChain implements IChain {
 }
 
 
-/// ### Instances
+/// ### Deployments
 /// The instance directory is where results of deployments are stored.
 
+export type ContractAttach =
+  new ({ address, codeHash, codeId, admin, prefix }) => IContract
 
-export class ChainInstancesDir extends Directory {
+export class Deployment {
+  constructor (
+    public readonly name: string,
+    public readonly path: string,
+    public readonly contracts: Record<string, any>
+  ) {}
+
+  resolve (...fragments: Array<string>) {
+    return resolve(this.path, ...fragments)
+  }
+
+  getContract (
+    Class: new ({ address, codeHash, codeId, admin, prefix }) => IContract,
+    contractName: string,
+    admin:        IAgent
+  ) {
+    if (this.contracts[contractName]) {
+      throw new Error(
+        `@fadroma/ops: no contract ${bold(contractName)}` +
+        ` in deployment ${bold(this.name)}`
+      )
+    }
+
+    return new Class({
+      address:  this.contracts[contractName].initTx.contractAddress,
+      codeHash: this.contracts[contractName].codeHash,
+      codeId:   this.contracts[contractName].codeId,
+      prefix:   this.name,
+      admin,
+    })
+  }
+}
+
+export class DeploymentsDir extends Directory {
 
   KEY = '.active'
 
-  get active () {
+  get active (): Deployment {
+
     const path = resolve(this.path, this.KEY)
     if (!existsSync(path)) {
       return null
     }
 
     const instanceName = basename(readlinkSync(path))
+
     const contracts = {}
     for (const contract of readdirSync(path).sort()) {
       const [contractName, _version] = basename(contract, '.json').split('+')
@@ -122,27 +159,8 @@ export class ChainInstancesDir extends Directory {
       }
     }
 
-    return {
-      name: instanceName,
-      path,
-      resolve: (...fragments: Array<string>) => resolve(path, ...fragments),
-      contracts,
-      getContract (
-        Class: (new () => IContract) & {attach: Function},
-        contractName: string,
-        admin:        IAgent
-      ) {
-        const receipt = contracts[contractName]
-        if (!receipt) {
-          throw new Error(
-            `@fadroma/ops: no contract ${bold(contractName)}` +
-            ` in deployment ${bold(instanceName)}`
-          )
-        }
-        const {initTx:{contractAddress}, codeId: _codeId, codeHash} = receipt
-        return Class.attach(contractAddress, codeHash, admin)
-      }
-    }
+    return new Deployment(instanceName, path, contracts)
+
   }
 
   async select (id: string) {
