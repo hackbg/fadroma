@@ -196,7 +196,7 @@ export class Scrt extends BaseChain {
   stateRoot:  Directory
   identities: JSONDirectory
   uploads:    JSONDirectory
-  instances:  DeploymentsDir
+  deployments:  DeploymentsDir
 
   /** Interface to a Secret Network REST API endpoint.
    *  Can store identities and results of contract uploads/inits.
@@ -217,7 +217,7 @@ export class Scrt extends BaseChain {
     this.stateRoot  = new Directory(stateRoot)
     this.identities = new JSONDirectory(stateRoot, 'identities')
     this.uploads    = new JSONDirectory(stateRoot, 'uploads')
-    this.instances  = new DeploymentsDir(stateRoot, 'instances')
+    this.deployments  = new DeploymentsDir(stateRoot, 'deployments')
 
     // handle to localnet node if this is localnet
     // default agent credentials
@@ -325,9 +325,9 @@ export class Scrt extends BaseChain {
       console.info(`No known uploaded binaries on ${id}`)
     }
 
-    if (this.instancesTable.length > 1) {
+    if (this.deploymentsTable.length > 1) {
       console.info(`Instantiated contracts on ${id}:`)
-      console.log('\n' + table(this.instancesTable, noBorders))
+      console.log('\n' + table(this.deploymentsTable, noBorders))
     } else {
       console.info(`\n  No known contracts on ${id}`)
     }
@@ -363,15 +363,15 @@ export class Scrt extends BaseChain {
   }
 
   /** List of contracts in human-readable from */
-  private get instancesTable () {
+  private get deploymentsTable () {
     const rows = []
     rows.push([bold('  label')+'\n  address', 'code id', 'code hash\ninit tx\n'])
-    if (this.instances.exists()) {
-      for (const name of this.instances.list()) {
+    if (this.deployments.exists()) {
+      for (const name of this.deployments.list()) {
         const row = []
             , { codeId
               , codeHash
-              , initTx: {contractAddress, transactionHash} } = this.instances.load(name)
+              , initTx: {contractAddress, transactionHash} } = this.deployments.load(name)
         row.push(`  ${bold(name)}\n  ${contractAddress}`)
         row.push(String(codeId))
         row.push(`${codeHash}\n${transactionHash}\n`)

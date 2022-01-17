@@ -77,18 +77,6 @@ export abstract class BaseChain implements IChain {
     this.isLocalnet = isLocalnet
   }
 
-  printActiveInstance () {
-    if (this.instances.active) {
-      console.log(`\nSelected instance:`)
-      console.log(`  ${bold(this.instances.active.name)}`)
-      for (const contract of Object.keys(this.instances.active.contracts)) {
-        console.log(`    ${colors.green('✓')}  ${contract}`)
-      }
-    } else {
-      console.log(`\nNo selected instance.`)
-    }
-  }
-
   printIdentities () {
     console.log('\nAvailable identities:')
     for (const identity of this.identities.list()) {
@@ -141,6 +129,18 @@ export class DeploymentsDir extends Directory {
 
   KEY = '.active'
 
+  printActive () {
+    if (this.active) {
+      console.log(`\nSelected deployment:`)
+      console.log(`  ${bold(this.active.name)}`)
+      for (const contract of Object.keys(this.active.contracts)) {
+        console.log(`    ${colors.green('✓')}  ${contract}`)
+      }
+    } else {
+      console.log(`\nNo selected deployment.`)
+    }
+  }
+
   get active (): Deployment {
 
     const path = resolve(this.path, this.KEY)
@@ -148,7 +148,7 @@ export class DeploymentsDir extends Directory {
       return null
     }
 
-    const instanceName = basename(readlinkSync(path))
+    const deploymentName = basename(readlinkSync(path))
 
     const contracts = {}
     for (const contract of readdirSync(path).sort()) {
@@ -159,7 +159,7 @@ export class DeploymentsDir extends Directory {
       }
     }
 
-    return new Deployment(instanceName, path, contracts)
+    return new Deployment(deploymentName, path, contracts)
 
   }
 

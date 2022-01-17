@@ -231,8 +231,7 @@ export interface IChain extends IChainOptions {
 
   readonly uploads?:    Directory
 
-  readonly instances?:  ChainInstancesDir
-  printActiveInstance (): void
+  readonly deployments?:  ChainInstancesDir
 }
 
 
