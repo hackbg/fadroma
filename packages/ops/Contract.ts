@@ -191,12 +191,24 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
 
 export async function buildInDocker (
   docker: Docker,
-  { workspace, crate, ref, buildScript, buildImage, buildDockerfile }: DockerizedContractBuild
+  {
+    workspace,
+    crate,
+    ref = 'HEAD',
+    buildScript,
+    buildImage,
+    buildDockerfile
+  }: DockerizedContractBuild
 ) {
-
   let tmpDir
 
+  const run = (cmd: string, ...args: string[]) =>
+    spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit' })
+
   try {
+    if (!workspace) {
+      throw new Error('Missing workspace path.')
+    }
     const outputDir = resolve(workspace, 'artifacts')
     const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
     if (existsSync(artifact)) {
@@ -220,8 +232,6 @@ export async function buildInDocker (
         `into ${bold(outputDir)}...`
       )
       tmpDir = tmp.dirSync({ prefix: 'fadroma_build', tmpdir: '/tmp' })
-      const run = (cmd: string, ...args: string[]) =>
-        spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit' })
 
       console.info(
         `Copying source code from ${bold(workspace)} ` +
@@ -242,7 +252,7 @@ export async function buildInDocker (
       run('git', 'submodule', 'update', '--init', '--recursive')
     }
 
-    spawnSync('git', ['log', '-1'], { cwd: workspace, stdio: 'inherit' })
+    run('git', 'log', '-1')
 
     buildImage = await ensureDockerImage(buildImage, buildDockerfile, docker)
     const buildCommand = `bash /entrypoint.sh ${crate} ${ref}`
