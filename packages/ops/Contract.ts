@@ -2,84 +2,304 @@ import type {
   IChain, IAgent, IContract,
   ContractConstructor,
   ContractConstructorArguments,
-  ContractUploadOptions, UploadReceipt,
-  ContractInitOptions,
-  ContractMessage
+  ContractBuild, ContractBuildState,
+  ContractUpload, ContractUploadState, UploadReceipt,
+  ContractClient, ContractClientState, InitTX, InitReceipt, ContractMessage,
 } from './Model'
 import { BaseAgent, isAgent } from './Agent'
 import { BaseChain, DeploymentsDir } from './Chain'
-import { loadSchemas, getAjv, SchemaFactory } from './Schema'
+import { loadSchemas } from './Schema'
 
-import { existsSync, Console, readFile, bold, relative, basename, mkdir, writeFile } from '@hackbg/tools'
-
-import { backOff } from 'exponential-backoff'
-
-import { ContractCode } from './ContractBuild'
+import {
+  Console, bold,
+  resolve, relative, basename,
+  existsSync, readFile, writeFile, mkdir,
+  homedir, tmp, copy,
+  Docker, ensureDockerImage,
+  rimraf, spawnSync,
+  backOff
+} from '@hackbg/tools'
 
 const console = Console(import.meta.url)
 
-export abstract class ContractUpload extends ContractCode {
+export abstract class DockerizedContractBuild implements ContractBuild {
 
-  blob: {
-    agent?:    IAgent
-    chain?:    IChain
-    codeId?:   number
-    codeHash?: string
-    receipt?:  UploadReceipt
-  } = {}
+  // build environment
+  abstract buildImage:      string|null
+  abstract buildDockerfile: string|null
+  abstract buildScript:     string|null
 
-  constructor (options?: ContractUploadOptions) {
-    super(options)
-    this.blob.agent    = options?.agent
-    this.blob.chain    = options?.chain || options?.agent?.chain
-    this.blob.codeId   = options?.codeId
-    this.blob.codeHash = options?.codeHash
+  // build inputs
+  repo?:          string
+  ref?:           string
+  workspace?:     string
+  crate?:         string
+
+  // build outputs
+  artifact?:      string
+  codeHash?:      string
+
+  constructor (options: ContractBuildState = {}) {
+    for (const key of Object.keys(options)) {
+      this[key] = options[key]
+    }
   }
 
-  /** The chain where the contract is deployed. */
-  get chain () { return this.blob.chain }
-  /** The agent that deployed the contract. */
-  get uploader () { return this.blob.agent }
-  /** The result of the upload transaction. */
-  get uploadReceipt () { return this.blob.receipt }
+  dockerSocket = '/var/run/docker.sock'
+
+  /** Compile a contract from source */
+  // TODO support clone & build contract from external repo+ref
+  async build (): Promise<string> {
+    this.artifact = await buildInDocker(new Docker({ socketPath: this.dockerSocket }), this)
+    return this.artifact
+  }
+
+}
+
+export abstract class FSContractUpload extends DockerizedContractBuild implements ContractUpload {
+
+  // upload inputs
+  artifact?:      string
+  codeHash?:      string
+  chain?:         IChain
+  uploader?:      IAgent
+
+  // upload outputs
+  uploadReceipt?: UploadReceipt
+  codeId?:        number
+
+  constructor (options: ContractBuildState & ContractUploadState = {}) {
+    super(options)
+  }
+
   /** Path to where the result of the upload transaction is stored */
   get uploadReceiptPath () { return this.chain.uploads.resolve(`${basename(this.artifact)}.json`) }
-  /** The auto-incrementing id of the uploaded code */
-  get codeId () { return this.blob.codeId }
-  /** The auto-incrementing id of the uploaded code */
-  get codeHash () { return this.blob.codeHash||this.code.codeHash }
+
   /** Code ID + code hash pair in Sienna Swap Factory format */
   get template () { return { id: this.codeId, code_hash: this.codeHash } }
 
   /** Upload the contract to a specified chain as a specified agent. */
-  async upload (chainOrAgent?: IAgent|IChain) {
-
-    // resolve chain/agent references
-    if (chainOrAgent instanceof BaseChain) {
-      this.blob.chain = chainOrAgent as IChain
-      this.blob.agent = await this.blob.chain.getAgent()
-    } else if (chainOrAgent instanceof BaseAgent) {
-      this.blob.agent = chainOrAgent as IAgent
-      this.blob.chain = this.blob.agent.chain
-    } else if (!this.blob.agent) {
-      throw new Error('You must provide a Chain or Agent to use for deployment')
-    }
-
-    // build if not already built
-    if (!this.artifact) await this.build()
-
+  async upload () {
     // upload if not already uploaded
-    this.blob.receipt = await upload(this.uploader, this.artifact, this.uploadReceiptPath)
-
+    this.uploadReceipt = await uploadFromFS(
+      this.uploader,
+      this.artifact,
+      this.uploadReceiptPath
+    )
     // set code it and code hash to allow instantiation of uploaded code
-    this.blob.codeId   = this.uploadReceipt?.codeId
-    this.blob.codeHash = this.uploadReceipt?.originalChecksum
-    return this.blob.receipt
-
+    this.codeId   = this.uploadReceipt?.codeId
+    this.codeHash = this.uploadReceipt?.originalChecksum
+    return this.uploadReceipt
   }
 }
 
-async function upload (
+export abstract class BaseContractClient extends FSContractUpload implements ContractClient {
+
+  static loadSchemas = loadSchemas
+
+  // init inputs
+  chain?:        IChain
+  codeId?:       number
+  codeHash?:     string
+  name?:         string
+  prefix?:       string
+  suffix?:       string
+  instantiator?: IAgent
+  initMsg?:      Record<string, any> = {}
+  get label () {
+    let label = this.name
+    if (this.prefix) label = `${this.prefix}/${this.name}`
+    if (this.suffix) label = `${this.name}${this.suffix}`
+    return label
+  }
+
+  // init outputs
+  address?:      string
+  initTx?:       InitTX
+  initReceipt?:  InitReceipt
+  /** A reference to the contract in the format that ICC callbacks expect. */
+  get link () { return { address: this.address, code_hash: this.codeHash } }
+  /** A reference to the contract as an array */
+  get linkPair () { return [ this.address, this.codeHash ] as [string, string] }
+  /** The on-chain label of this contract instance.
+    * The chain requires these to be unique.
+    * If a prefix is set, it is prepended to the label. */
+
+  constructor (
+    options: ContractBuildState & ContractUploadState & ContractClientState = {}
+  ) {
+    super(options)
+  }
+
+  async instantiate (): Promise<InitTX> {
+    this.initTx = await instantiateContract(this)
+    this.address = this.initTx.contractAddress
+    this.save()
+    return this.initTx
+  }
+
+  async instantiateOrExisting (receipt?: InitReceipt, agent?: IAgent): Promise<InitReceipt> {
+    if (!receipt) {
+      return await this.instantiate()
+    } else {
+      this.codeHash = receipt.codeHash
+      this.address  = receipt.initTx.contractAddress
+      this.name     = receipt.label.split('/')[1]
+      if (agent) this.instantiator = agent
+      console.info(`${this.label}: already exists at ${this.address}`)
+      return receipt
+    }
+  }
+
+  /** Save the contract's instantiation receipt in the instances directory for this chain.
+    * If prefix is set, creates subdir grouping contracts with the same prefix. */
+  save () {
+    let dir = this.chain.deployments
+    if (this.prefix) {
+      dir = dir.subdir(this.prefix, DeploymentsDir).make() as DeploymentsDir
+    }
+    dir.save(this.name, this.initReceipt)
+    return this
+  }
+
+  /** Query the contract. */
+  query (
+    msg:   ContractMessage = "",
+    agent: IAgent          = this.instantiator
+  ) {
+    return backOff(
+      () => agent.query(this, msg),
+      txBackOffOptions
+    )
+  }
+
+  /** Execute a contract transaction. */
+  execute (
+    msg:    ContractMessage = "",
+    memo:   string          = "",
+    amount: unknown[]       = [],
+    fee:    unknown         = undefined,
+    agent:  IAgent          = this.instantiator
+  ) {
+    return backOff(
+      () => agent.execute(this, msg, amount, memo, fee),
+      txBackOffOptions
+    )
+  }
+
+}
+
+export async function buildInDocker (
+  docker: Docker,
+  { workspace, crate, ref, buildScript, buildImage, buildDockerfile }: DockerizedContractBuild
+) {
+
+  let tmpDir
+
+  try {
+    const outputDir = resolve(workspace, 'artifacts')
+    const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
+    if (existsSync(artifact)) {
+      console.info(`${bold(relative(process.cwd(), artifact))} exists, delete to rebuild`)
+      return artifact
+    }
+
+    if (!ref || ref === 'HEAD') {
+      // Build working tree
+      console.info(
+        `Building crate ${bold(crate)} ` +
+        `from working tree at ${bold(workspace)} ` +
+        `into ${bold(outputDir)}...`
+      )
+    } else {
+      // Copy working tree into /tmp and checkout the commit to build
+
+      console.info(
+        `Building crate ${bold(crate)} ` +
+        `from commit ${bold(ref)} ` +
+        `into ${bold(outputDir)}...`
+      )
+      tmpDir = tmp.dirSync({ prefix: 'fadroma_build', tmpdir: '/tmp' })
+      const run = (cmd: string, ...args: string[]) =>
+        spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit' })
+
+      console.info(
+        `Copying source code from ${bold(workspace)} ` +
+        `into ${bold(tmpDir.name)}`
+      )
+      run('cp', '-rT', workspace, tmpDir.name)
+      workspace = tmpDir.name
+
+      console.info(`Cleaning untracked files from ${bold(workspace)}...`)
+      run('git', 'stash', '-u')
+      run('git', 'reset', '--hard', '--recurse-submodules')
+      run('git', 'clean', '-f', '-d', '-x')
+
+      console.info(`Checking out ${bold(ref)} in ${bold(workspace)}...`)
+      run('git', 'checkout', ref)
+
+      console.info(`Preparing submodules...`)
+      run('git', 'submodule', 'update', '--init', '--recursive')
+    }
+
+    spawnSync('git', ['log', '-1'], { cwd: workspace, stdio: 'inherit' })
+
+    buildImage = await ensureDockerImage(buildImage, buildDockerfile, docker)
+    const buildCommand = `bash /entrypoint.sh ${crate} ${ref}`
+    const buildArgs = {
+      Tty:         true,
+      AttachStdin: true,
+      Entrypoint:  ['/bin/sh', '-c'],
+      HostConfig:  {
+        Binds: [
+          // Input
+          `${workspace}:/contract:rw`,
+
+          // Build command
+          ...(buildScript ? [`${buildScript}:/entrypoint.sh:ro`] : []),
+
+          // Output
+          `${outputDir}:/output:rw`,
+
+          // Caches
+          `project_cache_${ref}:/code/target:rw`,
+          `cargo_cache_${ref}:/usr/local/cargo:rw`,
+        ]
+      },
+      Env: [
+        'CARGO_NET_GIT_FETCH_WITH_CLI=true',
+        'CARGO_TERM_VERBOSE=true',
+        'CARGO_HTTP_TIMEOUT=240'
+      ]
+    }
+
+    console.debug(
+      `Running ${bold(buildCommand)} in ${bold(buildImage)} with the following options:`,
+      buildArgs
+    )
+
+    const [{ Error:err, StatusCode:code }, container] = await docker.run(
+      buildImage,
+      buildCommand,
+      process.stdout,
+      buildArgs
+    )
+
+    await container.remove()
+    if (err) throw err
+    if (code !== 0) throw new Error(`build of ${crate} exited with status ${code}`)
+
+    return artifact
+
+  } finally {
+
+    if (tmpDir) rimraf(tmpDir.name)
+
+  }
+
+}
+
+async function uploadFromFS (
   uploader:          IAgent,
   artifact:          string,
   uploadReceiptPath: string,
@@ -115,173 +335,50 @@ async function upload (
 
 }
 
-export type InitReceipt = {
-  label:    string,
-  codeId:   number,
-  codeHash: string,
-  initTx:   InitTX
-}
+export async function instantiateContract (contract: ContractClient): Promise<InitTX> {
+  const { address, codeId, instantiator, initMsg } = contract
 
-export type InitTX = {
-  contractAddress: string
-  data:            string
-  logs:            unknown[]
-  transactionHash: string
-}
+  if (address) {
+    throw new Error(`This contract has already been instantiated at ${address}`)
+  } else {
 
-export abstract class ContractInit extends ContractUpload {
-
-  static loadSchemas = loadSchemas
-
-  init: {
-    prefix?:  string
-    agent?:   IAgent
-    address?: string
-    label?:   string
-    msg?:     unknown
-    tx?:      InitTX
-  } = {}
-
-  constructor (options: ContractInitOptions = {}) {
-    super(options)
-    if (options.prefix)  this.init.prefix  = options.prefix
-    if (options.label)   this.init.label   = options.label
-    if (options.agent)   this.init.agent   = options.agent
-    if (options.address) this.init.address = options.address
-    if (options.initMsg) this.init.msg     = options.initMsg
-  }
-
-  /** The agent that initialized this instance of the contract. */
-  get instantiator () { return this.init.agent }
-
-  /** The on-chain address of this contract instance */
-  get address () { return this.init.address }
-
-  /** A reference to the contract in the format that ICC callbacks expect. */
-  get link () { return { address: this.address, code_hash: this.codeHash } }
-
-  /** A reference to the contract as an array */
-  get linkPair () { return [ this.address, this.codeHash ] as [string, string] }
-
-  /** The on-chain label of this contract instance.
-    * The chain requires these to be unique.
-    * If a prefix is set, it is prepended to the label. */
-  get label () {
-    return this.init.prefix
-      ? `${this.init.prefix}/${this.init.label}`
-      : this.init.label
-  }
-
-  /** The message that was used to initialize this instance. */
-  get initMsg () { return this.init.msg }
-
-  /** The response from the init transaction. */
-  get initTx () { return this.init.tx }
-
-  /** The full result of the init transaction. */
-  get initReceipt () {
-    return {
-      label:    this.label,
-      codeId:   this.codeId,
-      codeHash: this.codeHash,
-      initTx:   this.initTx
+    if (!codeId) {
+      throw new Error('Contract must be uploaded before instantiating')
     }
+
+    const initTx = await backOff(
+      ()=>instantiator.instantiate(contract, initMsg),
+      initBackOffOptions
+    )
   }
 
-  async instantiate (agent?: IAgent): Promise<InitTX> {
+  return this.initTx
+}
 
-    if (this.address) {
-
-      throw new Error(`This contract has already been instantiated at ${this.address}`)
-
+export const initBackOffOptions = {
+  retry (error: Error, attempt: number) {
+    if (error.message.includes('500')) {
+      console.warn(`Error 500, retry #${attempt}...`)
+      console.error(error)
+      return true
     } else {
-
-      if (agent) this.init.agent = agent
-
-      if (!this.codeId) throw new Error('Contract must be uploaded before instantiating')
-
-      this.init.tx = await backOff(()=>{
-        return this.instantiator.instantiate(this.codeId, this.label, this.initMsg)
-      }, {
-        retry (error: Error, attempt: number) {
-          if (error.message.includes('500')) {
-            console.warn(`Error 500, retry #${attempt}...`)
-            console.error(error)
-            return true
-          } else {
-            return false
-          }
-        }
-      })
-
-      this.init.address = this.initTx?.contractAddress
-
-      this.save()
-
-    }
-
-    return this.initTx
-
-  }
-
-  async instantiateOrExisting (receipt?: InitReceipt, agent?: IAgent): Promise<InitReceipt> {
-    if (!receipt) {
-      return await this.instantiate(agent)
-    } else {
-      this.blob.codeHash = receipt.codeHash
-      this.init.address  = receipt.initTx.contractAddress
-      this.init.label    = receipt.label.split('/')[1]
-      if (agent) this.init.agent = agent
-      console.info(`${this.label}: already exists at ${this.address}`)
-      return receipt
-    }
-  }
-
-  /** Save the contract's instantiation receipt in the instances directory for this chain.
-    * If prefix is set, creates subdir grouping contracts with the same prefix. */
-  save () {
-    let dir = this.init.agent.chain.deployments
-    if (this.init.prefix) dir = dir.subdir(this.init.prefix, DeploymentsDir).make()
-    dir.save(this.init.label, this.initReceipt)
-    return this
-  }
-
-}
-
-export abstract class ContractCaller extends ContractInit {
-
-  /** Query the contract. */
-  query (msg: ContractMessage = "", args = null, agent = this.instantiator) {
-    return backoff(() => agent.query(this, msg))
-  }
-
-  /** Execute a contract transaction. */
-  execute (
-    msg: ContractMessage = "",
-    memo   = '',
-    amount: unknown[] = [],
-    fee:    unknown   = undefined,
-    agent:  IAgent    = this.instantiator
-  ) {
-    return backoff(() => agent.execute(this, msg, memo, amount, fee))
-  }
-
-}
-
-export function backoff <T> (fn: ()=>Promise<T>) {
-  return backOff(fn, {
-    retry (error: Error, attempt: number) {
-      if (error.message.includes('500')) {
-        console.warn(`Error 500, retry #${attempt}...`)
-        console.warn(error)
-        return false
-      }
-      if (error.message.includes('502')) {
-        console.warn(`Error 502, retry #${attempt}...`)
-        console.warn(error)
-        return true
-      }
       return false
     }
-  })
+  }
+}
+
+export const txBackOffOptions = {
+  retry (error: Error, attempt: number) {
+    if (error.message.includes('500')) {
+      console.warn(`Error 500, retry #${attempt}...`)
+      console.warn(error)
+      return false
+    }
+    if (error.message.includes('502')) {
+      console.warn(`Error 502, retry #${attempt}...`)
+      console.warn(error)
+      return true
+    }
+    return false
+  }
 }

@@ -15,12 +15,6 @@ export type MigrationOptions = {
   needsActiveDeployment?: boolean
 }
 
-export const assertNotMainnet = (chain: IChain) => {
-}
-
-export const assertActiveDeployment = (chain: IChain) => {
-}
-
 export async function init (
   CHAINS:    Record<string, Function>,
   chainName: string,
@@ -81,8 +75,8 @@ export async function init (
 
 }
 
-import type { ContractUpload } from './Contract'
-export async function buildAndUpload (contracts: Array<ContractUpload>) {
+import type { ContractBuild, ContractUpload } from './Model'
+export async function buildAndUpload (contracts: Array<ContractBuild & ContractUpload>) {
   await Promise.all(contracts.map(contract=>contract.build()))
   for (const contract of contracts) {
     await contract.upload()

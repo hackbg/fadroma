@@ -1,6 +1,6 @@
-import { ContractCaller } from '@fadroma/ops'
+import { BaseContractClient } from '@fadroma/ops'
 
-export class ScrtContract extends ContractCaller {
+export class ScrtContract extends BaseContractClient {
   buildImage      = 'enigmampc/secret-contract-optimizer:latest'
   buildDockerfile = null
   buildScript     = null

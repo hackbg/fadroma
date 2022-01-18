@@ -37,8 +37,7 @@ export abstract class BaseAgent implements IAgent {
 
   abstract query       (contract: IContract, msg: any): Promise<any>
 
-  abstract execute     (contract: IContract, msg: any, funds: any[],
-                        memo?: any, transfer?: any, fee?: any): Promise<any>
+  abstract execute     (contract: IContract, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
 }
 
 /** Check if the passed instance has required methods to behave like an Agent */

@@ -15,6 +15,91 @@ export type Constructor =
 
 // Contracts ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+export type ContractBuildState = {
+  workspace?:     string
+  crate?:         string
+  repo?:          string
+  ref?:           string
+  artifact?:      string
+  codeHash?:      string
+}
+
+export interface ContractBuild extends ContractBuildState {
+  build (): Promise<any>
+}
+
+export type ContractUploadState = {
+  artifact?:      string
+  codeHash?:      string
+  chain?:         IChain
+  uploader?:      IAgent
+  uploadReceipt?: UploadReceipt
+  codeId?:        number
+}
+
+export interface ContractUpload extends ContractUploadState {
+  upload (): Promise<any>
+}
+
+export type UploadReceipt = {
+  codeId:             number
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               any[]
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
+}
+
+export type ContractClientState = {
+  /** The on-chain address of this contract instance */
+  chain?:        IChain
+  address?:      string
+  codeHash?:     string
+  codeId?:       number
+  /** The on-chain label of this contract instance.
+    * The chain requires these to be unique, so this
+    * is meant to be built from the name, prefix and suffix. */
+  label?:        string
+  name?:         string
+  prefix?:       string
+  suffix?:       string
+  /** The agent that initialized this instance of the contract. */
+  instantiator?: IAgent
+  initMsg?:      any
+  initTx?:       InitTX
+  initReceipt?:  InitReceipt
+  /** A reference to the contract in the format that ICC callbacks expect. */
+  link?:         { address: string, code_hash: string }
+  /** A reference to the contract as a tuple */
+  linkPair?:     [ string, string ]
+}
+
+export interface ContractClient extends ContractClientState {
+  instantiate (message: ContractMessage, agent?: IAgent): Promise<any>
+  query       (message: ContractMessage, agent?: IAgent): any
+  execute     (message: ContractMessage, memo: string, send: Array<any>, fee: any, agent?: IAgent): any
+  save        (): this
+}
+
+export type InitTX = {
+  contractAddress: string
+  data:            string
+  logs:            Array<any>
+  transactionHash: string
+}
+
+export type InitReceipt = {
+  label:    string,
+  codeId:   number,
+  codeHash: string,
+  initTx:   InitTX
+}
+
+export type ContractState = ContractBuildState & ContractUploadState & ContractClientState
+
+export type IContract = ContractBuild & ContractUpload & ContractClient
+
 export type ContractConstructor =
   new (args: ContractConstructorArguments) => IContract
 
@@ -28,61 +113,6 @@ export type ContractConstructorArguments = {
 
 export type ContractMessage =
   string|Record<string, any>
-
-export interface ContractBuilder {
-  readonly workspace?:    string
-  readonly crate?:        string
-  readonly repo?:         string
-  readonly ref?:          string
-  readonly artifact?:     string
-  readonly codeHash?:     string
-  readonly chain:         IChain
-  readonly uploader:      IAgent
-  readonly uploadReceipt: UploadReceipt
-  readonly codeId:        number
-  build  (workspace?: string, crate?: string): Promise<any>
-  upload (chainOrAgent?: IChain|IAgent): Promise<any>
-  save   (): this
-}
-
-export type UploadReceipt = {
-  codeId:             number
-  compressedChecksum: string
-  compressedSize:     string
-  logs:               any[]
-  originalChecksum:   string
-  originalSize:       number
-  transactionHash:    string
-}
-
-export interface ContractClient {
-  readonly codeHash?:     string
-  readonly chain:         IChain
-  readonly codeId:        number
-  readonly instantiator:  IAgent
-  readonly name:          string
-  readonly prefix:        string
-  readonly suffix:        string
-  readonly label:         string
-  readonly initMsg:       any
-  readonly initTx:        any
-  readonly initReceipt:   InitReceipt
-  readonly address:       string
-  readonly link:          { address: string, code_hash: string }
-  readonly linkPair:      [ string, string ]
-  instantiate (agent?: IAgent): Promise<any>
-  query       (method: string, args: any, agent?: IAgent): any
-  execute     (method: string, args: any, memo: string, send: Array<any>, fee: any, agent?: IAgent): any
-}
-
-export type IContract = ContractBuilder & ContractClient
-
-export type InitReceipt = {
-  contractAddress: string
-  data:            string
-  logs:            Array<any>
-  transactionHash: string
-}
 
 // Gas fees ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -152,9 +182,9 @@ export interface IAgent extends Identity {
   sendMany    (txs: Array<any>, memo?: string, denom?: string, fee?: any): Promise<any>
 
   upload      (path: string): Promise<any>
-  instantiate (contract: IContract, initMsg: ContractMessage, funds: any[]): Promise<any>
+  instantiate (contract: IContract, initMsg: ContractMessage, funds?: any[]): Promise<any>
   query       (contract: IContract, message: ContractMessage): Promise<any>
-  execute     (contract: IContract, message: ContractMessage, funds: any[], memo?: any, fee?: any): Promise<any>
+  execute     (contract: IContract, message: ContractMessage, funds?: any[], memo?: any, fee?: any): Promise<any>
 }
 
 // Chains ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
