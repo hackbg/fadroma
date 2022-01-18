@@ -18,12 +18,11 @@ export default function Console (context: string) {
   const INDENT = "\n      "
 
   const format = (arg: any) => {
-    //console.trace(arg)
-    return INDENT +
-      ((typeof arg === 'object')
-        ? render(arg).replace(/\n/g, INDENT)
-        : arg)
-      + '\n'
+    if (typeof arg === 'object') {
+      return INDENT + render(arg).replace(/\n/g, INDENT).trim()
+    } else {
+      return INDENT + arg
+    }
   }
 
   return {
@@ -40,7 +39,7 @@ export default function Console (context: string) {
 
     debug: (...args: Array<any>) => {
       if (!process.env.NO_DEBUG) {
-        console.debug(...args.map(format))
+        console.debug(args.map(format).join(''))
       }
       return args[0]
     }
