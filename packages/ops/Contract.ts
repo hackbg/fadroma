@@ -131,11 +131,17 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
     super(options)
   }
 
-  async instantiate (): Promise<InitTX> {
+  async instantiate (): Promise<InitReceipt> {
     this.initTx = await instantiateContract(this)
+    this.initReceipt = {
+      label:    this.label,
+      codeId:   this.codeId,
+      codeHash: this.codeHash,
+      initTx:   this.initTx
+    }
     this.address = this.initTx.contractAddress
     this.save()
-    return this.initTx
+    return this.initReceipt
   }
 
   async instantiateOrExisting (receipt?: InitReceipt, agent?: IAgent): Promise<InitReceipt> {
@@ -356,13 +362,13 @@ export async function instantiateContract (contract: ContractClient): Promise<In
       throw new Error('Contract must be uploaded before instantiating')
     }
 
-    const initTx = await backOff(
+    return await backOff(
       ()=>instantiator.instantiate(contract, initMsg),
       initBackOffOptions
     )
+
   }
 
-  return this.initTx
 }
 
 export const initBackOffOptions = {
