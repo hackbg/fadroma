@@ -39,7 +39,7 @@ export default function Console (context: string) {
 
     debug: (...args: Array<any>) => {
       if (!process.env.NO_DEBUG) {
-        console.debug(args.map(format).join(''))
+        console.debug(args.map(format).join('')+'\n')
       }
       return args[0]
     }
