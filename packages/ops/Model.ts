@@ -174,10 +174,6 @@ export type ContractInitOptions = ContractUploadOptions & {
   initMsg?: Record<any, any>
 }
 
-export type ContractAPIOptions = ContractInitOptions & {
-  schema?: Record<string, any>,
-}
-
 
 /// ## Chain
 

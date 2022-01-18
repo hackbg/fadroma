@@ -1,4 +1,4 @@
-import { ContractAPI, buildScript } from '@fadroma/scrt'
+import { ContractCaller, buildScript } from '@fadroma/scrt'
 import { resolve, dirname, fileURLToPath } from '@hackbg/tools'
 
 const
@@ -8,7 +8,7 @@ const
 
 export { buildImage, buildDockerfile, buildScript }
 
-export class ScrtContract_1_0 extends ContractAPI {
+export class ScrtContract_1_0 extends ContractCaller {
   buildImage      = buildImage
   buildDockerfile = buildDockerfile
   buildScript     = buildScript

@@ -1,4 +1,4 @@
-import type { IAgent, ContractAPIOptions } from "@fadroma/scrt";
+import type { IAgent, ContractInitOptions } from "@fadroma/scrt";
 import {
   ScrtContract,
   ScrtContract_1_0,
@@ -21,8 +21,8 @@ export class SNIP20Contract extends ScrtContract {
     handleAnswer: "./schema/handle_answer.json",
   });
 
-  constructor(options: ContractAPIOptions = {}) {
-    super({ ...options, schema: SNIP20Contract.schema });
+  constructor(options: ContractInitOptions = {}) {
+    super({ ...options });
   }
 
   /**

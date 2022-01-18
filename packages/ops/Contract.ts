@@ -2,7 +2,6 @@ import type {
   IChain, IAgent, IContract,
   ContractUploadOptions,
   ContractInitOptions,
-  ContractAPIOptions
 } from './Model'
 import { BaseAgent, isAgent } from './Agent'
 import { BaseChain, DeploymentsDir } from './Chain'
@@ -149,6 +148,8 @@ export type InitTX = {
 
 export abstract class ContractInit extends ContractUpload {
 
+  static loadSchemas = loadSchemas
+
   init: {
     prefix?:  string
     agent?:   IAgent
@@ -204,54 +205,53 @@ export abstract class ContractInit extends ContractUpload {
     }
   }
 
-  private initBackoffOptions = {
-    retry (error: Error, attempt: number) {
-      if (error.message.includes('500')) {
-        console.warn(`Error 500, retry #${attempt}...`)
-        console.error(error)
-        return true
-      } else {
-        return false
-      }
-    }
-  }
+  async instantiate (agent?: IAgent): Promise<InitTX> {
 
-  private initBackoff (fn: ()=>Promise<InitTX>) {
-    return backOff(fn, this.initBackoffOptions)
-  }
+    if (this.address) {
 
-  async instantiate (agent?: IAgent) {
-    if (!this.address) {
-      if (agent) this.init.agent = agent
-      if (!this.codeId) throw new Error('Contract must be uploaded before instantiating')
-      this.init.tx = await this.initBackoff(()=>{
-        return this.instantiator.instantiate(this.codeId, this.label, this.initMsg)
-      })
-      this.init.address = this.initTx?.contractAddress
-      this.save()
-    } else if (this.address) {
       throw new Error(`This contract has already been instantiated at ${this.address}`)
+
+    } else {
+
+      if (agent) this.init.agent = agent
+
+      if (!this.codeId) throw new Error('Contract must be uploaded before instantiating')
+
+      this.init.tx = await backOff(()=>{
+        return this.instantiator.instantiate(this.codeId, this.label, this.initMsg)
+      }, {
+        retry (error: Error, attempt: number) {
+          if (error.message.includes('500')) {
+            console.warn(`Error 500, retry #${attempt}...`)
+            console.error(error)
+            return true
+          } else {
+            return false
+          }
+        }
+      })
+
+      this.init.address = this.initTx?.contractAddress
+
+      this.save()
+
     }
+
     return this.initTx
+
   }
 
-  async instantiateOrExisting (receipt: InitReceipt, agent?: IAgent) {
-    if (receipt) {
+  async instantiateOrExisting (receipt?: InitReceipt, agent?: IAgent): Promise<InitReceipt> {
+    if (!receipt) {
+      return await this.instantiate(agent)
+    } else {
       this.blob.codeHash = receipt.codeHash
       this.init.address  = receipt.initTx.contractAddress
       this.init.label    = receipt.label.split('/')[1]
       if (agent) this.init.agent = agent
       console.info(`${this.label}: already exists at ${this.address}`)
       return receipt
-    } else {
-      return await this.instantiate(agent)
     }
-  }
-
-  /** Used by Ensemble to save multiple instantiation receipts in a subdir. */
-  setPrefix (prefix: string) {
-    this.init.prefix = prefix
-    return this
   }
 
   /** Save the contract's instantiation receipt in the instances directory for this chain.
@@ -265,9 +265,30 @@ export abstract class ContractInit extends ContractUpload {
 
 }
 
+export type ContractMessage = string|Record<string, any>
+
 export abstract class ContractCaller extends ContractInit {
 
-  private backoffOptions = {
+  /** Query the contract. */
+  query (msg: ContractMessage = "", args = null, agent = this.instantiator) {
+    return backoff(() => agent.query(this, msg))
+  }
+
+  /** Execute a contract transaction. */
+  execute (
+    msg: ContractMessage = "",
+    memo   = '',
+    amount: unknown[] = [],
+    fee:    unknown   = undefined,
+    agent:  IAgent    = this.instantiator
+  ) {
+    return backoff(() => agent.execute(this, msg, memo, amount, fee))
+  }
+
+}
+
+export function backoff <T> (fn: ()=>Promise<T>) {
+  return backOff(fn, {
     retry (error: Error, attempt: number) {
       if (error.message.includes('500')) {
         console.warn(`Error 500, retry #${attempt}...`)
@@ -281,79 +302,5 @@ export abstract class ContractCaller extends ContractInit {
       }
       return false
     }
-  }
-
-  private backoff (fn: ()=>Promise<unknown>) {
-    return backOff(fn, this.backoffOptions)
-  }
-
-  /** Query the contract. */
-  query (method = "", args = null, agent = this.instantiator) {
-    return this.backoff(() => agent.query(this, method, args))
-  }
-
-  /** Execute a contract transaction. */
-  execute (
-    method = "",
-    args   = null,
-    memo   = '',
-    amount: unknown[] = [],
-    fee:    unknown   = undefined,
-    agent:  IAgent    = this.instantiator
-  ) {
-    return this.backoff(() => agent.execute(this, method, args, memo, amount, fee))
-  }
-
-  /** Create a temporary copy of a contract with a different agent.
-    * FIXME: Broken - see uploader/instantiator/admin */
-  copy = (agent: IAgent) => {
-    const addon = {};
-    if (isAgent(agent)) {
-      // @ts-ignore: ???
-      addon.init = {...this.init, agent};
-    }
-    return Object.assign(
-      Object.create(Object.getPrototypeOf(this)),
-      addon
-    );
-  };
-
-}
-
-export type Schema   = Record<string, unknown>
-export type Validate = (object: unknown) => unknown
-export type Method   = (...args: Array<unknown>) => unknown
-
-/** A contract with auto-generated methods for invoking
- *  queries and transactions */
-export abstract class ContractAPI extends ContractCaller implements IContract {
-
-  static loadSchemas = loadSchemas
-
-  protected schema: {
-    initMsg?:        Schema
-    queryMsg?:       Schema
-    queryResponse?:  Schema
-    handleMsg?:      Schema
-    handleResponse?: Schema
-  } = {}
-
-  #ajv = getAjv()
-
-  private validate: {
-    initMsg?:        Validate
-    queryMsg?:       Validate
-    queryResponse?:  Validate
-    handleMsg?:      Validate
-    handleResponse?: Validate
-  } = {}
-
-  q:  Record<string, Method>
-  tx: Record<string, Method>
-
-  constructor (options: ContractAPIOptions = {}) {
-    super(options)
-    if (options.schema) this.schema = options.schema
-  }
-
+  })
 }

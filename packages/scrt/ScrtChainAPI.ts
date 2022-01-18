@@ -304,11 +304,11 @@ export class Scrt extends BaseChain {
 
   /** create contract instance from interface class and address */
   getContract (
-    ContractAPI:     any,
+    Contract:        any,
     contractAddress: string,
     agent = this.defaultIdentity
   ) {
-    return new ContractAPI({
+    return new Contract({
       initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
       agent
     })
@@ -364,20 +364,25 @@ export class Scrt extends BaseChain {
 
   /** List of contracts in human-readable from */
   private get deploymentsTable () {
+
     const rows = []
     rows.push([bold('  label')+'\n  address', 'code id', 'code hash\ninit tx\n'])
+
     if (this.deployments.exists()) {
       for (const name of this.deployments.list()) {
-        const row = []
-            , { codeId
-              , codeHash
-              , initTx: {contractAddress, transactionHash} } = this.deployments.load(name)
-        row.push(`  ${bold(name)}\n  ${contractAddress}`)
-        row.push(String(codeId))
-        row.push(`${codeHash}\n${transactionHash}\n`)
-        rows.push(row)
+        const {
+          codeId,
+          codeHash,
+          initTx: {contractAddress, transactionHash}
+        } = this.deployments.load(name)
+        rows.push([
+          `  ${bold(name)}\n  ${contractAddress}`,
+          String(codeId),
+          `${codeHash}\n${transactionHash}\n`
+        ])
       }
     }
+
     return rows
   }
 }
