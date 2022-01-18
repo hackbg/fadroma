@@ -2,7 +2,7 @@
   "name": "@fadroma/snip20",
   "version": "0.1.0",
   "type": "module",
-  "main": "./api.ts",
+  "main": "./SNIP20Contract.ts",
   "dependencies": {
     "@fadroma/scrt": "workspace:*",
     "@hackbg/tools": "workspace:*"
