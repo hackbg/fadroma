@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url'
 import { execFileSync } from 'child_process'
 
 import { backOff } from "exponential-backoff"
+export { backOff }
 
 import { render } from 'prettyjson'
 export { render }
