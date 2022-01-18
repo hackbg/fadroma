@@ -14,17 +14,15 @@ import { backOff } from 'exponential-backoff'
 
 import { ContractCode } from './ContractBuild'
 
-type ContractConstructor = new (options: unknown) => IContract
+export type ContractConstructorArguments = {
+  address?:  string
+  codeHash?: string
+  codeId?:   number
+  admin?:    IAgent,
+  prefix?:   string
+}
 
-export const attachable =
-  (Constructor: ContractConstructor) =>
-    (address: string, codeHash: string, agent: IAgent) => {
-      const instance = new Constructor({})
-      instance.init.agent = agent
-      instance.init.address = address
-      instance.blob.codeHash = codeHash
-      return instance
-    }
+export type ContractConstructor = new (args: ContractConstructorArguments) => IContract
 
 const console = Console(import.meta.url)
 

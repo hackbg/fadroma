@@ -1,4 +1,12 @@
-import type { IChain, IChainNode, IChainState, Identity, IAgent, IContract } from './Model'
+import type {
+  IChain,
+  IChainNode,
+  IChainState,
+  Identity,
+  IAgent,
+  IContract,
+  ContractConstructor
+} from './Model'
 
 import {
   __dirname,
@@ -89,8 +97,6 @@ export abstract class BaseChain implements IChain {
 /// ### Deployments
 /// The instance directory is where results of deployments are stored.
 
-export type ContractAttach =
-  new ({ address, codeHash, codeId, admin, prefix }) => IContract
 
 export class Deployment {
   constructor (
@@ -104,7 +110,7 @@ export class Deployment {
   }
 
   getContract (
-    Class: new ({ address, codeHash, codeId, admin, prefix }) => IContract,
+    Class:        ContractConstructor,
     contractName: string,
     admin:        IAgent
   ) {
