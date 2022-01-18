@@ -108,7 +108,7 @@ export class Deployment {
     contractName: string,
     admin:        IAgent
   ) {
-    if (this.contracts[contractName]) {
+    if (!this.contracts[contractName]) {
       throw new Error(
         `@fadroma/ops: no contract ${bold(contractName)}` +
         ` in deployment ${bold(this.name)}`
