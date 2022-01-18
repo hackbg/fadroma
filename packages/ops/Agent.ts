@@ -1,4 +1,4 @@
-import type { IChain, IAgent, Identity, Gas } from './Model'
+import type { IChain, IAgent, IContract, Identity, Gas } from './Model'
 import { taskmaster, resolve, readFileSync } from '@hackbg/tools'
 import assert from 'assert'
 
@@ -17,53 +17,28 @@ export abstract class BaseAgent implements IAgent {
   pen?:      any
 
   abstract get nextBlock (): Promise<void>
+
   abstract get block     (): Promise<any>
+
   abstract get account   (): Promise<any>
+
   abstract get balance   (): Promise<any>
 
-  abstract getBalance (
-    denomination: string
-  ): Promise<any>
+  abstract getBalance  (denomination: string): Promise<any>
 
-  abstract send (
-    recipient:        any,
-    amount: string|number,
-    denom?:           any,
-    memo?:            any,
-    fee?:             any
-  ): Promise<any>
+  abstract send        (recipient: any, amount: string|number,
+                        denom?: any, memo?: any, fee?: any): Promise<any>
 
-  abstract sendMany (
-    txs: Array<any>,
-    memo?:   string,
-    denom?:  string,
-    fee?:       any
-  ): Promise<any>
+  abstract sendMany    (txs: Array<any>, memo?: string, denom?: string, fee?: any): Promise<any>
 
-  abstract upload (
-    path:   string
-  ): Promise<any>
+  abstract upload      (path: string): Promise<any>
 
-  abstract instantiate (
-    codeId: number,
-    label:  string,
-    initMsg:   any
-  ): Promise<any>
+  abstract instantiate (contract: IContract, msg: any, funds: any[]): Promise<any>
 
-  abstract query (
-    link:      any,
-    method: string,
-    args?:     any
-  ): Promise<any>
+  abstract query       (contract: IContract, msg: any): Promise<any>
 
-  abstract execute (
-    link:      any,
-    method: string,
-    args?:     any,
-    memo?:     any,
-    transfer?: any,
-    fee?:      any
-  ): Promise<any>
+  abstract execute     (contract: IContract, msg: any, funds: any[],
+                        memo?: any, transfer?: any, fee?: any): Promise<any>
 }
 
 /** Check if the passed instance has required methods to behave like an Agent */

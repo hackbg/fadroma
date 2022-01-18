@@ -146,7 +146,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
   }
 
   /** Instantiate a contract from a code ID and an init message. */
-  async instantiate (codeId: number, label: string, initMsg: any) {
+  async instantiate ({ codeId, label }: IContract, initMsg: any) {
     const from = this.address
     console.debug(`${bold('> INIT >')} ${this.constructor.name} ${label}`, { from, codeId, label, initMsg })
     const initTx = await this.API.instantiate(codeId, initMsg, label)

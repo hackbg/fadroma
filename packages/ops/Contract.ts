@@ -1,7 +1,10 @@
 import type {
   IChain, IAgent, IContract,
-  ContractUploadOptions,
+  ContractConstructor,
+  ContractConstructorArguments,
+  ContractUploadOptions, UploadReceipt,
   ContractInitOptions,
+  ContractMessage
 } from './Model'
 import { BaseAgent, isAgent } from './Agent'
 import { BaseChain, DeploymentsDir } from './Chain'
@@ -13,27 +16,7 @@ import { backOff } from 'exponential-backoff'
 
 import { ContractCode } from './ContractBuild'
 
-export type ContractConstructorArguments = {
-  address?:  string
-  codeHash?: string
-  codeId?:   number
-  admin?:    IAgent,
-  prefix?:   string
-}
-
-export type ContractConstructor = new (args: ContractConstructorArguments) => IContract
-
 const console = Console(import.meta.url)
-
-type UploadReceipt = {
-  codeId:             number
-  compressedChecksum: string
-  compressedSize:     string
-  logs:               unknown[]
-  originalChecksum:   string
-  originalSize:       number
-  transactionHash:    string
-}
 
 export abstract class ContractUpload extends ContractCode {
 
@@ -264,8 +247,6 @@ export abstract class ContractInit extends ContractUpload {
   }
 
 }
-
-export type ContractMessage = string|Record<string, any>
 
 export abstract class ContractCaller extends ContractInit {
 

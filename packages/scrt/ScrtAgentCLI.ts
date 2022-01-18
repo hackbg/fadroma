@@ -1,7 +1,8 @@
 /// # secretcli-based agent
 
 
-import { BaseAgent } from '@fadroma/ops'
+import { BaseAgent, IContract, Identity } from '@fadroma/ops'
+import { Scrt } from './ScrtChainAPI'
 import { bold, execFile, spawn } from '@hackbg/tools'
 
 export class ScrtCLIAgent extends BaseAgent {
@@ -55,7 +56,7 @@ export class ScrtCLIAgent extends BaseAgent {
   }
 
   constructor (options: { name: string, address: string }) {
-    super()
+    super(options)
     const { name, address } = options
     this.name = name
     this.address = address
@@ -105,8 +106,8 @@ export class ScrtCLIAgent extends BaseAgent {
       '--from', this.nameOrAddress )
   }
 
-  async instantiate (instance: any) {
-    const { codeId, initMsg = {}, label = '' } = instance
+  async instantiate (contract: IContract, message: any) {
+    const { codeId, initMsg = message, label = '' } = contract
     instance.agent = this
     console.debug(`⭕`+bold('init'), { codeId, label, initMsg })
     const initTx = instance.initTx = await secretcli(

@@ -8,9 +8,23 @@ export * from './Schema'
 
 import type { IChain, IAgent } from './Model'
 import { bold } from '@hackbg/tools'
+
+export type MigrationOptions = {
+  notOnMainnet?:          boolean
+  onlyOnMainnet?:         boolean
+  needsActiveDeployment?: boolean
+}
+
+export const assertNotMainnet = (chain: IChain) => {
+}
+
+export const assertActiveDeployment = (chain: IChain) => {
+}
+
 export async function init (
   CHAINS:    Record<string, Function>,
   chainName: string,
+  options:   MigrationOptions = {}
 ): Promise<{
   chain: IChain,
   admin: IAgent
@@ -25,7 +39,28 @@ export async function init (
     process.exit(0)
   }
 
-  chain = await CHAINS[chainName]().ready
+  chain = CHAINS[chainName]()
+
+  if (options.notOnMainnet && chain.isMainnet) {
+    console.log('This command is not intended for mainnet.')
+    process.exit(1)
+  }
+
+  if (options.onlyOnMainnet && !chain.isMainnet) {
+    console.log('This command is intended only for mainnet.')
+    process.exit(1)
+  }
+
+  if (options.needsActiveDeployment) {
+    if (!chain.deployments.active) {
+      console.log('This command requires a deployment to be selected.')
+      process.exit(1)
+    } else {
+      chain.deployments.printActive()
+    }
+  }
+
+  chain = await chain.ready
 
   try {
     admin = await chain.getAgent()

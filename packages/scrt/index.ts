@@ -24,9 +24,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 export const buildScript = resolve(__dirname, 'ScrtBuild.sh')
 
 import type { IChain, IAgent } from '@fadroma/ops'
-import { init as _init } from '@fadroma/ops'
+import { init as _init, MigrationOptions } from '@fadroma/ops'
 import { CHAINS } from './ScrtChainAPI'
 export type Context = { chain: IChain, admin: IAgent }
-export async function init (chainName: string): Promise<Context> {
-  return _init(CHAINS, chainName)
+export async function init (chainName: string, options?: MigrationOptions): Promise<Context> {
+  return _init(CHAINS, chainName, options)
 }
