@@ -168,7 +168,7 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
     if (this.prefix) {
       dir = dir.subdir(this.prefix, DeploymentsDir).make() as DeploymentsDir
     }
-    dir.save(`${this.name}${this.suffix}`, this.initReceipt)
+    dir.save(`${this.name}${this.suffix||''}`, this.initReceipt)
     return this
   }
 
