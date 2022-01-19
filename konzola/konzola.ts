@@ -5,18 +5,16 @@ import { fileURLToPath } from 'url'
 import { render } from 'prettyjson'
 import { table } from 'table'
 import colors from 'colors'
-const { bold, red, green, yellow, magenta } = colors
+const { bold, red, green, yellow, magenta, inverse } = colors
 
 export default function Console (context: string) {
 
-  try {
-    context = relative(cwd(), fileURLToPath(context))
-  } catch {
-    //
-  }
+  const INFO  = bold(green(  `INFO  ${context}:`))
+  const WARN  = bold(yellow( `WARN  ${context}:`))
+  const ERROR = bold(red(    `ERROR ${context}:`))
+  const TRACE = bold(magenta(`TRACE ${context}:`))
 
   const INDENT = "\n      "
-
   const format = (arg: any) => {
     if (typeof arg === 'object') {
       return INDENT + render(arg).replace(/\n/g, INDENT).trim()
@@ -26,12 +24,12 @@ export default function Console (context: string) {
   }
 
   return {
-    context, format,
+    format,
     table: (rows: any) => console.log(table(rows)),
-    log:   (...args: Array<any>) => console.log(...args),
-    info:  (...args: Array<any>) => console.info(bold(green('INFO ')), ...args),
-    warn:  (...args: Array<any>) => console.warn(bold(yellow('WARN ')), ...args),
-    error: (...args: Array<any>) => console.error(bold(red('ERROR')), ...args),
+    log:   (...args: Array<any>) => console.log(         ...args),
+    info:  (...args: Array<any>) => console.info( INFO,  ...args),
+    warn:  (...args: Array<any>) => console.warn( WARN,  ...args),
+    error: (...args: Array<any>) => console.error(ERROR, ...args),
     trace: (...args: Array<any>) => {
       console.debug(bold(magenta('TRACE')), ...args.map(format))
       console.trace()
@@ -39,7 +37,7 @@ export default function Console (context: string) {
 
     debug: (...args: Array<any>) => {
       if (!process.env.NO_DEBUG) {
-        console.debug(args.map(format).join('')+'\n')
+        console.debug(args.map(format).join('').slice(1))
       }
       return args[0]
     }
