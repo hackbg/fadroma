@@ -18,7 +18,7 @@ import {
 
 import { URL } from 'url'
 
-const console = Console(import.meta.url)
+const console = Console('@fadroma/ops/Chain')
 
 export type DefaultIdentity =
   null |
@@ -109,8 +109,8 @@ export class Deployment {
     return resolve(this.path, ...fragments)
   }
 
-  getContract (
-    Class:        ContractConstructor,
+  getContract <T extends IContract> (
+    Class:        ContractConstructor<T>,
     contractName: string,
     admin:        IAgent
   ) {

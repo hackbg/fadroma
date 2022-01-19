@@ -2,7 +2,7 @@ import { SigningCosmWasmClient, BroadcastMode } from 'secretjs/src/index.ts'
 import { ScrtAgentJS } from '@fadroma/scrt/ScrtAgentJS.ts'
 
 import { Console } from '@hackbg/tools'
-const console = Console(import.meta.url)
+const console = Console('@fadroma/scrt-1.0/ScrtAgentJS_1_0')
 
 export class PatchedSigningCosmWasmClient_1_0 extends SigningCosmWasmClient {
 

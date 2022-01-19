@@ -100,8 +100,8 @@ export type ContractState = ContractBuildState & ContractUploadState & ContractC
 
 export type IContract = ContractBuild & ContractUpload & ContractClient
 
-export type ContractConstructor =
-  new (args: ContractConstructorArguments) => IContract
+export type ContractConstructor<T extends IContract> =
+  new (args: ContractConstructorArguments) => T
 
 export type ContractConstructorArguments = {
   address?:  string

@@ -1,7 +1,7 @@
 /// # SecretJS-based agent
 
 import { Console, readFile, bold } from '@hackbg/tools'
-const console = Console(import.meta.url)
+const console = Console('@fadroma/scrt/ScrtAgentJS')
 
 import { Bip39 } from '@cosmjs/crypto'
 import {

@@ -4,7 +4,7 @@ import { loadJSON, writeFileSync, basename, dirname, Console } from '@hackbg/too
 import { IAgent } from './Model'
 import { isAgent } from './Agent'
 
-const console = Console(import.meta.url)
+const console = Console('@fadroma/ops/schema')
 
 export function loadSchemas (
   base:    string,

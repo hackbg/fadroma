@@ -9,7 +9,7 @@ import {
 
 import { URL } from 'url'
 
-const console = Console(import.meta.url)
+const console = Console('@fadroma/ops/ChainNode')
 
 
 /// # Chain backends

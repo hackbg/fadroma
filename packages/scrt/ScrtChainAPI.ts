@@ -14,7 +14,7 @@ import { resetLocalnet } from './ScrtChainNode'
 import * as Scrt_1_0 from '@fadroma/scrt-1.0'
 import * as Scrt_1_2 from '@fadroma/scrt-1.2'
 
-const console = Console(import.meta.url)
+const console = Console('@fadroma/scrt/ScrtChainAPI')
 
 type AgentConstructor = new (options: Identity) => IAgent & {
   create: () => Promise<IAgent>
