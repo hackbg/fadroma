@@ -250,25 +250,32 @@ export class QueryExecutor {
 }
 
 export async function buildInDocker (
-  docker: Docker,
-  {
-    workspace,
+  docker:       Docker,
+  buildOptions: DockerizedContractBuild
+) {
+
+  const {
     crate,
     ref = 'HEAD',
     buildScript,
-    buildImage,
     buildDockerfile
-  }: DockerizedContractBuild
-) {
-  let tmpDir
+  } = buildOptions
+
+  let {
+    workspace,
+    buildImage
+  } = buildOptions
+
+  if (!workspace) {
+    throw new Error(`Missing workspace path (crate ${crate} at ${ref})`)
+  }
 
   const run = (cmd: string, ...args: string[]) =>
     spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit' })
 
+  let tmpDir
+
   try {
-    if (!workspace) {
-      throw new Error('Missing workspace path.')
-    }
     const outputDir = resolve(workspace, 'artifacts')
     const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
     if (existsSync(artifact)) {
