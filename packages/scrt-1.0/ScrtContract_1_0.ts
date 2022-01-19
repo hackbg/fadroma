@@ -1,5 +1,11 @@
-import { BaseContractClient, buildScript } from '@fadroma/scrt'
-import { resolve, dirname, fileURLToPath } from '@hackbg/tools'
+import {
+  BaseContractClient, buildScript,
+  resolve, dirname, fileURLToPath,
+} from '@fadroma/scrt'
+
+import {
+  AugmentedScrtContract, TransactionExecutor, QueryExecutor
+} from '@fadroma/scrt/ScrtContract.ts'
 
 const
   __dirname       = dirname(fileURLToPath(import.meta.url)),
@@ -14,8 +20,6 @@ export class ScrtContract_1_0 extends BaseContractClient {
   buildScript     = buildScript
 }
 
-import type { TransactionExecutor, QueryExecutor } from '@fadroma/scrt'
-import { AugmentedScrtContract } from '@fadroma/scrt'
 export class AugmentedScrtContract_1_0<
   Executor extends TransactionExecutor,
   Querier  extends QueryExecutor
