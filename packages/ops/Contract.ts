@@ -20,7 +20,7 @@ import {
   backOff
 } from '@hackbg/tools'
 
-const console = Console(import.meta.url)
+const console = Console('@fadroma/ops/Contract')
 
 export abstract class DockerizedContractBuild implements ContractBuild {
 
@@ -81,14 +81,15 @@ export abstract class FSContractUpload extends DockerizedContractBuild implement
   /** Upload the contract to a specified chain as a specified agent. */
   async upload () {
     // upload if not already uploaded
-    this.uploadReceipt = await uploadFromFS(
+    const uploadReceipt = await uploadFromFS(
       this.uploader,
       this.artifact,
       this.uploadReceiptPath
     )
+    this.uploadReceipt = uploadReceipt
     // set code it and code hash to allow instantiation of uploaded code
-    this.codeId   = this.uploadReceipt?.codeId
-    this.codeHash = this.uploadReceipt?.originalChecksum
+    this.codeId   = uploadReceipt.codeId
+    this.codeHash = uploadReceipt.originalChecksum
     return this.uploadReceipt
   }
 }
@@ -155,7 +156,7 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
       this.address  = receipt.initTx.contractAddress
       this.name     = receipt.label.split('/')[1]
       if (agent) this.instantiator = agent
-      console.info(`${this.label}: already exists at ${this.address}`)
+      console.info(`Contract already exists at ${bold(this.address)}: ${bold(this.label)}`)
       return receipt
     }
   }
@@ -167,7 +168,7 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
     if (this.prefix) {
       dir = dir.subdir(this.prefix, DeploymentsDir).make() as DeploymentsDir
     }
-    dir.save(this.name, this.initReceipt)
+    dir.save(`${this.name}${this.suffix}`, this.initReceipt)
     return this
   }
 
@@ -209,7 +210,7 @@ export abstract class AugmentedContractClient<
   /** Get a Transactions instance bound to the current contract and agent */
   tx (agent: IAgent = this.instantiator) {
     if (!this.Transactions) {
-      throw new Error('@fadroma/ops: define the Transactions property to use this method')
+      throw new Error('[@fadroma/ops] define the Transactions property to use this method')
     }
     return new (this.Transactions)(this, agent)
   }
@@ -220,7 +221,7 @@ export abstract class AugmentedContractClient<
   /** Get a Queries instance bound to the current contract and agent */
   q (agent: IAgent = this.instantiator) {
     if (!this.Queries) {
-      throw new Error('@fadroma/ops: define the Queries property to use this method')
+      throw new Error('[@fadroma/ops] define the Queries property to use this method')
     }
     return new (this.Queries)(this, agent)
   }
@@ -267,7 +268,7 @@ export async function buildInDocker (
   } = buildOptions
 
   if (!workspace) {
-    throw new Error(`Missing workspace path (crate ${crate} at ${ref})`)
+    throw new Error(`[@fadroma/ops] Missing workspace path (crate ${crate} at ${ref})`)
   }
 
   const run = (cmd: string, ...args: string[]) =>
@@ -279,7 +280,7 @@ export async function buildInDocker (
     const outputDir = resolve(workspace, 'artifacts')
     const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
     if (existsSync(artifact)) {
-      console.info(`${bold(relative(process.cwd(), artifact))} exists, delete to rebuild`)
+      console.info(`Build artifact exists (delete it to rebuild): ${bold(relative(process.cwd(), artifact))}`)
       return artifact
     }
 
@@ -364,7 +365,7 @@ export async function buildInDocker (
 
     await container.remove()
     if (err) throw err
-    if (code !== 0) throw new Error(`build of ${crate} exited with status ${code}`)
+    if (code !== 0) throw new Error(`[@fadroma/ops] Build of ${crate} exited with status ${code}`)
 
     return artifact
 
@@ -387,7 +388,7 @@ async function uploadFromFS (
   if (existsSync(uploadReceiptPath) && !forceReupload) {
 
     const receiptData = await readFile(uploadReceiptPath, 'utf8')
-    console.info(`${bold(relative(process.cwd(), uploadReceiptPath))} exists, delete to reupload`)
+    console.info(`Upload receipt exists (delete it to reupload): ${bold(relative(process.cwd(), uploadReceiptPath))}`)
     return JSON.parse(receiptData)
 
   } else {
@@ -416,11 +417,11 @@ export async function instantiateContract (contract: ContractClient): Promise<In
   const { address, codeId, instantiator, initMsg } = contract
 
   if (address) {
-    throw new Error(`This contract has already been instantiated at ${address}`)
+    throw new Error(`[@fadroma/ops] This contract has already been instantiated at ${address}`)
   } else {
 
     if (!codeId) {
-      throw new Error('Contract must be uploaded before instantiating')
+      throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
     }
 
     return await backOff(
