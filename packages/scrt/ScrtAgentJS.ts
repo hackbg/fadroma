@@ -247,7 +247,10 @@ export function getMethod (msg: ContractMessage) {
   } else {
     const keys = Object.keys(msg)
     if (keys.length !== 1) {
-      throw new Error('@fadroma/scrt: message must be either an object with one root key, or a string')
+      throw new Error(
+        `@fadroma/scrt: message must be either an object `+
+        `with one root key, or a string. Found: ${keys}`
+      )
     }
     return Object.keys(msg)[0]
   }
