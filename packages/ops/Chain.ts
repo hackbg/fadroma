@@ -113,7 +113,7 @@ export class Deployment {
     Class:        ContractConstructor<T>,
     contractName: string,
     admin:        IAgent
-  ) {
+  ): T {
     if (!this.contracts[contractName]) {
       throw new Error(
         `@fadroma/ops: no contract ${bold(contractName)}` +
@@ -128,6 +128,24 @@ export class Deployment {
       prefix:   this.name,
       admin,
     })
+  }
+
+  getContracts <T extends IContract> (
+    Class:        ContractConstructor<T>,
+    nameFragment: string,
+    admin:        IAgent
+  ): T[] {
+    const contracts = []
+    for (const [name, contract] of Object.entries(this.contracts)) {
+      if (name.includes(nameFragment)) {
+        contracts.push(new Class({
+          address:  this.contracts[name].initTx.contractAddress,
+          codeHash: this.contracts[name].codeHash,
+          codeId:   this.contracts[name].codeId,
+        }))
+      }
+    }
+    return contracts
   }
 }
 
