@@ -6,9 +6,20 @@ const
   buildImage      = 'hackbg/fadroma-scrt-builder:1.0',
   buildDockerfile = resolve(__dirname, 'ScrtBuild_1_0.Dockerfile')
 
-export { buildImage, buildDockerfile, buildScript }
+export { buildImage, buildDockerfile }
 
 export class ScrtContract_1_0 extends BaseContractClient {
+  buildImage      = buildImage
+  buildDockerfile = buildDockerfile
+  buildScript     = buildScript
+}
+
+import type { TransactionExecutor, QueryExecutor } from '@fadroma/scrt'
+import { AugmentedScrtContract } from '@fadroma/scrt'
+export class AugmentedScrtContract_1_0<
+  Executor extends TransactionExecutor,
+  Querier  extends QueryExecutor
+> extends AugmentedScrtContract<Executor, Querier> {
   buildImage      = buildImage
   buildDockerfile = buildDockerfile
   buildScript     = buildScript

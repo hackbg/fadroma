@@ -106,6 +106,10 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
   suffix?:       string
   instantiator?: IAgent
   initMsg?:      Record<string, any> = {}
+
+  /** The on-chain label of this contract instance.
+    * The chain requires these to be unique.
+    * If a prefix is set, it is prepended to the label. */
   get label () {
     let label = this.name
     if (this.prefix) label = `${this.prefix}/${this.name}`
@@ -117,13 +121,12 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
   address?:      string
   initTx?:       InitTX
   initReceipt?:  InitReceipt
+
   /** A reference to the contract in the format that ICC callbacks expect. */
   get link () { return { address: this.address, code_hash: this.codeHash } }
+
   /** A reference to the contract as an array */
   get linkPair () { return [ this.address, this.codeHash ] as [string, string] }
-  /** The on-chain label of this contract instance.
-    * The chain requires these to be unique.
-    * If a prefix is set, it is prepended to the label. */
 
   constructor (
     options: ContractBuildState & ContractUploadState & ContractClientState = {}
@@ -168,17 +171,6 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
     return this
   }
 
-  /** Query the contract. */
-  query (
-    msg:   ContractMessage = "",
-    agent: IAgent          = this.instantiator
-  ) {
-    return backOff(
-      () => agent.query(this, msg),
-      txBackOffOptions
-    )
-  }
-
   /** Execute a contract transaction. */
   execute (
     msg:    ContractMessage = "",
@@ -193,6 +185,68 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
     )
   }
 
+  /** Query the contract. */
+  query (
+    msg:   ContractMessage = "",
+    agent: IAgent          = this.instantiator
+  ) {
+    return backOff(
+      () => agent.query(this, msg),
+      txBackOffOptions
+    )
+  }
+
+}
+
+export abstract class AugmentedContractClient<
+  Executor extends TransactionExecutor,
+  Querier  extends QueryExecutor
+> extends BaseContractClient {
+
+  /** Class implementing transaction methods. */
+  Transactions?: new (contract: IContract, agent: IAgent) => Executor
+
+  /** Get a Transactions instance bound to the current contract and agent */
+  tx (agent: IAgent = this.instantiator) {
+    if (!this.Transactions) {
+      throw new Error('@fadroma/ops: define the Transactions property to use this method')
+    }
+    return new (this.Transactions)(this, agent)
+  }
+
+  /** Class implementing query methods. */
+  Queries?: new (contract: IContract, agent: IAgent) => Querier
+
+  /** Get a Queries instance bound to the current contract and agent */
+  q (agent: IAgent = this.instantiator) {
+    if (!this.Queries) {
+      throw new Error('@fadroma/ops: define the Queries property to use this method')
+    }
+    return new (this.Queries)(this, agent)
+  }
+
+}
+
+export class TransactionExecutor {
+  constructor (
+    readonly contract: IContract,
+    readonly agent:    IAgent
+  ) {}
+
+  protected execute (msg: ContractMessage) {
+    return this.agent.execute(this.contract, msg)
+  }
+}
+
+export class QueryExecutor {
+  constructor (
+    readonly contract: IContract,
+    readonly agent:    IAgent
+  ) {}
+
+  protected query (msg: ContractMessage) {
+    return this.agent.query(this.contract, msg)
+  }
 }
 
 export async function buildInDocker (
