@@ -21,7 +21,7 @@ pub mod string_component {
             Ok(HandleResponse::default())
         }
 
-        #[query("string")]
+        #[query]
         fn get_string() -> StdResult<String> {
             let value = deps.storage.get(KEY_STRING).unwrap();
 
@@ -41,7 +41,7 @@ pub mod number_interface {
         #[handle]
         fn set_number(number: u8) -> StdResult<HandleResponse>;
 
-        #[query("number")]
+        #[query]
         fn get_number() -> StdResult<u8>;
     }
 }
@@ -71,7 +71,7 @@ pub mod number_contract {
             Ok(HandleResponse::default())
         }
 
-        #[query("number")]
+        #[query]
         fn get_number() -> StdResult<u8> {
             let value = deps.storage.get(KEY_NUMBER).unwrap();
 

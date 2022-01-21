@@ -22,7 +22,7 @@ pub mod string_component {
             Ok(HandleResponse::default())
         }
 
-        #[query("string")]
+        #[query]
         fn get_string(_padding: Option<String>) -> StdResult<String> {
             let value = deps.storage.get(KEY_STRING).unwrap();
 
@@ -36,7 +36,7 @@ use string_component::StringComponent;
 pub struct CustomStringImpl;
 
 impl string_component::StringComponent for CustomStringImpl {
-    #[query("string")]
+    #[query]
     fn get_string(_padding: Option<String>) -> StdResult<String> {
         Ok(String::from("hardcoded"))
     }

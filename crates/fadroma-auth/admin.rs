@@ -51,7 +51,7 @@ pub trait Admin {
         })
     }
 
-    #[query("address")]
+    #[query]
     fn admin() -> StdResult<HumanAddr> {
         let address = load_admin(deps)?;
 

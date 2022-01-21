@@ -21,7 +21,7 @@ pub trait StringComponent {
         Ok(HandleResponse::default())
     }
 
-    #[query("string")]
+    #[query]
     fn get_string() -> StdResult<String> {
         let value = deps.storage.get(KEY_STRING).unwrap();
 

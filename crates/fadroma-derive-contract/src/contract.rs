@@ -1,5 +1,5 @@
 use syn::{
-    TraitItemMethod, Path, AttributeArgs, ItemTrait,
+    TraitItemMethod, Path, AttributeArgs, ItemTrait, Meta,
     TraitItem, ReturnType, Type, Ident, ItemEnum, TypePath,
     Variant, FnArg, FieldsNamed, Field, Visibility, Pat,
     Fields, ItemStruct, ItemFn, Stmt, Expr, ExprMatch,
@@ -74,7 +74,9 @@ impl Contract {
                 for attr in method.attrs.iter() {
                     let segment = attr.path.segments.last().unwrap();
                     let path = format!("{}", quote!{ #segment });
-    
+
+                    let meta = attr.parse_meta()?;
+
                     match path.as_str() {
                         attr::INIT => {
                             if init.is_some() {
@@ -83,23 +85,29 @@ impl Contract {
 
                             validate_method(&method, Some(parse_quote!(InitResponse)), ty)?;
                             init = Some(method);
-    
-                            break;
                         },
                         attr::HANDLE => {
                             validate_method(&method, Some(parse_quote!(HandleResponse)), ty)?;
                             handle.push(method);
-    
-                            break;
                         },
                         attr::QUERY => {
                             validate_method(&method, None, ty)?;
                             query.push(method);
-    
-                            break;
                         },
                         _ => continue
                     }
+
+                    match meta {
+                        Meta::Path(_) => { },
+                        _ => {
+                            return Err(syn::Error::new(
+                                meta.span(),
+                                format!("Unexpected meta in \"{}\" attribute arguments.", path.as_str())
+                            ));
+                        }
+                    }
+
+                    break;
                 }
             }
         }
@@ -532,7 +540,11 @@ fn extract_fields(method: &TraitItemMethod, vis: Visibility) -> syn::Result<Fiel
     Ok(fields)
 }
 
-fn validate_method(method: &TraitItemMethod, expected: Option<Path>, contract_type: ContractType) -> syn::Result<()> {
+fn validate_method(
+    method: &TraitItemMethod,
+    expected: Option<Path>,
+    contract_type: ContractType
+) -> syn::Result<()> {
     match contract_type {
         ContractType::Interface => {
             if method.default.is_some() {
