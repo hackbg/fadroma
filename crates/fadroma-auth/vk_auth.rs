@@ -35,17 +35,35 @@ pub trait Auth {
         let address = deps.api.canonical_address(&env.message.sender)?;
         save_viewing_key(deps, address.as_slice(), &key)?;
 
-        Ok(HandleResponse::default())
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![],
+            data: Some(to_binary(&AuthHandleAnswer::SetViewingKey {
+                status: AuthResponseStatus::Success }
+            )?),
+        })
     }
 }
 
-// Enum with one variant because Keplr expects this format.
+// SNIP-20 compliance
 #[derive(JsonSchema, Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum AuthHandleAnswer {
     CreateViewingKey {
         key: ViewingKey,
+    },
+    SetViewingKey {
+        status: AuthResponseStatus,
     }
+}
+
+// SNIP-20 compliance
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+#[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
+pub enum AuthResponseStatus {
+    Success,
+    Failure,
 }
 
 #[inline]
@@ -108,7 +126,8 @@ mod tests {
         let created_vk = match result {
             AuthHandleAnswer::CreateViewingKey { key } => {
                 key
-            }
+            },
+            _ => panic!("Expecting AuthHandleAnswer::CreateViewingKey")
         };
         
         assert_eq!(created_vk, load_viewing_key(deps, sender_canonical.as_slice()).unwrap().unwrap());
