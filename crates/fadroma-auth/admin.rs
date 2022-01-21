@@ -226,21 +226,14 @@ mod tests {
 
         let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
 
-        match result {
-            super::QueryResponse::Admin { address } => {
-                assert!(address == HumanAddr::default());
-            }
-        }
+        let address: HumanAddr = from_binary(&result).unwrap();
+        assert!(address == HumanAddr::default());
 
         let admin = HumanAddr::from("admin");
         save_admin(deps, &admin).unwrap();
 
         let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
-
-        match result {
-            super::QueryResponse::Admin { address } => {
-                assert!(address == admin);
-            }
-        }
+        let address: HumanAddr = from_binary(&result).unwrap();
+        assert!(address == admin);
     }
 }

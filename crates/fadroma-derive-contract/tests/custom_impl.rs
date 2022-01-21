@@ -1,4 +1,4 @@
-use cosmwasm_std::{StdResult, InitResponse, HandleResponse, Storage, to_vec, from_slice};
+use cosmwasm_std::{StdResult, InitResponse, HandleResponse, Storage, to_vec, from_slice, from_binary};
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
 use fadroma_derive_contract::*;
 use schemars;
@@ -71,9 +71,6 @@ fn uses_custom_impl() {
         DefaultImpl
     ).unwrap();
 
-    match result {
-        QueryResponse::StringComponent(string_component::QueryResponse::GetString { string }) => {
-            assert_eq!(string, String::from("hardcoded"));
-        }
-    }
+    let string: String = from_binary(&result).unwrap();
+    assert_eq!(string, String::from("hardcoded"));
 }

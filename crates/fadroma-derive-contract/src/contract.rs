@@ -1,9 +1,9 @@
 use syn::{
-    TraitItemMethod, Path, AttributeArgs, ItemTrait, Meta, Lit,
+    TraitItemMethod, Path, AttributeArgs, ItemTrait,
     TraitItem, ReturnType, Type, Ident, ItemEnum, TypePath,
-    Variant, FnArg, FieldsNamed, Field, Visibility, Pat, NestedMeta,
-    Fields, ItemStruct, ItemFn, Stmt, Expr, ExprMatch, ExprField,
-    GenericArgument, PathArguments, parse_quote
+    Variant, FnArg, FieldsNamed, Field, Visibility, Pat,
+    Fields, ItemStruct, ItemFn, Stmt, Expr, ExprMatch,
+    ExprField, GenericArgument, PathArguments, parse_quote
 };
 use syn::token::{Comma, Brace, Colon};
 use syn::punctuated::Punctuated;
@@ -20,7 +20,6 @@ pub const DEFAULT_IMPL_STRUCT: &str = "DefaultImpl";
 const INIT_MSG: &str = "InitMsg";
 const HANDLE_MSG: &str = "HandleMsg";
 const QUERY_MSG: &str = "QueryMsg";
-const RESPONSE_MSG: &str = "QueryResponse";
 const INIT_FN: &str = "init";
 const HANDLE_FN: &str = "handle";
 const QUERY_FN: &str = "query";
@@ -121,7 +120,6 @@ impl Contract {
                 let init_msg = self.generate_init_msg()?;
                 let handle_msg = self.generate_messages(MsgType::Handle)?;
                 let query_msg = self.generate_messages(MsgType::Query)?;
-                let query_response = self.generate_response_msg()?;
 
                 let struct_impl = self.generate_default_impl();
 
@@ -136,7 +134,6 @@ impl Contract {
                     #init_msg
                     #handle_msg
                     #query_msg
-                    #query_response
                     #init
                     #handle
                     #query
@@ -147,13 +144,11 @@ impl Contract {
                 let init_msg = self.generate_init_msg()?;
                 let handle_msg = self.generate_messages(MsgType::Handle)?;
                 let query_msg = self.generate_messages(MsgType::Query)?;
-                let query_response = self.generate_response_msg()?;
         
                 Ok(quote! {
                     #init_msg
                     #handle_msg
                     #query_msg
-                    #query_response
                 })
             },
             ContractType::Impl => {
@@ -197,7 +192,7 @@ impl Contract {
         let enum_name = msg_type.to_ident();
 
         let mut result: ItemEnum = parse_quote!{
-            #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+            #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema, Debug)]
             #[serde(rename_all = "snake_case")]
             #[serde(deny_unknown_fields)]
             pub enum #enum_name {
@@ -233,44 +228,12 @@ impl Contract {
         Ok(result)
     }
 
-    fn generate_response_msg(&self) -> syn::Result<ItemEnum> {
-        let enum_name = Ident::new(RESPONSE_MSG, Span::call_site());
-
-        let mut result: ItemEnum = parse_quote!{
-            #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-            #[serde(rename_all = "snake_case")]
-            #[serde(deny_unknown_fields)]
-            pub enum #enum_name {
-
-            }
-        };
-
-        for method in &self.query {
-            let variant_name = to_pascal(&method.sig.ident.to_string());
-            let field_name = extract_query_name_ident(&method)?;
-            let result_ty = extract_std_result_type(&method.sig.output)?;
-
-            result.variants.push(Variant {
-                attrs: vec![],
-                ident: Ident::new(&variant_name, Span::call_site()),
-                fields: Fields::Named(parse_quote!({ #field_name: #result_ty })),
-                discriminant: None
-            });
-        }
-
-        for component in self.args.query_components() {
-            result.variants.push(component.create_enum_variant(RESPONSE_MSG));
-        }
-
-        Ok(result)
-    }
-
     fn generate_init_msg(&self) -> syn::Result<TokenStream> {
         if let Some(init) = &self.init {
             let msg = Ident::new(INIT_MSG, Span::call_site());
 
             let mut result: ItemStruct = parse_quote!{
-                #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+                #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema, Debug)]
                 #[serde(deny_unknown_fields)]
                 pub struct #msg {
     
@@ -346,7 +309,6 @@ impl Contract {
         let msg = self.args.interface_path_concat(&MsgType::Query.to_ident());
         let arg = self.create_trait_arg();
         let fn_name = Ident::new(QUERY_FN, Span::call_site());
-        let response_enum = self.args.interface_path_concat(&Ident::new(RESPONSE_MSG, Span::call_site()));
 
         let match_expr = self.create_match_expr(MsgType::Query)?;
 
@@ -355,7 +317,7 @@ impl Contract {
                 deps: &cosmwasm_std::Extern<S, A, Q>,
                 msg: #msg,
                 #arg
-            ) -> cosmwasm_std::StdResult<#response_enum> { }
+            ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> { }
         };
         
         result.block.stmts.push(Stmt::Expr(match_expr));
@@ -371,7 +333,6 @@ impl Contract {
 
         let enum_name = self.args.interface_path_concat(&msg_type.to_ident());
         let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
-        let response_enum = self.args.interface_path_concat(&Ident::new(RESPONSE_MSG, Span::call_site()));
 
         let mut match_expr: ExprMatch = parse_quote!(match msg {});
 
@@ -397,19 +358,12 @@ impl Contract {
                     );
                 },
                 MsgType::Query => {
-                    let field_name = extract_query_name_ident(&method)?;
-
-                    let variant_name = to_pascal(&method.sig.ident.to_string());
-                    let variant_name = Ident::new(&variant_name, Span::call_site());
-
                     match_expr.arms.push(
                         parse_quote! {
                             #enum_name::#variant { #args } => { 
                                 let result = #arg_name.#method_name(#args deps)?;
 
-                                Ok(#response_enum::#variant_name {
-                                    #field_name: result
-                                })
+                                cosmwasm_std::to_binary(&result)
                             }
                         }
                     );
@@ -437,16 +391,8 @@ impl Contract {
                     let impl_struct = component.create_impl_struct();
                     let query_fn = Ident::new(QUERY_FN, Span::call_site());
 
-                    let component_response = component.path_concat(&Ident::new(RESPONSE_MSG, Span::call_site()));
-                    
                     match_expr.arms.push(
-                        parse_quote! {
-                            #enum_name::#mod_name(msg) => {
-                                let result: #component_response = #mod_path::#query_fn(deps, msg, #impl_struct)?;
-
-                                Ok(#response_enum::#mod_name(result))
-                            }
-                        }
+                        parse_quote!(#enum_name::#mod_name(msg) => #mod_path::#query_fn(deps, msg, #impl_struct))
                     );
                 }
             }
@@ -497,9 +443,7 @@ impl Contract {
                     deps: &Extern<S, A, Q>,
                     msg: super::#query_msg
                 ) -> StdResult<Binary> {
-                    let result = super::#query_fn(deps, msg, super::DefaultImpl)?;
-
-                    to_binary(&result)
+                    super::#query_fn(deps, msg, super::DefaultImpl)
                 }
 
                 #[no_mangle]
@@ -657,40 +601,6 @@ fn extract_fn_arg_ident(arg: &FnArg) -> syn::Result<Ident> {
             require_pat_ident(*pat_type.pat.to_owned())
         },
         FnArg::Receiver(_) => Err(syn::Error::new(arg.span(), "Method definition cannot contain \"self\"."))
-    }
-}
-
-fn extract_query_name_ident(method: &TraitItemMethod) -> syn::Result<Ident> {
-    fn lit_error() -> String {
-        format!(
-            "Expected 1 string literal argument in \"{}\" attribute that will be used as the \"{}\" enum variant field name.",
-            attr::QUERY,
-            RESPONSE_MSG
-        )
-    }
-
-    let mut field_name = None;
-
-    for attr in &method.attrs {
-        if let Ok(meta) = attr.parse_meta() {
-            if let Meta::List(meta_list) = meta {
-                if meta_list.nested.len() != 1 {
-                    return Err(syn::Error::new(meta_list.span(), lit_error()));
-                }
-                
-                if let NestedMeta::Lit(lit) = meta_list.nested.first().unwrap() {
-                    if let Lit::Str(name) = lit {
-                        field_name = Some(name.clone());
-                    }
-                }
-            }
-        }
-    }
-
-    if let Some(field_name) = field_name {
-        Ok(Ident::new(&field_name.value(), Span::call_site()))
-    } else {
-        Err(syn::Error::new(method.span(), lit_error()))
     }
 }
 

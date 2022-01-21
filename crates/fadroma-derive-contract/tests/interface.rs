@@ -81,12 +81,12 @@ pub mod number_contract {
 }
 
 mod tests {
-    use cosmwasm_std::{Storage, Api, Querier, Extern};
+    use cosmwasm_std::{Storage, Api, Querier, Extern, from_binary};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
     use super::string_component;
     use super::number_contract::{init, handle, query, DefaultImpl};
-    use super::number_interface::{InitMsg, HandleMsg, QueryMsg, QueryResponse};
+    use super::number_interface::{InitMsg, HandleMsg, QueryMsg};
 
     #[test]
     fn contract_functions() {
@@ -130,13 +130,9 @@ mod tests {
         expected_str: String
     ) {
         let result = query(deps, QueryMsg::GetNumber { }, DefaultImpl).unwrap();
+        let number: u8 = from_binary(&result).unwrap();
 
-        match result {
-            QueryResponse::GetNumber { number } => {
-                assert_eq!(number, expected_num);
-            }
-            _ => panic!("Expected QueryResponse::GetNumber")
-        }
+        assert_eq!(number, expected_num);
 
         let result = query(
             deps,
@@ -146,11 +142,7 @@ mod tests {
             DefaultImpl
         ).unwrap();
 
-        match result {
-            QueryResponse::StringComponent(string_component::QueryResponse::GetString { string }) => {
-                assert_eq!(string, expected_str);
-            }
-            _ => panic!("Expected QueryMsg::StringComponent(GetString)")
-        }
+        let string: String = from_binary(&result).unwrap();
+        assert_eq!(string, expected_str);
     }
 }
