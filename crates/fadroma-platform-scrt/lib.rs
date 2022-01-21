@@ -13,6 +13,7 @@ pub use cosmwasm_storage::*;
 pub use cosmwasm_schema;
 pub use cosmwasm_schema::*;
 
+pub use serde;
 pub use snafu;
 pub use schemars;
 pub use secret_toolkit;
