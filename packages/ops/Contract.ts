@@ -45,13 +45,44 @@ export abstract class DockerizedContractBuild implements ContractBuild {
     }
   }
 
-  dockerSocket = '/var/run/docker.sock'
-
-  /** Compile a contract from source */
-  // TODO support clone & build contract from external repo+ref
-  async build (): Promise<string> {
-    this.artifact = await buildInDocker(new Docker({ socketPath: this.dockerSocket }), this)
+  /** Build the contract in the default dockerized build environment for its chain.
+    * Need access to Docker daemon. */
+  async buildInDocker (socketPath = '/var/run/docker.sock'): Promise<string> {
+    this.artifact = await buildInDocker(new Docker({ socketPath }), this)
     return this.artifact
+  }
+
+  /** Build the contract outside Docker.
+    * Assume a standard toolchain is present in the script's environment. */
+  async buildRaw (): Promise<string> {
+
+    if (this.ref && this.ref !== 'HEAD') {
+      throw new Error('[@fadroma/ops/Contract] non-HEAD builds unsupported outside Docker')
+    }
+
+    const run = (cmd: string, ...args: string[]) =>
+      spawnSync(cmd, args, {
+      cwd: this.workspace,
+      stdio: 'inherit',
+      env: { RUSTFLAGS: '-C link-arg=-s' }
+    })
+
+    run('cargo',
+        'build', '-p', this.crate,
+        '--target', 'wasm32-unknown-unknown',
+        '--release',
+        '--locked',
+        '--verbose')
+
+    run('wasm-opt',
+        '-Oz', './target/wasm32-unknown-unknown/release/$Output.wasm',
+        '-o', '/output/$FinalOutput')
+
+    run('sh', '-c',
+        "sha256sum -b $FinalOutput > $FinalOutput.sha256")
+
+    return this.artifact
+
   }
 
 }
@@ -250,6 +281,8 @@ export class QueryExecutor {
   }
 }
 
+/** Compile a contract from source */
+// TODO support clone & build contract from external repo+ref
 export async function buildInDocker (
   docker:       Docker,
   buildOptions: DockerizedContractBuild
