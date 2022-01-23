@@ -5,7 +5,9 @@ import type {
   Identity,
   IAgent,
   IContract,
-  ContractConstructor
+  ContractConstructor,
+  ContractBuild,
+  ContractUpload
 } from './Model'
 
 import {
@@ -91,6 +93,17 @@ export abstract class BaseChain implements IChain {
       console.log(`  ${this.identities.load(identity).address} (${bold(identity)})`)
     }
   }
+
+  async buildAndUpload (contracts: Array<ContractBuild & ContractUpload>) {
+    for (const contract of Object.values(contracts)) {
+      contract.chain = this
+    }
+    await Promise.all(contracts.map(contract=>contract.build()))
+    for (const contract of contracts) {
+      await contract.upload()
+    }
+  }
+
 }
 
 export class Mocknet extends BaseChain {
