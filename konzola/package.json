@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "colors": "^1.4.0",
+    "@types/prettyjson": "^0.0.30",
     "prettyjson": "github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f",
     "table": "^6.6.0"
   },
