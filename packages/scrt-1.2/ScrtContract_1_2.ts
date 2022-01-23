@@ -1,11 +1,8 @@
 import {
   BaseContractClient, buildScript,
   resolve, dirname, fileURLToPath,
-} from '@fadroma/scrt'
-
-import {
   AugmentedScrtContract, TransactionExecutor, QueryExecutor
-} from '@fadroma/scrt/ScrtContract'
+} from '@fadroma/scrt'
 
 const
   __dirname       = dirname(fileURLToPath(import.meta.url)),

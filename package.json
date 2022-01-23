@@ -3,6 +3,7 @@
   "version": "22.01.0",
   "type":    "module",
   "workspace": true,
+  "main": "index.ts",
   "packages": [
     "./deps/ganesha",
     "./deps/toolbox/*",
@@ -15,10 +16,11 @@
     "typescript":    "^4.5.4"
   },
   "dependencies": {
-    "@types/mkdirp":     "^1.0.2",
     "@types/node":       "^16.11.19",
-    "@types/prettyjson": "^0.0.30",
-    "@types/rimraf":     "^3.0.2",
+    "@fadroma/ops":      "workspace:*",
+    "@fadroma/scrt":     "workspace:*",
+    "@fadroma/scrt-1.0": "workspace:*",
+    "@fadroma/scrt-1.2": "workspace:*",
     "bignumber.js":      "^9.0.2"
   },
   "scripts": {

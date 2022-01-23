@@ -68,11 +68,11 @@ export abstract class BaseChain implements IChain {
   readonly uploads:    Directory
 
   /** This directory stores receipts from the instantiation (init) transactions,
-    * containing provenance info for initialized contract instances.
+    * containing provenance info for initialized contract deployments.
     *
     * NOTE: the current domain vocabulary considers initialization and instantiation,
     * as pertaining to contracts on the blockchain, to be the same thing. */
-  abstract readonly instances: DeploymentsDir
+  abstract readonly deployments: DeploymentsDir
 
   abstract printStatusTables (): void
 
@@ -91,6 +91,9 @@ export abstract class BaseChain implements IChain {
       console.log(`  ${this.identities.load(identity).address} (${bold(identity)})`)
     }
   }
+}
+
+export class Mocknet extends BaseChain {
 }
 
 

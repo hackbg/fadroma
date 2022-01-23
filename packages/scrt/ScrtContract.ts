@@ -16,6 +16,8 @@ export class AugmentedScrtContract<
   buildImage      = 'enigmampc/secret-contract-optimizer:latest'
   buildDockerfile = null
   buildScript     = null
+  static Queries      = QueryExecutor
+  static Transactions = TransactionExecutor
 }
 
 export { TransactionExecutor, QueryExecutor }
