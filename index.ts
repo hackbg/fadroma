@@ -1,100 +1,55 @@
-import { Scrt, ScrtCLIAgent, ScrtAgentJS } from '@fadroma/scrt'
-
-import { URL } from 'url'
-
-const {
-  SCRT_API_URL,
-  SCRT_AGENT_NAME,
-  SCRT_AGENT_ADDRESS,
-  SCRT_AGENT_MNEMONIC
-} = process.env
-
 import type { IChainConnectOptions } from '@fadroma/ops'
+export type Chains = Record<string, (options: IChainConnectOptions)=>IChain>
+export const CHAINS: Chains = {}
+
 import Scrt_1_0 from '@fadroma/scrt-1.0'
+Object.assign(CHAINS, Scrt_1_0.Chains)
+export { Scrt_1_0 }
+
 import Scrt_1_2 from '@fadroma/scrt-1.2'
-export const CHAINS: Record<string, (options: IChainConnectOptions)=>IChain> = {
-  ...Scrt_1_0.Chains,
-  ...Scrt_1_2.Chains
-}
-export { Scrt_1_0, Scrt_1_2 }
-
-import type { IChain, IAgent } from '@fadroma/ops'
-import { init as _init, MigrationOptions } from '@fadroma/ops'
-export type Context = { chain: IChain, admin: IAgent }
-export async function init (chainName: string, options?: MigrationOptions): Promise<Context> {
-  return _init(CHAINS, chainName, options)
-}
-
-//import runCommands from '@hackbg/komandi'
-
-//type Command  = fn(Migration)=>Promise<T>
-//type Commands = Record<string, Command>
-
-/*export class Fadroma {
-
-  commands: Commands = {}
-
-  command (name: string, command: Command) {
-    commands[name] = () => this.run(command)
-  }
-
-  chains = {
-
-    'mocknet': () => Mocknet,
-
-    'scrt-localnet': () => new Scrt({
-      isLocalnet:       true,
-      node:             new Scrt_1_2.DockerizedScrtNode_1_2(options),
-      chainId:         'scrt-localnet',
-      apiURL:           new URL('http://localhost:1337'),
-      Agent:            Scrt_1_2.ScrtAgentJS_1_2,
-      defaultIdentity: 'ADMIN'
-    }),
-
-  }
-
-  chainId = process.env.CHAIN_NAME || 'scrt-localnet'
-
-  async run <T> (command: Command): Promise<T> {
-    const { chain, admin } = await init(this.chains, this.chainId)
-    return await migration({ chain, admin })
-  }
-
-  module (url: string): Commands {
-    if (process.argv[1] === fileURLToPath(url)) {
-      runCommands.default(
-        this.commands,
-        process.argv.slice(2)
-      )
-    }
-    return commands
-  }
-
- }*/
+Object.assign(CHAINS, Scrt_1_2.Chains)
+export { Scrt_1_2 }
 
 import { fileURLToPath } from 'url'
 import runCommands from '@hackbg/komandi'
+import type { IChain, IAgent } from '@fadroma/ops'
+export type MigrationContext = { chain: IChain, admin: IAgent }
+export type Command<T> = (MigrationContext)=>Promise<T>
+export type Commands = Record<string, Command<any>>
+import { init } from '@fadroma/ops'
 export class Fadroma {
+
+  chains = CHAINS
+
+  chainId = process.env.FADROMA_CHAIN
 
   commands: Commands = {}
 
-  command (name: string, command: Command) {
+  command <T> (name: string, command: Command<T>) {
     this.commands[name] = () => this.run(command)
   }
 
-  async run <T> (command: Command): Promise<T> {
+  async run <T> (command: Command<T>): Promise<T> {
+    if (!this.chainId) {
+      console.log('Please set your FADROMA_CHAIN environment variable to one of the following:')
+      console.log('  '+Object.keys(this.chains).join('\n  '))
+      // TODO if interactive, display a selector which exports it for the session
+      process.exit(1)
+    }
     const { chain, admin } = await init(this.chains, this.chainId)
     return await command({ chain, admin })
   }
 
   module (url: string): Commands {
+    // if main
     if (process.argv[1] === fileURLToPath(url)) {
       runCommands.default(
         this.commands,
         process.argv.slice(2)
       )
     }
-    return commands
+    // if imported
+    return this.commands
   }
 
 }
