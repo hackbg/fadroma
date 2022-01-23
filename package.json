@@ -21,6 +21,7 @@
     "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.0": "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
+    "@hackbg/komandi":   "workspace:*",
     "bignumber.js":      "^9.0.2"
   },
   "scripts": {
