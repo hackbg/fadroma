@@ -41,9 +41,9 @@ importers:
       vsce: latest
     devDependencies:
       '@hackbg/komandi': link:../toolbox/komandi
-      '@types/node': 17.0.8
-      tap: 15.0.10_typescript@4.5.4
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      tap: 15.0.10_typescript@4.5.5
+      typescript: 4.5.5
       vite: 2.7.10
       vsce: 2.6.3
 
@@ -57,8 +57,8 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/ganesha/deps/toolbox/kabinet:
     specifiers:
@@ -70,16 +70,16 @@ importers:
       mkdirp: 1.0.4
       rimraf: 3.0.2
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/ganesha/deps/toolbox/komandi:
     specifiers:
       '@types/node': latest
       typescript: latest
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/ganesha/deps/toolbox/konzola:
     specifiers:
@@ -93,8 +93,8 @@ importers:
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: 6.7.2
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/ganesha/deps/toolbox/tools:
     specifiers:
@@ -136,8 +136,8 @@ importers:
       tmp: 0.2.1
       wait-port: 0.2.9
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/ganesha/src/core:
     specifiers:
@@ -237,7 +237,7 @@ importers:
     specifiers:
       typescript: latest
     devDependencies:
-      typescript: 4.5.4
+      typescript: 4.5.5
 
   deps/ganesha/test:
     specifiers:
@@ -650,8 +650,8 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/toolbox/kabinet:
     specifiers:
@@ -663,16 +663,16 @@ importers:
       mkdirp: 1.0.4
       rimraf: 3.0.2
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/toolbox/komandi:
     specifiers:
       '@types/node': latest
       typescript: latest
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/toolbox/konzola:
     specifiers:
@@ -686,8 +686,8 @@ importers:
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: 6.7.2
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   deps/toolbox/tools:
     specifiers:
@@ -729,8 +729,8 @@ importers:
       tmp: 0.2.1
       wait-port: 0.2.9
     devDependencies:
-      '@types/node': 17.0.8
-      typescript: 4.5.4
+      '@types/node': 17.0.10
+      typescript: 4.5.5
 
   doc/example:
     specifiers: {}
@@ -767,15 +767,11 @@ importers:
     specifiers:
       '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
-      '@fadroma/scrt-1.0': workspace:*
-      '@fadroma/scrt-1.2': workspace:*
       '@hackbg/tools': workspace:*
       secretjs: workspace:0.17.5
     dependencies:
       '@cosmjs/crypto': 0.20.1
       '@fadroma/ops': link:../ops
-      '@fadroma/scrt-1.0': link:../scrt-1.0
-      '@fadroma/scrt-1.2': link:../scrt-1.2
       '@hackbg/tools': link:../../deps/toolbox/tools
       secretjs: link:../../deps/scrt-1.2/cosmwasm-js/packages/sdk
 
@@ -3273,6 +3269,10 @@ packages:
 
   /@types/node/16.9.6:
     resolution: {integrity: sha512-YHUZhBOMTM3mjFkXVcK+WwAcYmyhe1wL4lfqNtzI0b3qAy7yuSetnM7QJazgE5PFmgVTNGiLOgRFfJMqW7XpSQ==}
+
+  /@types/node/17.0.10:
+    resolution: {integrity: sha512-S/3xB4KzyFxYGCppyDt68yzBU9ysL88lSdIah4D6cptdcltc4NCPCAMc0+PCpg/lLIyC7IPvj2Z52OJWeIUkog==}
+    dev: true
 
   /@types/node/17.0.8:
     resolution: {integrity: sha512-YofkM6fGv4gDJq78g4j0mMuGMkZVxZDgtU0JRdx6FgiJDG+0fY0GKVolOV8WqVmEhLCXkQRjwDdKyPxJp/uucg==}
@@ -13610,6 +13610,55 @@ packages:
       - treport
       - '@types/react'
 
+  /tap/15.0.10_typescript@4.5.5:
+    resolution: {integrity: sha512-8aq4j+1JUOlXyffLX7ZJxhe9KAxV3s7PsdWAm3XwfoWc/OiFyAMcv4+T0/5/65gBxOVAPLpxH8ecfDkYTA2BCQ==}
+    engines: {node: '>=10'}
+    hasBin: true
+    peerDependencies:
+      flow-remove-types: '>=2.112.0'
+      ts-node: '>=8.5.2'
+      typescript: '>=3.7.2'
+    peerDependenciesMeta:
+      flow-remove-types:
+        optional: true
+      ts-node:
+        optional: true
+      typescript:
+        optional: true
+    dependencies:
+      chokidar: 3.5.2
+      coveralls: 3.1.1
+      findit: 2.0.0
+      foreground-child: 2.0.0
+      fs-exists-cached: 1.0.0
+      glob: 7.2.0
+      import-jsx: 4.0.0
+      isexe: 2.0.0
+      istanbul-lib-processinfo: 2.0.2
+      jackspeak: 1.4.0
+      libtap: 1.1.3
+      minipass: 3.1.5
+      mkdirp: 1.0.4
+      nyc: 15.1.0
+      opener: 1.5.2
+      react: 16.14.0
+      rimraf: 3.0.2
+      signal-exit: 3.0.5
+      source-map-support: 0.5.20
+      tap-mocha-reporter: 5.0.1
+      tap-parser: 10.1.0
+      tap-yaml: 1.0.0
+      tcompare: 5.0.6
+      typescript: 4.5.5
+      which: 2.0.2
+    transitivePeerDependencies:
+      - supports-color
+    dev: true
+    bundledDependencies:
+      - ink
+      - treport
+      - '@types/react'
+
   /tapable/1.1.3:
     resolution: {integrity: sha512-4WK/bYZmj8xLr+HUCODHGF1ZFzsYffasLUgEiMBY4fgtltdO6B4WJtlSbPaDTLpYTcGVwM2qLnFTICEcNxs3kA==}
     engines: {node: '>=6'}
@@ -14057,6 +14106,12 @@ packages:
 
   /typescript/4.5.4:
     resolution: {integrity: sha512-VgYs2A2QIRuGphtzFV7aQJduJ2gyfTljngLzjpfW9FoYZF6xuw1W0vW9ghCKLfcWrCFxK81CSGRAvS1pn4fIUg==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
+
+  /typescript/4.5.5:
+    resolution: {integrity: sha512-TCTIul70LyWe6IJWT8QSYeA54WQe8EjQFU4wY52Fasj5UKx88LNYKCgBEHcOMOrFF1rKGbD8v/xcNWVUq9SymA==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true

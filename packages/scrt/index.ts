@@ -2,15 +2,11 @@ export * from '@fadroma/ops'
 
 export * from './ScrtAgentCLI'
 export * from './ScrtAgentJS'
-export { ScrtAgentJS_1_0 } from '@fadroma/scrt-1.0'
-export { ScrtAgentJS_1_2 } from '@fadroma/scrt-1.2'
 
 export * from './ScrtChainAPI'
 export * from './ScrtChainNode'
 export * from './ScrtContract'
 export * from './ScrtGas'
-export { ScrtContract_1_0, AugmentedScrtContract_1_0 } from '@fadroma/scrt-1.0'
-export { ScrtContract_1_2, AugmentedScrtContract_1_2 } from '@fadroma/scrt-1.2'
 
 import { open } from '@hackbg/tools'
 export function openFaucet () {
