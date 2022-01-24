@@ -4,140 +4,61 @@ importers:
 
   .:
     specifiers:
-      '@ganesha/node': workspace:*
-      '@types/mkdirp': ^1.0.2
+      '@fadroma/ops': workspace:*
+      '@fadroma/scrt': workspace:*
+      '@fadroma/scrt-1.0': workspace:*
+      '@fadroma/scrt-1.2': workspace:*
+      '@hackbg/ganesha': workspace:*
+      '@hackbg/komandi': workspace:*
       '@types/node': ^16.11.19
-      '@types/prettyjson': ^0.0.30
-      '@types/rimraf': ^3.0.2
       bignumber.js: ^9.0.2
       typedoc: ^0.21.9
       typescript: ^4.5.4
     dependencies:
-      '@types/mkdirp': 1.0.2
+      '@fadroma/ops': link:packages/ops
+      '@fadroma/scrt': link:packages/scrt
+      '@fadroma/scrt-1.0': link:packages/scrt-1.0
+      '@fadroma/scrt-1.2': link:packages/scrt-1.2
+      '@hackbg/komandi': link:deps/toolbox/komandi
       '@types/node': 16.11.19
-      '@types/prettyjson': 0.0.30
-      '@types/rimraf': 3.0.2
       bignumber.js: 9.0.2
     devDependencies:
-      '@ganesha/node': link:deps/ganesha/src/node
+      '@hackbg/ganesha': link:deps/ganesha
       typedoc: 0.21.9_typescript@4.5.4
       typescript: 4.5.4
 
   crates/fadroma-snip20-impl:
     specifiers:
       '@fadroma/scrt': workspace:*
+      '@fadroma/scrt-1.0': workspace:*
+      '@fadroma/scrt-1.2': workspace:*
       '@hackbg/tools': workspace:*
     dependencies:
       '@fadroma/scrt': link:../../packages/scrt
+      '@fadroma/scrt-1.0': link:../../packages/scrt-1.0
+      '@fadroma/scrt-1.2': link:../../packages/scrt-1.2
       '@hackbg/tools': link:../../deps/toolbox/tools
 
   deps/ganesha:
     specifiers:
-      '@hackbg/komandi': workspace:*
+      '@ganesha/node': workspace:^2
+      '@ganesha/node-legacy': workspace:^1
+      '@hackbg/komandi': workspace:./deps/toolbox/komandi
       '@types/node': latest
+      cross-spawn: ^7.0.3
       tap: ^15.0.9
-      typescript: latest
       vite: ^2.7.6
       vsce: latest
-    devDependencies:
-      '@hackbg/komandi': link:../toolbox/komandi
+    dependencies:
+      '@ganesha/node': link:src/node
+      '@ganesha/node-legacy': link:src/node-legacy
       '@types/node': 17.0.10
-      tap: 15.0.10_typescript@4.5.5
-      typescript: 4.5.5
+      cross-spawn: 7.0.3
+    devDependencies:
+      '@hackbg/komandi': link:deps/toolbox/komandi
+      tap: 15.0.10_typescript@4.5.4
       vite: 2.7.10
       vsce: 2.6.3
-
-  deps/ganesha/deps/toolbox/forkers:
-    specifiers:
-      '@types/node': latest
-      '@types/zen-observable': ^0.8.3
-      typescript: latest
-      zen-observable: ^0.8.15
-    dependencies:
-      '@types/zen-observable': 0.8.3
-      zen-observable: 0.8.15
-    devDependencies:
-      '@types/node': 17.0.10
-      typescript: 4.5.5
-
-  deps/ganesha/deps/toolbox/kabinet:
-    specifiers:
-      '@types/node': latest
-      mkdirp: ^1.0.4
-      rimraf: ^3.0.2
-      typescript: latest
-    dependencies:
-      mkdirp: 1.0.4
-      rimraf: 3.0.2
-    devDependencies:
-      '@types/node': 17.0.10
-      typescript: 4.5.5
-
-  deps/ganesha/deps/toolbox/komandi:
-    specifiers:
-      '@types/node': latest
-      typescript: latest
-    devDependencies:
-      '@types/node': 17.0.10
-      typescript: 4.5.5
-
-  deps/ganesha/deps/toolbox/konzola:
-    specifiers:
-      '@types/node': latest
-      colors: ^1.4.0
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: ^6.6.0
-      typescript: latest
-    dependencies:
-      colors: 1.4.0
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      table: 6.7.2
-    devDependencies:
-      '@types/node': 17.0.10
-      typescript: 4.5.5
-
-  deps/ganesha/deps/toolbox/tools:
-    specifiers:
-      '@hackbg/kabinet': workspace:*
-      '@hackbg/komandi': workspace:*
-      '@hackbg/konzola': workspace:*
-      '@types/node': latest
-      colors: ^1.4.0
-      dockerode: ^3.3.0
-      exponential-backoff: ^3.1.0
-      mkdirp: ^1.0.4
-      open: ^8.0.2
-      prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: ^2.4.1
-      recursive-copy: ^2.0.13
-      rimraf: ^3.0.2
-      signal-exit: ^3.0.3
-      symlink-dir: ^5.0.1
-      table: ^6.6.0
-      tmp: ^0.2.1
-      typescript: latest
-      wait-port: ^0.2.9
-    dependencies:
-      '@hackbg/kabinet': link:../../../../toolbox/kabinet
-      '@hackbg/komandi': link:../../../../toolbox/komandi
-      '@hackbg/konzola': link:../../../../toolbox/konzola
-      colors: 1.4.0
-      dockerode: 3.3.1
-      exponential-backoff: 3.1.0
-      mkdirp: 1.0.4
-      open: 8.2.1
-      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
-      prompts: 2.4.1
-      recursive-copy: 2.0.13
-      rimraf: 3.0.2
-      signal-exit: 3.0.5
-      symlink-dir: 5.0.1
-      table: 6.7.2
-      tmp: 0.2.1
-      wait-port: 0.2.9
-    devDependencies:
-      '@types/node': 17.0.10
-      typescript: 4.5.5
 
   deps/ganesha/src/core:
     specifiers:
@@ -150,28 +71,20 @@ importers:
   deps/ganesha/src/node:
     specifiers:
       '@ganesha/core': workspace:*
-      cross-spawn: ^7.0.3
-      esbuild: ^0.13.0
       front-matter: ^4.0.2
       joycon: ^3.0.1
       jsonc-parser: ^3.0.0
-      pirates: ^4.0.1
       source-map-support: ^0.5.20
     dependencies:
       '@ganesha/core': link:../core
-      cross-spawn: 7.0.3
-      esbuild: 0.13.15
       front-matter: 4.0.2
       joycon: 3.0.1
       jsonc-parser: 3.0.0
-      pirates: 4.0.1
       source-map-support: 0.5.20
 
   deps/ganesha/src/node-legacy:
     specifiers:
       '@ganesha/core': workspace:*
-      cross-spawn: ^7.0.3
-      esbuild: ^0.13.0
       front-matter: ^4.0.2
       joycon: ^3.0.1
       jsonc-parser: ^3.0.0
@@ -179,8 +92,6 @@ importers:
       source-map-support: ^0.5.20
     dependencies:
       '@ganesha/core': link:../core
-      cross-spawn: 7.0.3
-      esbuild: 0.13.15
       front-matter: 4.0.2
       joycon: 3.0.1
       jsonc-parser: 3.0.0
@@ -202,7 +113,12 @@ importers:
       '@ganesha/node': link:../node
 
   deps/ganesha/src/vsc:
-    specifiers: {}
+    specifiers:
+      typescript: latest
+      vsce: latest
+    devDependencies:
+      typescript: 4.5.5
+      vsce: 2.6.3
 
   deps/ganesha/src/vsc/client:
     specifiers:
@@ -677,11 +593,13 @@ importers:
   deps/toolbox/konzola:
     specifiers:
       '@types/node': latest
+      '@types/prettyjson': ^0.0.30
       colors: ^1.4.0
       prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: ^6.6.0
       typescript: latest
     dependencies:
+      '@types/prettyjson': 0.0.30
       colors: 1.4.0
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: 6.7.2
@@ -694,7 +612,9 @@ importers:
       '@hackbg/kabinet': workspace:*
       '@hackbg/komandi': workspace:*
       '@hackbg/konzola': workspace:*
+      '@types/mkdirp': ^1.0.2
       '@types/node': latest
+      '@types/rimraf': ^3.0.2
       colors: ^1.4.0
       dockerode: ^3.3.0
       exponential-backoff: ^3.1.0
@@ -714,6 +634,8 @@ importers:
       '@hackbg/kabinet': link:../kabinet
       '@hackbg/komandi': link:../komandi
       '@hackbg/konzola': link:../konzola
+      '@types/mkdirp': 1.0.2
+      '@types/rimraf': 3.0.2
       colors: 1.4.0
       dockerode: 3.3.1
       exponential-backoff: 3.1.0
@@ -3166,7 +3088,7 @@ packages:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
       '@types/minimatch': 3.0.5
-      '@types/node': 16.11.19
+      '@types/node': 17.0.10
 
   /@types/http-assert/1.5.3:
     resolution: {integrity: sha512-FyAOrDuQmBi8/or3ns4rwPno7/9tJTijVW6aQQjK02+kOQ8zmoNg2XJtAuQhvQcy1ASJq38wirX5//9J1EqoUA==}
@@ -3249,7 +3171,7 @@ packages:
   /@types/mkdirp/1.0.2:
     resolution: {integrity: sha512-o0K1tSO0Dx5X6xlU5F1D6625FawhC3dU3iqr25lluNv/+/QIVH8RLNEiVokgIZo+mz+87w/3Mkg/VvQS+J51fQ==}
     dependencies:
-      '@types/node': 16.11.19
+      '@types/node': 17.0.10
     dev: false
 
   /@types/node-localstorage/1.3.0:
@@ -3266,13 +3188,13 @@ packages:
 
   /@types/node/16.11.19:
     resolution: {integrity: sha512-BPAcfDPoHlRQNKktbsbnpACGdypPFBuX4xQlsWDE7B8XXcfII+SpOLay3/qZmCLb39kV5S1RTYwXdkx2lwLYng==}
+    dev: false
 
   /@types/node/16.9.6:
     resolution: {integrity: sha512-YHUZhBOMTM3mjFkXVcK+WwAcYmyhe1wL4lfqNtzI0b3qAy7yuSetnM7QJazgE5PFmgVTNGiLOgRFfJMqW7XpSQ==}
 
   /@types/node/17.0.10:
     resolution: {integrity: sha512-S/3xB4KzyFxYGCppyDt68yzBU9ysL88lSdIah4D6cptdcltc4NCPCAMc0+PCpg/lLIyC7IPvj2Z52OJWeIUkog==}
-    dev: true
 
   /@types/node/17.0.8:
     resolution: {integrity: sha512-YofkM6fGv4gDJq78g4j0mMuGMkZVxZDgtU0JRdx6FgiJDG+0fY0GKVolOV8WqVmEhLCXkQRjwDdKyPxJp/uucg==}
@@ -3314,7 +3236,7 @@ packages:
     resolution: {integrity: sha512-F3OznnSLAUxFrCEu/L5PY8+ny8DtcFRjx7fZZ9bycvXRi3KPTRS9HOitGZwvPg0juRhXFWIeKX58cnX5YqLohQ==}
     dependencies:
       '@types/glob': 7.2.0
-      '@types/node': 16.11.19
+      '@types/node': 17.0.10
     dev: false
 
   /@types/serve-static/1.13.10:
@@ -6686,6 +6608,7 @@ packages:
     cpu: [arm64]
     os: [android]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-darwin-64/0.13.15:
@@ -6693,6 +6616,7 @@ packages:
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-darwin-arm64/0.13.15:
@@ -6700,6 +6624,7 @@ packages:
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-freebsd-64/0.13.15:
@@ -6707,6 +6632,7 @@ packages:
     cpu: [x64]
     os: [freebsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-freebsd-arm64/0.13.15:
@@ -6714,6 +6640,7 @@ packages:
     cpu: [arm64]
     os: [freebsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-linux-32/0.13.15:
@@ -6721,6 +6648,7 @@ packages:
     cpu: [ia32]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-linux-64/0.13.15:
@@ -6728,6 +6656,7 @@ packages:
     cpu: [x64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-linux-arm/0.13.15:
@@ -6735,6 +6664,7 @@ packages:
     cpu: [arm]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-linux-arm64/0.13.15:
@@ -6742,6 +6672,7 @@ packages:
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-linux-mips64le/0.13.15:
@@ -6749,6 +6680,7 @@ packages:
     cpu: [mips64el]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-linux-ppc64le/0.13.15:
@@ -6756,6 +6688,7 @@ packages:
     cpu: [ppc64]
     os: [linux]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-netbsd-64/0.13.15:
@@ -6763,6 +6696,7 @@ packages:
     cpu: [x64]
     os: [netbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-openbsd-64/0.13.15:
@@ -6770,6 +6704,7 @@ packages:
     cpu: [x64]
     os: [openbsd]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-sunos-64/0.13.15:
@@ -6777,6 +6712,7 @@ packages:
     cpu: [x64]
     os: [sunos]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-windows-32/0.13.15:
@@ -6784,6 +6720,7 @@ packages:
     cpu: [ia32]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-windows-64/0.13.15:
@@ -6791,6 +6728,7 @@ packages:
     cpu: [x64]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild-windows-arm64/0.13.15:
@@ -6798,6 +6736,7 @@ packages:
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
+    dev: true
     optional: true
 
   /esbuild/0.13.15:
@@ -6822,6 +6761,7 @@ packages:
       esbuild-windows-32: 0.13.15
       esbuild-windows-64: 0.13.15
       esbuild-windows-arm64: 0.13.15
+    dev: true
 
   /escalade/3.1.1:
     resolution: {integrity: sha512-k0er2gUkLf8O0zKJiAhmkTnJlTvINGv7ygDNPbeIsX/TJjGJZHuh9B2UxbsaEkmlEo9MfhrSzmhIlhRlI2GXnw==}
@@ -13605,55 +13545,6 @@ packages:
       which: 2.0.2
     transitivePeerDependencies:
       - supports-color
-    bundledDependencies:
-      - ink
-      - treport
-      - '@types/react'
-
-  /tap/15.0.10_typescript@4.5.5:
-    resolution: {integrity: sha512-8aq4j+1JUOlXyffLX7ZJxhe9KAxV3s7PsdWAm3XwfoWc/OiFyAMcv4+T0/5/65gBxOVAPLpxH8ecfDkYTA2BCQ==}
-    engines: {node: '>=10'}
-    hasBin: true
-    peerDependencies:
-      flow-remove-types: '>=2.112.0'
-      ts-node: '>=8.5.2'
-      typescript: '>=3.7.2'
-    peerDependenciesMeta:
-      flow-remove-types:
-        optional: true
-      ts-node:
-        optional: true
-      typescript:
-        optional: true
-    dependencies:
-      chokidar: 3.5.2
-      coveralls: 3.1.1
-      findit: 2.0.0
-      foreground-child: 2.0.0
-      fs-exists-cached: 1.0.0
-      glob: 7.2.0
-      import-jsx: 4.0.0
-      isexe: 2.0.0
-      istanbul-lib-processinfo: 2.0.2
-      jackspeak: 1.4.0
-      libtap: 1.1.3
-      minipass: 3.1.5
-      mkdirp: 1.0.4
-      nyc: 15.1.0
-      opener: 1.5.2
-      react: 16.14.0
-      rimraf: 3.0.2
-      signal-exit: 3.0.5
-      source-map-support: 0.5.20
-      tap-mocha-reporter: 5.0.1
-      tap-parser: 10.1.0
-      tap-yaml: 1.0.0
-      tcompare: 5.0.6
-      typescript: 4.5.5
-      which: 2.0.2
-    transitivePeerDependencies:
-      - supports-color
-    dev: true
     bundledDependencies:
       - ink
       - treport
