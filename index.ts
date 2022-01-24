@@ -17,7 +17,7 @@ import runCommands from '@hackbg/komandi'
 import type { IChain, IAgent } from '@fadroma/ops'
 export type MigrationContext = { chain: IChain, admin: IAgent }
 export type Command<T> = (MigrationContext)=>Promise<T>
-export type Commands = Record<string, Command<any>>
+export type Commands = Record<string, Command<any>|Record<string, Command<any>>>
 import { init } from '@fadroma/ops'
 export class Fadroma {
 
@@ -28,7 +28,16 @@ export class Fadroma {
   commands: Commands = {}
 
   command <T> (name: string, command: Command<T>) {
-    this.commands[name] = () => this.run(command)
+    const fragments = name.trim().split(' ')
+    let commands: any = this.commands
+    for (let i = 0; i < fragments.length; i++) {
+      commands[fragments[i]] = commands[fragments[i]] || {}
+      commands = commands[fragments[i]]
+      if (commands instanceof Function) {
+        throw new Error('[@fadroma] command already exists')
+      }
+    }
+    commands[fragments[fragments.length - 1]] = () => this.run(command)
   }
 
   async run <T> (command: Command<T>): Promise<T> {
