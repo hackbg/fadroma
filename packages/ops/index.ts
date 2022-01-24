@@ -9,7 +9,9 @@ export * from './Contract'
 export * from './Schema'
 
 import type { IChain, IAgent } from './Model'
-import { bold } from '@hackbg/tools'
+import { bold, Console } from '@hackbg/tools'
+
+const console = Console('@fadroma/ops')
 
 export type MigrationOptions = {
   notOnMainnet?:          boolean
@@ -59,7 +61,7 @@ export async function init (
   chain = await chain.ready
 
   try {
-    admin = await chain.getAgent()
+    admin = chain.defaultIdentity || await chain.getAgent()
     console.info(`Operating on ${bold(chainName)} as ${bold(admin.address)}`)
     const initialBalance = await admin.balance
     console.info(`Balance: ${bold(initialBalance)}uscrt`)

@@ -19,8 +19,6 @@ import type {
 
 import { DeploymentDir } from './Deployment'
 
-import { URL } from 'url'
-
 const console = Console('@fadroma/ops/Chain')
 
 export type DefaultIdentity =
@@ -38,8 +36,13 @@ export type AgentConstructor = new (options: Identity) => IAgent & {
  * bound to a particular chain. */
 export abstract class BaseChain implements IChain {
 
-  chainId?:    string
-  apiURL?:     URL
+  apiURL:      URL
+
+  /**The API URL that this instance talks to.
+   * @type {string} */
+  get url () { return this.apiURL.toString() }
+
+  chainId:     string
   node?:       IChainNode
   isMainnet?:  boolean
   isTestnet?:  boolean
@@ -52,8 +55,9 @@ export abstract class BaseChain implements IChain {
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
    * TODO document the remaining options */
   constructor ({
-    node      = null,
+    apiURL,
     chainId   = node?.chainId,
+    node      = null,
     stateRoot = resolve(process.cwd(), 'receipts', chainId),
     isMainnet,
     isTestnet,
@@ -61,6 +65,7 @@ export abstract class BaseChain implements IChain {
     Agent,
     defaultIdentity,
   }: IChainState = {}) {
+    this.apiURL     = apiURL
     this.chainId    = chainId
     this.isMainnet  = isMainnet
     this.isTestnet  = isTestnet
@@ -85,11 +90,52 @@ export abstract class BaseChain implements IChain {
     * FIXME: How come nobody has proposed sugar for async constructors yet?
     * Feeling like writing a `@babel/plugin-async-constructor`, as always
     * bonus internet points for whoever beats me to it. */
-  abstract readonly ready: Promise<this>
+  get ready () {
+    if (this.#ready) return this.#ready
+    return this.#ready = this.#init()
+  }
 
-  /**The API URL that this instance talks to.
-   * @type {string} */
-  get url () { return this.apiURL.toString() }
+  #ready: Promise<any>|null = null
+
+  /**Instantiate Agent and Builder objects to talk to the API,
+   * respawning the node container if this is a localnet. */
+  async #init (): Promise<IChain> {
+    // if this is a localnet handle, wait for the localnet to start
+    const node = await Promise.resolve(this.node)
+    if (node) {
+      this.node = node
+      // respawn that container
+      console.info(`Running on localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
+      await node.respawn()
+      await node.ready
+      // set the correct port to connect to
+      this.apiURL.port = String(node.port)
+      console.info(`Localnet ready @ port ${bold(this.apiURL.port)}`)
+      // get the default account for the node
+      if (typeof this.defaultIdentity === 'string') {
+        try {
+          this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
+        } catch (e) {
+          console.warn(`Could not load default identity ${this.defaultIdentity}: ${e.message}`)
+        }
+      }
+    }
+    const { protocol, hostname, port } = this.apiURL
+    console.info(
+      `Connecting to ${bold(this.chainId)} `+
+      `via ${bold(protocol)} on ${bold(hostname)}:${bold(port)}`
+    )
+    if (this.defaultIdentity) {
+      // default credentials will be used as-is unless using localnet
+      const { mnemonic, address } = this.defaultIdentity
+      this.defaultIdentity = await this.getAgent({ name: "ADMIN", mnemonic, address })
+      console.info(
+        `${bold('Default identity:')} ${address}`
+      )
+    }
+    return this as IChain
+
+  }
 
   /** This directory contains all the others. */
   stateRoot:  Directory
@@ -143,28 +189,6 @@ export abstract class BaseChain implements IChain {
     for (const contract of contracts) {
       await contract.upload()
     }
-  }
-
-  printStatusTables () {
-
-    const id = bold(this.chainId)
-
-    const uploadsTable = this.uploads.table()
-    if (uploadsTable.length > 1) {
-      console.info(`Uploaded binaries on ${id}:`)
-      console.log('\n' + table(uploadsTable, noBorders))
-    } else {
-      console.info(`No known uploaded binaries on ${id}`)
-    }
-
-    const deploymentsTable = this.deployments.table()
-    if (deploymentsTable.length > 1) {
-      console.info(`Instantiated contracts on ${id}:`)
-      console.log('\n' + table(deploymentsTable, noBorders))
-    } else {
-      console.info(`\n  No known contracts on ${id}`)
-    }
-
   }
 
 }
