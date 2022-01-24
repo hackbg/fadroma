@@ -6,6 +6,7 @@ export * from './Agent'
 export * from './Chain'
 export * from './ChainNode'
 export * from './Contract'
+export * from './Deployment'
 export * from './Schema'
 
 import type { IChain, IAgent } from './Model'
@@ -61,7 +62,7 @@ export async function init (
   chain = await chain.ready
 
   try {
-    admin = chain.defaultIdentity || await chain.getAgent()
+    admin = await chain.getAgent()
     console.info(`Operating on ${bold(chainName)} as ${bold(admin.address)}`)
     const initialBalance = await admin.balance
     console.info(`Balance: ${bold(initialBalance)}uscrt`)

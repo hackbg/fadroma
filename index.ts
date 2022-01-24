@@ -14,12 +14,17 @@ export { Scrt_1_2 }
 
 import { fileURLToPath } from 'url'
 import runCommands from '@hackbg/komandi'
-import type { IChain, IAgent } from '@fadroma/ops'
-export type MigrationContext = { chain: IChain, admin: IAgent }
+import type { IChain, IAgent, Deployment } from '@fadroma/ops'
+export type MigrationContext = {
+  timestamp:   string
+  chain:       IChain
+  admin:       IAgent
+  deployment?: Deployment
+}
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
-import { init } from '@fadroma/ops'
+import { init, timestamp } from '@fadroma/ops'
 export class Fadroma {
 
   chains = CHAINS
@@ -54,7 +59,13 @@ export class Fadroma {
       process.exit(1)
     }
     const { chain, admin } = await init(this.chains, this.chainId)
-    return await command({ chain, admin, args })
+    return await command({
+      timestamp,
+      chain,
+      admin,
+      deployment: chain.deployments.active,
+      args
+    })
   }
 
   module (url: string): Commands {
