@@ -1,3 +1,5 @@
+export * from '@fadroma/ops'
+
 import type { IChainConnectOptions } from '@fadroma/ops'
 export type Chains = Record<string, (options: IChainConnectOptions)=>IChain>
 export const CHAINS: Chains = {}
