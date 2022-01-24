@@ -185,7 +185,7 @@ export abstract class BaseChain implements IChain {
     for (const contract of Object.values(contracts)) {
       contract.chain = this
     }
-    await Promise.all(contracts.map(contract=>contract.build()))
+    await Promise.all(contracts.map(contract=>contract.buildInDocker()))
     for (const contract of contracts) {
       await contract.upload()
     }

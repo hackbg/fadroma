@@ -60,7 +60,7 @@ export class Fadroma {
     }
     const { chain, admin } = await init(this.chains, this.chainId)
     return await command({
-      timestamp,
+      timestamp: timestamp(),
       chain,
       admin,
       deployment: chain.deployments.active,
@@ -71,6 +71,7 @@ export class Fadroma {
   module (url: string): Commands {
     // if main
     if (process.argv[1] === fileURLToPath(url)) {
+      Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
       runCommands.default(this.commands, process.argv.slice(2))
     }
     // if imported
