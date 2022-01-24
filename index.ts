@@ -17,7 +17,8 @@ import runCommands from '@hackbg/komandi'
 import type { IChain, IAgent } from '@fadroma/ops'
 export type MigrationContext = { chain: IChain, admin: IAgent }
 export type Command<T> = (MigrationContext)=>Promise<T>
-export type Commands = Record<string, Command<any>|Record<string, Command<any>>>
+export type WrappedCommand<T> = (args: string[])=>Promise<T>
+export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 import { init } from '@fadroma/ops'
 export class Fadroma {
 
@@ -32,32 +33,34 @@ export class Fadroma {
     let commands: any = this.commands
     for (let i = 0; i < fragments.length; i++) {
       commands[fragments[i]] = commands[fragments[i]] || {}
-      commands = commands[fragments[i]]
+      // prevent overrides
       if (commands instanceof Function) {
         throw new Error('[@fadroma] command already exists')
       }
+      // descend or reach bottom
+      if (i === fragments.length-1) {
+        commands[fragments[i]] = (args: string[]) => this.run(command, args)
+      } else {
+        commands = commands[fragments[i]]
+      }
     }
-    commands[fragments[fragments.length - 1]] = () => this.run(command)
   }
 
-  async run <T> (command: Command<T>): Promise<T> {
+  async run <T> (command: Command<T>, args?: string[]): Promise<T> {
     if (!this.chainId) {
       console.log('Please set your FADROMA_CHAIN environment variable to one of the following:')
-      console.log('  '+Object.keys(this.chains).join('\n  '))
+      console.log('  '+Object.keys(this.chains).sort().join('\n  '))
       // TODO if interactive, display a selector which exports it for the session
       process.exit(1)
     }
     const { chain, admin } = await init(this.chains, this.chainId)
-    return await command({ chain, admin })
+    return await command({ chain, admin, args })
   }
 
   module (url: string): Commands {
     // if main
     if (process.argv[1] === fileURLToPath(url)) {
-      runCommands.default(
-        this.commands,
-        process.argv.slice(2)
-      )
+      runCommands.default(this.commands, process.argv.slice(2))
     }
     // if imported
     return this.commands
