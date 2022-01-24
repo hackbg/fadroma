@@ -7,7 +7,8 @@ import type {
   ContractClient, ContractClientState, InitTX, InitReceipt, ContractMessage,
 } from './Model'
 import { BaseAgent, isAgent } from './Agent'
-import { BaseChain, DeploymentsDir } from './Chain'
+import { BaseChain } from './Chain'
+import { DeploymentDir } from './Deployment'
 import { loadSchemas } from './Schema'
 
 import {

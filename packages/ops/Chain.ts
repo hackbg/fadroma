@@ -1,3 +1,10 @@
+import {
+  Directory, JSONDirectory,
+  Console, bold, symlinkDir, mkdirp, resolve, basename,
+  readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync,
+  colors
+} from '@hackbg/tools'
+
 import type {
   IChain,
   IChainNode,
@@ -10,13 +17,7 @@ import type {
   ContractUpload
 } from './Model'
 
-import {
-  __dirname,
-  Directory,
-  Console, bold, symlinkDir, mkdirp, resolve, basename,
-  readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync,
-  colors
-} from '@hackbg/tools'
+import { DeploymentDir } from './Deployment'
 
 import { URL } from 'url'
 
@@ -28,16 +29,57 @@ export type DefaultIdentity =
   { name?: string, address?: string, mnemonic?: string } |
   IAgent
 
+export type AgentConstructor = new (options: Identity) => IAgent & {
+  create: () => Promise<IAgent>
+}
+
 /* Represents an interface to a particular Cosmos blockchain.
  * Used to construct `Agent`s and `Contract`s that are
  * bound to a particular chain. */
 export abstract class BaseChain implements IChain {
-  chainId?: string
-  apiURL?:  URL
-  node?:    IChainNode
 
-  /** Credentials of the default agent for this network. */
-  defaultIdentity?: DefaultIdentity
+  chainId?:    string
+  apiURL?:     URL
+  node?:       IChainNode
+  isMainnet?:  boolean
+  isTestnet?:  boolean
+  isLocalnet?: boolean
+
+  /** Interface to a Secret Network REST API endpoint.
+   *  Can store identities and results of contract uploads/inits.
+   * @constructor
+   * @param {Object} options           - the configuration options
+   * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
+   * TODO document the remaining options */
+  constructor ({
+    node      = null,
+    chainId   = node?.chainId,
+    stateRoot = resolve(process.cwd(), 'receipts', chainId),
+    isMainnet,
+    isTestnet,
+    isLocalnet,
+    Agent,
+    defaultIdentity,
+  }: IChainState = {}) {
+    this.chainId    = chainId
+    this.isMainnet  = isMainnet
+    this.isTestnet  = isTestnet
+    this.isLocalnet = isLocalnet
+    this.node = node || null
+    if (node) {
+      this.chainId = node.chainId
+      this.apiURL  = node.apiURL
+    }
+
+    // directories to store state
+    this.stateRoot   = new Directory(stateRoot)
+    this.identities  = new JSONDirectory(stateRoot, 'identities')
+    this.uploads     = new UploadDir(stateRoot, 'uploads')
+    this.deployments = new DeploymentDir(stateRoot, 'deployments')
+
+    if (Agent) this.Agent = Agent
+    if (defaultIdentity) this.defaultIdentity = defaultIdentity
+  }
 
   /** Stuff that should be in the constructor but is asynchronous.
     * FIXME: How come nobody has proposed sugar for async constructors yet?
@@ -45,53 +87,52 @@ export abstract class BaseChain implements IChain {
     * bonus internet points for whoever beats me to it. */
   abstract readonly ready: Promise<this>
 
-  /** The connection address is stored internally as a URL object,
-    * but returned as a string.
-    * FIXME why so? */
-  abstract get url (): string
-
-  /** Get an Agent that works with this Chain. */
-  abstract getAgent (options?: Identity): Promise<IAgent>
-
-  /** Get a Contract that exists on this Chain, or a non-existent one
-    * which you can then create via Agent#instantiate
-    *
-    * FIXME: awkward inversion of control */
-  abstract getContract<T> (api: new()=>T, address: string, agent: any): T
+  /**The API URL that this instance talks to.
+   * @type {string} */
+  get url () { return this.apiURL.toString() }
 
   /** This directory contains all the others. */
-  readonly stateRoot:  Directory
+  stateRoot:  Directory
 
   /** This directory stores all private keys that are available for use. */
-  readonly identities: Directory
+  identities: Directory
 
-  /** This directory stores receipts from the upload transactions,
-    * containing provenance info for uploaded code blobs. */
-  readonly uploads:    Directory
-
-  /** This directory stores receipts from the instantiation (init) transactions,
-    * containing provenance info for initialized contract deployments.
-    *
-    * NOTE: the current domain vocabulary considers initialization and instantiation,
-    * as pertaining to contracts on the blockchain, to be the same thing. */
-  abstract readonly deployments: DeploymentsDir
-
-  abstract printStatusTables (): void
-
-  readonly isMainnet?:  boolean
-  readonly isTestnet?:  boolean
-  readonly isLocalnet?: boolean
-  constructor ({ isMainnet, isTestnet, isLocalnet }: IChainState = {}) {
-    this.isMainnet  = isMainnet
-    this.isTestnet  = isTestnet
-    this.isLocalnet = isLocalnet
-  }
+  /** Credentials of the default agent for this network. */
+  defaultIdentity?: DefaultIdentity
 
   printIdentities () {
     console.log('\nAvailable identities:')
     for (const identity of this.identities.list()) {
       console.log(`  ${this.identities.load(identity).address} (${bold(identity)})`)
     }
+  }
+
+  Agent: AgentConstructor
+
+  /** Get an Agent that works with this Chain. */
+  abstract getAgent (options?: Identity): Promise<IAgent>
+
+  /** This directory stores receipts from the upload transactions,
+    * containing provenance info for uploaded code blobs. */
+  uploads:     UploadDir
+
+  /** This directory stores receipts from the instantiation (init) transactions,
+    * containing provenance info for initialized contract deployments.
+    *
+    * NOTE: the current domain vocabulary considers initialization and instantiation,
+    * as pertaining to contracts on the blockchain, to be the same thing. */
+  deployments: DeploymentDir
+
+  /** Create contract instance from interface class and address */
+  getContract (
+    Contract:        any,
+    contractAddress: string,
+    agent = this.defaultIdentity
+  ) {
+    return new Contract({
+      initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
+      agent
+    })
   }
 
   async buildAndUpload (contracts: Array<ContractBuild & ContractUpload>) {
@@ -104,129 +145,65 @@ export abstract class BaseChain implements IChain {
     }
   }
 
-}
+  printStatusTables () {
 
-export class Mocknet extends BaseChain {
-}
+    const id = bold(this.chainId)
 
-
-/// ### Deployments
-/// The instance directory is where results of deployments are stored.
-
-
-export class Deployment {
-  constructor (
-    public readonly name: string,
-    public readonly path: string,
-    public readonly contracts: Record<string, any>
-  ) {}
-
-  resolve (...fragments: Array<string>) {
-    return resolve(this.path, ...fragments)
-  }
-
-  getContract <T extends IContract> (
-    Class:        ContractConstructor<T>,
-    contractName: string,
-    admin:        IAgent
-  ): T {
-    if (!this.contracts[contractName]) {
-      throw new Error(
-        `@fadroma/ops: no contract ${bold(contractName)}` +
-        ` in deployment ${bold(this.name)}`
-      )
-    }
-
-    return new Class({
-      address:  this.contracts[contractName].initTx.contractAddress,
-      codeHash: this.contracts[contractName].codeHash,
-      codeId:   this.contracts[contractName].codeId,
-      prefix:   this.name,
-      admin,
-    })
-  }
-
-  getContracts <T extends IContract> (
-    Class:        ContractConstructor<T>,
-    nameFragment: string,
-    admin:        IAgent
-  ): T[] {
-    const contracts = []
-    for (const [name, contract] of Object.entries(this.contracts)) {
-      if (name.includes(nameFragment)) {
-        contracts.push(new Class({
-          address:  this.contracts[name].initTx.contractAddress,
-          codeHash: this.contracts[name].codeHash,
-          codeId:   this.contracts[name].codeId,
-        }))
-      }
-    }
-    return contracts
-  }
-}
-
-export class DeploymentsDir extends Directory {
-
-  KEY = '.active'
-
-  printActive () {
-    if (this.active) {
-      console.log(`\nSelected deployment:`)
-      console.log(`  ${bold(this.active.name)}`)
-      for (const contract of Object.keys(this.active.contracts)) {
-        console.log(`    ${colors.green('✓')}  ${contract}`)
-      }
+    const uploadsTable = this.uploads.table()
+    if (uploadsTable.length > 1) {
+      console.info(`Uploaded binaries on ${id}:`)
+      console.log('\n' + table(uploadsTable, noBorders))
     } else {
-      console.log(`\nNo selected deployment.`)
-    }
-  }
-
-  get active (): Deployment {
-
-    const path = resolve(this.path, this.KEY)
-    if (!existsSync(path)) {
-      return null
+      console.info(`No known uploaded binaries on ${id}`)
     }
 
-    const deploymentName = basename(readlinkSync(path))
-
-    const contracts = {}
-    for (const contract of readdirSync(path).sort()) {
-      const [contractName, _version] = basename(contract, '.json').split('+')
-      const location = resolve(path, contract)
-      if (statSync(location).isFile()) {
-        contracts[contractName] = JSON.parse(readFileSync(location, 'utf8'))
-      }
+    const deploymentsTable = this.deployments.table()
+    if (deploymentsTable.length > 1) {
+      console.info(`Instantiated contracts on ${id}:`)
+      console.log('\n' + table(deploymentsTable, noBorders))
+    } else {
+      console.info(`\n  No known contracts on ${id}`)
     }
 
-    return new Deployment(deploymentName, path, contracts)
-
-  }
-
-  async select (id: string) {
-    const selection = resolve(this.path, id)
-    if (!existsSync(selection)) throw new Error(
-      `@fadroma/ops: ${id} does not exist`)
-    const active = resolve(this.path, this.KEY)
-    if (existsSync(active)) unlinkSync(active)
-    await symlinkDir(selection, active)
-  }
-
-  list () {
-    if (!existsSync(this.path)) {
-      console.info(`\n${this.path} does not exist, creating`)
-      mkdirp.sync(this.path)
-      return []
-    }
-
-    return readdirSync(this.path)
-      .filter(x=>x!=this.KEY)
-      .filter(x=>statSync(resolve(this.path, x)).isDirectory())
-  }
-
-  save (name: string, data: any) {
-    if (data instanceof Object) data = JSON.stringify(data, null, 2)
-    return super.save(`${name}.json`, data)
   }
 
 }
+
+export class UploadDir extends JSONDirectory {
+
+  /** List of code blobs in human-readable form */
+  table () {
+
+    const rows = []
+
+    // uploads table - lists code blobs
+    rows.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
+
+    if (this.exists()) {
+      for (const name of this.list()) {
+
+        const {
+          codeId,
+          originalSize,
+          compressedSize,
+          originalChecksum,
+          compressedChecksum,
+        } = this.load(name)
+
+        rows.push([
+          `  ${codeId}`,
+          `${bold(name)}\ncompressed:\n`,
+          `${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,
+          `${originalChecksum}\n${compressedChecksum}`
+        ])
+
+      }
+    }
+
+    return rows.sort((x,y)=>x[0]-y[0])
+
+  }
+
+}
+
+export class Mocknet extends BaseChain {}

@@ -8,72 +8,15 @@ import {
 
 import { URL } from 'url'
 import { ScrtCLIAgent } from './ScrtAgentCLI'
-import {  } from '@hackbg/tools'
 import { resetLocalnet } from './ScrtChainNode'
 
 const console = Console('@fadroma/scrt/ScrtChainAPI')
 
-type AgentConstructor = new (options: Identity) => IAgent & {
-  create: () => Promise<IAgent>
-}
-
-export type ScrtChainState = IChainState & {
-  Agent?:      AgentConstructor
-  identities?: Array<string>
-}
-
-export function openFaucet () {
-  const url = `https://faucet.secrettestnet.io/`
-  console.debug(`Opening ${url}...`)
-  open(url) }
-
-const {
-  SCRT_API_URL,
-  SCRT_AGENT_NAME,
-  SCRT_AGENT_ADDRESS,
-  SCRT_AGENT_MNEMONIC
-} = process.env
-
 export class Scrt extends BaseChain {
 
-  chainId?: string
-  apiURL?:  URL
-  node?:    ChainNode
-
-  Agent: AgentConstructor
-  defaultIdentity: null | string | { name?: string, address?: string, mnemonic?: string } | Agent
-
-  stateRoot:  Directory
-  identities: JSONDirectory
-  uploads:    JSONDirectory
-  deployments:  DeploymentsDir
-
-  /** Interface to a Secret Network REST API endpoint.
-   *  Can store identities and results of contract uploads/inits.
-   * @constructor
-   * @param {Object} options           - the configuration options
-   * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
-   * TODO document the remaining options */
-  constructor (options: ScrtChainState = {}) {
-    super(options)
-    const node = this.node = options.node || null
-
-    // info needed to connect to the chain's REST API
-    this.chainId = options.chainId || node?.chainId || 'supernova-1'
-    this.apiURL  = options.apiURL  || node?.apiURL  || new URL('http://localhost:1337/')
-
-    // directories to store state
-    const stateRoot = options.stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
-    this.stateRoot  = new Directory(stateRoot)
-    this.identities = new JSONDirectory(stateRoot, 'identities')
-    this.uploads    = new JSONDirectory(stateRoot, 'uploads')
-    this.deployments  = new DeploymentsDir(stateRoot, 'deployments')
-
-    // handle to localnet node if this is localnet
-    // default agent credentials
-    if (options.Agent) this.Agent = options.Agent
-    this.defaultIdentity = options.defaultIdentity
-  }
+  chainId = 'supernova-1'
+  apiURL  = new URL('http://localhost:1337')
+  faucet  = `https://faucet.secrettestnet.io/`
 
   #ready: Promise<any>|null = null
   get ready () {
@@ -87,6 +30,7 @@ export class Scrt extends BaseChain {
 
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
+
     if (node) {
       this.node = node
 
@@ -111,6 +55,7 @@ export class Scrt extends BaseChain {
     }
 
     const { protocol, hostname, port } = this.apiURL
+
     console.info(`Connecting to ${this.chainId} via ${protocol} on ${hostname}:${port}`)
 
     if (this.defaultIdentity) {
@@ -121,11 +66,8 @@ export class Scrt extends BaseChain {
     }
 
     return this as IChain
-  }
 
-  /**The API URL that this instance talks to.
-   * @type {string} */
-  get url () { return this.apiURL.toString() }
+  }
 
   /** create agent operating on the current instance's endpoint*/
   async getAgent (
@@ -150,89 +92,5 @@ export class Scrt extends BaseChain {
       )
     }
 
-  }
-
-  /** create contract instance from interface class and address */
-  getContract (
-    Contract:        any,
-    contractAddress: string,
-    agent = this.defaultIdentity
-  ) {
-    return new Contract({
-      initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
-      agent
-    })
-  }
-
-  printStatusTables () {
-
-    const id = bold(this.chainId)
-
-    if (this.uploadsTable.length > 1) {
-      console.info(`Uploaded binaries on ${id}:`)
-      console.log('\n' + table(this.uploadsTable, noBorders))
-    } else {
-      console.info(`No known uploaded binaries on ${id}`)
-    }
-
-    if (this.deploymentsTable.length > 1) {
-      console.info(`Instantiated contracts on ${id}:`)
-      console.log('\n' + table(this.deploymentsTable, noBorders))
-    } else {
-      console.info(`\n  No known contracts on ${id}`)
-    }
-
-  }
-
-  /** List of code blobs in human-readable form */
-  private get uploadsTable () {
-
-    const rows = []
-
-    // uploads table - lists code blobs
-    rows.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
-
-    if (this.uploads.exists()) {
-      for (const name of this.uploads.list()) {
-        const row = []
-            , { codeId
-              , originalSize
-              , compressedSize
-              , originalChecksum
-              , compressedChecksum } = this.uploads.load(name)
-        row.push(`  ${codeId}`)
-        row.push(`${bold(name)}\ncompressed:\n`)
-        row.push(`${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,)
-        row.push(`${originalChecksum}\n${compressedChecksum}`)
-        rows.push(row)
-      }
-    }
-
-    return rows.sort((x,y)=>x[0]-y[0])
-
-  }
-
-  /** List of contracts in human-readable from */
-  private get deploymentsTable () {
-
-    const rows = []
-    rows.push([bold('  label')+'\n  address', 'code id', 'code hash\ninit tx\n'])
-
-    if (this.deployments.exists()) {
-      for (const name of this.deployments.list()) {
-        const {
-          codeId,
-          codeHash,
-          initTx: {contractAddress, transactionHash}
-        } = this.deployments.load(name)
-        rows.push([
-          `  ${bold(name)}\n  ${contractAddress}`,
-          String(codeId),
-          `${codeHash}\n${transactionHash}\n`
-        ])
-      }
-    }
-
-    return rows
   }
 }
