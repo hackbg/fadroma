@@ -20,6 +20,7 @@ export type MigrationOptions = {
   needsActiveDeployment?: boolean
 }
 
+import { BaseAgent } from './Agent'
 export async function init (
   CHAINS:    Record<string, Function>,
   chainName: string,
@@ -62,13 +63,21 @@ export async function init (
   chain = await chain.ready
 
   try {
-    admin = await chain.getAgent()
+
+    if (chain.defaultIdentity instanceof BaseAgent) {
+      admin = chain.defaultIdentity
+    } else {
+      admin = await chain.getAgent()
+    }
+
     console.info(
-      bold(`Init operation on`), chainName, `(${chain.chainId})`,
+      bold(`Commence activity on`), chainName, `(${chain.chainId})`,
       bold('as'), admin.address
     )
+
     const initialBalance = await admin.balance
     console.info(bold(`Balance:`), initialBalance, `uscrt`)
+
     //process.on('beforeExit', async () => {
       //const finalBalance = await admin.balance
       //console.info(`Initial balance: ${bold(initialBalance)}uscrt`)
@@ -76,6 +85,7 @@ export async function init (
       //console.info(`Consumed gas: ${bold(String(initialBalance - finalBalance))}uscrt`)
       //process.exit(0)
     //})
+    //
   } catch (e) {
     console.warn(`Could not get an agent for ${chainName}: ${e.message}`)
   }

@@ -129,6 +129,7 @@ export abstract class BaseChain implements IChain {
         `${bold('Default identity:')} ${address}`
       )
     }
+
     return this as IChain
   }
 

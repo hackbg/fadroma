@@ -180,10 +180,10 @@ export abstract class ScrtAgentJS extends BaseAgent {
   /** Execute a contract transaction. */
   execute (
     contract: IContract,
-    msg: ContractMessage,
-    memo:   any,
-    amount: any,
-    fee:    any
+    msg:      ContractMessage,
+    memo:     any,
+    amount:   any,
+    fee:      any
   ) {
     const { label, address } = contract
     const from = this.address
@@ -203,8 +203,11 @@ export abstract class ScrtAgentJS extends BaseAgent {
     AgentClass: AgentConstructor,
     options: Identity
   ): Promise<IAgent> {
+
     const { name = 'Anonymous', ...args } = options
+
     let { mnemonic, keyPair } = options
+
     let info = ''
 
     if (mnemonic) {
@@ -225,12 +228,14 @@ export abstract class ScrtAgentJS extends BaseAgent {
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
     }
 
-    console.info(info)
-
     const pen = await Secp256k1Pen.fromMnemonic(mnemonic)
-    return new AgentClass({name, mnemonic, keyPair, pen, ...args})
+
+    const agent = new AgentClass({name, mnemonic, keyPair, pen, ...args})
+
+    return agent
 
   }
+
 }
 
 export async function waitUntilNextBlock (

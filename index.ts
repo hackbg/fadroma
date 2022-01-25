@@ -48,25 +48,41 @@ export class Fadroma {
       }
       // descend or reach bottom
       if (i === fragments.length-1) {
-        commands[fragments[i]] = (args: string[]) => this.run(command, args)
+        commands[fragments[i]] = (args: string[]) =>
+          this.run(name, command, args)
       } else {
         commands = commands[fragments[i]]
       }
     }
   }
 
-  async run <T> (command: Command<T>, args?: string[]): Promise<T> {
+  private async run <T> (name: string, command: Command<T>, args?: string[]): Promise<T> {
+
+    name = name || command.name
+    if (name) {
+      console.info(
+        bold('Running:'), name
+      )
+    } else {
+      console.warn(
+        bold('Running nameless command. Please define commands as named functions.')
+      )
+    }
+
     if (!this.chainId) {
       console.log('Please set your FADROMA_CHAIN environment variable to one of the following:')
       console.log('  '+Object.keys(this.chains).sort().join('\n  '))
       // TODO if interactive, display a selector which exports it for the session
       process.exit(1)
     }
+
     const { chain, admin } = await init(this.chains, this.chainId)
+
     const deployment = chain.deployments.active
     if (deployment) {
       console.info(bold('Active deployment:'), deployment.prefix)
     }
+
     const context = {
       timestamp: timestamp(),
       chain,
@@ -81,7 +97,9 @@ export class Fadroma {
         })
       },
     }
+
     return await command(context)
+
   }
 
   module (url: string): Commands {
