@@ -8,7 +8,7 @@
 
 ![](/doc/logo.svg)
 
-Made with 💚  at [Hack.bg](https://hack.bg).
+Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
 Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
