@@ -5,7 +5,7 @@
   "main":    "./index.ts",
   "dependencies": {
     "@fadroma/scrt": "workspace:*",
-    "@hackbg/tools": "workspace:*",
+    "@hackbg/tools": "^1",
     "secretjs":      "workspace:0.16.5"
   }
 }

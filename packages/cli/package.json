@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "dependencies": {
     "@ganesha/node": "workspace:*",
-    "@hackbg/komandi": "workspace:*",
+    "@hackbg/komandi": "^2",
     "cross-spawn": "^7.0.3",
     "mkdirp": "^1.0.4",
     "prompts": "^2.4.1"

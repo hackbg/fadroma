@@ -6,9 +6,9 @@
   "main":      "./index.ts",
   "packages": [
     "./deps/ganesha",
-    "./deps/toolbox/*",
     "./deps/scrt-1.0/cosmwasm-js/packages/sdk",
-    "./deps/scrt-1.2/cosmwasm-js/packages/sdk"
+    "./deps/scrt-1.2/cosmwasm-js/packages/sdk",
+    "./packages/*"
   ],
   "devDependencies": {
     "@hackbg/ganesha": "workspace:*",
@@ -21,7 +21,7 @@
     "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.0": "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
-    "@hackbg/komandi":   "workspace:*",
+    "@hackbg/komandi":   "^2",
     "bignumber.js":      "^9.0.2"
   },
   "scripts": {

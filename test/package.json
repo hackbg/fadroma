@@ -6,8 +6,8 @@
   "dependencies": {
     "@fadroma/ops":    "workspace:*",
     "@fadroma/scrt":   "workspace:*",
-    "@hackbg/tools":   "workspace:*",
     "@hackbg/ganesha": "workspace:*",
+    "@hackbg/tools":   "^1",
     "@iov/encoding":   "^2.1.0",
     "@types/express":  "^4.17.13",
     "@types/tap":      "^15.0.5",

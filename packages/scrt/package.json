@@ -6,7 +6,7 @@
   "dependencies": {
     "@cosmjs/crypto": "^0.20.0",
     "@fadroma/ops":   "workspace:*",
-    "@hackbg/tools":  "workspace:*",
+    "@hackbg/tools":  "^1",
     "secretjs":       "workspace:0.17.5"
   }
 }

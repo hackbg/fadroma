@@ -1,16 +1,13 @@
-[submodule "scrt-1.0"] # secret network with modifications to secretjs error handling
+[submodule "deps/scrt-1.0"] # secret network with modifications to secretjs error handling
   update = rebase
-	path = deps/scrt-1.0
-	url = git@github.com:hackbg/SecretNetwork.git
-	branch = v1.0
-[submodule "scrt-1.2"] # secret network with modifications to secretjs error handling
+  path   = deps/scrt-1.0
+  url    = git@github.com:hackbg/SecretNetwork.git
+  branch = v1.0
+[submodule "deps/scrt-1.2"] # secret network with modifications to secretjs error handling
   update = rebase
-	path = deps/scrt-1.2
-	url = git@github.com:hackbg/SecretNetwork.git
-	branch = v1.2
+  path   = deps/scrt-1.2
+  url    = git@github.com:hackbg/SecretNetwork.git
+  branch = v1.2
 [submodule "deps/ganesha"]
-	path = deps/ganesha
-	url  = git@github.com:hackbg/ganesha.git
-[submodule "deps/toolbox"]
-	path = deps/toolbox
-	url  = git@github.com:hackbg/toolbox.git
+  path   = deps/ganesha
+  url    = https://github.com:hackbg/ganesha.git
