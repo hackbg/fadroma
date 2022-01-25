@@ -7,18 +7,13 @@
     "@types/node": "latest"
   },
   "dependencies": {
-    "colors": "^1.4.0",
     "@types/prettyjson": "^0.0.30",
+
+    "colors":     "^1.4.0",
     "prettyjson": "github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f",
-    "table": "^6.6.0"
-  },
-  "peerDependencies": {
-    "@ganesha/tsc":  "workspace:*",
-    "@ganesha/node": "workspace:*"
+    "table":      "^6.6.0"
   },
   "scripts": {
-    "build":       "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
-    "postinstall": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json",
-    "test":  "ganesha README.md"
+    "build": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json"
   }
 }

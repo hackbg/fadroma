@@ -1,0 +1,12 @@
+{
+  "name": "@hackbg/toolbox",
+  "private": true,
+  "workspace": true,
+  "packages": [
+    "./kabinet",
+    "./komandi",
+    "./konzola",
+    "./tools",
+    "./forkers"
+  ]
+}
