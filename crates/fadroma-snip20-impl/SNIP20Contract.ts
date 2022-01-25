@@ -13,6 +13,8 @@ const decode = (buffer: any) => decoder.decode(buffer).trim()
 import { SNIP20Transactions } from './SNIP20Transactions'
 import { SNIP20Queries }      from './SNIP20Queries'
 export class SNIP20Contract extends AugmentedScrtContract<SNIP20Transactions, SNIP20Queries> {
+  name = 'SNIP20'
+
   Transactions = SNIP20Transactions
   Queries      = SNIP20Queries
 

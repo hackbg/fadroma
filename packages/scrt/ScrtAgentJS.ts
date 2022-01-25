@@ -146,12 +146,17 @@ export abstract class ScrtAgentJS extends BaseAgent {
   }
 
   /** Instantiate a contract from a code ID and an init message. */
-  async instantiate ({ codeId, label }: IContract, initMsg: any) {
+  async instantiate (contract: IContract, initMsg: any) {
     const from = this.address
-    console.debug(`${bold('INIT')} ${this.constructor.name} "${label}"`, { from, codeId, label, initMsg })
+    const { codeId, label } = contract
+    if (process.env.FADROMA_PRINT_TXS) {
+      console.debug(`${bold('INIT')} ${this.constructor.name} "${label}"`, { from, codeId, label, initMsg })
+    }
     const initTx = await this.API.instantiate(codeId, initMsg, label)
     Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
-    console.debug(`${bold('< INIT <')} ${this.constructor.name} ${label}`, { from, codeId, label, initTx })
+    if (process.env.FADROMA_PRINT_TXS) {
+      console.debug(`${bold('< INIT <')} ${this.constructor.name} ${label}`, { from, codeId, label, initTx })
+    }
     return initTx
   }
 
@@ -162,25 +167,34 @@ export abstract class ScrtAgentJS extends BaseAgent {
   ) {
     const from = this.address
     const method = getMethod(msg)
-    console.debug(`${bold('> QUERY >')} ${this.constructor.name}::${bold(method)}`, { from, label, address, msg })
+    if (process.env.FADROMA_PRINT_TXS) {
+      console.debug(`${bold('> QUERY >')} ${this.constructor.name}::${bold(method)}`, { from, label, address, msg })
+    }
     const response = this.API.queryContractSmart(address, msg as any)
-    console.debug(`${bold('< QUERY <')} ${this.constructor.name}::${method}`, { from, address, msg, response })
+    if (process.env.FADROMA_PRINT_TXS) {
+      console.debug(`${bold('< QUERY <')} ${this.constructor.name}::${method}`, { from, address, msg, response })
+    }
     return response
   }
 
   /** Execute a contract transaction. */
   execute (
-    { label, address }: IContract,
+    contract: IContract,
     msg: ContractMessage,
     memo:   any,
     amount: any,
     fee:    any
   ) {
+    const { label, address } = contract
     const from = this.address
     const method = getMethod(msg)
-    console.debug(`${bold('> TX >')} ${this.constructor.name}::${method}`, { from, label, address, msg, memo, amount, fee })
+    if (process.env.FADROMA_PRINT_TXS) {
+      console.debug(`${bold('> TX >')} ${this.constructor.name}::${method}`, { from, label, address, msg, memo, amount, fee })
+    }
     const result = this.API.execute(address, msg as any, memo, amount, fee)
-    console.debug(`${bold('< TX <')} ${this.constructor.name}::${method}`, { from, label, address, msg, result })
+    if (process.env.FADROMA_PRINT_TXS) {
+      console.debug(`${bold('< TX <')} ${this.constructor.name}::${method}`, { from, label, address, result })
+    }
     return result
   }
 

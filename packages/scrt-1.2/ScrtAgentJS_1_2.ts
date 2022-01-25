@@ -76,13 +76,13 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     while (resultRetries--) {
       try {
 
-        console.info(`Requesting result of tx ${id}`)
+        //console.info(`Requesting result of tx ${id}`)
         const result = await this.restClient.get(`/txs/${id}`)
 
         // if result contains error, throw it so it can be decrypted
         const {raw_log, logs = []} = result as any
         if (raw_log.includes('failed') || raw_log.includes('out of gas')) {
-          console.debug(`Transaction ${id} failed`, result)
+          console.warn(`Transaction ${id} failed`, result)
           const error = new Error(raw_log)
           Object.assign(error, { rethrow: true })
           throw new Error(raw_log)
@@ -99,8 +99,10 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
           throw error
         }
 
-        console.warn(`Failed to query result of tx ${id}: ${error.message}`)
-        console.info(`Requesting result of ${id}: ${resultRetries} retries left`)
+        if (process.env.FADROMA_PRINT_TXS) {
+          console.warn(`Failed to query result of tx ${id}: ${error.message}`)
+          console.info(`Requesting result of ${id}: ${resultRetries} retries left`)
+        }
         await new Promise(ok=>setTimeout(ok, this.resultRetryDelay))
         continue
       }

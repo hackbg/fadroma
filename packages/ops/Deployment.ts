@@ -1,15 +1,21 @@
-import { Directory, resolve, bold, } from '@hackbg/tools'
+import { resolve, bold, writeFileSync } from '@hackbg/tools'
 import { IContract, ContractConstructor, IAgent } from './Model'
 
 export class Deployment {
+
   constructor (
-    public readonly name: string,
-    public readonly path: string,
+    public readonly prefix: string,
+    public readonly path:   string,
     public readonly contracts: Record<string, any>
   ) {}
 
   resolve (...fragments: Array<string>) {
     return resolve(this.path, ...fragments)
+  }
+
+  save (data: any, ...fragments: Array<string>) {
+    if (data instanceof Object) data = JSON.stringify(data, null, 2)
+    writeFileSync(`${this.resolve(...fragments)}.json`, data)
   }
 
   getContract <T extends IContract> (
@@ -20,7 +26,7 @@ export class Deployment {
     if (!this.contracts[contractName]) {
       throw new Error(
         `@fadroma/ops: no contract ${bold(contractName)}` +
-        ` in deployment ${bold(this.name)}`
+        ` in deployment ${bold(this.prefix)}`
       )
     }
 
@@ -28,7 +34,7 @@ export class Deployment {
       address:  this.contracts[contractName].initTx.contractAddress,
       codeHash: this.contracts[contractName].codeHash,
       codeId:   this.contracts[contractName].codeId,
-      prefix:   this.name,
+      prefix:   this.prefix,
       admin,
     })
   }
@@ -50,6 +56,18 @@ export class Deployment {
     }
     return contracts
   }
+
+  requireContracts (
+    requirements: Record<string, ContractConstructor<any>>,
+    options:      any
+  ): Record<string, any> {
+    const contracts = {}
+    for (const [name, Class] of Object.entries(requirements)) {
+      contracts[name] = new Class(options)
+    }
+    return contracts
+  }
+
 }
 
 import {
@@ -62,7 +80,8 @@ import {
   readFileSync,
   unlinkSync,
   symlinkDir,
-  mkdirp
+  mkdirp,
+  Directory
 } from '@hackbg/tools'
 
 export class DeploymentDir extends Directory {
@@ -72,7 +91,7 @@ export class DeploymentDir extends Directory {
   printActive () {
     if (this.active) {
       console.log(`\nSelected deployment:`)
-      console.log(`  ${bold(this.active.name)}`)
+      console.log(`  ${bold(this.active.prefix)}`)
       for (const contract of Object.keys(this.active.contracts)) {
         console.log(`    ${colors.green('✓')}  ${contract}`)
       }
@@ -81,16 +100,28 @@ export class DeploymentDir extends Directory {
     }
   }
 
-  get active (): Deployment {
+  get active (): Deployment|null {
+    return this.get(this.KEY)
+  }
 
-    const path = resolve(this.path, this.KEY)
+  get (name: string): Deployment|null {
+
+    const path = resolve(this.path, name)
+
     if (!existsSync(path)) {
       return null
     }
 
-    const deploymentName = basename(readlinkSync(path))
+    let prefix: string
+
+    try {
+      prefix = basename(readlinkSync(path))
+    } catch (e) {
+      prefix = basename(path)
+    }
 
     const contracts = {}
+
     for (const contract of readdirSync(path).sort()) {
       const [contractName, _version] = basename(contract, '.json').split('+')
       const location = resolve(path, contract)
@@ -99,17 +130,26 @@ export class DeploymentDir extends Directory {
       }
     }
 
-    return new Deployment(deploymentName, path, contracts)
-
+    return new Deployment(prefix, path, contracts)
   }
 
+  async create (id: string) {
+    const path = resolve(this.path, id)
+    if (existsSync(path)) {
+      throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
+    }
+    await mkdirp(path)
+  }
+
+  // selected deployment shouldn't be implemented with symlinks...
   async select (id: string) {
-    const selection = resolve(this.path, id)
-    if (!existsSync(selection)) throw new Error(
-      `@fadroma/ops: ${id} does not exist`)
+    const path = resolve(this.path, id)
+    if (!existsSync(path)) {
+      throw new Error(`[@fadroma/ops/Deployment] ${id} does not exist`)
+    }
     const active = resolve(this.path, this.KEY)
     if (existsSync(active)) unlinkSync(active)
-    await symlinkDir(selection, active)
+    await symlinkDir(path, active)
   }
 
   list () {
@@ -118,7 +158,6 @@ export class DeploymentDir extends Directory {
       mkdirp.sync(this.path)
       return []
     }
-
     return readdirSync(this.path)
       .filter(x=>x!=this.KEY)
       .filter(x=>statSync(resolve(this.path, x)).isDirectory())
@@ -131,17 +170,11 @@ export class DeploymentDir extends Directory {
 
   /** List of contracts in human-readable from */
   table () {
-
     const rows = []
     rows.push([bold('  label')+'\n  address', 'code id', 'code hash\ninit tx\n'])
-
     if (this.exists()) {
       for (const name of this.list()) {
-        const {
-          codeId,
-          codeHash,
-          initTx: {contractAddress, transactionHash}
-        } = this.load(name)
+        const { codeId, codeHash, initTx: {contractAddress, transactionHash} } = this.load(name)
         rows.push([
           `  ${bold(name)}\n  ${contractAddress}`,
           String(codeId),
@@ -149,7 +182,6 @@ export class DeploymentDir extends Directory {
         ])
       }
     }
-
     return rows
   }
 

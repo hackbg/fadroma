@@ -19,12 +19,16 @@ export type MigrationContext = {
   timestamp:   string
   chain:       IChain
   admin:       IAgent
-  deployment?: Deployment
+  deployment?: Deployment,
+  prefix?:     string,
+  args:        string[]
+  run (command: Function, args: object): Promise<any>
 }
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
-import { init, timestamp } from '@fadroma/ops'
+import { init, timestamp, Console, bold } from '@fadroma/ops'
+const console = Console('@hackbg/fadroma')
 export class Fadroma {
 
   chains = CHAINS
@@ -59,13 +63,23 @@ export class Fadroma {
       process.exit(1)
     }
     const { chain, admin } = await init(this.chains, this.chainId)
-    return await command({
+    const deployment = chain.deployments.active
+    console.info('Active deployment:', bold(deployment.prefix))
+    const context = {
       timestamp: timestamp(),
       chain,
       admin,
-      deployment: chain.deployments.active,
-      args
-    })
+      deployment,
+      prefix: deployment?.prefix,
+      args,
+      async run (command: Function, args?: Record<string, any>): Promise<any> {
+        return command({
+          ...context,
+          ...args
+        })
+      },
+    }
+    return await command(context)
   }
 
   module (url: string): Commands {

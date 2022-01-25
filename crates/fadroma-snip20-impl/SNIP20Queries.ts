@@ -2,6 +2,11 @@ import { QueryExecutor } from '@fadroma/scrt'
 
 export class SNIP20Queries extends QueryExecutor {
 
+  async tokenInfo () {
+    const { token_info } = await this.query({ token_info: {} })
+    return token_info
+  }
+
   /** Get address balance */
   async balance (address: string, key: string) {
     const msg = { balance: { address, key } }

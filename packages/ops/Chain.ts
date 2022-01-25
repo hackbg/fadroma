@@ -19,6 +19,8 @@ import type {
 
 import { DeploymentDir } from './Deployment'
 
+import { URL } from 'url'
+
 const console = Console('@fadroma/ops/Chain')
 
 export type DefaultIdentity =
@@ -55,9 +57,9 @@ export abstract class BaseChain implements IChain {
    * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
    * TODO document the remaining options */
   constructor ({
-    apiURL,
-    chainId   = node?.chainId,
+    apiURL    = new URL('http://localhost:1337'),
     node      = null,
+    chainId   = node?.chainId,
     stateRoot = resolve(process.cwd(), 'receipts', chainId),
     isMainnet,
     isTestnet,
@@ -70,10 +72,11 @@ export abstract class BaseChain implements IChain {
     this.isMainnet  = isMainnet
     this.isTestnet  = isTestnet
     this.isLocalnet = isLocalnet
+
     this.node = node || null
     if (node) {
-      this.chainId = node.chainId
-      this.apiURL  = node.apiURL
+      this.chainId = node.chainId || this.chainId
+      this.apiURL  = node.apiURL  || this.apiURL
     }
 
     // directories to store state
@@ -82,8 +85,13 @@ export abstract class BaseChain implements IChain {
     this.uploads     = new UploadDir(stateRoot, 'uploads')
     this.deployments = new DeploymentDir(stateRoot, 'deployments')
 
-    if (Agent) this.Agent = Agent
-    if (defaultIdentity) this.defaultIdentity = defaultIdentity
+    if (Agent) {
+      this.Agent = Agent
+    }
+
+    if (defaultIdentity) {
+      this.defaultIdentity = defaultIdentity
+    }
   }
 
   /** Stuff that should be in the constructor but is asynchronous.
@@ -103,22 +111,7 @@ export abstract class BaseChain implements IChain {
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
     if (node) {
-      this.node = node
-      // respawn that container
-      console.info(`Running on localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
-      await node.respawn()
-      await node.ready
-      // set the correct port to connect to
-      this.apiURL.port = String(node.port)
-      console.info(`Localnet ready @ port ${bold(this.apiURL.port)}`)
-      // get the default account for the node
-      if (typeof this.defaultIdentity === 'string') {
-        try {
-          this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
-        } catch (e) {
-          console.warn(`Could not load default identity ${this.defaultIdentity}: ${e.message}`)
-        }
-      }
+      await this.localnetSetup(node)
     }
     const { protocol, hostname, port } = this.apiURL
     console.info(
@@ -134,7 +127,25 @@ export abstract class BaseChain implements IChain {
       )
     }
     return this as IChain
+  }
 
+  private async localnetSetup (node: IChainNode) {
+    this.node = node
+    // respawn that container
+    console.info(`Running on localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
+    await node.respawn()
+    await node.ready
+    // set the correct port to connect to
+    this.apiURL.port = String(node.port)
+    console.info(`Localnet ready @ port ${bold(this.apiURL.port)}`)
+    // get the default account for the node
+    if (typeof this.defaultIdentity === 'string') {
+      try {
+        this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
+      } catch (e) {
+        console.warn(`Could not load default identity ${this.defaultIdentity}: ${e.message}`)
+      }
+    }
   }
 
   /** This directory contains all the others. */
@@ -181,7 +192,9 @@ export abstract class BaseChain implements IChain {
     })
   }
 
-  async buildAndUpload (contracts: Array<ContractBuild & ContractUpload>) {
+  async buildAndUpload (
+    contracts: IContract[]
+  ): Promise<IContract[]> {
     for (const contract of Object.values(contracts)) {
       contract.chain = this
     }
@@ -189,6 +202,7 @@ export abstract class BaseChain implements IChain {
     for (const contract of contracts) {
       await contract.upload()
     }
+    return contracts
   }
 
 }

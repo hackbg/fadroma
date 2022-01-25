@@ -8,7 +8,7 @@ import type {
 } from './Model'
 import { BaseAgent, isAgent } from './Agent'
 import { BaseChain } from './Chain'
-import { DeploymentDir } from './Deployment'
+import { Deployment, DeploymentDir } from './Deployment'
 import { loadSchemas } from './Schema'
 
 import {
@@ -25,26 +25,26 @@ const console = Console('@fadroma/ops/Contract')
 
 export abstract class DockerizedContractBuild implements ContractBuild {
 
+  constructor (options: ContractBuildState = {}) {
+    for (const key of Object.keys(options)) {
+      this[key] = options[key]
+    }
+  }
+
   // build environment
   abstract buildImage:      string|null
   abstract buildDockerfile: string|null
   abstract buildScript:     string|null
 
   // build inputs
-  repo?:          string
-  ref?:           string
-  workspace?:     string
-  crate?:         string
+  repo?:      string
+  ref?:       string
+  workspace?: string
+  crate?:     string
 
   // build outputs
-  artifact?:      string
-  codeHash?:      string
-
-  constructor (options: ContractBuildState = {}) {
-    for (const key of Object.keys(options)) {
-      this[key] = options[key]
-    }
-  }
+  artifact?: string
+  codeHash?: string
 
   /** Build the contract in the default dockerized build environment for its chain.
     * Need access to Docker daemon. */
@@ -90,6 +90,10 @@ export abstract class DockerizedContractBuild implements ContractBuild {
 
 export abstract class FSContractUpload extends DockerizedContractBuild implements ContractUpload {
 
+  constructor (options: ContractBuildState & ContractUploadState = {}) {
+    super(options)
+  }
+
   // upload inputs
   artifact?:      string
   codeHash?:      string
@@ -97,21 +101,46 @@ export abstract class FSContractUpload extends DockerizedContractBuild implement
   uploader?:      IAgent
 
   // upload outputs
-  uploadReceipt?: UploadReceipt
   codeId?:        number
+  uploadReceipt?: UploadReceipt
 
-  constructor (options: ContractBuildState & ContractUploadState = {}) {
-    super(options)
+  /** Code ID + code hash pair in Sienna Swap Factory format */
+  get template () {
+    return {
+      id: this.codeId,
+      code_hash: this.codeHash
+    }
   }
 
   /** Path to where the result of the upload transaction is stored */
-  get uploadReceiptPath () { return this.chain.uploads.resolve(`${basename(this.artifact)}.json`) }
+  get uploadReceiptPath () {
+    const name = `${basename(this.artifact)}.json`
+    return this.chain.uploads.resolve(name)
+  }
 
-  /** Code ID + code hash pair in Sienna Swap Factory format */
-  get template () { return { id: this.codeId, code_hash: this.codeHash } }
+  async uploadAs (agent: IAgent): Promise<this> {
+    this.uploader = agent
+    return this.uploadTo(agent.chain)
+  }
+
+  async uploadTo (chain: IChain): Promise<this> {
+    this.chain = chain
+    await this.upload()
+    return this
+  }
 
   /** Upload the contract to a specified chain as a specified agent. */
   async upload () {
+    // if no uploader, bail
+    if (!this.uploader) {
+      throw new Error(
+        `[@fadroma/ops/Contract] contract.upload() requires contract.uploader to be set`
+      )
+    }
+    // if not built, build
+    if (!this.artifact) {
+      await this.buildInDocker()
+    }
     // upload if not already uploaded
     const uploadReceipt = await uploadFromFS(
       this.uploader,
@@ -128,7 +157,18 @@ export abstract class FSContractUpload extends DockerizedContractBuild implement
 
 export abstract class BaseContractClient extends FSContractUpload implements ContractClient {
 
-  static loadSchemas = loadSchemas
+  constructor (
+    options: ContractBuildState & ContractUploadState & ContractClientState & {
+      admin?: IAgent
+    } = {}
+  ) {
+    super(options)
+    if (options.admin) {
+      this.agent        = options.admin
+      this.uploader     = options.admin
+      this.instantiator = options.admin
+    }
+  }
 
   // init inputs
   chain?:        IChain
@@ -138,22 +178,41 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
   prefix?:       string
   suffix?:       string
   instantiator?: IAgent
-  initMsg?:      Record<string, any> = {}
+
+  /** The contents of the init message that creates a contract. */
+  initMsg?: Record<string, any> = {}
+
+  /** The default agent for queries/transactions. */
+  agent?: IAgent
 
   /** The on-chain label of this contract instance.
     * The chain requires these to be unique.
     * If a prefix is set, it is prepended to the label. */
-  get label () {
+  get label (): string {
+    if (!this.name) {
+      throw new Error(
+        '[@fadroma/contract] Tried to get label of contract with missing name.'
+      )
+    }
     let label = this.name
     if (this.prefix) label = `${this.prefix}/${this.name}`
-    if (this.suffix) label = `${this.name}${this.suffix}`
+    if (this.suffix) label = `${label}${this.suffix}`
     return label
   }
 
+  /** Manually setting the label is disallowed.
+    * Instead, impose prefix-name-suffix scheme. */
+  set label (label: string) {
+    throw new Error(
+      "[@fadroma/contract] Tried to overwrite `contract.label`. "+
+      "Don't - use the `prefix`, `name`, and `suffix`. properties instead"
+    )
+  }
+
   // init outputs
-  address?:      string
-  initTx?:       InitTX
-  initReceipt?:  InitReceipt
+  address?:     string
+  initTx?:      InitTX
+  initReceipt?: InitReceipt
 
   /** A reference to the contract in the format that ICC callbacks expect. */
   get link () { return { address: this.address, code_hash: this.codeHash } }
@@ -161,46 +220,68 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
   /** A reference to the contract as an array */
   get linkPair () { return [ this.address, this.codeHash ] as [string, string] }
 
-  constructor (
-    options: ContractBuildState & ContractUploadState & ContractClientState = {}
-  ) {
-    super(options)
-  }
-
-  async instantiate (): Promise<InitReceipt> {
-    this.initTx = await instantiateContract(this)
-    this.initReceipt = {
-      label:    this.label,
-      codeId:   this.codeId,
-      codeHash: this.codeHash,
-      initTx:   this.initTx
-    }
-    this.address = this.initTx.contractAddress
-    this.save()
-    return this.initReceipt
-  }
-
-  async instantiateOrExisting (receipt?: InitReceipt, agent?: IAgent): Promise<InitReceipt> {
-    if (!receipt) {
-      return await this.instantiate()
-    } else {
-      this.codeHash = receipt.codeHash
-      this.address  = receipt.initTx.contractAddress
-      this.name     = receipt.label.split('/')[1]
-      if (agent) this.instantiator = agent
-      console.info(`Contract already exists at ${bold(this.address)}: ${bold(this.label)}`)
-      return receipt
-    }
-  }
-
   /** Save the contract's instantiation receipt in the instances directory for this chain.
     * If prefix is set, creates subdir grouping contracts with the same prefix. */
   save () {
     let dir = this.chain.deployments
     if (this.prefix) {
-      dir = dir.subdir(this.prefix, DeploymentsDir).make() as DeploymentsDir
+      dir = dir.subdir(this.prefix, DeploymentDir).make() as DeploymentDir
     }
     dir.save(`${this.name}${this.suffix||''}`, this.initReceipt)
+    return this
+  }
+
+  async instantiateOrExisting (
+    receipt?: InitReceipt,
+    agent?:   IAgent
+  ): Promise<InitReceipt> {
+    if (!receipt) {
+      return await this.instantiate()
+    } else {
+      if (agent) this.instantiator = agent
+      console.info(bold(`Contract already exists:`), this.label)
+      console.info(`- On-chain address:`,      bold(receipt.initTx.contractAddress))
+      console.info(`- On-chain code hash:`,    bold(receipt.codeHash))
+      this.setFromReceipt(receipt)
+      return receipt
+    }
+  }
+
+  async instantiate (): Promise<InitReceipt> {
+    this.setFromReceipt(this.initReceipt = {
+      label:    this.label,
+      codeId:   this.codeId,
+      codeHash: this.codeHash,
+      initTx:   this.initTx = await instantiateContract(this)
+    })
+    this.save()
+    return this.initReceipt
+  }
+
+  private setFromReceipt (receipt: InitReceipt) {
+    this.name     = receipt.label.split('/')[1]
+    this.codeId   = receipt.codeId
+    if (this.codeHash && this.codeHash !== receipt.codeHash) {
+      console.warn(
+        `Receipt contained code hash: ${bold(receipt.codeHash)}, `+
+        `while contract class contained: ${bold(this.codeHash)}. `+
+        `Will use the one from the receipt from now on.`
+      )
+    }
+    this.codeHash = receipt.codeHash
+    this.initTx   = receipt.initTx
+    this.address  = receipt.initTx.contractAddress
+    return receipt
+  }
+
+  from (deployment: Deployment) {
+    const receipt = deployment.contracts[this.name]
+    if (!receipt) {
+      throw new Error(
+        `[@fadroma/ops/Contract] no contract ${this.name} in ${deployment.prefix}`
+      )
+    }
+    this.setFromReceipt(receipt)
     return this
   }
 
@@ -448,11 +529,19 @@ async function uploadFromFS (
 }
 
 export async function instantiateContract (contract: ContractClient): Promise<InitTX> {
-  const { address, codeId, instantiator, initMsg } = contract
 
-  if (address) {
+  if (contract.address) {
     throw new Error(`[@fadroma/ops] This contract has already been instantiated at ${address}`)
   } else {
+
+    const {
+      label,
+      codeId,
+      instantiator = contract.admin || contract.agent,
+      initMsg
+    } = contract
+
+    console.info(`Creating ${bold(label)} from ${bold(`code id ${codeId}`)}...`)
 
     if (!codeId) {
       throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')

@@ -66,12 +66,13 @@ export async function init (
     console.info(`Operating on ${bold(chainName)} as ${bold(admin.address)}`)
     const initialBalance = await admin.balance
     console.info(`Balance: ${bold(initialBalance)}uscrt`)
-    process.on('beforeExit', async () => {
-      const finalBalance = await admin.balance
-      console.log(`\nInitial balance: ${bold(initialBalance)}uscrt`)
-      console.log(`\nFinal balance: ${bold(finalBalance)}uscrt`)
-      console.log(`\nConsumed gas: ${bold(String(initialBalance - finalBalance))}uscrt`)
-    })
+    //process.on('beforeExit', async () => {
+      //const finalBalance = await admin.balance
+      //console.info(`Initial balance: ${bold(initialBalance)}uscrt`)
+      //console.info(`Final balance: ${bold(finalBalance)}uscrt`)
+      //console.info(`Consumed gas: ${bold(String(initialBalance - finalBalance))}uscrt`)
+      //process.exit(0)
+    //})
   } catch (e) {
     console.warn(`Could not get an agent for ${chainName}: ${e.message}`)
   }

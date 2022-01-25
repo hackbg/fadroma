@@ -8,7 +8,7 @@
 
 import { URL } from 'url'
 import { Directory, JSONFile } from '@hackbg/tools'
-import type { DeploymentsDir } from './Chain'
+import type { DeploymentDir } from './Deployment'
 
 export type Constructor =
   new (...args: any) => any
@@ -25,7 +25,8 @@ export type ContractBuildState = {
 }
 
 export interface ContractBuild extends ContractBuildState {
-  build (): Promise<any>
+  buildInDocker (socket?: string): Promise<any>
+  buildRaw      ():                Promise<any>
 }
 
 export type ContractUploadState = {
@@ -228,10 +229,11 @@ export interface IChain extends IChainOptions {
   readonly stateRoot?:   Directory
   readonly identities?:  Directory
   readonly uploads?:     Directory
-  readonly deployments?: DeploymentsDir
+  readonly deployments?: DeploymentDir
   getAgent (options?: Identity): Promise<IAgent>
   getContract<T> (api: new()=>T, address: string, agent: IAgent): T
-  printIdentities ():    void
+  printIdentities (): void
+  buildAndUpload (contracts: IContract[]): Promise<IContract[]>
 }
 
 

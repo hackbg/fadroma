@@ -31,7 +31,7 @@ export class SNIP20Transactions extends TransactionExecutor {
   ) {
     const msg = { mint: { amount: String(amount), recipient, padding: null } }
     return this.execute(msg).then((tx) => {
-      console.debug('WTF is going on here - TX data returned as hex string instead of buffer - why do we need the tx data anyway:', tx)
+      //console.debug('WTF is going on here - TX data returned as hex string instead of buffer - why do we need the tx data anyway:', tx)
       return { tx/*, mint: JSON.parse(decode(tx.data)).mint*/ }
     })
   }

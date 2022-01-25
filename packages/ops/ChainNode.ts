@@ -54,20 +54,33 @@ export abstract class BaseChainNode implements IChainNode {
   genesisAccount = (name: string) => this.identities.load(name)
 
   /** Restore this node from the info stored in nodeState */
-  load () {
+  load (): {
+    containerId: string
+    chainId:     string
+    port:        number|string
+  } | null {
+
     const path = bold(relative(cwd(), this.nodeState.path))
+
     if (this.stateRoot.exists() && this.nodeState.exists()) {
       console.info(`Loading localnet node from ${path}`)
       try {
-        const data = this.nodeState.load()
-        console.debug(`Contents of ${path}:`, data)
-        return data }
-      catch (e) {
+        const { containerId, chainId, port } = this.nodeState.load()
+        console.info(
+          `Found localnet ${bold(chainId)} `+
+          `in container ${bold(containerId.slice(0,8))}, `+
+          `on port ${bold(port)}`
+        )
+        return { containerId, chainId, port }
+      } catch (e) {
         console.warn(`Failed to load ${path}`)
         this.stateRoot.delete()
-        throw e } }
-    else {
-      console.info(`${path} does not exist.`) }}
+        throw e
+      }
+    } else {
+      console.info(`${path} does not exist.`)
+    }
+  }
 
   /** Stop this node and delete its state. */
   async terminate () {
