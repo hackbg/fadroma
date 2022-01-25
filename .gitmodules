@@ -10,4 +10,4 @@
   branch = v1.2
 [submodule "deps/ganesha"]
   path   = deps/ganesha
-  url    = https://github.com:hackbg/ganesha.git
+  url    = https://github.com/hackbg/ganesha.git
