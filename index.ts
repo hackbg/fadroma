@@ -64,7 +64,9 @@ export class Fadroma {
     }
     const { chain, admin } = await init(this.chains, this.chainId)
     const deployment = chain.deployments.active
-    console.info('Active deployment:', bold(deployment.prefix))
+    if (deployment) {
+      console.info(bold('Active deployment:'), deployment.prefix)
+    }
     const context = {
       timestamp: timestamp(),
       chain,

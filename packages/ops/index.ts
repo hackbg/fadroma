@@ -63,9 +63,12 @@ export async function init (
 
   try {
     admin = await chain.getAgent()
-    console.info(`Operating on ${bold(chainName)} as ${bold(admin.address)}`)
+    console.info(
+      bold(`Init operation on`), chainName, `(${chain.chainId})`,
+      bold('as'), admin.address
+    )
     const initialBalance = await admin.balance
-    console.info(`Balance: ${bold(initialBalance)}uscrt`)
+    console.info(bold(`Balance:`), initialBalance, `uscrt`)
     //process.on('beforeExit', async () => {
       //const finalBalance = await admin.balance
       //console.info(`Initial balance: ${bold(initialBalance)}uscrt`)

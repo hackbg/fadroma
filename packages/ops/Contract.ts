@@ -395,7 +395,7 @@ export async function buildInDocker (
     const outputDir = resolve(workspace, 'artifacts')
     const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
     if (existsSync(artifact)) {
-      console.info(`Build artifact exists (delete it to rebuild): ${bold(relative(process.cwd(), artifact))}`)
+      console.info(bold(`Build artifact exists (delete it to rebuild):`), relative(process.cwd(), artifact))
       return artifact
     }
 
@@ -503,12 +503,18 @@ async function uploadFromFS (
   if (existsSync(uploadReceiptPath) && !forceReupload) {
 
     const receiptData = await readFile(uploadReceiptPath, 'utf8')
-    console.info(`Upload receipt exists (delete it to reupload): ${bold(relative(process.cwd(), uploadReceiptPath))}`)
+
+    console.info(
+      bold(`Upload receipt exists (delete it to reupload):`),
+      relative(process.cwd(), uploadReceiptPath)
+    )
+
     return JSON.parse(receiptData)
 
   } else {
 
-    console.info(`Uploading ${bold(artifact)}`)
+    console.info(bold(`Uploading`), artifact)
+
     const uploadResult = await uploader.upload(artifact)
     const receiptData  = JSON.stringify(uploadResult, null, 2)
     const elements     = uploadReceiptPath.slice(1, uploadReceiptPath.length).split('/');

@@ -114,10 +114,13 @@ export abstract class BaseChain implements IChain {
       await this.localnetSetup(node)
     }
     const { protocol, hostname, port } = this.apiURL
+
     console.info(
-      `Connecting to ${bold(this.chainId)} `+
-      `via ${bold(protocol)} on ${bold(hostname)}:${bold(port)}`
+      bold(`Connecting to`), this.chainId,
+      bold(`via`), protocol,
+      bold(`on`), `${hostname}:${port}`
     )
+
     if (this.defaultIdentity) {
       // default credentials will be used as-is unless using localnet
       const { mnemonic, address } = this.defaultIdentity
@@ -130,14 +133,26 @@ export abstract class BaseChain implements IChain {
   }
 
   private async localnetSetup (node: IChainNode) {
+
+    // keep a handle to the node in the chain
     this.node = node
+
+    console.info(
+      bold(`Running on localnet`), this.chainId,
+      bold(`@`), this.stateRoot.path
+    )
+
     // respawn that container
-    console.info(`Running on localnet ${bold(this.chainId)} @ ${bold(this.stateRoot.path)}`)
     await node.respawn()
     await node.ready
+
     // set the correct port to connect to
     this.apiURL.port = String(node.port)
-    console.info(`Localnet ready @ port ${bold(this.apiURL.port)}`)
+
+    console.info(
+      bold(`Localnet ready @ port`), this.apiURL.port
+    )
+
     // get the default account for the node
     if (typeof this.defaultIdentity === 'string') {
       try {
@@ -146,6 +161,7 @@ export abstract class BaseChain implements IChain {
         console.warn(`Could not load default identity ${this.defaultIdentity}: ${e.message}`)
       }
     }
+
   }
 
   /** This directory contains all the others. */

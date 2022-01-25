@@ -10,7 +10,7 @@ echo $Port
 #ls -alh
 
 # config
-#ChainID=enigma-pub-testnet-3
+#CHAINID=enigma-pub-testnet-3
 Genesis=~/.secretd/config/genesis.json
 GenesisKeys=/shared-keys
 #GenesisAccounts=(ADMIN ALICE BOB CHARLIE DAVE EUSTACE MALLORY)
@@ -26,14 +26,14 @@ if [ ! -e "$Genesis" ]; then
   rm -rf ~/.secretd/* ~/.secretcli/* ~/.sgx_secrets/*
 
   echo "initialize secretcli-------------------"
-  secretcli config chain-id $ChainID
+  secretcli config chain-id $CHAINID
   secretcli config output json
   secretcli config indent true
   secretcli config trust-node true
   secretcli config keyring-backend test
 
   echo "initialize secretd---------------------"
-  secretd init banana --chain-id $ChainID
+  secretd init banana --chain-id $CHAINID
   cp ~/node_key.json ~/.secretd/config/node_key.json
   perl -i -pe 's/"stake"/"uscrt"/g' ~/.secretd/config/genesis.json
 
@@ -66,7 +66,7 @@ if [ ! -e "$Genesis" ]; then
   echo "GENESIS COMPLETE ======================"
 fi
 
-secretcli rest-server --trust-node=true --chain-id $ChainID --laddr tcp://0.0.0.0:1336 &
+secretcli rest-server --trust-node=true --chain-id $CHAINID --laddr tcp://0.0.0.0:1336 &
 lcp --proxyUrl http://localhost:1336 --port $Port --proxyPartial '' &
 
 # sleep infinity

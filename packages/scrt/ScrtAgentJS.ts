@@ -208,7 +208,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
     let info = ''
 
     if (mnemonic) {
-      info = `Creating SecretJS agent ${bold(name)} from mnemonic`
+      info = bold(`Creating SecretJS agent from mnemonic:`) + ` ${name} `
       // if keypair doesnt correspond to the mnemonic, delete the keypair
       if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
         console.warn(`ScrtAgentJS: Keypair doesn't match mnemonic, ignoring keypair`)

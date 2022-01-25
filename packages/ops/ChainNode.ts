@@ -63,14 +63,20 @@ export abstract class BaseChainNode implements IChainNode {
     const path = bold(relative(cwd(), this.nodeState.path))
 
     if (this.stateRoot.exists() && this.nodeState.exists()) {
-      console.info(`Loading localnet node from ${path}`)
+
+      console.info(
+        bold(`Loading localnet node from`), path
+      )
+
       try {
         const { containerId, chainId, port } = this.nodeState.load()
+
         console.info(
-          `Found localnet ${bold(chainId)} `+
-          `in container ${bold(containerId.slice(0,8))}, `+
-          `on port ${bold(port)}`
+          bold(`Using localnet`), chainId,
+          bold(`from container`), containerId.slice(0,8),
+          bold(`on port`),        port
         )
+
         return { containerId, chainId, port }
       } catch (e) {
         console.warn(`Failed to load ${path}`)
@@ -182,7 +188,10 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   }
 
   async respawn () {
-    console.info(`Trying to respawn localnet from ${bold(this.nodeState.path)}...`)
+    console.info(
+      bold(`Trying to respawn localnet from`),
+      this.nodeState.path
+    )
 
     // if no node state, spawn
     if (!this.nodeState.exists()) {
@@ -220,7 +229,9 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     // ...and try to make sure it dies when the Node process dies
     //process.on('beforeExit', () => { this.killContainer(id) })
     // if running, do nothing
-    console.info(`Localnet already running`)
+    console.info(
+      bold(`Localnet already running`)
+    )
   }
 
   /** Spawn a new localnet instance from scratch */
@@ -315,7 +326,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   get env () {
     return [
       `Port=${this.port}`,
-      `ChainID=${this.chainId}`,
+      `CHAINID=${this.chainId}`,
       `GenesisAccounts=${this.identitiesToCreate.join(' ')}`
     ]
   }
