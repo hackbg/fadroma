@@ -6,6 +6,6 @@
   "dependencies": {
     "@fadroma/scrt": "workspace:*",
     "@hackbg/tools": "^1",
-    "secretjs":      "workspace:../../deps/scrt-1.0/cosmwasm-js/packages/sdk"
+    "secretjs":      "0.16.5"
   }
 }

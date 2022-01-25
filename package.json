@@ -5,9 +5,8 @@
   "workspace": true,
   "main":      "./index.ts",
   "packages": [
-    "./deps/scrt-1.0/cosmwasm-js/packages/sdk",
-    "./deps/scrt-1.2/cosmwasm-js/packages/sdk",
-    "./packages/*"
+    "./packages/*",
+    "./crates/fadroma-snip20-impl"
   ],
   "devDependencies": {
     "@hackbg/ganesha": "^1",

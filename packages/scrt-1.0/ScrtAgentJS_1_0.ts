@@ -1,5 +1,5 @@
-import { SigningCosmWasmClient, BroadcastMode } from 'secretjs/src/index.ts'
-import { ScrtAgentJS } from '@fadroma/scrt/ScrtAgentJS.ts'
+import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
+import { ScrtAgentJS } from '@fadroma/scrt'
 
 import { Console } from '@hackbg/tools'
 const console = Console('@fadroma/scrt-1.0/ScrtAgentJS_1_0')
