@@ -37,10 +37,14 @@ export class Fadroma {
 
   commands: Commands = {}
 
-  command <T> (name: string, command: Command<T>) {
+  command (name: string, ...stages: Command<any>[]) {
+
     const fragments = name.trim().split(' ')
+
     let commands: any = this.commands
+
     for (let i = 0; i < fragments.length; i++) {
+
       commands[fragments[i]] = commands[fragments[i]] || {}
       // prevent overrides
       if (commands instanceof Function) {
@@ -48,26 +52,15 @@ export class Fadroma {
       }
       // descend or reach bottom
       if (i === fragments.length-1) {
-        commands[fragments[i]] = (args: string[]) =>
-          this.run(name, command, args)
+        commands[fragments[i]] = (args: string[]) => this.runCommand(name, stages, args)
       } else {
         commands = commands[fragments[i]]
       }
     }
+
   }
 
-  private async run <T> (name: string, command: Command<T>, args?: string[]): Promise<T> {
-
-    name = name || command.name
-    if (name) {
-      console.info(
-        bold('Running:'), name
-      )
-    } else {
-      console.warn(
-        bold('Running nameless command. Please define commands as named functions.')
-      )
-    }
+  private async runCommand (name: string, stages: Command<any>[], args?: string[]): Promise<any> {
 
     if (!this.chainId) {
       console.log('Please set your FADROMA_CHAIN environment variable to one of the following:')
@@ -98,7 +91,17 @@ export class Fadroma {
       },
     }
 
-    return await command(context)
+    let lastOutput = {}
+    for (const stage of stages) {
+      name = name || stage.name
+      if (name) {
+        console.info(bold('Running:'), name)
+      } else {
+        console.warn(bold('Running nameless command. Please define commands as named functions.'))
+      }
+      lastOutput = await stage({ ...lastOutput, ...context })
+    }
+    return lastOutput
 
   }
 
