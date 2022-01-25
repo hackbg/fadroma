@@ -53,7 +53,7 @@ export async function waitUntilNextBlock (
   )
   // starting height
   const {header:{height}} = await agent.block
-  console.info(bold('From block'), height)
+  console.info(bold('Block'), height)
   // every `interval` msec check if the height has increased
   return new Promise<void>(async resolve=>{
     while (true) {
@@ -61,7 +61,7 @@ export async function waitUntilNextBlock (
       await new Promise(ok=>setTimeout(ok, interval))
       // get the current height
       const now = await agent.block
-      console.info(bold('Now'), now.header.height)
+      console.info(bold('Block'), now.header.height)
       // check if it went up
       if (now.header.height > height) {
         resolve()

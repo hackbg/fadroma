@@ -10,7 +10,10 @@ import {
   makeSignBytes, BroadcastMode
 } from 'secretjs'
 
-import { BaseAgent, IAgent, Identity, IContract, ContractMessage } from '@fadroma/ops'
+import {
+  BaseAgent, IAgent, Identity, IContract, ContractMessage,
+  waitUntilNextBlock
+} from '@fadroma/ops'
 import { ScrtGas, defaultFees } from './ScrtGas'
 import type { Scrt } from './ScrtChainAPI'
 
