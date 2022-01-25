@@ -93,7 +93,7 @@ export class Fadroma {
 
     let lastOutput = {}
     for (const stage of stages) {
-      name = name || stage.name
+      name = stage.name || name
       if (name) {
         console.info(bold('Running:'), name)
       } else {

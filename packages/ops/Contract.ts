@@ -547,7 +547,7 @@ export async function instantiateContract (contract: ContractClient): Promise<In
       initMsg
     } = contract
 
-    console.info(`Creating ${bold(label)} from ${bold(`code id ${codeId}`)}...`)
+    console.info(bold(`Creating from code id ${codeId}:`), label)
 
     if (!codeId) {
       throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
