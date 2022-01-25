@@ -147,34 +147,44 @@ export abstract class ScrtAgentJS extends BaseAgent {
 
   /** Instantiate a contract from a code ID and an init message. */
   async instantiate (contract: IContract, initMsg: any) {
+
     const from = this.address
     const { codeId, label } = contract
+
     if (process.env.FADROMA_PRINT_TXS) {
       console.debug(`${bold('INIT')} ${this.constructor.name} "${label}"`, { from, codeId, label, initMsg })
     }
+
     const initTx = await this.API.instantiate(codeId, initMsg, label)
     Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
+
     if (process.env.FADROMA_PRINT_TXS) {
       console.debug(`${bold('< INIT <')} ${this.constructor.name} ${label}`, { from, codeId, label, initTx })
     }
+
     return initTx
+
   }
 
   /** Query a contract. */
-  query (
-    { label, address }: IContract,
-    msg: ContractMessage,
-  ) {
+  query (contract: IContract, msg: ContractMessage) {
+
+    const { label, address } = contract
     const from = this.address
     const method = getMethod(msg)
+
     if (process.env.FADROMA_PRINT_TXS) {
       console.debug(`${bold('> QUERY >')} ${this.constructor.name}::${bold(method)}`, { from, label, address, msg })
     }
+
     const response = this.API.queryContractSmart(address, msg as any)
+
     if (process.env.FADROMA_PRINT_TXS) {
       console.debug(`${bold('< QUERY <')} ${this.constructor.name}::${method}`, { from, address, msg, response })
     }
+
     return response
+
   }
 
   /** Execute a contract transaction. */
@@ -236,28 +246,6 @@ export abstract class ScrtAgentJS extends BaseAgent {
 
   }
 
-}
-
-export async function waitUntilNextBlock (
-  agent:    ScrtAgentJS,
-  interval: number = 1000
-) {
-  // starting height
-  const {header:{height}} = await agent.API.getBlock()
-  // every `interval` msec check if the height has increased
-  return new Promise<void>(async resolve=>{
-    while (true) {
-      // wait for `interval` msec
-      await new Promise(ok=>setTimeout(ok, interval))
-      // get the current height
-      const now = await agent.API.getBlock()
-      // check if it went up
-      if (now.header.height > height) {
-        resolve()
-        break
-      }
-    }
-  })
 }
 
 export function getMethod (msg: ContractMessage) {

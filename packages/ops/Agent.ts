@@ -1,9 +1,10 @@
-import type { IChain, IAgent, IContract, Identity, Gas } from './Model'
-import { taskmaster, resolve, readFileSync } from '@hackbg/tools'
 import assert from 'assert'
+import type { IChain, IAgent, IContract, Identity, Gas } from './Model'
+import { taskmaster, resolve, readFileSync, Console, bold } from '@hackbg/tools'
+
+const console = Console('@fadroma/ops/Agent')
 
 export abstract class BaseAgent implements IAgent {
-  constructor (_options: Identity) {}
 
   readonly chain:   IChain
   readonly address: string
@@ -38,6 +39,36 @@ export abstract class BaseAgent implements IAgent {
   abstract query       (contract: IContract, msg: any): Promise<any>
 
   abstract execute     (contract: IContract, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
+
+  constructor (_options: Identity) {}
+
+}
+
+export async function waitUntilNextBlock (
+  agent:    IAgent,
+  interval: number = 1000
+) {
+  console.info(
+    bold('Waiting until next block with'), agent.address
+  )
+  // starting height
+  const {header:{height}} = await agent.block
+  console.info(bold('From block'), height)
+  // every `interval` msec check if the height has increased
+  return new Promise<void>(async resolve=>{
+    while (true) {
+      // wait for `interval` msec
+      await new Promise(ok=>setTimeout(ok, interval))
+      // get the current height
+      const now = await agent.block
+      console.info(bold('Now'), now.header.height)
+      // check if it went up
+      if (now.header.height > height) {
+        resolve()
+        break
+      }
+    }
+  })
 }
 
 /** Check if the passed instance has required methods to behave like an Agent */
