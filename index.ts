@@ -22,7 +22,7 @@ export type MigrationContext = {
   deployment?: Deployment,
   prefix?:     string,
   args:        string[]
-  run (command: Function, args: object): Promise<any>
+  run (command: Function, args?: object): Promise<any>
 }
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
@@ -90,7 +90,7 @@ export class Fadroma {
       deployment,
       prefix: deployment?.prefix,
       args,
-      async run (command: Function, args?: Record<string, any>): Promise<any> {
+      async run (command: Function, args: Record<string, any> = {}): Promise<any> {
         return command({
           ...context,
           ...args
