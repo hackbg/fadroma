@@ -1,7 +1,7 @@
 import { basename, dirname } from 'path'
 import { bold, Console } from './cli'
 
-const console = Console(__dirname)
+const console = Console('@hackbg/tools/network')
 
 import { createServer } from 'net'
 

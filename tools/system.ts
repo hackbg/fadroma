@@ -33,7 +33,7 @@ import copy from 'recursive-copy'
 export { copy }
 
 import { Console } from './cli'
-const console = Console(__dirname)
+const console = Console('@hackbg/tools/system')
 
 // class-based atomic fs handles ///////////////////////////////////////////////////////////////////
 

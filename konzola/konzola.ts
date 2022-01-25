@@ -7,12 +7,16 @@ import { table } from 'table'
 import colors from 'colors'
 const { bold, red, green, yellow, magenta, inverse } = colors
 
-export default function Console (context: string) {
+let maxContextLength = 0
 
-  const INFO  = bold(green(  `INFO  ${context}:`))
-  const WARN  = bold(yellow( `WARN  ${context}:`))
-  const ERROR = bold(red(    `ERROR ${context}:`))
-  const TRACE = bold(magenta(`TRACE ${context}:`))
+export default function Console (context: string = '') {
+
+  maxContextLength = Math.max(maxContextLength, context.length)
+
+  const INFO  = () => bold(green(  `INFO  ${context.padEnd(maxContextLength)}`))
+  const WARN  = () => bold(yellow( `WARN  ${context.padEnd(maxContextLength)}`))
+  const ERROR = () => bold(red(    `ERROR ${context.padEnd(maxContextLength)}`))
+  const TRACE = () => bold(magenta(`TRACE ${context.padEnd(maxContextLength)}`))
 
   const INDENT = "\n      "
   const format = (arg: any) => {
@@ -26,10 +30,10 @@ export default function Console (context: string) {
   return {
     format,
     table: (rows: any) => console.log(table(rows)),
-    log:   (...args: Array<any>) => console.log(         ...args),
-    info:  (...args: Array<any>) => console.info( INFO,  ...args),
-    warn:  (...args: Array<any>) => console.warn( WARN,  ...args),
-    error: (...args: Array<any>) => console.error(ERROR, ...args),
+    log:   (...args: Array<any>) => console.log(           ...args),
+    info:  (...args: Array<any>) => console.info( INFO(),  ...args),
+    warn:  (...args: Array<any>) => console.warn( WARN(),  ...args),
+    error: (...args: Array<any>) => console.error(ERROR(), ...args),
     trace: (...args: Array<any>) => {
       console.debug(bold(magenta('TRACE')), ...args.map(format))
       console.trace()
