@@ -6,7 +6,7 @@
                                      - Marvin Heemeyer
 ```
 
-![](/doc/logo.svg)
+[![](/doc/logo.svg)](https://fadroma.tech)
 
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
