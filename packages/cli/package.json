@@ -2,7 +2,7 @@
   "name": "@fadroma/cli",
   "version": "0.0.0",
   "dependencies": {
-    "@ganesha/node": "workspace:*",
+    "@hackbg/ganesha": "^1",
     "@hackbg/komandi": "^2",
     "cross-spawn": "^7.0.3",
     "mkdirp": "^1.0.4",

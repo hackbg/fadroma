@@ -7,6 +7,6 @@
     "@cosmjs/crypto": "^0.20.0",
     "@fadroma/ops":   "workspace:*",
     "@hackbg/tools":  "^1",
-    "secretjs":       "workspace:0.17.5"
+    "secretjs":       "workspace:../../deps/scrt-1.2/cosmwasm-js/packages/sdk"
   }
 }

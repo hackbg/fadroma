@@ -6,7 +6,7 @@
   "dependencies": {
     "@fadroma/ops":    "workspace:*",
     "@fadroma/scrt":   "workspace:*",
-    "@hackbg/ganesha": "workspace:*",
+    "@hackbg/ganesha": "^1",
     "@hackbg/tools":   "^1",
     "@iov/encoding":   "^2.1.0",
     "@types/express":  "^4.17.13",
@@ -17,8 +17,8 @@
     "tap":             "^15.0.9"
   },
   "scripts": {
-    "test": "tap --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs",
     "test:all": "pnpm test-one --coverage-report=html test_*.ts",
-    "watch": "tap -w --node-arg=--experimental-loader=@hackbg/ganesha/loader.mjs test_agent.ts"
+    "test":     "tap --node-arg=--experimental-loader=@ganesha/node/loader.mjs",
+    "watch":    "tap -w --node-arg=--experimental-loader=@ganesha/node/loader.mjs test_agent.ts"
   }
 }

@@ -5,13 +5,12 @@
   "workspace": true,
   "main":      "./index.ts",
   "packages": [
-    "./deps/ganesha",
     "./deps/scrt-1.0/cosmwasm-js/packages/sdk",
     "./deps/scrt-1.2/cosmwasm-js/packages/sdk",
     "./packages/*"
   ],
   "devDependencies": {
-    "@hackbg/ganesha": "workspace:*",
+    "@hackbg/ganesha": "^1",
     "typedoc":         "^0.21.9",
     "typescript":      "^4.5.4"
   },
