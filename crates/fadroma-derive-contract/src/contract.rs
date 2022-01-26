@@ -418,9 +418,25 @@ impl Contract {
         let handle_fn = Ident::new(HANDLE_FN, Span::call_site());
         let query_fn = Ident::new(QUERY_FN, Span::call_site());
 
-        let init_msg = self.args.interface_path_concat(&Ident::new(INIT_MSG, Span::call_site()));
-        let handle_msg = self.args.interface_path_concat(&MsgType::Handle.to_ident());
-        let query_msg = self.args.interface_path_concat(&MsgType::Query.to_ident());
+        let init_msg_ident = Ident::new(INIT_MSG, Span::call_site());
+        let handle_msg_ident = MsgType::Handle.to_ident();
+        let query_msg_ident = MsgType::Query.to_ident();
+
+        // If the contract is an impl, the messages are defined in the module of the interface.
+        let (init_msg, handle_msg, query_msg): (Path, Path, Path) =
+            if let Some(path) = &self.args.interface_path {
+                (
+                    parse_quote!(#path::#init_msg_ident),
+                    parse_quote!(#path::#handle_msg_ident),
+                    parse_quote!(#path::#query_msg_ident)
+                )
+            } else {
+                (
+                    parse_quote!(super::#init_msg_ident),
+                    parse_quote!(super::#handle_msg_ident),
+                    parse_quote!(super::#query_msg_ident)
+                )
+            };
 
         parse_quote! {
             #[cfg(target_arch = "wasm32")]
@@ -434,7 +450,7 @@ impl Contract {
                 fn entry_init<S: Storage, A: Api, Q: Querier>(
                     deps: &mut Extern<S, A, Q>,
                     env: Env,
-                    msg: super::#init_msg,
+                    msg: #init_msg,
                 ) -> StdResult<InitResponse> {
                     super::#init_fn(deps, env, msg, super::DefaultImpl)
                 }
@@ -442,14 +458,14 @@ impl Contract {
                 fn entry_handle<S: Storage, A: Api, Q: Querier>(
                     deps: &mut Extern<S, A, Q>,
                     env: Env,
-                    msg: super::#handle_msg,
+                    msg: #handle_msg,
                 ) -> StdResult<HandleResponse> {
                     super::#handle_fn(deps, env, msg, super::DefaultImpl)
                 }
 
                 fn entry_query<S: Storage, A: Api, Q: Querier>(
                     deps: &Extern<S, A, Q>,
-                    msg: super::#query_msg
+                    msg: #query_msg
                 ) -> StdResult<Binary> {
                     super::#query_fn(deps, msg, super::DefaultImpl)
                 }

@@ -1,3 +1,4 @@
+use cosmwasm_std;
 use cosmwasm_std::{StdResult, HandleResponse, InitResponse, to_vec, from_slice};
 use fadroma_derive_contract::*;
 use schemars;

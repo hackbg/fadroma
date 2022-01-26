@@ -17,8 +17,8 @@ use crate::attr;
 
 pub struct ContractArgs {
     pub is_entry: bool,
-    components: Vec<Component>,
-    interface_path: Option<Path>
+    pub interface_path: Option<Path>,
+    components: Vec<Component>
 }
 
 pub struct Component {
