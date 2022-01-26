@@ -7,6 +7,7 @@ import {
 
 import { URL } from 'url'
 
+import type { Identity } from './Core'
 import type { ChainNode } from './ChainNode'
 import { Agent, AgentConstructor, BaseAgent } from './Agent'
 import type { ContractBuild } from './Build'
