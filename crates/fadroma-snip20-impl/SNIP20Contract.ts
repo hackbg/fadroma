@@ -28,7 +28,6 @@ export class SNIP20Contract extends AugmentedScrtContract<SNIP20Transactions, SN
       }
     }
   }
-
 }
 
 import { AugmentedScrtContract_1_0 } from '@fadroma/scrt-1.0'

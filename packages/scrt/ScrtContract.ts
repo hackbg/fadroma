@@ -1,9 +1,9 @@
 import {
-  BaseContractClient, AugmentedContractClient,
+  BaseContract, AugmentedContract,
   TransactionExecutor, QueryExecutor
 } from '@fadroma/ops'
 
-export class ScrtContract extends BaseContractClient {
+export class ScrtContract extends BaseContract {
   buildImage      = 'enigmampc/secret-contract-optimizer:latest'
   buildDockerfile = null
   buildScript     = null
@@ -12,7 +12,7 @@ export class ScrtContract extends BaseContractClient {
 export class AugmentedScrtContract<
   Executor extends TransactionExecutor,
   Querier  extends QueryExecutor
-> extends AugmentedContractClient<Executor, Querier> {
+> extends AugmentedContract<Executor, Querier> {
   buildImage      = 'enigmampc/secret-contract-optimizer:latest'
   buildDockerfile = null
   buildScript     = null

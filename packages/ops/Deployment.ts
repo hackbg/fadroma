@@ -1,5 +1,7 @@
-import { resolve, bold, writeFileSync } from '@hackbg/tools'
+import { Console, resolve, bold, writeFileSync } from '@hackbg/tools'
 import { IContract, ContractConstructor, IAgent } from './Model'
+
+const console = Console('@fadroma/ops/Deployment')
 
 export class Deployment {
 
@@ -138,6 +140,10 @@ export class DeploymentDir extends Directory {
     if (existsSync(path)) {
       throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
     }
+    console.info(
+      bold('Creating new deployment'),
+      id
+    )
     await mkdirp(path)
   }
 
@@ -164,8 +170,14 @@ export class DeploymentDir extends Directory {
   }
 
   save (name: string, data: any) {
-    if (data instanceof Object) data = JSON.stringify(data, null, 2)
-    return super.save(`${name}.json`, data)
+    name = `${name}.json`
+    console.trace(
+      bold('Save data to:'), name
+    )
+    if (data instanceof Object) {
+      data = JSON.stringify(data, null, 2)
+    }
+    return super.save(name, data)
   }
 
   /** List of contracts in human-readable from */

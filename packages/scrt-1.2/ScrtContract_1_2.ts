@@ -1,5 +1,5 @@
 import {
-  BaseContractClient, buildScript,
+  BaseContract, buildScript,
   resolve, dirname, fileURLToPath,
   AugmentedScrtContract, TransactionExecutor, QueryExecutor
 } from '@fadroma/scrt'
@@ -11,7 +11,7 @@ const
 
 export { buildImage, buildDockerfile }
 
-export class ScrtContract_1_2 extends BaseContractClient {
+export class ScrtContract_1_2 extends BaseContract {
   buildImage      = buildImage
   buildDockerfile = buildDockerfile
   buildScript     = buildScript

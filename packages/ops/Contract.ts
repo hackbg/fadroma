@@ -155,7 +155,7 @@ export abstract class FSContractUpload extends DockerizedContractBuild implement
   }
 }
 
-export abstract class BaseContractClient extends FSContractUpload implements ContractClient {
+export abstract class BaseContract extends FSContractUpload implements ContractClient {
 
   constructor (
     options: ContractBuildState & ContractUploadState & ContractClientState & {
@@ -215,20 +215,36 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
   initReceipt?: InitReceipt
 
   /** A reference to the contract in the format that ICC callbacks expect. */
-  get link () { return { address: this.address, code_hash: this.codeHash } }
+  get link () {
+    return {
+      address:   this.address,
+      code_hash: this.codeHash
+    }
+  }
 
   /** A reference to the contract as an array */
-  get linkPair () { return [ this.address, this.codeHash ] as [string, string] }
+  get linkPair () {
+    return [ this.address, this.codeHash ] as [string, string] // wat
+  }
 
   /** Save the contract's instantiation receipt in the instances directory for this chain.
     * If prefix is set, creates subdir grouping contracts with the same prefix. */
   save () {
+
     let dir = this.chain.deployments
+
+    // ugh hahaha so thats where the mkdir was
     if (this.prefix) {
       dir = dir.subdir(this.prefix, DeploymentDir).make() as DeploymentDir
     }
-    dir.save(`${this.name}${this.suffix||''}`, this.initReceipt)
+
+    dir.save(
+      `${this.name}${this.suffix||''}`,
+      this.initReceipt
+    )
+
     return this
+
   }
 
   async instantiateOrExisting (
@@ -312,10 +328,10 @@ export abstract class BaseContractClient extends FSContractUpload implements Con
 
 }
 
-export abstract class AugmentedContractClient<
+export abstract class AugmentedContract<
   Executor extends TransactionExecutor,
   Querier  extends QueryExecutor
-> extends BaseContractClient {
+> extends BaseContract {
 
   /** Class implementing transaction methods. */
   Transactions?: new (contract: IContract, agent: IAgent) => Executor
@@ -395,7 +411,7 @@ export async function buildInDocker (
     const outputDir = resolve(workspace, 'artifacts')
     const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
     if (existsSync(artifact)) {
-      console.info(bold(`Build artifact exists (delete it to rebuild):`), relative(process.cwd(), artifact))
+      console.info(bold(`Not rebuilding:`), relative(process.cwd(), artifact))
       return artifact
     }
 
@@ -505,7 +521,7 @@ async function uploadFromFS (
     const receiptData = await readFile(uploadReceiptPath, 'utf8')
 
     console.info(
-      bold(`Upload receipt exists (delete it to reupload):`),
+      bold(`Not reuploading:`),
       relative(process.cwd(), uploadReceiptPath)
     )
 
