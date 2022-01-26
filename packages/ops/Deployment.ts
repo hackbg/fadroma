@@ -19,7 +19,7 @@ export class Deployment {
   constructor (
     public readonly prefix: string,
     public readonly path:   string,
-    public readonly contracts: Record<string, any>
+    public readonly receipts: Record<string, any>
   ) {}
 
   getContract <T extends Contract> (
@@ -32,18 +32,16 @@ export class Deployment {
       bold('named'),                contractName,
       bold('in deployment'),        this.prefix
     )
-
-    if (!this.contracts[contractName]) {
+    if (!this.receipts[contractName]) {
       throw new Error(
         `@fadroma/ops: no contract ${bold(contractName)}` +
         ` in deployment ${bold(this.prefix)}`
       )
     }
-
     return new Class({
-      address:  this.contracts[contractName].initTx.contractAddress,
-      codeHash: this.contracts[contractName].codeHash,
-      codeId:   this.contracts[contractName].codeId,
+      address:  this.receipts[contractName].initTx.contractAddress,
+      codeHash: this.receipts[contractName].codeHash,
+      codeId:   this.receipts[contractName].codeId,
       prefix:   this.prefix,
       admin,
     })
@@ -59,14 +57,13 @@ export class Deployment {
       bold('named like'),                    nameFragment,
       bold('in deployment'),                 this.prefix
     )
-
     const contracts = []
-    for (const [name, contract] of Object.entries(this.contracts)) {
+    for (const [name, contract] of Object.entries(this.receipts)) {
       if (name.includes(nameFragment)) {
         contracts.push(new Class({
-          address:  this.contracts[name].initTx.contractAddress,
-          codeHash: this.contracts[name].codeHash,
-          codeId:   this.contracts[name].codeId,
+          address:  this.receipts[name].initTx.contractAddress,
+          codeHash: this.receipts[name].codeHash,
+          codeId:   this.receipts[name].codeId,
         }))
       }
     }
@@ -90,6 +87,7 @@ export class Deployment {
 
   save (data: any, ...fragments: Array<string>) {
     if (data instanceof Object) data = JSON.stringify(data, null, 2)
+    this.receipts[fragments.join('')] = data
     const name = `${this.resolve(...fragments)}.json`
     writeFileSync(name, data)
     console.info(
@@ -233,7 +231,6 @@ export class DeploymentDir extends Directory {
 
 export async function createNewDeployment ({ chain, cmdArgs = [] }) {
   const [ prefix = timestamp() ] = cmdArgs
-  console.info(bold('Creating new deployment'), prefix)
   await chain.deployments.create(prefix)
   await chain.deployments.select(prefix)
   return needsActiveDeployment({ chain })
@@ -247,7 +244,7 @@ export function needsActiveDeployment ({ chain }): {
   const prefix     = deployment?.prefix
   if (deployment) {
     console.info(bold('Active deployment:'), deployment.prefix)
-    const contracts = Object.values(deployment.contracts).length
+    const contracts = Object.values(deployment.receipts).length
     if (contracts === 0) {
       console.info(bold('This is a clean deployment.'))
     } else {
@@ -255,7 +252,7 @@ export function needsActiveDeployment ({ chain }): {
       const byCodeID = ([_, x],[__,y]) => (x.codeId > y.codeId)?1:(x.codeId < y.codeId)?-1:0
       for (
         const [name, {codeId, initTx:{contractAddress}}] of
-        Object.entries(deployment.contracts).sort(byCodeID)
+        Object.entries(deployment.receipts).sort(byCodeID)
       ) {
         console.info(bold(`Code ID ${codeId}:`), contractAddress, bold(name))
       }

@@ -300,7 +300,7 @@ export class BaseContract extends FSContractUpload implements ContractInit {
   }
 
   from (deployment: Deployment) {
-    const receipt = deployment.contracts[this.name]
+    const receipt = deployment.receipts[this.name]
     if (!receipt) {
       throw new Error(
         `[@fadroma/ops/Contract] no contract ${this.name} in ${deployment.prefix}`
