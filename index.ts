@@ -132,7 +132,7 @@ function getActiveDeployment (chain: Chain): {
       ] of Object.entries(deployment.contracts).sort(
         ([_,x],[__,y])=>x.codeId>y.codeId?1:x.codeId<y.codeId?-1:0
       )) {
-        console.info(bold(`code id ${codeId}`), contractAddress, bold(name))
+        console.info(bold(`Code ID ${codeId}:`), contractAddress, bold(name))
       }
     }
   }

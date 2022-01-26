@@ -22,15 +22,6 @@ export class Deployment {
     public readonly contracts: Record<string, any>
   ) {}
 
-  resolve (...fragments: Array<string>) {
-    return resolve(this.path, ...fragments)
-  }
-
-  save (data: any, ...fragments: Array<string>) {
-    if (data instanceof Object) data = JSON.stringify(data, null, 2)
-    writeFileSync(`${this.resolve(...fragments)}.json`, data)
-  }
-
   getContract <T extends Contract> (
     Class:        ContractConstructor<T>,
     contractName: string,
@@ -79,6 +70,19 @@ export class Deployment {
       contracts[name] = new Class(options)
     }
     return contracts
+  }
+
+  resolve (...fragments: Array<string>) {
+    return resolve(this.path, ...fragments)
+  }
+
+  save (data: any, ...fragments: Array<string>) {
+    if (data instanceof Object) data = JSON.stringify(data, null, 2)
+    const name = `${this.resolve(...fragments)}.json`
+    writeFileSync(name, data)
+    console.info(
+      bold('Deployment writing:'), relative(process.cwd(), name)
+    )
   }
 
 }
@@ -181,14 +185,19 @@ export class DeploymentDir extends Directory {
   }
 
   save (name: string, data: any) {
+
     name = `${name}.json`
-    console.trace(
-      bold('Saving data to:'), relative(process.cwd(), this.resolve(name))
+
+    console.info(
+      bold('DeploymentDir writing:'), relative(process.cwd(), this.resolve(name))
     )
+
     if (data instanceof Object) {
       data = JSON.stringify(data, null, 2)
     }
+
     return super.save(name, data)
+
   }
 
   /** List of contracts in human-readable from */

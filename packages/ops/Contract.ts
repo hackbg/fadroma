@@ -25,18 +25,15 @@ export async function buildAndUpload (contracts: Array<ContractBuild & ContractU
 import type { ContractMessage } from './Core'
 import type { ContractBuildOptions,  ContractBuild }  from './Build'
 import type { ContractUploadOptions, ContractUpload } from './Upload'
-export type Contract =
-  ContractBuild  &
+
+export type Contract = ContractBuild &
   ContractUpload &
   ContractInit
+
 export type ContractOptions =
   ContractBuildOptions  &
   ContractUploadOptions &
   ContractInitOptions
-
-// Contracts ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// Gas fees ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export type ContractInitOptions = {
   /** The on-chain address of this contract instance */
@@ -47,7 +44,6 @@ export type ContractInitOptions = {
   /** The on-chain label of this contract instance.
     * The chain requires these to be unique, so this
     * is meant to be built from the name, prefix and suffix. */
-  label?:        string
   name?:         string
   prefix?:       string
   suffix?:       string
@@ -59,6 +55,8 @@ export type ContractInitOptions = {
 }
 
 export interface ContractInit extends ContractInitOptions {
+  readonly label: string
+
   /** A reference to the contract in the format that ICC callbacks expect. */
   link?:         { address: string, code_hash: string }
   /** A reference to the contract as a tuple */
@@ -110,7 +108,13 @@ export async function instantiateContract (
     throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
   }
 
-  console.trace(bold(`Creating from code id ${codeId}:`), label)
+  console.info(bold('Creating:'), JSON.stringify({
+    codeId,
+    prefix: contract.prefix,
+    name:   contract.name,
+    suffix: contract.suffix||'',
+    label:  contract.label
+  }))
 
   return await backOff(function tryInstantiate () {
     return instantiator.instantiate(contract, initMsg)
@@ -130,7 +134,11 @@ export async function instantiateContract (
 
 import { FSContractUpload } from './Upload'
 
-export abstract class BaseContract extends FSContractUpload implements ContractInit {
+export class BaseContract extends FSContractUpload implements ContractInit {
+
+  buildScript     = null
+  buildImage      = null
+  buildDockerfile = null
 
   constructor (
     options: ContractBuildOptions & ContractUploadOptions & ContractInitOptions & {
@@ -138,6 +146,15 @@ export abstract class BaseContract extends FSContractUpload implements ContractI
     } = {}
   ) {
     super(options)
+    if (options.prefix) {
+      this.prefix = options.prefix
+    }
+    if (options.name) {
+      this.name = options.name
+    }
+    if (options.suffix) {
+      this.suffix = options.suffix
+    }
     if (options.admin) {
       this.agent        = options.admin
       this.uploader     = options.admin
@@ -169,9 +186,19 @@ export abstract class BaseContract extends FSContractUpload implements ContractI
         '[@fadroma/contract] Tried to get label of contract with missing name.'
       )
     }
-    let label = this.name
-    if (this.prefix) label = `${this.prefix}/${this.name}`
-    if (this.suffix) label = `${label}${this.suffix}`
+    const { prefix, name, suffix } = this
+    let label = ''
+    if (prefix) {
+      label += `${prefix}/`
+    }
+    if (name) {
+      label += name
+    } else {
+      label += 'UNTITLED'
+    }
+    if (suffix) {
+      label += suffix
+    }
     return label
   }
 
@@ -215,9 +242,7 @@ export abstract class BaseContract extends FSContractUpload implements ContractI
 
     console.info(
       bold('Saving receipt for contract:'),
-      this.name,
-      bold('Suffix:'),
-      this.suffix
+      this.label,
     )
 
     dir.save(
@@ -257,8 +282,10 @@ export abstract class BaseContract extends FSContractUpload implements ContractI
   }
 
   private setFromReceipt (receipt: InitReceipt) {
-    this.name     = receipt.label.split('/')[1]
-    this.codeId   = receipt.codeId
+    if (!this.name) {
+      this.name = receipt.label.split('/')[1]
+    }
+    this.codeId = receipt.codeId
     if (this.codeHash && this.codeHash !== receipt.codeHash) {
       console.warn(
         `Receipt contained code hash: ${bold(receipt.codeHash)}, `+
