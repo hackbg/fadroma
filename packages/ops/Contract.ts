@@ -1,13 +1,5 @@
-import type {
-  IChain, IAgent, IContract,
-  ContractConstructor,
-  ContractConstructorArguments,
-  ContractBuild, ContractBuildState,
-  ContractUpload, ContractUploadState, UploadReceipt,
-  ContractClient, ContractClientState, InitTX, InitReceipt, ContractMessage,
-} from './Model'
-import { BaseAgent, isAgent } from './Agent'
-import { BaseChain } from './Chain'
+import { Agent, BaseAgent, isAgent } from './Agent'
+import { Chain, BaseChain } from './Chain'
 import { Deployment, DeploymentDir } from './Deployment'
 import { loadSchemas } from './Schema'
 
@@ -23,143 +15,115 @@ import {
 
 const console = Console('@fadroma/ops/Contract')
 
-export abstract class DockerizedContractBuild implements ContractBuild {
+import type { ContractMessage } from './Core'
+import type { ContractBuildOptions,  ContractBuild }  from './Build'
+import type { ContractUploadOptions, ContractUpload } from './Upload'
+export type Contract =
+  ContractBuild  &
+  ContractUpload &
+  ContractInit
+export type ContractOptions =
+  ContractBuildOptions  &
+  ContractUploadOptions &
+  ContractInitOptions
 
-  constructor (options: ContractBuildState = {}) {
-    for (const key of Object.keys(options)) {
-      this[key] = options[key]
-    }
-  }
-
-  // build environment
-  abstract buildImage:      string|null
-  abstract buildDockerfile: string|null
-  abstract buildScript:     string|null
-
-  // build inputs
-  repo?:      string
-  ref?:       string
-  workspace?: string
-  crate?:     string
-
-  // build outputs
-  artifact?: string
-  codeHash?: string
-
-  /** Build the contract in the default dockerized build environment for its chain.
-    * Need access to Docker daemon. */
-  async buildInDocker (socketPath = '/var/run/docker.sock'): Promise<string> {
-    this.artifact = await buildInDocker(new Docker({ socketPath }), this)
-    return this.artifact
-  }
-
-  /** Build the contract outside Docker.
-    * Assume a standard toolchain is present in the script's environment. */
-  async buildRaw (): Promise<string> {
-
-    if (this.ref && this.ref !== 'HEAD') {
-      throw new Error('[@fadroma/ops/Contract] non-HEAD builds unsupported outside Docker')
-    }
-
-    const run = (cmd: string, ...args: string[]) =>
-      spawnSync(cmd, args, {
-      cwd: this.workspace,
-      stdio: 'inherit',
-      env: { RUSTFLAGS: '-C link-arg=-s' }
-    })
-
-    run('cargo',
-        'build', '-p', this.crate,
-        '--target', 'wasm32-unknown-unknown',
-        '--release',
-        '--locked',
-        '--verbose')
-
-    run('wasm-opt',
-        '-Oz', './target/wasm32-unknown-unknown/release/$Output.wasm',
-        '-o', '/output/$FinalOutput')
-
-    run('sh', '-c',
-        "sha256sum -b $FinalOutput > $FinalOutput.sha256")
-
-    return this.artifact
-
-  }
-
+export type ContractInitOptions = {
+  /** The on-chain address of this contract instance */
+  chain?:        Chain
+  address?:      string
+  codeHash?:     string
+  codeId?:       number
+  /** The on-chain label of this contract instance.
+    * The chain requires these to be unique, so this
+    * is meant to be built from the name, prefix and suffix. */
+  label?:        string
+  name?:         string
+  prefix?:       string
+  suffix?:       string
+  /** The agent that initialized this instance of the contract. */
+  instantiator?: Agent
+  initMsg?:      any
+  initTx?:       InitTX
+  initReceipt?:  InitReceipt
 }
 
-export abstract class FSContractUpload extends DockerizedContractBuild implements ContractUpload {
+export interface ContractInit extends ContractInitOptions {
+  /** A reference to the contract in the format that ICC callbacks expect. */
+  link?:         { address: string, code_hash: string }
+  /** A reference to the contract as a tuple */
+  linkPair?:     [ string, string ]
 
-  constructor (options: ContractBuildState & ContractUploadState = {}) {
-    super(options)
-  }
+  instantiate (message: ContractMessage, agent?: Agent): Promise<any>
+  query       (message: ContractMessage, agent?: Agent): any
+  execute     (message: ContractMessage, memo: string, send: Array<any>, fee: any, agent?: Agent): any
+  save        (): this
+}
 
-  // upload inputs
-  artifact?:      string
-  codeHash?:      string
-  chain?:         IChain
-  uploader?:      IAgent
+export type InitTX = {
+  contractAddress: string
+  data:            string
+  logs:            Array<any>
+  transactionHash: string
+}
 
-  // upload outputs
-  codeId?:        number
-  uploadReceipt?: UploadReceipt
+export type InitReceipt = {
+  label:    string,
+  codeId:   number,
+  codeHash: string,
+  initTx:   InitTX
+}
 
-  /** Code ID + code hash pair in Sienna Swap Factory format */
-  get template () {
-    return {
-      id: this.codeId,
-      code_hash: this.codeHash
-    }
-  }
+/** Given a Contract instance with the specification of a contract,
+  * perform the INIT transaction that creates that contract on the
+  * specified blockchain. If the contract already has an address,
+  * assume it already exists and bail. */
+export async function instantiateContract (
+  contract: ContractInit
+): Promise<InitTX> {
 
-  /** Path to where the result of the upload transaction is stored */
-  get uploadReceiptPath () {
-    const name = `${basename(this.artifact)}.json`
-    return this.chain.uploads.resolve(name)
-  }
-
-  async uploadAs (agent: IAgent): Promise<this> {
-    this.uploader = agent
-    return this.uploadTo(agent.chain)
-  }
-
-  async uploadTo (chain: IChain): Promise<this> {
-    this.chain = chain
-    await this.upload()
-    return this
-  }
-
-  /** Upload the contract to a specified chain as a specified agent. */
-  async upload () {
-    // if no uploader, bail
-    if (!this.uploader) {
-      throw new Error(
-        `[@fadroma/ops/Contract] contract.upload() requires contract.uploader to be set`
-      )
-    }
-    // if not built, build
-    if (!this.artifact) {
-      await this.buildInDocker()
-    }
-    // upload if not already uploaded
-    const uploadReceipt = await uploadFromFS(
-      this.uploader,
-      this.artifact,
-      this.uploadReceiptPath
+  if (contract.address) {
+    throw new Error(
+      `[@fadroma/ops] This contract has already `+
+     `been instantiated at ${contract.address}`
     )
-    this.uploadReceipt = uploadReceipt
-    // set code it and code hash to allow instantiation of uploaded code
-    this.codeId   = uploadReceipt.codeId
-    this.codeHash = uploadReceipt.originalChecksum
-    return this.uploadReceipt
   }
+
+  const {
+    label,
+    codeId,
+    instantiator = contract.admin || contract.agent,
+    initMsg
+  } = contract
+
+  if (!codeId) {
+    throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
+  }
+
+  console.trace(bold(`Creating from code id ${codeId}:`), label)
+
+  return await backOff(function tryInstantiate () {
+    return instantiator.instantiate(contract, initMsg)
+  }, {
+    retry (error: Error, attempt: number) {
+      if (error.message.includes('500')) {
+        console.warn(`Error 500, retry #${attempt}...`)
+        console.error(error)
+        return true
+      } else {
+        return false
+      }
+    }
+  })
+
 }
 
-export abstract class BaseContract extends FSContractUpload implements ContractClient {
+import { FSContractUpload } from './Upload'
+
+export abstract class BaseContract extends FSContractUpload implements ContractInit {
 
   constructor (
-    options: ContractBuildState & ContractUploadState & ContractClientState & {
-      admin?: IAgent
+    options: ContractBuildOptions & ContractUploadOptions & ContractInitOptions & {
+      admin?: Agent
     } = {}
   ) {
     super(options)
@@ -171,19 +135,19 @@ export abstract class BaseContract extends FSContractUpload implements ContractC
   }
 
   // init inputs
-  chain?:        IChain
+  chain?:        Chain
   codeId?:       number
   codeHash?:     string
   name?:         string
   prefix?:       string
   suffix?:       string
-  instantiator?: IAgent
+  instantiator?: Agent
 
   /** The contents of the init message that creates a contract. */
   initMsg?: Record<string, any> = {}
 
   /** The default agent for queries/transactions. */
-  agent?: IAgent
+  agent?: Agent
 
   /** The on-chain label of this contract instance.
     * The chain requires these to be unique.
@@ -238,6 +202,13 @@ export abstract class BaseContract extends FSContractUpload implements ContractC
       dir = dir.subdir(this.prefix, DeploymentDir).make() as DeploymentDir
     }
 
+    console.info(
+      bold('Saving receipt for contract:'),
+      this.name,
+      bold('Suffix:'),
+      this.suffix
+    )
+
     dir.save(
       `${this.name}${this.suffix||''}`,
       this.initReceipt
@@ -249,7 +220,7 @@ export abstract class BaseContract extends FSContractUpload implements ContractC
 
   async instantiateOrExisting (
     receipt?: InitReceipt,
-    agent?:   IAgent
+    agent?:   Agent
   ): Promise<InitReceipt> {
     if (!receipt) {
       return await this.instantiate()
@@ -307,301 +278,53 @@ export abstract class BaseContract extends FSContractUpload implements ContractC
     memo:   string          = "",
     amount: unknown[]       = [],
     fee:    unknown         = undefined,
-    agent:  IAgent          = this.instantiator
+    agent:  Agent          = this.instantiator
   ) {
     return backOff(
-      () => agent.execute(this, msg, amount, memo, fee),
-      txBackOffOptions
+      function tryExecute () {
+        return agent.execute(this, msg, amount, memo, fee)
+      }, {
+        retry (error: Error, attempt: number) {
+          if (error.message.includes('500')) {
+            console.warn(`Error 500, retry #${attempt}...`)
+            console.warn(error)
+            return false
+          }
+          if (error.message.includes('502')) {
+            console.warn(`Error 502, retry #${attempt}...`)
+            console.warn(error)
+            return true
+          }
+          return false
+        }
+      }
     )
   }
 
   /** Query the contract. */
   query (
     msg:   ContractMessage = "",
-    agent: IAgent          = this.instantiator
+    agent: Agent          = this.instantiator
   ) {
     return backOff(
-      () => agent.query(this, msg),
-      txBackOffOptions
+      function tryQuery () {
+        return agent.query(this, msg)
+      }, {
+        retry (error: Error, attempt: number) {
+          if (error.message.includes('500')) {
+            console.warn(`Error 500, retry #${attempt}...`)
+            console.warn(error)
+            return false
+          }
+          if (error.message.includes('502')) {
+            console.warn(`Error 502, retry #${attempt}...`)
+            console.warn(error)
+            return true
+          }
+          return false
+        }
+      }
     )
   }
 
-}
-
-export abstract class AugmentedContract<
-  Executor extends TransactionExecutor,
-  Querier  extends QueryExecutor
-> extends BaseContract {
-
-  /** Class implementing transaction methods. */
-  Transactions?: new (contract: IContract, agent: IAgent) => Executor
-
-  /** Get a Transactions instance bound to the current contract and agent */
-  tx (agent: IAgent = this.instantiator) {
-    if (!this.Transactions) {
-      throw new Error('[@fadroma/ops] define the Transactions property to use this method')
-    }
-    return new (this.Transactions)(this, agent)
-  }
-
-  /** Class implementing query methods. */
-  Queries?: new (contract: IContract, agent: IAgent) => Querier
-
-  /** Get a Queries instance bound to the current contract and agent */
-  q (agent: IAgent = this.instantiator) {
-    if (!this.Queries) {
-      throw new Error('[@fadroma/ops] define the Queries property to use this method')
-    }
-    return new (this.Queries)(this, agent)
-  }
-
-}
-
-export class TransactionExecutor {
-  constructor (
-    readonly contract: IContract,
-    readonly agent:    IAgent
-  ) {}
-
-  protected execute (msg: ContractMessage) {
-    return this.agent.execute(this.contract, msg)
-  }
-}
-
-export class QueryExecutor {
-  constructor (
-    readonly contract: IContract,
-    readonly agent:    IAgent
-  ) {}
-
-  protected query (msg: ContractMessage) {
-    return this.agent.query(this.contract, msg)
-  }
-}
-
-/** Compile a contract from source */
-// TODO support clone & build contract from external repo+ref
-export async function buildInDocker (
-  docker:       Docker,
-  buildOptions: DockerizedContractBuild
-) {
-
-  const {
-    crate,
-    ref = 'HEAD',
-    buildScript,
-    buildDockerfile
-  } = buildOptions
-
-  let {
-    workspace,
-    buildImage
-  } = buildOptions
-
-  if (!workspace) {
-    throw new Error(`[@fadroma/ops] Missing workspace path (crate ${crate} at ${ref})`)
-  }
-
-  const run = (cmd: string, ...args: string[]) =>
-    spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit' })
-
-  let tmpDir
-
-  try {
-    const outputDir = resolve(workspace, 'artifacts')
-    const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
-    if (existsSync(artifact)) {
-      console.info(bold(`Not rebuilding:`), relative(process.cwd(), artifact))
-      return artifact
-    }
-
-    if (!ref || ref === 'HEAD') {
-      // Build working tree
-      console.info(
-        `Building crate ${bold(crate)} ` +
-        `from working tree at ${bold(workspace)} ` +
-        `into ${bold(outputDir)}...`
-      )
-    } else {
-      // Copy working tree into /tmp and checkout the commit to build
-
-      console.info(
-        `Building crate ${bold(crate)} ` +
-        `from commit ${bold(ref)} ` +
-        `into ${bold(outputDir)}...`
-      )
-      tmpDir = tmp.dirSync({ prefix: 'fadroma_build', tmpdir: '/tmp' })
-
-      console.info(
-        `Copying source code from ${bold(workspace)} ` +
-        `into ${bold(tmpDir.name)}`
-      )
-      run('cp', '-rT', workspace, tmpDir.name)
-      workspace = tmpDir.name
-
-      console.info(`Cleaning untracked files from ${bold(workspace)}...`)
-      run('git', 'stash', '-u')
-      run('git', 'reset', '--hard', '--recurse-submodules')
-      run('git', 'clean', '-f', '-d', '-x')
-
-      console.info(`Checking out ${bold(ref)} in ${bold(workspace)}...`)
-      run('git', 'checkout', ref)
-
-      console.info(`Preparing submodules...`)
-      run('git', 'submodule', 'update', '--init', '--recursive')
-    }
-
-    run('git', 'log', '-1')
-
-    buildImage = await ensureDockerImage(buildImage, buildDockerfile, docker)
-    const buildCommand = `bash /entrypoint.sh ${crate} ${ref}`
-    const buildArgs = {
-      Tty:         true,
-      AttachStdin: true,
-      Entrypoint:  ['/bin/sh', '-c'],
-      HostConfig:  {
-        Binds: [
-          // Input
-          `${workspace}:/contract:rw`,
-
-          // Build command
-          ...(buildScript ? [`${buildScript}:/entrypoint.sh:ro`] : []),
-
-          // Output
-          `${outputDir}:/output:rw`,
-
-          // Caches
-          `project_cache_${ref}:/code/target:rw`,
-          `cargo_cache_${ref}:/usr/local/cargo:rw`,
-        ]
-      },
-      Env: [
-        'CARGO_NET_GIT_FETCH_WITH_CLI=true',
-        'CARGO_TERM_VERBOSE=true',
-        'CARGO_HTTP_TIMEOUT=240'
-      ]
-    }
-
-    console.debug(
-      `Running ${bold(buildCommand)} in ${bold(buildImage)} with the following options:`,
-      buildArgs
-    )
-
-    const [{ Error:err, StatusCode:code }, container] = await docker.run(
-      buildImage,
-      buildCommand,
-      process.stdout,
-      buildArgs
-    )
-
-    await container.remove()
-    if (err) throw err
-    if (code !== 0) throw new Error(`[@fadroma/ops] Build of ${crate} exited with status ${code}`)
-
-    return artifact
-
-  } finally {
-
-    if (tmpDir) rimraf(tmpDir.name)
-
-  }
-
-}
-
-async function uploadFromFS (
-  uploader:          IAgent,
-  artifact:          string,
-  uploadReceiptPath: string,
-  forceReupload = false
-  // TODO: flag to force reupload
-) {
-
-  if (existsSync(uploadReceiptPath) && !forceReupload) {
-
-    const receiptData = await readFile(uploadReceiptPath, 'utf8')
-
-    console.info(
-      bold(`Not reuploading:`),
-      relative(process.cwd(), uploadReceiptPath)
-    )
-
-    return JSON.parse(receiptData)
-
-  } else {
-
-    console.info(bold(`Uploading`), artifact)
-
-    const uploadResult = await uploader.upload(artifact)
-    const receiptData  = JSON.stringify(uploadResult, null, 2)
-    const elements     = uploadReceiptPath.slice(1, uploadReceiptPath.length).split('/');
-
-    let path = `/`
-    for (const item of elements) {
-      if (!existsSync(path)) mkdir(path)
-      path += `/${item}`
-    }
-
-    await writeFile(uploadReceiptPath, receiptData, 'utf8')
-
-    await uploader.nextBlock
-    return uploadResult
-
-  }
-
-}
-
-export async function instantiateContract (contract: ContractClient): Promise<InitTX> {
-
-  if (contract.address) {
-    throw new Error(`[@fadroma/ops] This contract has already been instantiated at ${address}`)
-  } else {
-
-    const {
-      label,
-      codeId,
-      instantiator = contract.admin || contract.agent,
-      initMsg
-    } = contract
-
-    console.info(bold(`Creating from code id ${codeId}:`), label)
-
-    if (!codeId) {
-      throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
-    }
-
-    return await backOff(
-      ()=>instantiator.instantiate(contract, initMsg),
-      initBackOffOptions
-    )
-
-  }
-
-}
-
-export const initBackOffOptions = {
-  retry (error: Error, attempt: number) {
-    if (error.message.includes('500')) {
-      console.warn(`Error 500, retry #${attempt}...`)
-      console.error(error)
-      return true
-    } else {
-      return false
-    }
-  }
-}
-
-export const txBackOffOptions = {
-  retry (error: Error, attempt: number) {
-    if (error.message.includes('500')) {
-      console.warn(`Error 500, retry #${attempt}...`)
-      console.warn(error)
-      return false
-    }
-    if (error.message.includes('502')) {
-      console.warn(`Error 502, retry #${attempt}...`)
-      console.warn(error)
-      return true
-    }
-    return false
-  }
 }

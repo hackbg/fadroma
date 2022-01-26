@@ -96,7 +96,7 @@ export class PatchedSigningCosmWasmClient_1_0 extends SigningCosmWasmClient {
 
 export class ScrtAgentJS_1_0 extends ScrtAgentJS {
 
-  static create = (options: Identity): Promise<IAgent> =>
+  static create = (options: Identity): Promise<Agent> =>
     ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
 
   constructor (options: Identity) {

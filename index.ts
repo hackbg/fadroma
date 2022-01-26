@@ -1,7 +1,7 @@
 export * from '@fadroma/ops'
 
-import type { IChainConnectOptions } from '@fadroma/ops'
-export type Chains = Record<string, (options: IChainConnectOptions)=>IChain>
+import type { ChainConnectOptions } from '@fadroma/ops'
+export type Chains = Record<string, (options: ChainConnectOptions)=>Chain>
 export const CHAINS: Chains = {}
 
 import Scrt_1_0 from '@fadroma/scrt-1.0'
@@ -14,11 +14,11 @@ export { Scrt_1_2 }
 
 import { fileURLToPath } from 'url'
 import runCommands from '@hackbg/komandi'
-import type { IChain, IAgent, Deployment } from '@fadroma/ops'
+import type { Chain, Agent, Deployment } from '@fadroma/ops'
 export type MigrationContext = {
   timestamp:   string
-  chain:       IChain
-  admin:       IAgent
+  chain:       Chain
+  admin:       Agent
   deployment?: Deployment,
   prefix?:     string,
   cmdArgs:     string[]
@@ -111,7 +111,7 @@ function requireChainId (id: any) {
   }
 }
 
-function getActiveDeployment (chain: IChain): {
+function getActiveDeployment (chain: Chain): {
   deployment: Deployment|undefined,
   prefix:     string|undefined
 } {
@@ -124,8 +124,15 @@ function getActiveDeployment (chain: IChain): {
       console.info(bold('This is a clean deployment.'))
     } else {
       console.info(bold('This deployment contains'), contracts, 'contracts')
-      for (const contract of Object.keys(deployment.contracts)) {
-        console.info(bold('Found contract'), contract)
+      for (const [
+        name, {
+          codeId,
+          initTx: { contractAddress }
+        }
+      ] of Object.entries(deployment.contracts).sort(
+        ([_,x],[__,y])=>x.codeId>y.codeId?1:x.codeId<y.codeId?-1:0
+      )) {
+        console.info(bold(`code id ${codeId}`), contractAddress, bold(name))
       }
     }
   }

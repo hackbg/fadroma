@@ -1,4 +1,4 @@
-import { Identity, IAgent } from '@fadroma/ops'
+import { Identity, Agent } from '@fadroma/ops'
 import { bold } from '@hackbg/tools'
 import { ScrtAgentJS } from '@fadroma/scrt'
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
@@ -125,7 +125,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
 export class ScrtAgentJS_1_2 extends ScrtAgentJS {
 
-  static create = (options: Identity): Promise<IAgent> =>
+  static create = (options: Identity): Promise<Agent> =>
     ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
 
   constructor (options: Identity) {

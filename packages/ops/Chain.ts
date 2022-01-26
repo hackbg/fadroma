@@ -6,12 +6,12 @@ import {
 } from '@hackbg/tools'
 
 import type {
-  IChain,
-  IChainNode,
-  IChainState,
+  Chain,
+  ChainNode,
+  ChainState,
   Identity,
-  IAgent,
-  IContract,
+  Agent,
+  Contract,
   ContractConstructor,
   ContractBuild,
   ContractUpload
@@ -27,16 +27,62 @@ export type DefaultIdentity =
   null |
   string |
   { name?: string, address?: string, mnemonic?: string } |
-  IAgent
+  Agent
 
-export type AgentConstructor = new (options: Identity) => IAgent & {
-  create: () => Promise<IAgent>
+export interface ChainOptions {
+  chainId?: string
+  apiURL?:  URL
+  node?:    ChainNode
+
+  /** Credentials of the default agent for this network. */
+  defaultIdentity?: DefaultIdentity
+}
+
+export interface ChainConnectOptions extends ChainOptions {
+  apiKey?:     string
+  identities?: Array<string>
+}
+
+export interface ChainState extends ChainOptions {
+  readonly isMainnet?:  boolean
+  readonly isTestnet?:  boolean
+  readonly isLocalnet?: boolean
+  readonly stateRoot?:  string
+  readonly identities?: string
+  readonly uploads?:    string
+  readonly instances?:  string
+}
+
+export interface Chain extends ChainOptions {
+  readonly isMainnet?:   boolean
+  readonly isTestnet?:   boolean
+  readonly isLocalnet?:  boolean
+  readonly url:          string
+  readonly ready:        Promise<this>
+  readonly stateRoot?:   Directory
+  readonly identities?:  Directory
+  readonly uploads?:     Directory
+  readonly deployments?: DeploymentDir
+  getAgent (options?: Identity): Promise<Agent>
+  getContract<T> (api: new()=>T, address: string, agent: Agent): T
+  printIdentities (): void
+  buildAndUpload (contracts: Contract[]): Promise<Contract[]>
+}
+
+export type DefaultIdentity =
+  null |
+  string |
+  { name?: string, address?: string, mnemonic?: string } |
+  Agent
+
+export type AgentConstructor = new (options: Identity) => Agent & {
+  create: () => Promise<Agent>
 }
 
 /* Represents an interface to a particular Cosmos blockchain.
  * Used to construct `Agent`s and `Contract`s that are
  * bound to a particular chain. */
-export abstract class BaseChain implements IChain {
+export abstract class BaseChain implements Chain {
 
   apiURL:      URL
 
@@ -45,7 +91,7 @@ export abstract class BaseChain implements IChain {
   get url () { return this.apiURL.toString() }
 
   chainId:     string
-  node?:       IChainNode
+  node?:       ChainNode
   isMainnet?:  boolean
   isTestnet?:  boolean
   isLocalnet?: boolean
@@ -66,7 +112,7 @@ export abstract class BaseChain implements IChain {
     isLocalnet,
     Agent,
     defaultIdentity,
-  }: IChainState = {}) {
+  }: ChainState = {}) {
     this.apiURL     = apiURL
     this.chainId    = chainId
     this.isMainnet  = isMainnet
@@ -107,7 +153,7 @@ export abstract class BaseChain implements IChain {
 
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
-  async #init (): Promise<IChain> {
+  async #init (): Promise<Chain> {
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
     if (node) {
@@ -130,10 +176,10 @@ export abstract class BaseChain implements IChain {
       )
     }
 
-    return this as IChain
+    return this as Chain
   }
 
-  private async localnetSetup (node: IChainNode) {
+  private async localnetSetup (node: ChainNode) {
 
     // keep a handle to the node in the chain
     this.node = node
@@ -184,7 +230,7 @@ export abstract class BaseChain implements IChain {
   Agent: AgentConstructor
 
   /** Get an Agent that works with this Chain. */
-  abstract getAgent (options?: Identity): Promise<IAgent>
+  abstract getAgent (options?: Identity): Promise<Agent>
 
   /** This directory stores receipts from the upload transactions,
     * containing provenance info for uploaded code blobs. */
@@ -210,8 +256,8 @@ export abstract class BaseChain implements IChain {
   }
 
   async buildAndUpload (
-    contracts: IContract[]
-  ): Promise<IContract[]> {
+    contracts: Contract[]
+  ): Promise<Contract[]> {
     for (const contract of Object.values(contracts)) {
       contract.chain = this
     }

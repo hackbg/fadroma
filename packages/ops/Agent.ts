@@ -1,12 +1,48 @@
 import assert from 'assert'
-import type { IChain, IAgent, IContract, Identity, Gas } from './Model'
+import type { ContractMessage } from './Core'
+import type { Chain, Contract, Gas } from './Model'
 import { taskmaster, resolve, readFileSync, Console, bold } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Agent')
 
-export abstract class BaseAgent implements IAgent {
+export type Identity = {
+  chain?:    Chain,
+  address?:  string
 
-  readonly chain:   IChain
+  name?:     string,
+  type?:     string,
+  pubkey?:   string
+  mnemonic?: string
+  keyPair?:  any
+  pen?:      any
+  fees?:     any
+}
+
+export type AgentConstructor = new (...args: any) => Agent
+
+export interface Agent extends Identity {
+  readonly chain:   Chain
+  readonly address: string
+  readonly name:    string
+  fees: Record<string, any>
+
+  readonly nextBlock: Promise<void>
+  readonly block:     Promise<any>
+  readonly account:   Promise<any>
+  readonly balance:   Promise<any>
+
+  getBalance  (denomination: string): Promise<any>
+  send        (to: any, amount: string|number, denom?: any, memo?: any, fee?: any): Promise<any>
+  sendMany    (txs: Array<any>, memo?: string, denom?: string, fee?: any): Promise<any>
+
+  upload      (path: string): Promise<any>
+  instantiate (contract: Contract, initMsg: ContractMessage, funds?: any[]): Promise<any>
+  query       (contract: Contract, message: ContractMessage): Promise<any>
+  execute     (contract: Contract, message: ContractMessage, funds?: any[], memo?: any, fee?: any): Promise<any>
+}
+
+export abstract class BaseAgent implements Agent {
+  readonly chain:   Chain
   readonly address: string
   readonly name:    string
   fees: Record<string, any>
@@ -18,34 +54,24 @@ export abstract class BaseAgent implements IAgent {
   pen?:      any
 
   abstract get nextBlock (): Promise<void>
-
   abstract get block     (): Promise<any>
-
   abstract get account   (): Promise<any>
-
   abstract get balance   (): Promise<any>
 
   abstract getBalance  (denomination: string): Promise<any>
-
   abstract send        (recipient: any, amount: string|number,
                         denom?: any, memo?: any, fee?: any): Promise<any>
-
   abstract sendMany    (txs: Array<any>, memo?: string, denom?: string, fee?: any): Promise<any>
-
   abstract upload      (path: string): Promise<any>
-
-  abstract instantiate (contract: IContract, msg: any, funds: any[]): Promise<any>
-
-  abstract query       (contract: IContract, msg: any): Promise<any>
-
-  abstract execute     (contract: IContract, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
+  abstract instantiate (contract: Contract, msg: any, funds: any[]): Promise<any>
+  abstract query       (contract: Contract, msg: any): Promise<any>
+  abstract execute     (contract: Contract, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
 
   constructor (_options: Identity) {}
-
 }
 
 export async function waitUntilNextBlock (
-  agent:    IAgent,
+  agent:    Agent,
   interval: number = 1000
 ) {
   console.info(
@@ -87,74 +113,3 @@ export abstract class BaseGas implements Gas {
     this.gas = amount
   }
 }
-
-/** In testing scenarios requiring multiple agents,
- * this function distributes funds among the extra agents
- * so as to create them on-chain. */
-export async function prefund (options: Prefund = {}) {
-
-  let { budget  = BigInt("5000000")
-      , chain = 'testnet' } = options
-
-  // allow passing strings:
-  budget = BigInt(budget)
-  if (typeof chain === 'string') {
-    if (!['localnet','testnet','mainnet'].includes(chain)) {
-      throw new Error(`invalid chain: ${chain}`)}
-    chain = await Chain[chain]({stateRoot: process.cwd()}) }
-
-  const { task      = taskmaster()
-        , count     = 16 // give or take
-        , agent      = await Promise.resolve((chain as Chain).getAgent())
-        // {address:{agent,address}}
-        , recipients = await getDefaultRecipients()
-        // [[address,budget]]
-        , identities    = await recipientsToWallets(recipients)
-        } = options
-
-  // check that admin has enough balance to create the wallets
-  const {balance} = await fetchAdminAndRecipientBalances()
-      , fee = BigInt(agent.fees.send)
-      , total = fee + BigInt(identities.length) * budget
-  if (total > balance) {
-    const message =
-      `admin wallet does not have enough balance to preseed test wallets ` +
-     `(${balance.toString()} < ${total.toString()}); can't proceed.\n\n` +
-      `on localnet, it's easiest to clear the state and redo the genesis.\n` +
-      `on testnet, use the faucet at https://faucet.secrettestnet.io/ twice\n` +
-      `with ${agent.address} to get 200 testnet SCRT`
-    console.error(message)
-    process.exit(1) }
-
-  await task(`ensure ${identities.length} test accounts have balance`, async (report: Function) => {
-    const tx = await agent.sendMany(identities, 'create recipient accounts')
-    report(tx.transactionHash)})
-
-  await fetchAdminAndRecipientBalances()
-
-  async function getDefaultRecipients () {
-    const recipients = {}
-    const identities = agent.chain.identities.list()
-      .filter(x=>x.endsWith('.json'))
-      .map(x=>readFileSync(resolve(agent.chain.identities.path, x), 'utf8'))
-      .map(x=>JSON.parse(x))
-    const chain = agent.chain
-    for (const {address, mnemonic} of identities) {
-      const agent = await chain.getAgent({address, mnemonic})
-      assert(address === agent.address)
-      recipients[address] = { agent, address } }
-    return recipients }
-
-  async function recipientsToWallets (recipients: Record<any, any>) {
-    return Promise.all(Object.values(recipients).map(({address, agent})=>{
-      return agent.balance.then((balance:any)=>[address, budget, BigInt(balance) ]) })) }
-
-  async function fetchAdminAndRecipientBalances () {
-    const balance = BigInt(await agent.balance)
-        , recipientBalances = []
-    console.info('Admin balance:', balance.toString())
-    console.info('\nRecipient balances:')
-    for (const {agent} of Object.values(recipients)) {
-      recipientBalances.push([agent.name, BigInt(await agent.balance)])
-      /*console.info(agent.name.padEnd(10), fmtSCRT(balance))*/ }
-    return {balance, recipientBalances} } }

@@ -1,6 +1,6 @@
 import { toBase64 } from '@iov/encoding'
 import { EnigmaUtils } from 'secretjs'
-import { Identity, BaseAgent, IContract, ContractMessage } from '@fadroma/ops'
+import { Identity, BaseAgent, Contract, ContractMessage } from '@fadroma/ops'
 import type { MsgInstantiateContract, MsgExecuteContract } from 'secretjs/src/types'
 
 export enum TxType {
@@ -40,7 +40,7 @@ export abstract class ScrtAgentTX extends BaseAgent {
   }
 
   async instantiate (
-    { codeId, codeHash, label }: IContract,
+    { codeId, codeHash, label }: Contract,
     message,
     init_funds = []
   ): Promise<UnsignedTX> {
@@ -57,12 +57,12 @@ export abstract class ScrtAgentTX extends BaseAgent {
     })
   }
 
-  query (contract: IContract, message: ContractMessage) {
+  query (contract: Contract, message: ContractMessage) {
     throw new Error('ScrtAgentTX.query: not implemented')
   }
 
   async execute (
-    { address, codeHash }: IContract,
+    { address, codeHash }: Contract,
     message: ContractMessage,
     sent_funds = []
   ): Promise<UnsignedTX> {

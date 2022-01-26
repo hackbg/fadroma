@@ -6,7 +6,7 @@ import { AugmentedScrtContract_1_0 } from './ScrtContract_1_0'
 
 import { ScrtAgentJS_1_0 } from './ScrtAgentJS_1_0'
 import { DockerizedScrtNode_1_0 } from './DockerizedScrtNode_1_0'
-import { IChainConnectOptions } from '@fadroma/ops'
+import { ChainConnectOptions } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
 
 const {
@@ -20,7 +20,7 @@ export const Chains = {
 
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
-  ['localnet-1.0'] (options: IChainConnectOptions = {}): Scrt {
+  ['localnet-1.0'] (options: ChainConnectOptions = {}): Scrt {
     // no default agent name/address/mnemonic:
     // connect() gets them from genesis accounts
     return new Scrt({
@@ -34,7 +34,7 @@ export const Chains = {
   },
 
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  ['secret-2'] (options: IChainConnectOptions = {}): Scrt {
+  ['secret-2'] (options: ChainConnectOptions = {}): Scrt {
     const {
       chainId = 'secret-2',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
@@ -55,7 +55,7 @@ export const Chains = {
   },
 
   /** Create an instance that talks to holodeck-2 testnet via SecretJS */
-  ['holodeck-2'] (options: IChainConnectOptions = {}): Scrt {
+  ['holodeck-2'] (options: ChainConnectOptions = {}): Scrt {
     const {
       //chainId = 'holodeck-2',
       apiURL  = new URL(SCRT_API_URL||'http://96.44.145.210/'),

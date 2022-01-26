@@ -1,7 +1,18 @@
-import { Console, resolve, bold, writeFileSync } from '@hackbg/tools'
-import { IContract, ContractConstructor, IAgent } from './Model'
+import { Console, resolve, bold, writeFileSync, relative } from '@hackbg/tools'
+import { Contract, ContractConstructor, Agent } from './Model'
 
 const console = Console('@fadroma/ops/Deployment')
+
+export type ContractConstructor<T extends Contract> =
+  new (args: ContractConstructorArguments) => T
+
+export type ContractConstructorArguments = {
+  address?:  string
+  codeHash?: string
+  codeId?:   number
+  admin?:    Agent,
+  prefix?:   string
+}
 
 export class Deployment {
 
@@ -20,10 +31,10 @@ export class Deployment {
     writeFileSync(`${this.resolve(...fragments)}.json`, data)
   }
 
-  getContract <T extends IContract> (
+  getContract <T extends Contract> (
     Class:        ContractConstructor<T>,
     contractName: string,
-    admin:        IAgent
+    admin:        Agent
   ): T {
     if (!this.contracts[contractName]) {
       throw new Error(
@@ -41,10 +52,10 @@ export class Deployment {
     })
   }
 
-  getContracts <T extends IContract> (
+  getContracts <T extends Contract> (
     Class:        ContractConstructor<T>,
     nameFragment: string,
-    admin:        IAgent
+    admin:        Agent
   ): T[] {
     const contracts = []
     for (const [name, contract] of Object.entries(this.contracts)) {
@@ -172,7 +183,7 @@ export class DeploymentDir extends Directory {
   save (name: string, data: any) {
     name = `${name}.json`
     console.trace(
-      bold('Save data to:'), name
+      bold('Saving data to:'), relative(process.cwd(), this.resolve(name))
     )
     if (data instanceof Object) {
       data = JSON.stringify(data, null, 2)

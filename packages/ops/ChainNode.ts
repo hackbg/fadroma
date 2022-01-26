@@ -1,4 +1,4 @@
-import { IChainNode } from '@fadroma/ops'
+import { ChainNode } from '@fadroma/ops'
 
 import {
   Directory, JSONFile, JSONDirectory,
@@ -11,11 +11,81 @@ import { URL } from 'url'
 
 const console = Console('@fadroma/ops/ChainNode')
 
+export type ChainNodeConstructor =
+  new (options?: ChainNodeOptions) => ChainNode
+
+export type ChainNodeOptions = {
+  /** Handle to Dockerode or compatible
+   *  TODO mock! */
+  docker?:    IDocker
+  /** Docker image of the chain's runtime. */
+  image?:     string
+  /** Internal name that will be given to chain. */
+  chainId?:   string
+  /** Path to directory where state will be stored. */
+  stateRoot?: string,
+  /** Names of genesis accounts to be created with the node */
+  identities?: Array<string>
+}
+
+export interface ChainNode {
+  chainId: string
+  apiURL:  URL
+  port:    number
+  /** Resolved when the node is ready */
+  readonly ready: Promise<void>
+  /** Path to the node state directory */
+  readonly stateRoot: Directory
+  /** Path to the node state file */
+  readonly nodeState: JSONFile
+  /** Path to the directory containing the keys to the genesis accounts. */
+  readonly identities: Directory
+  /** Retrieve the node state */
+  load      (): ChainNodeState
+  /** Start the node */
+  spawn     (): Promise<void>
+  /** Save the info needed to respawn the node */
+  save      (): this
+  /** Stop the node */
+  kill      (): Promise<void>
+  /** Start the node if stopped */
+  respawn   (): Promise<void>
+  /** Erase the state of the node */
+  erase     (): Promise<void>
+  /** Stop the node and erase its state from the filesystem. */
+  terminate () : Promise<void>
+  /** Retrieve one of the genesis accounts stored when creating the node. */
+  genesisAccount (name: string): Identity
+}
+
+export type ChainNodeState = Record<any, any>
+
+export interface IDocker {
+  getImage (): {
+    inspect (): Promise<any>
+  }
+  pull (image: any, callback: Function): void
+  modem: {
+    followProgress (
+      stream:   any,
+      callback: Function,
+      progress: Function
+    ): any
+  }
+  getContainer (id: any): {
+    id: string,
+    start (): Promise<any>
+  }
+  createContainer (options: any): {
+    id: string
+    logs (_: any, callback: Function): void
+  }
+}
 
 /// # Chain backends
 
 
-export abstract class BaseChainNode implements IChainNode {
+export abstract class BaseChainNode implements ChainNode {
   chainId = ''
   apiURL: URL
   port = 0

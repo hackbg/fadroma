@@ -9,7 +9,7 @@ export * from './Contract'
 export * from './Deployment'
 export * from './Schema'
 
-import type { IChain, IAgent } from './Model'
+import type { Chain, Agent } from './Model'
 import { bold, Console } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops')
@@ -26,12 +26,12 @@ export async function init (
   chainName: string,
   options:   MigrationOptions = {}
 ): Promise<{
-  chain: IChain,
-  admin: IAgent
+  chain: Chain,
+  admin: Agent
 }> {
 
-  let chain: IChain
-  let admin: IAgent
+  let chain: Chain
+  let admin: Agent
 
   if (!chainName || !Object.keys(CHAINS).includes(chainName)) {
     console.log(`\nSelect target chain:`)

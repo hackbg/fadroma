@@ -1,5 +1,5 @@
 import {
-  IAgent,
+  Agent,
   AugmentedScrtContract,
   loadSchemas,
   randomHex,

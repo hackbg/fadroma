@@ -1,9 +1,9 @@
 import {
   Console, bold, open, table, noBorders,
   resolve, Directory, JSONDirectory,
-  IChain, IChainNode, IChainState, IChainConnectOptions,
+  Chain, ChainNode, ChainState, ChainConnectOptions,
   BaseChain, DeploymentsDir, prefund,
-  Identity, IAgent
+  Identity, Agent
 } from '@fadroma/ops'
 
 import { URL } from 'url'
@@ -21,7 +21,7 @@ export class Scrt extends BaseChain {
   /** create agent operating on the current instance's endpoint*/
   async getAgent (
     identity: string|Identity = this.defaultIdentity
-  ): Promise<IAgent> {
+  ): Promise<Agent> {
 
     if (typeof identity === 'string') {
       identity = this.node.genesisAccount(identity)

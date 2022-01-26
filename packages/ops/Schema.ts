@@ -1,7 +1,7 @@
 import Ajv from 'ajv'
 import { compileFromFile } from 'json-schema-to-typescript'
 import { loadJSON, writeFileSync, basename, dirname, Console } from '@hackbg/tools'
-import { IAgent } from './Model'
+import { Agent } from './Model'
 import { isAgent } from './Agent'
 
 const console = Console('@fadroma/ops/schema')
@@ -84,7 +84,7 @@ export class SchemaFactory {
   }
 
   /** Make a call on an agent and allow it to be overriden with custom */
-  getContract (agent: IAgent): Contract {
+  getContract (agent: Agent): Contract {
 
     if (isAgent(agent) && typeof this.contract['copy'] === "function") {
       return this.contract['copy'](agent);
@@ -112,7 +112,7 @@ export class SchemaFactory {
       for (const {method} of this.methods) {
         handlers[method] = handlers[camelCaseString(method)] = (
           args:     Record<string, unknown>,
-          agent:    IAgent,
+          agent:    Agent,
           memo:     string,
           transfer: Array<unknown>,
           fee:      unknown
@@ -214,8 +214,8 @@ export class SchemaFactory {
   /** Try to find method in the parsed stack and run it */
   run(
     method: string,
-    args:   IAgent|Record<string, unknown>,
-    agent:  IAgent|Record<string, unknown>,
+    args:   Agent|Record<string, unknown>,
+    agent:  Agent|Record<string, unknown>,
     memo:   string,
     send:   Array<unknown>,
     fee:    unknown
@@ -230,9 +230,9 @@ export class SchemaFactory {
         }
 
         const tail: [
-          IAgent, string, Array<unknown>, unknown
+          Agent, string, Array<unknown>, unknown
         ] = [
-          agent as IAgent, memo, send, fee
+          agent as Agent, memo, send, fee
         ]
 
         if (action.string) {
@@ -252,7 +252,7 @@ export class SchemaFactory {
   /** Make a call to a simple function on a contract */
   private callString(
     action: Schema,
-    agent:  IAgent,
+    agent:  Agent,
     memo:   string,
     send:   Array<unknown>,
     fee:    unknown
@@ -266,7 +266,7 @@ export class SchemaFactory {
   private callObject(
     action: Schema,
     args:   Record<string, unknown>,
-    agent:  IAgent,
+    agent:  Agent,
     memo:   string,
     send:   Array<unknown>,
     fee:    unknown

@@ -11,13 +11,13 @@ import {
 } from 'secretjs'
 
 import {
-  BaseAgent, IAgent, Identity, IContract, ContractMessage,
+  BaseAgent, Agent, Identity, Contract, ContractMessage,
   waitUntilNextBlock
 } from '@fadroma/ops'
 import { ScrtGas, defaultFees } from './ScrtGas'
 import type { Scrt } from './ScrtChainAPI'
 
-export type AgentConstructor = new(...args:any) => IAgent
+export type AgentConstructor = new(...args:any) => Agent
 export type APIConstructor = new(...args:any) => SigningCosmWasmClient
 
 /** Queries and transacts on an instance of the Secret Chain */
@@ -149,7 +149,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
   }
 
   /** Instantiate a contract from a code ID and an init message. */
-  async instantiate (contract: IContract, initMsg: any) {
+  async instantiate (contract: Contract, initMsg: any) {
 
     const from = this.address
     const { codeId, label } = contract
@@ -170,7 +170,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
   }
 
   /** Query a contract. */
-  query (contract: IContract, msg: ContractMessage) {
+  query (contract: Contract, msg: ContractMessage) {
 
     const { label, address } = contract
     const from = this.address
@@ -192,7 +192,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
 
   /** Execute a contract transaction. */
   execute (
-    contract: IContract,
+    contract: Contract,
     msg:      ContractMessage,
     memo:     any,
     amount:   any,
@@ -215,7 +215,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
   static async createSub (
     AgentClass: AgentConstructor,
     options: Identity
-  ): Promise<IAgent> {
+  ): Promise<Agent> {
 
     const { name = 'Anonymous', ...args } = options
 
