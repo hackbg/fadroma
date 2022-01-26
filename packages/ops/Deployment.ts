@@ -86,8 +86,8 @@ export class Deployment {
   }
 
   save (data: any, ...fragments: Array<string>) {
-    if (data instanceof Object) data = JSON.stringify(data, null, 2)
     this.receipts[fragments.join('')] = data
+    if (data instanceof Object) data = JSON.stringify(data, null, 2)
     const name = `${this.resolve(...fragments)}.json`
     writeFileSync(name, data)
     console.info(
