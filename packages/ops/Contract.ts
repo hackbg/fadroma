@@ -15,6 +15,13 @@ import {
 
 const console = Console('@fadroma/ops/Contract')
 
+export async function buildAndUpload (contracts: Array<ContractBuild & ContractUpload>) {
+  await Promise.all(contracts.map(contract=>contract.buildInDocker()))
+  for (const contract of contracts) {
+    await contract.upload()
+  }
+}
+
 import type { ContractMessage } from './Core'
 import type { ContractBuildOptions,  ContractBuild }  from './Build'
 import type { ContractUploadOptions, ContractUpload } from './Upload'
@@ -26,6 +33,10 @@ export type ContractOptions =
   ContractBuildOptions  &
   ContractUploadOptions &
   ContractInitOptions
+
+// Contracts ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// Gas fees ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 export type ContractInitOptions = {
   /** The on-chain address of this contract instance */

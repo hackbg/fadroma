@@ -1,5 +1,8 @@
+import type { Chain } from './Chain'
+import type { Agent } from './Agent'
+import { taskmaster } from '@hackbg/tools'
 
-export type Prefund = {
+export type Airdrop = {
   /** Taskmaster. TODO replace with generic observability mechanism (RxJS?) */
   task?:       Function
   /** How many identities to create */
@@ -22,7 +25,7 @@ export type Prefund = {
 /** In testing scenarios requiring multiple agents,
  * this function distributes funds among the extra agents
  * so as to create them on-chain. */
-export async function prefund (options: Prefund = {}) {
+export async function airdrop (options: Airdrop = {}) {
 
   let { budget  = BigInt("5000000")
       , chain = 'testnet' } = options
@@ -31,8 +34,11 @@ export async function prefund (options: Prefund = {}) {
   budget = BigInt(budget)
   if (typeof chain === 'string') {
     if (!['localnet','testnet','mainnet'].includes(chain)) {
-      throw new Error(`invalid chain: ${chain}`)}
-    chain = await Chain[chain]({stateRoot: process.cwd()}) }
+      throw new Error(`invalid chain: ${chain}`)
+    } else {
+      throw new Error('im old!')
+      /*chain = await Chain[chain]({stateRoot: process.cwd()})*/
+    }
 
   const { task      = taskmaster()
         , count     = 16 // give or take
@@ -88,4 +94,7 @@ export async function prefund (options: Prefund = {}) {
     for (const {agent} of Object.values(recipients)) {
       recipientBalances.push([agent.name, BigInt(await agent.balance)])
       /*console.info(agent.name.padEnd(10), fmtSCRT(balance))*/ }
-    return {balance, recipientBalances} } }
+    return {balance, recipientBalances}
+  }
+
+}

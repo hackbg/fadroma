@@ -7,6 +7,8 @@ import {
   bold, Console
 } from '@hackbg/tools'
 
+import type { Identity } from './Core'
+
 import { URL } from 'url'
 
 const console = Console('@fadroma/ops/ChainNode')

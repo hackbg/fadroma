@@ -1,5 +1,6 @@
-import { Contract, Agent, ContractMessage } from './Model'
-import { BaseContract } from './Contract'
+import type { ContractMessage } from './Core'
+import { Contract, BaseContract } from './Contract'
+import type { Agent } from './Agent'
 
 export abstract class AugmentedContract<
   Executor extends TransactionExecutor,

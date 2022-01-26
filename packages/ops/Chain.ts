@@ -5,21 +5,15 @@ import {
   colors
 } from '@hackbg/tools'
 
-import type {
-  Chain,
-  ChainNode,
-  ChainState,
-  Identity,
-  Agent,
-  Contract,
-  ContractConstructor,
-  ContractBuild,
-  ContractUpload
-} from './Model'
-
-import { DeploymentDir } from './Deployment'
-
 import { URL } from 'url'
+
+import type { ChainNode } from './ChainNode'
+import { Agent, AgentConstructor, BaseAgent } from './Agent'
+import type { ContractBuild } from './Build'
+import type { ContractUpload } from './Upload'
+import type { Contract } from './Contract'
+import type { ContractConstructor } from './Deployment'
+import { DeploymentDir } from './Deployment'
 
 const console = Console('@fadroma/ops/Chain')
 
@@ -74,10 +68,6 @@ export type DefaultIdentity =
   string |
   { name?: string, address?: string, mnemonic?: string } |
   Agent
-
-export type AgentConstructor = new (options: Identity) => Agent & {
-  create: () => Promise<Agent>
-}
 
 /* Represents an interface to a particular Cosmos blockchain.
  * Used to construct `Agent`s and `Contract`s that are
@@ -308,3 +298,65 @@ export class UploadDir extends JSONDirectory {
 }
 
 export class Mocknet extends BaseChain {}
+
+export async function init (
+  CHAINS:    Record<string, Function>,
+  chainName: string,
+): Promise<{ chain: Chain, admin: Agent }> {
+  let chain: Chain
+  let admin: Agent
+  if (!chainName || !Object.keys(CHAINS).includes(chainName)) {
+    console.log(`\nSelect target chain:`)
+    for (const chain of Object.keys(CHAINS)) console.log(`  ${bold(chain)}`)
+    process.exit(0)
+  }
+  chain = CHAINS[chainName]()
+  chain = await chain.ready
+  try {
+    if (chain.defaultIdentity instanceof BaseAgent) {
+      admin = chain.defaultIdentity
+    } else {
+      admin = await chain.getAgent()
+    }
+    console.info(
+      bold(`Commence activity on`), chainName, `(${chain.chainId})`,
+      bold('as'), admin.address
+    )
+    const initialBalance = await admin.balance
+    console.info(bold(`Balance:`), initialBalance, `uscrt`)
+    //process.on('beforeExit', async () => {
+      //const finalBalance = await admin.balance
+      //console.info(`Initial balance: ${bold(initialBalance)}uscrt`)
+      //console.info(`Final balance: ${bold(finalBalance)}uscrt`)
+      //console.info(`Consumed gas: ${bold(String(initialBalance - finalBalance))}uscrt`)
+      //process.exit(0)
+    //})
+    //
+  } catch (e) {
+    console.warn(`Could not get an agent for ${chainName}: ${e.message}`)
+  }
+  return { chain, admin }
+}
+
+export function notOnMainnet ({ chain }) {
+  if (chain.isMainnet) {
+    console.log('This command is not intended for mainnet.')
+    process.exit(1)
+  }
+}
+
+export function onlyOnMainnet ({ chain }) {
+  if (!chain.isMainnet) {
+    console.log('This command is intended only for mainnet.')
+    process.exit(1)
+  }
+}
+
+export function needsActiveDeployment ({ chain }) {
+  if (!chain.deployments.active) {
+    console.log('This command requires a deployment to be selected.')
+    process.exit(1)
+  } else {
+    chain.deployments.printActive()
+  }
+}

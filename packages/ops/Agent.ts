@@ -1,24 +1,13 @@
 import assert from 'assert'
-import type { ContractMessage } from './Core'
+import type { Identity, ContractMessage } from './Core'
 import type { Chain, Contract, Gas } from './Model'
 import { taskmaster, resolve, readFileSync, Console, bold } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Agent')
 
-export type Identity = {
-  chain?:    Chain,
-  address?:  string
-
-  name?:     string,
-  type?:     string,
-  pubkey?:   string
-  mnemonic?: string
-  keyPair?:  any
-  pen?:      any
-  fees?:     any
+export type AgentConstructor = new (options: Identity) => Agent & {
+  create: () => Promise<Agent>
 }
-
-export type AgentConstructor = new (...args: any) => Agent
 
 export interface Agent extends Identity {
   readonly chain:   Chain
