@@ -1,4 +1,4 @@
-import { Console, resolve, bold, writeFileSync, relative } from '@hackbg/tools'
+import { Console, resolve, bold, writeFileSync, relative, timestamp } from '@hackbg/tools'
 import { Contract, ContractConstructor, Agent } from './Model'
 
 const console = Console('@fadroma/ops/Deployment')
@@ -229,4 +229,40 @@ export class DeploymentDir extends Directory {
     return rows
   }
 
+}
+
+export async function createNewDeployment ({
+  chain, args: [ prefix = timestamp() ]
+}: MigrationContext) {
+  await chain.deployments.create(prefix)
+  await chain.deployments.select(prefix)
+  return needsActiveDeployment({ chain })
+}
+
+export function needsActiveDeployment ({ chain }: MigrationContext): {
+  deployment: Deployment|undefined,
+  prefix:     string|undefined
+} {
+  const deployment = chain.deployments.active
+  const prefix     = deployment?.prefix
+  if (deployment) {
+    console.info(bold('Active deployment:'), deployment.prefix)
+    const contracts = Object.values(deployment.contracts).length
+    if (contracts === 0) {
+      console.info(bold('This is a clean deployment.'))
+    } else {
+      console.info(bold('This deployment contains'), contracts, 'contracts')
+      const byCodeID = ([_, x],[__,y]) => (x.codeId > y.codeId)?1:(x.codeId < y.codeId)?-1:0
+      for (
+        const [name, {codeId, initTx:{contractAddress}}] of
+        Object.entries(deployment.contracts).sort(byCodeID)
+      ) {
+        console.info(bold(`Code ID ${codeId}:`), contractAddress, bold(name))
+      }
+    }
+  }
+  return {
+    deployment,
+    prefix
+  }
 }

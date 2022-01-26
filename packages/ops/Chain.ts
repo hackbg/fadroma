@@ -352,12 +352,3 @@ export function onlyOnMainnet ({ chain }) {
     process.exit(1)
   }
 }
-
-export function needsActiveDeployment ({ chain }) {
-  if (!chain.deployments.active) {
-    console.log('This command requires a deployment to be selected.')
-    process.exit(1)
-  } else {
-    chain.deployments.printActive()
-  }
-}

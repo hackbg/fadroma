@@ -3,15 +3,15 @@ import {
   Console, bold, tmp
 } from '@hackbg/tools'
 
-const console = Console('@fadroma/ops/build')
+const console = Console('@fadroma/ops/Build')
 
 export type ContractBuildOptions = {
-  workspace?:     string
-  crate?:         string
-  repo?:          string
-  ref?:           string
-  artifact?:      string
-  codeHash?:      string
+  workspace?: string
+  crate?:     string
+  repo?:      string
+  ref?:       string
+  artifact?:  string
+  codeHash?:  string
 }
 
 export interface ContractBuild extends ContractBuildOptions {

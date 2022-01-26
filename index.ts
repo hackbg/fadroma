@@ -75,7 +75,6 @@ export class Fadroma {
     let context: MigrationContext = {
       chain,
       admin,
-      ...getActiveDeployment(chain),
       timestamp: timestamp(),
       cmdArgs,
       // Run a sub-procedure in the same context,
@@ -107,37 +106,6 @@ function requireChainId (id: any) {
     console.log('  '+Object.keys(this.chains).sort().join('\n  '))
     // TODO if interactive, display a selector which exports it for the session
     process.exit(1)
-  }
-}
-
-function getActiveDeployment (chain: Chain): {
-  deployment: Deployment|undefined,
-  prefix:     string|undefined
-} {
-  const deployment = chain.deployments.active
-  const prefix     = deployment?.prefix
-  if (deployment) {
-    console.info(bold('Active deployment:'), deployment.prefix)
-    const contracts = Object.values(deployment.contracts).length
-    if (contracts === 0) {
-      console.info(bold('This is a clean deployment.'))
-    } else {
-      console.info(bold('This deployment contains'), contracts, 'contracts')
-      for (const [
-        name, {
-          codeId,
-          initTx: { contractAddress }
-        }
-      ] of Object.entries(deployment.contracts).sort(
-        ([_,x],[__,y])=>x.codeId>y.codeId?1:x.codeId<y.codeId?-1:0
-      )) {
-        console.info(bold(`Code ID ${codeId}:`), contractAddress, bold(name))
-      }
-    }
-  }
-  return {
-    deployment,
-    prefix
   }
 }
 
