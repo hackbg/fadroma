@@ -69,7 +69,7 @@ export class Fadroma {
   commands: Commands = {}
 
   // Is this a monad?
-  private async runCommand (name: string, stages: Command<any>[], cmdArgs?: string[]): Promise<any> {
+  private async runCommand (commandName: string, stages: Command<any>[], cmdArgs?: string[]): Promise<any> {
     requireChainId(this.chainId)
     const { chain, admin } = await init(this.chains, this.chainId)
     let context: MigrationContext = {
@@ -80,12 +80,16 @@ export class Fadroma {
       // Run a sub-procedure in the same context,
       // but without mutating the context.
       async run (command: Function, args: Record<string, any> = {}): Promise<any> {
-        return command({ ...context, ...args })
+        const T0 = + new Date()
+        const result = await command({ ...context, ...args })
+        const T1 = + new Date()
+        console.info(bold(`${command.name} took`), T1-T0, 'msec')
       },
     }
+    const T0 = + new Date()
     // Composition of commands via stages:
     for (const stage of stages) {
-      name = stage.name || name
+      const name = stage.name || commandName
       if (name) {
         console.info(bold('Running:'), name)
       } else {
@@ -93,8 +97,18 @@ export class Fadroma {
       }
       // Every stage refreshes the context
       // by adding its outputs to it.
+      const T1 = + new Date()
       context = { ...context, ...await stage({ ...context }) }
+      const T2 = + new Date()
+      if (name) {
+        console.info(bold(`${name} took`), T2-T1, 'msec')
+      } else {
+        console.info(bold(`This step took`), T2-T1, 'msec')
+        console.warn(bold('Seriously, give that function a name.'))
+      }
     }
+    const T3 = + new Date()
+    console.info(bold(commandName), `took`, T3-T0, `msec`)
     return context
   }
 
