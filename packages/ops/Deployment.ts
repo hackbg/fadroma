@@ -27,6 +27,12 @@ export class Deployment {
     contractName: string,
     admin:        Agent
   ): T {
+    console.info(
+      bold('Looking for contract'), Class.name,
+      bold('named'),                contractName,
+      bold('in deployment'),        this.prefix
+    )
+
     if (!this.contracts[contractName]) {
       throw new Error(
         `@fadroma/ops: no contract ${bold(contractName)}` +
@@ -48,6 +54,12 @@ export class Deployment {
     nameFragment: string,
     admin:        Agent
   ): T[] {
+    console.info(
+      bold('Looking for contracts of type'), Class.name,
+      bold('named like'),                    nameFragment,
+      bold('in deployment'),                 this.prefix
+    )
+
     const contracts = []
     for (const [name, contract] of Object.entries(this.contracts)) {
       if (name.includes(nameFragment)) {
