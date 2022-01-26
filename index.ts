@@ -58,7 +58,7 @@ export class Fadroma {
       }
       // descend or reach bottom
       if (i === fragments.length-1) {
-        commands[fragments[i]] = (args: string[]) => this.runCommand(name, stages, args)
+        commands[fragments[i]] = (cmdArgs: string[]) => this.runCommand(name, stages, cmdArgs)
       } else {
         commands = commands[fragments[i]]
       }

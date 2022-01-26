@@ -231,15 +231,15 @@ export class DeploymentDir extends Directory {
 
 }
 
-export async function createNewDeployment ({
-  chain, args: [ prefix = timestamp() ]
-}: MigrationContext) {
+export async function createNewDeployment ({ chain, cmdArgs = [] }) {
+  const [ prefix = timestamp() ] = cmdArgs
+  console.info(bold('Creating new deployment'), prefix)
   await chain.deployments.create(prefix)
   await chain.deployments.select(prefix)
   return needsActiveDeployment({ chain })
 }
 
-export function needsActiveDeployment ({ chain }: MigrationContext): {
+export function needsActiveDeployment ({ chain }): {
   deployment: Deployment|undefined,
   prefix:     string|undefined
 } {
