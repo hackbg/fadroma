@@ -72,7 +72,6 @@ export class Fadroma {
   private async runCommand (name: string, stages: Command<any>[], cmdArgs?: string[]): Promise<any> {
     requireChainId(this.chainId)
     const { chain, admin } = await init(this.chains, this.chainId)
-    const deployment = getActiveDeployment(chain)
     let context: MigrationContext = {
       chain,
       admin,
