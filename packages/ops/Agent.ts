@@ -28,6 +28,10 @@ export interface Agent extends Identity {
   instantiate (contract: Contract, initMsg: ContractMessage, funds?: any[]): Promise<any>
   query       (contract: Contract, message: ContractMessage): Promise<any>
   execute     (contract: Contract, message: ContractMessage, funds?: any[], memo?: any, fee?: any): Promise<any>
+
+  getCodeHash (idOrAddr: number|string): Promise<string>
+  getCodeId   (address: string): Promise<number>
+  getLabel    (address: string): Promise<string>
 }
 
 export abstract class BaseAgent implements Agent {
@@ -55,6 +59,10 @@ export abstract class BaseAgent implements Agent {
   abstract instantiate (contract: Contract, msg: any, funds: any[]): Promise<any>
   abstract query       (contract: Contract, msg: any): Promise<any>
   abstract execute     (contract: Contract, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
+
+  abstract getCodeHash (idOrAddr: number|string): Promise<string>
+  abstract getCodeId   (address: string): Promise<number>
+  abstract getLabel    (address: string): Promise<string>
 
   constructor (_options: Identity) {}
 }

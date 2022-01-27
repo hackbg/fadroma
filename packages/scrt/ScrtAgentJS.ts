@@ -249,6 +249,26 @@ export abstract class ScrtAgentJS extends BaseAgent {
 
   }
 
+  async getCodeHash (idOrAddr: number|string): Promise<string> {
+    if (typeof idOrAddr === 'number') {
+      return await this.API.getCodeHashByCodeId(idOrAddr)
+    } else if (typeof idOrAddr === 'string') {
+      return await this.API.getCodeHashByContractAddr(idOrAddr)
+    } else {
+      throw new TypeError('getCodeHash id or addr')
+    }
+  }
+
+  async getCodeId (address: string): Promise<number> {
+    const { codeId } = await this.API.getContract(address)
+    return codeId
+  }
+
+  async getLabel (address: string): Promise<string> {
+    const { label } = await this.API.getContract(address)
+    return label
+  }
+
 }
 
 export function getMethod (msg: ContractMessage) {
