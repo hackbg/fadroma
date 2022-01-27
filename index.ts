@@ -79,19 +79,23 @@ export class Fadroma {
       cmdArgs,
       // Run a sub-procedure in the same context,
       // but without mutating the context.
-      async run (command: Function, args: Record<string, any> = {}): Promise<any> {
+      async run (procedure: Function, args: Record<string, any> = {}): Promise<any> {
+        console.log()
+        console.info(bold('Running procedure:'), procedure.name)
         const T0 = + new Date()
-        const result = await command({ ...context, ...args })
+        const result = await procedure({ ...context, ...args })
         const T1 = + new Date()
-        console.info(bold(`${command.name} took`), T1-T0, 'msec')
+        console.info(bold(`${procedure.name} took`), T1-T0, 'msec')
+        return result
       },
     }
     const T0 = + new Date()
     // Composition of commands via stages:
     for (const stage of stages) {
+      console.log()
       const name = stage.name || commandName
       if (name) {
-        console.info(bold('Running:'), name)
+        console.info(bold('Running command:'), name)
       } else {
         console.warn(bold('Running nameless command. Please define commands as named functions.'))
       }
@@ -101,14 +105,14 @@ export class Fadroma {
       context = { ...context, ...await stage({ ...context }) }
       const T2 = + new Date()
       if (name) {
-        console.info(bold(`${name} took`), T2-T1, 'msec')
+        console.info(bold(name), 'took', T2-T1, 'msec')
       } else {
-        console.info(bold(`This step took`), T2-T1, 'msec')
+        console.info(bold(`This step`), 'took', T2-T1, 'msec')
         console.warn(bold('Seriously, give that function a name.'))
       }
     }
     const T3 = + new Date()
-    console.info(bold(commandName), `took`, T3-T0, `msec`)
+    console.info(bold(`The command ${commandName}`), `took`, ((T3-T0)/1000).toFixed(1), `s`)
     return context
   }
 
@@ -120,6 +124,13 @@ function requireChainId (id: any) {
     console.log('  '+Object.keys(this.chains).sort().join('\n  '))
     // TODO if interactive, display a selector which exports it for the session
     process.exit(1)
+  }
+}
+
+export function printContracts (contracts) {
+  for (const { codeId, address, label, codeHash } of contracts) {
+    console.info(`${bold(String(codeId).padStart(8))} ${address} ${bold(label)}`)
+    //console.info(`         ${codeHash}`)
   }
 }
 

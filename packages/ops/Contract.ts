@@ -48,7 +48,7 @@ export type ContractInitOptions = {
   prefix?:       string
   suffix?:       string
   /** The agent that initialized this instance of the contract. */
-  instantiator?: Agent
+  creator?: Agent
   initMsg?:      any
   initTx?:       InitTX
   initReceipt?:  InitReceipt
@@ -98,26 +98,18 @@ export async function instantiateContract (
   }
 
   const {
-    label,
-    codeId,
-    instantiator = contract.admin || contract.agent,
-    initMsg
+    label, codeId,   initMsg,
+    creator = contract.admin || contract.agent,
   } = contract
 
   if (!codeId) {
     throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
   }
 
-  console.info(bold('Creating:'), JSON.stringify({
-    codeId,
-    prefix: contract.prefix,
-    name:   contract.name,
-    suffix: contract.suffix||'',
-    label:  contract.label
-  }))
+  console.info(bold('Creating:'), codeId, label)
 
   return await backOff(function tryInstantiate () {
-    return instantiator.instantiate(contract, initMsg)
+    return creator.instantiate(contract, initMsg)
   }, {
     retry (error: Error, attempt: number) {
       if (error.message.includes('500')) {
@@ -158,7 +150,7 @@ export class BaseContract extends FSContractUpload implements ContractInit {
     if (options.admin) {
       this.agent        = options.admin
       this.uploader     = options.admin
-      this.instantiator = options.admin
+      this.creator = options.admin
     }
   }
 
@@ -169,7 +161,7 @@ export class BaseContract extends FSContractUpload implements ContractInit {
   name?:         string
   prefix?:       string
   suffix?:       string
-  instantiator?: Agent
+  creator?: Agent
 
   /** The contents of the init message that creates a contract. */
   initMsg?: Record<string, any> = {}
@@ -261,7 +253,7 @@ export class BaseContract extends FSContractUpload implements ContractInit {
     if (!receipt) {
       return await this.instantiate()
     } else {
-      if (agent) this.instantiator = agent
+      if (agent) this.creator = agent
       console.info(bold(`Contract already exists:`), this.label)
       console.info(`- On-chain address:`,      bold(receipt.initTx.contractAddress))
       console.info(`- On-chain code hash:`,    bold(receipt.codeHash))
@@ -316,7 +308,7 @@ export class BaseContract extends FSContractUpload implements ContractInit {
     memo:   string          = "",
     amount: unknown[]       = [],
     fee:    unknown         = undefined,
-    agent:  Agent          = this.instantiator
+    agent:  Agent          = this.creator
   ) {
     return backOff(
       function tryExecute () {
@@ -342,7 +334,7 @@ export class BaseContract extends FSContractUpload implements ContractInit {
   /** Query the contract. */
   query (
     msg:   ContractMessage = "",
-    agent: Agent          = this.instantiator
+    agent: Agent          = this.creator
   ) {
     return backOff(
       function tryQuery () {

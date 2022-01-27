@@ -11,7 +11,7 @@ export abstract class AugmentedContract<
   Transactions?: new (contract: Contract, agent: Agent) => Executor
 
   /** Get a Transactions instance bound to the current contract and agent */
-  tx (agent: Agent = this.instantiator) {
+  tx (agent: Agent = this.creator) {
     if (!this.Transactions) {
       throw new Error('[@fadroma/ops] define the Transactions property to use this method')
     }
@@ -22,7 +22,7 @@ export abstract class AugmentedContract<
   Queries?: new (contract: Contract, agent: Agent) => Querier
 
   /** Get a Queries instance bound to the current contract and agent */
-  q (agent: Agent = this.instantiator) {
+  q (agent: Agent = this.creator) {
     if (!this.Queries) {
       throw new Error('[@fadroma/ops] define the Queries property to use this method')
     }

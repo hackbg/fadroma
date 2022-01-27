@@ -254,7 +254,7 @@ export function needsActiveDeployment ({ chain }): {
         const [name, {codeId, initTx:{contractAddress}}] of
         Object.entries(deployment.receipts).sort(byCodeID)
       ) {
-        console.info(bold(`Code ID ${codeId}:`), contractAddress, bold(name))
+        console.info(bold(String(codeId).padStart(8)), contractAddress, bold(name))
       }
     }
   }
