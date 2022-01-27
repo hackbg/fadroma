@@ -29,6 +29,10 @@ export class SNIP20Contract extends AugmentedScrtContract<SNIP20Transactions, SN
     }
   }
 
+  get info () {
+    return this.q().tokenInfo()
+  }
+
   static fromTokenSpec (agent, token: {
     custom_token: { contract_addr, token_code_hash }
   } | {

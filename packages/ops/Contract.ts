@@ -87,7 +87,8 @@ export type InitReceipt = {
   * specified blockchain. If the contract already has an address,
   * assume it already exists and bail. */
 export async function instantiateContract (
-  contract: ContractInit
+  contract: ContractInit,
+  initMsg?: any = contract.initMsg
 ): Promise<InitTX> {
 
   if (contract.address) {
@@ -98,8 +99,9 @@ export async function instantiateContract (
   }
 
   const {
-    label, codeId,   initMsg,
-    creator = contract.admin || contract.agent,
+    label,
+    codeId,
+    creator = contract.creator || contract.admin || contract.agent,
   } = contract
 
   if (!codeId) {
@@ -107,6 +109,14 @@ export async function instantiateContract (
   }
 
   console.info(bold('Creating:'), codeId, label)
+
+  const maxKey = Math.max(...Object.keys(initMsg).map(x=>x.length))
+  for (let [key, val] of Object.entries(initMsg)) {
+    if (typeof val === 'object') val = JSON.stringify(val)
+    val = String(val)
+    if ((val as string).length > 60) val = (val as string).slice(0, 60) + '...'
+    console.info(bold(`  ${key}:`.padEnd(maxKey+3)), val)
+  }
 
   return await backOff(function tryInstantiate () {
     return creator.instantiate(contract, initMsg)
@@ -148,26 +158,26 @@ export class BaseContract extends FSContractUpload implements ContractInit {
       this.suffix = options.suffix
     }
     if (options.admin) {
-      this.agent        = options.admin
-      this.uploader     = options.admin
-      this.creator = options.admin
+      this.agent    = options.admin
+      this.uploader = options.admin
+      this.creator  = options.admin
     }
   }
 
   // init inputs
-  chain?:        Chain
-  codeId?:       number
-  codeHash?:     string
-  name?:         string
-  prefix?:       string
-  suffix?:       string
-  creator?: Agent
+  chain?:    Chain
+  codeId?:   number
+  codeHash?: string
+  name?:     string
+  prefix?:   string
+  suffix?:   string
+  creator?:  Agent
 
   /** The contents of the init message that creates a contract. */
-  initMsg?: Record<string, any> = {}
+  initMsg?:  Record<string, any> = {}
 
   /** The default agent for queries/transactions. */
-  agent?: Agent
+  agent?:    Agent
 
   /** The on-chain label of this contract instance.
     * The chain requires these to be unique.
@@ -246,6 +256,19 @@ export class BaseContract extends FSContractUpload implements ContractInit {
 
   }
 
+  // get
+  from (deployment: Deployment) {
+    const receipt = deployment.receipts[this.name]
+    if (!receipt) {
+      throw new Error(
+        `[@fadroma/ops/Contract] no contract ${this.name} in ${deployment.prefix}`
+      )
+    }
+    this.setFromReceipt(receipt)
+    return this
+  }
+
+  // getorcreate
   async instantiateOrExisting (
     receipt?: InitReceipt,
     agent?:   Agent
@@ -260,17 +283,6 @@ export class BaseContract extends FSContractUpload implements ContractInit {
       this.setFromReceipt(receipt)
       return receipt
     }
-  }
-
-  async instantiate (): Promise<InitReceipt> {
-    this.setFromReceipt(this.initReceipt = {
-      label:    this.label,
-      codeId:   this.codeId,
-      codeHash: this.codeHash,
-      initTx:   this.initTx = await instantiateContract(this)
-    })
-    this.save()
-    return this.initReceipt
   }
 
   private setFromReceipt (receipt: InitReceipt) {
@@ -291,15 +303,50 @@ export class BaseContract extends FSContractUpload implements ContractInit {
     return receipt
   }
 
-  from (deployment: Deployment) {
-    const receipt = deployment.receipts[this.name]
-    if (!receipt) {
-      throw new Error(
-        `[@fadroma/ops/Contract] no contract ${this.name} in ${deployment.prefix}`
-      )
-    }
-    this.setFromReceipt(receipt)
-    return this
+  // TODO:
+  //
+  // class ContractBuild extends Function {}
+  // Build = DockerizedContractBuild
+  // get build () {
+  //   return new this.Build(this)
+  // }
+  //
+  // class ContractUpload extends Function {}
+  // Upload = FSContractUpload
+  // get upload () {
+  //   return new this.Upload(this)
+  // }
+  //
+  // #agent: Agent
+  // get agent () {
+  //   return this.#agent
+  // }
+  // async connect (agent: Agent, address: Address, codeHash: String) {
+  // }
+  // #creator: Agent
+  // get creator () {
+  //   return this.#creator
+  // }
+  // async create (agent: Agent, initMsg = this.initMsg) {
+  //   if (this.address) {
+  //     throw new Error('@fadroma/ops/Contract: already created')
+  //   }
+  //   this.#creator = agent
+  //   if (!this.#agent) this.#agent = agent
+  //   instantiateContract(this, initMsg)
+  //   // only place that sets creator
+  // }
+
+  // create
+  async instantiate (initMsg?: any): Promise<InitReceipt> {
+    this.setFromReceipt(this.initReceipt = {
+      label:    this.label,
+      codeId:   this.codeId,
+      codeHash: this.codeHash,
+      initTx:   this.initTx = await instantiateContract(this, initMsg)
+    })
+    this.save()
+    return this.initReceipt
   }
 
   /** Execute a contract transaction. */
@@ -308,7 +355,7 @@ export class BaseContract extends FSContractUpload implements ContractInit {
     memo:   string          = "",
     amount: unknown[]       = [],
     fee:    unknown         = undefined,
-    agent:  Agent          = this.creator
+    agent:  Agent           = this.creator || this.agent
   ) {
     return backOff(
       function tryExecute () {
@@ -334,7 +381,7 @@ export class BaseContract extends FSContractUpload implements ContractInit {
   /** Query the contract. */
   query (
     msg:   ContractMessage = "",
-    agent: Agent          = this.creator
+    agent: Agent           = this.creator || this.agent
   ) {
     return backOff(
       function tryQuery () {
