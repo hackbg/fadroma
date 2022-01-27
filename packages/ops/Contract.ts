@@ -1,7 +1,16 @@
+import type { ContractMessage } from './Core'
+import type { BuildInfo, Build, Buildable } from './Build'
+import type { UploadInfo, Upload, Uploadable, UploadReceipt } from './Upload'
+import type { ContractInitInfo, ContractInit, InitTX, InitReceipt } from './Deployment'
+
+export type Contract     = Buildable & Uploadable & ContractInit
+export type ContractInfo = BuildInfo & UploadInfo & InitInfo
+
 import { Agent, BaseAgent, isAgent } from './Agent'
 import { Chain, BaseChain } from './Chain'
 import { Deployment, DeploymentDir } from './Deployment'
-import { loadSchemas } from './Schema'
+import { Builder  } from './Build'
+import { Uploader } from './Upload'
 
 import {
   Console, bold,
@@ -14,171 +23,62 @@ import {
 } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Contract')
-
-export async function buildAndUpload (contracts: Array<ContractBuild & ContractUpload>) {
-  await Promise.all(contracts.map(contract=>contract.buildInDocker()))
-  for (const contract of contracts) {
-    await contract.upload()
-  }
-}
-
-import type { ContractMessage } from './Core'
-import type { ContractBuildOptions,  ContractBuild }  from './Build'
-import type { ContractUploadOptions, ContractUpload } from './Upload'
-
-export type Contract = ContractBuild &
-  ContractUpload &
-  ContractInit
-
-export type ContractOptions =
-  ContractBuildOptions  &
-  ContractUploadOptions &
-  ContractInitOptions
-
-export type ContractInitOptions = {
-  /** The on-chain address of this contract instance */
-  chain?:        Chain
-  address?:      string
-  codeHash?:     string
-  codeId?:       number
-  /** The on-chain label of this contract instance.
-    * The chain requires these to be unique, so this
-    * is meant to be built from the name, prefix and suffix. */
-  name?:         string
-  prefix?:       string
-  suffix?:       string
-  /** The agent that initialized this instance of the contract. */
-  creator?: Agent
-  initMsg?:      any
-  initTx?:       InitTX
-  initReceipt?:  InitReceipt
-}
-
-export interface ContractInit extends ContractInitOptions {
-  readonly label: string
-
-  /** A reference to the contract in the format that ICC callbacks expect. */
-  link?:         { address: string, code_hash: string }
-  /** A reference to the contract as a tuple */
-  linkPair?:     [ string, string ]
-
-  instantiate (message: ContractMessage, agent?: Agent): Promise<any>
-  query       (message: ContractMessage, agent?: Agent): any
-  execute     (message: ContractMessage, memo: string, send: Array<any>, fee: any, agent?: Agent): any
-  save        (): this
-}
-
-export type InitTX = {
-  contractAddress: string
-  data:            string
-  logs:            Array<any>
-  transactionHash: string
-}
-
-export type InitReceipt = {
-  label:    string,
-  codeId:   number,
-  codeHash: string,
-  initTx:   InitTX
-}
-
-/** Given a Contract instance with the specification of a contract,
-  * perform the INIT transaction that creates that contract on the
-  * specified blockchain. If the contract already has an address,
-  * assume it already exists and bail. */
-export async function instantiateContract (
-  contract: ContractInit,
-  initMsg?: any = contract.initMsg
-): Promise<InitTX> {
-
-  if (contract.address) {
-    throw new Error(
-      `[@fadroma/ops] This contract has already `+
-     `been instantiated at ${contract.address}`
-    )
-  }
-
-  const {
-    label,
-    codeId,
-    creator = contract.creator || contract.admin || contract.agent,
-  } = contract
-
-  if (!codeId) {
-    throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
-  }
-
-  console.info(bold('Creating:'), codeId, label)
-
-  const maxKey = Math.max(...Object.keys(initMsg).map(x=>x.length))
-  for (let [key, val] of Object.entries(initMsg)) {
-    if (typeof val === 'object') val = JSON.stringify(val)
-    val = String(val)
-    if ((val as string).length > 60) val = (val as string).slice(0, 60) + '...'
-    console.info(bold(`  ${key}:`.padEnd(maxKey+3)), val)
-  }
-
-  return await backOff(function tryInstantiate () {
-    return creator.instantiate(contract, initMsg)
-  }, {
-    retry (error: Error, attempt: number) {
-      if (error.message.includes('500')) {
-        console.warn(`Error 500, retry #${attempt}...`)
-        console.error(error)
-        return true
-      } else {
-        return false
-      }
-    }
-  })
-
-}
-
-import { FSContractUpload } from './Upload'
-
-export class BaseContract extends FSContractUpload implements ContractInit {
-
-  buildScript     = null
-  buildImage      = null
-  buildDockerfile = null
-
-  constructor (
-    options: ContractBuildOptions & ContractUploadOptions & ContractInitOptions & {
-      admin?: Agent
-    } = {}
-  ) {
-    super(options)
-    if (options.prefix) {
-      this.prefix = options.prefix
-    }
-    if (options.name) {
-      this.name = options.name
-    }
-    if (options.suffix) {
-      this.suffix = options.suffix
-    }
-    if (options.admin) {
-      this.agent    = options.admin
-      this.uploader = options.admin
-      this.creator  = options.admin
-    }
-  }
-
-  // init inputs
-  chain?:    Chain
-  codeId?:   number
-  codeHash?: string
-  name?:     string
-  prefix?:   string
-  suffix?:   string
-  creator?:  Agent
-
-  /** The contents of the init message that creates a contract. */
-  initMsg?:  Record<string, any> = {}
-
-  /** The default agent for queries/transactions. */
-  agent?:    Agent
-
+/** Extra chunky source of truth about a contract. */
+export class BaseContract implements Contract {
+  /** Allow any property to be overriden at construction. */
+  constructor (options: ContractInfo = {}) { Object.assign(this, options) }
+  /** Build environment (Docker only) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+  static buildEnv = [ "buildImage", "buildDockerfile", "buildScript" ]
+  /** Label of local Docker image to use for builds. */
+  buildImage:      string|null = null
+  /** Path to Dockerfile for build container if image is not set. */
+  buildDockerfile: string|null = null
+  /** Script to be executed in the build container. */
+  buildScript:     string|null = null
+  /** Build inputs. */
+  static buildInputs = [ "repo", "ref", "workspace", "crate", ...this.buildEnv ]
+  /** Build inputs: TODO allow building contract from external repo. */
+  repo?:           string // TODO
+  /** Build inputs: Reference to commit to build. */
+  ref?:            string = 'HEAD'
+  /** Build inputs: Root of cargo workspace containing the contract. */
+  workspace?:      string
+  /** Build inputs: Name of crate containing the contract. */
+  crate?:          string
+  /** Build executor. */
+  build (...args) { return new Builder(this).build(...args) }
+  /** Build outputs. */
+  static buildOutputs = [ "artifact", "codeHash" ]
+  /** Build outputs: Path to compiled WASM blob. */
+  artifact?:       string
+  /** Build outputs: SHA256 checksum of the uncompressed blob. */
+  codeHash?:       string
+  /** Upload inputs. */
+  static uploadInputs = [ "artifact", "codeHash", "chain", "uploader" ]
+  /** Upload inputs: Target chain. */
+  chain?:          Chain
+  /** Upload inputs: Upload agent. */
+  uploader?:       Agent
+  /** Upload inputs: Upload executor. */
+  upload (...args) { return new Uploader(this).upload(...args) }
+  /** Upload outputs. */
+  static uploadOutputs = [ "uploadReceipt", "codeId" ]
+  /** Result of upload transaction. */
+  uploadReceipt?:  UploadReceipt
+  /** On-chain id of uploaded code. */
+  codeId?:         number
+  /** Code ID + code hash pair in Sienna Swap Factory format */
+  get template () { return { id: this.codeId, code_hash: this.codeHash } }
+  /** Init inputs. */
+  static initInputs = [ "codeId", "label", "creator" ]
+  /** The agent that created the contract. */
+  creator?:        Agent
+  /** The label prefix, corresponding to the deployment subdirectory. */
+  prefix?:         string
+  /** The contract's given name. */
+  name?:           string
+  /** A suffix denoting a given version or iteration. */
+  suffix?:         string
   /** The on-chain label of this contract instance.
     * The chain requires these to be unique.
     * If a prefix is set, it is prepended to the label. */
@@ -190,20 +90,11 @@ export class BaseContract extends FSContractUpload implements ContractInit {
     }
     const { prefix, name, suffix } = this
     let label = ''
-    if (prefix) {
-      label += `${prefix}/`
-    }
-    if (name) {
-      label += name
-    } else {
-      label += 'UNTITLED'
-    }
-    if (suffix) {
-      label += suffix
-    }
+    if (prefix) { label += `${prefix}/` }
+    if (name)   { label += name } else { label += 'UNTITLED' }
+    if (suffix) { label += suffix }
     return label
   }
-
   /** Manually setting the label is disallowed.
     * Instead, impose prefix-name-suffix scheme. */
   set label (label: string) {
@@ -212,11 +103,16 @@ export class BaseContract extends FSContractUpload implements ContractInit {
       "Don't - use the `prefix`, `name`, and `suffix`. properties instead"
     )
   }
+  /** Init procedure is in the Deployment.
+    * This is the place to make Contract classes Deployment-aware or standalone. */
+  /** Init outputs. */
+  static initOutputs = [ "address", "initTx", "initReceipt" ]
 
-  // init outputs
-  address?:     string
   initTx?:      InitTX
+
   initReceipt?: InitReceipt
+
+  address?:     string
 
   /** A reference to the contract in the format that ICC callbacks expect. */
   get link () {
@@ -225,130 +121,8 @@ export class BaseContract extends FSContractUpload implements ContractInit {
       code_hash: this.codeHash
     }
   }
-
-  /** A reference to the contract as an array */
-  get linkPair () {
-    return [ this.address, this.codeHash ] as [string, string] // wat
-  }
-
-  /** Save the contract's instantiation receipt in the instances directory for this chain.
-    * If prefix is set, creates subdir grouping contracts with the same prefix. */
-  save () {
-
-    let dir = this.chain.deployments
-
-    // ugh hahaha so thats where the mkdir was
-    if (this.prefix) {
-      dir = dir.subdir(this.prefix, DeploymentDir).make() as DeploymentDir
-    }
-
-    console.info(
-      bold('Saving receipt for contract:'),
-      this.label,
-    )
-
-    dir.save(
-      `${this.name}${this.suffix||''}`,
-      this.initReceipt
-    )
-
-    return this
-
-  }
-
-  // get
-  from (deployment: Deployment) {
-    const receipt = deployment.receipts[this.name]
-    if (!receipt) {
-      throw new Error(
-        `[@fadroma/ops/Contract] no contract ${this.name} in ${deployment.prefix}`
-      )
-    }
-    this.setFromReceipt(receipt)
-    return this
-  }
-
-  // getorcreate
-  async instantiateOrExisting (
-    receipt?: InitReceipt,
-    agent?:   Agent
-  ): Promise<InitReceipt> {
-    if (!receipt) {
-      return await this.instantiate()
-    } else {
-      if (agent) this.creator = agent
-      console.info(bold(`Contract already exists:`), this.label)
-      console.info(`- On-chain address:`,      bold(receipt.initTx.contractAddress))
-      console.info(`- On-chain code hash:`,    bold(receipt.codeHash))
-      this.setFromReceipt(receipt)
-      return receipt
-    }
-  }
-
-  private setFromReceipt (receipt: InitReceipt) {
-    if (!this.name) {
-      this.name = receipt.label.split('/')[1]
-    }
-    this.codeId = receipt.codeId
-    if (this.codeHash && this.codeHash !== receipt.codeHash) {
-      console.warn(
-        `Receipt contained code hash: ${bold(receipt.codeHash)}, `+
-        `while contract class contained: ${bold(this.codeHash)}. `+
-        `Will use the one from the receipt from now on.`
-      )
-    }
-    this.codeHash = receipt.codeHash
-    this.initTx   = receipt.initTx
-    this.address  = receipt.initTx.contractAddress
-    return receipt
-  }
-
-  // TODO:
-  //
-  // class ContractBuild extends Function {}
-  // Build = DockerizedContractBuild
-  // get build () {
-  //   return new this.Build(this)
-  // }
-  //
-  // class ContractUpload extends Function {}
-  // Upload = FSContractUpload
-  // get upload () {
-  //   return new this.Upload(this)
-  // }
-  //
-  // #agent: Agent
-  // get agent () {
-  //   return this.#agent
-  // }
-  // async connect (agent: Agent, address: Address, codeHash: String) {
-  // }
-  // #creator: Agent
-  // get creator () {
-  //   return this.#creator
-  // }
-  // async create (agent: Agent, initMsg = this.initMsg) {
-  //   if (this.address) {
-  //     throw new Error('@fadroma/ops/Contract: already created')
-  //   }
-  //   this.#creator = agent
-  //   if (!this.#agent) this.#agent = agent
-  //   instantiateContract(this, initMsg)
-  //   // only place that sets creator
-  // }
-
-  // create
-  async instantiate (initMsg?: any): Promise<InitReceipt> {
-    this.setFromReceipt(this.initReceipt = {
-      label:    this.label,
-      codeId:   this.codeId,
-      codeHash: this.codeHash,
-      initTx:   this.initTx = await instantiateContract(this, initMsg)
-    })
-    this.save()
-    return this.initReceipt
-  }
-
+  /** TX & Query API */
+  agent?:       Agent
   /** Execute a contract transaction. */
   execute (
     msg:    ContractMessage = "",
@@ -358,50 +132,33 @@ export class BaseContract extends FSContractUpload implements ContractInit {
     agent:  Agent           = this.creator || this.agent
   ) {
     return backOff(
-      function tryExecute () {
-        return agent.execute(this, msg, amount, memo, fee)
-      }, {
-        retry (error: Error, attempt: number) {
-          if (error.message.includes('500')) {
-            console.warn(`Error 500, retry #${attempt}...`)
-            console.warn(error)
-            return false
-          }
-          if (error.message.includes('502')) {
-            console.warn(`Error 502, retry #${attempt}...`)
-            console.warn(error)
-            return true
-          }
-          return false
-        }
-      }
+      function tryExecute () { return agent.execute(this, msg, amount, memo, fee) },
+      this.backOffOptions
     )
   }
-
   /** Query the contract. */
   query (
     msg:   ContractMessage = "",
     agent: Agent           = this.creator || this.agent
   ) {
     return backOff(
-      function tryQuery () {
-        return agent.query(this, msg)
-      }, {
-        retry (error: Error, attempt: number) {
-          if (error.message.includes('500')) {
-            console.warn(`Error 500, retry #${attempt}...`)
-            console.warn(error)
-            return false
-          }
-          if (error.message.includes('502')) {
-            console.warn(`Error 502, retry #${attempt}...`)
-            console.warn(error)
-            return true
-          }
-          return false
-        }
-      }
+      function tryQuery () { return agent.query(this, msg) },
+      this.backOffOptions
     )
   }
-
+  private backOffOptions = {
+    retry (error: Error, attempt: number) {
+      if (error.message.includes('500')) {
+        console.warn(`Error 500, retry #${attempt}...`)
+        console.warn(error)
+        return false
+      }
+      if (error.message.includes('502')) {
+        console.warn(`Error 502, retry #${attempt}...`)
+        console.warn(error)
+        return true
+      }
+      return false
+    }
+  }
 }

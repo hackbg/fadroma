@@ -1,5 +1,11 @@
-import { Console, resolve, bold, writeFileSync, relative, timestamp } from '@hackbg/tools'
-import { Contract, ContractConstructor, Agent } from './Model'
+import {
+  Console, resolve, bold, writeFileSync, relative, timestamp, backOff
+} from '@hackbg/tools'
+
+import type { Contract, InitReceipt } from './Contract'
+import type { Agent } from './Agent'
+import type { Chain } from './Chain'
+import type { ContractMessage } from './Core'
 
 const console = Console('@fadroma/ops/Deployment')
 
@@ -14,6 +20,83 @@ export type ContractConstructorArguments = {
   prefix?:   string
 }
 
+export type ContractInitOptions = {
+  /** The on-chain address of this contract instance */
+  chain?:        Chain
+  address?:      string
+  codeHash?:     string
+  codeId?:       number
+
+  prefix?:       string
+  name?:         string
+  suffix?:       string
+
+  /** The agent that initialized this instance of the contract. */
+  creator?:      Agent
+  initMsg?:      any
+  initTx?:       InitTX
+  initReceipt?:  InitReceipt
+}
+
+export interface ContractInit extends ContractInitOptions {
+  /** The final label of the contract (generated from prefix, name, and suffix,
+    * because the chain expects these to be globally unique.) */ 
+  readonly label: string
+  /** A reference to the contract in the format that ICC callbacks expect. */
+  link?:      { address: string, code_hash: string }
+  query       (message: ContractMessage, agent?: Agent): any
+  execute     (message: ContractMessage, memo: string, send: Array<any>, fee: any, agent?: Agent): any
+}
+
+export type InitTX = {
+  contractAddress: string
+  data:            string
+  logs:            Array<any>
+  transactionHash: string
+}
+
+export type InitReceipt = {
+  label:    string,
+  codeId:   number,
+  codeHash: string,
+  initTx:   InitTX
+}
+
+export async function createNewDeployment ({ chain, cmdArgs = [] }) {
+  const [ prefix = timestamp() ] = cmdArgs
+  await chain.deployments.create(prefix)
+  await chain.deployments.select(prefix)
+  return needsActiveDeployment({ chain })
+}
+
+export function needsActiveDeployment ({ chain }): {
+  deployment: Deployment|undefined,
+  prefix:     string|undefined
+} {
+  const deployment = chain.deployments.active
+  const prefix     = deployment?.prefix
+  if (deployment) {
+    console.info(bold('Active deployment:'), deployment.prefix)
+    const contracts = Object.values(deployment.receipts).length
+    if (contracts === 0) {
+      console.info(bold('This is a clean deployment.'))
+    } else {
+      console.info(bold('This deployment contains'), contracts, 'contracts')
+      const byCodeID = ([_, x],[__,y]) => (x.codeId > y.codeId)?1:(x.codeId < y.codeId)?-1:0
+      for (
+        const [name, {codeId, initTx:{contractAddress}}] of
+        Object.entries(deployment.receipts).sort(byCodeID)
+      ) {
+        console.info(bold(String(codeId).padStart(8)), contractAddress, bold(name))
+      }
+    }
+  }
+  return {
+    deployment,
+    prefix
+  }
+}
+
 export class Deployment {
 
   constructor (
@@ -22,49 +105,101 @@ export class Deployment {
     public readonly receipts: Record<string, any>
   ) {}
 
+  private populate (contract: Contract, receipt: InitReceipt) {
+    contract.prefix      = this.prefix
+    contract.initReceipt = receipt
+    contract.codeId      = contract.initReceipt.codeId
+    contract.codeHash    = contract.initReceipt.codeHash
+    contract.initTx      = contract.initReceipt.initTx
+    contract.address     = contract.initTx.contractAddress
+  }
+
+  /** Instantiate a new contract as a part of this deployment.
+    * Save the contract's instantiation receipt in the instances directory for this chain.
+    * If prefix is set, creates subdir grouping contracts with the same prefix. */
+  async createContract <T> (
+    creator:  Agent,
+    contract: Contract,
+    initMsg:  T = contract.initMsg
+  ): Promise<InitReceipt> {
+    contract.creator = creator
+    contract.prefix  = this.prefix
+    contract.initTx  = await instantiateContract(contract, initMsg)
+    this.populate(contract, {
+      label:    contract.label,
+      codeId:   contract.codeId,
+      codeHash: contract.codeHash,
+      initTx:   contract.initTx
+    })
+    // ugly hack to save contract.
+    // TODO inherit Deployment from Directory, make it create itself
+    console.info(
+      bold('Saving receipt for contract:'),
+      contract.label,
+    )
+    let dir = contract.chain.deployments
+    dir = dir.subdir(contract.prefix).make()// ugh hahaha so thats where the mkdir was
+    const receipt = `${contract.name}${contract.suffix||''}.json` 
+    dir.save(receipt, JSON.stringify(contract.initReceipt, null, 2))
+    return contract.initReceipt
+  }
+
+  async getOrCreateContract <T> (
+    agent:    Agent,
+    contract: Contract,
+    name:     string = contract.name,
+    initMsg:  T      = contract.initMsg
+  ) {
+    const receipt = this.receipts[name]
+    if (receipt) {
+      contract.agent = agent
+      this.populate(contract, receipt)
+    } else {
+      await this.createContract(agent, contract, initMsg)
+      return contract
+    }
+  }
+
   getContract <T extends Contract> (
-    Class:        ContractConstructor<T>,
-    contractName: string,
-    admin:        Agent
+    agent:    Agent,
+    Contract: ContractConstructor<T>,
+    name:     string,
   ): T {
     console.info(
-      bold('Looking for contract'), Class.name,
-      bold('named'),                contractName,
+      bold('Looking for contract'), Contract.name,
+      bold('named'),                name,
       bold('in deployment'),        this.prefix
     )
-    if (!this.receipts[contractName]) {
+    const receipt = this.receipts[name]
+    if (receipt) {
+      const contract = new Contract({})
+      contract.agent = agent
+      this.populate(contract, receipt)
+      return contract
+    } else {
       throw new Error(
-        `@fadroma/ops: no contract ${bold(contractName)}` +
+        `@fadroma/ops: no contract ${bold(name)}` +
         ` in deployment ${bold(this.prefix)}`
       )
     }
-    return new Class({
-      address:  this.receipts[contractName].initTx.contractAddress,
-      codeHash: this.receipts[contractName].codeHash,
-      codeId:   this.receipts[contractName].codeId,
-      prefix:   this.prefix,
-      admin,
-    })
   }
 
   getContracts <T extends Contract> (
-    Class:        ContractConstructor<T>,
-    nameFragment: string,
-    admin:        Agent
+    agent:    Agent,
+    Contract: ContractConstructor<T>,
+    fragment: string,
   ): T[] {
     console.info(
-      bold('Looking for contracts of type'), Class.name,
-      bold('named like'),                    nameFragment,
+      bold('Looking for contracts of type'), Contract.name,
+      bold('named like'),                    fragment,
       bold('in deployment'),                 this.prefix
     )
     const contracts = []
-    for (const [name, contract] of Object.entries(this.receipts)) {
-      if (name.includes(nameFragment)) {
-        contracts.push(new Class({
-          address:  this.receipts[name].initTx.contractAddress,
-          codeHash: this.receipts[name].codeHash,
-          codeId:   this.receipts[name].codeId,
-        }))
+    for (const [name, receipt] of Object.entries(this.receipts)) {
+      if (name.includes(fragment)) {
+        const contract = new Contract({})
+        this.populate(contract, receipt)
+        contracts.push(contract)
       }
     }
     return contracts
@@ -195,19 +330,14 @@ export class DeploymentDir extends Directory {
   }
 
   save (name: string, data: any) {
-
     name = `${name}.json`
-
     console.info(
       bold('DeploymentDir writing:'), relative(process.cwd(), this.resolve(name))
     )
-
     if (data instanceof Object) {
       data = JSON.stringify(data, null, 2)
     }
-
     return super.save(name, data)
-
   }
 
   /** List of contracts in human-readable from */
@@ -229,37 +359,53 @@ export class DeploymentDir extends Directory {
 
 }
 
-export async function createNewDeployment ({ chain, cmdArgs = [] }) {
-  const [ prefix = timestamp() ] = cmdArgs
-  await chain.deployments.create(prefix)
-  await chain.deployments.select(prefix)
-  return needsActiveDeployment({ chain })
-}
-
-export function needsActiveDeployment ({ chain }): {
-  deployment: Deployment|undefined,
-  prefix:     string|undefined
-} {
-  const deployment = chain.deployments.active
-  const prefix     = deployment?.prefix
-  if (deployment) {
-    console.info(bold('Active deployment:'), deployment.prefix)
-    const contracts = Object.values(deployment.receipts).length
-    if (contracts === 0) {
-      console.info(bold('This is a clean deployment.'))
-    } else {
-      console.info(bold('This deployment contains'), contracts, 'contracts')
-      const byCodeID = ([_, x],[__,y]) => (x.codeId > y.codeId)?1:(x.codeId < y.codeId)?-1:0
-      for (
-        const [name, {codeId, initTx:{contractAddress}}] of
-        Object.entries(deployment.receipts).sort(byCodeID)
-      ) {
-        console.info(bold(String(codeId).padStart(8)), contractAddress, bold(name))
+/** Given a Contract instance with the specification of a contract,
+  * perform the INIT transaction that creates that contract on the
+  * specified blockchain. If the contract already has an address,
+  * assume it already exists and bail. */
+export async function instantiateContract (
+  contract: Contract,
+  initMsg:  any = contract.initMsg
+): Promise<InitTX> {
+  console.info(bold('Creating:'), contract.codeId, contract.label)
+  initMsg = { ...contract.initMsg || {}, ...initMsg }
+  printAligned(initMsg)
+  if (contract.address) {
+    const msg =
+      `[@fadroma/ops] This contract has already `+
+     `been instantiated at ${contract.address}`
+    console.error(msg)
+    throw new Error(msg)
+  }
+  const {
+    label,
+    codeId,
+    creator = contract.creator || contract.admin || contract.agent,
+  } = contract
+  if (!codeId) {
+    throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
+  }
+  return await backOff(function tryInstantiate () {
+    return creator.instantiate(contract, initMsg)
+  }, {
+    retry (error: Error, attempt: number) {
+      if (error.message.includes('500')) {
+        console.warn(`Error 500, retry #${attempt}...`)
+        console.error(error)
+        return true
+      } else {
+        return false
       }
     }
-  }
-  return {
-    deployment,
-    prefix
+  })
+}
+
+function printAligned (obj: Record<string, any>) {
+  const maxKey = Math.max(...Object.keys(obj).map(x=>x.length), 20)
+  for (let [key, val] of Object.entries(obj)) {
+    if (typeof val === 'object') val = JSON.stringify(val)
+    val = String(val)
+    if ((val as string).length > 60) val = (val as string).slice(0, 60) + '...'
+    console.info(bold(`  ${key}:`.padEnd(maxKey+3)), val)
   }
 }

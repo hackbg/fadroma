@@ -1,27 +1,36 @@
-import type {
-  BuildOptions,
-  ContractUpload, UploadOptions, UploadReceipt,
-  Chain, Agent,
-} from './Model'
-import { DockerizedContractBuild } from './Build'
-
 import {
   Console, basename, bold, relative, existsSync, mkdir, readFile, writeFile
 } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Upload')
 
-export type ContractUploadOptions = {
-  artifact?:      string
-  codeHash?:      string
+import type { Chain } from './Chain'
+import type { Agent } from './Agent'
+
+export type UploadEnv = {
   chain?:         Chain
   uploader?:      Agent
+}
+
+export type UploadInputs = {
+  artifact?:      string
+  codeHash?:      string
+}
+
+export type UploadOutputs = {
   uploadReceipt?: UploadReceipt
+  codeHash?:      string
   codeId?:        number
 }
 
-export interface ContractUpload extends ContractUploadOptions {
-  upload (): Promise<any>
+export type UploadInfo = UploadEnv & UploadInputs & UploadOutputs
+
+export interface Upload extends UploadInfo {
+  (): Promise<UploadReceipt>
+}
+
+export interface Uploadable extends UploadInfo {
+  upload (): Promise<UploadReceipt>
 }
 
 export type UploadReceipt = {
@@ -34,73 +43,69 @@ export type UploadReceipt = {
   transactionHash:    string
 }
 
-export abstract class FSContractUpload
-              extends DockerizedContractBuild
-           implements ContractUpload
-{
+import { Buildable } from './Build'
+export class Uploader implements Uploadable {
 
-  constructor (options: BuildOptions & UploadOptions = {}) {
-    super(options)
+  #contract: Buildable & Uploadable
+
+  constructor (contract: Buildable & Uploadable) {
+    this.#contract = contract
   }
 
-  // upload inputs
-  artifact?:      string
-  codeHash?:      string
-  chain?:         Chain
-  uploader?:      Agent
-
-  // upload outputs
-  codeId?:        number
-  uploadReceipt?: UploadReceipt
-
-  /** Code ID + code hash pair in Sienna Swap Factory format */
-  get template () {
-    return {
-      id: this.codeId,
-      code_hash: this.codeHash
-    }
-  }
-
-  /** Path to where the result of the upload transaction is stored */
-  get uploadReceiptPath () {
-    const name = `${basename(this.artifact)}.json`
-    return this.chain.uploads.resolve(name)
-  }
-
-  async uploadAs (agent: Agent): Promise<this> {
-    this.uploader = agent
-    return this.uploadTo(agent.chain)
-  }
-
-  async uploadTo (chain: Chain): Promise<this> {
-    this.chain = chain
-    await this.upload()
-    return this
-  }
+  get chain         () { return this.#contract.chain }
+  get uploader      () { return this.#contract.uploader }
+  get artifact      () { return this.#contract.artifact }
+  get codeId        () { return this.#contract.codeId }
+  get uploadReceipt () { return this.#contract.uploadReceipt }
+  get codeHash      () { return this.#contract.codeHash }
 
   /** Upload the contract to a specified chain as a specified agent. */
-  async upload () {
+  async upload (
+    chain:    Chain,
+    uploader: Agent,
+  ): Promise<UploadReceipt> {
+    this.#contract.chain    = chain
+    this.#contract.uploader = uploader
+
     // if no uploader, bail
     if (!this.uploader) {
       throw new Error(
         `[@fadroma/ops/Contract] contract.upload() requires contract.uploader to be set`
       )
     }
+
     // if not built, build
     if (!this.artifact) {
-      await this.buildInDocker()
+      await this.#contract.build()
     }
+
     // upload if not already uploaded
-    const uploadReceipt = await uploadFromFS(
+    const uploadReceipt = this.#contract.uploadReceipt = await uploadFromFS(
       this.uploader,
       this.artifact,
       this.uploadReceiptPath
     )
-    this.uploadReceipt = uploadReceipt
+
     // set code it and code hash to allow instantiation of uploaded code
-    this.codeId   = uploadReceipt.codeId
-    this.codeHash = uploadReceipt.originalChecksum
+    this.#contract.codeId   = uploadReceipt.codeId
+    if (
+      this.#contract.codeHash &&
+      this.#contract.codeHash !== uploadReceipt.originalChecksum
+    ) {
+      console.warn(
+        `@fadroma/ops/Upload: contract already had codeHash set `+
+        `and did not match the result from the upload`
+      )
+    }
+    this.#contract.codeHash = uploadReceipt.originalChecksum
+
     return this.uploadReceipt
+  }
+
+  /** Path to where the result of the upload transaction is stored */
+  get uploadReceiptPath () {
+    const name = `${basename(this.artifact)}.json`
+    return this.chain.uploads.resolve(name)
   }
 }
 

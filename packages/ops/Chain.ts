@@ -61,7 +61,7 @@ export interface Chain extends ChainOptions {
   getAgent (options?: Identity): Promise<Agent>
   getContract<T> (api: new()=>T, address: string, agent: Agent): T
   printIdentities (): void
-  buildAndUpload (contracts: Contract[]): Promise<Contract[]>
+  buildAndUpload (uploader: Agent, contracts: Contract[]): Promise<Contract[]>
 }
 
 export type DefaultIdentity =
@@ -247,15 +247,11 @@ export abstract class BaseChain implements Chain {
   }
 
   async buildAndUpload (
+    uploader:  Agent,
     contracts: Contract[]
-  ): Promise<Contract[]> {
-    for (const contract of Object.values(contracts)) {
-      contract.chain = this
-    }
-    await Promise.all(contracts.map(contract=>contract.buildInDocker()))
-    for (const contract of contracts) {
-      await contract.upload()
-    }
+  ) {
+    await Promise.all(contracts.map(contract=>contract.build()))
+    for (const contract of contracts) { await contract.upload(this, uploader) }
     return contracts
   }
 
