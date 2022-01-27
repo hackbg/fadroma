@@ -28,6 +28,22 @@ export class SNIP20Contract extends AugmentedScrtContract<SNIP20Transactions, SN
       }
     }
   }
+
+  static fromTokenSpec (agent, token: {
+    custom_token: { contract_addr, token_code_hash }
+  } | {
+    native_token: { denom }
+  }): SNIP20Contract_1_0|string {
+    if (token.custom_token) {
+      return new SNIP20Contract({
+        agent,
+        address:  token.custom_token.contract_addr,
+        codeHash: token.custom_token.token_code_hash,
+      })
+    } else if (token.native_token) {
+      return 'SCRT'
+    }
+  }
 }
 
 import { AugmentedScrtContract_1_0 } from '@fadroma/scrt-1.0'
