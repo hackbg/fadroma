@@ -43,7 +43,7 @@ export async function printToken (TOKEN) {
       bold(TOKEN.padEnd(10))
     )
   } else {
-    const {name, symbol} = await TOKEN.q().tokenInfo()
+    const {name, symbol} = await TOKEN.info
     console.info(
       `   `,
       bold(symbol.padEnd(10)),
@@ -53,11 +53,11 @@ export async function printToken (TOKEN) {
   }
 }
 
-export async function printExchanges (OLD_EXCHANGES: any[]) {
+export async function printExchanges (EXCHANGES: any[]) {
   for (const {
     name, EXCHANGE: { codeId, codeHash, address },
     TOKEN_0, TOKEN_1, LP_TOKEN
-  } of OLD_EXCHANGES) {
+  } of EXCHANGES) {
     console.info(
       ' ',
       bold(colors.inverse(name)).padEnd(30), // wat
