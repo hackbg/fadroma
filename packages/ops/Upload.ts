@@ -122,7 +122,7 @@ async function uploadFromFS (
     const receiptData = await readFile(uploadReceiptPath, 'utf8')
 
     console.info(
-      bold(`Not reuploading:`),
+      bold(`Exists:`),
       relative(process.cwd(), uploadReceiptPath)
     )
 

@@ -6,9 +6,9 @@ import {
 const console = Console('@fadroma/ops/Build')
 
 export type BuildEnv = {
-  image?:      string
-  dockerfile?: string
-  script?:     string
+  buildImage?:      string
+  buildDockerfile?: string
+  buildScript?:     string
 }
 
 export type BuildInputs = {
@@ -37,18 +37,14 @@ export type BuildMode = 'raw'|'docker'
 
 export class Builder implements Buildable {
 
+  #contract: Buildable
   constructor (contract: Buildable) {
     this.#contract = contract
   }
 
-  /** Data actually lives here */
-  #contract: Buildable
-
-  /** Except the build internals */
-  mode:       BuildMode = 'docker'
-  image:      string
-  dockerfile: string
-  script:     string
+  get buildImage      () { return this.#contract.buildImage      }
+  get buildDockerfile () { return this.#contract.buildDockerfile }
+  get buildScript     () { return this.#contract.buildScript     }
 
   get repo      () { return this.#contract.repo      }
   get ref       () { return this.#contract.ref       }
@@ -57,9 +53,11 @@ export class Builder implements Buildable {
   get artifact  () { return this.#contract.artifact  }
   get codeHash  () { return this.#contract.codeHash  }
 
+  mode: BuildMode = 'docker'
+
   async build ({ socketPath = '/var/run/docker.sock' } = {}) {
     if (this.mode === 'docker') {
-      this.#contract.artifact = await buildInDocker(new Docker({ socketPath }), this)
+      this.#contract.artifact = await buildInDocker(new Docker({ socketPath }), this.#contract)
     } else if (this.mode === 'raw') {
       this.#contract.artifact = await buildRaw(this)
     } else {
@@ -71,7 +69,7 @@ export class Builder implements Buildable {
 }
 
 /** Build the contract outside Docker.
-  * Assume a standard toolchain is present in the script's enviVronment. */
+  * Assume a standard toolchain is present in the buildScript's environment. */
 async function buildRaw ({
   ref,
   workspace,
@@ -104,7 +102,7 @@ async function buildRaw ({
 /** Build the contract in the default dockerized build environment for its chain.
   * Need access to Docker daemon. */
 export async function buildInDocker (docker: Docker, {
-  image, dockerfile, script,
+  buildImage, buildDockerfile, buildScript,
   workspace, crate, ref = 'HEAD',
 }: Buildable): Promise<string> {
   if (!workspace) {
@@ -117,7 +115,7 @@ export async function buildInDocker (docker: Docker, {
     const outputDir = resolve(workspace, 'artifacts')
     const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
     if (existsSync(artifact)) {
-      console.info(bold(`Not rebuilding:`), relative(process.cwd(), artifact))
+      console.info(bold(`Exists:`), relative(process.cwd(), artifact))
       return artifact
     }
     if (!ref || ref === 'HEAD') {
@@ -151,7 +149,7 @@ export async function buildInDocker (docker: Docker, {
       run('git', 'submodule', 'update', '--init', '--recursive')
     }
     run('git', 'log', '-1')
-    image = await ensureDockerImage(image, dockerfile, docker)
+    buildImage = await ensureDockerImage(buildImage, buildDockerfile, docker)
     const buildCommand = `bash /entrypoint.sh ${crate} ${ref}`
     const buildArgs = {
       Tty:         true,
@@ -163,7 +161,7 @@ export async function buildInDocker (docker: Docker, {
           `${workspace}:/contract:rw`,
 
           // Build command
-          ...(script ? [`${script}:/entrypoint.sh:ro`] : []),
+          ...(buildScript ? [`${buildScript}:/entrypoint.sh:ro`] : []),
 
           // Output
           `${outputDir}:/output:rw`,
@@ -176,22 +174,22 @@ export async function buildInDocker (docker: Docker, {
       Env: [
         'CARGO_NET_GIT_FETCH_WITH_CLI=true',
         'CARGO_TERM_VERBOSE=true',
-        'CARGO_HTTP_TIMEOUT=240'
+        'CARGO_HTTP_TIMEOUT=240',
+        'LOCKED=',//'--locked'
       ]
     }
     console.debug(
-      `Running ${bold(buildCommand)} in ${bold(image)} with the following options:`,
+      `Running ${bold(buildCommand)} in ${bold(buildImage)} with the following options:`,
       buildArgs
     )
-    const [{ Error:err, StatusCode:code }, container] = await docker.run(
-      image,
-      buildCommand,
-      process.stdout,
-      buildArgs
-    )
+    const [{ Error:err, StatusCode:code }, container] =
+      await docker.run(buildImage, buildCommand, process.stdout, buildArgs)
     await container.remove()
     if (err) throw err
-    if (code !== 0) throw new Error(`[@fadroma/ops] Build of ${crate} exited with status ${code}`)
+    if (code !== 0) {
+      console.error(bold('Build of'), crate, 'exited with', bold(code))
+      throw new Error(`[@fadroma/ops/Build] Build of ${crate} exited with status ${code}`)
+    }
     return artifact
   } finally {
     if (tmpDir) rimraf(tmpDir.name)

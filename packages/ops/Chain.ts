@@ -147,6 +147,7 @@ export abstract class BaseChain implements Chain {
   async #init (): Promise<Chain> {
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
+    console.info(bold('Chain ID:'), this.chainId)
     if (node) {
       await this.localnetSetup(node)
     }
@@ -175,21 +176,12 @@ export abstract class BaseChain implements Chain {
     // keep a handle to the node in the chain
     this.node = node
 
-    console.info(
-      bold(`Running on localnet`), this.chainId,
-      bold(`@`), this.stateRoot.path
-    )
-
     // respawn that container
     await node.respawn()
     await node.ready
 
     // set the correct port to connect to
     this.apiURL.port = String(node.port)
-
-    console.info(
-      bold(`Localnet ready @ port`), this.apiURL.port
-    )
 
     // get the default account for the node
     if (typeof this.defaultIdentity === 'string') {

@@ -23,6 +23,10 @@ import {
 } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Contract')
+
+export type ContractConstructor<T extends Contract> =
+  new (args: ContractInfo) => T
+
 /** Extra chunky source of truth about a contract. */
 export class BaseContract implements Contract {
   /** Allow any property to be overriden at construction. */
@@ -35,7 +39,7 @@ export class BaseContract implements Contract {
   buildDockerfile: string|null = null
   /** Script to be executed in the build container. */
   buildScript:     string|null = null
-  /** Build inputs. */
+  /** Build inputs. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   static buildInputs = [ "repo", "ref", "workspace", "crate", ...this.buildEnv ]
   /** Build inputs: TODO allow building contract from external repo. */
   repo?:           string // TODO
@@ -47,13 +51,13 @@ export class BaseContract implements Contract {
   crate?:          string
   /** Build executor. */
   build (...args) { return new Builder(this).build(...args) }
-  /** Build outputs. */
+  /** Build outputs. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   static buildOutputs = [ "artifact", "codeHash" ]
   /** Build outputs: Path to compiled WASM blob. */
   artifact?:       string
   /** Build outputs: SHA256 checksum of the uncompressed blob. */
   codeHash?:       string
-  /** Upload inputs. */
+  /** Upload inputs. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   static uploadInputs = [ "artifact", "codeHash", "chain", "uploader" ]
   /** Upload inputs: Target chain. */
   chain?:          Chain
@@ -61,11 +65,11 @@ export class BaseContract implements Contract {
   uploader?:       Agent
   /** Upload inputs: Upload executor. */
   upload (...args) { return new Uploader(this).upload(...args) }
-  /** Upload outputs. */
+  /** Upload outputs. ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   static uploadOutputs = [ "uploadReceipt", "codeId" ]
-  /** Result of upload transaction. */
+  /** Upload outputs: Result of upload transaction. */
   uploadReceipt?:  UploadReceipt
-  /** On-chain id of uploaded code. */
+  /** Upload outputs: On-chain id of uploaded code. */
   codeId?:         number
   /** Code ID + code hash pair in Sienna Swap Factory format */
   get template () { return { id: this.codeId, code_hash: this.codeHash } }

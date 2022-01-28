@@ -43,7 +43,7 @@ export class Fadroma {
 
   chains = CHAINS
 
-  chainId = process.env.FADROMA_CHAIN
+  chainId = process.env.FADROMA_CHAIN || 'localnet-1.2'
 
   /** Establish correspondence between an input command
     * and a series of procedures to execute */
@@ -70,7 +70,7 @@ export class Fadroma {
 
   // Is this a monad?
   private async runCommand (commandName: string, stages: Command<any>[], cmdArgs?: string[]): Promise<any> {
-    requireChainId(this.chainId)
+    requireChainId(this.chainId, this.chains)
     const { chain, admin } = await init(this.chains, this.chainId)
     let context: MigrationContext = {
       chain,
@@ -102,7 +102,8 @@ export class Fadroma {
       // Every stage refreshes the context
       // by adding its outputs to it.
       const T1 = + new Date()
-      context = { ...context, ...await stage({ ...context }) }
+      const updates = await stage({ ...context })
+      context = { ...context, ...updates }
       const T2 = + new Date()
       if (name) {
         console.info(bold(name), 'took', T2-T1, 'msec')
@@ -118,10 +119,10 @@ export class Fadroma {
 
 }
 
-function requireChainId (id: any) {
+function requireChainId (id, chains) {
   if (!id) {
     console.log('Please set your FADROMA_CHAIN environment variable to one of the following:')
-    console.log('  '+Object.keys(this.chains).sort().join('\n  '))
+    console.log('  '+Object.keys(chains).sort().join('\n  '))
     // TODO if interactive, display a selector which exports it for the session
     process.exit(1)
   }

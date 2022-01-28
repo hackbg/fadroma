@@ -1,41 +1,31 @@
 import {
-  Console, resolve, bold, writeFileSync, relative, timestamp, backOff
+  Console, resolve, bold, writeFileSync, relative, timestamp, backOff, cwd
 } from '@hackbg/tools'
 
-import type { Contract, InitReceipt } from './Contract'
+import type { Contract, ContractConstructor } from './Contract'
 import type { Agent } from './Agent'
 import type { Chain } from './Chain'
 import type { ContractMessage } from './Core'
 
-const console = Console('@fadroma/ops/Deployment')
-
-export type ContractConstructor<T extends Contract> =
-  new (args: ContractConstructorArguments) => T
-
-export type ContractConstructorArguments = {
-  address?:  string
-  codeHash?: string
-  codeId?:   number
-  admin?:    Agent,
-  prefix?:   string
-}
+const console = Console('@fadroma/ops/Deploy')
 
 export type ContractInitOptions = {
+  /** The chain on which this contract exists. */
+  chain?:    Chain
+  codeId?:   number
+  codeHash?: string
   /** The on-chain address of this contract instance */
-  chain?:        Chain
-  address?:      string
-  codeHash?:     string
-  codeId?:       number
+  address?:  string
 
-  prefix?:       string
-  name?:         string
-  suffix?:       string
+  prefix?: string
+  name?:   string
+  suffix?: string
 
   /** The agent that initialized this instance of the contract. */
-  creator?:      Agent
-  initMsg?:      any
-  initTx?:       InitTX
-  initReceipt?:  InitReceipt
+  creator?:     Agent
+  initMsg?:     any
+  initTx?:      InitTX
+  initReceipt?: InitReceipt
 }
 
 export interface ContractInit extends ContractInitOptions {
@@ -49,10 +39,12 @@ export interface ContractInit extends ContractInitOptions {
 }
 
 export type InitTX = {
+  txhash:          string
   contractAddress: string
   data:            string
   logs:            Array<any>
-  transactionHash: string
+  transactionHash: string,
+  gas_used:        string
 }
 
 export type InitReceipt = {
@@ -133,13 +125,11 @@ export class Deployment {
     })
     // ugly hack to save contract.
     // TODO inherit Deployment from Directory, make it create itself
-    console.info(
-      bold('Saving receipt for contract:'),
-      contract.label,
-    )
     let dir = contract.chain.deployments
     dir = dir.subdir(contract.prefix).make()// ugh hahaha so thats where the mkdir was
     const receipt = `${contract.name}${contract.suffix||''}.json` 
+    console.info(bold('Wrote'), relative(cwd(), dir.resolve(receipt)))
+    console.info(bold(`${contract.initTx.gas_used}`), 'uscrt gas used')
     dir.save(receipt, JSON.stringify(contract.initReceipt, null, 2))
     return contract.initReceipt
   }
@@ -165,6 +155,7 @@ export class Deployment {
     Contract: ContractConstructor<T>,
     name:     string,
   ): T {
+    console.log()
     console.info(
       bold('Looking for contract'), Contract.name,
       bold('named'),                name,
@@ -172,8 +163,7 @@ export class Deployment {
     )
     const receipt = this.receipts[name]
     if (receipt) {
-      const contract = new Contract({})
-      contract.agent = agent
+      const contract = new Contract({agent})
       this.populate(contract, receipt)
       return contract
     } else {
@@ -197,7 +187,7 @@ export class Deployment {
     const contracts = []
     for (const [name, receipt] of Object.entries(this.receipts)) {
       if (name.includes(fragment)) {
-        const contract = new Contract({})
+        const contract = new Contract({agent})
         this.populate(contract, receipt)
         contracts.push(contract)
       }
@@ -367,7 +357,8 @@ export async function instantiateContract (
   contract: Contract,
   initMsg:  any = contract.initMsg
 ): Promise<InitTX> {
-  console.info(bold('Creating:'), contract.codeId, contract.label)
+  console.log()
+  console.info(bold('Init:'), contract.codeId, contract.label)
   initMsg = { ...contract.initMsg || {}, ...initMsg }
   printAligned(initMsg)
   if (contract.address) {
@@ -401,7 +392,7 @@ export async function instantiateContract (
 }
 
 function printAligned (obj: Record<string, any>) {
-  const maxKey = Math.max(...Object.keys(obj).map(x=>x.length), 20)
+  const maxKey = Math.max(...Object.keys(obj).map(x=>x.length), 15)
   for (let [key, val] of Object.entries(obj)) {
     if (typeof val === 'object') val = JSON.stringify(val)
     val = String(val)

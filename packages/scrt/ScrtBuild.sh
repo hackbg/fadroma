@@ -27,8 +27,9 @@ echo "Building $Package..."
 cd /contract
 Output=`echo "$Package" | tr '-' '_'`
 FinalOutput="$Package@$Ref.wasm"
+LOCKED=
 su build -c "env RUSTFLAGS='-C link-arg=-s' \
-  cargo build -p $Package --release --target wasm32-unknown-unknown --locked --verbose \
+  cargo build -p $Package --release --target wasm32-unknown-unknown $LOCKED --verbose \
   && wasm-opt -Oz ./target/wasm32-unknown-unknown/release/$Output.wasm -o /output/$FinalOutput \
   && cd /output/ && sha256sum -b $FinalOutput > $FinalOutput.sha256"
 

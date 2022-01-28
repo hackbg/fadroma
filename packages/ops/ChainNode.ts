@@ -132,7 +132,7 @@ export abstract class BaseChainNode implements ChainNode {
     port:        number|string
   } | null {
 
-    const path = bold(relative(cwd(), this.nodeState.path))
+    const path = relative(cwd(), this.nodeState.path)
 
     if (this.stateRoot.exists() && this.nodeState.exists()) {
 
@@ -260,11 +260,6 @@ export abstract class DockerizedChainNode extends BaseChainNode {
   }
 
   async respawn () {
-    console.info(
-      bold(`Trying to respawn localnet from`),
-      this.nodeState.path
-    )
-
     // if no node state, spawn
     if (!this.nodeState.exists()) {
       console.info(`No localnet found at ${bold(this.nodeState.path)}`)
@@ -299,11 +294,21 @@ export abstract class DockerizedChainNode extends BaseChainNode {
     // if not running, RESPAWN
     if (!running) this.startContainer(id)
     // ...and try to make sure it dies when the Node process dies
-    //process.on('beforeExit', () => { this.killContainer(id) })
+    process.on('beforeExit', () => {
+      if (process.env.FADROMA_EPHEMERAL) {
+        this.killContainer(id)
+      } else {
+        console.log()
+        console.info(
+          bold('Deployed in container'), this.container.id,
+          bold('port'), this.port
+        )
+      }
+    })
     // if running, do nothing
-    console.info(
-      bold(`Localnet already running`)
-    )
+    //console.info(
+      //bold(`Localnet already running`)
+    //)
   }
 
   /** Spawn a new localnet instance from scratch */
