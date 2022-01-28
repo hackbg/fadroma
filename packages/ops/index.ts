@@ -54,10 +54,11 @@ export async function printToken (TOKEN) {
 }
 
 export async function printExchanges (EXCHANGES: any[]) {
-  for (const {
-    name, EXCHANGE: { codeId, codeHash, address },
-    TOKEN_0, TOKEN_1, LP_TOKEN
-  } of EXCHANGES) {
+  for (const EXCHANGE of EXCHANGES) {
+    const {
+      name, EXCHANGE: { codeId, codeHash, address },
+      TOKEN_0, TOKEN_1, LP_TOKEN
+    } = EXCHANGE
     console.info(
       ' ',
       bold(colors.inverse(name)).padEnd(30), // wat
