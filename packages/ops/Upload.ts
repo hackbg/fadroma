@@ -1,5 +1,6 @@
 import {
-  Console, basename, bold, relative, existsSync, mkdir, readFile, writeFile
+  Console, basename, bold, relative,
+  existsSync, mkdir, readFile, writeFile, JSONDirectory
 } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Upload')
@@ -7,16 +8,8 @@ const console = Console('@fadroma/ops/Upload')
 import type { Chain } from './Chain'
 import type { Agent } from './Agent'
 
-export type UploadEnv = {
-  chain?:         Chain
-  uploader?:      Agent
-}
-
-export type UploadInputs = {
-  artifact?:      string
-  codeHash?:      string
-}
-
+export type UploadEnv     = { chain?: Chain; uploader?: Agent }
+export type UploadInputs  = { artifact?: string; codeHash?: string }
 export type UploadOutputs = {
   uploadReceipt?: UploadReceipt
   codeHash?:      string
@@ -116,37 +109,52 @@ async function uploadFromFS (
   forceReupload = false
   // TODO: flag to force reupload
 ) {
-
   if (existsSync(uploadReceiptPath) && !forceReupload) {
-
     const receiptData = await readFile(uploadReceiptPath, 'utf8')
-
     console.info(
       bold(`Exists:`),
       relative(process.cwd(), uploadReceiptPath)
     )
-
     return JSON.parse(receiptData)
-
   } else {
-
     console.info(bold(`Uploading`), artifact)
-
     const uploadResult = await uploader.upload(artifact)
     const receiptData  = JSON.stringify(uploadResult, null, 2)
     const elements     = uploadReceiptPath.slice(1, uploadReceiptPath.length).split('/');
-
     let path = `/`
     for (const item of elements) {
       if (!existsSync(path)) mkdir(path)
       path += `/${item}`
     }
-
     await writeFile(uploadReceiptPath, receiptData, 'utf8')
-
     await uploader.nextBlock
     return uploadResult
-
   }
+}
 
+export class Uploads extends JSONDirectory {
+  /** List of code blobs in human-readable form */
+  table () {
+    const rows = []
+    // uploads table - lists code blobs
+    rows.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
+    if (this.exists()) {
+      for (const name of this.list()) {
+        const {
+          codeId,
+          originalSize,
+          compressedSize,
+          originalChecksum,
+          compressedChecksum,
+        } = this.load(name)
+        rows.push([
+          `  ${codeId}`,
+          `${bold(name)}\ncompressed:\n`,
+          `${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,
+          `${originalChecksum}\n${compressedChecksum}`
+        ])
+      }
+    }
+    return rows.sort((x,y)=>x[0]-y[0])
+  }
 }

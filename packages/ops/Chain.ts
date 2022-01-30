@@ -7,22 +7,14 @@ import {
 
 import { URL } from 'url'
 
-import type { Identity } from './Core'
-import type { ChainNode } from './ChainNode'
+import { Identity } from './Core'
+import { ChainNode } from './ChainNode'
 import { Agent, AgentConstructor, BaseAgent } from './Agent'
-import type { ContractBuild } from './Build'
-import type { ContractUpload } from './Upload'
-import type { Contract } from './Contract'
-import type { ContractConstructor } from './Deployment'
-import { DeploymentDir } from './Deployment'
+import { Contract } from './Contract'
+import { Deployments } from './Deployment'
+import { Uploads } from './Upload'
 
 const console = Console('@fadroma/ops/Chain')
-
-export type DefaultIdentity =
-  null |
-  string |
-  { name?: string, address?: string, mnemonic?: string } |
-  Agent
 
 export interface ChainOptions {
   chainId?: string
@@ -33,19 +25,15 @@ export interface ChainOptions {
   defaultIdentity?: DefaultIdentity
 }
 
+export type DefaultIdentity =
+  null |
+  string |
+  { name?: string, address?: string, mnemonic?: string } |
+  Agent
+
 export interface ChainConnectOptions extends ChainOptions {
   apiKey?:     string
   identities?: Array<string>
-}
-
-export interface ChainState extends ChainOptions {
-  readonly isMainnet?:  boolean
-  readonly isTestnet?:  boolean
-  readonly isLocalnet?: boolean
-  readonly stateRoot?:  string
-  readonly identities?: string
-  readonly uploads?:    string
-  readonly instances?:  string
 }
 
 export interface Chain extends ChainOptions {
@@ -54,45 +42,22 @@ export interface Chain extends ChainOptions {
   readonly isLocalnet?:  boolean
   readonly url:          string
   readonly ready:        Promise<this>
-  readonly stateRoot?:   Directory
+  readonly stateRoot?:   string|Directory
   readonly identities?:  Directory
   readonly uploads?:     Directory
-  readonly deployments?: DeploymentDir
-  getAgent (options?: Identity): Promise<Agent>
-  getContract<T> (api: new()=>T, address: string, agent: Agent): T
+  readonly deployments?: Deployments
+  Agent:          AgentConstructor
+  getAgent        (options?: Identity): Promise<Agent>
+  getContract <T> (api: new()=>T, address: string, agent: Agent): T
   printIdentities (): void
-  buildAndUpload (uploader: Agent, contracts: Contract[]): Promise<Contract[]>
+  buildAndUpload  (uploader: Agent, contracts: Contract[]): Promise<Contract[]>
 }
 
-export type DefaultIdentity =
-  null |
-  string |
-  { name?: string, address?: string, mnemonic?: string } |
-  Agent
-
-/* Represents an interface to a particular Cosmos blockchain.
- * Used to construct `Agent`s and `Contract`s that are
- * bound to a particular chain. */
+/** Represents an interface to a particular Cosmos blockchain.
+  * Used to construct `Agent`s and `Contract`s that are
+  * bound to a particular chain. Can store identities and
+  * results of contract uploads/inits. */
 export abstract class BaseChain implements Chain {
-
-  apiURL:      URL
-
-  /**The API URL that this instance talks to.
-   * @type {string} */
-  get url () { return this.apiURL.toString() }
-
-  chainId:     string
-  node?:       ChainNode
-  isMainnet?:  boolean
-  isTestnet?:  boolean
-  isLocalnet?: boolean
-
-  /** Interface to a Secret Network REST API endpoint.
-   *  Can store identities and results of contract uploads/inits.
-   * @constructor
-   * @param {Object} options           - the configuration options
-   * @param {string} options.chainId   - the internal ID of the chain running at that endpoint
-   * TODO document the remaining options */
   constructor ({
     apiURL    = new URL('http://localhost:1337'),
     node      = null,
@@ -103,7 +68,7 @@ export abstract class BaseChain implements Chain {
     isLocalnet,
     Agent,
     defaultIdentity,
-  }: ChainState = {}) {
+  }: Chain) {
     this.apiURL     = apiURL
     this.chainId    = chainId
     this.isMainnet  = isMainnet
@@ -117,31 +82,25 @@ export abstract class BaseChain implements Chain {
     }
 
     // directories to store state
-    this.stateRoot   = new Directory(stateRoot)
-    this.identities  = new JSONDirectory(stateRoot, 'identities')
-    this.uploads     = new UploadDir(stateRoot, 'uploads')
-    this.deployments = new DeploymentDir(stateRoot, 'deployments')
-
+    if (typeof stateRoot === 'string') {
+      this.stateRoot = new Directory(stateRoot)
+    }
+    this.identities  = new JSONDirectory(this.stateRoot.path, 'identities')
+    this.uploads     = new Uploads(this.stateRoot.path, 'uploads')
+    this.deployments = new Deployments(this.stateRoot.path, 'deployments')
     if (Agent) {
       this.Agent = Agent
     }
-
     if (defaultIdentity) {
       this.defaultIdentity = defaultIdentity
     }
   }
 
-  /** Stuff that should be in the constructor but is asynchronous.
-    * FIXME: How come nobody has proposed sugar for async constructors yet?
-    * Feeling like writing a `@babel/plugin-async-constructor`, as always
-    * bonus internet points for whoever beats me to it. */
+  #ready: Promise<any>|null = null
   get ready () {
     if (this.#ready) return this.#ready
     return this.#ready = this.#init()
   }
-
-  #ready: Promise<any>|null = null
-
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
   async #init (): Promise<Chain> {
@@ -149,40 +108,29 @@ export abstract class BaseChain implements Chain {
     const node = await Promise.resolve(this.node)
     console.info(bold('Chain ID:'), this.chainId)
     if (node) {
-      await this.localnetSetup(node)
+      await this.initLocalnet(node)
     }
     const { protocol, hostname, port } = this.apiURL
-
     console.info(
       bold(`Connecting to`), this.chainId,
       bold(`via`), protocol,
       bold(`on`), `${hostname}:${port}`
     )
-
     if (this.defaultIdentity) {
-      // default credentials will be used as-is unless using localnet
-      const { mnemonic, address } = this.defaultIdentity
-      this.defaultIdentity = await this.getAgent({ name: "ADMIN", mnemonic, address })
-      console.info(
-        `${bold('Default identity:')} ${address}`
-      )
+      this.defaultIdentity = await this.getAgent({
+        name: "ADMIN", ...this.defaultIdentity as object
+      })
     }
-
     return this as Chain
   }
-
-  private async localnetSetup (node: ChainNode) {
-
+  private async initLocalnet (node: ChainNode) {
     // keep a handle to the node in the chain
     this.node = node
-
     // respawn that container
     await node.respawn()
     await node.ready
-
     // set the correct port to connect to
     this.apiURL.port = String(node.port)
-
     // get the default account for the node
     if (typeof this.defaultIdentity === 'string') {
       try {
@@ -191,7 +139,35 @@ export abstract class BaseChain implements Chain {
         console.warn(`Could not load default identity ${this.defaultIdentity}: ${e.message}`)
       }
     }
+  }
 
+  apiURL:      URL
+
+  /**The API URL that this instance talks to.
+   * @type {string} */
+  get url () { return this.apiURL.toString() }
+
+  chainId:     string
+  node?:       ChainNode
+
+  isMainnet?:  boolean
+  isTestnet?:  boolean
+  isLocalnet?: boolean
+
+  Agent: AgentConstructor
+
+  /** Credentials of the default agent for this network. */
+  defaultIdentity?: DefaultIdentity
+
+  /** create agent operating on the current instance's endpoint*/
+  async getAgent (identity: string|Identity = this.defaultIdentity): Promise<Agent> {
+    if (identity instanceof BaseAgent) {
+      return await this.Agent.create(identity)
+    }
+    if (typeof identity === 'string' && this.node) {
+      identity = this.node.genesisAccount(identity)
+    }
+    return await this.Agent.create({ ...identity, chain: this as Chain })
   }
 
   /** This directory contains all the others. */
@@ -200,9 +176,6 @@ export abstract class BaseChain implements Chain {
   /** This directory stores all private keys that are available for use. */
   identities: Directory
 
-  /** Credentials of the default agent for this network. */
-  defaultIdentity?: DefaultIdentity
-
   printIdentities () {
     console.log('\nAvailable identities:')
     for (const identity of this.identities.list()) {
@@ -210,22 +183,16 @@ export abstract class BaseChain implements Chain {
     }
   }
 
-  Agent: AgentConstructor
-
-  /** Get an Agent that works with this Chain. */
-  abstract getAgent (options?: Identity): Promise<Agent>
-
   /** This directory stores receipts from the upload transactions,
     * containing provenance info for uploaded code blobs. */
-  uploads:     UploadDir
+  uploads:     Uploads
 
   /** This directory stores receipts from the instantiation (init) transactions,
     * containing provenance info for initialized contract deployments.
     *
     * NOTE: the current domain vocabulary considers initialization and instantiation,
     * as pertaining to contracts on the blockchain, to be the same thing. */
-  deployments: DeploymentDir
-
+  deployments: Deployments
   /** Create contract instance from interface class and address */
   getContract (
     Contract:        any,
@@ -243,45 +210,10 @@ export abstract class BaseChain implements Chain {
     contracts: Contract[]
   ) {
     await Promise.all(contracts.map(contract=>contract.build()))
-    for (const contract of contracts) { await contract.upload(this, uploader) }
-    return contracts
-  }
-
-}
-
-export class UploadDir extends JSONDirectory {
-
-  /** List of code blobs in human-readable form */
-  table () {
-
-    const rows = []
-
-    // uploads table - lists code blobs
-    rows.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
-
-    if (this.exists()) {
-      for (const name of this.list()) {
-
-        const {
-          codeId,
-          originalSize,
-          compressedSize,
-          originalChecksum,
-          compressedChecksum,
-        } = this.load(name)
-
-        rows.push([
-          `  ${codeId}`,
-          `${bold(name)}\ncompressed:\n`,
-          `${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,
-          `${originalChecksum}\n${compressedChecksum}`
-        ])
-
-      }
+    for (const contract of contracts) {
+      await contract.upload(this, uploader)
     }
-
-    return rows.sort((x,y)=>x[0]-y[0])
-
+    return contracts
   }
 
 }
@@ -293,14 +225,11 @@ export async function init (
   chainName: string,
 ): Promise<{ chain: Chain, admin: Agent }> {
   let chain: Chain
-  let admin: Agent
-  if (!chainName || !Object.keys(CHAINS).includes(chainName)) {
-    console.log(`\nSelect target chain:`)
-    for (const chain of Object.keys(CHAINS)) console.log(`  ${bold(chain)}`)
-    process.exit(0)
+  if (!CHAINS[chainName]) {
+    throw new Error(`${bold(`"${chainName}":`)} not a valid chain name`)
   }
-  chain = CHAINS[chainName]()
-  chain = await chain.ready
+  chain = await CHAINS[chainName]().ready
+  let admin: Agent
   try {
     if (chain.defaultIdentity instanceof BaseAgent) {
       admin = chain.defaultIdentity
@@ -311,18 +240,15 @@ export async function init (
       bold(`Commence activity on`), chainName, `(${chain.chainId})`,
       bold('as'), admin.address
     )
-    const initialBalance = await admin.balance
-    console.info(bold(`Balance:`), initialBalance, `uscrt`)
-    //process.on('beforeExit', async () => {
-      //const finalBalance = await admin.balance
-      //console.info(`Initial balance: ${bold(initialBalance)}uscrt`)
-      //console.info(`Final balance: ${bold(finalBalance)}uscrt`)
-      //console.info(`Consumed gas: ${bold(String(initialBalance - finalBalance))}uscrt`)
-      //process.exit(0)
-    //})
-    //
+    try {
+      const initialBalance = await admin.balance
+      console.info(bold(`Balance:`), initialBalance, `uscrt`)
+    } catch (e) {
+      console.warn(bold(`Could not fetch balance:`), e.message)
+    }
   } catch (e) {
-    console.warn(`Could not get an agent for ${chainName}: ${e.message}`)
+    console.error(bold(`Could not get an agent for ${chainName}:`), e.message)
+    throw e
   }
   return { chain, admin }
 }

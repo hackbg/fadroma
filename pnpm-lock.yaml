@@ -75,11 +75,13 @@ importers:
       '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
       '@hackbg/tools': ^1
+      '@iov/encoding': ^2.1.0
       secretjs: 0.17.5
     dependencies:
       '@cosmjs/crypto': 0.20.1
       '@fadroma/ops': link:../ops
       '@hackbg/tools': 1.0.0
+      '@iov/encoding': 2.5.0
       secretjs: 0.17.5
 
   packages/scrt-1.0:
@@ -499,7 +501,7 @@ packages:
     dependencies:
       '@ganesha/node': 2.0.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.12
+      '@types/node': 17.0.13
       cross-spawn: 7.0.3
 
   /@hackbg/kabinet/1.0.0:
@@ -730,6 +732,10 @@ packages:
 
   /@types/node/17.0.12:
     resolution: {integrity: sha512-4YpbAsnJXWYK/fpTVFlMIcUIho2AYCi4wg5aNPrG1ng7fn/1/RZfCIpRCiBX+12RVa34RluilnvCqD+g3KiSiA==}
+    dev: false
+
+  /@types/node/17.0.13:
+    resolution: {integrity: sha512-Y86MAxASe25hNzlDbsviXl8jQHb0RDvKt4c40ZJQ1Don0AAL0STLZSs4N+6gLEO55pedy7r2cLwS+ZDxPm/2Bw==}
 
   /@types/prettier/2.4.1:
     resolution: {integrity: sha512-Fo79ojj3vdEZOHg3wR9ksAMRz4P3S5fDB5e/YWZiFnyFQI1WY2Vftu9XoXVVtJfxB7Bpce/QTqWSSntkz2Znrw==}

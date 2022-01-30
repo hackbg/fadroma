@@ -43,7 +43,7 @@ export class Fadroma {
 
   chains = CHAINS
 
-  chainId = process.env.FADROMA_CHAIN || 'localnet-1.2'
+  chainId = process.env.FADROMA_CHAIN
 
   /** Establish correspondence between an input command
     * and a series of procedures to execute */
@@ -92,8 +92,12 @@ export class Fadroma {
     const T0 = + new Date()
     // Composition of commands via stages:
     for (const stage of stages) {
+      if (!stage) {
+        console.warn(bold('Empty stage in command'), commandName)
+        continue
+      }
       console.log()
-      const name = stage.name || commandName
+      const name = stage.name
       if (name) {
         console.info(bold('Running command:'), name)
       } else {

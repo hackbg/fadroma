@@ -1,11 +1,4 @@
-import {
-  BaseContract, buildScript,
-  resolve, dirname, fileURLToPath,
-} from '@fadroma/scrt'
-
-import {
-  AugmentedScrtContract, TransactionExecutor, QueryExecutor
-} from '@fadroma/scrt/ScrtContract.ts'
+import { buildScript, resolve, dirname, fileURLToPath, } from '@fadroma/scrt'
 
 const
   __dirname       = dirname(fileURLToPath(import.meta.url)),
@@ -14,16 +7,14 @@ const
 
 export { buildImage, buildDockerfile }
 
+import { BaseContract } from '@fadroma/scrt'
 export class ScrtContract_1_0 extends BaseContract {
   buildImage      = buildImage
   buildDockerfile = buildDockerfile
   buildScript     = buildScript
 }
-
-export class AugmentedScrtContract_1_0<
-  Executor extends TransactionExecutor,
-  Querier  extends QueryExecutor
-> extends AugmentedScrtContract<Executor, Querier> {
+import { AugmentedScrtContract } from '@fadroma/scrt'
+export class AugmentedScrtContract_1_0<T, Q> extends AugmentedScrtContract<T, Q> {
   buildImage      = buildImage
   buildDockerfile = buildDockerfile
   buildScript     = buildScript

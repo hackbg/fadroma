@@ -58,35 +58,41 @@ export async function createNewDeployment ({ chain, cmdArgs = [] }) {
   const [ prefix = timestamp() ] = cmdArgs
   await chain.deployments.create(prefix)
   await chain.deployments.select(prefix)
-  return needsActiveDeployment({ chain })
+  return needsDeployment({ chain })
 }
 
-export function needsActiveDeployment ({ chain }): {
+export async function selectDeployment ({ chain, cmdArgs: [ id ] }) {
+  const list = chain.deployments.list()
+  if (list.length < 1) {
+    console.log('\nNo deployments. Create one with `deploy new`')
+  }
+  if (id) {
+    await chain.deployments.select(id)
+  } else if (list.length > 0) {
+    console.log(`\nKnown deployments:`)
+    for (let instance of chain.deployments.list()) {
+      if (instance === chain.deployments.active.name) instance = bold(instance)
+      console.log(`  ${instance}`)
+    }
+  }
+  chain.deployments.printActive()
+}
+
+const byCodeID = ([_, x],[__,y]) => (x.codeId > y.codeId)?1:(x.codeId < y.codeId)?-1:0
+export function needsDeployment ({ chain }): {
   deployment: Deployment|undefined,
   prefix:     string|undefined
 } {
   const deployment = chain.deployments.active
   const prefix     = deployment?.prefix
-  if (deployment) {
-    console.info(bold('Active deployment:'), deployment.prefix)
-    const contracts = Object.values(deployment.receipts).length
-    if (contracts === 0) {
-      console.info(bold('This is a clean deployment.'))
-    } else {
-      console.info(bold('This deployment contains'), contracts, 'contracts')
-      const byCodeID = ([_, x],[__,y]) => (x.codeId > y.codeId)?1:(x.codeId < y.codeId)?-1:0
-      for (
-        const [name, {codeId, initTx:{contractAddress}}] of
-        Object.entries(deployment.receipts).sort(byCodeID)
-      ) {
-        console.info(bold(String(codeId).padStart(8)), contractAddress, bold(name))
-      }
-    }
+  if (!deployment) {
+    const join = (...x:any[]) => x.map(String).join(' ')
+    console.info(` `, chain.deployments.list())
+    console.error(join(bold('No active deployment on chain:'), chain.chainId))
+    process.exit(1)
   }
-  return {
-    deployment,
-    prefix
-  }
+  deployment.printStatus()
+  return { deployment, prefix }
 }
 
 export class Deployment {
@@ -96,6 +102,38 @@ export class Deployment {
     public readonly path:   string,
     public readonly receipts: Record<string, any>
   ) {}
+
+  printStatus () {
+    const { receipts, prefix } = this
+    const contracts = Object.values(receipts).length
+    console.info(
+      bold('Active deployment:'),
+      prefix,
+      contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+    )
+    if (contracts > 0) {
+      for (
+        const [name, receipt] of
+        Object.entries(receipts).sort(byCodeID)
+      ) {
+        if (receipt.initTx) {
+          console.info(
+            bold(String(receipt.codeId||'n/a').padStart(12)),
+            receipt.initTx.contractAddress,
+            bold(name)
+          )
+        } else {
+          if (receipt.exchange) {
+            console.warn(
+              bold('???'.padStart(12)),
+              '(non-standard receipt)'.padStart(45),
+              bold(name)
+            )
+          }
+        }
+      }
+    }
+  }
 
   private populate (contract: Contract, receipt: InitReceipt) {
     contract.prefix      = this.prefix
@@ -157,9 +195,9 @@ export class Deployment {
   ): T {
     console.log()
     console.info(
-      bold('Looking for contract'), Contract.name,
-      bold('named'),                name,
-      bold('in deployment'),        this.prefix
+      bold('Get contract'),  Contract.name,
+      bold('named'),         name,
+      bold('in deployment'), this.prefix
     )
     const receipt = this.receipts[name]
     if (receipt) {
@@ -180,9 +218,9 @@ export class Deployment {
     fragment: string,
   ): T[] {
     console.info(
-      bold('Looking for contracts of type'), Contract.name,
-      bold('named like'),                    fragment,
-      bold('in deployment'),                 this.prefix
+      bold('Get contracts of type'), Contract.name,
+      bold('named like'),            fragment,
+      bold('in deployment'),         this.prefix
     )
     const contracts = []
     for (const [name, receipt] of Object.entries(this.receipts)) {
@@ -236,7 +274,7 @@ import {
   Directory
 } from '@hackbg/tools'
 
-export class DeploymentDir extends Directory {
+export class Deployments extends Directory {
 
   KEY = '.active'
 
@@ -322,7 +360,7 @@ export class DeploymentDir extends Directory {
   save (name: string, data: any) {
     name = `${name}.json`
     console.info(
-      bold('DeploymentDir writing:'), relative(process.cwd(), this.resolve(name))
+      bold('Deployments writing:'), relative(process.cwd(), this.resolve(name))
     )
     if (data instanceof Object) {
       data = JSON.stringify(data, null, 2)

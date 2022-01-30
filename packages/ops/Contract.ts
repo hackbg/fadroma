@@ -8,7 +8,7 @@ export type ContractInfo = BuildInfo & UploadInfo & InitInfo
 
 import { Agent, BaseAgent, isAgent } from './Agent'
 import { Chain, BaseChain } from './Chain'
-import { Deployment, DeploymentDir } from './Deployment'
+import { Deployment, Deployments } from './Deployment'
 import { Builder  } from './Build'
 import { Uploader } from './Upload'
 

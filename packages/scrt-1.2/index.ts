@@ -9,6 +9,8 @@ import { DockerizedScrtNode_1_2 } from './DockerizedScrtNode_1_2'
 import { ChainConnectOptions } from '@fadroma/ops'
 import { Scrt } from '@fadroma/scrt'
 
+import { URL } from 'url'
+
 const {
   SCRT_API_URL,
   SCRT_AGENT_NAME,
@@ -40,6 +42,27 @@ export const Chains = {
       chainId = 'secret-3',
       apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
       apiURL  = new URL(SCRT_API_URL||`https://secret-3--lcd--full.datahub.figment.io/apikey/${apiKey}/`),
+      defaultIdentity = {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS,
+        mnemonic: SCRT_AGENT_MNEMONIC
+      }
+    } = options
+    return new Scrt({
+      isMainnet: true,
+      chainId,
+      apiURL,
+      defaultIdentity,
+      Agent: ScrtAgentJS_1_2
+    })
+  },
+
+  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
+  ['secret-4'] (options: ChainConnectOptions = {}): Scrt {
+    const {
+      chainId = 'secret-4',
+      apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+      apiURL  = new URL(SCRT_API_URL||`https://secret-4--lcd--full.datahub.figment.io/apikey/${apiKey}/`),
       defaultIdentity = {
         name:     SCRT_AGENT_NAME,
         address:  SCRT_AGENT_ADDRESS,
