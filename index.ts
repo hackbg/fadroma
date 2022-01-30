@@ -47,7 +47,7 @@ export class Fadroma {
 
   /** Establish correspondence between an input command
     * and a series of procedures to execute */
-  command (name: string, ...stages: Command<any>[]) {
+  command (name: string, ...steps: Command<any>[]) {
     const fragments = name.trim().split(' ')
     let commands: any = this.commands
     for (let i = 0; i < fragments.length; i++) {
@@ -58,7 +58,7 @@ export class Fadroma {
       }
       // descend or reach bottom
       if (i === fragments.length-1) {
-        commands[fragments[i]] = (cmdArgs: string[]) => this.runCommand(name, stages, cmdArgs)
+        commands[fragments[i]] = (...cmdArgs: string[]) => this.runCommand(name, steps, cmdArgs)
       } else {
         commands = commands[fragments[i]]
       }
@@ -69,7 +69,8 @@ export class Fadroma {
   commands: Commands = {}
 
   // Is this a monad?
-  private async runCommand (commandName: string, stages: Command<any>[], cmdArgs?: string[]): Promise<any> {
+  private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
+    console.log('runCommand', {cmdArgs})
     requireChainId(this.chainId, this.chains)
     const { chain, admin } = await init(this.chains, this.chainId)
     let context: MigrationContext = {
@@ -90,34 +91,35 @@ export class Fadroma {
       },
     }
     const T0 = + new Date()
-    // Composition of commands via stages:
-    for (const stage of stages) {
-      if (!stage) {
-        console.warn(bold('Empty stage in command'), commandName)
+    // Composition of commands via steps:
+    for (const step of steps) {
+      if (!step) {
+        console.warn(bold('Empty step in command'), commandName)
         continue
       }
       console.log()
-      const name = stage.name
+      const name = step.name
       if (name) {
-        console.info(bold('Running command:'), name)
+        console.info(bold('Running build step:'), name)
       } else {
-        console.warn(bold('Running nameless command. Please define commands as named functions.'))
+        console.warn(bold('Running nameless build step. Please define build steps as named functions.'))
       }
-      // Every stage refreshes the context
+      // Every step refreshes the context
       // by adding its outputs to it.
       const T1 = + new Date()
-      const updates = await stage({ ...context })
+      const updates = await step({ ...context })
       context = { ...context, ...updates }
       const T2 = + new Date()
+      console.log()
       if (name) {
-        console.info(bold(name), 'took', T2-T1, 'msec')
+        console.info(`Build step`, bold(name), 'took', T2-T1, 'msec')
       } else {
-        console.info(bold(`This step`), 'took', T2-T1, 'msec')
-        console.warn(bold('Seriously, give that function a name.'))
+        console.info(bold(`This build step`), 'took', T2-T1, 'msec')
       }
     }
     const T3 = + new Date()
-    console.info(bold(`The command ${commandName}`), `took`, ((T3-T0)/1000).toFixed(1), `s`)
+    console.log()
+    console.info(bold(`The command ${commandName}`), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
     return context
   }
 
@@ -129,13 +131,6 @@ function requireChainId (id, chains) {
     console.log('  '+Object.keys(chains).sort().join('\n  '))
     // TODO if interactive, display a selector which exports it for the session
     process.exit(1)
-  }
-}
-
-export function printContracts (contracts) {
-  for (const { codeId, address, label, codeHash } of contracts) {
-    console.info(`${bold(String(codeId).padStart(8))} ${address} ${bold(label)}`)
-    //console.info(`         ${codeHash}`)
   }
 }
 

@@ -54,48 +54,58 @@ export type InitReceipt = {
   initTx:   InitTX
 }
 
-export async function createNewDeployment ({ chain, cmdArgs = [] }) {
-  const [ prefix = timestamp() ] = cmdArgs
-  await chain.deployments.create(prefix)
-  await chain.deployments.select(prefix)
-  return needsDeployment({ chain })
-}
-
-export async function selectDeployment ({ chain, cmdArgs: [ id ] }) {
-  const list = chain.deployments.list()
-  if (list.length < 1) {
-    console.log('\nNo deployments. Create one with `deploy new`')
-  }
-  if (id) {
-    await chain.deployments.select(id)
-  } else if (list.length > 0) {
-    console.log(`\nKnown deployments:`)
-    for (let instance of chain.deployments.list()) {
-      if (instance === chain.deployments.active.name) instance = bold(instance)
-      console.log(`  ${instance}`)
-    }
-  }
-  chain.deployments.printActive()
-}
-
 const byCodeID = ([_, x],[__,y]) => (x.codeId > y.codeId)?1:(x.codeId < y.codeId)?-1:0
-export function needsDeployment ({ chain }): {
-  deployment: Deployment|undefined,
-  prefix:     string|undefined
-} {
-  const deployment = chain.deployments.active
-  const prefix     = deployment?.prefix
-  if (!deployment) {
-    const join = (...x:any[]) => x.map(String).join(' ')
-    console.info(` `, chain.deployments.list())
-    console.error(join(bold('No active deployment on chain:'), chain.chainId))
-    process.exit(1)
-  }
-  deployment.printStatus()
-  return { deployment, prefix }
-}
 
 export class Deployment {
+
+  static async new ({ chain, cmdArgs = [] }) {
+    const [ prefix = timestamp() ] = cmdArgs
+    await chain.deployments.create(prefix)
+    await chain.deployments.select(prefix)
+    return Deployment.activate({ chain })
+  }
+
+  static activate ({ chain }): {
+    deployment: Deployment|undefined,
+    prefix:     string|undefined
+  } {
+    const deployment = chain.deployments.active
+    const prefix     = deployment?.prefix
+    if (!deployment) {
+      const join = (...x:any[]) => x.map(String).join(' ')
+      console.info(` `, chain.deployments.list())
+      console.error(join(bold('No selected deployment on chain:'), chain.chainId))
+      process.exit(1)
+    }
+    deployment.printStatus()
+    return { deployment, prefix }
+  }
+
+  static status ({ deployment }) {
+    deployment.printStatus()
+  }
+
+  static async select (input) {
+    const chain  = input.chain   // ??
+    const [ id ] = input.cmdArgs || []
+    const list = chain.deployments.list()
+    if (list.length < 1) {
+      console.log('\nNo deployments. Create one with `deploy new`')
+    }
+    if (id) {
+      console.info(bold(`Selecting deployment:`), id)
+      await chain.deployments.select(id)
+    }
+    if (list.length > 0) {
+      console.info(bold(`Known deployments:`))
+      for (let instance of chain.deployments.list()) {
+        if (instance === chain.deployments.active.prefix) instance = `${bold(instance)} (selected)`
+        console.info(` `, instance)
+      }
+    }
+    console.log()
+    chain.deployments.printActive()
+  }
 
   constructor (
     public readonly prefix: string,
@@ -112,10 +122,8 @@ export class Deployment {
       contracts === 0 ? `(empty)` : `(${contracts} contracts)`
     )
     if (contracts > 0) {
-      for (
-        const [name, receipt] of
-        Object.entries(receipts).sort(byCodeID)
-      ) {
+      for (const name of Object.keys(receipts).sort()) {
+        const receipt = receipts[name]
         if (receipt.initTx) {
           console.info(
             bold(String(receipt.codeId||'n/a').padStart(12)),
@@ -166,8 +174,11 @@ export class Deployment {
     let dir = contract.chain.deployments
     dir = dir.subdir(contract.prefix).make()// ugh hahaha so thats where the mkdir was
     const receipt = `${contract.name}${contract.suffix||''}.json` 
-    console.info(bold('Wrote'), relative(cwd(), dir.resolve(receipt)))
-    console.info(bold(`${contract.initTx.gas_used}`), 'uscrt gas used')
+    console.info()
+    console.info(
+      bold(`${contract.initTx.gas_used}`), 'uscrt gas used.',
+      'Wrote', bold(relative(cwd(), dir.resolve(receipt)))
+    )
     dir.save(receipt, JSON.stringify(contract.initReceipt, null, 2))
     return contract.initReceipt
   }
@@ -280,11 +291,7 @@ export class Deployments extends Directory {
 
   printActive () {
     if (this.active) {
-      console.log(`\nSelected deployment:`)
-      console.log(`  ${bold(this.active.prefix)}`)
-      for (const contract of Object.keys(this.active.contracts)) {
-        console.log(`    ${colors.green('✓')}  ${contract}`)
-      }
+      this.active.printStatus()
     } else {
       console.log(`\nNo selected deployment.`)
     }

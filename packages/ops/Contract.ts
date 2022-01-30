@@ -1,7 +1,7 @@
 import type { ContractMessage } from './Core'
-import type { BuildInfo, Build, Buildable } from './Build'
-import type { UploadInfo, Upload, Uploadable, UploadReceipt } from './Upload'
-import type { ContractInitInfo, ContractInit, InitTX, InitReceipt } from './Deployment'
+import type { BuildInfo, Buildable } from './Build'
+import type { UploadInfo, Uploadable, UploadReceipt } from './Upload'
+import type { ContractInit, InitTX, InitReceipt } from './Deployment'
 
 export type Contract     = Buildable & Uploadable & ContractInit
 export type ContractInfo = BuildInfo & UploadInfo & InitInfo
@@ -111,44 +111,29 @@ export class BaseContract implements Contract {
     * This is the place to make Contract classes Deployment-aware or standalone. */
   /** Init outputs. */
   static initOutputs = [ "address", "initTx", "initReceipt" ]
-
+  /** Init outputs: Response to init transaction. */
   initTx?:      InitTX
-
+  /** Init outputs: Content of init receipt. */
   initReceipt?: InitReceipt
-
+  /** Init outputs: Address of contract instance. */
   address?:     string
-
-  /** A reference to the contract in the format that ICC callbacks expect. */
-  get link () {
-    return {
-      address:   this.address,
-      code_hash: this.codeHash
-    }
-  }
+  /** A reference to the contract in the format that Fadroma ICC callbacks expect. */
+  get link () { return { address: this.address, code_hash: this.codeHash } }
   /** TX & Query API */
   agent?:       Agent
   /** Execute a contract transaction. */
   execute (
-    msg:    ContractMessage = "",
-    memo:   string          = "",
-    amount: unknown[]       = [],
-    fee:    unknown         = undefined,
-    agent:  Agent           = this.creator || this.agent
+    msg: ContractMessage = "",
+    memo: string = "", amount: unknown[] = [], fee: unknown = undefined,
+    agent: Agent = this.creator || this.agent
   ) {
-    return backOff(
-      function tryExecute () { return agent.execute(this, msg, amount, memo, fee) },
-      this.backOffOptions
-    )
+    const tryExecute = () => agent.execute(this, msg, amount, memo, fee)
+    return backOff(tryExecute, this.backOffOptions)
   }
   /** Query the contract. */
-  query (
-    msg:   ContractMessage = "",
-    agent: Agent           = this.creator || this.agent
-  ) {
-    return backOff(
-      function tryQuery () { return agent.query(this, msg) },
-      this.backOffOptions
-    )
+  query (msg: ContractMessage = "", agent: Agent = this.creator || this.agent) {
+    const tryQuery = () => agent.query(this, msg)
+    return backOff(tryQuery,  this.backOffOptions)
   }
   private backOffOptions = {
     retry (error: Error, attempt: number) {
