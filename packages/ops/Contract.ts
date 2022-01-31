@@ -27,7 +27,8 @@ const console = Console('@fadroma/ops/Contract')
 export type ContractConstructor<T extends Contract> =
   new (args: ContractInfo) => T
 
-/** Extra chunky source of truth about a contract. */
+/** Extra chunky source of truth about a contract.
+  * Way too many parameters.*/
 export class BaseContract implements Contract {
   /** Allow any property to be overriden at construction. */
   constructor (options: ContractInfo = {}) { Object.assign(this, options) }
@@ -104,7 +105,7 @@ export class BaseContract implements Contract {
   set label (label: string) {
     throw new Error(
       "[@fadroma/contract] Tried to overwrite `contract.label`. "+
-      "Don't - use the `prefix`, `name`, and `suffix`. properties instead"
+      "Don't - instead, use the `prefix`, `name`, and `suffix` properties"
     )
   }
   /** Init procedure is in the Deployment.

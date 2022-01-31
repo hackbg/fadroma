@@ -13,6 +13,7 @@ import { URL } from 'url'
 
 const {
   SCRT_API_URL,
+  SCRT_API_KEY,
   SCRT_AGENT_NAME,
   SCRT_AGENT_ADDRESS,
   SCRT_AGENT_MNEMONIC
@@ -114,13 +115,15 @@ export const Chains = {
   ['pulsar-2'] (options: ChainConnectOptions = {}): Scrt {
     const {
       chainId = 'pulsar-2',
-      apiURL  = new URL(SCRT_API_URL||'http://testnet.securesecrets.org:1317'),
+      apiKey  = SCRT_API_KEY||'5043dd0099ce34f9e6a0d7d6aa1fa6a8',
+      apiURL  = new URL(SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${apiKey}/`),
       defaultIdentity = {
         name:     SCRT_AGENT_NAME,
         address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
         mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
       }
     } = options
+    console.log({apiKey})
     const isTestnet = true
     const Agent = ScrtAgentJS_1_2
     return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
