@@ -31,7 +31,7 @@ export const Chains = {
       isLocalnet: true,
       ...options,
       node:    options.node    || new DockerizedScrtNode_1_2(options),
-      chainId: options.chainId || 'supernova-1',
+      chainId: options.chainId || 'fadroma-scrt-12',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_2,
       defaultIdentity: 'ADMIN'
@@ -249,7 +249,7 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
 
 export const __dirname       = dirname(fileURLToPath(import.meta.url)),
 export const buildImage      = 'hackbg/fadroma-scrt-builder:1.2',
-export const buildDockerfile = resolve(__dirname, 'ScrtBuild_1_2.Dockerfile')
+export const buildDockerfile = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile')
 
 export class ScrtContract_1_2 extends BaseContract {
   buildImage      = buildImage
@@ -267,7 +267,7 @@ export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
   readonly chainId: string = 'supernova-1'
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
   readonly readyPhrase = 'indexed block'
-  readonly initScript = new TextFile(__dirname, 'init.sh')
+  readonly initScript = new TextFile(__dirname, 'Scrt_1_2_Init.sh')
   constructor (options: ChainNodeOptions = {}) {
     super()
     if (options.image) this.image = options.image

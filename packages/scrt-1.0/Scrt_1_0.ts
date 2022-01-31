@@ -30,7 +30,7 @@ export const Chains = {
     return new Scrt({
       isLocalnet: true,
       node:    options.node    || new DockerizedScrtNode_1_0({ identities: options.identities }),
-      chainId: options.chainId || 'enigma-pub-testnet-3',
+      chainId: options.chainId || 'fadroma-scrt-10',
       apiURL:  options.apiURL  || new URL('http://localhost:1337'),
       Agent:   ScrtAgentJS_1_0,
       defaultIdentity: 'ADMIN'
