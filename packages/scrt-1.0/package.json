@@ -2,7 +2,7 @@
   "name":    "@fadroma/scrt-1.0",
   "version": "0.0.0",
   "type":    "module",
-  "main":    "./index.ts",
+  "main":    "./Scrt_1_0.ts",
   "dependencies": {
     "@fadroma/scrt": "workspace:*",
     "@hackbg/tools": "^1",
