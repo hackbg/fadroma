@@ -35,15 +35,8 @@ export function printContracts (contracts) {
 export function printContract (contract) {
   console.info(
     String(contract.codeId).padStart(12),
-    bold('Code hash:'), contract.codeHash,
-  )
-  console.info(
-    bold("".padEnd(12)),
-    bold('Address:'), contract.address,
-  )
-  console.info(
-    bold("".padEnd(12)),
-    bold('Label:'), contract.label,
+    contract.address,
+    contract.name
   )
 }
 
@@ -61,23 +54,5 @@ export async function printToken (TOKEN) {
       name.padEnd(25).slice(0, 25),
       TOKEN.address
     )
-  }
-}
-
-export async function printExchanges (EXCHANGES: any[]) {
-  for (const EXCHANGE of EXCHANGES) {
-    const {
-      name, EXCHANGE: { codeId, codeHash, address },
-      TOKEN_0, TOKEN_1, LP_TOKEN
-    } = EXCHANGE
-    console.info(
-      ' ',
-      bold(colors.inverse(name)).padEnd(30), // wat
-      `(code id ${bold(String(codeId))})`.padEnd(34),
-      bold(address)
-    )
-    await printToken(TOKEN_0)
-    await printToken(TOKEN_1)
-    await printToken(LP_TOKEN)
   }
 }

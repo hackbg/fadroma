@@ -27,7 +27,7 @@ export type MigrationContext = {
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
-import { init, timestamp, Console, bold } from '@fadroma/ops'
+import { init, timestamp, Console, bold, colors } from '@fadroma/ops'
 const console = Console('@hackbg/fadroma')
 export class Fadroma {
 
@@ -82,15 +82,29 @@ export class Fadroma {
       // but without mutating the context.
       async run (procedure: Function, args: Record<string, any> = {}): Promise<any> {
         console.log()
-        console.info(bold('Running procedure:'), procedure.name)
+        console.info('Running procedure:', bold(procedure.name))
         const T0 = + new Date()
-        const result = await procedure({ ...context, ...args })
-        const T1 = + new Date()
-        console.info(bold(`${procedure.name} took`), T1-T0, 'msec')
-        return result
+        let fail = false
+        try {
+          const result = await procedure({ ...context, ...args })
+          const T1 = + new Date()
+          console.info(
+            'Procedure', bold(procedure.name), colors.green('succeeded'),
+            'in', T1-T0, 'msec'
+          )
+          return result
+        } catch (e) {
+          const T1 = + new Date()
+          console.error(
+            'Procedure', bold(procedure.name), colors.red(`failed`),
+            `in`, T1-T0, 'msec:', e.message
+          )
+          throw e
+        }
       },
     }
     const T0 = + new Date()
+    const stepTimings = []
     // Composition of commands via steps:
     for (const step of steps) {
       if (!step) {
@@ -100,26 +114,33 @@ export class Fadroma {
       console.log()
       const name = step.name
       if (name) {
-        console.info(bold('Running build step:'), name)
+        console.info(bold('Running deploy step:'), name)
       } else {
-        console.warn(bold('Running nameless build step. Please define build steps as named functions.'))
+        console.warn(bold('Running nameless deploy step. Please define deploy steps as named functions.'))
       }
       // Every step refreshes the context
       // by adding its outputs to it.
       const T1 = + new Date()
-      const updates = await step({ ...context })
-      context = { ...context, ...updates }
-      const T2 = + new Date()
-      console.log()
-      if (name) {
-        console.info(`Build step`, bold(name), 'took', T2-T1, 'msec')
-      } else {
-        console.info(bold(`This build step`), 'took', T2-T1, 'msec')
+      let updates
+      try {
+        updates = await step({ ...context })
+        context = { ...context, ...updates }
+        const T2 = + new Date()
+        console.info('Deploy step', bold(name), colors.green('succeeded'), 'in', T2-T1, 'msec')
+        stepTimings.push([name, T2-T1, false])
+      } catch (e) {
+        const T2 = + new Date()
+        console.error('Deploy step', bold(name), colors.red('failed'), 'in', T2-T1, 'msec')
+        stepTimings.push([name, T2-T1, true])
+        throw e
       }
     }
     const T3 = + new Date()
     console.log()
     console.info(bold(`The command ${commandName}`), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
+    for (const [name, duration, isError] of stepTimings) {
+      console.info(' ',isError?'🔴':'🟢', bold(name.padEnd(20)), duration, 'msec')
+    }
     return context
   }
 

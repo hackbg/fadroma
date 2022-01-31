@@ -58,6 +58,7 @@ const byCodeID = ([_, x],[__,y]) => (x.codeId > y.codeId)?1:(x.codeId < y.codeId
 
 export class Deployment {
 
+  /* Command. */
   static async new ({ chain, cmdArgs = [] }) {
     const [ prefix = timestamp() ] = cmdArgs
     await chain.deployments.create(prefix)
@@ -199,20 +200,9 @@ export class Deployment {
     }
   }
 
-  getContract <T extends Contract> (
-    agent:    Agent,
-    Contract: ContractConstructor<T>,
-    name:     string,
-  ): T {
-    console.log()
-    console.info(
-      bold('Get contract'),  Contract.name,
-      bold('named'),         name,
-      bold('in deployment'), this.prefix
-    )
+  getThe <T extends Contract> (name: string, contract: T): T {
     const receipt = this.receipts[name]
     if (receipt) {
-      const contract = new Contract({agent})
       this.populate(contract, receipt)
       return contract
     } else {
@@ -223,34 +213,12 @@ export class Deployment {
     }
   }
 
-  getContracts <T extends Contract> (
-    agent:    Agent,
-    Contract: ContractConstructor<T>,
-    fragment: string,
-  ): T[] {
-    console.info(
-      bold('Get contracts of type'), Contract.name,
-      bold('named like'),            fragment,
-      bold('in deployment'),         this.prefix
-    )
+  getAll <T extends Contract> (fragment: string, getContract: (string)=>T) {
     const contracts = []
     for (const [name, receipt] of Object.entries(this.receipts)) {
       if (name.includes(fragment)) {
-        const contract = new Contract({agent})
-        this.populate(contract, receipt)
-        contracts.push(contract)
+        contracts.push(this.getThe(name, getContract(name)))
       }
-    }
-    return contracts
-  }
-
-  requireContracts (
-    requirements: Record<string, ContractConstructor<any>>,
-    options:      any
-  ): Record<string, any> {
-    const contracts = {}
-    for (const [name, Class] of Object.entries(requirements)) {
-      contracts[name] = new Class(options)
     }
     return contracts
   }
