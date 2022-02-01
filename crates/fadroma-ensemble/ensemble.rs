@@ -5,8 +5,8 @@ use fadroma_platform_scrt::{
     Extern, Env, StdResult, InitResponse, Coin,
     HandleResponse, Binary, HumanAddr, CosmosMsg,
     WasmMsg, BlockInfo, to_binary, from_binary,
-    ContractLink,
-    ContractInstantiationInfo,
+    BankMsg,
+    ContractLink, ContractInstantiationInfo,
     testing::MockApi
 };
 
@@ -352,6 +352,17 @@ impl Context {
                                 .height(block.height);
 
                             self.instantiate(code_id as usize, msg, env)?;
+                        }
+                    }
+                },
+                CosmosMsg::Bank(msg) => {
+                    match msg {
+                        BankMsg::Send { from_address, to_address, amount } => {
+                            self.bank.writable().transfer(
+                                &from_address,
+                                &to_address,
+                                amount
+                            )?;
                         }
                     }
                 },
