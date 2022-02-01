@@ -18,7 +18,7 @@ import type { Chain, Agent, Deployment } from '@fadroma/ops'
 export type MigrationContext = {
   timestamp:   string
   chain:       Chain
-  admin:       Agent
+  agent:       Agent
   deployment?: Deployment,
   prefix?:     string,
   cmdArgs:     string[]
@@ -27,7 +27,7 @@ export type MigrationContext = {
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
-import { init, timestamp, Console, bold, colors } from '@fadroma/ops'
+import { initChainAndAgent, timestamp, Console, bold, colors } from '@fadroma/ops'
 const console = Console('@hackbg/fadroma')
 export class Fadroma {
 
@@ -71,10 +71,10 @@ export class Fadroma {
   // Is this a monad?
   private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
     requireChainId(this.chainId, this.chains)
-    const { chain, admin } = await init(this.chains, this.chainId)
+    const { chain, agent } = await initChainAndAgent(this.chains, this.chainId)
     let context: MigrationContext = {
       chain,
-      admin,
+      agent,
       timestamp: timestamp(),
       cmdArgs,
       // Run a sub-procedure in the same context,
@@ -138,7 +138,7 @@ export class Fadroma {
     console.log()
     console.info(`The command`, bold(commandName), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
     for (const [name, duration, isError] of stepTimings) {
-      console.info(' ',isError?'🔴':'🟢', bold(name.padEnd(40)), (duration/1000).toFixed(1), 's')
+      console.info(' ',isError?'🔴':'🟢', bold(name.padEnd(40)), (duration/1000).toFixed(1).padStart(10), 's')
     }
     return context
   }

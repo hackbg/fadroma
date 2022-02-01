@@ -53,25 +53,25 @@ export interface Chain extends ChainOptions {
   buildAndUpload  (uploader: Agent, contracts: Contract[]): Promise<Contract[]>
 }
 
-export async function init (
+export async function initChainAndAgent (
   CHAINS:    Record<string, Function>,
   chainName: string,
-): Promise<{ chain: Chain, admin: Agent }> {
+): Promise<{ chain: Chain, agent: Agent }> {
   let chain: Chain
   if (!CHAINS[chainName]) {
     throw new Error(`${bold(`"${chainName}":`)} not a valid chain name`)
   }
   chain = await CHAINS[chainName]().ready
-  let admin: Agent
+  let agent: Agent
   try {
     if (chain.defaultIdentity instanceof BaseAgent) {
-      admin = chain.defaultIdentity
+      agent = chain.defaultIdentity
     } else {
-      admin = await chain.getAgent()
+      agent = await chain.getAgent()
     }
-    console.info(bold(`Agent:   `), admin.address)
+    console.info(bold(`Agent:   `), agent.address)
     try {
-      const initialBalance = await admin.balance
+      const initialBalance = await agent.balance
       console.info(bold(`Balance: `), initialBalance, `uscrt`)
     } catch (e) {
       console.warn(bold(`Could not fetch balance:`), e.message)
@@ -80,7 +80,7 @@ export async function init (
     console.error(bold(`Could not get an agent for ${chainName}:`), e.message)
     throw e
   }
-  return { chain, admin }
+  return { chain, agent }
 }
 
 export function notOnMainnet ({ chain }) {
