@@ -5,9 +5,10 @@
   "main":    "./index.ts",
   "dependencies": {
     "@hackbg/tools":             "^1",
-    "ajv":                       "^8.6.0",
-    "exponential-backoff":       "^3.1.0",
+    "ajv":                       "^8.6",
+    "dotenv":                    "^15",
+    "exponential-backoff":       "^3.1",
     "json-schema-to-typescript": "^10.1.4",
-    "toml":                      "^3.0.0"
+    "toml":                      "^3"
   }
 }

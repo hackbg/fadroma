@@ -1,3 +1,6 @@
+import dotenv from 'dotenv'
+dotenv.config()
+
 export * from '@hackbg/tools'
 
 export * from './Core'
