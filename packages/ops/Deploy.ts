@@ -1,14 +1,6 @@
 import {
-  Console, resolve, bold, writeFileSync, relative, timestamp, backOff, cwd
-} from '@hackbg/tools'
-
-import type { Contract, ContractConstructor } from './Contract'
-import type { Agent } from './Agent'
-import type { Chain } from './Chain'
-import { ContractMessage, printAligned } from './Core'
-
-import {
-  colors,
+  Console, bold, colors,
+  writeFileSync, relative, resolve, timestamp, backOff, cwd,
   existsSync,
   basename,
   readlinkSync,
@@ -21,8 +13,13 @@ import {
   Directory
 } from '@hackbg/tools'
 
-
 const console = Console('@fadroma/ops/Deploy')
+
+import type { Contract, ContractConstructor } from './Contract'
+import type { Agent } from './Agent'
+import type { Chain } from './Chain'
+import { ContractMessage, printAligned } from './Core'
+import { instantiateContract } from './Init'
 
 export class Deployments extends Directory {
   KEY = '.active'
@@ -114,16 +111,13 @@ export class Deployments extends Directory {
     }
     return rows
   }
-}
-
-export class Deployment {
 
   /* Command. Create a new deployment. */
   static async new ({ chain, cmdArgs = [] }) {
     const [ prefix = timestamp() ] = cmdArgs
     await chain.deployments.create(prefix)
     await chain.deployments.select(prefix)
-    return Deployment.activate({ chain })
+    return Deployments.activate({ chain })
   }
 
   /* Command. Activate a deployment and prints its status. */
@@ -179,6 +173,9 @@ export class Deployment {
     console.log()
     chain.deployments.printActive()
   }
+}
+
+export class Deployment {
 
   constructor (
     public readonly prefix: string,
@@ -243,7 +240,7 @@ export class Deployment {
     // TODO inherit Deployment from Directory, make it create itself
     let dir = contract.chain.deployments
     dir = dir.subdir(contract.prefix).make()// ugh hahaha so thats where the mkdir was
-    const receipt = `${contract.name}${contract.suffix||''}.json` 
+    const receipt = `${contract.name}${contract.suffix||''}.json`
     console.info()
     console.info(
       bold(`${contract.initTx.gas_used}`), 'uscrt gas used.',
