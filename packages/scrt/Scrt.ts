@@ -1,23 +1,23 @@
 export * from '@fadroma/ops'
 
-import { Console } from '@fadroma/ops'
+import {
+  Console
+  BaseAgent, Agent, Identity, AgentConstructor,
+  BaseChain, ChainNode,
+  DockerizedChainNode, ChainNodeOptions,
+  BaseContract, Contract, ContractMessage,
+  AugmentedContract, TransactionExecutor, QueryExecutor,
+  Fees, BaseGas,
+  waitUntilNextBlock, 
+  Path, Directory, TextFile, JSONFile, JSONDirectory,
+  readFile, bold, execFile, spawn,
+  dirname, fileURLToPath
+} from '@fadroma/ops'
+
 const console = Console('@fadroma/scrt')
-
-import { dirname, fileURLToPath } from '@hackbg/tools'
-export const __dirname = dirname(fileURLToPath(import.meta.url))
-
-import { BaseChain } from '@fadroma/ops'
-export class Scrt extends BaseChain {
-  faucet = `https://faucet.secrettestnet.io/`
-}
 
 import { Bip39 } from '@cosmjs/crypto'
 import { toBase64 } from '@iov/encoding'
-import {
-  BaseAgent, Agent, Identity, Contract, ContractMessage,
-  waitUntilNextBlock, AgentConstructor
-} from '@fadroma/ops'
-
 import {
   EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
   encodeSecp256k1Pubkey, pubkeyToAddress,
@@ -25,17 +25,54 @@ import {
 } from 'secretjs'
 import type { MsgInstantiateContract, MsgExecuteContract } from 'secretjs/src/types'
 
-import {
-  BaseContract,
-  AugmentedContract, TransactionExecutor, QueryExecutor,
-  Fees, BaseGas,
-  ChainNode, DockerizedChainNode, ChainNodeOptions,
-  Path, Directory, TextFile, JSONFile, JSONDirectory
-} from '@fadroma/ops'
-
 export type APIConstructor = new(...args:any) => SigningCosmWasmClient
+export type ScrtNodeConstructor = new (options?: ChainNodeOptions) => ChainNode
 
-import { readFile, bold, execFile, spawn } from '@hackbg/tools'
+export const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export abstract class Scrt extends BaseChain {
+  faucet = `https://faucet.secrettestnet.io/`
+}
+
+export abstract class DockerizedScrtNode extends DockerizedChainNode {
+  /** This directory is mounted out of the localnet container
+    * in order to persist the state of the SGX component. */
+  readonly sgxDir: Directory
+  protected setDirectories (stateRoot?: Path) {
+    stateRoot = stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
+    Object.assign(this, { stateRoot: new Directory(stateRoot) })
+    Object.assign(this, {
+      identities: this.stateRoot.subdir('identities', JSONDirectory),
+      nodeState:  new JSONFile(stateRoot, 'node.json'),
+      daemonDir:  this.stateRoot.subdir('_secretd'),
+      clientDir:  this.stateRoot.subdir('_secretcli'),
+      sgxDir:     this.stateRoot.subdir('_sgx-secrets')
+    })
+  }
+  async spawn () {
+    try {
+      this.sgxDir.make()
+    } catch (e) {
+      console.warn(`Failed to create ${this.sgxDir.path}: ${e.message}`)
+    }
+    return await super.spawn()
+  }
+  get binds () {
+    return {
+      ...super.binds,
+      [this.sgxDir.path]:    '/root/.sgx-secrets:rw',
+      [this.daemonDir.path]: `/root/.secretd:rw`,
+      [this.clientDir.path]: `/root/.secretcli:rw`,
+    }
+  }
+  abstract readonly chainId:    string
+  abstract readonly image:      string
+  abstract readonly initScript: TextFile
+}
+
+export function resetLocalnet ({ chain }: any) {
+  return chain.node.terminate()
+}
 
 /** Uses `secretjs` to queries and transact
   * with a Secret Network chain endpoint. */
@@ -470,46 +507,4 @@ export const defaultFees: Fees = {
   init:   new ScrtGas(1000000),
   exec:   new ScrtGas(1000000),
   send:   new ScrtGas( 500000),
-}
-
-type ScrtNodeConstructor = new (options?: ChainNodeOptions) => ChainNode
-
-export abstract class DockerizedScrtNode extends DockerizedChainNode {
-  /** This directory is mounted out of the localnet container
-    * in order to persist the state of the SGX component. */
-  readonly sgxDir: Directory
-  protected setDirectories (stateRoot?: Path) {
-    stateRoot = stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
-    Object.assign(this, { stateRoot: new Directory(stateRoot) })
-    Object.assign(this, {
-      identities: this.stateRoot.subdir('identities', JSONDirectory),
-      nodeState:  new JSONFile(stateRoot, 'node.json'),
-      daemonDir:  this.stateRoot.subdir('_secretd'),
-      clientDir:  this.stateRoot.subdir('_secretcli'),
-      sgxDir:     this.stateRoot.subdir('_sgx-secrets')
-    })
-  }
-  async spawn () {
-    try {
-      this.sgxDir.make()
-    } catch (e) {
-      console.warn(`Failed to create ${this.sgxDir.path}: ${e.message}`)
-    }
-    return await super.spawn()
-  }
-  get binds () {
-    return {
-      ...super.binds,
-      [this.sgxDir.path]:    '/root/.sgx-secrets:rw',
-      [this.daemonDir.path]: `/root/.secretd:rw`,
-      [this.clientDir.path]: `/root/.secretcli:rw`,
-    }
-  }
-  abstract readonly chainId:    string
-  abstract readonly image:      string
-  abstract readonly initScript: TextFile
-}
-
-export function resetLocalnet ({ chain }: any) {
-  return chain.node.terminate()
 }

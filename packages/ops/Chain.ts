@@ -1,6 +1,6 @@
 import {
   Directory, JSONDirectory,
-  Console, bold, symlinkDir, mkdirp, resolve, basename,
+  Console, bold, symlinkDir, mkdirp, resolve, relative, basename,
   readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync,
   colors
 } from '@hackbg/tools'
@@ -11,7 +11,7 @@ import { Identity } from './Core'
 import { ChainNode } from './ChainNode'
 import { Agent, AgentConstructor, BaseAgent } from './Agent'
 import { Contract } from './Contract'
-import { Deployments } from './Deployment'
+import { Deployments } from './Deploy'
 import { Uploads } from './Upload'
 
 const console = Console('@fadroma/ops/Chain')
@@ -53,47 +53,47 @@ export interface Chain extends ChainOptions {
   buildAndUpload  (uploader: Agent, contracts: Contract[]): Promise<Contract[]>
 }
 
+const overrideDefaults = (obj, defaults, options = {}) => {
+  for (const k of Object.keys(defaults)) {
+    console.log(k, obj[k], options[k], defaults[k].apply(obj))
+    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
+  }
+}
+
 /** Represents an interface to a particular Cosmos blockchain.
   * Used to construct `Agent`s and `Contract`s that are
   * bound to a particular chain. Can store identities and
   * results of contract uploads/inits. */
 export abstract class BaseChain implements Chain {
-  constructor ({
-    apiURL    = new URL('http://localhost:1337'),
-    node      = null,
-    chainId   = node?.chainId,
-    stateRoot = resolve(process.cwd(), 'receipts', chainId),
-    isMainnet,
-    isTestnet,
-    isLocalnet,
-    Agent,
-    defaultIdentity,
-  }: Chain) {
-    this.apiURL     = apiURL
-    this.chainId    = chainId
-    this.isMainnet  = isMainnet
-    this.isTestnet  = isTestnet
-    this.isLocalnet = isLocalnet
 
-    this.node = node || null
-    if (node) {
-      this.chainId = node.chainId || this.chainId
-      this.apiURL  = node.apiURL  || this.apiURL
+  // JS constructors are called in an order that is opposite to
+  // the one that would be actually useful for narrowing down stuff
+  // by defining properties (as opposed to extending stuff with new stuff).
+  constructor (options?: Chain) {
+    if (this.node)      this.setNode()
+    if (this.stateRoot) this.setDirs()
+  }
+
+  protected setNode () {
+    if (this.node) {
+      this.apiURL  = this.node.apiURL
+      this.chainId = this.node.chainId
     }
+  }
 
-    // directories to store state
+  protected setDirs (stateRoot = resolve(process.cwd(), 'receipts', this.chainId)) {
+    console.info(bold(`Receipts:`), relative(process.cwd(), stateRoot))
+    if (!stateRoot) {
+      throw new Error('@fadroma/ops/chain: Missing stateRoot')
+    }
     if (typeof stateRoot === 'string') {
       this.stateRoot = new Directory(stateRoot)
+    } else {
+      this.stateRoot = stateRoot
     }
     this.identities  = new JSONDirectory(this.stateRoot.path, 'identities')
     this.uploads     = new Uploads(this.stateRoot.path, 'uploads')
     this.deployments = new Deployments(this.stateRoot.path, 'deployments')
-    if (Agent) {
-      this.Agent = Agent
-    }
-    if (defaultIdentity) {
-      this.defaultIdentity = defaultIdentity
-    }
   }
 
   #ready: Promise<any>|null = null
@@ -101,6 +101,7 @@ export abstract class BaseChain implements Chain {
     if (this.#ready) return this.#ready
     return this.#ready = this.#init()
   }
+
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
   async #init (): Promise<Chain> {
@@ -111,11 +112,8 @@ export abstract class BaseChain implements Chain {
       await this.initLocalnet(node)
     }
     const { protocol, hostname, port } = this.apiURL
-    console.info(
-      bold(`Connecting to`), this.chainId,
-      bold(`via`), protocol,
-      bold(`on`), `${hostname}:${port}`
-    )
+    console.info(bold(`Protocol:`), protocol)
+    console.info(bold(`Host:    `), `${hostname}:${port}`)
     if (this.defaultIdentity) {
       this.defaultIdentity = await this.getAgent({
         name: "ADMIN", ...this.defaultIdentity as object
@@ -123,6 +121,7 @@ export abstract class BaseChain implements Chain {
     }
     return this as Chain
   }
+
   private async initLocalnet (node: ChainNode) {
     // keep a handle to the node in the chain
     this.node = node
@@ -193,6 +192,7 @@ export abstract class BaseChain implements Chain {
     * NOTE: the current domain vocabulary considers initialization and instantiation,
     * as pertaining to contracts on the blockchain, to be the same thing. */
   deployments: Deployments
+
   /** Create contract instance from interface class and address */
   getContract (
     Contract:        any,
@@ -236,13 +236,10 @@ export async function init (
     } else {
       admin = await chain.getAgent()
     }
-    console.info(
-      bold(`Commence activity on`), chainName, `(${chain.chainId})`,
-      bold('as'), admin.address
-    )
+    console.info(bold(`Agent:   `), admin.address)
     try {
       const initialBalance = await admin.balance
-      console.info(bold(`Balance:`), initialBalance, `uscrt`)
+      console.info(bold(`Balance: `), initialBalance, `uscrt`)
     } catch (e) {
       console.warn(bold(`Could not fetch balance:`), e.message)
     }

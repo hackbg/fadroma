@@ -70,7 +70,6 @@ export class Fadroma {
 
   // Is this a monad?
   private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
-    console.log('runCommand', {cmdArgs})
     requireChainId(this.chainId, this.chains)
     const { chain, admin } = await init(this.chains, this.chainId)
     let context: MigrationContext = {

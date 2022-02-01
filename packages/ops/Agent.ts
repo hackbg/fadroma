@@ -5,7 +5,7 @@ import { taskmaster, resolve, readFileSync, Console, bold, JSONDirectory } from 
 
 const console = Console('@fadroma/ops/Agent')
 
-export type AgentConstructor = new (options: Identity) => Agent
+export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
 
 export interface Agent extends Identity {
   readonly chain:   Chain

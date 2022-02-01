@@ -30,6 +30,11 @@ export class Scrt_1_0_Localnet extends Scrt_1_0 {
   chainId    = 'fadroma-scrt-10'
   apiURL     = new URL('http://localhost:1337')
   defaultIdentity = 'ADMIN'
+  constructor () {
+    super()
+    this.setNode()
+    this.setDirs()
+  }
 }
 
 export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
@@ -55,6 +60,10 @@ export class Scrt_1_0_Testnet extends Scrt_1_0 {
     address:  SCRT_AGENT_ADDRESS,
     mnemonic: SCRT_AGENT_MNEMONIC
   }
+  constructor () {
+    super()
+    this.setDirs()
+  }
 }
 
 export class Scrt_1_0_Mainnet extends Scrt_1_0 {
@@ -65,6 +74,10 @@ export class Scrt_1_0_Mainnet extends Scrt_1_0 {
     name:     SCRT_AGENT_NAME,
     address:  SCRT_AGENT_ADDRESS,
     mnemonic: SCRT_AGENT_MNEMONIC
+  }
+  constructor () {
+    super()
+    this.setDirs()
   }
 }
 

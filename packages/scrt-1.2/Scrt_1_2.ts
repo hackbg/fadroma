@@ -1,3 +1,5 @@
+export * from '@fadroma/scrt'
+
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
 import { URL } from 'url'
 import {
@@ -30,6 +32,11 @@ export class Scrt_1_2_Localnet extends Scrt_1_2 {
   chainId    = 'fadroma-scrt-12'
   apiURL     = new URL('http://localhost:1337')
   defaultIdentity = 'ADMIN'
+  constructor () {
+    super()
+    this.setNode()
+    this.setDirs()
+  }
 }
 
 export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
@@ -49,11 +56,15 @@ export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
 export class Scrt_1_2_Testnet extends Scrt_1_2 {
   isTestnet  = true
   chainId    = 'pulsar-2'
-  apiURL     = new URL(SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`),
+  apiURL     = new URL(SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
   defaultIdentity = {
     name:     SCRT_AGENT_NAME,
     address:  SCRT_AGENT_ADDRESS,
     mnemonic: SCRT_AGENT_MNEMONIC
+  }
+  constructor () {
+    super()
+    this.setDirs()
   }
 }
 
@@ -66,16 +77,20 @@ export class Scrt_1_2_Mainnet extends Scrt_1_2 {
     address:  SCRT_AGENT_ADDRESS,
     mnemonic: SCRT_AGENT_MNEMONIC
   }
+  constructor () {
+    super()
+    this.setDirs()
+  }
 }
 
 export const Chains = {
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
-  'localnet-1.2': () => new Scrt_1_2_Localnet({}),
+  'localnet-1.2': () => new Scrt_1_2_Localnet(),
   /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
-  'pulsar-2': () => new Scrt_1_2_Testnet({}),
+  'pulsar-2':     () => new Scrt_1_2_Testnet(),
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  'secret-4': () => new Scrt_1_2_Mainnet({})
+  'secret-4':     () => new Scrt_1_2_Mainnet()
 }
 
 export const __dirname       = dirname(fileURLToPath(import.meta.url)),

@@ -19,6 +19,8 @@ export * from './Upload'
 
 export * from './Contract'
 
-export * from './Deployment'
+export * from './Init'
+
+export * from './Deploy'
 
 export * from './Client'

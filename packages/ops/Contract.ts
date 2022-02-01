@@ -1,15 +1,15 @@
 import type { ContractMessage } from './Core'
 import type { BuildInfo, Buildable } from './Build'
 import type { UploadInfo, Uploadable, UploadReceipt } from './Upload'
-import type { ContractInit, InitTX, InitReceipt } from './Deployment'
+import type { ContractInit, InitTX, InitReceipt } from './Init'
 
 export type Contract     = Buildable & Uploadable & ContractInit
 export type ContractInfo = BuildInfo & UploadInfo & InitInfo
 
 import { Agent, BaseAgent, isAgent } from './Agent'
 import { Chain, BaseChain } from './Chain'
-import { Deployment, Deployments } from './Deployment'
-import { Builder  } from './Build'
+import { Deployment, Deployments } from './Deploy'
+import { Builder } from './Build'
 import { Uploader } from './Upload'
 
 import {
