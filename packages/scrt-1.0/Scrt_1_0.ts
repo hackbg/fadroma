@@ -45,7 +45,7 @@ export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
   constructor (options: ChainNodeOptions = {}) {
     super()
     if (options.image) this.image = options.image
-    if (options.id) this.id = options.id
+    if (options.chainId) this.chainId = options.chainId
     if (options.identities) this.identitiesToCreate = options.identities
     this.setDirectories(options.stateRoot)
   }

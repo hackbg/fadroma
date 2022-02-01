@@ -89,7 +89,7 @@ export interface IDocker {
 
 export abstract class BaseChainNode implements ChainNode {
   chainId = ''
-  apiURL: URL
+  apiURL: URL = new URL('http://localhost:1317')
   port = 0
 
   #ready: Promise<void>
@@ -131,24 +131,18 @@ export abstract class BaseChainNode implements ChainNode {
     chainId:     string
     port:        number|string
   } | null {
-
     const path = relative(cwd(), this.nodeState.path)
-
     if (this.stateRoot.exists() && this.nodeState.exists()) {
-
       console.info(
         bold(`Loading localnet node from`), path
       )
-
       try {
         const { containerId, chainId, port } = this.nodeState.load()
-
         console.info(
           bold(`Using localnet`), chainId,
           bold(`from container`), containerId.slice(0,8),
           bold(`on port`),        port
         )
-
         return { containerId, chainId, port }
       } catch (e) {
         console.warn(`Failed to load ${path}`)
@@ -201,7 +195,7 @@ export abstract class DockerizedChainNode extends BaseChainNode {
 
   /** The created container */
   container: {
-    id:       string,
+    id:       string
     Warnings: any
   }
 
@@ -247,7 +241,8 @@ export abstract class DockerizedChainNode extends BaseChainNode {
       console.warn(`Loading state of ${chainId} into ChainNode with id ${this.chainId}`)
     }
     this.container = { id: containerId, Warnings: null }
-    this.port = port
+    this.port = Number(port)
+    this.apiURL.port = String(port)
     return {containerId, chainId, port}
   }
 

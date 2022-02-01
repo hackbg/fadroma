@@ -40,14 +40,14 @@ export class Scrt_1_2_Localnet extends Scrt_1_2 {
 }
 
 export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
-  readonly id:      string = 'fadroma-scrt-12'
+  readonly chainId: string = 'fadroma-scrt-12'
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
   readonly readyPhrase     = 'indexed block'
   readonly initScript      = new TextFile(__dirname, 'Scrt_1_2_Init.sh')
   constructor (options: ChainNodeOptions = {}) {
     super()
     if (options.image) this.image = options.image
-    if (options.id) this.id = options.id
+    if (options.chainId) this.chainId = options.chainId
     if (options.identities) this.identitiesToCreate = options.identities
     this.setDirectories(options.stateRoot)
   }

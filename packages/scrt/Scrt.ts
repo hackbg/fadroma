@@ -39,6 +39,9 @@ export abstract class DockerizedScrtNode extends DockerizedChainNode {
     * in order to persist the state of the SGX component. */
   readonly sgxDir: Directory
   protected setDirectories (stateRoot?: Path) {
+    if (!this.chainId) {
+      throw new Error('@fadroma/scrt: refusing to create directories for localnet with empty chain id')
+    }
     stateRoot = stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
     Object.assign(this, { stateRoot: new Directory(stateRoot) })
     Object.assign(this, {
