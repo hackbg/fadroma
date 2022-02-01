@@ -1,16 +1,9 @@
 import {
-  Console, bold, colors,
-  writeFileSync, relative, resolve, timestamp, backOff, cwd,
-  existsSync,
-  basename,
-  readlinkSync,
-  readdirSync,
-  statSync,
-  readFileSync,
-  unlinkSync,
-  symlinkDir,
-  mkdirp,
-  Directory
+  Console, bold, colors, timestamp, backOff,
+  writeFileSync, basename, relative, resolve, cwd,
+  existsSync, statSync, readFileSync,
+  symlinkDir, readlinkSync, unlinkSync,
+  Directory, mkdirp, readdirSync,
 } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Deploy')
@@ -19,7 +12,7 @@ import type { Contract, ContractConstructor } from './Contract'
 import type { Agent } from './Agent'
 import type { Chain } from './Chain'
 import { ContractMessage, printAligned } from './Core'
-import { instantiateContract } from './Init'
+import { instantiateContract, InitReceipt } from './Init'
 
 export class Deployments extends Directory {
   KEY = '.active'

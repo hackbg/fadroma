@@ -1,8 +1,8 @@
 export * from '@fadroma/ops'
 
-import type { ChainConnectOptions } from '@fadroma/ops'
-export type Chains = Record<string, (options: ChainConnectOptions)=>Chain>
-export const CHAINS: Chains = {}
+import { ChainConnectOptions, Mocknet } from '@fadroma/ops'
+export type Chains = Record<string, (options?: Chain)=>Chain>
+export const CHAINS: Chains = { 'mock': () => new Mocknet() }
 
 import Scrt_1_0 from '@fadroma/scrt-1.0'
 Object.assign(CHAINS, Scrt_1_0.Chains)

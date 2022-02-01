@@ -9,7 +9,7 @@ import { URL } from 'url'
 
 import { Identity } from './Core'
 import { ChainNode } from './ChainNode'
-import { Agent, AgentConstructor, BaseAgent } from './Agent'
+import { Agent, AgentConstructor, BaseAgent, MockAgent } from './Agent'
 import { Contract } from './Contract'
 import { Deployments } from './Deploy'
 import { Uploads } from './Upload'
@@ -51,6 +51,50 @@ export interface Chain extends ChainOptions {
   getContract <T> (api: new()=>T, address: string, agent: Agent): T
   printIdentities (): void
   buildAndUpload  (uploader: Agent, contracts: Contract[]): Promise<Contract[]>
+}
+
+export async function init (
+  CHAINS:    Record<string, Function>,
+  chainName: string,
+): Promise<{ chain: Chain, admin: Agent }> {
+  let chain: Chain
+  if (!CHAINS[chainName]) {
+    throw new Error(`${bold(`"${chainName}":`)} not a valid chain name`)
+  }
+  chain = await CHAINS[chainName]().ready
+  let admin: Agent
+  try {
+    if (chain.defaultIdentity instanceof BaseAgent) {
+      admin = chain.defaultIdentity
+    } else {
+      admin = await chain.getAgent()
+    }
+    console.info(bold(`Agent:   `), admin.address)
+    try {
+      const initialBalance = await admin.balance
+      console.info(bold(`Balance: `), initialBalance, `uscrt`)
+    } catch (e) {
+      console.warn(bold(`Could not fetch balance:`), e.message)
+    }
+  } catch (e) {
+    console.error(bold(`Could not get an agent for ${chainName}:`), e.message)
+    throw e
+  }
+  return { chain, admin }
+}
+
+export function notOnMainnet ({ chain }) {
+  if (chain.isMainnet) {
+    console.log('This command is not intended for mainnet.')
+    process.exit(1)
+  }
+}
+
+export function onlyOnMainnet ({ chain }) {
+  if (!chain.isMainnet) {
+    console.log('This command is intended only for mainnet.')
+    process.exit(1)
+  }
 }
 
 const overrideDefaults = (obj, defaults, options = {}) => {
@@ -218,48 +262,14 @@ export abstract class BaseChain implements Chain {
 
 }
 
-export class Mocknet extends BaseChain {}
-
-export async function init (
-  CHAINS:    Record<string, Function>,
-  chainName: string,
-): Promise<{ chain: Chain, admin: Agent }> {
-  let chain: Chain
-  if (!CHAINS[chainName]) {
-    throw new Error(`${bold(`"${chainName}":`)} not a valid chain name`)
-  }
-  chain = await CHAINS[chainName]().ready
-  let admin: Agent
-  try {
-    if (chain.defaultIdentity instanceof BaseAgent) {
-      admin = chain.defaultIdentity
-    } else {
-      admin = await chain.getAgent()
-    }
-    console.info(bold(`Agent:   `), admin.address)
-    try {
-      const initialBalance = await admin.balance
-      console.info(bold(`Balance: `), initialBalance, `uscrt`)
-    } catch (e) {
-      console.warn(bold(`Could not fetch balance:`), e.message)
-    }
-  } catch (e) {
-    console.error(bold(`Could not get an agent for ${chainName}:`), e.message)
-    throw e
-  }
-  return { chain, admin }
-}
-
-export function notOnMainnet ({ chain }) {
-  if (chain.isMainnet) {
-    console.log('This command is not intended for mainnet.')
-    process.exit(1)
-  }
-}
-
-export function onlyOnMainnet ({ chain }) {
-  if (!chain.isMainnet) {
-    console.log('This command is intended only for mainnet.')
-    process.exit(1)
+export class Mocknet extends BaseChain {
+  chainId    = 'mocknet'
+  isLocalnet = true
+  apiURL     = new URL('mock://mock:0')
+  stateRoot  = new Directory(`/tmp/fadroma_mocknet_${Math.floor(Math.random()*1000000)}`)
+  Agent      = MockAgent
+  constructor () {
+    super()
+    this.setDirs()
   }
 }

@@ -52,7 +52,7 @@ export abstract class BaseAgent implements Agent {
   abstract getBalance  (denomination: string): Promise<any>
   abstract send        (recipient: any, amount: string|number,
                         denom?: any, memo?: any, fee?: any): Promise<any>
-  abstract sendMany    (txs: Array<any>, memo?: string, denom?: string, fee?: any): Promise<any>
+  abstract sendMany    (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
   abstract upload      (path: string): Promise<any>
   abstract instantiate (contract: Contract, msg: any, funds: any[]): Promise<any>
   abstract query       (contract: Contract, msg: any): Promise<any>
@@ -62,7 +62,42 @@ export abstract class BaseAgent implements Agent {
   abstract getCodeId   (address: string): Promise<number>
   abstract getLabel    (address: string): Promise<string>
 
-  constructor (_options: Identity) {}
+  constructor (_options?: Identity) {}
+}
+
+export class MockAgent extends BaseAgent {
+  address = 'mock'
+
+  get nextBlock ()
+    { return Promise.resolve()  }
+  get block ()
+    { return Promise.resolve(0) }
+  get account ()
+    { return Promise.resolve()  }
+  get balance ()
+    { return Promise.resolve(0) }
+  getBalance (_: string)
+    { return Promise.resolve(0) }
+  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any)
+    { return Promise.resolve() }
+  sendMany (_1:any, _2:any, _3?:any, _4?:any)
+    { return Promise.resolve() }
+  upload (_:any)
+    { return Promise.resolve({codeId:1}) }
+  instantiate (_1: any, _2: any, _3: any) 
+    { return Promise.resolve({}) }
+  query (_1: any, _2: any) 
+    { return Promise.resolve({}) }
+  execute (_1: any, _2: any, _3: any, _4?: any, _5?: any) 
+    { return Promise.resolve({}) }
+  getCodeHash (_: any) 
+    { return Promise.resolve("SomeCodeHash") }
+  getCodeId (_: any) 
+    { return Promise.resolve(1) }
+  getLabel (_: any) 
+    { return Promise.resolve("SomeLabel") }
+  static create ()
+    { return new MockAgent() }
 }
 
 export async function waitUntilNextBlock (
