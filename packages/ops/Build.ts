@@ -25,10 +25,6 @@ export type BuildOutputs = {
 
 export type BuildInfo = BuildEnv & BuildInputs & BuildOutputs
 
-export interface Build extends BuildInfo {
-  (options?: { socketPath }): Promise<string>
-}
-
 export interface Buildable extends BuildInfo {
   build (options?: { socketPath }): Promise<string>
 }

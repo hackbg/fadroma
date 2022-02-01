@@ -1,8 +1,11 @@
+import { Console, bold, colors, timestamp } from '@hackbg/fadroma'
+const console = Console('@fadroma/cli')
+
 export * from '@fadroma/ops'
 
 import { ChainConnectOptions, Mocknet } from '@fadroma/ops'
 export type Chains = Record<string, (options?: Chain)=>Chain>
-export const CHAINS: Chains = { 'mock': () => new Mocknet() }
+export const CHAINS: Chains = { 'mocknet': () => new Mocknet() }
 
 import Scrt_1_0 from '@fadroma/scrt-1.0'
 Object.assign(CHAINS, Scrt_1_0.Chains)
@@ -11,6 +14,8 @@ export { Scrt_1_0 }
 import Scrt_1_2 from '@fadroma/scrt-1.2'
 Object.assign(CHAINS, Scrt_1_2.Chains)
 export { Scrt_1_2 }
+
+export * from '@fadroma/snip20'
 
 import { fileURLToPath } from 'url'
 import runCommands from '@hackbg/komandi'
@@ -27,8 +32,7 @@ export type MigrationContext = {
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
-import { initChainAndAgent, timestamp, Console, bold, colors } from '@fadroma/ops'
-const console = Console('@hackbg/fadroma')
+import { initChainAndAgent } from '@fadroma/ops'
 export class Fadroma {
 
   module (url: string): Commands {

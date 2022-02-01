@@ -27,9 +27,9 @@ export class Scrt_1_2 extends Scrt {
 }
 
 export class Scrt_1_2_Localnet extends Scrt_1_2 {
-  isLocalnet = true
+  id         = 'fadroma-scrt-12'
   node       = new DockerizedScrtNode_1_2()
-  chainId    = 'fadroma-scrt-12'
+  isLocalnet = true
   apiURL     = new URL('http://localhost:1337')
   defaultIdentity = 'ADMIN'
   constructor () {
@@ -40,22 +40,22 @@ export class Scrt_1_2_Localnet extends Scrt_1_2 {
 }
 
 export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
-  readonly chainId: string = 'fadroma-scrt-12'
+  readonly id:      string = 'fadroma-scrt-12'
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
   readonly readyPhrase     = 'indexed block'
   readonly initScript      = new TextFile(__dirname, 'Scrt_1_2_Init.sh')
   constructor (options: ChainNodeOptions = {}) {
     super()
     if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
+    if (options.id) this.id = options.id
     if (options.identities) this.identitiesToCreate = options.identities
     this.setDirectories(options.stateRoot)
   }
 }
 
 export class Scrt_1_2_Testnet extends Scrt_1_2 {
+  id         = 'pulsar-2'
   isTestnet  = true
-  chainId    = 'pulsar-2'
   apiURL     = new URL(SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
   defaultIdentity = {
     name:     SCRT_AGENT_NAME,
@@ -69,8 +69,8 @@ export class Scrt_1_2_Testnet extends Scrt_1_2 {
 }
 
 export class Scrt_1_2_Mainnet extends Scrt_1_2 {
+  id         = 'secret-4'
   isMainnet  = true
-  chainId    = 'secret-4'
   apiURL     = new URL(SCRT_API_URL||`https://secret-3--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
   defaultIdentity = {
     name:     SCRT_AGENT_NAME,

@@ -24,3 +24,5 @@ export * from './Init'
 export * from './Deploy'
 
 export * from './Client'
+
+export * from './Mock'

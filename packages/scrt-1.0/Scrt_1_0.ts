@@ -25,9 +25,9 @@ export class Scrt_1_0 extends Scrt {
 }
 
 export class Scrt_1_0_Localnet extends Scrt_1_0 {
+  id         = 'fadroma-scrt-10'
   isLocalnet = true
   node       = new DockerizedScrtNode_1_0()
-  chainId    = 'fadroma-scrt-10'
   apiURL     = new URL('http://localhost:1337')
   defaultIdentity = 'ADMIN'
   constructor () {
@@ -38,23 +38,23 @@ export class Scrt_1_0_Localnet extends Scrt_1_0 {
 }
 
 export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
-  readonly chainId: string = 'fadroma-scrt-10'
+  readonly id:      string = 'fadroma-scrt-10'
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.0.4-5"
   readonly readyPhrase     = 'GENESIS COMPLETE'
   readonly initScript      = new TextFile(__dirname, 'Scrt_1_0_Init.sh')
   constructor (options: ChainNodeOptions = {}) {
     super()
     if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
+    if (options.id) this.id = options.id
     if (options.identities) this.identitiesToCreate = options.identities
     this.setDirectories(options.stateRoot)
   }
 }
 
 export class Scrt_1_0_Testnet extends Scrt_1_0 {
+  id         = 'holodeck-2'
   isTestnet  = true
-  chainId    = 'holodeck-2'
-  apiURL     = new URL(SCRT_API_URL||'http://96.44.145.210/'),
+  apiURL     = new URL(SCRT_API_URL||'http://96.44.145.210/')
   defaultIdentity = {
     name:     SCRT_AGENT_NAME,
     address:  SCRT_AGENT_ADDRESS,
@@ -67,8 +67,8 @@ export class Scrt_1_0_Testnet extends Scrt_1_0 {
 }
 
 export class Scrt_1_0_Mainnet extends Scrt_1_0 {
+  id         = 'secret-2'
   isMainnet  = true
-  chainId    = 'secret-2'
   apiURL     = new URL(`https://secret-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
   defaultIdentity = {
     name:     SCRT_AGENT_NAME,
@@ -84,11 +84,11 @@ export class Scrt_1_0_Mainnet extends Scrt_1_0 {
 export const Chains = {
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
-  'localnet-1.0': () => new Scrt_1_0_Localnet({}),
+  'localnet-1.0': () => new Scrt_1_0_Localnet(),
   /** Create an instance that talks to holodeck-2 testnet via SecretJS */
-  'holodeck-2':   () => new Scrt_1_0_Testnet({}),
+  'holodeck-2':   () => new Scrt_1_0_Testnet(),
   /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  'secret-2':     () => new Scrt_1_0_Mainnet({}),
+  'secret-2':     () => new Scrt_1_0_Mainnet(),
 }
 
 export const __dirname       = dirname(fileURLToPath(import.meta.url))

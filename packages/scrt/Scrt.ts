@@ -137,7 +137,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
       const value = {from_address, to_address, amount: [{denom, amount}]}
       return { type: 'cosmos-sdk/MsgSend', value }
     }))
-    const signBytes = makeSignBytes(msg, fee, this.chain.chainId, memo, accountNumber, sequence)
+    const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence)
     return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
   async upload (pathToBinary: string) {
@@ -426,7 +426,7 @@ export abstract class ScrtAgentTX extends BaseAgent {
   transactions:   UnsignedTX[] = []
   private pushTX (...msgs: (MsgInstantiateContract|MsgExecuteContract)[]) {
     const tx = {
-      chain_id:       this.chain.chainId,
+      chain_id:       this.chain.id,
       account_number: String(this.account_number),
       sequence:       String(this.sequence),
       fee:            "1000000uscrt",

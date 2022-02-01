@@ -17,6 +17,7 @@ import { Uploads } from './Upload'
 const console = Console('@fadroma/ops/Chain')
 
 export interface ChainOptions {
+  id?: string
   chainId?: string
   apiURL?:  URL
   node?:    ChainNode
@@ -121,11 +122,11 @@ export abstract class BaseChain implements Chain {
   protected setNode () {
     if (this.node) {
       this.apiURL  = this.node.apiURL
-      this.chainId = this.node.chainId
+      this.id = this.node.chainId
     }
   }
 
-  protected setDirs (stateRoot = resolve(process.cwd(), 'receipts', this.chainId)) {
+  protected setDirs (stateRoot = resolve(process.cwd(), 'receipts', this.id)) {
     console.info(bold(`Receipts:`), relative(process.cwd(), stateRoot))
     if (!stateRoot) {
       throw new Error('@fadroma/ops/chain: Missing stateRoot')
@@ -151,7 +152,7 @@ export abstract class BaseChain implements Chain {
   async #init (): Promise<Chain> {
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
-    console.info(bold('Chain ID:'), this.chainId)
+    console.info(bold('Chain ID:'), this.id)
     if (node) {
       await this.initLocalnet(node)
     }
@@ -190,7 +191,16 @@ export abstract class BaseChain implements Chain {
    * @type {string} */
   get url () { return this.apiURL.toString() }
 
-  chainId:     string
+  id:     string
+  get chainId () {
+    throw new Error('Deprecated: Chain#chainId is now Chain#id, update accordingly')
+    return this.id
+  }
+  set chainId (v) {
+    throw new Error('Deprecated: Chain#chainId is now Chain#id, update accordingly')
+    this.id = v
+  }
+
   node?:       ChainNode
 
   isMainnet?:  boolean
@@ -204,13 +214,18 @@ export abstract class BaseChain implements Chain {
 
   /** create agent operating on the current instance's endpoint*/
   async getAgent (identity: string|Identity = this.defaultIdentity): Promise<Agent> {
+    if (!identity) {
+      throw new Error(`@fadroma/ops/Chain: pass a name or Identity to get an agent on ${this.id}`)
+    }
     if (identity instanceof BaseAgent) {
       return await this.Agent.create(identity)
     }
     if (typeof identity === 'string' && this.node) {
       identity = this.node.genesisAccount(identity)
     }
-    return await this.Agent.create({ ...identity, chain: this as Chain })
+    return await this.Agent.create({
+      ...identity, chain: this as Chain 
+    })
   }
 
   /** This directory contains all the others. */
@@ -250,26 +265,16 @@ export abstract class BaseChain implements Chain {
   }
 
   async buildAndUpload (
-    uploader:  Agent,
+    uploader:  Agent = this.defaultIdentity as Agent,
     contracts: Contract[]
   ) {
     await Promise.all(contracts.map(contract=>contract.build()))
     for (const contract of contracts) {
-      await contract.upload(this, uploader)
+      const chain = this
+      console.trace('uplioad', {contract, chain, uploader})
+      await contract.upload(chain, uploader)
     }
     return contracts
   }
 
-}
-
-export class Mocknet extends BaseChain {
-  chainId    = 'mocknet'
-  isLocalnet = true
-  apiURL     = new URL('mock://mock:0')
-  stateRoot  = new Directory(`/tmp/fadroma_mocknet_${Math.floor(Math.random()*1000000)}`)
-  Agent      = MockAgent
-  constructor () {
-    super()
-    this.setDirs()
-  }
 }

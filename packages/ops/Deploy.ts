@@ -123,7 +123,7 @@ export class Deployments extends Directory {
     if (!deployment) {
       const join = (...x:any[]) => x.map(String).join(' ')
       console.info(` `, chain.deployments.list())
-      console.error(join(bold('No selected deployment on chain:'), chain.chainId))
+      console.error(join(bold('No selected deployment on chain:'), chain.id))
       process.exit(1)
     }
     let contracts: string|number = Object.values(deployment.receipts).length
@@ -275,6 +275,7 @@ export class Deployment {
   getAll <T extends Contract> (fragment: string, getContract: (string)=>T) {
     const contracts = []
     for (const [name, receipt] of Object.entries(this.receipts)) {
+      console.log(name, name.includes(fragment))
       if (name.includes(fragment)) {
         contracts.push(this.getThe(name, getContract(name)))
       }

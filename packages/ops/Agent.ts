@@ -1,6 +1,8 @@
 import assert from 'assert'
 import type { Identity, ContractMessage } from './Core'
-import type { Chain, Contract, Gas } from './Model'
+import type { Chain } from './Chain'
+import type { Contract } from './Contract'
+import type { Gas } from './Core'
 import { taskmaster, resolve, readFileSync, Console, bold, JSONDirectory } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Agent')
@@ -63,41 +65,6 @@ export abstract class BaseAgent implements Agent {
   abstract getLabel    (address: string): Promise<string>
 
   constructor (_options?: Identity) {}
-}
-
-export class MockAgent extends BaseAgent {
-  address = 'mock'
-
-  get nextBlock ()
-    { return Promise.resolve()  }
-  get block ()
-    { return Promise.resolve(0) }
-  get account ()
-    { return Promise.resolve()  }
-  get balance ()
-    { return Promise.resolve(0) }
-  getBalance (_: string)
-    { return Promise.resolve(0) }
-  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any)
-    { return Promise.resolve() }
-  sendMany (_1:any, _2:any, _3?:any, _4?:any)
-    { return Promise.resolve() }
-  upload (_:any)
-    { return Promise.resolve({codeId:1}) }
-  instantiate (_1: any, _2: any, _3: any) 
-    { return Promise.resolve({}) }
-  query (_1: any, _2: any) 
-    { return Promise.resolve({}) }
-  execute (_1: any, _2: any, _3: any, _4?: any, _5?: any) 
-    { return Promise.resolve({}) }
-  getCodeHash (_: any) 
-    { return Promise.resolve("SomeCodeHash") }
-  getCodeId (_: any) 
-    { return Promise.resolve(1) }
-  getLabel (_: any) 
-    { return Promise.resolve("SomeLabel") }
-  static create ()
-    { return new MockAgent() }
 }
 
 export async function waitUntilNextBlock (
