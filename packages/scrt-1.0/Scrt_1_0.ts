@@ -20,60 +20,93 @@ const {
   DATAHUB_KEY
 } = process.env
 
-export const Chains = {
+export class Scrt_1_0 extends Scrt {
+  Agent = ScrtAgentJS_1_0
+}
 
+export class Scrt_1_0_Localnet extends Scrt_1_0 {
+  isLocalnet = true
+  node       = new DockerizedScrtNode_1_0()
+  chainId    = 'fadroma-scrt-10'
+  apiURL     = new URL('http://localhost:1337')
+  defaultIdentity = 'ADMIN'
+}
+
+export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
+  readonly chainId: string = 'fadroma-scrt-10'
+  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.0.4-5"
+  readonly readyPhrase     = 'GENESIS COMPLETE'
+  readonly initScript      = new TextFile(__dirname, 'Scrt_1_0_Init.sh')
+  constructor (options: ChainNodeOptions = {}) {
+    super()
+    if (options.image) this.image = options.image
+    if (options.chainId) this.chainId = options.chainId
+    if (options.identities) this.identitiesToCreate = options.identities
+    this.setDirectories(options.stateRoot)
+  }
+}
+
+export class Scrt_1_0_Testnet extends Scrt_1_0 {
+  isTestnet  = true
+  chainId    = 'holodeck-2'
+  apiURL     = new URL(SCRT_API_URL||'http://96.44.145.210/'),
+  defaultIdentity = {
+    name:     SCRT_AGENT_NAME,
+    address:  SCRT_AGENT_ADDRESS,
+    mnemonic: SCRT_AGENT_MNEMONIC
+  }
+}
+
+export class Scrt_1_0_Mainnet extends Scrt_1_0 {
+  isMainnet  = true
+  chainId    = 'secret-2'
+  apiURL     = new URL(`https://secret-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
+  defaultIdentity = {
+    name:     SCRT_AGENT_NAME,
+    address:  SCRT_AGENT_ADDRESS,
+    mnemonic: SCRT_AGENT_MNEMONIC
+  }
+}
+
+export const Chains = {
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
-  ['localnet-1.0'] (options: ChainConnectOptions = {}): Scrt {
-    // no default agent name/address/mnemonic:
-    // connect() gets them from genesis accounts
-    return new Scrt({
-      isLocalnet: true,
-      node:    options.node    || new DockerizedScrtNode_1_0({ identities: options.identities }),
-      chainId: options.chainId || 'fadroma-scrt-10',
-      apiURL:  options.apiURL  || new URL('http://localhost:1337'),
-      Agent:   ScrtAgentJS_1_0,
-      defaultIdentity: 'ADMIN'
-    })
-  },
-
-  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  ['secret-2'] (options: ChainConnectOptions = {}): Scrt {
-    const {
-      apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-    } = options
-    return new Scrt({
-      isMainnet: true,
-      chainId:   options.chainId || 'secret-2',
-      apiURL:    options.apiURL  || new URL(SCRT_API_URL||`https://secret-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`),
-      defaultIdentity: options.defaultIdentity || {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS,
-        mnemonic: SCRT_AGENT_MNEMONIC
-      },
-      Agent: ScrtAgentJS_1_0
-    })
-  },
-
+  'localnet-1.0': () => new Scrt_1_0_Localnet({}),
   /** Create an instance that talks to holodeck-2 testnet via SecretJS */
-  ['holodeck-2'] (options: ChainConnectOptions = {}): Scrt {
-    const {
-      //chainId = 'holodeck-2',
-      apiURL  = new URL(SCRT_API_URL||'http://96.44.145.210/'),
-      chainId = 'holodeck-2',
-      //apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      //apiURL  = new URL(`https://secret-holodeck-2--lcd--full.datahub.figment.io:443/apikey/${apiKey}/`),
-      defaultIdentity = {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-        mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
-      }
-    } = options
-    const isTestnet = true
-    const Agent = ScrtAgentJS_1_0
-    return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
-  },
+  'holodeck-2':   () => new Scrt_1_0_Testnet({}),
+  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
+  'secret-2':     () => new Scrt_1_0_Mainnet({}),
+}
 
+export const __dirname       = dirname(fileURLToPath(import.meta.url))
+export const buildImage      = 'hackbg/fadroma-scrt-builder:1.0'
+export const buildDockerfile = resolve(__dirname, 'Scrt_1_0_Build.Dockerfile')
+
+export class ScrtContract_1_0 extends BaseContract {
+  buildImage      = buildImage
+  buildDockerfile = buildDockerfile
+  buildScript     = buildScript
+}
+
+export class AugmentedScrtContract_1_0<T, Q> extends AugmentedScrtContract<T, Q> {
+  buildImage      = buildImage
+  buildDockerfile = buildDockerfile
+  buildScript     = buildScript
+}
+
+export class ScrtAgentJS_1_0 extends ScrtAgentJS {
+  static create = (options: Identity): Promise<Agent> =>
+    ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
+  constructor (options: Identity) {
+    super(PatchedSigningCosmWasmClient_1_0, options)
+  }
+}
+
+export default {
+  Node:     DockerizedScrtNode_1_0,
+  Agent:    ScrtAgentJS_1_0,
+  Contract: AugmentedScrtContract_1_0,
+  Chains
 }
 
 export class PatchedSigningCosmWasmClient_1_0 extends SigningCosmWasmClient {
@@ -145,48 +178,3 @@ export const isConnectionError = (e: Error & {code:any}) => (
   e.message.includes('socket hang up') ||
   e.code === 'ECONNRESET'
 )
-
-export class ScrtAgentJS_1_0 extends ScrtAgentJS {
-  static create = (options: Identity): Promise<Agent> =>
-    ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
-  constructor (options: Identity) {
-    super(PatchedSigningCosmWasmClient_1_0, options)
-  }
-}
-
-export const __dirname       = dirname(fileURLToPath(import.meta.url))
-export const buildImage      = 'hackbg/fadroma-scrt-builder:1.0'
-export const buildDockerfile = resolve(__dirname, 'Scrt_1_0_Build.Dockerfile')
-
-export class ScrtContract_1_0 extends BaseContract {
-  buildImage      = buildImage
-  buildDockerfile = buildDockerfile
-  buildScript     = buildScript
-}
-
-export class AugmentedScrtContract_1_0<T, Q> extends AugmentedScrtContract<T, Q> {
-  buildImage      = buildImage
-  buildDockerfile = buildDockerfile
-  buildScript     = buildScript
-}
-
-export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
-  readonly chainId: string = 'enigma-pub-testnet-3'
-  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.0.4-5"
-  readonly readyPhrase = 'GENESIS COMPLETE'
-  readonly initScript = new TextFile(__dirname, 'Scrt_1_0_Init.sh')
-  constructor (options: ChainNodeOptions = {}) {
-    super()
-    if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
-    if (options.identities) this.identitiesToCreate = options.identities
-    this.setDirectories(options.stateRoot)
-  }
-}
-
-export default {
-  Node:     DockerizedScrtNode_1_0,
-  Agent:    ScrtAgentJS_1_0,
-  Contract: AugmentedScrtContract_1_0,
-  Chains
-}

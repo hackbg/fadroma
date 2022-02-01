@@ -14,122 +14,123 @@ const console = Console('@fadroma/scrt-1.2')
 
 const {
   SCRT_API_URL,
-  SCRT_API_KEY,
   SCRT_AGENT_NAME,
   SCRT_AGENT_ADDRESS,
-  SCRT_AGENT_MNEMONIC
+  SCRT_AGENT_MNEMONIC,
+  DATAHUB_KEY
 } = process.env
 
-export const Chains = {
+export class Scrt_1_2 extends Scrt {
+  Agent = ScrtAgentJS_1_2
+}
 
+export class Scrt_1_2_Localnet extends Scrt_1_2 {
+  isLocalnet = true
+  node       = new DockerizedScrtNode_1_2()
+  chainId    = 'fadroma-scrt-12'
+  apiURL     = new URL('http://localhost:1337')
+  defaultIdentity = 'ADMIN'
+}
+
+export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
+  readonly chainId: string = 'fadroma-scrt-12'
+  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
+  readonly readyPhrase     = 'indexed block'
+  readonly initScript      = new TextFile(__dirname, 'Scrt_1_2_Init.sh')
+  constructor (options: ChainNodeOptions = {}) {
+    super()
+    if (options.image) this.image = options.image
+    if (options.chainId) this.chainId = options.chainId
+    if (options.identities) this.identitiesToCreate = options.identities
+    this.setDirectories(options.stateRoot)
+  }
+}
+
+export class Scrt_1_2_Testnet extends Scrt_1_2 {
+  isTestnet  = true
+  chainId    = 'pulsar-2'
+  apiURL     = new URL(SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`),
+  defaultIdentity = {
+    name:     SCRT_AGENT_NAME,
+    address:  SCRT_AGENT_ADDRESS,
+    mnemonic: SCRT_AGENT_MNEMONIC
+  }
+}
+
+export class Scrt_1_2_Mainnet extends Scrt_1_2 {
+  isMainnet  = true
+  chainId    = 'secret-4'
+  apiURL     = new URL(SCRT_API_URL||`https://secret-3--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
+  defaultIdentity = {
+    name:     SCRT_AGENT_NAME,
+    address:  SCRT_AGENT_ADDRESS,
+    mnemonic: SCRT_AGENT_MNEMONIC
+  }
+}
+
+export const Chains = {
   /** Create an instance that runs a node in a local Docker container
    *  and talks to it via SecretJS */
-  ['localnet-1.2'] (options: ChainConnectOptions = {}): Scrt {
-    // no default agent name/address/mnemonic:
-    // connect() gets them from genesis accounts
-    return new Scrt({
-      isLocalnet: true,
-      ...options,
-      node:    options.node    || new DockerizedScrtNode_1_2(options),
-      chainId: options.chainId || 'fadroma-scrt-12',
-      apiURL:  options.apiURL  || new URL('http://localhost:1337'),
-      Agent:   ScrtAgentJS_1_2,
-      defaultIdentity: 'ADMIN'
-    })
+  'localnet-1.2': () => new Scrt_1_2_Localnet({}),
+  /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
+  'pulsar-2': () => new Scrt_1_2_Testnet({}),
+  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
+  'secret-4': () => new Scrt_1_2_Mainnet({})
+}
+
+export const __dirname       = dirname(fileURLToPath(import.meta.url)),
+export const buildImage      = 'hackbg/fadroma-scrt-builder:1.2',
+export const buildDockerfile = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile')
+
+export class ScrtContract_1_2 extends BaseContract {
+  buildImage      = buildImage
+  buildDockerfile = buildDockerfile
+  buildScript     = buildScript
+}
+
+export class AugmentedScrtContract_1_2<T, Q> extends AugmentedScrtContract<T, Q> {
+  buildImage      = buildImage
+  buildDockerfile = buildDockerfile
+  buildScript     = buildScript
+}
+
+export class ScrtAgentJS_1_2 extends ScrtAgentJS {
+  static create = (options: Identity): Promise<Agent> =>
+    ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
+  constructor (options: Identity) {
+    super(PatchedSigningCosmWasmClient_1_2, options)
   }
-
-  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  ['secret-3'] (options: ChainConnectOptions = {}): Scrt {
-    const {
-      chainId = 'secret-3',
-      apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      apiURL  = new URL(SCRT_API_URL||`https://secret-3--lcd--full.datahub.figment.io/apikey/${apiKey}/`),
-      defaultIdentity = {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS,
-        mnemonic: SCRT_AGENT_MNEMONIC
+  async upload (pathToBinary: string) {
+    const result = await super.upload(pathToBinary)
+    // Non-blocking broadcast mode returns code ID = -1,
+    // so we need to find the code ID manually from the output
+    if (result.codeId === -1) {
+      try {
+        for (const log of result.logs) {
+          for (const event of log.events) {
+            for (const attribute of event.attributes) {
+              if (attribute.key === 'code_id') {
+                Object.assign(result, { codeId: Number(attribute.value) })
+                break
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`Could not get code ID for ${bold(pathToBinary)}: ${e.message}`)
+        console.debug(`Result of upload transaction:`, result)
+        throw e
       }
-    } = options
-    return new Scrt({
-      isMainnet: true,
-      chainId,
-      apiURL,
-      defaultIdentity,
-      Agent: ScrtAgentJS_1_2
-    })
-  },
+    }
+    return result
+  }
+}
 
-  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  ['secret-4'] (options: ChainConnectOptions = {}): Scrt {
-    const {
-      chainId = 'secret-4',
-      apiKey  = '5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      apiURL  = new URL(SCRT_API_URL||`https://secret-4--lcd--full.datahub.figment.io/apikey/${apiKey}/`),
-      defaultIdentity = {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS,
-        mnemonic: SCRT_AGENT_MNEMONIC
-      }
-    } = options
-    return new Scrt({
-      isMainnet: true,
-      chainId,
-      apiURL,
-      defaultIdentity,
-      Agent: ScrtAgentJS_1_2
-    })
-  },
-
-  /** Create an instance that talks to to supernova-1 testnet via SecretJS */
-  ['supernova-1'] (options: ChainConnectOptions = {}): Scrt {
-    const {
-      chainId = 'supernova-1',
-      apiURL  = new URL(SCRT_API_URL||'http://bootstrap.supernova.enigma.co'),
-      defaultIdentity = {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-        mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
-      }
-    } = options
-    const isTestnet = true
-    const Agent = ScrtAgentJS_1_2
-    return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
-  },
-
-  /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
-  ['pulsar-1'] (options: ChainConnectOptions = {}): Scrt {
-    const {
-      chainId = 'pulsar-1',
-      apiURL  = new URL(SCRT_API_URL||'http://testnet.securesecrets.org:1317'),
-      defaultIdentity = {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-        mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
-      }
-    } = options
-    const isTestnet = true
-    const Agent = ScrtAgentJS_1_2
-    return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
-  },
-
-  /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
-  ['pulsar-2'] (options: ChainConnectOptions = {}): Scrt {
-    const {
-      chainId = 'pulsar-2',
-      apiKey  = SCRT_API_KEY||'5043dd0099ce34f9e6a0d7d6aa1fa6a8',
-      apiURL  = new URL(SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${apiKey}/`),
-      defaultIdentity = {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS  || 'secret1vdf2hz5f2ygy0z7mesntmje8em5u7vxknyeygy',
-        mnemonic: SCRT_AGENT_MNEMONIC || 'genius supply lecture echo follow that silly meadow used gym nerve together'
-      }
-    } = options
-    console.log({apiKey})
-    const isTestnet = true
-    const Agent = ScrtAgentJS_1_2
-    return new Scrt({ isTestnet, chainId, apiURL, defaultIdentity, Agent })
-  },
-
+export default {
+  Node:     DockerizedScrtNode_1_2,
+  Agent:    ScrtAgentJS_1_2,
+  Contract: AugmentedScrtContract_1_2,
+  Chains
 }
 
 export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
@@ -213,73 +214,4 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     let {transactionHash:id} = await super.execute(...args)
     return await this.getTxResult(id)
   }
-}
-
-export class ScrtAgentJS_1_2 extends ScrtAgentJS {
-  static create = (options: Identity): Promise<Agent> =>
-    ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
-  constructor (options: Identity) {
-    super(PatchedSigningCosmWasmClient_1_2, options)
-  }
-  async upload (pathToBinary: string) {
-    const result = await super.upload(pathToBinary)
-    // Non-blocking broadcast mode returns code ID = -1,
-    // so we need to find the code ID manually from the output
-    if (result.codeId === -1) {
-      try {
-        for (const log of result.logs) {
-          for (const event of log.events) {
-            for (const attribute of event.attributes) {
-              if (attribute.key === 'code_id') {
-                Object.assign(result, { codeId: Number(attribute.value) })
-                break
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn(`Could not get code ID for ${bold(pathToBinary)}: ${e.message}`)
-        console.debug(`Result of upload transaction:`, result)
-        throw e
-      }
-    }
-    return result
-  }
-}
-
-export const __dirname       = dirname(fileURLToPath(import.meta.url)),
-export const buildImage      = 'hackbg/fadroma-scrt-builder:1.2',
-export const buildDockerfile = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile')
-
-export class ScrtContract_1_2 extends BaseContract {
-  buildImage      = buildImage
-  buildDockerfile = buildDockerfile
-  buildScript     = buildScript
-}
-
-export class AugmentedScrtContract_1_2<T, Q> extends AugmentedScrtContract<T, Q> {
-  buildImage      = buildImage
-  buildDockerfile = buildDockerfile
-  buildScript     = buildScript
-}
-
-export class DockerizedScrtNode_1_2 extends DockerizedScrtNode {
-  readonly chainId: string = 'supernova-1'
-  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
-  readonly readyPhrase = 'indexed block'
-  readonly initScript = new TextFile(__dirname, 'Scrt_1_2_Init.sh')
-  constructor (options: ChainNodeOptions = {}) {
-    super()
-    if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
-    if (options.identities) this.identitiesToCreate = options.identities
-    this.setDirectories(options.stateRoot)
-  }
-}
-
-export default {
-  Node:     DockerizedScrtNode_1_2,
-  Agent:    ScrtAgentJS_1_2,
-  Contract: AugmentedScrtContract_1_2,
-  Chains
 }
