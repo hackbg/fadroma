@@ -86,7 +86,10 @@ impl Bank {
                     }
                 }
             },
-            None => vec![]
+            None => match denom {
+                Some(denom) => vec![coin(0, &denom)],
+                None => vec![]
+            }
         }
     }
 
