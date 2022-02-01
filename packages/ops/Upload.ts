@@ -6,21 +6,13 @@ const console = Console('@fadroma/ops/Upload')
 
 import type { Chain } from './Chain'
 import type { Agent } from './Agent'
-
 export type UploadEnv     = { chain?: Chain; uploader?: Agent }
 export type UploadInputs  = { artifact?: string; codeHash?: string }
-export type UploadOutputs = {
-  uploadReceipt?: UploadReceipt
-  codeHash?:      string
-  codeId?:        number
-}
-
+export type UploadOutputs = { uploadReceipt?: UploadReceipt, codeHash?: string, codeId?: number }
 export type UploadInfo = UploadEnv & UploadInputs & UploadOutputs
-
 export interface Uploadable extends UploadInfo {
   upload (chain: Chain, uploader: Agent): Promise<UploadReceipt>
 }
-
 export type UploadReceipt = {
   codeId:             number
   compressedChecksum: string
@@ -126,10 +118,7 @@ async function uploadFromFS (
 ) {
   if (existsSync(uploadReceiptPath) && !forceReupload) {
     const receiptData = await readFile(uploadReceiptPath, 'utf8')
-    console.info(
-      bold(`Exists:`),
-      relative(process.cwd(), uploadReceiptPath)
-    )
+    console.info(bold(`Exists:`), relative(process.cwd(), uploadReceiptPath))
     return JSON.parse(receiptData)
   } else {
     console.info(bold(`Uploading`), artifact)

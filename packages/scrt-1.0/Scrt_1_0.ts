@@ -38,7 +38,7 @@ export class Scrt_1_0_Localnet extends Scrt_1_0 {
 }
 
 export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
-  readonly id:      string = 'fadroma-scrt-10'
+  readonly chainId: string = 'fadroma-scrt-10'
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.0.4-5"
   readonly readyPhrase     = 'GENESIS COMPLETE'
   readonly initScript      = new TextFile(__dirname, 'Scrt_1_0_Init.sh')

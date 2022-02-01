@@ -1,14 +1,15 @@
 {
-  "name":    "@fadroma/ops",
+  "name": "@fadroma/ops",
   "version": "0.0.0",
-  "type":    "module",
-  "main":    "./index.ts",
+  "type": "module",
+  "main": "./index.ts",
   "dependencies": {
-    "@hackbg/tools":             "^1",
-    "ajv":                       "^8.6",
-    "dotenv":                    "^15",
-    "exponential-backoff":       "^3.1",
+    "@hackbg/tools": "^1",
+    "ajv": "^8.6",
+    "dotenv": "^15",
+    "exponential-backoff": "^3.1",
     "json-schema-to-typescript": "^10.1.4",
-    "toml":                      "^3"
+    "toml": "^3",
+    "wasm-ffi": "^0.3.0"
   }
 }

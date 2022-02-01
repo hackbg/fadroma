@@ -8,6 +8,7 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-1.0': workspace:*
       '@fadroma/scrt-1.2': workspace:*
+      '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
       '@hackbg/komandi': ^2
       '@types/node': ^16.11.19
@@ -19,6 +20,7 @@ importers:
       '@fadroma/scrt': link:packages/scrt
       '@fadroma/scrt-1.0': link:packages/scrt-1.0
       '@fadroma/scrt-1.2': link:packages/scrt-1.2
+      '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/komandi': 2.0.0
       '@types/node': 16.11.19
       bignumber.js: 9.0.2
@@ -63,12 +65,14 @@ importers:
       exponential-backoff: ^3.1.0
       json-schema-to-typescript: ^10.1.4
       toml: ^3.0.0
+      wasm-ffi: ^0.3.0
     dependencies:
       '@hackbg/tools': 1.0.0
       ajv: 8.6.3
       exponential-backoff: 3.1.0
       json-schema-to-typescript: 10.1.5
       toml: 3.0.0
+      wasm-ffi: 0.3.0
 
   packages/scrt:
     specifiers:
@@ -501,7 +505,7 @@ packages:
     dependencies:
       '@ganesha/node': 2.0.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.13
+      '@types/node': 17.0.14
       cross-spawn: 7.0.3
 
   /@hackbg/kabinet/1.0.0:
@@ -734,8 +738,8 @@ packages:
     resolution: {integrity: sha512-4YpbAsnJXWYK/fpTVFlMIcUIho2AYCi4wg5aNPrG1ng7fn/1/RZfCIpRCiBX+12RVa34RluilnvCqD+g3KiSiA==}
     dev: false
 
-  /@types/node/17.0.13:
-    resolution: {integrity: sha512-Y86MAxASe25hNzlDbsviXl8jQHb0RDvKt4c40ZJQ1Don0AAL0STLZSs4N+6gLEO55pedy7r2cLwS+ZDxPm/2Bw==}
+  /@types/node/17.0.14:
+    resolution: {integrity: sha512-SbjLmERksKOGzWzPNuW7fJM7fk3YXVTFiZWB/Hs99gwhk+/dnrQRPBQjPW9aO+fi1tAffi9PrwFvsmOKmDTyng==}
 
   /@types/prettier/2.4.1:
     resolution: {integrity: sha512-Fo79ojj3vdEZOHg3wR9ksAMRz4P3S5fDB5e/YWZiFnyFQI1WY2Vftu9XoXVVtJfxB7Bpce/QTqWSSntkz2Znrw==}
@@ -3716,6 +3720,10 @@ packages:
       debug: 4.3.2
     transitivePeerDependencies:
       - supports-color
+    dev: false
+
+  /wasm-ffi/0.3.0:
+    resolution: {integrity: sha512-IbpRxIGXJSdJ2udiu/cgXTYwVykDQ2PJYBWJmNOxIXVU3q9NXiD8feE7oCB98By5k6ErjMwcXDcT40cX+mgBhw==}
     dev: false
 
   /which-module/2.0.0:

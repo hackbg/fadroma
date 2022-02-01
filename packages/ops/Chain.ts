@@ -223,9 +223,11 @@ export abstract class BaseChain implements Chain {
     if (typeof identity === 'string' && this.node) {
       identity = this.node.genesisAccount(identity)
     }
-    return await this.Agent.create({
+    const agent = await this.Agent.create({
       ...identity, chain: this as Chain 
     })
+    agent.chain = this
+    return agent
   }
 
   /** This directory contains all the others. */
@@ -271,7 +273,6 @@ export abstract class BaseChain implements Chain {
     await Promise.all(contracts.map(contract=>contract.build()))
     for (const contract of contracts) {
       const chain = this
-      console.trace('uplioad', {contract, chain, uploader})
       await contract.upload(chain, uploader)
     }
     return contracts

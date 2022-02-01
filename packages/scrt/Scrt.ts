@@ -1,7 +1,7 @@
 export * from '@fadroma/ops'
 
 import {
-  Console
+  Console,
   BaseAgent, Agent, Identity, AgentConstructor,
   BaseChain, ChainNode,
   DockerizedChainNode, ChainNodeOptions,
