@@ -137,9 +137,9 @@ export class Fadroma {
     }
     const T3 = + new Date()
     console.log()
-    console.info(bold(`The command ${commandName}`), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
+    console.info(`The command`, bold(commandName), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
     for (const [name, duration, isError] of stepTimings) {
-      console.info(' ',isError?'🔴':'🟢', bold(name.padEnd(40)), duration, 'msec')
+      console.info(' ',isError?'🔴':'🟢', bold(name.padEnd(40)), (duration/1000).toFixed(1), 's')
     }
     return context
   }
