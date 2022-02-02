@@ -50,7 +50,7 @@ export class SNIP20Transactions extends TransactionExecutor {
     const msg = { set_viewing_key: { key } }
     return this.execute(msg).then((tx) => ({
       tx,
-      status: JSON.parse(decode(tx.data)).set_viewing_key.key,
+      //status: JSON.parse(decode(tx.data)).set_viewing_key.key,
     }))
   }
 

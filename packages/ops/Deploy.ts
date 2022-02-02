@@ -227,7 +227,7 @@ export class Deployment {
   ): Promise<C> {
     const init = new Init(creator, this.prefix)
     const receipt = await init.instantiate(contract, initMsg)
-    this.receipts[contract.label] = receipt
+    this.receipts[contract.name] = receipt
     this.save()
     return contract
   }

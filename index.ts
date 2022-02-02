@@ -135,6 +135,7 @@ export class Fadroma {
         const T2 = + new Date()
         console.error('Deploy step', bold(name), colors.red('failed'), 'in', T2-T1, 'msec')
         stepTimings.push([name, T2-T1, true])
+        console.error('Command', bold(name), colors.red('failed'), 'in', T2-T0, 'msec')
         throw e
       }
     }
