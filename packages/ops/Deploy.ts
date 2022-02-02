@@ -232,8 +232,8 @@ export class Deployment {
     return contract
   }
   /** Add arbitrary data to the deployment. */
-  add (key: string, data: any) {
-    this.receipts[key] = data
+  add (name: string, data: any) {
+    this.receipts[name] = { name, ...this.receipts[name] || {}, ...data }
     this.save()
   }
   /** Write the deployment to a file. */
@@ -276,13 +276,13 @@ function printReceipt (name, receipt) {
   if (receipt.address) {
     console.info(
       `${receipt.address}`.padStart(45),
-      bold(name.padEnd(40)),
+      bold(name.padEnd(35)),
       String(receipt.codeId||'n/a').padEnd(6),
     )
   } else {
     console.warn(
       '(non-standard receipt)'.padStart(45),
-      bold(name.padEnd(40)),
+      bold(name.padEnd(35)),
       'n/a'.padEnd(6),
     )
   }
