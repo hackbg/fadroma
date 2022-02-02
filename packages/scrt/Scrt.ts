@@ -158,20 +158,8 @@ export abstract class ScrtAgentJS extends BaseAgent {
   async instantiate (contract: Contract, initMsg: any) {
     const from = this.address
     const { codeId, label } = contract
-    if (process.env.FADROMA_PRINT_TXS) {
-      console.debug(
-        `${bold('INIT')} ${this.constructor.name} "${label}"`,
-        { from, codeId, label, initMsg }
-      )
-    }
     const initTx = await this.API.instantiate(codeId, initMsg, label)
     Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
-    if (process.env.FADROMA_PRINT_TXS) {
-      console.debug(
-        `${bold('< INIT <')} ${this.constructor.name} ${label}`,
-        { from, codeId, label, initTx }
-      )
-    }
     return initTx
   }
   async getCodeId (address: string): Promise<number> {

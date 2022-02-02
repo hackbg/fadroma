@@ -1,13 +1,14 @@
+export * from '@fadroma/scrt'
+
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
 import { URL } from 'url'
 import {
   Console,
-  ScrtAgentJS, Identity, Agent,
-  BaseContract, AugmentedScrtContract,
-  buildScript, resolve, dirname, fileURLToPath,
-  DockerizedScrtNode, ChainNodeOptions,
   Scrt, ChainConnectOptions,
-  TextFile,
+  DockerizedScrtNode, ChainNodeOptions,
+  Identity, Agent, ScrtAgentJS, ScrtAgentTX,
+  BaseContract, AugmentedScrtContract,
+  buildScript, resolve, dirname, fileURLToPath, TextFile,
 } from '@fadroma/scrt'
 
 const console = Console('@fadroma/scrt-1.0')
@@ -17,11 +18,12 @@ const {
   SCRT_AGENT_NAME,
   SCRT_AGENT_ADDRESS,
   SCRT_AGENT_MNEMONIC,
-  DATAHUB_KEY
+  DATAHUB_KEY,
+  FADROMA_MULTISIG
 } = process.env
 
 export class Scrt_1_0 extends Scrt {
-  Agent = ScrtAgentJS_1_0
+  Agent = FADROMA_MULTISIG ? ScrtAgentTX : ScrtAgentJS_1_0
 }
 
 export class Scrt_1_0_Localnet extends Scrt_1_0 {

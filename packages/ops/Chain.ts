@@ -150,7 +150,6 @@ export abstract class BaseChain implements Chain {
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
   async #init (): Promise<Chain> {
-    console.log(this)
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
     console.info(bold('Chain ID:'), this.id)

@@ -1,4 +1,4 @@
-import { Console, bold, backOff } from '@hackbg/tools'
+import { Console, bold, backOff, relative, cwd } from '@hackbg/tools'
 import type { Chain } from './Chain'
 import type { Agent } from './Agent'
 import type { Contract } from './Contract'
@@ -19,10 +19,9 @@ export type ContractInitOptions = {
   suffix?: string
 
   /** The agent that initialized this instance of the contract. */
-  creator?:     Agent
-  initMsg?:     any
-  initTx?:      InitTX
-  initReceipt?: InitReceipt
+  creator?: Agent
+  initMsg?: any
+  initTx?:  InitTX
 }
 
 export interface ContractInit extends ContractInitOptions {
@@ -35,6 +34,96 @@ export interface ContractInit extends ContractInitOptions {
   execute (message: ContractMessage, memo: string, send: Array<any>, fee: any, agent?: Agent): any
 }
 
+export class Init {
+
+  constructor (
+    public readonly creator: Agent,
+    public readonly prefix?: string
+  ) {}
+  /** Given a Contract instance with the specification of a contract,
+    * perform the INIT transaction that creates that contract on the
+    * specified blockchain. If the contract already has an address,
+    * assume it already exists and bail. */
+  async instantiate (
+    contract: Contract,
+    initMsg:  any = contract.initMsg
+  ): Promise<InitReceipt> {
+    if (contract.address) {
+      const msg =
+        `This contract has already been ` +
+        `instantiated at ${contract.address}. ` +
+        `Use a fresh instance of ${contract.constructor.name} ` +
+        `if you want to deploy a new instance of the contract.`
+      console.error(msg)
+      throw new Error(`[@fadroma/ops/Init] `+msg)
+    }
+    if (!contract.codeId) {
+      const msg =
+        `This contract must be uploaded `+
+        `before it can be instantiated. `+
+        `I.e., missing 'codeId' property.`
+      console.error(msg)
+      throw new Error('[@fadroma/ops/Init] '+msg)
+    }
+    const { codeId, label } = contract
+    console.log()
+    console.info(bold('Init:'), codeId, label)
+    console.info(bold('As:'), this.creator.address)
+    if (this.prefix) console.info(bold('In:'), this.prefix)
+    initMsg = { ...contract.initMsg || {}, ...initMsg }
+    printAligned(initMsg)
+    contract.creator = this.creator
+    contract.prefix  = this.prefix
+
+    if (process.env.FADROMA_PRINT_TXS) {
+      console.debug(
+        `${bold('Init')} ${contract.codeId} ${contract.constructor.name} ${contract.name} "${label}"`, {
+          creator: contract.creator.address,
+          codeId, label, initMsg
+        }
+      )
+    }
+
+    const initTx = await backOff(function tryInstantiate () {
+      return contract.creator.instantiate(contract, initMsg)
+    }, {
+      retry (error: Error, attempt: number) {
+        if (error.message.includes('500')) {
+          console.warn(`Error 500, retry #${attempt}...`)
+          console.error(error)
+          return true
+        } else {
+          return false
+        }
+      }
+    })
+
+    const receipt = {
+      name:     contract.name,
+      codeId:   contract.codeId,
+      codeHash: contract.codeHash,
+      address:  initTx.contractAddress,
+      label:    contract.label,
+      initTx:   initTx.transactionHash,
+      gasUsed:  initTx.gas_used
+    }
+
+    contract.fromReceipt(receipt)
+
+    console.info()
+    console.info(bold(`${receipt.gasUsed}`), 'uscrt gas used.')
+
+    if (process.env.FADROMA_PRINT_TXS) {
+      console.debug(
+        `${bold('InitResponse')} ${contract.codeId} ${contract.constructor.name} ${contract.name} "${label}"`,
+        receipt
+      )
+    }
+
+    return receipt
+  }
+}
+
 export type InitTX = {
   txhash:          string
   contractAddress: string
@@ -45,50 +134,10 @@ export type InitTX = {
 }
 
 export type InitReceipt = {
-  label:    string,
-  codeId:   number,
-  codeHash: string,
-  initTx:   InitTX
-}
-
-/** Given a Contract instance with the specification of a contract,
-  * perform the INIT transaction that creates that contract on the
-  * specified blockchain. If the contract already has an address,
-  * assume it already exists and bail. */
-export async function instantiateContract (
-  contract: Contract,
-  initMsg:  any = contract.initMsg
-): Promise<InitTX> {
-  console.log()
-  console.info(bold('Init:'), contract.codeId, contract.label)
-  initMsg = { ...contract.initMsg || {}, ...initMsg }
-  printAligned(initMsg)
-  if (contract.address) {
-    const msg =
-      `[@fadroma/ops] This contract has already `+
-     `been instantiated at ${contract.address}`
-    console.error(msg)
-    throw new Error(msg)
-  }
-  const {
-    label,
-    codeId,
-    creator = contract.creator || contract.admin || contract.agent,
-  } = contract
-  if (!codeId) {
-    throw new Error('[@fadroma/ops] Contract must be uploaded before instantiating (missing `codeId` property)')
-  }
-  return await backOff(function tryInstantiate () {
-    return creator.instantiate(contract, initMsg)
-  }, {
-    retry (error: Error, attempt: number) {
-      if (error.message.includes('500')) {
-        console.warn(`Error 500, retry #${attempt}...`)
-        console.error(error)
-        return true
-      } else {
-        return false
-      }
-    }
-  })
+  label:    string
+  codeId:   number
+  codeHash: string
+  address:  string
+  initTx:   string
+  gasUsed:  string
 }

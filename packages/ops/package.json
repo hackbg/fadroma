@@ -6,8 +6,10 @@
   "dependencies": {
     "@hackbg/tools": "^1",
     "ajv": "^8.6",
+    "align-yaml": "^0.1.8",
     "dotenv": "^15",
     "exponential-backoff": "^3.1",
+    "js-yaml": "^4.1.0",
     "json-schema-to-typescript": "^10.1.4",
     "toml": "^3",
     "wasm-ffi": "^0.3.0"

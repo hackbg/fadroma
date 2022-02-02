@@ -2,9 +2,11 @@ import {
   Console, bold, colors, timestamp, backOff,
   writeFileSync, basename, relative, resolve, cwd,
   existsSync, statSync, readFileSync,
-  symlinkDir, readlinkSync, unlinkSync,
+  readlinkSync, unlinkSync,
   Directory, mkdirp, readdirSync,
 } from '@hackbg/tools'
+
+import { symlinkSync } from 'fs'
 
 const console = Console('@fadroma/ops/Deploy')
 
@@ -12,7 +14,9 @@ import type { Contract, ContractConstructor } from './Contract'
 import type { Agent } from './Agent'
 import type { Chain } from './Chain'
 import { ContractMessage, printAligned } from './Core'
-import { instantiateContract, InitReceipt } from './Init'
+import { Init, InitReceipt } from './Init'
+
+const join = (...x:any[]) => x.map(String).join(' ')
 
 export class Deployments extends Directory {
   KEY = '.active'
@@ -26,29 +30,16 @@ export class Deployments extends Directory {
   get active (): Deployment|null {
     return this.get(this.KEY)
   }
-  get (name: string): Deployment|null {
-    const path = resolve(this.path, name)
+  get (id: string): Deployment|null {
+    const path = resolve(this.path, `${id}.yml`)
     if (!existsSync(path)) {
       return null
     }
     let prefix: string
-    try {
-      prefix = basename(readlinkSync(path))
-    } catch (e) {
-      prefix = basename(path)
-    }
-    const contracts = {}
-    for (const contract of readdirSync(path).sort()) {
-      const [contractName, _version] = basename(contract, '.json').split('+')
-      const location = resolve(path, contract)
-      if (statSync(location).isFile()) {
-        contracts[contractName] = JSON.parse(readFileSync(location, 'utf8'))
-      }
-    }
-    return new Deployment(prefix, path, contracts)
+    return new Deployment(path)
   }
   async create (id: string) {
-    const path = resolve(this.path, id)
+    const path = resolve(this.path, `${id}.yml`)
     if (existsSync(path)) {
       throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
     }
@@ -56,17 +47,17 @@ export class Deployments extends Directory {
       bold('Creating new deployment'),
       id
     )
-    await mkdirp(path)
+    await writeFileSync(path, '')
   }
   // selected deployment shouldn't be implemented with symlinks...
   async select (id: string) {
-    const path = resolve(this.path, id)
+    const path = resolve(this.path, `${id}.yml`)
     if (!existsSync(path)) {
       throw new Error(`[@fadroma/ops/Deployment] ${id} does not exist`)
     }
-    const active = resolve(this.path, this.KEY)
-    if (existsSync(active)) unlinkSync(active)
-    await symlinkDir(path, active)
+    const active = resolve(this.path, `${this.KEY}.yml`)
+    try { unlinkSync(active) } catch (e) { console.warn(e.message) }
+    await symlinkSync(path, active)
   }
   list () {
     if (!existsSync(this.path)) {
@@ -74,9 +65,7 @@ export class Deployments extends Directory {
       mkdirp.sync(this.path)
       return []
     }
-    return readdirSync(this.path)
-      .filter(x=>x!=this.KEY)
-      .filter(x=>statSync(resolve(this.path, x)).isDirectory())
+    return readdirSync(this.path).filter(x=>x!=this.KEY).filter(x=>x.endsWith('.yml')).map(x=>basename(x,'.yml'))
   }
   save (name: string, data: any) {
     name = `${name}.json`
@@ -121,8 +110,6 @@ export class Deployments extends Directory {
     const deployment = chain.deployments.active
     const prefix     = deployment?.prefix
     if (!deployment) {
-      const join = (...x:any[]) => x.map(String).join(' ')
-      console.info(` `, chain.deployments.list())
       console.error(join(bold('No selected deployment on chain:'), chain.id))
       process.exit(1)
     }
@@ -138,6 +125,10 @@ export class Deployments extends Directory {
     let deployment = chain.deployments.active
     if (id) {
       deployment = chain.deployments.get(id)
+    }
+    if (!deployment) {
+      console.error(join(bold('No selected deployment on chain:'), chain.id))
+      process.exit(1)
     }
     deployment.printStatus()
   }
@@ -157,9 +148,14 @@ export class Deployments extends Directory {
     if (list.length > 0) {
       console.info(bold(`Known deployments:`))
       for (let instance of chain.deployments.list()) {
-        const contracts = Object.keys(chain.deployments.get(instance).receipts).length
-        if (instance === chain.deployments.active.prefix) instance = `${bold(instance)} (selected)`
-        instance = `${instance} (${contracts} contracts)`
+        if (instance === chain.deployments.KEY) {
+          continue
+        }
+        const count = Object.keys(chain.deployments.get(instance).receipts).length
+        if (chain.deployments.active && chain.deployments.active.prefix === instance) {
+          instance = `${bold(instance)} (selected)`
+        }
+        instance = `${instance} (${count} contracts)`
         console.info(` `, instance)
       }
     }
@@ -168,82 +164,30 @@ export class Deployments extends Directory {
   }
 }
 
+import YAML from 'js-yaml'
+import alignYAML from 'align-yaml'
 export class Deployment {
-
+  prefix:   string
+  receipts: Record<string, any> = {}
   constructor (
-    public readonly prefix: string,
-    public readonly path:   string,
-    public readonly receipts: Record<string, any>
-  ) {}
-
-  printStatus () {
-    const { receipts, prefix } = this
-    const contracts = Object.values(receipts).length
-    if (contracts > 0) {
-      for (const name of Object.keys(receipts).sort()) {
-        const receipt = receipts[name]
-        if (receipt.initTx) {
-          console.info(
-            bold(String(receipt.codeId||'n/a').padStart(12)),
-            receipt.initTx.contractAddress,
-            bold(name)
-          )
-        } else {
-          if (receipt.exchange) {
-            console.warn(
-              bold('???'.padStart(12)),
-              '(non-standard receipt)'.padStart(45),
-              bold(name)
-            )
-          }
-        }
-      }
-    } else {
-      console.info('This deployment is empty.')
+    public readonly path: string,
+  ) {
+    this.load()
+  }
+  /** Load deployment state from YML file. */
+  load (path = this.path) {
+    try {
+      this.prefix = basename(readlinkSync(path), '.yml')
+    } catch (e) {
+      this.prefix = basename(path, '.yml')
+    }
+    for (const receipt of YAML.loadAll(readFileSync(path, 'utf8'))) {
+      const [contractName, _version] = receipt.name.split('+')
+      this.receipts[contractName] = receipt
     }
   }
-
-  private populate (contract: Contract, receipt: InitReceipt) {
-    contract.prefix      = this.prefix
-    contract.initReceipt = receipt
-    contract.codeId      = contract.initReceipt.codeId
-    contract.codeHash    = contract.initReceipt.codeHash
-    contract.initTx      = contract.initReceipt.initTx
-    contract.address     = contract.initTx.contractAddress
-  }
-
-  /** Instantiate a new contract as a part of this deployment.
-    * Save the contract's instantiation receipt in the instances directory for this chain.
-    * If prefix is set, creates subdir grouping contracts with the same prefix. */
-  async createContract <T> (
-    creator:  Agent,
-    contract: Contract,
-    initMsg:  T = contract.initMsg
-  ): Promise<InitReceipt> {
-    contract.creator = creator
-    contract.prefix  = this.prefix
-    contract.initTx  = await instantiateContract(contract, initMsg)
-    this.populate(contract, {
-      label:    contract.label,
-      codeId:   contract.codeId,
-      codeHash: contract.codeHash,
-      initTx:   contract.initTx
-    })
-    // ugly hack to save contract.
-    // TODO inherit Deployment from Directory, make it create itself
-    let dir = contract.chain.deployments
-    dir = dir.subdir(contract.prefix).make()// ugh hahaha so thats where the mkdir was
-    const receipt = `${contract.name}${contract.suffix||''}.json`
-    console.info()
-    console.info(
-      bold(`${contract.initTx.gas_used}`), 'uscrt gas used.',
-      'Wrote', bold(relative(cwd(), dir.resolve(receipt)))
-    )
-    dir.save(receipt, JSON.stringify(contract.initReceipt, null, 2))
-    return contract.initReceipt
-  }
-
-  async getOrCreateContract <T> (
+  /** Get existing contract or create it if it doesn't exist */
+  async getOrInit <T> (
     agent:    Agent,
     contract: Contract,
     name:     string = contract.name,
@@ -252,18 +196,20 @@ export class Deployment {
     const receipt = this.receipts[name]
     if (receipt) {
       contract.agent = agent
-      this.populate(contract, receipt)
+      return this.getThe(name, contract)
     } else {
-      await this.createContract(agent, contract, initMsg)
-      return contract
+      await this.init(agent, contract, initMsg)
     }
+    return contract
   }
-
-  getThe <T extends Contract> (name: string, contract: T): T {
+  /** Get a contract by full name match.
+    * Need to provide an instance of the corresponding class
+    * and then it's populated from the receipt. */
+  getThe <C extends Contract> (name: string, contract: C): C {
     const receipt = this.receipts[name]
     if (receipt) {
-      this.populate(contract, receipt)
-      return contract
+      contract.prefix = this.prefix
+      return contract.fromReceipt(receipt)
     } else {
       throw new Error(
         `@fadroma/ops: no contract ${bold(name)}` +
@@ -271,8 +217,36 @@ export class Deployment {
       )
     }
   }
-
-  getAll <T extends Contract> (fragment: string, getContract: (string)=>T) {
+  /** Instantiate a new contract as a part of this deployment.
+    * Save the contract's instantiation receipt in the instances directory for this chain.
+    * If prefix is set, creates subdir grouping contracts with the same prefix. */
+  async init <C extends Contract, I> (
+    creator:  Agent,
+    contract: C,
+    initMsg:  I = contract.initMsg
+  ): Promise<C> {
+    const init = new Init(creator, this.prefix)
+    const receipt = await init.instantiate(contract, initMsg)
+    this.receipts[contract.label] = receipt
+    this.save()
+    return contract
+  }
+  /** Add arbitrary data to the deployment. */
+  add (key: string, data: any) {
+    this.receipts[key] = data
+    this.save()
+  }
+  /** Write the deployment to a file. */
+  save () {
+    let output = ''
+    for (let [name, data] of Object.entries(this.receipts)) {
+      output += '---\n'
+      output += alignYAML(YAML.dump({ name, ...data }, { noRefs: true }))
+    }
+    console.info(bold('Updating deployment'), relative(cwd(), this.path))
+    writeFileSync(this.path, output)
+  }
+  getAll <C extends Contract> (fragment: string, getContract: (string)=>C): C[] {
     const contracts = []
     for (const [name, receipt] of Object.entries(this.receipts)) {
       console.log(name, name.includes(fragment))
@@ -282,19 +256,34 @@ export class Deployment {
     }
     return contracts
   }
-
   resolve (...fragments: Array<string>) {
     return resolve(this.path, ...fragments)
   }
+  printStatus () {
+    const { receipts, prefix } = this
+    const count = Object.values(receipts).length
+    if (count > 0) {
+      for (const name of Object.keys(receipts).sort()) {
+        printReceipt(name, receipts[name])
+      }
+    } else {
+      console.info('This deployment is empty.')
+    }
+  }
+}
 
-  save (data: any, ...fragments: Array<string>) {
-    this.receipts[fragments.join('')] = data
-    if (data instanceof Object) data = JSON.stringify(data, null, 2)
-    const name = `${this.resolve(...fragments)}.json`
-    writeFileSync(name, data)
+function printReceipt (name, receipt) {
+  if (receipt.address) {
     console.info(
-      bold('Deployment writing:'), relative(process.cwd(), name)
+      `${receipt.address}`.padStart(45),
+      bold(name.padEnd(40)),
+      String(receipt.codeId||'n/a').padEnd(6),
+    )
+  } else {
+    console.warn(
+      '(non-standard receipt)'.padStart(45),
+      bold(name.padEnd(40)),
+      'n/a'.padEnd(6),
     )
   }
-
 }

@@ -3,7 +3,7 @@ import type { BuildInfo, Buildable } from './Build'
 import type { UploadInfo, Uploadable, UploadReceipt } from './Upload'
 import type { ContractInit, InitTX, InitReceipt } from './Init'
 
-export type Contract     = Buildable & Uploadable & ContractInit
+export type Contract     = Buildable & Uploadable & ContractInit & { fromReceipt: (InitReceipt)=>any }
 export type ContractInfo = BuildInfo & UploadInfo & InitInfo
 
 import { Agent, BaseAgent, isAgent } from './Agent'
@@ -32,6 +32,15 @@ export type ContractConstructor<T extends Contract> =
 export class BaseContract implements Contract {
   /** Allow any property to be overriden at construction. */
   constructor (options: ContractInfo = {}) { Object.assign(this, options) }
+  /** Allow data to be imported from a Deployment receipt document */
+  fromReceipt (receipt: InitReceipt) {
+    this.codeId   = receipt.codeId
+    this.codeHash = receipt.codeHash
+    this.address  = receipt.address
+    this.initTx   = receipt.initTx
+    return this
+  }
+
   /** Build environment (Docker only) ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   static buildEnv = [ "buildImage", "buildDockerfile", "buildScript" ]
   /** Label of local Docker image to use for builds. */
@@ -112,10 +121,8 @@ export class BaseContract implements Contract {
     * This is the place to make Contract classes Deployment-aware or standalone. */
   /** Init outputs. */
   static initOutputs = [ "address", "initTx", "initReceipt" ]
-  /** Init outputs: Response to init transaction. */
-  initTx?:      InitTX
-  /** Init outputs: Content of init receipt. */
-  initReceipt?: InitReceipt
+  /** Init outputs: Hash of init transaction. */
+  initTx?:      string
   /** Init outputs: Address of contract instance. */
   address?:     string
   /** A reference to the contract in the format that Fadroma ICC callbacks expect. */
@@ -151,4 +158,5 @@ export class BaseContract implements Contract {
       return false
     }
   }
+
 }

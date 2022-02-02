@@ -4,12 +4,11 @@ import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
 import { URL } from 'url'
 import {
   Console,
-  ScrtAgentJS, Identity, Agent,
-  BaseContract, AugmentedScrtContract,
-  buildScript, resolve, dirname, fileURLToPath,
-  DockerizedScrtNode, ChainNodeOptions,
   Scrt, ChainConnectOptions,
-  TextFile,
+  DockerizedScrtNode, ChainNodeOptions,
+  Identity, Agent, ScrtAgentJS, ScrtAgentTX,
+  BaseContract, AugmentedScrtContract,
+  buildScript, resolve, dirname, fileURLToPath, TextFile,
 } from '@fadroma/scrt'
 
 const console = Console('@fadroma/scrt-1.2')
@@ -19,11 +18,12 @@ const {
   SCRT_AGENT_NAME,
   SCRT_AGENT_ADDRESS,
   SCRT_AGENT_MNEMONIC,
-  DATAHUB_KEY
+  DATAHUB_KEY,
+  FADROMA_MULTISIG
 } = process.env
 
 export class Scrt_1_2 extends Scrt {
-  Agent = ScrtAgentJS_1_2
+  Agent = FADROMA_MULTISIG ? ScrtAgentTX : ScrtAgentJS_1_2
 }
 
 export class Scrt_1_2_Localnet extends Scrt_1_2 {
@@ -71,7 +71,7 @@ export class Scrt_1_2_Testnet extends Scrt_1_2 {
 export class Scrt_1_2_Mainnet extends Scrt_1_2 {
   id         = 'secret-4'
   isMainnet  = true
-  apiURL     = new URL(SCRT_API_URL||`https://secret-3--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
+  apiURL     = new URL(SCRT_API_URL||`https://secret-4--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
   defaultIdentity = {
     name:     SCRT_AGENT_NAME,
     address:  SCRT_AGENT_ADDRESS,
