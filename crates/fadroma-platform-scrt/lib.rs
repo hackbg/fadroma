@@ -1,20 +1,16 @@
-pub use cosmwasm_std;
+pub use secret_cosmwasm_std as cosmwasm_std;
 pub use cosmwasm_std::*;
 
-#[cfg(any(test,not(target_arch="wasm32")))]
-pub use cosmwasm_std::testing;
-
-#[cfg(any(test,not(target_arch="wasm32")))]
-pub use cosmwasm_std::testing::*;
-
-pub use cosmwasm_storage;
+pub use secret_cosmwasm_storage as cosmwasm_storage;
 pub use cosmwasm_storage::*;
 
-pub use cosmwasm_schema;
-pub use cosmwasm_schema::*;
+#[cfg(not(target_arch="wasm32"))]
+pub use secret_cosmwasm_std::testing;
+
+#[cfg(not(target_arch="wasm32"))]
+pub use secret_cosmwasm_std::testing::*;
 
 pub use serde;
-pub use snafu;
 pub use schemars;
 pub use secret_toolkit;
 

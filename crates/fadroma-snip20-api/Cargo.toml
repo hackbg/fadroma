@@ -12,4 +12,3 @@ path = "lib.rs"
 
 [dependencies]
 fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
-secret-toolkit        = { git = "https://github.com/enigmampc/secret-toolkit", branch = "debug-print" }

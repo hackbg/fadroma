@@ -5,6 +5,7 @@ use secret_toolkit::snip20;
 pub struct ISnip20 {
     pub link:   ContractLink<HumanAddr>,
     padding:    Option<String>,
+    memo:       Option<String>,
     block_size: usize
 }
 
@@ -14,6 +15,7 @@ impl ISnip20 {
         Self {
             link,
             padding:    None,
+            memo: None,
             block_size: BLOCK_SIZE
         }
     }
@@ -22,15 +24,22 @@ impl ISnip20 {
         Self {
             link: ContractLink { address: address.clone(), code_hash: code_hash.clone() },
             padding:    None,
+            memo:       None,
             block_size: BLOCK_SIZE
         }
+    }
+
+    pub fn memo(mut self, memo: String) -> Self {
+        self.memo = Some(memo);
+
+        self
     }
 
     pub fn mint (
         &self, recipient: &HumanAddr, amount: Uint128
     ) -> StdResult<CosmosMsg> {
         snip20::mint_msg(
-            recipient.clone(), amount,
+            recipient.clone(), amount, self.memo.clone(),
             self.padding.clone(), self.block_size,
             self.link.code_hash.clone(), self.link.address.clone()
         )
@@ -50,7 +59,7 @@ impl ISnip20 {
         &self, recipient: &HumanAddr, amount: Uint128, msg: Option<Binary>
     ) -> StdResult<CosmosMsg> {
         snip20::send_msg(
-            recipient.clone(), amount, msg,
+            recipient.clone(), amount, msg, self.memo.clone(),
             self.padding.clone(), self.block_size,
             self.link.code_hash.clone(), self.link.address.clone()
         )
@@ -62,7 +71,7 @@ impl ISnip20 {
     ) -> StdResult<CosmosMsg> {
         snip20::send_from_msg(
             owner.clone(), recipient.clone(), amount, msg,
-            self.padding.clone(), self.block_size,
+            self.memo.clone(), self.padding.clone(), self.block_size,
             self.link.code_hash.clone(), self.link.address.clone()
         )
     }
@@ -79,7 +88,7 @@ impl ISnip20 {
         &self, recipient: &HumanAddr, amount: Uint128
     ) -> StdResult<CosmosMsg> {
         snip20::transfer_msg(
-            recipient.clone(), amount,
+            recipient.clone(), amount, self.memo.clone(),
             self.padding.clone(), self.block_size,
             self.link.code_hash.clone(), self.link.address.clone()
         )
@@ -90,7 +99,7 @@ impl ISnip20 {
     ) -> StdResult<CosmosMsg> {
         snip20::transfer_from_msg(
             owner.clone(), recipient.clone(), amount,
-            self.padding.clone(), self.block_size,
+            self.memo.clone(), self.padding.clone(), self.block_size,
             self.link.code_hash.clone(), self.link.address.clone()
         )
     }

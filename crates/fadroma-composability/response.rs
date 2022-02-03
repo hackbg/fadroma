@@ -25,7 +25,7 @@ impl ResponseBuilder for InitResponse {
         Ok(self)
     }
     fn log (mut self, key: &str, value: &str) -> StdResult<Self> {
-        self.log.push(LogAttribute { key: key.to_string(), value: value.to_string() });
+        self.log.push(log(key, value));
         Ok(self)
     }
     fn data <T: serde::Serialize> (self, _: &T) -> StdResult<Self> {
@@ -51,7 +51,7 @@ impl ResponseBuilder for HandleResponse {
         Ok(self)
     }
     fn log (mut self, key: &str, value: &str) -> StdResult<Self> {
-        self.log.push(LogAttribute { key: key.to_string(), value: value.to_string() });
+        self.log.push(log(key, value));
         Ok(self)
     }
     fn data <T: serde::Serialize> (mut self, data: &T) -> StdResult<Self> {

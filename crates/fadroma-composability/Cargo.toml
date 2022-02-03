@@ -11,3 +11,7 @@ path = "lib.rs"
 fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
 fadroma-storage       = { path = "../fadroma-storage" }
 serde                 = { version = "1.0.103", default-features = false, features = ["derive"] }
+
+
+[target.'cfg(not(target_arch="wasm32"))'.dependencies]
+fadroma-platform-scrt = { path = "../fadroma-platform-scrt", features = ["iterator"] }
