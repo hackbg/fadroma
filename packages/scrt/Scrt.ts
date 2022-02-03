@@ -1,7 +1,7 @@
 export * from '@fadroma/ops'
 
 import {
-  Console,
+  Console, colors, bold,
   BaseAgent, Agent, Identity, AgentConstructor,
   BaseChain, ChainNode,
   DockerizedChainNode, ChainNodeOptions,
@@ -10,7 +10,7 @@ import {
   Fees, BaseGas,
   waitUntilNextBlock, 
   Path, Directory, TextFile, JSONFile, JSONDirectory,
-  readFile, bold, execFile, spawn,
+  readFile, execFile, spawn,
   dirname, fileURLToPath
 } from '@fadroma/ops'
 
@@ -81,7 +81,7 @@ export function resetLocalnet ({ chain }: any) {
   * with a Secret Network chain endpoint. */
 export abstract class ScrtAgentJS extends BaseAgent {
   /** Create a new agent from a signing pen. */
-  constructor (API: APIConstructor, options: Identity) {
+  constructor (options: Identity & { API: APIConstructor }) {
     super(options)
     this.chain    = options.chain as Scrt
     this.name     = options.name || ''
@@ -93,15 +93,45 @@ export abstract class ScrtAgentJS extends BaseAgent {
     this.address  = pubkeyToAddress(this.pubkey, 'secret')
     this.sign     = this.pen.sign.bind(this.pen)
     this.seed     = EnigmaUtils.GenerateNewSeed()
-    this.API = new API(
+    this.API = new (options.API)(
       this.chain.url, this.address,
       this.sign, this.seed, this.fees,
       BroadcastMode.Sync
     )
   }
-  readonly API:      SigningCosmWasmClient
-  readonly chain:    Scrt
+
+  /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
+  static async createSub (AgentClass: AgentConstructor, options: Identity): Promise<Agent> {
+    const { name = 'Anonymous', ...args } = options
+    let { mnemonic, keyPair } = options
+    let info = ''
+    if (mnemonic) {
+      info = bold(`Creating SecretJS agent from mnemonic:`) + ` ${name} `
+      // if keypair doesnt correspond to the mnemonic, delete the keypair
+      if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
+        console.warn(`ScrtAgentJS: Keypair doesn't match mnemonic, ignoring keypair`)
+        keyPair = null
+      }
+    } else if (keyPair) {
+      info = `ScrtAgentJS: generating mnemonic from keypair for agent ${bold(name)}`
+      // if there's a keypair but no mnemonic, generate mnemonic from keyapir
+      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
+    } else {
+      info = `ScrtAgentJS: creating new SecretJS agent: ${bold(name)}`
+      // if there is neither, generate a new keypair and corresponding mnemonic
+      keyPair  = EnigmaUtils.GenerateNewKeyPair()
+      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
+    }
+    const pen  = await Secp256k1Pen.fromMnemonic(mnemonic)
+    const agent = new AgentClass({name, mnemonic, keyPair, pen, ...args})
+    return agent
+  }
+
   readonly name:     string
+
+  readonly chain:    Scrt
+  fees = defaultFees
+
   readonly keyPair:  any
   readonly mnemonic: any
   readonly pen:      any
@@ -109,7 +139,8 @@ export abstract class ScrtAgentJS extends BaseAgent {
   readonly pubkey:   any
   readonly seed:     any
   readonly address:  string
-  fees = defaultFees
+
+  readonly API:      SigningCosmWasmClient
   get nextBlock () { return waitUntilNextBlock(this) }
   get block     () { return this.API.getBlock() }
   get account   () { return this.API.getAccount(this.address) }
@@ -143,6 +174,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
     const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence)
     return this.API.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
+
   async upload (pathToBinary: string) {
     return await this.API.upload(await readFile(pathToBinary), {})
   }
@@ -155,9 +187,11 @@ export abstract class ScrtAgentJS extends BaseAgent {
       throw new TypeError('getCodeHash id or addr')
     }
   }
+
   async instantiate (contract: Contract, initMsg: any) {
     const from = this.address
     const { codeId, label } = contract
+    this.traceCall(`${bold('INIT')} ${codeId} ${label}`)
     const initTx = await this.API.instantiate(codeId, initMsg, label)
     Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
     return initTx
@@ -170,69 +204,30 @@ export abstract class ScrtAgentJS extends BaseAgent {
     const { label } = await this.API.getContract(address)
     return label
   }
-  query (contract: Contract, msg: ContractMessage) {
+
+  async query (contract: Contract, msg: ContractMessage) {
     const { label, address } = contract
-    const from = this.address
+    const from   = this.address
     const method = getMethod(msg)
-    if (process.env.FADROMA_PRINT_TXS) {
-      console.debug(
-        `${bold('> QUERY >')} ${this.constructor.name}::${bold(method)}`,
-        { from, label, address, msg }
-      )
-    }
-    const response = this.API.queryContractSmart(address, msg as any)
-    if (process.env.FADROMA_PRINT_TXS) {
-      console.debug(
-        `${bold('< QUERY <')} ${this.constructor.name}::${method}`,
-        { from, address, msg, response }
-      )
-    }
+    const N = this.traceCall(
+      `${bold(colors.blue('QUERY'.padStart(5)))} ${bold(method.padEnd(20))} on ${bold(contract.name)}[${contract.address}]`,
+      //{ msg }
+    )
+    const response = await this.API.queryContractSmart(address, msg as any)
+    this.traceResponse(N, /*{ response }*/)
     return response
   }
-  execute (contract: Contract, msg: ContractMessage, memo: any, amount: any, fee: any) {
+  async execute (contract: Contract, msg: ContractMessage, memo: any, amount: any, fee: any) {
     const { label, address } = contract
-    const from = this.address
+    const from   = this.address
     const method = getMethod(msg)
-    if (process.env.FADROMA_PRINT_TXS) {
-      console.debug(
-        `${bold('> TX >')} ${this.constructor.name}::${method}`,
-        { from, label, address, msg, memo, amount, fee }
-      )
-    }
-    const result = this.API.execute(address, msg as any, memo, amount, fee)
-    if (process.env.FADROMA_PRINT_TXS) {
-      console.debug(
-        `${bold('< TX <')} ${this.constructor.name}::${method}`,
-        { from, label, address, result }
-      )
-    }
+    const N = this.traceCall(
+      `${bold(colors.yellow('TX'.padStart(5)))} ${bold(method.padEnd(20))} on ${bold(contract.name)}[${contract.address}]`,
+      //{ msg, memo, amount, fee }
+    )
+    const result = await this.API.execute(address, msg as any, memo, amount, fee)
+    this.traceResponse(N, /*{ result: result.transactionHash }*/)
     return result
-  }
-  /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
-  static async createSub (AgentClass: AgentConstructor, options: Identity): Promise<Agent> {
-    const { name = 'Anonymous', ...args } = options
-    let { mnemonic, keyPair } = options
-    let info = ''
-    if (mnemonic) {
-      info = bold(`Creating SecretJS agent from mnemonic:`) + ` ${name} `
-      // if keypair doesnt correspond to the mnemonic, delete the keypair
-      if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
-        console.warn(`ScrtAgentJS: Keypair doesn't match mnemonic, ignoring keypair`)
-        keyPair = null
-      }
-    } else if (keyPair) {
-      info = `ScrtAgentJS: generating mnemonic from keypair for agent ${bold(name)}`
-      // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-    } else {
-      info = `ScrtAgentJS: creating new SecretJS agent: ${bold(name)}`
-      // if there is neither, generate a new keypair and corresponding mnemonic
-      keyPair  = EnigmaUtils.GenerateNewKeyPair()
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-    }
-    const pen  = await Secp256k1Pen.fromMnemonic(mnemonic)
-    const agent = new AgentClass({name, mnemonic, keyPair, pen, ...args})
-    return agent
   }
 }
 

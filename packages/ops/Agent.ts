@@ -65,6 +65,25 @@ export abstract class BaseAgent implements Agent {
   abstract getLabel    (address: string): Promise<string>
 
   constructor (_options?: Identity) {}
+
+  // TODO combine with backoff
+  private callCounter = 0
+  protected traceCall (callType = '???', info?) {
+    const N = ++this.callCounter
+    if (process.env.FADROMA_PRINT_TXS) {
+      //console.info()
+      console.info(`${bold(`${this.name}: call #${String(N).padEnd(4)}`)} (${callType})`)
+      if (info) console.info(JSON.stringify(info))
+    }
+    return N
+  }
+  protected traceResponse (N, info?) {
+    if (process.env.FADROMA_PRINT_TXS) {
+      //console.info()
+      //console.info(`${bold(`${this.name}: result of call #${N}`)}:`)
+      if (info) console.info(JSON.stringify(info))
+    }
+  }
 }
 
 export async function waitUntilNextBlock (
@@ -76,7 +95,7 @@ export async function waitUntilNextBlock (
   )
   // starting height
   const {header:{height}} = await agent.block
-  console.info(bold('Block'), height)
+  //console.info(bold('Block'), height)
   // every `interval` msec check if the height has increased
   return new Promise<void>(async resolve=>{
     while (true) {
@@ -84,7 +103,7 @@ export async function waitUntilNextBlock (
       await new Promise(ok=>setTimeout(ok, interval))
       // get the current height
       const now = await agent.block
-      console.info(bold('Block'), now.header.height)
+      //console.info(bold('Block'), now.header.height)
       // check if it went up
       if (now.header.height > height) {
         resolve()

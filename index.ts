@@ -84,24 +84,23 @@ export class Fadroma {
       // Run a sub-procedure in the same context,
       // but without mutating the context.
       async run (procedure: Function, args: Record<string, any> = {}): Promise<any> {
-        console.log()
         console.info('Running procedure:', bold(procedure.name))
         const T0 = + new Date()
         let fail = false
         try {
           const result = await procedure({ ...context, ...args })
           const T1 = + new Date()
-          console.info(
-            'Procedure', bold(procedure.name), colors.green('succeeded'),
-            'in', T1-T0, 'msec'
-          )
+          //console.info(
+            //'Procedure', bold(procedure.name), colors.green('succeeded'),
+            //'in', T1-T0, 'msec'
+          //)
           return result
         } catch (e) {
           const T1 = + new Date()
-          console.error(
-            'Procedure', bold(procedure.name), colors.red(`failed`),
-            `in`, T1-T0, 'msec:', e.message
-          )
+          //console.error(
+            //'Procedure', bold(procedure.name), colors.red(`failed`),
+            //`in`, T1-T0, 'msec:', e.message
+          //)
           throw e
         }
       },

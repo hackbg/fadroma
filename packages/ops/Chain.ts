@@ -70,10 +70,10 @@ export async function initChainAndAgent (
     } else {
       agent = await chain.getAgent()
     }
-    console.info(bold(`Agent:   `), agent.address)
+    console.info(bold(`Agent:    `), agent.address)
     try {
       const initialBalance = await agent.balance
-      console.info(bold(`Balance: `), initialBalance, `uscrt`)
+      console.info(bold(`Balance:  `), initialBalance, `uscrt`)
     } catch (e) {
       console.warn(bold(`Could not fetch balance:`), e.message)
     }
@@ -100,7 +100,6 @@ export function onlyOnMainnet ({ chain }) {
 
 const overrideDefaults = (obj, defaults, options = {}) => {
   for (const k of Object.keys(defaults)) {
-    console.log(k, obj[k], options[k], defaults[k].apply(obj))
     obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
   }
 }
@@ -127,7 +126,7 @@ export abstract class BaseChain implements Chain {
   }
 
   protected setDirs (stateRoot = resolve(process.cwd(), 'receipts', this.id)) {
-    console.info(bold(`Receipts:`), relative(process.cwd(), stateRoot))
+    console.info(bold(`State:    `), relative(process.cwd(), stateRoot))
     if (!stateRoot) {
       throw new Error('@fadroma/ops/chain: Missing stateRoot')
     }
@@ -152,13 +151,13 @@ export abstract class BaseChain implements Chain {
   async #init (): Promise<Chain> {
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
-    console.info(bold('Chain ID:'), this.id)
+    console.info(bold('Chain ID: '), this.id)
     if (node) {
       await this.initLocalnet(node)
     }
     const { protocol, hostname, port } = this.apiURL
-    console.info(bold(`Protocol:`), protocol)
-    console.info(bold(`Host:    `), `${hostname}:${port}`)
+    console.info(bold(`Protocol: `), protocol)
+    console.info(bold(`Host:     `), `${hostname}:${port}`)
     if (this.defaultIdentity) {
       this.defaultIdentity = await this.getAgent({
         name: "ADMIN", ...this.defaultIdentity as object

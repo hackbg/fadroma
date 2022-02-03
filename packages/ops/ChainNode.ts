@@ -133,16 +133,10 @@ export abstract class BaseChainNode implements ChainNode {
   } | null {
     const path = relative(cwd(), this.nodeState.path)
     if (this.stateRoot.exists() && this.nodeState.exists()) {
-      console.info(
-        bold(`Loading localnet node from`), path
-      )
+      console.info(bold(`Loading:  `), path)
       try {
         const { containerId, chainId, port } = this.nodeState.load()
-        console.info(
-          bold(`Using localnet`), chainId,
-          bold(`from container`), containerId.slice(0,8),
-          bold(`on port`),        port
-        )
+        console.info(bold('Container:'), containerId)
         return { containerId, chainId, port }
       } catch (e) {
         console.warn(`Failed to load ${path}`)

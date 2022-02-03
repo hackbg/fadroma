@@ -111,7 +111,7 @@ export async function buildInDocker (docker: Docker, {
     const outputDir = resolve(workspace, 'artifacts')
     const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
     if (existsSync(artifact)) {
-      console.info(bold(`Exists:`), relative(process.cwd(), artifact))
+      //console.info(bold(`Exists:`), relative(process.cwd(), artifact))
       return artifact
     }
     if (!ref || ref === 'HEAD') {

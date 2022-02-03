@@ -110,11 +110,11 @@ export class AugmentedScrtContract_1_0<T, Q> extends AugmentedScrtContract<T, Q>
 }
 
 export class ScrtAgentJS_1_0 extends ScrtAgentJS {
+  constructor (options: Identity) {
+    super({ API: PatchedSigningCosmWasmClient_1_0, ...options })
+  }
   static create = (options: Identity): Promise<Agent> =>
     ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
-  constructor (options: Identity) {
-    super(PatchedSigningCosmWasmClient_1_0, options)
-  }
 }
 
 export default {

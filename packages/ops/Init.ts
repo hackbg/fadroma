@@ -65,24 +65,25 @@ export class Init {
       console.error(msg)
       throw new Error('[@fadroma/ops/Init] '+msg)
     }
-    const { codeId, label } = contract
-    console.log()
-    console.info(bold('Init:'), codeId, label)
-    console.info(bold('As:'), this.creator.address)
-    if (this.prefix) console.info(bold('In:'), this.prefix)
-    initMsg = { ...contract.initMsg || {}, ...initMsg }
-    printAligned(initMsg)
     contract.creator = this.creator
-    contract.prefix  = this.prefix
+    contract.prefix  = this.prefix // changes label
+    const { codeId, label } = contract
+    //console.info(bold('Code:'), codeId)
+    //console.info(bold('Init:'), label)
+    //console.info(bold('From:'), this.creator.address)
+    //if (this.prefix) console.info(bold('Into:'), this.prefix)
+    initMsg = { ...contract.initMsg || {}, ...initMsg }
+    //printAligned(initMsg)
 
-    if (process.env.FADROMA_PRINT_TXS) {
-      console.debug(
-        `${bold('Init')} ${contract.codeId} ${contract.constructor.name} ${contract.name} "${label}"`, {
-          creator: contract.creator.address,
-          codeId, label, initMsg
-        }
-      )
-    }
+    //if (String(process.env.FADROMA_PRINT_TXS).includes('init')) {
+      //console.debug(
+        //`${bold('Init')} ${contract.codeId} ${contract.constructor.name} ${contract.name} "${label}"`, {
+          //contract: `${contract.name} (${contract.constructor.name})`,
+          //creator: contract.creator.address,
+          //codeId, label, initMsg
+        //}
+      //)
+    //}
 
     const initTx = await backOff(function tryInstantiate () {
       return contract.creator.instantiate(contract, initMsg)
@@ -110,10 +111,9 @@ export class Init {
 
     contract.fromReceipt(receipt)
 
-    console.info()
-    console.info(bold(`${receipt.gasUsed}`), 'uscrt gas used.')
+    //console.info(bold(`${receipt.gasUsed}`), 'uscrt gas used.')
 
-    if (process.env.FADROMA_PRINT_TXS) {
+    if (String(process.env.FADROMA_PRINT_TXS).includes('init')) {
       console.debug(
         `${bold('InitResponse')} ${contract.codeId} ${contract.constructor.name} ${contract.name} "${label}"`,
         receipt

@@ -3,7 +3,7 @@ export * from '@fadroma/scrt'
 import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
 import { URL } from 'url'
 import {
-  Console,
+  Console, bold,
   Scrt, ChainConnectOptions,
   DockerizedScrtNode, ChainNodeOptions,
   Identity, Agent, ScrtAgentJS, ScrtAgentTX,
@@ -110,11 +110,16 @@ export class AugmentedScrtContract_1_2<T, Q> extends AugmentedScrtContract<T, Q>
 }
 
 export class ScrtAgentJS_1_2 extends ScrtAgentJS {
-  static create = (options: Identity): Promise<Agent> =>
-    ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
+
   constructor (options: Identity) {
-    super(PatchedSigningCosmWasmClient_1_2, options)
+    super({ API: PatchedSigningCosmWasmClient_1_2, ...options })
   }
+
+  static create = (options: Identity): Promise<Agent> => {
+    console.log(ScrtAgentJS.createSub)
+    return ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
+  }
+
   async upload (pathToBinary: string) {
     const result = await super.upload(pathToBinary)
     // Non-blocking broadcast mode returns code ID = -1,
@@ -173,11 +178,11 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
       } catch (error) {
         if (error.rethrow) {
           // 4. If the transaction resulted in an error, rethrow it so it can be decrypted
-          console.warn(`Transaction ${id} returned error:\n${error.message}`)
+          console.warn(`Transaction ${bold(id)} returned error:\n${error.message}`)
           throw error
         } else {
           // 5. If the transaction simply hasn't committed yet, query for the result again.
-          console.info(`Submit tx: ${submitRetries} retries left...`)
+          console.info(`Submit TX: ${bold(submitRetries)} retries left...`)
           await new Promise(ok=>setTimeout(ok, this.resubmitDelay))
         }
       }
@@ -199,7 +204,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
         // if result contains error, throw it so it can be decrypted
         const {raw_log, logs = []} = result as any
         if (raw_log.includes('failed') || raw_log.includes('out of gas')) {
-          console.warn(`Transaction ${id} failed`, result)
+          console.warn(`Transaction ${bold(id)} failed`)
           const error = new Error(raw_log)
           Object.assign(error, { rethrow: true })
           throw new Error(raw_log)
@@ -213,8 +218,8 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
           throw error
         }
         if (process.env.FADROMA_PRINT_TXS) {
-          console.warn(`Failed to query result of tx ${id}: ${error.message}`)
-          console.info(`Requesting result of ${id}: ${resultRetries} retries left`)
+          //console.warn(error.message)
+          //console.info(`Requesting result of ${id}: ${resultRetries} retries left`)
         }
         await new Promise(ok=>setTimeout(ok, this.resultRetryDelay))
         continue

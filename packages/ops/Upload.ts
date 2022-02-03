@@ -118,7 +118,7 @@ async function uploadFromFS (
 ) {
   if (existsSync(uploadReceiptPath) && !forceReupload) {
     const receiptData = await readFile(uploadReceiptPath, 'utf8')
-    console.info(bold(`Exists:`), relative(process.cwd(), uploadReceiptPath))
+    //console.info(bold(`Exists:`), relative(process.cwd(), uploadReceiptPath))
     return JSON.parse(receiptData)
   } else {
     console.info(bold(`Uploading`), artifact)
