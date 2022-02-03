@@ -82,20 +82,20 @@ pub fn concat(
 }
 
 /// Stores items in a way that allows for iterating over them.
-pub struct IterableStorage<T: DeserializeOwned + Serialize> {
-    ns: &'static [u8],
+pub struct IterableStorage<'a ,T: DeserializeOwned + Serialize> {
+    ns: &'a [u8],
     len: Option<u64>,
     data: PhantomData<T>
 }
 
-impl<T: DeserializeOwned + Serialize> IterableStorage<T> {
+impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     const KEY_INDEX: &'static [u8] = b"index";
 
     /// Creates an instance for the given namespace.
     /// The following namespaces are reserved by `IterableStorage`:
     ///  * `ns` + "index"
     ///  * `ns` + N - where N is a number
-    pub fn new(ns: &'static [u8]) -> Self {
+    pub fn new(ns: &'a [u8]) -> Self {
         Self {
             ns,
             len: None,
@@ -103,8 +103,12 @@ impl<T: DeserializeOwned + Serialize> IterableStorage<T> {
         }
     }
 
-    pub fn iter<'a, S: Storage>(&self, storage: &'a S) -> StdResult<StorageIterator<'a, T, S>> {
-        Ok(StorageIterator::new(storage, self.ns, self.len(storage)?))
+    #[inline]
+    pub fn iter<'storage, S: ReadonlyStorage>(
+        &self,
+        storage: &'storage S
+    ) -> StdResult<StorageIterator<'storage, '_, T, S>> {
+        Ok(StorageIterator::new(storage, &self.ns, self.len(storage)?))
     }
 
     /// Returns the index at which the item is stored at.
@@ -124,7 +128,7 @@ impl<T: DeserializeOwned + Serialize> IterableStorage<T> {
     }
 
     #[inline]
-    pub fn get_at(&self, storage: &impl Storage, index: u64) -> StdResult<Option<T>> {
+    pub fn get_at(&self, storage: &impl ReadonlyStorage, index: u64) -> StdResult<Option<T>> {
         ns_load(storage, self.ns, &index.to_be_bytes())
     }
 
@@ -150,7 +154,7 @@ impl<T: DeserializeOwned + Serialize> IterableStorage<T> {
         }
     }
 
-    pub fn len(&self, storage: &impl Storage) -> StdResult<u64> {
+    pub fn len(&self, storage: &impl ReadonlyStorage) -> StdResult<u64> {
         if let Some(len) = self.len {
             return Ok(len)
         }
@@ -181,16 +185,16 @@ impl<T: DeserializeOwned + Serialize> IterableStorage<T> {
     }
 }
 
-pub struct StorageIterator<'a, T: DeserializeOwned, S: Storage> {
+pub struct StorageIterator<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> {
     storage: &'a S,
-    ns: &'static [u8],
+    ns: &'b [u8],
     current: u64,
     end: u64,
     result: PhantomData<T>
 }
 
-impl<'a, T: DeserializeOwned, S: Storage> StorageIterator<'a, T, S> {
-    pub fn new(storage: &'a S, ns: &'static [u8], len: u64) -> Self {
+impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> StorageIterator<'a, 'b, T, S> {
+    pub fn new(storage: &'a S, ns: &'b [u8], len: u64) -> Self {
         Self {
             storage,
             ns,
@@ -205,7 +209,7 @@ impl<'a, T: DeserializeOwned, S: Storage> StorageIterator<'a, T, S> {
     }
 }
 
-impl<'a, T: DeserializeOwned, S: Storage> Iterator for StorageIterator<'a, T, S> {
+impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> Iterator for StorageIterator<'a, 'b, T, S> {
     type Item = StdResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -236,7 +240,7 @@ impl<'a, T: DeserializeOwned, S: Storage> Iterator for StorageIterator<'a, T, S>
     }
 }
 
-impl<'a, T: DeserializeOwned, S: Storage> DoubleEndedIterator for StorageIterator<'a, T, S> {
+impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> DoubleEndedIterator for StorageIterator<'a, 'b, T, S> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.current >= self.end {
             return None;
@@ -260,7 +264,7 @@ impl<'a, T: DeserializeOwned, S: Storage> DoubleEndedIterator for StorageIterato
     }
 }
 
-impl<'a, T: DeserializeOwned, S: Storage> ExactSizeIterator for StorageIterator<'a, T, S> { }
+impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> ExactSizeIterator for StorageIterator<'a, 'b, T, S> { }
 
 #[cfg(test)]
 mod tests {
