@@ -154,6 +154,32 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
         }
     }
 
+    /// Removes the element at the given index.
+    /// The removed element is replaced by the last element of the storage.
+    /// Does not preserve ordering.
+    pub fn swap_remove(&mut self, storage: &mut impl Storage, index: u64) -> StdResult<()> {
+        const ERR_MSG: &str = "IterableStorage: index out of bounds.";
+
+        let len = self.len(storage)?;
+
+        if len == 0 {
+            return Err(StdError::generic_err(ERR_MSG));
+        }
+        
+        let tail = len - 1;
+
+        if index > tail {
+            return Err(StdError::generic_err(ERR_MSG));
+        } else if tail == index {
+            return self.pop(storage);
+        }
+
+        let last_item = self.get_at(storage, tail)?.unwrap();
+        ns_save(storage, self.ns, &index.to_be_bytes(), &last_item)?;
+
+        self.pop(storage)
+    }
+
     pub fn len(&self, storage: &impl ReadonlyStorage) -> StdResult<u64> {
         if let Some(len) = self.len {
             return Ok(len)
@@ -357,5 +383,105 @@ mod tests {
         assert_eq!(iter.nth(0).unwrap().unwrap(), 1);
         assert_eq!(iter.nth_back(0), None);
         assert_eq!(iter.nth(0), None);
+    }
+
+    #[test]
+    fn iterable_storage_swap_remove() {
+        let ref mut deps = mock_dependencies(20, &[]);
+        let mut storage = IterableStorage::<u8>::new(b"numbers");
+
+        for i in 1..=6 {
+            storage.push(&mut deps.storage, &i).unwrap();
+        }
+
+        assert_eq!(storage.len(&deps.storage).unwrap(), 6);
+
+        storage.swap_remove(&mut deps.storage, 0).unwrap();
+        let len = storage.len(&deps.storage).unwrap();
+        assert_eq!(len, 5);
+        let item = storage.get_at(&deps.storage, 0).unwrap().unwrap();
+        assert_eq!(item, 6);
+        let item = storage.get_at(&deps.storage, len - 1).unwrap().unwrap();
+        assert_eq!(item, 5);
+
+        storage.swap_remove(&mut deps.storage, 1).unwrap();
+        let len = storage.len(&deps.storage).unwrap();
+        assert_eq!(len, 4);
+        let item = storage.get_at(&deps.storage, 1).unwrap().unwrap();
+        assert_eq!(item, 5);
+        let item = storage.get_at(&deps.storage, len - 1).unwrap().unwrap();
+        assert_eq!(item, 4);
+
+        storage.swap_remove(&mut deps.storage, 3).unwrap();
+        let len = storage.len(&deps.storage).unwrap();
+        assert_eq!(len, 3);
+        let item = storage.get_at(&deps.storage, 2).unwrap().unwrap();
+        assert_eq!(item, 3);
+        let item = storage.get_at(&deps.storage, len - 2).unwrap().unwrap();
+        assert_eq!(item, 5);
+
+        let err = storage.swap_remove(&mut deps.storage, 3).unwrap_err();
+        assert_eq!(storage.len(&deps.storage).unwrap(), 3);
+        assert_eq!(err, StdError::generic_err("IterableStorage: index out of bounds."));
+
+        storage.swap_remove(&mut deps.storage, 1).unwrap();
+        assert_eq!(storage.len(&deps.storage).unwrap(), 2);
+        let item = storage.get_at(&deps.storage, 1).unwrap().unwrap();
+        assert_eq!(item, 3);
+        let item = storage.get_at(&deps.storage, 0).unwrap().unwrap();
+        assert_eq!(item, 6);
+
+        storage.swap_remove(&mut deps.storage, 0).unwrap();
+        let item = storage.get_at(&deps.storage, 0).unwrap().unwrap();
+        assert_eq!(storage.len(&deps.storage).unwrap(), 1);
+        assert_eq!(item, 3);
+
+        storage.swap_remove(&mut deps.storage, 0).unwrap();
+        let item = storage.get_at(&deps.storage, 0).unwrap();
+        assert!(item.is_none());
+        assert_eq!(storage.len(&deps.storage).unwrap(), 0);
+
+        let num_items: u8 = 20;
+
+        let ref mut deps = mock_dependencies(20, &[]);
+        let mut storage = IterableStorage::<u8>::new(b"numbers");
+
+        for i in 0..num_items {
+            storage.push(&mut deps.storage, &i).unwrap();
+        }
+
+        for i in (0..num_items).rev() {
+            storage.swap_remove(&mut deps.storage, 0).unwrap();
+
+            let len = storage.len(&deps.storage).unwrap();
+            
+            if len != 0 {
+                let item = storage.get_at(&deps.storage, 0).unwrap().unwrap();
+                assert_eq!(item, i);
+            }
+        }
+
+        assert_eq!(storage.len(&deps.storage).unwrap(), 0);
+
+        let ref mut deps = mock_dependencies(20, &[]);
+        let mut storage = IterableStorage::<u8>::new(b"numbers");
+
+        for i in 0..num_items {
+            storage.push(&mut deps.storage, &i).unwrap();
+        }
+
+        for i in (0..num_items).rev() {
+            storage.swap_remove(&mut deps.storage, i.into()).unwrap();
+
+            let len = storage.len(&deps.storage).unwrap();
+            
+            if len != 0 {
+                let index: u64 = (i - 1).into();
+                let item = storage.get_at(&deps.storage, index).unwrap().unwrap();
+                assert_eq!(item as u64, index);
+            }
+        }
+
+        assert_eq!(storage.len(&deps.storage).unwrap(), 0);
     }
 }
