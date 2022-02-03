@@ -10,6 +10,9 @@ pub use secret_cosmwasm_std::testing;
 #[cfg(not(target_arch="wasm32"))]
 pub use secret_cosmwasm_std::testing::*;
 
+pub use cosmwasm_schema;
+pub use cosmwasm_schema::*;
+
 pub use serde;
 pub use schemars;
 pub use secret_toolkit;
