@@ -1,6 +1,6 @@
 import {
   Console, bold, colors, timestamp, backOff,
-  writeFileSync, basename, relative, resolve, cwd,
+  writeFileSync, basename, relative, resolve, dirname, cwd,
   existsSync, statSync, readFileSync,
   readlinkSync, unlinkSync,
   Directory, mkdirp, readdirSync,
@@ -47,6 +47,7 @@ export class Deployments extends Directory {
       bold('Creating new deployment'),
       id
     )
+    await mkdirp(dirname(path))
     await writeFileSync(path, '')
   }
   // selected deployment shouldn't be implemented with symlinks...
@@ -249,7 +250,6 @@ export class Deployment {
   getAll <C extends Contract> (fragment: string, getContract: (string)=>C): C[] {
     const contracts = []
     for (const [name, receipt] of Object.entries(this.receipts)) {
-      console.log(name, name.includes(fragment))
       if (name.includes(fragment)) {
         contracts.push(this.getThe(name, getContract(name)))
       }
