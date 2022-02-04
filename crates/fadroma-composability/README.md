@@ -182,7 +182,7 @@ With optional variant constructors:
 
 Usage:
 ```rust
-let (hello, world) = Response::Foo(core)
+let (hello, world) = Response::foo(core)
 ```
 
 </td></tr>
