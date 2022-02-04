@@ -7,7 +7,6 @@
     "@hackbg/tools":  "^1",
     "@fadroma/ops":   "workspace:*",
     "@cosmjs/crypto": "^0.20.0",
-    "@iov/encoding":  "^2.1.0",
     "secretjs":       "0.17.5"
   }
 }

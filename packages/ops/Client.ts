@@ -1,6 +1,19 @@
-import type { ContractMessage } from './Core'
+import { ContractMessage } from './Core'
 import { Contract, BaseContract } from './Contract'
-import type { Agent } from './Agent'
+import { Agent } from './Agent'
+
+export abstract class ContractClient {
+  agent:    Agent
+  chainId:  string
+  address:  string
+  codeHash: string
+
+  constructor (readonly contract?: Contract) {}
+}
+
+export abstract class Executor {
+  constructor (readonly client?: ContractClient) {}
+}
 
 export abstract class AugmentedContract<
   Executor extends TransactionExecutor,

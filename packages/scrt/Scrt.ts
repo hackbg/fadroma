@@ -2,7 +2,7 @@ export * from '@fadroma/ops'
 
 import {
   Console, colors, bold,
-  BaseAgent, Agent, Identity, AgentConstructor,
+  BaseAgent, Agent, Identity, AgentConstructor, Bundle, Bundled,
   BaseChain, ChainNode,
   DockerizedChainNode, ChainNodeOptions,
   BaseContract, Contract, ContractMessage,
@@ -11,13 +11,13 @@ import {
   waitUntilNextBlock, 
   Path, Directory, TextFile, JSONFile, JSONDirectory,
   readFile, execFile, spawn,
-  dirname, fileURLToPath
+  dirname, fileURLToPath,
+  toBase64
 } from '@fadroma/ops'
 
 const console = Console('@fadroma/scrt')
 
 import { Bip39 } from '@cosmjs/crypto'
-import { toBase64 } from '@iov/encoding'
 import {
   EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
   encodeSecp256k1Pubkey, pubkeyToAddress,
@@ -229,6 +229,47 @@ export abstract class ScrtAgentJS extends BaseAgent {
     this.traceResponse(N, /*{ result: result.transactionHash }*/)
     return result
   }
+
+  async bundle (cb: Bundle<typeof this>): Promise<void> {
+    const bundle = new ScrtAgentJSBundled(this)
+    await bundle.populate(cb)
+    return bundle.run()
+  }
+
+}
+
+export class ScrtAgentJSBundled extends Bundled<ScrtAgentJS> {
+
+  async instantiate (contract, msg, init_funds): Promise<any> {
+    throw new Error('@fadroma/scrt/Agent: init is not supported in a bundle')
+  }
+
+  query (contract, msg): Promise<any> {
+    throw new Error('@fadroma/scrt/Agent: query is not supported in a bundle')
+  }
+
+  async execute (
+    { address, codeHash }: Contract,
+    handleMsg,
+    transferAmount = []
+  ): Promise<any> {
+    this.add({
+      contractAddress: address,
+      contractCodeHash: codeHash,
+      handleMsg,
+      transferAmount
+    }, new Promise((resolve, reject)=>{}))
+  }
+
+  async run () {
+    console.info(bold('Running bundle:'), this.msgs.length, 'messages')
+    const result = await this.executingAgent.API.multiExecute(this.msgs, "", {
+      gas:    String(this.msgs.length*1000000),
+      amount: [ { denom: 'uscrt', amount: String(this.msgs.length*1000000) } ]
+    })
+    console.log(bold('Result of bundle:'), result)
+  }
+
 }
 
 export function getMethod (msg: ContractMessage) {

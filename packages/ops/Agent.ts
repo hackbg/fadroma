@@ -4,6 +4,7 @@ import type { Chain } from './Chain'
 import type { Contract } from './Contract'
 import type { Gas } from './Core'
 import { taskmaster, resolve, readFileSync, Console, bold, JSONDirectory } from '@hackbg/tools'
+import { toBase64 } from '@iov/encoding'
 
 const console = Console('@fadroma/ops/Agent')
 
@@ -32,6 +33,8 @@ export interface Agent extends Identity {
   getCodeHash (idOrAddr: number|string): Promise<string>
   getCodeId   (address: string): Promise<number>
   getLabel    (address: string): Promise<string>
+
+  bundle (cb: Bundle<typeof this>): Promise<void>
 }
 
 export abstract class BaseAgent implements Agent {
@@ -72,7 +75,12 @@ export abstract class BaseAgent implements Agent {
     const N = ++this.callCounter
     if (process.env.FADROMA_PRINT_TXS) {
       //console.info()
-      console.info(`${bold(`${this.name}: call #${String(N).padEnd(4)}`)} (${callType})`)
+      const header = `${bold(`${this.name}: call #${String(N).padEnd(4)}`)} (${callType})`
+      if (process.env.FADROMA_PRINT_TXS==='trace') {
+        console.trace(header)
+      } else {
+        console.info(header)
+      }
       if (info) console.info(JSON.stringify(info))
     }
     return N
@@ -84,6 +92,46 @@ export abstract class BaseAgent implements Agent {
       if (info) console.info(JSON.stringify(info))
     }
   }
+}
+
+export type Bundle<A> = (Bundled)=>Promise<any>
+
+export abstract class Bundled<A extends Agent> {
+
+  constructor (readonly executingAgent: A) {}
+
+  async populate (cb) {
+    return await cb(this)
+  }
+
+  protected id                       = 0
+  protected msgs:     any[]          = []
+  protected promises: Promise<any>[] = []
+  add (msg: any, promise: Promise<any>) {
+    console.info(bold('Adding to bundle:'), msg.type)
+    const id = this.id++
+    this.msgs[id] = msg
+    this.promises[id] = promise
+  }
+
+  abstract instantiate (
+    { codeId, codeHash, label }: Contract,
+    message:                     ContractMessage,
+    init_funds?:                 any[]
+  ): Promise<any>
+
+  abstract execute (
+    { address, codeHash }: Contract,
+    message:               ContractMessage,
+    sent_funds?:           any[]
+  ): Promise<any>
+
+  query (contract: Contract, msg: any): Promise<any> {
+    throw new Error('@fadroma/ops/Agent: queries are not supported in transaction bundles')
+  }
+
+  abstract run (): Promise<any>
+
 }
 
 export async function waitUntilNextBlock (

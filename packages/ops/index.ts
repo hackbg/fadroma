@@ -26,3 +26,5 @@ export * from './Deploy'
 export * from './Client'
 
 export * from './Mock'
+
+export { toBase64 } from '@iov/encoding'

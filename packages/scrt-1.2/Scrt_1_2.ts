@@ -144,6 +144,7 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
     }
     return result
   }
+
 }
 
 export default {

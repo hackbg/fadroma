@@ -20,8 +20,10 @@ export type ContractInitOptions = {
 
   /** The agent that initialized this instance of the contract. */
   creator?: Agent
+  /** Message passed on init */
   initMsg?: any
-  initTx?:  InitTX
+  /** Txhash of init tx */
+  initTx?:  string
 }
 
 export interface ContractInit extends ContractInitOptions {
