@@ -263,22 +263,19 @@ for LimitOrderHandle where
 
 `TODO`: Check if associated types can put an end to the propagation of generics.
 
-</td>
-<td>
+</td><td>
 
 ```rust
 pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 ```
 
-</td>
+</td></tr>
 
-<tr>
-<td>
+<tr><td>
 
 **Minimum requirements** for a feature trait:
 
-</td>
-<td>
+</td><td>
 
 ```rust
    Composable<S, A, Q>
@@ -286,17 +283,15 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 {
 ```
 
-</td>
+</td></tr>
 
-<tr>
-<td>
+<tr><td>
 
 **Optional init fn.**
 
 `TODO` Decide how to cleanly compose multiple `init`s.
 
-</td>
-<td>
+</td><td>
 
 ```rust
     fn init (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
@@ -311,8 +306,7 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 }
 ```
 
-</td>
-</tr>
+</td></tr>
 </trable>
 
 ### Composability Level 4: Composing feature traits into a contract
