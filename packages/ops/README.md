@@ -24,11 +24,10 @@ on current generation write-only smart contract platforms.
 
 ### [**`Contract`**](./Contract.ts)
 
-Represents a smart contract.
-
 </td><td width="50%">
 
 #### Fadroma 22.01:
+Represents a smart contract.
 ```typescript
 import { BaseContract } from '@fadroma/ops'
 class AContract extends Contract {}
@@ -49,14 +48,13 @@ to define baseline contract parameters.
 
 ### **`Source`**
 
-Represents the source code of a smart contract.
-
 </td><td width="50%">
 
 #### Fadroma 22.01:
 This entity is new to Fadroma 23.
 In Fadroma 22.01, its role is served by `Contract`/`BaseContract`.
 #### Fadroma 23:
+Represents the source code of a smart contract.
 ```typescript
 import { Source } from '@fadroma/ops'
 contract.source = new Source.Local.Crate(__dirname)
@@ -92,19 +90,17 @@ contract.artifact = await new Builder.Remote('ssh://foo@bar').build(contract.sou
 
 </td></tr>
 
-
 <tr><td width="50%" valign="top">
 
 ### **`Artifact`**
-
-Represents a WASM blob compiled from
-the source code of a smart contract.
 
 </td><td width="50%">
 
 #### Fadroma 22.01:
 In 22.01, `artifact` is a string field of `Contract`.
 #### Fadroma 23:
+Represents a WASM blob compiled from
+the source code of a smart contract.
 ```typescript
 contract.artifact = new Artifact.Local('/path/to/blob.wasm', checksum)
 contract.artifact = new Artifact.Remote('https://path/to/blob.wasm', checksum)
@@ -116,11 +112,10 @@ contract.artifact = new Artifact.Remote('https://path/to/blob.wasm', checksum)
 
 ### [**`Chain`**](./Chain.ts) and [**`Agent`**](./Agent.ts)
 
-Represent an existing blockchain,
-and a controllable identity on it.
-
 </td><td width="50%">
 
+Represent an existing blockchain,
+and a controllable identity on it.
 #### Fadroma 23:
 ```typescript
 import Fadroma from '@hackbg/fadroma'
@@ -188,6 +183,9 @@ New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
 
 </td><td width="50%">
 
+#### Fadroma 22.01:
+#### Fadroma 23:
+
 </td></tr>
 
 
@@ -197,6 +195,9 @@ New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
 
 </td><td width="50%">
 
+#### Fadroma 22.01:
+#### Fadroma 23:
+
 </td></tr>
 
 
@@ -205,6 +206,9 @@ New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
 ### [**`Client`**](./Client.ts)
 
 </td><td width="50%">
+
+#### Fadroma 22.01:
+#### Fadroma 23:
 
 </td></tr>
 
