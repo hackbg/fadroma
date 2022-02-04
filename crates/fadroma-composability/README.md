@@ -41,7 +41,7 @@ pub trait IResponse<S, A, Q, C>: Sized where
     C: Composable<S, A, Q>
 {
     fn foo (core: &C) -> StdResult<Self>;
-    fn Bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self>;
+    fn bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self>;
 }
 ```
 
@@ -60,49 +60,10 @@ impl<S, A, Q, C> IResponse<S, A, Q, C> for Response where
     fn foo (core: &C) -> StdResult<Self> {
         Ok(Self::Foo(("Hello".into(), "World".into())))
     }
-    fn Bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self> {
+    fn bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self> {
         Ok(Self::Bar(Uint128::MAX))
     }
 }
-```
-
-### Appendix A: Possible future syntax for message struct
-
-The following syntax contains all the information needed to define the above
-struct + 2 traits.
-
-* [ ] Its implementation is tracked by [#48](https://github.com/hackbg/fadroma/issues/48)
-
-```rust
-/// before:
-#[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
-#[serde(rename_all="snake_case")]
-#[serde(deny_unknown_fields)]
-pub enum Response {
-    Foo((String, String)),
-    Bar(Uint128)
-}
-
-/// after:
-#[message] Response {
-    Foo((String, String)),
-    Bar(Uint128)
-}
-
-/// with variant constructors (optional):
-#[message] Response {
-    Foo((String, String)): fn foo (core) {
-        Ok(Self::Foo(("Hello".into(), Self::helper())))
-    }
-    Bar(Uint128): fn bar (core, x: HumanAddr, y: String) {
-        Ok(Self::Bar(Uint128::MAX))
-    }
-    /// a variant is also optional in this position:
-    fn helper () -> String { "World".into() }
-}
-
-// Usage:
-let (hello, world) = Response::Foo(core)
 ```
 
 ## Level 2: Dispatch traits
@@ -142,7 +103,68 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, Response> for Query where
 }
 ```
 
-### Possible future syntax
+## Level 3: Inherit from `Composable` to define reusable contract traits
+
+Implement those traits for `Extern` to define a contract.
+Implement them for `MockExtern` from [`composable_test`](./composable_test.rs)
+and you can clone partial test contents so that you can write
+branching tests.
+
+Trim down traits that implement generic features into a reusable form
+and add them to Fadroma to collect a library of smart contract primitives.
+
+## Level 4: Going from composable traits to composed contract.
+
+## Appendix A: Proposed syntax for the integration of composable traits in `fadroma-derive-contract`
+
+`TODO:` Integrate with `fadroma-derive-contract`.
+
+### Level 0: Builder pattern for response messages
+
+No changes needed other than reexporting `ResponseBuilder`
+from `mod response` by default. CosmWasm's `InitResponse`
+and `HandleResponse` will automatically gain the extra methods.
+
+### Level 1: Extension to `#[message]` macro to allow in-place definition of API-aware variant constructors
+
+The following syntax contains all the information needed to define the above
+struct + 2 traits.
+
+* [ ] Its implementation is tracked by [#48](https://github.com/hackbg/fadroma/issues/48)
+
+```rust
+/// before:
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
+#[serde(rename_all="snake_case")]
+#[serde(deny_unknown_fields)]
+pub enum Response {
+    Foo((String, String)),
+    Bar(Uint128)
+}
+
+/// after:
+#[message] Response {
+    Foo((String, String)),
+    Bar(Uint128)
+}
+
+/// with variant constructors (optional):
+#[message] Response {
+    Foo((String, String)): fn foo (core) {
+        Ok(Self::Foo(("Hello".into(), Self::helper())))
+    }
+    Bar(Uint128): fn bar (core, x: HumanAddr, y: String) {
+        Ok(Self::Bar(Uint128::MAX))
+    }
+    /// a variant is also optional in this position:
+    fn helper () -> String { "World".into() }
+}
+
+// Usage:
+let (hello, world) = Response::Foo(core)
+```
+
+### Level 2: Extension to `#[query]` and `#[dispatch] macros to implement dispatch traits on the enums that they generate
 
 Again, should the proper applicaton of procedural macros allow it,
 the above could look like:
@@ -157,24 +179,3 @@ the above could look like:
     }
 }
 ```
-
-## Level 3: Inherit from `Composable` to define reusable contract traits
-
-## Level 4: So what's a `core` and where to get it
-
-TODO
-
-.
-
-
-Implement those traits for `Extern` to define a contract.
-Implement them for `MockExtern` from [`composable_test`](./composable_test.rs)
-and you can clone partial test contents so that you can write
-branching tests.
-
-Trim down traits that implement generic features into a reusable form
-and add them to Fadroma to collect a library of smart contract primitives.
-
-`TODO:` Integrate with `fadroma-derive-contract`.
-
-## Dispatch traits for handle/query message types
