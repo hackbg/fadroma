@@ -368,16 +368,20 @@ by the macro caller.
 
 <table>
 
-<tr><td>
+<tr><td valign="top">
 
 #### Proposed macro syntax for `CL1:S1-3`
 
+(not too sure about this one,
+need to cross-check against
+rewards domain objects)
+
 ```rust
 #[message] enum LimitOrder {
-    Ask(Uint128) <= fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+    Ask(Uint128) <= fn ask (core: &C, price: Option<Uint128>) {
         Ok(Self::Ask(price.ok_or(core.get("ask")?))
     }
-    Bid(Uint128) <= fn bid (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+    Bid(Uint128) <= fn bid (core: &C, price: Option<Uint128>) {
         Ok(Self::Bid(price.ok_or(core.get("bid")?))
     }
 }
