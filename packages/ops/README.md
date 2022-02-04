@@ -115,30 +115,17 @@ contract.artifact = new RemoteArtifact('https://path/to/blob.wasm', checksum)
 
 <tr><td width="50%" valign="top">
 
-### **`Chain`**
+### **`Chain`** and **`Agent`**
 
-Represents an existing blockchain.
+Represent an existing blockchain,
+and a controllable identity on it.
 
 </td><td width="50%">
 
+#### Fadroma 23:
 ```typescript
-// TODO
 import Fadroma from '@hackbg/fadroma'
 const chain = await Fadroma.connect()
-```
-
-</td></tr>
-
-
-<tr><td width="50%" valign="top">
-
-### **`Agent`**
-
-Represents a controllable identity on a chain.
-
-</td><td width="50%">
-
-```typescript
 const agent = await chain.getAgent()
 ```
 
@@ -157,6 +144,7 @@ producing a `Template`.
 
 </td><td width="50%">
 
+#### Fadroma 22.01:
 ```typescript
 import { Uploader, Chain, Agent } from '@fadroma/ops'
 const chain = await Chain.init() // TODO
@@ -164,9 +152,8 @@ const agent = await chain.getAgent()
 const uploader = new Uploader(contract)
 const artifact = uploader.upload(chain, agent)
 ```
-
+#### Fadroma 23:
 ```typescript
-// TODO:
 contract.template = await new Uploader(agent).upload(contract.artifact)
 ```
 
@@ -177,9 +164,9 @@ contract.template = await new Uploader(agent).upload(contract.artifact)
 
 ### **`Instance`**
 
-TODO. For now `Contract` serves the role of this class.
-
 </td><td width="50%">
+
+New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
 
 </td></tr>
 
