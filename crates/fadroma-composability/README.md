@@ -1,18 +1,23 @@
 # Fadroma Composability
 
-## Level 0: Builder pattern for response messages
+## Composability Level 0: Builder pattern for response messages
 
 `TODO`
 
-## Level 1: Making a struct or enum API-aware
+## Composability Level 1: Making a struct or enum API-aware
 
 The `Composable` trait in [`composable`](./composable.rs)
 wraps the CosmWasm API's `Extern` object. Implementing it
 on your structs lets you substitute `MockExtern` in testing.
 
-Let's try with a query response.
+Let's try with a query's `Response`.
+
+<table>
+<tr><td valign="top">
 
 ### Step 1. Define your struct as normal.
+
+</td><td>
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -23,6 +28,10 @@ pub enum Response {
     Bar(Uint128)
 }
 ```
+
+</td></tr>
+
+<tr><td valign="top">
 
 ### Step 2. Define an interface trait for your methods.
 
@@ -35,6 +44,8 @@ on every API-aware struct, making it unwieldy to write that
 struct as a literal. As it is, the interface struct can serve
 as a neat little table of contents.
 
+</td><td>
+
 ```rust
 pub trait IResponse<S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier,
@@ -45,12 +56,18 @@ pub trait IResponse<S, A, Q, C>: Sized where
 }
 ```
 
+</td></tr>
+
+<tr><td valign="top">
+
 ### Step 3. Implement your methods.
 
 Implement the methods defined in the intermediate trait like this.
 Congratulations, they can now use the Fadroma Composable `core`,
 and the struct can be used as a building block for a reusable
 contract layer. Let's see how to do that next.
+
+</td><td>
 
 ```rust
 impl<S, A, Q, C> IResponse<S, A, Q, C> for Response where
@@ -66,13 +83,15 @@ impl<S, A, Q, C> IResponse<S, A, Q, C> for Response where
 }
 ```
 
-## Level 2: Dispatch traits
+</td></tr>
+
+## Composability Level 2: Dispatch traits
 
 The `QueryDispatch<S, A, Q, C, R>`
 and `HandleDispatch<S, A, Q, C>` traits
 are the two **dispatch traits**.
 
-The traits of the API-aware structs from Level 1 implement
+The traits of the API-aware structs from Composability Level 1 implement
 1 associated function per variant, in order to construct
 the different variants with proper parameters and preparation.
 
@@ -103,7 +122,7 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, Response> for Query where
 }
 ```
 
-## Level 3: Inherit from `Composable` to define reusable contract traits
+## Composability Level 3: Inherit from `Composable` to define reusable contract traits
 
 Implement those traits for `Extern` to define a contract.
 Implement them for `MockExtern` from [`composable_test`](./composable_test.rs)
@@ -113,7 +132,7 @@ branching tests.
 Trim down traits that implement generic features into a reusable form
 and add them to Fadroma to collect a library of smart contract primitives.
 
-## Level 4: Going from composable traits to composed contract.
+## Composability Level 4: Going from composable traits to composed contract.
 
 ## Appendix A: Proposed syntax for the integration of composable traits in `fadroma-derive-contract`
 
@@ -123,7 +142,7 @@ and add them to Fadroma to collect a library of smart contract primitives.
 
 <tr><td valign="top">
 
-**Level 0:** Builder pattern for response messages
+**Composability Level 0:** Builder pattern for response messages
 
 </td><td>
 
@@ -137,7 +156,7 @@ will automatically gain the extra methods.
 
 <tr><td valign="top">
 
-**Level 1:** Extension to `#[message]` macro to allow
+**Composability Level 1:** Extension to `#[message]` macro to allow
 in-place definition of API-aware variant constructors.
 
 The following syntax contains all the information needed to define the above
@@ -189,7 +208,7 @@ let (hello, world) = Response::foo(core)
 
 <tr><td valign="top">
 
-**Level 2:** Extension to `#[query]` and `#[dispatch]` macros to implement
+**Composability Level 2:** Extension to `#[query]` and `#[dispatch]` macros to implement
 dispatch traits on the enums that they generate.
 
 </td><td>
