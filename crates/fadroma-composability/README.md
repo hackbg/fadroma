@@ -307,7 +307,7 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 ```
 
 </td></tr>
-</trable>
+</table>
 
 ### Composability Level 4: Composing feature traits into a contract
 
