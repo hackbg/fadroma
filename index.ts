@@ -115,11 +115,11 @@ export class Fadroma {
       }
       console.log()
       const name = step.name
-      if (name) {
-        console.info(bold('Running deploy step:'), name)
-      } else {
-        console.warn(bold('Running nameless deploy step. Please define deploy steps as named functions.'))
-      }
+      //if (name) {
+        //console.info(bold('Running deploy step:'), name)
+      //} else {
+        //console.warn(bold('Running nameless deploy step. Please define deploy steps as named functions.'))
+      //}
       // Every step refreshes the context
       // by adding its outputs to it.
       const T1 = + new Date()
@@ -142,7 +142,7 @@ export class Fadroma {
     console.log()
     console.info(`The command`, bold(commandName), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
     for (const [name, duration, isError] of stepTimings) {
-      console.info(' ',isError?'🔴':'🟢', bold(name.padEnd(40)), (duration/1000).toFixed(1).padStart(10), 's')
+      console.info(' ',isError?'🔴':'🟢', bold((name||'(nameless step)').padEnd(40)), (duration/1000).toFixed(1).padStart(10), 's')
     }
     return context
   }
