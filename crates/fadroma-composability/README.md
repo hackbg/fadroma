@@ -69,7 +69,7 @@ Congratulations, they can now use the Fadroma Composable `core`,
 and the struct can be used as a building block for a reusable
 contract layer. Let's see how to do that next.
 
-</td><td>
+</td></tr><tr><td>
 
 ```rust
 impl<S, A, Q, C> IResponse<S, A, Q, C> for Response where
