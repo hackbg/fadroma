@@ -16,7 +16,7 @@ as illustrated below.
 ![](./.pix/Figure_1.png)
 
 <table>
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
 
 ### [**`Contract`**](./Contract.ts)
 
@@ -29,13 +29,13 @@ const contract = new AContract()
 ```
 
 </td></tr>
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
 
 ### **`Source`**
 
-</td><td width="50%">
-
 Represents the source code of a smart contract.
+
+</td><td width="50%">
 
 **TODO** For now `Contract` serves the function of this class.
 
@@ -44,9 +44,9 @@ Represents the source code of a smart contract.
 ```
 
 </td></tr>
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
 
-### [**`Build`**](./Build.ts)
+### [**`Builder`**](./Build.ts)
 
 </td><td width="50%">
 
@@ -59,19 +59,19 @@ const artifact = await builder.build()
 
 </td></tr>
 
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
 
 ### **`Artifact`**
 
 </td><td width="50%"><center>
 
-**TODO** For now `artifact` a string field of `Contract`.
+**TODO** For now `artifact` is a string field of `Contract`.
 
 <center></td></tr>
 
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
 
-### [**`Upload`**](./Upload.ts)
+### [**`Uploader`**](./Upload.ts)
 
 </td><td width="50%">
 
@@ -86,7 +86,7 @@ const artifact = uploader.upload(chain, agent)
 
 </td></tr>
 
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
 
 ### **`Instance`**
 
@@ -94,9 +94,19 @@ const artifact = uploader.upload(chain, agent)
 
 TODO. For now `Contract` serves the function of this class.
 
-</coenter></td></tr>
+</center></td></tr>
 
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
+
+### **`Instance`**
+
+</td><td width="50%"><center>
+
+TODO. For now `Contract` serves the function of this class.
+
+</center></td></tr>
+
+<tr><td width="50%" valign="top">
 
 ### [**`Deploy`**](./Deploy.ts)
 
@@ -104,7 +114,7 @@ TODO. For now `Contract` serves the function of this class.
 
 </td></tr>
 
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
 
 ### [**`Init`**](./Init.ts)
 
@@ -112,7 +122,7 @@ TODO. For now `Contract` serves the function of this class.
 
 </td></tr>
 
-<tr><td width="50%">
+<tr><td width="50%" valign="top">
 
 ### [**`Client`**](./Client.ts)
 
