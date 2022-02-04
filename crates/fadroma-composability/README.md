@@ -97,14 +97,14 @@ a reusable contract layer: a representation of a single API message.
 
 <tr><td>
 
-### Review
-
 The **API-aware trait** from **Composability Level 1** defines and implements 1 associated function
 per variant, in order to construct the different variants from the parameters + data from `core`.
 
 ```rust
 let order = LimitOrder::ask(core)?;
 ```
+
+</td><td>
 
 In contrast, a **dispatch trait** starts with an instantiated
 variant of the dispatch enum, and calls external functions
@@ -114,8 +114,6 @@ corresponding to the enum variants.
 let response = SomeQuery::GetAsk.dispatch(core)?;
 let response = SomeHandle::SetAsk("Something".into()).dispatch(core)?;
 ```
-
-</td><td>
 
 `QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>`
 are the two **dispatch traits**.
@@ -146,8 +144,6 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder> for QuerySomething where
 
 </td><td>
 
-</td></tr><tr></tr><tr><td>
-
 ### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
 
 ```rust
@@ -168,8 +164,6 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
     }
 }
 ```
-
-</td><td>
 
 </td></tr>
 
