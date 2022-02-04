@@ -34,6 +34,13 @@ import { BaseContract } from '@fadroma/ops'
 class AContract extends Contract {}
 const contract = new AContract()
 ```
+#### Fadroma 23:
+In Fadroma 23, state will be moved out of `BaseContract`
+and into individual, smaller domain objects
+(`Source`, `Artifact`, `Template`, `Instance`, `Client`).
+
+Inheriting from `BaseContract` will remain a convenient place
+to define baseline contract parameters.
 
 </td></tr>
 
@@ -42,12 +49,13 @@ const contract = new AContract()
 
 ### **`Source`**
 
-`New in Fadroma 23` Represents the source code of a smart contract.
-
-**TODO** For now `BaseContract` serves the function of this class.
+Represents the source code of a smart contract.
 
 </td><td width="50%">
 
+#### Fadroma 22.01:
+This entity is new to Fadroma 23.
+In Fadroma 22.01, its role is served by `Contract`/`BaseContract`.
 #### Fadroma 23:
 ```typescript
 contract.source = new LocalSource.Crate(__dirname)
@@ -77,7 +85,6 @@ import { Builder } from '@fadroma/ops'
 const builder  = new Builder(contract)
 const artifact = await builder.build()
 ```
-
 #### Fadroma 23:
 ```typescript
 contract.artifact = await new RawBuilder().build(contract.source)
@@ -91,21 +98,20 @@ contract.artifact = await new DockerizedBuilder().build(contract.source)
 
 ### **`Artifact`**
 
-`New in Fadroma 23` Represents a WASM blob compiled from
-the source code of a smart contract..
-
-`In 22.01:` For now `artifact` is a string field of `Contract`.
+Represents a WASM blob compiled from
+the source code of a smart contract.
 
 </td><td width="50%">
 
+#### Fadroma 22.01:
+In 22.01, `artifact` is a string field of `Contract`.
+#### Fadroma 23:
 ```typescript
-// TODO:
 contract.artifact = new LocalArtifact('/path/to/blob.wasm', checksum)
 contract.artifact = new RemoteArtifact('https://path/to/blob.wasm', checksum)
 ```
 
 </td></tr>
-
 
 <tr><td width="50%" valign="top">
 
@@ -171,7 +177,7 @@ contract.template = await new Uploader(agent).upload(contract.artifact)
 
 ### **`Instance`**
 
-TODO. For now `Contract` serves the function of this class.
+TODO. For now `Contract` serves the role of this class.
 
 </td><td width="50%">
 
