@@ -110,25 +110,19 @@ In contrast, a **dispatch trait** starts with an instantiated
 variant of the dispatch enum, and calls external functions
 corresponding to the enum variants.
 
-`QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>`
-are the two **dispatch traits**.
-
-</td><td>
-
 ```rust
 let response = SomeQuery::GetAsk.dispatch(core)?;
 let response = SomeHandle::SetAsk("Something".into()).dispatch(core)?;
 ```
 
+</td><td>
+
+`QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>`
+are the two **dispatch traits**.
+
 </td></tr><tr></tr><tr><td valign="top">
 
-</td><td>
-
-</td></tr><tr></tr><tr><td>
-
-Implementing `QueryDispatch<S, A, Q, C, R>`:
-
-</td><td>
+### Step 1. Implementing `QueryDispatch<S, A, Q, C, R>`:
 
 ```rust
 #[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
@@ -150,11 +144,11 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder> for QuerySomething where
 }
 ```
 
+</td><td>
+
 </td></tr><tr></tr><tr><td>
 
-Implementing `HandleDispatch<S, A, Q, C>`:
-
-</td><td>
+### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
 
 ```rust
 #[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
@@ -175,7 +169,7 @@ impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
 }
 ```
 
-</td></tr>
+</td><td>
 
 </td></tr>
 
