@@ -26,24 +26,32 @@ on current generation write-only smart contract platforms.
 
 </td><td width="50%">
 
-#### Fadroma 22.01:
-Represents a smart contract.
+**In Fadroma 22.01:** Represents a smart contract.
 ```typescript
 import { BaseContract } from '@fadroma/ops'
-class AContract extends Contract {}
-const contract = new AContract()
+abstract class AContract extends BaseContract {
+  workspace = __dirname
+  crate     = 'a-contract'
+  static v1 = class AContract_v1 extends AContract {
+    get version () { return 'v1' }
+    name = 'AContract[v1]'
+  }
+  static v2 = class AContract_v2 extends AContract {
+    get version () { return 'v2' }
+    name = 'AContract[v2]'
+  }
+}
+const contract = new AContract['v1']()
 ```
-#### Fadroma 23:
-In Fadroma 23, state will be moved out of `BaseContract`
-and into individual, smaller domain objects
+**In Fadroma 23,** state and logic will be moved
+out of `BaseContract` and into domain objects
 (`Source`, `Artifact`, `Template`, `Instance`, `Client`).
 
 Inheriting from `BaseContract` will remain a convenient place
 to define baseline contract parameters.
 
 </td></tr>
-
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### **`Source`**
@@ -64,8 +72,7 @@ contract.source = new Source.Remote.Workspace('ssh://git@foo/bar.git', 'a-contra
 ```
 
 </td></tr>
-
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### [**`Builder`**](./Build.ts)
@@ -89,7 +96,7 @@ contract.artifact = await new Builder.Remote('ssh://foo@bar').build(contract.sou
 ```
 
 </td></tr>
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### **`Artifact`**
@@ -107,7 +114,7 @@ contract.artifact = new Artifact.Remote('https://path/to/blob.wasm', checksum)
 ```
 
 </td></tr>
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### [**`Chain`**](./Chain.ts) and [**`Agent`**](./Agent.ts)
@@ -124,8 +131,7 @@ const agent = await chain.getAgent()
 ```
 
 </td></tr>
-
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### [**`Uploader`**](./Upload.ts)
@@ -149,8 +155,7 @@ contract.template = await new Uploader(agent).upload(contract.artifact)
 ```
 
 </td></tr>
-
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### **`Template`**
@@ -162,8 +167,7 @@ New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
 #### Fadroma 23:
 
 </td></tr>
-
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### **`Instance`**
@@ -175,8 +179,7 @@ New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
 #### Fadroma 23:
 
 </td></tr>
-
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### [**`Deploy`**](./Deploy.ts)
@@ -187,8 +190,7 @@ New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
 #### Fadroma 23:
 
 </td></tr>
-
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### [**`Init`**](./Init.ts)
@@ -199,8 +201,7 @@ New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
 #### Fadroma 23:
 
 </td></tr>
-
-
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### [**`Client`**](./Client.ts)
