@@ -10,10 +10,14 @@ Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
 </td></tr></table>
 
-This crate models the lifecycle of a smart contract,
+This package models the lifecycle of a smart contract,
 as illustrated below.
 
 ![](./.pix/Figure_1.png)
+
+By defining the following entities, this package aims to enable
+the modeling of reproducible deployment procedures on write-only
+smart contract platforms.
 
 <table>
 <tr><td width="50%" valign="top">
