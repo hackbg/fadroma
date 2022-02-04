@@ -57,16 +57,17 @@ to define baseline contract parameters.
 
 ### **`Source`**
 
-* `path`
+* `.path`
   Local FS path to the root of the source repo.
-* `crate?`
+* `.crate?`
   Name of the crate. Implies the repo is a workspace.
-* `ref?`
+* `.ref?`
   Reference to specific Git commit to build.
-* `repo?`
+* `.repo?`
   Git remote to fetch the commit if not present in working tree.
-* `features?[]`
+* `.features?[]`
   List of build flags.
+* `.build(Builder)`
 
 </td><td width="50%">
 
@@ -206,8 +207,11 @@ This interface is **new to Fadroma 23**.
 In **Fadroma 22.01**, `Contract` covers its functionality.
 
 In **Fadroma 23**, it groups the `chainId`, `codeId` and `codeHash`
-that are needed to instantiate an uploaded contract. It can be produced
-by a `Uploader` and can be passed to a `Deployer`.
+that are needed to instantiate an uploaded contract.
+
+It can be produced by a `Uploader` by passing it an `Artifact`.
+
+It and can be passed to a `Deployer` to get a new `Instance`.
 
 ```rust
 contract.template = new Template({ chainId, codeId, codeHash })
@@ -241,6 +245,11 @@ contract.template = new Template({ chainId, codeId, codeHash })
 
 ### **`Instance`**
 
+* `chainId`
+* `codeId`
+* `codeHash`
+* `address`
+
 </td><td width="50%">
 
 This interface is **new to Fadroma 23**.
@@ -253,10 +262,16 @@ In **Fadroma 22.01**, `Contract` covers its functionality.
 
 ### [**`Client`**](./Client.ts)
 
+* `agent`
+* `address`
+* `codeHash`
+* `instance?`
+
 </td><td width="50%">
 
-#### Fadroma 22.01:
-#### Fadroma 23:
+This interface is **new to Fadroma 23**.
+
+In **Fadroma 22.01**, `Contract` covers its functionality.
 
 </td></tr>
 
