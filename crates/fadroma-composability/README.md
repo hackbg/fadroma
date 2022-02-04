@@ -258,10 +258,11 @@ for LimitOrderHandle where
 
 <table>
 
+<tr></tr>
 <tr>
 <td>
 
-`TODO`: Check if associated types can put an end to the propagation of generics.
+* `TODO`: Check if associated types can put an end to the propagation of generics.
 
 </td><td>
 
@@ -270,10 +271,10 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 ```
 
 </td></tr>
-
+<tr></tr>
 <tr><td>
 
-**Minimum requirements** for a feature trait:
+* **Minimum requirements** for a feature trait:
 
 </td><td>
 
@@ -284,23 +285,40 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 ```
 
 </td></tr>
-
+<tr></tr>
 <tr><td>
 
-**Optional init fn.**
+* **Optional init fn.**
 
 `TODO` Decide how to cleanly compose multiple `init`s.
 
 </td><td>
 
 ```rust
-    fn init (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
+    fn init (&mut self, env: &Env, msg: InitMsg)
+        -> StdResult<InitResponse>
+    {
         Ok(InitResponse::default())
     }
-    fn handle (&mut self, env: &Env, msg: LimitOrderHandle) -> StdResult<HandleResponse> {
+```
+
+</td></tr>
+<tr></tr>
+<tr><td>
+
+* **Let the messages dispatch themselves.**
+
+</td><td>
+
+```rust
+    fn handle (&mut self, env: &Env, msg: LimitOrderHandle)
+        -> StdResult<HandleResponse>
+    {
         msg.dispatch(self, env)
     }
-    fn query (&self, msg: LimitOrderQuery) -> StdResult<Binary> {
+    fn query (&self, msg: LimitOrderQuery)
+        -> StdResult<Binary>
+    {
         msg.dispatch(self)
     }
 }
