@@ -1,4 +1,14 @@
+<div align="center">
+<table><tr><td valign="middle" style="vertical-align:bottom">
+
+[<img src="https://github.com/hackbg/fadroma/raw/22.01/doc/logo.svg" width="300">](https://fadroma.tech)
+
+</td><td valign="center">
+
 # Fadroma Composability
+Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
+
+</td></tr></table>
 
 This document describes how to compose reusable bits
 of smart contract functionality using Rust's native
