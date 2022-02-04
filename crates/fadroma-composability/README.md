@@ -16,7 +16,9 @@ Let's try with a query's `Response`.
 
 **Step 1.** Define your struct as normal.
 
-</td><td>
+</td><td></td>
+
+<tr><td colspan="2">
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
