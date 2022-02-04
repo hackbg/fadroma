@@ -1,10 +1,10 @@
 # Fadroma Composability
 
-## Composability Level 0: Builder pattern for response messages
+## Composability Level 0: Builder traits
 
 `TODO`
 
-## Composability Level 1: Making a struct or enum API-aware
+## Composability Level 1: Message traits
 
 <table>
 
@@ -42,16 +42,19 @@ pub trait ISomeResponse<S, A, Q, C>: Sized where
 }
 ```
 
-</td><td>
-
 This intermediate step trait is necessary to define the `S, A, Q`
 generics, necessary to be able to write the type of `Composable<S, A, Q>`.
 
+</td><td>
+
 This is a place where Rust's type system falls slightly short.
-If not for an interface trait, you'd need 3 PhantomData fields
-on every API-aware struct, making it unwieldy to write that
-struct as a literal. As it is, the interface struct can serve
-as a neat little table of contents.
+The alternative to the extra trait would be 3 `PhantomData` fields.
+
+On an enum they could be hidden away on a never-instantiated variant.
+On a struct, you'd have to init them every time you write the struct.
+
+As it is, the interface struct can make a useful "table of contents"
+for the functionality implemented on each message.
 
 </td></tr>
 
@@ -75,9 +78,9 @@ impl<S, A, Q, C> ISomeResponse<S, A, Q, C> for SomeResponse where
 }
 ```
 
-</td><td>
+Congratulations, this enum is now **API-aware**.
 
-Congratulations, now this enum is **API-aware**.
+</td><td>
 
 This means that its variant constructors can now use the Fadroma Composable `core`.
 
