@@ -117,6 +117,15 @@ In contrast, a **dispatch trait** starts with an instantiated
 variant of the dispatch enum, and calls external functions
 corresponding to the enum variants.
 
+</td><td>
+
+```rust
+SomeQuery::GetFoo.dispatch_query(core)?;
+SomeHandle::SetFoo("Something".into()).dispatch_handle(core)?;
+```
+
+</td></tr><tr></tr><tr><td valign="top">
+
 `QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>`
 are the two **dispatch traits**.
 
