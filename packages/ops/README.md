@@ -93,11 +93,12 @@ contract.source =
 
 ### [**`Builder`**](./Build.ts)
 
-#### Dockerized
-
-* `image`
-* `tag`
-* `script`
+* Raw
+* Dockerized
+  * `image`
+  * `tag`
+  * `script`
+* Remote
 
 </td><td width="50%">
 
@@ -138,7 +139,19 @@ contract.artifact =
 <tr></tr>
 <tr><td width="50%" valign="top">
 
-### [**`Chain`**](./Chain.ts) and [**`Agent`**](./Agent.ts)
+### [**`Chain`**](./Chain.ts)
+
+* `id` The chain id
+* `async getAgent ()` Get an Agent
+
+### [**`Agent`**](./Agent.ts)
+
+* `async send()`
+* `async instantiate()`
+* `async execute()`
+* `async query()`
+* `async bundle()`
+  * [**`Bundled<Agent>`**](./Agent.ts)
 
 </td><td width="50%">
 
@@ -180,11 +193,25 @@ contract.template =
 
 ### **`Template`**
 
+* `chainId`
+* `codeId`
+* `codeHash`
+* `uploader?`
+  A reference to the `Uploader` which produced this `Template`, if present.
+
 </td><td width="50%">
 
 This interface is **new to Fadroma 23**.
 
 In **Fadroma 22.01**, `Contract` covers its functionality.
+
+In **Fadroma 23**, it groups the `chainId`, `codeId` and `codeHash`
+that are needed to instantiate an uploaded contract. It can be produced
+by a `Uploader` and can be passed to a `Deployer`.
+
+```rust
+contract.template = new Template({ chainId, codeId, codeHash })
+```
 
 </td></tr>
 <tr></tr>
