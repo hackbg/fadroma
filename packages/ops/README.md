@@ -57,11 +57,16 @@ to define baseline contract parameters.
 
 ### **`Source`**
 
-* `path:      String`   Local FS path to the root of the source repo.
-* `crate?:    String`   Name of the crate. Implies the repo is a workspace.
-* `ref?:      String`   Reference to specific Git commit to build.
-* `repo?:     String`   Git remote to fetch the commit if not present in working tree.
-* `features?: String[]` List of build flags.
+* `path`
+  Local FS path to the root of the source repo.
+* `crate?`
+  Name of the crate. Implies the repo is a workspace.
+* `ref?`
+  Reference to specific Git commit to build.
+* `repo?`
+  Git remote to fetch the commit if not present in working tree.
+* `features?[]`
+  List of build flags.
 
 </td><td width="50%">
 
@@ -71,14 +76,15 @@ functionality is covered by `Contract`.
 In **Fadroma 23**, it represents the source code of a smart contract:
 ```typescript
 import { Source } from '@fadroma/ops'
-contract.source = new Source.Local.Crate(__dirname)
-contract.source = new Source.Local.Workspace(__dirname, 'a-contract')
-contract.source = new Source.Remote.Crate('https://foo/bar.git', 'main')
-contract.source = new Source.Remote.Workspace(
-  'ssh://git@foo/bar.git',
-  'v1.2.3',
-  'a-contract'
-)
+contract.source =
+  new Source.Local.Crate(__dirname)                      ||
+  new Source.Local.Workspace(__dirname, 'a-contract')    ||
+  new Source.Remote.Crate('https://foo/bar.git', 'main') ||
+  new Source.Remote.Workspace(
+    'ssh://git@foo/bar.git',
+    'v1.2.3',
+    'a-contract'
+  )
 ```
 
 </td></tr>
@@ -86,6 +92,12 @@ contract.source = new Source.Remote.Workspace(
 <tr><td width="50%" valign="top">
 
 ### [**`Builder`**](./Build.ts)
+
+#### Dockerized
+
+* `image`
+* `tag`
+* `script`
 
 </td><td width="50%">
 
@@ -99,9 +111,10 @@ const artifact = await builder.build()
 In **Fadroma 23**, this calls the compiler on a `Source`, producing an `Artifact`.
 ```typescript
 import { Builder } from '@fadroma/ops'
-contract.artifact = await new Builder.Raw().build(contract.source)
-contract.artifact = await new Builder.Dockerized().build(contract.source)
-contract.artifact = await new Builder.Remote('ssh://foo@bar').build(contract.source)
+contract.artifact =
+  await new Builder.Raw().build(contract.source)        ||
+  await new Builder.Dockerized().build(contract.source) ||
+  await new Builder.Remote('ssh://foo@bar').build(contract.source)
 ```
 
 </td></tr>
@@ -116,8 +129,9 @@ In **Fadroma 22.01**, `artifact` is a string field of `Contract`.
 In **Fadroma 23**, it is an object that represents a WASM blob
 previously compiled from a `Source`.
 ```typescript
-contract.artifact = new Artifact.Local('/path/to/blob.wasm', checksum)
-contract.artifact = new Artifact.Remote('https://path/to/blob.wasm', checksum)
+contract.artifact =
+  new Artifact.Local('/path/to/blob.wasm', checksum) ||
+  new Artifact.Remote('https://path/to/blob.wasm', checksum)
 ```
 
 </td></tr>
@@ -156,7 +170,8 @@ const artifact = uploader.upload(chain, agent)
 In **Fadroma 23**, this uploads an `Artifact` to a `Chain`, producing a `Template`.
 ```typescript
 import { Uploader } from '@fadroma/ops'
-contract.template = await new Uploader(agent).upload(contract.artifact)
+contract.template =
+  await new Uploader(agent).upload(contract.artifact)
 ```
 
 </td></tr>
