@@ -58,10 +58,11 @@ This entity is new to Fadroma 23.
 In Fadroma 22.01, its role is served by `Contract`/`BaseContract`.
 #### Fadroma 23:
 ```typescript
-contract.source = new LocalSource.Crate(__dirname)
-contract.source = new LocalSource.Workspace(__dirname, 'a-contract')
-contract.source = new RemoteSource.Crate('https://foo/bar.git')
-contract.source = new RemoteSource.Workspace('ssh://git@foo/bar.git', 'a-contract')
+import { Source } from '@fadroma/ops'
+contract.source = new Source.Local.Crate(__dirname)
+contract.source = new Source.Local.Workspace(__dirname, 'a-contract')
+contract.source = new Source.Remote.Crate('https://foo/bar.git')
+contract.source = new Source.Remote.Workspace('ssh://git@foo/bar.git', 'a-contract')
 ```
 
 </td></tr>
@@ -71,24 +72,22 @@ contract.source = new RemoteSource.Workspace('ssh://git@foo/bar.git', 'a-contrac
 
 ### [**`Builder`**](./Build.ts)
 
-Calls the compiler on a `Contract`,
-setting its `artifact` field.
-
-`New in Fadroma 23` Calls the compiler on a `Source`,
-producing an `Artifact`.
-
 </td><td width="50%">
 
 #### Fadroma 22.01:
+Calls the compiler on a `Contract`, setting its `artifact` field.
 ```typescript
 import { Builder } from '@fadroma/ops'
 const builder  = new Builder(contract)
 const artifact = await builder.build()
 ```
 #### Fadroma 23:
+Calls the compiler on a `Source`, producing an `Artifact`.
 ```typescript
-contract.artifact = await new RawBuilder().build(contract.source)
-contract.artifact = await new DockerizedBuilder().build(contract.source)
+import { Builder } from '@fadroma/ops'
+contract.artifact = await new Builder.Raw().build(contract.source)
+contract.artifact = await new Builder.Dockerized().build(contract.source)
+contract.artifact = await new Builder.Remote('ssh://foo@bar').build(contract.source)
 ```
 
 </td></tr>
@@ -107,15 +106,15 @@ the source code of a smart contract.
 In 22.01, `artifact` is a string field of `Contract`.
 #### Fadroma 23:
 ```typescript
-contract.artifact = new LocalArtifact('/path/to/blob.wasm', checksum)
-contract.artifact = new RemoteArtifact('https://path/to/blob.wasm', checksum)
+contract.artifact = new Artifact.Local('/path/to/blob.wasm', checksum)
+contract.artifact = new Artifact.Remote('https://path/to/blob.wasm', checksum)
 ```
 
 </td></tr>
 
 <tr><td width="50%" valign="top">
 
-### **`Chain`** and **`Agent`**
+### [**`Chain`**](./Chain.ts) and [**`Agent`**](./Agent.ts)
 
 Represent an existing blockchain,
 and a controllable identity on it.
@@ -136,15 +135,11 @@ const agent = await chain.getAgent()
 
 ### [**`Uploader`**](./Upload.ts)
 
-Uploads a `Contract` to a `Chain`,
-setting its `codeId` field.
-
-TODO: Uploads an `Artifact` to a `Chain`,
-producing a `Template`.
-
 </td><td width="50%">
 
 #### Fadroma 22.01:
+Uploads a `Contract` to a `Chain`,
+setting its `codeId` field.
 ```typescript
 import { Uploader, Chain, Agent } from '@fadroma/ops'
 const chain = await Chain.init() // TODO
@@ -153,9 +148,23 @@ const uploader = new Uploader(contract)
 const artifact = uploader.upload(chain, agent)
 ```
 #### Fadroma 23:
+Uploads an `Artifact` to a `Chain`, producing a `Template`.
 ```typescript
 contract.template = await new Uploader(agent).upload(contract.artifact)
 ```
+
+</td></tr>
+
+
+<tr><td width="50%" valign="top">
+
+### **`Template`**
+
+</td><td width="50%">
+
+#### Fadroma 22.01:
+New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
+#### Fadroma 23:
 
 </td></tr>
 
@@ -166,7 +175,9 @@ contract.template = await new Uploader(agent).upload(contract.artifact)
 
 </td><td width="50%">
 
+#### Fadroma 22.01:
 New in Fadroma 23. In 22.01, `Contract` serves the role of this class.
+#### Fadroma 23:
 
 </td></tr>
 
