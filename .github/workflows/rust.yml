@@ -56,4 +56,4 @@ jobs:
         uses: actions-rs/tarpaulin@v0.1
         with:
           version: '0.18.3'
-          args: '--workspace --ignore-panics --ignore-tests --coveralls ${{secrets.COVERALLS_REPO_TOKEN}} --exclude-files platforms'
+          args: '--workspace --ignore-panics --ignore-tests --exclude-files=platforms/* --coveralls ${{secrets.COVERALLS_REPO_TOKEN}} --exclude-files platforms'
