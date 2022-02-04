@@ -49,6 +49,12 @@ contract.source = new Source(__dirname, 'contract)
 
 ### [**`Builder`**](./Build.ts)
 
+Calls the compiler on a `Contract`,
+setting its `artifact` field.
+
+TODO: Calls the compiler on a `Source`,
+producing an `Artifact`.
+
 </td><td width="50%">
 
 ```typescript
@@ -68,6 +74,8 @@ contract.artifact = await new DockerBuilder().build(contract.source)
 
 ### **`Artifact`**
 
+Represents a compiled WASM blob.
+
 </td><td width="50%"><center>
 
 **TODO** For now `artifact` is a string field of `Contract`.
@@ -77,6 +85,12 @@ contract.artifact = await new DockerBuilder().build(contract.source)
 <tr><td width="50%" valign="top">
 
 ### [**`Uploader`**](./Upload.ts)
+
+Uploads a `Contract` to a `Chain`,
+setting its `codeId` field.
+
+TODO: Uploads an `Artifact` to a `Chain`,
+producing a `Template`.
 
 </td><td width="50%">
 
