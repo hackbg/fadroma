@@ -12,12 +12,11 @@ on your structs lets you substitute `MockExtern` in testing.
 
 Let's try with a query's `Response`.
 
-<table>
-<tr><th align="left" valign="top">
+<table> <tr><td valign="top">
 
 ### Step 1. Define your struct as normal.
 
-</th><th align="left">
+</td><td>
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -29,9 +28,9 @@ pub enum Response {
 }
 ```
 
-</th></tr>
+</td></tr></table>
 
-<tr><th align="left" valign="top">
+<table><tr><td valign="top">
 
 ### Step 2. Define an interface trait for your methods.
 
@@ -44,21 +43,21 @@ on every API-aware struct, making it unwieldy to write that
 struct as a literal. As it is, the interface struct can serve
 as a neat little table of contents.
 
-</th><th align="left">
+</td><td>
 
 ```rust
 pub trait IResponse<S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn foo (core: &C) -> SthResult<Self>;
-    fn bar (core: &C, address: HumanAddr, key: String) -> SthResult<Self>;
+    fn foo (core: &C) -> StdResult<Self>;
+    fn bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self>;
 }
 ```
 
-</th></tr>
+</td></tr></table>
 
-<tr><th align="left" valign="top">
+<table><tr><td valign="top">
 
 ### Step 3. Implement your methods.
 
@@ -67,23 +66,23 @@ Congratulations, they can now use the Fadroma Composable `core`,
 and the struct can be used as a building block for a reusable
 contract layer. Let's see how to do that next.
 
-</th><th align="left">
+</td><td>
 
 ```rust
 impl<S, A, Q, C> IResponse<S, A, Q, C> for Response where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn foo (core: &C) -> SthResult<Self> {
+    fn foo (core: &C) -> StdResult<Self> {
         Ok(Self::Foo(("Hello".into(), "World".into())))
     }
-    fn bar (core: &C, address: HumanAddr, key: String) -> SthResult<Self> {
+    fn bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self> {
         Ok(Self::Bar(Uint128::MAX))
     }
 }
 ```
 
-</th></tr>
+</td></tr>
 
 </table>
 
@@ -115,7 +114,7 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, Response> for Query where
     S: Storage, A: Api, Q: Querier,
     C: Contract<S, A, Q>
 {
-    fn dispatch_query (self, core: &C) -> SthResult<Response> {
+    fn dispatch_query (self, core: &C) -> StdResult<Response> {
         Ok(match self {
             Query::GetFoo          => Response::foo(core)?,
             Query::GetBar { x, y } => Response::bar(core, x, y)?
@@ -140,13 +139,13 @@ and add them to Fadroma to collect a library of smart contract primitives.
 
 `TODO:` Integrate with `fadroma-derive-contract`.
 
-<table><thead>
+<table>
 
-<tr><th align="left" valign="top">
+<tr><td valign="top">
 
 **Composability Level 0:** Builder pattern for response messages
 
-</th><th align="left">
+</td><td>
 
 No changes needed other than reexporting `ResponseBuilder`
 from `mod response` by default.
@@ -154,9 +153,9 @@ from `mod response` by default.
 CosmWasm's `InitResponse` and `HandleResponse`
 will automatically gain the extra methods.
 
-</th></tr>
+</td></tr>
 
-<tr><th align="left" valign="top">
+<tr><td valign="top">
 
 **Composability Level 1:** Extension to `#[message]` macro to allow
 in-place definition of API-aware variant constructors.
@@ -166,7 +165,7 @@ struct + 2 traits.
 
 * [ ] Its implementation is tracked by [#48](https://github.com/hackbg/fadroma/issues/48)
 
-</th><th align="left">
+</td><td>
 
 Before:
 ```rust
@@ -206,14 +205,14 @@ Usage:
 let (hello, world) = Response::foo(core)
 ```
 
-</th></tr>
+</td></tr>
 
-<tr><th align="left" valign="top">
+<tr><td valign="top">
 
 **Composability Level 2:** Extension to `#[query]` and `#[dispatch]` macros to implement
 dispatch traits on the enums that they generate.
 
-</th><th align="left">
+</td><td>
 
 ```rust
 #[query] Query<Response> {
@@ -226,6 +225,6 @@ dispatch traits on the enums that they generate.
 }
 ```
 
-<th align="left"></tr>
+<td></tr>
 
-</thead></table>
+</table>
