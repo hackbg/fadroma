@@ -96,20 +96,43 @@ a reusable contract layer - the representation of a single API message.
 
 ## Composability Level 2: Dispatch traits
 
-The `QueryDispatch<S, A, Q, C, R>`
-and `HandleDispatch<S, A, Q, C>` traits
-are the two **dispatch traits**.
+<table>
 
-The traits of the API-aware structs from Composability Level 1 implement
-1 associated function per variant, in order to construct
-the different variants with proper parameters and preparation.
+<tr><td colspan="2">
 
-In contrast, a dispatch trait starts with an instantiated
+`QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>` are the two **dispatch traits**.
+
+</td></tr>
+
+<tr><td>
+
+The API-aware trait from Composability Level 1 defines and implements 1 associated function
+per variant, in order to construct the different variants from the parameters + data from `core`.
+
+</td><td>
+
+```rust
+let my_response = SomeResponse::foo(core)?;
+```
+
+</td></tr>
+
+<tr><td colspan="2">
+
+In contrast, a **dispatch trait** starts with an instantiated
 variant of the dispatch enum, and calls external functions
 corresponding to the enum variants.
 
+</td><tr>
+
+<tr><td>
+
 In continuation of the `Response` example,
 here's the `Query` that returns the different responses:
+
+</td><td>
+
+</td></tr>
 
 ```rust
 #[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
@@ -118,6 +141,7 @@ pub enum Query {
     GetFoo,                                                          
     GetBar { HumanAddr, String },
 }
+
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, SomeResponse> for Query where
     S: Storage, A: Api, Q: Querier,
     C: Contract<S, A, Q>
@@ -130,6 +154,9 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, SomeResponse> for Query where
     }
 }
 ```
+
+<table>
+
 
 ## Composability Level 3: Inherit from `Composable` to define reusable contract traits
 
@@ -169,7 +196,7 @@ will automatically gain the extra methods.
 in-place definition of API-aware variant constructors.
 
 The following syntax contains all the information needed to define the above
-struct + 2 traits.
+enum + trait + impl.
 
 * [ ] Its implementation is tracked by [#48](https://github.com/hackbg/fadroma/issues/48)
 
