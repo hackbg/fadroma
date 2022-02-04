@@ -123,21 +123,23 @@ and add them to Fadroma to collect a library of smart contract primitives.
 
 <tr><td valign="top">
 
-### Level 0
+#### Level 0
 
 Builder pattern for response messages
 
 </td><td>
 
 No changes needed other than reexporting `ResponseBuilder`
-from `mod response` by default. CosmWasm's `InitResponse`
+from `mod response` by default.
+
+CosmWasm's `InitResponse`
 and `HandleResponse` will automatically gain the extra methods.
 
 </td></tr>
 
 <tr><td valign="top">
 
-### Level 1
+#### Level 1
 
 Extension to `#[message]` macro to allow in-place definition of API-aware variant constructors
 
@@ -148,8 +150,8 @@ struct + 2 traits.
 
 </td><td>
 
+Before:
 ```rust
-/// before:
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 #[serde(deny_unknown_fields)]
@@ -157,14 +159,18 @@ pub enum Response {
     Foo((String, String)),
     Bar(Uint128)
 }
+```
 
-/// after:
+After:
+```rust
 #[message] Response {
     Foo((String, String)),
     Bar(Uint128)
 }
+```
 
-/// with variant constructors (optional):
+With optional variant constructors:
+```rust
 #[message] Response {
     Foo((String, String)): fn foo (core) {
         Ok(Self::Foo(("Hello".into(), Self::helper())))
@@ -173,10 +179,12 @@ pub enum Response {
         Ok(Self::Bar(Uint128::MAX))
     }
     /// a variant is also optional in this position:
-    fn helper () -> String { "World".into() }
+    fn helper () -> String { "I just live here".into() }
 }
+```
 
-// Usage:
+Usage:
+```
 let (hello, world) = Response::Foo(core)
 ```
 
@@ -184,7 +192,7 @@ let (hello, world) = Response::Foo(core)
 
 <tr><td valign="top">
 
-### Level 2
+#### Level 2
 
 Extension to `#[query]` and `#[dispatch]` macros to implement
 dispatch traits on the enums that they generate.
