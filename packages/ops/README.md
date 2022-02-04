@@ -1,7 +1,7 @@
 <div align="center">
 <table><tr><td valign="middle" style="vertical-align:bottom">
 
-[<img style="vertical-align:text-top" src="https://github.com/hackbg/fadroma/raw/22.01/doc/logo.svg" width="200">](https://fadroma.tech)
+[<img src="https://github.com/hackbg/fadroma/raw/22.01/doc/logo.svg" width="300">](https://fadroma.tech)
 
 </td><td valign="center">
 
@@ -18,12 +18,14 @@ as illustrated below.
 <table>
 <tr><td width="50%">
 
-## [**`Contract`**](./Contract.ts)
+### [**`Contract`**](./Contract.ts)
 
 </td><td width="50%">
 
 ```typescript
+import { Contract } from '@fadroma/ops'
 class AContract extends Contract {}
+const contract = new AContract()
 ```
 
 </td></tr>
@@ -33,7 +35,13 @@ class AContract extends Contract {}
 
 </td><td width="50%">
 
-TODO. For now it's part of `Contract`
+Represents the source code of a smart contract.
+
+**TODO** For now `Contract` serves the function of this class.
+
+```typescript
+//TODO: contract.source = new Source(__dirname, 'contract)
+```
 
 </td></tr>
 <tr><td width="50%">
@@ -44,9 +52,9 @@ TODO. For now it's part of `Contract`
 
 ```typescript
 import { Builder } from '@fadroma/ops'
-const contract = new AContract()
 const builder  = new Builder(contract)
 const artifact = await builder.build()
+// TODO: contract.artifact = await new DockerBuilder().build(contract.source)
 ```
 
 </td></tr>
@@ -55,11 +63,11 @@ const artifact = await builder.build()
 
 ### **`Artifact`**
 
-</td><td width="50%">
+</td><td width="50%"><center>
 
-TODO. For now it's part of `Contract`
+**TODO** For now `artifact` a string field of `Contract`.
 
-</td></tr>
+<center></td></tr>
 
 <tr><td width="50%">
 
@@ -69,10 +77,11 @@ TODO. For now it's part of `Contract`
 
 ```typescript
 import { Uploader, Chain, Agent } from '@fadroma/ops'
-const chain = await Chain.getCurrent() // TODO
+const chain = await Chain.init() // TODO
 const agent = await chain.getAgent()
 const uploader = new Uploader(contract)
 const artifact = uploader.upload(chain, agent)
+// TODO: contract.template = await new Uploader(agent).upload(contract.artifact)
 ```
 
 </td></tr>
@@ -81,11 +90,11 @@ const artifact = uploader.upload(chain, agent)
 
 ### **`Instance`**
 
-</td><td width="50%">
+</td><td width="50%"><center>
 
-TODO. For now it's part of `Contract`
+TODO. For now `Contract` serves the function of this class.
 
-</td></tr>
+</coenter></td></tr>
 
 <tr><td width="50%">
 
