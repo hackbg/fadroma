@@ -85,6 +85,8 @@ impl<S, A, Q, C> IResponse<S, A, Q, C> for Response where
 
 </td></tr>
 
+</table>
+
 ## Composability Level 2: Dispatch traits
 
 The `QueryDispatch<S, A, Q, C, R>`
