@@ -43,14 +43,21 @@ Fadroma.command('deploy new',
     await deployment.init(agent, contract, {
       my_init_message: 'goes_here'
     })
-    await contract.tx(agent, { my_handle_message: 'goes here' })
+    await contract.tx(agent, {
+      my_handle_message: 'goes here'
+    })
   })
 
 Fadroma.command('deploy status',
   Deploy.current,
   async ({ chain, agent, deployment }) => {
-    const contract = deployment.getThe(name, new MyContract({ name }))
-    console.log(await contract.query(agent, 'my_status_query'))
+    const contract = deployment.getThe(
+      name,
+      new MyContract({ name })
+    )
+    console.log(await contract.query(agent, {
+      my_query_message: 'goes here'
+    }))
   })
 ```
 
