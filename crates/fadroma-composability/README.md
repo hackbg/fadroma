@@ -12,13 +12,13 @@ on your structs lets you substitute `MockExtern` in testing.
 
 Let's try with a query's `Response`.
 
-<table> <tr><td valign="top">
+<table> <tr><td valign="top" colspan="2">
 
 ### Step 1. Define your struct as normal.
 
 </td>
 
-<tr><td>
+<tr><td colspan="2">
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -32,7 +32,7 @@ pub enum SomeResponse {
 
 </td></tr>
 
-<tr><td valign="top">
+<tr><td valign="top" colspan="2">
 
 ### Step 2. Define an interface trait for your methods.
 
@@ -62,15 +62,9 @@ as a neat little table of contents.
 
 </td></tr>
 
-<tr><td valign="top">
+<tr><td valign="top" colspan="2">
 
 ### Step 3. Implement your methods.
-
-Implement the methods defined in the intermediate trait like this.
-Congratulations, now this enum is **API-aware**. This means that
-its variant constructors can now use the Fadroma Composable `core`,
-and the enum itself can be used as the most basic building block of
-a reusable contract layer - the representation of a single API message.
 
 </td></tr><tr><td>
 
@@ -87,6 +81,14 @@ impl<S, A, Q, C> ISomeResponse<S, A, Q, C> for SomeResponse where
     }
 }
 ```
+
+</td><td>
+
+Implement the methods defined in the intermediate trait.
+Congratulations, now this enum is **API-aware**. This means that
+its variant constructors can now use the Fadroma Composable `core`,
+and the enum itself can be used as the most basic building block of
+a reusable contract layer - the representation of a single API message.
 
 </td></tr>
 
