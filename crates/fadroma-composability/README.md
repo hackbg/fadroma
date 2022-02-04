@@ -132,8 +132,6 @@ here's the `Query` that returns the different responses:
 
 </td><td>
 
-</td></tr>
-
 ```rust
 #[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
@@ -154,6 +152,8 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, SomeResponse> for Query where
     }
 }
 ```
+
+</td></tr>
 
 <table>
 
