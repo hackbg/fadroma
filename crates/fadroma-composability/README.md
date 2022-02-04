@@ -28,6 +28,19 @@ pub enum LimitOrder {
 
 </td><td>
 
+#### Proposed macro syntax for `CL1:S1-3`
+
+```rust
+#[message] LimitOrder {
+    Ask(Uint128) <= fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Ask(price.ok_or(core.get("ask")?))
+    }
+    Bid(Uint128) <= fn bid (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Bid(price.ok_or(core.get("bid")?))
+    }
+}
+```
+
 </td></tr>
 
 <tr></tr>
@@ -119,9 +132,9 @@ parameters + data from `core`.
 
 <table>
 
-<tr><td>
+<tr><td colspan="2">
 
-In contrast with the message trait from Level 1,
+In contrast with the message trait from CL1,
 a **dispatch trait** starts with an instantiated
 variant of the dispatch enum (`self`), and calls
 functions corresponding to the enum variants.
@@ -164,7 +177,25 @@ for QuerySomething where
 }
 ```
 
-</td></tr><tr></tr><tr><td>
+</td><td>
+
+#### Proposed macro syntax for `CL2.S1`
+
+```rust
+#[query] QuerySomething<LimitOrder> {
+    GetAsk => fn get_ask (core) {
+        const x = core.get("ask")?;
+        Ok(LimitOrder::ask(core, x))
+    }
+    GetBid { x: HumanAddr, y: String } => fn get_bid (core, x, y) {
+        Ok(LimitOrder::bid(core, x, y))
+    }
+}
+```
+
+</td>
+
+</tr><tr></tr><tr><td>
 
 ### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
 
@@ -191,112 +222,11 @@ for Handle where
 }
 ```
 
-</td></tr>
-
-<table>
-
-
-## Composability Level 3: Feature traits
-
-Implement those traits for `Extern` to define a contract.
-Implement them for `MockExtern` from [`composable_test`](./composable_test.rs)
-and you can clone partial test contents so that you can write
-branching tests.
-
-Trim down traits that implement generic features into a reusable form
-and add them to Fadroma to collect a library of smart contract primitives.
-
-## Composability Level 4: Composed contract
-
-## Appendix A: Proposed syntax for the integration of composable traits in `fadroma-derive-contract`
-
-`TODO:` Integrate with `fadroma-derive-contract`.
-
-<table>
-
-<tr><td valign="top">
-
-**Composability Level 0:** Builder pattern for response messages
-
 </td><td>
 
-No changes needed other than reexporting `ResponseBuilder`
-from `mod response` by default.
-
-CosmWasm's `InitResponse` and `HandleResponse`
-will automatically gain the extra methods.
-
-</td></tr>
-
-<tr><td valign="top">
-
-**Composability Level 1:** Extension to `#[message]` macro to allow
-in-place definition of API-aware variant constructors.
-
-The following syntax contains all the information needed to define the above
-enum + trait + impl.
-
-* [ ] Its implementation is tracked by [#48](https://github.com/hackbg/fadroma/issues/48)
-
-</td><td>
-
-Before:
-```rust
-#[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
-#[serde(rename_all="snake_case")]
-#[serde(deny_unknown_fields)]
-pub enum LimitOrder {
-    Ask((String, String)),
-    Bid(Uint128)
-}
-```
-
-After:
-```rust
-#[message] LimitOrder {
-    Ask((String, String)),
-    Bid(Uint128)
-}
-```
-
-With optional variant constructors:
-```rust
-#[message] LimitOrder {
-    Ask((String, String)) <= fn ask (core, x: Option<String>) {
-        Ok(Self::Ask(("Hello".into(), x.ok_or(Self::helper()))))
-    }
-    Bid(Uint128) <= fn bid (core, x: HumanAddr, y: String) {
-        Ok(Self::Bid(Uint128::MAX))
-    }
-    /// a variant is also optional in this position:
-    fn helper () -> String { "World".into() }
-}
-```
-
-Usage:
-```rust
-let (hello, world) = LimitOrder::ask(core)
-```
-
-</td></tr>
-
-<tr><td valign="top">
-
-**Composability Level 2:** Extension to `#[query]` and `#[handle]` macros
-to implement dispatch traits on the enums that they generate.
-
-</td><td>
+#### Proposed macro syntax for `CL2.S2`
 
 ```rust
-#[query] QuerySomething<LimitOrder> {
-    GetAsk => fn get_ask (core) {
-        const x = core.get("ask")?;
-        Ok(LimitOrder::ask(core, x))
-    }
-    GetBid { x: HumanAddr, y: String } => fn get_bid (core, x, y) {
-        Ok(LimitOrder::bid(core, x, y))
-    }
-}
 #[handle] HandleSomething<LimitOrder> {
     SetAsk(x: String) => fn set_ask (core, x) {
         core.set("ask", x)?;
@@ -305,22 +235,21 @@ to implement dispatch traits on the enums that they generate.
 }
 ```
 
-<td></tr>
+</td></tr>
 
-<tr><td valign="top">
+<table>
 
-**Composability Level 3:** `TODO`
 
-</td><td>
+## Composability Level 3: Feature traits
 
-<td></tr>
+## Composability Level 4: Composed contract
 
-<tr><td valign="top">
+Implement those traits for `Extern` to define a contract.
+Implement them for `MockExtern` from [`composable_test`](./composable_test.rs)
+and you can clone partial test contents so that you can write
+branching tests.
 
-**Composability Level 4:** `TODO`
+## Composability Level 5: Reusable feature traits
 
-</td><td>
-
-<td></tr>
-
-</table>
+Trim down traits that implement generic features into a reusable form
+and add them to Fadroma to collect a library of smart contract primitives.
