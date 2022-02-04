@@ -6,12 +6,6 @@
 
 ## Composability Level 1: Making a struct or enum API-aware
 
-The `Composable` trait in [`composable`](./composable.rs)
-wraps the CosmWasm API's `Extern` object. Implementing it
-on your structs lets you substitute `MockExtern` in testing.
-
-Let's try with a query's `Response`.
-
 <table>
 
 <tr></tr><tr><td valign="top">
