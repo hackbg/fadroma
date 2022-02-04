@@ -60,7 +60,7 @@ in a smart contract's architecture.
 
 <tr><td valign="top">
 
-#### CL1. Step 1. Define your struct as normal.
+#### CL 1. Step 1. Define your struct as normal.
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -78,7 +78,7 @@ pub enum LimitOrder {
 <tr></tr>
 <tr><td>
 
-#### CL1. Step 2. Define an interface trait for your methods.
+#### CL 1. Step 2. Define an interface trait for your methods.
 
 ```rust
 pub trait ILimitOrder<S, A, Q, C>: Sized where
@@ -108,9 +108,9 @@ for the functionality implemented on each message.
 <tr></tr>
 <tr><td>
 
-### CL1. Step 3. Implement variant constructor methods.
+#### CL 1. Step 3. Implement variant constructor methods.
 
-> See: [(example from `cosmwasm_std`) `StdError` variants](https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/enum.StdError.html#implementations)
+> See: [example from `cosmwasm_std`: `StdError` variants](https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/enum.StdError.html#implementations)
 
 ```rust
 impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
@@ -128,7 +128,7 @@ impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
 
 Congratulations, this enum is now **API-aware**.
 
-</td><td>
+</td><td valign="bottom">
 
 This means that its variant constructors can now use the Fadroma Composable `core`.
 
@@ -189,6 +189,8 @@ pub enum LimitOrderQuery {
 }
 ```
 
+</td><td>
+
 ```rust
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder>
 for LimitOrderQuery where
@@ -206,8 +208,6 @@ for LimitOrderQuery where
 }
 ```
 
-</td><td>
-
 </td>
 
 </tr><tr></tr><tr><td>
@@ -222,6 +222,8 @@ pub enum LimitOrderHandle {
     SetBid(Uint128),
 }
 ```
+
+</td><td>
 
 ```rust
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C>
@@ -240,8 +242,6 @@ for LimitOrderHandle where
 }
 ```
 
-</td><td>
-
 </td></tr>
 
 <table>
@@ -254,15 +254,15 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
   Composable<S, A, Q>
   + Sized
 {
-  fn init (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
-    Ok(InitResponse::default())
-  }
-  fn handle (&mut self, env: &Env, msg: HandleMsg) -> StdResult<InitResponse> {
-    Ok(InitResponse::default())
-  }
-  fn query (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
-    Ok(InitResponse::default())
-  }
+    fn init (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
+        Ok(InitResponse::default())
+    }
+    fn handle (&mut self, env: &Env, msg: LimitOrderHandle) -> StdResult<HandleResponse> {
+        msg.dispatch(self, env)
+    }
+    fn query (&self, msg: LimitOrderQuery) -> StdResult<Binary> {
+        msg.dispatch(self)
+    }
 }
 ```
 
@@ -278,7 +278,11 @@ branching tests.
 Trim down traits that implement generic features into a reusable form
 and add them to Fadroma to collect a library of smart contract primitives.
 
-## Appendix A: Proposed marco syntax
+## Appendix A: Proposed macro syntax
+
+The guiding principle of this syntax is avoiding implicit identifiers.
+All the variables that are mentioned in the function body, are named
+by the macro caller.
 
 <table>
 
@@ -299,31 +303,82 @@ and add them to Fadroma to collect a library of smart contract primitives.
 
 </td><td>
 
-Replaces: ...
+Replaces:
+
+```rust
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
+#[serde(rename_all="snake_case")]
+#[serde(deny_unknown_fields)]
+pub enum LimitOrder {
+    Ask(Uint128),
+    Bid(Uint128)
+}
+pub trait ILimitOrder<S, A, Q, C>: Sized where
+    S: Storage, A: Api, Q: Querier,
+    C: Composable<S, A, Q>
+{
+    fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self>;
+    fn bid (core: &C, price: Option<Uint128>) -> StdResult<Self>;
+}
+impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
+    S: Storage, A: Api, Q: Querier,
+    C: Composable<S, A, Q>
+{
+    fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Ask(price.ok_or(core.get("ask")?))
+    }
+    fn bid (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Bid(price.ok_or(core.get("bid")?))
+    }
+}
+```
 
 </td></tr><tr></tr>
 
 <tr><td>
 
-#### Proposed macro syntax for `CL2.S1`
+#### Proposed macro syntax for `CL2.S1L
 
 ```rust
-#[query] LimitOrderQuery<LimitOrder> {
-    GetAsk =>
-      fn get_ask (core) {
-          const x = core.get("ask")?;
-          Ok(LimitOrder::ask(core, x))
-      }
-    GetBid { x: HumanAddr, y: String } =>
-      fn get_bid (core, x, y) {
-          Ok(LimitOrder::bid(core, x, y))
-      }
+#[dispatch] LimitOrderQuery<LimitOrder> {
+    #[variant]
+    fn get_ask (core) {
+        const x = core.get("ask")?;
+        Ok(LimitOrder::ask(core, x))
+    }
+    #[variant]
+    fn get_bid (core, x: HumanAddr, y: String) {
+        Ok(LimitOrder::bid(core, x, y))
+    }
 }
 ```
 
 </td><td>
 
-Replaces: ...
+Replaces:
+
+```rust
+#[derive(...)]
+#[serde(rename_all="snake_case")]
+pub enum LimitOrderQuery {
+    GetAsk,
+    GetBid { HumanAddr, String },
+}
+impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder>
+for LimitOrderQuery where
+    S: Storage, A: Api, Q: Querier,
+    C: Composable<S, A, Q>
+{
+    fn dispatch_query (self, core: &C) -> StdResult<LimitOrder> {
+        Ok(match self {
+            LimitOrderQuery::GetAsk =>
+              LimitOrder::ask(core)?,
+            LimitOrderQuery::GetBid { x, y } =>
+              LimitOrder::bid(core, x, y)?
+        })
+    }
+}
+```
 
 </td></tr><tr></tr>
 
@@ -342,12 +397,43 @@ Replaces: ...
 
 </td><td>
 
-Replaces: ...
+Replaces:
+
+```rust
+#[derive(...)]
+#[serde(rename_all="snake_case")]
+pub enum LimitOrderHandle {
+    SetAsk(Uint128),
+    SetBid(Uint128),
+}
+impl<S, A, Q, C> HandleDispatch<S, A, Q, C>
+for LimitOrderHandle where
+    S: Storage, A: Api, Q: Querier,
+    C: Composable<S, A, Q>
+{
+    fn dispatch_handle (self, core: &C) -> StdResult<LimitOrder> {
+        Ok(match self {
+            LimitOrderHandle::SetAsk(x) =>
+              HandleResponse::default(),
+            LimitOrderHandle::SetBid(x) =>
+              HandleResponse::default(),
+        })
+    }
+}
+```
 
 </td></tr><tr></tr>
 
-<tr><td></td><td></td></tr><tr></tr>
+<tr><td>
 
-<tr><td></td><td></td></tr><tr></tr>
+#### Proposed macro syntax for `CL3`
+
+</td><td></td></tr><tr></tr>
+
+<tr><td>
+
+#### Proposed macro syntax for `CL4`
+
+</td><td></td></tr><tr></tr>
 
 </table>
