@@ -35,12 +35,13 @@ const contract = new AContract()
 
 Represents the source code of a smart contract.
 
+**TODO** For now `BaseContract` serves the function of this class.
+
 </td><td width="50%">
 
-**TODO** For now `Contract` serves the function of this class.
-
 ```typescript
-//TODO: contract.source = new Source(__dirname, 'contract)
+// TODO
+contract.source = new Source(__dirname, 'contract)
 ```
 
 </td></tr>
@@ -54,7 +55,11 @@ Represents the source code of a smart contract.
 import { Builder } from '@fadroma/ops'
 const builder  = new Builder(contract)
 const artifact = await builder.build()
-// TODO: contract.artifact = await new DockerBuilder().build(contract.source)
+```
+
+```
+// TODO:
+contract.artifact = await new DockerBuilder().build(contract.source)
 ```
 
 </td></tr>
