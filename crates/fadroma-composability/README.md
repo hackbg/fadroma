@@ -18,7 +18,7 @@ Let's try with a query's `Response`.
 
 </td><td></td>
 
-<tr><td colspan="2">
+<tr><td>
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -34,9 +34,7 @@ pub enum Response {
 
 <tr><td valign="top">
 
-**Step 2.** Define an interface trait for your methods.
-
-</td><td>
+### Step 2. Define an interface trait for your methods.
 
 This intermediate step trait is necessary to define the `S, A, Q`
 generics, necessary to be able to write the type of `Composable<S, A, Q>`.
@@ -48,7 +46,7 @@ struct as a literal. As it is, the interface struct can serve
 as a neat little table of contents.
 
 </td></tr>
-<tr><td colspan="2">
+<tr><td>
 
 ```rust
 pub trait IResponse<S, A, Q, C>: Sized where
@@ -62,9 +60,7 @@ pub trait IResponse<S, A, Q, C>: Sized where
 
 </td></tr>
 
-</table>
-
-<table><tr><td valign="top">
+<tr><td valign="top">
 
 ### Step 3. Implement your methods.
 
