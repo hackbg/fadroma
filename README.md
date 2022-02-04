@@ -8,7 +8,7 @@
 
 [![](/doc/logo.svg)](https://fadroma.tech)
 
-**Industrial strength components and workflows for smart contract development.**
+**Industrial strength components and workflows for smart contract development in Rust.**
 
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
