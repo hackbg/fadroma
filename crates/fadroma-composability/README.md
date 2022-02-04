@@ -28,19 +28,6 @@ pub enum LimitOrder {
 
 </td><td>
 
-#### Proposed macro syntax for `CL1:S1-3`
-
-```rust
-#[message] LimitOrder {
-    Ask(Uint128) <= fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self> {
-        Ok(Self::Ask(price.ok_or(core.get("ask")?))
-    }
-    Bid(Uint128) <= fn bid (core: &C, price: Option<Uint128>) -> StdResult<Self> {
-        Ok(Self::Bid(price.ok_or(core.get("bid")?))
-    }
-}
-```
-
 </td></tr>
 
 <tr></tr>
@@ -177,22 +164,6 @@ for QuerySomething where
 
 </td><td>
 
-#### Proposed macro syntax for `CL2.S1`
-
-```rust
-#[query] QuerySomething<LimitOrder> {
-    GetAsk =>
-      fn get_ask (core) {
-          const x = core.get("ask")?;
-          Ok(LimitOrder::ask(core, x))
-      }
-    GetBid { x: HumanAddr, y: String } =>
-      fn get_bid (core, x, y) {
-          Ok(LimitOrder::bid(core, x, y))
-      }
-}
-```
-
 </td>
 
 </tr><tr></tr><tr><td>
@@ -224,17 +195,6 @@ for Handle where
 
 </td><td>
 
-#### Proposed macro syntax for `CL2.S2`
-
-```rust
-#[handle] HandleSomething<LimitOrder> {
-    SetAsk(x: String) => fn set_ask (core, x) {
-        core.set("ask", x)?;
-        Ok(HandleResponse::default())
-    }
-}
-```
-
 </td></tr>
 
 <table>
@@ -253,3 +213,77 @@ branching tests.
 
 Trim down traits that implement generic features into a reusable form
 and add them to Fadroma to collect a library of smart contract primitives.
+
+## Appendix A: Proposed marco syntax
+
+<table>
+
+<tr><td>
+
+#### Proposed macro syntax for `CL1:S1-3`
+
+```rust
+#[message] LimitOrder {
+    Ask(Uint128) <= fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Ask(price.ok_or(core.get("ask")?))
+    }
+    Bid(Uint128) <= fn bid (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Bid(price.ok_or(core.get("bid")?))
+    }
+}
+```
+
+</td><td>
+
+Replaces: ...
+
+</td></tr><tr></tr>
+
+<tr><td>
+
+#### Proposed macro syntax for `CL2.S1`
+
+```rust
+#[query] QuerySomething<LimitOrder> {
+    GetAsk =>
+      fn get_ask (core) {
+          const x = core.get("ask")?;
+          Ok(LimitOrder::ask(core, x))
+      }
+    GetBid { x: HumanAddr, y: String } =>
+      fn get_bid (core, x, y) {
+          Ok(LimitOrder::bid(core, x, y))
+      }
+}
+```
+
+</td><td>
+
+Replaces: ...
+
+</td></tr><tr></tr>
+
+<tr><td>
+
+#### Proposed macro syntax for `CL2.S2`
+
+```rust
+#[handle] HandleSomething<LimitOrder> {
+    SetAsk(x: String) => fn set_ask (core, x) {
+        core.set("ask", x)?;
+        Ok(HandleResponse::default())
+    }
+}
+```
+
+</td><td>
+
+Replaces: ...
+
+</td></tr><tr></tr>
+
+<tr><td></td><td></td></tr><tr></tr>
+
+<tr><td></td><td></td></tr><tr></tr>
+
+</table>
