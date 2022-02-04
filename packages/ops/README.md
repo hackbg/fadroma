@@ -71,10 +71,10 @@ functionality is covered by `Contract`.
 In **Fadroma 23**, it represents the source code of a smart contract:
 ```typescript
 import { Source } from '@fadroma/ops'
-contract.source = new Source({ path: __dirname })
-contract.source = new Source({ path: __dirname, crate: 'a-contract' })
-contract.source = new Source({ repo: 'https://foo/bar.git': })
-contract.source = new Source({ repo: 'ssh://git@foo/bar.git', ref: 'v1.2.3', crate: 'a-contract' })
+contract.source = new Source.Local.Crate(__dirname)
+contract.source = new Source.Local.Workspace(__dirname, 'a-contract')
+contract.source = new Source.Remote.Crate('https://foo/bar.git', 'main')
+contract.source = new Source.Remote.Workspace('ssh://git@foo/bar.git', 'v1.2.3', 'a-contract')
 ```
 
 </td></tr>
