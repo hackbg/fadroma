@@ -180,9 +180,11 @@ are the two **dispatch traits**.
 
 <table>
 
-<tr><td>
+<tr><td valign="top">
 
-#### Step 1. Implementing `QueryDispatch<S, A, Q, C, R>` for:
+#### Step 1. Implementing `QueryDispatch<S, A, Q, C, R>`
+
+For:
 
 ```rust
 #[derive(...)]
@@ -214,9 +216,11 @@ for LimitOrderQuery where
 
 </td>
 
-</tr><tr></tr><tr><td>
+</tr><tr></tr><tr><td valign="top">
 
 #### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
+
+For:
 
 ```rust
 #[derive(...)]
@@ -252,11 +256,49 @@ for LimitOrderHandle where
 
 ### Composability Level 3: Feature traits
 
+<table>
+
+<tr>
+<td>
+
+`TODO`: Check if associated types can put an end to the propagation of generics.
+
+</td>
+<td>
+
 ```rust
 pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
+```
+
+</td>
+
+<tr>
+<td>
+
+**Minimum requirements** for a feature trait:
+
+</td>
+<td>
+
+```rust
    Composable<S, A, Q>
    + Sized
 {
+```
+
+</td>
+
+<tr>
+<td>
+
+**Optional init fn.**
+
+`TODO` Decide how to cleanly compose multiple `init`s.
+
+</td>
+<td>
+
+```rust
     fn init (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
         Ok(InitResponse::default())
     }
@@ -269,14 +311,18 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 }
 ```
 
-## Composability Level 4: Composed contract
+</td>
+</tr>
+</trable>
+
+### Composability Level 4: Composing feature traits into a contract
 
 Implement those traits for `Extern` to define a contract.
 Implement them for `MockExtern` from [`composable_test`](./composable_test.rs)
 and you can clone partial test contents so that you can write
 branching tests.
 
-## Composability Level 5: Reusable feature traits
+### Composability Level 5: Reusable feature traits
 
 Trim down traits that implement generic features into a reusable form
 and add them to Fadroma to collect a library of smart contract primitives.
