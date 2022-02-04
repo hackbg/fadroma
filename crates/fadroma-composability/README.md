@@ -8,7 +8,7 @@
 
 <table>
 
-<tr></tr><tr><td valign="top">
+<tr><td valign="top">
 
 ### Step 1. Define your struct as normal.
 
