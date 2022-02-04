@@ -34,6 +34,8 @@ pub enum Response {
 
 ### Step 2. Define an interface trait for your methods.
 
+</td><td>
+
 This intermediate step trait is necessary to define the `S, A, Q`
 generics, necessary to be able to write the type of `Composable<S, A, Q>`.
 
@@ -43,8 +45,9 @@ on every API-aware struct, making it unwieldy to write that
 struct as a literal. As it is, the interface struct can serve
 as a neat little table of contents.
 
-</td><td>
+</td></tr>
 
+<tr><td colspan="2">
 ```rust
 pub trait IResponse<S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier,
@@ -54,8 +57,9 @@ pub trait IResponse<S, A, Q, C>: Sized where
     fn bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self>;
 }
 ```
+</td></tr>
 
-</td></tr></table>
+</table>
 
 <table><tr><td valign="top">
 
