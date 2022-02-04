@@ -12,13 +12,13 @@ on your structs lets you substitute `MockExtern` in testing.
 
 Let's try with a query's `Response`.
 
-<table> <tr><td valign="top" colspan="2">
+<table>
+
+<tr></tr><tr><td valign="top">
 
 ### Step 1. Define your struct as normal.
 
-</td>
-
-<tr><td colspan="2">
+</td><td>
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -32,12 +32,22 @@ pub enum SomeResponse {
 
 </td></tr>
 
-<tr><td valign="top" colspan="2">
+<tr></tr>
+
+<tr><td>
 
 ### Step 2. Define an interface trait for your methods.
 
-</td></tr>
-<tr><td>
+This intermediate step trait is necessary to define the `S, A, Q`
+generics, necessary to be able to write the type of `Composable<S, A, Q>`.
+
+This is a place where Rust's type system falls slightly short.
+If not for an interface trait, you'd need 3 PhantomData fields
+on every API-aware struct, making it unwieldy to write that
+struct as a literal. As it is, the interface struct can serve
+as a neat little table of contents.
+
+</td><td>
 
 ```rust
 pub trait ISomeResponse<S, A, Q, C>: Sized where
@@ -49,22 +59,20 @@ pub trait ISomeResponse<S, A, Q, C>: Sized where
 }
 ```
 
-</td><td>
-
-This intermediate step trait is necessary to define the `S, A, Q`
-generics, necessary to be able to write the type of `Composable<S, A, Q>`.
-
-This is a place where Rust's type system falls slightly short.
-If not for an interface trait, you'd need 3 PhantomData fields
-on every API-aware struct, making it unwieldy to write that
-struct as a literal. As it is, the interface struct can serve
-as a neat little table of contents.
-
 </td></tr>
 
-<tr><td valign="top" colspan="2">
+<tr></tr>
+
+<td>
 
 ### Step 3. Implement your methods.
+
+Congratulations, now this enum is **API-aware**.
+
+This means that its variant constructors can now use the Fadroma Composable `core`.
+
+The enum itself can be used as the most basic building block of
+a reusable contract layer: a representation of a single API message.
 
 </td></tr><tr><td>
 
@@ -81,14 +89,6 @@ impl<S, A, Q, C> ISomeResponse<S, A, Q, C> for SomeResponse where
     }
 }
 ```
-
-</td><td>
-
-Implement the methods defined in the intermediate trait.
-Congratulations, now this enum is **API-aware**. This means that
-its variant constructors can now use the Fadroma Composable `core`,
-and the enum itself can be used as the most basic building block of
-a reusable contract layer - the representation of a single API message.
 
 </td></tr>
 
@@ -117,43 +117,68 @@ In contrast, a **dispatch trait** starts with an instantiated
 variant of the dispatch enum, and calls external functions
 corresponding to the enum variants.
 
-</td><td>
-
-```rust
-SomeQuery::GetFoo.dispatch_query(core)?;
-SomeHandle::SetFoo("Something".into()).dispatch_handle(core)?;
-```
-
-</td></tr><tr></tr><tr><td valign="top">
-
 `QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>`
 are the two **dispatch traits**.
 
-In continuation of the `Response` example,
-here's the `Query` that returns the different responses:
+</td><td>
+
+```rust
+SomeQuery::GetFoo.dispatch(core)?;
+SomeHandle::SetFoo("Something".into()).dispatch(core)?;
+```
+
+</td></tr><tr></tr><tr><td>
+
+Implementing `QueryDispatch<S, A, Q, C, R>`:
 
 </td><td>
 
 ```rust
 #[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
-pub enum Query {                                                                   
+pub enum QuerySomething {                                                                   
     GetFoo,                                                          
     GetBar { HumanAddr, String },
 }
-
-impl<S, A, Q, C> QueryDispatch<S, A, Q, C, SomeResponse> for Query where
+impl<S, A, Q, C> QueryDispatch<S, A, Q, C, SomeResponse> for QuerySomething where
     S: Storage, A: Api, Q: Querier,
     C: Contract<S, A, Q>
 {
-    fn dispatch_query (self, core: &C) -> StdResult<SomeResponse> {
+    fn dispatch (self, core: &C) -> StdResult<SomeResponse> {
         Ok(match self {
-            Query::GetFoo          => SomeResponse::foo(core)?,
-            Query::GetBar { x, y } => SomeResponse::bar(core, x, y)?
+            QuerySomething::GetFoo => SomeResponse::foo(core)?,
+            QuerySomething::GetBar { x, y } => SomeResponse::bar(core, x, y)?
         })
     }
 }
 ```
+
+</td></tr><tr></tr><tr><td>
+
+Implementing `HandleDispatch<S, A, Q, C>`:
+
+</td><td>
+
+```rust
+#[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
+#[serde(rename_all="snake_case")]
+pub enum HandleSomething {
+    SetFoo(String),
+}
+
+impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
+    S: Storage, A: Api, Q: Querier,
+    C: Contract<S, A, Q>
+{
+    fn dispatch (self, core: &C) -> StdResult<SomeResponse> {
+        Ok(match self {
+            HandleSomething::SetFoo(x) => HandleResponse::default()
+        })
+    }
+}
+```
+
+</td></tr>
 
 </td></tr>
 
