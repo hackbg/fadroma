@@ -15,9 +15,46 @@ as illustrated below.
   
 ![](./.pix/Figure_1.png)
 
+<table>
+<tr><td width="50%">
+    
 ## [**`Contract`**](./Contract.ts)
+    
+</td><td width="50%">
+  
+```typescript
+class MyContract extends Contract {}
+```
+    
+</td></tr>
+<tr>
+  <td width="50%">
+
 ### **`Source` [TODO]**
+
+  </td>
+  <td width="50%">
+    
+  </td>
+</tr>
+<tr>
+  <td width="50%">
 ### [**`Build`**](./Build.ts)
+  </td>
+  <td width="50%">
+    
+  </td>
+</tr>
+<tr>
+  <td width="50%">
+    
+  </td>
+  <td width="50%">
+    
+  </td>
+</tr>
+</table>
+
 ### **`Artifact` [TODO]**
 ### [**`Upload`**](./Upload.ts)
 ### **`Instance` [TODO]**
