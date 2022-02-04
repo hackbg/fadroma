@@ -20,12 +20,17 @@ Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
 <tr><td>
 
-* **Contract deployment workflow for Secret Network.**
+# Fadroma Ops
 
-  Just import `@hackbg/fadroma` to start scripting deployments and migrations.
-  * Implemented in in [@fadroma/ops](./packages/ops), [@fadroma/scrt](./packages/scrt),
-    [@fadroma/scrt-1.0](./packages/scrt-1.0), and [@fadroma/scrt-1.2](./packages/scrt-1.2).
-  * Open to extension for other blockchains supporting a similar deployment model.
+**Contract deployment workflow for Secret Network.**
+
+Just import `@hackbg/fadroma` to start scripting deployments and migrations.
+
+* [@fadroma/ops](./packages/ops)
+* [@fadroma/scrt](./packages/scrt)
+* [@fadroma/scrt-1.0](./packages/scrt-1.0)
+* [@fadroma/scrt-1.2](./packages/scrt-1.2).
+* Open to extension for other blockchains supporting a similar deployment model.
 
 </td><td>
 
@@ -59,6 +64,11 @@ Fadroma.command('deploy status',
       my_query_message: 'goes here'
     }))
   })
+```
+
+```sh
+npx fadroma deploy new
+npx fadroma deploy status
 ```
 
 </td></tr>
