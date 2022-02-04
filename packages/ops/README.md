@@ -7,12 +7,12 @@
 
 # Fadroma Ops ![](https://img.shields.io/badge/version-22.01-blueviolet)
 
+**This package models the lifecycle of a smart contract,
+and allows the user to compile and deploy source code to a blockchain.**
+
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
 </td></tr></table>
-
-**This package models the lifecycle of a smart contract,
-and allows to compile and deploy source code to a blockchain.**
 
 ![](./.pix/Figure_1.png)
 

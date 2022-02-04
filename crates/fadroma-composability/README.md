@@ -7,13 +7,13 @@
 
 # Fadroma Composability ![](https://img.shields.io/badge/version-0.1.0-blueviolet)
 
-Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
-
-</td></tr></table>
-
 **This document describes how to compose reusable bits
 of smart contract functionality using Rust's native
 trait composition facilities.**
+
+Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
+
+</td></tr></table>
 
 </div>
 
