@@ -61,7 +61,7 @@ in a smart contract's architecture.
 
 <tr><td valign="top">
 
-#### CL 1. Step 1. Define your struct as normal.
+#### CL1 Step 1. Define your struct as normal.
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -79,7 +79,7 @@ pub enum LimitOrder {
 <tr></tr>
 <tr><td>
 
-#### CL 1. Step 2. Define an interface trait for your methods.
+#### CL1 Step 2. Define an interface trait for your methods.
 
 ```rust
 pub trait ILimitOrder<S, A, Q, C>: Sized where
@@ -109,7 +109,7 @@ for the functionality implemented on each message.
 <tr></tr>
 <tr><td>
 
-#### CL 1. Step 3. Implement variant constructor methods.
+#### CL1 Step 3. Implement variant constructor methods.
 
 > See: [example from `cosmwasm_std`: `StdError` variants](https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/enum.StdError.html#implementations)
 
@@ -142,7 +142,7 @@ a reusable contract layer: a representation of a single API message.
 
 <tr><td>
 
-### Step 4. Usage
+#### CL1 Step 4. Usage
 
 ```rust
 let order = LimitOrder::ask(core, None)?;
@@ -158,14 +158,17 @@ parameters + data from `core`.
 
 </table>
 
-## Composability Level 2: Dispatch traits
+### Composability Level 2: Dispatch traits
 
 > See [`mod dispatch`](./dispatch.rs)
 
-In contrast with the message trait from CL1,
-a **dispatch trait** starts with an instantiated
-variant of the dispatch enum (`self`), and calls
-functions corresponding to the enum variants.
+In contrast with the **message trait** from CL1,
+whose functions return different variants of the enum
+for which it is implemented,
+a **dispatch trait** starts with an instance of a
+specific variant of the enum for which it is implemented,
+and runs a different branch of code depending on which
+variant it is.
 
 ```rust
 let response = SomeQuery::GetAsk.dispatch(core)?;
@@ -179,7 +182,7 @@ are the two **dispatch traits**.
 
 <tr><td>
 
-### Step 1. Implementing `QueryDispatch<S, A, Q, C, R>`:
+#### Step 1. Implementing `QueryDispatch<S, A, Q, C, R>` for:
 
 ```rust
 #[derive(...)]
@@ -213,7 +216,7 @@ for LimitOrderQuery where
 
 </tr><tr></tr><tr><td>
 
-### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
+#### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
 
 ```rust
 #[derive(...)]
@@ -232,7 +235,7 @@ for LimitOrderHandle where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn dispatch_handle (self, core: &C) -> StdResult<HandleResponse> {
+    fn dispatch_handle (self, core: &C, env: Env) -> StdResult<HandleResponse> {
         Ok(match self {
             LimitOrderHandle::SetAsk(x) =>
               HandleResponse::default(),
@@ -247,8 +250,7 @@ for LimitOrderHandle where
 
 <table>
 
-
-## Composability Level 3: Feature traits
+### Composability Level 3: Feature traits
 
 ```rust
 pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
@@ -338,7 +340,7 @@ impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
 
 <tr><td valign="top">
 
-#### Proposed macro syntax for `CL2.S1`
+#### Proposed macro syntax for `CL2 Step 1`
 
 ```rust
 #[query] enum LimitOrderQuery<LimitOrder> {
@@ -386,7 +388,7 @@ for LimitOrderQuery where
 
 <tr><td valign="top">
 
-#### Proposed macro syntax for `CL2.S2`
+#### Proposed macro syntax for `CL2 Step 2`
 
 ```rust
 #[handle] enum LimitOrderHandle<LimitOrder> {
