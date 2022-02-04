@@ -18,9 +18,9 @@ Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
 <table>
 
-<tr><td>
+<tr><td valign="top">
 
-# Fadroma Ops
+## Fadroma Ops
 
 **Contract deployment workflow for Secret Network.**
 
@@ -73,21 +73,36 @@ npx fadroma deploy status
 
 </td></tr>
 
+<tr></tr>
+
+<tr><td>
+
+## Fadroma Derive
+
+**Attribute macros for writing smart contracts.**
+
+CosmWasm's raw syntax is a little verbose. We wrap all the repetitive bits
+into familiar tags such as `#[init]`, `#[handle]` and `#[query]`.
+
+* See [fadroma-derive-contract](./crates/fadroma-derive-contract)
+
+</td><td></td>
+</tr>
+
+<tr></tr>
+
+<tr><td>
+
+## Fadroma Composability
+
+**Composable contract traits.**
+
+Replicate the same management functionality across your whole fleet of contracts,
+by implementing it as a reusable Rust trait.
+
+* See [fadroma-composability](./crates/fadroma-composability)
+
+</td><td>
+</td></tr>
+
 </table>
-
-* **Attribute macros for writing smart contracts.**
-
-  CosmWasm's raw syntax is a little verbose. We wrap all the repetitive bits
-  into familiar tags such as `#[init]`, `#[handle]` and `#[query]`.
-  * See [fadroma-derive-contract](./crates/fadroma-derive-contract)
-
-* **Composable contract traits.**
-
-  Replicate the same management functionality across your whole fleet of contracts,
-  by implementing it as a reusable Rust trait.
-  * See [fadroma-composability](./crates/fadroma-composability)
-
-* **Smart API clients for smart contract interfaces, including SNIP20**
-
-  Convert the JSON schema emitted by CosmWasm contracts into TypeScript types
-  and use those to build rich TS/JS client APIs for your contracts.
