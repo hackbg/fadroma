@@ -47,13 +47,13 @@ is a multi-step process, which is why below we define
 to the features of this library and denote their integration
 in a smart contract's architecture.
 
-### Composability Level 0: Builder traits
+### Composability Level 0 (CL0): Builder traits
 
 > See [`mod builder`](./builder.rs)
 
 `TODO`
 
-### Composability Level 1: Message traits
+### Composability Level 1 (CL1): Message traits
 
 > See [`mod composable`](./composable.rs)
 
@@ -158,7 +158,7 @@ parameters + data from `core`.
 
 </table>
 
-### Composability Level 2: Dispatch traits
+### Composability Level 2 (CL2): Dispatch traits
 
 > See [`mod dispatch`](./dispatch.rs)
 
@@ -254,13 +254,15 @@ for LimitOrderHandle where
 
 <table>
 
-### Composability Level 3: Feature traits
+### Composability Level 3 (CL3): Feature traits
 
 <table>
 
 <tr></tr>
 <tr>
 <td>
+
+#### CL3 Step 1. Trait header
 
 * `TODO`: Check if associated types can put an end to the propagation of generics.
 
@@ -274,13 +276,16 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 <tr></tr>
 <tr><td>
 
-* **Minimum requirements** for a feature trait:
+#### CL3 Step 2: Minimum requirements
+
+* Here you can add other dependencies if you want
+  to call into those traits.
 
 </td><td>
 
 ```rust
-   Composable<S, A, Q>
-   + Sized
+    Composable<S, A, Q>
+    + Sized
 {
 ```
 
@@ -288,9 +293,9 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 <tr></tr>
 <tr><td>
 
-* **Optional init fn.**
+#### CL3 Step 3: Optional init fn
 
-`TODO` Decide how to cleanly compose multiple `init`s.
+* `HOWTO` cleanly compose multiple `init`s?
 
 </td><td>
 
@@ -306,7 +311,7 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 <tr></tr>
 <tr><td>
 
-* **Let the messages dispatch themselves.**
+#### CL3 Step 4: Let the messages dispatch themselves
 
 </td><td>
 
@@ -321,6 +326,13 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
     {
         msg.dispatch(self)
     }
+```
+
+</td></tr>
+<tr></tr>
+<tr><td></td><td>
+
+```rust
 }
 ```
 
