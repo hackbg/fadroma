@@ -16,8 +16,8 @@ as illustrated below.
 ![](./.pix/Figure_1.png)
 
 By defining the following entities, this package aims to enable
-the modeling of reproducible deployment procedures on write-only
-smart contract platforms.
+the modeling and orchestration of reproducible deployment procedures
+on current generation write-only smart contract platforms.
 
 <table>
 <tr><td width="50%" valign="top">
