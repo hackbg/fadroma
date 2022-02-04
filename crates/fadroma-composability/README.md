@@ -123,25 +123,22 @@ and add them to Fadroma to collect a library of smart contract primitives.
 
 <tr><td valign="top">
 
-#### Level 0
-
-Builder pattern for response messages
+**Level 0:** Builder pattern for response messages
 
 </td><td>
 
 No changes needed other than reexporting `ResponseBuilder`
 from `mod response` by default.
 
-CosmWasm's `InitResponse`
-and `HandleResponse` will automatically gain the extra methods.
+CosmWasm's `InitResponse` and `HandleResponse`
+will automatically gain the extra methods.
 
 </td></tr>
 
 <tr><td valign="top">
 
-#### Level 1
-
-Extension to `#[message]` macro to allow in-place definition of API-aware variant constructors
+**Level 1:** Extension to `#[message]` macro to allow
+in-place definition of API-aware variant constructors.
 
 The following syntax contains all the information needed to define the above
 struct + 2 traits.
@@ -184,7 +181,7 @@ With optional variant constructors:
 ```
 
 Usage:
-```
+```rust
 let (hello, world) = Response::Foo(core)
 ```
 
@@ -192,9 +189,7 @@ let (hello, world) = Response::Foo(core)
 
 <tr><td valign="top">
 
-#### Level 2
-
-Extension to `#[query]` and `#[dispatch]` macros to implement
+**Level 2:** Extension to `#[query]` and `#[dispatch]` macros to implement
 dispatch traits on the enums that they generate.
 
 </td><td>
