@@ -98,15 +98,11 @@ a reusable contract layer - the representation of a single API message.
 
 <table>
 
-<tr><td colspan="2">
-
-`QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>` are the two **dispatch traits**.
-
-</td></tr>
+<tr></tr>
 
 <tr><td>
 
-The API-aware trait from Composability Level 1 defines and implements 1 associated function
+The **API-aware trait** from **Composability Level 1** defines and implements 1 associated function
 per variant, in order to construct the different variants from the parameters + data from `core`.
 
 </td><td>
@@ -115,17 +111,14 @@ per variant, in order to construct the different variants from the parameters + 
 let my_response = SomeResponse::foo(core)?;
 ```
 
-</td></tr>
-
-<tr><td colspan="2">
+</td></tr><tr></tr><tr><td valign="top">
 
 In contrast, a **dispatch trait** starts with an instantiated
 variant of the dispatch enum, and calls external functions
 corresponding to the enum variants.
 
-</td><tr>
-
-<tr><td>
+`QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>`
+are the two **dispatch traits**.
 
 In continuation of the `Response` example,
 here's the `Query` that returns the different responses:
