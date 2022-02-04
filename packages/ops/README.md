@@ -28,8 +28,9 @@ Represents a smart contract.
 
 </td><td width="50%">
 
+#### Fadroma 22.01:
 ```typescript
-import { Contract } from '@fadroma/ops'
+import { BaseContract } from '@fadroma/ops'
 class AContract extends Contract {}
 const contract = new AContract()
 ```
@@ -41,14 +42,14 @@ const contract = new AContract()
 
 ### **`Source`**
 
-Represents the source code of a smart contract.
+`New in Fadroma 23` Represents the source code of a smart contract.
 
 **TODO** For now `BaseContract` serves the function of this class.
 
 </td><td width="50%">
 
+#### Fadroma 23:
 ```typescript
-// TODO
 contract.source = new LocalSource.Crate(__dirname)
 contract.source = new LocalSource.Workspace(__dirname, 'a-contract')
 contract.source = new RemoteSource.Crate('https://foo/bar.git')
@@ -65,19 +66,20 @@ contract.source = new RemoteSource.Workspace('ssh://git@foo/bar.git', 'a-contrac
 Calls the compiler on a `Contract`,
 setting its `artifact` field.
 
-TODO: Calls the compiler on a `Source`,
+`New in Fadroma 23` Calls the compiler on a `Source`,
 producing an `Artifact`.
 
 </td><td width="50%">
 
+#### Fadroma 22.01:
 ```typescript
 import { Builder } from '@fadroma/ops'
 const builder  = new Builder(contract)
 const artifact = await builder.build()
 ```
 
+#### Fadroma 23:
 ```typescript
-// TODO:
 contract.artifact = await new RawBuilder().build(contract.source)
 contract.artifact = await new DockerizedBuilder().build(contract.source)
 ```
@@ -89,10 +91,10 @@ contract.artifact = await new DockerizedBuilder().build(contract.source)
 
 ### **`Artifact`**
 
-Represents a WASM blob compiled from
+`New in Fadroma 23` Represents a WASM blob compiled from
 the source code of a smart contract..
 
-**TODO** For now `artifact` is a string field of `Contract`.
+`In 22.01:` For now `artifact` is a string field of `Contract`.
 
 </td><td width="50%">
 
