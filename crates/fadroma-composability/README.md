@@ -21,7 +21,7 @@
 #[serde(rename_all="snake_case")]
 #[serde(deny_unknown_fields)]
 pub enum LimitOrder {
-    Ask((String, String)),
+    Ask(Uint128),
     Bid(Uint128)
 }
 ```
@@ -41,8 +41,8 @@ pub trait ILimitOrder<S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn ask (core: &C) -> StdResult<Self>;
-    fn bid (core: &C) -> StdResult<Self>;
+    fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self>;
+    fn bid (core: &C, price: Option<Uint128>) -> StdResult<Self>;
 }
 ```
 
@@ -73,11 +73,11 @@ impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn ask (core: &C, ask: Option<Uint128>) -> StdResult<Self> {
-        Ok(Self::Ask(ask.ok_or(core.get("ask")?))
+    fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Ask(price.ok_or(core.get("ask")?))
     }
-    fn bid (core: &C) -> StdResult<Self> {
-        Ok(Self::Bid(ask.ok_or(core.get("bid")?))
+    fn bid (core: &C, price: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Bid(price.ok_or(core.get("bid")?))
     }
 }
 ```
@@ -100,7 +100,7 @@ a reusable contract layer: a representation of a single API message.
 ### Step 4. Usage
 
 ```rust
-let order = LimitOrder::ask(core)?;
+let order = LimitOrder::ask(core, None)?;
 ```
 
 </td><td>
@@ -145,12 +145,15 @@ pub enum QuerySomething {
     GetAsk,                                                          
     GetBid { HumanAddr, String },
 }
+```
+
+```rust
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder>
 for QuerySomething where
     S: Storage, A: Api, Q: Querier,
-    C: Contract<S, A, Q>
+    C: Composable<S, A, Q>
 {
-    fn dispatch (self, core: &C) -> StdResult<LimitOrder> {
+    fn dispatch_query (self, core: &C) -> StdResult<LimitOrder> {
         Ok(match self {
             QuerySomething::GetAsk =>
               LimitOrder::ask(core)?,
@@ -161,7 +164,7 @@ for QuerySomething where
 }
 ```
 
-</td></tr><tr><td>
+</td></tr><tr></tr><tr><td>
 
 ### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
 
@@ -171,13 +174,15 @@ for QuerySomething where
 pub enum HandleSomething {
     SetAsk(String),
 }
+```
 
+```rust
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C>
 for Handle where
     S: Storage, A: Api, Q: Querier,
-    C: Contract<S, A, Q>
+    C: Composable<S, A, Q>
 {
-    fn dispatch (self, core: &C) -> StdResult<LimitOrder> {
+    fn dispatch_handle (self, core: &C) -> StdResult<LimitOrder> {
         Ok(match self {
             HandleSomething::SetAsk(x) =>
               HandleResponse::default()
@@ -191,7 +196,7 @@ for Handle where
 <table>
 
 
-## Composability Level 3: Inherit from `Composable` to define reusable contract traits
+## Composability Level 3: Feature traits
 
 Implement those traits for `Extern` to define a contract.
 Implement them for `MockExtern` from [`composable_test`](./composable_test.rs)
@@ -201,7 +206,7 @@ branching tests.
 Trim down traits that implement generic features into a reusable form
 and add them to Fadroma to collect a library of smart contract primitives.
 
-## Composability Level 4: Going from composable traits to composed contract.
+## Composability Level 4: Composed contract
 
 ## Appendix A: Proposed syntax for the integration of composable traits in `fadroma-derive-contract`
 
@@ -299,6 +304,22 @@ to implement dispatch traits on the enums that they generate.
     }
 }
 ```
+
+<td></tr>
+
+<tr><td valign="top">
+
+**Composability Level 3:** `TODO`
+
+</td><td>
+
+<td></tr>
+
+<tr><td valign="top">
+
+**Composability Level 4:** `TODO`
+
+</td><td>
 
 <td></tr>
 
