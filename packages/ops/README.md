@@ -49,7 +49,10 @@ Represents the source code of a smart contract.
 
 ```typescript
 // TODO
-contract.source = new Source(__dirname, contract)
+contract.source = new LocalSource.Crate(__dirname)
+contract.source = new LocalSource.Workspace(__dirname, 'a-contract')
+contract.source = new RemoteSource.Crate('https://foo/bar.git')
+contract.source = new RemoteSource.Workspace('ssh://git@foo/bar.git', 'a-contract')
 ```
 
 </td></tr>
@@ -73,9 +76,10 @@ const builder  = new Builder(contract)
 const artifact = await builder.build()
 ```
 
-```
+```typescript
 // TODO:
-contract.artifact = await new DockerBuilder().build(contract.source)
+contract.artifact = await new RawBuilder().build(contract.source)
+contract.artifact = await new DockerizedBuilder().build(contract.source)
 ```
 
 </td></tr>
@@ -91,6 +95,12 @@ the source code of a smart contract..
 **TODO** For now `artifact` is a string field of `Contract`.
 
 </td><td width="50%">
+
+```typescript
+// TODO:
+contract.artifact = new LocalArtifact('/path/to/blob.wasm', checksum)
+contract.artifact = new RemoteArtifact('https://path/to/blob.wasm', checksum)
+```
 
 </td></tr>
 
@@ -145,7 +155,11 @@ const chain = await Chain.init() // TODO
 const agent = await chain.getAgent()
 const uploader = new Uploader(contract)
 const artifact = uploader.upload(chain, agent)
-// TODO: contract.template = await new Uploader(agent).upload(contract.artifact)
+```
+
+```typescript
+// TODO:
+contract.template = await new Uploader(agent).upload(contract.artifact)
 ```
 
 </td></tr>
