@@ -121,7 +121,7 @@ and add them to Fadroma to collect a library of smart contract primitives.
 
 <table>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Level 0
 
@@ -135,7 +135,7 @@ and `HandleResponse` will automatically gain the extra methods.
 
 </td></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Level 1
 
@@ -182,7 +182,7 @@ let (hello, world) = Response::Foo(core)
 
 </td></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### Level 2
 
