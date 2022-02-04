@@ -130,10 +130,6 @@ parameters + data from `core`.
 
 > See [`mod dispatch`](./dispatch.rs)
 
-<table>
-
-<tr><td>
-
 In contrast with the message trait from CL1,
 a **dispatch trait** starts with an instantiated
 variant of the dispatch enum (`self`), and calls
@@ -147,7 +143,9 @@ let response = SomeHandle::SetAsk("Something".into()).dispatch(core)?;
 `QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>`
 are the two **dispatch traits**.
 
-</td></tr><tr></tr><tr><td>
+<table>
+
+<tr><td>
 
 ### Step 1. Implementing `QueryDispatch<S, A, Q, C, R>`:
 
