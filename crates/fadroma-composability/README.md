@@ -16,9 +16,9 @@
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 #[serde(deny_unknown_fields)]
-pub enum SomeResponse {
-    Foo((String, String)),
-    Bar(Uint128)
+pub enum LimitOrder {
+    Ask((String, String)),
+    Bid(Uint128)
 }
 ```
 
@@ -33,12 +33,12 @@ pub enum SomeResponse {
 ### Step 2. Define an interface trait for your methods.
 
 ```rust
-pub trait ISomeResponse<S, A, Q, C>: Sized where
+pub trait ILimitOrder<S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn foo (core: &C) -> StdResult<Self>;
-    fn bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self>;
+    fn ask (core: &C) -> StdResult<Self>;
+    fn bid (core: &C) -> StdResult<Self>;
 }
 ```
 
@@ -65,15 +65,15 @@ for the functionality implemented on each message.
 ### Step 3. Implement your methods.
 
 ```rust
-impl<S, A, Q, C> ISomeResponse<S, A, Q, C> for SomeResponse where
+impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn foo (core: &C) -> StdResult<Self> {
-        Ok(Self::Foo(("Hello".into(), "World".into())))
+    fn ask (core: &C, ask: Option<Uint128>) -> StdResult<Self> {
+        Ok(Self::Ask(ask.ok_or(core.get("ask")?))
     }
-    fn bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self> {
-        Ok(Self::Bar(Uint128::MAX))
+    fn bid (core: &C) -> StdResult<Self> {
+        Ok(Self::Bid(ask.ok_or(core.get("bid")?))
     }
 }
 ```
@@ -95,20 +95,16 @@ a reusable contract layer: a representation of a single API message.
 
 <table>
 
-<tr></tr>
-
 <tr><td>
+
+### Review
 
 The **API-aware trait** from **Composability Level 1** defines and implements 1 associated function
 per variant, in order to construct the different variants from the parameters + data from `core`.
 
-</td><td>
-
 ```rust
-let my_response = SomeResponse::foo(core)?;
+let order = LimitOrder::ask(core)?;
 ```
-
-</td></tr><tr></tr><tr><td valign="top">
 
 In contrast, a **dispatch trait** starts with an instantiated
 variant of the dispatch enum, and calls external functions
@@ -120,9 +116,13 @@ are the two **dispatch traits**.
 </td><td>
 
 ```rust
-SomeQuery::GetFoo.dispatch(core)?;
-SomeHandle::SetFoo("Something".into()).dispatch(core)?;
+let response = SomeQuery::GetAsk.dispatch(core)?;
+let response = SomeHandle::SetAsk("Something".into()).dispatch(core)?;
 ```
+
+</td></tr><tr></tr><tr><td valign="top">
+
+</td><td>
 
 </td></tr><tr></tr><tr><td>
 
@@ -134,17 +134,17 @@ Implementing `QueryDispatch<S, A, Q, C, R>`:
 #[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum QuerySomething {                                                                   
-    GetFoo,                                                          
-    GetBar { HumanAddr, String },
+    GetAsk,                                                          
+    GetBid { HumanAddr, String },
 }
-impl<S, A, Q, C> QueryDispatch<S, A, Q, C, SomeResponse> for QuerySomething where
+impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder> for QuerySomething where
     S: Storage, A: Api, Q: Querier,
     C: Contract<S, A, Q>
 {
-    fn dispatch (self, core: &C) -> StdResult<SomeResponse> {
+    fn dispatch (self, core: &C) -> StdResult<LimitOrder> {
         Ok(match self {
-            QuerySomething::GetFoo => SomeResponse::foo(core)?,
-            QuerySomething::GetBar { x, y } => SomeResponse::bar(core, x, y)?
+            QuerySomething::GetAsk => LimitOrder::ask(core)?,
+            QuerySomething::GetBid { x, y } => LimitOrder::bid(core, x, y)?
         })
     }
 }
@@ -160,16 +160,16 @@ Implementing `HandleDispatch<S, A, Q, C>`:
 #[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
 #[serde(rename_all="snake_case")]
 pub enum HandleSomething {
-    SetFoo(String),
+    SetAsk(String),
 }
 
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
     S: Storage, A: Api, Q: Querier,
     C: Contract<S, A, Q>
 {
-    fn dispatch (self, core: &C) -> StdResult<SomeResponse> {
+    fn dispatch (self, core: &C) -> StdResult<LimitOrder> {
         Ok(match self {
-            HandleSomething::SetFoo(x) => HandleResponse::default()
+            HandleSomething::SetAsk(x) => HandleResponse::default()
         })
     }
 }
@@ -231,28 +231,28 @@ Before:
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 #[serde(deny_unknown_fields)]
-pub enum SomeResponse {
-    Foo((String, String)),
-    Bar(Uint128)
+pub enum LimitOrder {
+    Ask((String, String)),
+    Bid(Uint128)
 }
 ```
 
 After:
 ```rust
-#[message] SomeResponse {
-    Foo((String, String)),
-    Bar(Uint128)
+#[message] LimitOrder {
+    Ask((String, String)),
+    Bid(Uint128)
 }
 ```
 
 With optional variant constructors:
 ```rust
-#[message] SomeResponse {
-    Foo((String, String)) <= fn foo (core, x: Option<String>) {
-        Ok(Self::Foo(("Hello".into(), x.ok_or(Self::helper()))))
+#[message] LimitOrder {
+    Ask((String, String)) <= fn ask (core, x: Option<String>) {
+        Ok(Self::Ask(("Hello".into(), x.ok_or(Self::helper()))))
     }
-    Bar(Uint128) <= fn bar (core, x: HumanAddr, y: String) {
-        Ok(Self::Bar(Uint128::MAX))
+    Bid(Uint128) <= fn bid (core, x: HumanAddr, y: String) {
+        Ok(Self::Bid(Uint128::MAX))
     }
     /// a variant is also optional in this position:
     fn helper () -> String { "World".into() }
@@ -261,7 +261,7 @@ With optional variant constructors:
 
 Usage:
 ```rust
-let (hello, world) = SomeResponse::foo(core)
+let (hello, world) = LimitOrder::ask(core)
 ```
 
 </td></tr>
@@ -274,18 +274,18 @@ to implement dispatch traits on the enums that they generate.
 </td><td>
 
 ```rust
-#[query] QuerySomething<SomeResponse> {
-    GetFoo => fn get_foo (core) {
-        const x = core.get("foo")?;
-        Ok(SomeResponse::foo(core, x))
+#[query] QuerySomething<LimitOrder> {
+    GetAsk => fn get_ask (core) {
+        const x = core.get("ask")?;
+        Ok(LimitOrder::ask(core, x))
     }
-    GetBar { x: HumanAddr, y: String } => fn get_bar (core, x, y) {
-        Ok(SomeResponse::bar(core, x, y))
+    GetBid { x: HumanAddr, y: String } => fn get_bid (core, x, y) {
+        Ok(LimitOrder::bid(core, x, y))
     }
 }
-#[handle] HandleSomething<SomeResponse> {
-    SetFoo(x: String) => fn set_foo (core, x) {
-        core.set("foo", x)?;
+#[handle] HandleSomething<LimitOrder> {
+    SetAsk(x: String) => fn set_ask (core, x) {
+        core.set("ask", x)?;
         Ok(HandleResponse::default())
     }
 }
