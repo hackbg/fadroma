@@ -140,7 +140,7 @@ and add them to Fadroma to collect a library of smart contract primitives.
 
 `TODO:` Integrate with `fadroma-derive-contract`.
 
-<table>
+<table><thead>
 
 <tr><th align="left" valign="top">
 
@@ -228,4 +228,4 @@ dispatch traits on the enums that they generate.
 
 <th align="left"></tr>
 
-</table>
+</thead></table>
