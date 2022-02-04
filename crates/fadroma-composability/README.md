@@ -36,15 +36,6 @@ pub enum SomeResponse {
 
 ### Step 2. Define an interface trait for your methods.
 
-This intermediate step trait is necessary to define the `S, A, Q`
-generics, necessary to be able to write the type of `Composable<S, A, Q>`.
-
-This is a place where Rust's type system falls slightly short.
-If not for an interface trait, you'd need 3 PhantomData fields
-on every API-aware struct, making it unwieldy to write that
-struct as a literal. As it is, the interface struct can serve
-as a neat little table of contents.
-
 </td></tr>
 <tr><td>
 
@@ -58,6 +49,17 @@ pub trait ISomeResponse<S, A, Q, C>: Sized where
 }
 ```
 
+</td><td>
+
+This intermediate step trait is necessary to define the `S, A, Q`
+generics, necessary to be able to write the type of `Composable<S, A, Q>`.
+
+This is a place where Rust's type system falls slightly short.
+If not for an interface trait, you'd need 3 PhantomData fields
+on every API-aware struct, making it unwieldy to write that
+struct as a literal. As it is, the interface struct can serve
+as a neat little table of contents.
+
 </td></tr>
 
 <tr><td valign="top">
@@ -65,9 +67,10 @@ pub trait ISomeResponse<S, A, Q, C>: Sized where
 ### Step 3. Implement your methods.
 
 Implement the methods defined in the intermediate trait like this.
-Congratulations, they can now use the Fadroma Composable `core`,
-and the struct can be used as a building block for a reusable
-contract layer. Let's see how to do that next.
+Congratulations, now this enum is **API-aware**. This means that
+its variant constructors can now use the Fadroma Composable `core`,
+and the enum itself can be used as the most basic building block of
+a reusable contract layer - the representation of a single API message.
 
 </td></tr><tr><td>
 
