@@ -256,9 +256,10 @@ for LimitOrderHandle where
 
 ### Composability Level 3 (CL3): Feature traits
 
+Anatomy of a feature trait:
+
 <table>
 
-<tr></tr>
 <tr>
 <td>
 
@@ -286,6 +287,13 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 ```rust
     Composable<S, A, Q>
     + Sized
+```
+
+</td></tr>
+<tr></tr>
+<tr><td></td><td>
+
+```rust
 {
 ```
 
@@ -321,6 +329,7 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
     {
         msg.dispatch(self, env)
     }
+
     fn query (&self, msg: LimitOrderQuery)
         -> StdResult<Binary>
     {
