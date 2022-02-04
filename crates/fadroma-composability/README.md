@@ -119,18 +119,34 @@ and add them to Fadroma to collect a library of smart contract primitives.
 
 `TODO:` Integrate with `fadroma-derive-contract`.
 
-### Level 0: Builder pattern for response messages
+<table>
+
+<tr><td>
+
+### Level 0
+
+Builder pattern for response messages
+
+</td><td>
 
 No changes needed other than reexporting `ResponseBuilder`
 from `mod response` by default. CosmWasm's `InitResponse`
 and `HandleResponse` will automatically gain the extra methods.
 
-### Level 1: Extension to `#[message]` macro to allow in-place definition of API-aware variant constructors
+</td></tr>
+
+<tr><td>
+
+### Level 1
+
+Extension to `#[message]` macro to allow in-place definition of API-aware variant constructors
 
 The following syntax contains all the information needed to define the above
 struct + 2 traits.
 
 * [ ] Its implementation is tracked by [#48](https://github.com/hackbg/fadroma/issues/48)
+
+</td><td>
 
 ```rust
 /// before:
@@ -164,10 +180,16 @@ pub enum Response {
 let (hello, world) = Response::Foo(core)
 ```
 
-### Level 2: Extension to `#[query]` and `#[dispatch] macros to implement dispatch traits on the enums that they generate
+</td></tr>
 
-Again, should the proper applicaton of procedural macros allow it,
-the above could look like:
+<tr><td>
+
+### Level 2
+
+Extension to `#[query]` and `#[dispatch]` macros to implement
+dispatch traits on the enums that they generate.
+
+</td><td>
 
 ```rust
 #[query] Query<Response> {
@@ -179,3 +201,7 @@ the above could look like:
     }
 }
 ```
+
+<td></tr>
+
+</table>
