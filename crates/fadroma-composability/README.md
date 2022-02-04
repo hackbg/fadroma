@@ -1,12 +1,46 @@
 # Fadroma Composability
 
-## Composability Level 0: Builder traits
+This document describes how to compose reusable bits
+of smart contract functionality using Rust's native
+trait composition facilities.
+
+## Introduction
+
+The classic way to write CosmWasm smart contracts
+is by defining message structs/enums and free-standing
+functions that operate on them, initiated from the
+`init`/`handle`/`query` entry points.
+
+Composability requires these to be coupled more tightly,
+as well as coupling them to the platform core via the
+`core: Composable<S, A, Q>` wrapper. Though this is not
+complex to achieve, it does require a significan amount
+of boilerplate, for which a new macro syntax is proposed
+at the end of this document.
+
+## Composability Core
+
+This object wraps the platform API handle represented by
+`env: Extern<S, A, Q>` (CW0.10) or `deps: Deps` (CW0.16).
+
+It wraps the platform API represented by `env` or `deps`
+and exposes helper methods with shorter names.
+
+## Composability Levels
+
+Migrating from classical to composable contracts
+is a multi-step process, which is why below we define
+6 levels of composability (CL0-CL5) which correspond
+to the features of this library and denote their integration
+in a smart contract's architecture.
+
+### Composability Level 0: Builder traits
 
 > See [`mod builder`](./builder.rs)
 
 `TODO`
 
-## Composability Level 1: Message traits
+### Composability Level 1: Message traits
 
 > See [`mod composable`](./composable.rs)
 
@@ -14,7 +48,7 @@
 
 <tr><td valign="top">
 
-### Step 1. Define your struct as normal.
+#### CL1. Step 1. Define your struct as normal.
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -29,12 +63,10 @@ pub enum LimitOrder {
 </td><td>
 
 </td></tr>
-
 <tr></tr>
-
 <tr><td>
 
-### Step 2. Define an interface trait for your methods.
+#### CL1. Step 2. Define an interface trait for your methods.
 
 ```rust
 pub trait ILimitOrder<S, A, Q, C>: Sized where
@@ -61,12 +93,12 @@ As it is, the interface struct can make a useful "table of contents"
 for the functionality implemented on each message.
 
 </td></tr>
-
 <tr></tr>
-
 <tr><td>
 
-### Step 3. Implement your methods.
+### CL1. Step 3. Implement variant constructor methods.
+
+> See: [(example from `cosmwasm_std`) `StdError` variants](https://docs.rs/cosmwasm-std/0.10.1/cosmwasm_std/enum.StdError.html#implementations)
 
 ```rust
 impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
@@ -139,23 +171,23 @@ are the two **dispatch traits**.
 ```rust
 #[derive(...)]
 #[serde(rename_all="snake_case")]
-pub enum QuerySomething {                                                                   
-    GetAsk,                                                          
+pub enum LimitOrderQuery {
+    GetAsk,
     GetBid { HumanAddr, String },
 }
 ```
 
 ```rust
 impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder>
-for QuerySomething where
+for LimitOrderQuery where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
     fn dispatch_query (self, core: &C) -> StdResult<LimitOrder> {
         Ok(match self {
-            QuerySomething::GetAsk =>
+            LimitOrderQuery::GetAsk =>
               LimitOrder::ask(core)?,
-            QuerySomething::GetBid { x, y } =>
+            LimitOrderQuery::GetBid { x, y } =>
               LimitOrder::bid(core, x, y)?
         })
     }
@@ -173,21 +205,24 @@ for QuerySomething where
 ```rust
 #[derive(...)]
 #[serde(rename_all="snake_case")]
-pub enum HandleSomething {
-    SetAsk(String),
+pub enum LimitOrderHandle {
+    SetAsk(Uint128),
+    SetBid(Uint128),
 }
 ```
 
 ```rust
 impl<S, A, Q, C> HandleDispatch<S, A, Q, C>
-for Handle where
+for LimitOrderHandle where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
     fn dispatch_handle (self, core: &C) -> StdResult<LimitOrder> {
         Ok(match self {
-            HandleSomething::SetAsk(x) =>
-              HandleResponse::default()
+            LimitOrderHandle::SetAsk(x) =>
+              HandleResponse::default(),
+            LimitOrderHandle::SetBid(x) =>
+              HandleResponse::default(),
         })
     }
 }
@@ -201,6 +236,23 @@ for Handle where
 
 
 ## Composability Level 3: Feature traits
+
+```rust
+pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
+  Composable<S, A, Q>
+  + Sized
+{
+  fn init (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
+    Ok(InitResponse::default())
+  }
+  fn handle (&mut self, env: &Env, msg: HandleMsg) -> StdResult<InitResponse> {
+    Ok(InitResponse::default())
+  }
+  fn query (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
+    Ok(InitResponse::default())
+  }
+}
+```
 
 ## Composability Level 4: Composed contract
 
@@ -244,7 +296,7 @@ Replaces: ...
 #### Proposed macro syntax for `CL2.S1`
 
 ```rust
-#[query] QuerySomething<LimitOrder> {
+#[query] LimitOrderQuery<LimitOrder> {
     GetAsk =>
       fn get_ask (core) {
           const x = core.get("ask")?;
@@ -268,7 +320,7 @@ Replaces: ...
 #### Proposed macro syntax for `CL2.S2`
 
 ```rust
-#[handle] HandleSomething<LimitOrder> {
+#[handle] LimitOrderHandle<LimitOrder> {
     SetAsk(x: String) => fn set_ask (core, x) {
         core.set("ask", x)?;
         Ok(HandleResponse::default())
