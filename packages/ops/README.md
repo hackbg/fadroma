@@ -74,7 +74,11 @@ import { Source } from '@fadroma/ops'
 contract.source = new Source.Local.Crate(__dirname)
 contract.source = new Source.Local.Workspace(__dirname, 'a-contract')
 contract.source = new Source.Remote.Crate('https://foo/bar.git', 'main')
-contract.source = new Source.Remote.Workspace('ssh://git@foo/bar.git', 'v1.2.3', 'a-contract')
+contract.source = new Source.Remote.Workspace(
+  'ssh://git@foo/bar.git',
+  'v1.2.3',
+  'a-contract'
+)
 ```
 
 </td></tr>
