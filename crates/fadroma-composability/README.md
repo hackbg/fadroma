@@ -303,7 +303,7 @@ by the macro caller.
 
 </td><td>
 
-Replaces:
+Equivalent to:
 
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
@@ -355,11 +355,12 @@ impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
 
 </td><td>
 
-Replaces:
+Equivalent to:
 
 ```rust
-#[derive(...)]
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum LimitOrderQuery {
     GetAsk,
     GetBid { HumanAddr, String },
@@ -382,7 +383,7 @@ for LimitOrderQuery where
 
 </td></tr><tr></tr>
 
-<tr><td> valign="top"
+<tr><td valign="top">
 
 #### Proposed macro syntax for `CL2.S2`
 
@@ -398,11 +399,12 @@ for LimitOrderQuery where
 
 </td><td>
 
-Replaces:
+Equivalent to:
 
 ```rust
-#[derive(...)]
+#[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum LimitOrderHandle {
     SetAsk(Uint128),
     SetBid(Uint128),
@@ -438,7 +440,7 @@ for LimitOrderHandle where
 
 </td><td>
 
-Replaces:
+Equivalent to:
 
 ```rust
 pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
@@ -463,8 +465,6 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 
 #### Proposed macro syntax for `CL4`
 
-</td>
-
 ```rust
 #[contract] MyContract {
     #[init] (self, env: Env, msg: InitMsg) {
@@ -476,6 +476,14 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 }
 ```
 
-<td></td></tr><tr></tr>
+</td>
+
+<td>
+
+Equivalent to:
+
+`TODO`
+
+</td></tr><tr></tr>
 
 </table>
