@@ -63,9 +63,9 @@ export abstract class DockerizedScrtNode extends DockerizedChainNode {
   get binds () {
     return {
       ...super.binds,
-      [this.sgxDir.path]:    '/root/.sgx-secrets:rw',
-      [this.daemonDir.path]: `/root/.secretd:rw`,
-      [this.clientDir.path]: `/root/.secretcli:rw`,
+      //[this.sgxDir.path]:    '/root/.sgx-secrets:rw',
+      //[this.daemonDir.path]: `/root/.secretd:rw`,
+      //[this.clientDir.path]: `/root/.secretcli:rw`,
     }
   }
   abstract readonly chainId:    string
