@@ -10,8 +10,8 @@ Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
 </td></tr></table>
 
-This package models the lifecycle of a smart contract,
-as illustrated below.
+**This package models the lifecycle of a smart contract,
+and allows to compile and deploy source code to a blockchain.**
 
 ![](./.pix/Figure_1.png)
 

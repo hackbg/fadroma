@@ -10,9 +10,11 @@ Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
 </td></tr></table>
 
-This document describes how to compose reusable bits
+**This document describes how to compose reusable bits
 of smart contract functionality using Rust's native
-trait composition facilities.
+trait composition facilities.**
+
+</div>
 
 ## Introduction
 
