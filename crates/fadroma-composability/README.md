@@ -2,9 +2,13 @@
 
 ## Composability Level 0: Builder traits
 
+> See [`mod builder`](./builder.rs)
+
 `TODO`
 
 ## Composability Level 1: Message traits
+
+> See [`mod composable`](./composable.rs)
 
 <table>
 
@@ -111,9 +115,9 @@ parameters + data from `core`.
 
 ## Composability Level 2: Dispatch traits
 
-<table>
+> See [`mod dispatch`](./dispatch.rs)
 
-<tr></tr>
+<table>
 
 <tr><td>
 
