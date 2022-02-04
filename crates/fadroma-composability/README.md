@@ -14,7 +14,7 @@ Let's try with a query's `Response`.
 
 <table> <tr><td valign="top">
 
-### Step 1. Define your struct as normal.
+**Step 1.** Define your struct as normal.
 
 </td><td>
 
@@ -28,11 +28,11 @@ pub enum Response {
 }
 ```
 
-</td></tr></table>
+</td></tr>
 
-<table><tr><td valign="top">
+<tr><td valign="top">
 
-### Step 2. Define an interface trait for your methods.
+**Step 2.** Define an interface trait for your methods.
 
 </td><td>
 
@@ -46,8 +46,8 @@ struct as a literal. As it is, the interface struct can serve
 as a neat little table of contents.
 
 </td></tr>
-
 <tr><td colspan="2">
+
 ```rust
 pub trait IResponse<S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier,
@@ -57,6 +57,7 @@ pub trait IResponse<S, A, Q, C>: Sized where
     fn bar (core: &C, address: HumanAddr, key: String) -> StdResult<Self>;
 }
 ```
+
 </td></tr>
 
 </table>
