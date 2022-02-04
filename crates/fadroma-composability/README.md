@@ -5,7 +5,8 @@
 
 </td><td valign="center">
 
-# Fadroma Composability
+# Fadroma Composability ![](https://img.shields.io/badge/version-0.1.0-blueviolet)
+
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
 </td></tr></table>

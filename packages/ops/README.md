@@ -5,7 +5,8 @@
 
 </td><td valign="center">
 
-# Fadroma Ops
+# Fadroma Ops ![](https://img.shields.io/badge/version-22.01-blueviolet)
+
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
 </td></tr></table>
