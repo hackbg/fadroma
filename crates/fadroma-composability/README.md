@@ -132,7 +132,7 @@ parameters + data from `core`.
 
 <table>
 
-<tr><td colspan="2">
+<tr><td>
 
 In contrast with the message trait from CL1,
 a **dispatch trait** starts with an instantiated
@@ -183,13 +183,15 @@ for QuerySomething where
 
 ```rust
 #[query] QuerySomething<LimitOrder> {
-    GetAsk => fn get_ask (core) {
-        const x = core.get("ask")?;
-        Ok(LimitOrder::ask(core, x))
-    }
-    GetBid { x: HumanAddr, y: String } => fn get_bid (core, x, y) {
-        Ok(LimitOrder::bid(core, x, y))
-    }
+    GetAsk =>
+      fn get_ask (core) {
+          const x = core.get("ask")?;
+          Ok(LimitOrder::ask(core, x))
+      }
+    GetBid { x: HumanAddr, y: String } =>
+      fn get_bid (core, x, y) {
+          Ok(LimitOrder::bid(core, x, y))
+      }
 }
 ```
 
