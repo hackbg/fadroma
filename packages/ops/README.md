@@ -20,6 +20,8 @@ as illustrated below.
 
 ### [**`Contract`**](./Contract.ts)
 
+Represents a smart contract.
+
 </td><td width="50%">
 
 ```typescript
@@ -29,6 +31,8 @@ const contract = new AContract()
 ```
 
 </td></tr>
+
+
 <tr><td width="50%" valign="top">
 
 ### **`Source`**
@@ -41,10 +45,12 @@ Represents the source code of a smart contract.
 
 ```typescript
 // TODO
-contract.source = new Source(__dirname, 'contract)
+contract.source = new Source(__dirname, contract)
 ```
 
 </td></tr>
+
+
 <tr><td width="50%" valign="top">
 
 ### [**`Builder`**](./Build.ts)
@@ -70,17 +76,52 @@ contract.artifact = await new DockerBuilder().build(contract.source)
 
 </td></tr>
 
+
 <tr><td width="50%" valign="top">
 
 ### **`Artifact`**
 
-Represents a compiled WASM blob.
-
-</td><td width="50%"><center>
+Represents a WASM blob compiled from
+the source code of a smart contract..
 
 **TODO** For now `artifact` is a string field of `Contract`.
 
-<center></td></tr>
+</td><td width="50%">
+
+</td></tr>
+
+
+<tr><td width="50%" valign="top">
+
+### **`Chain`**
+
+Represents an existing blockchain.
+
+</td><td width="50%">
+
+```typescript
+// TODO
+import Fadroma from '@hackbg/fadroma'
+const chain = await Fadroma.connect()
+```
+
+</td></tr>
+
+
+<tr><td width="50%" valign="top">
+
+### **`Agent`**
+
+Represents a controllable identity on a chain.
+
+</td><td width="50%">
+
+```typescript
+const agent = await chain.getAgent()
+```
+
+</td></tr>
+
 
 <tr><td width="50%" valign="top">
 
@@ -105,25 +146,17 @@ const artifact = uploader.upload(chain, agent)
 
 </td></tr>
 
-<tr><td width="50%" valign="top">
-
-### **`Instance`**
-
-</td><td width="50%"><center>
-
-TODO. For now `Contract` serves the function of this class.
-
-</center></td></tr>
 
 <tr><td width="50%" valign="top">
 
 ### **`Instance`**
 
-</td><td width="50%"><center>
-
 TODO. For now `Contract` serves the function of this class.
 
-</center></td></tr>
+</td><td width="50%">
+
+</td></tr>
+
 
 <tr><td width="50%" valign="top">
 
@@ -133,6 +166,7 @@ TODO. For now `Contract` serves the function of this class.
 
 </td></tr>
 
+
 <tr><td width="50%" valign="top">
 
 ### [**`Init`**](./Init.ts)
@@ -140,6 +174,7 @@ TODO. For now `Contract` serves the function of this class.
 </td><td width="50%">
 
 </td></tr>
+
 
 <tr><td width="50%" valign="top">
 
