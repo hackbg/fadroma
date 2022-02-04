@@ -89,16 +89,11 @@ a reusable contract layer: a representation of a single API message.
 
 </td></tr>
 
-</table>
-
-## Composability Level 2: Dispatch traits
-
-<table>
+<tr></tr>
 
 <tr><td>
 
-The **API-aware trait** from **Composability Level 1** defines and implements 1 associated function
-per variant, in order to construct the different variants from the parameters + data from `core`.
+### Step 4. Usage
 
 ```rust
 let order = LimitOrder::ask(core)?;
@@ -106,9 +101,26 @@ let order = LimitOrder::ask(core)?;
 
 </td><td>
 
-In contrast, a **dispatch trait** starts with an instantiated
-variant of the dispatch enum, and calls external functions
-corresponding to the enum variants.
+The **message trait** defines and implements 1 associated function
+per variant, in order to construct the different variants from the
+parameters + data from `core`.
+
+</td></tr>
+
+</table>
+
+## Composability Level 2: Dispatch traits
+
+<table>
+
+<tr></tr>
+
+<tr><td>
+
+In contrast with the message trait from Level 1,
+a **dispatch trait** starts with an instantiated
+variant of the dispatch enum (`self`), and calls
+functions corresponding to the enum variants.
 
 ```rust
 let response = SomeQuery::GetAsk.dispatch(core)?;
@@ -118,7 +130,7 @@ let response = SomeHandle::SetAsk("Something".into()).dispatch(core)?;
 `QueryDispatch<S, A, Q, C, R>` and `HandleDispatch<S, A, Q, C>`
 are the two **dispatch traits**.
 
-</td></tr><tr></tr><tr><td valign="top">
+</td></tr><tr></tr><tr><td>
 
 ### Step 1. Implementing `QueryDispatch<S, A, Q, C, R>`:
 
@@ -145,7 +157,7 @@ for QuerySomething where
 }
 ```
 
-</td><td>
+</td></tr><tr><td>
 
 ### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
 
