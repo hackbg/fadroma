@@ -24,7 +24,7 @@ Let's try with a query's `Response`.
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 #[serde(deny_unknown_fields)]
-pub enum Response {
+pub enum SomeResponse {
     Foo((String, String)),
     Bar(Uint128)
 }
@@ -49,7 +49,7 @@ as a neat little table of contents.
 <tr><td>
 
 ```rust
-pub trait IResponse<S, A, Q, C>: Sized where
+pub trait ISomeResponse<S, A, Q, C>: Sized where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
@@ -72,7 +72,7 @@ contract layer. Let's see how to do that next.
 </td></tr><tr><td>
 
 ```rust
-impl<S, A, Q, C> IResponse<S, A, Q, C> for Response where
+impl<S, A, Q, C> ISomeResponse<S, A, Q, C> for SomeResponse where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
@@ -113,14 +113,14 @@ pub enum Query {
     GetFoo,                                                          
     GetBar { HumanAddr, String },
 }
-impl<S, A, Q, C> QueryDispatch<S, A, Q, C, Response> for Query where
+impl<S, A, Q, C> QueryDispatch<S, A, Q, C, SomeResponse> for Query where
     S: Storage, A: Api, Q: Querier,
     C: Contract<S, A, Q>
 {
-    fn dispatch_query (self, core: &C) -> StdResult<Response> {
+    fn dispatch_query (self, core: &C) -> StdResult<SomeResponse> {
         Ok(match self {
-            Query::GetFoo          => Response::foo(core)?,
-            Query::GetBar { x, y } => Response::bar(core, x, y)?
+            Query::GetFoo          => SomeResponse::foo(core)?,
+            Query::GetBar { x, y } => SomeResponse::bar(core, x, y)?
         })
     }
 }
@@ -175,7 +175,7 @@ Before:
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
 #[serde(deny_unknown_fields)]
-pub enum Response {
+pub enum SomeResponse {
     Foo((String, String)),
     Bar(Uint128)
 }
@@ -183,7 +183,7 @@ pub enum Response {
 
 After:
 ```rust
-#[message] Response {
+#[message] SomeResponse {
     Foo((String, String)),
     Bar(Uint128)
 }
@@ -191,39 +191,46 @@ After:
 
 With optional variant constructors:
 ```rust
-#[message] Response {
-    Foo((String, String)): fn foo (core) {
-        Ok(Self::Foo(("Hello".into(), Self::helper())))
+#[message] SomeResponse {
+    Foo((String, String)) <= fn foo (core, x: Option<String>) {
+        Ok(Self::Foo(("Hello".into(), x.ok_or(Self::helper()))))
     }
-    Bar(Uint128): fn bar (core, x: HumanAddr, y: String) {
+    Bar(Uint128) <= fn bar (core, x: HumanAddr, y: String) {
         Ok(Self::Bar(Uint128::MAX))
     }
     /// a variant is also optional in this position:
-    fn helper () -> String { "I just live here".into() }
+    fn helper () -> String { "World".into() }
 }
 ```
 
 Usage:
 ```rust
-let (hello, world) = Response::foo(core)
+let (hello, world) = SomeResponse::foo(core)
 ```
 
 </td></tr>
 
 <tr><td valign="top">
 
-**Composability Level 2:** Extension to `#[query]` and `#[dispatch]` macros to implement
-dispatch traits on the enums that they generate.
+**Composability Level 2:** Extension to `#[query]` and `#[handle]` macros
+to implement dispatch traits on the enums that they generate.
 
 </td><td>
 
 ```rust
-#[query] Query<Response> {
-    GetFoo: fn get_foo (core) {
-        Ok(Response::foo(core))
+#[query] QuerySomething<SomeResponse> {
+    GetFoo => fn get_foo (core) {
+        const x = core.get("foo")?;
+        Ok(SomeResponse::foo(core, x))
     }
-    GetBar { x: HumanAddr, y: String }: fn get_bar (core, x, y) {
-        Ok(Response::bar(core, x, y))
+    GetBar { x: HumanAddr, y: String } => fn get_bar (core, x, y) {
+        Ok(SomeResponse::bar(core, x, y))
+    }
+}
+#[handle] HandleSomething<SomeResponse> {
+    SetFoo(x: String) => fn set_foo (core, x) {
+        core.set("foo", x)?;
+        Ok(HandleResponse::default())
     }
 }
 ```
