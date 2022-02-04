@@ -291,7 +291,7 @@ by the macro caller.
 #### Proposed macro syntax for `CL1:S1-3`
 
 ```rust
-#[message] LimitOrder {
+#[message] enum LimitOrder {
     Ask(Uint128) <= fn ask (core: &C, price: Option<Uint128>) -> StdResult<Self> {
         Ok(Self::Ask(price.ok_or(core.get("ask")?))
     }
@@ -340,7 +340,7 @@ impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
 #### Proposed macro syntax for `CL2.S1`
 
 ```rust
-#[query] LimitOrderQuery<LimitOrder> {
+#[query] enum LimitOrderQuery<LimitOrder> {
     #[variant]
     fn get_ask (self) {
         const x = self.get("ask")?;
@@ -388,7 +388,7 @@ for LimitOrderQuery where
 #### Proposed macro syntax for `CL2.S2`
 
 ```rust
-#[handle] LimitOrderHandle<LimitOrder> {
+#[handle] enum LimitOrderHandle<LimitOrder> {
     #[variant]
     fn set_ask (self, x: Uint128) {
         self.set("ask", x)?;
@@ -433,8 +433,8 @@ for LimitOrderHandle where
 
 ```rust
 #[feature] trait MyFeature {
-    #[handle] LimitOrderHandle
-    #[query] LimitOrderQuery
+    #[handle] type Handle = LimitOrderHandle;
+    #[query]  type Query  = LimitOrderQuery;
 }
 ```
 
