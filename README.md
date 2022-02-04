@@ -16,12 +16,47 @@ Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
 </div>
 
+<table>
+
+<tr><td>
+
 * **Contract deployment workflow for Secret Network.**
 
   Just import `@hackbg/fadroma` to start scripting deployments and migrations.
   * Implemented in in [@fadroma/ops](./packages/ops), [@fadroma/scrt](./packages/scrt),
     [@fadroma/scrt-1.0](./packages/scrt-1.0), and [@fadroma/scrt-1.2](./packages/scrt-1.2).
   * Open to extension for other blockchains supporting a similar deployment model.
+
+</td><td>
+
+```typescript
+import Fadroma, { Deploy } from '@hackbg/fadroma'
+import MyContract from './MyContract'
+
+const name = 'MyContract1'
+
+Fadroma.command('deploy new',
+  Deploy.new,
+  async ({ chain, agent, deployment }) => {
+    const contract = new MyContract({ name })
+    await chain.buildAndUpload(agent, [contract])
+    await deployment.init(agent, contract, {
+      my_init_message: 'goes_here'
+    })
+    await contract.tx(agent, { my_handle_message: 'goes here' })
+  })
+
+Fadroma.command('deploy status',
+  Deploy.current,
+  async ({ chain, agent, deployment }) => {
+    const contract = deployment.getThe(name, new MyContract({ name }))
+    console.log(await contract.query(agent, 'my_status_query'))
+  })
+```
+
+</td></tr>
+
+</table>
 
 * **Attribute macros for writing smart contracts.**
 
