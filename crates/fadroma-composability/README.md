@@ -18,8 +18,6 @@ Let's try with a query's `Response`.
 
 ### Step 1. Define your struct as normal.
 
-</td><td>
-
 ```rust
 #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
 #[serde(rename_all="snake_case")]
@@ -30,6 +28,8 @@ pub enum SomeResponse {
 }
 ```
 
+</td><td>
+
 </td></tr>
 
 <tr></tr>
@@ -37,17 +37,6 @@ pub enum SomeResponse {
 <tr><td>
 
 ### Step 2. Define an interface trait for your methods.
-
-This intermediate step trait is necessary to define the `S, A, Q`
-generics, necessary to be able to write the type of `Composable<S, A, Q>`.
-
-This is a place where Rust's type system falls slightly short.
-If not for an interface trait, you'd need 3 PhantomData fields
-on every API-aware struct, making it unwieldy to write that
-struct as a literal. As it is, the interface struct can serve
-as a neat little table of contents.
-
-</td><td>
 
 ```rust
 pub trait ISomeResponse<S, A, Q, C>: Sized where
@@ -59,22 +48,24 @@ pub trait ISomeResponse<S, A, Q, C>: Sized where
 }
 ```
 
+</td><td>
+
+This intermediate step trait is necessary to define the `S, A, Q`
+generics, necessary to be able to write the type of `Composable<S, A, Q>`.
+
+This is a place where Rust's type system falls slightly short.
+If not for an interface trait, you'd need 3 PhantomData fields
+on every API-aware struct, making it unwieldy to write that
+struct as a literal. As it is, the interface struct can serve
+as a neat little table of contents.
+
 </td></tr>
 
 <tr></tr>
 
-<td>
+<tr><td>
 
 ### Step 3. Implement your methods.
-
-Congratulations, now this enum is **API-aware**.
-
-This means that its variant constructors can now use the Fadroma Composable `core`.
-
-The enum itself can be used as the most basic building block of
-a reusable contract layer: a representation of a single API message.
-
-</td></tr><tr><td>
 
 ```rust
 impl<S, A, Q, C> ISomeResponse<S, A, Q, C> for SomeResponse where
@@ -89,6 +80,15 @@ impl<S, A, Q, C> ISomeResponse<S, A, Q, C> for SomeResponse where
     }
 }
 ```
+
+</td><td>
+
+Congratulations, now this enum is **API-aware**.
+
+This means that its variant constructors can now use the Fadroma Composable `core`.
+
+The enum itself can be used as the most basic building block of
+a reusable contract layer: a representation of a single API message.
 
 </td></tr>
 
