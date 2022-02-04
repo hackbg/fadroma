@@ -432,9 +432,23 @@ for LimitOrderHandle where
 #### Proposed macro syntax for `CL3`
 
 ```rust
-#[feature] MyFeature {
+#[feature] trait MyFeature {
     #[handle] LimitOrderHandle
-    #[query]  LimitOrderQuery
+    #[query] LimitOrderQuery
+}
+```
+
+or full form, which allows for pre/post processing
+of dispatch results:
+
+```rust
+#[feature] trait MyFeature {
+    #[handle] fn handle (self, env: &Env, msg: LimitOrderHandle) {
+        msg.dispatch(self, env)
+    }
+    #[query] fn query (self, msg: LimitOrderQuery) {
+        msg.dispatch(self)
+    }
 }
 ```
 
@@ -466,8 +480,8 @@ pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
 #### Proposed macro syntax for `CL4`
 
 ```rust
-#[contract] MyContract {
-    #[init] (self, env: Env, msg: InitMsg) {
+#[contract] trait MyContract {
+    #[init] fn init (self, env: Env, msg: InitMsg) {
         Ok(InitResponse::default())
     }
     #[feature] MyFeature
