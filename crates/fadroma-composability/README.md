@@ -231,7 +231,7 @@ for LimitOrderHandle where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn dispatch_handle (self, core: &C) -> StdResult<LimitOrder> {
+    fn dispatch_handle (self, core: &C) -> StdResult<HandleResponse> {
         Ok(match self {
             LimitOrderHandle::SetAsk(x) =>
               HandleResponse::default(),
@@ -251,8 +251,8 @@ for LimitOrderHandle where
 
 ```rust
 pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
-  Composable<S, A, Q>
-  + Sized
+   Composable<S, A, Q>
+   + Sized
 {
     fn init (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
         Ok(InitResponse::default())
@@ -335,20 +335,20 @@ impl<S, A, Q, C> ILimitOrder<S, A, Q, C> for LimitOrder where
 
 </td></tr><tr></tr>
 
-<tr><td>
+<tr><td valign="top">
 
-#### Proposed macro syntax for `CL2.S1L
+#### Proposed macro syntax for `CL2.S1`
 
 ```rust
-#[dispatch] LimitOrderQuery<LimitOrder> {
+#[query] LimitOrderQuery<LimitOrder> {
     #[variant]
-    fn get_ask (core) {
-        const x = core.get("ask")?;
-        Ok(LimitOrder::ask(core, x))
+    fn get_ask (self) {
+        const x = self.get("ask")?;
+        Ok(LimitOrder::ask(self, x))
     }
     #[variant]
-    fn get_bid (core, x: HumanAddr, y: String) {
-        Ok(LimitOrder::bid(core, x, y))
+    fn get_bid (self, x: HumanAddr, y: String) {
+        Ok(LimitOrder::bid(self, x, y))
     }
 }
 ```
@@ -382,14 +382,15 @@ for LimitOrderQuery where
 
 </td></tr><tr></tr>
 
-<tr><td>
+<tr><td> valign="top"
 
 #### Proposed macro syntax for `CL2.S2`
 
 ```rust
 #[handle] LimitOrderHandle<LimitOrder> {
-    SetAsk(x: String) => fn set_ask (core, x) {
-        core.set("ask", x)?;
+    #[variant]
+    fn set_ask (self, x: Uint128) {
+        self.set("ask", x)?;
         Ok(HandleResponse::default())
     }
 }
@@ -411,7 +412,7 @@ for LimitOrderHandle where
     S: Storage, A: Api, Q: Querier,
     C: Composable<S, A, Q>
 {
-    fn dispatch_handle (self, core: &C) -> StdResult<LimitOrder> {
+    fn dispatch_handle (self, core: &C) -> StdResult<HandleResponse> {
         Ok(match self {
             LimitOrderHandle::SetAsk(x) =>
               HandleResponse::default(),
@@ -424,16 +425,57 @@ for LimitOrderHandle where
 
 </td></tr><tr></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 #### Proposed macro syntax for `CL3`
 
-</td><td></td></tr><tr></tr>
+```rust
+#[feature] MyFeature {
+    #[handle] LimitOrderHandle
+    #[query]  LimitOrderQuery
+}
+```
 
+</td><td>
+
+Replaces:
+
+```rust
+pub trait MyFeature<S: Storage, A: Api, Q: Querier>:
+   Composable<S, A, Q>
+   + Sized
+{
+    fn init (&mut self, env: &Env, msg: InitMsg) -> StdResult<InitResponse> {
+        Ok(InitResponse::default())
+    }
+    fn handle (&mut self, env: &Env, msg: LimitOrderHandle) -> StdResult<HandleResponse> {
+        msg.dispatch(self, env)
+    }
+    fn query (&self, msg: LimitOrderQuery) -> StdResult<Binary> {
+        msg.dispatch(self)
+    }
+}
+```
+
+</td></tr>
+<tr></tr>
 <tr><td>
 
 #### Proposed macro syntax for `CL4`
 
-</td><td></td></tr><tr></tr>
+</td>
+
+```rust
+#[contract] MyContract {
+    #[init] (self, env: Env, msg: InitMsg) {
+        Ok(InitResponse::default())
+    }
+    #[feature] MyFeature
+    #[feature] MyOtherFeature
+    // ...
+}
+```
+
+<td></td></tr><tr></tr>
 
 </table>
