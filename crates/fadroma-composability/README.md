@@ -14,9 +14,9 @@ Let's try with a query's `Response`.
 
 <table> <tr><td valign="top">
 
-**Step 1.** Define your struct as normal.
+### Step 1. Define your struct as normal.
 
-</td><td></td>
+</td>
 
 <tr><td>
 
