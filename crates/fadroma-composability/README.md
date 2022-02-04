@@ -123,20 +123,23 @@ are the two **dispatch traits**.
 ### Step 1. Implementing `QueryDispatch<S, A, Q, C, R>`:
 
 ```rust
-#[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
+#[derive(...)]
 #[serde(rename_all="snake_case")]
 pub enum QuerySomething {                                                                   
     GetAsk,                                                          
     GetBid { HumanAddr, String },
 }
-impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder> for QuerySomething where
+impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder>
+for QuerySomething where
     S: Storage, A: Api, Q: Querier,
     C: Contract<S, A, Q>
 {
     fn dispatch (self, core: &C) -> StdResult<LimitOrder> {
         Ok(match self {
-            QuerySomething::GetAsk => LimitOrder::ask(core)?,
-            QuerySomething::GetBid { x, y } => LimitOrder::bid(core, x, y)?
+            QuerySomething::GetAsk =>
+              LimitOrder::ask(core)?,
+            QuerySomething::GetBid { x, y } =>
+              LimitOrder::bid(core, x, y)?
         })
     }
 }
@@ -147,19 +150,21 @@ impl<S, A, Q, C> QueryDispatch<S, A, Q, C, LimitOrder> for QuerySomething where
 ### Step 2. Implementing `HandleDispatch<S, A, Q, C>`:
 
 ```rust
-#[derive(Clone,Debug,PartialEq,serde::Serialize,Deserialize,schemars::JsonSchema)]
+#[derive(...)]
 #[serde(rename_all="snake_case")]
 pub enum HandleSomething {
     SetAsk(String),
 }
 
-impl<S, A, Q, C> HandleDispatch<S, A, Q, C> for Handle where
+impl<S, A, Q, C> HandleDispatch<S, A, Q, C>
+for Handle where
     S: Storage, A: Api, Q: Querier,
     C: Contract<S, A, Q>
 {
     fn dispatch (self, core: &C) -> StdResult<LimitOrder> {
         Ok(match self {
-            HandleSomething::SetAsk(x) => HandleResponse::default()
+            HandleSomething::SetAsk(x) =>
+              HandleResponse::default()
         })
     }
 }
