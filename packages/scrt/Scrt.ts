@@ -206,26 +206,26 @@ export abstract class ScrtAgentJS extends BaseAgent {
   }
 
   async query (contract: Contract, msg: ContractMessage) {
-    const { label, address } = contract
+    const { label, address, codeHash } = contract
     const from   = this.address
     const method = getMethod(msg)
     const N = this.traceCall(
       `${bold(colors.blue('QUERY'.padStart(5)))} ${bold(method.padEnd(20))} on ${bold(contract.name)}[${contract.address}]`,
       //{ msg }
     )
-    const response = await this.API.queryContractSmart(address, msg as any)
+    const response = await this.API.queryContractSmart(address, msg as any, undefined, codeHash)
     this.traceResponse(N, /*{ response }*/)
     return response
   }
   async execute (contract: Contract, msg: ContractMessage, memo: any, amount: any, fee: any) {
-    const { label, address } = contract
+    const { label, address, codeHash } = contract
     const from   = this.address
     const method = getMethod(msg)
     const N = this.traceCall(
       `${bold(colors.yellow('TX'.padStart(5)))} ${bold(method.padEnd(20))} on ${bold(contract.name)}[${contract.address}]`,
       //{ msg, memo, amount, fee }
     )
-    const result = await this.API.execute(address, msg as any, memo, amount, fee)
+    const result = await this.API.execute(address, msg as any, memo, amount, fee, codeHash)
     this.traceResponse(N, /*{ result: result.transactionHash }*/)
     return result
   }
@@ -240,12 +240,13 @@ export abstract class ScrtAgentJS extends BaseAgent {
 
 export class ScrtAgentJSBundled extends Bundled<ScrtAgentJS> {
 
-  async instantiate (contract, msg, init_funds): Promise<any> {
+  async instantiate (contract, msg, init_funds) {
     throw new Error('@fadroma/scrt/Agent: init is not supported in a bundle')
   }
 
-  query (contract, msg): Promise<any> {
-    throw new Error('@fadroma/scrt/Agent: query is not supported in a bundle')
+  query (contract, msg) {
+    console.warn('@fadroma/scrt/Agent: queries in bundles run before all transactions - results may not be up to date')
+    return this.executingAgent.query(contract, msg)
   }
 
   async execute (
@@ -253,7 +254,7 @@ export class ScrtAgentJSBundled extends Bundled<ScrtAgentJS> {
     handleMsg,
     transferAmount = []
   ): Promise<any> {
-    this.add({
+    return this.add({
       contractAddress: address,
       contractCodeHash: codeHash,
       handleMsg,

@@ -100,6 +100,10 @@ export abstract class Bundled<A extends Agent> {
 
   constructor (readonly executingAgent: A) {}
 
+  get address () {
+    return this.executingAgent.address
+  }
+
   async populate (cb) {
     return await cb(this)
   }
