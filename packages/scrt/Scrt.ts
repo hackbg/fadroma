@@ -191,7 +191,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
   async instantiate (contract: Contract, initMsg: any) {
     const from = this.address
     const { codeId, label } = contract
-    this.traceCall(`${bold('INIT')} ${codeId} ${label}`)
+    this.traceCall(`${bold('INIT')}  ${codeId} ${label}`)
     const initTx = await this.API.instantiate(codeId, initMsg, label)
     Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
     return initTx
@@ -210,7 +210,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
     const from   = this.address
     const method = getMethod(msg)
     const N = this.traceCall(
-      `${bold(colors.blue('QUERY'.padStart(5)))} ${bold(method.padEnd(20))} on ${bold(contract.name)}[${contract.address}]`,
+      `${bold(colors.blue('QUERY'.padStart(5)))} ${bold(method.padEnd(20))} on ${contract.address} ${bold(contract.name||'???')}`,
       //{ msg }
     )
     const response = await this.API.queryContractSmart(address, msg as any, undefined, codeHash)
@@ -222,7 +222,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
     const from   = this.address
     const method = getMethod(msg)
     const N = this.traceCall(
-      `${bold(colors.yellow('TX'.padStart(5)))} ${bold(method.padEnd(20))} on ${bold(contract.name)}[${contract.address}]`,
+      `${bold(colors.yellow('TX'.padStart(5)))} ${bold(method.padEnd(20))} on ${contract.address} ${bold(contract.name||'???')}`,
       //{ msg, memo, amount, fee }
     )
     const result = await this.API.execute(address, msg as any, memo, amount, fee, codeHash)
