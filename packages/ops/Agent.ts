@@ -3,7 +3,10 @@ import type { Identity, ContractMessage } from './Core'
 import type { Chain } from './Chain'
 import type { Contract } from './Contract'
 import type { Gas } from './Core'
-import { taskmaster, resolve, readFileSync, Console, bold, JSONDirectory } from '@hackbg/tools'
+import {
+  Console, bold, colors,
+  resolve, readFileSync, JSONDirectory
+} from '@hackbg/tools'
 import { toBase64 } from '@iov/encoding'
 
 const console = Console('@fadroma/ops/Agent')
@@ -29,12 +32,14 @@ export interface Agent extends Identity {
   instantiate (contract: Contract, initMsg: ContractMessage, funds?: any[]): Promise<any>
   query       (contract: Contract, message: ContractMessage): Promise<any>
   execute     (contract: Contract, message: ContractMessage, funds?: any[], memo?: any, fee?: any): Promise<any>
+  bundle      (cb: Bundle<typeof this>): Promise<void>
 
   getCodeHash (idOrAddr: number|string): Promise<string>
   getCodeId   (address: string): Promise<number>
   getLabel    (address: string): Promise<string>
 
-  bundle (cb: Bundle<typeof this>): Promise<void>
+  traceCall     (callType: string, info?: any): number
+  traceResponse (N: number, info?: any)
 }
 
 export abstract class BaseAgent implements Agent {
@@ -62,6 +67,7 @@ export abstract class BaseAgent implements Agent {
   abstract instantiate (contract: Contract, msg: any, funds: any[]): Promise<any>
   abstract query       (contract: Contract, msg: any): Promise<any>
   abstract execute     (contract: Contract, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
+  abstract bundle      (cb: Bundle<typeof this>): Promise<any>
 
   abstract getCodeHash (idOrAddr: number|string): Promise<string>
   abstract getCodeId   (address: string): Promise<number>
@@ -71,7 +77,7 @@ export abstract class BaseAgent implements Agent {
 
   // TODO combine with backoff
   private callCounter = 0
-  protected traceCall (callType = '???', info?) {
+  traceCall (callType = '???', info?) {
     const N = ++this.callCounter
     if (process.env.FADROMA_PRINT_TXS) {
       //console.info()
@@ -85,7 +91,7 @@ export abstract class BaseAgent implements Agent {
     }
     return N
   }
-  protected traceResponse (N, info?) {
+  traceResponse (N, info?) {
     if (process.env.FADROMA_PRINT_TXS) {
       //console.info()
       //console.info(`${bold(`${this.name}: result of call #${N}`)}:`)
@@ -108,21 +114,19 @@ export abstract class Bundled<A extends Agent> {
     return await cb(this)
   }
 
+  abstract run (): Promise<any>
+
   protected id                       = 0
   protected msgs:     any[]          = []
   protected promises: Promise<any>[] = []
   add (msg: any, promise: Promise<any>) {
-    console.info(bold('Adding to bundle:'), msg.type)
+    console.info(
+      bold('Adding to bundle:'), msg.contractAddress, JSON.stringify(msg.handleMsg).slice(0, 20)
+    )
     const id = this.id++
     this.msgs[id] = msg
     this.promises[id] = promise
   }
-
-  abstract instantiate (
-    { codeId, codeHash, label }: Contract,
-    message:                     ContractMessage,
-    init_funds?:                 any[]
-  ): Promise<any>
 
   abstract execute (
     { address, codeHash }: Contract,
@@ -130,11 +134,14 @@ export abstract class Bundled<A extends Agent> {
     sent_funds?:           any[]
   ): Promise<any>
 
-  query (contract: Contract, msg: any): Promise<any> {
-    throw new Error('@fadroma/ops/Agent: queries are not supported in transaction bundles')
+  async instantiate (contract, msg, init_funds) {
+    throw new Error('@fadroma/scrt/Agent: init is not supported in a bundle')
   }
 
-  abstract run (): Promise<any>
+  query (contract, msg) {
+    console.warn('@fadroma/scrt/Agent: queries in bundles run before all transactions - results may not be up to date')
+    return this.executingAgent.query(contract, msg)
+  }
 
 }
 

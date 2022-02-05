@@ -230,7 +230,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
     return result
   }
 
-  async bundle (cb: Bundle<typeof this>): Promise<void> {
+  async bundle (cb: Bundle<typeof this>): Promise<any> {
     const bundle = new ScrtAgentJSBundled(this)
     await bundle.populate(cb)
     return bundle.run()
@@ -239,15 +239,6 @@ export abstract class ScrtAgentJS extends BaseAgent {
 }
 
 export class ScrtAgentJSBundled extends Bundled<ScrtAgentJS> {
-
-  async instantiate (contract, msg, init_funds) {
-    throw new Error('@fadroma/scrt/Agent: init is not supported in a bundle')
-  }
-
-  query (contract, msg) {
-    console.warn('@fadroma/scrt/Agent: queries in bundles run before all transactions - results may not be up to date')
-    return this.executingAgent.query(contract, msg)
-  }
 
   async execute (
     { address, codeHash }: Contract,
@@ -263,12 +254,15 @@ export class ScrtAgentJSBundled extends Bundled<ScrtAgentJS> {
   }
 
   async run () {
-    console.info(bold('Running bundle:'), this.msgs.length, 'messages')
+    const N = this.executingAgent.traceCall(
+      `${bold(colors.yellow('MULTI'.padStart(5)))} ${this.msgs.length} messages`,
+    )
     const result = await this.executingAgent.API.multiExecute(this.msgs, "", {
       gas:    String(this.msgs.length*1000000),
       amount: [ { denom: 'uscrt', amount: String(this.msgs.length*1000000) } ]
     })
-    console.log(bold('Result of bundle:'), result)
+    this.executingAgent.traceResponse(N)
+    return result
   }
 
 }
