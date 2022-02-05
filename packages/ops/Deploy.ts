@@ -275,14 +275,14 @@ function printReceipt (name, receipt) {
   if (receipt.address) {
     console.info(
       `${receipt.address}`.padStart(45),
+      String(receipt.codeId||'n/a').padStart(6),
       bold(name.padEnd(35)),
-      String(receipt.codeId||'n/a').padEnd(6),
     )
   } else {
     console.warn(
       '(non-standard receipt)'.padStart(45),
-      bold(name.padEnd(35)),
       'n/a'.padEnd(6),
+      bold(name.padEnd(35)),
     )
   }
 }
