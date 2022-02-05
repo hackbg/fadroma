@@ -30,8 +30,8 @@ export interface Agent extends Identity {
 
   upload      (path: string): Promise<any>
   instantiate (contract: Contract, initMsg: ContractMessage, funds?: any[]): Promise<any>
-  query       (contract: Contract, message: ContractMessage): Promise<any>
-  execute     (contract: Contract, message: ContractMessage, funds?: any[], memo?: any, fee?: any): Promise<any>
+  query       (contract: { address: string, codeHash: string }, message: ContractMessage): Promise<any>
+  execute     (contract: { address: string, codeHash: string }, message: ContractMessage, funds?: any[], memo?: any, fee?: any): Promise<any>
   bundle      (cb: Bundle<typeof this>): Promise<void>
 
   getCodeHash (idOrAddr: number|string): Promise<string>
@@ -59,14 +59,14 @@ export abstract class BaseAgent implements Agent {
   abstract get account   (): Promise<any>
   abstract get balance   (): Promise<any>
 
-  abstract getBalance  (denomination: string): Promise<any>
-  abstract send        (recipient: any, amount: string|number,
-                        denom?: any, memo?: any, fee?: any): Promise<any>
-  abstract sendMany    (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
+  abstract getBalance (denomination: string): Promise<any>
+  abstract send       (to: any, amount: string|number, denom?: any, memo?: any, fee?: any): Promise<any>
+  abstract sendMany   (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
+
   abstract upload      (path: string): Promise<any>
   abstract instantiate (contract: Contract, msg: any, funds: any[]): Promise<any>
-  abstract query       (contract: Contract, msg: any): Promise<any>
-  abstract execute     (contract: Contract, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
+  abstract query       (contract: { address: string, codeHash: string }, msg: any): Promise<any>
+  abstract execute     (contract: { address: string, codeHash: string }, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
   abstract bundle      (cb: Bundle<typeof this>): Promise<any>
 
   abstract getCodeHash (idOrAddr: number|string): Promise<string>
@@ -120,19 +120,13 @@ export abstract class Bundled<A extends Agent> {
   protected msgs:     any[]          = []
   protected promises: Promise<any>[] = []
   add (msg: any, promise: Promise<any>) {
-    console.info(
-      bold('Adding to bundle:'), msg.contractAddress, JSON.stringify(msg.handleMsg).slice(0, 20)
-    )
     const id = this.id++
     this.msgs[id] = msg
     this.promises[id] = promise
   }
 
-  abstract execute (
-    { address, codeHash }: Contract,
-    message:               ContractMessage,
-    sent_funds?:           any[]
-  ): Promise<any>
+  abstract execute ({ address, codeHash }, message: ContractMessage, sent_funds?: any[]):
+    Promise<any>
 
   async instantiate (contract, msg, init_funds) {
     throw new Error('@fadroma/scrt/Agent: init is not supported in a bundle')

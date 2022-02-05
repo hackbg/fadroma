@@ -116,7 +116,6 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
   }
 
   static create = (options: Identity): Promise<Agent> => {
-    console.log(ScrtAgentJS.createSub)
     return ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
   }
 

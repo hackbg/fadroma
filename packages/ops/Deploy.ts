@@ -244,7 +244,6 @@ export class Deployment {
       output += '---\n'
       output += alignYAML(YAML.dump({ name, ...data }, { noRefs: true }))
     }
-    console.info(bold('Updating deployment'), relative(cwd(), this.path))
     writeFileSync(this.path, output)
   }
   getAll <C extends Contract> (fragment: string, getContract: (string)=>C): C[] {

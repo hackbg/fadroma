@@ -459,7 +459,7 @@ export abstract class ScrtAgentTX extends BaseAgent {
     return tx
   }
   async instantiate (
-    { codeId, codeHash, label }: Contract,
+    { codeId, codeHash, label },
     message,
     init_funds = []
   ): Promise<UnsignedTX> {
@@ -477,7 +477,7 @@ export abstract class ScrtAgentTX extends BaseAgent {
     throw new Error('ScrtAgentTX.query: not implemented')
   }
   async execute (
-    { address, codeHash }: Contract,
+    { address, codeHash },
     message: ContractMessage,
     sent_funds = []
   ): Promise<UnsignedTX> {
