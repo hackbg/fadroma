@@ -97,13 +97,13 @@ export class Deployment {
     name:     string = contract.name,
     initMsg:  T      = contract.initMsg
   ) {
-    console.warn('getOrInit: deprecated')
+    console.warn('@fadroma/ops/Deploy: getOrInit: deprecated')
     const receipt = this.receipts[name]
     if (receipt) {
       contract.agent = agent
       return this.getThe(name, contract)
     } else {
-      await this.init(agent).instantiate(contract, initMsg)
+      await this.instantiate(agent, [contract, initMsg])
     }
     return contract
   }

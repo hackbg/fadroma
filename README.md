@@ -31,11 +31,12 @@ Implemented in: [`@fadroma/ops`](./packages/ops) [`@fadroma/scrt`](./packages/sc
 Just import `@hackbg/fadroma` to start scripting deployments and migrations.
 
 * The `Contract` and `Client` classes represent smart contracts
-  and allow you to write scripts for reproducibly building them.
+  and allow you to write scripts that compile them, deploy them,
+  and interact with them.
 * The `Deployment` and `Migration` system helps you keep track
   of groups of connected contracts that work together.
-* `Bundle` mode allows you to run multiple transactions
-  simultaneously - including contract instantiations.
+* The `Agent`'s `Bundle` mode allows you to run multiple
+  transactions simultaneously - including contract instantiations.
 * Configuration file allows custom commands to be defined
   from reusable "deploy step" functions.
 * Modular architecture, open to extension for other
