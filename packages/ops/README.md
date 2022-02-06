@@ -54,7 +54,8 @@ class SimpleClient extends Client {
 new SimpleClient(agent, address, codeHash).setSomething("foo")
 ```
 
-`PROTIP` Use this pattern to support different contract API versions:
+![](https://img.shields.io/badge/-protip-blueviolet?style=for-the-badge)
+Use this pattern to support different contract API versions:
 
 ```typescript
 abstract class VersionedClient extends Client {
@@ -107,7 +108,8 @@ class SimpleContract extends Contract<SimpleClient> {
 new SimpleContract().client(agent).setSomething("foo")
 ```
 
-`PROTIP` Use this pattern to support different versioned clients:
+![](https://img.shields.io/badge/-protip-blueviolet?style=for-the-badge)
+Use this pattern to return the appropriate versioned `Client`:
 
 ```typescript
 abstract class VersionedContract extends Contract<VersionedClient> {
