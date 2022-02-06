@@ -22,13 +22,24 @@ Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
 <tr><td valign="top">
 
-## Fadroma Ops [`@fadroma/ops`](./packages/ops) [`@fadroma/scrt`](./packages/scrt) [`@fadroma/scrt-1.0`](./packages/scrt-1.0) [`@fadroma/scrt-1.2`](./packages/scrt-1.2).
+## Fadroma Ops
 
 **Contract deployment workflow for Secret Network.**
 
+Implemented in: [`@fadroma/ops`](./packages/ops) [`@fadroma/scrt`](./packages/scrt) [`@fadroma/scrt-1.0`](./packages/scrt-1.0) [`@fadroma/scrt-1.2`](./packages/scrt-1.2).
+
 Just import `@hackbg/fadroma` to start scripting deployments and migrations.
 
-* Open to extension for other blockchains supporting a similar deployment model.
+* The `Contract` and `Client` classes represent smart contracts
+  and allow you to write scripts for reproducibly building them.
+* The `Deployment` and `Migration` system helps you keep track
+  of groups of connected contracts that work together.
+* `Bundle` mode allows you to run multiple transactions
+  simultaneously - including contract instantiations.
+* Configuration file allows custom commands to be defined
+  from reusable "deploy step" functions.
+* Modular architecture, open to extension for other
+  Cosmos-based blockchains.
 
 </td><td>
 
