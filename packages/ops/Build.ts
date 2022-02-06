@@ -1,77 +1,32 @@
-import {
-  rimraf, Docker, spawnSync, resolve, relative, existsSync, ensureDockerImage,
-  Console, bold, tmp
-} from '@hackbg/tools'
+import { Console, bold } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Build')
 
-export type BuildEnv = {
-  buildImage?:      string
-  buildDockerfile?: string
-  buildScript?:     string
+import {
+  resolve, relative,
+  rimraf, spawnSync, existsSync,
+  Docker, ensureDockerImage, 
+} from '@hackbg/tools'
+
+import { Source, Builder, Artifact } from './Core'
+
+export abstract class BaseBuilder implements Builder {
+  abstract build (source: Source): Promise<Artifact>
 }
 
-export type BuildInputs = {
-  workspace?: string
-  crate?:     string
-  repo?:      string
-  ref?:       string
+export abstract class RawBuilder extends BaseBuilder {
+  build = buildRaw
 }
 
-export type BuildOutputs = {
-  artifact?: string
-  codeHash?: string
+export abstract class DockerBuilder extends BaseBuilder {
+  abstract buildImage:      string
+  abstract buildDockerfile: string
+  abstract buildScript:     string
+  build = buildInDocker
 }
 
-export type BuildInfo = BuildEnv & BuildInputs & BuildOutputs
-
-export interface Buildable extends BuildInfo {
-  build (options?: { socketPath }): Promise<string>
-}
-
-export type BuildMode = 'raw'|'docker'
-
-export class Builder implements Buildable {
-
-  #contract: Buildable
-  constructor (contract: Buildable) {
-    this.#contract = contract
-  }
-
-  get buildImage      () { return this.#contract.buildImage      }
-  get buildDockerfile () { return this.#contract.buildDockerfile }
-  get buildScript     () { return this.#contract.buildScript     }
-
-  get repo      () { return this.#contract.repo      }
-  get ref       () { return this.#contract.ref       }
-  get workspace () { return this.#contract.workspace }
-  get crate     () { return this.#contract.crate     }
-  get artifact  () { return this.#contract.artifact  }
-  get codeHash  () { return this.#contract.codeHash  }
-
-  mode: BuildMode = 'docker'
-
-  async build ({ socketPath = '/var/run/docker.sock' } = {}) {
-    if (this.mode === 'docker') {
-      this.#contract.artifact = await buildInDocker(new Docker({ socketPath }), this.#contract)
-    } else if (this.mode === 'raw') {
-      this.#contract.artifact = await buildRaw(this)
-    } else {
-      throw new Error
-    }
-    return this.artifact
-  }
-
-}
-
-/** Build the contract outside Docker.
-  * Assume a standard toolchain is present in the buildScript's environment. */
-async function buildRaw ({
-  ref,
-  workspace,
-  crate,
-  artifact
-}: Buildable): Promise<string> {
+export async function buildRaw (source: Source, context = this): Promise<Artifact> {
+  const { ref = 'HEAD', workspace, crate } = source
   if (ref && ref !== 'HEAD') {
     throw new Error('[@fadroma/ops/Contract] non-HEAD builds unsupported outside Docker')
   }
@@ -92,28 +47,29 @@ async function buildRaw ({
       '-o', '/output/$FinalOutput')
   run('sh', '-c',
       "sha256sum -b $FinalOutput > $FinalOutput.sha256")
-  return artifact
+  return location
 }
 
-/** Build the contract in the default dockerized build environment for its chain.
-  * Need access to Docker daemon. */
-export async function buildInDocker (docker: Docker, {
-  buildImage, buildDockerfile, buildScript,
-  workspace, crate, ref = 'HEAD',
-}: Buildable): Promise<string> {
+export async function buildInDocker (source: Source, context = this): Promise<Artifact> {
+  const { workspace, crate, ref = 'HEAD' } = source
   if (!workspace) {
     throw new Error(`[@fadroma/ops] Missing workspace path (crate ${crate} at ${ref})`)
   }
+
+  const { buildImage, buildDockerfile, buildScript } = context
+
+  const outputDir = resolve(workspace, 'artifacts')
+  const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
+  if (existsSync(location)) {
+    //console.info(bold(`Exists:`), relative(process.cwd(), location))
+    return { location }
+  }
+
   const run = (cmd: string, ...args: string[]) =>
     spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit' })
   let tmpDir
   try {
-    const outputDir = resolve(workspace, 'artifacts')
-    const artifact  = resolve(outputDir, `${crate}@${ref}.wasm`)
-    if (existsSync(artifact)) {
-      //console.info(bold(`Exists:`), relative(process.cwd(), artifact))
-      return artifact
-    }
+
     if (!ref || ref === 'HEAD') {
       // Build working tree
       console.info(
@@ -186,7 +142,7 @@ export async function buildInDocker (docker: Docker, {
       console.error(bold('Build of'), crate, 'exited with', bold(code))
       throw new Error(`[@fadroma/ops/Build] Build of ${crate} exited with status ${code}`)
     }
-    return artifact
+    return { location }
   } finally {
     if (tmpDir) rimraf(tmpDir.name)
   }

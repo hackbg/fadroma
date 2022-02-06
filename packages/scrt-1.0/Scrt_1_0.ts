@@ -1,73 +1,43 @@
 export * from '@fadroma/scrt'
 
-import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
-import { URL } from 'url'
-import {
-  Console,
-  Scrt, ChainConnectOptions,
-  DockerizedScrtNode, ChainNodeOptions,
-  Identity, Agent, ScrtAgentJS, ScrtAgentTX,
-  BaseContract, AugmentedScrtContract,
-  buildScript, resolve, dirname, fileURLToPath, TextFile,
-} from '@fadroma/scrt'
+import { Console, bold } from '@fadroma/ops'
 
 const console = Console('@fadroma/scrt-1.0')
 
-const {
-  SCRT_API_URL,
-  SCRT_AGENT_NAME,
-  SCRT_AGENT_ADDRESS,
-  SCRT_AGENT_MNEMONIC,
-  DATAHUB_KEY,
-  FADROMA_MULTISIG
-} = process.env
+import { dirname, fileURLToPath } from '@fadroma/scrt'
+export const __dirname = dirname(fileURLToPath(import.meta.url))
 
+import { ScrtDockerBuilder, resolve } from '@fadroma/scrt'
+export const buildImage      = 'hackbg/fadroma-scrt-builder:1.0'
+export const buildDockerfile = resolve(__dirname, 'Scrt_1_0_Build.Dockerfile')
+export class ScrtDockerBuilder_1_0 extends ScrtDockerBuilder {
+  buildImage      = buildImage
+  buildDockerfile = buildDockerfile
+}
+
+import { ScrtContract } from '@fadroma/scrt'
+export abstract class ScrtContract_1_0 extends ScrtContract {
+  Builder = ScrtDockerBuilder_1_0
+}
+
+import { Scrt, ScrtAgentTX } from '@fadroma/scrt'
+const { FADROMA_PREPARE_MULTISIG } = process.env
 export class Scrt_1_0 extends Scrt {
-  Agent = FADROMA_MULTISIG ? ScrtAgentTX : ScrtAgentJS_1_0
+  Agent = FADROMA_PREPARE_MULTISIG ? ScrtAgentTX : ScrtAgentJS_1_0
 }
 
-export class Scrt_1_0_Localnet extends Scrt_1_0 {
-  id         = 'fadroma-scrt-10'
-  isLocalnet = true
-  node       = new DockerizedScrtNode_1_0()
-  apiURL     = new URL('http://localhost:1337')
-  defaultIdentity = 'ADMIN'
-  constructor () {
-    super()
-    this.setNode()
-    this.setDirs()
+import { Identity, Agent, ScrtAgentJS } from '@fadroma/scrt'
+export class ScrtAgentJS_1_0 extends ScrtAgentJS {
+  constructor (options: Identity) {
+    super({ API: PatchedSigningCosmWasmClient_1_0, ...options })
+  }
+  static create (options: Identity): Promise<Agent> {
+    return ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
   }
 }
 
-export class DockerizedScrtNode_1_0 extends DockerizedScrtNode {
-  readonly chainId: string = 'fadroma-scrt-10'
-  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.0.4-5"
-  readonly readyPhrase     = 'GENESIS COMPLETE'
-  readonly initScript      = new TextFile(__dirname, 'Scrt_1_0_Init.sh')
-  constructor (options: ChainNodeOptions = {}) {
-    super()
-    if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
-    if (options.identities) this.identitiesToCreate = options.identities
-    this.setDirectories(options.stateRoot)
-  }
-}
-
-export class Scrt_1_0_Testnet extends Scrt_1_0 {
-  id         = 'holodeck-2'
-  isTestnet  = true
-  apiURL     = new URL(SCRT_API_URL||'http://96.44.145.210/')
-  defaultIdentity = {
-    name:     SCRT_AGENT_NAME,
-    address:  SCRT_AGENT_ADDRESS,
-    mnemonic: SCRT_AGENT_MNEMONIC
-  }
-  constructor () {
-    super()
-    this.setDirs()
-  }
-}
-
+const { SCRT_API_URL, SCRT_AGENT_NAME, SCRT_AGENT_ADDRESS, SCRT_AGENT_MNEMONIC, DATAHUB_KEY } = process.env
+import { URL } from 'url'
 export class Scrt_1_0_Mainnet extends Scrt_1_0 {
   id         = 'secret-2'
   isMainnet  = true
@@ -82,48 +52,63 @@ export class Scrt_1_0_Mainnet extends Scrt_1_0 {
     this.setDirs()
   }
 }
-
-export const Chains = {
-  /** Create an instance that runs a node in a local Docker container
-   *  and talks to it via SecretJS */
-  'localnet-1.0': () => new Scrt_1_0_Localnet(),
-  /** Create an instance that talks to holodeck-2 testnet via SecretJS */
-  'holodeck-2':   () => new Scrt_1_0_Testnet(),
-  /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-  'secret-2':     () => new Scrt_1_0_Mainnet(),
-}
-
-export const __dirname       = dirname(fileURLToPath(import.meta.url))
-export const buildImage      = 'hackbg/fadroma-scrt-builder:1.0'
-export const buildDockerfile = resolve(__dirname, 'Scrt_1_0_Build.Dockerfile')
-
-export class ScrtContract_1_0 extends BaseContract {
-  buildImage      = buildImage
-  buildDockerfile = buildDockerfile
-  buildScript     = buildScript
-}
-
-export class AugmentedScrtContract_1_0<T, Q> extends AugmentedScrtContract<T, Q> {
-  buildImage      = buildImage
-  buildDockerfile = buildDockerfile
-  buildScript     = buildScript
-}
-
-export class ScrtAgentJS_1_0 extends ScrtAgentJS {
-  constructor (options: Identity) {
-    super({ API: PatchedSigningCosmWasmClient_1_0, ...options })
+export class Scrt_1_0_Testnet extends Scrt_1_0 {
+  id         = 'holodeck-2'
+  isTestnet  = true
+  apiURL     = new URL(SCRT_API_URL||'http://96.44.145.210/')
+  defaultIdentity = {
+    name:     SCRT_AGENT_NAME,
+    address:  SCRT_AGENT_ADDRESS,
+    mnemonic: SCRT_AGENT_MNEMONIC
   }
-  static create = (options: Identity): Promise<Agent> =>
-    ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
+  constructor () {
+    super()
+    this.setDirs()
+  }
 }
-
+export class Scrt_1_0_Localnet extends Scrt_1_0 {
+  id         = 'fadroma-scrt-10'
+  isLocalnet = true
+  node       = new DockerScrtNode_1_0()
+  apiURL     = new URL('http://localhost:1337')
+  defaultIdentity = 'ADMIN'
+  constructor () {
+    super()
+    this.setNode()
+    this.setDirs()
+  }
+}
+import { DockerScrtNode, ChainNodeOptions, TextFile } from '@fadroma/scrt'
+export class DockerScrtNode_1_0 extends DockerScrtNode {
+  readonly chainId: string = 'fadroma-scrt-10'
+  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.0.4-5"
+  readonly readyPhrase     = 'GENESIS COMPLETE'
+  readonly initScript      = new TextFile(__dirname, 'Scrt_1_0_Init.sh')
+  constructor (options: ChainNodeOptions = {}) {
+    super()
+    if (options.image) this.image = options.image
+    if (options.chainId) this.chainId = options.chainId
+    if (options.identities) this.identitiesToCreate = options.identities
+    this.setDirectories(options.stateRoot)
+  }
+}
 export default {
-  Node:     DockerizedScrtNode_1_0,
   Agent:    ScrtAgentJS_1_0,
-  Contract: AugmentedScrtContract_1_0,
-  Chains
+  Builder:  ScrtDockerBuilder_1_0,
+  Contract: ScrtContract_1_0,
+  Chains: {
+    /** Create an instance that runs a node in a local Docker container
+     *  and talks to it via SecretJS */
+    'localnet-1.0': () => new Scrt_1_0_Localnet(),
+    /** Create an instance that talks to holodeck-2 testnet via SecretJS */
+    'holodeck-2':   () => new Scrt_1_0_Testnet(),
+    /** Create an instance that talks to to the Secret Network mainnet via secretcli */
+    'secret-2':     () => new Scrt_1_0_Mainnet(),
+  },
+  Node: DockerScrtNode_1_0,
 }
 
+import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
 export class PatchedSigningCosmWasmClient_1_0 extends SigningCosmWasmClient {
   async postTx (tx: any): Promise<any> {
     // only override for non-default broadcast modes

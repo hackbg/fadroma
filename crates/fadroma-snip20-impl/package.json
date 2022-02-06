@@ -1,13 +1,14 @@
 {
-  "name": "@fadroma/snip20",
+  "name":    "@fadroma/snip20",
   "version": "0.1.0",
-  "type": "module",
-  "main": "./SNIP20Contract.ts",
+  "type":    "module",
+  "main":    "./Snip20Contract.ts",
+  "browser": "./Snip20Client.ts",
   "dependencies": {
-    "@fadroma/scrt": "workspace:*",
+    "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.0": "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
-    "@hackbg/tools": "^1"
+    "@hackbg/tools":     "^1"
   }
 }
 

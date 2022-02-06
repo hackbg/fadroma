@@ -159,6 +159,8 @@ export abstract class BaseChainNode implements ChainNode {
   abstract kill    (): Promise<void>
   abstract erase   (): Promise<void>
   abstract save    (): this
+
+  static resetLocalnet = ({ chain }) => chain.node.terminate()
 }
 
 
@@ -167,7 +169,7 @@ export abstract class BaseChainNode implements ChainNode {
 
 /** Run a pausable localnet in a Docker container and manage its lifecycle.
  *  State is stored as a pile of files in a directory. */
-export abstract class DockerizedChainNode extends BaseChainNode {
+export abstract class DockerChainNode extends BaseChainNode {
 
   /** This should point to the standard production docker image for the network. */
   abstract readonly image: string

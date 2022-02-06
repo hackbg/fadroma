@@ -51,7 +51,7 @@ export interface Chain extends ChainOptions {
   getAgent        (options?: Identity): Promise<Agent>
   getContract <T> (api: new()=>T, address: string, agent: Agent): T
   printIdentities (): void
-  buildAndUpload  (uploader: Agent, contracts: Contract[]): Promise<Contract[]>
+  buildAndUpload  (uploader: Agent, contracts: Contract<any>[]): Promise<void>
 }
 
 export async function initChainAndAgent (
@@ -103,6 +103,8 @@ const overrideDefaults = (obj, defaults, options = {}) => {
     obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
   }
 }
+
+import { Source } from './Core'
 
 /** Represents an interface to a particular Cosmos blockchain.
   * Used to construct `Agent`s and `Contract`s that are
@@ -265,16 +267,14 @@ export abstract class BaseChain implements Chain {
     })
   }
 
-  async buildAndUpload (
-    uploader:  Agent = this.defaultIdentity as Agent,
-    contracts: Contract[]
-  ) {
+  abstract buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<void> /*{
+    const
+    const artifacts = await Promise.all
     await Promise.all(contracts.map(contract=>contract.build()))
     for (const contract of contracts) {
       const chain = this
       await contract.upload(chain, uploader)
     }
-    return contracts
-  }
+  }*/
 
 }

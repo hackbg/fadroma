@@ -1,18 +1,17 @@
-import assert from 'assert'
-import type { Identity, ContractMessage } from './Core'
-import type { Chain } from './Chain'
-import type { Contract } from './Contract'
-import type { Gas } from './Core'
-import {
-  Console, bold, colors,
-  resolve, readFileSync, JSONDirectory
-} from '@hackbg/tools'
-import { toBase64 } from '@iov/encoding'
+import { Console, bold, colors } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Agent')
 
+import type { Contract } from './Contract'
+import type { Gas } from './Core'
+import { resolve, readFileSync, JSONDirectory } from '@hackbg/tools'
+import { toBase64 } from '@iov/encoding'
+
 export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
 
+import type { Identity, ContractMessage } from './Core'
+import type { Chain } from './Chain'
+import type { Bundle } from './Bundle'
 export interface Agent extends Identity {
   readonly chain:   Chain
   readonly address: string
@@ -32,7 +31,7 @@ export interface Agent extends Identity {
   instantiate (contract: Contract, initMsg: ContractMessage, funds?: any[]): Promise<any>
   query       (contract: { address: string, codeHash: string }, message: ContractMessage): Promise<any>
   execute     (contract: { address: string, codeHash: string }, message: ContractMessage, funds?: any[], memo?: any, fee?: any): Promise<any>
-  bundle      (cb: Bundle<typeof this>): Promise<void>
+  bundle      (): Bundle<this>
 
   getCodeHash (idOrAddr: number|string): Promise<string>
   getCodeId   (address: string): Promise<number>
@@ -67,7 +66,7 @@ export abstract class BaseAgent implements Agent {
   abstract instantiate (contract: Contract, msg: any, funds: any[]): Promise<any>
   abstract query       (contract: { address: string, codeHash: string }, msg: any): Promise<any>
   abstract execute     (contract: { address: string, codeHash: string }, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
-  abstract bundle      (cb: Bundle<typeof this>): Promise<any>
+  abstract bundle      (): Bundle<this>
 
   abstract getCodeHash (idOrAddr: number|string): Promise<string>
   abstract getCodeId   (address: string): Promise<number>
@@ -98,45 +97,6 @@ export abstract class BaseAgent implements Agent {
       if (info) console.info(JSON.stringify(info))
     }
   }
-}
-
-export type Bundle<A> = (Bundled)=>Promise<any>
-
-export abstract class Bundled<A extends Agent> {
-
-  constructor (readonly executingAgent: A) {}
-
-  get address () {
-    return this.executingAgent.address
-  }
-
-  async populate (cb) {
-    return await cb(this)
-  }
-
-  abstract run (): Promise<any>
-
-  protected id                       = 0
-  protected msgs:     any[]          = []
-  protected promises: Promise<any>[] = []
-  add (msg: any, promise: Promise<any>) {
-    const id = this.id++
-    this.msgs[id] = msg
-    this.promises[id] = promise
-  }
-
-  abstract execute ({ address, codeHash }, message: ContractMessage, sent_funds?: any[]):
-    Promise<any>
-
-  async instantiate (contract, msg, init_funds) {
-    throw new Error('@fadroma/scrt/Agent: init is not supported in a bundle')
-  }
-
-  query (contract, msg) {
-    console.warn('@fadroma/scrt/Agent: queries in bundles run before all transactions - results may not be up to date')
-    return this.executingAgent.query(contract, msg)
-  }
-
 }
 
 export async function waitUntilNextBlock (

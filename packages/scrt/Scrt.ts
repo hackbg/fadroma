@@ -1,43 +1,72 @@
 export * from '@fadroma/ops'
 
-import {
-  Console, colors, bold,
-  BaseAgent, Agent, Identity, AgentConstructor, Bundle, Bundled,
-  BaseChain, ChainNode,
-  DockerizedChainNode, ChainNodeOptions,
-  BaseContract, Contract, ContractMessage,
-  AugmentedContract, TransactionExecutor, QueryExecutor,
-  Fees, BaseGas,
-  waitUntilNextBlock, 
-  Path, Directory, TextFile, JSONFile, JSONDirectory,
-  readFile, execFile, spawn,
-  dirname, fileURLToPath,
-  toBase64
-} from '@fadroma/ops'
-
+import { Console, colors, bold } from '@fadroma/ops'
 const console = Console('@fadroma/scrt')
 
-import { Bip39 } from '@cosmjs/crypto'
-import {
-  EnigmaUtils, Secp256k1Pen, SigningCosmWasmClient,
-  encodeSecp256k1Pubkey, pubkeyToAddress,
-  makeSignBytes, BroadcastMode
-} from 'secretjs'
-import type { MsgInstantiateContract, MsgExecuteContract } from 'secretjs/src/types'
-
+import { SigningCosmWasmClient } from 'secretjs'
 export type APIConstructor = new(...args:any) => SigningCosmWasmClient
-export type ScrtNodeConstructor = new (options?: ChainNodeOptions) => ChainNode
 
+import { dirname, fileURLToPath } from '@fadroma/ops'
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export abstract class Scrt extends BaseChain {
-  faucet = `https://faucet.secrettestnet.io/`
+import { resolve } from '@hackbg/tools'
+export const buildScript = resolve(__dirname, 'ScrtBuild.sh')
+
+import { DockerBuilder } from '@fadroma/ops'
+export class ScrtDockerBuilder extends DockerBuilder {
+  buildImage      = null
+  buildDockerfile = null
+  buildScript     = buildScript
 }
 
-export abstract class DockerizedScrtNode extends DockerizedChainNode {
-  /** This directory is mounted out of the localnet container
-    * in order to persist the state of the SGX component. */
-  readonly sgxDir: Directory
+import { Client, BaseContract } from '@fadroma/ops'
+export abstract class ScrtContract<C extends Client> extends BaseContract<C> {
+  Builder = ScrtDockerBuilder
+}
+
+import { BaseChain, Source } from '@fadroma/ops'
+export abstract class Scrt extends BaseChain {
+  faucet = `https://faucet.secrettestnet.io/`
+
+  async buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<void> {
+    const artifacts = await Promise.all(contracts.map(contract=>contract.build()))
+    let uploadBundle = agent.bundle()
+    for (const contract of contracts) {
+      uploadBundle = uploadBundle.upload(contract.artifact)
+    }
+    const uploadResult = await uploadBundle.run()
+    for (const i in contracts) {
+      const contract = contracts[i]
+      const {events:[{attributes:[_,__,___,{value:codeId}]}]} = uploadResult.logs[i]
+      contract.template = { chainId: agent.chain.id, codeId }
+    }
+  }
+}
+
+import { Fees, BaseGas } from '@fadroma/ops'
+export class ScrtGas extends BaseGas {
+  static denom = 'uscrt'
+  static defaultFees: Fees = {
+    upload: new ScrtGas(4000000),
+    init:   new ScrtGas(1000000),
+    exec:   new ScrtGas(1000000),
+    send:   new ScrtGas( 500000),
+  }
+  //denom = ScrtGas.denom
+  constructor (x: number) {
+    super(x)
+    this.amount.push({amount: String(x), denom: ScrtGas.denom})
+  }
+}
+
+import { ChainNodeOptions, ChainNode } from '@fadroma/ops'
+export type ScrtNodeConstructor = new (options?: ChainNodeOptions) => ChainNode
+
+import { DockerChainNode, Path, Directory, TextFile, JSONFile, JSONDirectory } from '@fadroma/ops'
+export abstract class DockerScrtNode extends DockerChainNode {
+  abstract readonly chainId:    string
+  abstract readonly image:      string
+  abstract readonly initScript: TextFile
   protected setDirectories (stateRoot?: Path) {
     if (!this.chainId) {
       throw new Error('@fadroma/scrt: refusing to create directories for localnet with empty chain id')
@@ -47,38 +76,20 @@ export abstract class DockerizedScrtNode extends DockerizedChainNode {
     Object.assign(this, {
       identities: this.stateRoot.subdir('identities', JSONDirectory),
       nodeState:  new JSONFile(stateRoot, 'node.json'),
-      daemonDir:  this.stateRoot.subdir('_secretd'),
-      clientDir:  this.stateRoot.subdir('_secretcli'),
-      sgxDir:     this.stateRoot.subdir('_sgx-secrets')
     })
   }
-  async spawn () {
-    try {
-      this.sgxDir.make()
-    } catch (e) {
-      console.warn(`Failed to create ${this.sgxDir.path}: ${e.message}`)
-    }
-    return await super.spawn()
-  }
-  get binds () {
-    return {
-      ...super.binds,
-      //[this.sgxDir.path]:    '/root/.sgx-secrets:rw',
-      //[this.daemonDir.path]: `/root/.secretd:rw`,
-      //[this.clientDir.path]: `/root/.secretcli:rw`,
-    }
-  }
-  abstract readonly chainId:    string
-  abstract readonly image:      string
-  abstract readonly initScript: TextFile
 }
 
-export function resetLocalnet ({ chain }: any) {
-  return chain.node.terminate()
-}
-
-/** Uses `secretjs` to queries and transact
-  * with a Secret Network chain endpoint. */
+import {
+  Identity, Agent, BaseAgent, AgentConstructor,
+  Contract, ContractMessage, waitUntilNextBlock,
+  readFile, backOff
+} from '@hackbg/fadroma'
+import { Bip39 } from '@cosmjs/crypto'
+import {
+  EnigmaUtils, Secp256k1Pen, encodeSecp256k1Pubkey,
+  pubkeyToAddress, makeSignBytes, BroadcastMode
+} from 'secretjs'
 export abstract class ScrtAgentJS extends BaseAgent {
   /** Create a new agent from a signing pen. */
   constructor (options: Identity & { API: APIConstructor }) {
@@ -88,7 +99,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
     this.keyPair  = options.keyPair
     this.mnemonic = options.mnemonic
     this.pen      = options.pen
-    this.fees     = options.fees || defaultFees
+    this.fees     = options.fees || ScrtGas.defaultFees
     this.pubkey   = encodeSecp256k1Pubkey(options.pen.pubkey)
     this.address  = pubkeyToAddress(this.pubkey, 'secret')
     this.sign     = this.pen.sign.bind(this.pen)
@@ -130,7 +141,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
   readonly name:     string
 
   readonly chain:    Scrt
-  fees = defaultFees
+  fees = ScrtGas.defaultFees
 
   readonly keyPair:  any
   readonly mnemonic: any
@@ -187,13 +198,37 @@ export abstract class ScrtAgentJS extends BaseAgent {
       throw new TypeError('getCodeHash id or addr')
     }
   }
-
+  async checkCodeHash (address: string, codeHash?: string) {
+    // Soft code hash checking for now
+    const realCodeHash = await this.getCodeHash(address)
+    if (codeHash !== realCodeHash) {
+      console.warn(bold('Code hash mismatch for'), address, `(${name})`)
+      console.warn(bold('  Config:'), codeHash)
+      console.warn(bold('  Chain: '), realCodeHash)
+    } else {
+      console.info(bold(`Code hash of ${address}:`), realCodeHash)
+    }
+  }
   async instantiate (contract: Contract, initMsg: any) {
-    const from = this.address
     const { codeId, label } = contract
     this.traceCall(`${bold('INIT')}  ${codeId} ${label}`)
-    const initTx = await this.API.instantiate(codeId, initMsg, label)
-    Object.assign(initTx, { contractAddress: initTx.logs[0].events[0].attributes[4].value })
+    const initTx = await backOff(() => {
+      return this.API.instantiate(codeId, initMsg, label)
+    }, {
+      retry (error: Error, attempt: number) {
+        if (error.message.includes('500')) {
+          console.warn(`Error 500, retry #${attempt}...`)
+          console.error(error)
+          return true
+        } else {
+          return false
+        }
+      }
+    })
+    // hmm
+    Object.assign(initTx, {
+      contractAddress: initTx.logs[0].events[0].attributes[4].value
+    })
     return initTx
   }
   async getCodeId (address: string): Promise<number> {
@@ -204,7 +239,6 @@ export abstract class ScrtAgentJS extends BaseAgent {
     const { label } = await this.API.getContract(address)
     return label
   }
-
   async query (contract: Contract, msg: ContractMessage) {
     const { label, address, codeHash } = contract
     const from   = this.address
@@ -229,200 +263,99 @@ export abstract class ScrtAgentJS extends BaseAgent {
     this.traceResponse(N, /*{ result: result.transactionHash }*/)
     return result
   }
-
-  async bundle (cb: Bundle<typeof this>): Promise<any> {
-    const bundle = new ScrtAgentJSBundled(this)
-    await bundle.populate(cb)
-    return bundle.run()
+  bundle () {
+    return new ScrtBundle(this)
   }
-
 }
 
-export class ScrtAgentJSBundled extends Bundled<ScrtAgentJS> {
-
-  async execute (
-    { address, codeHash }: Contract,
-    handleMsg,
-    transferAmount = []
-  ): Promise<any> {
-    return this.add({
-      contractAddress: address,
-      contractCodeHash: codeHash,
-      handleMsg,
-      transferAmount
-    }, new Promise((resolve, reject)=>{}))
+import { BaseBundle, Artifact, Template, Instance, toBase64, fromBase64, fromUtf8 } from '@fadroma/ops'
+import { PostTxResult } from 'secretjs'
+import pako from 'pako'
+export class ScrtBundle extends BaseBundle<PostTxResult> {
+  constructor (readonly agent: ScrtAgentJS) { super(agent) }
+  upload ({ location }: Artifact) {
+    this.add(readFile(location).then(wasm=>({
+      type: 'wasm/MsgStoreCode',
+      value: {
+        sender:         this.address,
+        wasm_byte_code: toBase64(pako.gzip(wasm, { level: 9 }))
+      }
+    })))
+    return this
   }
-
-  async run () {
-    const N = this.executingAgent.traceCall(
+  init ({ codeId, codeHash }: Template, label, msg, init_funds = []) {
+    const sender  = this.address
+    const code_id = String(codeId)
+    this.add(this.encrypt(codeHash, msg).then(init_msg=>({
+      type: 'wasm/MsgInstantiateContract',
+      value: { sender, code_id, init_msg, label, init_funds }
+    })))
+    return this
+  }
+  execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
+    const sender   = this.address
+    const contract = address
+    this.add(this.encrypt(codeHash, msg).then(msg=>({
+      type: 'wasm/MsgExecuteContract',
+      value: { sender, contract, msg, sent_funds }
+    })))
+    return this
+  }
+  private async encrypt (codeHash, msg) {
+    if (!codeHash) throw new Error('@fadroma/scrt: missing codehash')
+    const encrypted = await this.agent.API.restClient.enigmautils.encrypt(codeHash, msg)
+    return toBase64(encrypted)
+  }
+  async run (memo = ""): Promise<PostTxResult> {
+    console.log('run!')
+    const N = this.agent.traceCall(
       `${bold(colors.yellow('MULTI'.padStart(5)))} ${this.msgs.length} messages`,
     )
-    const result = await this.executingAgent.API.multiExecute(this.msgs, "", {
-      gas:    String(this.msgs.length*1000000),
-      amount: [ { denom: 'uscrt', amount: String(this.msgs.length*1000000) } ]
-    })
-    this.executingAgent.traceResponse(N)
-    return result
-  }
-
-}
-
-export function getMethod (msg: ContractMessage) {
-  if (typeof msg === 'string') {
-    return msg
-  } else {
-    const keys = Object.keys(msg)
-    if (keys.length !== 1) {
-      throw new Error(
-        `@fadroma/scrt: message must be either an object `+
-        `with one root key, or a string. Found: ${keys}`
-      )
-    }
-    return Object.keys(msg)[0]
-  }
-}
-
-/** This agent uses `secretcli` to run the commands. */
-export class ScrtCLIAgent extends BaseAgent {
-  /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
-  static async create (options: Identity) {
-    const { name = 'Anonymous', ...args } = options
-    let { mnemonic, keyPair } = options
-    if (mnemonic) {
-      // if keypair doesnt correspond to the mnemonic, delete the keypair
-      if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
-        console.warn(`keypair doesn't match mnemonic, ignoring keypair`)
-        keyPair = null
+    const { accountNumber, sequence } = await this.agent.API.getNonce()
+    const msgs = await Promise.all(this.msgs)
+    const signedTx = await this.agent.API.signAdapter(
+      msgs,
+      new ScrtGas(this.msgs.length*3000000),
+      this.agent.chain.id,
+      memo,
+      accountNumber,
+      sequence
+    )
+    try {
+      const result = await this.agent.API.postTx(signedTx)
+      console.log(result)
+      for (const i in result.logs) {
+        console.info(bold(String(i)), JSON.stringify(result.logs[i]))
       }
-    } else if (keyPair) {
-      // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-    } else {
-      // if there is neither, generate a new keypair and corresponding mnemonic
-      keyPair  = EnigmaUtils.GenerateNewKeyPair()
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-    }
-    return new ScrtCLIAgent({name, mnemonic, keyPair, ...args})
-  }
-  chain:         Scrt
-  name:          string
-  address:       string
-  nameOrAddress: string
-  fees:          any
-  static Help = {
-    NOT_A_TTY: "Input is not a TTY - can't interactively pick an identity",
-    NO_KEYS_1: "Empty key list returned from secretcli. Retrying once...",
-    NO_KEYS_2: "Still empty. To proceed, add your key to secretcli " +
-               "(or set the mnemonic in the environment to use the SecretJS-based agent)"
-  }
-  static async pick () {
-    if (!process.stdin.isTTY) {
-      throw new Error(ScrtCLIAgent.Help.NOT_A_TTY) }
-    let keys = (await secretcli('keys', 'list'))
-    if (keys.length < 1) {
-      console.warn(ScrtCLIAgent.Help.NO_KEYS_1)
-      await tryToUnlockKeyring()
-      keys = (await secretcli('keys', 'list'))
-      if (keys.length < 1) console.warn(ScrtCLIAgent.Help.NO_KEYS_2)
+      this.agent.traceResponse(N)
+      return result
+    } catch (err) {
+      this.handleError(err)
     }
   }
-  constructor (options: { name: string, address: string }) {
-    super(options)
-    const { name, address } = options
-    this.name = name
-    this.address = address
-    this.nameOrAddress = this.name || this.address
-  }
-  get nextBlock () {
-    return this.block.then(async T1=>{
-      while (true) {
-        await new Promise(ok=>setTimeout(ok, 1000))
-        const T2 = (await this.block).sync_info.latest_block_height
-        if (T2 > T1) return
+
+  private async handleError (err) {
+    try {
+      console.error(err.message)
+      console.error('Trying to decrypt...')
+      const errorMessageRgx = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
+      const rgxMatches = errorMessageRgx.exec(err.message);
+      if (rgxMatches == null || rgxMatches.length != 3) {
+          throw err;
       }
-    })
-  }
-  get block () {
-    return secretcli('status').then(({sync_info:{latest_block_height:T2}})=>T2)
-  }
-  get account () {
-    return secretcli('q', 'account', this.nameOrAddress)
-  }
-  get balance () {
-    return this.getBalance('uscrt')
-  }
-  async getBalance (denomination: string) {
-    return ((await this.account).value.coins
-      .filter((x:any)=>x.denom===denomination)[0]||{})
-      .amount
-  }
-  async send (recipient: any, amount: any, denom = 'uscrt', memo = '') {
-    throw new Error('not implemented')
-  }
-  async sendMany (txs = [], memo = '', denom = 'uscrt', fee) {
-    throw new Error('not implemented')
-  }
-  async upload (pathToBinary: string) {
-    return secretcli(
-      'tx', 'compute', 'store',
-      pathToBinary,
-      '--from', this.nameOrAddress )
-  }
-  async instantiate (contract: Contract, message: any) {
-    const { codeId, initMsg = message, label = '' } = contract
-    contract.agent = this
-    console.debug(`⭕`+bold('init'), { codeId, label, initMsg })
-    const initTx = contract.initTx = await secretcli(
-      'tx', 'compute', 'instantiate',
-      codeId, JSON.stringify(initMsg),
-      '--label', label,
-      '--from', this.nameOrAddress)
-    console.debug(`⭕`+bold('instantiated'), { codeId, label, initTx })
-    contract.codeHash = await secretcli('q', 'compute', 'contract-hash', initTx.contractAddress)
-    await contract.save()
-    return contract
-  }
-  async query ({ label, address }, method='', args = undefined) {
-    const msg = (args === undefined) ? method : { [method]: args }
-    console.debug(`❔ `+bold('query'), { label, address, method, args })
-    const response = await secretcli(
-      'q', 'compute', 'query',
-      address, JSON.stringify(msg))
-    console.debug(`❔ `+bold('response'), { address, method, response })
-    return response
-  }
-  async execute ({ label, address }, method='', args = undefined) {
-    const msg = (args === undefined) ? method : { [method]: args }
-    console.debug(`❗ `+bold('execute'), { label, address, method, args })
-    const result = await secretcli(
-      'tx', 'compute',
-      address, JSON.stringify(msg),
-      '--from', this.nameOrAddress)
-    console.debug(`❗ `+bold('result'), { label, address, method, result })
-    return result
+      const errorCipherB64 = rgxMatches[1];
+      const errorCipherBz  = fromBase64(errorCipherB64);
+      const msgIndex       = Number(rgxMatches[2]);
+      const nonce          = fromBase64(this.msgs[msgIndex].value.msg).slice(0, 32);
+      const errorPlainBz   = await this.executingAgent.API.restClient.enigmautils.decrypt(errorCipherBz, nonce);
+      err.message = err.message.replace(errorCipherB64, fromUtf8(errorPlainBz));
+    } catch (decryptionError) {
+      console.error('Failed to decrypt :(')
+      throw new Error(`Failed to decrypt the following error message: ${err.message}. Decryption error of the error message: ${decryptionError.message}`);
+    }
+    throw err
   }
 }
-
-const secretcli = (...args: Array<string>): Promise<unknown> =>
-  new Promise((resolve, reject)=>{
-    execFile('secretcli', args, (err: Error, stdout: unknown) => {
-      if (err) {
-        reject(new Error(`could not execute secretcli: ${err.message}`))
-      } else {
-        resolve(JSON.parse(String(stdout)))
-      }
-    })
-  })
-
-const tryToUnlockKeyring = () => new Promise((resolve, reject)=>{
-  console.warn("Pretending to add a key in order to refresh the keyring...")
-  const unlock = spawn('secretcli', ['keys', 'add'])
-  unlock.on('spawn', () => {
-    unlock.on('close', resolve)
-    setTimeout(()=>{ unlock.kill() }, 1000)
-  })
-  unlock.on('error', reject)
-})
 
 export enum TxType {
   Spend        = "spend",
@@ -439,10 +372,13 @@ export type UnsignedTX = {
   memo:           string
 }
 
+import type { MsgInstantiateContract, MsgExecuteContract } from 'secretjs/src/types'
 /** This agent just collects unsigned txs
   * and dumps them in the end
   * to do via multisig. */
 export abstract class ScrtAgentTX extends BaseAgent {
+  constructor (id: Identity) { super(id) }
+
   account_number: number = 0
   sequence:       number = 0
   transactions:   UnsignedTX[] = []
@@ -490,43 +426,4 @@ export abstract class ScrtAgentTX extends BaseAgent {
       sent_funds,
     } })
   }
-}
-
-import { resolve } from '@hackbg/tools'
-export const buildScript = resolve(__dirname, 'ScrtBuild.sh')
-
-export class ScrtContract extends BaseContract {
-  buildImage      = 'enigmampc/secret-contract-optimizer:latest'
-  buildDockerfile = null
-  buildScript     = null
-}
-
-export class AugmentedScrtContract<
-  Executor extends TransactionExecutor,
-  Querier  extends QueryExecutor
-> extends AugmentedContract<Executor, Querier> {
-  buildImage      = 'enigmampc/secret-contract-optimizer:latest'
-  buildDockerfile = null
-  buildScript     = null
-
-  static Queries      = QueryExecutor
-  static Transactions = TransactionExecutor
-}
-
-export { TransactionExecutor, QueryExecutor }
-
-export class ScrtGas extends BaseGas {
-  static denom = 'uscrt'
-  //denom = ScrtGas.denom
-  constructor (x: number) {
-    super(x)
-    this.amount.push({amount: String(x), denom: ScrtGas.denom})
-  }
-}
-
-export const defaultFees: Fees = {
-  upload: new ScrtGas(4000000),
-  init:   new ScrtGas(1000000),
-  exec:   new ScrtGas(1000000),
-  send:   new ScrtGas( 500000),
 }

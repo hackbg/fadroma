@@ -15,6 +15,8 @@ export * from './Chain'
 
 export * from './Agent'
 
+export * from './Bundle'
+
 export * from './Upload'
 
 export * from './Contract'
@@ -27,4 +29,4 @@ export * from './Client'
 
 export * from './Mock'
 
-export { toBase64 } from '@iov/encoding'
+export { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
