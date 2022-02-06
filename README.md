@@ -22,16 +22,12 @@ Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
 <tr><td valign="top">
 
-## Fadroma Ops
+## Fadroma Ops [`@fadroma/ops`](./packages/ops) [`@fadroma/scrt`](./packages/scrt) [`@fadroma/scrt-1.0`](./packages/scrt-1.0) [`@fadroma/scrt-1.2`](./packages/scrt-1.2).
 
 **Contract deployment workflow for Secret Network.**
 
 Just import `@hackbg/fadroma` to start scripting deployments and migrations.
 
-* [@fadroma/ops](./packages/ops)
-* [@fadroma/scrt](./packages/scrt)
-* [@fadroma/scrt-1.0](./packages/scrt-1.0)
-* [@fadroma/scrt-1.2](./packages/scrt-1.2).
 * Open to extension for other blockchains supporting a similar deployment model.
 
 </td><td>
