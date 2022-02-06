@@ -41,8 +41,6 @@ import Fadroma, { Deploy, Snip20 } from '@hackbg/fadroma'
 
 class CustomToken extends Snip20 {
 
-  /* The name of each contract is used to identify it
-   * in the deployment and to reference it in the printout. */
   name = 'CustomToken'
 
   /* Let's define some deploy steps. They're only `static`
@@ -89,14 +87,16 @@ class CustomToken extends Snip20 {
     /* From migration context. */
     deployment, agent
 
-    /* From the previous step, or from the deployment's receipts. */
+    /* Taken from the previous step,
+     * or from the deployment's receipts. */
     contract = new CustomToken(deployment.get('CustomToken'))
 
   }: Migration & { contract: CustomToken }) {
 
     /* Easily bundle multiple transactions, including inits.
-     * Obviously you can't query for state in the middle of the bundle,
-     * and the API is currently very rough. But it works. */
+     * You can't do a query in the middle of the bundle,
+     * and the API is kinda rough. But it works, and
+     * speeds up procedures considerably. */
     await agent.bundle().wrap(async bundle=>{
       const contract = token.client(bundle)
       await contract.setViewingKey("monkey")
@@ -104,10 +104,11 @@ class CustomToken extends Snip20 {
       await contract.mint(agent.address, "1024")
     })
 
-    /* Query and transaction methods for contracts are defined
-     * separately from deployment procedures, in the `Client` class.
-     * After deploying or retrieving a `Contract` object, consider
-     * passing around only `Client`s bound to particular `Agent`s. */
+    /* Query and transaction methods for contracts are
+     * defined separately from deployment procedures, in
+     * the `Client` class. After deploying or retrieving
+     * a `Contract` object, consider passing around only
+     * `Client`s bound to particular `Agent`s. */
     const client = contract.client(agent)
     console.log(await client.balance(agent.address, "monkey"))
 
@@ -115,8 +116,15 @@ class CustomToken extends Snip20 {
 
 }
 
-Fadroma.command('deploy', Deploy.new, CustomToken.deploy, CustomToken.status)
-Fadroma.command('status', Deploy.current, CustomToken.status)
+Fadroma.command('deploy',
+  Deploy.new,      /* Start new deployment */
+  CustomToken.deploy,
+  CustomToken.status)
+Fadroma.command('status',
+  Deploy.current, /* Activate current deployment */
+  CustomToken.status)
+Fadroma.command('select',
+  Deploy.select) /* Let user select another deployment */
 ```
 
 ```sh
