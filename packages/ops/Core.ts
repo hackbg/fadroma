@@ -44,15 +44,12 @@ export interface UploadReceipt {
 }
 
 export interface Instance {
-  prefix?:   string
-  name?:     string
-  suffix?:   string
-  label?:    string
-
-  address:   string
-  codeHash?: string
-
-  receipt?:  InitReceipt
+  chainId:          string
+  transactionHash?: string
+  codeId:           string
+  codeHash?:        string
+  label:            string
+  address:          string
 }
 
 export interface InitReceipt {

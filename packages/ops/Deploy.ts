@@ -13,6 +13,7 @@ import alignYAML from 'align-yaml'
 const console = Console('@fadroma/ops/Deploy')
 
 import type { Contract } from './Contract'
+import type { Client, ClientConstructor } from './Client'
 import type { Agent } from './Agent'
 import type { Chain } from './Chain'
 import { Message, Template, print, join } from './Core'
@@ -66,19 +67,27 @@ export class Deployment {
       contract,
       msg    = contract.initMsg,
       name   = contract.name,
-      suffix = ''
+      suffix = contract.suffix
     ] of contracts) {
-      const label = `${this.prefix}/${name}${suffix}`
+      const label = `${this.prefix}/${name}${suffix||''}`
       console.info(bold('Instantiate:'), label)
       const receipt = await creator.instantiate(contract.template, label, msg)
-      contract.instance = {
-        address:  receipt.contractAddress,
-        codeHash: contract.template.codeHash,
-        label,
-      }
+      contract.instance = receipt
       this.receipts[name] = receipt
       this.save()
     }
+  }
+
+  get (
+    name:    string,
+    suffix?: string
+  ) {
+    const receipt = this.receipts[name]
+    if (!receipt) {
+      throw new Error(`@fadroma/ops/Deploy: ${name}: no such contract in deployment`)
+    }
+    console.log(name, receipt)
+    return receipt
   }
 
   /** Get existing contract or create it if it doesn't exist */
@@ -88,6 +97,7 @@ export class Deployment {
     name:     string = contract.name,
     initMsg:  T      = contract.initMsg
   ) {
+    console.warn('getOrInit: deprecated')
     const receipt = this.receipts[name]
     if (receipt) {
       contract.agent = agent

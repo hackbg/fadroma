@@ -2,16 +2,19 @@ import type { Message } from './Core'
 import type { Contract } from './Contract'
 import type { Agent } from './Agent'
 
+export interface ClientConstructor<C extends Client> {
+  new (options: {
+    agent?:    Agent
+    address?:  string
+    codeHash?: string
+  }): C
+}
+
 export abstract class Client {
-  constructor (
-    readonly agent:    Agent,
-    readonly address:  string,
-    readonly codeHash: string
-  ) {
-    if (!agent) {
-      throw new Error('@fadroma/ops/Client: no agent')
-    }
-  }
+  agent:    Agent
+  address:  string
+  codeHash: string
+  constructor (options = {}) { Object.assign(this, options) }
   protected query   = (msg: Message) =>
     this.agent.query(this, msg)
   protected execute = (msg: Message) =>

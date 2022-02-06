@@ -90,6 +90,19 @@ export abstract class BaseAgent implements Agent {
     }
     return N
   }
+  traceSubCall (N: number, callType = '???', info?) {
+    if (process.env.FADROMA_PRINT_TXS) {
+      //console.info()
+      const header = `${bold(`${this.name}: call #${String(N).padEnd(4)}`)} (${callType})`
+      if (process.env.FADROMA_PRINT_TXS==='trace') {
+        console.trace(header)
+      } else {
+        console.info(header)
+      }
+      if (info) console.info(JSON.stringify(info))
+    }
+    return N
+  }
   traceResponse (N, txHash?) {
     if (process.env.FADROMA_PRINT_TXS) {
       //console.info()

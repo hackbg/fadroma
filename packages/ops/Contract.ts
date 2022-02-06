@@ -24,7 +24,7 @@ import type { Source, Builder, Artifact, Uploader, Template, Instance } from './
 
 import { Init } from './Init'
 
-import { Client } from './Client'
+import { Client, ClientConstructor } from './Client'
 
 export interface ContractInfo {
   source?:   Source
@@ -46,7 +46,7 @@ export interface Contract<C extends Client> extends ContractInfo {
 
   initMsg?: any
 
-  Client?: new (agent: Agent, address: string, codeHash: string) => C
+  Client: ClientConstructor<C>
   client? (agent: Agent): C
 }
 
@@ -76,14 +76,30 @@ export abstract class BaseContract<C extends Client> implements Contract<C> {
     return this.template = await this.uploader.upload(this.artifact)
   }
 
-  Client: new (agent: Agent, address: string, codeHash: string) => C
+  Client: ClientConstructor<C>
   client (agent: Agent): C {
     if (!this.instance) {
       throw new Error(
         "@fadroma/ops/Contract: can't get a client to a contract that is not deployed"
       )
     }
-    return new this.Client(agent, this.instance.address, this.instance.codeHash)
+    return new this.Client({ ...this.instance, agent })
+  }
+
+  prefix?: string
+  suffix?: string
+  get label (): string {
+    if (!this.name) {
+      throw new Error(
+        '[@fadroma/contract] Tried to get label of contract with missing name.'
+      )
+    }
+    const { prefix, name, suffix } = this
+    let label = ''
+    if (prefix) { label += `${prefix}/` }
+    if (name)   { label += name } else { label += 'UNTITLED' }
+    if (suffix) { label += suffix }
+    return label
   }
 
 }

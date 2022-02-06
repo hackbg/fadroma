@@ -26,7 +26,8 @@ export abstract class ScrtContract<C extends Client> extends BaseContract<C> {
 
 import {
   BaseChain, Source, codeHashForPath,
-  basename, existsSync, readFileSync, writeFileSync
+  basename, existsSync, relative, cwd,
+  readFileSync, writeFileSync
 } from '@fadroma/ops'
 export abstract class Scrt extends BaseChain {
 
@@ -50,33 +51,34 @@ export abstract class Scrt extends BaseChain {
       }
       const blobName = basename(contract.artifact.location)
       const receiptPath = this.uploads.resolve(`${blobName}.json`)
+      const relativePath = relative(cwd(), receiptPath)
       if (existsSync(receiptPath)) {
         const content = readFileSync(receiptPath, 'utf8')
         const data = JSON.parse(content)
         const receiptCodeHash = data.codeHash || data.originalChecksum
         if (!receiptCodeHash) {
-          console.info(bold(`No code hash:`), `${receiptPath}; reuploading...`)
+          console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
           toUpload.push(contract)
         } else if (receiptCodeHash !== contract.artifact.codeHash) {
-          console.info(bold(`Different code hash:`), `${receiptPath}; reuploading...`)
+          console.info(bold(`Different code hash:`), `${relativePath}; reuploading...`)
           toUpload.push(contract)
         } else {
-          console.info(bold(`Receipt is valid:`), `${receiptPath}; not reuploading...`)
+          console.info(bold(`Code hash matches receipt:`), `${relativePath}; not reuploading...`)
           contract.template = {
             chainId:         agent.chain.id,
-            transactionHash: data.transactionHash as string,
             codeId:          data.codeId,
             codeHash:        contract.artifact.codeHash,
+            transactionHash: data.transactionHash as string,
           }
         }
       } else {
-        console.info(bold(`No upload receipt:`), `${receiptPath}; uploading...`)
+        console.info(bold(`No upload receipt:`), `${relativePath}; uploading...`)
         toUpload.push(contract)
       }
     }
 
-    console.info('Need to upload', bold(String(toUpload.length)), 'contracts')
     if (toUpload.length > 0) {
+      console.info('Need to upload', bold(String(toUpload.length)), 'contracts')
       let bundle = agent.bundle()
       for (const contract of toUpload) {
         bundle = bundle.upload(contract.artifact)
@@ -89,7 +91,7 @@ export abstract class Scrt extends BaseChain {
         const logs     = uploadResult.logs[i]
         const codeId   = logs.events[0].attributes[3].value
         const codeHash = contract.artifact.codeHash 
-        contract.template = { chainId, transactionHash, codeId, codeHash }
+        contract.template = { chainId, codeId, codeHash, transactionHash }
         const receiptName = `${basename(toUpload[i].artifact.location)}.json`
         const receiptPath = this.uploads.make().resolve(receiptName)
         writeFileSync(receiptPath, JSON.stringify(toUpload[i].template, null, 2))
@@ -277,7 +279,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
       throw new Error(`@fadroma/scrt: Template is from chain ${template.chainId}, we're on ${this.chain.id}`)
     }
     const N = this.traceCall(`${bold('INIT')}  ${codeId} ${label}`)
-    const initTx = await backOff(() => {
+    const { logs, transactionHash } = await backOff(() => {
       return this.API.instantiate(Number(codeId), initMsg, label)
     }, {
       retry (error: Error, attempt: number) {
@@ -291,11 +293,14 @@ export abstract class ScrtAgentJS extends BaseAgent {
       }
     })
     // hmm
-    Object.assign(initTx, {
-      contractAddress: initTx.logs[0].events[0].attributes[4].value
-    })
-    this.traceResponse(N, initTx.transactionHash)
-    return initTx
+    this.traceResponse(N, transactionHash)
+    return {
+      chainId: this.chain.id,
+      codeId:  Number(codeId),
+      codeHash,
+      address: logs[0].events[0].attributes[4].value,
+      transactionHash,
+    }
   }
   async getCodeId (address: string): Promise<number> {
     const { codeId } = await this.API.getContract(address)
@@ -378,6 +383,9 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     )
     const { accountNumber, sequence } = await this.agent.API.getNonce()
     const msgs = await Promise.all(this.msgs)
+    for (const msg of msgs) {
+      this.agent.traceSubCall(N, `${bold(colors.yellow(msg.type))}`)
+    }
     const signedTx = await this.agent.API.signAdapter(
       msgs,
       new ScrtGas(this.msgs.length*3000000),
@@ -388,9 +396,6 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     )
     try {
       const result = await this.agent.API.postTx(signedTx)
-      for (const i in result.logs) {
-        console.info(bold(String(i)), JSON.stringify(result.logs[i]))
-      }
       this.agent.traceResponse(N, result.transactionHash)
       return result
     } catch (err) {

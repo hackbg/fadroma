@@ -2,9 +2,20 @@ import { Agent, Client, randomHex, decode } from '@fadroma/ops'
 
 export class Snip20Client extends Client {
 
+  static async fromTokenSpec (agent: Agent, token: TokenType) {
+    const TOKEN = new Snip20Client({
+      address:  token.custom_token.contract_addr,
+      codeHash: token.custom_token.token_code_hash,
+      agent
+    })
+    const NAME = (TOKEN instanceof Snip20Client)
+      ? (await TOKEN.getTokenInfo()).symbol
+      : 'SCRT'
+    return { TOKEN, NAME }
+  }
+
   async getTokenInfo () {
-    const { token_info } = await this.query({ token_info: {} })
-    return token_info
+    return (await this.query({ token_info: {} })).token_info
   }
 
   async getBalance (address: string, key: string) {
@@ -46,7 +57,6 @@ export class Snip20Client extends Client {
     amount:    string | number | bigint,
     recipient: string = this.agent.address
   ) {
-    console.log(1)
     return this.execute({
       mint: { amount: String(amount), recipient, padding: null }
     })
@@ -90,6 +100,17 @@ export class Snip20Client extends Client {
     return this.execute({
       decrease_allowance: { amount: String(amount), spender }
     })
+  }
+
+  /** Return the address and code hash of this token in the format
+   * required by the Factory to create a swap pair with this token */
+  get asCustomToken () {
+    return {
+      custom_token: {
+        contract_addr:   this.address,
+        token_code_hash: this.codeHash
+      }
+    }
   }
 
 }
