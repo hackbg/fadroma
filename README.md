@@ -37,34 +37,39 @@ Just import `@hackbg/fadroma` to start scripting deployments and migrations.
 </td><td>
 
 ```typescript
-import Fadroma, { Deploy } from '@hackbg/fadroma'
-import MyContract from './MyContract'
+import Fadroma, { Deploy, Snip20 } from '@hackbg/fadroma'
 
-const name = 'MyContract1'
+class CustomToken extends Snip20 {
+  name = 'CUSTOM'
+}
+
+const name = 'Custom Token'
 
 Fadroma.command('deploy new',
   Deploy.new,
   async ({ chain, agent, deployment }) => {
-    const contract = new MyContract({ name })
+    const contract = new CustomToken({ name })
     await chain.buildAndUpload(agent, [contract])
-    await deployment.init(agent, contract, {
-      my_init_message: 'goes_here'
-    })
-    await contract.tx(agent, {
-      my_handle_message: 'goes here'
-    })
+    await deployment.init(agent, [contract, {
+      admin:   agent.address,
+      name:    'Custom Token',
+      symbol:  'CUSTOM',
+      decimals: 18,
+      config: { enable_mint: true },
+    }])
   })
 
 Fadroma.command('deploy status',
   Deploy.current,
   async ({ chain, agent, deployment }) => {
-    const contract = deployment.getThe(
-      name,
-      new MyContract({ name })
-    )
-    console.log(await contract.query(agent, {
-      my_query_message: 'goes here'
-    }))
+    const token = new CustomToken(deployment.get(name))
+    await agent.bundle().wrap(async bundle=>{
+      const contract = token.client(bundle)
+      await contract.setViewingKey("monkey")
+      await contract.setMinters([agent.address])
+      await contract.mint(agent.address, "1024")
+    })
+    console.log(await contract.balance(agent.address, "monkey"))
   })
 ```
 
