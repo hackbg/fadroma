@@ -363,6 +363,11 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     })))
     return this
   }
+  async instantiate (template: Template, label, msg, init_funds = []) {
+    await this.init(template, label, msg, init_funds)
+    const { codeId, codeHash } = template
+    return { chainId: this.agent.chain.id, codeId, codeHash }
+  }
   execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
     const sender   = this.address
     const contract = address

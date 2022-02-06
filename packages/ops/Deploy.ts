@@ -71,7 +71,23 @@ export class Deployment {
     ] of contracts) {
       const label = `${this.prefix}/${name}${suffix||''}`
       console.info(bold('Instantiate:'), label)
-      const receipt = await creator.instantiate(contract.template, label, msg)
+      let { template } = contract
+      if (!template && contract.codeId && contract.codeHash) {
+        console.warn(
+          `@fadroma/ops/Deploy: in the future, codeId and codeHash` +
+          `may move from contract to contract.template`
+        )
+        template = {
+          codeId:   contract.codeId,
+          codeHash: contract.codeHash
+        }
+      }
+      console.log({contract, template})
+      const receipt = await creator.instantiate(
+        template,
+        label,
+        msg
+      )
       contract.instance = receipt
       this.receipts[name] = receipt
       this.save()
