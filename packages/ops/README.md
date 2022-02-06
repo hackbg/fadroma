@@ -25,6 +25,13 @@ on current generation write-only smart contract platforms.
 <tr><td width="50%" valign="top">
 
 ### [**`Client`**](./Client.ts)
+* `.agent`
+* `.address`
+* `.codeHash`
+* `.query(msg)`
+* `.execute(msg)`
+* `.instantiate(template, label, initMsg)`
+* `.bundle()`
 
 </td><td width="50%">
 
@@ -45,8 +52,11 @@ class SimpleClient extends Client {
 }
 
 new SimpleClient(agent, address, codeHash).setSomething("foo")
+```
 
-// Use this pattern to support different contract API versions
+`PROTIP` Use this pattern to support different contract API versions:
+
+```typescript
 abstract class VersionedClient extends Client {
   abstract version
   static "v1" = class VersionedClient_v1 extends VersionedClient {
@@ -66,6 +76,7 @@ abstract class VersionedClient extends Client {
 
 new VersionedClient["v1"](agent, address, codeHash).setSomething("foo")
 new VersionedClient["v2"](agent, address, codeHash).setSomething("foo")
+new VersionedClient["latest"](agent, address, codeHash).setSomething("foo")
 ```
 
 </td></tr>
@@ -73,13 +84,18 @@ new VersionedClient["v2"](agent, address, codeHash).setSomething("foo")
 <tr><td width="50%" valign="top">
 
 ### [**`Contract`**](./Contract.ts)
-
+  * `Builder`
+  * `builder`
+  * `build(builder?)`
+  * `Uploader`
+  * `uploader`
+  * `upload(agent: Agent)`
   * `Client`
   * `client(agent: Agent)`
 
-Manages the deployment of a smart contract.
-
 </td><td width="50%">
+
+Manages the deployment of a smart contract.
 
 ```typescript
 import { Contract } from '@fadroma/ops'
@@ -89,7 +105,11 @@ class SimpleContract extends Contract<SimpleClient> {
 }
 
 new SimpleContract().client(agent).setSomething("foo")
+```
 
+`PROTIP` Use this pattern to support different versioned clients:
+
+```typescript
 abstract class VersionedContract extends Contract<VersionedClient> {
   abstract version
   abstract Client
@@ -108,15 +128,10 @@ abstract class VersionedContract extends Contract<VersionedClient> {
   static "latest" = VersionedContract["v2"]
 }
 
+new VersionedContract["v1"]().client(agent).setSomething("foo")
+new VersionedContract["v2"]().client(agent).setSomething("foo")
 new VersionedContract["latest"]().client(agent).setSomething("foo")
 ```
-
-**In Fadroma 23,** state and logic will be moved
-out of `BaseContract` and into domain objects
-(`Source`, `Artifact`, `Template`, `Instance`, `Client`).
-
-Inheriting from `BaseContract` will remain a convenient place
-to define baseline contract parameters.
 
 </td></tr>
 <tr></tr>
