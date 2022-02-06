@@ -24,20 +24,32 @@ is by defining message structs/enums and free-standing
 functions that operate on them, initiated from the
 `init`/`handle`/`query` entry points.
 
-Composability requires these to be coupled more tightly,
-as well as coupling them to the platform core via the
-`core: Composable<S, A, Q>` wrapper. Though this is not
-complex to achieve, it does require a significan amount
-of boilerplate, for which a new macro syntax is proposed
-at the end of this document.
+I seek a more modular approach: one that is rooted in the
+language's native features, and allows contract features
+to be reused with a minimum of boilerplate (as was the
+original objective of this framework.)
 
-## Composability Core
+Composability requires messages and handlers to be coupled
+more tightly; furthermore, the current implementation of
+composability also requires them to be coupled to the
+platform core via the `core: Composable<S, A, Q>` wrapper.
 
-This object wraps the platform API handle represented by
-`env: Extern<S, A, Q>` (CW0.10) or `deps: Deps` (CW0.16).
+Though this is not complex to achieve, it is verbose.
+For that purpose, a v2 of `fadroma-derive-contract`'s
+macro syntax is proposed at the end of this document.
 
-It wraps the platform API represented by `env` or `deps`
-and exposes helper methods with shorter names.
+### Guiding principles
+
+The following macro syntax is not final. However, something of the sort
+will need to be introduced for composability support in derive macros.
+
+So far, two guiding principles have been identified for this API design:
+
+* Avoid implicit identifiers. All names mentioned are defined by the caller.
+* Provide escape hatches. Especially in the case of composing feature traits
+  into the root contract, the user should have the freedom to override the
+  dispatch. In practice this is achieved quite easily by implementing the
+  dispatch on the messages.
 
 ## Composability Levels
 
@@ -53,9 +65,20 @@ in a smart contract's architecture.
 
 `TODO`
 
-### Composability Level 1 (CL1): Message traits
+### Composability Level 1 (CL1): `core` and Message traits
 
 > See [`mod composable`](./composable.rs)
+
+The `core: Composable<S, A, Q>` object is a thin wrapper aroun
+the platform API handle (`env: Extern<S, A, Q>` on CW0.10, 
+`deps: Deps` on (CW0.16)). It exposes methods with shorter names,
+as well as helper methods.
+
+To interact with the CosmWasm platform from functions that are
+implemented on a `struct` or `enum`, you need to make it aware
+of the core via an intermediate trait.
+
+> This sorely needs to be hidden behind a macro.
 
 <table>
 
@@ -361,10 +384,6 @@ Trim down traits that implement generic features into a reusable form
 and add them to Fadroma to collect a library of smart contract primitives.
 
 ## Appendix A: Proposed macro syntax
-
-The guiding principle of this syntax is avoiding implicit identifiers.
-All the variables that are mentioned in the function body, are named
-by the macro caller.
 
 <table>
 
