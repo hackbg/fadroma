@@ -21,29 +21,96 @@ the modeling and orchestration of reproducible deployment procedures
 on current generation write-only smart contract platforms.
 
 <table>
+
+<tr><td width="50%" valign="top">
+
+### [**`Client`**](./Client.ts)
+
+</td><td width="50%">
+
+Defines the operations (queries and transactions) that can be
+invoked on a smart contract. Allows a specific `Agent` to call
+them on a specific `Address` + `CodeHash` pair.
+
+```typescript
+import { Client } from '@fadroma/ops'
+
+class SimpleClient extends Client {
+  getSomething () {
+    return this.query("something")
+  }
+  setSomething (something) {
+    return this.execute({something})
+  }
+}
+
+new SimpleClient(agent, address, codeHash).setSomething("foo")
+
+// Use this pattern to support different contract API versions
+abstract class VersionedClient extends Client {
+  abstract version
+  static "v1" = class VersionedClient_v1 extends VersionedClient {
+    version = "v1"
+    setSomething (something) {
+      return this.execute({something})
+    }
+  }
+  static "v2" = class VersionedClient_v2 extends VersionedClient {
+    version = "v2"
+    setSomething (value) {
+      return this.execute({something:{value}})
+    }
+  }
+  static "latest" = VersionedClient["v2"]
+}
+
+new VersionedClient["v1"](agent, address, codeHash).setSomething("foo")
+new VersionedClient["v2"](agent, address, codeHash).setSomething("foo")
+```
+
+</td></tr>
+<tr></tr>
 <tr><td width="50%" valign="top">
 
 ### [**`Contract`**](./Contract.ts)
 
+  * `Client`
+  * `client(agent: Agent)`
+
+Manages the deployment of a smart contract.
+
 </td><td width="50%">
 
-**In Fadroma 22.01:** Represents a smart contract.
 ```typescript
-import { BaseContract } from '@fadroma/ops'
-abstract class AContract extends BaseContract {
-  workspace = __dirname
-  crate     = 'a-contract'
-  static v1 = class AContract_v1 extends AContract {
-    get version () { return 'v1' }
-    name = 'AContract[v1]'
-  }
-  static v2 = class AContract_v2 extends AContract {
-    get version () { return 'v2' }
-    name = 'AContract[v2]'
-  }
+import { Contract } from '@fadroma/ops'
+
+class SimpleContract extends Contract<SimpleClient> {
+  source = { workspace, crate: 'simple-contract' }
 }
-const contract = new AContract['v1']()
+
+new SimpleContract().client(agent).setSomething("foo")
+
+abstract class VersionedContract extends Contract<VersionedClient> {
+  abstract version
+  abstract Client
+  static "v1" = class VersionedContract_v1 extends VersionedClient {
+    version = "v1"
+    source = { workspace, crate: 'simple-contract', ref: "v1.0.15" }
+    Client = VersionedClient["v1"]
+    // ..
+  }
+  static "v2" = class VersionedContract_v2 extends VersionedClient {
+    version = "v2"
+    source = { workspace, crate: 'simple-contract', ref: "v2.12.1" }
+    Client = VersionedClient["v1"]
+    // ..
+  }
+  static "latest" = VersionedContract["v2"]
+}
+
+new VersionedContract["latest"]().client(agent).setSomething("foo")
 ```
+
 **In Fadroma 23,** state and logic will be moved
 out of `BaseContract` and into domain objects
 (`Source`, `Artifact`, `Template`, `Instance`, `Client`).
