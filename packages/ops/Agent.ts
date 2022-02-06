@@ -9,7 +9,7 @@ import { toBase64 } from '@iov/encoding'
 
 export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
 
-import type { Identity, ContractMessage } from './Core'
+import type { Identity, Message, Template } from './Core'
 import type { Chain } from './Chain'
 import type { Bundle } from './Bundle'
 export interface Agent extends Identity {
@@ -28,9 +28,9 @@ export interface Agent extends Identity {
   sendMany    (txs: Array<any>, memo?: string, denom?: string, fee?: any): Promise<any>
 
   upload      (path: string): Promise<any>
-  instantiate (contract: Contract, initMsg: ContractMessage, funds?: any[]): Promise<any>
-  query       (contract: { address: string, codeHash: string }, message: ContractMessage): Promise<any>
-  execute     (contract: { address: string, codeHash: string }, message: ContractMessage, funds?: any[], memo?: any, fee?: any): Promise<any>
+  instantiate (template: Template, label: string, initMsg: Message, funds?: any[]): Promise<any>
+  query       (contract: { address: string, codeHash: string }, message: Message): Promise<any>
+  execute     (contract: { address: string, codeHash: string }, message: Message, funds?: any[], memo?: any, fee?: any): Promise<any>
   bundle      (): Bundle<this>
 
   getCodeHash (idOrAddr: number|string): Promise<string>
@@ -63,7 +63,7 @@ export abstract class BaseAgent implements Agent {
   abstract sendMany   (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
 
   abstract upload      (path: string): Promise<any>
-  abstract instantiate (contract: Contract, msg: any, funds: any[]): Promise<any>
+  abstract instantiate (template: Template, label: string, msg: any, funds: any[]): Promise<any>
   abstract query       (contract: { address: string, codeHash: string }, msg: any): Promise<any>
   abstract execute     (contract: { address: string, codeHash: string }, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
   abstract bundle      (): Bundle<this>
@@ -90,11 +90,10 @@ export abstract class BaseAgent implements Agent {
     }
     return N
   }
-  traceResponse (N, info?) {
+  traceResponse (N, txHash?) {
     if (process.env.FADROMA_PRINT_TXS) {
       //console.info()
-      //console.info(`${bold(`${this.name}: result of call #${N}`)}:`)
-      if (info) console.info(JSON.stringify(info))
+      console.info(`${bold(`${this.name}: result of call #${N}`)}:`, txHash)
     }
   }
 }

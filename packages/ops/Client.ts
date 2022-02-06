@@ -1,4 +1,4 @@
-import type { ContractMessage } from './Core'
+import type { Message } from './Core'
 import type { Contract } from './Contract'
 import type { Agent } from './Agent'
 
@@ -12,9 +12,9 @@ export abstract class Client {
       throw new Error('@fadroma/ops/Client: no agent')
     }
   }
-  protected query   = (msg: ContractMessage) =>
+  protected query   = (msg: Message) =>
     this.agent.query(this, msg)
-  protected execute = (msg: ContractMessage) =>
+  protected execute = (msg: Message) =>
     this.agent.execute(this, msg)
 }
 
@@ -57,7 +57,7 @@ export abstract class Client {
     //readonly agent:    Agent
   //) {}
 
-  //protected execute (msg: ContractMessage) {
+  //protected execute (msg: Message) {
     //return this.agent.execute(this.contract, msg)
   //}
 //}
@@ -68,7 +68,7 @@ export abstract class Client {
     //readonly agent:    Agent
   //) {}
 
-  //protected query (msg: ContractMessage) {
+  //protected query (msg: Message) {
     //return this.agent.query(this.contract, msg)
   //}
 //}

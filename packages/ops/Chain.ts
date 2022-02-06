@@ -267,14 +267,6 @@ export abstract class BaseChain implements Chain {
     })
   }
 
-  abstract buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<void> /*{
-    const
-    const artifacts = await Promise.all
-    await Promise.all(contracts.map(contract=>contract.build()))
-    for (const contract of contracts) {
-      const chain = this
-      await contract.upload(chain, uploader)
-    }
-  }*/
+  abstract buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<void>
 
 }

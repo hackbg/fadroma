@@ -2,26 +2,15 @@ import { Console, bold } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Upload')
 
-import { basename } from '@hackbg/tools'
-import type { Artifact, Uploader, Template, UploadReceipt } from './Core'
+import type { Uploader } from './Core'
 import type { Agent } from './Agent'
-
 export class BaseUploader implements Uploader {
-
   constructor (readonly agent: Agent) {}
-
-  /** Upload the contract to a specified chain as a specified agent. */
-  async upload (artifact: Artifact): Promise<Template> {
-    // upload if not already uploaded
-    const receipt     = await uploadFromFS(this.agent, artifact, receiptPath)
-    return receipt
-  }
-
   upload = uploadFromFS
-
 }
 
-import { existsSync, mkdir, readFile, writeFile, relative } from '@hackbg/fadroma'
+import { existsSync, mkdir, readFile, writeFile, relative, basename } from '@hackbg/fadroma'
+import { Artifact, Template, UploadReceipt } from './Core'
 async function uploadFromFS (
   artifact: Artifact,
   context = this

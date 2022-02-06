@@ -1,17 +1,16 @@
-import { ChainNode } from '@fadroma/ops'
+import { Console, bold } from '@hackbg/tools'
+
+const console = Console('@fadroma/ops/ChainNode')
 
 import {
   Directory, JSONFile, JSONDirectory,
   relative, cwd, TextFile,
   Docker, waitPort, freePort, ensureDockerImage, waitUntilLogsSay,
-  bold, Console
 } from '@hackbg/tools'
 
 import type { Identity } from './Core'
 
 import { URL } from 'url'
-
-const console = Console('@fadroma/ops/ChainNode')
 
 export type ChainNodeConstructor =
   new (options?: ChainNodeOptions) => ChainNode
@@ -314,7 +313,8 @@ export abstract class DockerChainNode extends BaseChainNode {
     this.port = (await freePort()) as number
 
     // create the state dirs and files
-    const items = [this.stateRoot, this.nodeState, this.daemonDir, this.clientDir]
+    const items = [this.stateRoot, this.nodeState]
+    console.log({items})
     for (const item of items) {
       try {
         item.make()

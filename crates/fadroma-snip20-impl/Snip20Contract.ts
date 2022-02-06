@@ -5,7 +5,7 @@ import Scrt_1_2 from "@fadroma/scrt-1.2"
 import { Snip20Client } from './Snip20Client'
 export { Snip20Client }
 
-export class Snip20Contract extends BaseContract {
+export class Snip20Contract extends BaseContract<Snip20Client> {
   name   = 'Snip20'
 
   Client = Snip20Client

@@ -2,20 +2,11 @@ import { Console, bold } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Build')
 
-import {
-  resolve, relative,
-  rimraf, spawnSync, existsSync,
-  Docker, ensureDockerImage, 
-} from '@hackbg/tools'
+import { resolve, relative, rimraf, spawnSync, existsSync, readFileSync } from '@hackbg/tools'
 
 import { Source, Builder, Artifact } from './Core'
-
 export abstract class BaseBuilder implements Builder {
   abstract build (source: Source): Promise<Artifact>
-}
-
-export abstract class RawBuilder extends BaseBuilder {
-  build = buildRaw
 }
 
 export abstract class DockerBuilder extends BaseBuilder {
@@ -25,49 +16,45 @@ export abstract class DockerBuilder extends BaseBuilder {
   build = buildInDocker
 }
 
-export async function buildRaw (source: Source, context = this): Promise<Artifact> {
-  const { ref = 'HEAD', workspace, crate } = source
-  if (ref && ref !== 'HEAD') {
-    throw new Error('[@fadroma/ops/Contract] non-HEAD builds unsupported outside Docker')
-  }
-  const run = (cmd: string, ...args: string[]) =>
-    spawnSync(cmd, args, {
-      cwd:   workspace,
-      stdio: 'inherit',
-      env:   { RUSTFLAGS: '-C link-arg=-s' }
-    })
-  run('cargo',
-      'build', '-p', crate,
-      '--target', 'wasm32-unknown-unknown',
-      '--release',
-      '--locked',
-      '--verbose')
-  run('wasm-opt',
-      '-Oz', './target/wasm32-unknown-unknown/release/$Output.wasm',
-      '-o', '/output/$FinalOutput')
-  run('sh', '-c',
-      "sha256sum -b $FinalOutput > $FinalOutput.sha256")
-  return location
-}
+import { tmp, Docker, ensureDockerImage } from '@hackbg/tools'
+import { codeHashForPath } from './Core'
+export async function buildInDocker (
+  source: Source,
+  context = this /* is magic */
+): Promise<Artifact> {
 
-export async function buildInDocker (source: Source, context = this): Promise<Artifact> {
-  const { workspace, crate, ref = 'HEAD' } = source
+  let {
+    workspace,
+    crate,
+    ref = 'HEAD'
+  } = source
+
   if (!workspace) {
     throw new Error(`[@fadroma/ops] Missing workspace path (crate ${crate} at ${ref})`)
   }
 
-  const { buildImage, buildDockerfile, buildScript } = context
+  let {
+    buildImage,
+    buildDockerfile,
+    buildScript,
+    socketPath = '/var/run/docker.sock',
+    docker     = new Docker({ socketPath })
+  } = context
 
   const outputDir = resolve(workspace, 'artifacts')
+
   const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
+
   if (existsSync(location)) {
-    //console.info(bold(`Exists:`), relative(process.cwd(), location))
-    return { location }
+    console.info(bold('Exists:'), location)
+    return { location, codeHash: codeHashForPath(location) }
   }
 
   const run = (cmd: string, ...args: string[]) =>
     spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit' })
+
   let tmpDir
+
   try {
 
     if (!ref || ref === 'HEAD') {
@@ -130,20 +117,61 @@ export async function buildInDocker (source: Source, context = this): Promise<Ar
         'LOCKED=',//'--locked'
       ]
     }
+
     console.debug(
       `Running ${bold(buildCommand)} in ${bold(buildImage)} with the following options:`,
       buildArgs
     )
-    const [{ Error:err, StatusCode:code }, container] =
-      await docker.run(buildImage, buildCommand, process.stdout, buildArgs)
+
+    const [{ Error:err, StatusCode:code }, container] = await docker.run(
+      buildImage, buildCommand, process.stdout, buildArgs
+    )
+
     await container.remove()
-    if (err) throw err
+
+    if (err) {
+      throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
+    }
+
     if (code !== 0) {
       console.error(bold('Build of'), crate, 'exited with', bold(code))
       throw new Error(`[@fadroma/ops/Build] Build of ${crate} exited with status ${code}`)
     }
-    return { location }
+
+    return { location, codeHash: codeHashForPath(location) }
+
   } finally {
     if (tmpDir) rimraf(tmpDir.name)
   }
+
+}
+
+export abstract class RawBuilder extends BaseBuilder {
+  build = buildRaw
+}
+
+export async function buildRaw (source: Source, context = this): Promise<Artifact> {
+  throw new Error('pls review')
+  const { ref = 'HEAD', workspace, crate } = source
+  if (ref && ref !== 'HEAD') {
+    throw new Error('[@fadroma/ops/Contract] non-HEAD builds unsupported outside Docker')
+  }
+  const run = (cmd: string, ...args: string[]) =>
+    spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit', env: {
+      RUSTFLAGS: '-C link-arg=-s'
+      Output,
+      FinalOutput
+    } })
+  run('cargo',
+      'build', '-p', crate,
+      '--target', 'wasm32-unknown-unknown',
+      '--release',
+      '--locked',
+      '--verbose')
+  run('wasm-opt',
+      '-Oz', './target/wasm32-unknown-unknown/release/$Output.wasm',
+      '-o', '/output/$FinalOutput')
+  run('sh', '-c',
+      "sha256sum -b $FinalOutput > $FinalOutput.sha256")
+  return { location }
 }

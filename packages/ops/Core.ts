@@ -1,4 +1,79 @@
-export type Identity = {
+export { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
+
+import { toHex } from '@iov/encoding'
+import { Sha256 } from '@iov/crypto'
+import { readFileSync } from '@hackbg/tools'
+export function codeHashForPath (location: string) {
+  return toHex(new Sha256(readFileSync(location)).digest())
+}
+
+export interface Source {
+  workspace: string
+  crate:     string
+  ref?:      string
+}
+
+export interface Builder {
+  build (source: Source, ...args): Promise<Artifact>
+}
+
+export interface Artifact {
+  location:  string
+  codeHash?: string
+}
+
+export interface Uploader {
+  upload (artifact: Artifact, ...args): Promise<Template>
+}
+
+export interface Template {
+  chainId:          string
+  transactionHash?: string
+  codeId:           string
+  codeHash?:        string
+}
+
+export interface UploadReceipt {
+  codeId:             number
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               any[]
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
+}
+
+export interface Instance {
+  prefix?:   string
+  name?:     string
+  suffix?:   string
+  label?:    string
+
+  address:   string
+  codeHash?: string
+
+  receipt?:  InitReceipt
+}
+
+export interface InitReceipt {
+  label:    string
+  codeId:   number
+  codeHash: string
+  address:  string
+  initTx:   string
+  gasUsed:  string
+}
+
+export interface InitTX {
+  txhash:          string
+  contractAddress: string
+  data:            string
+  logs:            Array<any>
+  transactionHash: string
+  gas_used:        string
+}
+
+export interface Identity {
   chainId?:  string,
   address?:  string
   name?:     string,
@@ -10,9 +85,9 @@ export type Identity = {
   fees?:     any
 }
 
-export type ContractMessage = string|Record<string, any>
+export type Message = string|Record<string, any>
 
-export function getMethod (msg: ContractMessage) {
+export function getMethod (msg: Message) {
   if (typeof msg === 'string') {
     return msg
   } else {
@@ -102,65 +177,4 @@ export const print = {
     }
   }
 
-}
-
-export interface Source {
-  workspace: string
-  crate:     string
-  ref?:      string
-}
-
-export interface Builder {
-  build (source: Source, ...args): Promise<Artifact>
-}
-
-export interface Artifact {
-  location:  string
-  codeHash?: string
-}
-
-export interface Uploader {
-  upload (artifact: Artifact, ...args): Promise<Template>
-}
-
-export interface Template {
-  chainId:   string
-  codeId:    string
-  codeHash?: string
-  receipt?:  UploadReceipt
-}
-
-export interface UploadReceipt {
-  codeId:             number
-  compressedChecksum: string
-  compressedSize:     string
-  logs:               any[]
-  originalChecksum:   string
-  originalSize:       number
-  transactionHash:    string
-}
-
-export interface Instance {
-  address:   string
-  codeHash?: string
-  label?:    string
-  receipt?:  InitReceipt
-}
-
-export interface InitReceipt {
-  label:    string
-  codeId:   number
-  codeHash: string
-  address:  string
-  initTx:   string
-  gasUsed:  string
-}
-
-export interface InitTX {
-  txhash:          string
-  contractAddress: string
-  data:            string
-  logs:            Array<any>
-  transactionHash: string
-  gas_used:        string
 }

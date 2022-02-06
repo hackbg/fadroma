@@ -21,12 +21,8 @@ export * from './Upload'
 
 export * from './Contract'
 
-export * from './Init'
-
 export * from './Deploy'
 
 export * from './Client'
 
 export * from './Mock'
-
-export { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'

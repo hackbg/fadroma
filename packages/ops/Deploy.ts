@@ -15,19 +15,21 @@ const console = Console('@fadroma/ops/Deploy')
 import type { Contract } from './Contract'
 import type { Agent } from './Agent'
 import type { Chain } from './Chain'
-import { ContractMessage, print, join } from './Core'
-import { Init, InitReceipt } from './Init'
+import { Message, Template, print, join } from './Core'
 
 export class Deployment {
+
   prefix:   string
+
   receipts: Record<string, any> = {}
+
   constructor (
     public readonly path: string,
   ) {
     this.load()
   }
 
-  /** Load deployment state from YML file. */
+  /** Load deployment state from YAML file. */
   load (path = this.path) {
     try {
       this.prefix = basename(readlinkSync(path), '.yml')
@@ -37,6 +39,45 @@ export class Deployment {
     for (const receipt of YAML.loadAll(readFileSync(path, 'utf8'))) {
       const [contractName, _version] = receipt.name.split('+')
       this.receipts[contractName] = receipt
+    }
+  }
+
+  /** Write deployment state to YAML file. */
+  save () {
+    let output = ''
+    for (let [name, data] of Object.entries(this.receipts)) {
+      output += '---\n'
+      output += alignYAML(YAML.dump({ name, ...data }, { noRefs: true }))
+    }
+    writeFileSync(this.path, output)
+  }
+
+  /** Add arbitrary data to the deployment. */
+  add (name: string, data: any) {
+    this.receipts[name] = { name, ...this.receipts[name] || {}, ...data }
+    this.save()
+  }
+
+  async instantiate (
+    creator: Agent,
+    ...contracts: [Contract<any>, any?, string?, string?][]
+  ) {
+    for (const [
+      contract,
+      msg    = contract.initMsg,
+      name   = contract.name,
+      suffix = ''
+    ] of contracts) {
+      const label = `${this.prefix}/${name}${suffix}`
+      console.info(bold('Instantiate:'), label)
+      const receipt = await creator.instantiate(contract.template, label, msg)
+      contract.instance = {
+        address:  receipt.contractAddress,
+        codeHash: contract.template.codeHash,
+        label,
+      }
+      this.receipts[name] = receipt
+      this.save()
     }
   }
 
@@ -71,31 +112,6 @@ export class Deployment {
         ` in deployment ${bold(this.prefix)}`
       )
     }
-  }
-
-  /** Gets an Init object that lets the caller instantiate
-    * a new contract as a specific agent, storing the receipt
-    * as part of this deployment. */
-  init (creator: Agent): Init {
-    return new Init(creator, this.prefix, receipt=>{
-      this.receipts[receipt.name] = receipt
-      this.save()
-    })
-  }
-
-  /** Add arbitrary data to the deployment. */
-  add (name: string, data: any) {
-    this.receipts[name] = { name, ...this.receipts[name] || {}, ...data }
-    this.save()
-  }
-  /** Write the deployment to a file. */
-  save () {
-    let output = ''
-    for (let [name, data] of Object.entries(this.receipts)) {
-      output += '---\n'
-      output += alignYAML(YAML.dump({ name, ...data }, { noRefs: true }))
-    }
-    writeFileSync(this.path, output)
   }
   getAll <C extends Contract> (fragment: string, getContract: (string)=>C): C[] {
     const contracts = []

@@ -15,8 +15,8 @@ export class ScrtDockerBuilder_1_2 extends ScrtDockerBuilder {
   buildDockerfile = buildDockerfile
 }
 
-import { ScrtContract } from '@fadroma/scrt'
-export abstract class ScrtContract_1_2 extends ScrtContract {
+import { ScrtContract, Client } from '@fadroma/scrt'
+export abstract class ScrtContract_1_2<C extends Client> extends ScrtContract<C> {
   Builder = ScrtDockerBuilder_1_2
 }
 

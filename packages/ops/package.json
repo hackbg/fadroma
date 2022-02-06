@@ -5,6 +5,7 @@
   "main": "./index.ts",
   "dependencies": {
     "@hackbg/tools":             "^1",
+    "@iov/crypto":               "^2.1.0",
     "@iov/encoding":             "^2.1.0",
     "ajv":                       "^8.6",
     "align-yaml":                "^0.1.8",

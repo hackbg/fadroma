@@ -1,4 +1,4 @@
-import type { ContractMessage } from './Core'
+import type { Message } from './Core'
 import type { BuildInfo, Buildable } from './Build'
 import type { UploadInfo, Uploadable, UploadReceipt } from './Upload'
 import type { ContractInit, InitTX, InitReceipt } from './Init'
@@ -26,24 +26,40 @@ import { Init } from './Init'
 
 import { Client } from './Client'
 
-export interface Contract<C extends Client> {
+export interface ContractInfo {
   source?:   Source
-  builder?:  Builder
   artifact?: Artifact
-  uploader?: Uploader
   template?: Template
   instance?: Instance
+}
 
-  build?  (builder?: Builder): Promise<Artifact>
-  upload? (uploader?: Uploader): Promise<Template>
-  client? (Agent): C
+export interface Contract<C extends Client> extends ContractInfo {
+  readonly name: string
+
+  Builder?: new <B extends Builder> () => Builder
+  builder?: Builder
+  build? (builder?: Builder): Promise<Artifact>
+
+  Uploader?: new <U extends Uploader> (agent: Agent) => Uploader
+  uploader?: Uploader
+  upload? (by: Agent|Uploader): Promise<Template>
+
+  initMsg?: any
+
+  Client?: new (agent: Agent, address: string, codeHash: string) => C
+  client? (agent: Agent): C
 }
 
 export abstract class BaseContract<C extends Client> implements Contract<C> {
 
+  constructor (options: any = {}) { Object.assign(this, options) }
+
   abstract name: string
 
   source:   Source   | null
+  artifact: Artifact | null
+  template: Template | null
+  instance: Instance | null
 
   Builder:  new <B extends Builder> () => Builder
   builder:  Builder  | null
@@ -52,18 +68,13 @@ export abstract class BaseContract<C extends Client> implements Contract<C> {
     return this.artifact = await this.builder.build(this.source)
   }
 
-  artifact: Artifact | null
-
-  Uploader: new <U extends Uploader> (agent: Agent) => Uploader = BaseUploader
+  Uploader: new <U extends Uploader> (agent: Agent) => Uploader
   uploader: Uploader | null
-  async upload (agent: Agent, uploader = new this.Uploader(agent)) {
-    this.uploader = uploader
+  async upload (by: Agent|Uploader) {
+    if (by instanceof BaseAgent) by = new this.Uploader(by)
+    this.uploader = by as Uploader
     return this.template = await this.uploader.upload(this.artifact)
   }
-
-  template: Template | null
-
-  instance: Instance | null
 
   Client: new (agent: Agent, address: string, codeHash: string) => C
   client (agent: Agent): C {
@@ -183,7 +194,7 @@ export abstract class BaseContract<C extends Client> implements Contract<C> {
   //agent?:       Agent
   //[>* Execute a contract transaction. <]
   //execute (
-    //msg: ContractMessage = "",
+    //msg: Message = "",
     //memo: string = "", amount: unknown[] = [], fee: unknown = undefined,
     //agent: Agent = this.creator || this.agent
   //) {
@@ -191,7 +202,7 @@ export abstract class BaseContract<C extends Client> implements Contract<C> {
     //return backOff(tryExecute, this.backOffOptions)
   //}
   //[>* Query the contract. <]
-  //query (msg: ContractMessage = "", agent: Agent = this.creator || this.agent) {
+  //query (msg: Message = "", agent: Agent = this.creator || this.agent) {
     //const tryQuery = () => agent.query(this, msg)
     //return backOff(tryQuery,  this.backOffOptions)
   //}
