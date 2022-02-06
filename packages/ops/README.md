@@ -5,10 +5,9 @@
 
 </td><td valign="center">
 
-# Fadroma Ops ![](https://img.shields.io/badge/version-22.01-blueviolet)
+# Fadroma Ops <br> ![](https://img.shields.io/badge/version-22.01-blueviolet?style=plastic)
 
-**This package models the lifecycle of a smart contract,
-and allows the user to compile and deploy source code to a blockchain.**
+**Fadroma supervises the lifecycle of a smart contract from source code to client.**
 
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
@@ -54,7 +53,7 @@ class SimpleClient extends Client {
 new SimpleClient(agent, address, codeHash).setSomething("foo")
 ```
 
-![](https://img.shields.io/badge/-protip-blueviolet?style=for-the-badge)
+![](https://img.shields.io/badge/-PRO%20TIP-blueviolet?style=plastic)
 Use this pattern to support different contract API versions:
 
 ```typescript
@@ -108,7 +107,7 @@ class SimpleContract extends Contract<SimpleClient> {
 new SimpleContract().client(agent).setSomething("foo")
 ```
 
-![](https://img.shields.io/badge/-protip-blueviolet?style=for-the-badge)
+![](https://img.shields.io/badge/-PRO%20TIP-blueviolet?style=plastic)
 Use this pattern to return the appropriate versioned `Client`:
 
 ```typescript
