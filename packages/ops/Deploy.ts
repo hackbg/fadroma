@@ -82,7 +82,6 @@ export class Deployment {
           codeHash: contract.codeHash
         }
       }
-      console.log({contract, template})
       const receipt = await creator.instantiate(
         template,
         label,
@@ -102,7 +101,6 @@ export class Deployment {
     if (!receipt) {
       throw new Error(`@fadroma/ops/Deploy: ${name}: no such contract in deployment`)
     }
-    console.log(name, receipt)
     return receipt
   }
 

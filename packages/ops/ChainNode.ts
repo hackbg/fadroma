@@ -314,7 +314,6 @@ export abstract class DockerChainNode extends BaseChainNode {
 
     // create the state dirs and files
     const items = [this.stateRoot, this.nodeState]
-    console.log({items})
     for (const item of items) {
       try {
         item.make()
