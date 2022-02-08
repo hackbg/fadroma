@@ -151,21 +151,26 @@ import {
 export abstract class ScrtAgentJS extends BaseAgent {
 
   /** Create a new agent from a signing pen. */
-  constructor (options: Identity & { API: APIConstructor }) {
+  constructor (options: Identity & { API?: APIConstructor } = {}) {
     super(options)
-    this.chain    = options.chain as Scrt
-    this.name     = options.name || ''
-    this.keyPair  = options.keyPair
-    this.mnemonic = options.mnemonic
-    this.pen      = options.pen
-    this.fees     = options.fees || ScrtGas.defaultFees
-    this.pubkey   = encodeSecp256k1Pubkey(options.pen.pubkey)
-    this.address  = pubkeyToAddress(this.pubkey, 'secret')
-    this.sign     = this.pen.sign.bind(this.pen)
-    this.seed     = EnigmaUtils.GenerateNewSeed()
+    this.name     = options?.name || ''
+    this.chain    = options?.chain as Scrt // TODO chain id to chain
+    this.fees     = options?.fees || ScrtGas.defaultFees
+    this.keyPair  = options?.keyPair
+    this.mnemonic = options?.mnemonic
+    this.pen      = options?.pen
+    if (this.pen) {
+      this.pubkey   = encodeSecp256k1Pubkey(options?.pen.pubkey)
+      this.address  = pubkeyToAddress(this.pubkey, 'secret')
+      this.sign     = this.pen.sign.bind(this.pen)
+      this.seed     = EnigmaUtils.GenerateNewSeed()
+    }
     this.API = new (options.API)(
-      this.chain.url, this.address,
-      this.sign, this.seed, this.fees,
+      this.chain?.url,
+      this.address,
+      this.sign,
+      this.seed,
+      this.fees,
       BroadcastMode.Sync
     )
   }
@@ -246,7 +251,13 @@ export abstract class ScrtAgentJS extends BaseAgent {
   }
 
   async upload (pathToBinary: string) {
-    return await this.API.upload(await readFile(pathToBinary), {})
+    if (!(typeof pathToBinary === 'string')) {
+      throw new Error(
+        `@fadroma/scrt: Need path to binary (string), received: ${pathToBinary}`
+      )
+    }
+    const data = await readFile(pathToBinary)
+    return await this.API.upload(data, {})
   }
   async getCodeHash (idOrAddr: number|string): Promise<string> {
     if (typeof idOrAddr === 'number') {
