@@ -4,7 +4,7 @@
   "type": "module",
   "main": "./test.mjs",
   "dependencies": {
-    "@hackbg/fadroma": "workspace:*",
+    "@hackbg/fadroma": "workspace:../",
     "@hackbg/ganesha": "^1",
     "@hackbg/tools":   "^1",
     "@iov/encoding":   "^2.1.0",
