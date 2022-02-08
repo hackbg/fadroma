@@ -88,16 +88,18 @@ export class Fadroma {
   // Is this a monad?
   private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
     requireChainId(this.chainId, this.chains)
+
     const { chain, agent } = await initChainAndAgent(this.chains, this.chainId)
+
     let context: MigrationContext = {
+      cmdArgs,
+      timestamp: timestamp(),
       chain,
       agent,
-      timestamp: timestamp(),
-      cmdArgs,
       suffix: `+${timestamp()}`,
       // Run a sub-procedure in the same context,
       // but without mutating the context.
-      async run (procedure: Function, args: Record<string, any> = {}): Promise<any> {
+      async run <T> (procedure: Function, args: Record<string, any> = {}): Promise<T> {
         console.info(bold('Running procedure:'), procedure.name||'(unnamed)', '{', Object.keys(args).join(' '), '}')
         const T0 = + new Date()
         let fail = false
@@ -111,6 +113,7 @@ export class Fadroma {
         }
       },
     }
+
     const T0 = + new Date()
     const stepTimings = []
     // Composition of commands via steps:

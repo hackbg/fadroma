@@ -19,8 +19,8 @@ export class ScrtDockerBuilder extends DockerBuilder {
   buildScript     = buildScript
 }
 
-import { Client, BaseContract } from '@fadroma/ops'
-export abstract class ScrtContract<C extends Client> extends BaseContract<C> {
+import { Client, Contract } from '@fadroma/ops'
+export abstract class ScrtContract<C extends Client> extends Contract<C> {
   Builder = ScrtDockerBuilder
 }
 
@@ -349,8 +349,9 @@ export class ScrtAgentTX extends BaseAgent {
       }
     })
   }
-  query (contract: Contract, message: Message): Promise<any> {
-    throw new Error('ScrtAgentTX.query: not implemented')
+  query (instance: { address, codeHash }, message: Message): Promise<any> {
+    console.trace(`ScrtAgentTX.query: not implemented: ${JSON.stringify(message)}`)
+    return null
   }
 
   private async encrypt (codeHash, msg) {
@@ -360,10 +361,10 @@ export class ScrtAgentTX extends BaseAgent {
   }
 }
 
-import { BaseBundle, Artifact, Template, Instance, toBase64, fromBase64, fromUtf8 } from '@fadroma/ops'
+import { Bundle, Artifact, Template, Instance, toBase64, fromBase64, fromUtf8 } from '@fadroma/ops'
 import { PostTxResult } from 'secretjs'
 import pako from 'pako'
-export class ScrtBundle extends BaseBundle<PostTxResult> {
+export class ScrtBundle extends Bundle<PostTxResult> {
 
   constructor (readonly agent: ScrtAgentJS) { super(agent) }
 
@@ -410,7 +411,7 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     return toBase64(encrypted)
   }
 
-  async run (memo = ""): Promise<{
+  async submit (memo = ""): Promise<{
     tx:       string,
     codeId?:  string,
     address?: string,

@@ -1,11 +1,11 @@
-import { BaseContract, Agent } from "@fadroma/scrt"
+import { Contract, Agent } from "@fadroma/scrt"
 import Scrt_1_0 from "@fadroma/scrt-1.0"
 import Scrt_1_2 from "@fadroma/scrt-1.2"
 
 import { Snip20Client } from './Snip20Client'
 export { Snip20Client }
 
-export class Snip20Contract extends BaseContract<Snip20Client> {
+export class Snip20Contract extends Contract<Snip20Client> {
   name   = 'Snip20'
 
   Client = Snip20Client
