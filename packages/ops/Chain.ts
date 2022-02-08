@@ -7,12 +7,12 @@ import {
 
 import { URL } from 'url'
 
-import { Identity } from './Core'
+import { Identity, Artifact, Template } from './Core'
 import { ChainNode } from './ChainNode'
 import { Agent, AgentConstructor, BaseAgent, MockAgent } from './Agent'
 import { Contract } from './Contract'
 import { Deployments } from './Deploy'
-import { Uploads } from './Upload'
+import { Uploads, CachingUploader } from './Upload'
 
 const console = Console('@fadroma/ops/Chain')
 
@@ -51,7 +51,7 @@ export interface Chain extends ChainOptions {
   getAgent        (options?: Identity): Promise<Agent>
   getContract <T> (api: new()=>T, address: string, agent: Agent): T
   printIdentities (): void
-  buildAndUpload  (uploader: Agent, contracts: Contract<any>[]): Promise<void>
+  buildAndUpload  (uploader: Agent, contracts: Contract<any>[]): Promise<Template[]>
 }
 
 export async function initChainAndAgent (
@@ -267,6 +267,15 @@ export abstract class BaseChain implements Chain {
     })
   }
 
-  abstract buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<void>
+  async buildAll (contracts: Contract<any>[]): Promise<Artifact[]> {
+    return Promise.all(contracts.map(contract=>contract.build()))
+  }
+
+  async buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<Template[]> {
+    const artifacts = await this.buildAll(contracts)
+    const uploader = new CachingUploader(agent, this.uploads)
+    await uploader.uploadAll(agent, contracts)
+    return contracts.map(c=>c.template)
+  }
 
 }

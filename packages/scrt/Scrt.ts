@@ -31,18 +31,7 @@ import {
   readFileSync, writeFileSync
 } from '@fadroma/ops'
 export abstract class Scrt extends BaseChain {
-
   faucet = `https://faucet.secrettestnet.io/`
-
-  async buildAll (contracts: Contract<any>[]): Promise<Artifact[]> {
-    return Promise.all(contracts.map(contract=>contract.build()))
-  }
-
-  async buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<void> {
-    const artifacts = await this.buildAll(contracts)
-    const uploader = new CachingUploader(agent, this.uploads)
-    await uploader.uploadAll(agent, contracts)
-  }
 }
 
 import { Fees, BaseGas } from '@fadroma/ops'
@@ -275,7 +264,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
       //{ msg }
     )
     const response = await this.API.queryContractSmart(address, msg as any, undefined, codeHash)
-    this.traceResponse(N, /*{ response }*/)
+    //this.traceResponse(N, [>{ response }<])
     return response
   }
   async execute (contract: Contract, msg: Message, memo: any, amount: any, fee: any) {

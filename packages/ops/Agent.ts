@@ -37,6 +37,8 @@ export interface Agent extends Identity {
   getCodeId   (address: string): Promise<number>
   getLabel    (address: string): Promise<string>
 
+  buildAndUpload (contracts: Contract<any>[]): Promise<Template[]>
+
   traceCall     (callType: string, info?: any): number
   traceResponse (N: number, info?: any)
 }
@@ -73,6 +75,10 @@ export abstract class BaseAgent implements Agent {
   abstract getLabel    (address: string): Promise<string>
 
   constructor (_options?: Identity) {}
+
+  buildAndUpload (contracts: Contract<any>[]) {
+    return this.chain.buildAndUpload(this, contracts)
+  }
 
   // TODO combine with backoff
   private callCounter = 0
