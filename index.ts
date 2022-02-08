@@ -92,6 +92,7 @@ export class Fadroma {
       agent,
       timestamp: timestamp(),
       cmdArgs,
+      suffix: `+${timestamp()}`,
       // Run a sub-procedure in the same context,
       // but without mutating the context.
       async run (procedure: Function, args: Record<string, any> = {}): Promise<any> {
