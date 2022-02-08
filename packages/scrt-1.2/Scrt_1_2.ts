@@ -20,8 +20,8 @@ export abstract class ScrtContract_1_2<C extends Client> extends ScrtContract<C>
   Builder = ScrtDockerBuilder_1_2
 }
 
-import { Scrt, ScrtAgentTX } from '@fadroma/scrt'
 const { FADROMA_PREPARE_MULTISIG } = process.env
+import { Scrt, ScrtAgentTX } from '@fadroma/scrt'
 export class Scrt_1_2 extends Scrt {
   Agent = FADROMA_PREPARE_MULTISIG ? ScrtAgentTX : ScrtAgentJS_1_2
 }
@@ -108,12 +108,17 @@ export class DockerScrtNode_1_2 extends DockerScrtNode {
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
   readonly readyPhrase     = 'indexed block'
   readonly initScript      = new TextFile(__dirname, 'Scrt_1_2_Init.sh')
-  constructor (options: ChainNodeOptions = {}) {
+  constructor ({
+    image,
+    chainId,
+    identities,
+    stateRoot
+  }: ChainNodeOptions = {}) {
     super()
-    if (options.image) this.image = options.image
-    if (options.chainId) this.chainId = options.chainId
-    if (options.identities) this.identitiesToCreate = options.identities
-    this.setDirectories(options.stateRoot)
+    if (image)      this.image = image
+    if (chainId)    this.chainId = chainId
+    if (identities) this.identitiesToCreate = identities
+    this.setDirectories(stateRoot)
   }
 }
 
@@ -176,6 +181,17 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
       if (now > sent) break
     }
   }
+
+  async instantiate (...args: Array<any>) {
+    let {transactionHash:id} = await super.instantiate(...args)
+    return await this.getTxResult(id)
+  }
+
+  async execute (...args: Array<any>) {
+    let {transactionHash:id} = await super.execute(...args)
+    return await this.getTxResult(id)
+  }
+
   async getTxResult (id: string) {
     let resultRetries = this.resultRetries
     while (resultRetries--) {
@@ -206,13 +222,5 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
         continue
       }
     }
-  }
-  async instantiate (...args: Array<any>) {
-    let {transactionHash:id} = await super.instantiate(...args)
-    return await this.getTxResult(id)
-  }
-  async execute (...args: Array<any>) {
-    let {transactionHash:id} = await super.execute(...args)
-    return await this.getTxResult(id)
   }
 }

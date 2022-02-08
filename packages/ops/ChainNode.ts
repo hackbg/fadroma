@@ -12,9 +12,6 @@ import type { Identity } from './Core'
 
 import { URL } from 'url'
 
-export type ChainNodeConstructor =
-  new (options?: ChainNodeOptions) => ChainNode
-
 export type ChainNodeOptions = {
   /** Handle to Dockerode or compatible
    *  TODO mock! */
@@ -192,6 +189,7 @@ export abstract class DockerChainNode extends BaseChainNode {
   container: {
     id:       string
     Warnings: any
+    logs:     Function
   }
 
   private isRunning = async (id: string = this.container.id) =>
@@ -235,7 +233,13 @@ export abstract class DockerChainNode extends BaseChainNode {
     if (this.chainId !== chainId) {
       console.warn(`Loading state of ${chainId} into ChainNode with id ${this.chainId}`)
     }
-    this.container = { id: containerId, Warnings: null }
+    this.container = {
+      id: containerId,
+      Warnings: null,
+      logs () {
+        throw new Error('@fadroma/ops/ChainNode: tried to tail logs before creating container')
+      }
+    }
     this.port = Number(port)
     this.apiURL.port = String(port)
     return {containerId, chainId, port}
@@ -290,8 +294,8 @@ export abstract class DockerChainNode extends BaseChainNode {
       } else {
         console.log()
         console.info(
-          bold('Deployed in container'), this.container.id,
-          bold('port'), this.port
+          'Localnet is running on port', bold(String(this.port)),
+          'from container', bold(this.container.id.slice(0,8))
         )
       }
     })
@@ -337,7 +341,7 @@ export abstract class DockerChainNode extends BaseChainNode {
     console.info(`Created container ${this.container.id} (${bold(this.nodeState.path)})...`)
 
     // start the container
-    await this.startContainer(this.container.idget)
+    await this.startContainer(this.container.id)
     console.info(`Started container ${this.container.id}...`)
 
     // update the record

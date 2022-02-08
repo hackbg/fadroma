@@ -149,6 +149,7 @@ import {
   pubkeyToAddress, makeSignBytes, BroadcastMode
 } from 'secretjs'
 export abstract class ScrtAgentJS extends BaseAgent {
+
   /** Create a new agent from a signing pen. */
   constructor (options: Identity & { API: APIConstructor }) {
     super(options)
@@ -393,7 +394,7 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     }
     const signedTx = await this.agent.API.signAdapter(
       msgs,
-      new ScrtGas(this.msgs.length*3000000),
+      new ScrtGas(this.msgs.length*5000000),
       this.agent.chain.id,
       memo,
       accountNumber,
