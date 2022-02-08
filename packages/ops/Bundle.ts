@@ -19,11 +19,13 @@ export interface Bundle<T> {
 export abstract class BaseBundle<T> implements Bundle<T> {
   constructor (readonly agent: Agent) {}
   get chain () { return this.agent.chain }
+  get chainId () { return this.agent.chain.id }
   get address () { return this.agent.address }
+  bundle () { throw new Error('@fadroma/ops/Bundle: already in a bundle') }
   abstract upload  (artifact: Artifact): this
   abstract init    (template: Template, label: string, initMsg: Message): this
   abstract execute (instance: Instance, handleMsg: Message): this
-  abstract run (): Promise<any>
+  abstract run (): Promise<BundleResult[]>
   protected id: number = 0
   protected msgs: Promise<any>[] = []
   protected add (msg: any): number {
@@ -35,4 +37,11 @@ export abstract class BaseBundle<T> implements Bundle<T> {
     await cb(this)
     return this.run()
   }
+}
+
+export type BundleResult = {
+  tx:       string,
+  type:     string
+  codeId?:  string,
+  address?: string
 }

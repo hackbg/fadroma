@@ -52,6 +52,21 @@ export interface Contract<C extends Client> extends ContractInfo {
 
 export abstract class BaseContract<C extends Client> implements Contract<C> {
 
+  // TODO: merge interface Contract and abstract class BaseContract
+  //       into (abstract?) class Contract; then implement these:
+  static fromSource (path: string, crate?: string) {
+    throw new Error('not implemented')
+  }
+  static fromWASM (path: string, expectedCodeHash?: string) {
+    throw new Error('not implemented')
+  }
+  static fromCodeId (chainId: string, expectedCodeHash?: string) {
+    throw new Error('not implemented')
+  }
+  static fromAddress (chainId: string, address: string, expectedCodeHash?: string) {
+    throw new Error('not implemented')
+  }
+
   constructor (options: any = {}) { Object.assign(this, options) }
 
   abstract name: string
@@ -60,6 +75,8 @@ export abstract class BaseContract<C extends Client> implements Contract<C> {
   artifact: Artifact | null
   template: Template | null
   instance: Instance | null
+  get address () { return this.instance.address }
+  set address (v: string) { this.instance.address = v }
 
   Builder:  new <B extends Builder> () => Builder
   builder:  Builder  | null

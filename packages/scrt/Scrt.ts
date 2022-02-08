@@ -355,7 +355,9 @@ import { BaseBundle, Artifact, Template, Instance, toBase64, fromBase64, fromUtf
 import { PostTxResult } from 'secretjs'
 import pako from 'pako'
 export class ScrtBundle extends BaseBundle<PostTxResult> {
+
   constructor (readonly agent: ScrtAgentJS) { super(agent) }
+
   upload ({ location }: Artifact) {
     this.add(readFile(location).then(wasm=>({
       type: 'wasm/MsgStoreCode',
@@ -366,6 +368,7 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     })))
     return this
   }
+
   init ({ codeId, codeHash }: Template, label, msg, init_funds = []) {
     const sender  = this.address
     const code_id = String(codeId)
@@ -375,11 +378,13 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     })))
     return this
   }
+
   async instantiate (template: Template, label, msg, init_funds = []) {
     await this.init(template, label, msg, init_funds)
     const { codeId, codeHash } = template
     return { chainId: this.agent.chain.id, codeId, codeHash }
   }
+
   execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
     const sender   = this.address
     const contract = address
@@ -389,12 +394,18 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     })))
     return this
   }
+
   private async encrypt (codeHash, msg) {
     if (!codeHash) throw new Error('@fadroma/scrt: missing codehash')
     const encrypted = await this.agent.API.restClient.enigmautils.encrypt(codeHash, msg)
     return toBase64(encrypted)
   }
-  async run (memo = ""): Promise<PostTxResult> {
+
+  async run (memo = ""): Promise<{
+    tx:       string,
+    codeId?:  string,
+    address?: string,
+  }[]> {
     const N = this.agent.traceCall(
       `${bold(colors.yellow('MULTI'.padStart(5)))} ${this.msgs.length} messages`,
     )
@@ -406,17 +417,34 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
     const signedTx = await this.agent.API.signAdapter(
       msgs,
       new ScrtGas(this.msgs.length*5000000),
-      this.agent.chain.id,
+      this.chainId,
       memo,
       accountNumber,
       sequence
     )
     try {
-      const result = await this.agent.API.postTx(signedTx)
-      this.agent.traceResponse(N, result.transactionHash)
-      return result
+      const txResult = await this.agent.API.postTx(signedTx)
+      this.agent.traceResponse(N, txResult.transactionHash)
+      const results = []
+      for (const i in msgs) {
+        results[i] = {
+          sender: this.address,
+          tx:     txResult.transactionHash,
+          type:   msgs[i].type,
+        }
+        if (msgs[i].type === 'wasm/MsgInstantiateContract') {
+          const attrs = mergeAttrs(txResult.logs[i].events[0].attributes as any[])
+          results[i].label   = msgs[i].value.label,
+          results[i].address = attrs.contract_address
+          results[i].codeId  = attrs.code_id
+        }
+        if (msgs[i].type === 'wasm/MsgExecuteContract') {
+          results[i].address = msgs[i].contract
+        }
+      }
+      return results
     } catch (err) {
-      this.handleError(err)
+      await this.handleError(err)
     }
   }
 
@@ -433,7 +461,7 @@ export class ScrtBundle extends BaseBundle<PostTxResult> {
       const errorCipherBz  = fromBase64(errorCipherB64);
       const msgIndex       = Number(rgxMatches[2]);
       const nonce          = fromBase64(this.msgs[msgIndex].value.msg).slice(0, 32);
-      const errorPlainBz   = await this.executingAgent.API.restClient.enigmautils.decrypt(errorCipherBz, nonce);
+      const errorPlainBz   = await this.agent.API.restClient.enigmautils.decrypt(errorCipherBz, nonce);
       err.message = err.message.replace(errorCipherB64, fromUtf8(errorPlainBz));
     } catch (decryptionError) {
       console.error('Failed to decrypt :(')
@@ -513,4 +541,10 @@ export abstract class ScrtAgentTX extends BaseAgent {
       sent_funds,
     } })
   }
+}
+
+export function mergeAttrs (
+  attrs: {key:string,value:string}[]
+): any {
+  return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
 }

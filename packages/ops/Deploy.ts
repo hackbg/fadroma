@@ -63,34 +63,59 @@ export class Deployment {
     creator: Agent,
     ...contracts: [Contract<any>, any?, string?, string?][]
   ) {
-    for (const [
-      contract,
-      msg    = contract.initMsg,
-      name   = contract.name,
-      suffix = contract.suffix
-    ] of contracts) {
-      const label = `${this.prefix}/${name}${suffix||''}`
-      console.info(bold('Instantiate:'), label)
-      let { template } = contract
-      if (!template && contract.codeId && contract.codeHash) {
-        console.warn(
-          `@fadroma/ops/Deploy: in the future, codeId and codeHash` +
-          `may move from contract to contract.template`
+
+    // this function, when passed a `Bundle` instance,
+    // composes the instantiation procedure for one or more
+    // contracts that were passed to this method.
+    const buildInitBundle = bundle =>
+      Promise.all(contracts.map(async ([
+        contract,
+        msg    = contract.initMsg,
+        name   = contract.name,
+        suffix = contract.suffix
+      ])=>{
+        // if custom contract properties are passed to instantiate,
+        // set them on the contract class. FIXME this is a mutation,
+        // the contract class should not exist, this function should
+        // take `Template` instead of `Contract`
+        contract.initMsg = msg
+        contract.name    = name
+        contract.suffix  = suffix
+
+        // generate the label here since `get label () {}` is no more
+        const label = `${this.prefix}/${name}${suffix||''}`
+        console.info(bold('Instantiate:'), label)
+
+        // add the init tx to the bundle. when passing a single contract
+        // to instantiate, this should behave equivalently to non-bundled init
+        await bundle.instantiate(
+          contract.template || {
+            chainId:  contract.chainId,
+            codeId:   contract.codeId,
+            codeHash: contract.codeHash
+          },
+          label,
+          msg
         )
-        template = {
-          codeId:   contract.codeId,
-          codeHash: contract.codeHash
-        }
-      }
-      const receipt = await creator.instantiate(
-        template,
-        label,
-        msg
-      )
+      }))
+
+    // execute the init bundle
+    const receipts = await creator.bundle().wrap(buildInitBundle)
+
+    // set the `instance` property of every contract
+    // to the corresponding instance receipt
+    for (const i in contracts) {
+      const contract = contracts[i][0]
+      const receipt  = receipts[i]
+      receipt.codeHash = contract.template?.codeHash||contract.codeHash
       contract.instance = receipt
-      this.receipts[name] = receipt
+      this.receipts[contract.name] = receipt
       this.save()
     }
+
+    // return the mutated contract classes
+    return contracts.map(x=>x[0])
+
   }
 
   get (
