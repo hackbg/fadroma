@@ -284,6 +284,82 @@ export abstract class ScrtAgentJS extends BaseAgent {
   }
 }
 
+import type { Chain } from '@fadroma/ops'
+/** This agent just collects unsigned txs and dumps them in the end
+  * to be performed by manual multisig (via Motika). */
+export class ScrtAgentTX extends BaseAgent {
+  constructor (private readonly agent: ScrtAgentJS) {
+    super()
+  }
+
+  get address () { return this.agent.address }
+  get chain () { return this.agent.chain }
+
+  account_number: number = 0
+  sequence:       number = 0
+  transactions:   UnsignedTX[] = []
+  private pushTX (...msgs: any[]) {
+    const tx = {
+      chain_id:       this.chain.id,
+      account_number: String(this.account_number),
+      sequence:       String(this.sequence),
+      fee:            "1000000uscrt",
+      memo:           "",
+      msgs:           JSON.stringify(msgs)
+    }
+    this.transactions.push(tx)
+    return tx
+  }
+  async send () { throw new Error('not implemented') }
+  async sendMany () { throw new Error('not implemented') }
+  async upload () { throw new Error('not implemented') }
+  async instantiate (
+    { codeId, codeHash },
+    label,
+    message,
+    init_funds = []
+  ): Promise<UnsignedTX> {
+    const init_msg = toBase64(await this.encrypt(codeHash, message))
+    const type = "wasm/MsgInstantiateContract"
+    return this.pushTX({
+      type,
+      value: {
+        sender:  this.address,
+        code_id: String(codeId),
+        label,
+        init_msg,
+        init_funds,
+      }
+    })
+  }
+  async execute (
+    { address, codeHash },
+    message: Message,
+    sent_funds = []
+  ): Promise<UnsignedTX> {
+    const msg  = toBase64(await this.encrypt(codeHash, message))
+    const type = "wasm/MsgExecuteContract"
+    return this.pushTX({
+      type,
+      value: {
+        sender:   this.address,
+        contract: address,
+        msg,
+        sent_funds,
+      }
+    })
+  }
+  query (contract: Contract, message: Message): Promise<any> {
+    throw new Error('ScrtAgentTX.query: not implemented')
+  }
+
+  private async encrypt (codeHash, msg) {
+    if (!codeHash) throw new Error('@fadroma/scrt: missing codehash')
+    const encrypted = await this.agent.API.restClient.enigmautils.encrypt(codeHash, msg)
+    return toBase64(encrypted)
+  }
+}
+
 import { BaseBundle, Artifact, Template, Instance, toBase64, fromBase64, fromUtf8 } from '@fadroma/ops'
 import { PostTxResult } from 'secretjs'
 import pako from 'pako'
@@ -417,63 +493,6 @@ export type UnsignedTX = {
   fee:            string
   msgs:           string
   memo:           string
-}
-
-import type { MsgInstantiateContract, MsgExecuteContract } from 'secretjs/src/types'
-/** This agent just collects unsigned txs
-  * and dumps them in the end
-  * to do via multisig. */
-export abstract class ScrtAgentTX extends BaseAgent {
-  constructor (id: Identity) { super(id) }
-
-  account_number: number = 0
-  sequence:       number = 0
-  transactions:   UnsignedTX[] = []
-  private pushTX (...msgs: (MsgInstantiateContract|MsgExecuteContract)[]) {
-    const tx = {
-      chain_id:       this.chain.id,
-      account_number: String(this.account_number),
-      sequence:       String(this.sequence),
-      fee:            "1000000uscrt",
-      memo:           "",
-      msgs:           JSON.stringify(msgs)
-    }
-    this.transactions.push(tx)
-    return tx
-  }
-  async instantiate (
-    { codeId, codeHash },
-    label,
-    message,
-    init_funds = []
-  ): Promise<UnsignedTX> {
-    const init_msg = toBase64(await EnigmaUtils.encrypt(codeHash, message))
-    const type = "wasm/MsgInstantiateContract"
-    return this.pushTX({ type, value: {
-      sender:  this.address,
-      code_id: String(codeId),
-      label,
-      init_msg,
-      init_funds,
-    } })
-  }
-  query (contract: Contract, message: Message): Promise<any> {
-    throw new Error('ScrtAgentTX.query: not implemented')
-  }
-  async execute (
-    { address, codeHash },
-    message: Message,
-    sent_funds = []
-  ): Promise<UnsignedTX> {
-    const msg  = toBase64(await EnigmaUtils.encrypt(codeHash, message))
-    const type = "wasm/MsgExecuteContract"
-    return this.pushTX({ type, value: {
-      sender:   this.address,
-      contract: address,
-      msg,
-      sent_funds,
-    } })
-  }
 }
 
 export function mergeAttrs (

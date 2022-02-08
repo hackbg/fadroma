@@ -1,5 +1,7 @@
 export * from '@fadroma/ops'
+export * from '@fadroma/scrt'
 export * from '@fadroma/snip20'
+
 import {
   Console, bold, colors, timestamp,
   initChainAndAgent, Chain, Agent, Deployment, Mocknet
@@ -8,8 +10,6 @@ import Scrt_1_0 from '@fadroma/scrt-1.0'
 import Scrt_1_2 from '@fadroma/scrt-1.2'
 import { fileURLToPath } from 'url'
 import runCommands from '@hackbg/komandi'
-
-const console = Console('@fadroma/cli')
 
 export { Scrt_1_0, Scrt_1_2 }
 
@@ -43,6 +43,8 @@ export type MigrationContext = {
     * the result of merging `args?` into `context`. */
   run <T extends object, U> (procedure: Function, args?: T): Promise<U>
 }
+
+const console = Console('@fadroma/cli')
 
 export class Fadroma {
 
@@ -102,17 +104,9 @@ export class Fadroma {
         try {
           const result = await procedure({ ...context, ...args })
           const T1 = + new Date()
-          //console.info(
-            //'Procedure', bold(procedure.name), colors.green('succeeded'),
-            //'in', T1-T0, 'msec'
-          //)
           return result
         } catch (e) {
           const T1 = + new Date()
-          //console.error(
-            //'Procedure', bold(procedure.name), colors.red(`failed`),
-            //`in`, T1-T0, 'msec:', e.message
-          //)
           throw e
         }
       },
@@ -127,17 +121,12 @@ export class Fadroma {
       }
       console.log()
       const name = step.name
-      //if (name) {
-        //console.info(bold('Running deploy step:'), name)
-      //} else {
-        //console.warn(bold('Running nameless deploy step. Please define deploy steps as named functions.'))
-      //}
-      // Every step refreshes the context
-      // by adding its outputs to it.
       const T1 = + new Date()
       let updates
       try {
         updates = await step({ ...context })
+        // Every step refreshes the context
+        // by adding its outputs to it.
         context = { ...context, ...updates }
         const T2 = + new Date()
 

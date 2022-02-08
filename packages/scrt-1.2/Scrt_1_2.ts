@@ -28,6 +28,7 @@ export class Scrt_1_2 extends Scrt {
 
 import { Identity, Agent, ScrtAgentJS } from '@fadroma/scrt'
 export class ScrtAgentJS_1_2 extends ScrtAgentJS {
+
   constructor (options: Identity) {
     super({ API: PatchedSigningCosmWasmClient_1_2, ...options })
   }
