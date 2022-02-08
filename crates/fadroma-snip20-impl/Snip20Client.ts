@@ -14,6 +14,17 @@ export class Snip20Client extends Client {
     return { TOKEN, NAME }
   }
 
+  /** Return the address and code hash of this token in the format
+   * required by the Factory to create a swap pair with this token */
+  get asCustomToken () {
+    return {
+      custom_token: {
+        contract_addr:   this.address,
+        token_code_hash: this.codeHash
+      }
+    }
+  }
+
   async getTokenInfo () {
     return (await this.query({ token_info: {} })).token_info
   }
@@ -66,20 +77,22 @@ export class Snip20Client extends Client {
   createViewingKey (entropy = randomHex(32)) {
     return this.execute({
       create_viewing_key: { entropy, padding: null }
-    }).then((tx) => ({
-      tx,
-      key: JSON.parse(decode(tx.data)).create_viewing_key.key,
-    }))
+    }).then((tx) => {
+      console.warn('TODO decode response from create viewing key')
+      return { tx }
+      //status: JSON.parse(decode(tx.data)).set_viewing_key.key,
+    })
   }
 
   /** Set viewing key for the agent  */
   setViewingKey (key: string) {
     return this.execute({
       set_viewing_key: { key }
-    }).then((tx) => ({
-      tx,
+    }).then((tx) => {
+      console.log(tx)
+      return { tx }
       //status: JSON.parse(decode(tx.data)).set_viewing_key.key,
-    }))
+    })
   }
 
   /** Increase allowance to spender */
@@ -102,15 +115,14 @@ export class Snip20Client extends Client {
     })
   }
 
-  /** Return the address and code hash of this token in the format
-   * required by the Factory to create a swap pair with this token */
-  get asCustomToken () {
-    return {
-      custom_token: {
-        contract_addr:   this.address,
-        token_code_hash: this.codeHash
-      }
-    }
+  /** Transfer tokens to address */
+  transfer (
+    amount:    string | number | bigint,
+    recipient: string,
+  ) {
+    return this.execute({
+      transfer: { amount, recipient }
+    })
   }
 
 }
