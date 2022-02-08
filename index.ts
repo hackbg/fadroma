@@ -1,38 +1,49 @@
-import { Console, bold, colors, timestamp } from '@hackbg/fadroma'
-const console = Console('@fadroma/cli')
-
 export * from '@fadroma/ops'
-
-import { ChainConnectOptions, Mocknet } from '@fadroma/ops'
-export type Chains = Record<string, (options?: Chain)=>Chain>
-export const CHAINS: Chains = { 'mocknet': () => new Mocknet() }
-
-import Scrt_1_0 from '@fadroma/scrt-1.0'
-Object.assign(CHAINS, Scrt_1_0.Chains)
-export { Scrt_1_0 }
-
-import Scrt_1_2 from '@fadroma/scrt-1.2'
-Object.assign(CHAINS, Scrt_1_2.Chains)
-export { Scrt_1_2 }
-
 export * from '@fadroma/snip20'
-
+import {
+  Console, bold, colors, timestamp,
+  initChainAndAgent, Chain, Agent, Deployment, Mocknet
+} from '@fadroma/ops'
+import Scrt_1_0 from '@fadroma/scrt-1.0'
+import Scrt_1_2 from '@fadroma/scrt-1.2'
 import { fileURLToPath } from 'url'
 import runCommands from '@hackbg/komandi'
-import type { Chain, Agent, Deployment } from '@fadroma/ops'
-export type MigrationContext = {
-  timestamp:   string
-  chain:       Chain
-  agent:       Agent
-  deployment?: Deployment,
-  prefix?:     string,
-  cmdArgs:     string[]
-  run (command: Function, args?: object): Promise<any>
-}
+
+const console = Console('@fadroma/cli')
+
+export { Scrt_1_0, Scrt_1_2 }
+
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
-import { initChainAndAgent } from '@fadroma/ops'
+
+export type ChainCtor = (options?: Chain)=>Chain
+export type Chains    = Record<string, ChainCtor>
+export const CHAINS: Chains = { 'mocknet': () => new Mocknet() }
+Object.assign(CHAINS, Scrt_1_0.Chains)
+Object.assign(CHAINS, Scrt_1_2.Chains)
+
+export type MigrationContext = {
+  timestamp:   string
+  /** Identify the blockhain being used. */
+  chain:       Chain
+  /** An identity operating on the chain. */
+  agent:       Agent
+  /** Manages a collection of interlinked contracts. */
+  deployment?: Deployment,
+  /** Prefix to the labels of all deployed contracts.
+    * Identifies which deployment they belong to. */
+  prefix?:     string,
+  /** Appended to contract labels in localnet deployments for faster iteration. */
+  suffix?:     string,
+  /** Arguments from the CLI invocation. */
+  cmdArgs:     string[]
+  /** Run a procedure in the migration context.
+    * Procedures are async functions that take 1 argument:
+    * the result of merging `args?` into `context`. */
+  run <T extends object, U> (procedure: Function, args?: T): Promise<U>
+}
+
 export class Fadroma {
 
   module (url: string): Commands {

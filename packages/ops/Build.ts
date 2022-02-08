@@ -46,7 +46,7 @@ export async function buildInDocker (
   const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
 
   if (existsSync(location)) {
-    console.info(bold('Exists:'), location)
+    console.info('✅', bold(location), 'exists, not rebuilding.')
     return { location, codeHash: codeHashForPath(location) }
   }
 

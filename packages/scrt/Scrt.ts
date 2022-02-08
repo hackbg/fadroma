@@ -25,6 +25,7 @@ export abstract class ScrtContract<C extends Client> extends BaseContract<C> {
 }
 
 import {
+  CachingUploader,
   BaseChain, Source, codeHashForPath,
   basename, existsSync, relative, cwd,
   readFileSync, writeFileSync
@@ -33,71 +34,14 @@ export abstract class Scrt extends BaseChain {
 
   faucet = `https://faucet.secrettestnet.io/`
 
+  async buildAll (contracts: Contract<any>[]): Promise<Artifact[]> {
+    return Promise.all(contracts.map(contract=>contract.build()))
+  }
+
   async buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<void> {
-
-    const artifacts = await Promise.all(contracts.map(contract=>contract.build()))
-
-    const toUpload = []
-    for (const contract of contracts) {
-      if (!contract.artifact.codeHash) {
-        console.warn(
-          bold('No code hash in artifact'),
-          contract.artifact.location
-        )
-        console.warn(
-          bold('Computed checksum:'),
-          contract.artifact.codeHash = codeHashForPath(contract.artifact.location)
-        )
-      }
-      const blobName = basename(contract.artifact.location)
-      const receiptPath = this.uploads.resolve(`${blobName}.json`)
-      const relativePath = relative(cwd(), receiptPath)
-      if (existsSync(receiptPath)) {
-        const content = readFileSync(receiptPath, 'utf8')
-        const data = JSON.parse(content)
-        const receiptCodeHash = data.codeHash || data.originalChecksum
-        if (!receiptCodeHash) {
-          console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
-          toUpload.push(contract)
-        } else if (receiptCodeHash !== contract.artifact.codeHash) {
-          console.info(bold(`Different code hash:`), `${relativePath}; reuploading...`)
-          toUpload.push(contract)
-        } else {
-          console.info(bold(`Code hash matches receipt:`), `${relativePath}; not reuploading...`)
-          contract.template = {
-            chainId:         agent.chain.id,
-            codeId:          data.codeId,
-            codeHash:        contract.artifact.codeHash,
-            transactionHash: data.transactionHash as string,
-          }
-        }
-      } else {
-        console.info(bold(`No upload receipt:`), `${relativePath}; uploading...`)
-        toUpload.push(contract)
-      }
-    }
-
-    if (toUpload.length > 0) {
-      console.info('Need to upload', bold(String(toUpload.length)), 'contracts')
-      let bundle = agent.bundle()
-      for (const contract of toUpload) {
-        bundle = bundle.upload(contract.artifact)
-      }
-      const uploadResult = await bundle.run()
-      const { transactionHash } = uploadResult
-      for (const i in toUpload) {
-        const contract = toUpload[i]
-        const chainId  = agent.chain.id
-        const logs     = uploadResult.logs[i]
-        const codeId   = logs.events[0].attributes[3].value
-        const codeHash = contract.artifact.codeHash 
-        contract.template = { chainId, codeId, codeHash, transactionHash }
-        const receiptName = `${basename(toUpload[i].artifact.location)}.json`
-        const receiptPath = this.uploads.make().resolve(receiptName)
-        writeFileSync(receiptPath, JSON.stringify(toUpload[i].template, null, 2))
-      }
-    }
-
+    const artifacts = await this.buildAll(contracts)
+    const uploader = new CachingUploader(agent, this.uploads)
+    await uploader.uploadAll(agent, contracts)
   }
 }
 

@@ -67,14 +67,16 @@ export abstract class BaseContract<C extends Client> implements Contract<C> {
     throw new Error('not implemented')
   }
 
-  constructor (options: any = {}) { Object.assign(this, options) }
-
-  abstract name: string
-
   source:   Source   | null
   artifact: Artifact | null
   template: Template | null
   instance: Instance | null
+  constructor (options: ContractInfo = {}) {
+    Object.assign(this, options)
+  }
+
+  abstract name: string
+
   get address () { return this.instance.address }
   set address (v: string) { this.instance.address = v }
 

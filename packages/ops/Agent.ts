@@ -92,8 +92,12 @@ export abstract class BaseAgent implements Agent {
   }
   traceSubCall (N: number, callType = '???', info?) {
     if (process.env.FADROMA_PRINT_TXS) {
-      //console.info()
-      const header = `${bold(`${this.name}: call #${String(N).padEnd(4)}`)} (${callType})`
+
+      const header = `${bold(
+        `${this.name}: `+
+        `call #${String(N).padEnd(4)}`
+      )} (${callType}) `+ `${String(info).slice(0,20)}`
+
       if (process.env.FADROMA_PRINT_TXS==='trace') {
         console.trace(header)
       } else {
