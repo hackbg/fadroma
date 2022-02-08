@@ -97,12 +97,7 @@ export abstract class BaseContract<C extends Client> implements Contract<C> {
 
   Client: ClientConstructor<C>
   client (agent: Agent): C {
-    if (!this.instance) {
-      throw new Error(
-        "@fadroma/ops/Contract: can't get a client to a contract that is not deployed"
-      )
-    }
-    return new this.Client({ ...this.instance, agent })
+    return new this.Client({ ...(this.instance||{}), agent })
   }
 
   prefix?: string
