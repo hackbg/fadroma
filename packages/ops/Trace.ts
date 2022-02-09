@@ -50,4 +50,50 @@ export class Trace {
       this.console.info(`${bold(`${this.name}: result of call #${N}`)}:`, txHash)
     }
   }
+
+  initCall (codeId, label): number|void {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init')) {
+      return this.call(`${bold('INIT')}  ${codeId} ${label}`)
+    }
+  }
+
+  initResponse (traceId: number|void, result): void {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init+result')) {
+      this.response(traceId)
+    }
+  }
+
+  queryCall (contract, msg): number|void {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('query')) {
+      return this.call(
+        `${bold(colors.blue('QUERY'.padStart(5)))} `+
+        `${bold(getMethod(msg).padEnd(20))} `+
+        `on ${contract.address} ${bold(contract.label||'???')}`,
+        //{ msg }
+      )
+    }
+  }
+
+  queryResponse (traceId: number|void, response): void {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('query+result')) {
+      this.response(traceId)
+    }
+  }
+
+  executeCall (contract, msg, funds, memo, fee): number|void {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('exec')) {
+      return this.call(
+        `${bold(colors.yellow('TX'.padStart(5)))} `+
+        `${bold(getMethod(msg).padEnd(20))} ` +
+        `on ${contract.address} ${bold(contract.label||'???')}`,
+      )
+    }
+  }
+
+  executeResponse (traceId: number|void, response): void {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init+result')) {
+      this.response(traceId, response.transactionHash)
+    }
+  }
+
 }

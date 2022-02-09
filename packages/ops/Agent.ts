@@ -80,19 +80,9 @@ export abstract class Agent implements Identity {
     if (template.chainId !== this.chain.id) {
       throw new Error(`@fadroma/scrt: Template is from chain ${template.chainId}, we're on ${this.chain.id}`)
     }
-
-    let traceId
-
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init')) {
-      traceId = this.trace.call(`${bold('INIT')}  ${codeId} ${label}`)
-    }
-
-    const result = await this.doInstantiate(template, label, msg, funds)
-
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init+result')) {
-      this.trace.response(traceId)
-    }
-
+    const traceId = await this.trace.initCall(codeId, label)
+    const result  = await this.doInstantiate(template, label, msg, funds)
+    this.trace.initResponse(traceId, result)
     return result
   }
 
@@ -129,24 +119,9 @@ export abstract class Agent implements Identity {
   async query (
     contract: { address: string, label: string }, msg: any
   ): Promise<any> {
-
-    let traceId
-
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('query')) {
-      traceId = this.trace.call(
-        `${bold(colors.blue('QUERY'.padStart(5)))} `+
-        `${bold(getMethod(msg).padEnd(20))} `+
-        `on ${contract.address} ${bold(contract.label||'???')}`,
-        //{ msg }
-      )
-    }
-
+    const traceId = this.trace.queryCall(contract, msg)
     const response = await this.doQuery(contract, msg)
-
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('query+result')) {
-      this.trace.response(traceId)
-    }
-
+    this.trace.queryResponse(traceId, response)
     return response
   }
 
@@ -158,23 +133,9 @@ export abstract class Agent implements Identity {
   async execute (
     contract: { address: string, label: string }, msg: Message, funds: any[], memo?: any, fee?: any
   ): Promise<any> {
-
-    let traceId
-
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('exec')) {
-      traceId = this.trace.call(
-        `${bold(colors.yellow('TX'.padStart(5)))} `+
-        `${bold(getMethod(msg).padEnd(20))} ` +
-        `on ${contract.address} ${bold(contract.label||'???')}`,
-      )
-    }
-
+    const traceId = this.trace.executeCall(contract, msg, funds, memo, fee)
     const response = await this.doExecute(contract, msg, funds, memo, fee)
-
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init+result')) {
-      this.trace.response(traceId, response.transactionHash)
-    }
-
+    this.trace.executeResponse(traceId, response)
     return response
   }
 
