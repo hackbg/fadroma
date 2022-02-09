@@ -106,13 +106,15 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async getCodeHash (idOrAddr: number|string): Promise<string> {
-    if (typeof idOrAddr === 'number') {
-      return await this.api.getCodeHashByCodeId(idOrAddr)
-    } else if (typeof idOrAddr === 'string') {
-      return await this.api.getCodeHashByContractAddr(idOrAddr)
-    } else {
-      throw new TypeError('getCodeHash id or addr')
-    }
+    return this.backOff(async () => {
+      if (typeof idOrAddr === 'number') {
+        return await this.api.getCodeHashByCodeId(idOrAddr)
+      } else if (typeof idOrAddr === 'string') {
+        return await this.api.getCodeHashByContractAddr(idOrAddr)
+      } else {
+        throw new TypeError('getCodeHash id or addr')
+      }
+    })
   }
 
   async checkCodeHash (address: string, codeHash?: string) {
@@ -136,18 +138,8 @@ export abstract class ScrtAgentJS extends ScrtAgent {
 
   async doInstantiate (template, label, msg, funds = []) {
     const { codeId, codeHash } = template
-    const { logs, transactionHash } = await backOff(() => {
+    const { logs, transactionHash } = await this.backOff(() => {
       return this.api.instantiate(Number(codeId), msg, label)
-    }, {
-      retry (error: Error, attempt: number) {
-        if (error.message.includes('500')) {
-          console.warn(`Error 500, retry #${attempt}...`)
-          console.error(error)
-          return true
-        } else {
-          return false
-        }
-      }
     })
     return {
       chainId:  this.chain.id,
@@ -178,17 +170,24 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async getCodeId (address: string): Promise<number> {
-    const { codeId } = await this.api.getContract(address)
-    return codeId
+    return this.backOff(async ()=>{
+      const { codeId } = await this.api.getContract(address)
+      return codeId
+    })
   }
   async getLabel (address: string): Promise<string> {
-    const { label } = await this.api.getContract(address)
-    return label
+    return this.backOff(async ()=>{
+      const { label } = await this.api.getContract(address)
+      return label
+    })
   }
   async doQuery (
     { label, address, codeHash }: Contract<any>, msg: Message
   ) {
-    return this.api.queryContractSmart(address, msg as any, undefined, codeHash)
+    return this.backOff(() => {
+      return this.api.queryContractSmart(address, msg as any, undefined, codeHash)
+    })
+    return
   }
   async doExecute (
     { label, address, codeHash }: Contract<any>, msg: Message,
@@ -213,5 +212,37 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       accountNumber,
       sequence
     )
+  }
+
+  private initialWait = 1000
+  private async backOff <T> (fn: ()=>Promise<T>): Promise<T> {
+    let initialWait = 0
+    if (this.chain.isMainnet) {
+      const initialWait = this.initialWait*Math.random()
+      console.warn(
+        "Avoid running into rate limiting by waiting",
+        Math.floor(initialWait), 'ms'
+      )
+      await new Promise(resolve=>setTimeout(resolve, initialWait))
+      console.warn("Wait is over")
+    }
+    return backOff(fn, {
+      jitter:           'full',
+      startingDelay:     100 + initialWait,
+      timeMultiple:      3,
+      retry (error: Error, attempt: number) {
+        if (error.message.includes('500')) {
+          console.warn(`Error 500, retry #${attempt}...`)
+          console.error(error.message)
+          return true
+        } else if (error.message.includes('429')) {
+          console.warn(`Error 429, retry #${attempt}...`)
+          console.error(error.message)
+          return true
+        } else {
+          return false
+        }
+      }
+    })
   }
 }
