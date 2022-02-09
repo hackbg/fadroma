@@ -108,7 +108,7 @@ impl Contract {
                             }
 
                             if handle_guard.is_some() {
-                                return Err(syn::Error::new(segment.span(), "Only one method can be annotated as #[init]."));
+                                return Err(syn::Error::new(segment.span(), "Only one method can be annotated as #[handle_guard]."));
                             }
 
                             validate_method(&method, Some(parse_quote!(())), ty)?;
