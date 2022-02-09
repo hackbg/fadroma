@@ -28,12 +28,13 @@ export class Scrt_1_0 extends Scrt {
 
 import { Identity, Agent, ScrtAgentJS } from '@fadroma/scrt'
 export class ScrtAgentJS_1_0 extends ScrtAgentJS {
-  constructor (options: Identity) {
-    super({ API: PatchedSigningCosmWasmClient_1_0, ...options })
-  }
+
+  API = PatchedSigningCosmWasmClient_1_0
+
   static create (options: Identity): Promise<Agent> {
     return ScrtAgentJS.createSub(ScrtAgentJS_1_0 as unknown as AgentClass, options)
   }
+
 }
 
 const { SCRT_API_URL, SCRT_AGENT_NAME, SCRT_AGENT_ADDRESS, SCRT_AGENT_MNEMONIC, DATAHUB_KEY } = process.env
