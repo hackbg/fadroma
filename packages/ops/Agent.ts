@@ -5,6 +5,7 @@ import { resolve, readFileSync, JSONDirectory } from '@hackbg/tools'
 import { toBase64 } from '@iov/encoding'
 
 import { Identity, Gas, Template, Instance, Message, getMethod } from './Core'
+import { Trace } from './Trace'
 import type { Contract } from './Contract'
 import type { Chain } from './Chain'
 import type { Bundle } from './Bundle'
@@ -21,11 +22,11 @@ export abstract class BaseGas implements Gas {
 
 const { FADROMA_PRINT_TXS = "" } = process.env
 
-export type ContractSpec = [Contract<any>, any?, string?, string?]
+export type ContractSpec = [Contract<any>, any?, string?, string?]1
 
 export abstract class Agent implements Identity {
 
-  trace = new AgentTracer("unnamed")
+  trace = new Trace("unnamed", console)
 
   readonly chain:   Chain
   readonly address: string
@@ -95,6 +96,7 @@ export abstract class Agent implements Identity {
     return result
   }
 
+  /** Instantiate multiple contracts in 1 tx via a Bundle. */
   async instantiateMany (
     contracts: ContractSpec[], prefix?: string
   ): Promise<Record<string, Instance>> {
@@ -123,6 +125,7 @@ export abstract class Agent implements Identity {
   abstract getLabel  (address: string): Promise<string>
   abstract getCodeId (address: string): Promise<number>
 
+  /** Perform a smart contract query. */
   async query (
     contract: { address: string, label: string }, msg: any
   ): Promise<any> {
@@ -151,6 +154,7 @@ export abstract class Agent implements Identity {
     contract: { address: string }, msg: any
   ): Promise<any>
 
+  /** Execute a regular smart contract transaction. */
   async execute (
     contract: { address: string, label: string }, msg: Message, funds: any[], memo?: any, fee?: any
   ): Promise<any> {
@@ -175,10 +179,16 @@ export abstract class Agent implements Identity {
   }
 
   protected abstract doExecute (
-    contract: { address: string, label: string }, msg: Message, funds: any[], memo?: any, fee?: any
+    contract: { address: string, label: string },
+    msg: Message,
+    funds: any[],
+    memo?: any,
+    fee?: any
   ): Promise<any>
 
   abstract Bundle: Bundle
+
+  /** Start a new transaction bundle. */
   bundle () {
     if (!this.Bundle) {
       throw new Error('@fadroma/ops/agent: this agent does not support bundling transactions')
@@ -194,53 +204,6 @@ export abstract class Agent implements Identity {
     return this.chain.buildAndUpload(this, contracts)
   }
 
-}
-
-export class AgentTracer {
-
-  constructor (public name: string) {}
-
-  private callCounter = 0
-
-  call (callType = '???', info?): number {
-    const N = ++this.callCounter
-    if (process.env.FADROMA_PRINT_TXS) {
-      //console.info()
-      const header = `${bold(`${this.name}: call #${String(N).padEnd(4)}`)} (${callType})`
-      if (process.env.FADROMA_PRINT_TXS==='trace') {
-        console.trace(header)
-      } else {
-        console.info(header)
-      }
-      if (info) console.info(JSON.stringify(info))
-    }
-    return N
-  }
-
-  subCall (N: number, callType = '???', info?) {
-    if (process.env.FADROMA_PRINT_TXS) {
-
-      const header = `${bold(
-        `${this.name}: `+
-        `call #${String(N).padEnd(4)}`
-      )} (${callType}) `+ `${String(info).slice(0,20)}`
-
-      if (process.env.FADROMA_PRINT_TXS==='trace') {
-        console.trace(header)
-      } else {
-        console.info(header)
-      }
-      if (info) console.info(JSON.stringify(info))
-    }
-    return N
-  }
-
-  response (N, txHash?) {
-    if (process.env.FADROMA_PRINT_TXS) {
-      //console.info()
-      console.info(`${bold(`${this.name}: result of call #${N}`)}:`, txHash)
-    }
-  }
 }
 
 export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
