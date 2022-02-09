@@ -29,6 +29,12 @@ export type MigrationContext = {
   chain:       Chain
   /** An identity operating on the chain. */
   agent:       Agent
+  /** Override agent used for uploads. */
+  uploadAgent: Agent
+  /** Override agent used for deploys. */
+  deployAgent: Agent
+  /** Override agent used for normal operation. */
+  clientAgent: Agent
   /** Manages a collection of interlinked contracts. */
   deployment?: Deployment,
   /** Prefix to the labels of all deployed contracts.
@@ -96,6 +102,9 @@ export class Fadroma {
       timestamp: timestamp(),
       chain,
       agent,
+      uploadAgent: agent,
+      deployAgent: agent,
+      clientAgent: agent,
       suffix: `+${timestamp()}`,
       // Run a sub-procedure in the same context,
       // but without mutating the context.
