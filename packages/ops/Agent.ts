@@ -81,13 +81,13 @@ export abstract class Agent implements Identity {
 
     let traceId
 
-    if (FADROMA_PRINT_TXS.includes('init')) {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init')) {
       traceId = this.trace.call(`${bold('INIT')}  ${codeId} ${label}`)
     }
 
     const result = await this.doInstantiate(template, label, msg, funds)
 
-    if (FADROMA_PRINT_TXS.includes('init-result')) {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init+result')) {
       this.trace.response(traceId)
     }
 
@@ -97,7 +97,22 @@ export abstract class Agent implements Identity {
   async instantiateMany (
     contracts: ContractSpec[], prefix?: string
   ): Promise<Record<string, Instance>> {
-    return {}
+    // results by contract name
+    const receipts = {}
+    // results by tx order
+    const results = await this.bundle().wrap(
+      bundle => bundle.instantiateMany(contracts, prefix)
+    )
+    // collect receipt and `contract.instance` properties
+    for (const i in contracts) {
+      const contract = contracts[i][0]
+      const receipt  = results[i]
+      if (receipt) {
+        contract.instance = receipt
+        receipts[contract.name] = receipt
+      }
+    }
+    return receipts
   }
 
   protected abstract doInstantiate (
@@ -113,7 +128,7 @@ export abstract class Agent implements Identity {
 
     let traceId
 
-    if (FADROMA_PRINT_TXS.includes('query')) {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('query')) {
       traceId = this.trace.call(
         `${bold(colors.blue('QUERY'.padStart(5)))} `+
         `${bold(getMethod(msg).padEnd(20))} `+
@@ -124,7 +139,7 @@ export abstract class Agent implements Identity {
 
     const response = await this.doQuery(contract, msg)
 
-    if (FADROMA_PRINT_TXS.includes('query-result')) {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('query+result')) {
       this.trace.response(traceId)
     }
 
@@ -141,7 +156,7 @@ export abstract class Agent implements Identity {
 
     let traceId
 
-    if (FADROMA_PRINT_TXS.includes('exec')) {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('exec')) {
       traceId = this.trace.call(
         `${bold(colors.yellow('TX'.padStart(5)))} `+
         `${bold(getMethod(msg).padEnd(20))} ` +
@@ -151,7 +166,7 @@ export abstract class Agent implements Identity {
 
     const response = await this.doExecute(contract, msg, funds, memo, fee)
 
-    if (FADROMA_PRINT_TXS.includes('init-result')) {
+    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init+result')) {
       this.trace.response(traceId, response.transactionHash)
     }
 

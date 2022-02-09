@@ -34,14 +34,11 @@ export abstract class Client {
   protected execute = (msg: Message) =>
     this.agent.execute(this, msg)
 
-  client (agent: Agent) {
-    const Client = (this.constructor as ClientConstructor<typeof this>)
-    return new Client({
-      agent,
-      address:  this.address,
-      codeHash: this.codeHash
-    })
-  }
+  client = (agent: Agent) => new (this.constructor as ClientConstructor<typeof this>)({
+    agent,
+    address:  this.address,
+    codeHash: this.codeHash
+  })
 
 }
 
