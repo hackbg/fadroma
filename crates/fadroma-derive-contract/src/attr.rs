@@ -4,6 +4,8 @@ pub const INIT: &str = "init";
 pub const HANDLE: &str = "handle";
 /// The query attribute.
 pub const QUERY: &str = "query";
+/// The handle_guard attribute.
+pub const HANDLE_GUARD: &str = "handle_guard";
 
 /// Used to include another contract' interface.
 /// Requires a at least a "path" argument specified.

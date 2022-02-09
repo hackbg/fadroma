@@ -32,8 +32,7 @@ pub fn contract_impl(args: proc_macro::TokenStream, trait_: proc_macro::TokenStr
 pub fn init(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_deps_generics(&mut ast);
-    add_fn_args(&mut ast, true);
+    add_fn_args(&mut ast, true, false);
 
     let result = quote! {
         #ast
@@ -46,8 +45,7 @@ pub fn init(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> pr
 pub fn handle(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_deps_generics(&mut ast);
-    add_fn_args(&mut ast, true);
+    add_fn_args(&mut ast, true, false);
 
     let result = quote! {
         #ast
@@ -60,8 +58,29 @@ pub fn handle(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> 
 pub fn query(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_deps_generics(&mut ast);
-    add_fn_args(&mut ast, false);
+    add_fn_args(&mut ast, false, false);
+
+    let result = quote! {
+        #ast
+    };
+
+    proc_macro::TokenStream::from(result)
+}
+
+#[proc_macro_attribute]
+pub fn handle_guard(_args: proc_macro::TokenStream, func: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let mut ast = parse_macro_input!(func as TraitItemMethod);
+
+    if ast.sig.inputs.len() != 1 {
+        let err = syn::Error::new(
+            ast.sig.paren_token.span,
+            format!("Expecting one parameter with the type: &{}", contract::HANDLE_MSG)
+        ).to_compile_error();
+
+        return proc_macro::TokenStream::from(err);
+    }
+
+    add_fn_args(&mut ast, true, true);
 
     let result = quote! {
         #ast
@@ -110,18 +129,21 @@ fn generate_contract(
     proc_macro::TokenStream::from(result)
 }
 
-fn add_deps_generics(func: &mut TraitItemMethod) {    
+fn add_fn_args(func: &mut TraitItemMethod, is_tx: bool, ref_env: bool) {
     func.sig.generics.params.push(parse_quote!(S: cosmwasm_std::Storage));
     func.sig.generics.params.push(parse_quote!(A: cosmwasm_std::Api));
     func.sig.generics.params.push(parse_quote!(Q: cosmwasm_std::Querier));
-}
 
-fn add_fn_args(func: &mut TraitItemMethod, is_tx: bool) {
     func.sig.inputs.insert(0, parse_quote!(&self));
     
     if is_tx {
         func.sig.inputs.push(parse_quote!(deps: &mut cosmwasm_std::Extern<S, A, Q>));
-        func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
+
+        if ref_env {
+            func.sig.inputs.push(parse_quote!(env: &cosmwasm_std::Env));
+        } else {
+            func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
+        }
     } else {
         func.sig.inputs.push(parse_quote!(deps: &cosmwasm_std::Extern<S, A, Q>));
     }

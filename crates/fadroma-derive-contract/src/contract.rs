@@ -1,9 +1,9 @@
 use syn::{
     TraitItemMethod, Path, AttributeArgs, ItemTrait, Meta,
-    TraitItem, ReturnType, Type, Ident, ItemEnum, TypePath,
-    Variant, FnArg, FieldsNamed, Field, Visibility, Pat,
-    Fields, ItemStruct, ItemFn, Stmt, Expr, ExprMatch,
-    ExprField, GenericArgument, PathArguments, parse_quote
+    TraitItem, ReturnType, Type, Ident, ItemEnum, Variant,
+    FnArg, FieldsNamed, Field, Visibility, Pat, Fields,
+    ItemStruct, ItemFn, Stmt, Expr, ExprMatch, ExprField,
+    GenericArgument, PathArguments, parse_quote
 };
 use syn::token::{Comma, Brace, Colon};
 use syn::punctuated::Punctuated;
@@ -18,7 +18,7 @@ use crate::attr;
 pub const DEFAULT_IMPL_STRUCT: &str = "DefaultImpl";
 
 const INIT_MSG: &str = "InitMsg";
-const HANDLE_MSG: &str = "HandleMsg";
+pub const HANDLE_MSG: &str = "HandleMsg";
 const QUERY_MSG: &str = "QueryMsg";
 const INIT_FN: &str = "init";
 const HANDLE_FN: &str = "handle";
@@ -33,7 +33,8 @@ pub struct Contract {
     /// Optional because a component might not want to have an init method.
     init: Option<TraitItemMethod>,
     handle: Vec<TraitItemMethod>,
-    query: Vec<TraitItemMethod>
+    query: Vec<TraitItemMethod>,
+    handle_guard: Option<TraitItemMethod>
 }
 
 #[derive(Clone, Copy)]
@@ -66,9 +67,10 @@ impl Contract {
         let args = ContractArgs::parse(args, ty)?;
         
         let mut init = None;
+        let mut handle_guard = None;
         let mut handle = vec![];
         let mut query = vec![];
-    
+
         for item in item_trait.items.into_iter() {
             if let TraitItem::Method(method) = item {
                 for attr in method.attrs.iter() {
@@ -94,9 +96,29 @@ impl Contract {
                             validate_method(&method, None, ty)?;
                             query.push(method);
                         },
+                        attr::HANDLE_GUARD => {
+                            if ty.is_interface() {
+                                return Err(syn::Error::new(
+                                    Span::call_site(),
+                                    format!(
+                                        "Interfaces cannot have the \"{}\" attribute. Specify this on the implementing trait instead.",
+                                        attr::HANDLE_GUARD
+                                    )
+                                ));
+                            }
+
+                            if handle_guard.is_some() {
+                                return Err(syn::Error::new(segment.span(), "Only one method can be annotated as #[init]."));
+                            }
+
+                            validate_method(&method, Some(parse_quote!(())), ty)?;
+                            handle_guard = Some(method);
+                        },
                         _ => continue
                     }
 
+                    // Disallow any other stuff in our attributes. If we got to this line,
+                    // we know for sure that we are looking at one of the macro's attributes.
                     match meta {
                         Meta::Path(_) => { },
                         _ => {
@@ -118,7 +140,8 @@ impl Contract {
             ident: item_trait.ident,
             init,
             handle,
-            query
+            query,
+            handle_guard
         })
     }
 
@@ -306,6 +329,15 @@ impl Contract {
                 #arg
             ) -> cosmwasm_std::StdResult<cosmwasm_std::HandleResponse> { }
         };
+
+        if let Some(guard) = &self.handle_guard {
+            let ref method_name = guard.sig.ident;
+            let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
+
+            result.block.stmts.push(parse_quote! {
+                #arg_name.#method_name(&msg, deps, &env)?;
+            });
+        }
 
         let match_expr = self.create_match_expr(MsgType::Handle)?;
         result.block.stmts.push(Stmt::Expr(match_expr));
@@ -511,20 +543,14 @@ impl Contract {
 }
 
 impl ContractType {
+    #[inline]
     pub fn is_impl(self) -> bool {
-        if let ContractType::Impl = self {
-            return true;
-        }
-
-        false
+        matches!(self, ContractType::Impl)
     }
 
+    #[inline]
     pub fn is_interface(self) -> bool {
-        if let ContractType::Interface = self {
-            return true;
-        }
-
-        false
+        matches!(self, ContractType::Interface)
     }
 }
 
@@ -558,7 +584,7 @@ fn extract_fields(method: &TraitItemMethod, vis: Visibility) -> syn::Result<Fiel
 
 fn validate_method(
     method: &TraitItemMethod,
-    expected: Option<Path>,
+    expected: Option<Type>,
     contract_type: ContractType
 ) -> syn::Result<()> {
     match contract_type {
@@ -580,26 +606,13 @@ fn validate_method(
         }
     }
 
-    let result_ty = extract_std_result_type(&method.sig.output)?;
-
-    if let Some(path) = &expected {
-        let ref generic_ident = result_ty.path.segments.last().unwrap().ident;
-        let ref expected = path.segments.last().unwrap().ident;
-        
-        if *generic_ident != *expected {
-            let expected_type = format!("{}", quote!{ #expected });
-
-            return Err(syn::Error::new(
-                generic_ident.span(),
-                format!("Expecting return type: StdResult<{}>", expected_type)
-            ));
-        }
-    }
-
-    Ok(())
+    cmp_return_type(&method.sig.output, expected)
 }
 
-fn extract_std_result_type(return_ty: &ReturnType) -> syn::Result<&TypePath> {
+fn cmp_return_type(
+    return_ty: &ReturnType,
+    expected: Option<Type>
+) -> syn::Result<()> {
     if let ReturnType::Type(_, return_type) = return_ty {
         if let Type::Path(return_type_path) = return_type.as_ref() {
             if return_type_path.qself.is_some() {
@@ -608,12 +621,41 @@ fn extract_std_result_type(return_ty: &ReturnType) -> syn::Result<&TypePath> {
 
             let last = return_type_path.path.segments.last().unwrap();
             
+            // Check that the return type is StdResult
             if last.ident.to_string().as_str() == "StdResult" {
+                // If it is, unwrap the generic argument.
                 if let PathArguments::AngleBracketed(args) = &last.arguments {
-                    if let GenericArgument::Type(ty) =  &args.args[0] {
-                        if let Type::Path(generic_path) = ty {
-                            return Ok(generic_path);
+                    if let GenericArgument::Type(generic_ty) =  &args.args[0] {
+                        // If we are not expecting a particular type, we are good to go.
+                        if let Some(expected) = expected {
+                            if match &expected {
+                                // Compare just the type, excluding module paths if any.
+                                Type::Path(expected_path) => {
+                                    if let Type::Path(given_path) = generic_ty {
+                                        let ref given = given_path.path.segments.last().unwrap().ident;
+                                        let ref expected = expected_path.path.segments.last().unwrap().ident;
+    
+                                        given == expected
+                                    } else {
+                                        false
+                                    }
+                                },
+                                // StdResult<()> will match this.
+                                Type::Tuple(_) => expected == *generic_ty,
+                                _ => unreachable!()
+                            } {
+                                return Ok(());
+                            }
+
+                            let expected_type = format!("{}", quote!{ #expected });
+                    
+                            return Err(syn::Error::new(
+                                generic_ty.span(),
+                                format!("Expecting return type: StdResult<{}>", expected_type)
+                            ));
                         }
+
+                        return Ok(());
                     }
                 }
             }
