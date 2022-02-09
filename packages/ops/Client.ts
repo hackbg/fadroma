@@ -36,8 +36,6 @@ export abstract class Client {
 
   client (agent: Agent) {
     const Client = (this.constructor as ClientConstructor<typeof this>)
-    console.log("ASDFADSFAS", this, this.address, this.codeHash)
-    process.exit(1)
     return new Client({
       agent,
       address:  this.address,

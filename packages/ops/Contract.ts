@@ -42,31 +42,20 @@ export abstract class Contract<C extends Client> {
     throw new Error('not implemented')
   }
 
-  source:   Source   | null
-  artifact: Artifact | null
-  template: Template | null
-  instance: Instance | null
   constructor (options: ContractInfo = {}) {
     Object.assign(this, options)
   }
 
-  initMsg?: any
+  source:   Source   | null
 
-  abstract name: string
-
-  get address () { return this.instance.address }
-  set address (v: string) { this.instance.address = v }
-
-  get codeHash () {
-    return this.instance?.codeHash||this.template?.codeHash||this.artifact?.codeHash
-  }
-
-  Builder:  new <B extends Builder> () => Builder
-  builder:  Builder  | null
+  Builder: new <B extends Builder> () => Builder
+  builder: Builder | null
   async build (builder: Builder = new this.Builder()) {
     this.builder = builder
     return this.artifact = await this.builder.build(this.source)
   }
+
+  artifact: Artifact | null
 
   Uploader: new <U extends Uploader> (agent: Agent) => Uploader
   uploader: Uploader | null
@@ -76,9 +65,31 @@ export abstract class Contract<C extends Client> {
     return this.template = await this.uploader.upload(this.artifact)
   }
 
-  Client: ClientConstructor<C>
-  client (agent: Agent): C {
-    return new this.Client({ ...(this.instance||{}), agent })
+  template: Template | null
+  get chainId () {
+    return this.instance?.chainId||this.template?.chainId
+  }
+  get codeId () {
+    return this.instance?.codeId||this.template?.codeId
+  }
+
+  instance: Instance | null
+
+  initMsg?: any
+
+  abstract name: string
+
+  get address () { return this.instance?.address }
+  set address (v: string) {
+    if (this.instance) {
+      this.instance.address = v
+    } else {
+      const { codeId, codeHash, label, chainId } = this
+      this.instance = { chainId, codeId, codeHash, address: v, label }
+    }
+  }
+  get codeHash () {
+    return this.instance?.codeHash||this.template?.codeHash||this.artifact?.codeHash
   }
 
   prefix?: string
@@ -95,6 +106,11 @@ export abstract class Contract<C extends Client> {
     if (name)   { label += name } else { label += 'UNTITLED' }
     if (suffix) { label += suffix }
     return label
+  }
+
+  Client: ClientConstructor<C>
+  client (agent: Agent): C {
+    return new this.Client({ ...(this.instance||{}), agent })
   }
 
 }

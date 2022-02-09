@@ -16,19 +16,14 @@ import type { Contract } from './Contract'
 import type { Client, ClientConstructor } from './Client'
 import type { Agent } from './Agent'
 import type { Chain } from './Chain'
-import { Message, Template, print, join } from './Core'
+import { Template, Instance, Message, print, join } from './Core'
 
 export class Deployment {
 
+  constructor (public readonly path: string) { this.load() }
+
   prefix:   string
-
-  receipts: Record<string, any> = {}
-
-  constructor (
-    public readonly path: string,
-  ) {
-    this.load()
-  }
+  receipts: Record<string, Instance> = {}
 
   /** Load deployment state from YAML file. */
   load (path = this.path) {
@@ -64,6 +59,18 @@ export class Deployment {
     creator: Agent,
     ...contracts: [Contract<any>, any?, string?, string?][]
   ) {
+    for (const [contract] of contracts) {
+      if (contract.address) {
+        throw new Error(
+          `@fadroma/ops/Deploy: tried to instantiate a contract that already exists: ${contract.address}`
+        )
+      }
+      if (!contract.codeHash) {
+        throw new Error(
+          `@fadroma/ops/Deploy: no code hash in: ${contract}`
+        )
+      }
+    }
     // execute the init bundle
     const receipts = await creator.instantiateMany(contracts, this.prefix)
 
@@ -78,10 +85,8 @@ export class Deployment {
     return contracts.map(x=>x[0])
   }
 
-  get (
-    name:    string,
-    suffix?: string
-  ) {
+  /** Get the receipt for a contract, containing its address, codeHash, etc. */
+  get (name: string, suffix?: string): Instance {
     const receipt = this.receipts[name]
     if (!receipt) {
       throw new Error(`@fadroma/ops/Deploy: ${name}: no such contract in deployment`)
@@ -90,11 +95,11 @@ export class Deployment {
   }
 
   /** Get existing contract or create it if it doesn't exist */
-  async getOrInit <T> (
+  async getOrInit <I> (
     agent:    Agent,
-    contract: Contract,
+    contract: Contract<any>,
     name:     string = contract.name,
-    initMsg:  T      = contract.initMsg
+    initMsg:  I      = contract.initMsg
   ) {
     console.warn('@fadroma/ops/Deploy: getOrInit: deprecated')
     const receipt = this.receipts[name]

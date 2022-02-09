@@ -4,7 +4,7 @@ const console = Console('@fadroma/ops/Agent')
 import { resolve, readFileSync, JSONDirectory } from '@hackbg/tools'
 import { toBase64 } from '@iov/encoding'
 
-import { Gas, Identity, Message, Template, getMethod } from './Core'
+import { Identity, Gas, Template, Instance, Message, getMethod } from './Core'
 import type { Contract } from './Contract'
 import type { Chain } from './Chain'
 import type { Bundle } from './Bundle'
@@ -33,20 +33,31 @@ export abstract class Agent implements Identity {
   fees: Record<string, any>
 
   type?:     string
-  pubkey?:   string
-  mnemonic?: string
-  keyPair?:  any
-  pen?:      any
 
+  /** Get current block height. */
+  abstract get block (): Promise<any>
+
+  /** Wait until block height increments. */
   abstract get nextBlock (): Promise<void>
-  abstract get block     (): Promise<any>
-  abstract get account   (): Promise<any>
-  abstract get balance   (): Promise<any>
 
-  abstract getBalance  (denomination: string):    Promise<any>
-  abstract getCodeHash (idOrAddr: number|string): Promise<string>
-  abstract getLabel    (address: string):         Promise<string>
-  abstract getCodeId   (address: string):         Promise<number>
+  /** Get up-to-date account info for this agent's address. */
+  abstract get account (): Promise<any>
+
+  /** Get up-to-date balance of this address in `this.defaultDenomination` */
+  get balance () { return this.getBalance() }
+
+  /** Default denomination for native token. */
+  abstract readonly defaultDenomination: string
+
+  /** Get up-to-data balance of this address in specified denomination. */
+  async getBalance (denomination: string = this.defaultDenomination) {
+    const account = await this.account
+    const balance = account.balance || []
+    const inDenom = ({denom}) => denom === denomination
+    const balanceInDenom = balance.filter(inDenom)[0]
+    if (!balanceInDenom) return 0
+    return balanceInDenom.amount
+  }
 
   abstract send (to: any, amt: string|number, denom?: any, memo?: any, fee?: any): Promise<any>
   abstract sendMany (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
@@ -83,11 +94,18 @@ export abstract class Agent implements Identity {
     return result
   }
 
-  abstract instantiateMany (contracts: ContractSpec[], prefix?: string): Promise<any>
+  async instantiateMany (
+    contracts: ContractSpec[], prefix?: string
+  ): Promise<Record<string, Instance>> {
+    return {}
+  }
 
   protected abstract doInstantiate (
     template: { chainId: string, codeId: string }, label: string, msg: any, funds: any[]
   ): Promise<any>
+
+  abstract getLabel  (address: string): Promise<string>
+  abstract getCodeId (address: string): Promise<number>
 
   async query (
     contract: { address: string, label: string }, msg: any
@@ -144,16 +162,21 @@ export abstract class Agent implements Identity {
     contract: { address: string, label: string }, msg: Message, funds: any[], memo?: any, fee?: any
   ): Promise<any>
 
-  abstract bundle (): Bundle
+  abstract Bundle: Bundle
+  bundle () {
+    if (!this.Bundle) {
+      throw new Error('@fadroma/ops/agent: this agent does not support bundling transactions')
+    }
+    return new this.Bundle(this)
+  }
 
-  constructor (_options?: Identity) {}
+  constructor (options?: any) {
+    if (options) Object.assign(this, options)
+  }
 
   buildAndUpload (contracts: Contract<any>[]): Promise<Template[]> {
     return this.chain.buildAndUpload(this, contracts)
   }
-
-  // TODO combine with backoff
-
 
 }
 

@@ -81,48 +81,8 @@ import {
   EnigmaUtils, Secp256k1Pen, encodeSecp256k1Pubkey,
   pubkeyToAddress, makeSignBytes, BroadcastMode
 } from 'secretjs'
-export abstract class ScrtAgentJS extends Agent {
 
-  readonly name:     string
-  readonly chain:    Scrt
-  fees = ScrtGas.defaultFees
-  readonly keyPair:  any
-  readonly mnemonic: any
-  readonly pen:      any
-  readonly sign:     any
-  readonly pubkey:   any
-  readonly seed:     any
-  readonly address:  string
-  readonly API:      SigningCosmWasmClient
-
-  /** Create a new agent from a signing pen. */
-  constructor (options: Identity & { API?: APIConstructor } = {}) {
-    super(options)
-
-    this.name = this.trace.name = options?.name || ''
-
-    this.chain    = options?.chain as Scrt // TODO chain id to chain
-    this.fees     = options?.fees || ScrtGas.defaultFees
-
-    this.keyPair  = options?.keyPair
-    this.mnemonic = options?.mnemonic
-    this.pen      = options?.pen
-    if (this.pen) {
-      this.pubkey   = encodeSecp256k1Pubkey(options?.pen.pubkey)
-      this.address  = pubkeyToAddress(this.pubkey, 'secret')
-      this.sign     = this.pen.sign.bind(this.pen)
-      this.seed     = EnigmaUtils.GenerateNewSeed()
-    }
-
-    this.API = new (options.API)(
-      this.chain?.url,
-      this.address,
-      this.sign,
-      this.seed,
-      this.fees,
-      BroadcastMode.Sync
-    )
-  }
+export abstract class ScrtAgent extends Agent {
 
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async createSub (AgentClass: AgentConstructor, options: Identity): Promise<Agent> {
@@ -151,22 +111,67 @@ export abstract class ScrtAgentJS extends Agent {
     return agent
   }
 
-  get nextBlock () { return waitUntilNextBlock(this) }
-  get block     () { return this.API.getBlock() }
-  get account   () { return this.API.getAccount(this.address) }
-  get balance   () { return this.getBalance('uscrt') }
-  async getBalance (denomination: string) {
-    const account = await this.account
-    const balance = account.balance || []
-    const inDenom = ({denom}) => denom === denomination
-    const balanceInDenom = balance.filter(inDenom)[0]
-    if (!balanceInDenom) return 0
-    return balanceInDenom.amount
+  /** Get the code hash for a code id or address */
+  abstract getCodeHash (idOrAddr: number|string): Promise<string>
+
+}
+
+export abstract class ScrtAgentJS extends ScrtAgent {
+
+  fees = ScrtGas.defaultFees
+  defaultDenomination = 'uscrt'
+  Bundle = ScrtBundle
+
+  constructor (options: Identity & { API?: APIConstructor } = {}) {
+    super(options)
+
+    this.name = this.trace.name = options?.name || ''
+
+    this.chain    = options?.chain as Scrt // TODO chain id to chain
+    this.fees     = options?.fees || ScrtGas.defaultFees
+
+    this.keyPair  = options?.keyPair
+    this.mnemonic = options?.mnemonic
+    this.pen      = options?.pen
+    if (this.pen) {
+      this.pubkey   = encodeSecp256k1Pubkey(options?.pen.pubkey)
+      this.address  = pubkeyToAddress(this.pubkey, 'secret')
+      this.sign     = this.pen.sign.bind(this.pen)
+      this.seed     = EnigmaUtils.GenerateNewSeed()
+    }
+
+    this.API = new (options.API)(
+      this.chain?.url,
+      this.address,
+      this.sign,
+      this.seed,
+      this.fees,
+      BroadcastMode.Sync
+    )
   }
+
+  readonly name:     string
+  readonly chain:    Scrt
+  readonly keyPair:  any
+  readonly mnemonic: any
+  readonly pen:      any
+  readonly sign:     any
+  readonly pubkey:   any
+  readonly seed:     any
+  readonly address:  string
+  readonly API:      SigningCosmWasmClient
+
+  get nextBlock () { return waitUntilNextBlock(this) }
+
+  get block     () { return this.API.getBlock() }
+
+  get account   () { return this.API.getAccount(this.address) }
+
   async send (recipient: any, amount: string|number, denom = 'uscrt', memo = "") {
     if (typeof amount === 'number') amount = String(amount)
     return await this.API.sendTokens(recipient, [{denom, amount}], memo)
   }
+
   async sendMany (txs = [], memo = "", denom = 'uscrt', fee = new ScrtGas(500000 * txs.length)) {
     if (txs.length < 0) {
       throw new Error('tried to send to 0 recipients')
@@ -255,46 +260,11 @@ export abstract class ScrtAgentJS extends Agent {
   ): Promise<Record<string, Instance>> {
     // results by contract name
     const receipts = {}
-
-    for (const [contract] of contracts) {
-    }
-
     // results by tx order
-    const results = await this.bundle().wrap(bundle => Promise.all(
-      contracts.map(async ([
-        contract,
-        msg    = contract.initMsg,
-        name   = contract.name,
-        suffix = contract.suffix
-      ])=>{
-        // if custom contract properties are passed to instantiate,
-        // set them on the contract class. FIXME this is a mutation,
-        // the contract class should not exist, this function should
-        // take `Template` instead of `Contract`
-        contract.initMsg = msg
-        contract.name    = name
-        contract.suffix  = suffix
-
-        // generate the label here since `get label () {}` is no more
-        let label = `${name}${suffix||''}`
-        if (prefix) label = `${prefix}/${label}`
-        console.info(bold('Instantiate:'), label)
-
-        // add the init tx to the bundle. when passing a single contract
-        // to instantiate, this should behave equivalently to non-bundled init
-        await bundle.instantiate(
-          contract.template || {
-            chainId:  contract.chainId,
-            codeId:   contract.codeId,
-            codeHash: contract.codeHash
-          },
-          label,
-          msg
-        )
-      })
-    ))
-
-    // collect receipt and set contracts' `instance` properties
+    const results = await this.bundle().wrap(bundle => {
+      return bundle.instantiateMany(contracts, prefix)
+    })
+    // collect receipt and `contract.instance` properties
     for (const i in contracts) {
       const contract = contracts[i][0]
       const receipt  = results[i]
@@ -325,15 +295,12 @@ export abstract class ScrtAgentJS extends Agent {
   ) {
     return this.API.execute(address, msg as any, memo, amount, fee, codeHash)
   }
-  bundle () {
-    return new ScrtBundle(this)
-  }
 }
 
 import type { Chain } from '@fadroma/ops'
 /** This agent just collects unsigned txs and dumps them in the end
   * to be performed by manual multisig (via Motika). */
-export class ScrtAgentTX extends Agent {
+export class ScrtAgentTX extends ScrtAgent {
   constructor (private readonly agent: ScrtAgentJS) {
     super()
   }
