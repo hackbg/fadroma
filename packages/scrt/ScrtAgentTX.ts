@@ -26,8 +26,13 @@ export class ScrtAgentTX extends ScrtAgent {
     console.info('init', ...args)
   }
 
-  execute (...args) {
-    console.info('execute', ...args)
+  execute (contract, msg, ...args) {
+    console.info(
+      'execute',
+      contract.name||contract.constructor.name,
+      msg,
+      args
+    )
   }
 
   query (...args) {

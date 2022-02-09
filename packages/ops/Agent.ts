@@ -60,6 +60,7 @@ export abstract class Agent implements Identity {
   }
 
   abstract send (to: any, amt: string|number, denom?: any, memo?: any, fee?: any): Promise<any>
+
   abstract sendMany (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
 
   abstract upload (path: string): Promise<any>

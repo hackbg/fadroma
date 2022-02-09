@@ -1,7 +1,8 @@
-import { Console, colors, bold } from '@fadroma/ops'
+import { Console, colors, bold, timestamp } from '@fadroma/ops'
 const console = Console('@fadroma/scrt/ScrtBundle')
 
 import pako from 'pako'
+import { SigningCosmWasmClient } from 'secretjs'
 
 import {
   Agent, Bundle, BundleResult,
@@ -10,6 +11,7 @@ import {
   toBase64
 } from '@fadroma/ops'
 
+import { ScrtGas } from './ScrtCore'
 import type { ScrtAgent } from './ScrtAgent'
 import type { ScrtAgentJS } from './ScrtAgentJS'
 
@@ -82,6 +84,10 @@ export class ScrtBundle extends Bundle {
   execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
     const sender   = this.address
     const contract = address
+    console.info(bold('Adding message to multisig:'))
+    console.log()
+    console.log(JSON.stringify(msg))
+    console.log()
     this.add(this.encrypt(codeHash, msg).then(msg=>({
       type: 'wasm/MsgExecuteContract',
       value: { sender, contract, msg, sent_funds }
@@ -94,7 +100,25 @@ export class ScrtBundle extends Bundle {
   }
 
   async submit (memo = ""): Promise<BundleResult[]> {
-    console.log(JSON.stringify(await Promise.all(this.msgs), null, 2))
+    const tempClient = new SigningCosmWasmClient(
+      this.chain.url,
+      this.address,
+      () => {throw new Error('nope')}
+    )
+    const { accountNumber, sequence } = await tempClient.getNonce()
+
+    console.info(bold('Multisig transaction body:'))
+    console.log()
+    console.log(JSON.stringify({
+      chain_id:       this.agent.chain.id,
+      account_number: accountNumber,
+      sequence:       sequence,
+      fee:            new ScrtGas(10000000),
+      msgs:           await Promise.all(this.msgs),
+      memo:           `${timestamp()}`
+    }))
+    console.log()
+
     return []
   }
 }

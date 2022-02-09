@@ -27,7 +27,6 @@ export class ScrtGas extends BaseGas {
     exec:   new ScrtGas(1000000),
     send:   new ScrtGas( 500000),
   }
-  //denom = ScrtGas.denom
   constructor (x: number) {
     super(x)
     this.amount.push({amount: String(x), denom: ScrtGas.denom})
