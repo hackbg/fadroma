@@ -106,7 +106,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async getCodeHash (idOrAddr: number|string): Promise<string> {
-    return this.backOff(async () => {
+    return this.rateLimited(async () => {
       if (typeof idOrAddr === 'number') {
         return await this.api.getCodeHashByCodeId(idOrAddr)
       } else if (typeof idOrAddr === 'string') {
@@ -138,7 +138,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
 
   async doInstantiate (template, label, msg, funds = []) {
     const { codeId, codeHash } = template
-    const { logs, transactionHash } = await this.backOff(() => {
+    const { logs, transactionHash } = await this.rateLimited(() => {
       return this.api.instantiate(Number(codeId), msg, label)
     })
     return {
@@ -170,25 +170,28 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async getCodeId (address: string): Promise<number> {
-    return this.backOff(async ()=>{
+    return this.rateLimited(async ()=>{
       const { codeId } = await this.api.getContract(address)
       return codeId
     })
   }
+
   async getLabel (address: string): Promise<string> {
-    return this.backOff(async ()=>{
+    return this.rateLimited(async ()=>{
       const { label } = await this.api.getContract(address)
       return label
     })
   }
+
   async doQuery (
     { label, address, codeHash }: Contract<any>, msg: Message
   ) {
-    return this.backOff(() => {
+    return this.rateLimited(() => {
       return this.api.queryContractSmart(address, msg as any, undefined, codeHash)
     })
     return
   }
+
   async doExecute (
     { label, address, codeHash }: Contract<any>, msg: Message,
     memo: any, amount: any, fee: any
@@ -215,7 +218,8 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   private initialWait = 1000
-  private async backOff <T> (fn: ()=>Promise<T>): Promise<T> {
+
+  private async rateLimited <T> (fn: ()=>Promise<T>): Promise<T> {
     let initialWait = 0
     if (this.chain.isMainnet) {
       const initialWait = this.initialWait*Math.random()
@@ -227,9 +231,9 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       console.warn("Wait is over")
     }
     return backOff(fn, {
-      jitter:           'full',
-      startingDelay:     100 + initialWait,
-      timeMultiple:      3,
+      jitter:        'full',
+      startingDelay: 100 + initialWait,
+      timeMultiple:  3,
       retry (error: Error, attempt: number) {
         if (error.message.includes('500')) {
           console.warn(`Error 500, retry #${attempt}...`)
@@ -245,4 +249,5 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       }
     })
   }
+
 }

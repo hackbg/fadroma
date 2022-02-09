@@ -1,5 +1,5 @@
 import * as net from 'net'
-import { Identity, Agent, BaseChain } from '@fadroma/ops'
+import { Identity, Agent, Chain } from '@fadroma/ops'
 import { randomHex } from '@hackbg/tools'
 
 import { fromUtf8, fromHex, fromBase64, toBase64 } from '@iov/encoding'
@@ -8,7 +8,7 @@ import freePort from 'freeport-async'
 import Express from 'express'
 import bodyParser from 'body-parser'
 
-export class MockChain extends BaseChain {
+export class MockChain extends Chain {
 
   state = {
     balances: {},

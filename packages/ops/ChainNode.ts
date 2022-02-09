@@ -15,7 +15,27 @@ import { URL } from 'url'
 export type ChainNodeOptions = {
   /** Handle to Dockerode or compatible
    *  TODO mock! */
-  docker?:    IDocker
+  docker?:    {
+    getImage (): {
+      inspect (): Promise<any>
+    }
+    pull (image: any, callback: Function): void
+    modem: {
+      followProgress (
+        stream:   any,
+        callback: Function,
+        progress: Function
+      ): any
+    }
+    getContainer (id: any): {
+      id: string,
+      start (): Promise<any>
+    }
+    createContainer (options: any): {
+      id: string
+      logs (_: any, callback: Function): void
+    }
+  }
   /** Docker image of the chain's runtime. */
   image?:     string
   /** Internal name that will be given to chain. */
@@ -26,70 +46,20 @@ export type ChainNodeOptions = {
   identities?: Array<string>
 }
 
-export interface ChainNode {
-  chainId: string
-  apiURL:  URL
-  port:    number
-  /** Resolved when the node is ready */
-  readonly ready: Promise<void>
-  /** Path to the node state directory */
-  readonly stateRoot: Directory
-  /** Path to the node state file */
-  readonly nodeState: JSONFile
-  /** Path to the directory containing the keys to the genesis accounts. */
-  readonly identities: Directory
-  /** Retrieve the node state */
-  load      (): ChainNodeState
-  /** Start the node */
-  spawn     (): Promise<void>
-  /** Save the info needed to respawn the node */
-  save      (): this
-  /** Stop the node */
-  kill      (): Promise<void>
-  /** Start the node if stopped */
-  respawn   (): Promise<void>
-  /** Erase the state of the node */
-  erase     (): Promise<void>
-  /** Stop the node and erase its state from the filesystem. */
-  terminate () : Promise<void>
-  /** Retrieve one of the genesis accounts stored when creating the node. */
-  genesisAccount (name: string): Identity
-}
-
 export type ChainNodeState = Record<any, any>
 
-export interface IDocker {
-  getImage (): {
-    inspect (): Promise<any>
-  }
-  pull (image: any, callback: Function): void
-  modem: {
-    followProgress (
-      stream:   any,
-      callback: Function,
-      progress: Function
-    ): any
-  }
-  getContainer (id: any): {
-    id: string,
-    start (): Promise<any>
-  }
-  createContainer (options: any): {
-    id: string
-    logs (_: any, callback: Function): void
-  }
-}
+export abstract class ChainNode implements ChainNodeState {
 
-/// # Chain backends
+  static resetLocalnet = ({ chain }) => chain.node.terminate()
 
+  chainId: string = ''
+  apiURL:  URL    = new URL('http://localhost:1317')
+  port:    number = 0
 
-export abstract class BaseChainNode implements ChainNode {
-  chainId = ''
-  apiURL: URL = new URL('http://localhost:1317')
-  port = 0
-
-  #ready: Promise<void>
+  /** Resolved when the node has initialized.
+    * This is why I want async constructors. */
   get ready() { return this.#ready }
+  #ready: Promise<void>
 
   /** This directory is created to remember the state of the localnet setup. */
   readonly stateRoot:  Directory
@@ -150,13 +120,27 @@ export abstract class BaseChainNode implements ChainNode {
     await this.erase()
   }
 
+  /** Start the node if stopped. */
   abstract respawn (): Promise<void>
-  abstract spawn   (): Promise<void>
-  abstract kill    (): Promise<void>
-  abstract erase   (): Promise<void>
-  abstract save    (): this
 
-  static resetLocalnet = ({ chain }) => chain.node.terminate()
+  /** Start the node. */
+  abstract spawn (): Promise<void>
+
+  /** Stop the node. */
+  abstract kill (): Promise<void>
+
+  /** Erase the state of the node. */
+  abstract erase (): Promise<void>
+
+  /** Stop the node and erase its state. */
+  abstract terminate (): Promise<void>
+
+  /** Retrieve one of the genesis accounts stored when creating the node. */
+  abstract genesisAccount (name: string): Identity
+
+  /** Save the info needed to respawn the node */
+  abstract save (): this
+
 }
 
 
@@ -165,7 +149,7 @@ export abstract class BaseChainNode implements ChainNode {
 
 /** Run a pausable localnet in a Docker container and manage its lifecycle.
  *  State is stored as a pile of files in a directory. */
-export abstract class DockerChainNode extends BaseChainNode {
+export abstract class DockerChainNode extends ChainNode {
 
   /** This should point to the standard production docker image for the network. */
   abstract readonly image: string

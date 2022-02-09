@@ -1,4 +1,4 @@
-import { BaseChain } from './Chain'
+import { Chain } from './Chain'
 import { Agent } from './Agent'
 import type { Contract } from './Contract'
 import { Directory, readFileSync, decode, Console, bold, colors } from '@hackbg/tools'
@@ -7,7 +7,7 @@ import WASMFFI from 'wasm-ffi'
 
 const console = Console('@fadroma/ops/Mock')
 
-export class Mocknet extends BaseChain {
+export class Mocknet extends Chain {
   id         = 'mocknet'
   isLocalnet = true
   apiURL     = new URL('mock://mock:0')

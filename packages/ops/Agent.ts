@@ -6,23 +6,9 @@ import { toBase64 } from '@iov/encoding'
 
 import { Identity, Gas, Template, Instance, Message, getMethod } from './Core'
 import { Trace } from './Trace'
-import type { Contract } from './Contract'
+import type { Contract, ContractInit } from './Contract'
 import type { Chain } from './Chain'
 import type { Bundle } from './Bundle'
-
-export abstract class BaseGas implements Gas {
-  //readonly abstract denom: string
-  amount: Array<{amount: string, denom: string}> = []
-  gas:    string
-  constructor (x: number) {
-    const amount = String(x)
-    this.gas = amount
-  }
-}
-
-const { FADROMA_PRINT_TXS = "" } = process.env
-
-export type ContractSpec = [Contract<any>, any?, string?, string?]1
 
 export abstract class Agent implements Identity {
 
@@ -88,7 +74,7 @@ export abstract class Agent implements Identity {
 
   /** Instantiate multiple contracts in 1 tx via a Bundle. */
   async instantiateMany (
-    contracts: ContractSpec[], prefix?: string
+    contracts: ContractInit[], prefix?: string
   ): Promise<Record<string, Instance>> {
     // results by contract name
     const receipts = {}

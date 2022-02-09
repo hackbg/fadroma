@@ -1,6 +1,6 @@
 import {
   dirname, fileURLToPath, resolve,
-  Fees, BaseGas,
+  Fees, Gas,
   ChainNodeOptions, ChainNode,
   DockerChainNode, Path, Directory, TextFile, JSONFile, JSONDirectory,
   DockerBuilder,
@@ -19,7 +19,7 @@ export const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export const buildScript = resolve(__dirname, 'ScrtBuild.sh')
 
-export class ScrtGas extends BaseGas {
+export class ScrtGas extends Gas {
   static denom = 'uscrt'
   static defaultFees: Fees = {
     upload: new ScrtGas(4000000),

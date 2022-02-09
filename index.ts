@@ -4,7 +4,7 @@ export * from '@fadroma/snip20'
 
 import {
   Console, bold, colors, timestamp,
-  initChainAndAgent, Chain, Agent, Deployment, Mocknet
+  Chain, Agent, Deployment, Mocknet, MigrationContext
 } from '@fadroma/ops'
 import Scrt_1_0 from '@fadroma/scrt-1.0'
 import Scrt_1_2 from '@fadroma/scrt-1.2'
@@ -17,40 +17,11 @@ export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
-export type ChainCtor = (options?: Chain)=>Chain
-export type Chains    = Record<string, ChainCtor>
-export const CHAINS: Chains = { 'mocknet': () => new Mocknet() }
-Object.assign(CHAINS, Scrt_1_0.Chains)
-Object.assign(CHAINS, Scrt_1_2.Chains)
-
-export type MigrationContext = {
-  timestamp:   string
-  /** Identify the blockhain being used. */
-  chain:       Chain
-  /** An identity operating on the chain. */
-  agent:       Agent
-  /** Override agent used for uploads. */
-  uploadAgent: Agent
-  /** Override agent used for deploys. */
-  deployAgent: Agent
-  /** Override agent used for normal operation. */
-  clientAgent: Agent
-  /** Manages a collection of interlinked contracts. */
-  deployment?: Deployment,
-  /** Prefix to the labels of all deployed contracts.
-    * Identifies which deployment they belong to. */
-  prefix?:     string,
-  /** Appended to contract labels in localnet deployments for faster iteration. */
-  suffix?:     string,
-  /** Arguments from the CLI invocation. */
-  cmdArgs:     string[]
-  /** Run a procedure in the migration context.
-    * Procedures are async functions that take 1 argument:
-    * the result of merging `args?` into `context`. */
-  run <T extends object, U> (procedure: Function, args?: T): Promise<U>
-}
-
 const console = Console('@fadroma/cli')
+
+Chain.namedChains['mocknet'] = () => new Mocknet()
+Object.assign(Chain.namedChains, Scrt_1_0.Chains)
+Object.assign(Chain.namedChains, Scrt_1_2.Chains)
 
 export class Fadroma {
 
@@ -63,8 +34,6 @@ export class Fadroma {
     // if imported
     return this.commands
   }
-
-  chains = CHAINS
 
   chainId = process.env.FADROMA_CHAIN
 
@@ -95,7 +64,7 @@ export class Fadroma {
   private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
     requireChainId(this.chainId, this.chains)
 
-    const { chain, agent } = await initChainAndAgent(this.chains, this.chainId)
+    const { chain, agent } = await Chain.init(this.chainId)
 
     let context: MigrationContext = {
       cmdArgs,

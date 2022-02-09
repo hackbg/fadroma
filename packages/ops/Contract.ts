@@ -1,6 +1,6 @@
 import type { Message } from './Core'
 import { Agent } from './Agent'
-import { Chain, BaseChain } from './Chain'
+import { Chain } from './Chain'
 import { Deployment, Deployments } from './Deploy'
 import { BaseUploader } from './Upload'
 
@@ -26,6 +26,8 @@ export interface ContractInfo {
   template?: Template
   instance?: Instance
 }
+
+export type ContractInit = [Contract<any>, any?, string?, string?]
 
 export abstract class Contract<C extends Client> {
 

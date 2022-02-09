@@ -7,14 +7,21 @@ import {
 
 import { URL } from 'url'
 
-import { Identity, Artifact, Template } from './Core'
+import { Identity, Source, Artifact, Template } from './Core'
 import { ChainNode } from './ChainNode'
-import { Agent, AgentConstructor, Agent, MockAgent } from './Agent'
+import { Agent, AgentConstructor } from './Agent'
 import { Contract } from './Contract'
 import { Deployments } from './Deploy'
 import { Uploads, CachingUploader } from './Upload'
 
 const console = Console('@fadroma/ops/Chain')
+
+/** Kludge. TODO resolve. */
+export type DefaultIdentity =
+  null |
+  string |
+  { name?: string, address?: string, mnemonic?: string } |
+  Agent
 
 export interface ChainOptions {
   id?: string
@@ -26,91 +33,16 @@ export interface ChainOptions {
   defaultIdentity?: DefaultIdentity
 }
 
-export type DefaultIdentity =
-  null |
-  string |
-  { name?: string, address?: string, mnemonic?: string } |
-  Agent
-
 export interface ChainConnectOptions extends ChainOptions {
   apiKey?:     string
   identities?: Array<string>
 }
 
-export interface Chain extends ChainOptions {
-  readonly isMainnet?:   boolean
-  readonly isTestnet?:   boolean
-  readonly isLocalnet?:  boolean
-  readonly url:          string
-  readonly ready:        Promise<this>
-  readonly stateRoot?:   string|Directory
-  readonly identities?:  Directory
-  readonly uploads?:     Directory
-  readonly deployments?: Deployments
-  Agent:          AgentConstructor
-  getAgent        (options?: Identity): Promise<Agent>
-  getContract <T> (api: new()=>T, address: string, agent: Agent): T
-  printIdentities (): void
-  buildAndUpload  (uploader: Agent, contracts: Contract<any>[]): Promise<Template[]>
-}
-
-export async function initChainAndAgent (
-  CHAINS:    Record<string, Function>,
-  chainName: string,
-): Promise<{ chain: Chain, agent: Agent }> {
-  let chain: Chain
-  if (!CHAINS[chainName]) {
-    throw new Error(`${bold(`"${chainName}":`)} not a valid chain name`)
-  }
-  chain = await CHAINS[chainName]().ready
-  let agent: Agent
-  try {
-    if (chain.defaultIdentity instanceof Agent) {
-      agent = chain.defaultIdentity
-    } else {
-      agent = await chain.getAgent()
-    }
-    console.info(bold(`Agent:    `), agent.address)
-    try {
-      const initialBalance = await agent.balance
-      console.info(bold(`Balance:  `), initialBalance, `uscrt`)
-    } catch (e) {
-      console.warn(bold(`Could not fetch balance:`), e.message)
-    }
-  } catch (e) {
-    console.error(bold(`Could not get an agent for ${chainName}:`), e.message)
-    throw e
-  }
-  return { chain, agent }
-}
-
-export function notOnMainnet ({ chain }) {
-  if (chain.isMainnet) {
-    console.log('This command is not intended for mainnet.')
-    process.exit(1)
-  }
-}
-
-export function onlyOnMainnet ({ chain }) {
-  if (!chain.isMainnet) {
-    console.log('This command is intended only for mainnet.')
-    process.exit(1)
-  }
-}
-
-const overrideDefaults = (obj, defaults, options = {}) => {
-  for (const k of Object.keys(defaults)) {
-    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
-  }
-}
-
-import { Source } from './Core'
-
 /** Represents an interface to a particular Cosmos blockchain.
   * Used to construct `Agent`s and `Contract`s that are
   * bound to a particular chain. Can store identities and
   * results of contract uploads/inits. */
-export abstract class BaseChain implements Chain {
+export abstract class Chain implements ChainOptions {
 
   // JS constructors are called in an order that is opposite to
   // the one that would be actually useful for narrowing down stuff
@@ -213,20 +145,22 @@ export abstract class BaseChain implements Chain {
   /** Credentials of the default agent for this network. */
   defaultIdentity?: DefaultIdentity
 
-  /** create agent operating on the current instance's endpoint*/
+  /** Create agent operating via this chain's API endpoint. */
   async getAgent (identity: string|Identity = this.defaultIdentity): Promise<Agent> {
+    // need to pass something
     if (!identity) {
       throw new Error(`@fadroma/ops/Chain: pass a name or Identity to get an agent on ${this.id}`)
     }
+    // clone agent
     if (identity instanceof Agent) {
       return await this.Agent.create(identity)
     }
+    // default identities from localnet
+    // TODO address from string and something else for default identities
     if (typeof identity === 'string' && this.node) {
       identity = this.node.genesisAccount(identity)
     }
-    const agent = await this.Agent.create({
-      ...identity, chain: this as Chain 
-    })
+    const agent = await this.Agent.create({ ...identity, chain: this as Chain })
     agent.chain = this
     return agent
   }
@@ -278,4 +212,55 @@ export abstract class BaseChain implements Chain {
     return contracts.map(c=>c.template)
   }
 
+  /** Populated in Fadroma root with all variants known to the library. */
+  static namedChains: Record<string, (options?: Chain)=>Chain> = {}
+
+  /** Get a new Chain and default Agent from a name. */
+  static async init (chainName: string): Promise<{ chain: Chain, agent: Agent }> {
+    let chain: Chain
+    if (!Chain.namedChains[chainName]) {
+      throw new Error(`${bold(`"${chainName}":`)} not a valid chain name`)
+    }
+    chain = await Chain.namedChains[chainName]().ready
+    let agent: Agent
+    try {
+      if (chain.defaultIdentity instanceof Agent) {
+        agent = chain.defaultIdentity
+      } else {
+        agent = await chain.getAgent()
+      }
+      console.info(bold(`Agent:    `), agent.address)
+      try {
+        const initialBalance = await agent.balance
+        console.info(bold(`Balance:  `), initialBalance, `uscrt`)
+      } catch (e) {
+        console.warn(bold(`Could not fetch balance:`), e.message)
+      }
+    } catch (e) {
+      console.error(bold(`Could not get an agent for ${chainName}:`), e.message)
+      throw e
+    }
+    return { chain, agent }
+  }
+
+}
+
+export function notOnMainnet ({ chain }) {
+  if (chain.isMainnet) {
+    console.log('This command is not intended for mainnet.')
+    process.exit(1)
+  }
+}
+
+export function onlyOnMainnet ({ chain }) {
+  if (!chain.isMainnet) {
+    console.log('This command is intended only for mainnet.')
+    process.exit(1)
+  }
+}
+
+const overrideDefaults = (obj, defaults, options = {}) => {
+  for (const k of Object.keys(defaults)) {
+    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
+  }
 }

@@ -23,6 +23,8 @@ export * from './Contract'
 
 export * from './Deploy'
 
+export * from './Migrate'
+
 export * from './Client'
 
 export * from './Mock'

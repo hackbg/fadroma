@@ -1,8 +1,6 @@
 import { Console, bold } from '@hackbg/tools'
 
-const {
-  FADROMA_PRINT_TXS
-} = process.env
+const { FADROMA_PRINT_TXS = "" } = process.env
 
 export class Trace {
 

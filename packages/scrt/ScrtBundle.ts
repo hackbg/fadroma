@@ -84,7 +84,7 @@ export class ScrtBundle extends Bundle {
   execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
     const sender   = this.address
     const contract = address
-    console.info(bold('Adding message to multisig:'))
+    console.info(bold('Adding message to bundle:'))
     console.log()
     console.log(JSON.stringify(msg))
     console.log()
@@ -107,7 +107,7 @@ export class ScrtBundle extends Bundle {
     )
     const { accountNumber, sequence } = await tempClient.getNonce()
 
-    console.info(bold('Multisig transaction body:'))
+    console.info(bold('Bundle body:'))
     console.log()
     console.log(JSON.stringify({
       chain_id:       this.agent.chain.id,
