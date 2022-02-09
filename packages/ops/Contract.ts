@@ -1,5 +1,5 @@
 import type { Message } from './Core'
-import { Agent, BaseAgent, isAgent } from './Agent'
+import { Agent } from './Agent'
 import { Chain, BaseChain } from './Chain'
 import { Deployment, Deployments } from './Deploy'
 import { BaseUploader } from './Upload'
@@ -50,10 +50,16 @@ export abstract class Contract<C extends Client> {
     Object.assign(this, options)
   }
 
+  initMsg?: any
+
   abstract name: string
 
   get address () { return this.instance.address }
   set address (v: string) { this.instance.address = v }
+
+  get codeHash () {
+    return this.instance?.codeHash||this.template?.codeHash||this.artifact?.codeHash
+  }
 
   Builder:  new <B extends Builder> () => Builder
   builder:  Builder  | null
@@ -65,7 +71,7 @@ export abstract class Contract<C extends Client> {
   Uploader: new <U extends Uploader> (agent: Agent) => Uploader
   uploader: Uploader | null
   async upload (by: Agent|Uploader) {
-    if (by instanceof BaseAgent) by = new this.Uploader(by)
+    if (by instanceof Agent) by = new this.Uploader(by)
     this.uploader = by as Uploader
     return this.template = await this.uploader.upload(this.artifact)
   }

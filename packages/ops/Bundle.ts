@@ -6,9 +6,9 @@ import { Artifact, Template, Instance, Message } from './Core'
 import { Agent } from './Agent'
 import { Chain } from './Chain'
 
-export type Bundled<T> = (bundle: Bundle<T>)=>Promise<void>
+export type BundleWrapper = (bundle: Bundle) => Promise<any>
 
-export abstract class Bundle<T> implements Bundle<T> {
+export abstract class Bundle {
 
   constructor (readonly agent: Agent) {}
 
@@ -34,7 +34,7 @@ export abstract class Bundle<T> implements Bundle<T> {
       return this.submit(memo)
     }
   }
-  async wrap (cb: (bundle: Bundled<T>)=>Promise<T>) {
+  async wrap (cb: BundleWrapper) {
     await cb(this)
     return this.run("")
   }
@@ -50,8 +50,11 @@ export abstract class Bundle<T> implements Bundle<T> {
 }
 
 export type BundleResult = {
-  tx:       string,
-  type:     string
-  codeId?:  string,
-  address?: string
+  tx:        string
+  type:      string
+  chainId:   string
+  codeId?:   string
+  codeHash?: string
+  address?:  string
+  label?:    string
 }

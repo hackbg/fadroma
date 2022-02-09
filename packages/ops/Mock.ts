@@ -1,5 +1,5 @@
 import { BaseChain } from './Chain'
-import { BaseAgent } from './Agent'
+import { Agent } from './Agent'
 import type { Contract } from './Contract'
 import { Directory, readFileSync, decode, Console, bold, colors } from '@hackbg/tools'
 import { URL } from 'url'
@@ -47,7 +47,7 @@ const InitResponse   = WASMFFI.rust.vector('u8')
 const HandleResponse = WASMFFI.rust.vector('u8')
 const QueryResponse  = WASMFFI.rust.vector('u8')
 
-export class MockAgent extends BaseAgent {
+export class MockAgent extends Agent {
   static create ()
     { return new MockAgent() }
 

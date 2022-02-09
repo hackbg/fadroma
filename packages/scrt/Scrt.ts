@@ -72,23 +72,38 @@ export abstract class DockerScrtNode extends DockerChainNode {
 }
 
 import {
-  Identity, Agent, BaseAgent, AgentConstructor, waitUntilNextBlock,
+  Identity, Agent, Agent, AgentConstructor, waitUntilNextBlock,
   Contract, Message, getMethod,
   readFile, backOff
-} from '@hackbg/fadroma'
+} from '@fadroma/ops'
 import { Bip39 } from '@cosmjs/crypto'
 import {
   EnigmaUtils, Secp256k1Pen, encodeSecp256k1Pubkey,
   pubkeyToAddress, makeSignBytes, BroadcastMode
 } from 'secretjs'
-export abstract class ScrtAgentJS extends BaseAgent {
+export abstract class ScrtAgentJS extends Agent {
+
+  readonly name:     string
+  readonly chain:    Scrt
+  fees = ScrtGas.defaultFees
+  readonly keyPair:  any
+  readonly mnemonic: any
+  readonly pen:      any
+  readonly sign:     any
+  readonly pubkey:   any
+  readonly seed:     any
+  readonly address:  string
+  readonly API:      SigningCosmWasmClient
 
   /** Create a new agent from a signing pen. */
   constructor (options: Identity & { API?: APIConstructor } = {}) {
     super(options)
-    this.name     = options?.name || ''
+
+    this.name = this.trace.name = options?.name || ''
+
     this.chain    = options?.chain as Scrt // TODO chain id to chain
     this.fees     = options?.fees || ScrtGas.defaultFees
+
     this.keyPair  = options?.keyPair
     this.mnemonic = options?.mnemonic
     this.pen      = options?.pen
@@ -98,6 +113,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
       this.sign     = this.pen.sign.bind(this.pen)
       this.seed     = EnigmaUtils.GenerateNewSeed()
     }
+
     this.API = new (options.API)(
       this.chain?.url,
       this.address,
@@ -135,20 +151,6 @@ export abstract class ScrtAgentJS extends BaseAgent {
     return agent
   }
 
-  readonly name:     string
-
-  readonly chain:    Scrt
-  fees = ScrtGas.defaultFees
-
-  readonly keyPair:  any
-  readonly mnemonic: any
-  readonly pen:      any
-  readonly sign:     any
-  readonly pubkey:   any
-  readonly seed:     any
-  readonly address:  string
-
-  readonly API:      SigningCosmWasmClient
   get nextBlock () { return waitUntilNextBlock(this) }
   get block     () { return this.API.getBlock() }
   get account   () { return this.API.getAccount(this.address) }
@@ -192,6 +194,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
     const data = await readFile(pathToBinary)
     return await this.API.upload(data, {})
   }
+
   async getCodeHash (idOrAddr: number|string): Promise<string> {
     if (typeof idOrAddr === 'number') {
       return await this.API.getCodeHashByCodeId(idOrAddr)
@@ -201,6 +204,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
       throw new TypeError('getCodeHash id or addr')
     }
   }
+
   async checkCodeHash (address: string, codeHash?: string) {
     // Soft code hash checking for now
     const realCodeHash = await this.getCodeHash(address)
@@ -212,20 +216,18 @@ export abstract class ScrtAgentJS extends BaseAgent {
       console.info(bold(`Code hash of ${address}:`), realCodeHash)
     }
   }
-  async instantiate (template, label, initMsg) {
-    if (!template) {
-      throw new Error('@fadroma/scrt: need a Template to instantiate')
+
+  async instantiate (template, label, msg, funds = []) {
+    if (!template.codeHash) {
+      throw new Error('@fadroma/scrt: Template must contain codeHash')
     }
-    const { chainId, codeId, codeHash } = template
-    if (!template.chainId || !template.codeId || !template.codeId) {
-      throw new Error('@fadroma/scrt: Template must contain chainId, codeId and codeHash')
-    }
-    if (template.chainId !== this.chain.id) {
-      throw new Error(`@fadroma/scrt: Template is from chain ${template.chainId}, we're on ${this.chain.id}`)
-    }
-    const N = this.traceCall(`${bold('INIT')}  ${codeId} ${label}`)
+    return super.instantiate(template, label, msg, funds)
+  }
+
+  async doInstantiate (template, label, msg, funds = []) {
+    const { codeId, codeHash } = template
     const { logs, transactionHash } = await backOff(() => {
-      return this.API.instantiate(Number(codeId), initMsg, label)
+      return this.API.instantiate(Number(codeId), msg, label)
     }, {
       retry (error: Error, attempt: number) {
         if (error.message.includes('500')) {
@@ -237,15 +239,72 @@ export abstract class ScrtAgentJS extends BaseAgent {
         }
       }
     })
-    // hmm
-    this.traceResponse(N, transactionHash)
     return {
-      chainId: this.chain.id,
-      codeId:  Number(codeId),
-      codeHash,
-      address: logs[0].events[0].attributes[4].value,
+      chainId:  this.chain.id,
+      codeId:   Number(codeId),
+      codeHash: codeHash,
+      address:  logs[0].events[0].attributes[4].value,
       transactionHash,
     }
+  }
+
+  /** Instantiate multiple contracts from a bundled transaction. */
+  async instantiateMany (
+    contracts: [Contract<any>, any?, string?, string?][],
+    prefix?: string
+  ): Promise<Record<string, Instance>> {
+    // results by contract name
+    const receipts = {}
+
+    for (const [contract] of contracts) {
+    }
+
+    // results by tx order
+    const results = await this.bundle().wrap(bundle => Promise.all(
+      contracts.map(async ([
+        contract,
+        msg    = contract.initMsg,
+        name   = contract.name,
+        suffix = contract.suffix
+      ])=>{
+        // if custom contract properties are passed to instantiate,
+        // set them on the contract class. FIXME this is a mutation,
+        // the contract class should not exist, this function should
+        // take `Template` instead of `Contract`
+        contract.initMsg = msg
+        contract.name    = name
+        contract.suffix  = suffix
+
+        // generate the label here since `get label () {}` is no more
+        let label = `${name}${suffix||''}`
+        if (prefix) label = `${prefix}/${label}`
+        console.info(bold('Instantiate:'), label)
+
+        // add the init tx to the bundle. when passing a single contract
+        // to instantiate, this should behave equivalently to non-bundled init
+        await bundle.instantiate(
+          contract.template || {
+            chainId:  contract.chainId,
+            codeId:   contract.codeId,
+            codeHash: contract.codeHash
+          },
+          label,
+          msg
+        )
+      })
+    ))
+
+    // collect receipt and set contracts' `instance` properties
+    for (const i in contracts) {
+      const contract = contracts[i][0]
+      const receipt  = results[i]
+      if (receipt) {
+        receipt.codeHash = contract.template?.codeHash||contract.codeHash
+        contract.instance = receipt
+        receipts[contract.name] = receipt
+      }
+    }
+    return receipts
   }
   async getCodeId (address: string): Promise<number> {
     const { codeId } = await this.API.getContract(address)
@@ -255,29 +314,16 @@ export abstract class ScrtAgentJS extends BaseAgent {
     const { label } = await this.API.getContract(address)
     return label
   }
-  async query (contract: Contract, msg: Message) {
-    const { label, address, codeHash } = contract
-    const from   = this.address
-    const method = getMethod(msg)
-    const N = this.traceCall(
-      `${bold(colors.blue('QUERY'.padStart(5)))} ${bold(method.padEnd(20))} on ${contract.address} ${bold(contract.name||'???')}`,
-      //{ msg }
-    )
-    const response = await this.API.queryContractSmart(address, msg as any, undefined, codeHash)
-    //this.traceResponse(N, [>{ response }<])
-    return response
+  async doQuery (
+    { label, address, codeHash }: Contract<any>, msg: Message
+  ) {
+    return this.API.queryContractSmart(address, msg as any, undefined, codeHash)
   }
-  async execute (contract: Contract, msg: Message, memo: any, amount: any, fee: any) {
-    const { label, address, codeHash } = contract
-    const from   = this.address
-    const method = getMethod(msg)
-    const N = this.traceCall(
-      `${bold(colors.yellow('TX'.padStart(5)))} ${bold(method.padEnd(20))} on ${contract.address} ${bold(contract.name||'???')}`,
-      //{ msg, memo, amount, fee }
-    )
-    const result = await this.API.execute(address, msg as any, memo, amount, fee, codeHash)
-    this.traceResponse(N, result.transactionHash)
-    return result
+  async doExecute (
+    { label, address, codeHash }: Contract<any>, msg: Message,
+    memo: any, amount: any, fee: any
+  ) {
+    return this.API.execute(address, msg as any, memo, amount, fee, codeHash)
   }
   bundle () {
     return new ScrtBundle(this)
@@ -287,7 +333,7 @@ export abstract class ScrtAgentJS extends BaseAgent {
 import type { Chain } from '@fadroma/ops'
 /** This agent just collects unsigned txs and dumps them in the end
   * to be performed by manual multisig (via Motika). */
-export class ScrtAgentTX extends BaseAgent {
+export class ScrtAgentTX extends Agent {
   constructor (private readonly agent: ScrtAgentJS) {
     super()
   }
@@ -361,12 +407,12 @@ export class ScrtAgentTX extends BaseAgent {
   }
 }
 
-import { Bundle, Artifact, Template, Instance, toBase64, fromBase64, fromUtf8 } from '@fadroma/ops'
+import { Bundle, BundleResult, Artifact, Template, Instance, toBase64, fromBase64, fromUtf8 } from '@fadroma/ops'
 import { PostTxResult } from 'secretjs'
 import pako from 'pako'
-export class ScrtBundle extends Bundle<PostTxResult> {
+export class ScrtBundle extends Bundle {
 
-  constructor (readonly agent: ScrtAgentJS) { super(agent) }
+  constructor (readonly agent: ScrtAgentJS) { super(agent as Agent) }
 
   upload ({ location }: Artifact) {
     this.add(readFile(location).then(wasm=>({
@@ -395,6 +441,44 @@ export class ScrtBundle extends Bundle<PostTxResult> {
     return { chainId: this.agent.chain.id, codeId, codeHash }
   }
 
+  async instantiateMany (
+    contracts: [Contract<any>, string?, any?][],
+    prefix?:   string
+  ): Promise<Instance[]> {
+    for (const [
+      contract,
+      msg    = contract.initMsg,
+      name   = contract.name,
+      suffix = contract.suffix
+    ] of contracts) {
+      // if custom contract properties are passed to instantiate,
+      // set them on the contract class. FIXME this is a mutation,
+      // the contract class should not exist, this function should
+      // take `Template` instead of `Contract`
+      contract.initMsg = msg
+      contract.name    = name
+      contract.suffix  = suffix
+
+      // generate the label here since `get label () {}` is no more
+      let label = `${name}${suffix||''}`
+      if (prefix) label = `${prefix}/${label}`
+      console.info(bold('Instantiate:'), label)
+
+      // add the init tx to the bundle. when passing a single contract
+      // to instantiate, this should behave equivalently to non-bundled init
+      await this.instantiate(
+        contract.template || {
+          chainId:  contract.chainId,
+          codeId:   contract.codeId,
+          codeHash: contract.codeHash
+        },
+        label,
+        msg
+      )
+    }
+    return contracts.map(contract=>contract[0].instance)
+  }
+
   execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
     const sender   = this.address
     const contract = address
@@ -411,18 +495,14 @@ export class ScrtBundle extends Bundle<PostTxResult> {
     return toBase64(encrypted)
   }
 
-  async submit (memo = ""): Promise<{
-    tx:       string,
-    codeId?:  string,
-    address?: string,
-  }[]> {
-    const N = this.agent.traceCall(
+  async submit (memo = ""): Promise<BundleResult[]> {
+    const N = this.agent.trace.call(
       `${bold(colors.yellow('MULTI'.padStart(5)))} ${this.msgs.length} messages`,
     )
     const { accountNumber, sequence } = await this.agent.API.getNonce()
     const msgs = await Promise.all(this.msgs)
     for (const msg of msgs) {
-      this.agent.traceSubCall(N, `${bold(colors.yellow(msg.type))}`)
+      this.agent.trace.subCall(N, `${bold(colors.yellow(msg.type))}`)
     }
     const signedTx = await this.agent.API.signAdapter(
       msgs,
@@ -434,13 +514,14 @@ export class ScrtBundle extends Bundle<PostTxResult> {
     )
     try {
       const txResult = await this.agent.API.postTx(signedTx)
-      this.agent.traceResponse(N, txResult.transactionHash)
+      this.agent.trace.response(N, txResult.transactionHash)
       const results = []
       for (const i in msgs) {
         results[i] = {
-          sender: this.address,
-          tx:     txResult.transactionHash,
-          type:   msgs[i].type,
+          sender:  this.address,
+          tx:      txResult.transactionHash,
+          type:    msgs[i].type,
+          chainId: this.chainId
         }
         if (msgs[i].type === 'wasm/MsgInstantiateContract') {
           const attrs = mergeAttrs(txResult.logs[i].events[0].attributes as any[])

@@ -1,6 +1,6 @@
 
 /** This agent uses `secretcli` to run the commands. */
-export class ScrtCLIAgent extends BaseAgent {
+export class ScrtCLIAgent extends Agent {
   /** Create a new agent with its signing pen, from a mnemonic or a keyPair.*/
   static async create (options: Identity) {
     const { name = 'Anonymous', ...args } = options

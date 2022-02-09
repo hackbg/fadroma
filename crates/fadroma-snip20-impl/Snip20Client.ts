@@ -1,4 +1,6 @@
-import { Agent, Client, randomHex, decode } from '@fadroma/ops'
+import { Console, Agent, Client, randomHex, decode, fromHex } from '@fadroma/ops'
+
+const console = new Console('@fadroma/snip20/Client')
 
 export class Snip20Client extends Client {
 
@@ -80,7 +82,7 @@ export class Snip20Client extends Client {
     }).then((tx) => {
       console.warn('TODO decode response from create viewing key')
       return { tx }
-      //status: JSON.parse(decode(tx.data)).set_viewing_key.key,
+      //status: JSON.parse(decode(fromHex(tx.data))).set_viewing_key.key,
     })
   }
 
@@ -89,9 +91,9 @@ export class Snip20Client extends Client {
     return this.execute({
       set_viewing_key: { key }
     }).then((tx) => {
-      console.log(tx)
+      console.info(tx)
       return { tx }
-      //status: JSON.parse(decode(tx.data)).set_viewing_key.key,
+      //status: JSON.parse(decode(fromHex(tx.data))).set_viewing_key.key,
     })
   }
 

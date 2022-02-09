@@ -1,5 +1,5 @@
 import * as net from 'net'
-import { Identity, BaseAgent, BaseChain } from '@fadroma/ops'
+import { Identity, Agent, BaseChain } from '@fadroma/ops'
 import { randomHex } from '@hackbg/tools'
 
 import { fromUtf8, fromHex, fromBase64, toBase64 } from '@iov/encoding'
@@ -242,7 +242,7 @@ export class MockChain extends BaseChain {
       server.close()
     } }) }
 
-export class MockAgent extends BaseAgent {
+export class MockAgent extends Agent {
   static async create (options?: Identity) { return new this() }
   get nextBlock () { return Promise.resolve() }
   get block     () { return Promise.resolve()}

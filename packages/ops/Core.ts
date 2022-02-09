@@ -1,4 +1,7 @@
-export { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
+import { colors, bold, Console } from '@hackbg/tools'
+const console = Console('@hackbg/fadroma')
+
+export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
@@ -99,9 +102,18 @@ export function getMethod (msg: Message) {
   }
 }
 
-export type Gas = {
-  amount: Array<{amount: string, denom: string}>
+export type Coin = {
+  amount: string
+  denom:  string
+}
+
+export abstract class Gas {
+  amount: Coin[] = []
   gas:    string
+  constructor (x: number) {
+    const amount = String(x)
+    this.gas = amount
+  }
 }
 
 export type Fees = {
@@ -110,10 +122,6 @@ export type Fees = {
   exec:   Gas
   send:   Gas
 }
-
-import { colors, bold, Console } from '@hackbg/tools'
-
-const console = Console('@hackbg/fadroma')
 
 export const join = (...x:any[]) => x.map(String).join(' ')
 

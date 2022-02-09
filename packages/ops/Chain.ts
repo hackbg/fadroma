@@ -9,7 +9,7 @@ import { URL } from 'url'
 
 import { Identity, Artifact, Template } from './Core'
 import { ChainNode } from './ChainNode'
-import { Agent, AgentConstructor, BaseAgent, MockAgent } from './Agent'
+import { Agent, AgentConstructor, Agent, MockAgent } from './Agent'
 import { Contract } from './Contract'
 import { Deployments } from './Deploy'
 import { Uploads, CachingUploader } from './Upload'
@@ -65,7 +65,7 @@ export async function initChainAndAgent (
   chain = await CHAINS[chainName]().ready
   let agent: Agent
   try {
-    if (chain.defaultIdentity instanceof BaseAgent) {
+    if (chain.defaultIdentity instanceof Agent) {
       agent = chain.defaultIdentity
     } else {
       agent = await chain.getAgent()
@@ -218,7 +218,7 @@ export abstract class BaseChain implements Chain {
     if (!identity) {
       throw new Error(`@fadroma/ops/Chain: pass a name or Identity to get an agent on ${this.id}`)
     }
-    if (identity instanceof BaseAgent) {
+    if (identity instanceof Agent) {
       return await this.Agent.create(identity)
     }
     if (typeof identity === 'string' && this.node) {

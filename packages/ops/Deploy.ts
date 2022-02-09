@@ -59,63 +59,23 @@ export class Deployment {
     this.save()
   }
 
+  /** Instantiate one or more contracts. */
   async instantiate (
     creator: Agent,
     ...contracts: [Contract<any>, any?, string?, string?][]
   ) {
-
-    // this function, when passed a `Bundle` instance,
-    // composes the instantiation procedure for one or more
-    // contracts that were passed to this method.
-    const buildInitBundle = bundle =>
-      Promise.all(contracts.map(async ([
-        contract,
-        msg    = contract.initMsg,
-        name   = contract.name,
-        suffix = contract.suffix
-      ])=>{
-        // if custom contract properties are passed to instantiate,
-        // set them on the contract class. FIXME this is a mutation,
-        // the contract class should not exist, this function should
-        // take `Template` instead of `Contract`
-        contract.initMsg = msg
-        contract.name    = name
-        contract.suffix  = suffix
-
-        // generate the label here since `get label () {}` is no more
-        const label = `${this.prefix}/${name}${suffix||''}`
-        console.info(bold('Instantiate:'), label)
-
-        // add the init tx to the bundle. when passing a single contract
-        // to instantiate, this should behave equivalently to non-bundled init
-        await bundle.instantiate(
-          contract.template || {
-            chainId:  contract.chainId,
-            codeId:   contract.codeId,
-            codeHash: contract.codeHash
-          },
-          label,
-          msg
-        )
-      }))
-
     // execute the init bundle
-    const receipts = await creator.bundle().wrap(buildInitBundle)
+    const receipts = await creator.instantiateMany(contracts, this.prefix)
 
-    // set the `instance` property of every contract
-    // to the corresponding instance receipt
-    for (const i in contracts) {
-      const contract = contracts[i][0]
-      const receipt  = receipts[i]
-      receipt.codeHash = contract.template?.codeHash||contract.codeHash
-      contract.instance = receipt
-      this.receipts[contract.name] = receipt
-      this.save()
+    // save receipts
+    for (const [name, receipt] of Object.entries(receipts)) {
+      this.receipts[name] = receipt
     }
+    this.save()
 
-    // return the mutated contract classes
+    // return the mutated Contract instances only,
+    // without the extra info for bundled init
     return contracts.map(x=>x[0])
-
   }
 
   get (
@@ -193,7 +153,7 @@ export class Deployments extends Directory {
     if (this.active) {
       this.active.printStatus()
     } else {
-      console.log(`\nNo selected deployment.`)
+      console.info(`\nNo selected deployment.`)
     }
   }
   get active (): Deployment|null {
@@ -309,7 +269,7 @@ export class Deployments extends Directory {
     const [ id ] = input.cmdArgs || []
     const list = chain.deployments.list()
     if (list.length < 1) {
-      console.log('\nNo deployments. Create one with `deploy new`')
+      console.info('\nNo deployments. Create one with `deploy new`')
     }
     if (id) {
       console.info(bold(`Selecting deployment:`), id)

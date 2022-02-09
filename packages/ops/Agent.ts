@@ -1,49 +1,32 @@
 import { Console, bold, colors } from '@hackbg/tools'
-
 const console = Console('@fadroma/ops/Agent')
 
-import type { Contract } from './Contract'
-import type { Gas } from './Core'
 import { resolve, readFileSync, JSONDirectory } from '@hackbg/tools'
 import { toBase64 } from '@iov/encoding'
 
-export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
-
-import type { Identity, Message, Template } from './Core'
+import { Gas, Identity, Message, Template, getMethod } from './Core'
+import type { Contract } from './Contract'
 import type { Chain } from './Chain'
 import type { Bundle } from './Bundle'
-export interface Agent extends Identity {
-  readonly chain:   Chain
-  readonly address: string
-  readonly name:    string
-  fees: Record<string, any>
 
-  readonly nextBlock: Promise<void>
-  readonly block:     Promise<any>
-  readonly account:   Promise<any>
-  readonly balance:   Promise<any>
-
-  getBalance  (denomination: string): Promise<any>
-  send        (to: any, amount: string|number, denom?: any, memo?: any, fee?: any): Promise<any>
-  sendMany    (txs: Array<any>, memo?: string, denom?: string, fee?: any): Promise<any>
-
-  upload      (path: string): Promise<any>
-  instantiate (template: Template, label: string, initMsg: Message, funds?: any[]): Promise<any>
-  query       (contract: { address: string, codeHash: string }, message: Message): Promise<any>
-  execute     (contract: { address: string, codeHash: string }, message: Message, funds?: any[], memo?: any, fee?: any): Promise<any>
-  bundle      (): Bundle<this>
-
-  getCodeHash (idOrAddr: number|string): Promise<string>
-  getCodeId   (address: string): Promise<number>
-  getLabel    (address: string): Promise<string>
-
-  buildAndUpload (contracts: Contract<any>[]): Promise<Template[]>
-
-  traceCall     (callType: string, info?: any): number
-  traceResponse (N: number, info?: any)
+export abstract class BaseGas implements Gas {
+  //readonly abstract denom: string
+  amount: Array<{amount: string, denom: string}> = []
+  gas:    string
+  constructor (x: number) {
+    const amount = String(x)
+    this.gas = amount
+  }
 }
 
-export abstract class BaseAgent implements Agent {
+const { FADROMA_PRINT_TXS = "" } = process.env
+
+export type ContractSpec = [Contract<any>, any?, string?, string?]
+
+export abstract class Agent implements Identity {
+
+  trace = new AgentTracer("unnamed")
+
   readonly chain:   Chain
   readonly address: string
   readonly name:    string
@@ -60,29 +43,127 @@ export abstract class BaseAgent implements Agent {
   abstract get account   (): Promise<any>
   abstract get balance   (): Promise<any>
 
-  abstract getBalance (denomination: string): Promise<any>
-  abstract send       (to: any, amount: string|number, denom?: any, memo?: any, fee?: any): Promise<any>
-  abstract sendMany   (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
-
-  abstract upload      (path: string): Promise<any>
-  abstract instantiate (template: Template, label: string, msg: any, funds: any[]): Promise<any>
-  abstract query       (contract: { address: string, codeHash: string }, msg: any): Promise<any>
-  abstract execute     (contract: { address: string, codeHash: string }, msg: any, funds: any[], memo?: any, fee?: any): Promise<any>
-  abstract bundle      (): Bundle<this>
-
+  abstract getBalance  (denomination: string):    Promise<any>
   abstract getCodeHash (idOrAddr: number|string): Promise<string>
-  abstract getCodeId   (address: string): Promise<number>
-  abstract getLabel    (address: string): Promise<string>
+  abstract getLabel    (address: string):         Promise<string>
+  abstract getCodeId   (address: string):         Promise<number>
+
+  abstract send (to: any, amt: string|number, denom?: any, memo?: any, fee?: any): Promise<any>
+  abstract sendMany (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
+
+  abstract upload (path: string): Promise<any>
+
+  /** Instantiate a single contract. */
+  async instantiate (
+    template: Template, label: string, msg: any, funds: any[]
+  ): Promise<any> {
+    if (!template) {
+      throw new Error('@fadroma/ops/Agent: need a Template to instantiate')
+    }
+    const { chainId, codeId } = template
+    if (!template.chainId || !template.codeId) {
+      throw new Error('@fadroma/scrt: Template must contain chainId and codeId')
+    }
+    if (template.chainId !== this.chain.id) {
+      throw new Error(`@fadroma/scrt: Template is from chain ${template.chainId}, we're on ${this.chain.id}`)
+    }
+
+    let traceId
+
+    if (FADROMA_PRINT_TXS.includes('init')) {
+      traceId = this.trace.call(`${bold('INIT')}  ${codeId} ${label}`)
+    }
+
+    const result = await this.doInstantiate(template, label, msg, funds)
+
+    if (FADROMA_PRINT_TXS.includes('init-result')) {
+      this.trace.response(traceId)
+    }
+
+    return result
+  }
+
+  abstract instantiateMany (contracts: ContractSpec[], prefix?: string): Promise<any>
+
+  protected abstract doInstantiate (
+    template: { chainId: string, codeId: string }, label: string, msg: any, funds: any[]
+  ): Promise<any>
+
+  async query (
+    contract: { address: string, label: string }, msg: any
+  ): Promise<any> {
+
+    let traceId
+
+    if (FADROMA_PRINT_TXS.includes('query')) {
+      traceId = this.trace.call(
+        `${bold(colors.blue('QUERY'.padStart(5)))} `+
+        `${bold(getMethod(msg).padEnd(20))} `+
+        `on ${contract.address} ${bold(contract.label||'???')}`,
+        //{ msg }
+      )
+    }
+
+    const response = await this.doQuery(contract, msg)
+
+    if (FADROMA_PRINT_TXS.includes('query-result')) {
+      this.trace.response(traceId)
+    }
+
+    return response
+  }
+
+  protected abstract doQuery (
+    contract: { address: string }, msg: any
+  ): Promise<any>
+
+  async execute (
+    contract: { address: string, label: string }, msg: Message, funds: any[], memo?: any, fee?: any
+  ): Promise<any> {
+
+    let traceId
+
+    if (FADROMA_PRINT_TXS.includes('exec')) {
+      traceId = this.trace.call(
+        `${bold(colors.yellow('TX'.padStart(5)))} `+
+        `${bold(getMethod(msg).padEnd(20))} ` +
+        `on ${contract.address} ${bold(contract.label||'???')}`,
+      )
+    }
+
+    const response = await this.doExecute(contract, msg, funds, memo, fee)
+
+    if (FADROMA_PRINT_TXS.includes('init-result')) {
+      this.trace.response(traceId, response.transactionHash)
+    }
+
+    return response
+  }
+
+  protected abstract doExecute (
+    contract: { address: string, label: string }, msg: Message, funds: any[], memo?: any, fee?: any
+  ): Promise<any>
+
+  abstract bundle (): Bundle
 
   constructor (_options?: Identity) {}
 
-  buildAndUpload (contracts: Contract<any>[]) {
+  buildAndUpload (contracts: Contract<any>[]): Promise<Template[]> {
     return this.chain.buildAndUpload(this, contracts)
   }
 
   // TODO combine with backoff
+
+
+}
+
+export class AgentTracer {
+
+  constructor (public name: string) {}
+
   private callCounter = 0
-  traceCall (callType = '???', info?) {
+
+  call (callType = '???', info?): number {
     const N = ++this.callCounter
     if (process.env.FADROMA_PRINT_TXS) {
       //console.info()
@@ -96,7 +177,8 @@ export abstract class BaseAgent implements Agent {
     }
     return N
   }
-  traceSubCall (N: number, callType = '???', info?) {
+
+  subCall (N: number, callType = '???', info?) {
     if (process.env.FADROMA_PRINT_TXS) {
 
       const header = `${bold(
@@ -113,13 +195,16 @@ export abstract class BaseAgent implements Agent {
     }
     return N
   }
-  traceResponse (N, txHash?) {
+
+  response (N, txHash?) {
     if (process.env.FADROMA_PRINT_TXS) {
       //console.info()
       console.info(`${bold(`${this.name}: result of call #${N}`)}:`, txHash)
     }
   }
 }
+
+export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
 
 export async function waitUntilNextBlock (
   agent:    Agent,
@@ -146,21 +231,4 @@ export async function waitUntilNextBlock (
       }
     }
   })
-}
-
-/** Check if the passed instance has required methods to behave like an Agent */
-export const isAgent = (maybeAgent: any): boolean => (
-  maybeAgent
-  && typeof maybeAgent         === "object"
-  && typeof maybeAgent.query   === "function"
-  && typeof maybeAgent.execute === "function")
-
-export abstract class BaseGas implements Gas {
-  //readonly abstract denom: string
-  amount: Array<{amount: string, denom: string}> = []
-  gas:    string
-  constructor (x: number) {
-    const amount = String(x)
-    this.gas = amount
-  }
 }
