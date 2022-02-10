@@ -22,11 +22,14 @@ Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
 <tr><td valign="top">
 
-## Fadroma Ops
+## Fadroma [CLI](./packages/cli) + [Ops](./packages/ops)
 
-**Contract deployment workflow for Secret Network.**
+**Contract deployment tools for Secret Network.**
 
-Implemented in: [`@fadroma/ops`](./packages/ops) [`@fadroma/scrt`](./packages/scrt) [`@fadroma/scrt-1.0`](./packages/scrt-1.0) [`@fadroma/scrt-1.2`](./packages/scrt-1.2).
+> See also:
+> * [`@fadroma/scrt`](./packages/scrt)
+> * [`@fadroma/scrt-1.0`](./packages/scrt-1.0)
+> * [`@fadroma/scrt-1.2`](./packages/scrt-1.2).
 
 Just import `@hackbg/fadroma` to start scripting deployments and migrations.
 
@@ -44,100 +47,37 @@ Just import `@hackbg/fadroma` to start scripting deployments and migrations.
 
 </td><td>
 
+> See [Fadroma CLI documentation](./packages/cli/README.md#example-deployment-script)
+> for a more extensive example.
+
 ```typescript
-import Fadroma, { Deploy, Snip20 } from '@hackbg/fadroma'
+// cat.ts
+import Fadroma from '@hackbg/fadroma'
+Fadroma.command('do something',
+  async function meow ({ agent }) {
+    // go wild here
+  })
+```
 
-class CustomToken extends Snip20 {
-
-  name = 'CustomToken'
-
-  /* Let's define some deploy steps. They're only `static`
-   * because it's convenient. You can use free-standing
-   * functions, too, and name them any way you like. */
-  static async deploy ({
-    /* In the context of every migration. */
-    agent, chain,
-    /* Provided by Deploy.new and Deploy.current */
-    deployment, prefix,
-  }) {
-
-    /* Object representing the deployment info
-     * for a particular contract. */
-    const contract = new CustomToken()
-
-    /* Builds and uploads are cached, so this one
-     * only takes a long time the first time.
-     * Delete files to rebuild/reupload. */
-    await chain.buildAndUpload(agent, [
-      contract,
-      /* Add more contracts here to build them in parallel
-       * and upload them as part of the same transaction. */])
-    
-    const initMsg = { /* Init the contract with this data */
-      admin:   agent.address,
-      name:    'Custom Token',
-      symbol:  'CUSTOM',
-      decimals: 18,
-      config: { enable_mint: true },
-    }
-
-    await deployment.init(agent,
-      [contract, initMsg],
-      /* Add more contracts/initMsgs here to
-       * instantiate multiple contracts in parallel */)
-
-    /* Values returned by a step are added to the context. */
-    return { contract }
+```jsonc
+// package.json
+{
+  "scripts": {
+    "cat": "ganesha-node cat.ts"
+  },
+  "dependencies": {
+    "@hackbg/fadroma": "github:hackbg/fadroma"
   }
-
-  static async status ({
-
-    /* From migration context. */
-    deployment, agent
-
-    /* Taken from the previous step,
-     * or from the deployment's receipts. */
-    contract = new CustomToken(deployment.get('CustomToken'))
-
-  }: Migration & { contract: CustomToken }) {
-
-    /* Easily bundle multiple transactions, including inits.
-     * You can't do a query in the middle of the bundle,
-     * and the API is kinda rough. But it works, and
-     * speeds up procedures considerably. */
-    await agent.bundle().wrap(async bundle=>{
-      const contract = token.client(bundle)
-      await contract.setViewingKey("monkey")
-      await contract.setMinters([agent.address])
-      await contract.mint(agent.address, "1024")
-    })
-
-    /* Query and transaction methods for contracts are
-     * defined separately from deployment procedures, in
-     * the `Client` class. After deploying or retrieving
-     * a `Contract` object, consider passing around only
-     * `Client`s bound to particular `Agent`s. */
-    const client = contract.client(agent)
-    console.log(await client.balance(agent.address, "monkey"))
-
-  }
-
 }
-
-Fadroma.command('deploy',
-  Deploy.new,      /* Start new deployment */
-  CustomToken.deploy,
-  CustomToken.status)
-Fadroma.command('status',
-  Deploy.current, /* Activate current deployment */
-  CustomToken.status)
-Fadroma.command('select',
-  Deploy.select) /* Let user select another deployment */
 ```
 
 ```sh
-npx fadroma deploy new
-npx fadroma deploy status
+# .env
+FADROMA_CHAIN=localnet-1.2
+```
+
+```sh
+pnpm cat do something
 ```
 
 </td></tr>
@@ -155,7 +95,13 @@ into familiar tags such as `#[init]`, `#[handle]` and `#[query]`.
 
 * See [fadroma-derive-contract](./crates/fadroma-derive-contract)
 
-</td><td></td>
+</td><td>
+
+```rust
+TODO introductory example
+```
+
+</td>
 </tr>
 
 <tr></tr>

@@ -157,7 +157,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   ): Promise<Record<string, Instance>> {
     // results by contract name
     const receipts = await super.instantiateMany(contracts, prefix)
-    console.log(receipts)
     // populate code hash in receipt and `contract.instance` properties
     for (const i in contracts) {
       const contract = contracts[i][0]
