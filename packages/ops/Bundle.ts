@@ -27,7 +27,7 @@ export abstract class Bundle {
   }
   run (memo: string): Promise<BundleResult[]|null> {
     if (this.depth > 0) {
-      console.warn('Unnesting bundle. Depth:', ++this.depth)
+      console.warn('Unnesting bundle. Depth:', --this.depth)
       this.depth--
       return null
     } else {

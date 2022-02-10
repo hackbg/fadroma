@@ -121,4 +121,8 @@ export class ScrtBundle extends Bundle {
 
     return []
   }
+
+  query = (...args) => {
+    throw new Error("@fadroma/scrt/Bundle: can't query from a bundle")
+  }
 }
