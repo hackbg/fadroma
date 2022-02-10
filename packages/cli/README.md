@@ -20,14 +20,8 @@ Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
 ## Running commands in a project
 
-**`Fadroma.command(`**
-
-**`  command: string,`**
-
-**`  ...stages: Function[]`**
-
-**`)`** defines a **`Command`** as a match between:
-
+**`Fadroma.command(command: string, ...stages: Function[])`**
+defines a **`Command`** as a match between:
 * some **words** (represented by a space-separated string); and
 * some **steps** (represented by async functions taking a single object argument)
 
