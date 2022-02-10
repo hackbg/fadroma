@@ -6,6 +6,7 @@ export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 import { readFileSync } from '@hackbg/tools'
+
 export function codeHashForPath (location: string) {
   return toHex(new Sha256(readFileSync(location)).digest())
 }

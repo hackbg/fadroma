@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@types/node":       "^16.11.19",
+    "@fadroma/cli":      "workspace:*",
     "@fadroma/ops":      "workspace:*",
     "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.0": "workspace:*",

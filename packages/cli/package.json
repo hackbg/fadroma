@@ -1,7 +1,11 @@
 {
   "name": "@fadroma/cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "main": "index.ts",
   "dependencies": {
+    "@fadroma/ops":    "workspace:*",
+    "@fadroma/scrt":   "workspace:*",
+    "@fadroma/snip20": "workspace:*",
     "@hackbg/ganesha": "^1",
     "@hackbg/komandi": "^2",
     "cross-spawn": "^7.0.3",

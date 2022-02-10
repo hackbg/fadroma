@@ -4,10 +4,9 @@ importers:
 
   .:
     specifiers:
+      '@fadroma/cli': workspace:*
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-1.0': workspace:*
-      '@fadroma/scrt-1.2': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
       '@hackbg/komandi': ^2
@@ -16,10 +15,9 @@ importers:
       typedoc: ^0.21.9
       typescript: ^4.5.4
     dependencies:
+      '@fadroma/cli': link:packages/cli
       '@fadroma/ops': link:packages/ops
       '@fadroma/scrt': link:packages/scrt
-      '@fadroma/scrt-1.0': link:packages/scrt-1.0
-      '@fadroma/scrt-1.2': link:packages/scrt-1.2
       '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/komandi': 2.0.0
       '@types/node': 16.11.19
@@ -46,12 +44,18 @@ importers:
 
   packages/cli:
     specifiers:
+      '@fadroma/ops': workspace:*
+      '@fadroma/scrt': workspace:*
+      '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
       '@hackbg/komandi': ^2
       cross-spawn: ^7.0.3
       mkdirp: ^1.0.4
       prompts: ^2.4.1
     dependencies:
+      '@fadroma/ops': link:../ops
+      '@fadroma/scrt': link:../scrt
+      '@fadroma/snip20': link:../../crates/fadroma-snip20-impl
       '@hackbg/ganesha': 1.0.0
       '@hackbg/komandi': 2.0.0
       cross-spawn: 7.0.3
@@ -515,7 +519,7 @@ packages:
     dependencies:
       '@ganesha/node': 2.0.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.16
+      '@types/node': 17.0.17
       cross-spawn: 7.0.3
 
   /@hackbg/kabinet/1.0.0:
@@ -748,8 +752,8 @@ packages:
     resolution: {integrity: sha512-4YpbAsnJXWYK/fpTVFlMIcUIho2AYCi4wg5aNPrG1ng7fn/1/RZfCIpRCiBX+12RVa34RluilnvCqD+g3KiSiA==}
     dev: false
 
-  /@types/node/17.0.16:
-    resolution: {integrity: sha512-ydLaGVfQOQ6hI1xK2A5nVh8bl0OGoIfYMxPWHqqYe9bTkWCfqiVvZoh2I/QF2sNSkZzZyROBoTefIEI+PB6iIA==}
+  /@types/node/17.0.17:
+    resolution: {integrity: sha512-e8PUNQy1HgJGV3iU/Bp2+D/DXh3PYeyli8LgIwsQcs1Ar1LoaWHSIT6Rw+H2rNJmiq6SNWiDytfx8+gYj7wDHw==}
 
   /@types/prettier/2.4.1:
     resolution: {integrity: sha512-Fo79ojj3vdEZOHg3wR9ksAMRz4P3S5fDB5e/YWZiFnyFQI1WY2Vftu9XoXVVtJfxB7Bpce/QTqWSSntkz2Znrw==}
