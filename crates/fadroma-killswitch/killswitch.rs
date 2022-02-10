@@ -1,11 +1,43 @@
+use std::fmt;
+
 use fadroma_platform_scrt::*;
 use fadroma_auth::admin::*;
 use fadroma_auth_proc::*;
+use fadroma_derive_contract::{contract, handle, query};
 
 use serde::{Serialize, Deserialize};
 use schemars::JsonSchema;
 
 pub const PREFIX: &[u8] = b"fadroma_migration_state";
+
+/// Requires the admin component in order to check for admin.
+#[contract]
+pub trait Killswitch {
+    #[handle]
+    fn set_status(
+        level: ContractStatusLevel,
+        reason: String,
+        new_address: Option<HumanAddr>
+    ) -> StdResult<HandleResponse> {
+        set_status(deps, env, level, reason, new_address)?;
+
+        Ok(HandleResponse {
+            messages: vec![],
+            log: vec![
+                log("action", "set_status"),
+                log("level", level)
+            ],
+            data: None
+        })
+    }
+
+    #[query]
+    fn get_status() -> StdResult<ContractStatus<HumanAddr>> {
+        let status = load(&deps.storage)?;
+
+        status.humanize(&deps.api)
+    }
+}
 
 /// Wrap status levels around the `match` statement that does your handle dispatch.
 /// Requires the `composable_admin::admin` module.
@@ -64,6 +96,16 @@ pub enum ContractStatusLevel {
     Paused,
     /// Permanently disabled
     Migrating,
+}
+
+impl fmt::Display for ContractStatusLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match *self {
+            Self::Operational => write!(f, "operational"),
+            Self::Paused => write!(f, "paused"),
+            Self::Migrating => write!(f, "migrating")
+        }
+    }
 }
 
 // TODO once serde-json-wasm finally supports serializing Rusty enums,
@@ -156,7 +198,7 @@ pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
     }
 }
 
-/// Store a new contract status.
+/// Store a new contract status. Requires the admin component in order to check for admin.
 #[require_admin]
 pub fn set_status <S: Storage, A: Api, Q: Querier> (
     deps: &mut Extern<S, A, Q>,

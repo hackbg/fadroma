@@ -10,8 +10,9 @@ path = "killswitch.rs"
 [dependencies]
 fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
 
-fadroma-auth      = { path = "../fadroma-auth" }
-fadroma-auth-proc = { path = "../fadroma-auth-proc" }
-fadroma-storage   = { path = "../fadroma-storage" }
+fadroma-auth            = { path = "../fadroma-auth" }
+fadroma-auth-proc       = { path = "../fadroma-auth-proc" }
+fadroma-storage         = { path = "../fadroma-storage" }
+fadroma-derive-contract = { path = "../fadroma-derive-contract" }
 
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
