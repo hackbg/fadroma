@@ -146,11 +146,11 @@ by implementing it as a reusable Rust trait.
 
 * See [fadroma-composability](./crates/fadroma-composability)
 
-</td>
+</td><td>
+
 ```rust
 Needs introductory example :)
 ```
-<td>
 
 </td></tr>
 
