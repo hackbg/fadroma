@@ -22,9 +22,9 @@ Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
 <tr><td valign="top">
 
-## Fadroma [CLI](./packages/cli) + [Ops](./packages/ops)
+## [Fadroma CLI](./packages/cli)
 
-**Contract deployment tools for Secret Network.**
+**Your portal to the Fadroma universe.**
 
 > See also:
 > * [`@fadroma/scrt`](./packages/scrt)
@@ -45,26 +45,8 @@ Just import `@hackbg/fadroma` to start scripting deployments and migrations.
 
 </td><td>
 
-> See [Fadroma CLI documentation](./packages/cli/README.md#example-deployment-script)
-> for the big example.
-
-**This is the format of a deployment script.**
-It's a JavaScript or TypeScript module that
-lets you define migrations as plain async functions
-invoked by name from the command line.
-
-```typescript
-// cat.ts
-import Fadroma from '@hackbg/fadroma'
-Fadroma.command('do something',
-  async function meow ({ agent }) {
-    // go wild here
-  })
-export default Fadroma.module(import.meta.url)
-```
-
 **This is what you need in `package.json`**
-to be able to run the deployment script.
+to be able to run Fadroma scripts.
 
 ```jsonc
 // package.json
@@ -79,20 +61,65 @@ to be able to run the deployment script.
 }
 ```
 
-If you don't want to type **environment variables** every time:
+Because you don't need to type **environment variables** every time:
 
 ```sh
 # .env
 FADROMA_CHAIN=localnet-1.2
 ```
 
-Then you can run your Fadroma-enabled script with:
+Because **you don't want your keys to leak**:
+
+```sh
+# .gitignore
+.env
+```
+
+Then you can run **your Fadroma scripts** with:
 
 ```sh
 pnpm cat do something    # basic form
 pnpm -w cat do something # in workspace
+# or...
 yarn cat do something    # if using Yarn
 npm run cat do something # if using NPM
+```
+
+> See [Fadroma CLI documentation](./packages/cli/README.md#example-deployment-script)
+> for the big example.
+
+</td></tr>
+
+<tr><!--spacer--></tr>
+
+<tr><td valign="top">
+
+## [Fadroma Ops](./packages/ops)
+
+**Core workflows for smart contract
+development and deployment
+on Cosmos-based platforms.**
+
+</td><td>
+
+**This is the format of a Fadroma script.**
+It's a JavaScript or TypeScript module that
+lets you define migrations as plain async functions
+invoked by name from the command line.
+
+```typescript
+// cat.ts
+import Fadroma from '@hackbg/fadroma'
+Fadroma.command('do something',
+  async function meow ({ agent }) {
+    // go wild here
+  })
+export default Fadroma.module(import.meta.url)
+```
+
+```typescript
+// Needs example deployment workflow,
+// with or without `Contract` ;)
 ```
 
 </td></tr>
@@ -130,8 +157,7 @@ into familiar tags such as `#[init]`, `#[handle]` and `#[query]`.
 Needs introductory example :)
 ```
 
-</td>
-</tr>
+</td></tr>
 
 <tr><!--back to da 90s lol--></tr>
 
