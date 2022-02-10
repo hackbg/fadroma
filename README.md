@@ -40,15 +40,18 @@ Just import `@hackbg/fadroma` to start scripting deployments and migrations.
   of groups of connected contracts that work together.
 * The `Agent`'s `Bundle` mode allows you to run multiple
   transactions simultaneously - including contract instantiations.
-* Configuration file allows custom commands to be defined
-  from reusable "deploy step" functions.
 * Modular architecture, open to extension for other
   Cosmos-based blockchains.
 
 </td><td>
 
 > See [Fadroma CLI documentation](./packages/cli/README.md#example-deployment-script)
-> for a more extensive example.
+> for the big example.
+
+**This is the format of a deployment script.**
+It's a JavaScript or TypeScript module that
+lets you define migrations as plain async functions
+invoked by name from the command line.
 
 ```typescript
 // cat.ts
@@ -57,7 +60,11 @@ Fadroma.command('do something',
   async function meow ({ agent }) {
     // go wild here
   })
+export default Fadroma.module(import.meta.url)
 ```
+
+**This is what you need in `package.json`**
+to be able to run the deployment script.
 
 ```jsonc
 // package.json
@@ -66,23 +73,45 @@ Fadroma.command('do something',
     "cat": "ganesha-node cat.ts"
   },
   "dependencies": {
+    "@hackbg/ganesha": "^1",
     "@hackbg/fadroma": "github:hackbg/fadroma"
   }
 }
 ```
+
+If you don't want to type **environment variables** every time:
 
 ```sh
 # .env
 FADROMA_CHAIN=localnet-1.2
 ```
 
+Then you can run your Fadroma-enabled script with:
+
 ```sh
-pnpm cat do something
+pnpm cat do something    # basic form
+pnpm -w cat do something # in workspace
+yarn cat do something    # if using Yarn
+npm run cat do something # if using NPM
 ```
 
 </td></tr>
 
-<tr></tr>
+<tr><!--spacer--></tr>
+
+<tr><td>
+
+## Fadroma Ops for [Secret Network](./packages/scrt) (versions [1.0](./packages/scrt-1.0) and [1.2](./packages/scrt-1.2))
+
+</td><td>
+
+```rust
+Needs introductory example :)
+```
+
+</td></tr>
+
+<tr><!--spacer--></tr>
 
 <tr><td>
 
@@ -98,13 +127,13 @@ into familiar tags such as `#[init]`, `#[handle]` and `#[query]`.
 </td><td>
 
 ```rust
-TODO introductory example
+Needs introductory example :)
 ```
 
 </td>
 </tr>
 
-<tr></tr>
+<tr><!--back to da 90s lol--></tr>
 
 <tr><td>
 
@@ -117,7 +146,12 @@ by implementing it as a reusable Rust trait.
 
 * See [fadroma-composability](./crates/fadroma-composability)
 
-</td><td>
+</td>
+```rust
+Needs introductory example :)
+```
+<td>
+
 </td></tr>
 
 </table>
