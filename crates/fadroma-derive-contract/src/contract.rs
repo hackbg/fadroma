@@ -284,14 +284,16 @@ impl Contract {
         if let Some(init) = &self.init {
             let msg = self.args.interface_path_concat(&Ident::new(INIT_MSG, Span::call_site()));
             let fn_name = Ident::new(INIT_FN, Span::call_site());
-            let arg = self.create_trait_arg();
+
+            let ref trait_name = self.ident;
+            let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
     
             let mut result: ItemFn = parse_quote! {
                 pub fn #fn_name<S: cosmwasm_std::Storage, A: cosmwasm_std::Api, Q: cosmwasm_std::Querier>(
                     deps: &mut cosmwasm_std::Extern<S, A, Q>,
                     env: cosmwasm_std::Env,
                     msg: #msg,
-                    #arg
+                    #arg_name: impl #trait_name
                 ) -> cosmwasm_std::StdResult<cosmwasm_std::InitResponse> { }
             };
         
@@ -304,7 +306,6 @@ impl Contract {
                 args.push_punct(Comma(Span::call_site()));
             }
     
-            let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
             let ref method_name = init.sig.ident;
     
             let call: Expr = parse_quote!(#arg_name.#method_name(#args deps, env));
@@ -318,21 +319,22 @@ impl Contract {
     
     fn generate_handle_fn(&self) -> syn::Result<ItemFn> {
         let msg = self.args.interface_path_concat(&MsgType::Handle.to_ident());
-        let arg = self.create_trait_arg();
         let fn_name = Ident::new(HANDLE_FN, Span::call_site());
+
+        let ref trait_name = self.ident;
+        let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
 
         let mut result: ItemFn = parse_quote! {
             pub fn #fn_name<S: cosmwasm_std::Storage, A: cosmwasm_std::Api, Q: cosmwasm_std::Querier>(
                 deps: &mut cosmwasm_std::Extern<S, A, Q>,
                 env: cosmwasm_std::Env,
                 msg: #msg,
-                #arg
+                #arg_name: impl #trait_name
             ) -> cosmwasm_std::StdResult<cosmwasm_std::HandleResponse> { }
         };
 
         if let Some(guard) = &self.handle_guard {
             let ref method_name = guard.sig.ident;
-            let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
 
             result.block.stmts.push(parse_quote! {
                 #arg_name.#method_name(&msg, deps, &env)?;
@@ -347,8 +349,10 @@ impl Contract {
 
     fn generate_query_fn(&self) -> syn::Result<ItemFn> {
         let msg = self.args.interface_path_concat(&MsgType::Query.to_ident());
-        let arg = self.create_trait_arg();
         let fn_name = Ident::new(QUERY_FN, Span::call_site());
+
+        let ref trait_name = self.ident;
+        let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
 
         let match_expr = self.create_match_expr(MsgType::Query)?;
 
@@ -356,7 +360,7 @@ impl Contract {
             pub fn #fn_name<S: cosmwasm_std::Storage, A: cosmwasm_std::Api, Q: cosmwasm_std::Querier>(
                 deps: &cosmwasm_std::Extern<S, A, Q>,
                 msg: #msg,
-                #arg
+                #arg_name: impl #trait_name
             ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> { }
         };
         
@@ -532,13 +536,6 @@ impl Contract {
                 // automatically because we `use cosmwasm_std`.
             }
         }
-    }
-    
-    fn create_trait_arg(&self) -> FnArg {
-        let ref trait_name = self.ident;
-        let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
-
-        parse_quote!(#arg_name: impl #trait_name)
     }
 }
 
