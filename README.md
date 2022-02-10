@@ -26,22 +26,7 @@ Help yourselves to the [contribution guidelines](CONTRIBUTING.md).
 
 **Your portal to the Fadroma universe.**
 
-> See also:
-> * [`@fadroma/scrt`](./packages/scrt)
-> * [`@fadroma/scrt-1.0`](./packages/scrt-1.0)
-> * [`@fadroma/scrt-1.2`](./packages/scrt-1.2).
-
-Just import `@hackbg/fadroma` to start scripting deployments and migrations.
-
-* The `Contract` and `Client` classes represent smart contracts
-  and allow you to write scripts that compile them, deploy them,
-  and interact with them.
-* The `Deployment` and `Migration` system helps you keep track
-  of groups of connected contracts that work together.
-* The `Agent`'s `Bundle` mode allows you to run multiple
-  transactions simultaneously - including contract instantiations.
-* Modular architecture, open to extension for other
-  Cosmos-based blockchains.
+* `TODO` [ ] [`docker compose`-based project template and portable development environment](https://github.com/hackbg/fadroma/issues/52)
 
 </td><td>
 
@@ -99,6 +84,14 @@ npm run cat do something # if using NPM
 **Core workflows for smart contract
 development and deployment
 on Cosmos-based platforms.**
+
+* The `Contract` and `Client` classes represent smart contracts
+  and allow you to write scripts that compile them, deploy them,
+  and interact with them.
+* The `Deployment` and `Migration` system helps you keep track
+  of groups of connected contracts that work together.
+* The `Agent`'s `Bundle` mode allows you to run multiple
+  transactions simultaneously - including contract instantiations.
 
 </td><td>
 
