@@ -1,60 +1,121 @@
 # Fadroma CLI
 
-## Running commands in a project
+<table><tr><td>
 
-> See [`@hackbg/komandi`](https://github.com/hackbg/toolbox),
+## Running commands in a project
 
 **`Fadroma.command(command: string, ...stages: Function[])`**
 defines a command as a match between:
 
 * some **words** (represented by a space-separated string); and
-* some **stages** (represented by async functions taking a single object argument)
+* some **steps** (represented by async functions taking a single object argument)
+
+</td><td>
 
 ```typescript
 // do.ts
 import Fadroma from '@hackbg/fadroma'
 Fadroma.command('do something cat',
   Cat.init,
-  async function meow ({
-    agent }) {
+  async function meow ({ agent }) {
     // go wild here
-  })
+  }
+)
+export default Fadroma.module(import.meta.url)
 ```
 
-### The `MigrationContext`
+> See [`@hackbg/komandi`](https://github.com/hackbg/toolbox) for implementation.
 
-When invoking the command, the steps are executed
-in sequence, with a common state object -
-the [`MigrationContext`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts).
+</td></tr><tr><!--spacer--></tr><tr><td>
 
-This contains handles to the entities that Fadroma provides
-for scripting smart contracts. It is up to you to define
-suitable command content depending on your business logic.
+### The [`MigrationContext`](./Migrate.ts)
 
-The `MigrationContext` can be modified by individual **stages**,
-by returning an object value from the stage;. The keys of the
-object are then added into the context for subsequent steps.
+When invoking a **command** corresponding to a certain sequence
+of **words** from the command line, the **steps** are executed
+one after another, in a common environment.
 
-> See [`Deployments.activate`](#needsdeployment)
+This environment is represented in the [`MigrationContext`](https://github.com/hackbg/fadroma/blob/22.01/packages/ops/index.ts),
+which is pre-populated with handles to the entities that
+Fadroma provides for scripting smart contracts.
 
-### Example deployment script
+</td><td>
+
+```typescript
+type MigrationContext = {
+  timestamp:   string
+  chain:       Chain
+  agent:       Agent
+  uploadAgent: Agent
+  deployAgent: Agent
+  clientAgent: Agent
+  deployment?: Deployment,
+  prefix?:     string,
+  suffix?:     string,
+  cmdArgs:     string[]
+  run <T extends object, U> (procedure: Function, args?: T): Promise<U>
+}
+```
+
+> See [`Migrate.ts`](./Migrate.ts) for description of what these parameters do.
+
+</td></tr><tr><!--spacer--></tr><tr><td>
+
+### Extending the `MigrationContext`
+
+Values returned by deploy steps are unconditionally
+merged into the `MigrationContext` passed to subsequent
+steps.
+
+An example of this are the **`Deployment`** steps,
+which populate the `deployment` and `prefix` keys
+in the `MigrationContext`
+
+</td><td>
+
+```typescript
+import Fadroma, { Deployment } from '@hackbg/fadroma'
+Fadroma.command('deploy',
+  Deployment.new,         // Start new deployment
+  MyContract1.deployOne,  // Custom logic here
+  MyContract2.deployAll,  // Custom logic here
+  Deployment.status       // Print a list of contracts.
+)
+Fadroma.command('status', // Work in current deployment
+  Deploy.current,
+  CustomToken.status
+)
+Fadroma.command('select', // Let user select another deployment
+  Deploy.select
+) 
+export default Fadroma.module(import.meta.url)
+```
+
+> See also
+
+</td></tr><tr><!--spacer--></tr><tr><td>
+
+### Deploying and retrieving smart contracts
+
+TODO: High level overview
+
+</td><td>
+
+TODO: This is what to do:
+
+```
+TODO: code sample
+```
+
+> TODO: See also
+
+</td></tr></table>
+
+## Example deployment script
 
 > ...more or less...
 
 ```typescript
 import Fadroma, { Deploy, Snip20 } from '@hackbg/fadroma'
-
-Fadroma.command('deploy',
-  Deploy.new,      /* Start new deployment */
-  CustomToken.deploy,
-  CustomToken.status)
-
-Fadroma.command('status',
-  Deploy.current, /* Activate current deployment */
-  CustomToken.status)
-
-Fadroma.command('select',
-  Deploy.select) /* Let user select another deployment */
 
 class CustomToken extends Snip20 {
 

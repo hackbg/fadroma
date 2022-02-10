@@ -107,6 +107,7 @@ Fadroma.command('do something',
   async function meow ({ agent }) {
     // go wild here
   })
+// this line has to remain at the very end of the script
 export default Fadroma.module(import.meta.url)
 ```
 
