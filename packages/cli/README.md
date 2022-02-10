@@ -1,11 +1,27 @@
-# Fadroma CLI
+<div align="center">
+
+<table><tr><td valign="middle" style="vertical-align:bottom">
+
+[<img src="https://github.com/hackbg/fadroma/raw/22.01/doc/logo.svg" width="300">](https://fadroma.tech)
+
+</td><td valign="center">
+
+# `@fadroma/cli` <br> ![](https://img.shields.io/badge/version-22.01-blueviolet?style=plastic)
+
+**Fadroma supervises the lifecycle of a smart contract from source code to client.**
+
+Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
+
+</td></tr></table>
 
 <table><tr><td>
 
 ## Running commands in a project
 
-**`Fadroma.command(command: string, ...stages: Function[])`**
-defines a command as a match between:
+**`Fadroma.command(`**
+**`  command: string,`**
+**`  ...stages: Function[]`**
+**`)`** defines a **`Command`** as a match between:
 
 * some **words** (represented by a space-separated string); and
 * some **steps** (represented by async functions taking a single object argument)
@@ -15,12 +31,14 @@ defines a command as a match between:
 ```typescript
 // do.ts
 import Fadroma from '@hackbg/fadroma'
+
 Fadroma.command('do something cat',
   Cat.init,
   async function meow ({ agent }) {
     // go wild here
   }
 )
+
 export default Fadroma.module(import.meta.url)
 ```
 
@@ -74,19 +92,23 @@ in the `MigrationContext`
 
 ```typescript
 import Fadroma, { Deployment } from '@hackbg/fadroma'
+
 Fadroma.command('deploy',
   Deployment.new,         // Start new deployment
   MyContract1.deployOne,  // Custom logic here
   MyContract2.deployAll,  // Custom logic here
   Deployment.status       // Print a list of contracts.
 )
+
 Fadroma.command('status', // Work in current deployment
   Deploy.current,
   CustomToken.status
 )
+
 Fadroma.command('select', // Let user select another deployment
   Deploy.select
-) 
+)
+
 export default Fadroma.module(import.meta.url)
 ```
 

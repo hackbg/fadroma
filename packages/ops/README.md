@@ -1,13 +1,14 @@
 <div align="center">
+
 <table><tr><td valign="middle" style="vertical-align:bottom">
 
 [<img src="https://github.com/hackbg/fadroma/raw/22.01/doc/logo.svg" width="300">](https://fadroma.tech)
 
 </td><td valign="center">
 
-# Fadroma Ops <br> ![](https://img.shields.io/badge/version-22.01-blueviolet?style=plastic)
+# `@fadroma/ops` <br> ![](https://img.shields.io/badge/version-22.01-blueviolet?style=plastic)
 
-**Fadroma supervises the lifecycle of a smart contract from source code to client.**
+**Fadroma Ops is the core object model of the Fadroma suite of smart contract tools.**
 
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
