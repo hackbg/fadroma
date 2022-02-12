@@ -4,7 +4,7 @@ import type { Agent } from './Agent'
 
 export abstract class Client {
 
-  agent:    Agent
+  readonly agent: Agent
   address:  string
   codeHash: string
 
@@ -34,7 +34,7 @@ export abstract class Client {
   protected execute = (msg: Message) =>
     this.agent.execute(this, msg)
 
-  client = (agent: Agent) => new (this.constructor as ClientConstructor<typeof this>)({
+  switchAgent = (agent: Agent) => new (this.constructor as ClientConstructor<typeof this>)({
     agent,
     address:  this.address,
     codeHash: this.codeHash
