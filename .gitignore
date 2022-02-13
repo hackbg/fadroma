@@ -14,3 +14,4 @@ doc/typedoc
 .yarn
 coverage
 .pnpm-debug.log
+.idea/

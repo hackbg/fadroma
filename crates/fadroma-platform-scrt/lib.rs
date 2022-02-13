@@ -1,21 +1,21 @@
-pub use secret_cosmwasm_std as cosmwasm_std;
+pub use cosmwasm_std;
 pub use cosmwasm_std::*;
 
-pub use secret_cosmwasm_storage as cosmwasm_storage;
+pub use cosmwasm_storage;
 pub use cosmwasm_storage::*;
 
 #[cfg(not(target_arch="wasm32"))]
-pub use secret_cosmwasm_std::testing;
+pub use cosmwasm_std::testing;
 
 #[cfg(not(target_arch="wasm32"))]
-pub use secret_cosmwasm_std::testing::*;
-
-pub use cosmwasm_schema;
-pub use cosmwasm_schema::*;
+pub use cosmwasm_std::testing::*;
 
 pub use serde;
 pub use schemars;
 pub use secret_toolkit;
+
+#[cfg(test)]
+pub use cosmwasm_schema::{*, self};
 
 pub const BLOCK_SIZE: usize = 256;
 

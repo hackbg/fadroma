@@ -12,7 +12,7 @@ path = "terra.rs"
 
 [dependencies]
 # TODO put versions of cosmwasm here
-#cosmwasm-schema   = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+#cosmwasm-schema   = "0.10.1"
 #cosmwasm-std      = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
 #cosmwasm-storage  = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print", features = ["iterator"] }
 #schemars          = { version = "0.7" }
