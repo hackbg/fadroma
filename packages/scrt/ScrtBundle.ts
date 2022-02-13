@@ -1,4 +1,5 @@
 import { Console, colors, bold, timestamp } from '@fadroma/ops'
+
 const console = Console('@fadroma/scrt/ScrtBundle')
 
 import pako from 'pako'
@@ -7,15 +8,18 @@ import { SigningCosmWasmClient } from 'secretjs'
 import {
   Agent, Bundle, BundleResult,
   Contract, Artifact, Template, Instance,
-  readFile,
+  readFile, writeFile,
   toBase64
 } from '@fadroma/ops'
 
 import { ScrtGas } from './ScrtCore'
+import type { Scrt, ScrtNonce } from './ScrtChain'
 import type { ScrtAgent } from './ScrtAgent'
 import type { ScrtAgentJS } from './ScrtAgentJS'
 
 export class ScrtBundle extends Bundle {
+
+  get chain (): Scrt { return super.chain }
 
   constructor (readonly agent: ScrtAgent) { super(agent as Agent) }
 
@@ -99,27 +103,65 @@ export class ScrtBundle extends Bundle {
     return (this.agent as ScrtAgentJS).encrypt(codeHash, msg)
   }
 
-  async submit (memo = ""): Promise<BundleResult[]> {
-    const tempClient = new SigningCosmWasmClient(
-      this.chain.url,
-      this.address,
-      () => {throw new Error('nope')}
-    )
-    const { accountNumber, sequence } = await tempClient.getNonce()
+  static bundleCounter = 0
 
-    console.info(bold('Bundle body:'))
+  async submit (name: string): Promise<BundleResult[]> {
+
+    // number of bundle, just for identification in console
+    const N = ++ScrtBundle.bundleCounter
+
+    name = name || `TX.${N}.${timestamp()}`
+
+    // get signer's account number and sequence via the canonical API
+    const { accountNumber, sequence } = await this.nonce
+
+    // the base Bundle class stores messages
+    // as (immediately resolved) promises
+    const msgs = await Promise.all(this.msgs)
+
+    // print the body of the bundle
+    console.info(bold(`Body of bundle`), `#${N}:`)
     console.log()
-    console.log(JSON.stringify({
-      chain_id:       this.agent.chain.id,
-      account_number: accountNumber,
-      sequence:       sequence,
-      fee:            new ScrtGas(10000000),
-      msgs:           await Promise.all(this.msgs),
-      memo:           `${timestamp()}`
-    }))
+    console.log(JSON.stringify(msgs))
     console.log()
+
+    this.saveBundle({ N, name }, { accountNumber, sequence }, {
+      "type": "cosmos-sdk/StdTx",
+      value: {
+        msg: msgs,
+        fee: new ScrtGas(10000000),
+        signatures: null,
+        memo: name
+      }
+    })
 
     return []
+
+  }
+
+  private async saveBundle ({ N, name }, { accountNumber, sequence }, bundle) {
+    const unsignedFilename = `${name}.unsigned.json`
+    const signedFilename = `${name}.signed.${timestamp()}.json`
+    const output = this.chain.transactions.resolve(unsignedFilename)
+    await writeFile(output, JSON.stringify(bundle, null, 2))
+    console.log()
+    console.info(bold(`Wrote bundle ${N} to:`), output)
+    console.log()
+    console.info(bold(`Sign bundle ${N} with this command:`))
+    console.log()
+    const {address, chain:{id}} = this
+    console.log(`
+  secretcli tx sign ${unsignedFilename} --offline \\
+                    --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE \\
+                    --multisig=${address} \\
+                    --chain-id=${id} --account-number=${accountNumber} --sequence=${sequence} \\
+                    --output-document=${signedFilename}`)
+    console.log()
+    return []
+  }
+
+  private get nonce (): Promise<ScrtNonce> {
+    return this.chain.getNonce(this.agent.address)
   }
 
   query = (...args) => {

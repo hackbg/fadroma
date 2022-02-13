@@ -42,7 +42,7 @@ export interface ChainConnectOptions extends ChainOptions {
   * Used to construct `Agent`s and `Contract`s that are
   * bound to a particular chain. Can store identities and
   * results of contract uploads/inits. */
-export abstract class Chain implements ChainOptions {
+export class Chain implements ChainOptions {
 
   // JS constructors are called in an order that is opposite to
   // the one that would be actually useful for narrowing down stuff
@@ -69,10 +69,33 @@ export abstract class Chain implements ChainOptions {
     } else {
       this.stateRoot = stateRoot
     }
-    this.identities  = new JSONDirectory(this.stateRoot.path, 'identities')
-    this.uploads     = new Uploads(this.stateRoot.path, 'uploads')
-    this.deployments = new Deployments(this.stateRoot.path, 'deployments')
+    const { path } = this.stateRoot
+    this.identities   = new JSONDirectory(path, 'identities')
+    this.transactions = new JSONDirectory(path, 'transactions')
+    this.uploads      = new Uploads(path,       'uploads')
+    this.deployments  = new Deployments(path,   'deployments')
+    this.transactions.make()
   }
+
+  /** Root state directory for this chain. */
+  stateRoot:  Directory
+
+  /** This directory collects all private keys that are available for use. */
+  identities: Directory
+
+  /** This directory collects transaction messages. */
+  transactions: Directory
+
+  /** This directory stores receipts from the upload transactions,
+    * containing provenance info for uploaded code blobs. */
+  uploads:     Uploads
+
+  /** This directory stores receipts from the instantiation (init) transactions,
+    * containing provenance info for initialized contract deployments.
+    *
+    * NOTE: the current domain vocabulary considers initialization and instantiation,
+    * as pertaining to contracts on the blockchain, to be the same thing. */
+  deployments: Deployments
 
   #ready: Promise<any>|null = null
   get ready () {
@@ -165,29 +188,12 @@ export abstract class Chain implements ChainOptions {
     return agent
   }
 
-  /** This directory contains all the others. */
-  stateRoot:  Directory
-
-  /** This directory stores all private keys that are available for use. */
-  identities: Directory
-
   printIdentities () {
     console.log('\nAvailable identities:')
     for (const identity of this.identities.list()) {
       console.log(`  ${this.identities.load(identity).address} (${bold(identity)})`)
     }
   }
-
-  /** This directory stores receipts from the upload transactions,
-    * containing provenance info for uploaded code blobs. */
-  uploads:     Uploads
-
-  /** This directory stores receipts from the instantiation (init) transactions,
-    * containing provenance info for initialized contract deployments.
-    *
-    * NOTE: the current domain vocabulary considers initialization and instantiation,
-    * as pertaining to contracts on the blockchain, to be the same thing. */
-  deployments: Deployments
 
   /** Create contract instance from interface class and address */
   getContract (
@@ -242,6 +248,11 @@ export abstract class Chain implements ChainOptions {
     }
     return { chain, agent }
   }
+
+  /** Address of faucet that can be used to get gas tokens.
+    * There used to be an `openFaucet` command.
+    * TODO automate refill. */
+  faucet: string|null = null
 
 }
 
