@@ -24,6 +24,7 @@ export class ScrtBundle extends Bundle {
   constructor (readonly agent: ScrtAgent) { super(agent as Agent) }
 
   upload ({ location }: Artifact) {
+    throw new Error('[@fadroma/scrt/ScrtBundle] upload not supported')
     this.add(readFile(location).then(wasm=>({
       type: 'wasm/MsgStoreCode',
       value: {
@@ -38,8 +39,14 @@ export class ScrtBundle extends Bundle {
     const sender  = this.address
     const code_id = String(codeId)
     this.add(this.encrypt(codeHash, msg).then(init_msg=>({
-      type: 'wasm/MsgInstantiateContract',
-      value: { sender, code_id, init_msg, label, init_funds }
+      "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
+      sender,
+      callback_code_hash: "",
+      code_id,
+      label,
+      init_msg,
+      init_funds,
+      callback_sig: null
     })))
     return this
   }
@@ -93,8 +100,13 @@ export class ScrtBundle extends Bundle {
     console.log(JSON.stringify(msg))
     console.log()
     this.add(this.encrypt(codeHash, msg).then(msg=>({
-      type: 'wasm/MsgExecuteContract',
-      value: { sender, contract, msg, sent_funds }
+      "@type": '/secret.compute.v1beta1.MsgExecuteContract',
+      sender,
+      contract,
+      msg,
+      callback_code_hash: "",
+      sent_funds,
+      callback_sig: null
     })))
     return this
   }
@@ -120,20 +132,29 @@ export class ScrtBundle extends Bundle {
     const msgs = await Promise.all(this.msgs)
 
     // print the body of the bundle
-    console.info(bold(`Body of bundle`), `#${N}:`)
+    console.info(bold(`Messages in bundle`), `#${N}:`)
     console.log()
     console.log(JSON.stringify(msgs))
     console.log()
 
-    this.saveBundle({ N, name }, { accountNumber, sequence }, {
-      "type": "cosmos-sdk/StdTx",
-      value: {
-        msg: msgs,
-        fee: new ScrtGas(10000000),
-        signatures: null,
-        memo: name
-      }
-    })
+    const finalUnsignedTx ={
+      body: {
+        messages: msgs,
+        memo: name,
+        timeout_height: "0",
+        extension_options: [],
+        non_critical_extension_options: []
+      },
+      auth_info: {
+        signer_infos: [],
+        fee: {...new ScrtGas(10000000), payer: "", granter: ""},
+      },
+      signatures: []
+    }
+    finalUnsignedTx.auth_info.fee.gas_limit = finalUnsignedTx.auth_info.fee.gas
+    delete finalUnsignedTx.auth_info.fee.gas
+
+    this.saveBundle({ N, name }, { accountNumber, sequence }, finalUnsignedTx)
 
     return []
 
