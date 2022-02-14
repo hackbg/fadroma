@@ -1,4 +1,5 @@
-import { Console, bold } from '@hackbg/tools'
+import { Console, bold, colors } from '@hackbg/tools'
+import { getMethod } from './Core'
 
 const { FADROMA_PRINT_TXS = "" } = process.env
 
