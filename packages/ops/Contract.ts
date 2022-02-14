@@ -93,13 +93,18 @@ export abstract class Contract<C extends Client> {
   get codeHash () {
     return this.instance?.codeHash||this.template?.codeHash||this.artifact?.codeHash
   }
+  set codeHash (v: string) {
+    console.warn(
+      `[@fadroma/ops/Contract] Trying to set codeHash for contract to "${v}". This will be ignored.`
+    )
+  }
 
   prefix?: string
   suffix?: string
   get label (): string {
     if (!this.name) {
-      throw new Error(
-        '[@fadroma/contract] Tried to get label of contract with missing name.'
+      console.warn(
+        '[@fadroma/ops/Contract] Trying to generate label for contract with missing name.'
       )
     }
     const { prefix, name, suffix } = this
@@ -108,6 +113,11 @@ export abstract class Contract<C extends Client> {
     if (name)   { label += name } else { label += 'UNTITLED' }
     if (suffix) { label += suffix }
     return label
+  }
+  set label (v: string) {
+    console.warn(
+      `[@fadroma/ops/Contract] Trying to set label of contract to "${v}". Labels are auto-generated.`
+    )
   }
 
   Client: ClientConstructor<C>
