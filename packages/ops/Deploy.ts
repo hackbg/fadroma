@@ -1,4 +1,4 @@
-import { symlinkSync } from 'fs'
+import { symlinkSync, lstatSync } from 'fs'
 
 import {
   Console, bold, colors, timestamp, backOff,
@@ -27,11 +27,10 @@ export class Deployment {
 
   /** Load deployment state from YAML file. */
   load (path = this.path) {
-    try {
-      this.prefix = basename(readlinkSync(path), '.yml')
-    } catch (e) {
-      this.prefix = basename(path, '.yml')
+    while (lstatSync(path).isSymbolicLink()) {
+      path = resolve(dirname(path), readlinkSync(path))
     }
+    this.prefix = basename(path)
     for (const receipt of YAML.loadAll(readFileSync(path, 'utf8'))) {
       const [contractName, _version] = receipt.name.split('+')
       this.receipts[contractName] = receipt
