@@ -121,9 +121,9 @@ export abstract class ScrtAgentJS extends ScrtAgent {
     // Soft code hash checking for now
     const realCodeHash = await this.getCodeHash(address)
     if (codeHash !== realCodeHash) {
-      console.warn(bold('Code hash mismatch for'), address, `(${name})`)
-      console.warn(bold('  Config:'), codeHash)
-      console.warn(bold('  Chain: '), realCodeHash)
+      console.warn(bold('Code hash mismatch for address:'), address)
+      console.warn(bold('  Expected code hash:'), codeHash)
+      console.warn(bold('  Code hash on chain:'), realCodeHash)
     } else {
       console.info(bold(`Code hash of ${address}:`), realCodeHash)
     }
