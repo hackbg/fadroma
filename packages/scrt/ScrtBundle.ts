@@ -132,7 +132,7 @@ export class ScrtBundle extends Bundle {
     const msgs = await Promise.all(this.msgs)
 
     // print the body of the bundle
-    console.info(bold(`Messages in bundle`), `#${N}:`)
+    console.info(bold(`Encrypted messages in bundle`), `#${N}:`)
     console.log()
     console.log(JSON.stringify(msgs))
     console.log()
