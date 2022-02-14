@@ -16,6 +16,9 @@ export abstract class Bundle {
   get chainId () { return this.agent.chain.id }
   get address () { return this.agent.address }
 
+  // @ts-ignore
+  buildAndUpload (...args) { return this.agent.buildAndUpload(...args) }
+
   abstract upload  (artifact: Artifact): this
   abstract init    (template: Template, label: string, msg: Message): this
   abstract execute (instance: Instance, msg: Message): this
