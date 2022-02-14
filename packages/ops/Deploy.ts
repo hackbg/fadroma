@@ -2,8 +2,8 @@ import { symlinkSync, lstatSync } from 'fs'
 
 import {
   Console, bold, colors, timestamp, backOff,
-  writeFileSync, basename, relative, resolve, dirname, cwd,
-  existsSync, statSync, readFileSync,
+  relative, resolve, basename, extname, dirname, cwd,
+  existsSync, statSync, readFileSync, writeFileSync,
   readlinkSync, unlinkSync,
   Directory, mkdirp, readdirSync,
 } from '@hackbg/tools'
@@ -30,7 +30,7 @@ export class Deployment {
     while (lstatSync(path).isSymbolicLink()) {
       path = resolve(dirname(path), readlinkSync(path))
     }
-    this.prefix = basename(path)
+    this.prefix = basename(path, extname(path))
     for (const receipt of YAML.loadAll(readFileSync(path, 'utf8'))) {
       const [contractName, _version] = receipt.name.split('+')
       this.receipts[contractName] = receipt
