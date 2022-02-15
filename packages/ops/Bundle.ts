@@ -1,4 +1,4 @@
-import { Console } from '@hackbg/tools'
+import { Console, bold } from '@hackbg/tools'
 
 const console = Console('@fadroma/ops/Bundle')
 
@@ -44,6 +44,8 @@ export abstract class Bundle {
   abstract submit (memo: string): Promise<BundleResult[]>
 
   protected id: number = 0
+  /** Messages are stored as promises for type compatibility
+    * between Agent and Bundle's Instantiate/Query/Execute methods */
   protected msgs: Promise<any>[] = []
   protected add (msg: any): number {
     const id = this.id++

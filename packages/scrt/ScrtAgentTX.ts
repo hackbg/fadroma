@@ -1,14 +1,14 @@
 import { toBase64 } from '@fadroma/ops'
 
 import { ScrtAgent } from './ScrtAgent'
-import { ScrtBundle } from './ScrtBundle'
+import { MultisigScrtBundle } from './ScrtBundle'
 import type { ScrtAgentJS } from './ScrtAgentJS'
 
 /** This agent just collects unsigned txs and dumps them in the end
   * to be performed by manual multisig (via Motika). */
 export class ScrtAgentTX extends ScrtAgent {
 
-  Bundle = ScrtBundle
+  Bundle = MultisigScrtBundle
 
   constructor (readonly agent: ScrtAgentJS) {
     super({

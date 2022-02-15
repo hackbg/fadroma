@@ -14,7 +14,7 @@ import {
 
 import { ScrtGas, APIConstructor } from './ScrtCore'
 import { ScrtAgent } from './ScrtAgent'
-import { SigningScrtBundle } from './SigningScrtBundle'
+import { BroadcastingScrtBundle } from './ScrtBundle'
 import type { Scrt } from './ScrtChain'
 
 const console = Console('@fadroma/scrt/ScrtAgentJS')
@@ -23,7 +23,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
 
   fees = ScrtGas.defaultFees
   defaultDenomination = 'uscrt'
-  Bundle = SigningScrtBundle
+  Bundle = BroadcastingScrtBundle
 
   constructor (options: Identity & { API?: APIConstructor } = {}) {
     super(options)

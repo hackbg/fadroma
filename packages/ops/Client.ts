@@ -8,6 +8,10 @@ export abstract class Client {
   address:  string
   codeHash: string
 
+  get label (): Promise<string> {
+    return this.agent.getLabel(this.address)
+  }
+
   constructor (options = {}) {
     Object.assign(this, options)
     if (!this.address) {
