@@ -157,12 +157,14 @@ export class Chain implements ChainOptions {
     this.id = v
   }
 
-  node?:       ChainNode
-
   isMainnet?:  boolean
   isTestnet?:  boolean
   isLocalnet?: boolean
 
+  /** Optional. Instance of ChainNode representing the localnet container. */
+  node?:            ChainNode
+
+  /** Agent class suitable for this chain. */
   Agent: AgentConstructor
 
   /** Credentials of the default agent for this network. */
