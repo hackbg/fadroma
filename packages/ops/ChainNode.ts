@@ -141,6 +141,14 @@ export abstract class ChainNode implements ChainNodeState {
   /** Save the info needed to respawn the node */
   abstract save (): this
 
+  static async reset ({ chain }) {
+    if (chain.node) {
+      await chain.node.terminate()
+    } else {
+      console.warn(bold(process.env.FADROMA_CHAIN), 'not a localnet')
+    }
+  }
+
 }
 
 
