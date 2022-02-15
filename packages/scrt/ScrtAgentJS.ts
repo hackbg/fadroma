@@ -106,11 +106,12 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async getCodeHash (idOrAddr: number|string): Promise<string> {
-    return this.rateLimited(async () => {
+    const { api } = this
+    return this.rateLimited(async function getCodeHashInner () {
       if (typeof idOrAddr === 'number') {
-        return await this.api.getCodeHashByCodeId(idOrAddr)
+        return await api.getCodeHashByCodeId(idOrAddr)
       } else if (typeof idOrAddr === 'string') {
-        return await this.api.getCodeHashByContractAddr(idOrAddr)
+        return await api.getCodeHashByContractAddr(idOrAddr)
       } else {
         throw new TypeError('getCodeHash id or addr')
       }
@@ -138,8 +139,9 @@ export abstract class ScrtAgentJS extends ScrtAgent {
 
   async doInstantiate (template, label, msg, funds = []) {
     const { codeId, codeHash } = template
-    const { logs, transactionHash } = await this.rateLimited(() => {
-      return this.api.instantiate(Number(codeId), msg, label)
+    const { api } = this
+    const { logs, transactionHash } = await this.rateLimited(function doInstantiateInner () {
+      return api.instantiate(Number(codeId), msg, label)
     })
     return {
       chainId:  this.chain.id,
@@ -169,15 +171,18 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async getCodeId (address: string): Promise<number> {
-    return this.rateLimited(async ()=>{
-      const { codeId } = await this.api.getContract(address)
+    //console.trace('getCodeId', address)
+    const { api } = this
+    return this.rateLimited(async function getCodeIdInner () {
+      const { codeId } = await api.getContract(address)
       return codeId
     })
   }
 
   async getLabel (address: string): Promise<string> {
-    return this.rateLimited(async ()=>{
-      const { label } = await this.api.getContract(address)
+    const { api } = this
+    return this.rateLimited(async function getLabelInner () {
+      const { label } = await api.getContract(address)
       return label
     })
   }
@@ -185,8 +190,9 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   async doQuery (
     { label, address, codeHash }: Contract<any>, msg: Message
   ) {
-    return this.rateLimited(() => {
-      return this.api.queryContractSmart(address, msg as any, undefined, codeHash)
+    const { api } = this
+    return this.rateLimited(function doQueryInner () {
+      return api.queryContractSmart(address, msg as any, undefined, codeHash)
     })
     return
   }
@@ -219,8 +225,9 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   private initialWait = 1000
 
   private async rateLimited <T> (fn: ()=>Promise<T>): Promise<T> {
+    //console.log('rateLimited', fn)
     let initialWait = 0
-    if (this.chain.isMainnet) {
+    if (this.chain.isMainnet && !!process.env.FADROMA_RATE_LIMIT) {
       const initialWait = this.initialWait*Math.random()
       console.warn(
         "Avoid running into rate limiting by waiting",
