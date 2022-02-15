@@ -35,9 +35,8 @@ export abstract class Client {
     this.agent.execute(this, msg)
 
   switchAgent = (agent: Agent) => new (this.constructor as ClientConstructor<typeof this>)({
+    ...this,
     agent,
-    address:  this.address,
-    codeHash: this.codeHash
   })
 
 }
