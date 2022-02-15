@@ -47,10 +47,11 @@ export class Deployment {
     writeFileSync(this.path, output)
   }
 
-  /** Add arbitrary data to the deployment. */
-  add (name: string, data: any) {
+  /** Chainable. Add arbitrary data to the deployment. */
+  add (name: string, data: any): this {
     this.receipts[name] = { name, ...this.receipts[name] || {}, ...data }
     this.save()
+    return this
   }
 
   /** Instantiate one or more contracts. */
