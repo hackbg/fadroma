@@ -1,0 +1,13 @@
+[package]
+name = "derive-contract-impl"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
+path = "src/contract.rs"
+
+[dependencies]
+fadroma = { path = "../../crates/fadroma" }
+serde    = { version = "1.0.103", default-features = false, features = ["derive"] }

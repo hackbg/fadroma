@@ -148,7 +148,23 @@ into familiar tags such as `#[init]`, `#[handle]` and `#[query]`.
 </td><td>
 
 ```rust
-Needs introductory example :)
+#[contract(entry)]
+pub trait Contract {
+    #[init]
+    pub fn new(config: Config) -> StdResult<InitResponse> {
+        -- snip --
+    }
+
+    #[handle]
+    pub fn set_config(config: Config) -> StdResult<HandleResponse> {
+        -- snip --
+    }
+
+    #[query]
+    pub fn get_config(config: Config) -> StdResult<ConfigResponse> {
+        -- snip --
+    }
+}
 ```
 
 </td></tr>
