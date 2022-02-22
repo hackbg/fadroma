@@ -38,7 +38,7 @@ export class Fadroma {
       commands[fragments[i]] = commands[fragments[i]] || {}
       // prevent overrides
       if (commands instanceof Function) {
-        throw new Error('[@fadroma] command already exists')
+        throw new Error(`[@fadroma] command already defined: ${name}`)
       }
       // descend or reach bottom
       if (i === fragments.length-1) {
