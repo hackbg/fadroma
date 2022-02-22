@@ -49,7 +49,7 @@ impl ContractHarness for Oracle {
     }
 
     // Override with some hardcoded value for the ease of testing
-    fn query(&self, _deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
+    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
         let msg = from_binary(&msg).unwrap();
         match msg {
             oracle::QueryMsg::GetPrice { base_symbol: _, .. } => to_binary(&Uint128(1_000_000_000)),
