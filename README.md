@@ -151,21 +151,29 @@ into familiar tags such as `#[init]`, `#[handle]` and `#[query]`. The example on
 #[contract(entry)]
 pub trait Contract {
     #[init]
-    pub fn new(config: Config) -> StdResult<InitResponse> {
-        -- snip --
+    pub fn new(config: Config)
+        -> StdResult<InitResponse>
+    {
+        // your code here...
     }
 
     #[handle]
-    pub fn set_config(config: Config) -> StdResult<HandleResponse> {
-        -- snip --
+    pub fn set_config(config: Config)
+        -> StdResult<HandleResponse>
+    {
+        // your code here...
     }
 
     #[query]
-    pub fn get_config(config: Config) -> StdResult<ConfigResponse> {
-        -- snip --
+    pub fn get_config(config: Config)
+        -> StdResult<ConfigResponse>
+    {
+        // your code here...
     }
 
-    pub struct ConfigResponse { -- snip -- }
+    pub struct ConfigResponse {
+       /* your code here */
+    }
 }
 ```
 
