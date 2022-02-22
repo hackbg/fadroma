@@ -22,7 +22,7 @@ Fadroma Ensemble provides a way to test multi-contract interactions without havi
 To start testing with ensemble `ContractHarness` has to be implemented for each contract and registered by the `ContractEnsemble`. This approach allows a lot of flexibility for testing contracts. Mock implementations can be created, contract methods can be overridden, `Bank` interactions are also possible.
 
 ### ContractHarness
-
+`ContractHarness` defines entrypoints to any contract: `init`, `handle`, `query`. In order to implement contract we can use `DefaultImpl` from existing contract code, or override contract methods.
 ```rust
 // Here we create a ContractHarness implementation for an Oracle contract
 use path::to::contracts::oracle;
@@ -60,6 +60,7 @@ impl ContractHarness for Oracle {
 }
 ```
 ### ContractEnsemble
+`ContractEnsemble` is the centerpiece that holds contract instances, contract harnesses and the bank module, it also exposes methods like `register` for registering contract harnesses and `instantiate`, `execute`, `query` for interacting with contracts.
 ```rust
 #[test]
 fn test_query_price() {
@@ -89,4 +90,17 @@ fn test_query_price() {
 
     assert_eq!(price, Uint128(1_000_000_000));
 }
+```
+
+### Simulating blocks
+Since the ensemble is designed to simulate a blockchain environment it maintains an idea of block height and time. To simulate multiple blocks you can explicitly provide block height to your contract calls.
+
+```rust
+ensemble.execute(
+    &SomeMsg{}, 
+    MockEnv::new(
+        "Admin",
+        some_contract,
+    ).height(12345)
+).unwrap()
 ```
