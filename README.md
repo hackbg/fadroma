@@ -140,8 +140,16 @@ Needs introductory example :)
 
 **Attribute macros for writing smart contracts.**
 
-CosmWasm's raw syntax is a little verbose. We wrap all the repetitive bits
-into familiar tags such as `#[init]`, `#[handle]` and `#[query]`. The example on the right will generate an `InitMsg` struct, `HandleMsg` and `QueryMsg` enums, `init`, `handle` and `query` dispatch functions for those messages and WASM entry point boilerplate. In addition an empty struct called `DefaultImpl` with the trait implemented on it is generated that can be used to call these functions in Rust code (mostly useful for testing).
+CosmWasm's raw syntax is a little verbose.
+We wrap all the repetitive bits into familiar tags
+such as `#[init]`, `#[handle]` and `#[query]`.
+ 
+The example on the right will generate an `InitMsg` struct,
+`HandleMsg` and `QueryMsg` enums, `init`, `handle` and `query` dispatch functions
+for those messages and WASM entry point boilerplate.
+ 
+In addition, an empty struct called `DefaultImpl` with the trait implemented on it
+is generated that can be used to call these functions in Rust code (mostly useful for testing).
 
 * For more info see [fadroma-derive-contract](./crates/fadroma-derive-contract)
 
