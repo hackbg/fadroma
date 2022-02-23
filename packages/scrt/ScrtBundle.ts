@@ -144,7 +144,7 @@ export class BroadcastingScrtBundle extends ScrtBundle {
       this.agent.trace.subCall(N, `${bold(colors.yellow(msg.type))}`)
     }
 
-    const gas = new ScrtGas(msgs.length*100000)
+    const gas = new ScrtGas(msgs.length*1000000)
     const signedTx = await this.agent.signTx(msgs, gas, "")
 
     try {
