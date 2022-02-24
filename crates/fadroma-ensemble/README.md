@@ -60,7 +60,8 @@ impl ContractHarness for Oracle {
 }
 ```
 ### ContractEnsemble
-`ContractEnsemble` is the centerpiece that holds contract instances, contract harnesses and the bank module, it also exposes methods like `register` for registering contract harnesses and `instantiate`, `execute`, `query` for interacting with contracts.
+`ContractEnsemble` is the centerpiece that takes care of managing contract storage and bank state and executing messages between contracts. Currently, supported messages are `CosmosMsg::Wasm` and `CosmosMsg::Bank`. It exposes methods like `register` for registering contract harnesses and `instantiate`, `execute`, `query` for interacting with contracts and methods to inspect/alter the raw storage if needed. Just like on the blockchain, if any contract returns an error during exection, all state is reverted.
+
 ```rust
 #[test]
 fn test_query_price() {
