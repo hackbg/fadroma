@@ -125,27 +125,27 @@ impl<A> Default for ContractStatus<A> {
         new_address: None
     } }
 }
-impl Humanize<ContractStatus<HumanAddr>> for ContractStatus<CanonicalAddr> {
-    fn humanize (&self, api: &impl Api) -> StdResult<ContractStatus<HumanAddr>> {
+
+impl Humanize for ContractStatus<CanonicalAddr> {
+    type Output = ContractStatus<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(ContractStatus {
-            level: self.level.clone(),
-            reason: self.reason.clone(),
-            new_address: match &self.new_address {
-                Some(canon_addr) => Some(api.human_address(&canon_addr)?),
-                None => None
-            }
+            level: self.level,
+            reason: self.reason,
+            new_address: self.new_address.humanize(api)?
         })
     }
 }
-impl Canonize<ContractStatus<CanonicalAddr>> for ContractStatus<HumanAddr> {
-    fn canonize (&self, api: &impl Api) -> StdResult<ContractStatus<CanonicalAddr>> {
+
+impl Canonize for ContractStatus<HumanAddr> {
+    type Output = ContractStatus<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(ContractStatus {
-            level: self.level.clone(),
-            reason: self.reason.clone(),
-            new_address: match &self.new_address {
-                Some(human_addr) => Some(api.canonical_address(&human_addr)?),
-                None => None
-            }
+            level: self.level,
+            reason: self.reason,
+            new_address: self.new_address.canonize(api)?
         })
     }
 }

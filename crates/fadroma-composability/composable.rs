@@ -30,8 +30,8 @@ pub trait Composable<S, A, Q>: BaseComposable<S, A, Q> {
     fn get    <Value: DeserializeOwned> (&self, key: &[u8]) -> Eventually<Value>;
     fn get_ns <Value: DeserializeOwned> (&self, ns: &[u8], key: &[u8]) -> Eventually<Value>;
 
-    fn humanize <Value: Humanize<U>, U: Canonize<Value>> (&self, value: Value) -> StdResult<U>;
-    fn canonize <Value: Canonize<U>, U: Humanize<Value>> (&self, value: Value) -> StdResult<U>;
+    fn humanize <Value: Humanize> (&self, value: Value) -> StdResult<Value::Output>;
+    fn canonize <Value: Canonize> (&self, value: Value) -> StdResult<Value::Output>;
 }
 
 #[macro_export] macro_rules! make_composable {
@@ -78,14 +78,14 @@ pub trait Composable<S, A, Q>: BaseComposable<S, A, Q> {
                 self.get(&concat(ns, key))
             }
 
-            fn humanize <Value: Humanize<U>, U: Canonize<Value>> (&self, value: Value)
-                -> StdResult<U>
+            fn humanize <Value: Humanize> (&self, value: Value)
+                -> StdResult<Value::Output>
             {
                 value.humanize(&self.api)
             }
 
-            fn canonize <Value: Canonize<U>, U: Humanize<Value>> (&self, value: Value)
-                -> StdResult<U>
+            fn canonize <Value: Canonize> (&self, value: Value)
+                -> StdResult<Value::Output>
             {
                 value.canonize(&self.api)
             }
