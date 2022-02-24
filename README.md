@@ -160,30 +160,23 @@ is generated that can be used to call these functions in Rust code (mostly usefu
 #[contract(entry)]
 pub trait Contract {
     #[init]
-    pub fn new(config: Config)
-        -> StdResult<InitResponse>
-    {
-        // your code here...
+    fn new(config: Config) -> StdResult<InitResponse> {
+        Ok(InitResponse::default())
     }
 
     #[handle]
-    pub fn set_config(config: Config)
-        -> StdResult<HandleResponse>
-    {
-        // your code here...
+    fn set_config(config: Config) -> StdResult<HandleResponse> {
+        Ok(HandleResponse::default())
     }
 
     #[query]
-    pub fn get_config(config: Config)
-        -> StdResult<ConfigResponse>
-    {
-        // your code here...
-    }
-
-    pub struct ConfigResponse {
-       /* your code here */
+    fn get_config() -> StdResult<Config> {
+        Ok(Config)
     }
 }
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+pub struct Config;
 ```
 
 </td></tr>
