@@ -1,4 +1,4 @@
-import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
+import { SigningCosmWasmClient, BroadcastMode, InstantiateResult, ExecuteResult } from 'secretjs'
 
 export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
@@ -8,14 +8,18 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   resultRetries      = 10
   resultRetryDelay   = 2000
 
-  async instantiate (...args: Array<any>) {
-    let {transactionHash:id} = await super.instantiate(...args)
-    return await this.getTxResult(id)
+  async instantiate (codeId, initMsg, label, memo?, transferAmount?, fee?, hash?) {
+    let {transactionHash:id} = await super.instantiate(
+      codeId, initMsg, label, memo, transferAmount, fee, hash
+    )
+    return await this.getTxResult(id) as unknown as InstantiateResult
   }
 
-  async execute (...args: Array<any>) {
-    let {transactionHash:id} = await super.execute(...args)
-    return await this.getTxResult(id)
+  async execute (contractAddress, handleMsg, memo?, transferAmount?, fee?, contractCodeHash?) {
+    let {transactionHash:id} = await super.execute(
+      contractAddress, handleMsg, memo, transferAmount, fee, contractCodeHash
+    )
+    return await this.getTxResult(id) as unknown as ExecuteResult
   }
 
   async waitForNextBlock (sent: number) {
