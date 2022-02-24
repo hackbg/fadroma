@@ -11,10 +11,12 @@ export function codeHashForPath (location: string) {
   return toHex(new Sha256(readFileSync(location)).digest())
 }
 
-export interface Source {
-  workspace: string
-  crate:     string
-  ref?:      string
+export class Source {
+  constructor (
+    public readonly workspace: string,
+    public readonly crate:     string,
+    public readonly ref?:      string
+  ) {}
 }
 
 export interface Builder {
