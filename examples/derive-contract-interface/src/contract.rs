@@ -3,7 +3,7 @@ use fadroma::{cosmwasm_std, derive_contract::*, HandleResponse, InitResponse, St
 mod state;
 use state::State;
 
-mod interface;
+pub mod interface;
 use interface::StateResponse;
 
 #[contract_impl(entry, path = "interface")]

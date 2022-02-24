@@ -16,62 +16,151 @@ Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 </div>
 
 ## Introduction
-Derive contract macro takes care of all necessary boilerplate in CosmWasm smart contracts and provides a more productive development experience.
+Derive contract macro takes care of all necessary boilerplate in CosmWasm smart contracts and provides a more productive development experience. The goal is to generate the repetitive code that you'd write anyway and nothing more, while providing as much flexibility as possible. Any misuse of the macro will result in **compile errors** and not some hidden or unexpected runtime behavior.
 
 ## Getting started
 Derive macro can be used for direct contract implementations with `#[contract(entry)]` or for contracts that implement **interfaces** with `#[contract_impl(entry, path="some_interface")]`.
-An interface implementation should be used over direct implementations if there's any intercontract communication, this allows to include messages of other contracts without any cyclical dependencies as those messages are exported by the interface.
+An interface implementation should be used over direct implementations if there's any intercontract communication, this allows to include messages of other contracts without any cyclical dependencies as those messages are exported by the interface and as such can be declared in a shared crate which is then included by individual contract crates. This is an extremely common pattern when writing CosmWasm based contracts.
 
 ### **Attributes**
 The derive-contract macro supports the following attributes:  
-| Attribute         | Description                                                                                                    |
-|-------------------|----------------------------------------------------------------------------------------------------------------|
-| **init**          | `init` method of the contract                                                                                  |
-| **handle**        | `handle` method of the contract                                                                                |
-| **query**         | `query` method of the contract                                                                                 |
-| **handle_guard**  | Handler for fadroma's Killswitch                                                                               |
-| **component**     | Used to include an interface                                                                                   |
-| **entry**         | Signals that WASM entry points should be generated for the current contract                                    |
-| **path**          | Specifies a path to a type or a namespace                                                                      |
-| **skip**          | Used to not include a handle/query of the component                                                            |
-| **custom_impl**   | Used to provide a custom implementation of a component instead of using the auto generated default trait impl  |
+| Attribute         | Description                                                                                                      |
+|-------------------|------------------------------------------------------------------------------------------------------------------|
+| **init**          | The `init` method of the contract. Only one per contract. Can be omitted if not using `entry` (in components).   |
+| **handle**        | The `handle` method of the contract. One per handle method.                                                      |
+| **query**         | The `query` method of the contract. One per query method.                                                        |
+| **handle_guard**  | A function marked with this will be called before any handle method execution. Only one per contract (optional). |
+| **component**     | Used to include a component.                                                                                     |
+| **entry**         | Signals that WASM entry points should be generated for the current contract.                                     |
+| **path**          | Specifies a path to a type or a namespace.                                                                       |
+| **skip**          | Used to not include a handle/query of the component.                                                             |
+| **custom_impl**   | Used to provide a custom implementation of a component instead of using the auto generated default trait impl.   |
 
 ### **Usage**
-#### **Without an interface**
+Since their usage is always a fact, we decided to implicitly include the `Env` and `Extern` types from `cosmwasm_std` as parameters to the relevant methods so that they don't need to be specified all the time. The following table describes which attribute includes what parameters:
+
+|Attribute    |Parameter name|Parameter type    |
+|-------------|--------------|------------------|
+|init         |deps          |&mut Extern<S,A,Q>|
+|init         |env           |Env               |
+|handle       |deps          |&mut Extern<S,A,Q>|
+|handle       |env           |Env               |
+|query        |deps          |&Extern<S,A,Q>    |
+|handle_guard |deps          |&mut Extern<S,A,Q>|
+|handle_guard |env           |&Env              |
+
+The names of the methods annotated with `handle` and `query` are used as the enum messsage variants (converted to pascal case) in their respective definitions.
+
+#### **Basic contract**
 ```rust
 // contract.rs
 #[contract(entry)]
 pub trait Contract {
     #[init]
-    pub fn new(config: Config) -> StdResult<InitResponse> {
-        -- snip --
+    fn new(config: Config) -> StdResult<InitResponse> {
+        Ok(InitResponse::default())
     }
 
     #[handle]
-    pub fn set_config(config: Config) -> StdResult<HandleResponse> {
-        -- snip --
+    fn set_config(config: Config) -> StdResult<HandleResponse> {
+        Ok(HandleResponse::default())
     }
 
     #[query]
-    pub fn get_config(config: Config) -> StdResult<ConfigResponse> {
-        -- snip --
+    fn get_config() -> StdResult<Config> {
+        Ok(Config)
     }
 }
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+pub struct Config;
 ```
-This code will generate the necessary entry points and messages, that are exported by the contract, in accordance to the attributes like so:
+To get a better idea of what the macro actually does, the above code is equivalent to the following (without including WASM boilerplate):
 ```rust
+pub trait Contract {
+    fn new<S: Storage, A: Api, Q: Querier>(
+        &self,
+        config: Config,
+        deps: &mut Extern<S, A, Q>,
+        env: Env,
+    ) -> StdResult<InitResponse> {
+        Ok(InitResponse::default())
+    }
+    fn set_config<S: Storage, A: Api, Q: Querier>(
+        &self,
+        config: Config,
+        deps: &mut Extern<S, A, Q>,
+        env: Env,
+    ) -> StdResult<HandleResponse> {
+        Ok(HandleResponse::default())
+    }
+    fn get_config<S: Storage, A: Api, Q: Querier>(
+        &self,
+        deps: &Extern<S, A, Q>,
+    ) -> StdResult<Config> {
+        Ok(Config)
+    }
+}
+
+pub struct DefaultImpl;
+
+impl Contract for DefaultImpl {}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct InitMsg {
-    pub config: Config
+    pub config: Config,
 }
 
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum HandleMsg {
-    SetConfig { config: Config }
+    SetConfig { config: Config },
 }
 
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum QueryMsg {
-    GetConfig {}
+    GetConfig {},
 }
 
+pub fn init<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    msg: InitMsg,
+    contract: impl Contract,
+) -> StdResult<InitResponse> {
+    contract.new(msg.config, deps, env)
+}
+pub fn handle<S: Storage, A: Api, Q: Querier>(
+    deps: &mut Extern<S, A, Q>,
+    env: Env,
+    msg: HandleMsg,
+    contract: impl Contract,
+) -> StdResult<HandleResponse> {
+    match msg {
+        HandleMsg::SetConfig { config } => contract.set_config(config, deps, env),
+    }
+}
+pub fn query<S: Storage, A: Api, Q: Querier>(
+    deps: &Extern<S, A, Q>,
+    msg: QueryMsg,
+    contract: impl Contract,
+) -> StdResult<Binary> {
+    match msg {
+        QueryMsg::GetConfig {} => {
+            let result = contract.get_config(deps)?;
+            to_binary(&result)
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+pub struct Config;
+
+-- WASM boilerplate omitted --
 ```
 
 #### **With an interface**
@@ -86,25 +175,28 @@ pub trait Contract {
     pub fn set_config(config: Config) -> StdResult<HandleResponse>;
 
     #[query]
-    pub fn get_config() -> StdResult<ConfigResponse>;
+    pub fn get_config() -> StdResult<Config>;
 }
+
+#[derive(Serialize, Deserialize, JsonSchema, Debug)]
+pub struct Config;
 
 // contracts/contract.rs
 #[contract_impl(entry, path="shared::interfaces::contract")]
 pub trait Contract {
     #[init]
-    pub fn new(config: Config) -> StdResult<InitResponse> {
-        -- snip --
+    fn new(config: Config) -> StdResult<InitResponse> {
+        Ok(InitResponse::default())
     }
 
     #[handle]
-    pub fn set_config(config: Config) -> StdResult<HandleResponse> {
-        -- snip --
+    fn set_config(config: Config) -> StdResult<HandleResponse> {
+        Ok(HandleResponse::default())
     }
 
     #[query]
-    pub fn get_config() -> StdResult<ConfigResponse> {
-        -- snip --
+    fn get_config() -> StdResult<Config> {
+        Ok(Config)
     }
 }
 
@@ -113,90 +205,56 @@ pub trait Contract {
 use shared::interfaces::contract::{HandleMsg, QueryMsg};
 -- snip --
 ```
-This code will generate the necessary entry points and messages, but now they are exported by the interface module and can be used for intercontract communication.
+This code will generate the necessary entry points and dispatch functions using the messages exported by the interface module. The interface definition only generates the `InitMsg`, `HandleMsg` and `QueryMsg` types. In addition, its methods cannot have a default implementation. Note that the interface definition and the implementing contract cannot go out of sync since any deviation between the two will result in compile errors.
 
-#### **Multiple components**
-Multiple components can be used in a single contract like so
+#### **Handle guard**
+
+A handle guard function is a special function that is called before matching the `HandleMsg` enum inside the `handle` function both of which are generated by the macro. It **must** take no arguments, return `StdResult<()>` and is annotated with the `handle_guard` attribute. Only **one** such function can exist per contract definition. It is useful in cases where we want to assert some state before proceeding with executing the incoming message and fail before that if necessary. For example, it should be used with the Fadroma killswitch component. Inside the handle guard we check whether the contract is pausing or migrated and return an `Err(())` if so.
+
+### **Components**
+
+A component is simply a contract declared somewhere else using the `contract` macro. We can reuse its functionality by including it via the `component` attribute in our current contract.
+
+One or many components can be used in a single contract like so:
+
 ```rust
-#[contract_impl(
-    entry,
-    path = "shared::interfaces::contract",
-    component(path = "admin"),
-    component(path = "killswitch")
+#[contract(
+    component(path = "fadroma::admin"),
+    component(path = "fadroma::killswitch")
 )]
 ```
-
-#### **Testing**
-Contracts can be tested using `fadroma-ensemble`, which allows overriding default contract implementations for test purposes, calls betweens contracts etc.
+or when implementing an interface:
 ```rust
-// use contract crate
-use consumer;
+#[contract_impl(
+    path = "shared::interfaces::contract",
+    component(path = "fadroma::admin"),
+    component(path = "fadroma::killswitch")
+)]
+```
+The macro will include their handle and query message enums in the current message enums as tuple variants. The name of the variant is derived from the last segment in the `path` argument of the component. For example, the above code will generate the following handle message:
 
-pub struct Consumer;
-
-// Example test for an oracle consumer contract
-impl ContractHarness for Consumer {
-    // Use the method from the default implementation 
-    fn init(&self, deps: &mut MockDeps, env: Env, msg: Binary) -> StdResult<InitResponse> {
-        Contract::init(deps, env, from_binary(&msg)?, consumer::DefaultImpl)
-    }
-       
-    fn handle(
-        &self,
-        deps: &mut MockDeps,
-        env: Env,
-        msg: Binary,
-    ) -> StdResult<HandleResponse> {
-        Contract::handle(deps, env, from_binary(&msg)?, consumer::DefaultImpl)
-    }
-    // Override with some hardcoded value for the ease of testing
-    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
-        let msg = from_binary(&msg).unwrap();
-        match msg {
-            OracleQuery::GetPrice { base_symbol, .. } => {
-                to_binary(Uint128(1_000_000_000))
-            }
-        }
-    }
+```rust
+pub enum HandleMsg {
+    Admin(fadroma::admin::HandleMsg),
+    Killswitch(fadroma::killswitch::HandleMsg)
+    // .. other variants
 }
+```
 
-pub struct Project {
-    pub ensemble: ContractEnsemble,
-    pub consumer: ContractLink<HumanAddr>,
-}
+### **skip**
+A component may not implement any query or handle methods (like the Fadroma auth component). In that case those should be skipped in the importing contract messages by specifying the `skip` attribute like so:
+```rust
+#[contract(
+    component(path = "fadroma::auth", skip(query)),
+)]
+```
+Valid tokens are `query` and `handle`. Both can be used at the same time as well.
 
-impl Project {
-    pub fn new() -> Self {
-        let mut ensemble = ContractEnsemble::new(50);
+### **custom_impl**
+Sometimes we may want to use a component but change the implementation of one (or many) of its methods. In that case all we need to do is implement the component trait on a new empty struct (like we'd normally do in Rust) and specify its name in the component definition using the `custom_impl` attribute. By default the macro will use the `DefaultImpl` struct which it generates for every `contract` and `contract_impl`. If we wanted to use our custom implementation it would look like this:
 
-        let consumer = ensemble.register(Box::new(Consumer));
-
-        let consumer = ensemble.instantiate(consumer.id,
-        &{},
-        MockEnv::new(
-            ADMIN,
-            ContractLink {
-                address: "consumer".into(),
-                code_hash: consumer.code_hash,
-            }
-        ))
-
-        Self {
-            ensemble,
-            consumer,
-        }
-    }
-}
-
-#[test]
-fn get_oracle_price() {
-    let mut project = new Project();
-
-    let price: Uint128 = project.ensemble.query(
-        consumer.address, 
-        &consumer::QueryMsg::GetPrice {base_symbol: "SCRT"}
-    ).unwrap();
-
-    assert_eq!(price, Uint128(1_000_000_000));
-}
+```rust
+#[contract(
+    component(path = "fadroma::admin", custom_impl = "MyCustomAdminImplStruct"),
+)]
 ```
