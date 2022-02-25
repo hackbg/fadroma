@@ -1,6 +1,8 @@
-use crate::*;
+use secret_cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Api, Env};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+
+use crate::addr::{Humanize, Canonize};
 
 pub type CodeId   = u64;
 pub type CodeHash = String;
@@ -41,23 +43,28 @@ impl<A: PartialEq> PartialEq for ContractLink<A> {
     }
 }
 
-impl Canonize<ContractLink<CanonicalAddr>> for ContractLink<HumanAddr> {
-    fn canonize (&self, api: &impl Api) -> StdResult<ContractLink<CanonicalAddr>> {
+impl Humanize for ContractLink<CanonicalAddr> {
+    type Output = ContractLink<HumanAddr>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(ContractLink {
-            address:   self.address.canonize(api)?,
-            code_hash: self.code_hash.clone()
+            address: self.address.humanize(api)?,
+            code_hash: self.code_hash
         })
     }
 }
 
-impl Humanize<ContractLink<HumanAddr>> for ContractLink<CanonicalAddr> {
-    fn humanize (&self, api: &impl Api) -> StdResult<ContractLink<HumanAddr>> {
+impl Canonize for ContractLink<HumanAddr> {
+    type Output = ContractLink<CanonicalAddr>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         Ok(ContractLink {
-            address:   self.address.humanize(api)?,
-            code_hash: self.code_hash.clone()
+            address: self.address.canonize(api)?,
+            code_hash: self.code_hash
         })
     }
 }
+
 impl From<Env> for ContractLink<HumanAddr> {
     fn from (env: Env) -> ContractLink<HumanAddr> {
         ContractLink {

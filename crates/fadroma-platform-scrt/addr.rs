@@ -1,48 +1,86 @@
 //! `HumanAddr`<->`CanonicalAddr` conversion
 
-use crate::*;
+use secret_cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Api};
 
-pub trait Humanize<T> {
-    fn humanize (&self, api: &impl Api) -> StdResult<T>;
+pub trait Canonize {
+    type Output: Humanize;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output>;
 }
 
-impl Humanize<HumanAddr> for CanonicalAddr {
-    fn humanize (&self, api: &impl Api) -> StdResult<HumanAddr> {
+pub trait Humanize {
+    type Output: Canonize;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output>;
+}
+
+impl Humanize for CanonicalAddr {
+    type Output = HumanAddr;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
+        humanize_maybe_empty(api, &self)
+    }
+}
+
+impl Canonize for HumanAddr {
+    type Output = CanonicalAddr;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
+        canonize_maybe_empty(api, &self)
+    }
+}
+
+impl Humanize for &CanonicalAddr {
+    type Output = HumanAddr;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         humanize_maybe_empty(api, self)
     }
 }
 
-impl Humanize<HumanAddr> for &CanonicalAddr {
-    fn humanize (&self, api: &impl Api) -> StdResult<HumanAddr> {
-        humanize_maybe_empty(api, self)
-    }
-}
+impl Canonize for &HumanAddr {
+    type Output = CanonicalAddr;
 
-impl<T: Humanize<U>, U> Humanize<Vec<U>> for Vec<T> {
-    fn humanize (&self, api: &impl Api) -> StdResult<Vec<U>> {
-        self.iter().map(|x|x.humanize(api)).collect()
-    }
-}
-
-pub trait Canonize<T> {
-    fn canonize (&self, api: &impl Api) -> StdResult<T>;
-}
-
-impl Canonize<CanonicalAddr> for HumanAddr {
-    fn canonize (&self, api: &impl Api) -> StdResult<CanonicalAddr> {
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         canonize_maybe_empty(api, self)
     }
 }
 
-impl Canonize<CanonicalAddr> for &HumanAddr {
-    fn canonize (&self, api: &impl Api) -> StdResult<CanonicalAddr> {
-        canonize_maybe_empty(api, self)
+impl<T: Humanize> Humanize for Vec<T> {
+    type Output = Vec<T::Output>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
+        self.into_iter().map(|x| x.humanize(api)).collect()
     }
 }
 
-impl<T: Canonize<U>, U> Canonize<Vec<U>> for Vec<T> {
-    fn canonize (&self, api: &impl Api) -> StdResult<Vec<U>> {
-        self.iter().map(|x|x.canonize(api)).collect()
+impl<T: Canonize> Canonize for Vec<T> {
+    type Output = Vec<T::Output>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
+        self.into_iter().map(|x| x.canonize(api)).collect()
+    }
+}
+
+impl<T: Humanize> Humanize for Option<T> {
+    type Output = Option<T::Output>;
+
+    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
+        match self {
+            Some(item) => Ok(Some(item.humanize(api)?)),
+            None => Ok(None)
+        }
+    }
+}
+
+impl<T: Canonize> Canonize for Option<T> {
+    type Output = Option<T::Output>;
+
+    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
+        match self {
+            Some(item) => Ok(Some(item.canonize(api)?)),
+            None => Ok(None)
+        }
     }
 }
 
