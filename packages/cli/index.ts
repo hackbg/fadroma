@@ -36,13 +36,14 @@ export class Fadroma {
     let commands: any = this.commands
     for (let i = 0; i < fragments.length; i++) {
       commands[fragments[i]] = commands[fragments[i]] || {}
-      // prevent overrides
-      if (commands instanceof Function) {
-        const msg = `[@fadroma] Cannot define command "${name}": already defined: "${fragments.slice(0,i).join(' ')}"`
-        throw new Error(msg)
-      }
       // descend or reach bottom
       if (i === fragments.length-1) {
+        // prevent overrides
+        //if (commands[fragments[i]] instanceof Function) {
+          //const msg = `[@fadroma] Cannot define command "${name}": already defined "${fragments.slice(0,i+1).join(' ')}"`
+          //console.error(this.commands)
+          //throw new Error(msg)
+        //}
         commands[fragments[i]] = (...cmdArgs: string[]) => this.runCommand(name, steps, cmdArgs)
       } else {
         commands = commands[fragments[i]]
