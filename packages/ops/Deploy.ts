@@ -12,7 +12,6 @@ import alignYAML from 'align-yaml'
 
 const console = Console('@fadroma/ops/Deploy')
 
-import type { Contract } from './Contract'
 import type { Client, ClientConstructor } from './Client'
 import type { Agent } from './Agent'
 import type { Chain } from './Chain'
@@ -25,7 +24,13 @@ export class Deployment {
 
   constructor (public readonly path: string) { this.load() }
 
-  prefix:   string
+  /** This is the name of the deployment.
+    * It's used as a prefix to contract labels
+    * (which need to be globally unique). */
+  prefix: string
+
+  /** These are the items contained by the Deployment.
+    * They correspond to individual contract instances. */
   receipts: Record<string, Instance> = {}
 
   /** Load deployment state from YAML file. */
@@ -40,26 +45,48 @@ export class Deployment {
     }
   }
 
-  /** Write deployment state to YAML file. */
-  save () {
+  /** Chainable. Add to deployment, merging into existing receipts. */
+  add (name: string, data: any): this {
+    return this.set(name, {...this.receipts[name] || {}, ...data })
+  }
+
+  /** Chainable. Add to deployment, replacing existing receipts. */
+  set (name: string, data: any): this {
+    this.receipts[name] = { name, ...data }
+    return this.save()
+  }
+
+  /** Chainable. Add multiple to the deployment, replacing existing. */
+  setMany (receipts: Record<string, any>) {
+    for (const [name, receipt] of Object.entries(receipts)) {
+      this.receipts[name] = receipt
+    }
+    return this.save()
+  }
+
+  /** Chainable: Serialize deployment state to YAML file. */
+  save (): this {
     let output = ''
     for (let [name, data] of Object.entries(this.receipts)) {
       output += '---\n'
       output += alignYAML(YAML.dump({ name, ...data }, { noRefs: true }))
     }
     writeFileSync(this.path, output)
-  }
-
-  /** Chainable. Add arbitrary data to the deployment. */
-  set (name: string, data: any): this {
-    this.receipts[name] = { name, ...data }
-    this.save()
     return this
   }
 
-  /** Chainable. Add arbitrary data to the deployment, keeping existing subfields. */
-  add (name: string, data: any): this {
-    return this.set(name, {...this.receipts[name] || {}, ...data })
+  /** Get the receipt for a contract, containing its address, codeHash, etc. */
+  get (name: string, suffix?: string): Instance {
+    const receipt = this.receipts[name]
+    if (!receipt) {
+      throw new Error(`@fadroma/ops/Deploy: ${name}: no such contract in deployment`)
+    }
+    return receipt
+  }
+
+  /** Resolve a path relative to the deployment directory. */
+  resolve (...fragments: Array<string>) {
+    return resolve(this.path, ...fragments)
   }
 
   /** Instantiate one contract and save its receipt to the deployment. */
@@ -72,56 +99,20 @@ export class Deployment {
 
   /** Instantiate multiple contracts from the same Template with different parameters. */
   async initMany (deployAgent: Agent, template: Template, configs: [Label, InitMsg][]): Promise<Instance[]> {
-    return this.initVarious(deployAgent, configs.map(([label, initMsg])=>[template, label, initMsg]))
+    return this.initVarious(deployAgent, configs.map(([label, initMsg])=>[
+      template,
+      `${this.prefix}/${label}`,
+      initMsg
+    ]))
   }
 
   /** Instantiate multiple contracts from different Templates with different parameters. */
   async initVarious (deployAgent: Agent, configs: [Template, Label, InitMsg][]): Promise<Instance[]> {
-    return []
+    const receipts = await deployAgent.instantiateMany(configs, this.prefix)
+    this.setMany(receipts)
+    return Object.values(receipts)
   }
 
-  /** Instantiate one or more contracts. */
-  async instantiate (
-    deployAgent: Agent,
-    ...contracts: [Contract<any>, any?, string?, string?][]
-  ) {
-    console.warn('Deployment#instantiate: deprecated')
-    for (const [contract] of contracts) {
-      if (contract.address) {
-        throw new Error(
-          `@fadroma/ops/Deploy: tried to instantiate a contract that already exists: ${contract.address}`
-        )
-      }
-      if (!contract.codeHash) {
-        throw new Error(
-          `@fadroma/ops/Deploy: no code hash in: ${contract}`
-        )
-      }
-    }
-    // execute the init bundle
-    const receipts = await deployAgent.instantiateMany(contracts, this.prefix)
-
-    // save receipts
-    for (const [name, receipt] of Object.entries(receipts)) {
-      this.receipts[name] = receipt
-    }
-    this.save()
-
-    // return the mutated Contract instances only,
-    // without the extra info for bundled init
-    return contracts.map(x=>x[0])
-  }
-  /** Get the receipt for a contract, containing its address, codeHash, etc. */
-  get (name: string, suffix?: string): Instance {
-    const receipt = this.receipts[name]
-    if (!receipt) {
-      throw new Error(`@fadroma/ops/Deploy: ${name}: no such contract in deployment`)
-    }
-    return receipt
-  }
-  resolve (...fragments: Array<string>) {
-    return resolve(this.path, ...fragments)
-  }
   printStatus () {
     const { receipts, prefix } = this
     const count = Object.values(receipts).length
@@ -136,7 +127,9 @@ export class Deployment {
 }
 
 export class Deployments extends Directory {
+
   KEY = '.active'
+
   printActive () {
     if (this.active) {
       this.active.printStatus()
@@ -144,17 +137,7 @@ export class Deployments extends Directory {
       console.info(`\nNo selected deployment.`)
     }
   }
-  get active (): Deployment|null {
-    return this.get(this.KEY)
-  }
-  get (id: string): Deployment|null {
-    const path = resolve(this.path, `${id}.yml`)
-    if (!existsSync(path)) {
-      return null
-    }
-    let prefix: string
-    return new Deployment(path)
-  }
+
   async create (id: string) {
     const path = resolve(this.path, `${id}.yml`)
     if (existsSync(path)) {
@@ -167,7 +150,7 @@ export class Deployments extends Directory {
     await mkdirp(dirname(path))
     await writeFileSync(path, '')
   }
-  // selected deployment shouldn't be implemented with symlinks...
+
   async select (id: string) {
     const path = resolve(this.path, `${id}.yml`)
     if (!existsSync(path)) {
@@ -177,6 +160,20 @@ export class Deployments extends Directory {
     try { unlinkSync(active) } catch (e) { console.warn(e.message) }
     await symlinkSync(path, active)
   }
+
+  get active (): Deployment|null {
+    return this.get(this.KEY)
+  }
+
+  get (id: string): Deployment|null {
+    const path = resolve(this.path, `${id}.yml`)
+    if (!existsSync(path)) {
+      return null
+    }
+    let prefix: string
+    return new Deployment(path)
+  }
+
   list () {
     if (!existsSync(this.path)) {
       console.info(`\n${this.path} does not exist, creating`)
@@ -185,6 +182,7 @@ export class Deployments extends Directory {
     }
     return readdirSync(this.path).filter(x=>x!=this.KEY).filter(x=>x.endsWith('.yml')).map(x=>basename(x,'.yml'))
   }
+
   save (name: string, data: any) {
     name = `${name}.json`
     console.info(
@@ -195,6 +193,7 @@ export class Deployments extends Directory {
     }
     return super.save(name, data)
   }
+
   /** List of contracts in human-readable from */
   table () {
     const rows = []
@@ -212,7 +211,7 @@ export class Deployments extends Directory {
     return rows
   }
 
-  /* Command. Create a new deployment. */
+  /** Command: Create a new deployment. */
   static async new ({ chain, cmdArgs = [] }) {
     const [ prefix = timestamp() ] = cmdArgs
     await chain.deployments.create(prefix)
@@ -220,7 +219,7 @@ export class Deployments extends Directory {
     return Deployments.activate({ chain })
   }
 
-  /* Command. Activate a deployment and prints its status. */
+  /** Command: Activate a deployment and prints its status. */
   static activate ({ chain }): {
     deployment: Deployment|undefined,
     prefix:     string|undefined
@@ -238,7 +237,7 @@ export class Deployments extends Directory {
     return { deployment, prefix }
   }
 
-  /* Command. Print the status of a deployment. */
+  /** Command: Print the status of a deployment. */
   static status ({ chain, cmdArgs: [ id ] }) {
     let deployment = chain.deployments.active
     if (id) {
@@ -251,7 +250,7 @@ export class Deployments extends Directory {
     deployment.printStatus()
   }
 
-  /* Command. Set a new deployment as active. */
+  /** Command: Set a new deployment as active. */
   static async select (input) {
     const chain  = input.chain   // ??
     const [ id ] = input.cmdArgs || []

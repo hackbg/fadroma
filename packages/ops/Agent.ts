@@ -7,9 +7,11 @@ import { toBase64 } from '@iov/encoding'
 
 import { Identity, Gas, Template, Instance, Message, getMethod } from './Core'
 import { Trace } from './Trace'
-import type { Contract, ContractInit } from './Contract'
 import type { Chain } from './Chain'
 import type { Bundle } from './Bundle'
+
+type Label   = string
+type InitMsg = string|Record<string, any>
 
 export abstract class Agent implements Identity {
 
@@ -78,7 +80,7 @@ export abstract class Agent implements Identity {
 
   /** Instantiate multiple contracts in 1 tx via a Bundle. */
   async instantiateMany (
-    contracts: ContractInit[],
+    contracts: [Template, Label, InitMsg][],
     prefix?:   string
   ): Promise<Record<string, Instance>> {
     // results by contract name
