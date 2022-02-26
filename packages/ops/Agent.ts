@@ -55,7 +55,10 @@ export abstract class Agent implements Identity {
 
   /** Instantiate a single contract. */
   async instantiate (
-    template: Template, label: string, msg: any, funds: any[]
+    template: Template,
+    label:    string,
+    msg:      any,
+    funds:    any[] = []
   ): Promise<any> {
     if (!template) {
       throw new Error('@fadroma/ops/Agent: need a Template to instantiate')
@@ -75,7 +78,8 @@ export abstract class Agent implements Identity {
 
   /** Instantiate multiple contracts in 1 tx via a Bundle. */
   async instantiateMany (
-    contracts: ContractInit[], prefix?: string
+    contracts: ContractInit[],
+    prefix?:   string
   ): Promise<Record<string, Instance>> {
     // results by contract name
     const receipts = {}

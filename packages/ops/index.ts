@@ -19,8 +19,6 @@ export * from './Bundle'
 
 export * from './Upload'
 
-export * from './Contract'
-
 export * from './Deploy'
 
 export * from './Migrate'

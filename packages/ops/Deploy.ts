@@ -18,6 +18,9 @@ import type { Agent } from './Agent'
 import type { Chain } from './Chain'
 import { Template, Instance, Message, print, join } from './Core'
 
+type Label   = string
+type InitMsg = string|Record<string, any>
+
 export class Deployment {
 
   constructor (public readonly path: string) { this.load() }
@@ -48,17 +51,41 @@ export class Deployment {
   }
 
   /** Chainable. Add arbitrary data to the deployment. */
-  add (name: string, data: any): this {
-    this.receipts[name] = { name, ...this.receipts[name] || {}, ...data }
+  set (name: string, data: any): this {
+    this.receipts[name] = { name, ...data }
     this.save()
     return this
   }
 
+  /** Chainable. Add arbitrary data to the deployment, keeping existing subfields. */
+  add (name: string, data: any): this {
+    return this.set(name, {...this.receipts[name] || {}, ...data })
+  }
+
+  /** Instantiate one contract and save its receipt to the deployment. */
+  async init <T> (deployAgent: Agent, template: Template, name: Label, initMsg: T): Promise<Instance> {
+    const label = `${this.prefix}/${name}`
+    const instance = await deployAgent.instantiate(template, label, initMsg)
+    this.set(name, instance)
+    return instance
+  }
+
+  /** Instantiate multiple contracts from the same Template with different parameters. */
+  async initMany (deployAgent: Agent, template: Template, configs: [Label, InitMsg][]): Promise<Instance[]> {
+    return this.initVarious(deployAgent, configs.map(([label, initMsg])=>[template, label, initMsg]))
+  }
+
+  /** Instantiate multiple contracts from different Templates with different parameters. */
+  async initVarious (deployAgent: Agent, configs: [Template, Label, InitMsg][]): Promise<Instance[]> {
+    return []
+  }
+
   /** Instantiate one or more contracts. */
   async instantiate (
-    creator: Agent,
+    deployAgent: Agent,
     ...contracts: [Contract<any>, any?, string?, string?][]
   ) {
+    console.warn('Deployment#instantiate: deprecated')
     for (const [contract] of contracts) {
       if (contract.address) {
         throw new Error(
@@ -72,7 +99,7 @@ export class Deployment {
       }
     }
     // execute the init bundle
-    const receipts = await creator.instantiateMany(contracts, this.prefix)
+    const receipts = await deployAgent.instantiateMany(contracts, this.prefix)
 
     // save receipts
     for (const [name, receipt] of Object.entries(receipts)) {
@@ -84,7 +111,6 @@ export class Deployment {
     // without the extra info for bundled init
     return contracts.map(x=>x[0])
   }
-
   /** Get the receipt for a contract, containing its address, codeHash, etc. */
   get (name: string, suffix?: string): Instance {
     const receipt = this.receipts[name]
@@ -92,49 +118,6 @@ export class Deployment {
       throw new Error(`@fadroma/ops/Deploy: ${name}: no such contract in deployment`)
     }
     return receipt
-  }
-
-  /** Get existing contract or create it if it doesn't exist */
-  async getOrInit <I> (
-    agent:    Agent,
-    contract: Contract<any>,
-    name:     string = contract.name,
-    initMsg:  I      = contract.initMsg
-  ) {
-    console.warn('@fadroma/ops/Deploy: getOrInit: deprecated')
-    const receipt = this.receipts[name]
-    if (receipt) {
-      contract.agent = agent
-      return this.getThe(name, contract)
-    } else {
-      await this.instantiate(agent, [contract, initMsg])
-    }
-    return contract
-  }
-
-  /** Get a contract by full name match.
-    * Need to provide an instance of the corresponding class
-    * and then it's populated from the receipt. */
-  getThe <C extends Contract> (name: string, contract: C): C {
-    const receipt = this.receipts[name]
-    if (receipt) {
-      contract.prefix = this.prefix
-      return contract.fromReceipt(receipt)
-    } else {
-      throw new Error(
-        `@fadroma/ops: no contract ${bold(name)}` +
-        ` in deployment ${bold(this.prefix)}`
-      )
-    }
-  }
-  getAll <C extends Contract> (fragment: string, getContract: (string)=>C): C[] {
-    const contracts = []
-    for (const [name, receipt] of Object.entries(this.receipts)) {
-      if (name.includes(fragment)) {
-        contracts.push(this.getThe(name, getContract(name)))
-      }
-    }
-    return contracts
   }
   resolve (...fragments: Array<string>) {
     return resolve(this.path, ...fragments)
