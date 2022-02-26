@@ -10,6 +10,10 @@ export class ScrtAgentTX extends ScrtAgent {
 
   Bundle = MultisigScrtBundle
 
+  signTx (msgs, gas, memo?): Promise<any> {
+    throw new Error('not implemented')
+  }
+
   constructor (readonly agent: ScrtAgentJS) {
     super({
       name:    `${agent.name}+Generate`,
@@ -18,38 +22,54 @@ export class ScrtAgentTX extends ScrtAgent {
     })
   }
 
-  upload (...args) {
+  upload (...args): Promise<any> {
     throw new Error('ScrtAgentTX#upload: not implemented')
   }
 
-  instantiate (...args) {
+  instantiate (...args): Promise<any> {
     console.info('init', ...args)
+    return
   }
 
-  execute (contract, msg, ...args) {
+  execute (contract, msg, ...args): Promise<any> {
     console.info(
       'execute',
       contract.name||contract.constructor.name,
       msg,
       args
     )
+    return
   }
 
-  query (...args) {
-    console.info('query', args[0].constructor.name, args[1])
-    return super.query(...args)
+  query (
+    contract: { address: string, label: string }, msg: any
+  ) {
+    console.info('query', contract.label, msg)
+    return super.query(contract, msg)
   }
 
   get nextBlock () { return this.agent.nextBlock }
+
   async send () { throw new Error('not implemented') }
+
   async sendMany () { throw new Error('not implemented') }
+
   async encrypt (codeHash, msg) {
     if (!codeHash) throw new Error('@fadroma/scrt: missing codehash')
     const encrypted = await this.agent.api.restClient.enigmautils.encrypt(codeHash, msg)
     return toBase64(encrypted)
   }
 
-  getLabel (...args)  { return this.agent.getLabel(...args) }
-  getCodeId (...args) { return this.agent.getCodeId(...args) }
+  getLabel (address) {
+    return this.agent.getLabel(address)
+  }
+
+  getCodeId (address) {
+    return this.agent.getCodeId(address)
+  }
+
+  getCodeHash (idOrAddr) {
+    return this.agent.getCodeHash(idOrAddr)
+  }
 
 }

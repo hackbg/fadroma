@@ -15,10 +15,7 @@ const console = Console('@fadroma/ops/Deploy')
 import type { Client, ClientConstructor } from './Client'
 import type { Agent } from './Agent'
 import type { Chain } from './Chain'
-import { Template, Instance, Message, print, join } from './Core'
-
-type Label   = string
-type InitMsg = string|Record<string, any>
+import { Template, Label, InitMsg, Instance, Message, print, join } from './Core'
 
 export class Deployment {
 

@@ -1,7 +1,7 @@
 import {
   Console, colors, bold,
   Identity, waitUntilNextBlock,
-  Contract, Instance, Message,
+  Template, Instance, Message,
   readFile,
   backOff,
   toBase64
@@ -154,7 +154,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
 
   /** Instantiate multiple contracts from a bundled transaction. */
   async instantiateMany (
-    contracts: [Contract<any>, any?, string?, string?][],
+    configs: [Template, Label, InitMsg][],
     prefix?: string
   ): Promise<Record<string, Instance>> {
     // results by contract name

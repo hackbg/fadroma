@@ -32,13 +32,6 @@ export interface Uploader {
   upload (artifact: Artifact, ...args): Promise<Template>
 }
 
-export interface Template {
-  chainId:          string
-  transactionHash?: string
-  codeId:           string
-  codeHash?:        string
-}
-
 export interface UploadReceipt {
   codeId:             number
   compressedChecksum: string
@@ -49,6 +42,17 @@ export interface UploadReceipt {
   transactionHash:    string
 }
 
+export interface Template {
+  chainId:          string
+  transactionHash?: string
+  codeId:           string
+  codeHash?:        string
+}
+
+export type Label = string
+
+export type InitMsg = string|Record<string, any>
+
 export interface Instance {
   chainId:          string
   transactionHash?: string
@@ -58,15 +62,6 @@ export interface Instance {
   address:          string
 }
 
-export interface InitReceipt {
-  label:    string
-  codeId:   number
-  codeHash: string
-  address:  string
-  initTx:   string
-  gasUsed:  string
-}
-
 export interface InitTX {
   txhash:          string
   contractAddress: string
@@ -74,6 +69,15 @@ export interface InitTX {
   logs:            Array<any>
   transactionHash: string
   gas_used:        string
+}
+
+export interface InitReceipt {
+  label:    string
+  codeId:   number
+  codeHash: string
+  address:  string
+  initTx:   string
+  gasUsed:  string
 }
 
 export interface Identity {
