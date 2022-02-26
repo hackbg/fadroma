@@ -21,6 +21,9 @@ export class Source {
 
 export abstract class Builder {
   abstract build (source: Source, ...args): Promise<Artifact>
+  buildMany (sources: Source[], ...args): Promise<Artifact[]> {
+    return Promise.all(sources.map(source=>this.build(source, ...args)))
+  }
 }
 
 export interface Artifact {
