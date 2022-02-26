@@ -122,21 +122,25 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   private shouldRethrow (raw_log: string): boolean {
 
     // out of gas fails immediately
-    if (raw_log.includes('out of gas')) return true
-
-    if (raw_log.includes('failed')) {
-
-      // account sequence mismatch is retried
-      if (raw_log.includes('account sequence mismatch')) {
-        return false
-      }
-
-      // all other tx failures are thrown
+    if (raw_log.includes('out of gas')) {
+      console.warn('[@fadroma/scrt-1.2] Out of gas, not retrying')
       return true
+    }
 
+    // account sequence mismatch is retried
+    if (raw_log.includes('account sequence mismatch')) {
+      console.warn('[@fadroma/scrt-1.2] Nonce lag, retrying')
+      return false
+    }
+
+    // tx failures are thrown
+    if (raw_log.includes('failed')) {
+      console.warn('[@fadroma/scrt-1.2] Transaction failed, not retrying')
+      return true
     }
 
     // all other errors are retried
+    console.warn('[@fadroma/scrt-1.2] Fetching tx result failed, retrying')
     return false
 
   }
