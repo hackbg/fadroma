@@ -5,7 +5,7 @@ const console = Console('@fadroma/ops/Agent')
 import { resolve, readFileSync, JSONDirectory } from '@hackbg/tools'
 import { toBase64 } from '@iov/encoding'
 
-import { Identity, Gas, Template, Instance, Message, getMethod } from './Core'
+import { Identity, Gas, Artifact, Template, Instance, Message, getMethod } from './Core'
 import { Trace } from './Trace'
 import type { Chain } from './Chain'
 import type { Bundle } from './Bundle'
@@ -53,7 +53,7 @@ export abstract class Agent implements Identity {
 
   abstract sendMany (txs: any[], memo?: string, denom?: string, fee?: any): Promise<any>
 
-  abstract upload (path: string): Promise<any>
+  abstract upload (artifact: Artifact): Promise<Template>
 
   /** Instantiate a single contract. */
   async instantiate (

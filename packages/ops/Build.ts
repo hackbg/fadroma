@@ -63,13 +63,14 @@ export abstract class DockerBuilder extends Builder {
       return { location, codeHash: codeHashForPath(location) }
     }
 
-    const run = (cmd: string, ...args: string[]) => spawnSync(
-      cmd, args, { cwd: workspace, stdio: 'inherit' }
-    )
-
     // Temporary directory into which the working tree is copied
     // when building a non-HEAD commit.
     let tmpDir
+
+    // Execute a shell command
+    const run = (cmd: string, ...args: string[]) => spawnSync(
+      cmd, args, { cwd: workspace, stdio: 'inherit' }
+    )
 
     try {
 
@@ -182,6 +183,7 @@ export abstract class DockerBuilder extends Builder {
 }
 
 export abstract class RawBuilder extends Builder {
+
   async build (source: Source): Promise<Artifact> {
 
     throw new Error('pls review')
@@ -214,4 +216,5 @@ export abstract class RawBuilder extends Builder {
 
     return { location }
   }
+
 }

@@ -86,7 +86,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
       try {
 
         console.debug(`[@fadroma/scrt-1.2] Requesting result of tx ${id}`)
-        const result = await this.restClient.get(`/txs/${id}`)
+        const result = await this.restClient.txById(id)
         const {raw_log, logs = []} = result as any
 
         if (this.shouldRethrow(raw_log)) {

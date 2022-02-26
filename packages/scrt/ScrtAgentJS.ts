@@ -1,7 +1,7 @@
 import {
   Console, colors, bold,
   Identity, waitUntilNextBlock,
-  Template, Instance, Message,
+  Template, Artifact, Instance, Message,
   readFile,
   backOff,
   toBase64
@@ -95,14 +95,22 @@ export abstract class ScrtAgentJS extends ScrtAgent {
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async upload (pathToBinary: string) {
-    if (!(typeof pathToBinary === 'string')) {
-      throw new Error(
-        `@fadroma/scrt: Need path to binary (string), received: ${pathToBinary}`
+  async upload (artifact: Artifact): Promise<Template> {
+    const data = await readFile(artifact.location)
+    const uploadResult = await this.api.upload(data, {})
+    console.log({uploadResult})
+    if (uploadResult.originalChecksum !== artifact.codeHash) {
+      console.warn(
+        bold(`Code hash mismatch`),
+        `when uploading`, artifact.location,
+        `(expected: ${artifact.codeHash}, got: ${uploadResult.originalChecksum})`
       )
     }
-    const data = await readFile(pathToBinary)
-    return await this.api.upload(data, {})
+    return {
+      chainId:  this.chain.id,
+      codeId:   String(uploadResult.codeId),
+      codeHash: uploadResult.originalChecksum
+    }
   }
 
   async getCodeHash (idOrAddr: number|string): Promise<string> {
@@ -131,6 +139,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async instantiate (template, label, msg, funds = []) {
+    console.log('instantiate', template)
     if (!template.codeHash) {
       throw new Error('@fadroma/scrt: Template must contain codeHash')
     }
