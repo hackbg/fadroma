@@ -1,7 +1,7 @@
 import {
   Console, colors, bold,
   Identity, waitUntilNextBlock,
-  Template, Artifact, Instance, Message,
+  Template, Label, InitMsg, Artifact, Instance, Message,
   readFile,
   backOff,
   toBase64
@@ -165,14 +165,14 @@ export abstract class ScrtAgentJS extends ScrtAgent {
     configs: [Template, Label, InitMsg][],
     prefix?: string
   ): Promise<Record<string, Instance>> {
-    // results by contract name
-    const receipts = await super.instantiateMany(contracts, prefix)
-    // populate code hash in receipt and `contract.instance` properties
-    for (const i in contracts) {
-      const contract = contracts[i][0]
-      const receipt = receipts[contract.name]
+    // supermethod returns instances/receipts keyed by name
+    const receipts = await super.instantiateMany(configs, prefix)
+    // add code hashes to them:
+    for (const i in configs) {
+      const [template, label, initMsg] = configs[i]
+      const receipt = receipts[label]
       if (receipt) {
-        receipt.codeHash = contract.template?.codeHash||contract.codeHash
+        receipt.codeHash = template.codeHash
       }
     }
     return receipts

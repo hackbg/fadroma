@@ -100,12 +100,12 @@ export class Chain implements ChainOptions {
   #ready: Promise<any>|null = null
   get ready () {
     if (this.#ready) return this.#ready
-    return this.#ready = this.#init()
+    return this.#ready = this.#populate()
   }
 
   /**Instantiate Agent and Builder objects to talk to the API,
    * respawning the node container if this is a localnet. */
-  async #init (): Promise<Chain> {
+  async #populate (): Promise<Chain> {
     // if this is a localnet handle, wait for the localnet to start
     const node = await Promise.resolve(this.node)
     console.info(bold('Chain ID: '), this.id)
@@ -255,6 +255,8 @@ export class Chain implements ChainOptions {
     * There used to be an `openFaucet` command.
     * TODO automate refill. */
   faucet: string|null = null
+
+  getNonce (address: string): Promise<any> { throw new Error('not implemented') }
 
 }
 

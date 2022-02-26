@@ -7,10 +7,7 @@ export abstract class Client {
   readonly agent: Agent
   address:  string
   codeHash: string
-
-  get label (): Promise<string> {
-    return this.agent.getLabel(this.address)
-  }
+  label:    string
 
   constructor (options = {}) {
     Object.assign(this, options)
@@ -30,6 +27,10 @@ export abstract class Client {
         `Transactions and queries not possible.`
       )
     }
+  }
+
+  async populate () {
+    this.label = await this.agent.getLabel(this.address)
   }
 
   protected query   = (msg: Message) =>

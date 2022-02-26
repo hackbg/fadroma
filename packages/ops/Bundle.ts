@@ -20,7 +20,7 @@ export abstract class Bundle {
   buildAndUpload (...args) { return this.agent.buildAndUpload(...args) }
 
   abstract upload  (artifact: Artifact): this
-  abstract init    (template: Template, label: string, msg: Message): this
+  abstract init    (template: Template, label: string, msg: Message, send: any[]): this
   abstract execute (instance: Instance, msg: Message): this
 
   private depth = 0

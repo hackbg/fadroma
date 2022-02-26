@@ -1,13 +1,13 @@
-import { Console, colors, bold, timestamp } from '@fadroma/ops'
+import { Console, colors, bold, timestamp, fromBase64, fromUtf8 } from '@fadroma/ops'
 
-const console = Console('@fadroma/scrt/ScrtBundleMultiSig')
+const console = Console('@fadroma/scrt/ScrtBundle')
 
 import pako from 'pako'
 import { SigningCosmWasmClient } from 'secretjs'
 
 import {
   Agent, Bundle, BundleResult,
-  Contract, Artifact, Template, Instance,
+  Artifact, Template, Label, InitMsg, Instance,
   readFile, writeFile,
   toBase64
 } from '@fadroma/ops'
@@ -49,38 +49,21 @@ export abstract class ScrtBundle extends Bundle {
   }
 
   async instantiateMany (
-    contracts: [Contract<any>, any?, string?, string?][],
-    prefix?:   string
+    contracts: [Template, Label, InitMsg][],
+    prefix?:   string,
+    suffix?:   string
   ): Promise<Instance[]> {
-    for (const [
-      contract,
-      msg    = contract.initMsg,
-      name   = contract.name,
-      suffix = contract.suffix
-    ] of contracts) {
-      // if custom contract properties are passed to instantiate,
-      // set them on the contract class. FIXME this is a mutation,
-      // the contract class should not exist, this function should
-      // take `Template` instead of `Contract`
-      contract.initMsg = msg
-      contract.name    = name
-      contract.suffix  = suffix
-
+    const instances = []
+    for (const [template, name, initMsg] of contracts) {
       // generate the label here since `get label () {}` is no more
       let label = `${name}${suffix||''}`
       if (prefix) label = `${prefix}/${label}`
       console.info(bold('Instantiate:'), label)
-
       // add the init tx to the bundle. when passing a single contract
       // to instantiate, this should behave equivalently to non-bundled init
-      const template = contract.template || {
-        chainId:  contract.chainId,
-        codeId:   contract.codeId,
-        codeHash: contract.codeHash
-      }
-      await this.instantiate(template, label, msg)
+      instances.push(await this.instantiate(template, label, initMsg))
     }
-    return contracts.map(contract=>contract[0].instance)
+    return instances
   }
 
   abstract init ({ codeId, codeHash }: Template, label, msg): this
@@ -96,7 +79,7 @@ export abstract class ScrtBundle extends Bundle {
   }
 
   protected async encrypt (codeHash, msg) {
-    return (this.agent as ScrtAgentJS).encrypt(codeHash, msg)
+    return (this.agent as unknown as ScrtAgentJS).encrypt(codeHash, msg)
   }
 
 }
@@ -107,7 +90,9 @@ export abstract class ScrtBundle extends Bundle {
   * This formats the messages for API v1 like secretjs. */
 export class BroadcastingScrtBundle extends ScrtBundle {
 
-  constructor (readonly agent: ScrtAgentJS) { super(agent as Agent) }
+  constructor (readonly agent: ScrtAgentJS) {
+    super(agent as unknown as ScrtAgent)
+  }
 
   init ({ codeId, codeHash }: Template, label, msg, init_funds = []) {
     const sender  = this.address
