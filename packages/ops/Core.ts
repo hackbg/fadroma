@@ -19,8 +19,8 @@ export class Source {
   ) {}
 }
 
-export interface Builder {
-  build (source: Source, ...args): Promise<Artifact>
+export abstract class Builder {
+  abstract build (source: Source, ...args): Promise<Artifact>
 }
 
 export interface Artifact {
