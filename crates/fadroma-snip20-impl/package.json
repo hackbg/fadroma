@@ -2,8 +2,7 @@
   "name":    "@fadroma/snip20",
   "version": "0.1.0",
   "type":    "module",
-  "main":    "./Snip20Contract.ts",
-  "browser": "./Snip20Client.ts",
+  "main":    "./Snip20Client.ts",
   "dependencies": {
     "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.0": "workspace:*",

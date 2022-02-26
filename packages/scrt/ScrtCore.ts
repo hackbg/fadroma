@@ -4,7 +4,7 @@ import {
   ChainNodeOptions, ChainNode,
   DockerChainNode, Path, Directory, TextFile, JSONFile, JSONDirectory,
   DockerBuilder,
-  Client, Contract
+  Client
 } from '@fadroma/ops'
 
 import type { SigningCosmWasmClient } from 'secretjs'
@@ -54,10 +54,6 @@ export class ScrtDockerBuilder extends DockerBuilder {
   buildImage      = null
   buildDockerfile = null
   buildScript     = buildScript
-}
-
-export abstract class ScrtContract<C extends Client> extends Contract<C> {
-  Builder = ScrtDockerBuilder
 }
 
 export type UnsignedTX = {

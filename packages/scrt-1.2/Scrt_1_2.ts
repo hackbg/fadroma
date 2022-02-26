@@ -5,7 +5,7 @@ import { Console, bold } from '@fadroma/ops'
 import {
   dirname, fileURLToPath,
   ScrtDockerBuilder, resolve,
-  ScrtContract, Client,
+  Client,
   Scrt, ScrtAgentTX,
   Identity, Agent, ScrtAgentJS,
   DockerScrtNode, ChainNodeOptions, TextFile
@@ -33,10 +33,6 @@ export const buildDockerfile = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile')
 export class ScrtDockerBuilder_1_2 extends ScrtDockerBuilder {
   buildImage      = buildImage
   buildDockerfile = buildDockerfile
-}
-
-export abstract class ScrtContract_1_2<C extends Client> extends ScrtContract<C> {
-  Builder = ScrtDockerBuilder_1_2
 }
 
 export class Scrt_1_2 extends Scrt {
@@ -144,7 +140,6 @@ export default {
   SigningCosmWasmClient: PatchedSigningCosmWasmClient_1_2,
   Agent:    ScrtAgentJS_1_2,
   Builder:  ScrtDockerBuilder_1_2,
-  Contract: ScrtContract_1_2,
   Chains: {
     /** Create an instance that runs a node in a local Docker container
      *  and talks to it via SecretJS */
