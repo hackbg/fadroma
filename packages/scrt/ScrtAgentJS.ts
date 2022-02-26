@@ -98,19 +98,19 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   async upload (artifact: Artifact): Promise<Template> {
     const data = await readFile(artifact.location)
     const uploadResult = await this.api.upload(data, {})
-    console.log({uploadResult})
-    if (uploadResult.originalChecksum !== artifact.codeHash) {
+    let codeId = String(uploadResult.codeId)
+    if (codeId === "-1") {
+      codeId = uploadResult.logs[0].events[0].attributes[3].value
+    }
+    const codeHash = uploadResult.originalChecksum
+    if (codeHash !== artifact.codeHash) {
       console.warn(
         bold(`Code hash mismatch`),
         `when uploading`, artifact.location,
-        `(expected: ${artifact.codeHash}, got: ${uploadResult.originalChecksum})`
+        `(expected: ${artifact.codeHash}, got: ${codeHash})`
       )
     }
-    return {
-      chainId:  this.chain.id,
-      codeId:   String(uploadResult.codeId),
-      codeHash: uploadResult.originalChecksum
-    }
+    return { chainId: this.chain.id, codeId, codeHash }
   }
 
   async getCodeHash (idOrAddr: number|string): Promise<string> {
@@ -139,7 +139,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async instantiate (template, label, msg, funds = []) {
-    console.log('instantiate', template)
     if (!template.codeHash) {
       throw new Error('@fadroma/scrt: Template must contain codeHash')
     }
