@@ -31,11 +31,12 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   }
 
   async waitForNextNonce (sent: number) {
-    while (true) {
-      await new Promise(ok=>setTimeout(ok, this.blockQueryInterval))
-      const now = (await this.getBlock()).header.height
-      if (now > sent) break
-    }
+    // TODO
+    //while (true) {
+      //await new Promise(ok=>setTimeout(ok, this.blockQueryInterval))
+      //const now = (await this.getBlock()).header.height
+      //if (now > sent) break
+    //}
   }
 
   async postTx (tx: any): Promise<any> {
@@ -72,18 +73,21 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
         }
       }
 
-      // 5. If we got a transaction hash, start querying for the full transaction info.
+      // 5. Wait for the block height to increment
+      await this.waitForNextBlock(sent)
+
+      // 6. If we got a transaction hash, start querying for the full transaction info.
       if (id) {
         try {
           return await this.getTxResult(id)
         } catch (e) {
           if (this.shouldRetry(e.message)) {
-            // 4. If the transaction simply hasn't committed yet,
+            // 7. If the transaction simply hasn't committed yet,
             //    query for the result again until we run out of retries.
             console.info(`Getting result of TX ${id} failed (${e.message}): ${submitRetries} retries left...`)
             await new Promise(ok=>setTimeout(ok, this.resultSubmitDelay))
           } else {
-            // 5. If the transaction resulted in an error, rethrow it so it can be decrypted
+            // 8. If the transaction resulted in an error, rethrow it so it can be decrypted
             //    FIXME: is this necessary now that txById is being used?
             console.info(`Getting result of TX ${id} failed (${e.message}): not retrying`)
             throw e
@@ -93,7 +97,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
     }
 
-    throw new Error(`TX ${id} failed after ${this.submitRetries} retries.`)
+    throw new Error(`Submitting TX ${id} failed after ${this.submitRetries} retries.`)
 
   }
 
@@ -133,6 +137,8 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
       }
 
     }
+
+    throw new Error(`Getting result of TX ${id} failed: ran out of retries.`)
 
   }
 
