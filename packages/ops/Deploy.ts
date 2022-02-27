@@ -96,11 +96,7 @@ export class Deployment {
 
   /** Instantiate multiple contracts from the same Template with different parameters. */
   async initMany (deployAgent: Agent, template: Template, configs: [Label, InitMsg][]): Promise<Instance[]> {
-    return this.initVarious(deployAgent, configs.map(([label, initMsg])=>[
-      template,
-      `${this.prefix}/${label}`,
-      initMsg
-    ]))
+    return this.initVarious(deployAgent, configs.map(([label, initMsg])=>[template, label, initMsg]))
   }
 
   /** Instantiate multiple contracts from different Templates with different parameters. */
@@ -121,6 +117,7 @@ export class Deployment {
       console.info('This deployment is empty.')
     }
   }
+
 }
 
 export class Deployments extends Directory {

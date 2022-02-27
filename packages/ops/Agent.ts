@@ -80,22 +80,26 @@ export abstract class Agent implements Identity {
 
   /** Instantiate multiple contracts in 1 tx via a Bundle. */
   async instantiateMany (
-    contracts: [Template, Label, InitMsg][],
-    prefix?:   string
+    configs: [Template, Label, InitMsg][],
+    prefix?: string
   ): Promise<Record<string, Instance>> {
-    // results by contract name
-    const receipts = {}
     // results by tx order
     const results = await this.bundle().wrap(
-      bundle => bundle.instantiateMany(contracts, prefix)
+      bundle => bundle.instantiateMany(configs, prefix)
     )
-    // collect receipt and `contract.instance` properties
-    for (const i in contracts) {
-      const contract = contracts[i][0]
-      const receipt  = results[i]
-      if (receipt) {
-        contract.instance = receipt
-        receipts[contract.name] = receipt
+    // results by contract name
+    const receipts = {}
+    for (const i in configs) {
+      const label  = configs[i][1]
+      const result = results[i]
+      receipts[label] = {
+        name:            label,
+        chainId:         result.chainId,
+        codeId:          Number(result.codeId),
+        codeHash:        result.codeHash,
+        label:           prefix?`${prefix}/${label}`:label,
+        address:         result.address,
+        transactionHash: result.tx
       }
     }
     return receipts
