@@ -125,6 +125,11 @@ export class BroadcastingScrtBundle extends ScrtBundle {
     )
 
     const msgs = await Promise.all(this.msgs)
+
+    if (msgs.length < 1) {
+      throw new Error('Trying to submit bundle with no messages')
+    }
+
     for (const msg of msgs) {
       this.agent.trace.subCall(N, `${bold(colors.yellow(msg.type))}`)
     }
@@ -161,7 +166,7 @@ export class BroadcastingScrtBundle extends ScrtBundle {
 
   private async handleError (err) {
     try {
-      console.error(err.message)
+      console.error('Submitting bundle failed:', err.message)
       console.error('Trying to decrypt...')
       const errorMessageRgx = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
       const rgxMatches = errorMessageRgx.exec(err.message);
