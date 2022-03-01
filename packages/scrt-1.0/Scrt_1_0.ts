@@ -32,6 +32,8 @@ export const buildDockerfile = resolve(__dirname, 'Scrt_1_0_Build.Dockerfile')
 export class ScrtDockerBuilder_1_0 extends ScrtDockerBuilder {
   buildImage      = buildImage
   buildDockerfile = buildDockerfile
+
+  static enable = () => ({ builder: new this() })
 }
 
 export class Scrt_1_0 extends Scrt {

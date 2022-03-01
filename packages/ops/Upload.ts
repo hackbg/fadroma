@@ -1,195 +1,185 @@
 import { Console, bold, cwd, readFileSync, writeFileSync } from '@hackbg/tools'
+import { existsSync, mkdir, readFile, writeFile, relative, basename } from '@hackbg/fadroma'
+import { Artifact, Template, UploadReceipt } from './Core'
+import { JSONDirectory } from '@hackbg/fadroma'
+import { Uploader, codeHashForPath } from './Core'
+import type { Agent } from './Agent'
 
 const console = Console('@fadroma/ops/Upload')
 
-import { Uploader, codeHashForPath } from './Core'
-import type { Agent } from './Agent'
-import type { Contract } from './Contract'
-export class BaseUploader implements Uploader {
-  constructor (readonly agent: Agent) {}
-  upload = uploadFromFS
+export class FSUploader extends Uploader {
+
+  /** Command: add a non-caching FS uploader to the migration context. */
+  static enable = ({ agent }) => ({ uploader: new FSUploader(agent) })
+
+  /** Upload an Artifact from the filesystem, returning a Template. */
+  async upload (artifact: Artifact): Promise<Template> {
+    console.info(bold(`Uploading:`), artifact)
+    const template = await this.agent.upload(artifact)
+    await this.agent.nextBlock
+    return {
+      chainId:         this.agent.chain.id,
+      codeId:          template.codeId,
+      codeHash:        template.codeHash,
+      transactionHash: template.transactionHash
+    }
+  }
+
+  /** Upload multiple Artifacts from the filesystem.
+    * TODO: Optionally bundle them (where is max size defined?) */
+  async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
+    const templates = []
+    for (const i in artifacts) {
+      // support "holes" in artifact array
+      // (used by caching subclass)
+      const artifact = artifacts[i]
+      if (!artifact) continue
+      const template = await this.agent.upload(artifact)
+      this.checkCodeHash(artifact, template)
+      templates[i] = template
+    }
+    return templates
+  }
+
+  /** Print a warning if the code hash returned by the upload
+    * doesn't match the one specified in the Artifact.
+    * This means the Artifact is wrong, and may become
+    * a hard error in the future. */
+  checkCodeHash (artifact: Artifact, template: Template) {
+    if (template.codeHash !== artifact.codeHash) {
+      console.warn(
+        `Code hash mismatch from upload in TX ${template.transactionHash}:\n`+
+        `  Expected ${artifact.codeHash} (from ${artifact.location})`+
+        `  Got      ${template.codeHash} (from codeId#${template.codeId})`
+      )
+    }
+  }
+
 }
 
-export class CachingUploader extends BaseUploader {
+export class CachingFSUploader extends FSUploader {
+
+  /** Command: add a caching FS uploader to the migration context. */
+  static enable = ({ agent }) => ({ uploader: new CachingFSUploader(agent, agent.chain.uploads) })
 
   constructor (
-    readonly agent:   Agent,
-    readonly uploads: Uploads
+    readonly agent: Agent,
+    readonly cache: Uploads = agent.chain.uploads
   ) {
     super(agent)
   }
 
-  /* TODO support individual cached uploads */
-  /* TODO support bundling for binaries under a certain size */
-  /* TODO find where the max request size is defined */
+  /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
+  async upload (artifact: Artifact): Promise<Template> {
+    const receiptPath = this.getUploadReceiptPath(artifact)
+    if (existsSync(receiptPath)) {
+      const receiptData = await readFile(receiptPath, 'utf8')
+      return JSON.parse(receiptData)
+    }
+    const template = await super.upload(artifact)
+    console.info(bold(`Storing:`), receiptPath)
+    await writeFile(receiptPath, JSON.stringify(template, null, 2), 'utf8')
+    return template
+  }
 
-  async uploadAll (agent: Agent, contracts: Contract<any>[]): Promise<void> {
+  async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
 
-    const chainId = agent.chain.id
-    const contractsToUpload = []
-    for (const contract of contracts) {
-      if (!contract.artifact) {
-        throw new Error('@fadroma/ops/Upload: Missing contract.artifact')
-      }
-      if (!contract.artifact.codeHash) {
-        console.warn(
-          bold('No code hash in artifact'),
-          contract.artifact.location
-        )
-        console.warn(
-          bold('Computed checksum:'),
-          contract.artifact.codeHash = codeHashForPath(contract.artifact.location)
-        )
-      }
-      const blobName = basename(contract.artifact.location)
-      const receiptPath = this.uploads.resolve(`${blobName}.json`)
+    const templates = []
+    const toUpload  = []
+
+    for (const i in artifacts) {
+
+      const artifact = artifacts[i]
+      this.ensureCodeHash(artifact)
+
+      const blobName     = basename(artifact.location)
+      const receiptPath  = this.getUploadReceiptPath(artifact)
       const relativePath = relative(cwd(), receiptPath)
-      if (existsSync(receiptPath)) {
-        const content = readFileSync(receiptPath, 'utf8')
-        const data = JSON.parse(content)
-        const receiptCodeHash = data.codeHash || data.originalChecksum
-        if (!receiptCodeHash) {
-          console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
-          contractsToUpload.push(contract)
-        } else if (receiptCodeHash !== contract.artifact.codeHash) {
-          console.info(bold(`Different code hash:`), `${relativePath}; reuploading...`)
-          contractsToUpload.push(contract)
-        } else {
-          console.info('✅', bold(relativePath), `exists - not reuploading (code hash matches)`)
-          contract.template = {
-            chainId,
-            codeId:          data.codeId,
-            codeHash:        contract.artifact.codeHash,
-            transactionHash: data.transactionHash as string,
-          }
-        }
-      } else {
+
+      if (!existsSync(receiptPath)) {
+
         console.info(bold(`No upload receipt:`), `${relativePath}; uploading...`)
-        contractsToUpload.push(contract)
-      }
-    }
+        toUpload[i] = artifact
 
-    if (contractsToUpload.length > 0) {
-      console.info('Need to upload', bold(String(contractsToUpload.length)), 'contracts')
-      for (const contract of contractsToUpload) {
-        const receipt = await agent.upload(contract.artifact.location)
-        const { transactionHash, codeId, originalChecksum } = receipt
-        if (originalChecksum !== contract.artifact.codeHash) {
-          console.warn(
-            `Code hash mismatch from TX ${transactionHash}:\n`+
-            `  ${contract.artifact.location}=${contract.artifact.codeHash}`+
-            `  codeId#${codeId}=${originalChecksum}`
+      } else {
+
+        const receiptData     = JSON.parse(readFileSync(receiptPath, 'utf8'))
+        const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
+
+        if (!receiptCodeHash) {
+          console.info(
+            bold(`No code hash:`), `${relativePath}; reuploading...`
           )
+          toUpload[i] = artifact
+          continue
         }
-        contract.template = {
-          chainId,
-          codeId,
-          codeHash: originalChecksum,
-          transactionHash
+
+        if (receiptCodeHash !== artifact.codeHash) {
+          console.info(
+            bold(`Different code hash:`), `${relativePath}; reuploading...`
+          )
+          toUpload[i] = artifact
+          continue
         }
-        const receiptName = `${basename(contract.artifact.location)}.json`
-        const receiptPath = this.uploads.make().resolve(receiptName)
-        writeFileSync(receiptPath, JSON.stringify(contract.template, null, 2))
+
+        console.info(
+          '✅', bold(relativePath), `exists - not reuploading (code hash matches)`
+        )
+
+        templates[i] = {
+          chainId:         this.chain.id,
+          codeId:          receiptData.codeId,
+          codeHash:        artifact.codeHash,
+          transactionHash: receiptData.transactionHash as string,
+        }
+
       }
-      // TODO optionally bundle depending on total size (where is maximum defined?)')
-      /*let bundle = agent.bundle()
-      for (const contract of contractsToUpload) {
-        bundle = bundle.upload(contract.artifact)
-      }
-      const uploadResult = await bundle.run()*
-      const { transactionHash } = uploadResult
-      for (const i in contractsToUpload) {
-        const contract = contractsToUpload[i]
-        const chainId  = agent.chain.id
-        const logs     = uploadResult.logs[i]
-        const codeId   = logs.events[0].attributes[3].value
-        const codeHash = contract.artifact.codeHash
-        contract.template = { chainId, codeId, codeHash, transactionHash }
-        const receiptName = `${basename(contractsToUpload[i].artifact.location)}.json`
-        const receiptPath = this.uploads.make().resolve(receiptName)
-        writeFileSync(receiptPath, JSON.stringify(contractsToUpload[i].template, null, 2))
-      }*/
+
     }
-  }
-}
 
-import { existsSync, mkdir, readFile, writeFile, relative, basename } from '@hackbg/fadroma'
-import { Artifact, Template, UploadReceipt } from './Core'
-async function uploadFromFS (
-  artifact: Artifact,
-  context = this
-): Promise<Template> {
-
-  const {
-    agent,
-    receiptName = `${basename(artifact.location)}.json`,
-    receiptPath = agent.chain.uploads.resolve(receiptName),
-    alwaysReupload = false
-  } = context
-
-  if (existsSync(receiptPath) && !alwaysReupload) {
-    const receiptData = await readFile(receiptPath, 'utf8')
-    //console.info(bold(`Exists:`), relative(process.cwd(), receiptPath))
-    return JSON.parse(receiptData)
-  }
-
-  console.info(bold(`Uploading:`), artifact)
-  const receipt = await agent.upload(artifact)
-
-  console.info(bold(`Storing:`), receiptPath)
-  await writeFile(receiptPath, JSON.stringify(receipt, null, 2), 'utf8')
-
-  await agent.nextBlock
-
-  return {
-    chainId:         agent.chain.id,
-    codeId:          receipt.codeId,
-    codeHash:        receipt.originalChecksum,
-    transactionHash: receipt.transactionHash
-  }
-
-}
-
-import { JSONDirectory } from '@hackbg/fadroma'
-export class Uploads extends JSONDirectory {
-  /** List of code blobs in human-readable form */
-  table () {
-    const rows = []
-    // uploads table - lists code blobs
-    rows.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
-    if (this.exists()) {
-      for (const name of this.list()) {
-        const {
-          codeId,
-          originalSize,
-          compressedSize,
-          originalChecksum,
-          compressedChecksum,
-        } = this.load(name)
-        rows.push([
-          `  ${codeId}`,
-          `${bold(name)}\ncompressed:\n`,
-          `${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,
-          `${originalChecksum}\n${compressedChecksum}`
-        ])
+    if (toUpload.length > 0) {
+      console.info('Need to upload', bold(String(toUpload.length)), 'artifacts')
+      const uploaded = await super.uploadMany(toUpload)
+      for (const i in uploaded) {
+        if (!uploaded[i]) continue // skip empty ones, preserving index
+        const receiptName = `${basename(toUpload[i].location)}.json`
+        const receiptPath = this.cache.make().resolve(receiptName)
+        writeFileSync(receiptPath, JSON.stringify(uploaded[i], null, 2))
+        templates[i] = uploaded[i]
       }
+    } else {
+      console.info('No artifacts need to be uploaded.')
     }
-    return rows.sort((x,y)=>x[0]-y[0])
-  }
-}
 
-/*
-    // set code id and code hash to allow instantiation of uploaded code
-    this.#contract.codeId   = uploadReceipt.codeId
-    if (
-      this.#contract.codeHash &&
-      this.#contract.codeHash !== uploadReceipt.originalChecksum
-    ) {
+    return templates
+
+  }
+
+  protected getUploadReceiptPath (artifact: Artifact): string {
+    const receiptName = `${basename(artifact.location)}.json`
+    const receiptPath = this.agent.chain.uploads.resolve(receiptName)
+    return receiptPath
+  }
+
+  /** Warns if a code hash is missing in the Artifact,
+    * and mutates the Artifact to set the code hash. */
+  protected ensureCodeHash (artifact: Artifact) {
+    if (!artifact.codeHash) {
       console.warn(
-        `@fadroma/ops/Upload: contract already had codeHash set `+
-        `and did not match the result from the upload`
+        bold('No code hash in artifact'),
+        artifact.location
+      )
+      console.warn(
+        bold('Computed checksum:'),
+        artifact.codeHash = codeHashForPath(artifact.location)
       )
     }
-    this.#contract.codeHash = uploadReceipt.originalChecksum
-    return this.uploadReceipt
-    */
+  }
+}
+
+export class Uploads extends JSONDirectory {
+  FromFS = {
+    Caching: CachingFSUploader,
+    NoCache: FSUploader
+  }
+}

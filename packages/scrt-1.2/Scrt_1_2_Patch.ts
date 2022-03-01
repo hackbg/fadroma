@@ -2,11 +2,38 @@ import { SigningCosmWasmClient, BroadcastMode, InstantiateResult, ExecuteResult 
 
 export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
-  submitRetries      = 10
-  resultSubmitDelay  = 1000
+  private _queryUrl: string = ''
+
+  private _queryClient: any = null
+
+  get queryClient () {
+    if (this._queryClient) return this._queryClient
+    return this._queryClient = import('axios').then(axios=>axios.default.create({
+      baseURL: this._queryUrl,
+    })).catch(e=>{
+      console.warn('Failed to create query client:', e.message, ' - falling back to default client')
+      console.error(e)
+      // @ts-ignore
+      return this.client
+    })
+  }
+
+  async get (path: string): Promise<any> {
+    console.log('patched get', path)
+    process.exit(123)
+    const client = await this.queryClient
+    const { data } = await client.get(path).catch(parseAxiosError)
+    if (data === null) {
+      throw new Error("Received null response from server")
+    }
+    return data
+  }
+
+  submitRetries      = 20
+  resultSubmitDelay  = 1500
   blockQueryInterval = 1000
-  resultRetries      = 10
-  resultRetryDelay   = 2000
+  resultRetries      = 20
+  resultRetryDelay   = 3000
 
   async instantiate (codeId, initMsg, label, memo?, transferAmount?, fee?, hash?) {
     let {transactionHash:id} = await super.instantiate(
@@ -41,6 +68,12 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   async postTx (tx: any): Promise<any> {
 
+    // 0. Validate that we're not sending an empty transaction
+    if (!tx || !tx.msg || !tx.msg.length || tx.msg.length < 1) {
+      console.trace('Tried to post a transaction with no messages from HERE')
+      throw new Error('Tried to post a transaction with no messages.')
+    }
+
     // 1. This patch only works in non-default broadcast modes (Sync or Async);
     //    in Block mode there is no way to get the tx hash of a half-failed TX.
     if (this.restClient.broadcastMode === BroadcastMode.Block) {
@@ -60,10 +93,10 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
       // 4. Submit the transaction
       try {
+        console.info(`Submitting TX (${JSON.stringify(tx).slice(0, 100)}...) (${submitRetries} retries left)...`)
         const result = await super.postTx(tx)
         id = result.transactionHash
       } catch (e) {
-        id = null
         if (this.shouldRetry(e.message)) {
           console.warn(`Submitting TX failed (${e.message}): ${submitRetries} retries left...`)
           await new Promise(ok=>setTimeout(ok, this.resultSubmitDelay))
@@ -177,4 +210,23 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   }
 
+}
+
+function parseAxiosError(err: any): never {
+  // use the error message sent from server, not default 500 msg
+  if (err.response?.data) {
+    let errorText: string;
+    const data = err.response.data;
+    // expect { error: string }, but otherwise dump
+    if (data.error && typeof data.error === "string") {
+      errorText = data.error;
+    } else if (typeof data === "string") {
+      errorText = data;
+    } else {
+      errorText = JSON.stringify(data);
+    }
+    throw new Error(`${errorText} (HTTP ${err.response.status})`);
+  } else {
+    throw err;
+  }
 }

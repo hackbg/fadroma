@@ -1,17 +1,15 @@
-import { Console, bold, colors } from '@hackbg/tools'
-
-const console = Console('@fadroma/ops/Agent')
-
-import { resolve, readFileSync, JSONDirectory } from '@hackbg/tools'
+import { Console, bold, colors, resolve, readFileSync, JSONDirectory } from '@hackbg/tools'
 import { toBase64 } from '@iov/encoding'
-
-import { Identity, Gas, Artifact, Template, Instance, Message, getMethod } from './Core'
+import {
+  Identity, Gas, Source, Artifact, Template, Label, InitMsg, Instance, Message, getMethod
+} from './Core'
 import { Trace } from './Trace'
 import type { Chain } from './Chain'
 import type { Bundle } from './Bundle'
 
-type Label   = string
-type InitMsg = string|Record<string, any>
+const console = Console('@fadroma/ops/Agent')
+
+export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
 
 export abstract class Agent implements Identity {
 
@@ -151,6 +149,7 @@ export abstract class Agent implements Identity {
     if (!this.Bundle) {
       throw new Error('@fadroma/ops/agent: this agent does not support bundling transactions')
     }
+    //@ts-ignore
     return new this.Bundle(this)
   }
 
@@ -158,37 +157,8 @@ export abstract class Agent implements Identity {
     if (options) Object.assign(this, options)
   }
 
-  buildAndUpload (contracts: Contract<any>[]): Promise<Template[]> {
-    return this.chain.buildAndUpload(this, contracts)
+  buildAndUpload (sources: Source[]): Promise<Template[]> {
+    return this.chain.buildAndUpload(this, sources)
   }
 
-}
-
-export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
-
-export async function waitUntilNextBlock (
-  agent:    Agent,
-  interval: number = 1000
-) {
-  console.info(
-    bold('Waiting until next block with'), agent.address
-  )
-  // starting height
-  const {header:{height}} = await agent.block
-  //console.info(bold('Block'), height)
-  // every `interval` msec check if the height has increased
-  return new Promise<void>(async resolve=>{
-    while (true) {
-      // wait for `interval` msec
-      await new Promise(ok=>setTimeout(ok, interval))
-      // get the current height
-      const now = await agent.block
-      //console.info(bold('Block'), now.header.height)
-      // check if it went up
-      if (now.header.height > height) {
-        resolve()
-        break
-      }
-    }
-  })
 }

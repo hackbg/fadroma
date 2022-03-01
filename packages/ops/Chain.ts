@@ -10,9 +10,9 @@ import { URL } from 'url'
 import { Identity, Source, Artifact, Template } from './Core'
 import { ChainNode } from './ChainNode'
 import { Agent, AgentConstructor } from './Agent'
-import { Contract } from './Contract'
 import { Deployments } from './Deploy'
-import { Uploads, CachingUploader } from './Upload'
+import { Uploads, CachingFSUploader } from './Upload'
+import { printIdentities } from './Print'
 
 const console = Console('@fadroma/ops/Chain')
 
@@ -191,10 +191,7 @@ export class Chain implements ChainOptions {
   }
 
   printIdentities () {
-    console.log('\nAvailable identities:')
-    for (const identity of this.identities.list()) {
-      console.log(`  ${this.identities.load(identity).address} (${bold(identity)})`)
-    }
+    return printIdentities(this)
   }
 
   /** Create contract instance from interface class and address */
@@ -213,11 +210,10 @@ export class Chain implements ChainOptions {
     return Promise.all(contracts.map(contract=>contract.build()))
   }
 
-  async buildAndUpload (agent: Agent, contracts: Contract<any>[]): Promise<Template[]> {
-    const artifacts = await this.buildAll(contracts)
-    const uploader = new CachingUploader(agent, this.uploads)
-    await uploader.uploadAll(agent, contracts)
-    return contracts.map(c=>c.template)
+  async buildAndUpload (agent: Agent, sources: Source[]): Promise<Template[]> {
+    const artifacts = await this.buildAll(sources)
+    const uploader = new CachingFSUploader(agent, this.uploads)
+    return uploader.uploadMany(artifacts)
   }
 
   /** Populated in Fadroma root with all variants known to the library. */

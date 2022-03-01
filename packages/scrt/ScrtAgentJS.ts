@@ -1,11 +1,9 @@
 import {
   Console, colors, bold,
-  Identity, waitUntilNextBlock,
-  Template, Label, InitMsg, Artifact, Instance, Message,
-  readFile,
-  backOff,
-  toBase64
+  Identity, Template, Label, InitMsg, Artifact, Instance, Message,
+  readFile, backOff, toBase64
 } from '@fadroma/ops'
+
 import {
   EnigmaUtils, encodeSecp256k1Pubkey,
   pubkeyToAddress, makeSignBytes, BroadcastMode,
@@ -264,4 +262,31 @@ export abstract class ScrtAgentJS extends ScrtAgent {
     })
   }
 
+}
+
+export async function waitUntilNextBlock (
+  agent:    Agent,
+  interval: number = 1000
+) {
+  console.info(
+    bold('Waiting until next block with'), agent.address
+  )
+  // starting height
+  const {header:{height}} = await agent.block
+  //console.info(bold('Block'), height)
+  // every `interval` msec check if the height has increased
+  return new Promise<void>(async resolve=>{
+    while (true) {
+      // wait for `interval` msec
+      await new Promise(ok=>setTimeout(ok, interval))
+      // get the current height
+      const now = await agent.block
+      //console.info(bold('Block'), now.header.height)
+      // check if it went up
+      if (now.header.height > height) {
+        resolve()
+        break
+      }
+    }
+  })
 }

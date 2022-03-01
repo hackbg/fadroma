@@ -1,3 +1,4 @@
+import type { Agent } from './Agent'
 import { colors, bold, Console } from '@hackbg/tools'
 const console = Console('@hackbg/fadroma')
 
@@ -31,8 +32,10 @@ export interface Artifact {
   codeHash?: string
 }
 
-export interface Uploader {
-  upload (artifact: Artifact, ...args): Promise<Template>
+export abstract class Uploader {
+  constructor (readonly agent: Agent) {}
+  get chain () { return this.agent.chain }
+  abstract upload (artifact: Artifact, ...args): Promise<Template>
 }
 
 export interface UploadReceipt {

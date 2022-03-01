@@ -1,10 +1,13 @@
 export * from '@fadroma/ops'
 export * from '@fadroma/scrt'
 export * from '@fadroma/snip20'
+import Scrt_1_0 from '@fadroma/scrt-1.0'
+import Scrt_1_2 from '@fadroma/scrt-1.2'
 
 import {
   Console, bold, colors, timestamp,
-  Chain, Agent, Deployment, Mocknet, MigrationContext,
+  Chain, Agent, Deployments, Mocknet, MigrationContext,
+  FSUploader, CachingFSUploader,
   fileURLToPath
 } from '@fadroma/ops'
 import runCommands from '@hackbg/komandi'
@@ -16,6 +19,30 @@ export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
 export class Fadroma {
+
+  static Build = {
+    Scrt_1_2: {
+      WithCache: Scrt_1_2.Builder.enable
+    }
+  }
+
+  static Upload = {
+    FromFile: {
+      WithCache: CachingFSUploader.enable,
+      NoCache:   FSUploader.enable
+    }
+  }
+
+  static Deploy = {
+    New:    Deployments.new,
+    Append: Deployments.activate,
+    Status: Deployments.status,
+  }
+
+  // metastatic!
+  Build  = Fadroma.Build
+  Upload = Fadroma.Upload
+  Deploy = Fadroma.Deploy
 
   module (url: string): Commands {
     // if main
