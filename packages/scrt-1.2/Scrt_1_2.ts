@@ -76,7 +76,9 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
 }
 
 export class DockerScrtNode_1_2 extends DockerScrtNode {
-  readonly chainId: string = 'fadroma-scrt-12'
+
+  chainId: string
+
   readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
   readonly readyPhrase     = 'indexed block'
   readonly initScript      = new TextFile(__dirname, 'Scrt_1_2_Init.sh')
@@ -137,9 +139,9 @@ export default {
     },
 
     Devnet () {
-      const id = `${DEVNET_CHAIN_ID_PREFIX}-${randomHex(8)}`
-      const node = new DockerScrtNode_1_2()
-      return new Scrt_1_2(id, {
+      const chainId = `${DEVNET_CHAIN_ID_PREFIX}.${randomHex(8)}`
+      const node = new DockerScrtNode_1_2({ chainId })
+      return new Scrt_1_2(chainId, {
         mode: ChainMode.Devnet,
         defaultIdentity: 'ADMIN',
         apiURL: new URL('http://localhost:1337'),

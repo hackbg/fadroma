@@ -95,19 +95,16 @@ export class Chain implements ChainConfig {
 
   /** A mainnet is a production network with real stakes. */
   get isMainnet (): boolean {
-    console.warn('chain.isMainnet: deprecated, use Chain.mode === ChainMode.Mainnet')
     return this.mode === ChainMode.Mainnet
   }
 
   /** A testnet is a persistent remote non-production network. */
   get isTestnet (): boolean {
-    console.warn('chain.isTestnet: deprecated, use Chain.mode === ChainMode.Testnet')
     return this.mode === ChainMode.Testnet
   }
 
   /** A devnet is a non-production network that we can reset at will. */
   get isDevnet (): boolean {
-    console.warn('chain.isDevnet: deprecated, use Chain.mode === ChainMode.Devnet')
     return this.mode === ChainMode.Devnet
   }
 
@@ -116,7 +113,7 @@ export class Chain implements ChainConfig {
     * This is useful for testing. */
   get isMocknet (): boolean {
     // TODO finish implementation in @fadroma/mocknet
-    console.warn('chain.isMocknet: deprecated, use Chain.mode === ChainMode.Mocknet')
+    console.warn('chain.isMocknet: mocknet not implemented yet')
     return this.mode === ChainMode.Mocknet
   }
 
