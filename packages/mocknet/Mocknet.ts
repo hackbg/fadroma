@@ -1,23 +1,15 @@
-import { Chain } from './Chain'
-import { Agent } from './Agent'
-import type { Contract } from './Contract'
-import { Directory, readFileSync, decode, Console, bold, colors } from '@hackbg/tools'
+import {
+  readFileSync, decode, Console, bold, colors,
+  Chain, Agent, Artifact, Template, Instance
+} from '@fadroma/ops'
 import { URL } from 'url'
 import WASMFFI from 'wasm-ffi'
 
-const console = Console('@fadroma/ops/Mock')
+const console = Console('@fadroma/mocknet')
 
 export class Mocknet extends Chain {
-  id         = 'mocknet'
-  isDevnet = true
-  apiURL     = new URL('mock://mock:0')
-  stateRoot  = new Directory(`/tmp/fadroma_mocknet_${Math.floor(Math.random()*1000000)}`)
+  id         = 'Mocknet'
   Agent      = MockAgent
-  defaultIdentity = new this.Agent({ chain: this })
-  constructor () {
-    super()
-    this.setDirs()
-  }
 
   mock = {
     codeId:    0,
@@ -34,42 +26,54 @@ export class Mocknet extends Chain {
     })
   }
 }
+
 const BlockInfo    = new WASMFFI.Struct({ height: 'u64', time: 'u64' })
+
 const Coin         = new WASMFFI.Struct({ denom: 'string', amount: 'string' })
+
 const MessageInfo  = new WASMFFI.Struct({ sender: 'string', sent_funds: WASMFFI.rust.vector(Coin) })
+
 const ContractInfo = new WASMFFI.Struct({ address: 'string' })
+
 const Env = new WASMFFI.Struct({
   block:    BlockInfo,
   message:  MessageInfo,
   contract: ContractInfo
 })
+
 const InitResponse   = WASMFFI.rust.vector('u8')
+
 const HandleResponse = WASMFFI.rust.vector('u8')
+
 const QueryResponse  = WASMFFI.rust.vector('u8')
 
 export class MockAgent extends Agent {
-  static create ()
-    { return new MockAgent() }
+
+  static create () { return new MockAgent() }
 
   address = 'mock'
+
+  defaultDenomination = 'umock'
+
   chain: Mocknet
 
-  async upload (path: string) {
+  async upload (artifact: Artifact): Promise<Template> {
     const codeId  = ++this.chain.mock.codeId
-    const content = this.chain.mock.uploads[codeId] = readFileSync(path)
-    return {codeId}
+    const content = this.chain.mock.uploads[codeId] = readFileSync(artifact.location)
+    return {
+      chainId: this.chain.id,
+      codeId:  String(codeId)
+    }
   }
 
-  async instantiate (contract: Contract, msg: any, funds: any[]) {
-    const {codeId} = contract
+  async doInstantiate ({ codeId }: Template, label, msg, funds = []): Promise<Instance> {
     const content = this.chain.mock.uploads[codeId]
     if (!content) {
       throw new Error(`No code with id ${codeId}`)
     }
-    const contractAddress = `mocknet1${Math.floor(Math.random()*1000000)}`
+    const address = `mocknet1${Math.floor(Math.random()*1000000)}`
     const strptr = () => 'u32'
-    //const instance = this.chain.mock.instances[contractAddress] = new WASMFFI.Wrapper({
-    const instance = this.chain.mock.instances[contractAddress] = new WASMFFI.Wrapper({
+    const instance = this.chain.mock.instances[address] = new WASMFFI.Wrapper({
       init:   [InitResponse,   [Env, strptr()]],
       handle: [HandleResponse, [Env, strptr()]],
       query:  [QueryResponse,  [strptr()]]
@@ -88,11 +92,15 @@ export class MockAgent extends Agent {
       console.info(JSON.stringify(response))
     }
     throw new Error('TODO')
-    return {contractAddress}
+    return {
+      chainId: this.chain.id,
+      codeId,
+      address,
+      label
+    }
   }
 
-  query (contract: Contract, msg: any) {
-    const {address} = contract
+  doQuery ({ address }: Instance, msg: any) {
     if (!this.chain.mock.contracts[address]) {
       throw new Error(`No contract with addr ${address}`)
     }
@@ -102,29 +110,64 @@ export class MockAgent extends Agent {
     return Promise.resolve({})
   }
 
-  execute (contract: Contract, msg: any, _3: any, _4?: any, _5?: any) {
-    const {address} = contract
+  doExecute ({ address }: Instance, msg: any, _3: any, _4?: any, _5?: any) {
     return Promise.resolve({})
   }
 
-  get nextBlock ()
-    { return Promise.resolve()  }
-  get block ()
-    { return Promise.resolve(0) }
-  get account ()
-    { return Promise.resolve()  }
-  get balance ()
-    { return Promise.resolve(0) }
-  getBalance (_: string)
-    { return Promise.resolve(0) }
-  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any)
-    { return Promise.resolve() }
-  sendMany (_1:any, _2:any, _3?:any, _4?:any)
-    { return Promise.resolve() }
-  getCodeHash (_: any) 
-    { return Promise.resolve("SomeCodeHash") }
-  getCodeId (_: any) 
-    { return Promise.resolve(1) }
-  getLabel (_: any) 
-    { return Promise.resolve("SomeLabel") }
+  get nextBlock () {
+    return Promise.resolve()
+  }
+
+  get block () {
+    return Promise.resolve(0)
+  }
+
+  get account () {
+    return Promise.resolve()
+  }
+
+  get balance () {
+    return Promise.resolve(0)
+  }
+
+  getBalance (_: string) {
+    return Promise.resolve(0)
+  }
+
+  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) {
+    return Promise.resolve()
+  }
+
+  sendMany (_1:any, _2:any, _3?:any, _4?:any) {
+    return Promise.resolve()
+  }
+
+  getCodeHash (_: any) {
+    return Promise.resolve("SomeCodeHash")
+  }
+
+  getCodeId (_: any) {
+    return Promise.resolve(1)
+  }
+
+  getLabel (_: any) {
+    return Promise.resolve("SomeLabel")
+  }
+
+}
+
+export default {
+
+  Agent: MockAgent,
+
+  Chains: {
+    Mocknet () {
+      const id = 'mocknet'
+      return new Mocknet(id, {
+        apiURL:    new URL('mock://mock:0'),
+        statePath: `/tmp/fadroma_mocknet_${Math.floor(Math.random()*1000000)}`
+      })
+    }
+  }
+
 }

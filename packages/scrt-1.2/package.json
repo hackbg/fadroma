@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt-1.2",
-  "version": "0.0.0",
+  "version": "1.0.0-beta",
   "type":    "module",
   "main":    "./Scrt_1_2.ts",
   "dependencies": {

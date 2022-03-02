@@ -1,0 +1,10 @@
+{
+  "name":    "@fadroma/mocknet",
+  "version": "0.0.0",
+  "type":    "module",
+  "main":    "./Mocknet.ts",
+  "dependencies": {
+    "@fadroma/ops": "workspace:*",
+    "wasm-ffi":     "^0.3.0"
+  }
+}

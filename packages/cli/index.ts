@@ -151,8 +151,13 @@ export class Fadroma {
 function requireChainId (id, chains = Chain.namedChains) {
 
   if (!id || !chains[id]) {
+
     console.error('Please set your FADROMA_CHAIN environment variable to one of the following:')
-    console.error('  '+Object.keys(chains).sort().join('\n  '))
+
+    for (const chain of Object.keys(chains).sort()) {
+      console.log(`  ${chain}`)
+    }
+
     // TODO if interactive, display a selector which exports it for the session
     process.exit(1)
   }

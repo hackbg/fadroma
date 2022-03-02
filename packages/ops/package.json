@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/ops",
-  "version": "0.0.0",
+  "version": "1.0.0-beta",
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
@@ -14,7 +14,6 @@
     "js-yaml":                   "^4.1.0",
     "json-schema-to-typescript": "^10.1.4",
     "limiter":                   "^2.1.0",
-    "toml":                      "^3",
-    "wasm-ffi":                  "^0.3.0"
+    "toml":                      "^3"
   }
 }

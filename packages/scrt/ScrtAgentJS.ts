@@ -194,17 +194,16 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   }
 
   async doQuery (
-    { label, address, codeHash }: Contract<any>, msg: Message
+    { label, address, codeHash }: Instance, msg: Message
   ) {
     const { api } = this
     return this.rateLimited(function doQueryInner () {
       return api.queryContractSmart(address, msg as any, undefined, codeHash)
     })
-    return
   }
 
   async doExecute (
-    { label, address, codeHash }: Contract<any>, msg: Message,
+    { label, address, codeHash }: Instance, msg: Message,
     memo: any, amount: any, fee: any
   ) {
     return this.api.execute(address, msg as any, memo, amount, fee, codeHash)
@@ -265,7 +264,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
 }
 
 export async function waitUntilNextBlock (
-  agent:    Agent,
+  agent:    ScrtAgent,
   interval: number = 1000
 ) {
   console.info(

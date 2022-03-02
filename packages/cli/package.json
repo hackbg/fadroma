@@ -1,9 +1,10 @@
 {
   "name": "@fadroma/cli",
-  "version": "0.1.0",
+  "version": "1.0.0-beta",
   "main": "index.ts",
   "dependencies": {
     "@fadroma/ops":      "workspace:*",
+    "@fadroma/mocknet":  "workspace:*",
     "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/snip20":   "workspace:*",

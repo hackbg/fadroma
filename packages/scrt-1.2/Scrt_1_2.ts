@@ -1,13 +1,13 @@
 import { URL } from 'url'
-import { Console, bold } from '@fadroma/ops'
+import { Console, bold, randomHex } from '@fadroma/ops'
 import {
-  dirname, fileURLToPath, resolve,
+  dirname, fileURLToPath, resolve, TextFile,
+  Identity, Artifact, Template,
+  Scrt, DockerScrtNode, ChainNodeOptions,
   ScrtDockerBuilder,
-  Scrt, ScrtAgentTX,
-  Identity, Artifact, Agent, ScrtAgentJS,
-  DockerScrtNode, ChainNodeOptions, TextFile
+  Agent, ScrtAgentJS, ScrtAgentTX,
+  ChainMode
 } from '@fadroma/scrt'
-
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
 const console = Console('@fadroma/scrt-1.2')
@@ -35,7 +35,9 @@ export class ScrtDockerBuilder_1_2 extends ScrtDockerBuilder {
 }
 
 export class Scrt_1_2 extends Scrt {
-  Agent = FADROMA_PREPARE_MULTISIG ? ScrtAgentTX : ScrtAgentJS_1_2
+  Agent = FADROMA_PREPARE_MULTISIG
+    ? ScrtAgentTX
+    : ScrtAgentJS_1_2
 }
 
 export class ScrtAgentJS_1_2 extends ScrtAgentJS {
@@ -46,7 +48,7 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
     return ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
   }
 
-  async upload (artifact: Artifact) {
+  async upload (artifact: Artifact): Promise<Template> {
     const result = await super.upload(artifact)
     // Non-blocking broadcast mode returns code ID = -1,
     // so we need to find the code ID manually from the output
@@ -92,49 +94,61 @@ export class DockerScrtNode_1_2 extends DockerScrtNode {
   }
 }
 
+export const MAINNET_CHAIN_ID = 'secret-4'
+export const TESTNET_CHAIN_ID = 'pulsar-2'
+export const DEVNET_CHAIN_ID_PREFIX = 'dev-scrt'
+
+const defaultIdentity = {
+  name:     SCRT_AGENT_NAME,
+  address:  SCRT_AGENT_ADDRESS,
+  mnemonic: SCRT_AGENT_MNEMONIC
+}
+
 export default {
+
   SigningCosmWasmClient: PatchedSigningCosmWasmClient_1_2,
+
   Agent:   ScrtAgentJS_1_2,
+
   Builder: ScrtDockerBuilder_1_2,
+
   Node:    DockerScrtNode_1_2,
+
   Chains: {
 
-    /** Create an instance that runs a node in a local Docker container
-     *  and talks to it via SecretJS */
-    'scrt-devnet': () => new Scrt_1_2('fadroma-scrt-12', {
-      node:             new DockerScrtNode_1_2(),
-      isDevnet:       true,
-      apiURL:           new URL('http://localhost:1337'),
-      defaultIdentity: 'ADMIN'
-    }),
+    Mainnet () {
+      return new Scrt_1_2(MAINNET_CHAIN_ID, {
+        mode: ChainMode.Mainnet,
+        defaultIdentity,
+        apiURL: new URL(
+          SCRT_API_URL||`https://secret-4--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`
+        ),
+      })
+    },
 
-    /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
-    'pulsar-2': () => new Scrt_1_2('pulsar-2', {
-      isTestnet: true,
-      apiURL: new URL(
-        SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`
-      ),
-      defaultIdentity: {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS,
-        mnemonic: SCRT_AGENT_MNEMONIC
-      }
-    }),
+    Testnet () {
+      return new Scrt_1_2(TESTNET_CHAIN_ID, {
+        mode: ChainMode.Testnet,
+        defaultIdentity,
+        apiURL: new URL(
+          SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`
+        ),
+      })
+    },
 
-    /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-    'secret-4': () => new Scrt_1_2('secret-4', {
-      isMainnet: true,
-      apiURL:    new URL(
-        SCRT_API_URL||`https://secret-4--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`
-      ),
-      defaultIdentity: {
-        name:     SCRT_AGENT_NAME,
-        address:  SCRT_AGENT_ADDRESS,
-        mnemonic: SCRT_AGENT_MNEMONIC
-      },
-    })
+    Devnet () {
+      const id = `${DEVNET_CHAIN_ID_PREFIX}-${randomHex(8)}`
+      const node = new DockerScrtNode_1_2()
+      return new Scrt_1_2(id, {
+        mode: ChainMode.Devnet,
+        defaultIdentity: 'ADMIN',
+        apiURL: new URL('http://localhost:1337'),
+        node,
+      })
+    },
 
-  },
+  }
+
 }
 
 export * from '@fadroma/scrt'

@@ -1,3 +1,4 @@
+# was "FROM rust:1.46" for 1.0
 FROM rust:1.57
 # install toolchain
 RUN rustup target add wasm32-unknown-unknown

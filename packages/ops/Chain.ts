@@ -13,6 +13,13 @@ import { print } from './Print'
 
 const console = Console('@fadroma/ops/Chain')
 
+export enum ChainMode {
+  Mainnet = 'Mainnet',
+  Testnet = 'Testnet',
+  Devnet  = 'Devnet',
+  Mocknet = 'Mocknet'
+}
+
 /** Kludge. TODO resolve. */
 export type DefaultIdentity =
   null   |
@@ -24,10 +31,8 @@ export type ChainStateConfig = {
   statePath?: string
 }
 
-export type ChainTypeFlags = {
-  isMainnet?:  boolean
-  isTestnet?:  boolean
-  isDevnet?: boolean
+export type ChainModeConfig = {
+  mode?: ChainMode
 }
 
 export type ChainNodeConfig = {
@@ -43,7 +48,7 @@ export type ChainAPIConfig = {
 }
 
 export type ChainConfig =
-  ChainTypeFlags      &
+  ChainModeConfig     &
   ChainStateConfig    &
   ChainNodeConfig     &
   ChainIdentityConfig &
@@ -61,11 +66,11 @@ export class Chain implements ChainConfig {
 
   constructor (
     public readonly id: string,
-    options?: ChainConfig
+    options: ChainConfig = {}
   ) {
     console.info(bold('Chain ID: '), id)
     this.initAPIURL(options)
-    this.initChainType(options)
+    this.initChainMode(options)
     this.initChainNode(options)
     this.initStateDirs(options)
     this.initDefaultIdentity(options)
@@ -82,20 +87,38 @@ export class Chain implements ChainConfig {
   get url (): string { return this.apiURL.toString() }
 
   /** Set the chain type flags. */
-  protected initChainType ({ isMainnet, isTestnet, isDevnet }: ChainTypeFlags) {
-    this.isMainnet  = isMainnet
-    this.isTestnet  = isTestnet
-    this.isDevnet = isDevnet
+  protected initChainMode ({ mode }: ChainModeConfig) {
+    this.mode = mode
   }
 
+  mode: ChainMode
+
   /** A mainnet is a production network with real stakes. */
-  isMainnet?:  boolean
+  get isMainnet (): boolean {
+    console.warn('chain.isMainnet: deprecated, use Chain.mode === ChainMode.Mainnet')
+    return this.mode === ChainMode.Mainnet
+  }
 
   /** A testnet is a persistent remote non-production network. */
-  isTestnet?:  boolean
+  get isTestnet (): boolean {
+    console.warn('chain.isTestnet: deprecated, use Chain.mode === ChainMode.Testnet')
+    return this.mode === ChainMode.Testnet
+  }
 
   /** A devnet is a non-production network that we can reset at will. */
-  isDevnet?: boolean
+  get isDevnet (): boolean {
+    console.warn('chain.isDevnet: deprecated, use Chain.mode === ChainMode.Devnet')
+    return this.mode === ChainMode.Devnet
+  }
+
+  /** A mocknet is a WASM execution environment
+    * without the cryptographic consensus mechanism.
+    * This is useful for testing. */
+  get isMocknet (): boolean {
+    // TODO finish implementation in @fadroma/mocknet
+    console.warn('chain.isMocknet: deprecated, use Chain.mode === ChainMode.Mocknet')
+    return this.mode === ChainMode.Mocknet
+  }
 
   protected initChainNode ({ node }: ChainNodeConfig) {
     if (!node) {
@@ -106,7 +129,7 @@ export class Chain implements ChainConfig {
     this.node.chainId = this.id
     if (this.apiURL && this.apiURL !== node.apiURL) {
       console.warn(
-        bold('API URL mismatch:'), this.apiURL, 'vs', node.apiURL
+        bold('API URL mismatch:'), this.apiURL.toString(), 'vs', node.apiURL.toString()
       )
     }
     this.apiURL  = node.apiURL

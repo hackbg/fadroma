@@ -18,6 +18,7 @@
     "@types/node":       "^16.11.19",
     "@fadroma/cli":      "workspace:*",
     "@fadroma/ops":      "workspace:*",
+    "@fadroma/mocknet":  "workspace:*",
     "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/snip20":   "workspace:*",
