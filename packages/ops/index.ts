@@ -26,3 +26,5 @@ export * from './Migrate'
 export * from './Client'
 
 export * from './Mock'
+
+export * from './Print'

@@ -5,7 +5,7 @@ import Scrt_1_0 from '@fadroma/scrt-1.0'
 import Scrt_1_2 from '@fadroma/scrt-1.2'
 
 import {
-  Console, bold, colors, timestamp,
+  Console, print, bold, colors, timestamp,
   Chain, Agent, Deployments, Mocknet, MigrationContext,
   FSUploader, CachingFSUploader,
   fileURLToPath
@@ -44,14 +44,20 @@ export class Fadroma {
   Upload = Fadroma.Upload
   Deploy = Fadroma.Deploy
 
-  module (url: string): Commands {
+  module (url: string): this {
     // if main
     if (process.argv[1] === fileURLToPath(url)) {
-      Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
-      runCommands.default(this.commands, process.argv.slice(2))
+      this.run(...process.argv.slice(2))/*.then(()=>{
+        console.info('All done.')
+        process.exit(0)
+      })*/
     }
-    // if imported
-    return this.commands
+    return this
+  }
+
+  async run (...commands: string[]) {
+    Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
+    runCommands.default(this.commands, commands)
   }
 
   chainId = process.env.FADROMA_CHAIN
@@ -63,14 +69,7 @@ export class Fadroma {
     let commands: any = this.commands
     for (let i = 0; i < fragments.length; i++) {
       commands[fragments[i]] = commands[fragments[i]] || {}
-      // descend or reach bottom
       if (i === fragments.length-1) {
-        // prevent overrides
-        //if (commands[fragments[i]] instanceof Function) {
-          //const msg = `[@fadroma] Cannot define command "${name}": already defined "${fragments.slice(0,i+1).join(' ')}"`
-          //console.error(this.commands)
-          //throw new Error(msg)
-        //}
         commands[fragments[i]] = (...cmdArgs: string[]) => this.runCommand(name, steps, cmdArgs)
       } else {
         commands = commands[fragments[i]]
@@ -83,11 +82,11 @@ export class Fadroma {
 
   // Is this a monad?
   private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
-    requireChainId(this.chainId, Chain.namedChains)
-
-    const { chain, agent } = await Chain.init(this.chainId)
-
-    let context: MigrationContext = {
+    requireChainId(this.chainId)
+    const chain = await Chain.namedChains[this.chainId]().ready
+    const agent = await chain.getAgent()
+    await print.agentBalance(agent)
+    let context = {
       cmdArgs,
       timestamp: timestamp(),
       chain,
@@ -112,7 +111,6 @@ export class Fadroma {
         }
       },
     }
-
     const T0 = + new Date()
     const stepTimings = []
     // Composition of commands via steps:
@@ -121,7 +119,6 @@ export class Fadroma {
         console.warn(bold('Empty step in command'), commandName)
         continue
       }
-      console.log()
       const name = step.name
       const T1 = + new Date()
       let updates
@@ -131,7 +128,6 @@ export class Fadroma {
         // by adding its outputs to it.
         context = { ...context, ...updates }
         const T2 = + new Date()
-
         console.info('🟢 Deploy step', bold(name), colors.green('succeeded'), 'in', T2-T1, 'msec')
         stepTimings.push([name, T2-T1, false])
       } catch (e) {
@@ -153,11 +149,15 @@ export class Fadroma {
 
 }
 
-function requireChainId (id, chains) {
-  if (!id) {
+function requireChainId (id, chains = Chain.namedChains) {
+
+  if (!id || !chains[id]) {
     console.error('Please set your FADROMA_CHAIN environment variable to one of the following:')
     console.error('  '+Object.keys(chains).sort().join('\n  '))
     // TODO if interactive, display a selector which exports it for the session
     process.exit(1)
   }
+
+  return chains[id]
+
 }

@@ -1,13 +1,10 @@
 import { URL } from 'url'
-
 import { Console, bold } from '@fadroma/ops'
-
 import {
-  dirname, fileURLToPath,
-  ScrtDockerBuilder, resolve,
-  Client,
+  dirname, fileURLToPath, resolve,
+  ScrtDockerBuilder,
   Scrt, ScrtAgentTX,
-  Identity, Agent, ScrtAgentJS,
+  Identity, Artifact, Agent, ScrtAgentJS,
   DockerScrtNode, ChainNodeOptions, TextFile
 } from '@fadroma/scrt'
 
@@ -49,11 +46,11 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
     return ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
   }
 
-  async upload (pathToBinary: string) {
-    const result = await super.upload(pathToBinary)
+  async upload (artifact: Artifact) {
+    const result = await super.upload(artifact)
     // Non-blocking broadcast mode returns code ID = -1,
     // so we need to find the code ID manually from the output
-    if (result.codeId === -1) {
+    if (result.codeId === "-1") {
       try {
         for (const log of result.logs) {
           for (const event of log.events) {
@@ -66,7 +63,7 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
           }
         }
       } catch (e) {
-        console.warn(`Could not get code ID for ${bold(pathToBinary)}: ${e.message}`)
+        console.warn(`Could not get code ID for ${bold(artifact.location)}: ${e.message}`)
         console.debug(`Result of upload transaction:`, result)
         throw e
       }
@@ -74,49 +71,6 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
     return result
   }
 
-}
-
-export class Scrt_1_2_Mainnet extends Scrt_1_2 {
-  id         = 'secret-4'
-  isMainnet  = true
-  apiURL     = new URL(SCRT_API_URL||`https://secret-4--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
-  defaultIdentity = {
-    name:     SCRT_AGENT_NAME,
-    address:  SCRT_AGENT_ADDRESS,
-    mnemonic: SCRT_AGENT_MNEMONIC
-  }
-  constructor () {
-    super()
-    this.setDirs()
-  }
-}
-
-export class Scrt_1_2_Testnet extends Scrt_1_2 {
-  id         = 'pulsar-2'
-  isTestnet  = true
-  apiURL     = new URL(SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`)
-  defaultIdentity = {
-    name:     SCRT_AGENT_NAME,
-    address:  SCRT_AGENT_ADDRESS,
-    mnemonic: SCRT_AGENT_MNEMONIC
-  }
-  constructor () {
-    super()
-    this.setDirs()
-  }
-}
-
-export class Scrt_1_2_Localnet extends Scrt_1_2 {
-  id         = 'fadroma-scrt-12'
-  node       = new DockerScrtNode_1_2()
-  isLocalnet = true
-  apiURL     = new URL('http://localhost:1337')
-  defaultIdentity = 'ADMIN'
-  constructor () {
-    super()
-    this.setNode()
-    this.setDirs()
-  }
 }
 
 export class DockerScrtNode_1_2 extends DockerScrtNode {
@@ -140,18 +94,47 @@ export class DockerScrtNode_1_2 extends DockerScrtNode {
 
 export default {
   SigningCosmWasmClient: PatchedSigningCosmWasmClient_1_2,
-  Agent:    ScrtAgentJS_1_2,
-  Builder:  ScrtDockerBuilder_1_2,
+  Agent:   ScrtAgentJS_1_2,
+  Builder: ScrtDockerBuilder_1_2,
+  Node:    DockerScrtNode_1_2,
   Chains: {
+
     /** Create an instance that runs a node in a local Docker container
      *  and talks to it via SecretJS */
-    'localnet-1.2': () => new Scrt_1_2_Localnet(),
+    'localnet-1.2': () => new Scrt_1_2('fadroma-scrt-12', {
+      node:             new DockerScrtNode_1_2(),
+      isLocalnet:       true,
+      apiURL:           new URL('http://localhost:1337'),
+      defaultIdentity: 'ADMIN'
+    }),
+
     /** Create an instance that talks to to pulsar-1 testnet via SecretJS */
-    'pulsar-2':     () => new Scrt_1_2_Testnet(),
+    'pulsar-2': () => new Scrt_1_2('pulsar-2', {
+      isTestnet: true,
+      apiURL: new URL(
+        SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`
+      ),
+      defaultIdentity: {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS,
+        mnemonic: SCRT_AGENT_MNEMONIC
+      }
+    }),
+
     /** Create an instance that talks to to the Secret Network mainnet via secretcli */
-    'secret-4':     () => new Scrt_1_2_Mainnet()
+    'secret-4': () => new Scrt_1_2('secret-4', {
+      isMainnet: true,
+      apiURL:    new URL(
+        SCRT_API_URL||`https://secret-4--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`
+      ),
+      defaultIdentity: {
+        name:     SCRT_AGENT_NAME,
+        address:  SCRT_AGENT_ADDRESS,
+        mnemonic: SCRT_AGENT_MNEMONIC
+      },
+    })
+
   },
-  Node: DockerScrtNode_1_2,
 }
 
 export * from '@fadroma/scrt'

@@ -138,61 +138,8 @@ export type Fees = {
 
 export const join = (...x:any[]) => x.map(String).join(' ')
 
-export const print = {
-
-  aligned (obj: Record<string, any>) {
-    const maxKey = Math.max(...Object.keys(obj).map(x=>x.length), 15)
-    for (let [key, val] of Object.entries(obj)) {
-      if (typeof val === 'object') val = JSON.stringify(val)
-      val = String(val)
-      if ((val as string).length > 60) val = (val as string).slice(0, 60) + '...'
-      console.info(bold(`  ${key}:`.padEnd(maxKey+3)), val)
-    }
-  },
-
-  contracts (contracts) {
-    contracts.forEach(print.contract)
-  },
-
-  contract (contract) {
-    console.info(
-      String(contract.codeId).padStart(12),
-      contract.address,
-      contract.name
-    )
-  },
-
-  async token (TOKEN) {
-    if (typeof TOKEN === 'string') {
-      console.info(
-        `   `,
-        bold(TOKEN.padEnd(10))
-      )
-    } else {
-      const {name, symbol} = await TOKEN.info
-      console.info(
-        `   `,
-        bold(symbol.padEnd(10)),
-        name.padEnd(25).slice(0, 25),
-        TOKEN.address
-      )
-    }
-  },
-
-  receipt (name, receipt) {
-    if (receipt.address) {
-      console.info(
-        `${receipt.address}`.padStart(45),
-        String(receipt.codeId||'n/a').padStart(6),
-        bold(name.padEnd(35)),
-      )
-    } else {
-      console.warn(
-        '(non-standard receipt)'.padStart(45),
-        'n/a'.padEnd(6),
-        bold(name.padEnd(35)),
-      )
-    }
+export const overrideDefaults = (obj, defaults, options = {}) => {
+  for (const k of Object.keys(defaults)) {
+    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
   }
-
 }

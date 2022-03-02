@@ -1,127 +1,188 @@
 import {
+  Console, bold,
+  resolve, relative,
   Directory, JSONDirectory,
-  Console, bold, symlinkDir, mkdirp, resolve, relative, basename,
-  readdirSync, statSync, existsSync, readlinkSync, readFileSync, unlinkSync,
-  colors
 } from '@hackbg/tools'
-
 import { URL } from 'url'
-
-import { Identity, Source, Artifact, Template } from './Core'
+import { Identity } from './Core'
 import { ChainNode } from './ChainNode'
 import { Agent, AgentConstructor } from './Agent'
 import { Deployments } from './Deploy'
-import { Uploads, CachingFSUploader } from './Upload'
-import { printIdentities } from './Print'
+import { Uploads } from './Upload'
+import { print } from './Print'
 
 const console = Console('@fadroma/ops/Chain')
 
 /** Kludge. TODO resolve. */
 export type DefaultIdentity =
-  null |
+  null   |
   string |
   { name?: string, address?: string, mnemonic?: string } |
   Agent
 
-export interface ChainOptions {
-  id?: string
-  chainId?: string
-  apiURL?:  URL
-  node?:    ChainNode
+export type ChainStateConfig = {
+  statePath?: string
+}
 
-  /** Credentials of the default agent for this network. */
+export type ChainTypeFlags = {
+  isMainnet?:  boolean
+  isTestnet?:  boolean
+  isLocalnet?: boolean
+}
+
+export type ChainNodeConfig = {
+  node?: ChainNode
+}
+
+export type ChainIdentityConfig = {
   defaultIdentity?: DefaultIdentity
 }
 
-export interface ChainConnectOptions extends ChainOptions {
-  apiKey?:     string
-  identities?: Array<string>
+export type ChainAPIConfig = {
+  apiURL?: URL
 }
 
-/** Represents an interface to a particular Cosmos blockchain.
-  * Used to construct `Agent`s and `Contract`s that are
-  * bound to a particular chain. Can store identities and
-  * results of contract uploads/inits. */
-export class Chain implements ChainOptions {
+export type ChainConfig =
+  ChainTypeFlags      &
+  ChainStateConfig    &
+  ChainNodeConfig     &
+  ChainIdentityConfig &
+  ChainAPIConfig
 
-  // JS constructors are called in an order that is opposite to
-  // the one that would be actually useful for narrowing down stuff
-  // by defining properties (as opposed to extending stuff with new stuff).
-  constructor (options?: Chain) {
-    if (this.node)      this.setNode()
-    if (this.stateRoot) this.setDirs()
+/** Represents an interface to a particular Cosmos blockchain;
+  * used to construct `Agent`s that are bound to it.
+  * Can store identities of agents,
+  * and receipts from contract uploads/inits. */
+export class Chain implements ChainConfig {
+
+  /** Populated in Fadroma root with connection details for
+    * all Chain variants that are known to the library. */
+  static namedChains: Record<string, (options?: Chain)=>Chain> = {}
+
+  constructor (
+    public readonly id: string,
+    options?: ChainConfig
+  ) {
+    console.info(bold('Chain ID: '), id)
+    this.initAPIURL(options)
+    this.initChainType(options)
+    this.initChainNode(options)
+    this.initStateDirs(options)
+    this.initDefaultIdentity(options)
   }
 
-  protected setNode () {
-    if (this.node) {
-      this.apiURL = this.node.apiURL
-      this.node.chainId = this.id
-    }
+  protected initAPIURL ({ apiURL }: ChainAPIConfig) {
+    this.apiURL = apiURL
   }
 
-  protected setDirs (stateRoot = resolve(process.cwd(), 'receipts', this.id)) {
-    console.info(bold(`State:    `), relative(process.cwd(), stateRoot))
-    if (!stateRoot) {
-      throw new Error('@fadroma/ops/chain: Missing stateRoot')
+  /** The API URL that this instance talks to, as URL object. */
+  apiURL: URL = new URL('http://localhost')
+
+  /** The API URL that this instance talks to, as string. */
+  get url (): string { return this.apiURL.toString() }
+
+  /** Set the chain type flags. */
+  protected initChainType ({ isMainnet, isTestnet, isLocalnet }: ChainTypeFlags) {
+    this.isMainnet  = isMainnet
+    this.isTestnet  = isTestnet
+    this.isLocalnet = isLocalnet
+  }
+
+  /** A mainnet is a production network with real stakes. */
+  isMainnet?:  boolean
+
+  /** A testnet is a persistent remote non-production network. */
+  isTestnet?:  boolean
+
+  /** A localnet is a non-production network that we can reset at will. */
+  isLocalnet?: boolean
+
+  protected initChainNode ({ node }: ChainNodeConfig) {
+    if (!node) {
+      console.info('This Chain does not have a ChainNode attached')
+      return
     }
-    if (typeof stateRoot === 'string') {
-      this.stateRoot = new Directory(stateRoot)
-    } else {
-      this.stateRoot = stateRoot
+    this.node = node
+    this.node.chainId = this.id
+    if (this.apiURL && this.apiURL !== node.apiURL) {
+      console.warn(
+        bold('API URL mismatch:'), this.apiURL, 'vs', node.apiURL
+      )
     }
-    const { path } = this.stateRoot
-    this.identities   = new JSONDirectory(path, 'identities')
-    this.transactions = new JSONDirectory(path, 'transactions')
-    this.uploads      = new Uploads(path,       'uploads')
-    this.deployments  = new Deployments(path,   'deployments')
+    this.apiURL  = node.apiURL
+  }
+
+  /** Optional. Instance of ChainNode representing the localnet container. */
+  node?: ChainNode
+
+  protected initStateDirs ({
+    statePath = resolve(process.cwd(), 'receipts', this.id)
+  }: ChainStateConfig) {
+    console.info(
+      bold(`State:    `),
+      relative(process.cwd(), statePath)
+    )
+    this.stateRoot    = new Directory(statePath)
+    this.identities   = new JSONDirectory(statePath, 'identities')
+    this.transactions = new JSONDirectory(statePath, 'transactions')
+    this.uploads      = new Uploads(statePath,       'uploads')
+    this.deployments  = new Deployments(statePath,   'deployments')
     this.transactions.make()
   }
 
   /** Root state directory for this chain. */
-  stateRoot:  Directory
+  stateRoot:    Directory
 
   /** This directory collects all private keys that are available for use. */
-  identities: Directory
+  identities:   Directory
 
   /** This directory collects transaction messages. */
   transactions: Directory
 
   /** This directory stores receipts from the upload transactions,
     * containing provenance info for uploaded code blobs. */
-  uploads:     Uploads
+  uploads:      Uploads
 
-  /** This directory stores receipts from the instantiation (init) transactions,
-    * containing provenance info for initialized contract deployments.
-    *
-    * NOTE: the current domain vocabulary considers initialization and instantiation,
-    * as pertaining to contracts on the blockchain, to be the same thing. */
-  deployments: Deployments
+  /** This directory stores receipts from the instantiation transactions,
+    * containing provenance info for initialized contract deployments. */
+  deployments:  Deployments
 
   #ready: Promise<any>|null = null
+  // async constructor shim
   get ready () {
     if (this.#ready) return this.#ready
-    return this.#ready = this.#populate()
+    return this.#ready = this.#respawn()
   }
 
-  /**Instantiate Agent and Builder objects to talk to the API,
-   * respawning the node container if this is a localnet. */
-  async #populate (): Promise<Chain> {
-    // if this is a localnet handle, wait for the localnet to start
+  /** If this is a localnet, wait for the container to respawn,
+    * unless we're running in dockerized live mode. */
+  async #respawn (): Promise<Chain> {
     const node = await Promise.resolve(this.node)
-    console.info(bold('Chain ID: '), this.id)
-    if (node) {
+    if (process.env.FADROMA_DOCKERIZED) {
+      this.apiURL = new URL('http://localnet:1317')
+    } else if (node) {
       await this.initLocalnet(node)
-    }
-    const { protocol, hostname, port } = this.apiURL
-    console.info(bold(`Protocol: `), protocol)
-    console.info(bold(`Host:     `), `${hostname}:${port}`)
-    if (this.defaultIdentity) {
-      this.defaultIdentity = await this.getAgent({
-        name: "ADMIN", ...this.defaultIdentity as object
-      })
     }
     return this as Chain
   }
+
+  private initDefaultIdentity ({ defaultIdentity }: ChainIdentityConfig) {
+    if (typeof defaultIdentity === 'string') {
+      if (this.isLocalnet) {
+        try {
+          defaultIdentity = this.node.genesisAccount(defaultIdentity)
+        } catch (e) {
+          console.warn(`Could not load default identity ${defaultIdentity}: ${e.message}`)
+        }
+      }
+      this.defaultIdentity = defaultIdentity
+    } else {
+      console.info('This Chain does not have a defaultIdentity')
+    }
+  }
+
+  /** Credentials of the default agent for this network. */
+  defaultIdentity?: DefaultIdentity
 
   private async initLocalnet (node: ChainNode) {
     // keep a handle to the node in the chain
@@ -132,43 +193,11 @@ export class Chain implements ChainOptions {
     // set the correct port to connect to
     this.apiURL.port = String(node.port)
     // get the default account for the node
-    if (typeof this.defaultIdentity === 'string') {
-      try {
-        this.defaultIdentity = this.node.genesisAccount(this.defaultIdentity)
-      } catch (e) {
-        console.warn(`Could not load default identity ${this.defaultIdentity}: ${e.message}`)
-      }
-    }
+    this.initDefaultIdentity({})
   }
-
-  apiURL: URL = new URL('http://localhost')
-
-  /**The API URL that this instance talks to.
-   * @type {string} */
-  get url () { return this.apiURL.toString() }
-
-  id:     string
-  get chainId () {
-    throw new Error('Deprecated: Chain#chainId is now Chain#id, update accordingly')
-    return this.id
-  }
-  set chainId (v) {
-    throw new Error('Deprecated: Chain#chainId is now Chain#id, update accordingly')
-    this.id = v
-  }
-
-  isMainnet?:  boolean
-  isTestnet?:  boolean
-  isLocalnet?: boolean
-
-  /** Optional. Instance of ChainNode representing the localnet container. */
-  node?:            ChainNode
 
   /** Agent class suitable for this chain. */
   Agent: AgentConstructor
-
-  /** Credentials of the default agent for this network. */
-  defaultIdentity?: DefaultIdentity
 
   /** Create agent operating via this chain's API endpoint. */
   async getAgent (identity: string|Identity = this.defaultIdentity): Promise<Agent> {
@@ -190,69 +219,14 @@ export class Chain implements ChainOptions {
     return agent
   }
 
-  printIdentities () {
-    return printIdentities(this)
-  }
-
-  /** Create contract instance from interface class and address */
-  getContract (
-    Contract:        any,
-    contractAddress: string,
-    agent = this.defaultIdentity
-  ) {
-    return new Contract({
-      initTx: { contractAddress }, // TODO restore full initTx if present in artifacts
-      agent
-    })
-  }
-
-  async buildAll (contracts: Contract<any>[]): Promise<Artifact[]> {
-    return Promise.all(contracts.map(contract=>contract.build()))
-  }
-
-  async buildAndUpload (agent: Agent, sources: Source[]): Promise<Template[]> {
-    const artifacts = await this.buildAll(sources)
-    const uploader = new CachingFSUploader(agent, this.uploads)
-    return uploader.uploadMany(artifacts)
-  }
-
-  /** Populated in Fadroma root with all variants known to the library. */
-  static namedChains: Record<string, (options?: Chain)=>Chain> = {}
-
-  /** Get a new Chain and default Agent from a name. */
-  static async init (chainName: string): Promise<{ chain: Chain, agent: Agent }> {
-    let chain: Chain
-    if (!Chain.namedChains[chainName]) {
-      throw new Error(`${bold(`"${chainName}":`)} not a valid chain name`)
-    }
-    chain = await Chain.namedChains[chainName]().ready
-    let agent: Agent
-    try {
-      if (chain.defaultIdentity instanceof Agent) {
-        agent = chain.defaultIdentity
-      } else {
-        agent = await chain.getAgent()
-      }
-      console.info(bold(`Agent:    `), agent.address)
-      try {
-        const initialBalance = await agent.balance
-        console.info(bold(`Balance:  `), initialBalance, `uscrt`)
-      } catch (e) {
-        console.warn(bold(`Could not fetch balance:`), e.message)
-      }
-    } catch (e) {
-      console.error(bold(`Could not get an agent for ${chainName}:`), e.message)
-      throw e
-    }
-    return { chain, agent }
+  getNonce (address: string): Promise<any> {
+    throw new Error('not implemented')
   }
 
   /** Address of faucet that can be used to get gas tokens.
     * There used to be an `openFaucet` command.
     * TODO automate refill. */
   faucet: string|null = null
-
-  getNonce (address: string): Promise<any> { throw new Error('not implemented') }
 
 }
 
@@ -267,11 +241,5 @@ export function onlyOnMainnet ({ chain }) {
   if (!chain.isMainnet) {
     console.log('This command is intended only for mainnet.')
     process.exit(1)
-  }
-}
-
-const overrideDefaults = (obj, defaults, options = {}) => {
-  for (const k of Object.keys(defaults)) {
-    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
   }
 }

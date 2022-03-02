@@ -205,8 +205,8 @@ export abstract class DockerChainNode extends ChainNode {
   identitiesToCreate: Array<string> =
     ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
 
-  protocol = 'http'
-  host = 'localhost'
+  protocol: string = 'http'
+  host:     string = 'localhost'
   port:     number
 
   constructor (options: ChainNodeOptions = {}) {
