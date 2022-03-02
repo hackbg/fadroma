@@ -13,10 +13,8 @@ const console = Console('@hackbg/fadroma')
 // which give you the appropriate Chain and Agent
 // for talking to that chain id.
 import { Chain, Mocknet } from '@fadroma/ops'
-import Scrt_1_0 from '@fadroma/scrt-1.0'
 import Scrt_1_2 from '@fadroma/scrt-1.2'
 Object.assign(Chain.namedChains, {
-  ...Scrt_1_0.Chains,
   ...Scrt_1_2.Chains,
   mocknet: () => {
     console.warn(bold('HELP WANTED:'), 'The Mocknet is far from implemented.')
@@ -32,4 +30,4 @@ export default new Fadroma()
 // Individual chain implementations are also exported,
 // so that you can name a Scrt_1_0.Agent or
 // a Scrt_1_2.Contract<Scrt_1_2.Client>>.
-export { Scrt_1_0, Scrt_1_2 }
+export { Scrt_1_2 }

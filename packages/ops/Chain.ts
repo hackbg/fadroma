@@ -27,7 +27,7 @@ export type ChainStateConfig = {
 export type ChainTypeFlags = {
   isMainnet?:  boolean
   isTestnet?:  boolean
-  isLocalnet?: boolean
+  isDevnet?: boolean
 }
 
 export type ChainNodeConfig = {
@@ -82,10 +82,10 @@ export class Chain implements ChainConfig {
   get url (): string { return this.apiURL.toString() }
 
   /** Set the chain type flags. */
-  protected initChainType ({ isMainnet, isTestnet, isLocalnet }: ChainTypeFlags) {
+  protected initChainType ({ isMainnet, isTestnet, isDevnet }: ChainTypeFlags) {
     this.isMainnet  = isMainnet
     this.isTestnet  = isTestnet
-    this.isLocalnet = isLocalnet
+    this.isDevnet = isDevnet
   }
 
   /** A mainnet is a production network with real stakes. */
@@ -94,8 +94,8 @@ export class Chain implements ChainConfig {
   /** A testnet is a persistent remote non-production network. */
   isTestnet?:  boolean
 
-  /** A localnet is a non-production network that we can reset at will. */
-  isLocalnet?: boolean
+  /** A devnet is a non-production network that we can reset at will. */
+  isDevnet?: boolean
 
   protected initChainNode ({ node }: ChainNodeConfig) {
     if (!node) {
@@ -112,7 +112,7 @@ export class Chain implements ChainConfig {
     this.apiURL  = node.apiURL
   }
 
-  /** Optional. Instance of ChainNode representing the localnet container. */
+  /** Optional. Instance of ChainNode representing the devnet container. */
   node?: ChainNode
 
   protected initStateDirs ({
@@ -154,21 +154,21 @@ export class Chain implements ChainConfig {
     return this.#ready = this.#respawn()
   }
 
-  /** If this is a localnet, wait for the container to respawn,
+  /** If this is a devnet, wait for the container to respawn,
     * unless we're running in dockerized live mode. */
   async #respawn (): Promise<Chain> {
     const node = await Promise.resolve(this.node)
     if (process.env.FADROMA_DOCKERIZED) {
-      this.apiURL = new URL('http://localnet:1317')
+      this.apiURL = new URL('http://devnet:1317')
     } else if (node) {
-      await this.initLocalnet(node)
+      await this.initDevnet(node)
     }
     return this as Chain
   }
 
   private initDefaultIdentity ({ defaultIdentity }: ChainIdentityConfig) {
     if (typeof defaultIdentity === 'string') {
-      if (this.isLocalnet) {
+      if (this.isDevnet) {
         try {
           defaultIdentity = this.node.genesisAccount(defaultIdentity)
         } catch (e) {
@@ -184,7 +184,7 @@ export class Chain implements ChainConfig {
   /** Credentials of the default agent for this network. */
   defaultIdentity?: DefaultIdentity
 
-  private async initLocalnet (node: ChainNode) {
+  private async initDevnet (node: ChainNode) {
     // keep a handle to the node in the chain
     this.node = node
     // respawn that container
@@ -209,7 +209,7 @@ export class Chain implements ChainConfig {
     if (identity instanceof Agent) {
       return await this.Agent.create(identity)
     }
-    // default identities from localnet
+    // default identities from devnet
     // TODO address from string and something else for default identities
     if (typeof identity === 'string' && this.node) {
       identity = this.node.genesisAccount(identity)

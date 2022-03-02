@@ -4,10 +4,8 @@
   "type":    "module",
   "main":    "./Snip20Client.ts",
   "dependencies": {
-    "@fadroma/scrt":     "workspace:*",
-    "@fadroma/scrt-1.0": "workspace:*",
-    "@fadroma/scrt-1.2": "workspace:*",
-    "@hackbg/tools":     "^1"
+    "@fadroma/ops":  "workspace:*",
+    "@hackbg/tools": "^1"
   }
 }
 

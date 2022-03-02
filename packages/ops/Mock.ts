@@ -9,7 +9,7 @@ const console = Console('@fadroma/ops/Mock')
 
 export class Mocknet extends Chain {
   id         = 'mocknet'
-  isLocalnet = true
+  isDevnet = true
   apiURL     = new URL('mock://mock:0')
   stateRoot  = new Directory(`/tmp/fadroma_mocknet_${Math.floor(Math.random()*1000000)}`)
   Agent      = MockAgent

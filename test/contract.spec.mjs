@@ -1,4 +1,4 @@
-import { localnet } from './test_helper.js';
+import { devnet } from './test_helper.js';
 import path from "path";
 import debug from 'debug';
 import { assert } from "chai";
@@ -11,7 +11,7 @@ const context = {};
 describe('SecretNetworkContract and SecretNetworkContractWithSchema', function () {
   before(async function () {
     this.timeout(0);
-    await localnet(context);
+    await devnet(context);
 
     const { codeId } = await context.builder.uploadOrCached(path.resolve("./example/artifacts/votes@HEAD.wasm"));
 

@@ -4,7 +4,7 @@ set -e
 
 echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 echo '|🟢 Fadroma 23.0.0 "Welcome To The Party"'
-echo '|Secret Network 1.2 Localnet Init'
+echo '|Secret Network 1.2 Devnet Init'
 echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 echo "|API on port $Port"
 file=~/.secretd/config/genesis.json

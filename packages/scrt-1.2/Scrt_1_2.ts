@@ -101,9 +101,9 @@ export default {
 
     /** Create an instance that runs a node in a local Docker container
      *  and talks to it via SecretJS */
-    'localnet-1.2': () => new Scrt_1_2('fadroma-scrt-12', {
+    'scrt-devnet': () => new Scrt_1_2('fadroma-scrt-12', {
       node:             new DockerScrtNode_1_2(),
-      isLocalnet:       true,
+      isDevnet:       true,
       apiURL:           new URL('http://localhost:1337'),
       defaultIdentity: 'ADMIN'
     }),

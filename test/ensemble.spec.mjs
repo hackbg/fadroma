@@ -12,7 +12,7 @@ describe("Secret Network Ensemble", function () {
   
   beforeEach(function () {
     e = new TestEnsemble(/*{
-      network:   'localnet',
+      network:   'devnet',
       workspace: resolve('./'),
       builder:   { async build(..._: Array<any>) { return '' } } as any
     }*/); });

@@ -50,7 +50,7 @@ export type ChainNodeState = Record<any, any>
 
 export abstract class ChainNode implements ChainNodeState {
 
-  static resetLocalnet = ({ chain }) => chain.node.terminate()
+  static resetDevnet = ({ chain }) => chain.node.terminate()
 
   chainId: string = ''
   apiURL:  URL    = new URL('http://localhost:1317')
@@ -61,31 +61,31 @@ export abstract class ChainNode implements ChainNodeState {
   get ready() { return this.#ready }
   #ready: Promise<void>
 
-  /** This directory is created to remember the state of the localnet setup. */
+  /** This directory is created to remember the state of the devnet setup. */
   readonly stateRoot:  Directory
 
-  /** This file contains the id of the current localnet container.
+  /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
   readonly nodeState:  JSONFile
 
-  /** This directory is mounted out of the localnet container
+  /** This directory is mounted out of the devnet container
     * in order to persist the state of the chain. */
   readonly daemonDir:  Directory
 
-  /** This directory is mounted out of the localnet container
+  /** This directory is mounted out of the devnet container
     * in order to persist the state of the container's built-in cli. */
   readonly clientDir:  Directory
 
-  /** This directory is mounted out of the localnet container
+  /** This directory is mounted out of the devnet container
     * in order to persist the state of the SGX modules. */
   readonly sgxDir:     Directory
 
-  /** This directory is mounted out of the localnet container
+  /** This directory is mounted out of the devnet container
     * to persist the keys of the genesis wallets. */
   readonly identities: JSONDirectory
 
   /** List of genesis accounts that will be given an initial balance
-    * when creating the localnet container for the first time. */
+    * when creating the devnet container for the first time. */
   identitiesToCreate: Array<string> = []
 
   /** Retrieve an identity */
@@ -145,7 +145,7 @@ export abstract class ChainNode implements ChainNodeState {
     if (chain.node) {
       await chain.node.terminate()
     } else {
-      console.warn(bold(process.env.FADROMA_CHAIN), 'not a localnet')
+      console.warn(bold(process.env.FADROMA_CHAIN), 'not a devnet')
     }
   }
 
@@ -155,14 +155,14 @@ export abstract class ChainNode implements ChainNodeState {
 /// ## Docker backend
 
 
-/** Run a pausable localnet in a Docker container and manage its lifecycle.
+/** Run a pausable devnet in a Docker container and manage its lifecycle.
  *  State is stored as a pile of files in a directory. */
 export abstract class DockerChainNode extends ChainNode {
 
   /** This should point to the standard production docker image for the network. */
   abstract readonly image: string
 
-  /** This file is mounted into the localnet container
+  /** This file is mounted into the devnet container
     * in place of its default init script in order to
     * add custom genesis accounts with initial balances. */
   abstract readonly initScript: TextFile
@@ -237,9 +237,9 @@ export abstract class DockerChainNode extends ChainNode {
     return {containerId, chainId, port}
   }
 
-  /** Write the state of the localnet to a file. */
+  /** Write the state of the devnet to a file. */
   save () {
-    console.info(`Saving localnet node to ${this.nodeState.path}`)
+    console.info(`Saving devnet node to ${this.nodeState.path}`)
     const data = { containerId: this.container.id, chainId: this.chainId, port: this.port }
     this.nodeState.save(data)
     return this
@@ -248,7 +248,7 @@ export abstract class DockerChainNode extends ChainNode {
   async respawn () {
     // if no node state, spawn
     if (!this.nodeState.exists()) {
-      console.info(`No localnet found at ${bold(this.nodeState.path)}`)
+      console.info(`No devnet found at ${bold(this.nodeState.path)}`)
       return this.spawn()
     }
 
@@ -286,18 +286,18 @@ export abstract class DockerChainNode extends ChainNode {
       } else {
         console.log()
         console.info(
-          'Localnet is running on port', bold(String(this.port)),
+          'Devnet is running on port', bold(String(this.port)),
           'from container', bold(this.container.id.slice(0,8))
         )
       }
     })
     // if running, do nothing
     //console.info(
-      //bold(`Localnet already running`)
+      //bold(`Devnet already running`)
     //)
   }
 
-  /** Spawn a new localnet instance from scratch */
+  /** Spawn a new devnet instance from scratch */
   async spawn () {
     let done = () => {}
     this.#ready = new Promise(resolve => done = resolve)
@@ -350,7 +350,7 @@ export abstract class DockerChainNode extends ChainNode {
   
   abstract readyPhrase: string
 
-  /** Dockerode passes these to the Docker API in order to launch a localnet container. */
+  /** Dockerode passes these to the Docker API in order to launch a devnet container. */
   get spawnContainerOptions () {
     return ensureDockerImage(this.image, this.docker)
       .then((Image: string)=>({

@@ -19,7 +19,7 @@ export type MigrationContext = {
   /** Prefix to the labels of all deployed contracts.
     * Identifies which deployment they belong to. */
   prefix?:     string,
-  /** Appended to contract labels in localnet deployments for faster iteration. */
+  /** Appended to contract labels in devnet deployments for faster iteration. */
   suffix?:     string,
   /** Arguments from the CLI invocation. */
   cmdArgs:     string[]

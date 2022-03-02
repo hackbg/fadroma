@@ -1,7 +1,6 @@
 export * from '@fadroma/ops'
 export * from '@fadroma/scrt'
 export * from '@fadroma/snip20'
-import Scrt_1_0 from '@fadroma/scrt-1.0'
 import Scrt_1_2 from '@fadroma/scrt-1.2'
 
 import {

@@ -1,6 +1,6 @@
 import { Console, Agent, Client, randomHex, decode, fromHex } from '@fadroma/ops'
 
-const console = new Console('@fadroma/snip20/Client')
+const console = new Console('@fadroma/snip20')
 
 export class Snip20Client extends Client {
 

@@ -5,7 +5,6 @@
   "dependencies": {
     "@fadroma/ops":      "workspace:*",
     "@fadroma/scrt":     "workspace:*",
-    "@fadroma/scrt-1.0": "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/snip20":   "workspace:*",
 

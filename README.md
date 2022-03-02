@@ -50,7 +50,7 @@ Because you don't need to type **environment variables** every time:
 
 ```sh
 # .env
-FADROMA_CHAIN=localnet-1.2
+FADROMA_CHAIN=scrt-devnet
 ```
 
 Because **you don't want your keys to leak**:
@@ -124,6 +124,12 @@ export default Fadroma.module(import.meta.url)
 <tr><td>
 
 ## Fadroma Ops for [Secret Network](./packages/scrt) (versions [1.0](./packages/scrt-1.0) and [1.2](./packages/scrt-1.2))
+
+> This feature is split into two packages,
+> [`@fadroma/scrt`](./packages/scrt) and 
+> [`@fadroma/scrt-1.2`](./packages/scrt-1.2).
+> This is to support the rapidly changing `secretjs` API.
+> `@fadroma/scrt-1.0` has been removed after Fadroma 22.01.
 
 </td><td>
 

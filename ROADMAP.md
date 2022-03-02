@@ -32,7 +32,7 @@ throughout code, terminal and GUI.
 * [ ] Automatically generate a unified admin dashboard containing
       documentation, monitoring tools, deployment and admin actions,
       cronjobs, to be used as main project deliverable
-* [ ] Reliably start/stop localnet from GUI and CLI - aim to become GUI for node operators
+* [ ] Reliably start/stop devnet from GUI and CLI - aim to become GUI for node operators
     * [ ] need to mock out Dockerode
 * [ ] Transaction explorer for arbitrary instance of supported chain
     * [ ] Maybe embed an existing one?

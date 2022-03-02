@@ -19,10 +19,10 @@ const fees = {
  *  network: Scrt,
  * }}
  */
-export async function localnet(ctx = {}) {
+export async function devnet(ctx = {}) {
 
   // Does not require us to actually be connected
-  const chain = Scrt.localnet({chainId: 'test-localnet'});
+  const chain = Scrt.devnet({chainId: 'test-devnet'});
   await chain.node.respawn()
   ctx.chain   = chain
   ctx.node    = chain.node
@@ -30,11 +30,11 @@ export async function localnet(ctx = {}) {
   ctx.builder = await chain.getBuilder(ctx.admin)
   return ctx
 
-  console.log({localnet})
-  const admin = await localnet.getAgent()
-  const builder = await localnet.getBuilder()
+  console.log({devnet})
+  const admin = await devnet.getAgent()
+  const builder = await devnet.getBuilder()
   process.exit(1234)
-  //const { node, agent: admin, network, builder } = await localnet.connect();
+  //const { node, agent: admin, network, builder } = await devnet.connect();
   //await admin.nextBlock;
   //admin.API.fees = fees;
 

@@ -39,7 +39,7 @@ export abstract class DockerScrtNode extends DockerChainNode {
   abstract readonly initScript: TextFile
   protected setDirectories (stateRoot?: Path) {
     if (!this.chainId) {
-      throw new Error('@fadroma/scrt: refusing to create directories for localnet with empty chain id')
+      throw new Error('@fadroma/scrt: refusing to create directories for devnet with empty chain id')
     }
     stateRoot = stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
     Object.assign(this, { stateRoot: new Directory(stateRoot) })

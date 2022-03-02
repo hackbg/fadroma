@@ -9,7 +9,7 @@ mocha.addFile(resolve(root, 'agent.spec.mjs'))
 mocha.addFile(resolve(root, 'builder.spec.mjs'))
 mocha.addFile(resolve(root, 'contract.spec.mjs'))
 mocha.addFile(resolve(root, 'ensemble.spec.mjs'))
-mocha.addFile(resolve(root, 'localnet.spec.mjs'))
+mocha.addFile(resolve(root, 'devnet.spec.mjs'))
 
 mocha.loadFilesAsync()
   .then(() => {

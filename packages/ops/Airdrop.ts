@@ -13,7 +13,7 @@ export type Airdrop = {
   chain?:      Chain
   /** Agent that distributes the tokens -
    *  needs to have sufficient balance
-   *  e.g. genesis account on localnet) */
+   *  e.g. genesis account on devnet) */
   agent?:      Agent
   /** Map of specific recipients to receive funds. */
   recipients?: Record<any, {agent: Agent}>
@@ -33,7 +33,7 @@ export async function airdrop (options: Airdrop = {}) {
   // allow passing strings:
   budget = BigInt(budget)
   if (typeof chain === 'string') {
-    if (!['localnet','testnet','mainnet'].includes(chain)) {
+    if (!['devnet','testnet','mainnet'].includes(chain)) {
       throw new Error(`invalid chain: ${chain}`)
     } else {
       throw new Error('im old!')
@@ -57,7 +57,7 @@ export async function airdrop (options: Airdrop = {}) {
     const message =
       `admin wallet does not have enough balance to preseed test wallets ` +
      `(${balance.toString()} < ${total.toString()}); can't proceed.\n\n` +
-      `on localnet, it's easiest to clear the state and redo the genesis.\n` +
+      `on devnet, it's easiest to clear the state and redo the genesis.\n` +
       `on testnet, use the faucet at https://faucet.secrettestnet.io/ twice\n` +
       `with ${agent.address} to get 200 testnet SCRT`
     console.error(message)

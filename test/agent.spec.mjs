@@ -6,7 +6,7 @@ const log = debug('out');
 import { assert } from 'chai';
 import { Bip39 } from '@cosmjs/crypto';
 import { EnigmaUtils, Secp256k1Pen } from 'secretjs';
-import { localnet } from './test_helper.js';
+import { devnet } from './test_helper.js';
 
 const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
 const mnemonic1 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
@@ -20,7 +20,7 @@ function test (Agent) {
   describe(Agent.name, function () {
     before(async function () {
       this.timeout(0);
-      await localnet(context);
+      await devnet(context);
 
       context.pen = await Secp256k1Pen.fromMnemonic(mnemonic);
       context.agent = await Agent.create({

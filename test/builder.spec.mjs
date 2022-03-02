@@ -1,4 +1,4 @@
-import { localnet } from "./test_helper.js";
+import { devnet } from "./test_helper.js";
 import { ScrtBuilder } from "../ops/index.ts";
 import { assert } from "chai";
 import debug from "debug";
@@ -13,7 +13,7 @@ const crate = "votes";
 describe("SecretNetworkBuilder", function () {
   before(async function () {
     this.timeout(0);
-    await localnet(context);
+    await devnet(context);
   });
 
   after(async function () {
