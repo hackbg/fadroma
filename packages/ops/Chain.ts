@@ -249,17 +249,3 @@ export class Chain implements ChainConfig {
   faucet: string|null = null
 
 }
-
-export function notOnMainnet ({ chain }) {
-  if (chain.isMainnet) {
-    console.log('This command is not intended for mainnet.')
-    process.exit(1)
-  }
-}
-
-export function onlyOnMainnet ({ chain }) {
-  if (!chain.isMainnet) {
-    console.log('This command is intended only for mainnet.')
-    process.exit(1)
-  }
-}
