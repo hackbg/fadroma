@@ -82,7 +82,8 @@ export class Fadroma {
   // Is this a monad?
   private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
     requireChainId(this.chainId)
-    const chain = await Chain.namedChains[this.chainId]().ready
+    const getChain = Chain.namedChains[this.chainId]
+    const chain = await getChain()
     const agent = await chain.getAgent()
     await print.agentBalance(agent)
     let context = {

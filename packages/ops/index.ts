@@ -9,7 +9,7 @@ export * from './Build'
 
 export * from './Schema'
 
-export * from './ChainNode'
+export * from './Devnet'
 
 export * from './Chain'
 

@@ -36,7 +36,6 @@ then
   cp ~/node_key.json ~/.secretd/config/node_key.json
   perl -i -pe 's/"stake"/ "uscrt"/g' ~/.secretd/config/genesis.json
 
-
   echo
   echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
   echo "|Fadroma will now prepare the genesis accounts"

@@ -1,19 +1,13 @@
 import {
   dirname, fileURLToPath, resolve,
   Fees, Gas,
-  ChainNodeOptions, ChainNode,
-  DockerChainNode, Path, Directory, TextFile, JSONFile, JSONDirectory,
+  DevnetOptions, Devnet, DockerodeDevnet, ManagedDevnet,
+  Path, Directory, TextFile, JSONFile, JSONDirectory,
   DockerBuilder,
   Client
 } from '@fadroma/ops'
 
 import type { SigningCosmWasmClient } from 'secretjs'
-
-export type APIConstructor =
-  new(...args:any) => SigningCosmWasmClient
-
-export type ScrtNodeConstructor =
-  new (options?: ChainNodeOptions) => ChainNode
 
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -30,23 +24,6 @@ export class ScrtGas extends Gas {
   constructor (x: number) {
     super(x)
     this.amount.push({amount: String(x), denom: ScrtGas.denom})
-  }
-}
-
-export abstract class DockerScrtNode extends DockerChainNode {
-  abstract readonly chainId:    string
-  abstract readonly image:      string
-  abstract readonly initScript: TextFile
-  protected setDirectories (stateRoot?: Path) {
-    if (!this.chainId) {
-      throw new Error('@fadroma/scrt: refusing to create directories for devnet with empty chain id')
-    }
-    stateRoot = stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
-    Object.assign(this, { stateRoot: new Directory(stateRoot) })
-    Object.assign(this, {
-      identities: this.stateRoot.subdir('identities', JSONDirectory),
-      nodeState:  new JSONFile(stateRoot, 'node.json'),
-    })
   }
 }
 

@@ -10,12 +10,14 @@ import {
   SigningCosmWasmClient,
 } from 'secretjs'
 
-import { ScrtGas, APIConstructor } from './ScrtCore'
+import { ScrtGas } from './ScrtCore'
 import { ScrtAgent } from './ScrtAgent'
 import { BroadcastingScrtBundle } from './ScrtBundle'
 import type { Scrt } from './ScrtChain'
 
 const console = Console('@fadroma/scrt/ScrtAgentJS')
+
+export type APIConstructor = new(...args:any) => SigningCosmWasmClient
 
 export abstract class ScrtAgentJS extends ScrtAgent {
 

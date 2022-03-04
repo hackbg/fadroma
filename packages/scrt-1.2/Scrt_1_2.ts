@@ -1,12 +1,13 @@
 import { URL } from 'url'
-import { Console, bold, randomHex } from '@fadroma/ops'
 import {
+  Console, bold, randomHex,
   dirname, fileURLToPath, resolve, TextFile,
   Identity, Artifact, Template,
-  Scrt, DockerScrtNode, ChainNodeOptions,
+  Scrt, DockerodeScrtDevnet, ManagedScrtDevnet,
   ScrtDockerBuilder,
   Agent, ScrtAgentJS, ScrtAgentTX,
-  ChainMode
+  ChainMode,
+  DockerodeDevnet, ManagedDevnet,
 } from '@fadroma/scrt'
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
@@ -22,15 +23,11 @@ const {
 } = process.env
 
 export const __dirname = dirname(fileURLToPath(import.meta.url))
-
 export const buildImage = 'hackbg/fadroma-scrt-builder:1.2'
-
 export const buildDockerfile = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile')
-
 export class ScrtDockerBuilder_1_2 extends ScrtDockerBuilder {
   buildImage      = buildImage
   buildDockerfile = buildDockerfile
-
   static enable = () => ({ builder: new this() })
 }
 
@@ -41,13 +38,10 @@ export class Scrt_1_2 extends Scrt {
 }
 
 export class ScrtAgentJS_1_2 extends ScrtAgentJS {
-
   API = PatchedSigningCosmWasmClient_1_2
-
   static create (options: Identity): Promise<Agent> {
     return ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
   }
-
   async upload (artifact: Artifact): Promise<Template> {
     const result = await super.upload(artifact)
     // Non-blocking broadcast mode returns code ID = -1,
@@ -72,28 +66,17 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
     }
     return result
   }
-
 }
 
-export class DockerScrtNode_1_2 extends DockerScrtNode {
+export class DockerodeScrtDevnet_1_2 extends DockerodeScrtDevnet {
+  image       = "enigmampc/secret-network-sw-dev:v1.2.0"
+  readyPhrase = 'indexed block'
+  initScript  = new TextFile(__dirname, 'Scrt_1_2_Node.sh')
+  constructor (options) { super(options) }
+}
 
-  chainId: string
-
-  readonly image:   string = "enigmampc/secret-network-sw-dev:v1.2.0"
-  readonly readyPhrase     = 'indexed block'
-  readonly initScript      = new TextFile(__dirname, 'Scrt_1_2_Init.sh')
-  constructor ({
-    image,
-    chainId,
-    identities,
-    stateRoot
-  }: ChainNodeOptions = {}) {
-    super()
-    if (image)      this.image = image
-    if (chainId)    this.chainId = chainId
-    if (identities) this.identitiesToCreate = identities
-    this.setDirectories(stateRoot)
-  }
+export class ManagedScrtDevnet_1_2 extends ManagedScrtDevnet {
+  constructor (options) { super(options) }
 }
 
 export const MAINNET_CHAIN_ID = 'secret-4'
@@ -107,17 +90,14 @@ const defaultIdentity = {
 }
 
 export default {
-
-  SigningCosmWasmClient: PatchedSigningCosmWasmClient_1_2,
-
-  Agent:   ScrtAgentJS_1_2,
-
-  Builder: ScrtDockerBuilder_1_2,
-
-  Node:    DockerScrtNode_1_2,
-
+  APIClient: PatchedSigningCosmWasmClient_1_2,
+  Agent:     ScrtAgentJS_1_2,
+  Builder:   ScrtDockerBuilder_1_2,
+  Devnet: {
+    Dockerode: DockerodeScrtDevnet_1_2,
+    Managed:   ManagedScrtDevnet_1_2
+  },
   Chains: {
-
     Mainnet () {
       return new Scrt_1_2(MAINNET_CHAIN_ID, {
         mode: ChainMode.Mainnet,
@@ -127,7 +107,6 @@ export default {
         ),
       })
     },
-
     Testnet () {
       return new Scrt_1_2(TESTNET_CHAIN_ID, {
         mode: ChainMode.Testnet,
@@ -137,10 +116,11 @@ export default {
         ),
       })
     },
-
-    Devnet () {
+    Devnet (managed = !!process.env.FADROMA_DOCKERIZED) {
       const chainId = `${DEVNET_CHAIN_ID_PREFIX}.${randomHex(8)}`
-      const node = new DockerScrtNode_1_2({ chainId })
+      const node = managed
+        ? new ManagedScrtDevnet_1_2({ chainId })
+        : new DockerodeScrtDevnet_1_2({ chainId })
       return new Scrt_1_2(chainId, {
         mode: ChainMode.Devnet,
         defaultIdentity: 'ADMIN',
@@ -148,9 +128,7 @@ export default {
         node,
       })
     },
-
   }
-
 }
 
 export * from '@fadroma/scrt'

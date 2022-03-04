@@ -5,7 +5,7 @@ import {
 } from '@hackbg/tools'
 import { URL } from 'url'
 import { Identity } from './Core'
-import { ChainNode } from './ChainNode'
+import { Devnet } from './Devnet'
 import { Agent, AgentConstructor } from './Agent'
 import { Deployments } from './Deploy'
 import { Uploads } from './Upload'
@@ -35,8 +35,8 @@ export type ChainModeConfig = {
   mode?: ChainMode
 }
 
-export type ChainNodeConfig = {
-  node?: ChainNode
+export type DevnetConfig = {
+  node?: Devnet
 }
 
 export type ChainIdentityConfig = {
@@ -50,7 +50,7 @@ export type ChainAPIConfig = {
 export type ChainConfig =
   ChainModeConfig     &
   ChainStateConfig    &
-  ChainNodeConfig     &
+  DevnetConfig        &
   ChainIdentityConfig &
   ChainAPIConfig
 
@@ -69,14 +69,14 @@ export class Chain implements ChainConfig {
     options: ChainConfig = {}
   ) {
     console.info(bold('Chain ID: '), id)
-    this.initAPIURL(options)
-    this.initChainMode(options)
-    this.initChainNode(options)
-    this.initStateDirs(options)
-    this.initDefaultIdentity(options)
+    this.setAPIURL(options)
+    this.setChainMode(options)
+    this.setDevnet(options)
+    this.setStateDirs(options)
+    this.setDefaultIdentity(options)
   }
 
-  protected initAPIURL ({ apiURL }: ChainAPIConfig) {
+  protected setAPIURL ({ apiURL }: ChainAPIConfig) {
     this.apiURL = apiURL
   }
 
@@ -87,7 +87,7 @@ export class Chain implements ChainConfig {
   get url (): string { return this.apiURL.toString() }
 
   /** Set the chain type flags. */
-  protected initChainMode ({ mode }: ChainModeConfig) {
+  protected setChainMode ({ mode }: ChainModeConfig) {
     this.mode = mode
   }
 
@@ -117,9 +117,9 @@ export class Chain implements ChainConfig {
     return this.mode === ChainMode.Mocknet
   }
 
-  protected initChainNode ({ node }: ChainNodeConfig) {
+  protected setDevnet ({ node }: DevnetConfig) {
     if (!node) {
-      console.info('This Chain does not have a ChainNode attached')
+      console.info('This Chain does not have a Devnet attached')
       return
     }
     this.node = node
@@ -132,10 +132,10 @@ export class Chain implements ChainConfig {
     this.apiURL  = node.apiURL
   }
 
-  /** Optional. Instance of ChainNode representing the devnet container. */
-  node?: ChainNode
+  /** Optional. Instance of Devnet representing the devnet container. */
+  node?: Devnet
 
-  protected initStateDirs ({
+  protected setStateDirs ({
     statePath = resolve(process.cwd(), 'receipts', this.id)
   }: ChainStateConfig) {
     console.info(
@@ -181,12 +181,19 @@ export class Chain implements ChainConfig {
     if (process.env.FADROMA_DOCKERIZED) {
       this.apiURL = new URL('http://devnet:1317')
     } else if (node) {
-      await this.initDevnet(node)
+      // keep a handle to the node in the chain
+      this.node = node
+      // respawn that container
+      await node.respawn()
+      // set the correct port to connect to
+      this.apiURL.port = String(node.port)
+      // get the default account for the node
+      this.setDefaultIdentity({})
     }
     return this as Chain
   }
 
-  private initDefaultIdentity ({ defaultIdentity }: ChainIdentityConfig) {
+  private setDefaultIdentity ({ defaultIdentity }: ChainIdentityConfig) {
     if (typeof defaultIdentity === 'string') {
       if (this.isDevnet) {
         try {
@@ -203,18 +210,6 @@ export class Chain implements ChainConfig {
 
   /** Credentials of the default agent for this network. */
   defaultIdentity?: DefaultIdentity
-
-  private async initDevnet (node: ChainNode) {
-    // keep a handle to the node in the chain
-    this.node = node
-    // respawn that container
-    await node.respawn()
-    await node.ready
-    // set the correct port to connect to
-    this.apiURL.port = String(node.port)
-    // get the default account for the node
-    this.initDefaultIdentity({})
-  }
 
   /** Agent class suitable for this chain. */
   Agent: AgentConstructor
