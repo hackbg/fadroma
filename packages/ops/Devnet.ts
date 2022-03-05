@@ -463,6 +463,7 @@ export abstract class ManagedDevnet extends Devnet {
       const url = new URL(this.managerURL.toString())
       url.pathname = '/spawn'
       url.searchParams.set('id', this.chainId)
+      url.searchParams.set('genesis', this.genesisAccounts.join(','))
       HTTP.get(url.toString(), ()=>resolve()).on('error', reject)
     })
   }
@@ -484,8 +485,16 @@ export abstract class ManagedDevnet extends Devnet {
 
   async kill () { throw new Error('not implemented') }
 
-  async respawn () { throw new Error('not implemented') }
+  async respawn () {
+    return this.spawn()
+  }
 
   save (): this { throw new Error('not implemented') }
 
 }
+
+const readJSONResponse = res => new Promise((resolve, reject)=>{
+  let data = ''
+  res.on('data', chunk => data += chunk)
+  res.on('end', () => resolve(JSON.parse(data)))
+})

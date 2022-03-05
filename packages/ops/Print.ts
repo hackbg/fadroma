@@ -1,7 +1,9 @@
-import { bold } from '@hackbg/fadroma'
+import { Console, bold } from '@hackbg/fadroma'
 import type { Uploads } from './Upload'
 import type { Deployments } from './Deploy'
 import type { Agent } from './Agent'
+
+const console = new Console('@fadroma/ops/Print')
 
 export const tables = {
 

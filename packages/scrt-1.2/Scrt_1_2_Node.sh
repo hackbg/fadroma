@@ -6,11 +6,11 @@ echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 echo '|🟢 Fadroma: Secret Network 1.2 Devnet Init'
 echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 echo "|API on port $Port"
+echo "|Genesis accounts $GenesisAccounts"
 file=~/.secretd/config/genesis.json
 echo "|Config from $file"
 
-if [ ! -e "$file" ]
-then
+if [ ! -e "$file" ]; then
   echo "|Which exists"
 
   # init the node

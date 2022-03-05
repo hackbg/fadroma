@@ -4,9 +4,11 @@ let node
 
 const server = require('http').createServer(onRequest)
 
-function onRequest ({ path }, res) {
+function onRequest ({ method, url }, res) {
 
-  const { pathname, searchParams } = new URL(path, 'does://not.matter')
+  const { pathname, searchParams } = new URL(url, 'http://id.gaf')
+
+  console.debug({method, pathname, searchParams})
 
   let code = 400
   let data = {error:'Invalid request'}
@@ -14,16 +16,19 @@ function onRequest ({ path }, res) {
   switch (pathname) {
 
     case '/spawn':
-      if (searchParams.has('id')) {
+      if (searchParams.has('id') && searchParams.has('genesis')) {
         if (!node) {
           code = 200
-          node = spawnNode()
+          node = spawnNode(
+            searchParams.get('id'),
+            searchParams.get('genesis').split(',').join(' ')
+          )
           data = {ok:'Spawned node'}
         } else {
           data.error = 'Node already running'
         }
       } else {
-        data.error = 'Pass ?id=CHAIN_ID query param'
+        data.error = 'Pass ?id=CHAIN_ID&genesis=NAME1,NAME2 query param'
       }
       break
 
@@ -38,25 +43,26 @@ function onRequest ({ path }, res) {
       break
 
     default:
-      data.valid = ['/spawn?id=CHAIN_ID', '/identity?name=IDENTITY']
+      data.valid = ['/spawn?id=CHAIN_ID&genesis=NAME1,NAME2', '/identity?name=IDENTITY']
 
   }
 
   res.writeHead(code)
   res.end(JSON.stringify(data))
 
+  console.debug({code, data})
+
 }
 
-function spawnNode () {
+function spawnNode (
+  CHAINID,
+  GenesisAccounts,
+  Port = '1317'
+) {
   node = require('child_process').spawn(
     '/usr/bin/bash',
     [ '/Scrt_1_2_Node.sh' ],
-    {
-      stdio: 'inherit',
-      env: {
-        CHAINID: searchParams.get('id')
-      }
-    }
+    { stdio: 'inherit', env: { ...process.env, CHAINID, GenesisAccounts, Port } }
   )
 }
 

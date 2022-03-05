@@ -125,9 +125,9 @@ export class Chain implements ChainConfig {
     this.node = node
     this.node.chainId = this.id
     if (this.apiURL && this.apiURL !== node.apiURL) {
-      console.warn(
-        bold('API URL mismatch:'), this.apiURL.toString(),
-        'vs', node.apiURL.toString()
+      throw new Error(
+        `${bold('API URL mismatch:')} ${this.apiURL.toString()}`+
+        ` vs ${node.apiURL.toString()}`
       )
     }
     this.apiURL = node.apiURL
