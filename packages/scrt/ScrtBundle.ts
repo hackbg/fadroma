@@ -66,9 +66,9 @@ export abstract class ScrtBundle extends Bundle {
     return instances
   }
 
-  abstract init ({ codeId, codeHash }: Template, label, msg): this
+  abstract init ({ codeId, codeHash }: Template, label, msg, init_funds): this
 
-  private get nonce (): Promise<ScrtNonce> {
+  protected get nonce (): Promise<ScrtNonce> {
     return this.chain.getNonce(this.agent.address)
   }
 
@@ -284,7 +284,7 @@ export class MultisigScrtBundle extends ScrtBundle {
       },
       signatures: []
     }
-    finalUnsignedTx.auth_info.fee.gas_limit = finalUnsignedTx.auth_info.fee.gas
+    ;(finalUnsignedTx.auth_info.fee as any).gas_limit = finalUnsignedTx.auth_info.fee.gas
     delete finalUnsignedTx.auth_info.fee.gas
 
     this.saveBundle({ N, name }, { accountNumber, sequence }, finalUnsignedTx)

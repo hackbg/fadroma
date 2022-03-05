@@ -173,6 +173,7 @@ export abstract class DockerodeDevnet extends Devnet {
 
   constructor (options: DockerodeDevnetOptions = {}) {
     super(options)
+    console.info('Constructing', bold('Dockerode')+'-based devnet')
     if (options.docker) {
       this.docker = options.docker
     }
@@ -447,11 +448,17 @@ export type ManagedDevnetOptions = DevnetOptions & {
   * given chain id and identities via a HTTP API. */
 export abstract class ManagedDevnet extends Devnet {
 
-  constructor (options) { super(options) }
+  constructor (options) {
+    super(options)
+    console.info(
+      'Constructing', bold('remotely managed'), 'devnet'
+    )
+  }
 
-  abstract managerURL: URL
+  managerURL: URL = new URL('http://devnet:8080')
 
   async spawn () {
+    console.info(bold('Spawning managed devnet'), this.chainId)
     await new Promise<void>((resolve, reject)=>{
       const url = new URL(this.managerURL.toString())
       url.pathname = '/spawn'
@@ -472,5 +479,13 @@ export abstract class ManagedDevnet extends Devnet {
       }).on('error', reject)
     })
   }
+
+  async erase () { throw new Error('not implemented') }
+
+  async kill () { throw new Error('not implemented') }
+
+  async respawn () { throw new Error('not implemented') }
+
+  save (): this { throw new Error('not implemented') }
 
 }

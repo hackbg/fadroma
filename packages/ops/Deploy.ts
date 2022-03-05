@@ -189,23 +189,6 @@ export class Deployments extends Directory {
     return super.save(name, data)
   }
 
-  /** List of contracts in human-readable from */
-  table () {
-    const rows = []
-    rows.push([bold('  label')+'\n  address', 'code id', 'code hash\ninit tx\n'])
-    if (this.exists()) {
-      for (const name of this.list()) {
-        const { codeId, codeHash, initTx: {contractAddress, transactionHash} } = this.load(name)
-        rows.push([
-          `  ${bold(name)}\n  ${contractAddress}`,
-          String(codeId),
-          `${codeHash}\n${transactionHash}\n`
-        ])
-      }
-    }
-    return rows
-  }
-
   /** Command: Create a new deployment. */
   static async new ({ chain, cmdArgs = [] }) {
     const [ prefix = timestamp() ] = cmdArgs

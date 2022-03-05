@@ -66,6 +66,8 @@ export class MockAgent extends Agent {
     }
   }
 
+  Bundle = null
+
   async doInstantiate ({ codeId }: Template, label, msg, funds = []): Promise<Instance> {
     const content = this.chain.mock.uploads[codeId]
     if (!content) {
@@ -82,10 +84,17 @@ export class MockAgent extends Agent {
     instance.utils.allocate(env_ptr)
     const msg_ptr = new WASMFFI.StringPointer('{}')
     instance.utils.allocate(msg_ptr)
-    const response =JSON.parse(decode(Uint8Array.from(instance.init(
-      env_ptr.ref(),
-      msg_ptr.ref()
-    ).values)))
+    const response = JSON.parse(
+      decode(
+        Uint8Array.from(
+          instance.init(
+            env_ptr.ref(),
+            msg_ptr.ref()
+          ).values
+        ).buffer as Buffer
+      )
+    )
+
     if (response.Err) {
       console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
     } else {

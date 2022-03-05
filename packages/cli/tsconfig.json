@@ -1,0 +1,12 @@
+{
+  "exclude": [ "Project.todo.ts" ],
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "es2020",
+    "moduleResolution": "node",
+    "inlineSourceMap": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "lib": ["ES2021"]
+  }
+}

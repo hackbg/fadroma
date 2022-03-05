@@ -15,7 +15,11 @@
     "mkdirp": "^1.0.4",
     "prompts": "^2.4.1"
   },
+  "devDependencies": {
+    "typescript": "^4.4.4"
+  },
   "scripts": {
-    "start": "ganesha-node fadroma"
+    "start": "ganesha-node fadroma",
+    "build": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json"
   }
 }

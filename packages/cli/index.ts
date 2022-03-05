@@ -5,10 +5,11 @@ import Scrt_1_2 from '@fadroma/scrt-1.2'
 
 import {
   Console, print, bold, colors, timestamp,
-  Chain, Agent, Deployments, Mocknet, MigrationContext,
+  Chain, Agent, Deployments, MigrationContext,
   FSUploader, CachingFSUploader,
   fileURLToPath
 } from '@fadroma/ops'
+import { Mocknet } from '@fadroma/mocknet'
 import runCommands from '@hackbg/komandi'
 
 const console = Console('@fadroma/cli')

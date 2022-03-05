@@ -1,5 +1,4 @@
 import type { Message } from './Core'
-import type { Contract } from './Contract'
 import type { Agent } from './Agent'
 
 export abstract class Client {
@@ -13,7 +12,7 @@ export abstract class Client {
     Object.assign(this, options)
     if (!this.address) {
       console.warn(
-        `@fadroma/ops/Contract: `+
+        `@fadroma/ops/Client: `+
         `No contract instance provided. ` +
         `Constructing blank ${this.constructor.name}. ` +
         `Transactions and queries not possible.`
@@ -21,7 +20,7 @@ export abstract class Client {
     }
     if (!this.agent) {
       console.warn(
-        `@fadroma/ops/Contract: `+
+        `@fadroma/ops/Client: `+
         `No agent provided. ` +
         `Constructing blank ${this.constructor.name}. ` +
         `Transactions and queries not possible.`
@@ -36,8 +35,8 @@ export abstract class Client {
   protected query   = (msg: Message) =>
     this.agent.query(this, msg)
 
-  protected execute = (msg: Message) =>
-    this.agent.execute(this, msg)
+  protected execute = (msg: Message, funds: any[] = []) =>
+    this.agent.execute(this, msg, funds)
 
   switchAgent = (agent: Agent) => new (this.constructor as ClientConstructor<typeof this>)({
     ...this,

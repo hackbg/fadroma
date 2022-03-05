@@ -17,10 +17,6 @@ export abstract class Bundle {
 
   get address () { return this.agent.address }
 
-  buildAndUpload (sources: Source[]) {
-    return this.agent.buildAndUpload(sources)
-  }
-
   abstract upload  (artifact: Artifact): this
 
   abstract init    (template: Template, label: string, msg: Message, send: any[]): this

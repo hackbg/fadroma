@@ -195,9 +195,9 @@ export abstract class RawBuilder extends Builder {
 
     const run = (cmd: string, ...args: string[]) =>
       spawnSync(cmd, args, { cwd: workspace, stdio: 'inherit', env: {
-        RUSTFLAGS: '-C link-arg=-s'
-        Output,
-        FinalOutput
+        RUSTFLAGS:   '-C link-arg=-s',
+        Output:      'TODO',
+        FinalOutput: 'TODO',
       } })
 
     run('cargo',
@@ -214,7 +214,7 @@ export abstract class RawBuilder extends Builder {
     run('sh', '-c',
         "sha256sum -b $FinalOutput > $FinalOutput.sha256")
 
-    return { location }
+    return { location: 'TODO' }
   }
 
 }

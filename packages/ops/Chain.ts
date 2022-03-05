@@ -126,10 +126,11 @@ export class Chain implements ChainConfig {
     this.node.chainId = this.id
     if (this.apiURL && this.apiURL !== node.apiURL) {
       console.warn(
-        bold('API URL mismatch:'), this.apiURL.toString(), 'vs', node.apiURL.toString()
+        bold('API URL mismatch:'), this.apiURL.toString(),
+        'vs', node.apiURL.toString()
       )
     }
-    this.apiURL  = node.apiURL
+    this.apiURL = node.apiURL
   }
 
   /** Optional. Instance of Devnet representing the devnet container. */
@@ -167,45 +168,8 @@ export class Chain implements ChainConfig {
     * containing provenance info for initialized contract deployments. */
   deployments:  Deployments
 
-  #ready: Promise<any>|null = null
-  // async constructor shim
-  get ready () {
-    if (this.#ready) return this.#ready
-    return this.#ready = this.#respawn()
-  }
-
-  /** If this is a devnet, wait for the container to respawn,
-    * unless we're running in dockerized live mode. */
-  async #respawn (): Promise<Chain> {
-    const node = await Promise.resolve(this.node)
-    if (process.env.FADROMA_DOCKERIZED) {
-      this.apiURL = new URL('http://devnet:1317')
-    } else if (node) {
-      // keep a handle to the node in the chain
-      this.node = node
-      // respawn that container
-      await node.respawn()
-      // set the correct port to connect to
-      this.apiURL.port = String(node.port)
-      // get the default account for the node
-      this.setDefaultIdentity({})
-    }
-    return this as Chain
-  }
-
-  private setDefaultIdentity ({ defaultIdentity }: ChainIdentityConfig) {
-    if (typeof defaultIdentity === 'string') {
-      if (this.isDevnet) {
-        try {
-          defaultIdentity = this.node.genesisAccount(defaultIdentity)
-        } catch (e) {
-          console.warn(`Could not load default identity ${defaultIdentity}: ${e.message}`)
-        }
-      }
-      this.defaultIdentity = defaultIdentity
-    } else {
-      console.info('This Chain does not have a defaultIdentity')
-    }
+  protected setDefaultIdentity ({ defaultIdentity }: ChainIdentityConfig) {
+    this.defaultIdentity = defaultIdentity
   }
 
   /** Credentials of the default agent for this network. */
@@ -216,21 +180,25 @@ export class Chain implements ChainConfig {
 
   /** Create agent operating via this chain's API endpoint. */
   async getAgent (identity: string|Identity = this.defaultIdentity): Promise<Agent> {
+    let agent
     // need to pass something
-    if (!identity) {
-      throw new Error(`@fadroma/ops/Chain: pass a name or Identity to get an agent on ${this.id}`)
+    if (typeof identity === 'string') {
+      if (!this.node) {
+        throw new Error(`@fadroma/ops/Chain: can't get defaultIdentity by name`)
+      } else {
+        agent = await this.Agent.create({
+          ...await this.node.getGenesisAccount(identity),
+          chain: this as Chain
+        })
+      }
+    } else if (identity instanceof Agent) {
+      // clone agent
+      agent = await this.Agent.create(identity)
+    } else {
+      throw new Error(
+        `@fadroma/ops/Chain: pass a name or Identity to get an agent on ${this.id}`
+      )
     }
-    // clone agent
-    if (identity instanceof Agent) {
-      return await this.Agent.create(identity)
-    }
-    // default identities from devnet
-    // TODO address from string and something else for default identities
-    if (typeof identity === 'string' && this.node) {
-      identity = this.node.genesisAccount(identity)
-    }
-    const agent = await this.Agent.create({ ...identity, chain: this as Chain })
-    agent.chain = this
     return agent
   }
 

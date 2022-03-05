@@ -48,7 +48,7 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
     // so we need to find the code ID manually from the output
     if (result.codeId === "-1") {
       try {
-        for (const log of result.logs) {
+        for (const log of (result as any).logs) {
           for (const event of log.events) {
             for (const attribute of event.attributes) {
               if (attribute.key === 'code_id') {
@@ -98,7 +98,7 @@ export default {
     Managed:   ManagedScrtDevnet_1_2
   },
   Chains: {
-    Mainnet () {
+    async Mainnet () {
       return new Scrt_1_2(MAINNET_CHAIN_ID, {
         mode: ChainMode.Mainnet,
         defaultIdentity,
@@ -107,7 +107,7 @@ export default {
         ),
       })
     },
-    Testnet () {
+    async Testnet () {
       return new Scrt_1_2(TESTNET_CHAIN_ID, {
         mode: ChainMode.Testnet,
         defaultIdentity,
@@ -116,11 +116,12 @@ export default {
         ),
       })
     },
-    Devnet (managed = !!process.env.FADROMA_DOCKERIZED) {
-      const chainId = `${DEVNET_CHAIN_ID_PREFIX}.${randomHex(8)}`
+    async Devnet (managed = !!process.env.FADROMA_DOCKERIZED) {
+      const chainId = `${DEVNET_CHAIN_ID_PREFIX}.${randomHex(4)}`
       const node = managed
         ? new ManagedScrtDevnet_1_2({ chainId })
         : new DockerodeScrtDevnet_1_2({ chainId })
+      await node.respawn()
       return new Scrt_1_2(chainId, {
         mode: ChainMode.Devnet,
         defaultIdentity: 'ADMIN',

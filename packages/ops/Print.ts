@@ -1,33 +1,49 @@
 import { bold } from '@hackbg/fadroma'
 import type { Uploads } from './Upload'
+import type { Deployments } from './Deploy'
 import type { Agent } from './Agent'
 
-/** List of code blobs in human-readable form */
-export function generateUploadsTable (uploads: Uploads) {
+export const tables = {
 
-  const rows = []
-
-  rows.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
-
-  if (uploads.exists()) {
-    for (const name of uploads.list()) {
-      const {
-        codeId,
-        originalSize,
-        compressedSize,
-        originalChecksum,
-        compressedChecksum,
-      } = uploads.load(name)
-      rows.push([
-        `  ${codeId}`,
-        `${bold(name)}\ncompressed:\n`,
-        `${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,
-        `${originalChecksum}\n${compressedChecksum}`
-      ])
+  /** List of code blobs in human-readable form */
+  uploads (dir: Uploads) {
+    const rows = []
+    rows.push([bold('  code id'), bold('name\n'), bold('size'), bold('hash')])
+    if (dir.exists()) {
+      for (const name of dir.list()) {
+        const {
+          codeId,
+          originalSize,
+          compressedSize,
+          originalChecksum,
+          compressedChecksum,
+        } = dir.load(name)
+        rows.push([
+          `  ${codeId}`,
+          `${bold(name)}\ncompressed:\n`,
+          `${originalSize}\n${String(compressedSize).padStart(String(originalSize).length)}`,
+          `${originalChecksum}\n${compressedChecksum}`
+        ])
+      }
     }
-  }
+    return rows.sort((x,y)=>x[0]-y[0])
+  },
 
-  return rows.sort((x,y)=>x[0]-y[0])
+  deployments (dir: Deployments) {
+    const rows = []
+    rows.push([bold('  label')+'\n  address', 'code id', 'code hash\ninit tx\n'])
+    if (dir.exists()) {
+      for (const name of dir.list()) {
+        const { codeId, codeHash, initTx: {contractAddress, transactionHash} } = this.load(name)
+        rows.push([
+          `  ${bold(name)}\n  ${contractAddress}`,
+          String(codeId),
+          `${codeHash}\n${transactionHash}\n`
+        ])
+      }
+    }
+    return rows
+  }
 
 }
 

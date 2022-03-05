@@ -136,10 +136,10 @@ export abstract class Agent implements Identity {
 
   protected abstract doExecute (
     contract: { address: string, label: string },
-    msg: Message,
+    msg:   Message,
     funds: any[],
     memo?: any,
-    fee?: any
+    fee?:  any
   ): Promise<any>
 
   abstract Bundle: Bundle
@@ -155,10 +155,6 @@ export abstract class Agent implements Identity {
 
   constructor (options?: any) {
     if (options) Object.assign(this, options)
-  }
-
-  buildAndUpload (sources: Source[]): Promise<Template[]> {
-    return this.chain.buildAndUpload(this, sources)
   }
 
 }

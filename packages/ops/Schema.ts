@@ -5,14 +5,11 @@ import {
   Console, bold,
   cargo
 } from '@hackbg/tools'
+import { compileFromFile } from 'json-schema-to-typescript'
+import TOML from 'toml'
+import { Agent } from './Agent'
 
 const console = Console('@fadroma/ops/schema')
-
-import { Agent, isAgent } from './Agent'
-
-import { compileFromFile } from 'json-schema-to-typescript'
-
-import TOML from 'toml'
 
 export function loadSchemas (
   base:    string,

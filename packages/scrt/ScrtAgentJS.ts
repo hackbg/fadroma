@@ -25,7 +25,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   defaultDenomination = 'uscrt'
   Bundle = BroadcastingScrtBundle
 
-  constructor (options: Identity & { API?: APIConstructor } = {}) {
+  constructor (options: Identity & { API?: APIConstructor, chain?: Scrt } = {}) {
     super(options)
 
     this.name = this.trace.name = options?.name || ''

@@ -2,6 +2,8 @@ import { Console, Agent, Client, randomHex, decode, fromHex } from '@fadroma/ops
 
 const console = new Console('@fadroma/snip20')
 
+type TokenType = any // TODO
+
 export class Snip20Client extends Client {
 
   static async fromTokenSpec (agent: Agent, token: TokenType) {

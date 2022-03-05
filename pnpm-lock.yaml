@@ -5,8 +5,10 @@ importers:
   .:
     specifiers:
       '@fadroma/cli': workspace:*
+      '@fadroma/mocknet': workspace:*
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
+      '@fadroma/scrt-1.2': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': ^1
       '@hackbg/komandi': ^2
@@ -16,8 +18,10 @@ importers:
       typescript: ^4.5.4
     dependencies:
       '@fadroma/cli': link:packages/cli
+      '@fadroma/mocknet': link:packages/mocknet
       '@fadroma/ops': link:packages/ops
       '@fadroma/scrt': link:packages/scrt
+      '@fadroma/scrt-1.2': link:packages/scrt-1.2
       '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/komandi': 2.0.0
       '@types/node': 16.11.19
@@ -118,10 +122,12 @@ importers:
     specifiers:
       '@fadroma/scrt': workspace:*
       '@hackbg/tools': ^1
+      axios: ^0.26.0
       secretjs: 0.17.5
     dependencies:
       '@fadroma/scrt': link:../scrt
       '@hackbg/tools': 1.0.0
+      axios: 0.26.0
       secretjs: 0.17.5
 
   test:
@@ -519,7 +525,7 @@ packages:
     dependencies:
       '@ganesha/node': 2.0.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.17
+      '@types/node': 17.0.21
       cross-spawn: 7.0.3
 
   /@hackbg/kabinet/1.0.0:
@@ -752,8 +758,8 @@ packages:
     resolution: {integrity: sha512-4YpbAsnJXWYK/fpTVFlMIcUIho2AYCi4wg5aNPrG1ng7fn/1/RZfCIpRCiBX+12RVa34RluilnvCqD+g3KiSiA==}
     dev: false
 
-  /@types/node/17.0.17:
-    resolution: {integrity: sha512-e8PUNQy1HgJGV3iU/Bp2+D/DXh3PYeyli8LgIwsQcs1Ar1LoaWHSIT6Rw+H2rNJmiq6SNWiDytfx8+gYj7wDHw==}
+  /@types/node/17.0.21:
+    resolution: {integrity: sha512-DBZCJbhII3r90XbQxI8Y9IjjiiOGlZ0Hr32omXIZvwwZ7p4DMMXGrKXVyPfuoBOri9XNtL0UK69jYIBIsRX3QQ==}
 
   /@types/prettier/2.4.1:
     resolution: {integrity: sha512-Fo79ojj3vdEZOHg3wR9ksAMRz4P3S5fDB5e/YWZiFnyFQI1WY2Vftu9XoXVVtJfxB7Bpce/QTqWSSntkz2Znrw==}
@@ -986,6 +992,14 @@ packages:
     resolution: {integrity: sha512-dKQiRHxGD9PPRIUNIWvZhPTPpl1rf/OxTYKsqKUDjBwYylTvV7SjSHJb9ratfyzM6wCdLCOYLzs73qpg5c4iGA==}
     dependencies:
       follow-redirects: 1.14.7
+    transitivePeerDependencies:
+      - debug
+    dev: false
+
+  /axios/0.26.0:
+    resolution: {integrity: sha512-lKoGLMYtHvFrPVt3r+RBMp9nh34N0M8zEfCWqdWZx6phynIEhQqAdydpyBAAG211zlhX9Rgu08cOamy6XjE5Og==}
+    dependencies:
+      follow-redirects: 1.14.9
     transitivePeerDependencies:
       - debug
     dev: false
@@ -1741,6 +1755,16 @@ packages:
 
   /follow-redirects/1.14.7:
     resolution: {integrity: sha512-+hbxoLbFMbRKDwohX8GkTataGqO6Jb7jGwpAlwgy2bIz25XtRm7KEzJM76R1WiNT5SwZkX4Y75SwBolkpmE7iQ==}
+    engines: {node: '>=4.0'}
+    peerDependencies:
+      debug: '*'
+    peerDependenciesMeta:
+      debug:
+        optional: true
+    dev: false
+
+  /follow-redirects/1.14.9:
+    resolution: {integrity: sha512-MQDfihBQYMcyy5dhRDJUHcw7lb2Pv/TuE6xP1vyraLukNDHKbDxDNaOE3NbCAdKQApno+GPRyo1YAp89yCjK4w==}
     engines: {node: '>=4.0'}
     peerDependencies:
       debug: '*'

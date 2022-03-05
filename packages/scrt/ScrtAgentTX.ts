@@ -8,6 +8,27 @@ import type { ScrtAgentJS } from './ScrtAgentJS'
   * to be performed by manual multisig (via Motika). */
 export class ScrtAgentTX extends ScrtAgent {
 
+  get block   (): Promise<any> { throw new Error('not implemented') }
+  get account (): Promise<any> { throw new Error('not implemented') }
+
+  defaultDenomination = 'uscrt'
+
+  doInstantiate (
+    template: { chainId: string, codeId: string }, label: string, msg: any, funds: any[]
+  ): Promise<any> { throw new Error('not needed') }
+
+  doExecute (
+    contract: { address: string, label: string },
+    msg:   any,
+    funds: any[],
+    memo?: any,
+    fee?:  any
+  ): Promise<any> { throw new Error('not needed') }
+
+  doQuery (
+    contract: { address: string }, msg: any
+  ): Promise<any> { throw new Error('not needed') }
+
   Bundle = MultisigScrtBundle
 
   signTx (msgs, gas, memo?): Promise<any> {
