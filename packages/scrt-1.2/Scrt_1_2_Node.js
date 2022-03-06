@@ -1,10 +1,12 @@
 const { PORT = 8080 } = process.env
 
 let node
+let chainId
+let ready = false
 
 const server = require('http').createServer(onRequest)
 
-function onRequest ({ method, url }, res) {
+async function onRequest ({ method, url }, res) {
 
   const { pathname, searchParams } = new URL(url, 'http://id.gaf')
 
@@ -16,34 +18,45 @@ function onRequest ({ method, url }, res) {
   switch (pathname) {
 
     case '/spawn':
-      if (searchParams.has('id') && searchParams.has('genesis')) {
+      if (['id','genesis','port'].every(param=>searchParams.has(param))) {
         if (!node) {
           code = 200
           node = spawnNode(
-            searchParams.get('id'),
-            searchParams.get('genesis').split(',').join(' ')
+            chainId = searchParams.get('id'),
+            searchParams.get('genesis').split(',').join(' '),
+            searchParams.get('port')
           )
           data = {ok:'Spawned node'}
         } else {
           data.error = 'Node already running'
         }
       } else {
-        data.error = 'Pass ?id=CHAIN_ID&genesis=NAME1,NAME2 query param'
+        data.error = 'Pass ?id=CHAIN_ID&genesis=NAME1,NAME2&port=PORT query param'
       }
+      break
+
+    case '/ready':
+      code = 200
+      data = { ready }
       break
 
     case '/identity':
       if (searchParams.has('name')) {
         code = 200
         const name = searchParams.get('name')
-        data = JSON.parse(require('fs').readFileSync(`/shared_key/${name}`, 'utf8'))
+        const path = `/receipts/${chainId}/identities/${name}.json`
+        data = JSON.parse(require('fs').readFileSync(path, 'utf8'))
       } else {
         data.error = 'Pass ?name=IDENTITY_NAME query param'
       }
       break
 
     default:
-      data.valid = ['/spawn?id=CHAIN_ID&genesis=NAME1,NAME2', '/identity?name=IDENTITY']
+      data.valid = [
+        '/spawn?id=CHAIN_ID&genesis=NAME1,NAME2',
+        '/ready',
+        '/identity?name=IDENTITY',
+      ]
 
   }
 
@@ -55,15 +68,25 @@ function onRequest ({ method, url }, res) {
 }
 
 function spawnNode (
-  CHAINID,
+  ChainID,
   GenesisAccounts,
   Port = '1317'
 ) {
   node = require('child_process').spawn(
-    '/usr/bin/bash',
-    [ '/Scrt_1_2_Node.sh' ],
-    { stdio: 'inherit', env: { ...process.env, CHAINID, GenesisAccounts, Port } }
+    '/usr/bin/bash', [ '/Scrt_1_2_Node.sh' ], {
+      stdio: [null, 'pipe', 'inherit'],
+      env: { ...process.env, ChainID, GenesisAccounts, Port }
+    }
   )
+  let output = ''
+  node.stdout.pipe(process.stdout)
+  node.stdout.on('data', function waitUntilReady (data) {
+    output += data
+    if (data.includes('indexed block')) {
+      ready = true
+      node.stdout.off('data', waitUntilReady)
+    }
+  })
 }
 
 server.listen(PORT)

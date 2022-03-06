@@ -1,18 +1,19 @@
-import { Console, bold } from '@hackbg/tools'
-
-const console = Console('@fadroma/ops/Devnet')
-
 import {
+  Console, bold,
   Directory, JSONDirectory,
-  TextFile, JSONFile, 
-  Path, relative, resolve, cwd,
-  Docker, waitPort, freePort, ensureDockerImage, waitUntilLogsSay,
+  TextFile, JSONFile,
+  Path, basename, relative, resolve, cwd,
+  waitPort, freePort,
+  Docker, ensureDockerImage, waitUntilLogsSay,
 } from '@hackbg/tools'
 
+import freeportAsync from 'freeport-async'
 import type { Identity } from './Core'
 
 import { URL } from 'url'
 import * as HTTP from 'http'
+
+const console = Console('@fadroma/ops/Devnet')
 
 /** Domain API. A Devnet is created from a given chain ID
   * with given pre-configured identities, and its state is stored
@@ -136,9 +137,13 @@ export abstract class Devnet {
     }
   }
 
+  /** Once this phrase is encountered in the log output
+    * from the container, the devnet is ready to accept requests. */
+  abstract readyPhrase: string
+
 }
 
-/** Parameters for the Dockerode-based implementation of Devnet. 
+/** Parameters for the Dockerode-based implementation of Devnet.
   * (https://www.npmjs.com/package/dockerode) */
 export type DockerodeDevnetOptions = DevnetOptions & {
   /** Docker image of the chain's runtime. */
@@ -171,15 +176,6 @@ export type DockerodeDevnetOptions = DevnetOptions & {
   * This requires an image name and a handle to Dockerode. */
 export abstract class DockerodeDevnet extends Devnet {
 
-  constructor (options: DockerodeDevnetOptions = {}) {
-    super(options)
-    console.info('Constructing', bold('Dockerode')+'-based devnet')
-    if (options.docker) {
-      this.docker = options.docker
-    }
-    this.identities = this.stateRoot.subdir('identities', JSONDirectory)
-  }
-
   /** This should point to the standard production docker image for the network. */
   abstract readonly image: string
 
@@ -187,10 +183,18 @@ export abstract class DockerodeDevnet extends Devnet {
     * in order to add custom genesis accounts with initial balances
     * and store their keys. */
   abstract readonly initScript: TextFile
- 
-  /** Once this phrase is encountered in the log output
-    * from the container, the devnet is ready to accept requests. */
-  abstract readyPhrase: string
+
+  constructor (options: DockerodeDevnetOptions = {}) {
+    super(options)
+    console.info('Constructing', bold('Dockerode')+'-based devnet')
+    if (options.docker) {
+      this.docker = options.docker
+    }
+    this.identities = this.stateRoot.subdir('identities',  JSONDirectory)
+    this.daemonDir  = this.stateRoot.subdir('secretd',     Directory)
+    this.clientDir  = this.stateRoot.subdir('secretcli',   Directory)
+    this.sgxDir     = this.stateRoot.subdir('sgx-secrets', Directory)
+  }
 
   /** Mounted out of devnet container to persist keys of genesis wallets. */
   identities: JSONDirectory
@@ -228,16 +232,18 @@ export abstract class DockerodeDevnet extends Devnet {
 
   /** Write the state of the devnet to a file. */
   save () {
-    console.info(`Saving devnet node to ${this.nodeState.path}`)
+    const shortPath = relative(process.cwd(), this.nodeState.path)
+    console.info(`Saving devnet node to ${shortPath}`)
     const data = { containerId: this.container.id, chainId: this.chainId, port: this.port }
     this.nodeState.save(data)
     return this
   }
 
   async respawn () {
+    const shortPath = relative(process.cwd(), this.nodeState.path)
     // if no node state, spawn
     if (!this.nodeState.exists()) {
-      console.info(`No devnet found at ${bold(this.nodeState.path)}`)
+      console.info(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }
     // get stored info about the container was supposed to be
@@ -247,7 +253,7 @@ export abstract class DockerodeDevnet extends Devnet {
     } catch (e) {
       // if node state is corrupted, spawn
       console.warn(e)
-      console.info(`Reading ${bold(this.nodeState.path)} failed`)
+      console.info(`Reading ${bold(shortPath)} failed`)
       return this.spawn()
     }
     // check if contract is running
@@ -298,16 +304,18 @@ export abstract class DockerodeDevnet extends Devnet {
     console.info('Launching a devnet container...')
     await ensureDockerImage(this.image, this.docker)
     this.container = await this.createContainer(devnetContainerOptions(this))
+    const shortId = this.container.id.slice(0, 8)
     // emit any warnings
     if (this.container.Warnings) {
-      console.warn(`Creating container ${this.container.id} emitted warnings:`)
+      console.warn(`Creating container ${shortId} emitted warnings:`)
       console.info(this.container.Warnings)
     }
     // report progress
-    console.info(`Created container ${this.container.id} (${bold(this.nodeState.path)})...`)
+    const shortPath = relative(process.cwd(), this.nodeState.path)
+    console.info(`Created container ${bold(shortId)} (${bold(shortPath)})...`)
     // start the container
     await this.startContainer(this.container.id)
-    console.info(`Started container ${this.container.id}...`)
+    console.info(`Started container ${shortId}...`)
     // update the record
     this.save()
     // wait for logs to confirm that the genesis is done
@@ -321,18 +329,20 @@ export abstract class DockerodeDevnet extends Devnet {
     if (this.container) {
       const { id } = this.container
       await this.killContainer(id)
-      console.info(`Stopped container ${bold(id)}.`)
-      return
-    }
-    console.info(
-      `Checking if there's an old node that needs to be stopped...`
-    )
-    try {
-      const { containerId } = this.load()
-      await this.killContainer(containerId)
-      console.info(`Stopped container ${bold(containerId)}.`)
-    } catch (_e) {
-      console.info("Didn't stop any container.")
+      console.info(
+        `Stopped container`, bold(id)
+      )
+    } else {
+      console.info(
+        `Checking if there's an old node that needs to be stopped...`
+      )
+      try {
+        const { containerId } = this.load()
+        await this.killContainer(containerId)
+        console.info(`Stopped container ${bold(containerId)}.`)
+      } catch (_e) {
+        console.info("Didn't stop any container.")
+      }
     }
   }
 
@@ -389,58 +399,65 @@ export abstract class DockerodeDevnet extends Devnet {
 
 /** What Dockerode passes to the Docker API
   * in order to launch a devnet container. */
-export async function devnetContainerOptions (node: DockerodeDevnet) {
+export async function devnetContainerOptions ({
+  chainId,
+  genesisAccounts,
+  image,
+  initScript,
+  port,
+  stateRoot
+}: DockerodeDevnet) {
+  const initScriptName = resolve('/', basename(initScript.path))
   return {
     AutoRemove:   true,
-    Image:        node.image,
-    Name:         `${node.chainId}-${node.port}`,
-    Env:          [
-      `Port=${node.port}`,
-      `CHAINID=${node.chainId}`,
-      `GenesisAccounts=${node.genesisAccounts.join(' ')}`
-    ],
+    Image:        image,
+    Name:         `${chainId}-${port}`,
+    Env:          [ `Port=${port}`
+                  , `ChainID=${chainId}`
+                  , `GenesisAccounts=${genesisAccounts.join(' ')}` ],
     Entrypoint:   [ '/bin/bash' ],
-    Cmd:          [ '/init.sh' ],
+    Cmd:          [ initScriptName ],
     Tty:          true,
     AttachStdin:  true,
     AttachStdout: true,
     AttachStderr: true,
-    Hostname:     node.chainId,
-    Domainname:   node.chainId,
-    ExposedPorts: { [`${node.port}/tcp`]: {} },
-    HostConfig: {
-      NetworkMode:  'bridge',
-      Binds:        [
-        `${node.initScript.path}:/init.sh:ro`,
-        `${node.identities.path}:/shared-keys:rw`
-      ],
-      PortBindings: {
-        [`${node.port}/tcp`]: [{HostPort: `${node.port}`}]
-      }
-    }
-  }
-}
+    Hostname:     chainId,
+    Domainname:   chainId,
+    ExposedPorts: { [`${port}/tcp`]: {} },
+    HostConfig:   { NetworkMode: 'bridge'
+                  , Binds: [
+                      `${initScript.path}:${initScriptName}:ro`,
+                      `${stateRoot.path}:/receipts/${chainId}:rw`
+                    ]
+                  , PortBindings: {
+                      [`${port}/tcp`]: [{HostPort: `${port}`}]
+                    } } } }
 
 /** What Dockerode passes to the Docker API
   * in order to launch a cleanup container
   * (for removing root-owned devnet files
   * without escalating on the host) */
-export async function cleanupContainerOptions (node: DockerodeDevnet) {
+export async function cleanupContainerOptions ({
+  image,
+  chainId,
+  port,
+  stateRoot
+}: DockerodeDevnet) {
   return {
     AutoRemove: true,
-    Image:      node.image,
-    Name:       `${node.chainId}-${node.port}-cleanup`,
+    Image:      image,
+    Name:       `${chainId}-${port}-cleanup`,
     Entrypoint: [ '/bin/rm' ],
     Cmd:        ['-rvf', '/state',],
-    HostConfig: { Binds: [`${node.stateRoot.path}:/state:rw`] }
+    HostConfig: { Binds: [`${stateRoot.path}:/state:rw`] }
     //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
   }
 }
 
 /** Parameters for the HTTP API-based implementation of Devnet. */
 export type ManagedDevnetOptions = DevnetOptions & {
-  /** Base URL of the API that spawns the managed node. */
-  remoteControlURL: string
+  /** Base URL of the API that controls the managed node. */
+  managerURL: string
 }
 
 /** When running in docker-compose, Fadroma needs to request
@@ -455,41 +472,67 @@ export abstract class ManagedDevnet extends Devnet {
     )
   }
 
-  managerURL: URL = new URL('http://devnet:8080')
+  async respawn () {
+    return this.spawn()
+  }
 
   async spawn () {
-    console.info(bold('Spawning managed devnet'), this.chainId)
-    await new Promise<void>((resolve, reject)=>{
-      const url = new URL(this.managerURL.toString())
-      url.pathname = '/spawn'
-      url.searchParams.set('id', this.chainId)
-      url.searchParams.set('genesis', this.genesisAccounts.join(','))
-      HTTP.get(url.toString(), ()=>resolve()).on('error', reject)
+    const port = await freeportAsync()
+    this.apiURL.port = port
+    console.info(
+      bold('Spawning managed devnet'), this.chainId,
+      'on port', port
+    )
+    await this.queryManagerURL('/spawn', {
+      id:      this.chainId,
+      genesis: this.genesisAccounts.join(','),
+      port
     })
+    await this.ready()
+  }
+
+  protected async ready (): Promise<void> {
+    while (true) {
+      const { ready } = await this.queryManagerURL('/ready')
+      if (ready) {
+        break
+      }
+      console.info('Waiting for devnet to become ready...')
+      await new Promise(resolve=>setTimeout(resolve, 1000))
+    }
   }
 
   async getGenesisAccount (name: string): Promise<object> {
-    return new Promise((resolve, reject)=>{
-      const url = new URL(this.managerURL.toString())
-      url.pathname = '/identity'
-      url.searchParams.set('name', name)
-      HTTP.get(url.toString(), (res)=>{
-        let data = ''
-        res.on('data', chunk => data += chunk)
-        res.on('end', () => resolve(JSON.parse(data)))
-      }).on('error', reject)
-    })
+    return this.queryManagerURL('/identity', { name })
   }
 
   async erase () { throw new Error('not implemented') }
 
   async kill () { throw new Error('not implemented') }
 
-  async respawn () {
-    return this.spawn()
-  }
-
   save (): this { throw new Error('not implemented') }
+
+  managerURL: URL = new URL(
+    process.env.FADROMA_DEVNET_MANAGER_URL || 'http://devnet:8080'
+  )
+
+  /** Send a HTTP request to the devnet manager API */
+  protected queryManagerURL (
+    pathname: string = '',
+    params: Record<string, string> = {}
+  ): Promise<any> {
+    const url = Object.assign(new URL(this.managerURL.toString()), { pathname })
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value)
+    }
+    return new Promise((resolve, reject)=>{
+      HTTP.get(url.toString(), res => {
+        let data = ''
+        res.on('data', chunk => data += chunk)
+        res.on('end', () => resolve(JSON.parse(data)))
+      }).on('error', reject)
+    })
+  }
 
 }
 

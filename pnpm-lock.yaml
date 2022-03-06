@@ -75,11 +75,11 @@ importers:
       align-yaml: ^0.1.8
       dotenv: ^15
       exponential-backoff: ^3.1
+      freeport-async: ^2.0.0
       js-yaml: ^4.1.0
       json-schema-to-typescript: ^10.1.4
       limiter: ^2.1.0
       toml: ^3
-      wasm-ffi: ^0.3.0
     dependencies:
       '@hackbg/tools': 1.0.0
       '@iov/crypto': 2.1.0
@@ -88,11 +88,11 @@ importers:
       align-yaml: 0.1.8
       dotenv: 15.0.1
       exponential-backoff: 3.1.0
+      freeport-async: 2.0.0
       js-yaml: 4.1.0
       json-schema-to-typescript: 10.1.5
       limiter: 2.1.0
       toml: 3.0.0
-      wasm-ffi: 0.3.0
 
   packages/scrt:
     specifiers:
@@ -3937,10 +3937,6 @@ packages:
       debug: 4.3.2
     transitivePeerDependencies:
       - supports-color
-    dev: false
-
-  /wasm-ffi/0.3.0:
-    resolution: {integrity: sha512-IbpRxIGXJSdJ2udiu/cgXTYwVykDQ2PJYBWJmNOxIXVU3q9NXiD8feE7oCB98By5k6ErjMwcXDcT40cX+mgBhw==}
     dev: false
 
   /which-module/2.0.0:
