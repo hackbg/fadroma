@@ -81,8 +81,10 @@ function spawnNode (
   let output = ''
   node.stdout.pipe(process.stdout)
   node.stdout.on('data', function waitUntilReady (data) {
+    data = String(data)
     output += data
-    if (data.includes('indexed block')) {
+    //console.log({data})
+    if (output.includes('indexed block')) {
       ready = true
       node.stdout.off('data', waitUntilReady)
     }

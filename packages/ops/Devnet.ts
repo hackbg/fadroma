@@ -1,3 +1,5 @@
+import { URL } from 'url'
+import * as HTTP from 'http'
 import {
   Console, bold,
   Directory, JSONDirectory,
@@ -6,12 +8,8 @@ import {
   waitPort, freePort,
   Docker, ensureDockerImage, waitUntilLogsSay,
 } from '@hackbg/tools'
-
 import freeportAsync from 'freeport-async'
 import type { Identity } from './Core'
-
-import { URL } from 'url'
-import * as HTTP from 'http'
 
 const console = Console('@fadroma/ops/Devnet')
 
