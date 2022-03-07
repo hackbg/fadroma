@@ -35,8 +35,8 @@ export abstract class Client {
   protected query   = (msg: Message) =>
     this.agent.query(this, msg)
 
-  protected execute = (msg: Message, funds: any[] = []) =>
-    this.agent.execute(this, msg, funds)
+  protected execute = (msg: Message, memo?, funds?) =>
+    this.agent.execute(this, msg, memo, funds)
 
   switchAgent = (agent: Agent) => new (this.constructor as ClientConstructor<typeof this>)({
     ...this,
