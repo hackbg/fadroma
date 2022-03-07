@@ -177,6 +177,11 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   private shouldRetry (message: string, isActuallyOk: boolean = false): boolean {
 
+    if (message.includes('does not support Amino serialization')) {
+      console.warn('[@fadroma/scrt-1.2] Protocol mismatch, not retrying')
+      return false
+    }
+
     if (message.includes('404')) {
       console.warn('[@fadroma/scrt-1.2] Commit lag, retrying')
       return true
