@@ -77,7 +77,10 @@ export class Deployment {
   get (name: string, suffix?: string): Instance {
     const receipt = this.receipts[name]
     if (!receipt) {
-      throw new Error(`@fadroma/ops/Deploy: ${name}: no such contract in deployment`)
+      const msg = `@fadroma/ops/Deploy: ${name}: no such contract in deployment`
+      console.error(msg)
+      this.printStatus()
+      throw new Error(msg)
     }
     return receipt
   }

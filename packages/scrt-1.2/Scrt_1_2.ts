@@ -118,7 +118,7 @@ export default {
     },
     async Devnet (managed = !!process.env.FADROMA_DOCKERIZED) {
       const id = randomHex(4)
-      const chainId = `${DEVNET_CHAIN_ID_PREFIX}.${id}`
+      const chainId = `${DEVNET_CHAIN_ID_PREFIX}-${id}`
       const node = managed
         ? new ManagedScrtDevnet_1_2({ chainId })
         : new DockerodeScrtDevnet_1_2({ chainId })
