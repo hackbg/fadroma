@@ -117,16 +117,17 @@ export default {
       })
     },
     async Devnet (managed = !!process.env.FADROMA_DOCKERIZED) {
-      const chainId = `${DEVNET_CHAIN_ID_PREFIX}.${randomHex(4)}`
+      const id = randomHex(4)
+      const chainId = `${DEVNET_CHAIN_ID_PREFIX}.${id}`
       const node = managed
         ? new ManagedScrtDevnet_1_2({ chainId })
         : new DockerodeScrtDevnet_1_2({ chainId })
       await node.respawn()
       return new Scrt_1_2(chainId, {
+        node,
         mode: ChainMode.Devnet,
         defaultIdentity: 'ADMIN',
         apiURL: new URL('http://localhost:1337'),
-        node,
       })
     },
   }

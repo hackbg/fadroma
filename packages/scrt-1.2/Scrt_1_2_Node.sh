@@ -16,6 +16,13 @@ echo "|State:    $State"
 echo "|Accounts: $GenesisAccounts"
 echo "|Config:   $ConfigFile"
 
+fix_permissions () {
+  echo "Relaxing permissions on $State..."
+  if [ -d "$State" ]; then chmod -R a+rwx $State; fi
+}
+
+trap fix_permissions 1 2 3 6 9
+
 genesis_1 () {
   echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
   echo "|1. Setup state directories"
@@ -25,7 +32,7 @@ genesis_1 () {
   mkdir -p $State/secretd     && ln -s $State/secretd     ~/.secretd
   mkdir -p $State/secretcli   && ln -s $State/secretcli   ~/.secretcli
   mkdir -p $State/sgx-secrets && ln -s $State/sgx-secrets /opt/secret/.sgx-secrets
-  chmod -R go+w $State
+  fix_permissions
   secretd config chain-id "$ChainID"
   secretd config keyring-backend test
   secretd init fadroma-devnet --chain-id "$ChainID"
@@ -69,7 +76,7 @@ genesis_4 () {
 
 genesis_5 () {
   echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-  echo "|4. Perform genesis"
+  echo "|5. Perform genesis"
   echo "|secretd collect-gentxs"
   secretd collect-gentxs
   echo "|secretd validate-gentxs"
@@ -80,6 +87,7 @@ genesis_5 () {
   secretd validate-genesis
 }
 
+fix_permissions
 if [ ! -f "$ConfigFile" ]; then
   echo "|Config file does not exist - performing genesis"
   genesis_1
@@ -87,6 +95,7 @@ if [ ! -f "$ConfigFile" ]; then
   genesis_3
   genesis_4
   genesis_5
+  fix_permissions
   echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
   echo "|Genesis complete."
 fi
@@ -94,8 +103,7 @@ fi
 echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 echo "|Starting lcp..."
 lcp --proxyUrl http://localhost:1317 --port $Port --proxyPartial '' &
+fix_permissions
 
-# sleep infinity
-
-source /opt/sgxsdk/environment \
-  && RUST_BACKTRACE=1 secretd start --rpc.laddr tcp://0.0.0.0:26657 --bootstrap
+source /opt/sgxsdk/environment
+RUST_BACKTRACE=1 secretd start --rpc.laddr tcp://0.0.0.0:26657 --bootstrap

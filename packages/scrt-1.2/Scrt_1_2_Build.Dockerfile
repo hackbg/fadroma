@@ -1,17 +1,13 @@
 # was "FROM rust:1.46" for 1.0
 FROM rust:1.57
-# install toolchain
-RUN rustup target add wasm32-unknown-unknown
-# install extra dependencies
 ENV PACKAGES binaryen sudo git clang
-RUN apt update && apt install -y $PACKAGES && rm -rf /var/lib/apt/lists/*
-# ensure registry exists
 ENV REGISTRY /usr/local/cargo/registry
-RUN mkdir -p "$REGISTRY"
-# default $USER and $GROUP to switch to
 ENV USER 1000
 ENV GROUP 1000
-# ensure mountpoint for source
+
+RUN rustup target add wasm32-unknown-unknown
+RUN apt update && apt install -y $PACKAGES && rm -rf /var/lib/apt/lists/*
+RUN mkdir -p "$REGISTRY"
 WORKDIR /src
 
 # mounted instead:

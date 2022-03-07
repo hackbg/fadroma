@@ -72,10 +72,6 @@ export abstract class Devnet {
   /** This directory is created to remember the state of the devnet setup. */
   stateRoot: Directory
 
-  /** This file contains the id of the current devnet container.
-    * TODO store multiple containers */
-  nodeState: JSONFile
-
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
   genesisAccounts: Array<string> = ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
@@ -83,21 +79,37 @@ export abstract class Devnet {
   /** Retrieve an identity */
   abstract getGenesisAccount (name: string): Promise<object>
 
-  /** Restore this node from the info stored in nodeState */
-  load (): {
-    containerId: string
-    chainId:     string
-    port:        number|string
-  } | null {
+  /** Start the node. */
+  abstract spawn (): Promise<void>
+
+  /** This file contains the id of the current devnet container.
+    * TODO store multiple containers */
+  nodeState: JSONFile
+
+  /** Save the info needed to respawn the node */
+  save (extraData = {}) {
+    const shortPath = relative(process.cwd(), this.nodeState.path)
+    console.info(`Saving devnet node to ${shortPath}`)
+    const data = { chainId: this.chainId, port: this.port, ...extraData }
+    this.nodeState.save(data)
+    return this
+  }
+
+  /** Restore this node from the info stored in the nodeState file */
+  load () {
     const path = relative(cwd(), this.nodeState.path)
     if (this.stateRoot.exists() && this.nodeState.exists()) {
       console.info(bold(`Loading:  `), path)
       try {
-        const { containerId, chainId, port } = this.nodeState.load()
-        console.info(bold('Container:'), containerId)
-        return { containerId, chainId, port }
+        const data = this.nodeState.load()
+        const { chainId, port } = data
+        if (this.chainId !== chainId) {
+          console.warn(`Loading state of ${chainId} into Devnet with id ${this.chainId}`)
+        }
+        this.apiURL.port = String(port)
+        return data
       } catch (e) {
-        console.warn(`Failed to load ${path}`)
+        console.warn(`Failed to load ${path}. Deleting it`)
         this.stateRoot.delete()
         throw e
       }
@@ -108,9 +120,6 @@ export abstract class Devnet {
 
   /** Start the node if stopped. */
   abstract respawn (): Promise<void>
-
-  /** Start the node. */
-  abstract spawn (): Promise<void>
 
   /** Stop this node and delete its state. */
   async terminate () {
@@ -123,9 +132,6 @@ export abstract class Devnet {
 
   /** Erase the state of the node. */
   abstract erase (): Promise<void>
-
-  /** Save the info needed to respawn the node */
-  abstract save (): this
 
   static async reset ({ chain }) {
     if (chain.node) {
@@ -211,32 +217,69 @@ export abstract class DockerodeDevnet extends Devnet {
   /** Mounted out of devnet container to persist SGX state. */
   sgxDir: Directory
 
-  /** Load stored data and assign to self. */
-  load () {
-    const {containerId, chainId, port} = super.load()
-    if (this.chainId !== chainId) {
-      console.warn(`Loading state of ${chainId} into Devnet with id ${this.chainId}`)
-    }
-    this.container = {
-      id: containerId,
-      Warnings: null,
-      logs () {
-        throw new Error('@fadroma/ops/Devnet: tried to tail logs before creating container')
+  async spawn () {
+    // tell the user that we have begun
+    console.info(`Spawning new node...`)
+    // get a free port
+    this.apiURL.port = String(await freePort())
+    // create the state dirs and files
+    const items = [this.stateRoot, this.nodeState]
+    for (const item of items) {
+      try {
+        item.make()
+      } catch (e) {
+        console.warn(`Failed to create ${item.path}: ${e.message}`)
       }
     }
-    this.apiURL.port = String(port)
-    return {containerId, chainId, port}
+    // create the container
+    console.info('Launching a devnet container...')
+    await ensureDockerImage(this.image, this.docker)
+    this.container = await this.createContainer(devnetContainerOptions(this))
+    const shortId = this.container.id.slice(0, 8)
+    // emit any warnings
+    if (this.container.Warnings) {
+      console.warn(`Creating container ${shortId} emitted warnings:`)
+      console.info(this.container.Warnings)
+    }
+    // report progress
+    const shortPath = relative(process.cwd(), this.nodeState.path)
+    console.info(`Created container ${bold(shortId)} (${bold(shortPath)})...`)
+    // start the container
+    await this.startContainer(this.container.id)
+    console.info(`Started container ${shortId}...`)
+    // update the record
+    this.save()
+    // wait for logs to confirm that the genesis is done
+    await waitUntilLogsSay(this.container, this.readyPhrase)
+    // wait for port to be open
+    await waitPort({ host: this.host, port: Number(this.port) })
+  }
+
+  load (): {
+    containerId: string
+    chainId:     string
+    port:        number|string
+  } | null {
+    const data = super.load()
+    if (data.containerId) {
+      const id = data.containerId
+      const Warnings = null
+      const logs = () => { throw new Error(
+        '@fadroma/ops/Devnet: tried to tail logs before creating container'
+      ) }
+      this.container = { id, Warnings, logs }
+    } else {
+      throw new Error('@fadroma/ops/Devnet: missing container id in devnet state')
+    }
+    return data
   }
 
   /** Write the state of the devnet to a file. */
   save () {
-    const shortPath = relative(process.cwd(), this.nodeState.path)
-    console.info(`Saving devnet node to ${shortPath}`)
-    const data = { containerId: this.container.id, chainId: this.chainId, port: this.port }
-    this.nodeState.save(data)
-    return this
+    return super.save({ containerId: this.container.id })
   }
 
+  /** Spawn the existing localnet, or a new one if that is impossible */
   async respawn () {
     const shortPath = relative(process.cwd(), this.nodeState.path)
     // if no node state, spawn
@@ -281,45 +324,6 @@ export abstract class DockerodeDevnet extends Devnet {
         )
       }
     })
-  }
-
-  /** Spawn a new devnet instance from scratch */
-  async spawn () {
-    // tell the user that we have begun
-    console.info(`Spawning new node...`)
-    // get a free port
-    this.apiURL.port = String(await freePort())
-    // create the state dirs and files
-    const items = [this.stateRoot, this.nodeState]
-    for (const item of items) {
-      try {
-        item.make()
-      } catch (e) {
-        console.warn(`Failed to create ${item.path}: ${e.message}`)
-      }
-    }
-    // create the container
-    console.info('Launching a devnet container...')
-    await ensureDockerImage(this.image, this.docker)
-    this.container = await this.createContainer(devnetContainerOptions(this))
-    const shortId = this.container.id.slice(0, 8)
-    // emit any warnings
-    if (this.container.Warnings) {
-      console.warn(`Creating container ${shortId} emitted warnings:`)
-      console.info(this.container.Warnings)
-    }
-    // report progress
-    const shortPath = relative(process.cwd(), this.nodeState.path)
-    console.info(`Created container ${bold(shortId)} (${bold(shortPath)})...`)
-    // start the container
-    await this.startContainer(this.container.id)
-    console.info(`Started container ${shortId}...`)
-    // update the record
-    this.save()
-    // wait for logs to confirm that the genesis is done
-    await waitUntilLogsSay(this.container, this.readyPhrase)
-    // wait for port to be open
-    await waitPort({ host: this.host, port: Number(this.port) })
   }
 
   /** Kill the container, if necessary find it first */
@@ -470,10 +474,6 @@ export abstract class ManagedDevnet extends Devnet {
     )
   }
 
-  async respawn () {
-    return this.spawn()
-  }
-
   async spawn () {
     const port = await freeportAsync()
     this.apiURL.port = port
@@ -487,6 +487,23 @@ export abstract class ManagedDevnet extends Devnet {
       port
     })
     await this.ready()
+  }
+
+  save () {
+    const shortPath = relative(process.cwd(), this.nodeState.path)
+    console.info(`Saving devnet node to ${shortPath}`)
+    const data = { chainId: this.chainId, port: this.port }
+    this.nodeState.save(data)
+    return this
+  }
+
+  async respawn () {
+    const shortPath = relative(process.cwd(), this.nodeState.path)
+    // if no node state, spawn
+    if (!this.nodeState.exists()) {
+      console.info(`No devnet found at ${bold(shortPath)}`)
+      return this.spawn()
+    }
   }
 
   protected async ready (): Promise<void> {
@@ -508,11 +525,11 @@ export abstract class ManagedDevnet extends Devnet {
 
   async kill () { throw new Error('not implemented') }
 
-  save (): this { throw new Error('not implemented') }
-
   managerURL: URL = new URL(
     process.env.FADROMA_DEVNET_MANAGER_URL || 'http://devnet:8080'
   )
+
+  apiURL: URL = new URL('http://devnet:1317')
 
   /** Send a HTTP request to the devnet manager API */
   protected queryManagerURL (

@@ -6,65 +6,52 @@ let ready = false
 
 const server = require('http').createServer(onRequest)
 
-async function onRequest ({ method, url }, res) {
+function onRequest ({ method, url }, res) {
 
   const { pathname, searchParams } = new URL(url, 'http://id.gaf')
-
-  console.debug({method, pathname, searchParams})
-
   let code = 400
   let data = {error:'Invalid request'}
-
   switch (pathname) {
-
-    case '/spawn':
-      if (['id','genesis','port'].every(param=>searchParams.has(param))) {
-        if (!node) {
-          code = 200
-          node = spawnNode(
-            chainId = searchParams.get('id'),
-            searchParams.get('genesis').split(',').join(' '),
-            searchParams.get('port')
-          )
-          data = {ok:'Spawned node'}
-        } else {
-          data.error = 'Node already running'
-        }
-      } else {
-        data.error = 'Pass ?id=CHAIN_ID&genesis=NAME1,NAME2&port=PORT query param'
-      }
-      break
-
-    case '/ready':
-      code = 200
-      data = { ready }
-      break
-
-    case '/identity':
-      if (searchParams.has('name')) {
-        code = 200
-        const name = searchParams.get('name')
-        const path = `/receipts/${chainId}/identities/${name}.json`
-        data = JSON.parse(require('fs').readFileSync(path, 'utf8'))
-      } else {
-        data.error = 'Pass ?name=IDENTITY_NAME query param'
-      }
-      break
-
-    default:
-      data.valid = [
-        '/spawn?id=CHAIN_ID&genesis=NAME1,NAME2',
-        '/ready',
-        '/identity?name=IDENTITY',
-      ]
-
+    case '/spawn': handleSpawn(); break
+    case '/ready': handleReady(); break
+    case '/identity': handleId(); break
   }
-
   res.writeHead(code)
   res.end(JSON.stringify(data))
 
-  console.debug({code, data})
+  function handleSpawn () {
+    if (['id','genesis','port'].every(param=>searchParams.has(param))) {
+      if (!node) {
+        code = 200
+        node = spawnNode(
+          chainId = searchParams.get('id'),
+          searchParams.get('genesis').split(',').join(' '),
+          searchParams.get('port')
+        )
+        data = {ok:'Spawned node'}
+      } else {
+        data.error = 'Node already running'
+      }
+    } else {
+      data.error = 'Pass ?id=CHAIN_ID&genesis=NAME1,NAME2&port=PORT query param'
+    }
+  }
 
+  function handleReady () {
+    code = 200
+    data = { ready }
+  }
+
+  function handleId () {
+    if (searchParams.has('name')) {
+      code = 200
+      const name = searchParams.get('name')
+      const path = `/receipts/${chainId}/identities/${name}.json`
+      data = JSON.parse(require('fs').readFileSync(path, 'utf8'))
+    } else {
+      data.error = 'Pass ?name=IDENTITY_NAME query param'
+    }
+  }
 }
 
 function spawnNode (
@@ -72,21 +59,23 @@ function spawnNode (
   GenesisAccounts,
   Port = '1317'
 ) {
-  node = require('child_process').spawn(
+  const { stdout, stderr } = node = require('child_process').spawn(
     '/usr/bin/bash', [ '/Scrt_1_2_Node.sh' ], {
-      stdio: [null, 'pipe', 'inherit'],
+      stdio: [null, 'pipe', 'pipe'],
       env: { ...process.env, ChainID, GenesisAccounts, Port }
     }
   )
+  if (!process.env.FADROMA_QUIET) {
+    stdout.pipe(process.stdout)
+    stderr.pipe(process.stderr)
+  }
   let output = ''
-  node.stdout.pipe(process.stdout)
-  node.stdout.on('data', function waitUntilReady (data) {
+  stderr.on('data', function waitUntilReady (data) {
     data = String(data)
     output += data
-    //console.log({data})
     if (output.includes('indexed block')) {
       ready = true
-      node.stdout.off('data', waitUntilReady)
+      stderr.off('data', waitUntilReady)
     }
   })
 }

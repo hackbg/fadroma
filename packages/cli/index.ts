@@ -99,7 +99,13 @@ export class Fadroma {
       // Run a sub-procedure in the same context,
       // but without mutating the context.
       async run <T> (procedure: Function, args: Record<string, any> = {}): Promise<T> {
-        console.info(bold('Running procedure:'), procedure.name||'(unnamed)', '{', Object.keys(args).join(' '), '}')
+        if (!procedure) {
+          throw new Error('Tried to run missing procedure.')
+        }
+        console.info(
+          bold('Running procedure:'), procedure.name||'(unnamed)',
+          '{', Object.keys(args).join(' '), '}'
+        )
         const T0 = + new Date()
         let fail = false
         try {
