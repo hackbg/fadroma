@@ -11,6 +11,7 @@ path = "lib.rs"
 fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
 fadroma-storage       = { path = "../fadroma-storage" }
 serde                 = { version = "1.0.103", default-features = false, features = ["derive"] }
+schemars = "0.7"
 
 remain    = { version = "0.2.2"  }
 ripemd160 = { version = "0.9.1"  }

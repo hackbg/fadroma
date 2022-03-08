@@ -1,6 +1,6 @@
-use fadroma::{
-    to_binary, Api, Binary, CanonicalAddr, Composable, HumanAddr, Querier, StdError, StdResult,
-    Storage, Uint128,
+use fadroma_platform_scrt::{
+    to_binary, Api, Binary, CanonicalAddr, HumanAddr, Querier, StdError, StdResult, Storage,
+    Uint128,
 };
 use ripemd160::{Digest, Ripemd160};
 use schemars::JsonSchema;
@@ -15,6 +15,8 @@ use secp256k1::Secp256k1;
 use sha2::Sha256;
 #[cfg(target_arch = "wasm32")]
 use sha2::Sha256;
+
+use crate::Composable;
 
 pub trait Permission: Serialize + JsonSchema + Clone + PartialEq {}
 
