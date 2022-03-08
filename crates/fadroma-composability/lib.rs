@@ -14,3 +14,6 @@ pub use response::*;
 
 mod namespace_helpers;
 use namespace_helpers::*;
+
+pub mod composable_permit;
+use composable_permit::*;
