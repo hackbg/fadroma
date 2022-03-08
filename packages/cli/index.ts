@@ -18,32 +18,49 @@ export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
+export const {
+  FADROMA_UPLOAD_CACHE,
+  FADROMA_CHAIN
+} = process.env
+
 export class Fadroma {
-
-  static Build = {
-    Scrt_1_2: {
-      WithCache: Scrt_1_2.Builder.enable
-    }
-  }
-
-  static Upload = {
-    FromFile: {
-      WithCache: CachingFSUploader.enable,
-      NoCache:   FSUploader.enable
-    }
-  }
-
-  static Deploy = {
-    New:    Deployments.new,
-    Append: Deployments.activate,
-    Status: Deployments.status,
-  }
 
   // metastatic!
   Build  = Fadroma.Build
   Upload = Fadroma.Upload
   Deploy = Fadroma.Deploy
 
+  /** Adds a builder to the command context. */
+  static Build = {
+    Scrt_1_2: function enableScrtBuilder_1_2 () {
+      return { builder: Scrt_1_2.getBuilder() }
+    }
+  }
+
+  /** Adds an uploader to the command context. */
+  static Upload = {
+    FromFile ({
+      agent,
+      caching = !!FADROMA_UPLOAD_CACHE
+    }) {
+      if (caching) {
+        return { uploader: new CachingFSUploader(agent) }
+      } else {
+        return { uploader: new FSUploader(agent) }
+      }
+    }
+  }
+
+  static Deploy = {
+    /** Creates a new deployment and adds it to the command context. */
+    New:    Deployments.new,
+    /** Adds the currently active deployment to the command context. */
+    Append: Deployments.activate,
+    /** Prints the status of the active deployment. */
+    Status: Deployments.status,
+  }
+
+  /** Call this with `import.meta.url` at the end of a command module. */
   module (url: string): this {
     // if main
     if (process.argv[1] === fileURLToPath(url)) {
@@ -60,7 +77,7 @@ export class Fadroma {
     runCommands.default(this.commands, commands)
   }
 
-  chainId = process.env.FADROMA_CHAIN
+  chainId = FADROMA_CHAIN
 
   /** Establish correspondence between an input command
     * and a series of procedures to execute */

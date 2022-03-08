@@ -18,12 +18,14 @@ export const collectCrates = (workspace: string, crates: string[]) =>
 
 /** This builder talks to a remote build server over HTTP. */
 export abstract class ManagedBuilder extends Builder {
-  manager: Endpoint
   constructor (options: { managerURL?: string } = {}) {
     super()
     const { managerURL = process.env.FADROMA_BUILD_MANAGER } = options
     this.manager = new Endpoint(managerURL)
   }
+  /** HTTP endpoint to request builds */
+  manager: Endpoint
+  /** Perform a managed build. */
   async build (source): Promise<Artifact> {
     // Support optional build caching
     const prebuilt = this.prebuild(source)
@@ -41,23 +43,34 @@ export abstract class ManagedBuilder extends Builder {
   * Subclasses need to define the build image and script to run,
   * as well as a Dockerfile to build the build image. */
 export abstract class DockerodeBuilder extends Builder {
-  abstract buildImage:      string
-  abstract buildDockerfile: string
-  abstract buildScript:     string
+  constructor (options) {
+    super()
+    this.image      = options.image
+    this.dockerfile = options.dockerfile
+    this.script     = options.script
+    this.socketPath = options.socketPath || '/var/run/docker.sock'
+    this.docker     = new Docker({ socketPath: this.socketPath })
+  }
+  /** Tag of the docker image for the build container. */
+  image:      string
+  /** Path to the dockerfile to build the build container if missing. */
+  dockerfile: string
+  /** Path to the build script to be mounted and executed in the container. */
+  script:     string
   /** Used to launch build container. */
-  socketPath: string = '/var/run/docker.sock'
+  socketPath: string
   /** Used to launch build container. */
-  docker:     Docker = new Docker({ socketPath: this.socketPath })
+  docker:     Docker
   /** Set the first time this Builder instance is used to build something. */
   private ensuringBuildImage: Promise<string>|null = null
   /** If `ensuringBuildImage` is not set, sets it to a Promise that resolves
     * when the build image is available. Returns that Promise every time. */
   private get buildImageReady () {
     if (!this.ensuringBuildImage) {
-      console.info(bold('Ensuring build image:'), this.buildImage, 'from', this.buildDockerfile)
-      return this.ensuringBuildImage = ensureDockerImage(this.buildImage, this.buildDockerfile, this.docker)
+      console.info(bold('Ensuring build image:'), this.image, 'from', this.dockerfile)
+      return this.ensuringBuildImage = ensureDockerImage(this.image, this.dockerfile, this.docker)
     } else {
-      console.info(bold('Already ensuring build image from parallel build:'), this.buildImage)
+      console.info(bold('Already ensuring build image from parallel build:'), this.image)
       return this.ensuringBuildImage
     }
   }
@@ -74,7 +87,7 @@ export abstract class DockerodeBuilder extends Builder {
     const image = await this.buildImageReady
     // Configuration of the build container
     const cmd = `bash /entrypoint.sh ${crate} ${ref}`
-    const args = getBuildContainerArgs(workspace, ref, outputDir, this.buildScript)
+    const args = getBuildContainerArgs(workspace, ref, outputDir, this.script)
     // Run the build in the container
     console.debug(
       `Running ${bold(cmd)} in ${bold(image)}`,

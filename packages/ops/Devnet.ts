@@ -3,7 +3,7 @@ import * as HTTP from 'http'
 import {
   Console, bold,
   Directory, JSONDirectory,
-  TextFile, JSONFile,
+  JSONFile,
   Path, basename, relative, resolve, cwd,
   waitPort, freePort,
   Docker, ensureDockerImage, waitUntilLogsSay,
@@ -13,6 +13,12 @@ import freeportAsync from 'freeport-async'
 import type { Identity } from './Core'
 
 const console = Console('@fadroma/ops/Devnet')
+
+export const {
+  FADROMA_CHAIN,
+  FADROMA_DEVNET_MANAGER,
+  FADROMA_EPHEMERAL
+} = process.env
 
 /** Domain API. A Devnet is created from a given chain ID
   * with given pre-configured identities, and its state is stored
@@ -34,12 +40,12 @@ export abstract class Devnet {
   /** Creates an object representing a devnet.
     * Use the `respawn` method to get it running. */
   constructor ({ chainId, identities, stateRoot }: DevnetOptions) {
+    this.chainId = chainId || this.chainId
     if (!this.chainId) {
       throw new Error(
         '@fadroma/ops/Devnet: refusing to create directories for devnet with empty chain id'
       )
     }
-    this.chainId = chainId
     if (identities) {
       this.genesisAccounts = identities
     }
@@ -138,13 +144,9 @@ export abstract class Devnet {
     if (chain.node) {
       await chain.node.terminate()
     } else {
-      console.warn(bold(process.env.FADROMA_CHAIN), 'not a devnet')
+      console.warn(bold(FADROMA_CHAIN), 'not a devnet')
     }
   }
-
-  /** Once this phrase is encountered in the log output
-    * from the container, the devnet is ready to accept requests. */
-  abstract readyPhrase: string
 
 }
 
@@ -157,14 +159,14 @@ export type ManagedDevnetOptions = DevnetOptions & {
 /** When running in docker-compose, Fadroma needs to request
   * from the devnet container to spawn a chain node with the
   * given chain id and identities via a HTTP API. */
-export abstract class ManagedDevnet extends Devnet {
+export class ManagedDevnet extends Devnet {
 
   constructor (options) {
     super(options)
     console.info(
       'Constructing', bold('remotely managed'), 'devnet'
     )
-    const { managerURL = process.env.FADROMA_DEVNET_MANAGER } = options
+    const { managerURL = FADROMA_DEVNET_MANAGER } = options
     this.manager = new Endpoint(managerURL)
   }
 
@@ -232,6 +234,11 @@ export abstract class ManagedDevnet extends Devnet {
 export type DockerodeDevnetOptions = DevnetOptions & {
   /** Docker image of the chain's runtime. */
   image?: string
+  /** Init script to launch the devnet. */
+  initScript?: string
+  /** Once this string is encountered in the log output
+    * from the container, the devnet is ready to accept requests. */
+  readyPhrase?: string
   /** Handle to Dockerode or compatible (TODO mock!) */
   docker?: {
     getImage (): {
@@ -258,15 +265,7 @@ export type DockerodeDevnetOptions = DevnetOptions & {
 
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
-export abstract class DockerodeDevnet extends Devnet {
-
-  /** This should point to the standard production docker image for the network. */
-  abstract readonly image: string
-
-  /** Mounted into devnet container in place of default init script
-    * in order to add custom genesis accounts with initial balances
-    * and store their keys. */
-  abstract readonly initScript: TextFile
+export class DockerodeDevnet extends Devnet {
 
   constructor (options: DockerodeDevnetOptions = {}) {
     super(options)
@@ -274,11 +273,22 @@ export abstract class DockerodeDevnet extends Devnet {
     if (options.docker) {
       this.docker = options.docker
     }
-    this.identities = this.stateRoot.subdir('identities',  JSONDirectory)
-    this.daemonDir  = this.stateRoot.subdir('secretd',     Directory)
-    this.clientDir  = this.stateRoot.subdir('secretcli',   Directory)
-    this.sgxDir     = this.stateRoot.subdir('sgx-secrets', Directory)
+    this.identities  = this.stateRoot.subdir('identities',  JSONDirectory)
+    this.daemonDir   = this.stateRoot.subdir('secretd',     Directory)
+    this.clientDir   = this.stateRoot.subdir('secretcli',   Directory)
+    this.sgxDir      = this.stateRoot.subdir('sgx-secrets', Directory)
+    this.image       = options.image
+    this.initScript  = options.initScript
+    this.readyPhrase = options.readyPhrase
   }
+
+  /** This should point to the standard production docker image for the network. */
+  image: string
+
+  /** Mounted into devnet container in place of default init script
+    * in order to add custom genesis accounts with initial balances
+    * and store their keys. */
+  initScript: string
 
   /** Mounted out of devnet container to persist keys of genesis wallets. */
   identities: JSONDirectory
@@ -296,6 +306,10 @@ export abstract class DockerodeDevnet extends Devnet {
 
   /** Mounted out of devnet container to persist SGX state. */
   sgxDir: Directory
+
+  /** Once this phrase is encountered in the log output
+    * from the container, the devnet is ready to accept requests. */
+  readyPhrase: string
 
   async spawn () {
     // tell the user that we have begun
@@ -395,7 +409,7 @@ export abstract class DockerodeDevnet extends Devnet {
     if (!running) this.startContainer(id)
     // ...and try to make sure it dies when the Node process dies
     process.on('beforeExit', () => {
-      if (process.env.FADROMA_EPHEMERAL) {
+      if (FADROMA_EPHEMERAL) {
         this.killContainer(id)
       } else {
         console.log()
@@ -491,7 +505,7 @@ export async function getDevnetContainerOptions ({
   port,
   stateRoot
 }: DockerodeDevnet) {
-  const initScriptName = resolve('/', basename(initScript.path))
+  const initScriptName = resolve('/', basename(initScript))
   return {
     AutoRemove:   true,
     Image:        image,
@@ -510,7 +524,7 @@ export async function getDevnetContainerOptions ({
     ExposedPorts: { [`${port}/tcp`]: {} },
     HostConfig:   { NetworkMode: 'bridge'
                   , Binds: [
-                      `${initScript.path}:${initScriptName}:ro`,
+                      `${initScript}:${initScriptName}:ro`,
                       `${stateRoot.path}:/receipts/${chainId}:rw`
                     ]
                   , PortBindings: {
