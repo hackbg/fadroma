@@ -12,6 +12,7 @@ if [ -z "${Ref+empty}" ]; then
   echo "Building $Crate from $Ref in $BuildDir"
   mkdir -p "$BuildDir"
   cp -rT "$Workspace" "$BuildDir"
+  cd "$BuildDir"
   echo "Cleaning untracked files..."
   git stash -u
   git reset --hard --recurse-submodules
