@@ -109,7 +109,6 @@ export class Fadroma {
       timestamp: timestamp(),
       chain,
       agent,
-      uploadAgent: agent,
       deployAgent: agent,
       clientAgent: agent,
       suffix: `+${timestamp()}`,

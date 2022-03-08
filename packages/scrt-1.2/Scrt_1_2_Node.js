@@ -1,4 +1,7 @@
-const { PORT = 8080 } = process.env
+const {
+  PORT          = 8080,
+  FADROMA_QUIET = false
+} = process.env
 
 let node
 let chainId
@@ -14,14 +17,16 @@ console.log(
 
 function onRequest ({ method, url }, res) {
 
+  const routes = {
+    '/spawn': handleSpawn,
+    '/ready': handleReady,
+    '/identity': handleId
+  }
+
   const { pathname, searchParams } = new URL(url, 'http://id.gaf')
   let code = 400
   let data = {error:'Invalid request'}
-  switch (pathname) {
-    case '/spawn': handleSpawn(); break
-    case '/ready': handleReady(); break
-    case '/identity': handleId(); break
-  }
+  if (routes[pathname]) routes[pathname]()
   res.writeHead(code)
   res.end(JSON.stringify(data))
 
@@ -71,7 +76,7 @@ function spawnNode (
       env: { ...process.env, ChainID, GenesisAccounts, Port }
     }
   )
-  if (!process.env.FADROMA_QUIET) {
+  if (!FADROMA_QUIET) {
     stdout.pipe(process.stdout)
     stderr.pipe(process.stderr)
   }

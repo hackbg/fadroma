@@ -1,4 +1,7 @@
-const { PORT = 8080 } = process.env
+const {
+  PORT          = 8080,
+  FADROMA_QUIET = false
+} = process.env
 
 const builds = {}
 
@@ -12,24 +15,36 @@ console.log(
 
 async function onRequest ({ method, url }, res) {
 
+  const routes = {
+    '/build': handleBuild
+  }
+
   const { pathname, searchParams } = new URL(url, 'http://id.gaf')
   let code = 400
   let data = {error:'Invalid request'}
-  switch (pathname) {
-    case '/build': await handleBuild(); break
-  }
+  if (routes[pathname]) await routes[pathname]()
   res.writeHead(code)
   res.end(JSON.stringify(data))
 
-  function handleBuild () {
-    // mkdir -p /tmp/fadroma_build_???
-    // cp -rT /src /tmp/fadroma_build_
-    // git stash -u
-    // git reset --hard --recurse-submodules
-    // git clean -f -d -x
-    // git checkout $REF
-    // git submodule update --init --recursive
-    // git log -1
+  async function handleBuild () {
+    if (!searchParams.has('crate')) {
+      data.error = 'Pass ?crate=CRATE'
+    } else {
+      const stdio = FADROMA_QUIET ? 'ignore' : 'inherit'
+      const crate = searchParams.get('crate')
+      const ref   = searchParams.get('ref')
+      return new Promise((resolve, reject)=>{
+        require('child_process').execFile(
+          '/bin/bash', [ '/Scrt_1_2_Build.sh' ], {
+            stdio: [null, stdio, stdio],
+            env: { ...process.env }
+          }, (error, stdout, stderr) => {
+            if (error) return reject(error)
+            resolve()
+          }
+        )
+      })
+    }
   }
 
 }

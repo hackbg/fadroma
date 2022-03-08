@@ -3,15 +3,10 @@ import {
   Fees, Gas,
   DevnetOptions, Devnet, DockerodeDevnet, ManagedDevnet,
   Path, Directory, TextFile, JSONFile, JSONDirectory,
-  DockerBuilder,
   Client
 } from '@fadroma/ops'
 
 import type { SigningCosmWasmClient } from 'secretjs'
-
-export const __dirname = dirname(fileURLToPath(import.meta.url))
-
-export const buildScript = resolve(__dirname, 'ScrtBuild.sh')
 
 export class ScrtGas extends Gas {
   static denom = 'uscrt'
@@ -25,12 +20,6 @@ export class ScrtGas extends Gas {
     super(x)
     this.amount.push({amount: String(x), denom: ScrtGas.denom})
   }
-}
-
-export class ScrtDockerBuilder extends DockerBuilder {
-  buildImage      = null
-  buildDockerfile = null
-  buildScript     = buildScript
 }
 
 export type UnsignedTX = {
