@@ -8,6 +8,7 @@ import {
   waitPort, freePort,
   Docker, ensureDockerImage, waitUntilLogsSay,
 } from '@hackbg/tools'
+import { Endpoint } from './Endpoint'
 import freeportAsync from 'freeport-async'
 import type { Identity } from './Core'
 
@@ -80,7 +81,7 @@ export abstract class Devnet {
   abstract getGenesisAccount (name: string): Promise<object>
 
   /** Start the node. */
-  abstract spawn (): Promise<void>
+  abstract spawn (): Promise<this>
 
   /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
@@ -119,7 +120,7 @@ export abstract class Devnet {
   }
 
   /** Start the node if stopped. */
-  abstract respawn (): Promise<void>
+  abstract respawn (): Promise<this>
 
   /** Stop this node and delete its state. */
   async terminate () {
@@ -144,6 +145,85 @@ export abstract class Devnet {
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   abstract readyPhrase: string
+
+}
+
+/** Parameters for the HTTP API-based implementation of Devnet. */
+export type ManagedDevnetOptions = DevnetOptions & {
+  /** Base URL of the API that controls the managed node. */
+  managerURL: string
+}
+
+/** When running in docker-compose, Fadroma needs to request
+  * from the devnet container to spawn a chain node with the
+  * given chain id and identities via a HTTP API. */
+export abstract class ManagedDevnet extends Devnet {
+
+  constructor (options) {
+    super(options)
+    console.info(
+      'Constructing', bold('remotely managed'), 'devnet'
+    )
+    const { managerURL = process.env.FADROMA_DEVNET_MANAGER } = options
+    this.manager = new Endpoint(managerURL)
+  }
+
+  manager: Endpoint
+
+  apiURL: URL = new URL('http://devnet:1317')
+
+  async spawn () {
+    const port = await freeportAsync()
+    this.apiURL.port = port
+    console.info(
+      bold('Spawning managed devnet'), this.chainId,
+      'on port', port
+    )
+    await this.manager.get('/spawn', {
+      id:      this.chainId,
+      genesis: this.genesisAccounts.join(','),
+      port
+    })
+    await this.ready()
+    return this
+  }
+
+  save () {
+    const shortPath = relative(process.cwd(), this.nodeState.path)
+    console.info(`Saving devnet node to ${shortPath}`)
+    const data = { chainId: this.chainId, port: this.port }
+    this.nodeState.save(data)
+    return this
+  }
+
+  async respawn () {
+    const shortPath = relative(process.cwd(), this.nodeState.path)
+    // if no node state, spawn
+    if (!this.nodeState.exists()) {
+      console.info(`No devnet found at ${bold(shortPath)}`)
+      return this.spawn()
+    }
+    return this
+  }
+
+  protected async ready (): Promise<void> {
+    while (true) {
+      const { ready } = await this.manager.get('/ready')
+      if (ready) {
+        break
+      }
+      console.info('Waiting for devnet to become ready...')
+      await new Promise(resolve=>setTimeout(resolve, 1000))
+    }
+  }
+
+  async getGenesisAccount (name: string): Promise<object> {
+    return this.manager.get('/identity', { name })
+  }
+
+  async erase () { throw new Error('not implemented') }
+
+  async kill () { throw new Error('not implemented') }
 
 }
 
@@ -234,7 +314,7 @@ export abstract class DockerodeDevnet extends Devnet {
     // create the container
     console.info('Launching a devnet container...')
     await ensureDockerImage(this.image, this.docker)
-    this.container = await this.createContainer(devnetContainerOptions(this))
+    this.container = await this.createContainer(getDevnetContainerOptions(this))
     const shortId = this.container.id.slice(0, 8)
     // emit any warnings
     if (this.container.Warnings) {
@@ -253,6 +333,7 @@ export abstract class DockerodeDevnet extends Devnet {
     await waitUntilLogsSay(this.container, this.readyPhrase)
     // wait for port to be open
     await waitPort({ host: this.host, port: Number(this.port) })
+    return this
   }
 
   load (): {
@@ -324,6 +405,7 @@ export abstract class DockerodeDevnet extends Devnet {
         )
       }
     })
+    return this
   }
 
   /** Kill the container, if necessary find it first */
@@ -361,7 +443,7 @@ export abstract class DockerodeDevnet extends Devnet {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
         console.warn(`Failed to delete ${path}: ${e.message}; trying cleanup container...`)
         await ensureDockerImage(this.image, this.docker)
-        const container = await this.createContainer(cleanupContainerOptions(this))
+        const container = await this.createContainer(getCleanupContainerOptions(this))
         console.info(`Starting cleanup container...`)
         await container.start()
         console.info('Waiting for cleanup to finish...')
@@ -401,7 +483,7 @@ export abstract class DockerodeDevnet extends Devnet {
 
 /** What Dockerode passes to the Docker API
   * in order to launch a devnet container. */
-export async function devnetContainerOptions ({
+export async function getDevnetContainerOptions ({
   chainId,
   genesisAccounts,
   image,
@@ -439,7 +521,7 @@ export async function devnetContainerOptions ({
   * in order to launch a cleanup container
   * (for removing root-owned devnet files
   * without escalating on the host) */
-export async function cleanupContainerOptions ({
+export async function getCleanupContainerOptions ({
   image,
   chainId,
   port,
@@ -455,104 +537,3 @@ export async function cleanupContainerOptions ({
     //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
   }
 }
-
-/** Parameters for the HTTP API-based implementation of Devnet. */
-export type ManagedDevnetOptions = DevnetOptions & {
-  /** Base URL of the API that controls the managed node. */
-  managerURL: string
-}
-
-/** When running in docker-compose, Fadroma needs to request
-  * from the devnet container to spawn a chain node with the
-  * given chain id and identities via a HTTP API. */
-export abstract class ManagedDevnet extends Devnet {
-
-  constructor (options) {
-    super(options)
-    console.info(
-      'Constructing', bold('remotely managed'), 'devnet'
-    )
-  }
-
-  async spawn () {
-    const port = await freeportAsync()
-    this.apiURL.port = port
-    console.info(
-      bold('Spawning managed devnet'), this.chainId,
-      'on port', port
-    )
-    await this.queryManagerURL('/spawn', {
-      id:      this.chainId,
-      genesis: this.genesisAccounts.join(','),
-      port
-    })
-    await this.ready()
-  }
-
-  save () {
-    const shortPath = relative(process.cwd(), this.nodeState.path)
-    console.info(`Saving devnet node to ${shortPath}`)
-    const data = { chainId: this.chainId, port: this.port }
-    this.nodeState.save(data)
-    return this
-  }
-
-  async respawn () {
-    const shortPath = relative(process.cwd(), this.nodeState.path)
-    // if no node state, spawn
-    if (!this.nodeState.exists()) {
-      console.info(`No devnet found at ${bold(shortPath)}`)
-      return this.spawn()
-    }
-  }
-
-  protected async ready (): Promise<void> {
-    while (true) {
-      const { ready } = await this.queryManagerURL('/ready')
-      if (ready) {
-        break
-      }
-      console.info('Waiting for devnet to become ready...')
-      await new Promise(resolve=>setTimeout(resolve, 1000))
-    }
-  }
-
-  async getGenesisAccount (name: string): Promise<object> {
-    return this.queryManagerURL('/identity', { name })
-  }
-
-  async erase () { throw new Error('not implemented') }
-
-  async kill () { throw new Error('not implemented') }
-
-  managerURL: URL = new URL(
-    process.env.FADROMA_DEVNET_MANAGER_URL || 'http://devnet:8080'
-  )
-
-  apiURL: URL = new URL('http://devnet:1317')
-
-  /** Send a HTTP request to the devnet manager API */
-  protected queryManagerURL (
-    pathname: string = '',
-    params: Record<string, string> = {}
-  ): Promise<any> {
-    const url = Object.assign(new URL(this.managerURL.toString()), { pathname })
-    for (const [key, value] of Object.entries(params)) {
-      url.searchParams.set(key, value)
-    }
-    return new Promise((resolve, reject)=>{
-      HTTP.get(url.toString(), res => {
-        let data = ''
-        res.on('data', chunk => data += chunk)
-        res.on('end', () => resolve(JSON.parse(data)))
-      }).on('error', reject)
-    })
-  }
-
-}
-
-const readJSONResponse = res => new Promise((resolve, reject)=>{
-  let data = ''
-  res.on('data', chunk => data += chunk)
-  res.on('end', () => resolve(JSON.parse(data)))
-})

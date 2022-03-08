@@ -5,6 +5,12 @@ let chainId
 let ready = false
 
 const server = require('http').createServer(onRequest)
+server.listen(PORT)
+console.log(
+  `Fadroma Devnet for Secret Network 1.2`,
+  `listening for launch request on`,
+  `http://${require('os').hostname()}:${PORT}`
+)
 
 function onRequest ({ method, url }, res) {
 
@@ -79,7 +85,3 @@ function spawnNode (
     }
   })
 }
-
-server.listen(PORT)
-
-console.log(`Fadroma Devnet listening for launch request on ${PORT}`)

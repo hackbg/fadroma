@@ -2,47 +2,120 @@ import { URL } from 'url'
 import {
   Console, bold, randomHex,
   dirname, fileURLToPath, resolve, TextFile,
-  Identity, Artifact, Template,
-  Scrt, DockerodeScrtDevnet, ManagedScrtDevnet,
+  Identity,
+  Scrt,
   ScrtDockerBuilder,
   Agent, ScrtAgentJS, ScrtAgentTX,
   ChainMode,
+  DockerodeBuilder, ManagedBuilder,
   DockerodeDevnet, ManagedDevnet,
 } from '@fadroma/scrt'
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
 const console = Console('@fadroma/scrt-1.2')
 
-const {
+export const __dirname = dirname(fileURLToPath(import.meta.url))
+
+export const {
   FADROMA_PREPARE_MULTISIG,
-  SCRT_API_URL,
+  FADROMA_BUILD_MANAGER,
+  FADROMA_DEVNET_MANAGER,
   SCRT_AGENT_NAME,
   SCRT_AGENT_ADDRESS,
   SCRT_AGENT_MNEMONIC,
-  DATAHUB_KEY
+  DATAHUB_KEY,
+  SCRT_MAINNET_CHAIN_ID       = 'secret-4',
+  SCRT_MAINNET_API_URL        = `https://${SCRT_MAINNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`,
+  SCRT_TESTNET_CHAIN_ID       = 'pulsar-2',
+  SCRT_TESTNET_API_URL        = `https://secret-${SCRT_TESTNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`,
+  SCRT_DEVNET_CHAIN_ID_PREFIX = 'dev-scrt',
+  SCRT_BUILD_IMAGE            = 'hackbg/fadroma-scrt-builder:1.2',
+  SCRT_BUILD_DOCKERFILE       = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile')
 } = process.env
 
-export const __dirname = dirname(fileURLToPath(import.meta.url))
-export const buildImage = 'hackbg/fadroma-scrt-builder:1.2'
-export const buildDockerfile = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile')
-export class ScrtDockerBuilder_1_2 extends ScrtDockerBuilder {
-  buildImage      = buildImage
-  buildDockerfile = buildDockerfile
-  static enable = () => ({ builder: new this() })
-}
+export default class Scrt_1_2 extends Scrt {
 
-export class Scrt_1_2 extends Scrt {
-  Agent = FADROMA_PREPARE_MULTISIG
-    ? ScrtAgentTX
-    : ScrtAgentJS_1_2
+  static Agent = FADROMA_PREPARE_MULTISIG ? ScrtAgentTX : ScrtAgentJS_1_2
+
+  Agent = Scrt_1_2.Agent
+
+  static APIClient = PatchedSigningCosmWasmClient_1_2
+
+  static defaultIdentity = {
+    name:     SCRT_AGENT_NAME,
+    address:  SCRT_AGENT_ADDRESS,
+    mnemonic: SCRT_AGENT_MNEMONIC
+  }
+
+  static chains = {
+
+    async Mainnet (url = SCRT_MAINNET_API_URL) {
+      return new Scrt_1_2(SCRT_MAINNET_CHAIN_ID, {
+        mode:   ChainMode.Mainnet,
+        apiURL: new URL(url),
+        defaultIdentity: Scrt_1_2.defaultIdentity,
+      })
+    },
+
+    async Testnet (url = SCRT_TESTNET_API_URL) {
+      return new Scrt_1_2(SCRT_TESTNET_CHAIN_ID, {
+        mode:   ChainMode.Testnet,
+        apiURL: new URL(url),
+        defaultIdentity: Scrt_1_2.defaultIdentity,
+      })
+    },
+
+    async Devnet () {
+      const node = await Scrt_1_2.getDevnet().respawn()
+      return new Scrt_1_2(node.chainId, {
+        node,
+        mode:   ChainMode.Devnet,
+        apiURL: new URL('http://localhost:1337'),
+        defaultIdentity: 'ADMIN',
+      })
+    }
+
+  }
+
+  static getDevnet = function getScrtDevnet_1_2 (
+    chainId: string = `${SCRT_DEVNET_CHAIN_ID_PREFIX}-${randomHex(4)}`,
+    manager: string = FADROMA_DEVNET_MANAGER
+  ) {
+    if (manager) {
+      return new ManagedDevnet({ manager, chainId })
+    } else {
+      return new DockerodeDevnet({
+        chainId,
+        image:       "enigmampc/secret-network-sw-dev:v1.2.0",
+        readyPhrase: 'indexed block',
+        initScript:  new TextFile(__dirname, 'Scrt_1_2_Node.sh')
+      })
+    }
+  }
+
+  static getBuilder = function getScrtBuilder_1_2 (
+    manager: string = FADROMA_BUILD_MANAGER
+  ) {
+    if (manager) {
+      return new ManagedBuilder({ manager })
+    } else {
+      return new DockerodeBuilder({
+        buildImage:      SCRT_BUILD_IMAGE
+        buildDockerfile: SCRT_BUILD_DOCKERFILE
+      })
+    }
+  }
 }
 
 export class ScrtAgentJS_1_2 extends ScrtAgentJS {
+
   API = PatchedSigningCosmWasmClient_1_2
+
   static create (options: Identity): Promise<Agent> {
     return ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
   }
-  async upload (artifact: Artifact): Promise<Template> {
+
+  async upload (artifact) {
     const result = await super.upload(artifact)
     // Non-blocking broadcast mode returns code ID = -1,
     // so we need to find the code ID manually from the output
@@ -66,71 +139,7 @@ export class ScrtAgentJS_1_2 extends ScrtAgentJS {
     }
     return result
   }
-}
 
-export class DockerodeScrtDevnet_1_2 extends DockerodeScrtDevnet {
-  image       = "enigmampc/secret-network-sw-dev:v1.2.0"
-  readyPhrase = 'indexed block'
-  initScript  = new TextFile(__dirname, 'Scrt_1_2_Node.sh')
-  constructor (options) { super(options) }
-}
-
-export class ManagedScrtDevnet_1_2 extends ManagedScrtDevnet {
-  constructor (options) { super(options) }
-}
-
-export const MAINNET_CHAIN_ID = 'secret-4'
-export const TESTNET_CHAIN_ID = 'pulsar-2'
-export const DEVNET_CHAIN_ID_PREFIX = 'dev-scrt'
-
-const defaultIdentity = {
-  name:     SCRT_AGENT_NAME,
-  address:  SCRT_AGENT_ADDRESS,
-  mnemonic: SCRT_AGENT_MNEMONIC
-}
-
-export default {
-  APIClient: PatchedSigningCosmWasmClient_1_2,
-  Agent:     ScrtAgentJS_1_2,
-  Builder:   ScrtDockerBuilder_1_2,
-  Devnet: {
-    Dockerode: DockerodeScrtDevnet_1_2,
-    Managed:   ManagedScrtDevnet_1_2
-  },
-  Chains: {
-    async Mainnet () {
-      return new Scrt_1_2(MAINNET_CHAIN_ID, {
-        mode: ChainMode.Mainnet,
-        defaultIdentity,
-        apiURL: new URL(
-          SCRT_API_URL||`https://secret-4--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`
-        ),
-      })
-    },
-    async Testnet () {
-      return new Scrt_1_2(TESTNET_CHAIN_ID, {
-        mode: ChainMode.Testnet,
-        defaultIdentity,
-        apiURL: new URL(
-          SCRT_API_URL||`https://secret-pulsar-2--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`
-        ),
-      })
-    },
-    async Devnet (managed = !!process.env.FADROMA_DOCKERIZED) {
-      const id = randomHex(4)
-      const chainId = `${DEVNET_CHAIN_ID_PREFIX}-${id}`
-      const node = managed
-        ? new ManagedScrtDevnet_1_2({ chainId })
-        : new DockerodeScrtDevnet_1_2({ chainId })
-      await node.respawn()
-      return new Scrt_1_2(chainId, {
-        node,
-        mode: ChainMode.Devnet,
-        defaultIdentity: 'ADMIN',
-        apiURL: new URL('http://localhost:1337'),
-      })
-    },
-  }
 }
 
 export * from '@fadroma/scrt'

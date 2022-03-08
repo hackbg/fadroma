@@ -1,7 +1,9 @@
+import * as HTTP from 'http'
 import { Console, bold } from '@hackbg/tools'
 import { resolve, relative, rimraf, spawnSync, existsSync, readFileSync } from '@hackbg/tools'
 import { Source, Builder, Artifact, codeHashForPath } from './Core'
 import { tmp, Docker, ensureDockerImage } from '@hackbg/tools'
+import { Endpoint } from './Endpoint'
 
 const console = Console('@fadroma/ops/Build')
 
@@ -14,20 +16,40 @@ export const collectCrates = (workspace: string, crates: string[]) =>
       {}
     )
 
-/** Builds a contract in a Docker build container.
-  * The info about the build container must be defined in a subclass. */
-export abstract class DockerBuilder extends Builder {
+/** This builder talks to a remote build server over HTTP. */
+export abstract class ManagedBuilder extends Builder {
+  manager: Endpoint
+  constructor (options: { managerURL?: string } = {}) {
+    super()
+    const { managerURL = process.env.FADROMA_BUILD_MANAGER } = options
+    this.manager = new Endpoint(managerURL)
+  }
+  async build (source): Promise<Artifact> {
+    // Support optional build caching
+    const prebuilt = this.prebuild(source)
+    if (prebuilt) {
+      return prebuilt
+    }
+    const { workspace, crate, ref = 'HEAD' } = source
+    const { location } = await this.manager.get('/build', { crate, ref })
+    const codeHash = codeHashForPath(location)
+    return { location, codeHash }
+  }
+}
 
+/** This builder launches a one-off build container using Dockerode.
+  * Subclasses need to define the build image and script to run,
+  * as well as a Dockerfile to build the build image. */
+export abstract class DockerodeBuilder extends Builder {
   abstract buildImage:      string
   abstract buildDockerfile: string
   abstract buildScript:     string
-
+  /** Used to launch build container. */
   socketPath: string = '/var/run/docker.sock'
+  /** Used to launch build container. */
   docker:     Docker = new Docker({ socketPath: this.socketPath })
-
   /** Set the first time this Builder instance is used to build something. */
   private ensuringBuildImage: Promise<string>|null = null
-
   /** If `ensuringBuildImage` is not set, sets it to a Promise that resolves
     * when the build image is available. Returns that Promise every time. */
   private get buildImageReady () {
@@ -39,29 +61,76 @@ export abstract class DockerBuilder extends Builder {
       return this.ensuringBuildImage
     }
   }
-
-  /** Execute a Dockerized build of a Source object, producing an Artifact. */
-  async build (source: Source): Promise<Artifact> {
-
-    let { workspace, crate, ref = 'HEAD' } = source
-
-    // For now, workspace-less crates are not supported.
-    if (!workspace) {
-      const msg = `[@fadroma/ops] Missing workspace path (for crate ${crate} at ${ref})`
-      throw new Error(msg)
+  async build (source) {
+    // Support optional build caching
+    const prebuilt = this.prebuild(source)
+    if (prebuilt) {
+      return prebuilt
     }
-
-    // Wait until the build image is available.
-    const buildImage = await this.buildImageReady
-
-    // Don't rebuild existing artifacts
-    // TODO make this optional
+    const { workspace, crate, ref = 'HEAD' } = source
     const outputDir = resolve(workspace, 'artifacts')
     const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
-    if (existsSync(location)) {
-      console.info('✅', bold(location), 'exists, not rebuilding.')
-      return { location, codeHash: codeHashForPath(location) }
+    // Wait until the build image is available.
+    const image = await this.buildImageReady
+    // Configuration of the build container
+    const cmd = `bash /entrypoint.sh ${crate} ${ref}`
+    const args = getBuildContainerArgs(workspace, ref, outputDir, this.buildScript)
+    // Run the build in the container
+    console.debug(
+      `Running ${bold(cmd)} in ${bold(image)}`,
+      `with the following options:`, args
+    )
+    const running = await this.docker.run(image, cmd, process.stdout, args)
+    const [{ Error:err, StatusCode:code }, container] = running
+    // Remove the container once it's exited
+    await container.remove()
+    // Throw error if build failed
+    if (err) {
+      throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
     }
+    if (code !== 0) {
+      console.error(bold('Build of'), crate, 'exited with', bold(code))
+      throw new Error(`[@fadroma/ops/Build] Build of ${crate} exited with status ${code}`)
+    }
+    const codeHash = codeHashForPath(location)
+    return { location, codeHash }
+  }
+}
+
+export function getBuildContainerArgs (
+  src:      string,
+  ref:      string,
+  output:   string,
+  command?: string,
+) {
+  const Binds = [
+    `${src}:/src:rw`,                         // Input
+    `${output}:/output:rw`,                   // Output
+    `project_cache_${ref}:/src/target:rw`,    // Cache
+    `cargo_cache_${ref}:/usr/local/cargo:rw`, // Cache
+  ]
+  if (command) {
+    Binds.push(`${command}:/entrypoint.sh:ro`)
+  }
+  return {
+    Tty:         true,
+    AttachStdin: true,
+    Entrypoint:  ['/bin/sh', '-c'],
+    HostConfig:  { Binds },
+    Env: [
+      'CARGO_NET_GIT_FETCH_WITH_CLI=true',
+      'CARGO_TERM_VERBOSE=true',
+      'CARGO_HTTP_TIMEOUT=240',
+      'LOCKED=',//'--locked'
+    ]
+  }
+}
+
+/** Builds a contract in a Docker build container.
+  * The info about the build container must be defined in a subclass. */
+export abstract class DockerBuilder extends Builder {
+
+  async build (source): Promise<Artifact> {
 
     // Temporary directory into which the working tree is copied
     // when building a non-HEAD commit.

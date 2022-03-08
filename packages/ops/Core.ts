@@ -1,12 +1,10 @@
 import type { Agent } from './Agent'
-import { colors, bold, Console } from '@hackbg/tools'
-const console = Console('@hackbg/fadroma')
-
+import { colors, bold, Console, resolve, readFileSync, existsSync } from '@hackbg/tools'
 export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
-
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
-import { readFileSync } from '@hackbg/tools'
+
+const console = Console('@hackbg/fadroma')
 
 export function codeHashForPath (location: string) {
   return toHex(new Sha256(readFileSync(location)).digest())
@@ -21,6 +19,25 @@ export class Source {
 }
 
 export abstract class Builder {
+  caching = true
+  protected prebuild ({ workspace, crate, ref = 'HEAD' }: Source): Artifact|null {
+    // For now, workspace-less crates are not supported.
+    if (!workspace) {
+      const msg = `[@fadroma/ops] Missing workspace path (for crate ${crate} at ${ref})`
+      throw new Error(msg)
+    }
+    // Don't rebuild existing artifacts
+    // TODO make this optional
+    if (this.caching) {
+      const outputDir = resolve(workspace, 'artifacts')
+      const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
+      if (existsSync(location)) {
+        console.info('✅', bold(location), 'exists, not rebuilding.')
+        return { location, codeHash: codeHashForPath(location) }
+      }
+    }
+    return null
+  }
   abstract build (source: Source, ...args): Promise<Artifact>
   buildMany (sources: Source[], ...args): Promise<Artifact[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
