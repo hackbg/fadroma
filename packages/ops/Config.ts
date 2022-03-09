@@ -64,19 +64,19 @@ export class Config {
     this.chain =
       env.FADROMA_CHAIN || 'unspecified'
     this.printTXs =
-      env.FADROMA_PRINT_TXS || false
-    this.uploadAlways =
-      Boolean(env.FADROMA_UPLOAD_ALWAYS || false)
+      env.FADROMA_PRINT_TXS || ''
+    this.uploadAlways = Boolean(
+      env.FADROMA_UPLOAD_ALWAYS || false)
     this.buildManager =
-      env.FADROMA_BUILD_MANAGER || false
-    this.buildUnsafeMountKeys =
-      Boolean(env.FADROMA_BUILD_UNSAFE_MOUNT_KEYS || false)
+      env.FADROMA_BUILD_MANAGER || null
+    this.buildUnsafeMountKeys = Boolean(
+      env.FADROMA_BUILD_UNSAFE_MOUNT_KEYS || false)
     this.devnetManager =
-      env.FADROMA_DEVNET_MANAGER || false
-    this.devnetEphemeral =
-      Boolean(env.FADROMA_DEVNET_EPHEMERAL || false)
-    this.prepareMultisig =
-      Boolean(env.FADROMA_PREPARE_MULTISIG || false)
+      env.FADROMA_DEVNET_MANAGER || null
+    this.devnetEphemeral = Boolean(
+      env.FADROMA_DEVNET_EPHEMERAL || false)
+    this.prepareMultisig = Boolean(
+      env.FADROMA_PREPARE_MULTISIG || false)
 
     this.datahub = {
       key:       env.FADROMA_DATAHUB_KEY,
@@ -91,14 +91,17 @@ export class Config {
       buildScript:
         env.SCRT_BUILD_SCRIPT     || resolve(__dirname, '../scrt-1.2/Scrt_1_2_Build.sh'),
 
-      mainnetApiUrl: '', // defined below
       mainnetChainId:
         env.SCRT_MAINNET_CHAIN_ID       || 'secret-4',
-      testnetApiUrl: '', // defined below
       testnetChainId:
         env.SCRT_TESTNET_CHAIN_ID       || 'pulsar-2',
       devnetChainIdPrefix:
         env.SCRT_DEVNET_CHAIN_ID_PREFIX || 'dev-scrt',
+
+      mainnetApiUrl:
+        '', // defined below
+      testnetApiUrl:
+        '', // defined below
 
       defaultIdentity: {
         name:     env.SCRT_AGENT_NAME,
@@ -111,6 +114,7 @@ export class Config {
       env.SCRT_MAINNET_API_URL ||
         `https://${this.scrt.mainnetChainId}--lcd--full.datahub.figment.io`+
         `/apikey/${this.datahub.key}/`
+
     this.scrt.testnetApiUrl =
       env.SCRT_TESTNET_API_URL ||
         `https://secret-${this.scrt.testnetChainId}--lcd--full.datahub.figment.io`+
@@ -120,11 +124,11 @@ export class Config {
 
   chain:                 string
   homeDir:               string
-  printTXs:              string|false
+  printTXs:              string
   uploadAlways:          boolean
-  buildManager:          string|false
+  buildManager:          string|null
   buildUnsafeMountKeys:  boolean
-  devnetManager:         string|false
+  devnetManager:         string|null
   devnetEphemeral:       boolean
   prepareMultisig:       boolean
   datahubKey:            string

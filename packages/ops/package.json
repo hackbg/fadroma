@@ -15,6 +15,7 @@
     "js-yaml":                   "^4.1.0",
     "json-schema-to-typescript": "^10.1.4",
     "limiter":                   "^2.1.0",
+    "line-transform-stream":     "^0.1.0",
     "toml":                      "^3"
   }
 }

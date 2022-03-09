@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -aemx
+set -aem
 Workspace=/src
 Crate=$1
 Ref=$2
@@ -7,11 +7,11 @@ CARGO_NET_GIT_FETCH_WITH_CLI=true
 CARGO_TERM_VERBOSE=true
 CARGO_HTTP_TIMEOUT=240
 LOCKED=
-Temp=/tmp/fadroma-build
-if [ "${Ref}" == "HEAD" ]; then
+Temp=/tmp/fadroma-build-$Crate
+if [ "$Ref" == "HEAD" ]; then
   echo "Building $Crate from working tree..."
 else
-  BuildDir="$Temp/$Crate_$Ref"
+  BuildDir="$Temp/$Ref"
   echo "Building $Crate from $Ref in $BuildDir"
   mkdir -p "$BuildDir"
   cp -rT "$Workspace" "$BuildDir"
@@ -24,8 +24,8 @@ else
   git checkout "$Ref"
   echo "Preparing submodules..."
   git submodule update --init --recursive
+  git log -1
 fi
-git log -1
 
 # Create a non-root user.
 USER=${USER:-1000}
@@ -43,7 +43,6 @@ chown $USER /output
 # As a non-root user,
 # execute a release build,
 # then optimize it with Binaryen.
-echo "Building $Crate..."
 cd /src
 Output=`echo "$Crate" | tr '-' '_'`
 FinalOutput="$Crate@$Ref.wasm"

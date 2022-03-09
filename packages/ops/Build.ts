@@ -1,4 +1,6 @@
 import * as HTTP from 'http'
+import { Transform } from 'stream'
+import LineTransformStream from 'line-transform-stream'
 import {
   Console, bold, resolve, relative, basename, rimraf, spawnSync, existsSync, readFileSync
 } from '@hackbg/tools'
@@ -92,7 +94,12 @@ export abstract class DockerodeBuilder extends Builder {
       `Running ${bold(cmd)} in ${bold(image)}`,
       `with the following options:`, args
     )
-    const running = await this.docker.run(image, cmd, process.stdout, args)
+    const output = new LineTransformStream(line=>{
+      const tag = `[${crate}@${ref}]`.padEnd(24)
+      return `[@fadroma/ops/Build] ${tag} ${line}`
+    })
+    output.pipe(process.stdout)
+    const running = await this.docker.run(image, cmd, output, args)
     const [{Error: err, StatusCode: code}, container] = running
     // Remove the container once it's exited
     await container.remove()
@@ -128,7 +135,7 @@ export function getBuildContainerArgs (
     if (config.buildUnsafeMountKeys) {
       // Keys for SSH cloning of submodules - dangerous!
       console.warn(
-        'Mounting your SSH keys directory into the build container (not particularly safe!)'
+        '!!! UNSAFE: Mounting your SSH keys directory into the build container'
       )
       binds.push(`${config.homeDir}/.ssh:/root/.ssh:rw`)
     } else {
@@ -144,7 +151,7 @@ export function getBuildContainerArgs (
                  Env:         ['CARGO_NET_GIT_FETCH_WITH_CLI=true',
                                'CARGO_TERM_VERBOSE=true',
                                'CARGO_HTTP_TIMEOUT=240',
-                               'LOCKED=',/*'--locked'*/]}
+                               'LOCKED=',/*'--locked'*/] }
   return [cmd, args]
 }
 

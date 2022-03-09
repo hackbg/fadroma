@@ -79,6 +79,7 @@ importers:
       js-yaml: ^4.1.0
       json-schema-to-typescript: ^10.1.4
       limiter: ^2.1.0
+      line-transform-stream: ^0.1.0
       toml: ^3
     dependencies:
       '@hackbg/tools': 1.0.0
@@ -92,6 +93,7 @@ importers:
       js-yaml: 4.1.0
       json-schema-to-typescript: 10.1.5
       limiter: 2.1.0
+      line-transform-stream: 0.1.0
       toml: 3.0.0
 
   packages/scrt:
@@ -2509,6 +2511,10 @@ packages:
     resolution: {integrity: sha512-361TYz6iay6n+9KvUUImqdLuFigK+K79qrUtBsXhJTLdH4rIt/r1y8r1iozwh8KbZNpujbFTSh74mJ7bwbAMOw==}
     dependencies:
       just-performance: 4.3.0
+    dev: false
+
+  /line-transform-stream/0.1.0:
+    resolution: {integrity: sha1-Hvhnmsy/cbBkREwroTsheFs+vXg=}
     dev: false
 
   /locate-path/5.0.0:

@@ -175,11 +175,11 @@ export class Fadroma {
         // by adding its outputs to it.
         context = { ...context, ...updates }
         const T2 = + new Date()
-        console.info('🟢 Deploy step', bold(name), colors.green('succeeded'), 'in', T2-T1, 'msec')
+        console.info('🟢 Command step', bold(name), colors.green('succeeded'), 'in', T2-T1, 'msec')
         stepTimings.push([name, T2-T1, false])
       } catch (e) {
         const T2 = + new Date()
-        console.error('🔴 Deploy step', bold(name), colors.red('failed'), 'in', T2-T1, 'msec')
+        console.error('🔴 Command step', bold(name), colors.red('failed'), 'in', T2-T1, 'msec')
         stepTimings.push([name, T2-T1, true])
         console.error('Command', bold(name), colors.red('failed'), 'in', T2-T0, 'msec')
         throw e
