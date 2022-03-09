@@ -235,7 +235,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   private async rateLimited <T> (fn: ()=>Promise<T>): Promise<T> {
     //console.log('rateLimited', fn)
     let initialWait = 0
-    if (this.chain.isMainnet && config.datahubRateLimit) {
+    if (this.chain.isMainnet && config.datahub.rateLimit) {
       const initialWait = this.initialWait*Math.random()
       console.warn(
         "Avoid running into rate limiting by waiting",
