@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -aem
+set -aemx
+Workspace=/src
 Crate=$1
 Ref=$2
 CARGO_NET_GIT_FETCH_WITH_CLI=true
@@ -7,7 +8,9 @@ CARGO_TERM_VERBOSE=true
 CARGO_HTTP_TIMEOUT=240
 LOCKED=
 Temp=/tmp/fadroma-build
-if [ -z "${Ref+empty}" ]; then
+if [ "${Ref}" == "HEAD" ]; then
+  echo "Building $Crate from working tree..."
+else
   BuildDir="$Temp/$Ref"
   echo "Building $Crate from $Ref in $BuildDir"
   mkdir -p "$BuildDir"
@@ -21,8 +24,6 @@ if [ -z "${Ref+empty}" ]; then
   git checkout "$Ref"
   echo "Preparing submodules..."
   git submodule update --init --recursive
-else
-  echo "Building $Crate from working tree..."
 fi
 git log -1
 

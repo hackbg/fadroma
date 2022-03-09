@@ -97,7 +97,7 @@ export default class Scrt_1_2 extends Scrt {
 
   static getBuilder = function getScrtBuilder_1_2 ({
     managerURL = FADROMA_BUILD_MANAGER,
-    caching    = !!FADROMA_BUILD_CACHE
+    caching    = !FADROMA_BUILD_ALWAYS
   }: {
     managerURL?: string,
     caching?:    boolean

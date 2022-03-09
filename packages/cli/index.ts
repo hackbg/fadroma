@@ -78,7 +78,7 @@ export class Fadroma {
 
   /** Adds an uploader to the command context. */
   static Upload = {
-    FromFile ({
+    FromFile: function enableUploadingFromFile ({
       agent,
       caching = !FADROMA_UPLOAD_ALWAYS
     }) {
