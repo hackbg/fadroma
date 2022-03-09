@@ -5,9 +5,9 @@ import Scrt_1_2 from '@fadroma/scrt-1.2'
 
 import {
   Console, print, bold, colors, timestamp,
-  Chain, Agent, Deployments, MigrationContext,
+  Chain, ChainMode, Agent, Deployments, MigrationContext,
   FSUploader, CachingFSUploader,
-  fileURLToPath
+  fileURLToPath, relative
 } from '@fadroma/ops'
 import { Mocknet } from '@fadroma/mocknet'
 import runCommands from '@hackbg/komandi'
@@ -19,14 +19,15 @@ export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
 export const {
-  FADROMA_UPLOAD_CACHE,
-  FADROMA_CHAIN
+  FADROMA_CHAIN,
+  FADROMA_UPLOAD_ALWAYS = false,
 } = process.env
 
 export class Fadroma {
 
   // metastatic!
   Build  = Fadroma.Build
+  Chain  = Fadroma.Chain
   Upload = Fadroma.Upload
   Deploy = Fadroma.Deploy
 
@@ -37,11 +38,49 @@ export class Fadroma {
     }
   }
 
+  static Chain = {
+
+    /** Populate the migration context with chain and agent. */
+    FromEnv: async function getChainFromEnvironment () {
+      requireChainId(FADROMA_CHAIN)
+      const getChain = Chain.namedChains[FADROMA_CHAIN]
+      const chain = await getChain()
+      const agent = await chain.getAgent()
+      await print.agentBalance(agent)
+      return { chain, agent, deployAgent: agent, clientAgent: agent }
+    },
+
+    /** Print the status of the active devnet */
+    Status: async function printChainStatus ({ chain }) {
+      if (!chain) {
+        console.info('No active chain.')
+      } else {
+        console.info(bold('Chain type:'), chain.constructor.name)
+        console.info(bold('Chain mode:'), chain.mode)
+        console.info(bold('Chain ID:  '), chain.id)
+        console.info(bold('Chain URL: '), chain.apiURL.toString())
+        console.info(bold('Chain dir: '), relative(process.cwd(), chain.stateRoot.path))
+      }
+    },
+
+    /** Reset the devnet. */
+    Reset: async function resetDevnet ({ chain }) {
+      if (!chain) {
+        console.info('No active chain.')
+      } else if (!chain.isDevnet) {
+        console.info('This command is only valid for devnets.')
+      } else {
+        await chain.node.terminate()
+      }
+    }
+
+  }
+
   /** Adds an uploader to the command context. */
   static Upload = {
     FromFile ({
       agent,
-      caching = !!FADROMA_UPLOAD_CACHE
+      caching = !FADROMA_UPLOAD_ALWAYS
     }) {
       if (caching) {
         return { uploader: new CachingFSUploader(agent) }
@@ -77,8 +116,6 @@ export class Fadroma {
     runCommands.default(this.commands, commands)
   }
 
-  chainId = FADROMA_CHAIN
-
   /** Establish correspondence between an input command
     * and a series of procedures to execute */
   command (name: string, ...steps: Command<any>[]) {
@@ -99,18 +136,9 @@ export class Fadroma {
 
   // Is this a monad?
   private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
-    requireChainId(this.chainId)
-    const getChain = Chain.namedChains[this.chainId]
-    const chain = await getChain()
-    const agent = await chain.getAgent()
-    await print.agentBalance(agent)
     let context = {
       cmdArgs,
       timestamp: timestamp(),
-      chain,
-      agent,
-      deployAgent: agent,
-      clientAgent: agent,
       suffix: `+${timestamp()}`,
       // Run a sub-procedure in the same context,
       // but without mutating the context.

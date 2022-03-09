@@ -140,14 +140,6 @@ export abstract class Devnet {
   /** Erase the state of the node. */
   abstract erase (): Promise<void>
 
-  static async reset ({ chain }) {
-    if (chain.node) {
-      await chain.node.terminate()
-    } else {
-      console.warn(bold(FADROMA_CHAIN), 'not a devnet')
-    }
-  }
-
 }
 
 /** Parameters for the HTTP API-based implementation of Devnet. */

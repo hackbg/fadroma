@@ -17,10 +17,10 @@ export const __dirname = dirname(fileURLToPath(import.meta.url))
 export const {
   // build options
   FADROMA_BUILD_MANAGER,
-  FADROMA_BUILD_CACHE   = true,
-  SCRT_BUILD_IMAGE      = 'hackbg/fadroma-scrt-builder:1.2',
-  SCRT_BUILD_DOCKERFILE = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile'),
-  SCRT_BUILD_SCRIPT     = resolve(__dirname, 'Scrt_1_2_Build.sh'),
+  FADROMA_BUILD_ALWAYS = false,
+  SCRT_BUILD_IMAGE       = 'hackbg/fadroma-scrt-builder:1.2',
+  SCRT_BUILD_DOCKERFILE  = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile'),
+  SCRT_BUILD_SCRIPT      = resolve(__dirname, 'Scrt_1_2_Build.sh'),
   // devnet options
   FADROMA_DEVNET_MANAGER,
   SCRT_DEVNET_CHAIN_ID_PREFIX = 'dev-scrt',
