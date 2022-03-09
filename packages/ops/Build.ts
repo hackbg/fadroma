@@ -1,15 +1,11 @@
 import * as HTTP from 'http'
-import { Console, bold } from '@hackbg/tools'
-import { resolve, relative, basename, rimraf, spawnSync, existsSync, readFileSync } from '@hackbg/tools'
+import {
+  Console, bold, resolve, relative, basename, rimraf, spawnSync, existsSync, readFileSync
+} from '@hackbg/tools'
+import { config } from './Config'
 import { Source, Builder, Artifact, codeHashForPath } from './Core'
 import { tmp, Docker, ensureDockerImage } from '@hackbg/tools'
 import { Endpoint } from './Endpoint'
-
-const {
-  FADROMA_BUILD_UNSAFE_MOUNT_KEYS = false,
-  FADROMA_BUILD_MANAGER = null,
-  HOME
-} = process.env
 
 const console = Console('@fadroma/ops/Build')
 
@@ -26,7 +22,7 @@ export const collectCrates = (workspace: string, crates: string[]) =>
 export abstract class ManagedBuilder extends Builder {
   constructor (options: { managerURL?: string } = {}) {
     super()
-    const { managerURL = FADROMA_BUILD_MANAGER } = options
+    const { managerURL = config.buildManager } = options
     this.manager = new Endpoint(managerURL)
   }
   /** HTTP endpoint to request builds */
@@ -129,15 +125,15 @@ export function getBuildContainerArgs (
   binds.push(`project_cache_${ref}:/src/target:rw`)    // Cache
   binds.push(`cargo_cache_${ref}:/usr/local/cargo:rw`) // Cache
   if (ref !== 'HEAD') {
-    if (FADROMA_BUILD_UNSAFE_MOUNT_KEYS) {
+    if (config.buildUnsafeMountKeys) {
       // Keys for SSH cloning of submodules - dangerous!
       console.warn(
         'Mounting your SSH keys directory into the build container (not particularly safe!)'
       )
-      binds.push(`${HOME}/.ssh:/root/.ssh:rw`)
+      binds.push(`${config.homeDir}/.ssh:/root/.ssh:rw`)
     } else {
       console.warn(
-        'Not mounting SSH keys into build container - may not be able to clone submodules')
+        'Not mounting SSH keys into build container - may not be able to clone submodules'
       )
     }
   }

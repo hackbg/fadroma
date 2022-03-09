@@ -1,7 +1,8 @@
 import {
   Console, colors, bold,
   Identity, Template, Label, InitMsg, Artifact, Instance, Message,
-  readFile, backOff, toBase64
+  readFile, backOff, toBase64,
+  config
 } from '@fadroma/ops'
 
 import {
@@ -234,7 +235,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
   private async rateLimited <T> (fn: ()=>Promise<T>): Promise<T> {
     //console.log('rateLimited', fn)
     let initialWait = 0
-    if (this.chain.isMainnet && !!process.env.FADROMA_RATE_LIMIT) {
+    if (this.chain.isMainnet && config.datahubRateLimit) {
       const initialWait = this.initialWait*Math.random()
       console.warn(
         "Avoid running into rate limiting by waiting",

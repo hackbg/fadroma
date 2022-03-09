@@ -10,15 +10,10 @@ import {
 } from '@hackbg/tools'
 import { Endpoint } from './Endpoint'
 import freeportAsync from 'freeport-async'
+import { config } from './Config'
 import type { Identity } from './Core'
 
 const console = Console('@fadroma/ops/Devnet')
-
-export const {
-  FADROMA_CHAIN,
-  FADROMA_DEVNET_MANAGER,
-  FADROMA_EPHEMERAL
-} = process.env
 
 /** Domain API. A Devnet is created from a given chain ID
   * with given pre-configured identities, and its state is stored
@@ -158,7 +153,7 @@ export class ManagedDevnet extends Devnet {
     console.info(
       'Constructing', bold('remotely managed'), 'devnet'
     )
-    const { managerURL = FADROMA_DEVNET_MANAGER } = options
+    const { managerURL = config.devnetManager } = options
     this.manager = new Endpoint(managerURL)
   }
 
@@ -401,7 +396,7 @@ export class DockerodeDevnet extends Devnet {
     if (!running) this.startContainer(id)
     // ...and try to make sure it dies when the Node process dies
     process.on('beforeExit', () => {
-      if (FADROMA_EPHEMERAL) {
+      if (config.devnetEphemeral) {
         this.killContainer(id)
       } else {
         console.log()

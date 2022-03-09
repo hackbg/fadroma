@@ -1,7 +1,6 @@
 import { Console, bold, colors } from '@hackbg/tools'
 import { getMethod } from './Core'
-
-const { FADROMA_PRINT_TXS = "" } = process.env
+import { config } from './Config'
 
 export class Trace {
 
@@ -14,10 +13,10 @@ export class Trace {
 
   call (callType = '???', info?): number {
     const N = ++this.callCounter
-    if (FADROMA_PRINT_TXS) {
+    if (config.printTXs) {
       //this.console.info()
       const header = `${bold(`${this.name}: call #${String(N).padEnd(4)}`)} (${callType})`
-      if (FADROMA_PRINT_TXS==='trace') {
+      if (config.printTXs==='trace') {
         this.console.trace(header)
       } else {
         this.console.info(header)
@@ -28,12 +27,12 @@ export class Trace {
   }
 
   subCall (N: number, callType = '???', info?) {
-    if (FADROMA_PRINT_TXS) {
+    if (config.printTXs) {
       const header = `${bold(
         `${this.name}: `+
         `call #${String(N).padEnd(4)}`
       )} (${callType}) `+ `${String(info).slice(0,20)}`
-      if (FADROMA_PRINT_TXS==='trace') {
+      if (config.printTXs==='trace') {
         this.console.trace(header)
       } else {
         this.console.info(header)
@@ -44,26 +43,26 @@ export class Trace {
   }
 
   response (N, txHash?) {
-    if (FADROMA_PRINT_TXS) {
+    if (config.printTXs) {
       //this.console.info()
       this.console.info(`${bold(`${this.name}: result of call #${N}`)}:`, txHash)
     }
   }
 
   initCall (codeId, label): number|void {
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init')) {
+    if (config.printTXs === 'all' || config.printTXs.includes('init')) {
       return this.call(`${bold('INIT')}  ${codeId} ${label}`)
     }
   }
 
   initResponse (traceId: number|void, result): void {
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init+result')) {
+    if (config.printTXs === 'all' || config.printTXs.includes('init+result')) {
       this.response(traceId)
     }
   }
 
   queryCall (contract, msg): number|void {
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('query')) {
+    if (config.printTXs === 'all' || config.printTXs.includes('query')) {
       return this.call(
         `${bold(colors.blue('QUERY'.padStart(5)))} `+
         `${bold(getMethod(msg).padEnd(20))} `+
@@ -74,13 +73,13 @@ export class Trace {
   }
 
   queryResponse (traceId: number|void, response): void {
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('query+result')) {
+    if (config.printTXs === 'all' || config.printTXs.includes('query+result')) {
       this.response(traceId)
     }
   }
 
   executeCall (contract, msg, funds, memo, fee): number|void {
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('exec')) {
+    if (config.printTXs === 'all' || config.printTXs.includes('exec')) {
       return this.call(
         `${bold(colors.yellow('TX'.padStart(5)))} `+
         `${bold(getMethod(msg).padEnd(20))} ` +
@@ -90,7 +89,7 @@ export class Trace {
   }
 
   executeResponse (traceId: number|void, response): void {
-    if (FADROMA_PRINT_TXS === 'all' || FADROMA_PRINT_TXS.includes('init+result')) {
+    if (config.printTXs === 'all' || config.printTXs.includes('init+result')) {
       this.response(traceId, response.transactionHash)
     }
   }

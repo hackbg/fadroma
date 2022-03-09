@@ -11,7 +11,7 @@ Temp=/tmp/fadroma-build
 if [ "${Ref}" == "HEAD" ]; then
   echo "Building $Crate from working tree..."
 else
-  BuildDir="$Temp/$Ref"
+  BuildDir="$Temp/$Crate_$Ref"
   echo "Building $Crate from $Ref in $BuildDir"
   mkdir -p "$BuildDir"
   cp -rT "$Workspace" "$BuildDir"

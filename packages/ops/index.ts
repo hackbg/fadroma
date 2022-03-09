@@ -1,9 +1,13 @@
 import dotenv from 'dotenv'
 dotenv.config()
+import { config } from './Config'
+config.fromEnv(process.env as any)
 
 export * from '@hackbg/tools'
 
 export * from './Core'
+
+export * from './Config'
 
 export * from './Build'
 

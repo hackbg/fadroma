@@ -7,7 +7,8 @@ import {
   Console, print, bold, colors, timestamp,
   Chain, ChainMode, Agent, Deployments, MigrationContext,
   FSUploader, CachingFSUploader,
-  fileURLToPath, relative
+  fileURLToPath, relative,
+  config
 } from '@fadroma/ops'
 import { Mocknet } from '@fadroma/mocknet'
 import runCommands from '@hackbg/komandi'
@@ -17,11 +18,6 @@ const console = Console('@fadroma/cli')
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
-
-export const {
-  FADROMA_CHAIN,
-  FADROMA_UPLOAD_ALWAYS = false,
-} = process.env
 
 export class Fadroma {
 
@@ -42,8 +38,8 @@ export class Fadroma {
 
     /** Populate the migration context with chain and agent. */
     FromEnv: async function getChainFromEnvironment () {
-      requireChainId(FADROMA_CHAIN)
-      const getChain = Chain.namedChains[FADROMA_CHAIN]
+      requireChainId(config.chain)
+      const getChain = Chain.namedChains[config.chain]
       const chain = await getChain()
       const agent = await chain.getAgent()
       await print.agentBalance(agent)
@@ -80,7 +76,7 @@ export class Fadroma {
   static Upload = {
     FromFile: function enableUploadingFromFile ({
       agent,
-      caching = !FADROMA_UPLOAD_ALWAYS
+      caching = !config.uploadAlways
     }) {
       if (caching) {
         return { uploader: new CachingFSUploader(agent) }

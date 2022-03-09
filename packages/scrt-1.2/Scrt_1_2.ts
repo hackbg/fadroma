@@ -6,6 +6,7 @@ import {
   Scrt, ChainMode,
   DockerodeBuilder, ManagedBuilder,
   DockerodeDevnet, ManagedDevnet,
+  config
 } from '@fadroma/scrt'
 import { ScrtAgentJS_1_2 } from './ScrtAgentJS_1_2'
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
@@ -16,20 +17,18 @@ export const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export const {
   // build options
-  FADROMA_BUILD_MANAGER,
-  FADROMA_BUILD_ALWAYS = false,
-  SCRT_BUILD_IMAGE       = 'hackbg/fadroma-scrt-builder:1.2',
-  SCRT_BUILD_DOCKERFILE  = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile'),
-  SCRT_BUILD_SCRIPT      = resolve(__dirname, 'Scrt_1_2_Build.sh'),
+  SCRT_BUILD_IMAGE      = 'hackbg/fadroma-scrt-builder:1.2',
+  SCRT_BUILD_DOCKERFILE = resolve(__dirname, 'Scrt_1_2_Build.Dockerfile'),
+  SCRT_BUILD_SCRIPT     = resolve(__dirname, 'Scrt_1_2_Build.sh'),
   // devnet options
   FADROMA_DEVNET_MANAGER,
   SCRT_DEVNET_CHAIN_ID_PREFIX = 'dev-scrt',
   // remotenet options
   DATAHUB_KEY,
   SCRT_MAINNET_CHAIN_ID = 'secret-4',
-  SCRT_MAINNET_API_URL  = `https://${SCRT_MAINNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`,
+  SCRT_MAINNET_API_URL  = `https://${SCRT_MAINNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${config.datahubKey}/`,
   SCRT_TESTNET_CHAIN_ID = 'pulsar-2',
-  SCRT_TESTNET_API_URL  = `https://secret-${SCRT_TESTNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${DATAHUB_KEY}/`,
+  SCRT_TESTNET_API_URL  = `https://secret-${SCRT_TESTNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${config.datahubKey}/`,
   // agent options
   FADROMA_PREPARE_MULTISIG,
   SCRT_AGENT_NAME,
@@ -83,7 +82,7 @@ export default class Scrt_1_2 extends Scrt {
 
   static getDevnet = function getScrtDevnet_1_2 (
     chainId:    string = `${SCRT_DEVNET_CHAIN_ID_PREFIX}-${randomHex(4)}`,
-    managerURL: string = FADROMA_DEVNET_MANAGER
+    managerURL: string = config.devnetManager
   ) {
     if (managerURL) {
       return new ManagedDevnet({ managerURL, chainId })
@@ -96,8 +95,8 @@ export default class Scrt_1_2 extends Scrt {
   }
 
   static getBuilder = function getScrtBuilder_1_2 ({
-    managerURL = FADROMA_BUILD_MANAGER,
-    caching    = !FADROMA_BUILD_ALWAYS
+    managerURL = config.buildManager,
+    caching    = !config.buildAlways
   }: {
     managerURL?: string,
     caching?:    boolean
