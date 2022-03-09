@@ -12,7 +12,7 @@ import {
   toBase64
 } from '@fadroma/ops'
 
-import { ScrtGas } from './ScrtCore'
+import { ScrtGas } from './ScrtGas'
 import type { Scrt, ScrtNonce } from './ScrtChain'
 import type { ScrtAgent } from './ScrtAgent'
 import type { ScrtAgentJS } from './ScrtAgentJS'

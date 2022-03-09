@@ -21,12 +21,3 @@ export class ScrtGas extends Gas {
     this.amount.push({amount: String(x), denom: ScrtGas.denom})
   }
 }
-
-export type UnsignedTX = {
-  chain_id:       string
-  account_number: string
-  sequence:       string
-  fee:            string
-  msgs:           string
-  memo:           string
-}

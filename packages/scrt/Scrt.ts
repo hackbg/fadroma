@@ -1,5 +1,5 @@
 export * from '@fadroma/ops'
-export * from './ScrtCore'
+export * from './ScrtGas'
 export * from './ScrtChain'
 export * from './ScrtAgent'
 export * from './ScrtAgentJS'

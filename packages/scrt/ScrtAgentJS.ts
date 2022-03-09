@@ -10,7 +10,7 @@ import {
   SigningCosmWasmClient,
 } from 'secretjs'
 
-import { ScrtGas } from './ScrtCore'
+import { ScrtGas } from './ScrtGas'
 import { ScrtAgent } from './ScrtAgent'
 import { BroadcastingScrtBundle } from './ScrtBundle'
 import type { Scrt } from './ScrtChain'
