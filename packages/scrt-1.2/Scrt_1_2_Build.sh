@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 set -aem
+
 Workspace=/src
+BuildDir="$Workspace"
 Crate=$1
 Ref=$2
+Output=`echo "$Crate" | tr '-' '_'`
+FinalOutput="$Crate@$Ref.wasm"
+LOCKED=
 CARGO_NET_GIT_FETCH_WITH_CLI=true
 CARGO_TERM_VERBOSE=true
 CARGO_HTTP_TIMEOUT=240
 LOCKED=
+USER=${USER:-1000}
+GROUP=${GROUP:-1000}
 Temp=/tmp/fadroma-build-$Crate
+
 if [ "$Ref" == "HEAD" ]; then
   echo "Building $Crate from working tree..."
 else
@@ -28,8 +36,6 @@ else
 fi
 
 # Create a non-root user.
-USER=${USER:-1000}
-GROUP=${GROUP:-1000}
 groupadd -g$GROUP $GROUP || true
 useradd -m -g$GROUP -u$USER build || true
 
@@ -44,10 +50,14 @@ chown $USER /output
 # execute a release build,
 # then optimize it with Binaryen.
 cd /src
-Output=`echo "$Crate" | tr '-' '_'`
-FinalOutput="$Crate@$Ref.wasm"
-LOCKED=
-su build -c "env RUSTFLAGS='-C link-arg=-s' \
-  cargo build -p $Crate --release --target wasm32-unknown-unknown $LOCKED --verbose \
-  && wasm-opt -Oz ./target/wasm32-unknown-unknown/release/$Output.wasm -o /output/$FinalOutput \
-  && cd /output/ && sha256sum -b $FinalOutput > $FinalOutput.sha256"
+mkdir -p /tmp/target
+chmod ugo+rwx /tmp/target
+su build -c "\
+  cd $BuildDir \
+  && env RUSTFLAGS='-C link-arg=-s' CARGO_TARGET_DIR=/tmp/target \
+    cargo build -p $Crate --release --target wasm32-unknown-unknown $LOCKED --verbose \
+  && echo 'Build complete' && pwd && ls -al \
+  && wasm-opt -Oz /tmp/target/wasm32-unknown-unknown/release/$Output.wasm -o /output/$FinalOutput \
+  && echo 'Optimization complete' \
+  && cd /output/ && sha256sum -b $FinalOutput > $FinalOutput.sha256 \
+  && echo 'Checksum calculated' && cat $FinalOutput.sha256"
