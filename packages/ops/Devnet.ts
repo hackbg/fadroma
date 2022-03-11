@@ -1,12 +1,15 @@
 import { URL } from 'url'
 import * as HTTP from 'http'
+import { symlinkSync } from 'fs'
 import {
   Console, bold,
   Directory, JSONDirectory,
   JSONFile,
   Path, basename, relative, resolve, cwd,
+  existsSync, readlinkSync, mkdirp,
   waitPort, freePort,
   Docker, ensureDockerImage, waitUntilLogsSay,
+  randomHex
 } from '@hackbg/tools'
 import { Endpoint } from './Endpoint'
 import freeportAsync from 'freeport-async'
@@ -44,7 +47,7 @@ export abstract class Devnet {
     if (identities) {
       this.genesisAccounts = identities
     }
-    stateRoot = stateRoot || resolve(process.cwd(), 'receipts', this.chainId)
+    stateRoot = stateRoot || resolve(config.projectRoot, 'receipts', this.chainId)
     this.stateRoot  = new Directory(stateRoot)
     this.nodeState  = new JSONFile(stateRoot, 'node.json')
   }
@@ -90,7 +93,7 @@ export abstract class Devnet {
 
   /** Save the info needed to respawn the node */
   save (extraData = {}) {
-    const shortPath = relative(process.cwd(), this.nodeState.path)
+    const shortPath = relative(config.projectRoot, this.nodeState.path)
     console.info(`Saving devnet node to ${shortPath}`)
     const data = { chainId: this.chainId, port: this.port, ...extraData }
     this.nodeState.save(data)
@@ -148,6 +151,42 @@ export type ManagedDevnetOptions = DevnetOptions & {
   * given chain id and identities via a HTTP API. */
 export class ManagedDevnet extends Devnet {
 
+  /** Makes sure that  the latest devnet is reused,
+    * unless explicitly specified otherwise. */
+  static getOrCreate (
+    managerURL: string,
+    chainId?:   string,
+    prefix?:    string
+  ) {
+    // If passed a chain id, use that;
+    // this makes a passed prefix irrelevant.
+    if (chainId && prefix) {
+      console.warn(
+        'Passed both chainId and prefix to ManagedDevnet.get: ignoring prefix'
+      )
+    }
+    // Establish default prefix.
+    // Chain subclasses should define this.
+    if (!prefix) {
+      prefix = 'devnet'
+    }
+    // If no chain id passed, try to reuse the
+    // last created devnet; if there isn't one,
+    // create a new one and symlink it as active.
+    if (!chainId) {
+      const active = resolve(config.projectRoot, 'receipts', `${prefix}-active`)
+      if (existsSync(active)) {
+        chainId = basename(readlinkSync(active)).slice(prefix.length+1)
+      } else {
+        chainId = `${prefix}-${randomHex(4)}`
+        const devnet = resolve(config.projectRoot, 'receipts', `${prefix}-active`)
+        mkdirp.sync(devnet)
+        symlinkSync(devnet, active)
+      }
+    }
+    return new ManagedDevnet({ managerURL, chainId })
+  }
+
   constructor (options) {
     super(options)
     console.info(
@@ -178,7 +217,7 @@ export class ManagedDevnet extends Devnet {
   }
 
   save () {
-    const shortPath = relative(process.cwd(), this.nodeState.path)
+    const shortPath = relative(config.projectRoot, this.nodeState.path)
     console.info(`Saving devnet node to ${shortPath}`)
     const data = { chainId: this.chainId, port: this.port }
     this.nodeState.save(data)
@@ -186,7 +225,7 @@ export class ManagedDevnet extends Devnet {
   }
 
   async respawn () {
-    const shortPath = relative(process.cwd(), this.nodeState.path)
+    const shortPath = relative(config.projectRoot, this.nodeState.path)
     // if no node state, spawn
     if (!this.nodeState.exists()) {
       console.info(`No devnet found at ${bold(shortPath)}`)
@@ -323,7 +362,7 @@ export class DockerodeDevnet extends Devnet {
       console.info(this.container.Warnings)
     }
     // report progress
-    const shortPath = relative(process.cwd(), this.nodeState.path)
+    const shortPath = relative(config.projectRoot, this.nodeState.path)
     console.info(`Created container ${bold(shortId)} (${bold(shortPath)})...`)
     // start the container
     await this.startContainer(this.container.id)
@@ -363,7 +402,7 @@ export class DockerodeDevnet extends Devnet {
 
   /** Spawn the existing localnet, or a new one if that is impossible */
   async respawn () {
-    const shortPath = relative(process.cwd(), this.nodeState.path)
+    const shortPath = relative(config.projectRoot, this.nodeState.path)
     // if no node state, spawn
     if (!this.nodeState.exists()) {
       console.info(`No devnet found at ${bold(shortPath)}`)

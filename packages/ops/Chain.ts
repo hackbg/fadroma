@@ -137,11 +137,11 @@ export class Chain implements ChainConfig {
   node?: Devnet
 
   protected setStateDirs ({
-    statePath = resolve(process.cwd(), 'receipts', this.id)
+    statePath = resolve(config.projectRoot, 'receipts', this.id)
   }: ChainStateConfig) {
     console.info(
       bold(`State:    `),
-      relative(process.cwd(), statePath)
+      relative(config.projectRoot, statePath)
     )
     this.stateRoot    = new Directory(statePath)
     this.identities   = new JSONDirectory(statePath, 'identities')

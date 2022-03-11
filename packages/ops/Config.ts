@@ -6,9 +6,6 @@ export type EnvVars = {
   /** The user's home directory. */
   HOME: string
 
-  /** Whether to ignore existing build artifacts
-    * and always rebuild contracts. */
-  FADROMA_BUILD_ALWAYS:            string
   /** URL to the build manager endpoint. */
   FADROMA_BUILD_MANAGER:           string
   /** Whether to mount the user's .ssh directory
@@ -28,12 +25,16 @@ export type EnvVars = {
   FADROMA_DEVNET_EPHEMERAL:        string
   /** Whether the scripts are running in multisig mode. */
   FADROMA_PREPARE_MULTISIG:        string
-  /** Whether to trace transactions to the console,
-    * and which ones. */
+  /** Which API calls, if any, to print in the console. */
   FADROMA_PRINT_TXS:               string
+  /** The project's root directory. */
+  FADROMA_PROJECT:                 string
+  /** Whether to ignore existing build artifacts
+    * and always rebuild contracts. */
+  FADROMA_REBUILD:                 string
   /** Whether to ignore upload receipts
     * and always reupload contracts. */
-  FADROMA_UPLOAD_ALWAYS:           string
+  FADROMA_REUPLOAD:                string
 
   // Secret Network-specific options: //
 
@@ -65,8 +66,6 @@ export class Config {
       env.FADROMA_CHAIN || 'unspecified'
     this.printTXs =
       env.FADROMA_PRINT_TXS || ''
-    this.uploadAlways = Boolean(
-      env.FADROMA_UPLOAD_ALWAYS || false)
     this.buildManager =
       env.FADROMA_BUILD_MANAGER || null
     this.buildUnsafeMountKeys = Boolean(
@@ -77,6 +76,12 @@ export class Config {
       env.FADROMA_DEVNET_EPHEMERAL || false)
     this.prepareMultisig = Boolean(
       env.FADROMA_PREPARE_MULTISIG || false)
+    this.projectRoot =
+      env.FADROMA_PROJECT || process.cwd()
+    this.rebuild = Boolean(
+      env.FADROMA_REBUILD || false)
+    this.reupload = Boolean(
+      env.FADROMA_REUPLOAD || false)
 
     this.datahub = {
       key:       env.FADROMA_DATAHUB_KEY,
@@ -125,14 +130,14 @@ export class Config {
   chain:                 string
   homeDir:               string
   printTXs:              string
-  uploadAlways:          boolean
   buildManager:          string|null
   buildUnsafeMountKeys:  boolean
   devnetManager:         string|null
   devnetEphemeral:       boolean
   prepareMultisig:       boolean
-  datahubKey:            string
-  datahubRateLimit:      boolean
+  projectRoot:           string
+  rebuild:               boolean
+  reupload:              boolean
 
   datahub: {
     key:       string,

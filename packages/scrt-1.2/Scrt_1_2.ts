@@ -18,9 +18,9 @@ export const __dirname = dirname(fileURLToPath(import.meta.url))
 export const {
   // remotenet options
   SCRT_MAINNET_CHAIN_ID = 'secret-4',
-  SCRT_MAINNET_API_URL  = `https://${SCRT_MAINNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${config.datahubKey}/`,
+  SCRT_MAINNET_API_URL  = `https://${SCRT_MAINNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${config.datahub.key}/`,
   SCRT_TESTNET_CHAIN_ID = 'pulsar-2',
-  SCRT_TESTNET_API_URL  = `https://secret-${SCRT_TESTNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${config.datahubKey}/`,
+  SCRT_TESTNET_API_URL  = `https://secret-${SCRT_TESTNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${config.datahub.key}/`,
 } = process.env
 
 export default class Scrt_1_2 extends Scrt {
@@ -61,11 +61,13 @@ export default class Scrt_1_2 extends Scrt {
   }
 
   static getDevnet = function getScrtDevnet_1_2 (
-    chainId:    string = `${config.scrt.devnetChainIdPrefix}-${randomHex(4)}`,
-    managerURL: string = config.devnetManager
+    managerURL: string = config.devnetManager,
+    chainId?:   string,
   ) {
     if (managerURL) {
-      return new ManagedDevnet({ managerURL, chainId })
+      return ManagedDevnet.getOrCreate(
+        managerURL, chainId, config.scrt.devnetChainIdPrefix
+      )
     } else {
       const image       = "enigmampc/secret-network-sw-dev:v1.2.0"
       const readyPhrase = "indexed block"
@@ -76,7 +78,7 @@ export default class Scrt_1_2 extends Scrt {
 
   static getBuilder = function getScrtBuilder_1_2 ({
     managerURL = config.buildManager,
-    caching    = !config.buildAlways
+    caching    = !config.rebuild
   }: {
     managerURL?: string,
     caching?:    boolean

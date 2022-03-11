@@ -55,7 +55,7 @@ export class Fadroma {
         console.info(bold('Chain mode:'), chain.mode)
         console.info(bold('Chain ID:  '), chain.id)
         console.info(bold('Chain URL: '), chain.apiURL.toString())
-        console.info(bold('Chain dir: '), relative(process.cwd(), chain.stateRoot.path))
+        console.info(bold('Chain dir: '), relative(config.projectRoot, chain.stateRoot.path))
       }
     },
 
@@ -76,7 +76,7 @@ export class Fadroma {
   static Upload = {
     FromFile: function enableUploadingFromFile ({
       agent,
-      caching = !config.uploadAlways
+      caching = !config.reupload
     }) {
       if (caching) {
         return { uploader: new CachingFSUploader(agent) }

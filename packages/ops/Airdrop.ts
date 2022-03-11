@@ -37,7 +37,7 @@ export async function airdrop (options: Airdrop = {}) {
       throw new Error(`invalid chain: ${chain}`)
     } else {
       throw new Error('im old!')
-      /*chain = await Chain[chain]({stateRoot: process.cwd()})*/
+      /*chain = await Chain[chain]({stateRoot: config.projectRoot})*/
     }
 
   const { task      = taskmaster()

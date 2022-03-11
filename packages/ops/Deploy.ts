@@ -184,7 +184,7 @@ export class Deployments extends Directory {
   save (name: string, data: any) {
     name = `${name}.json`
     console.info(
-      bold('Deployments writing:'), relative(process.cwd(), this.resolve(name))
+      bold('Deployments writing:'), relative(config.projectRoot, this.resolve(name))
     )
     if (data instanceof Object) {
       data = JSON.stringify(data, null, 2)
