@@ -1,6 +1,7 @@
 import { URL } from 'url'
 import * as HTTP from 'http'
 import { symlinkSync } from 'fs'
+import freeportAsync from 'freeport-async'
 import {
   Console, bold,
   Directory, JSONDirectory,
@@ -12,7 +13,6 @@ import {
   randomHex
 } from '@hackbg/tools'
 import { Endpoint } from './Endpoint'
-import freeportAsync from 'freeport-async'
 import { config } from './Config'
 import type { Identity } from './Core'
 
@@ -177,11 +177,13 @@ export class ManagedDevnet extends Devnet {
       const active = resolve(config.projectRoot, 'receipts', `${prefix}-active`)
       if (existsSync(active)) {
         chainId = basename(readlinkSync(active)).slice(prefix.length+1)
+        console.info('Trying to reuse existing managed devnet with chain id', bold(chainId))
       } else {
         chainId = `${prefix}-${randomHex(4)}`
-        const devnet = resolve(config.projectRoot, 'receipts', `${prefix}-active`)
+        const devnet = resolve(config.projectRoot, 'receipts', chainId)
         mkdirp.sync(devnet)
         symlinkSync(devnet, active)
+        console.info('Creating new managed devnet with chain id', bold(chainId))
       }
     }
     return new ManagedDevnet({ managerURL, chainId })
