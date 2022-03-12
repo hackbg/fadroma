@@ -176,7 +176,7 @@ export class ManagedDevnet extends Devnet {
     if (!chainId) {
       const active = resolve(config.projectRoot, 'receipts', `${prefix}-active`)
       if (existsSync(active)) {
-        chainId = basename(readlinkSync(active)).slice(prefix.length+1)
+        chainId = basename(readlinkSync(active))
         console.info('Trying to reuse existing managed devnet with chain id', bold(chainId))
       } else {
         chainId = `${prefix}-${randomHex(4)}`
