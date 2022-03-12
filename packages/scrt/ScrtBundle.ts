@@ -9,7 +9,8 @@ import {
   Agent, Bundle, BundleResult,
   Artifact, Template, Label, InitMsg, Instance,
   readFile, writeFile,
-  toBase64
+  toBase64,
+  config
 } from '@fadroma/ops'
 
 import { ScrtGas } from './ScrtGas'
@@ -107,10 +108,12 @@ export class BroadcastingScrtBundle extends ScrtBundle {
   execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
     const sender   = this.address
     const contract = address
-    console.info(bold('Adding message to bundle:'))
-    console.log()
-    console.log(JSON.stringify(msg))
-    console.log()
+    if (config.printTXs.includes('bundle')) {
+      console.info(bold('Adding message to bundle:'))
+      console.log()
+      console.log(JSON.stringify(msg))
+      console.log()
+    }
     this.add(this.encrypt(codeHash, msg).then(msg=>({
       type: 'wasm/MsgExecuteContract',
       value: { sender, contract, msg, sent_funds }
@@ -225,19 +228,21 @@ export class MultisigScrtBundle extends ScrtBundle {
   execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
     const sender   = this.address
     const contract = address
-    console.info(bold('Adding message to bundle:'))
-    console.log()
-    console.log(JSON.stringify(msg))
-    console.log()
-    console.debug({
-      "@type": '/secret.compute.v1beta1.MsgExecuteContract',
-      sender,
-      contract,
-      msg,
-      callback_code_hash: "",
-      sent_funds,
-      callback_sig: null
-    })
+    if (config.printTXs.includes('bundle')) {
+      console.info(bold('Adding message to bundle:'))
+      console.log()
+      console.log(JSON.stringify(msg))
+      console.log()
+      console.debug({
+        "@type": '/secret.compute.v1beta1.MsgExecuteContract',
+        sender,
+        contract,
+        msg,
+        callback_code_hash: "",
+        sent_funds,
+        callback_sig: null
+      })
+    }
     this.add(this.encrypt(codeHash, msg).then(msg=>({
       "@type": '/secret.compute.v1beta1.MsgExecuteContract',
       sender,
