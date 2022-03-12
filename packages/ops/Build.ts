@@ -36,6 +36,7 @@ export abstract class ManagedBuilder extends Builder {
     if (prebuilt) {
       return prebuilt
     }
+    // Request a build from the build manager
     const { workspace, crate, ref = 'HEAD' } = source
     const { location } = await this.manager.get('/build', { crate, ref })
     const codeHash = codeHashForPath(location)
@@ -101,8 +102,6 @@ export abstract class DockerodeBuilder extends Builder {
     output.pipe(process.stdout)
     const running = await this.docker.run(image, cmd, output, args)
     const [{Error: err, StatusCode: code}, container] = running
-    // Remove the container once it's exited
-    await container.remove()
     // Throw error if build failed
     if (err) {
       throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
