@@ -115,7 +115,9 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
         try {
           return await this.getTxResult(id)
         } catch (e) {
-          if (this.shouldRetry(e.message)) {
+          const weirdPanic = e.message.includes('Enclave: panicked due to unexpected behavior')
+          if (this.shouldRetry(e.message) || weirdPanic) {
+            warn("Enclave error: actually, let's retry this one...")
             // 7. If the transaction simply hasn't committed yet,
             //    query for the result again until we run out of retries.
             warn(`Getting result of TX ${id} failed (${e.message}): ${submitRetries} retries left...`)
