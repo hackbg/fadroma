@@ -151,7 +151,7 @@ export type ManagedDevnetOptions = DevnetOptions & {
   * given chain id and identities via a HTTP API. */
 export class ManagedDevnet extends Devnet {
 
-  /** Makes sure that  the latest devnet is reused,
+  /** Makes sure that the latest devnet is reused,
     * unless explicitly specified otherwise. */
   static getOrCreate (
     managerURL: string,
@@ -177,7 +177,7 @@ export class ManagedDevnet extends Devnet {
       const active = resolve(config.projectRoot, 'receipts', `${prefix}-active`)
       if (existsSync(active)) {
         chainId = basename(readlinkSync(active))
-        console.info('Trying to reuse existing managed devnet with chain id', bold(chainId))
+        console.info('Reusing existing managed devnet with chain id', bold(chainId))
       } else {
         chainId = `${prefix}-${randomHex(4)}`
         const devnet = resolve(config.projectRoot, 'receipts', chainId)
@@ -535,7 +535,6 @@ export async function getDevnetContainerOptions ({
 }: DockerodeDevnet) {
   const initScriptName = resolve('/', basename(initScript))
   return {
-    AutoRemove:   true,
     Image:        image,
     Name:         `${chainId}-${port}`,
     Env:          [ `Port=${port}`
@@ -551,13 +550,14 @@ export async function getDevnetContainerOptions ({
     Domainname:   chainId,
     ExposedPorts: { [`${port}/tcp`]: {} },
     HostConfig:   { NetworkMode: 'bridge'
-                  , Binds: [
-                      `${initScript}:${initScriptName}:ro`,
-                      `${stateRoot.path}:/receipts/${chainId}:rw`
-                    ]
-                  , PortBindings: {
-                      [`${port}/tcp`]: [{HostPort: `${port}`}]
-                    } } } }
+                  , AutoRemove:   true
+                  , Binds:
+                    [ `${initScript}:${initScriptName}:ro`
+                    , `${stateRoot.path}:/receipts/${chainId}:rw` ]
+                  , PortBindings:
+                    { [`${port}/tcp`]: [{HostPort: `${port}`}] } }
+  }
+}
 
 /** What Dockerode passes to the Docker API
   * in order to launch a cleanup container
