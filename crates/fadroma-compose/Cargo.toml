@@ -1,0 +1,21 @@
+[package]
+name    = "fadroma-compose"
+version = "0.1.0"
+authors = ["Adam Avramov <adam@hack.bg>"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+path = "lib.rs"
+
+[dependencies]
+proc-macro2 = "^1.0.20"
+syn = { version = "1.0", features = ["full", "extra-traits", "visit"] }
+quote = "1.0"
+
+[dev-dependencies]
+cosmwasm-std     = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print", features = ["debug-print"] }
+cosmwasm-storage = { git = "https://github.com/enigmampc/SecretNetwork", tag = "v1.0.4-debug-print" }
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+serde_json = "1.0.66"
+schemars = "0.7"

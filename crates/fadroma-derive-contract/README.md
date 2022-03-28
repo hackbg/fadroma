@@ -16,11 +16,25 @@ Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 </div>
 
 ## Introduction
-Derive contract macro takes care of all necessary boilerplate in CosmWasm smart contracts and provides a more productive development experience. The goal is to generate the repetitive code that you'd write anyway and nothing more, while providing as much flexibility as possible. Any misuse of the macro will result in **compile errors** and not some hidden or unexpected runtime behavior.
+Derive contract macro takes care of all necessary boilerplate
+in CosmWasm smart contracts and provides a more productive development experience.
+
+The goal is to generate the repetitive code that you'd write anyway and nothing more,
+while providing as much flexibility as possible. Any misuse of the macro will result in
+**compile errors** and not some hidden or unexpected runtime behavior.
 
 ## Getting started
-Derive macro can be used for direct contract implementations with `#[contract(entry)]` or for contracts that implement **interfaces** with `#[contract_impl(entry, path="some_interface")]`.
-An interface implementation should be used over direct implementations if there's any intercontract communication, this allows to include messages of other contracts without any cyclical dependencies as those messages are exported by the interface and as such can be declared in a shared crate which is then included by individual contract crates. This is an extremely common pattern when writing CosmWasm based contracts.
+Derive macro can be used for direct contract implementations with
+`#[contract(entry)]` or for contracts that implement **interfaces** with
+`#[contract_impl(entry, path="some_interface")]`.
+
+An interface implementation should be used over direct implementations
+if there's any intercontract communication, this allows to include messages
+of other contracts without any cyclical dependencies as those messages are
+exported by the interface and as such can be declared in a shared crate
+which is then included by individual contract crates.
+
+This is an extremely common pattern when writing CosmWasm based contracts.
 
 ### **Attributes**
 The derive-contract macro supports the following attributes:  
@@ -37,7 +51,12 @@ The derive-contract macro supports the following attributes:
 | **custom_impl**   | Used to provide a custom implementation of a component instead of using the auto generated default trait impl.   |
 
 ### **Usage**
-Since their usage is always a fact, we decided to implicitly include the `Env` and `Extern` types from `cosmwasm_std` as parameters to the relevant methods so that they don't need to be specified all the time. The following table describes which attribute includes what parameters:
+
+Since their usage is always a fact, we decided to implicitly include
+the `Env` and `Extern` types from `cosmwasm_std` as parameters to the relevant methods
+so that they don't need to be specified all the time.
+
+The following table describes which attribute includes what parameters:
 
 |Attribute    |Parameter name|Parameter type    |
 |-------------|--------------|------------------|

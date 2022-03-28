@@ -14,18 +14,20 @@ path = "lib.rs"
 fadroma-platform-scrt    = { optional = true, path = "../fadroma-platform-scrt" }
 fadroma-platform-terra   = { optional = true, path = "../fadroma-platform-terra" }
 
-fadroma-auth             = { path = "../fadroma-auth" }
-fadroma-auth-proc        = { path = "../fadroma-auth-proc" }
-fadroma-bind-js          = { path = "../fadroma-bind-js" }
-fadroma-composability    = { path = "../fadroma-composability" }
-fadroma-ensemble         = { path = "../fadroma-ensemble" }
-fadroma-declare-contract = { path = "../fadroma-declare-contract" }
-fadroma-derive-contract  = { path = "../fadroma-derive-contract" }
-fadroma-killswitch       = { path = "../fadroma-killswitch" }
-fadroma-math             = { path = "../fadroma-math" }
-fadroma-snip20-api       = { path = "../fadroma-snip20-api" }
-fadroma-snip20-impl      = { path = "../fadroma-snip20-impl" }
-fadroma-storage          = { path = "../fadroma-storage" }
+fadroma-auth              = { path = "../fadroma-auth" }
+fadroma-auth-proc         = { path = "../fadroma-auth-proc" }
+fadroma-bind-js           = { path = "../fadroma-bind-js" }
+fadroma-composability     = { path = "../fadroma-composability" }
+fadroma-compose           = { path = "../fadroma-compose" }
+fadroma-ensemble          = { path = "../fadroma-ensemble" }
+fadroma-declare-contract  = { path = "../fadroma-declare-contract" }
+fadroma-derive-contract   = { path = "../fadroma-derive-contract" }
+fadroma-killswitch        = { path = "../fadroma-killswitch" }
+fadroma-math              = { path = "../fadroma-math" }
+fadroma-message           = { path = "../fadroma-message" }
+fadroma-snip20-api        = { path = "../fadroma-snip20-api" }
+fadroma-snip20-impl       = { path = "../fadroma-snip20-impl" }
+fadroma-storage           = { path = "../fadroma-storage" }
 
 [features]
 default = [ "fadroma-platform-scrt" ]
@@ -35,6 +37,7 @@ browser    = [ "backtraces" ]
 declare    = []
 derive     = []
 harness    = []
+compose    = []
 
 scrt  = [ "fadroma-platform-scrt" ]
 terra = [ "fadroma-platform-terra" ]
