@@ -68,8 +68,8 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   async postTx (tx: any): Promise<any> {
 
-    const info = (...args:any) => console.info('[@fadroma/scrt-1.2/postTx]', ...args)
-    const warn = (...args:any) => console.warn('[@fadroma/scrt-1.2/postTx]', ...args)
+    const info = (...args:any) => console.info('[@fadroma/scrt-1.2/postTx]     ', ...args)
+    const warn = (...args:any) => console.warn('[@fadroma/scrt-1.2/postTx]     ', ...args)
 
     // 0. Validate that we're not sending an empty transaction
     if (!tx || !tx.msg || !tx.msg.length || tx.msg.length < 1) {
@@ -88,21 +88,22 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     let id: string|null = null
     let submitRetries = this.submitRetries
     while (submitRetries--) {
+      const counter = `[${this.submitRetries-submitRetries}/${this.submitRetries}]`
 
       // 3. Store the block height at which the TX was sent
       const sent = (await this.getBlock()).header.height
 
       // 4. Submit the transaction
       try {
-        info(`Submitting TX (${JSON.stringify(tx).slice(0, 100)}...) (${submitRetries} retries left)...`)
+        info(counter, `Submitting TX (${JSON.stringify(tx).slice(0, 100)}...)`)
         const result = await super.postTx(tx)
         id = result.transactionHash
       } catch (e) {
         if (this.shouldRetry(e.message)) {
-          warn(`Submitting TX failed (${e.message}): ${submitRetries} retries left...`)
+          warn(counter, `Submitting TX failed (${e.message}): ${submitRetries}`)
           await new Promise(ok=>setTimeout(ok, this.resultSubmitDelay))
         } else {
-          warn(`Submitting TX failed (${e.message}): not retrying`)
+          warn(counter, `Submitting TX failed (${e.message}): not retrying`)
           throw e
         }
       }
@@ -120,7 +121,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
             warn("Enclave error: actually, let's retry this one...")
             // 7. If the transaction simply hasn't committed yet,
             //    query for the result again until we run out of retries.
-            warn(`Getting result of TX ${id} failed (${e.message}): ${submitRetries} retries left...`)
+            warn(`Getting result of TX ${id} failed (${e.message})`)
             await new Promise(ok=>setTimeout(ok, this.resultSubmitDelay))
           } else {
             // 8. If the transaction resulted in an error, rethrow it so it can be decrypted
@@ -145,17 +146,18 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     // 1. Loop until we run out of retires or we successfully get a TX result
     let resultRetries = this.resultRetries
     while (resultRetries--) {
+      const counter = `[${this.resultRetries-resultRetries}/${this.resultRetries}]`
 
       try {
 
         // 2. Try getting the transaction by id
-        info(`[@fadroma/scrt-1.2] Requesting result of TX ${id}`)
+        info(counter, `Requesting result of TX ${id}`)
         const result = await this.restClient.txById(id)
         const {raw_log, logs = []} = result as any
 
         // 3. If the raw log contains a known failure message, throw error
         if (!this.shouldRetry(raw_log, true)) {
-          warn(`[@fadroma/scrt-1.2] TX ${id} failed`)
+          warn(counter, `TX ${id} failed`)
           throw new Error(raw_log)
         }
 
@@ -166,10 +168,10 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
       } catch (e) {
 
         if (this.shouldRetry(e.message)) {
-          warn(`Getting result of TX ${id} failed (${e.message}): ${resultRetries} retries left...`)
+          warn(counter, `Getting result of TX ${id} failed (${e.message})`)
           await new Promise(ok=>setTimeout(ok, this.resultRetryDelay))
         } else {
-          warn(`Getting result of TX ${id} failed (${e.message}): not retrying`)
+          warn(counter, `Getting result of TX ${id} failed (${e.message}): not retrying`)
           throw e
         }
 
@@ -184,6 +186,11 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   private shouldRetry (message: string, isActuallyOk: boolean = false): boolean {
 
     const warn = (...args:any) => console.warn('[@fadroma/scrt-1.2/shouldRetry]', ...args)
+
+    if (message.includes('socket hang up')) {
+      warn('Socket hanged up, retrying')
+      return true
+    }
 
     if (message.includes('does not support Amino serialization')) {
       warn('Protocol mismatch, not retrying')
@@ -204,6 +211,12 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     // account sequence mismatches are retried
     if (message.includes('account sequence mismatch')) {
       warn('Nonce lag, retrying')
+      return true
+    }
+
+    // tx failures are thrown
+    if (message.includes('signature verification failed')) {
+      warn('Signature failed (possible nonce lag), retrying')
       return true
     }
 

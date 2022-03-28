@@ -16,7 +16,7 @@ import { ScrtAgent } from './ScrtAgent'
 import { BroadcastingScrtBundle } from './ScrtBundle'
 import type { Scrt } from './ScrtChain'
 
-const console = Console('@fadroma/scrt/ScrtAgentJS')
+const console = Console('@fadroma/scrt/Agent/JS')
 
 export type APIConstructor = new(...args:any) => SigningCosmWasmClient
 

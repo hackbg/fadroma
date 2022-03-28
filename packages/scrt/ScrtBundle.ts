@@ -1,6 +1,6 @@
 import { Console, colors, bold, timestamp, fromBase64, fromUtf8 } from '@fadroma/ops'
 
-const console = Console('@fadroma/scrt/ScrtBundle')
+const console = Console('@fadroma/scrt/Bundle')
 
 import pako from 'pako'
 import { SigningCosmWasmClient } from 'secretjs'

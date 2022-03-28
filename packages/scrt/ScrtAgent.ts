@@ -6,7 +6,7 @@ import { Bip39 } from '@cosmjs/crypto'
 import { EnigmaUtils, Secp256k1Pen } from 'secretjs'
 import type { ScrtBundle } from './ScrtBundle'
 
-const console = Console('@fadroma/scrt/ScrtAgent')
+const console = Console('@fadroma/scrt/Agent')
 
 export abstract class ScrtAgent extends Agent {
 
