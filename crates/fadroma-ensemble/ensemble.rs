@@ -45,7 +45,8 @@ pub trait ContractHarness {
 
 #[derive(Debug)]
 pub struct ContractEnsemble {
-    pub(crate) ctx: Box<Context>
+    // NOTE: Box required to ensure the pointer address remains the same and the raw pointer in EnsembleQuerier is safe to dereference.
+    pub(crate) ctx: Box<Context>,
 }
 
 pub(crate) struct Context {
@@ -64,12 +65,15 @@ pub(crate) struct ContractInstance {
 impl ContractEnsemble {
     pub fn new(canonical_length: usize) -> Self {
         Self {
-            ctx: Box::new(Context::new(canonical_length))
+            ctx: Box::new(Context::new(canonical_length)),
         }
     }
 
-    pub fn register(&mut self, harness: Box<dyn ContractHarness>) -> ContractInstantiationInfo {
-        self.ctx.contracts.push(harness);
+    pub fn register<H: ContractHarness + 'static>(
+        &mut self,
+        harness: H,
+    ) -> ContractInstantiationInfo {
+        self.ctx.contracts.push(Box::new(harness));
         let id = (self.ctx.contracts.len() - 1) as u64;
 
         ContractInstantiationInfo {

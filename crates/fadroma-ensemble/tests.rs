@@ -234,8 +234,8 @@ fn init(
     fail_counter: bool,
     fail_multiplier: bool
 ) -> StdResult<InitResult> {
-    let counter = ensemble.register(Box::new(Counter));
-    let multiplier = ensemble.register(Box::new(Multiplier));
+    let counter = ensemble.register(Counter);
+    let multiplier = ensemble.register(Multiplier);
 
     let admin = "admin";
     ensemble.add_funds(admin, vec![ coin(SEND_AMOUNT, SEND_DENOM) ]);
