@@ -505,7 +505,7 @@ export async function getDevnetContainerOptions ({
 }: DockerodeDevnet) {
   const initScriptName = resolve('/', basename(initScript))
   return {
-    Image:        image,
+    Image:        image.name,
     Name:         `${chainId}-${port}`,
     Env:          [ `Port=${port}`
                   , `ChainID=${chainId}`
@@ -541,7 +541,7 @@ export async function getCleanupContainerOptions ({
 }: DockerodeDevnet) {
   return {
     AutoRemove: true,
-    Image:      image,
+    Image:      image.name,
     Name:       `${chainId}-${port}-cleanup`,
     Entrypoint: [ '/bin/rm' ],
     Cmd:        ['-rvf', '/state',],
