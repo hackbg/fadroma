@@ -30,3 +30,7 @@ export * from './Migrate'
 export * from './Client'
 
 export * from './Print'
+
+export * from './Docker'
+
+export { ensureDockerImage } from './Docker'
