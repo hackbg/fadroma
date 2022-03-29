@@ -64,8 +64,9 @@ export class DockerImage {
 
   /** Throws if inspected image does not exist in Docker Hub. */
   async pull (): Promise<void> {
-    await new Promise<void>((ok, fail)=>this.docker.pull(
-      this.name, (err: Error, stream: unknown) => {
+    const { name, docker } = this
+    await new Promise<void>((ok, fail)=>docker.pull(
+      name, (err: Error, stream: unknown) => {
         if (err) return fail(err)
         docker.modem.followProgress(
           stream,
