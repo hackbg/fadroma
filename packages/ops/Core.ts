@@ -30,6 +30,7 @@ export abstract class Builder {
     // TODO make this optional
     if (this.caching) {
       const outputDir = resolve(workspace, 'artifacts')
+      ref = ref.replace(/\//g, '_') // kludge
       const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
       if (existsSync(location)) {
         console.info('✅', bold(location), 'exists, not rebuilding.')

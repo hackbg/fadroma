@@ -154,9 +154,9 @@ export class DockerodeBuilder extends Builder {
     if (prebuilt) {
       return prebuilt
     }
-    const { workspace, crate, ref = 'HEAD' } = source
+    let { workspace, crate, ref = 'HEAD' } = source
     const outputDir = resolve(workspace, 'artifacts')
-    const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
+    const location  = resolve(outputDir, `${crate}@${ref.replace(/\//g, '_')}.wasm`)
     // Wait until the build image is available.
     const image = await this.buildImageReady
     // Configuration of the build container
@@ -199,6 +199,7 @@ export function getBuildContainerArgs (
   binds.push(`${src}:/src:rw`)                         // Input
   binds.push(`${command}:/${cmdName}:ro`)              // Procedure
   binds.push(`${output}:/output:rw`)                   // Output
+  ref = ref.replace(/\//g, '_') // kludge
   binds.push(`project_cache_${ref}:/src/target:rw`)    // Cache
   binds.push(`cargo_cache_${ref}:/usr/local/cargo:rw`) // Cache
   if (ref !== 'HEAD') {
