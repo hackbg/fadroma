@@ -203,8 +203,8 @@ fn init(
     fail_counter: bool,
     fail_multiplier: bool,
 ) -> StdResult<InitResult> {
-    let counter = ensemble.register(Box::new(Counter));
-    let multiplier = ensemble.register(Box::new(Multiplier));
+    let counter = ensemble.register(Counter);
+    let multiplier = ensemble.register(Multiplier);
 
     let admin = "admin";
     ensemble.add_funds(admin, vec![coin(SEND_AMOUNT, SEND_DENOM)]);
@@ -454,7 +454,7 @@ fn auto_increment() {
         time: 7,
     });
 
-    let block_height_contract = ensemble.register(Box::new(BlockHeight));
+    let block_height_contract = ensemble.register(BlockHeight);
 
     let block_height = ensemble
         .instantiate(
@@ -514,7 +514,7 @@ fn random_increment() {
         time_range: (1, 8),
     });
 
-    let block_height_contract = ensemble.register(Box::new(BlockHeight));
+    let block_height_contract = ensemble.register(BlockHeight);
 
     let block_height = ensemble
         .instantiate(
@@ -561,7 +561,7 @@ fn random_increment() {
 fn no_auto_increment() {
     let mut ensemble = ContractEnsemble::new(50);
 
-    let block_height_contract = ensemble.register(Box::new(BlockHeight));
+    let block_height_contract = ensemble.register(BlockHeight);
 
     let block_height = ensemble
         .instantiate(

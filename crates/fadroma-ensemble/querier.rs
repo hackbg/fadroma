@@ -6,6 +6,7 @@ use fadroma_platform_scrt::{
 use crate::ensemble::Context;
 
 pub struct EnsembleQuerier {
+    // NOTE: raw pointer to crate::ensemble::ContractEnsemble::ctx
     ctx: *const Context,
     base: MockQuerier,
 }
@@ -31,13 +32,14 @@ impl Querier for EnsembleQuerier {
             }
         };
 
+        // NOTE: This is safe to dereference due it being 'boxed' in crate::ensemble::ContractEnsemble
+        let ctx = unsafe { &*(self.ctx) };
+
         match request {
             QueryRequest::Wasm(query) => match query {
                 WasmQuery::Smart {
                     contract_addr, msg, ..
-                } => unsafe {
-                    let ctx = &*(self.ctx);
-
+                } => {
                     if !ctx.instances.contains_key(&contract_addr) {
                         return Err(SystemError::NoSuchContract {
                             addr: contract_addr,
@@ -45,10 +47,8 @@ impl Querier for EnsembleQuerier {
                     }
 
                     Ok(ctx.query(contract_addr, msg))
-                },
-                WasmQuery::Raw { contract_addr, .. } => unsafe {
-                    let ctx = &*(self.ctx);
-
+                }
+                WasmQuery::Raw { contract_addr, .. } => {
                     if !ctx.instances.contains_key(&contract_addr) {
                         return Err(SystemError::NoSuchContract {
                             addr: contract_addr,
@@ -56,25 +56,21 @@ impl Querier for EnsembleQuerier {
                     }
 
                     todo!()
-                },
+                }
             },
             QueryRequest::Bank(query) => match query {
-                BankQuery::AllBalances { address } => unsafe {
-                    let ctx = &*(self.ctx);
-
+                BankQuery::AllBalances { address } => {
                     let amount = ctx.bank.readable().query_balances(&address, None);
 
                     Ok(to_binary(&AllBalanceResponse { amount }))
-                },
-                BankQuery::Balance { address, denom } => unsafe {
-                    let ctx = &*(self.ctx);
-
+                }
+                BankQuery::Balance { address, denom } => {
                     let amount = ctx.bank.readable().query_balances(&address, Some(denom));
 
                     Ok(to_binary(&BalanceResponse {
                         amount: amount.into_iter().next().unwrap(),
                     }))
-                },
+                }
             },
             _ => Ok(self.base.query(&request)),
         }
