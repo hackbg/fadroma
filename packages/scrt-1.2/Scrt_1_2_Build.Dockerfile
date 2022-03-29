@@ -11,5 +11,5 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN mkdir -p "$REGISTRY"
 WORKDIR /src
 
-ADD Scrt_1_2_Build.js Scrt_1_2_Build.sh /
+ADD ./Scrt_1_2_Build.js ./Scrt_1_2_Build.sh /
 CMD node /Scrt_1_2_Build.js

@@ -13,48 +13,59 @@ const console = Console('@fadroma/ops/Docker')
 import Docker from 'dockerode'
 export { Docker }
 
-/** Make sure an image is present in the Docker cache,
-  * by pulling it if `docker.getImage` throws,
-  * or by building it if `docker.pull` throws. */
+/** Make sure an image is available,
+  * providing it if possible. */
 export async function ensureDockerImage (
-  imageName:      string|null = null,
-  dockerfilePath: string|null = null,
-  docker:         Docker      = new Docker()
+  docker:     Docker = new Docker({ socketPath: '/var/run/docker.sock' }),
+  name:       string|null = null,
+  dockerfile: string|null = null,
+  extraFiles: string[]    = []
 ): Promise<string> {
+  return new DockerImage(docker, name, dockerfile, extraFiles).ensure()
+}
 
-  const PULLING  = `Image ${imageName} not found, pulling...`
-  const BUILDING = `Image ${imageName} not found upstream, building from ${dockerfilePath}...`
-  const NO_DOCKERFILE = `Image ${imageName} not found and no Dockerfile provided; can't proceed.`
+/** Represents a docker image for builder or devnet,
+  * and can ensure its presence by pulling or building. */
+export class DockerImage {
+  constructor (
+    public readonly docker:     Docker = new Docker({ socketPath: '/var/run/docker.sock' }),
+    public readonly name:       string|null = null,
+    public readonly dockerfile: string|null = null,
+    public readonly extraFiles: string[]    = []
+  ) {}
 
-  try {
-    await checkImage()
-  } catch (_e) {
+  async ensure () {
+    const {docker, name, dockerfile, extraFiles} = this
+    const PULLING  = `Image ${name} not found, pulling...`
+    const BUILDING = `Image ${name} not found upstream, building from ${dockerfile}...`
+    const NO_FILE  = `Image ${name} not found and no Dockerfile provided; can't proceed.`
     try {
-      console.warn(PULLING)
-      await pullImage()
+      await this.check()
     } catch (_e) {
-      if (!dockerfilePath) {
-        throw new Error(NO_DOCKERFILE)
-      } else {
-        console.warn(BUILDING)
-        await buildImage()
+      try {
+        console.warn(PULLING)
+        await this.pull()
+      } catch (_e) {
+        if (!dockerfile) {
+          throw new Error(NO_FILE)
+        } else {
+          console.warn(BUILDING)
+          await this.build()
+        }
       }
     }
+    return name
   }
 
-  return imageName // return just the name
-
   /** Throws if inspected image does not exist locally. */
-  async function checkImage (): Promise<void> {
-    const image = docker.getImage(imageName)
-    await image.inspect()
+  async check (): Promise<void> {
+    await this.docker.getImage(this.name).inspect()
   }
 
   /** Throws if inspected image does not exist in Docker Hub. */
-  async function pullImage (): Promise<void> {
-    await new Promise<void>((ok, fail)=>docker.pull(
-      imageName,
-      (err: Error, stream: unknown) => {
+  async pull (): Promise<void> {
+    await new Promise<void>((ok, fail)=>this.docker.pull(
+      this.name, (err: Error, stream: unknown) => {
         if (err) return fail(err)
         docker.modem.followProgress(
           stream,
@@ -73,12 +84,12 @@ export async function ensureDockerImage (
   }
 
   /* Throws if the build fails, and then you have to fix stuff. */
-  async function buildImage (): Promise<void> {
-
-    const dockerfile = basename(dockerfilePath)
-    const context = dirname(dockerfilePath)
-    const src     = [dockerfile]
-    const stream = await docker.buildImage({ context, src }, { t: imageName, dockerfile })
+  async build (): Promise<void> {
+    const { name, docker } = this
+    const dockerfile = basename(this.dockerfile)
+    const context    = dirname(this.dockerfile)
+    const src        = [dockerfile, ...this.extraFiles]
+    const stream = await docker.buildImage({ context, src }, { t: this.name, dockerfile })
 
     await new Promise<void>((ok, fail)=>{
       docker.modem.followProgress(stream, complete, report)
@@ -92,32 +103,29 @@ export async function ensureDockerImage (
       function report (event: Record<string, unknown>) {
         if (event.error) {
           console.error(event.error)
-          throw new Error(`Building ${imageName} from ${dockerfile} in ${context} failed.`)
+          throw new Error(`Building ${name} from ${dockerfile} in ${context} failed.`)
         }
         console.info(
           `📦 docker build says:`,
           JSON.stringify(event)
         )
       }
-
     })
-
   }
-
 }
 
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerodeBuilder extends Builder {
   constructor (options) {
     super()
+    this.socketPath = options.socketPath || '/var/run/docker.sock'
+    this.docker     = options.docker || new Docker({ socketPath: this.socketPath })
     this.image      = options.image
     this.dockerfile = options.dockerfile
     this.script     = options.script
-    this.socketPath = options.socketPath || '/var/run/docker.sock'
-    this.docker     = new Docker({ socketPath: this.socketPath })
   }
   /** Tag of the docker image for the build container. */
-  image:      string
+  image:      DockerImage
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
   /** Path to the build script to be mounted and executed in the container. */
@@ -132,10 +140,11 @@ export class DockerodeBuilder extends Builder {
     * when the build image is available. Returns that Promise every time. */
   private get buildImageReady () {
     if (!this.ensuringBuildImage) {
-      console.info(bold('Ensuring build image:'), this.image, 'from', this.dockerfile)
-      return this.ensuringBuildImage = ensureDockerImage(this.image, this.dockerfile, this.docker)
+      console.info(bold('Ensuring build image:'), this.image.name)
+      console.info(bold('Using dockerfile:'), this.image.dockerfile)
+      return this.ensuringBuildImage = this.image.ensure()
     } else {
-      console.info(bold('Already ensuring build image from parallel build:'), this.image)
+      console.info(bold('Already ensuring build image from parallel build:'), this.image.name)
       return this.ensuringBuildImage
     }
   }
@@ -220,7 +229,7 @@ export function getBuildContainerArgs (
   * (https://www.npmjs.com/package/dockerode) */
 export type DockerodeDevnetOptions = DevnetOptions & {
   /** Docker image of the chain's runtime. */
-  image?: string
+  image?: DockerImage
   /** Init script to launch the devnet. */
   initScript?: string
   /** Once this string is encountered in the log output
@@ -270,7 +279,7 @@ export class DockerodeDevnet extends Devnet {
   }
 
   /** This should point to the standard production docker image for the network. */
-  image: string
+  image: DockerImage
 
   /** Mounted into devnet container in place of default init script
     * in order to add custom genesis accounts with initial balances
@@ -314,7 +323,7 @@ export class DockerodeDevnet extends Devnet {
     }
     // create the container
     console.info('Launching a devnet container...')
-    await ensureDockerImage(this.image, this.docker)
+    await this.image.ensure()
     this.container = await this.createContainer(getDevnetContainerOptions(this))
     const shortId = this.container.id.slice(0, 8)
     // emit any warnings
@@ -443,7 +452,7 @@ export class DockerodeDevnet extends Devnet {
     } catch (e) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
         console.warn(`Failed to delete ${path}: ${e.message}; trying cleanup container...`)
-        await ensureDockerImage(this.image, this.docker)
+        await this.image.ensure()
         const container = await this.createContainer(getCleanupContainerOptions(this))
         console.info(`Starting cleanup container...`)
         await container.start()
@@ -458,7 +467,7 @@ export class DockerodeDevnet extends Devnet {
   }
 
   /** Used to command the container engine. */
-  protected docker: Docker = new Docker({ sockerPath: '/var/run/docker.sock' })
+  protected docker: Docker = new Docker({ socketPath: '/var/run/docker.sock' })
 
   /** The created container */
   container: { id: string, Warnings: any, logs: Function }

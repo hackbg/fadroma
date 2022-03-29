@@ -1,12 +1,12 @@
 import { URL } from 'url'
 import {
   Console, bold, randomHex,
-  dirname, fileURLToPath, resolve, TextFile,
+  dirname, fileURLToPath, resolve, relative, TextFile,
   Identity, Agent, ScrtAgentJS, ScrtAgentTX,
   Scrt, ChainMode,
   DockerodeBuilder, ManagedBuilder,
   DockerodeDevnet, ManagedDevnet,
-  config
+  config, DockerImage
 } from '@fadroma/scrt'
 import { ScrtAgentJS_1_2 } from './ScrtAgentJS_1_2'
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
@@ -69,10 +69,14 @@ export default class Scrt_1_2 extends Scrt {
         managerURL, chainId, config.scrt.devnetChainIdPrefix
       )
     } else {
-      const image       = "enigmampc/secret-network-sw-dev:v1.2.0"
-      const readyPhrase = "indexed block"
-      const initScript  = resolve(__dirname, 'Scrt_1_2_Node.sh')
-      return new DockerodeDevnet({ image, readyPhrase, initScript })
+      return new DockerodeDevnet({
+        image: new DockerImage(
+          undefined,
+          "enigmampc/secret-network-sw-dev:v1.2.0",
+        ),
+        readyPhrase: "indexed block",
+        initScript:  resolve(__dirname, 'Scrt_1_2_Node.sh')
+      })
     }
   }
 
@@ -86,10 +90,19 @@ export default class Scrt_1_2 extends Scrt {
     if (managerURL) {
       return new ManagedBuilder({ managerURL, caching })
     } else {
-      const image      = config.scrt.buildImage
-      const dockerfile = config.scrt.buildDockerfile
-      const script     = config.scrt.buildScript
-      return new DockerodeBuilder({ image, dockerfile, script, caching })
+      return new DockerodeBuilder({
+        image: new DockerImage(
+          undefined,
+          config.scrt.buildImage,
+          config.scrt.buildDockerfile,
+          [
+            relative(dirname(config.scrt.buildDockerfile), config.scrt.buildScript),
+            "Scrt_1_2_Build.js" // FIXME
+          ]
+        ),
+        script: config.scrt.buildScript,
+        caching
+      })
     }
   }
 }
