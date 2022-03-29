@@ -10,7 +10,7 @@ use fadroma_platform_scrt::{
     Querier, from_binary, to_binary, coin, to_vec
 };
 use fadroma_storage::{save, load};
-use crate::{ContractEnsemble, MockEnv, ContractHarness, MockDeps};
+use crate::{ContractEnsemble, MockEnv, ContractHarness, MockDeps, BlockIncrement};
 
 use serde::{Serialize, Deserialize};
 
@@ -263,6 +263,61 @@ fn init(
     })
 }
 
+struct BlockHeight;
+
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum BlockHeightHandle {
+    Set,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+struct Block { height: u64, time: u64 }
+
+impl ContractHarness for BlockHeight {
+    fn init(
+        &self,
+        deps: &mut MockDeps,
+        env: Env,
+        _msg: Binary,
+    ) -> StdResult<InitResponse> {
+        save(&mut deps.storage, b"block", &Block {
+            height: env.block.height,
+            time: env.block.time,
+        })?;
+
+        Ok(InitResponse::default())
+    }
+
+    fn handle(
+        &self,
+        deps: &mut MockDeps,
+        env: Env,
+        msg: Binary
+    ) -> StdResult<HandleResponse> {
+        let msg: BlockHeightHandle = from_binary(&msg)?;
+        match msg {
+            BlockHeightHandle::Set => {
+                save(&mut deps.storage, b"block", &Block {
+                    height: env.block.height,
+                    time: env.block.time,
+                })?;
+            }
+        };
+
+        Ok(HandleResponse::default())
+    }
+
+    fn query(
+        &self,
+        deps: &MockDeps,
+        _msg: Binary,
+    ) -> StdResult<Binary> {
+        let block: Block = load(&deps.storage, b"block")?.unwrap();
+        to_binary(&block)
+    }
+}
+
 #[test]
 fn test_removes_instances_on_failed_init() {
     let mut ensemble = ContractEnsemble::new(20);
@@ -392,4 +447,91 @@ fn insufficient_balance() {
         MockEnv::new(sender, result.counter.clone())
             .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)])
     ).unwrap();
+}
+
+#[test]
+fn auto_increment() {
+    let mut ensemble = ContractEnsemble::new(50)
+    .auto_increment(BlockIncrement::Exact{height: 10, time: 7});
+
+    let block_height_contract = ensemble.register(Box::new(BlockHeight));
+
+    let block_height = ensemble.instantiate(block_height_contract.id, 
+        &Empty {}, 
+        MockEnv::new("Admin", ContractLink { 
+            address: "block_height".into(), 
+            code_hash: block_height_contract.code_hash, 
+    })).unwrap();
+
+    ensemble.execute(
+        &BlockHeightHandle::Set,
+        MockEnv::new("Admin", block_height.clone())
+    ).unwrap();
+
+    let res: Block = ensemble.query(block_height.address.clone(), Empty {}).unwrap();
+    assert_eq!(res, Block {height: 10, time: 70});
+
+    ensemble.execute(
+        &BlockHeightHandle::Set,
+        MockEnv::new("Admin", block_height.clone())
+    ).unwrap();
+
+    let res: Block = ensemble.query(block_height.address.clone(), Empty {}).unwrap();
+    assert_eq!(res, Block {height: 20, time: 140});
+}
+
+#[test]
+fn random_increment() {
+    let mut ensemble = ContractEnsemble::new(50)
+    .auto_increment(BlockIncrement::Random{height_range: (1, 10), time_range: (1, 8)});
+
+    let block_height_contract = ensemble.register(Box::new(BlockHeight));
+
+    let block_height = ensemble.instantiate(block_height_contract.id, 
+        &Empty {}, 
+        MockEnv::new("Admin", ContractLink { 
+            address: "block_height".into(), 
+            code_hash: block_height_contract.code_hash, 
+    })).unwrap();
+
+    ensemble.execute(
+        &BlockHeightHandle::Set,
+        MockEnv::new("Admin", block_height.clone())
+    ).unwrap();
+
+    let block: Block = ensemble.query(block_height.address.clone(), Empty {}).unwrap();
+    assert!(block.height > 0);
+    assert!(block.time > 0);
+
+    ensemble.execute(
+        &BlockHeightHandle::Set,
+        MockEnv::new("Admin", block_height.clone())
+    ).unwrap();
+
+    let res: Block = ensemble.query(block_height.address.clone(), Empty {}).unwrap();
+    assert!(block.height < res.height);
+    assert!(block.time < res.time);
+
+}
+
+#[test]
+fn no_auto_increment() {
+    let mut ensemble = ContractEnsemble::new(50);
+
+    let block_height_contract = ensemble.register(Box::new(BlockHeight));
+
+    let block_height = ensemble.instantiate(block_height_contract.id, 
+        &Empty {}, 
+        MockEnv::new("Admin", ContractLink { 
+            address: "block_height".into(), 
+            code_hash: block_height_contract.code_hash, 
+    })).unwrap();
+
+    ensemble.execute(
+        &BlockHeightHandle::Set,
+        MockEnv::new("Admin", block_height.clone())
+    ).unwrap();
+
+    let res: Block = ensemble.query(block_height.address.clone(), Empty {}).unwrap();
+    assert_eq!(res, Block {height: 12345, time: 1571797419});
 }

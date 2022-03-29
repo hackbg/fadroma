@@ -19,6 +19,8 @@ use crate::revertable::Revertable;
 use crate::storage::TestStorage;
 use crate::bank::{Bank, Balances};
 
+use rand::{thread_rng, Rng};
+
 pub type MockDeps = Extern<Revertable<TestStorage>, MockApi, EnsembleQuerier>;
 
 pub trait ContractHarness {
@@ -43,16 +45,30 @@ pub trait ContractHarness {
     ) -> StdResult<Binary>;
 }
 
+pub enum BlockIncrement{
+    Random {
+        height_range: (u64, u64),
+        time_range: (u64, u64),
+    },
+    Exact {
+        /// Block height increment
+        height: u64,
+        /// Seconds per block increment
+        time: u64,
+    }
+}
 #[derive(Debug)]
 pub struct ContractEnsemble {
-    pub(crate) ctx: Box<Context>
+    pub(crate) ctx: Box<Context>,
 }
 
 pub(crate) struct Context {
     pub(crate) instances: HashMap<HumanAddr, ContractInstance>,
     pub(crate) contracts: Vec<Box<dyn ContractHarness>>,
     pub(crate) bank: Revertable<Bank>,
-    canonical_length: usize
+    canonical_length: usize,
+    block: BlockInfo,
+    block_increment: Option<BlockIncrement>,
 }
 
 pub(crate) struct ContractInstance {
@@ -64,7 +80,7 @@ pub(crate) struct ContractInstance {
 impl ContractEnsemble {
     pub fn new(canonical_length: usize) -> Self {
         Self {
-            ctx: Box::new(Context::new(canonical_length))
+            ctx: Box::new(Context::new(canonical_length)),
         }
     }
 
@@ -76,6 +92,12 @@ impl ContractEnsemble {
             id,
             code_hash: format!("test_contract_{}", id)
         }
+    }
+
+    pub fn auto_increment(mut self, increment: BlockIncrement) -> Self {
+        self.ctx.block_increment = Some(increment);
+
+        self
     }
 
     pub fn add_funds(&mut self, address: impl Into<HumanAddr>, coins: Vec<Coin>) {
@@ -203,7 +225,9 @@ impl Context {
             canonical_length,
             bank: Default::default(),
             contracts: Default::default(),
-            instances: Default::default()
+            instances: Default::default(),
+            block: BlockInfo::default(),
+            block_increment: None,
         }
     }
 
@@ -213,11 +237,11 @@ impl Context {
         msg: Binary,
         env: MockEnv
     ) -> StdResult<ContractLink<HumanAddr>> {
+        let update_block = self.block_increment.is_some();
         let contract = self.contracts.get(id).expect("Contract id doesn't exist.");
 
         let address = env.0.contract.address.clone();
         let code_hash = env.0.contract_code_hash.clone();
-        let block = env.0.block.clone();
 
         let instance = ContractInstance::new(id, self.canonical_length, &self);
 
@@ -234,11 +258,20 @@ impl Context {
         self.instances.insert(address.clone(), instance);
 
         let instance = self.instances.get_mut(&address).unwrap();
+
+
+        let (block, env) = if update_block {
+            (self.block.clone(), env.height(self.block.height).time(self.block.time))
+        } else {
+            (env.0.block.clone(), env)
+        };
+
         let result = contract.init(&mut instance.deps, env.0, msg);
 
         match result {
             Ok(msgs) => {
                 let result = self.execute_messages(msgs.messages, address.clone(), block);
+                if update_block {self.update_block();}
 
                 match result {
                     Ok(_) => {
@@ -267,6 +300,7 @@ impl Context {
         msg: Binary,
         env: MockEnv,
     ) -> StdResult<()> {
+        let update_block = self.block_increment.is_some();
         let address = env.0.contract.address.clone();
 
         let instance = self.instances.get_mut(&address)
@@ -280,10 +314,19 @@ impl Context {
 
         let contract = self.contracts.get(instance.index).unwrap();
 
-        let block = env.0.block.clone();
+        let (block, env) = if update_block {
+            (self.block.clone(), env.height(self.block.height).time(self.block.time))
+        } else {
+            (env.0.block.clone(), env)
+        };
+
         let result = contract.handle(&mut instance.deps, env.0, msg)?;
 
-        self.execute_messages(result.messages, address, block)
+        self.execute_messages(result.messages, address, block)?;
+
+        if update_block {self.update_block();}
+
+        Ok(())
     }
 
     pub(crate) fn query(
@@ -371,6 +414,27 @@ impl Context {
         }
 
         Ok(())
+    }
+
+    fn update_block(&mut self) {
+        match self.block_increment {
+            Some(BlockIncrement::Exact { height, time }) => {
+                self.block.height += height;
+                self.block.time += height * time;
+            },
+            Some(BlockIncrement::Random {
+                height_range: (h_start, h_end),
+                time_range: (t_start, t_end)
+            }) => {
+               let mut rng = thread_rng();
+               let rand_height = rng.gen_range(h_start..=h_end);
+               let rand_time = rng.gen_range(t_start..=t_end);
+
+               self.block.height += rand_height;
+               self.block.time += rand_height * rand_time;
+            }
+            None => {}
+        }
     }
 }
 

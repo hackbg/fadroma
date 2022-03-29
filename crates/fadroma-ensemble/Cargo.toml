@@ -12,3 +12,4 @@ path = "lib.rs"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 fadroma-platform-scrt = { path = "../fadroma-platform-scrt", features = ["iterator"] }
 fadroma-storage       = { path = "../fadroma-storage" }
+rand = "0.8.5"
