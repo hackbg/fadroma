@@ -6,19 +6,9 @@ import {
 } from '@hackbg/tools'
 import { config } from './Config'
 import { Source, Builder, Artifact, codeHashForPath } from './Core'
-import { tmp, Docker, ensureDockerImage } from '@hackbg/tools'
 import { Endpoint } from './Endpoint'
 
 const console = Console('@fadroma/ops/Build')
-
-/** Take a workspace and a list of crates in it and return a function
-  * that creates a mapping from crate name to Source object for a particular VCS ref. */
-export const collectCrates = (workspace: string, crates: string[]) =>
-  (ref?: string): Record<string, Source> =>
-    crates.reduce(
-      (sources, crate)=>Object.assign(sources, {[crate]: new Source(workspace, crate, ref)}),
-      {}
-    )
 
 /** This builder talks to a remote build server over HTTP. */
 export class ManagedBuilder extends Builder {

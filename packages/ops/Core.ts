@@ -16,6 +16,15 @@ export class Source {
     public readonly crate:     string,
     public readonly ref?:      string
   ) {}
+
+  /** Take a workspace and a list of crates in it and return a function
+    * that creates a mapping from crate name to Source object for a particular VCS ref. */
+  static collectCrates = (workspace: string, crates: string[]) =>
+    (ref?: string): Record<string, Source> =>
+      crates.reduce(
+        (sources, crate)=>Object.assign(sources, {[crate]: new Source(workspace, crate, ref)}),
+        {}
+      )
 }
 
 export abstract class Builder {
