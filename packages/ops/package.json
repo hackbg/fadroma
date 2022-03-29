@@ -9,6 +9,7 @@
     "@iov/encoding":             "^2.1.0",
     "ajv":                       "^8.6",
     "align-yaml":                "^0.1.8",
+    "dockerode":                 "^3.3.1",
     "dotenv":                    "^15",
     "exponential-backoff":       "^3.1",
     "freeport-async":            "^2.0.0",
