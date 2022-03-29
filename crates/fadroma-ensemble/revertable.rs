@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub struct Revertable<T: Clone> {
     pub(crate) current: T,
-    pending: Option<T>
+    pending: Option<T>,
 }
 
 impl<T: Clone> Revertable<T> {
@@ -26,7 +26,7 @@ impl<T: Clone> Revertable<T> {
     pub fn readable(&self) -> &T {
         match &self.pending {
             Some(pending) => pending,
-            None => &self.current
+            None => &self.current,
         }
     }
 }
@@ -35,7 +35,7 @@ impl<T: Default + Clone> Default for Revertable<T> {
     fn default() -> Self {
         Self {
             current: Default::default(),
-            pending: None
+            pending: None,
         }
     }
 }
@@ -49,7 +49,7 @@ mod tests {
         #[derive(Default, Clone)]
         struct Data {
             one: u8,
-            two: u8
+            two: u8,
         }
 
         let mut data: Revertable<Data> = Default::default();

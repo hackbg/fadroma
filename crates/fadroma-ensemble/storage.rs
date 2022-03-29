@@ -2,9 +2,7 @@ use std::collections::BTreeMap;
 use std::iter;
 use std::ops::{Bound, RangeBounds};
 
-use fadroma_platform_scrt::{
-    Storage, ReadonlyStorage, KV, Order
-};
+use fadroma_platform_scrt::{Order, ReadonlyStorage, Storage, KV};
 
 use crate::revertable::Revertable;
 
