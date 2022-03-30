@@ -1,14 +1,11 @@
 import type { Agent } from './Agent'
+import { config } from './Config'
 import { colors, bold, Console, resolve, readFileSync, existsSync } from '@hackbg/tools'
 export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 
 const console = Console('@hackbg/fadroma')
-
-export function codeHashForPath (location: string) {
-  return toHex(new Sha256(readFileSync(location)).digest())
-}
 
 export class Source {
   constructor (
@@ -28,7 +25,7 @@ export class Source {
 }
 
 export abstract class Builder {
-  caching = true
+  caching = !config.rebuild
   protected prebuild ({ workspace, crate, ref = 'HEAD' }: Source): Artifact|null {
     // For now, workspace-less crates are not supported.
     if (!workspace) {
@@ -36,7 +33,6 @@ export abstract class Builder {
       throw new Error(msg)
     }
     // Don't rebuild existing artifacts
-    // TODO make this optional
     if (this.caching) {
       const outputDir = resolve(workspace, 'artifacts')
       ref = ref.replace(/\//g, '_') // kludge
@@ -57,6 +53,10 @@ export abstract class Builder {
 export interface Artifact {
   location:  string
   codeHash?: string
+}
+
+export function codeHashForPath (location: string) {
+  return toHex(new Sha256(readFileSync(location)).digest())
 }
 
 export abstract class Uploader {
