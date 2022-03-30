@@ -4,7 +4,7 @@ import {
   dirname, fileURLToPath, resolve, relative, TextFile,
   Identity, Agent, ScrtAgentJS, ScrtAgentTX,
   Scrt, ChainMode,
-  DockerodeBuilder, ManagedBuilder,
+  DockerodeBuilder, ManagedBuilder, RawBuilder,
   DockerodeDevnet, ManagedDevnet,
   config, DockerImage
 } from '@fadroma/scrt'
@@ -81,14 +81,19 @@ export default class Scrt_1_2 extends Scrt {
   }
 
   static getBuilder = function getScrtBuilder_1_2 ({
+    raw        = config.buildRaw,
     managerURL = config.buildManager,
     caching    = !config.rebuild
   }: {
+    raw?:        boolean,
     managerURL?: string,
     caching?:    boolean
   } = {}) {
-    if (managerURL) {
-      return new ManagedBuilder({ managerURL, caching })
+    if (raw) {
+      const script = resolve(dirname(config.scrt.buildScript), 'Scrt_1_2_BuildCommand.sh')
+      return new RawBuilder(script)
+    } else if (managerURL) {
+      return new ManagedBuilder({ managerURL })
     } else {
       return new DockerodeBuilder({
         image: new DockerImage(

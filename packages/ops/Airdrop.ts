@@ -1,6 +1,7 @@
 import type { Chain } from './Chain'
 import type { Agent } from './Agent'
-import { taskmaster } from '@hackbg/tools'
+import { taskmaster, readFileSync, resolve } from '@hackbg/tools'
+import assert from 'assert'
 
 export type Airdrop = {
   /** Taskmaster. TODO replace with generic observability mechanism (RxJS?) */
@@ -39,6 +40,7 @@ export async function airdrop (options: Airdrop = {}) {
       throw new Error('im old!')
       /*chain = await Chain[chain]({stateRoot: config.projectRoot})*/
     }
+  }
 
   const { task      = taskmaster()
         , count     = 16 // give or take

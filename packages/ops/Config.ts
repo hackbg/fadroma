@@ -8,6 +8,8 @@ export type EnvVars = {
 
   /** URL to the build manager endpoint. */
   FADROMA_BUILD_MANAGER:           string
+  /** Use toolchain from environment. */
+  FADROMA_BUILD_RAW:               string
   /** Whether to mount the user's .ssh directory
     * into Dockerode-based build containers.
     * TODO: Allow a separate build key to be mounted
@@ -68,6 +70,8 @@ export class Config {
       env.FADROMA_PRINT_TXS || ''
     this.buildManager =
       env.FADROMA_BUILD_MANAGER || null
+    this.buildRaw = Boolean(
+      env.FADROMA_BUILD_RAW || false)
     this.buildUnsafeMountKeys = Boolean(
       env.FADROMA_BUILD_UNSAFE_MOUNT_KEYS || false)
     this.devnetManager =
@@ -130,6 +134,7 @@ export class Config {
   chain:                 string
   homeDir:               string
   printTXs:              string
+  buildRaw:              boolean
   buildManager:          string|null
   buildUnsafeMountKeys:  boolean
   devnetManager:         string|null
