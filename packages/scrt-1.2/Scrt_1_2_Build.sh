@@ -42,9 +42,6 @@ checkout_ref () {
 # execute a release build,
 # then optimize it with Binaryen.
 build () {
-  OUTPUT=`echo "$CRATE" | tr '-' '_'`
-  REF_SANITIZED=`echo "$REF" | tr '/' '_' `
-  FINAL_OUTPUT="$CRATE@$REF_SANITIZED.wasm"
   cd /src
   mkdir -p /tmp/target
   chmod ugo+rwx /tmp/target

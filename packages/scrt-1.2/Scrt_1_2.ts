@@ -90,8 +90,10 @@ export default class Scrt_1_2 extends Scrt {
     caching?:    boolean
   } = {}) {
     if (raw) {
-      const script = resolve(dirname(config.scrt.buildScript), 'Scrt_1_2_BuildCommand.sh')
-      return new RawBuilder(script)
+      return new RawBuilder(
+        resolve(dirname(config.scrt.buildScript), 'Scrt_1_2_BuildCommand.sh'),
+        resolve(dirname(config.scrt.buildScript), 'Scrt_1_2_BuildCheckout.sh')
+      )
     } else if (managerURL) {
       return new ManagedBuilder({ managerURL })
     } else {

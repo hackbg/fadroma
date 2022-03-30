@@ -30,3 +30,4 @@ sha256sum -b `basename $OPTIMIZED` > $CHECKSUM
 echo 'Checksum calculated:'
 
 cat $CHECKSUM
+
