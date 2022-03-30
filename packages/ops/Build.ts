@@ -2,7 +2,8 @@ import * as HTTP from 'http'
 import { Transform } from 'stream'
 import LineTransformStream from 'line-transform-stream'
 import {
-  Console, bold, resolve, relative, basename, rimraf, spawnSync, existsSync, readFileSync
+  Console, bold, resolve, relative, basename, rimraf,
+  spawnSync, execFile, existsSync, readFileSync
 } from '@hackbg/tools'
 import { config } from './Config'
 import { Source, Builder, Artifact, codeHashForPath } from './Core'
@@ -24,16 +25,19 @@ export class RawBuilder extends Builder {
 
     let cwd = workspace
 
-    const options = () => ({
-      cwd, env: { ...process.env, CRATE: crate, REF: ref },
-      stdio: 'inherit',
-    }) as any
+    const run = (cmd, args) => new Promise((resolve, reject)=>{
+      const env = { ...process.env, CRATE: crate, REF: ref, WORKSPACE: workspace }
+      execFile(cmd, args, { cwd, env, stdio: 'inherit' } as any, (error, stdout, stderr) => {
+        if (error) return reject(error)
+        resolve([stdout, stderr])
+      })
+    })
 
     if (ref && ref !== 'HEAD') {
-      spawnSync(this.checkoutScript, [], options())
+      await run(this.checkoutScript, [])
     }
 
-    spawnSync(this.buildScript, [], options())
+    await run(this.buildScript, [])
 
     const location = resolve(workspace, 'artifacts', `${crate}@${ref.replace(/\//g,'_')}.wasm`)
 

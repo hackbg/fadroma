@@ -3,8 +3,8 @@ set -aemu
 
 git --version
 
-: ${CRATE?"Need to set CRATE"}
-: ${REF?"Need to set REF"}
+: "${CRATE?Need to set CRATE}"
+: "${REF?Need to set REF}"
 
 TEMP=/tmp/fadroma-build-$CRATE
 export BUILD_DIR="$TEMP/$REF"

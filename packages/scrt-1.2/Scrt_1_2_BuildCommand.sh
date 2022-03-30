@@ -6,8 +6,8 @@ rustc --version
 wasm-opt --version
 sha256sum --version | head -n1
 
-: ${CRATE?"Need to set CRATE"}
-: ${REF?"Need to set REF"}
+: "${CRATE?Need to set CRATE}"
+: "${REF?Need to set REF}"
 
 export RUSTFLAGS='-C link-arg=-s'
 export CARGO_TARGET_DIR='/tmp/target'
@@ -30,4 +30,3 @@ sha256sum -b `basename $OPTIMIZED` > $CHECKSUM
 echo 'Checksum calculated:'
 
 cat $CHECKSUM
-
