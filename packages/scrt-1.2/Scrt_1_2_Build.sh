@@ -21,21 +21,7 @@ fix_user_and_group () {
 }
 
 checkout_ref () {
-  TEMP=/tmp/fadroma-build-$CRATE
-  export BUILD_DIR="$TEMP/$REF"
-  echo "Building $CRATE from $REF in $BUILD_DIR"
-  mkdir -p "$BUILD_DIR"
-  cp -rT "$WORKSPACE" "$BUILD_DIR"
-  cd "$BUILD_DIR"
-  echo "Cleaning untracked files..."
-  git stash -u
-  git reset --hard --recurse-submodules
-  git clean -f -d -x
-  echo "Checking out $REF in $BUILD_DIR..."
-  git checkout "$REF"
-  echo "Preparing submodules..."
-  git submodule update --init --recursive
-  git log -1
+  su build -c "/Scrt_1_2_BuildCheckout.sh"
 }
 
 # As a non-root user,
