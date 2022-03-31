@@ -25,6 +25,8 @@ export class RawBuilder extends Builder {
 
     let cwd = workspace
 
+    // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
+
     const run = (cmd, args) => new Promise((resolve, reject)=>{
       const env = { ...process.env, CRATE: crate, REF: ref, WORKSPACE: workspace }
       execFile(cmd, args, { cwd, env, stdio: 'inherit' } as any, (error, stdout, stderr) => {

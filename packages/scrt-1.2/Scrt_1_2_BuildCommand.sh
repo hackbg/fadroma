@@ -24,9 +24,8 @@ export OPTIMIZED="artifacts/$TAGGED_OUTPUT"
 wasm-opt -Oz $COMPILED -o $OPTIMIZED
 echo 'Optimization complete'
 
-export CHECKSUM="$OPTIMIZED_PATH.sha256"
-cd `dirname $OPTIMIZED`
-sha256sum -b `basename $OPTIMIZED` > $CHECKSUM
+export CHECKSUM="$OPTIMIZED.sha256"
+sha256sum -b $OPTIMIZED > $CHECKSUM
 echo 'Checksum calculated:'
 
 cat $CHECKSUM

@@ -4,7 +4,7 @@ import {
   Console, bold, basename, dirname, relative, resolve, cwd, freePort,
   Directory, JSONDirectory, waitPort, waitUntilLogsSay
 } from '@hackbg/tools'
-import { Builder, codeHashForPath } from './Core'
+import { Source, Builder, codeHashForPath } from './Core'
 import { config } from './Config'
 import { Devnet, DevnetOptions } from './Devnet'
 
@@ -12,17 +12,6 @@ const console = Console('@fadroma/ops/Docker')
 
 import Docker from 'dockerode'
 export { Docker }
-
-/** Make sure an image is available,
-  * providing it if possible. */
-export async function ensureDockerImage (
-  docker:     Docker = new Docker({ socketPath: '/var/run/docker.sock' }),
-  name:       string|null = null,
-  dockerfile: string|null = null,
-  extraFiles: string[]    = []
-): Promise<string> {
-  return new DockerImage(docker, name, dockerfile, extraFiles).ensure()
-}
 
 /** Represents a docker image for builder or devnet,
   * and can ensure its presence by pulling or building. */
@@ -33,6 +22,19 @@ export class DockerImage {
     public readonly dockerfile: string|null = null,
     public readonly extraFiles: string[]    = []
   ) {}
+
+  #available: Promise<string>|null = null
+
+  get available () {
+    if (!this.#available) {
+      console.info(bold('Ensuring build image:'), this.name)
+      console.info(bold('Using dockerfile:'), this.dockerfile)
+      return this.#available = this.ensure()
+    } else {
+      console.info(bold('Already ensuring build image from parallel build:'), this.name)
+      return this.#available
+    }
+  }
 
   async ensure () {
     const {docker, name, dockerfile, extraFiles} = this
@@ -64,24 +66,23 @@ export class DockerImage {
 
   /** Throws if inspected image does not exist in Docker Hub. */
   async pull (): Promise<void> {
-    const { name, docker } = this
-    await new Promise<void>((ok, fail)=>docker.pull(
-      name, (err: Error, stream: unknown) => {
+    const { name, docker, dockerfile } = this
+    await new Promise<void>((ok, fail)=>{
+      docker.pull(name, callback)
+      async function callback (err: Error, stream: unknown) {
         if (err) return fail(err)
-        docker.modem.followProgress(
-          stream,
-          (err: Error, _output: unknown) => {
-            if (err) return fail(err)
-            console.info(`pull ok`)
-            ok()
-          },
-          (event: Record<string, unknown>) => console.info(
+        await this.follow(stream, (event: Record<string, unknown>) => {
+          if (event.error) {
+            console.error(event.error)
+            throw new Error(`Pulling ${name} failed.`)
+          }
+          console.info(
             `📦 docker pull says:`,
             ['id', 'status', 'progress'].map(x=>event[x]).join('│')
           )
-        )
+        })
       }
-    ))
+    })
   }
 
   /* Throws if the build fails, and then you have to fix stuff. */
@@ -91,25 +92,24 @@ export class DockerImage {
     const context    = dirname(this.dockerfile)
     const src        = [dockerfile, ...this.extraFiles]
     const stream = await docker.buildImage({ context, src }, { t: this.name, dockerfile })
+    await this.follow(stream, (event: Record<string, unknown>) => {
+      if (event.error) {
+        console.error(event.error)
+        throw new Error(`Building ${name} from ${dockerfile} in ${context} failed.`)
+      }
+      console.info(
+        `📦 docker build says:`,
+        JSON.stringify(event)
+      )
+    })
+  }
 
+  protected async follow (stream, callback): Promise<void> {
     await new Promise<void>((ok, fail)=>{
-      docker.modem.followProgress(stream, complete, report)
-
+      this.docker.modem.followProgress(stream, complete, callback)
       function complete (err: Error, _output: unknown) {
         if (err) return fail(err)
-        console.info(`build ok`)
         ok()
-      }
-
-      function report (event: Record<string, unknown>) {
-        if (event.error) {
-          console.error(event.error)
-          throw new Error(`Building ${name} from ${dockerfile} in ${context} failed.`)
-        }
-        console.info(
-          `📦 docker build says:`,
-          JSON.stringify(event)
-        )
       }
     })
   }
@@ -117,6 +117,7 @@ export class DockerImage {
 
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerodeBuilder extends Builder {
+
   constructor (options) {
     super()
     this.socketPath = options.socketPath || '/var/run/docker.sock'
@@ -125,6 +126,7 @@ export class DockerodeBuilder extends Builder {
     this.dockerfile = options.dockerfile
     this.script     = options.script
   }
+
   /** Tag of the docker image for the build container. */
   image:      DockerImage
   /** Path to the dockerfile to build the build container if missing. */
@@ -135,20 +137,7 @@ export class DockerodeBuilder extends Builder {
   socketPath: string
   /** Used to launch build container. */
   docker:     Docker
-  /** Set the first time this Builder instance is used to build something. */
-  private ensuringBuildImage: Promise<string>|null = null
-  /** If `ensuringBuildImage` is not set, sets it to a Promise that resolves
-    * when the build image is available. Returns that Promise every time. */
-  private get buildImageReady () {
-    if (!this.ensuringBuildImage) {
-      console.info(bold('Ensuring build image:'), this.image.name)
-      console.info(bold('Using dockerfile:'), this.image.dockerfile)
-      return this.ensuringBuildImage = this.image.ensure()
-    } else {
-      console.info(bold('Already ensuring build image from parallel build:'), this.image.name)
-      return this.ensuringBuildImage
-    }
-  }
+
   async build (source) {
     // Support optional build caching
     const prebuilt = this.prebuild(source)
@@ -158,22 +147,17 @@ export class DockerodeBuilder extends Builder {
     let { workspace, crate, ref = 'HEAD' } = source
     const outputDir = resolve(workspace, 'artifacts')
     const location  = resolve(outputDir, `${crate}@${ref.replace(/\//g, '_')}.wasm`)
-    // Wait until the build image is available.
-    const image = await this.buildImageReady
-    // Configuration of the build container
-    const [cmd, args] = getBuildContainerArgs(workspace, crate, ref, outputDir, this.script)
-    // Run the build in the container
-    console.debug(
-      `Running ${bold(cmd)} in ${bold(image)}`,
-      `with the following options:`, args
-    )
-    const output = new LineTransformStream(line=>{
+    const image     = await this.image.available
+    const [cmd, args] = this.getBuildContainerArgs(source, outputDir)
+
+    const buildLogs = new LineTransformStream(line=>{
       const tag = `[${crate}@${ref}]`.padEnd(24)
       return `[@fadroma/ops/Build] ${tag} ${line}`
     })
-    output.pipe(process.stdout)
-    const running = await this.docker.run(image, cmd, output, args)
-    const [{Error: err, StatusCode: code}, container] = running
+    buildLogs.pipe(process.stdout)
+    const [
+      {Error: err, StatusCode: code}, container
+    ] = await this.docker.run(image, cmd, buildLogs, args)
     // Throw error if build failed
     if (err) {
       throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
@@ -185,6 +169,38 @@ export class DockerodeBuilder extends Builder {
     const codeHash = codeHashForPath(location)
     return { location, codeHash }
   }
+
+  protected getBuildContainerArgs (
+    { workspace, crate, ref = 'HEAD' }: Source,
+    output
+  ): [string, any] {
+    const entrypoint = this.script
+    const cmdName = basename(entrypoint)
+    const cmd = `bash /${cmdName} ${crate} ${ref}`
+    const binds = []
+    binds.push(`${workspace}:/src:rw`)
+    binds.push(`${output}:/output:rw`)
+    binds.push(`${entrypoint}:/${cmdName}:ro`) // Procedure
+    enableBuildCache(ref, binds)
+    applyUnsafeMountKeys(ref, binds)
+    const args = {
+      Tty: true,
+      AttachStdin: true,
+      Entrypoint: ['/bin/sh', '-c'],
+      HostConfig: { Binds: binds, AutoRemove: true },
+      Env: [
+        'CARGO_NET_GIT_FETCH_WITH_CLI=true',
+        'CARGO_TERM_VERBOSE=true',
+        'CARGO_HTTP_TIMEOUT=240',
+        'LOCKED=',/*'--locked'*/
+      ]
+    }
+    console.debug(
+      `Running ${bold(cmd)} in ${bold(this.image.name)}`,
+      `with the following options:`, args
+    )
+    return [cmd, args]
+  }
 }
 
 export function getBuildContainerArgs (
@@ -195,14 +211,35 @@ export function getBuildContainerArgs (
   command: string,
 ): [string, object] {
   const cmdName = basename(command)
-  const cmd = `bash /${cmdName} ${crate} ${ref}`
-  const binds = []
-  binds.push(`${src}:/src:rw`)                         // Input
-  binds.push(`${command}:/${cmdName}:ro`)              // Procedure
-  binds.push(`${output}:/output:rw`)                   // Output
+  const cmd     = `bash /${cmdName} ${crate} ${ref}`
+  const binds   = []
+  binds.push(`${src}:/src:rw`)
+  binds.push(`${output}:/output:rw`)
+  binds.push(`${command}:/${cmdName}:ro`) // Procedure
+  enableBuildCache(ref, binds)
+  applyUnsafeMountKeys(ref, binds)
+  const args = {
+    Tty: true,
+    AttachStdin: true,
+    Entrypoint:  ['/bin/sh', '-c'],
+    HostConfig:  { Binds: binds, AutoRemove: true },
+    Env: [
+      'CARGO_NET_GIT_FETCH_WITH_CLI=true',
+      'CARGO_TERM_VERBOSE=true',
+      'CARGO_HTTP_TIMEOUT=240',
+      'LOCKED=',/*'--locked'*/
+    ]
+  }
+  return [cmd, args]
+}
+
+function enableBuildCache (ref, binds) {
   ref = ref.replace(/\//g, '_') // kludge
-  binds.push(`project_cache_${ref}:/src/target:rw`)    // Cache
+  binds.push(`project_cache_${ref}:/tmp/target:rw`)    // Cache
   binds.push(`cargo_cache_${ref}:/usr/local/cargo:rw`) // Cache
+}
+
+function applyUnsafeMountKeys (ref, binds) {
   if (ref !== 'HEAD') {
     if (config.buildUnsafeMountKeys) {
       // Keys for SSH cloning of submodules - dangerous!
@@ -211,22 +248,14 @@ export function getBuildContainerArgs (
       )
       binds.push(`${config.homeDir}/.ssh:/root/.ssh:rw`)
     } else {
-      console.warn(
-        'Not mounting SSH keys into build container - may not be able to clone submodules'
+      console.info(
+        'Not mounting SSH keys into build container - '+
+        'will not be able to clone private submodules'
       )
     }
   }
-  const args = { Tty:         true,
-                 AttachStdin: true,
-                 Entrypoint:  ['/bin/sh', '-c'],
-                 HostConfig:  { Binds:      binds,
-                                AutoRemove: true },
-                 Env:         ['CARGO_NET_GIT_FETCH_WITH_CLI=true',
-                               'CARGO_TERM_VERBOSE=true',
-                               'CARGO_HTTP_TIMEOUT=240',
-                               'LOCKED=',/*'--locked'*/] }
-  return [cmd, args]
 }
+
 /** Parameters for the Dockerode-based implementation of Devnet.
   * (https://www.npmjs.com/package/dockerode) */
 export type DockerodeDevnetOptions = DevnetOptions & {
@@ -259,6 +288,13 @@ export type DockerodeDevnetOptions = DevnetOptions & {
       logs (_: any, callback: Function): void
     }
   }
+}
+
+/** Used to reconnect between runs. */
+export type DockerodeDevnetReceipt = {
+  containerId: string
+  chainId:     string
+  port:        number|string
 }
 
 /** Fadroma can spawn a devnet in a container using Dockerode.
@@ -325,7 +361,7 @@ export class DockerodeDevnet extends Devnet {
     }
     // create the container
     console.info('Launching a devnet container...')
-    await this.image.ensure()
+    await this.image.available
     this.container = await this.createContainer(getDevnetContainerOptions(this))
     const shortId = this.container.id.slice(0, 8)
     // emit any warnings
@@ -348,11 +384,7 @@ export class DockerodeDevnet extends Devnet {
     return this
   }
 
-  load (): {
-    containerId: string
-    chainId:     string
-    port:        number|string
-  } | null {
+  load (): DockerodeDevnetReceipt | null {
     const data = super.load()
     if (data.containerId) {
       const id = data.containerId
