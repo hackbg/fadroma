@@ -16,6 +16,9 @@ export LOCKED='' # '--locked'
 cargo build -p $CRATE --release --target $PLATFORM $LOCKED --verbose
 echo 'Build complete'
 
+ls -al
+ls -al artifacts/
+
 export OUTPUT="$(echo "$CRATE" | tr '-' '_').wasm"
 export COMPILED="$CARGO_TARGET_DIR/$PLATFORM/release/$OUTPUT"
 export REF_SANITIZED="$(echo "$REF" | tr '/' '_')"

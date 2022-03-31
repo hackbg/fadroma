@@ -99,7 +99,7 @@ export class DockerImage {
       }
       console.info(
         `📦 docker build says:`,
-        JSON.stringify(event)
+        event.progress || event.status || event.stream || JSON.stringify(event)
       )
     })
   }
@@ -214,6 +214,7 @@ export function getBuildContainerArgs (
   const cmd     = `bash /${cmdName} ${crate} ${ref}`
   const binds   = []
   binds.push(`${src}:/src:rw`)
+  binds.push(`/dev/null:/src/receipts:ro`)
   binds.push(`${output}:/output:rw`)
   binds.push(`${command}:/${cmdName}:ro`) // Procedure
   enableBuildCache(ref, binds)
