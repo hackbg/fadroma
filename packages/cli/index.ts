@@ -5,7 +5,8 @@ import Scrt_1_2 from '@fadroma/scrt-1.2'
 
 import {
   Console, print, bold, colors, timestamp,
-  Chain, ChainMode, Agent, Deployments, MigrationContext,
+  Chain, ChainMode, Agent, Deployments,
+  MigrationContext, runMigration,
   FSUploader, CachingFSUploader,
   fileURLToPath, relative,
   config
@@ -120,7 +121,7 @@ export class Fadroma {
     for (let i = 0; i < fragments.length; i++) {
       commands[fragments[i]] = commands[fragments[i]] || {}
       if (i === fragments.length-1) {
-        commands[fragments[i]] = (...cmdArgs: string[]) => this.runCommand(name, steps, cmdArgs)
+        commands[fragments[i]] = (...cmdArgs: string[]) => runMigration(name, steps, cmdArgs)
       } else {
         commands = commands[fragments[i]]
       }
@@ -129,70 +130,6 @@ export class Fadroma {
 
   /** Tree of command. */
   commands: Commands = {}
-
-  // Is this a monad?
-  private async runCommand (commandName: string, steps: Command<any>[], cmdArgs?: string[]): Promise<any> {
-    let context = {
-      cmdArgs,
-      timestamp: timestamp(),
-      suffix: `+${timestamp()}`,
-      // Run a sub-procedure in the same context,
-      // but without mutating the context.
-      async run <T> (procedure: Function, args: Record<string, any> = {}): Promise<T> {
-        if (!procedure) {
-          throw new Error('Tried to run missing procedure.')
-        }
-        console.info(
-          bold('Running procedure:'), procedure.name||'(unnamed)',
-          '{', Object.keys(args).join(' '), '}'
-        )
-        const T0 = + new Date()
-        let fail = false
-        try {
-          const result = await procedure({ ...context, ...args })
-          const T1 = + new Date()
-          return result
-        } catch (e) {
-          const T1 = + new Date()
-          throw e
-        }
-      },
-    }
-    const T0 = + new Date()
-    const stepTimings = []
-    // Composition of commands via steps:
-    for (const step of steps) {
-      if (!step) {
-        console.warn(bold('Empty step in command'), commandName)
-        continue
-      }
-      const name = step.name
-      const T1 = + new Date()
-      let updates
-      try {
-        updates = await step({ ...context })
-        // Every step refreshes the context
-        // by adding its outputs to it.
-        context = { ...context, ...updates }
-        const T2 = + new Date()
-        console.info('🟢 Command step', bold(name), colors.green('succeeded'), 'in', T2-T1, 'msec')
-        stepTimings.push([name, T2-T1, false])
-      } catch (e) {
-        const T2 = + new Date()
-        console.error('🔴 Command step', bold(name), colors.red('failed'), 'in', T2-T1, 'msec')
-        stepTimings.push([name, T2-T1, true])
-        console.error('Command', bold(name), colors.red('failed'), 'in', T2-T0, 'msec')
-        throw e
-      }
-    }
-    const T3 = + new Date()
-    console.log()
-    console.info(`The command`, bold(commandName), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
-    for (const [name, duration, isError] of stepTimings) {
-      console.info(' ',isError?'🔴':'🟢', bold((name||'(nameless step)').padEnd(40)), (duration/1000).toFixed(1).padStart(10), 's')
-    }
-    return context
-  }
 
 }
 
