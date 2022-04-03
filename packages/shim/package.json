@@ -1,0 +1,9 @@
+{
+  "name": "fadroma",
+  "version": "100.0.0-pre",
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@hackbg/fadroma": "hackbg/fadroma#v100"
+  }
+}
