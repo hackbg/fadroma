@@ -11,13 +11,21 @@ export default DeploySpec
 
 ```typescript
 import { Deployment } from './Deploy'
-test({})
+test({
+  async 'deployment' () {
+    throw new Error('TODO')
+  }
+})
 ```
 
 ## Deployments directory
 
 ```typescript
 import { Deployments } from './Deploy'
-test({})
+test({
+  async 'deployments' () {
+    throw new Error('TODO')
+  }
+})
 ```
 
