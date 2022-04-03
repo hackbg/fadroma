@@ -1,4 +1,4 @@
-import { Console, bold } from '@hackbg/fadroma'
+import { Console, bold } from '@hackbg/tools'
 import type { Uploads } from './Upload'
 import type { Deployments } from './Deploy'
 import type { Agent } from './Agent'

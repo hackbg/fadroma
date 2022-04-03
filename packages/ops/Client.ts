@@ -1,7 +1,7 @@
 import type { Message } from './Core'
 import type { Agent } from './Agent'
 
-export abstract class Client {
+export class Client {
 
   readonly agent: Agent
   address:  string

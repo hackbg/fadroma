@@ -10,7 +10,8 @@
     "./test"
   ],
   "devDependencies": {
-    "@hackbg/ganesha": "^1",
+    "@hackbg/ganesha": "workspace:*",
+    "@hackbg/tools":   "^1",
     "typedoc":         "^0.21.9",
     "typescript":      "^4.5.4"
   },
@@ -18,7 +19,6 @@
     "@types/node":       "^16.11.19",
     "@fadroma/cli":      "workspace:*",
     "@fadroma/ops":      "workspace:*",
-    "@fadroma/mocknet":  "workspace:*",
     "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/snip20":   "workspace:*",
@@ -27,6 +27,6 @@
   },
   "scripts": {
     "cli":  "packages/cli/fadroma",
-    "test": "cd test; FADROMA_CHAIN=mocknet ganesha-node Test.ts.md"
+    "test": "ganesha-node packages/TestRunner.js"
   }
 }

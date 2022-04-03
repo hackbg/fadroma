@@ -1,8 +1,9 @@
-import { Console, bold, cwd, readFileSync, writeFileSync } from '@hackbg/tools'
-import { existsSync, mkdir, readFile, writeFile, relative, basename } from '@hackbg/fadroma'
-import { Artifact, Template, UploadReceipt } from './Core'
-import { JSONDirectory } from '@hackbg/fadroma'
-import { Uploader, codeHashForPath } from './Core'
+import {
+  Console, bold, cwd, readFileSync, writeFileSync,
+  existsSync, mkdir, readFile, writeFile, relative, basename,
+  JSONDirectory
+} from '@hackbg/tools'
+import { Artifact, Template, Uploader, UploadReceipt, codeHashForPath } from './Core'
 import type { Agent } from './Agent'
 
 const console = Console('@fadroma/ops/Upload')

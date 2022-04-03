@@ -17,6 +17,14 @@
     "json-schema-to-typescript": "^10.1.4",
     "limiter":                   "^2.1.0",
     "line-transform-stream":     "^0.1.0",
-    "toml":                      "^3"
+    "toml":                      "^3",
+    "wasm-ffi":                  "^0.3.0"
+  },
+  "devDependencies": {
+    "tap": "^15.0.9",
+    "@hackbg/ganesha": "workspace:*"
+  },
+  "scripts": {
+    "test": "ganesha-node index.spec.js.md"
   }
 }

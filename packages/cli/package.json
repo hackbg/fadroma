@@ -4,11 +4,9 @@
   "main": "index.ts",
   "dependencies": {
     "@fadroma/ops":      "workspace:*",
-    "@fadroma/mocknet":  "workspace:*",
     "@fadroma/scrt":     "workspace:*",
     "@fadroma/scrt-1.2": "workspace:*",
     "@fadroma/snip20":   "workspace:*",
-
     "@hackbg/ganesha": "^1",
     "@hackbg/komandi": "^2",
     "cross-spawn": "^7.0.3",

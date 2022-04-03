@@ -25,25 +25,6 @@ export class Source {
 }
 
 export abstract class Builder {
-  caching = !config.rebuild
-  protected prebuild ({ workspace, crate, ref = 'HEAD' }: Source): Artifact|null {
-    // For now, workspace-less crates are not supported.
-    if (!workspace) {
-      const msg = `[@fadroma/ops] Missing workspace path (for crate ${crate} at ${ref})`
-      throw new Error(msg)
-    }
-    // Don't rebuild existing artifacts
-    if (this.caching) {
-      const outputDir = resolve(workspace, 'artifacts')
-      ref = ref.replace(/\//g, '_') // kludge
-      const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
-      if (existsSync(location)) {
-        console.info('✅', bold(location), 'exists, not rebuilding.')
-        return { location, codeHash: codeHashForPath(location) }
-      }
-    }
-    return null
-  }
   abstract build (source: Source, ...args): Promise<Artifact>
   buildMany (sources: Source[], ...args): Promise<Artifact[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))

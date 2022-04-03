@@ -11,22 +11,39 @@ import { Endpoint } from './Endpoint'
 
 const console = Console('@fadroma/ops/Build')
 
-/** This build mode uses the toolchain from the developer's environment. */
-export class RawBuilder extends Builder {
+export abstract class CachingBuilder extends Builder {
+  caching = !config.rebuild
+  protected prebuild ({ workspace, crate, ref = 'HEAD' }: Source): Artifact|null {
+    // For now, workspace-less crates are not supported.
+    if (!workspace) {
+      const msg = `[@fadroma/ops] Missing workspace path (for crate ${crate} at ${ref})`
+      throw new Error(msg)
+    }
+    // Don't rebuild existing artifacts
+    if (this.caching) {
+      const outputDir = resolve(workspace, 'artifacts')
+      ref = ref.replace(/\//g, '_') // kludge
+      const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
+      if (existsSync(location)) {
+        console.info('✅', bold(location), 'exists, not rebuilding.')
+        return { location, codeHash: codeHashForPath(location) }
+      }
+    }
+    return null
+  }
+}
 
+/** This build mode uses the toolchain from the developer's environment. */
+export class RawBuilder extends CachingBuilder {
   constructor (
     public readonly buildScript:    string,
     public readonly checkoutScript: string
   ) { super() }
 
   async build (source: Source): Promise<Artifact> {
-
     const { ref = 'HEAD', workspace, crate } = source
-
     let cwd = workspace
-
     // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
-
     const run = (cmd, args) => new Promise((resolve, reject)=>{
       const env = { ...process.env, CRATE: crate, REF: ref, WORKSPACE: workspace }
       execFile(cmd, args, { cwd, env, stdio: 'inherit' } as any, (error, stdout, stderr) => {
@@ -34,36 +51,28 @@ export class RawBuilder extends Builder {
         resolve([stdout, stderr])
       })
     })
-
     if (ref && ref !== 'HEAD') {
       await run(this.checkoutScript, [])
     }
-
     await run(this.buildScript, [])
-
     const location = resolve(workspace, 'artifacts', `${crate}@${ref.replace(/\//g,'_')}.wasm`)
-
     const codeHash = codeHashForPath(location)
-
     return { location, codeHash }
-
   }
-
 }
 
 /** This builder talks to a remote build server over HTTP. */
-export class ManagedBuilder extends Builder {
-
+export class ManagedBuilder extends CachingBuilder {
   Endpoint = Endpoint
+
+  /** HTTP endpoint to request builds */
+  manager: Endpoint
 
   constructor (options: { managerURL?: string } = {}) {
     super()
     const { managerURL = config.buildManager } = options
     this.manager = new this.Endpoint(managerURL)
   }
-
-  /** HTTP endpoint to request builds */
-  manager: Endpoint
 
   /** Perform a managed build. */
   async build (source): Promise<Artifact> {
@@ -78,5 +87,4 @@ export class ManagedBuilder extends Builder {
     const codeHash = codeHashForPath(location)
     return { location, codeHash }
   }
-
 }

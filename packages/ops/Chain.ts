@@ -69,7 +69,6 @@ export class Chain implements ChainConfig {
     public readonly id: string,
     options: ChainConfig = {}
   ) {
-    console.info(bold('Chain ID: '), id)
     this.setAPIURL(options)
     this.setChainMode(options)
     this.setDevnet(options)
@@ -119,18 +118,16 @@ export class Chain implements ChainConfig {
   }
 
   protected setDevnet ({ node }: DevnetConfig) {
-    if (!node) {
-      console.info('This Chain does not have a Devnet attached')
-      return
-    }
-    this.node = node
-    this.node.chainId = this.id
-    if (this.apiURL && this.apiURL !== node.apiURL) {
-      console.warn(
-        `${bold('API URL mismatch:')} ${this.apiURL.toString()}`+
-        ` vs ${node.apiURL.toString()}; using the latter`
-      )
-      this.apiURL = node.apiURL
+    if (node) {
+      this.node = node
+      this.node.chainId = this.id
+      if (this.apiURL && this.apiURL !== node.apiURL) {
+        console.warn(
+          `${bold('API URL mismatch:')} ${this.apiURL.toString()}`+
+          ` vs ${node.apiURL.toString()}; using the latter`
+        )
+        this.apiURL = node.apiURL
+      }
     }
   }
 
@@ -140,10 +137,6 @@ export class Chain implements ChainConfig {
   protected setStateDirs ({
     statePath = resolve(config.projectRoot, 'receipts', this.id)
   }: ChainStateConfig) {
-    console.info(
-      bold(`State:    `),
-      relative(config.projectRoot, statePath)
-    )
     this.stateRoot    = new Directory(statePath)
     this.identities   = new JSONDirectory(statePath, 'identities')
     this.transactions = new JSONDirectory(statePath, 'transactions')

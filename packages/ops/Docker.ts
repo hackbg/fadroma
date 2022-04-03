@@ -4,9 +4,10 @@ import {
   Console, bold, basename, dirname, relative, resolve, cwd, freePort,
   Directory, JSONDirectory, waitPort, waitUntilLogsSay
 } from '@hackbg/tools'
-import { Source, Builder, codeHashForPath } from './Core'
+import { Source, codeHashForPath } from './Core'
 import { config } from './Config'
 import { Devnet, DevnetOptions } from './Devnet'
+import { CachingBuilder } from './Build'
 
 const console = Console('@fadroma/ops/Docker')
 
@@ -116,7 +117,7 @@ export class DockerImage {
 }
 
 /** This builder launches a one-off build container using Dockerode. */
-export class DockerodeBuilder extends Builder {
+export class DockerodeBuilder extends CachingBuilder {
 
   constructor (options) {
     super()

@@ -1,3 +1,5 @@
+// Is this a monad?
+
 import { Console, bold, colors, timestamp } from '@hackbg/tools'
 import { Chain } from './Chain'
 import { Agent } from './Agent'
@@ -34,12 +36,12 @@ export type Command<T> = (MigrationContext)=>Promise<T>
 
 const console = Console('@fadroma/ops/Migrate')
 
-// Is this a monad?
 export async function runMigration (
-  commandName: string,
-  steps:       Command<any>[],
-  cmdArgs?:    string[]
+  cmdName:  string,
+  steps:    Command<any>[],
+  cmdArgs?: string[]
 ): Promise<any> {
+
   let context = {
     cmdArgs,
     timestamp: timestamp(),
@@ -54,24 +56,21 @@ export async function runMigration (
         bold('Running procedure:'), procedure.name||'(unnamed)',
         '{', Object.keys(args).join(' '), '}'
       )
-      const T0 = + new Date()
-      let fail = false
       try {
-        const result = await procedure({ ...context, ...args })
-        const T1 = + new Date()
-        return result
+        return await procedure({ ...context, ...args })
       } catch (e) {
-        const T1 = + new Date()
         throw e
       }
     },
   }
+
   const T0 = + new Date()
   const stepTimings = []
+
   // Composition of commands via steps:
   for (const step of steps) {
     if (!step) {
-      console.warn(bold('Empty step in command'), commandName)
+      console.warn(bold('Empty step in command'), cmdName)
       continue
     }
     const name = step.name
@@ -93,9 +92,10 @@ export async function runMigration (
       throw e
     }
   }
+
   const T3 = + new Date()
   console.log()
-  console.info(`The command`, bold(commandName), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
+  console.info(`The command`, bold(cmdName), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
   for (const [name, duration, isError] of stepTimings) {
     console.info(
       ' ',
@@ -105,5 +105,7 @@ export async function runMigration (
       's'
     )
   }
+
   return context
+
 }
