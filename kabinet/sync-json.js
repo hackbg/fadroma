@@ -1,14 +1,13 @@
 import { existsSync } from 'fs'
 import { basename } from 'path'
 
-import type { Path } from './sync'
 import { TextFile, Directory } from './sync'
 
 export class JSONFile extends TextFile {
   load () {
     return JSON.parse(super.load())
   }
-  save (data: any) {
+  save (data) {
     super.save(JSON.stringify(data, null, 2))
     return this
   }
@@ -16,15 +15,15 @@ export class JSONFile extends TextFile {
 
 export class JSONDirectory extends Directory {
   static extension = '.json'
-  has (name: Path) {
+  has (name) {
     return existsSync(this.resolve(`${name}${JSONDirectory.extension}`))
   }
   list () {
-    const matchExtension = (x:string)=>x.endsWith(JSONDirectory.extension)
-    const stripExtension = (x:string) =>basename(x, JSONDirectory.extension)
+    const matchExtension = x => x.endsWith(JSONDirectory.extension)
+    const stripExtension = x => basename(x, JSONDirectory.extension)
     return super.list().filter(matchExtension).map(stripExtension)
   }
-  load (name: Path) {
+  load (name) {
     name = `${name}.json`
     try {
       return JSON.parse(super.load(name))
@@ -32,7 +31,7 @@ export class JSONDirectory extends Directory {
       throw new Error(`failed to load ${name}: ${e.message}`)
     }
   }
-  save (name: Path, data: any) {
+  save (name, data) {
     data = JSON.stringify(data, null, 2)
     super.save(`${name}${JSONDirectory.extension}`, data)
     return this

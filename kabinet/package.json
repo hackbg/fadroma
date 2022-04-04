@@ -1,16 +1,10 @@
 {
   "name": "@hackbg/kabinet",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "devDependencies": {
-    "typescript":  "latest",
-    "@types/node": "latest"
-  },
+  "main": "index.js",
+  "type": "module",
   "dependencies": {
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2"
-  },
-  "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json"
   }
 }

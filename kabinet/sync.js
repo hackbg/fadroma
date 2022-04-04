@@ -3,18 +3,15 @@ import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from '
 import rimraf from 'rimraf'
 import mkdirp from 'mkdirp'
 
-export type Path = string
-
-export function touch (...fragments: Array<string>) {
+export function touch (...fragments = []) {
   const path = resolve(...fragments)
   if (!existsSync(path)) console.info('Creating file:', path)
   writeFileSync(path, '')
   return path
 }
 
-export abstract class FSCRUD {
-  readonly path: Path
-  constructor (...fragments: Array<Path>) {
+export class FSCRUD {
+  constructor (...fragments = []) {
     this.path = resolve(...fragments)
   }
   exists () {
@@ -28,10 +25,10 @@ export abstract class FSCRUD {
     rimraf.sync(this.path)
     return this
   }
-  abstract make (): void
+  make () { throw null }
 }
 
-export abstract class File extends FSCRUD {
+export class File extends FSCRUD {
   make () {
     mkdirp.sync(dirname(this.path))
     touch(this.path)
@@ -43,7 +40,7 @@ export class BinaryFile extends File {
   load () {
     return readFileSync(this.path)
   }
-  save (data: any) {
+  save (data) {
     writeFileSync(this.path, data)
     return this
   }
@@ -53,7 +50,7 @@ export class TextFile extends File {
   load () {
     return readFileSync(this.path, 'utf8')
   }
-  save (data: any) {
+  save (data) {
     this.make()
     writeFileSync(this.path, data, 'utf8')
     return this
@@ -65,7 +62,7 @@ export class Directory extends FSCRUD {
     mkdirp.sync(this.path)
     return this
   }
-  resolve (name: Path) {
+  resolve (name) {
     if (name.includes('/')) throw new Error(`invalid name: ${name}`)
     return resolve(this.path, basename(name))
   }
@@ -73,13 +70,13 @@ export class Directory extends FSCRUD {
     if (!this.exists()) return []
     return readdirSync(this.path)
   }
-  has (name: Path) {
+  has (name) {
     return existsSync(this.resolve(name))
   }
-  load (name: Path) {
+  load (name) {
     return readFileSync(this.resolve(name), 'utf8')
   }
-  save (name: Path, data: any) {
+  save (name, data) {
     this.make()
     writeFileSync(this.resolve(name), data, 'utf8')
     return this
@@ -88,10 +85,10 @@ export class Directory extends FSCRUD {
     if (!this.exists()) return []
     return readdirSync(this.path).filter(x=>statSync(this.resolve(x)).isDirectory())
   }
-  subdir (name: string, Dir: typeof Directory = Directory) {
+  subdir (name, Dir = Directory) {
     return new Dir(this.path, name)
   }
-  file (File: any = TextFile, ...fragments: Array<Path>) {
+  file (File = TextFile, ...fragments = []) {
     return new File(this.path, ...fragments)
   }
 }
