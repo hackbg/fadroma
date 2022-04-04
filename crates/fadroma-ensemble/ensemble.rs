@@ -69,11 +69,8 @@ impl ContractEnsemble {
         }
     }
 
-    pub fn register<H: ContractHarness + 'static>(
-        &mut self,
-        harness: H,
-    ) -> ContractInstantiationInfo {
-        self.ctx.contracts.push(Box::new(harness));
+    pub fn register(&mut self, harness: Box<dyn ContractHarness>) -> ContractInstantiationInfo {
+        self.ctx.contracts.push(harness);
         let id = (self.ctx.contracts.len() - 1) as u64;
 
         ContractInstantiationInfo {
