@@ -2,17 +2,10 @@
   "name": "@hackbg/tools",
   "version": "1.0.0",
   "main": "./dist/index.js",
-  "devDependencies": {
-    "typescript":  "latest",
-    "@types/node": "latest"
-  },
   "dependencies": {
     "@hackbg/kabinet": "workspace:^1",
     "@hackbg/komandi": "workspace:^2",
     "@hackbg/konzola": "workspace:^1",
-
-    "@types/mkdirp": "^1.0.2",
-    "@types/rimraf": "^3.0.2",
 
     "colors":              "^1.4.0",
     "dockerode":           "^3.3.0",
@@ -28,8 +21,5 @@
     "table":               "^6.6.0",
     "tmp":                 "^0.2.1",
     "wait-port":           "^0.2.9"
-  },
-  "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json"
   }
 }

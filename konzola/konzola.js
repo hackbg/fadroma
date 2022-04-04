@@ -9,7 +9,7 @@ const { bold, red, green, yellow, magenta, inverse } = colors
 
 let maxContextLength = 0
 
-export default function Console (context: string = '') {
+export default function Console (context) {
 
   maxContextLength = Math.max(maxContextLength, context.length)
 
@@ -19,7 +19,7 @@ export default function Console (context: string = '') {
   const TRACE = () => bold(magenta(`TRACE ${context.padEnd(maxContextLength)}`))
 
   const INDENT = "\n      "
-  const format = (arg: any) => {
+  const format = (arg) => {
     if (typeof arg === 'object') {
       return INDENT + render(arg).replace(/\n/g, INDENT).trim()
     } else {
@@ -29,17 +29,17 @@ export default function Console (context: string = '') {
 
   return {
     format,
-    table: (rows: any) => console.log(table(rows)),
-    log:   (...args: Array<any>) => console.log(           ...args),
-    info:  (...args: Array<any>) => console.info( INFO(),  ...args),
-    warn:  (...args: Array<any>) => console.warn( WARN(),  ...args),
-    error: (...args: Array<any>) => console.error(ERROR(), ...args),
-    trace: (...args: Array<any>) => {
+    table: (rows = []) => console.log(table(rows)),
+    log:   (...args) => console.log(           ...args),
+    info:  (...args) => console.info( INFO(),  ...args),
+    warn:  (...args) => console.warn( WARN(),  ...args),
+    error: (...args) => console.error(ERROR(), ...args),
+    trace: (...args) => {
       console.debug(bold(magenta('TRACE')), ...args.map(format))
       console.trace()
     },
 
-    debug: (...args: Array<any>) => {
+    debug: (...args) => {
       if (!process.env.NO_DEBUG) {
         console.debug(args.map(format).join('').slice(1))
       }
