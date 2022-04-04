@@ -1,10 +1,11 @@
 {
   "name":      "@hackbg/fadroma",
-  "version":   "22.01.0",
+  "version":   "100.0.0-pre",
   "type":      "module",
   "workspace": true,
   "main":      "./index.ts",
   "packages": [
+    "./deps/*",
     "./packages/*",
     "./crates/fadroma-snip20-impl",
     "./test"

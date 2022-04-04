@@ -23,7 +23,7 @@ test({
 ## Can upload WASM blob, returning code ID
 
 ```typescript
-import { resolve, dirname, fileURLToPath } from '@hackbg/tools'
+import { resolve, dirname, fileURLToPath } from './index.ts'
 const __dirname = dirname(fileURLToPath(import.meta.url)
 test({
   async 'can upload wasm blob, returning code id' () {

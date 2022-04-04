@@ -1,11 +1,10 @@
-import { bold, colors } from '@hackbg/tools'
-
+#!/usr/bin/env node
 import assert from 'assert'
 
 Error.stackTraceLimit = 100
 
-const OK = colors.green('OK  ')
-const FAIL = colors.red('FAIL')
+const OK   = '💚 '
+const FAIL = '💔 '
 
 import suites from './ops/index.spec.js.md'
 runTests(suites)
@@ -31,7 +30,7 @@ async function runTests (suites) {
     }
 
     await Promise.all(Object.values(tests).map(run=>run())).then(()=>{
-      let output = `\n      ${bold(suite)}\n`
+      let output = `\n${suite}\n`
       let testFailed = false
       for (let [name, [result, data]] of Object.entries(results)) {
         name = name.padEnd(longestName)
@@ -47,3 +46,4 @@ async function runTests (suites) {
   }
 
 }
+
