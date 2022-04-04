@@ -2,7 +2,7 @@
   "name": "fadroma",
   "version": "100.0.0-pre",
   "type": "module",
-  "main": "index.ts",
+  "main": "index.js",
   "dependencies": {
     "@hackbg/fadroma": "hackbg/fadroma#v100"
   }
