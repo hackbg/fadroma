@@ -78,19 +78,6 @@ export abstract class Agent implements Identity {
 
   /** Instantiate multiple contracts in 1 tx via a Bundle. */
   async instantiateMany (
-    template: Template,
-    configs:  [Label, InitMsg][],
-    prefix?:  string
-  ): Promise<Record<string, Instance>>;
-  async instantiateMany (
-    configs:  [Template, Label, InitMsg][],
-    prefix?:  string
-  ): Promise<Record<string, Instance>>;
-  async instantiateMany (
-    configs:  Record<string, [Template, InitMsg]>,
-    prefix?:  string
-  ): Promise<Record<string, Instance>>;
-  async instantiateMany (
     configs: [Template, Label, InitMsg][],
     prefix?: string
   ): Promise<Record<string, Instance>> {
