@@ -17,12 +17,6 @@ export abstract class Bundle {
 
   get address () { return this.agent.address }
 
-  abstract upload  (artifact: Artifact): this
-
-  abstract init    (template: Template, label: string, msg: Message, send: any[]): this
-
-  abstract execute (instance: Instance, msg: Message): this
-
   private depth = 0
 
   /** Opening a bundle from within a bundle
@@ -49,13 +43,8 @@ export abstract class Bundle {
     return this.run("")
   }
 
-  abstract submit (memo: string): Promise<BundleResult[]>
-
   protected id: number = 0
-
-  /** Messages are stored as promises for type compatibility
-    * between Agent and Bundle's Instantiate/Query/Execute methods */
-  protected msgs: Promise<any>[] = []
+  protected msgs: Array<any> = []
 
   /** Add a message to the bundle, incrementing
     * the bundle's internal message counter. */
@@ -64,6 +53,16 @@ export abstract class Bundle {
     this.msgs[id] = msg
     return id
   }
+
+  abstract upload  (artifact: Artifact): Promise<this>
+
+  abstract init    (template: Template, label: string, msg: Message, send: any[]): Promise<this>
+
+  abstract execute (instance: Instance, msg: Message): Promise<this>
+
+  abstract submit  (memo: string): Promise<BundleResult[]>
+
+  abstract save    (name: string): Promise<void>
 
 }
 

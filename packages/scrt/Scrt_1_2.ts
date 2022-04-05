@@ -1,14 +1,15 @@
 import { URL } from 'url'
+
 import {
   Console, bold, randomHex,
   dirname, fileURLToPath, resolve, relative, TextFile,
-  Identity, Agent, ScrtAgentJS, ScrtAgentTX,
+  Identity, Agent, ScrtAgent,
   Scrt, ChainMode,
   DockerodeBuilder, ManagedBuilder, RawBuilder,
   DockerodeDevnet, ManagedDevnet,
   config, DockerImage
 } from '@fadroma/scrt'
-import { ScrtAgentJS_1_2 } from './ScrtAgent'
+
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
 const console = Console('@fadroma/scrt')
@@ -25,7 +26,7 @@ export const {
 
 export default class Scrt_1_2 extends Scrt {
 
-  static Agent = config.prepareMultisig ? ScrtAgentTX : ScrtAgentJS_1_2
+  static Agent = ScrtAgent
   Agent = Scrt_1_2.Agent
 
   static APIClient = PatchedSigningCosmWasmClient_1_2

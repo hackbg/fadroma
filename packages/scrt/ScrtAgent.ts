@@ -1,33 +1,27 @@
-import { Console, colors, bold } from '@fadroma/ops'
-
-const console = Console('@fadroma/scrt/Agent')
-
 import {
-  timestamp, 
+  Console, colors, bold, timestamp,
   Agent, AgentConstructor, Bundle, BundleResult,
   Identity, Template, Label, InitMsg, Artifact, Instance, Message,
   readFile, writeFile,
   backOff, fromBase64, toBase64, fromUtf8,
   config,
 } from '@fadroma/ops'
-
 import { Bip39 } from '@cosmjs/crypto'
-
 import {
   EnigmaUtils, Secp256k1Pen, encodeSecp256k1Pubkey,
   pubkeyToAddress, makeSignBytes, BroadcastMode,
   SigningCosmWasmClient,
 } from 'secretjs'
-
 import pako from 'pako'
-
 import type { Scrt, ScrtNonce } from './ScrtChain'
 import { ScrtGas } from './ScrtGas'
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
 export type APIConstructor = new(...args:any) => SigningCosmWasmClient
 
-export async function getScrtAgent (identity: Identity, AgentClass = ScrtAgentJS) {
+const console = Console('@fadroma/scrt/Agent')
+
+export async function getScrtAgent (identity: Identity, AgentClass = ScrtAgent) {
   const { name = 'Anonymous', ...args } = identity
 
   let info = ''
@@ -37,17 +31,17 @@ export async function getScrtAgent (identity: Identity, AgentClass = ScrtAgentJS
       info = bold(`Creating SecretJS agent from mnemonic:`) + ` ${name} `
       // if keypair doesnt correspond to the mnemonic, delete the keypair
       if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
-        console.warn(`ScrtAgentJS: Keypair doesn't match mnemonic, ignoring keypair`)
+        console.warn(`${AgentClass.name}: Keypair doesn't match mnemonic, ignoring keypair`)
         keyPair = null
       }
       break
     case !!keyPair:
-      info = `ScrtAgentJS: generating mnemonic from keypair for agent ${bold(name)}`
+      info = `${AgentClass.name}: generating mnemonic from keypair for agent ${bold(name)}`
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
       break
     default:
-      info = `ScrtAgentJS: creating new SecretJS agent: ${bold(name)}`
+      info = `${AgentClass.name}: creating new SecretJS agent: ${bold(name)}`
       // if there is neither, generate a new keypair and corresponding mnemonic
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
@@ -60,7 +54,7 @@ export async function getScrtAgent (identity: Identity, AgentClass = ScrtAgentJS
   })
 }
 
-export class ScrtAgentJS extends Agent {
+export class ScrtAgent extends Agent {
   Bundle: ScrtBundle
   fees = ScrtGas.defaultFees
   defaultDenomination = 'uscrt'
@@ -333,98 +327,50 @@ export async function waitUntilNextBlock (
   })
 }
 
-/** This agent just collects unsigned txs and dumps them in the end
-  * to be performed by manual multisig (via Motika). */
-export class ScrtAgentTX extends ScrtAgentJS {
+const init1 = (sender, code_id, label, init_msg, init_funds) => ({
+  "type": 'wasm/MsgInstantiateContract',
+  value: { sender, code_id, label, init_msg, init_funds }
+})
 
-  get block   (): Promise<any> { throw new Error('not implemented') }
-  get account (): Promise<any> { throw new Error('not implemented') }
+const init2 = (sender, code_id, label, init_msg, init_funds) => ({
+  "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
+  callback_code_hash: "", callback_sig: null,
+  sender, code_id, label, init_msg, init_funds,
+})
 
-  defaultDenomination = 'uscrt'
+const exec1 = (sender, contract, msg, sent_funds) => ({
+  "type": 'wasm/MsgExecuteContract',
+  value: { sender, contract, msg, sent_funds }
+})
 
-  doInstantiate (
-    template: { chainId: string, codeId: string }, label: string, msg: any, funds: any[]
-  ): Promise<any> { throw new Error('not needed') }
+const exec2 = (sender, contract, msg, sent_funds) => ({
+  "@type": '/secret.compute.v1beta1.MsgExecuteContract',
+  callback_code_hash: "", callback_sig: null,
+  sender, contract, msg, sent_funds,
+})
 
-  doExecute (
-    contract: { address: string, label: string },
-    msg:   any,
-    funds: any[],
-    memo?: any,
-    fee?:  any
-  ): Promise<any> { throw new Error('not needed') }
-
-  doQuery (
-    contract: { address: string }, msg: any
-  ): Promise<any> { throw new Error('not needed') }
-
-  Bundle = MultisigScrtBundle
-
-  signTx (msgs, gas, memo?): Promise<any> {
-    throw new Error('not implemented')
+const fileUpload = (sender, location) => readFile(location).then(wasm=>({
+  type: 'wasm/MsgStoreCode',
+  value: {
+    sender,
+    wasm_byte_code: toBase64(pako.gzip(wasm, { level: 9 }))
   }
+}))
 
-  constructor (readonly agent: ScrtAgentJS) {
-    super({
-      name:    `${agent.name}+Generate`,
-      address: agent.address,
-      chain:   agent.chain,
-    })
-  }
+/** Implementation A:
+  * This implementation submits the messages collected in the bundle
+  * as a single transaction.
+  * This formats the messages for API v1 like secretjs.
+  * Implementation B:
+  * This implementation generates a multisig-ready unsigned transaction bundle.
+  * It does not execute it, but it saves it in `receipts/$CHAIN_ID/transactions`
+  * and outputs a signing command for it to the console.
+  * This formats the messages for API v1beta1 like secretcli. */
+export class ScrtBundle extends Bundle {
 
-  upload (...args): Promise<any> {
-    throw new Error('ScrtAgentTX#upload: not implemented')
-  }
+  declare agent: ScrtAgent
 
-  instantiate (...args): Promise<any> {
-    console.info('init', ...args)
-    return
-  }
-
-  execute (contract, msg, ...args): Promise<any> {
-    console.info(
-      'execute',
-      contract.name||contract.constructor.name,
-      msg,
-      args
-    )
-    return
-  }
-
-  query (
-    contract: { address: string, label: string }, msg: any
-  ) {
-    console.info('query', contract.label, msg)
-    return super.query(contract, msg)
-  }
-
-  get nextBlock () { return this.agent.nextBlock }
-
-  async send () { throw new Error('not implemented') }
-
-  async sendMany () { throw new Error('not implemented') }
-
-  async encrypt (codeHash, msg) {
-    if (!codeHash) throw new Error('@fadroma/scrt: missing codehash')
-    const encrypted = await this.agent.api.restClient.enigmautils.encrypt(codeHash, msg)
-    return toBase64(encrypted)
-  }
-
-  getLabel (address) {
-    return this.agent.getLabel(address)
-  }
-
-  getCodeId (address) {
-    return this.agent.getCodeId(address)
-  }
-
-  getCodeHash (idOrAddr) {
-    return this.agent.getCodeHash(idOrAddr)
-  }
-
-}
-
-export abstract class ScrtBundle extends Bundle {
+  msgs: Array<any> = []
 
   static bundleCounter = 0
 
@@ -434,17 +380,10 @@ export abstract class ScrtBundle extends Bundle {
     * because it runs into the max request body size limit
     * quite easily, and I can't even find where that is defined
     * so I can implement chunking. */
-  upload ({ location }: Artifact) {
+  async upload ({ location }: Artifact) {
     throw new Error('[@fadroma/scrt/ScrtBundle] upload not supported')
+    this.add(fileUpload(this.address, location))
     return this
-    //this.add(readFile(location).then(wasm=>({
-      //type: 'wasm/MsgStoreCode',
-      //value: {
-        //sender:         this.address,
-        //wasm_byte_code: toBase64(pako.gzip(wasm, { level: 9 }))
-      //}
-    //})))
-    //return this
   }
 
   async instantiate (template: Template, label, msg, init_funds = []) {
@@ -471,7 +410,19 @@ export abstract class ScrtBundle extends Bundle {
     return instances
   }
 
-  abstract init ({ codeId, codeHash }: Template, label, msg, init_funds): this
+  async init ({ codeId, codeHash }: Template, label, msg, funds = []): Promise<this> {
+    const sender  = this.address
+    const code_id = String(codeId)
+    this.add({init: { sender, codeId, codeHash, label, msg, funds }})
+    return this
+  }
+
+  async execute ({ address, codeHash }: Instance, msg, funds = []): Promise<this> {
+    const sender   = this.address
+    const contract = address
+    this.add({exec: { sender, contract, codeHash, msg, funds }})
+    return this
+  }
 
   protected get nonce (): Promise<ScrtNonce> {
     return this.chain.getNonce(this.agent.address)
@@ -484,54 +435,31 @@ export abstract class ScrtBundle extends Bundle {
   }
 
   protected async encrypt (codeHash, msg) {
-    return (this.agent as unknown as ScrtAgentJS).encrypt(codeHash, msg)
-  }
-
-}
-
-/** This implementation submits the messages collected in the bundle
-  * as a single transaction.
-  *
-  * This formats the messages for API v1 like secretjs. */
-export class BroadcastingScrtBundle extends ScrtBundle {
-
-  init ({ codeId, codeHash }: Template, label, msg, init_funds = []) {
-    const sender  = this.address
-    const code_id = String(codeId)
-    this.add(this.encrypt(codeHash, msg).then(init_msg=>({
-      type: 'wasm/MsgInstantiateContract',
-      value: { sender, code_id, init_msg, label, init_funds }
-    })))
-    return this
-  }
-
-  execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
-    const sender   = this.address
-    const contract = address
-    if (config.printTXs.includes('bundle')) {
-      console.info(bold('Adding message to bundle:'))
-      console.log()
-      console.log(JSON.stringify(msg))
-      console.log()
-    }
-    this.add(this.encrypt(codeHash, msg).then(msg=>({
-      type: 'wasm/MsgExecuteContract',
-      value: { sender, contract, msg, sent_funds }
-    })))
-    return this
+    return this.agent.encrypt(codeHash, msg)
   }
 
   async submit (memo = ""): Promise<BundleResult[]> {
+
+    if (this.msgs.length < 1) {
+      throw new Error('Trying to submit bundle with no messages')
+    }
 
     const N = this.agent.trace.call(
       `${bold(colors.yellow('MULTI'.padStart(5)))} ${this.msgs.length} messages`,
     )
 
-    const msgs = await Promise.all(this.msgs)
-
-    if (msgs.length < 1) {
-      throw new Error('Trying to submit bundle with no messages')
-    }
+    const msgs = await Promise.all(
+      this.msgs.map(({init, exec})=>{
+        if (init) {
+          const { sender, codeId, codeHash, label, msg, funds } = init
+          return this.encrypt(codeHash, msg).then(msg=>init1(sender, String(codeId), label, msg, funds))
+        }
+        if (exec) {
+          const { sender, contract, codeHash, msg, funds } = exec
+          return this.encrypt(codeHash, msg).then(msg=>exec1(sender, contract, msg, funds))
+        }
+        throw 'unreachable'
+      }))
 
     for (const msg of msgs) {
       this.agent.trace.subCall(N, `${bold(colors.yellow(msg.type))}`)
@@ -553,12 +481,12 @@ export class BroadcastingScrtBundle extends ScrtBundle {
         }
         if (msgs[i].type === 'wasm/MsgInstantiateContract') {
           const attrs = mergeAttrs(txResult.logs[i].events[0].attributes as any[])
-          results[i].label   = msgs[i].value.label,
+          results[i].label   = (msgs[i] as any).value.label,
           results[i].address = attrs.contract_address
           results[i].codeId  = attrs.code_id
         }
         if (msgs[i].type === 'wasm/MsgExecuteContract') {
-          results[i].address = msgs[i].contract
+          results[i].address = (msgs[i] as any).contract
         }
       }
       return results
@@ -590,72 +518,7 @@ export class BroadcastingScrtBundle extends ScrtBundle {
     throw err
   }
 
-}
-
-/** This implementation generates a multisig-ready unsigned transaction bundle.
-  * It does not execute it, but it saves it in `receipts/$CHAIN_ID/transactions`
-  * and outputs a signing command for it to the console.
-  *
-  * This formats the messages for API v1beta1 like secretcli. */
-export class MultisigScrtBundle extends ScrtBundle {
-
-  init ({ codeId, codeHash }: Template, label, msg, init_funds = []) {
-    const sender  = this.address
-    const code_id = String(codeId)
-    console.debug({
-      "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
-      sender,
-      callback_code_hash: "",
-      code_id,
-      label,
-      init_msg: msg,
-      init_funds,
-      callback_sig: null
-    })
-    this.add(this.encrypt(codeHash, msg).then(init_msg=>({
-      "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
-      sender,
-      callback_code_hash: "",
-      code_id,
-      label,
-      init_msg,
-      init_funds,
-      callback_sig: null
-    })))
-    return this
-  }
-
-  execute ({ address, codeHash }: Instance, msg, sent_funds = []) {
-    const sender   = this.address
-    const contract = address
-    if (config.printTXs.includes('bundle')) {
-      console.info(bold('Adding message to bundle:'))
-      console.log()
-      console.log(JSON.stringify(msg))
-      console.log()
-      console.debug({
-        "@type": '/secret.compute.v1beta1.MsgExecuteContract',
-        sender,
-        contract,
-        msg,
-        callback_code_hash: "",
-        sent_funds,
-        callback_sig: null
-      })
-    }
-    this.add(this.encrypt(codeHash, msg).then(msg=>({
-      "@type": '/secret.compute.v1beta1.MsgExecuteContract',
-      sender,
-      contract,
-      msg,
-      callback_code_hash: "",
-      sent_funds,
-      callback_sig: null
-    })))
-    return this
-  }
-
-  async submit (name: string): Promise<BundleResult[]> {
+  async save (name: string): Promise<void> {
 
     // number of bundle, just for identification in console
     const N = ++ScrtBundle.bundleCounter
@@ -667,7 +530,19 @@ export class MultisigScrtBundle extends ScrtBundle {
 
     // the base Bundle class stores messages
     // as (immediately resolved) promises
-    const msgs = await Promise.all(this.msgs)
+
+    const msgs = await Promise.all(
+      this.msgs.map(({init, exec})=>{
+        if (init) {
+          const { sender, codeId, codeHash, label, msg, funds } = init
+          return this.encrypt(codeHash, msg).then(msg=>init2(sender, String(codeId), label, msg, funds))
+        }
+        if (exec) {
+          const { sender, contract, codeHash, msg, funds } = exec
+          return this.encrypt(codeHash, msg).then(msg=>exec2(sender, contract, msg, funds))
+        }
+        throw 'unreachable'
+      }))
 
     // print the body of the bundle
     console.info(bold(`Encrypted messages in bundle`), `#${N}:`)
@@ -693,9 +568,6 @@ export class MultisigScrtBundle extends ScrtBundle {
     delete finalUnsignedTx.auth_info.fee.gas
 
     this.saveBundle({ N, name }, { accountNumber, sequence }, finalUnsignedTx)
-
-    return []
-
   }
 
   private async saveBundle ({ N, name }, { accountNumber, sequence }, bundle) {
@@ -721,8 +593,6 @@ export class MultisigScrtBundle extends ScrtBundle {
 
 }
 
-export function mergeAttrs (
-  attrs: {key:string,value:string}[]
-): any {
+export function mergeAttrs (attrs: {key:string,value:string}[]): any {
   return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
 }
