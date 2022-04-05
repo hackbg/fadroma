@@ -21,7 +21,7 @@ export type APIConstructor = new(...args:any) => SigningCosmWasmClient
 
 const console = Console('@fadroma/scrt/Agent')
 
-export async function getScrtAgent (identity: Identity, AgentClass = ScrtAgent) {
+export async function getScrtAgent (identity: Identity, AgentClass) {
   const { name = 'Anonymous', ...args } = identity
 
   let info = ''
@@ -55,6 +55,7 @@ export async function getScrtAgent (identity: Identity, AgentClass = ScrtAgent) 
 }
 
 export class ScrtAgent extends Agent {
+  static create = (identity: Identity) => getScrtAgent(identity, ScrtAgent)
   Bundle = ScrtBundle
   fees = ScrtGas.defaultFees
   defaultDenomination = 'uscrt'
