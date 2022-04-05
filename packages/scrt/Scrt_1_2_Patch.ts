@@ -68,8 +68,8 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   async postTx (tx: any): Promise<any> {
 
-    const info = (...args:any) => console.info('[@fadroma/scrt-1.2/postTx]', ...args)
-    const warn = (...args:any) => console.warn('[@fadroma/scrt-1.2/postTx]', ...args)
+    const info = (...args:any) => console.info('[@fadroma/scrt/postTx]', ...args)
+    const warn = (...args:any) => console.warn('[@fadroma/scrt/postTx]', ...args)
 
     // 0. Validate that we're not sending an empty transaction
     if (!tx || !tx.msg || !tx.msg.length || tx.msg.length < 1) {
@@ -139,8 +139,8 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   async getTxResult (id: string) {
 
-    const info = (...args:any) => console.info('[@fadroma/scrt-1.2/getTxResult]', ...args)
-    const warn = (...args:any) => console.warn('[@fadroma/scrt-1.2/getTxResult]', ...args)
+    const info = (...args:any) => console.info('[@fadroma/scrt/getTxResult]', ...args)
+    const warn = (...args:any) => console.warn('[@fadroma/scrt/getTxResult]', ...args)
 
     // 1. Loop until we run out of retires or we successfully get a TX result
     let resultRetries = this.resultRetries
@@ -149,13 +149,13 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
       try {
 
         // 2. Try getting the transaction by id
-        info(`[@fadroma/scrt-1.2] Requesting result of TX ${id}`)
+        info(`[@fadroma/scrt] Requesting result of TX ${id}`)
         const result = await this.restClient.txById(id)
         const {raw_log, logs = []} = result as any
 
         // 3. If the raw log contains a known failure message, throw error
         if (!this.shouldRetry(raw_log, true)) {
-          warn(`[@fadroma/scrt-1.2] TX ${id} failed`)
+          warn(`[@fadroma/scrt] TX ${id} failed`)
           throw new Error(raw_log)
         }
 
@@ -183,7 +183,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   private shouldRetry (message: string, isActuallyOk: boolean = false): boolean {
 
-    const warn = (...args:any) => console.warn('[@fadroma/scrt-1.2/shouldRetry]', ...args)
+    const warn = (...args:any) => console.warn('[@fadroma/scrt/shouldRetry]', ...args)
 
     if (message.includes('does not support Amino serialization')) {
       warn('Protocol mismatch, not retrying')
@@ -217,7 +217,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     if (!isActuallyOk) {
       warn('Fetching tx result failed, retrying')
     } else {
-      //console.info('[@fadroma/scrt-1.2] Fetching tx result succeeded')
+      //console.info('[@fadroma/scrt] Fetching tx result succeeded')
     }
     return true
 
