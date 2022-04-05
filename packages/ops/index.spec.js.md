@@ -1,4 +1,5 @@
 ```javascript
+import AgentSpec   from './Agent.spec'
 import ChainSpec   from './Chain.spec'
 import ClientSpec  from './Client.spec'
 import CoreSpec    from './Core.spec'
@@ -14,6 +15,7 @@ export default {
   DeploySpec,
   DockerSpec,
   MigrateSpec,
-  MocknetSpec
+  MocknetSpec,
+  AgentSpec
 }
 ```

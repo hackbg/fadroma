@@ -64,11 +64,11 @@ export abstract class Agent implements Identity {
       throw new Error('@fadroma/ops/Agent: need a Template to instantiate')
     }
     const { chainId, codeId } = template
-    if (!template.chainId || !template.codeId) {
+    if (chainId || codeId) {
       throw new Error('@fadroma/scrt: Template must contain chainId and codeId')
     }
-    if (template.chainId !== this.chain.id) {
-      throw new Error(`@fadroma/scrt: Template is from chain ${template.chainId}, we're on ${this.chain.id}`)
+    if (chainId !== this.chain.id) {
+      throw new Error(`@fadroma/scrt: Template is from chain ${chainId}, we're on ${this.chain.id}`)
     }
     const traceId = await this.trace.initCall(codeId, label)
     const result  = await this.doInstantiate(template, label, msg, funds)

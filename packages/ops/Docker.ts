@@ -30,6 +30,7 @@ export class DockerImage {
     if (!this.#available) {
       console.info(bold('Ensuring build image:'), this.name)
       console.info(bold('Using dockerfile:'), this.dockerfile)
+      // ban of async getters detaches the event loop
       return this.#available = this.ensure()
     } else {
       console.info(bold('Already ensuring build image from parallel build:'), this.name)
@@ -48,9 +49,9 @@ export class DockerImage {
       try {
         console.warn(PULLING)
         await this.pull()
-      } catch (_e) {
+      } catch (e) {
         if (!dockerfile) {
-          throw new Error(NO_FILE)
+          throw new Error(`${NO_FILE} (${e.message})`)
         } else {
           console.warn(BUILDING)
           await this.build()
