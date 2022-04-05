@@ -23,64 +23,52 @@ import pako from 'pako'
 
 import type { Scrt, ScrtNonce } from './ScrtChain'
 import { ScrtGas } from './ScrtGas'
+import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
-export abstract class ScrtAgent extends Agent {
+export type APIConstructor = new(...args:any) => SigningCosmWasmClient
 
-  abstract Bundle: ScrtBundle
+export async function mkScrtAgent (identity: Identity, AgentClass = ScrtAgentJS) {
+  const { name = 'Anonymous', ...args } = identity
 
-  /** Get the code hash for a code id or address */
-  abstract getCodeHash (idOrAddr: number|string): Promise<string>
-
-  abstract signTx (msgs, gas, memo?): Promise<any>
-
-  /** Create a new v1.0 or v1.2 agent with its signing pen,
-    * from a mnemonic or a keyPair.*/
-  static async createSub (
-    AgentClass: AgentConstructor,
-    options:    Identity
-  ): Promise<Agent> {
-    const { name = 'Anonymous', ...args } = options
-    let { mnemonic, keyPair } = options
-    let info = ''
-    if (mnemonic) {
+  let info = ''
+  let { mnemonic, keyPair } = identity
+  switch (true) {
+    case !!mnemonic:
       info = bold(`Creating SecretJS agent from mnemonic:`) + ` ${name} `
       // if keypair doesnt correspond to the mnemonic, delete the keypair
       if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
         console.warn(`ScrtAgentJS: Keypair doesn't match mnemonic, ignoring keypair`)
         keyPair = null
       }
-    } else if (keyPair) {
+      break
+    case !!keyPair:
       info = `ScrtAgentJS: generating mnemonic from keypair for agent ${bold(name)}`
       // if there's a keypair but no mnemonic, generate mnemonic from keyapir
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-    } else {
+      break
+    default:
       info = `ScrtAgentJS: creating new SecretJS agent: ${bold(name)}`
       // if there is neither, generate a new keypair and corresponding mnemonic
       keyPair  = EnigmaUtils.GenerateNewKeyPair()
       mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-    }
-    const pen  = await Secp256k1Pen.fromMnemonic(mnemonic)
-    const agent = new AgentClass({name, mnemonic, keyPair, pen, ...args})
-    return agent
   }
 
+  return new AgentClass({
+    name, mnemonic, keyPair,
+    pen: await Secp256k1Pen.fromMnemonic(mnemonic),
+    ...args
+  })
 }
 
-export type APIConstructor = new(...args:any) => SigningCosmWasmClient
-
-export abstract class ScrtAgentJS extends ScrtAgent {
-
+export class ScrtAgentJS extends Agent {
+  Bundle: ScrtBundle
   fees = ScrtGas.defaultFees
   defaultDenomination = 'uscrt'
-
   constructor (options: Identity & { API?: APIConstructor, chain?: Scrt } = {}) {
     super(options)
-
-    this.name = this.trace.name = options?.name || ''
-
+    this.name     = this.trace.name = options?.name || ''
     this.chain    = options?.chain as Scrt // TODO chain id to chain
     this.fees     = options?.fees || ScrtGas.defaultFees
-
     this.keyPair  = options?.keyPair
     this.mnemonic = options?.mnemonic
     this.pen      = options?.pen
@@ -91,18 +79,16 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       this.seed     = EnigmaUtils.GenerateNewSeed()
     }
   }
-
   readonly name:     string
   readonly chain:    Scrt
+  readonly address:  string
   readonly keyPair:  any
   readonly mnemonic: any
   readonly pen:      any
   readonly sign:     any
   readonly pubkey:   any
   readonly seed:     any
-  readonly address:  string
-
-  abstract readonly API: typeof SigningCosmWasmClient
+  API = PatchedSigningCosmWasmClient_1_2
   get api () {
     return new this.API(
       this.chain?.url,
@@ -113,18 +99,19 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       BroadcastMode.Sync
     )
   }
-
-  get nextBlock () { return waitUntilNextBlock(this) }
-
-  get block     () { return this.api.getBlock() }
-
-  get account   () { return this.api.getAccount(this.address) }
-
+  get nextBlock () {
+    return waitUntilNextBlock(this)
+  }
+  get block () {
+    return this.api.getBlock()
+  }
+  get account () {
+    return this.api.getAccount(this.address)
+  }
   async send (recipient: any, amount: string|number, denom = 'uscrt', memo = "") {
     if (typeof amount === 'number') amount = String(amount)
     return await this.api.sendTokens(recipient, [{denom, amount}], memo)
   }
-
   async sendMany (txs = [], memo = "", denom = 'uscrt', fee = new ScrtGas(500000 * txs.length)) {
     if (txs.length < 0) {
       throw new Error('tried to send to 0 recipients')
@@ -142,7 +129,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
     const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence)
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
-
   async upload (artifact: Artifact): Promise<Template> {
     const data = await readFile(artifact.location)
     const uploadResult = await this.api.upload(data, {})
@@ -158,9 +144,29 @@ export abstract class ScrtAgentJS extends ScrtAgent {
         `(expected: ${artifact.codeHash}, got: ${codeHash})`
       )
     }
-    return { chainId: this.chain.id, codeId, codeHash }
+    const result = { chainId: this.chain.id, codeId, codeHash }
+    // Non-blocking broadcast mode returns code ID = -1,
+    // so we need to find the code ID manually from the output
+    if (result.codeId === "-1") {
+      try {
+        for (const log of (result as any).logs) {
+          for (const event of log.events) {
+            for (const attribute of event.attributes) {
+              if (attribute.key === 'code_id') {
+                Object.assign(result, { codeId: Number(attribute.value) })
+                break
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`Could not get code ID for ${bold(artifact.location)}: ${e.message}`)
+        console.debug(`Result of upload transaction:`, result)
+        throw e
+      }
+    }
+    return result
   }
-
   async getCodeHash (idOrAddr: number|string): Promise<string> {
     const { api } = this
     return this.rateLimited(async function getCodeHashInner () {
@@ -173,7 +179,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       }
     })
   }
-
   async checkCodeHash (address: string, codeHash?: string) {
     // Soft code hash checking for now
     const realCodeHash = await this.getCodeHash(address)
@@ -185,14 +190,12 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       console.info(bold(`Code hash of ${address}:`), realCodeHash)
     }
   }
-
   async instantiate (template, label, msg, funds = []) {
     if (!template.codeHash) {
       throw new Error('@fadroma/scrt: Template must contain codeHash')
     }
     return super.instantiate(template, label, msg, funds)
   }
-
   async doInstantiate (template, label, msg, funds = []) {
     const { codeId, codeHash } = template
     const { api } = this
@@ -207,7 +210,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       transactionHash,
     }
   }
-
   /** Instantiate multiple contracts from a bundled transaction. */
   async instantiateMany (
     configs: [Template, Label, InitMsg][],
@@ -225,7 +227,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
     }
     return receipts
   }
-
   async getCodeId (address: string): Promise<number> {
     //console.trace('getCodeId', address)
     const { api } = this
@@ -234,7 +235,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       return codeId
     })
   }
-
   async getLabel (address: string): Promise<string> {
     const { api } = this
     return this.rateLimited(async function getLabelInner () {
@@ -242,7 +242,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       return label
     })
   }
-
   async doQuery (
     { label, address, codeHash }: Instance, msg: Message
   ) {
@@ -251,20 +250,17 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       return api.queryContractSmart(address, msg as any, undefined, codeHash)
     })
   }
-
   async doExecute (
     { label, address, codeHash }: Instance, msg: Message,
     memo: any, amount: any, fee: any
   ) {
     return this.api.execute(address, msg as any, memo, amount, fee, codeHash)
   }
-
   async encrypt (codeHash, msg) {
     if (!codeHash) throw new Error('@fadroma/scrt: missing codehash')
     const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg)
     return toBase64(encrypted)
   }
-
   async signTx (msgs, gas, memo) {
     const { accountNumber, sequence } = await this.api.getNonce()
     return await this.api.signAdapter(
@@ -276,9 +272,7 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       sequence
     )
   }
-
   private initialWait = 1000
-
   private async rateLimited <T> (fn: ()=>Promise<T>): Promise<T> {
     //console.log('rateLimited', fn)
     let initialWait = 0
@@ -310,44 +304,6 @@ export abstract class ScrtAgentJS extends ScrtAgent {
       }
     })
   }
-
-}
-
-import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
-
-export class ScrtAgentJS_1_2 extends ScrtAgentJS {
-
-  API = PatchedSigningCosmWasmClient_1_2
-
-  static create (options: Identity): Promise<Agent> {
-    return ScrtAgentJS.createSub(ScrtAgentJS_1_2, options)
-  }
-
-  async upload (artifact) {
-    const result = await super.upload(artifact)
-    // Non-blocking broadcast mode returns code ID = -1,
-    // so we need to find the code ID manually from the output
-    if (result.codeId === "-1") {
-      try {
-        for (const log of (result as any).logs) {
-          for (const event of log.events) {
-            for (const attribute of event.attributes) {
-              if (attribute.key === 'code_id') {
-                Object.assign(result, { codeId: Number(attribute.value) })
-                break
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn(`Could not get code ID for ${bold(artifact.location)}: ${e.message}`)
-        console.debug(`Result of upload transaction:`, result)
-        throw e
-      }
-    }
-    return result
-  }
-
 }
 
 export async function waitUntilNextBlock (
@@ -379,7 +335,7 @@ export async function waitUntilNextBlock (
 
 /** This agent just collects unsigned txs and dumps them in the end
   * to be performed by manual multisig (via Motika). */
-export class ScrtAgentTX extends ScrtAgent {
+export class ScrtAgentTX extends ScrtAgentJS {
 
   get block   (): Promise<any> { throw new Error('not implemented') }
   get account (): Promise<any> { throw new Error('not implemented') }

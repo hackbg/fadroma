@@ -10,21 +10,21 @@ export default ScrtAgentSpec
 ## Agents
 
 ```typescript
-import { ScrtAgentJS, ScrtAgentTX } from './ScrtAgent'
+import { mkScrtAgent } from './ScrtAgent'
 test({
-  async 'wait for next block' () {
+  async 'wait for next block' (assert) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const chain = await new MockChain().ready
-    const agent = await Agent.create({ chain, mnemonic })
+    const [agent, endpoint] = await Promise.all([mkScrtAgent({ mnemonic }), mockAPIEndpoint()])
+    agent.chain = { url: endpoint.url }
     const [ {header:{height:block1}}, account1, balance1 ] =
       await Promise.all([ agent.block, agent.account, agent.balance ])
     await agent.nextBlock
     const [ {header:{height:block2}}, account2, balance2 ] =
       await Promise.all([ agent.block, agent.account, agent.balance ])
-    same(block1 + 1, block2)
-    same(account1, account2)
-    same(balance1, balance2)
-    chain.close()
+    assert(block1 + 1 === block2)
+    assert.deepEqual(account1, account2)
+    assert.deepEqual(balance1, balance2)
+    endpoint.close()
   },
   async 'native token balance and transactions' () {
     const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
