@@ -7,7 +7,8 @@ const OK   = '💚 '
 const FAIL = '💔 '
 
 import suites from './ops/index.spec.js.md'
-runTests(suites)
+import scrtSuites from './scrt/Scrt.spec.ts.md'
+runTests({...suites, ...scrtSuites})
 
 async function runTests (suites) {
 
