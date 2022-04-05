@@ -357,15 +357,6 @@ const fileUpload = (sender, location) => readFile(location).then(wasm=>({
   }
 }))
 
-/** Implementation A:
-  * This implementation submits the messages collected in the bundle
-  * as a single transaction.
-  * This formats the messages for API v1 like secretjs.
-  * Implementation B:
-  * This implementation generates a multisig-ready unsigned transaction bundle.
-  * It does not execute it, but it saves it in `receipts/$CHAIN_ID/transactions`
-  * and outputs a signing command for it to the console.
-  * This formats the messages for API v1beta1 like secretcli. */
 export class ScrtBundle extends Bundle {
 
   declare agent: ScrtAgent
@@ -438,8 +429,9 @@ export class ScrtBundle extends Bundle {
     return this.agent.encrypt(codeHash, msg)
   }
 
+  /** Format the messages for API v1 like secretjs,
+    * encrypt them, and submit them as a single transaction. */
   async submit (memo = ""): Promise<BundleResult[]> {
-
     if (this.msgs.length < 1) {
       throw new Error('Trying to submit bundle with no messages')
     }
@@ -518,6 +510,11 @@ export class ScrtBundle extends Bundle {
     throw err
   }
 
+
+  /** Format the messages for API v1beta1 like secretcli
+    * and generate a multisig-ready unsigned transaction bundle;
+    * don't execute it, but save it in `receipts/$CHAIN_ID/transactions`
+    * and output a signing command for it to the console. */
   async save (name: string): Promise<void> {
 
     // number of bundle, just for identification in console
