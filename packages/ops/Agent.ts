@@ -64,7 +64,7 @@ export abstract class Agent implements Identity {
       throw new Error('@fadroma/ops/Agent: need a Template to instantiate')
     }
     const { chainId, codeId } = template
-    if (chainId || codeId) {
+    if (!chainId || !codeId) {
       throw new Error('@fadroma/scrt: Template must contain chainId and codeId')
     }
     if (chainId !== this.chain.id) {
