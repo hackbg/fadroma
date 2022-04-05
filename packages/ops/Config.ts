@@ -1,5 +1,6 @@
 import { resolve, homedir, dirname, fileURLToPath } from '@hackbg/tools'
-export const __dirname = dirname(fileURLToPath(import.meta.url))
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export type EnvVars = {
 
