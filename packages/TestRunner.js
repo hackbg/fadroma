@@ -12,6 +12,9 @@ runTests({...suites, ...scrtSuites})
 
 async function runTests (suites) {
 
+  let passed = 0
+  let failed = 0
+
   for (const [suite, spec] of Object.entries(suites)) {
     const tests   = {}
     const results = {}
@@ -38,13 +41,17 @@ async function runTests (suites) {
         if (result) {
           if (data === undefined) data = ''
           output += `${OK}  ${name}  ${data}\n`
+          passed ++
         } else {
           output += `${FAIL}  ${name}  ${data}\n`
+          failed ++
         }
       }
       console.log(output)
     })
   }
+
+  console.log(`${passed} passed, ${failed} failed`)
 
 }
 
