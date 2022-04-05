@@ -10,50 +10,57 @@ export default ScrtAgentSpec
 ## Agents
 
 ```typescript
-import { mkScrtAgent } from './ScrtAgent'
+import { getScrtAgent } from './ScrtAgent'
 test({
-  async 'wait for next block' (assert) {
-    const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const [agent, endpoint] = await Promise.all([mkScrtAgent({ mnemonic }), mockAPIEndpoint()])
-    agent.chain = { url: endpoint.url }
-    const [ {header:{height:block1}}, account1, balance1 ] =
-      await Promise.all([ agent.block, agent.account, agent.balance ])
-    await agent.nextBlock
-    const [ {header:{height:block2}}, account2, balance2 ] =
-      await Promise.all([ agent.block, agent.account, agent.balance ])
-    assert(block1 + 1 === block2)
-    assert.deepEqual(account1, account2)
-    assert.deepEqual(balance1, balance2)
-    endpoint.close()
-  },
-  async 'native token balance and transactions' () {
-    const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
-    const chain = await new MockChain().ready
-    const agent1 = await Agent.create({ chain, mnemonic: mnemonic1 })
-    const agent2 = await Agent.create({ chain, mnemonic: mnemonic2 })
-    chain.state.balances = { [agent1.address]: BigInt("2000"), [agent2.address]: BigInt("3000") }
-    same(await agent1.balance, "2000")
-    same(await agent2.balance, "3000")
-    await agent1.send(agent2.address, "1000")
-    same(await agent1.balance, "1000")
-    same(await agent2.balance, "4000")
-    await agent2.send(agent1.address, 500)
-    same(await agent1.balance, "1500")
-    same(await agent2.balance, "3500")
-    chain.close()
-  },
   async 'from mnemonic' () {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const chain = await new MockChain().ready
-    const agent = await Agent.create({ chain, mnemonic })
-    same(agent.mnemonic, mnemonic)
-    same(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
-    same(agent.pubkey, {
+    const agent = await getScrtAgent({ mnemonic })
+    assert(agent.mnemonic === mnemonic)
+    assert(agent.address  === 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
+    assert.deepEqual(agent.pubkey, {
       type:  'tendermint/PubKeySecp256k1',
       value: 'AoHyO3IEIOuffrGJoxwcYQnK+G1uMX/vQkzrjTXxMqTv' })
-    chain.close()
-  }
+  },
+  async 'wait for next block' (assert) {
+    const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
+    const [agent, endpoint] = await Promise.all([getScrtAgent({ mnemonic }), mockAPIEndpoint()])
+    try {
+      agent.chain = { url: endpoint.url }
+      const [ {header:{height:block1}}, account1, balance1 ] =
+        await Promise.all([ agent.block, agent.account, agent.balance ])
+      await agent.nextBlock
+      const [ {header:{height:block2}}, account2, balance2 ] =
+        await Promise.all([ agent.block, agent.account, agent.balance ])
+      assert(block1 + 1 === block2)
+      assert.deepEqual(account1, account2)
+      assert.deepEqual(balance1, balance2)
+    } finally {
+      endpoint.close()
+    }
+  },
+  async 'native token balance and transactions' (assert) {
+    const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
+    const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
+    const [agent1, agent2, endpoint] = await Promise.all([
+      getScrtAgent({mnemonic1}),
+      getScrtAgent({mnemonic2}),
+      mockAPIEndpoint()
+    ])
+    try {
+      agent1.chain = agent2.chain = { url: endpoint.url }
+      endpoint.state.balances = { uscrt: { [agent1.address]: BigInt("2000"), [agent2.address]: BigInt("3000") } }
+      assert.equal(await agent1.balance, "2000")
+      assert.equal(await agent2.balance, "3000")
+      await agent1.send(agent2.address, "1000")
+      assert.equal(await agent1.balance, "1000")
+      assert.equal(await agent2.balance, "4000")
+      await agent2.send(agent1.address, 500)
+      assert.equal(await agent1.balance, "1500")
+      assert.equal(await agent2.balance, "3500")
+    } finally {
+      endpoint.close()
+    }
+  },
 })
 ```
 
@@ -148,7 +155,7 @@ export async function mockAPIEndpoint (port) {
         "value": {
           "address": address,
           "coins": [
-            { "denom": "uscrt", "amount": String(state.state.balances[address]||0) }
+            { "denom": "uscrt", "amount": String(state.balances.uscrt[address]||0) }
           ],
           "public_key": "secretpub1addwnpepqghcej6wkd6gazdkx55e920tpehu906jdzpqhtgjuct9gvrzcfjeclrccvm",
           "account_number": 1073,
@@ -198,8 +205,8 @@ export async function mockAPIEndpoint (port) {
         const {from_address, to_address, amount} = value
         for (const {denom, amount: x} of amount) {
           if (denom === 'uscrt') {
-            state.balances[from_address] -= BigInt(x)
-            state.balances[to_address]   += BigInt(x)
+            state.balances.uscrt[from_address] -= BigInt(x)
+            state.balances.uscrt[to_address]   += BigInt(x)
           }
         }
         mockTx()
@@ -290,17 +297,19 @@ export async function mockAPIEndpoint (port) {
   await new Promise(resolve=>{
     server = app.listen(port, 'localhost', () => {
       url = `http://localhost:${port}`
-      console.debug(`listening on ${url}`)
-      resolve
+      console.debug(`Mock Scrt listening on ${url}`)
+      resolve()
     })
   })
+
+  const blockIncrement = setInterval(()=>{state.block.height+=1}, 2000)
 
   return {
     url,
     port,
     state,
     close () {
-      clearTimeout(this.blockIncrement)
+      clearInterval(blockIncrement)
       server.close()
     }
   }

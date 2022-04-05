@@ -18,7 +18,7 @@ test({
     assert(image.extraFiles === 'd')
   },
   async 'DockerImage#available' () {
-    const image = new DockerImage(mockDockerode)
+    const image = new DockerImage(mockDockerode())
     assert(image.available === image.available)
     assert(image.available instanceof Promise)
   }

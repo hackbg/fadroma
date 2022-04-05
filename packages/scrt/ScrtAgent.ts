@@ -27,7 +27,7 @@ import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
 export type APIConstructor = new(...args:any) => SigningCosmWasmClient
 
-export async function mkScrtAgent (identity: Identity, AgentClass = ScrtAgentJS) {
+export async function getScrtAgent (identity: Identity, AgentClass = ScrtAgentJS) {
   const { name = 'Anonymous', ...args } = identity
 
   let info = ''
