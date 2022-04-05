@@ -10,11 +10,11 @@ export default ScrtAgentSpec
 ## Agents
 
 ```typescript
-import { getScrtAgent } from './ScrtAgent'
+import { ScrtAgent } from './ScrtAgent'
 test({
   async 'from mnemonic' () {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent = await getScrtAgent({ mnemonic })
+    const agent = await ScrtAgent.create({ mnemonic })
     assert(agent.mnemonic === mnemonic)
     assert(agent.address  === 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
     assert.deepEqual(agent.pubkey, {
@@ -23,7 +23,7 @@ test({
   },
   async 'wait for next block' (assert) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const [agent, endpoint] = await Promise.all([getScrtAgent({ mnemonic }), mockAPIEndpoint()])
+    const [agent, endpoint] = await Promise.all([ScrtAgent.create({ mnemonic }), mockAPIEndpoint()])
     try {
       agent.chain = { url: endpoint.url }
       const [ {header:{height:block1}}, account1, balance1 ] =
@@ -42,8 +42,8 @@ test({
     const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
     const [agent1, agent2, endpoint] = await Promise.all([
-      getScrtAgent({mnemonic1}),
-      getScrtAgent({mnemonic2}),
+      ScrtAgent.create({mnemonic: mnemonic1}),
+      ScrtAgent.create({mnemonic: mnemonic2}),
       mockAPIEndpoint()
     ])
     try {
@@ -71,7 +71,7 @@ import { ScrtBundle } from './ScrtAgent'
 test({
   async 'get ScrtBundle from agent' () {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent  = await getScrtAgent({ mnemonic })
+    const agent  = await ScrtAgent.create({ mnemonic })
     const bundle = agent.bundle()
     assert(bundle instanceof ScrtBundle)
   }
