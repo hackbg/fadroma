@@ -67,7 +67,15 @@ test({
 ## Bundles
 
 ```typescript
-import { BroadcastingScrtBundle, MultisigScrtBundle } from './ScrtAgent'
+import { ScrtBundle } from './ScrtAgent'
+test({
+  async 'get ScrtBundle from agent' () {
+    const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
+    const agent  = await getScrtAgent({ mnemonic })
+    const bundle = agent.bundle()
+    assert(bundle instanceof ScrtBundle)
+  }
+})
 ```
 
 ## Chain API Mock

@@ -55,7 +55,7 @@ export async function getScrtAgent (identity: Identity, AgentClass = ScrtAgent) 
 }
 
 export class ScrtAgent extends Agent {
-  Bundle: ScrtBundle
+  Bundle = ScrtBundle
   fees = ScrtGas.defaultFees
   defaultDenomination = 'uscrt'
   constructor (options: Identity & { API?: APIConstructor, chain?: Scrt } = {}) {

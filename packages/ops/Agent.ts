@@ -142,7 +142,7 @@ export abstract class Agent implements Identity {
     fee?:  any
   ): Promise<any>
 
-  abstract Bundle: Bundle
+  abstract Bundle: new(Agent)=>Bundle
 
   /** Start a new transaction bundle. */
   bundle () {
