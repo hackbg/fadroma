@@ -17,14 +17,13 @@
     "typescript":      "^4.5.4"
   },
   "dependencies": {
-    "@types/node":       "^16.11.19",
-    "@fadroma/cli":      "workspace:*",
-    "@fadroma/ops":      "workspace:*",
-    "@fadroma/scrt":     "workspace:*",
-    "@fadroma/scrt-1.2": "workspace:*",
-    "@fadroma/snip20":   "workspace:*",
-    "@hackbg/komandi":   "^2",
-    "bignumber.js":      "^9.0.2"
+    "@types/node":     "^16.11.19",
+    "@fadroma/cli":    "workspace:*",
+    "@fadroma/ops":    "workspace:*",
+    "@fadroma/scrt":   "workspace:*",
+    "@fadroma/snip20": "workspace:*",
+    "@hackbg/komandi": "^2",
+    "bignumber.js":    "^9.0.2"
   },
   "scripts": {
     "cli":  "packages/cli/fadroma",

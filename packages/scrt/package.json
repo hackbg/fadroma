@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "1.0.0-beta",
+  "version": "1.0.0-pre",
   "type":    "module",
   "main":    "./Scrt.ts",
   "dependencies": {
@@ -14,5 +14,8 @@
     "freeport-async": "^2.0.0",
     "body-parser":     "^1.19.0",
     "express":         "^4.17.1"
+  },
+  "optionalDependencies": {
+    "axios": "^0.26.0"
   }
 }

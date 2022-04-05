@@ -123,13 +123,7 @@ export default Fadroma.module(import.meta.url)
 
 <tr><td>
 
-## Fadroma Ops for [Secret Network](./packages/scrt) (versions [1.0](./packages/scrt-1.0) and [1.2](./packages/scrt-1.2))
-
-> This feature is split into two packages,
-> [`@fadroma/scrt`](./packages/scrt) and 
-> [`@fadroma/scrt-1.2`](./packages/scrt-1.2).
-> This is to support the rapidly changing `secretjs` API.
-> `@fadroma/scrt-1.0` has been removed after Fadroma 22.01.
+## Fadroma Ops for [Secret Network](./packages/scrt)
 
 </td><td>
 

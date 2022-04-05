@@ -1,7 +1,7 @@
 export * from '@fadroma/ops'
 export * from '@fadroma/scrt'
 export * from '@fadroma/snip20'
-import Scrt_1_2 from '@fadroma/scrt-1.2'
+import { Scrt_1_2 } from '@fadroma/scrt'
 
 import {
   Console, print, bold, colors, timestamp,

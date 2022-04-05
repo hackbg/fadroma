@@ -97,9 +97,9 @@ export class Config {
       buildImage:
         env.SCRT_BUILD_IMAGE      || 'hackbg/fadroma-scrt-builder:1.2',
       buildDockerfile:
-        env.SCRT_BUILD_DOCKERFILE || resolve(__dirname, '../scrt-1.2/Scrt_1_2_Build.Dockerfile'),
+        env.SCRT_BUILD_DOCKERFILE || resolve(__dirname, '../scrt/Scrt_1_2_Build.Dockerfile'),
       buildScript:
-        env.SCRT_BUILD_SCRIPT     || resolve(__dirname, '../scrt-1.2/Scrt_1_2_Build.sh'),
+        env.SCRT_BUILD_SCRIPT     || resolve(__dirname, '../scrt/Scrt_1_2_Build.sh'),
 
       mainnetChainId:
         env.SCRT_MAINNET_CHAIN_ID       || 'secret-4',

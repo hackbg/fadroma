@@ -8,10 +8,10 @@ import {
   DockerodeDevnet, ManagedDevnet,
   config, DockerImage
 } from '@fadroma/scrt'
-import { ScrtAgentJS_1_2 } from './ScrtAgentJS_1_2'
+import { ScrtAgentJS_1_2 } from './ScrtAgent'
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
-const console = Console('@fadroma/scrt-1.2')
+const console = Console('@fadroma/scrt')
 
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 

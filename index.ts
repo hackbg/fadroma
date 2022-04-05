@@ -1,6 +1,5 @@
 import { Console, bold } from '@fadroma/ops'
 import { Chain, Mocks } from '@fadroma/ops'
-import Scrt_1_2 from '@fadroma/scrt-1.2'
 import { Fadroma } from '@fadroma/cli'
 
 // Reexport the main libraries
@@ -16,6 +15,7 @@ const console = Console('@hackbg/fadroma')
 // The namedChains are functions keyed by chain id,
 // which give you the appropriate Chain and Agent
 // for talking to that chain id.
+import { Scrt_1_2 } from '@fadroma/scrt'
 export { Scrt_1_2 }
 Object.assign(Chain.namedChains, {
   'Scrt_1_2_Mainnet': Scrt_1_2.chains.Mainnet,

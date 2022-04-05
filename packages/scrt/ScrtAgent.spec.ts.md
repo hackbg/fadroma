@@ -7,9 +7,10 @@ const test = tests => Object.assign(ScrtAgentSpec, tests)
 export default ScrtAgentSpec
 ```
 
-## Creating an Agent
+## Agents
 
 ```typescript
+import { ScrtAgentJS, ScrtAgentTX } from './ScrtAgent'
 test({
   async 'wait for next block' () {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
@@ -54,6 +55,12 @@ test({
     chain.close()
   }
 })
+```
+
+## Bundles
+
+```typescript
+import { BroadcastingScrtBundle, MultisigScrtBundle } from './ScrtAgent'
 ```
 
 ## Chain API Mock
