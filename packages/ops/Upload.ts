@@ -34,9 +34,11 @@ export class FSUploader extends Uploader {
       // support "holes" in artifact array
       // (used by caching subclass)
       const artifact = artifacts[i]
-      if (!artifact) continue
-      const template = await this.agent.upload(artifact)
-      this.checkCodeHash(artifact, template)
+      let template
+      if (artifact) {
+        template = await this.agent.upload(artifact)
+        this.checkCodeHash(artifact, template)
+      }
       templates[i] = template
     }
     return templates

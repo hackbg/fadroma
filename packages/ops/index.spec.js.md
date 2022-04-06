@@ -7,6 +7,7 @@ import DeploySpec  from './Deploy.spec'
 import DockerSpec  from './Docker.spec'
 import MigrateSpec from './Migrate.spec'
 import MocknetSpec from './Mocknet.spec'
+import UploadSpec  from './Upload.spec'
 
 export default {
   ChainSpec,
@@ -16,6 +17,7 @@ export default {
   DockerSpec,
   MigrateSpec,
   MocknetSpec,
-  AgentSpec
+  AgentSpec,
+  UploadSpec,
 }
 ```
