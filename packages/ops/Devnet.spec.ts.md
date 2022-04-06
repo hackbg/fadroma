@@ -7,7 +7,20 @@ const test = tests => Object.assign(DevnetSpec, tests)
 export default DevnetSpec
 ```
 
+## Devnets are persistent
+
 ```typescript
+test({
+  async 'save/load Devnet state' () {
+    throw 'TODO'
+  }
+})
+```
+
+## Dockerode devnet
+
+```typescript
+import { DockerodeDevnet } from './Docker'
 test({
   async 'pass names of accounts to prefund on genesis' () {
     throw 'TODO'
@@ -15,7 +28,18 @@ test({
 })
 ```
 
-## Mock managed devnet API
+## Managed devnet
+
+```typescript
+import { ManagedDevnet } from './Devnet'
+test({
+  async 'ManagedDevnet.getOrCreate' () {
+    const devnet = ManagedDevnet.getOrCreate()
+  },
+})
+```
+
+### Mock managed devnet API
 
 ```typescript
 export async function mockDevnetEndpoint () {
