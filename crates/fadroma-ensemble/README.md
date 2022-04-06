@@ -95,7 +95,8 @@ fn test_query_price() {
 
 ### Simulating blocks
 Since the ensemble is designed to simulate a blockchain environment it maintains an idea of block height and time. To simulate multiple blocks you can explicitly provide block height to your contract calls.
-
+  
+Set the block height manually
 ```rust
 ensemble.execute(
     &SomeMsg{}, 
@@ -104,4 +105,18 @@ ensemble.execute(
         some_contract,
     ).height(12345)
 ).unwrap()
+```
+Use auto-increments(after each call) for block height and time when initializing the ensemble
+```rust
+// For exact increments
+let mut ensemble = ContractEnsemble::new(50).auto_increment(BlockIncrement::Exact {
+    height: 10,
+    time: 7,
+});
+
+// For random increments within specified ranges
+ let mut ensemble = ContractEnsemble::new(50).auto_increment(BlockIncrement::Random {
+    height_range: (1, 10),
+    time_range: (1, 8),
+});
 ```

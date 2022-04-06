@@ -1,12 +1,8 @@
 use fadroma_platform_scrt::{
-    schemars,
-    schemars::JsonSchema,
-    Env, HumanAddr, Coin,
-    ContractLink,
-    testing::mock_env
+    schemars, schemars::JsonSchema, testing::mock_env, Coin, ContractLink, Env, HumanAddr,
 };
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Default, Debug, PartialEq, JsonSchema)]
 pub struct MockEnv(pub(crate) Env);

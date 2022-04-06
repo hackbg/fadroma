@@ -1,8 +1,6 @@
 use fadroma_platform_scrt::{
-    Querier, QuerierResult, QueryRequest, WasmQuery, BankQuery,
-    BalanceResponse, AllBalanceResponse, SystemError, Empty,
-    to_binary, from_slice,
-    testing:: MockQuerier
+    from_slice, testing::MockQuerier, to_binary, AllBalanceResponse, BalanceResponse, BankQuery,
+    Empty, Querier, QuerierResult, QueryRequest, SystemError, WasmQuery,
 };
 
 use crate::ensemble::Context;
@@ -10,7 +8,7 @@ use crate::ensemble::Context;
 pub struct EnsembleQuerier {
     // NOTE: raw pointer to crate::ensemble::ContractEnsemble::ctx
     ctx: *const Context,
-    base: MockQuerier
+    base: MockQuerier,
 }
 
 impl EnsembleQuerier {

@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use fadroma_platform_scrt::{
-    HumanAddr, Coin, Uint128, StdResult, StdError, coin
-};
+use fadroma_platform_scrt::{coin, Coin, HumanAddr, StdError, StdResult, Uint128};
 
 pub type Balances = HashMap<String, Uint128>;
 
@@ -14,7 +12,7 @@ impl Bank {
         if coins.is_empty() {
             return;
         }
-        
+
         self.assert_account_exists(address);
 
         let account = self.0.get_mut(address).unwrap();
@@ -28,7 +26,7 @@ impl Bank {
         &mut self,
         from: &HumanAddr,
         to: &HumanAddr,
-        coins: Vec<Coin>
+        coins: Vec<Coin>,
     ) -> StdResult<()> {
         if coins.is_empty() {
             return Ok(());
@@ -38,25 +36,27 @@ impl Bank {
         self.assert_account_exists(to);
 
         for coin in coins {
-            let amount = self.0.get_mut(from).unwrap().get_mut(&coin.denom).ok_or_else(||
-                StdError::generic_err(format!(
-                    "Insufficient balance: sender: {}, denom: {}, balance: {}, required: {}",
-                    from,
-                    coin.denom,
-                    Uint128::zero(),
-                    coin.amount
-                ))
-            )?;
+            let amount = self
+                .0
+                .get_mut(from)
+                .unwrap()
+                .get_mut(&coin.denom)
+                .ok_or_else(|| {
+                    StdError::generic_err(format!(
+                        "Insufficient balance: sender: {}, denom: {}, balance: {}, required: {}",
+                        from,
+                        coin.denom,
+                        Uint128::zero(),
+                        coin.amount
+                    ))
+                })?;
 
-            amount.0 = amount.0.checked_sub(coin.amount.0).ok_or_else(||
+            amount.0 = amount.0.checked_sub(coin.amount.0).ok_or_else(|| {
                 StdError::generic_err(format!(
                     "Insufficient balance: sender: {}, denom: {}, balance: {}, required: {}",
-                    from,
-                    coin.denom,
-                    amount,
-                    coin.amount
+                    from, coin.denom, amount, coin.amount
                 ))
-            )?;
+            })?;
 
             add_balance(self.0.get_mut(to).unwrap(), coin);
         }
@@ -68,28 +68,26 @@ impl Bank {
         let account = self.0.get(address);
 
         match account {
-            Some(account) => {
-                match denom {
-                    Some(denom) => {
-                        let amount = account.get(&denom);
+            Some(account) => match denom {
+                Some(denom) => {
+                    let amount = account.get(&denom);
 
-                        vec![coin(amount.cloned().unwrap_or_default().0, &denom)]
+                    vec![coin(amount.cloned().unwrap_or_default().0, &denom)]
+                }
+                None => {
+                    let mut result = Vec::new();
+
+                    for (k, v) in account.iter() {
+                        result.push(coin(v.0, &k));
                     }
-                    None => {
-                        let mut result = Vec::new();
 
-                        for (k, v) in account.iter() {
-                            result.push(coin(v.0, &k));
-                        }
-
-                        result
-                    }
+                    result
                 }
             },
             None => match denom {
                 Some(denom) => vec![coin(0, &denom)],
-                None => vec![]
-            }
+                None => vec![],
+            },
         }
     }
 
