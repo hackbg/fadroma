@@ -29,7 +29,7 @@ export class Deployment {
 
   /** These are the items contained by the Deployment.
     * They correspond to individual contract instances. */
-  receipts: Record<string, Instance> = {}
+  receipts: Record<string, Instance & any> = {}
 
   /** Load deployment state from YAML file. */
   load (path = this.path) {
@@ -49,7 +49,7 @@ export class Deployment {
   }
 
   /** Chainable. Add to deployment, replacing existing receipts. */
-  set (name: string, data: any): this {
+  set (name: string, data = {}): this {
     this.receipts[name] = { name, ...data }
     return this.save()
   }

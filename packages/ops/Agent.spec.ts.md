@@ -42,22 +42,24 @@ test({
 import { Bundle } from './Bundle'
 test({
 
-  async "instantiate contract" () {
+  async "instantiate contract" ({ deepEqual }) {
     const instance = Symbol()
+    const chainId  = Symbol()
     class TestAgent extends Agent {
+      chain = { id: chainId }
       doInstantiate (template, label, msg, funds) {
         return {instance, template, label, msg, funds}
       }
     }
-    const chain    = Symbol()
     const codeId   = Symbol()
-    const template = {chain, codeId}
+    const template = {chainId, codeId}
     const label    = Symbol()
     const msg      = Symbol()
     const funds    = Symbol()
     const agent = new TestAgent()
-    assert(
-      await agent.instantiate(template, label, msg, funds) === {instance, template, label, msg, funds}
+    deepEqual(
+      await agent.instantiate(template, label, msg, funds),
+      {instance, template, label, msg, funds}
     )
   },
 
