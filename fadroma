@@ -1,2 +1,0 @@
-#!/usr/bin/env bash
-`dirname $0`/node_modules/.bin/ganesha-node --unhandled-rejections=strict $@

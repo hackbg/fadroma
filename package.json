@@ -27,7 +27,7 @@
     "test": "time c8 -x deps -x packages/TestRunner.js ganesha-node packages/TestRunner.js"
   },
   "bin": {
-    "fadroma": "fadroma"
+    "fadroma": "fadroma.js"
   },
   "workspace": true,
   "packages": [
