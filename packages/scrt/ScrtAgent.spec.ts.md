@@ -12,16 +12,17 @@ export default ScrtAgentSpec
 ```typescript
 import { ScrtAgent } from './ScrtAgent'
 test({
-  async 'from mnemonic' () {
+  async 'from mnemonic' ({ equal, deepEqual }) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const agent = await ScrtAgent.create({ mnemonic })
-    assert(agent.mnemonic === mnemonic)
-    assert(agent.address  === 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
-    assert.deepEqual(agent.pubkey, {
+    equal(agent.mnemonic, mnemonic)
+    equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
+    deepEqual(agent.pubkey, {
       type:  'tendermint/PubKeySecp256k1',
-      value: 'AoHyO3IEIOuffrGJoxwcYQnK+G1uMX/vQkzrjTXxMqTv' })
+      value: 'AoHyO3IEIOuffrGJoxwcYQnK+G1uMX/vQkzrjTXxMqTv'
+    })
   },
-  async 'wait for next block' (assert) {
+  async 'wait for next block' ({ equal, deepEqual }) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const [agent, endpoint] = await Promise.all([ScrtAgent.create({ mnemonic }), mockAPIEndpoint()])
     try {
@@ -31,14 +32,14 @@ test({
       await agent.nextBlock
       const [ {header:{height:block2}}, account2, balance2 ] =
         await Promise.all([ agent.block, agent.account, agent.balance ])
-      assert(block1 + 1 === block2)
-      assert.deepEqual(account1, account2)
-      assert.deepEqual(balance1, balance2)
+      equal(block1 + 1, block2)
+      deepEqual(account1, account2)
+      deepEqual(balance1, balance2)
     } finally {
       endpoint.close()
     }
   },
-  async 'native token balance and transactions' (assert) {
+  async 'native token balance and transactions' ({ equal }) {
     const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
     const [agent1, agent2, endpoint] = await Promise.all([
@@ -49,18 +50,60 @@ test({
     try {
       agent1.chain = agent2.chain = { url: endpoint.url }
       endpoint.state.balances = { uscrt: { [agent1.address]: BigInt("2000"), [agent2.address]: BigInt("3000") } }
-      assert.equal(await agent1.balance, "2000")
-      assert.equal(await agent2.balance, "3000")
+      equal(await agent1.balance, "2000")
+      equal(await agent2.balance, "3000")
       await agent1.send(agent2.address, "1000")
-      assert.equal(await agent1.balance, "1000")
-      assert.equal(await agent2.balance, "4000")
+      equal(await agent1.balance, "1000")
+      equal(await agent2.balance, "4000")
       await agent2.send(agent1.address, 500)
-      assert.equal(await agent1.balance, "1500")
-      assert.equal(await agent2.balance, "3500")
+      equal(await agent1.balance, "1500")
+      equal(await agent2.balance, "3500")
     } finally {
       endpoint.close()
     }
   },
+  async "full contract lifecycle" ({ ok, equal, deepEqual }) {
+    const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
+    const [agent, endpoint] = await Promise.all([ScrtAgent.create({ mnemonic }), mockAPIEndpoint()])
+    try {
+      // upload ------------------------------------------------------------------------------------
+      const { originalSize, originalChecksum,
+              compressedSize, compressedChecksum,
+              codeId, logs: uploadLogs } = await agent.upload('empty.wasm')
+      equal(originalSize,       0)
+      equal(originalChecksum,   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+      equal(compressedSize,     20) // lol
+      equal(compressedChecksum, "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec")
+      equal(codeId, 1)
+      deepEqual(
+        uploadLogs,
+        [ { events: [ { type: "message", attributes: [ { key: 'code_id', value: 1 } ] } ] } ]
+      )
+
+      // init --------------------------------------------------------------------------------------
+      const { contractAddress: address, logs: initLogs } = await agent.instantiate(
+        codeId, `contract_deployed_by_${Agent.name}`, {}
+      )
+      ok(address, 'init tx returns contract address')
+      deepEqual(
+        initLogs,
+        [ { events: [ { type: "message", attributes: [ { key: "contract_address", value: address } ] } ] } ],
+        'init logs contain contract address'
+      )
+
+      // query -------------------------------------------------------------------------------------
+      console.debug(`test q ${address}`)
+      const queryResult = await agent.query({ address }, 'status')
+      equal(queryResult, 'status')
+
+      // transact ----------------------------------------------------------------------------------
+      console.debug(`test tx ${address}`)
+      const txResult = await agent.execute({ address }, 'tx', { option: "value" })
+      deepEqual(txResult, {})
+    } finally {
+      endpoint.close()
+    }
+  }
 })
 ```
 
@@ -103,10 +146,10 @@ export async function mockAPIEndpoint (port) {
 
   app.use(bodyParser.json())
 
-  app.use((req, res, next)=>{
+  /*app.use((req, res, next)=>{
     console.debug(`${req.method} ${req.url}`)
     next()
-  })
+  })*/
 
   const respond = (fn) => (req, res, next) => res.status(200).send(JSON.stringify(fn(req.params, req.body))).end()
 
