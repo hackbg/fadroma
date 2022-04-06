@@ -1,33 +1,39 @@
 {
-  "name":      "@hackbg/fadroma",
-  "version":   "100.0.0-pre",
-  "type":      "module",
-  "workspace": true,
-  "main":      "./index.ts",
-  "packages": [
-    "./deps/*",
-    "./packages/*",
-    "./crates/fadroma-snip20-impl",
-    "./test"
-  ],
-  "devDependencies": {
-    "@hackbg/ganesha": "workspace:*",
-    "@hackbg/tools":   "^1",
-    "c8":              "^7.11.0",
-    "typedoc":         "^0.21.9",
-    "typescript":      "^4.5.4"
+  "name": "@hackbg/fadroma",
+  "version": "100.0.0-pre",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hackbg/fadroma"
   },
+  "type": "module",
+  "main": "./index.ts",
   "dependencies": {
     "@types/node":     "^16.11.19",
     "@fadroma/cli":    "workspace:*",
     "@fadroma/ops":    "workspace:*",
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/snip20": "workspace:*",
+    "@hackbg/ganesha": "workspace:*",
     "@hackbg/komandi": "^2",
-    "bignumber.js":    "^9.0.2"
+    "@hackbg/tools":   "^1"
+  },
+  "devDependencies": {
+    "c8":              "^7.11.0",
+    "typedoc":         "^0.21.9",
+    "typescript":      "^4.5.4"
   },
   "scripts": {
     "cli":  "packages/cli/fadroma",
     "test": "time c8 -x deps -x packages/TestRunner.js ganesha-node packages/TestRunner.js"
-  }
+  },
+  "bin": {
+    "fadroma": "fadroma"
+  },
+  "workspace": true,
+  "packages": [
+    "./deps/*",
+    "./packages/*",
+    "./crates/fadroma-snip20-impl",
+    "./test"
+  ]
 }
