@@ -66,7 +66,24 @@ test({
 ## Caching
 
 ```typescript
-import { CachingFSUploader } from './Upload.ts.md'
+import { CachingFSUploader } from './Upload'
+test({
+  'CachingFSUploader.enable' (assert) {
+    const agent = { chain: { uploads: Symbol() } }
+    const { uploader } = CachingFSUploader.enable({ agent })
+    assert(uploader.agent === agent)
+  },
+  async 'CachingFSUploader#upload' (assert) {
+    const agent = { chain: { uploads: Symbol() } }
+    const { uploader } = CachingFSUploader.enable({ agent })
+    await uploader.upload()
+  },
+  async 'CachingFSUploader#uploadMany' (assert) {
+    const agent = { chain: { uploads: Symbol() } }
+    const { uploader } = CachingFSUploader.enable({ agent })
+    await uploader.uploadMany()
+  },
+})
 ```
 
 ## Upload receipts directory

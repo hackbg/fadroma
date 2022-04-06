@@ -67,9 +67,12 @@ test({
     const [agent, endpoint] = await Promise.all([ScrtAgent.create({ mnemonic }), mockAPIEndpoint()])
     try {
       // upload ------------------------------------------------------------------------------------
-      const { originalSize, originalChecksum,
-              compressedSize, compressedChecksum,
-              codeId, logs: uploadLogs } = await agent.upload('empty.wasm')
+      const artifact = { location: 'fixtures/empty.wasm' }
+      const {
+        originalSize, originalChecksum,
+        compressedSize, compressedChecksum,
+        codeId, logs: uploadLogs
+      } = await agent.upload(artifact)
       equal(originalSize,       0)
       equal(originalChecksum,   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
       equal(compressedSize,     20) // lol

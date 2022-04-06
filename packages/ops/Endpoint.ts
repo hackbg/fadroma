@@ -1,4 +1,4 @@
-import { get } from 'http'
+import * as http from 'http'
 
 /** Management endpoints for managed devnet and build containers. */
 export class Endpoint {
@@ -15,12 +15,14 @@ export class Endpoint {
       url.searchParams.set(key, value)
     }
     return new Promise((resolve, reject)=>{
-      get(url.toString(), res => {
+      this._get(url.toString(), res => {
         let data = ''
         res.on('data', chunk => data += chunk)
         res.on('end', () => resolve(JSON.parse(data)))
       }).on('error', reject)
     })
   }
+
+  _get = http.get
 
 }
