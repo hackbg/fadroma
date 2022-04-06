@@ -8,14 +8,19 @@ const FAIL = '💔 '
 
 import suites from './ops/index.spec.js.md'
 import scrtSuites from './scrt/Scrt.spec.ts.md'
-runTests({...suites, ...scrtSuites})
+runTests({...suites, ...scrtSuites}, process.argv.slice(2))
 
-async function runTests (suites) {
+async function runTests (suites, selected = []) {
 
   let passed = 0
   let failed = 0
 
   for (const [suite, spec] of Object.entries(suites)) {
+
+    if (selected.length > 0 && !selected.includes(suite)) {
+      continue
+    }
+
     const tests   = {}
     const results = {}
 
