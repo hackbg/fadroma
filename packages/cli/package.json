@@ -3,6 +3,7 @@
   "version": "1.0.0-beta",
   "main": "index.ts",
   "dependencies": {
+    "@hackbg/ganesha": "workspace:*",
     "@fadroma/ops":    "workspace:*",
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/snip20": "workspace:*",
