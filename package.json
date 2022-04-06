@@ -28,6 +28,6 @@
   },
   "scripts": {
     "cli":  "packages/cli/fadroma",
-    "test": "time c8 ganesha-node packages/TestRunner.js"
+    "test": "time c8 -x deps -x packages/TestRunner.js ganesha-node packages/TestRunner.js"
   }
 }
