@@ -13,6 +13,7 @@
   "devDependencies": {
     "@hackbg/ganesha": "workspace:*",
     "@hackbg/tools":   "^1",
+    "c8":              "^7.11.0",
     "typedoc":         "^0.21.9",
     "typescript":      "^4.5.4"
   },
@@ -27,6 +28,6 @@
   },
   "scripts": {
     "cli":  "packages/cli/fadroma",
-    "test": "time ganesha-node packages/TestRunner.js"
+    "test": "time c8 ganesha-node packages/TestRunner.js"
   }
 }
