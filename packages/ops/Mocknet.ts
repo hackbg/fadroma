@@ -6,7 +6,7 @@ import {
   Chain, Agent, Artifact, Template, Instance
 } from '@fadroma/ops'
 
-//import WASMFFI from 'wasm-ffi'
+import WASMFFI from 'wasm-ffi'
 import { URL } from 'url'
 
 const console = Console('@fadroma/mocknet')

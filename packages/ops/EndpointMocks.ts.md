@@ -11,19 +11,3 @@ for builds and devnets.
 export function mockDockerode () {
 }
 ```
-
-## Builder API
-
-```typescript
-export async function mockBuilderEndpoint () {
-  throw 'TODO'
-}
-```
-
-## Devnet API
-
-```typescript
-export async function mockDevnetEndpoint () {
-  throw 'TODO'
-}
-```
