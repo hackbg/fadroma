@@ -246,6 +246,7 @@ importers:
       '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
       '@hackbg/tools': ^1
+      axios: ^0.26.0
       body-parser: ^1.19.0
       express: ^4.17.1
       freeport-async: ^2.0.0
@@ -257,6 +258,8 @@ importers:
       '@hackbg/tools': 1.0.0
       pako: 1.0.11
       secretjs: 0.17.5
+    optionalDependencies:
+      axios: 0.26.0
     devDependencies:
       body-parser: 1.19.0
       express: 4.17.1
@@ -264,9 +267,9 @@ importers:
 
   packages/shim:
     specifiers:
-      '@hackbg/fadroma': hackbg/fadroma#v100
+      '@hackbg/fadroma': hackbg/fadroma#test/ops
     dependencies:
-      '@hackbg/fadroma': github.com/hackbg/fadroma/f93e33eb14709db0f2589bf9fb8dd3400f82efd5
+      '@hackbg/fadroma': github.com/hackbg/fadroma/c8c12121fd148d505d4e971c8878559a6b70a08a
 
   test:
     specifiers:
@@ -4840,8 +4843,8 @@ packages:
       buffer-crc32: 0.2.13
     dev: true
 
-  github.com/hackbg/fadroma/f93e33eb14709db0f2589bf9fb8dd3400f82efd5:
-    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/f93e33eb14709db0f2589bf9fb8dd3400f82efd5}
+  github.com/hackbg/fadroma/c8c12121fd148d505d4e971c8878559a6b70a08a:
+    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/c8c12121fd148d505d4e971c8878559a6b70a08a}
     name: '@hackbg/fadroma'
     version: 100.0.0-pre
     dependencies:
