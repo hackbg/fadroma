@@ -11,6 +11,7 @@ export default ScrtAgentSpec
 
 ```typescript
 import { ScrtAgent } from './ScrtAgent'
+import { toBase64, fromBase64, fromUtf8, fromHex } from '@fadroma/ops'
 test({
   async 'from mnemonic' ({ equal, deepEqual }) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
@@ -65,42 +66,21 @@ test({
   async "full contract lifecycle" ({ ok, equal, deepEqual }) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const [agent, endpoint] = await Promise.all([ScrtAgent.create({ mnemonic }), mockAPIEndpoint()])
-    agent.chain = { url: endpoint.url }
+    agent.chain = { id: 'testing', url: endpoint.url }
     try {
-      // upload ------------------------------------------------------------------------------------
-      const artifact = { location: 'examples/empty.wasm' }
-      const {
-        originalSize, originalChecksum,
-        compressedSize, compressedChecksum,
-        codeId, logs: uploadLogs
-      } = await agent.upload(artifact)
-      equal(originalSize,       0)
-      equal(originalChecksum,   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-      equal(compressedSize,     20) // lol
-      equal(compressedChecksum, "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec")
-      equal(codeId, 1)
-      deepEqual(
-        uploadLogs,
-        [ { events: [ { type: "message", attributes: [ { key: 'code_id', value: 1 } ] } ] } ]
-      )
-
-      // init --------------------------------------------------------------------------------------
-      const { contractAddress: address, logs: initLogs } = await agent.instantiate(
-        codeId, `contract_deployed_by_${Agent.name}`, {}
-      )
+      const location = 'examples/empty.wasm'
+      const codeHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      const artifact = { location, codeHash }
+      const template = await agent.upload(artifact)
+      equal(artifact.codeHash, template.codeHash)
+      equal(template.codeId,   1)
+      const label    = `contract_deployed_by_${agent.name}`
+      const instance = await agent.instantiate(template, label, {})
+      const { address } = instance
       ok(address, 'init tx returns contract address')
-      deepEqual(
-        initLogs,
-        [ { events: [ { type: "message", attributes: [ { key: "contract_address", value: address } ] } ] } ],
-        'init logs contain contract address'
-      )
-
-      // query -------------------------------------------------------------------------------------
       console.debug(`test q ${address}`)
       const queryResult = await agent.query({ address }, 'status')
       equal(queryResult, 'status')
-
-      // transact ----------------------------------------------------------------------------------
       console.debug(`test tx ${address}`)
       const txResult = await agent.execute({ address }, 'tx', { option: "value" })
       deepEqual(txResult, {})
@@ -254,9 +234,11 @@ export async function mockAPIEndpoint (port) {
     const txhash = randomHex(16).toUpperCase()
     const mockTx = (logs) => {
       state.txs[txhash] = {
+        tx: { value: { init_msg: [], msg: [] } },
         txhash,
         raw_log: "",
-        logs
+        logs,
+        msg
       }
     }
     const mockAddr = () => 'secret1l3j38zr0xrcv4ywt7p87mpm93vh7erly3yd0nl'
@@ -272,10 +254,21 @@ export async function mockAPIEndpoint (port) {
         mockTx()
       },
       'wasm/MsgStoreCode' () {
-        mockTx([{events:[{type:'message',attributes:[{key:'code_id',value:1}]}]}])
+        mockTx([{events:[{type:'message',attributes:[
+          {key:Symbol(),value:Symbol()},
+          {key:Symbol(),value:Symbol()},
+          {key:Symbol(),value:Symbol()},
+          {key:'code_id',value:1} // for upload
+        ]}]}])
       },
       'wasm/MsgInstantiateContract' () {
-        mockTx([{events:[{type:'message',attributes:[{key:'contract_address',value:mockAddr()}]}]}])
+        mockTx([{events:[{type:'message',attributes:[
+          {key:Symbol(),value:Symbol()},
+          {key:Symbol(),value:Symbol()},
+          {key:Symbol(),value:Symbol()},
+          {key:Symbol(),value:Symbol()},
+          {key:'contract_address',value:mockAddr()}
+        ]}]}])
       }
       'wasm/MsgExecuteContract' () {
         throw 'TODO'
@@ -312,31 +305,38 @@ export async function mockAPIEndpoint (port) {
 
   // echoes input query
   app.get('/wasm/contract/:address/query/:query', respond(async ({query})=>{
-    let query2 = query
+    try {
+      /*let query2 = query
 
-    const encrypted = query
-    const nonce = encrypted.slice(0, 32)
-    console.debug('--------------==================', encrypted)
-    const step1 = encoding_1.Encoding.fromHex(responseData.result.smart)
-    console.debug(1,{step1_fromHex:step1})
-    const step2 = await this.enigmautils.decrypt(step1, nonce)
-    console.debug(2,{step2_decrypt:step2})
-    const step3 = encoding_1.Encoding.fromUtf8(step2)
-    console.debug(3,{step3_fromutf8:step3})
+      const encrypted = query
+      const nonce = encrypted.slice(0, 32)
+      const step1 = fromHex(responseData.result.smart)
+      console.debug(1,{step1_fromHex:step1})
+      const step2 = await this.enigmautils.decrypt(step1, nonce)
+      console.debug(2,{step2_decrypt:step2})
+      const step3 = fromUtf8(step2)
+      console.debug(3,{step3_fromutf8:step3})
 
-    query = query2
-    console.log(1, query)
-    query = fromHex(query)
-    console.log(2, query.toString())
-    query = fromUtf8(query)
-    console.log(3, query.toString())
-    query = fromBase64(query)
-    console.log(4, query.toString())
-    query = query.slice(64)
-    console.log(5, query.toString())
-    query = toBase64(query)
-    console.log(6, query.toString())
-    res.status(200).send(JSON.stringify({ result: { smart: query } })).end()
+      query = query2
+      */
+
+      console.log(1, query)
+      query = fromHex(query)
+      console.log(2, query.toString())
+      query = fromUtf8(query)
+      console.log(3, query.toString())
+      query = fromBase64(query)
+      console.log(4, query.toString())
+      query = query.slice(64)
+      console.log(5, query.toString())
+      query = toBase64(query)
+      console.log(6, query.toString())
+
+      return { result: { smart: query } }
+    } catch (e) {
+      console.error(e)
+      process.exit(123)
+    }
   }))
 
   app.get('/reg/consensus-io-exch-pubkey', respond(()=>({
