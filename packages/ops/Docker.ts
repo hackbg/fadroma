@@ -27,39 +27,36 @@ export class DockerImage {
 
   #available: Promise<string>|null = null
 
-  get available () {
-    if (!this.#available) {
+  async ensure () {
+    if (this.#available) {
+      console.info(bold('Already ensuring build image from parallel build:'), this.name)
+      return await this.#available
+    } else {
       console.info(bold('Ensuring build image:'), this.name)
       console.info(bold('Using dockerfile:'), this.dockerfile)
-      // ban of async getters detaches the event loop
-      return this.#available = this.ensure()
-    } else {
-      console.info(bold('Already ensuring build image from parallel build:'), this.name)
-      return this.#available
-    }
-  }
-
-  async ensure () {
-    const {docker, name, dockerfile, extraFiles} = this
-    const PULLING  = `Image ${name} not found, pulling...`
-    const BUILDING = `Image ${name} not found upstream, building from ${dockerfile}...`
-    const NO_FILE  = `Image ${name} not found and no Dockerfile provided; can't proceed.`
-    try {
-      await this.check()
-    } catch (_e) {
-      try {
-        console.warn(PULLING)
-        await this.pull()
-      } catch (e) {
-        if (!dockerfile) {
-          throw new Error(`${NO_FILE} (${e.message})`)
-        } else {
-          console.warn(BUILDING)
-          await this.build()
+      return await (this.#available = new Promise(async(resolve, reject)=>{
+        const {docker, name, dockerfile, extraFiles} = this
+        const PULLING  = `Image ${name} not found, pulling...`
+        const BUILDING = `Image ${name} not found upstream, building from ${dockerfile}...`
+        const NO_FILE  = `Image ${name} not found and no Dockerfile provided; can't proceed.`
+        try {
+          await this.check()
+        } catch (_e) {
+          try {
+            console.warn(`${PULLING} ${_e.message}`)
+            await this.pull()
+          } catch (e) {
+            if (!dockerfile) {
+              reject(`${NO_FILE} (${e.message})`)
+            } else {
+              console.warn(`${BUILDING} ${_e.message}`)
+              await this.build()
+            }
+          }
         }
-      }
+        return resolve(name)
+      }))
     }
-    return name
   }
 
   /** Throws if inspected image does not exist locally. */

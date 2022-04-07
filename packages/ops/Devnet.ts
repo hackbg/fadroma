@@ -361,7 +361,7 @@ export class DockerodeDevnet extends Devnet {
     }
     // create the container
     console.info('Launching a devnet container...')
-    await this.image.available
+    await this.image.ensure()
     this.container = await this.createContainer(getDevnetContainerOptions(this))
     const shortId = this.container.id.slice(0, 8)
     // emit any warnings

@@ -12,7 +12,18 @@ export default DockerSpec
 ```typescript
 export function mockDockerode () {
   return {
-    async pull () {}
+    async pull () {},
+    getImage () {
+      return {
+        async inspect () {
+          console.info('mockDockerode/getImage/inspect')
+          return
+        }
+      }
+    },
+    async run (image, cmd, buildLogs, args) {
+      return [{Error:null, StatusCode:0}, Symbol()]
+    }
   }
 }
 ```
@@ -37,8 +48,7 @@ test({
   },
   async 'DockerImage#available' () {
     const image = new DockerImage(mockDockerode())
-    assert(image.available === image.available)
-    assert(image.available instanceof Promise)
+    await image.available()
   }
 })
 ```

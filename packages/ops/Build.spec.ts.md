@@ -14,7 +14,7 @@ import { Builder } from './Core'
 test({
   async 'Builder#buildMany' ({deepEqual}) {
     class TestBuilder extends Builder {
-      async build (source, ...args) { return { built: true, source, args } }
+      async build (source, args) { return { built: true, source, args } }
     }
     const source1 = Symbol()
     const source2 = Symbol()
@@ -69,10 +69,19 @@ test({
 
 ```typescript
 import { DockerodeBuilder } from './Build'
+import { DockerImage } from './Docker'
+import { mockDockerode } from './Docker.spec'
+import { mkdirp } from '@hackbg/tools'
 test({
   async 'DockerodeBuilder' () {
-    const builder = new DockerodeBuilder()
-    await builder.build()
+    const docker = mockDockerode()
+    const image  = new DockerImage(docker)
+    await image.ensure()
+    const options = { docker, image, script: '' }
+    const source  = { workspace: '/tmp' }
+    mkdirp.sync('/tmp/artifacts')
+    const builder = new DockerodeBuilder(options)
+    await builder.build(source)
   }
 })
 ```
@@ -83,8 +92,10 @@ test({
 import { ManagedBuilder } from './Build'
 test({
   async 'ManagedBuilder' () {
-    const builder = new ManagedBuilder()
-    await builder.build()
+    const managerURL = 'http://localhost'
+    const builder = new ManagedBuilder({ managerURL })
+    const source  = { workspace: '/tmp' }
+    await builder.build(source)
   }
 })
 ```

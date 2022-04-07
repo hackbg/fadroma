@@ -94,7 +94,7 @@ export class ManagedBuilder extends CachingBuilder {
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerodeBuilder extends CachingBuilder {
 
-  constructor (options) {
+  constructor (options = {}) {
     super()
     this.socketPath = options.socketPath || '/var/run/docker.sock'
     this.docker     = options.docker || new Docker({ socketPath: this.socketPath })
@@ -123,7 +123,7 @@ export class DockerodeBuilder extends CachingBuilder {
     let { workspace, crate, ref = 'HEAD' } = source
     const outputDir = resolve(workspace, 'artifacts')
     const location  = resolve(outputDir, `${crate}@${ref.replace(/\//g, '_')}.wasm`)
-    const image     = await this.image.available
+    const image     = await this.image.ensure()
     const [cmd, args] = this.getBuildContainerArgs(source, outputDir)
 
     const buildLogs = new LineTransformStream(line=>{
