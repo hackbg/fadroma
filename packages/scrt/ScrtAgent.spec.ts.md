@@ -65,9 +65,10 @@ test({
   async "full contract lifecycle" ({ ok, equal, deepEqual }) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const [agent, endpoint] = await Promise.all([ScrtAgent.create({ mnemonic }), mockAPIEndpoint()])
+    agent.chain = { url: endpoint.url }
     try {
       // upload ------------------------------------------------------------------------------------
-      const artifact = { location: 'fixtures/empty.wasm' }
+      const artifact = { location: 'examples/empty.wasm' }
       const {
         originalSize, originalChecksum,
         compressedSize, compressedChecksum,
@@ -130,6 +131,7 @@ test({
 import freePort from 'freeport-async'
 import Express from 'express'
 import bodyParser from 'body-parser'
+import { randomHex } from '@hackbg/tools'
 export async function mockAPIEndpoint (port) {
 
   const state = {
@@ -140,6 +142,8 @@ export async function mockAPIEndpoint (port) {
       uscrt: []
     },
     contracts: {
+    },
+    txs: {
     }
   }
 
@@ -154,7 +158,9 @@ export async function mockAPIEndpoint (port) {
     next()
   })*/
 
-  const respond = (fn) => (req, res, next) => res.status(200).send(JSON.stringify(fn(req.params, req.body))).end()
+  const respond = (fn) => (req, res, next) => Promise.resolve(fn(req.params, req.body))
+    .then(response=>res.status(200).send(JSON.stringify(response)).end())
+    .catch(error=>(typeof error==='number')?res.status(error).end():res.status(500).send(error).end())
 
   app.get('/blocks/latest', respond(()=>{
     const mockHash40  = () => "3988E90BEF9EDC708165E22590CC535344293CB1"
@@ -275,7 +281,7 @@ export async function mockAPIEndpoint (port) {
         throw 'TODO'
       }
     }
-    for (const {type, value} of req.body.tx.msg) {
+    for (const {type, value} of msg) {
       const mockHandler = mockHandlers[type]
       if (mockHandler) {
         mockHandler(value)
@@ -286,15 +292,15 @@ export async function mockAPIEndpoint (port) {
     return { txhash }
   }))
 
-  app.get('/txs/:txhash', (req, res, next)=>{
-    const response = state.txs[req.params.txhash]
+  app.get('/txs/:txhash', respond(({txhash})=>{
+    const response = state.txs[txhash]
     console.debug('response', response)
     if (response) {
-      res.status(200).send(JSON.stringify(response)).end()
+      return response
     } else {
-      res.status(404).end()
+      throw 404
     }
-  })
+  }))
 
   app.get('/wasm/code/:id/hash', respond(()=>({
     result: 'e87c2d9ec2cc89f19b60e4b927b96d4e6b5a309200f4f303f96b666546dcea33'
@@ -305,8 +311,10 @@ export async function mockAPIEndpoint (port) {
   })))
 
   // echoes input query
-  app.get('/wasm/contract/:address/query/:query', async(req, res, next)=>{
-    const encrypted = req.params.query
+  app.get('/wasm/contract/:address/query/:query', respond(async ({query})=>{
+    let query2 = query
+
+    const encrypted = query
     const nonce = encrypted.slice(0, 32)
     console.debug('--------------==================', encrypted)
     const step1 = encoding_1.Encoding.fromHex(responseData.result.smart)
@@ -316,7 +324,7 @@ export async function mockAPIEndpoint (port) {
     const step3 = encoding_1.Encoding.fromUtf8(step2)
     console.debug(3,{step3_fromutf8:step3})
 
-    let query = req.params.query
+    query = query2
     console.log(1, query)
     query = fromHex(query)
     console.log(2, query.toString())
@@ -329,7 +337,7 @@ export async function mockAPIEndpoint (port) {
     query = toBase64(query)
     console.log(6, query.toString())
     res.status(200).send(JSON.stringify({ result: { smart: query } })).end()
-  })
+  }))
 
   app.get('/reg/consensus-io-exch-pubkey', respond(()=>({
     result: { ioExchPubkey: "0jyiOQXsuaJzXX7KzsZJRsPqA8XQyt79mpciYm4uPkE=" }
