@@ -20,7 +20,7 @@ test({
 ## Dockerode devnet
 
 ```typescript
-import { DockerodeDevnet } from './Docker'
+import { DockerodeDevnet } from './Devnet'
 test({
   async 'pass names of accounts to prefund on genesis' () {
     throw 'TODO'

@@ -68,7 +68,7 @@ test({
 ## Dockerized builder
 
 ```typescript
-import { DockerodeBuilder } from './Docker'
+import { DockerodeBuilder } from './Build'
 test({
   async 'DockerodeBuilder' () {
     const builder = new DockerodeBuilder()
