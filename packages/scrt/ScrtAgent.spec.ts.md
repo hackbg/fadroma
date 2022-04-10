@@ -79,6 +79,7 @@ test({
       const { address } = instance
       ok(address, 'init tx returns contract address')
       console.debug(`test q ${address}`)
+      throw 'TODO - how to decrypt/reencrypt query?'
       const queryResult = await agent.query({ address }, 'status')
       equal(queryResult, 'status')
       console.debug(`test tx ${address}`)
@@ -126,6 +127,10 @@ export async function mockAPIEndpoint (port) {
     txs: {
     }
   }
+
+  const getCoins = address => ([
+    { "denom": "uscrt", "amount": String(state.balances.uscrt[address]||0) }
+  ])
 
   port = port || await freePort(10000 + Math.floor(Math.random()*10000))
 
@@ -194,9 +199,7 @@ export async function mockAPIEndpoint (port) {
         "type": "cosmos-sdk/Account",
         "value": {
           "address": address,
-          "coins": [
-            { "denom": "uscrt", "amount": String(state.balances.uscrt[address]||0) }
-          ],
+          "coins": getCoins(address),
           "public_key": "secretpub1addwnpepqghcej6wkd6gazdkx55e920tpehu906jdzpqhtgjuct9gvrzcfjeclrccvm",
           "account_number": 1073,
           "sequence": 1801
@@ -243,8 +246,7 @@ export async function mockAPIEndpoint (port) {
     }
     const mockAddr = () => 'secret1l3j38zr0xrcv4ywt7p87mpm93vh7erly3yd0nl'
     const mockHandlers = {
-      'cosmos-sdk/MsgSend' () {
-        const {from_address, to_address, amount} = value
+      'cosmos-sdk/MsgSend' ({from_address, to_address, amount}) {
         for (const {denom, amount: x} of amount) {
           if (denom === 'uscrt') {
             state.balances.uscrt[from_address] -= BigInt(x)
@@ -344,9 +346,9 @@ export async function mockAPIEndpoint (port) {
   })))
 
   // new in 1.2
-  app.get('/bank/balances/:address', respond(() => ({
+  app.get('/bank/balances/:address', respond(({ address }) => ({
     height: state.block.height,
-    result: 0
+    result: getCoins(address)
   })))
 
   // new in 1.2
