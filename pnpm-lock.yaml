@@ -8,6 +8,7 @@ importers:
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/snip20': workspace:*
+      '@ganesha/runspec': workspace:*
       '@hackbg/ganesha': workspace:*
       '@hackbg/komandi': ^2
       '@hackbg/tools': ^1
@@ -25,6 +26,7 @@ importers:
       '@hackbg/tools': 1.0.0
       '@types/node': 16.11.19
     devDependencies:
+      '@ganesha/runspec': link:deps/ganesha/src/runspec
       c8: 7.11.0
       typedoc: 0.21.9_typescript@4.5.4
       typescript: 4.5.4
@@ -105,6 +107,9 @@ importers:
       '@ganesha/core': workspace:*
     dependencies:
       '@ganesha/core': link:../core
+
+  deps/ganesha/src/runspec:
+    specifiers: {}
 
   deps/ganesha/src/tsc:
     specifiers:
