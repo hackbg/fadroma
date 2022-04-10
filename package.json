@@ -25,7 +25,8 @@
   },
   "scripts": {
     "cli":  "packages/cli/fadroma",
-    "test": "time c8 -x deps -x packages/TestRunner.js ganesha-node packages/TestRunner.js"
+    "test": "time ganesha-node packages/TestRunner.js",
+    "cov":  "time c8 -x deps -x packages/TestRunner.js ganesha-node packages/TestRunner.js"
   },
   "bin": {
     "fadroma": "fadroma.js"
