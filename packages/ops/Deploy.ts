@@ -17,6 +17,7 @@ import type { Agent } from './Agent'
 import type { Chain } from './Chain'
 import { Template, Label, InitMsg, Instance, Message, join } from './Core'
 import { print } from './Print'
+import { config } from './Config'
 
 export class Deployment {
 
@@ -79,7 +80,7 @@ export class Deployment {
     if (!receipt) {
       const msg = `@fadroma/ops/Deploy: ${name}: no such contract in deployment`
       console.error(msg)
-      this.printStatus()
+      print.deployment(this)
       throw new Error(msg)
     }
     return receipt
@@ -99,27 +100,15 @@ export class Deployment {
   }
 
   /** Instantiate multiple contracts from the same Template with different parameters. */
-  async initMany (deployAgent: Agent, template: Template, configs: [Label, InitMsg][]): Promise<Instance[]> {
+  async initMany (deployAgent: Agent, template: Template, configs: [Label, InitMsg][] = []): Promise<Instance[]> {
     return this.initVarious(deployAgent, configs.map(([label, initMsg])=>[template, label, initMsg]))
   }
 
   /** Instantiate multiple contracts from different Templates with different parameters. */
-  async initVarious (deployAgent: Agent, configs: [Template, Label, InitMsg][]): Promise<Instance[]> {
+  async initVarious (deployAgent: Agent, configs: [Template, Label, InitMsg][] = []): Promise<Instance[]> {
     const receipts = await deployAgent.instantiateMany(configs, this.prefix)
     this.setMany(receipts)
     return Object.values(receipts)
-  }
-
-  printStatus () {
-    const { receipts, prefix } = this
-    const count = Object.values(receipts).length
-    if (count > 0) {
-      for (const name of Object.keys(receipts).sort()) {
-        print.receipt(name, receipts[name])
-      }
-    } else {
-      console.info('This deployment is empty.')
-    }
   }
 
 }
@@ -130,7 +119,7 @@ export class Deployments extends Directory {
 
   printActive () {
     if (this.active) {
-      this.active.printStatus()
+      print.deployment(this.active)
     } else {
       console.info(`\nNo selected deployment.`)
     }
@@ -214,12 +203,12 @@ export class Deployments extends Directory {
     let contracts: string|number = Object.values(deployment.receipts).length
     contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
     console.info(bold('Active deployment:'), prefix, contracts)
-    deployment.printStatus()
+    print.deployment(deployment)
     return { deployment, prefix }
   }
 
   /** Command: Print the status of a deployment. */
-  static status ({ chain, cmdArgs: [ id ] }) {
+  static status ({ chain, cmdArgs: [id] = [undefined] }) {
     let deployment = chain.deployments.active
     if (id) {
       deployment = chain.deployments.get(id)
@@ -228,13 +217,11 @@ export class Deployments extends Directory {
       console.error(join(bold('No selected deployment on chain:'), chain.id))
       process.exit(1)
     }
-    deployment.printStatus()
+    print.deployment(deployment)
   }
 
   /** Command: Set a new deployment as active. */
-  static async select (input) {
-    const chain  = input.chain   // ??
-    const [ id ] = input.cmdArgs || []
+  static async select ({ chain, cmdArgs: [id] = [undefined] }) {
     const list = chain.deployments.list()
     if (list.length < 1) {
       console.info('\nNo deployments. Create one with `deploy new`')

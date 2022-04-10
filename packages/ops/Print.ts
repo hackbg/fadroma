@@ -112,6 +112,17 @@ export const print = {
     }
   },
 
+  deployment ({ receipts, prefix }) {
+    const count = Object.values(receipts).length
+    if (count > 0) {
+      for (const name of Object.keys(receipts).sort()) {
+        print.receipt(name, receipts[name])
+      }
+    } else {
+      console.info('This deployment is empty.')
+    }
+  },
+
   receipt (name, receipt) {
     if (receipt.address) {
       console.info(

@@ -16,7 +16,7 @@ test({
     withTmpFile(f=>{
       const d = new Deployment(f)
       d.load()
-      equal(d, d.save())
+      equal(d, d.save('test', 'test'))
       equal(d, d.set('foo'))
       equal(d, d.setMany({bar:{},baz:{}}))
     })
@@ -24,9 +24,10 @@ test({
   async 'Deployment init' () {
     await withTmpFile(async f=>{
       const d = new Deployment(f)
-      await d.init()
-      await d.initMany()
-      await d.initVarious()
+      const a = { async instantiate () { return { foo: 'bar' } } }
+      await d.init(a)
+      await d.initMany(a)
+      await d.initVarious(a)
     })
   }
 })
@@ -54,14 +55,27 @@ test({
       d.active
       d.get()
       d.list()
-      d.save()
+      d.save('test', 'test')
     })
   },
-  async 'Deployments integrations' () {
-    await Deployments.new()
-    await Deployments.activate()
-    await Deployments.status()
-    await Deployments.select()
+  async 'Deployments integrations' ({ equal }) {
+    const context = {
+      chain: {
+        deployments: {
+          active: { prefix: Symbol(), receipts: [] },
+          printActive () {},
+          list () { return [] },
+          async create () {},
+          async select () {}
+        }
+      }
+    }
+    await Deployments.new(context)
+    const { deployment, prefix } = await Deployments.activate(context)
+    equal(deployment, context.chain.deployments.active)
+    equal(prefix,     context.chain.deployments.active.prefix)
+    await Deployments.status(context)
+    await Deployments.select(context)
   }
 })
 
