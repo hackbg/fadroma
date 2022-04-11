@@ -18,10 +18,10 @@
     "@hackbg/tools":   "^1"
   },
   "devDependencies": {
-    "c8":               "^7.11.0",
-    "typedoc":          "^0.21.9",
-    "typescript":       "^4.5.4",
-    "@ganesha/runspec": "workspace:*"
+    "c8":              "^7.11.0",
+    "typedoc":         "^0.21.9",
+    "typescript":      "^4.5.4",
+    "@hackbg/runspec": "workspace:*"
   },
   "scripts": {
     "cli":  "packages/cli/fadroma",
