@@ -12,8 +12,50 @@ Shorthands for doing various Unixy things from Node.js.
 
 <tr><td>
 
-## `@hackbg/dokeres` [Dokeres]()
+`@hackbg/dokeres`
 
 </td><td>
 
 </td></tr>
+
+<tr><td>
+
+`@hackbg/forkers`
+
+</td><td>
+
+</td></tr>
+
+<tr><td>
+
+`@hackbg/kabinet`
+
+</td><td>
+
+</td></tr>
+
+<tr><td>
+
+`@hackbg/komandi`
+
+</td><td>
+
+</td></tr>
+
+<tr><td>
+
+`@hackbg/konzola`
+
+</td><td>
+
+</td></tr>
+
+<tr><td>
+
+`@hackbg/runspec`
+
+</td><td>
+
+</td></tr>
+
+</table>
