@@ -1,15 +1,15 @@
-import { cwd } from 'process'
-import { relative } from 'path'
-import { fileURLToPath } from 'url'
-
-import { render } from 'prettyjson'
-import { table } from 'table'
-import colors from 'colors'
-const { bold, red, green, yellow, magenta, inverse } = colors
+const { cwd } = require('process')
+const { relative } = require('path')
+const { fileURLToPath } = require('url')
+const { render } = require('prettyjson')
+const { table } = require('table')
+const { bold, red, green, yellow, magenta, inverse } = require('colors')
 
 let maxContextLength = 0
 
-export default function Console (context) {
+module.exports =
+module.exports.default =
+module.exports.Console = function Console (context) {
 
   maxContextLength = Math.max(maxContextLength, context.length)
 

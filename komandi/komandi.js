@@ -1,5 +1,6 @@
 module.exports =
 module.exports.default =
+module.exports.runCommands =
 async function runCommands (
   commands = {},
   words    = [],

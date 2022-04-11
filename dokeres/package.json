@@ -1,0 +1,8 @@
+{
+  "name": "@hackbg/dokeres",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "dockerode": "^3.3.1"
+  }
+}
