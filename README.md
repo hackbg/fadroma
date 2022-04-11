@@ -12,7 +12,9 @@ Shorthands for doing various Unixy things from Node.js.
 
 <tr><td>
 
-`@hackbg/dokeres`
+### `@hackbg/toolbox` [![NPM version](https://img.shields.io/npm/v/@hackbg/toolbox?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/toolbox)
+
+Main package. Reexports all others + extra utilities.
 
 </td><td>
 
@@ -20,7 +22,9 @@ Shorthands for doing various Unixy things from Node.js.
 
 <tr><td>
 
-`@hackbg/forkers`
+### `@hackbg/dokeres` [![NPM version](https://img.shields.io/npm/v/@hackbg/dokeres?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/dokeres)
+
+Docker utilities.
 
 </td><td>
 
@@ -28,7 +32,9 @@ Shorthands for doing various Unixy things from Node.js.
 
 <tr><td>
 
-`@hackbg/kabinet`
+### `@hackbg/forkers` [![NPM version](https://img.shields.io/npm/v/@hackbg/forkers?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/forkers)
+
+Web worker wrapper.
 
 </td><td>
 
@@ -36,7 +42,9 @@ Shorthands for doing various Unixy things from Node.js.
 
 <tr><td>
 
-`@hackbg/komandi`
+### `@hackbg/kabinet` [![NPM version](https://img.shields.io/npm/v/@hackbg/kabinet?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/kabinet)
+
+File utilities.
 
 </td><td>
 
@@ -44,7 +52,9 @@ Shorthands for doing various Unixy things from Node.js.
 
 <tr><td>
 
-`@hackbg/konzola`
+### `@hackbg/komandi` [![NPM version](https://img.shields.io/npm/v/@hackbg/komandi?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/komandi)
+
+Command runner.
 
 </td><td>
 
@@ -52,7 +62,19 @@ Shorthands for doing various Unixy things from Node.js.
 
 <tr><td>
 
-`@hackbg/runspec`
+### `@hackbg/konzola` [![NPM version](https://img.shields.io/npm/v/@hackbg/konzola?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/konzola)
+
+Pretty console.
+
+</td><td>
+
+</td></tr>
+
+<tr><td>
+
+### `@hackbg/runspec` [![NPM version](https://img.shields.io/npm/v/@hackbg/runspec?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/runspec)
+
+Test runner.
 
 </td><td>
 
