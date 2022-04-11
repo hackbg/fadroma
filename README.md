@@ -1,9 +1,10 @@
 # Hack.bg Toolbox
 
 Shorthands for doing various Unixy things from Node.js.
-* Common functions from Node.js stdlib and extra NPM modules, reexported in common namespace.
+* Common functions from Node.js stdlib and extra utilities from NPM, reexported in common namespace.
 * Several minimal single-purpose utility libraries, usable standalone or reexported.
-* This establishes the baseline for porting Node projects to Deno.
+* This establishes the baseline for a future port of dependent Node projects,
+  such as [Fadroma](https://github.com/hackbg/fadroma), to [Deno](https://deno.land).
 
 ## How to publish
 

@@ -3,6 +3,8 @@ const console = Console('@hackbg/toolbox')
 export * from '@hackbg/konzola'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/dokeres'
+export * from '@hackbg/runspec'
+
 export * from './reexports'
 export * from './run'
 export * from './tables'
