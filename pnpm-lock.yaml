@@ -8,6 +8,7 @@ importers:
       '@hackbg/kabinet': workspace:^1
       '@hackbg/komandi': workspace:^2
       '@hackbg/konzola': workspace:^1
+      '@hackbg/runspec': workspace:^1
       colors: ^1.4.0
       exponential-backoff: ^3.1.0
       mkdirp: ^1.0.4
@@ -26,6 +27,7 @@ importers:
       '@hackbg/kabinet': link:kabinet
       '@hackbg/komandi': link:komandi
       '@hackbg/konzola': link:konzola
+      '@hackbg/runspec': link:runspec
       colors: 1.4.0
       exponential-backoff: 3.1.0
       mkdirp: 1.0.4
@@ -83,6 +85,9 @@ importers:
       colors: 1.4.0
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       table: 6.8.0
+
+  runspec:
+    specifiers: {}
 
 packages:
 
