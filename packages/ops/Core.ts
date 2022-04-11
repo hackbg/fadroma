@@ -22,6 +22,16 @@ export class Source {
         (sources, crate)=>Object.assign(sources, {[crate]: new Source(workspace, crate, ref)}),
         {}
       )
+
+  static collect = (workspace, ref, ...crateLists): Source[] => {
+    const sources: Set<string> = new Set()
+    for (const crateList of crateLists) {
+      for (const crate of crateList) {
+        sources.add(crate)
+      }
+    }
+    return [...sources].map(crate=>new Source(workspace, crate, ref))
+  }
 }
 
 export abstract class Builder {
@@ -149,5 +159,11 @@ export const join = (...x:any[]) => x.map(String).join(' ')
 export const overrideDefaults = (obj, defaults, options = {}) => {
   for (const k of Object.keys(defaults)) {
     obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
+  }
+}
+
+export function parallel (...commands) {
+  return function parallelCommands (input) {
+    return Promise.all(commands.map(command=>command(input)))
   }
 }

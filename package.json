@@ -5,8 +5,8 @@
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
   },
-  "type": "module",
   "main": "./index.ts",
+  "type": "module",
   "dependencies": {
     "@types/node":     "^16.11.19",
     "@fadroma/cli":    "workspace:*",
@@ -29,7 +29,7 @@
     "cov":  "time c8 -x deps -x packages/TestRunner.js ganesha-node packages/TestRunner.js"
   },
   "bin": {
-    "fadroma": "fadroma.js"
+    "fadroma": "fadroma.cjs"
   },
   "workspace": true,
   "packages": [
