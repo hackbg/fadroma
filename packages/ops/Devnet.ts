@@ -7,6 +7,7 @@ import {
   Directory, JSONDirectory, JSONFile,
   Path, basename, relative, resolve, cwd,
   existsSync, readlinkSync, mkdirp,
+  freePort,
   randomHex
 } from '@hackbg/tools'
 
