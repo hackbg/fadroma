@@ -1,15 +1,15 @@
 {
-  "name": "@hackbg/toolbox",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "./index.js",
+  "name":      "@hackbg/toolbox",
+  "version":   "1.0.0",
+  "type":      "module",
+  "main":      "./index.js",
   "workspace": true,
   "packages": [
+    "./dokeres",
+    "./forkers",
     "./kabinet",
     "./komandi",
-    "./konzola",
-    "./tools",
-    "./forkers"
+    "./konzola"
   ],
   "dependencies": {
     "@hackbg/dokeres": "workspace:^1",
