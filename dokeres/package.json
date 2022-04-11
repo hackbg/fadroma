@@ -1,9 +1,13 @@
 {
-  "name":    "@hackbg/dokeres",
-  "version": "1.0.1",
-  "license": "MIT",
-  "main":    "dokeres.js",
-  "type":    "module",
+  "name":         "@hackbg/dokeres",
+  "version":      "1.0.2",
+  "main":         "dokeres.js",
+  "type":         "module",
+  "license":      "MIT",
+  "homepage":     "https://github.com/hackbg/toolbox",
+  "bugs":         "https://github.com/hackbg/toolbox/issues",
+  "repository":   {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "dokeres"},
+  "description":  "Docker utilities.",
   "dependencies": {
     "colors":          "^1.4.0",
     "dockerode":       "^3.3.1",

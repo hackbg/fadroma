@@ -1,7 +1,11 @@
 {
-  "name":    "@hackbg/forkers",
-  "version": "0.1.0",
-  "license": "MIT",
+  "name":        "@hackbg/forkers",
+  "version":     "0.1.1",
+  "license":     "MIT",
+  "homepage":    "https://github.com/hackbg/toolbox",
+  "bugs":        "https://github.com/hackbg/toolbox/issues",
+  "repository":  {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "forkers"},
+  "description": "Web worker wrapper.",
   "devDependencies": {
     "typescript":  "latest",
     "@types/node": "latest"

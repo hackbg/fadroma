@@ -1,8 +1,10 @@
 {
-  "name":    "@hackbg/konzola",
-  "version": "1.0.2",
-  "main":    "konzola.cjs",
-  "license": "MIT",
+  "name":         "@hackbg/konzola",
+  "version":      "1.0.3",
+  "main":         "konzola.cjs",
+  "license":      "MIT",
+  "description":  "Pretty console.",
+  "repository":   {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "konzola"},
   "dependencies": {
     "colors":     "^1.4.0",
     "prettyjson": "github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f",

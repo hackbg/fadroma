@@ -1,9 +1,13 @@
 {
-  "name":    "@hackbg/kabinet",
-  "version": "1.0.2",
-  "main":    "index.js",
-  "type":    "module",
-  "license": "MIT",
+  "name":         "@hackbg/kabinet",
+  "version":      "1.0.3",
+  "main":         "index.js",
+  "type":         "module",
+  "homepage":     "https://github.com/hackbg/toolbox",
+  "bugs":         "https://github.com/hackbg/toolbox/issues",
+  "repository":   {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "kabinet"},
+  "license":      "MIT",
+  "description":  "File utilities.",
   "dependencies": {
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2"
