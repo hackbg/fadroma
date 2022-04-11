@@ -1,6 +1,7 @@
 {
-  "name": "@hackbg/forkers",
+  "name":    "@hackbg/forkers",
   "version": "0.1.0",
+  "license": "MIT",
   "devDependencies": {
     "typescript":  "latest",
     "@types/node": "latest"

@@ -1,7 +1,8 @@
 {
-  "name": "@hackbg/konzola",
+  "name":    "@hackbg/konzola",
   "version": "1.0.1",
-  "main": "konzola.cjs",
+  "main":    "konzola.cjs",
+  "license": "MIT",
   "dependencies": {
     "colors":     "^1.4.0",
     "prettyjson": "github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f",

@@ -1,8 +1,9 @@
 {
-  "name": "@hackbg/dokeres",
+  "name":    "@hackbg/dokeres",
   "version": "1.0.0",
-  "main": "dokeres.js",
-  "type": "module",
+  "license": "MIT",
+  "main":    "dokeres.js",
+  "type":    "module",
   "dependencies": {
     "colors":          "^1.4.0",
     "dockerode":       "^3.3.1",

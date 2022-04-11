@@ -1,8 +1,9 @@
 {
-  "name": "@hackbg/kabinet",
+  "name":    "@hackbg/kabinet",
   "version": "1.0.1",
-  "main": "index.js",
-  "type": "module",
+  "main":    "index.js",
+  "type":    "module",
+  "license": "MIT",
   "dependencies": {
     "mkdirp": "^1.0.4",
     "rimraf": "^3.0.2"
