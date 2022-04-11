@@ -1,26 +1,23 @@
-import { Docker } from 'dockerode'
-import Console from '@hackbg/konzola'
-import colors from 'colors'
+import Docker  from 'dockerode'
+export { Docker }
 
-const console = Console('@hackbg/tools/logs')
+import Console from '@hackbg/konzola'
+const console = Console('@hackbg/dokeres')
+
+import colors from 'colors'
 const { bold } = colors
-const RE_GARBAGE = /[\x00-\x1F]/
-const logsOptions = {
-  stdout: true,
-  stderr: true,
-  follow: true,
-  tail:   100
-}
 
 /** Represents a docker image for builder or devnet,
   * and can ensure its presence by pulling or building. */
 export class DockerImage {
   constructor (
-    public docker     = new Docker({ socketPath: '/var/run/docker.sock' }),
-    public name       = null,
-    public dockerfile = null,
-    public extraFiles = []
-  ) {}
+    docker     = new Docker({ socketPath: '/var/run/docker.sock' }),
+    name       = null,
+    dockerfile = null,
+    extraFiles = []
+  ) {
+    Object.assign(this, { docker, name, dockerfile, extraFiles })
+  }
 
   #available = null
 
@@ -64,11 +61,11 @@ export class DockerImage {
   /** Throws if inspected image does not exist in Docker Hub. */
   async pull () {
     const { name, docker, dockerfile } = this
-    await new Promise<void>((ok, fail)=>{
+    await new Promise((ok, fail)=>{
       docker.pull(name, callback)
-      async function callback (err: Error, stream: unknown) {
+      async function callback (err, stream) {
         if (err) return fail(err)
-        await this.follow(stream, (event: Record<string, unknown>) => {
+        await this.follow(stream, (event) => {
           if (event.error) {
             console.error(event.error)
             throw new Error(`Pulling ${name} failed.`)
@@ -89,7 +86,7 @@ export class DockerImage {
     const context    = dirname(this.dockerfile)
     const src        = [dockerfile, ...this.extraFiles]
     const stream = await docker.buildImage({ context, src }, { t: this.name, dockerfile })
-    await this.follow(stream, (event: Record<string, unknown>) => {
+    await this.follow(stream, (event) => {
       if (event.error) {
         console.error(event.error)
         throw new Error(`Building ${name} from ${dockerfile} in ${context} failed.`)
@@ -101,10 +98,10 @@ export class DockerImage {
     })
   }
 
-  protected async follow (stream, callback) {
+  async follow (stream, callback) {
     await new Promise((ok, fail)=>{
       this.docker.modem.followProgress(stream, complete, callback)
-      function complete (err: Error, _output: unknown) {
+      function complete (err, _output) {
         if (err) return fail(err)
         ok()
       }
@@ -121,7 +118,12 @@ export function waitUntilLogsSay (
 ) {
   return new Promise((ok, fail)=>{
 
-    container.logs(logsOptions, onStream)
+    container.logs({
+      stdout: true,
+      stderr: true,
+      follow: true,
+      tail:   100
+    }, onStream)
 
     function onStream (err, stream) {
       if (err) return fail(err)
@@ -145,6 +147,8 @@ export function waitUntilLogsSay (
 
   })
 }
+
+const RE_GARBAGE = /[\x00-\x1F]/
 
 function logFilter (data) {
   return (data.length > 0                            &&

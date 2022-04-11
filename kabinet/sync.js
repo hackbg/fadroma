@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from '
 import rimraf from 'rimraf'
 import mkdirp from 'mkdirp'
 
-export function touch (...fragments = []) {
+export function touch (...fragments) {
   const path = resolve(...fragments)
   if (!existsSync(path)) console.info('Creating file:', path)
   writeFileSync(path, '')
@@ -11,7 +11,7 @@ export function touch (...fragments = []) {
 }
 
 export class FSCRUD {
-  constructor (...fragments = []) {
+  constructor (...fragments) {
     this.path = resolve(...fragments)
   }
   exists () {
@@ -88,7 +88,7 @@ export class Directory extends FSCRUD {
   subdir (name, Dir = Directory) {
     return new Dir(this.path, name)
   }
-  file (File = TextFile, ...fragments = []) {
+  file (File = TextFile, ...fragments) {
     return new File(this.path, ...fragments)
   }
 }

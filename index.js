@@ -2,7 +2,6 @@ import { Console } from '@hackbg/konzola'
 const console = Console('@hackbg/toolbox')
 export * from '@hackbg/konzola'
 export * from '@hackbg/kabinet'
-export * from '@hackbg/komandi'
 export * from '@hackbg/dokeres'
 export * from './reexports'
 export * from './run'
@@ -25,14 +24,6 @@ export function freePort () {
   })
 }
 
-import { randomBytes } from 'crypto'
-
-export const randomHex = (bytes = 1) =>
-  randomBytes(bytes).toString("hex")
-
-export const randomBase64 = (bytes = 1) =>
-  randomBytes(bytes).toString("base64")
-
 export const mkdir = (...fragments) => {
   const path = resolve(...fragments)
   if (!existsSync(path)) console.info('Creating directory:', path)
@@ -50,9 +41,14 @@ export const rimraf = (path = "") =>
 // misc data functions /////////////////////////////////////////////////////////////////////////////
 
 import { randomBytes } from 'crypto'
+
 export { randomBytes }
-export const randomHex    = (bytes = 1) => randomBytes(bytes).toString("hex")
-export const randomBase64 = (bytes = 1) => randomBytes(bytes).toString("base64")
+
+export const randomHex = (bytes = 1) =>
+  randomBytes(bytes).toString("hex")
+
+export const randomBase64 = (bytes = 1) =>
+  randomBytes(bytes).toString("base64")
 
 import { TextDecoder } from 'util'
 const decoder = new TextDecoder();

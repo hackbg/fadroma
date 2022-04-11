@@ -1,6 +1,7 @@
-module.exports =
-module.exports.default =
-module.exports.runCommands =
+module.exports = runCommands
+module.exports.default = runCommands
+module.exports.runCommands = runCommands
+
 async function runCommands (
   commands = {},
   words    = [],
@@ -13,7 +14,7 @@ async function runCommands (
   }
 ) {
   let command = commands
-  let wordIndex: number
+  let wordIndex
   for (wordIndex = 0; wordIndex < words.length; wordIndex++) {
     const word = words[wordIndex]
     if (typeof command === 'object' && command[word]) command = command[word]

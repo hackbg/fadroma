@@ -1,8 +1,11 @@
 {
   "name": "@hackbg/dokeres",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dokeres.js",
+  "type": "module",
   "dependencies": {
-    "dockerode": "^3.3.1"
+    "colors":          "^1.4.0",
+    "dockerode":       "^3.3.1",
+    "@hackbg/konzola": "workspace:*"
   }
 }

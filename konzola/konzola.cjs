@@ -1,3 +1,8 @@
+module.exports         = Konzola
+module.exports.default = Konzola
+module.exports.Console = Konzola
+module.exports.Konzola = Konzola
+
 const { cwd } = require('process')
 const { relative } = require('path')
 const { fileURLToPath } = require('url')
@@ -7,9 +12,7 @@ const { bold, red, green, yellow, magenta, inverse } = require('colors')
 
 let maxContextLength = 0
 
-module.exports =
-module.exports.default =
-module.exports.Console = function Console (context) {
+function Konzola (context) {
 
   maxContextLength = Math.max(maxContextLength, context.length)
 
