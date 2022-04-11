@@ -10,7 +10,7 @@ Shorthands for doing various Unixy things from Node.js.
 
 <table>
 
-<tr><td>
+<tr><td valign="top">
 
 ### `@hackbg/toolbox` [![NPM version](https://img.shields.io/npm/v/@hackbg/toolbox?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/toolbox)
 
@@ -20,7 +20,7 @@ Main package. Reexports all others + extra utilities.
 
 </td></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### `@hackbg/dokeres` [![NPM version](https://img.shields.io/npm/v/@hackbg/dokeres?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/dokeres)
 
@@ -30,7 +30,7 @@ Docker utilities.
 
 </td></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### `@hackbg/forkers` [![NPM version](https://img.shields.io/npm/v/@hackbg/forkers?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/forkers)
 
@@ -40,7 +40,7 @@ Web worker wrapper.
 
 </td></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### `@hackbg/kabinet` [![NPM version](https://img.shields.io/npm/v/@hackbg/kabinet?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/kabinet)
 
@@ -60,7 +60,7 @@ Command runner.
 
 </td></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### `@hackbg/konzola` [![NPM version](https://img.shields.io/npm/v/@hackbg/konzola?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/konzola)
 
@@ -68,9 +68,20 @@ Pretty console.
 
 </td><td>
 
+```typescript
+import Konzola from '@hackbg/konzola'
+const console = Konzola('some identifying prefix')
+console.info('FYI')
+console.warn('beware!')
+console.error('oops :(')
+console.debug({pretty: 'printed'})
+console.trace({this: 'too'})
+console.table([[123,456],[789,101112]])
+```
+
 </td></tr>
 
-<tr><td>
+<tr><td valign="top">
 
 ### `@hackbg/runspec` [![NPM version](https://img.shields.io/npm/v/@hackbg/runspec?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/runspec)
 
