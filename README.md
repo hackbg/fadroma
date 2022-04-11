@@ -78,6 +78,20 @@ Test runner.
 
 </td><td>
 
+```typescript
+import runSpec from '@hackbg/runspec'
+
+const Spec1 = {
+  'test name' (assert) { assert(true) }
+}
+
+const Spec2 = {
+  async 'other test' ({ deepEqual }) { deepEqual({}, {}) }
+}
+
+runSpec({ Spec1, Spec2 }, process.argv.slice(2))
+```
+
 </td></tr>
 
 </table>
