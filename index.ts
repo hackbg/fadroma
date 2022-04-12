@@ -152,8 +152,6 @@ export class Fadroma {
 
 }
 
-// Default export is an interface to @fadroma/cli,
-// a command runner based on @hackbg/komandi.
 export default new Fadroma()
 
 function requireChainId (id, chains = Chain.namedChains) {
