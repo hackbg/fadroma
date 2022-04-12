@@ -8,20 +8,7 @@ pub fn message (
 ) -> TokenStream {
     let body: proc_macro2::TokenStream = body.into();
     TokenStream::from(quote! {
-        #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
-        #[serde(rename_all="snake_case",deny_unknown_fields)]
-        #body
-    })
-}
-
-#[proc_macro_attribute]
-pub fn messages (
-    _:    TokenStream, // takes no arguments
-    body: TokenStream  // annotates a enum declaration
-) -> TokenStream {
-    let body: proc_macro2::TokenStream = body.into();
-    TokenStream::from(quote! {
-        #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
+        #[derive(Clone,Debug,PartialEq,serde::Serialize,serde::Deserialize,schemars::JsonSchema)]
         #[serde(rename_all="snake_case",deny_unknown_fields)]
         #body
     })
