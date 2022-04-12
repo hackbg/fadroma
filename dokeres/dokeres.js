@@ -62,8 +62,7 @@ export class DockerImage {
   async pull () {
     const { name, docker, dockerfile } = this
     await new Promise((ok, fail)=>{
-      docker.pull(name, callback)
-      async function callback (err, stream) {
+      docker.pull(name, async (err, stream) => {
         if (err) return fail(err)
         await this.follow(stream, (event) => {
           if (event.error) {
@@ -75,7 +74,7 @@ export class DockerImage {
             ['id', 'status', 'progress'].map(x=>event[x]).join('│')
           )
         })
-      }
+      })
     })
   }
 
