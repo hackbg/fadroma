@@ -68,7 +68,7 @@ test({
     const [agent, endpoint] = await Promise.all([ScrtAgent.create({ mnemonic }), mockAPIEndpoint()])
     agent.chain = { id: 'testing', url: endpoint.url }
     try {
-      const location = 'examples/empty.wasm'
+      const location = 'fixtures/empty.wasm'
       const codeHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       const artifact = { location, codeHash }
       const template = await agent.upload(artifact)

@@ -42,6 +42,10 @@ export class RawBuilder extends CachingBuilder {
     public readonly checkoutScript: string
   ) { super() }
 
+  run (...args) {
+    throw new Error('RawBuilder#run: not implemented')
+  }
+
   async build (source: Source): Promise<Artifact> {
     const { ref = 'HEAD', workspace, crate } = source
     let cwd = workspace
@@ -54,9 +58,9 @@ export class RawBuilder extends CachingBuilder {
       })
     })
     if (ref && ref !== 'HEAD') {
-      await run(this.checkoutScript, [])
+      await this.run(this.checkoutScript, [])
     }
-    await run(this.buildScript, [])
+    await this.run(this.buildScript, [])
     const location = resolve(workspace, 'artifacts', `${crate}@${ref.replace(/\//g,'_')}.wasm`)
     const codeHash = codeHashForPath(location)
     return { location, codeHash }

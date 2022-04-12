@@ -57,10 +57,31 @@ test({
 
 ```typescript
 import { RawBuilder } from './Build'
+import { resolve, dirname, fileURLToPath } from '@hackbg/toolbox'
 test({
-  async 'RawBuilder' () {
-    const builder = new RawBuilder()
-    await builder.build()
+  async 'RawBuilder' ({ deepEqual }) {
+    let ran
+    class TestableRawBuilder extends RawBuilder {
+      run = (...args) => ran.push(args)
+    }
+    const buildScript    = Symbol()
+    const checkoutScript = Symbol()
+    const builder = new TestableRawBuilder(buildScript, checkoutScript)
+
+    const here      = dirname(fileURLToPath(import.meta.url))
+    const workspace = resolve(here, '../../fixtures')
+    const crate     = 'empty'
+    const ref       = 'ref'
+
+    ran = []
+    const sourceFromHead = { workspace, crate }
+    const templateFromHead = await builder.build(sourceFromHead)
+    deepEqual(ran, [[buildScript, []]])
+
+    ran = []
+    const sourceFromRef = { workspace, crate, ref }
+    const templateFromRef = await builder.build(sourceFromRef)
+    deepEqual(ran, [[checkoutScript, []], [buildScript, []]])
   }
 })
 ```
