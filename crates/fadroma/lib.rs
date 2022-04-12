@@ -7,7 +7,9 @@ pub use fadroma_auth_proc::*;
 pub use fadroma_composability as composability;
 pub use fadroma_composability::*;
 
+#[cfg(feature = "declare")]
 pub use fadroma_declare_contract as declare_contract;
+#[cfg(feature = "declare")]
 pub use fadroma_declare_contract::*;
 
 pub use fadroma_derive_contract as derive_contract;

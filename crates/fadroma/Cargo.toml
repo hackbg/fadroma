@@ -19,7 +19,7 @@ fadroma-auth-proc        = { path = "../fadroma-auth-proc" }
 fadroma-bind-js          = { path = "../fadroma-bind-js" }
 fadroma-composability    = { path = "../fadroma-composability" }
 fadroma-ensemble         = { optional = true, path = "../fadroma-ensemble" }
-fadroma-declare-contract = { path = "../fadroma-declare-contract" }
+fadroma-declare-contract = { optional = true, path = "../fadroma-declare-contract" }
 fadroma-derive-contract  = { path = "../fadroma-derive-contract" }
 fadroma-killswitch       = { path = "../fadroma-killswitch" }
 fadroma-math             = { path = "../fadroma-math" }
@@ -33,7 +33,7 @@ default = [ "fadroma-platform-scrt" ]
 
 backtraces = [] # TODO set backtraces on components
 browser    = [ "backtraces" ]
-declare    = []
+declare    = [ "fadroma-declare-contract" ]
 derive     = []
 harness    = []
 ensemble   = [ "fadroma-ensemble" ]
