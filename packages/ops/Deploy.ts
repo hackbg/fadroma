@@ -182,7 +182,7 @@ export class Deployments extends Directory {
   }
 
   /** Command: Create a new deployment. */
-  static async new ({ chain, cmdArgs = [] }) {
+  static new = async function newDeployment ({ chain, cmdArgs = [] }) {
     const [ prefix = timestamp() ] = cmdArgs
     await chain.deployments.create(prefix)
     await chain.deployments.select(prefix)
@@ -190,7 +190,7 @@ export class Deployments extends Directory {
   }
 
   /** Command: Activate a deployment and prints its status. */
-  static activate ({ chain }): {
+  static activate = function activateDeployment ({ chain }): {
     deployment: Deployment|undefined,
     prefix:     string|undefined
   } {
@@ -208,7 +208,7 @@ export class Deployments extends Directory {
   }
 
   /** Command: Print the status of a deployment. */
-  static status ({ chain, cmdArgs: [id] = [undefined] }) {
+  static status = function printStatusOfDeployment ({ chain, cmdArgs: [id] = [undefined] }) {
     let deployment = chain.deployments.active
     if (id) {
       deployment = chain.deployments.get(id)
@@ -221,7 +221,7 @@ export class Deployments extends Directory {
   }
 
   /** Command: Set a new deployment as active. */
-  static async select ({ chain, cmdArgs: [id] = [undefined] }) {
+  static select = async function selectDeployment ({ chain, cmdArgs: [id] = [undefined] }) {
     const list = chain.deployments.list()
     if (list.length < 1) {
       console.info('\nNo deployments. Create one with `deploy new`')
