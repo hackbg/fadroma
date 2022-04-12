@@ -9,7 +9,6 @@
   "type": "module",
   "dependencies": {
     "@types/node":     "^16.11.19",
-    "@fadroma/cli":    "workspace:*",
     "@fadroma/ops":    "workspace:*",
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/snip20": "workspace:*",
@@ -23,7 +22,6 @@
     "@hackbg/runspec": "workspace:*"
   },
   "scripts": {
-    "cli":  "packages/cli/fadroma",
     "test": "time ganesha-node packages/TestRunner.js",
     "cov":  "time c8 -x deps -x packages/TestRunner.js ganesha-node packages/TestRunner.js"
   },

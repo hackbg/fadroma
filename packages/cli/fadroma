@@ -1,7 +1,0 @@
-#!/usr/bin/env node
-const {resolve} = require('path')
-process.exit(require('cross-spawn').sync(
-  'ganesha-node',
-  [ resolve(__dirname, 'README.md'), ...process.argv.slice(2) ],
-  { stdio: 'inherit' }
-).status)
