@@ -74,7 +74,7 @@ export interface Template {
   codeHash?:        string
 }
 
-async function buildAndUpload (
+export async function buildAndUpload (
   builder: Builder, uploader: Uploader, source: Source
 ): Promise<Template> {
   const artifact = await builder.build(source)
@@ -82,7 +82,7 @@ async function buildAndUpload (
   return template
 }
 
-async function buildAndUploadMany (
+export async function buildAndUploadMany (
   builder: Builder, uploader: Uploader, sources: Source[]
 ): Promise<Template[]> {
   const artifacts = await builder.buildMany(sources)
