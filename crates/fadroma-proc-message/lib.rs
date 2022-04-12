@@ -10,7 +10,7 @@ pub fn message (
     TokenStream::from(quote! {
         #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
         #[serde(rename_all="snake_case",deny_unknown_fields)]
-        pub struct #body
+        #body
     })
 }
 
@@ -23,6 +23,6 @@ pub fn messages (
     TokenStream::from(quote! {
         #[derive(Clone,Debug,PartialEq,Serialize,Deserialize,JsonSchema)]
         #[serde(rename_all="snake_case",deny_unknown_fields)]
-        pub enum #body
+        #body
     })
 }
