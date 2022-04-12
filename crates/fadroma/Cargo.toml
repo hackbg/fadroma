@@ -23,6 +23,7 @@ fadroma-declare-contract = { path = "../fadroma-declare-contract" }
 fadroma-derive-contract  = { path = "../fadroma-derive-contract" }
 fadroma-killswitch       = { path = "../fadroma-killswitch" }
 fadroma-math             = { path = "../fadroma-math" }
+fadroma-proc-message     = { path = "../fadroma-proc-message" }
 fadroma-snip20-api       = { path = "../fadroma-snip20-api" }
 fadroma-snip20-impl      = { path = "../fadroma-snip20-impl" }
 fadroma-storage          = { path = "../fadroma-storage" }

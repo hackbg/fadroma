@@ -23,6 +23,9 @@ pub use fadroma_math::*;
 pub use fadroma_platform_scrt as platform;
 pub use fadroma_platform_scrt::*;
 
+pub use fadroma_proc_message as proc_message;
+pub use fadroma_proc_message::*;
+
 pub use fadroma_snip20_api::*;
 
 pub use fadroma_snip20_impl as snip20_impl;
