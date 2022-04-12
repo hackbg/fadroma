@@ -43,12 +43,12 @@ Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
 import { CachingBuilder } from './Build'
 test({
   'CachingBuilder#prebuild' () {
-    class TestBuilder extends CachingBuilder {
+    class TestCachingBuilder extends CachingBuilder {
       async build (source) { return {} }
     }
     const workspace = 'foo'
     const source = {workspace}
-    new TestBuilder().prebuild(source)
+    new TestCachingBuilder().prebuild(source)
   }
 })
 ```
@@ -61,12 +61,13 @@ import { resolve, dirname, fileURLToPath } from '@hackbg/toolbox'
 test({
   async 'RawBuilder' ({ deepEqual }) {
     let ran
-    class TestableRawBuilder extends RawBuilder {
+    class TestRawBuilder extends RawBuilder {
       run = (...args) => ran.push(args)
     }
+
     const buildScript    = Symbol()
     const checkoutScript = Symbol()
-    const builder = new TestableRawBuilder(buildScript, checkoutScript)
+    const builder = new TestRawBuilder(buildScript, checkoutScript)
 
     const here      = dirname(fileURLToPath(import.meta.url))
     const workspace = resolve(here, '../../fixtures')
@@ -74,14 +75,14 @@ test({
     const ref       = 'ref'
 
     ran = []
-    const sourceFromHead = { workspace, crate }
+    const sourceFromHead   = { workspace, crate }
     const templateFromHead = await builder.build(sourceFromHead)
     deepEqual(ran, [[buildScript, []]])
 
     ran = []
-    const sourceFromRef = { workspace, crate, ref }
+    const sourceFromRef   = { workspace, crate, ref }
     const templateFromRef = await builder.build(sourceFromRef)
-    deepEqual(ran, [[checkoutScript, []], [buildScript, []]])
+    deepEqual(ran, [[checkoutScript, [ref]], [buildScript, []]])
   }
 })
 ```
@@ -93,16 +94,41 @@ import { DockerodeBuilder } from './Build'
 import { DockerImage } from '@hackbg/toolbox'
 import { mockDockerode } from './Docker.spec'
 import { mkdirp } from '@hackbg/toolbox'
+import { Transform } from 'stream'
 test({
-  async 'DockerodeBuilder' () {
-    const docker = mockDockerode()
-    const image  = new DockerImage(docker)
-    await image.ensure()
-    const options = { docker, image, script: '' }
-    const source  = { workspace: '/tmp' }
-    mkdirp.sync('/tmp/artifacts')
-    const builder = new DockerodeBuilder(options)
-    await builder.build(source)
+  async 'DockerodeBuilder' ({ ok, equal, deepEqual }) {
+    class TestDockerodeBuilder extends DockerodeBuilder {
+      prebuild (source) { return false }
+    }
+    class TestDockerImage extends DockerImage {
+      async ensure () { return theImage }
+    }
+
+    const here      = dirname(fileURLToPath(import.meta.url))
+    const workspace = resolve(here, '../../fixtures')
+    const crate     = 'empty'
+    const source    = { workspace, crate }
+    const ran       = []
+    const docker    = mockDockerode(runCalled)
+    const theImage  = Symbol()
+    const image     = new TestDockerImage(docker)
+    const script    = "build.sh"
+    const options   = { docker, image, script }
+    const builder   = new TestDockerodeBuilder(options)
+    const template  = await builder.build({ workspace, crate })
+    equal(template.location, resolve(workspace, 'artifacts/empty@HEAD.wasm'))
+    equal(template.codeHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+
+    function runCalled (image, cmd, buildLogs, args) {
+      equal(image, theImage)
+      equal(cmd, `bash /build.sh empty HEAD`)
+      ok(buildLogs instanceof Transform)
+      equal(args.Tty, true)
+      equal(args.AttachStdin: true)
+      deepEqual(args.Entrypoint, [ '/bin/sh', '-c' ])
+      ok(args.HostConfig.Binds instanceof Array)
+      equal(args.HostConfig.AutoRemove, true)
+    }
   }
 })
 ```

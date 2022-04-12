@@ -10,18 +10,18 @@ export default DockerSpec
 ## Mock of Dockerode
 
 ```typescript
-export function mockDockerode () {
+export function mockDockerode (runCalled = () => {}) {
   return {
     async pull () {},
     getImage () {
       return {
         async inspect () {
-          console.info('mockDockerode/getImage/inspect')
           return
         }
       }
     },
     async run (image, cmd, buildLogs, args) {
+      runCalled(image, cmd, buildLogs, args)
       return [{Error:null, StatusCode:0}, Symbol()]
     }
   }

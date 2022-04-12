@@ -58,7 +58,7 @@ export class RawBuilder extends CachingBuilder {
       })
     })
     if (ref && ref !== 'HEAD') {
-      await this.run(this.checkoutScript, [])
+      await this.run(this.checkoutScript, [ref])
     }
     await this.run(this.buildScript, [])
     const location = resolve(workspace, 'artifacts', `${crate}@${ref.replace(/\//g,'_')}.wasm`)
@@ -98,7 +98,13 @@ export class ManagedBuilder extends CachingBuilder {
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerodeBuilder extends CachingBuilder {
 
-  constructor (options = {}) {
+  constructor (options: {
+    socketPath?: string,
+    docker?:     Docker,
+    image?:      string,
+    dockerfile?: string,
+    script?:     string
+  } = {}) {
     super()
     this.socketPath = options.socketPath || '/var/run/docker.sock'
     this.docker     = options.docker || new Docker({ socketPath: this.socketPath })
@@ -135,6 +141,7 @@ export class DockerodeBuilder extends CachingBuilder {
       return `[@fadroma/ops/Build] ${tag} ${line}`
     })
     buildLogs.pipe(process.stdout)
+
     const [
       {Error: err, StatusCode: code}, container
     ] = await this.docker.run(image, cmd, buildLogs, args)
