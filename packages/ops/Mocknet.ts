@@ -1,6 +1,6 @@
 import {
   readFileSync, decode, Console, bold, colors,
-} from '@hackbg/tools'
+} from '@hackbg/toolbox'
 
 import {
   Chain, Agent, Artifact, Template, Instance

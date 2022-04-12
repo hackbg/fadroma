@@ -69,9 +69,9 @@ test({
 
 ```typescript
 import { DockerodeBuilder } from './Build'
-import { DockerImage } from './Docker'
+import { DockerImage } from '@hackbg/toolbox'
 import { mockDockerode } from './Docker.spec'
-import { mkdirp } from '@hackbg/tools'
+import { mkdirp } from '@hackbg/toolbox'
 test({
   async 'DockerodeBuilder' () {
     const docker = mockDockerode()

@@ -4,7 +4,7 @@ import {
   resolve, basename, dirname,
   Console, bold,
   cargo
-} from '@hackbg/tools'
+} from '@hackbg/toolbox'
 import { compileFromFile } from 'json-schema-to-typescript'
 import TOML from 'toml'
 import { Agent } from './Agent'

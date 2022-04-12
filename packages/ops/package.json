@@ -4,7 +4,7 @@
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
-    "@hackbg/tools":             "^1",
+    "@hackbg/toolbox":           "workspace:^1",
     "@iov/crypto":               "^2.1.0",
     "@iov/encoding":             "^2.1.0",
     "ajv":                       "^8.6",

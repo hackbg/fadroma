@@ -2,7 +2,7 @@ import {
   Console, bold, cwd, readFileSync, writeFileSync,
   existsSync, mkdir, readFile, writeFile, relative, basename,
   JSONDirectory
-} from '@hackbg/tools'
+} from '@hackbg/toolbox'
 import { Artifact, Template, Uploader, UploadReceipt, codeHashForPath } from './Core'
 import type { Agent } from './Agent'
 

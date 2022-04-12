@@ -7,14 +7,14 @@ import {
   Directory, JSONDirectory, JSONFile,
   Path, basename, relative, resolve, cwd,
   existsSync, readlinkSync, mkdirp,
-  freePort,
+  freePort, waitPort,
+  Docker, DockerImage, waitUntilLogsSay,
   randomHex
-} from '@hackbg/tools'
+} from '@hackbg/toolbox'
 
 import { Endpoint } from './Endpoint'
 import { config } from './Config'
 import type { Identity } from './Core'
-import { Docker, DockerImage } from './Docker'
 
 const console = Console('@fadroma/ops/Devnet')
 

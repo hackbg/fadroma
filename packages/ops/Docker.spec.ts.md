@@ -37,7 +37,7 @@ build them from a local Dockerfile. If there's no Dockerfile,
 it bails.
 
 ```typescript
-import { DockerImage } from './Docker'
+import { DockerImage } from '@hackbg/toolbox'
 test({
   async 'construct DockerImage' () {
     const image = new DockerImage('a', 'b', 'c', 'd')

@@ -10,7 +10,7 @@ export default DeploySpec
 
 ```typescript
 import { Deployment } from './Deploy'
-import { tmp, rimraf } from '@hackbg/tools'
+import { tmp, rimraf } from '@hackbg/toolbox'
 test({
   'Deployment chainable methods' ({ equal }) {
     withTmpFile(f=>{

@@ -1,4 +1,4 @@
-import { resolve, homedir, dirname, fileURLToPath } from '@hackbg/tools'
+import { resolve, homedir, dirname, fileURLToPath } from '@hackbg/toolbox'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

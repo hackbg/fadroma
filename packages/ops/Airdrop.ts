@@ -1,6 +1,6 @@
 import type { Chain } from './Chain'
 import type { Agent } from './Agent'
-import { taskmaster, readFileSync, resolve } from '@hackbg/tools'
+import { taskmaster, readFileSync, resolve } from '@hackbg/toolbox'
 import assert from 'assert'
 
 export type Airdrop = {

@@ -14,8 +14,7 @@
     "@fadroma/scrt":   "workspace:*",
     "@fadroma/snip20": "workspace:*",
     "@hackbg/ganesha": "workspace:*",
-    "@hackbg/komandi": "^2",
-    "@hackbg/tools":   "^1"
+    "@hackbg/toolbox": "workspace:*"
   },
   "devDependencies": {
     "c8":              "^7.11.0",

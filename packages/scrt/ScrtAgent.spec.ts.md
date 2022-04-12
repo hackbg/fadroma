@@ -112,7 +112,7 @@ test({
 import freePort from 'freeport-async'
 import Express from 'express'
 import bodyParser from 'body-parser'
-import { randomHex } from '@hackbg/tools'
+import { randomHex } from '@fadroma/ops'
 export async function mockAPIEndpoint (port) {
 
   const state = {

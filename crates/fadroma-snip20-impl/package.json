@@ -4,8 +4,7 @@
   "type":    "module",
   "main":    "./Snip20Client.ts",
   "dependencies": {
-    "@fadroma/ops":  "workspace:*",
-    "@hackbg/tools": "^1"
+    "@fadroma/ops": "workspace:*"
   }
 }
 

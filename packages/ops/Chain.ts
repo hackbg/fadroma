@@ -2,7 +2,7 @@ import {
   Console, bold,
   resolve, relative,
   Directory, JSONDirectory,
-} from '@hackbg/tools'
+} from '@hackbg/toolbox'
 import { URL } from 'url'
 import { Identity } from './Core'
 import { Devnet } from './Devnet'

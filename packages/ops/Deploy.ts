@@ -6,7 +6,7 @@ import {
   existsSync, statSync, readFileSync, writeFileSync,
   readlinkSync, unlinkSync,
   Directory, mkdirp, readdirSync,
-} from '@hackbg/tools'
+} from '@hackbg/toolbox'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 

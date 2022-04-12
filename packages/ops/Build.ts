@@ -4,12 +4,12 @@ import LineTransformStream from 'line-transform-stream'
 import {
   Console, bold, resolve, relative, basename, rimraf,
   spawnSync, execFile, existsSync, readFileSync
-} from '@hackbg/tools'
+} from '@hackbg/toolbox'
 
 import { config } from './Config'
 import { Source, Builder, Artifact, codeHashForPath } from './Core'
 import { Endpoint } from './Endpoint'
-import { Docker, DockerImage } from './Docker'
+import { Docker, DockerImage } from '@hackbg/toolbox'
 
 const console = Console('@fadroma/ops/Build')
 

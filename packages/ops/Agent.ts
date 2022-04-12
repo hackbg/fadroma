@@ -1,4 +1,4 @@
-import { Console, bold, colors, resolve, readFileSync, JSONDirectory } from '@hackbg/tools'
+import { Console, bold, colors, resolve, readFileSync, JSONDirectory } from '@hackbg/toolbox'
 import { toBase64 } from '@iov/encoding'
 import {
   Identity, Gas, Source, Artifact, Template, Label, InitMsg, Instance, Message, getMethod

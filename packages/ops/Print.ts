@@ -1,4 +1,4 @@
-import { Console, bold } from '@hackbg/tools'
+import { Console, bold } from '@hackbg/toolbox'
 import type { Uploads } from './Upload'
 import type { Deployments } from './Deploy'
 import type { Agent } from './Agent'

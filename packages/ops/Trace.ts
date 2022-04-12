@@ -1,4 +1,4 @@
-import { Console, bold, colors } from '@hackbg/tools'
+import { Console, bold, colors } from '@hackbg/toolbox'
 import { getMethod } from './Core'
 import { config } from './Config'
 

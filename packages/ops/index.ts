@@ -4,7 +4,7 @@ dotenv.config()
 import { config } from './Config'
 config.fromEnv(process.env as any)
 
-export * from '@hackbg/tools'
+export * from '@hackbg/toolbox'
 export * from './Core'
 export * from './Config'
 export * from './Build'
@@ -18,5 +18,4 @@ export * from './Deploy'
 export * from './Migrate'
 export * from './Client'
 export * from './Print'
-export * from './Docker'
 export * from './Mocknet'

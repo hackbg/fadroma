@@ -1,6 +1,6 @@
 import type { Agent } from './Agent'
 import { config } from './Config'
-import { colors, bold, Console, resolve, readFileSync, existsSync } from '@hackbg/tools'
+import { colors, bold, Console, resolve, readFileSync, existsSync } from '@hackbg/toolbox'
 export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'

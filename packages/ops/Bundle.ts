@@ -1,4 +1,4 @@
-import { Console, bold } from '@hackbg/tools'
+import { Console, bold } from '@hackbg/toolbox'
 import { Source, Artifact, Template, Instance, Message } from './Core'
 import { Agent } from './Agent'
 import { Chain } from './Chain'
