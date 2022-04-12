@@ -1,6 +1,6 @@
 {
   "name":         "@hackbg/dokeres",
-  "version":      "1.0.3",
+  "version":      "1.0.4",
   "main":         "dokeres.js",
   "type":         "module",
   "license":      "MIT",

@@ -116,21 +116,11 @@ export function waitUntilLogsSay (
   thenDetach = true
 ) {
   return new Promise((ok, fail)=>{
-
-    container.logs({
-      stdout: true,
-      stderr: true,
-      follow: true,
-      tail:   100
-    }, onStream)
-
-    function onStream (err, stream) {
+    container.logs({ stdout: true, stderr: true, follow: true, tail: 100 }, (err, stream) => {
       if (err) return fail(err)
-
       console.info('Trailing logs...')
-      stream.on('data', onData)
-
-      function onData (data) {
+      stream.on('error', error => fail(error))
+      stream.on('data', data => {
         const dataStr = String(data).trim()
         if (logFilter(dataStr)) {
           console.info(bold(`${container.id.slice(0,8)} says:`), dataStr)
@@ -141,9 +131,8 @@ export function waitUntilLogsSay (
           console.info(bold(`Waiting ${seconds} seconds`), `for good measure...`)
           return setTimeout(ok, seconds * 1000)
         }
-      }
-    }
-
+      })
+    })
   })
 }
 
