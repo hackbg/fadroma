@@ -2,6 +2,7 @@ import { Console } from '@hackbg/konzola'
 const console = Console('@hackbg/toolbox')
 export * from '@hackbg/konzola'
 export * from '@hackbg/kabinet'
+export * from '@hackbg/komandi'
 export * from '@hackbg/dokeres'
 export * from '@hackbg/runspec'
 
