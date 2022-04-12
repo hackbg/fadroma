@@ -54,6 +54,7 @@ export abstract class Uploader {
   constructor (readonly agent: Agent) {}
   get chain () { return this.agent.chain }
   abstract upload (artifact: Artifact, ...args): Promise<Template>
+  abstract uploadMany (artifacts: Artifact[]): Promise<Template[]>
 }
 
 export interface UploadReceipt {
@@ -71,6 +72,22 @@ export interface Template {
   transactionHash?: string
   codeId:           string
   codeHash?:        string
+}
+
+async function buildAndUpload (
+  builder: Builder, uploader: Uploader, source: Source
+): Promise<Template> {
+  const artifact = await builder.build(source)
+  const template = await uploader.upload(artifact)
+  return template
+}
+
+async function buildAndUploadMany (
+  builder: Builder, uploader: Uploader, sources: Source[]
+): Promise<Template[]> {
+  const artifacts = await builder.buildMany(sources)
+  const templates = await uploader.uploadMany(artifacts)
+  return templates
 }
 
 export type Label = string
