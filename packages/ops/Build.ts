@@ -77,7 +77,7 @@ export class DockerodeBuilder extends CachingBuilder {
     script?:     string
   } = {}) {
     super()
-    this.socketPath = options.socketPath || '/var/run/docker.sock'
+    this.socketPath = options.socketPath || config.dockerHost || '/var/run/docker.sock'
     this.docker     = options.docker || new Docker({ socketPath: this.socketPath })
     this.image      = options.image
     this.dockerfile = options.dockerfile

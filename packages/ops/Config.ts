@@ -6,6 +6,8 @@ export type EnvVars = {
 
   /** The user's home directory. */
   HOME: string
+  /** Docker host */
+  DOCKER_HOST: string
 
   /** URL to the build manager endpoint. */
   FADROMA_BUILD_MANAGER:           string
@@ -67,6 +69,8 @@ export class Config {
       env.HOME || homedir()
     this.chain =
       env.FADROMA_CHAIN || 'unspecified'
+    this.dockerHost =
+      env.DOCKER_HOST || '/var/run/docker.sock'
     this.printTXs =
       env.FADROMA_PRINT_TXS || ''
     this.buildManager =
@@ -133,6 +137,7 @@ export class Config {
   }
 
   chain:                 string
+  dockerHost:            string
   homeDir:               string
   printTXs:              string
   buildRaw:              boolean

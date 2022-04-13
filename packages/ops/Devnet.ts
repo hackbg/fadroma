@@ -384,7 +384,7 @@ export class DockerodeDevnet extends Devnet {
   }
 
   /** Used to command the container engine. */
-  protected docker: Docker = new Docker({ socketPath: '/var/run/docker.sock' })
+  protected docker: Docker = new Docker({ socketPath: config.dockerHost||'/var/run/docker.sock' })
 
   /** The created container */
   container: { id: string, Warnings: any, logs: Function }
