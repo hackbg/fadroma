@@ -74,9 +74,17 @@ test({
     assert(uploader.agent === agent)
   },
   async 'CachingFSUploader#upload' (assert) {
-    const agent = { chain: { uploads: Symbol() } }
-    const { uploader } = CachingFSUploader.enable({ agent })
-    await uploader.upload()
+    const agent = {
+      async upload () { return {} }
+      chain: {
+        uploads: {
+          resolve: ()=>`/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+        }
+      },
+    }
+    const uploader = new CachingFSUploader(agent)
+    const template = { location: '' }
+    await uploader.upload(template)
   },
   async 'CachingFSUploader#uploadMany' (assert) {
     const agent = { chain: { uploads: Symbol() } }
