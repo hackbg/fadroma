@@ -48,7 +48,7 @@ test({
   },
   async 'DockerImage#available' () {
     const image = new DockerImage(mockDockerode())
-    await image.available()
+    await image.ensure()
   }
 })
 ```
