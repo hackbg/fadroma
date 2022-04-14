@@ -4,18 +4,20 @@ use std::fmt::Debug;
 use fadroma_platform_scrt::{
     from_binary, testing::MockApi, to_binary, BankMsg, Binary, BlockInfo, Coin,
     ContractInstantiationInfo, ContractLink, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
-    InitResponse, StdResult, WasmMsg,
+    InitResponse, StdResult, WasmMsg, ContractInfo, MessageInfo
 };
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use oorandom::Rand64;
 
-use crate::bank::{Balances, Bank};
-use crate::env::MockEnv;
-use crate::querier::EnsembleQuerier;
-use crate::revertable::Revertable;
-use crate::storage::TestStorage;
+use crate::{
+    bank::{Balances, Bank},
+    env::MockEnv,
+    querier::EnsembleQuerier,
+    revertable::Revertable,
+    storage::TestStorage,
+    block::Block
+};
 
 pub type MockDeps = Extern<Revertable<TestStorage>, MockApi, EnsembleQuerier>;
 
@@ -27,18 +29,6 @@ pub trait ContractHarness {
     fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary>;
 }
 
-pub enum BlockIncrement {
-    Random {
-        height_range: (u64, u64),
-        time_range: (u64, u64),
-    },
-    Exact {
-        /// Block height increment
-        height: u64,
-        /// Seconds per block increment
-        time: u64,
-    },
-}
 #[derive(Debug)]
 pub struct ContractEnsemble {
     // NOTE: Box required to ensure the pointer address remains the same and the raw pointer in EnsembleQuerier is safe to dereference.
@@ -49,14 +39,14 @@ pub(crate) struct Context {
     pub(crate) instances: HashMap<HumanAddr, ContractInstance>,
     pub(crate) contracts: Vec<Box<dyn ContractHarness>>,
     pub(crate) bank: Revertable<Bank>,
+    block: Block,
+    chain_id: String,
     canonical_length: usize,
-    block: BlockInfo,
-    block_increment: Option<BlockIncrement>,
 }
 
 pub(crate) struct ContractInstance {
     pub(crate) deps: MockDeps,
-    index: usize, // TODO: should maybe store env.contract_key here
+    index: usize
 }
 
 impl ContractEnsemble {
@@ -76,10 +66,12 @@ impl ContractEnsemble {
         }
     }
 
-    pub fn auto_increment(mut self, increment: BlockIncrement) -> Self {
-        self.ctx.block_increment = Some(increment);
+    pub fn block(&mut self) -> &mut Block {
+        &mut self.ctx.block
+    }
 
-        self
+    pub fn set_chain_id(&mut self, id: impl Into<String>) {
+        self.ctx.chain_id = id.into();
     }
 
     pub fn add_funds(&mut self, address: impl Into<HumanAddr>, coins: Vec<Coin>) {
@@ -144,6 +136,7 @@ impl ContractEnsemble {
 
         if result.is_ok() {
             self.ctx.commit();
+            self.ctx.block.next();
         } else {
             self.ctx.revert();
         }
@@ -151,12 +144,13 @@ impl ContractEnsemble {
         result
     }
 
-    /// Executes the contract with the address in `env.contract.address`.
+    /// Executes the contract with the address provided in `env`.
     pub fn execute<T: Serialize>(&mut self, msg: &T, env: MockEnv) -> StdResult<()> {
         let result = self.ctx.execute(to_binary(msg)?, env);
 
         if result.is_ok() {
             self.ctx.commit();
+            self.ctx.block.next();
         } else {
             self.ctx.revert();
         }
@@ -206,8 +200,8 @@ impl Context {
             bank: Default::default(),
             contracts: Default::default(),
             instances: Default::default(),
-            block: BlockInfo::default(),
-            block_increment: None,
+            block: Block::default(),
+            chain_id: "fadroma-ensemble-testnet".into()
         }
     }
 
@@ -217,62 +211,49 @@ impl Context {
         msg: Binary,
         env: MockEnv,
     ) -> StdResult<ContractLink<HumanAddr>> {
-        let update_block = self.block_increment.is_some();
-        let contract = self.contracts.get(id).expect("Contract id doesn't exist.");
-
-        let address = env.0.contract.address.clone();
-        let code_hash = env.0.contract_code_hash.clone();
+        let contract = self.contracts.get(id)
+            .expect(&format!("Contract with id \"{}\" doesn't exist.", id));
 
         let instance = ContractInstance::new(id, self.canonical_length, &self);
 
-        if self.instances.contains_key(&address) {
+        let contract_info = env.contract.clone();
+        if self.instances.contains_key(&contract_info.address) {
             panic!(
                 "Trying to instantiate an already existing address: {}.",
-                address
+                contract_info.address
             )
         }
 
         self.bank.writable().transfer(
-            &env.0.message.sender,
-            &address,
-            env.0.message.sent_funds.clone(),
+            &env.sender,
+            &contract_info.address,
+            env.sent_funds.clone(),
         )?;
 
-        self.instances.insert(address.clone(), instance);
+        self.instances.insert(contract_info.address.clone(), instance);
 
-        let instance = self.instances.get_mut(&address).unwrap();
+        let env = self.create_env(env);
+        let instance = self.instances.get_mut(&contract_info.address).unwrap();
 
-        let (block, env) = if update_block {
-            (
-                self.block.clone(),
-                env.height(self.block.height).time(self.block.time),
-            )
-        } else {
-            (env.0.block.clone(), env)
-        };
-
-        let result = contract.init(&mut instance.deps, env.0, msg);
+        let result = contract.init(&mut instance.deps, env, msg);
 
         match result {
             Ok(msgs) => {
-                let result = self.execute_messages(msgs.messages, address.clone(), block);
+                let result = self.execute_messages(msgs.messages, contract_info.address.clone());
 
                 match result {
                     Ok(_) => {
-                        if update_block {
-                            self.update_block();
-                        }
-                        Ok(ContractLink { address, code_hash })
+                        Ok(contract_info)
                     }
                     Err(err) => {
-                        self.instances.remove(&address);
+                        self.instances.remove(&contract_info.address);
 
                         Err(err)
                     }
                 }
             }
             Err(err) => {
-                self.instances.remove(&address);
+                self.instances.remove(&contract_info.address);
 
                 Err(err)
             }
@@ -280,8 +261,8 @@ impl Context {
     }
 
     fn execute(&mut self, msg: Binary, env: MockEnv) -> StdResult<()> {
-        let update_block = self.block_increment.is_some();
-        let address = env.0.contract.address.clone();
+        let address = env.contract.address.clone();
+        let env = self.create_env(env);
 
         let instance = self
             .instances
@@ -289,29 +270,15 @@ impl Context {
             .expect(&format!("Contract address doesn't exist: {}", address));
 
         self.bank.writable().transfer(
-            &env.0.message.sender,
+            &env.message.sender,
             &address,
-            env.0.message.sent_funds.clone(),
+            env.message.sent_funds.clone(),
         )?;
 
         let contract = self.contracts.get(instance.index).unwrap();
+        let result = contract.handle(&mut instance.deps, env, msg)?;
 
-        let (block, env) = if update_block {
-            (
-                self.block.clone(),
-                env.height(self.block.height).time(self.block.time),
-            )
-        } else {
-            (env.0.block.clone(), env)
-        };
-
-        let result = contract.handle(&mut instance.deps, env.0, msg)?;
-
-        self.execute_messages(result.messages, address, block)?;
-
-        if update_block {
-            self.update_block();
-        }
+        self.execute_messages(result.messages, address)?;
 
         Ok(())
     }
@@ -327,27 +294,10 @@ impl Context {
         contract.query(&instance.deps, msg)
     }
 
-    fn commit(&mut self) {
-        for instance in self.instances.values_mut() {
-            instance.commit();
-        }
-
-        self.bank.commit();
-    }
-
-    fn revert(&mut self) {
-        for instance in self.instances.values_mut() {
-            instance.revert();
-        }
-
-        self.bank.revert();
-    }
-
     fn execute_messages(
         &mut self,
         messages: Vec<CosmosMsg>,
-        sender: HumanAddr,
-        block: BlockInfo,
+        sender: HumanAddr
     ) -> StdResult<()> {
         for msg in messages {
             match msg {
@@ -365,10 +315,7 @@ impl Context {
                                 code_hash: callback_code_hash,
                             },
                         )
-                        .sent_funds(send)
-                        .chain_id(block.chain_id.clone())
-                        .time(block.time)
-                        .height(block.height);
+                        .sent_funds(send);
 
                         self.execute(msg, env)?;
                     }
@@ -386,10 +333,7 @@ impl Context {
                                 code_hash: callback_code_hash,
                             },
                         )
-                        .sent_funds(send)
-                        .chain_id(block.chain_id.clone())
-                        .time(block.time)
-                        .height(block.height);
+                        .sent_funds(send);
 
                         self.instantiate(code_id as usize, msg, env)?;
                     }
@@ -412,27 +356,38 @@ impl Context {
         Ok(())
     }
 
-    fn update_block(&mut self) {
-        match self.block_increment {
-            Some(BlockIncrement::Exact { height, time }) => {
-                self.block.height += height;
-                self.block.time += height * time;
-            }
-            Some(BlockIncrement::Random {
-                height_range: (h_start, h_end),
-                time_range: (t_start, t_end),
-            }) => {
-                // TODO: randomize this seed
-                let mut rng = Rand64::new(347593485789348572u128);
-
-                let rand_height = rng.rand_range(h_start..h_end);
-                let rand_time = rng.rand_range(t_start..t_end);
-
-                self.block.height += rand_height;
-                self.block.time += rand_height * rand_time;
-            }
-            None => {}
+    fn create_env(&self, env: MockEnv) -> Env {
+        Env {
+            block: BlockInfo {
+                height: self.block.height,
+                time: self.block.time,
+                chain_id: self.chain_id.clone()
+            },
+            message: MessageInfo {
+                sender: env.sender,
+                sent_funds: env.sent_funds
+            },
+            contract: ContractInfo { address: env.contract.address },
+            contract_code_hash: env.contract.code_hash,
+            // TODO: add support for this
+            contract_key: Some("".into())
         }
+    }
+
+    fn commit(&mut self) {
+        for instance in self.instances.values_mut() {
+            instance.commit();
+        }
+
+        self.bank.commit();
+    }
+
+    fn revert(&mut self) {
+        for instance in self.instances.values_mut() {
+            instance.revert();
+        }
+
+        self.bank.revert();
     }
 }
 
