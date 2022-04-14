@@ -10,6 +10,8 @@ mod querier;
 mod revertable;
 #[cfg(not(target_arch = "wasm32"))]
 mod storage;
+#[cfg(not(target_arch = "wasm32"))]
+mod block;
 
 #[cfg(test)]
 mod tests;
@@ -19,6 +21,8 @@ pub use ensemble::*;
 pub use env::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub use querier::*;
+#[cfg(not(target_arch = "wasm32"))]
+pub use block::Block;
 
 #[macro_export]
 macro_rules! impl_contract_harness_default {
