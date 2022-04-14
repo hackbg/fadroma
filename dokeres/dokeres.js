@@ -11,7 +11,7 @@ const { bold } = colors
   * and can ensure its presence by pulling or building. */
 export class DockerImage {
   constructor (
-    docker     = new Docker({ socketPath: '/var/run/docker.sock' }),
+    docker     = new Docker({ socketPath: process.env.DOCKER_HOST || '/var/run/docker.sock' }),
     name       = null,
     dockerfile = null,
     extraFiles = []
@@ -23,15 +23,14 @@ export class DockerImage {
 
   async ensure () {
     if (this.#available) {
-      console.info(bold('Already ensuring build image from parallel build:'), this.name)
+      console.info(bold('Already ensuring image from parallel build:'), this.name)
       return await this.#available
     } else {
-      console.info(bold('Ensuring build image:'), this.name)
-      console.info(bold('Using dockerfile:'), this.dockerfile)
+      console.info(bold('Ensuring image:'), this.name)
       return await (this.#available = new Promise(async(resolve, reject)=>{
         const {docker, name, dockerfile, extraFiles} = this
         const PULLING  = `Image ${name} not found, pulling...`
-        const BUILDING = `Image ${name} not found upstream, building from ${dockerfile}...`
+        const BUILDING = `Image ${name} not found upstream, building...`
         const NO_FILE  = `Image ${name} not found and no Dockerfile provided; can't proceed.`
         try {
           await this.check()
@@ -44,6 +43,7 @@ export class DockerImage {
               reject(`${NO_FILE} (${e.message})`)
             } else {
               console.warn(`${BUILDING} ${_e.message}`)
+              console.info(bold('Using dockerfile:'), this.dockerfile)
               await this.build()
             }
           }
