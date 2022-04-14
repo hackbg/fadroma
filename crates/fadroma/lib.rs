@@ -14,7 +14,7 @@ pub use fadroma_declare_contract::*;
 
 pub use fadroma_derive_contract as derive_contract;
 
-#[cfg(all(feature = "ensemble", not(target_arch = "wasm32")))]
+#[cfg(not(target_arch = "wasm32"))]
 pub use fadroma_ensemble as ensemble;
 
 pub use fadroma_killswitch as killswitch;
