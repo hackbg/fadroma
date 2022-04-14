@@ -9,14 +9,13 @@ use fadroma_platform_scrt::{
 
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use oorandom::Rand64;
 
 use crate::bank::{Balances, Bank};
 use crate::env::MockEnv;
 use crate::querier::EnsembleQuerier;
 use crate::revertable::Revertable;
 use crate::storage::TestStorage;
-
-use rand::{thread_rng, Rng};
 
 pub type MockDeps = Extern<Revertable<TestStorage>, MockApi, EnsembleQuerier>;
 
@@ -423,9 +422,11 @@ impl Context {
                 height_range: (h_start, h_end),
                 time_range: (t_start, t_end),
             }) => {
-                let mut rng = thread_rng();
-                let rand_height = rng.gen_range(h_start..=h_end);
-                let rand_time = rng.gen_range(t_start..=t_end);
+                // TODO: randomize this seed
+                let mut rng = Rand64::new(347593485789348572u128);
+
+                let rand_height = rng.rand_range(h_start..h_end);
+                let rand_time = rng.rand_range(t_start..t_end);
 
                 self.block.height += rand_height;
                 self.block.time += rand_height * rand_time;
