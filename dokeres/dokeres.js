@@ -7,6 +7,8 @@ const console = Console('@hackbg/dokeres')
 import colors from 'colors'
 const { bold } = colors
 
+import { basename, dirname } from 'path'
+
 /** Represents a docker image for builder or devnet,
   * and can ensure its presence by pulling or building. */
 export class DockerImage {
