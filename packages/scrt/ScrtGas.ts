@@ -1,12 +1,4 @@
-import {
-  dirname, fileURLToPath, resolve,
-  Fees, Gas,
-  DevnetOptions, Devnet, DockerodeDevnet, ManagedDevnet,
-  Path, Directory, TextFile, JSONFile, JSONDirectory,
-  Client
-} from '@fadroma/ops'
-
-import type { SigningCosmWasmClient } from 'secretjs'
+import { Fees, Gas } from '@fadroma/ops'
 
 export class ScrtGas extends Gas {
   static denom = 'uscrt'

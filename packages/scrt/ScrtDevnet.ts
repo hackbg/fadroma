@@ -1,4 +1,6 @@
-import { config, DockerodeDevnet, DockerImage, resolve } from '@fadroma/ops'
+import { config, DockerodeDevnet, DockerImage, resolve, dirname, fileURLToPath } from '@fadroma/ops'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export function getScrtDevnet (
   managerURL: string = config.devnetManager,
