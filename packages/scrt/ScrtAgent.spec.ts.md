@@ -2,9 +2,9 @@
 
 ```typescript
 import assert from 'assert'
-const ScrtAgentSpec = {}
-const test = tests => Object.assign(ScrtAgentSpec, tests)
-export default ScrtAgentSpec
+const Spec = {}
+const test = tests => Object.assign(Spec, tests)
+export default Spec
 ```
 
 ## Agents
