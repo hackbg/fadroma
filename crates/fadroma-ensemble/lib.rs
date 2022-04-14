@@ -13,7 +13,7 @@ mod storage;
 #[cfg(not(target_arch = "wasm32"))]
 mod block;
 
-#[cfg(test)]
+#[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;
 #[cfg(not(target_arch = "wasm32"))]
 pub use ensemble::*;
