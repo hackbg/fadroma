@@ -32,6 +32,11 @@ export abstract class Scrt extends Chain {
 
 export class Scrt_1_2 extends Scrt {
   faucet = `https://faucet.secrettestnet.io/`
+  async getAgent (identity = config.scrt.defaultIdentity) {
+    const agent = await super.getAgent(identity)
+    agent.chain = this
+    return agent
+  }
   Agent             = Scrt_1_2.Agent
   static Agent      = ScrtAgent
   static APIClient  = PatchedSigningCosmWasmClient_1_2

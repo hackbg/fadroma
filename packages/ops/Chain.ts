@@ -185,7 +185,7 @@ export class Chain implements ChainConfig {
           chain: this as Chain
         })
       }
-    } else if (identity instanceof Agent) {
+    } else if (identity instanceof Object) {
       // clone agent
       agent = await this.Agent.create(identity)
     } else {
