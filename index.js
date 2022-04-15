@@ -41,7 +41,7 @@ export const rimraf = (path = "") =>
       if (err) { reject(err) } else { resolve() }
     }) })
 
-import { tmp } from 'tmp'
+import tmp from 'tmp'
 export const withTmpDir = fn => {
   const {name} = tmp.dirSync()
   try { return fn(name) } finally { rimraf(name) }
