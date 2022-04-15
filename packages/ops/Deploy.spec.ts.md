@@ -10,25 +10,95 @@ export default DeploySpec
 
 ```typescript
 import { Deployment } from './Deploy'
-import { tmp, rimraf } from '@hackbg/toolbox'
+import { tmp, rimraf, basename } from '@hackbg/toolbox'
 test({
-  'Deployment chainable methods' ({ equal }) {
+  'Deployment chainable methods' ({ equal, deepEqual }) {
     withTmpFile(f=>{
       const d = new Deployment(f)
-      d.load()
+      equal(d.prefix, basename(f))
+      deepEqual(d.receipts, {})
       equal(d, d.save('test', 'test'))
       equal(d, d.set('foo'))
       equal(d, d.setMany({bar:{},baz:{}}))
     })
-  }
-  async 'Deployment init' () {
+  },
+  async 'Deployment#init' ({ equal, deepEqual }) {
     await withTmpFile(async f=>{
-      const d = new Deployment(f)
-      const a = { async instantiate () { return { foo: 'bar' } } }
-      await d.init(a)
-      await d.initMany(a)
-      await d.initVarious(a)
+      const agent      = mockAgent()
+      const deployment = new Deployment(f)
+      const codeId     = 0
+      const template   = { codeId }
+      const initMsg    = Symbol()
+      const name       = 'contract'
+      const label      = `${basename(f)}/${name}`
+      deepEqual(await deployment.init(agent, template, name, initMsg), { codeId, label })
+      deepEqual(deployment.get(name), { name, codeId, label })
     })
+  },
+  async 'Deployment#initMany' ({ equal, deepEqual }) {
+    await withTmpFile(async f=>{
+      const agent      = mockAgent()
+      const deployment = new Deployment(f)
+      const codeId     = 1
+      const template   = { codeId }
+      const initMsg    = Symbol()
+      const configs    = [['contract1', Symbol()], ['contract2', Symbol()]]
+      const receipts   = await deployment.initMany(agent, template, configs)
+      deepEqual(receipts, [
+        { codeId, label: `${basename(f)}/contract1` },
+        { codeId, label: `${basename(f)}/contract2` },
+      ])
+      deepEqual(deployment.get('contract1'), {
+        name: 'contract1',
+        label: `${basename(f)}/contract1`,
+        codeId,
+      })
+      deepEqual(deployment.get('contract2'), {
+        name: 'contract2',
+        label: `${basename(f)}/contract2`,
+        codeId,
+      })
+    })
+  },
+  async 'Deployment#initVarious' ({ equal, deepEqual }) {
+    await withTmpFile(async f=>{
+      const agent      = mockAgent()
+      const deployment = new Deployment(f)
+      const templateA  = { codeId: 2 }
+      const templateB  = { codeId: 3 }
+      const configs    = [[templateA, 'contractA', Symbol()], [templateB, 'contractB', Symbol()]]
+      const receipts   = await deployment.initVarious(agent, configs)
+      deepEqual(receipts, [
+        { codeId: 2, label: `${basename(f)}/contractA`, },
+        { codeId: 3, label: `${basename(f)}/contractB`, },
+      ])
+      deepEqual(deployment.get('contractA'), {
+        name: 'contractA',
+        label: `${basename(f)}/contractA`,
+        codeId: 2
+      })
+      deepEqual(deployment.get('contractB'), {
+        name: 'contractB',
+        label: `${basename(f)}/contractB`,
+        codeId: 3
+      })
+    })
+  },
+
+})
+
+const mockAgent = () => ({
+  instantiate ({ codeId }, label, msg) {
+    return { codeId, label }
+  },
+  instantiateMany (configs, prefix) {
+    const receipts = {}
+    for (const [{codeId}, name] of configs) {
+      let label = name
+      if (prefix) label = `${prefix}/${label}`
+      receipts[name] = { codeId, label }
+    }
+    return receipts
   }
 })
 

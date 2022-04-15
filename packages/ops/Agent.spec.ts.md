@@ -39,7 +39,7 @@ test({
 ## Interacting with a contract on the chain
 
 ```typescript
-import { Bundle } from './Bundle'
+import { Bundle } from './Agent'
 test({
 
   async "instantiate contract" ({ deepEqual }) {
