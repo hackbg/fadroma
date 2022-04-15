@@ -23,7 +23,7 @@
   },
   "scripts": {
     "test": "time ganesha-node packages/TestRunner.js",
-    "cov":  "time c8 -x deps -x packages/TestRunner.js -x **/*.spec.* ganesha-node packages/TestRunner.js"
+    "cov":  "time c8 --all -x deps -x packages/TestRunner.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x packages/ops/wip -x packages/shim ganesha-node packages/TestRunner.js"
   },
   "bin": {
     "fadroma": "fadroma.cjs"
