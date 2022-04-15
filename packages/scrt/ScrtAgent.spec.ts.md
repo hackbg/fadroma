@@ -306,40 +306,7 @@ export async function mockAPIEndpoint (port) {
   })))
 
   // echoes input query
-  app.get('/wasm/contract/:address/query/:query', respond(async ({query})=>{
-    try {
-      /*let query2 = query
-
-      const encrypted = query
-      const nonce = encrypted.slice(0, 32)
-      const step1 = fromHex(responseData.result.smart)
-      console.debug(1,{step1_fromHex:step1})
-      const step2 = await this.enigmautils.decrypt(step1, nonce)
-      console.debug(2,{step2_decrypt:step2})
-      const step3 = fromUtf8(step2)
-      console.debug(3,{step3_fromutf8:step3})
-
-      query = query2
-      */
-
-      console.log(1, query)
-      query = fromHex(query)
-      console.log(2, query.toString())
-      query = fromUtf8(query)
-      console.log(3, query.toString())
-      query = fromBase64(query)
-      console.log(4, query.toString())
-      query = query.slice(64)
-      console.log(5, query.toString())
-      query = toBase64(query)
-      console.log(6, query.toString())
-
-      return { result: { smart: query } }
-    } catch (e) {
-      console.error(e)
-      process.exit(123)
-    }
-  }))
+  app.get('/wasm/contract/:address/query/:query', respond(echoQuery))
 
   app.get('/reg/consensus-io-exch-pubkey', respond(()=>({
     result: { ioExchPubkey: "0jyiOQXsuaJzXX7KzsZJRsPqA8XQyt79mpciYm4uPkE=" }
@@ -378,5 +345,44 @@ export async function mockAPIEndpoint (port) {
     }
   }
 
+}
+```
+
+### A mock query response which echoes the input
+
+```typescript
+async function echoQuery ({query}) {
+  try {
+    /*let query2 = query
+
+    const encrypted = query
+    const nonce = encrypted.slice(0, 32)
+    const step1 = fromHex(responseData.result.smart)
+    console.debug(1,{step1_fromHex:step1})
+    const step2 = await this.enigmautils.decrypt(step1, nonce)
+    console.debug(2,{step2_decrypt:step2})
+    const step3 = fromUtf8(step2)
+    console.debug(3,{step3_fromutf8:step3})
+
+    query = query2
+    */
+
+    console.log(1, query)
+    query = fromHex(query)
+    console.log(2, query.toString())
+    query = fromUtf8(query)
+    console.log(3, query.toString())
+    query = fromBase64(query)
+    console.log(4, query.toString())
+    query = query.slice(64)
+    console.log(5, query.toString())
+    query = toBase64(query)
+    console.log(6, query.toString())
+
+    return { result: { smart: query } }
+  } catch (e) {
+    console.error(e)
+    process.exit(123)
+  }
 }
 ```
