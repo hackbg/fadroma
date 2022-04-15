@@ -54,7 +54,7 @@ export class Deployment {
     if (!receipt) {
       const msg = `@fadroma/ops/Deploy: ${name}: no such contract in deployment`
       console.error(msg)
-      print.deployment(this)
+      print(console).deployment(this)
       throw new Error(msg)
     }
     receipt.name = name
@@ -123,7 +123,7 @@ export class Deployments extends Directory {
 
   printActive () {
     if (this.active) {
-      print.deployment(this.active)
+      print(console).deployment(this.active)
     } else {
       console.info(`\nNo selected deployment.`)
     }
@@ -207,7 +207,7 @@ export class Deployments extends Directory {
     let contracts: string|number = Object.values(deployment.receipts).length
     contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
     console.info(bold('Active deployment:'), prefix, contracts)
-    print.deployment(deployment)
+    print(console).deployment(deployment)
     return { deployment, prefix }
   }
 
@@ -221,7 +221,7 @@ export class Deployments extends Directory {
       console.error(join(bold('No selected deployment on chain:'), chain.id))
       process.exit(1)
     }
-    print.deployment(deployment)
+    print(console).deployment(deployment)
   }
 
   /** Command: Set a new deployment as active. */

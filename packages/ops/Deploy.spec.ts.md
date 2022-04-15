@@ -129,12 +129,17 @@ test({
     })
   },
   async 'Deployments integrations' ({ equal }) {
+    const prefixOfActiveDeployment = Symbol()
     const context = {
       chain: {
         deployments: {
-          active: { prefix: Symbol(), receipts: [] },
+          active: { prefix: prefixOfActiveDeployment, receipts: [] },
           printActive () {},
-          list () { return [] },
+          list () { return [
+            {prefix: '.active.yml'},
+            {prefix: prefixOfActiveDeployment},
+            {prefix:'somethingelse'}]
+          },
           async create () {},
           async select () {}
         }

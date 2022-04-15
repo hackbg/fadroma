@@ -28,6 +28,7 @@ test({
 
 ```typescript
 import { ChainMode } from './Chain'
+import type { Agent } from './Agent'
 test({
   'mainnet' () {
     const mode = ChainMode.Mainnet
@@ -49,6 +50,23 @@ test({
     assert(!chain.isMainnet)
     assert(!chain.isTestnet)
     assert(chain.isDevnet)
+  },
+  async 'Chain#getAgent takes string only on devnet' ({ throws, ok }) {
+    const chain = new Chain('chainid')
+    throws(await chain.getAgent(''))
+    chain.node = { genesisAccount () { return {} } }
+    ok(await chain.getAgent('') instanceof Agent)
+  }
+})
+```
+
+## Chain features
+
+```typescript
+test({
+  async 'Chain#getNonce must be implemented in subclass' ({ throws }) {
+    const chain = new Chain('chainid')
+    throws(await chain.getNonce())
   },
 })
 ```

@@ -109,3 +109,9 @@ export async function runMigration (
   return context
 
 }
+
+export function parallel (...commands) {
+  return function parallelCommands (input) {
+    return Promise.all(commands.map(command=>command(input)))
+  }
+}

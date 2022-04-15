@@ -9,7 +9,6 @@ import { Devnet } from './Devnet'
 import { Agent, AgentConstructor } from './Agent'
 import { Deployments } from './Deploy'
 import { Uploads } from './Upload'
-import { print } from './Print'
 import { config } from './Config'
 
 const console = Console('@fadroma/ops/Chain')
