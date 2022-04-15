@@ -10,7 +10,7 @@ export default DockerSpec
 ## Mock of Dockerode
 
 ```typescript
-export function mockDockerode (runCalled = () => {}) {
+export function mockDockerode (callback = () => {}) {
   return {
     async pull () {},
     getImage () {
@@ -20,9 +20,23 @@ export function mockDockerode (runCalled = () => {}) {
         }
       }
     },
-    async run (image, cmd, buildLogs, args) {
-      runCalled(image, cmd, buildLogs, args)
+    async run (...args) {
+      callback({ run: args })
       return [{Error:null, StatusCode:0}, Symbol()]
+    },
+    async createContainer (options) {
+      callback({ createContainer: options })
+      return {
+        id: 'mockmockmock',
+        logs (options, cb) {
+          cb({})
+        }
+      }
+    },
+    getContainer (options) {
+      return {
+        async start () {}
+      }
     }
   }
 }

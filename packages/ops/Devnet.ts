@@ -92,7 +92,7 @@ export abstract class Devnet {
 
   /** Save the info needed to respawn the node */
   save (extraData = {}) {
-    const shortPath = relative(config.projectRoot, this.nodeState.path)
+    const shortPath = relative(cwd(), this.nodeState.path)
     console.info(`Saving devnet node to ${shortPath}`)
     const data = { chainId: this.chainId, port: this.port, ...extraData }
     this.nodeState.save(data)

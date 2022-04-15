@@ -119,7 +119,7 @@ test({
     equal(template.location, resolve(workspace, 'artifacts/empty@HEAD.wasm'))
     equal(template.codeHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
 
-    function runCalled (image, cmd, buildLogs, args) {
+    function runCalled ({ run: [image, cmd, buildLogs, args] }) {
       equal(image, theImage)
       equal(cmd, `bash /build.sh empty HEAD`)
       ok(buildLogs instanceof Transform)

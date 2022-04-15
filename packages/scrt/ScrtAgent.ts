@@ -74,9 +74,9 @@ export class ScrtAgent extends Agent {
       this.seed     = EnigmaUtils.GenerateNewSeed()
     }
   }
-  readonly name:     string
-  readonly chain:    Scrt
-  readonly address:  string
+  declare readonly name:     string
+  declare readonly chain:    Scrt
+  declare readonly address:  string
   readonly keyPair:  any
   readonly mnemonic: any
   readonly pen:      any
@@ -328,36 +328,6 @@ export async function waitUntilNextBlock (
   })
 }
 
-const init1 = (sender, code_id, label, init_msg, init_funds) => ({
-  "type": 'wasm/MsgInstantiateContract',
-  value: { sender, code_id, label, init_msg, init_funds }
-})
-
-const init2 = (sender, code_id, label, init_msg, init_funds) => ({
-  "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
-  callback_code_hash: "", callback_sig: null,
-  sender, code_id, label, init_msg, init_funds,
-})
-
-const exec1 = (sender, contract, msg, sent_funds) => ({
-  "type": 'wasm/MsgExecuteContract',
-  value: { sender, contract, msg, sent_funds }
-})
-
-const exec2 = (sender, contract, msg, sent_funds) => ({
-  "@type": '/secret.compute.v1beta1.MsgExecuteContract',
-  callback_code_hash: "", callback_sig: null,
-  sender, contract, msg, sent_funds,
-})
-
-const fileUpload = (sender, location) => readFile(location).then(wasm=>({
-  type: 'wasm/MsgStoreCode',
-  value: {
-    sender,
-    wasm_byte_code: toBase64(pako.gzip(wasm, { level: 9 }))
-  }
-}))
-
 export class ScrtBundle extends Bundle {
 
   declare agent: ScrtAgent
@@ -385,19 +355,19 @@ export class ScrtBundle extends Bundle {
   }
 
   async instantiateMany (
-    contracts: [Template, Label, InitMsg][],
-    prefix?:   string,
-    suffix?:   string
-  ): Promise<Instance[]> {
-    const instances = []
-    for (const [template, name, initMsg] of contracts) {
-      // generate the label here since `get label () {}` is no more
-      let label = `${name}${suffix||''}`
-      if (prefix) label = `${prefix}/${label}`
+    configs: [Template, Label, InitMsg][],
+    prefix?: string,
+    suffix?: string
+  ): Promise<Record<string, Instance>> {
+    const instances = {}
+    for (let [template, name, initMsg] of configs) {
+      if (suffix) name = `${name}${suffix}`
+      let label = name
+      if (prefix) label = `${prefix}/${name}`
       console.info(bold('Instantiate:'), label)
       // add the init tx to the bundle. when passing a single contract
       // to instantiate, this should behave equivalently to non-bundled init
-      instances.push(await this.instantiate(template, label, initMsg))
+      instances[name] = await this.instantiate(template, label, initMsg)
     }
     return instances
   }
@@ -590,6 +560,36 @@ export class ScrtBundle extends Bundle {
   }
 
 }
+
+const init1 = (sender, code_id, label, init_msg, init_funds) => ({
+  "type": 'wasm/MsgInstantiateContract',
+  value: { sender, code_id, label, init_msg, init_funds }
+})
+
+const init2 = (sender, code_id, label, init_msg, init_funds) => ({
+  "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
+  callback_code_hash: "", callback_sig: null,
+  sender, code_id, label, init_msg, init_funds,
+})
+
+const exec1 = (sender, contract, msg, sent_funds) => ({
+  "type": 'wasm/MsgExecuteContract',
+  value: { sender, contract, msg, sent_funds }
+})
+
+const exec2 = (sender, contract, msg, sent_funds) => ({
+  "@type": '/secret.compute.v1beta1.MsgExecuteContract',
+  callback_code_hash: "", callback_sig: null,
+  sender, contract, msg, sent_funds,
+})
+
+const fileUpload = (sender, location) => readFile(location).then(wasm=>({
+  type: 'wasm/MsgStoreCode',
+  value: {
+    sender,
+    wasm_byte_code: toBase64(pako.gzip(wasm, { level: 9 }))
+  }
+}))
 
 export function mergeAttrs (attrs: {key:string,value:string}[]): any {
   return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})

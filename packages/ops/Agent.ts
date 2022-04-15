@@ -213,7 +213,9 @@ export abstract class Bundle {
 
   abstract init    (template: Template, label: string, msg: Message, send: any[]): Promise<this>
 
-  abstract instantiateMany (configs: [Template, Label, InitMsg][], prefix?: string): Promise<Record<string, Instance>>
+  abstract instantiateMany (
+    configs: [Template, Label, InitMsg][], prefix?: string, suffix?: string
+  ): Promise<Record<string, Instance>>
 
   abstract execute (instance: Instance, msg: Message): Promise<this>
 
