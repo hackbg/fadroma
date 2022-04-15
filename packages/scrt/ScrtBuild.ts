@@ -28,7 +28,7 @@ export function getScrtBuilder ({
 
 export class DockerodeBuilder_Scrt_1_2 extends DockerodeBuilder {
 
-  buildManager = "Scrt_1_2_Build.js"
+  //buildManager = "Scrt_1_2_Build.js"
 
   buildEntryPoint = relative(
     dirname(config.scrt.buildDockerfile),
@@ -43,7 +43,7 @@ export class DockerodeBuilder_Scrt_1_2 extends DockerodeBuilder {
     config.scrt.buildDockerfile,
     [
       this.buildEntryPoint,
-      this.buildManager,
+      //this.buildManager,
       ...this.buildHelpers
     ]
   )
