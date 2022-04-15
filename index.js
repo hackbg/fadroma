@@ -41,6 +41,16 @@ export const rimraf = (path = "") =>
       if (err) { reject(err) } else { resolve() }
     }) })
 
+import { tmp } from 'tmp'
+export const withTmpDir = fn => {
+  const {name} = tmp.dirSync()
+  try { return fn(name) } finally { rimraf(name) }
+}
+export const withTmpFile = fn => {
+  const {name} = tmp.fileSync()
+  try { return fn(name) } finally { rimraf(name) }
+}
+
 // misc data functions /////////////////////////////////////////////////////////////////////////////
 
 import { randomBytes } from 'crypto'
