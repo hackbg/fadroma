@@ -51,12 +51,6 @@ test({
     assert(!chain.isTestnet)
     assert(chain.isDevnet)
   },
-  async 'Chain#getAgent takes string only on devnet' ({ throws, ok }) {
-    const chain = new Chain('chainid')
-    throws(await chain.getAgent(''))
-    chain.node = { genesisAccount () { return {} } }
-    ok(await chain.getAgent('') instanceof Agent)
-  }
 })
 ```
 
@@ -64,9 +58,23 @@ test({
 
 ```typescript
 test({
-  async 'Chain#getNonce must be implemented in subclass' ({ throws }) {
+  async 'Chain#getNonce must be implemented in subclass' ({ rejects }) {
     const chain = new Chain('chainid')
-    throws(await chain.getNonce())
+    await rejects(chain.getNonce())
   },
+  async 'Chain#getAgent takes string only on devnet' ({ rejects, equal }) {
+    const agent = Symbol()
+    class TestChain extends Chain {
+      Agent = { async create () { return agent } }
+    }
+    const chain = new TestChain('chainid')
+    await rejects(chain.getAgent(''))
+    chain.node = { getGenesisAccount () { return {} } }
+    equal(await chain.getAgent(''), agent)
+  },
+  async 'Chain#getAgent takes Identity object' ({ rejects, ok }) {
+    const chain = new Chain('chainid')
+    ok(await chain.getAgent({}) instanceof Agent)
+  }
 })
 ```

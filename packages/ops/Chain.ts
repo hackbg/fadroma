@@ -107,6 +107,7 @@ export class Chain implements ChainConfig {
     return this.mode === ChainMode.Devnet
   }
 
+  /* c8 ignore start */
   /** A mocknet is a WASM execution environment
     * without the cryptographic consensus mechanism.
     * This is useful for testing. */
@@ -115,6 +116,7 @@ export class Chain implements ChainConfig {
     console.warn('chain.isMocknet: mocknet not implemented yet')
     return this.mode === ChainMode.Mocknet
   }
+  /* c8 ignore stop */
 
   protected setDevnet ({ node }: DevnetConfig) {
     if (node) {

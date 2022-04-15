@@ -20,9 +20,9 @@ test({
     const result = await runMigration("", [()=>{foo:true}], [])
     assert(result.foo)
   }
-  async 'catch and rethrow step failure' ({ throws }) {
+  async 'catch and rethrow step failure' ({ rejects }) {
     const error = {}
-    throws(await runMigration("", [()=>{throw error}], []))
+    await rejects(runMigration("", [()=>{throw error}], []))
   },
   async 'subsequent steps update the context' () {
     const result = await runMigration("", [
@@ -32,9 +32,9 @@ test({
     assert(result.foo)
     assert(result.bar)
   },
-  async 'the context.run function runs steps without updating context' ({ throws, ok }) {
+  async 'the context.run function runs steps without updating context' ({ rejects, ok }) {
     throw 'TODO'
-    throws(await runMigration("", [ async ({ run }) => { await run() } ], []))
+    await rejects(runMigration("", [ async ({ run }) => { await run() } ], []))
     ok(await runMigration("", [ async ({ run }) => { await run(async () => {}) } ], []))
   },
 })
