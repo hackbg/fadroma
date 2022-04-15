@@ -2,7 +2,7 @@ import * as HTTP from 'http'
 import { Transform } from 'stream'
 import LineTransformStream from 'line-transform-stream'
 import {
-  Console, bold, resolve, relative, basename, rimraf,
+  Console, bold, resolve, relative, basename,
   spawnSync, execFile, existsSync, readFileSync
 } from '@hackbg/toolbox'
 
@@ -137,6 +137,7 @@ export class DockerodeBuilder extends CachingBuilder {
     const cmd = `bash /${cmdName} ${crate} ${ref}`
     const binds = []
     binds.push(`${workspace}:/src:rw`)
+    //binds.push(`/dev/null:/src/receipts:ro`)
     binds.push(`${output}:/output:rw`)
     binds.push(`${entrypoint}:/${cmdName}:ro`) // Procedure
     enableBuildCache(ref, binds)
@@ -159,37 +160,6 @@ export class DockerodeBuilder extends CachingBuilder {
     )
     return [cmd, args]
   }
-}
-
-export function getBuildContainerArgs (
-  src:     string,
-  crate:   string,
-  ref:     string,
-  output:  string,
-  command: string,
-): [string, object] {
-  const cmdName = basename(command)
-  const cmd     = `bash /${cmdName} ${crate} ${ref}`
-  const binds   = []
-  binds.push(`${src}:/src:rw`)
-  binds.push(`/dev/null:/src/receipts:ro`)
-  binds.push(`${output}:/output:rw`)
-  binds.push(`${command}:/${cmdName}:ro`) // Procedure
-  enableBuildCache(ref, binds)
-  applyUnsafeMountKeys(ref, binds)
-  const args = {
-    Tty: true,
-    AttachStdin: true,
-    Entrypoint:  ['/bin/sh', '-c'],
-    HostConfig:  { Binds: binds, AutoRemove: true },
-    Env: [
-      'CARGO_NET_GIT_FETCH_WITH_CLI=true',
-      'CARGO_TERM_VERBOSE=true',
-      'CARGO_HTTP_TIMEOUT=240',
-      'LOCKED=',/*'--locked'*/
-    ]
-  }
-  return [cmd, args]
 }
 
 function enableBuildCache (ref, binds) {

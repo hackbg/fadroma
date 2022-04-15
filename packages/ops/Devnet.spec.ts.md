@@ -27,7 +27,7 @@ test({
 ## Devnets are persistent
 
 ```typescript
-import { tmp, rimraf, JSONFile, Directory } from '@hackbg/toolbox'
+import { JSONFile, Directory, withTmpDir } from '@hackbg/toolbox'
 test({
   async 'save/load Devnet state' ({ ok, equal, deepEqual }) {
     withTmpDir(stateRoot=>{
@@ -42,15 +42,6 @@ test({
     })
   }
 })
-
-const withTmpDir = fn => {
-  const {name} = tmp.dirSync()
-  try {
-    return fn(name)
-  } finally {
-    rimraf(name)
-  }
-}
 ```
 
 ## Dockerode devnet
@@ -58,7 +49,7 @@ const withTmpDir = fn => {
 ```typescript
 import { DockerodeDevnet } from './Devnet'
 import { mockDockerode } from './Docker.spec'
-import { resolve, basename, DockerImage } from '@hackbg/toolbox'
+import { resolve, basename, DockerImage, withTmpFile } from '@hackbg/toolbox'
 test({
   'construct dockerode devnet' ({ ok, equal }) {
     withTmpDir(stateRoot=>{
@@ -94,13 +85,4 @@ test({
   },
   'pass names of prefunded accounts on genesis' () { throw 'TODO' }
 })
-
-const withTmpFile = fn => {
-  const {name} = tmp.fileSync()
-  try {
-    return fn(name)
-  } finally {
-    rimraf(name)
-  }
-}
 ```

@@ -6,13 +6,23 @@ const test = tests => Object.assign(ClientSpec, tests)
 export default ClientSpec
 ```
 
+## Creating a client
+
+```typescript
+import { Client } from './Client'
+test({
+  'create client' ({ ok }) {
+    ok(new Client())
+  }
+})
+```
+
 ## Switching agent
 
 The `switchAgent` returns a new instance of the same `Client` subclass,
 pointing to the same contract, but interacting as a different `Agent`.
 
 ```typescript
-import { Client } from './Client'
 test({
   async 'client.switchAgent' (assert) {
     const clientA = new Client({ agent: 'A', address: 'C', codeHash: 'D' })

@@ -135,21 +135,6 @@ export interface Identity {
 
 export type Message = string|Record<string, any>
 
-export function getMethod (msg: Message) {
-  if (typeof msg === 'string') {
-    return msg
-  } else {
-    const keys = Object.keys(msg)
-    if (keys.length !== 1) {
-      throw new Error(
-        `@fadroma/scrt: message must be either an object `+
-        `with one root key, or a string. Found: ${keys}`
-      )
-    }
-    return Object.keys(msg)[0]
-  }
-}
-
 export type Coin = {
   amount: string
   denom:  string

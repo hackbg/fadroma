@@ -10,16 +10,19 @@ export default DeploySpec
 
 ```typescript
 import { Deployment } from './Deploy'
-import { tmp, rimraf, basename } from '@hackbg/toolbox'
+import { withTmpFile, basename } from '@hackbg/toolbox'
 test({
-  'Deployment chainable methods' ({ equal, deepEqual }) {
+  'Deployment get/set/load/save' ({ ok, equal, deepEqual, throws }) {
     withTmpFile(f=>{
       const d = new Deployment(f)
       equal(d.prefix, basename(f))
       deepEqual(d.receipts, {})
-      equal(d, d.save('test', 'test'))
-      equal(d, d.set('foo'))
-      equal(d, d.setMany({bar:{},baz:{}}))
+      equal(d, d.save('test', JSON.stringify({ foo: 1 }))
+      equal(d, d.add('test1', { test1: 1 }))
+      ok(!d.load())
+      equal(d, d.set('test2', { test2: 2 }))
+      equal(d, d.setMany({test3: 3, test4: 4}))
+      throws(()=>d.get('missing'))
     })
   },
   async 'Deployment#init' ({ equal, deepEqual }) {
@@ -101,21 +104,13 @@ const mockAgent = () => ({
     return receipts
   }
 })
-
-const withTmpFile = fn => {
-  const {name} = tmp.fileSync()
-  try {
-    return fn(name)
-  } finally {
-    rimraf(name)
-  }
-}
 ```
 
 ## Deployments directory
 
 ```typescript
 import { Deployments } from './Deploy'
+import { withTmpDir } from '@hackbg/toolbox'
 test({
   async 'Deployments' () {
     await withTmpDir(async dir=>{
@@ -133,6 +128,7 @@ test({
     const context = {
       chain: {
         deployments: {
+          get () {},
           active: { prefix: prefixOfActiveDeployment, receipts: [] },
           printActive () {},
           list () { return [
@@ -153,13 +149,4 @@ test({
     await Deployments.select(context)
   }
 })
-
-const withTmpDir = fn => {
-  const {name} = tmp.dirSync()
-  try {
-    return fn(name)
-  } finally {
-    rimraf(name)
-  }
-}
 ```

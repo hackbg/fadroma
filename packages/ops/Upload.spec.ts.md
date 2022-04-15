@@ -1,7 +1,6 @@
 # Fadroma Upload
 
 ```typescript
-import assert from 'assert'
 const UploadSpec = {}
 const test = tests => Object.assign(UploadSpec, tests)
 export default UploadSpec
@@ -12,12 +11,12 @@ export default UploadSpec
 ```typescript
 import { FSUploader } from './Upload'
 test({
-  'FSUploader.enable' (assert) {
+  'FSUploader.enable' ({ ok }) {
     const agent = Symbol()
     const { uploader } = FSUploader.enable({ agent })
-    assert(uploader.agent === agent)
+    ok(uploader.agent === agent)
   },
-  async 'FSUploader#upload' (assert) {
+  async 'FSUploader#upload' ({ deepEqual }) {
     const artifact        = Symbol()
     const codeId          = Symbol()
     const codeHash        = Symbol()
@@ -30,12 +29,12 @@ test({
     }
     const uploader = new FSUploader(agent)
     const result   = await uploader.upload(artifact)
-    assert.deepEqual(result, {
+    deepEqual(result, {
       chainId: agent.chain.id,
       codeId, codeHash, transactionHash
     })
   },
-  async 'FSUploader#uploadMany' (assert) {
+  async 'FSUploader#uploadMany' ({ deepEqual }) {
     const artifact = Symbol()
     const template = Symbol()
     const agent = {
@@ -44,7 +43,7 @@ test({
       nextBlock: Promise.resolve()
     }
     const uploader = new FSUploader(agent)
-    assert.deepEqual(await uploader.uploadMany([
+    deepEqual(await uploader.uploadMany([
       null,
       artifact,
       undefined,
@@ -67,29 +66,43 @@ test({
 
 ```typescript
 import { CachingFSUploader } from './Upload'
-test({
-  'CachingFSUploader.enable' (assert) {
-    const agent = { chain: { uploads: Symbol() } }
-    const { uploader } = CachingFSUploader.enable({ agent })
-    assert(uploader.agent === agent)
-  },
-  async 'CachingFSUploader#upload' (assert) {
-    const agent = {
-      async upload () { return {} }
-      chain: {
-        uploads: {
-          resolve: ()=>`/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
-        }
-      },
+import { withTmpFile } from '@hackbg/toolbox'
+
+const mockAgent = () => ({
+  async upload () { return {} }
+  chain: {
+    uploads: {
+      resolve: () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+      make: () => ({
+        resolve: () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+      })
     }
-    const uploader = new CachingFSUploader(agent)
-    const template = { location: '' }
-    await uploader.upload(template)
   },
-  async 'CachingFSUploader#uploadMany' (assert) {
+})
+
+test({
+  'add CachingFSUploader to migration context' ({ ok }) {
     const agent = { chain: { uploads: Symbol() } }
     const { uploader } = CachingFSUploader.enable({ agent })
-    await uploader.uploadMany()
+    ok(uploader.agent === agent)
+  },
+  async 'upload 1 artifact with CachingFSUploader#upload' ({ ok }) {
+    const agent = mockAgent()
+    const uploader = new CachingFSUploader(agent)
+    await withTmpFile(async location=>{
+      const artifact = { location }
+      ok(await uploader.upload(artifact))
+    })
+  },
+  async 'upload any number of artifacts with CachingFSUploader#uploadMany' ({ ok }) {
+    const agent = mockAgent()
+    const { uploader } = CachingFSUploader.enable({ agent })
+    ok(await uploader.uploadMany())
+    ok(await uploader.uploadMany([]))
+    await withTmpFile(async location=>{
+      ok(await uploader.uploadMany([{location}]))
+      ok(await uploader.uploadMany([{location}, {location}]))
+    })
   },
 })
 ```

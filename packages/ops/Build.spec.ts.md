@@ -42,13 +42,13 @@ Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
 ```typescript
 import { CachingBuilder } from './Build'
 test({
-  'CachingBuilder#prebuild' () {
+  'CachingBuilder#prebuild' ({ equal, throws }) {
     class TestCachingBuilder extends CachingBuilder {
       async build (source) { return {} }
     }
     const workspace = 'foo'
-    const source = {workspace}
-    new TestCachingBuilder().prebuild(source)
+    throws(()=>new TestCachingBuilder().prebuild({}))
+    equal(new TestCachingBuilder().prebuild({workspace}), null)
   }
 })
 ```

@@ -1,5 +1,5 @@
 import { Console, bold, colors } from '@hackbg/toolbox'
-import { getMethod } from './Core'
+import { Message } from './Core'
 import { config } from './Config'
 
 export class Trace {
@@ -94,4 +94,19 @@ export class Trace {
     }
   }
 
+}
+
+export function getMethod (msg: Message) {
+  if (typeof msg === 'string') {
+    return msg
+  } else {
+    const keys = Object.keys(msg)
+    if (keys.length !== 1) {
+      throw new Error(
+        `@fadroma/scrt: message must be either an object `+
+        `with one root key, or a string. Found: ${keys}`
+      )
+    }
+    return Object.keys(msg)[0]
+  }
 }
