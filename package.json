@@ -23,8 +23,8 @@
   },
   "scripts": {
     "test": "time ganesha-node test.js",
-    "cov":  "time c8 -r text --all -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node test.js",
-    "lcov": "time c8 -r lcov --all -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node test.js"
+    "cov":  "time c8 -r text --all -x coverage -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node test.js",
+    "lcov": "time c8 -r lcov --all -x coverage -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node test.js"
   },
   "bin": {
     "fadroma": "fadroma.cjs"
