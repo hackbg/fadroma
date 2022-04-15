@@ -3,7 +3,7 @@ import { toBase64 } from '@iov/encoding'
 import {
   Identity, Gas, Source, Artifact, Template, Label, InitMsg, Instance, Message
 } from './Core'
-import { Trace } from './Trace'
+import { Trace } from './Print'
 import type { Chain } from './Chain'
 
 const console = Console('@fadroma/ops/Agent')
