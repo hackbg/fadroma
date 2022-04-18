@@ -37,13 +37,13 @@ test({
     equal(result.Err, undefined)
   }
   async "Contract#handle" ({ equal }) {
-    throw 'TODO'
-    const result = await runHandle({}, contract, {}, "null")
+    const contract = await Contract.load(code)
+    const result = contract.handle(mockEnv(), "Null")
     equal(result.Err, undefined)
   }
   async "Contract#query" ({ equal }) {
-    throw 'TODO'
-    const result = await runQuery({}, contract, "echo")
+    const contract = await Contract.load(code)
+    const result = await contract.query("Echo")
     equal(result.Err, undefined)
   }
 })

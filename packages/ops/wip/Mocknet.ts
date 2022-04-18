@@ -28,7 +28,7 @@ export class Contract {
     const retBuf = this.read(retPtr)
     return retBuf
   }
-  query (env, msg) {
+  query (msg) {
     const msgBuf = this.pass(msg)
     const retPtr = this.instance.exports.query(msgBuf)
     const retBuf = this.read(retPtr)
