@@ -17,6 +17,105 @@ const instance = this.chain.mock.instances[address] = new Wrapper({
 const tStrPtr = { ...types.string, type: types.string }
 
 const decoder = new TextDecoder()
+const encoder = new TextEncoder()
+
+export class Contract {
+  static async load (code) {
+    const { instance } = await WebAssembly.instantiate(code)
+    return new this({}, instance)
+  }
+  wrapper = new Wrapper({
+    init:   ['uint32', ['uint32', 'uint32']],
+    handle: ['uint32', ['uint32', 'uint32']],
+    query:  ['uint32', ['uint32']],
+  })
+  constructor (
+    public readonly world,
+    public readonly instance
+  ) {
+    this.wrapper.use(instance)
+  }
+  init (env, msg) {
+    return this.read(this.wrapper.init(this.pass(env), this.pass(msg)))
+  }
+  handle (env, msg) {
+    return this.read(this.wrapper.handle(this.pass(env), this.pass(msg)))
+  }
+  query (env, msg) {
+    return this.read(this.wrapper.query(this.pass(env)))
+  }
+  private pass (data) {
+    const dataStr = JSON.stringify(data)
+    const dataBuf = this.wrapper.utils.encodeString(dataStr)
+    const dataLen = dataBuf.byteLength
+    const dataPtr = this.wrapper.__allocate(dataBuf.byteLength+1000)
+    return dataPtr
+  }
+  private read (ptr) {
+    const retVal = this.wrapper.utils.readPointer(ptr, tStrPtr).view
+    const retStr = decoder.decode(retVal).replace(/\0$/, '')
+    const retObj = JSON.parse(retStr)
+    return retObj
+  }
+}
+
+export class Contract2 {
+  static async load (code) {
+    const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
+    const { instance } = await WebAssembly.instantiate(code, { memory })
+    return new this(instance)
+  }
+  constructor (public readonly instance) {}
+  init (env, msg) {
+    const envBuf = this.pass(env)
+    const msgBuf = this.pass(msg)
+    const retPtr = this.instance.exports.init(envBuf, msgBuf)
+    const retData = this.read(retPtr)
+    this.drop(envBuf)
+    this.drop(msgBuf)
+    return retData
+  }
+  handle (env, msg) {
+    const envBuf = this.pass(env)
+    const msgBuf = this.pass(msg)
+    const retBuf = this.read(this.instance.exports.handle(envBuf, msgBuf))
+    this.drop(envBuf)
+    this.drop(msgBuf)
+    return retBuf
+  }
+  query (env, msg) {
+    const msgBuf = this.pass(msg)
+    const retBuf = this.read(this.instance.exports.query(msgBuf))
+    this.drop(msgBuf)
+    return retBuf
+  }
+  /** [1] https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
+  private pass (data) {
+    const dataString = JSON.stringify(data) + '\0'
+    const dataBufPtr = this.instance.exports.allocate(dataString.length)
+    const { buffer } = this.instance.exports.memory // must be after allocation - see [1]
+    const dataOffset = new Uint32Array(buffer)[dataBufPtr/4]
+    const dataBinStr = encoder.encode(dataString)
+    new Uint8Array(buffer).set(dataBinStr, dataOffset)
+    return dataBufPtr
+  }
+  private read (ptr) {
+    const { buffer } = this.instance.exports.memory
+    const ptrOffset  = new Uint32Array(buffer)[ptr/4]
+    const uint8Array = new Uint8Array(buffer)
+    let end = ptrOffset // loop for null byte
+    while (uint8Array[end]) ++end
+    const retView = new DataView(buffer, ptrOffset, end - ptrOffset)
+    const retData = decoder.decode(retView)
+    const retObj  = JSON.parse(retData)
+    this.drop(ptr)
+    return retObj
+  }
+  private drop (ptr) {
+    // TODO!
+    // this.instance.exports.deallocate(ptr)
+  }
+}
 
 export const Region = new Struct({
   offset:   'uint32',
@@ -24,19 +123,20 @@ export const Region = new Struct({
   length:   'uint32'
 })
 
-export function pass (wrap, data = "") {
-  const dataStr = JSON.stringify(data)
+export function pass (wrap, data: any = "") {
+  //const dataStr = JSON.stringify(data)
+  const dataStr = "                  {}                      \0"
   const dataBuf = wrap.utils.encodeString(dataStr)
   const dataLen = dataBuf.byteLength
-  const dataPtr = wrap.__allocate(dataBuf.byteLength)
-  const dataReg = new Region({ offset: dataPtr, capacity: dataLen, length: dataLen })
-  const dataRegPtr = wrap.utils.writeStruct(dataReg, Region)
-  return dataRegPtr
+  const dataPtr = wrap.__allocate(dataBuf.byteLength+1000)
+  //const dataReg = new Region({ offset: dataPtr, capacity: dataLen, length: dataLen })
+  //const dataRegPtr = wrap.utils.writeStruct(dataReg, Region)
+  return dataPtr
 }
 
 export async function runInit (world, code, env, msg) {
-  const wrap = new Wrapper({ init: ['uint32', ['uint32', 'uint32']] })
-  const inst = await WebAssembly.instantiate(code, { env: world })
+  const wrap = new Wrapper({ init: ['uint32', ['string', 'string']] })
+  const inst = await WebAssembly.instantiate(code)
   const used = wrap.use(inst.instance)
   const retPtr = used.init(pass(wrap, env), pass(wrap, msg))
   const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')
@@ -45,7 +145,7 @@ export async function runInit (world, code, env, msg) {
 
 export async function runHandle (world, code, env, msg) {
   const wrap = new Wrapper({ handle: ['uint32', ['uint32', 'uint32']] })
-  const inst = await WebAssembly.instantiate(code, { env: world })
+  const inst = await WebAssembly.instantiate(code)
   const used = wrap.use(inst.instance)
   const retPtr = used.handle(pass(wrap, env), pass(wrap, msg))
   const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')
@@ -54,7 +154,7 @@ export async function runHandle (world, code, env, msg) {
 
 export async function runQuery (world, code, env, msg) {
   const wrap = new Wrapper({ query: ['uint32', ['uint32']] })
-  const inst = await WebAssembly.instantiate(code, { env: world })
+  const inst = await WebAssembly.instantiate(code)
   const used = wrap.use(inst.instance)
   const retPtr = used.query(pass(wrap, msg))
   const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')

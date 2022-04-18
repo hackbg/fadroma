@@ -11,9 +11,9 @@ export default MocknetSpec
 
 ```typescript
 import { resolve, dirname, fileURLToPath, readFileSync } from '@hackbg/toolbox'
-import { runInit, runHandle, runQuery } from './Mocknet'
+import { Contract, Contract2, runInit, runHandle, runQuery } from './Mocknet'
 const fixture = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../../fixtures', x)
-const contract = readFileSync(fixture('empty@HEAD.wasm'))
+const code = readFileSync(fixture('empty@HEAD.wasm'))
 const mockEnv = () => ({
   block: {
     height:   0,
@@ -31,17 +31,31 @@ const mockEnv = () => ({
   contract_code_hash: ""
 })
 test({
-  async "runInit" () {
-    const result = await runInit({}, contract, mockEnv(), {})
-    console.log(JSON.stringify(result))
+  async "runInit" ({ equal }) {
+    throw 'TODO'
+    const result = await runInit({}, code, {}, {})
+    equal(result.Err, undefined)
   }
-  async "runHandle" () {
-    const result = await runHandle({}, contract, mockEnv(), "null")
-    console.log(result)
+  async "Contract#init" ({ equal }) {
+    throw 'TODO'
+    const contract = await Contract.load(code)
+    const result = contract.init({}, {})
+    equal(result.Err, undefined)
   }
-  async "runQuery" () {
+  async "Contract2#init" ({ equal }) {
+    const contract = await Contract2.load(code)
+    const result = contract.init(mockEnv(), {})
+    equal(result.Err, undefined)
+  }
+  async "runHandle" ({ equal }) {
+    throw 'TODO'
+    const result = await runHandle({}, contract, {}, "null")
+    equal(result.Err, undefined)
+  }
+  async "runQuery" ({ equal }) {
+    throw 'TODO'
     const result = await runQuery({}, contract, "echo")
-    console.log(result)
+    equal(result.Err, undefined)
   }
 })
 ```
