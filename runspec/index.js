@@ -54,9 +54,16 @@ async function runSpec (suites, selected = []) {
         output += `${OK}  ${name}  ${data}\n`
         passed++
       } else {
-        output += `${FAIL}  ${name}  ${data}\n`
         if (data instanceof Error) {
-          output += ` ${data.stack.split('\n').slice(1).join('\n ')}\n`
+          const lines = data.stack.split('\n')
+          if (lines.length > 1) {
+            output += `${FAIL}  ${name}\n`
+            output += `     ${lines.join('\n     ')}\n`
+          } else {
+            output += `${FAIL}  ${name}  ${lines[0]}\n`
+          }
+        } else {
+          output += `${FAIL}  ${name}  ${data}\n`
         }
         failed++
       }
