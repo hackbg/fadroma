@@ -62,7 +62,7 @@ export class Fadroma {
       const getChain = Chain.namedChains[config.chain]
       const chain = await getChain()
       const agent = await chain.getAgent()
-      await print.agentBalance(agent)
+      await print(console).agentBalance(agent)
       return { chain, agent, deployAgent: agent, clientAgent: agent }
     },
 
