@@ -12,7 +12,7 @@ export default MocknetSpec
 ```typescript
 import { resolve, dirname, fileURLToPath, readFileSync } from '@hackbg/toolbox'
 import { Contract } from './Mocknet'
-const fixture           = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../..', x)
+const fixture           = x => resolve(dirname(fileURLToPath(import.meta.url)), '../..', x)
 const emptyContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
 const emptyContractWasm = readFileSync(emptyContract)
 const mockEnv = () => ({
@@ -101,7 +101,7 @@ test({
 ## Can query and transact with contract
 
 ```typescript
-import { Client } from '../Client'
+import { Client } from './Client'
 test({
   async 'can query' () {
     const chain = new Mocknet()
