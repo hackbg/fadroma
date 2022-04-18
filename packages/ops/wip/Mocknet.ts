@@ -19,22 +19,19 @@ export class Contract {
     const msgBuf = this.pass(msg)
     const retPtr = this.instance.exports.init(envBuf, msgBuf)
     const retData = this.read(retPtr)
-    this.drop(envBuf)
-    this.drop(msgBuf)
     return retData
   }
   handle (env, msg) {
     const envBuf = this.pass(env)
     const msgBuf = this.pass(msg)
-    const retBuf = this.read(this.instance.exports.handle(envBuf, msgBuf))
-    this.drop(envBuf)
-    this.drop(msgBuf)
+    const retPtr = this.instance.exports.handle(envBuf, msgBuf)
+    const retBuf = this.read(retPtr)
     return retBuf
   }
   query (env, msg) {
     const msgBuf = this.pass(msg)
-    const retBuf = this.read(this.instance.exports.query(msgBuf))
-    this.drop(msgBuf)
+    const retPtr = this.instance.exports.query(msgBuf)
+    const retBuf = this.read(retPtr)
     return retBuf
   }
   /** [1] https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
@@ -43,7 +40,7 @@ export class Contract {
     const dataBufPtr = this.instance.exports.allocate(dataString.length)
     const { buffer } = this.instance.exports.memory // must be after allocation - see [1]
     const u32a = new Uint32Array(buffer)
-    const dataOffset = u32a[dataBufPtr/4]
+    const dataOffset = u32a[dataBufPtr/4+0]
     const dataCapaci = u32a[dataBufPtr/4+1]
     const dataLength = u32a[dataBufPtr/4+2]
     u32a[dataBufPtr/4+2] = u32a[dataBufPtr/4+1] // set length to capacity
@@ -53,13 +50,15 @@ export class Contract {
   }
   private read (ptr) {
     const { buffer } = this.instance.exports.memory
-    const ptrOffset  = new Uint32Array(buffer)[ptr/4]
+    const ptrOffset  = new Uint32Array(buffer)[ptr/4+0]
+    const ptrCapaci  = new Uint32Array(buffer)[ptr/4+1]
+    const ptrLength  = new Uint32Array(buffer)[ptr/4+2]
     const uint8Array = new Uint8Array(buffer)
     let end = ptrOffset // loop for null byte
     while (uint8Array[end]) ++end
-    const retView = new DataView(buffer, ptrOffset, end - ptrOffset)
+    const retView = new DataView(buffer, ptrOffset, ptrLength)
     const retData = decoder.decode(retView)
-    const retObj  = JSON.parse(retData)
+    const retObj = JSON.parse(retData)
     this.drop(ptr)
     return retObj
   }
