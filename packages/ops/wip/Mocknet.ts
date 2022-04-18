@@ -6,64 +6,6 @@ import WASMFFI from 'wasm-ffi'
 const { Wrapper, Struct, StringPointer, types } = WASMFFI
 const console = Console('@fadroma/mocknet')
 
-export class Mocknet extends Chain {
-
-  id    = 'Mocknet'
-
-  Agent = MockAgent
-
-  mock = {
-    codeId:    0,
-    uploads:   {},
-    contracts: {},
-    instances: {},
-    env: () => ({
-      db_read              (...args:any) { console.debug('db_read',     args) },
-      db_write             (...args:any) { console.debug('db_write',    args) },
-      db_remove            (...args:any) { console.debug('db_remove',   args) },
-      canonicalize_address (...args:any) { console.debug('canonize',    args) },
-      humanize_address     (...args:any) { console.debug('humanize',    args) },
-      query_chain          (...args:any) { console.debug('query_chain', args) }
-    })
-  }
-
-  setStateDirs ({ statePath }) {}
-
-  async getAgent (name: string) { return new MockAgent(this, name) }
-
-  assertContractExists (address: string) {
-    if (!this.mock.contracts[address]) {
-      throw new Error(`No contract at ${address}`)
-    }
-  }
-
-}
-
-const BlockInfo = new Struct({
-  height:   'uint64',
-  time:     'uint64',
-  chain_id: 'string'
-})
-
-const Coin = new Struct({
-  denom:  'string',
-  amount: 'string'
-})
-
-const MessageInfo = new Struct(
-)
-const ContractInfo = new Struct()
-
-const Env = new Struct({
-  block:    BlockInfo,
-  message:  MessageInfo,
-  contract: ContractInfo
-})
-
-const InitResponse   = new Wrapper({})
-const HandleResponse = new Wrapper({})
-const QueryResponse  = new Wrapper({})
-
 /*
 const instance = this.chain.mock.instances[address] = new Wrapper({
   init:   [InitResponse,   [Env, strptr()]],
@@ -76,33 +18,47 @@ const tStrPtr = { ...types.string, type: types.string }
 
 const decoder = new TextDecoder()
 
+export const Region = new Struct({
+  offset:   'uint32',
+  capacity: 'uint32',
+  length:   'uint32'
+})
+
+export function pass (wrap, data = "") {
+  const dataStr = JSON.stringify(data)
+  const dataBuf = wrap.utils.encodeString(dataStr)
+  const dataLen = dataBuf.byteLength
+  const dataPtr = wrap.__allocate(dataBuf.byteLength)
+  const dataReg = new Region({ offset: dataPtr, capacity: dataLen, length: dataLen })
+  const dataRegPtr = wrap.utils.writeStruct(dataReg, Region)
+  return dataRegPtr
+}
+
 export async function runInit (world, code, env, msg) {
   const wrap = new Wrapper({ init: ['uint32', ['uint32', 'uint32']] })
   const inst = await WebAssembly.instantiate(code, { env: world })
   const used = wrap.use(inst.instance)
-  const envPtr = wrap.utils.writeString(JSON.stringify(env))
-  const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
-  const retPtr = used.init(envPtr, msgPtr)
-  return decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view)
+  const retPtr = used.init(pass(wrap, env), pass(wrap, msg))
+  const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')
+  return JSON.parse(retVal)
 }
 
 export async function runHandle (world, code, env, msg) {
   const wrap = new Wrapper({ handle: ['uint32', ['uint32', 'uint32']] })
   const inst = await WebAssembly.instantiate(code, { env: world })
   const used = wrap.use(inst.instance)
-  const envPtr = wrap.utils.writeString(JSON.stringify(env))
-  const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
-  const retPtr = used.handle(envPtr, msgPtr)
-  return decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view)
+  const retPtr = used.handle(pass(wrap, env), pass(wrap, msg))
+  const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')
+  return JSON.parse(retVal)
 }
 
 export async function runQuery (world, code, env, msg) {
   const wrap = new Wrapper({ query: ['uint32', ['uint32']] })
   const inst = await WebAssembly.instantiate(code, { env: world })
   const used = wrap.use(inst.instance)
-  const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
-  const retPtr = used.query(msgPtr)
-  return decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view)
+  const retPtr = used.query(pass(wrap, msg))
+  const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')
+  return JSON.parse(retVal)
 }
 
 export class MockAgent extends Agent {
@@ -130,44 +86,20 @@ export class MockAgent extends Agent {
   Bundle = null
 
   async doInstantiate ({ codeId }: Template, label, msg, funds = []): Promise<Instance> {
+    const { mock } = this.chain
 
-    const content = this.chain.mock.uploads[codeId]
-    if (!content) {
+    if (!code) {
       throw new Error(`No code with id ${codeId}`)
     }
-
-    const strptr = () => 'u32'
-
-    const wrapper = new Wrapper({
-      init:   [InitResponse,   [Env, strptr()]],
-      handle: [HandleResponse, [Env, strptr()]],
-      query:  [QueryResponse,  [strptr()]]
-    })
-
-    const wasm = await WebAssembly.instantiate(content, { env: this.chain.mock.env() }))
     const address = `mocknet1${Math.floor(Math.random()*1000000)}`
-    const instance = this.chain.mock.instances[address] = wrapper.use(wasm.instance)
-    const env_ptr = new StringPointer('{}')
-    instance.utils.allocate(env_ptr)
-    const msg_ptr = new WASMFFI.StringPointer('{}')
-    instance.utils.allocate(msg_ptr)
-    const response = JSON.parse(
-      decode(
-        Uint8Array.from(
-          instance.init(
-            env_ptr.ref(),
-            msg_ptr.ref()
-          ).values
-        ).buffer as Buffer
-      )
-    )
-
+    mock.instances[address] = {}
+    const response = await runInit({}, code, {}, msg)
     if (response.Err) {
       console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
     } else {
       console.info(JSON.stringify(response))
     }
-    throw new Error('TODO')
+    throw 'TODO'
     return {
       chainId: this.chain.id,
       codeId,
@@ -279,3 +211,36 @@ export const Mocks = {
 //const HandleResponse = Vector('u8')
 
 //const QueryResponse  = Vector('u8')
+
+export class Mocknet extends Chain {
+
+  id    = 'Mocknet'
+
+  Agent = MockAgent
+
+  mock = {
+    codeId:    0,
+    uploads:   {},
+    contracts: {},
+    instances: {},
+    env: () => ({
+      db_read              (...args:any) { console.debug('db_read',     args) },
+      db_write             (...args:any) { console.debug('db_write',    args) },
+      db_remove            (...args:any) { console.debug('db_remove',   args) },
+      canonicalize_address (...args:any) { console.debug('canonize',    args) },
+      humanize_address     (...args:any) { console.debug('humanize',    args) },
+      query_chain          (...args:any) { console.debug('query_chain', args) }
+    })
+  }
+
+  setStateDirs ({ statePath }) {}
+
+  async getAgent (name: string) { return new MockAgent(this, name) }
+
+  assertContractExists (address: string) {
+    if (!this.mock.contracts[address]) {
+      throw new Error(`No contract at ${address}`)
+    }
+  }
+
+}

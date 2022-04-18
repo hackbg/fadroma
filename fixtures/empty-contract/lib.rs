@@ -25,11 +25,11 @@ pub(crate) fn query<S: Storage, A: Api, Q: Querier>(
 }
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum InitMsg {}
+pub struct InitMsg {}
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum HandleMsg {}
+pub enum HandleMsg { Echo }
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum QueryMsg {}
+pub enum QueryMsg { Echo }
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {

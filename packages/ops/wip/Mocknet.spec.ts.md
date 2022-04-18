@@ -14,17 +14,33 @@ import { resolve, dirname, fileURLToPath, readFileSync } from '@hackbg/toolbox'
 import { runInit, runHandle, runQuery } from './Mocknet'
 const fixture = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../../fixtures', x)
 const contract = readFileSync(fixture('empty@HEAD.wasm'))
+const mockEnv = () => ({
+  block: {
+    height:   0,
+    time:     0,
+    chain_id: "mock"
+  },
+  message: {
+    sender:  "secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    sent_funds: []
+  },
+  contract: {
+    address: "secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  contract_key: "",
+  contract_code_hash: ""
+})
 test({
   async "runInit" () {
-    const result = await runInit({}, contract, {}, {})
-    console.log(result)
+    const result = await runInit({}, contract, mockEnv(), {})
+    console.log(JSON.stringify(result))
   }
   async "runHandle" () {
-    const result = await runHandle({}, contract, {}, {})
+    const result = await runHandle({}, contract, mockEnv(), "null")
     console.log(result)
   }
   async "runQuery" () {
-    const result = await runQuery({}, contract, {})
+    const result = await runQuery({}, contract, "echo")
     console.log(result)
   }
 })
