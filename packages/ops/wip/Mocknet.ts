@@ -3,7 +3,7 @@ import { Chain, Agent, Artifact, Template, Instance } from '@fadroma/ops'
 import { URL } from 'url'
 import WASMFFI from 'wasm-ffi'
 
-const { Wrapper, Struct, StringPointer } = WASMFFI
+const { Wrapper, Struct, StringPointer, types } = WASMFFI
 const console = Console('@fadroma/mocknet')
 
 export class Mocknet extends Chain {
@@ -72,30 +72,37 @@ const instance = this.chain.mock.instances[address] = new Wrapper({
 }).use((await WebAssembly.instantiate(content, { env: this.chain.mock.env() })).instance)
  */
 
+const tStrPtr = { ...types.string, type: types.string }
+
+const decoder = new TextDecoder()
+
 export async function runInit (world, code, env, msg) {
-  const wrap = new Wrapper({ init: ['string', ['uint32', 'uint32']] })
+  const wrap = new Wrapper({ init: ['uint32', ['uint32', 'uint32']] })
   const inst = await WebAssembly.instantiate(code, { env: world })
   const used = wrap.use(inst.instance)
   const envPtr = wrap.utils.writeString(JSON.stringify(env))
   const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
-  return used.init(envPtr, msgPtr)
+  const retPtr = used.init(envPtr, msgPtr)
+  return decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view)
 }
 
 export async function runHandle (world, code, env, msg) {
-  const wrap = new Wrapper({ handle: ['string', ['uint32', 'uint32']] })
+  const wrap = new Wrapper({ handle: ['uint32', ['uint32', 'uint32']] })
   const inst = await WebAssembly.instantiate(code, { env: world })
   const used = wrap.use(inst.instance)
   const envPtr = wrap.utils.writeString(JSON.stringify(env))
   const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
-  return used.handle(envPtr)
+  const retPtr = used.handle(envPtr, msgPtr)
+  return decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view)
 }
 
 export async function runQuery (world, code, env, msg) {
-  const wrap = new Wrapper({ query: ['string', ['uint32']] })
+  const wrap = new Wrapper({ query: ['uint32', ['uint32']] })
   const inst = await WebAssembly.instantiate(code, { env: world })
   const used = wrap.use(inst.instance)
   const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
-  return used.query(msgPtr)
+  const retPtr = used.query(msgPtr)
+  return decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view)
 }
 
 export class MockAgent extends Agent {

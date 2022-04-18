@@ -36,6 +36,7 @@ test({
 import { Mocknet, MockAgent } from './Mocknet'
 test({
   async "can initialize and create agent" () {
+    throw 'TODO'
     const chain = new Mocknet()
     const agent = await chain.getAgent({})
     assert(agent instanceof MockAgent)
@@ -48,6 +49,7 @@ test({
 ```typescript
 test({
   async 'can upload wasm blob, returning code id' () {
+    throw 'TODO'
     const agent = await new Mocknet().getAgent()
     const artifact = { location: fixture('token.wasm') }
     const template = await agent.upload(artifact)
@@ -64,6 +66,7 @@ test({
 ```typescript
 test({
   async 'init from valid code ID' () {
+    throw 'TODO'
     const agent = await new Mocknet().getAgent()
     const instance = await agent.instantiate(
       await agent.upload({ location: fixture('token.wasm') }),
@@ -72,6 +75,7 @@ test({
     )
   }
   async 'init from missing code ID' () {
+    throw 'TODO'
     const chain = new Mocknet()
     const agent = await chain.getAgent()
     const template = { chainId: 'Mocknet', codeId: '2' }
@@ -87,12 +91,14 @@ test({
 import { Client } from '../Client'
 test({
   async 'can query' () {
+    throw 'TODO'
     const chain = new Mocknet()
     const agent = await chain.getAgent()
     const client = new Client({agent})
     await client.query({})
   },
   async 'can transact' () {
+    throw 'TODO'
     const chain = new Mocknet()
     const agent = await chain.getAgent()
     const client = new Client({agent})
