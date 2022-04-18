@@ -27,7 +27,7 @@ pub(crate) fn query<S: Storage, A: Api, Q: Querier>(
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub struct InitMsg {}
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum HandleMsg { Echo }
+pub enum HandleMsg { Null }
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub enum QueryMsg { Echo }
 

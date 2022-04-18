@@ -12,8 +12,8 @@ export default MocknetSpec
 ```typescript
 import { resolve, dirname, fileURLToPath, readFileSync } from '@hackbg/toolbox'
 import { Contract } from './Mocknet'
-const fixture = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../../fixtures', x)
-const code = readFileSync(fixture('empty@HEAD.wasm'))
+const fixture = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../..', x)
+const code = readFileSync(fixture('examples/empty-contract/artifacts/empty@HEAD.wasm'))
 const mockEnv = () => ({
   block: {
     height:   0,
@@ -33,7 +33,7 @@ const mockEnv = () => ({
 test({
   async "Contract#init" ({ equal }) {
     const contract = await Contract.load(code)
-    const result = contract.init(mockEnv(), null)
+    const result = contract.init(mockEnv(), {})
     equal(result.Err, undefined)
   }
   async "Contract#handle" ({ equal }) {
