@@ -67,6 +67,53 @@ export class Contract {
   }
 }
 
+export class Mocknet extends Chain {
+  id    = 'fadroma-mocknet'
+  Agent = MockAgent
+  mock  = {
+    codeId:    0,
+    uploads:   {},
+    contracts: {},
+    instances: {},
+    env: (
+      senderAddress,
+      contractAddress,
+      codeHash = this.mock.contracts[contractAddress].codeHash,
+      now      = + new Date()
+    ) => ({
+      block: {
+        height:   Math.floor(now/5000),
+        time:     Math.floor(now/1000),
+        chain_id: "mock"
+      },
+      message: {
+        sender: senderAddress,
+        sent_funds: []
+      },
+      contract: {
+        address: contractAddress
+      },
+      contract_key: "",
+      contract_code_hash: codeHash
+    }),
+    world: () => ({
+      db_read              (...args:any) { console.debug('db_read',     args) },
+      db_write             (...args:any) { console.debug('db_write',    args) },
+      db_remove            (...args:any) { console.debug('db_remove',   args) },
+      canonicalize_address (...args:any) { console.debug('canonize',    args) },
+      humanize_address     (...args:any) { console.debug('humanize',    args) },
+      query_chain          (...args:any) { console.debug('query_chain', args) }
+    })
+  }
+  setStateDirs ({ statePath }) {}
+  async getAgent (name: string) { return new MockAgent(this, name) }
+  assertContractExists (address: string) {
+    if (!this.mock.contracts[address]) {
+      throw new Error(`No contract at ${address}`)
+    }
+  }
+}
+
 export class MockAgent extends Agent {
 
   static create (chain: Mocknet) { return new MockAgent(chain, 'MockAgent') }
@@ -80,35 +127,37 @@ export class MockAgent extends Agent {
 
   defaultDenomination = 'umock'
 
-  async upload (artifact: Artifact): Promise<Template> {
+  async upload ({ location, codeHash }: Artifact): Promise<Template> {
     const codeId  = ++this.chain.mock.codeId
-    const content = this.chain.mock.uploads[codeId] = readFileSync(artifact.location)
+    const content = this.chain.mock.uploads[codeId] = readFileSync(location)
     return {
       chainId: this.chain.id,
-      codeId:  String(codeId)
+      codeId:  String(codeId),
+      codeHash
     }
   }
 
   Bundle = null
 
-  async doInstantiate ({ codeId }: Template, label, msg, funds = []): Promise<Instance> {
+  async doInstantiate ({ codeId, codeHash }: Template, label, msg, funds = []): Promise<Instance> {
     const { mock } = this.chain
-
+    const code = mock.uploads[codeId]
     if (!code) {
       throw new Error(`No code with id ${codeId}`)
     }
-    const address = `mocknet1${Math.floor(Math.random()*1000000)}`
-    mock.instances[address] = {}
-    const response = await runInit({}, code, {}, msg)
+    const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
+    const contract = await Contract.load(code)
+    const response = contract.init(mock.env(this.address, address, codeHash), msg)
     if (response.Err) {
       console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
+      throw 'TODO error handling'
     } else {
-      console.info(JSON.stringify(response))
+      mock.instances[address] = contract
     }
-    throw 'TODO'
     return {
       chainId: this.chain.id,
       codeId,
+      codeHash,
       address,
       label
     }
@@ -175,77 +224,11 @@ export const Mocks = {
 
   Chains: {
     Mocknet () {
-      const id = 'mocknet'
+      const id = 'fadroma-mocknet'
       return new Mocknet(id, {
         apiURL:    new URL('mock://mock:0'),
         statePath: `/tmp/fadroma_mocknet_${Math.floor(Math.random()*1000000)}`
       })
-    }
-  }
-
-}
-
-//const { Struct, StringPointer, rust: { vector: Vector } } = WASMFFI
-
-//const Coin = new Struct({
-  //denom:  'string',
-  //amount: 'string'
-//})
-
-//const BlockInfo = new Struct({
-  //height: 'u64',
-  //time:   'u64'
-//})
-
-//const MessageInfo  = new Struct({
-  //sender:     'string',
-  //sent_funds: Vector(Coin)
-//})
-
-//const ContractInfo = new Struct({
-  //address: 'string'
-//})
-
-//const Env = new Struct({
-  //block:    BlockInfo,
-  //message:  MessageInfo,
-  //contract: ContractInfo
-//})
-
-//const InitResponse   = Vector('u8')
-
-//const HandleResponse = Vector('u8')
-
-//const QueryResponse  = Vector('u8')
-
-export class Mocknet extends Chain {
-
-  id    = 'Mocknet'
-
-  Agent = MockAgent
-
-  mock = {
-    codeId:    0,
-    uploads:   {},
-    contracts: {},
-    instances: {},
-    env: () => ({
-      db_read              (...args:any) { console.debug('db_read',     args) },
-      db_write             (...args:any) { console.debug('db_write',    args) },
-      db_remove            (...args:any) { console.debug('db_remove',   args) },
-      canonicalize_address (...args:any) { console.debug('canonize',    args) },
-      humanize_address     (...args:any) { console.debug('humanize',    args) },
-      query_chain          (...args:any) { console.debug('query_chain', args) }
-    })
-  }
-
-  setStateDirs ({ statePath }) {}
-
-  async getAgent (name: string) { return new MockAgent(this, name) }
-
-  assertContractExists (address: string) {
-    if (!this.mock.contracts[address]) {
-      throw new Error(`No contract at ${address}`)
     }
   }
 

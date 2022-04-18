@@ -12,8 +12,9 @@ export default MocknetSpec
 ```typescript
 import { resolve, dirname, fileURLToPath, readFileSync } from '@hackbg/toolbox'
 import { Contract } from './Mocknet'
-const fixture = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../..', x)
-const code = readFileSync(fixture('examples/empty-contract/artifacts/empty@HEAD.wasm'))
+const fixture           = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../..', x)
+const emptyContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
+const emptyContractWasm = readFileSync(emptyContract)
 const mockEnv = () => ({
   block: {
     height:   0,
@@ -32,17 +33,17 @@ const mockEnv = () => ({
 })
 test({
   async "Contract#init" ({ equal }) {
-    const contract = await Contract.load(code)
+    const contract = await Contract.load(emptyContractWasm)
     const result = contract.init(mockEnv(), {})
     equal(result.Err, undefined)
   }
   async "Contract#handle" ({ equal }) {
-    const contract = await Contract.load(code)
+    const contract = await Contract.load(emptyContractWasm)
     const result = contract.handle(mockEnv(), "Null")
     equal(result.Err, undefined)
   }
   async "Contract#query" ({ equal }) {
-    const contract = await Contract.load(code)
+    const contract = await Contract.load(emptyContractWasm)
     const result = await contract.query("Echo")
     equal(result.Err, undefined)
   }
@@ -55,7 +56,6 @@ test({
 import { Mocknet, MockAgent } from './Mocknet'
 test({
   async "can initialize and create agent" () {
-    throw 'TODO'
     const chain = new Mocknet()
     const agent = await chain.getAgent({})
     assert(agent instanceof MockAgent)
@@ -68,9 +68,8 @@ test({
 ```typescript
 test({
   async 'can upload wasm blob, returning code id' () {
-    throw 'TODO'
     const agent = await new Mocknet().getAgent()
-    const artifact = { location: fixture('token.wasm') }
+    const artifact = { location: emptyContract }
     const template = await agent.upload(artifact)
     assert(template.chainId === agent.chain.id)
     const template2 = await agent.upload(artifact)
@@ -84,22 +83,17 @@ test({
 
 ```typescript
 test({
-  async 'init from valid code ID' () {
-    throw 'TODO'
-    const agent = await new Mocknet().getAgent()
-    const instance = await agent.instantiate(
-      await agent.upload({ location: fixture('token.wasm') }),
-      'test',
-      {}
-    )
+  async 'upload and init from resulting code ID' () {
+    const chain    = new Mocknet()
+    const agent    = await chain.getAgent()
+    const template = await agent.upload({ location: emptyContract, codeHash: 'something' })
+    const instance = await agent.instantiate(template, 'test', {})
   }
-  async 'init from missing code ID' () {
-    throw 'TODO'
+  async 'init from missing code ID' ({ rejects }) {
     const chain = new Mocknet()
     const agent = await chain.getAgent()
     const template = { chainId: 'Mocknet', codeId: '2' }
-    const error = await agent.instantiate(template, 'test', {}).catch(e=>e)
-    assert(error instanceof Error)
+    rejects(agent.instantiate(template, 'test', {}))
   }
 })
 ```
@@ -110,14 +104,12 @@ test({
 import { Client } from '../Client'
 test({
   async 'can query' () {
-    throw 'TODO'
     const chain = new Mocknet()
     const agent = await chain.getAgent()
     const client = new Client({agent})
     await client.query({})
   },
   async 'can transact' () {
-    throw 'TODO'
     const chain = new Mocknet()
     const agent = await chain.getAgent()
     const client = new Client({agent})
