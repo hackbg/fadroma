@@ -1,65 +1,13 @@
 import { readFileSync, decode, Console, bold, colors, } from '@hackbg/toolbox'
 import { Chain, Agent, Artifact, Template, Instance } from '@fadroma/ops'
 import { URL } from 'url'
-import WASMFFI from 'wasm-ffi'
 
-const { Wrapper, Struct, StringPointer, types } = WASMFFI
 const console = Console('@fadroma/mocknet')
-
-/*
-const instance = this.chain.mock.instances[address] = new Wrapper({
-  init:   [InitResponse,   [Env, strptr()]],
-  handle: [HandleResponse, [Env, strptr()]],
-  query:  [QueryResponse,  [strptr()]]
-}).use((await WebAssembly.instantiate(content, { env: this.chain.mock.env() })).instance)
- */
-
-const tStrPtr = { ...types.string, type: types.string }
 
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()
 
 export class Contract {
-  static async load (code) {
-    const { instance } = await WebAssembly.instantiate(code)
-    return new this({}, instance)
-  }
-  wrapper = new Wrapper({
-    init:   ['uint32', ['uint32', 'uint32']],
-    handle: ['uint32', ['uint32', 'uint32']],
-    query:  ['uint32', ['uint32']],
-  })
-  constructor (
-    public readonly world,
-    public readonly instance
-  ) {
-    this.wrapper.use(instance)
-  }
-  init (env, msg) {
-    return this.read(this.wrapper.init(this.pass(env), this.pass(msg)))
-  }
-  handle (env, msg) {
-    return this.read(this.wrapper.handle(this.pass(env), this.pass(msg)))
-  }
-  query (env, msg) {
-    return this.read(this.wrapper.query(this.pass(env)))
-  }
-  private pass (data) {
-    const dataStr = JSON.stringify(data)
-    const dataBuf = this.wrapper.utils.encodeString(dataStr)
-    const dataLen = dataBuf.byteLength
-    const dataPtr = this.wrapper.__allocate(dataBuf.byteLength+1000)
-    return dataPtr
-  }
-  private read (ptr) {
-    const retVal = this.wrapper.utils.readPointer(ptr, tStrPtr).view
-    const retStr = decoder.decode(retVal).replace(/\0$/, '')
-    const retObj = JSON.parse(retStr)
-    return retObj
-  }
-}
-
-export class Contract2 {
   static async load (code) {
     const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
     const { instance } = await WebAssembly.instantiate(code, { memory })
@@ -91,10 +39,14 @@ export class Contract2 {
   }
   /** [1] https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
   private pass (data) {
-    const dataString = JSON.stringify(data) + '\0'
+    const dataString = JSON.stringify(data)
     const dataBufPtr = this.instance.exports.allocate(dataString.length)
     const { buffer } = this.instance.exports.memory // must be after allocation - see [1]
-    const dataOffset = new Uint32Array(buffer)[dataBufPtr/4]
+    const u32a = new Uint32Array(buffer)
+    const dataOffset = u32a[dataBufPtr/4]
+    const dataCapaci = u32a[dataBufPtr/4+1]
+    const dataLength = u32a[dataBufPtr/4+2]
+    u32a[dataBufPtr/4+2] = u32a[dataBufPtr/4+1] // set length to capacity
     const dataBinStr = encoder.encode(dataString)
     new Uint8Array(buffer).set(dataBinStr, dataOffset)
     return dataBufPtr
@@ -112,53 +64,8 @@ export class Contract2 {
     return retObj
   }
   private drop (ptr) {
-    // TODO!
-    // this.instance.exports.deallocate(ptr)
+    this.instance.exports.deallocate(ptr)
   }
-}
-
-export const Region = new Struct({
-  offset:   'uint32',
-  capacity: 'uint32',
-  length:   'uint32'
-})
-
-export function pass (wrap, data: any = "") {
-  //const dataStr = JSON.stringify(data)
-  const dataStr = "                  {}                      \0"
-  const dataBuf = wrap.utils.encodeString(dataStr)
-  const dataLen = dataBuf.byteLength
-  const dataPtr = wrap.__allocate(dataBuf.byteLength+1000)
-  //const dataReg = new Region({ offset: dataPtr, capacity: dataLen, length: dataLen })
-  //const dataRegPtr = wrap.utils.writeStruct(dataReg, Region)
-  return dataPtr
-}
-
-export async function runInit (world, code, env, msg) {
-  const wrap = new Wrapper({ init: ['uint32', ['string', 'string']] })
-  const inst = await WebAssembly.instantiate(code)
-  const used = wrap.use(inst.instance)
-  const retPtr = used.init(pass(wrap, env), pass(wrap, msg))
-  const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')
-  return JSON.parse(retVal)
-}
-
-export async function runHandle (world, code, env, msg) {
-  const wrap = new Wrapper({ handle: ['uint32', ['uint32', 'uint32']] })
-  const inst = await WebAssembly.instantiate(code)
-  const used = wrap.use(inst.instance)
-  const retPtr = used.handle(pass(wrap, env), pass(wrap, msg))
-  const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')
-  return JSON.parse(retVal)
-}
-
-export async function runQuery (world, code, env, msg) {
-  const wrap = new Wrapper({ query: ['uint32', ['uint32']] })
-  const inst = await WebAssembly.instantiate(code)
-  const used = wrap.use(inst.instance)
-  const retPtr = used.query(pass(wrap, msg))
-  const retVal = decoder.decode(wrap.utils.readPointer(retPtr, tStrPtr).view).replace('\0', '')
-  return JSON.parse(retVal)
 }
 
 export class MockAgent extends Agent {

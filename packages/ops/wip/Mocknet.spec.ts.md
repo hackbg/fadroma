@@ -11,7 +11,7 @@ export default MocknetSpec
 
 ```typescript
 import { resolve, dirname, fileURLToPath, readFileSync } from '@hackbg/toolbox'
-import { Contract, Contract2, runInit, runHandle, runQuery } from './Mocknet'
+import { Contract } from './Mocknet'
 const fixture = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../../fixtures', x)
 const code = readFileSync(fixture('empty@HEAD.wasm'))
 const mockEnv = () => ({
@@ -31,28 +31,17 @@ const mockEnv = () => ({
   contract_code_hash: ""
 })
 test({
-  async "runInit" ({ equal }) {
-    throw 'TODO'
-    const result = await runInit({}, code, {}, {})
-    equal(result.Err, undefined)
-  }
   async "Contract#init" ({ equal }) {
-    throw 'TODO'
     const contract = await Contract.load(code)
-    const result = contract.init({}, {})
+    const result = contract.init(mockEnv(), null)
     equal(result.Err, undefined)
   }
-  async "Contract2#init" ({ equal }) {
-    const contract = await Contract2.load(code)
-    const result = contract.init(mockEnv(), {})
-    equal(result.Err, undefined)
-  }
-  async "runHandle" ({ equal }) {
+  async "Contract#handle" ({ equal }) {
     throw 'TODO'
     const result = await runHandle({}, contract, {}, "null")
     equal(result.Err, undefined)
   }
-  async "runQuery" ({ equal }) {
+  async "Contract#query" ({ equal }) {
     throw 'TODO'
     const result = await runQuery({}, contract, "echo")
     equal(result.Err, undefined)
