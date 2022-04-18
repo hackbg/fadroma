@@ -7,6 +7,29 @@ const test = tests => Object.assign(MocknetSpec, tests)
 export default MocknetSpec
 ```
 
+## Can run WASM blob
+
+```typescript
+import { resolve, dirname, fileURLToPath, readFileSync } from '@hackbg/toolbox'
+import { runInit, runHandle, runQuery } from './Mocknet'
+const fixture = x => resolve(dirname(fileURLToPath(import.meta.url)), '../../../fixtures', x)
+const contract = readFileSync(fixture('empty@HEAD.wasm'))
+test({
+  async "runInit" () {
+    const result = await runInit({}, contract, {}, {})
+    console.log(result)
+  }
+  async "runHandle" () {
+    const result = await runHandle({}, contract, {}, {})
+    console.log(result)
+  }
+  async "runQuery" () {
+    const result = await runQuery({}, contract, {})
+    console.log(result)
+  }
+})
+```
+
 ## Can initialize and provide agent
 
 ```typescript
@@ -23,12 +46,10 @@ test({
 ## Can upload WASM blob, returning code ID
 
 ```typescript
-import { resolve, dirname, fileURLToPath } from './index.ts'
-const __dirname = dirname(fileURLToPath(import.meta.url)
 test({
   async 'can upload wasm blob, returning code id' () {
     const agent = await new Mocknet().getAgent()
-    const artifact = { location: resolve(__dirname, '.fixtures/null.wasm') }
+    const artifact = { location: fixture('token.wasm') }
     const template = await agent.upload(artifact)
     assert(template.chainId === agent.chain.id)
     const template2 = await agent.upload(artifact)
@@ -45,7 +66,7 @@ test({
   async 'init from valid code ID' () {
     const agent = await new Mocknet().getAgent()
     const instance = await agent.instantiate(
-      await agent.upload({ location: resolve(__dirname, '.fixtures/null.wasm') }),
+      await agent.upload({ location: fixture('token.wasm') }),
       'test',
       {}
     )
@@ -63,7 +84,7 @@ test({
 ## Can query and transact with contract
 
 ```typescript
-import { Client } from './Client'
+import { Client } from '../Client'
 test({
   async 'can query' () {
     const chain = new Mocknet()

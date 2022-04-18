@@ -1,19 +1,17 @@
-import {
-  readFileSync, decode, Console, bold, colors,
-} from '@hackbg/toolbox'
-
-import {
-  Chain, Agent, Artifact, Template, Instance
-} from '@fadroma/ops'
-
-import WASMFFI from 'wasm-ffi'
+import { readFileSync, decode, Console, bold, colors, } from '@hackbg/toolbox'
+import { Chain, Agent, Artifact, Template, Instance } from '@fadroma/ops'
 import { URL } from 'url'
+import WASMFFI from 'wasm-ffi'
 
+const { Wrapper, Struct, StringPointer } = WASMFFI
 const console = Console('@fadroma/mocknet')
 
 export class Mocknet extends Chain {
+
   id    = 'Mocknet'
+
   Agent = MockAgent
+
   mock = {
     codeId:    0,
     uploads:   {},
@@ -28,7 +26,9 @@ export class Mocknet extends Chain {
       query_chain          (...args:any) { console.debug('query_chain', args) }
     })
   }
+
   setStateDirs ({ statePath }) {}
+
   async getAgent (name: string) { return new MockAgent(this, name) }
 
   assertContractExists (address: string) {
@@ -36,19 +36,81 @@ export class Mocknet extends Chain {
       throw new Error(`No contract at ${address}`)
     }
   }
+
+}
+
+const BlockInfo = new Struct({
+  height:   'uint64',
+  time:     'uint64',
+  chain_id: 'string'
+})
+
+const Coin = new Struct({
+  denom:  'string',
+  amount: 'string'
+})
+
+const MessageInfo = new Struct(
+)
+const ContractInfo = new Struct()
+
+const Env = new Struct({
+  block:    BlockInfo,
+  message:  MessageInfo,
+  contract: ContractInfo
+})
+
+const InitResponse   = new Wrapper({})
+const HandleResponse = new Wrapper({})
+const QueryResponse  = new Wrapper({})
+
+/*
+const instance = this.chain.mock.instances[address] = new Wrapper({
+  init:   [InitResponse,   [Env, strptr()]],
+  handle: [HandleResponse, [Env, strptr()]],
+  query:  [QueryResponse,  [strptr()]]
+}).use((await WebAssembly.instantiate(content, { env: this.chain.mock.env() })).instance)
+ */
+
+export async function runInit (world, code, env, msg) {
+  const wrap = new Wrapper({ init: ['string', ['uint32', 'uint32']] })
+  const inst = await WebAssembly.instantiate(code, { env: world })
+  const used = wrap.use(inst.instance)
+  const envPtr = wrap.utils.writeString(JSON.stringify(env))
+  const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
+  return used.init(envPtr, msgPtr)
+}
+
+export async function runHandle (world, code, env, msg) {
+  const wrap = new Wrapper({ handle: ['string', ['uint32', 'uint32']] })
+  const inst = await WebAssembly.instantiate(code, { env: world })
+  const used = wrap.use(inst.instance)
+  const envPtr = wrap.utils.writeString(JSON.stringify(env))
+  const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
+  return used.handle(envPtr)
+}
+
+export async function runQuery (world, code, env, msg) {
+  const wrap = new Wrapper({ query: ['string', ['uint32']] })
+  const inst = await WebAssembly.instantiate(code, { env: world })
+  const used = wrap.use(inst.instance)
+  const msgPtr = wrap.utils.writeString(JSON.stringify(msg))
+  return used.query(msgPtr)
 }
 
 export class MockAgent extends Agent {
+
   static create (chain: Mocknet) { return new MockAgent(chain, 'MockAgent') }
-  constructor (
-    readonly chain: Mocknet,
-    readonly name:  string = 'mock'
-  ) {
+
+  constructor (readonly chain: Mocknet, readonly name: string = 'mock') {
     super()
     this.address = this.name
   }
+
   address: string
+
   defaultDenomination = 'umock'
+
   async upload (artifact: Artifact): Promise<Template> {
     const codeId  = ++this.chain.mock.codeId
     const content = this.chain.mock.uploads[codeId] = readFileSync(artifact.location)
@@ -57,20 +119,28 @@ export class MockAgent extends Agent {
       codeId:  String(codeId)
     }
   }
+
   Bundle = null
+
   async doInstantiate ({ codeId }: Template, label, msg, funds = []): Promise<Instance> {
+
     const content = this.chain.mock.uploads[codeId]
     if (!content) {
       throw new Error(`No code with id ${codeId}`)
     }
-    const address = `mocknet1${Math.floor(Math.random()*1000000)}`
+
     const strptr = () => 'u32'
-    const instance = this.chain.mock.instances[address] = new WASMFFI.Wrapper({
+
+    const wrapper = new Wrapper({
       init:   [InitResponse,   [Env, strptr()]],
       handle: [HandleResponse, [Env, strptr()]],
       query:  [QueryResponse,  [strptr()]]
-    }).use((await WebAssembly.instantiate(content, { env: this.chain.mock.env() })).instance)
-    const env_ptr = new WASMFFI.StringPointer('{}')
+    })
+
+    const wasm = await WebAssembly.instantiate(content, { env: this.chain.mock.env() }))
+    const address = `mocknet1${Math.floor(Math.random()*1000000)}`
+    const instance = this.chain.mock.instances[address] = wrapper.use(wasm.instance)
+    const env_ptr = new StringPointer('{}')
     instance.utils.allocate(env_ptr)
     const msg_ptr = new WASMFFI.StringPointer('{}')
     instance.utils.allocate(msg_ptr)
@@ -98,6 +168,7 @@ export class MockAgent extends Agent {
       label
     }
   }
+
   doQuery ({ address }: Instance, msg: any) {
     this.chain.assertContractExists(address)
     const codeId = this.chain.mock.contracts[address]
@@ -105,40 +176,52 @@ export class MockAgent extends Agent {
     console.log(code)
     return Promise.resolve({})
   }
+
   doExecute ({ address }: Instance, msg: any, _3: any, _4?: any, _5?: any) {
     this.chain.assertContractExists(address)
     return Promise.resolve({})
   }
+
   get nextBlock () {
     return Promise.resolve()
   }
+
   get block () {
     return Promise.resolve(0)
   }
+
   get account () {
     return Promise.resolve()
   }
+
   get balance () {
     return Promise.resolve(0)
   }
+
   getBalance (_: string) {
     return Promise.resolve(0)
   }
+
   send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) {
     return Promise.resolve()
   }
+
   sendMany (_1:any, _2:any, _3?:any, _4?:any) {
     return Promise.resolve()
   }
+
   getCodeHash (_: any) {
     return Promise.resolve("SomeCodeHash")
   }
+
   getCodeId (_: any) {
     return Promise.resolve(1)
   }
+
   getLabel (_: any) {
     return Promise.resolve("SomeLabel")
   }
+
 }
 
 export const Mocks = {
