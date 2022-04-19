@@ -39,19 +39,23 @@ jobs:
               args: [--frozen-lockfile, --strict-peer-dependencies]
 
       - name: Generate JS documentation
-        run: pnpm document
+        run:
+          - pnpm document
 
       - name: Publish
         if:   github.ref == env.default_branch_ref
         run: |
           ls
           rm .gitignore
-          cp -r doc/* target/doc/
+          mkdir .docs
+          cp -r target/doc .docs/rs
+          cp -r docs .docs/js
+          cp -r doc/* .docs/
           tar -cvf target/doc/nix shell.nix
-          echo "fadroma.tech" > target/doc/CNAME
-          git add -f target/doc/
+          echo "fadroma.tech" > .docs/CNAME
+          git add -f .docs
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
           git commit -m "🤖 built docs @ $(date -u)"
-          git subtree split --branch gh-pages --prefix target/doc/
+          git subtree split --branch gh-pages --prefix .docs
           git push --force origin gh-pages
