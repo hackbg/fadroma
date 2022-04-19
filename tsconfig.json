@@ -1,4 +1,5 @@
 {
+  "exclude": [ "**/*.spec.ts" ],
   "compilerOptions": {
     "target": "es2020",
     "module": "es2020",
@@ -6,6 +7,6 @@
     "inlineSourceMap": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "lib": ["ES2020", "node"]
+    "lib": ["ES2020"]
   }
 }
