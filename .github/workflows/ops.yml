@@ -6,7 +6,7 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
-        with: { submodules: true }
+        with: { submodules: recursive }
       - name: Install PNPM and deps
         uses: pnpm/action-setup@v2.0.1
         with:
