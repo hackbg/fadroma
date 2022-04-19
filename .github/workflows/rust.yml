@@ -2,32 +2,32 @@ on: [push, pull_request]
 name: Rust docs and tests+coverage
 jobs:
 
-  docs:
-    name: Rust documentation
-    runs-on: ubuntu-latest
-    steps:
+  #docs:
+    #name: Rust documentation
+    #runs-on: ubuntu-latest
+    #steps:
 
-      - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          {
-            profile: minimal,
-            toolchain: 1.58.1,
-            target: wasm32-unknown-unknown,
-            override: true,
-          }
+      #- name: Install stable toolchain
+        #uses: actions-rs/toolchain@v1
+        #with:
+          #{
+            #profile: minimal,
+            #toolchain: 1.58.1,
+            #target: wasm32-unknown-unknown,
+            #override: true,
+          #}
 
-      - name: Checkout sources
-        uses: actions/checkout@v2
-        with: { submodules: true }
+      #- name: Checkout sources
+        #uses: actions/checkout@v2
+        #with: { submodules: true }
 
-      - name: Prepare workspace
-        run: cp Workspace.toml Cargo.toml
+      #- name: Prepare workspace
+        #run: cp Workspace.toml Cargo.toml
 
-      - uses: Swatinem/rust-cache@v1
+      #- uses: Swatinem/rust-cache@v1
 
-      - name: Generate documentation
-        run: cargo doc
+      #- name: Generate documentation
+        #run: cargo doc
 
   coverage:
     name: Run unit tests and publish coverage report
