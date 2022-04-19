@@ -48,11 +48,12 @@ jobs:
           ls
           rm .gitignore
           mkdir .docs
-          cp -r target/doc .docs/rs
-          cp -r docs .docs/js
-          cp -r doc/* .docs/
-          tar -cvf target/doc/nix shell.nix
+          cp -rv ./target/doc .docs/rs
+          cp -rv ./docs .docs/js
+          cp -rv ./doc/* .docs/
+          tar -cvf .docs/nix shell.nix
           echo "fadroma.tech" > .docs/CNAME
+          ls -al .docs
           git add -f .docs
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
