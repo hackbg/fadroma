@@ -113,10 +113,12 @@ export class DockerImage {
 /** The caveman solution to detecting when the node is ready to start receiving requests:
   * trail node logs until a certain string is encountered */
 export function waitUntilLogsSay (
-  container  = { id: null, logs: null },
-  expected   = '',
-  thenDetach = true
+  container   = { id: null, logs: () => { throw new Error('pass a container') } },
+  expected    = '',
+  thenDetach  = true,
+  waitSeconds = 7
 ) {
+  console.info('Waiting for logs to say:', expected)
   return new Promise((ok, fail)=>{
     container.logs({ stdout: true, stderr: true, follow: true, tail: 100 }, (err, stream) => {
       if (err) return fail(err)
@@ -129,9 +131,8 @@ export function waitUntilLogsSay (
         }
         if (dataStr.indexOf(expected)>-1) {
           if (thenDetach) stream.destroy()
-          const seconds = 7
-          console.info(bold(`Waiting ${seconds} seconds`), `for good measure...`)
-          return setTimeout(ok, seconds * 1000)
+          console.info(bold(`Waiting ${waitSeconds} seconds`), `for good measure...`)
+          return setTimeout(ok, waitSeconds * 1000)
         }
       })
     })
