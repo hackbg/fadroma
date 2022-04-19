@@ -30,6 +30,9 @@
     "tmp":                 "^0.2.1",
     "wait-port":           "^0.2.9"
   },
+  "devDependencies": {
+    "dts-gen": "^0.6.0"
+  },
   "workspace": true,
   "packages": [
     "./dokeres",
