@@ -236,16 +236,16 @@ export class Deployments extends Directory {
     }
     if (list.length > 0) {
       console.info(bold(`Known deployments:`))
-      for (let instance of chain.deployments.list()) {
-        if (instance === chain.deployments.KEY) {
+      for (let deployment of chain.deployments.list()) {
+        if (deployment === chain.deployments.KEY) {
           continue
         }
-        const count = Object.keys(chain.deployments.get(instance).receipts).length
-        if (chain.deployments.active && chain.deployments.active.prefix === instance) {
-          instance = `${bold(instance)} (selected)`
+        const count = Object.keys(chain.deployments.get(deployment).receipts).length
+        if (chain.deployments.active && chain.deployments.active.prefix === deployment) {
+          deployment = `${bold(deployment)} (selected)`
         }
-        instance = `${instance} (${count} contracts)`
-        console.info(` `, instance)
+        deployment = `${deployment} (${count} contracts)`
+        console.info(` `, deployment)
       }
     }
     console.log()

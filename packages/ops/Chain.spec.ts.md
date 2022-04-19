@@ -58,9 +58,9 @@ test({
 
 ```typescript
 test({
-  async 'Chain#getNonce must be implemented in subclass' ({ rejects }) {
+  'Chain#getNonce must be implemented in subclass' ({ throws }) {
     const chain = new Chain('chainid')
-    await rejects(chain.getNonce())
+    throws(()=>chain.getNonce())
   },
   async 'Chain#getAgent takes string only on devnet' ({ rejects, equal }) {
     const agent = Symbol()

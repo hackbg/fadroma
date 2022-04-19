@@ -73,12 +73,23 @@ test({
   async 'spawn dockerode devnet' ({ equal }) {
     await withTmpDir(async stateRoot => {
       await withTmpFile(async initScript => {
-        const docker      = mockDockerode()
+        const docker = mockDockerode(({ createContainer }) => {
+          if (createContainer) {
+            return [ null, { on (arg, cb) {
+              if (arg === 'data') {
+                cb(readyPhrase)
+              }
+            }, destroy () {} } ]
+          }
+        })
         const imageName   = basename(stateRoot)
         const image       = new DockerImage(docker, imageName)
         const readyPhrase = "I'm Freddy"
-        const devnet = new DockerodeDevnet({ stateRoot, docker, image, initScript, readyPhrase })
-        throw 'TODO'
+        class TestDockerodeDevnet extends DockerodeDevnet {
+          waitSeconds = 0.5
+          waitPort = () => Promise.resolve()
+        }
+        const devnet = new TestDockerodeDevnet({ stateRoot, docker, image, initScript, readyPhrase })
         equal(await devnet.spawn(), devnet)
       })
     })

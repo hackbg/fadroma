@@ -25,11 +25,10 @@ export function mockDockerode (callback = () => {}) {
       return [{Error:null, StatusCode:0}, Symbol()]
     },
     async createContainer (options) {
-      callback({ createContainer: options })
       return {
         id: 'mockmockmock',
         logs (options, cb) {
-          cb({})
+          cb(...(callback({ createContainer: options })||[]))
         }
       }
     },

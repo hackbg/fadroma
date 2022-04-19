@@ -8,7 +8,9 @@ import type { Chain } from './Chain'
 
 const console = Console('@fadroma/ops/Agent')
 
-export type AgentConstructor = (new (Identity) => Agent) & { create: (any) => Agent }
+export type AgentConstructor = (new (Identity) => Agent) & {
+  create: (chain: Chain, options: any) => Agent
+}
 
 export abstract class Agent implements Identity {
 
