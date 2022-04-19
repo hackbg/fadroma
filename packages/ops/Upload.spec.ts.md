@@ -11,9 +11,9 @@ export default UploadSpec
 ```typescript
 import { FSUploader } from './Upload'
 test({
-  'FSUploader.enable' ({ ok }) {
+  'construct FSUploader' ({ ok }) {
     const agent = Symbol()
-    const { uploader } = FSUploader.enable({ agent })
+    const uploader = new FSUploader(agent)
     ok(uploader.agent === agent)
   },
   async 'FSUploader#upload' ({ deepEqual }) {
@@ -83,7 +83,7 @@ const mockAgent = () => ({
 test({
   'add CachingFSUploader to migration context' ({ ok }) {
     const agent = { chain: { uploads: Symbol() } }
-    const { uploader } = CachingFSUploader.enable({ agent })
+    const uploader = new CachingFSUploader(agent)
     ok(uploader.agent === agent)
   },
   async 'upload 1 artifact with CachingFSUploader#upload' ({ ok }) {
@@ -96,7 +96,7 @@ test({
   },
   async 'upload any number of artifacts with CachingFSUploader#uploadMany' ({ ok }) {
     const agent = mockAgent()
-    const { uploader } = CachingFSUploader.enable({ agent })
+    const uploader = new CachingFSUploader(agent)
     ok(await uploader.uploadMany())
     ok(await uploader.uploadMany([]))
     await withTmpFile(async location=>{

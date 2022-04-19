@@ -72,6 +72,7 @@ export class Chain implements ChainConfig {
       }
       this.node = node
       this.node.chainId = this.id
+      this.apiURL = this.node.apiURL
     } else {
       this.apiURL = apiURL
     }

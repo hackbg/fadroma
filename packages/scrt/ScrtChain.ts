@@ -67,3 +67,9 @@ export class Scrt_1_2 extends Scrt {
     }
   }
 }
+
+Object.assign(Chain.namedChains, {
+  'Scrt_1_2_Mainnet': Scrt_1_2.chains.Mainnet,
+  'Scrt_1_2_Testnet': Scrt_1_2.chains.Testnet,
+  'Scrt_1_2_Devnet':  Scrt_1_2.chains.Devnet,
+})
