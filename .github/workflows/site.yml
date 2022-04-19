@@ -39,8 +39,8 @@ jobs:
               args: [--frozen-lockfile, --strict-peer-dependencies]
 
       - name: Generate JS documentation
-        run:
-          - pnpm document
+        run: |
+          pnpm document
 
       - name: Publish
         if:   github.ref == env.default_branch_ref

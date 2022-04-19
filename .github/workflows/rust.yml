@@ -1,5 +1,5 @@
 on: [push, pull_request]
-name: Rust docs and tests+coverage
+name: Fadroma (Rust)
 jobs:
 
   #docs:
