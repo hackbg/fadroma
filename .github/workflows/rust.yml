@@ -50,7 +50,7 @@ jobs:
         with: { submodules: true }
 
       - name: Prepare workspace
-        run: cp Workspace.toml Cargo.toml
+        run: cp _Cargo.toml Cargo.toml
 
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
