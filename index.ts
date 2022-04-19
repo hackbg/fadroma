@@ -1,12 +1,11 @@
 import {
   Console, print, bold, colors, timestamp,
-  Chain, ChainMode, Agent, Deployments,
-  MigrationContext, runMigration,
+  Chain, ChainMode, Mocknet, Agent,
+  Deployments, MigrationContext, runMigration,
   FSUploader, CachingFSUploader,
   fileURLToPath, relative,
   config,
   runCommands,
-  Mocknet
 } from '@fadroma/ops'
 
 // Reexport the main libraries
@@ -20,6 +19,8 @@ export { Scrt_1_2 }
 export type Command<T> = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
+
+Chain.namedChains['Mocknet'] = (options?) => new Mocknet('mocknet', options)
 
 // Logging interface - got one of these in each module.
 // Based on @hackbg/konzola, reexported through @fadroma/ops.

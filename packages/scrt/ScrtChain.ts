@@ -43,22 +43,24 @@ export class Scrt_1_2 extends Scrt {
   static getDevnet  = getScrtDevnet
   static getBuilder = getScrtBuilder
   static chains = {
-    async Mainnet (url = config.scrt.mainnetApiUrl) {
+    async Mainnet (options = { url: config.scrt.mainnetApiUrl }) {
       return new Scrt_1_2(config.scrt.mainnetChainId, {
-        mode: ChainMode.Mainnet,
-        apiURL: new URL(url),
+        mode:            ChainMode.Mainnet,
+        apiURL:          new URL(options.url),
         defaultIdentity: config.scrt.defaultIdentity,
       })
     },
-    async Testnet (url = config.scrt.testnetApiUrl) {
+    async Testnet (options = { url: config.scrt.testnetApiUrl }) {
       return new Scrt_1_2(config.scrt.testnetChainId, {
-        mode: ChainMode.Testnet,
-        apiURL: new URL(url),
+        mode:            ChainMode.Testnet,
+        apiURL:          new URL(options.url),
         defaultIdentity: config.scrt.defaultIdentity,
       })
     },
-    async Devnet (node) {
-      node = node || await Scrt_1_2.getDevnet().respawn()
+    async Devnet (options) {
+      const {
+        node = await Scrt_1_2.getDevnet().respawn()
+      } = options
       return new Scrt_1_2(node.chainId, {
         node,
         mode: ChainMode.Devnet,

@@ -6,6 +6,7 @@ import { Agent, AgentConstructor } from './Agent'
 import { Deployments } from './Deploy'
 import { Uploads } from './Upload'
 import { config } from './Config'
+import { Mocknet } from './Mocknet'
 
 const console = Console('@fadroma/ops/Chain')
 
@@ -24,6 +25,8 @@ export type ChainConfig = {
   apiURL?:          URL
 }
 
+export type ChainConstructor = (id: string, options?: ChainConfig)=>Chain
+
 /** Represents an interface to a particular Cosmos blockchain;
   * used to construct `Agent`s that are bound to it.
   * Can store identities of agents,
@@ -32,9 +35,10 @@ export class Chain implements ChainConfig {
 
   /** Populated in Fadroma root with connection details for
     * all Chain variants that are known to the library. */
-  static namedChains: Record<string, (options?: Chain)=>Chain> = {}
+  static namedChains: Record<string, ChainConstructor> = {}
 
-  static async getNamed (name = config.chain) {
+  static async getNamed (name = config.chain, options?) {
+    console.log({name, options})
     if (!name || !this.namedChains[name]) {
       console.error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
       console.info('Known chain names:')
@@ -43,7 +47,7 @@ export class Chain implements ChainConfig {
       }
       throw new Error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
     }
-    return await this.namedChains[name]()
+    return await this.namedChains[name](options)
   }
 
   constructor (
@@ -79,6 +83,7 @@ export class Chain implements ChainConfig {
     this.stateRoot    = new Directory(statePath)
     this.identities   = this.stateRoot.subdir('identities',   JSONDirectory)
     this.uploads      = this.stateRoot.subdir('uploads',      Uploads)
+    this.uploads.make()
     this.deployments  = this.stateRoot.subdir('deployments',  Deployments)
     this.transactions = this.stateRoot.subdir('transactions', JSONDirectory)
     this.transactions.make()

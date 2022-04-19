@@ -16,7 +16,8 @@ export class FSUploader extends Uploader {
 
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
-    console.info(bold(`Uploading:`), artifact)
+    console.info(bold(`Uploading:`), relative(cwd(), artifact.location))
+    console.info(bold(`Code hash:`), artifact.codeHash)
     const template = await this.agent.upload(artifact)
     await this.agent.nextBlock
     return {
@@ -72,6 +73,12 @@ export class CachingFSUploader extends FSUploader {
     super(agent)
   }
 
+  protected getUploadReceiptPath (artifact: Artifact): string {
+    const receiptName = `${basename(artifact.location)}.json`
+    const receiptPath = this.agent.chain.uploads.resolve(receiptName)
+    return receiptPath
+  }
+
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (artifact: Artifact): Promise<Template> {
     const receiptPath = this.getUploadReceiptPath(artifact)
@@ -80,7 +87,7 @@ export class CachingFSUploader extends FSUploader {
       return JSON.parse(receiptData)
     }
     const template = await super.upload(artifact)
-    console.info(bold(`Storing:`), receiptPath)
+    console.info(bold(`Storing:  `), relative(cwd(), receiptPath))
     await writeFile(receiptPath, JSON.stringify(template, null, 2), 'utf8')
     return template
   }
@@ -156,12 +163,6 @@ export class CachingFSUploader extends FSUploader {
 
     return templates
 
-  }
-
-  protected getUploadReceiptPath (artifact: Artifact): string {
-    const receiptName = `${basename(artifact.location)}.json`
-    const receiptPath = this.agent.chain.uploads.resolve(receiptName)
-    return receiptPath
   }
 
   /** Warns if a code hash is missing in the Artifact,

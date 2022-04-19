@@ -1,3 +1,10 @@
+# Fadroma Ops test index
+
+This file reexports a collection of test suites for `@hackbg/runspec`.
+
+Run them all with `pnpm -w test` at the root of the repo,
+or `pnpm test SuiteName` to run an individual test suite.
+
 ```javascript
 import AgentSpec   from './Agent.spec'
 import BuildSpec   from './Build.spec'
@@ -8,7 +15,7 @@ import DeploySpec  from './Deploy.spec'
 import DockerSpec  from './Docker.spec'
 import DevnetSpec  from './Devnet.spec'
 import MigrateSpec from './Migrate.spec'
-//import MocknetSpec from './Mocknet.spec'
+import MocknetSpec from './Mocknet.spec'
 import UploadSpec  from './Upload.spec'
 
 export default {
@@ -19,7 +26,7 @@ export default {
   DockerSpec,
   DevnetSpec,
   MigrateSpec,
-  //MocknetSpec,
+  MocknetSpec,
   AgentSpec,
   UploadSpec,
   BuildSpec,

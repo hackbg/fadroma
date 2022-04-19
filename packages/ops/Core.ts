@@ -163,9 +163,3 @@ export const overrideDefaults = (obj, defaults, options = {}) => {
     obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
   }
 }
-
-export function parallel (...commands) {
-  return function parallelCommands (input) {
-    return Promise.all(commands.map(command=>command(input)))
-  }
-}
