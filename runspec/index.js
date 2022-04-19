@@ -1,4 +1,5 @@
 const assert = require('assert')
+const { inspect } = require('util')
 
 Error.stackTraceLimit = 100
 
@@ -62,8 +63,10 @@ async function runSpec (suites, selected = []) {
           } else {
             output += `${FAIL}  ${name}  ${lines[0]}\n`
           }
-        } else {
+        } else if (typeof data === 'string') {
           output += `${FAIL}  ${name}  ${data}\n`
+        } else {
+          output += `${FAIL}  ${name}  ${inspect(data)}\n`
         }
         failed++
       }
