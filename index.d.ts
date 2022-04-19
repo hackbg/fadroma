@@ -75,6 +75,7 @@ declare module '@hackbg/toolbox' {
     modem: any
   }
   class DockerImage {
+    constructor (_1: Docker|undefined, _2: string, _3?: string, _4?: string[])
     name: string
     ensure: Function
   }
