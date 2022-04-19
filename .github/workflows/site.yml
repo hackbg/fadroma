@@ -24,14 +24,22 @@ jobs:
           target: wasm32-unknown-unknown
           override: true
 
-      - run: cp Workspace.toml Cargo.toml
+      - run: cp _Cargo.toml Cargo.toml
 
       - name: Generate Rust documentation
         uses: actions-rs/cargo@v1
         with: { command: doc }
 
-      #- name: Generate JS documentation
-        #run: yarn && yarn docs
+      - name: Install PNPM and deps
+        uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.14.3
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile, --strict-peer-dependencies]
+
+      - name: Generate JS documentation
+        run: pnpm document
 
       - name: Publish
         if:   github.ref == env.default_branch_ref
