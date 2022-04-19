@@ -261,11 +261,15 @@ export class DockerodeDevnet extends Devnet {
     // update the record
     this.save()
     // wait for logs to confirm that the genesis is done
-    await waitUntilLogsSay(this.container, this.readyPhrase)
+    await waitUntilLogsSay(this.container, this.readyPhrase, undefined, this.waitSeconds)
     // wait for port to be open
-    await waitPort({ host: this.host, port: Number(this.port) })
+    await this.waitPort({ host: this.host, port: Number(this.port) })
     return this
   }
+
+  protected waitSeconds = 7
+
+  protected waitPort = waitPort
 
   load (): DockerodeDevnetReceipt | null {
     const data = super.load()
