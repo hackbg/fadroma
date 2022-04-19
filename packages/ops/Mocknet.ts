@@ -29,10 +29,44 @@ const console = Console('@fadroma/mocknet')
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()
 
+/** [1] https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
+export function pass (exports, data) {
+  const dataString = JSON.stringify(data)
+  const dataBufPtr = exports.allocate(dataString.length)
+  const { buffer } = exports.memory // must be after allocation - see [1]
+  const u32a = new Uint32Array(buffer)
+  const dataOffset = u32a[dataBufPtr/4+0]
+  const dataCapaci = u32a[dataBufPtr/4+1]
+  const dataLength = u32a[dataBufPtr/4+2]
+  u32a[dataBufPtr/4+2] = u32a[dataBufPtr/4+1] // set length to capacity
+  const dataBinStr = encoder.encode(dataString)
+  new Uint8Array(buffer).set(dataBinStr, dataOffset)
+  return dataBufPtr
+}
+
+export function read (exports, ptr) {
+  const { buffer } = exports.memory
+  const ptrOffset  = new Uint32Array(buffer)[ptr/4+0]
+  const ptrCapaci  = new Uint32Array(buffer)[ptr/4+1]
+  const ptrLength  = new Uint32Array(buffer)[ptr/4+2]
+  const uint8Array = new Uint8Array(buffer)
+  let end = ptrOffset // loop for null byte
+  while (uint8Array[end]) ++end
+  const retView = new DataView(buffer, ptrOffset, ptrLength)
+  const retData = decoder.decode(retView)
+  const retObj = JSON.parse(retData)
+  drop(exports, ptr)
+  return retObj
+}
+
+export function drop (exports, ptr) {
+  exports.deallocate(ptr)
+}
+
 export class Contract {
-  static async load (code) {
+  static async load (code, world = {}) {
     const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
-    const { instance } = await WebAssembly.instantiate(code, { memory })
+    const { instance } = await WebAssembly.instantiate(code, { memory, ...world })
     return new this(instance)
   }
   constructor (public readonly instance) {}
@@ -56,36 +90,11 @@ export class Contract {
     const retBuf = this.read(retPtr)
     return retBuf
   }
-  /** [1] https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
   private pass (data) {
-    const dataString = JSON.stringify(data)
-    const dataBufPtr = this.instance.exports.allocate(dataString.length)
-    const { buffer } = this.instance.exports.memory // must be after allocation - see [1]
-    const u32a = new Uint32Array(buffer)
-    const dataOffset = u32a[dataBufPtr/4+0]
-    const dataCapaci = u32a[dataBufPtr/4+1]
-    const dataLength = u32a[dataBufPtr/4+2]
-    u32a[dataBufPtr/4+2] = u32a[dataBufPtr/4+1] // set length to capacity
-    const dataBinStr = encoder.encode(dataString)
-    new Uint8Array(buffer).set(dataBinStr, dataOffset)
-    return dataBufPtr
+    return pass(this.instance.exports, data)
   }
   private read (ptr) {
-    const { buffer } = this.instance.exports.memory
-    const ptrOffset  = new Uint32Array(buffer)[ptr/4+0]
-    const ptrCapaci  = new Uint32Array(buffer)[ptr/4+1]
-    const ptrLength  = new Uint32Array(buffer)[ptr/4+2]
-    const uint8Array = new Uint8Array(buffer)
-    let end = ptrOffset // loop for null byte
-    while (uint8Array[end]) ++end
-    const retView = new DataView(buffer, ptrOffset, ptrLength)
-    const retData = decoder.decode(retView)
-    const retObj = JSON.parse(retData)
-    this.drop(ptr)
-    return retObj
-  }
-  private drop (ptr) {
-    this.instance.exports.deallocate(ptr)
+    return read(this.instance.exports, ptr)
   }
 }
 
@@ -168,7 +177,7 @@ export class MockAgent extends Agent {
       throw new Error(`No code with id ${codeId}`)
     }
     const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
-    const contract = await Contract.load(code)
+    const contract = await Contract.load(code, { env: mock.world() })
     const response = contract.init(mock.env(this.address, address, codeHash), msg)
     if (response.Err) {
       console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
