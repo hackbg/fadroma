@@ -8,7 +8,7 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
-        with: { submodules: true }
+        with: { submodules: "recursive" }
 
       - name: Determine default branch
         run: |
