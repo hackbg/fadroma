@@ -1,5 +1,3 @@
-import { Console } from '@hackbg/konzola'
-const console = Console('@hackbg/toolbox')
 export * from '@hackbg/konzola'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/komandi'
@@ -27,34 +25,9 @@ export function freePort () {
   })
 }
 
-export const mkdir = (...fragments) => {
-  const path = resolve(...fragments)
-  if (!existsSync(path)) console.info('Creating directory:', path)
-  mkdirp.sync(path, {mode: 0o770})
-  return path
-}
-
-import _rimraf from 'rimraf'
-export const rimraf = (path = "") =>
-  new Promise((resolve, reject)=>{
-    _rimraf(path, (err) => {
-      if (err) { reject(err) } else { resolve() }
-    }) })
-
-import tmp from 'tmp'
-export const withTmpDir = fn => {
-  const {name} = tmp.dirSync()
-  try { return fn(name) } finally { rimraf(name) }
-}
-export const withTmpFile = fn => {
-  const {name} = tmp.fileSync()
-  try { return fn(name) } finally { rimraf(name) }
-}
-
 // misc data functions /////////////////////////////////////////////////////////////////////////////
 
 import { randomBytes } from 'crypto'
-
 export { randomBytes }
 
 export const randomHex = (bytes = 1) =>

@@ -9,7 +9,10 @@
   "license":      "MIT",
   "description":  "File utilities.",
   "dependencies": {
-    "mkdirp": "^1.0.4",
-    "rimraf": "^3.0.2"
+    "mkdirp":         "^1.0.4",
+    "recursive-copy": "^2.0.13",
+    "rimraf":         "^3.0.2",
+    "symlink-dir":    "^5.0.1",
+    "tmp":            "^0.2.1"
   }
 }

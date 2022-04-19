@@ -3,6 +3,7 @@
   "version":      "1.2.3",
   "type":         "module",
   "main":         "./index.js",
+  "types":        "./index.d.ts",
   "files":        [ "*.js" ],
   "homepage":     "https://github.com/hackbg/toolbox",
   "bugs":         "https://github.com/hackbg/toolbox/issues",
@@ -18,20 +19,21 @@
 
     "colors":              "^1.4.0",
     "exponential-backoff": "^3.1.0",
-    "mkdirp":              "^1.0.4",
     "open":                "^8.0.2",
     "prettyjson":          "github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f",
     "prompts":             "^2.4.1",
-    "recursive-copy":      "^2.0.13",
     "rimraf":              "^3.0.2",
     "signal-exit":         "^3.0.3",
-    "symlink-dir":         "^5.0.1",
     "table":               "^6.6.0",
-    "tmp":                 "^0.2.1",
     "wait-port":           "^0.2.9"
   },
   "devDependencies": {
-    "dts-gen": "^0.6.0"
+    "dts-gen":    "^0.6.0",
+    "typedoc":    "^0.21.9",
+    "typescript": "^4.5.4"
+  },
+  "scripts": {
+    "document": "typedoc index.js"
   },
   "workspace": true,
   "packages": [
