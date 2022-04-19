@@ -8,10 +8,11 @@ import type { Agent } from './Agent'
 
 const console = Console('@fadroma/ops/Upload')
 
-export class FSUploader extends Uploader {
+/** Directory collecting upload receipts. */
+export class Uploads extends JSONDirectory {}
 
-  /** Command: add a non-caching FS uploader to the migration context. */
-  static enable = ({ agent }) => ({ uploader: new FSUploader(agent) })
+/** Uploads contracts from the local file system. */
+export class FSUploader extends Uploader {
 
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
@@ -60,10 +61,9 @@ export class FSUploader extends Uploader {
 
 }
 
+/** Uploads contracts from the file system,
+  * but only if a receipt does not exist in the chain's uploads directory. */
 export class CachingFSUploader extends FSUploader {
-
-  /** Command: add a caching FS uploader to the migration context. */
-  static enable = ({ agent }) => ({ uploader: new CachingFSUploader(agent, agent.chain.uploads) })
 
   constructor (
     readonly agent: Agent,
@@ -101,7 +101,7 @@ export class CachingFSUploader extends FSUploader {
 
       if (!existsSync(receiptPath)) {
 
-        console.info(bold(`No upload receipt:`), `${relativePath}; uploading...`)
+        console.info(bold(`Uploading:`), `${relativePath}`)
         toUpload[i] = artifact
 
       } else {
@@ -177,12 +177,5 @@ export class CachingFSUploader extends FSUploader {
         artifact.codeHash = codeHashForPath(artifact.location)
       )
     }
-  }
-}
-
-export class Uploads extends JSONDirectory {
-  FromFS = {
-    Caching: CachingFSUploader,
-    NoCache: FSUploader
   }
 }

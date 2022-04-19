@@ -45,14 +45,14 @@ export class Scrt_1_2 extends Scrt {
   static chains = {
     async Mainnet (url = config.scrt.mainnetApiUrl) {
       return new Scrt_1_2(config.scrt.mainnetChainId, {
-        mode:   ChainMode.Mainnet,
+        mode: ChainMode.Mainnet,
         apiURL: new URL(url),
         defaultIdentity: config.scrt.defaultIdentity,
       })
     },
     async Testnet (url = config.scrt.testnetApiUrl) {
       return new Scrt_1_2(config.scrt.testnetChainId, {
-        mode:   ChainMode.Testnet,
+        mode: ChainMode.Testnet,
         apiURL: new URL(url),
         defaultIdentity: config.scrt.defaultIdentity,
       })
@@ -61,9 +61,8 @@ export class Scrt_1_2 extends Scrt {
       node = node || await Scrt_1_2.getDevnet().respawn()
       return new Scrt_1_2(node.chainId, {
         node,
-        mode:   ChainMode.Devnet,
-        apiURL: new URL('http://localhost:1337'),
-        defaultIdentity: 'ADMIN',
+        mode: ChainMode.Devnet,
+        defaultIdentity: { name: 'ADMIN' },
       })
     }
   }

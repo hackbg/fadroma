@@ -1,7 +1,8 @@
 import {
   Console, colors, bold, timestamp,
-  Agent, AgentConstructor, Bundle, BundleResult,
+  Agent, Bundle, BundleResult,
   Identity, Template, Label, InitMsg, Artifact, Instance, Message,
+  Chain, AgentConstructor,
   readFile, writeFile,
   backOff, fromBase64, toBase64, fromUtf8,
   config,
@@ -21,7 +22,7 @@ export type APIConstructor = new(...args:any) => SigningCosmWasmClient
 
 const console = Console('@fadroma/scrt/Agent')
 
-export async function getScrtAgent (identity: Identity, AgentClass) {
+export async function getScrtAgent (chain: Chain, AgentClass: AgentConstructor, identity: Identity) {
   const { name = 'Anonymous', ...args } = identity
 
   let info = ''
@@ -48,18 +49,23 @@ export async function getScrtAgent (identity: Identity, AgentClass) {
   }
 
   return new AgentClass({
-    name, mnemonic, keyPair,
+    chain,
+    name,
+    mnemonic,
+    keyPair,
     pen: await Secp256k1Pen.fromMnemonic(mnemonic),
     ...args
   })
 }
 
 export class ScrtAgent extends Agent {
-  static create = (identity: Identity) => getScrtAgent(identity, ScrtAgent)
+  static create = (chain: Scrt, identity: Identity) => getScrtAgent(chain, ScrtAgent, identity)
   Bundle = ScrtBundle
   fees = ScrtGas.defaultFees
   defaultDenomination = 'uscrt'
-  constructor (options: Identity & { API?: APIConstructor, chain?: Scrt } = {}) {
+  constructor (
+    options: Identity & { API?: APIConstructor, chain?: Scrt } = {}
+  ) {
     super(options)
     this.name     = this.trace.name = options?.name || ''
     this.chain    = options?.chain as Scrt // TODO chain id to chain
@@ -86,7 +92,7 @@ export class ScrtAgent extends Agent {
   API = PatchedSigningCosmWasmClient_1_2
   get api () {
     return new this.API(
-      this.chain?.url,
+      this.chain?.apiURL?.toString(),
       this.address,
       this.sign,
       this.seed,

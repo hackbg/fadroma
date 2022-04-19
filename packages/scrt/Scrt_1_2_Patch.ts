@@ -19,8 +19,6 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   }
 
   async get (path: string): Promise<any> {
-    console.log('patched get', path)
-    process.exit(123)
     const client = await this.queryClient
     const { data } = await client.get(path).catch(parseAxiosError)
     if (data === null) {

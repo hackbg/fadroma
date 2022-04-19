@@ -2,13 +2,13 @@ import * as HTTP from 'http'
 import { Transform } from 'stream'
 import LineTransformStream from 'line-transform-stream'
 import {
-  Console, bold, resolve, relative, basename,
-  spawnSync, execFile, existsSync, readFileSync
+  Console, bold, resolve, relative, cwd, basename,
+  spawnSync, execFile, existsSync, readFileSync,
+  Docker, DockerImage
 } from '@hackbg/toolbox'
 
 import { config } from './Config'
 import { Source, Builder, Artifact, codeHashForPath } from './Core'
-import { Docker, DockerImage } from '@hackbg/toolbox'
 
 const console = Console('@fadroma/ops/Build')
 
@@ -26,7 +26,7 @@ export abstract class CachingBuilder extends Builder {
       ref = ref.replace(/\//g, '_') // kludge
       const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
       if (existsSync(location)) {
-        console.info('✅', bold(location), 'exists, not rebuilding.')
+        console.info('✅ Exists, not rebuilding:', bold(relative(cwd(), location)))
         return { location, codeHash: codeHashForPath(location) }
       }
     }

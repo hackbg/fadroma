@@ -124,6 +124,14 @@ export class Config {
       }
     }
 
+    if (
+      !this.scrt.defaultIdentity.name    &&
+      !this.scrt.defaultIdentity.address &&
+      !this.scrt.defaultIdentity.mnemonic
+    ) {
+      delete this.scrt.defaultIdentity
+    }
+
     this.scrt.mainnetApiUrl =
       env.SCRT_MAINNET_API_URL ||
         `https://${this.scrt.mainnetChainId}--lcd--full.datahub.figment.io`+

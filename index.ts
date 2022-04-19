@@ -5,16 +5,21 @@ import {
   FSUploader, CachingFSUploader,
   fileURLToPath, relative,
   config,
-  //Mocks,
-  runCommands
+  runCommands,
+  Mocknet
 } from '@fadroma/ops'
-
-import { Mocknet } from '@fadroma/mocknet'
 
 // Reexport the main libraries
 export * from '@fadroma/ops'
 export * from '@fadroma/scrt'
 export * from '@fadroma/snip20'
+
+import { Scrt_1_2 } from '@fadroma/scrt'
+export { Scrt_1_2 }
+
+export type Command<T> = (MigrationContext)=>Promise<T>
+export type WrappedCommand<T> = (args: string[])=>Promise<T>
+export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
 // Logging interface - got one of these in each module.
 // Based on @hackbg/konzola, reexported through @fadroma/ops.
@@ -23,8 +28,6 @@ const console = Console('@hackbg/fadroma')
 // The namedChains are functions keyed by chain id,
 // which give you the appropriate Chain and Agent
 // for talking to that chain id.
-import { Scrt_1_2 } from '@fadroma/scrt'
-export { Scrt_1_2 }
 Object.assign(Chain.namedChains, {
   'Scrt_1_2_Mainnet': Scrt_1_2.chains.Mainnet,
   'Scrt_1_2_Testnet': Scrt_1_2.chains.Testnet,
@@ -34,10 +37,6 @@ Object.assign(Chain.namedChains, {
     //return Mocks.Chains.Mocknet()
   },
 })
-
-export type Command<T> = (MigrationContext)=>Promise<T>
-export type WrappedCommand<T> = (args: string[])=>Promise<T>
-export type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
 export class Fadroma {
 
@@ -58,9 +57,7 @@ export class Fadroma {
 
     /** Populate the migration context with chain and agent. */
     FromEnv: async function getChainFromEnvironment () {
-      requireChainId(config.chain)
-      const getChain = Chain.namedChains[config.chain]
-      const chain = await getChain()
+      const chain = await Chain.getNamed()
       const agent = await chain.getAgent()
       await print(console).agentBalance(agent)
       return { chain, agent, deployAgent: agent, clientAgent: agent }
@@ -153,15 +150,3 @@ export class Fadroma {
 }
 
 export default new Fadroma()
-
-function requireChainId (id, chains = Chain.namedChains) {
-  if (!id || !chains[id]) {
-    console.error('Please set your FADROMA_CHAIN environment variable to one of the following:')
-    for (const chain of Object.keys(chains).sort()) {
-      console.log(`  ${chain}`)
-    }
-    // TODO if interactive, display a selector which exports it for the session
-    process.exit(1)
-  }
-  return chains[id]
-}

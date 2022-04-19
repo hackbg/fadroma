@@ -68,12 +68,13 @@ export async function runMigration (
   const stepTimings = []
 
   // Composition of commands via steps:
+  const longestName = steps.map(step=>step?.name||'').reduce((max,x)=>Math.max(max, x.length), 0)
   for (const step of steps) {
     if (!step) {
       console.warn(bold('Empty step in command'), cmdName)
       continue
     }
-    const name = step.name
+    const name = (step.name||'').padEnd(longestName)
     const T1 = + new Date()
     let updates
     try {
@@ -82,13 +83,12 @@ export async function runMigration (
       // by adding its outputs to it.
       context = { ...context, ...updates }
       const T2 = + new Date()
-      console.info('🟢 Command step', bold(name), colors.green('succeeded'), 'in', T2-T1, 'msec')
+      console.info('🟢', colors.green('OK  '), bold(name), ` (${bold(String(T2-T1))}ms)`)
       stepTimings.push([name, T2-T1, false])
     } catch (e) {
       const T2 = + new Date()
-      console.error('🔴 Command step', bold(name), colors.red('failed'), 'in', T2-T1, 'msec')
+      console.error('🔴', colors.red('FAIL'), bold(name), ` (${bold(String(T2-T1))}ms)`)
       stepTimings.push([name, T2-T1, true])
-      console.error('Command', bold(name), colors.red('failed'), 'in', T2-T0, 'msec')
       throw e
     }
   }
