@@ -24,7 +24,7 @@ export type ScrtNonce = { accountNumber: number, sequence: number }
 export abstract class Scrt extends Chain {
   async getNonce (address: string): Promise<ScrtNonce> {
     const sign = () => {throw new Error('unreachable')}
-    const client = new SigningCosmWasmClient(this.url, address, sign)
+    const client = new SigningCosmWasmClient(this.apiURL.toString(), address, sign)
     const { accountNumber, sequence } = await client.getNonce()
     return { accountNumber, sequence }
   }
@@ -34,7 +34,7 @@ export class Scrt_1_2 extends Scrt {
   faucet = `https://faucet.secrettestnet.io/`
   async getAgent (identity = config.scrt.defaultIdentity) {
     const agent = await super.getAgent(identity)
-    agent.chain = this
+    Object.assign(agent, { chain: this })
     return agent
   }
   Agent             = Scrt_1_2.Agent

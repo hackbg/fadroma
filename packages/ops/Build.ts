@@ -72,16 +72,21 @@ export class DockerodeBuilder extends CachingBuilder {
   constructor (options: {
     socketPath?: string,
     docker?:     Docker,
-    image?:      string,
+    image?:      string|DockerImage,
     dockerfile?: string,
     script?:     string
+    caching?:    boolean
   } = {}) {
     super()
     this.socketPath = options.socketPath || config.dockerHost || '/var/run/docker.sock'
     this.docker     = options.docker || new Docker({ socketPath: this.socketPath })
-    this.image      = options.image
     this.dockerfile = options.dockerfile
     this.script     = options.script
+    if (options.image instanceof DockerImage) {
+      this.image = options.image
+    } else {
+      this.image = new DockerImage(this.docker, options.image)
+    }
   }
 
   /** Tag of the docker image for the build container. */

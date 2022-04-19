@@ -38,21 +38,23 @@ importers:
       '@ganesha/core': workspace:^1.0.0
       '@ganesha/node': workspace:^2.0.0
       '@ganesha/node-legacy': workspace:^1.0.0
+      '@hackbg/runspec': workspace:^1
       '@types/node': latest
-      c8: ^7.11.0
       chokidar: ^3.5.3
       cross-spawn: ^7.0.3
+      tap: ^15.1.6
       vite: ^2.8.4
       vsce: latest
     dependencies:
       '@ganesha/core': link:src/core
       '@ganesha/node': link:src/node
       '@ganesha/node-legacy': link:src/node-legacy
-      '@types/node': 17.0.24
+      '@types/node': 17.0.25
       chokidar: 3.5.3
       cross-spawn: 7.0.3
     devDependencies:
-      c8: 7.11.0
+      '@hackbg/runspec': link:deps/toolbox/runspec
+      tap: 15.2.3_typescript@4.6.3
       vite: 2.9.1
       vsce: 2.7.0
 
@@ -116,7 +118,7 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@types/node': 17.0.24
+      '@types/node': 17.0.25
       typescript: 4.6.3
 
   deps/ganesha/deps/toolbox/kabinet:
@@ -243,7 +245,6 @@ importers:
       '@ganesha/core': workspace:*
       '@ganesha/node': workspace:*
       '@ganesha/rollup': workspace:*
-      '@hackbg/runspec': workspace:^1
       mkdirp: ^1.0.4
       tap: ^15.0.9
       vite: ^2.7.6
@@ -251,7 +252,6 @@ importers:
       '@ganesha/core': link:../src/core
       '@ganesha/node': link:../src/node
       '@ganesha/rollup': link:../src/rollup
-      '@hackbg/runspec': link:../deps/toolbox/runspec
       mkdirp: 1.0.4
       tap: 15.2.3_typescript@4.6.3
       vite: 2.9.1
@@ -327,7 +327,7 @@ importers:
     specifiers:
       '@hackbg/fadroma': hackbg/fadroma#v100
     dependencies:
-      '@hackbg/fadroma': github.com/hackbg/fadroma/1dc75b98c47042b9dd019babd1fc6afdf2fdfdd1
+      '@hackbg/fadroma': github.com/hackbg/fadroma/43c37e041b6b0486b90a695e08877308f94c2012
 
 packages:
 
@@ -757,8 +757,8 @@ packages:
     resolution: {integrity: sha512-UxDxWn7dl97rKVeVS61vErvw086aCYhDLyvRQZ5Rk65rZKepaFdm53GeqXaKBuOhED4e9uWq34IC3TdSdJJ2Gw==}
     dev: false
 
-  /@types/node/17.0.24:
-    resolution: {integrity: sha512-aveCYRQbgTH9Pssp1voEP7HiuWlD2jW2BO56w+bVrJn04i61yh6mRfoKO6hEYQD9vF+W8Chkwc6j1M36uPkx4g==}
+  /@types/node/17.0.25:
+    resolution: {integrity: sha512-wANk6fBrUwdpY4isjWrKTufkrXdu1D2YHCot2fD/DfWxF5sMrVSA+KN7ydckvaTCh0HiqX9IVl0L5/ZoXg5M7w==}
 
   /@types/prettier/2.6.0:
     resolution: {integrity: sha512-G/AdOadiZhnJp0jXCaBQU449W2h716OW/EoXeYkCytxKL06X1WCXB4DZpp8TpZ8eyIJVS1cw4lrlkkSYU21cDw==}
@@ -4803,8 +4803,8 @@ packages:
     resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
     dev: false
 
-  github.com/hackbg/fadroma/1dc75b98c47042b9dd019babd1fc6afdf2fdfdd1:
-    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/1dc75b98c47042b9dd019babd1fc6afdf2fdfdd1}
+  github.com/hackbg/fadroma/43c37e041b6b0486b90a695e08877308f94c2012:
+    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/43c37e041b6b0486b90a695e08877308f94c2012}
     name: '@hackbg/fadroma'
     version: 100.0.0-pre
     hasBin: true

@@ -16,6 +16,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+declare class TextDecoder { decode (_1: any): string }
+declare class TextEncoder { encode (_1: string): any }
+declare const WebAssembly
+
 import { readFileSync, decode, Console, bold, colors, } from '@hackbg/toolbox'
 import { Chain, Agent, Artifact, Template, Instance } from '@fadroma/ops'
 import { URL } from 'url'
@@ -124,7 +128,7 @@ export class Mocknet extends Chain {
     })
   }
   setStateDirs ({ statePath }) {}
-  async getAgent (name: string) { return new MockAgent(this, name) }
+  async getAgent ({ name }) { return new MockAgent(this, name) }
   assertContractExists (address: string) {
     if (!this.mock.contracts[address]) {
       throw new Error(`No contract at ${address}`)
@@ -134,7 +138,7 @@ export class Mocknet extends Chain {
 
 export class MockAgent extends Agent {
 
-  static create (chain: Mocknet) { return new MockAgent(chain, 'MockAgent') }
+  static async create (chain: Mocknet) { return new MockAgent(chain, 'MockAgent') }
 
   constructor (readonly chain: Mocknet, readonly name: string = 'mock') {
     super()

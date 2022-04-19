@@ -1,6 +1,6 @@
 import { Console, Agent, Client, randomHex, decode, fromHex } from '@fadroma/ops'
 
-const console = new Console('@fadroma/snip20')
+const console = Console('@fadroma/snip20')
 
 type TokenType = any // TODO
 

@@ -35,7 +35,7 @@ export class Chain implements ChainConfig {
 
   /** Populated in Fadroma root with connection details for
     * all Chain variants that are known to the library. */
-  static namedChains: Record<string, ChainConstructor> = {}
+  static namedChains: Record<string, Function> = {}
 
   static async getNamed (name = config.chain, options?) {
     console.log({name, options})

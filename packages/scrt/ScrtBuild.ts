@@ -22,11 +22,11 @@ export function getScrtBuilder ({
     throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
     //return new ManagedBuilder({ managerURL })
   } else {
-    return new DockerodeBuilder_Scrt_1_2({ caching })
+    return new ScrtDockerodeBuilder({ caching })
   }
 }
 
-export class DockerodeBuilder_Scrt_1_2 extends DockerodeBuilder {
+export class ScrtDockerodeBuilder extends DockerodeBuilder {
 
   //buildManager = "Scrt_1_2_Build.js"
 

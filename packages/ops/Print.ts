@@ -5,7 +5,7 @@ import type { Uploads } from './Upload'
 import type { Deployments } from './Deploy'
 import type { Agent } from './Agent'
 
-const console = new Console('@fadroma/ops/Print')
+const console = Console('@fadroma/ops/Print')
 
 export const print = console => {
 
@@ -109,7 +109,7 @@ export class Trace {
 
   constructor (
     public name: string,
-    private readonly console: Console
+    private readonly console: any
   ) {}
 
   private callCounter = 0
