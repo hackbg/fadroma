@@ -31,9 +31,6 @@ export type DevnetOptions = {
 
 export abstract class Devnet {
 
-  /** Procedure. Stops and deletes the devnet node in the migration context. */
-  static resetDevnet = ({ chain }) => chain.node.terminate()
-
   /** Creates an object representing a devnet.
     * Use the `respawn` method to get it running. */
   constructor ({ chainId, identities, stateRoot }: DevnetOptions) {
