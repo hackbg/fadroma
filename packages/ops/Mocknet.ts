@@ -98,50 +98,72 @@ export class Contract {
   }
 }
 
-export class Mocknet extends Chain {
-  id    = 'fadroma-mocknet'
-  Agent = MockAgent
-  mock  = {
-    codeId:    0,
-    uploads:   {},
-    contracts: {},
-    instances: {},
-    env: (
-      senderAddress,
-      contractAddress,
-      codeHash = this.mock.contracts[contractAddress].codeHash,
-      now      = + new Date()
-    ) => ({
-      block: {
-        height:   Math.floor(now/5000),
-        time:     Math.floor(now/1000),
-        chain_id: "mock"
-      },
-      message: {
-        sender: senderAddress,
-        sent_funds: []
-      },
-      contract: {
-        address: contractAddress
-      },
+export class MocknetState {
+  constructor (readonly chain: Mocknet) {}
+  codeId    = 0
+  uploads   = {}
+  contracts = {}
+  instances = {}
+  makeCallEnv (
+    sender,
+    address,
+    codeHash = this.contracts[address].codeHash,
+    now      = + new Date()
+  ) {
+    const height     = Math.floor(now/5000)
+    const time       = Math.floor(now/1000)
+    const chain_id   = this.chain.id
+    const sent_funds = []
+    return {
+      block:    { height, time, chain_id },
+      message:  { sender, sent_funds },
+      contract: { address },
       contract_key: "",
       contract_code_hash: codeHash
-    }),
-    world: () => ({
+    }
+  }
+  makeContractEnv () {
+    return {
       db_read              (...args:any) { console.debug('db_read',     args) },
       db_write             (...args:any) { console.debug('db_write',    args) },
       db_remove            (...args:any) { console.debug('db_remove',   args) },
       canonicalize_address (...args:any) { console.debug('canonize',    args) },
       humanize_address     (...args:any) { console.debug('humanize',    args) },
       query_chain          (...args:any) { console.debug('query_chain', args) }
-    })
+    }
   }
-  setStateDirs ({ statePath }) {}
-  async getAgent ({ name }) { return new MockAgent(this, name) }
+  makeCodeId () {
+    return ++this.codeId
+  }
+}
+
+export class Mocknet extends Chain {
+  id    = 'fadroma-mocknet'
+  Agent = MockAgent
+  state = new MocknetState(this)
+  async getAgent ({ name }) {
+    return new MockAgent(this, name)
+  }
   assertContractExists (address: string) {
-    if (!this.mock.contracts[address]) {
+    if (!this.state.contracts[address]) {
       throw new Error(`No contract at ${address}`)
     }
+  }
+  upload ({ location, codeHash }: Artifact): Template {
+    const codeId  = this.state.makeCodeId()
+    const content = this.state.uploads[codeId] = readFileSync(location)
+    return {
+      chainId: this.id,
+      codeId:  String(codeId),
+      codeHash
+    }
+  }
+  getCodeById (codeId) {
+    const code = this.state.uploads[codeId]
+    if (!code) {
+      throw new Error(`No code with id ${codeId}`)
+    }
+    return code
   }
 }
 
@@ -158,32 +180,22 @@ export class MockAgent extends Agent {
 
   defaultDenomination = 'umock'
 
-  async upload ({ location, codeHash }: Artifact): Promise<Template> {
-    const codeId  = ++this.chain.mock.codeId
-    const content = this.chain.mock.uploads[codeId] = readFileSync(location)
-    return {
-      chainId: this.chain.id,
-      codeId:  String(codeId),
-      codeHash
-    }
+  async upload (artifact: Artifact): Promise<Template> {
+    return this.chain.upload(artifact)
   }
 
   Bundle = null
 
   async doInstantiate ({ codeId, codeHash }: Template, label, msg, funds = []): Promise<Instance> {
-    const { mock } = this.chain
-    const code = mock.uploads[codeId]
-    if (!code) {
-      throw new Error(`No code with id ${codeId}`)
-    }
+    const code     = this.chain.getCodeById(codeId)
     const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
-    const contract = await Contract.load(code, { env: mock.world() })
-    const response = contract.init(mock.env(this.address, address, codeHash), msg)
+    const contract = await Contract.load(code, { env: this.chain.state.makeContractEnv() })
+    const response = contract.init(this.chain.state.makeCallEnv(this.address, address, codeHash), msg)
     if (response.Err) {
       console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
       throw 'TODO error handling'
     } else {
-      mock.instances[address] = contract
+      this.chain.state.instances[address] = contract
     }
     return {
       chainId: this.chain.id,
@@ -196,8 +208,8 @@ export class MockAgent extends Agent {
 
   doQuery ({ address }: Instance, msg: any) {
     this.chain.assertContractExists(address)
-    const codeId = this.chain.mock.contracts[address]
-    const code = this.chain.mock.uploads[codeId]
+    const codeId = this.chain.state.contracts[address]
+    const code   = this.chain.state.uploads[codeId]
     console.log(code)
     return Promise.resolve({})
   }
