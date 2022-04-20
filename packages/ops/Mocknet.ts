@@ -16,16 +16,44 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-declare class TextDecoder { decode (_1: any): string }
-declare class TextEncoder { encode (_1: string): any }
-declare const WebAssembly
-
 import { readFileSync, decode, Console, bold, colors, } from '@hackbg/toolbox'
 import { Chain, Agent, Artifact, Template, Instance } from '@fadroma/ops'
 import { URL } from 'url'
 
-const console = Console('@fadroma/mocknet')
+declare class TextDecoder {
+  decode (data: any): string
+}
 
+declare class TextEncoder {
+  encode (data: string): any
+}
+
+declare namespace WebAssembly {
+  class Memory { constructor ({ initial, maximum }) }
+  class Instance<T> { exports: T }
+  function instantiate (code, world)
+}
+
+export interface ContractExports {
+  memory: WebAssembly.Memory
+  init   (envPtr: number, msgPtr: number): number
+  handle (envPtr: number, msgPtr: number): number
+  query  (msgPtr: number): number
+}
+
+export interface ContractImports {
+  memory: WebAssembly.Memory
+  env: {
+    db_read              (keyPtr: number): number
+    db_write             (keyPtr: number, valPtr: number)
+    db_remove            (keyPtr: number)
+    canonicalize_address (srcPtr: number, dstPtr: number): number
+    humanize_address     (srcPtr: number, dstPtr: number): number
+    query_chain          (reqPtr: number): number
+  }
+}
+
+const console = Console('@fadroma/mocknet')
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()
 
@@ -54,22 +82,27 @@ export function read (exports, ptr) {
   while (uint8Array[end]) ++end
   const retView = new DataView(buffer, ptrOffset, ptrLength)
   const retData = decoder.decode(retView)
-  const retObj = JSON.parse(retData)
   drop(exports, ptr)
-  return retObj
+  return retData
 }
 
 export function drop (exports, ptr) {
-  exports.deallocate(ptr)
+  if (exports.deallocate) {
+    exports.deallocate(ptr)
+  } else {
+    console.warn("Can't deallocate", ptr)
+  }
 }
 
 export class Contract {
-  static async load (code, world = {}) {
-    const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
-    const { instance } = await WebAssembly.instantiate(code, { memory, ...world })
-    return new this(instance)
+  static async load (code, world) {
+    world = world || { memory: new WebAssembly.Memory({ initial: 32, maximum: 128 }) }
+    const { instance } = await WebAssembly.instantiate(code, world)
+    const contract = new this()
+    contract.instance = instance
+    return contract
   }
-  constructor (public readonly instance) {}
+  instance: WebAssembly.Instance<ContractExports>
   init (env, msg) {
     const envBuf = this.pass(env)
     const msgBuf = this.pass(msg)
@@ -94,7 +127,7 @@ export class Contract {
     return pass(this.instance.exports, data)
   }
   private read (ptr) {
-    return read(this.instance.exports, ptr)
+    return JSON.parse(read(this.instance.exports, ptr))
   }
 }
 
@@ -123,10 +156,16 @@ export class MocknetState {
     }
   }
   makeContractEnv () {
+    const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
     return {
+      memory,
       env: {
         db_read              (...args:any) { console.debug('db_read',     args) },
-        db_write             (...args:any) { console.debug('db_write',    args) },
+        db_write (keyPtr, valPtr) {
+          const key = read({ memory }, keyPtr)
+          const val = read({ memory }, valPtr)
+          console.info('db_write', { key, val })
+        },
         db_remove            (...args:any) { console.debug('db_remove',   args) },
         canonicalize_address (...args:any) { console.debug('canonize',    args) },
         humanize_address     (...args:any) { console.debug('humanize',    args) },
@@ -167,7 +206,7 @@ export class Mocknet extends Chain {
     }
     return code
   }
-  async instantiate (sender:string, { codeId, codeHash }: Template, label, msg, funds = []): Promise<Instance> {
+  async instantiate (sender: string, { codeId, codeHash }: Template, label, msg, funds = []): Promise<Instance> {
     const code     = this.getCodeById(codeId)
     const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
     const world    = this.state.makeContractEnv()
