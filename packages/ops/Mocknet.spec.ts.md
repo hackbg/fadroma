@@ -103,4 +103,20 @@ test({
 ## Contract deployed to mocknet can use simulated platform APIs
 
 ```typescript
+const storageContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
+const storageContractWasm = readFileSync(emptyContract)
+test({
+  async 'db read/write/remove' ({ ok, equal, rejects }) {
+    const chain    = new Mocknet()
+    const agent    = await chain.getAgent()
+    const template = await agent.upload({ location: storageContract, codeHash: 'something' })
+    const instance = await agent.instantiate(template, 'test', { value: "foo" })
+    const client   = agent.getClient(Client, instance)
+    equal(await client.query("get"), "foo")
+    ok(await client.execute({set: "bar"}))
+    equal(await client.query("get"), "bar")
+    ok(await client.execute("del"))
+    rejects(client.query("get"))
+  }
+})
 ```
