@@ -1,10 +1,12 @@
 import { Console, bold, colors, resolve, readFileSync, JSONDirectory } from '@hackbg/toolbox'
 import { toBase64 } from '@iov/encoding'
+
+import type { Chain } from './Chain'
 import {
   Identity, Gas, Source, Artifact, Template, Label, InitMsg, Instance, Message
 } from './Core'
 import { Trace } from './Print'
-import type { Chain } from './Chain'
+import { Client, ClientConstructor, ClientConfig } from './Client'
 
 const console = Console('@fadroma/ops/Agent')
 
@@ -110,7 +112,15 @@ export abstract class Agent implements Identity {
     template: { chainId: string, codeId: string }, label: string, msg: any, funds: any[]
   ): Promise<any>
 
+  getClient <C extends Client> (
+    Client: ClientConstructor<C>,
+    config: ClientConfig = {}
+  ): C {
+    return new Client({ ...config, agent: this })
+  }
+
   abstract getLabel  (address: string): Promise<string>
+
   abstract getCodeId (address: string): Promise<number>
 
   /** Perform a smart contract query. */

@@ -1,6 +1,17 @@
 import type { Message } from './Core'
 import type { Agent } from './Agent'
 
+export interface ClientConfig {
+  agent?:    Agent
+  address?:  string
+  codeHash?: string
+  label?:    string
+}
+
+export interface ClientConstructor<C extends Client> {
+  new (options: ClientConfig): C
+}
+
 export class Client {
 
   readonly agent: Agent
@@ -8,7 +19,7 @@ export class Client {
   codeHash: string
   label:    string
 
-  constructor (options = {}) {
+  constructor (options: ClientConfig = {}) {
     Object.assign(this, options)
     if (!this.address) {
       console.warn(
@@ -43,12 +54,4 @@ export class Client {
     agent,
   })
 
-}
-
-export interface ClientConstructor<C extends Client> {
-  new (options: {
-    agent?:    Agent
-    address?:  string
-    codeHash?: string
-  }): C
 }

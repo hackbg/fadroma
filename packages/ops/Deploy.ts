@@ -61,6 +61,14 @@ export class Deployment {
     return receipt
   }
 
+  getClient <C extends Client> (
+    agent:  Agent,
+    Client: ClientConstructor<C>,
+    name:   string
+  ): C {
+    return new Client({ ...this.get(name), agent })
+  }
+
   /** Instantiate one contract and save its receipt to the deployment. */
   async init <T> (deployAgent: Agent, template: Template, name: Label, initMsg: T): Promise<Instance> {
     const label = `${this.prefix}/${name}`
