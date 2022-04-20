@@ -60,7 +60,7 @@ export class Scrt_1_2 extends Scrt {
         defaultIdentity: config.scrt.defaultIdentity,
       })
     },
-    async Devnet (options) {
+    async Devnet (options: any = {}) {
       const {
         node = await Scrt_1_2.getDevnet().respawn()
       } = options
