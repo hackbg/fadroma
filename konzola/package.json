@@ -2,7 +2,7 @@
   "name":         "@hackbg/konzola",
   "version":      "1.0.3",
   "main":         "konzola.cjs",
-  "main":         "konzola.d.ts",
+  "types":        "konzola.d.ts",
   "license":      "MIT",
   "description":  "Pretty console.",
   "repository":   {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "konzola"},

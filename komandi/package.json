@@ -2,7 +2,7 @@
   "name":        "@hackbg/komandi",
   "version":     "2.0.3",
   "main":        "komandi.js",
-  "main":        "komandi.d.ts",
+  "types":       "komandi.d.ts",
   "homepage":    "https://github.com/hackbg/toolbox",
   "bugs":        "https://github.com/hackbg/toolbox/issues",
   "repository":  {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "komandi"},
