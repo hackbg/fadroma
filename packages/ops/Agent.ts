@@ -237,6 +237,13 @@ export abstract class Bundle {
 
   abstract save    (name: string): Promise<void>
 
+  getClient <C extends Client> (
+    Client: ClientConstructor<C>,
+    config: ClientConfig = {}
+  ): C {
+    return new Client({ ...config, agent: this })
+  }
+
 }
 
 export type BundleResult = {
