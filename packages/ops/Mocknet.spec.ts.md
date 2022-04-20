@@ -79,40 +79,24 @@ test({
 })
 ```
 
-## Can instantiate code ID, returning contract address
+## Can instantiate and use a contract
 
 ```typescript
+import { Client } from './Client'
 test({
-  async 'upload and init from resulting code ID' () {
-    const chain    = new Mocknet()
-    const agent    = await chain.getAgent()
-    const template = await agent.upload({ location: emptyContract, codeHash: 'something' })
-    const instance = await agent.instantiate(template, 'test', {})
-  }
   async 'init from missing code ID' ({ rejects }) {
     const chain = new Mocknet()
     const agent = await chain.getAgent()
     const template = { chainId: 'Mocknet', codeId: '2' }
     rejects(agent.instantiate(template, 'test', {}))
-  }
-})
-```
-
-## Can query and transact with contract
-
-```typescript
-import { Client } from './Client'
-test({
-  async 'can query' () {
-    const chain = new Mocknet()
-    const agent = await chain.getAgent()
-    const client = new Client({agent})
-    await client.query({})
   },
-  async 'can transact' () {
-    const chain = new Mocknet()
-    const agent = await chain.getAgent()
-    const client = new Client({agent})
+  async 'upload and init from resulting code ID' () {
+    const chain    = new Mocknet()
+    const agent    = await chain.getAgent()
+    const template = await agent.upload({ location: emptyContract, codeHash: 'something' })
+    const instance = await agent.instantiate(template, 'test', {})
+    const client   = agent.getClient(Client, instance)
+    await client.query({})
     await client.execute({})
   }
 })

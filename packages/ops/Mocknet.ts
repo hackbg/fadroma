@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import { readFileSync, decode, Console, bold, colors, } from '@hackbg/toolbox'
-import { Chain, Agent, Artifact, Template, Instance } from '@fadroma/ops'
+import { Chain, Agent, Artifact, Template, Instance, Identity } from '@fadroma/ops'
 import { URL } from 'url'
 
 declare class TextDecoder {
@@ -34,22 +34,24 @@ declare namespace WebAssembly {
   function instantiate (code, world)
 }
 
+type Ptr = number
+
 export interface ContractExports {
   memory: WebAssembly.Memory
-  init   (envPtr: number, msgPtr: number): number
-  handle (envPtr: number, msgPtr: number): number
-  query  (msgPtr: number): number
+  init   (env: Ptr, msg: Ptr): Ptr
+  handle (env: Ptr, msg: Ptr): Ptr
+  query  (msg: Ptr): Ptr
 }
 
 export interface ContractImports {
   memory: WebAssembly.Memory
   env: {
-    db_read              (keyPtr: number): number
-    db_write             (keyPtr: number, valPtr: number)
-    db_remove            (keyPtr: number)
-    canonicalize_address (srcPtr: number, dstPtr: number): number
-    humanize_address     (srcPtr: number, dstPtr: number): number
-    query_chain          (reqPtr: number): number
+    db_read              (key: Ptr): Ptr
+    db_write             (key: Ptr, val: Ptr)
+    db_remove            (key: Ptr)
+    canonicalize_address (src: Ptr, dst: Ptr): Ptr
+    humanize_address     (src: Ptr, dst: Ptr): Ptr
+    query_chain          (req: Ptr): Ptr
   }
 }
 
@@ -74,12 +76,11 @@ export function pass (exports, data) {
 
 export function read (exports, ptr) {
   const { buffer } = exports.memory
-  const ptrOffset  = new Uint32Array(buffer)[ptr/4+0]
-  const ptrCapaci  = new Uint32Array(buffer)[ptr/4+1]
-  const ptrLength  = new Uint32Array(buffer)[ptr/4+2]
+  const u32a = new Uint32Array(buffer)
+  const ptrOffset = u32a[ptr/4+0]
+  const ptrCapaci = u32a[ptr/4+1]
+  const ptrLength = u32a[ptr/4+2]
   const uint8Array = new Uint8Array(buffer)
-  let end = ptrOffset // loop for null byte
-  while (uint8Array[end]) ++end
   const retView = new DataView(buffer, ptrOffset, ptrLength)
   const retData = decoder.decode(retView)
   drop(exports, ptr)
@@ -90,7 +91,7 @@ export function drop (exports, ptr) {
   if (exports.deallocate) {
     exports.deallocate(ptr)
   } else {
-    console.warn("Can't deallocate", ptr)
+    //console.warn("Can't deallocate", ptr)
   }
 }
 
@@ -98,11 +99,13 @@ export class Contract {
   static async load (code, world) {
     world = world || { memory: new WebAssembly.Memory({ initial: 32, maximum: 128 }) }
     const { instance } = await WebAssembly.instantiate(code, world)
-    const contract = new this()
-    contract.instance = instance
+    const contract = new this(instance, world.memory)
     return contract
   }
-  instance: WebAssembly.Instance<ContractExports>
+  constructor (
+    readonly instance: WebAssembly.Instance<ContractExports>,
+    readonly memory:   WebAssembly.Memory
+  ) {}
   init (env, msg) {
     const envBuf = this.pass(env)
     const msgBuf = this.pass(msg)
@@ -135,12 +138,11 @@ export class MocknetState {
   constructor (readonly chain: Mocknet) {}
   codeId    = 0
   uploads   = {}
-  contracts = {}
   instances = {}
   makeCallEnv (
     sender,
     address,
-    codeHash = this.contracts[address].codeHash,
+    codeHash = this.instances[address].codeHash,
     now      = + new Date()
   ) {
     const height     = Math.floor(now/5000)
@@ -179,16 +181,13 @@ export class MocknetState {
 }
 
 export class Mocknet extends Chain {
-  id    = 'fadroma-mocknet'
+  constructor (id = 'fadroma-mocknet', options = {}) {
+    super(id, options)
+  }
   Agent = MockAgent
   state = new MocknetState(this)
-  async getAgent ({ name }) {
+  async getAgent ({ name }: Identity = {}) {
     return new MockAgent(this, name)
-  }
-  assertContractExists (address: string) {
-    if (!this.state.contracts[address]) {
-      throw new Error(`No contract at ${address}`)
-    }
   }
   upload ({ location, codeHash }: Artifact): Template {
     const codeId  = this.state.makeCodeId()
@@ -206,7 +205,9 @@ export class Mocknet extends Chain {
     }
     return code
   }
-  async instantiate (sender: string, { codeId, codeHash }: Template, label, msg, funds = []): Promise<Instance> {
+  async instantiate (
+    sender: string, { codeId, codeHash }: Template, label, msg, funds = []
+  ): Promise<Instance> {
     const code     = this.getCodeById(codeId)
     const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
     const world    = this.state.makeContractEnv()
@@ -227,6 +228,21 @@ export class Mocknet extends Chain {
       label
     }
   }
+  async execute (sender: string, { address }: Instance, msg, funds, memo, fee) {
+    this.assertContractExists(address)
+    return Promise.resolve({})
+  }
+  async query ({ address }: Instance, msg) {
+    this.assertContractExists(address)
+    const codeId = this.state.instances[address]
+    const code   = this.state.uploads[codeId]
+    return Promise.resolve({})
+  }
+  assertContractExists (address: string) {
+    if (!this.state.instances[address]) {
+      throw new Error(`No contract at ${address}`)
+    }
+  }
 }
 
 export class MockAgent extends Agent {
@@ -242,8 +258,8 @@ export class MockAgent extends Agent {
 
   defaultDenomination = 'umock'
 
-  async upload (artifact: Artifact): Promise<Template> {
-    return this.chain.upload(artifact)
+  async upload (artifact) {
+    return await this.chain.upload(artifact)
   }
 
   Bundle = null
@@ -252,17 +268,12 @@ export class MockAgent extends Agent {
     return await this.chain.instantiate(this.address, template, label, msg, funds)
   }
 
-  doQuery ({ address }: Instance, msg: any) {
-    this.chain.assertContractExists(address)
-    const codeId = this.chain.state.contracts[address]
-    const code   = this.chain.state.uploads[codeId]
-    console.log(code)
-    return Promise.resolve({})
+  async doExecute (instance, msg, funds, memo?, fee?) {
+    return await this.chain.execute(this.address, instance, msg, funds, memo, fee)
   }
 
-  doExecute ({ address }: Instance, msg: any, _3: any, _4?: any, _5?: any) {
-    this.chain.assertContractExists(address)
-    return Promise.resolve({})
+  async doQuery (instance, msg) {
+    return await this.chain.query(instance, msg)
   }
 
   get nextBlock () {
