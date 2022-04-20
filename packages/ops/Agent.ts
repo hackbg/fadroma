@@ -79,7 +79,9 @@ export abstract class Agent implements Identity {
     return result
   }
 
-  /** Instantiate multiple contracts in 1 tx via a Bundle. */
+  /** Instantiate multiple contracts in 1 tx via a Bundle.
+    * FIXME: Return array corresponding to input configs
+    *        (and put current behavior in `instantiateNamed`)? */
   async instantiateMany (
     configs: [Template, Label, InitMsg][],
     prefix?: string
