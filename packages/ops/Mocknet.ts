@@ -96,16 +96,12 @@ export function drop (exports, ptr) {
 }
 
 export class Contract {
-  static async load (code, world) {
-    world = world || { memory: new WebAssembly.Memory({ initial: 32, maximum: 128 }) }
-    const { instance } = await WebAssembly.instantiate(code, world)
-    const contract = new this(instance, world.memory)
-    return contract
+  instance: WebAssembly.Instance<ContractExports>
+  async load (code) {
+    const { instance } = await WebAssembly.instantiate(code, this.makeImports())
+    this.instance = instance
+    return this
   }
-  constructor (
-    readonly instance: WebAssembly.Instance<ContractExports>,
-    readonly memory:   WebAssembly.Memory
-  ) {}
   init (env, msg) {
     const envBuf = this.pass(env)
     const msgBuf = this.pass(msg)
@@ -132,14 +128,53 @@ export class Contract {
   private read (ptr) {
     return JSON.parse(read(this.instance.exports, ptr))
   }
+  makeImports (): ContractImports {
+    const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
+    return {
+      memory,
+      env: {
+        db_read (keyPtr): Ptr {
+          const key = read({ memory }, keyPtr)
+          console.info('db_read', { key })
+          return 0
+        },
+        db_write (keyPtr, valPtr) {
+          const key = read({ memory }, keyPtr)
+          const val = read({ memory }, valPtr)
+          console.info('db_write', { key, val })
+        },
+        db_remove (keyPtr) {
+          const key = read({ memory }, keyPtr)
+          console.info('db_remove', { key })
+        },
+        canonicalize_address (srcPtr, dstPtr) {
+          const src = read({ memory }, srcPtr)
+          const dst = read({ memory }, dstPtr)
+          console.info('canonize', { src, dst })
+          return 0
+        },
+        humanize_address (srcPtr, dstPtr) {
+          const src = read({ memory }, srcPtr)
+          const dst = read({ memory }, dstPtr)
+          console.info('humanize', { src, dst })
+          return 0
+        },
+        query_chain (reqPtr) {
+          const req = read({ memory }, reqPtr)
+          console.info('query_chain', { req })
+          return 0
+        }
+      }
+    }
+  }
 }
 
 export class MocknetState {
-  constructor (readonly chain: Mocknet) {}
+  constructor (readonly chainId: string) {}
   codeId    = 0
   uploads   = {}
   instances = {}
-  makeCallEnv (
+  makeEnv (
     sender,
     address,
     codeHash = this.instances[address].codeHash,
@@ -147,7 +182,7 @@ export class MocknetState {
   ) {
     const height     = Math.floor(now/5000)
     const time       = Math.floor(now/1000)
-    const chain_id   = this.chain.id
+    const chain_id   = this.chainId
     const sent_funds = []
     return {
       block:    { height, time, chain_id },
@@ -157,49 +192,14 @@ export class MocknetState {
       contract_code_hash: codeHash
     }
   }
-  makeContractEnv () {
-    const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
-    return {
-      memory,
-      env: {
-        db_read              (...args:any) { console.debug('db_read',     args) },
-        db_write (keyPtr, valPtr) {
-          const key = read({ memory }, keyPtr)
-          const val = read({ memory }, valPtr)
-          console.info('db_write', { key, val })
-        },
-        db_remove            (...args:any) { console.debug('db_remove',   args) },
-        canonicalize_address (...args:any) { console.debug('canonize',    args) },
-        humanize_address     (...args:any) { console.debug('humanize',    args) },
-        query_chain          (...args:any) { console.debug('query_chain', args) }
-      }
-    }
-  }
-  makeCodeId () {
-    return ++this.codeId
-  }
-}
-
-export class Mocknet extends Chain {
-  constructor (id = 'fadroma-mocknet', options = {}) {
-    super(id, options)
-  }
-  Agent = MockAgent
-  state = new MocknetState(this)
-  async getAgent ({ name }: Identity = {}) {
-    return new MockAgent(this, name)
-  }
   upload ({ location, codeHash }: Artifact): Template {
-    const codeId  = this.state.makeCodeId()
-    const content = this.state.uploads[codeId] = readFileSync(location)
-    return {
-      chainId: this.id,
-      codeId:  String(codeId),
-      codeHash
-    }
+    const chainId = this.chainId
+    const codeId  = ++this.codeId
+    const content = this.uploads[codeId] = readFileSync(location)
+    return { chainId, codeId: String(codeId), codeHash }
   }
-  getCodeById (codeId) {
-    const code = this.state.uploads[codeId]
+  getCode (codeId) {
+    const code = this.uploads[codeId]
     if (!code) {
       throw new Error(`No code with id ${codeId}`)
     }
@@ -208,40 +208,49 @@ export class Mocknet extends Chain {
   async instantiate (
     sender: string, { codeId, codeHash }: Template, label, msg, funds = []
   ): Promise<Instance> {
-    const code     = this.getCodeById(codeId)
+    const chainId  = this.chainId
+    const code     = this.getCode(codeId)
     const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
-    const world    = this.state.makeContractEnv()
-    const contract = await Contract.load(code, world)
-    const env      = this.state.makeCallEnv(sender, address, codeHash)
+    const contract = await new Contract().load(code)
+    const env      = this.makeEnv(sender, address, codeHash)
     const response = contract.init(env, msg)
     if (response.Err) {
       console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
       throw 'TODO error handling'
     } else {
-      this.state.instances[address] = contract
+      this.instances[address] = contract
     }
-    return {
-      chainId: this.id,
-      codeId,
-      codeHash,
-      address,
-      label
-    }
+    return { chainId, codeId, codeHash, address, label }
   }
-  async execute (sender: string, { address }: Instance, msg, funds, memo, fee) {
-    this.assertContractExists(address)
+  getInstance (address) {
+    const instance = this.instances[address]
+    if (!instance) {
+      throw new Error(`Mocknet: no contract at ${address}`)
+    }
+    return instance
+  }
+  async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo, fee) {
+    const contract = this.getInstance(address)
+    return Promise.resolve({
+      transactionHash: "",
+      logs: [],
+      data: null
+    })
+  }
+  async query ({ address, codeHash }: Instance, msg) {
+    const contract = this.getInstance(address)
     return Promise.resolve({})
   }
-  async query ({ address }: Instance, msg) {
-    this.assertContractExists(address)
-    const codeId = this.state.instances[address]
-    const code   = this.state.uploads[codeId]
-    return Promise.resolve({})
+}
+
+export class Mocknet extends Chain {
+  constructor (id = 'fadroma-mocknet', options = {}) {
+    super(id, options)
   }
-  assertContractExists (address: string) {
-    if (!this.state.instances[address]) {
-      throw new Error(`No contract at ${address}`)
-    }
+  Agent = MockAgent
+  state = new MocknetState(this.id)
+  async getAgent ({ name }: Identity = {}) {
+    return new MockAgent(this, name)
   }
 }
 
@@ -259,21 +268,21 @@ export class MockAgent extends Agent {
   defaultDenomination = 'umock'
 
   async upload (artifact) {
-    return await this.chain.upload(artifact)
+    return this.chain.state.upload(artifact)
   }
 
   Bundle = null
 
   async doInstantiate (template, label, msg, funds = []): Promise<Instance> {
-    return await this.chain.instantiate(this.address, template, label, msg, funds)
+    return await this.chain.state.instantiate(this.address, template, label, msg, funds)
   }
 
   async doExecute (instance, msg, funds, memo?, fee?) {
-    return await this.chain.execute(this.address, instance, msg, funds, memo, fee)
+    return await this.chain.state.execute(this.address, instance, msg, funds, memo, fee)
   }
 
   async doQuery (instance, msg) {
-    return await this.chain.query(instance, msg)
+    return await this.chain.state.query(instance, msg)
   }
 
   get nextBlock () {

@@ -31,17 +31,17 @@ const mockEnv = () => {
 }
 test({
   async "Contract#init" ({ equal }) {
-    const contract = await Contract.load(emptyContractWasm)
+    const contract = await new Contract().load(emptyContractWasm)
     const result = contract.init(mockEnv(), {})
     equal(result.Err, undefined)
   }
   async "Contract#handle" ({ equal }) {
-    const contract = await Contract.load(emptyContractWasm)
+    const contract = await new Contract().load(emptyContractWasm)
     const result = contract.handle(mockEnv(), "Null")
     equal(result.Err, undefined)
   }
   async "Contract#query" ({ equal }) {
-    const contract = await Contract.load(emptyContractWasm)
+    const contract = await new Contract().load(emptyContractWasm)
     const result = await contract.query("Echo")
     equal(result.Err, undefined)
   }
@@ -88,14 +88,14 @@ test({
     const template = { chainId: 'Mocknet', codeId: '2' }
     rejects(agent.instantiate(template, 'test', {}))
   },
-  async 'upload and init from resulting code ID' () {
+  async 'upload and init from resulting code ID' ({ ok }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
     const template = await agent.upload({ location: emptyContract, codeHash: 'something' })
     const instance = await agent.instantiate(template, 'test', {})
     const client   = agent.getClient(Client, instance)
-    await client.query({})
-    await client.execute({})
+    ok(await client.query({}))
+    ok(await client.execute({}))
   }
 })
 ```
