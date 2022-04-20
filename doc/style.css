@@ -2,15 +2,15 @@
   margin: 0;
   padding: 0;
   line-height: 2;
-  font-size: 20px;
-  font-family: "Jost", sans-serif;
+  font-size: 16px;
+  font-family: "Inter", sans-serif;
   text-align: center;
 }
 
 body {
-  font-size: 20px;
+  font-size: 16px;
   background-image: url(bg.svg);
-  color: #111;
+  color: #123;
 }
 
 body, header, section, footer {

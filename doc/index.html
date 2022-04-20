@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>Fadroma by Hack.bg</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css?family=Jost:400|Jost:900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Inter:400|Inter:900&display=swap" rel="stylesheet">
   </head>
   <body>
 
@@ -22,115 +22,104 @@
 <h3 id="rust">Rust</h3>
 <table>
 <colgroup>
-<col style="width: 40%" />
-<col style="width: 5%" />
+<col style="width: 25%" />
 <col style="width: 50%" />
+<col style="width: 25%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th>Crate</th>
-<th>Version</th>
 <th>Purpose</th>
+<th>Source</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma">fadroma</a></td>
-<td>100.0.0</td>
-<td>Reexports all the following crates:</td>
+<td><a href="/rs/fadroma/">Fadroma Contracts</a></td>
+<td>Main crate.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma">View source</a></td>
 </tr>
 <tr class="even">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-auth">fadroma-auth</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-auth/">Fadroma Auth</a></td>
 <td>Provides authentication primitives.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-auth">View source</a></td>
 </tr>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-auth-proc">fadroma-auth-proc</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-auth-proc/">Fadroma Auth (proc.)</a></td>
 <td>Defines the <code>#[require_admin]</code> macro.</td>
-</tr>
-<tr class="even">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-bind-js">fadroma-bind-js</a></td>
-<td>0.1.0</td>
-<td>Allows contracts to be loaded in the browser.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-auth-proc">View source</a></td>
 </tr>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-composability">fadroma-composability</a></td>
-<td>0.1.0</td>
-<td>Helpers for building contracts out of reusable Rust traits.</td>
-</tr>
-<tr class="even">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-declare-contract">fadroma-declare-contract</a></td>
-<td>0.1.0</td>
-<td>Deprecated. Our first attempt at smoothing out the verbosity of the CW0.10 API.</td>
+<td><a href="/rs/fadroma-composability">Fadroma Composability</a></td>
+<td>Build contracts out of reusable Rust traits.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-composability">View source</a></td>
 </tr>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-derive-contract">fadroma-derive-contract</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-derive-contract">Fadroma Derive</a></td>
 <td>Provides the <code>#[init]</code>, <code>#[handle]</code> and <code>#[query]</code> macros.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-derive-contract">View source</a></td>
 </tr>
 <tr class="even">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-ensemble">fadroma-ensemble</a></td>
-<td>0.1.0</td>
-<td>Enables multiple contracts to be tested in Rust.</td>
+<td><a href="/rs/fadroma-ensemble">Fadroma Ensemble</a></td>
+<td>Integration test multiple smart contracts from Rust.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-ensemble">View source</a></td>
 </tr>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-killswitch">fadroma-killswitch</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-killswitch">Fadroma Killswitch</a></td>
 <td>Emergency pause and termination for smart contracts.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-killswitch">View source</a></td>
 </tr>
 <tr class="even">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-math">fadroma-math</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-math">Fadroma Math</a></td>
 <td>256-bit integers, SHA256 checksum, ChaCha RNG</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-math">View source</a></td>
 </tr>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-platform-scrt">fadroma-platform-scrt</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-platform-scrt">Fadroma Platform: SCRT</a></td>
 <td>Support for <a href="https://scrt.network/">Secret Network</a>, including inter-contract communication.</td>
-</tr>
-<tr class="even">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-platform-terra">fadroma-platform-terra</a></td>
-<td>TODO</td>
-<td>Support for <a href="https://www.terra.money/">Terra</a></td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-platform-scrt">View source</a></td>
 </tr>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-snip20-api">fadroma-snip20-api</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-snip20-api">fadroma-snip20-api</a>Fadroma SNIP20 API</td>
 <td>Provides <code>ISNIP20</code> for talking to SNIP20 tokens</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-snip20-api">View source</a></td>
 </tr>
 <tr class="even">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-snip20-impl">fadroma-snip20-impl</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-snip20-impl">Fadroma SNIP20 (impl.)</a></td>
 <td>Reusable implementation of a SNIP20 token</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-snip20-impl">View source</a></td>
 </tr>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-storage">fadroma-storage</a></td>
-<td>0.1.0</td>
+<td><a href="/rs/fadroma-storage">Fadroma Storage</a></td>
 <td>Different ways of interacting with the storage APIs.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-storage">View source</a></td>
 </tr>
 </tbody>
 </table>
 <h3 id="typescript">TypeScript</h3>
 <table>
 <colgroup>
-<col style="width: 38%" />
-<col style="width: 61%" />
+<col style="width: 25%" />
+<col style="width: 50%" />
+<col style="width: 25%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th>Package</th>
 <th>Purpose</th>
+<th>Source</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/packages/ops">ops</a></td>
+<td><a href="/js/modules.html">ops</a></td>
 <td>Classes representing the CosmWasm build/upload/deploy workflow.</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/packages/ops"><code>@fadroma/ops</code></a></td>
 </tr>
 <tr class="even">
-<td><a href="https://github.com/hackbg/fadroma/tree/v100/packages/scrt">scrt</a></td>
+<td><a href="/js/classes/Scrt_1_2.html">scrt</a></td>
 <td>Specialization of the <code>ops</code> classes for Secret Network</td>
+<td><a href="https://github.com/hackbg/fadroma/tree/v100/packages/ops"><code>@fadroma/scrt</code></a></td>
 </tr>
 </tbody>
 </table>
