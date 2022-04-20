@@ -2,33 +2,60 @@ use fadroma::{
     Storage, Api, Querier,
     Extern, Env,
     InitResponse, HandleResponse, Binary,
-    StdResult,
-    schemars
+    StdResult, StdError,
+    schemars,
+    save, load, remove,
 };
 
+const KEY: &'static [u8] = b"value";
+
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub struct InitMsg {}
+pub struct InitMsg {
+    value: Option<Binary>
+}
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum HandleMsg { Null }
+pub enum HandleMsg {
+    Set(Binary),
+    Del
+}
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum QueryMsg { Echo }
+pub enum QueryMsg {
+    Get
+}
 
 pub(crate) fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, env: Env, msg: InitMsg,
 ) -> StdResult<InitResponse> {
+    if let Some(value) = msg.value {
+        save(&mut deps.storage, KEY, &value)?;
+    }
     Ok(InitResponse::default())
 }
 
 pub(crate) fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
+    match msg {
+        HandleMsg::Set(value) => {
+            save(&mut deps.storage, KEY, &value)?
+        },
+        HandleMsg::Del => {
+            remove(&mut deps.storage, KEY)
+        }
+    };
     Ok(HandleResponse::default())
 }
 
 pub(crate) fn query<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>, msg: QueryMsg,
 ) -> StdResult<Binary> {
-    Ok(Binary(vec![]))
+    match msg {
+        QueryMsg::Get => if let Some(value) = load(&deps.storage, KEY)? {
+            Ok(value)
+        } else {
+            Err(StdError::generic_err("empty"))
+        }
+    }
 }
 
 #[cfg(target_arch = "wasm32")]

@@ -15,22 +15,20 @@ import { Contract } from './Mocknet'
 const fixture           = x => resolve(dirname(fileURLToPath(import.meta.url)), '../..', x)
 const emptyContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
 const emptyContractWasm = readFileSync(emptyContract)
-const mockEnv = () => ({
-  block: {
-    height:   0,
-    time:     0,
-    chain_id: "mock"
-  },
-  message: {
-    sender:  "secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    sent_funds: []
-  },
-  contract: {
-    address: "secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  },
-  contract_key: "",
-  contract_code_hash: ""
-})
+const mockEnv = () => {
+  const height   = 0
+  const time     = 0
+  const chain_id = "mock"
+  const sender   = "secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  const address  = "secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  return {
+    block:    { height, time, chain_id }
+    message:  { sender: sender, sent_funds: [] },
+    contract: { address },
+    contract_key: "",
+    contract_code_hash: ""
+  }
+}
 test({
   async "Contract#init" ({ equal }) {
     const contract = await Contract.load(emptyContractWasm)
@@ -79,7 +77,7 @@ test({
 })
 ```
 
-## Can instantiate and use a contract
+## Can instantiate and call a contract
 
 ```typescript
 import { Client } from './Client'
@@ -100,4 +98,9 @@ test({
     await client.execute({})
   }
 })
+```
+
+## Contract deployed to mocknet can use simulated platform APIs
+
+```typescript
 ```
