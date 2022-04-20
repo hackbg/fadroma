@@ -207,7 +207,7 @@ export class Deployments extends Directory {
     await chain.deployments.create(prefix)
     await chain.deployments.select(prefix)
     return this.activate({ chain })
-  }
+  }.bind(this)
 
   /** Command: Activate a deployment and prints its status. */
   static activate = function activateDeployment ({ chain }): DeployContext {
@@ -222,7 +222,7 @@ export class Deployments extends Directory {
     console.info(bold('Active deployment:'), prefix, contracts)
     print(console).deployment(deployment)
     return { deployment, prefix }
-  }
+  }.bind(this)
 
   static activateOrNew = async function activateOrCreateDeployment ({
     chain, cmdArgs
@@ -232,7 +232,7 @@ export class Deployments extends Directory {
     } else {
       return await this.new({ chain, cmdArgs })
     }
-  }
+  }.bind(this)
 
   /** Command: Print the status of a deployment. */
   static status = function printStatusOfDeployment ({ chain, cmdArgs: [id] = [undefined] }) {
@@ -245,7 +245,7 @@ export class Deployments extends Directory {
       process.exit(1)
     }
     print(console).deployment(deployment)
-  }
+  }.bind(this)
 
   /** Command: Set a new deployment as active. */
   static select = async function selectDeployment ({ chain, cmdArgs: [id] = [undefined] }) {
@@ -273,6 +273,6 @@ export class Deployments extends Directory {
     }
     console.log()
     chain.deployments.printActive()
-  }
+  }.bind(this)
 
 }
