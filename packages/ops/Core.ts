@@ -83,8 +83,9 @@ export async function buildAndUpload (
 }
 
 export async function buildAndUploadMany (
-  builder: Builder, uploader: Uploader, sources: Source[]
+  builder: Builder, uploader: Uploader, ...sourceSets: Source[][]
 ): Promise<Template[]> {
+  const sources   = sourceSets.reduce((sources, sourceSet)=>sources.concat(sourceSet), [])
   const artifacts = await builder.buildMany(sources)
   const templates = await uploader.uploadMany(artifacts)
   return templates
