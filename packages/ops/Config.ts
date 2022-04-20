@@ -2,7 +2,7 @@ import { resolve, homedir, dirname, fileURLToPath } from '@hackbg/toolbox'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export type EnvVars = {
+export interface EnvVars {
 
   /** The user's home directory. */
   HOME: string

@@ -135,7 +135,7 @@ export interface Identity {
 
 export type Message = string|Record<string, any>
 
-export type Coin = {
+export interface Coin {
   amount: string
   denom:  string
 }
@@ -149,7 +149,7 @@ export abstract class Gas {
   }
 }
 
-export type Fees = {
+export interface Fees {
   upload: Gas
   init:   Gas
   exec:   Gas

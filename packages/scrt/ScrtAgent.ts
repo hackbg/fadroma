@@ -18,7 +18,7 @@ import type { Scrt, ScrtNonce } from './ScrtChain'
 import { ScrtGas } from './ScrtGas'
 import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
-export type APIConstructor = new(...args:any) => SigningCosmWasmClient
+export interface APIConstructor extends SigningCosmWasmClient {}
 
 const console = Console('@fadroma/scrt/Agent')
 

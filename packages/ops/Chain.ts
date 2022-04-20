@@ -17,7 +17,7 @@ export enum ChainMode {
   Mocknet = 'Mocknet'
 }
 
-export type ChainConfig = {
+export interface ChainConfig {
   statePath?:       string
   mode?:            ChainMode
   node?:            Devnet
@@ -25,7 +25,7 @@ export type ChainConfig = {
   apiURL?:          URL
 }
 
-export type ChainConstructor = (id: string, options?: ChainConfig)=>Chain
+export interface ChainConstructor extends Chain {}
 
 /** Represents an interface to a particular Cosmos blockchain;
   * used to construct `Agent`s that are bound to it.

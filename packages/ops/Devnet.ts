@@ -20,7 +20,7 @@ const console = Console('@fadroma/ops/Devnet')
 /** Domain API. A Devnet is created from a given chain ID
   * with given pre-configured identities, and its state is stored
   * in a given directory. */
-export type DevnetOptions = {
+export interface DevnetOptions {
   /** Internal name that will be given to chain. */
   chainId?:   string
   /** Names of genesis accounts to be created with the node */
@@ -138,7 +138,7 @@ export abstract class Devnet {
 
 /** Parameters for the Dockerode-based implementation of Devnet.
   * (https://www.npmjs.com/package/dockerode) */
-export type DockerodeDevnetOptions = DevnetOptions & {
+export interface DockerodeDevnetOptions extends DevnetOptions {
   /** Docker image of the chain's runtime. */
   image?: DockerImage
   /** Init script to launch the devnet. */
@@ -171,7 +171,7 @@ export type DockerodeDevnetOptions = DevnetOptions & {
 }
 
 /** Used to reconnect between runs. */
-export type DockerodeDevnetReceipt = {
+export interface DockerodeDevnetReceipt {
   containerId: string
   chainId:     string
   port:        number|string

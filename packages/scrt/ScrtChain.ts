@@ -19,7 +19,10 @@ export const {
   SCRT_TESTNET_API_URL  = `https://secret-${SCRT_TESTNET_CHAIN_ID}--lcd--full.datahub.figment.io/apikey/${config.datahub.key}/`,
 } = process.env
 
-export type ScrtNonce = { accountNumber: number, sequence: number }
+export interface ScrtNonce {
+  accountNumber: number
+  sequence:      number
+}
 
 export abstract class Scrt extends Chain {
   async getNonce (address: string): Promise<ScrtNonce> {

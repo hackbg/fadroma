@@ -124,12 +124,14 @@ export class MocknetState {
   }
   makeContractEnv () {
     return {
-      db_read              (...args:any) { console.debug('db_read',     args) },
-      db_write             (...args:any) { console.debug('db_write',    args) },
-      db_remove            (...args:any) { console.debug('db_remove',   args) },
-      canonicalize_address (...args:any) { console.debug('canonize',    args) },
-      humanize_address     (...args:any) { console.debug('humanize',    args) },
-      query_chain          (...args:any) { console.debug('query_chain', args) }
+      env: {
+        db_read              (...args:any) { console.debug('db_read',     args) },
+        db_write             (...args:any) { console.debug('db_write',    args) },
+        db_remove            (...args:any) { console.debug('db_remove',   args) },
+        canonicalize_address (...args:any) { console.debug('canonize',    args) },
+        humanize_address     (...args:any) { console.debug('humanize',    args) },
+        query_chain          (...args:any) { console.debug('query_chain', args) }
+      }
     }
   }
   makeCodeId () {
@@ -165,6 +167,27 @@ export class Mocknet extends Chain {
     }
     return code
   }
+  async instantiate (sender:string, { codeId, codeHash }: Template, label, msg, funds = []): Promise<Instance> {
+    const code     = this.getCodeById(codeId)
+    const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
+    const world    = this.state.makeContractEnv()
+    const contract = await Contract.load(code, world)
+    const env      = this.state.makeCallEnv(sender, address, codeHash)
+    const response = contract.init(env, msg)
+    if (response.Err) {
+      console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
+      throw 'TODO error handling'
+    } else {
+      this.state.instances[address] = contract
+    }
+    return {
+      chainId: this.id,
+      codeId,
+      codeHash,
+      address,
+      label
+    }
+  }
 }
 
 export class MockAgent extends Agent {
@@ -186,24 +209,8 @@ export class MockAgent extends Agent {
 
   Bundle = null
 
-  async doInstantiate ({ codeId, codeHash }: Template, label, msg, funds = []): Promise<Instance> {
-    const code     = this.chain.getCodeById(codeId)
-    const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
-    const contract = await Contract.load(code, { env: this.chain.state.makeContractEnv() })
-    const response = contract.init(this.chain.state.makeCallEnv(this.address, address, codeHash), msg)
-    if (response.Err) {
-      console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
-      throw 'TODO error handling'
-    } else {
-      this.chain.state.instances[address] = contract
-    }
-    return {
-      chainId: this.chain.id,
-      codeId,
-      codeHash,
-      address,
-      label
-    }
+  async doInstantiate (template, label, msg, funds = []): Promise<Instance> {
+    return await this.chain.instantiate(this.address, template, label, msg, funds)
   }
 
   doQuery ({ address }: Instance, msg: any) {
