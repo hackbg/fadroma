@@ -92,12 +92,14 @@ export class Fadroma {
   }
 
   static Deploy = {
-    /** Creates a new deployment and adds it to the command context. */
-    New:    Deployments.new,
-    /** Adds the currently active deployment to the command context. */
-    Append: Deployments.activate,
-    /** Prints the status of the active deployment. */
-    Status: Deployments.status,
+    /** Create a new deployment and adds it to the command context. */
+    New:         Deployments.new,
+    /** Add the currently active deployment to the command context. */
+    Append:      Deployments.activate,
+    /** Add the active deployment, or a new one, to the command context. */
+    AppendOrNew: Deployments.activate,
+    /** Print the status of the active deployment. */
+    Status:      Deployments.status,
   }
 
   /** Call this with `import.meta.url` at the end of a command module. */

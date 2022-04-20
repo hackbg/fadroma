@@ -117,6 +117,11 @@ export class Deployment {
 
 }
 
+export interface DeployContext {
+  deployment: Deployment|undefined,
+  prefix:     string|undefined
+}
+
 export class Deployments extends Directory {
 
   KEY = '.active'
@@ -171,7 +176,10 @@ export class Deployments extends Directory {
       mkdirp.sync(this.path)
       return []
     }
-    return readdirSync(this.path).filter(x=>x!=this.KEY).filter(x=>x.endsWith('.yml')).map(x=>basename(x,'.yml'))
+    return readdirSync(this.path)
+      .filter(x=>x!=this.KEY)
+      .filter(x=>x.endsWith('.yml'))
+      .map(x=>basename(x,'.yml'))
   }
 
   save (name: string, data: any) {
@@ -186,29 +194,36 @@ export class Deployments extends Directory {
   }
 
   /** Command: Create a new deployment. */
-  static new = async function newDeployment ({ chain, cmdArgs = [] }) {
+  static new = async function createDeployment ({ chain, cmdArgs = [] }): Promise<DeployContext> {
     const [ prefix = timestamp() ] = cmdArgs
     await chain.deployments.create(prefix)
     await chain.deployments.select(prefix)
-    return Deployments.activate({ chain })
+    return this.activate({ chain })
   }
 
   /** Command: Activate a deployment and prints its status. */
-  static activate = function activateDeployment ({ chain }): {
-    deployment: Deployment|undefined,
-    prefix:     string|undefined
-  } {
+  static activate = function activateDeployment ({ chain }): DeployContext {
     const deployment = chain.deployments.active
-    const prefix     = deployment?.prefix
     if (!deployment) {
       console.error(join(bold('No selected deployment on chain:'), chain.id))
       process.exit(1)
     }
+    const prefix = deployment.prefix
     let contracts: string|number = Object.values(deployment.receipts).length
     contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
     console.info(bold('Active deployment:'), prefix, contracts)
     print(console).deployment(deployment)
     return { deployment, prefix }
+  }
+
+  static activateOrNew = async function activateOrCreateDeployment ({
+    chain, cmdArgs
+  }): Promise<DeployContext> {
+    if (chain.deployments.active) {
+      return this.activate({ chain })
+    } else {
+      return await this.new({ chain, cmdArgs })
+    }
   }
 
   /** Command: Print the status of a deployment. */
