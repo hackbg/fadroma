@@ -29,12 +29,16 @@ declare class TextEncoder {
 }
 
 declare namespace WebAssembly {
-  class Memory { constructor ({ initial, maximum }) }
+  class Memory {
+    constructor ({ initial, maximum })
+    buffer: Buffer
+  }
   class Instance<T> { exports: T }
   function instantiate (code, world)
 }
 
-type Ptr = number
+type Ptr     = number
+type ErrCode = number
 
 export interface ContractExports {
   memory: WebAssembly.Memory
@@ -49,8 +53,8 @@ export interface ContractImports {
     db_read              (key: Ptr): Ptr
     db_write             (key: Ptr, val: Ptr)
     db_remove            (key: Ptr)
-    canonicalize_address (src: Ptr, dst: Ptr): Ptr
-    humanize_address     (src: Ptr, dst: Ptr): Ptr
+    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
+    humanize_address     (src: Ptr, dst: Ptr): ErrCode
     query_chain          (req: Ptr): Ptr
   }
 }
@@ -129,38 +133,40 @@ export class Contract {
     return JSON.parse(read(this.instance.exports, ptr))
   }
   makeImports (): ContractImports {
+    const contract = this
     const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
+    const getExports = () => ({ memory: contract.instance.exports.memory || memory })
     return {
       memory,
       env: {
-        db_read (keyPtr): Ptr {
-          const key = read({ memory }, keyPtr)
+        db_read (keyPtr) {
+          const key = read(getExports(), keyPtr)
           console.info('db_read', { key })
           return 0
         },
         db_write (keyPtr, valPtr) {
-          const key = read({ memory }, keyPtr)
-          const val = read({ memory }, valPtr)
+          const key = read(getExports(), keyPtr)
+          const val = read(getExports(), valPtr)
           console.info('db_write', { key, val })
         },
         db_remove (keyPtr) {
-          const key = read({ memory }, keyPtr)
+          const key = read(getExports(), keyPtr)
           console.info('db_remove', { key })
         },
         canonicalize_address (srcPtr, dstPtr) {
-          const src = read({ memory }, srcPtr)
-          const dst = read({ memory }, dstPtr)
+          const src = read(getExports(), srcPtr)
+          const dst = read(getExports(), dstPtr)
           console.info('canonize', { src, dst })
           return 0
         },
         humanize_address (srcPtr, dstPtr) {
-          const src = read({ memory }, srcPtr)
-          const dst = read({ memory }, dstPtr)
+          const src = read(getExports(), srcPtr)
+          const dst = read(getExports(), dstPtr)
           console.info('humanize', { src, dst })
           return 0
         },
         query_chain (reqPtr) {
-          const req = read({ memory }, reqPtr)
+          const req = read(getExports(), reqPtr)
           console.info('query_chain', { req })
           return 0
         }
