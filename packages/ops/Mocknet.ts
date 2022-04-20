@@ -38,13 +38,15 @@ declare namespace WebAssembly {
 }
 
 type Ptr     = number
+type Size    = number
 type ErrCode = number
 
 export interface ContractExports {
-  memory: WebAssembly.Memory
-  init   (env: Ptr, msg: Ptr): Ptr
-  handle (env: Ptr, msg: Ptr): Ptr
-  query  (msg: Ptr): Ptr
+  memory:  WebAssembly.Memory
+  allocate (len: Size):          Ptr
+  init     (env: Ptr, msg: Ptr): Ptr
+  handle   (env: Ptr, msg: Ptr): Ptr
+  query    (msg: Ptr):           Ptr
 }
 
 export interface ContractImports {
@@ -134,8 +136,11 @@ export class Contract {
   }
   makeImports (): ContractImports {
     const contract = this
-    const memory = new WebAssembly.Memory({ initial: 32, maximum: 128 })
-    const getExports = () => ({ memory: contract.instance.exports.memory || memory })
+    const memory   = new WebAssembly.Memory({ initial: 32, maximum: 128 })
+    const getExports = () => ({
+      memory:     contract.instance.exports.memory,
+      allocate:   contract.instance.exports.allocate,
+    })
     return {
       memory,
       env: {
@@ -156,13 +161,13 @@ export class Contract {
         canonicalize_address (srcPtr, dstPtr) {
           const src = read(getExports(), srcPtr)
           const dst = read(getExports(), dstPtr)
-          console.info('canonize', { src, dst })
+          console.info('canonize', { src })
           return 0
         },
         humanize_address (srcPtr, dstPtr) {
           const src = read(getExports(), srcPtr)
           const dst = read(getExports(), dstPtr)
-          console.info('humanize', { src, dst })
+          console.info('humanize', { src })
           return 0
         },
         query_chain (reqPtr) {
@@ -236,16 +241,15 @@ export class MocknetState {
     return instance
   }
   async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo, fee) {
-    const contract = this.getInstance(address)
-    return Promise.resolve({
-      transactionHash: "",
-      logs: [],
-      data: null
-    })
+    return this.getInstance(address).handle(this.makeEnv(sender, address), msg)
+    //return Promise.resolve({
+      //transactionHash: "",
+      //logs: [],
+      //data: null
+    //})
   }
   async query ({ address, codeHash }: Instance, msg) {
-    const contract = this.getInstance(address)
-    return Promise.resolve({})
+    return this.getInstance(address).query(msg)
   }
 }
 
