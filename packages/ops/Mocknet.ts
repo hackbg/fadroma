@@ -134,6 +134,7 @@ export class Contract {
   private read (ptr) {
     return JSON.parse(read(this.instance.exports, ptr))
   }
+  storage = new Map()
   makeImports (): ContractImports {
     const contract = this
     const memory   = new WebAssembly.Memory({ initial: 32, maximum: 128 })
@@ -146,13 +147,18 @@ export class Contract {
       env: {
         db_read (keyPtr) {
           const key = read(getExports(), keyPtr)
-          console.info('db_read', { key })
-          return 0
+          //console.info('db_read', { key })
+          if (contract.storage.has(key)) {
+            return pass(getExports(), contract.storage.get(key))
+          } else {
+            return 0
+          }
         },
         db_write (keyPtr, valPtr) {
           const key = read(getExports(), keyPtr)
           const val = read(getExports(), valPtr)
-          console.info('db_write', { key, val })
+          //console.info('db_write', { key, val })
+          contract.storage.set(key, val)
         },
         db_remove (keyPtr) {
           const key = read(getExports(), keyPtr)
@@ -241,15 +247,23 @@ export class MocknetState {
     return instance
   }
   async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo, fee) {
-    return this.getInstance(address).handle(this.makeEnv(sender, address), msg)
-    //return Promise.resolve({
-      //transactionHash: "",
-      //logs: [],
-      //data: null
-    //})
+    return this.resultOf(this.getInstance(address).handle(this.makeEnv(sender, address), msg))
   }
   async query ({ address, codeHash }: Instance, msg) {
-    return this.getInstance(address).query(msg)
+    return this.resultOf(this.getInstance(address).query(msg))
+  }
+  private resultOf (result) {
+    if (result.Ok) {
+      return result.Ok
+    } else if (result.Err) {
+      const msg = `Mocknet: contract returned error: ${JSON.stringify(result.Err)}`
+      const err = Object.assign(new Error(msg), { Err: result.Err })
+      throw err
+    } else {
+      const msg = 'Mocknet: contract returned non-Result type'
+      const err = Object.assign(new Error(msg), { result })
+      throw err
+    }
   }
 }
 
