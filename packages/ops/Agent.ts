@@ -14,7 +14,14 @@ export type AgentConstructor = (new (Identity) => Agent) & {
   create: (chain: Chain, options: any) => Promise<Agent>
 }
 
-export abstract class Agent implements Identity {
+export interface Executor {
+  address: string
+  query    (contract: Instance, msg: any): Promise<any>
+  execute  (contract: Instance, msg: Message, funds: any[], memo?: any, fee?: any): Promise<any>
+  getLabel (address: string): Promise<string>
+}
+
+export abstract class Agent implements Executor {
 
   trace = new Trace("unnamed", console)
 
@@ -176,7 +183,17 @@ export abstract class Agent implements Identity {
 
 export type BundleWrapper = (bundle: Bundle) => Promise<any>
 
-export abstract class Bundle {
+export interface BundleResult {
+  tx:        string
+  type:      string
+  chainId:   string
+  codeId?:   string
+  codeHash?: string
+  address?:  string
+  label?:    string
+}
+
+export abstract class Bundle implements Executor {
 
   constructor (readonly agent: Agent) {}
 
@@ -231,6 +248,14 @@ export abstract class Bundle {
     configs: [Template, Label, InitMsg][], prefix?: string, suffix?: string
   ): Promise<Record<string, Instance>>
 
+  getLabel (address: string) {
+    return this.agent.getLabel(address)
+  }
+
+  async query (contract: Instance, msg: any): Promise<any> {
+    throw new Error('Querying is not possible inside a bundle')
+  }
+
   abstract execute (instance: Instance, msg: Message): Promise<this>
 
   abstract submit  (memo: string): Promise<BundleResult[]>
@@ -244,14 +269,4 @@ export abstract class Bundle {
     return new Client({ ...config, agent: this })
   }
 
-}
-
-export type BundleResult = {
-  tx:        string
-  type:      string
-  chainId:   string
-  codeId?:   string
-  codeHash?: string
-  address?:  string
-  label?:    string
 }

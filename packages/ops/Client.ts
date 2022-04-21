@@ -1,8 +1,8 @@
-import type { Message } from './Core'
-import type { Agent } from './Agent'
+import type { Instance, Message } from './Core'
+import type { Executor } from './Agent'
 
 export interface ClientConfig {
-  agent?:    Agent
+  agent?:    Executor
   address?:  string
   codeHash?: string
   label?:    string
@@ -12,11 +12,13 @@ export interface ClientConstructor<C extends Client> {
   new (options: ClientConfig): C
 }
 
-export class Client {
+export class Client implements Instance {
 
-  readonly agent: Agent
-  address:  string
+  agent:    Executor
+  chainId:  string
+  codeId:   string
   codeHash: string
+  address:  string
   label:    string
 
   constructor (options: ClientConfig = {}) {
@@ -49,7 +51,7 @@ export class Client {
   protected execute = (msg: Message, memo?, funds?) =>
     this.agent.execute(this, msg, memo, funds)
 
-  switchAgent = (agent: Agent) => new (this.constructor as ClientConstructor<typeof this>)({
+  switchAgent = (agent: Executor) => new (this.constructor as ClientConstructor<typeof this>)({
     ...this,
     agent,
   })
