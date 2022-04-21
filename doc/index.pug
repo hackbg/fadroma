@@ -1,0 +1,110 @@
+doctype 5
+html(lang='en')
+
+  head
+
+    meta(charset='utf-8')
+    title Fadroma by Hack.bg
+    link(rel='stylesheet' href='style.css')
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css?family=Inter:400|Inter:900&display=swap')
+
+  body
+
+    header
+      p
+        img(src='./logo.svg' height=300)
+      p Made with 💚 at <a href="https://hack.bg">Hack.bg</a>
+
+    mixin feature (name='', categories=[])
+      .feature
+        h3= name
+        div.description
+          block
+        for c in categories
+          +feature-category(c)
+
+    mixin feature-category (name='')
+      .category= name
+
+    div(id="platforms")
+      h2 Supported platforms
+
+      .grid
+        +feature('Secret Network')
+
+    div(id="features")
+      h2 Features
+
+      h3(id="features-available") General availability
+
+      .grid
+        +feature('Derive contract')
+          | Procedural macro for generating smart contract boilerplate
+        +feature('Reproducible builder')
+          | Perform production builds of your contracts in a Docker container
+        +feature('Scriptable deployments')
+          | Manage hundreds of heterogeneous contracts using a TypeScript API
+        +feature('Automatic devnet management')
+          | Spawn local blockchain nodes for development and testing
+        +feature('Transaction receipts')
+          | Keep track of uploads, instantiations, and configuration
+        +feature('Contract clients')
+          | Define contract-specific client classes to call your contracts' API methods
+          | and perform your off-chain logic in TypeScript
+        +feature('Ensemble testing')
+          | Test multiple interoperating smart contracts using a Rust API
+        +feature('Executable specifications')
+          | Test your smart contracts and off-chain logic from TypeScript
+          | without the overhead of testing frameworks
+        +feature('Environment-based configuration')
+          | Configure your workflow using environment variables and/or a .env file
+        +feature('Contract ownership')
+          | Allow a privileged user to perform administrative operations
+        +feature('Killswitch')
+          | Emergency pause and permanent termination for your contract
+        +feature('Viewing keys')
+          | Generate and use viewing keys in any contract
+        +feature('Permits')
+          | Generate and use revokable query permits
+        +feature('256-bit arithmetic')
+          | 256-bit integer support in Cosmos for Ethereum interop
+        +feature('On-chain checksum generation')
+          | Generate SHA256 checksums for arbitrary data from your contract
+        +feature('Pseudo-random number generator')
+          | ChaCha-based PRNG
+        +feature('ISNIP20')
+          | Make calls to SNIP20 tokens
+        +feature('SNIP20')
+          | Reusable implementation of a SNIP20 token
+        +feature('Storage helpers')
+          | Keyed, namepaced, and iterable data storage on top of Cosmos built-in KV
+
+      h3(id="features-experimental") Experimental
+
+      .grid
+        +feature('Mocknet')
+          | Execute smart contracts in a simulated local environment
+        +feature('Transaction bundles')
+          | Execute multiple messages in a single transaction
+        +feature('Composability')
+          | Compose self-contained subsystems into a single contract
+        +feature('Literate programming')
+          | Wrap your client code in Markdown and write rich documentation
+          | in the same place as the client implementation
+
+      h3(id="features-planned") Planned
+
+      .grid
+        +feature('Project scaffolding')
+          | Generate project boilerplate using <code>npx fadroma create</code>
+        +feature('Docker Compose integration')
+          | Integrate your frontend and off-chain backend with devnet and development server
+        +feature('Smart code reloading')
+          | Automatically redeploy contracts on changes to source code
+        +feature('Privacy-preserving migrations')
+          | Allow your users to migrate their private state to newer versions of deployed contracts
+        +feature('Development dashboard')
+          | Monitor devnet state, visualize deployment contents, view test results and coverage,=
+          | and perform administrative operations, from a unified local dashboard
+        +feature('Schema-based clients')
+          | Generate client classes and microfrontends from the JSON schema exported by contracts
