@@ -4,7 +4,6 @@
   line-height: 2;
   font-size: 16px;
   font-family: "Inter", sans-serif;
-  text-align: center;
   box-sizing: border-box;
 }
 
@@ -17,6 +16,10 @@ body {
 
 body, header, section, footer {
   padding: 1em;
+}
+
+header {
+  text-align: center;
 }
 
 a {
@@ -41,6 +44,7 @@ h1 {
 }
 h2 {
   font-size: 2em;
+  text-align: center;
 }
 h3 {
   font-size: 1.5em;
@@ -80,9 +84,21 @@ th {
 .grid {
   display: flex;
   flex-flow: row wrap;
+  justify-content: center;
+  max-width: 80rem;
+  margin: 0 auto 3rem;
 }
 
 .feature {
   width: 33.3%;
   padding: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.feature.center {
+  text-align: center;
+}
+
+.feature .description {
+  line-height: 1.5;
 }

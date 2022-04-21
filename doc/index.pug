@@ -16,7 +16,7 @@ html(lang='en')
       p Made with 💚 at <a href="https://hack.bg">Hack.bg</a>
 
     mixin feature (name='', categories=[])
-      .feature
+      .feature.center
         h4= name
         div.description
           block
@@ -89,7 +89,7 @@ html(lang='en')
         +feature('Composability')
           | Compose self-contained subsystems into a single contract
         +feature('Literate programming')
-          | Wrap TypeScript in Markdown to document client and deploy logic in place
+          | Wrap TypeScript in Markdown to document client code and deploy logic in place
 
       h3(id="features-planned") Planned
 
