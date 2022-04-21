@@ -16,7 +16,7 @@ html(lang='en')
       p Made with 💚 at <a href="https://hack.bg">Hack.bg</a>
 
     mixin feature (name='', categories=[])
-      .feature.center
+      .feature
         h4= name
         div.description
           block
@@ -30,7 +30,7 @@ html(lang='en')
       h2 Supported platforms
 
       .grid
-        +feature('Secret Network')
+        +feature('Secret Network').center
 
     div(id="features")
       h2 Features
