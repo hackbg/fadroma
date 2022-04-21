@@ -45,6 +45,9 @@ h2 {
 h3 {
   font-size: 1.5em;
 }
+h4 {
+  font-size: 1.25em;
+}
 
 button, .button {
   display: inline-block;
