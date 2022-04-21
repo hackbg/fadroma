@@ -34,9 +34,8 @@ html(lang='en')
       .category= name
 
     div(id="features")
-      h2 Features
 
-      h3(id="features-available") General availability
+      h2(id="features-available") Available features
 
       .grid
         +feature('Derive contract')
@@ -81,11 +80,12 @@ html(lang='en')
         +feature('Storage helpers')
           | Keyed, namepaced, and iterable data storage on top of Cosmos built-in KV
 
-      h3(id="features-experimental") Experimental
+      h2(id="features-experimental") Experimental features
 
       .grid
         +feature('Mocknet')
-          | Execute smart contracts in a simulated local environment
+          | Quickly execute smart contracts in a simulated local environment,
+          | without waiting for block validation
         +feature('Transaction bundles')
           | Execute multiple messages in a single transaction
         +feature('Composability')
@@ -93,7 +93,7 @@ html(lang='en')
         +feature('Literate programming')
           | Wrap TypeScript in Markdown to document client code and deploy logic in place
 
-      h3(id="features-planned") Planned
+      h2(id="features-planned") Planned features
 
       .grid
         +feature('Project scaffolding')
