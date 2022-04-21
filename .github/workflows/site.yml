@@ -42,6 +42,10 @@ jobs:
         run: |
           pnpm document
 
+      - name: Render homepage
+        run: |
+          pnpm render
+
       - name: Publish
         if:   github.ref == env.default_branch_ref
         run: |
