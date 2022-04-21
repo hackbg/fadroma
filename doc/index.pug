@@ -15,6 +15,13 @@ html(lang='en')
         img(src='./logo.svg' height=300)
       p Made with 💚 at <a href="https://hack.bg">Hack.bg</a>
 
+    div(id="platforms")
+      h2 Supported platforms
+
+      .grid
+        .feature.center
+          h3 Secret Network
+
     mixin feature (name='', categories=[])
       .feature
         h4= name
@@ -25,12 +32,6 @@ html(lang='en')
 
     mixin feature-category (name='')
       .category= name
-
-    div(id="platforms")
-      h2 Supported platforms
-
-      .grid
-        +feature('Secret Network').center
 
     div(id="features")
       h2 Features
