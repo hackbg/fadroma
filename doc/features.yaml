@@ -96,7 +96,7 @@ link:
 ---
 name: Project scaffolding
 tags: [ Planned ]
-info: Generate project boilerplate using <code>npx fadroma create</code>
+info: Generate project boilerplate using "npx fadroma create"
 link:
 ---
 name: Docker Compose integration
