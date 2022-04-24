@@ -117,12 +117,16 @@ th {
 }
 
 code.block {
-  display:    block;
-  background: #0c5749;
-  color:      white;
-  padding:    1rem;
-  margin:     1rem auto;
-  border:     1px solid green;
+  display:       block;
+  background:    #0c5749;
+  color:         white;
+  padding:       1rem;
+  margin:        1rem auto;
+  border:        1px solid green;
+  font-family:   monospace;
+  font-weight:   bold;
+  border-radius: 3px;
+  max-width:     40rem;
 }
 
 #scrt-logo {
