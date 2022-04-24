@@ -15,11 +15,11 @@ html(lang='en')
         img(src='./logo.svg' height=300)
       p Made with 💚 at <a href="https://hack.bg">Hack.bg</a>
 
-    div
+    div#quick-start
       p Add to your project with:
       code.block git submodule add -b v100 https://github.com/hackbg/fadroma
 
-    div(id="platforms")
+    div#platforms
       h2 Supported platforms
 
       .grid
@@ -43,7 +43,7 @@ html(lang='en')
     mixin feature-category (name='')
       .category= name
 
-    div(id="features")
+    div#features
 
       h2(id="features-available") Available features
 

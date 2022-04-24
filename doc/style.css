@@ -105,3 +105,17 @@ th {
 .feature .description {
   line-height: 1.5;
 }
+
+#quick-start {
+  margin: 0 auto;
+  text-align: center;
+}
+
+code.block {
+  display: block;
+  background: black;
+  color: white;
+  padding: 1rem;
+  margin: 1rem;
+  border: 1px solid green;
+}
