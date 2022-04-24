@@ -87,7 +87,7 @@ th {
 
 .grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   flex-flow: row wrap;
   justify-content: center;
   max-width: 80rem;
@@ -103,12 +103,13 @@ th {
 }
 
 #features .feature {
-  min-height: 10rem;
+  min-height: 15rem;
 }
 
 .feature.center {
   text-align: center;
   grid-column-start: 2;
+  grid-column-end:   4;
 }
 
 .feature .description {
