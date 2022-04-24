@@ -192,3 +192,8 @@ code.block {
   flex-grow:  1;
   min-height: 1rem;
 }
+
+pre {
+  font-family: monospace;
+  font-weight: bold;
+}
