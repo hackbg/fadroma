@@ -40,7 +40,7 @@ html(lang='en')
         for c in categories
           +feature-category(c)
 
-    mixin feature-tagged (name='', tag='')
+    mixin feature-tagged (tag='', name='')
       .feature
         h4
           |= name
@@ -50,9 +50,6 @@ html(lang='en')
           block
         for c in categories
           +feature-category(c)
-
-    mixin feature-category (name='')
-      .category= name
 
     div#features
 
@@ -124,3 +121,14 @@ html(lang='en')
           | Generate client classes and microfrontends from the JSON schema exported by contracts
         +feature-tagged('Planned', 'Property-based testing')
           | Test smart contracts for edge cases using auto-generated input data
+
+    div#license
+
+      .grid
+        a.feature.center(href="https://www.gnu.org/licenses/agpl-3.0.txt")
+          img#scrt-logo(src="./agpl3.svg" alt="GNU Affero General Public License, Version 3")
+          p
+            strong.
+              Fadroma is normally licensed under the GNU Affero General Public License, Version 3.
+              If that license doesn't work for us, email us at hello@hack.bg for custom licensing
+              options.
