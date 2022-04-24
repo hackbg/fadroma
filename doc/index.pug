@@ -31,9 +31,20 @@ html(lang='en')
             including "Decentralizing Privacy", now one of the most
             influential papers in the blockchain space with 2,000 academic citations.
 
-    mixin feature (name='', categories=[])
+    mixin feature (name='')
       .feature
         h4= name
+        div.description
+          block
+        for c in categories
+          +feature-category(c)
+
+    mixin feature-tagged (name='', tag='')
+      .feature
+        h4
+          |= name
+          br
+          .tag= tag
         div.description
           block
         for c in categories
@@ -44,7 +55,7 @@ html(lang='en')
 
     div#features
 
-      h2(id="features-available") Available features
+      h2(id="features-available") Provided capabilities
 
       .grid
         +feature('Derive contract')
@@ -88,35 +99,27 @@ html(lang='en')
           | or embed it in your contract alongside custom logic
         +feature('Storage helpers')
           | Keyed, namepaced, and iterable data storage on top of Cosmos built-in KV
-
-      h2(id="features-experimental") Experimental features
-
-      .grid
-        +feature('Mocknet')
+        +feature-tagged('Experimental', 'Mocknet')
           | Quickly execute smart contracts in a simulated local environment,
           | without waiting for block validation
-        +feature('Transaction bundles')
+        +feature-tagged('Experimental', 'Transaction bundles')
           | Execute multiple messages in a single transaction
-        +feature('Composability')
+        +feature-tagged('Experimental', 'Composability')
           | Compose self-contained subsystems into a single contract
-        +feature('Literate programming')
+        +feature-tagged('Experimental', 'Literate programming')
           | Wrap TypeScript in Markdown to document client code and deploy logic in place
-
-      h2(id="features-planned") Planned features
-
-      .grid
-        +feature('Project scaffolding')
+        +feature-tagged('Planned', 'Project scaffolding')
           | Generate project boilerplate using <code>npx fadroma create</code>
-        +feature('Docker Compose integration')
+        +feature-tagged('Planned', 'Docker Compose integration')
           | Integrate your frontend and off-chain backend with devnet and development server
-        +feature('Smart code reloading')
+        +feature-tagged('Planned', 'Smart code reloading')
           | Automatically redeploy contracts on changes to source code
-        +feature('Privacy-preserving migrations')
+        +feature-tagged('Planned', 'Privacy-preserving migrations')
           | Allow your users to migrate their private state to newer versions of deployed contracts
-        +feature('Development dashboard')
+        +feature-tagged('Planned', 'Development dashboard')
           | Monitor devnet state, visualize deployment contents, view test results and coverage,
           | and perform administrative operations, from a unified local dashboard
-        +feature('Schema-based clients')
+        +feature-tagged('Planned', 'Schema-based clients')
           | Generate client classes and microfrontends from the JSON schema exported by contracts
-        +feature('Property-based testing')
+        +feature-tagged('Planned', 'Property-based testing')
           | Test smart contracts for edge cases using auto-generated input data
