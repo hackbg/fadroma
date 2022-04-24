@@ -38,22 +38,22 @@ a, a:focus, a:visited, a:active, a:hover {
 }
 
 h1 {
-  font-size: 2em;
+  font-size:      2em;
   letter-spacing: 0.25em;
   text-transform: uppercase;
 }
 h2 {
-  font-size: 2em;
+  font-size:  2em;
   text-align: center;
-  margin-top: 3rem;
+  margin-top: 2rem;
 }
 h3 {
-  font-size: 1.66em;
+  font-size:  1.66em;
   text-align: center;
 }
 h4 {
-  font-size: 1.33em;
-  line-height: 1;
+  font-size:     1.33em;
+  line-height:   1;
   margin-bottom: 0.33em;
 }
 
