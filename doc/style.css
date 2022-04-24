@@ -97,6 +97,10 @@ th {
   border:  1px solid rgba(0,0,0,0.1);
 }
 
+#features .feature {
+  height: 10rem;
+}
+
 .feature.center {
   text-align: center;
   grid-column-start: 2;
