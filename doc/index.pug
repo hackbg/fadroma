@@ -37,8 +37,6 @@ html(lang='en')
         h4= name
         div.description
           block
-        for c in categories
-          +feature-category(c)
 
     mixin feature-tagged (tag='', name='')
       .feature
@@ -48,8 +46,6 @@ html(lang='en')
           .tag= tag
         div.description
           block
-        for c in categories
-          +feature-category(c)
 
     div#features
 
