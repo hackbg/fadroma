@@ -103,7 +103,7 @@ th {
 }
 
 #features .feature {
-  min-height: 15rem;
+  min-height: 10rem;
 }
 
 .feature.center {
@@ -114,6 +114,7 @@ th {
 
 .feature .description {
   line-height: 1.5;
+  font-size: 14px;
 }
 
 #quick-start {
