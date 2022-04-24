@@ -1,0 +1,134 @@
+name: Derive contract
+info: Procedural macro for generating smart contract boilerplate
+link:
+---
+name: Reproducible builder
+info: Perform production builds of your contracts in a Docker container
+link:
+---
+name: Scriptable deployments
+info: Manage hundreds of heterogeneous contracts using TypeScript without a compilation step
+link:
+---
+name: Automatic devnet management
+info: Spawn local blockchain nodes for development and testing
+link:
+---
+name: Transaction receipts
+info: Keep track of uploads, instantiations, and configuration
+link:
+---
+name: Contract clients
+info: Define contract-specific client classes to call contract methods
+info: perform off-chain logic in TypeScript
+link:
+---
+name: Ensemble testing
+info: Test multiple interoperating smart contracts using a Rust API
+link:
+---
+name: Executable specifications
+info: Test your smart contracts and off-chain logic from TypeScript
+info: without the overhead of testing frameworks
+link:
+---
+name: Environment-based configuration
+info: Configure your workflow using environment variables and/or a .env file
+link:
+---
+name: 256-bit arithmetic
+info: 256-bit integer support in Cosmos for easy EVM interop
+link:
+---
+name: On-chain checksum generation
+info: Generate SHA256 checksums for arbitrary data from your contract
+link:
+---
+name: Pseudo-random number generator
+info: ChaCha-based PRNG
+link:
+---
+name: Contract ownership
+info: Allow a privileged user to perform administrative operations
+link:
+---
+name: Killswitch
+info: Emergency pause and permanent termination for your contract
+link:
+---
+name: Viewing keys
+info: Generate and use viewing keys in any contract
+link:
+---
+name: Permits
+info: Generate and use revokable query permits
+link:
+---
+name: ISNIP20
+info: Make calls to SNIP20 tokens
+link:
+---
+name: SNIP20
+info: Customize a SNIP20 token's functionality,
+info: or embed it in your contract alongside custom logic
+link:
+---
+name: Storage helpers
+info: Keyed, namepaced, and iterable data storage on top of Cosmos built-in KV
+link:
+---
+name: Mocknet
+tags: [ experimental ]
+info: Quickly execute smart contracts in a simulated local environment,
+info: without waiting for block validation
+link:
+---
+name: Transaction bundles
+tags: [ experimental ]
+info: Execute multiple messages in a single transaction
+link:
+---
+name: Composability
+tags: [ experimental ]
+info: Compose self-contained subsystems into a single contract
+link:
+---
+name: Literate programming
+tags: [ experimental ]
+info: Wrap TypeScript in Markdown to document client code and deploy logic in place
+link:
+---
+name: Project scaffolding
+tags: [ planned ]
+info: Generate project boilerplate using <code>npx fadroma create</code>
+link:
+---
+name: Docker Compose integration
+tags: [ planned ]
+info: Integrate your frontend and off-chain backend with devnet and development server
+link:
+---
+name: Smart code reloading
+tags: [ planned ]
+info: Automatically redeploy contracts on changes to source code
+link:
+---
+name: Privacy-preserving migrations
+tags: [ planned ]
+info: Allow your users to migrate their private state to newer versions of deployed contracts
+link:
+---
+name: Development dashboard
+tags: [ planned ]
+info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard
+link:
+---
+name: Schema-based clients
+tags: [ planned ]
+info: Generate client classes and microfrontends from the JSON schema exported by contracts
+link:
+---
+name: Property-based testing
+tags: [ planned ]
+info: Test smart contracts for edge cases using auto-generated input data
+link:

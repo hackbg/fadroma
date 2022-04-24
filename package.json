@@ -19,6 +19,7 @@
     "@hackbg/runspec": "workspace:*",
     "c8":              "^7.11.0",
     "pug":             "^3.0.2",
+    "js-yaml":         "^4.1.0",
     "typedoc":         "^0.21.9",
     "typescript":      "^4.5.4"
   },
