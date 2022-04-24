@@ -15,12 +15,22 @@ html(lang='en')
         img(src='./logo.svg' height=300)
       p Made with 💚 at <a href="https://hack.bg">Hack.bg</a>
 
+    div
+      p Add to your project with:
+      code.block git submodule add -b v100 https://github.com/hackbg/fadroma
+
     div(id="platforms")
       h2 Supported platforms
 
       .grid
-        .feature.center
+        a.feature.center(href="https://scrt.network/")
           h3 Secret Network
+          img(src="./scrt.svg")
+          p.
+            Secret Network is an open-source, permissionless blockchain based on
+            original privacy research and papers first written at MIT in 2015,
+            including <em>Decentralizing Privacy<em>, now one of the most
+            influential papers in the blockchain space with 2,000 academic citations.
 
     mixin feature (name='', categories=[])
       .feature

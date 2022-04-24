@@ -23,7 +23,7 @@
     "typescript":      "^4.5.4"
   },
   "scripts": {
-    "render":   "node -e 'fs.writeFileSync(`./doc/index2.html`, require(`pug`).render(fs.readFileSync(`./doc/index.pug`)))'",
+    "render":   "node -e 'fs.writeFileSync(`./doc/index.html`, require(`pug`).render(fs.readFileSync(`./doc/index.pug`)))'",
     "document": "typedoc index.ts",
     "test":     "time ganesha-node test.js",
     "cov":      "Ganesha_NoSourceMap=1 time c8 -r text --all -x coverage -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node test.js",
