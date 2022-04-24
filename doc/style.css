@@ -1,7 +1,7 @@
 * {
   margin: 0;
   padding: 0;
-  line-height: 2;
+  line-height: 1.5;
   font-size: 16px;
   font-family: "Inter", sans-serif;
   box-sizing: border-box;
@@ -45,6 +45,7 @@ h1 {
 h2 {
   font-size: 2em;
   text-align: center;
+  margin-top: 3rem;
 }
 h3 {
   font-size: 1.66em;
@@ -93,9 +94,10 @@ th {
 
 .feature {
   padding: 1rem;
-  margin:  0.5rem 1rem 0.5rem 0;
+  margin:  1rem 0.5rem 0;
   border:  1px solid rgba(0,0,0,0.1);
   border-radius: 3px;
+  box-shadow: 3px 3px 3px rgba(0,0,0,0.1);
 }
 
 #features .feature {
@@ -130,5 +132,6 @@ code.block {
 }
 
 #scrt-logo {
-  margin-bottom: 1rem
+  margin-bottom: 1rem;
+  width: 12rem;
 }
