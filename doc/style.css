@@ -53,6 +53,8 @@ h3 {
 }
 h4 {
   font-size: 1.33em;
+  line-height: 1;
+  margin-bottom: 0.33em;
 }
 
 button, .button {
