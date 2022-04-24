@@ -154,9 +154,8 @@ code.block {
   display:    inline-block;
   padding:    0.25rem 0.5rem;
   margin:     0.5rem 0 0;
+  align-self: flex-start;
   border-radius: 3px;
-  font-weight:   bold;
-  align-self:    flex-start;
 }
 
 .spacer {
