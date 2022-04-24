@@ -103,7 +103,7 @@ th {
 }
 
 #features .feature {
-  height: 10rem;
+  min-height: 10rem;
 }
 
 .feature.center {
@@ -136,4 +136,8 @@ code.block {
 #scrt-logo {
   margin-bottom: 1rem;
   width: 12rem;
+}
+
+#authorship {
+  margin-top: 0.5rem;
 }
