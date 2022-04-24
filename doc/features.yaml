@@ -75,56 +75,56 @@ info: Keyed, namepaced, and iterable data storage on top of Cosmos built-in KV
 link:
 ---
 name: Mocknet
-tags: [ Experimental ]
+tags: [ "🔧 Experimental" ]
 info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation
 link:
 ---
 name: Transaction bundles
-tags: [ Experimental ]
+tags: [ "🔧 Experimental" ]
 info: Execute multiple messages in a single transaction
 link:
 ---
 name: Composability
-tags: [ Experimental ]
+tags: [ "🔧 Experimental" ]
 info: Compose self-contained subsystems into a single contract
 link:
 ---
 name: Literate programming
-tags: [ Experimental ]
+tags: [ "🔧 Experimental" ]
 info: Wrap TypeScript in Markdown to document client code and deploy logic in place
 link:
 ---
 name: Project scaffolding
-tags: [ Planned ]
+tags: [ "⏳ Planned" ]
 info: Generate project boilerplate using "npx fadroma create"
 link:
 ---
 name: Docker Compose integration
-tags: [ Planned ]
+tags: [ "⏳ Planned" ]
 info: Integrate your frontend and off-chain backend with devnet and development server
 link:
 ---
 name: Smart code reloading
-tags: [ Planned ]
+tags: [ "⏳ Planned" ]
 info: Automatically redeploy contracts on changes to source code
 link:
 ---
 name: Privacy-preserving migrations
-tags: [ Planned ]
+tags: [ "⏳ Planned" ]
 info: Allow your users to migrate their private state to newer versions of deployed contracts
 link:
 ---
 name: Development dashboard
-tags: [ Planned ]
+tags: [ "⏳ Planned" ]
 info: Monitor devnet state, visualize deployment contents, view test results and coverage, and perform administrative operations, from a unified local dashboard
 link:
 ---
 name: Schema-based clients
-tags: [ Planned ]
+tags: [ "⏳ Planned" ]
 info: Generate client classes and microfrontends from the JSON schema exported by contracts
 link:
 ---
 name: Property-based testing
-tags: [ Planned ]
+tags: [ "⏳ Planned" ]
 info: Test smart contracts for edge cases using auto-generated input data
 link:
