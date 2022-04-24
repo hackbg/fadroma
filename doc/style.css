@@ -117,12 +117,12 @@ th {
 }
 
 code.block {
-  display: block;
-  background: black;
-  color: white;
-  padding: 1rem;
-  margin: 1rem;
-  border: 1px solid green;
+  display:    block;
+  background: #0c5749;
+  color:      white;
+  padding:    1rem;
+  margin:     1rem auto;
+  border:     1px solid green;
 }
 
 #scrt-logo {
