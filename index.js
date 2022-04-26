@@ -36,16 +36,13 @@ export const randomHex = (bytes = 1) =>
 export const randomBase64 = (bytes = 1) =>
   randomBytes(bytes).toString("base64")
 
-/// !!! this one counts characters not bytes
-/// 38 is the length of the non-fixed part in a secret1 address
-export const randomBase32 = (characters = 38) => {
-  const alphabet = '0123456789abcdefghjkmnpqrtuvwxyz'
-  let output = ''
-  for (let i = 0; i < characters; i++) {
-    output += alphabet[Math.floor(Math.random()*alphabet.length)]
-  }
-  return output
-}
+import { bech32, bech32m } from 'bech32'
+/** By default this generates 32 bytes - default length of canonical addr in Cosmos */
+export const randomBech32 = (prefix = 'hackbg', bytes = 32) =>
+  bech32.encode(prefix, bech32.toWords(randomBytes(bytes)))
+
+export const randomBech32m = (prefix = 'hackbg', bytes = 32) =>
+  bech32m.encode(prefix, bech32m.toWords(randomBytes(bytes)))
 
 import { TextDecoder } from 'util'
 const decoder = new TextDecoder();

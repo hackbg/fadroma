@@ -19,7 +19,7 @@ declare module '@hackbg/toolbox' {
 
   const randomHex:    (bytes?: number) => string
   const randomBase64: (bytes?: number) => string
-  const randomBase32: (chars?: number) => string
+  const randomBech32: (prefix?: string, bytes?: number) => string
 
   const decode: Function
 
@@ -32,8 +32,13 @@ declare module '@hackbg/toolbox' {
   const dirname:       Function
   const extname:       Function
 
+  const mkdir:  Function
+  const mkdirp: Function & { sync: Function }
+
+  const readFile:  Function
+  const writeFile: Function
+
   const readFileSync:  Function
-  const spawnSync:     Function
   const existsSync:    Function
   const statSync:      Function
   const writeFileSync: Function
@@ -41,11 +46,7 @@ declare module '@hackbg/toolbox' {
   const unlinkSync:    Function
   const readdirSync:   Function
 
-  const mkdir:  Function
-  const mkdirp: Function & { sync: Function }
-
-  const readFile:  Function
-  const writeFile: Function
+  const spawnSync:     Function
 
   const execFile:         Function
   const backOff:          Function
