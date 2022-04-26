@@ -16,9 +16,9 @@ declare module '@hackbg/toolbox' {
   const timestamp:   Function
   const runCommands: Function & { default: Function }
 
-  const randomHex:    (bytes: number) => string
-  const randomBase64: (bytes: number) => string
-  const randomBase32: (chars: number) => string
+  const randomHex:    (bytes?: number) => string
+  const randomBase64: (bytes?: number) => string
+  const randomBase32: (chars?: number) => string
 
   const decode: Function
 
