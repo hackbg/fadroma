@@ -1,4 +1,5 @@
 /** This file only exists to make TSC shut up. */
+
 declare module '@hackbg/toolbox' {
 
   const Console: (string) => {
@@ -54,48 +55,14 @@ declare module '@hackbg/toolbox' {
   const cargo:            Function
   const loadJSON:         Function
 
-  const Path: any
+}
 
-  class Directory {
-    constructor (_: string)
-    path:    string
-    make:    Function
-    subdir:  Function
-    resolve: Function
-    load:    Function
-    save   (_1: any, _2: any)
-    exists (): boolean
-    delete ()
-  }
+// GOTCHA! Adding an `export` to a `declare module` unexports everything else
 
-  class JSONDirectory extends Directory {}
+declare module '@hackbg/toolbox' {
 
-  class File {
-    make: Function
-    path: string
-    exists (): boolean
-    load (): any
-    save (_1: any): any
-  }
-
-  class JSONFile extends File {
-    constructor (_1: string, _2: string)
-  }
-
-  class Docker {
-    constructor (object)
-    run?: Function
-    getContainer: Function
-    createContainer: Function
-    getImage: Function
-    pull: Function
-    modem: any
-  }
-
-  class DockerImage {
-    constructor (_1: Docker|undefined, _2: string, _3?: string, _4?: string[])
-    name: string
-    ensure: Function
-  }
+  export * from '@hackbg/kabinet'
+  export * from '@hackbg/dokeres'
+  export * from 'bech32'
 
 }
