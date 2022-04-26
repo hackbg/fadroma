@@ -248,7 +248,8 @@ export class Deployments extends Directory {
   }.bind(this)
 
   /** Command: Set a new deployment as active. */
-  static select = async function selectDeployment ({ chain, cmdArgs: [id] = [undefined] }) {
+  static select = async function selectDeployment (context) {
+    const { chain, cmdArgs: [id] = [undefined] } = context
     const list = chain.deployments.list()
     if (list.length < 1) {
       console.info('\nNo deployments. Create one with `deploy new`')

@@ -100,6 +100,8 @@ export class Fadroma {
     AppendOrNew: Deployments.activate,
     /** Print the status of the active deployment. */
     Status:      Deployments.status,
+    /** Select a new active deployment from the available ones. */
+    Select:      Deployments.select
   }
 
   /** Call this with `import.meta.url` at the end of a command module. */
