@@ -279,6 +279,7 @@ importers:
       '@iov/encoding': ^2.1.0
       ajv: ^8.6
       align-yaml: ^0.1.8
+      bech32: ^2.0.0
       dockerode: ^3.3.1
       dotenv: ^15
       exponential-backoff: ^3.1
@@ -296,6 +297,7 @@ importers:
       '@iov/encoding': 2.5.0
       ajv: 8.11.0
       align-yaml: 0.1.8
+      bech32: 2.0.0
       dockerode: 3.3.1
       dotenv: 15.0.1
       exponential-backoff: 3.1.0
@@ -1036,6 +1038,10 @@ packages:
 
   /bech32/1.1.4:
     resolution: {integrity: sha512-s0IrSOzLlbvX7yp4WBfPITzpAU8sqQcpsmwXDiKwrG4r491vwCO/XpejasRNl0piBMe/DvP4Tz0mIS/X1DPJBQ==}
+    dev: false
+
+  /bech32/2.0.0:
+    resolution: {integrity: sha512-LcknSilhIGatDAsY1ak2I8VtGaHNhgMSYVxFrGLXv+xLHytaKZKcaUJJUE7qmBr7h33o5YQwP55pMI0xmkpJwg==}
     dev: false
 
   /better-path-resolve/1.0.0:

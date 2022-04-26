@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { readFileSync, decode, Console, bold, colors, } from '@hackbg/toolbox'
+import { readFileSync, decode, Console, bold, colors, randomBech32, bech32 } from '@hackbg/toolbox'
 import { Chain, Agent, Artifact, Template, Instance, Identity } from '@fadroma/ops'
 import { URL } from 'url'
 
@@ -41,9 +41,12 @@ type Ptr     = number
 type Size    = number
 type ErrCode = number
 
-export interface ContractExports {
-  memory:  WebAssembly.Memory
-  allocate (len: Size):          Ptr
+export interface IOExports {
+  memory: WebAssembly.Memory
+  allocate (len: Size): Ptr
+}
+
+export interface ContractExports extends IOExports {
   init     (env: Ptr, msg: Ptr): Ptr
   handle   (env: Ptr, msg: Ptr): Ptr
   query    (msg: Ptr):           Ptr
@@ -65,35 +68,60 @@ const console = Console('@fadroma/mocknet')
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()
 
-/** [1] https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
-export function pass (exports, data) {
-  const dataString = JSON.stringify(data)
-  const dataBufPtr = exports.allocate(dataString.length)
-  const { buffer } = exports.memory // must be after allocation - see [1]
+export type Region = [Ptr, Size, Size, Uint32Array?]
+
+export function region (buffer: Buffer, ptr: Ptr): Region {
   const u32a = new Uint32Array(buffer)
-  const dataOffset = u32a[dataBufPtr/4+0]
-  const dataCapaci = u32a[dataBufPtr/4+1]
-  const dataLength = u32a[dataBufPtr/4+2]
-  u32a[dataBufPtr/4+2] = u32a[dataBufPtr/4+1] // set length to capacity
-  const dataBinStr = encoder.encode(dataString)
-  new Uint8Array(buffer).set(dataBinStr, dataOffset)
-  return dataBufPtr
+  const addr = u32a[ptr/4+0] // Region.offset
+  const size = u32a[ptr/4+1] // Region.capacity
+  const used = u32a[ptr/4+2] // Region.length
+  return [addr, size, used, u32a]
 }
 
-export function read (exports, ptr) {
+export function read (exports: IOExports, ptr: Ptr): string {
   const { buffer } = exports.memory
-  const u32a = new Uint32Array(buffer)
-  const ptrOffset = u32a[ptr/4+0]
-  const ptrCapaci = u32a[ptr/4+1]
-  const ptrLength = u32a[ptr/4+2]
-  const uint8Array = new Uint8Array(buffer)
-  const retView = new DataView(buffer, ptrOffset, ptrLength)
-  const retData = decoder.decode(retView)
+  const [addr, size, used] = region(buffer, ptr)
+  const u8a  = new Uint8Array(buffer)
+  const view = new DataView(buffer, addr, used)
+  const data = decoder.decode(view)
   drop(exports, ptr)
-  return retData
+  return data
 }
 
-export function drop (exports, ptr) {
+/** [1] https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
+export function pass <T> (exports: IOExports, data: T): Ptr {
+  const str = JSON.stringify(data)
+  const ptr = exports.allocate(str.length)
+  const { buffer } = exports.memory // must be after allocation - see [1]
+  const [ addr, _, __, u32a ] = region(buffer, ptr)
+  u32a[ptr/4+2] = u32a[ptr/4+1] // set length to capacity
+  writeUtf8(buffer, addr, str)
+  return ptr
+}
+
+export function write (buffer: Buffer, addr, data: ArrayLike<number>): void {
+  new Uint8Array(buffer).set(data, addr)
+}
+
+export function writeUtf8 (buffer: Buffer, addr, data: string): void {
+  new Uint8Array(buffer).set(encoder.encode(data), addr)
+}
+
+export function writeToRegion (exports: IOExports, ptr: Ptr, data: ArrayLike<number>): void {
+  const [addr, size, _, u32a] = region(exports.memory.buffer, ptr)
+  if (data.length > size) { // if data length > Region.capacity
+    throw new Error(`Mocknet: tried to write ${data.length} bytes to region of ${size} bytes`)
+  }
+  const usedPtr = ptr/4+2
+  u32a[usedPtr] = data.length // set Region.length
+  write(exports.memory.buffer, addr, data)
+}
+
+export function writeToRegionUtf8 (exports: IOExports, ptr: Ptr, data: string): void {
+  writeToRegion(exports, ptr, encoder.encode(data))
+}
+
+export function drop (exports, ptr): void {
   if (exports.deallocate) {
     exports.deallocate(ptr)
   } else {
@@ -109,9 +137,9 @@ export class Contract {
     return this
   }
   init (env, msg) {
-    const envBuf = this.pass(env)
-    const msgBuf = this.pass(msg)
-    const retPtr = this.instance.exports.init(envBuf, msgBuf)
+    const envBuf  = this.pass(env)
+    const msgBuf  = this.pass(msg)
+    const retPtr  = this.instance.exports.init(envBuf, msgBuf)
     const retData = this.read(retPtr)
     return retData
   }
@@ -136,8 +164,12 @@ export class Contract {
   }
   storage = new Map()
   makeImports (): ContractImports {
+    // don't destructure - when first instantiating the
+    // contract, `this.instance` is still undefined
     const contract = this
+    // initial blank memory
     const memory   = new WebAssembly.Memory({ initial: 32, maximum: 128 })
+    // when reentering, get the latest memory
     const getExports = () => ({
       memory:     contract.instance.exports.memory,
       allocate:   contract.instance.exports.allocate,
@@ -146,38 +178,51 @@ export class Contract {
       memory,
       env: {
         db_read (keyPtr) {
-          const key = read(getExports(), keyPtr)
-          //console.info('db_read', { key })
+          const exports = getExports()
+          const key     = read(exports, keyPtr)
+          const val     = contract.storage.get(key)
+          console.info(`db_read:  ${key} = ${val}`)
           if (contract.storage.has(key)) {
-            return pass(getExports(), contract.storage.get(key))
+            return pass(exports, val)
           } else {
             return 0
           }
         },
         db_write (keyPtr, valPtr) {
-          const key = read(getExports(), keyPtr)
-          const val = read(getExports(), valPtr)
-          //console.info('db_write', { key, val })
+          const exports = getExports()
+          const key     = read(exports, keyPtr)
+          const val     = read(exports, valPtr)
           contract.storage.set(key, val)
+          console.info(`db_write: ${key} = ${val}`)
         },
         db_remove (keyPtr) {
-          const key = read(getExports(), keyPtr)
-          console.info('db_remove', { key })
+          const exports = getExports()
+          const key     = read(exports, keyPtr)
+          console.info(`db_remove: ${key}`)
+          contract.storage.delete(key)
         },
         canonicalize_address (srcPtr, dstPtr) {
-          const src = read(getExports(), srcPtr)
-          const dst = read(getExports(), dstPtr)
-          console.info('canonize', { src })
+          const exports = getExports()
+          const human   = read(exports, srcPtr)
+          const canon   = bech32.fromWords(bech32.decode(human).words)
+          const dst     = region(exports.memory.buffer, dstPtr)
+          console.info(`canonize:`, human, '->', `${canon}`)
+          writeToRegion(exports, dstPtr, canon)
           return 0
         },
         humanize_address (srcPtr, dstPtr) {
-          const src = read(getExports(), srcPtr)
-          const dst = read(getExports(), dstPtr)
-          console.info('humanize', { src })
+          const exports = getExports()
+          const canon   = read(exports, srcPtr)
+          const human   = Buffer.from(canon).toString("utf8")
+          const dst     = region(exports.memory.buffer, dstPtr)
+          console.info(`humanize:`, canon, '->', human)
+          writeToRegionUtf8(exports, dstPtr, human)
           return 0
         },
         query_chain (reqPtr) {
-          const req = read(getExports(), reqPtr)
+          console.log('query')
+          const exports = getExports()
+          const req     = read(exports, reqPtr)
           console.info('query_chain', { req })
           return 0
         }
@@ -227,7 +272,7 @@ export class MocknetState {
   ): Promise<Instance> {
     const chainId  = this.chainId
     const code     = this.getCode(codeId)
-    const address  = `mocknet1${Math.floor(Math.random()*1000000)}`
+    const address  = randomBech32('mocked')
     const contract = await new Contract().load(code)
     const env      = this.makeEnv(sender, address, codeHash)
     const response = contract.init(env, msg)
@@ -280,6 +325,10 @@ export class Mocknet extends Chain {
 
 export class MockAgent extends Agent {
 
+  defaultDenomination = 'umock'
+
+  Bundle = null
+
   static async create (chain: Mocknet) { return new MockAgent(chain, 'MockAgent') }
 
   constructor (readonly chain: Mocknet, readonly name: string = 'mock') {
@@ -289,65 +338,32 @@ export class MockAgent extends Agent {
 
   address: string
 
-  defaultDenomination = 'umock'
-
   async upload (artifact) {
     return this.chain.state.upload(artifact)
   }
 
-  Bundle = null
-
   async doInstantiate (template, label, msg, funds = []): Promise<Instance> {
     return await this.chain.state.instantiate(this.address, template, label, msg, funds)
   }
-
   async doExecute (instance, msg, funds, memo?, fee?) {
     return await this.chain.state.execute(this.address, instance, msg, funds, memo, fee)
   }
-
   async doQuery (instance, msg) {
     return await this.chain.state.query(instance, msg)
   }
 
-  get nextBlock () {
-    return Promise.resolve()
-  }
+  get nextBlock () { return Promise.resolve()  }
+  get block     () { return Promise.resolve(0) }
+  get account   () { return Promise.resolve()  }
+  get balance   () { return Promise.resolve(0) }
 
-  get block () {
-    return Promise.resolve(0)
-  }
+  send        (_1:any, _2:any, _3?:any, _4?:any, _5?:any) { return Promise.resolve() }
+  sendMany    (_1:any, _2:any, _3?:any, _4?:any)          { return Promise.resolve() }
 
-  get account () {
-    return Promise.resolve()
-  }
-
-  get balance () {
-    return Promise.resolve(0)
-  }
-
-  getBalance (_: string) {
-    return Promise.resolve(0)
-  }
-
-  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) {
-    return Promise.resolve()
-  }
-
-  sendMany (_1:any, _2:any, _3?:any, _4?:any) {
-    return Promise.resolve()
-  }
-
-  getCodeHash (_: any) {
-    return Promise.resolve("SomeCodeHash")
-  }
-
-  getCodeId (_: any) {
-    return Promise.resolve(1)
-  }
-
-  getLabel (_: any) {
-    return Promise.resolve("SomeLabel")
-  }
+  getBalance  (_: string) { return Promise.resolve(0)              }
+  getCodeHash (_: any)    { return Promise.resolve("SomeCodeHash") }
+  getCodeId   (_: any)    { return Promise.resolve(1)              }
+  getLabel    (_: any)    { return Promise.resolve("SomeLabel")    }
 
 }
 
