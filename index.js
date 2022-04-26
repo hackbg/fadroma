@@ -36,6 +36,17 @@ export const randomHex = (bytes = 1) =>
 export const randomBase64 = (bytes = 1) =>
   randomBytes(bytes).toString("base64")
 
+/// !!! this one counts characters not bytes
+/// 38 is the length of the non-fixed part in a secret1 address
+export const randomBase32 = (characters = 38) => {
+  const alphabet = '0123456789abcdefghjkmnpqrtuvwxyz'
+  let output = ''
+  for (let i = 0; i < characters; i++) {
+    output += alphabet[Math.floor(Math.random()*alphabet.length)]
+  }
+  return output
+}
+
 import { TextDecoder } from 'util'
 const decoder = new TextDecoder();
 export const decode = (buffer) => decoder.decode(buffer).trim()
