@@ -1,0 +1,10 @@
+{
+  "name":    "@fadroma/scrt-next",
+  "version": "1.0.0-pre",
+  "type":    "module",
+  "main":    "./ScrtNext.ts",
+  "dependencies": {
+    "@fadroma/ops": "workspace:*",
+    "secretjs":     "beta"
+  }
+}
