@@ -28,24 +28,16 @@ export function getScrtBuilder ({
 
 export class ScrtDockerodeBuilder extends DockerodeBuilder {
 
-  //buildManager = "Scrt_1_2_Build.js"
-
   buildEntryPoint = relative(
     dirname(config.scrt.buildDockerfile),
     config.scrt.buildScript
   )
 
-  buildHelpers = [] //
-
   image = new DockerImage(
     undefined,
     config.scrt.buildImage,
     config.scrt.buildDockerfile,
-    [
-      this.buildEntryPoint,
-      //this.buildManager,
-      ...this.buildHelpers
-    ]
+    [this.buildEntryPoint]
   )
 
   constructor ({ caching }) {
@@ -53,15 +45,5 @@ export class ScrtDockerodeBuilder extends DockerodeBuilder {
       script: config.scrt.buildScript,
       caching
     })
-  }
-
-  protected getBuildContainerArgs (source, output): [string, any] {
-    const [cmd, args] = super.getBuildContainerArgs(source, output)
-    for (const helper of this.buildHelpers) {
-      args.HostConfig.Binds.push(
-        `${resolve(dirname(config.scrt.buildScript), helper)}:/${helper}:ro`
-      )
-    }
-    return [cmd, args]
   }
 }
