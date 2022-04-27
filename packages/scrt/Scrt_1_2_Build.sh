@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 PHASE=$1
 REF=$2
-CRATES=$@ # used by phase 1
-CRATE=$3  # used by phase 2
+CRATES="${@:3}" # list of crates, used by phase 1
+CRATE=$3        # individual crate name, used by phase 2
 
 WORKSPACE=/src
 TEMP=/tmp/fadroma-build-$CRATE
@@ -42,7 +42,8 @@ phase1 () {
   echo "Preparing submodules..."
   git submodule update --init --recursive
   git log -1
-  for CRATE in "$CRATES"; do
+  echo "Build phase 2 will begin with these crates: $CRATES"
+  for CRATE in $CRATES; do
     echo "Building $CRATE from $REF in $(pwd)"
     su build -c "bash $0 phase2 $REF $CRATE"
   done
@@ -52,33 +53,30 @@ phase1 () {
 # execute a release build,
 # then optimize it with Binaryen.
 phase2 () {
-  echo "Build phase 2: Compiling and optimizing contract for $CRATE@$REF"
+  echo "Build phase 2: Compiling and optimizing contract: $CRATE@$REF.wasm"
   set -aemu
-
   cargo --version
   rustc --version
   wasm-opt --version
   sha256sum --version | head -n1
-
   export RUSTFLAGS='-C link-arg=-s'
   export CARGO_TARGET_DIR='/tmp/target'
   export PLATFORM='wasm32-unknown-unknown'
   export LOCKED='' # '--locked'
   cargo build -p $CRATE --release --target $PLATFORM $LOCKED --verbose
   echo 'Build complete'
-
   export OUTPUT="$(echo "$CRATE" | tr '-' '_').wasm"
   export COMPILED="$CARGO_TARGET_DIR/$PLATFORM/release/$OUTPUT"
   export REF_SANITIZED="$(echo "$REF" | tr '/' '_')"
   export TAGGED_OUTPUT="$CRATE@$REF_SANITIZED.wasm"
   export OPTIMIZED="$WORKSPACE/artifacts/$TAGGED_OUTPUT"
+  echo "Optimizing $COMPILED into $OPTIMIZED..."
   wasm-opt -Oz $COMPILED -o $OPTIMIZED
   echo 'Optimization complete'
-
   export CHECKSUM="$OPTIMIZED.sha256"
+  echo "Saving checksum for $OPTIMIZED into $CHECKSUM..."
   sha256sum -b $OPTIMIZED > $CHECKSUM
   echo 'Checksum calculated:'
-
   cat $CHECKSUM
 }
 

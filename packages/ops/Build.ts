@@ -135,7 +135,6 @@ export class DockerodeBuilder extends CachingBuilder {
         const sourcesForContainer: [number, string][] = []
         for (let index = 0; index < sources.length; index++) {
           const source = sources[index]
-          console.log(index, source)
           if (source.workspace === workspace && (source.ref||DEFAULT_REF) === ref) {
             sourcesForContainer.push([index, source.crate])
           }
@@ -200,7 +199,7 @@ export class DockerodeBuilder extends CachingBuilder {
       },
       Env: [
         'CARGO_NET_GIT_FETCH_WITH_CLI=true',
-        'CARGO_TERM_VERBOSE=true',
+        //'CARGO_TERM_VERBOSE=true',
         'CARGO_HTTP_TIMEOUT=240',
         'LOCKED=',/*'--locked'*/
       ]
@@ -231,7 +230,9 @@ export class DockerodeBuilder extends CachingBuilder {
     }
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
-    const buildCommand  = `bash ${buildScript} ${ref} ${cratesToBuild.join(' ')}`
+    const buildCommand  = `bash ${buildScript} phase1 ${ref} ${cratesToBuild.join(' ')}`
+    console.info(bold('Running command:'), buildCommand)
+    console.debug(bold('In container with this configuration:'), buildOptions)
     // Run the build container
     const [{Error: err, StatusCode: code}, container] = await this.docker.run(
       image, buildCommand, this.makeBuildLogStream(ref), buildOptions
