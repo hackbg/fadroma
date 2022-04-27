@@ -12,9 +12,19 @@ import { Source, Builder, Artifact, codeHashForPath } from './Core'
 
 const console = Console('@fadroma/ops/Build')
 
+export const DEFAULT_REF  = 'HEAD'
+
+export function distinct <T> (x: T[]): T[] {
+  return [...new Set(x)]
+}
+
+export const sanitizeRef  = ref => ref.replace(/\//g, '_')
+
+export const artifactName = (crate, ref) => `${crate}@${sanitizeRef(ref)}.wasm`
+
 export abstract class CachingBuilder extends Builder {
   caching = !config.rebuild
-  protected prebuild ({ workspace, crate, ref = 'HEAD' }: Source): Artifact|null {
+  protected prebuild ({ workspace, crate, ref = DEFAULT_REF }: Source): Artifact|null {
     // For now, workspace-less crates are not supported.
     if (!workspace) {
       const msg = `[@fadroma/ops] Missing workspace path (for crate ${crate} at ${ref})`
@@ -23,8 +33,7 @@ export abstract class CachingBuilder extends Builder {
     // Don't rebuild existing artifacts
     if (this.caching) {
       const outputDir = resolve(workspace, 'artifacts')
-      ref = ref.replace(/\//g, '_') // kludge
-      const location  = resolve(outputDir, `${crate}@${ref}.wasm`)
+      const location  = resolve(outputDir, artifactName(crate, ref))
       if (existsSync(location)) {
         console.info('✅ Exists, not rebuilding:', bold(relative(cwd(), location)))
         return { location, codeHash: codeHashForPath(location) }
@@ -46,7 +55,7 @@ export class RawBuilder extends CachingBuilder {
   }
 
   async build (source: Source): Promise<Artifact> {
-    const { ref = 'HEAD', workspace, crate } = source
+    const { ref = DEFAULT_REF, workspace, crate } = source
     let cwd = workspace
     // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
     const run = (cmd, args) => new Promise((resolve, reject)=>{
@@ -56,11 +65,11 @@ export class RawBuilder extends CachingBuilder {
         resolve([stdout, stderr])
       })
     })
-    if (ref && ref !== 'HEAD') {
+    if (ref && ref !== DEFAULT_REF) {
       await this.run(this.checkoutScript, [ref])
     }
     await this.run(this.buildScript, [])
-    const location = resolve(workspace, 'artifacts', `${crate}@${ref.replace(/\//g,'_')}.wasm`)
+    const location = resolve(workspace, 'artifacts', artifactName(crate, ref))
     const codeHash = codeHashForPath(location)
     return { location, codeHash }
   }
@@ -100,59 +109,88 @@ export class DockerodeBuilder extends CachingBuilder {
   /** Used to launch build container. */
   docker:     Docker
 
-  async build (source) {
-    // Support optional build caching
-    const prebuilt = this.prebuild(source)
-    if (prebuilt) {
-      return prebuilt
-    }
-    let { workspace, crate, ref = 'HEAD' } = source
-    const outputDir = resolve(workspace, 'artifacts')
-    const location  = resolve(outputDir, `${crate}@${ref.replace(/\//g, '_')}.wasm`)
-    const image     = await this.image.ensure()
-    const [cmd, args] = this.getBuildContainerArgs(source, outputDir)
-
-    const buildLogs = new LineTransformStream(line=>{
-      const tag = `[${crate}@${ref}]`.padEnd(24)
-      return `[@fadroma/ops/Build] ${tag} ${line}`
-    })
-    buildLogs.pipe(process.stdout)
-
-    const [
-      {Error: err, StatusCode: code}, container
-    ] = await this.docker.run(image, cmd, buildLogs, args)
-    // Throw error if build failed
-    if (err) {
-      throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
-    }
-    if (code !== 0) {
-      console.error(bold('Build of'), crate, 'exited with', bold(code))
-      throw new Error(`[@fadroma/ops/Build] Build of ${crate} exited with status ${code}`)
-    }
-    const codeHash = codeHashForPath(location)
-    return { location, codeHash }
+  async build ({ workspace, ref, crate }) {
+    return (await this.buildInContainer(workspace, ref, [crate]))[0]
   }
 
-  protected getBuildContainerArgs (
-    { workspace, crate, ref = 'HEAD' }: Source,
-    output
-  ): [string, any] {
-    const entrypoint = this.script
-    const cmdName    = basename(entrypoint)
-    const cmd        = `bash /${cmdName} phase1 ${crate} ${ref}`
-    const binds = []
-    binds.push(`${workspace}:/src:rw`)
-    //binds.push(`/dev/null:/src/receipts:ro`)
-    binds.push(`${output}:/output:rw`)
-    binds.push(`${entrypoint}:/${cmdName}:ro`) // Procedure
-    enableBuildCache(ref, binds)
-    applyUnsafeMountKeys(ref, binds)
-    const args = {
+  /** This implementation groups the passed source by workspace and ref,
+    * in order to launch one build container per workspace/ref combination
+    * and have it build all the crates from that combination in sequence,
+    * reusing the container's internal intermediate build cache. */
+  async buildMany (sources) {
+    const artifacts:  Artifact[] = []
+    const workspaces: string[]   = distinct(sources.map(source=>source.workspace))
+    const refs:       string[]   = distinct(sources.map(source=>source.ref||DEFAULT_REF))
+    for (const workspace of workspaces) {
+      console.info(`Building contracts from workspace ${workspace}`)
+      for (const ref of refs) {
+        console.info(`  Building contracts from ref ${ref}`)
+        // Create a list of sources for this container to build,
+        // along with their indices in the input and output arrays
+        // of this function.
+        const sourcesForContainer = []
+        for (const index in sources) {
+          const source = sources[index]
+          if (source.workspace === workspace && source.ref == ref) {
+            sourcesForContainer.push([index, source])
+          }
+        }
+        // Build the crates from the same workspace/ref
+        // sequentially in the same container.
+        const artifactsFromContainer = await this.buildInContainer(
+          workspace, ref, sourcesForContainer.map(source=>source.crate)
+        )
+        // Collect the artifacts built by the container
+        for (const index in artifactsFromContainer) {
+          const artifact = artifactsFromContainer[index]
+          if (artifact) {
+            artifacts[index] = artifact
+          }
+        }
+      }
+    }
+    return artifacts
+  }
+
+  protected async buildInContainer (workspace, ref = DEFAULT_REF, crates: [number, string][] = []):
+    Promise<(Artifact|null)[]>
+  {
+    // Output slots. Indices should correspond to those of the input to buildMany
+    const artifacts:   (Artifact|null)[] = crates.map(()=>null)
+    // Whether any crates should be built, and at what indices they are in the input and output.
+    const shouldBuild: Record<string, number> = {}
+    // Collect cached artifacts. If any are missing from the cache mark them as buildable.
+    for (const [index, crate] of crates) {
+      const prebuilt = this.prebuild({ workspace, ref, crate })
+      if (prebuilt) {
+        artifacts[index] = prebuilt
+      } else {
+        shouldBuild[crate] = index
+      }
+    }
+    // If there are no artifacts to build, this means everything was cached and we're done.
+    if (Object.keys(shouldBuild).length === 0) {
+      return artifacts
+    }
+    const safeRef = sanitizeRef(ref)
+    // If there are artifacts to build, make sure the build image exists
+    const image = await this.image.ensure()
+    // Define the build container
+    const outputDir    = resolve(workspace, 'artifacts')
+    const buildScript  = `/${basename(this.script)}`
+    const buildOptions = {
       Tty: true,
       AttachStdin: true,
       Entrypoint: ['/bin/sh', '-c'],
       HostConfig: {
-        Binds:      binds,
+        Binds: [
+          `${workspace}:/src:rw`,
+          `${outputDir}:/output:rw`,
+          `${this.script}:${buildScript}:ro`,
+          // Persist cache to make future rebuilds faster. May be unneccessary.
+          `project_cache_${safeRef}:/tmp/target:rw`,
+          `cargo_cache_${safeRef}:/usr/local/cargo:rw`
+        ],
         AutoRemove: true
       },
       Env: [
@@ -162,33 +200,65 @@ export class DockerodeBuilder extends CachingBuilder {
         'LOCKED=',/*'--locked'*/
       ]
     }
-    console.debug(
-      `Running ${bold(cmd)} in ${bold(this.image.name)}`,
-      `with the following options:`, args
+    // If a different ref will need to be checked out, it may contain private submodules.
+    // If an unsafe option is set, this mounts the running user's *ENTIRE ~/.ssh DIRECTORY*,
+    // containing their private keys, into the container, in order to enable pulling private
+    // submodules over SSH. This is an edge case and ideally `git subtree` and/or
+    // public HTTP-based submodules should be used instead.
+    if (ref !== DEFAULT_REF) {
+      if (config.buildUnsafeMountKeys) {
+        // Keys for SSH cloning of submodules - dangerous!
+        console.warn(
+          '!!! UNSAFE: Mounting your SSH keys directory into the build container'
+        )
+        buildOptions.HostConfig.Binds.push(`${config.homeDir}/.ssh:/root/.ssh:rw`)
+      } else {
+        console.info(
+          'Not mounting SSH keys into build container - '+
+          'will not be able to clone private submodules'
+        )
+      }
+    }
+    // Pre-populate the list of expected artifacts.
+    const outputWasms = [...new Array(crates.length)].map(()=>null)
+    for (const [crate, index] of Object.entries(shouldBuild)) {
+      outputWasms[index] = resolve(outputDir, artifactName(crate, safeRef))
+    }
+    // Pass the compacted list of crates to build into the container
+    const cratesToBuild = Object.keys(shouldBuild)
+    const buildCommand  = `bash ${buildScript} ${ref} ${cratesToBuild.join(' ')}`
+    // Prepend a prefix to every line output by the container.
+    const buildLogPrefix = `[${ref}]`.padEnd(16)
+    const buildLogs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
+    buildLogs.pipe(process.stdout)
+    // Run the build container
+    const [{Error: err, StatusCode: code}, container] = await this.docker.run(
+      image, buildCommand, buildLogs, buildOptions
     )
-    return [cmd, args]
-  }
-}
-
-function enableBuildCache (ref, binds) {
-  ref = ref.replace(/\//g, '_') // kludge
-  binds.push(`project_cache_${ref}:/tmp/target:rw`)    // Cache
-  binds.push(`cargo_cache_${ref}:/usr/local/cargo:rw`) // Cache
-}
-
-function applyUnsafeMountKeys (ref, binds) {
-  if (ref !== 'HEAD') {
-    if (config.buildUnsafeMountKeys) {
-      // Keys for SSH cloning of submodules - dangerous!
-      console.warn(
-        '!!! UNSAFE: Mounting your SSH keys directory into the build container'
+    // Throw error if launching the container failed
+    if (err) {
+      throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
+    }
+    // Throw error if the build failed
+    if (code !== 0) {
+      const crateList = cratesToBuild.join(' ')
+      console.error(
+        'Build of crates:',   bold(crateList),
+        'exited with status', bold(code)
       )
-      binds.push(`${config.homeDir}/.ssh:/root/.ssh:rw`)
-    } else {
-      console.info(
-        'Not mounting SSH keys into build container - '+
-        'will not be able to clone private submodules'
+      throw new Error(
+        `[@fadroma/ops/Build] Build of crates: "${crateList}" exited with status ${code}`
       )
     }
+    // Return a sparse array of the resulting artifacts
+    return outputWasms.map(location=>{
+      if (location === null) {
+        return null
+      } else {
+        const codeHash = codeHashForPath(location)
+        return { location, codeHash }
+      }
+    })
   }
+
 }
