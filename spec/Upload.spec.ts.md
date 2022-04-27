@@ -10,6 +10,8 @@ export default UploadSpec
 
 ```typescript
 import { FSUploader } from '../index'
+import { fixture } from './_Harness'
+const emptyContract = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
 test({
   'construct FSUploader' ({ ok }) {
     const agent = Symbol()
@@ -17,7 +19,7 @@ test({
     ok(uploader.agent === agent)
   },
   async 'FSUploader#upload' ({ deepEqual }) {
-    const artifact        = Symbol()
+    const artifact        = { location: emptyContract }
     const codeId          = Symbol()
     const codeHash        = Symbol()
     const transactionHash = Symbol()

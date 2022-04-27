@@ -13,27 +13,26 @@ test({
   async 'run empty migration' () {
     const result = await runMigration("", [], [])
   },
-  async 'run migration with falsy step' () {
-    const result = await runMigration("", [undefined], [])
+  async 'run migration with falsy step' ({ rejects }) {
+    rejects(runMigration("", [undefined], []))
   },
-  async 'run migration with one step' () {
-    const result = await runMigration("", [()=>{foo:true}], [])
-    assert(result.foo)
+  async 'run migration with one step' ({ ok }) {
+    const result = await runMigration("", [()=>({foo:true})], [])
+    ok(result.foo)
   }
   async 'catch and rethrow step failure' ({ rejects }) {
     const error = {}
     await rejects(runMigration("", [()=>{throw error}], []))
   },
-  async 'subsequent steps update the context' () {
+  async 'subsequent steps update the context' ({ ok }) {
     const result = await runMigration("", [
-      ()=>{foo:true},
-      ()=>{bar:true}
+      ()=>({foo:true}),
+      ()=>({bar:true})
     ], [])
-    assert(result.foo)
-    assert(result.bar)
+    ok(result.foo)
+    ok(result.bar)
   },
   async 'the context.run function runs steps without updating context' ({ rejects, ok }) {
-    throw 'TODO'
     await rejects(runMigration("", [ async ({ run }) => { await run() } ], []))
     ok(await runMigration("", [ async ({ run }) => { await run(async () => {}) } ], []))
   },

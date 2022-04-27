@@ -72,7 +72,7 @@ test({
     const agent = await new Mocknet().getAgent()
     const artifact = { location: emptyContract }
     const template = await agent.upload(artifact)
-    equa(template.chainId, agent.chain.id)
+    equal(template.chainId, agent.chain.id)
     const template2 = await agent.upload(artifact)
     equal(template2.chainId, template.chainId)
     equal(template2.codeId, String(Number(template.codeId) + 1))

@@ -97,7 +97,22 @@ test({
       })
     })
   },
-  'pass names of prefunded accounts on genesis' () { throw 'TODO' }
+  'pass names of accounts to prefund on genesis' ({ equal, ok }) {
+    const names  = [ 'FOO', 'BAR' ]
+    const devnet = new Devnet({ identities: names })
+    equal(devnet.genesisAccounts, names)
+    const dockerDevnet = new DockerodeDevnet({
+      identities: names,
+      initScript: '',
+      image: { name: Symbol() }
+    })
+    equal(dockerDevnet.genesisAccounts, names)
+    const envVars = dockerDevnet.getContainerOptions().Env.filter(
+      x => x.startsWith('GenesisAccounts')
+    )
+    equal(envVars.length, 1)
+    equal(envVars[0].split('=')[1], 'FOO BAR')
+  }
 })
 ```
 

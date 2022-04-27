@@ -241,7 +241,7 @@ export class DockerodeDevnet extends Devnet {
     // create the container
     console.info('Launching a devnet container...')
     await this.image.ensure()
-    this.container = await this.createContainer(getDevnetContainerOptions(this))
+    this.container = await this.createContainer(this.getContainerOptions())
     const shortId = this.container.id.slice(0, 8)
     // emit any warnings
     if (this.container.Warnings) {
@@ -406,61 +406,64 @@ export class DockerodeDevnet extends Devnet {
       console.info(`Stopped ${prettyId}`)
     }
   }
-}
 
-/** What Dockerode passes to the Docker API
-  * in order to launch a devnet container. */
-export async function getDevnetContainerOptions ({
-  chainId,
-  genesisAccounts,
-  image,
-  initScript,
-  port,
-  stateRoot
-}: DockerodeDevnet) {
-  const initScriptName = resolve('/', basename(initScript))
-  return {
-    Image:        image.name,
-    Name:         `${chainId}-${port}`,
-    Env:          [ `Port=${port}`
-                  , `ChainID=${chainId}`
-                  , `GenesisAccounts=${genesisAccounts.join(' ')}` ],
-    Entrypoint:   [ '/bin/bash' ],
-    Cmd:          [ initScriptName ],
-    Tty:          true,
-    AttachStdin:  true,
-    AttachStdout: true,
-    AttachStderr: true,
-    Hostname:     chainId,
-    Domainname:   chainId,
-    ExposedPorts: { [`${port}/tcp`]: {} },
-    HostConfig:   { NetworkMode: 'bridge'
-                  , AutoRemove:   true
-                  , Binds:
-                    [ `${initScript}:${initScriptName}:ro`
-                    , `${stateRoot.path}:/receipts/${chainId}:rw` ]
-                  , PortBindings:
-                    { [`${port}/tcp`]: [{HostPort: `${port}`}] } }
+  /** What Dockerode passes to the Docker API
+    * in order to launch a devnet container. */
+  private getContainerOptions () {
+    const {
+      chainId,
+      genesisAccounts,
+      image,
+      initScript,
+      port,
+      stateRoot
+    } = this
+    const initScriptName = resolve('/', basename(initScript))
+    return {
+      Image:        image.name,
+      Name:         `${chainId}-${port}`,
+      Env:          [ `Port=${port}`
+                    , `ChainID=${chainId}`
+                    , `GenesisAccounts=${genesisAccounts.join(' ')}` ],
+      Entrypoint:   [ '/bin/bash' ],
+      Cmd:          [ initScriptName ],
+      Tty:          true,
+      AttachStdin:  true,
+      AttachStdout: true,
+      AttachStderr: true,
+      Hostname:     chainId,
+      Domainname:   chainId,
+      ExposedPorts: { [`${port}/tcp`]: {} },
+      HostConfig:   { NetworkMode: 'bridge'
+                    , AutoRemove:   true
+                    , Binds:
+                      [ `${initScript}:${initScriptName}:ro`
+                      , `${stateRoot.path}:/receipts/${chainId}:rw` ]
+                    , PortBindings:
+                      { [`${port}/tcp`]: [{HostPort: `${port}`}] } }
+    }
   }
-}
 
-/** What Dockerode passes to the Docker API
-  * in order to launch a cleanup container
-  * (for removing root-owned devnet files
-  * without escalating on the host) */
-export async function getCleanupContainerOptions ({
-  image,
-  chainId,
-  port,
-  stateRoot
-}: DockerodeDevnet) {
-  return {
-    AutoRemove: true,
-    Image:      image.name,
-    Name:       `${chainId}-${port}-cleanup`,
-    Entrypoint: [ '/bin/rm' ],
-    Cmd:        ['-rvf', '/state',],
-    HostConfig: { Binds: [`${stateRoot.path}:/state:rw`] }
-    //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
+  /** What Dockerode passes to the Docker API
+    * in order to launch a cleanup container
+    * (for removing root-owned devnet files
+    * without escalating on the host) */
+  private getCleanupContainerOptions () {
+    const {
+      image,
+      chainId,
+      port,
+      stateRoot
+    } = this
+    return {
+      AutoRemove: true,
+      Image:      image.name,
+      Name:       `${chainId}-${port}-cleanup`,
+      Entrypoint: [ '/bin/rm' ],
+      Cmd:        ['-rvf', '/state',],
+      HostConfig: { Binds: [`${stateRoot.path}:/state:rw`] }
+      //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
+    }
   }
+
 }

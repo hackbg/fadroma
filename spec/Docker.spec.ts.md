@@ -18,14 +18,15 @@ build them from a local Dockerfile. If there's no Dockerfile,
 it bails.
 
 ```typescript
-import { DockerImage } from '@hackbg/toolbox'
+import { DockerImage } from '../index'
+import { mockDockerode } from './_Harness'
 test({
-  async 'construct DockerImage' () {
+  async 'construct DockerImage' ({ equal }) {
     const image = new DockerImage('a', 'b', 'c', 'd')
-    assert(image.docker     === 'a')
-    assert(image.name       === 'b')
-    assert(image.dockerfile === 'c')
-    assert(image.extraFiles === 'd')
+    equal(image.docker,     'a')
+    equal(image.name,       'b')
+    equal(image.dockerfile, 'c')
+    equal(image.extraFiles, 'd')
   },
   async 'DockerImage#available' () {
     const image = new DockerImage(mockDockerode())

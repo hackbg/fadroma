@@ -24,11 +24,11 @@ export interface Executor {
 export abstract class Agent implements Executor {
 
   constructor (
-    chain: Chain,
-    options
+    chain:   Chain,
+    options: Identity
   ) {
     this.chain = chain
-    if (options.name) this.name = options.name
+    if (options?.name) this.name = options.name
   }
 
   trace = new Trace("unnamed", console)
