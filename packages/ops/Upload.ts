@@ -108,7 +108,7 @@ export class CachingFSUploader extends FSUploader {
 
       if (!existsSync(receiptPath)) {
 
-        console.info(bold(`Uploading:`), `${relativePath}`)
+        console.info(bold(`Uploading:`), `${relative(cwd(), artifact.location)}`)
         toUpload[i] = artifact
 
       } else {
