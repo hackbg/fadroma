@@ -38,7 +38,6 @@ export class Chain implements ChainConfig {
   static namedChains: Record<string, Function> = {}
 
   static async getNamed (name = config.chain, options?) {
-    console.log({name, options})
     if (!name || !this.namedChains[name]) {
       console.error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
       console.info('Known chain names:')

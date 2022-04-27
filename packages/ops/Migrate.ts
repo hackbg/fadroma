@@ -73,6 +73,7 @@ export async function runMigration (
     },
   }
 
+  console.log()
   const T0 = + new Date()
   const stepTimings = []
 
@@ -100,7 +101,7 @@ export async function runMigration (
       // by adding its outputs to it.
       context = { ...context, ...updates }
       const T2 = + new Date()
-      console.info('🟢', colors.green('OK  '), bold(name), ` (${bold(String(T2-T1))}ms)`)
+      console.info('🟢', colors.green('OK  '), bold(name), ` (${bold(String(T2-T1))}ms)\n`)
       stepTimings.push([name, T2-T1, false])
     } catch (e) {
       const T2 = + new Date()
@@ -111,7 +112,6 @@ export async function runMigration (
   }
 
   const T3 = + new Date()
-  console.log()
   console.info(`The command`, bold(cmdName), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
   for (const [name, duration, isError] of stepTimings) {
     console.info(

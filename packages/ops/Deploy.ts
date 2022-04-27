@@ -136,9 +136,9 @@ export class Deployments extends Directory {
 
   printActive () {
     if (this.active) {
-      print(console).deployment(this.active)
+      console.info(`Currently selected deployment:`, bold(this.active.prefix))
     } else {
-      console.info(`\nNo selected deployment.`)
+      console.info(`No selected deployment.`)
     }
   }
 
