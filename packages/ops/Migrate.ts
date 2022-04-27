@@ -4,8 +4,9 @@ import { Console, bold, colors, timestamp } from '@hackbg/toolbox'
 import { Chain } from './Chain'
 import { Agent } from './Agent'
 import { Deployment } from './Deploy'
+import { Source, Builder, Uploader, Template } from './Core'
 
-export type MigrationContext = {
+export interface MigrationContext {
   timestamp:   string
   /** Identify the blockhain being used. */
   chain:       Chain
@@ -30,6 +31,14 @@ export type MigrationContext = {
     * Procedures are async functions that take 1 argument:
     * the result of merging `args?` into `context`. */
   run <T extends object, U> (procedure: Function, args?: T): Promise<U>
+
+  ref?:       string
+  src?:       Source
+  srcs?:      Source[]
+  builder?:   Builder
+  uploader?:  Uploader
+  template?:  Template
+  templates?: Template[]
 }
 
 export type Command<T> = (MigrationContext)=>Promise<T>
