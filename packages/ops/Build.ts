@@ -109,8 +109,8 @@ export class DockerodeBuilder extends CachingBuilder {
   /** Used to launch build container. */
   docker:     Docker
 
-  async build ({ workspace, ref, crate }) {
-    return (await this.buildInContainer(workspace, ref, [crate]))[0]
+  async build (source) {
+    return (await this.buildMany([source]))[0]
   }
 
   /** This implementation groups the passed source by workspace and ref,
@@ -118,7 +118,11 @@ export class DockerodeBuilder extends CachingBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources) {
+    // Populate empty `ref` fields of sources with the default value
+    sources = sources.map(source=>source.ref?source:{...source, ref: DEFAULT_REF})
+    // Here we will collect the build outputs
     const artifacts:  Artifact[] = []
+    // Get the distinct workspaces and refs by which to group the crate builds
     const workspaces: string[]   = distinct(sources.map(source=>source.workspace))
     const refs:       string[]   = distinct(sources.map(source=>source.ref||DEFAULT_REF))
     for (const workspace of workspaces) {
@@ -128,17 +132,18 @@ export class DockerodeBuilder extends CachingBuilder {
         // Create a list of sources for this container to build,
         // along with their indices in the input and output arrays
         // of this function.
-        const sourcesForContainer = []
-        for (const index in sources) {
+        const sourcesForContainer: [number, string][] = []
+        for (let index = 0; index < sources.length; index++) {
           const source = sources[index]
-          if (source.workspace === workspace && source.ref == ref) {
-            sourcesForContainer.push([index, source])
+          console.log(index, source)
+          if (source.workspace === workspace && (source.ref||DEFAULT_REF) === ref) {
+            sourcesForContainer.push([index, source.crate])
           }
         }
         // Build the crates from the same workspace/ref
         // sequentially in the same container.
         const artifactsFromContainer = await this.buildInContainer(
-          workspace, ref, sourcesForContainer.map(source=>source.crate)
+          workspace, ref, sourcesForContainer
         )
         // Collect the artifacts built by the container
         for (const index in artifactsFromContainer) {
@@ -227,13 +232,9 @@ export class DockerodeBuilder extends CachingBuilder {
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
     const buildCommand  = `bash ${buildScript} ${ref} ${cratesToBuild.join(' ')}`
-    // Prepend a prefix to every line output by the container.
-    const buildLogPrefix = `[${ref}]`.padEnd(16)
-    const buildLogs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
-    buildLogs.pipe(process.stdout)
     // Run the build container
     const [{Error: err, StatusCode: code}, container] = await this.docker.run(
-      image, buildCommand, buildLogs, buildOptions
+      image, buildCommand, this.makeBuildLogStream(ref), buildOptions
     )
     // Throw error if launching the container failed
     if (err) {
@@ -259,6 +260,14 @@ export class DockerodeBuilder extends CachingBuilder {
         return { location, codeHash }
       }
     })
+  }
+
+  // Creates a stream that prepends a prefix to every line output by the container.
+  protected makeBuildLogStream (ref: string): LineTransformStream {
+    const buildLogPrefix = `[${ref}]`.padEnd(16)
+    const buildLogs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
+    buildLogs.pipe(process.stdout)
+    return buildLogs
   }
 
 }

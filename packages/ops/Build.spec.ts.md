@@ -95,6 +95,7 @@ import { DockerImage } from '@hackbg/toolbox'
 import { mockDockerode } from './Docker.spec'
 import { mkdirp } from '@hackbg/toolbox'
 import { Transform } from 'stream'
+const here = dirname(fileURLToPath(import.meta.url))
 test({
   async 'DockerodeBuilder' ({ ok, equal, deepEqual }) {
     class TestDockerodeBuilder extends DockerodeBuilder {
@@ -103,25 +104,23 @@ test({
     class TestDockerImage extends DockerImage {
       async ensure () { return theImage }
     }
-
-    const here      = dirname(fileURLToPath(import.meta.url))
+    const theImage  = Symbol()
     const workspace = resolve(here, '../../fixtures')
     const crate     = 'empty'
     const source    = { workspace, crate }
     const ran       = []
     const docker    = mockDockerode(runCalled)
-    const theImage  = Symbol()
     const image     = new TestDockerImage(docker)
     const script    = "build.sh"
     const options   = { docker, image, script }
     const builder   = new TestDockerodeBuilder(options)
-    const template  = await builder.build({ workspace, crate })
-    equal(template.location, resolve(workspace, 'artifacts/empty@HEAD.wasm'))
-    equal(template.codeHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+    const artifact  = await builder.build({ workspace, crate })
+    equal(artifact.location, resolve(workspace, 'artifacts/empty@HEAD.wasm'))
+    equal(artifact.codeHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
 
     function runCalled ({ run: [image, cmd, buildLogs, args] }) {
       equal(image, theImage)
-      equal(cmd, `bash /build.sh empty HEAD`)
+      equal(cmd, `bash /build.sh HEAD empty`)
       ok(buildLogs instanceof Transform)
       equal(args.Tty, true)
       equal(args.AttachStdin: true)
@@ -129,6 +128,26 @@ test({
       ok(args.HostConfig.Binds instanceof Array)
       equal(args.HostConfig.AutoRemove, true)
     }
+  }
+  async 'DockerodeBuilder#buildMany' () {
+    class TestDockerodeBuilder extends DockerodeBuilder {
+      prebuild (source) { return false }
+    }
+    class TestDockerImage extends DockerImage {
+      async ensure () { return theImage }
+    }
+    const theImage  = Symbol()
+    const docker    = mockDockerode()
+    const image     = new TestDockerImage(docker)
+    const script    = "build.sh"
+    const options   = { docker, image, script }
+    const builder   = new TestDockerodeBuilder(options)
+    const workspace = resolve(here, '../../fixtures')
+    const artifacts = await builder.buildMany([
+      { workspace, crate: 'crate1' }
+      { workspace, ref: 'HEAD', crate: 'crate2' }
+      { workspace, ref: 'asdf', crate: 'crate3' }
+    ])
   }
 })
 ```

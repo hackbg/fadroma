@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
 PHASE=$1
-CRATE=$2
-REF=$3
-OUTPUT=$4
-
-: "${PHASE?Need to set PHASE}"
-: "${CRATE?Need to set CRATE}"
-: "${REF?Need to set REF}"
-: "${OUTPUT?Need to set OUTPUT}"
+REF=$2
+CRATES=$@ # used by phase 1
+CRATE=$3  # used by phase 2
 
 WORKSPACE=/src
 TEMP=/tmp/fadroma-build-$CRATE
@@ -17,9 +12,12 @@ TEMP=/tmp/fadroma-build-$CRATE
 USER=${USER:-1000}
 GROUP=${GROUP:-1000}
 
+# As the initial user, set up the container and the source workspace,
+# checking out an old commit if specified. Then, call phase 2 with
+# the name of each crate sequentially.
 phase1 () {
   set -aem
-  echo "Build phase 1: Preparing source repository for $CRATE@$REF"
+  echo "Build phase 1: Preparing source repository for $REF"
   # Create a non-root user.
   groupadd -g$GROUP $GROUP || true
   useradd -m -g$GROUP -u$USER build || true
@@ -44,13 +42,15 @@ phase1 () {
   echo "Preparing submodules..."
   git submodule update --init --recursive
   git log -1
-  # As a non-root user,
-  # execute a release build,
-  # then optimize it with Binaryen.
-  echo "Building $CRATE from $REF in $(pwd)"
-  su build -c "bash $0 phase2 $CRATE $REF"
+  for CRATE in "$CRATES"; do
+    echo "Building $CRATE from $REF in $(pwd)"
+    su build -c "bash $0 phase2 $REF $CRATE"
+  done
 }
 
+# As a non-root user,
+# execute a release build,
+# then optimize it with Binaryen.
 phase2 () {
   echo "Build phase 2: Compiling and optimizing contract for $CRATE@$REF"
   set -aemu
