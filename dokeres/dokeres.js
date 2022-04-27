@@ -25,7 +25,7 @@ export class DockerImage {
 
   async ensure () {
     if (this.#available) {
-      console.info(bold('Already ensuring image from parallel build:'), this.name)
+      //console.info(bold('Already ensuring image from parallel build:'), this.name)
       return await this.#available
     } else {
       console.info(bold('Ensuring image:'), this.name)
