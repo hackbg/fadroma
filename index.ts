@@ -47,7 +47,7 @@ export class Fadroma {
     FromEnv: async function getChainFromEnvironment () {
       const chain = await Chain.getNamed()
       const agent = await chain.getAgent()
-      await print(console).agentBalance(agent)
+      //await print(console).agentBalance(agent)
       return { chain, agent, deployAgent: agent, clientAgent: agent }
     },
 
