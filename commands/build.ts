@@ -56,9 +56,11 @@ function buildFromBuildScript (buildScript, buildArgs) {
           console.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
           process.exit(3)
         }
+        const T0 = + new Date()
         Scrt_1_2.getBuilder().buildMany(buildSources)
           .then(()=>{
-            console.info('Build complete.')
+            const T1 = + new Date()
+            console.info(`Build complete in ${T1-T0}ms.`)
             process.exit(0)
           })
           .catch(e=>{
