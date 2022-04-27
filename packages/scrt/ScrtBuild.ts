@@ -35,7 +35,7 @@ export class ScrtDockerodeBuilder extends DockerodeBuilder {
     config.scrt.buildScript
   )
 
-  buildHelpers = [ "Scrt_1_2_BuildCheckout.sh", "Scrt_1_2_BuildCommand.sh" ]
+  buildHelpers = [] //
 
   image = new DockerImage(
     undefined,
