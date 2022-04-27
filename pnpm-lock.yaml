@@ -6,6 +6,7 @@ importers:
     specifiers:
       '@fadroma/ops': workspace:*
       '@fadroma/scrt': workspace:*
+      '@fadroma/scrt-next': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': workspace:*
       '@hackbg/runspec': workspace:*
@@ -19,6 +20,7 @@ importers:
     dependencies:
       '@fadroma/ops': link:packages/ops
       '@fadroma/scrt': link:packages/scrt
+      '@fadroma/scrt-next': link:packages/scrt-next
       '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/ganesha': link:deps/ganesha
       '@hackbg/toolbox': link:deps/ganesha/deps/toolbox
