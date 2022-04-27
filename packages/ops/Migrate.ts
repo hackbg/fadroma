@@ -77,17 +77,20 @@ export async function runMigration (
   const stepTimings = []
 
   // Composition of commands via steps:
-  const longestName = steps.map(step=>step?.name||'').reduce((max,x)=>Math.max(max, x.length), 0)
   for (const i in steps) {
     const step = steps[i]
     if (!(step instanceof Function)) {
       const msg = [
         'Each command step must be a function, but',
         'step', bold(String(Number(i)+1)), 'in command', bold(cmdName),
-        'is', step
+        'is something else:', step, `(${typeof step})`
       ].join(' ')
       throw new Error(msg)
     }
+  }
+
+  const longestName = steps.map(step=>step?.name||'').reduce((max,x)=>Math.max(max, x.length), 0)
+  for (const step of steps) {
     const name = (step.name||'').padEnd(longestName)
     const T1 = + new Date()
     let updates
