@@ -15,7 +15,7 @@ import {
 import { config } from './Config'
 import type { Identity } from './Core'
 
-const console = Console('@fadroma/ops/Devnet')
+const console = Console('Fadroma Devnet')
 
 /** Domain API. A Devnet is created from a given chain ID
   * with given pre-configured identities, and its state is stored

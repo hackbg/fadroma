@@ -10,7 +10,7 @@ import {
 import { config } from './Config'
 import { Source, Builder, Artifact, codeHashForPath } from './Core'
 
-const console = Console('@fadroma/ops/Build')
+const console = Console('Fadroma Build')
 
 export const DEFAULT_REF  = 'HEAD'
 
@@ -126,7 +126,7 @@ export class DockerodeBuilder extends CachingBuilder {
     const workspaces: string[]   = distinct(sources.map(source=>source.workspace))
     const refs:       string[]   = distinct(sources.map(source=>source.ref||DEFAULT_REF))
     for (const workspace of workspaces) {
-      console.info(`Building contracts from workspace ${workspace}`)
+      console.info(`Building contracts from workspace:`, bold(relative(cwd(), workspace)))
       for (const ref of refs) {
         console.info(`  Building contracts from ref ${ref}`)
         // Create a list of sources for this container to build,

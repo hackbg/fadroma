@@ -10,7 +10,7 @@ import {
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 
-const console = Console('@fadroma/ops/Deploy')
+const console = Console('Fadroma Deploy')
 
 import type { Client, ClientConstructor } from './Client'
 import type { Agent } from './Agent'

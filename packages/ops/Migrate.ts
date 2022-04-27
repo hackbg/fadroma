@@ -43,7 +43,7 @@ export interface MigrationContext {
 
 export type Command<T> = (MigrationContext)=>Promise<T>
 
-const console = Console('@fadroma/ops/Migrate')
+const console = Console('Fadroma Migrate')
 
 export async function runMigration (
   cmdName:  string,

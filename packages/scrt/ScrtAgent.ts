@@ -20,7 +20,7 @@ import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
 
 export interface APIConstructor extends SigningCosmWasmClient {}
 
-const console = Console('@fadroma/scrt/Agent')
+const console = Console('Fadroma SCRT Agent')
 
 export async function getScrtAgent (chain: Chain, AgentClass: AgentConstructor, identity: Identity) {
   const { name = 'Anonymous', ...args } = identity

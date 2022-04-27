@@ -8,7 +8,7 @@ import { Uploads } from './Upload'
 import { config } from './Config'
 import { Mocknet } from './Mocknet'
 
-const console = Console('@fadroma/ops/Chain')
+const console = Console('Fadroma Chain')
 
 export enum ChainMode {
   Mainnet = 'Mainnet',

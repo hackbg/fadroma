@@ -24,7 +24,7 @@ Chain.namedChains['Mocknet'] = (options?) => new Mocknet('mocknet', options)
 
 // Logging interface - got one of these in each module.
 // Based on @hackbg/konzola, reexported through @fadroma/ops.
-const console = Console('@hackbg/fadroma')
+const console = Console('Fadroma Ops')
 
 export class Fadroma {
 

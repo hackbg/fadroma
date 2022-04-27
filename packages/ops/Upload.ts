@@ -6,7 +6,7 @@ import {
 import { Artifact, Template, Uploader, UploadReceipt, codeHashForPath } from './Core'
 import type { Agent } from './Agent'
 
-const console = Console('@fadroma/ops/Upload')
+const console = Console('Fadroma Upload')
 
 /** Directory collecting upload receipts. */
 export class Uploads extends JSONDirectory {}
@@ -133,7 +133,7 @@ export class CachingFSUploader extends FSUploader {
         }
 
         console.info(
-          '✅', bold(relativePath), `exists - not reuploading (code hash matches)`
+          '✅', 'Exists, not reuploading (same code hash):', bold(relativePath)
         )
 
         templates[i] = {
