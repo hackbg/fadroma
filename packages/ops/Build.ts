@@ -153,7 +153,7 @@ export class DockerodeBuilder extends CachingBuilder {
       Entrypoint: ['/bin/sh', '-c'],
       HostConfig: {
         Binds:      binds,
-        AutoRemove: false
+        AutoRemove: true
       },
       Env: [
         'CARGO_NET_GIT_FETCH_WITH_CLI=true',
