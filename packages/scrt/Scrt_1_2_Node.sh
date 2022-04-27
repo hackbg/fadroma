@@ -27,11 +27,14 @@ genesis_1 () {
   echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
   echo "|1. Setup state directories"
   rm -rf ~/.secretd ~/.secretcli /opt/secret/.sgx-secrets
-  mkdir -p $State $State/identities $State/secretd $State/secretcli $State/sgx-secrets
-  mkdir -p $State/identities
-  mkdir -p $State/secretd     && ln -s $State/secretd     ~/.secretd
-  mkdir -p $State/secretcli   && ln -s $State/secretcli   ~/.secretcli
-  mkdir -p $State/sgx-secrets && ln -s $State/sgx-secrets /opt/secret/.sgx-secrets
+  umask
+  umask 0000
+  mkdir -p $State $State/identities #$State/secretd $State/secretcli $State/sgx-secrets
+  umask 0022
+  #mkdir -p $State/identities
+  #mkdir -p $State/secretd     && ln -s $State/secretd     ~/.secretd
+  #mkdir -p $State/secretcli   && ln -s $State/secretcli   ~/.secretcli
+  #mkdir -p $State/sgx-secrets && ln -s $State/sgx-secrets /opt/secret/.sgx-secrets
   fix_permissions
   secretd config chain-id "$ChainID"
   secretd config keyring-backend test
