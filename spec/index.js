@@ -4,4 +4,5 @@ import '../index.ts'
 
 // Import the specification and run it.
 import Specification from './README.md'
-runTest(Specification, process.argv.slice(2))
+import runSpec from '@hackbg/runspec'
+runSpec(Specification, process.argv.slice(2))

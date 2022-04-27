@@ -1,4 +1,19 @@
-# Fadroma Testing Harnesses
+# Fadroma Testing Harness
+
+## Test fixtures
+
+Those are just files with a fixed content that are used
+in the test suites. Since Fadroma isn't yet properly decoupled
+from Node's underlying storage API (`fetch` anyone?), they are
+stored in the repo, under [/fixtures](../fixtures), and are
+addressed by path relative to the directory containing the
+file that you are reading right now.
+
+```typescript
+import { resolve, dirname, fileURLToPath } from '../index'
+export const here    = dirname(fileURLToPath(import.meta.url))
+export const fixture = x => resolve(here, '..', x)
+```
 
 ## Mock of Dockerode API
 

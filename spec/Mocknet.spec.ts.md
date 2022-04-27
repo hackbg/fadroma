@@ -6,7 +6,6 @@ It does not contain a distributed consensus mechanism,
 which enables smart contract-based programs to be executed in isolation.
 
 ```typescript
-import assert from 'assert'
 const MocknetSpec = {}
 const test = tests => Object.assign(MocknetSpec, tests)
 export default MocknetSpec
@@ -15,8 +14,8 @@ export default MocknetSpec
 ## Can run WASM blob
 
 ```typescript
-import { resolve, dirname, fileURLToPath, readFileSync, Contract } from '../index'
-const fixture           = x => resolve(dirname(fileURLToPath(import.meta.url)), '../..', x)
+import { readFileSync, Contract } from '../index'
+import { fixture } from './_Harness'
 const emptyContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
 const emptyContractWasm = readFileSync(emptyContract)
 const mockEnv = () => {
@@ -57,10 +56,10 @@ test({
 ```typescript
 import { Mocknet, MockAgent } from '../index'
 test({
-  async "can initialize and create agent" () {
+  async "can initialize and create agent" ({ ok }) {
     const chain = new Mocknet()
     const agent = await chain.getAgent({})
-    assert(agent instanceof MockAgent)
+    ok(agent instanceof MockAgent)
   }
 })
 ```
@@ -69,14 +68,14 @@ test({
 
 ```typescript
 test({
-  async 'can upload wasm blob, returning code id' () {
+  async 'can upload wasm blob, returning code id' ({ equal }) {
     const agent = await new Mocknet().getAgent()
     const artifact = { location: emptyContract }
     const template = await agent.upload(artifact)
-    assert(template.chainId === agent.chain.id)
+    equa(template.chainId, agent.chain.id)
     const template2 = await agent.upload(artifact)
-    assert(template2.chainId === template.chainId)
-    assert(template2.codeId === String(Number(template.codeId) + 1))
+    equal(template2.chainId, template.chainId)
+    equal(template2.codeId, String(Number(template.codeId) + 1))
   }
 })
 ```
