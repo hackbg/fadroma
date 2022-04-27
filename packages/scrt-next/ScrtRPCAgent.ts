@@ -75,7 +75,7 @@ export class ScrtRPCAgent extends Agent {
       .value
 
     return {
-      chainId: this.chainId,
+      chainId: this.chain.id,
       codeId,
       codeHash
     }
