@@ -1,1 +1,0 @@
-export { ScrtRPCAgent } from './ScrtRPCAgent'

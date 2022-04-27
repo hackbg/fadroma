@@ -19,8 +19,8 @@ importers:
       typescript: ^4.5.4
     dependencies:
       '@fadroma/ops': link:packages/ops
-      '@fadroma/scrt': link:packages/scrt
-      '@fadroma/scrt-next': link:packages/scrt-next
+      '@fadroma/scrt': link:packages/scrt-1.2
+      '@fadroma/scrt-next': link:packages/scrt-1.3
       '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/ganesha': link:deps/ganesha
       '@hackbg/toolbox': link:deps/ganesha/deps/toolbox
@@ -316,8 +316,14 @@ importers:
 
   packages/scrt:
     specifiers:
-      '@cosmjs/crypto': ^0.20.0
       '@fadroma/ops': workspace:*
+    dependencies:
+      '@fadroma/ops': link:../ops
+
+  packages/scrt-1.2:
+    specifiers:
+      '@cosmjs/crypto': ^0.20.0
+      '@fadroma/scrt': workspace:*
       axios: ^0.26.0
       body-parser: ^1.19.0
       express: ^4.17.1
@@ -326,7 +332,7 @@ importers:
       secretjs: 0.17.5
     dependencies:
       '@cosmjs/crypto': 0.20.1
-      '@fadroma/ops': link:../ops
+      '@fadroma/scrt': 'link:'
       pako: 1.0.11
       secretjs: 0.17.5
     optionalDependencies:
@@ -336,12 +342,12 @@ importers:
       express: 4.17.3
       freeport-async: 2.0.0
 
-  packages/scrt-next:
+  packages/scrt-1.3:
     specifiers:
-      '@fadroma/ops': workspace:*
+      '@fadroma/scrt': workspace:*
       secretjs: beta
     dependencies:
-      '@fadroma/ops': link:../ops
+      '@fadroma/scrt': link:../scrt-1.2
       secretjs: 1.2.0-beta.66
 
   packages/shim:
@@ -628,7 +634,7 @@ packages:
   /@iov/crypto/2.1.0:
     resolution: {integrity: sha512-jnb4XuK50admolm7fBxOcxfAW2TO+wYrZlhDWiMETItY/Y5gNNa1zaDSO2wNIjjfGng+8nQ1yqnNhqy7busV2Q==}
     dependencies:
-      '@iov/encoding': 2.1.0
+      '@iov/encoding': 2.5.0
       bip39: 3.0.4
       bn.js: 4.12.0
       elliptic: 6.5.4
@@ -3909,7 +3915,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.1
-      '@types/node': 17.0.23
+      '@types/node': 17.0.29
       long: 4.0.0
     dev: false
 
@@ -5452,7 +5458,7 @@ packages:
     hasBin: true
     dependencies:
       '@fadroma/ops': link:packages/ops
-      '@fadroma/scrt': link:packages/scrt
+      '@fadroma/scrt': link:packages/scrt-1.2
       '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/ganesha': link:deps/ganesha
       '@hackbg/toolbox': link:deps/ganesha/deps/toolbox

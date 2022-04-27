@@ -1,8 +1,9 @@
 import {
-  config, resolve, relative, dirname,
+  scrtConfig as config,
+  resolve, relative, dirname,
   RawBuilder,
   DockerodeBuilder, DockerImage
-} from '@fadroma/ops'
+} from '@fadroma/scrt'
 
 export function getScrtBuilder ({
   raw        = config.buildRaw,
@@ -55,13 +56,4 @@ export class ScrtDockerodeBuilder extends DockerodeBuilder {
     })
   }
 
-  protected getBuildContainerArgs (source, output): [string, any] {
-    const [cmd, args] = super.getBuildContainerArgs(source, output)
-    for (const helper of this.buildHelpers) {
-      args.HostConfig.Binds.push(
-        `${resolve(dirname(config.scrt.buildScript), helper)}:/${helper}:ro`
-      )
-    }
-    return [cmd, args]
-  }
 }

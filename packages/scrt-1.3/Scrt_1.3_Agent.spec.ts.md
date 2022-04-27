@@ -5,7 +5,7 @@ which uses the new gRPC API provided by SecretJS 1.2-beta -
 as opposed to the old HTTP-based ("Amino"?) API from SecretJS 0.17.5 and older.
 
 ```typescript
-import { ScrtRPCAgent } from './ScrtRPCAgent'
+import { ScrtRPCAgent } from './Scrt_1.3_Agent'
 ```
 
 * [ ] TODO: These tests are mostly identical between ScrtRPCAgent and ScrtRPCAgent,

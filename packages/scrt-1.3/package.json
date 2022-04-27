@@ -2,9 +2,9 @@
   "name":    "@fadroma/scrt-next",
   "version": "1.0.0-pre",
   "type":    "module",
-  "main":    "./ScrtNext.ts",
+  "main":    "./index.ts",
   "dependencies": {
-    "@fadroma/ops": "workspace:*",
-    "secretjs":     "beta"
+    "@fadroma/scrt": "workspace:*",
+    "secretjs":      "beta"
   }
 }

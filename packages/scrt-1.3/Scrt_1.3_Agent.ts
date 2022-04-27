@@ -1,5 +1,6 @@
 import { Agent, Identity, Artifact, Template, Instance, Message, readFile } from '@fadroma/ops'
 import { SecretNetworkClient, Wallet } from 'secretjs'
+import { Scrt_1_3 } from './Scrt_1.3_Chain'
 
 export interface ScrtRPCAgentOptions extends Identity {
   wallet?: Wallet
@@ -10,7 +11,7 @@ export class ScrtRPCAgent extends Agent {
 
   Bundle = null
 
-  static async create (identity: Identity) {
+  static async create (chain: Scrt_1_3, identity: Identity) {
     const {
       chainId = SCRT_RPC_DEFAULT_CHAIN_ID,
       mnemonic,
@@ -34,11 +35,11 @@ export class ScrtRPCAgent extends Agent {
       wallet:        wallet,
       walletAddress: wallet.address,
     })
-    return new ScrtRPCAgent({ ...identity, wallet, api })
+    return new ScrtRPCAgent(chain, { ...identity, wallet, api })
   }
 
-  constructor (options: ScrtRPCAgentOptions) {
-    super(options)
+  constructor (chain: Scrt_1_3, options: ScrtRPCAgentOptions) {
+    super(chain, options)
     this.wallet = options.wallet
     this.api    = options.api
   }
@@ -155,4 +156,3 @@ export const ERR_SCRT_RPC_EXPECTED_WRONG_ADDRESS =
 
 export const WARN_SCRT_RPC_NO_MEMO =
   "ScrtRPCAgent: Transaction memos are not supported in SecretJS RPC API"
-

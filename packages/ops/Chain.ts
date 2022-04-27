@@ -33,6 +33,8 @@ export interface ChainConstructor extends Chain {}
   * and receipts from contract uploads/inits. */
 export class Chain implements ChainConfig {
 
+  static Mode = ChainMode
+
   /** Populated in Fadroma root with connection details for
     * all Chain variants that are known to the library. */
   static namedChains: Record<string, Function> = {}

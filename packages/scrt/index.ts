@@ -1,6 +1,3 @@
 export * from '@fadroma/ops'
-export * from './ScrtAgent'
-export * from './ScrtBuild'
-export * from './ScrtChain'
-export * from './ScrtDevnet'
 export * from './ScrtGas'
+export * from './ScrtConfig'

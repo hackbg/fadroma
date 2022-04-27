@@ -311,8 +311,6 @@ export class ScrtAgent extends Agent {
   }
 }
 
-export 
-
 export class ScrtBundle extends Bundle {
 
   declare agent: ScrtAgent
