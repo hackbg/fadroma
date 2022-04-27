@@ -138,8 +138,8 @@ export class DockerodeBuilder extends CachingBuilder {
     output
   ): [string, any] {
     const entrypoint = this.script
-    const cmdName = basename(entrypoint)
-    const cmd = `bash /${cmdName} ${crate} ${ref}`
+    const cmdName    = basename(entrypoint)
+    const cmd        = `bash /${cmdName} phase1 ${crate} ${ref}`
     const binds = []
     binds.push(`${workspace}:/src:rw`)
     //binds.push(`/dev/null:/src/receipts:ro`)
@@ -151,7 +151,10 @@ export class DockerodeBuilder extends CachingBuilder {
       Tty: true,
       AttachStdin: true,
       Entrypoint: ['/bin/sh', '-c'],
-      HostConfig: { Binds: binds, AutoRemove: true },
+      HostConfig: {
+        Binds:      binds,
+        AutoRemove: false
+      },
       Env: [
         'CARGO_NET_GIT_FETCH_WITH_CLI=true',
         'CARGO_TERM_VERBOSE=true',
