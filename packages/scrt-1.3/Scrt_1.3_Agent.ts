@@ -1,4 +1,4 @@
-import { Agent, Identity, Artifact, Template, Instance, Message, readFile } from '@fadroma/ops'
+import { Console, Agent, Identity, Artifact, Template, Instance, Message, readFile } from '@fadroma/ops'
 import { SecretNetworkClient, Wallet } from 'secretjs'
 import { Scrt_1_3 } from './Scrt_1.3_Chain'
 

@@ -78,3 +78,31 @@ test({
   }
 })
 ```
+
+## Secret Network 1.2 Chain Interface
+
+```typescript
+import { Chain } from '@fadroma/ops'
+import { Scrt_1_2 } from './Scrt_1.2_Chain'
+test({
+  async 'SN mainnet' ({ ok }) {
+    ok(await Chain.getNamed('Scrt_1_2_Mainnet'))
+  },
+  async 'SN testnet' ({ ok }) {
+    ok(await Chain.getNamed('Scrt_1_2_Testnet'))
+  },
+  async 'SN devnet' ({ ok, equal }) {
+    const node = {
+      chainId: 'scrt-devnet',
+      apiURL:  'http://test:0'
+    }
+    const chain = await Scrt_1_2.chains.Devnet({ node })
+    ok(chain)
+    equal(chain.node,   node)
+    equal(chain.apiURL, node.apiURL)
+    equal(chain.id,     node.chainId)
+  },
+})
+```
+
+## Secret Network 1.3 Chain Interface

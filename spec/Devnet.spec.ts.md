@@ -1,4 +1,7 @@
-# Fadroma Devnet Tests
+# Fadroma Devnet
+
+The devnet is a temporary local server which simulates
+the behavior of a single-node blockchain network.
 
 ```typescript
 import assert from 'assert'
@@ -95,5 +98,14 @@ test({
     })
   },
   'pass names of prefunded accounts on genesis' () { throw 'TODO' }
+})
+```
+
+```typescript
+import { getScrt_1_2_Devnet } from './Scrt_1.2_Devnet'
+test({
+  'get scrt devnet' ({ ok }) {
+    ok(getScrt_1_2_Devnet())
+  },
 })
 ```

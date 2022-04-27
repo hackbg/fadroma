@@ -1,7 +1,6 @@
 import { URL } from 'url'
 import * as HTTP from 'http'
 import { symlinkSync } from 'fs'
-import freeportAsync from 'freeport-async'
 import {
   Console, bold,
   Directory, JSONDirectory, JSONFile,

@@ -151,3 +151,17 @@ test({
   }
 })
 ```
+
+## Builders for Secret Network
+
+```typescript
+import { getScrtBuilder } from './ScrtBuild'
+test({
+  'get dockerode builder' ({ ok }) {
+    ok(getScrtBuilder())
+  },
+  'get raw builder' ({ ok }) {
+    ok(getScrtBuilder({ raw: true }))
+  },
+})
+```

@@ -1,5 +1,10 @@
 # Fadroma Mocknet
 
+The Fadroma Mocknet is a pure JS implementation of the
+API and environment that Cosmos smart contracts expect.
+It does not contain a distributed consensus mechanism,
+which enables smart contract-based programs to be executed in isolation.
+
 ```typescript
 import assert from 'assert'
 const MocknetSpec = {}

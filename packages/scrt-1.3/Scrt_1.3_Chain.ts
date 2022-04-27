@@ -1,13 +1,8 @@
-import { Chain, getScrtBuilder, scrtConfig as config } from '@fadroma/scrt'
+import { Scrt, getScrtBuilder, scrtConfig as config } from '@fadroma/scrt'
 import { ScrtRPCAgent } from './Scrt_1.3_Agent'
 import { getScrt_1_3_Devnet } from './Scrt_1.3_Devnet'
 
-export class Scrt_1_3 extends Chain {
-
-  async getAgent (identity = config.scrt.defaultIdentity): Promise<ScrtRPCAgent> {
-    return (await super.getAgent(identity)) as unknown as ScrtRPCAgent
-  }
-
+export class Scrt_1_3 extends Scrt {
   Agent             = ScrtRPCAgent
   static Agent      = ScrtRPCAgent
   static getDevnet  = getScrt_1_3_Devnet
@@ -16,14 +11,14 @@ export class Scrt_1_3 extends Chain {
   static chains = {
     async Mainnet (options = { url: config.scrt.mainnetApiUrl }) {
       return new Scrt_1_3(config.scrt.mainnetChainId, {
-        mode:            Chain.Mode.Mainnet,
+        mode:            Scrt.Mode.Mainnet,
         apiURL:          new URL(options.url),
         defaultIdentity: config.scrt.defaultIdentity,
       })
     },
     async Testnet (options = { url: config.scrt.testnetApiUrl }) {
       return new Scrt_1_3(config.scrt.testnetChainId, {
-        mode:            Chain.Mode.Testnet,
+        mode:            Scrt.Mode.Testnet,
         apiURL:          new URL(options.url),
         defaultIdentity: config.scrt.defaultIdentity,
       })
@@ -34,7 +29,7 @@ export class Scrt_1_3 extends Chain {
       } = options
       return new Scrt_1_3(node.chainId, {
         node,
-        mode: Chain.Mode.Devnet,
+        mode: Scrt.Mode.Devnet,
         defaultIdentity: { name: 'ADMIN' },
       })
     }

@@ -10,7 +10,7 @@ import { Client, ClientConstructor, ClientConfig } from './Client'
 
 const console = Console('Fadroma Agent')
 
-export type AgentConstructor = (new (Identity) => Agent) & {
+export interface AgentConstructor extends (new (Identity) => Agent) {
   create: (chain: Chain, options: any) => Promise<Agent>
 }
 
@@ -25,8 +25,10 @@ export abstract class Agent implements Executor {
 
   constructor (
     chain: Chain,
+    options
   ) {
     this.chain = chain
+    if (options.name) this.name = options.name
   }
 
   trace = new Trace("unnamed", console)
