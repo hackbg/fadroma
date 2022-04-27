@@ -8,13 +8,14 @@
   "main": "./index.ts",
   "type": "module",
   "dependencies": {
-    "@types/node":        "^16.11.19",
-    "@fadroma/ops":       "workspace:*",
-    "@fadroma/scrt":      "workspace:*",
-    "@fadroma/scrt-next": "workspace:*",
-    "@fadroma/snip20":    "workspace:*",
-    "@hackbg/ganesha":    "workspace:*",
-    "@hackbg/toolbox":    "workspace:*"
+    "@types/node":       "^16.11.19",
+    "@fadroma/ops":      "workspace:*",
+    "@fadroma/scrt":     "workspace:*",
+    "@fadroma/scrt-1.2": "workspace:*",
+    "@fadroma/scrt-1.3": "workspace:*",
+    "@fadroma/snip20":   "workspace:*",
+    "@hackbg/ganesha":   "workspace:*",
+    "@hackbg/toolbox":   "workspace:*"
   },
   "devDependencies": {
     "@hackbg/runspec": "workspace:*",

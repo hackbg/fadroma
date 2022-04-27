@@ -2,6 +2,8 @@ import { Agent, Identity, Artifact, Template, Instance, Message, readFile } from
 import { SecretNetworkClient, Wallet } from 'secretjs'
 import { Scrt_1_3 } from './Scrt_1.3_Chain'
 
+const console = Console('Fadroma Agent SN1.3')
+
 export interface ScrtRPCAgentOptions extends Identity {
   wallet?: Wallet
   api?:    SecretNetworkClient

@@ -1,8 +1,6 @@
-import { Chain } from '@fadroma/ops'
+import { Chain, getScrtBuilder, scrtConfig as config } from '@fadroma/scrt'
 import { ScrtRPCAgent } from './Scrt_1.3_Agent'
 import { getScrt_1_3_Devnet } from './Scrt_1.3_Devnet'
-import { getScrt_1_3_Builder } from './Scrt_1.3_Build'
-import { config } from './Scrt_1.3_Config'
 
 export class Scrt_1_3 extends Chain {
 
@@ -10,10 +8,10 @@ export class Scrt_1_3 extends Chain {
     return (await super.getAgent(identity)) as unknown as ScrtRPCAgent
   }
 
-  Agent             = Scrt_1_3.Agent
+  Agent             = ScrtRPCAgent
   static Agent      = ScrtRPCAgent
   static getDevnet  = getScrt_1_3_Devnet
-  static getBuilder = getScrt_1_3_Builder
+  static getBuilder = getScrtBuilder
   static faucet = `https://faucet.secrettestnet.io/`
   static chains = {
     async Mainnet (options = { url: config.scrt.mainnetApiUrl }) {

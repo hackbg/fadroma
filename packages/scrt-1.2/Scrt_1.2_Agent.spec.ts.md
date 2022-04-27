@@ -10,8 +10,8 @@ export default Spec
 ## Agents
 
 ```typescript
-import { ScrtAgent } from './ScrtAgent'
-import { toBase64, fromBase64, fromUtf8, fromHex } from '@fadroma/ops'
+import { ScrtAgent } from './Scrt_1.2_Agent'
+import { toBase64, fromBase64, fromUtf8, fromHex } from '@fadroma/scrt'
 test({
   async 'from mnemonic' ({ equal, deepEqual }) {
     const chain = Symbol()
@@ -99,7 +99,7 @@ test({
 ## Bundles
 
 ```typescript
-import { ScrtBundle } from './ScrtAgent'
+import { ScrtBundle } from './Scrt_1.2_Agent'
 test({
   async 'get ScrtBundle from agent' () {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';

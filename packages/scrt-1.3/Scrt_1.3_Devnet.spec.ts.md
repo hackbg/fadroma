@@ -1,0 +1,3 @@
+```typescript
+export default { /* TODO */ }
+```

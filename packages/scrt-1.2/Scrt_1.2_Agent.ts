@@ -14,17 +14,12 @@ import {
   SigningCosmWasmClient,
 } from 'secretjs'
 import pako from 'pako'
-import type { Scrt, ScrtNonce } from './ScrtChain'
-import { ScrtGas } from './ScrtGas'
-import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1_2_Patch'
+import { Scrt, ScrtNonce, ScrtGas } from '@fadroma/scrt'
+import { PatchedSigningCosmWasmClient_1_2 } from './Scrt_1.2_Patch'
 
 export interface APIConstructor extends SigningCosmWasmClient {}
 
-<<<<<<< HEAD
-const console = Console('Fadroma SCRT Agent')
-=======
 const console = Console('Fadroma Agent SN1.2')
->>>>>>> 49d83f3a (wip: feat(scrt-next): ScrtRPCAgent passes type check)
 
 export async function getScrtAgent (chain: Chain, AgentClass: AgentConstructor, identity: Identity) {
   const { name = 'Anonymous', ...args } = identity

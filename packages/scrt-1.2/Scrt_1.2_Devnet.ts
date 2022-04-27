@@ -2,7 +2,7 @@ import { config, DockerodeDevnet, DockerImage, resolve, dirname, fileURLToPath }
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export function getScrtDevnet (
+export function getScrt_1_2_Devnet (
   managerURL: string = config.devnetManager,
   chainId?:   string,
 ) {

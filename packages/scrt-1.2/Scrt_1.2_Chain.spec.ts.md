@@ -9,7 +9,7 @@ export default Spec
 
 ```typescript
 import { Chain } from '@fadroma/ops'
-import { Scrt_1_2 } from './ScrtChain'
+import { Scrt_1_2 } from './Scrt_1.2_Chain'
 test({
   async 'SN mainnet' ({ ok }) {
     ok(await Chain.getNamed('Scrt_1_2_Mainnet'))

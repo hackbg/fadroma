@@ -13,17 +13,17 @@ export * from '@fadroma/ops'
 export * from '@fadroma/scrt'
 export * from '@fadroma/snip20'
 
-import { Scrt_1_2 } from '@fadroma/scrt'
-import { ScrtNext } from '@fadroma/scrt-next'
-export { Scrt_1_2, ScrtNext }
+import { Scrt_1_2 } from '@fadroma/scrt-1.2'
+import { Scrt_1_3 } from '@fadroma/scrt-1.3'
+export { Scrt_1_2, Scrt_1_3 }
 Object.assign(Chain.namedChains, {
   'Mocknet':           Mocknet,
   'Scrt_1_2_Mainnet':  Scrt_1_2.chains.Mainnet,
   'Scrt_1_2_Testnet':  Scrt_1_2.chains.Testnet,
   'Scrt_1_2_Devnet':   Scrt_1_2.chains.Devnet,
-  'Scrt_Next_Mainnet': ScrtNext.chains.Mainnet,
-  'Scrt_Next_Testnet': ScrtNext.chains.Testnet,
-  'Scrt_Next_Devnet':  ScrtNext.chains.Devnet,
+  'Scrt_Next_Mainnet': Scrt_1_3.chains.Mainnet,
+  'Scrt_Next_Testnet': Scrt_1_3.chains.Testnet,
+  'Scrt_Next_Devnet':  Scrt_1_3.chains.Devnet,
 })
 
 export type Command<T> = (MigrationContext)=>Promise<T>

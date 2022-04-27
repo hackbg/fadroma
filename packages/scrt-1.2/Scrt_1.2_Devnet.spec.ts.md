@@ -8,10 +8,10 @@ export default Spec
 ```
 
 ```typescript
-import { getScrtDevnet } from './ScrtDevnet'
+import { getScrt_1_2_Devnet } from './Scrt_1.2_Devnet'
 test({
   'get scrt devnet' ({ ok }) {
-    ok(getScrtDevnet())
+    ok(getScrt_1_2_Devnet())
   },
 })
 ```
