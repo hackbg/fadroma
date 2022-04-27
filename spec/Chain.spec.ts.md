@@ -10,7 +10,7 @@ export default ChainSpec
 ## Chain config
 
 ```typescript
-import { Chain } from './Chain'
+import { Chain } from '../index'
 test({
   'chain id' () {
     const chain = new Chain('chainid')
@@ -27,8 +27,7 @@ test({
 ## Chain modes
 
 ```typescript
-import { ChainMode } from './Chain'
-import type { Agent } from './Agent'
+import { ChainMode, Agent } from '../index'
 test({
   'mainnet' () {
     const mode = ChainMode.Mainnet
@@ -82,8 +81,7 @@ test({
 ## Secret Network 1.2 Chain Interface
 
 ```typescript
-import { Chain } from '@fadroma/ops'
-import { Scrt_1_2 } from './Scrt_1.2_Chain'
+import { Chain, Scrt_1_2 } from '../index'
 test({
   async 'SN mainnet' ({ ok }) {
     ok(await Chain.getNamed('Scrt_1_2_Mainnet'))

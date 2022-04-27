@@ -10,7 +10,7 @@ export default CoreSpec
 ## Source
 
 ```typescript
-import { Source } from './Core'
+import { Source } from '../index'
 test({
   async 'Source ctor positional args' () {
     const source = new Source('w', 'c', 'r')
@@ -33,7 +33,7 @@ test({
 ## Builder
 
 ```typescript
-import { Builder, Artifact } from './Core'
+import { Builder, Artifact } from '../index'
 class TestBuilder extends Builder {
   async build (source: Source): Promise<Artifact> {
     return { location: '', codeHash: '', _fromSource: source }

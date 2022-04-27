@@ -13,7 +13,7 @@ export default DevnetSpec
 ## Constructing a devnet
 
 ```typescript
-import { Devnet } from './Devnet'
+import { Devnet } from '../index'
 
 test({
   async 'construct devnet' ({ ok, equal }) {
@@ -50,8 +50,8 @@ test({
 ## Dockerode devnet
 
 ```typescript
-import { DockerodeDevnet } from './Devnet'
-import { mockDockerode } from './Docker.spec'
+import { DockerodeDevnet } from '../index'
+import { mockDockerode } from './_Harness'
 import { resolve, basename, DockerImage, withTmpFile } from '@hackbg/toolbox'
 test({
   'construct dockerode devnet' ({ ok, equal }) {
@@ -102,10 +102,10 @@ test({
 ```
 
 ```typescript
-import { getScrt_1_2_Devnet } from './Scrt_1.2_Devnet'
+import { Scrt_1_2 } from '../index'
 test({
   'get scrt devnet' ({ ok }) {
-    ok(getScrt_1_2_Devnet())
+    ok(Scrt_1_2.getDevnet())
   },
 })
 ```

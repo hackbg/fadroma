@@ -9,7 +9,7 @@ export default UploadSpec
 ## Basic uploader
 
 ```typescript
-import { FSUploader } from './Upload'
+import { FSUploader } from '../index'
 test({
   'construct FSUploader' ({ ok }) {
     const agent = Symbol()
@@ -65,8 +65,7 @@ test({
 ## Caching
 
 ```typescript
-import { CachingFSUploader } from './Upload'
-import { withTmpFile } from '@hackbg/toolbox'
+import { CachingFSUploader, withTmpFile } from '../index'
 
 const mockAgent = () => ({
   async upload () { return {} }
@@ -110,5 +109,5 @@ test({
 ## Upload receipts directory
 
 ```typescript
-import { Uploads } from './Upload.ts.md'
+import { Uploads } from '../index'
 ```

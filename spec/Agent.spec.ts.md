@@ -102,13 +102,13 @@ test({
 ### Agents
 
 ```typescript
-import { ScrtAgent, toBase64, fromBase64, fromUtf8, fromHex } from '../index'
+import { Scrt_1_2, toBase64, fromBase64, fromUtf8, fromHex } from '../index'
 import { mockAPIEndpoint } from './_Harness'
 test({
   async 'from mnemonic' ({ equal, deepEqual }) {
     const chain = Symbol()
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent = await ScrtAgent.create(chain, { mnemonic })
+    const agent = await Scrt_1_2.Agent.create(chain, { mnemonic })
     equal(agent.chain,    chain)
     equal(agent.mnemonic, mnemonic)
     equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
@@ -121,7 +121,7 @@ test({
     const endpoint = await mockAPIEndpoint()
     const chain    = { apiURL: endpoint.url }
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent    = await ScrtAgent.create(chain, { mnemonic })
+    const agent    = await Scrt_1_2.Agent.create(chain, { mnemonic })
     try {
       const [ {header:{height:block1}}, account1, balance1 ] =
         await Promise.all([ agent.block, agent.account, agent.balance ])
@@ -141,8 +141,8 @@ test({
     const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
     const [agent1, agent2] = await Promise.all([
-      ScrtAgent.create(chain, {mnemonic: mnemonic1}),
-      ScrtAgent.create(chain, {mnemonic: mnemonic2}),
+      Scrt_1_2.Agent.create(chain, {mnemonic: mnemonic1}),
+      Scrt_1_2.Agent.create(chain, {mnemonic: mnemonic2}),
     ])
     try {
       endpoint.state.balances = { uscrt: { [agent1.address]: BigInt("2000"), [agent2.address]: BigInt("3000") } }
@@ -162,7 +162,7 @@ test({
     const endpoint = await mockAPIEndpoint()
     const chain    = { id: 'testing', apiURL: endpoint.url }
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent    = await ScrtAgent.create(chain, { mnemonic })
+    const agent    = await Scrt_1_2.Agent.create(chain, { mnemonic })
     try {
       const location = 'fixtures/empty.wasm'
       const codeHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
@@ -191,13 +191,12 @@ test({
 ### Bundles
 
 ```typescript
-import { ScrtBundle } from '../index'
 test({
-  async 'get ScrtBundle from agent' () {
+  async 'get Scrt_1_2.Agent.Bundle from agent' () {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent  = await ScrtAgent.create({}, { mnemonic })
+    const agent  = await Scrt_1_2.Agent.create({}, { mnemonic })
     const bundle = agent.bundle()
-    assert(bundle instanceof ScrtBundle)
+    assert(bundle instanceof Scrt_1_2.Agent.Bundle)
   }
 })
 ```
@@ -209,7 +208,7 @@ which uses the new gRPC API provided by SecretJS 1.2-beta -
 as opposed to the old HTTP-based ("Amino"?) API from SecretJS 0.17.5 and older.
 
 ```typescript
-import { ScrtRPCAgent } from '../index'
+import { Scrt_1_3 } from '../index'
 ```
 
 * [ ] TODO: These tests are mostly identical between ScrtRPCAgent and ScrtRPCAgent,
@@ -222,7 +221,7 @@ test({
 
   async 'from mnemonic' ({ equal, deepEqual }) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent = await ScrtRPCAgent.create({ mnemonic })
+    const agent = await Scrt_1_3.Agent.create({ mnemonic })
     equal(agent.mnemonic, mnemonic)
     equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
     deepEqual(agent.pubkey, {
@@ -233,7 +232,7 @@ test({
 
   async 'wait for next block' ({ equal, deepEqual }) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const [agent, endpoint] = await Promise.all([ScrtRPCAgent.create({ mnemonic }), mockAPIEndpoint()])
+    const [agent, endpoint] = await Promise.all([Scrt_1_3.Agent.create({ mnemonic }), mockAPIEndpoint()])
     try {
       agent.chain = { url: endpoint.url }
       const [ {header:{height:block1}}, account1, balance1 ] =
@@ -253,8 +252,8 @@ test({
     const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
     const [agent1, agent2, endpoint] = await Promise.all([
-      ScrtRPCAgent.create({mnemonic: mnemonic1}),
-      ScrtRPCAgent.create({mnemonic: mnemonic2}),
+      Scrt_1_3.Agent.create({mnemonic: mnemonic1}),
+      Scrt_1_3.Agent.create({mnemonic: mnemonic2}),
       mockAPIEndpoint()
     ])
     try {
@@ -275,7 +274,7 @@ test({
 
   async "full contract lifecycle" ({ ok, equal, deepEqual }) {
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const [agent, endpoint] = await Promise.all([ScrtRPCAgent.create({ mnemonic }), mockAPIEndpoint()])
+    const [agent, endpoint] = await Promise.all([Scrt_1_3.Agent.create({ mnemonic }), mockAPIEndpoint()])
     agent.chain = { id: 'testing', url: endpoint.url }
     try {
       const location = 'fixtures/empty.wasm'

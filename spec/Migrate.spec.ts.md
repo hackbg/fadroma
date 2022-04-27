@@ -8,7 +8,7 @@ export default MigrateSpec
 ```
 
 ```typescript
-import { runMigration } from './Migrate'
+import { runMigration } from '../index'
 test({
   async 'run empty migration' () {
     const result = await runMigration("", [], [])

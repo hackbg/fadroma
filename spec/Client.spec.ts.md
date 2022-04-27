@@ -9,7 +9,7 @@ export default ClientSpec
 ## Creating a client
 
 ```typescript
-import { Client } from './Client'
+import { Client } from '../index'
 test({
   'create client' ({ ok }) {
     ok(new Client())
@@ -43,7 +43,7 @@ test({
 ## Gas fees
 
 ```typescript
-import { ScrtGas } from './ScrtGas'
+import { ScrtGas } from '../index'
 test({
   'scrt gas unit is uscrt' ({ equal }) {
     equal(ScrtGas.denom, 'uscrt')

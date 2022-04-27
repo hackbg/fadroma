@@ -15,8 +15,7 @@ export default MocknetSpec
 ## Can run WASM blob
 
 ```typescript
-import { resolve, dirname, fileURLToPath, readFileSync } from '@hackbg/toolbox'
-import { Contract } from './Mocknet'
+import { resolve, dirname, fileURLToPath, readFileSync, Contract } from '../index'
 const fixture           = x => resolve(dirname(fileURLToPath(import.meta.url)), '../..', x)
 const emptyContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
 const emptyContractWasm = readFileSync(emptyContract)
@@ -56,7 +55,7 @@ test({
 ## Can initialize and provide agent
 
 ```typescript
-import { Mocknet, MockAgent } from './Mocknet'
+import { Mocknet, MockAgent } from '../index'
 test({
   async "can initialize and create agent" () {
     const chain = new Mocknet()
@@ -85,7 +84,7 @@ test({
 ## Can instantiate and call a contract
 
 ```typescript
-import { Client } from './Client'
+import { Client } from '../index'
 test({
   async 'init from missing code ID' ({ rejects }) {
     const chain = new Mocknet()

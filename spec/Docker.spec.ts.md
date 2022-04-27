@@ -9,38 +9,6 @@ export default DockerSpec
 
 ## Mock of Dockerode
 
-```typescript
-export function mockDockerode (callback = () => {}) {
-  return {
-    async pull () {},
-    getImage () {
-      return {
-        async inspect () {
-          return
-        }
-      }
-    },
-    async run (...args) {
-      callback({ run: args })
-      return [{Error:null, StatusCode:0}, Symbol()]
-    },
-    async createContainer (options) {
-      return {
-        id: 'mockmockmock',
-        logs (options, cb) {
-          cb(...(callback({ createContainer: options })||[]))
-        }
-      }
-    },
-    getContainer (options) {
-      return {
-        async start () {}
-      }
-    }
-  }
-}
-```
-
 ## Docker image helper
 
 This makes sure the devnet and build images are present
@@ -68,4 +36,20 @@ test({
 
 ## Build via Dockerode
 
+```typescript
+test({
+  async 'run build in docker' () {
+    throw 'TODO'
+  },
+})
+```
+
 ## Run devnet via Dockerode
+
+```typescript
+test({
+  async 'run devnet in docker' () {
+    throw 'TODO'
+  },
+})
+```

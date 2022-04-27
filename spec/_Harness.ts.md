@@ -1,5 +1,43 @@
 # Fadroma Testing Harnesses
 
+## Mock of Dockerode API
+
+The builder and devnet features leverage containers
+using the Dockerode library. Here this unwieldy external
+dependency is roughly mocked out.
+
+```typescript
+export function mockDockerode (callback = () => {}) {
+  return {
+    async pull () {},
+    getImage () {
+      return {
+        async inspect () {
+          return
+        }
+      }
+    },
+    async run (...args) {
+      callback({ run: args })
+      return [{Error:null, StatusCode:0}, Symbol()]
+    },
+    async createContainer (options) {
+      return {
+        id: 'mockmockmock',
+        logs (options, cb) {
+          cb(...(callback({ createContainer: options })||[]))
+        }
+      }
+    },
+    getContainer (options) {
+      return {
+        async start () {}
+      }
+    }
+  }
+}
+```
+
 ## Mock of Secret Network 1.2 HTTP API
 
 Not to be confused with the mocknet, this construct

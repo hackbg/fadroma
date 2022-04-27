@@ -10,7 +10,7 @@ export default BuildSpec
 ## The base `Builder` class
 
 ```typescript
-import { Builder } from './Core'
+import { Builder } from '../index'
 test({
   async 'Builder#buildMany' ({deepEqual}) {
     class TestBuilder extends Builder {
@@ -40,7 +40,7 @@ the build is skipped.
 Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
 
 ```typescript
-import { CachingBuilder } from './Build'
+import { CachingBuilder } from '../index'
 test({
   'CachingBuilder#prebuild' ({ equal, throws }) {
     class TestCachingBuilder extends CachingBuilder {
@@ -56,7 +56,7 @@ test({
 ## Raw builder
 
 ```typescript
-import { RawBuilder } from './Build'
+import { RawBuilder } from '../index'
 import { resolve, dirname, fileURLToPath } from '@hackbg/toolbox'
 test({
   async 'RawBuilder' ({ deepEqual }) {
@@ -90,10 +90,8 @@ test({
 ## Dockerized builder
 
 ```typescript
-import { DockerodeBuilder } from './Build'
-import { DockerImage } from '@hackbg/toolbox'
-import { mockDockerode } from './Docker.spec'
-import { mkdirp } from '@hackbg/toolbox'
+import { DockerodeBuilder, DockerImage, mkdirp } from '../index'
+import { mockDockerode } from './_Harness'
 import { Transform } from 'stream'
 const here = dirname(fileURLToPath(import.meta.url))
 test({
@@ -155,7 +153,7 @@ test({
 ## Builders for Secret Network
 
 ```typescript
-import { getScrtBuilder } from './ScrtBuild'
+import { getScrtBuilder } from '../index'
 test({
   'get dockerode builder' ({ ok }) {
     ok(getScrtBuilder())
