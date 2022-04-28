@@ -64,7 +64,7 @@ export class ScrtAgent extends Agent {
   defaultDenomination = 'uscrt'
 
   constructor (chain: Scrt, options: ScrtAgentOptions = {}) {
-    super(options.chain, options)
+    super(chain, options)
     this.name     = this.trace.name = options?.name || ''
     this.chain    = options?.chain as Scrt // TODO chain id to chain
     this.fees     = options?.fees || ScrtGas.defaultFees
