@@ -225,7 +225,6 @@ impl Contract {
         let mut result: ItemEnum = parse_quote!{
             #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema, Debug)]
             #[serde(rename_all = "snake_case")]
-            #[serde(deny_unknown_fields)]
             pub enum #enum_name {
 
             }
@@ -265,7 +264,6 @@ impl Contract {
 
             let mut result: ItemStruct = parse_quote!{
                 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema, Debug)]
-                #[serde(deny_unknown_fields)]
                 pub struct #msg {
     
                 }
