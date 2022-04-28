@@ -21,54 +21,50 @@ export interface APIConstructor extends SigningCosmWasmClient {}
 
 const console = Console('Fadroma Agent SN1.2')
 
-export async function getScrtAgent (chain: Chain, AgentClass: AgentConstructor, identity: Identity) {
-  const { name = 'Anonymous', ...args } = identity
-
-  let info = ''
-  let { mnemonic, keyPair } = identity
-  switch (true) {
-    case !!mnemonic:
-      info = bold(`Creating SecretJS agent from mnemonic:`) + ` ${name} `
-      // if keypair doesnt correspond to the mnemonic, delete the keypair
-      if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
-        console.warn(`${AgentClass.name}: Keypair doesn't match mnemonic, ignoring keypair`)
-        keyPair = null
-      }
-      break
-    case !!keyPair:
-      info = `${AgentClass.name}: generating mnemonic from keypair for agent ${bold(name)}`
-      // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-      break
-    default:
-      info = `${AgentClass.name}: creating new SecretJS agent: ${bold(name)}`
-      // if there is neither, generate a new keypair and corresponding mnemonic
-      keyPair  = EnigmaUtils.GenerateNewKeyPair()
-      mnemonic = (Bip39.encode(keyPair.privkey) as any).data
-  }
-
-  return new AgentClass({
-    chain,
-    name,
-    mnemonic,
-    keyPair,
-    pen: await Secp256k1Pen.fromMnemonic(mnemonic),
-    ...args
-  })
-}
-
 export interface ScrtAgentOptions extends Identity {
   API?:   APIConstructor
   chain?: Scrt
 }
 
 export class ScrtAgent extends Agent {
-  static create = (chain: Scrt, identity: Identity) => getScrtAgent(chain, ScrtAgent, identity)
+
+  static async create (chain: Chain, identity: Identity) {
+    const { name = 'Anonymous', ...args } = identity
+    let   { mnemonic, keyPair } = identity
+    switch (true) {
+      case !!mnemonic:
+        //info = bold(`Creating SecretJS agent from mnemonic:`) + ` ${name} `
+        // if keypair doesnt correspond to the mnemonic, delete the keypair
+        if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
+          console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
+          keyPair = null
+        }
+        break
+      case !!keyPair:
+        //info = `${AgentClass.name}: generating mnemonic from keypair for agent ${bold(name)}`
+        // if there's a keypair but no mnemonic, generate mnemonic from keyapir
+        mnemonic = (Bip39.encode(keyPair.privkey) as any).data
+        break
+      default:
+        // if there is neither, generate a new keypair and corresponding mnemonic
+        keyPair  = EnigmaUtils.GenerateNewKeyPair()
+        mnemonic = (Bip39.encode(keyPair.privkey) as any).data
+    }
+    return new ScrtAgent(chain, {
+      name,
+      mnemonic,
+      keyPair,
+      pen: await Secp256k1Pen.fromMnemonic(mnemonic),
+      ...args
+    })
+  }
+
   Bundle = ScrtBundle
-  fees = ScrtGas.defaultFees
+  fees   = ScrtGas.defaultFees
   defaultDenomination = 'uscrt'
-  constructor (options: ScrtAgentOptions = {}) {
-    super(options.chain)
+
+  constructor (chain: Scrt, options: ScrtAgentOptions = {}) {
+    super(options.chain, options)
     this.name     = this.trace.name = options?.name || ''
     this.chain    = options?.chain as Scrt // TODO chain id to chain
     this.fees     = options?.fees || ScrtGas.defaultFees
@@ -82,6 +78,7 @@ export class ScrtAgent extends Agent {
       this.seed     = EnigmaUtils.GenerateNewSeed()
     }
   }
+
   declare readonly name:     string
   declare readonly chain:    Scrt
   declare readonly address:  string
