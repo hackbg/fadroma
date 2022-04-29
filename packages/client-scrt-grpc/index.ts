@@ -47,7 +47,7 @@ export class ScrtRPCAgent extends Agent {
     this.wallet = options.wallet
     this.api    = options.api
 
-    this.address = this.wallet.address
+    this.address = this.wallet?.address
   }
 
   wallet: Wallet

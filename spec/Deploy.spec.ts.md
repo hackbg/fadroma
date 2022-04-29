@@ -108,7 +108,7 @@ const mockAgent = () => ({
 ## Deployments directory
 
 ```typescript
-import { Deployments, withTmpDir } from '../index'
+import { DeployOps, Deployments, withTmpDir } from '../index'
 test({
   async 'Deployments' () {
     await withTmpDir(async dir=>{
@@ -139,12 +139,12 @@ test({
         }
       }
     }
-    await Deployments.new(context)
-    const { deployment, prefix } = await Deployments.activate(context)
+    await DeployOps.New(context)
+    const { deployment, prefix } = await DeployOps.Append(context)
     equal(deployment, context.chain.deployments.active)
     equal(prefix,     context.chain.deployments.active.prefix)
-    await Deployments.status(context)
-    await Deployments.select(context)
+    await DeployOps.Status(context)
+    await DeployOps.Status(context)
   }
 })
 ```

@@ -92,11 +92,11 @@ for (const Chain of [
 ]) test({
 
   async [`${Chain.name}: mainnet`] ({ ok }) {
-    ok(await Chain.getNamed('Chain_1_2_Mainnet'))
+    ok(await new Chain('main', { mode: Chain.Mode.Mainnet }))
   },
 
   async [`${Chain.name}: testnet`] ({ ok }) {
-    ok(await Chain.getNamed('Chain_1_2_Testnet'))
+    ok(await new Chain('test', { mode: Chain.Mode.Testnet }))
   },
 
   async [`${Chain.name}: devnet`] ({ ok, equal }) {

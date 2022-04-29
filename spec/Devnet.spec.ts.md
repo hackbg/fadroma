@@ -63,9 +63,6 @@ test({
       const readyPhrase = "I'm Freddy"
       const devnet = new DockerodeDevnet({ stateRoot, docker, image, initScript, readyPhrase })
       equal(devnet.identities.path, resolve(stateRoot, 'identities'))
-      equal(devnet.daemonDir.path,  resolve(stateRoot, 'secretd'))
-      equal(devnet.clientDir.path,  resolve(stateRoot, 'secretcli'))
-      equal(devnet.sgxDir.path,     resolve(stateRoot, 'sgx-secrets'))
       equal(devnet.image,           image)
       equal(devnet.image.docker,    docker)
       equal(devnet.image.name,      imageName)

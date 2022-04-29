@@ -23,19 +23,6 @@ export interface DevnetChainOptions extends ChainOptions {
   node: DevnetHandle
 }
 
-export class ScrtChain extends Chain {
-  static Mainnet = class ScrtMainnet extends ScrtChain {
-    mode = Chain.Mode.Mainnet
-  }
-  static Testnet = class ScrtTestnet extends ScrtChain {
-    mode = Chain.Mode.Testnet
-  }
-  static Devnet  = class ScrtDevnet extends ScrtChain {
-    mode = Chain.Mode.Devnet
-  }
-  static Mocknet = class ScrtMocknet extends ScrtChain {
-    mode = Chain.Mode.Mocknet
-  }
-}
+export class ScrtChain extends Chain {}
 
 export * from '@fadroma/client'

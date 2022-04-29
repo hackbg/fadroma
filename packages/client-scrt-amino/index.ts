@@ -208,24 +208,6 @@ export class LegacyScrtAgent extends Agent {
     }
   }
 
-  /** Instantiate multiple contracts from a bundled transaction. */
-  async instantiateMany (
-    configs: [Template, string, object][],
-    prefix?: string
-  ): Promise<Record<string, Instance>> {
-    // supermethod returns instances/receipts keyed by name
-    const receipts = await super.instantiateMany(configs)
-    // add code hashes to them:
-    for (const i in configs) {
-      const [template, label, initMsg] = configs[i]
-      const receipt = receipts[label]
-      if (receipt) {
-        receipt.codeHash = template.codeHash
-      }
-    }
-    return receipts
-  }
-
   async getCodeId (address: string): Promise<string> {
     const { api } = this
     return this.rateLimited(async function getCodeIdInner () {

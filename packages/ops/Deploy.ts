@@ -17,6 +17,8 @@ import { Template, Label, InitMsg, Instance, Message, join } from './Core'
 import { print } from './Print'
 import { config } from './Config'
 
+export const addPrefix = (prefix, name) => `${prefix}/${name}`
+
 export class Deployment {
 
   constructor (
@@ -59,50 +61,23 @@ export class Deployment {
     return receipt
   }
 
-  getClient <C extends Client> (
-    agent:  Agent,
-    Client: ClientCtor<C>,
-    name:   string
-  ): C {
-    return new Client(agent, this.get(name))
-  }
-
-  /** Instantiate one contract and save its receipt to the deployment. */
-  async init <T> (deployAgent: Agent, template: Template, name: Label, initMsg: T): Promise<Instance> {
-    const label = `${this.prefix}/${name}`
-    const instance = await deployAgent.instantiate(template, label, initMsg)
-    this.set(name, instance)
-    return instance
-  }
-
   /** Chainable. Add to deployment, replacing existing receipts. */
   set (name: string, data = {}): this {
     this.receipts[name] = { name, ...data }
     return this.save()
   }
 
-  /** Chainable. Add to deployment, merging into existing receipts. */
-  add (name: string, data: any): this {
-    return this.set(name, { ...this.receipts[name] || {}, ...data })
-  }
-
-  /** Instantiate multiple contracts from the same Template with different parameters. */
-  async initMany (deployAgent: Agent, template: Template, configs: [Label, InitMsg][] = []): Promise<Instance[]> {
-    return this.initVarious(deployAgent, configs.map(([label, initMsg])=>[template, label, initMsg]))
-  }
-
-  /** Instantiate multiple contracts from different Templates with different parameters. */
-  async initVarious (deployAgent: Agent, configs: [Template, Label, InitMsg][] = []): Promise<Instance[]> {
-    const receipts = await deployAgent.instantiateMany(configs, this.prefix)
-    this.setMany(receipts)
-    return Object.values(receipts)
-  }
   /** Chainable. Add multiple to the deployment, replacing existing. */
   setMany (receipts: Record<string, any>) {
     for (const [name, receipt] of Object.entries(receipts)) {
       this.receipts[name] = receipt
     }
     return this.save()
+  }
+
+  /** Chainable. Add to deployment, merging into existing receipts. */
+  add (name: string, data: any): this {
+    return this.set(name, { ...this.receipts[name] || {}, ...data })
   }
 
   /** Chainable: Serialize deployment state to YAML file. */
@@ -119,6 +94,37 @@ export class Deployment {
   /** Resolve a path relative to the deployment directory. */
   resolve (...fragments: Array<string>) {
     return resolve(this.path, ...fragments)
+  }
+
+  getClient <C extends Client> (
+    agent:  Agent,
+    Client: ClientCtor<C>,
+    name:   string
+  ): C {
+    return new Client(agent, this.get(name))
+  }
+
+  /** Instantiate one contract and save its receipt to the deployment. */
+  async init (deployAgent: Agent, template: Template, name: Label, initMsg: object): Promise<Instance> {
+    const label    = addPrefix(this.prefix, name)
+    const instance = await deployAgent.instantiate(template, label, initMsg)
+    this.set(name, instance)
+    return instance
+  }
+
+  /** Instantiate multiple contracts from the same Template with different parameters. */
+  async initMany (deployAgent: Agent, template: Template, configs: [Label, object][] = []): Promise<Instance[]> {
+    // this adds just the template - prefix is added in initVarious
+    return this.initVarious(deployAgent, configs.map(([name, initMsg])=>[template, name, initMsg]))
+  }
+
+  /** Instantiate multiple contracts from different Templates with different parameters. */
+  async initVarious (deployAgent: Agent, configs: [Template, Label, object][] = []): Promise<Instance[]> {
+    const receipts = await deployAgent.instantiateMany(configs.map(
+      ([template, name, initMsg])=>[template, addPrefix(this.prefix, name), initMsg]
+    ))
+    this.setMany(receipts)
+    return Object.values(receipts)
   }
 
 }

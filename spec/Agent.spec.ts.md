@@ -42,7 +42,7 @@ test({
     const chainId  = Symbol()
     class TestAgent extends Agent {
       chain = { id: chainId }
-      doInstantiate (template, label, msg, funds) {
+      instantiate (template, label, msg, funds) {
         return {instance, template, label, msg, funds}
       }
     }
@@ -58,18 +58,18 @@ test({
     )
   },
 
-  async "execute tx" () {
+  async "execute tx" ({ ok }) {
     class TestAgent extends Agent {
-      doExecute (contract, msg) {}
+      execute (contract, msg) {}
     }
-    await new TestAgent().execute()
+    ok(await new TestAgent().execute())
   },
 
-  async "query contract" () {
+  async "query contract" ({ ok }) {
     class TestAgent extends Agent {
-      doQuery (contract, msg) {}
+      query (contract, msg) {}
     }
-    await new TestAgent().query()
+    ok(await new TestAgent().query())
   },
 
 })
@@ -99,12 +99,11 @@ for (const Chain of [
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const agent = await Chain.Agent.create(chain, { mnemonic })
     equal(agent.chain,    chain)
-    equal(agent.mnemonic, mnemonic)
     equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
-    deepEqual(agent.pubkey, {
+    /*deepEqual(agent.pubkey, {
       type:  'tendermint/PubKeySecp256k1',
       value: 'AoHyO3IEIOuffrGJoxwcYQnK+G1uMX/vQkzrjTXxMqTv'
-    })
+    })*/
   },
 
   async [`${Chain.name}: wait for next block`] ({ equal, deepEqual }) {

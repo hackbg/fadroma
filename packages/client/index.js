@@ -99,7 +99,9 @@ export class Agent {
   }
   instantiateMany (configs = []) {
     return Promise.all(configs.map(
-      ([template, label, msg])=>this.instantiate(template, label, msg)
+      async ([template, label, msg])=>Object.assign(await this.instantiate(template, label, msg), {
+        codeHash: template.codeHash
+      })
     ))
   }
 }
