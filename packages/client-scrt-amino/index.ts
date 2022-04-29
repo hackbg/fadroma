@@ -163,7 +163,7 @@ export class LegacyScrtAgent extends Agent {
 
   async checkCodeHash (address: string, codeHash?: string) {
     // Soft code hash checking for now
-    const realCodeHash = await this.getCodeHash(address)
+    const realCodeHash = await this.getHash(address)
     if (codeHash !== realCodeHash) {
       console.warn('Code hash mismatch for address:', address)
       console.warn('  Expected code hash:', codeHash)
