@@ -4,6 +4,7 @@ import * as constants from './constants'
 
 export interface ScrtRPCAgentOptions extends AgentOptions {
   wallet?:  Wallet
+  url?:     string
   api?:     SecretNetworkClient
   keyPair?: unknown
 }
@@ -18,6 +19,7 @@ export class ScrtRPCAgent extends Agent {
   ): Promise<ScrtRPCAgent> {
     const {
       mnemonic,
+      wallet,
       keyPair,
       address
     } = options
@@ -28,13 +30,12 @@ export class ScrtRPCAgent extends Agent {
       console.warn(constants.WARN_IGNORING_KEY_PAIR)
       delete options.keyPair
     }
-    const wallet = new Wallet(mnemonic)
     if (address && address !== wallet.address) {
       throw new Error(constants.ERR_EXPECTED_WRONG_ADDRESS)
     }
     const api = await SecretNetworkClient.create({
       chainId:       chain.id,
-      grpcWebUrl:    "https://grpc-web.azure-api.net",
+      grpcWebUrl:    chain.url || "https://grpc-web.azure-api.net",
       wallet:        wallet,
       walletAddress: wallet.address,
     })
@@ -84,20 +85,20 @@ export class ScrtRPCAgent extends Agent {
     return codeId
   }
 
-  async doQuery ({ address, codeHash }, query) {
+  async query ({ address, codeHash }, query) {
     const contractAddress = address
     const args = { contractAddress, codeHash, query }
     return await this.api.query.compute.queryContract(args)
   }
 
-  async doInstantiate (template, label, initMsg, initFunds = []) {
+  async instantiate (template, label, initMsg, initFunds = []) {
     const { codeId, codeHash } = template
     const sender = this.address
     const args = { sender, codeId, codeHash, initMsg, label, initFunds }
     return await this.api.tx.compute.instantiateContract(args)
   }
 
-  async doExecute (instance, msg, sentFunds, memo, fee) {
+  async execute (instance, msg, sentFunds, memo, fee) {
     const { address, codeHash } = instance
     if (memo) {
       console.warn(constants.WARN_NO_MEMO)
