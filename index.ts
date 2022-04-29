@@ -10,7 +10,7 @@ import {
 
 // Reexport the main libraries
 export * from '@fadroma/ops'
-export * from '@fadroma/scrt'
+export * from '@fadroma/ops-scrt'
 export * from '@fadroma/snip20'
 
 import { Scrt_1_2 } from '@fadroma/scrt-1.2'

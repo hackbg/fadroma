@@ -1,0 +1,15 @@
+{
+  "name":    "@fadroma/client-scrt-amino",
+  "version": "0.1.0",
+  "type":    "module",
+  "dependencies": {
+    "@fadroma/client": "workspace:^0",
+    "@cosmjs/crypto":  "^0.20.0",
+    "@iov/encoding":   "^2.1.0",
+    "secretjs":        "0.17.5"
+  },
+  "optionalDependencies": {
+    "axios": "^0.26.0"
+  }
+}
+

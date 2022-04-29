@@ -10,7 +10,8 @@ import { Client, ClientConstructor, ClientConfig } from './Client'
 
 const console = Console('Fadroma Agent')
 
-export interface AgentConstructor extends (new (Identity) => Agent) {
+type _AgentConstructor = (new (Identity) => Agent)
+export interface AgentConstructor extends _AgentConstructor {
   create: (chain: Chain, options: any) => Promise<Agent>
 }
 

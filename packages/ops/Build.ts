@@ -8,7 +8,6 @@ import {
 } from '@hackbg/toolbox'
 
 import { config } from './Config'
-import { Source, Builder, Artifact, codeHashForPath } from './Core'
 
 const console = Console('Fadroma Build')
 
@@ -21,6 +20,49 @@ export function distinct <T> (x: T[]): T[] {
 export const sanitizeRef  = ref => ref.replace(/\//g, '_')
 
 export const artifactName = (crate, ref) => `${crate}@${sanitizeRef(ref)}.wasm`
+
+export class Source {
+  constructor (
+    public readonly workspace: string,
+    public readonly crate:     string,
+    public readonly ref?:      string
+  ) {}
+
+  /** Take a workspace and a list of crates in it and return a function
+    * that creates a mapping from crate name to Source object for a particular VCS ref. */
+  static collectCrates = (workspace: string, crates: string[]) =>
+    (ref?: string): Record<string, Source> =>
+      crates.reduce(
+        (sources, crate)=>Object.assign(sources, {[crate]: new Source(workspace, crate, ref)}),
+        {}
+      )
+
+  static collect = (workspace, ref, ...crateLists): Source[] => {
+    const sources: Set<string> = new Set()
+    for (const crateList of crateLists) {
+      for (const crate of crateList) {
+        sources.add(crate)
+      }
+    }
+    return [...sources].map(crate=>new Source(workspace, crate, ref))
+  }
+}
+
+export abstract class Builder {
+  abstract build (source: Source, ...args): Promise<Artifact>
+  buildMany (sources: Source[], ...args): Promise<Artifact[]> {
+    return Promise.all(sources.map(source=>this.build(source, ...args)))
+  }
+}
+
+export interface Artifact {
+  location:  string
+  codeHash?: string
+}
+
+export function codeHashForPath (location: string) {
+  return toHex(new Sha256(readFileSync(location)).digest())
+}
 
 export abstract class CachingBuilder extends Builder {
   caching = !config.rebuild

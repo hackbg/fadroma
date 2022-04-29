@@ -352,15 +352,15 @@ export class MockAgent extends Agent {
     return await this.chain.state.query(instance, msg)
   }
 
-  get nextBlock () { return Promise.resolve()  }
-  get block     () { return Promise.resolve(0) }
-  get account   () { return Promise.resolve()  }
-  get balance   () { return Promise.resolve(0) }
+  get nextBlock () { return Promise.resolve()   }
+  get block     () { return Promise.resolve(0)  }
+  get account   () { return Promise.resolve()   }
+  get balance   () { return Promise.resolve(0n) }
 
   send        (_1:any, _2:any, _3?:any, _4?:any, _5?:any) { return Promise.resolve() }
   sendMany    (_1:any, _2:any, _3?:any, _4?:any)          { return Promise.resolve() }
 
-  getBalance  (_: string) { return Promise.resolve(0)              }
+  getBalance  (_: string) { return Promise.resolve(0n)             }
   getCodeHash (_: any)    { return Promise.resolve("SomeCodeHash") }
   getCodeId   (_: any)    { return Promise.resolve(1)              }
   getLabel    (_: any)    { return Promise.resolve("SomeLabel")    }

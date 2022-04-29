@@ -12,7 +12,6 @@ import {
 } from '@hackbg/toolbox'
 
 import { config } from './Config'
-import type { Identity } from './Core'
 
 const console = Console('Fadroma Devnet')
 

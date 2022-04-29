@@ -4,12 +4,12 @@
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
+    "@fadroma/client":           "workspace:^0",
     "@hackbg/toolbox":           "workspace:^1",
     "@iov/crypto":               "^2.1.0",
     "@iov/encoding":             "^2.1.0",
     "ajv":                       "^8.6",
     "align-yaml":                "^0.1.8",
-    "dockerode":                 "^3.3.1",
     "dotenv":                    "^15",
     "exponential-backoff":       "^3.1",
     "js-yaml":                   "^4.1.0",

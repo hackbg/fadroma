@@ -1,0 +1,9 @@
+{
+  "name":    "@fadroma/client-scrt-amino",
+  "version": "0.1.0",
+  "type":    "module",
+  "dependencies": {
+    "@fadroma/client": "workspace:^0",
+    "secretjs":        "beta"
+  }
+}

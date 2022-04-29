@@ -5,9 +5,7 @@ importers:
   .:
     specifiers:
       '@fadroma/ops': workspace:*
-      '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-1.2': workspace:*
-      '@fadroma/scrt-1.3': workspace:*
+      '@fadroma/ops-scrt': workspace:*
       '@fadroma/snip20': workspace:*
       '@hackbg/ganesha': workspace:*
       '@hackbg/runspec': workspace:*
@@ -23,9 +21,7 @@ importers:
       typescript: ^4.5.4
     dependencies:
       '@fadroma/ops': link:packages/ops
-      '@fadroma/scrt': link:packages/scrt
-      '@fadroma/scrt-1.2': link:packages/scrt-1.2
-      '@fadroma/scrt-1.3': link:packages/scrt-1.3
+      '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/snip20': link:crates/fadroma-snip20-impl
       '@hackbg/ganesha': link:deps/ganesha
       '@hackbg/toolbox': link:deps/ganesha/deps/toolbox
@@ -62,7 +58,7 @@ importers:
       '@ganesha/core': link:src/core
       '@ganesha/node': link:src/node
       '@ganesha/node-legacy': link:src/node-legacy
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
       chokidar: 3.5.3
       cross-spawn: 7.0.3
     devDependencies:
@@ -131,8 +127,8 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@types/node': 17.0.29
-      typescript: 4.6.3
+      '@types/node': 17.0.30
+      typescript: 4.6.4
 
   deps/ganesha/deps/toolbox/kabinet:
     specifiers:
@@ -221,7 +217,7 @@ importers:
       typescript: latest
       vsce: latest
     devDependencies:
-      typescript: 4.6.3
+      typescript: 4.6.4
       vsce: 2.7.0
 
   deps/ganesha/src/vsc/client:
@@ -257,7 +253,7 @@ importers:
     specifiers:
       typescript: latest
     devDependencies:
-      typescript: 4.6.3
+      typescript: 4.6.4
 
   deps/ganesha/test:
     specifiers:
@@ -283,15 +279,41 @@ importers:
   doc/example:
     specifiers: {}
 
+  packages/client:
+    specifiers: {}
+
+  packages/client-scrt-amino:
+    specifiers:
+      '@cosmjs/crypto': ^0.20.0
+      '@fadroma/client': workspace:^0
+      '@iov/encoding': ^2.1.0
+      axios: ^0.26.0
+      secretjs: 0.17.5
+    dependencies:
+      '@cosmjs/crypto': 0.20.1
+      '@fadroma/client': link:../client
+      '@iov/encoding': 2.5.0
+      secretjs: 0.17.5
+    optionalDependencies:
+      axios: 0.26.1
+
+  packages/client-scrt-grpc:
+    specifiers:
+      '@fadroma/client': workspace:^0
+      secretjs: beta
+    dependencies:
+      '@fadroma/client': link:../client
+      secretjs: 1.2.0-beta.66
+
   packages/ops:
     specifiers:
+      '@fadroma/client': workspace:^0
       '@hackbg/ganesha': workspace:*
       '@hackbg/toolbox': workspace:^1
       '@iov/crypto': ^2.1.0
       '@iov/encoding': ^2.1.0
       ajv: ^8.6
       align-yaml: ^0.1.8
-      dockerode: ^3.3.1
       dotenv: ^15
       exponential-backoff: ^3.1
       js-yaml: ^4.1.0
@@ -302,12 +324,12 @@ importers:
       toml: ^3
       wasm-ffi: ^0.3.0
     dependencies:
+      '@fadroma/client': link:../client
       '@hackbg/toolbox': link:../../deps/ganesha/deps/toolbox
       '@iov/crypto': 2.5.0
       '@iov/encoding': 2.5.0
       ajv: 8.11.0
       align-yaml: 0.1.8
-      dockerode: 3.3.1
       dotenv: 15.0.1
       exponential-backoff: 3.1.0
       js-yaml: 4.1.0
@@ -320,40 +342,11 @@ importers:
       '@hackbg/ganesha': link:../../deps/ganesha
       tap: 15.2.3_typescript@4.6.3
 
-  packages/scrt:
-    specifiers:
-      '@fadroma/ops': workspace:*
-    dependencies:
-      '@fadroma/ops': link:../ops
+  packages/ops-scrt:
+    specifiers: {}
 
-  packages/scrt-1.2:
-    specifiers:
-      '@cosmjs/crypto': ^0.20.0
-      '@fadroma/scrt': workspace:*
-      axios: ^0.26.0
-      pako: ^1
-      secretjs: 0.17.5
-    dependencies:
-      '@cosmjs/crypto': 0.20.1
-      '@fadroma/scrt': link:../scrt
-      pako: 1.0.11
-      secretjs: 0.17.5
-    optionalDependencies:
-      axios: 0.26.1
-
-  packages/scrt-1.3:
-    specifiers:
-      '@fadroma/scrt': workspace:*
-      secretjs: beta
-    dependencies:
-      '@fadroma/scrt': link:../scrt
-      secretjs: 1.2.0-beta.66
-
-  packages/shim:
-    specifiers:
-      '@hackbg/fadroma': hackbg/fadroma#v100
-    dependencies:
-      '@hackbg/fadroma': github.com/hackbg/fadroma/021720e2c24e13a8efcf1a5c4b628b8da185f563
+  shim:
+    specifiers: {}
 
 packages:
 
@@ -825,8 +818,8 @@ packages:
     resolution: {integrity: sha512-UxDxWn7dl97rKVeVS61vErvw086aCYhDLyvRQZ5Rk65rZKepaFdm53GeqXaKBuOhED4e9uWq34IC3TdSdJJ2Gw==}
     dev: false
 
-  /@types/node/17.0.29:
-    resolution: {integrity: sha512-tx5jMmMFwx7wBwq/V7OohKDVb/JwJU5qCVkeLMh1//xycAJ/ESuw9aJ9SEtlCZDYi2pBfe4JkisSoAtbOsBNAA==}
+  /@types/node/17.0.30:
+    resolution: {integrity: sha512-oNBIZjIqyHYP8VCNAV9uEytXVeXG2oR0w9lgAXro20eugRQfY002qr3CUl6BAe+Yf/z3CRjPdz27Pu6WWtuSRw==}
 
   /@types/prettier/2.6.0:
     resolution: {integrity: sha512-G/AdOadiZhnJp0jXCaBQU449W2h716OW/EoXeYkCytxKL06X1WCXB4DZpp8TpZ8eyIJVS1cw4lrlkkSYU21cDw==}
@@ -3915,7 +3908,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.1
-      '@types/node': 17.0.29
+      '@types/node': 17.0.30
       long: 4.0.0
     dev: false
 
@@ -4987,6 +4980,12 @@ packages:
     hasBin: true
     dev: true
 
+  /typescript/4.6.4:
+    resolution: {integrity: sha512-9ia/jWHIEbo49HfjrLGfKbZSuWo9iTMwXO+Ca3pRsSpbsMbc7/IU8NKdCZVRRBafVPGnoJeFL76ZOAA84I9fEg==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
+
   /uc.micro/1.0.6:
     resolution: {integrity: sha512-8Y75pvTYkLJW2hWQHXxoqRgV7qb9B+9vFEtidML+7koHUFapnVJAZ6cKs+Qjz5Aw3aZWHMC6u0wJE3At+nSGwA==}
     dev: true
@@ -5449,20 +5448,6 @@ packages:
 
   /zen-observable/0.8.15:
     resolution: {integrity: sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==}
-    dev: false
-
-  github.com/hackbg/fadroma/021720e2c24e13a8efcf1a5c4b628b8da185f563:
-    resolution: {tarball: https://codeload.github.com/hackbg/fadroma/tar.gz/021720e2c24e13a8efcf1a5c4b628b8da185f563}
-    name: '@hackbg/fadroma'
-    version: 100.0.0-pre
-    hasBin: true
-    dependencies:
-      '@fadroma/ops': link:packages/ops
-      '@fadroma/scrt': link:packages/scrt
-      '@fadroma/snip20': link:crates/fadroma-snip20-impl
-      '@hackbg/ganesha': link:deps/ganesha
-      '@hackbg/toolbox': link:deps/ganesha/deps/toolbox
-      '@types/node': 16.11.26
     dev: false
 
   github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f:

@@ -19,6 +19,10 @@ import { Template, Label, InitMsg, Instance, Message, join } from './Core'
 import { print } from './Print'
 import { config } from './Config'
 
+export abstract class Deployer {
+  constructor (public agent: Agent) {}
+}
+
 export class Deployment {
 
   constructor (

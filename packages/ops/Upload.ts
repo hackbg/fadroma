@@ -8,6 +8,30 @@ import type { Agent } from './Agent'
 
 const console = Console('Fadroma Upload')
 
+export abstract class Uploader {
+  constructor (public agent: Agent) {}
+  get chain () { return this.agent.chain }
+  abstract upload     (artifact:  Artifact, ...args): Promise<Template>
+  abstract uploadMany (artifacts: Artifact[]):        Promise<Template[]>
+}
+
+export interface UploadReceipt {
+  codeId:             number
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               any[]
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
+}
+
+export interface Template {
+  chainId:          string
+  transactionHash?: string
+  codeId:           string
+  codeHash?:        string
+}
+
 /** Directory collecting upload receipts. */
 export class Uploads extends JSONDirectory {}
 
