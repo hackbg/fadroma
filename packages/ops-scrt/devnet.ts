@@ -2,7 +2,17 @@ import { config, DockerodeDevnet, DockerImage, resolve, dirname, fileURLToPath }
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export function getScrt_1_2_Devnet (
+export function getScrtDevnet_1_3 () {
+  return new DockerodeDevnet({
+    image: new DockerImage(
+      undefined,
+      'enigmampc/secret-network-sw-dev:v1.3.0-beta.0'
+    )
+  })
+}
+
+
+export function getScrtDevnet_1_2 (
   managerURL: string = config.devnetManager,
   chainId?:   string,
 ) {
@@ -18,7 +28,7 @@ export function getScrt_1_2_Devnet (
         "enigmampc/secret-network-sw-dev:v1.2.0",
       ),
       readyPhrase: "indexed block",
-      initScript:  resolve(__dirname, 'Scrt_1_2_Node.sh')
+      initScript:  resolve(__dirname, 'devnet_1_2.sh')
     })
   }
 }

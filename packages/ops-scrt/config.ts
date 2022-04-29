@@ -27,9 +27,9 @@ export class ScrtConfig extends Config {
       buildImage:
         env.SCRT_BUILD_IMAGE      || 'hackbg/fadroma-scrt-builder:1.2',
       buildDockerfile:
-        env.SCRT_BUILD_DOCKERFILE || resolve(__dirname, '../scrt/Scrt_1_2_Build.Dockerfile'),
+        env.SCRT_BUILD_DOCKERFILE || resolve(__dirname, 'build.Dockerfile'),
       buildScript:
-        env.SCRT_BUILD_SCRIPT     || resolve(__dirname, '../scrt/Scrt_1_2_Build.sh'),
+        env.SCRT_BUILD_SCRIPT     || resolve(__dirname, 'build.sh'),
 
       mainnetChainId:
         env.SCRT_MAINNET_CHAIN_ID       || 'secret-4',

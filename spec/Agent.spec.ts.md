@@ -83,14 +83,21 @@ test({
   supported in secretjs 0.17.5 and older.
 
 ```typescript
-import { LegacyScrt, Scrt, toBase64, fromBase64, fromUtf8, fromHex } from '../index'
+import { toBase64, fromBase64, fromUtf8, fromHex } from '../index'
 import { mockAPIEndpoint } from './_Harness'
-for (const Scrt of [ LegacyScrt, Scrt ]) test({
 
-  async [`${Scrt.name}: from mnemonic`] ({ equal, deepEqual }) {
+import { LegacyScrt, Scrt } from '../index'
+
+for (const Chain of [
+  LegacyScrt,
+  Scrt
+  /* add other supported chains here */
+]) test({
+
+  async [`${Chain.name}: from mnemonic`] ({ equal, deepEqual }) {
     const chain = Symbol()
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent = await Scrt.Agent.create(chain, { mnemonic })
+    const agent = await Chain.Agent.create(chain, { mnemonic })
     equal(agent.chain,    chain)
     equal(agent.mnemonic, mnemonic)
     equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
@@ -100,11 +107,11 @@ for (const Scrt of [ LegacyScrt, Scrt ]) test({
     })
   },
 
-  async [`${Scrt.name}: wait for next block`] ({ equal, deepEqual }) {
+  async [`${Chain.name}: wait for next block`] ({ equal, deepEqual }) {
     const endpoint = await mockAPIEndpoint()
     const chain    = { apiURL: endpoint.url }
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent    = await Scrt.Agent.create(chain, { mnemonic })
+    const agent    = await Chain.Agent.create(chain, { mnemonic })
     try {
       const [ {header:{height:block1}}, account1, balance1 ] =
         await Promise.all([ agent.block, agent.account, agent.balance ])
@@ -119,14 +126,14 @@ for (const Scrt of [ LegacyScrt, Scrt ]) test({
     }
   },
 
-  async [`${Scrt.name}: native token balance and transactions`] ({ equal }) {
+  async [`${Chain.name}: native token balance and transactions`] ({ equal }) {
     const endpoint  = await mockAPIEndpoint()
     const chain     = { apiURL: endpoint.url }
     const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
     const [agent1, agent2] = await Promise.all([
-      Scrt.Agent.create(chain, {mnemonic: mnemonic1}),
-      Scrt.Agent.create(chain, {mnemonic: mnemonic2}),
+      Chain.Agent.create(chain, {mnemonic: mnemonic1}),
+      Chain.Agent.create(chain, {mnemonic: mnemonic2}),
     ])
     try {
       endpoint.state.balances = { uscrt: { [agent1.address]: BigInt("2000"), [agent2.address]: BigInt("3000") } }
@@ -143,11 +150,11 @@ for (const Scrt of [ LegacyScrt, Scrt ]) test({
     }
   },
 
-  async [`${Scrt.name}: full contract lifecycle`] ({ ok, equal, deepEqual }) {
+  async [`${Chain.name}: full contract lifecycle`] ({ ok, equal, deepEqual }) {
     const endpoint = await mockAPIEndpoint()
     const chain    = { id: 'testing', apiURL: endpoint.url }
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent    = await Scrt.Agent.create(chain, { mnemonic })
+    const agent    = await Chain.Agent.create(chain, { mnemonic })
     try {
       const location = 'fixtures/empty.wasm'
       const codeHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"

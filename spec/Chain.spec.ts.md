@@ -84,23 +84,27 @@ test({
 * `Scrt`: creates secretjs@beta based agent using grpc
 
 ```typescript
-import { Chain, LegacyScrt, Scrt } from '../index'
-for (const Scrt of [ LegacyScrt, Scrt ]) test({
+import { LegacyScrt, Scrt } from '../index'
+for (const Chain of [
+  LegacyScrt,
+  Scrt
+  /* add other supported chains here */
+]) test({
 
-  async [`${Scrt.name}: mainnet`] ({ ok }) {
-    ok(await Chain.getNamed('Scrt_1_2_Mainnet'))
+  async [`${Chain.name}: mainnet`] ({ ok }) {
+    ok(await Chain.getNamed('Chain_1_2_Mainnet'))
   },
 
-  async [`${Scrt.name}: testnet`] ({ ok }) {
-    ok(await Chain.getNamed('Scrt_1_2_Testnet'))
+  async [`${Chain.name}: testnet`] ({ ok }) {
+    ok(await Chain.getNamed('Chain_1_2_Testnet'))
   },
 
-  async [`${Scrt.name}: devnet`] ({ ok, equal }) {
+  async [`${Chain.name}: devnet`] ({ ok, equal }) {
     const node = {
       chainId: 'scrt-devnet',
       apiURL:  'http://test:0'
     }
-    const chain = await Scrt_1_2.chains.Devnet({ node })
+    const chain = await Chain_1_2.chains.Devnet({ node })
     ok(chain)
     equal(chain.node,   node)
     equal(chain.apiURL, node.apiURL)

@@ -1,6 +1,8 @@
 import * as HTTP from 'http'
 import { Transform } from 'stream'
 import LineTransformStream from 'line-transform-stream'
+import { toHex } from '@iov/encoding'
+import { Sha256 } from '@iov/crypto'
 import {
   Console, bold, resolve, relative, cwd, basename,
   spawnSync, execFile, existsSync, readFileSync,

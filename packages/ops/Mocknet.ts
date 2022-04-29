@@ -17,7 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import { readFileSync, decode, Console, bold, colors, randomBech32, bech32 } from '@hackbg/toolbox'
-import { Chain, Agent, Artifact, Template, Instance, Identity } from '@fadroma/ops'
+import { Chain, Agent, AgentOptions } from '@fadroma/client'
+import { Artifact, Template, Instance } from '@fadroma/ops'
 import { URL } from 'url'
 
 declare class TextDecoder {
@@ -318,10 +319,12 @@ export class Mocknet extends Chain {
   }
   Agent = MockAgent
   state = new MocknetState(this.id)
-  async getAgent ({ name }: Identity = {}) {
+  async getAgent ({ name }: MockAgentOptions = {}) {
     return new MockAgent(this, name)
   }
 }
+
+export interface MockAgentOptions extends AgentOptions {}
 
 export class MockAgent extends Agent {
 
@@ -329,10 +332,10 @@ export class MockAgent extends Agent {
 
   Bundle = null
 
-  static async create (chain: Mocknet) { return new MockAgent(chain, 'MockAgent') }
+  static async create (chain: Mocknet) { return new MockAgent(chain, { name: 'MockAgent' }) }
 
-  constructor (readonly chain: Mocknet, readonly name: string = 'mock') {
-    super()
+  constructor (readonly chain: Mocknet, readonly options: MockAgentOptions) {
+    super(chain, options)
     this.address = this.name
   }
 

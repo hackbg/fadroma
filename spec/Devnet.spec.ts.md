@@ -116,11 +116,13 @@ test({
 })
 ```
 
+## Chain-specific devnets
+
 ```typescript
-import { Scrt_1_2 } from '../index'
-test({
-  'get scrt devnet' ({ ok }) {
-    ok(Scrt_1_2.getDevnet())
+import { getScrtDevnet_1_2, getScrtDevnet_1_3 } from '../index'
+for (const getDevnet of [getScrtDevnet_1_2, getScrtDevnet_1_3]) test({
+  [`${getDevnet.name}: get scrt devnet`] ({ ok }) {
+    ok(getDevnet())
   },
 })
 ```

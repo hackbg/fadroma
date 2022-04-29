@@ -1,6 +1,5 @@
 import { config } from './Config'
 import { colors, bold, Console, resolve, readFileSync, existsSync } from '@hackbg/toolbox'
-import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 
 const console = Console('Fadroma Ops')

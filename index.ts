@@ -18,15 +18,15 @@ import { Scrt }       from '@fadroma/client-scrt-grpc'
 
 export { LegacyScrt, Scrt }
 
-Object.assign(Chain.namedChains, {
+export const chains = {
   'Mocknet':           Mocknet,
-  'LegacyScrtMainnet': LegacyScrt.Chain.Mainnet,
-  'LegacyScrtTestnet': LegacyScrt.Chain.Testnet,
-  'LegacyScrtDevnet':  LegacyScrt.Chain.Devnet,
-  'ScrtMainnet':       Scrt.Chain.Mainnet,
-  'ScrtTestnet':       Scrt.Chain.Testnet,
-  'ScrtDevnet':        Scrt.Chain.Devnet,
-})
+  'LegacyScrtMainnet': LegacyScrt.Mainnet,
+  'LegacyScrtTestnet': LegacyScrt.Testnet,
+  'LegacyScrtDevnet':  LegacyScrt.Devnet,
+  'ScrtMainnet':       Scrt.Mainnet,
+  'ScrtTestnet':       Scrt.Testnet,
+  'ScrtDevnet':        Scrt.Devnet,
+}
 
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands          = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
@@ -57,7 +57,16 @@ export class Fadroma {
 
     /** Populate the migration context with chain and agent. */
     FromEnv: async function getChainFromEnvironment () {
-      const chain = await Chain.getNamed()
+      const name = config.chain
+      if (!name || !chains[name]) {
+        console.error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
+        console.info('Known chain names:')
+        for (const chain of Object.keys(chains).sort()) {
+          console.info(`  ${chain}`)
+        }
+        throw new Error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
+      }
+      const chain = await chains[name]()
       const agent = await chain.getAgent()
       //await print(console).agentBalance(agent)
       return { chain, agent, deployAgent: agent, clientAgent: agent }
