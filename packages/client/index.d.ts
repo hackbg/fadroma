@@ -43,16 +43,26 @@ declare module '@fadroma/client' {
   }
 
   export interface ChainOptions {
-    mode?: ChainMode
     url?:  string
+    mode?: ChainMode
+    node?: DevnetHandle
+  }
+
+  export interface DevnetHandle {
+    terminate:         ()             => Promise<void>
+    getGenesisAccount: (name: string) => Promise<AgentOptions>
   }
 
   export class Chain implements Querier {
     static Mode: ChainMode
     constructor (id: string, options: ChainOptions)
-    readonly id:   string
-    readonly url:  string
-    readonly mode: ChainMode
+    readonly id:        string
+    readonly url:       string
+    readonly mode:      ChainMode
+    readonly isMainnet: boolean
+    readonly isTestnet: boolean
+    readonly isDevnet:  boolean
+    readonly isMocknet: boolean
 
     query <T, U> (contract: Instance, msg: T): Promise<U>
     getCodeId (address: string): Promise<string>
@@ -86,12 +96,12 @@ declare module '@fadroma/client' {
     getHash     (address: string): Promise<string>
     getBalance  (denom: string): Promise<bigint>
     readonly balance: Promise<bigint>
-    query   <T, U>  (contract: Instance, msg: T): Promise<U> 
-    execute <T, U>  (contract: Instance, msg: T): Promise<U> 
-    upload          (blob: Uint8Array): Promise<Template> 
-    uploadMany      (blobs: Uint8Array[]) 
-    instantiate     (template: Template, label: string, msg: object) 
-    instantiateMany (configs: [Template, string, object][]) 
+    query           (contract: Instance, msg: never): Promise<any>
+    execute         (contract: Instance, msg: never, ...args: any[]): Promise<any>
+    upload          (blob: Uint8Array): Promise<Template>
+    uploadMany      (blobs: Uint8Array[])
+    instantiate     (template: Template, label: string, msg: object)
+    instantiateMany (configs: [Template, string, object][])
   }
 
   export interface ClientOptions extends Instance {}
@@ -102,6 +112,7 @@ declare module '@fadroma/client' {
 
   export class Client implements Instance {
     constructor (agent: Agent, options: ClientOptions)
+    agent:    Agent
     address:  string
     codeHash: string
     query <T, U> (msg: T): Promise<U>

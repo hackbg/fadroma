@@ -61,10 +61,10 @@ export class Deployment {
 
   getClient <C extends Client> (
     agent:  Agent,
-    Client: ClientConstructor<C>,
+    Client: ClientCtor<C>,
     name:   string
   ): C {
-    return new Client({ ...this.get(name), agent })
+    return new Client(agent, this.get(name))
   }
 
   /** Instantiate one contract and save its receipt to the deployment. */

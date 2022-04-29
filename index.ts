@@ -31,39 +31,50 @@ export const Chains = {
   },
 
   async 'LegacyScrtMainnet' () {
-    return new LegacyScrt.Mainnet(scrtConfig.scrt.mainnetChainId, {
-      url: scrtConfig.scrt.mainnetApiUrl
+    return new LegacyScrt(scrtConfig.scrt.mainnetChainId, {
+      url:  scrtConfig.scrt.mainnetApiUrl,
+      mode: Chain.Mode.Mainnet
     })
   },
 
   async 'LegacyScrtTestnet' () {
-    return new LegacyScrt.Testnet(scrtConfig.scrt.testnetChainId, {
-      url: scrtConfig.scrt.testnetApiUrl
+    return new LegacyScrt(scrtConfig.scrt.testnetChainId, {
+      url:  scrtConfig.scrt.testnetApiUrl,
+      mode: Chain.Mode.Testnet
     })
   },
 
   async 'LegacyScrtDevnet'  () {
     const node = await getScrtDevnet_1_2().respawn()
-    const url  = node.apiURL.toString()
-    return new LegacyScrt.Devnet(node.chainId, { url, node })
+    return new LegacyScrt(node.chainId, {
+      url:  node.apiURL.toString(),
+      mode: Chain.Mode.Devnet,
+      node
+    })
   },
 
   async 'ScrtMainnet' () {
-    return new Scrt.Mainnet(scrtConfig.scrt.mainnetChainId, {
-      url: scrtConfig.scrt.mainnetApiUrl
+    return new Scrt(scrtConfig.scrt.mainnetChainId, {
+      url:  scrtConfig.scrt.mainnetApiUrl,
+      mode: Chain.Mode.Mainnet
     })
   },
 
   async 'ScrtTestnet' () {
-    return new Scrt.Testnet(scrtConfig.scrt.testnetChainId, {
-      url: scrtConfig.scrt.testnetApiUrl
+    return new Scrt(scrtConfig.scrt.testnetChainId, {
+      url:  scrtConfig.scrt.testnetApiUrl,
+      mode: Chain.Mode.Testnet
     })
   },
 
   async 'ScrtDevnet' () {
     const node = await getScrtDevnet_1_3().respawn()
     const url  = node.apiURL.toString()
-    return new Scrt.Devnet(node.chainId, { url, node })
+    return new Scrt(node.chainId, {
+      url:  node.apiURL.toString(),
+      mode: Chain.Mode.Devnet,
+      node
+    })
   },
 
 }
@@ -90,9 +101,9 @@ const ChainOps = {
       process.exit(1)
     }
     const chain = await Chains[name]()
-    console.log(chain)
-    const agent = await chain.getAgent()
-    console.log(agent)
+    const agentOptions = { name: undefined }
+    if (chain.isDevnet) agentOptions.name = 'ADMIN'
+    const agent = await chain.getAgent(agentOptions)
     return { chain, agent, deployAgent: agent, clientAgent: agent }
   },
 

@@ -32,19 +32,6 @@ export class ScrtChain extends Chain {
   }
   static Devnet  = class ScrtDevnet extends ScrtChain {
     mode = Chain.Mode.Devnet
-    constructor (id: string, options: DevnetChainOptions) {
-      super(id, options)
-      const { node } = options
-      this.node = node
-    }
-    node: DevnetHandle
-    async getAgent (options: AgentOptions = { name: 'ADMIN' }): Promise<Agent> {
-      if (!options.mnemonic && options.name && this.node) {
-        console.info('Using devnet genesis account:', options.name)
-        options = await this.node.getGenesisAccount(options.name)
-      }
-      return await this.Agent.create(this, options)
-    }
   }
   static Mocknet = class ScrtMocknet extends ScrtChain {
     mode = Chain.Mode.Mocknet

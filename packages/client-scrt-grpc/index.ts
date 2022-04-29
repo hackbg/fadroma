@@ -111,18 +111,6 @@ export class ScrtRPCAgent extends Agent {
 }
 
 export class Scrt extends ScrtChain {
-  static Mainnet = class ScrtMainnet extends ScrtChain.Mainnet {
-    Agent = Scrt.Agent
-  }
-  static Testnet = class ScrtTestnet extends ScrtChain.Testnet {
-    Agent = Scrt.Agent
-  }
-  static Devnet  = class ScrtDevnet  extends ScrtChain.Devnet  {
-    Agent = Scrt.Agent
-  }
-  static Mocknet = class ScrtTestnet extends ScrtChain.Mocknet {
-    Agent = Scrt.Agent
-  }
   static Agent = ScrtRPCAgent
   Agent = Scrt.Agent
 }

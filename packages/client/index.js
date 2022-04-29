@@ -12,12 +12,14 @@ export class Chain {
       throw new Error('Chain: need to pass chain id')
     }
     this.id = id
-    if (options.mode) this.mode = options.mode
     if (options.url)  this.url  = options.url
+    if (options.mode) this.mode = options.mode
+    if (options.node) this.node = options.node
   }
   id
   url
   mode
+  node
   get isMainnet () {
     return this.mode === Chain.Mode.Mainnet
   }
@@ -43,8 +45,12 @@ export class Chain {
     throw 'not implemented'
   }
   Agent = Agent
-  getAgent (options = {}) {
-    return this.Agent.create(this, options)
+  async getAgent (options = {}) {
+    if (!options.mnemonic && options.name && this.node) {
+      console.info('Using devnet genesis account:', options.name)
+      options = await this.node.getGenesisAccount(options.name)
+    }
+    return await this.Agent.create(this, options)
   }
 }
 
@@ -99,12 +105,15 @@ export class Agent {
 }
 
 export class Client {
-  constructor (agent, options) {
+  constructor (agent, options = {}) {
     this.agent = agent
-    const { address } = options
+    const { address, codeHash } = options
+    this.address  = address
+    this.codeHash = codeHash
   }
   agent
   address
+  codeHash
   query (msg) {
     return this.agent.query(this, msg)
   }

@@ -7,7 +7,8 @@
     "@fadroma/client-scrt": "workspace:^0",
     "@cosmjs/crypto":       "^0.20.0",
     "@iov/encoding":        "^2.1.0",
-    "secretjs":             "0.17.5"
+    "secretjs":             "0.17.5",
+    "exponential-backoff":  "^3.1.0"
   },
   "optionalDependencies": {
     "axios": "^0.26.0"

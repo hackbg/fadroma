@@ -186,9 +186,6 @@ export class DockerodeDevnet extends Devnet {
       this.docker = options.docker
     }
     this.identities  = this.stateRoot.subdir('identities',  JSONDirectory)
-    this.daemonDir   = this.stateRoot.subdir('secretd',     Directory)
-    this.clientDir   = this.stateRoot.subdir('secretcli',   Directory)
-    this.sgxDir      = this.stateRoot.subdir('sgx-secrets', Directory)
     this.image       = options.image
     this.initScript  = options.initScript
     this.readyPhrase = options.readyPhrase
@@ -209,15 +206,6 @@ export class DockerodeDevnet extends Devnet {
   async getGenesisAccount (name: string) {
     return this.identities.load(name)
   }
-
-  /** Mounted out of devnet container to persist secretd state. */
-  daemonDir: Directory
-
-  /** Mounted out of devnet container to persist secretcli state. */
-  clientDir: Directory
-
-  /** Mounted out of devnet container to persist SGX state. */
-  sgxDir: Directory
 
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
