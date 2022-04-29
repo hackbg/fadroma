@@ -14,15 +14,6 @@ export class ScrtGas extends Gas {
   }
 }
 
-export interface DevnetHandle {
-  terminate:         () => Promise<void>
-  getGenesisAccount: (name: string) => Promise<AgentOptions>
-}
-
-export interface DevnetChainOptions extends ChainOptions {
-  node: DevnetHandle
-}
-
 export class ScrtChain extends Chain {}
 
 export * from '@fadroma/client'

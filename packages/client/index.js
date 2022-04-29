@@ -14,7 +14,13 @@ export class Chain {
     this.id = id
     if (options.url)  this.url  = options.url
     if (options.mode) this.mode = options.mode
-    if (options.node) this.node = options.node
+    if (options.node) {
+      if (options.mode === Chain.Mode.Devnet) {
+        this.node = options.node
+      } else {
+        console.warn('Chain: "node" option passed to non-devnet. Ignoring')
+      }
+    }
   }
   id
   url
