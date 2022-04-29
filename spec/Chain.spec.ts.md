@@ -104,7 +104,7 @@ for (const Chain of [
       chainId: 'scrt-devnet',
       apiURL:  'http://test:0'
     }
-    const chain = await Chain_1_2.chains.Devnet({ node })
+    const chain = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
     ok(chain)
     equal(chain.node,   node)
     equal(chain.apiURL, node.apiURL)

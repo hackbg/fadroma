@@ -94,7 +94,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
       // 4. Submit the transaction
       try {
-        info(`Submitting TX (${tx.msg.length} messages) (${submitRetries} retries left)...`)
+        info(`Submitting TX (${JSON.stringify(tx).length} chars) (${submitRetries} retries left)...`)
         //info(`Submitting TX (${JSON.stringify(tx).slice(0, 200)}...) (${submitRetries} retries left)...`)
         const result = await super.postTx(tx)
         id = result.transactionHash

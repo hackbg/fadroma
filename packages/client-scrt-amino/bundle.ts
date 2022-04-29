@@ -144,14 +144,10 @@ export class LegacyScrtBundle extends Bundle {
 
   async instantiateMany (
     configs: [Template, string, object][],
-    prefix?: string,
-    suffix?: string
   ): Promise<Record<string, Instance>> {
     const instances = {}
     for (let [template, name, initMsg] of configs) {
-      if (suffix) name = `${name}${suffix}`
       let label = name
-      if (prefix) label = `${prefix}/${name}`
       console.info('Instantiate:', label)
       // add the init tx to the bundle. when passing a single contract
       // to instantiate, this should behave equivalently to non-bundled init

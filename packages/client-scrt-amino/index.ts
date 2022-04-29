@@ -148,7 +148,7 @@ export class LegacyScrtAgent extends Agent {
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async getCodeHash (idOrAddr: number|string): Promise<string> {
+  async getHash (idOrAddr: number|string): Promise<string> {
     const { api } = this
     return this.rateLimited(async function getCodeHashInner () {
       if (typeof idOrAddr === 'number') {
@@ -208,9 +208,27 @@ export class LegacyScrtAgent extends Agent {
     }
   }
 
+  /** Instantiate multiple contracts from a bundled transaction. */
+  async instantiateMany (
+    configs: [Template, string, object][],
+  ): Promise<Instance[]> {
+    const instances = await this.bundle().wrap(async bundle=>{
+      await bundle.instantiateMany(configs)
+    })
+    // add code hashes to them:
+    for (const i in configs) {
+      const [template, label, initMsg] = configs[i]
+      const instance = instances[i]
+      if (instance) {
+        instance.codeHash = template.codeHash
+      }
+    }
+    return instances
+  }
+
   async getCodeId (address: string): Promise<string> {
     const { api } = this
-    return this.rateLimited(async function getCodeIdInner () {
+    return await this.rateLimited(async function getCodeIdInner () {
       const { codeId } = await api.getContract(address)
       return String(codeId)
     })
@@ -218,7 +236,7 @@ export class LegacyScrtAgent extends Agent {
 
   async getLabel (address: string): Promise<string> {
     const { api } = this
-    return this.rateLimited(async function getLabelInner () {
+    return await this.rateLimited(async function getLabelInner () {
       const { label } = await api.getContract(address)
       return label
     })
@@ -228,7 +246,7 @@ export class LegacyScrtAgent extends Agent {
     { address, codeHash }: Instance, msg: T
   ): Promise<U> {
     const { api } = this
-    return this.rateLimited(function doQueryInner () {
+    return await this.rateLimited(function doQueryInner () {
       return api.queryContractSmart(address, msg as any, undefined, codeHash)
     })
   }

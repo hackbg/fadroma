@@ -37,7 +37,7 @@ test({
     })
   },
   async 'FSUploader#uploadMany' ({ deepEqual }) {
-    const artifact = Symbol()
+    const artifact = { location: emptyContract }
     const template = Symbol()
     const agent = {
       chain:     { id: Symbol() },
@@ -82,14 +82,16 @@ const mockAgent = () => ({
 })
 
 test({
-  'add CachingFSUploader to migration context' ({ ok }) {
+  'add CachingFSUploader to operation context' ({ ok }) {
     const agent = { chain: { uploads: Symbol() } }
-    const uploader = new CachingFSUploader(agent)
+    const cache = Symbol()
+    const uploader = new CachingFSUploader(agent, cache)
     ok(uploader.agent === agent)
   },
   async 'upload 1 artifact with CachingFSUploader#upload' ({ ok }) {
     const agent = mockAgent()
-    const uploader = new CachingFSUploader(agent)
+    const cache = { resolve: () => '' }
+    const uploader = new CachingFSUploader(agent, cache)
     await withTmpFile(async location=>{
       const artifact = { location }
       ok(await uploader.upload(artifact))
@@ -97,7 +99,8 @@ test({
   },
   async 'upload any number of artifacts with CachingFSUploader#uploadMany' ({ ok }) {
     const agent = mockAgent()
-    const uploader = new CachingFSUploader(agent)
+    const cache = { make () { return this }, resolve: () => '' }
+    const uploader = new CachingFSUploader(agent, cache)
     ok(await uploader.uploadMany())
     ok(await uploader.uploadMany([]))
     await withTmpFile(async location=>{
