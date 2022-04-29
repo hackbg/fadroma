@@ -1,5 +1,5 @@
 {
-  "name":    "@fadroma/client-scrt-amino",
+  "name":    "@fadroma/client-scrt-grpc",
   "version": "0.1.0",
   "type":    "module",
   "main":    "index.ts",

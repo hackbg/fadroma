@@ -4,6 +4,9 @@ importers:
 
   .:
     specifiers:
+      '@fadroma/client': workspace:*
+      '@fadroma/client-scrt-amino': workspace:*
+      '@fadroma/client-scrt-grpc': workspace:*
       '@fadroma/ops': workspace:*
       '@fadroma/ops-scrt': workspace:*
       '@fadroma/snip20': workspace:*
@@ -20,6 +23,9 @@ importers:
       typedoc: ^0.21.9
       typescript: ^4.5.4
     dependencies:
+      '@fadroma/client': link:packages/client
+      '@fadroma/client-scrt-amino': link:packages/client-scrt-amino
+      '@fadroma/client-scrt-grpc': link:packages/client-scrt-grpc
       '@fadroma/ops': link:packages/ops
       '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/snip20': link:crates/fadroma-snip20-impl

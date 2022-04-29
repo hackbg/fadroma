@@ -58,5 +58,7 @@ export const overrideDefaults = (obj, defaults, options = {}) => {
   }
 }
 
-export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
-export { Coin, Gas, Fees } from '@fadroma/client'
+export      { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
+
+export type { Coin, Fees } from '@fadroma/client'
+export      { Gas }        from '@fadroma/client'

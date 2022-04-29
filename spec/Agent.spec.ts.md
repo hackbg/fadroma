@@ -77,15 +77,15 @@ test({
 
 ## Chain-specific variants
 
-* `Scrt_1_2.Agent` a.k.a. `ScrtAgent`: uses secretjs 0.17.5
-* `Scrt_1_3.Agent` a.k.a. `ScrtRPCAgent`: which uses the new gRPC API
+* `LegacyScrt.Agent` a.k.a. `LegacyScrtAgent`: uses secretjs 0.17.5
+* `Scrt.Agent` a.k.a. `ScrtRPCAgent`: which uses the new gRPC API
   provided by secretjs 1.2-beta - as opposed to the old HTTP-based ("Amino"?) API
   supported in secretjs 0.17.5 and older.
 
 ```typescript
-import { Scrt_1_2, Scrt_1_3, toBase64, fromBase64, fromUtf8, fromHex } from '../index'
+import { LegacyScrt, Scrt, toBase64, fromBase64, fromUtf8, fromHex } from '../index'
 import { mockAPIEndpoint } from './_Harness'
-for (const Scrt of [ Scrt_1_2, Scrt_1_3 ]) test({
+for (const Scrt of [ LegacyScrt, Scrt ]) test({
 
   async [`${Scrt.name}: from mnemonic`] ({ equal, deepEqual }) {
     const chain = Symbol()

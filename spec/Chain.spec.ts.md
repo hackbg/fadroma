@@ -78,18 +78,24 @@ test({
 })
 ```
 
-## Secret Network 1.2 Chain Interface
+## Chain-specific variants
+
+* `LegacyScrt`: creates secretjs@0.17.5 based agent using lcd/amino
+* `Scrt`: creates secretjs@beta based agent using grpc
 
 ```typescript
-import { Chain, Scrt_1_2 } from '../index'
-test({
-  async 'SN mainnet' ({ ok }) {
+import { Chain, LegacyScrt, Scrt } from '../index'
+for (const Scrt of [ LegacyScrt, Scrt ]) test({
+
+  async [`${Scrt.name}: mainnet`] ({ ok }) {
     ok(await Chain.getNamed('Scrt_1_2_Mainnet'))
   },
-  async 'SN testnet' ({ ok }) {
+
+  async [`${Scrt.name}: testnet`] ({ ok }) {
     ok(await Chain.getNamed('Scrt_1_2_Testnet'))
   },
-  async 'SN devnet' ({ ok, equal }) {
+
+  async [`${Scrt.name}: devnet`] ({ ok, equal }) {
     const node = {
       chainId: 'scrt-devnet',
       apiURL:  'http://test:0'
@@ -100,7 +106,6 @@ test({
     equal(chain.apiURL, node.apiURL)
     equal(chain.id,     node.chainId)
   },
+
 })
 ```
-
-## Secret Network 1.3 Chain Interface
