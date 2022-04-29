@@ -68,6 +68,8 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   async postTx (tx: any): Promise<any> {
 
+    //console.trace('postTx', tx.msg)
+
     const info = (...args:any) => console.info('[@fadroma/scrt/postTx]', ...args)
     const warn = (...args:any) => console.warn('[@fadroma/scrt/postTx]', ...args)
 

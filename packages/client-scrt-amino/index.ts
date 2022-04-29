@@ -254,7 +254,7 @@ export class LegacyScrtAgent extends Agent {
   async execute <T> (
     { address, codeHash }: Instance, msg: T, memo: any, amount: any, fee: any
   ): Promise<ExecuteResult> {
-    return this.api.execute(address, msg as any, memo, amount, fee, codeHash)
+    return await this.api.execute(address, msg as any, memo, amount, fee, codeHash)
   }
 
   async encrypt (codeHash, msg) {

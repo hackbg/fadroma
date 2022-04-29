@@ -91,6 +91,7 @@ declare module '@fadroma/client' {
     name:    string
     defaultDenom: string
     constructor (chain: Chain, options: AgentOptions)
+    getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions): C
     getCodeId   (address: string): Promise<string>
     getLabel    (address: string): Promise<string>
     getHash     (address: string): Promise<string>
@@ -114,9 +115,13 @@ declare module '@fadroma/client' {
     constructor (agent: Agent, options: ClientOptions)
     agent:    Agent
     address:  string
+    codeId:   string
     codeHash: string
-    query <T, U> (msg: T): Promise<U>
-    execute <T, U> (msg: T)
+    label:    string
+    name:     string
+    query   <T, U> (msg: T): Promise<U>
+    execute <T, U> (msg: T): Promise<U>
+    populate (): Promise<void>
   }
 
   export interface Coin {

@@ -85,6 +85,9 @@ export class Agent {
   getBalance (denom = this.defaultDenom) {
     return Promise.resolve(0n)
   }
+  getClient (Client, options = {}) {
+    return new Client(this, options)
+  }
   execute (contract, msg) {
     throw new Error('not implemented')
   }
@@ -114,13 +117,27 @@ export class Client {
     this.codeHash = codeHash
   }
   agent
-  address
+  name
   codeHash
-  query (msg) {
-    return this.agent.query(this, msg)
+  codeId
+  label
+  address
+  async query (msg) {
+    return await this.agent.query(this, msg)
   }
-  execute (msg) {
-    this.agent.execute(this, msg)
+  async execute (msg) {
+    return await this.agent.execute(this, msg)
+  }
+  async populate () {
+    const [label, codeId, codeHash] = await Promise.all([
+      this.agent.getLabel(this.address),
+      this.agent.getCodeId(this.address),
+      this.agent.getHash(this.address)
+    ])
+    // TODO warn if retrieved values contradict current ones
+    this.label    = label
+    this.codeId   = codeId
+    this.codeHash = codeHash
   }
 }
 
