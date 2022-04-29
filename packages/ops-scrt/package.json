@@ -2,5 +2,10 @@
   "name":    "@fadroma/ops-scrt",
   "version": "0.1.0",
   "type":    "module",
-  "main":    "index.ts"
+  "main":    "index.ts",
+  "dependencies": {
+    "@fadroma/ops":               "workspace:^0",
+    "@fadroma/client-scrt-amino": "workspace:^0",
+    "@fadroma/client-scrt-grpc":  "workspace:^0"
+  }
 }

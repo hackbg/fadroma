@@ -12,16 +12,10 @@ import alignYAML from 'align-yaml'
 
 const console = Console('Fadroma Deploy')
 
-import type { Client, ClientConstructor } from './Client'
-import type { Agent } from './Agent'
-import type { Chain } from './Chain'
+import type { Client, ClientCtor, Agent, Chain } from '@fadroma/client'
 import { Template, Label, InitMsg, Instance, Message, join } from './Core'
 import { print } from './Print'
 import { config } from './Config'
-
-export abstract class Deployer {
-  constructor (public agent: Agent) {}
-}
 
 export class Deployment {
 
@@ -203,95 +197,6 @@ export class Deployments extends Directory {
       data = JSON.stringify(data, null, 2)
     }
     return super.save(name, data)
-  }
-
-}
-
-export default {
-
-  /** Create a new deployment and add it to the command context. */
-  New: async function createDeployment ({
-    chain,
-    cmdArgs = []
-  }): Promise<DeployContext> {
-    const [ prefix = timestamp() ] = cmdArgs
-    await chain.deployments.create(prefix)
-    await chain.deployments.select(prefix)
-    return this.activate({ chain })
-  },
-
-  /** Add the currently active deployment to the command context. */
-  Append: async function activateDeployment ({
-    chain
-  }): Promise<DeployContext> {
-    const deployment = chain.deployments.active
-    if (!deployment) {
-      console.error(join(bold('No selected deployment on chain:'), chain.id))
-      process.exit(1)
-    }
-    const prefix = deployment.prefix
-    let contracts: string|number = Object.values(deployment.receipts).length
-    contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-    console.info(bold('Active deployment:'), prefix, contracts)
-    print(console).deployment(deployment)
-    return { deployment, prefix }
-  },
-
-  /** Add either the active deployment, or a newly created one, to the command context. */
-  AppendOrNew: async function activateOrCreateDeployment ({
-    chain,
-    cmdArgs
-  }): Promise<DeployContext> {
-    if (chain.deployments.active) {
-      return this.activate({ chain })
-    } else {
-      return await this.new({ chain, cmdArgs })
-    }
-  },
-
-  /** Print the status of a deployment. */
-  async printStatusOfDeployment ({
-    chain,
-    cmdArgs: [id] = [undefined]
-  }) {
-    let deployment = chain.deployments.active
-    if (id) {
-      deployment = chain.deployments.get(id)
-    }
-    if (!deployment) {
-      console.error(join(bold('No selected deployment on chain:'), chain.id))
-      process.exit(1)
-    }
-    print(console).deployment(deployment)
-  },
-
-  /** Set a new deployment as active. */
-  async selectDeployment (context) {
-    const { chain, cmdArgs: [id] = [undefined] } = context
-    const list = chain.deployments.list()
-    if (list.length < 1) {
-      console.info('\nNo deployments. Create one with `deploy new`')
-    }
-    if (id) {
-      console.info(bold(`Selecting deployment:`), id)
-      await chain.deployments.select(id)
-    }
-    if (list.length > 0) {
-      console.info(bold(`Known deployments:`))
-      for (let deployment of chain.deployments.list()) {
-        if (deployment === chain.deployments.KEY) {
-          continue
-        }
-        const count = Object.keys(chain.deployments.get(deployment).receipts).length
-        if (chain.deployments.active && chain.deployments.active.prefix === deployment) {
-          deployment = `${bold(deployment)} (selected)`
-        }
-        deployment = `${deployment} (${count} contracts)`
-        console.info(` `, deployment)
-      }
-    }
-    console.log()
-    chain.deployments.printActive()
   }
 
 }

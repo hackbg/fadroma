@@ -268,9 +268,6 @@ export class LegacyScrtAgent extends Agent {
   }
 }
 
-export class LegacyScrtDeployer extends LegacyScrtAgent {
-}
-
 export class LegacyScrt extends Chain {
   static Agent = LegacyScrtAgent
   Agent = LegacyScrt.Agent
@@ -298,7 +295,7 @@ export class LegacyScrt extends Chain {
 
 export class LegacyScrtBundle extends Bundle {
 
-  declare agent: LegacyScrtAgent
+  agent: LegacyScrtAgent
 
   msgs: Array<any> = []
 

@@ -7,6 +7,7 @@ import {
 import type { Agent } from '@fadroma/client'
 import { config } from './Config'
 import { Artifact, codeHashForPath } from './Build'
+import { getUploads } from './State'
 
 const console = Console('Fadroma Upload')
 
@@ -94,14 +95,14 @@ export class CachingFSUploader extends FSUploader {
 
   constructor (
     readonly agent: Agent,
-    readonly cache: Uploads = agent.chain.uploads
+    readonly cache: Uploads = getUploads(agent.chain)
   ) {
     super(agent)
   }
 
   protected getUploadReceiptPath (artifact: Artifact): string {
     const receiptName = `${basename(artifact.location)}.json`
-    const receiptPath = this.agent.chain.uploads.resolve(receiptName)
+    const receiptPath = this.cache.resolve(receiptName)
     return receiptPath
   }
 

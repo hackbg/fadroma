@@ -15,18 +15,16 @@ export * from './Upload'
 export * from './Deploy'
 export * from './Print'
 export * from './Mocknet'
-
-import DeploymentOps from './Deploy'
-import UploadOps from './Deploy'
-export { DeploymentOps, UploadOps }
+export * from './State'
 
 import TOML from 'toml'
 export { TOML }
 
 import { Console, bold, colors, timestamp } from '@hackbg/toolbox'
 import { Chain, Agent } from '@fadroma/client'
+import { Source, Builder } from './Build'
+import { Uploader, Template } from './Upload'
 import { Deployment } from './Deploy'
-import { Source, Builder, Uploader, Template } from './Core'
 
 export type Operation<T> = (context: OperationContext) => Promise<T>
 

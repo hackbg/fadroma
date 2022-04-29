@@ -26,9 +26,8 @@ export class Chain implements Querier {
     if (!id) {
       throw new Error('Chain: need to pass chain id')
     }
-    const { mode, url } = options
-    this.mode = mode
-    this.url  = url
+    if (options.mode) this.mode = options.mode
+    if (options.url)  this.url  = options.url
   }
 
   mode: ChainMode
@@ -49,7 +48,7 @@ export class Chain implements Querier {
   }
 
   Agent: AgentCtor = Agent
-  async getAgent (options: AgentOptions) {
+  async getAgent (options: AgentOptions = {}) {
     return await this.Agent.create(this, options)
   }
 }
@@ -146,7 +145,7 @@ export interface ClientCtor<C extends Client> {
 
 export class Client implements Instance {
   constructor (
-    private readonly agent: Agent,
+    public readonly agent: Agent,
     options: ClientOptions
   ) {
     const { address } = options
