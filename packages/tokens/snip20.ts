@@ -4,15 +4,22 @@ const console = Console('@fadroma/snip20')
 
 type TokenType = any // TODO
 
-export class Snip20Client extends Client {
+export interface Snip20TokenInfo {
+  token_info: any
+}
+
+export interface Snip20Balance {
+  balance: { amount: string }
+}
+
+export class Snip20 extends Client {
 
   static async fromTokenSpec (agent: Agent, token: TokenType) {
-    const TOKEN = new Snip20Client({
+    const TOKEN = new Snip20(agent, {
       address:  token.custom_token.contract_addr,
       codeHash: token.custom_token.token_code_hash,
-      agent
     })
-    const NAME = (TOKEN instanceof Snip20Client)
+    const NAME = (TOKEN instanceof Snip20)
       ? (await TOKEN.getTokenInfo()).symbol
       : 'SCRT'
     return { TOKEN, NAME }
@@ -30,11 +37,12 @@ export class Snip20Client extends Client {
   }
 
   async getTokenInfo () {
-    return (await this.query({ token_info: {} })).token_info
+    const { token_info }: Snip20TokenInfo = await this.query({ token_info: {} })
+    return token_info
   }
 
   async getBalance (address: string, key: string) {
-    const response = await this.query({ balance: { address, key } })
+    const response: Snip20Balance = await this.query({ balance: { address, key } })
     if (response.balance && response.balance.amount) {
       return response.balance.amount
     } else {
