@@ -1,5 +1,5 @@
 import {
-  Source, Scrt_1_2,
+  Source, getScrtBuilder,
   Console, bold,
   resolve, relative, basename, dirname, cwd,
   statSync, readFileSync,
@@ -24,7 +24,7 @@ function buildFromCargoToml (cargoToml, buildArgs) {
   const workspace = dirname(cargoToml)
   const manifest  = TOML.parse(readFileSync(cargoToml, 'utf8'))
   const source    = new Source(workspace, manifest.package.name)
-  Scrt_1_2.getBuilder().build(source)
+  getScrtBuilder().build(source)
     .then(artifact=>{
       console.info('Built', artifact)
       process.exit(0)
@@ -57,7 +57,7 @@ function buildFromBuildScript (buildScript, buildArgs) {
           process.exit(3)
         }
         const T0 = + new Date()
-        Scrt_1_2.getBuilder().buildMany(buildSources)
+        getScrtBuilder().buildMany(buildSources)
           .then(()=>{
             const T1 = + new Date()
             console.info(`Build complete in ${T1-T0}ms.`)
