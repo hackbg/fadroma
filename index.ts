@@ -194,7 +194,7 @@ export const DeployOps = {
     if (deployments.active) {
       return DeployOps.Append({ chain })
     } else {
-      return await DeployOps.new({ chain, cmdArgs })
+      return await DeployOps.New({ chain, cmdArgs })
     }
   },
 
