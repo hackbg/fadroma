@@ -65,7 +65,7 @@ export class FSUploader extends Uploader {
       const artifact = artifacts[i]
       let template
       if (artifact) {
-        template = await this.agent.upload(artifact)
+        template = await this.agent.upload(await readFile(artifact.location))
         this.checkCodeHash(artifact, template)
       }
       templates[i] = template

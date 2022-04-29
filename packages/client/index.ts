@@ -54,6 +54,7 @@ export class Chain implements Querier {
 }
 
 export interface Template {
+  chainId?:  string
   codeId?:   string
   codeHash?: string
 }
@@ -73,10 +74,10 @@ export interface Artifact {
 }
 
 export interface Deployer extends Executor {
-  upload     (artifact: Artifact):    Promise<Template>
-  uploadMany (artifacts: Artifact[]): Promise<Template[]>
+  upload          (code: Uint8Array):                               Promise<Template>
+  uploadMany      (code: Uint8Array[]):                             Promise<Template[]>
   instantiate     (template: Template, label: string, msg: object): Promise<Instance>
-  instantiateMany (configs: [Template, string, object][]):          Promise<Instance>
+  instantiateMany (configs: [Template, string, object][]):          Promise<Instance[]>
 }
 
 export interface AgentCtor {
@@ -122,17 +123,21 @@ export class Agent implements Deployer {
   async execute <T, U> (contract: Instance, msg: T): Promise<U> {
     return
   }
-  async upload (artifact: Artifact): Promise<Template> {
+  async upload (blob: Uint8Array): Promise<Template> {
     throw new Error('not implemented')
+    return {}
   }
-  async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
-    throw new Error('not implemented')
+  uploadMany (blobs: Uint8Array[]) {
+    return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
-  async instantiate (template: Template, label: string, msg: object): Promise<Instance> {
+  async instantiate (template: Template, label: string, msg: object) {
     throw new Error('not implemented')
+    return { address: '' }
   }
-  async instantiateMany (configs: [Template, string, object][]): Promise<Instance> {
-    throw new Error('not implemented')
+  instantiateMany (configs: [Template, string, object][]) {
+    return Promise.all(configs.map(
+      ([template, label, msg])=>this.instantiate(template, label, msg)
+    ))
   }
 }
 

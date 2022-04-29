@@ -150,6 +150,19 @@ export class LegacyScrtAgent extends Agent {
       console.info(`Code hash of ${address}:`, realCodeHash)
     }
   }
+  async upload (data: Uint8Array): Promise<Template> {
+    const uploadResult = await this.api.upload(data, {})
+    let codeId = String(uploadResult.codeId)
+    if (codeId === "-1") {
+      codeId = uploadResult.logs[0].events[0].attributes[3].value
+    }
+    const codeHash = uploadResult.originalChecksum
+    return {
+      chainId: this.chain.id,
+      codeId,
+      codeHash
+    }
+  }
   async instantiate (template, label, msg, funds = []) {
     if (!template.codeHash) {
       throw new Error('@fadroma/scrt: Template must contain codeHash')
@@ -266,6 +279,9 @@ export class LegacyScrtAgent extends Agent {
       }
     })
   }
+}
+
+export class LegacyScrtDeployer extends LegacyScrtAgent {
 }
 
 export class LegacyScrt extends Chain {

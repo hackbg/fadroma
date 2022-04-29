@@ -172,7 +172,7 @@ export class DockerodeBuilder extends CachingBuilder {
     for (const workspace of workspaces) {
       console.info(`Building contracts from workspace:`, bold(relative(cwd(), workspace)))
       for (const ref of refs) {
-        console.info(`  Building contracts from ref ${ref}`)
+        console.info(`* Building contracts from ref:`, ref)
         // Create a list of sources for this container to build,
         // along with their indices in the input and output arrays
         // of this function.
