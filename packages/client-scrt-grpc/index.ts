@@ -3,15 +3,16 @@ import { Chain, Agent, AgentOptions } from '@fadroma/client'
 import * as constants from './constants'
 
 export interface ScrtRPCAgentOptions extends AgentOptions {
-  wallet?: Wallet
-  api?:    SecretNetworkClient
+  wallet?:  Wallet
+  api?:     SecretNetworkClient
+  keyPair?: unknown
 }
 
 export class ScrtRPCAgent extends Agent {
 
   Bundle = null
 
-  static async create (chain: Scrt, options: AgentOptions) {
+  static async create (chain: Scrt, options: ScrtRPCAgentOptions) {
     const {
       mnemonic,
       keyPair,
@@ -39,8 +40,11 @@ export class ScrtRPCAgent extends Agent {
 
   constructor (chain: Scrt, options: ScrtRPCAgentOptions) {
     super(chain, options)
+
     this.wallet = options.wallet
     this.api    = options.api
+
+    this.address = this.wallet.address
   }
 
   wallet: Wallet
@@ -49,9 +53,7 @@ export class ScrtRPCAgent extends Agent {
 
   defaultDenomination = 'uscrt'
 
-  get address () {
-    return this.wallet.address
-  }
+  address: string
 
   get block () {
     return this.api.query.tendermint.getLatestBlock({})

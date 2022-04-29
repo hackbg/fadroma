@@ -1,5 +1,5 @@
 import { Chain, Agent, AgentOptions, Gas, Fees, Template, Instance } from '@fadroma/client'
-export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
+import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { Bip39 } from '@cosmjs/crypto'
 import {
   BroadcastMode,
@@ -29,7 +29,7 @@ export interface LegacyScrtAgentOptions extends AgentOptions {
 export class LegacyScrtAgent extends Agent {
 
   static async create (
-    chain:   Scrt,
+    chain:   LegacyScrt,
     options: LegacyScrtAgentOptions
   ) {
     const { name = 'Anonymous', ...args } = options
@@ -65,7 +65,7 @@ export class LegacyScrtAgent extends Agent {
   defaultDenomination = 'uscrt'
 
   constructor (
-    public readonly chain: Scrt,
+    public readonly chain: LegacyScrt,
     options: LegacyScrtAgentOptions = {}
   ) {
     super(chain, options)
@@ -266,6 +266,9 @@ export class LegacyScrtAgent extends Agent {
       }
     })
   }
+}
+
+export class LegacyScrtDeployer extends LegacyScrtAgent {
 }
 
 export class LegacyScrt extends Chain {

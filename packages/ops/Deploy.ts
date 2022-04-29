@@ -205,16 +205,25 @@ export class Deployments extends Directory {
     return super.save(name, data)
   }
 
-  /** Command: Create a new deployment. */
-  static new = async function createDeployment ({ chain, cmdArgs = [] }): Promise<DeployContext> {
+}
+
+export default {
+
+  /** Create a new deployment and add it to the command context. */
+  New: async function createDeployment ({
+    chain,
+    cmdArgs = []
+  }): Promise<DeployContext> {
     const [ prefix = timestamp() ] = cmdArgs
     await chain.deployments.create(prefix)
     await chain.deployments.select(prefix)
     return this.activate({ chain })
-  }.bind(this)
+  },
 
-  /** Command: Activate a deployment and prints its status. */
-  static activate = function activateDeployment ({ chain }): DeployContext {
+  /** Add the currently active deployment to the command context. */
+  Append: async function activateDeployment ({
+    chain
+  }): Promise<DeployContext> {
     const deployment = chain.deployments.active
     if (!deployment) {
       console.error(join(bold('No selected deployment on chain:'), chain.id))
@@ -226,20 +235,25 @@ export class Deployments extends Directory {
     console.info(bold('Active deployment:'), prefix, contracts)
     print(console).deployment(deployment)
     return { deployment, prefix }
-  }.bind(this)
+  },
 
-  static activateOrNew = async function activateOrCreateDeployment ({
-    chain, cmdArgs
+  /** Add either the active deployment, or a newly created one, to the command context. */
+  AppendOrNew: async function activateOrCreateDeployment ({
+    chain,
+    cmdArgs
   }): Promise<DeployContext> {
     if (chain.deployments.active) {
       return this.activate({ chain })
     } else {
       return await this.new({ chain, cmdArgs })
     }
-  }.bind(this)
+  },
 
-  /** Command: Print the status of a deployment. */
-  static status = function printStatusOfDeployment ({ chain, cmdArgs: [id] = [undefined] }) {
+  /** Print the status of a deployment. */
+  async printStatusOfDeployment ({
+    chain,
+    cmdArgs: [id] = [undefined]
+  }) {
     let deployment = chain.deployments.active
     if (id) {
       deployment = chain.deployments.get(id)
@@ -249,10 +263,10 @@ export class Deployments extends Directory {
       process.exit(1)
     }
     print(console).deployment(deployment)
-  }.bind(this)
+  },
 
-  /** Command: Set a new deployment as active. */
-  static select = async function selectDeployment (context) {
+  /** Set a new deployment as active. */
+  async selectDeployment (context) {
     const { chain, cmdArgs: [id] = [undefined] } = context
     const list = chain.deployments.list()
     if (list.length < 1) {
@@ -278,6 +292,6 @@ export class Deployments extends Directory {
     }
     console.log()
     chain.deployments.printActive()
-  }.bind(this)
+  }
 
 }

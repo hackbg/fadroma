@@ -16,6 +16,10 @@ export * from './Deploy'
 export * from './Print'
 export * from './Mocknet'
 
+import DeploymentOps from './Deploy'
+import UploadOps from './Deploy'
+export { DeploymentOps, UploadOps }
+
 import TOML from 'toml'
 export { TOML }
 
@@ -23,6 +27,8 @@ import { Console, bold, colors, timestamp } from '@hackbg/toolbox'
 import { Chain, Agent } from '@fadroma/client'
 import { Deployment } from './Deploy'
 import { Source, Builder, Uploader, Template } from './Core'
+
+export type Operation<T> = (context: OperationContext) => Promise<T>
 
 export interface OperationContext {
   timestamp:   string
@@ -58,8 +64,6 @@ export interface OperationContext {
   template?:  Template
   templates?: Template[]
 }
-
-export type Command<T> = (OperationContext)=>Promise<T>
 
 const console = Console('Fadroma Ops')
 

@@ -1,9 +1,7 @@
-import {
-  scrtConfig as config,
-  resolve, relative, dirname,
-  RawBuilder,
-  DockerodeBuilder, DockerImage
-} from '@fadroma/scrt'
+import { resolve, relative, dirname } from '@hackbg/toolbox'
+import { RawBuilder, DockerodeBuilder, DockerImage } from '@fadroma/ops'
+
+import { scrtConfig as config } from './config'
 
 export function getScrtBuilder ({
   raw        = config.buildRaw,

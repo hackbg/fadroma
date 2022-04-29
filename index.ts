@@ -1,8 +1,8 @@
 import {
   Console, print, bold, colors, timestamp,
   Chain, ChainMode, Mocknet, Agent,
-  Deployments, MigrationContext, runMigration,
-  FSUploader, CachingFSUploader,
+  runOperation, Operation, OperationContext, 
+  DeploymentOps, UploadOps,
   fileURLToPath, relative,
   config,
   runCommands,
@@ -13,24 +13,23 @@ export * from '@fadroma/ops'
 export * from '@fadroma/ops-scrt'
 export * from '@fadroma/snip20'
 
-import { Scrt_1_2 } from '@fadroma/scrt-1.2'
-import { Scrt_1_3 } from '@fadroma/scrt-1.3'
-export { Scrt_1_2, Scrt_1_3 }
+import { LegacyScrt } from '@fadroma/client-scrt-amino'
+import { Scrt }       from '@fadroma/client-scrt-grpc'
+
+export { LegacyScrt, Scrt }
+
 Object.assign(Chain.namedChains, {
-  'Mocknet':          Mocknet,
-  'Scrt_1_2_Mainnet': Scrt_1_2.chains.Mainnet,
-  'Scrt_1_2_Testnet': Scrt_1_2.chains.Testnet,
-  'Scrt_1_2_Devnet':  Scrt_1_2.chains.Devnet,
-  'Scrt_1_3_Mainnet': Scrt_1_3.chains.Mainnet,
-  'Scrt_1_3_Testnet': Scrt_1_3.chains.Testnet,
-  'Scrt_1_3_Devnet':  Scrt_1_3.chains.Devnet,
+  'Mocknet':           Mocknet,
+  'LegacyScrtMainnet': LegacyScrt.Chain.Mainnet,
+  'LegacyScrtTestnet': LegacyScrt.Chain.Testnet,
+  'LegacyScrtDevnet':  LegacyScrt.Chain.Devnet,
+  'ScrtMainnet':       Scrt.Chain.Mainnet,
+  'ScrtTestnet':       Scrt.Chain.Testnet,
+  'ScrtDevnet':        Scrt.Chain.Devnet,
 })
 
-export type Command<T>        = (MigrationContext)=>Promise<T>
 export type WrappedCommand<T> = (args: string[])=>Promise<T>
 export type Commands          = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
-
-Chain.namedChains['Mocknet'] = (options?) => new Mocknet('mocknet', options)
 
 // Logging interface - got one of these in each module.
 // Based on @hackbg/konzola, reexported through @fadroma/ops.
@@ -44,10 +43,13 @@ export class Fadroma {
   Upload = Fadroma.Upload
   Deploy = Fadroma.Deploy
 
-  /** Adds a builder to the command context. */
+  static Upload = UploadOps
+  static Deploy = DeploymentOps
+
   static Build = {
-    Scrt_1_2: function enableScrtBuilder_1_2 () {
-      return { builder: Scrt_1_2.getBuilder() }
+    /** Add a builder to the command context. */
+    Scrt: function enableScrtBuilder () {
+      return { builder: Scrt.getBuilder() }
     }
   }
 
@@ -87,32 +89,6 @@ export class Fadroma {
 
   }
 
-  /** Adds an uploader to the command context. */
-  static Upload = {
-    FromFile: function enableUploadingFromFile ({
-      agent,
-      caching = !config.reupload
-    }) {
-      if (caching) {
-        return { uploader: new CachingFSUploader(agent) }
-      } else {
-        return { uploader: new FSUploader(agent) }
-      }
-    }
-  }
-
-  static Deploy = {
-    /** Create a new deployment and adds it to the command context. */
-    New:         Deployments.new,
-    /** Add the currently active deployment to the command context. */
-    Append:      Deployments.activate,
-    /** Add the active deployment, or a new one, to the command context. */
-    AppendOrNew: Deployments.activate,
-    /** Print the status of the active deployment. */
-    Status:      Deployments.status,
-    /** Select a new active deployment from the available ones. */
-    Select:      Deployments.select
-  }
 
   /** Call this with `import.meta.url` at the end of a command module. */
   module (url: string): this {
@@ -139,7 +115,7 @@ export class Fadroma {
     for (let i = 0; i < fragments.length; i++) {
       commands[fragments[i]] = commands[fragments[i]] || {}
       if (i === fragments.length-1) {
-        commands[fragments[i]] = (...cmdArgs: string[]) => runMigration(name, steps, cmdArgs)
+        commands[fragments[i]] = (...cmdArgs: string[]) => runOperation(name, steps, cmdArgs)
       } else {
         commands = commands[fragments[i]]
       }

@@ -6,7 +6,7 @@ export enum ChainMode {
 }
 
 export interface ChainOptions {
-  mode?: string
+  mode?: ChainMode
   url?:  string
 }
 
@@ -31,7 +31,7 @@ export class Chain implements Querier {
     this.url  = url
   }
 
-  mode: string
+  mode: ChainMode
   get isMainnet () { return this.mode === Chain.Mode.Mainnet }
   get isTestnet () { return this.mode === Chain.Mode.Testnet }
   get isDevnet  () { return this.mode === Chain.Mode.Devnet  }
@@ -68,6 +68,18 @@ export interface Executor {
   execute <T, U> (contract: Instance, msg: T, funds: any[], memo?: any, fee?: any): Promise<U>
 }
 
+export interface Artifact {
+  url:      URL
+  codeHash: string
+}
+
+export interface Deployer extends Executor {
+  upload     (artifact: Artifact):    Promise<Template>
+  uploadMany (artifacts: Artifact[]): Promise<Template[]>
+  instantiate     (template: Template, label: string, msg: object): Promise<Instance>
+  instantiateMany (configs: [Template, string, object][]):          Promise<Instance>
+}
+
 export interface AgentCtor {
   new    (chain: Chain, options: AgentOptions): Agent
   create (chain: Chain, options: AgentOptions): Promise<Agent>
@@ -79,7 +91,7 @@ export interface AgentOptions {
   address?:  string
 }
 
-export class Agent implements Executor {
+export class Agent implements Deployer {
   static async create (chain: Chain, options: AgentOptions) {
     return new Agent(chain, options)
   }
@@ -92,12 +104,6 @@ export class Agent implements Executor {
   }
   name:    string = 'Anonymous'
   address: string
-  async query <T, U> (contract: Instance, msg: T): Promise<U> {
-    return
-  }
-  async execute <T, U> (contract: Instance, msg: T): Promise<U> {
-    return
-  }
   async getLabel (address: string): Promise<string> {
     return this.chain.getLabel(address)
   }
@@ -111,6 +117,24 @@ export class Agent implements Executor {
     return 0n
   }
   defaultDenom = ''
+  async query <T, U> (contract: Instance, msg: T): Promise<U> {
+    return
+  }
+  async execute <T, U> (contract: Instance, msg: T): Promise<U> {
+    return
+  }
+  async upload (artifact: Artifact): Promise<Template> {
+    throw new Error('not implemented')
+  }
+  async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
+    throw new Error('not implemented')
+  }
+  async instantiate (template: Template, label: string, msg: object): Promise<Instance> {
+    throw new Error('not implemented')
+  }
+  async instantiateMany (configs: [Template, string, object][]): Promise<Instance> {
+    throw new Error('not implemented')
+  }
 }
 
 export interface ClientOptions extends Instance {

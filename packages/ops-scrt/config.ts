@@ -1,7 +1,5 @@
-import {
-  resolve, homedir, dirname, fileURLToPath,
-  EnvVars, Config
-} from '@fadroma/ops'
+import { resolve, homedir, dirname, fileURLToPath } from '@hackbg/toolbox'
+import { EnvVars, Config } from '@fadroma/ops'
 
 export interface ScrtEnvVars extends EnvVars {
   SCRT_AGENT_ADDRESS:          string
@@ -91,3 +89,4 @@ export class ScrtConfig extends Config {
 }
 
 export const scrtConfig = new ScrtConfig()
+

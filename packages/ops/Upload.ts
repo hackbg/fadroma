@@ -3,8 +3,10 @@ import {
   existsSync, mkdir, readFile, writeFile, relative, basename,
   JSONDirectory
 } from '@hackbg/toolbox'
-import { Artifact, Template, Uploader, UploadReceipt, codeHashForPath } from './Core'
-import type { Agent } from './Agent'
+
+import type { Agent } from '@fadroma/client'
+import { config } from './Config'
+import { Artifact, codeHashForPath } from './Build'
 
 const console = Console('Fadroma Upload')
 
@@ -203,4 +205,20 @@ export class CachingFSUploader extends FSUploader {
       )
     }
   }
+}
+
+export default {
+
+  /** Add an uploader to the command context. */
+  FromFile: function enableUploadingFromFile ({
+    agent,
+    caching = !config.reupload
+  }) {
+    if (caching) {
+      return { uploader: new CachingFSUploader(agent) }
+    } else {
+      return { uploader: new FSUploader(agent) }
+    }
+  }
+
 }

@@ -5,6 +5,7 @@
   "main":    "index.ts",
   "dependencies": {
     "@fadroma/client": "workspace:^0",
-    "secretjs":        "beta"
+    "@cosmjs/crypto":  "^0.20.0",
+    "@iov/encoding":   "^2.1.0"
   }
 }
