@@ -63,14 +63,10 @@ export const Chains = {
   async 'ScrtDevnet' () {
     const node = await getScrtDevnet_1_3().respawn()
     const url  = node.apiURL.toString()
-    return new Scrt.Devnet(node.chainId, { url })
+    return new Scrt.Devnet(node.chainId, { url, node })
   },
 
 }
-
-type WrappedCommand<T> = (args: string[])=>Promise<T>
-
-type Commands          = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
 const BuildOps = {
   /** Add a Secret Network builder to the command context. */
@@ -94,6 +90,7 @@ const ChainOps = {
       process.exit(1)
     }
     const chain = await Chains[name]()
+    console.log(chain)
     const agent = await chain.getAgent()
     console.log(agent)
     return { chain, agent, deployAgent: agent, clientAgent: agent }
@@ -241,6 +238,9 @@ export const DeployOps = {
 
 }
 
+type WrappedCommand<T> = (args: string[])=>Promise<T>
+
+type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
 export class FadromaOps {
 

@@ -288,10 +288,18 @@ export class LegacyScrtDeployer extends LegacyScrtAgent {
 }
 
 export class LegacyScrt extends ScrtChain {
-  static Mainnet = class LegacyScrtMainnet extends ScrtChain.Mainnet {}
-  static Testnet = class LegacyScrtTestnet extends ScrtChain.Testnet {}
-  static Devnet  = class LegacyScrtDevnet  extends ScrtChain.Devnet  {}
-  static Mocknet = class LegacyScrtTestnet extends ScrtChain.Mocknet {}
+  static Mainnet = class LegacyScrtMainnet extends ScrtChain.Mainnet {
+    Agent = LegacyScrt.Agent
+  }
+  static Testnet = class LegacyScrtTestnet extends ScrtChain.Testnet {
+    Agent = LegacyScrt.Agent
+  }
+  static Devnet  = class LegacyScrtDevnet  extends ScrtChain.Devnet  {
+    Agent = LegacyScrt.Agent
+  }
+  static Mocknet = class LegacyScrtTestnet extends ScrtChain.Mocknet {
+    Agent = LegacyScrt.Agent
+  }
   static Agent = LegacyScrtAgent
   Agent = LegacyScrt.Agent
 }

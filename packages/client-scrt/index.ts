@@ -1,4 +1,4 @@
-import { Gas, Fees, Chain, ChainOptions } from '@fadroma/client'
+import { Gas, Fees, Chain, ChainOptions, Agent, AgentOptions } from '@fadroma/client'
 
 export class ScrtGas extends Gas {
   static denom = 'uscrt'
@@ -14,8 +14,13 @@ export class ScrtGas extends Gas {
   }
 }
 
+export interface DevnetHandle {
+  terminate:         () => Promise<void>
+  getGenesisAccount: (name: string) => Promise<AgentOptions>
+}
+
 export interface DevnetChainOptions extends ChainOptions {
-  node
+  node: DevnetHandle
 }
 
 export class ScrtChain extends Chain {
@@ -32,7 +37,14 @@ export class ScrtChain extends Chain {
       const { node } = options
       this.node = node
     }
-    node: { terminate: ()=>Promise<void> }
+    node: DevnetHandle
+    async getAgent (options: AgentOptions = { name: 'ADMIN' }): Promise<Agent> {
+      if (!options.mnemonic && options.name && this.node) {
+        console.info('Using devnet genesis account:', options.name)
+        options = await this.node.getGenesisAccount(options.name)
+      }
+      return await this.Agent.create(this, options)
+    }
   }
   static Mocknet = class ScrtMocknet extends ScrtChain {
     mode = Chain.Mode.Mocknet

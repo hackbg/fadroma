@@ -207,19 +207,3 @@ export class CachingFSUploader extends FSUploader {
     }
   }
 }
-
-export default {
-
-  /** Add an uploader to the command context. */
-  FromFile: function enableUploadingFromFile ({
-    agent,
-    caching = !config.reupload
-  }) {
-    if (caching) {
-      return { uploader: new CachingFSUploader(agent) }
-    } else {
-      return { uploader: new FSUploader(agent) }
-    }
-  }
-
-}
