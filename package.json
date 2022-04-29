@@ -33,8 +33,8 @@
     "render":   "node doc/render.js",
     "document": "typedoc index.ts",
     "test":     "time ganesha-node spec/index.js",
-    "cov":      "Ganesha_NoSourceMap=1 time c8 -r text --all -x coverage -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node spec/index.js",
-    "lcov":     "Ganesha_NoSourceMap=1 time c8 -r lcov --all -x coverage -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node spec/index.js"
+    "cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ganesha-node spec/index.js",
+    "lcov":     "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ganesha-node spec/index.js"
   },
   "bin": {
     "fadroma": "fadroma.cjs"
