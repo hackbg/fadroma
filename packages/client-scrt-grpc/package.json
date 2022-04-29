@@ -4,7 +4,7 @@
   "type":    "module",
   "main":    "index.ts",
   "dependencies": {
-    "@fadroma/client": "workspace:^0",
-    "secretjs":        "beta"
+    "@fadroma/client-scrt": "workspace:^0",
+    "secretjs":             "beta"
   }
 }

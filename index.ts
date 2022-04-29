@@ -25,39 +25,47 @@ import {
 const console = Console('Fadroma Ops')
 
 export const Chains = {
+
   async 'Mocknet' () {
     return new Mocknet()
   },
+
   async 'LegacyScrtMainnet' () {
     return new LegacyScrt.Mainnet(scrtConfig.scrt.mainnetChainId, {
       url: scrtConfig.scrt.mainnetApiUrl
     })
   },
+
   async 'LegacyScrtTestnet' () {
     return new LegacyScrt.Testnet(scrtConfig.scrt.testnetChainId, {
       url: scrtConfig.scrt.testnetApiUrl
     })
   },
+
   async 'LegacyScrtDevnet'  () {
     const node = await getScrtDevnet_1_2().respawn()
     const url  = node.apiURL.toString()
-    return new LegacyScrt.Devnet(node.chainId, { url })
+    return new LegacyScrt.Devnet(node.chainId, { url, node })
   },
+
   async 'ScrtMainnet' () {
     return new Scrt.Mainnet(scrtConfig.scrt.mainnetChainId, {
       url: scrtConfig.scrt.mainnetApiUrl
     })
   },
+
   async 'ScrtTestnet' () {
     return new Scrt.Testnet(scrtConfig.scrt.testnetChainId, {
       url: scrtConfig.scrt.testnetApiUrl
     })
   },
+
   async 'ScrtDevnet' () {
     const node = await getScrtDevnet_1_3().respawn()
     const url  = node.apiURL.toString()
     return new Scrt.Devnet(node.chainId, { url })
   },
+
 }
 
 type WrappedCommand<T> = (args: string[])=>Promise<T>
@@ -87,7 +95,7 @@ const ChainOps = {
     }
     const chain = await Chains[name]()
     const agent = await chain.getAgent()
-    //await print(console).agentBalance(agent)
+    console.log(agent)
     return { chain, agent, deployAgent: agent, clientAgent: agent }
   },
 
@@ -247,7 +255,8 @@ export class FadromaOps {
   Upload = FadromaOps.Upload
   Deploy = FadromaOps.Deploy
 
-  /** Call this with `import.meta.url` at the end of a command module. */
+  /** Call this with `import.meta.url` at the end of a command module.
+    * TODO get rid of this mechanic and use "fadroma run" + default exports */
   module (url: string): this {
     // if main
     if (process.argv[1] === fileURLToPath(url)) {
@@ -264,8 +273,9 @@ export class FadromaOps {
     runCommands.default(this.commands, commands)
   }
 
-  /** Establish correspondence between an input command
-    * and a series of procedures to execute */
+  /** Define a command. Establishes correspondence between
+    * an input command and a series of procedures to execute
+    * when calling run with a matching input */
   command (name: string, ...steps: Operation<any>[]) {
     const fragments = name.trim().split(' ')
     let commands: any = this.commands

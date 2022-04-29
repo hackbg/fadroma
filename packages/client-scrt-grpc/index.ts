@@ -1,5 +1,5 @@
+import { Agent, AgentOptions, ScrtGas, ScrtChain } from '@fadroma/client-scrt'
 import { SecretNetworkClient, Wallet } from 'secretjs'
-import { Chain, Agent, AgentOptions, Gas, Fees } from '@fadroma/client'
 import * as constants from './constants'
 
 export interface ScrtRPCAgentOptions extends AgentOptions {
@@ -12,7 +12,10 @@ export class ScrtRPCAgent extends Agent {
 
   Bundle = null
 
-  static async create (chain: Scrt, options: ScrtRPCAgentOptions) {
+  static async create (
+    chain:   Scrt,
+    options: ScrtRPCAgentOptions
+  ): Promise<ScrtRPCAgent> {
     const {
       mnemonic,
       keyPair,
@@ -76,26 +79,22 @@ export class ScrtRPCAgent extends Agent {
     return label
   }
 
-  async getCodeId (address: string): Promise<number> {
+  async getCodeId (address: string): Promise<string> {
     const { ContractInfo: { codeId } } = await this.api.query.compute.contractInfo(address)
-    return Number(codeId)
+    return codeId
   }
 
   async doQuery ({ address, codeHash }, query) {
     const contractAddress = address
-    return await this.api.query.compute.queryContract({ contractAddress, codeHash, query })
+    const args = { contractAddress, codeHash, query }
+    return await this.api.query.compute.queryContract(args)
   }
 
   async doInstantiate (template, label, initMsg, initFunds = []) {
     const { codeId, codeHash } = template
-    return await this.api.tx.compute.instantiateContract({
-      sender: this.address,
-      codeId,
-      codeHash,
-      initMsg,
-      label,
-      initFunds
-    })
+    const sender = this.address
+    const args = { sender, codeId, codeHash, initMsg, label, initFunds }
+    return await this.api.tx.compute.instantiateContract(args)
   }
 
   async doExecute (instance, msg, sentFunds, memo, fee) {
@@ -103,45 +102,21 @@ export class ScrtRPCAgent extends Agent {
     if (memo) {
       console.warn(constants.WARN_NO_MEMO)
     }
-    return await this.api.tx.compute.executeContract({
-      sender: this.address,
-      contractAddress: address,
-      codeHash,
-      msg,
-      sentFunds
-    })
+    const sender = this.address
+    const contractAddress = address
+    const args = { sender, contractAddress, codeHash, msg, sentFunds }
+    return await this.api.tx.compute.executeContract(args)
   }
 
 }
 
-export class Scrt extends Chain {
+export class Scrt extends ScrtChain {
+  static Mainnet = class ScrtMainnet extends ScrtChain.Mainnet {}
+  static Testnet = class ScrtTestnet extends ScrtChain.Testnet {}
+  static Devnet  = class ScrtDevnet  extends ScrtChain.Devnet  {}
+  static Mocknet = class ScrtTestnet extends ScrtChain.Mocknet {}
   static Agent = ScrtRPCAgent
   Agent = Scrt.Agent
-
-  static Mainnet = class ScrtMainnet extends Scrt {
-    mode = Chain.Mode.Mainnet
-  }
-  static Testnet = class ScrtTestnet extends Scrt {
-    mode = Chain.Mode.Testnet
-  }
-  static Devnet  = class ScrtTestnet extends Scrt {
-    mode = Chain.Mode.Devnet
-  }
-  static Mocknet = class ScrtTestnet extends Scrt {
-    mode = Chain.Mode.Mocknet
-  }
 }
 
-export class ScrtGas extends Gas {
-  static denom = 'uscrt'
-  static defaultFees: Fees = {
-    upload: new ScrtGas(4000000),
-    init:   new ScrtGas(1000000),
-    exec:   new ScrtGas(1000000),
-    send:   new ScrtGas( 500000),
-  }
-  constructor (x: number) {
-    super(x)
-    this.amount.push({amount: String(x), denom: ScrtGas.denom})
-  }
-}
+export * from '@fadroma/client-scrt'

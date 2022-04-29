@@ -1,0 +1,9 @@
+{
+  "name":    "@fadroma/client-scrt",
+  "version": "0.1.0",
+  "type":    "module",
+  "main":    "index.ts",
+  "dependencies": {
+    "@fadroma/client": "workspace:^0"
+  }
+}

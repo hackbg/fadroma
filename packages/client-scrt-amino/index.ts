@@ -1,4 +1,7 @@
-import { Chain, Agent, AgentOptions, Gas, Fees, Template, Instance } from '@fadroma/client'
+import {
+  Agent, AgentOptions, Fees, Template, Instance,
+  ScrtGas, ScrtChain
+} from '@fadroma/client-scrt'
 import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { Bip39 } from '@cosmjs/crypto'
 import {
@@ -31,7 +34,7 @@ export class LegacyScrtAgent extends Agent {
   static async create (
     chain:   LegacyScrt,
     options: LegacyScrtAgentOptions
-  ) {
+  ): Promise<LegacyScrtAgent> {
     const { name = 'Anonymous', ...args } = options
     let   { mnemonic, keyPair } = options
     switch (true) {
@@ -65,7 +68,7 @@ export class LegacyScrtAgent extends Agent {
   defaultDenomination = 'uscrt'
 
   constructor (
-    public readonly chain: LegacyScrt,
+    chain:   LegacyScrt,
     options: LegacyScrtAgentOptions = {}
   ) {
     super(chain, options)
@@ -284,29 +287,20 @@ export class LegacyScrtAgent extends Agent {
 export class LegacyScrtDeployer extends LegacyScrtAgent {
 }
 
-export class LegacyScrt extends Chain {
+export class LegacyScrt extends ScrtChain {
+  static Mainnet = class LegacyScrtMainnet extends ScrtChain.Mainnet {}
+  static Testnet = class LegacyScrtTestnet extends ScrtChain.Testnet {}
+  static Devnet  = class LegacyScrtDevnet  extends ScrtChain.Devnet  {}
+  static Mocknet = class LegacyScrtTestnet extends ScrtChain.Mocknet {}
   static Agent = LegacyScrtAgent
   Agent = LegacyScrt.Agent
+}
 
-  static Mainnet = class LegacyScrtMainnet extends LegacyScrt {
-    mode = Chain.Mode.Mainnet
-  }
-  static Testnet = class LegacyScrtTestnet extends LegacyScrt {
-    mode = Chain.Mode.Testnet
-  }
-  static Devnet  = class LegacyScrtTestnet extends LegacyScrt {
-    mode = Chain.Mode.Devnet
-  }
-  static Mocknet = class LegacyScrtTestnet extends LegacyScrt {
-    mode = Chain.Mode.Mocknet
-  }
-
-  async getNonce (address: string): Promise<ScrtNonce> {
-    const sign = () => {throw new Error('unreachable')}
-    const client = new SigningCosmWasmClient(this.url, address, sign)
-    const { accountNumber, sequence } = await client.getNonce()
-    return { accountNumber, sequence }
-  }
+export async function getNonce (url, address): Promise<ScrtNonce> {
+  const sign = () => {throw new Error('unreachable')}
+  const client = new SigningCosmWasmClient(url, address, sign)
+  const { accountNumber, sequence } = await client.getNonce()
+  return { accountNumber, sequence }
 }
 
 export class LegacyScrtBundle extends Bundle {
@@ -356,7 +350,7 @@ export class LegacyScrtBundle extends Bundle {
   }
 
   protected get nonce (): Promise<ScrtNonce> {
-    return this.chain.getNonce(this.agent.address)
+    return getNonce(this.chain, this.agent.address)
   }
 
   /** Queries are disallowed in the middle of a bundle because
@@ -528,16 +522,4 @@ export function mergeAttrs (attrs: {key:string,value:string}[]): any {
   return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
 }
 
-export class ScrtGas extends Gas {
-  static denom = 'uscrt'
-  static defaultFees: Fees = {
-    upload: new ScrtGas(4000000),
-    init:   new ScrtGas(1000000),
-    exec:   new ScrtGas(1000000),
-    send:   new ScrtGas( 500000),
-  }
-  constructor (x: number) {
-    super(x)
-    this.amount.push({amount: String(x), denom: ScrtGas.denom})
-  }
-}
+export * from '@fadroma/client-scrt'
