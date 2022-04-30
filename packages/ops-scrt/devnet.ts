@@ -11,7 +11,6 @@ export function getScrtDevnet_1_3 () {
   })
 }
 
-
 export function getScrtDevnet_1_2 (
   managerURL: string = config.devnetManager,
   chainId?:   string,

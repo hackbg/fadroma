@@ -19,7 +19,7 @@ export class ScrtRPCAgent extends Agent {
   ): Promise<ScrtRPCAgent> {
     const {
       mnemonic,
-      wallet,
+      wallet = new Wallet(mnemonic),
       keyPair,
       address
     } = options
