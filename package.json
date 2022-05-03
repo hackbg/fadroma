@@ -16,7 +16,7 @@
     "@hackbg/komandi": "workspace:^2",
     "@hackbg/konzola": "workspace:^1",
     "@hackbg/portali": "workspace:^1",
-    "@hackbg/runspec": "workspace:^1",
+    "@hackbg/runspec": "workspace:^2",
 
     "bech32":              "^2.0.0",
     "exponential-backoff": "^3.1.0",
