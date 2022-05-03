@@ -8,8 +8,8 @@ import copy from 'recursive-copy'
 
 // reexports
 export { mkdirp, symlinkDir, tmp, copy }
-export { existsSync, unlinkSync, readFileSync, writeFileSync, readdirSync, statSync, readlinkSync } from 'fs'
-export { readFile, writeFile, stat, unlink } from 'fs/promises'
+export * from 'fs'
+export * from 'fs/promises'
 export { homedir } from 'os'
 export { resolve, relative, dirname, basename, extname } from 'path'
 export { fileURLToPath } from 'url'

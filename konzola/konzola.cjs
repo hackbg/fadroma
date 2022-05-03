@@ -1,3 +1,17 @@
+const colors = require('colors')
+const { bold, red, green, yellow, magenta, inverse } = require('colors')
+module.exports.colors = colors
+module.exports.bold = colors.bold
+
+const { render } = require('prettyjson')
+module.exports.render = render
+
+const { prompts } = require('prompts')
+module.exports.prompts = prompts
+
+const { table } = require('table')
+module.exports.table = table
+
 module.exports         = Konzola
 module.exports.default = Konzola
 module.exports.Console = Konzola
@@ -7,8 +21,6 @@ const { cwd } = require('process')
 const { relative } = require('path')
 const { fileURLToPath } = require('url')
 const { render } = require('prettyjson')
-const { table } = require('table')
-const { bold, red, green, yellow, magenta, inverse } = require('colors')
 
 let maxContextLength = 0
 

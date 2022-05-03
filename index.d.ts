@@ -1,19 +1,6 @@
 /** This file only exists to make TSC shut up. */
-
 declare module '@hackbg/toolbox' {
 
-  const Console: (string) => {
-    constructor (string)
-    log   (...args: any)
-    info  (...args: any)
-    warn  (...args: any)
-    error (...args: any)
-    debug (...args: any)
-    trace (...args: any)
-  }
-
-  const bold:        (string)=>string
-  const colors:      Record<string, Function>
   const timestamp:   Function
   const runCommands: Function & { default: Function }
 
@@ -62,6 +49,7 @@ declare module '@hackbg/toolbox' {
 
 declare module '@hackbg/toolbox' {
 
+  export * from '@hackbg/konzola'
   export * from '@hackbg/kabinet'
   export * from '@hackbg/dokeres'
   export * from '@hackbg/runspec'
