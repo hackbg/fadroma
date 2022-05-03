@@ -26,11 +26,11 @@
   },
   "devDependencies": {
     "dts-gen":    "^0.6.0",
-    "typedoc":    "^0.21.9",
+    "typedoc":    "^0.22.15",
     "typescript": "^4.5.4"
   },
   "scripts": {
-    "document": "typedoc index.js"
+    "document": "typedoc index.d.ts"
   },
   "workspace": true,
   "packages": [

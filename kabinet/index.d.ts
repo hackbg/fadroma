@@ -22,6 +22,7 @@ declare module '@hackbg/kabinet' {
   export { cwd } from 'process'
 
   export const mkdir:  (...fragments: Path[]) => Path
+  export const mkdirp: Function & { sync: Function }
   export const rimraf: (path: Path)=>Promise<Path>
 
   export class Directory {
