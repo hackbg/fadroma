@@ -5,7 +5,7 @@ declare module '@hackbg/komandi' {
   export type RunCommands = <T>(
     commands: CommandPalette,
     words:    CommandInvocation,
-    usage:    CommandUsage
+    usage?:   CommandUsage
   ) => Promise<T>
   export default RunCommands
   export const runCommands: RunCommands
