@@ -1,32 +1,60 @@
-import Docker  from 'dockerode'
+import { Console, bold } from '@hackbg/konzola'
+const console = Console('Dokeres')
+
+import * as Docker from 'dockerode'
 export { Docker }
-
-import Console from '@hackbg/konzola'
-const console = Console('@hackbg/dokeres')
-
-import colors from 'colors'
-const { bold } = colors
 
 import { basename, dirname } from 'path'
 
+async function follow ({ modem }, stream, callback) {
+  await new Promise((ok, fail)=>{
+    modem.followProgress(stream, complete, callback)
+    function complete (err, _output) {
+      if (err) return fail(err)
+      ok()
+    }
+  })
+}
+
+export const socketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
+
+export class Dokeres {
+  constructor (dockerode = new Docker.Docker({ socketPath })) {
+    this.dockerode = dockerode
+  }
+  dockerode
+  image (name = null, dockerfile = null, extraFiles = []) {
+    return new DockerImage(this, name, dockerfile, extraFiles)
+  }
+}
+
 /** Represents a docker image for builder or devnet,
   * and can ensure its presence by pulling or building. */
-export class DockerImage {
+export class DokeresImage {
+
   constructor (
-    docker     = new Docker({ socketPath: process.env.DOCKER_HOST || '/var/run/docker.sock' }),
+    docker     = new Dokeres(),
     name       = null,
     dockerfile = null,
     extraFiles = []
   ) {
-    Object.assign(this, { docker, name, dockerfile, extraFiles })
+    if (!docker) {
+      throw new Error('DokeresImage: pass a Dokeres instance')
+    }
+    if (!name && !dockefile) {
+      throw new Error('DokeresImage: specify at least one of: name, dockerfile')
+    }
+    this.docker     = docker
+    this.name       = name
+    this.dockerfile = dockerfile
+    this.extraFiles = extraFiles
   }
 
-  #available = null
-
+  _available = null
   async ensure () {
-    if (this.#available) {
+    if (this._available) {
       //console.info(bold('Already ensuring image from parallel build:'), this.name)
-      return await this.#available
+      return await this._available
     } else {
       console.info(bold('Ensuring image:'), this.name)
       return await (this.#available = new Promise(async(resolve, reject)=>{
@@ -66,7 +94,7 @@ export class DockerImage {
     await new Promise((ok, fail)=>{
       docker.pull(name, async (err, stream) => {
         if (err) return fail(err)
-        await this.follow(stream, (event) => {
+        await follow(this.docker, stream, (event) => {
           if (event.error) {
             console.error(event.error)
             throw new Error(`Pulling ${name} failed.`)
@@ -86,28 +114,152 @@ export class DockerImage {
     const dockerfile = basename(this.dockerfile)
     const context    = dirname(this.dockerfile)
     const src        = [dockerfile, ...this.extraFiles]
-    const stream = await docker.buildImage({ context, src }, { t: this.name, dockerfile })
-    await this.follow(stream, (event) => {
-      if (event.error) {
-        console.error(event.error)
-        throw new Error(`Building ${name} from ${dockerfile} in ${context} failed.`)
-      }
-      console.info(
-        `📦 docker build says:`,
-        event.progress || event.status || event.stream || JSON.stringify(event)
-      )
-    })
+    await follow(
+      await docker.buildImage(
+        { context, src },
+        { t: this.name, dockerfile }
+      ),
+      (event) => {
+        if (event.error) {
+          console.error(event.error)
+          throw new Error(`Building ${name} from ${dockerfile} in ${context} failed.`)
+        }
+        console.info(
+          `📦 docker build says:`,
+          event.progress || event.status || event.stream || JSON.stringify(event)
+        )
+      })
   }
 
-  async follow (stream, callback) {
-    await new Promise((ok, fail)=>{
-      this.docker.modem.followProgress(stream, complete, callback)
-      function complete (err, _output) {
-        if (err) return fail(err)
-        ok()
-      }
-    })
+  async run (name, options, command, entrypoint) {
+    await this.ensure()
+    return await DockerContainer.run(
+      this,
+      name,
+      options,
+      command,
+      entrypoint
+    )
   }
+
+}
+
+export class DokeresContainer {
+
+  static buildConfig (
+    imageName,
+    name,
+    options = {
+      env:      {},
+      exposed:  [],
+      mapped:   {},
+      readonly: {},
+      writable: {},
+    },
+    command,
+    entrypoint,
+  ) {
+    const config = {
+      ...JSON.parse(JSON.stringify((options||{}).extra||{})), // "smart" clone
+      Image:      imageName,
+      Name:       name,
+      Entrypoint: entrypoint,
+      Cmd:        command,
+      Env:        Object.entries(options.env).map(([key, val])=>`${key}=${val}`),
+    }
+    config.ExposedPorts     = config.ExposedPorts     || []
+    config.HostConfig       = config.HostConfig       || {}
+    config.HostConfig.Binds = config.HostConfig.Binds || []
+    for (const containerPort of options.exposed) {
+      config.ExposedPorts[containerPort] = { /*docker api needs empty object here*/ }
+    }
+    for (const [containerPort, hostPort] of Object.entries(options.mapped)) {
+      config.HostConfig.PortBindings[container] = {HostPort: host}
+    }
+    for (const [hostPath, containerPath] of Object.entries(options.readonly)) {
+      config.HostConfig.Binds.push(`${hostPath}:${containerPath}:ro`)
+    }
+    for (const [hostPath, containerPath] of Object.entries(options.writable)) {
+      config.HostConfig.Binds.push(`${hostPath}:${containerPath}:rw`)
+    }
+    return config
+  }
+
+  static async run (
+    image, name, options, command, entrypoint,
+  ) {
+    const config = buildConfig(image.name, name, options, command, entrypoint)
+    await image.ensure()
+    const self = new this(image, name, options, command, entrypoint)
+    await self.create()
+    await self.start()
+    return self
+  }
+
+  constructor (image, name, options, command, entrypoint) {
+    this.docker    = image.docker || new Docker({ socketPath })
+    this.image     = image
+    this.config    = buildConfig(image.name, name, options, command, entrypoint)
+  }
+
+  docker
+  image
+  config
+  container
+
+  get id () {
+    return this.container.id
+  }
+
+  get shortId () {
+    return this.container.id.slice(0, 8)
+  }
+
+  async create () {
+    if (this.container) {
+      throw new Error('Container already created')
+    }
+    this.container = await this.docker.createContainer(config)
+    if (this.warnings) {
+      console.warn(`Creating container ${this.shortId} emitted warnings:`)
+      console.info(this.warnings)
+    }
+    return this
+  }
+
+  get warnings () {
+    return this.container.Warnings
+  }
+
+  async start () {
+    if (!this.container) await this.create()
+    await this.container.start()
+    return this
+  }
+
+  get isRunning () {
+    const { State: { Running } } = await this.container.inspect()
+    return Running
+  }
+
+  async kill () {
+    const id = this.shortId
+    const prettyId = bold(id.slice(0,8))
+    if (await this.isRunning(id)) {
+      console.info(`Stopping ${prettyId}...`)
+      await this.docker.getContainer(id).kill()
+      console.info(`Stopped ${prettyId}`)
+    } else {
+      console.warn(`Container already stopped: ${prettyId}`)
+    }
+    return this
+  }
+
+  async wait () {
+    await this.container.wait()
+    return this
+  }
+
 }
 
 /** The caveman solution to detecting when the node is ready to start receiving requests:
@@ -131,8 +283,10 @@ export function waitUntilLogsSay (
         }
         if (dataStr.indexOf(expected)>-1) {
           if (thenDetach) stream.destroy()
-          console.info(bold(`Waiting ${waitSeconds} seconds`), `for good measure...`)
-          return setTimeout(ok, waitSeconds * 1000)
+          if (waitSeconds > 0) {
+            console.info(bold(`Waiting ${waitSeconds} seconds`), `for good measure...`)
+            return setTimeout(ok, waitSeconds * 1000)
+          }
         }
       })
     })
