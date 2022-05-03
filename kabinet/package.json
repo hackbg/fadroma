@@ -10,11 +10,13 @@
   "license":      "MIT",
   "description":  "File utilities.",
   "dependencies": {
+    "js-yaml":        "^4.1.0",
     "mkdirp":         "^1.0.4",
     "recursive-copy": "^2.0.13",
     "rimraf":         "^3.0.2",
     "symlink-dir":    "^5.0.1",
-    "tmp":            "^0.2.1"
+    "tmp":            "^0.2.1",
+    "toml":           "^3"
   },
   "devDependencies": {
     "@types/mkdirp": "^1.0.2",

@@ -24,7 +24,7 @@ export class JSONDirectory extends Directory {
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
-    name = `${name}.json`
+    name = `${name}.${this.constructor.extension}`
     try {
       return JSON.parse(super.load(name))
     } catch (e) {

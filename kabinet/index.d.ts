@@ -35,6 +35,10 @@ declare module '@hackbg/kabinet' {
   }
 
   export class JSONDirectory extends Directory {}
+  export class YAMLDirectory extends Directory {}
+  export class TOMLDirectory extends Directory {}
+
+  export const withTmpDir:  ContextWrapper
 
   export class File {
     make: Function
@@ -44,12 +48,14 @@ declare module '@hackbg/kabinet' {
     save (_1: any): any
   }
 
-  export class JSONFile extends File {
-    constructor (_1: string, _2: string)
-  }
+  export class BinaryFile extends File {}
+  export class TextFile   extends File {}
+  export class JSONFile   extends TextFile {}
+  export class YAMLFile   extends TextFile {}
+  export class TOMLFile   extends TextFile {}
 
-  export const withTmpDir:  ContextWrapper
   export const withTmpFile: ContextWrapper
+
   type ContextWrapper = (ContextWrapped)=>void
   type ContextWrapped = <T>(path: string)=>T
 
