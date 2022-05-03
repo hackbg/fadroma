@@ -1,5 +1,6 @@
 declare module '@hackbg/dokeres' {
 
+  /** The interfaces provided by Dockerode that are used by Dokeres. */
   export class Dockerode {
     constructor (object)
     run?: Function
@@ -24,6 +25,7 @@ declare module '@hackbg/dokeres' {
     }
   }
 
+  /** The interfaces of a Dockerode container that are used by Dokeres. */
   export class DockerodeContainer {
     readonly id: string
     Warnings:    string[]
@@ -32,8 +34,10 @@ declare module '@hackbg/dokeres' {
     kill:        Promise<void>
   }
 
+  /** Follow the output stream from a Dockerode container until it closes. */
   export function follow (docker: Dockerode, stream: unknown, callback: Function): Promise<void>
 
+  /** Defaults to the `DOCKER_HOST` environment variable. */
   export const socketPath: string
 
   /** Wrapper around Dockerode.
@@ -74,7 +78,14 @@ declare module '@hackbg/dokeres' {
     ): Promise<DokeresContainer>
   }
 
-  export type DokeresConfig = object // TODO
+  export interface DokeresConfig {
+    env:      Record<string, string>
+    exposed:  string[]
+    mapped:   Record<string, string>
+    readonly: Record<string, string>
+    writable: Record<string, string>
+    extra:    object
+  }
 
   export type DokeresCommand = string|string[]
 

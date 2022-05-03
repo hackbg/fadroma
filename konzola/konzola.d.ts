@@ -9,7 +9,9 @@ declare module '@hackbg/konzola' {
 
   export { table } from 'table'
 
-  export type MakeConsole = (string) => {
+  export type MakeConsole = (string) => Console
+
+  export interface Console {
     constructor (string)
     log   (...args: any)
     info  (...args: any)
@@ -18,6 +20,7 @@ declare module '@hackbg/konzola' {
     debug (...args: any)
     trace (...args: any)
   }
+
   export const Console: MakeConsole
   export const Konzola: MakeConsole
   export default MakeConsole

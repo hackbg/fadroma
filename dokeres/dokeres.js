@@ -163,6 +163,7 @@ export class DokeresContainer {
       mapped:   {},
       readonly: {},
       writable: {},
+      extra:    {}
     },
     command,
     entrypoint,

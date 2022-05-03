@@ -4,14 +4,14 @@ The big box of everything that came in handy during the
 development of [Fadroma](https://fadroma.tech), the
 distributed application framework by [Hack.bg](https://hack.bg).
 
-Import this only if you're starting a new Node.js project and
-don't yet know which tools you need. This has the (contingent)
-benefit of importing all utilities from one single module, but
-is likely to pull in unneeded dependencies.
-
-This module also establishes a baseline for a future port of
-dependent Node projects, such as Fadroma, to [Deno](https://deno.land),
+This repo also establishes a baseline for a future port of
+dependent Node projects, such as Fadroma, to [Deno](https://deno.land) -
 should that be on our radars once again.
+
+Import the top-level module only if you're starting a new Node.js project
+and don't yet know which modules you need. This has the (dubious) benefit of
+importing all utilities from one single module, and is likely to pull
+in unneeded dependencies.
 
 Read on for a list of what's inside.
 
