@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "dts-gen":    "^0.6.0",
-    "typedoc":    "^0.22.15",
+    "typedoc":    "beta",
     "typescript": "^4.5.4"
   },
   "scripts": {
