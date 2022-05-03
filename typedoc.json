@@ -2,7 +2,12 @@
   "$schema": "https://typedoc.org/schema.json",
   "out": "docs",
   "entryPoints": [
-    "."
+    "./dokeres/dokeres.d.ts",
+    "./kabinet/index.d.ts",
+    "./komandi/komandi.d.ts",
+    "./konzola/konzola.d.ts",
+    "./runspec/runspec.d.ts",
+    "./index.d.ts"
   ],
-  "entryPointStrategy": "packages"
+  "entryPointStrategy": "expand"
 }

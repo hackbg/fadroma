@@ -26,6 +26,14 @@ declare module '@hackbg/dokeres' {
     }
   }
 
+  export class DockerodeContainer {
+    readonly id: string
+    Warnings:    string[]
+    inspect:     Promise<void>
+    start:       Promise<void>
+    kill:        Promise<void>
+  }
+
   export function follow (docker: Dockerode, stream: unknown, callback: Function): Promise<void>
 
   export const socketPath: string
@@ -37,15 +45,7 @@ declare module '@hackbg/dokeres' {
       name:        string|null,
       dockerfile:  string|null,
       extraFiles?: string[]
-    )
-  }
-
-  export class DockerodeContainer {
-    readonly id: string
-    Warnings:    string[]
-    inspect:     Promise<void>
-    start:       Promise<void>
-    kill:        Promise<void>
+    ): DokeresImage
   }
 
   export class DokeresImage {

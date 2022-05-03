@@ -58,6 +58,8 @@ importers:
 
   kabinet:
     specifiers:
+      '@types/mkdirp': ^1.0.2
+      '@types/tmp': ^0.2.3
       mkdirp: ^1.0.4
       recursive-copy: ^2.0.13
       rimraf: ^3.0.2
@@ -69,21 +71,29 @@ importers:
       rimraf: 3.0.2
       symlink-dir: 5.0.1
       tmp: 0.2.1
+    devDependencies:
+      '@types/mkdirp': 1.0.2
+      '@types/tmp': 0.2.3
 
   komandi:
     specifiers: {}
 
   konzola:
     specifiers:
+      '@types/prettyjson': ^0.0.30
+      '@types/prompts': ^2.0.14
       colors: 1.4.0
       prettyjson: github:slavaGanzin/prettyjson#d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       prompts: ^2.4.1
       table: ^6.6.0
     dependencies:
+      '@types/prettyjson': 0.0.30
       colors: 1.4.0
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       prompts: 2.4.2
       table: 6.8.0
+    devDependencies:
+      '@types/prompts': 2.0.14
 
   portali:
     specifiers:
@@ -96,8 +106,28 @@ importers:
 
 packages:
 
+  /@types/mkdirp/1.0.2:
+    resolution: {integrity: sha512-o0K1tSO0Dx5X6xlU5F1D6625FawhC3dU3iqr25lluNv/+/QIVH8RLNEiVokgIZo+mz+87w/3Mkg/VvQS+J51fQ==}
+    dependencies:
+      '@types/node': 17.0.31
+    dev: true
+
   /@types/node/17.0.31:
     resolution: {integrity: sha512-AR0x5HbXGqkEx9CadRH3EBYx/VkiUgZIhP4wvPn/+5KIsgpNoyFaRlVe0Zlx9gRtg8fA06a9tskE2MSN7TcG4Q==}
+    dev: true
+
+  /@types/prettyjson/0.0.30:
+    resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
+    dev: false
+
+  /@types/prompts/2.0.14:
+    resolution: {integrity: sha512-HZBd99fKxRWpYCErtm2/yxUZv6/PBI9J7N4TNFffl5JbrYMHBwF25DjQGTW3b3jmXq+9P6/8fCIb2ee57BFfYA==}
+    dependencies:
+      '@types/node': 17.0.31
+    dev: true
+
+  /@types/tmp/0.2.3:
+    resolution: {integrity: sha512-dDZH/tXzwjutnuk4UacGgFRwV+JSLaXL1ikvidfJprkb7L9Nx1njcRHHmi3Dsvt7pgqqTEeucQuOrWHPFgzVHA==}
     dev: true
 
   /@types/zen-observable/0.8.3:

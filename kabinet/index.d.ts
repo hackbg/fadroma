@@ -14,15 +14,12 @@ declare module '@hackbg/kabinet' {
   import copy from 'recursive-copy'
   export { copy }
 
-  export * from 'fs'
-  export * from 'fs/promises'
   export { homedir } from 'os'
   export { resolve, relative, dirname, basename, extname } from 'path'
   export { fileURLToPath } from 'url'
   export { cwd } from 'process'
 
   export const mkdir:  (...fragments: Path[]) => Path
-  export const mkdirp: Function & { sync: Function }
   export const rimraf: (path: Path)=>Promise<Path>
 
   export class Directory {
