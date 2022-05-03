@@ -18,12 +18,12 @@ Reexports `Docker` from `dockerode` for finer control.
 
 ```typescript
 await new Dokeres().image(
-  'my-org/my-build-image:v1',
-  '/path/to/my/Dockerfile',
-).run(
-  'build-my-thing', {
-     readonly: { '/my/project/sources':   '/sources'   }
-     writable: { '/my/project/artifacts': '/artifacts' }
-  }
+  'my-org/my-build-image:v1', // tries to pull this first
+  '/path/to/my/Dockerfile',   // builds from this manifest if pull fails
+).run(                                              // docker run                           \
+  'build-my-thing', {                               //   --name build-my-thing              \
+     readonly: { '/my/project/sources':   '/src'  } //   -v /my/project/sources:/sources:ro \
+     writable: { '/my/project/artifacts': '/dist' } //   -v /my/project/sources:/sources:rw \
+  }                                                 //   my-org/my-build-image:v1
 )
 ```

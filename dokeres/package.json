@@ -10,7 +10,6 @@
   "repository":   {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "dokeres"},
   "description":  "Docker utilities.",
   "dependencies": {
-    "colors":          "^1.4.0",
     "dockerode":       "^3.3.1",
     "@hackbg/konzola": "workspace:*"
   }

@@ -17,28 +17,35 @@ Read on for a list of what's inside.
 
 ## Contents
 
-* [**`@hackbg/dokeres`**](./dokeres) [![NPM version](https://img.shields.io/npm/v/@hackbg/dokeres?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/dokeres)
-  **Docker utilities.**
+### [**`@hackbg/dokeres`**](./dokeres) [![NPM version](https://img.shields.io/npm/v/@hackbg/dokeres?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/dokeres)
 
-* [**`@hackbg/forkers`**](./forkers) [![NPM version](https://img.shields.io/npm/v/@hackbg/forkers?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/forkers)
-  **Web worker wrapper.** Work in progress. Meant to do what Comlink doesn't.
+**Docker utilities.**
 
-* [**`@hackbg/kabinet`**](./kabinet) [![NPM version](https://img.shields.io/npm/v/@hackbg/kabinet?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/kabinet)
-  **Filesystem manipulation.**
+### [**`@hackbg/forkers`**](./forkers) [![NPM version](https://img.shields.io/npm/v/@hackbg/forkers?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/forkers)
 
-* [**`@hackbg/komandi`**](./komandi) [![NPM version](https://img.shields.io/npm/v/@hackbg/komandi?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/komandi)
-  **Simple command runner.**
+**Web worker wrapper.** Work in progress. Meant to do what Comlink doesn't.
 
-* [**`@hackbg/konzola`**](./konzola) [![NPM version](https://img.shields.io/npm/v/@hackbg/konzola?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/konzola)
-  **Pretty console output.**
+### [**`@hackbg/kabinet`**](./kabinet) [![NPM version](https://img.shields.io/npm/v/@hackbg/kabinet?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/kabinet)
 
-* [**`@hackbg/portali`**](./portali) [![NPM version](https://img.shields.io/npm/v/@hackbg/portali?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/portali)
-  **Network port utilities**
+**Filesystem manipulation.**
 
-* [**`@hackbg/runspec`**](./runspec) [![NPM version](https://img.shields.io/npm/v/@hackbg/runspec?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/runspec) -
-  **Minimal test runner and reporter.**
+### [**`@hackbg/komandi`**](./komandi) [![NPM version](https://img.shields.io/npm/v/@hackbg/komandi?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/komandi)
 
-* **Miscellaneous helpers and reexports:**
+**Simple command runner.**
+
+### [**`@hackbg/konzola`**](./konzola) [![NPM version](https://img.shields.io/npm/v/@hackbg/konzola?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/konzola)
+
+**Pretty console output.**
+
+### [**`@hackbg/portali`**](./portali) [![NPM version](https://img.shields.io/npm/v/@hackbg/portali?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/portali)
+
+**Network port utilities**
+
+### [**`@hackbg/runspec`**](./runspec) [![NPM version](https://img.shields.io/npm/v/@hackbg/runspec?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/runspec)
+
+**Minimal test runner and reporter.**
+
+### **Miscellaneous helpers and reexports:**
   * Generate random values in different formats (TODO `@hackbg/formati`)
   * ISO `timestamp` but in FS-friendly format
   * `pick` keys from object
