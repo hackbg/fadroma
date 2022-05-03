@@ -10,7 +10,7 @@ module.exports         = runSpec
 module.exports.default = runSpec
 module.exports.runSpec = runSpec
 
-async function runSpec (suites, selected = []) {
+async function runSpec (suites, selected = process.argv.slice(2)) {
 
   let passed = 0
   let failed = 0

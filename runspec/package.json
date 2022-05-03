@@ -1,11 +1,11 @@
 {
   "name":        "@hackbg/runspec",
-  "version":     "1.0.0",
+  "version":     "2.0.0",
   "main":        "index.js",
+  "types":       "index.d.ts",
   "homepage":    "https://github.com/hackbg/toolbox",
   "bugs":        "https://github.com/hackbg/toolbox/issues",
   "repository":  {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "runspec"},
   "license":     "MIT",
   "description": "Test runner."
 }
-

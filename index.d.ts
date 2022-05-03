@@ -64,6 +64,7 @@ declare module '@hackbg/toolbox' {
 
   export * from '@hackbg/kabinet'
   export * from '@hackbg/dokeres'
+  export * from '@hackbg/runspec'
   export * from 'bech32'
 
 }
