@@ -19,8 +19,16 @@ async function follow ({ modem }, stream, callback) {
 export const socketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
 
 export class Dokeres {
-  constructor (dockerode = new Docker.Docker({ socketPath })) {
-    this.dockerode = dockerode
+  constructor (dockerode) {
+    if (!dockerode) {
+      this.dockerode = new Docker.Docker({ socketPath })
+    } else if (typeof dockerode === 'object') {
+      this.dockerode = dockerode
+    } else if (typeof dockerode === 'string') {
+      this.dockerode = new Docker.Docker({ socketPath: dockerode })
+    } else {
+      throw new Error('Dokeres: invalid init')
+    }
   }
   dockerode
   image (name = null, dockerfile = null, extraFiles = []) {

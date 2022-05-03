@@ -1,10 +1,8 @@
 declare module '@hackbg/dokeres' {
 
-  export * as Docker from 'dockerode'
-
   export class Dockerode {
     constructor (object)
-    run?:            Function
+    run?: Function
     getImage (): {
       inspect (): Promise<any>
     }
@@ -38,9 +36,14 @@ declare module '@hackbg/dokeres' {
 
   export const socketPath: string
 
+  /** Wrapper around Dockerode.
+    * Used to optain `DokeresImage` instances. */
   export class Dokeres {
+    /** By default, creates an instance of Dockerode
+      * connected to env `DOCKER_HOST`. You can also pass
+      * your own Dockerode instance or socket path. */
     constructor (dockerode: Dockerode|string)
-    dockerode: Dockerode
+    readonly dockerode: Dockerode
     image (
       name:        string|null,
       dockerfile:  string|null,
@@ -48,10 +51,11 @@ declare module '@hackbg/dokeres' {
     ): DokeresImage
   }
 
+  /** Interface to a Docker image. */
   export class DokeresImage {
     name: string
     constructor (
-      docker:      Dockerode|undefined,
+      dokeres:     Dokeres,
       name:        string|null,
       dockerfile:  string|null,
       extraFiles?: string[]
@@ -74,6 +78,7 @@ declare module '@hackbg/dokeres' {
 
   export type DokeresCommand = string|string[]
 
+  /** Interface to a Docker container. */
   export class DokeresContainer {
     static run (
       image:       DokeresImage,
