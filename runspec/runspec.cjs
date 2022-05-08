@@ -82,3 +82,10 @@ async function runSpec (suites, selected = process.argv.slice(2)) {
   }
 
 }
+
+if (require.main === module) {
+  const index = require('path').resolve(process.cwd(), process.argv[2])
+  import(index).then(index=>{
+    runSpec(index.default, process.argv.slice(3))
+  })
+}
