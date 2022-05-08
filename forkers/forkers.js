@@ -59,3 +59,8 @@ export class Backend extends MessageChannel {
     throw new Error(`Backend#respond(${this.channel}): not implemented`)
   }
 }
+
+export function isWorker () {
+  const isWindowContext = typeof self !== "undefined" && typeof Window !== "undefined" && self instanceof Window
+  return typeof self !== "undefined" && self.postMessage && !isWindowContext ? true : false
+}

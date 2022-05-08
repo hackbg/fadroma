@@ -23,4 +23,6 @@ declare module '@hackbg/forkers' {
     abstract respond <Arg, Ret> (op: Op, arg: Arg): Promise<Ret>
   }
 
+  export function isWorker (): boolean
+
 }
