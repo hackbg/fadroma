@@ -1,4 +1,4 @@
-import { Agent, AgentOptions, ScrtGas, ScrtChain } from '@fadroma/client-scrt'
+import { Agent, AgentOptions, ScrtChain, Template } from '@fadroma/client-scrt'
 import { SecretNetworkClient, Wallet } from 'secretjs'
 import * as constants from './constants'
 
@@ -109,6 +109,20 @@ export class ScrtRPCAgent extends Agent {
     return await this.api.tx.compute.executeContract(args)
   }
 
+  async upload(data: Uint8Array): Promise<Template> {
+    const sender = this.address
+    const args = {sender, wasmByteCode: data, source: "", builder: ""}
+    const uploadResult = await this.api.tx.compute.storeCode(args)
+    const codeId = uploadResult.arrayLog?.find(
+      (log) => log.type === "message" && log.key === "code_id"
+    )?.value
+    const codeHash = await this.api.query.compute.codeHash(Number(codeId))
+    return {
+      chainId: this.chain.id,
+      codeId,
+      codeHash,
+    }
+  }
 }
 
 export class Scrt extends ScrtChain {
