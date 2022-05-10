@@ -14,7 +14,7 @@ import { config } from './Config'
 
 const console = Console('Fadroma Build')
 
-export const DEFAULT_REF  = 'HEAD'
+export const DEFAULT_REF = 'HEAD'
 
 export function distinct <T> (x: T[]): T[] {
   return [...new Set(x)]

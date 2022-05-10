@@ -1,13 +1,13 @@
-import { Console, bold } from '@hackbg/konzola'
-import { JSONDirectory } from '@hackbg/kabinet'
 import { cwd } from 'process'
 import { relative, basename } from 'path'
-import {
-  readFileSync, writeFileSync, existsSync,
-  mkdir, readFile, writeFile,
-} from 'fs'
+import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { mkdir, readFile, writeFile } from 'fs/promises'
+
+import { Console, bold } from '@hackbg/konzola'
+import { JSONDirectory } from '@hackbg/kabinet'
 
 import type { Agent } from '@fadroma/client'
+
 import { config } from './Config'
 import { Artifact, codeHashForPath } from './Build'
 import { getUploads } from './State'

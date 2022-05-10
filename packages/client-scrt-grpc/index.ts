@@ -1,4 +1,4 @@
-import { Agent, AgentOptions, ScrtChain, Template } from '@fadroma/client-scrt'
+import { Agent, AgentOptions, ScrtChain, ScrtGas, Template } from '@fadroma/client-scrt'
 import { SecretNetworkClient, Wallet } from 'secretjs'
 import * as constants from './constants'
 
@@ -44,10 +44,8 @@ export class ScrtRPCAgent extends Agent {
 
   constructor (chain: Scrt, options: ScrtRPCAgentOptions) {
     super(chain, options)
-
-    this.wallet = options.wallet
-    this.api    = options.api
-
+    this.wallet  = options.wallet
+    this.api     = options.api
     this.address = this.wallet?.address
   }
 
@@ -93,9 +91,10 @@ export class ScrtRPCAgent extends Agent {
 
   async instantiate (template, label, initMsg, initFunds = []) {
     const { codeId, codeHash } = template
-    const sender = this.address
-    const args = { sender, codeId, codeHash, initMsg, label, initFunds }
-    return await this.api.tx.compute.instantiateContract(args)
+    const sender   = this.address
+    const args     = { sender, codeId, codeHash, initMsg, label, initFunds }
+    const gasLimit = Number(ScrtGas.defaultFees.init.amount[0].amount)
+    return await this.api.tx.compute.instantiateContract(args, { gasLimit })
   }
 
   async execute (instance, msg, sentFunds, memo, fee) {
@@ -103,20 +102,20 @@ export class ScrtRPCAgent extends Agent {
     if (memo) {
       console.warn(constants.WARN_NO_MEMO)
     }
-    const sender = this.address
-    const contractAddress = address
-    const args = { sender, contractAddress, codeHash, msg, sentFunds }
-    return await this.api.tx.compute.executeContract(args)
+    const sender   = this.address
+    const args     = { sender, contractAddress: address, codeHash, msg, sentFunds }
+    const gasLimit = Number(ScrtGas.defaultFees.exec.amount[0].amount)
+    return await this.api.tx.compute.executeContract(args, { gasLimit })
   }
 
-  async upload(data: Uint8Array): Promise<Template> {
-    const sender = this.address
-    const args = {sender, wasmByteCode: data, source: "", builder: ""}
-    const uploadResult = await this.api.tx.compute.storeCode(args)
-    const codeId = uploadResult.arrayLog?.find(
-      (log) => log.type === "message" && log.key === "code_id"
-    )?.value
-    const codeHash = await this.api.query.compute.codeHash(Number(codeId))
+  async upload (data: Uint8Array): Promise<Template> {
+    const sender     = this.address
+    const args       = {sender, wasmByteCode: data, source: "", builder: ""}
+    const gasLimit   = Number(ScrtGas.defaultFees.upload.amount[0].amount)
+    const result     = await this.api.tx.compute.storeCode(args, { gasLimit })
+    const findCodeId = (log) => log.type === "message" && log.key === "code_id"
+    const codeId     = result.arrayLog?.find(findCodeId)?.value
+    const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     return {
       chainId: this.chain.id,
       codeId,
