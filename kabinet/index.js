@@ -37,5 +37,7 @@ export const withTmpFile = fn => {
 }
 
 // originals
-export * from './sync'
-export * from './sync-json'
+export * from './sync.js'
+export * from './sync-json.js'
+export * from './sync-toml.js'
+export * from './sync-yaml.js'
