@@ -12,7 +12,7 @@ importers:
       '@fadroma/tokens': workspace:*
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/runspec': ^2.1.0
-      '@hackbg/toolbox': ^2.0.3
+      '@hackbg/toolbox': ^2.0.4
       '@types/node': ^16.11.33
       body-parser: ^1.20.0
       c8: ^7.11.2
@@ -30,7 +30,7 @@ importers:
       '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/ganesha': 2.0.3
-      '@hackbg/toolbox': 2.0.3
+      '@hackbg/toolbox': 2.0.4
       '@types/node': 16.11.33
     devDependencies:
       '@hackbg/runspec': 2.1.0
@@ -83,12 +83,12 @@ importers:
   packages/ops:
     specifiers:
       '@fadroma/client': workspace:^0.1.0
-      '@hackbg/dokeres': ^1.0.5
+      '@hackbg/dokeres': ^1
       '@hackbg/ganesha': ^2.0.3
-      '@hackbg/kabinet': ^1.0.4
-      '@hackbg/konzola': ^1.0.5
-      '@hackbg/portali': ^1.0.0
-      '@hackbg/toolbox': ^2.0.3
+      '@hackbg/kabinet': ^1
+      '@hackbg/konzola': ^1
+      '@hackbg/portali': ^1
+      '@hackbg/toolbox': ^2
       '@iov/crypto': ^2.5.0
       '@iov/encoding': ^2.5.0
       ajv: ^8.11.0
@@ -105,10 +105,10 @@ importers:
     dependencies:
       '@fadroma/client': link:../client
       '@hackbg/dokeres': 1.0.5
-      '@hackbg/kabinet': 1.0.4
+      '@hackbg/kabinet': 1.0.5
       '@hackbg/konzola': 1.0.5
       '@hackbg/portali': 1.0.0
-      '@hackbg/toolbox': 2.0.3
+      '@hackbg/toolbox': 2.0.4
       '@iov/crypto': 2.5.0
       '@iov/encoding': 2.5.0
       ajv: 8.11.0
@@ -453,8 +453,8 @@ packages:
       chokidar: 3.5.3
       cross-spawn: 7.0.3
 
-  /@hackbg/kabinet/1.0.4:
-    resolution: {integrity: sha512-sVGyZhh2iLrxJWp7gyj8NLuBRNNEMFXCRVJjeaxUbQrKPxfyHPhYCo042vtgpZHHfhu9jdXJNNwsqR66scoWLg==}
+  /@hackbg/kabinet/1.0.5:
+    resolution: {integrity: sha512-lautd0EdWLM8SjXA0h9+xSQhnqJ/UzNjcjAKgB5D6fhsITLLSSv1gvmMnDXzWa2plxVLnnw0p+OTwc/ONCkb0w==}
     dependencies:
       js-yaml: 4.1.0
       mkdirp: 1.0.4
@@ -498,11 +498,11 @@ packages:
     resolution: {integrity: sha512-hpTSPPlspbUl6bhT5p6XCI51L11wf840eRU7Xt1ZO3LBF6fr+AVRG39a/qpLSt9MBF0Z7hnORrfxgxsoJVjd9A==}
     hasBin: true
 
-  /@hackbg/toolbox/2.0.3:
-    resolution: {integrity: sha512-t6A/9vnYkRFSich1Ib73J5IOFBLgEfSnZ8hAA8OUPQHod7IfmRcZ/q03FfQS1DEHXn1w7T/E1q9HzgaYPq1TXw==}
+  /@hackbg/toolbox/2.0.4:
+    resolution: {integrity: sha512-kuMYOWHMPyhQTiZfed5C9eQd57Ba/suVW9Lo6tUqvWj5aUyLtnExBJmGx+3H0fsana7GKk7ENtf8aKFuNS0tZA==}
     dependencies:
       '@hackbg/dokeres': 1.0.5
-      '@hackbg/kabinet': 1.0.4
+      '@hackbg/kabinet': 1.0.5
       '@hackbg/komandi': 2.0.3
       '@hackbg/konzola': 1.0.5
       '@hackbg/portali': 1.0.0

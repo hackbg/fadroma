@@ -7,7 +7,9 @@ export function getScrtDevnet_1_3 () {
     image: new DockerImage(
       undefined,
       'enigmampc/secret-network-sw-dev:v1.3.0-beta.0'
-    )
+    ),
+    readyPhrase: "indexed block",
+    initScript:  resolve(__dirname, 'devnet_1_2.sh')
   })
 }
 
