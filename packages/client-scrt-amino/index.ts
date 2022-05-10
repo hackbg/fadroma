@@ -1,6 +1,6 @@
 import {
-  Agent, AgentOptions, Fees, Template, Instance,
-  ScrtGas, ScrtChain, ScrtBundle, ScrtBundleResult
+  AgentOptions, Fees, Template, Instance,
+  ScrtGas, ScrtChain, ScrtAgent, ScrtBundle, ScrtBundleResult
 } from '@fadroma/client-scrt'
 import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { Bip39 } from '@cosmjs/crypto'
@@ -32,7 +32,9 @@ export interface LegacyScrtAgentOptions extends AgentOptions {
   fees?:    Fees
 }
 
-export class LegacyScrtAgent extends Agent {
+export class LegacyScrtAgent extends ScrtAgent {
+
+  Bundle = LegacyScrtBundle
 
   static async create (
     chain:   LegacyScrt,
@@ -65,19 +67,6 @@ export class LegacyScrtAgent extends Agent {
       ...args
     })
   }
-
-  Bundle = LegacyScrtBundle
-
-  /** Start a new transaction bundle. */
-  bundle () {
-    if (!this.Bundle) {
-      throw new Error(constants.ERR_NO_BUNDLE)
-    }
-    return new this.Bundle(this)
-  }
-
-  fees   = ScrtGas.defaultFees
-  defaultDenomination = 'uscrt'
 
   constructor (
     chain:   LegacyScrt,

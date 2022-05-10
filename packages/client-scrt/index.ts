@@ -6,6 +6,8 @@ import {
   Instance, Client, ClientCtor, ClientOptions
 } from '@fadroma/client'
 
+import * as constants from './constants'
+
 export class ScrtGas extends Gas {
   static denom = 'uscrt'
   static defaultFees: Fees = {
@@ -21,6 +23,28 @@ export class ScrtGas extends Gas {
 }
 
 export class ScrtChain extends Chain {}
+
+export abstract class ScrtAgent extends Agent {
+
+  abstract Bundle: ScrtBundleCtor<any>
+
+  /** Start a new transaction bundle. */
+  bundle () {
+    if (!this.Bundle) {
+      throw new Error(constants.ERR_NO_BUNDLE)
+    }
+    return new this.Bundle(this)
+  }
+
+  fees = ScrtGas.defaultFees
+
+  defaultDenomination = 'uscrt'
+
+}
+
+export interface ScrtBundleCtor <B extends ScrtBundle> {
+  new (agent: ScrtAgent): B
+}
 
 export type ScrtBundleWrapper = (bundle: ScrtBundle) => Promise<any>
 

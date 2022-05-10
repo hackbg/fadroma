@@ -1,4 +1,4 @@
-import { Agent, AgentOptions, ScrtChain, ScrtGas, ScrtBundle, Template } from '@fadroma/client-scrt'
+import { ScrtAgent, AgentOptions, ScrtChain, ScrtGas, ScrtBundle, Template } from '@fadroma/client-scrt'
 import { SecretNetworkClient, Wallet } from 'secretjs'
 import * as constants from './constants'
 
@@ -9,7 +9,7 @@ export interface ScrtRPCAgentOptions extends AgentOptions {
   keyPair?: unknown
 }
 
-export class ScrtRPCAgent extends Agent {
+export class ScrtRPCAgent extends ScrtAgent {
 
   Bundle = ScrtRPCBundle
 
