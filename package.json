@@ -30,7 +30,8 @@
     "typescript": "^4.5.4"
   },
   "scripts": {
-    "document": "typedoc index.d.ts"
+    "document":    "typedoc index.d.ts",
+    "publish-all": "pnpm -r publish --access public"
   },
   "workspace": true,
   "packages": [
