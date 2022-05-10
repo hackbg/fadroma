@@ -24,7 +24,7 @@ export class TOMLDirectory extends Directory {
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
-    name = `${name}.${TOMLDirectory.extension}`
+    name = `${name}${TOMLDirectory.extension}`
     try {
       return TOML.parse(super.load(name))
     } catch (e) {

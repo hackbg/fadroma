@@ -24,7 +24,7 @@ export class YAMLDirectory extends Directory {
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
-    name = `${name}.${YAMLDirectory.extension}`
+    name = `${name}${YAMLDirectory.extension}`
     try {
       return YAML.parse(super.load(name))
     } catch (e) {
