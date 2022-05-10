@@ -15,11 +15,11 @@
     "@fadroma/ops":               "workspace:*",
     "@fadroma/ops-scrt":          "workspace:*",
     "@fadroma/tokens":            "workspace:*",
-    "@hackbg/ganesha":            "workspace:*",
-    "@hackbg/toolbox":            "workspace:*"
+    "@hackbg/ganesha":            "^2",
+    "@hackbg/toolbox":            "^2"
   },
   "devDependencies": {
-    "@hackbg/runspec": "workspace:*",
+    "@hackbg/runspec": "^2",
     "c8":              "^7.11.0",
     "pug":             "^3.0.2",
     "js-yaml":         "^4.1.0",

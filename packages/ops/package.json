@@ -5,7 +5,7 @@
   "main": "./index.ts",
   "dependencies": {
     "@fadroma/client":           "workspace:^0",
-    "@hackbg/toolbox":           "workspace:^1",
+    "@hackbg/toolbox":           "^2",
     "@iov/crypto":               "^2.1.0",
     "@iov/encoding":             "^2.1.0",
     "ajv":                       "^8.6",
@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "tap": "^15.0.9",
-    "@hackbg/ganesha": "workspace:*"
+    "@hackbg/ganesha": "^2"
   },
   "scripts": {
     "test": "ganesha-node index.spec.js.md"
