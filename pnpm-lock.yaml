@@ -39,9 +39,11 @@ importers:
     specifiers:
       '@hackbg/konzola': workspace:*
       '@types/dockerode': ^3.3.8
+      colors: ^1.4.0
       dockerode: ^3.3.1
     dependencies:
       '@hackbg/konzola': link:../konzola
+      colors: 1.4.0
       dockerode: 3.3.1
     devDependencies:
       '@types/dockerode': 3.3.8
@@ -63,17 +65,21 @@ importers:
     specifiers:
       '@types/mkdirp': ^1.0.2
       '@types/tmp': ^0.2.3
+      js-yaml: ^4.1.0
       mkdirp: ^1.0.4
       recursive-copy: ^2.0.13
       rimraf: ^3.0.2
       symlink-dir: ^5.0.1
       tmp: ^0.2.1
+      toml: ^3
     dependencies:
+      js-yaml: 4.1.0
       mkdirp: 1.0.4
       recursive-copy: 2.0.14
       rimraf: 3.0.2
       symlink-dir: 5.0.1
       tmp: 0.2.1
+      toml: 3.0.0
     devDependencies:
       '@types/mkdirp': 1.0.2
       '@types/tmp': 0.2.3
@@ -202,6 +208,10 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       color-convert: 2.0.1
+    dev: false
+
+  /argparse/2.0.1:
+    resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
     dev: false
 
   /array-differ/1.0.0:
@@ -622,6 +632,13 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       is-docker: 2.2.1
+    dev: false
+
+  /js-yaml/4.1.0:
+    resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
+    hasBin: true
+    dependencies:
+      argparse: 2.0.1
     dev: false
 
   /json-schema-traverse/1.0.0:
@@ -1131,6 +1148,10 @@ packages:
     engines: {node: '>=8.17.0'}
     dependencies:
       rimraf: 3.0.2
+    dev: false
+
+  /toml/3.0.0:
+    resolution: {integrity: sha512-y/mWCZinnvxjTKYhJ+pYxwD0mRLVvOtdS2Awbgxln6iEnt4rk0yBxeSBHkGJcPucRiG0e55mwWp+g/05rsrd6w==}
     dev: false
 
   /tweetnacl/0.14.5:

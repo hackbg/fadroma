@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/konzola",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "konzola.cjs",
   "types": "konzola.d.ts",
   "license": "MIT",
