@@ -49,13 +49,12 @@ function Konzola (context) {
 
 }
 
-module.exports = Object.assign(Konzola, {
-  colors,
-  bold: colors.bold,
-  render,
-  prompts,
-  table,
-  default: Konzola,
-  Console: Konzola,
-  Konzola: Konzola
-})
+module.exports         = Konzola
+module.exports.default = Konzola
+module.exports.Console = Konzola
+module.exports.Konzola = Konzola
+module.exports.colors  = colors
+module.exports.bold    = colors.bold
+module.exports.render  = render
+module.exports.prompts = prompts
+module.exports.table   = table
