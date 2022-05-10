@@ -8,33 +8,33 @@
   "main": "./index.ts",
   "type": "module",
   "dependencies": {
-    "@types/node":                "^16.11.19",
-    "@fadroma/client":            "workspace:*",
+    "@fadroma/client": "workspace:*",
     "@fadroma/client-scrt-amino": "workspace:*",
-    "@fadroma/client-scrt-grpc":  "workspace:*",
-    "@fadroma/ops":               "workspace:*",
-    "@fadroma/ops-scrt":          "workspace:*",
-    "@fadroma/tokens":            "workspace:*",
-    "@hackbg/ganesha":            "^2",
-    "@hackbg/toolbox":            "^2"
+    "@fadroma/client-scrt-grpc": "workspace:*",
+    "@fadroma/ops": "workspace:*",
+    "@fadroma/ops-scrt": "workspace:*",
+    "@fadroma/tokens": "workspace:*",
+    "@hackbg/ganesha": "^2.0.3",
+    "@hackbg/toolbox": "^2.0.3",
+    "@types/node": "^16.11.33"
   },
   "devDependencies": {
-    "@hackbg/runspec": "^2",
-    "c8":              "^7.11.0",
-    "pug":             "^3.0.2",
-    "js-yaml":         "^4.1.0",
-    "typedoc":         "^0.21.9",
-    "typescript":      "^4.5.4",
-    "freeport-async":  "^2.0.0",
-    "body-parser":     "^1.19.0",
-    "express":         "^4.17.1"
+    "@hackbg/runspec": "^2.1.0",
+    "body-parser": "^1.20.0",
+    "c8": "^7.11.2",
+    "express": "^4.18.1",
+    "freeport-async": "^2.0.0",
+    "js-yaml": "^4.1.0",
+    "pug": "^3.0.2",
+    "typedoc": "^0.21.10",
+    "typescript": "^4.6.4"
   },
   "scripts": {
-    "render":   "node doc/render.js",
+    "render": "node doc/render.js",
     "document": "typedoc index.ts",
-    "test":     "time ganesha-node spec/index.js",
-    "cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ganesha-node spec/index.js",
-    "lcov":     "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ganesha-node spec/index.js"
+    "test": "time ganesha-node spec/index.js",
+    "cov": "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ganesha-node spec/index.js",
+    "lcov": "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ganesha-node spec/index.js"
   },
   "bin": {
     "fadroma": "fadroma.cjs"

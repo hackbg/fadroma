@@ -1,4 +1,6 @@
-import { resolve, homedir, dirname, fileURLToPath } from '@hackbg/toolbox'
+import { resolve, dirname } from 'path'
+import { homedir } from 'os'
+import { fileURLToPath } from 'url'
 
 export interface EnvVars {
 

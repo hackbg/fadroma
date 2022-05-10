@@ -1,13 +1,14 @@
 import * as HTTP from 'http'
+import { resolve, relative, basename } from 'path'
+import { cwd } from 'process'
+import { spawnSync, execFile } from 'child_process'
+import { existsSync, readFileSync } from 'fs'
 import { Transform } from 'stream'
 import LineTransformStream from 'line-transform-stream'
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
-import {
-  Console, bold, resolve, relative, cwd, basename,
-  spawnSync, execFile, existsSync, readFileSync,
-  Docker, DockerImage
-} from '@hackbg/toolbox'
+import { Console, bold } from '@hackbg/konzola'
+import { Docker, DockerImage } from '@hackbg/dokeres'
 
 import { config } from './Config'
 

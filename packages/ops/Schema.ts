@@ -1,15 +1,14 @@
-import {
-  loadJSON,
-  writeFileSync, readdirSync, readFileSync,
-  resolve, basename, dirname,
-  Console, bold,
-  cargo
-} from '@hackbg/toolbox'
+import { writeFileSync, readdirSync, readFileSync } from 'fs'
+import { resolve, basename, dirname } from 'path'
+import { Console, bold } from '@hackbg/konzola'
+import { cargo } from '@hackbg/toolbox'
 import { compileFromFile } from 'json-schema-to-typescript'
 import TOML from 'toml'
 import { Agent } from './Agent'
 
 const console = Console('@fadroma/ops/schema')
+
+const loadJSON = () => { throw new Error('loadJSON: deprecated') }
 
 export function loadSchemas (
   base:    string,

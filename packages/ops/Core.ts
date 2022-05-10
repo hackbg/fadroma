@@ -1,6 +1,9 @@
-import { config } from './Config'
-import { colors, bold, Console, resolve, readFileSync, existsSync } from '@hackbg/toolbox'
+import { resolve } from 'path'
+import { readFileSync, existsSync } from 'fs'
+import { Console, bold, colors } from '@hackbg/konzola'
 import { Sha256 } from '@iov/crypto'
+
+import { config } from './Config'
 
 const console = Console('Fadroma Ops')
 

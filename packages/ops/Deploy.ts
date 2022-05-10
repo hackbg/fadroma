@@ -1,21 +1,20 @@
 import { symlinkSync, lstatSync } from 'fs'
+import { relative, resolve, basename, extname, dirname } from 'path'
+import { cwd } from 'process'
+import { existsSync, statSync, readFileSync, writeFileSync, readlinkSync, unlinkSync, readdirSync } from 'fs'
 
-import {
-  Console, bold, colors, timestamp, backOff,
-  relative, resolve, basename, extname, dirname, cwd,
-  existsSync, statSync, readFileSync, writeFileSync,
-  readlinkSync, unlinkSync,
-  Directory, mkdirp, readdirSync,
-} from '@hackbg/toolbox'
+import { Console, bold, colors } from '@hackbg/konzola'
+import { timestamp, backOff } from '@hackbg/toolbox'
+import { Directory, mkdirp } from '@hackbg/kabinet'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
-
-const console = Console('Fadroma Deploy')
 
 import type { Client, ClientCtor, Agent, Chain } from '@fadroma/client'
 import { Template, Label, InitMsg, Instance, Message, join } from './Core'
 import { print } from './Print'
 import { config } from './Config'
+
+const console = Console('Fadroma Deploy')
 
 export const addPrefix = (prefix, name) => `${prefix}/${name}`
 

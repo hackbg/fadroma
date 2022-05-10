@@ -1,8 +1,11 @@
+import { Console, bold } from '@hackbg/konzola'
+import { JSONDirectory } from '@hackbg/kabinet'
+import { cwd } from 'process'
+import { relative, basename } from 'path'
 import {
-  Console, bold, cwd, readFileSync, writeFileSync,
-  existsSync, mkdir, readFile, writeFile, relative, basename,
-  JSONDirectory
-} from '@hackbg/toolbox'
+  readFileSync, writeFileSync, existsSync,
+  mkdir, readFile, writeFile,
+} from 'fs'
 
 import type { Agent } from '@fadroma/client'
 import { config } from './Config'

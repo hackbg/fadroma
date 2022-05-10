@@ -16,10 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { readFileSync, decode, Console, bold, colors, randomBech32, bech32 } from '@hackbg/toolbox'
+import { readFileSync } from 'fs'
+import { URL } from 'url'
+
+import { Console, bold, colors } from '@hackbg/konzola'
+import { randomBech32, bech32 } from '@hackbg/toolbox'
+
 import { Chain, Agent, AgentOptions } from '@fadroma/client'
 import { Artifact, Template, Instance } from '@fadroma/ops'
-import { URL } from 'url'
 
 declare class TextDecoder {
   decode (data: any): string
