@@ -1,4 +1,4 @@
-import { Agent, AgentOptions, ScrtChain, ScrtGas, Template } from '@fadroma/client-scrt'
+import { Agent, AgentOptions, ScrtChain, ScrtGas, ScrtBundle, Template } from '@fadroma/client-scrt'
 import { SecretNetworkClient, Wallet } from 'secretjs'
 import * as constants from './constants'
 
@@ -11,7 +11,7 @@ export interface ScrtRPCAgentOptions extends AgentOptions {
 
 export class ScrtRPCAgent extends Agent {
 
-  Bundle = null
+  Bundle = ScrtRPCBundle
 
   static async create (
     chain:   Scrt,
@@ -127,6 +127,26 @@ export class ScrtRPCAgent extends Agent {
 export class Scrt extends ScrtChain {
   static Agent = ScrtRPCAgent
   Agent = Scrt.Agent
+}
+
+export class ScrtRPCBundle extends ScrtBundle {
+  agent: ScrtRPCAgent
+  async instantiateMany (configs) {
+    return {}
+  }
+  async instantiate (template, label, msg, funds = []) {
+  }
+  async init (template, label, msg, funds = []) {
+    return this
+  }
+  async execute (instance, msg, funds = []) {
+    return this
+  }
+  async submit (memo = "") {
+    return []
+  }
+  async save (name) {
+  }
 }
 
 export * from '@fadroma/client-scrt'
