@@ -23,14 +23,17 @@ export interface DevnetOptions {
   identities?: Array<string>
   /** Path to directory where state will be stored. */
   stateRoot?: string,
+  /** Port to connect to. */
+  port?: number
 }
 
 export abstract class Devnet {
 
   /** Creates an object representing a devnet.
     * Use the `respawn` method to get it running. */
-  constructor ({ chainId, identities, stateRoot }: DevnetOptions) {
+  constructor ({ chainId, identities, stateRoot, port }: DevnetOptions) {
     this.chainId = chainId || this.chainId
+    this.port    = port    || this.port
     if (!this.chainId) {
       throw new Error(
         '@fadroma/ops/Devnet: refusing to create directories for devnet with empty chain id'
@@ -40,30 +43,26 @@ export abstract class Devnet {
       this.genesisAccounts = identities
     }
     stateRoot = stateRoot || resolve(config.projectRoot, 'receipts', this.chainId)
-    this.stateRoot  = new Directory(stateRoot)
-    this.nodeState  = new JSONFile(stateRoot, 'node.json')
+    this.stateRoot = new Directory(stateRoot)
+    this.nodeState = new JSONFile(stateRoot, 'node.json')
   }
 
   /** The chain ID that will be passed to the devnet node. */
   chainId: string = 'fadroma-devnet'
 
-  /** The API URL that can be used to talk to the devnet. */
-  apiURL: URL = new URL('http://localhost:1317')
-
   /** The protocol of the API URL without the trailing colon. */
-  get protocol (): string {
-    const { protocol } = this.apiURL
-    return protocol.slice(0, protocol.length - 1)
-  }
+  protocol = 'http'
 
   /** The hostname of the API URL. */
-  get host (): string {
-    return this.apiURL.hostname
-  }
+  host     = 'localhost'
 
-  /** The port of the API URL. */
-  get port (): string {
-    return this.apiURL.port
+  /** The port of the API URL.
+    * If `null`, `freePort` will be used to obtain a random port. */
+  port     = null
+
+  /** The API URL that can be used to talk to the devnet. */
+  get apiURL (): URL {
+    return new URL(`${this.protocol}://${this.host}:${this.port}`)
   }
 
   /** This directory is created to remember the state of the devnet setup. */
@@ -212,8 +211,10 @@ export class DockerodeDevnet extends Devnet {
   async spawn () {
     // tell the user that we have begun
     console.info(`Spawning new node...`)
-    // get a free port
-    this.apiURL.port = String(await freePort())
+    // if no port is specified, use a random port
+    if (!this.port) {
+      this.port = await freePort()
+    }
     // create the state dirs and files
     const items = [this.stateRoot, this.nodeState]
     for (const item of items) {
@@ -420,7 +421,7 @@ export class DockerodeDevnet extends Devnet {
       Domainname:   chainId,
       ExposedPorts: { [`${port}/tcp`]: {} },
       HostConfig:   { NetworkMode: 'bridge'
-                    , AutoRemove:   true
+                    //, AutoRemove:   true
                     , Binds:
                       [ `${initScript}:${initScriptName}:ro`
                       , `${stateRoot.path}:/receipts/${chainId}:rw` ]
