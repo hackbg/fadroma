@@ -1,12 +1,12 @@
 /** This is the latest version of the SigningCosmWasmClient async broadcast/retry patch. */
 
-import { SigningCosmWasmClient, BroadcastMode, InstantiateResult, ExecuteResult } from 'secretjs'
+import { SigningCosmWasmClient, BroadcastMode } from 'secretjs'
 
 export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
-  private _queryUrl: string = ''
+  _queryUrl = ''
 
-  private _queryClient: any = null
+  _queryClient = null
 
   get queryClient () {
     if (this._queryClient) return this._queryClient
@@ -15,12 +15,11 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     })).catch(e=>{
       console.warn('Failed to create query client:', e.message, ' - falling back to default client')
       console.error(e)
-      // @ts-ignore
       return this.client
     })
   }
 
-  async get (path: string): Promise<any> {
+  async get (path) {
     const client = await this.queryClient
     const { data } = await client.get(path).catch(parseAxiosError)
     if (data === null) {
@@ -35,21 +34,21 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   resultRetries      = 20
   resultRetryDelay   = 3000
 
-  async instantiate (codeId, initMsg, label, memo?, transferAmount?, fee?, hash?) {
+  async instantiate (codeId, initMsg, label, memo, transferAmount, fee, hash) {
     let {transactionHash:id} = await super.instantiate(
       codeId, initMsg, label, memo, transferAmount, fee, hash
     )
-    return await this.getTxResult(id) as unknown as InstantiateResult
+    return await this.getTxResult(id)
   }
 
-  async execute (contractAddress, handleMsg, memo?, transferAmount?, fee?, contractCodeHash?) {
+  async execute (contractAddress, handleMsg, memo, transferAmount, fee, contractCodeHash) {
     let {transactionHash:id} = await super.execute(
       contractAddress, handleMsg, memo, transferAmount, fee, contractCodeHash
     )
-    return await this.getTxResult(id) as unknown as ExecuteResult
+    return await this.getTxResult(id)
   }
 
-  async waitForNextBlock (sent: number) {
+  async waitForNextBlock (sent) {
     while (true) {
       await new Promise(ok=>setTimeout(ok, this.blockQueryInterval))
       const now = (await this.getBlock()).header.height
@@ -57,7 +56,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     }
   }
 
-  async waitForNextNonce (sent: number) {
+  async waitForNextNonce (sent) {
     // TODO
     //while (true) {
       //await new Promise(ok=>setTimeout(ok, this.blockQueryInterval))
@@ -66,12 +65,12 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     //}
   }
 
-  async postTx (tx: any): Promise<any> {
+  async postTx (tx) {
 
     //console.trace('postTx', tx.msg)
 
-    const info = (...args:any) => console.info('[@fadroma/scrt/postTx]', ...args)
-    const warn = (...args:any) => console.warn('[@fadroma/scrt/postTx]', ...args)
+    const info = (...args) => console.info('[@fadroma/scrt/postTx]', ...args)
+    const warn = (...args) => console.warn('[@fadroma/scrt/postTx]', ...args)
 
     // 0. Validate that we're not sending an empty transaction
     if (!tx || !tx.msg || !tx.msg.length || tx.msg.length < 1) {
@@ -87,7 +86,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     }
 
     // 2. Loop until we run out of retries or a TX result is successfully obtained.
-    let id: string|null = null
+    let id = null
     let submitRetries = this.submitRetries
     while (submitRetries--) {
 
@@ -140,10 +139,10 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   }
 
-  async getTxResult (id: string) {
+  async getTxResult (id) {
 
-    const info = (...args:any) => console.info('[@fadroma/scrt/getTxResult]', ...args)
-    const warn = (...args:any) => console.warn('[@fadroma/scrt/getTxResult]', ...args)
+    const info = (...args) => console.info('[@fadroma/scrt/getTxResult]', ...args)
+    const warn = (...args) => console.warn('[@fadroma/scrt/getTxResult]', ...args)
 
     // 1. Loop until we run out of retires or we successfully get a TX result
     let resultRetries = this.resultRetries
@@ -154,7 +153,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
         // 2. Try getting the transaction by id
         info(`[@fadroma/scrt] Requesting result of TX ${id}`)
         const result = await this.restClient.txById(id)
-        const {raw_log, logs = []} = result as any
+        const {raw_log, logs = []} = result
 
         // 3. If the raw log contains a known failure message, throw error
         if (!this.shouldRetry(raw_log, true)) {
@@ -184,9 +183,9 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   }
 
-  private shouldRetry (message: string, isActuallyOk: boolean = false): boolean {
+  shouldRetry (message, isActuallyOk = false) {
 
-    const warn = (...args:any) => console.warn('[@fadroma/scrt/shouldRetry]', ...args)
+    const warn = (...args) => console.warn('[@fadroma/scrt/shouldRetry]', ...args)
 
     if (message.includes('does not support Amino serialization')) {
       warn('Protocol mismatch, not retrying')
@@ -228,10 +227,10 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
 }
 
-function parseAxiosError (err: any): never {
+function parseAxiosError (err) {
   // use the error message sent from server, not default 500 msg
   if (err.response?.data) {
-    let errorText: string
+    let errorText
     const data = err.response.data
     // expect { error: string }, but otherwise dump
     if (data.error && typeof data.error === "string") {

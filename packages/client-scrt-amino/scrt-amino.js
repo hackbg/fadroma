@@ -1,8 +1,4 @@
-import {
-  AgentOptions, Fees, Template, Instance,
-  ScrtGas, ScrtChain, ScrtAgent, ScrtBundle, ScrtBundleResult,
-  mergeAttrs
-} from '@fadroma/client-scrt'
+import { ScrtGas, ScrtChain, ScrtAgent, ScrtBundle, mergeAttrs } from '@fadroma/client-scrt'
 import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { Bip39 } from '@cosmjs/crypto'
 import {
@@ -10,55 +6,35 @@ import {
   EnigmaUtils,
   Secp256k1Pen, encodeSecp256k1Pubkey, pubkeyToAddress, makeSignBytes,
   SigningCosmWasmClient,
-  ExecuteResult
 } from 'secretjs'
 import { backOff } from 'exponential-backoff'
 
 import { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
 import * as constants from './scrt-amino-constants'
 
-export interface ScrtNonce {
-  accountNumber: number
-  sequence:      number
-}
-
-interface SigningPen {
-  pubkey: Uint8Array,
-  sign:   Function
-}
-
-export interface LegacyScrtAgentOptions extends AgentOptions {
-  keyPair?: { privkey: Uint8Array }
-  pen?:     SigningPen
-  fees?:    Fees
-}
-
 export class LegacyScrtAgent extends ScrtAgent {
 
   Bundle = LegacyScrtBundle
 
-  static async create (
-    chain:   LegacyScrt,
-    options: LegacyScrtAgentOptions
-  ): Promise<LegacyScrtAgent> {
+  static async create (chain, options) {
     const { name = 'Anonymous', ...args } = options
     let   { mnemonic, keyPair } = options
     switch (true) {
       case !!mnemonic:
         // if keypair doesnt correspond to the mnemonic, delete the keypair
-        if (keyPair && mnemonic !== (Bip39.encode(keyPair.privkey) as any).data) {
+        if (keyPair && mnemonic !== Bip39.encode(keyPair.privkey).data) {
           console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
           keyPair = null
         }
         break
       case !!keyPair:
         // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-        mnemonic = (Bip39.encode(keyPair.privkey) as any).data
+        mnemonic = Bip39.encode(keyPair.privkey).data
         break
       default:
         // if there is neither, generate a new keypair and corresponding mnemonic
         keyPair  = EnigmaUtils.GenerateNewKeyPair()
-        mnemonic = (Bip39.encode(keyPair.privkey) as any).data
+        mnemonic = Bip39.encode(keyPair.privkey).data
     }
     return new LegacyScrtAgent(chain, {
       name,
@@ -69,10 +45,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     })
   }
 
-  constructor (
-    chain:   LegacyScrt,
-    options: LegacyScrtAgentOptions = {}
-  ) {
+  constructor (chain, options = {}) {
     super(chain, options)
     this.name     = options?.name || ''
     this.fees     = options?.fees || ScrtGas.defaultFees
@@ -87,12 +60,12 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
   }
 
-  readonly keyPair:  any
-  readonly mnemonic: any
-  readonly pen:      SigningPen
-  readonly sign:     any
-  readonly pubkey:   any
-  readonly seed:     any
+  keyPair
+  mnemonic
+  pen
+  sign
+  pubkey
+  seed
 
   API = PatchedSigningCosmWasmClient_1_2
 
@@ -115,7 +88,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     return this.api.getAccount(this.address)
   }
 
-  async send (recipient: any, amount: string|number, denom = 'uscrt', memo = "") {
+  async send (recipient, amount, denom = 'uscrt', memo = "") {
     if (typeof amount === 'number') amount = String(amount)
     return await this.api.sendTokens(recipient, [{denom, amount}], memo)
   }
@@ -126,8 +99,8 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
     const from_address = this.address
     //const {accountNumber, sequence} = await this.api.getNonce(from_address)
-    let accountNumber: any
-    let sequence:      any
+    let accountNumber
+    let sequence
     const msg = await Promise.all(txs.map(async ([to_address, amount])=>{
       ({accountNumber, sequence} = await this.api.getNonce(from_address)) // increment nonce?
       if (typeof amount === 'number') amount = String(amount)
@@ -138,7 +111,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async getHash (idOrAddr: number|string): Promise<string> {
+  async getHash (idOrAddr) {
     const { api } = this
     return this.rateLimited(async function getCodeHashInner () {
       if (typeof idOrAddr === 'number') {
@@ -151,7 +124,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     })
   }
 
-  async checkCodeHash (address: string, codeHash?: string) {
+  async checkCodeHash (address, codeHash) {
     // Soft code hash checking for now
     const realCodeHash = await this.getHash(address)
     if (codeHash !== realCodeHash) {
@@ -163,7 +136,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
   }
 
-  async upload (data: Uint8Array): Promise<Template> {
+  async upload (data) {
     if (!(data instanceof Uint8Array)) {
       throw new Error(constants.ERR_UPLOAD_BINARY)
     }
@@ -198,7 +171,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
   }
 
-  async getCodeId (address: string): Promise<string> {
+  async getCodeId (address) {
     const { api } = this
     return await this.rateLimited(async function getCodeIdInner () {
       const { codeId } = await api.getContract(address)
@@ -206,7 +179,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     })
   }
 
-  async getLabel (address: string): Promise<string> {
+  async getLabel (address) {
     const { api } = this
     return await this.rateLimited(async function getLabelInner () {
       const { label } = await api.getContract(address)
@@ -214,20 +187,16 @@ export class LegacyScrtAgent extends ScrtAgent {
     })
   }
 
-  async query <T, U> (
-    { address, codeHash }: Instance, msg: T
-  ): Promise<U> {
+  async query ({ address, codeHash }, msg) {
     const { api } = this
     return await this.rateLimited(function doQueryInner () {
-      return api.queryContractSmart(address, msg as any, undefined, codeHash)
+      return api.queryContractSmart(address, msg, undefined, codeHash)
     })
   }
 
   // @ts-ignore
-  async execute <T> (
-    { address, codeHash }: Instance, msg: T, memo: any, amount: any, fee: any
-  ): Promise<ExecuteResult> {
-    return await this.api.execute(address, msg as any, memo, amount, fee, codeHash)
+  async execute ({ address, codeHash }, msg, memo, amount, fee) {
+    return await this.api.execute(address, msg, memo, amount, fee, codeHash)
   }
 
   async encrypt (codeHash, msg) {
@@ -248,11 +217,11 @@ export class LegacyScrtAgent extends ScrtAgent {
     )
   }
 
-  private initialWait = 1000
+  initialWait = 1000
 
-  config: any
+  config
 
-  private async rateLimited <T> (fn: ()=>Promise<T>): Promise<T> {
+  async rateLimited (fn) {
     //console.log('rateLimited', fn)
     let initialWait = 0
     if (this.chain.isMainnet && this.config?.datahub?.rateLimit) {
@@ -268,7 +237,7 @@ export class LegacyScrtAgent extends ScrtAgent {
       jitter:        'full',
       startingDelay: 100 + initialWait,
       timeMultiple:  3,
-      retry (error: Error, attempt: number) {
+      retry (error, attempt) {
         if (error.message.includes('500')) {
           console.warn(`Error 500, retry #${attempt}...`)
           console.error(error.message)
@@ -283,6 +252,7 @@ export class LegacyScrtAgent extends ScrtAgent {
       }
     })
   }
+
 }
 
 export class LegacyScrt extends ScrtChain {
@@ -292,15 +262,15 @@ export class LegacyScrt extends ScrtChain {
 
 export class LegacyScrtBundle extends ScrtBundle {
 
-  agent: LegacyScrtAgent
+  agent
 
   static bundleCounter = 0
 
-  protected get nonce (): Promise<ScrtNonce> {
+  get nonce () {
     return getNonce(this.chain, this.agent.address)
   }
 
-  protected async encrypt (codeHash, msg) {
+  async encrypt (codeHash, msg) {
     return this.agent.encrypt(codeHash, msg)
   }
 
@@ -320,7 +290,7 @@ export class LegacyScrtBundle extends ScrtBundle {
   }
 
   /** Format the messages for API v1 like secretjs and encrypt them. */
-  private async buildForSubmit () {
+  async buildForSubmit () {
     const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
@@ -335,7 +305,7 @@ export class LegacyScrtBundle extends ScrtBundle {
     return encrypted
   }
 
-  private collectSubmitResults (msgs, txResult) {
+  collectSubmitResults (msgs, txResult) {
     const results = []
     for (const i in msgs) {
       results[i] = {
@@ -345,19 +315,19 @@ export class LegacyScrtBundle extends ScrtBundle {
         chainId: this.chain.id
       }
       if (msgs[i].type === 'wasm/MsgInstantiateContract') {
-        const attrs = mergeAttrs(txResult.logs[i].events[0].attributes as any[])
-        results[i].label   = (msgs[i] as any).value.label,
+        const attrs = mergeAttrs(txResult.logs[i].events[0].attributes)
+        results[i].label   = msgs[i].value.label,
         results[i].address = attrs.contract_address
         results[i].codeId  = attrs.code_id
       }
       if (msgs[i].type === 'wasm/MsgExecuteContract') {
-        results[i].address = (msgs[i] as any).contract
+        results[i].address = msgs[i].contract
       }
     }
     return results
   }
 
-  private async handleSubmitError (err) {
+  async handleSubmitError (err) {
     try {
       console.error('Submitting bundle failed:', err.message)
       console.error('Trying to decrypt...')
@@ -384,7 +354,7 @@ export class LegacyScrtBundle extends ScrtBundle {
     * and generate a multisig-ready unsigned transaction bundle;
     * don't execute it, but save it in `receipts/$CHAIN_ID/transactions`
     * and output a signing command for it to the console. */
-  async save (name: string): Promise<void> {
+  async save (name) {
     // number of bundle, just for identification in console
     const N = ++LegacyScrtBundle.bundleCounter
     name = name || `TX.${N}.${+new Date()}`
@@ -405,8 +375,8 @@ export class LegacyScrtBundle extends ScrtBundle {
     ))
   }
 
-  private async buildForSave (msgs) {
-    const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
+  async buildForSave (msgs) {
+    const encrypted = await Promise.all(msgs.map(({init, exec})=>{
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         return this.encrypt(codeHash, msg).then(msg=>init2(sender, String(codeId), label, msg, funds))
@@ -420,7 +390,7 @@ export class LegacyScrtBundle extends ScrtBundle {
     return encrypted
   }
 
-  private finalizeForSave (messages, memo) {
+  finalizeForSave (messages, memo) {
     const finalUnsignedTx = {
       body: {
         messages,
@@ -435,7 +405,7 @@ export class LegacyScrtBundle extends ScrtBundle {
       },
       signatures: []
     }
-    ;(finalUnsignedTx.auth_info.fee as any).gas_limit = finalUnsignedTx.auth_info.fee.gas
+    finalUnsignedTx.auth_info.fee.gas_limit = finalUnsignedTx.auth_info.fee.gas
     delete finalUnsignedTx.auth_info.fee.gas
     return finalUnsignedTx
   }
@@ -464,7 +434,7 @@ const exec2 = (sender, contract, msg, sent_funds) => ({
   sender, contract, msg, sent_funds,
 })
 
-export async function getNonce (url, address): Promise<ScrtNonce> {
+export async function getNonce (url, address) {
   const sign = () => {throw new Error('unreachable')}
   const client = new SigningCosmWasmClient(url, address, sign)
   const { accountNumber, sequence } = await client.getNonce()

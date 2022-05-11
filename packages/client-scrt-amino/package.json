@@ -4,9 +4,6 @@
   "type":    "module",
   "main":    "scrt-amino.js",
   "types":   "scrt-amino.d.ts",
-  "ganesha": {
-    "main": "scrt-amino.ts"
-  },
   "dependencies": {
     "@fadroma/client-scrt": "^1",
     "@cosmjs/crypto":       "^0.20.0",
