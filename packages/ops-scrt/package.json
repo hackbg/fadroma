@@ -5,7 +5,7 @@
   "main":    "index.ts",
   "dependencies": {
     "@fadroma/ops":               "workspace:^0",
-    "@fadroma/client-scrt-amino": "workspace:^0",
-    "@fadroma/client-scrt-grpc":  "workspace:^0"
+    "@fadroma/client-scrt-amino": "workspace:^1",
+    "@fadroma/client-scrt-grpc":  "workspace:^1"
   }
 }

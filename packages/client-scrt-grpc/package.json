@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/client-scrt-grpc",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type":    "module",
   "main":    "scrt-grpc.js",
   "types":   "scrt-grpc.d.ts",
@@ -8,7 +8,7 @@
     "main": "scrt-grpc.ts"
   },
   "dependencies": {
-    "@fadroma/client-scrt": "workspace:^0",
+    "@fadroma/client-scrt": "workspace:^1",
     "secretjs":             "beta"
   },
   "devDependencies": {

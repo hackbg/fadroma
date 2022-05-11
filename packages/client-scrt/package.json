@@ -5,12 +5,6 @@
   "main":    "scrt.js",
   "types":   "scrt.d.ts",
   "dependencies": {
-    "@fadroma/client": "workspace:^0"
-  },
-  "devDependencies": {
-    "typescript": "^4.6.4"
-  },
-  "scripts": {
-    "build": "tsc"
+    "@fadroma/client": "workspace:^1"
   }
 }

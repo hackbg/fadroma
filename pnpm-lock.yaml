@@ -53,18 +53,19 @@ importers:
 
   packages/client-scrt:
     specifiers:
-      '@fadroma/client': workspace:^0
+      '@fadroma/client': workspace:^1
     dependencies:
       '@fadroma/client': link:../client
 
   packages/client-scrt-amino:
     specifiers:
       '@cosmjs/crypto': ^0.20.0
-      '@fadroma/client-scrt': workspace:^0
+      '@fadroma/client-scrt': workspace:^1
       '@iov/encoding': ^2.1.0
       axios: ^0.26.0
       exponential-backoff: ^3.1.0
       secretjs: 0.17.5
+      typescript: ^4.6.4
     dependencies:
       '@cosmjs/crypto': 0.20.1
       '@fadroma/client-scrt': link:../client-scrt
@@ -73,18 +74,23 @@ importers:
       secretjs: 0.17.5
     optionalDependencies:
       axios: 0.26.1
+    devDependencies:
+      typescript: 4.6.4
 
   packages/client-scrt-grpc:
     specifiers:
-      '@fadroma/client-scrt': workspace:^0
+      '@fadroma/client-scrt': workspace:^1
       secretjs: beta
+      typescript: ^4.6.4
     dependencies:
       '@fadroma/client-scrt': link:../client-scrt
       secretjs: 1.2.0-beta.68
+    devDependencies:
+      typescript: 4.6.4
 
   packages/ops:
     specifiers:
-      '@fadroma/client': workspace:^0.1.0
+      '@fadroma/client': workspace:^1
       '@hackbg/dokeres': ^1
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/kabinet': ^1
@@ -129,8 +135,8 @@ importers:
 
   packages/ops-scrt:
     specifiers:
-      '@fadroma/client-scrt-amino': workspace:^0
-      '@fadroma/client-scrt-grpc': workspace:^0
+      '@fadroma/client-scrt-amino': workspace:^1
+      '@fadroma/client-scrt-grpc': workspace:^1
       '@fadroma/ops': workspace:^0
     dependencies:
       '@fadroma/client-scrt-amino': link:../client-scrt-amino
@@ -761,10 +767,6 @@ packages:
 
   /@types/node/16.11.34:
     resolution: {integrity: sha512-UrWGDyLAlQ2Z8bNOGWTsqbP9ZcBeTYBVuTRNxXTztBy5KhWUFI3BaeDWoCP/CzV/EVGgO1NTYzv9ZytBI9GAEw==}
-    dev: false
-
-  /@types/node/17.0.30:
-    resolution: {integrity: sha512-oNBIZjIqyHYP8VCNAV9uEytXVeXG2oR0w9lgAXro20eugRQfY002qr3CUl6BAe+Yf/z3CRjPdz27Pu6WWtuSRw==}
     dev: false
 
   /@types/node/17.0.31:
@@ -3038,7 +3040,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.1
-      '@types/node': 17.0.30
+      '@types/node': 17.0.32
       long: 4.0.0
     dev: false
 
