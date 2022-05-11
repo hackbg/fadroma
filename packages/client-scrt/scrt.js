@@ -62,7 +62,7 @@ export class ScrtAgent extends Agent {
 
 export class ScrtBundle {
 
-  constructor (agent: Agent) {
+  constructor (agent) {
     this.agent = agent
   }
 
