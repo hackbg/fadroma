@@ -14,8 +14,8 @@ import {
 } from 'secretjs'
 import { backOff } from 'exponential-backoff'
 
-import { PatchedSigningCosmWasmClient_1_2 } from './patch'
-import * as constants from './constants'
+import { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
+import * as constants from './scrt-amino-constants'
 
 export interface ScrtNonce {
   accountNumber: number

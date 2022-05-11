@@ -7,7 +7,7 @@ import {
   SecretNetworkClient, Wallet,
   MsgInstantiateContract, MsgExecuteContract
 } from 'secretjs'
-import * as constants from './constants'
+import * as constants from './scrt-grpc-constants'
 
 export interface ScrtRPCAgentOptions extends AgentOptions {
   wallet?:  Wallet

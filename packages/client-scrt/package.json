@@ -1,9 +1,16 @@
 {
   "name":    "@fadroma/client-scrt",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type":    "module",
-  "main":    "index.ts",
+  "main":    "scrt.js",
+  "types":   "scrt.d.ts",
   "dependencies": {
     "@fadroma/client": "workspace:^0"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.4"
+  },
+  "scripts": {
+    "build": "tsc"
   }
 }

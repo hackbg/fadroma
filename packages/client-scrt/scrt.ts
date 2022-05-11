@@ -6,7 +6,7 @@ import {
   Instance, Client, ClientCtor, ClientOptions,
 } from '@fadroma/client'
 
-import * as constants from './constants'
+import * as constants from './scrt-constants'
 
 export class ScrtGas extends Gas {
   static denom = 'uscrt'
