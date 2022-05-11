@@ -91,9 +91,7 @@ export class ScrtRPCAgent extends ScrtAgent {
   }
 
   async getHash (address: string): Promise<string> {
-    const { ContractInfo: { codeId } } = await this.api.query.compute.contractInfo(address)
-    const { codeInfo: { codeHash } } = await this.api.query.compute.code(Number(codeId))
-    return codeHash
+    return await this.api.query.compute.contractCodeHash(address)
   }
 
   async query ({ address, codeHash }, query) {
