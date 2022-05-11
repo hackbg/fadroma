@@ -24,8 +24,7 @@
     "wasm-ffi": "^0.3.0"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "^2.0.3",
-    "tap": "^15.2.3"
+    "@hackbg/ganesha": "^2.0.3"
   },
   "scripts": {
     "test": "ganesha-node index.spec.js.md"
