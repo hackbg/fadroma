@@ -40,6 +40,24 @@ export abstract class ScrtAgent extends Agent {
 
   defaultDenomination = 'uscrt'
 
+  /** Instantiate multiple contracts from a bundled transaction. */
+  async instantiateMany (
+    configs: [Template, string, object][],
+  ): Promise<Instance[]> {
+    const instances = await this.bundle().wrap(async bundle=>{
+      await bundle.instantiateMany(configs)
+    })
+    // add code hashes to them:
+    for (const i in configs) {
+      const [template, label, initMsg] = configs[i]
+      const instance = instances[i]
+      if (instance) {
+        instance.codeHash = template.codeHash
+      }
+    }
+    return instances
+  }
+
 }
 
 export interface ScrtBundleCtor <B extends ScrtBundle> {
@@ -71,6 +89,12 @@ export abstract class ScrtBundle implements Executor {
     return this
   }
 
+  /** Populate and execute bundle */
+  async wrap (cb: ScrtBundleWrapper, memo: string = "") {
+    await cb(this)
+    return this.run(memo)
+  }
+
   /** Execute the bundle if not nested;
     * decrement the depth if nested. */
   run (memo: string): Promise<ScrtBundleResult[]|null> {
@@ -81,12 +105,6 @@ export abstract class ScrtBundle implements Executor {
     } else {
       return this.submit(memo)
     }
-  }
-
-  /** Populate and execute bundle */
-  async wrap (cb: ScrtBundleWrapper) {
-    await cb(this)
-    return this.run("")
   }
 
   protected id: number = 0
@@ -175,7 +193,7 @@ export abstract class ScrtBundle implements Executor {
     return { chainId: this.agent.chain.id, codeId, codeHash }
   }
 
-  /** Add multiple MsgInstantiateContract to the bundle,
+  /** Add multiple MsgInstantiateContract messages to the bundle,
     * one for each contract config. */
   async instantiateMany (
     configs: [Template, string, object][],

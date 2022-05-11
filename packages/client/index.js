@@ -39,16 +39,16 @@ export class Chain {
     return this.mode === Chain.Mode.Mocknet
   }
   query (contract, msg) {
-    throw 'not implemented'
+    throw new Error('Chain#query: not implemented')
   }
   getCodeId (address) {
-    throw 'not implemented'
+    throw new Error('Chain#getCodeId: not implemented')
   }
   getLabel (address) {
-    throw 'not implemented'
+    throw new Error('Chain#getLabel: not implemented')
   }
   getHash (address) {
-    throw 'not implemented'
+    throw new Error('Chain#getHash: not implemented')
   }
   Agent = Agent
   async getAgent (options = {}) {
@@ -95,16 +95,16 @@ export class Agent {
     return new Client(this, options)
   }
   execute (contract, msg) {
-    throw new Error('not implemented')
+    throw new Error('Agent#execute: not implemented')
   }
   upload (blob) {
-    throw new Error('not implemented')
+    throw new Error('Agent#upload: not implemented')
   }
   uploadMany (blobs = []) {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
   instantiate (template, label, msg) {
-    throw new Error('not implemented')
+    throw new Error('Agent#instantiate: not implemented')
   }
   instantiateMany (configs = []) {
     return Promise.all(configs.map(
@@ -112,6 +112,9 @@ export class Agent {
         codeHash: template.codeHash
       })
     ))
+  }
+  async bundle () {
+    throw new Error('Agent#bundle: not implemented')
   }
 }
 

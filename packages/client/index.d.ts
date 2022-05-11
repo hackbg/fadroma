@@ -103,6 +103,7 @@ declare module '@fadroma/client' {
     uploadMany      (blobs: Uint8Array[])
     instantiate     (template: Template, label: string, msg: object)
     instantiateMany (configs: [Template, string, object][])
+    bundle      <T> (): T
   }
 
   export interface ClientOptions extends Instance {}

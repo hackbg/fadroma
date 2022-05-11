@@ -198,24 +198,6 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
   }
 
-  /** Instantiate multiple contracts from a bundled transaction. */
-  async instantiateMany (
-    configs: [Template, string, object][],
-  ): Promise<Instance[]> {
-    const instances = await this.bundle().wrap(async bundle=>{
-      await bundle.instantiateMany(configs)
-    })
-    // add code hashes to them:
-    for (const i in configs) {
-      const [template, label, initMsg] = configs[i]
-      const instance = instances[i]
-      if (instance) {
-        instance.codeHash = template.codeHash
-      }
-    }
-    return instances
-  }
-
   async getCodeId (address: string): Promise<string> {
     const { api } = this
     return await this.rateLimited(async function getCodeIdInner () {

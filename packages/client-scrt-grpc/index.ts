@@ -90,6 +90,12 @@ export class ScrtRPCAgent extends ScrtAgent {
     return codeId
   }
 
+  async getHash (address: string): Promise<string> {
+    const { ContractInfo: { codeId } } = await this.api.query.compute.contractInfo(address)
+    const { codeInfo: { codeHash } } = await this.api.query.compute.code(Number(codeId))
+    return codeHash
+  }
+
   async query ({ address, codeHash }, query) {
     const contractAddress = address
     const args = { contractAddress, codeHash, query }
@@ -117,9 +123,17 @@ export class ScrtRPCAgent extends ScrtAgent {
     const args     = { sender, codeId, codeHash, initMsg, label, initFunds }
     const gasLimit = Number(ScrtGas.defaultFees.init.amount[0].amount)
     const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
-    const findAddr = (log) => log.type === "message" && log.key === "contract_address"
-    const address  = result.arrayLog.find(findAddr)?.value
-    return { chainId, codeId, codeHash, address, label }
+    if (result.arrayLog) {
+      const findAddr = (log) => log.type === "message" && log.key === "contract_address"
+      const address  = result.arrayLog.find(findAddr)?.value
+      return { chainId, codeId, codeHash, address, label }
+    } else {
+      throw Object.assign(
+        new Error(`SecretRPCAgent#instantiate: ${result.rawLog}`), {
+          jsonLog: result.jsonLog
+        }
+      )
+    }
   }
 
   async execute (instance, msg, sentFunds, memo, fee) {
@@ -157,35 +171,6 @@ export class ScrtRPCBundle extends ScrtBundle {
     }
   }
 
-  protected collectSubmitResults (msgs, txResult) {
-    const results = []
-    for (const i in msgs) {
-      const msg = msgs[i]
-      results[i] = {
-        sender:  this.address,
-        tx:      txResult.transactionHash,
-        chainId: this.chain.id
-      }
-      if (msg instanceof MsgInstantiateContract) {
-        const findAddr = ({msg,type,key}) => msg === i && type === "message" && key === "contract_address"
-        results[i].type    = 'wasm/MsgInstantiateContract'
-        results[i].codeId  = msg.codeId
-        results[i].label   = msg.label,
-        results[i].address = txResult.arrayLog.find(findAddr)
-      }
-      if (msgs[i] instanceof MsgExecuteContract) {
-        results[i].type    = 'wasm/MsgExecuteContract'
-        results[i].address = msg.contractAddress
-      }
-    }
-    return results
-  }
-
-  protected async handleSubmitError (err) {
-    console.error(err)
-    process.exit(124)
-  }
-
   /** Format the messages for API v1 like secretjs and encrypt them. */
   protected async buildForSubmit () {
     const encrypted = await Promise.all(this.msgs.map(async ({init, exec})=>{
@@ -213,8 +198,42 @@ export class ScrtRPCBundle extends ScrtBundle {
     return encrypted
   }
 
-  async save (name) {
+  protected collectSubmitResults (msgs, txResult) {
+    const results = []
+    for (const i in msgs) {
+      const msg = msgs[i]
+      results[i] = {
+        sender:  this.address,
+        tx:      txResult.transactionHash,
+        chainId: this.chain.id
+      }
+      if (msg instanceof MsgInstantiateContract) {
+        const findAddr = ({msg, type, key}) =>
+          msg  ==  i         &&
+          type === "message" &&
+          key  === "contract_address"
+        results[i].type    = 'wasm/MsgInstantiateContract'
+        results[i].codeId  = msg.codeId
+        results[i].label   = msg.label,
+        results[i].address = txResult.arrayLog.find(findAddr)?.value
+      }
+      if (msgs[i] instanceof MsgExecuteContract) {
+        results[i].type    = 'wasm/MsgExecuteContract'
+        results[i].address = msg.contractAddress
+      }
+    }
+    return results
   }
+
+  protected async handleSubmitError (err) {
+    console.error(err)
+    process.exit(124)
+  }
+
+  async save (name) {
+    throw new Error('ScrtRPCBundle#save: not implemented')
+  }
+
 }
 
 export * from '@fadroma/client-scrt'
