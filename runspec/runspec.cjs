@@ -56,12 +56,16 @@ async function runSpec (suites, selected = process.argv.slice(2)) {
         passed++
       } else {
         if (data instanceof Error) {
-          const lines = data.stack.split('\n')
-          if (lines.length > 1) {
-            output += `${FAIL}  ${name}\n`
-            output += `     ${lines.join('\n     ')}\n`
+          if (data.stack) {
+            const lines = data.stack.split('\n')
+            if (lines.length > 1) {
+              output += `${FAIL}  ${name}\n`
+              output += `     ${lines.join('\n     ')}\n`
+            } else {
+              output += `${FAIL}  ${name}  ${lines[0]}\n`
+            }
           } else {
-            output += `${FAIL}  ${name}  ${lines[0]}\n`
+            output += `${FAIL}  ${name}  (no stack trace)\n`
           }
         } else if (typeof data === 'string') {
           output += `${FAIL}  ${name}  ${data}\n`
