@@ -1,6 +1,6 @@
 {
   "name":         "@hackbg/toolbox",
-  "version":      "2.0.5",
+  "version":      "3.0.0",
   "type":         "module",
   "main":         "./index.js",
   "types":        "./index.d.ts",
@@ -12,7 +12,7 @@
   "description":  "Baseline utilities.",
   "dependencies": {
     "@hackbg/dokeres": "workspace:^1",
-    "@hackbg/kabinet": "workspace:^1",
+    "@hackbg/kabinet": "workspace:^2",
     "@hackbg/komandi": "workspace:^2",
     "@hackbg/konzola": "workspace:^1",
     "@hackbg/portali": "workspace:^1",
