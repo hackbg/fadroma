@@ -4,20 +4,20 @@ importers:
 
   .:
     specifiers:
-      '@hackbg/dokeres': workspace:^1
-      '@hackbg/kabinet': workspace:^2
-      '@hackbg/komandi': workspace:^2
-      '@hackbg/konzola': workspace:^1
-      '@hackbg/portali': workspace:^1
-      '@hackbg/runspec': workspace:^2
+      '@hackbg/dokeres': workspace:^1.0.5
+      '@hackbg/kabinet': workspace:^2.0.1
+      '@hackbg/komandi': workspace:^2.0.3
+      '@hackbg/konzola': workspace:^1.0.6
+      '@hackbg/portali': workspace:^1.0.1
+      '@hackbg/runspec': workspace:^2.1.1
       bech32: ^2.0.0
       dts-gen: ^0.6.0
       exponential-backoff: ^3.1.0
-      open: ^8.0.2
+      open: ^8.4.0
       rimraf: ^3.0.2
-      signal-exit: ^3.0.3
+      signal-exit: ^3.0.7
       typedoc: beta
-      typescript: ^4.5.4
+      typescript: ^4.6.4
     dependencies:
       '@hackbg/dokeres': link:dokeres
       '@hackbg/kabinet': link:kabinet
@@ -32,8 +32,8 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       dts-gen: 0.6.0
-      typedoc: 0.23.0-beta.1_typescript@4.6.3
-      typescript: 4.6.3
+      typedoc: 0.23.0-beta.1_typescript@4.6.4
+      typescript: 4.6.4
 
   dokeres:
     specifiers:
@@ -998,8 +998,8 @@ packages:
       semver: 6.3.0
     dev: true
 
-  /marked/4.0.14:
-    resolution: {integrity: sha512-HL5sSPE/LP6U9qKgngIIPTthuxC0jrfxpYMZ3LdGDD3vTnLs59m2Z7r6+LNDR3ToqEQdkKd6YaaEfJhodJmijQ==}
+  /marked/4.0.15:
+    resolution: {integrity: sha512-esX5lPdTfG4p8LDkv+obbRCyOKzB+820ZZyMOXJZygZBHrH9b3xXR64X4kT3sPe9Nx8qQXbmcz6kFSMt4Nfk6Q==}
     engines: {node: '>= 12'}
     hasBin: true
     dev: true
@@ -1566,7 +1566,7 @@ packages:
     resolution: {integrity: sha1-WuaBd/GS1EViadEIr6k/+HQ/T2Q=}
     dev: false
 
-  /typedoc/0.23.0-beta.1_typescript@4.6.3:
+  /typedoc/0.23.0-beta.1_typescript@4.6.4:
     resolution: {integrity: sha512-jnMlqEYb9DgLgfzQk4peuWyWywAqG7LBECD4W0PHTdzWdbMhlk3GjVu9bPz+MyDwrCaNFlml5AB/Qd34iHZoZA==}
     engines: {node: '>= 14'}
     hasBin: true
@@ -1574,20 +1574,14 @@ packages:
       typescript: 4.0.x || 4.1.x || 4.2.x || 4.3.x || 4.4.x || 4.5.x || 4.6.x
     dependencies:
       lunr: 2.3.9
-      marked: 4.0.14
+      marked: 4.0.15
       minimatch: 5.0.1
       shiki: 0.10.1
-      typescript: 4.6.3
+      typescript: 4.6.4
     dev: true
 
   /typescript/3.9.10:
     resolution: {integrity: sha512-w6fIxVE/H1PkLKcCPsFqKE7Kv7QUwhU8qQY2MueZXWx5cPZdwFupLgKK3vntcK98BtNHZtAF4LA/yl2a7k8R6Q==}
-    engines: {node: '>=4.2.0'}
-    hasBin: true
-    dev: true
-
-  /typescript/4.6.3:
-    resolution: {integrity: sha512-yNIatDa5iaofVozS/uQJEl3JRWLKKGJKh6Yaiv0GLGSuhpFJe7P3SbHZ8/yjAHRQwKRoA6YZqlfjXWmVzoVSMw==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true
