@@ -1,6 +1,9 @@
-import { Console, Agent, Client, randomHex, decode, fromHex } from '@fadroma/ops'
+import { Agent, Client } from '@fadroma/client'
+import { Console } from '@hackbg/konzola'
 
-const console = Console('@fadroma/snip20')
+const randomHex = () => { throw new Error('randomHex: TODO') }
+
+const console = Console('Fadroma Tokens')
 
 type TokenType = any // TODO
 
