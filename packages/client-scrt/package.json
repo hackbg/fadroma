@@ -5,6 +5,6 @@
   "main":    "scrt.js",
   "types":   "scrt.d.ts",
   "dependencies": {
-    "@fadroma/client": "workspace:^1"
+    "@fadroma/client": "^1"
   }
 }

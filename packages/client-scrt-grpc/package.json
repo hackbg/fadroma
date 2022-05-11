@@ -8,7 +8,7 @@
     "main": "scrt-grpc.ts"
   },
   "dependencies": {
-    "@fadroma/client-scrt": "workspace:^1",
+    "@fadroma/client-scrt": "^1",
     "secretjs":             "beta"
   },
   "devDependencies": {
