@@ -9,7 +9,7 @@
     "@hackbg/kabinet": "^1",
     "@hackbg/konzola": "^1",
     "@hackbg/portali": "^1",
-    "@hackbg/toolbox": "^2",
+    "@hackbg/toolbox": "^3",
     "@iov/crypto": "^2.5.0",
     "@iov/encoding": "^2.5.0",
     "ajv": "^8.11.0",
