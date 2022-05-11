@@ -1,6 +1,7 @@
 import {
   AgentOptions, Fees, Template, Instance,
-  ScrtGas, ScrtChain, ScrtAgent, ScrtBundle, ScrtBundleResult
+  ScrtGas, ScrtChain, ScrtAgent, ScrtBundle, ScrtBundleResult,
+  mergeAttrs
 } from '@fadroma/client-scrt'
 import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { Bip39 } from '@cosmjs/crypto'
@@ -299,9 +300,6 @@ export class LegacyScrtAgent extends ScrtAgent {
   }
 }
 
-export class LegacyScrtDeployer extends LegacyScrtAgent {
-}
-
 export class LegacyScrt extends ScrtChain {
   static Agent = LegacyScrtAgent
   Agent = LegacyScrt.Agent
@@ -313,40 +311,6 @@ export class LegacyScrtBundle extends ScrtBundle {
 
   static bundleCounter = 0
 
-  async instantiate (template: Template, label, msg, init_funds = []) {
-    await this.init(template, label, msg, init_funds)
-    const { codeId, codeHash } = template
-    return { chainId: this.agent.chain.id, codeId, codeHash }
-  }
-
-  async instantiateMany (
-    configs: [Template, string, object][],
-  ): Promise<Record<string, Instance>> {
-    const instances = {}
-    for (let [template, name, initMsg] of configs) {
-      let label = name
-      console.info('Instantiate:', label)
-      // add the init tx to the bundle. when passing a single contract
-      // to instantiate, this should behave equivalently to non-bundled init
-      instances[name] = await this.instantiate(template, label, initMsg)
-    }
-    return instances
-  }
-
-  async init ({ codeId, codeHash }: Template, label, msg, funds = []): Promise<this> {
-    const sender  = this.address
-    const code_id = String(codeId)
-    this.add({init: { sender, codeId, codeHash, label, msg, funds }})
-    return this
-  }
-
-  async execute ({ address, codeHash }: Instance, msg, funds = []): Promise<this> {
-    const sender   = this.address
-    const contract = address
-    this.add({exec: { sender, contract, codeHash, msg, funds }})
-    return this
-  }
-
   protected get nonce (): Promise<ScrtNonce> {
     return getNonce(this.chain, this.agent.address)
   }
@@ -355,14 +319,24 @@ export class LegacyScrtBundle extends ScrtBundle {
     return this.agent.encrypt(codeHash, msg)
   }
 
-  /** Format the messages for API v1 like secretjs,
-    * encrypt them, and submit them as a single transaction. */
-  async submit (memo = ""): Promise<ScrtBundleResult[]> {
-    if (this.msgs.length < 1) {
-      throw new Error('Trying to submit bundle with no messages')
+  async submit (memo = "") {
+    this.assertCanSubmit()
+    const msgs   = await this.buildForSubmit()
+    const limit  = Number(ScrtGas.defaultFees.exec.amount[0].amount)
+    const gas    = new ScrtGas(msgs.length*limit)
+    const signed = await this.agent.signTx(msgs, gas, "")
+    try {
+      const txResult = await this.agent.api.postTx(signed)
+      const results  = this.collectSubmitResults(msgs, txResult)
+      return results
+    } catch (err) {
+      await this.handleSubmitError(err)
     }
+  }
 
-    const msgs = await Promise.all(this.msgs.map(({init, exec})=>{
+  /** Format the messages for API v1 like secretjs and encrypt them. */
+  private async buildForSubmit () {
+    const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         return this.encrypt(codeHash, msg).then(msg=>init1(sender, String(codeId), label, msg, funds))
@@ -373,37 +347,32 @@ export class LegacyScrtBundle extends ScrtBundle {
       }
       throw 'unreachable'
     }))
-
-    const gas = new ScrtGas(msgs.length*1000000)
-    const signedTx = await this.agent.signTx(msgs, gas, "")
-
-    try {
-      const txResult = await this.agent.api.postTx(signedTx)
-      const results = []
-      for (const i in msgs) {
-        results[i] = {
-          sender:  this.address,
-          tx:      txResult.transactionHash,
-          type:    msgs[i].type,
-          chainId: this.chain.id
-        }
-        if (msgs[i].type === 'wasm/MsgInstantiateContract') {
-          const attrs = mergeAttrs(txResult.logs[i].events[0].attributes as any[])
-          results[i].label   = (msgs[i] as any).value.label,
-          results[i].address = attrs.contract_address
-          results[i].codeId  = attrs.code_id
-        }
-        if (msgs[i].type === 'wasm/MsgExecuteContract') {
-          results[i].address = (msgs[i] as any).contract
-        }
-      }
-      return results
-    } catch (err) {
-      await this.handleError(err)
-    }
+    return encrypted
   }
 
-  private async handleError (err) {
+  private collectSubmitResults (msgs, txResult) {
+    const results = []
+    for (const i in msgs) {
+      results[i] = {
+        sender:  this.address,
+        tx:      txResult.transactionHash,
+        type:    msgs[i].type,
+        chainId: this.chain.id
+      }
+      if (msgs[i].type === 'wasm/MsgInstantiateContract') {
+        const attrs = mergeAttrs(txResult.logs[i].events[0].attributes as any[])
+        results[i].label   = (msgs[i] as any).value.label,
+        results[i].address = attrs.contract_address
+        results[i].codeId  = attrs.code_id
+      }
+      if (msgs[i].type === 'wasm/MsgExecuteContract') {
+        results[i].address = (msgs[i] as any).contract
+      }
+    }
+    return results
+  }
+
+  private async handleSubmitError (err) {
     try {
       console.error('Submitting bundle failed:', err.message)
       console.error('Trying to decrypt...')
@@ -431,41 +400,46 @@ export class LegacyScrtBundle extends ScrtBundle {
     * don't execute it, but save it in `receipts/$CHAIN_ID/transactions`
     * and output a signing command for it to the console. */
   async save (name: string): Promise<void> {
-
     // number of bundle, just for identification in console
     const N = ++LegacyScrtBundle.bundleCounter
-
     name = name || `TX.${N}.${+new Date()}`
-
     // get signer's account number and sequence via the canonical API
     const { accountNumber, sequence } = await this.nonce
-
     // the base Bundle class stores messages
     // as (immediately resolved) promises
-
-    const msgs = await Promise.all(
-      this.msgs.map(({init, exec})=>{
-        if (init) {
-          const { sender, codeId, codeHash, label, msg, funds } = init
-          return this.encrypt(codeHash, msg).then(msg=>init2(sender, String(codeId), label, msg, funds))
-        }
-        if (exec) {
-          const { sender, contract, codeHash, msg, funds } = exec
-          return this.encrypt(codeHash, msg).then(msg=>exec2(sender, contract, msg, funds))
-        }
-        throw 'unreachable'
-      }))
-
+    const msgs = await this.buildForSave(this.msgs)
     // print the body of the bundle
     console.info(`Encrypted messages in bundle`, `#${N}:`)
     console.log()
     console.log(JSON.stringify(msgs))
     console.log()
+    const finalUnsignedTx = this.finalizeForSave(msgs, name)
+    console.log(JSON.stringify(
+      { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx },
+      null, 2
+    ))
+  }
 
-    const finalUnsignedTx ={
+  private async buildForSave (msgs) {
+    const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
+      if (init) {
+        const { sender, codeId, codeHash, label, msg, funds } = init
+        return this.encrypt(codeHash, msg).then(msg=>init2(sender, String(codeId), label, msg, funds))
+      }
+      if (exec) {
+        const { sender, contract, codeHash, msg, funds } = exec
+        return this.encrypt(codeHash, msg).then(msg=>exec2(sender, contract, msg, funds))
+      }
+      throw 'unreachable'
+    }))
+    return encrypted
+  }
+
+  private finalizeForSave (messages, memo) {
+    const finalUnsignedTx = {
       body: {
-        messages: msgs,
-        memo: name,
+        messages,
+        memo,
         timeout_height: "0",
         extension_options: [],
         non_critical_extension_options: []
@@ -478,12 +452,7 @@ export class LegacyScrtBundle extends ScrtBundle {
     }
     ;(finalUnsignedTx.auth_info.fee as any).gas_limit = finalUnsignedTx.auth_info.fee.gas
     delete finalUnsignedTx.auth_info.fee.gas
-
-    console.log(JSON.stringify(
-      { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx },
-      null, 2
-    ))
-
+    return finalUnsignedTx
   }
 
 }
@@ -509,10 +478,6 @@ const exec2 = (sender, contract, msg, sent_funds) => ({
   callback_code_hash: "", callback_sig: null,
   sender, contract, msg, sent_funds,
 })
-
-export function mergeAttrs (attrs: {key:string,value:string}[]): any {
-  return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
-}
 
 export async function getNonce (url, address): Promise<ScrtNonce> {
   const sign = () => {throw new Error('unreachable')}

@@ -1,6 +1,3 @@
-export const ERR_NO_BUNDLE =
-  'This agent does not support bundling transactions'
-
 export const ERR_ZERO_RECIPIENTS =
   'Tried to send to 0 recipients'
 

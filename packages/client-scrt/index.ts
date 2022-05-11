@@ -3,7 +3,7 @@ import {
   Chain, ChainOptions,
   Executor, Agent, AgentOptions,
   Template,
-  Instance, Client, ClientCtor, ClientOptions
+  Instance, Client, ClientCtor, ClientOptions,
 } from '@fadroma/client'
 
 import * as constants from './constants'
@@ -101,13 +101,6 @@ export abstract class ScrtBundle implements Executor {
     return id
   }
 
-  abstract init <T> (
-    template: Template,
-    label:    string,
-    msg:      T,
-    send:     any[]
-  ): Promise<this>
-
   getClient <C extends Client> (
     Client:  ClientCtor<C>,
     options: ClientOptions
@@ -154,7 +147,9 @@ export abstract class ScrtBundle implements Executor {
   }
 
   /** Queries are disallowed in the middle of a bundle because
-    * they introduce dependencies on external state */
+    * even though the bundle API is structured as multiple function calls,
+    * the bundle is ultimately submitted as a single transaction and
+    * it doesn't make sense to query state in the middle of that. */
   async query <T, U> (contract: Instance, msg: T): Promise<U> {
     throw new Error("don't query inside bundle")
   }
@@ -173,25 +168,65 @@ export abstract class ScrtBundle implements Executor {
     throw new Error("don't upload inside bundle")
   }
 
-  abstract instantiate (
-    template:    Template,
-    label:       string,
-    msg:         object,
-    init_funds?: any[]
-  )
+  /** Add a single MsgInstantiateContract to the bundle. */
+  async instantiate (template: Template, label, msg, init_funds = []) {
+    await this.init(template, label, msg, init_funds)
+    const { codeId, codeHash } = template
+    return { chainId: this.agent.chain.id, codeId, codeHash }
+  }
 
-  abstract instantiateMany (
+  /** Add multiple MsgInstantiateContract to the bundle,
+    * one for each contract config. */
+  async instantiateMany (
     configs: [Template, string, object][],
-    prefix?: string,
-    suffix?: string
-  ): Promise<Record<string, Instance>>
+  ): Promise<Record<string, Instance>> {
+    const instances = {}
+    // add each init tx to the bundle. when passing a single contract
+    // to instantiate, this should behave equivalently to non-bundled init
+    for (let [template, label, initMsg] of configs) {
+      console.info('Instantiate:', label)
+      instances[label] = await this.instantiate(template, label, initMsg)
+    }
+    return instances
+  }
 
-  abstract execute <T, U> (instance: Instance, msg: T): Promise<U>
+  async init (template: Template, label, msg, funds = []): Promise<this> {
+    this.add({ init: {
+      sender:   this.address,
+      codeId:   String(template.codeId),
+      codeHash: template.codeHash,
+      label,
+      msg,
+      funds
+    }})
+    return this
+  }
+
+  async execute (instance: Instance, msg, funds = []): Promise<this> {
+    this.add({ exec: {
+      sender:   this.address,
+      contract: instance.address,
+      codeHash: instance.codeHash,
+      msg,
+      funds
+    } })
+    return this
+  }
+
+  protected assertCanSubmit () {
+    if (this.msgs.length < 1) {
+      throw new Error('Trying to submit bundle with no messages')
+    }
+  }
 
   abstract submit (memo: string): Promise<ScrtBundleResult[]>
 
   abstract save (name: string): Promise<void>
 
+}
+
+export function mergeAttrs (attrs: {key:string,value:string}[]): any {
+  return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
 }
 
 export * from '@fadroma/client'

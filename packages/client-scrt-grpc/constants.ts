@@ -12,3 +12,6 @@ export const ERR_EXPECTED_WRONG_ADDRESS =
 
 export const WARN_NO_MEMO =
   "ScrtRPCAgent: Transaction memos are not supported in SecretJS RPC API"
+
+export const ERR_INIT_CHAIN_ID =
+  'Tried to instantiate a contract uploaded to another chain'
