@@ -5,7 +5,8 @@
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
   },
-  "main": "./index.ts",
+  "main":    "index.ts",
+  "browser": "index.browser.ts",
   "type": "module",
   "dependencies": {
     "@fadroma/client":            "^1",
