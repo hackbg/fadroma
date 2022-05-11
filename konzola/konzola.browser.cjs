@@ -1,3 +1,5 @@
+let maxContextLength = 0
+
 function Konzola (context) {
 
   maxContextLength = Math.max(maxContextLength, context.length)
