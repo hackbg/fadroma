@@ -11,8 +11,9 @@ importers:
       '@fadroma/ops-scrt': workspace:*
       '@fadroma/tokens': workspace:*
       '@hackbg/ganesha': ^2.0.3
+      '@hackbg/kabinet': ^2.0.1
       '@hackbg/runspec': ^2.1.0
-      '@hackbg/toolbox': ^2.0.5
+      '@hackbg/toolbox': ^3.0.1
       '@types/node': ^16.11.34
       body-parser: ^1.20.0
       c8: ^7.11.2
@@ -30,7 +31,8 @@ importers:
       '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/ganesha': 2.0.3
-      '@hackbg/toolbox': 2.0.5
+      '@hackbg/kabinet': 2.0.1
+      '@hackbg/toolbox': 3.0.1
       '@types/node': 16.11.34
     devDependencies:
       '@hackbg/runspec': 2.1.0
@@ -465,8 +467,8 @@ packages:
       toml: 3.0.0
     dev: false
 
-  /@hackbg/kabinet/1.0.6:
-    resolution: {integrity: sha512-/0kI6280wNWK5B/9PvfsfDnSV3Lbw0kPXyj4/xfDd9KkGv9PrZHuUPbf1vJVOSl3eRwZtMlqb9/6O976hWAsjg==}
+  /@hackbg/kabinet/2.0.1:
+    resolution: {integrity: sha512-Fa4N74oM1cg2s3Gb63YECc/4qeT0VTRFZxNLzazwxLm0aIR3vbfFu9QpDOGt/HzABKK679OAnmi8jaAZETbXig==}
     dependencies:
       '@hackbg/konzola': 1.0.5
       js-yaml: 4.1.0
@@ -537,11 +539,11 @@ packages:
       - supports-color
     dev: false
 
-  /@hackbg/toolbox/2.0.5:
-    resolution: {integrity: sha512-7kMd190XtQBIbTPJjBzAaqC7dmXV4XsyhHU0mnqexMdrr7EpXKIN+4xmw0SQp2TtUtZZjLxYzHvSTmczU7rTkg==}
+  /@hackbg/toolbox/3.0.1:
+    resolution: {integrity: sha512-aUuljDXeDUZUB1SHkYFGgxlRKzrx3hghREV0BxxImjp+bP8JMTkb2CTq7mAGk3urDSrEGktc0hkwxnhY0xXXsg==}
     dependencies:
       '@hackbg/dokeres': 1.0.5
-      '@hackbg/kabinet': 1.0.6
+      '@hackbg/kabinet': 2.0.1
       '@hackbg/komandi': 2.0.3
       '@hackbg/konzola': 1.0.5
       '@hackbg/portali': 1.0.1
