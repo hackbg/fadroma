@@ -4,8 +4,8 @@ export * from '@hackbg/komandi'
 export * from '@hackbg/dokeres'
 export * from '@hackbg/runspec'
 
-export * from './reexports'
-export * from './run'
+export * from './reexports.js'
+export * from './run.js'
 
 // misc data functions /////////////////////////////////////////////////////////////////////////////
 
