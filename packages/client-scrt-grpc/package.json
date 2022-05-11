@@ -4,6 +4,9 @@
   "type":    "module",
   "main":    "scrt-grpc.js",
   "types":   "scrt-grpc.d.ts",
+  "ganesha": {
+    "main": "scrt-grpc.ts"
+  },
   "dependencies": {
     "@fadroma/client-scrt": "workspace:^0",
     "secretjs":             "beta"

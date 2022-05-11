@@ -3,11 +3,5 @@
   "version": "1.0.0",
   "type":    "module",
   "main":    "client.js",
-  "types":   "client.d.ts",
-  "devDependencies": {
-    "typescript": "^4.6.4"
-  },
-  "scripts": {
-    "build": "tsc"
-  }
+  "types":   "client.d.ts"
 }

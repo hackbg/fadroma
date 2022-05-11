@@ -223,6 +223,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     })
   }
 
+  // @ts-ignore
   async execute <T> (
     { address, codeHash }: Instance, msg: T, memo: any, amount: any, fee: any
   ): Promise<ExecuteResult> {
@@ -249,10 +250,12 @@ export class LegacyScrtAgent extends ScrtAgent {
 
   private initialWait = 1000
 
+  config: any
+
   private async rateLimited <T> (fn: ()=>Promise<T>): Promise<T> {
     //console.log('rateLimited', fn)
     let initialWait = 0
-    if (this.chain.isMainnet && config.datahub.rateLimit) {
+    if (this.chain.isMainnet && this.config?.datahub?.rateLimit) {
       const initialWait = this.initialWait*Math.random()
       console.warn(
         "Avoid running into rate limiting by waiting",

@@ -9,26 +9,29 @@ import {
 import * as constants from './scrt-constants'
 
 export class ScrtGas extends Gas {
+
   static denom = 'uscrt'
-  static defaultFees: Fees = {
+
+  static defaultFees = {
     upload: new ScrtGas(4000000),
     init:   new ScrtGas(1000000),
     exec:   new ScrtGas(1000000),
     send:   new ScrtGas( 500000),
   }
-  constructor (x: number) {
+
+  constructor (x) {
     super(x)
     this.amount.push({amount: String(x), denom: ScrtGas.denom})
   }
+
 }
 
 export class ScrtChain extends Chain {}
 
-export abstract class ScrtAgent extends Agent {
+export class ScrtAgent extends Agent {
 
-  abstract Bundle: ScrtBundleCtor<any>
+  Bundle = null
 
-  /** Start a new transaction bundle. */
   bundle () {
     if (!this.Bundle) {
       throw new Error(constants.ERR_NO_BUNDLE)
@@ -40,10 +43,7 @@ export abstract class ScrtAgent extends Agent {
 
   defaultDenomination = 'uscrt'
 
-  /** Instantiate multiple contracts from a bundled transaction. */
-  async instantiateMany (
-    configs: [Template, string, object][],
-  ): Promise<Instance[]> {
+  async instantiateMany (configs) {
     const instances = await this.bundle().wrap(async bundle=>{
       await bundle.instantiateMany(configs)
     })
@@ -60,44 +60,25 @@ export abstract class ScrtAgent extends Agent {
 
 }
 
-export interface ScrtBundleCtor <B extends ScrtBundle> {
-  new (agent: ScrtAgent): B
-}
+export class ScrtBundle {
 
-export type ScrtBundleWrapper = (bundle: ScrtBundle) => Promise<any>
+  constructor (agent: Agent) {
+    this.agent = agent
+  }
 
-export interface ScrtBundleResult {
-  tx:        string
-  type:      string
-  chainId:   string
-  codeId?:   string
-  codeHash?: string
-  address?:  string
-  label?:    string
-}
+  depth = 0
 
-export abstract class ScrtBundle implements Executor {
-
-  constructor (readonly agent: Agent) {}
-
-  private depth = 0
-
-  /** Opening a bundle from within a bundle
-    * returns the same bundle with incremented depth. */
-  bundle (): this {
+  bundle () {
     console.warn('Nest bundles with care. Depth:', ++this.depth)
     return this
   }
 
-  /** Populate and execute bundle */
-  async wrap (cb: ScrtBundleWrapper, memo: string = "") {
+  async wrap (cb, memo = "") {
     await cb(this)
     return this.run(memo)
   }
 
-  /** Execute the bundle if not nested;
-    * decrement the depth if nested. */
-  run (memo: string): Promise<ScrtBundleResult[]|null> {
+  run (memo = "") {
     if (this.depth > 0) {
       console.warn('Unnesting bundle. Depth:', --this.depth)
       this.depth--
@@ -107,22 +88,17 @@ export abstract class ScrtBundle implements Executor {
     }
   }
 
-  protected id: number = 0
+  id = 0
 
-  protected msgs: Array<any> = []
+  msgs = []
 
-  /** Add a message to the bundle, incrementing
-    * the bundle's internal message counter. */
-  protected add (msg: any): number {
+  add (msg) {
     const id = this.id++
     this.msgs[id] = msg
     return id
   }
 
-  getClient <C extends Client> (
-    Client:  ClientCtor<C>,
-    options: ClientOptions
-  ): C {
+  getClient (Client, options) {
     return new Client(this, options)
   }
 
@@ -130,7 +106,7 @@ export abstract class ScrtBundle implements Executor {
     return this.agent.getCodeId(address)
   }
 
-  get chain (): ScrtChain {
+  get chain () {
     return this.agent.chain
   }
 
@@ -142,7 +118,7 @@ export abstract class ScrtBundle implements Executor {
     return this.agent.address
   }
 
-  getLabel (address: string) {
+  getLabel (address) {
     return this.agent.getLabel(address)
   }
 
@@ -168,26 +144,26 @@ export abstract class ScrtBundle implements Executor {
     * even though the bundle API is structured as multiple function calls,
     * the bundle is ultimately submitted as a single transaction and
     * it doesn't make sense to query state in the middle of that. */
-  async query <T, U> (contract: Instance, msg: T): Promise<U> {
+  async query () {
     throw new Error("don't query inside bundle")
   }
 
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
-  async upload (data): Promise<Template> {
+  async upload () {
     throw new Error("don't upload inside bundle")
   }
 
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
-  async uploadMany (data): Promise<Template[]> {
+  async uploadMany () {
     throw new Error("don't upload inside bundle")
   }
 
   /** Add a single MsgInstantiateContract to the bundle. */
-  async instantiate (template: Template, label, msg, init_funds = []) {
+  async instantiate (template, label, msg, init_funds = []) {
     await this.init(template, label, msg, init_funds)
     const { codeId, codeHash } = template
     return { chainId: this.agent.chain.id, codeId, codeHash }
@@ -195,9 +171,7 @@ export abstract class ScrtBundle implements Executor {
 
   /** Add multiple MsgInstantiateContract messages to the bundle,
     * one for each contract config. */
-  async instantiateMany (
-    configs: [Template, string, object][],
-  ): Promise<Record<string, Instance>> {
+  async instantiateMany (configs) {
     const instances = {}
     // add each init tx to the bundle. when passing a single contract
     // to instantiate, this should behave equivalently to non-bundled init
@@ -208,7 +182,7 @@ export abstract class ScrtBundle implements Executor {
     return instances
   }
 
-  async init (template: Template, label, msg, funds = []): Promise<this> {
+  async init (template, label, msg, funds = []) {
     this.add({ init: {
       sender:   this.address,
       codeId:   String(template.codeId),
@@ -220,7 +194,7 @@ export abstract class ScrtBundle implements Executor {
     return this
   }
 
-  async execute (instance: Instance, msg, funds = []): Promise<this> {
+  async execute (instance, msg, funds = []) {
     this.add({ exec: {
       sender:   this.address,
       contract: instance.address,
@@ -231,19 +205,23 @@ export abstract class ScrtBundle implements Executor {
     return this
   }
 
-  protected assertCanSubmit () {
+  assertCanSubmit () {
     if (this.msgs.length < 1) {
       throw new Error('Trying to submit bundle with no messages')
     }
   }
 
-  abstract submit (memo: string): Promise<ScrtBundleResult[]>
+  submit (memo) {
+    throw new Error("ScrtBundle#submit: abstract, why aren't you using the subclass?")
+  }
 
-  abstract save (name: string): Promise<void>
+  save (name) {
+    throw new Error("ScrtBundle#submit: abstract, why aren't you using the subclass?")
+  }
 
 }
 
-export function mergeAttrs (attrs: {key:string,value:string}[]): any {
+export function mergeAttrs (attrs) {
   return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
 }
 
