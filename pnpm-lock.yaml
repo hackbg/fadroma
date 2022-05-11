@@ -12,8 +12,8 @@ importers:
       '@fadroma/tokens': workspace:*
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/runspec': ^2.1.0
-      '@hackbg/toolbox': ^2.0.4
-      '@types/node': ^16.11.33
+      '@hackbg/toolbox': ^2.0.5
+      '@types/node': ^16.11.34
       body-parser: ^1.20.0
       c8: ^7.11.2
       express: ^4.18.1
@@ -30,8 +30,8 @@ importers:
       '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/ganesha': 2.0.3
-      '@hackbg/toolbox': 2.0.4
-      '@types/node': 16.11.33
+      '@hackbg/toolbox': 2.0.5
+      '@types/node': 16.11.34
     devDependencies:
       '@hackbg/runspec': 2.1.0
       body-parser: 1.20.0
@@ -449,13 +449,26 @@ packages:
       '@ganesha/core': 1.1.0
       '@ganesha/node': 2.1.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.31
+      '@types/node': 17.0.32
       chokidar: 3.5.3
       cross-spawn: 7.0.3
 
   /@hackbg/kabinet/1.0.5:
     resolution: {integrity: sha512-lautd0EdWLM8SjXA0h9+xSQhnqJ/UzNjcjAKgB5D6fhsITLLSSv1gvmMnDXzWa2plxVLnnw0p+OTwc/ONCkb0w==}
     dependencies:
+      js-yaml: 4.1.0
+      mkdirp: 1.0.4
+      recursive-copy: 2.0.14
+      rimraf: 3.0.2
+      symlink-dir: 5.0.1
+      tmp: 0.2.1
+      toml: 3.0.0
+    dev: false
+
+  /@hackbg/kabinet/1.0.6:
+    resolution: {integrity: sha512-/0kI6280wNWK5B/9PvfsfDnSV3Lbw0kPXyj4/xfDd9KkGv9PrZHuUPbf1vJVOSl3eRwZtMlqb9/6O976hWAsjg==}
+    dependencies:
+      '@hackbg/konzola': 1.0.5
       js-yaml: 4.1.0
       mkdirp: 1.0.4
       recursive-copy: 2.0.14
@@ -494,6 +507,14 @@ packages:
       - supports-color
     dev: false
 
+  /@hackbg/portali/1.0.1:
+    resolution: {integrity: sha512-WdLCmRaSHWXPeyZ8vqLhkoOa2ku7TjSxHjfdYzKTty33cTY2RzfcpqazQvzR+jjQD5xLYGr4ET+D2pAJBtMvng==}
+    dependencies:
+      wait-port: 0.2.9
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
   /@hackbg/runspec/2.1.0:
     resolution: {integrity: sha512-hpTSPPlspbUl6bhT5p6XCI51L11wf840eRU7Xt1ZO3LBF6fr+AVRG39a/qpLSt9MBF0Z7hnORrfxgxsoJVjd9A==}
     hasBin: true
@@ -506,6 +527,24 @@ packages:
       '@hackbg/komandi': 2.0.3
       '@hackbg/konzola': 1.0.5
       '@hackbg/portali': 1.0.0
+      '@hackbg/runspec': 2.1.0
+      bech32: 2.0.0
+      exponential-backoff: 3.1.0
+      open: 8.4.0
+      rimraf: 3.0.2
+      signal-exit: 3.0.7
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
+  /@hackbg/toolbox/2.0.5:
+    resolution: {integrity: sha512-7kMd190XtQBIbTPJjBzAaqC7dmXV4XsyhHU0mnqexMdrr7EpXKIN+4xmw0SQp2TtUtZZjLxYzHvSTmczU7rTkg==}
+    dependencies:
+      '@hackbg/dokeres': 1.0.5
+      '@hackbg/kabinet': 1.0.6
+      '@hackbg/komandi': 2.0.3
+      '@hackbg/konzola': 1.0.5
+      '@hackbg/portali': 1.0.1
       '@hackbg/runspec': 2.1.0
       bech32: 2.0.0
       exponential-backoff: 3.1.0
@@ -621,6 +660,13 @@ packages:
       '@jridgewell/sourcemap-codec': 1.4.13
     dev: true
 
+  /@jridgewell/trace-mapping/0.3.11:
+    resolution: {integrity: sha512-RllI476aSMsxzeI9TtlSMoNTgHDxEmnl6GkkHwhr0vdL8W+0WuesyI8Vd3rBOfrwtPXbPxdT9ADJdiOKgzxPQA==}
+    dependencies:
+      '@jridgewell/resolve-uri': 3.0.7
+      '@jridgewell/sourcemap-codec': 1.4.13
+    dev: true
+
   /@jsdevtools/ono/7.1.3:
     resolution: {integrity: sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg==}
     dev: false
@@ -711,8 +757,8 @@ packages:
     resolution: {integrity: sha512-Exw4yUWMBXM3X+8oqzJNRqZSwUAaS4+7NdvHqQuFi/d+synz++xmX3QIf+BFqneW8N31R8Ky+sikfZUXq07ggQ==}
     dev: false
 
-  /@types/node/16.11.33:
-    resolution: {integrity: sha512-0PJ0vg+JyU0MIan58IOIFRtSvsb7Ri+7Wltx2qAg94eMOrpg4+uuP3aUHCpxXc1i0jCXiC+zIamSZh3l9AbcQA==}
+  /@types/node/16.11.34:
+    resolution: {integrity: sha512-UrWGDyLAlQ2Z8bNOGWTsqbP9ZcBeTYBVuTRNxXTztBy5KhWUFI3BaeDWoCP/CzV/EVGgO1NTYzv9ZytBI9GAEw==}
     dev: false
 
   /@types/node/17.0.30:
@@ -721,6 +767,10 @@ packages:
 
   /@types/node/17.0.31:
     resolution: {integrity: sha512-AR0x5HbXGqkEx9CadRH3EBYx/VkiUgZIhP4wvPn/+5KIsgpNoyFaRlVe0Zlx9gRtg8fA06a9tskE2MSN7TcG4Q==}
+    dev: false
+
+  /@types/node/17.0.32:
+    resolution: {integrity: sha512-eAIcfAvhf/BkHcf4pkLJ7ECpBAhh9kcxRBpip9cTiO+hf+aJrsxYxBeS6OXvOd9WqNAJmavXVpZvY1rBjNsXmw==}
 
   /@types/prettier/2.6.0:
     resolution: {integrity: sha512-G/AdOadiZhnJp0jXCaBQU449W2h716OW/EoXeYkCytxKL06X1WCXB4DZpp8TpZ8eyIJVS1cw4lrlkkSYU21cDw==}
@@ -1953,7 +2003,7 @@ packages:
       source-map: 0.6.1
       wordwrap: 1.0.0
     optionalDependencies:
-      uglify-js: 3.15.4
+      uglify-js: 3.15.5
     dev: true
 
   /har-schema/2.0.0:
@@ -3846,8 +3896,8 @@ packages:
     hasBin: true
     dev: true
 
-  /uglify-js/3.15.4:
-    resolution: {integrity: sha512-vMOPGDuvXecPs34V74qDKk4iJ/SN4vL3Ow/23ixafENYvtrNvtbcgUeugTcUGRGsOF/5fU8/NYSL5Hyb3l1OJA==}
+  /uglify-js/3.15.5:
+    resolution: {integrity: sha512-hNM5q5GbBRB5xB+PMqVRcgYe4c8jbyZ1pzZhS6jbq54/4F2gFK869ZheiE5A8/t+W5jtTNpWef/5Q9zk639FNQ==}
     engines: {node: '>=0.8.0'}
     hasBin: true
     requiresBuild: true
@@ -3903,7 +3953,7 @@ packages:
     resolution: {integrity: sha512-HcvgY/xaRm7isYmyx+lFKA4uQmfUbN0J4M0nNItvzTvH/iQ9kW5j/t4YSR+Ge323/lrgDAWJoF46tzGQHwBHFw==}
     engines: {node: '>=10.12.0'}
     dependencies:
-      '@jridgewell/trace-mapping': 0.3.10
+      '@jridgewell/trace-mapping': 0.3.11
       '@types/istanbul-lib-coverage': 2.0.4
       convert-source-map: 1.8.0
     dev: true
