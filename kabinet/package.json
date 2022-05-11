@@ -1,8 +1,8 @@
 {
   "name":         "@hackbg/kabinet",
-  "version":      "1.0.6",
-  "main":         "index.js",
-  "types":        "index.d.ts",
+  "version":      "2.0.0",
+  "main":         "kabinet.js",
+  "types":        "kabinet.d.ts",
   "type":         "module",
   "homepage":     "https://github.com/hackbg/toolbox",
   "bugs":         "https://github.com/hackbg/toolbox/issues",
@@ -20,7 +20,15 @@
     "toml":            "^3"
   },
   "devDependencies": {
-    "@types/mkdirp": "^1.0.2",
-    "@types/tmp":    "^0.2.3"
+    "@types/mkdirp":   "^1.0.2",
+    "@types/tmp":      "^0.2.3",
+    "@hackbg/ganesha": "^2.0.3",
+    "@hackbg/runspec": "workspace:*",
+    "c8": "^7.11.2"
+  },
+  "scripts": {
+    "test": "time ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
+    "cov":  "Ganesha_NoSourceMap=1 time c8 -r text -x *.spec.* ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
+    "lcov": "Ganesha_NoSourceMap=1 time c8 -r lcov -x *.spec.* ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts"
   }
 }

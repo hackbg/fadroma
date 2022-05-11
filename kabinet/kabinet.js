@@ -36,6 +36,11 @@ export const withTmpFile = fn => {
   try { return fn(name) } finally { rimraf(name) }
 }
 
+import { dirname } from 'path'
+import { fileURLToPath } from 'url'
+export const getDirName = (url) =>
+  dirname(fileURLToPath(url))
+
 // originals
 export * from './sync.js'
 export * from './sync-json.js'

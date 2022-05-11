@@ -37,3 +37,8 @@ export class JSONDirectory extends Directory {
     return this
   }
 }
+
+export class JSON {
+  static File = JSONFile
+  static Dir  = JSONDirectory
+}

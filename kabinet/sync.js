@@ -10,25 +10,69 @@ export function touch (...fragments) {
   return path
 }
 
-export class FSCRUD {
+export class Path {
   constructor (...fragments) {
     this.path = resolve(...fragments)
   }
-  exists () {
+  resolve (name) {
+    if (name.includes('/')) throw new Error(`invalid name: ${name}`)
+    return resolve(this.path, basename(name))
+  }
+  get name () {
+    return basename(this.path)
+  }
+  get parent () {
+    return dirname(this.path)
+  }
+  get shortPath () {
+    return relative(cwd(), this.path)
+  }
+  get exists () {
     return existsSync(this.path)
   }
   assert () {
-    if (!this.exists()) throw new Error(`${this.path} does not exist`)
+    if (!this.exists) throw new Error(`${this.path} does not exist`)
     return this
   }
   delete () {
     rimraf.sync(this.path)
     return this
   }
-  make () { throw null }
+  make () {
+    throw new Error("@hackbg/kabinet: file or directory? use subclass")
+  }
+  in (...fragments) {
+    const sub = new this.constructor(this.path, ...fragments)
+    if (sub.exists && sub.isFile) {
+      throw new Error(`@hackbg/kabinet: cannot use .in() to descend under existing file: ${sub.path}`)
+    }
+    return sub.asDir()
+  }
+  get isDir () {
+    return statSync(this.path).isDirectory()
+  }
+  asDir (Ctor = Directory) {
+    return new Ctor(this.path)
+  }
+  at (...fragments) {
+    const sub = new this.constructor(this.path, ...fragments)
+    if (sub.exists && sub.isDir) {
+      throw new Error(`@hackbg/kabinet: Path#at: cannot use .at() to point to directory: ${sub.path}`)
+    }
+    return sub.asFile()
+  }
+  get isFile () {
+    return statSync(this.path).isFile()
+  }
+  asFile (Ctor = File) {
+    return new Ctor(this.path)
+  }
 }
 
-export class File extends FSCRUD {
+export class File extends Path {
+  as (Format) {
+    return new Format.File(this.path)
+  }
   make () {
     mkdirp.sync(dirname(this.path))
     touch(this.path)
@@ -57,17 +101,16 @@ export class TextFile extends File {
   }
 }
 
-export class Directory extends FSCRUD {
+export class Directory extends Path {
+  as (Format) {
+    return new Format.Directory(this.path)
+  }
   make () {
     mkdirp.sync(this.path)
     return this
   }
-  resolve (name) {
-    if (name.includes('/')) throw new Error(`invalid name: ${name}`)
-    return resolve(this.path, basename(name))
-  }
   list () {
-    if (!this.exists()) return []
+    if (!this.exists) return []
     return readdirSync(this.path)
   }
   has (name) {
@@ -82,13 +125,13 @@ export class Directory extends FSCRUD {
     return this
   }
   subdirs () {
-    if (!this.exists()) return []
+    if (!this.exists) return []
     return readdirSync(this.path).filter(x=>statSync(this.resolve(x)).isDirectory())
   }
-  subdir (name, Dir = Directory) {
-    return new Dir(this.path, name)
+  subdir (name) {
+    return new Directory(this.path, name)
   }
-  file (File = TextFile, ...fragments) {
+  file (...fragments) {
     return new File(this.path, ...fragments)
   }
 }

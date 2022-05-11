@@ -1,11 +1,12 @@
 import { existsSync } from 'fs'
 import { basename } from 'path'
-
+import _TOML from 'toml'
 import { TextFile, Directory } from './sync.js'
 
 export class TOMLFile extends TextFile {
   load () {
-    return TOML.parse(super.load())
+    const data = super.load()
+    return _TOML.parse(data)
   }
   save (data) {
     super.save(TOML.stringify(data, null, 2))
@@ -14,17 +15,16 @@ export class TOMLFile extends TextFile {
 }
 
 export class TOMLDirectory extends Directory {
-  static extension = '.toml'
   has (name) {
-    return existsSync(this.resolve(`${name}${TOMLDirectory.extension}`))
+    return existsSync(this.resolve(`${name}${TOML.extension}`))
   }
   list () {
-    const matchExtension = x => x.endsWith(TOMLDirectory.extension)
-    const stripExtension = x => basename(x, TOMLDirectory.extension)
+    const matchExtension = x => x.endsWith(TOML.extension)
+    const stripExtension = x => basename(x, TOML.extension)
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
-    name = `${name}${TOMLDirectory.extension}`
+    name = `${name}${TOML.extension}`
     try {
       return TOML.parse(super.load(name))
     } catch (e) {
@@ -33,7 +33,13 @@ export class TOMLDirectory extends Directory {
   }
   save (name, data) {
     data = TOML.stringify(data, null, 2)
-    super.save(`${name}${TOMLDirectory.extension}`, data)
+    super.save(`${name}${TOML.extension}`, data)
     return this
   }
+}
+
+export class TOML {
+  static extension = '.toml'
+  static File = TOMLFile
+  static Dir  = TOMLDirectory
 }
