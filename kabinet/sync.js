@@ -1,5 +1,6 @@
-import { resolve, dirname, basename } from 'path'
+import { resolve, dirname, basename, relative } from 'path'
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
+import { cwd } from 'process'
 import rimraf from 'rimraf'
 import mkdirp from 'mkdirp'
 
