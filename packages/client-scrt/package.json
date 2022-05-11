@@ -1,0 +1,10 @@
+{
+  "name":    "@fadroma/client-scrt",
+  "version": "1.0.2",
+  "type":    "module",
+  "main":    "scrt.js",
+  "types":   "scrt.d.ts",
+  "dependencies": {
+    "@fadroma/client": "workspace:^1"
+  }
+}

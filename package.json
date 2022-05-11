@@ -8,27 +8,34 @@
   "main": "./index.ts",
   "type": "module",
   "dependencies": {
-    "@types/node":     "^16.11.19",
-    "@fadroma/ops":    "workspace:*",
-    "@fadroma/scrt":   "workspace:*",
-    "@fadroma/snip20": "workspace:*",
-    "@hackbg/ganesha": "workspace:*",
-    "@hackbg/toolbox": "workspace:*"
+    "@fadroma/client": "workspace:*",
+    "@fadroma/client-scrt-amino": "workspace:*",
+    "@fadroma/client-scrt-grpc": "workspace:*",
+    "@fadroma/ops": "workspace:*",
+    "@fadroma/ops-scrt": "workspace:*",
+    "@fadroma/tokens": "workspace:*",
+    "@hackbg/ganesha": "^2.0.3",
+    "@hackbg/toolbox": "^3.0.1",
+    "@hackbg/kabinet": "^2.0.1",
+    "@types/node": "^16.11.34"
   },
   "devDependencies": {
-    "@hackbg/runspec": "workspace:*",
-    "c8":              "^7.11.0",
-    "pug":             "^3.0.2",
-    "js-yaml":         "^4.1.0",
-    "typedoc":         "^0.21.9",
-    "typescript":      "^4.5.4"
+    "@hackbg/runspec": "^2.1.0",
+    "body-parser": "^1.20.0",
+    "c8": "^7.11.2",
+    "express": "^4.18.1",
+    "freeport-async": "^2.0.0",
+    "js-yaml": "^4.1.0",
+    "pug": "^3.0.2",
+    "typedoc": "^0.21.10",
+    "typescript": "^4.6.4"
   },
   "scripts": {
-    "render":   "node doc/render.js",
+    "render": "node doc/render.js",
     "document": "typedoc index.ts",
-    "test":     "time ganesha-node test.js",
-    "cov":      "Ganesha_NoSourceMap=1 time c8 -r text --all -x coverage -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node test.js",
-    "lcov":     "Ganesha_NoSourceMap=1 time c8 -r lcov --all -x coverage -x deps -x test.js -x **/*.spec.* -x **/*.d.ts -x **/*.old -x doc/example -x packages/ops/wip -x packages/scrt/wip -x packages/shim ganesha-node test.js"
+    "test": "time ganesha-node spec/index.js",
+    "cov": "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ganesha-node spec/index.js",
+    "lcov": "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ganesha-node spec/index.js"
   },
   "bin": {
     "fadroma": "fadroma.cjs"
@@ -36,7 +43,6 @@
   "workspace": true,
   "packages": [
     "./deps/*",
-    "./packages/*",
-    "./crates/fadroma-snip20-impl"
+    "./packages/*"
   ]
 }

@@ -1,0 +1,10 @@
+{
+  "name":    "@fadroma/scrt-1.3",
+  "version": "1.0.0-pre",
+  "type":    "module",
+  "main":    "./index.ts",
+  "dependencies": {
+    "@fadroma/scrt": "workspace:*",
+    "secretjs":      "beta"
+  }
+}

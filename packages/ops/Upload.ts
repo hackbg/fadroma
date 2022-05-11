@@ -1,12 +1,42 @@
-import {
-  Console, bold, cwd, readFileSync, writeFileSync,
-  existsSync, mkdir, readFile, writeFile, relative, basename,
-  JSONDirectory
-} from '@hackbg/toolbox'
-import { Artifact, Template, Uploader, UploadReceipt, codeHashForPath } from './Core'
-import type { Agent } from './Agent'
+import { cwd } from 'process'
+import { relative, basename } from 'path'
+import { readFileSync, writeFileSync, existsSync } from 'fs'
+import { mkdir, readFile, writeFile } from 'fs/promises'
+
+import { Console, bold } from '@hackbg/konzola'
+import { JSONDirectory } from '@hackbg/kabinet'
+
+import type { Agent } from '@fadroma/client'
+
+import { config } from './Config'
+import { Artifact, codeHashForPath } from './Build'
+import { getUploads } from './State'
 
 const console = Console('Fadroma Upload')
+
+export abstract class Uploader {
+  constructor (public agent: Agent) {}
+  get chain () { return this.agent.chain }
+  abstract upload     (artifact:  Artifact, ...args): Promise<Template>
+  abstract uploadMany (artifacts: Artifact[]):        Promise<Template[]>
+}
+
+export interface UploadReceipt {
+  codeId:             number
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               any[]
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
+}
+
+export interface Template {
+  chainId:          string
+  transactionHash?: string
+  codeId:           string
+  codeHash?:        string
+}
 
 /** Directory collecting upload receipts. */
 export class Uploads extends JSONDirectory {}
@@ -18,8 +48,8 @@ export class FSUploader extends Uploader {
   async upload (artifact: Artifact): Promise<Template> {
     console.info(bold(`Uploading:`), relative(cwd(), artifact.location))
     console.info(bold(`Code hash:`), artifact.codeHash)
-    const template = await this.agent.upload(artifact)
-    await this.agent.nextBlock
+    const template = await this.agent.upload(await readFile(artifact.location))
+    await this.agent.chain.nextBlock
     return {
       chainId:         this.agent.chain.id,
       codeId:          template.codeId,
@@ -38,7 +68,7 @@ export class FSUploader extends Uploader {
       const artifact = artifacts[i]
       let template
       if (artifact) {
-        template = await this.agent.upload(artifact)
+        template = await this.agent.upload(await readFile(artifact.location))
         this.checkCodeHash(artifact, template)
       }
       templates[i] = template
@@ -68,14 +98,14 @@ export class CachingFSUploader extends FSUploader {
 
   constructor (
     readonly agent: Agent,
-    readonly cache: Uploads = agent.chain.uploads
+    readonly cache: Uploads = getUploads(agent.chain)
   ) {
     super(agent)
   }
 
   protected getUploadReceiptPath (artifact: Artifact): string {
     const receiptName = `${basename(artifact.location)}.json`
-    const receiptPath = this.agent.chain.uploads.resolve(receiptName)
+    const receiptPath = this.cache.resolve(receiptName)
     return receiptPath
   }
 

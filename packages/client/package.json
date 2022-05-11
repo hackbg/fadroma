@@ -1,0 +1,7 @@
+{
+  "name":    "@fadroma/client",
+  "version": "1.0.0",
+  "type":    "module",
+  "main":    "client.js",
+  "types":   "client.d.ts"
+}

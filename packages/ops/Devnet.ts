@@ -1,19 +1,15 @@
 import { URL } from 'url'
 import * as HTTP from 'http'
-import { symlinkSync } from 'fs'
-import freeportAsync from 'freeport-async'
-import {
-  Console, bold,
-  Directory, JSONDirectory, JSONFile,
-  Path, basename, relative, resolve, cwd,
-  existsSync, readlinkSync, mkdirp,
-  freePort, waitPort,
-  Docker, DockerImage, waitUntilLogsSay,
-  randomHex
-} from '@hackbg/toolbox'
+import { basename, relative, resolve } from 'path'
+import { cwd } from 'process'
+import { existsSync, readlinkSync, symlinkSync } from 'fs'
+import { Console, bold } from '@hackbg/konzola'
+import { Path, Directory, JSONDirectory, JSONFile, mkdirp } from '@hackbg/kabinet'
+import { freePort, waitPort } from '@hackbg/portali'
+import { Docker, DockerImage, waitUntilLogsSay } from '@hackbg/dokeres'
+import { randomHex } from '@hackbg/toolbox'
 
 import { config } from './Config'
-import type { Identity } from './Core'
 
 const console = Console('Fadroma Devnet')
 
@@ -27,14 +23,17 @@ export interface DevnetOptions {
   identities?: Array<string>
   /** Path to directory where state will be stored. */
   stateRoot?: string,
+  /** Port to connect to. */
+  port?: number
 }
 
 export abstract class Devnet {
 
   /** Creates an object representing a devnet.
     * Use the `respawn` method to get it running. */
-  constructor ({ chainId, identities, stateRoot }: DevnetOptions) {
+  constructor ({ chainId, identities, stateRoot, port }: DevnetOptions) {
     this.chainId = chainId || this.chainId
+    this.port    = port    || this.port
     if (!this.chainId) {
       throw new Error(
         '@fadroma/ops/Devnet: refusing to create directories for devnet with empty chain id'
@@ -44,30 +43,26 @@ export abstract class Devnet {
       this.genesisAccounts = identities
     }
     stateRoot = stateRoot || resolve(config.projectRoot, 'receipts', this.chainId)
-    this.stateRoot  = new Directory(stateRoot)
-    this.nodeState  = new JSONFile(stateRoot, 'node.json')
+    this.stateRoot = new Directory(stateRoot)
+    this.nodeState = new JSONFile(stateRoot, 'node.json')
   }
 
   /** The chain ID that will be passed to the devnet node. */
   chainId: string = 'fadroma-devnet'
 
-  /** The API URL that can be used to talk to the devnet. */
-  apiURL: URL = new URL('http://localhost:1317')
-
   /** The protocol of the API URL without the trailing colon. */
-  get protocol (): string {
-    const { protocol } = this.apiURL
-    return protocol.slice(0, protocol.length - 1)
-  }
+  protocol = 'http'
 
   /** The hostname of the API URL. */
-  get host (): string {
-    return this.apiURL.hostname
-  }
+  host     = 'localhost'
 
-  /** The port of the API URL. */
-  get port (): string {
-    return this.apiURL.port
+  /** The port of the API URL.
+    * If `null`, `freePort` will be used to obtain a random port. */
+  port     = null
+
+  /** The API URL that can be used to talk to the devnet. */
+  get apiURL (): URL {
+    return new URL(`${this.protocol}://${this.host}:${this.port}`)
   }
 
   /** This directory is created to remember the state of the devnet setup. */
@@ -188,9 +183,6 @@ export class DockerodeDevnet extends Devnet {
       this.docker = options.docker
     }
     this.identities  = this.stateRoot.subdir('identities',  JSONDirectory)
-    this.daemonDir   = this.stateRoot.subdir('secretd',     Directory)
-    this.clientDir   = this.stateRoot.subdir('secretcli',   Directory)
-    this.sgxDir      = this.stateRoot.subdir('sgx-secrets', Directory)
     this.image       = options.image
     this.initScript  = options.initScript
     this.readyPhrase = options.readyPhrase
@@ -212,15 +204,6 @@ export class DockerodeDevnet extends Devnet {
     return this.identities.load(name)
   }
 
-  /** Mounted out of devnet container to persist secretd state. */
-  daemonDir: Directory
-
-  /** Mounted out of devnet container to persist secretcli state. */
-  clientDir: Directory
-
-  /** Mounted out of devnet container to persist SGX state. */
-  sgxDir: Directory
-
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   readyPhrase: string
@@ -228,8 +211,10 @@ export class DockerodeDevnet extends Devnet {
   async spawn () {
     // tell the user that we have begun
     console.info(`Spawning new node...`)
-    // get a free port
-    this.apiURL.port = String(await freePort())
+    // if no port is specified, use a random port
+    if (!this.port) {
+      this.port = await freePort()
+    }
     // create the state dirs and files
     const items = [this.stateRoot, this.nodeState]
     for (const item of items) {
@@ -242,7 +227,7 @@ export class DockerodeDevnet extends Devnet {
     // create the container
     console.info('Launching a devnet container...')
     await this.image.ensure()
-    this.container = await this.createContainer(getDevnetContainerOptions(this))
+    this.container = await this.createContainer(this.getContainerOptions())
     const shortId = this.container.id.slice(0, 8)
     // emit any warnings
     if (this.container.Warnings) {
@@ -407,61 +392,64 @@ export class DockerodeDevnet extends Devnet {
       console.info(`Stopped ${prettyId}`)
     }
   }
-}
 
-/** What Dockerode passes to the Docker API
-  * in order to launch a devnet container. */
-export async function getDevnetContainerOptions ({
-  chainId,
-  genesisAccounts,
-  image,
-  initScript,
-  port,
-  stateRoot
-}: DockerodeDevnet) {
-  const initScriptName = resolve('/', basename(initScript))
-  return {
-    Image:        image.name,
-    Name:         `${chainId}-${port}`,
-    Env:          [ `Port=${port}`
-                  , `ChainID=${chainId}`
-                  , `GenesisAccounts=${genesisAccounts.join(' ')}` ],
-    Entrypoint:   [ '/bin/bash' ],
-    Cmd:          [ initScriptName ],
-    Tty:          true,
-    AttachStdin:  true,
-    AttachStdout: true,
-    AttachStderr: true,
-    Hostname:     chainId,
-    Domainname:   chainId,
-    ExposedPorts: { [`${port}/tcp`]: {} },
-    HostConfig:   { NetworkMode: 'bridge'
-                  , AutoRemove:   true
-                  , Binds:
-                    [ `${initScript}:${initScriptName}:ro`
-                    , `${stateRoot.path}:/receipts/${chainId}:rw` ]
-                  , PortBindings:
-                    { [`${port}/tcp`]: [{HostPort: `${port}`}] } }
+  /** What Dockerode passes to the Docker API
+    * in order to launch a devnet container. */
+  private getContainerOptions () {
+    const {
+      chainId,
+      genesisAccounts,
+      image,
+      initScript,
+      port,
+      stateRoot
+    } = this
+    const initScriptName = resolve('/', basename(initScript))
+    return {
+      Image:        image.name,
+      Name:         `${chainId}-${port}`,
+      Env:          [ `Port=${port}`
+                    , `ChainID=${chainId}`
+                    , `GenesisAccounts=${genesisAccounts.join(' ')}` ],
+      Entrypoint:   [ '/bin/bash' ],
+      Cmd:          [ initScriptName ],
+      Tty:          true,
+      AttachStdin:  true,
+      AttachStdout: true,
+      AttachStderr: true,
+      Hostname:     chainId,
+      Domainname:   chainId,
+      ExposedPorts: { [`${port}/tcp`]: {} },
+      HostConfig:   { NetworkMode: 'bridge'
+                    //, AutoRemove:   true
+                    , Binds:
+                      [ `${initScript}:${initScriptName}:ro`
+                      , `${stateRoot.path}:/receipts/${chainId}:rw` ]
+                    , PortBindings:
+                      { [`${port}/tcp`]: [{HostPort: `${port}`}] } }
+    }
   }
-}
 
-/** What Dockerode passes to the Docker API
-  * in order to launch a cleanup container
-  * (for removing root-owned devnet files
-  * without escalating on the host) */
-export async function getCleanupContainerOptions ({
-  image,
-  chainId,
-  port,
-  stateRoot
-}: DockerodeDevnet) {
-  return {
-    AutoRemove: true,
-    Image:      image.name,
-    Name:       `${chainId}-${port}-cleanup`,
-    Entrypoint: [ '/bin/rm' ],
-    Cmd:        ['-rvf', '/state',],
-    HostConfig: { Binds: [`${stateRoot.path}:/state:rw`] }
-    //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
+  /** What Dockerode passes to the Docker API
+    * in order to launch a cleanup container
+    * (for removing root-owned devnet files
+    * without escalating on the host) */
+  private getCleanupContainerOptions () {
+    const {
+      image,
+      chainId,
+      port,
+      stateRoot
+    } = this
+    return {
+      AutoRemove: true,
+      Image:      image.name,
+      Name:       `${chainId}-${port}-cleanup`,
+      Entrypoint: [ '/bin/rm' ],
+      Cmd:        ['-rvf', '/state',],
+      HostConfig: { Binds: [`${stateRoot.path}:/state:rw`] }
+      //Tty: true, AttachStdin: true, AttachStdout: true, AttachStderr: true,
+    }
   }
+
 }

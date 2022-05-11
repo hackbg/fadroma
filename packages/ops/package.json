@@ -1,28 +1,31 @@
 {
   "name": "@fadroma/ops",
-  "version": "1.0.0-beta",
+  "version": "0.1.0",
   "type": "module",
   "main": "./index.ts",
   "dependencies": {
-    "@hackbg/toolbox":           "workspace:^1",
-    "@iov/crypto":               "^2.1.0",
-    "@iov/encoding":             "^2.1.0",
-    "ajv":                       "^8.6",
-    "align-yaml":                "^0.1.8",
-    "dockerode":                 "^3.3.1",
-    "dotenv":                    "^15",
-    "exponential-backoff":       "^3.1",
-    "freeport-async":            "^2.0.0",
-    "js-yaml":                   "^4.1.0",
-    "json-schema-to-typescript": "^10.1.4",
-    "limiter":                   "^2.1.0",
-    "line-transform-stream":     "^0.1.0",
-    "toml":                      "^3",
-    "wasm-ffi":                  "^0.3.0"
+    "@fadroma/client": "workspace:^1",
+    "@hackbg/dokeres": "^1",
+    "@hackbg/kabinet": "^1",
+    "@hackbg/konzola": "^1",
+    "@hackbg/portali": "^1",
+    "@hackbg/toolbox": "^2",
+    "@iov/crypto": "^2.5.0",
+    "@iov/encoding": "^2.5.0",
+    "ajv": "^8.11.0",
+    "align-yaml": "^0.1.8",
+    "dotenv": "^15.0.1",
+    "exponential-backoff": "^3.1.0",
+    "js-yaml": "^4.1.0",
+    "json-schema-to-typescript": "^10.1.5",
+    "limiter": "^2.1.0",
+    "line-transform-stream": "^0.1.0",
+    "toml": "^3.0.0",
+    "wasm-ffi": "^0.3.0"
   },
   "devDependencies": {
-    "tap": "^15.0.9",
-    "@hackbg/ganesha": "workspace:*"
+    "@hackbg/ganesha": "^2.0.3",
+    "tap": "^15.2.3"
   },
   "scripts": {
     "test": "ganesha-node index.spec.js.md"

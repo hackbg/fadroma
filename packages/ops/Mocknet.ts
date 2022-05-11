@@ -16,9 +16,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { readFileSync, decode, Console, bold, colors, randomBech32, bech32 } from '@hackbg/toolbox'
-import { Chain, Agent, Artifact, Template, Instance, Identity } from '@fadroma/ops'
+import { readFileSync } from 'fs'
 import { URL } from 'url'
+
+import { Console, bold, colors } from '@hackbg/konzola'
+import { randomBech32, bech32 } from '@hackbg/toolbox'
+
+import { Chain, Agent, AgentOptions } from '@fadroma/client'
+import { Artifact, Template, Instance } from '@fadroma/ops'
 
 declare class TextDecoder {
   decode (data: any): string
@@ -318,10 +323,12 @@ export class Mocknet extends Chain {
   }
   Agent = MockAgent
   state = new MocknetState(this.id)
-  async getAgent ({ name }: Identity = {}) {
+  async getAgent ({ name }: MockAgentOptions = {}) {
     return new MockAgent(this, name)
   }
 }
+
+export interface MockAgentOptions extends AgentOptions {}
 
 export class MockAgent extends Agent {
 
@@ -329,10 +336,10 @@ export class MockAgent extends Agent {
 
   Bundle = null
 
-  static async create (chain: Mocknet) { return new MockAgent(chain, 'MockAgent') }
+  static async create (chain: Mocknet) { return new MockAgent(chain, { name: 'MockAgent' }) }
 
-  constructor (readonly chain: Mocknet, readonly name: string = 'mock') {
-    super()
+  constructor (readonly chain: Mocknet, readonly options: MockAgentOptions) {
+    super(chain, options)
     this.address = this.name
   }
 
@@ -352,18 +359,18 @@ export class MockAgent extends Agent {
     return await this.chain.state.query(instance, msg)
   }
 
-  get nextBlock () { return Promise.resolve()  }
-  get block     () { return Promise.resolve(0) }
-  get account   () { return Promise.resolve()  }
-  get balance   () { return Promise.resolve(0) }
+  get nextBlock () { return Promise.resolve()   }
+  get block     () { return Promise.resolve(0)  }
+  get account   () { return Promise.resolve()   }
+  get balance   () { return Promise.resolve(0n) }
 
   send        (_1:any, _2:any, _3?:any, _4?:any, _5?:any) { return Promise.resolve() }
   sendMany    (_1:any, _2:any, _3?:any, _4?:any)          { return Promise.resolve() }
 
-  getBalance  (_: string) { return Promise.resolve(0)              }
-  getCodeHash (_: any)    { return Promise.resolve("SomeCodeHash") }
-  getCodeId   (_: any)    { return Promise.resolve(1)              }
-  getLabel    (_: any)    { return Promise.resolve("SomeLabel")    }
+  getBalance (_: string) { return Promise.resolve(0n)             }
+  getHash    (_: any)    { return Promise.resolve("SomeCodeHash") }
+  getCodeId  (_: any)    { return Promise.resolve("1")            }
+  getLabel   (_: any)    { return Promise.resolve("SomeLabel")    }
 
 }
 

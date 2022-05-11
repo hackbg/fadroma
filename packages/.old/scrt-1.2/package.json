@@ -1,0 +1,15 @@
+{
+  "name":    "@fadroma/scrt-1.2",
+  "version": "1.0.0-pre",
+  "type":    "module",
+  "main":    "./index.ts",
+  "dependencies": {
+    "@cosmjs/crypto": "^0.20.0",
+    "@fadroma/scrt":  "workspace:*",
+    "pako":           "^1",
+    "secretjs":       "0.17.5"
+  },
+  "optionalDependencies": {
+    "axios": "^0.26.0"
+  }
+}

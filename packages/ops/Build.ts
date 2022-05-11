@@ -1,18 +1,20 @@
 import * as HTTP from 'http'
+import { resolve, relative, basename } from 'path'
+import { cwd } from 'process'
+import { spawnSync, execFile } from 'child_process'
+import { existsSync, readFileSync } from 'fs'
 import { Transform } from 'stream'
 import LineTransformStream from 'line-transform-stream'
-import {
-  Console, bold, resolve, relative, cwd, basename,
-  spawnSync, execFile, existsSync, readFileSync,
-  Docker, DockerImage
-} from '@hackbg/toolbox'
+import { toHex } from '@iov/encoding'
+import { Sha256 } from '@iov/crypto'
+import { Console, bold } from '@hackbg/konzola'
+import { Docker, DockerImage } from '@hackbg/dokeres'
 
 import { config } from './Config'
-import { Source, Builder, Artifact, codeHashForPath } from './Core'
 
 const console = Console('Fadroma Build')
 
-export const DEFAULT_REF  = 'HEAD'
+export const DEFAULT_REF = 'HEAD'
 
 export function distinct <T> (x: T[]): T[] {
   return [...new Set(x)]
@@ -21,6 +23,49 @@ export function distinct <T> (x: T[]): T[] {
 export const sanitizeRef  = ref => ref.replace(/\//g, '_')
 
 export const artifactName = (crate, ref) => `${crate}@${sanitizeRef(ref)}.wasm`
+
+export class Source {
+  constructor (
+    public readonly workspace: string,
+    public readonly crate:     string,
+    public readonly ref?:      string
+  ) {}
+
+  /** Take a workspace and a list of crates in it and return a function
+    * that creates a mapping from crate name to Source object for a particular VCS ref. */
+  static collectCrates = (workspace: string, crates: string[]) =>
+    (ref?: string): Record<string, Source> =>
+      crates.reduce(
+        (sources, crate)=>Object.assign(sources, {[crate]: new Source(workspace, crate, ref)}),
+        {}
+      )
+
+  static collect = (workspace, ref, ...crateLists): Source[] => {
+    const sources: Set<string> = new Set()
+    for (const crateList of crateLists) {
+      for (const crate of crateList) {
+        sources.add(crate)
+      }
+    }
+    return [...sources].map(crate=>new Source(workspace, crate, ref))
+  }
+}
+
+export abstract class Builder {
+  abstract build (source: Source, ...args): Promise<Artifact>
+  buildMany (sources: Source[], ...args): Promise<Artifact[]> {
+    return Promise.all(sources.map(source=>this.build(source, ...args)))
+  }
+}
+
+export interface Artifact {
+  location:  string
+  codeHash?: string
+}
+
+export function codeHashForPath (location: string) {
+  return toHex(new Sha256(readFileSync(location)).digest())
+}
 
 export abstract class CachingBuilder extends Builder {
   caching = !config.rebuild
@@ -128,7 +173,7 @@ export class DockerodeBuilder extends CachingBuilder {
     for (const workspace of workspaces) {
       console.info(`Building contracts from workspace:`, bold(relative(cwd(), workspace)))
       for (const ref of refs) {
-        console.info(`  Building contracts from ref ${ref}`)
+        console.info(`* Building contracts from ref:`, ref)
         // Create a list of sources for this container to build,
         // along with their indices in the input and output arrays
         // of this function.

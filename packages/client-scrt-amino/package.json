@@ -1,0 +1,26 @@
+{
+  "name":    "@fadroma/client-scrt-amino",
+  "version": "1.0.1",
+  "type":    "module",
+  "main":    "scrt-amino.js",
+  "types":   "scrt-amino.d.ts",
+  "ganesha": {
+    "main": "scrt-amino.ts"
+  },
+  "dependencies": {
+    "@fadroma/client-scrt": "workspace:^1",
+    "@cosmjs/crypto":       "^0.20.0",
+    "@iov/encoding":        "^2.1.0",
+    "secretjs":             "0.17.5",
+    "exponential-backoff":  "^3.1.0"
+  },
+  "optionalDependencies": {
+    "axios": "^0.26.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.4"
+  },
+  "scripts": {
+    "build": "tsc"
+  }
+}

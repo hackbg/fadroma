@@ -1,23 +1,22 @@
 import { symlinkSync, lstatSync } from 'fs'
+import { relative, resolve, basename, extname, dirname } from 'path'
+import { cwd } from 'process'
+import { existsSync, statSync, readFileSync, writeFileSync, readlinkSync, unlinkSync, readdirSync } from 'fs'
 
-import {
-  Console, bold, colors, timestamp, backOff,
-  relative, resolve, basename, extname, dirname, cwd,
-  existsSync, statSync, readFileSync, writeFileSync,
-  readlinkSync, unlinkSync,
-  Directory, mkdirp, readdirSync,
-} from '@hackbg/toolbox'
+import { Console, bold, colors } from '@hackbg/konzola'
+import { timestamp, backOff } from '@hackbg/toolbox'
+import { Directory, mkdirp } from '@hackbg/kabinet'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 
-const console = Console('Fadroma Deploy')
-
-import type { Client, ClientConstructor } from './Client'
-import type { Agent } from './Agent'
-import type { Chain } from './Chain'
+import type { Client, ClientCtor, Agent, Chain } from '@fadroma/client'
 import { Template, Label, InitMsg, Instance, Message, join } from './Core'
 import { print } from './Print'
 import { config } from './Config'
+
+const console = Console('Fadroma Deploy')
+
+export const addPrefix = (prefix, name) => `${prefix}/${name}`
 
 export class Deployment {
 
@@ -61,50 +60,23 @@ export class Deployment {
     return receipt
   }
 
-  getClient <C extends Client> (
-    agent:  Agent,
-    Client: ClientConstructor<C>,
-    name:   string
-  ): C {
-    return new Client({ ...this.get(name), agent })
-  }
-
-  /** Instantiate one contract and save its receipt to the deployment. */
-  async init <T> (deployAgent: Agent, template: Template, name: Label, initMsg: T): Promise<Instance> {
-    const label = `${this.prefix}/${name}`
-    const instance = await deployAgent.instantiate(template, label, initMsg)
-    this.set(name, instance)
-    return instance
-  }
-
   /** Chainable. Add to deployment, replacing existing receipts. */
   set (name: string, data = {}): this {
     this.receipts[name] = { name, ...data }
     return this.save()
   }
 
-  /** Chainable. Add to deployment, merging into existing receipts. */
-  add (name: string, data: any): this {
-    return this.set(name, { ...this.receipts[name] || {}, ...data })
-  }
-
-  /** Instantiate multiple contracts from the same Template with different parameters. */
-  async initMany (deployAgent: Agent, template: Template, configs: [Label, InitMsg][] = []): Promise<Instance[]> {
-    return this.initVarious(deployAgent, configs.map(([label, initMsg])=>[template, label, initMsg]))
-  }
-
-  /** Instantiate multiple contracts from different Templates with different parameters. */
-  async initVarious (deployAgent: Agent, configs: [Template, Label, InitMsg][] = []): Promise<Instance[]> {
-    const receipts = await deployAgent.instantiateMany(configs, this.prefix)
-    this.setMany(receipts)
-    return Object.values(receipts)
-  }
   /** Chainable. Add multiple to the deployment, replacing existing. */
   setMany (receipts: Record<string, any>) {
     for (const [name, receipt] of Object.entries(receipts)) {
       this.receipts[name] = receipt
     }
     return this.save()
+  }
+
+  /** Chainable. Add to deployment, merging into existing receipts. */
+  add (name: string, data: any): this {
+    return this.set(name, { ...this.receipts[name] || {}, ...data })
   }
 
   /** Chainable: Serialize deployment state to YAML file. */
@@ -121,6 +93,37 @@ export class Deployment {
   /** Resolve a path relative to the deployment directory. */
   resolve (...fragments: Array<string>) {
     return resolve(this.path, ...fragments)
+  }
+
+  getClient <C extends Client> (
+    agent:  Agent,
+    Client: ClientCtor<C>,
+    name:   string
+  ): C {
+    return new Client(agent, this.get(name))
+  }
+
+  /** Instantiate one contract and save its receipt to the deployment. */
+  async init (deployAgent: Agent, template: Template, name: Label, initMsg: object): Promise<Instance> {
+    const label    = addPrefix(this.prefix, name)
+    const instance = await deployAgent.instantiate(template, label, initMsg)
+    this.set(name, instance)
+    return instance
+  }
+
+  /** Instantiate multiple contracts from the same Template with different parameters. */
+  async initMany (deployAgent: Agent, template: Template, configs: [Label, object][] = []): Promise<Instance[]> {
+    // this adds just the template - prefix is added in initVarious
+    return this.initVarious(deployAgent, configs.map(([name, initMsg])=>[template, name, initMsg]))
+  }
+
+  /** Instantiate multiple contracts from different Templates with different parameters. */
+  async initVarious (deployAgent: Agent, configs: [Template, Label, object][] = []): Promise<Instance[]> {
+    const receipts = await deployAgent.instantiateMany(configs.map(
+      ([template, name, initMsg])=>[template, addPrefix(this.prefix, name), initMsg]
+    ))
+    this.setMany(receipts)
+    return Object.values(receipts)
   }
 
 }
@@ -200,80 +203,5 @@ export class Deployments extends Directory {
     }
     return super.save(name, data)
   }
-
-  /** Command: Create a new deployment. */
-  static new = async function createDeployment ({ chain, cmdArgs = [] }): Promise<DeployContext> {
-    const [ prefix = timestamp() ] = cmdArgs
-    await chain.deployments.create(prefix)
-    await chain.deployments.select(prefix)
-    return this.activate({ chain })
-  }.bind(this)
-
-  /** Command: Activate a deployment and prints its status. */
-  static activate = function activateDeployment ({ chain }): DeployContext {
-    const deployment = chain.deployments.active
-    if (!deployment) {
-      console.error(join(bold('No selected deployment on chain:'), chain.id))
-      process.exit(1)
-    }
-    const prefix = deployment.prefix
-    let contracts: string|number = Object.values(deployment.receipts).length
-    contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-    console.info(bold('Active deployment:'), prefix, contracts)
-    print(console).deployment(deployment)
-    return { deployment, prefix }
-  }.bind(this)
-
-  static activateOrNew = async function activateOrCreateDeployment ({
-    chain, cmdArgs
-  }): Promise<DeployContext> {
-    if (chain.deployments.active) {
-      return this.activate({ chain })
-    } else {
-      return await this.new({ chain, cmdArgs })
-    }
-  }.bind(this)
-
-  /** Command: Print the status of a deployment. */
-  static status = function printStatusOfDeployment ({ chain, cmdArgs: [id] = [undefined] }) {
-    let deployment = chain.deployments.active
-    if (id) {
-      deployment = chain.deployments.get(id)
-    }
-    if (!deployment) {
-      console.error(join(bold('No selected deployment on chain:'), chain.id))
-      process.exit(1)
-    }
-    print(console).deployment(deployment)
-  }.bind(this)
-
-  /** Command: Set a new deployment as active. */
-  static select = async function selectDeployment (context) {
-    const { chain, cmdArgs: [id] = [undefined] } = context
-    const list = chain.deployments.list()
-    if (list.length < 1) {
-      console.info('\nNo deployments. Create one with `deploy new`')
-    }
-    if (id) {
-      console.info(bold(`Selecting deployment:`), id)
-      await chain.deployments.select(id)
-    }
-    if (list.length > 0) {
-      console.info(bold(`Known deployments:`))
-      for (let deployment of chain.deployments.list()) {
-        if (deployment === chain.deployments.KEY) {
-          continue
-        }
-        const count = Object.keys(chain.deployments.get(deployment).receipts).length
-        if (chain.deployments.active && chain.deployments.active.prefix === deployment) {
-          deployment = `${bold(deployment)} (selected)`
-        }
-        deployment = `${deployment} (${count} contracts)`
-        console.info(` `, deployment)
-      }
-    }
-    console.log()
-    chain.deployments.printActive()
-  }.bind(this)
 
 }
