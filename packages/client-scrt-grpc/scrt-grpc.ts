@@ -50,6 +50,7 @@ export class ScrtRPCAgent extends ScrtAgent {
   }
 
   constructor (chain: Scrt, options: ScrtRPCAgentOptions) {
+    // @ts-ignore
     super(chain, options)
     this.wallet  = options.wallet
     this.api     = options.api
@@ -103,8 +104,8 @@ export class ScrtRPCAgent extends ScrtAgent {
     return await this.api.query.compute.contractCodeHash(address)
   }
 
-  async query ({ address, codeHash }, query) {
-    const contractAddress = address
+  async query <Q extends object> (instance: Instance, query: Q) {
+    const { address: contractAddress, codeHash } = instance
     const args = { contractAddress, codeHash, query }
     return await this.api.query.compute.queryContract(args)
   }
@@ -143,7 +144,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     }
   }
 
-  async execute (instance, msg, sentFunds, memo, fee) {
+  async execute (instance, msg, sentFunds?, memo?, fee?) {
     const { address, codeHash } = instance
     if (memo) {
       console.warn(constants.WARN_NO_MEMO)
@@ -158,6 +159,10 @@ export class ScrtRPCAgent extends ScrtAgent {
 export class Scrt extends ScrtChain {
   static Agent = ScrtRPCAgent
   Agent = Scrt.Agent
+  // @ts-ignore
+  getAgent (options: ScrtRPCAgentOptions): Promise<ScrtRPCAgent> {
+    return super.getAgent(options)
+  }
 }
 
 export class ScrtRPCBundle extends ScrtBundle {

@@ -55,7 +55,7 @@ declare module '@fadroma/client' {
 
   export class Chain implements Querier {
     static Mode: ChainMode
-    constructor (id: string, options: ChainOptions)
+    constructor <CO extends ChainOptions> (id: string, options: CO)
     readonly id:        string
     readonly url:       string
     readonly mode:      ChainMode
@@ -70,7 +70,7 @@ declare module '@fadroma/client' {
     getHash   (address: string): Promise<string>
 
     Agent: AgentCtor<any>
-    getAgent (options: AgentOptions): Promise<Agent>
+    getAgent <AO extends AgentOptions, A extends Agent> (options: AO): Promise<A>
   }
 
   export interface AgentCtor<A extends Agent> {
@@ -95,8 +95,8 @@ declare module '@fadroma/client' {
     getCodeId   (address: string): Promise<string>
     getLabel    (address: string): Promise<string>
     getHash     (address: string): Promise<string>
-    getBalance  (denom: string): Promise<bigint>
-    readonly balance: Promise<bigint>
+    getBalance  (denom: string): Promise<string>
+    get balance (): Promise<string>
     query           (contract: Instance, msg: never): Promise<any>
     execute         (contract: Instance, msg: never, ...args: any[]): Promise<any>
     upload          (blob: Uint8Array): Promise<Template>
@@ -132,16 +132,16 @@ declare module '@fadroma/client' {
   }
 
   export class Gas {
-    amount: Coin[]
+    amount: readonly Coin[]
     gas:    string
     constructor (x: number)
   }
 
   export interface Fees {
-    upload: Gas
-    init:   Gas
-    exec:   Gas
-    send:   Gas
+    upload?: Gas
+    init?:   Gas
+    exec?:   Gas
+    send?:   Gas
   }
 
 }

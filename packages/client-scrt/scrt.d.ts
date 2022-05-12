@@ -18,7 +18,8 @@ declare module '@fadroma/client-scrt' {
 
   }
 
-  export class ScrtChain extends Chain {}
+  export class ScrtChain extends Chain {
+  }
 
   export abstract class ScrtAgent extends Agent {
 
