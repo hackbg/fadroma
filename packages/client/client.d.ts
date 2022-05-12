@@ -133,13 +133,13 @@ declare module '@fadroma/client' {
   }
 
   export interface Coin {
-    amount: string
+    amount: Uint128
     denom:  string
   }
 
   export class Gas {
     amount: readonly Coin[]
-    gas:    string
+    gas:    Uint128
     constructor (x: number)
   }
 
@@ -149,5 +149,12 @@ declare module '@fadroma/client' {
     exec?:   Gas
     send?:   Gas
   }
+
+  export type Uint128    = string
+  export type Uint256    = string
+  export type Decimal    = string
+  export type Decimal256 = string
+  export type Duration   = number
+  export type Moment     = number
 
 }

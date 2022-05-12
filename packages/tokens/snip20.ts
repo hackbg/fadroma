@@ -1,6 +1,5 @@
+import { Agent, Client, Address, Uint128 } from '@fadroma/client'
 import type { Permit } from '@fadroma/client-scrt'
-
-import { Agent, Client, Address } from '@fadroma/client'
 import { Console } from '@hackbg/konzola'
 
 const randomHex = () => { throw new Error('randomHex: TODO') }
@@ -104,8 +103,8 @@ export class Snip20 extends Client {
     })
   }
 
-  getAllowance (owner: Address, spender: Address, key: string): Promise<Allowance> {
-    return (this.query({
+  async getAllowance (owner: Address, spender: Address, key: string): Promise<Allowance> {
+    return (await this.query({
       allowance: { owner, spender, key }
     }) as GetAllowanceResponse).allowance
   }

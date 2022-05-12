@@ -1,18 +1,21 @@
+import { fileURLToPath } from 'url'
+import { relative } from 'path'
+
 import {
-  Console, print, bold, colors, timestamp,
+  print, timestamp,
   Chain, ChainMode, Mocknet, Agent,
   runOperation, Operation, OperationContext,
-  Directory, getDeployments, Deployment,
-  fileURLToPath, relative, resolve,
+  getDeployments, Deployment,
   config,
   runCommands,
   join,
   CachingFSUploader, FSUploader
 } from '@fadroma/ops'
 
+import { Console, bold, colors } from '@hackbg/konzola'
+
 import { LegacyScrt } from '@fadroma/client-scrt-amino'
 import { Scrt }       from '@fadroma/client-scrt-grpc'
-
 import {
   getScrtBuilder,
   getScrtDevnet_1_2,

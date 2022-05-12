@@ -1,5 +1,4 @@
-export type Uint128 = string
-export type Address = string
+import type { Uint128, Address } from '@fadroma/client'
 
 export type TokenType = CustomToken | NativeToken;
 
