@@ -133,10 +133,22 @@ export class Snip20 extends Client {
   /** Transfer tokens to address */
   transfer (
     amount:    string | number | bigint,
-    recipient: string,
+    recipient: Address,
   ) {
     return this.execute({
       transfer: { amount, recipient }
+    })
+  }
+
+  /** Send tokens to address.
+    * Same as transfer but allows for receive callback. */
+  send (
+    amount:    string | number | bigint,
+    recipient: Address,
+    msg:       string
+  ) {
+    return this.execute({
+      send: { amount, recipient, msg }
     })
   }
 
@@ -160,7 +172,7 @@ export interface GetTokenInfoResponse {
 export interface TokenInfo {
   name:          string
   symbol:        string
-  decimals:      string
+  decimals:      number
   total_supply?: Uint128 | null
 }
 
