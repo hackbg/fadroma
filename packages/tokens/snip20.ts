@@ -144,7 +144,7 @@ export class Snip20 extends Client {
   send (
     amount:    string | number | bigint,
     recipient: Address,
-    msg:       string
+    msg:       string | object
   ) {
     return this.execute({
       send: { amount, recipient, msg }
