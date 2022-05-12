@@ -1,6 +1,6 @@
 import type { Permit } from '@fadroma/client-scrt'
 
-import { Agent, Client } from '@fadroma/client'
+import { Agent, Client, Address } from '@fadroma/client'
 import { Console } from '@hackbg/konzola'
 
 const randomHex = () => { throw new Error('randomHex: TODO') }
