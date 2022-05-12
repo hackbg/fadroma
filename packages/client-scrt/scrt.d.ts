@@ -37,6 +37,9 @@ declare module '@fadroma/client-scrt' {
     /** Instantiate multiple contracts from a bundled transaction. */
     instantiateMany (configs: [Template, string, object][]): Promise<Instance[]>
 
+    /** Execute a transaction. */
+    execute <M> (contract: Instance, msg: M, ...args: any[]): Promise<ExecuteResult>
+
   }
 
   export interface ScrtBundleCtor <B extends ScrtBundle> {
@@ -141,6 +144,12 @@ declare module '@fadroma/client-scrt' {
 
     abstract save (name: string): Promise<void>
 
+  }
+
+  export interface ExecuteResult {
+    transactionHash: string,
+    logs: any
+    data: any
   }
 
   export function mergeAttrs (attrs: {key:string,value:string}[]): any
