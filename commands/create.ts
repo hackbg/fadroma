@@ -84,11 +84,7 @@ commands['init'] = async function init () {
   // git init
   // git commit
 }
-```
 
-## Entrypoint
-
-```typescript
 import runCommands from '@hackbg/komandi'
 import { fileURLToPath } from 'url'
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
