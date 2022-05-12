@@ -2,7 +2,7 @@
   "name":    "@fadroma/tokens",
   "version": "0.1.0",
   "type":    "module",
-  "main":    "snip20.ts",
+  "main":    "index.ts",
   "dependencies": {
     "@hackbg/konzola": "^1",
     "@fadroma/client": "^1"

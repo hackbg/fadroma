@@ -7,14 +7,6 @@ const console = Console('Fadroma Tokens')
 
 type TokenType = any // TODO
 
-export interface Snip20TokenInfo {
-  token_info: any
-}
-
-export interface Snip20Balance {
-  balance: { amount: string }
-}
-
 export class Snip20 extends Client {
 
   static async fromTokenSpec (agent: Agent, token: TokenType) {
@@ -40,12 +32,12 @@ export class Snip20 extends Client {
   }
 
   async getTokenInfo () {
-    const { token_info }: Snip20TokenInfo = await this.query({ token_info: {} })
+    const { token_info }: GetTokenInfoResponse = await this.query({ token_info: {} })
     return token_info
   }
 
   async getBalance (address: string, key: string) {
-    const response: Snip20Balance = await this.query({ balance: { address, key } })
+    const response: GetBalanceResponse = await this.query({ balance: { address, key } })
     if (response.balance && response.balance.amount) {
       return response.balance.amount
     } else {
@@ -110,6 +102,12 @@ export class Snip20 extends Client {
     })
   }
 
+  getAllowance (owner: Address, spender: Address, key: string): Promise<Allowance> {
+    return (this.query({
+      allowance: { owner, spender, key }
+    }) as GetAllowanceResponse).allowance
+  }
+
   /** Increase allowance to spender */
   increaseAllowance (
     amount:  string | number | bigint,
@@ -140,4 +138,30 @@ export class Snip20 extends Client {
     })
   }
 
+}
+
+export interface GetAllowanceResponse {
+  allowance: Allowance
+}
+
+export interface Allowance {
+  spender:     Address
+  owner:       Address
+  allowance:   Uint128
+  expiration?: number|null
+}
+
+export interface GetTokenInfoResponse {
+  token_info: TokenInfo
+}
+
+export interface TokenInfo {
+  name:          string
+  symbol:        string
+  decimals:      string
+  total_supply?: Uint128 | null
+}
+
+export interface GetBalanceResponse {
+  balance: { amount: string }
 }
