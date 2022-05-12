@@ -72,6 +72,15 @@ export class ScrtRPCAgent extends ScrtAgent {
     return this.api.query.auth.account({ address: this.address })
   }
 
+  get balance () {
+    return this.getBalance(this.defaultDenomination)
+  }
+
+  async getBalance (denom = this.defaultDenomination) {
+    const response = await this.api.query.bank.balance({ address: this.address, denom })
+    return response.balance.amount
+  }
+
   async send (...args: any[]) {
     throw new Error('ScrtRPCAgent#send: not implemented')
   }
