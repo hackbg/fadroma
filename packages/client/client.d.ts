@@ -123,6 +123,7 @@ declare module '@fadroma/client' {
     query   <T, U> (msg: T): Promise<U>
     execute <T, U> (msg: T): Promise<U>
     populate (): Promise<void>
+    withFees (fees: Fees): this
   }
 
   export interface Coin {

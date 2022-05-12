@@ -120,10 +120,10 @@ export class Agent {
 
 export class Client {
   constructor (agent, options = {}) {
-    this.agent = agent
-    const { address, codeHash } = options
-    this.address  = address
-    this.codeHash = codeHash
+    this.agent    = agent
+    this.address  = options.address
+    this.codeHash = options.codeHash
+    this.fees     = options.fees
   }
   agent
   name
@@ -131,6 +131,7 @@ export class Client {
   codeId
   label
   address
+  fees
   async query (msg) {
     return await this.agent.query(this, msg)
   }
@@ -147,6 +148,9 @@ export class Client {
     this.label    = label
     this.codeId   = codeId
     this.codeHash = codeHash
+  }
+  async withFees (fees) {
+    return new this.constructor(this.agent, {...this, fees})
   }
 }
 
