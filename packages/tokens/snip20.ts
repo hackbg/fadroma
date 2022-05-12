@@ -1,3 +1,5 @@
+import type { Permit } from '@fadroma/client-scrt'
+
 import { Agent, Client } from '@fadroma/client'
 import { Console } from '@hackbg/konzola'
 
@@ -164,4 +166,12 @@ export interface TokenInfo {
 
 export interface GetBalanceResponse {
   balance: { amount: string }
+}
+
+export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
+
+export type QueryWithPermit = { with_permit: { query, permit } }
+
+export function create_permit_msg <Q> (query: Q, permit: Snip20Permit): QueryWithPermit {
+  return { with_permit: { query, permit } }
 }

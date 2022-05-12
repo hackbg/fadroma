@@ -1,39 +1,6 @@
 declare module '@fadroma/client' {
 
-  export interface Artifact {
-    url:      URL
-    codeHash: string
-  }
-
-  export interface Template {
-    chainId?:  string
-    codeId?:   string
-    codeHash?: string
-  }
-
-  export interface Instance extends Template {
-    address:   string
-    label?:    string
-  }
-
-  export interface Querier {
-    query <T, U> (contract: Instance, msg: T): Promise<U>
-    getCodeId (address: string): Promise<string>
-    getLabel  (address: string): Promise<string>
-    getHash   (address: string): Promise<string>
-  }
-
-  export interface Executor extends Querier {
-    address: string
-    execute <T, U> (contract: Instance, msg: T, funds: any[], memo?: any, fee?: any): Promise<U>
-  }
-
-  export interface Deployer extends Executor {
-    upload          (code: Uint8Array):                               Promise<Template>
-    uploadMany      (code: Uint8Array[]):                             Promise<Template[]>
-    instantiate     (template: Template, label: string, msg: object): Promise<Instance>
-    instantiateMany (configs: [Template, string, object][]):          Promise<Instance[]>
-  }
+  export type ChainId  = string
 
   export interface ChainMode {
     Mainnet
@@ -48,15 +15,10 @@ declare module '@fadroma/client' {
     node?: DevnetHandle
   }
 
-  export interface DevnetHandle {
-    terminate:         ()             => Promise<void>
-    getGenesisAccount: (name: string) => Promise<AgentOptions>
-  }
-
   export class Chain implements Querier {
     static Mode: ChainMode
     constructor <CO extends ChainOptions> (id: string, options: CO)
-    readonly id:        string
+    readonly id:        ChainId
     readonly url:       string
     readonly mode:      ChainMode
     readonly isMainnet: boolean
@@ -65,13 +27,57 @@ declare module '@fadroma/client' {
     readonly isMocknet: boolean
 
     query <T, U> (contract: Instance, msg: T): Promise<U>
-    getCodeId (address: string): Promise<string>
-    getLabel  (address: string): Promise<string>
-    getHash   (address: string): Promise<string>
+    getCodeId (address: Address): Promise<string>
+    getLabel  (address: Address): Promise<string>
+    getHash   (address: Address): Promise<string>
 
     Agent: AgentCtor<any>
     getAgent <AO extends AgentOptions, A extends Agent> (options: AO): Promise<A>
   }
+
+  export interface DevnetHandle {
+    terminate:         ()             => Promise<void>
+    getGenesisAccount: (name: string) => Promise<AgentOptions>
+  }
+
+  export type Address  = string
+
+  export type CodeHash = string
+
+  export type CodeId   = string
+
+  export interface Artifact {
+    url:      URL
+    codeHash: CodeHash
+  }
+
+  export interface Template {
+    chainId?:  ChainId
+    codeId?:   CodeId
+    codeHash?: CodeHash
+  }
+
+  export interface Instance extends Template {
+    address: Address
+    label?:  string
+  }
+
+  export interface Querier {
+    query <T, U> (contract: Instance, msg: T): Promise<U>
+    getCodeId (address: Address): Promise<string>
+    getLabel  (address: Address): Promise<string>
+    getHash   (address: Address): Promise<string>
+  }
+
+  export interface Executor extends Querier {
+    address:        Address
+    upload          (code: Uint8Array):                               Promise<Template>
+    uploadMany      (code: Uint8Array[]):                             Promise<Template[]>
+    instantiate     (template: Template, label: string, msg: object): Promise<Instance>
+    instantiateMany (configs: [Template, string, object][]):          Promise<Instance[]>
+    execute <T, U>  (contract: Instance, msg: T, funds: any[], memo?: any, fee?: any): Promise<U>
+  }
+
 
   export interface AgentCtor<A extends Agent> {
     new    (chain: Chain, options: AgentOptions): A
@@ -81,29 +87,29 @@ declare module '@fadroma/client' {
   export interface AgentOptions {
     name?:     string
     mnemonic?: string
-    address?:  string
+    address?:  Address
   }
 
-  export class Agent implements Deployer {
+  export class Agent implements Executor {
     static create (chain: Chain, options: AgentOptions): Promise<Agent>
-    chain:   Chain
-    address: string
-    name:    string
+    chain: Chain
+    address: Address
+    name: string
     defaultDenom: string
     constructor (chain: Chain, options: AgentOptions)
     getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions): C
-    getCodeId   (address: string): Promise<string>
-    getLabel    (address: string): Promise<string>
-    getHash     (address: string): Promise<string>
-    getBalance  (denom: string): Promise<string>
+    getCodeId (address: Address): Promise<string>
+    getLabel (address: Address): Promise<string>
+    getHash (address: Address): Promise<string>
+    getBalance (denom: string): Promise<string>
     get balance (): Promise<string>
-    query           (contract: Instance, msg: never): Promise<any>
-    execute         (contract: Instance, msg: never, ...args: any[]): Promise<any>
-    upload          (blob: Uint8Array): Promise<Template>
-    uploadMany      (blobs: Uint8Array[])
-    instantiate     (template: Template, label: string, msg: object)
+    query (contract: Instance, msg: never): Promise<any>
+    execute (contract: Instance, msg: never, ...args: any[]): Promise<any>
+    upload (blob: Uint8Array): Promise<Template>
+    uploadMany (blobs: Uint8Array[])
+    instantiate (template: Template, label: string, msg: object)
     instantiateMany (configs: [Template, string, object][])
-    bundle      <T> (): T
+    bundle <T> (): T
   }
 
   export interface ClientOptions extends Instance {}
@@ -115,9 +121,9 @@ declare module '@fadroma/client' {
   export class Client implements Instance {
     constructor (agent: Agent, options: ClientOptions)
     agent:    Agent
-    address:  string
-    codeId:   string
-    codeHash: string
+    address:  Address
+    codeId:   CodeId
+    codeHash: CodeHash
     label:    string
     name:     string
     query   <T, U> (msg: T): Promise<U>

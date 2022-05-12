@@ -18,8 +18,7 @@ declare module '@fadroma/client-scrt' {
 
   }
 
-  export class ScrtChain extends Chain {
-  }
+  export class ScrtChain extends Chain {}
 
   export abstract class ScrtAgent extends Agent {
 
@@ -147,5 +146,7 @@ declare module '@fadroma/client-scrt' {
   export function mergeAttrs (attrs: {key:string,value:string}[]): any
 
   export * from '@fadroma/client'
+
+  export * from './scrt-permit'
 
 }

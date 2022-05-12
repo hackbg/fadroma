@@ -1,10 +1,4 @@
-import {
-  Gas, Fees,
-  Chain, ChainOptions,
-  Executor, Agent, AgentOptions,
-  Template,
-  Instance, Client, ClientCtor, ClientOptions,
-} from '@fadroma/client'
+import { Gas, Chain, Agent, } from '@fadroma/client'
 
 import * as constants from './scrt-constants'
 
@@ -212,11 +206,11 @@ export class ScrtBundle {
   }
 
   submit (memo) {
-    throw new Error("ScrtBundle#submit: abstract, why aren't you using the subclass?")
+    throw new Error("ScrtBundle#submit is abstract, why aren't you using the subclass?")
   }
 
   save (name) {
-    throw new Error("ScrtBundle#submit: abstract, why aren't you using the subclass?")
+    throw new Error("ScrtBundle#save is abstract, why aren't you using the subclass?")
   }
 
 }
@@ -226,3 +220,5 @@ export function mergeAttrs (attrs) {
 }
 
 export * from '@fadroma/client'
+
+export * from './scrt-permit'

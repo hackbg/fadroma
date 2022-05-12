@@ -5,6 +5,7 @@
   "main":    "index.ts",
   "dependencies": {
     "@hackbg/konzola": "^1",
-    "@fadroma/client": "^1"
+    "@fadroma/client": "^1",
+    "@fadroma/client-scrt": "^1"
   }
 }
