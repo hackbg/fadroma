@@ -171,3 +171,12 @@ export class Fee implements IFee {
   amount = []
   gas
 }
+
+export class ContractLink {
+  constructor (address, code_hash) {
+    this.address = address
+    this.code_hash = code_hash
+  }
+  address
+  code_hash
+}

@@ -161,6 +161,12 @@ declare module '@fadroma/client' {
     send?:   IFee
   }
 
+  export class ContractLink {
+    constructor (address: Address, code_hash: CodeHash)
+    readonly address:   Address
+    readonly code_hash: CodeHash
+  }
+
   export type Uint128    = string
   export type Uint256    = string
   export type Decimal    = string
