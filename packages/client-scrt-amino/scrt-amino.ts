@@ -186,7 +186,8 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
     const codeHash = uploadResult.originalChecksum
     return {
-      chainId: this.chain.id,
+      uploadTx: uploadResult.transactionHash,
+      chainId:  this.chain.id,
       codeId,
       codeHash
     }
@@ -479,6 +480,23 @@ export class LegacyScrt extends ScrtChain {
   static Agent = LegacyScrtAgent
   // @ts-ignore
   Agent = LegacyScrt.Agent
+
+  async getLabel (address: string): Promise<string> {
+    throw new Error('TODO: Scrt#getLabel: use same method on agent')
+  }
+
+  async getCodeId (address: string): Promise<string> {
+    throw new Error('TODO: Scrt#getCodeId: use same method on agent')
+  }
+
+  async getHash (address: string): Promise<string> {
+    throw new Error('TODO: Scrt#getHash: use same method on agent')
+  }
+
+  // @ts-ignore
+  async query <Q extends object> (instance: Instance, query: Q) {
+    throw new Error('TODO: Scrt#query: use same method on agent')
+  }
 }
 
 export * from '@fadroma/client-scrt'

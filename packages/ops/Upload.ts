@@ -44,12 +44,7 @@ export class FSUploader extends Uploader {
     console.info(bold(`Code hash:`), artifact.codeHash)
     const template = await this.agent.upload(await readFile(fileURLToPath(artifact.url)))
     await this.agent.chain.nextBlock
-    return {
-      chainId:         this.agent.chain.id,
-      codeId:          template.codeId,
-      codeHash:        template.codeHash,
-      transactionHash: template.transactionHash
-    }
+    return template
   }
 
   /** Upload multiple Artifacts from the filesystem.
@@ -77,7 +72,7 @@ export class FSUploader extends Uploader {
   checkCodeHash (artifact: Artifact, template: Template) {
     if (template.codeHash !== artifact.codeHash) {
       console.warn(
-        `Code hash mismatch from upload in TX ${template.transactionHash}:\n`+
+        `Code hash mismatch from upload in TX ${template.uploadTx}:\n`+
         `  Expected ${artifact.codeHash} (from ${fileURLToPath(artifact.url)})`+
         `  Got      ${template.codeHash} (from codeId#${template.codeId})`
       )

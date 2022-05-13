@@ -1,8 +1,8 @@
 export type Address = string
 
 export abstract class Agent implements Executor {
-  static create (chain: Chain, options: AgentOptions = {}) {
-    throw new Error('Agent.create: abstract, use subclass', { options })
+  static create (chain: Chain, options: AgentOptions = {}): Promise<Agent> {
+    throw Object.assign(new Error('Agent.create: abstract, use subclass'), { options })
   }
   constructor (readonly chain: Chain, options: AgentOptions = {}) {
     this.chain = chain
@@ -269,10 +269,13 @@ export interface Querier {
 }
 
 export interface Template {
+  uploadTx?: TxHash
   chainId?:  ChainId
   codeId?:   CodeId
   codeHash?: CodeHash
 }
+
+export type TxHash = string
 
 export type Uint128 = string
 

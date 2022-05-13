@@ -128,7 +128,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     const chainId    = this.chain.id
-    return { chainId, codeId, codeHash }
+    return { uploadTx: result.transactionHash, chainId, codeId, codeHash }
   }
 
   async instantiate (template, label, initMsg, initFunds = []): Promise<Instance> {
