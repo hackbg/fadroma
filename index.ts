@@ -5,7 +5,7 @@ import {
   print, timestamp,
   Chain, ChainMode, Mocknet, Agent,
   runOperation, Operation, OperationContext,
-  getDeployments, Deployment,
+  getDeployments, Deployment, Deployments,
   config,
   runCommands,
   join,
@@ -111,7 +111,7 @@ const ChainOps = {
   },
 
   /** Print the status of the active devnet */
-  Status: async function printChainStatus ({ chain }) {
+  Status: async function printChainStatus ({ chain }: { chain: Chain }) {
     if (!chain) {
       console.info('No active chain.')
     } else {
@@ -124,7 +124,7 @@ const ChainOps = {
   },
 
   /** Reset the devnet. */
-  Reset: async function resetDevnet ({ chain }) {
+  Reset: async function resetDevnet ({ chain }: { chain: Chain }) {
     if (!chain) {
       console.info('No active chain.')
     } else if (!chain.isDevnet) {
@@ -135,13 +135,16 @@ const ChainOps = {
   }
 
 }
+
+export interface UploadContext {
+  agent:    Agent,
+  caching?: boolean
+}
+
 export const UploadOps = {
 
   /** Add an uploader to the command context. */
-  FromFile: function enableUploadingFromFile ({
-    agent,
-    caching = !config.reupload
-  }) {
+  FromFile: function enableUploadingFromFile ({ agent, caching = !config.reupload}: UploadContext) {
     if (caching) {
       return { uploader: new CachingFSUploader(agent) }
     } else {
@@ -156,6 +159,12 @@ export interface DeployContext {
   prefix:     string|undefined
 }
 
+export interface DeploymentsContext {
+  chain:        Chain
+  cmdArgs?:     any[]
+  deployments?: Deployments
+}
+
 export const DeployOps = {
 
   /** Create a new deployment and add it to the command context. */
@@ -163,7 +172,7 @@ export const DeployOps = {
     chain,
     cmdArgs = [],
     deployments = getDeployments(chain)
-  }): Promise<DeployContext> {
+  }: DeploymentsContext): Promise<DeployContext> {
     const [ prefix = timestamp() ] = cmdArgs
     await deployments.create(prefix)
     await deployments.select(prefix)
@@ -174,7 +183,7 @@ export const DeployOps = {
   Append: async function activateDeployment ({
     chain,
     deployments = getDeployments(chain)
-  }): Promise<DeployContext> {
+  }: DeploymentsContext): Promise<DeployContext> {
     const deployment = deployments.active
     if (!deployment) {
       console.error(join(bold('No selected deployment on chain:'), chain.id))
@@ -193,7 +202,7 @@ export const DeployOps = {
     chain,
     cmdArgs,
     deployments = getDeployments(chain)
-  }): Promise<DeployContext> {
+  }: DeploymentsContext): Promise<DeployContext> {
     if (deployments.active) {
       return DeployOps.Append({ chain })
     } else {
@@ -206,7 +215,7 @@ export const DeployOps = {
     chain,
     cmdArgs: [id] = [undefined],
     deployments = getDeployments(chain)
-  }) {
+  }: DeploymentsContext) {
     let deployment = deployments.active
     if (id) {
       deployment = deployments.get(id)
@@ -223,7 +232,7 @@ export const DeployOps = {
     chain,
     cmdArgs: [id] = [undefined],
     deployments = getDeployments(chain)
-  }) {
+  }: DeploymentsContext) {
     const list = deployments.list()
     if (list.length < 1) {
       console.info('\nNo deployments. Create one with `deploy new`')

@@ -58,11 +58,6 @@ export abstract class Builder {
   }
 }
 
-export interface Artifact {
-  location:  string
-  codeHash?: string
-}
-
 export function codeHashForPath (location: string) {
   return toHex(new Sha256(readFileSync(location)).digest())
 }

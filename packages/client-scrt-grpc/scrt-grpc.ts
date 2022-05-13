@@ -154,8 +154,9 @@ export class ScrtRPCAgent extends ScrtAgent<Tx> {
     }
   }
 
-  async execute (instance, msg, sentFunds?, memo?, fee?): Promise<Tx> {
+  async execute (instance, msg, opts?): Promise<Tx> {
     const { address, codeHash } = instance
+    const { send, memo, fee } = opts
     if (memo) {
       console.warn(constants.WARN_NO_MEMO)
     }
@@ -163,7 +164,7 @@ export class ScrtRPCAgent extends ScrtAgent<Tx> {
       console.warn('Ignoring fee', fee)
     }
     const sender   = this.address
-    const args     = { sender, contractAddress: address, codeHash, msg, sentFunds }
+    const args     = { sender, contractAddress: address, codeHash, msg, sentFunds: send }
     const gasLimit = Number(ScrtGas.defaultFees.exec.amount[0].amount)
     return await this.api.tx.compute.executeContract(args, { gasLimit })
   }

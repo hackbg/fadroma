@@ -2,8 +2,7 @@
   "name":    "@fadroma/client-scrt-amino",
   "version": "1.0.1",
   "type":    "module",
-  "main":    "scrt-amino.js",
-  "types":   "scrt-amino.d.ts",
+  "main":    "scrt-amino.ts",
   "dependencies": {
     "@fadroma/client-scrt": "^1",
     "@cosmjs/crypto":       "^0.20.0",

@@ -2,8 +2,7 @@
   "name":    "@fadroma/client",
   "version": "1.0.0",
   "type":    "module",
-  "main":    "dist/client.js",
-  "types":   "dist/client.d.ts",
+  "main":    "client.ts",
   "ganesha": {
     "main": "client.ts"
   },

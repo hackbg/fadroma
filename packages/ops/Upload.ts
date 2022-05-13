@@ -31,13 +31,6 @@ export interface UploadReceipt {
   transactionHash:    string
 }
 
-export interface Template {
-  chainId:          string
-  transactionHash?: string
-  codeId:           string
-  codeHash?:        string
-}
-
 /** Directory collecting upload receipts. */
 export class Uploads extends JSONDirectory {}
 

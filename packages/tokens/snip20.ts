@@ -51,31 +51,27 @@ export class Snip20 extends Client {
   }
 
   /** Change the admin of the token, who can set the minters */
-  changeAdmin (address: string) {
-    return this.execute({
-      change_admin: { address }
-    })
+  changeAdmin <R> (address: string): Promise<R> {
+    return this.execute({ change_admin: { address } })
   }
 
   /** Set specific addresses to be minters, remove all others */
-  setMinters (minters: Array<string>) {
-    return this.execute({
-      set_minters: { minters }
-    })
+  setMinters <R> (minters: Array<string>): Promise<R> {
+    return this.execute({ set_minters: { minters } })
   }
 
   /** Add addresses to be minters */
-  addMinters (minters: Array<string>) {
+  addMinters <R> (minters: Array<string>): Promise<R> {
     return this.execute({
       add_minters: { minters, padding: null }
     })
   }
 
   /** Mint tokens */
-  mint (
+  mint <R> (
     amount:    string | number | bigint,
     recipient: string = this.agent.address
-  ) {
+  ): Promise<R> {
     return this.execute({
       mint: { amount: String(amount), recipient, padding: null }
     })
@@ -88,30 +84,30 @@ export class Snip20 extends Client {
   }
 
   /** Increase allowance to spender */
-  increaseAllowance (
+  increaseAllowance <R> (
     amount:  string | number | bigint,
     spender: string,
-  ) {
+  ): Promise<R> {
     return this.execute({
       increase_allowance: { amount: String(amount), spender }
     })
   }
 
   /** Decrease allowance to spender */
-  decreaseAllowance (
+  decreaseAllowance <R> (
     amount:  string | number | bigint,
     spender: string,
-  ) {
+  ): Promise<R> {
     return this.execute({
       decrease_allowance: { amount: String(amount), spender }
     })
   }
 
   /** Transfer tokens to address */
-  transfer (
+  transfer <R> (
     amount:    string | number | bigint,
     recipient: Address,
-  ) {
+  ): Promise<R> {
     return this.execute({
       transfer: { amount, recipient }
     })
@@ -119,11 +115,11 @@ export class Snip20 extends Client {
 
   /** Send tokens to address.
     * Same as transfer but allows for receive callback. */
-  send (
+  send <R> (
     amount:    string | number | bigint,
     recipient: Address,
     msg:       string | object
-  ) {
+  ): Promise<R> {
     return this.execute({
       send: { amount, recipient, msg }
     })

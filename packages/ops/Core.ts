@@ -11,47 +11,6 @@ export type Label = string
 
 export type InitMsg = string|Record<string, any>
 
-export interface Instance {
-  chainId:          string
-  transactionHash?: string
-  codeId:           string
-  codeHash?:        string
-  label:            string
-  address:          string
-}
-
-export interface InitTX {
-  txhash:          string
-  contractAddress: string
-  data:            string
-  logs:            Array<any>
-  transactionHash: string
-  gas_used:        string
-}
-
-export interface InitReceipt {
-  label:    string
-  codeId:   number
-  codeHash: string
-  address:  string
-  initTx:   string
-  gasUsed:  string
-}
-
-export interface Identity {
-  chainId?:  string,
-  address?:  string
-  name?:     string,
-  type?:     string,
-  pubkey?:   string
-  mnemonic?: string
-  keyPair?:  any
-  pen?:      any
-  fees?:     any
-}
-
-export type Message = string|Record<string, any>
-
 export const join = (...x:any[]) => x.map(String).join(' ')
 
 export const overrideDefaults = (obj, defaults, options = {}) => {
@@ -62,4 +21,4 @@ export const overrideDefaults = (obj, defaults, options = {}) => {
 
 export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 export type { Coin, Fees } from '@fadroma/client'
-export { Gas } from '@fadroma/client'
+export { Fee } from '@fadroma/client'

@@ -1,9 +1,9 @@
 import { Client } from '@fadroma/client'
 import { randomBytes } from 'crypto'
 
-export class ViewingKeyClient<R> extends Client<R> {
+export class ViewingKeyClient extends Client {
 
-  create (entropy = randomBytes(32).toString("hex")) {
+  create <R> (entropy = randomBytes(32).toString("hex")): Promise<R> {
     return this.execute({
       create_viewing_key: { entropy, padding: null }
     }).then((tx) => {
@@ -13,7 +13,7 @@ export class ViewingKeyClient<R> extends Client<R> {
     })
   }
 
-  set (key) {
+  set <R> (key): Promise<R> {
     return this.execute({
       set_viewing_key: { key }
     }).then((tx) => {

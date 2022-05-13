@@ -45,7 +45,6 @@
   },
   "workspace": true,
   "packages": [
-    "./deps/*",
     "./packages/*"
   ]
 }
