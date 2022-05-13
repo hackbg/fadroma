@@ -7,7 +7,6 @@ import {
   ScrtGas,
   ScrtBundle,
 } from '@fadroma/client-scrt'
-
 import {
   SecretNetworkClient,
   Wallet,
@@ -25,7 +24,7 @@ export interface ScrtRPCAgentOptions extends AgentOptions {
   keyPair?: unknown
 }
 
-export class ScrtRPCAgent extends ScrtAgent<Tx> {
+export class ScrtRPCAgent extends ScrtAgent {
 
   Bundle = ScrtRPCBundle
 
@@ -178,6 +177,23 @@ export class Scrt extends ScrtChain {
   getAgent (options: ScrtRPCAgentOptions): Promise<ScrtRPCAgent> {
     // @ts-ignore
     return super.getAgent(options)
+  }
+
+  async getLabel (address: string): Promise<string> {
+    throw new Error('TODO: Scrt#getLabel: use same method on agent')
+  }
+
+  async getCodeId (address: string): Promise<string> {
+    throw new Error('TODO: Scrt#getCodeId: use same method on agent')
+  }
+
+  async getHash (address: string): Promise<string> {
+    throw new Error('TODO: Scrt#getHash: use same method on agent')
+  }
+
+  // @ts-ignore
+  async query <Q extends object> (instance: Instance, query: Q) {
+    throw new Error('TODO: Scrt#query: use same method on agent')
   }
 }
 

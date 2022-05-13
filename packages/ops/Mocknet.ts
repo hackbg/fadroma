@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import { readFileSync } from 'fs'
-import { URL } from 'url'
+import { URL, fileURLToPath } from 'url'
 
 import { Console, bold, colors } from '@hackbg/konzola'
 import { randomBech32, bech32 } from '@hackbg/toolbox'
@@ -259,10 +259,10 @@ export class MocknetState {
       contract_code_hash: codeHash
     }
   }
-  upload ({ location, codeHash }: Artifact): Template {
+  upload ({ url, codeHash }: Artifact): Template {
     const chainId = this.chainId
     const codeId  = ++this.codeId
-    const content = this.uploads[codeId] = readFileSync(location)
+    const content = this.uploads[codeId] = readFileSync(fileURLToPath(url))
     return { chainId, codeId: String(codeId), codeHash }
   }
   getCode (codeId) {
@@ -323,55 +323,53 @@ export class Mocknet extends Chain {
   }
   Agent = MockAgent
   state = new MocknetState(this.id)
-  async getAgent ({ name }: MockAgentOptions = {}) {
-    return new MockAgent(this, name)
+  getAgent (options: MockAgentOptions) {
+    return new MockAgent(this, options)
+  }
+  async query <T, U> (contract: Instance, msg: T): Promise<U> {
+    return null
+  }
+  async getHash (_: any) {
+    return Promise.resolve("SomeCodeHash")
+  }
+  async getCodeId (_: any) {
+    return Promise.resolve("1")
+  }
+  async getLabel (_: any) {
+    return "SomeLabel"
   }
 }
 
 export interface MockAgentOptions extends AgentOptions {}
 
 export class MockAgent extends Agent {
-
   defaultDenomination = 'umock'
-
   Bundle = null
-
   static async create (chain: Mocknet) { return new MockAgent(chain, { name: 'MockAgent' }) }
-
   constructor (readonly chain: Mocknet, readonly options: MockAgentOptions) {
     super(chain, options)
     this.address = this.name
   }
-
   address: string
-
   async upload (artifact) {
     return this.chain.state.upload(artifact)
   }
-
-  async doInstantiate (template, label, msg, funds = []): Promise<Instance> {
+  async instantiate (template, label, msg, funds = []): Promise<Instance> {
     return await this.chain.state.instantiate(this.address, template, label, msg, funds)
   }
-  async doExecute (instance, msg, funds, memo?, fee?) {
-    return await this.chain.state.execute(this.address, instance, msg, funds, memo, fee)
+  async execute <M, R> (instance, msg: M, opts): Promise<R> {
+    return await this.chain.state.execute(this.address, instance, msg, opts.funds, opts.memo, opts.fee)
   }
-  async doQuery (instance, msg) {
-    return await this.chain.state.query(instance, msg)
+  async query <M, R> (instance, msg: M): Promise<R> {
+    return await this.chain.query(instance, msg)
   }
-
-  get nextBlock () { return Promise.resolve()   }
-  get block     () { return Promise.resolve(0)  }
-  get account   () { return Promise.resolve()   }
-  get balance   () { return Promise.resolve(0n) }
-
-  send        (_1:any, _2:any, _3?:any, _4?:any, _5?:any) { return Promise.resolve() }
-  sendMany    (_1:any, _2:any, _3?:any, _4?:any)          { return Promise.resolve() }
-
-  getBalance (_: string) { return Promise.resolve(0n)             }
-  getHash    (_: any)    { return Promise.resolve("SomeCodeHash") }
-  getCodeId  (_: any)    { return Promise.resolve("1")            }
-  getLabel   (_: any)    { return Promise.resolve("SomeLabel")    }
-
+  get nextBlock () { return Promise.resolve()    }
+  get block     () { return Promise.resolve(0)   }
+  get account   () { return Promise.resolve()    }
+  get balance   () { return Promise.resolve("0") }
+  getBalance (_: string) { return Promise.resolve("0") }
+  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) { return Promise.resolve() }
+  sendMany (_1:any, _2:any, _3?:any, _4?:any) { return Promise.resolve() }
 }
 
 export const Mocks = {

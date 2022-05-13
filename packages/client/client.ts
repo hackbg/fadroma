@@ -1,8 +1,8 @@
 export type Address = string
 
-export class Agent implements Executor {
-  static async create  (chain: Chain, options: AgentOptions): Promise<Agent> {
-    return new Agent(chain, options)
+export abstract class Agent implements Executor {
+  static create (chain: Chain, options: AgentOptions = {}) {
+    throw new Error('Agent.create: abstract, use subclass', { options })
   }
   constructor (readonly chain: Chain, options: AgentOptions = {}) {
     this.chain = chain
@@ -35,19 +35,13 @@ export class Agent implements Executor {
   query <M, R> (contract: Instance, msg: M): Promise<R> {
     return this.chain.query(contract, msg)
   }
-  execute <M, R> (contract: Instance, msg: M, opts?: ExecOpts): Promise<R> {
-    throw Object.assign(new Error('Agent#execute: not implemented'), { contract, msg, opts })
-  }
-  upload (blob: Uint8Array): Promise<Template> {
-    throw Object.assign(new Error('Agent#upload: not implemented'), { blob })
-  }
+  abstract execute <M, R> (contract: Instance, msg: M, opts?: ExecOpts): Promise<R>
+  abstract upload (blob: Uint8Array): Promise<Template>
   uploadMany (blobs: Uint8Array[] = []): Promise<Template[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
-  instantiate <T> (template: Template, label: string, msg: T): Promise<Instance> {
-    throw Object.assign(new Error('Agent#instantiate: not implemented'), { template, label, msg })
-  }
-  instantiateMany (configs: [Template, string, object][] = []): Promise<Instance[]> {
+  abstract instantiate <T> (template: Template, label: string, msg: T): Promise<Instance>
+  instantiateMany (configs: [Template, string, Message][] = []): Promise<Instance[]> {
     return Promise.all(configs.map(
       async ([template, label, msg])=>Object.assign(await this.instantiate(template, label, msg), {
         codeHash: template.codeHash
@@ -78,15 +72,15 @@ export interface Artifact {
 
 export abstract class Bundle implements Executor {
   address: Address
-  abstract async query <T, U> (contract: Instance, msg: T): Promise<U>
-  abstract async getCodeId (address: Address): Promise<string>
-  abstract async getLabel  (address: Address): Promise<string>
-  abstract async getHash   (address: Address): Promise<string>
-  abstract async upload (code: Uint8Array): Promise<Template>
-  abstract async uploadMany (code: Uint8Array[]): Promise<Template[]>
-  abstract async instantiate (template: Template, label: string, msg: Message): Promise<Instance>
-  abstract async instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
-  abstract async execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
+  abstract query <T, U> (contract: Instance, msg: T): Promise<U>
+  abstract getCodeId (address: Address): Promise<string>
+  abstract getLabel  (address: Address): Promise<string>
+  abstract getHash   (address: Address): Promise<string>
+  abstract upload (code: Uint8Array): Promise<Template>
+  abstract uploadMany (code: Uint8Array[]): Promise<Template[]>
+  abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
+  abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
+  abstract execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
 }
 
 export type ChainId = string
@@ -104,7 +98,7 @@ export interface ChainOptions {
   node?: DevnetHandle
 }
 
-export class Chain implements Querier {
+export abstract class Chain implements Querier {
   static Mode = ChainMode
   constructor (
     readonly id: ChainId,
@@ -139,19 +133,11 @@ export class Chain implements Querier {
   get isMocknet () {
     return this.mode === Chain.Mode.Mocknet
   }
-  query <T, U> (contract: Instance, msg: T): Promise<U> {
-    throw new Error('Chain#query: not implemented')
-  }
-  getCodeId (address: Address): Promise<CodeId> {
-    throw new Error('Chain#getCodeId: not implemented')
-  }
-  getLabel (address: Address): Promise<string> {
-    throw new Error('Chain#getLabel: not implemented')
-  }
-  getHash (address: Address): Promise<CodeHash> {
-    throw new Error('Chain#getHash: not implemented')
-  }
-  Agent = Agent
+  abstract query <T, U> (contract: Instance, msg: T): Promise<U>
+  abstract getCodeId (address: Address): Promise<CodeId>
+  abstract getLabel (address: Address): Promise<string>
+  abstract getHash (address: Address): Promise<CodeHash>
+  Agent: AgentCtor<Agent> = Agent
   async getAgent (options) {
     if (!options.mnemonic && options.name && this.node) {
       console.info('Using devnet genesis account:', options.name)

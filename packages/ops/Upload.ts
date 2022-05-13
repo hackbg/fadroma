@@ -2,14 +2,15 @@ import { cwd } from 'process'
 import { relative, basename } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { mkdir, readFile, writeFile } from 'fs/promises'
+import { fileURLToPath } from 'url'
 
 import { Console, bold } from '@hackbg/konzola'
 import { JSONDirectory } from '@hackbg/kabinet'
 
-import type { Agent } from '@fadroma/client'
+import type { Agent, Template, Artifact } from '@fadroma/client'
 
 import { config } from './Config'
-import { Artifact, codeHashForPath } from './Build'
+import { codeHashForPath } from './Build'
 import { getUploads } from './State'
 
 const console = Console('Fadroma Upload')
@@ -39,9 +40,9 @@ export class FSUploader extends Uploader {
 
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
-    console.info(bold(`Uploading:`), relative(cwd(), artifact.location))
+    console.info(bold(`Uploading:`), relative(cwd(), fileURLToPath(artifact.url)))
     console.info(bold(`Code hash:`), artifact.codeHash)
-    const template = await this.agent.upload(await readFile(artifact.location))
+    const template = await this.agent.upload(await readFile(fileURLToPath(artifact.url)))
     await this.agent.chain.nextBlock
     return {
       chainId:         this.agent.chain.id,
@@ -61,7 +62,7 @@ export class FSUploader extends Uploader {
       const artifact = artifacts[i]
       let template
       if (artifact) {
-        template = await this.agent.upload(await readFile(artifact.location))
+        template = await this.agent.upload(await readFile(fileURLToPath(artifact.url)))
         this.checkCodeHash(artifact, template)
       }
       templates[i] = template
@@ -77,7 +78,7 @@ export class FSUploader extends Uploader {
     if (template.codeHash !== artifact.codeHash) {
       console.warn(
         `Code hash mismatch from upload in TX ${template.transactionHash}:\n`+
-        `  Expected ${artifact.codeHash} (from ${artifact.location})`+
+        `  Expected ${artifact.codeHash} (from ${fileURLToPath(artifact.url)})`+
         `  Got      ${template.codeHash} (from codeId#${template.codeId})`
       )
     }
@@ -97,7 +98,7 @@ export class CachingFSUploader extends FSUploader {
   }
 
   protected getUploadReceiptPath (artifact: Artifact): string {
-    const receiptName = `${basename(artifact.location)}.json`
+    const receiptName = `${basename(fileURLToPath(artifact.url))}.json`
     const receiptPath = this.cache.resolve(receiptName)
     return receiptPath
   }
@@ -125,13 +126,13 @@ export class CachingFSUploader extends FSUploader {
       const artifact = artifacts[i]
       this.ensureCodeHash(artifact)
 
-      const blobName     = basename(artifact.location)
+      const blobName     = basename(fileURLToPath(artifact.url))
       const receiptPath  = this.getUploadReceiptPath(artifact)
       const relativePath = relative(cwd(), receiptPath)
 
       if (!existsSync(receiptPath)) {
 
-        console.info(bold(`Uploading:`), `${relative(cwd(), artifact.location)}`)
+        console.info(bold(`Uploading:`), `${relative(cwd(), fileURLToPath(artifact.url))}`)
         toUpload[i] = artifact
 
       } else {
@@ -194,11 +195,11 @@ export class CachingFSUploader extends FSUploader {
     if (!artifact.codeHash) {
       console.warn(
         bold('No code hash in artifact'),
-        artifact.location
+        fileURLToPath(artifact.url)
       )
       console.warn(
         bold('Computed checksum:'),
-        artifact.codeHash = codeHashForPath(artifact.location)
+        artifact.codeHash = codeHashForPath(fileURLToPath(artifact.url))
       )
     }
   }

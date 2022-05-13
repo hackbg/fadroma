@@ -45,7 +45,7 @@ export interface LegacyScrtAgentOptions extends AgentOptions {
   fees?:    Fees
 }
 
-export class LegacyScrtAgent extends ScrtAgent<ExecuteResult> {
+export class LegacyScrtAgent extends ScrtAgent {
 
   Bundle = LegacyScrtBundle
 

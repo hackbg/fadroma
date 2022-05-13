@@ -1,9 +1,8 @@
 import { Console, bold, colors } from '@hackbg/toolbox'
 import { config } from './Config'
-import type { Message } from './Core'
 import type { Uploads } from './Upload'
 import type { Deployments } from './Deploy'
-import type { Agent } from '@fadroma/client'
+import type { Agent, Message } from '@fadroma/client'
 
 const console = Console('@fadroma/ops/Print')
 

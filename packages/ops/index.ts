@@ -21,9 +21,9 @@ import TOML from 'toml'
 export { TOML }
 
 import { Console, bold, colors, timestamp } from '@hackbg/toolbox'
-import { Chain, Agent } from '@fadroma/client'
+import { Chain, Agent, Artifact, Template } from '@fadroma/client'
 import { Source, Builder } from './Build'
-import { Uploader, Template } from './Upload'
+import { Uploader } from './Upload'
 import { Deployment } from './Deploy'
 
 export type Operation<T> = (context: OperationContext) => Promise<T>

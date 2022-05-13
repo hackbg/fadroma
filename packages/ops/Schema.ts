@@ -1,10 +1,12 @@
 import { writeFileSync, readdirSync, readFileSync } from 'fs'
 import { resolve, basename, dirname } from 'path'
+
+import { Agent } from '@fadroma/client'
 import { Console, bold } from '@hackbg/konzola'
 import { cargo } from '@hackbg/toolbox'
 import { compileFromFile } from 'json-schema-to-typescript'
+
 import TOML from 'toml'
-import { Agent } from './Agent'
 
 const console = Console('@fadroma/ops/schema')
 

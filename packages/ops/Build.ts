@@ -4,11 +4,13 @@ import { cwd } from 'process'
 import { spawnSync, execFile } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { Transform } from 'stream'
+import { pathToFileURL } from 'url'
 import LineTransformStream from 'line-transform-stream'
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 import { Console, bold } from '@hackbg/konzola'
 import { Docker, DockerImage } from '@hackbg/dokeres'
+import { Artifact } from '@fadroma/client'
 
 import { config } from './Config'
 
@@ -76,7 +78,7 @@ export abstract class CachingBuilder extends Builder {
       const location  = resolve(outputDir, artifactName(crate, ref))
       if (existsSync(location)) {
         console.info('✅ Exists, not rebuilding:', bold(relative(cwd(), location)))
-        return { location, codeHash: codeHashForPath(location) }
+        return { url: pathToFileURL(location), codeHash: codeHashForPath(location) }
       }
     }
     return null
@@ -111,7 +113,7 @@ export class RawBuilder extends CachingBuilder {
     await this.run(this.buildScript, [])
     const location = resolve(workspace, 'artifacts', artifactName(crate, ref))
     const codeHash = codeHashForPath(location)
-    return { location, codeHash }
+    return { url: pathToFileURL(location), codeHash }
   }
 }
 

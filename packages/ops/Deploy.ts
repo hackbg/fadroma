@@ -9,8 +9,16 @@ import { Directory, mkdirp } from '@hackbg/kabinet'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 
-import type { Client, ClientCtor, Agent, Chain } from '@fadroma/client'
-import { Template, Label, InitMsg, Instance, Message, join } from './Core'
+import type {
+  Agent, 
+  Chain,
+  Client,
+  ClientCtor, 
+  Instance,
+  Message,
+  Template,
+} from '@fadroma/client'
+import { Label, InitMsg, join } from './Core'
 import { print } from './Print'
 import { config } from './Config'
 

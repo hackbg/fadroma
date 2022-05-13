@@ -2,7 +2,7 @@ import { Agent, Chain, Fee } from '@fadroma/client'
 
 import * as constants from './scrt-const'
 
-export class ScrtAgent<R> extends Agent<R> {
+export abstract class ScrtAgent extends Agent {
 
   Bundle = null
 
@@ -102,12 +102,12 @@ export class ScrtBundle {
 
   get balance () {
     throw new Error("don't query inside bundle")
-    return Promise.resolve(0n)
+    return Promise.resolve('0')
   }
 
   async getBalance (denom) {
     throw new Error("can't get balance in bundle")
-    return Promise.resolve(0n)
+    return Promise.resolve('0')
   }
 
   get defaultDenom () {
@@ -201,10 +201,10 @@ export interface ScrtBundleResult {
   label?:    string
 }
 
-export class ScrtChain extends Chain {}
+export abstract class ScrtChain extends Chain {}
 
 export interface ScrtBundleCtor <B extends ScrtBundle, R> {
-  new (agent: ScrtAgent<R>): B
+  new (agent: ScrtAgent): B
 }
 
 export class ScrtGas extends Fee {
