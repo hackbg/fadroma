@@ -2,7 +2,7 @@ import { Agent, Chain, Fee } from '@fadroma/client'
 
 import * as constants from './scrt-const'
 
-export class ScrtAgent extends Agent {
+export class ScrtAgent<R> extends Agent<R> {
 
   Bundle = null
 
@@ -203,8 +203,8 @@ export interface ScrtBundleResult {
 
 export class ScrtChain extends Chain {}
 
-export interface ScrtBundleCtor <B extends ScrtBundle> {
-  new (agent: ScrtAgent): B
+export interface ScrtBundleCtor <B extends ScrtBundle, R> {
+  new (agent: ScrtAgent<R>): B
 }
 
 export class ScrtGas extends Fee {

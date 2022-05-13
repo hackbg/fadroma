@@ -45,7 +45,7 @@ export interface LegacyScrtAgentOptions extends AgentOptions {
   fees?:    Fees
 }
 
-export class LegacyScrtAgent extends ScrtAgent {
+export class LegacyScrtAgent extends ScrtAgent<ExecuteResult> {
 
   Bundle = LegacyScrtBundle
 
@@ -235,7 +235,6 @@ export class LegacyScrtAgent extends ScrtAgent {
     }) as U
   }
 
-  // @ts-ignore
   async execute ({ address, codeHash }, msg, memo, amount, fee) {
     return await this.api.execute(address, msg, memo, amount, fee, codeHash)
   }

@@ -1,7 +1,7 @@
 export type Address = string
 
-export class Agent implements Executor {
-  static async create (chain: Chain, options: AgentOptions): Promise<Agent> {
+export class Agent<R> implements Executor<R> {
+  static async create <R> (chain: Chain, options: AgentOptions): Promise<Agent<R>> {
     return new Agent(chain, options)
   }
   constructor (readonly chain: Chain, options: AgentOptions = {}) {
@@ -29,13 +29,13 @@ export class Agent implements Executor {
   getBalance (denom = this.defaultDenom): Promise<string> {
     return Promise.resolve('0')
   }
-  getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions) {
+  getClient <C extends Client<R>, R> (Client: ClientCtor<C, R>, options: ClientOptions) {
     return new Client(this, options)
   }
   query <T, U> (contract: Instance, msg: T): Promise<U> {
     return this.chain.query(contract, msg)
   }
-  execute <T, U> (contract: Instance, msg: T, ...args: any[]): Promise<U> {
+  execute <T> (contract: Instance, msg: T, ...args: any[]): Promise<R> {
     throw Object.assign(new Error('Agent#execute: not implemented'), { contract, msg, args })
   }
   upload (blob: Uint8Array): Promise<Template> {
@@ -59,7 +59,7 @@ export class Agent implements Executor {
   }
 }
 
-export interface AgentCtor<A extends Agent> {
+export interface AgentCtor<A extends Agent<R>, R> {
   new    (chain: Chain, options: AgentOptions): A
   create (chain: Chain, options: AgentOptions): Promise<A>
 }
@@ -147,8 +147,8 @@ export class Chain implements Querier {
   }
 }
 
-export class Client implements Instance{
-  constructor (readonly agent: Agent, options) {
+export class Client<R> implements Instance {
+  constructor (readonly agent: Agent<R>, options) {
     this.address  = options.address
     this.codeHash = options.codeHash
     this.fees     = options.fees
@@ -162,7 +162,7 @@ export class Client implements Instance{
   async query <T, U> (msg: T): Promise<U> {
     return await this.agent.query(this, msg)
   }
-  async execute <T, U> (msg: T): Promise<U> {
+  async execute <T> (msg: T): Promise<R> {
     return await this.agent.execute(this, msg)
   }
   async populate (): Promise<void> {
@@ -177,12 +177,12 @@ export class Client implements Instance{
     this.codeHash = codeHash
   }
   withFees (fees: Fees): this {
-    return new (this.constructor as ClientCtor<typeof this>)(this.agent, {...this, fees})
+    return new (this.constructor as ClientCtor<typeof this, R>)(this.agent, {...this, fees})
   }
 }
 
-export interface ClientCtor<C extends Client> {
-  new (agent: Agent, options: ClientOptions): C
+export interface ClientCtor<C extends Client<R>, R> {
+  new (agent: Agent<R>, options: ClientOptions): C
 }
 
 export interface ClientOptions extends Instance {}
@@ -213,13 +213,13 @@ export interface DevnetHandle {
 
 export type Duration = number
 
-export interface Executor extends Querier {
+export interface Executor<R> extends Querier {
   address:        Address
-  upload          (code: Uint8Array):                               Promise<Template>
-  uploadMany      (code: Uint8Array[]):                             Promise<Template[]>
-  instantiate     (template: Template, label: string, msg: object): Promise<Instance>
-  instantiateMany (configs: [Template, string, object][]):          Promise<Instance[]>
-  execute <T, U>  (contract: Instance, msg: T, funds: any[], memo?: any, fee?: any): Promise<U>
+  upload          (code: Uint8Array):   Promise<Template>
+  uploadMany      (code: Uint8Array[]): Promise<Template[]>
+  instantiate     (template: Template, label: string, msg: Message): Promise<Instance>
+  instantiateMany (configs: [Template, string, Message][]):          Promise<Instance[]>
+  execute <T> (contract: Instance, msg: T, funds: any[], memo?: any, fee?: any): Promise<R>
 }
 
 export class Fee implements IFee {
@@ -252,6 +252,8 @@ export interface Instance extends Template {
 }
 
 export type Moment = number
+
+export type Message = object|string
 
 export interface Querier {
   query <T, U> (contract: Instance, msg: T): Promise<U>

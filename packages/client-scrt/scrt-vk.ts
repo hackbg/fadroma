@@ -1,7 +1,7 @@
 import { Client } from '@fadroma/client'
 import { randomBytes } from 'crypto'
 
-export class ViewingKeyClient extends Client {
+export class ViewingKeyClient<R> extends Client<R> {
 
   create (entropy = randomBytes(32).toString("hex")) {
     return this.execute({

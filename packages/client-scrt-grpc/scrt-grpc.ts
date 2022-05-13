@@ -25,7 +25,7 @@ export interface ScrtRPCAgentOptions extends AgentOptions {
   keyPair?: unknown
 }
 
-export class ScrtRPCAgent extends ScrtAgent {
+export class ScrtRPCAgent extends ScrtAgent<Tx> {
 
   Bundle = ScrtRPCBundle
 
@@ -154,7 +154,6 @@ export class ScrtRPCAgent extends ScrtAgent {
     }
   }
 
-  // @ts-ignore
   async execute (instance, msg, sentFunds?, memo?, fee?): Promise<Tx> {
     const { address, codeHash } = instance
     if (memo) {
