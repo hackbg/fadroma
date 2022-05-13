@@ -17,7 +17,7 @@ declare module '@fadroma/client' {
 
   export class Chain implements Querier {
     static Mode: ChainMode
-    constructor <CO extends ChainOptions> (id: string, options: CO)
+    constructor (id: string, options: ChainOptions)
     readonly id:        ChainId
     readonly url:       string
     readonly mode:      ChainMode
@@ -132,22 +132,33 @@ declare module '@fadroma/client' {
     withFees (fees: Fees): this
   }
 
-  export interface Coin {
+  export interface ICoin {
     amount: Uint128
     denom:  string
   }
 
-  export class Gas {
-    amount: readonly Coin[]
+  export class Coin implements ICoin {
+    constructor (amount: number|string, denom: string)
+    readonly amount: Uint128
+    readonly denom:  string
+  }
+
+  export interface IFee {
+    amount: readonly ICoin[]
     gas:    Uint128
+  }
+
+  export class Fee implements IFee {
     constructor (x: number)
+    amount: readonly ICoin[]
+    gas:    Uint128
   }
 
   export interface Fees {
-    upload?: Gas
-    init?:   Gas
-    exec?:   Gas
-    send?:   Gas
+    upload?: IFee
+    init?:   IFee
+    exec?:   IFee
+    send?:   IFee
   }
 
   export type Uint128    = string

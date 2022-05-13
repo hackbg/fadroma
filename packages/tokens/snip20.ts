@@ -1,5 +1,5 @@
 import { Agent, Client, Address, Uint128 } from '@fadroma/client'
-import type { Permit } from '@fadroma/client-scrt'
+import { Permit, ViewingKeyClient } from '@fadroma/client-scrt'
 import { Console } from '@hackbg/konzola'
 
 const randomHex = () => { throw new Error('randomHex: TODO') }
@@ -81,28 +81,6 @@ export class Snip20 extends Client {
     })
   }
 
-  /** Create viewing key for the agent */
-  createViewingKey (entropy = randomHex(32)) {
-    return this.execute({
-      create_viewing_key: { entropy, padding: null }
-    }).then((tx) => {
-      console.warn('TODO decode response from create viewing key')
-      return { tx }
-      //status: JSON.parse(decode(fromHex(tx.data))).set_viewing_key.key,
-    })
-  }
-
-  /** Set viewing key for the agent  */
-  setViewingKey (key: string) {
-    return this.execute({
-      set_viewing_key: { key }
-    }).then((tx) => {
-      console.info(tx)
-      return { tx }
-      //status: JSON.parse(decode(fromHex(tx.data))).set_viewing_key.key,
-    })
-  }
-
   async getAllowance (owner: Address, spender: Address, key: string): Promise<Allowance> {
     return (await this.query({
       allowance: { owner, spender, key }
@@ -150,6 +128,8 @@ export class Snip20 extends Client {
       send: { amount, recipient, msg }
     })
   }
+
+  vk = new ViewingKeyClient(this.agent, this)
 
 }
 

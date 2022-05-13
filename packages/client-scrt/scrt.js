@@ -166,14 +166,8 @@ export class ScrtBundle {
   /** Add multiple MsgInstantiateContract messages to the bundle,
     * one for each contract config. */
   async instantiateMany (configs) {
-    const instances = {}
-    // add each init tx to the bundle. when passing a single contract
-    // to instantiate, this should behave equivalently to non-bundled init
-    for (let [template, label, initMsg] of configs) {
-      console.info('Instantiate:', label)
-      instances[label] = await this.instantiate(template, label, initMsg)
-    }
-    return instances
+    return await Promise.all(configs.map(([template, label, initMsg])=>
+      this.instantiate(template, label, initMsg)))
   }
 
   async init (template, label, msg, funds = []) {
@@ -220,5 +214,5 @@ export function mergeAttrs (attrs) {
 }
 
 export * from '@fadroma/client'
-
 export * from './scrt-permit'
+export * from './scrt-vk'

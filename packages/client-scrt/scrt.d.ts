@@ -1,21 +1,18 @@
 declare module '@fadroma/client-scrt' {
 
   import {
-    Gas, Fees,
+    Address,
+    Fee, Fees,
     Chain, ChainOptions,
     Executor, Agent, AgentOptions,
     Template,
     Instance, Client, ClientCtor, ClientOptions,
   } from '@fadroma/client'
 
-  export class ScrtGas extends Gas {
-
+  export class ScrtGas extends Fee {
     static denom: string
-
     static defaultFees: Fees
-
     constructor (x: number)
-
   }
 
   export class ScrtChain extends Chain {}
@@ -131,7 +128,7 @@ declare module '@fadroma/client-scrt' {
 
     /** Add multiple MsgInstantiateContract messages to the bundle,
       * one for each contract config. */
-    instantiateMany (configs: [Template, string, object][],): Promise<Record<string, Instance>>
+    instantiateMany (configs: [Template, string, object][],): Promise<Instance[]>
 
     init (template: Template, label, msg, funds?): Promise<this>
 
@@ -154,8 +151,95 @@ declare module '@fadroma/client-scrt' {
 
   export function mergeAttrs (attrs: {key:string,value:string}[]): any
 
-  export * from '@fadroma/client'
+  export interface Permit<T> {
+    params: {
+      permit_name:    string,
+      allowed_tokens: Address[]
+      chain_id:       string,
+      permissions:    T[]
+    },
+    signature: Signature
+  }
 
-  export * from './scrt-permit'
+  // This type is case sensitive!
+  export interface Signature {
+    readonly pub_key: Pubkey
+    readonly signature: string
+  }
+
+  export interface Pubkey {
+    /** Must be: `tendermint/PubKeySecp256k1` */
+    readonly type: string
+    readonly value: any
+  }
+
+  export interface Signer {
+    chain_id: string
+    signer:  Address
+    sign <T> (permit_msg: PermitAminoMsg<T>): Promise<Permit<T>>
+  }
+
+  /** Data used for creating a signature as per the SNIP-24 spec:
+    * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc
+    * This type is case sensitive! */
+  export interface SignDoc {
+    readonly chain_id:       string;
+    /** Always 0. */
+    readonly account_number: string;
+    /** Always 0. */
+    readonly sequence:       string;
+    /** Always 0 uscrt + 1 gas */
+    readonly fee:            Fee;
+    /** Always 1 message of type query_permit */
+    readonly msgs:           readonly AminoMsg[];
+    /** Always empty. */
+    readonly memo:           string;
+  }
+
+  export interface AminoMsg {
+    readonly type: string;
+    readonly value: any;
+  }
+
+  /** Used as the `value` field of the {@link AminoMsg} type. */
+  export interface PermitAminoMsg<T> {
+    permit_name:    string,
+    allowed_tokens: Address[],
+    permissions:    T[],
+  }
+
+  /** Helper function to create a {@link SignDoc}.
+    * All other fields on that type must be constant. */
+  export function createSignDoc <T> (chain_id: string, permit_msg: PermitAminoMsg<T>): SignDoc
+
+  export class KeplrSigner implements Signer {
+
+    constructor (chain_id: string, signer: Address, keplr: any)
+
+    /** The id of the chain which permits will be signed for. */
+    readonly chain_id: string
+
+    /** The address which will do the signing and
+      * which will be the address used by the contracts. */
+    readonly signer:   Address
+
+    /** Must be a pre-configured instance. */
+    readonly keplr:    any
+
+    sign <T> (
+      /** Query-specific parameters that will be created by the consuming contract. */
+      permit_msg: PermitAminoMsg<T>
+    ): Promise<Permit<T>>
+
+  }
+
+  export class ViewingKeyClient extends Client {
+    /** Create viewing key for the agent */
+    create (entropy: string): Promise<unknown>
+    /** Set viewing key for the agent  */
+    set    (key: string):     Promise<void>
+  }
+
+  export * from '@fadroma/client'
 
 }

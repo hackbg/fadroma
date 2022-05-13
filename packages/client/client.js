@@ -154,11 +154,20 @@ export class Client {
   }
 }
 
-export class Gas {
-  gas
-  amount = []
-  constructor (x) {
-    const amount = String(x)
-    this.gas = amount
+export class Coin implements ICoin {
+  constructor (amount: number|string, denom: string) {
+    this.amount = String(amount)
+    this.denom = denom
   }
+  readonly amount: string
+  readonly denom:  string
+}
+
+export class Fee implements IFee {
+  constructor (amount: Uint128, denom: string, gas: Uint128 = amount) {
+    this.amount.push({ amount, denom })
+    this.gas = gas
+  }
+  amount = []
+  gas
 }

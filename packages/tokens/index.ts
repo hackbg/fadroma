@@ -1,4 +1,4 @@
-import type { Uint128, Address } from '@fadroma/client'
+import { Uint128, Address, ICoin, Coin } from '@fadroma/client'
 
 export type TokenType = CustomToken | NativeToken;
 
@@ -57,35 +57,29 @@ export enum TypeOfToken {
   return address;
 }
 
-export function add_native_balance_pair(amount: TokenPairAmount): Coin[] | undefined {
-  let result: Coin[] | undefined = []
-
-  if (get_token_type(amount.pair.token_0) == TypeOfToken.Native) {
-    result.push(create_coin(amount.amount_0))
-  }
-  else if (get_token_type(amount.pair.token_1) == TypeOfToken.Native) {
-    result.push(create_coin(amount.amount_1))
+export function addNativeBalance (amount: TokenTypeAmount): ICoin[] | undefined {
+  let result: ICoin[] | undefined = []
+  if (getTokenType(amount.token) == TypeOfToken.Native) {
+    result.push(new Coin(amount.amount, 'uscrt'))
   } else {
     result = undefined
   }
-
   return result
 }
 
-export function add_native_balance(amount: TokenTypeAmount): Coin[] | undefined {
-  let result: Coin[] | undefined = []
-
-  if (get_token_type(amount.token) == TypeOfToken.Native) {
-    result.push(create_coin(amount.amount))
-  }
-  else {
+export function addNativeBalancePair (amount: TokenPairAmount): ICoin[] | undefined {
+  let result: ICoin[] | undefined = []
+  if (getTokenType(amount.pair.token_0) == TypeOfToken.Native) {
+    result.push(new Coin(amount.amount_0, 'uscrt'))
+  } else if (getTokenType(amount.pair.token_1) == TypeOfToken.Native) {
+    result.push(new Coin(amount.amount_1, 'uscrt'))
+  } else {
     result = undefined
   }
-
   return result
 }
 
-export function get_token_type(token: TokenType): TypeOfToken {
+export function getTokenType(token: TokenType): TypeOfToken {
   if (token.hasOwnProperty('native_token')) {
     return TypeOfToken.Native
   }
