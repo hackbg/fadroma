@@ -10,7 +10,7 @@ import {
 import { backOff } from 'exponential-backoff'
 
 import { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
-import * as constants from './scrt-amino-constants'
+import * as constants from './scrt-amino-const'
 
 export class LegacyScrtAgent extends ScrtAgent {
 
@@ -255,11 +255,6 @@ export class LegacyScrtAgent extends ScrtAgent {
 
 }
 
-export class LegacyScrt extends ScrtChain {
-  static Agent = LegacyScrtAgent
-  Agent = LegacyScrt.Agent
-}
-
 export class LegacyScrtBundle extends ScrtBundle {
 
   agent
@@ -439,6 +434,11 @@ export async function getNonce (url, address) {
   const client = new SigningCosmWasmClient(url, address, sign)
   const { accountNumber, sequence } = await client.getNonce()
   return { accountNumber, sequence }
+}
+
+export class LegacyScrt extends ScrtChain {
+  static Agent = LegacyScrtAgent
+  Agent = LegacyScrt.Agent
 }
 
 export * from '@fadroma/client-scrt'

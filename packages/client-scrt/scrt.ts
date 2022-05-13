@@ -1,26 +1,6 @@
-import { Gas, Chain, Agent, } from '@fadroma/client'
+import { Agent, Chain, Fee } from '@fadroma/client'
 
-import * as constants from './scrt-constants'
-
-export class ScrtGas extends Gas {
-
-  static denom = 'uscrt'
-
-  static defaultFees = {
-    upload: new ScrtGas(4000000),
-    init:   new ScrtGas(1000000),
-    exec:   new ScrtGas(1000000),
-    send:   new ScrtGas( 500000),
-  }
-
-  constructor (x) {
-    super(x)
-    this.amount.push({amount: String(x), denom: ScrtGas.denom})
-  }
-
-}
-
-export class ScrtChain extends Chain {}
+import * as constants from './scrt-const'
 
 export class ScrtAgent extends Agent {
 
@@ -43,10 +23,12 @@ export class ScrtAgent extends Agent {
     })
     // add code hashes to them:
     for (const i in configs) {
-      const [template, label, initMsg] = configs[i]
+      const [{ codeId, codeHash }, label] = configs[i]
       const instance = instances[i]
       if (instance) {
-        instance.codeHash = template.codeHash
+        instance.codeId   = codeId
+        instance.codeHash = codeHash
+        instance.label    = label
       }
     }
     return instances
@@ -205,6 +187,42 @@ export class ScrtBundle {
 
   save (name) {
     throw new Error("ScrtBundle#save is abstract, why aren't you using the subclass?")
+  }
+
+}
+
+export type ScrtBundleWrapper = (bundle: ScrtBundle) => Promise<any>
+
+export interface ScrtBundleResult {
+  tx:        string
+  type:      string
+  chainId:   string
+  codeId?:   string
+  codeHash?: string
+  address?:  string
+  label?:    string
+}
+
+export class ScrtChain extends Chain {}
+
+export interface ScrtBundleCtor <B extends ScrtBundle> {
+  new (agent: ScrtAgent): B
+}
+
+export class ScrtGas extends Fee {
+
+  static denom = 'uscrt'
+
+  static defaultFees = {
+    upload: new ScrtGas(4000000),
+    init:   new ScrtGas(1000000),
+    exec:   new ScrtGas(1000000),
+    send:   new ScrtGas( 500000),
+  }
+
+  constructor (x) {
+    super(x)
+    this.amount.push({amount: String(x), denom: ScrtGas.denom})
   }
 
 }

@@ -2,9 +2,18 @@
   "name":    "@fadroma/client-scrt",
   "version": "1.0.2",
   "type":    "module",
-  "main":    "scrt.js",
-  "types":   "scrt.d.ts",
+  "main":    "dist/scrt.js",
+  "types":   "dist/scrt.d.ts",
+  "ganesha": {
+    "main": "scrt.ts"
+  },
   "dependencies": {
     "@fadroma/client": "^1"
+  },
+  "devDependencies": {
+    "typescript": "^4.6.4"
+  },
+  "scripts": {
+    "build": "tsc"
   }
 }

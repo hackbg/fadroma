@@ -1,3 +1,5 @@
+import { Client } from '@fadroma/client'
+
 export class ViewingKeyClient extends Client {
 
   create (entropy = randomHex(32)) {
