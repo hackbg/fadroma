@@ -38,9 +38,7 @@ export class ScrtAgent extends Agent {
 
 export class ScrtBundle {
 
-  constructor (agent) {
-    this.agent = agent
-  }
+  constructor (readonly agent) {}
 
   depth = 0
 
@@ -221,8 +219,7 @@ export class ScrtGas extends Fee {
   }
 
   constructor (x) {
-    super(x)
-    this.amount.push({amount: String(x), denom: ScrtGas.denom})
+    super(x, ScrtGas.denom)
   }
 
 }

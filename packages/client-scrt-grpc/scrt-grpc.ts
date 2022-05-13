@@ -1,10 +1,19 @@
 import {
-  AgentOptions, Template, Instance,
-  ScrtChain, ScrtAgent, ScrtGas, ScrtBundle,
+  AgentOptions,
+  Template,
+  Instance,
+  ScrtChain,
+  ScrtAgent,
+  ScrtGas,
+  ScrtBundle,
 } from '@fadroma/client-scrt'
+
 import {
-  SecretNetworkClient, Wallet,
-  MsgInstantiateContract, MsgExecuteContract
+  SecretNetworkClient,
+  Wallet,
+  MsgInstantiateContract,
+  MsgExecuteContract,
+  Tx,
 } from 'secretjs'
 
 import * as constants from './scrt-grpc-constants'
@@ -104,6 +113,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     return await this.api.query.compute.contractCodeHash(address)
   }
 
+  // @ts-ignore
   async query <Q extends object> (instance: Instance, query: Q) {
     const { address: contractAddress, codeHash } = instance
     const args = { contractAddress, codeHash, query }
@@ -144,10 +154,14 @@ export class ScrtRPCAgent extends ScrtAgent {
     }
   }
 
-  async execute (instance, msg, sentFunds?, memo?, fee?) {
+  // @ts-ignore
+  async execute (instance, msg, sentFunds?, memo?, fee?): Promise<Tx> {
     const { address, codeHash } = instance
     if (memo) {
       console.warn(constants.WARN_NO_MEMO)
+    }
+    if (fee) {
+      console.warn('Ignoring fee', fee)
     }
     const sender   = this.address
     const args     = { sender, contractAddress: address, codeHash, msg, sentFunds }
@@ -158,9 +172,11 @@ export class ScrtRPCAgent extends ScrtAgent {
 
 export class Scrt extends ScrtChain {
   static Agent = ScrtRPCAgent
+  // @ts-ignore
   Agent = Scrt.Agent
   // @ts-ignore
   getAgent (options: ScrtRPCAgentOptions): Promise<ScrtRPCAgent> {
+    // @ts-ignore
     return super.getAgent(options)
   }
 }

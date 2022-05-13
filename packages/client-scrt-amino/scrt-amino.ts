@@ -1,16 +1,49 @@
-import { ScrtGas, ScrtChain, ScrtAgent, ScrtBundle, mergeAttrs } from '@fadroma/client-scrt'
-import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { Bip39 } from '@cosmjs/crypto'
+import {
+  AgentOptions,
+  CodeId,
+  CodeHash,
+  Fees,
+  ScrtAgent,
+  ScrtBundle,
+  ScrtChain,
+  ScrtGas,
+  mergeAttrs
+} from '@fadroma/client-scrt'
+import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
+import { backOff } from 'exponential-backoff'
 import {
   BroadcastMode,
   EnigmaUtils,
-  Secp256k1Pen, encodeSecp256k1Pubkey, pubkeyToAddress, makeSignBytes,
+  ExecuteResult,
+  InstantiateResult,
+  Secp256k1Pen,
   SigningCosmWasmClient,
+  encodeSecp256k1Pubkey,
+  makeSignBytes,
+  pubkeyToAddress, 
 } from 'secretjs'
-import { backOff } from 'exponential-backoff'
 
-import { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
 import * as constants from './scrt-amino-const'
+import { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
+
+const privKeyToMnemonic = privKey => (Bip39.encode(privKey) as any).data
+
+interface SigningPen {
+  pubkey: Uint8Array,
+  sign:   Function
+}
+
+export interface ScrtNonce {
+  accountNumber: number
+  sequence:      number
+}
+
+export interface LegacyScrtAgentOptions extends AgentOptions {
+  keyPair?: { privkey: Uint8Array }
+  pen?:     SigningPen
+  fees?:    Fees
+}
 
 export class LegacyScrtAgent extends ScrtAgent {
 
@@ -22,19 +55,19 @@ export class LegacyScrtAgent extends ScrtAgent {
     switch (true) {
       case !!mnemonic:
         // if keypair doesnt correspond to the mnemonic, delete the keypair
-        if (keyPair && mnemonic !== Bip39.encode(keyPair.privkey).data) {
+        if (keyPair && mnemonic !== privKeyToMnemonic(keyPair.privkey)) {
           console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
           keyPair = null
         }
         break
       case !!keyPair:
         // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-        mnemonic = Bip39.encode(keyPair.privkey).data
+        mnemonic = privKeyToMnemonic(keyPair.privkey)
         break
       default:
         // if there is neither, generate a new keypair and corresponding mnemonic
         keyPair  = EnigmaUtils.GenerateNewKeyPair()
-        mnemonic = Bip39.encode(keyPair.privkey).data
+        mnemonic = privKeyToMnemonic(keyPair.privkey)
     }
     return new LegacyScrtAgent(chain, {
       name,
@@ -45,9 +78,10 @@ export class LegacyScrtAgent extends ScrtAgent {
     })
   }
 
-  constructor (chain, options = {}) {
+  constructor (chain, options: LegacyScrtAgentOptions = {}) {
     super(chain, options)
     this.name     = options?.name || ''
+    // @ts-ignore
     this.fees     = options?.fees || ScrtGas.defaultFees
     this.keyPair  = options?.keyPair
     this.mnemonic = options?.mnemonic
@@ -60,12 +94,17 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
   }
 
-  keyPair
-  mnemonic
-  pen
-  sign
-  pubkey
-  seed
+  readonly keyPair
+
+  readonly mnemonic
+
+  readonly pen: SigningPen
+
+  readonly sign
+
+  readonly pubkey
+
+  readonly seed
 
   API = PatchedSigningCosmWasmClient_1_2
 
@@ -111,9 +150,9 @@ export class LegacyScrtAgent extends ScrtAgent {
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async getHash (idOrAddr) {
+  async getHash (idOrAddr: number|string) {
     const { api } = this
-    return this.rateLimited(async function getCodeHashInner () {
+    return await this.rateLimited(async function getCodeHashInner () {
       if (typeof idOrAddr === 'number') {
         return await api.getCodeHashByCodeId(idOrAddr)
       } else if (typeof idOrAddr === 'string') {
@@ -121,7 +160,7 @@ export class LegacyScrtAgent extends ScrtAgent {
       } else {
         throw new TypeError('getCodeHash id or addr')
       }
-    })
+    }) as CodeHash
   }
 
   async checkCodeHash (address, codeHash) {
@@ -160,11 +199,12 @@ export class LegacyScrtAgent extends ScrtAgent {
     const { codeId, codeHash } = template
     const { api } = this
     const { logs, transactionHash } = await this.rateLimited(function doInstantiateInner () {
+      // @ts-ignore
       return api.instantiate(Number(codeId), msg, label)
-    })
+    }) as InstantiateResult
     return {
       chainId:  this.chain.id,
-      codeId:   Number(codeId),
+      codeId:   String(codeId),
       codeHash: codeHash,
       address:  logs[0].events[0].attributes[4].value,
       transactionHash,
@@ -176,7 +216,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     return await this.rateLimited(async function getCodeIdInner () {
       const { codeId } = await api.getContract(address)
       return String(codeId)
-    })
+    }) as CodeId
   }
 
   async getLabel (address) {
@@ -184,14 +224,15 @@ export class LegacyScrtAgent extends ScrtAgent {
     return await this.rateLimited(async function getLabelInner () {
       const { label } = await api.getContract(address)
       return label
-    })
+    }) as string
   }
 
-  async query ({ address, codeHash }, msg) {
+  async query <T, U> ({ address, codeHash }, msg: T) {
     const { api } = this
     return await this.rateLimited(function doQueryInner () {
+      // @ts-ignore
       return api.queryContractSmart(address, msg, undefined, codeHash)
-    })
+    }) as U
   }
 
   // @ts-ignore
@@ -225,7 +266,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     //console.log('rateLimited', fn)
     let initialWait = 0
     if (this.chain.isMainnet && this.config?.datahub?.rateLimit) {
-      const initialWait = this.initialWait*Math.random()
+      initialWait = this.initialWait*Math.random()
       console.warn(
         "Avoid running into rate limiting by waiting",
         Math.floor(initialWait), 'ms'
@@ -386,6 +427,7 @@ export class LegacyScrtBundle extends ScrtBundle {
   }
 
   finalizeForSave (messages, memo) {
+    const fee = new ScrtGas(10000000)
     const finalUnsignedTx = {
       body: {
         messages,
@@ -396,12 +438,10 @@ export class LegacyScrtBundle extends ScrtBundle {
       },
       auth_info: {
         signer_infos: [],
-        fee: {...new ScrtGas(10000000), payer: "", granter: ""},
+        fee: { ...fee, gas: fee.gas, payer: "", granter: "" },
       },
       signatures: []
     }
-    finalUnsignedTx.auth_info.fee.gas_limit = finalUnsignedTx.auth_info.fee.gas
-    delete finalUnsignedTx.auth_info.fee.gas
     return finalUnsignedTx
   }
 
@@ -438,6 +478,7 @@ export async function getNonce (url, address) {
 
 export class LegacyScrt extends ScrtChain {
   static Agent = LegacyScrtAgent
+  // @ts-ignore
   Agent = LegacyScrt.Agent
 }
 

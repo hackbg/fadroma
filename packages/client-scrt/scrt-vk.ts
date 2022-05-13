@@ -1,8 +1,9 @@
 import { Client } from '@fadroma/client'
+import { randomBytes } from 'crypto'
 
 export class ViewingKeyClient extends Client {
 
-  create (entropy = randomHex(32)) {
+  create (entropy = randomBytes(32).toString("hex")) {
     return this.execute({
       create_viewing_key: { entropy, padding: null }
     }).then((tx) => {

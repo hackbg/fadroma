@@ -15,6 +15,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     })).catch(e=>{
       console.warn('Failed to create query client:', e.message, ' - falling back to default client')
       console.error(e)
+      // @ts-ignore
       return this.client
     })
   }
@@ -34,18 +35,18 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   resultRetries      = 20
   resultRetryDelay   = 3000
 
+  // @ts-ignore
   async instantiate (codeId, initMsg, label, memo, transferAmount, fee, hash) {
-    let {transactionHash:id} = await super.instantiate(
+    return await this.getTxResult((await super.instantiate(
       codeId, initMsg, label, memo, transferAmount, fee, hash
-    )
-    return await this.getTxResult(id)
+    )).transactionHash)
   }
 
+  // @ts-ignore
   async execute (contractAddress, handleMsg, memo, transferAmount, fee, contractCodeHash) {
-    let {transactionHash:id} = await super.execute(
+    return await this.getTxResult((await super.execute(
       contractAddress, handleMsg, memo, transferAmount, fee, contractCodeHash
-    )
-    return await this.getTxResult(id)
+    )).transactionHash)
   }
 
   async waitForNextBlock (sent) {
@@ -65,6 +66,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     //}
   }
 
+  // @ts-ignore
   async postTx (tx) {
 
     //console.trace('postTx', tx.msg)
