@@ -17,6 +17,19 @@ export abstract class Agent implements Executor {
   get height (): Promise<number> {
     return Promise.resolve(0)
   }
+  get nextBlock () {
+    return new Promise<void>(async resolve=>{
+      this.height.then(async startingHeight=>{
+        while (true) {
+          await new Promise(ok=>setTimeout(ok, 1000))
+          const height = await this.height
+          if (height > startingHeight) {
+            resolve()
+          }
+        }
+      })
+    })
+  }
   getCodeId (address: Address) {
     return this.chain.getCodeId(address)
   }
@@ -137,7 +150,7 @@ export abstract class Chain implements Querier {
   abstract getCodeId (address: Address): Promise<CodeId>
   abstract getLabel (address: Address): Promise<string>
   abstract getHash (address: Address): Promise<CodeHash>
-  Agent: AgentCtor<Agent> = Agent
+  abstract Agent: AgentCtor<Agent>
   async getAgent (options) {
     if (!options.mnemonic && options.name && this.node) {
       console.info('Using devnet genesis account:', options.name)
