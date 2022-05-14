@@ -281,3 +281,4 @@ export class ScrtRPCBundle extends ScrtBundle {
 }
 
 export * from '@fadroma/client-scrt'
+export type { Tx }
