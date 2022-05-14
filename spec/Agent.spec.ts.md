@@ -108,7 +108,7 @@ for (const Chain of [
 
   async [`${Chain.name}: wait for next block`] ({ equal, deepEqual }) {
     const endpoint = await mockAPIEndpoint()
-    const chain    = { apiURL: endpoint.url }
+    const chain    = { url: endpoint.url }
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const agent    = await Chain.Agent.create(chain, { mnemonic })
     try {
@@ -127,7 +127,7 @@ for (const Chain of [
 
   async [`${Chain.name}: native token balance and transactions`] ({ equal }) {
     const endpoint  = await mockAPIEndpoint()
-    const chain     = { apiURL: endpoint.url }
+    const chain     = { url: endpoint.url }
     const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
     const [agent1, agent2] = await Promise.all([
@@ -151,7 +151,7 @@ for (const Chain of [
 
   async [`${Chain.name}: full contract lifecycle`] ({ ok, equal, deepEqual }) {
     const endpoint = await mockAPIEndpoint()
-    const chain    = { id: 'testing', apiURL: endpoint.url }
+    const chain    = { id: 'testing', url: endpoint.url }
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
     const agent    = await Chain.Agent.create(chain, { mnemonic })
     try {

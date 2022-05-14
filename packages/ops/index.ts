@@ -67,7 +67,7 @@ const console = Console('Fadroma Ops')
 
 export async function runOperation (
   cmdName:  string,
-  steps:    Command<any>[],
+  steps:    Function[],
   cmdArgs?: string[]
 ): Promise<any> {
 

@@ -61,7 +61,7 @@ export abstract class Devnet {
   port     = null
 
   /** The API URL that can be used to talk to the devnet. */
-  get apiURL (): URL {
+  get url (): URL {
     return new URL(`${this.protocol}://${this.host}:${this.port}`)
   }
 
@@ -102,7 +102,7 @@ export abstract class Devnet {
         if (this.chainId !== chainId) {
           console.warn(`Loading state of ${chainId} into Devnet with id ${this.chainId}`)
         }
-        this.apiURL.port = String(port)
+        this.port = String(port)
         return data
       } catch (e) {
         console.warn(`Failed to load ${path}. Deleting it`)

@@ -323,7 +323,7 @@ export class Mocknet extends Chain {
   }
   Agent = MockAgent
   state = new MocknetState(this.id)
-  getAgent (options: MockAgentOptions) {
+  async getAgent (options: MockAgentOptions) {
     return new MockAgent(this, options)
   }
   async query <T, U> (contract: Instance, msg: T): Promise<U> {
@@ -380,7 +380,7 @@ export const Mocks = {
     Mocknet () {
       const id = 'fadroma-mocknet'
       return new Mocknet(id, {
-        apiURL:    new URL('mock://mock:0'),
+        url:       new URL('mock://mock:0'),
         statePath: `/tmp/fadroma_mocknet_${Math.floor(Math.random()*1000000)}`
       })
     }

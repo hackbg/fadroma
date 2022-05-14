@@ -50,7 +50,7 @@ export const Chains = {
   async 'LegacyScrtDevnet'  () {
     const node = await getScrtDevnet_1_2().respawn()
     return new LegacyScrt(node.chainId, {
-      url:  node.apiURL.toString(),
+      url:  node.url.toString(),
       mode: Chain.Mode.Devnet,
       node
     })
@@ -72,9 +72,9 @@ export const Chains = {
 
   async 'ScrtDevnet' () {
     const node = await getScrtDevnet_1_3().respawn()
-    const url  = node.apiURL.toString()
+    const url  = node.url.toString()
     return new Scrt(node.chainId, {
-      url:  node.apiURL.toString(),
+      url:  node.url.toString(),
       mode: Chain.Mode.Devnet,
       node
     })
@@ -118,7 +118,7 @@ const ChainOps = {
       console.info(bold('Chain type:'), chain.constructor.name)
       console.info(bold('Chain mode:'), chain.mode)
       console.info(bold('Chain ID:  '), chain.id)
-      console.info(bold('Chain URL: '), chain.apiURL.toString())
+      console.info(bold('Chain URL: '), chain.url.toString())
       console.info(bold('Chain dir: '), relative(config.projectRoot, chain.stateRoot.path))
     }
   },

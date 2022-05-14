@@ -17,9 +17,9 @@ test({
     assert(chain.id === 'chainid')
   },
   'chain API URL' () {
-    const apiURL = 'http://example.com'
-    const chain = new Chain('chainid', { apiURL })
-    assert(chain.url === apiURL)
+    const url = 'http://example.com'
+    const chain = new Chain('chainid', { url })
+    assert(chain.url === url)
   }
 })
 ```
@@ -100,15 +100,12 @@ for (const Chain of [
   },
 
   async [`${Chain.name}: devnet`] ({ ok, equal }) {
-    const node = {
-      chainId: 'scrt-devnet',
-      apiURL:  'http://test:0'
-    }
+    const node = { chainId: 'scrt-devnet', url: 'http://test:0' }
     const chain = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
     ok(chain)
-    equal(chain.node,   node)
-    equal(chain.apiURL, node.apiURL)
-    equal(chain.id,     node.chainId)
+    equal(chain.node, node)
+    equal(chain.url,  node.url)
+    equal(chain.id,   node.chainId)
   },
 
 })

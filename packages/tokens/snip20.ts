@@ -118,7 +118,7 @@ export class Snip20 extends Client {
   send <R> (
     amount:    string | number | bigint,
     recipient: Address,
-    msg:       string | object
+    msg?:      string | object
   ): Promise<R> {
     return this.execute({
       send: { amount, recipient, msg }

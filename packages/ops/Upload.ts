@@ -43,7 +43,7 @@ export class FSUploader extends Uploader {
     console.info(bold(`Uploading:`), relative(cwd(), fileURLToPath(artifact.url)))
     console.info(bold(`Code hash:`), artifact.codeHash)
     const template = await this.agent.upload(await readFile(fileURLToPath(artifact.url)))
-    await this.agent.chain.nextBlock
+    await this.agent.nextBlock
     return template
   }
 
