@@ -236,7 +236,8 @@ export class LegacyScrtAgent extends ScrtAgent {
     }) as U
   }
 
-  async execute ({ address, codeHash }, msg, memo, amount, fee) {
+  async execute ({ address, codeHash }, msg, opts) {
+    const { memo, amount, fee } = opts
     return await this.api.execute(address, msg, memo, amount, fee, codeHash)
   }
 
