@@ -1,5 +1,6 @@
-import { resolve, relative, dirname } from '@hackbg/toolbox'
-import { RawBuilder, DockerodeBuilder, DockerImage } from '@fadroma/ops'
+import { resolve, relative, dirname } from 'path'
+import { DokeresImage } from '@hackbg/dokeres'
+import { RawBuilder, DockerodeBuilder } from '@fadroma/ops'
 
 import { scrtConfig as config } from './config'
 
@@ -32,8 +33,8 @@ export class ScrtDockerodeBuilder extends DockerodeBuilder {
     config.scrt.buildScript
   )
 
-  image = new DockerImage(
-    undefined,
+  image = new DokeresImage(
+    null,
     config.scrt.buildImage,
     config.scrt.buildDockerfile,
     [this.buildEntryPoint]

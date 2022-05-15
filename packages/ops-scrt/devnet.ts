@@ -8,13 +8,14 @@
 
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { config, DockerodeDevnet, DockerImage } from '@fadroma/ops'
+import { config, DockerodeDevnet } from '@fadroma/ops'
+import { DokeresImage } from '@hackbg/dokeres'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export function getScrtDevnet_1_3 () {
   return new DockerodeDevnet({
-    image: new DockerImage(
+    image: new DokeresImage(
       undefined,
       'enigmampc/secret-network-sw-dev:v1.3.0-beta.0'
     ),
@@ -35,7 +36,7 @@ export function getScrtDevnet_1_2 (
     //)
   } else {
     return new DockerodeDevnet({
-      image: new DockerImage(
+      image: new DokeresImage(
         undefined,
         "enigmampc/secret-network-sw-dev:v1.2.0",
       ),
