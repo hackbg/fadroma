@@ -356,7 +356,7 @@ export class DockerodeDevnet extends Devnet {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
         console.warn(`Failed to delete ${path}: ${e.message}; trying cleanup container...`)
         await this.image.ensure()
-        const container = await this.createContainer(getCleanupContainerOptions(this))
+        const container = await this.createContainer(this.getCleanupContainerOptions())
         console.info(`Starting cleanup container...`)
         await container.start()
         console.info('Waiting for cleanup to finish...')
