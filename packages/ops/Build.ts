@@ -299,8 +299,9 @@ export class DockerodeBuilder extends CachingBuilder {
       if (location === null) {
         return null
       } else {
+        const url = pathToFileURL(location)
         const codeHash = codeHashForPath(location)
-        return { location, codeHash }
+        return { url, codeHash }
       }
     })
   }
