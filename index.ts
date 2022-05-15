@@ -7,11 +7,11 @@ import {
   runOperation, Operation, OperationContext,
   getDeployments, Deployment, Deployments,
   config,
-  runCommands,
   join,
   CachingFSUploader, FSUploader
 } from '@fadroma/ops'
 
+import { runCommands } from '@hackbg/komandi'
 import { Console, bold, colors } from '@hackbg/konzola'
 
 import { LegacyScrt } from '@fadroma/client-scrt-amino'
