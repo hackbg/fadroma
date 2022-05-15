@@ -172,6 +172,9 @@ export class Client implements Instance {
   label:    string
   address:  Address
   fees:     Fees
+  get chain () {
+    return this.agent.chain
+  }
   async query <T, U> (msg: T): Promise<U> {
     return await this.agent.query(this, msg)
   }
