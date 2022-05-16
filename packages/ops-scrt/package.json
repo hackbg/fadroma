@@ -4,8 +4,8 @@
   "type":    "module",
   "main":    "index.ts",
   "dependencies": {
-    "@fadroma/ops":               "^0",
-    "@fadroma/client-scrt-amino": "^1",
-    "@fadroma/client-scrt-grpc":  "^1"
+    "@fadroma/ops":               "workspace:^0",
+    "@fadroma/client-scrt-amino": "workspace:^1",
+    "@fadroma/client-scrt-grpc":  "workspace:^1"
   }
 }
