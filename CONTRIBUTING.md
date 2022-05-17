@@ -1,9 +1,15 @@
 # Contributing to Fadroma
+
 A big welcome and thank you for considering contributing to Fadroma!
 
-Reading and following these guidelines will help us make the contribution process easy and effective for everyone involved. It also communicates that you agree to respect the time of the developers managing and developing these open source projects. In return, we will reciprocate that respect by addressing your issue, assessing changes, and helping you finalize your pull requests.
+Reading and following these guidelines will help us make the contribution process
+easy and effective for everyone involved. It also communicates that you agree to respect the
+time of the developers managing and developing these open source projects.
+In return, we will reciprocate that respect by addressing your issue,
+assessing changes, and helping you finalize your pull requests.
 
-When contributing to this repository, please first discuss the change you wish to make via issue, email, or any other method with the owners of this repository before making a change.
+When contributing to this repository, please first discuss the change you wish to make
+via issue, email, or any other method with the owners of this repository before making a change.
 
 Please note we have a code of conduct, please follow it in all your interactions with the project.
 
@@ -29,7 +35,6 @@ Similar to Bug reports. Please provide the following information:
 - When providing code samples, please use [code blocks](https://docs.github.com/en/github/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks)
 
 ## Submitting Pull Requests
-
 Instructions are similar to those for bug reports. Please provide the following
 information:
 
@@ -43,7 +48,8 @@ All PRs require at least one review approval before they can be merged. Each rev
 for all checked items unless they have indicated otherwise by leaving their handle next to specific
 items. In addition, use the following review explanations:
 
-- `LGTM` without explicit approval means that the changes look good, but you haven't thoroughly reviewed all of the items.
+- `LGTM` without explicit approval means that the changes look good,
+  but you haven't thoroughly reviewed all of the items.
 - `Approval` means that you have completed the review. In addition, follow these guidelines:
     - Naming must be consistent with conventions and the rest of the codebase
     - Code must live in a reasonable location.

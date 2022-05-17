@@ -5,7 +5,7 @@ import {
 
 import { Path, TOML } from '@hackbg/kabinet'
 
-const console = Console('fadroma build')
+const console = Console('Fadroma Build')
 let [buildManifest,...buildArgs] = process.argv.slice(2)
 
 if (buildManifest) {

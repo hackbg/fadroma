@@ -5,26 +5,25 @@
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
   },
-  "main":    "index.ts",
+  "main": "index.ts",
   "browser": "index.browser.ts",
   "type": "module",
   "dependencies": {
-    "@fadroma/client":            "workspace:./packages/client",
-    "@fadroma/client-scrt-amino": "workspace:./packages/client-scrt-amino",
-    "@fadroma/client-scrt-grpc":  "workspace:./packages/client-scrt-grpc",
-    "@fadroma/ops":               "workspace:./packages/ops",
-    "@fadroma/ops-scrt":          "workspace:./packages/ops-scrt",
-    "@fadroma/tokens":            "workspace:./packages/tokens",
-
+    "@fadroma/client": "workspace:^1.0.0",
+    "@fadroma/client-scrt-amino": "workspace:^1.0.1",
+    "@fadroma/client-scrt-grpc": "workspace:^1.0.1",
+    "@fadroma/ops": "workspace:^0.1.0",
+    "@fadroma/ops-scrt": "workspace:^0.1.0",
+    "@fadroma/tokens": "workspace:^0.1.0",
     "@hackbg/ganesha": "^2.0.3",
-    "@hackbg/toolbox": "^3.0.1",
     "@hackbg/kabinet": "^2.0.1",
-    "@types/node": "^16.11.34"
+    "@hackbg/toolbox": "^3.0.4",
+    "@types/node": "^16.11.36"
   },
   "devDependencies": {
-    "@hackbg/runspec": "^2.1.0",
+    "@hackbg/runspec": "^2.1.1",
     "body-parser": "^1.20.0",
-    "c8": "^7.11.2",
+    "c8": "^7.11.3",
     "express": "^4.18.1",
     "freeport-async": "^2.0.0",
     "js-yaml": "^4.1.0",

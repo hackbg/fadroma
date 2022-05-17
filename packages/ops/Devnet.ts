@@ -277,7 +277,7 @@ export class DockerodeDevnet extends Devnet {
   async respawn () {
     const shortPath = relative(config.projectRoot, this.nodeState.path)
     // if no node state, spawn
-    if (!this.nodeState.exists()) {
+    if (!this.nodeState.exists) {
       console.info(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }

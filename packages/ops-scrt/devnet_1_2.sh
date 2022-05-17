@@ -78,7 +78,7 @@ genesis_5 () {
   echo "|5. Perform genesis"
   echo "|secretd collect-gentxs"
   secretd collect-gentxs
-  echo "|secretd validate-gentxs"
+  echo "|secretd validate-genesis"
   secretd validate-genesis
   echo "|secretd init-bootstrap"
   secretd init-bootstrap

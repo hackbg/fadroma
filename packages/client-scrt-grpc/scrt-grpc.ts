@@ -7,12 +7,12 @@ import {
   ScrtGas,
   ScrtBundle,
 } from '@fadroma/client-scrt'
+import type { Tx } from 'secretjs'
 import {
   SecretNetworkClient,
   Wallet,
   MsgInstantiateContract,
   MsgExecuteContract,
-  Tx,
 } from 'secretjs'
 
 import * as constants from './scrt-grpc-constants'

@@ -9,7 +9,7 @@ import LineTransformStream from 'line-transform-stream'
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 import { Console, bold } from '@hackbg/konzola'
-import { Docker, DockerImage } from '@hackbg/dokeres'
+import { Docker, Dokeres, DokeresImage } from '@hackbg/dokeres'
 import { Artifact } from '@fadroma/client'
 
 import { config } from './Config'
@@ -22,9 +22,9 @@ export function distinct <T> (x: T[]): T[] {
   return [...new Set(x)]
 }
 
-export const sanitizeRef  = ref => ref.replace(/\//g, '_')
+export const sanitize  = ref => ref.replace(/\//g, '_')
 
-export const artifactName = (crate, ref) => `${crate}@${sanitizeRef(ref)}.wasm`
+export const artifactName = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
 
 export class Source {
   constructor (
@@ -123,25 +123,25 @@ export class DockerodeBuilder extends CachingBuilder {
   constructor (options: {
     socketPath?: string,
     docker?:     Docker,
-    image?:      string|DockerImage,
+    image?:      string|DokeresImage,
     dockerfile?: string,
     script?:     string
     caching?:    boolean
   } = {}) {
     super()
     this.socketPath = options.socketPath || config.dockerHost || '/var/run/docker.sock'
-    this.docker     = options.docker || new Docker({ socketPath: this.socketPath })
+    this.docker     = options.docker || new Dokeres(this.socketPath)
     this.dockerfile = options.dockerfile
     this.script     = options.script
-    if (options.image instanceof DockerImage) {
+    if (options.image instanceof DokeresImage) {
       this.image = options.image
     } else {
-      this.image = new DockerImage(this.docker, options.image)
+      this.image = new DokeresImage(this.docker, options.image)
     }
   }
 
   /** Tag of the docker image for the build container. */
-  image:      DockerImage
+  image:      DokeresImage
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
   /** Path to the build script to be mounted and executed in the container. */
@@ -218,7 +218,7 @@ export class DockerodeBuilder extends CachingBuilder {
     if (Object.keys(shouldBuild).length === 0) {
       return artifacts
     }
-    const safeRef = sanitizeRef(ref)
+    const safeRef = sanitize(ref)
     // If there are artifacts to build, make sure the build image exists
     const image = await this.image.ensure()
     // Define the build container
@@ -272,13 +272,18 @@ export class DockerodeBuilder extends CachingBuilder {
     }
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
-    const buildCommand  = `bash ${buildScript} phase1 ${ref} ${cratesToBuild.join(' ')}`
+    const buildCommand  = [buildScript, 'phase1', ref, ...cratesToBuild]
     console.info(bold('Running command:'), buildCommand)
-    console.debug(bold('In container with this configuration:'), buildOptions)
+    console.debug(bold('in container with this configuration:'), buildOptions)
     // Run the build container
-    const [{Error: err, StatusCode: code}, container] = await this.docker.run(
-      image, buildCommand, this.makeBuildLogStream(ref), buildOptions
+    const buildContainer = await this.image.run(
+      `fadroma-build-${sanitize(basename(workspace))}@${ref}`,
+      { extra: buildOptions },
+      buildCommand,
+      '/bin/bash',
+      this.makeBuildLogStream(ref)
     )
+    const {Error: err, StatusCode: code} = await buildContainer.wait()
     // Throw error if launching the container failed
     if (err) {
       throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
@@ -314,4 +319,4 @@ export class DockerodeBuilder extends CachingBuilder {
     return buildLogs
   }
 
-}
+

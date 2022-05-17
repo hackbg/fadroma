@@ -1,5 +1,5 @@
 import { resolve, relative, dirname } from 'path'
-import { DokeresImage } from '@hackbg/dokeres'
+import { Dokeres } from '@hackbg/dokeres'
 import { RawBuilder, DockerodeBuilder } from '@fadroma/ops'
 
 import { scrtConfig as config } from './config'
@@ -28,23 +28,17 @@ export function getScrtBuilder ({
 
 export class ScrtDockerodeBuilder extends DockerodeBuilder {
 
-  buildEntryPoint = relative(
-    dirname(config.scrt.buildDockerfile),
-    config.scrt.buildScript
-  )
-
-  image = new DokeresImage(
-    null,
-    config.scrt.buildImage,
-    config.scrt.buildDockerfile,
-    [this.buildEntryPoint]
-  )
-
   constructor ({ caching }) {
-    super({
-      script: config.scrt.buildScript,
-      caching
-    })
+    const script = config.scrt.buildScript
+    const image = new Dokeres().image(
+      config.scrt.buildImage,
+      config.scrt.buildDockerfile,
+      [relative(
+        dirname(config.scrt.buildDockerfile),
+        config.scrt.buildScript
+      )]
+    )
+    super({ caching, script, image })
   }
 
 }
