@@ -1,8 +1,7 @@
 {
   "name":         "@hackbg/dokeres",
   "version":      "2.0.1",
-  "main":         "dokeres.js",
-  "types":        "dokeres.d.ts",
+  "main":         "dokeres.ts",
   "type":         "module",
   "license":      "MIT",
   "homepage":     "https://github.com/hackbg/toolbox",

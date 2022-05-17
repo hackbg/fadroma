@@ -11,7 +11,7 @@
   "license":      "MIT",
   "description":  "Baseline utilities.",
   "dependencies": {
-    "@hackbg/dokeres": "workspace:^1",
+    "@hackbg/dokeres": "workspace:^2",
     "@hackbg/kabinet": "workspace:^2",
     "@hackbg/komandi": "workspace:^2",
     "@hackbg/konzola": "workspace:^1",
