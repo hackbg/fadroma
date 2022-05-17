@@ -279,8 +279,8 @@ export class DockerodeBuilder extends CachingBuilder {
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
     const buildCommand  = ['node', buildScript, 'phase1', ref, ...cratesToBuild]
-    console.info(bold('Running command:'), buildCommand)
-    console.debug(bold('in container with this configuration:'), buildOptions)
+    console.info(bold('Building with command:'), buildCommand.join(' '))
+    console.debug(bold('in container with configuration:'), buildOptions)
 
     // Prepare the log output stream
     const buildLogPrefix = `[${ref}]`.padEnd(16)
