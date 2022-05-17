@@ -72,7 +72,11 @@ export class Path {
 
 export class File extends Path {
   as (Format) {
-    return new Format.File(this.path)
+    if (Format.File) {
+      return new Format.File(this.path)
+    } else {
+      return new Format(this.path)
+    }
   }
   make () {
     mkdirp.sync(dirname(this.path))
@@ -104,7 +108,11 @@ export class TextFile extends File {
 
 export class Directory extends Path {
   as (Format) {
-    return new Format.Directory(this.path)
+    if (Format.Dir) {
+      return new Format.Dir(this.path)
+    } else {
+      return new Format(this.path)
+    }
   }
   make () {
     mkdirp.sync(this.path)
