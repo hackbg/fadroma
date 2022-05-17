@@ -230,7 +230,6 @@ export class DockerodeBuilder extends CachingBuilder {
     const buildOptions = {
       Tty: true,
       AttachStdin: true,
-      Entrypoint: ['/bin/sh', '-c'],
       HostConfig: {
         Binds: [
           `${workspace}:/src:rw`,
@@ -247,6 +246,7 @@ export class DockerodeBuilder extends CachingBuilder {
         //'CARGO_TERM_VERBOSE=true',
         'CARGO_HTTP_TIMEOUT=240',
         'LOCKED=',/*'--locked'*/
+        `TERM=${process.env.TERM}`
       ]
     }
 

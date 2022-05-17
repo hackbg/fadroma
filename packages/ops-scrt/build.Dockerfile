@@ -11,6 +11,6 @@ RUN rm -rf /var/lib/apt/lists/*
 RUN mkdir -p "$REGISTRY"
 WORKDIR /src
 
-ADD ./build.sh /
+ADD ./build-impl.mjs /
 #ADD ./Scrt_1_2_Build.js ./Scrt_1_2_Build.sh /
-CMD node /build.js
+CMD node /build-impl.mjs

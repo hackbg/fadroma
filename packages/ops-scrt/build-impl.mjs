@@ -1,13 +1,13 @@
 import { execSync } from 'child_process'
 
 const slashes  = new RegExp("/", "g")
+const dashes   = new RegExp("-", "g")
 const sanitize = x => x.replace(slashes, "_")
+const fumigate = x => x.replace(dashes,  "_")
 
 const run = (command, env) => {
   console.info('$', command)
-  const result = String(execSync(command, { env })).trim()
-  console.log(result)
-  return result
+  execSync(command, { env: { ...process.env, ...env }, stdio: 'inherit' })
 }
 
 const phases = { phase1, phase2 }
@@ -56,7 +56,8 @@ function phase1 ({
   console.log(`Preparing submodules...`)
   run(`git submodule update --init --recursive`)
   run(`git log -1`)
-  console.log(`Build phase 2 will being with these crates: ${crates}`)
+  console.log()
+  console.log(`Build phase 2 will begin with these crates: ${crates}`)
   for (const crate of crates) {
     console.log(`Building ${crate} from ${ref} in ${process.cwd()}`)
     run(`su build -c "${interpreter} ${script} phase2 ${ref} ${crate}"`)
@@ -73,7 +74,7 @@ function phase2 ({
   platform  = 'wasm32-unknown-unknown',
   rustFlags = '-C link-arg=-s',
   locked    = '',
-  output    = `${sanitize(crate)}.wasm`,
+  output    = `${fumigate(crate)}.wasm`,
   compiled  = `${targetDir}/${platform}/release/${output}`,
   optimized = `${workspace}/artifacts/${sanitize(crate)}@${sanitize(ref)}.wasm`,
   checksum  = `${optimized}.sha256`,
