@@ -238,16 +238,14 @@ export class DokeresContainer {
       extra    = {}
     } = this.options
     const config = {
-      ...JSON.parse(JSON.stringify(extra)), // "smart" clone
-      Image:      this.image.name,
-      Name:       this.name,
-      Entrypoint: this.entrypoint,
-      Cmd:        this.command,
-      Env:        Object.entries(env).map(([key, val])=>`${key}=${val}`),
+      Image:        this.image.name,
+      Name:         this.name,
+      Entrypoint:   this.entrypoint,
+      Cmd:          this.command,
+      Env:          Object.entries(env).map(([key, val])=>`${key}=${val}`),
+      ExposedPorts: {},
+      HostConfig:   { Binds: [] }
     }
-    config.ExposedPorts     = config.ExposedPorts     || {}
-    config.HostConfig       = config.HostConfig       || {}
-    config.HostConfig.Binds = config.HostConfig.Binds || []
     for (const containerPort of exposed) {
       config.ExposedPorts[containerPort] = { /*docker api needs empty object here*/ }
     }
@@ -260,7 +258,10 @@ export class DokeresContainer {
     for (const [hostPath, containerPath] of Object.entries(writable)) {
       config.HostConfig.Binds.push(`${hostPath}:${containerPath}:rw`)
     }
-    return config
+    return {
+      ...config,
+      ...JSON.parse(JSON.stringify(extra)), // "smart" clone; `extra` overrides all
+    }
   }
 
   get id (): string {
@@ -275,7 +276,6 @@ export class DokeresContainer {
     if (this.container) {
       throw new Error('Container already created')
     }
-    console.log(this.dockerodeOptions)
     this.container = await this.dockerode.createContainer(this.dockerodeOptions)
     if (this.warnings) {
       console.warn(`Creating container ${this.shortId} emitted warnings:`)
