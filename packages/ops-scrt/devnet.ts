@@ -12,13 +12,15 @@ import { config, DockerodeDevnet } from '@fadroma/ops'
 import { Dokeres } from '@hackbg/dokeres'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+const initScript = 'devnet-init.mjs'
 
 export function getScrtDevnet_1_3 () {
+  const dockerfile = resolve(__dirname, 'devnet_1_2.Dockerfile')
   return new DockerodeDevnet({
-    image:       new Dokeres().image('enigmampc/secret-network-sw-dev:v1.3.0-beta.0'),
-    readyPhrase: "indexed block",
-    initScript:  resolve(__dirname, 'devnet_1_3.sh'),
-    port:        9091
+    portMode:    'grpcWeb',
+    image:       new Dokeres().image('fadroma/scrt-devnet:1.2', dockerfile, [initScript]),
+    readyPhrase: 'indexed block',
+    initScript:  resolve(__dirname, 'devnet-init.mjs'),
   })
 }
 
@@ -32,10 +34,12 @@ export function getScrtDevnet_1_2 (
       //managerURL, chainId, config.scrt.devnetChainIdPrefix
     //)
   } else {
+    const dockerfile = resolve(__dirname, 'devnet_1_3.Dockerfile')
     return new DockerodeDevnet({
-      image:       new Dokeres().image("enigmampc/secret-network-sw-dev:v1.2.0",),
-      readyPhrase: "indexed block",
-      initScript:  resolve(__dirname, 'devnet_1_2.sh')
+      portMode:    'lcp',
+      image:       new Dokeres().image('fadroma/scrt-devnet:1.3', dockerfile, [initScript]),
+      readyPhrase: 'indexed block',
+      initScript:  resolve(__dirname, 'devnet-init.mjs')
     })
   }
 }

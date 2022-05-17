@@ -1,4 +1,6 @@
 import { URL } from 'url'
+
+export type DevnetPortMode = 'lcp'|'grpcWeb'
 import * as HTTP from 'http'
 import { basename, relative, resolve } from 'path'
 import { cwd } from 'process'
@@ -24,7 +26,7 @@ export interface DevnetOptions {
   /** Path to directory where state will be stored. */
   stateRoot?: string,
   /** Port to connect to. */
-  port?: number
+  port?:      number
 }
 
 export abstract class Devnet {
@@ -48,7 +50,7 @@ export abstract class Devnet {
   }
 
   /** The chain ID that will be passed to the devnet node. */
-  chainId: string = 'fadroma-devnet'
+  chainId  = 'fadroma-devnet'
 
   /** The protocol of the API URL without the trailing colon. */
   protocol = 'http'
@@ -141,6 +143,8 @@ export interface DockerodeDevnetOptions extends DevnetOptions {
   /** Once this string is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   readyPhrase?: string
+  /** Which of the services should be exposed the devnet's port. */
+  portMode:   DevnetPortMode
 }
 
 /** Used to reconnect between runs. */
@@ -161,7 +165,11 @@ export class DockerodeDevnet extends Devnet {
     this.image       = options.image
     this.initScript  = options.initScript
     this.readyPhrase = options.readyPhrase
+    this.portMode    = options.portMode
   }
+
+  /** Which service does the API URL port correspond to. */
+  portMode: DevnetPortMode
 
   get dokeres (): Dokeres {
     return this.image.dokeres
@@ -214,16 +222,18 @@ export class DockerodeDevnet extends Devnet {
     // run the container
     const containerName = `${this.chainId}-${this.port}`
     console.info('Creating and starting devnet container:', bold(containerName))
-    await this.image.ensure()
+    const env: Record<string, string> = {
+      ChainID:         this.chainId,
+      GenesisAccounts: this.genesisAccounts.join(' '),
+    }
+    switch (this.portMode) {
+      case 'lcp':     env.lcpPort     = this.port;              break
+      case 'grpcWeb': env.gRPCWebAddr = `0.0.0.0:${this.port}`; break
+      default: throw new Error(`DockerodeDevnet#portMode must be either 'lcp' or 'grpcWeb'`)
+    }
     this.container = await this.image.run(containerName, {
-      env: {
-        Port:            this.port,
-        ChainID:         this.chainId,
-        GenesisAccounts: this.genesisAccounts.join(' ')
-      },
-      exposed: [
-        `${this.port}/tcp`
-      ],
+      env,
+      exposed: [`${this.port}/tcp`],
       extra: {
         Tty:          true,
         AttachStdin:  true,
@@ -242,7 +252,7 @@ export class DockerodeDevnet extends Devnet {
           }
         }
       }
-    }, this.initScriptName, '/bin/bash')
+    }, ['node', this.initScriptName], '/usr/bin/env')
     // update the record
     this.save()
     // wait for logs to confirm that the genesis is done
