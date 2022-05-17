@@ -11,10 +11,11 @@ importers:
       '@fadroma/ops-scrt': workspace:^0.1.0
       '@fadroma/tokens': workspace:^0.1.0
       '@hackbg/ganesha': ^2.0.3
-      '@hackbg/kabinet': workspace:^2
-      '@hackbg/komandi': workspace:^2
+      '@hackbg/kabinet': workspace:*
+      '@hackbg/komandi': workspace:*
+      '@hackbg/konzola': workspace:*
       '@hackbg/runspec': ^2.1.1
-      '@hackbg/toolbox': workspace:^3
+      '@hackbg/toolbox': workspace:*
       '@types/node': ^16.11.36
       body-parser: ^1.20.0
       c8: ^7.11.3
@@ -34,10 +35,11 @@ importers:
       '@hackbg/ganesha': 2.0.3
       '@hackbg/kabinet': link:toolbox/kabinet
       '@hackbg/komandi': link:toolbox/komandi
+      '@hackbg/konzola': link:toolbox/konzola
       '@hackbg/toolbox': link:toolbox
-      '@types/node': 16.11.36
     devDependencies:
       '@hackbg/runspec': link:toolbox/runspec
+      '@types/node': 16.11.36
       body-parser: 1.20.0
       c8: 7.11.3
       express: 4.18.1
@@ -607,7 +609,7 @@ packages:
 
   /@types/node/16.11.36:
     resolution: {integrity: sha512-FR5QJe+TaoZ2GsMHkjuwoNabr+UrJNRr2HNOo+r/7vhcuntM6Ee/pRPOnRhhL2XE9OOvX9VLEq+BcXl3VjNoWA==}
-    dev: false
+    dev: true
 
   /@types/node/17.0.32:
     resolution: {integrity: sha512-eAIcfAvhf/BkHcf4pkLJ7ECpBAhh9kcxRBpip9cTiO+hf+aJrsxYxBeS6OXvOd9WqNAJmavXVpZvY1rBjNsXmw==}
