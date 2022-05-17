@@ -16,8 +16,9 @@
     "@fadroma/ops-scrt": "workspace:^0.1.0",
     "@fadroma/tokens": "workspace:^0.1.0",
     "@hackbg/ganesha": "^2.0.3",
-    "@hackbg/kabinet": "^2.0.1",
-    "@hackbg/toolbox": "^3.0.4",
+    "@hackbg/kabinet": "workspace:^2",
+    "@hackbg/komandi": "workspace:^2",
+    "@hackbg/toolbox": "workspace:^3",
     "@types/node": "^16.11.36"
   },
   "devDependencies": {
