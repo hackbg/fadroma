@@ -123,6 +123,10 @@ export class LegacyScrtAgent extends ScrtAgent {
     return this.api.getBlock()
   }
 
+  get height () {
+    return this.block.then(block=>block.header.height)
+  }
+
   get account () {
     return this.api.getAccount(this.address)
   }

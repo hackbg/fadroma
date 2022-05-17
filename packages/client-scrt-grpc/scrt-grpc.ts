@@ -77,6 +77,10 @@ export class ScrtRPCAgent extends ScrtAgent {
     return this.api.query.tendermint.getLatestBlock({})
   }
 
+  get height () {
+    return this.block.then(block=>Number(block.block.header.height))
+  }
+
   get account () {
     return this.api.query.auth.account({ address: this.address })
   }

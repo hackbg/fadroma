@@ -18,6 +18,7 @@ export abstract class Agent implements Executor {
     return Promise.resolve(0)
   }
   get nextBlock () {
+    console.info('Waiting for next block...')
     return new Promise<void>(async resolve=>{
       this.height.then(async startingHeight=>{
         while (true) {
