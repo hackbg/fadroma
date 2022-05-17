@@ -59,7 +59,7 @@ declare module '@hackbg/dokeres' {
   export class DokeresImage {
     name: string
     constructor (
-      dokeres:     Dokeres,
+      dokeres:     Dokeres|null,
       name:        string|null,
       dockerfile:  string|null,
       extraFiles?: string[]
