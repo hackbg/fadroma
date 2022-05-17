@@ -1,4 +1,4 @@
-import { Path, getDirName, TOML } from './kabinet'
+import { Path, getDirName, TOMLFormat } from './kabinet'
 
 const Spec = {}
 export default { Spec }
@@ -18,7 +18,7 @@ test({
   },
   'parse TOML' ({ deepEqual }) {
     deepEqual(
-      new Path(__dirname).in('fixtures').in('subdir').at('file.toml').as(TOML).load(),
+      new Path(__dirname).in('fixtures').in('subdir').at('file.toml').as(TOMLFormat).load(),
       { key: "value", section: { key: "value" } }
     )
   }

@@ -14,9 +14,8 @@ export class YAMLFile extends TextFile {
 }
 
 export class YAMLDirectory extends Directory {
-  static extension = '.yaml'
   has (name) {
-    return existsSync(this.resolve(`${name}${YAMLDirectory.extension}`))
+    return existsSync(this.resolve(`${name}${YAMLFormat.extension}`))
   }
   list () {
     const matchExtension = x => x.endsWith(YAMLDirectory.extension)
@@ -24,7 +23,7 @@ export class YAMLDirectory extends Directory {
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
-    name = `${name}${YAMLDirectory.extension}`
+    name = `${name}${YAMLFormat.extension}`
     try {
       return YAML.parse(super.load(name))
     } catch (e) {
@@ -33,7 +32,13 @@ export class YAMLDirectory extends Directory {
   }
   save (name, data) {
     data = YAML.stringify(data, null, 2)
-    super.save(`${name}${YAMLDirectory.extension}`, data)
+    super.save(`${name}${YAMLFormat.extension}`, data)
     return this
   }
+}
+
+export class YAMLFormat {
+  static extension = '.yaml'
+  static File = YAMLFile
+  static Dir  = YAMLDirectory
 }

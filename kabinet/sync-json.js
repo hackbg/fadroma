@@ -14,9 +14,8 @@ export class JSONFile extends TextFile {
 }
 
 export class JSONDirectory extends Directory {
-  static extension = '.json'
   has (name) {
-    return existsSync(this.resolve(`${name}${JSONDirectory.extension}`))
+    return existsSync(this.resolve(`${name}${JSONFormat.extension}`))
   }
   list () {
     const matchExtension = x => x.endsWith(JSONDirectory.extension)
@@ -24,7 +23,7 @@ export class JSONDirectory extends Directory {
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
-    name = `${name}${this.constructor.extension}`
+    name = `${name}${JSONFormat.extension}`
     try {
       return JSON.parse(super.load(name))
     } catch (e) {
@@ -33,12 +32,13 @@ export class JSONDirectory extends Directory {
   }
   save (name, data) {
     data = JSON.stringify(data, null, 2)
-    super.save(`${name}${JSONDirectory.extension}`, data)
+    super.save(`${name}${JSONFormat.extension}`, data)
     return this
   }
 }
 
-export class JSON {
+export class JSONFormat {
+  static extension = '.json'
   static File = JSONFile
   static Dir  = JSONDirectory
 }

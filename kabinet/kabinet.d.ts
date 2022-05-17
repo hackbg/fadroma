@@ -61,14 +61,19 @@ declare module '@hackbg/kabinet' {
   export class BinaryFile extends File {}
   export class TextFile   extends File {}
 
+  export class JSONFormat {}
+  export class JSONFile      extends TextFile {}
   export class JSONDirectory extends Directory {}
+
+  export class YAMLFormat {}
+  export class YAMLFile      extends TextFile {}
   export class YAMLDirectory extends Directory {}
+
+  export class TOMLFormat {}
+  export class TOMLFile      extends TextFile {}
   export class TOMLDirectory extends Directory {}
 
   export const withTmpDir: ContextWrapper
-  export class JSONFile   extends TextFile {}
-  export class YAMLFile   extends TextFile {}
-  export class TOMLFile   extends TextFile {}
 
   export const withTmpFile: ContextWrapper
 
