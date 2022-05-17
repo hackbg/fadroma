@@ -4,6 +4,6 @@
   "type": "module",
   "main": "index.js",
   "dependencies": {
-    "@hackbg/fadroma": "hackbg/fadroma#v100"
+    "@hackbg/fadroma": "hackbg/fadroma#v99"
   }
 }
