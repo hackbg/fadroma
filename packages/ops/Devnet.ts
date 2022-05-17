@@ -316,7 +316,6 @@ export class DockerodeDevnet extends Devnet {
       return this.spawn()
     }
     this.container = await this.dokeres.container(id)
-    console.log({container: this.container})
     // check if contract is running
     let running: boolean
     try {

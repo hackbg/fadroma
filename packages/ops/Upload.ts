@@ -171,8 +171,9 @@ export class CachingFSUploader extends FSUploader {
       const uploaded = await super.uploadMany(toUpload)
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
-        const receiptName = `${basename(toUpload[i].location)}.json`
-        const receiptPath = this.cache.make().resolve(receiptName)
+        const artifactPath = fileURLToPath(toUpload[i].url)
+        const receiptName  = `${basename(artifactPath)}.json`
+        const receiptPath  = this.cache.make().resolve(receiptName)
         writeFileSync(receiptPath, JSON.stringify(uploaded[i], null, 2))
         templates[i] = uploaded[i]
       }
