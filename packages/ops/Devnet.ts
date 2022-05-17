@@ -183,7 +183,6 @@ export class DockerodeDevnet extends Devnet {
 
   /** Gets the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string) {
-    console.log(this.identities)
     return this.identities.load(name)
   }
 
