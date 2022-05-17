@@ -65,7 +65,7 @@ export class DokeresImage {
       return await this._available
     } else {
       console.info(bold('Ensuring image:'), this.name)
-      return await (this.#available = new Promise(async(resolve, reject)=>{
+      return await (this._available = new Promise(async(resolve, reject)=>{
         const {docker, name, dockerfile, extraFiles} = this
         const PULLING  = `Image ${name} not found, pulling...`
         const BUILDING = `Image ${name} not found upstream, building...`
