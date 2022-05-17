@@ -5,7 +5,7 @@
   "main": "./index.ts",
   "dependencies": {
     "@fadroma/client": "workspace:^1.0.0",
-    "@hackbg/dokeres": "workspace:^2",
+    "@hackbg/dokeres": "workspace:*",
     "@hackbg/kabinet": "workspace:^2",
     "@hackbg/konzola": "workspace:^1.0.7",
     "@hackbg/portali": "workspace:^1.0.1",
