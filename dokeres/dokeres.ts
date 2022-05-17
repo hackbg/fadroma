@@ -355,12 +355,14 @@ export function waitUntilLogsSay (
       if (err) return fail(err)
       console.info('Trailing logs...')
       stream.on('error', error => fail(error))
-      stream.on('data', data => {
+      stream.on('data', function ondata (data) {
         const dataStr = String(data).trim()
         if (logFilter(dataStr)) {
           console.info(bold(`${container.id.slice(0,8)} says:`), dataStr)
         }
         if (dataStr.indexOf(expected)>-1) {
+          console.info(bold(`Found expected message:`), expected)
+          stream.off('data', ondata)
           if (thenDetach) stream.destroy()
           if (waitSeconds > 0) {
             console.info(bold(`Waiting ${waitSeconds} seconds`), `for good measure...`)
