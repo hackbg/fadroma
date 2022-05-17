@@ -1,5 +1,5 @@
 import { basename, dirname } from 'path'
-import { Writable } from 'stream'
+import { Readable, Writable } from 'stream'
 import { Console, bold } from '@hackbg/konzola'
 import Docker from 'dockerode'
 
@@ -23,10 +23,10 @@ export interface IDokeresDockerodeContainer {
 /** Follow the output stream from a Dockerode container until it closes. */
 export async function follow (
   dockerode: Docker,
-  stream:    unknown,
-  callback:  Function
-): Promise<void> {
-  await new Promise((ok, fail)=>{
+  stream:    Writable,
+  callback:  (data)=>void
+) {
+  await new Promise<void>((ok, fail)=>{
     dockerode.modem.followProgress(stream, complete, callback)
     function complete (err, _output) {
       if (err) return fail(err)
@@ -53,7 +53,7 @@ export class Dokeres {
     }
   }
 
-  readonly dockerode: IDokeresDockerode
+  readonly dockerode: Docker
 
   image (
     name:        string|null,
@@ -61,6 +61,19 @@ export class Dokeres {
     extraFiles?: string[]
   ): DokeresImage {
     return new DokeresImage(this, name, dockerfile, extraFiles)
+  }
+
+  async container (id: string): Promise<DokeresContainer> {
+    const container = await this.dockerode.getContainer(id)
+    const info = await container.inspect()
+    const image = new DokeresImage(this, info.Image)
+    return Object.assign(new DokeresContainer(
+      image,
+      info.Name,
+      undefined,
+      info.Args,
+      info.Path
+    ), { container })
   }
 
 }
@@ -71,8 +84,8 @@ export class DokeresImage {
   constructor (
     readonly dokeres:     Dokeres|null,
     readonly name:        string|null,
-    readonly dockerfile:  string|null,
-    readonly extraFiles?: string[]
+    readonly dockerfile:  string|null = null,
+    readonly extraFiles:  string[]    = []
   ) {
     if (dokeres && !(dokeres instanceof Dokeres)) {
       throw new Error('DokeresImage: pass a Dokeres instance')
@@ -166,8 +179,7 @@ export class DokeresImage {
     })
   }
 
-  async run (name, options, command, entrypoint, outputStream) {
-    await this.ensure()
+  async run (name, options, command, entrypoint, outputStream?) {
     return await DokeresContainer.run(
       this,
       name,
@@ -180,7 +192,7 @@ export class DokeresImage {
 
 }
 
-export interface DokeresImageOptions {
+export interface DokeresContainerOptions {
   env:      Record<string, string>
   exposed:  string[]
   mapped:   Record<string, string>
@@ -194,17 +206,28 @@ export type DokeresCommand = string|string[]
 /** Interface to a Docker container. */
 export class DokeresContainer {
 
-  static async run (
+  static async create (
     image:         DokeresImage,
     name?:         string,
-    options?:      DokeresImageOptions,
+    options?:      DokeresContainerOptions,
     command?:      DokeresCommand,
     entrypoint?:   DokeresCommand,
-    outputStream?: Writable
   ) {
     await image.ensure()
     const self = new this(image, name, options, command, entrypoint)
     await self.create()
+    return self
+  }
+
+  static async run (
+    image:         DokeresImage,
+    name?:         string,
+    options?:      DokeresContainerOptions,
+    command?:      DokeresCommand,
+    entrypoint?:   DokeresCommand,
+    outputStream?: Writable
+  ) {
+    const self = await this.create(image, name, options, command, entrypoint)
     if (outputStream) {
       const stream = await self.container.attach({ stream: true, stdin: true, stdout: true })
       stream.setEncoding('utf8')
@@ -217,7 +240,7 @@ export class DokeresContainer {
   constructor (
     readonly image:      DokeresImage,
     readonly name:       string,
-    readonly options:    DokeresImageOptions,
+    readonly options:    DokeresContainerOptions,
     readonly command:    DokeresCommand,
     readonly entrypoint: DokeresCommand
   ) {}
@@ -244,7 +267,7 @@ export class DokeresContainer {
       Cmd:          this.command,
       Env:          Object.entries(env).map(([key, val])=>`${key}=${val}`),
       ExposedPorts: {},
-      HostConfig:   { Binds: [] }
+      HostConfig:   { Binds: [], PortBindings: {} }
     }
     for (const containerPort of exposed) {
       config.ExposedPorts[containerPort] = { /*docker api needs empty object here*/ }
@@ -303,7 +326,7 @@ export class DokeresContainer {
     const prettyId = bold(id.slice(0,8))
     if (await this.isRunning) {
       console.info(`Stopping ${prettyId}...`)
-      await this.docker.getContainer(id).kill()
+      await this.dockerode.getContainer(id).kill()
       console.info(`Stopped ${prettyId}`)
     } else {
       console.warn(`Container already stopped: ${prettyId}`)
@@ -320,26 +343,15 @@ export class DokeresContainer {
 /** The caveman solution to detecting when the node is ready to start receiving requests:
   * trail node logs until a certain string is encountered */
 export function waitUntilLogsSay (
-  container: IDokeresDockerodeContainer,
+  container: Docker.Container,
   expected:  string,
   thenDetach  = true,
   waitSeconds = 7,
-  logFilter = (data: string) => {
-    const RE_GARBAGE = /[\x00-\x1F]/
-    return (data.length > 0                            &&
-            !data.startsWith('TRACE ')                 &&
-            !data.startsWith('DEBUG ')                 &&
-            !data.startsWith('INFO ')                  &&
-            !data.startsWith('I[')                     &&
-            !data.startsWith('Storing key:')           &&
-            !RE_GARBAGE.test(data)                     &&
-            !data.startsWith('{"app_message":')        &&
-            !data.startsWith('configuration saved to') &&
-            !(data.length>1000)) }
+  logFilter   = (data: string) => true
 ) {
   console.info('Waiting for logs to say:', expected)
   return new Promise((ok, fail)=>{
-    container.logs({ stdout: true, stderr: true, follow: true, tail: 100 }, (err, stream) => {
+    container.logs({ stdout: true, stderr: true, follow: true, tail: 100 }, (err, stream: Readable) => {
       if (err) return fail(err)
       console.info('Trailing logs...')
       stream.on('error', error => fail(error))
