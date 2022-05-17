@@ -9,16 +9,13 @@
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { config, DockerodeDevnet } from '@fadroma/ops'
-import { DokeresImage } from '@hackbg/dokeres'
+import { Dokeres } from '@hackbg/dokeres'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export function getScrtDevnet_1_3 () {
   return new DockerodeDevnet({
-    image: new DokeresImage(
-      undefined,
-      'enigmampc/secret-network-sw-dev:v1.3.0-beta.0'
-    ),
+    image:       new Dokeres().image('enigmampc/secret-network-sw-dev:v1.3.0-beta.0'),
     readyPhrase: "indexed block",
     initScript:  resolve(__dirname, 'devnet_1_3.sh'),
     port:        9091
@@ -36,10 +33,7 @@ export function getScrtDevnet_1_2 (
     //)
   } else {
     return new DockerodeDevnet({
-      image: new DokeresImage(
-        undefined,
-        "enigmampc/secret-network-sw-dev:v1.2.0",
-      ),
+      image:       new Dokeres().image("enigmampc/secret-network-sw-dev:v1.2.0",),
       readyPhrase: "indexed block",
       initScript:  resolve(__dirname, 'devnet_1_2.sh')
     })

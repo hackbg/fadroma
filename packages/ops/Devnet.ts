@@ -94,7 +94,7 @@ export abstract class Devnet {
   /** Restore this node from the info stored in the nodeState file */
   load () {
     const path = relative(cwd(), this.nodeState.path)
-    if (this.stateRoot.exists() && this.nodeState.exists()) {
+    if (this.stateRoot.exists && this.nodeState.exists) {
       console.info(bold(`Loading:  `), path)
       try {
         const data = this.nodeState.load()
@@ -348,7 +348,7 @@ export class DockerodeDevnet extends Devnet {
   async erase () {
     const path = bold(relative(cwd(), this.stateRoot.path))
     try {
-      if (this.stateRoot.exists()) {
+      if (this.stateRoot.exists) {
         console.info(`Deleting ${path}...`)
         this.stateRoot.delete()
       }

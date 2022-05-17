@@ -3,7 +3,7 @@ import {
   Console, bold,
 } from '../index'
 
-import { Path, TOML } from '@hackbg/kabinet'
+import { Path, TOMLFormat as TOML } from '@hackbg/kabinet'
 
 const console = Console('Fadroma Build')
 let [buildManifest,...buildArgs] = process.argv.slice(2)
