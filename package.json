@@ -32,7 +32,7 @@
     "typescript": "^4.6.4"
   },
   "scripts": {
-    "build": "tsc",
+    "tsc": "tsc",
     "render": "node doc/render.js",
     "document": "typedoc index.ts",
     "test": "time ganesha-node spec/index.js",

@@ -201,10 +201,13 @@ export class DockerodeBuilder extends CachingBuilder {
   protected async buildInContainer (workspace, ref = DEFAULT_REF, crates: [number, string][] = []):
     Promise<(Artifact|null)[]>
   {
+
     // Output slots. Indices should correspond to those of the input to buildMany
     const artifacts:   (Artifact|null)[] = crates.map(()=>null)
+
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
+
     // Collect cached artifacts. If any are missing from the cache mark them as buildable.
     for (const [index, crate] of crates) {
       const prebuilt = this.prebuild({ workspace, ref, crate })
@@ -214,16 +217,16 @@ export class DockerodeBuilder extends CachingBuilder {
         shouldBuild[crate] = index
       }
     }
+
     // If there are no artifacts to build, this means everything was cached and we're done.
     if (Object.keys(shouldBuild).length === 0) {
       return artifacts
     }
-    const safeRef = sanitize(ref)
-    // If there are artifacts to build, make sure the build image exists
-    const image = await this.image.ensure()
+
     // Define the build container
     const outputDir    = resolve(workspace, 'artifacts')
     const buildScript  = `/${basename(this.script)}`
+    const safeRef      = sanitize(ref)
     const buildOptions = {
       Tty: true,
       AttachStdin: true,
@@ -246,6 +249,7 @@ export class DockerodeBuilder extends CachingBuilder {
         'LOCKED=',/*'--locked'*/
       ]
     }
+
     // If a different ref will need to be checked out, it may contain private submodules.
     // If an unsafe option is set, this mounts the running user's *ENTIRE ~/.ssh DIRECTORY*,
     // containing their private keys, into the container, in order to enable pulling private
@@ -265,29 +269,39 @@ export class DockerodeBuilder extends CachingBuilder {
         )
       }
     }
+
     // Pre-populate the list of expected artifacts.
     const outputWasms = [...new Array(crates.length)].map(()=>null)
     for (const [crate, index] of Object.entries(shouldBuild)) {
       outputWasms[index] = resolve(outputDir, artifactName(crate, safeRef))
     }
+
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
-    const buildCommand  = [buildScript, 'phase1', ref, ...cratesToBuild]
+    const buildCommand  = ['node', buildScript, 'phase1', ref, ...cratesToBuild]
     console.info(bold('Running command:'), buildCommand)
     console.debug(bold('in container with this configuration:'), buildOptions)
+
+    // Prepare the log output stream
+    const buildLogPrefix = `[${ref}]`.padEnd(16)
+    const buildLogs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
+    buildLogs.pipe(process.stdout)
+
     // Run the build container
     const buildContainer = await this.image.run(
       `fadroma-build-${sanitize(basename(workspace))}@${ref}`,
       { extra: buildOptions },
       buildCommand,
-      '/bin/bash',
-      this.makeBuildLogStream(ref)
+      '/usr/bin/env',
+      buildLogs
     )
     const {Error: err, StatusCode: code} = await buildContainer.wait()
+
     // Throw error if launching the container failed
     if (err) {
       throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
     }
+
     // Throw error if the build failed
     if (code !== 0) {
       const crateList = cratesToBuild.join(' ')
@@ -299,24 +313,14 @@ export class DockerodeBuilder extends CachingBuilder {
         `[@fadroma/ops/Build] Build of crates: "${crateList}" exited with status ${code}`
       )
     }
+
     // Return a sparse array of the resulting artifacts
-    return outputWasms.map(location=>{
-      if (location === null) {
-        return null
-      } else {
-        const url = pathToFileURL(location)
-        const codeHash = codeHashForPath(location)
-        return { url, codeHash }
-      }
-    })
+    const toArtifact = location=>
+      (location === null)
+        ? null
+        : { url: pathToFileURL(location), codeHash: codeHashForPath(location) }
+    return outputWasms.map(toArtifact)
+
   }
 
-  // Creates a stream that prepends a prefix to every line output by the container.
-  protected makeBuildLogStream (ref: string): LineTransformStream {
-    const buildLogPrefix = `[${ref}]`.padEnd(16)
-    const buildLogs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
-    buildLogs.pipe(process.stdout)
-    return buildLogs
-  }
-
-
+}

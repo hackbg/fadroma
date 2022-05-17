@@ -31,7 +31,7 @@ export class ScrtConfig extends Config {
       buildDockerfile:
         env.SCRT_BUILD_DOCKERFILE || resolve(__dirname, 'build.Dockerfile'),
       buildScript:
-        env.SCRT_BUILD_SCRIPT     || resolve(__dirname, 'build.sh'),
+        env.SCRT_BUILD_SCRIPT     || resolve(__dirname, 'build-impl.mjs'),
 
       mainnetChainId:
         env.SCRT_MAINNET_CHAIN_ID       || 'secret-4',
