@@ -52,7 +52,10 @@
     "peerDependencyRules": {
       "ignoreMissing": [
         "google-protobuf"
-      ]
+      ],
+      "allowedVersions": {
+        "typescript": "^4.6"
+      }
     }
   }
 }
