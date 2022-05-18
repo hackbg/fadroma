@@ -26,7 +26,8 @@ function phase1 ({
   temp        = `/tmp/fadroma-build-${sanitize(ref)}`,
   buildDir    = `${temp}/${sanitize(ref)}`,
   uid         = process.env.USER  || 1000,
-  gid         = process.env.GROUP || 1000
+  gid         = process.env.GROUP || 1000,
+
 } = {}) {
   console.log('Build phase 1: Preparing source repository for', ref)
 
@@ -69,7 +70,6 @@ function phase2 ({
   ref       = process.argv[3], // "HEAD" | <git ref>
   crate     = process.argv[4], // one crate to build
   workspace = '/src',
-  temp      = `/tmp/fadroma-build-${crate}`,
   targetDir = '/tmp/target',
   platform  = 'wasm32-unknown-unknown',
   rustFlags = '-C link-arg=-s',
