@@ -29,14 +29,12 @@ export function getScrtBuilder ({
 export class ScrtDockerodeBuilder extends DockerodeBuilder {
 
   constructor ({ caching }) {
-    const script = config.scrt.buildScript
+    const script     = config.scrt.buildScript
+    const extraFiles = [config.scrt.buildScript, config.scrt.buildServer]
     const image = new Dokeres().image(
       config.scrt.buildImage,
       config.scrt.buildDockerfile,
-      [relative(
-        dirname(config.scrt.buildDockerfile),
-        config.scrt.buildScript
-      )]
+      extraFiles.map(x=>relative(dirname(config.scrt.buildDockerfile), x))
     )
     super({ caching, script, image })
   }

@@ -1,5 +1,5 @@
-import { resolve, homedir, dirname, fileURLToPath } from '@hackbg/toolbox'
 import { EnvVars, Config } from '@fadroma/ops'
+import { resolve, dirname, fileURLToPath } from '@hackbg/toolbox'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -11,6 +11,7 @@ export interface ScrtEnvVars extends EnvVars {
   SCRT_BUILD_DOCKERFILE:       string
   SCRT_BUILD_IMAGE:            string
   SCRT_BUILD_SCRIPT:           string
+  SCRT_BUILD_SERVER:           string
 
   SCRT_DEVNET_CHAIN_ID_PREFIX: string
 
@@ -22,7 +23,7 @@ export interface ScrtEnvVars extends EnvVars {
 }
 
 export class ScrtConfig extends Config {
-  fromEnv (env: ScrtEnvVars = process.env as any) {
+  fromEnv (env: ScrtEnvVars = process.env as unknown as ScrtEnvVars) {
     super.fromEnv(env)
 
     this.scrt = {
@@ -32,6 +33,8 @@ export class ScrtConfig extends Config {
         env.SCRT_BUILD_DOCKERFILE || resolve(__dirname, 'build.Dockerfile'),
       buildScript:
         env.SCRT_BUILD_SCRIPT     || resolve(__dirname, 'build-impl.mjs'),
+      buildServer:
+        env.SCRT_BUILD_SERVER     || resolve(__dirname, 'build-server.mjs'),
 
       mainnetChainId:
         env.SCRT_MAINNET_CHAIN_ID       || 'secret-4',
@@ -75,6 +78,7 @@ export class ScrtConfig extends Config {
     buildImage:          string
     buildDockerfile:     string
     buildScript:         string
+    buildServer:         string
 
     mainnetApiUrl:       string
     mainnetChainId:      string
@@ -92,4 +96,4 @@ export class ScrtConfig extends Config {
 
 export const scrtConfig = new ScrtConfig()
 
-scrtConfig.fromEnv(process.env as any)
+scrtConfig.fromEnv(process.env as unknown as ScrtEnvVars)

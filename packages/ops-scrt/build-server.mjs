@@ -1,16 +1,21 @@
+import { createServer } from 'http'
+import { hostname } from 'os'
+import { execFile } from 'child_process'
+
 const {
-  PORT          = 8080,
-  FADROMA_QUIET = false
+  PORT                 = 8080,
+  FADROMA_QUIET        = false,
+  FADROMA_BUILD_SCRIPT = '/build-impl.mjs'
 } = process.env
 
 const builds = {}
 
-const server = require('http').createServer(onRequest)
+const server = createServer(onRequest)
 server.listen(PORT)
 console.log(
   `Fadroma Builder for Secret Network 1.2`,
   `listening for build requests on`,
-  `http://${require('os').hostname()}:${PORT}`
+  `http://${hostname()}:${PORT}`
 )
 
 async function onRequest ({ method, url }, res) {
@@ -34,8 +39,8 @@ async function onRequest ({ method, url }, res) {
       const crate = searchParams.get('crate')
       const ref   = searchParams.get('ref')
       return new Promise((resolve, reject)=>{
-        require('child_process').execFile(
-          '/bin/bash', [ '/Scrt_1_2_Build.sh' ], {
+        execFile(
+          '/usr/bin/env', [ 'node', FADROMA_BUILD_SCRIPT ], {
             stdio: [null, stdio, stdio],
             env: { ...process.env }
           }, (error, stdout, stderr) => {
