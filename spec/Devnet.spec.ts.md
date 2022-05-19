@@ -52,13 +52,15 @@ test({
 ```typescript
 import { DockerodeDevnet } from '../index'
 import { mockDockerode } from './_Harness'
-import { resolve, basename, DockerImage, withTmpFile } from '@hackbg/toolbox'
+import { resolve, basename } from 'path'
+import { withTmpFile } from '@hackbg/kabinet'
+import { DokeresImage } from '@hackbg/dokeres'
 test({
   'construct dockerode devnet' ({ ok, equal }) {
     withTmpDir(stateRoot=>{
       const docker      = mockDockerode()
       const imageName   = Symbol()
-      const image       = new DockerImage(docker, imageName)
+      const image       = new DokeresImage(docker, imageName)
       const initScript  = Symbol()
       const readyPhrase = "I'm Freddy"
       const devnet = new DockerodeDevnet({ stateRoot, docker, image, initScript, readyPhrase })
@@ -83,7 +85,7 @@ test({
           }
         })
         const imageName   = basename(stateRoot)
-        const image       = new DockerImage(docker, imageName)
+        const image       = new DokeresImage(docker, imageName)
         const readyPhrase = "I'm Freddy"
         class TestDockerodeDevnet extends DockerodeDevnet {
           waitSeconds = 0.5

@@ -16,6 +16,7 @@
     "@fadroma/ops-scrt":          "workspace:^0.1.0",
     "@fadroma/tokens":            "workspace:^0.1.0",
     "@hackbg/ganesha": "^2.0.3",
+    "@hackbg/dokeres": "workspace:*",
     "@hackbg/kabinet": "workspace:*",
     "@hackbg/komandi": "workspace:*",
     "@hackbg/konzola": "workspace:*",

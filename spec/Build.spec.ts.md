@@ -90,7 +90,8 @@ test({
 ## Dockerized builder
 
 ```typescript
-import { DockerodeBuilder, DockerImage, mkdirp } from '../index'
+import { DockerodeBuilder, DokeresImage, mkdirp } from '../index'
+import { DokeresImage } from '@hackbg/dokeres'
 import { mockDockerode } from './_Harness'
 import { Transform } from 'stream'
 const here = dirname(fileURLToPath(import.meta.url))
@@ -99,7 +100,7 @@ test({
     class TestDockerodeBuilder extends DockerodeBuilder {
       prebuild (source) { return false }
     }
-    class TestDockerImage extends DockerImage {
+    class TestDokeresImage extends DokeresImage {
       async ensure () { return theImage }
     }
     const theImage  = Symbol()
@@ -108,7 +109,7 @@ test({
     const source    = { workspace, crate }
     const ran       = []
     const docker    = mockDockerode(runCalled)
-    const image     = new TestDockerImage(docker)
+    const image     = new TestDokeresImage(docker)
     const script    = "build.sh"
     const options   = { docker, image, script }
     const builder   = new TestDockerodeBuilder(options)
@@ -131,13 +132,12 @@ test({
     class TestDockerodeBuilder extends DockerodeBuilder {
       prebuild (source) { return false }
     }
-    class TestDockerImage extends DockerImage {
+    class TestDokeresImage extends DokeresImage {
       async ensure () { return theImage }
     }
     const theImage  = Symbol()
     const docker    = mockDockerode()
-    const image     = new TestDockerImage(docker)
-    const script    = "build.sh"
+
     const options   = { docker, image, script }
     const builder   = new TestDockerodeBuilder(options)
     const workspace = resolve(here, '../../fixtures')
