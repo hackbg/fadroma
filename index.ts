@@ -293,7 +293,7 @@ export class FadromaOps {
 
   async run (...commands: string[]) {
     Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
-    runCommands.default(this.commands, commands)
+    return await runCommands(this.commands, commands)
   }
 
   /** Define a command. Establishes correspondence between
