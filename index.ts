@@ -283,10 +283,10 @@ export class FadromaOps {
   module (url: string): this {
     // if main
     if (process.argv[1] === fileURLToPath(url)) {
-      this.run(...process.argv.slice(2))/*.then(()=>{
+      this.run(...process.argv.slice(2)).then(()=>{
         console.info('All done.')
         process.exit(0)
-      })*/
+      })
     }
     return this
   }
