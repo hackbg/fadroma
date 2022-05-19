@@ -1,3 +1,8 @@
+import { createServer } from 'http'
+import { hostname } from 'os'
+import { readFileSync } from 'fs'
+import { spawn } from 'child_process'
+
 const {
   PORT          = 8080,
   FADROMA_QUIET = false
@@ -7,13 +12,14 @@ let node
 let chainId
 let ready = false
 
-const server = require('http').createServer(onRequest)
-server.listen(PORT)
-console.log(
-  `Fadroma Devnet for Secret Network 1.2`,
-  `listening for launch request on`,
-  `http://${require('os').hostname()}:${PORT}`
-)
+const server = createServer(onRequest)
+server.listen(PORT, () => {
+  console.log(
+    `Fadroma Devnet for Secret Network 1.2`,
+    `listening for launch request on`,
+    `http://${hostname()}:${PORT}`
+  )
+})
 
 function onRequest ({ method, url }, res) {
 
@@ -58,7 +64,7 @@ function onRequest ({ method, url }, res) {
       code = 200
       const name = searchParams.get('name')
       const path = `/receipts/${chainId}/identities/${name}.json`
-      data = JSON.parse(require('fs').readFileSync(path, 'utf8'))
+      data = JSON.parse(readFileSync(path, 'utf8'))
     } else {
       data.error = 'Pass ?name=IDENTITY_NAME query param'
     }
@@ -70,8 +76,8 @@ function spawnNode (
   GenesisAccounts,
   Port = '1317'
 ) {
-  const { stdout, stderr } = node = require('child_process').spawn(
-    '/usr/bin/bash', [ '/Scrt_1_2_Node.sh' ], {
+  const { stdout, stderr } = node = spawn(
+    '/usr/bin/env', [ 'node', '/devnet-init.mjs' ], {
       stdio: [null, 'pipe', 'pipe'],
       env: { ...process.env, ChainID, GenesisAccounts, Port }
     }

@@ -463,9 +463,9 @@ export class ManagedDevnet extends Devnet {
         console.info('Reusing existing managed devnet with chain id', bold(chainId))
       } else {
         chainId = `${prefix}-${randomHex(4)}`
-        const devnet = resolve(config.projectRoot, 'receipts', chainId)
-        mkdirp.sync(devnet)
-        symlinkSync(devnet, active)
+        const devnet = new Path(config.projectRoot).in('receipts').in(chainId)
+        devnet.make()
+        symlinkSync(devnet.path, active)
         console.info('Creating new managed devnet with chain id', bold(chainId))
       }
     }
@@ -486,12 +486,9 @@ export class ManagedDevnet extends Devnet {
   apiURL: URL = new URL('http://devnet:1317')
 
   async spawn () {
-    const port = await freeportAsync()
+    const port = String(await freePort())
     this.apiURL.port = port
-    console.info(
-      bold('Spawning managed devnet'), this.chainId,
-      'on port', port
-    )
+    console.info(bold('Spawning managed devnet'), this.chainId, 'on port', port)
     await this.manager.get('/spawn', {
       id:      this.chainId,
       genesis: this.genesisAccounts.join(','),
@@ -512,7 +509,7 @@ export class ManagedDevnet extends Devnet {
   async respawn () {
     const shortPath = relative(config.projectRoot, this.nodeState.path)
     // if no node state, spawn
-    if (!this.nodeState.exists()) {
+    if (!this.nodeState.exists) {
       console.info(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }

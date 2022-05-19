@@ -5,7 +5,7 @@
   "main":    "index.ts",
   "dependencies": {
     "@hackbg/dokeres":            "workspace:*",
-    "@fadroma/ops":               "workspace:^0",
+    "@fadroma/ops":               "workspace:*",
     "@fadroma/client-scrt-amino": "workspace:^1",
     "@fadroma/client-scrt-grpc":  "workspace:^1"
   }

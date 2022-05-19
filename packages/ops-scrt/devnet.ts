@@ -8,11 +8,15 @@
 
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { config, DockerodeDevnet, ManagedDevnet } from '@fadroma/ops'
+import { DockerodeDevnet, ManagedDevnet } from '@fadroma/ops'
 import { Dokeres } from '@hackbg/dokeres'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const initScript = 'devnet-init.mjs'
+import { scrtConfig as config } from './config'
+
+const __dirname     = dirname(fileURLToPath(import.meta.url))
+const initScript    = 'devnet-init.mjs'
+const managerScript = 'devnet-manager.mjs'
+const scripts       = [initScript, managerScript]
 
 export function getScrtDevnet_1_3 (
   managerURL: string = config.devnetManager,
@@ -26,9 +30,9 @@ export function getScrtDevnet_1_3 (
     const dockerfile = resolve(__dirname, 'devnet_1_2.Dockerfile')
     return new DockerodeDevnet({
       portMode:    'grpcWeb',
-      image:       new Dokeres().image('fadroma/scrt-devnet:1.2', dockerfile, [initScript]),
+      image:       new Dokeres().image('fadroma/scrt-devnet:1.2', dockerfile, scripts),
       readyPhrase: 'indexed block',
-      initScript:  resolve(__dirname, 'devnet-init.mjs'),
+      initScript:  resolve(__dirname, initScript),
     })
   }
 }
@@ -45,9 +49,9 @@ export function getScrtDevnet_1_2 (
     const dockerfile = resolve(__dirname, 'devnet_1_3.Dockerfile')
     return new DockerodeDevnet({
       portMode:    'lcp',
-      image:       new Dokeres().image('fadroma/scrt-devnet:1.3', dockerfile, [initScript]),
+      image:       new Dokeres().image('fadroma/scrt-devnet:1.3', dockerfile, scripts),
       readyPhrase: 'indexed block',
-      initScript:  resolve(__dirname, 'devnet-init.mjs')
+      initScript:  resolve(__dirname, initScript)
     })
   }
 }
