@@ -203,6 +203,9 @@ export class DockerodeBuilder extends CachingBuilder {
   protected async buildInContainer (workspace, ref = DEFAULT_REF, crates: [number, string][] = []):
     Promise<(Artifact|null)[]>
   {
+    
+    // Workspace should be an absolute path so that it can be mounted into the container.
+    workspace = resolve(workspace)
 
     // Output slots. Indices should correspond to those of the input to buildMany
     const artifacts:   (Artifact|null)[] = crates.map(()=>null)
