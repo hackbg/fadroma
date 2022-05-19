@@ -10,6 +10,7 @@ importers:
       '@fadroma/ops': workspace:^0.1.0
       '@fadroma/ops-scrt': workspace:^0.1.0
       '@fadroma/tokens': workspace:^0.1.0
+      '@hackbg/dokeres': workspace:*
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/kabinet': workspace:*
       '@hackbg/komandi': workspace:*
@@ -32,6 +33,7 @@ importers:
       '@fadroma/ops': link:packages/ops
       '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/tokens': link:packages/tokens
+      '@hackbg/dokeres': link:toolbox/dokeres
       '@hackbg/ganesha': 2.0.3
       '@hackbg/kabinet': link:toolbox/kabinet
       '@hackbg/komandi': link:toolbox/komandi
@@ -101,7 +103,7 @@ importers:
   packages/ops:
     specifiers:
       '@fadroma/client': workspace:^1.0.0
-      '@hackbg/dokeres': workspace:^2
+      '@hackbg/dokeres': workspace:*
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/kabinet': workspace:^2
       '@hackbg/konzola': workspace:^1.0.7
@@ -146,7 +148,7 @@ importers:
       '@fadroma/client-scrt-amino': workspace:^1
       '@fadroma/client-scrt-grpc': workspace:^1
       '@fadroma/ops': workspace:^0
-      '@hackbg/dokeres': workspace:^2
+      '@hackbg/dokeres': workspace:*
     dependencies:
       '@fadroma/client-scrt-amino': link:../client-scrt-amino
       '@fadroma/client-scrt-grpc': link:../client-scrt-grpc
@@ -428,6 +430,9 @@ packages:
     resolution: {integrity: sha512-ERft9/0/8CmYalqOVnJnpdDry28q+j+nAlFFARdjyxXDJ+Mhgv9+F600QC8BR9ygOfrXRlAk6CvST2j+JCpQPg==}
     peerDependencies:
       google-protobuf: ^3.14.0
+    peerDependenciesMeta:
+      google-protobuf:
+        optional: true
     dependencies:
       browser-headers: 0.4.1
     dev: false
@@ -3285,7 +3290,7 @@ packages:
     engines: {node: '>= 12.10.0'}
     hasBin: true
     peerDependencies:
-      typescript: 4.0.x || 4.1.x || 4.2.x || 4.3.x || 4.4.x
+      typescript: 4.0.x || 4.1.x || 4.2.x || 4.3.x || 4.4.x || ^4.6
     dependencies:
       glob: 7.2.3
       handlebars: 4.7.7
@@ -3303,7 +3308,7 @@ packages:
     engines: {node: '>= 14'}
     hasBin: true
     peerDependencies:
-      typescript: 4.0.x || 4.1.x || 4.2.x || 4.3.x || 4.4.x || 4.5.x || 4.6.x
+      typescript: 4.0.x || 4.1.x || 4.2.x || 4.3.x || 4.4.x || 4.5.x || 4.6.x || ^4.6
     dependencies:
       lunr: 2.3.9
       marked: 4.0.15

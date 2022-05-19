@@ -37,9 +37,8 @@ import ClientSpec  from './Client.spec'
 import CoreSpec    from './Core.spec'
 import DeploySpec  from './Deploy.spec'
 import DevnetSpec  from './Devnet.spec'
-import DockerSpec  from './Docker.spec'
 import OperateSpec from './Operate.spec'
-import MocknetSpec from './Mocknet.spec'
+//import MocknetSpec from './Mocknet.spec'
 import UploadSpec  from './Upload.spec'
 
 const Specification = {
@@ -50,9 +49,8 @@ const Specification = {
   CoreSpec,
   DeploySpec,
   DevnetSpec,
-  DockerSpec,
   OperateSpec,
-  MocknetSpec,
+  //MocknetSpec,
   UploadSpec,
 }
 
