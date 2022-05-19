@@ -8,20 +8,29 @@
 
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { config, DockerodeDevnet } from '@fadroma/ops'
+import { config, DockerodeDevnet, ManagedDevnet } from '@fadroma/ops'
 import { Dokeres } from '@hackbg/dokeres'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const initScript = 'devnet-init.mjs'
 
-export function getScrtDevnet_1_3 () {
-  const dockerfile = resolve(__dirname, 'devnet_1_2.Dockerfile')
-  return new DockerodeDevnet({
-    portMode:    'grpcWeb',
-    image:       new Dokeres().image('fadroma/scrt-devnet:1.2', dockerfile, [initScript]),
-    readyPhrase: 'indexed block',
-    initScript:  resolve(__dirname, 'devnet-init.mjs'),
-  })
+export function getScrtDevnet_1_3 (
+  managerURL: string = config.devnetManager,
+  chainId?:   string,
+) {
+  if (managerURL) {
+    return ManagedDevnet.getOrCreate(
+      managerURL, chainId, config.scrt.devnetChainIdPrefix
+    )
+  } else {
+    const dockerfile = resolve(__dirname, 'devnet_1_2.Dockerfile')
+    return new DockerodeDevnet({
+      portMode:    'grpcWeb',
+      image:       new Dokeres().image('fadroma/scrt-devnet:1.2', dockerfile, [initScript]),
+      readyPhrase: 'indexed block',
+      initScript:  resolve(__dirname, 'devnet-init.mjs'),
+    })
+  }
 }
 
 export function getScrtDevnet_1_2 (
@@ -29,10 +38,9 @@ export function getScrtDevnet_1_2 (
   chainId?:   string,
 ) {
   if (managerURL) {
-    throw new Error('unimplemented: managed devnets will be available in a future release of Fadroma')
-    //return ManagedDevnet.getOrCreate(
-      //managerURL, chainId, config.scrt.devnetChainIdPrefix
-    //)
+    return ManagedDevnet.getOrCreate(
+      managerURL, chainId, config.scrt.devnetChainIdPrefix
+    )
   } else {
     const dockerfile = resolve(__dirname, 'devnet_1_3.Dockerfile')
     return new DockerodeDevnet({

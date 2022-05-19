@@ -16,6 +16,7 @@ export * from './Deploy'
 export * from './Print'
 export * from './Mocknet'
 export * from './State'
+export * from './Endpoint'
 
 import TOML from 'toml'
 export { TOML }
