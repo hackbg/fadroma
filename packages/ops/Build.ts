@@ -328,7 +328,9 @@ export class DockerodeBuilder extends CachingBuilder {
 }
 
 /** This builder talks to a "remote" build server over HTTP.
-  * "Remote" is in quotes because this implementation expects  */
+  * "Remote" is in quotes because this implementation still expects
+  * the source code and resulting artifact to be on the same filesystem,
+  * i.e. this is only useful in a local docker-compose scenario. */
 export class ManagedBuilder extends CachingBuilder {
   Endpoint = Endpoint
 
@@ -352,6 +354,6 @@ export class ManagedBuilder extends CachingBuilder {
     const { workspace, crate, ref = 'HEAD' } = source
     const { location } = await this.manager.get('/build', { crate, ref })
     const codeHash = codeHashForPath(location)
-    return { location, codeHash }
+    return { url: pathToFileURL(location), codeHash }
   }
 }
