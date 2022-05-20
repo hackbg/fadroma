@@ -34,7 +34,6 @@ import AgentSpec   from './Agent.spec'
 import BuildSpec   from './Build.spec'
 import ChainSpec   from './Chain.spec'
 import ClientSpec  from './Client.spec'
-import CoreSpec    from './Core.spec'
 import DeploySpec  from './Deploy.spec'
 import DevnetSpec  from './Devnet.spec'
 import OperateSpec from './Operate.spec'
@@ -46,7 +45,6 @@ const Specification = {
   BuildSpec,
   ChainSpec,
   ClientSpec,
-  CoreSpec,
   DeploySpec,
   DevnetSpec,
   OperateSpec,
