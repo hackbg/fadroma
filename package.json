@@ -31,7 +31,7 @@
   },
   "scripts": {
     "document":    "typedoc index.d.ts",
-    "publish-all": "pnpm -r publish --access public"
+    "publish-all": "pnpm -r release"
   },
   "workspace": true,
   "packages": [
