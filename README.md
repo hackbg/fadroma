@@ -12,6 +12,8 @@
 
 Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
 
+Explore the [Rust Smart Contract API](https://fadroma.tech/rs/fadroma/index.html) and [TypeScript Operations API](https://fadroma.tech/js/modules.html).
+
 Help yourself to the [contribution guidelines](CONTRIBUTING.md).
 
 [![Coverage Status](https://coveralls.io/repos/github/hackbg/fadroma/badge.svg?branch=22.01)](https://coveralls.io/github/hackbg/fadroma?branch=22.01)
