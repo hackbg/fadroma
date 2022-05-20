@@ -60,11 +60,12 @@ export abstract class Devnet {
 
   /** The port of the API URL.
     * If `null`, `freePort` will be used to obtain a random port. */
-  port     = null
+  port     = ''
 
   /** The API URL that can be used to talk to the devnet. */
   get url (): URL {
-    return new URL(`${this.protocol}://${this.host}:${this.port}`)
+    const url = `${this.protocol}://${this.host}:${this.port}`
+    return new URL(url)
   }
 
   /** This directory is created to remember the state of the devnet setup. */

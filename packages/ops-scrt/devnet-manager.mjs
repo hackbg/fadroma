@@ -64,8 +64,14 @@ function onRequest ({ method, url }, res) {
       code = 200
       const name = searchParams.get('name')
       const path = `/receipts/${chainId}/identities/${name}.json`
-      data = JSON.parse(readFileSync(path, 'utf8'))
+      try {
+        data = JSON.parse(readFileSync(path, 'utf8'))
+      } catch (e) {
+        code = 404
+        data.error = `Failed to get ${name} on ${chainId}: ${e.message}`
+      }
     } else {
+      code = 404
       data.error = 'Pass ?name=IDENTITY_NAME query param'
     }
   }
