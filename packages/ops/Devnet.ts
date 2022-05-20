@@ -4,6 +4,7 @@ import { basename, relative, resolve } from 'path'
 import { cwd } from 'process'
 import { existsSync, readlinkSync, symlinkSync } from 'fs'
 
+import type { AgentOptions } from '@fadroma/client'
 import { Console, bold } from '@hackbg/konzola'
 import { Path, Directory, JSONFormat, JSONFile, JSONDirectory } from '@hackbg/kabinet'
 import { freePort, waitPort } from '@hackbg/portali'
@@ -76,7 +77,7 @@ export abstract class Devnet {
   genesisAccounts: Array<string> = ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
 
   /** Retrieve an identity */
-  abstract getGenesisAccount (name: string): Promise<object>
+  abstract getGenesisAccount (name: string): Promise<AgentOptions>
 
   /** Start the node. */
   abstract spawn (): Promise<this>
@@ -193,7 +194,7 @@ export class DockerodeDevnet extends Devnet {
   identities: JSONDirectory
 
   /** Gets the info for a genesis account, including the mnemonic */
-  async getGenesisAccount (name: string) {
+  async getGenesisAccount (name: string): Promise<AgentOptions> {
     return this.identities.load(name)
   }
 
@@ -435,28 +436,26 @@ export type ManagedDevnetOptions = DevnetOptions & {
   * given chain id and identities via a HTTP API. */
 export class ManagedDevnet extends Devnet {
 
-  /** Makes sure that the latest devnet is reused,
-    * unless explicitly specified otherwise. */
+  /** Get a handle to a remote devnet. If there isn't one,
+    * create one. If there already is one, reuse it. */
   static getOrCreate (
     managerURL: string,
     chainId?:   string,
     prefix?:    string
   ) {
-    // If passed a chain id, use that;
-    // this makes a passed prefix irrelevant.
+
+    // If passed a chain id, use it; this makes a passed prefix irrelevant.
     if (chainId && prefix) {
-      console.warn(
-        'Passed both chainId and prefix to ManagedDevnet.get: ignoring prefix'
-      )
+      console.warn('Passed both chainId and prefix to ManagedDevnet.getOrCreate: ignoring prefix')
     }
-    // Establish default prefix.
-    // Chain subclasses should define this.
+
+    // Establish default prefix. Chain subclasses should define this.
     if (!prefix) {
       prefix = 'devnet'
     }
-    // If no chain id passed, try to reuse the
-    // last created devnet; if there isn't one,
-    // create a new one and symlink it as active.
+
+    // If no chain id passed, try to reuse the last created devnet;
+    // if there isn't one, create a new one and symlink it as active.
     if (!chainId) {
       const active = resolve(config.projectRoot, 'receipts', `${prefix}-active`)
       if (existsSync(active)) {
@@ -470,14 +469,14 @@ export class ManagedDevnet extends Devnet {
         console.info('Creating new managed devnet with chain id', bold(chainId))
       }
     }
+
     return new ManagedDevnet({ managerURL, chainId })
+
   }
 
   constructor (options) {
     super(options)
-    console.info(
-      'Constructing', bold('remotely managed'), 'devnet'
-    )
+    console.info('Constructing', bold('remotely managed'), 'devnet')
     const { managerURL = config.devnetManager } = options
     this.manager = new Endpoint(managerURL)
   }
@@ -528,8 +527,12 @@ export class ManagedDevnet extends Devnet {
     }
   }
 
-  async getGenesisAccount (name: string): Promise<object> {
-    return this.manager.get('/identity', { name })
+  async getGenesisAccount (name: string): Promise<AgentOptions> {
+    const identity = await this.manager.get('/identity', { name })
+    if (identity.error) {
+      throw new Error(`ManagedDevnet#getGenesisAccount: failed to get ${name}: ${identity.error}`)
+    }
+    return identity
   }
 
   async erase () { throw new Error('not implemented') }
