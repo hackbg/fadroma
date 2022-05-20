@@ -127,6 +127,14 @@ export abstract class Chain implements Querier {
     if (options.node) {
       if (options.mode === Chain.Mode.Devnet) {
         this.node = options.node
+        if (this.url !== this.node.url) {
+          console.warn(`chain.url is ${this.url}; node.url is ${this.node.url}; using the latter`)
+        }
+        this.url = this.node.url
+        if (this.id !== this.node.chainId) {
+          console.warn(`chain.id is ${this.id}, node.chainId is ${this.node.url}; using the latter`)
+        }
+        this.id  = this.node.chainId
       } else {
         console.warn('Chain: "node" option passed to non-devnet. Ignoring')
       }
@@ -153,9 +161,13 @@ export abstract class Chain implements Querier {
   abstract getHash (address: Address): Promise<CodeHash>
   abstract Agent: AgentCtor<Agent>
   async getAgent (options) {
-    if (!options.mnemonic && options.name && this.node) {
-      console.info('Using devnet genesis account:', options.name)
-      options = await this.node.getGenesisAccount(options.name)
+    if (!options.mnemonic && options.name) {
+      if (this.node) {
+        console.info('Using devnet genesis account:', options.name)
+        options = await this.node.getGenesisAccount(options.name)
+      } else {
+        throw new Error('Chain#getAgent: getting agent by name only supported for devnets')
+      }
     }
     return await this.Agent.create(this, options)
   }
@@ -224,6 +236,8 @@ export type Decimal = string
 export type Decimal256 = string
 
 export interface DevnetHandle {
+  chainId: string
+  url:     string
   terminate:         ()             => Promise<void>
   getGenesisAccount: (name: string) => Promise<AgentOptions>
 }

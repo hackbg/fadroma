@@ -61,18 +61,26 @@ test({
     const chain = new Chain('chainid')
     throws(()=>chain.getNonce())
   },
-  async 'Chain#getAgent takes string only on devnet' ({ rejects, equal }) {
+  async 'Chain#getAgent takes name only on devnet' ({ rejects, equal }) {
     const agent = Symbol()
     class TestChain extends Chain {
       Agent = { async create () { return agent } }
     }
     const chain = new TestChain('chainid')
-    await rejects(chain.getAgent(''))
+    await rejects(chain.getAgent({ name: 'agent' }))
     chain.node = { getGenesisAccount () { return {} } }
-    equal(await chain.getAgent(''), agent)
+    equal(await chain.getAgent({ name: 'agent' }), agent)
   },
   async 'Chain#getAgent takes Identity object' ({ rejects, ok }) {
-    const chain = new Chain('chainid')
+    class TestAgent extends Agent {
+      static create (options) {
+        return new this(options)
+      }
+    }
+    class TestChain extends Chain {
+      Agent = TestAgent
+    }
+    const chain = new TestChain('chainid')
     ok(await chain.getAgent({}) instanceof Agent)
   }
 })
