@@ -2,6 +2,7 @@ import { createServer } from 'http'
 import { hostname } from 'os'
 import { readFileSync } from 'fs'
 import { spawn } from 'child_process'
+import assert, { AssertionError } from 'assert'
 
 const {
   PORT =
@@ -16,6 +17,9 @@ const {
 
 let node
 let chainId
+let genesis
+let lcpPort
+let grpcWebAddr
 let ready = false
 
 const server = createServer(onRequest)
@@ -35,7 +39,7 @@ function onRequest ({ method, url }, res) {
     '/identity': handleId
   }
 
-  const { pathname, searchParams } = new URL(url, 'http://id.gaf')
+  const { pathname, searchParams: query } = new URL(url, 'http://id.gaf')
   let code = 400
   let data = {error:'Invalid request'}
   if (routes[pathname]) routes[pathname]()
@@ -43,21 +47,33 @@ function onRequest ({ method, url }, res) {
   res.end(JSON.stringify(data))
 
   function handleSpawn () {
-    if (['id','genesis','port'].every(param=>searchParams.has(param))) {
-      if (!node) {
-        code = 200
-        node = spawnNode(
-          chainId = searchParams.get('id'),
-          searchParams.get('genesis').split(',').join(' '),
-          searchParams.get('port')
-        )
-        data = {ok:'Spawned node'}
-      } else {
-        data.error = 'Node already running'
-      }
-    } else {
-      data.error = 'Pass ?id=CHAIN_ID&genesis=NAME1,NAME2&port=PORT query param'
+    if (node) {
+      data = { error: 'Node already running', lcpPort, grpcWebAddr }
+      return
     }
+    try {
+      assert(query.has('id'),
+        "required URL parameter: 'id'")
+      assert(query.has('genesis'),
+        "required URL parameter: 'genesis'")
+      assert(query.has('lcpPort')||query.has('grpcWebAddr'),
+        "required URL parameter: 'lcpPort' or 'grpcWebAddr'")
+    } catch (e) {
+      if (e instanceof AssertionError) {
+        data.error = e.message
+        return
+      } else {
+        throw e
+      }
+    }
+    node = spawnNode(
+      chainId     = query.get('id'),
+      genesis     = query.get('genesis').split(',').join(' '),
+      lcpPort     = query.get('lcpPort'),
+      grpcWebAddr = query.get('grpcWebAddr')
+    )
+    code = 200
+    data = { ok: 'Spawned node' }
   }
 
   function handleReady () {
@@ -66,9 +82,9 @@ function onRequest ({ method, url }, res) {
   }
 
   function handleId () {
-    if (searchParams.has('name')) {
+    if (query.has('name')) {
       code = 200
-      const name = searchParams.get('name')
+      const name = query.get('name')
       const path = `/receipts/${chainId}/identities/${name}.json`
       try {
         data = JSON.parse(readFileSync(path, 'utf8'))
@@ -84,27 +100,27 @@ function onRequest ({ method, url }, res) {
 }
 
 function spawnNode (
-  ChainID,
+  ChainId,
   GenesisAccounts,
-  Port = '1317'
+  lcpPort,
+  grpcWebAddr
 ) {
-  const { stdout, stderr } = node = spawn(
-    process.argv[0], [ FADROMA_DEVNET_INIT_SCRIPT ], {
-      stdio: [null, 'pipe', 'pipe'],
-      env: { ...process.env, ChainID, GenesisAccounts, Port }
-    }
-  )
+  console.log('Fadroma Devnet Manager: spawning devnet node', { ChainId, GenesisAccounts, lcpPort, grpcWebAddr })
+  const env  = { ...process.env, ChainId, GenesisAccounts, lcpPort, grpcWebAddr }
+  const opts = { stdio: [null, 'pipe', 'pipe'], env }
+  const node = spawn(process.argv[0], [ FADROMA_DEVNET_INIT_SCRIPT ], opts)
   if (!FADROMA_QUIET) {
-    stdout.pipe(process.stdout)
-    stderr.pipe(process.stderr)
+    node.stdout.pipe(process.stdout)
+    node.stderr.pipe(process.stderr)
   }
   let output = ''
-  stderr.on('data', function waitUntilReady (data) {
+  node.stderr.on('data', function waitUntilReady (data) {
     data = String(data)
     output += data
     if (output.includes(FADROMA_DEVNET_READY_PHRASE)) {
       ready = true
-      stderr.off('data', waitUntilReady)
+      node.stderr.off('data', waitUntilReady)
     }
   })
+  return node
 }

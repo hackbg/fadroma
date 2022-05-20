@@ -14,8 +14,8 @@ function start ({
   lcpAddr     = process.env.lcpAddr     || 'http://localhost:1317',
   lcpPort     = process.env.lcpPort     || '1316',
   rpcAddr     = process.env.rpcAddr     || 'tcp://0.0.0.0:26657',
-  grpcAddr    = process.env.gRPCAddr    || '0.0.0.0:9090',
-  grpcWebAddr = process.env.gRPCWebAddr || '0.0.0.0:9091',
+  grpcAddr    = process.env.grpcAddr    || '0.0.0.0:9090',
+  grpcWebAddr = process.env.grpcWebAddr || '0.0.0.0:9091',
   genesisJSON = '~/.secretd/config/genesis.json',
 } = {}) {
   if (!existsSync(genesisJSON)) {

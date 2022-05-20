@@ -4,7 +4,7 @@ import { basename, relative, resolve } from 'path'
 import { cwd } from 'process'
 import { existsSync, readlinkSync, symlinkSync } from 'fs'
 
-import type { AgentOptions } from '@fadroma/client'
+import type { AgentOptions, DevnetHandle } from '@fadroma/client'
 import { Console, bold } from '@hackbg/konzola'
 import { Path, Directory, JSONFormat, JSONFile, JSONDirectory } from '@hackbg/kabinet'
 import { freePort, waitPort } from '@hackbg/portali'
@@ -28,15 +28,18 @@ export interface DevnetOptions {
   stateRoot?: string,
   /** Port to connect to. */
   port?:      number
+  /** Which of the services should be exposed the devnet's port. */
+  portMode?:  DevnetPortMode
 }
 
-export abstract class Devnet {
+export abstract class Devnet implements DevnetHandle {
 
   /** Creates an object representing a devnet.
     * Use the `respawn` method to get it running. */
-  constructor ({ chainId, identities, stateRoot, port }: DevnetOptions) {
-    this.chainId = chainId || this.chainId
-    this.port    = port    || this.port
+  constructor ({ chainId, identities, stateRoot, port, portMode }: DevnetOptions) {
+    this.chainId  = chainId      || this.chainId
+    this.port     = Number(port) || this.port
+    this.portMode = portMode
     if (!this.chainId) {
       throw new Error(
         '@fadroma/ops/Devnet: refusing to create directories for devnet with empty chain id'
@@ -61,7 +64,10 @@ export abstract class Devnet {
 
   /** The port of the API URL.
     * If `null`, `freePort` will be used to obtain a random port. */
-  port     = ''
+  port     = 0
+
+  /** Which service does the API URL port correspond to. */
+  portMode: DevnetPortMode
 
   /** The API URL that can be used to talk to the devnet. */
   get url (): URL {
@@ -106,7 +112,7 @@ export abstract class Devnet {
         if (this.chainId !== chainId) {
           console.warn(`Loading state of ${chainId} into Devnet with id ${this.chainId}`)
         }
-        this.port = String(port)
+        this.port = port
         return data
       } catch (e) {
         console.warn(`Failed to load ${path}. Deleting it`)
@@ -147,8 +153,6 @@ export interface DockerodeDevnetOptions extends DevnetOptions {
   /** Once this string is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
   readyPhrase?: string
-  /** Which of the services should be exposed the devnet's port. */
-  portMode:   DevnetPortMode
 }
 
 /** Used to reconnect between runs. */
@@ -160,7 +164,7 @@ export interface DockerodeDevnetReceipt {
 
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
-export class DockerodeDevnet extends Devnet {
+export class DockerodeDevnet extends Devnet implements DevnetHandle {
 
   constructor (options: DockerodeDevnetOptions = {}) {
     super(options)
@@ -169,11 +173,7 @@ export class DockerodeDevnet extends Devnet {
     this.image       = options.image
     this.initScript  = options.initScript
     this.readyPhrase = options.readyPhrase
-    this.portMode    = options.portMode
   }
-
-  /** Which service does the API URL port correspond to. */
-  portMode: DevnetPortMode
 
   get dokeres (): Dokeres {
     return this.image.dokeres
@@ -209,7 +209,7 @@ export class DockerodeDevnet extends Devnet {
 
   async spawn () {
     // tell the user that we have begun
-    console.info(`Spawning new node...`)
+    console.info(`Spawning new node...`, this)
     // if no port is specified, use a random port
     if (!this.port) {
       this.port = await freePort()
@@ -231,8 +231,8 @@ export class DockerodeDevnet extends Devnet {
       GenesisAccounts: this.genesisAccounts.join(' '),
     }
     switch (this.portMode) {
-      case 'lcp':     env.lcpPort     = this.port;              break
-      case 'grpcWeb': env.gRPCWebAddr = `0.0.0.0:${this.port}`; break
+      case 'lcp':     env.lcpPort     = String(this.port);      break
+      case 'grpcWeb': env.grpcWebAddr = `0.0.0.0:${this.port}`; break
       default: throw new Error(`DockerodeDevnet#portMode must be either 'lcp' or 'grpcWeb'`)
     }
     this.container = await this.image.run(containerName, {
@@ -434,14 +434,15 @@ export type ManagedDevnetOptions = DevnetOptions & {
 /** When running in docker-compose, Fadroma needs to request
   * from the devnet container to spawn a chain node with the
   * given chain id and identities via a HTTP API. */
-export class ManagedDevnet extends Devnet {
+export class ManagedDevnet extends Devnet implements DevnetHandle {
 
   /** Get a handle to a remote devnet. If there isn't one,
     * create one. If there already is one, reuse it. */
   static getOrCreate (
     managerURL: string,
     chainId?:   string,
-    prefix?:    string
+    prefix?:    string,
+    portMode?:  string
   ) {
 
     // If passed a chain id, use it; this makes a passed prefix irrelevant.
@@ -470,7 +471,7 @@ export class ManagedDevnet extends Devnet {
       }
     }
 
-    return new ManagedDevnet({ managerURL, chainId })
+    return new ManagedDevnet({ managerURL, chainId, portMode })
 
   }
 
@@ -479,19 +480,36 @@ export class ManagedDevnet extends Devnet {
     console.info('Constructing', bold('remotely managed'), 'devnet')
     const { managerURL = config.devnetManager } = options
     this.manager = new Endpoint(managerURL)
+    this.host = this.manager.url.hostname
   }
 
   manager: Endpoint
 
   async spawn () {
-    const port = String(await freePort())
+    const port = await freePort()
     this.port = port
     console.info(bold('Spawning managed devnet'), this.chainId, 'on port', port)
-    await this.manager.get('/spawn', {
-      id:      this.chainId,
-      genesis: this.genesisAccounts.join(','),
-      port
-    })
+    const params = {
+      id:          this.chainId,
+      genesis:     this.genesisAccounts.join(','),
+      lcpPort:     undefined,
+      grpcWebAddr: undefined
+    }
+    if (this.portMode === 'lcp') {
+      params.lcpPort = port
+    } else if (this.portMode === 'grpcWeb') {
+      params.grpcWebAddr = `0.0.0.0:${port}`
+    }
+    const result = await this.manager.get('/spawn', params)
+    if (result.error === 'Node already running') {
+      console.info('Managed devnet already running')
+      if (this.portMode === 'lcp' && result.lcpPort) {
+        this.port = Number(result.lcpPort)
+      } else if (this.portMode === 'grpcWeb' && result.grpcWebAddr) {
+        this.port = Number(new URL('idk://'+result.grpcWebAddr).port)
+      }
+      console.info('Reusing port', this.port, 'for', this.portMode)
+    }
     await this.ready()
     return this
   }
