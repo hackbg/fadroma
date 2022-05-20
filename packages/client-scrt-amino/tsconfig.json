@@ -1,19 +1,12 @@
 {
-  "include": [
-    "*.ts"
-  ],
+  "extends": "../../tsconfig.json",
+  "include": [ "*.ts" ],
+  "exclude": [ "dist/", "types/" ],
   "compilerOptions": {
-    "target": "es2020",
-    "module": "es2020",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "allowJs": true,
-    "lib": ["ES2020"],
-
     "outDir":         "dist",
     "sourceMap":      true,
     "declaration":    true,
-    "declarationMap": true
+    "declarationMap": true,
+    "declarationDir": "types"
   }
 }

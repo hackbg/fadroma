@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "type":    "module",
   "main":    "client.ts",
-  "ganesha": {
-    "main": "client.ts"
-  },
   "devDependencies": {
-    "typescript": "^4.6.4"
+    "typescript":      "^4.6.4",
+    "@hackbg/izdatel": "workspace:*"
   },
   "scripts": {
-    "build": "tsc"
+    "build":   "tsc",
+    "check":   "tsc --noEmit",
+    "release": "izdatel"
   }
 }
