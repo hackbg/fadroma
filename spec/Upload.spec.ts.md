@@ -9,9 +9,11 @@ export default UploadSpec
 ## Basic uploader
 
 ```typescript
+import { pathToFileURL } from 'url'
+const emptyContract = pathToFileURL(fixture('examples/empty-contract/artifacts/empty@HEAD.wasm'))
+
 import { FSUploader } from '../index'
 import { fixture } from './_Harness'
-const emptyContract = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
 test({
   'construct FSUploader' ({ ok }) {
     const agent = Symbol()
@@ -19,25 +21,23 @@ test({
     ok(uploader.agent === agent)
   },
   async 'FSUploader#upload' ({ deepEqual }) {
-    const artifact        = { location: emptyContract }
+    const artifact        = { url: emptyContract }
+    const chainId         = Symbol()
     const codeId          = Symbol()
     const codeHash        = Symbol()
     const transactionHash = Symbol()
-    const template = { codeId, codeHash, transactionHash }
+    const template = { chainId, codeId, codeHash, transactionHash }
     const agent = {
-      chain:     { id: Symbol() },
+      chain:     { id: chainId },
       upload:    async (artifact) => template,
       nextBlock: Promise.resolve()
     }
     const uploader = new FSUploader(agent)
     const result   = await uploader.upload(artifact)
-    deepEqual(result, {
-      chainId: agent.chain.id,
-      codeId, codeHash, transactionHash
-    })
+    deepEqual(result, template)
   },
   async 'FSUploader#uploadMany' ({ deepEqual }) {
-    const artifact = { location: emptyContract }
+    const artifact = { url: emptyContract }
     const template = Symbol()
     const agent = {
       chain:     { id: Symbol() },
@@ -67,7 +67,8 @@ test({
 ## Caching
 
 ```typescript
-import { CachingFSUploader, withTmpFile } from '../index'
+import { CachingFSUploader, withTmpFile, withTmpDir } from '../index'
+import { resolve } from 'path'
 
 const mockAgent = () => ({
   async upload () { return {} }
@@ -89,23 +90,28 @@ test({
     ok(uploader.agent === agent)
   },
   async 'upload 1 artifact with CachingFSUploader#upload' ({ ok }) {
-    const agent = mockAgent()
-    const cache = { resolve: () => '' }
-    const uploader = new CachingFSUploader(agent, cache)
-    await withTmpFile(async location=>{
-      const artifact = { location }
-      ok(await uploader.upload(artifact))
+    await withTmpDir(async cacheDir=>{
+      const agent = mockAgent()
+      const cache = { make () { return this }, resolve: (...args) => resolve(cacheDir, ...args) }
+      const uploader = new CachingFSUploader(agent, cache)
+      await withTmpFile(async location=>{
+        const url = pathToFileURL(location)
+        ok(await uploader.upload({url}))
+      })
     })
   },
   async 'upload any number of artifacts with CachingFSUploader#uploadMany' ({ ok }) {
-    const agent = mockAgent()
-    const cache = { make () { return this }, resolve: () => '' }
-    const uploader = new CachingFSUploader(agent, cache)
-    ok(await uploader.uploadMany())
-    ok(await uploader.uploadMany([]))
-    await withTmpFile(async location=>{
-      ok(await uploader.uploadMany([{location}]))
-      ok(await uploader.uploadMany([{location}, {location}]))
+    await withTmpDir(async cacheDir=>{
+      const agent = mockAgent()
+      const cache = { make () { return this }, resolve: (...args) => resolve(cacheDir, ...args) }
+      const uploader = new CachingFSUploader(agent, cache)
+      ok(await uploader.uploadMany())
+      ok(await uploader.uploadMany([]))
+      await withTmpFile(async location=>{
+        const url = pathToFileURL(location)
+        ok(await uploader.uploadMany([{url}]))
+        ok(await uploader.uploadMany([{url}, {url}]))
+      })
     })
   },
 })
