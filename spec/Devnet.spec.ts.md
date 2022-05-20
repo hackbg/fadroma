@@ -172,13 +172,13 @@ for (const version of ['1.2', '1.3']) test({
 ### Chain-specific managed devnets
 
 ```typescript
-import { getScrtDevnet } from '../index'
+import { ManagedDevnet } from '../index'
 import { mockDevnetManager } from './_Harness'
 for (const version of ['1.2', '1.3']) test({
   async [`${version}: get managed scrt devnet`] ({ ok }) {
     const manager = await mockDevnetManager()
     try {
-      const devnet  = getScrtDevnet(version, manager.url)
+      const devnet = getScrtDevnet(version, manager.url)
       ok(devnet instanceof ManagedDevnet)
       await devnet.respawn()
     } catch (e) {

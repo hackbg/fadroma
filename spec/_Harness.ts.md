@@ -70,23 +70,25 @@ export function mockDockerodeContainer (callback = () => {}) {
 ### Mock of devnet manager
 
 ```typescript
+import { spawn } from 'child_process'
+const devnetManager = resolve(here, '../packages/ops-scrt/devnet-manager.mjs')
+const devnetInitScript = resolve(here, '_mock-devnet-init.mjs')
 export async function mockDevnetManager (port) {
   port = port || await freePort(10000 + Math.floor(Math.random()*10000))
-  const app = new Express()
-  let server
-  let url
-  await new Promise(resolve=>{
-    server = app.listen(port, 'localhost', () => {
-      url = `http://localhost:${port}`
-      console.debug(`Mock devnet manager listening on ${url}`)
-      resolve()
-    })
+  const manager = spawn(process.argv[0], [devnetManager], {
+    stdio: 'inherit',
+    env: {
+      PORT: port,
+      FADROMA_DEVNET_INIT_SCRIPT: devnetInitScript
+      PATH: process.env.path
+    }
   })
+  await new Promise(ok=>setTimeout(ok, 500))
   return {
-    url,
+    url: `http://localhost:${port}`,
     port,
     close () {
-      server.close()
+      manager.kill()
     }
   }
 }

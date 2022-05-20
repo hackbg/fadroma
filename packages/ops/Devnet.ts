@@ -518,6 +518,7 @@ export class ManagedDevnet extends Devnet {
 
   protected async ready (): Promise<void> {
     while (true) {
+      console.log(this.manager.url.href)
       const { ready } = await this.manager.get('/ready')
       if (ready) {
         break

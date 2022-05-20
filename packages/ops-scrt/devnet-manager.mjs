@@ -4,8 +4,12 @@ import { readFileSync } from 'fs'
 import { spawn } from 'child_process'
 
 const {
-  PORT          = 8080,
-  FADROMA_QUIET = false
+  PORT =
+    8080,
+  FADROMA_QUIET =
+    false,
+  FADROMA_DEVNET_INIT_SCRIPT =
+    '/devnet-init.mjs'
 } = process.env
 
 let node
@@ -83,7 +87,7 @@ function spawnNode (
   Port = '1317'
 ) {
   const { stdout, stderr } = node = spawn(
-    '/usr/bin/env', [ 'node', '/devnet-init.mjs' ], {
+    process.argv[0], [ FADROMA_DEVNET_INIT_SCRIPT ], {
       stdio: [null, 'pipe', 'pipe'],
       env: { ...process.env, ChainID, GenesisAccounts, Port }
     }
