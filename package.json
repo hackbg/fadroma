@@ -37,6 +37,7 @@
   "packages": [
     "./dokeres",
     "./forkers",
+    "./izdatel",
     "./kabinet",
     "./komandi",
     "./konzola",

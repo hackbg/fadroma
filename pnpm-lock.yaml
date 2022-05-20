@@ -1,23 +1,23 @@
-lockfileVersion: 5.3
+lockfileVersion: 5.4
 
 importers:
 
   .:
     specifiers:
-      '@hackbg/dokeres': workspace:^1.0.5
-      '@hackbg/kabinet': workspace:^2.0.1
-      '@hackbg/komandi': workspace:^2.0.3
-      '@hackbg/konzola': workspace:^1.0.6
-      '@hackbg/portali': workspace:^1.0.1
-      '@hackbg/runspec': workspace:^2.1.1
+      '@hackbg/dokeres': workspace:^2
+      '@hackbg/kabinet': workspace:^2
+      '@hackbg/komandi': workspace:^2
+      '@hackbg/konzola': workspace:^1
+      '@hackbg/portali': workspace:^1
+      '@hackbg/runspec': workspace:^2
       bech32: ^2.0.0
       dts-gen: ^0.6.0
       exponential-backoff: ^3.1.0
-      open: ^8.4.0
+      open: ^8.0.2
       rimraf: ^3.0.2
-      signal-exit: ^3.0.7
+      signal-exit: ^3.0.3
       typedoc: beta
-      typescript: ^4.6.4
+      typescript: ^4.5.4
     dependencies:
       '@hackbg/dokeres': link:dokeres
       '@hackbg/kabinet': link:kabinet
@@ -37,6 +37,7 @@ importers:
 
   dokeres:
     specifiers:
+      '@hackbg/izdatel': workspace:*
       '@hackbg/konzola': workspace:*
       '@types/dockerode': ^3.3.8
       colors: ^1.4.0
@@ -46,6 +47,7 @@ importers:
       colors: 1.4.0
       dockerode: 3.3.1
     devDependencies:
+      '@hackbg/izdatel': link:../izdatel
       '@types/dockerode': 3.3.8
 
   forkers:
@@ -58,8 +60,11 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
-      '@types/node': 17.0.32
+      '@types/node': 17.0.35
       typescript: 4.6.4
+
+  izdatel:
+    specifiers: {}
 
   kabinet:
     specifiers:
@@ -91,6 +96,9 @@ importers:
       '@types/mkdirp': 1.0.2
       '@types/tmp': 0.2.3
       c8: 7.11.2
+
+  kitenik:
+    specifiers: {}
 
   komandi:
     specifiers: {}
@@ -169,7 +177,7 @@ packages:
       '@ganesha/core': 1.1.0
       '@ganesha/node': 2.1.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.32
+      '@types/node': 17.0.35
       chokidar: 3.5.3
       cross-spawn: 7.0.3
     dev: true
@@ -223,8 +231,8 @@ packages:
     resolution: {integrity: sha512-AR0x5HbXGqkEx9CadRH3EBYx/VkiUgZIhP4wvPn/+5KIsgpNoyFaRlVe0Zlx9gRtg8fA06a9tskE2MSN7TcG4Q==}
     dev: true
 
-  /@types/node/17.0.32:
-    resolution: {integrity: sha512-eAIcfAvhf/BkHcf4pkLJ7ECpBAhh9kcxRBpip9cTiO+hf+aJrsxYxBeS6OXvOd9WqNAJmavXVpZvY1rBjNsXmw==}
+  /@types/node/17.0.35:
+    resolution: {integrity: sha512-vu1SrqBjbbZ3J6vwY17jBs8Sr/BKA+/a/WtjRG+whKg1iuLFOosq872EXS0eXWILdO36DHQQeku/ZcL6hz2fpg==}
     dev: true
 
   /@types/prettyjson/0.0.30:

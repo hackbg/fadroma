@@ -23,7 +23,7 @@ export interface IDokeresDockerodeContainer {
 /** Follow the output stream from a Dockerode container until it closes. */
 export async function follow (
   dockerode: Docker,
-  stream:    Writable,
+  stream:    Readable,
   callback:  (data)=>void
 ) {
   await new Promise<void>((ok, fail)=>{

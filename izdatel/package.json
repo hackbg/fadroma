@@ -1,0 +1,6 @@
+{
+  "name":    "@hackbg/izdatel",
+  "version": "0.1.0",
+  "type":    "module",
+  "main":    "izdatel.cjs"
+}

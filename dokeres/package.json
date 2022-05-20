@@ -14,6 +14,12 @@
     "@hackbg/konzola": "workspace:*"
   },
   "devDependencies": {
-    "@types/dockerode": "^3.3.8"
+    "@types/dockerode": "^3.3.8",
+    "@hackbg/izdatel":  "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "release": "izdatel"
   }
 }
