@@ -174,7 +174,7 @@ export abstract class Chain implements Querier {
 }
 
 export class Client implements Instance {
-  constructor (readonly agent: Agent, options) {
+  constructor (readonly agent: Agent, options: ClientOptions) {
     this.address  = options.address
     this.codeHash = options.codeHash
     this.fees     = options.fees
@@ -214,7 +214,9 @@ export interface ClientCtor<C extends Client> {
   new (agent: Agent, options: ClientOptions): C
 }
 
-export interface ClientOptions extends Instance {}
+export interface ClientOptions extends Instance {
+  fees: Fees
+}
 
 export type CodeHash = string
 

@@ -9,10 +9,10 @@ export default ClientSpec
 ## Creating a client
 
 ```typescript
-import { Client } from '../index'
+import { Agent, Client } from '../index'
 test({
-  'create client' ({ ok }) {
-    ok(new Client())
+  'to create a Client you need an Agent' ({ ok }) {
+    ok(new Client(new Agent(), {}))
   }
 })
 ```
