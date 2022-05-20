@@ -48,10 +48,13 @@ export class ScrtRPCAgent extends ScrtAgent {
     if (address && address !== wallet.address) {
       throw new Error(constants.ERR_EXPECTED_WRONG_ADDRESS)
     }
+    const grpcWebUrl = chain.url.replace(/\/$/, '')
+      || "https://grpc-web.azure-api.net"
+    console.log({grpcWebUrl})
     const api = await SecretNetworkClient.create({
-      chainId:       chain.id,
-      grpcWebUrl:    chain.url || "https://grpc-web.azure-api.net",
-      wallet:        wallet,
+      chainId: chain.id,
+      grpcWebUrl,
+      wallet: wallet,
       walletAddress: wallet.address,
     })
     return new ScrtRPCAgent(chain, { ...options, wallet, api })
@@ -157,7 +160,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     }
   }
 
-  async execute (instance, msg, opts?): Promise<Tx> {
+  async execute (instance, msg, opts = {}): Promise<Tx> {
     const { address, codeHash } = instance
     const { send, memo, fee } = opts
     if (memo) {

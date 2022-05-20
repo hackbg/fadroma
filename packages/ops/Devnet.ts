@@ -511,6 +511,8 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
       console.info('Reusing port', this.port, 'for', this.portMode)
     }
     await this.ready()
+    console.info(`Waiting 7 seconds for good measure...`)
+    await new Promise(ok=>setTimeout(ok, 7000))
     return this
   }
 
@@ -539,7 +541,7 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
         break
       }
       console.info('Waiting for devnet to become ready...')
-      await new Promise(resolve=>setTimeout(resolve, 1000))
+      await new Promise(resolve=>setTimeout(resolve, 2000))
     }
   }
 
