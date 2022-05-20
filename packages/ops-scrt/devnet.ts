@@ -8,50 +8,50 @@
 
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { DockerodeDevnet, ManagedDevnet } from '@fadroma/ops'
+import { DockerodeDevnet, ManagedDevnet, DevnetPortMode } from '@fadroma/ops'
 import { Dokeres } from '@hackbg/dokeres'
 
 import { scrtConfig as config } from './config'
 
-const __dirname     = dirname(fileURLToPath(import.meta.url))
-const initScript    = 'devnet-init.mjs'
-const managerScript = 'devnet-manager.mjs'
-const scripts       = [initScript, managerScript]
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export function getScrtDevnet_1_3 (
-  managerURL: string = config.devnetManager,
-  chainId?:   string,
-) {
-  if (managerURL) {
-    return ManagedDevnet.getOrCreate(
-      managerURL, chainId, config.scrt.devnetChainIdPrefix
-    )
-  } else {
-    const dockerfile = resolve(__dirname, 'devnet_1_2.Dockerfile')
-    return new DockerodeDevnet({
-      portMode:    'grpcWeb',
-      image:       new Dokeres().image('fadroma/scrt-devnet:1.2', dockerfile, scripts),
-      readyPhrase: 'indexed block',
-      initScript:  resolve(__dirname, initScript),
-    })
-  }
+export type ScrtDevnetVersion = '1.2'|'1.3'
+
+export const scrtDevnetDockerfiles: Record<ScrtDevnetVersion, string> = {
+  '1.2': resolve(__dirname, 'devnet_1_2.Dockerfile'),
+  '1.3': resolve(__dirname, 'devnet_1_3.Dockerfile')
 }
 
-export function getScrtDevnet_1_2 (
+export const scrtDevnetDockerTags: Record<ScrtDevnetVersion, string> = {
+  '1.2': 'fadroma/scrt-devnet:1.2',
+  '1.3': 'fadroma/scrt-devnet:1.3',
+}
+
+export const scrtDevnetPortModes: Record<ScrtDevnetVersion, DevnetPortMode> = {
+  '1.2': 'lcp',
+  '1.3': 'grpcWeb'
+}
+
+const initScriptName    = 'devnet-init.mjs'
+const managerScriptName = 'devnet-manager.mjs'
+const scripts           = [initScriptName, managerScriptName]
+
+export function getScrtDevnet (
+  version:    ScrtDevnetVersion,
   managerURL: string = config.devnetManager,
-  chainId?:   string,
+  chainId?:   string
 ) {
   if (managerURL) {
     return ManagedDevnet.getOrCreate(
-      managerURL, chainId, config.scrt.devnetChainIdPrefix
+      managerURL, chainId, chainId ? null : config.scrt.devnetChainIdPrefix
     )
   } else {
-    const dockerfile = resolve(__dirname, 'devnet_1_3.Dockerfile')
-    return new DockerodeDevnet({
-      portMode:    'lcp',
-      image:       new Dokeres().image('fadroma/scrt-devnet:1.3', dockerfile, scripts),
-      readyPhrase: 'indexed block',
-      initScript:  resolve(__dirname, initScript)
-    })
+    const dockerfile  = scrtDevnetDockerfiles[version]
+    const imageTag    = scrtDevnetDockerTags[version]
+    const image       = new Dokeres().image(imageTag, dockerfile, scripts)
+    const portMode    = scrtDevnetPortModes[version]
+    const readyPhrase = 'indexed block'
+    const initScript  = resolve(__dirname, initScriptName)
+    return new DockerodeDevnet({ portMode, image, readyPhrase, initScript })
   }
 }

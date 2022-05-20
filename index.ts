@@ -15,13 +15,8 @@ import { runCommands } from '@hackbg/komandi'
 import { Console, bold, colors } from '@hackbg/konzola'
 
 import { LegacyScrt } from '@fadroma/client-scrt-amino'
-import { Scrt }       from '@fadroma/client-scrt-grpc'
-import {
-  getScrtBuilder,
-  getScrtDevnet_1_2,
-  getScrtDevnet_1_3,
-  scrtConfig
-} from '@fadroma/ops-scrt'
+import { Scrt } from '@fadroma/client-scrt-grpc'
+import { getScrtBuilder, getScrtDevnet, scrtConfig } from '@fadroma/ops-scrt'
 
 // Logging interface - got one of these in each module.
 // Based on @hackbg/konzola, reexported through @fadroma/ops.
@@ -48,7 +43,7 @@ export const Chains = {
   },
 
   async 'LegacyScrtDevnet'  () {
-    const node = await getScrtDevnet_1_2().respawn()
+    const node = await getScrtDevnet('1.2').respawn()
     return new LegacyScrt(node.chainId, {
       url:  node.url.toString(),
       mode: Chain.Mode.Devnet,
@@ -71,8 +66,7 @@ export const Chains = {
   },
 
   async 'ScrtDevnet' () {
-    const node = await getScrtDevnet_1_3().respawn()
-    const url  = node.url.toString()
+    const node = await getScrtDevnet('1.3').respawn()
     return new Scrt(node.chainId, {
       url:  node.url.toString(),
       mode: Chain.Mode.Devnet,
