@@ -4,7 +4,7 @@ importers:
 
   .:
     specifiers:
-      '@hackbg/dokeres': workspace:^2
+      '@hackbg/dokeres': workspace:^3
       '@hackbg/kabinet': workspace:^2
       '@hackbg/komandi': workspace:^2
       '@hackbg/konzola': workspace:^1

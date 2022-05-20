@@ -13,7 +13,7 @@ export const socketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
 /** Follow the output stream from a Dockerode container until it closes. */
 export async function follow (
   dockerode: Docker,
-  stream:    Readable,
+  stream:    any,
   callback:  (data)=>void
 ) {
   await new Promise<void>((ok, fail)=>{
@@ -298,7 +298,7 @@ export class DokeresContainer {
   }
 
   get warnings (): string[] {
-    return this.container.Warnings
+    return (this.container as any).Warnings
   }
 
   async start (): Promise<this> {

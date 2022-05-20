@@ -1,6 +1,6 @@
 {
   "name":         "@hackbg/toolbox",
-  "version":      "3.0.4",
+  "version":      "4.0.0",
   "type":         "module",
   "main":         "./index.js",
   "types":        "./index.d.ts",
@@ -11,7 +11,7 @@
   "license":      "MIT",
   "description":  "Baseline utilities.",
   "dependencies": {
-    "@hackbg/dokeres": "workspace:^2",
+    "@hackbg/dokeres": "workspace:^3",
     "@hackbg/kabinet": "workspace:^2",
     "@hackbg/komandi": "workspace:^2",
     "@hackbg/konzola": "workspace:^1",
