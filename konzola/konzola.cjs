@@ -13,10 +13,10 @@ function Konzola (context) {
 
   maxContextLength = Math.max(maxContextLength, context.length)
 
-  const INFO  = () => bold(green(  `INFO  ${context.padEnd(maxContextLength)}`))
-  const WARN  = () => bold(yellow( `WARN  ${context.padEnd(maxContextLength)}`))
-  const ERROR = () => bold(red(    `ERROR ${context.padEnd(maxContextLength)}`))
-  const TRACE = () => bold(magenta(`TRACE ${context.padEnd(maxContextLength)}`))
+  const INFO  = () => bold(green(  `${context.padEnd(maxContextLength)} INFO `))
+  const WARN  = () => bold(yellow( `${context.padEnd(maxContextLength)} WARN `))
+  const ERROR = () => bold(red(    `${context.padEnd(maxContextLength)} ERROR`))
+  const TRACE = () => bold(magenta(`${context.padEnd(maxContextLength)} TRACE`))
 
   const INDENT = "\n      "
   const format = (arg) => {
