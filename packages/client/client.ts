@@ -1,4 +1,162 @@
-export type Address = string
+export type Address    = string
+export type ChainId    = string
+export type CodeHash   = string
+export type CodeId     = string
+export type Decimal    = string
+export type Decimal256 = string
+export type Duration   = number
+export type Label      = string
+export type Message    = string|Record<string, unknown>
+export type Moment     = number
+export type TxHash     = string
+export type Uint128    = string
+export type Uint256    = string
+
+export interface Artifact {
+  url:      URL
+  codeHash: CodeHash
+}
+export interface Template {
+  uploadTx?: TxHash
+  chainId?:  ChainId
+  codeId?:   CodeId
+  codeHash?: CodeHash
+}
+export interface Instance extends Template {
+  address:   Address
+  codeHash?: CodeHash
+  label?:    Label
+}
+export class ContractLink {
+  constructor (
+    readonly address:   Address,
+    readonly code_hash: CodeHash
+  ) {}
+}
+
+export interface Querier {
+  query <T, U> (contract: Instance, msg: T): Promise<U>
+  getCodeId (address: Address): Promise<string>
+  getLabel  (address: Address): Promise<string>
+  getHash   (address: Address): Promise<string>
+}
+export interface Executor extends Querier {
+  address:        Address
+  upload          (code: Uint8Array):   Promise<Template>
+  uploadMany      (code: Uint8Array[]): Promise<Template[]>
+  instantiate     (template: Template, label: string, msg: Message): Promise<Instance>
+  instantiateMany (configs: [Template, string, Message][]):          Promise<Instance[]>
+  execute <T, R>  (contract: Instance, msg: T, opts?: ExecOpts):     Promise<R>
+}
+export interface ExecOpts {
+  fee?:  IFee
+  send?: ICoin[]
+  memo?: string
+}
+export interface ICoin {
+  amount: Uint128
+  denom:  string
+}
+export class Coin implements ICoin {
+  constructor (amount: number|string, readonly denom: string) {
+    this.amount = String(amount)
+  }
+  readonly amount: string
+}
+export interface IFee {
+  amount: readonly ICoin[]
+  gas:    Uint128
+}
+export class Fee implements IFee {
+  constructor (amount: Uint128|number, denom: string, readonly gas = String(amount)) {
+    this.amount = [{ amount: String(amount), denom }]
+  }
+  readonly amount: readonly ICoin[]
+}
+export interface Fees {
+  upload?: IFee
+  init?:   IFee
+  exec?:   IFee
+  send?:   IFee
+}
+
+export enum ChainMode {
+  Mainnet = 'Mainnet',
+  Testnet = 'Testnet',
+  Devnet  = 'Devnet',
+  Mocknet = 'Mocknet'
+}
+export interface ChainOptions {
+  url?:  string
+  mode?: ChainMode
+  node?: DevnetHandle
+}
+export interface DevnetHandle {
+  chainId: string
+  url:     URL
+  terminate:         ()             => Promise<void>
+  getGenesisAccount: (name: string) => Promise<AgentOptions>
+}
+export abstract class Chain implements Querier {
+  static Mode = ChainMode
+  constructor (
+    readonly id: ChainId,
+    options: ChainOptions = {}
+  ) {
+    if (!id) {
+      throw new Error('Chain: need to pass chain id')
+    }
+    this.id = id
+    if (options.url)  this.url  = options.url
+    if (options.mode) this.mode = options.mode
+    if (options.node) {
+      if (options.mode === Chain.Mode.Devnet) {
+        this.node = options.node
+        if (this.url !== String(this.node.url)) {
+          console.warn(`chain.url is ${this.url}; node.url is ${this.node.url}; using the latter`)
+          this.url = String(this.node.url)
+        }
+        if (this.id !== this.node.chainId) {
+          console.warn(`chain.id is ${this.id}, node.chainId is ${this.node.url}; using the latter`)
+          this.id = this.node.chainId
+        }
+      } else {
+        console.warn('Chain: "node" option passed to non-devnet. Ignoring')
+      }
+    }
+  }
+  readonly url:   string
+  readonly mode:  ChainMode
+  readonly node?: DevnetHandle
+  get isMainnet () {
+    return this.mode === Chain.Mode.Mainnet
+  }
+  get isTestnet () {
+    return this.mode === Chain.Mode.Testnet
+  }
+  get isDevnet  () {
+    return this.mode === Chain.Mode.Devnet
+  }
+  get isMocknet () {
+    return this.mode === Chain.Mode.Mocknet
+  }
+  abstract query <T, U> (contract: Instance, msg: T): Promise<U>
+  abstract getCodeId (address: Address): Promise<CodeId>
+  abstract getLabel (address: Address): Promise<string>
+  abstract getHash (address: Address): Promise<CodeHash>
+  abstract Agent: AgentCtor<Agent>
+  async getAgent (options) {
+    if (!options.mnemonic && options.name) {
+      if (this.node) {
+        console.info('Using devnet genesis account:', options.name)
+        options = await this.node.getGenesisAccount(options.name)
+      } else {
+        throw new Error('Chain#getAgent: getting agent by name only supported for devnets')
+      }
+    }
+    return await this.Agent.create(this, options)
+  }
+}
 
 export abstract class Agent implements Executor {
   static create (chain: Chain, options: AgentOptions = {}): Promise<Agent> {
@@ -71,21 +229,14 @@ export abstract class Agent implements Executor {
   }
   Bundle: Bundle
 }
-
 export interface AgentCtor<A extends Agent> {
   new    (chain: Chain, options: AgentOptions): A
   create (chain: Chain, options: AgentOptions): Promise<A>
 }
-
 export interface AgentOptions {
   name?:     string
   mnemonic?: string
   address?:  Address
-}
-
-export interface Artifact {
-  url:      URL
-  codeHash: CodeHash
 }
 
 export abstract class Bundle implements Executor {
@@ -99,82 +250,6 @@ export abstract class Bundle implements Executor {
   abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
   abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
   abstract execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
-}
-
-export type ChainId = string
-
-export enum ChainMode {
-  Mainnet = 'Mainnet',
-  Testnet = 'Testnet',
-  Devnet  = 'Devnet',
-  Mocknet = 'Mocknet'
-}
-
-export interface ChainOptions {
-  url?:  string
-  mode?: ChainMode
-  node?: DevnetHandle
-}
-
-export abstract class Chain implements Querier {
-  static Mode = ChainMode
-  constructor (
-    readonly id: ChainId,
-    options: ChainOptions = {}
-  ) {
-    if (!id) {
-      throw new Error('Chain: need to pass chain id')
-    }
-    this.id = id
-    if (options.url)  this.url  = options.url
-    if (options.mode) this.mode = options.mode
-    if (options.node) {
-      if (options.mode === Chain.Mode.Devnet) {
-        this.node = options.node
-        if (this.url !== this.node.url) {
-          console.warn(`chain.url is ${this.url}; node.url is ${this.node.url}; using the latter`)
-        }
-        this.url = this.node.url
-        if (this.id !== this.node.chainId) {
-          console.warn(`chain.id is ${this.id}, node.chainId is ${this.node.url}; using the latter`)
-        }
-        this.id  = this.node.chainId
-      } else {
-        console.warn('Chain: "node" option passed to non-devnet. Ignoring')
-      }
-    }
-  }
-  readonly url:   string
-  readonly mode:  ChainMode
-  readonly node?: DevnetHandle
-  get isMainnet () {
-    return this.mode === Chain.Mode.Mainnet
-  }
-  get isTestnet () {
-    return this.mode === Chain.Mode.Testnet
-  }
-  get isDevnet  () {
-    return this.mode === Chain.Mode.Devnet
-  }
-  get isMocknet () {
-    return this.mode === Chain.Mode.Mocknet
-  }
-  abstract query <T, U> (contract: Instance, msg: T): Promise<U>
-  abstract getCodeId (address: Address): Promise<CodeId>
-  abstract getLabel (address: Address): Promise<string>
-  abstract getHash (address: Address): Promise<CodeHash>
-  abstract Agent: AgentCtor<Agent>
-  async getAgent (options) {
-    if (!options.mnemonic && options.name) {
-      if (this.node) {
-        console.info('Using devnet genesis account:', options.name)
-        options = await this.node.getGenesisAccount(options.name)
-      } else {
-        throw new Error('Chain#getAgent: getting agent by name only supported for devnets')
-      }
-    }
-    return await this.Agent.create(this, options)
-  }
 }
 
 export class Client implements Instance {
@@ -213,107 +288,9 @@ export class Client implements Instance {
     return new (this.constructor as ClientCtor<typeof this>)(this.agent, {...this, fees})
   }
 }
-
 export interface ClientCtor<C extends Client> {
   new (agent: Agent, options: ClientOptions): C
 }
-
 export interface ClientOptions extends Instance {
   fees: Fees
 }
-
-export type CodeHash = string
-
-export type CodeId = string
-
-export class Coin implements ICoin {
-  constructor (amount: number|string, readonly denom: string) {
-    this.amount = String(amount)
-  }
-  readonly amount: string
-}
-
-export class ContractLink {
-  constructor (readonly address: Address, readonly code_hash: CodeHash) {}
-}
-
-export type Decimal = string
-
-export type Decimal256 = string
-
-export interface DevnetHandle {
-  chainId: string
-  url:     string
-  terminate:         ()             => Promise<void>
-  getGenesisAccount: (name: string) => Promise<AgentOptions>
-}
-
-export type Duration = number
-
-export interface ExecOpts {
-  fee?:  IFee
-  send?: ICoin[]
-  memo?: string
-}
-
-export interface Executor extends Querier {
-  address:        Address
-  upload          (code: Uint8Array):   Promise<Template>
-  uploadMany      (code: Uint8Array[]): Promise<Template[]>
-  instantiate     (template: Template, label: string, msg: Message): Promise<Instance>
-  instantiateMany (configs: [Template, string, Message][]):          Promise<Instance[]>
-  execute <T, R>  (contract: Instance, msg: T, opts?: ExecOpts):     Promise<R>
-}
-
-export class Fee implements IFee {
-  constructor (amount: Uint128|number, denom: string, readonly gas = String(amount)) {
-    this.amount = [{ amount: String(amount), denom }]
-  }
-  readonly amount: readonly ICoin[]
-}
-
-export interface Fees {
-  upload?: IFee
-  init?:   IFee
-  exec?:   IFee
-  send?:   IFee
-}
-
-export interface ICoin {
-  amount: Uint128
-  denom:  string
-}
-
-export interface IFee {
-  amount: readonly ICoin[]
-  gas:    Uint128
-}
-
-export interface Instance extends Template {
-  address: Address
-  label?:  string
-}
-
-export type Moment = number
-
-export type Message = object|string
-
-export interface Querier {
-  query <T, U> (contract: Instance, msg: T): Promise<U>
-  getCodeId (address: Address): Promise<string>
-  getLabel  (address: Address): Promise<string>
-  getHash   (address: Address): Promise<string>
-}
-
-export interface Template {
-  uploadTx?: TxHash
-  chainId?:  ChainId
-  codeId?:   CodeId
-  codeHash?: CodeHash
-}
-
-export type TxHash = string
-
-export type Uint128 = string
-
-export type Uint256 = string
