@@ -22,7 +22,7 @@ test({
     equal(devnet.chainId, chainId)
     ok(devnet.protocol)
     ok(devnet.host)
-    ok(devnet.port)
+    equal(devnet.port, '')
   }
 })
 ```
@@ -54,74 +54,90 @@ import { DockerodeDevnet } from '../index'
 import { mockDockerode } from './_Harness'
 import { resolve, basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
-import { DokeresImage } from '@hackbg/dokeres'
+import { Dokeres } from '@hackbg/dokeres'
+const readyPhrase = "I'm Freddy"
 test({
+
   'construct dockerode devnet' ({ ok, equal }) {
     withTmpDir(stateRoot=>{
       const docker      = mockDockerode()
       const imageName   = Symbol()
-      const image       = new DokeresImage(docker, imageName)
+      const image       = new Dokeres(docker).image(imageName)
       const initScript  = Symbol()
-      const readyPhrase = "I'm Freddy"
       const devnet = new DockerodeDevnet({ stateRoot, docker, image, initScript, readyPhrase })
       equal(devnet.identities.path, resolve(stateRoot, 'identities'))
       equal(devnet.image,           image)
-      equal(devnet.image.docker,    docker)
+      equal(devnet.image.dockerode, docker)
       equal(devnet.image.name,      imageName)
       equal(devnet.initScript,      initScript)
       equal(devnet.readyPhrase,     readyPhrase)
     })
   },
+
   async 'spawn dockerode devnet' ({ equal }) {
     await withTmpDir(async stateRoot => {
       await withTmpFile(async initScript => {
+
         const docker = mockDockerode(({ createContainer }) => {
           if (createContainer) {
-            return [ null, { on (arg, cb) {
-              if (arg === 'data') {
-                cb(readyPhrase)
-              }
-            }, destroy () {} } ]
+            const stream = {
+              on (arg, cb) {
+                if (arg === 'data') {
+                  cb(readyPhrase)
+                }
+              },
+              off (arg, cb) {},
+              destroy () {},
+            }
+            return [ null, stream ]
           }
         })
-        const imageName   = basename(stateRoot)
-        const image       = new DokeresImage(docker, imageName)
-        const readyPhrase = "I'm Freddy"
+
         class TestDockerodeDevnet extends DockerodeDevnet {
           waitSeconds = 0.5
           waitPort = () => Promise.resolve()
         }
-        const devnet = new TestDockerodeDevnet({ stateRoot, docker, image, initScript, readyPhrase })
+
+        const devnet = new TestDockerodeDevnet({
+          stateRoot,
+          docker,
+          image: new Dokeres(docker).image(basename(stateRoot)),
+          initScript,
+          readyPhrase,
+          portMode: 'lcp' // or 'grpcWeb'
+        })
+
         equal(await devnet.spawn(), devnet)
+
       })
     })
   },
+
   'pass names of accounts to prefund on genesis' ({ equal, ok }) {
-    const names  = [ 'FOO', 'BAR' ]
-    const devnet = new Devnet({ identities: names })
-    equal(devnet.genesisAccounts, names)
-    const dockerDevnet = new DockerodeDevnet({
-      identities: names,
-      initScript: '',
-      image: { name: Symbol() }
-    })
-    equal(dockerDevnet.genesisAccounts, names)
-    const envVars = dockerDevnet.getContainerOptions().Env.filter(
-      x => x.startsWith('GenesisAccounts')
-    )
-    equal(envVars.length, 1)
-    equal(envVars[0].split('=')[1], 'FOO BAR')
+    const identities  = [ 'FOO', 'BAR' ]
+    const devnet = new Devnet({ identities })
+    equal(devnet.genesisAccounts, identities)
+    const image = {
+      name: Symbol(),
+      run (name, options, command, entrypoint) {
+        equal(name, image.name)
+        equal(options.env.GenesisAccounts, 'FOO BAR')
+      }
+    }
+    const dockerDevnet = new DockerodeDevnet({ identities, initScript: '', image })
+    equal(dockerDevnet.genesisAccounts, identities)
   }
+
 })
 ```
 
 ## Chain-specific devnets
 
 ```typescript
-import { getScrtDevnet_1_2, getScrtDevnet_1_3 } from '../index'
-for (const getDevnet of [getScrtDevnet_1_2, getScrtDevnet_1_3]) test({
-  [`${getDevnet.name}: get scrt devnet`] ({ ok }) {
-    ok(getDevnet())
+import { getScrtDevnet } from '../index'
+for (const version of ['1.2', '1.3']) test({
+  [`${version}: get scrt devnet`] ({ ok }) {
+    ok(getScrtDevnet(version))
   },
 })
 ```

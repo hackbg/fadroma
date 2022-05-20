@@ -41,7 +41,8 @@ export function mockDockerode (callback = () => {}) {
         id: 'mockmockmock',
         logs (options, cb) {
           cb(...(callback({ createContainer: options })||[]))
-        }
+        },
+        async start () {}
       }
     },
     getContainer (options) {
