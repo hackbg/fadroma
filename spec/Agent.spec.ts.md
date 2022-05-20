@@ -17,24 +17,20 @@ import { Agent } from '../index'
 
 test({
 
-  async "get balance by denomination" ({ equal }) {
+  async "get balance for default denomination" ({ equal }) {
+    const balances = { 'foo': '1', 'bar': '2' }
     class TestAgent extends Agent {
-      defaultDenomination = 'foo'
-      get account () {
-        return Promise.resolve({
-          balance: [
-            {amount: 1, denom: 'foo'},
-            {amount: 2, denom: 'bar'},
-          ]
-        })
+      defaultDenom = 'foo'
+      getBalance (denom = this.defaultDenom) {
+        return Promise.resolve(balances[denom] || '0')
       }
     }
     const agent = new TestAgent()
-    equal(await agent.balance,           1)
-    equal(await agent.getBalance(),      1)
-    equal(await agent.getBalance('foo'), 1)
-    equal(await agent.getBalance('bar'), 2)
-    equal(await agent.getBalance('baz'), 0)
+    equal(await agent.balance,           '1')
+    equal(await agent.getBalance(),      '1')
+    equal(await agent.getBalance('foo'), '1')
+    equal(await agent.getBalance('bar'), '2')
+    equal(await agent.getBalance('baz'), '0')
   },
 
   async "instantiate contract" ({ deepEqual }) {
@@ -60,14 +56,14 @@ test({
 
   async "execute tx" ({ ok }) {
     class TestAgent extends Agent {
-      execute (contract, msg) {}
+      async execute (contract, msg) { return {} }
     }
     ok(await new TestAgent().execute())
   },
 
   async "query contract" ({ ok }) {
     class TestAgent extends Agent {
-      query (contract, msg) {}
+      async query (contract, msg) { return {} }
     }
     ok(await new TestAgent().query())
   },
@@ -84,7 +80,7 @@ test({
 
 ```typescript
 import { toBase64, fromBase64, fromUtf8, fromHex } from '../index'
-import { mockAPIEndpoint } from './_Harness'
+import { withMockAPIEndpoint } from './_Harness'
 
 import { LegacyScrt, Scrt } from '../index'
 
@@ -95,9 +91,9 @@ for (const Chain of [
 ]) test({
 
   async [`${Chain.name}: from mnemonic`] ({ equal, deepEqual }) {
-    const chain = Symbol()
+    const chain    = new Chain('test')
     const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent = await Chain.Agent.create(chain, { mnemonic })
+    const agent    = await chain.getAgent({ mnemonic })
     equal(agent.chain,    chain)
     equal(agent.address, 'secret17tjvcn9fujz9yv7zg4a02sey4exau40lqdu0r7')
     /*deepEqual(agent.pubkey, {
@@ -107,11 +103,10 @@ for (const Chain of [
   },
 
   async [`${Chain.name}: wait for next block`] ({ equal, deepEqual }) {
-    const endpoint = await mockAPIEndpoint()
-    const chain    = { url: endpoint.url }
-    const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent    = await Chain.Agent.create(chain, { mnemonic })
-    try {
+    await withMockAPIEndpoint(async endpoint => {
+      const chain    = new Chain('test', { url: endpoint.url })
+      const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
+      const agent    = await chain.getAgent({ mnemonic })
       const [ {header:{height:block1}}, account1, balance1 ] =
         await Promise.all([ agent.block, agent.account, agent.balance ])
       await agent.nextBlock
@@ -120,21 +115,18 @@ for (const Chain of [
       equal(block1 + 1, block2)
       deepEqual(account1, account2)
       deepEqual(balance1, balance2)
-    } finally {
-      endpoint.close()
-    }
+    })
   },
 
   async [`${Chain.name}: native token balance and transactions`] ({ equal }) {
-    const endpoint  = await mockAPIEndpoint()
-    const chain     = { url: endpoint.url }
-    const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
-    const [agent1, agent2] = await Promise.all([
-      Chain.Agent.create(chain, {mnemonic: mnemonic1}),
-      Chain.Agent.create(chain, {mnemonic: mnemonic2}),
-    ])
-    try {
+    await withMockAPIEndpoint(async endpoint => {
+      const chain     = new Chain('test', { url: endpoint.url })
+      const mnemonic1 = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
+      const mnemonic2 = 'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing';
+      const [agent1, agent2] = await Promise.all([
+        chain.getAgent({mnemonic: mnemonic1}),
+        chain.getAgent({mnemonic: mnemonic2}),
+      ])
       endpoint.state.balances = { uscrt: { [agent1.address]: BigInt("2000"), [agent2.address]: BigInt("3000") } }
       equal(await agent1.balance, "2000")
       equal(await agent2.balance, "3000")
@@ -144,17 +136,14 @@ for (const Chain of [
       await agent2.send(agent1.address, 500)
       equal(await agent1.balance, "1500")
       equal(await agent2.balance, "3500")
-    } finally {
-      endpoint.close()
-    }
+    })
   },
 
   async [`${Chain.name}: full contract lifecycle`] ({ ok, equal, deepEqual }) {
-    const endpoint = await mockAPIEndpoint()
-    const chain    = { id: 'testing', url: endpoint.url }
-    const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
-    const agent    = await Chain.Agent.create(chain, { mnemonic })
-    try {
+    await withMockAPIEndpoint(async endpoint => {
+      const chain    = new Chain('test', { url: endpoint.url })
+      const mnemonic = 'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy';
+      const agent    = await chain.getAgent({ mnemonic })
       const location = 'fixtures/empty.wasm'
       const codeHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
       const artifact = { location, codeHash }
@@ -172,9 +161,7 @@ for (const Chain of [
       console.debug(`test tx ${address}`)
       const txResult = await agent.execute({ address }, 'tx', { option: "value" })
       deepEqual(txResult, {})
-    } finally {
-      endpoint.close()
-    }
+    })
   }
 
 })

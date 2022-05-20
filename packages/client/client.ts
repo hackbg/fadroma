@@ -19,14 +19,18 @@ export abstract class Agent implements Executor {
   }
   get nextBlock () {
     console.info('Waiting for next block...')
-    return new Promise<void>(async resolve=>{
+    return new Promise<void>((resolve, reject)=>{
       this.height.then(async startingHeight=>{
-        while (true) {
-          await new Promise(ok=>setTimeout(ok, 1000))
-          const height = await this.height
-          if (height > startingHeight) {
-            resolve()
+        try {
+          while (true) {
+            await new Promise(ok=>setTimeout(ok, 1000))
+            const height = await this.height
+            if (height > startingHeight) {
+              resolve()
+            }
           }
+        } catch (e) {
+          reject(e)
         }
       })
     })

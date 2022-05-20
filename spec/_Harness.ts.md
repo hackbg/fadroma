@@ -106,6 +106,19 @@ import freePort from 'freeport-async'
 import Express from 'express'
 import bodyParser from 'body-parser'
 import { randomHex } from '@fadroma/ops'
+
+export async function withMockAPIEndpoint (cb) {
+  const endpoint = await mockAPIEndpoint()
+  try {
+    await Promise.resolve(cb(endpoint))
+  } catch (e) {
+    console.warn(e)
+    throw e
+  } finally {
+    endpoint.close()
+  }
+}
+
 export async function mockAPIEndpoint (port) {
   const state = {
     block: {
@@ -318,7 +331,7 @@ export async function mockAPIEndpoint (port) {
   let server
   let url
   await new Promise(resolve=>{
-    server = app.listen(port, 'localhost', () => {
+    server = app.listen(port, () => {
       url = `http://localhost:${port}`
       console.debug(`Mock Scrt listening on ${url}`)
       resolve()
@@ -332,6 +345,7 @@ export async function mockAPIEndpoint (port) {
     port,
     state,
     close () {
+      console.trace(`Closing ${url}`)
       clearInterval(blockIncrement)
       server.close()
     }

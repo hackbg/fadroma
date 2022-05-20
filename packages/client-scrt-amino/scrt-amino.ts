@@ -131,6 +131,16 @@ export class LegacyScrtAgent extends ScrtAgent {
     return this.api.getAccount(this.address)
   }
 
+  /** Get up-to-data balance of this address in specified denomination. */
+  async getBalance (denomination: string = this.defaultDenom) {
+    const account = await this.account
+    const balance = account.balance || []
+    const inDenom = ({denom}) => denom === denomination
+    const balanceInDenom = balance.filter(inDenom)[0]
+    if (!balanceInDenom) return '0'
+    return balanceInDenom.amount
+  }
+
   async send (recipient, amount, denom = 'uscrt', memo = "") {
     if (typeof amount === 'number') amount = String(amount)
     return await this.api.sendTokens(recipient, [{denom, amount}], memo)
