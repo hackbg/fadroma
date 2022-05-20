@@ -10,16 +10,6 @@ const console = Console('Dokeres')
 /** Defaults to the `DOCKER_HOST` environment variable. */
 export const socketPath = process.env.DOCKER_HOST || '/var/run/docker.sock'
 
-/** The interfaces of a Dockerode container that are used by Dokeres. */
-export interface IDokeresDockerodeContainer {
-  readonly id: string
-  Warnings:    string[]
-  inspect:     Promise<void>
-  start:       Promise<void>
-  kill:        Promise<void>
-  logs:        Function
-}
-
 /** Follow the output stream from a Dockerode container until it closes. */
 export async function follow (
   dockerode: Docker,
