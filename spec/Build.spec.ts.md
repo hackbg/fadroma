@@ -7,6 +7,12 @@ const test = tests => Object.assign(BuildSpec, tests)
 export default BuildSpec
 ```
 
+```typescript
+import { resolve, dirname, fileURLToPath } from '@hackbg/toolbox'
+const here      = dirname(fileURLToPath(import.meta.url))
+const workspace = resolve(here, '../fixtures')
+```
+
 ## The base `Builder` class
 
 ```typescript
@@ -57,7 +63,6 @@ test({
 
 ```typescript
 import { RawBuilder } from '../index'
-import { resolve, dirname, fileURLToPath } from '@hackbg/toolbox'
 test({
   async 'RawBuilder' ({ deepEqual }) {
     let ran
@@ -70,7 +75,6 @@ test({
     const builder = new TestRawBuilder(buildScript, checkoutScript)
 
     const here      = dirname(fileURLToPath(import.meta.url))
-    const workspace = resolve(here, '../../fixtures')
     const crate     = 'empty'
     const ref       = 'ref'
 
@@ -91,10 +95,9 @@ test({
 
 ```typescript
 import { DockerodeBuilder, DokeresImage, mkdirp } from '../index'
-import { DokeresImage } from '@hackbg/dokeres'
+import { Dokeres, DokeresImage } from '@hackbg/dokeres'
 import { mockDockerode } from './_Harness'
 import { Transform } from 'stream'
-const here = dirname(fileURLToPath(import.meta.url))
 test({
   async 'DockerodeBuilder' ({ ok, equal, deepEqual }) {
     class TestDockerodeBuilder extends DockerodeBuilder {
@@ -104,12 +107,11 @@ test({
       async ensure () { return theImage }
     }
     const theImage  = Symbol()
-    const workspace = resolve(here, '../../fixtures')
     const crate     = 'empty'
     const source    = { workspace, crate }
     const ran       = []
     const docker    = mockDockerode(runCalled)
-    const image     = new TestDokeresImage(docker)
+    const image     = new Dokeres(docker).image(' ')
     const script    = "build.sh"
     const options   = { docker, image, script }
     const builder   = new TestDockerodeBuilder(options)
@@ -137,10 +139,10 @@ test({
     }
     const theImage  = Symbol()
     const docker    = mockDockerode()
-
+    const image     = new Dokeres(docker).image(' ')
+    const script    = ''
     const options   = { docker, image, script }
     const builder   = new TestDockerodeBuilder(options)
-    const workspace = resolve(here, '../../fixtures')
     const artifacts = await builder.buildMany([
       { workspace, crate: 'crate1' }
       { workspace, ref: 'HEAD', crate: 'crate2' }

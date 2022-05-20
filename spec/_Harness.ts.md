@@ -37,29 +37,67 @@ export function mockDockerode (callback = () => {}) {
       return [{Error:null, StatusCode:0}, Symbol()]
     },
     async createContainer (options) {
-      return {
-        id: 'mockmockmock',
-        logs (options, cb) {
-          cb(...(callback({ createContainer: options })||[]))
-        },
-        async start () {}
-      }
+      return mockDockerodeContainer(callback)
     },
     getContainer (options) {
-      return {
-        async start () {}
-      }
+      return mockDockerodeContainer(callback)
+    }
+  }
+}
+export function mockDockerodeContainer (callback = () => {}) {
+  return {
+    id: 'mockmockmock',
+    logs (options, cb) {
+      cb(...(callback({ createContainer: options })||[]))
+    },
+    async start () {
+    }
+    async attach () {
+      return { setEncoding () {}, pipe () {} }
+    },
+    async wait () {
+      return {Error: null, StatusCode: 0}
+    }
+    async inspect () {
+      return {Image: ' ', Name: null, Args: null, Path: null, State: { Running: null } }
     }
   }
 }
 ```
 
-## Mock of Secret Network 1.2 HTTP API
+## Mocking HTTP resources
 
-Not to be confused with the mocknet, this construct
-simulates the responses returned by the Secret Network
-1.2 HTTP API, in order to ensure that the client code
-(secretjs+fadroma stack) handles them correctly.
+### Mock of devnet manager
+
+```typescript
+export async function mockDevnetManager (port) {
+  port = port || await freePort(10000 + Math.floor(Math.random()*10000))
+  const app = new Express()
+  let server
+  let url
+  await new Promise(resolve=>{
+    server = app.listen(port, 'localhost', () => {
+      url = `http://localhost:${port}`
+      console.debug(`Mock devnet manager listening on ${url}`)
+      resolve()
+    })
+  })
+  return {
+    url,
+    port,
+    close () {
+      server.close()
+    }
+  }
+}
+```
+
+### Mock of Secret Network 1.2 HTTP API
+
+> Not to be confused with the [Mocknet](./Mocknet.ts.md)
+
+This construct simulates the responses returned by the Secret Network HTTP API (Amino),
+in order to ensure that the client code (secretjs+fadroma stack) handles them correctly.
 
 ```typescript
 import freePort from 'freeport-async'
@@ -67,7 +105,6 @@ import Express from 'express'
 import bodyParser from 'body-parser'
 import { randomHex } from '@fadroma/ops'
 export async function mockAPIEndpoint (port) {
-
   const state = {
     block: {
       height: 1

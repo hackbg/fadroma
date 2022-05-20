@@ -39,7 +39,8 @@ const scripts           = [initScriptName, managerScriptName]
 export function getScrtDevnet (
   version:    ScrtDevnetVersion,
   managerURL: string = config.devnetManager,
-  chainId?:   string
+  chainId:    string = undefined,
+  dokeres:    Dokeres = new Dokeres()
 ) {
   if (managerURL) {
     return ManagedDevnet.getOrCreate(
@@ -48,7 +49,7 @@ export function getScrtDevnet (
   } else {
     const dockerfile  = scrtDevnetDockerfiles[version]
     const imageTag    = scrtDevnetDockerTags[version]
-    const image       = new Dokeres().image(imageTag, dockerfile, scripts)
+    const image       = dokeres.image(imageTag, dockerfile, scripts)
     const portMode    = scrtDevnetPortModes[version]
     const readyPhrase = 'indexed block'
     const initScript  = resolve(__dirname, initScriptName)

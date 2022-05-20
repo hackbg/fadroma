@@ -16,13 +16,21 @@ export default DevnetSpec
 import { Devnet } from '../index'
 
 test({
-  async 'construct devnet' ({ ok, equal }) {
+  'construct devnet' ({ ok, equal }) {
     const chainId = 'test-devnet'
     const devnet = new Devnet({ chainId })
     equal(devnet.chainId, chainId)
     ok(devnet.protocol)
     ok(devnet.host)
     equal(devnet.port, '')
+  },
+  'construct devnet requires chain id' ({ throws }) {
+    try { // FIXME: for some reason assert.throws doesn't work
+      new Devnet()
+    } catch (e) {
+      return // ok
+    }
+    ok(false, 'threw')
   }
 })
 ```
@@ -131,13 +139,53 @@ test({
 })
 ```
 
-## Chain-specific devnets
+### Chain-specific Dockerode devnets
 
 ```typescript
 import { getScrtDevnet } from '../index'
 for (const version of ['1.2', '1.3']) test({
-  [`${version}: get scrt devnet`] ({ ok }) {
-    ok(getScrtDevnet(version))
+  async [`${version}: get scrt devnet`] ({ ok }) {
+    const dokeres = new Dokeres(mockDockerode(({ createContainer })=>{
+      if (createContainer) {
+        const stream = {
+          on (arg, cb) {
+            if (arg === 'data') {
+              cb(readyPhrase)
+            }
+          },
+          off (arg, cb) {},
+          destroy () {},
+        }
+        return [ null, stream ]
+      }
+    }))
+    const devnet = getScrtDevnet(version, undefined, undefined, dokeres)
+    ok(devnet instanceof DockerodeDevnet)
+    await devnet.respawn()
+    await devnet.erase()
+  },
+})
+```
+
+## Managed devnet
+
+### Chain-specific managed devnets
+
+```typescript
+import { getScrtDevnet } from '../index'
+import { mockDevnetManager } from './_Harness'
+for (const version of ['1.2', '1.3']) test({
+  async [`${version}: get managed scrt devnet`] ({ ok }) {
+    const manager = await mockDevnetManager()
+    try {
+      const devnet  = getScrtDevnet(version, manager.url)
+      ok(devnet instanceof ManagedDevnet)
+      await devnet.respawn()
+    } catch (e) {
+      console.warn(e) // TODO use whole devnet manager with mocked devnet init
+    } finally {
+      manager.close()
+    }
   },
 })
 ```
