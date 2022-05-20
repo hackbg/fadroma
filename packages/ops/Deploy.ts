@@ -18,11 +18,22 @@ import type {
   Message,
   Template,
 } from '@fadroma/client'
-import { Label, InitMsg, join } from './Core'
 import { print } from './Print'
 import { config } from './Config'
 
 const console = Console('Fadroma Deploy')
+
+export type Label = string
+
+export type InitMsg = string|Record<string, any>
+
+export const join = (...x:any[]) => x.map(String).join(' ')
+
+export const overrideDefaults = (obj, defaults, options = {}) => {
+  for (const k of Object.keys(defaults)) {
+    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
+  }
+}
 
 export const addPrefix = (prefix, name) => `${prefix}/${name}`
 

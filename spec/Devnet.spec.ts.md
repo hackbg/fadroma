@@ -162,6 +162,7 @@ for (const version of ['1.2', '1.3']) test({
     const devnet = getScrtDevnet(version, undefined, undefined, dokeres)
     ok(devnet instanceof DockerodeDevnet)
     await devnet.respawn()
+    await devnet.kill()
     await devnet.erase()
   },
 })
@@ -181,6 +182,8 @@ for (const version of ['1.2', '1.3']) test({
       const devnet = getScrtDevnet(version, manager.url)
       ok(devnet instanceof ManagedDevnet)
       await devnet.respawn()
+      console.info('Respawned')
+      await devnet.save()
     } catch (e) {
       console.warn(e) // TODO use whole devnet manager with mocked devnet init
     } finally {

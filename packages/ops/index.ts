@@ -4,9 +4,9 @@ dotenv.config()
 import { config } from './Config'
 config.fromEnv(process.env as any)
 
+export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 export * from '@hackbg/toolbox'
 export * from '@fadroma/client'
-export * from './Core'
 export * from './Config'
 export * from './Build'
 export * from './Schema'
