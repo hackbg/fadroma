@@ -83,7 +83,7 @@ export async function mockDevnetManager (port) {
       PATH: process.env.path
     }
   })
-  await new Promise(ok=>setTimeout(ok, 500))
+  await new Promise(ok=>setTimeout(ok, 1000)) // FIXME flimsy!
   return {
     url: `http://localhost:${port}`,
     port,

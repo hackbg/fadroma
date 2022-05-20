@@ -9,7 +9,9 @@ const {
   FADROMA_QUIET =
     false,
   FADROMA_DEVNET_INIT_SCRIPT =
-    '/devnet-init.mjs'
+    '/devnet-init.mjs',
+  FADROMA_DEVNET_READY_PHRASE =
+    'indexed block'
 } = process.env
 
 let node
@@ -100,7 +102,7 @@ function spawnNode (
   stderr.on('data', function waitUntilReady (data) {
     data = String(data)
     output += data
-    if (output.includes('indexed block')) {
+    if (output.includes(FADROMA_DEVNET_READY_PHRASE)) {
       ready = true
       stderr.off('data', waitUntilReady)
     }

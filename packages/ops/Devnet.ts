@@ -483,11 +483,9 @@ export class ManagedDevnet extends Devnet {
 
   manager: Endpoint
 
-  apiURL: URL = new URL('http://devnet:1317')
-
   async spawn () {
     const port = String(await freePort())
-    this.apiURL.port = port
+    this.port = port
     console.info(bold('Spawning managed devnet'), this.chainId, 'on port', port)
     await this.manager.get('/spawn', {
       id:      this.chainId,
@@ -518,7 +516,6 @@ export class ManagedDevnet extends Devnet {
 
   protected async ready (): Promise<void> {
     while (true) {
-      console.log(this.manager.url.href)
       const { ready } = await this.manager.get('/ready')
       if (ready) {
         break
