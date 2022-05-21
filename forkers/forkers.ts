@@ -1,4 +1,23 @@
-export function request (port, channel, id, op, arg, timeout) {
+export function isWorker (): boolean {
+  const isWindowContext = typeof self !== "undefined" && typeof Window !== "undefined" && self instanceof Window
+  return (
+    typeof self !== "undefined" &&
+    self.postMessage &&
+    !isWindowContext ? true : false
+  )
+}
+
+export function request <Id, Op, Arg, Ret> (
+  port:     MessagePort,
+  channel:  string,
+  id:       Id,
+  op:       Op,
+  arg:      Arg,
+  timeout?: number
+): Promise<Ret> {
+
+  console.log('request', channel, id, op, arg, timeout)
+
   return new Promise((resolve, reject)=>{
 
     // start listening for response
@@ -18,6 +37,7 @@ export function request (port, channel, id, op, arg, timeout) {
 
     // if receiving a response check if it's the correct one
     function receive ({data: [rChannel, rId, error, result]}) {
+      console.log('response', rChannel, rId, error, result)
       if (rChannel === channel && rId === id) {
         if (timer) clearTimeout(timer)
         if (error) {
@@ -32,35 +52,40 @@ export function request (port, channel, id, op, arg, timeout) {
   })
 }
 
-export class Client {
-  constructor (port, channel, timeout) {
-    this.port    = port
-    this.channel = channel
-    this.timeout = timeout
-    this.opId    = 0n
-  }
-  request (op, arg, timeout = this.timeout) {
+export class Client <Op> {
+
+  constructor (
+    readonly port:    MessagePort,
+    readonly channel: string,
+    readonly timeout: number
+  ) {}
+
+  private opId = 0n
+
+  request <Arg, Ret> (
+    op:      Op,
+    arg?:    Arg,
+    timeout: number = this.timeout
+  ): Promise<Ret> {
     return request(this.port, this.channel, this.opId++, op, arg, timeout)
   }
+
 }
 
-export class Backend extends MessageChannel {
-  constructor (channel) {
+export abstract class Backend <Op> extends MessageChannel {
+
+  constructor (readonly channel: string) {
     super()
     this.channel = channel
     this.port2.addEventListener('message', ({ data: [channel, opId, op, arg] }) => {
+      console.log(this.channel, '<- receive', channel, opId, op, arg)
       if (channel !== this.channel) return
       Promise.resolve(this.respond(op, arg))
         .then(result=>this.port2.postMessage([channel, opId, null, result]))
         .catch(error=>this.port2.postMessage([channel, opId, error, null]))
     })
   }
-  respond (op, arg) {
-    throw new Error(`Backend#respond(${this.channel}): not implemented`)
-  }
-}
 
-export function isWorker () {
-  const isWindowContext = typeof self !== "undefined" && typeof Window !== "undefined" && self instanceof Window
-  return typeof self !== "undefined" && self.postMessage && !isWindowContext ? true : false
+  abstract respond <Arg, Ret> (op: Op, arg?: Arg): Promise<Ret>
+
 }

@@ -1,23 +1,25 @@
 {
   "name":        "@hackbg/forkers",
   "version":     "0.2.0",
-  "main":        "forkers.js",
-  "types":       "forkers.d.ts",
+  "main":        "forkers.ts",
   "type":        "module",
   "license":     "MIT",
   "homepage":    "https://github.com/hackbg/toolbox",
   "bugs":        "https://github.com/hackbg/toolbox/issues",
   "repository":  {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "forkers"},
   "description": "Web worker wrapper.",
-  "devDependencies": {
-    "typescript":  "latest",
-    "@types/node": "latest"
-  },
   "dependencies": {
     "@types/zen-observable": "^0.8.3",
     "zen-observable": "^0.8.15"
   },
+  "devDependencies": {
+    "typescript":      "latest",
+    "@types/node":     "latest",
+    "@hackbg/izdatel": "workspace:*"
+  },
   "scripts": {
-    "build": "rm -rf dist && mkdir -p dist && tsc -p tsconfig.json"
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "release": "izdatel"
   }
 }
