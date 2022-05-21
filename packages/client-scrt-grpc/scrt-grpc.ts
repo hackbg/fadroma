@@ -32,31 +32,24 @@ export class ScrtRPCAgent extends ScrtAgent {
     chain:   Scrt,
     options: ScrtRPCAgentOptions
   ): Promise<ScrtRPCAgent> {
-    const {
-      mnemonic,
-      wallet = new Wallet(mnemonic),
-      keyPair,
-      address
-    } = options
-    if (!mnemonic) {
-      throw new Error(constants.ERR_ONLY_FROM_MNEMONIC)
+    const { mnemonic, keyPair, address } = options
+    let { wallet } = options
+    if (!wallet) {
+      if (mnemonic) {
+        wallet = new Wallet(mnemonic)
+      } else {
+        throw new Error(constants.ERR_ONLY_FROM_MNEMONIC_OR_WALLET_ADDRESS)
+      }
     }
     if (keyPair) {
       console.warn(constants.WARN_IGNORING_KEY_PAIR)
       delete options.keyPair
     }
-    if (address && address !== wallet.address) {
-      throw new Error(constants.ERR_EXPECTED_WRONG_ADDRESS)
-    }
     const grpcWebUrl = chain.url.replace(/\/$/, '')
       || "https://grpc-web.azure-api.net"
-    console.log({grpcWebUrl})
-    const api = await SecretNetworkClient.create({
-      chainId: chain.id,
-      grpcWebUrl,
-      wallet: wallet,
-      walletAddress: wallet.address,
-    })
+    const walletAddress = wallet.address || address
+    const chainId = chain.id
+    const api = await SecretNetworkClient.create({ chainId, grpcWebUrl, wallet, walletAddress })
     return new ScrtRPCAgent(chain, { ...options, wallet, api })
   }
 

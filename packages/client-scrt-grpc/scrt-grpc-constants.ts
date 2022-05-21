@@ -1,8 +1,8 @@
 export const DEFAULT_CHAIN_ID =
   'secret-4'
 
-export const ERR_ONLY_FROM_MNEMONIC =
-  'ScrtRPCAgent: Can only be created from mnemonic' 
+export const ERR_ONLY_FROM_MNEMONIC_OR_WALLET_ADDRESS =
+  'ScrtRPCAgent: Can only be created from mnemonic or wallet+address'
 
 export const WARN_IGNORING_KEY_PAIR =
   'ScrtRPCAgent: Created from mnemonic, ignoring keyPair'
