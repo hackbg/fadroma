@@ -292,5 +292,5 @@ export interface ClientCtor<C extends Client> {
   new (agent: Agent, options: ClientOptions): C
 }
 export interface ClientOptions extends Instance {
-  fees: Fees
+  fees?: Fees
 }
