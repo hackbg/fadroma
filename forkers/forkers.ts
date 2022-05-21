@@ -16,8 +16,6 @@ export function request <Id, Op, Arg, Ret> (
   timeout?: number
 ): Promise<Ret> {
 
-  console.log('request', channel, id, op, arg, timeout)
-
   return new Promise((resolve, reject)=>{
 
     // start listening for response
@@ -37,7 +35,6 @@ export function request <Id, Op, Arg, Ret> (
 
     // if receiving a response check if it's the correct one
     function receive ({data: [rChannel, rId, error, result]}) {
-      console.log('response', rChannel, rId, error, result)
       if (rChannel === channel && rId === id) {
         if (timer) clearTimeout(timer)
         if (error) {
@@ -74,15 +71,20 @@ export class Client <Op> {
 
 export abstract class Backend <Op> extends MessageChannel {
 
+  channels: Record<string, Backend<unknown>>
+
   constructor (readonly channel: string) {
     super()
-    this.channel = channel
-    this.port2.addEventListener('message', ({ data: [channel, opId, op, arg] }) => {
-      console.log(this.channel, '<- receive', channel, opId, op, arg)
-      if (channel !== this.channel) return
-      Promise.resolve(this.respond(op, arg))
-        .then(result=>this.port2.postMessage([channel, opId, null, result]))
-        .catch(error=>this.port2.postMessage([channel, opId, error, null]))
+    this.channels = { [channel]: this }
+    this.port2.addEventListener('message', async ({ data: [channel, opId, op, arg] }) => {
+      const backend = this.channels[channel]
+      if (!backend) return
+      try {
+        const result = await Promise.resolve(backend.respond(op, arg))
+        this.port2.postMessage([channel, opId, null, result])
+      } catch (error) {
+        this.port2.postMessage([channel, opId, error, null])
+      }
     })
   }
 
