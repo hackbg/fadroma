@@ -205,8 +205,10 @@ export abstract class Agent implements Executor {
   getBalance (denom = this.defaultDenom): Promise<string> {
     return Promise.resolve('0')
   }
-  getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions) {
-    return new Client(this, options)
+  getClient <C extends Client> (Client: ClientCtor<C>, address: Address)
+  getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions)
+  getClient <C extends Client> (Client: ClientCtor<C>, arg) {
+    return new Client(this, arg)
   }
   query <M, R> (contract: Instance, msg: M): Promise<R> {
     return this.chain.query(contract, msg)
@@ -253,10 +255,16 @@ export abstract class Bundle implements Executor {
 }
 
 export class Client implements Instance {
-  constructor (readonly agent: Agent, options: ClientOptions) {
-    this.address  = options.address
-    this.codeHash = options.codeHash
-    this.fees     = options.fees
+  constructor (agent: Agent, address: Address);
+  constructor (agent: Agent, options: ClientOptions);
+  constructor (readonly agent: Agent, arg) {
+    if (typeof arg === 'string') {
+      this.address = arg
+    } else {
+      this.address  = arg.address
+      this.codeHash = arg.codeHash
+      this.fees     = arg.fees
+    }
   }
   name:     string
   codeHash: CodeHash
