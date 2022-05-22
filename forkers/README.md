@@ -11,8 +11,9 @@ Implements a simple request/response mechanism using an auto-incrementing index.
 ## Basic usage
 
 ```typescript
+import { Client, Backend, isWorker, forkersDebug } from './forkers'
+
 import { equal, deepEqual } from 'assert'
-import { Client, Backend, isWorker } from './forkers'
 
 enum ExampleOp { Msg1, Msg2, Msg3 }
 
@@ -68,6 +69,7 @@ enum ExampleTopics { Topic1 = 'topic1', Topic2 = 'topic2' }
 enum Topic1Op { Msg4, Msg5 }
 
 class Topic1Backend extends Backend<Topic1Op> {
+  topic = ExampleTopics.Topic1
   async respond (op, arg?): Promise<string|number> {
     switch (op) {
       case Topic1Op.Msg4:
@@ -81,6 +83,7 @@ class Topic1Backend extends Backend<Topic1Op> {
 }
 
 class Topic1Client extends Client<Topic1Op> {
+  topic = ExampleTopics.Topic1
   async sendMsg4 () {
     return await this.request(Topic1Op.Msg4)
   }
@@ -92,11 +95,12 @@ class Topic1Client extends Client<Topic1Op> {
 enum Topic2Op { Msg6, Msg7 }
 
 class Topic2Backend extends Backend<Topic2Op> {
+  topic = ExampleTopics.Topic2
   async respond (op, arg?): Promise<string|number> {
     switch (op) {
       case Topic2Op.Msg6:
         return 'msg6 ok'
-      case Topic2Op.Ms7:
+      case Topic2Op.Msg7:
         return `msg7 ok`
       default:
         super.respond(op, arg)
@@ -105,6 +109,7 @@ class Topic2Backend extends Backend<Topic2Op> {
 }
 
 class Topic2Client extends Client<Topic2Op> {
+  topic = ExampleTopics.Topic2
   async sendMsg6and7 () {
     return await Promise.all([
       this.request(Topic2Op.Msg6),
@@ -114,10 +119,8 @@ class Topic2Client extends Client<Topic2Op> {
 }
 
 class MultiBackend extends ExampleBackend {
-  topics = {
-    [ExampleTopics.Topic1]: new Topic1Backend(this.port),
-    [ExampleTopics.Topic2]: new Topic2Backend(this.port)
-  }
+  topic1 = new Topic1Backend(this.port)
+  topic2 = new Topic2Backend(this.port)
 }
 
 class MultiClient extends ExampleClient {

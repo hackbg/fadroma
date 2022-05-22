@@ -61,7 +61,7 @@ export class Client <Op> {
     readonly timeout: number
   ) {}
 
-  private opId = 0
+  opId = 0
 
   request <Arg, Ret> (
     op:      Op,
@@ -75,29 +75,74 @@ export class Client <Op> {
 
 export class Backend <Op> {
 
-  topics: Record<string, Backend<unknown>>
+  topic: string
 
   constructor (
     readonly port:  MessagePort,
-    readonly topic: string
+    topic: string
   ) {
     this.port   = port
-    this.topic  = topic
-    this.topics = { [this.topic]: this }
-    this.port.addEventListener('message', async ({ data: [topic, opId, op, arg] }) => {
-      const backend = this.topics[this.topic]
-      if (!backend) return
-      try {
-        const result = await Promise.resolve(backend.respond(op, arg))
-        this.port.postMessage([topic, opId, null, result])
-      } catch (error) {
-        this.port.postMessage([topic, opId, error, null])
-      }
-    })
+    this.topic  = topic || this.topic
+    this.port.addEventListener('message', this.dispatch.bind(this))
+  }
+
+  async dispatch ({ data: [topic, opId, op, arg] }) {
+    if (topic !== this.topic) return
+    try {
+      const result = await Promise.resolve(this.respond(op, arg))
+      this.port.postMessage([topic, opId, null, result])
+    } catch (error) {
+      this.port.postMessage([topic, opId, error, null])
+    }
   }
 
   respond <Arg, Ret> (op: Op, arg?: Arg): Promise<Ret> {
     throw new Error(`${this.constructor.name}#respond: unsupported op ${op}(${arg})`)
   }
+
+}
+
+export function forkersDebug (Class: typeof Client|typeof Backend) {
+
+  if (Class.prototype instanceof Client) {
+    console.debug('Forkers: debugging client', Class)
+    return class DebuggedClient<Op> extends Class {
+      request <Arg, Ret> (op: Op, arg?: Arg, timeout?: number): Promise<Ret> {
+        const self = this as unknown as Client<Op>
+        self.opId++
+        console.debug(
+          `Forkers: debug client=${Class.name}`,
+          `request(topic=${self.topic} opId=${self.opId} op=${op} arg=${arg} timeout=${timeout})`
+        )
+        return super.request(op, arg, timeout)
+      }
+    }
+  }
+
+  if (Class.prototype instanceof Backend) {
+    console.debug('Forkers: debugging backend', Class)
+    return class DebuggedBackend<Op> extends Class {
+      async dispatch ({ data: [topic, opId, op, arg] }) {
+        console.debug(
+          `Forkers: debug backend=${Class.name}`,
+          `dispatch(topic=${topic} opId=${opId} op=${op} arg=${arg})`
+        )
+        return await super.dispatch({data: [ topic, opId, op, arg ]})
+      }
+      async respond <Arg, Ret> (op: Op, arg?: Arg): Promise<Ret> {
+        const result = await super.respond(op, arg)
+        console.debug(
+          `Forkers: debug backend=${Class.name}`,
+          `respond(op=${op} arg=${arg} result=${result})`
+        )
+        return result
+      }
+    }
+  }
+
+  console.warn(
+    'Forkers debug: tried to debug class', Class, 'which is neither Client not Backend'
+  )
+  return Class
 
 }
