@@ -79,7 +79,7 @@ export class Backend <Op> {
 
   constructor (
     readonly port:  MessagePort,
-    topic: string
+    topic?: string
   ) {
     this.port   = port
     this.topic  = topic || this.topic
