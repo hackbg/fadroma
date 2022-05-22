@@ -15,11 +15,13 @@
   "devDependencies": {
     "typescript":      "latest",
     "@types/node":     "latest",
-    "@hackbg/izdatel": "workspace:*"
+    "@hackbg/izdatel": "workspace:*",
+    "@hackbg/ganesha": "workspace:*"
   },
   "scripts": {
-    "build": "tsc",
-    "check": "tsc --noEmit",
+    "build":   "tsc",
+    "check":   "tsc --noEmit",
+    "test":    "ganesha-node README.md",
     "release": "izdatel"
   }
 }

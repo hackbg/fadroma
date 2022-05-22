@@ -1,5 +1,9 @@
 export function isWorker (): boolean {
-  const isWindowContext = typeof self !== "undefined" && typeof Window !== "undefined" && self instanceof Window
+  const isWindowContext = (
+    typeof self   !== "undefined" &&
+    typeof Window !== "undefined" &&
+    self instanceof Window
+  )
   return (
     typeof self !== "undefined" &&
     self.postMessage &&
@@ -69,25 +73,31 @@ export class Client <Op> {
 
 }
 
-export abstract class Backend <Op> extends MessageChannel {
+export class Backend <Op> {
 
   channels: Record<string, Backend<unknown>>
 
-  constructor (readonly channel: string) {
-    super()
-    this.channels = { [channel]: this }
-    this.port2.addEventListener('message', async ({ data: [channel, opId, op, arg] }) => {
-      const backend = this.channels[channel]
+  constructor (
+    readonly port:    MessagePort,
+    readonly channel: string
+  ) {
+    this.port     = port
+    this.channel  = channel
+    this.channels = { [this.channel]: this }
+    this.port.addEventListener('message', async ({ data: [channel, opId, op, arg] }) => {
+      const backend = this.channels[this.channel]
       if (!backend) return
       try {
         const result = await Promise.resolve(backend.respond(op, arg))
-        this.port2.postMessage([channel, opId, null, result])
+        this.port.postMessage([channel, opId, null, result])
       } catch (error) {
-        this.port2.postMessage([channel, opId, error, null])
+        this.port.postMessage([channel, opId, error, null])
       }
     })
   }
 
-  abstract respond <Arg, Ret> (op: Op, arg?: Arg): Promise<Ret>
+  respond <Arg, Ret> (op: Op, arg?: Arg): Promise<Ret> {
+    throw new Error(`${this.constructor.name}#respond: unsupported op ${op}(${arg})`)
+  }
 
 }
