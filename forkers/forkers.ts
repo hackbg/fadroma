@@ -57,7 +57,7 @@ export class Client <Op> {
     readonly timeout: number
   ) {}
 
-  private opId = 0n
+  private opId = 0
 
   request <Arg, Ret> (
     op:      Op,
