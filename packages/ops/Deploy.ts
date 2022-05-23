@@ -162,7 +162,7 @@ export class Deployments extends Directory {
     }
     const active = resolve(this.path, `${this.KEY}.yml`)
     try { unlinkSync(active) } catch (e) { console.warn(e.message) }
-    await symlinkSync(path, active)
+    await symlinkSync(path, relative(path, active))
   }
 
   get active (): Deployment|null {
