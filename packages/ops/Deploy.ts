@@ -141,7 +141,9 @@ export class Deployment {
     const receipts = await deployAgent.instantiateMany(configs.map(
       ([template, name, initMsg])=>[template, addPrefix(this.prefix, name), initMsg]
     ))
-    this.setMany(receipts)
+    for (const i in receipts) {
+      this.set(configs[i][1], receipts[i])
+    }
     return Object.values(receipts)
   }
 
