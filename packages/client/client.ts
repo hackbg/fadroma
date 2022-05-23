@@ -210,8 +210,6 @@ export abstract class Agent implements Executor {
   getBalance (denom = this.defaultDenom): Promise<string> {
     return Promise.resolve('0')
   }
-  getClient <C extends Client> (Client: ClientCtor<C>, address: Address): C
-  getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions): C
   getClient <C extends Client> (Client: ClientCtor<C>, arg: Address|ClientOptions): C {
     return new Client(this, arg)
   }
@@ -232,6 +230,7 @@ export abstract class Agent implements Executor {
     ))
   }
   bundle <T extends Bundle> (): T {
+    //@ts-ignore
     return new this.Bundle(this)
   }
   abstract Bundle: typeof Bundle
@@ -273,6 +272,7 @@ export abstract class Bundle implements Executor {
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
+  //@ts-ignore
   async upload (code: Uint8Array) {
     throw new Error("don't upload inside bundle")
   }
@@ -280,14 +280,13 @@ export abstract class Bundle implements Executor {
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
+  //@ts-ignore
   async uploadMany (code: Uint8Array[]) {
     throw new Error("don't upload inside bundle")
   }
 }
 
 export class Client implements Instance {
-  constructor (agent: Agent, address: Address)
-  constructor (agent: Agent, options: ClientOptions)
   constructor (readonly agent: Agent, arg: Address|ClientOptions) {
     if (typeof arg === 'string') {
       this.address = arg
@@ -331,7 +330,7 @@ export class Client implements Instance {
   }
 }
 export interface ClientCtor<C extends Client> {
-  new (agent: Agent, options: ClientOptions): C
+  new (agent: Agent, options: Address|ClientOptions): C
 }
 export interface ClientOptions extends Instance {
   fees?: Fees
