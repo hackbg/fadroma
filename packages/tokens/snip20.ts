@@ -70,8 +70,11 @@ export class Snip20 extends Client {
   /** Mint tokens */
   mint <R> (
     amount:    string | number | bigint,
-    recipient: string = this.agent.address
+    recipient: string | undefined = this.agent.address
   ): Promise<R> {
+    if (!recipient) {
+      throw new Error('Snip20#mint: specify recipient')
+    }
     return this.execute({
       mint: { amount: String(amount), recipient, padding: null }
     })
