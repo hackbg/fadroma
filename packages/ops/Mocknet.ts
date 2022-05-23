@@ -343,7 +343,7 @@ export class Mocknet extends Chain {
 export interface MockAgentOptions extends AgentOptions {}
 
 export class MockAgent extends Agent {
-  defaultDenomination = 'umock'
+  defaultDenom= 'umock'
   Bundle = null
   static async create (chain: Mocknet) { return new MockAgent(chain, { name: 'MockAgent' }) }
   constructor (readonly chain: Mocknet, readonly options: MockAgentOptions) {

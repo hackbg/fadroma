@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/client-scrt-grpc",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "type":    "module",
   "main":    "scrt-grpc.ts",
   "ganesha": {

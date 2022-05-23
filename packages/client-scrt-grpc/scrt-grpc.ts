@@ -6,6 +6,8 @@ import {
   ScrtAgent,
   ScrtGas,
   ScrtBundle,
+  Message,
+  ExecOpts
 } from '@fadroma/client-scrt'
 import type { Tx } from 'secretjs'
 import {
@@ -26,6 +28,7 @@ export interface ScrtRPCAgentOptions extends AgentOptions {
 
 export class ScrtRPCAgent extends ScrtAgent {
 
+  // @ts-ignore
   Bundle = ScrtRPCBundle
 
   static async create (
@@ -65,7 +68,7 @@ export class ScrtRPCAgent extends ScrtAgent {
 
   api:    SecretNetworkClient
 
-  defaultDenomination = 'uscrt'
+  defaultDenom = 'uscrt'
 
   address: string
 
@@ -82,10 +85,10 @@ export class ScrtRPCAgent extends ScrtAgent {
   }
 
   get balance () {
-    return this.getBalance(this.defaultDenomination)
+    return this.getBalance(this.defaultDenom)
   }
 
-  async getBalance (denom = this.defaultDenomination) {
+  async getBalance (denom = this.defaultDenom) {
     const response = await this.api.query.bank.balance({ address: this.address, denom })
     return response.balance.amount
   }
@@ -113,10 +116,11 @@ export class ScrtRPCAgent extends ScrtAgent {
   }
 
   // @ts-ignore
-  async query <Q extends object> (instance: Instance, query: Q) {
+  async query <U> (instance: Instance, query: Message): Promise<U> {
     const { address: contractAddress, codeHash } = instance
-    const args = { contractAddress, codeHash, query }
-    return await this.api.query.compute.queryContract(args)
+    const args = { contractAddress, codeHash, query: query as object }
+    // @ts-ignore
+    return await this.api.query.compute.queryContract(args) as U
   }
 
   async upload (data: Uint8Array): Promise<Template> {
@@ -153,7 +157,8 @@ export class ScrtRPCAgent extends ScrtAgent {
     }
   }
 
-  async execute (instance, msg, opts = {}): Promise<Tx> {
+  // @ts-ignore
+  async execute (instance: Instance, msg: Message, opts: ExecOpts = {}): Promise<Tx> {
     const { address, codeHash } = instance
     const { send, memo, fee } = opts
     if (memo) {
@@ -162,10 +167,15 @@ export class ScrtRPCAgent extends ScrtAgent {
     if (fee) {
       console.warn('Ignoring fee', fee)
     }
-    const sender   = this.address
-    const args     = { sender, contractAddress: address, codeHash, msg, sentFunds: send }
-    const gasLimit = Number(ScrtGas.defaultFees.exec.amount[0].amount)
-    return await this.api.tx.compute.executeContract(args, { gasLimit })
+    return await this.api.tx.compute.executeContract({
+      sender: this.address,
+      contractAddress: address,
+      codeHash,
+      msg: msg as object,
+      sentFunds: send
+    }, {
+      gasLimit: Number(ScrtGas.defaultFees.exec.amount[0].amount)
+    })
   }
 }
 
@@ -192,13 +202,14 @@ export class Scrt extends ScrtChain {
   }
 
   // @ts-ignore
-  async query <Q extends object> (instance: Instance, query: Q) {
+  async query <U> (instance: Instance, query: Message): Promise<U> {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
 }
 
 export class ScrtRPCBundle extends ScrtBundle {
 
+  // @ts-ignore
   agent: ScrtRPCAgent
 
   async submit (memo = "") {
