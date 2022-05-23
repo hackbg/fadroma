@@ -242,7 +242,8 @@ export interface AgentOptions {
 }
 
 export abstract class Bundle implements Executor {
-  address: Address
+  constructor (readonly agent: Agent) {}
+  abstract get address (): Address
   abstract query <T, U> (contract: Instance, msg: T): Promise<U>
   abstract getCodeId (address: Address): Promise<string>
   abstract getLabel  (address: Address): Promise<string>

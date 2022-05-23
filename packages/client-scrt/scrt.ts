@@ -1,4 +1,4 @@
-import { Agent, Chain, Fee } from '@fadroma/client'
+import { Agent, Bundle, Chain, Fee } from '@fadroma/client'
 
 import * as constants from './scrt-const'
 
@@ -36,9 +36,7 @@ export abstract class ScrtAgent extends Agent {
 
 }
 
-export class ScrtBundle {
-
-  constructor (readonly agent) {}
+export class ScrtBundle extends Bundle {
 
   depth = 0
 
@@ -179,11 +177,11 @@ export class ScrtBundle {
     }
   }
 
-  submit (memo) {
+  submit (memo: string) {
     throw new Error("ScrtBundle#submit is abstract, why aren't you using the subclass?")
   }
 
-  save (name) {
+  save (name: string) {
     throw new Error("ScrtBundle#save is abstract, why aren't you using the subclass?")
   }
 
