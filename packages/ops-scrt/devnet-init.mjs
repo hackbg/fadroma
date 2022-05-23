@@ -24,7 +24,7 @@ function start ({
   } else {
     console.info(`${genesisJSON} exists -> resuming devnet`)
   }
-  run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' .secretd/config/app.toml`)
+  //run(`perl -i -pe 's;address = "tcp://0.0.0.0:1317";address = "tcp://0.0.0.0:1316";' .secretd/config/app.toml`)
   run(`perl -i -pe 's/enable-unsafe-cors = false/enable-unsafe-cors = true/' .secretd/config/app.toml`)
   const lcp = exec(`lcp --proxyUrl ${lcpAddr} --port ${lcpPort} --proxyPartial ''`)
   const command = `source /opt/sgxsdk/environment && RUST_BACKTRACE=1 secretd start --bootstrap`
