@@ -81,8 +81,8 @@ export class Backend <Op> {
     readonly port:  MessagePort,
     topic?: string
   ) {
-    this.port   = port
-    this.topic  = topic || this.topic
+    this.port  = port
+    this.topic = topic || this.topic
     this.port.addEventListener('message', this.dispatch.bind(this))
   }
 

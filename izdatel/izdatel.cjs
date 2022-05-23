@@ -23,13 +23,13 @@ function izdatel (cwd = process.cwd()) {
     execSync('npm run build', { cwd, stdio: 'inherit' })
 
     // update "main" and "types" in tsconfig.json
-    const data  = JSON.parse(original)
-    const main  = data.main || 'index.ts'
-    const name  = basename(main, '.ts')
+    const data = JSON.parse(original)
+    const main = data.main || 'index.ts'
+    const name = basename(main, '.ts')
     data.source = main
-    data.main   = relative(cwd, resolve(outDir, `${name}.js`))
+    data.main = relative(cwd, resolve(outDir, `${name}.js`))
     if (declaration) {
-      data.types  = relative(cwd, resolve(declarationDir, `${name}.d.ts`))
+      data.types = relative(cwd, resolve(declarationDir, `${name}.d.ts`))
     }
     console.log(JSON.stringify(data, null, 2))
     writeFileSync(packageJSON, JSON.stringify(data), 'utf8')
