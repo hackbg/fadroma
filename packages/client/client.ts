@@ -108,7 +108,7 @@ export abstract class Chain implements Querier {
       throw new Error('Chain: need to pass chain id')
     }
     this.id = id
-    if (options.url)  this.url  = options.url
+    if (options.url)  this.url = options.url
     if (options.mode) this.mode = options.mode
     if (options.node) {
       if (options.mode === Chain.Mode.Devnet) {
@@ -126,7 +126,7 @@ export abstract class Chain implements Querier {
       }
     }
   }
-  readonly url:   string
+  readonly url:   string = ''
   readonly mode:  ChainMode
   readonly node?: DevnetHandle
   get isMainnet () {
@@ -206,9 +206,9 @@ export abstract class Agent implements Executor {
   getBalance (denom = this.defaultDenom): Promise<string> {
     return Promise.resolve('0')
   }
-  getClient <C extends Client> (Client: ClientCtor<C>, address: Address)
-  getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions)
-  getClient <C extends Client> (Client: ClientCtor<C>, arg) {
+  getClient <C extends Client> (Client: ClientCtor<C>, address: Address): C
+  getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions): C
+  getClient <C extends Client> (Client: ClientCtor<C>, arg): C {
     return new Client(this, arg)
   }
   query <M, R> (contract: Instance, msg: M): Promise<R> {
@@ -228,9 +228,9 @@ export abstract class Agent implements Executor {
     ))
   }
   bundle <T extends Bundle> (): T {
-    throw new Error('Agent#bundle: not implemented')
+    return new this.Bundle(this)
   }
-  Bundle: Bundle
+  abstract Bundle: typeof Bundle
 }
 export interface AgentCtor<A extends Agent> {
   new    (chain: Chain, options: AgentOptions): A
@@ -242,20 +242,21 @@ export interface AgentOptions {
   address?:  Address
 }
 
+export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 export abstract class Bundle implements Executor {
   constructor (readonly agent: Agent) {}
 
   get chain   () { return this.agent.chain   }
   get address () { return this.agent.address }
 
-  getCodeId (address) { return this.agent.getCodeId(address) }
-  getLabel  (address) { return this.agent.getLabel(address)  }
-  getHash   (address) { return this.agent.getHash(address)   }
+  getCodeId (address: Address) { return this.agent.getCodeId(address) }
+  getLabel  (address: Address) { return this.agent.getLabel(address)  }
+  getHash   (address: Address) { return this.agent.getHash(address)   }
 
   abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
   abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
   abstract execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
-  abstract wrap (cb: (bundle: this)=>Promise<void>, opts?: any)
+  abstract wrap (cb: BundleCallback<this>, opts?: any)
 
   /** Queries are disallowed in the middle of a bundle because
     * even though the bundle API is structured as multiple function calls,

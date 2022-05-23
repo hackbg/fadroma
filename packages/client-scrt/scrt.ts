@@ -1,23 +1,14 @@
-import { Agent, Bundle, Chain, Fee } from '@fadroma/client'
-
-import * as constants from './scrt-const'
+import {
+  Agent, Bundle, BundleCallback, Chain, Fee, Template, Message, Instance
+} from '@fadroma/client'
 
 export abstract class ScrtAgent extends Agent {
-
-  Bundle = null
-
-  bundle () {
-    if (!this.Bundle) {
-      throw new Error(constants.ERR_NO_BUNDLE)
-    }
-    return new this.Bundle(this)
-  }
 
   fees = ScrtGas.defaultFees
 
   defaultDenomination = 'uscrt'
 
-  async instantiateMany (configs) {
+  async instantiateMany (configs: [Template, string, Message][] = []) {
     const instances = await this.bundle().wrap(async bundle=>{
       await bundle.instantiateMany(configs)
     })
@@ -45,7 +36,7 @@ export class ScrtBundle extends Bundle {
     return this
   }
 
-  async wrap (cb, memo = "") {
+  async wrap (cb: BundleCallback<this>, memo = "") {
     await cb(this)
     return this.run(memo)
   }
@@ -64,7 +55,7 @@ export class ScrtBundle extends Bundle {
 
   msgs = []
 
-  add (msg) {
+  add (msg: Message) {
     const id = this.id++
     this.msgs[id] = msg
     return id
@@ -93,10 +84,10 @@ export class ScrtBundle extends Bundle {
   }
 
   /** Add a single MsgInstantiateContract to the bundle. */
-  async instantiate (template, label, msg, init_funds = []) {
+  async instantiate (template, label, msg, init_funds = []): Promise<Instance> {
     await this.init(template, label, msg, init_funds)
     const { codeId, codeHash } = template
-    return { chainId: this.agent.chain.id, codeId, codeHash }
+    return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
   }
 
   /** Add multiple MsgInstantiateContract messages to the bundle,
@@ -118,7 +109,7 @@ export class ScrtBundle extends Bundle {
     return this
   }
 
-  async execute (instance, msg, funds = []) {
+  async execute (instance, msg, { funds }) {
     this.add({ exec: {
       sender:   this.address,
       contract: instance.address,

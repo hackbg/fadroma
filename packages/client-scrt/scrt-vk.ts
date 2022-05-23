@@ -15,7 +15,7 @@ export class ViewingKeyClient extends Client {
     })
   }
 
-  set <R> (key): Promise<R> {
+  set <R> (key: unknown): Promise<R> {
     return this.execute({
       set_viewing_key: { key }
     }).then((tx) => {
