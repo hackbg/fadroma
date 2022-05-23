@@ -48,9 +48,10 @@ export class ScrtBundle extends Bundle {
     return this
   }
 
-  async wrap (cb: BundleCallback<this>, memo = ""): Promise<any[]> {
+  //@ts-ignore
+  async wrap (cb: BundleCallback<this>, opts = { memo: "" }): Promise<any[]> {
     await cb(this)
-    return this.run(memo)
+    return this.run(opts.memo)
   }
 
   run (memo = ""): Promise<any> {
@@ -74,6 +75,7 @@ export class ScrtBundle extends Bundle {
   }
 
   getClient <C extends Client> (Class: ClientCtor<C>, options) {
+    //@ts-ignore
     return new Class(this, options)
   }
 
@@ -123,7 +125,8 @@ export class ScrtBundle extends Bundle {
     return this
   }
 
-  async execute (instance: Instance, msg: Message, { send }: ExecOpts = {}) {
+  //@ts-ignore
+  async execute (instance: Instance, msg: Message, { send }: ExecOpts = {}): Promise<this> {
     this.add({ exec: {
       sender:   this.address,
       contract: instance.address,
@@ -183,10 +186,6 @@ export class ScrtGas extends Fee {
     super(amount, ScrtGas.denom)
   }
 
-}
-
-export function mergeAttrs (attrs) {
-  return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
 }
 
 export * from '@fadroma/client'

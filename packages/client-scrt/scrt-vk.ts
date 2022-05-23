@@ -10,7 +10,7 @@ export class ViewingKeyClient extends Client {
       create_viewing_key: { entropy, padding: null }
     }).then((tx) => {
       console.warn('TODO decode response from create viewing key')
-      return tx
+      return tx as R
       //status: JSON.parse(decode(fromHex(tx.data))).set_viewing_key.key,
     })
   }
@@ -20,7 +20,7 @@ export class ViewingKeyClient extends Client {
       set_viewing_key: { key }
     }).then((tx) => {
       console.info(tx)
-      return tx
+      return tx as R
       //status: JSON.parse(decode(fromHex(tx.data))).set_viewing_key.key,
     })
   }
