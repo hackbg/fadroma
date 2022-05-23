@@ -18,7 +18,7 @@ export abstract class ScrtAgent extends Agent {
 
   fees = ScrtGas.defaultFees
 
-  defaultDenomination = 'uscrt'
+  defaultDenom = 'uscrt'
 
   async instantiateMany (configs: [Template, string, Message][] = []) {
     const instances = await this.bundle().wrap(async bundle=>{
