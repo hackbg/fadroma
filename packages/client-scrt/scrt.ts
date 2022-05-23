@@ -5,6 +5,7 @@ import {
   Chain,
   Client,
   ClientCtor,
+  ClientOptions,
   ExecOpts,
   Fee,
   Instance,
@@ -58,6 +59,7 @@ export class ScrtBundle extends Bundle {
     if (this.depth > 0) {
       console.warn('Unnesting bundle. Depth:', --this.depth)
       this.depth--
+      //@ts-ignore
       return null
     } else {
       return this.submit(memo)
@@ -66,7 +68,7 @@ export class ScrtBundle extends Bundle {
 
   id = 0
 
-  msgs = []
+  msgs: any[] = []
 
   add (msg: Message) {
     const id = this.id++
@@ -74,7 +76,7 @@ export class ScrtBundle extends Bundle {
     return id
   }
 
-  getClient <C extends Client> (Class: ClientCtor<C>, options) {
+  getClient <C extends Client> (Class: ClientCtor<C>, options: ClientOptions): C {
     //@ts-ignore
     return new Class(this, options)
   }
@@ -88,7 +90,7 @@ export class ScrtBundle extends Bundle {
     return Promise.resolve('0')
   }
 
-  async getBalance (denom) {
+  async getBalance (denom: string) {
     throw new Error("can't get balance in bundle")
     return Promise.resolve('0')
   }
@@ -103,6 +105,7 @@ export class ScrtBundle extends Bundle {
   ): Promise<Instance> {
     await this.init(template, label, msg, init_funds)
     const { codeId, codeHash } = template
+    // @ts-ignore
     return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
   }
 
