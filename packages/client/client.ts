@@ -249,6 +249,8 @@ export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 export abstract class Bundle implements Executor {
   constructor (readonly agent: Agent) {}
 
+  Bundle = this
+
   get chain   () { return this.agent.chain   }
   get address () { return this.agent.address }
 
@@ -283,6 +285,14 @@ export abstract class Bundle implements Executor {
   //@ts-ignore
   async uploadMany (code: Uint8Array[]) {
     throw new Error("don't upload inside bundle")
+  }
+
+  get height (): Promise<number> {
+    throw new Error("don't query block height inside bundle")
+  }
+
+  get nextBlock (): Promise<void> {
+    throw new Error("can't wait for next block inside bundle")
   }
 }
 
