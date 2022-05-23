@@ -259,7 +259,7 @@ export abstract class Bundle implements Executor {
   abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
   abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
   abstract execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
-  abstract wrap (cb: BundleCallback<this>, opts?: any): any[]
+  abstract wrap (cb: BundleCallback<this>, opts?: any): Promise<any[]>
 
   /** Queries are disallowed in the middle of a bundle because
     * even though the bundle API is structured as multiple function calls,
