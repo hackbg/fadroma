@@ -41,6 +41,7 @@ export interface Querier {
   getHash   (address: Address): Promise<string>
 }
 export interface Executor extends Querier {
+  chain:          Chain
   address:        Address
   upload          (code: Uint8Array):   Promise<Template>
   uploadMany      (code: Uint8Array[]): Promise<Template[]>
@@ -226,7 +227,7 @@ export abstract class Agent implements Executor {
       })
     ))
   }
-  bundle <T> (): T {
+  bundle <T extends Bundle> (): T {
     throw new Error('Agent#bundle: not implemented')
   }
   Bundle: Bundle
@@ -243,7 +244,8 @@ export interface AgentOptions {
 
 export abstract class Bundle implements Executor {
   constructor (readonly agent: Agent) {}
-  abstract get address (): Address
+  get chain () { return this.agent.chain }
+  get address () { return this.agent.address }
   abstract query <T, U> (contract: Instance, msg: T): Promise<U>
   abstract getCodeId (address: Address): Promise<string>
   abstract getLabel  (address: Address): Promise<string>
@@ -253,6 +255,7 @@ export abstract class Bundle implements Executor {
   abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
   abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
   abstract execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
+  abstract wrap (cb: Function, opts?: any)
 }
 
 export class Client implements Instance {
@@ -295,6 +298,9 @@ export class Client implements Instance {
   }
   withFees (fees: Fees): this {
     return new (this.constructor as ClientCtor<typeof this>)(this.agent, {...this, fees})
+  }
+  withAgent (agent: Agent): this {
+    return new (this.constructor as ClientCtor<typeof this>)(agent, this)
   }
 }
 export interface ClientCtor<C extends Client> {

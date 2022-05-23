@@ -86,10 +86,6 @@ export class ScrtBundle extends Bundle {
     return `${this.agent.name}@BUNDLE`
   }
 
-  get address () {
-    return this.agent.address
-  }
-
   getLabel (address) {
     return this.agent.getLabel(address)
   }
