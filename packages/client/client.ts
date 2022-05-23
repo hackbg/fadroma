@@ -35,7 +35,7 @@ export class ContractLink {
 }
 
 export interface Querier {
-  query <T, U> (contract: Instance, msg: T): Promise<U>
+  query <U> (contract: Instance, msg: Message): Promise<U>
   getCodeId (address: Address): Promise<string>
   getLabel  (address: Address): Promise<string>
   getHash   (address: Address): Promise<string>
@@ -45,9 +45,9 @@ export interface Executor extends Querier {
   address?:       Address
   upload          (code: Uint8Array):   Promise<Template>
   uploadMany      (code: Uint8Array[]): Promise<Template[]>
-  instantiate     (template: Template, label: string, msg: Message): Promise<Instance>
-  instantiateMany (configs: [Template, string, Message][]):          Promise<Instance[]>
-  execute <T, R>  (contract: Instance, msg: T, opts?: ExecOpts):     Promise<R>
+  instantiate     (template: Template, label: string, msg: Message):   Promise<Instance>
+  instantiateMany (configs: [Template, string, Message][]):            Promise<Instance[]>
+  execute <R>     (contract: Instance, msg: Message, opts?: ExecOpts): Promise<R>
 }
 export interface ExecOpts {
   fee?:  IFee
@@ -143,7 +143,7 @@ export abstract class Chain implements Querier {
   get isMocknet () {
     return this.mode === Chain.Mode.Mocknet
   }
-  abstract query <T, U> (contract: Instance, msg: T): Promise<U>
+  abstract query <U> (contract: Instance, msg: Message): Promise<U>
   abstract getCodeId (address: Address): Promise<CodeId>
   abstract getLabel (address: Address): Promise<string>
   abstract getHash (address: Address): Promise<CodeHash>
@@ -213,10 +213,10 @@ export abstract class Agent implements Executor {
   getClient <C extends Client> (Client: ClientCtor<C>, arg: Address|ClientOptions): C {
     return new Client(this, arg)
   }
-  query <M, R> (contract: Instance, msg: M): Promise<R> {
+  query <R> (contract: Instance, msg: Message): Promise<R> {
     return this.chain.query(contract, msg)
   }
-  abstract execute <M, R> (contract: Instance, msg: M, opts?: ExecOpts): Promise<R>
+  abstract execute <R> (contract: Instance, msg: Message, opts?: ExecOpts): Promise<R>
   abstract upload (blob: Uint8Array): Promise<Template>
   uploadMany (blobs: Uint8Array[] = []): Promise<Template[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
@@ -258,14 +258,14 @@ export abstract class Bundle implements Executor {
 
   abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
   abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
-  abstract execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
+  abstract execute <R> (contract: Instance, msg: Message, opts?: ExecOpts): Promise<R>
   abstract wrap (cb: BundleCallback<this>, opts?: any): Promise<any[]>
 
   /** Queries are disallowed in the middle of a bundle because
     * even though the bundle API is structured as multiple function calls,
     * the bundle is ultimately submitted as a single transaction and
     * it doesn't make sense to query state in the middle of that. */
-  async query <T, U> (contract: Instance, msg: T): Promise<U> {
+  async query <U> (contract: Instance, msg: Message): Promise<U> {
     throw new Error("don't query inside bundle")
   }
 
@@ -305,10 +305,10 @@ export class Client implements Instance {
   get chain () {
     return this.agent.chain
   }
-  async query <T, U> (msg: T): Promise<U> {
+  async query <U> (msg: Message): Promise<U> {
     return await this.agent.query(this, msg)
   }
-  async execute <M, R> (msg: M, opt?: ExecOpts): Promise<R> {
+  async execute <R> (msg: Message, opt?: ExecOpts): Promise<R> {
     return await this.agent.execute(this, msg, opt)
   }
   async populate (): Promise<void> {
