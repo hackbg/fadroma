@@ -38,7 +38,7 @@ Add the `browser` feature to your contract's Cargo.toml:
 ```toml
 [dependencies]
 # ...
-fadroma-bind-js = { optional = true, path = "deps/fadroma/bind-js" }
+fadroma-bind-js = { optional = true, path = "fadroma/bind-js" }
 wasm-bindgen = { optional = true, version = "0.2" }
 
 [features]
