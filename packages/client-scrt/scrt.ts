@@ -1,5 +1,17 @@
 import {
-  Agent, Bundle, BundleCallback, Chain, Fee, Template, Message, Instance
+  Agent,
+  Bundle,
+  BundleCallback,
+  Chain,
+  Client,
+  ClientCtor,
+  ExecOpts,
+  Fee,
+  Instance,
+  Label,
+  Message,
+  Template,
+  Uint128
 } from '@fadroma/client'
 
 export abstract class ScrtAgent extends Agent {
@@ -36,12 +48,12 @@ export class ScrtBundle extends Bundle {
     return this
   }
 
-  async wrap (cb: BundleCallback<this>, memo = "") {
+  async wrap (cb: BundleCallback<this>, memo = ""): Promise<any[]> {
     await cb(this)
     return this.run(memo)
   }
 
-  run (memo = "") {
+  run (memo = ""): Promise<any> {
     if (this.depth > 0) {
       console.warn('Unnesting bundle. Depth:', --this.depth)
       this.depth--
@@ -61,8 +73,8 @@ export class ScrtBundle extends Bundle {
     return id
   }
 
-  getClient (Client, options) {
-    return new Client(this, options)
+  getClient <C extends Client> (Class: ClientCtor<C>, options) {
+    return new Class(this, options)
   }
 
   get name () {
@@ -84,7 +96,9 @@ export class ScrtBundle extends Bundle {
   }
 
   /** Add a single MsgInstantiateContract to the bundle. */
-  async instantiate (template, label, msg, init_funds = []): Promise<Instance> {
+  async instantiate (
+    template: Template, label: Label, msg: Message, init_funds = []
+  ): Promise<Instance> {
     await this.init(template, label, msg, init_funds)
     const { codeId, codeHash } = template
     return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
@@ -92,12 +106,12 @@ export class ScrtBundle extends Bundle {
 
   /** Add multiple MsgInstantiateContract messages to the bundle,
     * one for each contract config. */
-  async instantiateMany (configs) {
+  async instantiateMany (configs: [Template, Label, Message][]) {
     return await Promise.all(configs.map(([template, label, initMsg])=>
       this.instantiate(template, label, initMsg)))
   }
 
-  async init (template, label, msg, funds = []) {
+  async init (template: Template, label: Label, msg: Message, funds = []) {
     this.add({ init: {
       sender:   this.address,
       codeId:   String(template.codeId),
@@ -109,13 +123,13 @@ export class ScrtBundle extends Bundle {
     return this
   }
 
-  async execute (instance, msg, { funds }) {
+  async execute (instance: Instance, msg: Message, { send }: ExecOpts = {}) {
     this.add({ exec: {
       sender:   this.address,
       contract: instance.address,
       codeHash: instance.codeHash,
       msg,
-      funds
+      funds: send
     } })
     return this
   }
@@ -126,7 +140,7 @@ export class ScrtBundle extends Bundle {
     }
   }
 
-  submit (memo: string) {
+  submit (memo: string): Promise<any> {
     throw new Error("ScrtBundle#submit is abstract, why aren't you using the subclass?")
   }
 
@@ -165,8 +179,8 @@ export class ScrtGas extends Fee {
     send:   new ScrtGas( 500000),
   }
 
-  constructor (x) {
-    super(x, ScrtGas.denom)
+  constructor (amount: Uint128|number) {
+    super(amount, ScrtGas.denom)
   }
 
 }

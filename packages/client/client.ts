@@ -42,7 +42,7 @@ export interface Querier {
 }
 export interface Executor extends Querier {
   chain:          Chain
-  address:        Address
+  address?:       Address
   upload          (code: Uint8Array):   Promise<Template>
   uploadMany      (code: Uint8Array[]): Promise<Template[]>
   instantiate     (template: Template, label: string, msg: Message): Promise<Instance>
@@ -171,9 +171,9 @@ export abstract class Agent implements Executor {
       this.name = options.name
     }
   }
-  address:      Address
-  name?:        string
-  defaultDenom: string
+  address?: Address
+  name?:    string
+  abstract defaultDenom: string
   get balance (): Promise<string> {
     return this.getBalance(this.defaultDenom)
   }
@@ -212,7 +212,7 @@ export abstract class Agent implements Executor {
   }
   getClient <C extends Client> (Client: ClientCtor<C>, address: Address): C
   getClient <C extends Client> (Client: ClientCtor<C>, options: ClientOptions): C
-  getClient <C extends Client> (Client: ClientCtor<C>, arg): C {
+  getClient <C extends Client> (Client: ClientCtor<C>, arg: Address|ClientOptions): C {
     return new Client(this, arg)
   }
   query <M, R> (contract: Instance, msg: M): Promise<R> {
@@ -260,7 +260,7 @@ export abstract class Bundle implements Executor {
   abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
   abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
   abstract execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
-  abstract wrap (cb: BundleCallback<this>, opts?: any)
+  abstract wrap (cb: BundleCallback<this>, opts?: any): any[]
 
   /** Queries are disallowed in the middle of a bundle because
     * even though the bundle API is structured as multiple function calls,
@@ -297,7 +297,7 @@ export class Client implements Instance {
       this.fees     = arg.fees
     }
   }
-  name:      string
+  name?:     string
   label?:    string
   address:   Address
   codeHash?: CodeHash

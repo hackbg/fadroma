@@ -8,7 +8,6 @@ import {
   ScrtBundle,
   ScrtChain,
   ScrtGas,
-  mergeAttrs
 } from '@fadroma/client-scrt'
 import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
 import { backOff } from 'exponential-backoff'
@@ -513,5 +512,10 @@ export class LegacyScrt extends ScrtChain {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
 }
+
+export function mergeAttrs (attrs) {
+  return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
+}
+
 
 export * from '@fadroma/client-scrt'
