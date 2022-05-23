@@ -74,24 +74,8 @@ export class ScrtBundle extends Bundle {
     return new Client(this, options)
   }
 
-  getCodeId (address) {
-    return this.agent.getCodeId(address)
-  }
-
-  get chain () {
-    return this.agent.chain
-  }
-
   get name () {
     return `${this.agent.name}@BUNDLE`
-  }
-
-  getLabel (address) {
-    return this.agent.getLabel(address)
-  }
-
-  getHash (address) {
-    return this.agent.getHash(address)
   }
 
   get balance () {
@@ -106,28 +90,6 @@ export class ScrtBundle extends Bundle {
 
   get defaultDenom () {
     return this.agent.defaultDenom
-  }
-
-  /** Queries are disallowed in the middle of a bundle because
-    * even though the bundle API is structured as multiple function calls,
-    * the bundle is ultimately submitted as a single transaction and
-    * it doesn't make sense to query state in the middle of that. */
-  async query () {
-    throw new Error("don't query inside bundle")
-  }
-
-  /** Uploads are disallowed in the middle of a bundle because
-    * it's easy to go over the max request size, and
-    * difficult to know what that is in advance. */
-  async upload () {
-    throw new Error("don't upload inside bundle")
-  }
-
-  /** Uploads are disallowed in the middle of a bundle because
-    * it's easy to go over the max request size, and
-    * difficult to know what that is in advance. */
-  async uploadMany () {
-    throw new Error("don't upload inside bundle")
   }
 
   /** Add a single MsgInstantiateContract to the bundle. */

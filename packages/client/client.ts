@@ -244,18 +244,40 @@ export interface AgentOptions {
 
 export abstract class Bundle implements Executor {
   constructor (readonly agent: Agent) {}
-  get chain () { return this.agent.chain }
+
+  get chain   () { return this.agent.chain   }
   get address () { return this.agent.address }
-  abstract query <T, U> (contract: Instance, msg: T): Promise<U>
-  abstract getCodeId (address: Address): Promise<string>
-  abstract getLabel  (address: Address): Promise<string>
-  abstract getHash   (address: Address): Promise<string>
-  abstract upload (code: Uint8Array): Promise<Template>
-  abstract uploadMany (code: Uint8Array[]): Promise<Template[]>
+
+  getCodeId (address) { return this.agent.getCodeId(address) }
+  getLabel  (address) { return this.agent.getLabel(address)  }
+  getHash   (address) { return this.agent.getHash(address)   }
+
   abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
   abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
   abstract execute <T, R> (contract: Instance, msg: T, opts?: ExecOpts): Promise<R>
-  abstract wrap (cb: Function, opts?: any)
+  abstract wrap (cb: (bundle: this)=>Promise<void>, opts?: any)
+
+  /** Queries are disallowed in the middle of a bundle because
+    * even though the bundle API is structured as multiple function calls,
+    * the bundle is ultimately submitted as a single transaction and
+    * it doesn't make sense to query state in the middle of that. */
+  async query <T, U> (contract: Instance, msg: T): Promise<U> {
+    throw new Error("don't query inside bundle")
+  }
+
+  /** Uploads are disallowed in the middle of a bundle because
+    * it's easy to go over the max request size, and
+    * difficult to know what that is in advance. */
+  async upload (code: Uint8Array) {
+    throw new Error("don't upload inside bundle")
+  }
+
+  /** Uploads are disallowed in the middle of a bundle because
+    * it's easy to go over the max request size, and
+    * difficult to know what that is in advance. */
+  async uploadMany (code: Uint8Array[]) {
+    throw new Error("don't upload inside bundle")
+  }
 }
 
 export class Client implements Instance {
