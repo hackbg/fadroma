@@ -4,9 +4,9 @@
   "type":    "module",
   "main":    "index.ts",
   "dependencies": {
-    "@hackbg/konzola": "^1",
-    "@fadroma/client":      "workspace:../client",
-    "@fadroma/client-scrt": "workspace:../client-scrt"
+    "@hackbg/konzola":      "^1",
+    "@fadroma/client":      "workspace:*",
+    "@fadroma/client-scrt": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^4.6.4"
