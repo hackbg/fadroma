@@ -89,7 +89,7 @@ export enum ChainMode {
 }
 export interface ChainOptions {
   url?:  string
-  mode?: ChainMode
+  mode:  ChainMode
   node?: DevnetHandle
 }
 export interface DevnetHandle {
@@ -102,14 +102,16 @@ export abstract class Chain implements Querier {
   static Mode = ChainMode
   constructor (
     readonly id: ChainId,
-    options: ChainOptions = {}
+    options: ChainOptions
   ) {
     if (!id) {
       throw new Error('Chain: need to pass chain id')
     }
-    this.id = id
-    if (options.url)  this.url = options.url
-    if (options.mode) this.mode = options.mode
+    this.id   = id
+    this.mode = options.mode
+    if (options.url) {
+      this.url = options.url
+    }
     if (options.node) {
       if (options.mode === Chain.Mode.Devnet) {
         this.node = options.node
@@ -146,7 +148,7 @@ export abstract class Chain implements Querier {
   abstract getLabel (address: Address): Promise<string>
   abstract getHash (address: Address): Promise<CodeHash>
   abstract Agent: AgentCtor<Agent>
-  async getAgent (options) {
+  async getAgent (options: AgentOptions) {
     if (!options.mnemonic && options.name) {
       if (this.node) {
         console.info('Using devnet genesis account:', options.name)
@@ -165,10 +167,12 @@ export abstract class Agent implements Executor {
   }
   constructor (readonly chain: Chain, options: AgentOptions = {}) {
     this.chain = chain
-    this.name  = options.name
+    if (options.name) {
+      this.name = options.name
+    }
   }
   address:      Address
-  name:         string
+  name?:        string
   defaultDenom: string
   get balance (): Promise<string> {
     return this.getBalance(this.defaultDenom)
@@ -282,9 +286,9 @@ export abstract class Bundle implements Executor {
 }
 
 export class Client implements Instance {
-  constructor (agent: Agent, address: Address);
-  constructor (agent: Agent, options: ClientOptions);
-  constructor (readonly agent: Agent, arg) {
+  constructor (agent: Agent, address: Address)
+  constructor (agent: Agent, options: ClientOptions)
+  constructor (readonly agent: Agent, arg: Address|ClientOptions) {
     if (typeof arg === 'string') {
       this.address = arg
     } else {
@@ -293,12 +297,12 @@ export class Client implements Instance {
       this.fees     = arg.fees
     }
   }
-  name:     string
-  codeHash: CodeHash
-  codeId:   CodeId
-  label:    string
-  address:  Address
-  fees:     Fees
+  name:      string
+  label?:    string
+  address:   Address
+  codeHash?: CodeHash
+  codeId?:   CodeId
+  fees?:     Fees
   get chain () {
     return this.agent.chain
   }
