@@ -310,12 +310,8 @@ export class Client implements Instance {
     } else {
       this.address  = arg.address
       this.codeHash = arg.codeHash
-      if (arg.fees) {
-        this.fees = arg.fees
-      }
-      if (arg.execFees) {
-        this.execFees = arg.execFees
-      }
+      this.fees = Object.assign(this.fees||{}, arg.fees||{})
+      Object.assign(this.execFees, arg.execFees||{})
     }
   }
   name?:     string
@@ -324,16 +320,20 @@ export class Client implements Instance {
   codeHash?: CodeHash
   codeId?:   CodeId
   fees?:     Fees
-  execFees?: Record<string, IFee>
+  execFees:  Record<string, IFee> = {}
+  /** The Chain on which this contract exists. */
   get chain () {
     return this.agent.chain
   }
+  /** Execute a query on the specified contract as the specified Agent. */
   async query <U> (msg: Message): Promise<U> {
     return await this.agent.query(this, msg)
   }
+  /** Execute a transaction on the specified contract as the specified Agent. */
   async execute <R> (msg: Message, opt?: ExecOpts): Promise<R> {
     return await this.agent.execute(this, msg, opt)
   }
+  /** Fetch the label, code ID, and code hash from the Chain. */
   async populate (): Promise<void> {
     const [label, codeId, codeHash] = await Promise.all([
       this.agent.getLabel(this.address),
@@ -345,12 +345,17 @@ export class Client implements Instance {
     this.codeId   = codeId
     this.codeHash = codeHash
   }
-  withFees (fees: Fees): this {
+  /** Create a copy of this Client with all transaction fees set to the provided value. */
+  withFee (fee: IFee): this {
     const Self = this.constructor as ClientCtor<typeof this>
-    return new Self(this.agent, {...this, fees})
+    const fees = { upload: fee, init: fee, exec: fee, send: fee }
+    const execFees = {}
+    for (const method of Object.keys(this.execFees)) execFees[method] = fee
+    return new Self(this.agent, {...this, fees, execFees })
   }
+  /** Create a copy of this Client that will execute the transactions as a different Agent. */
   withAgent (agent: Agent): this {
     const Self = this.constructor as ClientCtor<typeof this>
-    return new Self(agent, this)
+    return new Self(agent, { ...this })
   }
 }
