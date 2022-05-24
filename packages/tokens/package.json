@@ -4,7 +4,7 @@
   "type":    "module",
   "main":    "index.ts",
   "dependencies": {
-    "@hackbg/konzola":      "^1",
+    "@hackbg/konzola":      "workspace:*",
     "@fadroma/client":      "workspace:*",
     "@fadroma/client-scrt": "workspace:*"
   },
