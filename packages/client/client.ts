@@ -159,10 +159,18 @@ export interface AgentOptions {
   name?:     string
   mnemonic?: string
   address?:  Address
+  fees?:     AgentFees
 }
 export interface AgentCtor<A extends Agent> {
   new    (chain: Chain, options: AgentOptions): A
   create (chain: Chain, options: AgentOptions): Promise<A>
+}
+
+export interface AgentFees {
+  send?:   IFee
+  upload?: IFee
+  init?:   IFee
+  exec?:   IFee
 }
 export abstract class Agent implements Executor {
   static create (chain: Chain, options: AgentOptions = {}): Promise<Agent> {
@@ -170,19 +178,26 @@ export abstract class Agent implements Executor {
   }
   constructor (readonly chain: Chain, options: AgentOptions = {}) {
     this.chain = chain
-    if (options.name) {
-      this.name = options.name
-    }
+    this.name = options.name || this.name
+    this.fees = options.fees || this.fees
   }
+  /** The address of this agent. */
   address?: Address
+  /** The friendly name of the agent. */
   name?:    string
+  /** The default denomination in which the agent operates. */
   abstract defaultDenom: string
+  /** Default transaction fees to use for interacting with the chain. */
+  fees?: AgentFees
+  /** This agent's balance in the chain's native token. */
   get balance (): Promise<string> {
     return this.getBalance(this.defaultDenom)
   }
+  /** The chain's current block height. */
   get height (): Promise<number> {
     return Promise.resolve(0)
   }
+  /** Wait until the block height increments. */
   get nextBlock () {
     console.info('Waiting for next block...')
     return new Promise<void>((resolve, reject)=>{
@@ -289,16 +304,10 @@ export abstract class Bundle implements Executor {
     throw new Error("can't wait for next block inside bundle")
   }
 }
-
-export interface Fees {
-  upload?: IFee
-  init?:   IFee
-  exec?:   IFee
-  send?:   IFee
-}
 export interface ClientOptions extends Instance {
-  fees?:     Fees
-  execFees?: Record<string, IFee>
+  name?: string
+  fee?:  IFee
+  fees?: Record<string, IFee>
 }
 export interface ClientCtor<C extends Client> {
   new (agent: Agent, options: Address|ClientOptions): C
@@ -308,29 +317,54 @@ export class Client implements Instance {
     if (typeof arg === 'string') {
       this.address = arg
     } else {
-      this.address  = arg.address
-      this.codeHash = arg.codeHash
+      this.name     = arg.name     || this.name
+      this.label    = arg.label    || this.label
+      this.address  = arg.address  || this.address
+      this.codeHash = arg.codeHash || this.codeHash
+      this.codeId   = arg.codeId   || this.codeId
+      this.fee      = arg.fee      || this.fee
       this.fees = Object.assign(this.fees||{}, arg.fees||{})
-      Object.assign(this.execFees, arg.execFees||{})
     }
   }
-  name?:     string
-  label?:    string
-  address:   Address
-  codeHash?: CodeHash
-  codeId?:   CodeId
-  fees?:     Fees
-  execFees:  Record<string, IFee> = {}
+  /** Friendly name of the contract. */
+  name?: string
   /** The Chain on which this contract exists. */
   get chain () {
     return this.agent.chain
+  }
+  /** Label of the contract on the chain. */
+  label?:    string
+  /** Address of the contract on the chain. */
+  address:   Address
+  /** Code hash representing the content of the contract's code. */
+  codeHash?: CodeHash
+  /** Code ID representing the identity of the contract's code. */
+  codeId?:   CodeId
+  /** Default fee for transactions. */
+  fee?: IFee
+  /** Default fee for specific transactions. */
+  fees: Record<string, IFee> = {}
+  /** Get the recommended fee for a specific transaction. */
+  getFee (msg?: string|Record<string, unknown>): IFee {
+    const defaultFee = this.fee || this.agent.fees.exec
+    if (typeof msg === 'string') {
+      return this.fees[msg] || defaultFee
+    } else if (typeof msg === 'object') {
+      const keys = Object.keys(msg)
+      if (keys.length !== 1) {
+        throw new Error('Client#getFee: messages must have exactly 1 root key')
+      }
+      return this.fees[keys[0]] || defaultFee
+    }
+    return this.fee || defaultFee
   }
   /** Execute a query on the specified contract as the specified Agent. */
   async query <U> (msg: Message): Promise<U> {
     return await this.agent.query(this, msg)
   }
   /** Execute a transaction on the specified contract as the specified Agent. */
-  async execute <R> (msg: Message, opt?: ExecOpts): Promise<R> {
+  async execute <R> (msg: Message, opt: ExecOpts = {}): Promise<R> {
+    opt.fee = opt.fee || this.getFee(msg)
     return await this.agent.execute(this, msg, opt)
   }
   /** Fetch the label, code ID, and code hash from the Chain. */
@@ -348,10 +382,7 @@ export class Client implements Instance {
   /** Create a copy of this Client with all transaction fees set to the provided value. */
   withFee (fee: IFee): this {
     const Self = this.constructor as ClientCtor<typeof this>
-    const fees = { upload: fee, init: fee, exec: fee, send: fee }
-    const execFees = {}
-    for (const method of Object.keys(this.execFees)) execFees[method] = fee
-    return new Self(this.agent, {...this, fees, execFees })
+    return new Self(this.agent, {...this, fee, fees: {}})
   }
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   withAgent (agent: Agent): this {
