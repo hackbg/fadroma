@@ -20,7 +20,7 @@ function izdatel (cwd = process.cwd()) {
   try {
 
     // compile TS -> JS
-    execSync('npm run build', { cwd, stdio: 'inherit' })
+    execSync('pnpm run build', { cwd, stdio: 'inherit' })
 
     // update "main" and "types" in tsconfig.json
     const data = JSON.parse(original)
@@ -35,7 +35,7 @@ function izdatel (cwd = process.cwd()) {
     writeFileSync(packageJSON, JSON.stringify(data), 'utf8')
 
     // publish modified package to NPM
-    execSync('npm publish --access public', { cwd, stdio: 'inherit' })
+    execSync('pnpm publish --access public', { cwd, stdio: 'inherit' })
 
   } finally {
 
