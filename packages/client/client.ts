@@ -379,10 +379,15 @@ export class Client implements Instance {
     this.codeId   = codeId
     this.codeHash = codeHash
   }
-  /** Create a copy of this Client with all transaction fees set to the provided value. */
-  withFee (fee: IFee): this {
+  /** Create a copy of this Client with all transaction fees set to the provided value.
+    * If the fee is undefined, returns a copy of the client with unmodified fee config. */
+  withFee (fee: IFee|undefined): this {
     const Self = this.constructor as ClientCtor<typeof this>
-    return new Self(this.agent, {...this, fee, fees: {}})
+    if (fee) {
+      return new Self(this.agent, {...this, fee, fees: {}})
+    } else {
+      return new Self(this.agent, {...this, fee: this.fee, fees: this.fees})
+    }
   }
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   withAgent (agent: Agent): this {
