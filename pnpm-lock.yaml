@@ -4,12 +4,12 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/client': workspace:^1.0.0
-      '@fadroma/client-scrt-amino': workspace:^1.0.1
-      '@fadroma/client-scrt-grpc': workspace:^1.0.1
-      '@fadroma/ops': workspace:^0.1.0
-      '@fadroma/ops-scrt': workspace:^0.1.0
-      '@fadroma/tokens': workspace:^0.1.0
+      '@fadroma/client': workspace:^2
+      '@fadroma/client-scrt-amino': workspace:^2
+      '@fadroma/client-scrt-grpc': workspace:^2
+      '@fadroma/ops': workspace:^1
+      '@fadroma/ops-scrt': workspace:^1
+      '@fadroma/tokens': workspace:^1
       '@hackbg/dokeres': workspace:*
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/kabinet': workspace:*
@@ -64,7 +64,7 @@ importers:
 
   packages/client-scrt:
     specifiers:
-      '@fadroma/client': workspace:^1
+      '@fadroma/client': workspace:^2
       '@hackbg/izdatel': workspace:*
       typescript: ^4.6.4
     dependencies:
@@ -76,7 +76,7 @@ importers:
   packages/client-scrt-amino:
     specifiers:
       '@cosmjs/crypto': ^0.20.0
-      '@fadroma/client-scrt': workspace:^1
+      '@fadroma/client-scrt': workspace:^2
       '@hackbg/izdatel': workspace:*
       '@iov/encoding': ^2.1.0
       axios: ^0.26.0
@@ -97,7 +97,7 @@ importers:
 
   packages/client-scrt-grpc:
     specifiers:
-      '@fadroma/client-scrt': workspace:^1
+      '@fadroma/client-scrt': workspace:^2
       '@hackbg/izdatel': workspace:*
       secretjs: beta
       typescript: ^4.6.4
@@ -153,9 +153,9 @@ importers:
 
   packages/ops-scrt:
     specifiers:
-      '@fadroma/client-scrt-amino': workspace:^1
-      '@fadroma/client-scrt-grpc': workspace:^1
-      '@fadroma/ops': workspace:*
+      '@fadroma/client-scrt-amino': workspace:^2
+      '@fadroma/client-scrt-grpc': workspace:^2
+      '@fadroma/ops': workspace:^1
       '@hackbg/dokeres': workspace:*
     dependencies:
       '@fadroma/client-scrt-amino': link:../client-scrt-amino
@@ -165,9 +165,9 @@ importers:
 
   packages/tokens:
     specifiers:
-      '@fadroma/client': workspace:../client
-      '@fadroma/client-scrt': workspace:../client-scrt
-      '@hackbg/konzola': ^1
+      '@fadroma/client': workspace:*
+      '@fadroma/client-scrt': workspace:*
+      '@hackbg/konzola': workspace:*
       typescript: ^4.6.4
     dependencies:
       '@fadroma/client': link:../client
@@ -229,6 +229,8 @@ importers:
 
   toolbox/forkers:
     specifiers:
+      '@hackbg/ganesha': ^2
+      '@hackbg/izdatel': workspace:*
       '@types/node': latest
       '@types/zen-observable': ^0.8.3
       typescript: latest
@@ -237,8 +239,10 @@ importers:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
+      '@hackbg/ganesha': 2.0.3
+      '@hackbg/izdatel': link:../izdatel
       '@types/node': 17.0.35
-      typescript: 4.6.4
+      typescript: 4.7.2
 
   toolbox/izdatel:
     specifiers: {}
@@ -3348,6 +3352,12 @@ packages:
 
   /typescript/4.6.4:
     resolution: {integrity: sha512-9ia/jWHIEbo49HfjrLGfKbZSuWo9iTMwXO+Ca3pRsSpbsMbc7/IU8NKdCZVRRBafVPGnoJeFL76ZOAA84I9fEg==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true
+
+  /typescript/4.7.2:
+    resolution: {integrity: sha512-Mamb1iX2FDUpcTRzltPxgWMKy3fhg0TN378ylbktPGPK/99KbDtMQ4W1hwgsbPAsG3a0xKa1vmw4VKZQbkvz5A==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true
