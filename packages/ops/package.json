@@ -24,9 +24,13 @@
     "wasm-ffi": "^0.3.0"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "^2.0.3"
+    "typescript":      "^4.6.4",
+    "@hackbg/ganesha": "^2.0.3",
+    "@hackbg/izdatel": "workspace:*"
   },
   "scripts": {
-    "test": "ganesha-node index.spec.js.md"
+    "build":   "tsc",
+    "check":   "tsc --noEmit",
+    "release": "izdatel"
   }
 }
