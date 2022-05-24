@@ -74,12 +74,6 @@ export class Fee implements IFee {
   }
   readonly amount: readonly ICoin[]
 }
-export interface Fees {
-  upload?: IFee
-  init?:   IFee
-  exec?:   IFee
-  send?:   IFee
-}
 
 export enum ChainMode {
   Mainnet = 'Mainnet',
@@ -161,6 +155,15 @@ export abstract class Chain implements Querier {
   }
 }
 
+export interface AgentOptions {
+  name?:     string
+  mnemonic?: string
+  address?:  Address
+}
+export interface AgentCtor<A extends Agent> {
+  new    (chain: Chain, options: AgentOptions): A
+  create (chain: Chain, options: AgentOptions): Promise<A>
+}
 export abstract class Agent implements Executor {
   static create (chain: Chain, options: AgentOptions = {}): Promise<Agent> {
     throw Object.assign(new Error('Agent.create: abstract, use subclass'), { options })
@@ -235,15 +238,6 @@ export abstract class Agent implements Executor {
   }
   abstract Bundle: typeof Bundle
 }
-export interface AgentCtor<A extends Agent> {
-  new    (chain: Chain, options: AgentOptions): A
-  create (chain: Chain, options: AgentOptions): Promise<A>
-}
-export interface AgentOptions {
-  name?:     string
-  mnemonic?: string
-  address?:  Address
-}
 
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 export abstract class Bundle implements Executor {
@@ -296,6 +290,19 @@ export abstract class Bundle implements Executor {
   }
 }
 
+export interface Fees {
+  upload?: IFee
+  init?:   IFee
+  exec?:   IFee
+  send?:   IFee
+}
+export interface ClientOptions extends Instance {
+  fees?:     Fees
+  execFees?: Record<string, IFee>
+}
+export interface ClientCtor<C extends Client> {
+  new (agent: Agent, options: Address|ClientOptions): C
+}
 export class Client implements Instance {
   constructor (readonly agent: Agent, arg: Address|ClientOptions) {
     if (typeof arg === 'string') {
@@ -303,7 +310,12 @@ export class Client implements Instance {
     } else {
       this.address  = arg.address
       this.codeHash = arg.codeHash
-      this.fees     = arg.fees
+      if (arg.fees) {
+        this.fees = arg.fees
+      }
+      if (arg.execFees) {
+        this.execFees = arg.execFees
+      }
     }
   }
   name?:     string
@@ -312,6 +324,7 @@ export class Client implements Instance {
   codeHash?: CodeHash
   codeId?:   CodeId
   fees?:     Fees
+  execFees?: Record<string, IFee>
   get chain () {
     return this.agent.chain
   }
@@ -333,15 +346,11 @@ export class Client implements Instance {
     this.codeHash = codeHash
   }
   withFees (fees: Fees): this {
-    return new (this.constructor as ClientCtor<typeof this>)(this.agent, {...this, fees})
+    const Self = this.constructor as ClientCtor<typeof this>
+    return new Self(this.agent, {...this, fees})
   }
   withAgent (agent: Agent): this {
-    return new (this.constructor as ClientCtor<typeof this>)(agent, this)
+    const Self = this.constructor as ClientCtor<typeof this>
+    return new Self(agent, this)
   }
-}
-export interface ClientCtor<C extends Client> {
-  new (agent: Agent, options: Address|ClientOptions): C
-}
-export interface ClientOptions extends Instance {
-  fees?: Fees
 }
