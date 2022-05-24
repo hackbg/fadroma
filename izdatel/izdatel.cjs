@@ -35,7 +35,7 @@ function izdatel (cwd = process.cwd()) {
     writeFileSync(packageJSON, JSON.stringify(data), 'utf8')
 
     // publish modified package to NPM
-    execSync('pnpm publish --access public', { cwd, stdio: 'inherit' })
+    execSync('pnpm publish --access public --no-git-checks', { cwd, stdio: 'inherit' })
 
   } finally {
 
