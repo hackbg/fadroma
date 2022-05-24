@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/konzola",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "main": "konzola.cjs",
   "browser": "konzola.browser.cjs",
   "types": "konzola.d.ts",
