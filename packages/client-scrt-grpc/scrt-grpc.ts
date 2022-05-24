@@ -160,12 +160,9 @@ export class ScrtRPCAgent extends ScrtAgent {
   // @ts-ignore
   async execute (instance: Instance, msg: Message, opts: ExecOpts = {}): Promise<Tx> {
     const { address, codeHash } = instance
-    const { send, memo, fee } = opts
+    const { send, memo, fee = this.fees.exec } = opts
     if (memo) {
       console.warn(constants.WARN_NO_MEMO)
-    }
-    if (fee) {
-      console.warn('Ignoring fee', fee)
     }
     return await this.api.tx.compute.executeContract({
       sender: this.address,
@@ -174,7 +171,7 @@ export class ScrtRPCAgent extends ScrtAgent {
       msg: msg as object,
       sentFunds: send
     }, {
-      gasLimit: Number(ScrtGas.defaultFees.exec.amount[0].amount)
+      gasLimit: Number(fee.amount[0].amount)
     })
   }
 }
