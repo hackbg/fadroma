@@ -1,12 +1,12 @@
 {
   "name":    "@fadroma/ops-scrt",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type":    "module",
   "main":    "index.ts",
   "dependencies": {
     "@hackbg/dokeres":            "workspace:*",
-    "@fadroma/ops":               "workspace:*",
-    "@fadroma/client-scrt-amino": "workspace:^1",
-    "@fadroma/client-scrt-grpc":  "workspace:^1"
+    "@fadroma/ops":               "workspace:^1",
+    "@fadroma/client-scrt-amino": "workspace:^2",
+    "@fadroma/client-scrt-grpc":  "workspace:^2"
   }
 }
