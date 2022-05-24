@@ -315,11 +315,11 @@ export interface ClientCtor<C extends Client> {
 export class Client implements Instance {
   constructor (readonly agent: Agent, arg: Address|ClientOptions) {
     if (typeof arg === 'string') {
-      this.address = arg
+      this.address  = arg
     } else {
+      this.address  = arg.address
       this.name     = arg.name     || this.name
       this.label    = arg.label    || this.label
-      this.address  = arg.address  || this.address
       this.codeHash = arg.codeHash || this.codeHash
       this.codeId   = arg.codeId   || this.codeId
       this.fee      = arg.fee      || this.fee
@@ -345,8 +345,8 @@ export class Client implements Instance {
   /** Default fee for specific transactions. */
   fees: Record<string, IFee> = {}
   /** Get the recommended fee for a specific transaction. */
-  getFee (msg?: string|Record<string, unknown>): IFee {
-    const defaultFee = this.fee || this.agent.fees.exec
+  getFee (msg?: string|Record<string, unknown>): IFee|undefined {
+    const defaultFee = this.fee || this.agent.fees?.exec
     if (typeof msg === 'string') {
       return this.fees[msg] || defaultFee
     } else if (typeof msg === 'object') {
