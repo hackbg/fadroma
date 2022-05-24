@@ -4,7 +4,7 @@
   "type":    "module",
   "main":    "scrt-amino.ts",
   "dependencies": {
-    "@fadroma/client-scrt": "workspace:^1",
+    "@fadroma/client-scrt": "workspace:^2",
     "@cosmjs/crypto":       "^0.20.0",
     "@iov/encoding":        "^2.1.0",
     "secretjs":             "0.17.5",
