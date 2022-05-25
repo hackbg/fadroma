@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "exclude": ["dist/", "types/"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "declarationDir": "types",
+    "lib": ["DOM"]
+  }
+}

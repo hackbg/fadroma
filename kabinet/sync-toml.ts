@@ -8,7 +8,7 @@ export class TOMLFile extends TextFile {
     return TOML.parse(super.load())
   }
   save (data) {
-    super.save(TOML.stringify(data, null, 2))
+    throw new Error('TOML serialization not supported')
     return this
   }
 }
@@ -18,8 +18,8 @@ export class TOMLDirectory extends Directory {
     return existsSync(this.resolve(`${name}${TOMLFormat.extension}`))
   }
   list () {
-    const matchExtension = x => x.endsWith(TOML.extension)
-    const stripExtension = x => basename(x, TOML.extension)
+    const matchExtension = x => x.endsWith(TOMLFormat.extension)
+    const stripExtension = x => basename(x, TOMLFormat.extension)
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
@@ -31,8 +31,7 @@ export class TOMLDirectory extends Directory {
     }
   }
   save (name, data) {
-    data = TOML.stringify(data, null, 2)
-    super.save(`${name}${TOMLFormat.extension}`, data)
+    throw new Error('TOML serialization not supported')
     return this
   }
 }

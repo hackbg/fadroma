@@ -11,63 +11,85 @@ export function touch (...fragments) {
   return path
 }
 
+interface PathCtor <P> {
+  new (...fragments: string[]): P
+}
+
 export class Path {
-  constructor (...fragments) {
+
+  constructor (...fragments: string[]) {
     this.path = resolve(...fragments)
   }
-  resolve (name) {
+
+  readonly path: string
+
+  resolve (name): string {
     if (name.includes('/')) throw new Error(`invalid name: ${name}`)
     return resolve(this.path, basename(name))
   }
-  get name () {
+
+  get name (): string {
     return basename(this.path)
   }
-  get parent () {
+
+  get parent (): string {
     return dirname(this.path)
   }
-  get shortPath () {
+
+  get shortPath (): string {
     return relative(cwd(), this.path)
   }
-  get exists () {
+
+  get exists (): boolean {
     return existsSync(this.path)
   }
-  assert () {
+
+  get isDir (): boolean {
+    return statSync(this.path).isDirectory()
+  }
+
+  get isFile (): boolean {
+    return statSync(this.path).isFile()
+  }
+
+  assert (): this {
     if (!this.exists) throw new Error(`${this.path} does not exist`)
     return this
   }
-  delete () {
+
+  delete (): this {
     rimraf.sync(this.path)
     return this
   }
-  make () {
+
+  make (): this {
     throw new Error("@hackbg/kabinet: file or directory? use subclass")
   }
-  in (...fragments) {
-    const sub = new this.constructor(this.path, ...fragments)
-    if (sub.exists && sub.isFile) {
-      throw new Error(`@hackbg/kabinet: cannot use .in() to descend under existing file: ${sub.path}`)
-    }
-    return sub.asDir()
+
+  asDir <D extends Directory> (Ctor: PathCtor<unknown> = Directory): D {
+    return new (Ctor as PathCtor<D>)(this.path)
   }
-  get isDir () {
-    return statSync(this.path).isDirectory()
+
+  asFile <F extends File> (Ctor: PathCtor<unknown> = File): F {
+    return new (Ctor as PathCtor<F>)(this.path)
   }
-  asDir (Ctor = Directory) {
-    return new Ctor(this.path)
-  }
-  at (...fragments) {
-    const sub = new this.constructor(this.path, ...fragments)
+
+  at (...fragments: string[]) {
+    const sub = new (this.constructor as PathCtor<typeof this>)(this.path, ...fragments)
     if (sub.exists && sub.isDir) {
       throw new Error(`@hackbg/kabinet: Path#at: cannot use .at() to point to directory: ${sub.path}`)
     }
     return sub.asFile()
   }
-  get isFile () {
-    return statSync(this.path).isFile()
+
+  in (...fragments: string[]): Directory {
+    const sub = new (this.constructor as PathCtor<typeof this>)(this.path, ...fragments)
+    if (sub.exists && sub.isFile) {
+      throw new Error(`@hackbg/kabinet: cannot use .in() to descend under existing file: ${sub.path}`)
+    }
+    return sub.asDir()
   }
-  asFile (Ctor = File) {
-    return new Ctor(this.path)
-  }
+
 }
 
 export class File extends Path {

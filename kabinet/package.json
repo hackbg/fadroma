@@ -1,8 +1,7 @@
 {
   "name":         "@hackbg/kabinet",
-  "version":      "2.0.1",
-  "main":         "kabinet.js",
-  "types":        "kabinet.d.ts",
+  "version":      "2.0.2",
+  "main":         "kabinet.ts",
   "type":         "module",
   "homepage":     "https://github.com/hackbg/toolbox",
   "bugs":         "https://github.com/hackbg/toolbox/issues",
@@ -20,6 +19,8 @@
     "toml":            "^3"
   },
   "devDependencies": {
+    "typescript":      "latest",
+    "@types/node":     "latest",
     "@types/mkdirp":   "^1.0.2",
     "@types/tmp":      "^0.2.3",
     "@hackbg/ganesha": "^2.0.3",
@@ -27,8 +28,11 @@
     "c8": "^7.11.2"
   },
   "scripts": {
-    "test": "time ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
-    "cov":  "Ganesha_NoSourceMap=1 time c8 -r text -x *.spec.* ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
-    "lcov": "Ganesha_NoSourceMap=1 time c8 -r lcov -x *.spec.* ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts"
+    "build":   "tsc",
+    "check":   "tsc --noEmit",
+    "test":    "time ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
+    "cov":     "Ganesha_NoSourceMap=1 time c8 -r text -x *.spec.* ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
+    "lcov":    "Ganesha_NoSourceMap=1 time c8 -r lcov -x *.spec.* ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
+    "release": "izdatel"
   }
 }

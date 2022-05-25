@@ -1,6 +1,6 @@
 import { existsSync } from 'fs'
 import { basename } from 'path'
-
+import YAML from 'js-yaml'
 import { TextFile, Directory } from './sync.js'
 
 export class YAMLFile extends TextFile {
@@ -18,8 +18,8 @@ export class YAMLDirectory extends Directory {
     return existsSync(this.resolve(`${name}${YAMLFormat.extension}`))
   }
   list () {
-    const matchExtension = x => x.endsWith(YAMLDirectory.extension)
-    const stripExtension = x => basename(x, YAMLDirectory.extension)
+    const matchExtension = x => x.endsWith(YAMLFormat.extension)
+    const stripExtension = x => basename(x, YAMLFormat.extension)
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
@@ -31,7 +31,7 @@ export class YAMLDirectory extends Directory {
     }
   }
   save (name, data) {
-    data = YAML.stringify(data, null, 2)
+    data = YAML.dump(data, null, 2)
     super.save(`${name}${YAMLFormat.extension}`, data)
     return this
   }

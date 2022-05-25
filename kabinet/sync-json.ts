@@ -18,8 +18,8 @@ export class JSONDirectory extends Directory {
     return existsSync(this.resolve(`${name}${JSONFormat.extension}`))
   }
   list () {
-    const matchExtension = x => x.endsWith(JSONDirectory.extension)
-    const stripExtension = x => basename(x, JSONDirectory.extension)
+    const matchExtension = x => x.endsWith(JSONFormat.extension)
+    const stripExtension = x => basename(x, JSONFormat.extension)
     return super.list().filter(matchExtension).map(stripExtension)
   }
   load (name) {
