@@ -14,6 +14,7 @@
     "@hackbg/konzola": "workspace:*"
   },
   "devDependencies": {
+    "typescript":       "latest",
     "@types/dockerode": "^3.3.8",
     "@hackbg/izdatel":  "workspace:*"
   },
