@@ -1,7 +1,7 @@
 import { existsSync } from 'fs'
 import { basename } from 'path'
 import YAML from 'js-yaml'
-import { TextFile, Directory } from './sync.js'
+import { TextFile, Directory } from './sync'
 
 export class YAMLFile extends TextFile {
   load () {

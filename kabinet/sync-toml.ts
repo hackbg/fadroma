@@ -1,7 +1,7 @@
 import { existsSync } from 'fs'
 import { basename } from 'path'
 import TOML from 'toml'
-import { TextFile, Directory } from './sync.js'
+import { TextFile, Directory } from './sync'
 
 export class TOMLFile extends TextFile {
   load () {
