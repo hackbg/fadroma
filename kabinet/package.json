@@ -10,7 +10,7 @@
   "license":      "MIT",
   "description":  "File utilities.",
   "dependencies": {
-    "@hackbg/konzola": "^1",
+    "@hackbg/konzola": "workspace:*",
     "js-yaml":         "^4.1.0",
     "mkdirp":          "^1.0.4",
     "recursive-copy":  "^2.0.13",

@@ -36,11 +36,11 @@ declare module '@hackbg/kabinet' {
 
     in (...fragments: string[]): Directory
     get isDir (): boolean
-    asDir <D extends Directory> (): D
+    asDir <D extends Directory> (Ctor?: typeof Directory): D
 
     at (...fragments: string[]): File
     get isFile (): boolean
-    asFile <F extends File> ():  F
+    asFile <F extends File> (Ctor?: typeof File):  F
   }
 
   export class File extends Path {
