@@ -22,7 +22,7 @@ import { URL, fileURLToPath } from 'url'
 import { Console, bold, colors } from '@hackbg/konzola'
 import { randomBech32, bech32 } from '@hackbg/toolbox'
 
-import { Chain, Agent, AgentOptions } from '@fadroma/client'
+import { Chain, ChainMode, Agent, AgentOptions } from '@fadroma/client'
 import { Artifact, Template, Instance } from '@fadroma/ops'
 
 declare class TextDecoder {
@@ -319,7 +319,7 @@ export class MocknetState {
 
 export class Mocknet extends Chain {
   constructor (id = 'fadroma-mocknet', options = {}) {
-    super(id, options)
+    super(id, { ...options, mode: ChainMode.Mocknet })
   }
   Agent = MockAgent
   state = new MocknetState(this.id)

@@ -15,6 +15,7 @@ import type {
   Client,
   ClientCtor, 
   Instance,
+  Label,
   Message,
   Template,
 } from '@fadroma/client'
@@ -22,10 +23,6 @@ import { print } from './Print'
 import { config } from './Config'
 
 const console = Console('Fadroma Deploy')
-
-export type Label = string
-
-export type InitMsg = string|Record<string, any>
 
 export const join = (...x:any[]) => x.map(String).join(' ')
 
@@ -123,23 +120,35 @@ export class Deployment {
   }
 
   /** Instantiate one contract and save its receipt to the deployment. */
-  async init (deployAgent: Agent, template: Template, name: Label, initMsg: object): Promise<Instance> {
+  async init (
+    deployAgent: Agent,
+    template:    Template,
+    name:        Label,
+    msg:         Message
+  ): Promise<Instance> {
     const label    = addPrefix(this.prefix, name)
-    const instance = await deployAgent.instantiate(template, label, initMsg)
+    const instance = await deployAgent.instantiate(template, label, msg)
     this.set(name, instance)
     return instance
   }
 
   /** Instantiate multiple contracts from the same Template with different parameters. */
-  async initMany (deployAgent: Agent, template: Template, configs: [Label, object][] = []): Promise<Instance[]> {
+  async initMany (
+    deployAgent: Agent,
+    template:    Template,
+    configs:     [Label, Message][] = []
+  ): Promise<Instance[]> {
     // this adds just the template - prefix is added in initVarious
-    return this.initVarious(deployAgent, configs.map(([name, initMsg])=>[template, name, initMsg]))
+    return this.initVarious(deployAgent, configs.map(([name, msg])=>[template, name, msg]))
   }
 
   /** Instantiate multiple contracts from different Templates with different parameters. */
-  async initVarious (deployAgent: Agent, configs: [Template, Label, object][] = []): Promise<Instance[]> {
+  async initVarious (
+    deployAgent: Agent,
+    configs:     [Template, Label, Message][] = []
+  ): Promise<Instance[]> {
     const receipts = await deployAgent.instantiateMany(configs.map(
-      ([template, name, initMsg])=>[template, addPrefix(this.prefix, name), initMsg]
+      ([template, name, msg])=>[template, addPrefix(this.prefix, name), msg]
     ))
     for (const i in receipts) {
       this.set(configs[i][1], receipts[i])

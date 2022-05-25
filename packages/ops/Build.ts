@@ -10,7 +10,7 @@ import LineTransformStream from 'line-transform-stream'
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 import { Console, bold } from '@hackbg/konzola'
-import { Docker, Dokeres, DokeresImage } from '@hackbg/dokeres'
+import { Dokeres, DokeresImage } from '@hackbg/dokeres'
 import { Artifact } from '@fadroma/client'
 
 import { config } from './Config'
@@ -27,6 +27,26 @@ export function distinct <T> (x: T[]): T[] {
 export const sanitize  = ref => ref.replace(/\//g, '_')
 
 export const artifactName = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
+
+interface WorkspaceCtor<W> {
+  new (root: string, ref?: string): W // ew
+}
+
+export class Workspace {
+  constructor (
+    public readonly root: string,
+    public readonly ref:  string = 'HEAD'
+  ) {}
+  fromRef (ref: string): this {
+    return new (this.constructor as WorkspaceCtor<typeof this>)(this.root, ref)
+  }
+  crate (crate: string): Source {
+    return new Source(this.root, crate, this.ref)
+  }
+  crates (crates: string[]): Source[] {
+    return crates.map(crate=>this.crate(crate))
+  }
+}
 
 export class Source {
   constructor (
@@ -124,15 +144,20 @@ export class DockerodeBuilder extends CachingBuilder {
 
   constructor (options: {
     socketPath?: string,
-    docker?:     Docker,
+    docker?:     Dokeres,
     image?:      string|DokeresImage,
     dockerfile?: string,
     script?:     string
     caching?:    boolean
   } = {}) {
+
     super()
-    this.socketPath = options.socketPath || config.dockerHost || '/var/run/docker.sock'
-    this.docker     = options.docker || new Dokeres(this.socketPath)
+
+    // docker api handle
+    this.socketPath = options.socketPath || config.dockerHost || this.socketPath
+    this.docker     = options.docker || this.docker
+
+    // docker image
     this.dockerfile = options.dockerfile
     this.script     = options.script
     if (options.image instanceof DokeresImage) {
@@ -140,7 +165,12 @@ export class DockerodeBuilder extends CachingBuilder {
     } else {
       this.image = new DokeresImage(this.docker, options.image)
     }
+
   }
+  /** Used to launch build container. */
+  socketPath: string  = '/var/run/docker.sock'
+  /** Used to launch build container. */
+  docker:     Dokeres = new Dokeres(this.socketPath)
 
   /** Tag of the docker image for the build container. */
   image:      DokeresImage
@@ -148,12 +178,9 @@ export class DockerodeBuilder extends CachingBuilder {
   dockerfile: string
   /** Path to the build script to be mounted and executed in the container. */
   script:     string
-  /** Used to launch build container. */
-  socketPath: string
-  /** Used to launch build container. */
-  docker:     Docker
 
-  async build (source) {
+  /** Build a Source into an Artifact */
+  async build (source): Promise<Artifact> {
     return (await this.buildMany([source]))[0]
   }
 
@@ -161,7 +188,7 @@ export class DockerodeBuilder extends CachingBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (sources) {
+  async buildMany (sources): Promise<Artifact[]> {
     // Populate empty `ref` fields of sources with the default value
     sources = sources.map(source=>source.ref?source:{...source, ref: DEFAULT_REF})
     // Here we will collect the build outputs
@@ -200,9 +227,9 @@ export class DockerodeBuilder extends CachingBuilder {
     return artifacts
   }
 
-  protected async buildInContainer (workspace, ref = DEFAULT_REF, crates: [number, string][] = []):
-    Promise<(Artifact|null)[]>
-  {
+  protected async buildInContainer (
+    workspace, ref = DEFAULT_REF, crates: [number, string][] = []
+  ): Promise<(Artifact|null)[]> {
     
     // Workspace should be an absolute path so that it can be mounted into the container.
     workspace = resolve(workspace)

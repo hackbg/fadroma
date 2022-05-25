@@ -113,6 +113,7 @@ importers:
       '@fadroma/client': workspace:*
       '@hackbg/dokeres': workspace:*
       '@hackbg/ganesha': ^2.0.3
+      '@hackbg/izdatel': workspace:*
       '@hackbg/kabinet': workspace:*
       '@hackbg/konzola': workspace:*
       '@hackbg/portali': workspace:*
@@ -128,6 +129,7 @@ importers:
       limiter: ^2.1.0
       line-transform-stream: ^0.1.0
       toml: ^3.0.0
+      typescript: ^4.6.4
       wasm-ffi: ^0.3.0
     dependencies:
       '@fadroma/client': link:../client
@@ -150,6 +152,8 @@ importers:
       wasm-ffi: 0.3.0
     devDependencies:
       '@hackbg/ganesha': 2.0.3
+      '@hackbg/izdatel': link:../../toolbox/izdatel
+      typescript: 4.7.2
 
   packages/ops-scrt:
     specifiers:
@@ -250,7 +254,7 @@ importers:
   toolbox/kabinet:
     specifiers:
       '@hackbg/ganesha': ^2.0.3
-      '@hackbg/konzola': ^1
+      '@hackbg/konzola': workspace:*
       '@hackbg/runspec': workspace:*
       '@types/mkdirp': ^1.0.2
       '@types/tmp': ^0.2.3

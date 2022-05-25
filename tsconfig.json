@@ -5,6 +5,7 @@
     "deps/ganesha/src/**/*",
     "deps/ganesha/test/**/*",
     "deps/ganesha/deps/toolbox/forkers/**/*",
+    "packages/*/types",
     "packages/ops/wip/**/*"
   ],
   "compilerOptions": {
