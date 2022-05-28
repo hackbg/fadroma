@@ -13,7 +13,7 @@ module.exports         = runSpec
 module.exports.default = runSpec
 module.exports.runSpec = runSpec
 
-module.exports.TODO = Symbol('TODO')
+const TODO = module.exports.TODO = Symbol('TODO')
 
 /** Run test specifications defined as nested objects. */
 async function runSpec (suites, selected = process.argv.slice(2)) {
@@ -95,7 +95,7 @@ async function runSpec (suites, selected = process.argv.slice(2)) {
         if (data === TODO) {
           output += `${LABELS.TODO}  ${name}\n`
           undone++
-          return
+          continue
         }
         /** If the test threw anything else, count it as failed
           * and report details about what failed. */
