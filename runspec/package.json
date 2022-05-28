@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/runspec",
-  "version":     "2.1.1",
+  "version":     "2.2.0",
   "main":        "runspec.cjs",
   "types":       "runspec.d.ts",
   "homepage":    "https://github.com/hackbg/toolbox",
@@ -9,6 +9,7 @@
   "license":     "MIT",
   "description": "Test runner.",
   "bin": {
-    "runspec": "runspec.cjs"
+    "runspec": "runspec.cjs",
+    "release": "pnpm publish --access public"
   }
 }
