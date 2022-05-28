@@ -9,7 +9,9 @@
   "license":     "MIT",
   "description": "Test runner.",
   "bin": {
-    "runspec": "runspec.cjs",
+    "runspec": "runspec.cjs"
+  },
+  "scripts": {
     "release": "pnpm publish --access public"
   }
 }
