@@ -33,12 +33,14 @@ export class Snip20 extends Client {
   }
 
   async getTokenInfo () {
-    const { token_info }: GetTokenInfoResponse = await this.query({ token_info: {} })
+    const msg = { token_info: {} }
+    const { token_info }: { token_info: TokenInfo } = await this.query(msg)
     return token_info
   }
 
-  async getBalance (address: string, key: string) {
-    const response: GetBalanceResponse = await this.query({ balance: { address, key } })
+  async getBalance (address: Address, key: string) {
+    const msg = { balance: { address, key } }
+    const response: { balance: { amount: Uint128 } } = await this.query(msg)
     if (response.balance && response.balance.amount) {
       return response.balance.amount
     } else {
@@ -81,9 +83,9 @@ export class Snip20 extends Client {
   }
 
   async getAllowance (owner: Address, spender: Address, key: string): Promise<Allowance> {
-    return (await this.query({
-      allowance: { owner, spender, key }
-    }) as GetAllowanceResponse).allowance
+    const msg = { allowance: { owner, spender, key } }
+    const response: { allowance: Allowance } = await this.query(msg)
+    return response.allowance
   }
 
   /** Increase allowance to spender */
@@ -132,10 +134,6 @@ export class Snip20 extends Client {
 
 }
 
-export interface GetAllowanceResponse {
-  allowance: Allowance
-}
-
 export interface Allowance {
   spender:     Address
   owner:       Address
@@ -143,19 +141,11 @@ export interface Allowance {
   expiration?: number|null
 }
 
-export interface GetTokenInfoResponse {
-  token_info: TokenInfo
-}
-
 export interface TokenInfo {
   name:          string
   symbol:        string
   decimals:      number
   total_supply?: Uint128 | null
-}
-
-export interface GetBalanceResponse {
-  balance: { amount: string }
 }
 
 export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
