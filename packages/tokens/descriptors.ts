@@ -56,6 +56,24 @@ export class TokenPair {
   get reverse () {
     return new TokenPair(this.token_1, this.token_0)
   }
+  static fromName (knownTokens: Record<string, Token>, name: string) {
+    const [token_0_symbol, token_1_symbol] = name.split('-')
+    const token_0 = knownTokens[token_0_symbol]
+    const token_1 = knownTokens[token_1_symbol]
+    if (!token_0) {
+      throw Object.assign(
+        new Error(`TokenPair#fromName: unknown token ${token_0_symbol}`),
+        { symbol: token_0_symbol }
+      )
+    }
+    if (!token_1) {
+      throw Object.assign(
+        new Error(`TokenPair#fromName: unknown token ${token_1_symbol}`),
+        { symbol: token_1_symbol }
+      )
+    }
+    return new TokenPair(token_0, token_1)
+  }
 }
 
 /** A pair of two token descriptors, and amounts of each token. */
