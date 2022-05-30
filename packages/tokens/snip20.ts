@@ -10,7 +10,7 @@ type TokenType = any // TODO
 
 export class Snip20 extends Client {
 
-  static async fromTokenSpec (agent: Agent, token: TokenType) {
+  static async fromDescriptor (agent: Agent, token: TokenType) {
     const TOKEN = new Snip20(agent, {
       address:  token.custom_token.contract_addr,
       codeHash: token.custom_token.token_code_hash,
@@ -23,7 +23,7 @@ export class Snip20 extends Client {
 
   /** Return the address and code hash of this token in the format
    * required by the Factory to create a swap pair with this token */
-  get asCustomToken () {
+  get asDescriptor () {
     return {
       custom_token: {
         contract_addr:   this.address,
