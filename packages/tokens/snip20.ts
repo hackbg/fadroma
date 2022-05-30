@@ -1,24 +1,24 @@
 import { Agent, Client, Address, Uint128 } from '@fadroma/client'
 import { Permit, ViewingKeyClient } from '@fadroma/client-scrt'
 import { Console } from '@hackbg/konzola'
+import { CustomToken } from './descriptors'
 
 const randomHex = () => { throw new Error('randomHex: TODO') }
 
 const console = Console('Fadroma Tokens')
 
-type TokenType = any // TODO
-
 export class Snip20 extends Client {
 
-  static async fromDescriptor (agent: Agent, token: TokenType) {
-    const TOKEN = new Snip20(agent, {
-      address:  token.custom_token.contract_addr,
-      codeHash: token.custom_token.token_code_hash,
-    })
-    const NAME = (TOKEN instanceof Snip20)
-      ? (await TOKEN.getTokenInfo()).symbol
-      : 'SCRT'
-    return { TOKEN, NAME }
+  static async fromDescriptor (agent: Agent, descriptor: CustomToken) {
+    const {
+      custom_token: {
+        contract_addr: address,
+        token_code_hash: codeHash
+      }
+    } = descriptor
+    const token = new Snip20(agent, { address, codeHash })
+    const name = (await token.getTokenInfo()).symbol
+    return { name, token }
   }
 
   /** Return the address and code hash of this token in the format
