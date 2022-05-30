@@ -1,7 +1,7 @@
 import { cwd } from 'process'
 import { relative, basename } from 'path'
-import { readFileSync, writeFileSync, existsSync } from 'fs'
-import { mkdir, readFile, writeFile } from 'fs/promises'
+import { readFileSync, existsSync } from 'fs'
+import { readFile } from 'fs/promises'
 import { fileURLToPath } from 'url'
 
 import { Console, bold } from '@hackbg/konzola'
@@ -93,28 +93,31 @@ export class CachingFSUploader extends FSUploader {
   }
 
   protected getUploadReceiptPath (artifact: Artifact): string {
-    const receiptName = `${basename(fileURLToPath(artifact.url))}.json`
+    const receiptName = `${this.getUploadReceiptName(artifact)}.json`
     const receiptPath = this.cache.resolve(receiptName)
     return receiptPath
   }
 
+  protected getUploadReceiptName (artifact: Artifact): string {
+    return basename(fileURLToPath(artifact.url))
+  }
+
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (artifact: Artifact): Promise<Template> {
-    const receiptPath = this.getUploadReceiptPath(artifact)
-    if (existsSync(receiptPath)) {
-      const receiptData = await readFile(receiptPath, 'utf8')
-      return JSON.parse(receiptData)
+    const receipt = this.cache.at(this.getUploadReceiptName(artifact))
+    if (receipt.exists) {
+      return JSON.parse(receipt.load())
     }
     const template = await super.upload(artifact)
-    console.info(bold(`Storing:  `), relative(cwd(), receiptPath))
-    await writeFile(receiptPath, JSON.stringify(template, null, 2), 'utf8')
+    console.info(bold(`Storing:  `), relative(cwd(), receipt.path))
+    receipt.save(template)
     return template
   }
 
   async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
 
     const templates = []
-    const toUpload  = []
+    const artifactsToUpload  = []
 
     for (const i in artifacts) {
 
@@ -128,7 +131,7 @@ export class CachingFSUploader extends FSUploader {
       if (!existsSync(receiptPath)) {
 
         console.info(bold(`Uploading:`), `${relative(cwd(), fileURLToPath(artifact.url))}`)
-        toUpload[i] = artifact
+        artifactsToUpload[i] = artifact
 
       } else {
 
@@ -139,7 +142,7 @@ export class CachingFSUploader extends FSUploader {
           console.info(
             bold(`No code hash:`), `${relativePath}; reuploading...`
           )
-          toUpload[i] = artifact
+          artifactsToUpload[i] = artifact
           continue
         }
 
@@ -147,7 +150,7 @@ export class CachingFSUploader extends FSUploader {
           console.info(
             bold(`Different code hash:`), `${relativePath}; reuploading...`
           )
-          toUpload[i] = artifact
+          artifactsToUpload[i] = artifact
           continue
         }
 
@@ -166,15 +169,13 @@ export class CachingFSUploader extends FSUploader {
 
     }
 
-    if (toUpload.length > 0) {
-      console.info('Need to upload', bold(String(toUpload.length)), 'artifacts')
-      const uploaded = await super.uploadMany(toUpload)
+    if (artifactsToUpload.length > 0) {
+      console.info('Need to upload', bold(String(artifactsToUpload.length)), 'artifacts')
+      const uploaded = await super.uploadMany(artifactsToUpload)
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
-        const artifactPath = fileURLToPath(toUpload[i].url)
-        const receiptName  = `${basename(artifactPath)}.json`
-        const receiptPath  = this.cache.make().resolve(receiptName)
-        writeFileSync(receiptPath, JSON.stringify(uploaded[i], null, 2))
+        const receiptName = this.getUploadReceiptName(artifactsToUpload[i])
+        this.cache.save(receiptName, uploaded[i])
         templates[i] = uploaded[i]
       }
     } else {
