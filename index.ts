@@ -2,13 +2,26 @@ import { fileURLToPath } from 'url'
 import { relative } from 'path'
 
 import {
-  print, timestamp,
-  Chain, ChainMode, Mocknet, Agent,
-  runOperation, Operation, OperationContext,
-  getDeployments, Deployment, Deployments,
+  Agent,
+  Artifact,
+  CachingFSUploader,
+  Chain,
+  ChainMode,
+  Deployment,
+  Deployments,
+  FSUploader,
+  Mocknet,
+  Operation,
+  OperationContext,
+  Source,
+  Template,
+  Uploader,
   config,
+  getDeployments,
   join,
-  CachingFSUploader, FSUploader
+  print,
+  runOperation,
+  timestamp,
 } from '@fadroma/ops'
 
 import { runCommands } from '@hackbg/komandi'
@@ -80,7 +93,15 @@ const BuildOps = {
   /** Add a Secret Network builder to the command context. */
   Scrt: function enableScrtBuilder () {
     const builder = getScrtBuilder()
-    return { builder }
+    return {
+      builder,
+      async build (source: Source): Promise<Template> {
+        return await builder.build(source)
+      },
+      async buildMany (...sources: Source[]): Promise<Template[]> {
+        return await builder.buildMany(sources)
+      }
+    }
   }
 }
 
@@ -130,19 +151,51 @@ const ChainOps = {
 
 }
 
+export interface UploadDependencies {
+  agent:      Agent,
+  caching?:   boolean,
+  build?:     (source: Source) => Promise<Artifact>,
+  buildMany?: (...sources: Source[]) => Promise<Artifact[]>,
+}
+
 export interface UploadContext {
-  agent:    Agent,
-  caching?: boolean
+  uploader:           Uploader
+  upload:             (artifact: Artifact)       => Promise<Template>
+  uploadMany:         (...artifacts: Artifact[]) => Promise<Template[]>
+  buildAndUpload:     (source: Source)           => Promise<Template>
+  buildAndUploadMany: (...sources: Source[])     => Promise<Template[]>
 }
 
 export const UploadOps = {
 
   /** Add an uploader to the command context. */
-  FromFile: function enableUploadingFromFile ({ agent, caching = !config.reupload}: UploadContext) {
-    if (caching) {
-      return { uploader: new CachingFSUploader(agent) }
-    } else {
-      return { uploader: new FSUploader(agent) }
+  FromFile: function enableUploadingFromFile ({
+    agent,
+    caching = !config.reupload,
+    build,
+    buildMany
+  }: UploadDependencies): UploadContext {
+    const uploader = caching ? new CachingFSUploader(agent) : new FSUploader(agent)
+    return {
+      uploader,
+      async upload (artifact: Artifact): Promise<Template> {
+        return await uploader.upload(artifact)
+      },
+      async uploadMany (...artifacts: Artifact[]): Promise<Template[]> {
+        return await uploader.uploadMany(artifacts)
+      },
+      async buildAndUpload (source: Source): Promise<Template> {
+        if (!build) {
+          throw new Error('Builder is not specified.')
+        }
+        return await uploader.upload(await build(source))
+      },
+      async buildAndUploadMany (...sources: Source[]): Promise<Template[]> {
+        if (!buildMany) {
+          throw new Error('Builder is not specified.')
+        }
+        return await uploader.uploadMany(await buildMany(...sources))
+      }
     }
   }
 
