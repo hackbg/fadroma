@@ -43,7 +43,7 @@ export enum TypeOfToken {
 }
 
 /** Extract some comparable id from the token type */
- export function get_type_of_token_id(token: TypeOfToken | TokenType): string {
+export function getTypeOfTokenId (token: TypeOfToken | TokenType): string {
   if ((token as unknown as NativeToken).native_token) {
     return "native";
   }
