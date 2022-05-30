@@ -42,6 +42,7 @@ export function withTmpFile <T> (fn: (path: string)=>T): T {
 // originals
 export * from './sync'
 export * from './sync-json'
+export * from './sync-json'
 export * from './sync-toml'
 export * from './sync-yaml'
 

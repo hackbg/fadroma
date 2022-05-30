@@ -14,6 +14,8 @@ export class TOMLFile extends TextFile {
 }
 
 export class TOMLDirectory extends Directory {
+  File = TOMLFile
+
   has (name) {
     return existsSync(this.resolve(`${name}${TOMLFormat.extension}`))
   }

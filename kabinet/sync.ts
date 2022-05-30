@@ -11,7 +11,7 @@ export function touch (...fragments) {
   return path
 }
 
-interface PathCtor <P> {
+export interface PathCtor <P> {
   new (...fragments: string[]): P
 }
 
@@ -70,7 +70,10 @@ export class Path {
     return new (Ctor as PathCtor<D>)(this.path)
   }
 
-  asFile <F extends File> (Ctor: PathCtor<unknown> = File): F {
+  /** Default File subclass, e.g. JSONFile in JSONDirectory */
+  File = File
+
+  asFile <F extends File> (Ctor: PathCtor<unknown> = this.File): F {
     return new (Ctor as PathCtor<F>)(this.path)
   }
 

@@ -14,6 +14,8 @@ export class JSONFile extends TextFile {
 }
 
 export class JSONDirectory extends Directory {
+  File = JSONFile
+
   has (name) {
     return existsSync(this.resolve(`${name}${JSONFormat.extension}`))
   }

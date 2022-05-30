@@ -14,6 +14,8 @@ export class YAMLFile extends TextFile {
 }
 
 export class YAMLDirectory extends Directory {
+  File = YAMLFile
+
   has (name) {
     return existsSync(this.resolve(`${name}${YAMLFormat.extension}`))
   }
