@@ -106,7 +106,7 @@ export class CachingFSUploader extends FSUploader {
   async upload (artifact: Artifact): Promise<Template> {
     const receipt = this.cache.at(this.getUploadReceiptName(artifact))
     if (receipt.exists) {
-      return JSON.parse(receipt.load())
+      return receipt.load()
     }
     const template = await super.upload(artifact)
     console.info(bold(`Storing:  `), relative(cwd(), receipt.path))
