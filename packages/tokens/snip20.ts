@@ -162,7 +162,7 @@ export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
 
 export type QueryWithPermit <Q, P> = { with_permit: { query: Q, permit: P } }
 
-export function create_permit_msg <Q> (
+export function createPermitMsg <Q> (
   query:  Q,
   permit: Snip20Permit
 ): QueryWithPermit<Q, Snip20Permit> {
