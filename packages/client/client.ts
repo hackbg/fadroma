@@ -368,7 +368,7 @@ export class Client implements Instance {
     return await this.agent.execute(this, msg, opt)
   }
   /** Fetch the label, code ID, and code hash from the Chain. */
-  async populate (): Promise<void> {
+  async populate (): Promise<this> {
     const [label, codeId, codeHash] = await Promise.all([
       this.agent.getLabel(this.address),
       this.agent.getCodeId(this.address),
@@ -378,6 +378,7 @@ export class Client implements Instance {
     this.label    = label
     this.codeId   = codeId
     this.codeHash = codeHash
+    return this
   }
   /** Create a copy of this Client with all transaction fees set to the provided value.
     * If the fee is undefined, returns a copy of the client with unmodified fee config. */
