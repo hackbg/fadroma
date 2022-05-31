@@ -1,4 +1,5 @@
 import {
+  Address,
   Agent,
   Bundle,
   BundleCallback,
@@ -76,7 +77,9 @@ export class ScrtBundle extends Bundle {
     return id
   }
 
-  getClient <C extends Client> (Class: ClientCtor<C>, options: ClientOptions): C {
+  getClient <C extends Client, O extends ClientOptions> (
+    Class: ClientCtor<C, O>, options: Address|O
+  ): C {
     //@ts-ignore
     return new Class(this, options)
   }

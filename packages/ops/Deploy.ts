@@ -13,7 +13,8 @@ import type {
   Agent, 
   Chain,
   Client,
-  ClientCtor, 
+  ClientCtor,
+  ClientOptions,
   Instance,
   Label,
   Message,
@@ -111,12 +112,12 @@ export class Deployment {
     return resolve(this.path, ...fragments)
   }
 
-  getClient <C extends Client> (
+  getClient <C extends Client, O extends ClientOptions> (
     agent:  Agent,
-    Client: ClientCtor<C>,
+    Client: ClientCtor<C, O>,
     name:   string
   ): C {
-    return new Client(agent, this.get(name))
+    return new Client(agent, this.get(name) as O)
   }
 
   /** Instantiate one contract and save its receipt to the deployment. */

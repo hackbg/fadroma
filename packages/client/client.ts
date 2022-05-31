@@ -228,7 +228,9 @@ export abstract class Agent implements Executor {
   getBalance (denom = this.defaultDenom): Promise<string> {
     return Promise.resolve('0')
   }
-  getClient <C extends Client> (Client: ClientCtor<C>, arg: Address|ClientOptions): C {
+  getClient <C extends Client, O extends ClientOptions> (
+    Client: ClientCtor<C, O>, arg: Address|O
+  ): C {
     return new Client(this, arg)
   }
   query <R> (contract: Instance, msg: Message): Promise<R> {
@@ -309,8 +311,8 @@ export interface ClientOptions extends Instance {
   fee?:  IFee
   fees?: Record<string, IFee>
 }
-export interface ClientCtor<C extends Client> {
-  new (agent: Agent, options: Address|ClientOptions): C
+export interface ClientCtor<C extends Client, O extends ClientOptions> {
+  new (agent: Agent, options: Address|O): C
 }
 export class Client implements Instance {
   constructor (readonly agent: Agent, arg: Address|ClientOptions) {
@@ -383,7 +385,7 @@ export class Client implements Instance {
   /** Create a copy of this Client with all transaction fees set to the provided value.
     * If the fee is undefined, returns a copy of the client with unmodified fee config. */
   withFee (fee: IFee|undefined): this {
-    const Self = this.constructor as ClientCtor<typeof this>
+    const Self = this.constructor as ClientCtor<typeof this, any>
     if (fee) {
       return new Self(this.agent, {...this, fee, fees: {}})
     } else {
@@ -392,7 +394,7 @@ export class Client implements Instance {
   }
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   withAgent (agent: Agent): this {
-    const Self = this.constructor as ClientCtor<typeof this>
+    const Self = this.constructor as ClientCtor<typeof this, any>
     return new Self(agent, { ...this })
   }
 }
