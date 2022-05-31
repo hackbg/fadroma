@@ -7,6 +7,9 @@ import {
   CachingFSUploader,
   Chain,
   ChainMode,
+  CommandContext,
+  ConnectedContext,
+  DeployContext,
   Deployment,
   Deployments,
   FSUploader,
@@ -16,6 +19,7 @@ import {
   Source,
   Template,
   Uploader,
+  UploadContext,
   config,
   getDeployments,
   join,
@@ -158,14 +162,6 @@ export interface UploadDependencies {
   buildMany?: (...sources: Source[]) => Promise<Artifact[]>,
 }
 
-export interface UploadContext {
-  uploader:           Uploader
-  upload:             (artifact: Artifact)       => Promise<Template>
-  uploadMany:         (...artifacts: Artifact[]) => Promise<Template[]>
-  buildAndUpload:     (source: Source)           => Promise<Template>
-  buildAndUploadMany: (...sources: Source[])     => Promise<Template[]>
-}
-
 export const UploadOps = {
 
   /** Add an uploader to the command context. */
@@ -201,11 +197,6 @@ export const UploadOps = {
 
 }
 
-export interface DeployContext {
-  deployment: Deployment|undefined,
-  prefix:     string|undefined
-}
-
 export interface DeploymentsContext {
   chain:        Chain
   cmdArgs?:     any[]
@@ -216,11 +207,13 @@ export const DeployOps = {
 
   /** Create a new deployment and add it to the command context. */
   New: async function createDeployment ({
-    chain,
+    run,
+    timestamp,
     cmdArgs = [],
+    chain,
     deployments = getDeployments(chain)
-  }: DeploymentsContext): Promise<DeployContext> {
-    const [ prefix = timestamp() ] = cmdArgs
+  }: (CommandContext&ConnectedContext)): Promise<DeployContext> {
+    const [ prefix = timestamp ] = cmdArgs
     await deployments.create(prefix)
     await deployments.select(prefix)
     return DeployOps.Append({ chain })
@@ -230,7 +223,7 @@ export const DeployOps = {
   Append: async function activateDeployment ({
     chain,
     deployments = getDeployments(chain)
-  }: DeploymentsContext): Promise<DeployContext> {
+  }: ConnectedContext): Promise<DeployContext> {
     const deployment = deployments.active
     if (!deployment) {
       console.error(join(bold('No selected deployment on chain:'), chain.id))
@@ -246,23 +239,25 @@ export const DeployOps = {
 
   /** Add either the active deployment, or a newly created one, to the command context. */
   AppendOrNew: async function activateOrCreateDeployment ({
-    chain,
+    run,
+    timestamp,
     cmdArgs,
+    chain,
     deployments = getDeployments(chain)
-  }: DeploymentsContext): Promise<DeployContext> {
+  }: (CommandContext&ConnectedContext)): Promise<DeployContext> {
     if (deployments.active) {
       return DeployOps.Append({ chain })
     } else {
-      return await DeployOps.New({ chain, cmdArgs })
+      return await DeployOps.New({ timestamp, cmdArgs, run, chain, deployments })
     }
   },
 
   /** Print the status of a deployment. */
   Status: async function printStatusOfDeployment ({
-    chain,
     cmdArgs: [id] = [undefined],
+    chain,
     deployments = getDeployments(chain)
-  }: DeploymentsContext) {
+  }: (CommandContext&ConnectedContext)) {
     let deployment = deployments.active
     if (id) {
       deployment = deployments.get(id)
@@ -276,10 +271,10 @@ export const DeployOps = {
 
   /** Set a new deployment as active. */
   Select: async function selectDeployment ({
-    chain,
     cmdArgs: [id] = [undefined],
+    chain,
     deployments = getDeployments(chain)
-  }: DeploymentsContext) {
+  }: (CommandContext&ConnectedContext)) {
     const list = deployments.list()
     if (list.length < 1) {
       console.info('\nNo deployments. Create one with `deploy new`')

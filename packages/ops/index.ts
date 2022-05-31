@@ -25,44 +25,96 @@ import { Console, bold, colors, timestamp } from '@hackbg/toolbox'
 import { Chain, Agent, Artifact, Template } from '@fadroma/client'
 import { Source, Builder } from './Build'
 import { Uploader } from './Upload'
-import { Deployment } from './Deploy'
+import { Deployment, Deployments } from './Deploy'
 
 export type Operation<T> = (context: OperationContext) => Promise<T>
 
-export interface OperationContext {
+export interface CommandContext {
+  /** The moment at which the operation commenced. */
   timestamp:   string
-  /** Identify the blockhain being used. */
-  chain:       Chain
-  /** An identity operating on the chain. */
-  agent:       Agent
-  /** Override agent used for uploads. */
-  uploadAgent: Agent
-  /** Override agent used for deploys. */
-  deployAgent: Agent
-  /** Override agent used for normal operation. */
-  clientAgent: Agent
-  /** Manages a collection of interlinked contracts. */
-  deployment?: Deployment,
-  /** Prefix to the labels of all deployed contracts.
-    * Identifies which deployment they belong to. */
-  prefix?:     string,
-  /** Appended to contract labels in devnet deployments for faster iteration. */
-  suffix?:     string,
+
   /** Arguments from the CLI invocation. */
   cmdArgs:     string[]
-  /** Run a procedure in the migration context.
-    * Procedures are async functions that take 1 argument:
-    * the result of merging `args?` into `context`. */
-  run <T extends object, U> (procedure: Function, args?: T): Promise<U>
 
-  ref?:       string
-  src?:       Source
-  srcs?:      Source[]
-  builder?:   Builder
-  uploader?:  Uploader
-  template?:  Template
-  templates?: Template[]
+  /** Run a procedure in the operation context.
+    * - Procedures are functions that take 1 argument:
+    *   the result of merging `args?` into `context`.
+    * - Procedures can be sync or async
+    * - The return value of a procedure is *not* merged
+    *   into the context for subsequent steps. */
+  run <T extends object, U> (procedure: Function, args?: T): Promise<U>
 }
+
+export interface ConnectedContext {
+  /** Identifies the blockhain being used. */
+  chain:       Chain
+
+  /** Collection of interlinked contracts that are known for the active chain. */
+  deployments?: Deployments
+}
+
+export interface AuthenticatedContext {
+  /** An identity operating on the chain. */
+  agent:       Agent
+
+  /** Override agent used for normal operation. */
+  clientAgent: Agent
+}
+
+export interface BuildContext {
+  ref?: string
+
+  src?: Source
+
+  srcs?: Source[]
+
+  builder?: Builder
+
+  build?: (source: Source) => Promise<Artifact>
+
+  buildMany?: (...sources: Source[]) => Promise<Artifact[]>
+}
+
+export interface UploadContext {
+  uploader?: Uploader
+
+  upload: (artifact: Artifact) => Promise<Template>
+
+  uploadMany: (...artifacts: Artifact[]) => Promise<Template[]>
+
+  buildAndUpload: (source: Source) => Promise<Template>
+
+  buildAndUploadMany: (...sources: Source[]) => Promise<Template[]>
+}
+
+export interface DeployContext {
+
+  template?:    Template
+
+  templates?:   Template[]
+
+  /** Override agent used for deploys. */
+  deployAgent?: Agent
+
+  /** Currently selected collection of interlinked contracts. */
+  deployment?:  Deployment
+
+  /** Prefix to the labels of all deployed contracts.
+    * Identifies which deployment they belong to. */
+  prefix?:      string
+
+  /** Appended to contract labels in devnet deployments for faster iteration. */
+  suffix?:      string
+
+}
+
+export type OperationContext =
+  CommandContext       &
+  ConnectedContext     &
+  AuthenticatedContext &
+  BuildContext         &
+  UploadContext        &
+  DeployContext
 
 const console = Console('Fadroma Ops')
 
