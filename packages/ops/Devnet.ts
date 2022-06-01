@@ -209,7 +209,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
 
   async spawn () {
     // tell the user that we have begun
-    console.info(`Spawning new node...`, this)
+    console.info(`Spawning new node...`)
     // if no port is specified, use a random port
     if (!this.port) {
       this.port = await freePort()
