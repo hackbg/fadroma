@@ -1,11 +1,7 @@
-import { Console, prompts, colors, bold } from '@hackbg/konzola'
+import { prompts, colors, bold } from '@hackbg/konzola'
 import { Path, TextFile, JSONFile, YAMLFile } from '@hackbg/kabinet'
 import { execSync } from 'child_process'
 import pkg from '../package.json'
-
-const console = Console('Fadroma')
-
-create()
 
 async function create () {
   console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
@@ -17,12 +13,15 @@ async function create () {
   check('Cargo:  ', 'cargo --version')
   check('Docker: ', 'docker --version')
   check('Nix:    ', 'nix --version')
-  const name = await askProjectName()
+  const project   = await askProjectName()
   const contracts = await askContractNames()
-  const root = await setupRoot(name)
-  await setupGit(root)
-  await setupNode(root)
-  await setupCargo(root)
+  const root      = await setupRoot(project, contracts)
+  setupGit(root)
+  setupNode(root, project, contracts)
+  setupCargoWorkspace(root, project, contracts)
+  setupApiCrate(root, project, contracts)
+  setupSharedCrate(root, project, contracts)
+  setupContractCrates(root, project, contracts)
   //await setupDrone(root) // TODO
   //await setupGHA(root)   // TODO
   //await setupNix(root)   // TODO
@@ -30,11 +29,14 @@ async function create () {
 }
 
 function check (dependency, command) {
+  let version = null
   try {
     const version = execSync(command)
     console.log(' ', bold(dependency), String(version).trim())
   } catch (e) {
     console.log(' ', bold(dependency), colors.yellow('(not found)'))
+  } finally {
+    return version
   }
 }
 
@@ -51,11 +53,16 @@ async function askContractNames () {
   const contracts = new Set()
   while (true) {
     if (action === 'add') {
-      contracts.add(await prompts.text({
+      const name = await prompts.text({
         type:    'text',
         name:    'projectName',
-        message: 'Enter a contract name (lowercase alphanumerics and hyphens only)'
-      }))
+        message: 'Enter a contract name (lowercase alphanumerics only)'
+      })
+      if (name === 'lib') {
+        console.info('"lib" is a reserved name. Try something else.')
+        continue
+      }
+      contracts.add(name)
     }
     console.log(' ', bold('Contracts that will be created:'))
     for (const contractName of [...contracts].sort()) {
@@ -87,7 +94,7 @@ async function askContractNames () {
   return contracts
 }
 
-async function setupRoot (name) {
+async function setupRoot (name, contracts) {
   const root = new Path(process.cwd()).in(name)
   if (root.exists) {
     console.log(`\n  ${name}: already exists.`)
@@ -98,39 +105,123 @@ async function setupRoot (name) {
   return root
 }
 
-async function setupGit (root) {
+function setupGit (root) {
   execSync('git init -b main', { cwd: root.path })
   root.at('.gitignore').as(TextFile).save(``)
 }
 
-async function setupNode (root) {
+function setupNode (root, project, contracts) {
   root.at('package.json').as(JSONFile).save({
-    name:    root.name,
-    version: '0.1.0'
+    name:    `@${project}/workspace`,
+    version: '0.1.0',
+    private: true
   })
+  root.in('api').at('package.json').as(JSONFile).save({
+    name:    `@${project}/api`,
+    version: '0.1.0',
+    dependencies: {
+      '@fadroma/client': '^2'
+    }
+  })
+  for (const contract of contracts) {
+    const Contract = contract[0].toUpperCase() + contract.slice(1)
+    root.in('api').at(`${contract}.ts`).as(TextFile).save(dedent(`
+      // Client for contract: ${contract}
+      import { Client } from '@fadroma/client'
+      class ${Contract} extends Client {
+        fees = {}
+        // See https://fadroma.tech/guides/client-classes
+      }
+    `))
+  }
 }
 
-async function setupCargo (root) {
-  root.at('Cargo.toml').as(TextFile).save(
-`
-[workspace]
-members = []
+function setupCargoWorkspace (root, project, contracts) {
+  root.at('Cargo.toml').as(TextFile).save(dedent(`
+    [workspace]
+    members = [
+      "./api",
+      "./shared",
+      ${[...contracts].map(name=>`"./contracts/${name};`).join('      \n')}
+    ]
 
-[profile.release]
-codegen-units    = 1
-debug            = false
-debug-assertions = false
-incremental      = false
-lto              = true
-opt-level        = 3
-overflow-checks  = true
-panic            = 'abort'
-rpath            = false
-`.trim()
-  )
+    [profile.release]
+    codegen-units    = 1
+    debug            = false
+    debug-assertions = false
+    incremental      = false
+    lto              = true
+    opt-level        = 3
+    overflow-checks  = true
+    panic            = 'abort'
+    rpath            = false
+  `))
 }
 
-async function setupFadroma (root) {
+function setupApiCrate (root, project, contracts) {
+  root.in('api').at('Cargo.toml').as(TextFile).save(dedent(`
+    [package]
+    name = "${project}-api"
+
+    [lib]
+    path = "lib.rs"
+
+    [dependencies]
+    schemars = "0.7"
+    serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
+  `))
+  root.in('api').at('lib.rs').as(TextFile).save(dedent(`
+    // Messages of contracts are defined in this crate.
+    ${[...contracts].map(name=>`pub mod ${name};`).join('    \n')}
+  `))
+  for (const contract of contracts) {
+    root.in('api').at(`${contract}.rs`).as(TextFile).save(dedent(`
+      // API definition for contract: ${contract}
+      pub struct Init {}
+      pub enum Handle {}
+      pub enum Query {}
+    `))
+  }
+}
+
+function setupSharedCrate (root, project, contracts) {
+  // Create the Shared crate
+  root.in('shared').at('Cargo.toml').as(TextFile).save(dedent(`
+    [package]
+    name = "${project}-shared"
+
+    [lib]
+    path = "lib.rs"
+
+    [dependencies]
+  `))
+  root.in('shared').at('lib.rs').as(TextFile).save(dedent(`
+    # Entities defined here can be accessed from any contract without circular dependencies.
+  `))
+}
+
+function setupContractCrates (root, project, contracts) {
+  for (const contract of [...contracts]) {
+    root.in('contracts').in(contract).at('Cargo.toml').as(TextFile).save(dedent(`
+      [package]
+      name    = "${contract}"
+      version = "0.1.0"
+      edition = "2018"
+
+      [lib]
+      crate-type = ["cdylib", "rlib"]
+      doctest    = false
+      path       = "${contract}.rs"
+
+      [dependencies]
+      fadroma  = { path = "../../../fadroma/crates/fadroma", features = ["scrt"] }
+    `))
+    root.in('contracts').in(contract).at(`${contract}.rs`).as(TextFile).save(dedent(`
+    `))
+  }
+}
+
+function setupFadroma (root) {
   root.at('fadroma.yml').as(YAMLFile).save()
 }
 
@@ -185,3 +276,18 @@ async function setupFadroma (root) {
   //// git init
   //// git commit
 //}
+
+const RE_NON_WS = /\S|$/
+
+function dedent (string) {
+  let minWS = Infinity
+  const lines = string.split('\n')
+  for (const line of lines) {
+    if (line.trim().length === 0) continue // don't take into account blank lines
+    minWS = Math.min(minWS, line.search(RE_NON_WS))
+  }
+  const dedentedMessage = lines.map(line=>line.slice(minWS)).join('\n')
+  return dedentedMessage.trim()
+}
+
+create()
