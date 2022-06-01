@@ -22,10 +22,7 @@ async function create () {
   setupApiCrate(root, project, contracts)
   setupSharedCrate(root, project, contracts)
   setupContractCrates(root, project, contracts)
-  //await setupDrone(root) // TODO
-  //await setupGHA(root)   // TODO
-  //await setupNix(root)   // TODO
-  await setupFadroma(root)
+  setupFadroma(root)
 }
 
 function check (dependency, command) {
@@ -58,8 +55,8 @@ async function askContractNames () {
         name:    'projectName',
         message: 'Enter a contract name (lowercase alphanumerics only)'
       })
-      if (name === 'lib') {
-        console.info('"lib" is a reserved name. Try something else.')
+      if (name === 'lib' || name === 'api') {
+        console.info(`"${name}" is a reserved name. Try something else.`)
         continue
       }
       contracts.add(name)
@@ -141,7 +138,7 @@ function setupCargoWorkspace (root, project, contracts) {
     [workspace]
     members = [
       "./api",
-      "./shared",
+      "./lib",
       ${[...contracts].map(name=>`"./contracts/${name};`).join('      \n')}
     ]
 
@@ -164,13 +161,13 @@ function setupApiCrate (root, project, contracts) {
     name = "${project}-api"
 
     [lib]
-    path = "lib.rs"
+    path = "api.rs"
 
     [dependencies]
     schemars = "0.7"
     serde    = { version = "1.0.103", default-features = false, features = ["derive"] }
   `))
-  root.in('api').at('lib.rs').as(TextFile).save(dedent(`
+  root.in('api').at('api.rs').as(TextFile).save(dedent(`
     // Messages of contracts are defined in this crate.
     ${[...contracts].map(name=>`pub mod ${name};`).join('    \n')}
   `))
@@ -186,16 +183,16 @@ function setupApiCrate (root, project, contracts) {
 
 function setupSharedCrate (root, project, contracts) {
   // Create the Shared crate
-  root.in('shared').at('Cargo.toml').as(TextFile).save(dedent(`
+  root.in('lib').at('Cargo.toml').as(TextFile).save(dedent(`
     [package]
-    name = "${project}-shared"
+    name = "${project}-lib"
 
     [lib]
     path = "lib.rs"
 
     [dependencies]
   `))
-  root.in('shared').at('lib.rs').as(TextFile).save(dedent(`
+  root.in('lib').at('lib.rs').as(TextFile).save(dedent(`
     # Entities defined here can be accessed from any contract without circular dependencies.
   `))
 }
@@ -214,9 +211,52 @@ function setupContractCrates (root, project, contracts) {
       path       = "${contract}.rs"
 
       [dependencies]
-      fadroma  = { path = "../../../fadroma/crates/fadroma", features = ["scrt"] }
+      fadroma        = { path = "../../../fadroma/crates/fadroma", features = ["scrt"] }
+      ${project}-api = { path = "../../api" }
+      ${project}-lib = { path = "../../lib" }
     `))
     root.in('contracts').in(contract).at(`${contract}.rs`).as(TextFile).save(dedent(`
+      use fadroma::*;
+      use ${project}_api::${contract}::{Init, Handle, Query};
+      use ${project}_lib as lib;
+
+      pub fn init<S: Storage, A: Api, Q: Querier>(
+          deps: &mut Extern<S, A, Q>,
+          env:  Env,
+          msg:  Init
+      ) -> StdResult<InitResponse> {
+          Ok(InitResponse::default())
+      }
+
+      pub fn handle<S: Storage, A: Api, Q: Querier>(
+          deps: &mut Extern<S, A, Q>,
+          env:  Env,
+          msg:  Handle
+      ) -> StdResult<HandleResponse> {
+          Ok(HandleResponse::default())
+      }
+
+      pub fn query<S: Storage, A: Api, Q: Querier>(
+          deps: &mut Extern<S, A, Q>,
+          env:  Env,
+          msg:  Handle
+      ) -> StdResult<Binary> {
+          Ok(Binary(vec![]))
+      }
+
+      #[cfg(target_arch="wasm32")]
+      mod wasm {
+          use fadroma::{do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage};
+          #[no_mangle] extern "C" fn init(env_ptr: u32, msg_ptr: u32) -> u32 {
+              do_init(&super::init::<ExternalStorage, ExternalApi, ExternalQuerier>, env_ptr, msg_ptr)
+          }
+          #[no_mangle] extern "C" fn handle(env_ptr: u32, msg_ptr: u32) -> u32 {
+              do_handle(&super::handle::<ExternalStorage, ExternalApi, ExternalQuerier>, env_ptr, msg_ptr)
+          }
+          #[no_mangle] extern "C" fn query(msg_ptr: u32) -> u32 {
+              do_query(&super::query::<ExternalStorage, ExternalApi, ExternalQuerier>, msg_ptr)
+          }
+      }
     `))
   }
 }
@@ -224,58 +264,6 @@ function setupContractCrates (root, project, contracts) {
 function setupFadroma (root) {
   root.at('fadroma.yml').as(YAMLFile).save()
 }
-
-//function foo () {
-  //process.chdir(name)
-  //await mkdirp("artifacts")
-  //await mkdirp("contracts")
-  //await mkdirp("contracts/hello")
-  //await mkdirp("contracts/hello/tests")
-  //await mkdirp("receipts")
-  //await mkdirp("scripts")
-  //await mkdirp("settings")
-
-  //// create project content
-  //await Promise.all([
-    //writeFile('.gitignore', '', 'utf8'),
-    //writeFile('Cargo.toml', '', 'utf8'),
-    //writeFile('README.md',  '', 'utf8'),
-    //writeFile('package.json',        '', 'utf8'),
-    //writeFile('pnpm-workspace.yaml', '', 'utf8'),
-    //writeFile('shell.nix',           '', 'utf8'),
-    //writeFile('tsconfig.json',       '', 'utf8'),
-
-    //writeFile('contracts/hello/Cargo.toml',   '', 'utf8'),
-    //writeFile('contracts/hello/api.ts',       '', 'utf8'),
-    //writeFile('contracts/hello/hello.rs',     '', 'utf8'),
-    //writeFile('contracts/hello/package.json', '', 'utf8'),
-    //writeFile('contracts/hello/tests/mod.rs', '', 'utf8'),
-
-    //writeFile('scripts/Dev.ts.md',   '', 'utf8'),
-    //writeFile('scripts/Ops.ts.md',   '', 'utf8'),
-  //])
-
-  //console.log('\n  Project created.')
-
-  //// create /README.md
-  //// create /package.json
-  //// create /tsconfig.json
-  //// create /pnpm-workspace.yaml
-  //// create /shell.nix
-  //// create /scripts/Dev.ts.md
-  //// create /scripts/Ops.ts.md
-  //// create /Cargo.toml
-  //// create /contracts/hello/Cargo.toml
-  //// create /contracts/hello/package.json
-  //// create /contracts/hello/hello.rs
-  //// create /contracts/hello/api.ts
-  //// create /contracts/hello/tests/mod.ts
-  //// create /artifacts
-  //// create /receipts
-  //// run cargo build
-  //// git init
-  //// git commit
-//}
 
 const RE_NON_WS = /\S|$/
 
