@@ -1,14 +1,18 @@
 #!/usr/bin/env node
 const {argv} = process
+const [interpreter, script, command, ...args] = argv
 const {main} = require('@hackbg/ganesha')
-switch (argv[2]) {
+switch (command) {
   case 'version':
     console.log(`\nhttps://hack.bg presents: Fadroma v${require('./package.json').version}`)
     console.log(`If you're seeing this then Fadroma installed successfully.\n`)
     break
-  case 'build': // build list of sources
-    main([argv[0], argv[1], require.resolve('./commands/build.ts'), ...argv.slice(3)])
+  case 'create': // scaffold new project
+    main([interpreter, script, require.resolve('./commands/create.ts'), ...args])
     break
-  default: // run script
+  case 'build': // build list of sources
+    main([interpreter, script, require.resolve('./commands/build.ts'), ...args])
+    break
+  default: // run passed script
     main()
 }
