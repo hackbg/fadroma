@@ -8,7 +8,7 @@ export class YAMLFile extends TextFile {
     return YAML.parse(super.load())
   }
   save (data) {
-    super.save(YAML.stringify(data, null, 2))
+    super.save(YAML.dump(data, null, 2))
     return this
   }
 }
