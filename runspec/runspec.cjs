@@ -116,6 +116,7 @@ async function runSpec (suites, selected = process.argv.slice(2)) {
         } else {
           output += `${LABELS.FAIL}  ${name}  ${inspect(data)}\n`
         }
+        failed++
       }
     }
 

@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/runspec",
-  "version":     "2.2.0",
+  "version":     "2.2.1",
   "main":        "runspec.cjs",
   "types":       "runspec.d.ts",
   "homepage":    "https://github.com/hackbg/toolbox",
