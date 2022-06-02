@@ -333,7 +333,7 @@ export async function mockAPIEndpoint (port) {
   await new Promise(resolve=>{
     server = app.listen(port, () => {
       url = `http://localhost:${port}`
-      console.debug(`Mock Scrt listening on ${url}`)
+      //console.debug(`Mock Scrt listening on ${url}`)
       resolve()
     })
   })
@@ -345,7 +345,7 @@ export async function mockAPIEndpoint (port) {
     port,
     state,
     close () {
-      console.trace(`Closing ${url}`)
+      console.info(`Closing ${url}`)
       clearInterval(blockIncrement)
       server.close()
     }
