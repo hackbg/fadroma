@@ -48,6 +48,16 @@ export interface NativeToken {
 /** An amount of a token. */
 export class TokenAmount {
   constructor (readonly token: Token, readonly amount: Uint128) {}
+
+  get asNativeBalance (): ICoin[]|undefined {
+    let result: ICoin[] | undefined = []
+    if (getTokenKind(this.token) == TokenKind.Native) {
+      result.push(new Coin(this.amount, (this.token as NativeToken).native_token.denom))
+    } else {
+      result = undefined
+    }
+    return result
+  }
 }
 
 /** A pair of two token descriptors. */
@@ -85,5 +95,18 @@ export class TokenPairAmount {
   ) {}
   get reverse () {
     return new TokenPairAmount(this.pair.reverse, this.amount_1, this.amount_0)
+  }
+  get asNativeBalance () {
+    let result: ICoin[] | undefined = []
+    if (getTokenKind(this.pair.token_0) == TokenKind.Native) {
+      const {native_token:{denom}} = this.pair.token_0 as NativeToken
+      result.push(new Coin(this.amount_0, denom))
+    } else if (getTokenKind(this.pair.token_1) == TokenKind.Native) {
+      const {native_token:{denom}} = this.pair.token_1 as NativeToken
+      result.push(new Coin(this.amount_1, denom))
+    } else {
+      result = undefined
+    }
+    return result
   }
 }
