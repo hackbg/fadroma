@@ -41,6 +41,7 @@ export interface Querier {
   getHash   (address: Address): Promise<string>
 }
 export interface Executor extends Querier {
+  get height ():  Promise<number>
   fees:           AgentFees
   chain:          Chain
   address?:       Address
