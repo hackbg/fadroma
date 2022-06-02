@@ -138,11 +138,11 @@ export class Snip20 extends Client {
   send (
     amount:    string | number | bigint,
     recipient: Address,
-    msg?:      string | object
+    callback?: string | object
   ) {
-    return this.execute({
-      send: { amount, recipient, msg }
-    })
+    const callbackB64 = Buffer.from(JSON.stringify(callback)).toString('base64')
+    const msg = { send: { amount, recipient, msg: callbackB64 } }
+    return this.execute(msg)
   }
 
   vk = new ViewingKeyClient(this.agent, this)
