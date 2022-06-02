@@ -164,7 +164,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     if (memo) {
       console.warn(constants.WARN_NO_MEMO)
     }
-    return await this.api.tx.compute.executeContract({
+    const result = await this.api.tx.compute.executeContract({
       sender: this.address,
       contractAddress: address,
       codeHash,
@@ -173,6 +173,13 @@ export class ScrtRPCAgent extends ScrtAgent {
     }, {
       gasLimit: Number(fee.amount[0].amount)
     })
+    if (result.rawLog && result.rawLog.startsWith('failed to execute message')) {
+      throw Object.assign(new Error('ScrtRPCAgent: Failed to execute message'), {
+        rawLog:  result.rawLog,
+        jsonLog: result.jsonLog
+      })
+    }
+    return result
   }
 }
 
