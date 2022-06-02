@@ -19,7 +19,7 @@ export class ViewingKeyClient extends Client {
     return this.execute({
       set_viewing_key: { key }
     }).then((tx) => {
-      console.info(tx)
+      //console.info(tx)
       return tx as R
       //status: JSON.parse(decode(fromHex(tx.data))).set_viewing_key.key,
     })
