@@ -387,7 +387,9 @@ export class Client implements Instance {
     opt.fee = opt.fee || this.getFee(msg)
     return await this.agent.execute(this, msg, opt)
   }
-  /** Fetch the label, code ID, and code hash from the Chain. */
+  /** Fetch the label, code ID, and code hash from the Chain.
+    * You can override this method to populate custom contract info from the chain on your client,
+    * e.g. fetch the symbol and decimals of a token contract. */
   async populate (): Promise<this> {
     const [label, codeId, codeHash] = await Promise.all([
       this.agent.getLabel(this.address),
