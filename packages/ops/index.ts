@@ -134,9 +134,10 @@ export async function runOperation (
       if (!procedure) {
         throw new Error('Tried to run missing procedure.')
       }
+      const params = Object.keys(args)
       console.info(
-        bold('Running procedure:'), procedure.name||'(unnamed)',
-        '{', Object.keys(args).join(' '), '}'
+        'Running procedure', bold(procedure.name||'(unnamed)'),
+        ...((params.length > 0) ? ['with custom', bold(params.join(', '))] : [])
       )
       try {
         return await procedure({ ...context, ...args })
