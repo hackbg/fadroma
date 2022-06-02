@@ -1,6 +1,6 @@
 import { Address, Client, Executor, Uint128 } from '@fadroma/client'
 import { Permit, ViewingKeyClient } from '@fadroma/client-scrt'
-import { Console } from '@hackbg/konzola'
+import { Console, bold } from '@hackbg/konzola'
 import { CustomToken } from './descriptors'
 
 const randomHex = () => { throw new Error('randomHex: TODO') }
@@ -9,16 +9,10 @@ const console = Console('Fadroma Tokens')
 
 export class Snip20 extends Client {
 
-  static async fromDescriptor (agent: Executor, descriptor: CustomToken) {
-    const {
-      custom_token: {
-        contract_addr: address,
-        token_code_hash: codeHash
-      }
-    } = descriptor
-    const token = new Snip20(agent, { address, codeHash })
-    const name = (await token.getTokenInfo()).symbol
-    return { name, token }
+  static fromDescriptor (agent: Executor, descriptor: CustomToken): Snip20 {
+    const { custom_token } = descriptor
+    const { contract_addr: address, token_code_hash: codeHash } = custom_token
+    return new Snip20(agent, { address, codeHash })
   }
 
   /** Return the address and code hash of this token in the format
@@ -106,8 +100,12 @@ export class Snip20 extends Client {
   /** Increase allowance to spender */
   increaseAllowance (
     amount:  string | number | bigint,
-    spender: string,
+    spender: Address,
   ) {
+    console.info(
+      `${bold(this.agent.address)}: increasing allowance of`,
+      bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.address))
+    )
     return this.execute({
       increase_allowance: { amount: String(amount), spender }
     })
@@ -116,7 +114,7 @@ export class Snip20 extends Client {
   /** Decrease allowance to spender */
   decreaseAllowance (
     amount:  string | number | bigint,
-    spender: string,
+    spender: Address,
   ) {
     return this.execute({
       decrease_allowance: { amount: String(amount), spender }
