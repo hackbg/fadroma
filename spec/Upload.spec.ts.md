@@ -67,6 +67,7 @@ test({
 ## Caching
 
 ```typescript
+import { Path, JSONDirectory } from '@hackbg/kabinet'
 import { CachingFSUploader, withTmpFile, withTmpDir } from '../index'
 import { resolve } from 'path'
 
@@ -92,7 +93,7 @@ test({
   async 'upload 1 artifact with CachingFSUploader#upload' ({ ok }) {
     await withTmpDir(async cacheDir=>{
       const agent = mockAgent()
-      const cache = { make () { return this }, resolve: (...args) => resolve(cacheDir, ...args) }
+      const cache = new Path(cacheDir).in('uploads').as(JSONDirectory)
       const uploader = new CachingFSUploader(agent, cache)
       await withTmpFile(async location=>{
         const url = pathToFileURL(location)
@@ -103,7 +104,7 @@ test({
   async 'upload any number of artifacts with CachingFSUploader#uploadMany' ({ ok }) {
     await withTmpDir(async cacheDir=>{
       const agent = mockAgent()
-      const cache = { make () { return this }, resolve: (...args) => resolve(cacheDir, ...args) }
+      const cache = new Path(cacheDir).in('uploads').as(JSONDirectory)
       const uploader = new CachingFSUploader(agent, cache)
       ok(await uploader.uploadMany())
       ok(await uploader.uploadMany([]))
