@@ -1,4 +1,4 @@
-import { Agent, Client, Address, Uint128 } from '@fadroma/client'
+import { Address, Client, Executor, Uint128 } from '@fadroma/client'
 import { Permit, ViewingKeyClient } from '@fadroma/client-scrt'
 import { Console } from '@hackbg/konzola'
 import { CustomToken } from './descriptors'
@@ -9,7 +9,7 @@ const console = Console('Fadroma Tokens')
 
 export class Snip20 extends Client {
 
-  static async fromDescriptor (agent: Agent, descriptor: CustomToken) {
+  static async fromDescriptor (agent: Executor, descriptor: CustomToken) {
     const {
       custom_token: {
         contract_addr: address,
@@ -53,27 +53,27 @@ export class Snip20 extends Client {
   }
 
   /** Change the admin of the token, who can set the minters */
-  changeAdmin <R> (address: string): Promise<R> {
+  changeAdmin (address: string) {
     return this.execute({ change_admin: { address } })
   }
 
   /** Set specific addresses to be minters, remove all others */
-  setMinters <R> (minters: Array<string>): Promise<R> {
+  setMinters (minters: Array<string>) {
     return this.execute({ set_minters: { minters } })
   }
 
   /** Add addresses to be minters */
-  addMinters <R> (minters: Array<string>): Promise<R> {
+  addMinters (minters: Array<string>) {
     return this.execute({
       add_minters: { minters, padding: null }
     })
   }
 
   /** Mint tokens */
-  mint <R> (
+  mint (
     amount:    string | number | bigint,
     recipient: string | undefined = this.agent.address
-  ): Promise<R> {
+  ) {
     if (!recipient) {
       throw new Error('Snip20#mint: specify recipient')
     }
@@ -89,30 +89,30 @@ export class Snip20 extends Client {
   }
 
   /** Increase allowance to spender */
-  increaseAllowance <R> (
+  increaseAllowance (
     amount:  string | number | bigint,
     spender: string,
-  ): Promise<R> {
+  ) {
     return this.execute({
       increase_allowance: { amount: String(amount), spender }
     })
   }
 
   /** Decrease allowance to spender */
-  decreaseAllowance <R> (
+  decreaseAllowance (
     amount:  string | number | bigint,
     spender: string,
-  ): Promise<R> {
+  ) {
     return this.execute({
       decrease_allowance: { amount: String(amount), spender }
     })
   }
 
   /** Transfer tokens to address */
-  transfer <R> (
+  transfer (
     amount:    string | number | bigint,
     recipient: Address,
-  ): Promise<R> {
+  ) {
     return this.execute({
       transfer: { amount, recipient }
     })
@@ -120,11 +120,11 @@ export class Snip20 extends Client {
 
   /** Send tokens to address.
     * Same as transfer but allows for receive callback. */
-  send <R> (
+  send (
     amount:    string | number | bigint,
     recipient: Address,
     msg?:      string | object
-  ): Promise<R> {
+  ) {
     return this.execute({
       send: { amount, recipient, msg }
     })

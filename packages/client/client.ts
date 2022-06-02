@@ -41,13 +41,18 @@ export interface Querier {
   getHash   (address: Address): Promise<string>
 }
 export interface Executor extends Querier {
+  fees:           AgentFees
   chain:          Chain
   address?:       Address
-  upload          (code: Uint8Array):   Promise<Template>
-  uploadMany      (code: Uint8Array[]): Promise<Template[]>
-  instantiate     (template: Template, label: string, msg: Message):   Promise<Instance>
-  instantiateMany (configs: [Template, string, Message][]):            Promise<Instance[]>
-  execute <R>     (contract: Instance, msg: Message, opts?: ExecOpts): Promise<R>
+  upload          (code: Uint8Array):   Promise<void|Template>
+  uploadMany      (code: Uint8Array[]): Promise<void|Template[]>
+  instantiate     (template: Template, label: string, msg: Message):   Promise<void|Instance>
+  instantiateMany (configs: [Template, string, Message][]):            Promise<void|Instance[]>
+  execute   <R>   (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|R>
+  bundle    (): Bundle
+  getClient <C extends Client, O extends ClientOptions> (
+    Client: ClientCtor<C, O>, arg: Address|O
+  ): C
 }
 export interface ExecOpts {
   fee?:  IFee
@@ -185,10 +190,10 @@ export abstract class Agent implements Executor {
   address?: Address
   /** The friendly name of the agent. */
   name?:    string
+  /** Default transaction fees to use for interacting with the chain. */
+  fees:     AgentFees
   /** The default denomination in which the agent operates. */
   abstract defaultDenom: string
-  /** Default transaction fees to use for interacting with the chain. */
-  fees?: AgentFees
   /** This agent's balance in the chain's native token. */
   get balance (): Promise<string> {
     return this.getBalance(this.defaultDenom)
@@ -249,7 +254,7 @@ export abstract class Agent implements Executor {
       })
     ))
   }
-  bundle <T extends Bundle> (): T {
+  bundle (): Bundle {
     //@ts-ignore
     return new this.Bundle(this)
   }
@@ -264,6 +269,7 @@ export abstract class Bundle implements Executor {
 
   get chain   () { return this.agent.chain   }
   get address () { return this.agent.address }
+  get fees    () { return this.agent.fees    }
 
   getCodeId (address: Address) { return this.agent.getCodeId(address) }
   getLabel  (address: Address) { return this.agent.getLabel(address)  }
@@ -305,6 +311,17 @@ export abstract class Bundle implements Executor {
   get nextBlock (): Promise<void> {
     throw new Error("can't wait for next block inside bundle")
   }
+
+  bundle (): Bundle {
+    throw new Error('Bundle#bundle not implemented')
+  }
+
+  getClient <C extends Client, O extends ClientOptions> (
+    Client: ClientCtor<C, O>, arg: Address|O
+  ): C {
+    return new Client(this, arg)
+  }
+
 }
 export interface ClientOptions extends Instance {
   name?: string
@@ -312,10 +329,10 @@ export interface ClientOptions extends Instance {
   fees?: Record<string, IFee>
 }
 export interface ClientCtor<C extends Client, O extends ClientOptions> {
-  new (agent: Agent, options: Address|O): C
+  new (agent: Executor, options: Address|O): C
 }
 export class Client implements Instance {
-  constructor (readonly agent: Agent, arg: Address|ClientOptions) {
+  constructor (readonly agent: Executor, arg: Address|ClientOptions) {
     if (typeof arg === 'string') {
       this.address  = arg
     } else {
@@ -365,7 +382,7 @@ export class Client implements Instance {
     return await this.agent.query(this, msg)
   }
   /** Execute a transaction on the specified contract as the specified Agent. */
-  async execute <R> (msg: Message, opt: ExecOpts = {}): Promise<R> {
+  async execute <R> (msg: Message, opt: ExecOpts = {}): Promise<void|R> {
     opt.fee = opt.fee || this.getFee(msg)
     return await this.agent.execute(this, msg, opt)
   }
@@ -393,7 +410,7 @@ export class Client implements Instance {
     }
   }
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  withAgent (agent: Agent): this {
+  withAgent (agent: Executor): this {
     const Self = this.constructor as ClientCtor<typeof this, any>
     return new Self(agent, { ...this })
   }

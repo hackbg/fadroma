@@ -45,9 +45,9 @@ export class ScrtBundle extends Bundle {
 
   depth = 0
 
-  bundle () {
+  bundle (): Bundle {
     console.warn('Nest bundles with care. Depth:', ++this.depth)
-    return this
+    return this as Bundle
   }
 
   //@ts-ignore

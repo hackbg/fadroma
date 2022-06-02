@@ -99,7 +99,7 @@ export abstract class CachingBuilder extends Builder {
       const outputDir = resolve(workspace, 'artifacts')
       const location  = resolve(outputDir, artifactName(crate, ref))
       if (existsSync(location)) {
-        console.info('✅ Exists, not rebuilding:', bold(relative(cwd(), location)))
+        console.info('Exists, not rebuilding:', bold(relative(cwd(), location)))
         return { url: pathToFileURL(location), codeHash: codeHashForPath(location) }
       }
     }
