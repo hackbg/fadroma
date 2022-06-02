@@ -173,11 +173,11 @@ export class ScrtRPCAgent extends ScrtAgent {
     }, {
       gasLimit: Number(fee.amount[0].amount)
     })
-    if (result.rawLog && result.rawLog.startsWith('failed to execute message')) {
-      throw Object.assign(new Error('ScrtRPCAgent: Failed to execute message'), {
-        rawLog:  result.rawLog,
-        jsonLog: result.jsonLog
-      })
+    // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+    if (result.code !== 0) {
+      const error = `ScrtRPCAgent#execute: gRPC error ${result.code}: ${result.rawLog}`
+      // TODO decode event contents so the error message doesn't take so many lines
+      throw Object.assign(new Error(error), result)
     }
     return result
   }
@@ -223,7 +223,11 @@ export class ScrtRPCBundle extends ScrtBundle {
     const gas   = msgs.length * limit
     try {
       const txResult = await this.agent.api.tx.broadcast(msgs, { gasLimit: gas })
-      const results  = this.collectSubmitResults(msgs, txResult)
+      if (txResult.code !== 0) {
+        const error = `ScrtRPCBundle#execute: gRPC error ${txResult.code}: ${txResult.rawLog}`
+        throw Object.assign(new Error(error), txResult)
+      }
+      const results = this.collectSubmitResults(msgs, txResult)
       return results
     } catch (err) {
       await this.handleSubmitError(err)
@@ -285,7 +289,8 @@ export class ScrtRPCBundle extends ScrtBundle {
   }
 
   protected async handleSubmitError (err) {
-    console.error(err)
+    console.error('Submitting bundle failed:', err.message)
+    console.error('Decrypting gRPC bundle errors is not implemented.')
     process.exit(124)
   }
 
