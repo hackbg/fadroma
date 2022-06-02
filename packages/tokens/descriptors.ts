@@ -47,8 +47,11 @@ export interface NativeToken {
 
 /** An amount of a token. */
 export class TokenAmount {
-  constructor (readonly token: Token, readonly amount: Uint128) {}
-
+  constructor (
+    readonly token:  Token,
+    readonly amount: Uint128
+  ) {}
+  /** Pass this to 'send' field of ExecOpts */
   get asNativeBalance (): ICoin[]|undefined {
     let result: ICoin[] | undefined = []
     if (getTokenKind(this.token) == TokenKind.Native) {
@@ -96,6 +99,7 @@ export class TokenPairAmount {
   get reverse () {
     return new TokenPairAmount(this.pair.reverse, this.amount_1, this.amount_0)
   }
+  /** Pass this to 'send' field of ExecOpts */
   get asNativeBalance () {
     let result: ICoin[] | undefined = []
     if (getTokenKind(this.pair.token_0) == TokenKind.Native) {

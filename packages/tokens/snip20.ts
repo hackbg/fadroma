@@ -32,6 +32,21 @@ export class Snip20 extends Client {
     }
   }
 
+  name:        string  | null = null
+  symbol:      string  | null = null
+  decimals:    number  | null = null
+  totalSupply: Uint128 | null = null
+
+  async populate () {
+    await super.populate()
+    const { name, symbol, decimals, total_supply } = await this.getTokenInfo()
+    this.name        = name
+    this.symbol      = symbol
+    this.decimals    = decimals
+    this.totalSupply = total_supply
+    return this
+  }
+
   async getTokenInfo () {
     const msg = { token_info: {} }
     const { token_info }: { token_info: TokenInfo } = await this.query(msg)
