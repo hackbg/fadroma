@@ -22,7 +22,7 @@ async function create () {
   setupApiCrate(root, project, contracts)
   setupSharedCrate(root, project, contracts)
   setupContractCrates(root, project, contracts)
-  setupFadroma(root)
+  setupDeployWorkflow(root, project, contracts)
 }
 
 function check (dependency, command) {
@@ -139,7 +139,7 @@ function setupCargoWorkspace (root, project, contracts) {
     members = [
       "./api",
       "./lib",
-      ${[...contracts].map(name=>`"./contracts/${name};`).join('      \n')}
+      ${[...contracts].map(name=>`"./contracts/${name};`).join('\n      ')}
     ]
 
     [profile.release]
@@ -169,7 +169,7 @@ function setupApiCrate (root, project, contracts) {
   `))
   root.in('api').at('api.rs').as(TextFile).save(dedent(`
     // Messages of contracts are defined in this crate.
-    ${[...contracts].map(name=>`pub mod ${name};`).join('    \n')}
+    ${[...contracts].map(name=>`pub mod ${name};`).join('\n    ')}
   `))
   for (const contract of contracts) {
     root.in('api').at(`${contract}.rs`).as(TextFile).save(dedent(`
@@ -237,7 +237,7 @@ function setupContractCrates (root, project, contracts) {
       }
 
       pub fn query<S: Storage, A: Api, Q: Querier>(
-          deps: &mut Extern<S, A, Q>,
+          deps: &Extern<S, A, Q>,
           env:  Env,
           msg:  Handle
       ) -> StdResult<Binary> {
@@ -261,8 +261,36 @@ function setupContractCrates (root, project, contracts) {
   }
 }
 
-function setupFadroma (root) {
-  root.at('fadroma.yml').as(YAMLFile).save()
+function setupDeployWorkflow (root, project, contractSet) {
+
+  const contracts = [...contractSet].sort()
+
+  root.at('deploy.ts').as(YAMLFile).save(dedent(`
+    import Fadroma, { Console, OperationContext } from 'fadroma'
+
+    const console = new Console('Deploy')
+
+    Fadroma.command('all',
+      Fadroma.Build.Scrt,
+      Fadroma.Chain.FromEnv,
+      Fadroma.Upload.FromFile,
+      Fadroma.Deploy.New,
+      async function deployAll (context: OperationContext) {
+        const {
+          buildAndUploadMany,
+          templates = await buildAndUploadMany({
+            ${contracts.map(name=>`${name}: workspace.source(${name});`).join(',\n            ')}
+          }),
+          deployment,
+          agent
+        }
+
+        ${contracts.map(name=>`deployment.init(agent, templates["${name}"], "${name}", {});`).join(',\n        ')}
+
+      })
+
+    export default Fadroma.module(import.meta.url)
+  `))
 }
 
 const RE_NON_WS = /\S|$/
