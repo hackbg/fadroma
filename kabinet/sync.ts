@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from '
 import { cwd } from 'process'
 import rimraf from 'rimraf'
 import mkdirp from 'mkdirp'
+import { fileURLToPath } from 'url'
 
 export function touch (...fragments) {
   const path = resolve(...fragments)
@@ -18,6 +19,12 @@ export interface PathCtor <P> {
 export class Path {
 
   constructor (...fragments: string[]) {
+    if (
+      fragments[0] as any instanceof URL ||
+      fragments[0].startsWith('file://')
+    ) {
+      fragments[0] = fileURLToPath(fragments[0])
+    }
     this.path = resolve(...fragments)
   }
 
