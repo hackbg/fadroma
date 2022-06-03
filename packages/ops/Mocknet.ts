@@ -90,10 +90,10 @@ export class Mocknet extends Chain {
   constructor (id = 'fadroma-mocknet', options = {}) {
     super(id, { ...options, mode: ChainMode.Mocknet })
   }
-  Agent = MockAgent
+  Agent = MocknetAgent
   state = new MocknetBackend(this.id)
   async getAgent (options: AgentOptions) {
-    return new MockAgent(this, options)
+    return new MocknetAgent(this, options)
   }
   async query <T, U> (contract: Instance, msg: T): Promise<U> {
     return this.state.query(contract, msg)
@@ -110,16 +110,16 @@ export class Mocknet extends Chain {
 }
 
 /** Agent instance calling its Chain's Mocknet backend. */
-export class MockAgent extends Agent {
+export class MocknetAgent extends Agent {
   defaultDenom = 'umock'
   Bundle = null
   static async create (chain: Mocknet, options: AgentOptions) {
-    return new MockAgent(chain, options)
+    return new MocknetAgent(chain, options)
   }
   constructor (readonly chain: Mocknet, readonly options: AgentOptions) {
     super(chain, options)
   }
-  name:    string  = 'MockAgent'
+  name:    string  = 'MocknetAgent'
   address: Address = randomBech32('mocked')
   async upload (artifact) {
     return this.chain.state.upload(artifact)
@@ -148,6 +148,7 @@ export class MocknetBackend {
   codeId    = 0
   uploads   = {}
   instances = {}
+  /** Populate the `Env` object available in transactions. */
   makeEnv (
     sender,
     address,
@@ -188,44 +189,40 @@ export class MocknetBackend {
     const contract = await new MocknetContract().load(code)
     const env      = this.makeEnv(sender, address, codeHash)
     const response = contract.init(env, msg)
-    if (response.Err) {
-      console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
-      throw Object.assign(new Error('Mocknet#instantiate: error'), response)
-    } else {
-      this.instances[address] = contract
-    }
+    const initResponse = this.resultOf('instantiate', response)
+    this.instances[address] = contract
     return { chainId, codeId, codeHash, address, label }
   }
   getInstance (address) {
     const instance = this.instances[address]
     if (!instance) {
-      throw new Error(`Mocknet: no contract at ${address}`)
+      throw new Error(`MocknetBackend#getInstance: no contract at ${address}`)
     }
     return instance
   }
   async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo, fee) {
-    return this.resultOf(this.getInstance(address).handle(this.makeEnv(sender, address), msg))
+    const result   = this.getInstance(address).handle(this.makeEnv(sender, address), msg)
+    const response = this.resultOf('execute', result)
+    response.data  = b64toUtf8(response.data)
+    return response
   }
   async query ({ address, codeHash }: Instance, msg) {
-    return this.resultOf(this.getInstance(address).query(msg))
+    return b64toUtf8(this.resultOf('query', this.getInstance(address).query(msg)))
   }
-  private resultOf (result) {
-    if (result.hasOwnProperty('Ok')) { // handles { Ok: '' }
-      return result.Ok
-    } else if (result.hasOwnProperty('Err')) {
-      const msg = `Mocknet: contract returned error: ${JSON.stringify(result.Err)}`
-      const err = Object.assign(new Error(msg), { Err: result.Err })
-      throw err
-    } else {
-      const msg = 'Mocknet: contract returned non-Result type'
-      const err = Object.assign(new Error(msg), { result })
-      console.log(result)
-      throw err
+  private resultOf (action: string, response: any) {
+    const { Ok, Err } = response
+    if (Err !== undefined) {
+      const message = `MocknetBackend#${action}: contract returned Err: ${JSON.stringify(Err)}`
+      throw Object.assign(new Error(message), Err)
     }
+    if (Ok !== undefined) {
+      return Ok
+    }
+    throw new Error(`MocknetBackend#${action}: contract returned non-Result type`)
   }
 }
 
-/** Hosts a WASM contract blob. */
+/** Hosts a WASM contract blob and contains the contract-local storage. */
 export class MocknetContract {
   instance: WebAssembly.Instance<ContractExports>
   async load (code) {
@@ -234,6 +231,7 @@ export class MocknetContract {
     return this
   }
   init (env, msg) {
+    console.log('init', msg)
     const envBuf  = this.pass(env)
     const msgBuf  = this.pass(msg)
     const retPtr  = this.instance.exports.init(envBuf, msgBuf)
@@ -393,4 +391,14 @@ export function drop (exports, ptr): void {
   } else {
     //console.warn("Can't deallocate", ptr)
   }
+}
+
+/** Convert base64 to string */
+export function b64toUtf8 (str: string) {
+  return Buffer.from(str, 'base64').toString('utf8')
+}
+
+/** Convert string to base64 */
+export function utf8toB64 (str: string) {
+  return Buffer.from(str, 'utf8').toString('base64')
 }

@@ -76,12 +76,12 @@ const mockEnv = () => {
 ### Can initialize and provide agent
 
 ```typescript
-import { Mocknet, MockAgent } from '../index'
+import { Mocknet, MocknetAgent } from '../index'
 test({
-  async "can initialize and create agent" ({ ok }) {
+  async "Mocknet: can initialize and create MocknetAgent" ({ ok }) {
     const chain = new Mocknet()
     const agent = await chain.getAgent()
-    ok(agent instanceof MockAgent)
+    ok(agent instanceof MocknetAgent)
   }
 })
 ```
@@ -91,7 +91,7 @@ test({
 ```typescript
 import { pathToFileURL } from 'url'
 test({
-  async 'can upload wasm blob, returning code id' ({ equal }) {
+  async 'MocknetAgent: can upload wasm blob, returning code id' ({ equal }) {
     const agent = await new Mocknet().getAgent()
     const artifact = { url: pathToFileURL(ExampleContracts.Paths.Echo) }
     const template = await agent.upload(artifact)
@@ -108,20 +108,21 @@ test({
 ```typescript
 import { Client } from '../index'
 test({
-  async 'init from missing code ID' ({ rejects }) {
+  async 'MocknetAgent: contract init from missing code ID fails' ({ rejects }) {
     const chain = new Mocknet()
     const agent = await chain.getAgent()
     const template = { chainId: 'Mocknet', codeId: '2' }
     rejects(agent.instantiate(template, 'test', {}))
   },
-  async 'upload and init from resulting code ID' ({ ok, equal }) {
+  async 'MocknetAgent: contract upload and init' ({ ok, equal }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
     const artifact = { url: pathToFileURL(ExampleContracts.Paths.Echo), codeHash: 'something' }
     const template = await agent.upload(artifact)
-    const instance = await agent.instantiate(template, 'test', {})
+    const message  = { fail: false }
+    const instance = await agent.instantiate(template, 'test', message)
     const client   = agent.getClient(Client, instance)
-    equal(await client.query("Echo"), "Echo")
+    equal(await client.query("Echo"), '"Echo"')
     ok(await client.execute("Echo"), { data: "Echo" })
   }
 })
@@ -131,7 +132,7 @@ test({
 
 ```typescript
 test({
-  async 'db read/write/remove' ({ ok, equal, rejects }) {
+  async 'MocknetAgent: contract supports db read/write/remove' ({ ok, equal, rejects }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
     const artifact = { url: pathToFileURL(ExampleContracts.Paths.KV), codeHash: 'something' }
@@ -149,33 +150,88 @@ test({
 
 ## Tests of internals
 
-### The `MocknetContract` class can call methods on WASM contract blobs
+### Base64 decoding
+
+Fields that are of type `Binary` (query responses and the `data` field of handle responses)
+are returned by the contract as Base64-encoded strings. This function decodes them.
+
+> If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
+
+```typescript
+import { b64toUtf8, utf8toB64 } from '../packages/ops/Mocknet'
+test({
+  'b64toUtf8' ({ equal }) {
+    equal(b64toUtf8('IkVjaG8i'), '"Echo"')
+  },
+  'utf8toB64' ({ equal }) {
+    equal(utf8toB64('"Echo"'), 'IkVjaG8i')
+  }
+})
+```
+
+### MocknetContract
+
+The `MocknetContract` class calls methods on WASM contract blobs.
+Normally, it isn't used directly - `Mocknet`/`MocknetAgent` call
+`MocknetBackend` which calls this.
+
+* Every method has a slightly different shape:
+  * Assuming **Handle** is the "standard":
+  * **Init** is like Handle but has only 1 variant and response has no `data` attribute.
+  * **Query** is like Handle but returns raw base64 and ignores `env`.
+* Every method returns the same thing - a JSON string of the form `{ "Ok": ... } | { "Err": ... }`
+  * This corresponds to the **StdResult** struct returned from the contract
+  * This result is returned to the contract's containing `MocknetBackend` as-is.
 
 ```typescript
 import { MocknetContract } from '../index' // wait what
 test({
-  async "MocknetContract#init" ({ equal, deepEqual }) {
-    const contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const initMsg  = { echo: "Echo" }
-    const result   = contract.init(mockEnv(), initMsg)
-    const value    = Buffer.from(JSON.stringify(initMsg), 'utf8').toString('base64')
-    equal(result.Err,             undefined)
-    deepEqual(result.Ok.messages, [])
-    deepEqual(result.Ok.log,      [{ encrypted: false, key: 'Echo', value }])
+
+  async "MocknetContract#init -> Ok" ({ equal, deepEqual }) {
+    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const initMsg     = { fail: false }
+    const { Ok, Err } = contract.init(mockEnv(), initMsg)
+    const key         = "Echo"
+    const value       = utf8toB64(JSON.stringify(initMsg))
+    equal(Err, undefined)
+    deepEqual(Ok, { messages: [], log: [{ encrypted: false, key, value }] })
+  },
+
+  async "MocknetContract#init -> Err" ({ equal, deepEqual }) {
+    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const { Ok, Err } = contract.init(mockEnv(), { fail: true })
+    equal(Ok, undefined)
+    deepEqual(Err, { generic_err: { msg: 'caller requested the init to fail' } })
+  },
+
+  async "MocknetContract#handle -> Ok" ({ equal, deepEqual }) {
+    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const { Ok, Err } = contract.handle(mockEnv(), "Echo")
+    const data        = utf8toB64(JSON.stringify("Echo"))
+    equal(Err, undefined)
+    deepEqual(Ok, { messages: [], log: [], data })
+  },
+
+  async "MocknetContract#handle -> Err" ({ equal, deepEqual }) {
+    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const { Ok, Err } = contract.handle(mockEnv(), "Fail")
+    equal(Ok, undefined)
+    deepEqual(Err, { generic_err:  { msg: 'this transaction always fails' } })
+  },
+
+  async "MocknetContract#query -> Ok" ({ equal }) {
+    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const { Ok, Err } = await contract.query("Echo")
+    equal(Err, undefined)
+    equal(Ok,  utf8toB64('"Echo"'))
+  },
+
+  async "MocknetContract#query -> Err" ({ equal, deepEqual }) {
+    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const { Ok, Err } = await contract.query("Fail")
+    equal(Ok, undefined)
+    deepEqual(Err, { generic_err: { msg: 'this query always fails' } })
   }
-  async "MocknetContract#handle" ({ equal, deepEqual }) {
-    const contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const result   = contract.handle(mockEnv(), "Echo")
-    equal(result.Err,             undefined)
-    deepEqual(result.Ok.messages, [])
-    deepEqual(result.Ok.log,      [])
-    deepEqual(result.Ok.data,     "Echo")
-  }
-  async "MocknetContract#query" ({ equal }) {
-    const contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const result   = await contract.query("Echo")
-    equal(result.Err,             undefined)
-    equal(result.Ok,              "Echo")
-  }
+
 })
 ```

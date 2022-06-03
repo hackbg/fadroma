@@ -10,19 +10,7 @@ use fadroma::{
 const KEY: &'static [u8] = b"value";
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub struct InitMsg {
-    value: Option<Binary>
-}
-#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum HandleMsg {
-    Set(Binary),
-    Del
-}
-#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum QueryMsg {
-    Get
-}
-
+pub struct InitMsg { value: Option<Binary> }
 pub(crate) fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, env: Env, msg: InitMsg,
 ) -> StdResult<InitResponse> {
@@ -32,6 +20,8 @@ pub(crate) fn init<S: Storage, A: Api, Q: Querier>(
     Ok(InitResponse::default())
 }
 
+#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+pub enum HandleMsg { Set(Binary), Del }
 pub(crate) fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
@@ -46,6 +36,8 @@ pub(crate) fn handle<S: Storage, A: Api, Q: Querier>(
     Ok(HandleResponse::default())
 }
 
+#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
+pub enum QueryMsg { Get }
 pub(crate) fn query<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>, msg: QueryMsg,
 ) -> StdResult<Binary> {
@@ -65,25 +57,14 @@ mod wasm {
     };
     #[no_mangle]
     extern "C" fn init(env_ptr: u32, msg_ptr: u32) -> u32 {
-        do_init(
-            &super::init::<ExternalStorage, ExternalApi, ExternalQuerier>,
-            env_ptr,
-            msg_ptr,
-        )
+        do_init(&super::init::<ExternalStorage, ExternalApi, ExternalQuerier>, env_ptr, msg_ptr
     }
     #[no_mangle]
     extern "C" fn handle(env_ptr: u32, msg_ptr: u32) -> u32 {
-        do_handle(
-            &super::handle::<ExternalStorage, ExternalApi, ExternalQuerier>,
-            env_ptr,
-            msg_ptr,
-        )
+        do_handle(&super::handle::<ExternalStorage, ExternalApi, ExternalQuerier>, env_ptr, msg_ptr)
     }
     #[no_mangle]
     extern "C" fn query(msg_ptr: u32) -> u32 {
-        do_query(
-            &super::query::<ExternalStorage, ExternalApi, ExternalQuerier>,
-            msg_ptr,
-        )
+        do_query(&super::query::<ExternalStorage, ExternalApi, ExternalQuerier>, msg_ptr)
     }
 }

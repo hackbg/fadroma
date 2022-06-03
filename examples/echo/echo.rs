@@ -1,44 +1,49 @@
-use fadroma::{
-    Storage, Api, Querier,
-    Extern, Env,
-    InitResponse, HandleResponse, Binary,
-    StdResult,
-    schemars,
-    to_binary,
-    to_vec,
-    LogAttribute
-};
+use fadroma::*;
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub struct InitMsg {}
+pub struct InitMsg { fail: bool }
 pub(crate) fn init<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>, _env: Env, msg: InitMsg,
 ) -> StdResult<InitResponse> {
-    let mut response = InitResponse::default();
-    response.log.push(LogAttribute {
-        key:       "echo".into(),
-        value:     to_binary(&msg)?.to_base64(),
-        encrypted: false
-    });
-    Ok(response)
+    if !msg.fail {
+        let mut response = InitResponse::default();
+        response.log.push(LogAttribute {
+            key:       "Echo".into(),
+            value:     to_binary(&msg)?.to_base64(),
+            encrypted: false
+        });
+        Ok(response)
+    } else {
+        Err(StdError::generic_err("caller requested the init to fail"))
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum HandleMsg { Echo }
+pub enum HandleMsg { Echo, Fail }
 pub(crate) fn handle<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>, _env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
-    let mut response = HandleResponse::default();
-    response.data = Some(to_binary(&msg)?);
-    Ok(response)
+    match msg {
+        HandleMsg::Echo => {
+            let mut response = HandleResponse::default();
+            response.data = Some(to_binary(&msg)?);
+            Ok(response)
+        },
+        HandleMsg::Fail => {
+            Err(StdError::generic_err("this transaction always fails"))
+        }
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum QueryMsg { Echo }
+pub enum QueryMsg { Echo, Fail }
 pub(crate) fn query<S: Storage, A: Api, Q: Querier>(
     _deps: &Extern<S, A, Q>, msg: QueryMsg,
 ) -> StdResult<Binary> {
-    to_binary(&msg)
+    match msg {
+        QueryMsg::Echo => to_binary(&msg),
+        QueryMsg::Fail => Err(StdError::generic_err("this query always fails"))
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
