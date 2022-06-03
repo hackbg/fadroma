@@ -43,44 +43,6 @@ export abstract class ScrtAgent extends Agent {
 
 export class ScrtBundle extends Bundle {
 
-  /** Add a single MsgInstantiateContract to the bundle. */
-  async instantiate (
-    template: Template, label: Label, msg: Message, init_funds = []
-  ): Promise<Instance> {
-    await this.init(template, label, msg, init_funds)
-    const { codeId, codeHash } = template
-    // @ts-ignore
-    return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
-  }
-
-  async init (template: Template, label: Label, msg: Message, funds = []) {
-    this.add({
-      init: {
-        sender:   this.address,
-        codeId:   String(template.codeId),
-        codeHash: template.codeHash,
-        label,
-        msg,
-        funds
-      }
-    })
-    return this
-  }
-
-  //@ts-ignore
-  async execute (instance: Instance, msg: Message, { send }: ExecOpts = {}): Promise<this> {
-    this.add({
-      exec: {
-        sender:   this.address,
-        contract: instance.address,
-        codeHash: instance.codeHash,
-        msg,
-        funds: send
-      }
-    })
-    return this
-  }
-
   submit (memo: string): Promise<any> {
     throw new Error("ScrtBundle#submit is abstract, why aren't you using the subclass?")
   }

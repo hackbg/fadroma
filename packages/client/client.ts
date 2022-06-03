@@ -12,21 +12,28 @@ export type TxHash     = string
 export type Uint128    = string
 export type Uint256    = string
 
+/** Reference to a compiled smart contract. */
 export interface Artifact {
   url:      URL
   codeHash: CodeHash
 }
+
+/** Reference to an uploaded smart contract. */
 export interface Template {
   uploadTx?: TxHash
   chainId?:  ChainId
   codeId?:   CodeId
   codeHash?: CodeHash
 }
+
+/** Reference to an instantiated smart contract. */
 export interface Instance extends Template {
   address:   Address
   codeHash?: CodeHash
   label?:    Label
 }
+
+/** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export class ContractLink {
   constructor (
     readonly address:   Address,
@@ -34,12 +41,18 @@ export class ContractLink {
   ) {}
 }
 
+/** Something that can execute queries -
+  * such as a Chain, an Agent, or a Bundle
+  * (though the Bundle won't let you query) */
 export interface Querier {
   query <U> (contract: Instance, msg: Message): Promise<U>
   getCodeId (address: Address): Promise<string>
   getLabel  (address: Address): Promise<string>
   getHash   (address: Address): Promise<string>
 }
+
+/** Something that can execute transactions -
+  * such as an Agent or a Bundle. */
 export interface Executor extends Querier {
   get height ():  Promise<number>
   fees:           AgentFees
@@ -55,27 +68,44 @@ export interface Executor extends Querier {
     Client: ClientCtor<C, O>, arg: Address|O
   ): C
 }
+
+/** Options for a compute transaction. */
 export interface ExecOpts {
   fee?:  IFee
   send?: ICoin[]
   memo?: string
 }
+
+/** A native token. */
 export interface ICoin {
   amount: Uint128
   denom:  string
 }
+
+/** A native token constructor */
 export class Coin implements ICoin {
-  constructor (amount: number|string, readonly denom: string) {
+  constructor (
+    amount:         number|string,
+    readonly denom: string
+  ) {
     this.amount = String(amount)
   }
   readonly amount: string
 }
+
+/** A gas fee, payable in native tokens. */
 export interface IFee {
   amount: readonly ICoin[]
   gas:    Uint128
 }
+
+/** A constructable gas fee in native tokens. */
 export class Fee implements IFee {
-  constructor (amount: Uint128|number, denom: string, readonly gas = String(amount)) {
+  constructor (
+    amount:       Uint128|number,
+    denom:        string,
+    readonly gas: string = String(amount)
+  ) {
     this.amount = [{ amount: String(amount), denom }]
   }
   readonly amount: readonly ICoin[]
@@ -87,17 +117,20 @@ export enum ChainMode {
   Devnet  = 'Devnet',
   Mocknet = 'Mocknet'
 }
+
 export interface ChainOptions {
   url?:  string
   mode:  ChainMode
   node?: DevnetHandle
 }
+
 export interface DevnetHandle {
   chainId: string
   url:     URL
   terminate:         ()             => Promise<void>
   getGenesisAccount: (name: string) => Promise<AgentOptions>
 }
+
 export abstract class Chain implements Querier {
   static Mode = ChainMode
   constructor (
@@ -167,6 +200,7 @@ export interface AgentOptions {
   address?:  Address
   fees?:     AgentFees
 }
+
 export interface AgentCtor<A extends Agent> {
   new    (chain: Chain, options: AgentOptions): A
   create (chain: Chain, options: AgentOptions): Promise<A>
@@ -178,6 +212,7 @@ export interface AgentFees {
   init?:   IFee
   exec?:   IFee
 }
+
 export abstract class Agent implements Executor {
   static create (chain: Chain, options: AgentOptions = {}): Promise<Agent> {
     throw Object.assign(new Error('Agent.create: abstract, use subclass'), { options })
@@ -262,7 +297,8 @@ export abstract class Agent implements Executor {
   abstract Bundle: typeof Bundle
 }
 
-export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
+/** Collection of messages to broadcast as a single transaction,
+  * effectively executing them simultaneously. */
 export abstract class Bundle implements Executor {
 
   constructor (readonly agent: Agent) {}
@@ -294,7 +330,6 @@ export abstract class Bundle implements Executor {
     return Promise.resolve('0')
   }
 
-
   get height (): Promise<number> {
     throw new Error("don't query block height inside bundle")
   }
@@ -303,14 +338,48 @@ export abstract class Bundle implements Executor {
     throw new Error("can't wait for next block inside bundle")
   }
 
-  abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
+  async instantiate (
+    template: Template, label: Label, msg: Message, init_funds = []
+  ): Promise<Instance> {
+    await this.init(template, label, msg, init_funds)
+    const { codeId, codeHash } = template
+    // @ts-ignore
+    return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
+  }
 
   async instantiateMany (configs: [Template, Label, Message][]): Promise<Instance[]> {
     return await Promise.all(configs.map(([template, label, initMsg])=>
       this.instantiate(template, label, initMsg)))
   }
 
-  abstract execute <R> (contract: Instance, msg: Message, opts?: ExecOpts): Promise<R>
+  // TODO fold into instantiate?
+  async init (template: Template, label: Label, msg: Message, funds = []) {
+    this.add({
+      init: {
+        sender:   this.address,
+        codeId:   String(template.codeId),
+        codeHash: template.codeHash,
+        label,
+        msg,
+        funds
+      }
+    })
+    return this
+  }
+
+  //@ts-ignore
+  async execute (instance: Instance, msg: Message, { send }: ExecOpts = {}): Promise<this> {
+    this.add({
+      exec: {
+        sender:   this.address,
+        contract: instance.address,
+        codeHash: instance.codeHash,
+        msg,
+        funds: send
+      }
+    })
+    return this
+  }
 
   /** Queries are disallowed in the middle of a bundle because
     * even though the bundle API is structured as multiple function calls,
@@ -379,14 +448,20 @@ export abstract class Bundle implements Executor {
 
 }
 
+/** Function passed to Bundle#wrap */
+export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
+
 export interface ClientOptions extends Instance {
   name?: string
   fee?:  IFee
   fees?: Record<string, IFee>
 }
+
 export interface ClientCtor<C extends Client, O extends ClientOptions> {
   new (agent: Executor, options: Address|O): C
 }
+
+/** Interface to a specific contract. Subclass to add contract-specific methods. */
 export class Client implements Instance {
   constructor (readonly agent: Executor, arg: Address|ClientOptions) {
     if (typeof arg === 'string') {

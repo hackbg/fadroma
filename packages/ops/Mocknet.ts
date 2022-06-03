@@ -27,6 +27,7 @@ import {
   Agent,
   AgentOptions,
   Artifact,
+  Bundle,
   Chain,
   ChainMode,
   Template,
@@ -116,7 +117,7 @@ export class Mocknet extends Chain {
 /** Agent instance calling its Chain's Mocknet backend. */
 export class MocknetAgent extends Agent {
   defaultDenom = 'umock'
-  Bundle = null
+  Bundle = MocknetBundle
   static async create (chain: Mocknet, options: AgentOptions) {
     return new MocknetAgent(chain, options)
   }
@@ -148,6 +149,33 @@ export class MocknetAgent extends Agent {
   getBalance (_: string) { return Promise.resolve("0") }
   send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) { return Promise.resolve() }
   sendMany (_1:any, _2:any, _3?:any, _4?:any) { return Promise.resolve() }
+}
+
+export class MocknetBundle extends Bundle {
+
+  declare agent: MocknetAgent
+
+  async submit (memo = "") {
+    const results = []
+    for (const { init, exec } of this.msgs) {
+      if (init) {
+        const { sender, codeId, codeHash, label, msg, funds } = init
+        results.push(await this.agent.instantiate({ codeId, codeHash }, label, msg, funds))
+      } else if (exec) {
+        const { sender, contract, codeHash, msg, funds } = init
+        results.push(await this.agent.execute({ address: contract, codeHash }, msg, funds))
+      } else {
+        console.warn('MocknetBundle#submit: found unknown message in bundle, ignoring')
+        results.push(null)
+      }
+    }
+    return results
+  }
+
+  save (name: string) {
+    throw new Error('MocknetBundle#save: not implemented')
+  }
+
 }
 
 /** Hosts MocknetContract instances. */
