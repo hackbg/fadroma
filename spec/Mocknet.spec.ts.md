@@ -93,15 +93,15 @@ test({
     const template = { chainId: 'Mocknet', codeId: '2' }
     rejects(agent.instantiate(template, 'test', {}))
   },
-  async 'upload and init from resulting code ID' ({ ok }) {
+  async 'upload and init from resulting code ID' ({ ok, equal }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
     const artifact = { url: pathToFileURL(emptyContract), codeHash: 'something' }
     const template = await agent.upload(artifact)
     const instance = await agent.instantiate(template, 'test', {})
     const client   = agent.getClient(Client, instance)
-    ok(await client.query({}))
-    ok(await client.execute({}))
+    equal(await client.query("Echo"), '')
+    ok(await client.execute("Null"))
   }
 })
 ```

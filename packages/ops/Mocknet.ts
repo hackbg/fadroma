@@ -309,15 +309,16 @@ export class MocknetState {
     return this.resultOf(this.getInstance(address).query(msg))
   }
   private resultOf (result) {
-    if (result.Ok) {
+    if (result.hasOwnProperty('Ok')) { // handles { Ok: '' }
       return result.Ok
-    } else if (result.Err) {
+    } else if (result.hasOwnProperty('Err')) {
       const msg = `Mocknet: contract returned error: ${JSON.stringify(result.Err)}`
       const err = Object.assign(new Error(msg), { Err: result.Err })
       throw err
     } else {
       const msg = 'Mocknet: contract returned non-Result type'
       const err = Object.assign(new Error(msg), { result })
+      console.log(result)
       throw err
     }
   }
