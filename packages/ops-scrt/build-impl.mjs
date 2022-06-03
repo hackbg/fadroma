@@ -49,15 +49,19 @@ function phase1 ({
   console.log(`Cleaning untracked files...`)
   run(`cp -rT ${workspace} ${buildDir}`)
   process.chdir(buildDir)
-  run(`git stash -u`)
-  run(`git reset --hard --recurse-submodules`)
-  run(`git clean -f -d -x`)
-  console.log(`Checking out ${ref} in ${buildDir}`)
-  run(`git checkout "${ref}"`)
-  console.log(`Preparing submodules...`)
-  run(`git submodule update --init --recursive`)
-  run(`git log -1`)
-  console.log()
+  if (ref === 'HEAD') {
+    console.log(`Building from working tree...`)
+  } else {
+    run(`git stash -u`)
+    run(`git reset --hard --recurse-submodules`)
+    run(`git clean -f -d -x`)
+    console.log(`Checking out ${ref} in ${buildDir}`)
+    run(`git checkout "${ref}"`)
+    console.log(`Preparing submodules...`)
+    run(`git submodule update --init --recursive`)
+    run(`git log -1`)
+    console.log()
+  }
   console.log(`Build phase 2 will begin with these crates: ${crates}`)
   for (const crate of crates) {
     console.log(`Building ${crate} from ${ref} in ${process.cwd()}`)
