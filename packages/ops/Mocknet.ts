@@ -178,7 +178,7 @@ export class MocknetBackend {
     const chainId  = this.chainId
     const code     = this.getCode(codeId)
     const address  = randomBech32('mocked')
-    const contract = await new MocknetContract().load(code)
+    const contract = await new MocknetContract(address).load(code)
     const env      = this.makeEnv(sender, address, codeHash)
     const response = contract.init(env, msg)
     const initResponse = this.resultOf('instantiate', response)
@@ -241,6 +241,9 @@ export class MocknetBackend {
 
 /** Hosts a WASM contract blob and contains the contract-local storage. */
 export class MocknetContract {
+  constructor (readonly address: Address) {
+    console.info('Instantiating', bold(address))
+  }
   instance: WebAssembly.Instance<ContractExports>
   async load (code) {
     const { instance } = await WebAssembly.instantiate(code, this.makeImports())
@@ -248,24 +251,42 @@ export class MocknetContract {
     return this
   }
   init (env, msg) {
-    const envBuf  = this.pass(env)
-    const msgBuf  = this.pass(msg)
-    const retPtr  = this.instance.exports.init(envBuf, msgBuf)
-    const retData = this.read(retPtr)
-    return retData
+    console.debug(`${bold(this.address)} init:`, msg)
+    try {
+      const envBuf  = this.pass(env)
+      const msgBuf  = this.pass(msg)
+      const retPtr  = this.instance.exports.init(envBuf, msgBuf)
+      const retData = this.read(retPtr)
+      return retData
+    } catch (e) {
+      console.error(bold(this.address), `crashed on init:`, e.message)
+      throw e
+    }
   }
   handle (env, msg) {
-    const envBuf = this.pass(env)
-    const msgBuf = this.pass(msg)
-    const retPtr = this.instance.exports.handle(envBuf, msgBuf)
-    const retBuf = this.read(retPtr)
-    return retBuf
+    console.debug(`${bold(this.address)} handle:`, msg)
+    try {
+      const envBuf = this.pass(env)
+      const msgBuf = this.pass(msg)
+      const retPtr = this.instance.exports.handle(envBuf, msgBuf)
+      const retBuf = this.read(retPtr)
+      return retBuf
+    } catch (e) {
+      console.error(bold(this.address), `crashed on handle:`, e.message)
+      throw e
+    }
   }
   query (msg) {
-    const msgBuf = this.pass(msg)
-    const retPtr = this.instance.exports.query(msgBuf)
-    const retBuf = this.read(retPtr)
-    return retBuf
+    console.debug(`${bold(this.address)} query:`, msg)
+    try {
+      const msgBuf = this.pass(msg)
+      const retPtr = this.instance.exports.query(msgBuf)
+      const retBuf = this.read(retPtr)
+      return retBuf
+    } catch (e) {
+      console.error(bold(this.address), `crashed on query:`, e.message)
+      throw e
+    }
   }
   private pass (data) {
     return pass(this.instance.exports, data)
@@ -292,7 +313,8 @@ export class MocknetContract {
           const exports = getExports()
           const key     = read(exports, keyPtr)
           const val     = contract.storage.get(key)
-          console.info(`db_read:  ${key} = ${val}`)
+          console.info(bold(contract.address), `db_read:`)
+          console.info(`${key} = ${val}`)
           if (contract.storage.has(key)) {
             return passString(exports, val)
           } else {
@@ -304,12 +326,12 @@ export class MocknetContract {
           const key     = read(exports, keyPtr)
           const val     = read(exports, valPtr)
           contract.storage.set(key, val)
-          console.info(`db_write: ${key} = ${val}`)
+          console.info(bold(contract.address), `db_write: ${key} = ${val}`)
         },
         db_remove (keyPtr) {
           const exports = getExports()
           const key     = read(exports, keyPtr)
-          console.info(`db_remove: ${key}`)
+          console.info(bold(contract.address), `db_remove: ${key}`)
           contract.storage.delete(key)
         },
         canonicalize_address (srcPtr, dstPtr) {
@@ -317,7 +339,7 @@ export class MocknetContract {
           const human   = read(exports, srcPtr)
           const canon   = bech32.fromWords(bech32.decode(human).words)
           const dst     = region(exports.memory.buffer, dstPtr)
-          console.info(`canonize:`, human, '->', `${canon}`)
+          console.info(bold(contract.address), `canonize:`, human, '->', `${canon}`)
           writeToRegion(exports, dstPtr, canon)
           return 0
         },
@@ -326,7 +348,7 @@ export class MocknetContract {
           const canon   = read(exports, srcPtr)
           const human   = Buffer.from(canon).toString("utf8")
           const dst     = region(exports.memory.buffer, dstPtr)
-          console.info(`humanize:`, canon, '->', human)
+          console.info(bold(contract.address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(exports, dstPtr, human)
           return 0
         },
@@ -334,7 +356,7 @@ export class MocknetContract {
           console.log('query')
           const exports = getExports()
           const req     = read(exports, reqPtr)
-          console.info('query_chain', { req })
+          console.info(bold(contract.address), 'query_chain', { req })
           return 0
         }
       }
