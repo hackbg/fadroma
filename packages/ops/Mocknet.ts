@@ -500,8 +500,9 @@ export class MocknetContract {
           }
           const decoded = JSON.parse(b64toUtf8(msg))
           debug(`${bold(contract.address)} queries ${contract_addr}:`, decoded)
-          const result = b64toUtf8(parseResult(queried.query(decoded), 'query_chain', contract_addr))
-          return 0
+          const result = parseResult(queried.query(decoded), 'query_chain', contract_addr)
+          debug(`${bold(contract_addr)} responds to ${contract.address}:`, b64toUtf8(result))
+          return pass(exports, { Ok: { Ok: result } }) // https://docs.rs/secret-cosmwasm-std/latest/secret_cosmwasm_std/type.QuerierResult.html
         }
       }
     }
