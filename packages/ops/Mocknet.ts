@@ -125,10 +125,14 @@ export class MocknetAgent extends Agent {
     return this.chain.state.upload(artifact)
   }
   async instantiate (template, label, msg, funds = []): Promise<Instance> {
-    return await this.chain.state.instantiate(this.address, template, label, msg, funds)
+    return await this.chain.state.instantiate(
+      this.address, template, label, msg, funds
+    )
   }
   async execute <M, R> (instance, msg: M, opts): Promise<R> {
-    return await this.chain.state.execute(this.address, instance, msg, opts.funds, opts.memo, opts.fee)
+    return await this.chain.state.execute(
+      this.address, instance, msg, opts.funds, opts.memo, opts.fee
+    )
   }
   async query <M, R> (instance, msg: M): Promise<R> {
     return await this.chain.query(instance, msg)
@@ -145,28 +149,9 @@ export class MocknetAgent extends Agent {
 /** Hosts MocknetContract instances. */
 export class MocknetBackend {
   constructor (readonly chainId: string) {}
-  codeId    = 0
-  uploads   = {}
-  instances = {}
-  /** Populate the `Env` object available in transactions. */
-  makeEnv (
-    sender,
-    address,
-    codeHash = this.instances[address].codeHash,
-    now      = + new Date()
-  ) {
-    const height     = Math.floor(now/5000)
-    const time       = Math.floor(now/1000)
-    const chain_id   = this.chainId
-    const sent_funds = []
-    return {
-      block:    { height, time, chain_id },
-      message:  { sender, sent_funds },
-      contract: { address },
-      contract_key: "",
-      contract_code_hash: codeHash
-    }
-  }
+
+  codeId  = 0
+  uploads = {}
   upload ({ url, codeHash }: Artifact): Template {
     const chainId = this.chainId
     const codeId  = ++this.codeId
@@ -180,6 +165,8 @@ export class MocknetBackend {
     }
     return code
   }
+
+  instances = {}
   async instantiate (
     sender: Address, { codeId, codeHash }: Template, label, msg, funds = []
   ): Promise<Instance> {
@@ -200,15 +187,20 @@ export class MocknetBackend {
     }
     return instance
   }
+
   async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo, fee) {
     const result   = this.getInstance(address).handle(this.makeEnv(sender, address), msg)
     const response = this.resultOf('execute', result)
-    response.data  = b64toUtf8(response.data)
+    if (response.data !== null) {
+      response.data = b64toUtf8(response.data)
+    }
     return response
   }
   async query ({ address, codeHash }: Instance, msg) {
-    return b64toUtf8(this.resultOf('query', this.getInstance(address).query(msg)))
+    const result = b64toUtf8(this.resultOf('query', this.getInstance(address).query(msg)))
+    return JSON.parse(result)
   }
+
   private resultOf (action: string, response: any) {
     const { Ok, Err } = response
     if (Err !== undefined) {
@@ -219,6 +211,26 @@ export class MocknetBackend {
       return Ok
     }
     throw new Error(`MocknetBackend#${action}: contract returned non-Result type`)
+  }
+
+  /** Populate the `Env` object available in transactions. */
+  makeEnv (
+    sender,
+    address,
+    codeHash = this.instances[address].codeHash,
+    now      = + new Date()
+  ) {
+    const height     = Math.floor(now/5000)
+    const time       = Math.floor(now/1000)
+    const chain_id   = this.chainId
+    const sent_funds = []
+    return {
+      block:    { height, time, chain_id },
+      message:  { sender, sent_funds },
+      contract: { address },
+      contract_key: "",
+      contract_code_hash: codeHash
+    }
   }
 }
 
@@ -265,8 +277,8 @@ export class MocknetContract {
     const memory   = new WebAssembly.Memory({ initial: 32, maximum: 128 })
     // when reentering, get the latest memory
     const getExports = () => ({
-      memory:     contract.instance.exports.memory,
-      allocate:   contract.instance.exports.allocate,
+      memory:   contract.instance.exports.memory,
+      allocate: contract.instance.exports.allocate,
     })
     return {
       memory,
@@ -277,7 +289,7 @@ export class MocknetContract {
           const val     = contract.storage.get(key)
           console.info(`db_read:  ${key} = ${val}`)
           if (contract.storage.has(key)) {
-            return pass(exports, val)
+            return passString(exports, val)
           } else {
             return 0
           }
@@ -345,10 +357,15 @@ export function read (exports: IOExports, ptr: Ptr): string {
   return data
 }
 
-/** Allocate region, write data to it, and return the pointer.
-  * See: https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
+/** Serialize a datum into a JSON string and pass it into the contract. */
 export function pass <T> (exports: IOExports, data: T): Ptr {
   const str = JSON.stringify(data)
+  return passString(exports, str)
+}
+
+/** Allocate region, write data to it, and return the pointer.
+  * See: https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
+export function passString (exports: IOExports, str: string): Ptr {
   const ptr = exports.allocate(str.length)
   const { buffer } = exports.memory // must be after allocation - see [1]
   const [ addr, _, __, u32a ] = region(buffer, ptr)

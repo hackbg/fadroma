@@ -92,9 +92,9 @@ test({
 import { pathToFileURL } from 'url'
 test({
   async 'MocknetAgent: can upload wasm blob, returning code id' ({ equal }) {
-    const agent = await new Mocknet().getAgent()
-    const artifact = { url: pathToFileURL(ExampleContracts.Paths.Echo) }
-    const template = await agent.upload(artifact)
+    const agent     = await new Mocknet().getAgent()
+    const artifact  = { url: pathToFileURL(ExampleContracts.Paths.Echo) }
+    const template  = await agent.upload(artifact)
     equal(template.chainId, agent.chain.id)
     const template2 = await agent.upload(artifact)
     equal(template2.chainId, template.chainId)
@@ -109,8 +109,8 @@ test({
 import { Client } from '../index'
 test({
   async 'MocknetAgent: contract init from missing code ID fails' ({ rejects }) {
-    const chain = new Mocknet()
-    const agent = await chain.getAgent()
+    const chain    = new Mocknet()
+    const agent    = await chain.getAgent()
     const template = { chainId: 'Mocknet', codeId: '2' }
     rejects(agent.instantiate(template, 'test', {}))
   },
@@ -122,7 +122,7 @@ test({
     const message  = { fail: false }
     const instance = await agent.instantiate(template, 'test', message)
     const client   = agent.getClient(Client, instance)
-    equal(await client.query("Echo"), '"Echo"')
+    equal(await client.query("Echo"), 'Echo')
     ok(await client.execute("Echo"), { data: "Echo" })
   }
 })
@@ -187,7 +187,7 @@ Normally, it isn't used directly - `Mocknet`/`MocknetAgent` call
 import { MocknetContract } from '../index' // wait what
 test({
 
-  async "MocknetContract#init -> Ok" ({ equal, deepEqual }) {
+  async "MocknetContract#init   -> Ok" ({ equal, deepEqual }) {
     const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
     const initMsg     = { fail: false }
     const { Ok, Err } = contract.init(mockEnv(), initMsg)
@@ -197,7 +197,7 @@ test({
     deepEqual(Ok, { messages: [], log: [{ encrypted: false, key, value }] })
   },
 
-  async "MocknetContract#init -> Err" ({ equal, deepEqual }) {
+  async "MocknetContract#init   -> Err" ({ equal, deepEqual }) {
     const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
     const { Ok, Err } = contract.init(mockEnv(), { fail: true })
     equal(Ok, undefined)
@@ -219,14 +219,14 @@ test({
     deepEqual(Err, { generic_err:  { msg: 'this transaction always fails' } })
   },
 
-  async "MocknetContract#query -> Ok" ({ equal }) {
+  async "MocknetContract#query  -> Ok" ({ equal }) {
     const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
     const { Ok, Err } = await contract.query("Echo")
     equal(Err, undefined)
     equal(Ok,  utf8toB64('"Echo"'))
   },
 
-  async "MocknetContract#query -> Err" ({ equal, deepEqual }) {
+  async "MocknetContract#query  -> Err" ({ equal, deepEqual }) {
     const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
     const { Ok, Err } = await contract.query("Fail")
     equal(Ok, undefined)
