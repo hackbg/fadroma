@@ -71,30 +71,7 @@ const mockEnv = () => {
 }
 ```
 
-## Tests
-
-### Can run WASM blob
-
-```typescript
-import { Contract } from '../index' // wait what
-test({
-  async "Contract#init" ({ equal }) {
-    const contract = await new Contract().load(ExampleContracts.Blobs.Echo)
-    const result = contract.init(mockEnv(), {})
-    equal(result.Err, undefined)
-  }
-  async "Contract#handle" ({ equal }) {
-    const contract = await new Contract().load(ExampleContracts.Blobs.Echo)
-    const result = contract.handle(mockEnv(), "Echo")
-    equal(result.Err, undefined)
-  }
-  async "Contract#query" ({ equal }) {
-    const contract = await new Contract().load(ExampleContracts.Blobs.Echo)
-    const result = await contract.query("Echo")
-    equal(result.Err, undefined)
-  }
-})
-```
+## Tests of public API
 
 ### Can initialize and provide agent
 
@@ -161,11 +138,44 @@ test({
     const template = await agent.upload(artifact)
     const instance = await agent.instantiate(template, 'test', { value: "foo" })
     const client   = agent.getClient(Client, instance)
-    equal(await client.query("get"), "foo")
-    ok(await client.execute({set: "bar"}))
-    equal(await client.query("get"), "bar")
-    ok(await client.execute("del"))
-    rejects(client.query("get"))
+    equal(await client.query("Get"), "foo")
+    ok(await client.execute({Set: "bar"}))
+    equal(await client.query("Get"), "bar")
+    ok(await client.execute("Del"))
+    rejects(client.query("Get"))
+  }
+})
+```
+
+## Tests of internals
+
+### The `MocknetContract` class can call methods on WASM contract blobs
+
+```typescript
+import { MocknetContract } from '../index' // wait what
+test({
+  async "MocknetContract#init" ({ equal, deepEqual }) {
+    const contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const initMsg  = { echo: "Echo" }
+    const result   = contract.init(mockEnv(), initMsg)
+    const value    = Buffer.from(JSON.stringify(initMsg), 'utf8').toString('base64')
+    equal(result.Err,             undefined)
+    deepEqual(result.Ok.messages, [])
+    deepEqual(result.Ok.log,      [{ encrypted: false, key: 'Echo', value }])
+  }
+  async "MocknetContract#handle" ({ equal, deepEqual }) {
+    const contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const result   = contract.handle(mockEnv(), "Echo")
+    equal(result.Err,             undefined)
+    deepEqual(result.Ok.messages, [])
+    deepEqual(result.Ok.log,      [])
+    deepEqual(result.Ok.data,     "Echo")
+  }
+  async "MocknetContract#query" ({ equal }) {
+    const contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+    const result   = await contract.query("Echo")
+    equal(result.Err,             undefined)
+    equal(result.Ok,              "Echo")
   }
 })
 ```

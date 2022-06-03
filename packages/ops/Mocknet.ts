@@ -31,6 +31,10 @@ import {
 } from '@fadroma/client'
 import { Artifact, Template, Instance } from '@fadroma/ops'
 
+const console = Console('Fadroma Mocknet')
+const decoder = new TextDecoder()
+const encoder = new TextEncoder()
+
 declare class TextDecoder {
   decode (data: any): string
 }
@@ -48,9 +52,14 @@ declare namespace WebAssembly {
   function instantiate (code, world)
 }
 
-type Ptr     = number
-type Size    = number
-type ErrCode = number
+export type Ptr     = number
+
+export type Size    = number
+
+export type ErrCode = number
+
+/** Memory region as allocated by CosmWasm */
+export type Region = [Ptr, Size, Size, Uint32Array?]
 
 export interface IOExports {
   memory: WebAssembly.Memory
@@ -58,9 +67,9 @@ export interface IOExports {
 }
 
 export interface ContractExports extends IOExports {
-  init     (env: Ptr, msg: Ptr): Ptr
-  handle   (env: Ptr, msg: Ptr): Ptr
-  query    (msg: Ptr):           Ptr
+  init   (env: Ptr, msg: Ptr): Ptr
+  handle (env: Ptr, msg: Ptr): Ptr
+  query  (msg: Ptr):           Ptr
 }
 
 export interface ContractImports {
@@ -75,72 +84,149 @@ export interface ContractImports {
   }
 }
 
-const console = Console('@fadroma/mocknet')
-const decoder = new TextDecoder()
-const encoder = new TextEncoder()
 
-export type Region = [Ptr, Size, Size, Uint32Array?]
-
-export function region (buffer: Buffer, ptr: Ptr): Region {
-  const u32a = new Uint32Array(buffer)
-  const addr = u32a[ptr/4+0] // Region.offset
-  const size = u32a[ptr/4+1] // Region.capacity
-  const used = u32a[ptr/4+2] // Region.length
-  return [addr, size, used, u32a]
-}
-
-export function read (exports: IOExports, ptr: Ptr): string {
-  const { buffer } = exports.memory
-  const [addr, size, used] = region(buffer, ptr)
-  const u8a  = new Uint8Array(buffer)
-  const view = new DataView(buffer, addr, used)
-  const data = decoder.decode(view)
-  drop(exports, ptr)
-  return data
-}
-
-/** [1] https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
-export function pass <T> (exports: IOExports, data: T): Ptr {
-  const str = JSON.stringify(data)
-  const ptr = exports.allocate(str.length)
-  const { buffer } = exports.memory // must be after allocation - see [1]
-  const [ addr, _, __, u32a ] = region(buffer, ptr)
-  u32a[ptr/4+2] = u32a[ptr/4+1] // set length to capacity
-  writeUtf8(buffer, addr, str)
-  return ptr
-}
-
-export function write (buffer: Buffer, addr, data: ArrayLike<number>): void {
-  new Uint8Array(buffer).set(data, addr)
-}
-
-export function writeUtf8 (buffer: Buffer, addr, data: string): void {
-  new Uint8Array(buffer).set(encoder.encode(data), addr)
-}
-
-export function writeToRegion (exports: IOExports, ptr: Ptr, data: ArrayLike<number>): void {
-  const [addr, size, _, u32a] = region(exports.memory.buffer, ptr)
-  if (data.length > size) { // if data length > Region.capacity
-    throw new Error(`Mocknet: tried to write ${data.length} bytes to region of ${size} bytes`)
+/** Chain instance containing a local MocknetBackend. */
+export class Mocknet extends Chain {
+  constructor (id = 'fadroma-mocknet', options = {}) {
+    super(id, { ...options, mode: ChainMode.Mocknet })
   }
-  const usedPtr = ptr/4+2
-  u32a[usedPtr] = data.length // set Region.length
-  write(exports.memory.buffer, addr, data)
-}
-
-export function writeToRegionUtf8 (exports: IOExports, ptr: Ptr, data: string): void {
-  writeToRegion(exports, ptr, encoder.encode(data))
-}
-
-export function drop (exports, ptr): void {
-  if (exports.deallocate) {
-    exports.deallocate(ptr)
-  } else {
-    //console.warn("Can't deallocate", ptr)
+  Agent = MockAgent
+  state = new MocknetBackend(this.id)
+  async getAgent (options: AgentOptions) {
+    return new MockAgent(this, options)
+  }
+  async query <T, U> (contract: Instance, msg: T): Promise<U> {
+    return this.state.query(contract, msg)
+  }
+  async getHash (_: any) {
+    return Promise.resolve("SomeCodeHash")
+  }
+  async getCodeId (_: any) {
+    return Promise.resolve("1")
+  }
+  async getLabel (_: any) {
+    return "SomeLabel"
   }
 }
 
-export class Contract {
+/** Agent instance calling its Chain's Mocknet backend. */
+export class MockAgent extends Agent {
+  defaultDenom = 'umock'
+  Bundle = null
+  static async create (chain: Mocknet, options: AgentOptions) {
+    return new MockAgent(chain, options)
+  }
+  constructor (readonly chain: Mocknet, readonly options: AgentOptions) {
+    super(chain, options)
+  }
+  name:    string  = 'MockAgent'
+  address: Address = randomBech32('mocked')
+  async upload (artifact) {
+    return this.chain.state.upload(artifact)
+  }
+  async instantiate (template, label, msg, funds = []): Promise<Instance> {
+    return await this.chain.state.instantiate(this.address, template, label, msg, funds)
+  }
+  async execute <M, R> (instance, msg: M, opts): Promise<R> {
+    return await this.chain.state.execute(this.address, instance, msg, opts.funds, opts.memo, opts.fee)
+  }
+  async query <M, R> (instance, msg: M): Promise<R> {
+    return await this.chain.query(instance, msg)
+  }
+  get nextBlock () { return Promise.resolve()    }
+  get block     () { return Promise.resolve(0)   }
+  get account   () { return Promise.resolve()    }
+  get balance   () { return Promise.resolve("0") }
+  getBalance (_: string) { return Promise.resolve("0") }
+  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) { return Promise.resolve() }
+  sendMany (_1:any, _2:any, _3?:any, _4?:any) { return Promise.resolve() }
+}
+
+/** Hosts MocknetContract instances. */
+export class MocknetBackend {
+  constructor (readonly chainId: string) {}
+  codeId    = 0
+  uploads   = {}
+  instances = {}
+  makeEnv (
+    sender,
+    address,
+    codeHash = this.instances[address].codeHash,
+    now      = + new Date()
+  ) {
+    const height     = Math.floor(now/5000)
+    const time       = Math.floor(now/1000)
+    const chain_id   = this.chainId
+    const sent_funds = []
+    return {
+      block:    { height, time, chain_id },
+      message:  { sender, sent_funds },
+      contract: { address },
+      contract_key: "",
+      contract_code_hash: codeHash
+    }
+  }
+  upload ({ url, codeHash }: Artifact): Template {
+    const chainId = this.chainId
+    const codeId  = ++this.codeId
+    const content = this.uploads[codeId] = readFileSync(fileURLToPath(url))
+    return { chainId, codeId: String(codeId), codeHash }
+  }
+  getCode (codeId) {
+    const code = this.uploads[codeId]
+    if (!code) {
+      throw new Error(`No code with id ${codeId}`)
+    }
+    return code
+  }
+  async instantiate (
+    sender: Address, { codeId, codeHash }: Template, label, msg, funds = []
+  ): Promise<Instance> {
+    const chainId  = this.chainId
+    const code     = this.getCode(codeId)
+    const address  = randomBech32('mocked')
+    const contract = await new MocknetContract().load(code)
+    const env      = this.makeEnv(sender, address, codeHash)
+    const response = contract.init(env, msg)
+    if (response.Err) {
+      console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
+      throw Object.assign(new Error('Mocknet#instantiate: error'), response)
+    } else {
+      this.instances[address] = contract
+    }
+    return { chainId, codeId, codeHash, address, label }
+  }
+  getInstance (address) {
+    const instance = this.instances[address]
+    if (!instance) {
+      throw new Error(`Mocknet: no contract at ${address}`)
+    }
+    return instance
+  }
+  async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo, fee) {
+    return this.resultOf(this.getInstance(address).handle(this.makeEnv(sender, address), msg))
+  }
+  async query ({ address, codeHash }: Instance, msg) {
+    return this.resultOf(this.getInstance(address).query(msg))
+  }
+  private resultOf (result) {
+    if (result.hasOwnProperty('Ok')) { // handles { Ok: '' }
+      return result.Ok
+    } else if (result.hasOwnProperty('Err')) {
+      const msg = `Mocknet: contract returned error: ${JSON.stringify(result.Err)}`
+      const err = Object.assign(new Error(msg), { Err: result.Err })
+      throw err
+    } else {
+      const msg = 'Mocknet: contract returned non-Result type'
+      const err = Object.assign(new Error(msg), { result })
+      console.log(result)
+      throw err
+    }
+  }
+}
+
+/** Hosts a WASM contract blob. */
+export class MocknetContract {
   instance: WebAssembly.Instance<ContractExports>
   async load (code) {
     const { instance } = await WebAssembly.instantiate(code, this.makeImports())
@@ -242,157 +328,69 @@ export class Contract {
   }
 }
 
-export class MocknetState {
-  constructor (readonly chainId: string) {}
-  codeId    = 0
-  uploads   = {}
-  instances = {}
-  makeEnv (
-    sender,
-    address,
-    codeHash = this.instances[address].codeHash,
-    now      = + new Date()
-  ) {
-    const height     = Math.floor(now/5000)
-    const time       = Math.floor(now/1000)
-    const chain_id   = this.chainId
-    const sent_funds = []
-    return {
-      block:    { height, time, chain_id },
-      message:  { sender, sent_funds },
-      contract: { address },
-      contract_key: "",
-      contract_code_hash: codeHash
-    }
-  }
-  upload ({ url, codeHash }: Artifact): Template {
-    const chainId = this.chainId
-    const codeId  = ++this.codeId
-    const content = this.uploads[codeId] = readFileSync(fileURLToPath(url))
-    return { chainId, codeId: String(codeId), codeHash }
-  }
-  getCode (codeId) {
-    const code = this.uploads[codeId]
-    if (!code) {
-      throw new Error(`No code with id ${codeId}`)
-    }
-    return code
-  }
-  async instantiate (
-    sender: Address, { codeId, codeHash }: Template, label, msg, funds = []
-  ): Promise<Instance> {
-    const chainId  = this.chainId
-    const code     = this.getCode(codeId)
-    const address  = randomBech32('mocked')
-    const contract = await new Contract().load(code)
-    const env      = this.makeEnv(sender, address, codeHash)
-    const response = contract.init(env, msg)
-    if (response.Err) {
-      console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
-      throw Object.assign(new Error('Mocknet#instantiate: error'), response)
-    } else {
-      this.instances[address] = contract
-    }
-    return { chainId, codeId, codeHash, address, label }
-  }
-  getInstance (address) {
-    const instance = this.instances[address]
-    if (!instance) {
-      throw new Error(`Mocknet: no contract at ${address}`)
-    }
-    return instance
-  }
-  async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo, fee) {
-    return this.resultOf(this.getInstance(address).handle(this.makeEnv(sender, address), msg))
-  }
-  async query ({ address, codeHash }: Instance, msg) {
-    return this.resultOf(this.getInstance(address).query(msg))
-  }
-  private resultOf (result) {
-    if (result.hasOwnProperty('Ok')) { // handles { Ok: '' }
-      return result.Ok
-    } else if (result.hasOwnProperty('Err')) {
-      const msg = `Mocknet: contract returned error: ${JSON.stringify(result.Err)}`
-      const err = Object.assign(new Error(msg), { Err: result.Err })
-      throw err
-    } else {
-      const msg = 'Mocknet: contract returned non-Result type'
-      const err = Object.assign(new Error(msg), { result })
-      console.log(result)
-      throw err
-    }
-  }
+/** Read region properties from pointer to region. */
+export function region (buffer: Buffer, ptr: Ptr): Region {
+  const u32a = new Uint32Array(buffer)
+  const addr = u32a[ptr/4+0] // Region.offset
+  const size = u32a[ptr/4+1] // Region.capacity
+  const used = u32a[ptr/4+2] // Region.length
+  return [addr, size, used, u32a]
 }
 
-export class Mocknet extends Chain {
-  constructor (id = 'fadroma-mocknet', options = {}) {
-    super(id, { ...options, mode: ChainMode.Mocknet })
-  }
-  Agent = MockAgent
-  state = new MocknetState(this.id)
-  async getAgent (options: MockAgentOptions) {
-    return new MockAgent(this, options)
-  }
-  async query <T, U> (contract: Instance, msg: T): Promise<U> {
-    return this.state.query(contract, msg)
-  }
-  async getHash (_: any) {
-    return Promise.resolve("SomeCodeHash")
-  }
-  async getCodeId (_: any) {
-    return Promise.resolve("1")
-  }
-  async getLabel (_: any) {
-    return "SomeLabel"
-  }
+/** Read region contents from pointer to region. */
+export function read (exports: IOExports, ptr: Ptr): string {
+  const { buffer } = exports.memory
+  const [addr, size, used] = region(buffer, ptr)
+  const u8a  = new Uint8Array(buffer)
+  const view = new DataView(buffer, addr, used)
+  const data = decoder.decode(view)
+  drop(exports, ptr)
+  return data
 }
 
-export interface MockAgentOptions extends AgentOptions {}
-
-export class MockAgent extends Agent {
-  defaultDenom = 'umock'
-  Bundle = null
-  static async create (chain: Mocknet, options: MockAgentOptions) {
-    return new MockAgent(chain, options)
-  }
-  constructor (readonly chain: Mocknet, readonly options: MockAgentOptions) {
-    super(chain, options)
-  }
-  name:    string  = 'MockAgent'
-  address: Address = randomBech32('mocked')
-  async upload (artifact) {
-    return this.chain.state.upload(artifact)
-  }
-  async instantiate (template, label, msg, funds = []): Promise<Instance> {
-    return await this.chain.state.instantiate(this.address, template, label, msg, funds)
-  }
-  async execute <M, R> (instance, msg: M, opts): Promise<R> {
-    return await this.chain.state.execute(this.address, instance, msg, opts.funds, opts.memo, opts.fee)
-  }
-  async query <M, R> (instance, msg: M): Promise<R> {
-    return await this.chain.query(instance, msg)
-  }
-  get nextBlock () { return Promise.resolve()    }
-  get block     () { return Promise.resolve(0)   }
-  get account   () { return Promise.resolve()    }
-  get balance   () { return Promise.resolve("0") }
-  getBalance (_: string) { return Promise.resolve("0") }
-  send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) { return Promise.resolve() }
-  sendMany (_1:any, _2:any, _3?:any, _4?:any) { return Promise.resolve() }
+/** Allocate region, write data to it, and return the pointer.
+  * See: https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
+export function pass <T> (exports: IOExports, data: T): Ptr {
+  const str = JSON.stringify(data)
+  const ptr = exports.allocate(str.length)
+  const { buffer } = exports.memory // must be after allocation - see [1]
+  const [ addr, _, __, u32a ] = region(buffer, ptr)
+  u32a[ptr/4+2] = u32a[ptr/4+1] // set length to capacity
+  writeUtf8(buffer, addr, str)
+  return ptr
 }
 
-export const Mocks = {
+/** Write data to memory address. */
+export function write (buffer: Buffer, addr, data: ArrayLike<number>): void {
+  new Uint8Array(buffer).set(data, addr)
+}
 
-  Agent: MockAgent,
+/** Write UTF8-encoded data to memory address. */
+export function writeUtf8 (buffer: Buffer, addr, data: string): void {
+  new Uint8Array(buffer).set(encoder.encode(data), addr)
+}
 
-  Chains: {
-    Mocknet () {
-      const id = 'fadroma-mocknet'
-      return new Mocknet(id, {
-        url:       new URL('mock://mock:0'),
-        statePath: `/tmp/fadroma_mocknet_${Math.floor(Math.random()*1000000)}`
-      })
-    }
+/** Write data to address of region referenced by pointer. */
+export function writeToRegion (exports: IOExports, ptr: Ptr, data: ArrayLike<number>): void {
+  const [addr, size, _, u32a] = region(exports.memory.buffer, ptr)
+  if (data.length > size) { // if data length > Region.capacity
+    throw new Error(`Mocknet: tried to write ${data.length} bytes to region of ${size} bytes`)
   }
+  const usedPtr = ptr/4+2
+  u32a[usedPtr] = data.length // set Region.length
+  write(exports.memory.buffer, addr, data)
+}
 
+/** Write UTF8-encoded data to address of region referenced by pointer. */
+export function writeToRegionUtf8 (exports: IOExports, ptr: Ptr, data: string): void {
+  writeToRegion(exports, ptr, encoder.encode(data))
+}
+
+/** Deallocate memory. Fails silently if no deallocate callback is exposed by the blob. */
+export function drop (exports, ptr): void {
+  if (exports.deallocate) {
+    exports.deallocate(ptr)
+  } else {
+    //console.warn("Can't deallocate", ptr)
+  }
 }
