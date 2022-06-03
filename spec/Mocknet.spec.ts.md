@@ -14,7 +14,8 @@ export default MocknetSpec
 ## Can run WASM blob
 
 ```typescript
-import { readFileSync, Contract } from '../index'
+import { readFileSync } from 'fs'
+import { Contract } from '../index'
 import { fixture } from './_Harness'
 const emptyContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
 const emptyContractWasm = readFileSync(emptyContract)
@@ -67,10 +68,11 @@ test({
 ## Can upload WASM blob, returning code ID
 
 ```typescript
+import { pathToFileURL } from 'url'
 test({
   async 'can upload wasm blob, returning code id' ({ equal }) {
     const agent = await new Mocknet().getAgent()
-    const artifact = { location: emptyContract }
+    const artifact = { url: pathToFileURL(emptyContract) }
     const template = await agent.upload(artifact)
     equal(template.chainId, agent.chain.id)
     const template2 = await agent.upload(artifact)
@@ -94,7 +96,8 @@ test({
   async 'upload and init from resulting code ID' ({ ok }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
-    const template = await agent.upload({ location: emptyContract, codeHash: 'something' })
+    const artifact = { url: pathToFileURL(emptyContract), codeHash: 'something' }
+    const template = await agent.upload(artifact)
     const instance = await agent.instantiate(template, 'test', {})
     const client   = agent.getClient(Client, instance)
     ok(await client.query({}))
@@ -112,7 +115,8 @@ test({
   async 'db read/write/remove' ({ ok, equal, rejects }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
-    const template = await agent.upload({ location: storageContract, codeHash: 'something' })
+    const artifact = { url: pathToFileURL(emptyContract), codeHash: 'something' }
+    const template = await agent.upload(artifact)
     const instance = await agent.instantiate(template, 'test', { value: "foo" })
     const client   = agent.getClient(Client, instance)
     equal(await client.query("get"), "foo")
