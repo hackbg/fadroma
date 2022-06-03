@@ -114,7 +114,7 @@ test({
     const template = { chainId: 'Mocknet', codeId: '2' }
     rejects(agent.instantiate(template, 'test', {}))
   },
-  async 'MocknetAgent: contract upload and init' ({ ok, equal }) {
+  async 'MocknetAgent: contract upload and init/query/execute' ({ ok, equal }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
     const artifact = { url: pathToFileURL(ExampleContracts.Paths.Echo), codeHash: 'something' }
@@ -132,7 +132,7 @@ test({
 
 ```typescript
 test({
-  async 'MocknetAgent: contract supports db read/write/remove' ({ ok, equal, rejects }) {
+  async 'MocknetAgent: contract supports db_read/write/remove' ({ ok, equal, rejects }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
     const artifact = { url: pathToFileURL(ExampleContracts.Paths.KV), codeHash: 'something' }
