@@ -162,8 +162,8 @@ export class MocknetBundle extends Bundle {
         const { sender, codeId, codeHash, label, msg, funds } = init
         results.push(await this.agent.instantiate({ codeId, codeHash }, label, msg, funds))
       } else if (exec) {
-        const { sender, contract, codeHash, msg, funds } = init
-        results.push(await this.agent.execute({ address: contract, codeHash }, msg, funds))
+        const { sender, contract, codeHash, msg, funds } = exec
+        results.push(await this.agent.execute({ address: contract, codeHash }, msg, { send: funds }))
       } else {
         console.warn('MocknetBundle#submit: found unknown message in bundle, ignoring')
         results.push(null)
