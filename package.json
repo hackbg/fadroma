@@ -24,7 +24,9 @@
   },
   "devDependencies": {
     "@types/node": "^16.11.36",
-    "@hackbg/runspec": "^2.1.1",
+
+    "@hackbg/runspec": "workspace:*",
+
     "body-parser": "^1.20.0",
     "c8": "^7.11.3",
     "express": "^4.18.1",
