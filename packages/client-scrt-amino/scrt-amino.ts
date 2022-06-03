@@ -3,7 +3,7 @@ import {
   AgentOptions,
   CodeId,
   CodeHash,
-  Fees,
+  Instance,
   ScrtAgent,
   ScrtBundle,
   ScrtChain,
@@ -41,11 +41,11 @@ export interface ScrtNonce {
 export interface LegacyScrtAgentOptions extends AgentOptions {
   keyPair?: { privkey: Uint8Array }
   pen?:     SigningPen
-  fees?:    Fees
 }
 
 export class LegacyScrtAgent extends ScrtAgent {
 
+  //@ts-ignore
   Bundle = LegacyScrtBundle
 
   static async create (chain, options) {
@@ -249,6 +249,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     }) as U
   }
 
+  //@ts-ignore
   async execute ({ address, codeHash }, msg, opts) {
     const { memo, amount, fee } = opts
     return await this.api.execute(address, msg, memo, amount, fee, codeHash)

@@ -43,65 +43,6 @@ export abstract class ScrtAgent extends Agent {
 
 export class ScrtBundle extends Bundle {
 
-  depth = 0
-
-  bundle (): Bundle {
-    console.warn('Nest bundles with care. Depth:', ++this.depth)
-    return this as Bundle
-  }
-
-  //@ts-ignore
-  async wrap (cb: BundleCallback<this>, opts = { memo: "" }): Promise<any[]> {
-    await cb(this)
-    return this.run(opts.memo)
-  }
-
-  run (memo = ""): Promise<any> {
-    if (this.depth > 0) {
-      console.warn('Unnesting bundle. Depth:', --this.depth)
-      this.depth--
-      //@ts-ignore
-      return null
-    } else {
-      return this.submit(memo)
-    }
-  }
-
-  id = 0
-
-  msgs: any[] = []
-
-  add (msg: Message) {
-    const id = this.id++
-    this.msgs[id] = msg
-    return id
-  }
-
-  getClient <C extends Client, O extends ClientOptions> (
-    Class: ClientCtor<C, O>, options: Address|O
-  ): C {
-    //@ts-ignore
-    return new Class(this, options)
-  }
-
-  get name () {
-    return `${this.agent.name}@BUNDLE`
-  }
-
-  get balance () {
-    throw new Error("don't query inside bundle")
-    return Promise.resolve('0')
-  }
-
-  async getBalance (denom: string) {
-    throw new Error("can't get balance in bundle")
-    return Promise.resolve('0')
-  }
-
-  get defaultDenom () {
-    return this.agent.defaultDenom
-  }
-
   /** Add a single MsgInstantiateContract to the bundle. */
   async instantiate (
     template: Template, label: Label, msg: Message, init_funds = []
@@ -112,41 +53,32 @@ export class ScrtBundle extends Bundle {
     return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
   }
 
-  /** Add multiple MsgInstantiateContract messages to the bundle,
-    * one for each contract config. */
-  async instantiateMany (configs: [Template, Label, Message][]) {
-    return await Promise.all(configs.map(([template, label, initMsg])=>
-      this.instantiate(template, label, initMsg)))
-  }
-
   async init (template: Template, label: Label, msg: Message, funds = []) {
-    this.add({ init: {
-      sender:   this.address,
-      codeId:   String(template.codeId),
-      codeHash: template.codeHash,
-      label,
-      msg,
-      funds
-    }})
+    this.add({
+      init: {
+        sender:   this.address,
+        codeId:   String(template.codeId),
+        codeHash: template.codeHash,
+        label,
+        msg,
+        funds
+      }
+    })
     return this
   }
 
   //@ts-ignore
   async execute (instance: Instance, msg: Message, { send }: ExecOpts = {}): Promise<this> {
-    this.add({ exec: {
-      sender:   this.address,
-      contract: instance.address,
-      codeHash: instance.codeHash,
-      msg,
-      funds: send
-    } })
+    this.add({
+      exec: {
+        sender:   this.address,
+        contract: instance.address,
+        codeHash: instance.codeHash,
+        msg,
+        funds: send
+      }
+    })
     return this
-  }
-
-  assertCanSubmit () {
-    if (this.msgs.length < 1) {
-      throw new Error('Trying to submit bundle with no messages')
-    }
   }
 
   submit (memo: string): Promise<any> {

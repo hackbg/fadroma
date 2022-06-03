@@ -210,7 +210,7 @@ export abstract class Agent implements Executor {
       this.height.then(async startingHeight=>{
         try {
           while (true) {
-            await new Promise(ok=>setTimeout(ok, 1000))
+            await new Promise(ok=>setTimeout(ok, 100))
             const height = await this.height
             if (height > startingHeight) {
               resolve()
@@ -264,22 +264,53 @@ export abstract class Agent implements Executor {
 
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 export abstract class Bundle implements Executor {
+
   constructor (readonly agent: Agent) {}
 
-  Bundle = this
+  depth  = 0
+  Bundle = this.constructor
+  bundle (): this {
+    console.warn('Nest bundles with care. Depth:', ++this.depth)
+    return this
+  }
 
-  get chain   () { return this.agent.chain   }
-  get address () { return this.agent.address }
-  get fees    () { return this.agent.fees    }
+  get chain        () { return this.agent.chain            }
+  get address      () { return this.agent.address          }
+  get name         () { return `${this.agent.name}@BUNDLE` }
+  get fees         () { return this.agent.fees             }
+  get defaultDenom () { return this.agent.defaultDenom     }
 
   getCodeId (address: Address) { return this.agent.getCodeId(address) }
   getLabel  (address: Address) { return this.agent.getLabel(address)  }
   getHash   (address: Address) { return this.agent.getHash(address)   }
 
+  get balance () {
+    throw new Error("don't query inside bundle")
+    return Promise.resolve('0')
+  }
+
+  async getBalance (denom: string) {
+    throw new Error("can't get balance in bundle")
+    return Promise.resolve('0')
+  }
+
+
+  get height (): Promise<number> {
+    throw new Error("don't query block height inside bundle")
+  }
+
+  get nextBlock (): Promise<void> {
+    throw new Error("can't wait for next block inside bundle")
+  }
+
   abstract instantiate (template: Template, label: string, msg: Message): Promise<Instance>
-  abstract instantiateMany (configs: [Template, string, Message][]): Promise<Instance[]>
+
+  async instantiateMany (configs: [Template, Label, Message][]): Promise<Instance[]> {
+    return await Promise.all(configs.map(([template, label, initMsg])=>
+      this.instantiate(template, label, initMsg)))
+  }
+
   abstract execute <R> (contract: Instance, msg: Message, opts?: ExecOpts): Promise<R>
-  abstract wrap (cb: BundleCallback<this>, opts?: any): Promise<any[]>
 
   /** Queries are disallowed in the middle of a bundle because
     * even though the bundle API is structured as multiple function calls,
@@ -305,25 +336,49 @@ export abstract class Bundle implements Executor {
     throw new Error("don't upload inside bundle")
   }
 
-  get height (): Promise<number> {
-    throw new Error("don't query block height inside bundle")
-  }
-
-  get nextBlock (): Promise<void> {
-    throw new Error("can't wait for next block inside bundle")
-  }
-
-  bundle (): Bundle {
-    throw new Error('Bundle#bundle not implemented')
-  }
-
   getClient <C extends Client, O extends ClientOptions> (
     Client: ClientCtor<C, O>, arg: Address|O
   ): C {
     return new Client(this, arg)
   }
 
+  id = 0
+  msgs: any[] = []
+  add (msg: Message) {
+    const id = this.id++
+    this.msgs[id] = msg
+    return id
+  }
+
+  //@ts-ignore
+  async wrap (cb: BundleCallback<this>, opts = { memo: "" }): Promise<any[]> {
+    await cb(this)
+    return this.run(opts.memo)
+  }
+
+  run (memo = ""): Promise<any> {
+    if (this.depth > 0) {
+      console.warn('Unnesting bundle. Depth:', --this.depth)
+      this.depth--
+      //@ts-ignore
+      return null
+    } else {
+      return this.submit(memo)
+    }
+  }
+
+  assertCanSubmit () {
+    if (this.msgs.length < 1) {
+      throw new Error('Trying to submit bundle with no messages')
+    }
+  }
+
+  abstract submit (memo: string): Promise<any>
+
+  abstract save (name: string)
+
 }
+
 export interface ClientOptions extends Instance {
   name?: string
   fee?:  IFee
