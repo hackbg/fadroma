@@ -93,10 +93,9 @@ import { pathToFileURL } from 'url'
 test({
   async 'MocknetAgent: can upload wasm blob, returning code id' ({ equal }) {
     const agent     = await new Mocknet().getAgent()
-    const artifact  = { url: pathToFileURL(ExampleContracts.Paths.Echo) }
-    const template  = await agent.upload(artifact)
+    const template  = await agent.upload(ExampleContracts.Blobs.Echo)
     equal(template.chainId, agent.chain.id)
-    const template2 = await agent.upload(artifact)
+    const template2 = await agent.upload(ExampleContracts.Blobs.Echo)
     equal(template2.chainId, template.chainId)
     equal(template2.codeId, String(Number(template.codeId) + 1))
   }
@@ -117,8 +116,7 @@ test({
   async 'MocknetAgent: contract upload and init/query/execute' ({ ok, equal }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
-    const artifact = { url: pathToFileURL(ExampleContracts.Paths.Echo), codeHash: 'something' }
-    const template = await agent.upload(artifact)
+    const template = await agent.upload(ExampleContracts.Blobs.Echo)
     const message  = { fail: false }
     const instance = await agent.instantiate(template, 'test', message)
     const client   = agent.getClient(Client, instance)
@@ -135,8 +133,7 @@ test({
   async 'MocknetAgent: contract supports db_read/write/remove' ({ ok, equal, rejects }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
-    const artifact = { url: pathToFileURL(ExampleContracts.Paths.KV), codeHash: 'something' }
-    const template = await agent.upload(artifact)
+    const template = await agent.upload(ExampleContracts.Blobs.KV)
     const instance = await agent.instantiate(template, 'test', { value: "foo" })
     const client   = agent.getClient(Client, instance)
     equal(await client.query("Get"), "foo")
