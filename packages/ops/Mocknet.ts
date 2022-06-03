@@ -231,7 +231,6 @@ export class MocknetContract {
     return this
   }
   init (env, msg) {
-    console.log('init', msg)
     const envBuf  = this.pass(env)
     const msgBuf  = this.pass(msg)
     const retPtr  = this.instance.exports.init(envBuf, msgBuf)

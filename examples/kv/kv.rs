@@ -4,13 +4,13 @@ use fadroma::{
     InitResponse, HandleResponse, Binary,
     StdResult, StdError,
     schemars,
-    save, load, remove,
+    to_binary, save, load, remove,
 };
 
 const KEY: &'static [u8] = b"value";
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub struct InitMsg { value: Option<Binary> }
+pub struct InitMsg { value: Option<String> }
 pub(crate) fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, env: Env, msg: InitMsg,
 ) -> StdResult<InitResponse> {
@@ -21,7 +21,7 @@ pub(crate) fn init<S: Storage, A: Api, Q: Querier>(
 }
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum HandleMsg { Set(Binary), Del }
+pub enum HandleMsg { Set(String), Del }
 pub(crate) fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
@@ -42,8 +42,8 @@ pub(crate) fn query<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>, msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Get => if let Some(value) = load(&deps.storage, KEY)? {
-            Ok(value)
+        QueryMsg::Get => if let Some(value) = load::<String, S>(&deps.storage, KEY)? {
+            to_binary(&value)
         } else {
             Err(StdError::generic_err("empty"))
         }
@@ -57,7 +57,7 @@ mod wasm {
     };
     #[no_mangle]
     extern "C" fn init(env_ptr: u32, msg_ptr: u32) -> u32 {
-        do_init(&super::init::<ExternalStorage, ExternalApi, ExternalQuerier>, env_ptr, msg_ptr
+        do_init(&super::init::<ExternalStorage, ExternalApi, ExternalQuerier>, env_ptr, msg_ptr)
     }
     #[no_mangle]
     extern "C" fn handle(env_ptr: u32, msg_ptr: u32) -> u32 {
