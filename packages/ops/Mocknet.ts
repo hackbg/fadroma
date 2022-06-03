@@ -229,10 +229,10 @@ export class MocknetBackend {
   ): Promise<Instance> {
     const chainId  = this.chainId
     const code     = this.getCode(codeId)
-    const contract = await new MocknetContract().load(code)
+    const contract = await new MocknetContract(this).load(code)
     const env      = this.makeEnv(sender, contract.address, codeHash)
     const response = contract.init(env, msg)
-    const initResponse = this.resultOf(contract.address, 'instantiate', response)
+    const initResponse = parseResult(response, 'instantiate', contract.address)
     this.instances[contract.address] = contract
     await this.passCallbacks(contract.address, initResponse.messages)
     return { chainId, codeId, codeHash, address: contract.address, label }
@@ -240,7 +240,7 @@ export class MocknetBackend {
 
   async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo?, fee?) {
     const result   = this.getInstance(address).handle(this.makeEnv(sender, address), msg)
-    const response = this.resultOf(address, 'execute', result)
+    const response = parseResult(result, 'execute', address)
     if (response.data !== null) {
       response.data = b64toUtf8(response.data)
     }
@@ -318,7 +318,7 @@ export class MocknetBackend {
   }
 
   async query ({ address, codeHash }: Instance, msg) {
-    const result = b64toUtf8(this.resultOf(address, 'query', this.getInstance(address).query(msg)))
+    const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
     return JSON.parse(result)
   }
 
@@ -337,9 +337,25 @@ export class MocknetBackend {
 
 }
 
+export function parseResult (response: any, address: Address, action: string) {
+  const { Ok, Err } = response
+  if (Err !== undefined) {
+    const errData = JSON.stringify(Err)
+    const message = `Mocknet ${action}: contract ${address} returned Err: ${errData}`
+    throw Object.assign(new Error(message), Err)
+  }
+  if (Ok !== undefined) {
+    return Ok
+  }
+  throw new Error(`Mocknet ${action}: contract ${address} returned non-Result type`)
+}
+
 /** Hosts a WASM contract blob and contains the contract-local storage. */
 export class MocknetContract {
-  constructor (readonly address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX)) {
+  constructor (
+    readonly backend: MocknetBackend|null = null,
+    readonly address: Address             = randomBech32(MOCKNET_ADDRESS_PREFIX)
+  ) {
     trace('Instantiating', bold(address))
   }
   instance: WebAssembly.Instance<ContractExports>
@@ -451,10 +467,40 @@ export class MocknetContract {
           return 0
         },
         query_chain (reqPtr) {
-          console.log('query')
-          const exports = getExports()
-          const req     = readUtf8(exports, reqPtr)
-          trace(bold(contract.address), 'query_chain', { req })
+          const exports  = getExports()
+          const req      = readUtf8(exports, reqPtr)
+          trace(bold(contract.address), 'query_chain:', req)
+          const { wasm } = JSON.parse(req)
+          if (!wasm) {
+            throw new Error(
+              `MocknetContract ${contract.address} made a non-wasm query:`+
+              ` ${JSON.stringify(req)}`
+            )
+          }
+          const { smart } = wasm
+          if (!wasm) {
+            throw new Error(
+              `MocknetContract ${contract.address} made a non-smart wasm query:`+
+              ` ${JSON.stringify(req)}`
+            )
+          }
+          if (!contract.backend) {
+            throw new Error(
+              `MocknetContract ${contract.address} made a query while isolated from`+
+              ` the MocknetBackend: ${JSON.stringify(req)}`
+            )
+          }
+          const { contract_addr, callback_code_hash, msg } = smart
+          const queried = contract.backend.getInstance(contract_addr)
+          if (!queried) {
+            throw new Error(
+              `MocknetContract ${contract.address} made a query to contract ${contract_addr}` +
+              ` which was not found in the MocknetBackend: ${JSON.stringify(req)}`
+            )
+          }
+          const decoded = JSON.parse(b64toUtf8(msg))
+          debug(`${bold(contract.address)} queries ${contract_addr}:`, decoded)
+          const result = b64toUtf8(parseResult(queried.query(decoded), 'query_chain', contract_addr))
           return 0
         }
       }
