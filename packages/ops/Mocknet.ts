@@ -324,8 +324,8 @@ export class MocknetContract {
         db_write (keyPtr, valPtr) {
           const exports = getExports()
           const key     = readUtf8(exports, keyPtr)
-          const val     = readUtf8(exports, valPtr)
-          contract.storage.set(key, utf8toBuffer(val))
+          const val     = readBuffer(exports, valPtr)
+          contract.storage.set(key, val)
           console.info(bold(contract.address), `db_write:`, bold(key), '=', val)
           console.info()
         },
@@ -377,7 +377,7 @@ export function region (buffer: Buffer, ptr: Ptr): Region {
   return [addr, size, used, u32a]
 }
 
-/** Read region contents from pointer to region. */
+/** Read contents of region referenced by region pointer into a string. */
 export function readUtf8 (exports: IOExports, ptr: Ptr): string {
   const { buffer } = exports.memory
   const [addr, size, used] = region(buffer, ptr)
@@ -386,6 +386,18 @@ export function readUtf8 (exports: IOExports, ptr: Ptr): string {
   const data = decoder.decode(view)
   drop(exports, ptr)
   return data
+}
+
+/** Read contents of region referenced by region pointer into a string. */
+export function readBuffer (exports: IOExports, ptr: Ptr): Buffer {
+  const { buffer } = exports.memory
+  const [addr, size, used] = region(buffer, ptr)
+  const u8a  = new Uint8Array(buffer)
+  const output = Buffer.alloc(size)
+  for (let i = addr; i < addr + size; i++) {
+    output[i - addr] = u8a[i]
+  }
+  return output
 }
 
 /** Serialize a datum into a JSON string and pass it into the contract. */
