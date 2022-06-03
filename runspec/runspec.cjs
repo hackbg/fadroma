@@ -80,8 +80,11 @@ async function runSpec (suites, selected = process.argv.slice(2)) {
     let output = `\n${suite}\n`
 
     /** Iterate over every test result collected by the wrapper function.
-      * TODO: iterating over tests instead of results makes the order of tests static? */
-    for (let [name, [success, data]] of Object.entries(results)) {
+      * Iterating over tests instead of results makes the output order static,
+      * because `tests` is populated synchronously and `results` is asynchronous.
+      * TODO use Map instead of Object for strong insertion order guarantee? */
+    for (let name of Object.keys(tests)) {
+      let [success, data] = results[name]
       /** Align output by padding each name to the maximum length. */
       name = name.padEnd(longestName)
       if (success) {
