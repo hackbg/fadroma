@@ -11,20 +11,56 @@ const test = tests => Object.assign(MocknetSpec, tests)
 export default MocknetSpec
 ```
 
-## Can run WASM blob
+## Example contracts
+
+Testing of the mocknet is conducted via two minimal smart contracts.
+Compiled artifacts of those are stored under [`/fixtures`](../fixtures).
+You can recompile them with the Fadroma Build CLI.
 
 ```typescript
-import { readFileSync } from 'fs'
-import { Contract } from '../index'
 import { fixture } from './_Harness'
-const emptyContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
-const emptyContractWasm = readFileSync(emptyContract)
+import { readFileSync } from 'fs'
+export const ExampleContracts = { Paths: {}, Blobs: {} }
+```
+
+### Echo contract
+
+> Compile with `./fadroma.cjs build examples/echo` in repo root.
+
+This parrots back the data sent by the client, in order to validate
+reading/writing and serializing/deserializing the input/output messages.
+
+```typescript
+ExampleContracts.Paths.Echo = fixture('fixtures/fadroma-example-echo@HEAD.wasm')
+ExampleContracts.Blobs.Echo = readFileSync(ExampleContracts.Paths.Echo)
+```
+
+## KV contract
+
+> Compile with `./fadroma.cjs build examples/kv` in repo root.
+
+This exposes the key/value storage API available to contracts,
+in order to validate reading/writing and serializing/deserializing stored values.
+
+```typescript
+ExampleContracts.Paths.KV = fixture('fixtures/fadroma-example-kv@HEAD.wasm')
+ExampleContracts.Blobs.KV = readFileSync(ExampleContracts.Paths.KV)
+```
+
+## Mocking the environment
+
+When testing your own contracts with Fadroma Mocknet, you are responsible
+for providing the value of the `env` struct seen by the contracts.
+Since here we test the mocknet itself, we use this pre-defined value:
+
+```typescript
+import { randomBech32 } from '@hackbg/toolbox'
 const mockEnv = () => {
   const height   = 0
   const time     = 0
   const chain_id = "mock"
-  const sender   = "secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  const address  = "secret1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  const sender   = randomBech32('mocked')
+  const address  = randomBech32('mocked')
   return {
     block:    { height, time, chain_id }
     message:  { sender: sender, sent_funds: [] },
@@ -33,26 +69,34 @@ const mockEnv = () => {
     contract_code_hash: ""
   }
 }
+```
+
+## Tests
+
+### Can run WASM blob
+
+```typescript
+import { Contract } from '../index' // wait what
 test({
   async "Contract#init" ({ equal }) {
-    const contract = await new Contract().load(emptyContractWasm)
+    const contract = await new Contract().load(ExampleContracts.Blobs.Echo)
     const result = contract.init(mockEnv(), {})
     equal(result.Err, undefined)
   }
   async "Contract#handle" ({ equal }) {
-    const contract = await new Contract().load(emptyContractWasm)
-    const result = contract.handle(mockEnv(), "Null")
+    const contract = await new Contract().load(ExampleContracts.Blobs.Echo)
+    const result = contract.handle(mockEnv(), "Echo")
     equal(result.Err, undefined)
   }
   async "Contract#query" ({ equal }) {
-    const contract = await new Contract().load(emptyContractWasm)
+    const contract = await new Contract().load(ExampleContracts.Blobs.Echo)
     const result = await contract.query("Echo")
     equal(result.Err, undefined)
   }
 })
 ```
 
-## Can initialize and provide agent
+### Can initialize and provide agent
 
 ```typescript
 import { Mocknet, MockAgent } from '../index'
@@ -65,14 +109,14 @@ test({
 })
 ```
 
-## Can upload WASM blob, returning code ID
+### Can upload WASM blob, returning code ID
 
 ```typescript
 import { pathToFileURL } from 'url'
 test({
   async 'can upload wasm blob, returning code id' ({ equal }) {
     const agent = await new Mocknet().getAgent()
-    const artifact = { url: pathToFileURL(emptyContract) }
+    const artifact = { url: pathToFileURL(ExampleContracts.Paths.Echo) }
     const template = await agent.upload(artifact)
     equal(template.chainId, agent.chain.id)
     const template2 = await agent.upload(artifact)
@@ -82,7 +126,7 @@ test({
 })
 ```
 
-## Can instantiate and call a contract
+### Can instantiate and call a contract
 
 ```typescript
 import { Client } from '../index'
@@ -96,26 +140,24 @@ test({
   async 'upload and init from resulting code ID' ({ ok, equal }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
-    const artifact = { url: pathToFileURL(emptyContract), codeHash: 'something' }
+    const artifact = { url: pathToFileURL(ExampleContracts.Paths.Echo), codeHash: 'something' }
     const template = await agent.upload(artifact)
     const instance = await agent.instantiate(template, 'test', {})
     const client   = agent.getClient(Client, instance)
-    equal(await client.query("Echo"), '')
-    ok(await client.execute("Null"))
+    equal(await client.query("Echo"), "Echo")
+    ok(await client.execute("Echo"), { data: "Echo" })
   }
 })
 ```
 
-## Contract deployed to mocknet can use simulated platform APIs
+### Contract deployed to mocknet can use simulated platform APIs
 
 ```typescript
-const storageContract     = fixture('examples/empty-contract/artifacts/empty@HEAD.wasm')
-const storageContractWasm = readFileSync(emptyContract)
 test({
   async 'db read/write/remove' ({ ok, equal, rejects }) {
     const chain    = new Mocknet()
     const agent    = await chain.getAgent()
-    const artifact = { url: pathToFileURL(emptyContract), codeHash: 'something' }
+    const artifact = { url: pathToFileURL(ExampleContracts.Paths.KV), codeHash: 'something' }
     const template = await agent.upload(artifact)
     const instance = await agent.instantiate(template, 'test', { value: "foo" })
     const client   = agent.getClient(Client, instance)
