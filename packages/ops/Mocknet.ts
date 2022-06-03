@@ -93,8 +93,11 @@ export const MOCKNET_ADDRESS_PREFIX = 'mocked'
 
 // TODO move this env var to global config
 const trace = process.env.FADROMA_MOCKNET_DEBUG ? ((...args) => {
-  if (!process.env.FADROMA_MOCKNET_DEBUG) return
   console.info(...args)
+  console.log()
+}) : (...args) => {}
+const debug = process.env.FADROMA_MOCKNET_DEBUG ? ((...args) => {
+  console.debug(...args)
   console.log()
 }) : (...args) => {}
 
@@ -337,7 +340,7 @@ export class MocknetBackend {
 /** Hosts a WASM contract blob and contains the contract-local storage. */
 export class MocknetContract {
   constructor (readonly address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX)) {
-    console.info('Instantiating', bold(address))
+    trace('Instantiating', bold(address))
   }
   instance: WebAssembly.Instance<ContractExports>
   async load (code) {
@@ -346,7 +349,7 @@ export class MocknetContract {
     return this
   }
   init (env, msg) {
-    console.debug(`${bold(this.address)} init:`, msg)
+    debug(`${bold(this.address)} init:`, msg)
     try {
       const envBuf  = this.pass(env)
       const msgBuf  = this.pass(msg)
@@ -359,7 +362,7 @@ export class MocknetContract {
     }
   }
   handle (env, msg) {
-    console.debug(`${bold(this.address)} handle:`, msg)
+    debug(`${bold(this.address)} handle:`, msg)
     try {
       const envBuf = this.pass(env)
       const msgBuf = this.pass(msg)
@@ -372,7 +375,7 @@ export class MocknetContract {
     }
   }
   query (msg) {
-    console.debug(`${bold(this.address)} query:`, msg)
+    debug(`${bold(this.address)} query:`, msg)
     try {
       const msgBuf = this.pass(msg)
       const retPtr = this.instance.exports.query(msgBuf)
