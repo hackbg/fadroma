@@ -333,7 +333,7 @@ export class Mocknet extends Chain {
     return new MockAgent(this, options)
   }
   async query <T, U> (contract: Instance, msg: T): Promise<U> {
-    return null
+    return this.state.query(contract, msg)
   }
   async getHash (_: any) {
     return Promise.resolve("SomeCodeHash")
