@@ -89,6 +89,14 @@ export interface ContractImports {
   }
 }
 
+export const MOCKNET_ADDRESS_PREFIX = 'mocked'
+
+// TODO move this env var to global config
+const trace = process.env.FADROMA_MOCKNET_DEBUG ? ((...args) => {
+  if (!process.env.FADROMA_MOCKNET_DEBUG) return
+  console.info(...args)
+  console.log()
+}) : (...args) => {}
 
 /** Chain instance containing a local MocknetBackend. */
 export class Mocknet extends Chain {
@@ -125,7 +133,7 @@ export class MocknetAgent extends Agent {
     super(chain, options)
   }
   name:    string  = 'MocknetAgent'
-  address: Address = randomBech32('mocked')
+  address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX)
   async upload (blob: Uint8Array) {
     return this.chain.backend.upload(blob)
   }
@@ -279,7 +287,7 @@ export class MocknetBackend {
           JSON.parse(b64toUtf8(msg)),
           send
         )
-        console.info(
+        trace(
           `Callback from ${bold(sender)}: instantiated contract`, bold(label),
           'from code id', bold(code_id), 'with hash', bold(callback_code_hash),
           'at address', bold(instance.address)
@@ -292,7 +300,7 @@ export class MocknetBackend {
           JSON.parse(b64toUtf8(msg)),
           send
         )
-        console.info(
+        trace(
           `Callback from ${bold(sender)}: executed transaction`,
           'on contract', bold(contract_addr), 'with hash', bold(callback_code_hash),
         )
@@ -328,7 +336,7 @@ export class MocknetBackend {
 
 /** Hosts a WASM contract blob and contains the contract-local storage. */
 export class MocknetContract {
-  constructor (readonly address: Address = randomBech32('mocked')) {
+  constructor (readonly address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX)) {
     console.info('Instantiating', bold(address))
   }
   instance: WebAssembly.Instance<ContractExports>
@@ -393,6 +401,7 @@ export class MocknetContract {
       memory:   contract.instance.exports.memory,
       allocate: contract.instance.exports.allocate,
     })
+
     return {
       memory,
       env: {
@@ -400,8 +409,7 @@ export class MocknetContract {
           const exports = getExports()
           const key     = readUtf8(exports, keyPtr)
           const val     = contract.storage.get(key)
-          //console.info(bold(contract.address), `db_read:`, bold(key), '=', val)
-          //console.info()
+          trace(bold(contract.address), `db_read:`, bold(key), '=', val)
           if (contract.storage.has(key)) {
             return passBuffer(exports, val)
           } else {
@@ -413,14 +421,12 @@ export class MocknetContract {
           const key     = readUtf8(exports, keyPtr)
           const val     = readBuffer(exports, valPtr)
           contract.storage.set(key, val)
-          //console.info(bold(contract.address), `db_write:`, bold(key), '=', val)
-          //console.info()
+          trace(bold(contract.address), `db_write:`, bold(key), '=', val)
         },
         db_remove (keyPtr) {
           const exports = getExports()
           const key     = readUtf8(exports, keyPtr)
-          //console.info(bold(contract.address), `db_remove:`, bold(key))
-          //console.info()
+          trace(bold(contract.address), `db_remove:`, bold(key))
           contract.storage.delete(key)
         },
         canonicalize_address (srcPtr, dstPtr) {
@@ -428,18 +434,16 @@ export class MocknetContract {
           const human   = readUtf8(exports, srcPtr)
           const canon   = bech32.fromWords(bech32.decode(human).words)
           const dst     = region(exports.memory.buffer, dstPtr)
-          //console.info(bold(contract.address), `canonize:`, human, '->', `${canon}`)
-          //console.info()
+          trace(bold(contract.address), `canonize:`, human, '->', `${canon}`)
           writeToRegion(exports, dstPtr, canon)
           return 0
         },
         humanize_address (srcPtr, dstPtr) {
           const exports = getExports()
-          const canon   = readUtf8(exports, srcPtr)
-          const human   = Buffer.from(canon).toString("utf8")
+          const canon   = readBuffer(exports, srcPtr)
+          const human   = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
           const dst     = region(exports.memory.buffer, dstPtr)
-          //console.info(bold(contract.address), `humanize:`, canon, '->', human)
-          //console.info()
+          trace(bold(contract.address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(exports, dstPtr, human)
           return 0
         },
@@ -447,7 +451,7 @@ export class MocknetContract {
           console.log('query')
           const exports = getExports()
           const req     = readUtf8(exports, reqPtr)
-          //console.info(bold(contract.address), 'query_chain', { req })
+          trace(bold(contract.address), 'query_chain', { req })
           return 0
         }
       }
