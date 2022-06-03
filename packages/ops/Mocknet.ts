@@ -22,7 +22,13 @@ import { URL, fileURLToPath } from 'url'
 import { Console, bold, colors } from '@hackbg/konzola'
 import { randomBech32, bech32 } from '@hackbg/toolbox'
 
-import { Chain, ChainMode, Agent, AgentOptions } from '@fadroma/client'
+import {
+  Address,
+  Agent,
+  AgentOptions,
+  Chain,
+  ChainMode,
+} from '@fadroma/client'
 import { Artifact, Template, Instance } from '@fadroma/ops'
 
 declare class TextDecoder {
@@ -273,7 +279,7 @@ export class MocknetState {
     return code
   }
   async instantiate (
-    sender: string, { codeId, codeHash }: Template, label, msg, funds = []
+    sender: Address, { codeId, codeHash }: Template, label, msg, funds = []
   ): Promise<Instance> {
     const chainId  = this.chainId
     const code     = this.getCode(codeId)
@@ -283,7 +289,7 @@ export class MocknetState {
     const response = contract.init(env, msg)
     if (response.Err) {
       console.error(colors.red(bold('Contract returned error: '))+JSON.stringify(response.Err))
-      throw 'TODO error handling'
+      throw Object.assign(new Error('Mocknet#instantiate: error'), response)
     } else {
       this.instances[address] = contract
     }
@@ -343,14 +349,16 @@ export class Mocknet extends Chain {
 export interface MockAgentOptions extends AgentOptions {}
 
 export class MockAgent extends Agent {
-  defaultDenom= 'umock'
+  defaultDenom = 'umock'
   Bundle = null
-  static async create (chain: Mocknet) { return new MockAgent(chain, { name: 'MockAgent' }) }
+  static async create (chain: Mocknet, options: MockAgentOptions) {
+    return new MockAgent(chain, options)
+  }
   constructor (readonly chain: Mocknet, readonly options: MockAgentOptions) {
     super(chain, options)
-    this.address = this.name
   }
-  address: string
+  name:    string  = 'MockAgent'
+  address: Address = randomBech32('mocked')
   async upload (artifact) {
     return this.chain.state.upload(artifact)
   }

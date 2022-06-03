@@ -59,7 +59,7 @@ import { Mocknet, MockAgent } from '../index'
 test({
   async "can initialize and create agent" ({ ok }) {
     const chain = new Mocknet()
-    const agent = await chain.getAgent({})
+    const agent = await chain.getAgent()
     ok(agent instanceof MockAgent)
   }
 })
