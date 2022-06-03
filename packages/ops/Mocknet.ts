@@ -180,7 +180,7 @@ export class MocknetBackend {
     const contract = await new MocknetContract().load(code)
     const env      = this.makeEnv(sender, contract.address, codeHash)
     const response = contract.init(env, msg)
-    const initResponse = this.resultOf('instantiate', response)
+    const initResponse = this.resultOf(contract.address, 'instantiate', response)
     this.instances[contract.address] = contract
     return { chainId, codeId, codeHash, address: contract.address, label }
   }
@@ -194,27 +194,28 @@ export class MocknetBackend {
 
   async execute (sender: string, { address, codeHash }: Instance, msg, funds, memo, fee) {
     const result   = this.getInstance(address).handle(this.makeEnv(sender, address), msg)
-    const response = this.resultOf('execute', result)
+    const response = this.resultOf(address, 'execute', result)
     if (response.data !== null) {
       response.data = b64toUtf8(response.data)
     }
     return response
   }
   async query ({ address, codeHash }: Instance, msg) {
-    const result = b64toUtf8(this.resultOf('query', this.getInstance(address).query(msg)))
+    const result = b64toUtf8(this.resultOf(address, 'query', this.getInstance(address).query(msg)))
     return JSON.parse(result)
   }
 
-  private resultOf (action: string, response: any) {
+  private resultOf (address: Address, action: string, response: any) {
     const { Ok, Err } = response
     if (Err !== undefined) {
-      const message = `MocknetBackend#${action}: contract returned Err: ${JSON.stringify(Err)}`
+      const errData = JSON.stringify(Err)
+      const message = `MocknetBackend#${action}: contract ${address} returned Err: ${errData}`
       throw Object.assign(new Error(message), Err)
     }
     if (Ok !== undefined) {
       return Ok
     }
-    throw new Error(`MocknetBackend#${action}: contract returned non-Result type`)
+    throw new Error(`MocknetBackend#${action}: contract ${address} returned non-Result type`)
   }
 
   /** Populate the `Env` object available in transactions. */
@@ -255,7 +256,7 @@ export class MocknetContract {
       const envBuf  = this.pass(env)
       const msgBuf  = this.pass(msg)
       const retPtr  = this.instance.exports.init(envBuf, msgBuf)
-      const retData = this.read(retPtr)
+      const retData = this.readUtf8(retPtr)
       return retData
     } catch (e) {
       console.error(bold(this.address), `crashed on init:`, e.message)
@@ -268,7 +269,7 @@ export class MocknetContract {
       const envBuf = this.pass(env)
       const msgBuf = this.pass(msg)
       const retPtr = this.instance.exports.handle(envBuf, msgBuf)
-      const retBuf = this.read(retPtr)
+      const retBuf = this.readUtf8(retPtr)
       return retBuf
     } catch (e) {
       console.error(bold(this.address), `crashed on handle:`, e.message)
@@ -280,7 +281,7 @@ export class MocknetContract {
     try {
       const msgBuf = this.pass(msg)
       const retPtr = this.instance.exports.query(msgBuf)
-      const retBuf = this.read(retPtr)
+      const retBuf = this.readUtf8(retPtr)
       return retBuf
     } catch (e) {
       console.error(bold(this.address), `crashed on query:`, e.message)
@@ -290,8 +291,8 @@ export class MocknetContract {
   private pass (data) {
     return pass(this.instance.exports, data)
   }
-  private read (ptr) {
-    return JSON.parse(read(this.instance.exports, ptr))
+  private readUtf8 (ptr) {
+    return JSON.parse(readUtf8(this.instance.exports, ptr))
   }
   storage = new Map<string, Buffer>()
   makeImports (): ContractImports {
@@ -310,10 +311,10 @@ export class MocknetContract {
       env: {
         db_read (keyPtr) {
           const exports = getExports()
-          const key     = read(exports, keyPtr)
+          const key     = readUtf8(exports, keyPtr)
           const val     = contract.storage.get(key)
-          console.info(bold(contract.address), `db_read:`)
-          console.info(`${key} = ${val}`)
+          console.info(bold(contract.address), `db_read:`, bold(key), '=', val)
+          console.info()
           if (contract.storage.has(key)) {
             return passBuffer(exports, val)
           } else {
@@ -322,39 +323,43 @@ export class MocknetContract {
         },
         db_write (keyPtr, valPtr) {
           const exports = getExports()
-          const key     = read(exports, keyPtr)
-          const val     = read(exports, valPtr)
+          const key     = readUtf8(exports, keyPtr)
+          const val     = readUtf8(exports, valPtr)
           contract.storage.set(key, utf8toBuffer(val))
-          console.info(bold(contract.address), `db_write: ${key} = ${val}`)
+          console.info(bold(contract.address), `db_write:`, bold(key), '=', val)
+          console.info()
         },
         db_remove (keyPtr) {
           const exports = getExports()
-          const key     = read(exports, keyPtr)
-          console.info(bold(contract.address), `db_remove: ${key}`)
+          const key     = readUtf8(exports, keyPtr)
+          console.info(bold(contract.address), `db_remove:`, bold(key))
+          console.info()
           contract.storage.delete(key)
         },
         canonicalize_address (srcPtr, dstPtr) {
           const exports = getExports()
-          const human   = read(exports, srcPtr)
+          const human   = readUtf8(exports, srcPtr)
           const canon   = bech32.fromWords(bech32.decode(human).words)
           const dst     = region(exports.memory.buffer, dstPtr)
           console.info(bold(contract.address), `canonize:`, human, '->', `${canon}`)
+          console.info()
           writeToRegion(exports, dstPtr, canon)
           return 0
         },
         humanize_address (srcPtr, dstPtr) {
           const exports = getExports()
-          const canon   = read(exports, srcPtr)
+          const canon   = readUtf8(exports, srcPtr)
           const human   = Buffer.from(canon).toString("utf8")
           const dst     = region(exports.memory.buffer, dstPtr)
           console.info(bold(contract.address), `humanize:`, canon, '->', human)
+          console.info()
           writeToRegionUtf8(exports, dstPtr, human)
           return 0
         },
         query_chain (reqPtr) {
           console.log('query')
           const exports = getExports()
-          const req     = read(exports, reqPtr)
+          const req     = readUtf8(exports, reqPtr)
           console.info(bold(contract.address), 'query_chain', { req })
           return 0
         }
@@ -373,7 +378,7 @@ export function region (buffer: Buffer, ptr: Ptr): Region {
 }
 
 /** Read region contents from pointer to region. */
-export function read (exports: IOExports, ptr: Ptr): string {
+export function readUtf8 (exports: IOExports, ptr: Ptr): string {
   const { buffer } = exports.memory
   const [addr, size, used] = region(buffer, ptr)
   const u8a  = new Uint8Array(buffer)
