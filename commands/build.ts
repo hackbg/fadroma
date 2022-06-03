@@ -6,10 +6,10 @@ import {
 import { Path, TOMLFormat as TOML } from '@hackbg/kabinet'
 
 const console = Console('Fadroma Build')
-let [buildManifest,...buildArgs] = process.argv.slice(2)
+let [buildManifestPath,...buildArgs] = process.argv.slice(2)
 
-if (buildManifest) {
-  buildManifest = new Path(buildManifest).assert()
+if (buildManifestPath) {
+  let buildManifest = new Path(buildManifestPath).assert()
   if (buildManifest.isDir) {
     buildManifest = buildManifest.asDir().at('Cargo.toml').as(TOML)
   }
