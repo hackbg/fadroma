@@ -96,12 +96,12 @@ export class Mocknet extends Chain {
     super(id, { ...options, mode: ChainMode.Mocknet })
   }
   Agent = MocknetAgent
-  state = new MocknetBackend(this.id)
+  backend = new MocknetBackend(this.id)
   async getAgent (options: AgentOptions) {
     return new MocknetAgent(this, options)
   }
   async query <T, U> (contract: Instance, msg: T): Promise<U> {
-    return this.state.query(contract, msg)
+    return this.backend.query(contract, msg)
   }
   async getHash (_: any) {
     return Promise.resolve("SomeCodeHash")
@@ -127,15 +127,15 @@ export class MocknetAgent extends Agent {
   name:    string  = 'MocknetAgent'
   address: Address = randomBech32('mocked')
   async upload (blob: Uint8Array) {
-    return this.chain.state.upload(blob)
+    return this.chain.backend.upload(blob)
   }
   async instantiate (template, label, msg, funds = []): Promise<Instance> {
-    return await this.chain.state.instantiate(
+    return await this.chain.backend.instantiate(
       this.address, template, label, msg, funds
     )
   }
   async execute <M, R> (instance, msg: M, opts): Promise<R> {
-    return await this.chain.state.execute(
+    return await this.chain.backend.execute(
       this.address, instance, msg, opts.funds, opts.memo, opts.fee
     )
   }
