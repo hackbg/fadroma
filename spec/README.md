@@ -30,26 +30,26 @@ literate programming, the actual implementation of Fadroma is
 implemented in regular TypeScript.
 
 ```javascript
-import AgentSpec   from './Agent.spec'
-import BuildSpec   from './Build.spec'
-import ChainSpec   from './Chain.spec'
-import ClientSpec  from './Client.spec'
-import DeploySpec  from './Deploy.spec'
-import DevnetSpec  from './Devnet.spec'
-import OperateSpec from './Operate.spec'
-//import MocknetSpec from './Mocknet.spec'
-import UploadSpec  from './Upload.spec'
+import Agent   from './Agent.spec'
+import Build   from './Build.spec'
+import Chain   from './Chain.spec'
+import Client  from './Client.spec'
+import Deploy  from './Deploy.spec'
+import Devnet  from './Devnet.spec'
+import Operate from './Operate.spec'
+import Mocknet from './Mocknet.spec'
+import Upload  from './Upload.spec'
 
 const Specification = {
-  AgentSpec,
-  BuildSpec,
-  ChainSpec,
-  ClientSpec,
-  DeploySpec,
-  DevnetSpec,
-  OperateSpec,
-  //MocknetSpec,
-  UploadSpec,
+  Agent,
+  Build,
+  Chain,
+  Client,
+  Deploy,
+  Devnet,
+  Operate,
+  Mocknet,
+  Upload,
 }
 
 export default Specification
