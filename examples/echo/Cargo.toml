@@ -1,12 +1,12 @@
 [package]
-name    = "storage"
+name    = "fadroma-example-echo"
 version = "1.0.0"
 authors = []
 edition = "2018"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-path = "lib.rs"
+path = "echo.rs"
 
 [dependencies]
 fadroma = { git = "https://github.com/hackbg/fadroma", branch = "v100", features = ["scrt"] }

@@ -27,13 +27,14 @@ if (buildManifest) {
 }
 
 async function buildFromCargoToml (cargoToml, buildArgs) {
-  console.info(bold('Build manifest:'), cargoToml.shortPath)
+  console.info('Build manifest:', bold(cargoToml.shortPath))
   const workspace = cargoToml.parent
   const manifest  = cargoToml.load()
   const source    = new Source(workspace, manifest.package.name)
   try {
     const artifact = await getScrtBuilder().build(source)
-    console.info('Built', artifact)
+    console.info('Built:    ', bold(new Path(artifact.url).shortPath))
+    console.info('Code hash:', bold(artifact.codeHash))
     process.exit(0)
   } catch (e) {
     console.error(`Build failed.`)
@@ -44,8 +45,8 @@ async function buildFromCargoToml (cargoToml, buildArgs) {
 
 async function buildFromBuildScript (buildScript, buildArgs) {
   const buildSetName = buildArgs.join(' ')
-  console.info(bold('Build script:'), buildScript.shortPath)
-  console.info(bold('Build set:   '), buildSetName || bold('(none)'))
+  console.info('Build script:', bold(buildScript.shortPath))
+  console.info('Build set:   ', bold(buildSetName || '(none)'))
   const {default: buildSets} = await import(buildScript.path)
   if (buildArgs.length > 0) {
     const buildSet = buildSets[buildSetName]
