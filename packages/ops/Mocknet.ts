@@ -177,13 +177,12 @@ export class MocknetBackend {
   ): Promise<Instance> {
     const chainId  = this.chainId
     const code     = this.getCode(codeId)
-    const address  = randomBech32('mocked')
-    const contract = await new MocknetContract(address).load(code)
-    const env      = this.makeEnv(sender, address, codeHash)
+    const contract = await new MocknetContract().load(code)
+    const env      = this.makeEnv(sender, contract.address, codeHash)
     const response = contract.init(env, msg)
     const initResponse = this.resultOf('instantiate', response)
-    this.instances[address] = contract
-    return { chainId, codeId, codeHash, address, label }
+    this.instances[contract.address] = contract
+    return { chainId, codeId, codeHash, address: contract.address, label }
   }
   getInstance (address) {
     const instance = this.instances[address]
@@ -241,7 +240,7 @@ export class MocknetBackend {
 
 /** Hosts a WASM contract blob and contains the contract-local storage. */
 export class MocknetContract {
-  constructor (readonly address: Address) {
+  constructor (readonly address: Address = randomBech32('mocked')) {
     console.info('Instantiating', bold(address))
   }
   instance: WebAssembly.Instance<ContractExports>
@@ -294,7 +293,7 @@ export class MocknetContract {
   private read (ptr) {
     return JSON.parse(read(this.instance.exports, ptr))
   }
-  storage = new Map()
+  storage = new Map<string, Buffer>()
   makeImports (): ContractImports {
     // don't destructure - when first instantiating the
     // contract, `this.instance` is still undefined
@@ -316,7 +315,7 @@ export class MocknetContract {
           console.info(bold(contract.address), `db_read:`)
           console.info(`${key} = ${val}`)
           if (contract.storage.has(key)) {
-            return passString(exports, val)
+            return passBuffer(exports, val)
           } else {
             return 0
           }
@@ -325,7 +324,7 @@ export class MocknetContract {
           const exports = getExports()
           const key     = read(exports, keyPtr)
           const val     = read(exports, valPtr)
-          contract.storage.set(key, val)
+          contract.storage.set(key, utf8toBuffer(val))
           console.info(bold(contract.address), `db_write: ${key} = ${val}`)
         },
         db_remove (keyPtr) {
@@ -386,18 +385,17 @@ export function read (exports: IOExports, ptr: Ptr): string {
 
 /** Serialize a datum into a JSON string and pass it into the contract. */
 export function pass <T> (exports: IOExports, data: T): Ptr {
-  const str = JSON.stringify(data)
-  return passString(exports, str)
+  return passBuffer(exports, utf8toBuffer(JSON.stringify(data)))
 }
 
 /** Allocate region, write data to it, and return the pointer.
   * See: https://github.com/KhronosGroup/KTX-Software/issues/371#issuecomment-822299324 */
-export function passString (exports: IOExports, str: string): Ptr {
-  const ptr = exports.allocate(str.length)
+export function passBuffer (exports: IOExports, buf: Buffer): Ptr {
+  const ptr = exports.allocate(buf.length)
   const { buffer } = exports.memory // must be after allocation - see [1]
   const [ addr, _, __, u32a ] = region(buffer, ptr)
   u32a[ptr/4+2] = u32a[ptr/4+1] // set length to capacity
-  writeUtf8(buffer, addr, str)
+  write(buffer, addr, buf)
   return ptr
 }
 
@@ -444,4 +442,12 @@ export function b64toUtf8 (str: string) {
 /** Convert string to base64 */
 export function utf8toB64 (str: string) {
   return Buffer.from(str, 'utf8').toString('base64')
+}
+
+export function utf8toBuffer (str: string) {
+  return Buffer.from(str, 'utf8')
+}
+
+export function bufferToUtf8 (buf: Buffer) {
+  return buf.toString('utf8')
 }
