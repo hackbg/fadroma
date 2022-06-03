@@ -26,10 +26,14 @@ import {
   Address,
   Agent,
   AgentOptions,
+  Artifact,
   Chain,
   ChainMode,
+  Template,
+  Instance
 } from '@fadroma/client'
-import { Artifact, Template, Instance } from '@fadroma/ops'
+
+import { codeHashForBlob } from './Build'
 
 const console = Console('Fadroma Mocknet')
 const decoder = new TextDecoder()
@@ -121,8 +125,8 @@ export class MocknetAgent extends Agent {
   }
   name:    string  = 'MocknetAgent'
   address: Address = randomBech32('mocked')
-  async upload (artifact) {
-    return this.chain.state.upload(artifact)
+  async upload (blob: Uint8Array) {
+    return this.chain.state.upload(blob)
   }
   async instantiate (template, label, msg, funds = []): Promise<Instance> {
     return await this.chain.state.instantiate(
@@ -152,10 +156,11 @@ export class MocknetBackend {
 
   codeId  = 0
   uploads = {}
-  upload ({ url, codeHash }: Artifact): Template {
-    const chainId = this.chainId
-    const codeId  = ++this.codeId
-    const content = this.uploads[codeId] = readFileSync(fileURLToPath(url))
+  upload (blob: Uint8Array): Template {
+    const chainId  = this.chainId
+    const codeId   = ++this.codeId
+    const content  = this.uploads[codeId] = blob
+    const codeHash = codeHashForBlob(blob)
     return { chainId, codeId: String(codeId), codeHash }
   }
   getCode (codeId) {

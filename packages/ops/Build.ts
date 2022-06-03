@@ -83,7 +83,11 @@ export abstract class Builder {
 }
 
 export function codeHashForPath (location: string) {
-  return toHex(new Sha256(readFileSync(location)).digest())
+  return codeHashForBlob(readFileSync(location))
+}
+
+export function codeHashForBlob (blob: Uint8Array) {
+  return toHex(new Sha256(blob).digest())
 }
 
 export abstract class CachingBuilder extends Builder {
