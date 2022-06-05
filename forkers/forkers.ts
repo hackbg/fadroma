@@ -17,8 +17,8 @@ export function request <Id, Op, Arg, Ret> (
   id:        Id,
   op:        Op,
   arg:       Arg,
+  transfer?: Transferable[],
   timeout?:  number,
-  transfer?: Transferable[]
 ): Promise<Ret> {
 
   return new Promise((resolve, reject)=>{
@@ -39,8 +39,8 @@ export function request <Id, Op, Arg, Ret> (
     port.postMessage([topic, id, op, arg], transfer)
 
     // if receiving a response check if it's the correct one
-    function receive ({data: [rChannel, rId, error, result]}) {
-      if (rChannel === topic && rId === id) {
+    function receive ({data: [rTopic, rId, error, result]}) {
+      if (rTopic === topic && rId === id) {
         if (timer) clearTimeout(timer)
         if (error) {
           reject(error)
@@ -57,20 +57,27 @@ export function request <Id, Op, Arg, Ret> (
 export class Client <Op> {
 
   constructor (
-    readonly port:    MessagePort,
-    readonly topic:   string,
-    readonly timeout: number
-  ) {}
+    readonly port:     MessagePort,
+    readonly topic:    string,
+    readonly callback: Function,
+    readonly timeout:  number
+  ) {
+    this.port.addEventListener('message', ({ data: [rTopic, rId, error, notification] })=>{
+      if (rTopic === this.topic && rId === null) {
+        callback(error, notification)
+      }
+    })
+  }
 
   opId = 0
 
   request <Arg, Ret> (
     op:        Op,
     arg?:      Arg,
+    transfer?: Transferable[],
     timeout:   number = this.timeout,
-    transfer?: Transferable[]
   ): Promise<Ret> {
-    return request(this.port, this.topic, this.opId++, op, arg, timeout, transfer)
+    return request(this.port, this.topic, this.opId++, op, arg, transfer, timeout)
   }
 
 }
@@ -96,6 +103,10 @@ export class Backend <Op> {
     } catch (error) {
       this.port.postMessage([topic, opId, error, null])
     }
+  }
+
+  notify (data: any): void {
+    this.port.postMessage([this.topic, null, data])
   }
 
   respond <Arg, Ret> (op: Op, arg?: Arg): Promise<Ret> {
