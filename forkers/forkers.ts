@@ -12,12 +12,13 @@ export function isWorker (): boolean {
 }
 
 export function request <Id, Op, Arg, Ret> (
-  port:     MessagePort,
-  topic:    string,
-  id:       Id,
-  op:       Op,
-  arg:      Arg,
-  timeout?: number
+  port:      MessagePort,
+  topic:     string,
+  id:        Id,
+  op:        Op,
+  arg:       Arg,
+  timeout?:  number,
+  transfer?: Transferable[]
 ): Promise<Ret> {
 
   return new Promise((resolve, reject)=>{
@@ -35,7 +36,7 @@ export function request <Id, Op, Arg, Ret> (
     }
 
     // send the request
-    port.postMessage([topic, id, op, arg])
+    port.postMessage([topic, id, op, arg], transfer)
 
     // if receiving a response check if it's the correct one
     function receive ({data: [rChannel, rId, error, result]}) {
@@ -64,11 +65,12 @@ export class Client <Op> {
   opId = 0
 
   request <Arg, Ret> (
-    op:      Op,
-    arg?:    Arg,
-    timeout: number = this.timeout
+    op:        Op,
+    arg?:      Arg,
+    timeout:   number = this.timeout,
+    transfer?: Transferable[]
   ): Promise<Ret> {
-    return request(this.port, this.topic, this.opId++, op, arg, timeout)
+    return request(this.port, this.topic, this.opId++, op, arg, timeout, transfer)
   }
 
 }
