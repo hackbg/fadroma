@@ -183,12 +183,13 @@ export class DokeresImage {
 }
 
 export interface DokeresContainerOptions {
-  env:      Record<string, string>
-  exposed:  string[]
-  mapped:   Record<string, string>
-  readonly: Record<string, string>
-  writable: Record<string, string>
-  extra:    Record<string, unknown>
+  env?:      Record<string, string>
+  exposed?:  string[]
+  mapped?:   Record<string, string>
+  readonly?: Record<string, string>
+  writable?: Record<string, string>
+  extra?:    Record<string, unknown>
+  remove?:   boolean
 }
 
 export type DokeresCommand = string|string[]
@@ -243,6 +244,7 @@ export class DokeresContainer {
 
   get dockerodeOptions (): Docker.ContainerCreateOptions {
     const {
+      remove   = false,
       env      = {},
       exposed  = [],
       mapped   = {},
@@ -257,7 +259,7 @@ export class DokeresContainer {
       Cmd:          this.command,
       Env:          Object.entries(env).map(([key, val])=>`${key}=${val}`),
       ExposedPorts: {},
-      HostConfig:   { Binds: [], PortBindings: {} }
+      HostConfig:   { Binds: [], PortBindings: {}, AutoRemove: remove }
     }
     for (const containerPort of exposed) {
       config.ExposedPorts[containerPort] = { /*docker api needs empty object here*/ }
