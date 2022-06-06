@@ -66,6 +66,10 @@ export class Source {
     public readonly crate:     string,
     public readonly ref?:      string
   ) {}
+
+  build (builder: Builder): Promise<Artifact> {
+    return builder.build(this)
+  }
 }
 
 export abstract class Builder {
