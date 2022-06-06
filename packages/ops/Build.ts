@@ -31,19 +31,28 @@ interface WorkspaceCtor<W> {
 }
 
 export class Workspace {
+
   constructor (
     public readonly root: string,
     public readonly ref:  string = 'HEAD'
   ) {}
-  fromRef (ref: string): this {
+
+  /** Create a new instance of the same workspace that will
+    * return Source objects pointing to a specific Git ref. */
+  at (ref: string): this {
     return new (this.constructor as WorkspaceCtor<typeof this>)(this.root, ref)
   }
+
+  /** Get a Source object pointing to a crate from the current workspace and ref */
   crate (crate: string): Source {
     return new Source(this.root, crate, this.ref)
   }
+
+  /** Get multiple Source objects pointing to crates from the current workspace and ref */
   crates (crates: string[]): Source[] {
     return crates.map(crate=>this.crate(crate))
   }
+
 }
 
 export class Source {
