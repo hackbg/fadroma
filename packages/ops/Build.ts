@@ -31,6 +31,10 @@ interface WorkspaceCtor<W> {
   new (root: string, ref?: string): W // ew
 }
 
+/** Represents a Cargo workspace containing multiple smart contract crates.
+  * - Point to a crate with `new Workspace(path).crate(name)`
+  * - Point to a past commit with `new Workspace(path).at(ref).crate(name)`
+  * - use `.crates([name1, name2])` to get multiple crates.` */
 export class Workspace {
 
   constructor (
