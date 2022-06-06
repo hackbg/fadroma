@@ -40,8 +40,8 @@ export class FSUploader extends Uploader {
 
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
-    console.info(bold(`Uploading:`), relative(cwd(), fileURLToPath(artifact.url)))
-    console.info(bold(`Code hash:`), artifact.codeHash)
+    console.info(`Uploading:`, bold(relative(cwd(), fileURLToPath(artifact.url))))
+    console.info(`Code hash:`, bold(artifact.codeHash))
     const template = await this.agent.upload(await readFile(fileURLToPath(artifact.url)))
     await this.agent.nextBlock
     return template

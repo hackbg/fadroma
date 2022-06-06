@@ -191,10 +191,7 @@ export class Deployments extends Directory {
     if (existsSync(path)) {
       throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
     }
-    console.info(
-      bold('Creating new deployment'),
-      id
-    )
+    console.info('Creating new deployment', bold(id))
     await mkdirp(dirname(path))
     await writeFileSync(path, '')
   }
@@ -236,9 +233,7 @@ export class Deployments extends Directory {
 
   save (name: string, data: any) {
     name = `${name}.json`
-    console.info(
-      bold('Deployments writing:'), relative(config.projectRoot, this.resolve(name))
-    )
+    console.info('Deployments writing:', bold(relative(config.projectRoot, this.resolve(name))))
     if (data instanceof Object) {
       data = JSON.stringify(data, null, 2)
     }
