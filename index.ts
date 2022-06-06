@@ -102,7 +102,7 @@ const BuildOps = {
       async build (source: Source): Promise<Template> {
         return await builder.build(source)
       },
-      async buildMany (...sources: Source[]): Promise<Template[]> {
+      async buildMany (sources: Source[]): Promise<Template[]> {
         return await builder.buildMany(sources)
       }
     }
@@ -159,7 +159,7 @@ export interface UploadDependencies {
   agent:      Agent,
   caching?:   boolean,
   build?:     (source: Source) => Promise<Artifact>,
-  buildMany?: (...sources: Source[]) => Promise<Artifact[]>,
+  buildMany?: (sources: Source[]) => Promise<Artifact[]>,
 }
 
 export const UploadOps = {
@@ -177,7 +177,7 @@ export const UploadOps = {
       async upload (artifact: Artifact): Promise<Template> {
         return await uploader.upload(artifact)
       },
-      async uploadMany (...artifacts: Artifact[]): Promise<Template[]> {
+      async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
         return await uploader.uploadMany(artifacts)
       },
       async buildAndUpload (source: Source): Promise<Template> {
@@ -186,11 +186,11 @@ export const UploadOps = {
         }
         return await uploader.upload(await build(source))
       },
-      async buildAndUploadMany (...sources: Source[]): Promise<Template[]> {
+      async buildAndUploadMany (sources: Source[]): Promise<Template[]> {
         if (!buildMany) {
           throw new Error('Builder is not specified.')
         }
-        return await uploader.uploadMany(await buildMany(...sources))
+        return await uploader.uploadMany(await buildMany(sources))
       }
     }
   }
@@ -207,11 +207,10 @@ export const DeployOps = {
 
   /** Create a new deployment and add it to the command context. */
   New: async function createDeployment ({
-    run,
-    timestamp,
-    cmdArgs = [],
     chain,
-    deployments = getDeployments(chain)
+    timestamp,
+    deployments = getDeployments(chain),
+    cmdArgs     = [],
   }: (CommandContext&ConnectedContext)): Promise<DeployContext> {
     const [ prefix = timestamp ] = cmdArgs
     await deployments.create(prefix)

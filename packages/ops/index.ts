@@ -72,7 +72,7 @@ export interface BuildContext {
 
   build?: (source: Source) => Promise<Artifact>
 
-  buildMany?: (...sources: Source[]) => Promise<Artifact[]>
+  buildMany?: (sources: Source[]) => Promise<Artifact[]>
 }
 
 export interface UploadContext {
@@ -80,11 +80,11 @@ export interface UploadContext {
 
   upload: (artifact: Artifact) => Promise<Template>
 
-  uploadMany: (...artifacts: Artifact[]) => Promise<Template[]>
+  uploadMany: (artifacts: Artifact[]) => Promise<Template[]>
 
   buildAndUpload: (source: Source) => Promise<Template>
 
-  buildAndUploadMany: (...sources: Source[]) => Promise<Template[]>
+  buildAndUploadMany: (sources: Source[]) => Promise<Template[]>
 }
 
 export interface DeployContext {

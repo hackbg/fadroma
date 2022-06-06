@@ -39,7 +39,7 @@ export class Workspace {
 
   constructor (
     public readonly root: string,
-    public readonly ref:  string = 'HEAD'
+    public readonly ref:  string = DEFAULT_REF
   ) {}
 
   /** Create a new instance of the same workspace that will
@@ -168,6 +168,7 @@ export class DockerBuilder extends CachingBuilder {
     }
 
   }
+
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'
   /** Used to launch build container. */
@@ -181,7 +182,7 @@ export class DockerBuilder extends CachingBuilder {
   script:     string
 
   /** Build a Source into an Artifact */
-  async build (source): Promise<Artifact> {
+  async build (source: Source): Promise<Artifact> {
     return (await this.buildMany([source]))[0]
   }
 
@@ -189,9 +190,9 @@ export class DockerBuilder extends CachingBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (sources): Promise<Artifact[]> {
+  async buildMany (sources: Source[]): Promise<Artifact[]> {
     // Populate empty `ref` fields of sources with the default value
-    sources = sources.map(source=>source.ref?source:{...source, ref: DEFAULT_REF})
+    sources = sources.map(source=>source.ref?source:Object.assign(source, {ref: DEFAULT_REF}))
     // Here we will collect the build outputs
     const artifacts:  Artifact[] = []
     // Get the distinct workspaces and refs by which to group the crate builds
@@ -214,7 +215,9 @@ export class DockerBuilder extends CachingBuilder {
         // Build the crates from the same workspace/ref
         // sequentially in the same container.
         const artifactsFromContainer = await this.buildInContainer(
-          workspace, ref, sourcesForContainer
+          workspace,
+          ref,
+          sourcesForContainer
         )
         // Collect the artifacts built by the container
         for (const index in artifactsFromContainer) {
@@ -229,7 +232,9 @@ export class DockerBuilder extends CachingBuilder {
   }
 
   protected async buildInContainer (
-    workspace, ref = DEFAULT_REF, crates: [number, string][] = []
+    workspace: string,
+    ref:       string             = DEFAULT_REF,
+    crates:    [number, string][] = []
   ): Promise<(Artifact|null)[]> {
     
     // Workspace should be an absolute path so that it can be mounted into the container.
@@ -379,7 +384,7 @@ export class ManagedBuilder extends CachingBuilder {
       return prebuilt
     }
     // Request a build from the build manager
-    const { workspace, crate, ref = 'HEAD' } = source
+    const { workspace, crate, ref = DEFAULT_REF } = source
     const { location } = await this.manager.get('/build', { crate, ref })
     const codeHash = codeHashForPath(location)
     return { url: pathToFileURL(location), codeHash }
