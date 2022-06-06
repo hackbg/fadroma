@@ -1,6 +1,6 @@
 import { resolve, relative, dirname } from 'path'
 import { Dokeres } from '@hackbg/dokeres'
-import { RawBuilder, DockerodeBuilder } from '@fadroma/ops'
+import { RawBuilder, DockerBuilder } from '@fadroma/ops'
 
 import { scrtConfig as config } from './config'
 
@@ -22,11 +22,11 @@ export function getScrtBuilder ({
     throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
     //return new ManagedBuilder({ managerURL })
   } else {
-    return new ScrtDockerodeBuilder({ caching })
+    return new ScrtDockerBuilder({ caching })
   }
 }
 
-export class ScrtDockerodeBuilder extends DockerodeBuilder {
+export class ScrtDockerBuilder extends DockerBuilder {
 
   constructor ({ caching }) {
     const script     = config.scrt.buildScript

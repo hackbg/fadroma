@@ -142,7 +142,7 @@ export class RawBuilder extends CachingBuilder {
 }
 
 /** This builder launches a one-off build container using Dockerode. */
-export class DockerodeBuilder extends CachingBuilder {
+export class DockerBuilder extends CachingBuilder {
 
   constructor (options: {
     socketPath?: string,

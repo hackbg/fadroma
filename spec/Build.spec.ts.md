@@ -140,13 +140,13 @@ test({
 ### Dockerized builder
 
 ```typescript
-import { DockerodeBuilder, DokeresImage, mkdirp } from '../index'
+import { DockerBuilder, DokeresImage, mkdirp } from '../index'
 import { Dokeres, DokeresImage } from '@hackbg/dokeres'
 import { mockDockerode } from './_Harness'
 import { Transform } from 'stream'
 test({
-  async 'DockerodeBuilder' ({ ok, equal, deepEqual }) {
-    class TestDockerodeBuilder extends DockerodeBuilder {
+  async 'DockerBuilder' ({ ok, equal, deepEqual }) {
+    class TestDockerBuilder extends DockerBuilder {
       prebuild (source) { return false }
     }
     class TestDokeresImage extends DokeresImage {
@@ -160,7 +160,7 @@ test({
     const image     = new Dokeres(docker).image(' ')
     const script    = "build.sh"
     const options   = { docker, image, script }
-    const builder   = new TestDockerodeBuilder(options)
+    const builder   = new TestDockerBuilder(options)
     const artifact  = await builder.build({ workspace, crate })
     equal(artifact.location, resolve(workspace, 'artifacts/empty@HEAD.wasm'))
     equal(artifact.codeHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
@@ -176,8 +176,8 @@ test({
       equal(args.HostConfig.AutoRemove, true)
     }
   }
-  async 'DockerodeBuilder#buildMany' () {
-    class TestDockerodeBuilder extends DockerodeBuilder {
+  async 'DockerBuilder#buildMany' () {
+    class TestDockerBuilder extends DockerBuilder {
       prebuild (source) { return false }
     }
     class TestDokeresImage extends DokeresImage {
@@ -188,7 +188,7 @@ test({
     const image     = new Dokeres(docker).image(' ')
     const script    = ''
     const options   = { docker, image, script }
-    const builder   = new TestDockerodeBuilder(options)
+    const builder   = new TestDockerBuilder(options)
     const artifacts = await builder.buildMany([
       { workspace, crate: 'crate1' }
       { workspace, ref: 'HEAD', crate: 'crate2' }
