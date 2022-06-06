@@ -9,8 +9,8 @@ import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 import { Console, bold } from '@hackbg/konzola'
 import { Dokeres, DokeresImage } from '@hackbg/dokeres'
+import { Path, TextFile } from '@hackbg/kabinet'
 import { Artifact } from '@fadroma/client'
-import { Path } from '@fadroma/kabinet'
 
 import { config } from './Config'
 import { Endpoint } from './Endpoint'
@@ -28,24 +28,53 @@ export const sanitize  = ref => ref.replace(/\//g, '_')
 export const artifactName = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
 
 interface WorkspaceCtor<W> {
-  new (root: string, ref?: string): W // ew
+  new (root: string, ref?: string, gitDir?: string|false): W // ew
 }
 
 /** Represents a Cargo workspace containing multiple smart contract crates.
-  * - Point to a crate with `new Workspace(path).crate(name)`
-  * - Point to a past commit with `new Workspace(path).at(ref).crate(name)`
-  * - use `.crates([name1, name2])` to get multiple crates.` */
+  * - Select a crate with `new Workspace(path).crate(name)`
+  * - Select from past commit with `new Workspace(path).at(ref).crate(name)`
+  * - Use `.crates([name1, name2])` to get multiple crates */
 export class Workspace {
 
   constructor (
-    public readonly root: string,
-    public readonly ref:  string = DEFAULT_REF
-  ) {}
+    public readonly root:    string,
+    public readonly ref:     string = DEFAULT_REF,
+    public readonly gitDir?: string|false
+  ) {
+    if (gitDir === undefined) {
+      // Find location of real .git directory.
+      const dotGit = new Path(root).at('.git')
+      if (!dotGit.exists) {
+        console.warn(bold(dotGit), 'does not exist')
+      } else if (dotGit.isFile) {
+        // If the workspace repo is a Git submodule,
+        // .git will be a file like "gitdir: ../.git/modules/something"
+        const gitPointer = dotGit.as(TextFile).load().trim()
+        const prefix = 'gitdir:'
+        if (gitPointer.startsWith(prefix)) {
+          const gitRel  = gitPointer.slice(prefix.length).trim()
+          const gitPath = resolve(dotGit.parent, gitRel)
+          const gitRoot = new Path(gitPath)
+          console.info(bold(dotGit.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
+          this.gitDir = gitRoot.path
+        } else {
+          console.info(bold(dotGit.shortPath), 'is an unknown file.')
+        }
+      } else if (dotGit.isDir) {
+        this.gitDir = dotGit.path
+      }
+      if (!this.gitDir) {
+        console.warn('Building from Git history is not available')
+        this.gitDir = false
+      }
+    }
+  }
 
   /** Create a new instance of the same workspace that will
     * return Source objects pointing to a specific Git ref. */
   at (ref: string): this {
-    return new (this.constructor as WorkspaceCtor<typeof this>)(this.root, ref)
+    return new (this.constructor as WorkspaceCtor<typeof this>)(this.root, ref, this.gitDir)
   }
 
   /** Get a Source object pointing to a crate from the current workspace and ref */
