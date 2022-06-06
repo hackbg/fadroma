@@ -1,5 +1,5 @@
-import { resolve, relative, basename } from 'path'
 import { cwd } from 'process'
+import { resolve, relative, basename } from 'path'
 import { execFile } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { pathToFileURL } from 'url'
@@ -10,6 +10,7 @@ import { Sha256 } from '@iov/crypto'
 import { Console, bold } from '@hackbg/konzola'
 import { Dokeres, DokeresImage } from '@hackbg/dokeres'
 import { Artifact } from '@fadroma/client'
+import { Path } from '@fadroma/kabinet'
 
 import { config } from './Config'
 import { Endpoint } from './Endpoint'
@@ -61,25 +62,6 @@ export class Source {
     public readonly crate:     string,
     public readonly ref?:      string
   ) {}
-
-  /** Take a workspace and a list of crates in it and return a function
-    * that creates a mapping from crate name to Source object for a particular VCS ref. */
-  static collectCrates = (workspace: string, crates: string[]) =>
-    (ref?: string): Record<string, Source> =>
-      crates.reduce(
-        (sources, crate)=>Object.assign(sources, {[crate]: new Source(workspace, crate, ref)}),
-        {}
-      )
-
-  static collect = (workspace, ref, ...crateLists): Source[] => {
-    const sources: Set<string> = new Set()
-    for (const crateList of crateLists) {
-      for (const crate of crateList) {
-        sources.add(crate)
-      }
-    }
-    return [...sources].map(crate=>new Source(workspace, crate, ref))
-  }
 }
 
 export abstract class Builder {
