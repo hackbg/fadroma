@@ -1,9 +1,7 @@
-import * as HTTP from 'http'
 import { resolve, relative, basename } from 'path'
 import { cwd } from 'process'
-import { spawnSync, execFile } from 'child_process'
+import { execFile } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
-import { Transform } from 'stream'
 import { pathToFileURL } from 'url'
 
 import LineTransformStream from 'line-transform-stream'
@@ -118,28 +116,28 @@ export class RawBuilder extends CachingBuilder {
     public readonly checkoutScript: string
   ) { super() }
 
-  run (...args) {
-    throw new Error('RawBuilder#run: not implemented')
-  }
-
   async build (source: Source): Promise<Artifact> {
+    throw new Error('RawBuilder#build: not implemented')
     const { ref = DEFAULT_REF, workspace, crate } = source
     let cwd = workspace
     // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
-    const run = (cmd, args) => new Promise((resolve, reject)=>{
-      const env = { ...process.env, CRATE: crate, REF: ref, WORKSPACE: workspace }
-      execFile(cmd, args, { cwd, env, stdio: 'inherit' } as any, (error, stdout, stderr) => {
-        if (error) return reject(error)
-        resolve([stdout, stderr])
-      })
-    })
     if (ref && ref !== DEFAULT_REF) {
-      await this.run(this.checkoutScript, [ref])
+      await run(this.checkoutScript, [ref])
     }
-    await this.run(this.buildScript, [])
+    await run(this.buildScript, [])
     const location = resolve(workspace, 'artifacts', artifactName(crate, ref))
     const codeHash = codeHashForPath(location)
     return { url: pathToFileURL(location), codeHash }
+
+    function run (cmd, args) {
+      return new Promise((resolve, reject)=>{
+        const env = { ...process.env, CRATE: crate, REF: ref, WORKSPACE: workspace }
+        execFile(cmd, args, { cwd, env, stdio: 'inherit' } as any, (error, stdout, stderr) => {
+          if (error) return reject(error)
+          resolve([stdout, stderr])
+        })
+      })
+    }
   }
 }
 
@@ -263,27 +261,26 @@ export class DockerodeBuilder extends CachingBuilder {
     const outputDir    = resolve(workspace, 'artifacts')
     const buildScript  = `/${basename(this.script)}`
     const safeRef      = sanitize(ref)
-    const buildOptions = {
-      Tty: true,
+    const readonly = {
+      [this.script]: buildScript
+    }
+    const writable = {
+      [workspace]: `/src`,
+      [outputDir]: `/output`,
+      // Persist cache to make future rebuilds faster. May be unneccessary.
+      [`project_cache_${safeRef}`]: `/tmp/target`,
+      [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
+    }
+    const env = {
+      //'CARGO_TERM_VERBOSE': 'true',
+      TERM:                         process.env.TERM,
+      LOCKED:                       '',/*'--locked'*/
+      CARGO_HTTP_TIMEOUT:           '240',
+      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+    }
+    const extra = {
+      Tty:         true,
       AttachStdin: true,
-      HostConfig: {
-        Binds: [
-          `${workspace}:/src:rw`,
-          `${outputDir}:/output:rw`,
-          `${this.script}:${buildScript}:ro`,
-          // Persist cache to make future rebuilds faster. May be unneccessary.
-          `project_cache_${safeRef}:/tmp/target:rw`,
-          `cargo_cache_${safeRef}:/usr/local/cargo:rw`
-        ],
-        AutoRemove: true
-      },
-      Env: [
-        'CARGO_NET_GIT_FETCH_WITH_CLI=true',
-        //'CARGO_TERM_VERBOSE=true',
-        'CARGO_HTTP_TIMEOUT=240',
-        'LOCKED=',/*'--locked'*/
-        `TERM=${process.env.TERM}`
-      ]
     }
 
     // If a different ref will need to be checked out, it may contain private submodules.
@@ -297,7 +294,7 @@ export class DockerodeBuilder extends CachingBuilder {
         console.warn(
           '!!! UNSAFE: Mounting your SSH keys directory into the build container'
         )
-        buildOptions.HostConfig.Binds.push(`${config.homeDir}/.ssh:/root/.ssh:rw`)
+        writable[`${config.homeDir}/.ssh`] = '/root/.ssh'
       } else {
         console.info(
           'Not mounting SSH keys into build container - '+
@@ -305,6 +302,9 @@ export class DockerodeBuilder extends CachingBuilder {
         )
       }
     }
+    
+    // Options of the build container to pass to Dokeres
+    const options = { remove: true, readonly, writable, env, extra }
 
     // Pre-populate the list of expected artifacts.
     const outputWasms = [...new Array(crates.length)].map(()=>null)
@@ -314,23 +314,18 @@ export class DockerodeBuilder extends CachingBuilder {
 
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
-    const buildCommand  = ['node', buildScript, 'phase1', ref, ...cratesToBuild]
-    console.info(bold('Building with command:'), buildCommand.join(' '))
-    console.debug(bold('in container with configuration:'), buildOptions)
+    const command = ['node', buildScript, 'phase1', ref, ...cratesToBuild]
+    console.info(bold('Building with command:'), command.join(' '))
+    console.debug(bold('in container with configuration:'), options)
 
     // Prepare the log output stream
     const buildLogPrefix = `[${ref}]`.padEnd(16)
-    const buildLogs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
-    buildLogs.pipe(process.stdout)
+    const logs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
+    logs.pipe(process.stdout)
 
     // Run the build container
-    const buildContainer = await this.image.run(
-      `fadroma-build-${sanitize(basename(workspace))}@${ref}`,
-      { extra: buildOptions },
-      buildCommand,
-      '/usr/bin/env',
-      buildLogs
-    )
+    const buildName      = `fadroma-build-${sanitize(basename(workspace))}@${ref}`
+    const buildContainer = await this.image.run(buildName, options, command, '/usr/bin/env', logs)
     const {Error: err, StatusCode: code} = await buildContainer.wait()
 
     // Throw error if launching the container failed
