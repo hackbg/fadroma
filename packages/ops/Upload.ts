@@ -11,9 +11,24 @@ import type { Agent, Template, Artifact } from '@fadroma/client'
 
 import { config } from './Config'
 import { codeHashForPath } from './Build'
+import type { Source } from './Build'
 import { getUploads } from './State'
 
 const console = Console('Fadroma Upload')
+
+/** The part of OperationContext that deals with uploading
+  * contract code to the platform. */
+export interface UploadContext {
+  uploader?: Uploader
+
+  upload: (artifact: Artifact) => Promise<Template>
+
+  uploadMany: (artifacts: Artifact[]) => Promise<Template[]>
+
+  buildAndUpload: (source: Source) => Promise<Template>
+
+  buildAndUploadMany: (sources: Source[]) => Promise<Template[]>
+}
 
 export abstract class Uploader {
   constructor (public agent: Agent) {}

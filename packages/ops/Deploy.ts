@@ -5,7 +5,7 @@ import { existsSync, statSync, readFileSync, writeFileSync, readlinkSync, unlink
 
 import { Console, bold, colors } from '@hackbg/konzola'
 import { timestamp, backOff } from '@hackbg/toolbox'
-import { Directory, mkdirp } from '@hackbg/kabinet'
+import { JSONDirectory, mkdirp } from '@hackbg/kabinet'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 
@@ -25,15 +25,94 @@ import { config } from './Config'
 
 const console = Console('Fadroma Deploy')
 
-export const join = (...x:any[]) => x.map(String).join(' ')
+/** The part of OperationContext that deals with deploying
+  * groups of contracts and keeping track of the receipts. */
+export interface DeployContext {
+  template?:    Template
 
-export const overrideDefaults = (obj, defaults, options = {}) => {
-  for (const k of Object.keys(defaults)) {
-    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
-  }
+  templates?:   Template[]
+
+  /** Override agent used for deploys. */
+  deployAgent?: Agent
+
+  /** Currently selected collection of interlinked contracts. */
+  deployment?:  Deployment
+
+  /** Prefix to the labels of all deployed contracts.
+    * Identifies which deployment they belong to. */
+  prefix?:      string
+
+  /** Appended to contract labels in devnet deployments for faster iteration. */
+  suffix?:      string
 }
 
-export const addPrefix = (prefix, name) => `${prefix}/${name}`
+export class Deployments extends JSONDirectory<unknown> {
+
+  KEY = '.active'
+
+  printActive () {
+    if (this.active) {
+      console.info(`Currently selected deployment:`, bold(this.active.prefix))
+    } else {
+      console.info(`No selected deployment.`)
+    }
+  }
+
+  async create (id: string) {
+    const path = resolve(this.path, `${id}.yml`)
+    if (existsSync(path)) {
+      throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
+    }
+    console.info('Creating new deployment', bold(id))
+    await mkdirp(dirname(path))
+    await writeFileSync(path, '')
+  }
+
+  async select (id: string) {
+    const path = resolve(this.path, `${id}.yml`)
+    if (!existsSync(path)) {
+      throw new Error(`[@fadroma/ops/Deployment] ${id} does not exist`)
+    }
+    const active = resolve(this.path, `${this.KEY}.yml`)
+    try { unlinkSync(active) } catch (e) { console.warn(e.message) }
+    await symlinkSync(path, active)
+  }
+
+  get active (): Deployment|null {
+    return this.get(this.KEY)
+  }
+
+  get (id: string): Deployment|null {
+    const path = resolve(this.path, `${id}.yml`)
+    if (!existsSync(path)) {
+      return null
+    }
+    let prefix: string
+    return new Deployment(path)
+  }
+
+  list () {
+    if (!existsSync(this.path)) {
+      console.info(`\n${this.path} does not exist, creating`)
+      mkdirp.sync(this.path)
+      return []
+    }
+    return readdirSync(this.path)
+      .filter(x=>x!=this.KEY)
+      .filter(x=>x.endsWith('.yml'))
+      .map(x=>basename(x,'.yml'))
+  }
+
+  save (name: string, data: any) {
+    name = `${name}.json`
+    console.info('Deployments writing:', bold(relative(config.projectRoot, this.resolve(name))))
+    if (data instanceof Object) {
+      data = JSON.stringify(data, null, 2)
+    }
+    return super.save(name, data)
+  }
+
+}
 
 export class Deployment {
 
@@ -169,75 +248,12 @@ export class Deployment {
 
 }
 
-export interface DeployContext {
-  deployment: Deployment|undefined,
-  prefix:     string|undefined
+export const join = (...x:any[]) => x.map(String).join(' ')
+
+export const overrideDefaults = (obj, defaults, options = {}) => {
+  for (const k of Object.keys(defaults)) {
+    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
+  }
 }
 
-export class Deployments extends Directory {
-
-  KEY = '.active'
-
-  printActive () {
-    if (this.active) {
-      console.info(`Currently selected deployment:`, bold(this.active.prefix))
-    } else {
-      console.info(`No selected deployment.`)
-    }
-  }
-
-  async create (id: string) {
-    const path = resolve(this.path, `${id}.yml`)
-    if (existsSync(path)) {
-      throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
-    }
-    console.info('Creating new deployment', bold(id))
-    await mkdirp(dirname(path))
-    await writeFileSync(path, '')
-  }
-
-  async select (id: string) {
-    const path = resolve(this.path, `${id}.yml`)
-    if (!existsSync(path)) {
-      throw new Error(`[@fadroma/ops/Deployment] ${id} does not exist`)
-    }
-    const active = resolve(this.path, `${this.KEY}.yml`)
-    try { unlinkSync(active) } catch (e) { console.warn(e.message) }
-    await symlinkSync(path, active)
-  }
-
-  get active (): Deployment|null {
-    return this.get(this.KEY)
-  }
-
-  get (id: string): Deployment|null {
-    const path = resolve(this.path, `${id}.yml`)
-    if (!existsSync(path)) {
-      return null
-    }
-    let prefix: string
-    return new Deployment(path)
-  }
-
-  list () {
-    if (!existsSync(this.path)) {
-      console.info(`\n${this.path} does not exist, creating`)
-      mkdirp.sync(this.path)
-      return []
-    }
-    return readdirSync(this.path)
-      .filter(x=>x!=this.KEY)
-      .filter(x=>x.endsWith('.yml'))
-      .map(x=>basename(x,'.yml'))
-  }
-
-  save (name: string, data: any) {
-    name = `${name}.json`
-    console.info('Deployments writing:', bold(relative(config.projectRoot, this.resolve(name))))
-    if (data instanceof Object) {
-      data = JSON.stringify(data, null, 2)
-    }
-    return super.save(name, data)
-  }
-
-}
+export const addPrefix = (prefix, name) => `${prefix}/${name}`

@@ -1,22 +1,18 @@
-import {
-  Source, getScrtBuilder,
-  Console, bold,
-} from '../index'
-
-import { Path, TOMLFormat as TOML } from '@hackbg/kabinet'
+import $, { OpaqueDirectory, OpaqueFile, TOMLFile } from '@hackbg/kabinet'
+import { Workspace, getScrtBuilder, Source, Console, bold } from '../index'
 
 const console = Console('Fadroma Build')
-let [buildManifestPath,...buildArgs] = process.argv.slice(2)
+const [buildManifestPath,...buildArgs] = process.argv.slice(2)
 
 if (buildManifestPath) {
-  let buildManifest = new Path(buildManifestPath).assert()
+  let buildManifest = $(buildManifestPath).assert()
   if (buildManifest.isDir) {
-    buildManifest = buildManifest.asDir().at('Cargo.toml').as(TOML)
+    buildManifest = new OpaqueDirectory(buildManifest).at('Cargo.toml').as(TOMLFile)
   }
   if (buildManifest.name === 'Cargo.toml') {
-    buildFromCargoToml(buildManifest, buildArgs)
+    buildFromCargoToml(buildManifest.as(TOMLFile) as TOMLFile<CargoTOML>)
   } else {
-    buildFromBuildScript(buildManifest, buildArgs)
+    buildFromBuildScript(buildManifest.as(OpaqueFile), buildArgs)
   }
 } else {
   console.error('Pass a path to either:')
@@ -26,14 +22,15 @@ if (buildManifestPath) {
   process.exit(6)
 }
 
-async function buildFromCargoToml (cargoToml, buildArgs) {
+interface CargoTOML { package: { name: string } }
+
+async function buildFromCargoToml (cargoToml: TOMLFile<CargoTOML>) {
   console.info('Build manifest:', bold(cargoToml.shortPath))
-  const workspace = cargoToml.parent
-  const manifest  = cargoToml.load()
-  const source    = new Source(workspace, manifest.package.name)
+  const workspace = new Workspace(cargoToml.parent)
+  const source    = workspace.crate(cargoToml.load().package.name)
   try {
     const artifact = await getScrtBuilder().build(source)
-    console.info('Built:    ', bold(new Path(artifact.url).shortPath))
+    console.info('Built:    ', bold($(artifact.url).shortPath))
     console.info('Code hash:', bold(artifact.codeHash))
     process.exit(0)
   } catch (e) {
@@ -43,7 +40,7 @@ async function buildFromCargoToml (cargoToml, buildArgs) {
   }
 }
 
-async function buildFromBuildScript (buildScript, buildArgs) {
+async function buildFromBuildScript (buildScript: OpaqueFile, buildArgs) {
   const buildSetName = buildArgs.join(' ')
   console.info('Build script:', bold(buildScript.shortPath))
   console.info('Build set:   ', bold(buildSetName || '(none)'))

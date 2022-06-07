@@ -1,5 +1,5 @@
 import { prompts, colors, bold } from '@hackbg/konzola'
-import { Path, TextFile, JSONFile, YAMLFile } from '@hackbg/kabinet'
+import $, { TextFile, JSONFile, YAMLFile } from '@hackbg/kabinet'
 import { execSync } from 'child_process'
 import pkg from '../package.json'
 
@@ -92,7 +92,7 @@ async function askContractNames () {
 }
 
 async function setupRoot (name, contracts) {
-  const root = new Path(process.cwd()).in(name)
+  const root = $(process.cwd()).in(name)
   if (root.exists) {
     console.log(`\n  ${name}: already exists.`)
     console.log(`  Move it out of the way, or pick a different name.`)

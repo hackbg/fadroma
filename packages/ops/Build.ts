@@ -9,7 +9,7 @@ import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 import { Console, bold } from '@hackbg/konzola'
 import { Dokeres, DokeresImage } from '@hackbg/dokeres'
-import { Path, TextFile } from '@hackbg/kabinet'
+import $, { Path, TextFile } from '@hackbg/kabinet'
 import { Artifact } from '@fadroma/client'
 
 import { config } from './Config'
@@ -27,8 +27,47 @@ export const sanitize  = ref => ref.replace(/\//g, '_')
 
 export const artifactName = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
 
+// If false, this means the .git dir was not resolved.
+// Builds of sources with gitDir==false will fail if ref!==DEFAULT_REF.
+export type GitDir = string|false
+
+/** Represents the real location of the Git data directory. In standalone repos this is `.git/`,
+  * but if the contracts workspace repository is a submodule, `.git` will be a file
+   * containing e.g. "gitdir: ../.git/modules/something" */
+export class DotGit extends Path {
+  constructor (base, ...fragments) {
+    super(base, ...fragments, '.git')
+    if (!this.exists) {
+      console.warn(bold(this.shortPath), 'does not exist')
+      this.valid = false
+    } else if (this.isFile) {
+      const gitPointer = this.as(TextFile).load().trim()
+      const prefix = 'gitdir:'
+      if (gitPointer.startsWith(prefix)) {
+        const gitRel  = gitPointer.slice(prefix.length).trim()
+        const gitPath = resolve(this.parent, gitRel)
+        const gitRoot = $(gitPath)
+        console.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
+        this.path = gitRoot.path
+        this.valid = true
+      } else {
+        console.info(bold(this.shortPath), 'is an unknown file.')
+        this.valid = false
+      }
+    } else if (this.isDir) {
+      // all is well
+      this.valid = true
+    } else {
+      console.warn(bold(this.shortPath), `is not a file or directory`)
+      this.valid = false
+    }
+  }
+
+  readonly valid: boolean
+}
+
 interface WorkspaceCtor<W> {
-  new (root: string, ref?: string, gitDir?: string|false): W // ew
+  new (root: string, ref?: string, gitDir?: DotGit): W
 }
 
 /** Represents a Cargo workspace containing multiple smart contract crates.
@@ -38,38 +77,10 @@ interface WorkspaceCtor<W> {
 export class Workspace {
 
   constructor (
-    public readonly root:    string,
-    public readonly ref:     string = DEFAULT_REF,
-    public readonly gitDir?: string|false
-  ) {
-    if (gitDir === undefined) {
-      // Find location of real .git directory.
-      const dotGit = new Path(root).at('.git')
-      if (!dotGit.exists) {
-        console.warn(bold(dotGit), 'does not exist')
-      } else if (dotGit.isFile) {
-        // If the workspace repo is a Git submodule,
-        // .git will be a file like "gitdir: ../.git/modules/something"
-        const gitPointer = dotGit.as(TextFile).load().trim()
-        const prefix = 'gitdir:'
-        if (gitPointer.startsWith(prefix)) {
-          const gitRel  = gitPointer.slice(prefix.length).trim()
-          const gitPath = resolve(dotGit.parent, gitRel)
-          const gitRoot = new Path(gitPath)
-          console.info(bold(dotGit.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
-          this.gitDir = gitRoot.path
-        } else {
-          console.info(bold(dotGit.shortPath), 'is an unknown file.')
-        }
-      } else if (dotGit.isDir) {
-        this.gitDir = dotGit.path
-      }
-      if (!this.gitDir) {
-        console.warn('Building from Git history is not available')
-        this.gitDir = false
-      }
-    }
-  }
+    public readonly root:   string,
+    public readonly ref:    string = DEFAULT_REF,
+    public readonly gitDir: DotGit = new DotGit(root)
+  ) {}
 
   /** Create a new instance of the same workspace that will
     * return Source objects pointing to a specific Git ref. */
@@ -79,7 +90,7 @@ export class Workspace {
 
   /** Get a Source object pointing to a crate from the current workspace and ref */
   crate (crate: string): Source {
-    return new Source(this.root, crate, this.ref)
+    return new Source(this, crate)
   }
 
   /** Get multiple Source objects pointing to crates from the current workspace and ref */
@@ -91,11 +102,9 @@ export class Workspace {
 
 export class Source {
   constructor (
-    public readonly workspace: string,
+    public readonly workspace: Workspace,
     public readonly crate:     string,
-    public readonly ref?:      string
   ) {}
-
   build (builder: Builder): Promise<Artifact> {
     return builder.build(this)
   }
@@ -117,56 +126,30 @@ export function codeHashForBlob (blob: Uint8Array) {
 }
 
 export abstract class CachingBuilder extends Builder {
+
   caching = !config.rebuild
-  protected prebuild ({ workspace, crate, ref = DEFAULT_REF }: Source): Artifact|null {
+
+  protected prebuild (workspace: Workspace, crate: string): Artifact|null {
+
     // For now, workspace-less crates are not supported.
     if (!workspace) {
-      const msg = `[@fadroma/ops] Missing workspace path (for crate ${crate} at ${ref})`
-      throw new Error(msg)
+      throw new Error(`Fadroma Build: crate "${crate}": missing workspace`)
     }
+
     // Don't rebuild existing artifacts
     if (this.caching) {
-      const outputDir = resolve(workspace, 'artifacts')
-      const location  = resolve(outputDir, artifactName(crate, ref))
+      const outputDir = resolve(workspace.root, 'artifacts')
+      const location  = resolve(outputDir, artifactName(crate, workspace.ref))
       if (existsSync(location)) {
         console.info('Exists, not rebuilding:', bold(relative(cwd(), location)))
         return { url: pathToFileURL(location), codeHash: codeHashForPath(location) }
       }
     }
+
     return null
+
   }
-}
 
-/** This build mode uses the toolchain from the developer's environment. */
-export class RawBuilder extends CachingBuilder {
-  constructor (
-    public readonly buildScript:    string,
-    public readonly checkoutScript: string
-  ) { super() }
-
-  async build (source: Source): Promise<Artifact> {
-    throw new Error('RawBuilder#build: not implemented')
-    const { ref = DEFAULT_REF, workspace, crate } = source
-    let cwd = workspace
-    // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
-    if (ref && ref !== DEFAULT_REF) {
-      await run(this.checkoutScript, [ref])
-    }
-    await run(this.buildScript, [])
-    const location = resolve(workspace, 'artifacts', artifactName(crate, ref))
-    const codeHash = codeHashForPath(location)
-    return { url: pathToFileURL(location), codeHash }
-
-    function run (cmd, args) {
-      return new Promise((resolve, reject)=>{
-        const env = { ...process.env, CRATE: crate, REF: ref, WORKSPACE: workspace }
-        execFile(cmd, args, { cwd, env, stdio: 'inherit' } as any, (error, stdout, stderr) => {
-          if (error) return reject(error)
-          resolve([stdout, stderr])
-        })
-      })
-    }
-  }
 }
 
 /** This builder launches a one-off build container using Dockerode. */
@@ -202,7 +185,6 @@ export class DockerBuilder extends CachingBuilder {
   socketPath: string  = '/var/run/docker.sock'
   /** Used to launch build container. */
   docker:     Dokeres = new Dokeres(this.socketPath)
-
   /** Tag of the docker image for the build container. */
   image:      DokeresImage
   /** Path to the dockerfile to build the build container if missing. */
@@ -220,34 +202,48 @@ export class DockerBuilder extends CachingBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources: Source[]): Promise<Artifact[]> {
-    // Populate empty `ref` fields of sources with the default value
-    sources = sources.map(source=>source.ref?source:Object.assign(source, {ref: DEFAULT_REF}))
+
+    console.info('Requested to build the following contracts:', sources)
+
+    // No way to checkout non-`HEAD` ref if there is no valid `.git` dir
+    for (const source of sources) {
+      if (source.workspace.ref !== DEFAULT_REF && !source.workspace.gitDir.valid) {
+        const error = new Error("Fadrome Build: could not find Git directory for source.")
+        throw Object.assign(error, { source })
+      }
+    }
+
     // Here we will collect the build outputs
     const artifacts:  Artifact[] = []
+
     // Get the distinct workspaces and refs by which to group the crate builds
-    const workspaces: string[]   = distinct(sources.map(source=>source.workspace))
-    const refs:       string[]   = distinct(sources.map(source=>source.ref||DEFAULT_REF))
-    for (const workspace of workspaces) {
-      console.info(`Building contracts from workspace:`, bold(relative(cwd(), workspace)))
+    const workspaceRoots: string[] = distinct(sources.map(source=>source.workspace.root))
+    const refs:           string[] = distinct(sources.map(source=>source.workspace.ref))
+    for (const workspaceRoot of workspaceRoots) {
+      console.info(`Building contracts from workspace:`, bold(relative(cwd(), workspaceRoot)||'.'))
       for (const ref of refs) {
         console.info(`* Building contracts from ref:`, ref)
+
         // Create a list of sources for this container to build,
         // along with their indices in the input and output arrays
         // of this function.
         const sourcesForContainer: [number, string][] = []
+
         for (let index = 0; index < sources.length; index++) {
           const source = sources[index]
-          if (source.workspace === workspace && (source.ref||DEFAULT_REF) === ref) {
+          if (source.workspace.root === workspaceRoot && source.workspace.ref === ref) {
             sourcesForContainer.push([index, source.crate])
           }
         }
+
         // Build the crates from the same workspace/ref
         // sequentially in the same container.
         const artifactsFromContainer = await this.buildInContainer(
-          workspace,
+          workspaceRoot,
           ref,
           sourcesForContainer
         )
+
         // Collect the artifacts built by the container
         for (const index in artifactsFromContainer) {
           const artifact = artifactsFromContainer[index]
@@ -255,19 +251,22 @@ export class DockerBuilder extends CachingBuilder {
             artifacts[index] = artifact
           }
         }
+
       }
     }
+
     return artifacts
+
   }
 
   protected async buildInContainer (
-    workspace: string,
-    ref:       string             = DEFAULT_REF,
-    crates:    [number, string][] = []
+    workspaceRoot: string,
+    ref:           string             = DEFAULT_REF,
+    crates:        [number, string][] = []
   ): Promise<(Artifact|null)[]> {
-    
+
     // Workspace should be an absolute path so that it can be mounted into the container.
-    workspace = resolve(workspace)
+    workspaceRoot = resolve(workspaceRoot)
 
     // Output slots. Indices should correspond to those of the input to buildMany
     const artifacts:   (Artifact|null)[] = crates.map(()=>null)
@@ -277,7 +276,7 @@ export class DockerBuilder extends CachingBuilder {
 
     // Collect cached artifacts. If any are missing from the cache mark them as buildable.
     for (const [index, crate] of crates) {
-      const prebuilt = this.prebuild({ workspace, ref, crate })
+      const prebuilt = this.prebuild({ workspace: workspaceRoot, ref, crate })
       if (prebuilt) {
         artifacts[index] = prebuilt
       } else {
@@ -290,30 +289,19 @@ export class DockerBuilder extends CachingBuilder {
       return artifacts
     }
 
-    // Define the build container
-    const outputDir    = resolve(workspace, 'artifacts')
+    // Define the mounts of the build container
+    const outputDir    = resolve(workspaceRoot, 'artifacts')
     const buildScript  = `/${basename(this.script)}`
     const safeRef      = sanitize(ref)
     const readonly = {
       [this.script]: buildScript
     }
     const writable = {
-      [workspace]: `/src`,
-      [outputDir]: `/output`,
+      [workspaceRoot]: `/src`,
+      [outputDir]:     `/output`,
       // Persist cache to make future rebuilds faster. May be unneccessary.
       [`project_cache_${safeRef}`]: `/tmp/target`,
       [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
-    }
-    const env = {
-      //'CARGO_TERM_VERBOSE': 'true',
-      TERM:                         process.env.TERM,
-      LOCKED:                       '',/*'--locked'*/
-      CARGO_HTTP_TIMEOUT:           '240',
-      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-    }
-    const extra = {
-      Tty:         true,
-      AttachStdin: true,
     }
 
     // If a different ref will need to be checked out, it may contain private submodules.
@@ -335,9 +323,6 @@ export class DockerBuilder extends CachingBuilder {
         )
       }
     }
-    
-    // Options of the build container to pass to Dokeres
-    const options = { remove: true, readonly, writable, env, extra }
 
     // Pre-populate the list of expected artifacts.
     const outputWasms = [...new Array(crates.length)].map(()=>null)
@@ -348,6 +333,22 @@ export class DockerBuilder extends CachingBuilder {
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
     const command = ['node', buildScript, 'phase1', ref, ...cratesToBuild]
+    const options = {
+      remove: true,
+      readonly,
+      writable,
+      env: {
+        //'CARGO_TERM_VERBOSE': 'true',
+        TERM:                         process.env.TERM,
+        LOCKED:                       '',/*'--locked'*/
+        CARGO_HTTP_TIMEOUT:           '240',
+        CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+      },
+      extra: {
+        Tty:         true,
+        AttachStdin: true,
+      }
+    }
     console.info(bold('Building with command:'), command.join(' '))
     console.debug(bold('in container with configuration:'), options)
 
@@ -357,7 +358,7 @@ export class DockerBuilder extends CachingBuilder {
     logs.pipe(process.stdout)
 
     // Run the build container
-    const buildName      = `fadroma-build-${sanitize(basename(workspace))}@${ref}`
+    const buildName      = `fadroma-build-${sanitize(basename(workspaceRoot))}@${ref}`
     const buildContainer = await this.image.run(buildName, options, command, '/usr/bin/env', logs)
     const {Error: err, StatusCode: code} = await buildContainer.wait()
 
@@ -379,14 +380,49 @@ export class DockerBuilder extends CachingBuilder {
     }
 
     // Return a sparse array of the resulting artifacts
-    const toArtifact = location=>
-      (location === null)
-        ? null
-        : { url: pathToFileURL(location), codeHash: codeHashForPath(location) }
-    return outputWasms.map(toArtifact)
+    return outputWasms.map(location => {
+      if (location === null) {
+        return null
+      } else {
+        return { url: pathToFileURL(location), codeHash: codeHashForPath(location) }
+      }
+    })
 
   }
 
+}
+
+/** This build mode looks for a Rust toolchain in the same environment
+  * as the one in which the script is running, i.e. no build container. */
+export class RawBuilder extends CachingBuilder {
+  constructor (
+    public readonly buildScript:    string,
+    public readonly checkoutScript: string
+  ) { super() }
+
+  async build (source: Source): Promise<Artifact> {
+    throw new Error('RawBuilder#build: not implemented')
+    const { ref = DEFAULT_REF, workspace, crate } = source
+    const cwd = workspace
+    // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
+    if (ref && ref !== DEFAULT_REF) {
+      await run(this.checkoutScript, [ref])
+    }
+    await run(this.buildScript, [])
+    const location = resolve(workspace, 'artifacts', artifactName(crate, ref))
+    const codeHash = codeHashForPath(location)
+    return { url: pathToFileURL(location), codeHash }
+
+    function run (cmd, args) {
+      return new Promise((resolve, reject)=>{
+        const env = { ...process.env, CRATE: crate, REF: ref, WORKSPACE: workspace }
+        execFile(cmd, args, { cwd, env, stdio: 'inherit' } as any, (error, stdout, stderr) => {
+          if (error) return reject(error)
+          resolve([stdout, stderr])
+        })
+      })
+    }
+  }
 }
 
 /** This builder talks to a "remote" build server over HTTP.
@@ -413,7 +449,7 @@ export class ManagedBuilder extends CachingBuilder {
       return prebuilt
     }
     // Request a build from the build manager
-    const { workspace, crate, ref = DEFAULT_REF } = source
+    const { crate, ref = DEFAULT_REF } = source
     const { location } = await this.manager.get('/build', { crate, ref })
     const codeHash = codeHashForPath(location)
     return { url: pathToFileURL(location), codeHash }

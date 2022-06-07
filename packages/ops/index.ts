@@ -87,26 +87,8 @@ export interface UploadContext {
   buildAndUploadMany: (sources: Source[]) => Promise<Template[]>
 }
 
-export interface DeployContext {
-
-  template?:    Template
-
-  templates?:   Template[]
-
-  /** Override agent used for deploys. */
-  deployAgent?: Agent
-
-  /** Currently selected collection of interlinked contracts. */
-  deployment?:  Deployment
-
-  /** Prefix to the labels of all deployed contracts.
-    * Identifies which deployment they belong to. */
-  prefix?:      string
-
-  /** Appended to contract labels in devnet deployments for faster iteration. */
-  suffix?:      string
-
-}
+import type { DeployContext } from './Deploy'
+export type { DeployContext }
 
 export type OperationContext =
   CommandContext       &

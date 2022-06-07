@@ -6,7 +6,7 @@ import { existsSync, readlinkSync, symlinkSync } from 'fs'
 
 import type { AgentOptions, DevnetHandle } from '@fadroma/client'
 import { Console, bold } from '@hackbg/konzola'
-import { Path, Directory, JSONFormat, JSONFile, JSONDirectory } from '@hackbg/kabinet'
+import $, { Path, OpaqueDirectory, JSONFile, JSONDirectory } from '@hackbg/kabinet'
 import { freePort, waitPort } from '@hackbg/portali'
 import { Dokeres, DokeresImage, DokeresContainer, waitUntilLogsSay } from '@hackbg/dokeres'
 import { randomHex } from '@hackbg/toolbox'
@@ -32,6 +32,11 @@ export interface DevnetOptions {
   portMode?:  DevnetPortMode
 }
 
+export interface DevnetState {
+  chainId: string
+  port:    number
+}
+
 export abstract class Devnet implements DevnetHandle {
 
   /** Creates an object representing a devnet.
@@ -49,8 +54,8 @@ export abstract class Devnet implements DevnetHandle {
       this.genesisAccounts = identities
     }
     stateRoot = stateRoot || resolve(config.projectRoot, 'receipts', this.chainId)
-    this.stateRoot = new Directory(stateRoot)
-    this.nodeState = this.stateRoot.at('node.json').as(JSONFormat)
+    this.stateRoot = $(stateRoot).as(OpaqueDirectory)
+    this.nodeState = this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
   }
 
   /** The chain ID that will be passed to the devnet node. */
@@ -76,7 +81,7 @@ export abstract class Devnet implements DevnetHandle {
   }
 
   /** This directory is created to remember the state of the devnet setup. */
-  stateRoot: Directory
+  stateRoot: OpaqueDirectory
 
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
@@ -90,7 +95,7 @@ export abstract class Devnet implements DevnetHandle {
 
   /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
-  nodeState: JSONFile
+  nodeState: JSONFile<DevnetState>
 
   /** Save the info needed to respawn the node */
   save (extraData = {}) {
@@ -169,7 +174,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
   constructor (options: DockerodeDevnetOptions = {}) {
     super(options)
     console.info('Constructing', bold('Dockerode')+'-based devnet')
-    this.identities  = this.stateRoot.subdir('identities').as(JSONFormat)
+    this.identities  = this.stateRoot.in('identities').as(JSONDirectory)
     this.image       = options.image
     this.initScript  = options.initScript
     this.readyPhrase = options.readyPhrase
@@ -464,7 +469,7 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
         console.info('Reusing existing managed devnet with chain id', bold(chainId))
       } else {
         chainId = `${prefix}-${randomHex(4)}`
-        const devnet = new Path(config.projectRoot).in('receipts').in(chainId)
+        const devnet = $(config.projectRoot).in('receipts').in(chainId)
         devnet.make()
         symlinkSync(devnet.path, active)
         console.info('Creating new managed devnet with chain id', bold(chainId))
