@@ -15,7 +15,7 @@ impl ISnip20 {
         Self {
             link,
             padding:    None,
-            memo: None,
+            memo:       None,
             block_size: BLOCK_SIZE
         }
     }
@@ -89,6 +89,18 @@ impl ISnip20 {
     ) -> StdResult<CosmosMsg> {
         snip20::transfer_msg(
             recipient.clone(), amount, self.memo.clone(),
+            self.padding.clone(), self.block_size,
+            self.link.code_hash.clone(), self.link.address.clone()
+        )
+    }
+
+    pub fn batch_transfer (
+        &self, transfers: &Vec<(HumanAddr, Uint128)>
+    ) -> StdResult<CosmosMsg> {
+        snip20::batch_transfer_msg(
+            transfers.iter().map(|(addr, amount)| {
+                snip20::batch::TransferAction::new(addr.clone(), *amount, None)
+            }).collect::<Vec<_>>(),
             self.padding.clone(), self.block_size,
             self.link.code_hash.clone(), self.link.address.clone()
         )
