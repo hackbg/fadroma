@@ -61,31 +61,11 @@ export interface AuthenticatedContext {
   clientAgent: Agent
 }
 
-export interface BuildContext {
-  ref?: string
+import type { BuildContext } from './Build'
+export type { BuildContext }
 
-  src?: Source
-
-  srcs?: Source[]
-
-  builder?: Builder
-
-  build?: (source: Source) => Promise<Artifact>
-
-  buildMany?: (sources: Source[]) => Promise<Artifact[]>
-}
-
-export interface UploadContext {
-  uploader?: Uploader
-
-  upload: (artifact: Artifact) => Promise<Template>
-
-  uploadMany: (artifacts: Artifact[]) => Promise<Template[]>
-
-  buildAndUpload: (source: Source) => Promise<Template>
-
-  buildAndUploadMany: (sources: Source[]) => Promise<Template[]>
-}
+import type { UploadContext } from './Upload'
+export type { UploadContext }
 
 import type { DeployContext } from './Deploy'
 export type { DeployContext }
