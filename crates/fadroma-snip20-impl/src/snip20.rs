@@ -1,6 +1,5 @@
 use fadroma_platform_scrt::*;
 use fadroma_auth::*;
-use fadroma_math::*;
 
 use std::fmt;
 use std::fmt::Write;
@@ -92,15 +91,13 @@ pub fn snip20_init<S: Storage, A: Api, Q: Querier>(
         }
     }
 
-    let prng_seed_hashed = sha_256(&msg.prng_seed.0);
-
     let mut config = Config::from_storage(&mut deps.storage);
     config.set_constants(&Constants {
         name: msg.name,
         symbol: msg.symbol,
         decimals: msg.decimals,
         admin: admin.clone(),
-        prng_seed: prng_seed_hashed.to_vec(),
+        prng_seed: msg.prng_seed.0,
         total_supply_is_public: init_config.public_total_supply(),
         deposit_is_enabled: init_config.deposit_enabled(),
         redeem_is_enabled: init_config.redeem_enabled(),

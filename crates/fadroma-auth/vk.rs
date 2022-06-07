@@ -1,11 +1,15 @@
 //Copied from https://github.com/enigmampc/snip20-reference-impl/blob/master/src/viewing_key.rs
-use fadroma_platform_scrt::*;
-use fadroma_math::*;
+use fadroma_platform_scrt::{
+    schemars::{self, JsonSchema},
+    cosmwasm_std::{Binary, Env}
+};
 use std::fmt;
-use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::crypto::{Prng, sha_256, compare_slice_ct_time};
+
 pub const VIEWING_KEY_SIZE: usize = 32;
+
 const VIEWING_KEY_PREFIX: &str = "api_key_";
 
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]

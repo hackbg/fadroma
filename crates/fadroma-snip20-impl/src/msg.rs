@@ -1,7 +1,7 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
 
 use fadroma_platform_scrt::*;
-use fadroma_auth::*;
+use fadroma_auth::{Permit, ViewingKey};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

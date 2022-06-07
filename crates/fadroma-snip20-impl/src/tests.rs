@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use fadroma_platform_scrt::*;
-use fadroma_auth::vk::*;
+use fadroma_auth::{ViewingKey, VIEWING_KEY_SIZE};
 
 use std::any::Any;
 use crate::{
@@ -17,7 +17,6 @@ use crate::{
 };
 
 use crate::msg::{InitMsg, HandleMsg, QueryMsg};
-use fadroma_math::crypto::sha_256;
 
 fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -213,7 +212,7 @@ fn test_init_sanity() {
     assert_eq!(constants.decimals, 8);
     assert_eq!(
         constants.prng_seed,
-        sha_256("lolz fun yay".to_owned().as_bytes())
+        Vec::from("lolz fun yay")
     );
     assert_eq!(constants.total_supply_is_public, false);
 }
@@ -249,7 +248,7 @@ fn test_init_with_config_sanity() {
     assert_eq!(constants.decimals, 8);
     assert_eq!(
         constants.prng_seed,
-        sha_256("lolz fun yay".to_owned().as_bytes())
+        Vec::from("lolz fun yay")
     );
     assert_eq!(constants.total_supply_is_public, false);
     assert_eq!(constants.deposit_is_enabled, true);
