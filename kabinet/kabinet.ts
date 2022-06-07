@@ -17,38 +17,8 @@ import YAML from 'js-yaml'
 import { Console } from '@hackbg/konzola'
 const console = Console('@hackbg/kabinet')
 
-export function getDirName (url) {
-  return dirname(fileURLToPath(url))
-}
-
-export function mkdir (...fragments: string[]) {
-  const path = resolve(...fragments)
-  if (!existsSync(path)) console.info('Creating directory:', path)
-  mkdirp.sync(path, {mode: 0o770})
-  return path
-}
-
-export function rimraf (path = "") {
-  return new Promise((resolve, reject)=>rimrafCb(path, (err) =>
-    err ? reject(err) : resolve(path))
-  )
-}
-
-export function withTmpDir <T> (fn: (path: string)=>T): T {
-  const {name} = tmp.dirSync()
-  try { return fn(name) } finally { rimrafSync(name) }
-}
-
-export function withTmpFile <T> (fn: (path: string)=>T): T {
-  const {name} = tmp.fileSync()
-  try { return fn(name) } finally { rimrafSync(name) }
-}
-
-export function touch (...fragments) {
-  const path = resolve(...fragments)
-  if (!existsSync(path)) console.info('Creating file:', path)
-  writeFileSync(path, '')
-  return path
+export default function $ (base, ...fragments) {
+  return new Path(base, ...fragments)
 }
 
 export class Path {
@@ -249,6 +219,40 @@ export class TOMLDirectory<T> extends BaseDirectory<T, TOMLFile<T>> {
   File = TOMLFile
 }
 
+export function getDirName (url) {
+  return dirname(fileURLToPath(url))
+}
+
+export function mkdir (...fragments: string[]) {
+  const path = resolve(...fragments)
+  if (!existsSync(path)) console.info('Creating directory:', path)
+  mkdirp.sync(path, {mode: 0o770})
+  return path
+}
+
+export function rimraf (path = "") {
+  return new Promise((resolve, reject)=>rimrafCb(path, (err) =>
+    err ? reject(err) : resolve(path))
+  )
+}
+
+export function withTmpDir <T> (fn: (path: string)=>T): T {
+  const {name} = tmp.dirSync()
+  try { return fn(name) } finally { rimrafSync(name) }
+}
+
+export function withTmpFile <T> (fn: (path: string)=>T): T {
+  const {name} = tmp.fileSync()
+  try { return fn(name) } finally { rimrafSync(name) }
+}
+
+export function touch (...fragments) {
+  const path = resolve(...fragments)
+  if (!existsSync(path)) console.info('Creating file:', path)
+  writeFileSync(path, '')
+  return path
+}
+
 // reexports
 export {
   basename,
@@ -263,5 +267,3 @@ export {
   symlinkDir,
   tmp
 }
-
-export default Path
