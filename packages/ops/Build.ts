@@ -336,12 +336,26 @@ export class DockerBuilder extends CachingBuilder {
       [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
     }
 
-    // If a different ref will need to be checked out, it may contain private submodules.
-    // If an unsafe option is set, this mounts the running user's *ENTIRE ~/.ssh DIRECTORY*,
-    // containing their private keys, into the container, in order to enable pulling private
-    // submodules over SSH. This is an edge case and ideally `git subtree` and/or
-    // public HTTP-based submodules should be used instead.
+    // Define the environment variables of the build container
+    const env = {
+      TERM:                         process.env.TERM,
+      LOCKED:                       '',/*'--locked'*/
+      CARGO_HTTP_TIMEOUT:           '240',
+      CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
+      //'CARGO_TERM_VERBOSE': 'true',
+    }
+
     if (ref !== HEAD) {
+      // If not building from working tree, set path to
+      // Git directory from which to clone past commit.
+      readonly[workspace.gitDir.path] = '/git'
+      env['GIT_DIR'] = '/git'
+
+      // If a different ref will need to be checked out, it may contain private submodules.
+      // If an unsafe option is set, this mounts the running user's *ENTIRE ~/.ssh DIRECTORY*,
+      // containing their private keys, into the container, in order to enable pulling private
+      // submodules over SSH. This is an edge case and ideally `git subtree` and/or
+      // public HTTP-based submodules should be used instead.
       if (config.buildUnsafeMountKeys) {
         // Keys for SSH cloning of submodules - dangerous!
         console.warn(
@@ -369,13 +383,7 @@ export class DockerBuilder extends CachingBuilder {
       remove: true,
       readonly,
       writable,
-      env: {
-        TERM:                         process.env.TERM,
-        LOCKED:                       '',/*'--locked'*/
-        CARGO_HTTP_TIMEOUT:           '240',
-        CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-        //'CARGO_TERM_VERBOSE': 'true',
-      },
+      env,
       extra: {
         Tty:         true,
         AttachStdin: true,

@@ -58,10 +58,12 @@ function phase1 ({
     console.log(`Building from working tree.`)
   } else {
     console.log(`Building from checkout of ${ref}`)
-    run(`git clone --recursive --depth 1 ${gitDir} ${buildRoot}`)
+    run(`git clone --depth 1 ${gitDir} ${buildRoot}`)
     process.chdir(buildRoot)
     run(`git log -1`)
     console.log()
+    console.log(`Populating Git submodules...`)
+    run(`git submodule update --init --recursive`)
   }
 
   console.log(`Building in:`)

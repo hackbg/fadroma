@@ -84,7 +84,7 @@ function list (buildSets) {
     console.log(`\n  ${name}`)
     sources = (sources as Function)() as any
     for (const source of sources as Array<Source>) {
-      console.log(`    ${bold(source.crate)} @ ${source.ref}`)
+      console.log(`    ${bold(source.crate)} @ ${source.workspace.ref}`)
     }
   }
 }
