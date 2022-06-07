@@ -21,7 +21,6 @@ export function getDirName (url) {
   return dirname(fileURLToPath(url))
 }
 
-// shorthands
 export function mkdir (...fragments: string[]) {
   const path = resolve(...fragments)
   if (!existsSync(path)) console.info('Creating directory:', path)
@@ -140,10 +139,6 @@ export interface PathCtor <T> {
   new (...fragments: string[]): T
 }
 
-export interface FileCtor <T> extends PathCtor <T> {
-  extension: string
-}
-
 export abstract class BaseFile<T> extends Path {
   make () {
     this.makeParent()
@@ -213,8 +208,12 @@ export class TOMLFile<T> extends BaseFile<T> {
   }
 }
 
+export interface FileCtor <T> extends PathCtor <T> {
+  extension: string
+}
+
 export abstract class BaseDirectory<T, U extends BaseFile<T>> extends Path {
-  abstract get File (): FileCtor<U>
+  abstract File: FileCtor<U>
   file (...fragments) {
     const File = this.File
     return new File(this.path, ...fragments)
@@ -232,68 +231,22 @@ export abstract class BaseDirectory<T, U extends BaseFile<T>> extends Path {
   has (name) {
     return existsSync(this.resolve(`${name}${JSONFile.extension}`))
   }
-  load (name) {
-    return readFileSync(this.resolve(name), 'utf8')
-  }
-  save (name, data) {
-    this.make()
-    writeFileSync(this.resolve(name), data, 'utf8')
-    return this
-  }
 }
 
 export class OpaqueDirectory extends BaseDirectory<never, OpaqueFile> {
-  get File () { return OpaqueFile }
+  File = OpaqueFile
 }
 
 export class JSONDirectory<T> extends BaseDirectory<T, JSONFile<T>> {
-  get File () { return JSONFile }
-  load (name) {
-    name = `${name}${JSONFile.extension}`
-    try {
-      return JSON.parse(super.load(name))
-    } catch (e) {
-      throw new Error(`failed to load ${name}: ${e.message}`)
-    }
-  }
-  save (name, data) {
-    data = JSON.stringify(data, null, 2)
-    super.save(`${name}${JSONFile.extension}`, data)
-    return this
-  }
+  File = JSONFile
 }
 
 export class YAMLDirectory<T> extends BaseDirectory<T, YAMLFile<T>> {
-  get File () { return YAMLFile }
-  load (name) {
-    name = `${name}${YAMLFile.extension}`
-    try {
-      return YAML.parse(super.load(name))
-    } catch (e) {
-      throw new Error(`failed to load ${name}: ${e.message}`)
-    }
-  }
-  save (name, data) {
-    data = YAML.dump(data, null, 2)
-    super.save(`${name}${YAMLFile.extension}`, data)
-    return this
-  }
+  File = YAMLFile
 }
 
 export class TOMLDirectory<T> extends BaseDirectory<T, TOMLFile<T>> {
-  get File () { return TOMLFile }
-  load (name) {
-    name = `${name}${TOMLFile.extension}`
-    try {
-      return TOML.parse(super.load(name))
-    } catch (e) {
-      throw new Error(`failed to load ${name}: ${e.message}`)
-    }
-  }
-  save (name, data) {
-    throw new Error('TOML serialization not supported')
-    return this
-  }
+  File = TOMLFile
 }
 
 // reexports
