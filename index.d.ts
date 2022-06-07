@@ -24,17 +24,17 @@ declare module '@hackbg/konzola' {
   export * from '@hackbg/konzola'
 }
 
-declare module '@hackbg/kabinet' {
-  export * from '@hackbg/kabinet'
-}
+//declare module '@hackbg/kabinet' {
+  //export * from '@hackbg/kabinet'
+//}
 
 declare module '@hackbg/komandi' {
   export * from '@hackbg/komandi'
 }
 
-declare module '@hackbg/dokeres' {
-  export * from '@hackbg/dokeres'
-}
+//declare module '@hackbg/dokeres' {
+  //export * from '@hackbg/dokeres'
+//}
 
 declare module '@hackbg/runspec' {
   export * from '@hackbg/runspec'
