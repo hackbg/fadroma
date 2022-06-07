@@ -130,14 +130,18 @@ export class Path {
     return sub
   }
 
-  as <T, U extends BaseFile<T>|Directory> (Ctor: PathCtor<U>): U {
+  as <T, U extends BaseFile<T>|BaseDirectory<T, BaseFile<T>>> (Ctor: PathCtor<U>): U {
     return new Ctor(this.path)
   }
 
 }
 
-export interface PathCtor <P> {
-  new (...fragments: string[]): P
+export interface PathCtor <T> {
+  new (...fragments: string[]): T
+}
+
+export interface FileCtor <T> extends PathCtor <T> {
+  extension: string
 }
 
 export abstract class BaseFile<T> extends Path {
@@ -151,6 +155,7 @@ export abstract class BaseFile<T> extends Path {
 }
 
 export class OpaqueFile extends BaseFile<never> {
+  static extension = ''
   load (): never {
     throw new Error("OpaqueFile: not meant to be loaded")
   }
@@ -160,6 +165,7 @@ export class OpaqueFile extends BaseFile<never> {
 }
 
 export class BinaryFile extends BaseFile<Buffer> {
+  static extension = ''
   load () { return readFileSync(this.path) }
   save (data): this {
     this.makeParent()
@@ -169,6 +175,7 @@ export class BinaryFile extends BaseFile<Buffer> {
 }
 
 export class TextFile extends BaseFile<string> {
+  static extension = ''
   load () { return readFileSync(this.path, 'utf8') }
   save (data) {
     this.makeParent()
@@ -206,63 +213,41 @@ export class TOMLFile<T> extends BaseFile<T> {
   }
 }
 
-export class Directory<T> extends Path {
-
-  get File (): typeof BaseFile<T> { return OpaqueFile }S
-
+export abstract class BaseDirectory<T, U extends BaseFile<T>> extends Path {
+  abstract get File (): FileCtor<U>
+  file (...fragments) {
+    const File = this.File
+    return new File(this.path, ...fragments)
+  }
   make () {
     mkdirp.sync(this.path)
     return this
   }
-
-  list () {
-    if (!this.exists) return []
-    return readdirSync(this.path)
+  list (): string[] {
+    if (!this.exists) return null
+    const matchExtension = x => x.endsWith(this.File.extension)
+    const stripExtension = x => basename(x, this.File.extension)
+    return readdirSync(this.path).filter(matchExtension).map(stripExtension)
   }
-
   has (name) {
-    return existsSync(this.resolve(name))
+    return existsSync(this.resolve(`${name}${JSONFile.extension}`))
   }
-
   load (name) {
     return readFileSync(this.resolve(name), 'utf8')
   }
-
   save (name, data) {
     this.make()
     writeFileSync(this.resolve(name), data, 'utf8')
     return this
   }
-
-  subdirs () {
-    if (!this.exists) return []
-    return readdirSync(this.path).filter(x=>statSync(this.resolve(x)).isDirectory())
-  }
-
-  subdir (name) {
-    return new Directory(this.path, name)
-  }
-  
-  file (...fragments) {
-    return new this.File(this.path, ...fragments)
-  }
-
 }
 
-export class JSONDirectory<T> extends Directory<T> {
+export class OpaqueDirectory extends BaseDirectory<never, OpaqueFile> {
+  get File () { return OpaqueFile }
+}
 
+export class JSONDirectory<T> extends BaseDirectory<T, JSONFile<T>> {
   get File () { return JSONFile }
-
-  has (name) {
-    return existsSync(this.resolve(`${name}${JSONFile.extension}`))
-  }
-
-  list () {
-    const matchExtension = x => x.endsWith(JSONFile.extension)
-    const stripExtension = x => basename(x, JSONFile.extension)
-    return super.list().filter(matchExtension).map(stripExtension)
-  }
-
   load (name) {
     name = `${name}${JSONFile.extension}`
     try {
@@ -271,27 +256,15 @@ export class JSONDirectory<T> extends Directory<T> {
       throw new Error(`failed to load ${name}: ${e.message}`)
     }
   }
-
   save (name, data) {
     data = JSON.stringify(data, null, 2)
     super.save(`${name}${JSONFile.extension}`, data)
     return this
   }
-
 }
 
-export class YAMLDirectory<T> extends Directory<T> {
-
+export class YAMLDirectory<T> extends BaseDirectory<T, YAMLFile<T>> {
   get File () { return YAMLFile }
-
-  has (name) {
-    return existsSync(this.resolve(`${name}${YAMLFile.extension}`))
-  }
-  list () {
-    const matchExtension = x => x.endsWith(YAMLFile.extension)
-    const stripExtension = x => basename(x, YAMLFile.extension)
-    return super.list().filter(matchExtension).map(stripExtension)
-  }
   load (name) {
     name = `${name}${YAMLFile.extension}`
     try {
@@ -307,20 +280,8 @@ export class YAMLDirectory<T> extends Directory<T> {
   }
 }
 
-export class TOMLDirectory<T> extends Directory<T> {
-
+export class TOMLDirectory<T> extends BaseDirectory<T, TOMLFile<T>> {
   get File () { return TOMLFile }
-
-  has (name) {
-    return existsSync(this.resolve(`${name}${TOMLFile.extension}`))
-  }
-
-  list () {
-    const matchExtension = x => x.endsWith(TOMLFile.extension)
-    const stripExtension = x => basename(x, TOMLFile.extension)
-    return super.list().filter(matchExtension).map(stripExtension)
-  }
-
   load (name) {
     name = `${name}${TOMLFile.extension}`
     try {
@@ -329,12 +290,10 @@ export class TOMLDirectory<T> extends Directory<T> {
       throw new Error(`failed to load ${name}: ${e.message}`)
     }
   }
-
   save (name, data) {
     throw new Error('TOML serialization not supported')
     return this
   }
-
 }
 
 // reexports
