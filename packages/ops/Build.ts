@@ -1,3 +1,4 @@
+import assert from 'assert'
 import { cwd } from 'process'
 import { resolve, relative, basename } from 'path'
 import { execFile } from 'child_process'
@@ -9,7 +10,7 @@ import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
 import { Console, bold } from '@hackbg/konzola'
 import { Dokeres, DokeresImage } from '@hackbg/dokeres'
-import $, { Path, TextFile } from '@hackbg/kabinet'
+import $, { Path, OpaqueDirectory, TextFile } from '@hackbg/kabinet'
 import { Artifact } from '@fadroma/client'
 
 import { config } from './Config'
@@ -80,7 +81,7 @@ export class Workspace {
 
   constructor (
     public readonly root:   string,
-    public readonly ref:    string = DEFAULT_REF,
+    public readonly ref:    string = HEAD,
     public readonly gitDir: DotGit = new DotGit(root)
   ) {}
 
@@ -205,14 +206,22 @@ export class DockerBuilder extends CachingBuilder {
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources: Source[]): Promise<Artifact[]> {
 
-    console.info('Requested to build the following contracts:', sources)
+    console.info('Requested to build the following contracts:')
+    const longestCrateName = sources.map(source=>source.crate.length).reduce((x,y)=>Math.max(x,y),0)
+    for (const source of sources) {
+      console.info(
+        bold(source.crate.padEnd(longestCrateName)),
+        'from', bold($(source.workspace.root).shortPath),
+        '@',    bold(source.workspace.ref)
+      )
+    }
 
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, Workspace> = {}
     for (const source of sources) {
       workspaces[source.workspace.root] = source.workspace
       // No way to checkout non-`HEAD` ref if there is no valid `.git` dir
-      if (source.workspace.ref !== DEFAULT_REF && !source.workspace.gitDir.valid) {
+      if (source.workspace.ref !== HEAD && !source.workspace.gitDir.valid) {
         const error = new Error("Fadrome Build: could not find Git directory for source.")
         throw Object.assign(error, { source })
       }
@@ -227,31 +236,40 @@ export class DockerBuilder extends CachingBuilder {
 
     // For each workspace,
     for (const workspaceRoot of workspaceRoots) {
-      console.info(`Building contracts from workspace:`, bold(relative(cwd(), workspaceRoot)||'.'))
+      const workspace = workspaces[workspaceRoot]
+      assert.equal(workspaceRoot, workspace.root, 'sanity check failed 🤪')
 
       // And for each ref of that workspace,
       for (const ref of refs) {
-        console.info(`* Building contracts from ref:`, ref)
+
+        console.info(
+          `Building contracts from workspace:`, bold($(workspace.root).shortPath),
+          `@`, bold(ref)
+        )
+        let root = workspace.root
+        if (ref !== HEAD) {
+          console.info(`Using history from Git directory: `, bold(workspace.gitDir.shortPath))
+          const reDepth = new RegExp(`${Path.separator}.git${Path.separator}?`)
+          const depth   = relative(workspace.root, workspace.gitDir.path).split(reDepth)[0]
+          console.info(`Mounting repository root into container: `, bold(depth))
+          root = resolve(workspace.root, depth)
+        }
 
         // Create a list of sources for the container to build,
         // along with their indices in the input and output arrays
         // of this function.
-        const sourcesForContainer: [number, string][] = []
+        const crates: [number, string][] = []
 
         for (let index = 0; index < sources.length; index++) {
           const source = sources[index]
           if (source.workspace.root === workspaceRoot && source.workspace.ref === ref) {
-            sourcesForContainer.push([index, source.crate])
+            crates.push([index, source.crate])
           }
         }
 
         // Build the crates from the same workspace/ref
         // sequentially in the same container.
-        const artifactsFromContainer = await this.buildInContainer(
-          workspaces[workspaceRoot],
-          ref,
-          sourcesForContainer
-        )
+        const artifactsFromContainer = await this.buildInContainer(root, workspace, ref, crates)
 
         // Collect the artifacts built by the container
         for (const index in artifactsFromContainer) {
@@ -270,12 +288,15 @@ export class DockerBuilder extends CachingBuilder {
   }
 
   protected async buildInContainer (
+    mountRoot: string,
     workspace: Workspace,
-    ref:       string             = DEFAULT_REF,
-    crates:    [number, string][] = []
+    ref:       string,
+    crates:    [number, string][],
+    outputDir: string = resolve(workspace.root, 'artifacts')
   ): Promise<(Artifact|null)[]> {
 
-    // Workspace should be an absolute path so that it can be mounted into the container.
+    // Paths mountedin to container should be absolute
+    mountRoot = resolve(mountRoot)
     const workspaceRoot = resolve(workspace.root)
 
     // Output slots. Indices should correspond to those of the input to buildMany
@@ -300,19 +321,16 @@ export class DockerBuilder extends CachingBuilder {
     }
 
     // Define the mounts of the build container
-    const outputDir    = resolve(workspaceRoot, 'artifacts')
     const buildScript  = `/${basename(this.script)}`
     const safeRef      = sanitize(ref)
     const readonly = {
       [this.script]: buildScript
     }
     const writable = {
-      // Git store directory
-      [workspace.gitDir.path]: `/git`,
-      // Working tree directory
-      [workspaceRoot]:         `/src`,
+      // Root directory of repository, containing real .git directory
+      [mountRoot]:                  `/src`,
       // Output path for final artifacts
-      [outputDir]:             `/output`,
+      [outputDir]:                  `/output`,
       // Persist cache to make future rebuilds faster. May be unneccessary.
       [`project_cache_${safeRef}`]: `/tmp/target`,
       [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
@@ -323,7 +341,7 @@ export class DockerBuilder extends CachingBuilder {
     // containing their private keys, into the container, in order to enable pulling private
     // submodules over SSH. This is an edge case and ideally `git subtree` and/or
     // public HTTP-based submodules should be used instead.
-    if (ref !== DEFAULT_REF) {
+    if (ref !== HEAD) {
       if (config.buildUnsafeMountKeys) {
         // Keys for SSH cloning of submodules - dangerous!
         console.warn(
@@ -353,8 +371,6 @@ export class DockerBuilder extends CachingBuilder {
       writable,
       env: {
         TERM:                         process.env.TERM,
-        GIT_DIR:                      '/git',
-        GIT_WORK_TREE:                '/src',
         LOCKED:                       '',/*'--locked'*/
         CARGO_HTTP_TIMEOUT:           '240',
         CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
@@ -374,7 +390,8 @@ export class DockerBuilder extends CachingBuilder {
     logs.pipe(process.stdout)
 
     // Run the build container
-    const buildName      = `fadroma-build-${sanitize(basename(workspaceRoot))}@${ref}`
+    const rootName       = sanitize(basename(workspaceRoot))
+    const buildName      = `fadroma-build-${rootName}@${ref}`
     const buildContainer = await this.image.run(buildName, options, command, '/usr/bin/env', logs)
     const {Error: err, StatusCode: code} = await buildContainer.wait()
 
@@ -418,9 +435,9 @@ export class RawBuilder extends CachingBuilder {
 
   async build (source: Source): Promise<Artifact> {
     throw new Error('RawBuilder#build: not implemented')
-    const { workspace: { root: cwd, ref = DEFAULT_REF }, workspace, crate } = source
+    const { workspace: { root: cwd, ref = HEAD }, workspace, crate } = source
     // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
-    if (ref && ref !== DEFAULT_REF) {
+    if (ref && ref !== HEAD) {
       await run(this.checkoutScript, [ref])
     }
     await run(this.buildScript, [])
@@ -464,18 +481,16 @@ export class ManagedBuilder extends CachingBuilder {
       return prebuilt
     }
     // Request a build from the build manager
-    const { crate, ref = DEFAULT_REF } = source
+    const { crate, ref = HEAD } = source
     const { location } = await this.manager.get('/build', { crate, ref })
     const codeHash = codeHashForPath(location)
     return { url: pathToFileURL(location), codeHash }
   }
 }
 
-export const DEFAULT_REF = 'HEAD'
+export const HEAD = 'HEAD'
 
-export function distinct <T> (x: T[]): T[] {
-  return [...new Set(x)]
-}
+export const distinct = <T> (x: T[]): T[] => [...new Set(x)]
 
 export const sanitize  = ref => ref.replace(/\//g, '_')
 

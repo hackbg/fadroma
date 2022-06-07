@@ -1,4 +1,5 @@
 import { execSync } from 'child_process'
+import { resolve, sep } from 'path'
 
 const slashes  = new RegExp("/", "g")
 const dashes   = new RegExp("-", "g")
@@ -8,6 +9,13 @@ const fumigate = x => x.replace(dashes,  "_")
 const run = (command, env) => {
   console.info('$', command)
   execSync(command, { env: { ...process.env, ...env }, stdio: 'inherit' })
+}
+
+const time = (command) => {
+  const t0 = + new Date()
+  run(command)
+  const t1 = + new Date()
+  console.log(`done in ${t1-t0}ms`)
 }
 
 const phases = { phase1, phase2 }
@@ -23,12 +31,12 @@ function phase1 ({
   ref         = process.argv[3],       // "HEAD" | <git ref>
   crates      = process.argv.slice(4), // all crates to build
   workspace   = '/src',
-  temp        = `/tmp/fadroma-build-${sanitize(ref)}`,
-  buildDir    = `${temp}/${sanitize(ref)}`,
-  uid         = process.env.USER  || 1000,
-  gid         = process.env.GROUP || 1000,
-
+  gitDir      = process.env.GIT_DIR       || `${workspace}/.git`,
+  buildRoot   = process.env.GIT_WORK_TREE || `/tmp/fadroma-build/${sanitize(ref)}`,
+  uid         = process.env.USER          || 1000,
+  gid         = process.env.GROUP         || 1000,
 } = {}) {
+
   console.log('Build phase 1: Preparing source repository for', ref)
 
   // Create a non-root build user.
@@ -38,7 +46,7 @@ function phase1 ({
   // The local registry is stored in a Docker volume mounted at /usr/local.
   // This makes sure it is accessible to non-root users.
   process.umask(0o000)
-  run(`mkdir -p "${buildDir}" /tmp/target /usr/local/cargo/registry`)
+  run(`mkdir -p "${buildRoot}" /tmp/target /usr/local/cargo/registry`)
   process.umask(0o022)
   run(`chown -R ${uid} /usr/local/cargo/registry`)
   run(`chown -R ${uid} /src`)
@@ -46,22 +54,18 @@ function phase1 ({
 
   // Copy the source into the build dir
   run(`git --version`)
-  console.log(`Cleaning untracked files...`)
-  run(`cp -rT ${workspace} ${buildDir}`)
-  process.chdir(buildDir)
   if (ref === 'HEAD') {
-    console.log(`Building from working tree...`)
+    console.log(`Building from working tree.`)
   } else {
-    run(`git stash -u`)
-    run(`git reset --hard --recurse-submodules`)
-    run(`git clean -f -d -x`)
-    console.log(`Checking out ${ref} in ${buildDir}`)
-    run(`git checkout "${ref}"`)
-    console.log(`Preparing submodules...`)
-    run(`git submodule update --init --recursive`)
+    console.log(`Building from checkout of ${ref}`)
+    run(`git clone --recursive --depth 1 ${gitDir} ${buildRoot}`)
+    process.chdir(buildRoot)
     run(`git log -1`)
     console.log()
   }
+
+  console.log(`Building in:`)
+  run(`pwd`)
   console.log(`Build phase 2 will begin with these crates: ${crates}`)
   for (const crate of crates) {
     console.log(`Building ${crate} from ${ref} in ${process.cwd()}`)
