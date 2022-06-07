@@ -31,7 +31,7 @@ export class Dokeres {
   /** By default, creates an instance of Dockerode
     * connected to env `DOCKER_HOST`. You can also pass
     * your own Dockerode instance or socket path. */
-  constructor (dockerode: Docker|string) {
+  constructor (dockerode?: Docker|string) {
     if (!dockerode) {
       this.dockerode = new Docker({ socketPath })
     } else if (typeof dockerode === 'object') {
