@@ -1,4 +1,4 @@
-use secret_cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Api, Binary};
+use secret_cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Api, Binary, CosmosMsg, WasmMsg};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -35,6 +35,17 @@ impl Canonize for Callback<HumanAddr> {
         Ok(Callback {
             msg: self.msg,
             contract: self.contract.canonize(api)?
+        })
+    }
+}
+
+impl Into<CosmosMsg> for Callback<HumanAddr> {
+    fn into(self) -> CosmosMsg {
+        CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: self.contract.address,
+            callback_code_hash: self.contract.code_hash,
+            msg: self.msg,
+            send: vec![]
         })
     }
 }
