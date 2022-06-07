@@ -101,16 +101,16 @@ Set the block height manually:
 ```rust
 let mut ensemble = ContractEnsemble::new(50);
 
-ensemble.block().height = 10;
-ensemble.block().time = 10000;
+ensemble.block_mut().height = 10;
+ensemble.block_mut().time = 10000;
 ```
 
 Use auto-increments (after each **successful** call) for block height and time when initializing the ensemble:
 
 ```rust
 // For exact increments
-ensemble.block().exact_increments(10, 7);
+ensemble.block_mut().exact_increments(10, 7);
 
 // For random increments within specified ranges
-ensemble.block().random_increments(1..11, 1..9);
+ensemble.block_mut().random_increments(1..11, 1..9);
 ```

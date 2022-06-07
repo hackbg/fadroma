@@ -66,22 +66,32 @@ impl ContractEnsemble {
         }
     }
 
-    pub fn block(&mut self) -> &mut Block {
+    #[inline]
+    pub fn block(&self) -> &Block {
+        &self.ctx.block
+    }
+
+    #[inline]
+    pub fn block_mut(&mut self) -> &mut Block {
         &mut self.ctx.block
     }
 
+    #[inline]
     pub fn set_chain_id(&mut self, id: impl Into<String>) {
         self.ctx.chain_id = id.into();
     }
 
+    #[inline]
     pub fn add_funds(&mut self, address: impl Into<HumanAddr>, coins: Vec<Coin>) {
         self.ctx.bank.current.add_funds(&address.into(), coins);
     }
 
+    #[inline]
     pub fn balances(&self, address: impl Into<HumanAddr>) -> Option<&Balances> {
         self.ctx.bank.current.0.get(&address.into())
     }
 
+    #[inline]
     pub fn balances_mut(&mut self, address: impl Into<HumanAddr>) -> Option<&mut Balances> {
         self.ctx.bank.current.0.get_mut(&address.into())
     }

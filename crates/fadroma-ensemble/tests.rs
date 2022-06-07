@@ -450,9 +450,9 @@ fn insufficient_balance() {
 #[test]
 fn exact_increment() {
     let mut ensemble = ContractEnsemble::new(50);
-    ensemble.block().exact_increments(10, 7);
-    ensemble.block().height = 0;
-    ensemble.block().time = 0;
+    ensemble.block_mut().exact_increments(10, 7);
+    ensemble.block_mut().height = 0;
+    ensemble.block_mut().time = 0;
 
     let block_height_contract = ensemble.register(Box::new(BlockHeight));
 
@@ -511,7 +511,7 @@ fn exact_increment() {
 #[test]
 fn random_increment() {
     let mut ensemble = ContractEnsemble::new(50);
-    ensemble.block().random_increments(1..11, 1..9);
+    ensemble.block_mut().random_increments(1..11, 1..9);
 
     let block_height_contract = ensemble.register(Box::new(BlockHeight));
 
@@ -565,7 +565,7 @@ fn block_freeze() {
     let old_height = ensemble.block().height;
     let old_time = ensemble.block().time;
 
-    ensemble.block().freeze();
+    ensemble.block_mut().freeze();
 
     let block_height_contract = ensemble.register(Box::new(BlockHeight));
     let block_height = ensemble.instantiate(
@@ -599,8 +599,8 @@ fn block_freeze() {
         }
     );
 
-    ensemble.block().unfreeze();
-    ensemble.block().next();
+    ensemble.block_mut().unfreeze();
+    ensemble.block_mut().next();
 
     ensemble.execute(
         &BlockHeightHandle::Set,
