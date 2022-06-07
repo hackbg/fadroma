@@ -12,3 +12,4 @@ path = "lib.rs"
 
 [dependencies]
 fadroma-platform-scrt = { path = "../fadroma-platform-scrt" }
+secret-toolkit = { version = "0.3.0", default-features = false, features = ["snip20"] }

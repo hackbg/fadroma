@@ -1,5 +1,12 @@
-use fadroma_platform_scrt::{*, secret_toolkit::storage::*};
-use fadroma_auth::*;
+use fadroma_platform_scrt::{
+    cosmwasm_std::{
+        HumanAddr, CanonicalAddr, StdResult, StdError,
+        Storage, ReadonlyStorage, BlockInfo
+    },
+    cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage}
+};
+use fadroma_auth::ViewingKey;
+use secret_toolkit::storage::{TypedStore, TypedStoreMut};
 
 use std::any::type_name;
 use std::convert::TryFrom;

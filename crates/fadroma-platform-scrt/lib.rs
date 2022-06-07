@@ -15,7 +15,6 @@ pub use cosmwasm_schema::*;
 
 pub use serde;
 pub use schemars;
-pub use secret_toolkit;
 
 pub const BLOCK_SIZE: usize = 256;
 

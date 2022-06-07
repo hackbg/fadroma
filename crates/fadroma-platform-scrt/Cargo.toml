@@ -15,7 +15,6 @@ secret-cosmwasm-std = "0.10.0"
 secret-cosmwasm-storage = "0.10.0"
 cosmwasm-schema = "0.10.1"
 schemars = { version = "0.7" }
-secret-toolkit = "0.2.0"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 
 [features]
