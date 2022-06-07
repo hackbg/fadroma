@@ -54,20 +54,11 @@ impl Decimal256 {
         Ok(Self(nominator / denominator))
     }
 
+    #[inline]
     pub fn from_uint256(value: impl Into<Uint256>) -> StdResult<Self> {
         let value = value.into();
 
         Self::try_from(value)
-    }
-
-    #[inline]
-    pub fn uint_mul(self, rhs: Uint256) -> StdResult<Self> {
-        Ok(Decimal256(rhs.decimal_mul(self)?.0))
-    }
-
-    #[inline]
-    pub fn uint_div(self, rhs: Uint256) -> StdResult<Self> {
-        Ok(Decimal256(rhs.decimal_div(self)?.0))
     }
 
     #[inline]
@@ -592,42 +583,6 @@ mod tests {
             from_slice::<Decimal256>(br#""87.65""#).unwrap(),
             Decimal256::percent(8765)
         );
-    }
-
-    #[test]
-    fn uint_mul() {
-        let left = (Decimal256::one() + Decimal256::percent(50)).unwrap(); // 1.5
-        let right = Uint256::from(300u64);
-
-        assert_eq!(left.uint_mul(right).unwrap(), Decimal256(U256::from(450u64)));
-
-        let left = Decimal256::zero();
-        let right = Uint256::from(300u64);
-
-        assert_eq!(left.uint_mul(right).unwrap(), Decimal256::zero());
-
-        let left = (Decimal256::one() + Decimal256::percent(50)).unwrap(); // 1.5
-        let right = Uint256::from(0u64);
-
-        assert_eq!(left.uint_mul(right).unwrap(), Decimal256::zero());
-    }
-
-    #[test]
-    fn uint_div() {
-        let left = (Decimal256::one() + Decimal256::percent(50)).unwrap(); // 1.5
-        let right = Uint256::from(300u64);
-
-        assert_eq!(left.uint_div(right).unwrap(), Decimal256(U256::from(200u64)));
-
-        let left = Decimal256::zero();
-        let right = Uint256::from(300u64);
-
-        assert_eq!(left.uint_div(right).unwrap_err(), error!(DIV: 300));
-
-        let left = (Decimal256::one() + Decimal256::percent(50)).unwrap(); // 1.5
-        let right = Uint256::from(0u64);
-
-        assert_eq!(left.uint_div(right).unwrap(), Decimal256::zero());
     }
 
     #[test]
