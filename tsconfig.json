@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "module": "es2020",
-    "moduleResolution": "node",
-    "inlineSourceMap": true,
+    "target":                       "es2020",
+    "module":                       "es2020",
+    "moduleResolution":             "node",
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "allowJs": true,
-    "lib": ["ES2020"]
+    "esModuleInterop":              true,
+    "allowJs":                      true,
+    "resolveJsonModule":            true,
+    "downlevelIteration":           true,
+    "lib":                          ["ES2020", "DOM"]
   }
 }
