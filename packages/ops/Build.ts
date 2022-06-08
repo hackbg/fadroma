@@ -4,13 +4,14 @@ import { resolve, relative, basename } from 'path'
 import { execFile } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { pathToFileURL } from 'url'
+import simpleGit from 'simple-git'
 
 import LineTransformStream from 'line-transform-stream'
 import { toHex } from '@iov/encoding'
 import { Sha256 } from '@iov/crypto'
-import { Console, bold } from '@hackbg/konzola'
+import { Console, bold, colors } from '@hackbg/konzola'
 import { Dokeres, DokeresImage } from '@hackbg/dokeres'
-import $, { Path, OpaqueDirectory, TextFile } from '@hackbg/kabinet'
+import $, { Path, TextFile } from '@hackbg/kabinet'
 import { Artifact } from '@fadroma/client'
 
 import { config } from './Config'
@@ -68,9 +69,10 @@ export class Workspace {
 
 }
 
-/** Represents the real location of the Git data directory. In standalone repos this is `.git/`,
-  * but if the contracts workspace repository is a submodule, `.git` will be a file
-   * containing e.g. "gitdir: ../.git/modules/something" */
+/** Represents the real location of the Git data directory.
+  * - In standalone repos this is `.git/`
+  * - If the contracts workspace repository is a submodule,
+  *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
 export class DotGit extends Path {
 
   constructor (base, ...fragments) {
@@ -92,7 +94,7 @@ export class DotGit extends Path {
         console.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
         this.path      = gitRoot.path
         this.present   = true
-        this.submodule = true
+        this.isSubmodule = true
       } else {
         // Otherwise, who knows?
         console.info(bold(this.shortPath), 'is an unknown file.')
@@ -109,8 +111,8 @@ export class DotGit extends Path {
     }
   }
 
-  readonly present:   boolean
-  readonly submodule: boolean = false
+  readonly present:     boolean
+  readonly isSubmodule: boolean = false
 
   get rootRepo (): Path {
     return $(this.path.split(DotGit.rootRepoRE)[0])
@@ -120,6 +122,7 @@ export class DotGit extends Path {
     return this.path.split(DotGit.rootRepoRE)[1]
   }
 
+  /* Matches "/.git" or "/.git/" */
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 
 }
@@ -252,14 +255,20 @@ export class DockerBuilder extends CachingBuilder {
       // And for each ref of that workspace,
       for (const ref of refs) {
 
-        let repo = $(workspace.path)
+        let root = $(workspace.path)
         console.info(
-          `Building contracts from workspace:`, bold(`${repo.shortPath}/`),
+          `Building contracts from workspace:`, bold(`${root.shortPath}/`),
           `@`, bold(ref)
         )
         if (ref !== HEAD) {
-          repo = workspace.gitDir.rootRepo
-          console.info(`Using history from Git directory: `, bold(`${repo.shortPath}/`))
+          root = workspace.gitDir.rootRepo
+          console.info(`Using history from Git directory: `, bold(`${root.shortPath}/`))
+          const git = simpleGit(workspace.gitDir.path)
+          const remotes = await git.getRemotes()
+          const remote  = remotes[0].name
+          const fetched = await git.fetch(remote)
+          console.log({fetched})
+          await git.branch(['-u', remote])
         }
 
         // Create a list of sources for the container to build,
@@ -277,11 +286,11 @@ export class DockerBuilder extends CachingBuilder {
         // Build the crates from the same workspace/ref
         // sequentially in the same container.
         const buildArtifacts = await this.buildInContainer(
-          repo.path,
-          repo.relative(workspace.path),
+          root.path,
+          root.relative(workspace.path),
           ref,
           crates,
-          workspace.gitDir.submodule ? workspace.gitDir.submoduleDir : ''
+          workspace.gitDir.isSubmodule ? workspace.gitDir.submoduleDir : ''
         )
 
         // Collect the artifacts built by the container
@@ -305,7 +314,7 @@ export class DockerBuilder extends CachingBuilder {
     subdir:    string,
     ref:       string,
     crates:    [number, string][],
-    gitRoot:   string = '',
+    gitSubdir: string = '',
     outputDir: string = resolve(root, subdir, 'artifacts'),
   ): Promise<(Artifact|null)[]> {
 
@@ -338,9 +347,14 @@ export class DockerBuilder extends CachingBuilder {
     const readonly = {
       [this.script]: buildScript
     }
+    const knownHosts = $(`${config.homeDir}/.ssh/known_hosts`)
+    console.log(knownHosts, knownHosts.exists, knownHosts.isFile)
+    if (knownHosts.isFile) {
+      readonly['/root/.ssh/known_hosts'] = knownHosts.path
+    }
     const writable = {
       // Root directory of repository, containing real .git directory
-      [resolve(root)]:               `/src`,
+      [resolve(root)]:              `/src`,
       // Output path for final artifacts
       [outputDir]:                  `/output`,
       // Persist cache to make future rebuilds faster. May be unneccessary.
@@ -351,12 +365,15 @@ export class DockerBuilder extends CachingBuilder {
     // Define the environment variables of the build container
     const env = {
       TERM:                         process.env.TERM,
+      SSH_AUTH_SOCK:                process.env.SSH_AUTH_SOCK,
+      GIT_PAGER:                    'cat',
+      GIT_TERMINAL_PROMPT:          '0',
       LOCKED:                       '',/*'--locked'*/
       CARGO_HTTP_TIMEOUT:           '240',
       CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
       //'CARGO_TERM_VERBOSE':         'true',
       SUBDIR:                       subdir,
-      GIT_ROOT:                     gitRoot
+      GIT_SUBDIR:                   gitSubdir
     }
 
     if (ref !== HEAD) {
@@ -368,7 +385,10 @@ export class DockerBuilder extends CachingBuilder {
       if (config.buildUnsafeMountKeys) {
         // Keys for SSH cloning of submodules - dangerous!
         console.warn(
-          '!!! UNSAFE: Mounting your SSH keys directory into the build container'
+          '!!! UNSAFE: Mounting',
+          bold('your SSH keys directory'),
+          bold(colors.red('read-write')),
+          'into the build container'
         )
         writable[`${config.homeDir}/.ssh`] = '/root/.ssh'
       } else {
@@ -452,7 +472,7 @@ export class RawBuilder extends CachingBuilder {
 
   async build (source: Source): Promise<Artifact> {
     throw new Error('RawBuilder#build: not implemented')
-    const { workspace: { root: cwd, ref = HEAD }, workspace, crate } = source
+    const { workspace: { path: cwd, ref = HEAD }, workspace, crate } = source
     // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
     if (ref && ref !== HEAD) {
       await run(this.checkoutScript, [ref])

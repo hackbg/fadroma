@@ -1,5 +1,6 @@
 import { execSync } from 'child_process'
-import { resolve, sep } from 'path'
+import { resolve, dirname, sep } from 'path'
+import { writeFileSync, mkdirSync } from 'fs'
 
 const slashes  = new RegExp("/", "g")
 const dashes   = new RegExp("-", "g")
@@ -11,11 +12,18 @@ const run = (command, env) => {
   execSync(command, { env: { ...process.env, ...env }, stdio: 'inherit' })
 }
 
+const call = command => {
+  console.info('$', command)
+  const result = String(execSync(command)).trim()
+  console.info(result)
+  return result
+}
+
 const time = (command) => {
   const t0 = + new Date()
   run(command)
   const t1 = + new Date()
-  console.log(`done in ${t1-t0}ms`)
+  console.log(`(took ${t1-t0}ms)`)
 }
 
 const phases = { phase1, phase2 }
@@ -31,10 +39,12 @@ function phase1 ({
   ref         = process.argv[3],       // "HEAD" | <git ref>
   crates      = process.argv.slice(4), // all crates to build
   buildRoot   = `/tmp/fadroma-build/${sanitize(ref)}`,
-  subdir      = process.env.SUBDIR   || '.',
-  gitRoot     = `/src/.git/${process.env.GIT_ROOT}`,
-  uid         = process.env.USER     || 1000,
-  gid         = process.env.GROUP    || 1000,
+  subdir      = process.env.SUBDIR || '.',
+  gitRoot     = `/src/.git`,
+  gitSubdir   = process.env.GIT_SUBDIR || '',
+  gitDir      = `${gitRoot}/${gitSubdir}`,
+  uid         = process.env.USER   || 1000,
+  gid         = process.env.GROUP  || 1000,
 } = {}) {
 
   console.log('Build phase 1: Preparing source repository for', ref)
@@ -59,7 +69,42 @@ function phase1 ({
     process.chdir(subdir)
   } else {
     console.log(`Building from checkout of ${ref}`)
-    run(`git clone ${gitRoot} ${buildRoot}`)
+    // This works by using ".git" (or ".git/modules/something") as a remote
+    // and cloning from it. Since we may need to modify that directory,
+    // we'll make a copy. This may be slow if ".git" is huge
+    // (but at least it's not the entire working tree with node_modules etc)
+    time(`cp -r ${gitRoot} /tmp/git`)
+    gitRoot = '/tmp/git'
+    gitDir  = `${gitRoot}/${gitSubdir}`
+    // Helper functions to run with ".git" in a non-default location.
+    const gitRun  = command => run(`GIT_DIR=${gitDir} git ${command}`)
+    const gitCall = command => call(`GIT_DIR=${gitDir} git ${command}`)
+    // Make this a bare checkout by removing the path to the working tree from the config.
+    gitRun(`config --local --unset core.worktree`)
+    try {
+      // Make sure that .refs/heads/${ref} exists in the git history dir,
+      // (it will exist if the branch has been previously checked out).
+      // This is necessary to be able to clone that branch from the history dir -
+      // "git clone" only looks in the repo's refs, not the repo's remotes' refs
+      gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
+    } catch (e) {
+      // If the branch is not checked out, but is fetched, do a "fake checkout":
+      // create a ref under refs/heads pointing to that branch.
+      try {
+        const shown     = gitCall(`show-ref --verify refs/remotes/origin/${ref}`)
+        const remoteRef = shown.split(' ')[0]
+        const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
+        mkdirSync(dirname(refPath), { recursive: true })
+        writeFileSync(refPath, remoteRef, 'utf8')
+        gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
+        process.exit(123)
+      } catch (e) {
+        console.log(e)
+        console.log(`${ref} is not checked out or fetched. Run "git fetch" to update.`)
+        process.exit(1)
+      }
+    }
+    run(`git clone -b ${ref} ${gitDir} ${buildRoot}`)
     process.chdir(buildRoot)
     run('ls -al')
     run('git branch')
