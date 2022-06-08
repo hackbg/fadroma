@@ -267,7 +267,6 @@ export class DockerBuilder extends CachingBuilder {
           const remotes = await git.getRemotes()
           const remote  = remotes[0].name
           const fetched = await git.fetch(remote)
-          console.log({fetched})
           await git.branch(['-u', remote])
         }
 
@@ -348,9 +347,12 @@ export class DockerBuilder extends CachingBuilder {
       [this.script]: buildScript
     }
     const knownHosts = $(`${config.homeDir}/.ssh/known_hosts`)
-    console.log(knownHosts, knownHosts.exists, knownHosts.isFile)
     if (knownHosts.isFile) {
       readonly['/root/.ssh/known_hosts'] = knownHosts.path
+    }
+    const globalKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
+    if (knownHosts.isFile) {
+      readonly['/etc/ssh/ssh_known_hosts'] = globalKnownHosts.path
     }
     const writable = {
       // Root directory of repository, containing real .git directory
@@ -374,29 +376,6 @@ export class DockerBuilder extends CachingBuilder {
       //'CARGO_TERM_VERBOSE':         'true',
       SUBDIR:                       subdir,
       GIT_SUBDIR:                   gitSubdir
-    }
-
-    if (ref !== HEAD) {
-      // If a different ref will need to be checked out, it may contain private submodules.
-      // If an unsafe option is set, this mounts the running user's *ENTIRE ~/.ssh DIRECTORY*,
-      // containing their private keys, into the container, in order to enable pulling private
-      // submodules over SSH. This is an edge case and ideally `git subtree` and/or
-      // public HTTP-based submodules should be used instead.
-      if (config.buildUnsafeMountKeys) {
-        // Keys for SSH cloning of submodules - dangerous!
-        console.warn(
-          '!!! UNSAFE: Mounting',
-          bold('your SSH keys directory'),
-          bold(colors.red('read-write')),
-          'into the build container'
-        )
-        writable[`${config.homeDir}/.ssh`] = '/root/.ssh'
-      } else {
-        console.info(
-          'Not mounting SSH keys into build container - '+
-          'will not be able to clone private submodules'
-        )
-      }
     }
 
     // Pre-populate the list of expected artifacts.
