@@ -95,7 +95,7 @@ impl ISnip20 {
     }
 
     pub fn batch_transfer (
-        &self, transfers: &Vec<(HumanAddr, Uint128)>
+        &self, transfers: &[(HumanAddr, Uint128)]
     ) -> StdResult<CosmosMsg> {
         snip20::batch_transfer_msg(
             transfers.iter().map(|(addr, amount)| {
