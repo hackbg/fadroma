@@ -30,11 +30,11 @@ function phase1 ({
   script      = process.argv[1],       // this file
   ref         = process.argv[3],       // "HEAD" | <git ref>
   crates      = process.argv.slice(4), // all crates to build
-  workspace   = '/src',
-  gitDir      = process.env.GIT_DIR       || `${workspace}/.git`,
-  buildRoot   = process.env.GIT_WORK_TREE || `/tmp/fadroma-build/${sanitize(ref)}`,
-  uid         = process.env.USER          || 1000,
-  gid         = process.env.GROUP         || 1000,
+  buildRoot   = `/tmp/fadroma-build/${sanitize(ref)}`,
+  subdir      = process.env.SUBDIR   || '.',
+  gitRoot     = `/src/.git/${process.env.GIT_ROOT}`,
+  uid         = process.env.USER     || 1000,
+  gid         = process.env.GROUP    || 1000,
 } = {}) {
 
   console.log('Build phase 1: Preparing source repository for', ref)
@@ -56,16 +56,23 @@ function phase1 ({
   run(`git --version`)
   if (ref === 'HEAD') {
     console.log(`Building from working tree.`)
+    process.chdir(subdir)
   } else {
     console.log(`Building from checkout of ${ref}`)
-    run(`git clone --depth 1 ${gitDir} ${buildRoot}`)
+    run(`git clone ${gitRoot} ${buildRoot}`)
     process.chdir(buildRoot)
+    run('ls -al')
+    run('git branch')
+    run('git branch -r')
+    run(`git checkout ${ref}`)
     run(`git log -1`)
     console.log()
     console.log(`Populating Git submodules...`)
     run(`git submodule update --init --recursive`)
+    process.chdir(subdir)
   }
 
+  // Build the prepared source
   console.log(`Building in:`)
   run(`pwd`)
   console.log(`Build phase 2 will begin with these crates: ${crates}`)
@@ -73,6 +80,7 @@ function phase1 ({
     console.log(`Building ${crate} from ${ref} in ${process.cwd()}`)
     run(`su build -c "${interpreter} ${script} phase2 ${ref} ${crate}"`)
   }
+
 }
 
 /** As a non-root user, execute a release build, then optimize it with Binaryen. */
@@ -89,21 +97,31 @@ function phase2 ({
   optimized = `${workspace}/artifacts/${sanitize(crate)}@${sanitize(ref)}.wasm`,
   checksum  = `${optimized}.sha256`,
 } = {}) {
+
   console.log(`Build phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
+
+  // Print versions of used tools
   run(`cargo --version`)
   run(`rustc --version`)
   run(`wasm-opt --version`)
   run(`sha256sum --version | head -n1`)
+
+  // Compile crate for production
   run(`cargo build -p ${crate} --release --target ${platform} ${locked} --verbose`, {
     RUSTFLAGS:        rustFlags,
     CARGO_TARGET_DIR: targetDir,
     PLATFORM:         platform,
   })
   console.log(`Build complete.`)
+
+  // Output optimized build to artifacts directory
   console.log(`Optimizing ${compiled} into ${optimized}...`)
   run(`wasm-opt -Oz ${compiled} -o ${optimized}`)
   console.log(`Optimization complete`)
+
+  // Output checksum to artifacts directory
   console.log(`Saving checksum for ${optimized} into ${checksum}...`)
   run(`sha256sum -b ${optimized} > ${checksum}`)
   console.log(`Checksum calculated:`, checksum)
+
 }
