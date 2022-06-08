@@ -1,6 +1,6 @@
 import { execSync } from 'child_process'
 import { resolve, dirname, sep } from 'path'
-import { writeFileSync, mkdirSync } from 'fs'
+import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 
 const slashes  = new RegExp("/", "g")
 const dashes   = new RegExp("-", "g")
@@ -43,6 +43,7 @@ function phase1 ({
   gitRoot     = `/src/.git`,
   gitSubdir   = process.env.GIT_SUBDIR || '',
   gitDir      = `${gitRoot}/${gitSubdir}`,
+  gitRemote   = process.env.REMOTE || 'origin',
   uid         = process.env.USER   || 1000,
   gid         = process.env.GROUP  || 1000,
 } = {}) {
@@ -77,10 +78,17 @@ function phase1 ({
     gitRoot = '/tmp/git'
     gitDir  = `${gitRoot}/${gitSubdir}`
     // Helper functions to run with ".git" in a non-default location.
+    console.log({gitDir})
+    run(`cat ${gitDir}/config`)
     const gitRun  = command => run(`GIT_DIR=${gitDir} git ${command}`)
     const gitCall = command => call(`GIT_DIR=${gitDir} git ${command}`)
     // Make this a bare checkout by removing the path to the working tree from the config.
-    gitRun(`config --local --unset core.worktree`)
+    // We can't use "config --local --unset core.worktree" - since the working tree path
+    // does not exist, git command invocations fail with "no such file or directory".
+    const gitConfigPath = `${gitDir}/config`
+    let gitConfig = readFileSync(gitConfigPath, 'utf8')
+    gitConfig = gitConfig.replace(/\s+worktree.*/g, '')
+    writeFileSync(gitConfigPath, gitConfig, 'utf8')
     try {
       // Make sure that .refs/heads/${ref} exists in the git history dir,
       // (it will exist if the branch has been previously checked out).
@@ -91,13 +99,13 @@ function phase1 ({
       // If the branch is not checked out, but is fetched, do a "fake checkout":
       // create a ref under refs/heads pointing to that branch.
       try {
-        const shown     = gitCall(`show-ref --verify refs/remotes/origin/${ref}`)
+        console.log(`${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}.`)
+        const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
         const remoteRef = shown.split(' ')[0]
         const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
         mkdirSync(dirname(refPath), { recursive: true })
         writeFileSync(refPath, remoteRef, 'utf8')
         gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
-        process.exit(123)
       } catch (e) {
         console.log(e)
         console.log(`${ref} is not checked out or fetched. Run "git fetch" to update.`)

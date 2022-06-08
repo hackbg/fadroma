@@ -248,26 +248,22 @@ export class DockerBuilder extends CachingBuilder {
     const refs:           string[] = distinct(sources.map(source=>source.workspace.ref))
 
     // For each workspace,
-    for (const workspaceRoot of workspaceRoots) {
-      const workspace = workspaces[workspaceRoot]
-      assert.equal(workspaceRoot, workspace.path, 'sanity check failed 🤪')
+    for (const path of workspaceRoots) {
+      const { gitDir } = workspaces[path]
 
       // And for each ref of that workspace,
       for (const ref of refs) {
 
-        let root = $(workspace.path)
+        let mounted = $(path)
         console.info(
-          `Building contracts from workspace:`, bold(`${root.shortPath}/`),
+          `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
           `@`, bold(ref)
         )
         if (ref !== HEAD) {
-          root = workspace.gitDir.rootRepo
-          console.info(`Using history from Git directory: `, bold(`${root.shortPath}/`))
-          const git = simpleGit(workspace.gitDir.path)
-          const remotes = await git.getRemotes()
-          const remote  = remotes[0].name
-          const fetched = await git.fetch(remote)
-          await git.branch(['-u', remote])
+          mounted = gitDir.rootRepo
+          console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
+          await simpleGit(gitDir.path)
+            .fetch(process.env.FADROMA_PREFERRED_REMOTE || 'origin')
         }
 
         // Create a list of sources for the container to build,
@@ -277,7 +273,7 @@ export class DockerBuilder extends CachingBuilder {
 
         for (let index = 0; index < sources.length; index++) {
           const source = sources[index]
-          if (source.workspace.path === workspaceRoot && source.workspace.ref === ref) {
+          if (source.workspace.path === path && source.workspace.ref === ref) {
             crates.push([index, source.crate])
           }
         }
@@ -285,11 +281,11 @@ export class DockerBuilder extends CachingBuilder {
         // Build the crates from the same workspace/ref
         // sequentially in the same container.
         const buildArtifacts = await this.buildInContainer(
-          root.path,
-          root.relative(workspace.path),
+          mounted.path,
+          mounted.relative(path),
           ref,
           crates,
-          workspace.gitDir.isSubmodule ? workspace.gitDir.submoduleDir : ''
+          gitDir.isSubmodule ? gitDir.submoduleDir : ''
         )
 
         // Collect the artifacts built by the container
@@ -375,7 +371,8 @@ export class DockerBuilder extends CachingBuilder {
       CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
       //'CARGO_TERM_VERBOSE':         'true',
       SUBDIR:                       subdir,
-      GIT_SUBDIR:                   gitSubdir
+      GIT_SUBDIR:                   gitSubdir,
+      REMOTE:                       process.env.FADROMA_PREFERRED_REMOTE||'origin'
     }
 
     // Pre-populate the list of expected artifacts.
