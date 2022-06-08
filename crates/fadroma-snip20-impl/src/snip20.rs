@@ -1,5 +1,9 @@
-use fadroma_platform_scrt::*;
-use fadroma_auth::*;
+use fadroma_platform_scrt::cosmwasm_std::{
+    Extern, Storage, ReadonlyStorage, Api, Querier, Env, StdResult,
+    StdError, HumanAddr, CanonicalAddr, Uint128, InitResponse, Coin,
+    HandleResponse, CosmosMsg, BankMsg, BlockInfo, Binary, to_binary, log
+};
+use fadroma_auth::{Permit, ViewingKey, VIEWING_KEY_SIZE};
 
 use std::fmt;
 use std::fmt::Write;

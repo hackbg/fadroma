@@ -3,7 +3,10 @@ use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::ops::{Add, Sub, Mul, Div};
 
-use fadroma_platform_scrt::*;
+use fadroma_platform_scrt::{
+    schemars,
+    cosmwasm_std::{StdResult, StdError, Uint128}
+};
 use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use schemars::JsonSchema;
 use primitive_types::U256;
@@ -268,7 +271,7 @@ impl<'de> de::Visitor<'de> for Uint256Visitor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{to_vec, from_slice};
+    use fadroma_platform_scrt::cosmwasm_std::{to_vec, from_slice};
 
     #[test]
     fn sqrt() {

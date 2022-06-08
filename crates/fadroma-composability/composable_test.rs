@@ -1,5 +1,12 @@
-use fadroma_platform_scrt::*;
-use fadroma_platform_scrt::testing::MockApi;
+use fadroma_platform_scrt::{
+    cosmwasm_std::{
+        StdResult, Storage, ReadonlyStorage, Api,
+        Querier, Order, KV, to_vec, from_slice,
+        testing::MockApi
+    },
+    Humanize, Canonize
+};
+
 use fadroma_storage::*;
 use crate::*;
 use crate::make_composable;

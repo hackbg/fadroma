@@ -1,12 +1,18 @@
 use std::fmt;
 
-use fadroma_platform_scrt::*;
-use fadroma_auth::admin::*;
-use fadroma_auth_proc::*;
+use fadroma_platform_scrt::{
+    schemars::{self, JsonSchema},
+    cosmwasm_std::{
+        self, Extern, Storage, Api, Querier, StdResult, StdError,
+        HumanAddr, CanonicalAddr, HandleResponse, Env, log
+    },
+    Humanize, Canonize
+};
+use fadroma_auth::admin::assert_admin;
+use fadroma_auth_proc::require_admin;
 use fadroma_derive_contract::{contract, handle, query};
 
 use serde::{Serialize, Deserialize};
-use schemars::JsonSchema;
 
 pub const PREFIX: &[u8] = b"fadroma_migration_state";
 
@@ -118,6 +124,7 @@ pub struct ContractStatus<A> {
     pub reason:      String,
     pub new_address: Option<A>
 }
+
 impl<A> Default for ContractStatus<A> {
     fn default () -> Self { Self {
         level:       ContractStatusLevel::Operational,
@@ -219,7 +226,7 @@ pub fn set_status <S: Storage, A: Api, Q: Querier> (
 mod tests {
     use super::*;
 
-    use fadroma_platform_scrt::{mock_dependencies, mock_env};
+    use fadroma_platform_scrt::cosmwasm_std::testing::{mock_dependencies, mock_env};
     use fadroma_auth::{admin, admin::Admin};
 
     #[test]

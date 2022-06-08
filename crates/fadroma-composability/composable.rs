@@ -8,7 +8,12 @@
 //!   `Composable::get/set`, therefor the latter will need to be renamed once again
 
 use crate::namespace_helpers::{key_prefix, key_prefix_nested};
-use fadroma_platform_scrt::*;
+use fadroma_platform_scrt::{
+    cosmwasm_std::{
+        Extern, Storage, Api, Querier, StdResult, to_vec, from_slice
+    },
+    Humanize, Canonize
+};
 use fadroma_storage::*;
 use serde::{de::DeserializeOwned, Serialize};
 

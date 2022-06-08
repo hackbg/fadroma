@@ -82,7 +82,8 @@ impl ContractHarness for TestContract {
 
 #[test]
 fn test_contracts() {
-    use fadroma::ContractLink;
+    use fadroma::prelude::ContractLink;
+    
     let mut ensemble = ContractEnsemble::new(50);
     let oracle = ensemble.register(Box::new(Oracle));
     let test_contract = ensemble.register(Box::new(TestContract));

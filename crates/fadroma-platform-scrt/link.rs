@@ -74,9 +74,6 @@ impl From<Env> for ContractLink<HumanAddr> {
     }
 }
 
-#[deprecated(note="Please use the type ContractLink<A> instead")]
-pub type ContractInstance<A> = ContractLink<A>;
-
 #[cfg(test)]
 mod tests {
     use super::*;

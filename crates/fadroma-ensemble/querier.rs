@@ -1,6 +1,8 @@
-use fadroma_platform_scrt::{
-    from_slice, testing::MockQuerier, to_binary, AllBalanceResponse, BalanceResponse, BankQuery,
-    Empty, Querier, QuerierResult, QueryRequest, SystemError, WasmQuery,
+use fadroma_platform_scrt::cosmwasm_std::{
+    AllBalanceResponse, BalanceResponse, BankQuery, Empty, Querier,
+    QuerierResult, QueryRequest, SystemError, WasmQuery,
+    from_slice, to_binary, 
+    testing::MockQuerier
 };
 
 use crate::ensemble::Context;

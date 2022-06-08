@@ -1,17 +1,18 @@
 use fadroma::{
-    Storage, Api, Querier,
-    Extern, Env,
-    InitResponse, HandleResponse, Binary,
-    StdResult, StdError,
     schemars,
-    to_binary, save, load, remove,
+    cosmwasm_std::{
+        Storage, Api, Querier, Extern, Env,  StdError,
+        InitResponse, HandleResponse, Binary, StdResult,
+        to_binary
+    },
+    prelude::*
 };
 
 const KEY: &'static [u8] = b"value";
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub struct InitMsg { value: Option<String> }
-pub(crate) fn init<S: Storage, A: Api, Q: Querier>(
+pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, _env: Env, msg: InitMsg,
 ) -> StdResult<InitResponse> {
     if let Some(value) = msg.value {
@@ -22,7 +23,7 @@ pub(crate) fn init<S: Storage, A: Api, Q: Querier>(
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub enum HandleMsg { Set(String), Del }
-pub(crate) fn handle<S: Storage, A: Api, Q: Querier>(
+pub fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, _env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
@@ -38,7 +39,7 @@ pub(crate) fn handle<S: Storage, A: Api, Q: Querier>(
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub enum QueryMsg { Get }
-pub(crate) fn query<S: Storage, A: Api, Q: Querier>(
+pub fn query<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>, msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
@@ -52,7 +53,7 @@ pub(crate) fn query<S: Storage, A: Api, Q: Querier>(
 
 #[cfg(target_arch = "wasm32")]
 mod wasm {
-    use fadroma::platform::{
+    use fadroma::cosmwasm_std::{
         do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
     };
     #[no_mangle]

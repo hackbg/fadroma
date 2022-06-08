@@ -9,5 +9,5 @@ crate-type = ["cdylib", "rlib"]
 path = "src/contract.rs"
 
 [dependencies]
-fadroma = { path = "../../crates/fadroma" }
+fadroma = { path = "../../crates/fadroma", features = ["derive"] }
 serde    = { version = "1.0.103", default-features = false, features = ["derive"] }

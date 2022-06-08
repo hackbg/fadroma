@@ -1,5 +1,6 @@
-pub mod storage;
 pub use storage::*;
 
-pub mod traits1;
-pub mod traits2;
+pub mod iterable;
+pub mod traits;
+
+mod storage;

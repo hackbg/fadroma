@@ -1,6 +1,10 @@
 use std::str::from_utf8;
 use serde::de::DeserializeOwned;
-use fadroma_platform_scrt::*;
+use fadroma_platform_scrt::cosmwasm_std::{
+    StdResult, Binary, InitResponse, HandleResponse, Env, HumanAddr,
+    BlockInfo, MessageInfo, CosmosMsg, WasmMsg, ContractInfo, Querier,
+    from_binary
+};
 
 /// Successful transaction return a vector of relevant messages and a count of any others
 pub type TxResult = StdResult<(Vec<String>, usize, usize)>;

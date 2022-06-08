@@ -1,4 +1,7 @@
-use fadroma_platform_scrt::*;
+use fadroma_platform_scrt::{
+    cosmwasm_std::{HumanAddr, Uint128, StdResult, CosmosMsg, Binary, Querier},
+    ContractLink, BLOCK_SIZE
+};
 use secret_toolkit::snip20;
 
 #[derive(Clone, Debug)]

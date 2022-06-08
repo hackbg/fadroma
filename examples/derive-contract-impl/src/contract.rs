@@ -1,5 +1,9 @@
 use fadroma::{
-    cosmwasm_std, derive_contract::*, schemars, HandleResponse, InitResponse, StdResult,
+    schemars,
+    cosmwasm_std::{
+        self, HandleResponse, InitResponse, StdResult,
+    },
+    derive_contract::*,
 };
 
 mod state;

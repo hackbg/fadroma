@@ -1,8 +1,14 @@
-use fadroma_platform_scrt::*;
-use schemars::JsonSchema;
+use fadroma_platform_scrt::{
+    schemars::{self, JsonSchema},
+    cosmwasm_std::{
+        Extern, Storage, Api, Querier, StdResult,
+        StdError, HumanAddr, Binary, Uint128,
+        to_binary
+    }
+};
 use serde::{Deserialize, Serialize};
 
-#[cfg(target_arch = "wasm32")] use cosmwasm_std::CanonicalAddr;
+#[cfg(target_arch = "wasm32")] use fadroma_platform_scrt::cosmwasm_std::CanonicalAddr;
 #[cfg(target_arch = "wasm32")] use ripemd160::{Digest, Ripemd160};
 #[cfg(target_arch = "wasm32")] use secp256k1::Secp256k1;
 #[cfg(target_arch = "wasm32")] use sha2::Sha256;
@@ -350,7 +356,7 @@ impl<P: Permission> PermitContent<P> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::mock_dependencies;
+    use fadroma_platform_scrt::cosmwasm_std::testing::mock_dependencies;
 
     #[test]
     fn test_permission() {

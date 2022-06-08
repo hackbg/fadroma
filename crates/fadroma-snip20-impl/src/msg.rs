@@ -1,6 +1,11 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
 
-use fadroma_platform_scrt::*;
+use fadroma_platform_scrt::{
+    cosmwasm_std::{
+        HumanAddr, Uint128, StdResult, StdError, Binary
+    },
+    Callback
+};
 use fadroma_auth::{Permit, ViewingKey};
 
 use schemars::JsonSchema;
@@ -585,7 +590,7 @@ pub fn space_pad(block_size: usize, message: &mut Vec<u8>) -> &mut Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use fadroma_platform_scrt::from_slice;
+    use fadroma_platform_scrt::cosmwasm_std::from_slice;
 
     #[derive(Serialize, Deserialize, JsonSchema, Debug, PartialEq)]
     #[serde(rename_all = "snake_case")]

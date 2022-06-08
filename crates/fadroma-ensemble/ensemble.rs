@@ -2,9 +2,12 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 use fadroma_platform_scrt::{
-    from_binary, testing::MockApi, to_binary, BankMsg, Binary, BlockInfo, Coin,
-    ContractInstantiationInfo, ContractLink, CosmosMsg, Env, Extern, HandleResponse, HumanAddr,
-    InitResponse, StdResult, WasmMsg, ContractInfo, MessageInfo
+    cosmwasm_std::{
+        from_binary, testing::MockApi, to_binary, BankMsg, Binary, BlockInfo, Coin,
+        CosmosMsg, Env, Extern, HandleResponse, HumanAddr, InitResponse, StdResult,
+        WasmMsg, ContractInfo, MessageInfo
+    },
+    ContractInstantiationInfo, ContractLink
 };
 
 use serde::de::DeserializeOwned;

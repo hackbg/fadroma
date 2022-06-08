@@ -11,5 +11,5 @@ path = "lib.rs"
 [dependencies]
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 fadroma-platform-scrt = { path = "../fadroma-platform-scrt", features = ["iterator"] }
-fadroma-storage       = { path = "../fadroma-storage" }
+fadroma-storage = { path = "../fadroma-storage" }
 oorandom = "11.1.3"

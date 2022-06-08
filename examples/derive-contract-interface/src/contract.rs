@@ -1,4 +1,7 @@
-use fadroma::{cosmwasm_std, derive_contract::*, HandleResponse, InitResponse, StdResult};
+use fadroma::{
+    cosmwasm_std::{self, HandleResponse, InitResponse, StdResult},
+    derive_contract::*,
+};
 
 mod state;
 use state::State;

@@ -1,12 +1,17 @@
-use crate::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
 use fadroma_platform_scrt::{
-    coin, from_binary, schemars, schemars::JsonSchema, to_binary, to_vec, Binary, Callback,
-    ContractInstantiationInfo, ContractLink, CosmosMsg, Empty, Env, HandleResponse, HumanAddr,
-    InitResponse, Querier, QueryRequest, StdError, StdResult, Storage, Uint128, WasmMsg, WasmQuery,
+    schemars::{self, JsonSchema},
+    cosmwasm_std::{
+        coin, from_binary, to_binary, to_vec, Binary,
+        CosmosMsg, Empty, Env, HandleResponse, HumanAddr,
+        InitResponse, Querier, QueryRequest, StdError,
+        StdResult, Storage, Uint128, WasmMsg, WasmQuery
+    },
+    ContractLink, ContractInstantiationInfo, Callback
 };
 use fadroma_storage::{load, save};
-
 use serde::{Deserialize, Serialize};
+
+use crate::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
 
 const SEND_AMOUNT: u128 = 100;
 const SEND_DENOM: &str = "uscrt";

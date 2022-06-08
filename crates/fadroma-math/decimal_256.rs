@@ -5,7 +5,10 @@ use std::{
     convert::TryFrom
 };
 
-use fadroma_platform_scrt::{StdResult, Decimal, StdError, schemars};
+use fadroma_platform_scrt::{
+    schemars,
+    cosmwasm_std::{StdResult, Decimal, StdError}
+};
 use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use primitive_types::U256;
 

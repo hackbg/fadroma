@@ -1,27 +1,14 @@
-use fadroma_platform_scrt::*;
-
-//pub const RESPONSE_BLOCK_SIZE: usize = 256;
+use fadroma_platform_scrt::{
+    cosmwasm_std::{StdResult, HandleResponse},
+    space_pad, BLOCK_SIZE
+};
 
 pub fn pad_response(response: StdResult<HandleResponse>) -> StdResult<HandleResponse> {
     response.map(|mut response| {
         response.data = response.data.map(|mut data| {
-            space_pad(BLOCK_SIZE, &mut data.0);
+            space_pad(&mut data.0, BLOCK_SIZE);
             data
         });
         response
     })
-}
-
-// Take a Vec<u8> and pad it up to a multiple of `block_size`, using spaces at the end.
-pub fn space_pad(block_size: usize, message: &mut Vec<u8>) -> &mut Vec<u8> {
-    let len = message.len();
-    let surplus = len % block_size;
-    if surplus == 0 {
-        return message;
-    }
-
-    let missing = block_size - surplus;
-    message.reserve(missing);
-    message.extend(std::iter::repeat(b' ').take(missing));
-    message
 }

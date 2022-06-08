@@ -1,6 +1,15 @@
 #![cfg(test)]
 
-use fadroma_platform_scrt::*;
+use fadroma_platform_scrt::cosmwasm_std::{
+    Extern, Storage, Api, Querier, Env, StdResult, ContractInfo,
+    StdError, HumanAddr, WasmMsg, Uint128, InitResponse, Coin,
+    HandleResponse, CosmosMsg, QueryResponse, BlockInfo, Binary,
+    MessageInfo, to_binary, from_binary, log,
+    testing::{
+        MockStorage, MockApi, MockQuerier,
+        mock_dependencies, mock_env, MOCK_CONTRACT_ADDR
+    }
+};
 use fadroma_auth::{ViewingKey, VIEWING_KEY_SIZE};
 
 use std::any::Any;

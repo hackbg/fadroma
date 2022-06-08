@@ -1,6 +1,11 @@
-use fadroma_platform_scrt::*;
+use fadroma_platform_scrt::{
+    schemars,
+    cosmwasm_std::{
+        self, Extern, Storage, Api, Querier, HumanAddr, CanonicalAddr,
+        StdResult, StdError, InitResponse, HandleResponse, Env, log
+    }
+};
 use fadroma_derive_contract::{contract, init, handle, query};
-use schemars;
 use serde;
 
 const ADMIN_KEY: &[u8] = b"ltp5P6sFZT";
@@ -130,6 +135,10 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use fadroma_platform_scrt::cosmwasm_std::{
+        ReadonlyStorage, from_binary,
+        testing::{mock_dependencies, mock_env}
+    };
 
     #[test]
     fn test_handle() {
