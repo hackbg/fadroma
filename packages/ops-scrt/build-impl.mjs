@@ -141,13 +141,14 @@ function phase2 ({
   ref       = process.argv[3], // "HEAD" | <git ref>
   crate     = process.argv[4], // one crate to build
   workspace = '/src',
+  subdir    = process.env.SUBDIR || '',
   targetDir = '/tmp/target',
   platform  = 'wasm32-unknown-unknown',
   rustFlags = '-C link-arg=-s',
   locked    = '',
   output    = `${fumigate(crate)}.wasm`,
   compiled  = `${targetDir}/${platform}/release/${output}`,
-  optimized = `${workspace}/artifacts/${sanitize(crate)}@${sanitize(ref)}.wasm`,
+  optimized = resolve(workspace, subdir, 'artifacts', `${sanitize(crate)}@${sanitize(ref)}.wasm`),
   checksum  = `${optimized}.sha256`,
 } = {}) {
 

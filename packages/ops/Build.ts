@@ -337,18 +337,14 @@ export class DockerBuilder extends CachingBuilder {
     }
 
     // Define the mounts of the build container
-    const buildScript  = `/${basename(this.script)}`
-    const safeRef      = sanitize(ref)
+    const buildScript   = `/${basename(this.script)}`
+    const safeRef       = sanitize(ref)
+    const knownHosts    = $(`${config.homeDir}/.ssh/known_hosts`)
+    const etcKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
     const readonly = {
-      [this.script]: buildScript
-    }
-    const knownHosts = $(`${config.homeDir}/.ssh/known_hosts`)
-    if (knownHosts.isFile) {
-      readonly['/root/.ssh/known_hosts'] = knownHosts.path
-    }
-    const globalKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
-    if (knownHosts.isFile) {
-      readonly['/etc/ssh/ssh_known_hosts'] = globalKnownHosts.path
+      [this.script]:              buildScript,
+      '/root/.ssh/known_hosts':   knownHosts.isFile    ? knownHosts.path    : undefined,
+      '/etc/ssh/ssh_known_hosts': etcKnownHosts.isFile ? etcKnownHosts.path : undefined
     }
     const writable = {
       // Root directory of repository, containing real .git directory
