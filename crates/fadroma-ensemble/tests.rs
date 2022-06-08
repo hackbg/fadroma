@@ -299,12 +299,12 @@ fn test_removes_instances_on_failed_init() {
     assert_eq!(*balances.get(SEND_DENOM).unwrap(), Uint128(SEND_AMOUNT));
 
     let number: u8 = ensemble
-        .query(result.counter.address.clone(), CounterQuery::Number)
+        .query(result.counter.address.clone(), &CounterQuery::Number)
         .unwrap();
     assert_eq!(number, 0);
 
     let multiplier: ContractLink<HumanAddr> = ensemble
-        .query(result.counter.address, CounterQuery::Multiplier)
+        .query(result.counter.address, &CounterQuery::Multiplier)
         .unwrap();
     assert_eq!(multiplier, result.multiplier);
 
@@ -341,7 +341,7 @@ fn test_reverts_state_on_fail() {
         .unwrap();
 
     let number: u8 = ensemble
-        .query(result.counter.address.clone(), CounterQuery::Number)
+        .query(result.counter.address.clone(), &CounterQuery::Number)
         .unwrap();
     assert_eq!(number, 1);
 
@@ -363,12 +363,12 @@ fn test_reverts_state_on_fail() {
     assert_eq!(*balances.get(SEND_DENOM).unwrap(), Uint128(SEND_AMOUNT));
 
     let number: u8 = ensemble
-        .query(result.counter.address.clone(), CounterQuery::Number)
+        .query(result.counter.address.clone(), &CounterQuery::Number)
         .unwrap();
     assert_eq!(number, 3);
 
     let number: u8 = ensemble
-        .query(result.multiplier.address.clone(), Empty {})
+        .query(result.multiplier.address.clone(), &Empty {})
         .unwrap();
     assert_eq!(number, 6);
 
@@ -383,12 +383,12 @@ fn test_reverts_state_on_fail() {
     assert_eq!(err, StdError::generic_err("Mul overflow."));
 
     let number: u8 = ensemble
-        .query(result.counter.address.clone(), CounterQuery::Number)
+        .query(result.counter.address.clone(), &CounterQuery::Number)
         .unwrap();
     assert_eq!(number, 3);
 
     let number: u8 = ensemble
-        .query(result.multiplier.address.clone(), Empty {})
+        .query(result.multiplier.address.clone(), &Empty {})
         .unwrap();
     assert_eq!(number, 6);
 
@@ -478,7 +478,7 @@ fn exact_increment() {
         .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), Empty {})
+        .query(block_height.address.clone(), &Empty {})
         .unwrap();
 
     assert_eq!(
@@ -497,7 +497,7 @@ fn exact_increment() {
         .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), Empty {})
+        .query(block_height.address.clone(), &Empty {})
         .unwrap();
     assert_eq!(
         res,
@@ -537,7 +537,7 @@ fn random_increment() {
         .unwrap();
 
     let block: Block = ensemble
-        .query(block_height.address.clone(), Empty {})
+        .query(block_height.address.clone(), &Empty {})
         .unwrap();
 
     assert!(block.height > 0);
@@ -551,7 +551,7 @@ fn random_increment() {
         .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), Empty {})
+        .query(block_height.address.clone(), &Empty {})
         .unwrap();
 
     assert!(block.height < res.height);
@@ -588,7 +588,7 @@ fn block_freeze() {
     .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), Empty {})
+        .query(block_height.address.clone(), &Empty {})
         .unwrap();
 
     assert_eq!(
@@ -609,7 +609,7 @@ fn block_freeze() {
     .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), Empty {})
+        .query(block_height.address.clone(), &Empty {})
         .unwrap();
 
     assert!(res.height > old_height);

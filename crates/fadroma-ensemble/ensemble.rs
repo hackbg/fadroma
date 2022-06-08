@@ -155,7 +155,11 @@ impl ContractEnsemble {
     }
 
     /// Executes the contract with the address provided in `env`.
-    pub fn execute<T: Serialize>(&mut self, msg: &T, env: MockEnv) -> StdResult<()> {
+    pub fn execute<T: Serialize + ?Sized>(
+        &mut self,
+        msg: &T,
+        env: MockEnv
+    ) -> StdResult<()> {
         let result = self.ctx.execute(to_binary(msg)?, env);
 
         if result.is_ok() {
@@ -169,12 +173,12 @@ impl ContractEnsemble {
     }
 
     #[inline]
-    pub fn query<T: Serialize, R: DeserializeOwned>(
+    pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
         &self,
         address: impl Into<HumanAddr>,
-        msg: T,
+        msg: &T,
     ) -> StdResult<R> {
-        let result = self.ctx.query(address.into(), to_binary(&msg)?)?;
+        let result = self.ctx.query(address.into(), to_binary(msg)?)?;
 
         from_binary(&result)
     }
