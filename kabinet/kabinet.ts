@@ -6,7 +6,7 @@ import tmp from 'tmp'
 import { cwd } from 'process'
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
 import { fileURLToPath } from 'url'
-import { resolve, dirname, basename, extname, relative } from 'path'
+import { resolve, relative, dirname, basename, extname, relative, sep } from 'path'
 import { homedir } from 'os'
 
 const rimrafSync = rimrafCb.sync
@@ -22,6 +22,8 @@ export default function $ (base, ...fragments) {
 }
 
 export class Path {
+
+  static separator = sep
 
   constructor (base: string|URL|Path, ...fragments: string[]) {
     if (base instanceof Path) {
@@ -40,6 +42,11 @@ export class Path {
     return resolve(this.path, basename(name))
   }
 
+  relative (path: Path|string): string {
+    if (path instanceof Path) path = path.path
+    return relative(this.path, path)
+  }
+
   get name (): string {
     return basename(this.path)
   }
@@ -49,7 +56,7 @@ export class Path {
   }
 
   get shortPath (): string {
-    return relative(cwd(), this.path)
+    return relative(cwd(), this.path) || '.'
   }
 
   get exists (): boolean {
@@ -204,19 +211,19 @@ export abstract class BaseDirectory<T, U extends BaseFile<T>> extends Path {
 }
 
 export class OpaqueDirectory extends BaseDirectory<never, OpaqueFile> {
-  File = OpaqueFile
+  get File () { return OpaqueFile }
 }
 
 export class JSONDirectory<T> extends BaseDirectory<T, JSONFile<T>> {
-  File = JSONFile
+  get File () { return JSONFile }
 }
 
 export class YAMLDirectory<T> extends BaseDirectory<T, YAMLFile<T>> {
-  File = YAMLFile
+  get File () { return YAMLFile }
 }
 
 export class TOMLDirectory<T> extends BaseDirectory<T, TOMLFile<T>> {
-  File = TOMLFile
+  get File () { return TOMLFile }
 }
 
 export function getDirName (url) {
