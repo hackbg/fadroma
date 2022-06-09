@@ -46,6 +46,9 @@ pub use secret_toolkit;
 
 pub mod prelude {
 
+    pub type UsuallyOk = StdResult<()>;
+    pub type Eventually<Value> = StdResult<Option<Value>>;
+
     #[cfg(feature = "derive")]
     pub use fadroma_proc_derive::*;
 
@@ -56,7 +59,11 @@ pub mod prelude {
     pub use crate::math::*;
 
     #[cfg(feature = "storage")]
-    pub use crate::storage::{load, save, remove, ns_load, ns_save, ns_remove};
+    pub use crate::storage::{
+        load, save, remove,
+        ns_load, ns_save, ns_remove,
+        IterableStorage
+    };
 
     #[cfg(feature = "snip20-client")]
     pub use crate::snip20_client::ISnip20;
@@ -67,10 +74,16 @@ pub mod prelude {
     #[cfg(feature = "response")]
     pub use crate::response::*;
 
+    #[cfg(feature = "admin")]
+    pub use crate::admin::assert_admin;
+
+    #[cfg(all(feature = "admin", feature = "derive"))]
+    pub use crate::admin::require_admin;
+
     #[cfg(feature = "vk")]
     pub use crate::vk::ViewingKey;
 
     #[cfg(feature = "permit")]
-    pub use crate::permit::Permit;
+    pub use crate::permit::{Permit, Permission};
 
 }

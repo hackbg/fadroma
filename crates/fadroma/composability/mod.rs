@@ -12,10 +12,6 @@ pub mod tester;
 #[cfg(not(target_arch = "wasm32"))]
 pub use tester::*;
 
-pub type UsuallyOk = StdResult<()>;
-
-pub type Eventually<Value> = StdResult<Option<Value>>;
-
 pub trait BaseComposable<S, A, Q> {
     fn storage(&self) -> &S;
     fn storage_mut(&mut self) -> &mut S;
