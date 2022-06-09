@@ -1,31 +1,60 @@
-pub use fadroma_auth as auth;
+#[cfg(feature = "auth")]
+pub mod auth;
+
+#[cfg(feature = "auth")]
 pub use fadroma_auth_proc as auth_proc;
-pub use fadroma_composability as composability;
-#[cfg(feature = "declare")]
-pub use fadroma_declare_contract as declare_contract;
+
+#[cfg(feature = "composability")]
+pub mod composability;
+
+#[cfg(all(feature = "ensemble", not(target_arch = "wasm32")))]
+pub mod ensemble;
+
 #[cfg(feature = "derive")]
-pub use fadroma_derive_contract as derive_contract;
-#[cfg(not(target_arch = "wasm32"))]
-pub use fadroma_ensemble as ensemble;
-pub use fadroma_killswitch as killswitch;
-pub use fadroma_math as math;
+pub use fadroma_derive_contract as derive;
+
+#[cfg(feature = "killswitch")]
+pub mod killswitch;
+
+#[cfg(feature = "math")]
+pub mod math;
+
+#[cfg(feature = "scrt")]
+pub use fadroma_platform_scrt as scrt;
+
+#[cfg(feature = "scrt")]
 pub use fadroma_platform_scrt::{
     cosmwasm_std, cosmwasm_storage, cosmwasm_schema, serde, schemars
 };
+
+#[cfg(feature = "message")]
 pub use fadroma_proc_message as proc_message;
-pub use fadroma_snip20_api;
+
+#[cfg(feature = "snip20-api")]
+pub mod snip20_api;
+
+#[cfg(feature = "snip20-impl")]
 pub use fadroma_snip20_impl as snip20_impl;
+
+#[cfg(feature = "storage")]
 pub use fadroma_storage as storage;
 
 pub mod prelude {
+
+    #[cfg(feature = "scrt")]
     pub use fadroma_platform_scrt::{
         Humanize, Canonize, CodeId, CodeHash,
         ContractLink, ContractInstantiationInfo,
         Callback, to_cosmos_msg, space_pad, BLOCK_SIZE
     };
+
+    #[cfg(feature = "scrt")]
     pub use fadroma_math::*;
+
+    #[cfg(feature = "storage")]
     pub use fadroma_storage::{
         load, save, remove,
         ns_load, ns_save, ns_remove
     };
+
 }

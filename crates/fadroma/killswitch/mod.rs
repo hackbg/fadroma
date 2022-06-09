@@ -1,16 +1,18 @@
 use std::fmt;
 
-use fadroma_platform_scrt::{
-    schemars::{self, JsonSchema},
-    cosmwasm_std::{
-        self, Extern, Storage, Api, Querier, StdResult, StdError,
-        HumanAddr, CanonicalAddr, HandleResponse, Env, log
+use crate::{
+    scrt::{
+        schemars::{self, JsonSchema},
+        cosmwasm_std::{
+            self, Extern, Storage, Api, Querier, StdResult, StdError,
+            HumanAddr, CanonicalAddr, HandleResponse, Env, log
+        },
+        Humanize, Canonize
     },
-    Humanize, Canonize
+    auth::admin::assert_admin;
+    auth_proc::require_admin;
+    derive_contract::{contract, handle, query};
 };
-use fadroma_auth::admin::assert_admin;
-use fadroma_auth_proc::require_admin;
-use fadroma_derive_contract::{contract, handle, query};
 
 use serde::{Serialize, Deserialize};
 

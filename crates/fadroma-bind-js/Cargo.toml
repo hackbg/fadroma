@@ -1,8 +1,0 @@
-[package]
-name    = "fadroma-bind-js"
-version = "0.1.0"
-edition = "2018"
-authors = ["Adam A. <adam@hack.bg>"]
-
-[lib]
-path = "bind_js.rs"

@@ -1,5 +1,5 @@
 [package]
-name    = "fadroma-auth-proc"
+name    = "fadroma-proc-auth"
 version = "0.1.0"
 authors = ["Asparuh Kamenov <asparuh@hack.bg>"]
 edition = "2018"

@@ -1,39 +1,135 @@
 [package]
 name    = "fadroma"
-version = "22.1.0"
+version = "100.0.0"
 edition = "2018"
+license = "AGPL-3.0"
 authors = [
+
+  # Core maintainers:
+  "Adam A. <adam@hack.bg>",
   "Asparuh Kamenov <aakamenov@hack.bg>",
-  "Adam A. <adam@hack.bg>"
+  "denismaxim0v <denis_maxim0v@protonmail.com>",
+
+  # Featuring contributions by:
+  "Chris Ricketts <chris.ricketts@steribar.com>",
+  "Tibor Hudik <tibor@barrage.net>",
+  "Wiz1991 <wizoftime92@gmail.com>",
+  "hydropump3 <3ki2fiay@anonaddy.me>",
+
+  # SNIP-20 implementation based on:
+  "Itzik <itzik@keytango.io>"
+
 ]
 
 [lib]
 path = "lib.rs"
 
-[dependencies]
-fadroma-platform-scrt    = { optional = true, path = "../fadroma-platform-scrt" }
-
-fadroma-auth             = { path = "../fadroma-auth" }
-fadroma-auth-proc        = { path = "../fadroma-auth-proc" }
-fadroma-bind-js          = { path = "../fadroma-bind-js" }
-fadroma-composability    = { path = "../fadroma-composability" }
-fadroma-ensemble         = { path = "../fadroma-ensemble" }
-fadroma-declare-contract = { optional = true, path = "../fadroma-declare-contract" }
-fadroma-derive-contract  = { optional = true, path = "../fadroma-derive-contract" }
-fadroma-killswitch       = { path = "../fadroma-killswitch" }
-fadroma-math             = { path = "../fadroma-math" }
-fadroma-proc-message     = { path = "../fadroma-proc-message" }
-fadroma-snip20-api       = { path = "../fadroma-snip20-api" }
-fadroma-snip20-impl      = { path = "../fadroma-snip20-impl" }
-fadroma-storage          = { path = "../fadroma-storage" }
-
 [features]
-default = [ "scrt" ]
+default = [
+  "scrt"
+]
 
+scrt = [
+  "fadroma-platform-scrt"
+]
+
+auth = [
+  "scrt",
+  "derive",
+  "storage",
+  "fadroma-proc-auth",
+  "serde",
+  "remain",
+  "ripemd160",
+  "secp256k1",
+  "sha2",
+  "rand_chacha",
+  "rand_core",
+  "subtle"
+]
+
+composability = [
+  "scrt",
+  "storage",
+  "serde"
+  # TODO from fadroma-composability/Cargo.toml: what to do with these?
+  #[target.'cfg(not(target_arch="wasm32"))'.dependencies]
+  #fadroma-platform-scrt = { path = "../fadroma-platform-scrt", features = ["iterator"] }
+]
+
+derive = [
+  "fadroma-proc-derive"
+]
+
+ensemble = [
+  "scrt",
+  "storage",
+  "oorandom"
+]
+
+killswitch = [
+  "scrt",
+  "auth",
+  "storage",
+  "derive",
+  "serde"
+]
+
+math = [
+  "scrt",
+  "serde",
+  "primitive-types"
+]
+
+snip20-api = [
+  "scrt",
+  "secret-toolkit"
+]
+
+snip20-impl = [
+  "scrt",
+  "auth",
+  "secret-toolkit",
+  "storage",
+  "serde",
+  "schemars",
+  "bincode2"
+]
+
+storage = [
+  "scrt",
+  "serde"
+]
+
+message = [
+  "fadroma-proc-message"
+]
+
+# Old
 backtraces = [] # TODO set backtraces on components
 browser    = [ "backtraces" ]
-declare    = [ "fadroma-declare-contract" ]
-derive     = [ "fadroma-derive-contract" ]
 harness    = []
 
-scrt  = [ "fadroma-platform-scrt" ]
+[dependencies]
+# Supported platforms
+fadroma-platform-scrt = { optional = true, path = "../fadroma-platform-scrt" }
+
+# Procedural macro crates
+fadroma-proc-auth     = { optional = true, path = "../fadroma-proc-auth" }
+fadroma-proc-derive   = { optional = true, path = "../fadroma-proc-derive" }
+fadroma-proc-message  = { optional = true, path = "../fadroma-proc-message" }
+
+# Dependencies
+bincode2        = { optional = true, version = "2.0.1" }
+oorandom        = { optional = true, version = "11.1.3" }
+primitive-types = { optional = true, version = "0.9.1",   default-features = false }
+rand_chacha     = { optional = true, version = "0.2.2", default-features = false }
+rand_core       = { optional = true, version = "0.5.1", default-features = false }
+remain          = { optional = true, version = "0.2.2"  }
+schemars        = { optional = true, version = "0.7" }
+ripemd160       = { optional = true, version = "0.9.1"  }
+secp256k1       = { optional = true, version = "0.20.3" }
+secret-toolkit  = { optional = true, version = "0.3.0", default-features = false, features = ["snip20"] }
+serde           = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
+sha2            = { optional = true, version = "0.9.1", default-features = false }
+subtle          = { optional = true, version = "2.4.0", default-features = false }
