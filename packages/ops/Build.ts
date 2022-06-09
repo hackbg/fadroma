@@ -222,7 +222,7 @@ export class DockerBuilder extends CachingBuilder {
       const outputDir = $(source.workspace.path).resolve('artifacts')
       const prebuilt  = this.prebuild(outputDir, source.crate, source.workspace.ref)
       console.info(
-        bold(source.crate.padEnd(longestCrateName)),
+        ' ',    bold(source.crate.padEnd(longestCrateName)),
         'from', bold(`${$(source.workspace.path).shortPath}/`),
         '@',    bold(source.workspace.ref),
         prebuilt ? '(exists, not rebuilding)': ''
@@ -336,39 +336,41 @@ export class DockerBuilder extends CachingBuilder {
       return artifacts
     }
 
-    // Define the mounts of the build container
+    // Define the mounts and environment variables of the build container
     const buildScript   = `/${basename(this.script)}`
     const safeRef       = sanitize(ref)
     const knownHosts    = $(`${config.homeDir}/.ssh/known_hosts`)
     const etcKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
     const readonly = {
-      [this.script]:              buildScript,
-      '/root/.ssh/known_hosts':   knownHosts.isFile    ? knownHosts.path    : undefined,
-      '/etc/ssh/ssh_known_hosts': etcKnownHosts.isFile ? etcKnownHosts.path : undefined
-    }
-    const writable = {
+      // The script that will run in the container
+      [this.script]:                buildScript,
+      // For checking out submodules
+      '/root/.ssh/known_hosts':     knownHosts.isFile    ? knownHosts.path    : undefined,
+      '/etc/ssh/ssh_known_hosts':   etcKnownHosts.isFile ? etcKnownHosts.path : undefined,
       // Root directory of repository, containing real .git directory
       [resolve(root)]:              `/src`,
+    }
+    const writable = {
       // Output path for final artifacts
       [outputDir]:                  `/output`,
       // Persist cache to make future rebuilds faster. May be unneccessary.
       [`project_cache_${safeRef}`]: `/tmp/target`,
       [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
     }
-
-    // Define the environment variables of the build container
     const env = {
-      TERM:                         process.env.TERM,
-      SSH_AUTH_SOCK:                process.env.SSH_AUTH_SOCK,
-      GIT_PAGER:                    'cat',
-      GIT_TERMINAL_PROMPT:          '0',
-      LOCKED:                       '',/*'--locked'*/
+      BUILD_USER:                   process.env.FADROMA_BUILD_USER || 'fadroma-builder',
+      BUILD_UID:                    process.env.FADROMA_BUILD_UID  || process.getuid(),
+      BUILD_GID:                    process.env.FADROMA_BUILD_GID  || process.getgid(),
       CARGO_HTTP_TIMEOUT:           '240',
       CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
-      //'CARGO_TERM_VERBOSE':         'true',
-      SUBDIR:                       subdir,
+      GIT_PAGER:                    'cat',
+      GIT_REMOTE:                   process.env.FADROMA_PREFERRED_REMOTE||'origin',
       GIT_SUBDIR:                   gitSubdir,
-      REMOTE:                       process.env.FADROMA_PREFERRED_REMOTE||'origin'
+      GIT_TERMINAL_PROMPT:          '0',
+      LOCKED:                       '',/*'--locked'*/
+      SSH_AUTH_SOCK:                process.env.SSH_AUTH_SOCK,
+      SUBDIR:                       subdir,
+      TERM:                         process.env.TERM,
     }
 
     // Pre-populate the list of expected artifacts.
@@ -391,7 +393,7 @@ export class DockerBuilder extends CachingBuilder {
       }
     }
     console.info('Building with command:', bold(command.join(' ')))
-    console.debug('in container with configuration:', options)
+    console.debug('Building in a container with this configuration:', options)
 
     // Prepare the log output stream
     const buildLogPrefix = `[${ref}]`.padEnd(16)

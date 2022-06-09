@@ -2,14 +2,16 @@ import { execSync } from 'child_process'
 import { resolve, dirname, sep } from 'path'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 
+const { env, argv, umask, chdir, cwd, exit } = process
+
 const slashes  = new RegExp("/", "g")
 const dashes   = new RegExp("-", "g")
 const sanitize = x => x.replace(slashes, "_")
 const fumigate = x => x.replace(dashes,  "_")
 
-const run = (command, env) => {
+const run = (command, env2 = {}) => {
   console.info('$', command)
-  execSync(command, { env: { ...process.env, ...env }, stdio: 'inherit' })
+  execSync(command, { env: { ...env, ...env2 }, stdio: 'inherit' })
 }
 
 const call = command => {
@@ -27,47 +29,49 @@ const time = (command) => {
 }
 
 const phases = { phase1, phase2 }
-const phase  = process.argv[2]
+const phase  = argv[2]
 phases[phase]()
 
 /** As the initial user, set up the container and the source workspace,
   * checking out an old commit if specified. Then, call phase 2 with
   * the name of each crate sequentially. */
 function phase1 ({
-  interpreter = process.argv[0],       // e.g. /usr/bin/node
-  script      = process.argv[1],       // this file
-  ref         = process.argv[3],       // "HEAD" | <git ref>
-  crates      = process.argv.slice(4), // all crates to build
-  buildRoot   = `/tmp/fadroma-build/${sanitize(ref)}`,
-  subdir      = process.env.SUBDIR || '.',
+  interpreter = argv[0],       // e.g. /usr/bin/node
+  script      = argv[1],       // this file
+  ref         = argv[3],       // "HEAD" | <git ref>
+  crates      = argv.slice(4), // all crates to build
+  buildRoot   = resolve('/tmp/fadroma-build', sanitize(ref)),
+  subdir      = env.SUBDIR      || '.',
   gitRoot     = `/src/.git`,
-  gitSubdir   = process.env.GIT_SUBDIR || '',
-  gitDir      = `${gitRoot}/${gitSubdir}`,
-  gitRemote   = process.env.REMOTE || 'origin',
-  uid         = process.env.USER   || 1000,
-  gid         = process.env.GROUP  || 1000,
+  gitSubdir   = env.GIT_SUBDIR  || '',
+  gitDir      = resolve(gitRoot, gitSubdir),
+  gitRemote   = env.GIT_REMOTE  || 'origin',
+  uid         = env.BUILD_UID   || 1000,
+  gid         = env.BUILD_GID   || 1000,
+  user        = 'fadroma-builder',
 } = {}) {
 
   console.log('Build phase 1: Preparing source repository for', ref)
 
-  // Create a non-root build user.
-  run(`groupadd -g${gid} ${gid} || true`)
-  run(`useradd -m -g${gid} -u${uid} build || true`)
+  // Create a non-root build user if one doesn't exist
+  try {
+    user = call(`id -un ${uid}`)
+  } catch (e) {
+    run(`groupadd -g${gid} ${user} || true`)
+    run(`useradd -m -g${gid} -u${uid} ${user}`)
+  }
 
   // The local registry is stored in a Docker volume mounted at /usr/local.
   // This makes sure it is accessible to non-root users.
-  process.umask(0o000)
+  umask(0o000)
   run(`mkdir -p "${buildRoot}" /tmp/target /usr/local/cargo/registry`)
-  process.umask(0o022)
-  run(`chown -R ${uid} /usr/local/cargo/registry`)
-  run(`chown -R ${uid} /src`)
-  run(`chown ${uid} /output`)
+  umask(0o022)
 
   // Copy the source into the build dir
   run(`git --version`)
   if (ref === 'HEAD') {
     console.log(`Building from working tree.`)
-    process.chdir(subdir)
+    chdir(subdir)
   } else {
     console.log(`Building from checkout of ${ref}`)
     // This works by using ".git" (or ".git/modules/something") as a remote
@@ -78,8 +82,6 @@ function phase1 ({
     gitRoot = '/tmp/git'
     gitDir  = `${gitRoot}/${gitSubdir}`
     // Helper functions to run with ".git" in a non-default location.
-    console.log({gitDir})
-    run(`cat ${gitDir}/config`)
     const gitRun  = command => run(`GIT_DIR=${gitDir} git ${command}`)
     const gitCall = command => call(`GIT_DIR=${gitDir} git ${command}`)
     // Make this a bare checkout by removing the path to the working tree from the config.
@@ -109,46 +111,46 @@ function phase1 ({
       } catch (e) {
         console.log(e)
         console.log(`${ref} is not checked out or fetched. Run "git fetch" to update.`)
-        process.exit(1)
+        exit(1)
       }
     }
+
+    // Clone from the temporary local remote into the temporary working tree
     run(`git clone -b ${ref} ${gitDir} ${buildRoot}`)
-    process.chdir(buildRoot)
-    run('ls -al')
-    run('git branch')
-    run('git branch -r')
-    run(`git checkout ${ref}`)
+    chdir(buildRoot)
+
+    // Report which commit we're building and what it looks like
     run(`git log -1`)
+    run('ls -al')
     console.log()
+
+    // Clone submodules
     console.log(`Populating Git submodules...`)
     run(`git submodule update --init --recursive`)
-    process.chdir(subdir)
+    chdir(subdir)
   }
 
-  // Build the prepared source
-  console.log(`Building in:`)
-  run(`pwd`)
+  // Switch to build user and run phase 2 for each requested crate
+  console.log(`Building in:`, call('pwd'))
   console.log(`Build phase 2 will begin with these crates: ${crates}`)
   for (const crate of crates) {
-    console.log(`Building ${crate} from ${ref} in ${process.cwd()}`)
-    run(`su build -c "${interpreter} ${script} phase2 ${ref} ${crate}"`)
+    console.log(`Building ${crate} from ${ref} in ${cwd()}`)
+    run(`su ${user} -c "${interpreter} ${script} phase2 ${ref} ${crate}"`)
   }
 
 }
 
 /** As a non-root user, execute a release build, then optimize it with Binaryen. */
 function phase2 ({
-  ref       = process.argv[3], // "HEAD" | <git ref>
-  crate     = process.argv[4], // one crate to build
-  workspace = '/src',
-  subdir    = process.env.SUBDIR || '',
+  ref       = argv[3], // "HEAD" | <git ref>
+  crate     = argv[4], // one crate to build
   targetDir = '/tmp/target',
   platform  = 'wasm32-unknown-unknown',
   rustFlags = '-C link-arg=-s',
   locked    = '',
   output    = `${fumigate(crate)}.wasm`,
-  compiled  = `${targetDir}/${platform}/release/${output}`,
-  optimized = resolve(workspace, subdir, 'artifacts', `${sanitize(crate)}@${sanitize(ref)}.wasm`),
+  compiled  = resolve(targetDir, platform, 'release', output),
+  optimized = resolve('/output', `${sanitize(crate)}@${sanitize(ref)}.wasm`),
   checksum  = `${optimized}.sha256`,
 } = {}) {
 
