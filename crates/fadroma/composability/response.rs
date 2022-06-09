@@ -1,7 +1,7 @@
 //! note: see issue #35203 <https://github.com/rust-lang/rust/issues/35203>
 #![allow(patterns_in_fns_without_body)]
 
-use fadroma_platform_scrt::{
+use crate::scrt::{
     cosmwasm_std::{
         StdResult, HumanAddr, CosmosMsg, InitResponse,
         HandleResponse, to_binary, log

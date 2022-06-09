@@ -1,4 +1,4 @@
-use fadroma_platform_scrt::{
+use crate::scrt::{
     cosmwasm_std::{
         StdResult, Storage, ReadonlyStorage, Api,
         Querier, Order, KV, to_vec, from_slice,
@@ -7,9 +7,9 @@ use fadroma_platform_scrt::{
     Humanize, Canonize
 };
 
-use fadroma_storage::*;
-use crate::*;
-use crate::make_composable;
+use crate::storage::*;
+use super::*;
+use super::make_composable;
 
 #[derive(Clone)]
 /// Same as regular Extern but clonable.

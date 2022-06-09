@@ -1,9 +1,17 @@
 pub mod admin;
-pub mod vk_auth;
+pub use admin::*;
 
-pub use permit::*;
+#[cfg(feature = "auth")]
+pub use fadroma_proc_auth as proc;
+
+pub mod vk_auth;
 pub use vk::*;
 
-mod vk;
-mod permit;
-mod crypto;
+pub mod vk;
+pub use vk::*;
+
+pub mod permit;
+pub use permit::*;
+
+pub mod crypto;
+pub use crypto::*;

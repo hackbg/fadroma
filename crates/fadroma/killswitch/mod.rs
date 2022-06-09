@@ -11,7 +11,7 @@ use crate::{
     },
     auth::admin::assert_admin,
     auth_proc::require_admin,
-    derive::{contract, handle, query}
+    derive_contract::{contract, handle, query}
 };
 
 use serde::{Serialize, Deserialize};

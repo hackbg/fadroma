@@ -1,4 +1,4 @@
-use fadroma_derive_contract::*;
+use crate::derive_contract::*;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, DeserializeFlat, PartialEq, Debug)]

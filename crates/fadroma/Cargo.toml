@@ -105,6 +105,10 @@ message = [
   "fadroma-proc-message"
 ]
 
+# Misc
+
+reexport-secret-toolkit = [ "secret-toolkit" ]
+
 # Old
 backtraces = [] # TODO set backtraces on components
 browser    = [ "backtraces" ]
@@ -120,16 +124,16 @@ fadroma-proc-derive   = { optional = true, path = "../fadroma-proc-derive" }
 fadroma-proc-message  = { optional = true, path = "../fadroma-proc-message" }
 
 # Dependencies
-bincode2        = { optional = true, version = "2.0.1" }
+bincode2        = { optional = true, version = "2.0.1"  }
 oorandom        = { optional = true, version = "11.1.3" }
 primitive-types = { optional = true, version = "0.9.1",   default-features = false }
-rand_chacha     = { optional = true, version = "0.2.2", default-features = false }
-rand_core       = { optional = true, version = "0.5.1", default-features = false }
+rand_chacha     = { optional = true, version = "0.2.2",   default-features = false }
+rand_core       = { optional = true, version = "0.5.1",   default-features = false }
 remain          = { optional = true, version = "0.2.2"  }
-schemars        = { optional = true, version = "0.7" }
+schemars        = { optional = true, version = "0.7"    }
 ripemd160       = { optional = true, version = "0.9.1"  }
 secp256k1       = { optional = true, version = "0.20.3" }
-secret-toolkit  = { optional = true, version = "0.3.0", default-features = false, features = ["snip20", "storage"] }
+secret-toolkit  = { optional = true, version = "0.3.0",   default-features = false, features = ["snip20", "storage"] }
 serde           = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
-sha2            = { optional = true, version = "0.9.1", default-features = false }
-subtle          = { optional = true, version = "2.4.0", default-features = false }
+sha2            = { optional = true, version = "0.9.1",   default-features = false }
+subtle          = { optional = true, version = "2.4.0",   default-features = false }

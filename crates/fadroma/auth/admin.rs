@@ -6,7 +6,7 @@ use crate::{
             StdResult, StdError, InitResponse, HandleResponse, Env, log
         }
     },
-    derive::{contract, init, handle, query}
+    derive_contract::{contract, init, handle, query}
 };
 use serde;
 

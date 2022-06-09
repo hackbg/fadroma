@@ -7,7 +7,7 @@ use crate::{
             to_binary
         },
     },
-    derive::*,
+    derive_contract::*,
     storage::{ns_load, ns_save}
 };
 use serde::{Serialize, Deserialize};

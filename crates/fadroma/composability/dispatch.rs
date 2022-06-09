@@ -1,7 +1,7 @@
-use fadroma_platform_scrt::cosmwasm_std::{
+use crate::scrt::cosmwasm_std::{
     Storage, Api, Querier, StdResult, Env, HandleResponse
 };
-use crate::Composable;
+use super::Composable;
 
 /// Trait for handle messages
 pub trait HandleDispatch <S, A, Q, C> where

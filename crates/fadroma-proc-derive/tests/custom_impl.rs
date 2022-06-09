@@ -1,6 +1,6 @@
 use cosmwasm_std::{StdResult, StdError, InitResponse, HandleResponse, Storage, to_vec, from_slice, from_binary};
 use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use fadroma_derive_contract::*;
+use crate::derive_contract::*;
 use schemars;
 use serde;
 
