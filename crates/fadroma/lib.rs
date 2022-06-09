@@ -36,6 +36,9 @@ pub use secret_toolkit;
 
 pub mod prelude {
 
+    #[cfg(feature = "derive")]
+    pub use fadroma_proc_derive::*;
+
     #[cfg(feature = "scrt")]
     pub use crate::scrt::{*, cosmwasm_std, cosmwasm_std::*};
 
