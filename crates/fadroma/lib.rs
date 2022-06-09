@@ -86,4 +86,7 @@ pub mod prelude {
     #[cfg(feature = "permit")]
     pub use crate::permit::{Permit, Permission};
 
+    #[cfg(feature = "composability")]
+    pub use crate::composability::Composable;
+
 }
