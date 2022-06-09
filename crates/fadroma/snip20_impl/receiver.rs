@@ -1,6 +1,6 @@
 #![allow(clippy::field_reassign_with_default)] // This is triggered in `#[derive(JsonSchema)]`
 
-use fadroma_platform_scrt::{
+use crate::scrt::{
     cosmwasm_std::{
         HumanAddr, Uint128, Binary, StdResult, CosmosMsg, WasmMsg, to_binary
     },

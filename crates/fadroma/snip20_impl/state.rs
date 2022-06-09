@@ -1,11 +1,11 @@
-use fadroma_platform_scrt::{
+use crate::scrt::{
     cosmwasm_std::{
         HumanAddr, CanonicalAddr, StdResult, StdError,
         Storage, ReadonlyStorage, BlockInfo
     },
     cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage}
 };
-use fadroma_auth::ViewingKey;
+use crate::auth::ViewingKey;
 use secret_toolkit::storage::{TypedStore, TypedStoreMut};
 
 use std::any::type_name;
@@ -13,7 +13,7 @@ use std::convert::TryFrom;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
-use crate::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
+use super::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
 
 pub const PREFIX_TXS: &[u8] = b"YteGsgSZyO";
 

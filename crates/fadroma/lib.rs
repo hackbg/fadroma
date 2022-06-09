@@ -2,7 +2,7 @@
 pub mod auth;
 
 #[cfg(feature = "auth")]
-pub use fadroma_auth_proc as auth_proc;
+pub use fadroma_proc_auth as auth_proc;
 
 #[cfg(feature = "composability")]
 pub mod composability;

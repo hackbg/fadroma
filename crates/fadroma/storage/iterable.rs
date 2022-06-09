@@ -5,7 +5,7 @@ use fadroma_platform_scrt::cosmwasm_std::{
 };
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::{ns_load, ns_save, ns_remove};
+use super::{ns_load, ns_save, ns_remove};
 
 /// Stores items in a way that allows for iterating over them.
 pub struct IterableStorage<'a ,T: DeserializeOwned + Serialize> {

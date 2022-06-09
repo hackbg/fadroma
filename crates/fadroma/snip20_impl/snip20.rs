@@ -1,14 +1,16 @@
-use fadroma_platform_scrt::cosmwasm_std::{
-    Extern, Storage, ReadonlyStorage, Api, Querier, Env, StdResult,
-    StdError, HumanAddr, CanonicalAddr, Uint128, InitResponse, Coin,
-    HandleResponse, CosmosMsg, BankMsg, BlockInfo, Binary, to_binary, log
+use crate::{
+    scrt::cosmwasm_std::{
+        Extern, Storage, ReadonlyStorage, Api, Querier, Env, StdResult,
+        StdError, HumanAddr, CanonicalAddr, Uint128, InitResponse, Coin,
+        HandleResponse, CosmosMsg, BankMsg, BlockInfo, Binary, to_binary, log
+    },
+    auth::{Permit, ViewingKey, VIEWING_KEY_SIZE}
 };
-use fadroma_auth::{Permit, ViewingKey, VIEWING_KEY_SIZE};
 
 use std::fmt;
 use std::fmt::Write;
 use std::ops::RangeInclusive;
-use crate::{
+use super::{
     msg::{
         ContractStatusLevel, HandleAnswer, HandleMsg, InitMsg,
         QueryAnswer, ResponseStatus, QueryMsg, QueryWithPermit,

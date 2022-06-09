@@ -1,4 +1,4 @@
-use fadroma_platform_scrt::{
+use crate::scrt::{
     cosmwasm_std::{StdResult, HandleResponse},
     space_pad, BLOCK_SIZE
 };

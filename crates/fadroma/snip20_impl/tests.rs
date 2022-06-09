@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use fadroma_platform_scrt::cosmwasm_std::{
+use crate::scrt::cosmwasm_std::{
     Extern, Storage, Api, Querier, Env, StdResult, ContractInfo,
     StdError, HumanAddr, WasmMsg, Uint128, InitResponse, Coin,
     HandleResponse, CosmosMsg, QueryResponse, BlockInfo, Binary,
@@ -10,10 +10,10 @@ use fadroma_platform_scrt::cosmwasm_std::{
         mock_dependencies, mock_env, MOCK_CONTRACT_ADDR
     }
 };
-use fadroma_auth::{ViewingKey, VIEWING_KEY_SIZE};
+use crate::auth::{ViewingKey, VIEWING_KEY_SIZE};
 
 use std::any::Any;
-use crate::{
+use super::{
     snip20_handle, snip20_init, snip20_query, DefaultSnip20Impl,
     SymbolValidation, assert_valid_symbol,
     receiver::Snip20ReceiveMsg,
@@ -25,7 +25,7 @@ use crate::{
     msg::{*, ContractStatusLevel}
 };
 
-use crate::msg::{InitMsg, HandleMsg, QueryMsg};
+use super::msg::{InitMsg, HandleMsg, QueryMsg};
 
 fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
@@ -641,9 +641,9 @@ fn test_handle_transfer_from() {
         .api
         .canonical_address(&HumanAddr("alice".to_string()))
         .unwrap();
-    let bob_balance = crate::state::ReadonlyBalances::from_storage(&deps.storage)
+    let bob_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
         .account_amount(&bob_canonical);
-    let alice_balance = crate::state::ReadonlyBalances::from_storage(&deps.storage)
+    let alice_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
         .account_amount(&alice_canonical);
     assert_eq!(bob_balance, 5000 - 2000);
     assert_eq!(alice_balance, 2000);
@@ -762,9 +762,9 @@ fn test_handle_send_from() {
         .api
         .canonical_address(&HumanAddr("contract".to_string()))
         .unwrap();
-    let bob_balance = crate::state::ReadonlyBalances::from_storage(&deps.storage)
+    let bob_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
         .account_amount(&bob_canonical);
-    let contract_balance = crate::state::ReadonlyBalances::from_storage(&deps.storage)
+    let contract_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
         .account_amount(&contract_canonical);
     assert_eq!(bob_balance, 5000 - 2000);
     assert_eq!(contract_balance, 2000);
@@ -931,7 +931,7 @@ fn test_handle_burn_from() {
         .api
         .canonical_address(&HumanAddr("bob".to_string()))
         .unwrap();
-    let bob_balance = crate::state::ReadonlyBalances::from_storage(&deps.storage)
+    let bob_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
         .account_amount(&bob_canonical);
     assert_eq!(bob_balance, 10000 - 2000);
     let total_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
@@ -1064,7 +1064,7 @@ fn test_handle_batch_burn_from() {
             .api
             .canonical_address(&HumanAddr(name.to_string()))
             .unwrap();
-        let balance = crate::state::ReadonlyBalances::from_storage(&deps.storage)
+        let balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
             .account_amount(&name_canon);
         assert_eq!(balance, 10000 - amount);
     }
@@ -1096,7 +1096,7 @@ fn test_handle_batch_burn_from() {
             .api
             .canonical_address(&HumanAddr(name.to_string()))
             .unwrap();
-        let balance = crate::state::ReadonlyBalances::from_storage(&deps.storage)
+        let balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
             .account_amount(&name_canon);
         assert_eq!(balance, 10000 - allowance_size);
     }
@@ -1158,7 +1158,7 @@ fn test_handle_decrease_allowance() {
     let allowance = read_allowance(&deps.storage, &bob_canonical, &alice_canonical).unwrap();
     assert_eq!(
         allowance,
-        crate::state::Allowance {
+        super::state::Allowance {
             amount: 0,
             expiration: None
         }
@@ -1193,7 +1193,7 @@ fn test_handle_decrease_allowance() {
     let allowance = read_allowance(&deps.storage, &bob_canonical, &alice_canonical).unwrap();
     assert_eq!(
         allowance,
-        crate::state::Allowance {
+        super::state::Allowance {
             amount: 1950,
             expiration: None
         }
@@ -1237,7 +1237,7 @@ fn test_handle_increase_allowance() {
     let allowance = read_allowance(&deps.storage, &bob_canonical, &alice_canonical).unwrap();
     assert_eq!(
         allowance,
-        crate::state::Allowance {
+        super::state::Allowance {
             amount: 2000,
             expiration: None
         }
@@ -1259,7 +1259,7 @@ fn test_handle_increase_allowance() {
     let allowance = read_allowance(&deps.storage, &bob_canonical, &alice_canonical).unwrap();
     assert_eq!(
         allowance,
-        crate::state::Allowance {
+        super::state::Allowance {
             amount: 4000,
             expiration: None
         }
@@ -2750,7 +2750,7 @@ fn test_query_transaction_history() {
         other => panic!("Unexpected: {:?}", other),
     };
 
-    use crate::transaction_history::{RichTx, TxAction};
+    use super::transaction_history::{RichTx, TxAction};
     let expected_transfers = [
         RichTx {
             id: 8,

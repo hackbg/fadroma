@@ -9,9 +9,9 @@ use crate::{
         },
         Humanize, Canonize
     },
-    auth::admin::assert_admin;
-    auth_proc::require_admin;
-    derive_contract::{contract, handle, query};
+    auth::admin::assert_admin,
+    auth_proc::require_admin,
+    derive::{contract, handle, query}
 };
 
 use serde::{Serialize, Deserialize};
@@ -83,7 +83,7 @@ macro_rules! migration_message {
 
 pub fn load (storage: &impl Storage) -> StdResult<ContractStatus<CanonicalAddr>> {
     let result: Option<ContractStatus<CanonicalAddr>> =
-        fadroma_storage::load(storage, PREFIX)?;
+        crate::storage::load(storage, PREFIX)?;
 
     match result {
         Some(status) => Ok(status),
@@ -92,7 +92,7 @@ pub fn load (storage: &impl Storage) -> StdResult<ContractStatus<CanonicalAddr>>
 }
 
 pub fn save (storage: &mut impl Storage, status: &ContractStatus<CanonicalAddr>) -> StdResult<()> {
-    fadroma_storage::save(storage, PREFIX, status)
+    crate::storage::save(storage, PREFIX, status)
 }
 
 /// Possible states of a contract.

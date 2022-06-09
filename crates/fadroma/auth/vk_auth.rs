@@ -1,9 +1,11 @@
-use crate::scrt::{
-    schemars::{self, JsonSchema},
-    cosmwasm_std::{
-        self, Extern, Storage, Api, Querier,
-        StdResult, StdError, HandleResponse,
-        to_binary
+use crate::{
+    scrt::{
+        schemars::{self, JsonSchema},
+        cosmwasm_std::{
+            self, Extern, Storage, Api, Querier,
+            StdResult, StdError, HandleResponse,
+            to_binary
+        },
     },
     derive::*,
     storage::{ns_load, ns_save}

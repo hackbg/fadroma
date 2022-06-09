@@ -1,4 +1,4 @@
-use fadroma_platform_scrt::{
+use crate::scrt::{
     cosmwasm_std::{
         HumanAddr, CanonicalAddr, Uint128, StdResult, StdError,
         Storage, ReadonlyStorage, Api, BlockInfo, Coin, debug_print
@@ -10,7 +10,7 @@ use secret_toolkit::storage::{AppendStore, AppendStoreMut};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::state::Config;
+use super::state::Config;
 
 const PREFIX_TXS: &[u8] = b"transactions";
 const PREFIX_TRANSFERS: &[u8] = b"transfers";
