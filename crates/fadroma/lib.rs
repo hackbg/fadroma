@@ -37,7 +37,7 @@ pub use secret_toolkit;
 pub mod prelude {
 
     #[cfg(feature = "scrt")]
-    pub use crate::scrt::{*, cosmwasm_std::*};
+    pub use crate::scrt::{*, cosmwasm_std, cosmwasm_std::*};
 
     #[cfg(feature = "math")]
     pub use crate::math::*;
@@ -47,5 +47,8 @@ pub mod prelude {
         load, save, remove,
         ns_load, ns_save, ns_remove
     };
+
+    #[cfg(feature = "snip20-client")]
+    pub use snip20_client::ISnip20;
 
 }

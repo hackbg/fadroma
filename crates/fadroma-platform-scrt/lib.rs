@@ -3,7 +3,7 @@ pub use secret_cosmwasm_storage as cosmwasm_storage;
 pub use cosmwasm_schema;
 
 pub use serde;
-pub use schemars;
+pub use schemars::{self, JsonSchema};
 
 pub mod addr;
 pub use addr::{Humanize, Canonize};
