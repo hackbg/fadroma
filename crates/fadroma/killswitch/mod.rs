@@ -1,16 +1,8 @@
 use std::fmt;
 
 use crate::{
-    scrt::{
-        schemars::{self, JsonSchema},
-        cosmwasm_std::{
-            self, Extern, Storage, Api, Querier, StdResult, StdError,
-            HumanAddr, CanonicalAddr, HandleResponse, Env, log
-        },
-        Humanize, Canonize
-    },
-    auth::{admin::assert_admin, proc::require_admin},
-    derive_contract::{contract, handle, query}
+    prelude::*,
+    admin::{assert_admin, require_admin},
 };
 
 use serde::{Serialize, Deserialize};

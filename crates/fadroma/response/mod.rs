@@ -1,13 +1,7 @@
 //! note: see issue #35203 <https://github.com/rust-lang/rust/issues/35203>
 #![allow(patterns_in_fns_without_body)]
 
-use crate::scrt::{
-    cosmwasm_std::{
-        StdResult, HumanAddr, CosmosMsg, InitResponse,
-        HandleResponse, to_binary, log
-    },
-    ContractLink, to_cosmos_msg
-};
+use crate::prelude::*;
 
 pub trait ResponseBuilder: Sized {
     fn msg (mut self, msg: CosmosMsg) -> StdResult<Self>;

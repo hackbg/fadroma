@@ -1,15 +1,5 @@
-use crate::scrt::{
-    cosmwasm_std::{
-        StdResult, Storage, ReadonlyStorage, Api,
-        Querier, Order, KV, to_vec, from_slice,
-        testing::MockApi
-    },
-    Humanize, Canonize
-};
-
-use crate::storage::*;
+use crate::{prelude::{*, testing::MockApi}, make_composable};
 use super::*;
-use super::make_composable;
 
 #[derive(Clone)]
 /// Same as regular Extern but clonable.
@@ -63,4 +53,3 @@ impl Storage for ClonableMemoryStorage {
         self.data.remove(key);
     }
 }
-

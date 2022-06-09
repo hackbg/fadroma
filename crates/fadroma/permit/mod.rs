@@ -1,11 +1,4 @@
-use crate::scrt::{
-    schemars::{self, JsonSchema},
-    cosmwasm_std::{
-        Extern, Storage, Api, Querier, StdResult,
-        StdError, HumanAddr, Binary, Uint128,
-        to_binary
-    }
-};
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[cfg(target_arch = "wasm32")] use fadroma_platform_scrt::cosmwasm_std::CanonicalAddr;
@@ -426,3 +419,4 @@ mod tests {
         assert_eq!(result, sender);
     }
 }
+

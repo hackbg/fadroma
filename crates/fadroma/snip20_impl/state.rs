@@ -1,11 +1,4 @@
-use crate::scrt::{
-    cosmwasm_std::{
-        HumanAddr, CanonicalAddr, StdResult, StdError,
-        Storage, ReadonlyStorage, BlockInfo
-    },
-    cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage}
-};
-use crate::auth::ViewingKey;
+use crate::{prelude::{*, cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage}}};
 use secret_toolkit::storage::{TypedStore, TypedStoreMut};
 
 use std::any::type_name;

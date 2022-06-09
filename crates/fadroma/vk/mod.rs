@@ -1,11 +1,10 @@
 //Copied from https://github.com/enigmampc/snip20-reference-impl/blob/master/src/viewing_key.rs
-use crate::scrt::{
-    schemars::{self, JsonSchema},
-    cosmwasm_std::{Binary, Env}
-};
+use crate::prelude::*;
 use std::fmt;
 use serde::{Deserialize, Serialize};
-use super::crypto::{Prng, sha_256, compare_slice_ct_time};
+
+#[cfg(feature = "derive")]
+pub mod vk_auth;
 
 pub const VIEWING_KEY_SIZE: usize = 32;
 

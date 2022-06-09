@@ -1,14 +1,7 @@
-use crate::{
-    scrt::{
-        schemars,
-        cosmwasm_std::{
-            self, Extern, Storage, Api, Querier, HumanAddr, CanonicalAddr,
-            StdResult, StdError, InitResponse, HandleResponse, Env, log
-        }
-    },
-    derive_contract::{contract, init, handle, query}
-};
+use crate::prelude::*;
 use serde;
+
+pub use fadroma_proc_auth::*;
 
 const ADMIN_KEY: &[u8] = b"ltp5P6sFZT";
 const PENDING_ADMIN_KEY: &[u8] = b"b5QaJXDibK";

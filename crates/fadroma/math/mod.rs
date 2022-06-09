@@ -1,5 +1,8 @@
 mod common;
 
+mod crypto;
+pub use crypto::*;
+
 mod convert;
 pub use convert::*;
 

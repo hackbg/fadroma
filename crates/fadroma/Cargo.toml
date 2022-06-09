@@ -26,69 +26,101 @@ path = "lib.rs"
 
 [features]
 default = [
+  # Features
   "scrt"
 ]
 
 scrt = [
+  # Dependencies
   "fadroma-platform-scrt"
 ]
 
-auth = [
+admin = [
+  # Features
   "scrt",
   "derive",
   "storage",
+  # Dependencies
   "fadroma-proc-auth",
-  "serde",
-  "remain",
+  "serde"
+]
+
+permit = [
+  # Features
+  "scrt",
+  # Dependencies
   "ripemd160",
   "secp256k1",
   "sha2",
+  "remain",
+]
+
+vk = [
+  # Features
+  "scrt",
+  "derive",
+  "storage",
+  # Dependencies
+  "fadroma-proc-auth",
+  "serde",
   "rand_chacha",
   "rand_core",
   "subtle"
 ]
 
 composability = [
+  # Features
   "scrt",
   "storage",
+  # Dependencies
   "serde"
-  # TODO from fadroma-composability/Cargo.toml: what to do with these?
-  #[target.'cfg(not(target_arch="wasm32"))'.dependencies]
-  #fadroma-platform-scrt = { path = "../fadroma-platform-scrt", features = ["iterator"] }
 ]
 
 derive = [
+  # Dependencies
   "fadroma-proc-derive"
 ]
 
 ensemble = [
+  # Features
   "scrt",
   "storage",
+  # Dependencies
   "oorandom"
 ]
 
 killswitch = [
+  # Features
   "scrt",
-  "auth",
+  "admin",
   "storage",
   "derive",
+  # Dependencies
   "serde"
 ]
 
 math = [
+  # Features
   "scrt",
+  # Dependencies
   "serde",
   "primitive-types"
 ]
 
 snip20-client = [
+  # Features
   "scrt",
+  # Dependencies
   "secret-toolkit"
 ]
 
 snip20-impl = [
+  # Features
   "scrt",
-  "auth",
+  "admin",
+  "permit",
+  "vk",
+  # Dependencies
   "secret-toolkit",
   "storage",
   "serde",
@@ -98,10 +130,12 @@ snip20-impl = [
 
 storage = [
   "scrt",
+  # Dependencies
   "serde"
 ]
 
 message = [
+  # Dependencies
   "fadroma-proc-message"
 ]
 
@@ -137,3 +171,7 @@ secret-toolkit  = { optional = true, version = "0.3.0",   default-features = fal
 serde           = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
 sha2            = { optional = true, version = "0.9.1",   default-features = false }
 subtle          = { optional = true, version = "2.4.0",   default-features = false }
+
+# Enable iterator for testing (not supported in production)
+[target.'cfg(not(target_arch="wasm32"))'.dependencies]
+fadroma-platform-scrt = { optional = true, path = "../fadroma-platform-scrt", features = ["iterator"] }

@@ -1,18 +1,6 @@
-use crate::{
-    scrt::{
-        schemars::{self, JsonSchema},
-        cosmwasm_std::{
-            self, Extern, Storage, Api, Querier,
-            StdResult, StdError, HandleResponse,
-            to_binary
-        },
-    },
-    derive_contract::*,
-    storage::{ns_load, ns_save}
-};
+use crate::prelude::*;
 use serde::{Serialize, Deserialize};
-
-use super::vk::{ViewingKey, VIEWING_KEY_SIZE};
+use super::{ViewingKey, VIEWING_KEY_SIZE};
 
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 

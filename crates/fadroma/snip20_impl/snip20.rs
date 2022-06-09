@@ -1,11 +1,4 @@
-use crate::{
-    scrt::cosmwasm_std::{
-        Extern, Storage, ReadonlyStorage, Api, Querier, Env, StdResult,
-        StdError, HumanAddr, CanonicalAddr, Uint128, InitResponse, Coin,
-        HandleResponse, CosmosMsg, BankMsg, BlockInfo, Binary, to_binary, log
-    },
-    auth::{Permit, ViewingKey, VIEWING_KEY_SIZE}
-};
+use crate::{prelude::*, vk::VIEWING_KEY_SIZE};
 
 use std::fmt;
 use std::fmt::Write;
