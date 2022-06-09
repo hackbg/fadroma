@@ -55,11 +55,11 @@ pub use fadroma_proc_message as proc_message;
 #[cfg(feature = "message")]
 pub use fadroma_proc_message::*;
 
-#[cfg(feature = "snip20-api")]
-pub mod snip20_api;
+#[cfg(feature = "snip20-client")]
+pub mod snip20_client;
 
-#[cfg(feature = "snip20-api")]
-pub use snip20_api::*;
+#[cfg(feature = "snip20-client")]
+pub use snip20_client::*;
 
 #[cfg(feature = "snip20-impl")]
 pub mod snip20_impl;

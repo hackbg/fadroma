@@ -81,7 +81,7 @@ math = [
   "primitive-types"
 ]
 
-snip20-api = [
+snip20-client = [
   "scrt",
   "secret-toolkit"
 ]
