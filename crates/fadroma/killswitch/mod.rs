@@ -9,8 +9,7 @@ use crate::{
         },
         Humanize, Canonize
     },
-    auth::admin::assert_admin,
-    auth_proc::require_admin,
+    auth::{admin::assert_admin, proc::require_admin},
     derive_contract::{contract, handle, query}
 };
 
