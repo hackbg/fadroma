@@ -76,6 +76,9 @@ pub use storage::*;
 #[cfg(feature = "reexport-secret-toolkit")]
 pub use secret_toolkit;
 
+#[cfg(feature = "reexport-secret-toolkit")]
+pub use secret_toolkit::*;
+
 pub mod prelude {
 
     #[cfg(feature = "scrt")]

@@ -133,7 +133,7 @@ remain          = { optional = true, version = "0.2.2"  }
 schemars        = { optional = true, version = "0.7"    }
 ripemd160       = { optional = true, version = "0.9.1"  }
 secp256k1       = { optional = true, version = "0.20.3" }
-secret-toolkit  = { optional = true, version = "0.3.0",   default-features = false, features = ["snip20", "storage"] }
+secret-toolkit  = { optional = true, version = "0.3.0",   default-features = false, features = ["snip20", "snip721", "storage"] }
 serde           = { optional = true, version = "1.0.103", default-features = false, features = ["derive"] }
 sha2            = { optional = true, version = "0.9.1",   default-features = false }
 subtle          = { optional = true, version = "2.4.0",   default-features = false }
