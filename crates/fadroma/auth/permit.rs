@@ -1,4 +1,4 @@
-use fadroma_platform_scrt::{
+use crate::scrt::{
     schemars::{self, JsonSchema},
     cosmwasm_std::{
         Extern, Storage, Api, Querier, StdResult,

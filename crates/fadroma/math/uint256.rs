@@ -3,7 +3,7 @@ use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::ops::{Add, Sub, Mul, Div};
 
-use fadroma_platform_scrt::{
+use crate::scrt::{
     schemars,
     cosmwasm_std::{StdResult, StdError, Uint128}
 };
@@ -11,7 +11,7 @@ use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use schemars::JsonSchema;
 use primitive_types::U256;
 
-use crate::{
+use super::{
     common::{error, impl_common_api},
     decimal_256::Decimal256
 };

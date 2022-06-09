@@ -11,7 +11,7 @@ pub mod composability;
 pub mod ensemble;
 
 #[cfg(feature = "derive")]
-pub use fadroma_derive_contract as derive;
+pub use fadroma_proc_derive as derive;
 
 #[cfg(feature = "killswitch")]
 pub mod killswitch;
@@ -34,25 +34,25 @@ pub use fadroma_proc_message as proc_message;
 pub mod snip20_api;
 
 #[cfg(feature = "snip20-impl")]
-pub use fadroma_snip20_impl as snip20_impl;
+pub mod snip20_impl;
 
 #[cfg(feature = "storage")]
-pub use fadroma_storage as storage;
+pub mod storage;
 
 pub mod prelude {
 
     #[cfg(feature = "scrt")]
-    pub use fadroma_platform_scrt::{
+    pub use crate::scrt::{
         Humanize, Canonize, CodeId, CodeHash,
         ContractLink, ContractInstantiationInfo,
         Callback, to_cosmos_msg, space_pad, BLOCK_SIZE
     };
 
     #[cfg(feature = "scrt")]
-    pub use fadroma_math::*;
+    pub use crate::math::*;
 
     #[cfg(feature = "storage")]
-    pub use fadroma_storage::{
+    pub use crate::storage::{
         load, save, remove,
         ns_load, ns_save, ns_remove
     };

@@ -1,16 +1,16 @@
-use fadroma_platform_scrt::{
+use crate::scrt::{
     schemars::{self, JsonSchema},
     cosmwasm_std::{
         self, Extern, Storage, Api, Querier,
         StdResult, StdError, HandleResponse,
         to_binary
-    }
+    },
+    derive::*,
+    storage::{ns_load, ns_save}
 };
-use fadroma_derive_contract::*;
-use fadroma_storage::{ns_load, ns_save};
 use serde::{Serialize, Deserialize};
 
-use crate::vk::{ViewingKey, VIEWING_KEY_SIZE};
+use super::vk::{ViewingKey, VIEWING_KEY_SIZE};
 
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 

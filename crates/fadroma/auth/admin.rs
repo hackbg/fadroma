@@ -1,11 +1,13 @@
-use fadroma_platform_scrt::{
-    schemars,
-    cosmwasm_std::{
-        self, Extern, Storage, Api, Querier, HumanAddr, CanonicalAddr,
-        StdResult, StdError, InitResponse, HandleResponse, Env, log
-    }
+use crate::{
+    scrt::{
+        schemars,
+        cosmwasm_std::{
+            self, Extern, Storage, Api, Querier, HumanAddr, CanonicalAddr,
+            StdResult, StdError, InitResponse, HandleResponse, Env, log
+        }
+    },
+    derive::{contract, init, handle, query}
 };
-use fadroma_derive_contract::{contract, init, handle, query};
 use serde;
 
 const ADMIN_KEY: &[u8] = b"ltp5P6sFZT";
