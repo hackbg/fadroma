@@ -1,11 +1,5 @@
-use fadroma_platform_scrt::cosmwasm_std::{
-    AllBalanceResponse, BalanceResponse, BankQuery, Empty, Querier,
-    QuerierResult, QueryRequest, SystemError, WasmQuery,
-    from_slice, to_binary, 
-    testing::MockQuerier
-};
-
-use crate::ensemble::Context;
+use crate::prelude::{*, testing::MockQuerier};
+use super::ensemble::Context;
 
 pub struct EnsembleQuerier {
     // NOTE: raw pointer to crate::ensemble::ContractEnsemble::ctx

@@ -1,19 +1,9 @@
+use crate::prelude::{*, testing::MockApi};
 use std::collections::HashMap;
 use std::fmt::Debug;
-
-use fadroma_platform_scrt::{
-    cosmwasm_std::{
-        from_binary, testing::MockApi, to_binary, BankMsg, Binary, BlockInfo, Coin,
-        CosmosMsg, Env, Extern, HandleResponse, HumanAddr, InitResponse, StdResult,
-        WasmMsg, ContractInfo, MessageInfo
-    },
-    ContractInstantiationInfo, ContractLink
-};
-
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-
-use crate::{
+use super::{
     bank::{Balances, Bank},
     env::MockEnv,
     querier::EnsembleQuerier,

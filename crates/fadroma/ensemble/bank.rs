@@ -1,8 +1,5 @@
+use crate::prelude::*;
 use std::collections::HashMap;
-
-use fadroma_platform_scrt::cosmwasm_std::{
-    coin, Coin, HumanAddr, StdError, StdResult, Uint128
-};
 
 pub type Balances = HashMap<String, Uint128>;
 

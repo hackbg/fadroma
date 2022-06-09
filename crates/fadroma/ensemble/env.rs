@@ -1,10 +1,4 @@
-use fadroma_platform_scrt::{
-    schemars,
-    schemars::JsonSchema,
-    cosmwasm_std::{Coin, HumanAddr},
-    ContractLink
-};
-
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

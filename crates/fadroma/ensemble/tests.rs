@@ -1,17 +1,6 @@
-use fadroma_platform_scrt::{
-    schemars::{self, JsonSchema},
-    cosmwasm_std::{
-        coin, from_binary, to_binary, to_vec, Binary,
-        CosmosMsg, Empty, Env, HandleResponse, HumanAddr,
-        InitResponse, Querier, QueryRequest, StdError,
-        StdResult, Storage, Uint128, WasmMsg, WasmQuery
-    },
-    ContractLink, ContractInstantiationInfo, Callback
-};
-use fadroma_storage::{load, save};
+use crate::prelude::*;
 use serde::{Deserialize, Serialize};
-
-use crate::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
+use super::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
 
 const SEND_AMOUNT: u128 = 100;
 const SEND_DENOM: &str = "uscrt";

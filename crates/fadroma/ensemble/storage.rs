@@ -1,12 +1,8 @@
+use crate::prelude::*;
 use std::collections::BTreeMap;
 use std::iter;
 use std::ops::{Bound, RangeBounds};
-
-use fadroma_platform_scrt::cosmwasm_std::{
-    Order, ReadonlyStorage, Storage, KV
-};
-
-use crate::revertable::Revertable;
+use super::revertable::Revertable;
 
 #[derive(Clone, Default, Debug)]
 pub struct TestStorage(BTreeMap<Vec<u8>, Vec<u8>>);
