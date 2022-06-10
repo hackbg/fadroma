@@ -9,7 +9,50 @@ use super::uint256::Uint256;
 /// * `rate` - corresponds to the output token decimals. E.g: If we want 1:1 rate and the output token has 6 decimals, then rate = 1_000_000
 /// * `input_decimals` - the number of decimals of the input token
 /// * `output_decimals` - the number of decimals of the output token
-pub fn convert_token(
+pub fn convert_decimals_u128(
+    amount: u128,
+    rate: u128,
+    input_decimals: u8,
+    output_decimals: u8
+) -> StdResult<u128> {
+    // result = amount * rate / one whole output token
+
+    let amount = Uint256::from(amount);
+    let rate = Uint256::from(rate);
+
+    let mut result = (amount * rate)?;
+
+    // But, if tokens have different number of decimals, we need to compensate either by
+    // dividing or multiplying (depending on which token has more decimals) the difference
+    if input_decimals < output_decimals {
+        let compensation = one_token(
+            output_decimals - input_decimals
+        );
+
+        result = (result * Uint256::from(compensation))?;
+    } else if output_decimals < input_decimals {
+        let compensation = one_token(
+            input_decimals - output_decimals
+        );
+
+        result = (result / Uint256::from(compensation))?;
+    }
+
+    let whole_token = Uint256::from(one_token(output_decimals));
+    let result = (result / whole_token)?;
+
+    result.clamp_u128()
+}
+
+/// Convert between tokens with different decimals.
+///
+/// # Arguments
+///
+/// * `amount` - the amount of input token to convert
+/// * `rate` - corresponds to the output token decimals. E.g: If we want 1:1 rate and the output token has 6 decimals, then rate = 1_000_000
+/// * `input_decimals` - the number of decimals of the input token
+/// * `output_decimals` - the number of decimals of the output token
+pub fn convert_decimals(
     amount: impl Into<Uint256>,
     rate: impl Into<Uint256>,
     input_decimals: u8,
@@ -21,7 +64,7 @@ pub fn convert_token(
 
     let result = (amount * rate)?;
 
-    // But, if tokens have different number of decimals, we need to compensate either by 
+    // But, if tokens have different number of decimals, we need to compensate either by
     // dividing or multiplying (depending on which token has more decimals) by the difference.
     // However, we can combine this and the last operation by simply dividing by the input decimals
     // if there is a difference.
@@ -49,7 +92,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_convert_token() {
+    fn test_convert_decimals() {
         // Assuming the user friendly (in the UI) exchange rate has been set to
         // 1 swapped_token (9 decimals) == 1.5 input_token (9 decimals):
         // the rate would be 1 / 1.5 = 0.(6) or 666666666 (0.(6) ** 10 * 9)
@@ -62,7 +105,7 @@ mod tests {
         let rate = 666_666_666;
         let amount = 3_000_000_000u128;
 
-        let result = convert_token(amount, rate, 9, 9).unwrap();
+        let result = convert_decimals(amount, rate, 9, 9).unwrap();
         assert_eq!(result, 1_999_999_998u128.into());
 
         // Should work the same even if input_token has less decimals (ex. 6)
@@ -72,7 +115,7 @@ mod tests {
         let rate = 666_666_666;
         let amount = 3_000_000;
 
-        let result = convert_token(amount, rate, 6, 9).unwrap();
+        let result = convert_decimals(amount, rate, 6, 9).unwrap();
         assert_eq!(result, 1_999_999_998.into());
 
         // And the other way around - when swap_token has 6 decimals.
@@ -81,19 +124,19 @@ mod tests {
         let rate = 666_666;
         let amount = 3_000_000_000u64;
 
-        let result = convert_token(amount, rate, 9, 6).unwrap();
+        let result = convert_decimals(amount, rate, 9, 6).unwrap();
         assert_eq!(result, 1_999_998.into());
 
         let rate = 150000000;
         let amount = 5 * one_token(18);
 
-        let result = convert_token(amount, rate, 18, 8).unwrap();
+        let result = convert_decimals(amount, rate, 18, 8).unwrap();
         assert_eq!(result, 7_5_000_000_0.into());
 
         let rate = 15 * one_token(17); // 1.5
         let amount = 5 * one_token(8);
 
-        let result = convert_token(amount, rate, 8, 18).unwrap();
+        let result = convert_decimals(amount, rate, 8, 18).unwrap();
         assert_eq!(result, (75 * one_token(17)).into()); // 7.5
     }
 }
