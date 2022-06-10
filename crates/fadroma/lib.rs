@@ -90,3 +90,47 @@ pub mod prelude {
     pub use crate::composability::Composable;
 
 }
+
+#[cfg(target_arch = "wasm32")]
+pub mod entrypoint {
+    #[cfg(feature = "scrt")]
+    pub use crate::scrt::cosmwasm_std::{
+        do_handle, do_init, do_query,
+        ExternalApi, ExternalQuerier, ExternalStorage,
+    };
+}
+
+#[macro_export] macro_rules! entrypoint {
+    ($fadroma:path, $init:path, $handle:path, $query:path) => {
+        #[cfg(target_arch = "wasm32")]
+        mod wasm {
+            use super::contract;
+            use $fadroma::{entrypoint::*};
+            #[no_mangle]
+            extern "C" fn init(env_ptr: u32, msg_ptr: u32) -> u32 {
+                do_init(
+                    &contract::init::<ExternalStorage, ExternalApi, ExternalQuerier>,
+                    env_ptr,
+                    msg_ptr,
+                )
+            }
+            #[no_mangle]
+            extern "C" fn handle(env_ptr: u32, msg_ptr: u32) -> u32 {
+                do_handle(
+                    &contract::handle::<ExternalStorage, ExternalApi, ExternalQuerier>,
+                    env_ptr,
+                    msg_ptr,
+                )
+            }
+            #[no_mangle]
+            extern "C" fn query(msg_ptr: u32) -> u32 {
+                do_query(
+                    &contract::query::<ExternalStorage, ExternalApi, ExternalQuerier>,
+                    msg_ptr,
+                )
+            }
+            // Other C externs like cosmwasm_vm_version_1, allocate, deallocate are available
+            // automatically because we `use cosmwasm_std`.
+        }
+    }
+}
