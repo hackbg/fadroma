@@ -91,21 +91,16 @@ pub mod prelude {
 
 }
 
-#[cfg(target_arch = "wasm32")]
-pub mod entrypoint {
-    #[cfg(feature = "scrt")]
-    pub use crate::scrt::cosmwasm_std::{
-        do_handle, do_init, do_query,
-        ExternalApi, ExternalQuerier, ExternalStorage,
-    };
-}
-
+#[cfg(feature = "scrt")]
 #[macro_export] macro_rules! entrypoint {
     ($fadroma:path, $init:path, $handle:path, $query:path) => {
         #[cfg(target_arch = "wasm32")]
         mod wasm {
             use super::contract;
-            use $fadroma::{entrypoint::*};
+            use $fadroma::{scrt::cosmwasm_std::{
+                do_handle, do_init, do_query,
+                ExternalApi, ExternalQuerier, ExternalStorage,
+            }};
             #[no_mangle]
             extern "C" fn init(env_ptr: u32, msg_ptr: u32) -> u32 {
                 do_init(
