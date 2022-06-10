@@ -1,3 +1,5 @@
+//! Emergency pause and termination of contracts.
+
 use std::fmt;
 
 use crate::{

@@ -1,3 +1,5 @@
+//! Viewing key authentication.
+
 //Copied from https://github.com/enigmampc/snip20-reference-impl/blob/master/src/viewing_key.rs
 use crate::prelude::*;
 use std::fmt;

@@ -1,3 +1,5 @@
+//! Configurable integration testing harness.
+
 #[cfg(not(target_arch = "wasm32"))]
 mod bank;
 #[cfg(not(target_arch = "wasm32"))]

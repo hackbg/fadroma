@@ -1,3 +1,5 @@
+//! Command SNIP-20 tokens from a contract.
+
 use fadroma_platform_scrt::{
     cosmwasm_std::{HumanAddr, Uint128, StdResult, CosmosMsg, Binary, Querier},
     ContractLink, BLOCK_SIZE

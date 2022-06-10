@@ -1,8 +1,4 @@
-//!   so that feature traits from Fadroma (also foreign) can be plugged in
-//!
-//! * Maybe the simplest approach would be to implement Storage, Api and Querier on Extern
-//!   directly. However this introduces a clash between `Storage::get/set` and
-//!   `Composable::get/set`, therefor the latter will need to be renamed once again
+//! Modular contracts using native trait composition.
 
 use serde::{de::DeserializeOwned, Serialize};
 use crate::{prelude::*, storage::{concat, namespace::{key_prefix, key_prefix_nested}}};

@@ -1,3 +1,5 @@
+//! Authentication using SNIP-24 query permits.
+
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 

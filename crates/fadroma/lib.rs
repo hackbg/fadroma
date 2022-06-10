@@ -45,6 +45,7 @@ pub mod ensemble;
 pub use secret_toolkit;
 
 pub mod prelude {
+    //! The essentials.
 
     pub type UsuallyOk = StdResult<()>;
     pub type Eventually<Value> = StdResult<Option<Value>>;

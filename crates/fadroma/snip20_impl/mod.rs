@@ -1,3 +1,5 @@
+//! Customizable implementation of a SNIP-20 token.
+
 pub mod msg;
 pub mod receiver;
 pub mod state;

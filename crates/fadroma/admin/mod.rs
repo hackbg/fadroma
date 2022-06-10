@@ -1,3 +1,5 @@
+//! Transaction authentication by pre-configured admin address.
+
 use crate::prelude::*;
 use serde;
 

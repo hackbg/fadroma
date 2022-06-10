@@ -1,3 +1,5 @@
+//! 256-bit arithmetic, checksums and pseudo-random numbers.
+
 mod common;
 
 mod crypto;
