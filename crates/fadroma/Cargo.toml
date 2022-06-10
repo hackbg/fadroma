@@ -104,7 +104,11 @@ math = [
   "scrt",
   # Dependencies
   "serde",
-  "primitive-types"
+  "primitive-types",
+  "rand_core",
+  "rand_chacha",
+  "subtle",
+  "sha2"
 ]
 
 response = [
