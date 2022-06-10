@@ -5,7 +5,7 @@ use super::{ViewingKey, VIEWING_KEY_SIZE};
 const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 
 #[contract]
-pub trait Auth {
+pub trait VkAuth {
     #[handle]
     fn create_viewing_key(entropy: String, _padding: Option<String>) -> StdResult<HandleResponse> {
         let prng_seed = [ 

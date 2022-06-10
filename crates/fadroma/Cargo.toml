@@ -107,6 +107,11 @@ math = [
   "primitive-types"
 ]
 
+response = [
+  # Features
+  "scrt"
+]
+
 snip20-client = [
   # Features
   "scrt",
