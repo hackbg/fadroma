@@ -93,10 +93,18 @@ pub mod prelude {
 
 #[cfg(feature = "scrt")]
 #[macro_export] macro_rules! entrypoint {
-    ($fadroma:path, $($init:ident)::+, $($handle:ident)::+, $($query:ident)::+) => {
+    ($($fadroma:ident)::+, $($contract:ident)::+ $(,)?) => {
+        $($fadroma)::+::entrypoint!(
+            $($fadroma)::+,
+            $($contract)::+::init,
+            $($contract)::+::handle,
+            $($contract)::+::query,
+        );
+    };
+    ($($fadroma:ident)::+, $($init:ident)::+, $($handle:ident)::+, $($query:ident)::+ $(,)?) => {
         #[cfg(target_arch = "wasm32")]
         mod wasm {
-            use $fadroma::{scrt::cosmwasm_std::{
+            use $($fadroma)::+::{scrt::cosmwasm_std::{
                 do_init,
                 do_handle,
                 do_query,
