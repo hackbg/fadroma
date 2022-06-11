@@ -1,11 +1,4 @@
-use fadroma::{
-    cosmwasm_std::{
-        from_binary, to_binary, Binary, Env, HandleResponse, InitResponse, StdError, StdResult,
-        Uint128,
-    },
-    ensemble::*,
-};
-
+use fadroma::{prelude::*, ensemble::*};
 use serde::{Deserialize, Serialize};
 
 use derive_contract_interface;
