@@ -25,7 +25,7 @@ export class Path {
 
   static separator = sep
 
-  constructor (base: string|URL|Path, ...fragments: string[]) {
+  constructor (base: string|URL|Path = cwd(), ...fragments: string[]) {
     if (base instanceof Path) {
       base = base.path
     }
@@ -85,27 +85,26 @@ export class Path {
     return resolve(this.path, basename(name))
   }
 
-  get exists (): boolean {
+  exists (): boolean {
     return existsSync(this.path)
   }
 
   assert (): this {
-    if (!this.exists) throw new Error(`${this.path} does not exist`)
-    return this
+    if (this.exists) {
+      return this
+    } else {
+      throw new Error(`${this.path} does not exist`)
+    }
   }
 
   isDirectory (name?: string): boolean {
-    const exists      = this.exists
-    const isDirectory = statSync(this.path).isDirectory()
     const nameMatches = name ? (name === this.name) : true
-    return this.exists && isDirectory && nameMatches
+    return this.exists() && statSync(this.path).isDirectory() && nameMatches
   }
 
   isFile (name?: string): boolean {
-    const exists = this.exists
-    const isFile = statSync(this.path).isFile()
     const nameMatches = name ? (name === this.name) : true
-    return (exists && isFile && nameMatches)
+    return this.exists() && statSync(this.path).isFile() && nameMatches
   }
 
   delete (): this {
