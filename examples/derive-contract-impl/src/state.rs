@@ -1,8 +1,4 @@
-use fadroma::{
-    schemars::{self, JsonSchema},
-    cosmwasm_std::{StdResult, Storage},
-    prelude::*
-};
+use fadroma::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]

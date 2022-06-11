@@ -1,10 +1,4 @@
-use fadroma::{
-    cosmwasm_std,
-    cosmwasm_std::{HandleResponse, InitResponse, StdResult},
-    derive_contract::*,
-    schemars,
-    schemars::JsonSchema,
-};
+use fadroma::{prelude::*, derive_contract::*};
 use serde::{Deserialize, Serialize};
 
 #[interface]
