@@ -1,7 +1,7 @@
 use fadroma::{prelude::*, ensemble::*};
 use serde::{Deserialize, Serialize};
 
-use derive_contract_interface;
+use fadroma_example_derive_contract_interface as derive_contract_interface;
 
 pub struct Oracle;
 

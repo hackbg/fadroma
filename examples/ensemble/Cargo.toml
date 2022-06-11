@@ -11,4 +11,4 @@ path = "src/lib.rs"
 [dependencies]
 fadroma = { path = "../../crates/fadroma" }
 serde   = { version = "1.0.103", default-features = false, features = ["derive"] }
-derive-contract-interface = { path = "../derive-contract-interface" }
+fadroma-example-derive-contract-interface = { path = "../derive-contract-interface" }
