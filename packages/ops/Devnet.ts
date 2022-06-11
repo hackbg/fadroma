@@ -21,21 +21,24 @@ const console = Console('Fadroma Devnet')
   * in a given directory. */
 export interface DevnetOptions {
   /** Internal name that will be given to chain. */
-  chainId?:   string
+  chainId?:    string
   /** Names of genesis accounts to be created with the node */
   identities?: Array<string>
   /** Path to directory where state will be stored. */
-  stateRoot?: string,
+  stateRoot?:  string,
   /** Port to connect to. */
-  port?:      number
+  port?:       number
   /** Which of the services should be exposed the devnet's port. */
-  portMode?:  DevnetPortMode
+  portMode?:   DevnetPortMode
 }
 
 /** Used to reconnect between runs. */
 export interface DevnetState {
+  /** ID of Docker container to restart. */
   containerId?: string
+  /** Chain ID that was set when creating the devnet. */
   chainId:      string
+  /** The port on which the devnet will be listening. */
   port:         number|string
 }
 
@@ -109,7 +112,7 @@ export abstract class Devnet implements DevnetHandle {
   }
 
   /** Restore this node from the info stored in the nodeState file */
-  load () {
+  async load (): Promise<DevnetState> {
     const path = relative(cwd(), this.nodeState.path)
     if (this.stateRoot.exists() && this.nodeState.exists()) {
       console.info(bold(`Loading:  `), path)
@@ -119,7 +122,7 @@ export abstract class Devnet implements DevnetHandle {
         if (this.chainId !== chainId) {
           console.warn(`Loading state of ${chainId} into Devnet with id ${this.chainId}`)
         }
-        this.port = port
+        this.port = port as number
         return data
       } catch (e) {
         console.warn(`Failed to load ${path}. Deleting it`)
@@ -195,7 +198,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
 
   /** Gets the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<AgentOptions> {
-    return this.identities.load(name)
+    return this.identities.at(`${name}.json`).as(JSONFile).load()
   }
 
   /** Once this phrase is encountered in the log output
@@ -212,7 +215,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
     console.info(`Spawning new node...`)
     // if no port is specified, use a random port
     if (!this.port) {
-      this.port = await freePort()
+      this.port = (await freePort()) as number
     }
     // create the state dirs and files
     const items = [this.stateRoot, this.nodeState]
@@ -295,8 +298,8 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
     )
   }
 
-  async load (): Promise<DevnetState> | null {
-    const data = super.load()
+  async load (): Promise<DevnetState> {
+    const data = await super.load()
     if (data.containerId) {
       this.container = await this.dokeres.container(data.containerId)
     } else {

@@ -5,7 +5,7 @@ import { existsSync, statSync, readFileSync, writeFileSync, readlinkSync, unlink
 
 import { Console, bold, colors } from '@hackbg/konzola'
 import { timestamp, backOff } from '@hackbg/toolbox'
-import { JSONDirectory, mkdirp } from '@hackbg/kabinet'
+import { JSONFile, JSONDirectory, mkdirp } from '@hackbg/kabinet'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 
@@ -103,13 +103,10 @@ export class Deployments extends JSONDirectory<unknown> {
       .map(x=>basename(x,'.yml'))
   }
 
-  save (name: string, data: any) {
-    name = `${name}.json`
-    console.info('Deployments writing:', bold(relative(config.projectRoot, this.resolve(name))))
-    if (data instanceof Object) {
-      data = JSON.stringify(data, null, 2)
-    }
-    return super.save(name, data)
+  save <D> (name: string, data: D) {
+    const file = this.at(`${name}.json`).as(JSONFile) as JSONFile<D>
+    console.info('Deployments writing:', bold(file.shortPath))
+    return file.save(data)
   }
 
 }

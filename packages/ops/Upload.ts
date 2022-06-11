@@ -111,7 +111,7 @@ export class CachingFSUploader extends FSUploader {
   }
 
   protected getUploadReceiptName (artifact: Artifact): string {
-    return $(artifact.url).name
+    return `${$(artifact.url).name}.json`
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
@@ -188,7 +188,8 @@ export class CachingFSUploader extends FSUploader {
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const receiptName = this.getUploadReceiptName(artifactsToUpload[i])
-        this.cache.save(receiptName, uploaded[i])
+        const receiptFile = $(this.cache, receiptName).as(JSONFile)
+        receiptFile.save(uploaded[i])
         templates[i] = uploaded[i]
       }
     } else {
