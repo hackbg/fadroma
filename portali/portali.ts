@@ -9,7 +9,7 @@ export function freePort () {
     let port = 0
     const server = createServer()
     server.on('listening', () => {
-      port = server.address().port
+      port = (server.address() as { port: number }).port
       server.close()
     })
     server.on('close', () => ok(port))

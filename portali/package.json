@@ -2,8 +2,7 @@
   "name":    "@hackbg/portali",
   "version": "1.0.1",
   "type":    "module",
-  "main":    "portali.js",
-  "types":   "portali.d.ts",
+  "main":    "portali.ts",
   "dependencies": {
     "wait-port": "^0.2.9"
   }
