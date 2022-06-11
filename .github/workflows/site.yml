@@ -30,7 +30,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: doc
-          args: --features scrt,admin,permit,vk,composability,derive,ensemble,killswitch,math,snip20-client,snip20-impl,storage,message,response
+          args: --all-features
 
       - name: Install PNPM and deps
         uses: pnpm/action-setup@v2.0.1
