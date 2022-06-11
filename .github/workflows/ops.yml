@@ -13,5 +13,5 @@ jobs:
           version: 6.14.3
           run_install: |
             - recursive: true
-      - name: Run tests with coverage
-        run: ls -al && pnpm cov
+      - name: Run type checks
+        run: ls -al && pnpm check
