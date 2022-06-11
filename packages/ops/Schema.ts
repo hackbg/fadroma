@@ -10,23 +10,6 @@ import TOML from 'toml'
 
 const console = Console('@fadroma/ops/schema')
 
-const loadJSON = () => { throw new Error('loadJSON: deprecated') }
-
-export function loadSchemas (
-  base:    string,
-  schemas: Record<string,string> = {}
-) {
-  const output = {}
-  for (const [name, path] of Object.entries(schemas)) {
-    try {
-      output[name] = loadJSON(path, base)
-    } catch (e) {
-      console.warn(`Could not load schema ${name} from ${base}: ${e.message}`)
-    }
-  }
-  return output
-}
-
 export async function generateSchema (projectRoot: string, dirs: Array<string>) {
   for (const dir of dirs) {
     console.info(`Generating schema for ${bold(dir)}`)
