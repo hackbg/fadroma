@@ -35,12 +35,8 @@ export class Path {
     this.path = resolve(base, ...fragments)
   }
 
+  /** The represented path. */
   path: string
-
-  resolve (name): string {
-    if (name.includes('/')) throw new Error(`invalid name: ${name}`)
-    return resolve(this.path, basename(name))
-  }
 
   relative (path: Path|string): string {
     if (path instanceof Path) path = path.path
@@ -59,21 +55,57 @@ export class Path {
     return relative(cwd(), this.path) || '.'
   }
 
+  /** Return a Path pointing of a subdirectory of the current one. */
+  at (...fragments: string[]): Path {
+    const sub = new (this.constructor as PathCtor<typeof this>)(this.path, ...fragments)
+    if (sub.isDirectory()) {
+      throw new Error(`@hackbg/kabinet: Path#at: use .in() to descend into directory: ${sub.path}`)
+    }
+    return sub
+  }
+
+  /** Return a Path pointing of a file in the current directory. */
+  in (...fragments: string[]): Path {
+    const sub = new (this.constructor as PathCtor<typeof this>)(this.path, ...fragments)
+    if (sub.isFile()) {
+      throw new Error(`@hackbg/kabinet: use .at() to point to file: ${sub.path}`)
+    }
+    return sub
+  }
+
+  /** Convert this Path into a class that knows what to do with
+    * the data at the represented path. */
+  as <T, U extends BaseFile<T>|BaseDirectory<T, BaseFile<T>>> (Ctor: PathCtor<U>): U {
+    return new Ctor(this.path)
+  }
+
+  /** FIXME */
+  resolve (name): string {
+    if (name.includes('/')) throw new Error(`invalid name: ${name}`)
+    return resolve(this.path, basename(name))
+  }
+
   get exists (): boolean {
     return existsSync(this.path)
-  }
-
-  get isDir (): boolean {
-    return this.exists && statSync(this.path).isDirectory()
-  }
-
-  get isFile (): boolean {
-    return this.exists && statSync(this.path).isFile()
   }
 
   assert (): this {
     if (!this.exists) throw new Error(`${this.path} does not exist`)
     return this
+  }
+
+  isDirectory (name?: string): boolean {
+    const exists      = this.exists
+    const isDirectory = statSync(this.path).isDirectory()
+    const nameMatches = name ? (name === this.name) : true
+    return this.exists && isDirectory && nameMatches
+  }
+
+  isFile (name?: string): boolean {
+    const exists = this.exists
+    const isFile = statSync(this.path).isFile()
+    const nameMatches = name ? (name === this.name) : true
+    return (exists && isFile && nameMatches)
   }
 
   delete (): this {
@@ -90,24 +122,10 @@ export class Path {
     throw new Error("@hackbg/kabinet: file or directory? use subclass")
   }
 
-  at (...fragments: string[]): Path {
-    const sub = new (this.constructor as PathCtor<typeof this>)(this.path, ...fragments)
-    if (sub.isDir) {
-      throw new Error(`@hackbg/kabinet: Path#at: use .in() to descend into directory: ${sub.path}`)
+  entrypoint <T> (command: (argv:string[])=>T): T|undefined {
+    if (this.path === process.argv[1]) {
+      return command(process.argv.slice(2))
     }
-    return sub
-  }
-
-  in (...fragments: string[]): Path {
-    const sub = new (this.constructor as PathCtor<typeof this>)(this.path, ...fragments)
-    if (sub.isFile) {
-      throw new Error(`@hackbg/kabinet: use .at() to point to file: ${sub.path}`)
-    }
-    return sub
-  }
-
-  as <T, U extends BaseFile<T>|BaseDirectory<T, BaseFile<T>>> (Ctor: PathCtor<U>): U {
-    return new Ctor(this.path)
   }
 
 }

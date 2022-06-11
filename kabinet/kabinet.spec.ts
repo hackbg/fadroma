@@ -1,4 +1,4 @@
-import { Path, getDirName, TOMLFormat } from './kabinet'
+import $, { getDirName, TOMLFile } from './kabinet'
 
 const Spec = {}
 export default { Spec }
@@ -8,17 +8,17 @@ const __dirname = getDirName(import.meta.url)
 
 test({
   'basic operation' ({ ok }) {
-    ok(new Path(__dirname).assert().isDir)
-    ok(new Path(__dirname, 'fixtures').assert().isDir)
-    ok(new Path(__dirname, 'fixtures', 'file.txt').assert().isFile)
+    ok($(__dirname).assert().isDirectory())
+    ok($(__dirname, 'fixtures').assert().isDirectory())
+    ok($(__dirname, 'fixtures', 'file.txt').assert().isFile())
   },
   'in/at nesting' ({ ok }) {
-    ok(new Path(__dirname).in('fixtures').in('subdir').isDir)
-    ok(new Path(__dirname).in('fixtures').in('subdir').at('file2.txt').isFile)
+    ok($(__dirname).in('fixtures').in('subdir').isDirectory())
+    ok($(__dirname).in('fixtures').in('subdir').at('file2.txt').isFile())
   },
   'parse TOML' ({ deepEqual }) {
     deepEqual(
-      new Path(__dirname).in('fixtures').in('subdir').at('file.toml').as(TOMLFormat).load(),
+      $(__dirname).in('fixtures').in('subdir').at('file.toml').as(TOMLFile).load(),
       { key: "value", section: { key: "value" } }
     )
   }
