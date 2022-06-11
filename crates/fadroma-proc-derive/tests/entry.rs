@@ -1,6 +1,5 @@
-use cosmwasm_std;
-use cosmwasm_std::{StdResult, HandleResponse, InitResponse, to_vec, from_slice};
-use crate::derive_contract::*;
+use crate::*;
+use cosmwasm_std::{self, StdResult, HandleResponse, InitResponse, to_vec, from_slice};
 use schemars;
 use serde;
 

@@ -1,6 +1,8 @@
-use cosmwasm_std::{StdResult, StdError, InitResponse, HandleResponse, Storage, to_vec, from_slice, from_binary};
-use cosmwasm_std::testing::{mock_dependencies, mock_env};
-use crate::derive_contract::*;
+use crate::*;
+use cosmwasm_std::{
+    StdResult, StdError, InitResponse, HandleResponse, Storage, to_vec, from_slice, from_binary,
+    testing::{mock_dependencies, mock_env}
+};
 use schemars;
 use serde;
 

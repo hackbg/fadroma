@@ -1,4 +1,4 @@
-use crate::derive_contract::*;
+use crate::*;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, DeserializeFlat, PartialEq, Debug)]
