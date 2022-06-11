@@ -1,5 +1,5 @@
 [package]
-name = "ensemble"
+name = "fadroma-example-ensemble"
 version = "0.1.0"
 edition = "2021"
 

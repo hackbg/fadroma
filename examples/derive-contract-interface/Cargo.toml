@@ -1,5 +1,5 @@
 [package]
-name = "derive-contract-interface"
+name = "fadroma-example-derive-contract-interface"
 version = "0.1.0"
 edition = "2021"
 
