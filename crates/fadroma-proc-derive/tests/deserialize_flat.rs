@@ -1,4 +1,4 @@
-use crate::*;
+use fadroma_proc_derive::*;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, DeserializeFlat, PartialEq, Debug)]

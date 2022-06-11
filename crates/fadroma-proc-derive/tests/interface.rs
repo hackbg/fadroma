@@ -1,4 +1,4 @@
-use crate::*;
+use fadroma_proc_derive::*;
 use cosmwasm_std::{StdResult, InitResponse, HandleResponse, Storage, to_vec, from_slice};
 use schemars;
 use serde;

@@ -1,4 +1,4 @@
-use crate::*;
+use fadroma_proc_derive::*;
 use cosmwasm_std::{
     StdResult, StdError, InitResponse, HandleResponse, Storage, to_vec, from_slice, from_binary,
     testing::{mock_dependencies, mock_env}
