@@ -44,12 +44,17 @@ pub mod ensemble;
 #[cfg(feature = "reexport-secret-toolkit")]
 pub use secret_toolkit;
 
+/// **Start here.** `use fadroma::prelude::* to get the essentials for
+/// writing smart contracts with Fadroma.
 pub mod prelude {
-    //! The essentials.
 
+    /// Alias for `StdResult<()>`.
     pub type UsuallyOk = StdResult<()>;
-    pub type Eventually<Value> = StdResult<Option<Value>>;
 
+    /// Alias for `StdResult<Option<V>>`.
+    pub type Eventually<V> = StdResult<Option<V>>;
+
+    /// The Fadroma Derive smart contract composition system.
     #[cfg(feature = "derive")]
     pub use fadroma_proc_derive::*;
 
