@@ -26,6 +26,8 @@ pub use querier::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub use block::Block;
 
+/// Implement ContractHarness for the harness struct.
+/// Use this to enable Fadroma Ensemble for a contract.
 #[macro_export]
 macro_rules! impl_contract_harness_default {
     ($name:ident, $contract:ident) => {

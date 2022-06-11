@@ -60,6 +60,7 @@ pub trait QueryDispatch <S, A, Q, C, R> where
     fn dispatch_query (self, core: &C) -> StdResult<R>;
 }
 
+/// Implement the Composable Core for a `struct { storage, api, querier }`
 #[macro_export]
 macro_rules! make_composable {
     ($Struct:ty) => {

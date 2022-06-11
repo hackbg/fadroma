@@ -41,7 +41,6 @@ pub trait Killswitch {
 }
 
 /// Wrap status levels around the `match` statement that does your handle dispatch.
-/// Requires the `composable_admin::admin` module.
 #[macro_export] macro_rules! with_status {
     // by default, assumes the handle msg enum is called `HandleMsg` and imported
     ($deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {

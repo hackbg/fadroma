@@ -37,6 +37,8 @@ pub trait Writable <S: Storage>: Readonly<S> {
     }
 }
 
+/// Because Rust can't yet genericize over mutability, this macro can be used
+/// to implement the same readonly methods twice - once for `&S` and for `&mut S`.
 #[macro_export] macro_rules! stateful {
     (
         $Obj:ident ($($storage:tt)+): /*{ $($accessors:tt)* } no traits no accessors */

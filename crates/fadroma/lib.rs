@@ -92,6 +92,7 @@ pub mod prelude {
 
 }
 
+/// Define the `mod wasm` entrypoint of production builds.
 #[cfg(feature = "scrt")]
 #[macro_export] macro_rules! entrypoint {
     ($($fadroma:ident)::+, $($contract:ident)::+ $(,)?) => {
