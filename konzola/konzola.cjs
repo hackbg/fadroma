@@ -27,10 +27,10 @@ function Konzola (context) {
     }
   }
 
-  return {
-    format,
-    table: (rows = []) => console.log(table(rows)),
-    log:   (...args) => console.log(           ...args),
+  const log = (...args) => console.log(...args)
+
+  return Object.assign(log, {
+    log,
     info:  (...args) => console.info( INFO(),  ...args),
     warn:  (...args) => console.warn( WARN(),  ...args),
     error: (...args) => console.error(ERROR(), ...args),
@@ -38,14 +38,15 @@ function Konzola (context) {
       console.debug(bold(magenta('TRACE')), ...args.map(format))
       console.trace()
     },
-
     debug: (...args) => {
       if (!process.env.NO_DEBUG) {
         console.debug(args.map(format).join('').slice(1))
       }
       return args[0]
-    }
-  }
+    },
+    table: (rows = []) => console.log(table(rows)),
+    format,
+  })
 
 }
 
