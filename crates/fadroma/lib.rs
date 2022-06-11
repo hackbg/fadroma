@@ -70,7 +70,7 @@ pub mod prelude {
     pub use crate::snip20_client::ISnip20;
 
     #[cfg(feature = "message")]
-    pub use crate::message::message;
+    pub use crate::proc_message::message;
 
     #[cfg(feature = "response")]
     pub use crate::response::*;

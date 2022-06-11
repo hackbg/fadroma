@@ -4,8 +4,7 @@ fadroma::entrypoint!(fadroma, init, handle, query);
 
 const KEY: &'static [u8] = b"value";
 
-#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub struct InitMsg {
+#[message] pub struct InitMsg {
     /// Optionally, the initial value of the register
     value: Option<String>
 }
@@ -19,8 +18,7 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     Ok(InitResponse::default())
 }
 
-#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum HandleMsg {
+#[message] pub enum HandleMsg {
     /// Set the value of the register
     Set(String),
     /// Empty the register
@@ -31,18 +29,13 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, _env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
     match msg {
-        HandleMsg::Set(value) => {
-            save(&mut deps.storage, KEY, &value)?
-        },
-        HandleMsg::Del => {
-            remove(&mut deps.storage, KEY)
-        }
+        HandleMsg::Set(value) => save(&mut deps.storage, KEY, &value)?,
+        HandleMsg::Del        => remove(&mut deps.storage, KEY)
     };
     Ok(HandleResponse::default())
 }
 
-#[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum QueryMsg {
+#[message] pub enum QueryMsg {
     /// Get the value of the register
     Get
 }

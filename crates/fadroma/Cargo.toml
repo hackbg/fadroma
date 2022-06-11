@@ -27,7 +27,7 @@ path = "lib.rs"
 [features]
 default = [
   # Features
-  "scrt"
+  "scrt", "message", "response"
 ]
 
 scrt = [
@@ -37,41 +37,28 @@ scrt = [
 
 admin = [
   # Features
-  "scrt",
-  "derive",
-  "storage",
+  "scrt", "derive", "storage",
   # Dependencies
-  "fadroma-proc-auth",
-  "serde"
+  "fadroma-proc-auth", "serde"
 ]
 
 permit = [
   # Features
   "scrt",
   # Dependencies
-  "ripemd160",
-  "secp256k1",
-  "sha2",
-  "remain",
+  "ripemd160", "secp256k1", "sha2", "remain",
 ]
 
 vk = [
   # Features
-  "scrt",
-  "derive",
-  "storage",
+  "scrt", "derive", "storage",
   # Dependencies
-  "fadroma-proc-auth",
-  "serde",
-  "rand_chacha",
-  "rand_core",
-  "subtle"
+  "fadroma-proc-auth", "serde", "rand_chacha", "rand_core", "subtle"
 ]
 
 composability = [
   # Features
-  "scrt",
-  "storage",
+  "scrt", "storage",
   # Dependencies
   "serde"
 ]
@@ -83,18 +70,14 @@ derive = [
 
 ensemble = [
   # Features
-  "scrt",
-  "storage",
+  "scrt", "storage",
   # Dependencies
   "oorandom"
 ]
 
 killswitch = [
   # Features
-  "scrt",
-  "admin",
-  "storage",
-  "derive",
+  "scrt", "admin", "storage", "derive",
   # Dependencies
   "serde"
 ]
@@ -103,17 +86,7 @@ math = [
   # Features
   "scrt",
   # Dependencies
-  "serde",
-  "primitive-types",
-  "rand_core",
-  "rand_chacha",
-  "subtle",
-  "sha2"
-]
-
-response = [
-  # Features
-  "scrt"
+  "serde", "primitive-types", "rand_core", "rand_chacha", "subtle", "sha2"
 ]
 
 snip20-client = [
@@ -125,16 +98,9 @@ snip20-client = [
 
 snip20-impl = [
   # Features
-  "scrt",
-  "admin",
-  "permit",
-  "vk",
+  "scrt", "admin", "permit", "vk",
   # Dependencies
-  "secret-toolkit",
-  "storage",
-  "serde",
-  "schemars",
-  "bincode2"
+  "secret-toolkit", "storage", "serde", "schemars", "bincode2"
 ]
 
 storage = [
@@ -146,6 +112,11 @@ storage = [
 message = [
   # Dependencies
   "fadroma-proc-message"
+]
+
+response = [
+  # Features
+  "scrt"
 ]
 
 # Misc
