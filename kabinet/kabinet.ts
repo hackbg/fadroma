@@ -6,7 +6,7 @@ import tmp from 'tmp'
 import { cwd } from 'process'
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
 import { fileURLToPath } from 'url'
-import { resolve, relative, dirname, basename, extname, relative, sep } from 'path'
+import { resolve, dirname, basename, extname, relative, sep } from 'path'
 import { homedir } from 'os'
 
 const rimrafSync = rimrafCb.sync
