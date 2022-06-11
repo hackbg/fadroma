@@ -29,7 +29,7 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
 
   function buildFromDirectory (dir: OpaqueDirectory) {
     const cargoToml = dir.at('Cargo.toml').as(TOMLFile)
-    if (cargoToml.exists) {
+    if (cargoToml.exists()) {
       buildFromCargoToml(cargoToml as CargoTOML)
     } else {
       printUsage()

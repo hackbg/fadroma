@@ -32,9 +32,11 @@ export interface DevnetOptions {
   portMode?:  DevnetPortMode
 }
 
+/** Used to reconnect between runs. */
 export interface DevnetState {
-  chainId: string
-  port:    number
+  containerId?: string
+  chainId:      string
+  port:         number|string
 }
 
 export abstract class Devnet implements DevnetHandle {
@@ -109,7 +111,7 @@ export abstract class Devnet implements DevnetHandle {
   /** Restore this node from the info stored in the nodeState file */
   load () {
     const path = relative(cwd(), this.nodeState.path)
-    if (this.stateRoot.exists && this.nodeState.exists) {
+    if (this.stateRoot.exists() && this.nodeState.exists()) {
       console.info(bold(`Loading:  `), path)
       try {
         const data = this.nodeState.load()
@@ -160,13 +162,6 @@ export interface DockerodeDevnetOptions extends DevnetOptions {
   readyPhrase?: string
 }
 
-/** Used to reconnect between runs. */
-export interface DockerodeDevnetReceipt {
-  containerId: string
-  chainId:     string
-  port:        number|string
-}
-
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
 export class DockerodeDevnet extends Devnet implements DevnetHandle {
@@ -196,7 +191,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
   initScript: string
 
   /** Mounted out of devnet container to persist keys of genesis wallets. */
-  identities: JSONDirectory
+  identities: JSONDirectory<unknown>
 
   /** Gets the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<AgentOptions> {
@@ -278,6 +273,9 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
   }
 
   /** Overridable for testing. */
+  protected waitPort = waitPort
+
+  /** Overridable for testing. */
   protected waitSeconds = 7
 
   /** Filter logs when waiting for the ready phrase. */
@@ -297,10 +295,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
     )
   }
 
-  /** Overridable for testing. */
-  protected waitPort = waitPort
-
-  async load (): Promise<DockerodeDevnetReceipt> | null {
+  async load (): Promise<DevnetState> | null {
     const data = super.load()
     if (data.containerId) {
       this.container = await this.dokeres.container(data.containerId)
@@ -319,7 +314,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
   async respawn () {
     const shortPath = relative(config.projectRoot, this.nodeState.path)
     // if no node state, spawn
-    if (!this.nodeState.exists) {
+    if (!this.nodeState.exists()) {
       console.info(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }
@@ -393,7 +388,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
   async erase () {
     const path = bold(relative(cwd(), this.stateRoot.path))
     try {
-      if (this.stateRoot.exists) {
+      if (this.stateRoot.exists()) {
         console.info(`Deleting ${path}...`)
         this.stateRoot.delete()
       }
@@ -532,7 +527,7 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
   async respawn () {
     const shortPath = relative(config.projectRoot, this.nodeState.path)
     // if no node state, spawn
-    if (!this.nodeState.exists) {
+    if (!this.nodeState.exists()) {
       console.info(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }

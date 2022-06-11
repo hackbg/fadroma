@@ -77,7 +77,7 @@ export class DotGit extends Path {
 
   constructor (base, ...fragments) {
     super(base, ...fragments, '.git')
-    if (!this.exists) {
+    if (!this.exists()) {
       // If .git does not exist, it is not possible to build past commits
       console.warn(bold(this.shortPath), 'does not exist')
       this.present = false

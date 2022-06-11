@@ -93,7 +93,7 @@ async function askContractNames () {
 
 async function setupRoot (name, contracts) {
   const root = $(process.cwd()).in(name)
-  if (root.exists) {
+  if (root.exists()) {
     console.log(`\n  ${name}: already exists.`)
     console.log(`  Move it out of the way, or pick a different name.`)
     process.exit(1)

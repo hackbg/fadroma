@@ -1,11 +1,7 @@
-import { cwd } from 'process'
-import { relative, basename } from 'path'
-import { readFileSync, existsSync } from 'fs'
-import { readFile } from 'fs/promises'
 import { fileURLToPath } from 'url'
 
 import { Console, bold } from '@hackbg/konzola'
-import { JSONDirectory } from '@hackbg/kabinet'
+import $, { BinaryFile, JSONFile, JSONDirectory } from '@hackbg/kabinet'
 
 import type { Agent, Template, Artifact } from '@fadroma/client'
 
@@ -38,6 +34,7 @@ export abstract class Uploader {
 }
 
 export interface UploadReceipt {
+  codeHash:           string
   codeId:             number
   compressedChecksum: string
   compressedSize:     string
@@ -48,16 +45,16 @@ export interface UploadReceipt {
 }
 
 /** Directory collecting upload receipts. */
-export class Uploads extends JSONDirectory {}
+export class Uploads extends JSONDirectory<UploadReceipt> {}
 
 /** Uploads contracts from the local file system. */
 export class FSUploader extends Uploader {
 
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
-    console.info(`Uploading:`, bold(relative(cwd(), fileURLToPath(artifact.url))))
+    console.info(`Uploading:`, bold($(artifact.url).shortPath))
     console.info(`Code hash:`, bold(artifact.codeHash))
-    const template = await this.agent.upload(await readFile(fileURLToPath(artifact.url)))
+    const template = await this.agent.upload($(artifact.url).as(BinaryFile).load())
     await this.agent.nextBlock
     return template
   }
@@ -72,7 +69,7 @@ export class FSUploader extends Uploader {
       const artifact = artifacts[i]
       let template
       if (artifact) {
-        template = await this.agent.upload(await readFile(fileURLToPath(artifact.url)))
+        template = await this.agent.upload($(artifact.url).as(BinaryFile).load())
         this.checkCodeHash(artifact, template)
       }
       templates[i] = template
@@ -88,7 +85,7 @@ export class FSUploader extends Uploader {
     if (template.codeHash !== artifact.codeHash) {
       console.warn(
         `Code hash mismatch from upload in TX ${template.uploadTx}:\n`+
-        `  Expected ${artifact.codeHash} (from ${fileURLToPath(artifact.url)})`+
+        `  Expected ${artifact.codeHash} (from ${$(artifact.url).shortPath})`+
         `  Got      ${template.codeHash} (from codeId#${template.codeId})`
       )
     }
@@ -114,17 +111,17 @@ export class CachingFSUploader extends FSUploader {
   }
 
   protected getUploadReceiptName (artifact: Artifact): string {
-    return basename(fileURLToPath(artifact.url))
+    return $(artifact.url).name
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (artifact: Artifact): Promise<Template> {
-    const receipt = this.cache.at(this.getUploadReceiptName(artifact))
-    if (receipt.exists) {
+    const receipt = this.cache.at(this.getUploadReceiptName(artifact)).as(JSONFile)
+    if (receipt.exists()) {
       return receipt.load()
     }
     const template = await super.upload(artifact)
-    console.info(bold(`Storing:  `), relative(cwd(), receipt.path))
+    console.info(bold(`Storing:  `), $(receipt.path).shortPath)
     receipt.save(template)
     return template
   }
@@ -139,18 +136,19 @@ export class CachingFSUploader extends FSUploader {
       const artifact = artifacts[i]
       this.ensureCodeHash(artifact)
 
-      const blobName     = basename(fileURLToPath(artifact.url))
+      const blobName     = $(artifact.url).name
       const receiptPath  = this.getUploadReceiptPath(artifact)
-      const relativePath = relative(cwd(), receiptPath)
+      const relativePath = $(receiptPath).shortPath
 
-      if (!existsSync(receiptPath)) {
+      if (!$(receiptPath).exists()) {
 
-        console.info(bold(`Uploading:`), `${relative(cwd(), fileURLToPath(artifact.url))}`)
+        console.info(`Uploading:`, bold($(artifact.url).shortPath))
         artifactsToUpload[i] = artifact
 
       } else {
 
-        const receiptData     = JSON.parse(readFileSync(receiptPath, 'utf8'))
+        const receiptFile     = $(receiptPath).as(JSONFile) as JSONFile<UploadReceipt>
+        const receiptData     = receiptFile.load()
         const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
 
         if (!receiptCodeHash) {
@@ -206,13 +204,14 @@ export class CachingFSUploader extends FSUploader {
   protected ensureCodeHash (artifact: Artifact) {
     if (!artifact.codeHash) {
       console.warn(
-        bold('No code hash in artifact'),
-        fileURLToPath(artifact.url)
+        'No code hash in artifact',
+        bold($(artifact.url).shortPath)
       )
       console.warn(
-        bold('Computed checksum:'),
-        artifact.codeHash = codeHashForPath(fileURLToPath(artifact.url))
+        'Computed checksum:',
+        bold(artifact.codeHash = codeHashForPath($(artifact.url).path))
       )
     }
   }
+
 }
