@@ -1,10 +1,12 @@
 use fadroma::prelude::*;
 
+/// Initial configuration of the register.
 #[message] pub struct InitMsg {
     /// Optionally, the initial value of the register
     value: Option<String>
 }
 
+/// Changing the value of the register.
 #[message] pub enum HandleMsg {
     /// Set the value of the register
     Set(String),
@@ -12,6 +14,7 @@ use fadroma::prelude::*;
     Del
 }
 
+/// Reading the value of the register.
 #[message] pub enum QueryMsg {
     /// Get the value of the register
     Get

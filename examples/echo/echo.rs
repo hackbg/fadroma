@@ -1,7 +1,10 @@
 use fadroma::prelude::*;
 
+/// Initial configuration of the contract.
+/// In this example, you can ask the instantiation to fail.
 #[message] pub struct InitMsg { fail: bool }
 
+/// Transactions that this contract supports.
 #[message] pub enum HandleMsg {
     /// Return the input message as the .data property of the response
     Echo,
@@ -9,6 +12,7 @@ use fadroma::prelude::*;
     Fail
 }
 
+/// Queries that this contract supports.
 #[message] pub enum QueryMsg {
     /// Return the input message
     Echo,
