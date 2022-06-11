@@ -21,6 +21,7 @@ export default function $ (base, ...fragments) {
   return new Path(base, ...fragments)
 }
 
+/** Represents a path to a filesystem entity, i.e. a file or directory. */
 export class Path {
 
   static separator = sep
