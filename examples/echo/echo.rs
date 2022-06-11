@@ -1,8 +1,20 @@
 use fadroma::prelude::*;
 
-fadroma::entrypoint!(fadroma, init, handle, query);
-
 #[message] pub struct InitMsg { fail: bool }
+
+#[message] pub enum HandleMsg {
+    /// Return the input message as the .data property of the response
+    Echo,
+    /// Return an error
+    Fail
+}
+
+#[message] pub enum QueryMsg {
+    /// Return the input message
+    Echo,
+    /// Return an error
+    Fail
+}
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>, _env: Env, msg: InitMsg,
@@ -14,13 +26,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-#[message] pub enum HandleMsg {
-    /// Return the input message as the .data property of the response
-    Echo,
-    /// Return an error
-    Fail
-}
-
 pub fn handle<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>, _env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
@@ -28,13 +33,6 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Echo => HandleResponse::default().data(&msg),
         HandleMsg::Fail => Err(StdError::generic_err("this transaction always fails"))
     }
-}
-
-#[message] pub enum QueryMsg {
-    /// Return the input message
-    Echo,
-    /// Return an error
-    Fail
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
@@ -45,3 +43,5 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         QueryMsg::Fail => Err(StdError::generic_err("this query always fails"))
     }
 }
+
+fadroma::entrypoint!(fadroma, init, handle, query);

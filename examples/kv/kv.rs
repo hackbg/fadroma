@@ -1,13 +1,23 @@
 use fadroma::prelude::*;
 
-fadroma::entrypoint!(fadroma, init, handle, query);
-
-const KEY: &'static [u8] = b"value";
-
 #[message] pub struct InitMsg {
     /// Optionally, the initial value of the register
     value: Option<String>
 }
+
+#[message] pub enum HandleMsg {
+    /// Set the value of the register
+    Set(String),
+    /// Empty the register
+    Del
+}
+
+#[message] pub enum QueryMsg {
+    /// Get the value of the register
+    Get
+}
+
+const KEY: &'static [u8] = b"value";
 
 pub fn init<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, _env: Env, msg: InitMsg,
@@ -18,13 +28,6 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
     Ok(InitResponse::default())
 }
 
-#[message] pub enum HandleMsg {
-    /// Set the value of the register
-    Set(String),
-    /// Empty the register
-    Del
-}
-
 pub fn handle<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>, _env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
@@ -33,11 +36,6 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::Del        => remove(&mut deps.storage, KEY)
     };
     Ok(HandleResponse::default())
-}
-
-#[message] pub enum QueryMsg {
-    /// Get the value of the register
-    Get
 }
 
 pub fn query<S: Storage, A: Api, Q: Querier>(
@@ -51,3 +49,5 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
         }
     }
 }
+
+fadroma::entrypoint!(fadroma, init, handle, query);
