@@ -138,7 +138,6 @@ const ChainOps = {
       console.info(bold('Chain mode:'), chain.mode)
       console.info(bold('Chain ID:  '), chain.id)
       console.info(bold('Chain URL: '), chain.url.toString())
-      console.info(bold('Chain dir: '), relative(config.projectRoot, chain.stateRoot.path))
     }
   },
 

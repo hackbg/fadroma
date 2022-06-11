@@ -502,17 +502,18 @@ export class ManagedBuilder extends CachingBuilder {
 
   /** Perform a managed build. */
   async build (source): Promise<Artifact> {
+    throw 'TODO'
     // Support optional build caching
-    const prebuilt = this.prebuild(source)
-    if (prebuilt) {
-      console.info('Exists, not rebuilding:', bold(relative(cwd(), source)))
-      return prebuilt
-    }
-    // Request a build from the build manager
-    const { crate, ref = HEAD } = source
-    const { location } = await this.manager.get('/build', { crate, ref })
-    const codeHash = codeHashForPath(location)
-    return { url: pathToFileURL(location), codeHash }
+    //const prebuilt = this.prebuild(source)
+    //if (prebuilt) {
+      //console.info('Exists, not rebuilding:', bold(relative(cwd(), source)))
+      //return prebuilt
+    //}
+    //// Request a build from the build manager
+    //const { crate, ref = HEAD } = source
+    //const { location } = await this.manager.get('/build', { crate, ref })
+    //const codeHash = codeHashForPath(location)
+    //return { url: pathToFileURL(location), codeHash }
   }
 }
 

@@ -37,7 +37,7 @@
     "typescript": "^4.6.4"
   },
   "scripts": {
-    "tsc":      "tsc",
+    "check":    "tsc --noEmit",
     "render":   "node doc/render.js",
     "document": "typedoc index.ts",
 

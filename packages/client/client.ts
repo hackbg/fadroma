@@ -408,7 +408,7 @@ export abstract class Bundle implements Executor {
   getClient <C extends Client, O extends ClientOptions> (
     Client: ClientCtor<C, O>, arg: Address|O
   ): C {
-    return new Client(this, arg)
+    return new Client(this as Executor, arg)
   }
 
   id = 0
