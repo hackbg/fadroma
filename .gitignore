@@ -3,6 +3,7 @@
 .pnpm-debug.log
 .vscode
 .yarn
+Cargo.toml
 Cargo.lock
 artifacts
 coverage

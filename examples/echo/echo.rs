@@ -1,14 +1,10 @@
-use fadroma::{
-    schemars,
-    serde,
-    cosmwasm_std::{
-        Storage, Api, Querier, Extern, Env, StdResult, StdError,
-        InitResponse, HandleResponse, LogAttribute, Binary, to_binary
-    }
-};
+use fadroma::prelude::*;
+
+fadroma::entrypoint!(fadroma, init, handle, query);
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
 pub struct InitMsg { fail: bool }
+
 pub fn init<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>, _env: Env, msg: InitMsg,
 ) -> StdResult<InitResponse> {
@@ -26,7 +22,13 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
 }
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum HandleMsg { Echo, Fail }
+pub enum HandleMsg {
+    /// Return the input message as the .data property of the response
+    Echo,
+    /// Return an error
+    Fail
+}
+
 pub fn handle<S: Storage, A: Api, Q: Querier>(
     _deps: &mut Extern<S, A, Q>, _env: Env, msg: HandleMsg,
 ) -> StdResult<HandleResponse> {
@@ -43,31 +45,18 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
 }
 
 #[derive(serde::Serialize, serde::Deserialize, schemars::JsonSchema)]
-pub enum QueryMsg { Echo, Fail }
+pub enum QueryMsg {
+    /// Return the input message
+    Echo,
+    /// Return an error
+    Fail
+}
+
 pub fn query<S: Storage, A: Api, Q: Querier>(
     _deps: &Extern<S, A, Q>, msg: QueryMsg,
 ) -> StdResult<Binary> {
     match msg {
         QueryMsg::Echo => to_binary(&msg),
         QueryMsg::Fail => Err(StdError::generic_err("this query always fails"))
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-mod wasm {
-    use fadroma::cosmwasm_std::{
-        do_handle, do_init, do_query, ExternalApi, ExternalQuerier, ExternalStorage,
-    };
-    #[no_mangle]
-    extern "C" fn init(env_ptr: u32, msg_ptr: u32) -> u32 {
-        do_init(&super::init::<ExternalStorage, ExternalApi, ExternalQuerier>, env_ptr, msg_ptr,)
-    }
-    #[no_mangle]
-    extern "C" fn handle(env_ptr: u32, msg_ptr: u32) -> u32 {
-        do_handle(&super::handle::<ExternalStorage, ExternalApi, ExternalQuerier>, env_ptr, msg_ptr,)
-    }
-    #[no_mangle]
-    extern "C" fn query(msg_ptr: u32) -> u32 {
-        do_query(&super::query::<ExternalStorage, ExternalApi, ExternalQuerier>, msg_ptr)
     }
 }

@@ -17,6 +17,8 @@ Testing of the mocknet is conducted via two minimal smart contracts.
 Compiled artifacts of those are stored under [`/fixtures`](../fixtures).
 You can recompile them with the Fadroma Build CLI.
 
+> See **[../examples/README.md]** for build instructions.
+
 ```typescript
 import { fixture } from './_Harness'
 import { readFileSync } from 'fs'
@@ -24,8 +26,6 @@ export const ExampleContracts = { Paths: {}, Blobs: {} }
 ```
 
 ### Echo contract
-
-> Compile with `./fadroma.cjs build examples/echo` in repo root.
 
 This parrots back the data sent by the client, in order to validate
 reading/writing and serializing/deserializing the input/output messages.
@@ -36,8 +36,6 @@ ExampleContracts.Blobs.Echo = readFileSync(ExampleContracts.Paths.Echo)
 ```
 
 ## KV contract
-
-> Compile with `./fadroma.cjs build examples/kv` in repo root.
 
 This exposes the key/value storage API available to contracts,
 in order to validate reading/writing and serializing/deserializing stored values.

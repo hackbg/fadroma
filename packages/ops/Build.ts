@@ -81,7 +81,7 @@ export class DotGit extends Path {
       // If .git does not exist, it is not possible to build past commits
       console.warn(bold(this.shortPath), 'does not exist')
       this.present = false
-    } else if (this.isFile) {
+    } else if (this.isFile()) {
       // If .git is a file, the workspace is contained in a submodule
       const gitPointer = this.as(TextFile).load().trim()
       const prefix = 'gitdir:'
@@ -100,7 +100,7 @@ export class DotGit extends Path {
         console.info(bold(this.shortPath), 'is an unknown file.')
         this.present = false
       }
-    } else if (this.isDir) {
+    } else if (this.isDirectory()) {
       // If .git is a directory, this workspace is not in a submodule
       // and it is easy to build past commits
       this.present = true
@@ -280,7 +280,7 @@ export class DockerBuilder extends CachingBuilder {
 
         // Build the crates from the same workspace/ref
         // sequentially in the same container.
-        const buildArtifacts = await this.buildInContainer(
+        const buildArtifacts = await this.runBuildContainer(
           mounted.path,
           mounted.relative(path),
           ref,
@@ -304,13 +304,13 @@ export class DockerBuilder extends CachingBuilder {
 
   }
 
-  protected async buildInContainer (
+  protected async runBuildContainer (
     root:      string,
     subdir:    string,
     ref:       string,
     crates:    [number, string][],
     gitSubdir: string = '',
-    outputDir: string = resolve(root, subdir, 'artifacts'),
+    outputDir: string = resolve(root, subdir, process.env.FADROMA_BUILD_OUTPUT_DIR||'artifacts'),
   ): Promise<(Artifact|null)[]> {
 
     // Output slots. Indices should correspond to those of the input to buildMany
@@ -345,8 +345,8 @@ export class DockerBuilder extends CachingBuilder {
       // The script that will run in the container
       [this.script]:                buildScript,
       // For checking out submodules
-      '/root/.ssh/known_hosts':     knownHosts.isFile    ? knownHosts.path    : undefined,
-      '/etc/ssh/ssh_known_hosts':   etcKnownHosts.isFile ? etcKnownHosts.path : undefined,
+      '/root/.ssh/known_hosts':     knownHosts.isFile()    ? knownHosts.path    : undefined,
+      '/etc/ssh/ssh_known_hosts':   etcKnownHosts.isFile() ? etcKnownHosts.path : undefined,
       // Root directory of repository, containing real .git directory
       [resolve(root)]:              `/src`,
     }
@@ -356,6 +356,22 @@ export class DockerBuilder extends CachingBuilder {
       // Persist cache to make future rebuilds faster. May be unneccessary.
       [`project_cache_${safeRef}`]: `/tmp/target`,
       [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
+    }
+    // Since Fadroma can be included as a Git submodule, but
+    // Cargo doesn't support nested workspaces, Fadroma's
+    // workpace root manifest is renamed to _Cargo.toml.
+    // Here we can mount it under its proper name
+    // if building the example contracts from Fadroma.
+    if (process.env.FADROMA_BUILD_WORKSPACE_MANIFEST) {
+      if (ref !== HEAD) {
+        throw new Error(
+          'Fadroma Build: FADROMA_BUILD_WORKSPACE_ROOT can only' +
+          'be used when building from working tree'
+        )
+      }
+      writable[resolve(root)] = readonly[resolve(root)]
+      delete readonly[resolve(root)]
+      readonly[resolve(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST)] = `/src/Cargo.toml`
     }
     const env = {
       BUILD_USER:                   process.env.FADROMA_BUILD_USER || 'fadroma-builder',

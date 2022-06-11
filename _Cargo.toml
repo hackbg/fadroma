@@ -5,7 +5,16 @@
 
 [workspace]
 members = [
-  "crates/*",
+  "crates/fadroma",
+  "crates/fadroma-platform-scrt",
+  "crates/fadroma-proc-auth",
+  "crates/fadroma-proc-derive",
+  "crates/fadroma-proc-message",
+  "examples/echo",
+  "examples/kv",
+  "examples/derive-contract-impl",
+  "examples/derive-contract-interface",
+  "examples/ensemble"
 ]
 
 [profile.release]
