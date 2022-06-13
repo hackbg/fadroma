@@ -48,11 +48,12 @@ export class ScrtRPCAgent extends ScrtAgent {
       console.warn(constants.WARN_IGNORING_KEY_PAIR)
       delete options.keyPair
     }
-    const grpcWebUrl = chain.url.replace(/\/$/, '')
-      || "https://grpc-web.azure-api.net"
-    const walletAddress = wallet.address || address
-    const chainId = chain.id
-    const api = await SecretNetworkClient.create({ chainId, grpcWebUrl, wallet, walletAddress })
+    const api = await SecretNetworkClient.create({
+      chainId:    chain.id,
+      grpcWebUrl: chain.url || "http://rpc.pulsar.griptapejs.com:9091",
+      wallet,
+      walletAddress: wallet.address || address
+    })
     return new ScrtRPCAgent(chain, { ...options, wallet, api })
   }
 
