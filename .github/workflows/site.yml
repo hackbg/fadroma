@@ -60,6 +60,7 @@ jobs:
           cp -rv ./doc/* .docs/
           tar -cvf .docs/nix shell.nix
           echo "fadroma.tech" > .docs/CNAME
+          touch .docs/.nojekyll
           ls -al .docs
           git add -f .docs
           git config --global user.email "hello@hack.bg"
