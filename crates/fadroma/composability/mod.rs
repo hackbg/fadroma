@@ -1,3 +1,4 @@
+//! *Feature flag: `composability`*
 //! Modular contracts using native trait composition.
 
 use serde::{de::DeserializeOwned, Serialize};

@@ -44,7 +44,7 @@ pub mod ensemble;
 #[cfg(feature = "reexport-secret-toolkit")]
 pub use secret_toolkit;
 
-/// **Start here.** `use fadroma::prelude::* to get the essentials for
+/// **Start here.** `use fadroma::prelude::*` to get the essentials for
 /// writing smart contracts with Fadroma.
 pub mod prelude {
 

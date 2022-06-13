@@ -1,3 +1,4 @@
+//! *Feature flag: `snip20-impl`*
 //! Customizable implementation of a SNIP-20 token.
 
 pub mod msg;

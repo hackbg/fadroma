@@ -1,3 +1,4 @@
+//! *Feature flag: `ensemble`*
 //! Configurable integration testing harness.
 
 #[cfg(not(target_arch = "wasm32"))]

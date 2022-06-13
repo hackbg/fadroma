@@ -1,3 +1,4 @@
+//! *Feature flag: `permit`*
 //! Authentication using SNIP-24 query permits.
 
 use crate::prelude::*;

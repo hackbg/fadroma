@@ -1,3 +1,4 @@
+//! *Feature flag: `admin`*
 //! Transaction authentication by pre-configured admin address.
 
 use crate::prelude::*;

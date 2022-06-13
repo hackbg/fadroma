@@ -1,3 +1,4 @@
+//! *Feature flag: `snip20-client`*
 //! Command SNIP-20 tokens from a contract.
 
 use fadroma_platform_scrt::{
