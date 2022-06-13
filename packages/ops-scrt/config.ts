@@ -1,5 +1,6 @@
 import { EnvVars, Config } from '@fadroma/ops'
-import { resolve, dirname, fileURLToPath } from '@hackbg/toolbox'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 

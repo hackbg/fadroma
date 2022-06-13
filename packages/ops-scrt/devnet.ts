@@ -8,7 +8,7 @@
 
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { DockerodeDevnet, ManagedDevnet, DevnetPortMode } from '@fadroma/ops'
+import { DockerDevnet, ManagedDevnet, DevnetPortMode } from '@fadroma/ops'
 import { Dokeres } from '@hackbg/dokeres'
 
 import { scrtConfig as config } from './config'
@@ -56,6 +56,6 @@ export function getScrtDevnet (
     const image       = dokeres.image(imageTag, dockerfile, scripts)
     const readyPhrase = 'indexed block'
     const initScript  = resolve(__dirname, initScriptName)
-    return new DockerodeDevnet({ portMode, image, readyPhrase, initScript })
+    return new DockerDevnet({ portMode, image, readyPhrase, initScript })
   }
 }

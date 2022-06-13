@@ -4,28 +4,11 @@ dotenv.config()
 import { config } from './Config'
 config.fromEnv(process.env as any)
 
-export { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
-export * from '@hackbg/toolbox'
-export * from '@fadroma/client'
-export * from './Config'
-export * from './Build'
-export * from './Schema'
-export * from './Devnet'
-export * from './Upload'
-export * from './Deploy'
-export * from './Print'
-export * from './Mocknet'
-export * from './State'
-export * from './Endpoint'
-
-import TOML from 'toml'
-export { TOML }
-
-import { Console, bold, colors, timestamp } from '@hackbg/toolbox'
-import { Chain, Agent, Artifact, Template } from '@fadroma/client'
-import { Source, Builder } from './Build'
-import { Uploader } from './Upload'
-import { Deployment, Deployments } from './Deploy'
+import { Console, bold, colors, timestamp } from '@hackbg/konzola'
+import { Chain, Agent, Template } from '@fadroma/client'
+import { BuildContext, Source, Builder } from './Build'
+import { UploadContext, Uploader } from './Upload'
+import { DeployContext, Deployments } from './Deploy'
 
 export type Operation<T> = (context: OperationContext) => Promise<T>
 
@@ -60,15 +43,6 @@ export interface AuthenticatedContext {
   /** Override agent used for normal operation. */
   clientAgent: Agent
 }
-
-import type { BuildContext } from './Build'
-export type { BuildContext }
-
-import type { UploadContext } from './Upload'
-export type { UploadContext }
-
-import type { DeployContext } from './Deploy'
-export type { DeployContext }
 
 export type OperationContext =
   CommandContext       &
@@ -169,19 +143,17 @@ export function parallel (...commands) {
   }
 }
 
-export async function buildAndUpload (
-  builder: Builder, uploader: Uploader, source: Source
-): Promise<Template> {
-  const artifact = await builder.build(source)
-  const template = await uploader.upload(artifact)
-  return template
-}
+export type { BuildContext, UploadContext, DeployContext }
 
-export async function buildAndUploadMany (
-  builder: Builder, uploader: Uploader, ...sourceSets: Source[][]
-): Promise<Template[]> {
-  const sources   = sourceSets.reduce((sources, sourceSet)=>sources.concat(sourceSet), [])
-  const artifacts = await builder.buildMany(sources)
-  const templates = await uploader.uploadMany(artifacts)
-  return templates
-}
+export * from '@hackbg/formati'
+export * from '@fadroma/client'
+export * from './Config'
+export * from './Build'
+export * from './Schema'
+export * from './Devnet'
+export * from './Upload'
+export * from './Deploy'
+export * from './Print'
+export * from './Mocknet'
+export * from './State'
+export * from './Endpoint'

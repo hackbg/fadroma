@@ -1,9 +1,8 @@
 import { writeFileSync, readdirSync, readFileSync } from 'fs'
 import { resolve, basename, dirname } from 'path'
+import { execFileSync } from 'child_process'
 
-import { Agent } from '@fadroma/client'
 import { Console, bold } from '@hackbg/konzola'
-import { cargo } from '@hackbg/toolbox'
 import { compileFromFile } from 'json-schema-to-typescript'
 
 import TOML from 'toml'
@@ -16,7 +15,7 @@ export async function generateSchema (projectRoot: string, dirs: Array<string>) 
     // Generate JSON schema
     const cargoToml = resolve(projectRoot, 'contracts', dir, 'Cargo.toml')
     const {package:{name}} = TOML.parse(readFileSync(cargoToml, 'utf8'))
-    cargo('run', '-p', name, '--example', 'schema')
+    execFileSync('cargo', ['run', '-p', name, '--example', 'schema'], { stdio: 'inherit' })
 
     // Collect generated schema definitions
     const schemaDir = resolve(projectRoot, 'contracts', dir, 'schema')

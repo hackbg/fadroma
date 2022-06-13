@@ -14,6 +14,7 @@
     "**/*.spec.ts",
     "commands/**/*",
     "packages/*/types",
-    "packages/ops/wip/**/*"
+    "packages/ops/wip/**/*",
+    "typedoc-theme.tsx"
   ]
 }

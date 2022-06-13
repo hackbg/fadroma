@@ -9,7 +9,7 @@ import { Console, bold } from '@hackbg/konzola'
 import $, { Path, OpaqueDirectory, JSONFile, JSONDirectory } from '@hackbg/kabinet'
 import { freePort, waitPort } from '@hackbg/portali'
 import { Dokeres, DokeresImage, DokeresContainer, waitUntilLogsSay } from '@hackbg/dokeres'
-import { randomHex } from '@hackbg/toolbox'
+import { randomHex } from '@hackbg/formati'
 
 import { config } from './Config'
 import { Endpoint } from './Endpoint'
@@ -155,7 +155,7 @@ export type DevnetPortMode = 'lcp'|'grpcWeb'
 
 /** Parameters for the Dockerode-based implementation of Devnet.
   * (https://www.npmjs.com/package/dockerode) */
-export interface DockerodeDevnetOptions extends DevnetOptions {
+export interface DockerDevnetOptions extends DevnetOptions {
   /** Docker image of the chain's runtime. */
   image?:       DokeresImage
   /** Init script to launch the devnet. */
@@ -167,9 +167,9 @@ export interface DockerodeDevnetOptions extends DevnetOptions {
 
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
-export class DockerodeDevnet extends Devnet implements DevnetHandle {
+export class DockerDevnet extends Devnet implements DevnetHandle {
 
-  constructor (options: DockerodeDevnetOptions = {}) {
+  constructor (options: DockerDevnetOptions = {}) {
     super(options)
     console.info('Constructing', bold('Dockerode')+'-based devnet')
     this.identities  = this.stateRoot.in('identities').as(JSONDirectory)
@@ -236,7 +236,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
     switch (this.portMode) {
       case 'lcp':     env.lcpPort     = String(this.port);      break
       case 'grpcWeb': env.grpcWebAddr = `0.0.0.0:${this.port}`; break
-      default: throw new Error(`DockerodeDevnet#portMode must be either 'lcp' or 'grpcWeb'`)
+      default: throw new Error(`DockerDevnet#portMode must be either 'lcp' or 'grpcWeb'`)
     }
     this.container = await this.image.run(containerName, {
       env,
@@ -268,7 +268,7 @@ export class DockerodeDevnet extends Devnet implements DevnetHandle {
       this.readyPhrase,
       false,
       this.waitSeconds,
-      DockerodeDevnet.logFilter
+      DockerDevnet.logFilter
     )
     // wait for port to be open
     await this.waitPort({ host: this.host, port: Number(this.port) })

@@ -1,10 +1,6 @@
-import { Console, bold, colors } from '@hackbg/toolbox'
+import { bold, colors } from '@hackbg/konzola'
 import { config } from './Config'
-import type { Uploads } from './Upload'
-import type { Deployments } from './Deploy'
 import type { Agent, Message } from '@fadroma/client'
-
-const console = Console('@fadroma/ops/Print')
 
 export const print = console => {
 

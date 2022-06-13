@@ -8,7 +8,8 @@ export default BuildSpec
 ```
 
 ```typescript
-import { resolve, dirname, fileURLToPath } from '@hackbg/toolbox'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 const here      = dirname(fileURLToPath(import.meta.url))
 const workspace = resolve(here, '../fixtures')
 ```

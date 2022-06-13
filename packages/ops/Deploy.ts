@@ -1,11 +1,9 @@
 import { symlinkSync, lstatSync } from 'fs'
-import { relative, resolve, basename, extname, dirname } from 'path'
-import { cwd } from 'process'
-import { existsSync, statSync, readFileSync, writeFileSync, readlinkSync, unlinkSync, readdirSync } from 'fs'
+import { resolve, basename, extname, dirname } from 'path'
+import { existsSync, readFileSync, writeFileSync, readlinkSync, unlinkSync, readdirSync } from 'fs'
 
-import { Console, bold, colors } from '@hackbg/konzola'
-import { timestamp, backOff } from '@hackbg/toolbox'
-import { JSONFile, JSONDirectory, mkdirp } from '@hackbg/kabinet'
+import { Console, bold } from '@hackbg/konzola'
+import $, { JSONFile, JSONDirectory } from '@hackbg/kabinet'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 
@@ -64,7 +62,7 @@ export class Deployments extends JSONDirectory<unknown> {
       throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
     }
     console.info('Creating new deployment', bold(id))
-    await mkdirp(dirname(path))
+    await $(dirname(path)).make()
     await writeFileSync(path, '')
   }
 
@@ -94,7 +92,7 @@ export class Deployments extends JSONDirectory<unknown> {
   list () {
     if (!existsSync(this.path)) {
       console.info(`\n${this.path} does not exist, creating`)
-      mkdirp.sync(this.path)
+      $(this.path).make()
       return []
     }
     return readdirSync(this.path)

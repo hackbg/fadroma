@@ -38,7 +38,7 @@ test({
 ## Devnets are persistent
 
 ```typescript
-import { JSONFile, Directory, withTmpDir } from '@hackbg/toolbox'
+import { JSONFile, Directory, withTmpDir } from '@hackbg/kabinet'
 test({
   async 'save/load Devnet state' ({ ok, equal, deepEqual }) {
     withTmpDir(stateRoot=>{
@@ -55,10 +55,10 @@ test({
 })
 ```
 
-## Dockerode devnet
+## Dockerized devnet
 
 ```typescript
-import { DockerodeDevnet } from '../index'
+import { DockerDevnet } from '../index'
 import { mockDockerode } from './_Harness'
 import { resolve, basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
@@ -72,7 +72,7 @@ test({
       const imageName   = Symbol()
       const image       = new Dokeres(docker).image(imageName)
       const initScript  = Symbol()
-      const devnet = new DockerodeDevnet({ stateRoot, docker, image, initScript, readyPhrase })
+      const devnet = new DockerDevnet({ stateRoot, docker, image, initScript, readyPhrase })
       equal(devnet.identities.path, resolve(stateRoot, 'identities'))
       equal(devnet.image,           image)
       equal(devnet.image.dockerode, docker)
@@ -101,12 +101,12 @@ test({
           }
         })
 
-        class TestDockerodeDevnet extends DockerodeDevnet {
+        class TestDockerDevnet extends DockerDevnet {
           waitSeconds = 0.5
           waitPort = () => Promise.resolve()
         }
 
-        const devnet = new TestDockerodeDevnet({
+        const devnet = new TestDockerDevnet({
           stateRoot,
           docker,
           image: new Dokeres(docker).image(basename(stateRoot)),
@@ -132,7 +132,7 @@ test({
         equal(options.env.GenesisAccounts, 'FOO BAR')
       }
     }
-    const dockerDevnet = new DockerodeDevnet({ identities, initScript: '', image })
+    const dockerDevnet = new DockerDevnet({ identities, initScript: '', image })
     equal(dockerDevnet.genesisAccounts, identities)
   }
 
@@ -160,7 +160,7 @@ for (const version of ['1.2', '1.3']) test({
       }
     }))
     const devnet = getScrtDevnet(version, undefined, undefined, dokeres)
-    ok(devnet instanceof DockerodeDevnet)
+    ok(devnet instanceof DockerDevnet)
     await devnet.respawn()
     await devnet.kill()
     await devnet.erase()

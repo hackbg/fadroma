@@ -1,8 +1,7 @@
 import assert from 'assert'
-import { cwd } from 'process'
-import { resolve, relative, basename } from 'path'
+import { basename } from 'path'
 import { execFile } from 'child_process'
-import { existsSync, readFileSync } from 'fs'
+import { readFileSync } from 'fs'
 import { pathToFileURL } from 'url'
 import simpleGit from 'simple-git'
 
@@ -89,7 +88,7 @@ export class DotGit extends Path {
         // If .git contains a pointer to the actual git directory,
         // building past commits is possible.
         const gitRel  = gitPointer.slice(prefix.length).trim()
-        const gitPath = resolve(this.parent, gitRel)
+        const gitPath = $(this.parent, gitRel).path
         const gitRoot = $(gitPath)
         console.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
         this.path      = gitRoot.path
@@ -152,9 +151,9 @@ export abstract class CachingBuilder extends Builder {
     if (!this.caching) {
       return null
     }
-    const location = resolve(outputDir, artifactName(crate, ref))
-    if (existsSync(location)) {
-      return { url: pathToFileURL(location), codeHash: codeHashForPath(location) }
+    const location = $(outputDir, artifactName(crate, ref))
+    if (location.exists()) {
+      return { url: location.url, codeHash: codeHashForPath(location.path) }
     }
     return null
   }
@@ -310,7 +309,7 @@ export class DockerBuilder extends CachingBuilder {
     ref:       string,
     crates:    [number, string][],
     gitSubdir: string = '',
-    outputDir: string = resolve(root, subdir, process.env.FADROMA_BUILD_OUTPUT_DIR||'artifacts'),
+    outputDir: string = $(root, subdir, process.env.FADROMA_BUILD_OUTPUT_DIR||'artifacts').path,
   ): Promise<(Artifact|null)[]> {
 
     // Output slots. Indices should correspond to those of the input to buildMany
@@ -324,7 +323,7 @@ export class DockerBuilder extends CachingBuilder {
       const prebuilt = this.prebuild(outputDir, crate, ref)
       if (prebuilt) {
         const location = $(prebuilt.url).shortPath
-        console.info('Exists, not rebuilding:', bold(relative(cwd(), location)))
+        console.info('Exists, not rebuilding:', bold($(location).shortPath))
         artifacts[index] = prebuilt
       } else {
         shouldBuild[crate] = index
@@ -348,7 +347,7 @@ export class DockerBuilder extends CachingBuilder {
       '/root/.ssh/known_hosts':     knownHosts.isFile()    ? knownHosts.path    : undefined,
       '/etc/ssh/ssh_known_hosts':   etcKnownHosts.isFile() ? etcKnownHosts.path : undefined,
       // Root directory of repository, containing real .git directory
-      [resolve(root)]:              `/src`,
+      [$(root).path]:              `/src`,
     }
     const writable = {
       // Output path for final artifacts
@@ -369,9 +368,9 @@ export class DockerBuilder extends CachingBuilder {
           'be used when building from working tree'
         )
       }
-      writable[resolve(root)] = readonly[resolve(root)]
-      delete readonly[resolve(root)]
-      readonly[resolve(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST)] = `/src/Cargo.toml`
+      writable[$(root).path] = readonly[$(root).path]
+      delete readonly[$(root).path]
+      readonly[$(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST).path] = `/src/Cargo.toml`
     }
     const env = {
       BUILD_USER:                   process.env.FADROMA_BUILD_USER || 'fadroma-builder',
@@ -392,7 +391,7 @@ export class DockerBuilder extends CachingBuilder {
     // Pre-populate the list of expected artifacts.
     const outputWasms = [...new Array(crates.length)].map(()=>null)
     for (const [crate, index] of Object.entries(shouldBuild)) {
-      outputWasms[index] = resolve(outputDir, artifactName(crate, safeRef))
+      outputWasms[index] = $(outputDir, artifactName(crate, safeRef))
     }
 
     // Pass the compacted list of crates to build into the container
@@ -444,7 +443,7 @@ export class DockerBuilder extends CachingBuilder {
       if (location === null) {
         return null
       } else {
-        return { url: pathToFileURL(location), codeHash: codeHashForPath(location) }
+        return { url: $(location).url, codeHash: codeHashForPath(location) }
       }
     })
 
@@ -468,7 +467,7 @@ export class RawBuilder extends CachingBuilder {
       await run(this.checkoutScript, [ref])
     }
     await run(this.buildScript, [])
-    const location = resolve(cwd, 'artifacts', artifactName(crate, ref))
+    const location = $(cwd, 'artifacts', artifactName(crate, ref)).path
     const codeHash = codeHashForPath(location)
     return { url: pathToFileURL(location), codeHash }
 

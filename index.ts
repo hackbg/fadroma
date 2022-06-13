@@ -1,35 +1,28 @@
 import { fileURLToPath } from 'url'
-import { relative } from 'path'
-
 import {
   Agent,
   Artifact,
   CachingFSUploader,
   Chain,
-  ChainMode,
   CommandContext,
   ConnectedContext,
   DeployContext,
-  Deployment,
   Deployments,
   FSUploader,
   Mocknet,
   Operation,
-  OperationContext,
   Source,
   Template,
-  Uploader,
   UploadContext,
   config,
   getDeployments,
   join,
   print,
   runOperation,
-  timestamp,
 } from '@fadroma/ops'
 
 import { runCommands } from '@hackbg/komandi'
-import { Console, bold, colors } from '@hackbg/konzola'
+import { Console, bold } from '@hackbg/konzola'
 
 import { LegacyScrt } from '@fadroma/client-scrt-amino'
 import { Scrt } from '@fadroma/client-scrt-grpc'
@@ -198,7 +191,7 @@ export const UploadOps = {
 
 export interface DeploymentsContext {
   chain:        Chain
-  cmdArgs?:     any[]
+  cmdArgs?:     string[]
   deployments?: Deployments
 }
 

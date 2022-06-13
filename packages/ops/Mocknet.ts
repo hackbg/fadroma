@@ -16,17 +16,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-import { readFileSync } from 'fs'
-import { URL, fileURLToPath } from 'url'
-
-import { Console, bold, colors } from '@hackbg/konzola'
-import { randomBech32, bech32 } from '@hackbg/toolbox'
+import { Console, bold } from '@hackbg/konzola'
+import { randomBech32, bech32 } from '@hackbg/formati'
 
 import {
   Address,
   Agent,
   AgentOptions,
-  Artifact,
   Bundle,
   Chain,
   ChainMode,
