@@ -9,7 +9,6 @@ import alignYAML from 'align-yaml'
 
 import type {
   Agent, 
-  Chain,
   Client,
   ClientCtor,
   ClientOptions,
@@ -19,7 +18,6 @@ import type {
   Template,
 } from '@fadroma/client'
 import { print } from './Print'
-import { config } from './Config'
 
 const console = Console('Fadroma Deploy')
 
@@ -45,6 +43,10 @@ export interface DeployContext {
 }
 
 export class Deployments extends JSONDirectory<unknown> {
+
+  static fromConfig (chain, projectRoot) {
+    return $(projectRoot).in('receipts').in(chain.id).in('deployments').as(Deployments)
+  }
 
   KEY = '.active'
 

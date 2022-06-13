@@ -5,7 +5,6 @@ import $, { BinaryFile, JSONFile, JSONDirectory } from '@hackbg/kabinet'
 
 import type { Agent, Template, Artifact } from '@fadroma/client'
 
-import { config } from './Config'
 import { codeHashForPath } from './Build'
 import type { Source } from './Build'
 import { getUploads } from './State'
@@ -97,10 +96,14 @@ export class FSUploader extends Uploader {
   * but only if a receipt does not exist in the chain's uploads directory. */
 export class CachingFSUploader extends FSUploader {
 
-  constructor (
-    readonly agent: Agent,
-    readonly cache: Uploads = getUploads(agent.chain)
-  ) {
+  static fromConfig (agent, projectRoot) {
+    return new CachingFSUploader(
+      agent,
+      projectRoot.in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
+    )
+  }
+
+  constructor (readonly agent: Agent, readonly cache: Uploads) {
     super(agent)
   }
 

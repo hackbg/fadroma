@@ -4,6 +4,7 @@ import {
   Artifact,
   CachingFSUploader,
   Chain,
+  ChainMode,
   CommandContext,
   ConnectedContext,
   DeployContext,
@@ -14,8 +15,6 @@ import {
   Source,
   Template,
   UploadContext,
-  config,
-  getDeployments,
   join,
   print,
   runOperation,
@@ -26,7 +25,9 @@ import { Console, bold } from '@hackbg/konzola'
 
 import { LegacyScrt } from '@fadroma/client-scrt-amino'
 import { Scrt } from '@fadroma/client-scrt-grpc'
-import { getScrtBuilder, getScrtDevnet, scrtConfig } from '@fadroma/ops-scrt'
+import { getScrtBuilder, getScrtDevnet } from '@fadroma/ops-scrt'
+
+import config from './config'
 
 // Logging interface - got one of these in each module.
 // Based on @hackbg/konzola, reexported through @fadroma/ops.
@@ -39,16 +40,16 @@ export const Chains = {
   },
 
   async 'LegacyScrtMainnet' () {
-    return new LegacyScrt(scrtConfig.scrt.mainnetChainId, {
-      url:  scrtConfig.scrt.mainnetApiUrl,
-      mode: Chain.Mode.Mainnet
+    return new LegacyScrt(config.scrt.mainnet.chainId, {
+      url:  config.scrt.mainnet.apiUrl,
+      mode: ChainMode.Mainnet
     })
   },
 
   async 'LegacyScrtTestnet' () {
-    return new LegacyScrt(scrtConfig.scrt.testnetChainId, {
-      url:  scrtConfig.scrt.testnetApiUrl,
-      mode: Chain.Mode.Testnet
+    return new LegacyScrt(config.scrt.testnet.chainId, {
+      url:  config.scrt.testnet.apiUrl,
+      mode: ChainMode.Testnet
     })
   },
 
@@ -56,22 +57,22 @@ export const Chains = {
     const node = await getScrtDevnet('1.2').respawn()
     return new LegacyScrt(node.chainId, {
       url:  node.url.toString(),
-      mode: Chain.Mode.Devnet,
+      mode: ChainMode.Devnet,
       node
     })
   },
 
   async 'ScrtMainnet' () {
-    return new Scrt(scrtConfig.scrt.mainnetChainId, {
-      url:  scrtConfig.scrt.mainnetApiUrl,
-      mode: Chain.Mode.Mainnet
+    return new Scrt(config.scrt.mainnet.chainId, {
+      url:  config.scrt.mainnet.apiUrl,
+      mode: ChainMode.Mainnet
     })
   },
 
   async 'ScrtTestnet' () {
-    return new Scrt(scrtConfig.scrt.testnetChainId, {
-      url:  scrtConfig.scrt.testnetApiUrl,
-      mode: Chain.Mode.Testnet
+    return new Scrt(config.scrt.testnet.chainId, {
+      url:  config.scrt.testnet.apiUrl,
+      mode: ChainMode.Testnet
     })
   },
 
@@ -79,7 +80,7 @@ export const Chains = {
     const node = await getScrtDevnet('1.3').respawn()
     return new Scrt(node.chainId, {
       url:  node.url.toString(),
-      mode: Chain.Mode.Devnet,
+      mode: ChainMode.Devnet,
       node
     })
   },
@@ -89,7 +90,9 @@ export const Chains = {
 const BuildOps = {
   /** Add a Secret Network builder to the command context. */
   Scrt: function enableScrtBuilder () {
-    const builder = getScrtBuilder()
+    const builder = getScrtBuilder({
+      caching: !config.build.rebuild
+    })
     return {
       builder,
       async build (source: Source): Promise<Template> {
@@ -106,7 +109,7 @@ const ChainOps = {
 
   /** Populate the migration context with chain and agent. */
   FromEnv: async function getChainFromEnvironment () {
-    const name = config.chain
+    const name = config.project.chain
     if (!name || !Chains[name]) {
       console.error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
       console.info('Known chain names:')
@@ -159,11 +162,13 @@ export const UploadOps = {
   /** Add an uploader to the command context. */
   FromFile: function enableUploadingFromFile ({
     agent,
-    caching = !config.reupload,
+    caching = !config.upload.reupload,
     build,
     buildMany
   }: UploadDependencies): UploadContext {
-    const uploader = caching ? new CachingFSUploader(agent) : new FSUploader(agent)
+    const uploader = caching
+      ? CachingFSUploader.fromConfig(agent, config.project.root)
+      : new FSUploader(agent)
     return {
       uploader,
       async upload (artifact: Artifact): Promise<Template> {
@@ -201,7 +206,7 @@ export const DeployOps = {
   New: async function createDeployment ({
     chain,
     timestamp,
-    deployments = getDeployments(chain),
+    deployments = Deployments.fromConfig(chain, config.project.root),
     cmdArgs     = [],
   }: (CommandContext&ConnectedContext)): Promise<DeployContext> {
     const [ prefix = timestamp ] = cmdArgs
@@ -213,7 +218,7 @@ export const DeployOps = {
   /** Add the currently active deployment to the command context. */
   Append: async function activateDeployment ({
     chain,
-    deployments = getDeployments(chain)
+    deployments = Deployments.fromConfig(chain, config.project.root)
   }: ConnectedContext): Promise<DeployContext> {
     const deployment = deployments.active
     if (!deployment) {
@@ -234,7 +239,7 @@ export const DeployOps = {
     timestamp,
     cmdArgs,
     chain,
-    deployments = getDeployments(chain)
+    deployments = Deployments.fromConfig(chain, config.project.root)
   }: (CommandContext&ConnectedContext)): Promise<DeployContext> {
     if (deployments.active) {
       return DeployOps.Append({ chain })
@@ -247,7 +252,7 @@ export const DeployOps = {
   Status: async function printStatusOfDeployment ({
     cmdArgs: [id] = [undefined],
     chain,
-    deployments = getDeployments(chain)
+    deployments = Deployments.fromConfig(chain, config.project.root)
   }: (CommandContext&ConnectedContext)) {
     let deployment = deployments.active
     if (id) {
@@ -264,7 +269,7 @@ export const DeployOps = {
   Select: async function selectDeployment ({
     cmdArgs: [id] = [undefined],
     chain,
-    deployments = getDeployments(chain)
+    deployments = Deployments.fromConfig(chain, config.project.root)
   }: (CommandContext&ConnectedContext)) {
     const list = deployments.list()
     if (list.length < 1) {

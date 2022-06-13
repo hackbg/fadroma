@@ -1,6 +1,5 @@
-import { bold, colors } from '@hackbg/konzola'
-import { config } from './Config'
-import type { Agent, Message } from '@fadroma/client'
+import { bold } from '@hackbg/konzola'
+import type { Agent } from '@fadroma/client'
 
 export const print = console => {
 

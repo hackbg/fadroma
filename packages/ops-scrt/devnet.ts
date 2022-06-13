@@ -11,8 +11,6 @@ import { fileURLToPath } from 'url'
 import { DockerDevnet, ManagedDevnet, DevnetPortMode } from '@fadroma/ops'
 import { Dokeres } from '@hackbg/dokeres'
 
-import { scrtConfig as config } from './config'
-
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export type ScrtDevnetVersion = '1.2'|'1.3'
@@ -47,7 +45,7 @@ export function getScrtDevnet (
     return ManagedDevnet.getOrCreate(
       managerURL,
       chainId,
-      chainId ? null : config.scrt.devnetChainIdPrefix,
+      chainId ? null : config.devnetChainIdPrefix,
       portMode
     )
   } else {

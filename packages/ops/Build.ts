@@ -2,6 +2,7 @@ import { basename } from 'path'
 import { execFile } from 'child_process'
 import { readFileSync } from 'fs'
 import { pathToFileURL } from 'url'
+import { homedir } from 'os'
 import simpleGit from 'simple-git'
 
 import LineTransformStream from 'line-transform-stream'
@@ -11,7 +12,6 @@ import { Dokeres, DokeresImage } from '@hackbg/dokeres'
 import $, { Path, TextFile } from '@hackbg/kabinet'
 import { Artifact } from '@fadroma/client'
 
-import { config } from './Config'
 import { Endpoint } from './Endpoint'
 
 /** The part of OperationContext that deals with building
@@ -157,7 +157,12 @@ export abstract class CachingBuilder extends Builder {
   }
 
   /** Caching can be disabled using FADROMA_REBUILD=1 */
-  caching = !config.rebuild
+  caching: boolean = true
+
+  constructor ({ caching = true } = {}) {
+    super()
+    this.caching = caching
+  }
 
 }
 
@@ -173,11 +178,14 @@ export class DockerBuilder extends CachingBuilder {
     caching?:    boolean
   } = {}) {
 
-    super()
+    super({ caching: options.caching })
 
     // docker api handle
-    this.socketPath = options.socketPath || config.dockerHost || this.socketPath
-    this.docker     = options.docker || this.docker
+    if (options.socketPath) {
+      this.docker = new Dokeres(this.socketPath = options.socketPath)
+    } else if (options.docker) {
+      this.docker = options.docker
+    }
 
     // docker image
     this.dockerfile = options.dockerfile
@@ -336,7 +344,7 @@ export class DockerBuilder extends CachingBuilder {
     // Define the mounts and environment variables of the build container
     const buildScript   = `/${basename(this.script)}`
     const safeRef       = sanitize(ref)
-    const knownHosts    = $(`${config.homeDir}/.ssh/known_hosts`)
+    const knownHosts    = $(`${homedir()}/.ssh/known_hosts`)
     const etcKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
     const readonly = {
       // The script that will run in the container
@@ -493,8 +501,7 @@ export class ManagedBuilder extends CachingBuilder {
 
   constructor (options: { managerURL?: string } = {}) {
     super()
-    const { managerURL = config.buildManager } = options
-    this.manager = new this.Endpoint(managerURL)
+    this.manager = new this.Endpoint(options.managerURL)
   }
 
   /** Perform a managed build. */

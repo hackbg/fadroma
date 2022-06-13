@@ -1,17 +1,15 @@
 import { URL } from 'url'
-import * as HTTP from 'http'
 import { basename, relative, resolve } from 'path'
 import { cwd } from 'process'
 import { existsSync, readlinkSync, symlinkSync } from 'fs'
 
 import type { AgentOptions, DevnetHandle } from '@fadroma/client'
 import { Console, bold } from '@hackbg/konzola'
-import $, { Path, OpaqueDirectory, JSONFile, JSONDirectory } from '@hackbg/kabinet'
+import $, { OpaqueDirectory, JSONFile, JSONDirectory } from '@hackbg/kabinet'
 import { freePort, waitPort } from '@hackbg/portali'
 import { Dokeres, DokeresImage, DokeresContainer, waitUntilLogsSay } from '@hackbg/dokeres'
 import { randomHex } from '@hackbg/formati'
 
-import { config } from './Config'
 import { Endpoint } from './Endpoint'
 
 const console = Console('Fadroma Devnet')
@@ -30,6 +28,8 @@ export interface DevnetOptions {
   port?:       number
   /** Which of the services should be exposed the devnet's port. */
   portMode?:   DevnetPortMode
+  /** Whether to destroy this devnet on exit. */
+  ephemeral?:  boolean
 }
 
 /** Used to reconnect between runs. */
@@ -46,7 +46,15 @@ export abstract class Devnet implements DevnetHandle {
 
   /** Creates an object representing a devnet.
     * Use the `respawn` method to get it running. */
-  constructor ({ chainId, identities, stateRoot, port, portMode }: DevnetOptions) {
+  constructor ({
+    chainId,
+    identities,
+    stateRoot,
+    port,
+    portMode,
+    ephemeral
+  }: DevnetOptions) {
+    this.ephemeral = ephemeral
     this.chainId  = chainId      || this.chainId
     this.port     = Number(port) || this.port
     this.portMode = portMode
@@ -58,10 +66,13 @@ export abstract class Devnet implements DevnetHandle {
     if (identities) {
       this.genesisAccounts = identities
     }
-    stateRoot = stateRoot || resolve(config.projectRoot, 'receipts', this.chainId)
+    stateRoot = stateRoot || resolve(cwd(), 'receipts', this.chainId)
     this.stateRoot = $(stateRoot).as(OpaqueDirectory)
     this.nodeState = this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
   }
+
+  /** Whether to destroy this devnet on exit. */
+  ephemeral = false
 
   /** The chain ID that will be passed to the devnet node. */
   chainId  = 'fadroma-devnet'
@@ -315,7 +326,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   /** Spawn the existing localnet, or a new one if that is impossible */
   async respawn () {
-    const shortPath = relative(config.projectRoot, this.nodeState.path)
+    const shortPath = $(this.nodeState.path).shortPath
     // if no node state, spawn
     if (!this.nodeState.exists()) {
       console.info(`No devnet found at ${bold(shortPath)}`)
@@ -351,7 +362,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     }
     // ...and try to make sure it dies when the Node process dies
     process.on('beforeExit', () => {
-      if (config.devnetEphemeral) {
+      if (this.ephemeral) {
         this.container.kill()
       } else {
         console.log()
