@@ -25,4 +25,7 @@ declare module '@hackbg/konzola' {
   export const Konzola: MakeConsole
   export default MakeConsole
 
+  export const timestamp: Function
+
 }
+

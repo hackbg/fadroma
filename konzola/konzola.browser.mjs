@@ -38,3 +38,10 @@ function Konzola (context) {
 export default Konzola
 export { Konzola }
 export const Console = Konzola
+
+export function timestamp (d = new Date()) {
+  return d.toISOString()
+    .replace(/[-:\.Z]/g, '')
+    .replace(/[T]/g, '_')
+    .slice(0, -3)
+}

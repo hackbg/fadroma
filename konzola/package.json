@@ -2,7 +2,7 @@
   "name": "@hackbg/konzola",
   "version": "1.0.8",
   "main": "konzola.cjs",
-  "browser": "konzola.browser.cjs",
+  "browser": "konzola.browser.mjs",
   "types": "konzola.d.ts",
   "license": "MIT",
   "description": "Pretty console.",

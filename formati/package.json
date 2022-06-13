@@ -1,0 +1,25 @@
+{
+  "name":         "@hackbg/formati",
+  "version":      "1.0.0",
+  "main":         "formati.ts",
+  "type":         "module",
+  "license":      "MIT",
+  "homepage":     "https://github.com/hackbg/toolbox",
+  "bugs":         "https://github.com/hackbg/toolbox/issues",
+  "repository":   {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "formati"},
+  "description":  "Data formats.",
+  "dependencies": {
+    "@iov/crypto":   "^2.5.0",
+    "@iov/encoding": "^2.5.0",
+    "bech32":        "^2.0.0"
+  },
+  "devDependencies": {
+    "typescript":       "latest",
+    "@hackbg/izdatel":  "workspace:*"
+  },
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "release": "izdatel"
+  }
+}

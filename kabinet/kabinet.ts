@@ -5,9 +5,8 @@ import symlinkDir from 'symlink-dir'
 import tmp from 'tmp'
 import { cwd } from 'process'
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'fs'
-import { fileURLToPath } from 'url'
-import { resolve, dirname, basename, extname, relative, sep } from 'path'
-import { homedir } from 'os'
+import { fileURLToPath, pathToFileURL } from 'url'
+import { resolve, dirname, basename, relative, sep } from 'path'
 
 const rimrafSync = rimrafCb.sync
 
@@ -38,6 +37,10 @@ export class Path {
 
   /** The represented path. */
   path: string
+
+  get url (): URL {
+    return pathToFileURL(this.path)
+  }
 
   relative (path: Path|string): string {
     if (path instanceof Path) path = path.path
@@ -280,15 +283,6 @@ export function touch (...fragments) {
 
 // reexports
 export {
-  basename,
   copy,
-  cwd,
-  dirname,
-  extname,
-  fileURLToPath,
-  mkdirp,
-  relative,
-  resolve,
   symlinkDir,
-  tmp
 }

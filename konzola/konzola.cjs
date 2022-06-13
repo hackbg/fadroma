@@ -59,3 +59,10 @@ module.exports.bold    = colors.bold
 module.exports.render  = render
 module.exports.prompts = prompts
 module.exports.table   = table
+
+module.exports.timestamp = function timestamp (d = new Date()) {
+  return d.toISOString()
+    .replace(/[-:\.Z]/g, '')
+    .replace(/[T]/g, '_')
+    .slice(0, -3)
+}
