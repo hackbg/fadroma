@@ -3,7 +3,7 @@ import { resolve, basename, extname, dirname } from 'path'
 import { existsSync, readFileSync, writeFileSync, readlinkSync, unlinkSync, readdirSync } from 'fs'
 
 import { Console, bold } from '@hackbg/konzola'
-import $, { JSONFile, JSONDirectory } from '@hackbg/kabinet'
+import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 
@@ -64,7 +64,7 @@ export class Deployments extends JSONDirectory<unknown> {
       throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
     }
     console.info('Creating new deployment', bold(id))
-    await $(dirname(path)).make()
+    await $(dirname(path)).as(OpaqueDirectory).make()
     await writeFileSync(path, '')
   }
 
