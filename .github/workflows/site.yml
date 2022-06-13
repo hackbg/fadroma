@@ -43,6 +43,7 @@ jobs:
       - name: Generate JS documentation
         run: |
           export NODE_OPTIONS=--max_old_space_size=8192 pnpm document
+          ls -al
 
       - name: Render homepage
         run: |
