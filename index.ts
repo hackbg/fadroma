@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'url'
 import {
   Agent,
+  AgentOptions,
   Artifact,
   CachingFSUploader,
   Chain,
@@ -23,6 +24,7 @@ import {
 import { runCommands } from '@hackbg/komandi'
 import { Console, bold } from '@hackbg/konzola'
 
+import { ScrtChain } from '@fadroma/client-scrt'
 import { LegacyScrt } from '@fadroma/client-scrt-amino'
 import { Scrt } from '@fadroma/client-scrt-grpc'
 import { getScrtBuilder, getScrtDevnet } from '@fadroma/ops-scrt'
@@ -120,8 +122,14 @@ const ChainOps = {
       process.exit(1)
     }
     const chain = await Chains[name]()
-    const agentOptions = { name: undefined }
-    if (chain.isDevnet) agentOptions.name = 'ADMIN'
+    const agentOptions: AgentOptions = { name: undefined }
+    if (chain.isDevnet) {
+      // for devnet, use auto-created genesis account
+      agentOptions.name = 'ADMIN'
+    } else if (chain instanceof ScrtChain) {
+      // for scrt-based chains, use mnemonic from config
+      agentOptions.mnemonic = config.scrt.agent.mnemonic
+    }
     const agent = await chain.getAgent(agentOptions)
     return { chain, agent, deployAgent: agent, clientAgent: agent }
   },
