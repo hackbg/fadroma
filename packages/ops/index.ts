@@ -5,10 +5,11 @@ import { config } from './Config'
 config.fromEnv(process.env as any)
 
 import { Console, bold, colors, timestamp } from '@hackbg/konzola'
-import { Chain, Agent, Template } from '@fadroma/client'
-import { BuildContext, Source, Builder } from './Build'
-import { UploadContext, Uploader } from './Upload'
-import { DeployContext, Deployments } from './Deploy'
+import { Chain, Agent } from '@fadroma/client'
+import type { BuildContext } from './Build'
+import type { UploadContext } from './Upload'
+import type { DeployContext } from './Deploy'
+import { Deployments } from './Deploy'
 
 export type Operation<T> = (context: OperationContext) => Promise<T>
 

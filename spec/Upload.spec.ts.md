@@ -67,8 +67,8 @@ test({
 ## Caching
 
 ```typescript
-import { Path, JSONDirectory } from '@hackbg/kabinet'
-import { CachingFSUploader, withTmpFile, withTmpDir } from '../index'
+import { Path, JSONDirectory, withTmpFile, withTmpDir } from '@hackbg/kabinet'
+import { CachingFSUploader } from '../index'
 import { resolve } from 'path'
 
 const mockAgent = () => ({

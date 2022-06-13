@@ -9,7 +9,9 @@ export default DeploySpec
 ## Deployment
 
 ```typescript
-import { Deployment, withTmpFile, basename } from '../index'
+import { basename } from 'path'
+import { withTmpFile } from '@hackbg/kabinet'
+import { Deployment } from '../index'
 test({
   'Deployment get/set/load/save' ({ ok, equal, deepEqual, throws }) {
     withTmpFile(f=>{
@@ -108,7 +110,8 @@ const mockAgent = () => ({
 ## Deployments directory
 
 ```typescript
-import { DeployOps, Deployments, withTmpDir } from '../index'
+import { DeployOps, Deployments } from '../index'
+import { withTmpDir } from '@hackbg/kabinet'
 test({
   async 'Deployments' () {
     await withTmpDir(async dir=>{

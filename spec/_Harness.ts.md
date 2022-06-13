@@ -10,7 +10,8 @@ addressed by path relative to the directory containing the
 file that you are reading right now.
 
 ```typescript
-import { resolve, dirname, fileURLToPath } from '../index'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
 export const here    = dirname(fileURLToPath(import.meta.url))
 export const fixture = x => resolve(here, '..', x)
 ```

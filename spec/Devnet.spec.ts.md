@@ -38,14 +38,14 @@ test({
 ## Devnets are persistent
 
 ```typescript
-import { JSONFile, Directory, withTmpDir } from '@hackbg/kabinet'
+import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/kabinet'
 test({
   async 'save/load Devnet state' ({ ok, equal, deepEqual }) {
     withTmpDir(stateRoot=>{
       const chainId = 'test-devnet'
       const devnet = new Devnet({ chainId, stateRoot })
       ok(devnet.nodeState instanceof JSONFile)
-      ok(devnet.stateRoot instanceof Directory)
+      ok(devnet.stateRoot instanceof BaseDirectory)
       equal(devnet.stateRoot.path, stateRoot)
       ok(!devnet.load())
       equal(devnet.save(), devnet)

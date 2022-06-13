@@ -141,7 +141,7 @@ test({
 ### Dockerized builder
 
 ```typescript
-import { DockerBuilder, DokeresImage, mkdirp } from '../index'
+import { DockerBuilder } from '../index'
 import { Dokeres, DokeresImage } from '@hackbg/dokeres'
 import { mockDockerode } from './_Harness'
 import { Transform } from 'stream'

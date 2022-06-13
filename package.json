@@ -19,7 +19,8 @@
     "@hackbg/dokeres": "workspace:*",
     "@hackbg/kabinet": "workspace:*",
     "@hackbg/komandi": "workspace:*",
-    "@hackbg/konzola": "workspace:*"
+    "@hackbg/konzola": "workspace:*",
+    "@hackbg/formati": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^16.11.36",

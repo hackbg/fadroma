@@ -11,6 +11,7 @@ importers:
       '@fadroma/ops-scrt': workspace:^1
       '@fadroma/tokens': workspace:^1
       '@hackbg/dokeres': workspace:*
+      '@hackbg/formati': workspace:*
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/kabinet': workspace:*
       '@hackbg/komandi': workspace:*
@@ -33,6 +34,7 @@ importers:
       '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/dokeres': link:toolbox/dokeres
+      '@hackbg/formati': link:toolbox/formati
       '@hackbg/ganesha': 2.0.3
       '@hackbg/kabinet': link:toolbox/kabinet
       '@hackbg/komandi': link:toolbox/komandi
