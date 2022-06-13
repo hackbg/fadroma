@@ -1,9 +1,3 @@
-import dotenv from 'dotenv'
-dotenv.config()
-
-import { config } from './Config'
-config.fromEnv(process.env as any)
-
 import { Console, bold, colors, timestamp } from '@hackbg/konzola'
 import { Chain, Agent } from '@fadroma/client'
 import type { BuildContext } from './Build'

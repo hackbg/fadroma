@@ -1,13 +1,8 @@
-import { fileURLToPath } from 'url'
-
 import { Console, bold } from '@hackbg/konzola'
 import $, { BinaryFile, JSONFile, JSONDirectory } from '@hackbg/kabinet'
-
 import type { Agent, Template, Artifact } from '@fadroma/client'
-
 import { codeHashForPath } from './Build'
 import type { Source } from './Build'
-import { getUploads } from './State'
 
 const console = Console('Fadroma Upload')
 

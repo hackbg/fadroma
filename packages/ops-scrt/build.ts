@@ -2,7 +2,11 @@ import { relative, dirname } from 'path'
 import { Dokeres } from '@hackbg/dokeres'
 import { DockerBuilder } from '@fadroma/ops'
 
-export function getScrtBuilder ({ raw, managerUrl, caching = true }: {
+export function getScrtBuilder ({
+  raw,
+  managerUrl,
+  caching = true,
+}: {
   raw?:        boolean
   managerUrl?: string|URL
   caching?:    boolean
