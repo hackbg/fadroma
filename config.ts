@@ -101,7 +101,7 @@ if (config.project.chain.startsWith('LegacyScrt')) {
   }
 } else if (config.project.chain.startsWith('Scrt')) {
   if (config.scrt.testnet.apiUrl === null) {
-    config.scrt.testnet.apiUrl = 'https://rpc.pulsar.griptapejs.com:9091'
+    config.scrt.testnet.apiUrl = 'http://rpc.pulsar.griptapejs.com:9091'
   }
 }
 
