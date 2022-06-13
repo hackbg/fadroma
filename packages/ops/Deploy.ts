@@ -34,11 +34,11 @@ export interface DeployContext {
   deployAgent?: Agent
 
   /** Currently selected collection of interlinked contracts. */
-  deployment?:  Deployment
+  deployment:   Deployment
 
   /** Prefix to the labels of all deployed contracts.
     * Identifies which deployment they belong to. */
-  prefix?:      string
+  prefix:       string
 
   /** Appended to contract labels in devnet deployments for faster iteration. */
   suffix?:      string
