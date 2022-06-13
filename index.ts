@@ -91,7 +91,8 @@ const BuildOps = {
   /** Add a Secret Network builder to the command context. */
   Scrt: function enableScrtBuilder () {
     const builder = getScrtBuilder({
-      caching: !config.build.rebuild
+      caching: !config.build.rebuild,
+      ...config.scrt.build
     })
     return {
       builder,

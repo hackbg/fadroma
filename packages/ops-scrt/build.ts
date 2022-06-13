@@ -6,10 +6,18 @@ export function getScrtBuilder ({
   raw,
   managerUrl,
   caching = true,
+  image,
+  dockerfile,
+  script,
+  service
 }: {
   raw?:        boolean
   managerUrl?: string|URL
   caching?:    boolean
+  image?:      string
+  dockerfile?: string
+  script?:     string
+  service?:    string
 }) {
   if (raw) {
     throw 'TODO'
@@ -17,21 +25,34 @@ export function getScrtBuilder ({
     throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
     //return new ManagedBuilder({ managerURL })
   } else {
-    return new ScrtDockerBuilder({ caching })
+    return new ScrtDockerBuilder({
+      caching,
+      image,
+      dockerfile,
+      script,
+      service
+    })
   }
 }
 
 export class ScrtDockerBuilder extends DockerBuilder {
 
-  constructor ({ caching }) {
-    const script     = config.buildScript
-    const extraFiles = [config.buildScript, config.buildServer]
-    const image = new Dokeres().image(
-      config.buildImage,
-      config.buildDockerfile,
-      extraFiles.map(x=>relative(dirname(config.buildDockerfile), x))
-    )
-    super({ caching, script, image })
+  constructor ({
+    caching,
+    image,
+    dockerfile,
+    script,
+    service
+  }) {
+    super({
+      caching,
+      script,
+      image: new Dokeres().image(
+        image,
+        dockerfile,
+        [script, service].map(x=>relative(dirname(dockerfile), x))
+      )
+    })
   }
 
 }

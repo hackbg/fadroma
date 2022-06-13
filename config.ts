@@ -63,7 +63,7 @@ const config = {
       dockerfile: String(getEnvVar('SCRT_BUILD_DOCKERFILE', ()=>resolve(__dirname, 'packages/ops-scrt/build.Dockerfile'))),
       image:      String(getEnvVar('SCRT_BUILD_IMAGE',      ()=>'hackbg/fadroma-scrt-builder:1.2')),
       script:     String(getEnvVar('SCRT_BUILD_SCRIPT',     ()=>resolve(__dirname, 'packages/ops-scrt/build-impl.mjs'))),
-      server:     String(getEnvVar('SCRT_BUILD_SCRIPT',     ()=>resolve(__dirname, 'packages/ops-scrt/build-server.mjs'))),
+      service:    String(getEnvVar('SCRT_BUILD_SCRIPT',     ()=>resolve(__dirname, 'packages/ops-scrt/build-server.mjs'))),
     },
     mainnet: {
       chainId: String(getEnvVar('SCRT_MAINNET_CHAIN_ID', ()=>'secret-4')),

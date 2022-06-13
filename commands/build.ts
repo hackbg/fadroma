@@ -1,5 +1,6 @@
 import $, { Path, OpaqueDirectory, OpaqueFile, TOMLFile } from '@hackbg/kabinet'
 import { Workspace, getScrtBuilder, Source, Console, bold } from '../index'
+import config from '../config'
 
 type CargoTOML = TOMLFile<{ package: { name: string } }>
 
@@ -53,7 +54,10 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
     console.info('Build manifest:', bold(cargoToml.shortPath))
     const source = workspace.crate(cargoToml.load().package.name)
     try {
-      const artifact = await getScrtBuilder().build(source)
+      const artifact = await getScrtBuilder({
+        caching: false,
+        ...config.scrt.build
+      }).build(source)
       console.info('Built:    ', bold($(artifact.url).shortPath))
       console.info('Code hash:', bold(artifact.codeHash))
       process.exit(0)
@@ -86,7 +90,10 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
         }
         const T0 = + new Date()
         try {
-          await getScrtBuilder().buildMany(buildSources)
+          await getScrtBuilder({
+            caching: false,
+            ...config.scrt.build
+          }).buildMany(buildSources)
           const T1 = + new Date()
           console.info(`Build complete in ${T1-T0}ms.`)
           process.exit(0)
