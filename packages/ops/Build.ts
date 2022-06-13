@@ -397,7 +397,7 @@ export class DockerBuilder extends CachingBuilder {
     // Pre-populate the list of expected artifacts.
     const outputWasms = [...new Array(crates.length)].map(()=>null)
     for (const [crate, index] of Object.entries(shouldBuild)) {
-      outputWasms[index] = $(outputDir, artifactName(crate, safeRef))
+      outputWasms[index] = $(outputDir, artifactName(crate, safeRef)).path
     }
 
     // Pass the compacted list of crates to build into the container
