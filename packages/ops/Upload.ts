@@ -94,7 +94,7 @@ export class CachingFSUploader extends FSUploader {
   static fromConfig (agent, projectRoot) {
     return new CachingFSUploader(
       agent,
-      projectRoot.in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
+      $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
     )
   }
 
