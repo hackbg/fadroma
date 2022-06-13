@@ -100,6 +100,9 @@ if (config.project.chain.startsWith('LegacyScrt')) {
       `/apikey/${config.datahub.key}/`
   }
 } else if (config.project.chain.startsWith('Scrt')) {
+  if (config.scrt.mainnet.apiUrl === null) {
+    config.scrt.mainnet.apiUrl = 'http://api.scrt.network:26657'
+  }
   if (config.scrt.testnet.apiUrl === null) {
     config.scrt.testnet.apiUrl = 'http://rpc.pulsar.griptapejs.com:9091'
   }
