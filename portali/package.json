@@ -4,6 +4,7 @@
   "type":    "module",
   "main":    "portali.ts",
   "dependencies": {
-    "wait-port": "^0.2.9"
+    "wait-port": "^0.2.9",
+    "exponential-backoff": "^3.1.0"
   }
 }
