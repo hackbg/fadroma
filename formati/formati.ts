@@ -36,10 +36,12 @@ export function required (label) {
   return () => { throw new Error(`required: ${label}`) }
 }
 
-export { toBase64, fromBase64, fromUtf8, fromHex, toHex } from '@iov/encoding'
+export * from '@iov/crypto'
+export * from '@iov/encoding'
 
 export {
   bech32,
   bech32m,
   randomBytes
 }
+
