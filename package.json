@@ -39,7 +39,7 @@
   "scripts": {
     "check":    "tsc --noEmit",
     "render":   "node doc/render.js",
-    "document": "typedoc index.ts",
+    "document": "typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints .",
 
     "test": "time ganesha-node spec/index.js",
     "cov":  "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ganesha-node spec/index.js",
