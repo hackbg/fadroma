@@ -11,7 +11,6 @@
     "@hackbg/konzola": "workspace:*",
     "@hackbg/portali": "workspace:*",
     "align-yaml": "^0.1.8",
-    "dotenv":     "^15.0.1",
     "js-yaml":    "^4.1.0",
     "json-schema-to-typescript": "^10.1.5",
     "limiter":    "^2.1.0",
