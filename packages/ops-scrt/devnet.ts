@@ -36,8 +36,8 @@ const scripts           = [initScriptName, managerScriptName]
 
 export function getScrtDevnet (
   version:    ScrtDevnetVersion,
-  managerURL: string = config.devnetManager,
-  chainId:    string = undefined,
+  managerURL: string  = undefined,
+  chainId:    string  = undefined,
   dokeres:    Dokeres = new Dokeres()
 ) {
   const portMode = scrtDevnetPortModes[version]
@@ -45,7 +45,7 @@ export function getScrtDevnet (
     return ManagedDevnet.getOrCreate(
       managerURL,
       chainId,
-      chainId ? null : config.devnetChainIdPrefix,
+      chainId ? null : chainId,
       portMode
     )
   } else {

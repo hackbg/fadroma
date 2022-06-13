@@ -453,10 +453,11 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
   /** Get a handle to a remote devnet. If there isn't one,
     * create one. If there already is one, reuse it. */
   static getOrCreate (
-    managerURL: string,
-    chainId?:   string,
-    prefix?:    string,
-    portMode?:  string
+    projectRoot: string,
+    managerURL:  string,
+    chainId?:    string,
+    prefix?:     string,
+    portMode?:   string
   ) {
 
     // If passed a chain id, use it; this makes a passed prefix irrelevant.
@@ -472,15 +473,15 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
     // If no chain id passed, try to reuse the last created devnet;
     // if there isn't one, create a new one and symlink it as active.
     if (!chainId) {
-      const active = resolve(config.projectRoot, 'receipts', `${prefix}-active`)
-      if (existsSync(active)) {
-        chainId = basename(readlinkSync(active))
+      const active = $(projectRoot, 'receipts', `${prefix}-active`)
+      if ($(active).exists()) {
+        chainId = basename(readlinkSync(active.path))
         console.info('Reusing existing managed devnet with chain id', bold(chainId))
       } else {
         chainId = `${prefix}-${randomHex(4)}`
-        const devnet = $(config.projectRoot).in('receipts').in(chainId)
+        const devnet = $(projectRoot).in('receipts').in(chainId)
         devnet.make()
-        symlinkSync(devnet.path, active)
+        symlinkSync(devnet.path, active.path)
         console.info('Creating new managed devnet with chain id', bold(chainId))
       }
     }
@@ -492,9 +493,8 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
   constructor (options) {
     super(options)
     console.info('Constructing', bold('remotely managed'), 'devnet')
-    const { managerURL = config.devnetManager } = options
-    this.manager = new Endpoint(managerURL)
-    this.host = this.manager.url.hostname
+    this.manager = new Endpoint(options.managerURL)
+    this.host    = this.manager.url.hostname
   }
 
   manager: Endpoint
@@ -531,7 +531,7 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
   }
 
   save () {
-    const shortPath = relative(config.projectRoot, this.nodeState.path)
+    const shortPath = $(this.nodeState.path).shortPath
     console.info(`Saving devnet node to ${shortPath}`)
     const data = { chainId: this.chainId, port: this.port }
     this.nodeState.save(data)
@@ -539,7 +539,7 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
   }
 
   async respawn () {
-    const shortPath = relative(config.projectRoot, this.nodeState.path)
+    const shortPath = $(this.nodeState.path).shortPath
     // if no node state, spawn
     if (!this.nodeState.exists()) {
       console.info(`No devnet found at ${bold(shortPath)}`)

@@ -10,7 +10,7 @@ $(import.meta.url).entrypoint(buildCommand)
 
 export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
 
-  let buildSpec = $(buildPath)
+  const buildSpec = $(buildPath)
   if (buildSpec.isDirectory()) {
     console.log(buildSpec)
     buildFromDirectory(buildSpec.as(OpaqueDirectory))
@@ -54,10 +54,8 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
     console.info('Build manifest:', bold(cargoToml.shortPath))
     const source = workspace.crate(cargoToml.load().package.name)
     try {
-      const artifact = await getScrtBuilder({
-        caching: false,
-        ...config.scrt.build
-      }).build(source)
+      const builder  = getScrtBuilder({ caching: false, ...config.scrt.build })
+      const artifact = await builder.build(source)
       console.info('Built:    ', bold($(artifact.url).shortPath))
       console.info('Code hash:', bold(artifact.codeHash))
       process.exit(0)
@@ -90,10 +88,8 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
         }
         const T0 = + new Date()
         try {
-          await getScrtBuilder({
-            caching: false,
-            ...config.scrt.build
-          }).buildMany(buildSources)
+          const builder = getScrtBuilder({ caching: false, ...config.scrt.build })
+          await builder.buildMany(buildSources)
           const T1 = + new Date()
           console.info(`Build complete in ${T1-T0}ms.`)
           process.exit(0)
