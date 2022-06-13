@@ -142,7 +142,6 @@ export type { BuildContext, UploadContext, DeployContext }
 
 export * from '@hackbg/formati'
 export * from '@fadroma/client'
-export * from './Config'
 export * from './Build'
 export * from './Schema'
 export * from './Devnet'
@@ -150,5 +149,4 @@ export * from './Upload'
 export * from './Deploy'
 export * from './Print'
 export * from './Mocknet'
-export * from './State'
 export * from './Endpoint'
