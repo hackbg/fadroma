@@ -105,8 +105,8 @@ export class Backend <Op> {
     }
   }
 
-  notify (data: any): void {
-    this.port.postMessage([this.topic, null, data])
+  notify (...args: any[]): void {
+    this.port.postMessage([this.topic, null, null, args])
   }
 
   respond <Arg, Ret> (op: Op, arg?: Arg): Promise<Ret> {
