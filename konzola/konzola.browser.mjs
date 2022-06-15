@@ -4,10 +4,10 @@ function Konzola (context) {
 
   maxContextLength = Math.max(maxContextLength, context.length)
 
-  const INFO  = () => `INFO  ${context.padEnd(maxContextLength)}`
-  const WARN  = () => `WARN  ${context.padEnd(maxContextLength)}`
-  const ERROR = () => `ERROR ${context.padEnd(maxContextLength)}`
-  const TRACE = () => `TRACE ${context.padEnd(maxContextLength)}`
+  const INFO  = () => [`%cINFO  ${context.padEnd(maxContextLength)}`, 'font-weight:bold']
+  const WARN  = () => [`%cWARN  ${context.padEnd(maxContextLength)}`, 'font-weight:bold']
+  const ERROR = () => [`%cERROR ${context.padEnd(maxContextLength)}`, 'font-weight:bold']
+  const TRACE = () => [`%cTRACE ${context.padEnd(maxContextLength)}`, 'font-weight:bold']
 
   const INDENT = "\n      "
   const format = (arg) => arg
@@ -17,11 +17,11 @@ function Konzola (context) {
   return Object.assign(log, {
     log,
     format,
-    info:  (...args) => console.info( INFO(),  ...args),
-    warn:  (...args) => console.warn( WARN(),  ...args),
-    error: (...args) => console.error(ERROR(), ...args),
+    info:  (...args) => console.info(...INFO(),  ...args),
+    warn:  (...args) => console.warn(...WARN(),  ...args),
+    error: (...args) => console.error(...ERROR(), ...args),
     trace: (...args) => {
-      console.debug('TRACE', ...args.map(format))
+      console.debug(...TRACE(), ...args.map(format))
       console.trace()
     },
     debug: (...args) => {

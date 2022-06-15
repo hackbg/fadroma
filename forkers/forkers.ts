@@ -28,7 +28,7 @@ export function request <Id, Op, Arg, Ret> (
 
     // start waiting for timeout
     let timer
-    if (timeout) {
+    if (timeout && timeout > 0 && timeout < Infinity) {
       timer = setTimeout(()=>{
         port.removeEventListener('message', receive)
         reject(`${topic}.${op}#${id}(${arg}): timed out after ${timeout}ms`)
