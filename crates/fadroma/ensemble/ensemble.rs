@@ -152,7 +152,7 @@ impl ContractEnsemble {
         &mut self,
         msg: &T,
         env: MockEnv
-    ) -> StdResult<()> {
+    ) -> StdResult<HandleResponse> {
         let result = self.ctx.execute(to_binary(msg)?, env);
 
         if result.is_ok() {
@@ -267,7 +267,7 @@ impl Context {
         }
     }
 
-    fn execute(&mut self, msg: Binary, env: MockEnv) -> StdResult<()> {
+    fn execute(&mut self, msg: Binary, env: MockEnv) -> StdResult<HandleResponse> {
         let address = env.contract.address.clone();
         let env = self.create_env(env);
 
@@ -285,9 +285,9 @@ impl Context {
         let contract = self.contracts.get(instance.index).unwrap();
         let result = contract.handle(&mut instance.deps, env, msg)?;
 
-        self.execute_messages(result.messages, address)?;
+        self.execute_messages(result.messages.clone(), address)?;
 
-        Ok(())
+        Ok(result)
     }
 
     pub(crate) fn query(&self, address: HumanAddr, msg: Binary) -> StdResult<Binary> {
