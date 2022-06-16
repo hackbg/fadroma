@@ -5,8 +5,8 @@
   "main":    "index.ts",
   "dependencies": {
     "@hackbg/konzola":      "workspace:*",
-    "@fadroma/client":      "workspace:*",
-    "@fadroma/client-scrt": "workspace:*"
+    "@fadroma/client":      "workspace:^3.0.0",
+    "@fadroma/client-scrt": "workspace:^3.0.3"
   },
   "devDependencies": {
     "typescript":      "^4.6.4",
