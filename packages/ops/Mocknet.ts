@@ -22,7 +22,7 @@ import { randomBech32, bech32 } from '@hackbg/formati'
 import {
   Address,
   Agent,
-  AgentOptions,
+  AgentOpts,
   Bundle,
   Chain,
   ChainMode,
@@ -99,12 +99,13 @@ const debug = process.env.FADROMA_MOCKNET_DEBUG ? ((...args) => {
 
 /** Chain instance containing a local MocknetBackend. */
 export class Mocknet extends Chain {
+  defaultDenom = 'umock'
   constructor (id = 'fadroma-mocknet', options = {}) {
     super(id, { ...options, mode: ChainMode.Mocknet })
   }
   Agent = MocknetAgent
   backend = new MocknetBackend(this.id)
-  async getAgent (options: AgentOptions) {
+  async getAgent (options: AgentOpts) {
     return new MocknetAgent(this, options)
   }
   async query <T, U> (contract: Instance, msg: T): Promise<U> {
@@ -119,16 +120,22 @@ export class Mocknet extends Chain {
   async getLabel (_: any) {
     return "SomeLabel"
   }
+  async getBalance (_: string) {
+    return "0"
+  }
+  get height () {
+    return Promise.resolve(0)
+  }
 }
 
 /** Agent instance calling its Chain's Mocknet backend. */
 export class MocknetAgent extends Agent {
-  defaultDenom = 'umock'
+  get defaultDenom () { return this.chain.defaultDenom }
   Bundle = MocknetBundle
-  static async create (chain: Mocknet, options: AgentOptions) {
+  static async create (chain: Mocknet, options: AgentOpts) {
     return new MocknetAgent(chain, options)
   }
-  constructor (readonly chain: Mocknet, readonly options: AgentOptions) {
+  constructor (readonly chain: Mocknet, readonly options: AgentOpts) {
     super(chain, options)
   }
   name:    string  = 'MocknetAgent'
@@ -149,7 +156,7 @@ export class MocknetAgent extends Agent {
   async query <M, R> (instance, msg: M): Promise<R> {
     return await this.chain.query(instance, msg)
   }
-  get nextBlock () { return Promise.resolve()    }
+  get nextBlock () { return Promise.resolve(0)   }
   get block     () { return Promise.resolve(0)   }
   get account   () { return Promise.resolve()    }
   get balance   () { return Promise.resolve("0") }

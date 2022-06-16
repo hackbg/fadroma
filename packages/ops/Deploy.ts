@@ -11,7 +11,7 @@ import type {
   Agent, 
   Client,
   ClientCtor,
-  ClientOptions,
+  ClientOpts,
   Instance,
   Label,
   Message,
@@ -188,7 +188,7 @@ export class Deployment {
     return resolve(this.path, ...fragments)
   }
 
-  getClient <C extends Client, O extends ClientOptions> (
+  getClient <C extends Client, O extends ClientOpts> (
     agent:  Agent,
     Client: ClientCtor<C, O>,
     name:   string

@@ -1,5 +1,8 @@
 import {
-  AgentOptions,
+  Address,
+  AgentOpts,
+  ChainId,
+  ChainOpts,
   Template,
   Instance,
   ScrtChain,
@@ -19,7 +22,7 @@ import {
 
 import * as constants from './scrt-grpc-constants'
 
-export interface ScrtRPCAgentOptions extends AgentOptions {
+export interface ScrtRPCAgentOpts extends AgentOpts {
   wallet?:  Wallet
   url?:     string
   api?:     SecretNetworkClient
@@ -33,7 +36,7 @@ export class ScrtRPCAgent extends ScrtAgent {
 
   static async create (
     chain:   Scrt,
-    options: ScrtRPCAgentOptions
+    options: ScrtRPCAgentOpts
   ): Promise<ScrtRPCAgent> {
     const { mnemonic, keyPair, address } = options
     let { wallet } = options
@@ -57,7 +60,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     return new ScrtRPCAgent(chain, { ...options, wallet, api })
   }
 
-  constructor (chain: Scrt, options: ScrtRPCAgentOptions) {
+  constructor (chain: Scrt, options: ScrtRPCAgentOpts) {
     // @ts-ignore
     super(chain, options)
     this.wallet  = options.wallet
@@ -69,61 +72,48 @@ export class ScrtRPCAgent extends ScrtAgent {
 
   api:    SecretNetworkClient
 
-  defaultDenom = 'uscrt'
-
   address: string
-
-  get block () {
-    return this.api.query.tendermint.getLatestBlock({})
-  }
-
-  get height () {
-    return this.block.then(block=>Number(block.block.header.height))
-  }
 
   get account () {
     return this.api.query.auth.account({ address: this.address })
   }
-
   get balance () {
-    return this.getBalance(this.defaultDenom)
+    return this.getBalance(this.defaultDenom, this.address)
   }
-
-  async getBalance (denom = this.defaultDenom) {
-    const response = await this.api.query.bank.balance({ address: this.address, denom })
+  async getBalance (denom = this.defaultDenom, address: Address) {
+    const response = await this.api.query.bank.balance({ address, denom })
     return response.balance.amount
   }
-
-  async send (...args: any[]) {
-    throw new Error('ScrtRPCAgent#send: not implemented')
+  async send (to, amounts, opts?) {
+    return this.api.tx.bank.send({
+      fromAddress: this.address,
+      toAddress:   to,
+      amount:      amounts
+    }, {
+      gasLimit: opts?.gas?.gas
+    })
   }
-
-  async sendMany (...args: any[]) {
+  async sendMany (outputs, opts) {
     throw new Error('ScrtRPCAgent#sendMany: not implemented')
   }
-
   async getLabel (address: string): Promise<string> {
     const { ContractInfo: { label } } = await this.api.query.compute.contractInfo(address)
     return label
   }
-
   async getCodeId (address: string): Promise<string> {
     const { ContractInfo: { codeId } } = await this.api.query.compute.contractInfo(address)
     return codeId
   }
-
   async getHash (address: string): Promise<string> {
     return await this.api.query.compute.contractCodeHash(address)
   }
-
   // @ts-ignore
   async query <U> (instance: Instance, query: Message): Promise<U> {
     const { address: contractAddress, codeHash } = instance
-    const args = { contractAddress, codeHash, query: query as object }
+    const args = { contractAddress, codeHash, query: query as Record<string, unknown> }
     // @ts-ignore
     return await this.api.query.compute.queryContract(args) as U
   }
-
   async upload (data: Uint8Array): Promise<Template> {
     const sender     = this.address
     const args       = {sender, wasmByteCode: data, source: "", builder: ""}
@@ -135,7 +125,6 @@ export class ScrtRPCAgent extends ScrtAgent {
     const chainId    = this.chain.id
     return { uploadTx: result.transactionHash, chainId, codeId, codeHash }
   }
-
   async instantiate (template, label, initMsg, initFunds = []): Promise<Instance> {
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) {
@@ -157,8 +146,6 @@ export class ScrtRPCAgent extends ScrtAgent {
       )
     }
   }
-
-  // @ts-ignore
   async execute (instance: Instance, msg: Message, opts: ExecOpts = {}): Promise<Tx> {
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
@@ -166,11 +153,11 @@ export class ScrtRPCAgent extends ScrtAgent {
       console.warn(constants.WARN_NO_MEMO)
     }
     const result = await this.api.tx.compute.executeContract({
-      sender: this.address,
+      sender:          this.address,
       contractAddress: address,
       codeHash,
-      msg: msg as object,
-      sentFunds: send
+      msg:             msg as Record<string, unknown>,
+      sentFunds:       send
     }, {
       gasLimit: Number(fee.amount[0].amount)
     })
@@ -180,35 +167,52 @@ export class ScrtRPCAgent extends ScrtAgent {
       // TODO decode event contents so the error message doesn't take so many lines
       throw Object.assign(new Error(error), result)
     }
-    return result
+    return result as Tx
   }
 }
 
 export class Scrt extends ScrtChain {
+
+  api = SecretNetworkClient.create({ chainId: this.id, grpcWebUrl: this.url })
+
   static Agent = ScrtRPCAgent
+
   // @ts-ignore
   Agent = Scrt.Agent
+
   // @ts-ignore
-  getAgent (options: ScrtRPCAgentOptions): Promise<ScrtRPCAgent> {
+  getAgent (options: ScrtRPCAgentOpts): Promise<ScrtRPCAgent> {
     // @ts-ignore
     return super.getAgent(options)
   }
 
+  async getBalance (denom = this.defaultDenom, address: Address) {
+    const response = await (await this.api).query.bank.balance({ address, denom })
+    return response.balance.amount
+  }
   async getLabel (address: string): Promise<string> {
-    throw new Error('TODO: Scrt#getLabel: use same method on agent')
+    const { ContractInfo: { label } } = await (await this.api).query.compute.contractInfo(address)
+    return label
   }
-
   async getCodeId (address: string): Promise<string> {
-    throw new Error('TODO: Scrt#getCodeId: use same method on agent')
+    const { ContractInfo: { codeId } } = await (await this.api).query.compute.contractInfo(address)
+    return codeId
   }
-
   async getHash (address: string): Promise<string> {
-    throw new Error('TODO: Scrt#getHash: use same method on agent')
+    return await (await this.api).query.compute.contractCodeHash(address)
   }
 
   // @ts-ignore
   async query <U> (instance: Instance, query: Message): Promise<U> {
     throw new Error('TODO: Scrt#query: use same method on agent')
+  }
+
+  get block () {
+    return this.api.then(api=>api.query.tendermint.getLatestBlock({}))
+  }
+
+  get height () {
+    return this.block.then(block=>Number(block.block.header.height))
   }
 }
 

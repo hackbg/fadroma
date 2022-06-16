@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'url'
 import {
   Agent,
-  AgentOptions,
+  AgentOpts,
   Artifact,
   CachingFSUploader,
   Chain,
@@ -122,15 +122,15 @@ const ChainOps = {
       process.exit(1)
     }
     const chain = await Chains[name]()
-    const agentOptions: AgentOptions = { name: undefined }
+    const agentOpts: AgentOpts = { name: undefined }
     if (chain.isDevnet) {
       // for devnet, use auto-created genesis account
-      agentOptions.name = 'ADMIN'
+      agentOpts.name = 'ADMIN'
     } else if (chain instanceof ScrtChain) {
       // for scrt-based chains, use mnemonic from config
-      agentOptions.mnemonic = config.scrt.agent.mnemonic
+      agentOpts.mnemonic = config.scrt.agent.mnemonic
     }
-    const agent = await chain.getAgent(agentOptions)
+    const agent = await chain.getAgent(agentOpts)
     return { chain, agent, deployAgent: agent, clientAgent: agent }
   },
 

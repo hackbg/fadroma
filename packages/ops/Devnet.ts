@@ -1,9 +1,9 @@
 import { URL } from 'url'
 import { basename, relative, resolve } from 'path'
 import { cwd } from 'process'
-import { existsSync, readlinkSync, symlinkSync } from 'fs'
+import { readlinkSync, symlinkSync } from 'fs'
 
-import type { AgentOptions, DevnetHandle } from '@fadroma/client'
+import type { AgentOpts, DevnetHandle } from '@fadroma/client'
 import { Console, bold } from '@hackbg/konzola'
 import $, { OpaqueDirectory, JSONFile, JSONDirectory } from '@hackbg/kabinet'
 import { freePort, waitPort } from '@hackbg/portali'
@@ -17,7 +17,7 @@ const console = Console('Fadroma Devnet')
 /** Domain API. A Devnet is created from a given chain ID
   * with given pre-configured identities, and its state is stored
   * in a given directory. */
-export interface DevnetOptions {
+export interface DevnetOpts {
   /** Internal name that will be given to chain. */
   chainId?:    string
   /** Names of genesis accounts to be created with the node */
@@ -53,7 +53,7 @@ export abstract class Devnet implements DevnetHandle {
     port,
     portMode,
     ephemeral
-  }: DevnetOptions) {
+  }: DevnetOpts) {
     this.ephemeral = ephemeral
     this.chainId  = chainId      || this.chainId
     this.port     = Number(port) || this.port
@@ -104,7 +104,7 @@ export abstract class Devnet implements DevnetHandle {
   genesisAccounts: Array<string> = ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
 
   /** Retrieve an identity */
-  abstract getGenesisAccount (name: string): Promise<AgentOptions>
+  abstract getGenesisAccount (name: string): Promise<AgentOpts>
 
   /** Start the node. */
   abstract spawn (): Promise<this>
@@ -166,7 +166,7 @@ export type DevnetPortMode = 'lcp'|'grpcWeb'
 
 /** Parameters for the Dockerode-based implementation of Devnet.
   * (https://www.npmjs.com/package/dockerode) */
-export interface DockerDevnetOptions extends DevnetOptions {
+export interface DockerDevnetOpts extends DevnetOpts {
   /** Docker image of the chain's runtime. */
   image?:       DokeresImage
   /** Init script to launch the devnet. */
@@ -180,7 +180,7 @@ export interface DockerDevnetOptions extends DevnetOptions {
   * This requires an image name and a handle to Dockerode. */
 export class DockerDevnet extends Devnet implements DevnetHandle {
 
-  constructor (options: DockerDevnetOptions = {}) {
+  constructor (options: DockerDevnetOpts = {}) {
     super(options)
     console.info('Constructing', bold('Dockerode')+'-based devnet')
     this.identities  = this.stateRoot.in('identities').as(JSONDirectory)
@@ -208,7 +208,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   identities: JSONDirectory<unknown>
 
   /** Gets the info for a genesis account, including the mnemonic */
-  async getGenesisAccount (name: string): Promise<AgentOptions> {
+  async getGenesisAccount (name: string): Promise<AgentOpts> {
     return this.identities.at(`${name}.json`).as(JSONFile).load()
   }
 
@@ -440,7 +440,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 }
 
 /** Parameters for the HTTP API-managed implementation of Devnet. */
-export type ManagedDevnetOptions = DevnetOptions & {
+export type ManagedDevnetOpts = DevnetOpts & {
   /** Base URL of the API that controls the managed node. */
   managerURL: string
 }
@@ -559,7 +559,7 @@ export class ManagedDevnet extends Devnet implements DevnetHandle {
     }
   }
 
-  async getGenesisAccount (name: string): Promise<AgentOptions> {
+  async getGenesisAccount (name: string): Promise<AgentOpts> {
     const identity = await this.manager.get('/identity', { name })
     if (identity.error) {
       throw new Error(`ManagedDevnet#getGenesisAccount: failed to get ${name}: ${identity.error}`)

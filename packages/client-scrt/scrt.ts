@@ -1,28 +1,23 @@
 import {
-  Address,
   Agent,
   Bundle,
-  BundleCallback,
   Chain,
-  Client,
-  ClientCtor,
-  ClientOptions,
-  ExecOpts,
   Fee,
-  Instance,
-  Label,
   Message,
   Template,
   Uint128
 } from '@fadroma/client'
 
+export abstract class ScrtChain extends Chain {
+  defaultDenom = ScrtGas.denom
+}
+
 export abstract class ScrtAgent extends Agent {
 
   fees = ScrtGas.defaultFees
 
-  defaultDenom = 'uscrt'
-
   async instantiateMany (configs: [Template, string, Message][] = []) {
+    // instantiate multiple contracts in a bundle:
     const instances = await this.bundle().wrap(async bundle=>{
       await bundle.instantiateMany(configs)
     })
@@ -41,19 +36,7 @@ export abstract class ScrtAgent extends Agent {
 
 }
 
-export class ScrtBundle extends Bundle {
-
-  submit (memo: string): Promise<any> {
-    throw new Error("ScrtBundle#submit is abstract, why aren't you using the subclass?")
-  }
-
-  save (name: string) {
-    throw new Error("ScrtBundle#save is abstract, why aren't you using the subclass?")
-  }
-
-}
-
-export type ScrtBundleWrapper = (bundle: ScrtBundle) => Promise<any>
+export abstract class ScrtBundle extends Bundle {}
 
 export interface ScrtBundleResult {
   tx:        string
@@ -65,9 +48,7 @@ export interface ScrtBundleResult {
   label?:    string
 }
 
-export abstract class ScrtChain extends Chain {}
-
-export interface ScrtBundleCtor <B extends ScrtBundle, R> {
+export interface ScrtBundleCtor <B extends ScrtBundle> {
   new (agent: ScrtAgent): B
 }
 

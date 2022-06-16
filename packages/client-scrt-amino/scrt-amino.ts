@@ -1,21 +1,24 @@
 import { Bip39 } from '@cosmjs/crypto'
 import {
-  AgentOptions,
+  Address,
+  AgentOpts,
   CodeId,
   CodeHash,
-  Instance,
   ScrtAgent,
   ScrtBundle,
   ScrtChain,
   ScrtGas,
 } from '@fadroma/client-scrt'
-import { toBase64, fromBase64, fromUtf8, fromHex } from '@iov/encoding'
+import { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
 import { backOff } from 'exponential-backoff'
 import {
   BroadcastMode,
+  CosmWasmClient,
   EnigmaUtils,
-  ExecuteResult,
+  //ExecuteResult,
   InstantiateResult,
+  PostTxResult,
+  TxsResponse,
   Secp256k1Pen,
   SigningCosmWasmClient,
   encodeSecp256k1Pubkey,
@@ -38,7 +41,7 @@ export interface ScrtNonce {
   sequence:      number
 }
 
-export interface LegacyScrtAgentOptions extends AgentOptions {
+export interface LegacyScrtAgentOpts extends AgentOpts {
   keyPair?: { privkey: Uint8Array }
   pen?:     SigningPen
 }
@@ -77,7 +80,7 @@ export class LegacyScrtAgent extends ScrtAgent {
     })
   }
 
-  constructor (chain, options: LegacyScrtAgentOptions = {}) {
+  constructor (chain, options: LegacyScrtAgentOpts = {}) {
     super(chain, options)
     this.name     = options?.name || ''
     // @ts-ignore
@@ -130,9 +133,9 @@ export class LegacyScrtAgent extends ScrtAgent {
     return this.api.getAccount(this.address)
   }
 
-  /** Get up-to-data balance of this address in specified denomination. */
-  async getBalance (denomination: string = this.defaultDenom) {
-    const account = await this.account
+  /** Get up-to-date balance of this address in specified denomination. */
+  async getBalance (denomination: string = this.defaultDenom, address: Address = this.address) {
+    const account = await this.api.getAccount(address)
     const balance = account.balance || []
     const inDenom = ({denom}) => denom === denomination
     const balanceInDenom = balance.filter(inDenom)[0]
@@ -140,40 +143,28 @@ export class LegacyScrtAgent extends ScrtAgent {
     return balanceInDenom.amount
   }
 
-  async send (recipient, amount, denom = 'uscrt', memo = "") {
-    if (typeof amount === 'number') amount = String(amount)
-    return await this.api.sendTokens(recipient, [{denom, amount}], memo)
+  async send (to, amounts, opts?): Promise<PostTxResult> {
+    return await this.api.sendTokens(to, amounts, opts?.memo)
   }
 
-  async sendMany (txs = [], memo = "", denom = 'uscrt', fee = new ScrtGas(500000 * txs.length)) {
-    if (txs.length < 0) {
+  async sendMany (outputs, opts) {
+    if (outputs.length < 0) {
       throw new Error(constants.ERR_ZERO_RECIPIENTS)
     }
     const from_address = this.address
     //const {accountNumber, sequence} = await this.api.getNonce(from_address)
     let accountNumber
     let sequence
-    const msg = await Promise.all(txs.map(async ([to_address, amount])=>{
+    const msg = await Promise.all(outputs.map(async ([to_address, amount])=>{
       ({accountNumber, sequence} = await this.api.getNonce(from_address)) // increment nonce?
       if (typeof amount === 'number') amount = String(amount)
-      const value = {from_address, to_address, amount: [{denom, amount}]}
+      const value = {from_address, to_address, amount}
       return { type: 'cosmos-sdk/MsgSend', value }
     }))
+    const memo      = opts?.memo
+    const fee       = opts?.fee || new ScrtGas(500000 * outputs.length)
     const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence)
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
-  }
-
-  async getHash (idOrAddr: number|string) {
-    const { api } = this
-    return await this.rateLimited(async function getCodeHashInner () {
-      if (typeof idOrAddr === 'number') {
-        return await api.getCodeHashByCodeId(idOrAddr)
-      } else if (typeof idOrAddr === 'string') {
-        return await api.getCodeHashByContractAddr(idOrAddr)
-      } else {
-        throw new TypeError('getCodeHash id or addr')
-      }
-    }) as CodeHash
   }
 
   async checkCodeHash (address, codeHash) {
@@ -212,10 +203,8 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
     const { codeId, codeHash } = template
     const { api } = this
-    const { logs, transactionHash } = await this.rateLimited(function doInstantiateInner () {
-      // @ts-ignore
-      return api.instantiate(Number(codeId), msg, label)
-    }) as InstantiateResult
+    //@ts-ignore
+    const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, funds)
     return {
       chainId:  this.chain.id,
       codeId:   String(codeId),
@@ -225,32 +214,36 @@ export class LegacyScrtAgent extends ScrtAgent {
     }
   }
 
+  async getHash (idOrAddr: number|string) {
+    const { api } = this
+    if (typeof idOrAddr === 'number') {
+      return await api.getCodeHashByCodeId(idOrAddr)
+    } else if (typeof idOrAddr === 'string') {
+      return await api.getCodeHashByContractAddr(idOrAddr)
+    } else {
+      throw new TypeError('getCodeHash id or addr')
+    }
+  }
+
   async getCodeId (address) {
     const { api } = this
-    return await this.rateLimited(async function getCodeIdInner () {
-      const { codeId } = await api.getContract(address)
-      return String(codeId)
-    }) as CodeId
+    const { codeId } = await api.getContract(address)
+    return String(codeId)
   }
 
   async getLabel (address) {
     const { api } = this
-    return await this.rateLimited(async function getLabelInner () {
-      const { label } = await api.getContract(address)
-      return label
-    }) as string
+    const { label } = await api.getContract(address)
+    return label
   }
 
-  async query <T, U> ({ address, codeHash }, msg: T) {
+  async query <T, U> ({ address, codeHash }, msg: T): Promise<U> {
     const { api } = this
-    return await this.rateLimited(function doQueryInner () {
-      // @ts-ignore
-      return api.queryContractSmart(address, msg, undefined, codeHash)
-    }) as U
+    // @ts-ignore
+    return api.queryContractSmart(address, msg, undefined, codeHash)
   }
 
-  //@ts-ignore
-  async execute ({ address, codeHash }, msg, opts) {
+  async execute ({ address, codeHash }, msg, opts): Promise<TxsResponse> {
     const { memo, amount, fee } = opts
     return await this.api.execute(address, msg, memo, amount, fee, codeHash)
   }
@@ -277,38 +270,6 @@ export class LegacyScrtAgent extends ScrtAgent {
 
   config
 
-  async rateLimited (fn) {
-    //console.log('rateLimited', fn)
-    let initialWait = 0
-    if (this.chain.isMainnet && this.config?.datahub?.rateLimit) {
-      initialWait = this.initialWait*Math.random()
-      console.warn(
-        "Avoid running into rate limiting by waiting",
-        Math.floor(initialWait), 'ms'
-      )
-      await new Promise(resolve=>setTimeout(resolve, initialWait))
-      console.warn("Wait is over")
-    }
-    return backOff(fn, {
-      jitter:        'full',
-      startingDelay: 100 + initialWait,
-      timeMultiple:  3,
-      retry (error, attempt) {
-        if (error.message.includes('500')) {
-          console.warn(`Error 500, retry #${attempt}...`)
-          console.error(error.message)
-          return true
-        } else if (error.message.includes('429')) {
-          console.warn(`Error 429, retry #${attempt}...`)
-          console.error(error.message)
-          return true
-        } else {
-          return false
-        }
-      }
-    })
-  }
-
 }
 
 export class LegacyScrtBundle extends ScrtBundle {
@@ -330,7 +291,7 @@ export class LegacyScrtBundle extends ScrtBundle {
     const msgs   = await this.buildForSubmit()
     const limit  = Number(ScrtGas.defaultFees.exec.amount[0].amount)
     const gas    = new ScrtGas(msgs.length*limit)
-    const signed = await this.agent.signTx(msgs, gas, "")
+    const signed = await this.agent.signTx(msgs, gas, memo)
     try {
       const txResult = await this.agent.api.postTx(signed)
       const results  = this.collectSubmitResults(msgs, txResult)
@@ -492,26 +453,61 @@ export async function getNonce (url, address) {
 }
 
 export class LegacyScrt extends ScrtChain {
+
   static Agent = LegacyScrtAgent
+
   // @ts-ignore
   Agent = LegacyScrt.Agent
 
-  async getLabel (address: string): Promise<string> {
-    throw new Error('TODO: Scrt#getLabel: use same method on agent')
+  api = new CosmWasmClient(this.url)
+
+  get block () {
+    return this.api.getBlock()
   }
 
-  async getCodeId (address: string): Promise<string> {
-    throw new Error('TODO: Scrt#getCodeId: use same method on agent')
+  get height () {
+    return this.block.then(block=>block.header.height)
   }
 
-  async getHash (address: string): Promise<string> {
-    throw new Error('TODO: Scrt#getHash: use same method on agent')
+  /** Get up-to-date balance of this address in specified denomination. */
+  async getBalance (denomination: string = this.defaultDenom, address: Address) {
+    const account = await this.api.getAccount(address)
+    const balance = account.balance || []
+    const inDenom = ({denom}) => denom === denomination
+    const balanceInDenom = balance.filter(inDenom)[0]
+    if (!balanceInDenom) return '0'
+    return balanceInDenom.amount
   }
 
-  // @ts-ignore
-  async query <Q extends object> (instance: Instance, query: Q) {
-    throw new Error('TODO: Scrt#query: use same method on agent')
+  async getHash (idOrAddr: number|string) {
+    const { api } = this
+    if (typeof idOrAddr === 'number') {
+      return await api.getCodeHashByCodeId(idOrAddr)
+    } else if (typeof idOrAddr === 'string') {
+      return await api.getCodeHashByContractAddr(idOrAddr)
+    } else {
+      throw new TypeError('getCodeHash id or addr')
+    }
   }
+
+  async getCodeId (address) {
+    const { api } = this
+    const { codeId } = await api.getContract(address)
+    return String(codeId)
+  }
+
+  async getLabel (address) {
+    const { api } = this
+    const { label } = await api.getContract(address)
+    return label
+  }
+
+  async query <T, U> ({ address, codeHash }, msg: T) {
+    const { api } = this
+    // @ts-ignore
+    return api.queryContractSmart(address, msg, undefined, codeHash)
+  }
+
 }
 
 export function mergeAttrs (attrs) {

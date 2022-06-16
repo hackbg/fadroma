@@ -41,38 +41,57 @@ export class ContractLink {
   ) {}
 }
 
-/** Something that can execute queries -
-  * such as a Chain, an Agent, or a Bundle
-  * (though the Bundle won't let you query) */
-export interface Querier {
-  query <U> (contract: Instance, msg: Message): Promise<U>
-  getCodeId (address: Address): Promise<string>
-  getLabel  (address: Address): Promise<string>
-  getHash   (address: Address): Promise<string>
+/** Something that can execute read-only API calls. */
+export interface Spectator {
+  /** The chain on which this object operates. */
+  chain:        Chain
+  /** Query a smart contract. */
+  query <U>     (contract: Instance, msg: Message): Promise<U>
+  /** Get the code id of a smart contract. */
+  getCodeId     (address: Address):                 Promise<string>
+  /** Get the label of a smart contract. */
+  getLabel      (address: Address):                 Promise<string>
+  /** Get the code hash of a smart contract. */
+  getHash       (address: Address):                 Promise<string>
+  /** Get the current block height. */
+  get height    ():                                 Promise<number>
+  /** Wait for the block height to increment. */
+  get nextBlock ():                                 Promise<number>
 }
 
-/** Something that can execute transactions -
-  * such as an Agent or a Bundle. */
-export interface Executor extends Querier {
-  get height ():  Promise<number>
-  fees:           AgentFees
-  chain:          Chain
-  address?:       Address
-  upload          (code: Uint8Array):   Promise<void|Template>
-  uploadMany      (code: Uint8Array[]): Promise<void|Template[]>
-  instantiate     (template: Template, label: string, msg: Message):   Promise<void|Instance>
-  instantiateMany (configs: [Template, string, Message][]):            Promise<void|Instance[]>
-  execute   <R>   (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|R>
-  bundle    (): Bundle
-  getClient <C extends Client, O extends ClientOptions> (
-    Client: ClientCtor<C, O>, arg: Address|O
-  ): C
+/** Something that can execute mutating transactions. */
+export interface Executor extends Spectator {
+  /** Default fee maximums for send, upload, init, and execute. */
+  fees:            AgentFees
+  /** The address from which transactions are signed and sent. */
+  address:         Address
+  /** Send native tokens to 1 recipient. */
+  send            (to: Address, amounts: ICoin[], opts?: ExecOpts):   Promise<void|unknown>
+  /** Send native tokens to multiple recipients. */
+  sendMany        (outputs: [Address, ICoin[]][], opts?: ExecOpts):   Promise<void|unknown>
+  /** Upload code, generating a new code id/hash pair. */
+  upload          (code: Uint8Array):                                 Promise<void|Template>
+  /** Upload multiple pieces of code, generating multiple code id/hash pairs. */
+  uploadMany      (code: Uint8Array[]):                               Promise<void|Template[]>
+  /** Create a new smart contract from a code id, label and init message. */
+  instantiate     (template: Template, label: string, msg: Message):  Promise<void|Instance>
+  /** Create multiple smart contracts from a list of code id/label/init message triples. */
+  instantiateMany (configs: [Template, string, Message][]):           Promise<void|Instance[]>
+  /** Call a transaction method on a smart contract. */
+  execute         (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|unknown>
+  /** Begin a transaction bundle. */
+  bundle          (): Bundle
+  /** Get a client instance for talking to a specific smart contract as this executor. */
+  getClient <C extends Client, O extends ClientOpts> (Client: ClientCtor<C, O>, arg: Address|O): C
 }
 
 /** Options for a compute transaction. */
 export interface ExecOpts {
+  /** The maximum fee. */
   fee?:  IFee
+  /** A list of native tokens to send alongside the transaction. */
   send?: ICoin[]
+  /** A transaction memo. */
   memo?: string
 }
 
@@ -118,7 +137,7 @@ export enum ChainMode {
   Mocknet = 'Mocknet'
 }
 
-export interface ChainOptions {
+export interface ChainOpts {
   url?:  string
   mode:  ChainMode
   node?: DevnetHandle
@@ -128,14 +147,14 @@ export interface DevnetHandle {
   chainId: string
   url:     URL
   terminate:         ()             => Promise<void>
-  getGenesisAccount: (name: string) => Promise<AgentOptions>
+  getGenesisAccount: (name: string) => Promise<AgentOpts>
 }
 
-export abstract class Chain implements Querier {
+export abstract class Chain implements Spectator {
   static Mode = ChainMode
   constructor (
     readonly id: ChainId,
-    options: ChainOptions
+    options: ChainOpts
   ) {
     if (!id) {
       throw new Error('Chain: need to pass chain id')
@@ -161,27 +180,53 @@ export abstract class Chain implements Querier {
       }
     }
   }
-  readonly url:   string = ''
-  readonly mode:  ChainMode
+  /** The API URL to use. */
+  readonly url:  string = ''
+  /** Whether this is mainnet, public testnet, local devnet, or mocknet. */
+  readonly mode: ChainMode
+  /** Whether this is a mainnet. */
+  get isMainnet () { return this.mode === ChainMode.Mainnet }
+  /** Whether this is a testnet. */
+  get isTestnet () { return this.mode === ChainMode.Testnet }
+  /** Whether this is a devnet. */
+  get isDevnet  () { return this.mode === ChainMode.Devnet  }
+  /** Whether this is a mocknet. */
+  get isMocknet () { return this.mode === ChainMode.Mocknet }
+  /** Return self. */
+  get chain     () { return this }
+  /** If this is a devnet, this contains an interface to the devnet container. */
   readonly node?: DevnetHandle
-  get isMainnet () {
-    return this.mode === Chain.Mode.Mainnet
-  }
-  get isTestnet () {
-    return this.mode === Chain.Mode.Testnet
-  }
-  get isDevnet  () {
-    return this.mode === Chain.Mode.Devnet
-  }
-  get isMocknet () {
-    return this.mode === Chain.Mode.Mocknet
-  }
+  /** The default denomination of the chain's native token. */
+  abstract defaultDenom: string
+  /** Get the balance of this or another address. */
+  abstract getBalance (denom: string, address: Address): Promise<string>
   abstract query <U> (contract: Instance, msg: Message): Promise<U>
   abstract getCodeId (address: Address): Promise<CodeId>
   abstract getLabel (address: Address): Promise<string>
   abstract getHash (address: Address): Promise<CodeHash>
+  abstract get height (): Promise<number>
+  get nextBlock (): Promise<number> {
+    console.info('Waiting for next block...')
+    return new Promise((resolve, reject)=>{
+      this.height.then(async startingHeight=>{
+        try {
+          while (true) {
+            await new Promise(ok=>setTimeout(ok, 100))
+            const height = await this.height
+            if (height > startingHeight) {
+              resolve(height)
+            }
+          }
+        } catch (e) {
+          reject(e)
+        }
+      })
+    })
+  }
+  /** The Agent subclass to use for interacting with this chain. */
   abstract Agent: AgentCtor<Agent>
-  async getAgent (options: AgentOptions) {
+  /** Get a new instance of the appropriate Agent subclass. */
+  async getAgent (options: AgentOpts) {
     if (!options.mnemonic && options.name) {
       if (this.node) {
         console.info('Using devnet genesis account:', options.name)
@@ -194,7 +239,7 @@ export abstract class Chain implements Querier {
   }
 }
 
-export interface AgentOptions {
+export interface AgentOpts {
   name?:     string
   mnemonic?: string
   address?:  Address
@@ -202,8 +247,8 @@ export interface AgentOptions {
 }
 
 export interface AgentCtor<A extends Agent> {
-  new    (chain: Chain, options: AgentOptions): A
-  create (chain: Chain, options: AgentOptions): Promise<A>
+  new    (chain: Chain, options: AgentOpts): A
+  create (chain: Chain, options: AgentOpts): Promise<A>
 }
 
 export interface AgentFees {
@@ -214,62 +259,36 @@ export interface AgentFees {
 }
 
 export abstract class Agent implements Executor {
-  static create (chain: Chain, options: AgentOptions = {}): Promise<Agent> {
+  static create (chain: Chain, options: AgentOpts = {}): Promise<Agent> {
     throw Object.assign(new Error('Agent.create: abstract, use subclass'), { options })
   }
-  constructor (readonly chain: Chain, options: AgentOptions = {}) {
+  constructor (readonly chain: Chain, options: AgentOpts = {}) {
     this.chain = chain
     this.name = options.name || this.name
     this.fees = options.fees || this.fees
   }
   /** The address of this agent. */
-  address?: Address
+  address:  Address
   /** The friendly name of the agent. */
   name?:    string
   /** Default transaction fees to use for interacting with the chain. */
   fees:     AgentFees
   /** The default denomination in which the agent operates. */
-  abstract defaultDenom: string
+  get defaultDenom () { return this.chain.defaultDenom }
+  /** Get the balance of this or another address. */
+  getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {
+    return this.chain.getBalance(denom, address)
+  }
   /** This agent's balance in the chain's native token. */
-  get balance (): Promise<string> {
-    return this.getBalance(this.defaultDenom)
-  }
+  get balance (): Promise<string> { return this.getBalance() }
   /** The chain's current block height. */
-  get height (): Promise<number> {
-    return Promise.resolve(0)
-  }
+  get height (): Promise<number> { return this.chain.height }
   /** Wait until the block height increments. */
-  get nextBlock () {
-    console.info('Waiting for next block...')
-    return new Promise<void>((resolve, reject)=>{
-      this.height.then(async startingHeight=>{
-        try {
-          while (true) {
-            await new Promise(ok=>setTimeout(ok, 100))
-            const height = await this.height
-            if (height > startingHeight) {
-              resolve()
-            }
-          }
-        } catch (e) {
-          reject(e)
-        }
-      })
-    })
-  }
-  getCodeId (address: Address) {
-    return this.chain.getCodeId(address)
-  }
-  getLabel (address: Address) {
-    return this.chain.getLabel(address)
-  }
-  getHash (address: Address) {
-    return this.chain.getHash(address)
-  }
-  getBalance (denom = this.defaultDenom): Promise<string> {
-    return Promise.resolve('0')
-  }
-  getClient <C extends Client, O extends ClientOptions> (
+  get nextBlock () { return this.chain.nextBlock }
+  getCodeId (address: Address) { return this.chain.getCodeId(address) }
+  getLabel  (address: Address) { return this.chain.getLabel(address) }
+  getHash   (address: Address) { return this.chain.getHash(address) }
+  getClient <C extends Client, O extends ClientOpts> (
     Client: ClientCtor<C, O>, arg: Address|O
   ): C {
     return new Client(this, arg)
@@ -277,7 +296,8 @@ export abstract class Agent implements Executor {
   query <R> (contract: Instance, msg: Message): Promise<R> {
     return this.chain.query(contract, msg)
   }
-  abstract execute <R> (contract: Instance, msg: Message, opts?: ExecOpts): Promise<R>
+  abstract send     (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown>
+  abstract sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown>
   abstract upload (blob: Uint8Array): Promise<Template>
   uploadMany (blobs: Uint8Array[] = []): Promise<Template[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
@@ -290,6 +310,7 @@ export abstract class Agent implements Executor {
       })
     ))
   }
+  abstract execute (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|unknown>
   bundle (): Bundle {
     //@ts-ignore
     return new this.Bundle(this)
@@ -319,54 +340,47 @@ export abstract class Bundle implements Executor {
   getCodeId (address: Address) { return this.agent.getCodeId(address) }
   getLabel  (address: Address) { return this.agent.getLabel(address)  }
   getHash   (address: Address) { return this.agent.getHash(address)   }
-
   get balance () {
     throw new Error("don't query inside bundle")
     return Promise.resolve('0')
   }
-
   async getBalance (denom: string) {
     throw new Error("can't get balance in bundle")
-    return Promise.resolve('0')
+    return Promise.resolve(denom)
   }
-
   get height (): Promise<number> {
     throw new Error("don't query block height inside bundle")
   }
-
-  get nextBlock (): Promise<void> {
+  get nextBlock (): Promise<number> {
     throw new Error("can't wait for next block inside bundle")
   }
-
+  async send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
+    throw new Error("Bundle#send: not implemented")
+  }
+  async sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
+    throw new Error("Bundle#sendMany: not implemented")
+  }
   async instantiate (
-    template: Template, label: Label, msg: Message, init_funds = []
+    template: Template, label: Label, msg: Message, funds = []
   ): Promise<Instance> {
-    await this.init(template, label, msg, init_funds)
+    const init = {
+      sender:   this.address,
+      codeId:   String(template.codeId),
+      codeHash: template.codeHash,
+      label,
+      msg,
+      funds
+    }
+    this.add({ init })
     const { codeId, codeHash } = template
     // @ts-ignore
     return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
   }
-
   async instantiateMany (configs: [Template, Label, Message][]): Promise<Instance[]> {
     return await Promise.all(configs.map(([template, label, initMsg])=>
-      this.instantiate(template, label, initMsg)))
+      this.instantiate(template, label, initMsg)
+    ))
   }
-
-  // TODO fold into instantiate?
-  async init (template: Template, label: Label, msg: Message, funds = []) {
-    this.add({
-      init: {
-        sender:   this.address,
-        codeId:   String(template.codeId),
-        codeHash: template.codeHash,
-        label,
-        msg,
-        funds
-      }
-    })
-    return this
-  }
-
   //@ts-ignore
   async execute (instance: Instance, msg: Message, { send }: ExecOpts = {}): Promise<this> {
     this.add({
@@ -380,7 +394,6 @@ export abstract class Bundle implements Executor {
     })
     return this
   }
-
   /** Queries are disallowed in the middle of a bundle because
     * even though the bundle API is structured as multiple function calls,
     * the bundle is ultimately submitted as a single transaction and
@@ -388,7 +401,6 @@ export abstract class Bundle implements Executor {
   async query <U> (contract: Instance, msg: Message): Promise<U> {
     throw new Error("don't query inside bundle")
   }
-
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
@@ -396,7 +408,6 @@ export abstract class Bundle implements Executor {
   async upload (code: Uint8Array) {
     throw new Error("don't upload inside bundle")
   }
-
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
@@ -404,8 +415,7 @@ export abstract class Bundle implements Executor {
   async uploadMany (code: Uint8Array[]) {
     throw new Error("don't upload inside bundle")
   }
-
-  getClient <C extends Client, O extends ClientOptions> (
+  getClient <C extends Client, O extends ClientOpts> (
     Client: ClientCtor<C, O>, arg: Address|O
   ): C {
     return new Client(this as Executor, arg)
@@ -451,19 +461,19 @@ export abstract class Bundle implements Executor {
 /** Function passed to Bundle#wrap */
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
-export interface ClientOptions extends Instance {
+export interface ClientOpts extends Instance {
   name?: string
   fee?:  IFee
   fees?: Record<string, IFee>
 }
 
-export interface ClientCtor<C extends Client, O extends ClientOptions> {
+export interface ClientCtor<C extends Client, O extends ClientOpts> {
   new (agent: Executor, options: Address|O): C
 }
 
 /** Interface to a specific contract. Subclass to add contract-specific methods. */
 export class Client implements Instance {
-  constructor (readonly agent: Executor, arg: Address|ClientOptions) {
+  constructor (readonly agent: Executor, arg: Address|ClientOpts) {
     if (typeof arg === 'string') {
       this.address  = arg
     } else {
@@ -477,11 +487,9 @@ export class Client implements Instance {
     }
   }
   /** Friendly name of the contract. */
-  name?: string
+  name?:     string
   /** The Chain on which this contract exists. */
-  get chain () {
-    return this.agent.chain
-  }
+  get chain () { return this.agent.chain }
   /** Label of the contract on the chain. */
   label?:    string
   /** Address of the contract on the chain. */
@@ -491,9 +499,9 @@ export class Client implements Instance {
   /** Code ID representing the identity of the contract's code. */
   codeId?:   CodeId
   /** Default fee for transactions. */
-  fee?: IFee
+  fee?:      IFee
   /** Default fee for specific transactions. */
-  fees: Record<string, IFee> = {}
+  fees:      Record<string, IFee> = {}
   /** Get the recommended fee for a specific transaction. */
   getFee (msg?: string|Record<string, unknown>): IFee|undefined {
     const defaultFee = this.fee || this.agent.fees?.exec
@@ -513,7 +521,7 @@ export class Client implements Instance {
     return await this.agent.query(this, msg)
   }
   /** Execute a transaction on the specified contract as the specified Agent. */
-  async execute <R> (msg: Message, opt: ExecOpts = {}): Promise<void|R> {
+  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
     opt.fee = opt.fee || this.getFee(msg)
     return await this.agent.execute(this, msg, opt)
   }
@@ -543,7 +551,7 @@ export class Client implements Instance {
     }
   }
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  withAgent (agent: Executor): this {
+  as (agent: Executor): this {
     const Self = this.constructor as ClientCtor<typeof this, any>
     return new Self(agent, { ...this })
   }
