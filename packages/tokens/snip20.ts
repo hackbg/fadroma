@@ -37,7 +37,7 @@ export class Snip20 extends Client {
     this.tokenName   = name
     this.symbol      = symbol
     this.decimals    = decimals
-    this.totalSupply = total_supply
+    this.totalSupply = total_supply || null
     return this
   }
 
@@ -103,7 +103,7 @@ export class Snip20 extends Client {
     spender: Address,
   ) {
     console.info(
-      `${bold(this.agent.address)}: increasing allowance of`,
+      `${bold(this.agent.address||'(missing address)')}: increasing allowance of`,
       bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.address))
     )
     return this.execute({

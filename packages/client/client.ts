@@ -61,10 +61,10 @@ export interface Spectator {
 
 /** Something that can execute mutating transactions. */
 export interface Executor extends Spectator {
-  /** Default fee maximums for send, upload, init, and execute. */
-  fees:            AgentFees
   /** The address from which transactions are signed and sent. */
-  address:         Address
+  address?:        Address
+  /** Default fee maximums for send, upload, init, and execute. */
+  fees?:           AgentFees
   /** Send native tokens to 1 recipient. */
   send            (to: Address, amounts: ICoin[], opts?: ExecOpts):   Promise<void|unknown>
   /** Send native tokens to multiple recipients. */
@@ -264,20 +264,24 @@ export abstract class Agent implements Executor {
   }
   constructor (readonly chain: Chain, options: AgentOpts = {}) {
     this.chain = chain
-    this.name = options.name || this.name
-    this.fees = options.fees || this.fees
+    if (options.name) this.name = options.name
+    if (options.fees) this.fees = options.fees
   }
   /** The address of this agent. */
-  address:  Address
+  address?: Address
   /** The friendly name of the agent. */
   name?:    string
   /** Default transaction fees to use for interacting with the chain. */
-  fees:     AgentFees
+  fees?:    AgentFees
   /** The default denomination in which the agent operates. */
   get defaultDenom () { return this.chain.defaultDenom }
   /** Get the balance of this or another address. */
   getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {
-    return this.chain.getBalance(denom, address)
+    if (address) {
+      return this.chain.getBalance(denom, address)
+    } else {
+      throw new Error('Agent#getBalance: what address?')
+    }
   }
   /** This agent's balance in the chain's native token. */
   get balance (): Promise<string> { return this.getBalance() }
@@ -452,9 +456,9 @@ export abstract class Bundle implements Executor {
     }
   }
 
-  abstract submit (memo: string): Promise<any>
+  abstract submit (memo: string): Promise<unknown>
 
-  abstract save (name: string)
+  abstract save (name: string): Promise<unknown>
 
 }
 
