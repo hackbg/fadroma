@@ -1,13 +1,13 @@
 {
   "name":    "@fadroma/client-scrt",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "type":    "module",
   "main":    "scrt.ts",
   "ganesha": {
     "main": "scrt.ts"
   },
   "dependencies": {
-    "@fadroma/client": "workspace:^2"
+    "@fadroma/client": "workspace:*"
   },
   "devDependencies": {
     "typescript":      "^4.6.4",
