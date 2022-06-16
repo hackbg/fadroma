@@ -4,10 +4,10 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/client': workspace:^2
-      '@fadroma/client-scrt': workspace:^2
-      '@fadroma/client-scrt-amino': workspace:^2
-      '@fadroma/client-scrt-grpc': workspace:^2
+      '@fadroma/client': workspace:^3
+      '@fadroma/client-scrt': workspace:^3
+      '@fadroma/client-scrt-amino': workspace:^3
+      '@fadroma/client-scrt-grpc': workspace:^3
       '@fadroma/ops': workspace:^1
       '@fadroma/ops-scrt': workspace:^1
       '@fadroma/tokens': workspace:^1
@@ -65,8 +65,8 @@ importers:
 
   packages/client-scrt:
     specifiers:
-      '@fadroma/client': workspace:^2
-      '@hackbg/izdatel': workspace:*
+      '@fadroma/client': workspace:^3
+      '@hackbg/izdatel': workspace:^0
       typescript: ^4.6.4
     dependencies:
       '@fadroma/client': link:../client
@@ -77,8 +77,8 @@ importers:
   packages/client-scrt-amino:
     specifiers:
       '@cosmjs/crypto': ^0.20.0
-      '@fadroma/client-scrt': workspace:^2
-      '@hackbg/izdatel': workspace:*
+      '@fadroma/client-scrt': workspace:^3.0.3
+      '@hackbg/izdatel': workspace:^0
       '@iov/encoding': ^2.1.0
       axios: ^0.26.0
       exponential-backoff: ^3.1.0
@@ -98,8 +98,8 @@ importers:
 
   packages/client-scrt-grpc:
     specifiers:
-      '@fadroma/client-scrt': workspace:^2
-      '@hackbg/izdatel': workspace:*
+      '@fadroma/client-scrt': workspace:^3.0.3
+      '@hackbg/izdatel': workspace:^0
       secretjs: beta
       typescript: ^4.6.4
     dependencies:
@@ -111,11 +111,11 @@ importers:
 
   packages/ops:
     specifiers:
-      '@fadroma/client': workspace:*
+      '@fadroma/client': workspace:^3.0.0
       '@hackbg/dokeres': workspace:*
       '@hackbg/formati': workspace:*
       '@hackbg/ganesha': ^2.0.3
-      '@hackbg/izdatel': workspace:*
+      '@hackbg/izdatel': workspace:^0
       '@hackbg/kabinet': workspace:*
       '@hackbg/konzola': workspace:*
       '@hackbg/portali': workspace:*
@@ -150,8 +150,8 @@ importers:
 
   packages/ops-scrt:
     specifiers:
-      '@fadroma/client-scrt-amino': workspace:^2
-      '@fadroma/client-scrt-grpc': workspace:^2
+      '@fadroma/client-scrt-amino': workspace:^3
+      '@fadroma/client-scrt-grpc': workspace:^3
       '@fadroma/ops': workspace:^1
       '@hackbg/dokeres': workspace:*
     dependencies:
@@ -162,8 +162,8 @@ importers:
 
   packages/tokens:
     specifiers:
-      '@fadroma/client': workspace:*
-      '@fadroma/client-scrt': workspace:*
+      '@fadroma/client': workspace:^3.0.0
+      '@fadroma/client-scrt': workspace:^3.0.3
       '@hackbg/izdatel': workspace:*
       '@hackbg/konzola': workspace:*
       typescript: ^4.6.4
@@ -240,7 +240,7 @@ importers:
     devDependencies:
       '@hackbg/ganesha': 2.0.3
       '@hackbg/izdatel': link:../izdatel
-      '@types/node': 17.0.42
+      '@types/node': 18.0.0
       typescript: 4.7.3
 
   toolbox/formati:
@@ -293,7 +293,7 @@ importers:
       '@hackbg/izdatel': link:../izdatel
       '@hackbg/runspec': link:../runspec
       '@types/mkdirp': 1.0.2
-      '@types/node': 17.0.42
+      '@types/node': 18.0.0
       '@types/tmp': 0.2.3
       c8: 7.11.3
       typescript: 4.7.3
@@ -461,7 +461,7 @@ packages:
       '@ganesha/core': 1.1.0
       '@ganesha/node': 2.1.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 17.0.42
+      '@types/node': 18.0.0
       chokidar: 3.5.3
       cross-spawn: 7.0.3
 
@@ -660,7 +660,7 @@ packages:
   /@types/mkdirp/1.0.2:
     resolution: {integrity: sha512-o0K1tSO0Dx5X6xlU5F1D6625FawhC3dU3iqr25lluNv/+/QIVH8RLNEiVokgIZo+mz+87w/3Mkg/VvQS+J51fQ==}
     dependencies:
-      '@types/node': 17.0.42
+      '@types/node': 18.0.0
     dev: true
 
   /@types/node/10.12.18:
@@ -677,6 +677,9 @@ packages:
 
   /@types/node/17.0.42:
     resolution: {integrity: sha512-Q5BPGyGKcvQgAMbsr7qEGN/kIPN6zZecYYABeTDBizOsau+2NMdSVTar9UQw21A2+JyA2KRNDYaYrPB0Rpk2oQ==}
+
+  /@types/node/18.0.0:
+    resolution: {integrity: sha512-cHlGmko4gWLVI27cGJntjs/Sj8th9aYwplmZFwmmgYQQvL5NUsgVJG7OddLvNfLqYS31KFN0s3qlaD9qCaxACA==}
 
   /@types/prettier/2.6.3:
     resolution: {integrity: sha512-ymZk3LEC/fsut+/Q5qejp6R9O1rMxz3XaRHDV6kX8MrGAhOSPqVARbDi+EZvInBpw+BnCX3TD240byVkOfQsHg==}
