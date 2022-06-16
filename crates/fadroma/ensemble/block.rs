@@ -58,7 +58,7 @@ impl Block {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma_ensemble::Block;
+    /// use fadroma::ensemble::Block;
     /// 
     /// let mut block = Block::default();
     /// block.exact_increments(1, 5);
@@ -82,7 +82,7 @@ impl Block {
     /// # Examples
     /// 
     /// ```
-    /// use fadroma_ensemble::Block;
+    /// use fadroma::ensemble::Block;
     /// 
     /// let mut block = Block::default();
     /// block.exact_increments(1, 5);
