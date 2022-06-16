@@ -182,7 +182,7 @@ export class DokeresImage {
 
 }
 
-export interface DokeresContainerOptions {
+export interface DokeresContainerOpts {
   env?:      Record<string, string>
   exposed?:  string[]
   mapped?:   Record<string, string>
@@ -200,7 +200,7 @@ export class DokeresContainer {
   static async create (
     image:         DokeresImage,
     name?:         string,
-    options?:      DokeresContainerOptions,
+    options?:      DokeresContainerOpts,
     command?:      DokeresCommand,
     entrypoint?:   DokeresCommand,
   ) {
@@ -213,7 +213,7 @@ export class DokeresContainer {
   static async run (
     image:         DokeresImage,
     name?:         string,
-    options?:      DokeresContainerOptions,
+    options?:      DokeresContainerOpts,
     command?:      DokeresCommand,
     entrypoint?:   DokeresCommand,
     outputStream?: Writable
@@ -231,7 +231,7 @@ export class DokeresContainer {
   constructor (
     readonly image:      DokeresImage,
     readonly name:       string,
-    readonly options:    DokeresContainerOptions,
+    readonly options:    DokeresContainerOpts,
     readonly command:    DokeresCommand,
     readonly entrypoint: DokeresCommand
   ) {}
@@ -242,7 +242,7 @@ export class DokeresContainer {
     return this.image.dockerode
   }
 
-  get dockerodeOptions (): Docker.ContainerCreateOptions {
+  get dockerodeOpts (): Docker.ContainerCreateOptions {
     const {
       remove   = false,
       env      = {},
@@ -291,7 +291,7 @@ export class DokeresContainer {
     if (this.container) {
       throw new Error('Container already created')
     }
-    this.container = await this.dockerode.createContainer(this.dockerodeOptions)
+    this.container = await this.dockerode.createContainer(this.dockerodeOpts)
     if (this.warnings) {
       console.warn(`Creating container ${this.shortId} emitted warnings:`)
       console.info(this.warnings)
