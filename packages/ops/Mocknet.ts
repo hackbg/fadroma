@@ -186,7 +186,7 @@ export class MocknetBundle extends Bundle {
     return results
   }
 
-  save (name: string) {
+  save (name: string): Promise<unknown> {
     throw new Error('MocknetBundle#save: not implemented')
   }
 
