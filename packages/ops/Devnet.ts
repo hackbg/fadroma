@@ -287,6 +287,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   /** Overridable for testing. */
+  //@ts-ignore
   protected waitPort = waitPort
 
   /** Overridable for testing. */
