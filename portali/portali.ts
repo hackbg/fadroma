@@ -26,10 +26,10 @@ export function waitPort ({
   retries   = 10,
   interval  = 1000,
 }: {
-  host:     string,
-  port:     number,
-  retries:  number,
-  interval: number,
+  host:      string
+  port:      number
+  retries?:  number
+  interval?: number
 }): Promise<void> {
 
   let timer
