@@ -221,8 +221,8 @@ pub fn set_status <S: Storage, A: Api, Q: Querier> (
 mod tests {
     use super::*;
 
-    use fadroma_platform_scrt::cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use fadroma_auth::{admin, admin::Admin};
+    use crate::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use crate::auth::{admin, admin::Admin};
 
     #[test]
     fn test_migrate() {

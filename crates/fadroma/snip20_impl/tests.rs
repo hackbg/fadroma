@@ -10,7 +10,7 @@ use crate::scrt::cosmwasm_std::{
         mock_dependencies, mock_env, MOCK_CONTRACT_ADDR
     }
 };
-use crate::auth::{ViewingKey, VIEWING_KEY_SIZE};
+use crate::vk::{ViewingKey, VIEWING_KEY_SIZE};
 
 use std::any::Any;
 use super::{
