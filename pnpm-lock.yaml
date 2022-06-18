@@ -5,12 +5,12 @@ importers:
   .:
     specifiers:
       '@fadroma/client': workspace:^3
-      '@fadroma/client-scrt': workspace:^3
-      '@fadroma/client-scrt-amino': workspace:^3
-      '@fadroma/client-scrt-grpc': workspace:^3
+      '@fadroma/client-scrt': workspace:^4
+      '@fadroma/client-scrt-amino': workspace:^4
+      '@fadroma/client-scrt-grpc': workspace:^4
       '@fadroma/ops': workspace:^1
       '@fadroma/ops-scrt': workspace:^1
-      '@fadroma/tokens': workspace:^1
+      '@fadroma/tokens': workspace:^2
       '@hackbg/dokeres': workspace:*
       '@hackbg/formati': workspace:*
       '@hackbg/ganesha': ^2.0.3
@@ -77,7 +77,7 @@ importers:
   packages/client-scrt-amino:
     specifiers:
       '@cosmjs/crypto': ^0.20.0
-      '@fadroma/client-scrt': workspace:^3.0.3
+      '@fadroma/client-scrt': workspace:^4.0.0
       '@hackbg/izdatel': workspace:^0
       '@iov/encoding': ^2.1.0
       axios: ^0.26.0
@@ -98,7 +98,7 @@ importers:
 
   packages/client-scrt-grpc:
     specifiers:
-      '@fadroma/client-scrt': workspace:^3.0.3
+      '@fadroma/client-scrt': workspace:^4.0.0
       '@hackbg/izdatel': workspace:^0
       secretjs: beta
       typescript: ^4.6.4
@@ -150,8 +150,8 @@ importers:
 
   packages/ops-scrt:
     specifiers:
-      '@fadroma/client-scrt-amino': workspace:^3
-      '@fadroma/client-scrt-grpc': workspace:^3
+      '@fadroma/client-scrt-amino': workspace:^4
+      '@fadroma/client-scrt-grpc': workspace:^4
       '@fadroma/ops': workspace:^1
       '@hackbg/dokeres': workspace:*
     dependencies:
@@ -163,7 +163,7 @@ importers:
   packages/tokens:
     specifiers:
       '@fadroma/client': workspace:^3.0.0
-      '@fadroma/client-scrt': workspace:^3.0.3
+      '@fadroma/client-scrt': workspace:^4.0.0
       '@hackbg/izdatel': workspace:*
       '@hackbg/konzola': workspace:*
       typescript: ^4.6.4
@@ -2590,7 +2590,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 17.0.42
+      '@types/node': 18.0.0
       long: 4.0.0
     dev: false
 
