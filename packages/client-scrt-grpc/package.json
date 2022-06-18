@@ -1,13 +1,13 @@
 {
   "name":    "@fadroma/client-scrt-grpc",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "type":    "module",
   "main":    "scrt-grpc.ts",
   "ganesha": {
     "main": "scrt-grpc.ts"
   },
   "dependencies": {
-    "@fadroma/client-scrt": "workspace:^3.0.3",
+    "@fadroma/client-scrt": "workspace:^4.0.0",
     "secretjs":             "beta"
   },
   "devDependencies": {

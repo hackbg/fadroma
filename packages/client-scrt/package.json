@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/client-scrt",
-  "version": "3.0.3",
+  "version": "4.0.0",
   "type":    "module",
   "main":    "scrt.ts",
   "ganesha": {
