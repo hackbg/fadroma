@@ -58,6 +58,7 @@ export function waitPort ({
         clearTimerAndDestroySocket()
         setTimeout(retry, interval)
       })
+
     }
 
     function clearTimerAndDestroySocket() {

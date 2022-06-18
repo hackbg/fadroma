@@ -23,19 +23,21 @@ function izdatel (cwd = process.cwd()) {
     execSync('pnpm run build', { cwd, stdio: 'inherit' })
 
     // update "main" and "types" in tsconfig.json
-    const data = JSON.parse(original)
-    const main = data.main || 'index.ts'
+    const manifest = JSON.parse(original)
+    const main = manifest.main || 'index.ts'
     const name = basename(main, '.ts')
-    data.source = main
-    data.main = relative(cwd, resolve(outDir, `${name}.js`))
+    manifest.source = main
+    manifest.main = relative(cwd, resolve(outDir, `${name}.js`))
     if (declaration) {
-      data.types = relative(cwd, resolve(declarationDir, `${name}.d.ts`))
+      manifest.types = relative(cwd, resolve(declarationDir, `${name}.d.ts`))
     }
-    console.log(JSON.stringify(data, null, 2))
-    writeFileSync(packageJSON, JSON.stringify(data), 'utf8')
+    console.log(JSON.stringify(manifest, null, 2))
+    writeFileSync(packageJSON, JSON.stringify(manifest), 'utf8')
 
     // publish modified package to NPM
     execSync('pnpm publish --access public --no-git-checks', { cwd, stdio: 'inherit' })
+
+    execSync(`git tag "npm/${manifest.name}/${manifest.version}"`, { cwd, stdio: 'inherit' })
 
   } finally {
 
