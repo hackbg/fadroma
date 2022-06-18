@@ -3,8 +3,6 @@ import { Permit, ViewingKeyClient } from '@fadroma/client-scrt'
 import { Console, bold } from '@hackbg/konzola'
 import { CustomToken } from './descriptors'
 
-const randomHex = () => { throw new Error('randomHex: TODO') }
-
 const console = Console('Fadroma Tokens')
 
 export class Snip20 extends Client {
