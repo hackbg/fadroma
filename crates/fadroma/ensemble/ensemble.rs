@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use crate::ensemble::bank::CosmosBankResponse;
 use super::{
     bank::{Balances, Bank},
     env::MockEnv,
     querier::EnsembleQuerier,
     revertable::Revertable,
     storage::TestStorage,
-    block::Block
+    block::Block,
+    response::{Response, InstantiateResponse, ExecuteResponse}
 };
 
 pub type MockDeps = Extern<Revertable<TestStorage>, MockApi, EnsembleQuerier>;
@@ -41,31 +41,6 @@ pub(crate) struct Context {
 pub(crate) struct ContractInstance {
     pub(crate) deps: MockDeps,
     index: usize
-}
-
-#[derive(Debug)]
-pub struct ExecuteResponse {
-    pub sender: HumanAddr,
-    pub target: HumanAddr,
-    pub msg: Binary,
-    pub response: HandleResponse,
-    pub sent: Vec<Response>
-}
-
-#[derive(Debug)]
-pub struct InstantiateResponse {
-    pub sender: HumanAddr,
-    pub instance: ContractLink<HumanAddr>,
-    pub msg: Binary,
-    pub response: InitResponse,
-    pub sent: Vec<Response>
-}
-
-#[derive(Debug)]
-pub enum Response {
-    WasmExecute { res: ExecuteResponse },
-    WasmInstantiate { res: InstantiateResponse },
-    CosmosBank { res: CosmosBankResponse }
 }
 
 impl ContractEnsemble {
@@ -244,7 +219,8 @@ impl Context {
         msg: Binary,
         env: MockEnv,
     ) -> StdResult<InstantiateResponse> {
-        let contract = self.contracts.get(id)
+        let contract = self.contracts
+            .get(id)
             .expect(&format!("Contract with id \"{}\" doesn't exist.", id));
 
         let instance = ContractInstance::new(id, self.canonical_length, &self);
@@ -302,7 +278,6 @@ impl Context {
     }
 
     fn execute(&mut self, msg: Binary, env: MockEnv) -> StdResult<ExecuteResponse> {
-
         let address = env.contract.address.clone();
         let env = self.create_env(env);
         let sender = env.message.sender.clone();
@@ -352,6 +327,7 @@ impl Context {
         sender: HumanAddr
     ) -> StdResult<Vec<Response>> {
         let mut responses = vec![];
+
         for msg in messages {
             match msg {
                 CosmosMsg::Wasm(msg) => match msg {
@@ -370,9 +346,9 @@ impl Context {
                         )
                         .sent_funds(send);
 
-                        responses.push(Response::WasmExecute {
-                            res: self.execute(msg, env)?
-                        });
+                        responses.push(Response::Execute(
+                            self.execute(msg, env)?
+                        ));
                     }
                     WasmMsg::Instantiate {
                         code_id,
@@ -390,9 +366,9 @@ impl Context {
                         )
                         .sent_funds(send);
 
-                        responses.push(Response::WasmInstantiate {
-                            res: self.instantiate(code_id as usize, msg, env)?
-                        });
+                        responses.push(Response::Instantiate(
+                            self.instantiate(code_id as usize, msg, env)?
+                        ));
                     }
                 },
                 CosmosMsg::Bank(msg) => match msg {
@@ -405,7 +381,7 @@ impl Context {
                             .writable()
                             .transfer(&from_address, &to_address, amount)?;
 
-                        responses.push(Response::CosmosBank { res });
+                        responses.push(Response::Bank(res));
                     }
                 },
                 _ => panic!("Unsupported message: {:?}", msg),

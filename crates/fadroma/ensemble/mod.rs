@@ -15,6 +15,8 @@ mod revertable;
 mod storage;
 #[cfg(not(target_arch = "wasm32"))]
 mod block;
+#[cfg(not(target_arch = "wasm32"))]
+mod response;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;
@@ -26,6 +28,8 @@ pub use env::*;
 pub use querier::*;
 #[cfg(not(target_arch = "wasm32"))]
 pub use block::Block;
+#[cfg(not(target_arch = "wasm32"))]
+pub use response::*;
 
 /// Implement ContractHarness for the harness struct.
 /// Use this to enable Fadroma Ensemble for a contract.

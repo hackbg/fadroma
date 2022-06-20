@@ -1,17 +1,12 @@
-use crate::prelude::*;
 use std::collections::HashMap;
+
+use crate::prelude::*;
+use super::response::BankResponse;
 
 pub type Balances = HashMap<String, Uint128>;
 
 #[derive(Clone, Default, Debug)]
 pub(crate) struct Bank(pub(crate) HashMap<HumanAddr, Balances>);
-
-#[derive(Debug)]
-pub struct CosmosBankResponse {
-    pub sender: HumanAddr,
-    pub receiver: HumanAddr,
-    pub coins: Vec<Coin>
-}
 
 impl Bank {
     pub fn add_funds(&mut self, address: &HumanAddr, coins: Vec<Coin>) {
@@ -33,8 +28,8 @@ impl Bank {
         from: &HumanAddr,
         to: &HumanAddr,
         coins: Vec<Coin>,
-    ) -> StdResult<CosmosBankResponse> {
-        let res = CosmosBankResponse {
+    ) -> StdResult<BankResponse> {
+        let res = BankResponse {
             sender: from.clone(),
             receiver: to.clone(),
             coins: coins.clone()
