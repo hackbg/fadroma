@@ -6,6 +6,13 @@ pub type Balances = HashMap<String, Uint128>;
 #[derive(Clone, Default, Debug)]
 pub(crate) struct Bank(pub(crate) HashMap<HumanAddr, Balances>);
 
+#[derive(Debug)]
+pub struct CosmosBankResponse {
+    pub sender: HumanAddr,
+    pub receiver: HumanAddr,
+    pub coins: Vec<Coin>
+}
+
 impl Bank {
     pub fn add_funds(&mut self, address: &HumanAddr, coins: Vec<Coin>) {
         if coins.is_empty() {
@@ -26,9 +33,15 @@ impl Bank {
         from: &HumanAddr,
         to: &HumanAddr,
         coins: Vec<Coin>,
-    ) -> StdResult<()> {
+    ) -> StdResult<CosmosBankResponse> {
+        let res = CosmosBankResponse {
+            sender: from.clone(),
+            receiver: to.clone(),
+            coins: coins.clone()
+        };
+
         if coins.is_empty() {
-            return Ok(());
+            return Ok(res);
         }
 
         self.assert_account_exists(from);
@@ -60,7 +73,7 @@ impl Bank {
             add_balance(self.0.get_mut(to).unwrap(), coin);
         }
 
-        Ok(())
+        Ok(res)
     }
 
     pub fn query_balances(&self, address: &HumanAddr, denom: Option<String>) -> Vec<Coin> {

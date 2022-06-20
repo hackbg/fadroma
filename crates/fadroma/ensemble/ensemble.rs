@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use crate::ensemble::bank::CosmosBankResponse;
 use super::{
     bank::{Balances, Bank},
     env::MockEnv,
@@ -40,6 +41,31 @@ pub(crate) struct Context {
 pub(crate) struct ContractInstance {
     pub(crate) deps: MockDeps,
     index: usize
+}
+
+#[derive(Debug)]
+pub struct ExecuteResponse {
+    pub sender: HumanAddr,
+    pub target: HumanAddr,
+    pub msg: Binary,
+    pub response: HandleResponse,
+    pub sent: Vec<Response>
+}
+
+#[derive(Debug)]
+pub struct InstantiateResponse {
+    pub sender: HumanAddr,
+    pub instantiation: ContractLink<HumanAddr>,
+    pub msg: Binary,
+    pub response: InitResponse,
+    pub sent: Vec<Response>
+}
+
+#[derive(Debug)]
+pub enum Response {
+    WasmExecute { res: ExecuteResponse },
+    WasmInstantiate { res: InstantiateResponse },
+    CosmosBank { res: CosmosBankResponse }
 }
 
 impl ContractEnsemble {
@@ -134,7 +160,7 @@ impl ContractEnsemble {
         id: u64,
         msg: &T,
         env: MockEnv,
-    ) -> StdResult<ContractLink<HumanAddr>> {
+    ) -> StdResult<InstantiateResponse> {
         let result = self.ctx.instantiate(id as usize, to_binary(msg)?, env);
 
         if result.is_ok() {
@@ -152,7 +178,7 @@ impl ContractEnsemble {
         &mut self,
         msg: &T,
         env: MockEnv
-    ) -> StdResult<()> {
+    ) -> StdResult<ExecuteResponse> {
         let result = self.ctx.execute(to_binary(msg)?, env);
 
         if result.is_ok() {
@@ -217,7 +243,7 @@ impl Context {
         id: usize,
         msg: Binary,
         env: MockEnv,
-    ) -> StdResult<ContractLink<HumanAddr>> {
+    ) -> StdResult<InstantiateResponse> {
         let contract = self.contracts.get(id)
             .expect(&format!("Contract with id \"{}\" doesn't exist.", id));
 
@@ -240,17 +266,25 @@ impl Context {
         self.instances.insert(contract_info.address.clone(), instance);
 
         let env = self.create_env(env);
+        let sender = env.message.sender.clone();
+
         let instance = self.instances.get_mut(&contract_info.address).unwrap();
 
-        let result = contract.init(&mut instance.deps, env, msg);
+        let result = contract.init(&mut instance.deps, env, msg.clone());
 
         match result {
             Ok(msgs) => {
-                let result = self.execute_messages(msgs.messages, contract_info.address.clone());
+                let result = self.execute_messages(msgs.messages.clone(), contract_info.address.clone());
 
                 match result {
-                    Ok(_) => {
-                        Ok(contract_info)
+                    Ok(sent) => {
+                        Ok(InstantiateResponse {
+                            sender,
+                            instantiation: contract_info,
+                            msg,
+                            response: msgs,
+                            sent
+                        })
                     }
                     Err(err) => {
                         self.instances.remove(&contract_info.address);
@@ -267,9 +301,11 @@ impl Context {
         }
     }
 
-    fn execute(&mut self, msg: Binary, env: MockEnv) -> StdResult<()> {
+    fn execute(&mut self, msg: Binary, env: MockEnv) -> StdResult<ExecuteResponse> {
+
         let address = env.contract.address.clone();
         let env = self.create_env(env);
+        let sender = env.message.sender.clone();
 
         let instance = self
             .instances
@@ -277,17 +313,26 @@ impl Context {
             .expect(&format!("Contract address doesn't exist: {}", address));
 
         self.bank.writable().transfer(
-            &env.message.sender,
+            &sender,
             &address,
             env.message.sent_funds.clone(),
         )?;
 
         let contract = self.contracts.get(instance.index).unwrap();
-        let result = contract.handle(&mut instance.deps, env, msg)?;
 
-        self.execute_messages(result.messages, address)?;
+        let result = contract.handle(&mut instance.deps, env, msg.clone())?;
 
-        Ok(())
+        let sent = self.execute_messages(result.messages.clone(), address.clone())?;
+
+        let res = ExecuteResponse {
+            sender,
+            target: address,
+            msg,
+            response: result,
+            sent
+        };
+
+        Ok(res)
     }
 
     pub(crate) fn query(&self, address: HumanAddr, msg: Binary) -> StdResult<Binary> {
@@ -305,7 +350,8 @@ impl Context {
         &mut self,
         messages: Vec<CosmosMsg>,
         sender: HumanAddr
-    ) -> StdResult<()> {
+    ) -> StdResult<Vec<Response>> {
+        let mut responses = vec![];
         for msg in messages {
             match msg {
                 CosmosMsg::Wasm(msg) => match msg {
@@ -324,7 +370,9 @@ impl Context {
                         )
                         .sent_funds(send);
 
-                        self.execute(msg, env)?;
+                        responses.push(Response::WasmExecute {
+                            res: self.execute(msg, env)?
+                        });
                     }
                     WasmMsg::Instantiate {
                         code_id,
@@ -342,7 +390,9 @@ impl Context {
                         )
                         .sent_funds(send);
 
-                        self.instantiate(code_id as usize, msg, env)?;
+                        responses.push(Response::WasmInstantiate {
+                            res: self.instantiate(code_id as usize, msg, env)?
+                        });
                     }
                 },
                 CosmosMsg::Bank(msg) => match msg {
@@ -351,16 +401,18 @@ impl Context {
                         to_address,
                         amount,
                     } => {
-                        self.bank
+                        let res = self.bank
                             .writable()
                             .transfer(&from_address, &to_address, amount)?;
+
+                        responses.push(Response::CosmosBank { res });
                     }
                 },
                 _ => panic!("Unsupported message: {:?}", msg),
             }
         }
 
-        Ok(())
+        Ok(responses)
     }
 
     fn create_env(&self, env: MockEnv) -> Env {
