@@ -55,7 +55,7 @@ pub struct ExecuteResponse {
 #[derive(Debug)]
 pub struct InstantiateResponse {
     pub sender: HumanAddr,
-    pub instantiation: ContractLink<HumanAddr>,
+    pub instance: ContractLink<HumanAddr>,
     pub msg: Binary,
     pub response: InitResponse,
     pub sent: Vec<Response>
@@ -280,7 +280,7 @@ impl Context {
                     Ok(sent) => {
                         Ok(InstantiateResponse {
                             sender,
-                            instantiation: contract_info,
+                            instance: contract_info,
                             msg,
                             response: msgs,
                             sent

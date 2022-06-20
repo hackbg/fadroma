@@ -218,7 +218,7 @@ fn init(
             },
         )
         .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
-    )?.instantiation;
+    )?.instance;
 
     Ok(InitResult {
         counter,
@@ -462,7 +462,7 @@ fn exact_increment() {
                 },
             ),
         )
-        .unwrap().instantiation;
+        .unwrap().instance;
 
     ensemble
         .execute(
@@ -521,7 +521,7 @@ fn random_increment() {
                 },
             ),
         )
-        .unwrap().instantiation;
+        .unwrap().instance;
 
     ensemble
         .execute(
@@ -573,7 +573,7 @@ fn block_freeze() {
             },
         ),
     )
-    .unwrap().instantiation;
+    .unwrap().instance;
 
     ensemble.execute(
         &BlockHeightHandle::Set,

@@ -93,7 +93,8 @@ fn test_contracts() {
                 },
             ),
         )
-        .unwrap();
+        .unwrap()
+        .instance;
 
     let test_contract = ensemble
         .instantiate(
@@ -107,7 +108,8 @@ fn test_contracts() {
                 },
             ),
         )
-        .unwrap();
+        .unwrap()
+        .instance;
 
     let oracle_res: Uint128 = ensemble
         .query(
