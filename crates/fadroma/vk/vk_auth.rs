@@ -1,4 +1,5 @@
 use crate::prelude::*;
+use crate::derive_contract::*;
 use serde::{Serialize, Deserialize};
 use super::{ViewingKey, VIEWING_KEY_SIZE};
 

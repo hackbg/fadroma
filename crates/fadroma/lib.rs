@@ -1,6 +1,12 @@
 // Supported platforms
 #[cfg(feature = "scrt")]
 pub use fadroma_platform_scrt as scrt;
+#[cfg(feature = "scrt")]
+pub use scrt::cosmwasm_std;
+#[cfg(feature = "scrt")]
+pub use scrt::schemars;
+#[cfg(feature = "scrt")]
+pub use scrt::serde;
 
 // Contract scaffoldings
 #[cfg(feature = "derive")]
@@ -54,12 +60,11 @@ pub mod prelude {
     /// Alias for `StdResult<Option<V>>`.
     pub type Eventually<V> = StdResult<Option<V>>;
 
-    /// The Fadroma Derive smart contract composition system.
-    #[cfg(feature = "derive")]
-    pub use fadroma_proc_derive::*;
-
     #[cfg(feature = "scrt")]
     pub use crate::scrt::{*, cosmwasm_std, cosmwasm_std::*};
+
+    #[cfg(feature = "scrt")]
+    pub use schemars::{self, JsonSchema};
 
     #[cfg(feature = "math")]
     pub use crate::math::*;
@@ -67,8 +72,7 @@ pub mod prelude {
     #[cfg(feature = "storage")]
     pub use crate::storage::{
         load, save, remove,
-        ns_load, ns_save, ns_remove,
-        IterableStorage
+        ns_load, ns_save, ns_remove
     };
 
     #[cfg(feature = "snip20-client")]
@@ -79,12 +83,6 @@ pub mod prelude {
 
     #[cfg(feature = "response")]
     pub use crate::response::*;
-
-    #[cfg(feature = "admin")]
-    pub use crate::admin::assert_admin;
-
-    #[cfg(all(feature = "admin", feature = "derive"))]
-    pub use crate::admin::require_admin;
 
     #[cfg(feature = "vk")]
     pub use crate::vk::ViewingKey;

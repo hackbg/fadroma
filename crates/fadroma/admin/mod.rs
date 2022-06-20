@@ -2,7 +2,7 @@
 //! Transaction authentication by pre-configured admin address.
 
 use crate::prelude::*;
-use serde;
+use crate::derive_contract::*;
 
 pub use fadroma_proc_auth::*;
 

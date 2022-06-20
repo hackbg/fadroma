@@ -6,6 +6,7 @@ use std::fmt;
 use crate::{
     prelude::*,
     admin::{assert_admin, require_admin},
+    derive_contract::*
 };
 
 use serde::{Serialize, Deserialize};
