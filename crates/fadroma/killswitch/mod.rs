@@ -222,7 +222,7 @@ mod tests {
     use super::*;
 
     use crate::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use crate::auth::{admin, admin::Admin};
+    use crate::admin::{self, Admin};
 
     #[test]
     fn test_migrate() {
