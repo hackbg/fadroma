@@ -120,7 +120,7 @@ macro_rules! make_composable {
             #[inline]
             fn get<Value: serde::de::DeserializeOwned>(&self, key: &[u8]) -> Eventually<Value> {
                 match self.storage.get(key) {
-                    Some(data) => from_slice(&data),
+                    Some(data) => Ok(Some(from_slice(&data)?)),
                     None => Ok(None)
                 }
             }
