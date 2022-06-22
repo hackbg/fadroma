@@ -1,18 +1,18 @@
 name: Derive contract
 info: Procedural macro for generating smart contract boilerplate
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma-proc-derive
 ---
 name: Reproducible builder
 info: Perform production builds of your contracts in a Docker container
-link:
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Build.spec.ts.md
 ---
 name: Scriptable deployments
 info: Manage hundreds of heterogeneous contracts using TypeScript without a compilation step
-link:
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Deploy.spec.ts.md
 ---
 name: Automatic devnet management
 info: Spawn local blockchain nodes for development and testing
-link:
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Devnet.spec.ts.md
 ---
 name: Transaction receipts
 info: Keep track of uploads, instantiations, and configuration
@@ -20,15 +20,15 @@ link:
 ---
 name: Contract clients
 info: Define contract-specific client classes to call contract methods perform off-chain logic in TypeScript
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/packages/client
 ---
 name: Ensemble testing
 info: Test multiple interoperating smart contracts using a Rust API
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/ensemble
 ---
 name: Executable specifications
 info: Test your smart contracts and off-chain logic from TypeScript without the overhead of testing frameworks
-link:
+link: https://github.com/hackbg/ganesha
 ---
 name: Environment-based configuration
 info: Configure your workflow using environment variables and/or a .env file
@@ -36,63 +36,63 @@ link:
 ---
 name: 256-bit arithmetic
 info: 256-bit integer support in Cosmos for easy EVM interop
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/math
 ---
 name: On-chain checksum generation
 info: Generate SHA256 checksums for arbitrary data from your contract
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/math
 ---
 name: Pseudo-random number generator
 info: ChaCha-based PRNG
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/math
 ---
 name: Contract ownership
 info: Allow a privileged user to perform administrative operations
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/admin
 ---
 name: Killswitch
 info: Emergency pause and permanent termination for your contract
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/killswitch
 ---
 name: Viewing keys
 info: Generate and use viewing keys in any contract
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/vk
 ---
 name: Permits
 info: Generate and use revokable query permits
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/permit
 ---
 name: ISNIP20
 info: Make calls to SNIP20 tokens
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/snip20_client
 ---
 name: SNIP20
 info: Customize a SNIP20 token's functionality, or embed it in your contract alongside custom logic
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/snip20_impl
 ---
 name: Storage helpers
 info: Keyed, namepaced, and iterable data storage on top of Cosmos built-in KV
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/storage
 ---
 name: Mocknet
 tags: [ "🔧 Experimental" ]
 info: Quickly execute smart contracts in a simulated local environment, without waiting for block validation
-link:
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Mocknet.spec.ts.md
 ---
 name: Transaction bundles
 tags: [ "🔧 Experimental" ]
 info: Execute multiple messages in a single transaction
-link:
+link: https://github.com/hackbg/fadroma/blob/v100/spec/Bundle.spec.ts.md
 ---
 name: Composability
 tags: [ "🔧 Experimental" ]
 info: Compose self-contained subsystems into a single contract
-link:
+link: https://github.com/hackbg/fadroma/tree/v100/crates/fadroma/composability
 ---
 name: Literate programming
 tags: [ "🔧 Experimental" ]
 info: Wrap TypeScript in Markdown to document client code and deploy logic in place
-link:
+link: https://github.com/hackbg/ganesha
 ---
 name: Project scaffolding
 tags: [ "⏳ Planned" ]
