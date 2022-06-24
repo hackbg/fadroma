@@ -5,17 +5,17 @@ use fadroma::{
         Uint128, HumanAddr,
         testing::mock_dependencies
     },
-    prelude::{Canonize, Humanize}
+    prelude::{Canonize, Humanize, save}
 };
-use fadroma_derive_canonize::Canonize;
 
 #[derive(Canonize, PartialEq, Clone)]
+#[derive(serde::Serialize)]
 struct Test {
     pub addr: HumanAddr,
     amount: Uint128
 }
 
-#[derive(Canonize, PartialEq, Clone)]
+#[derive(Canonize, PartialEq, Clone, serde::Deserialize)]
 struct TestTuple(pub HumanAddr, Uint128);
 
 impl Default for Test {
@@ -35,9 +35,11 @@ impl Default for TestTuple {
 
 #[test]
 fn test_derive() {
-    let deps = mock_dependencies(20, &[]);
+    let mut deps = mock_dependencies(20, &[]);
 
     let test = Test::default();
+
+    save(&mut deps.storage, b"store", &test).unwrap();
 
     let canon = test.clone().canonize(&deps.api).unwrap();
 
@@ -45,6 +47,8 @@ fn test_derive() {
         addr: test.addr.clone().canonize(&deps.api).unwrap(),
         amount: test.amount
     };
+
+    save(&mut deps.storage, b"store", &canonized).unwrap();
 
     assert_eq!(canon.addr, canonized.addr);
     assert_eq!(canon.amount, canonized.amount);

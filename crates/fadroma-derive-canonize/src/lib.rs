@@ -16,6 +16,10 @@ pub fn derive_canonize(stream: proc_macro::TokenStream) -> proc_macro::TokenStre
     let original_ident = strukt.ident;
     strukt.ident = Ident::new(&format!("{}{}", original_ident, CANONIZED_POSTFIX), Span::call_site());
 
+    if strukt.generics.params.len() == 0 {
+        add_serde_derive(&mut strukt);
+    }
+
     if let Err(err) = transform_fields(&mut strukt.fields) {
         let err = err.into_compile_error();
 
@@ -48,6 +52,12 @@ fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
     }
 
     Ok(())
+}
+
+fn add_serde_derive(strukt: &mut ItemStruct) {
+    strukt.attrs.clear();
+    strukt.attrs.push(parse_quote!(#[derive(serde::Serialize)]));
+    strukt.attrs.push(parse_quote!(#[derive(serde::Deserialize)]));
 }
 
 fn generate_trait_impls(strukt: &ItemStruct, humanized: &Ident) -> proc_macro2::TokenStream {
