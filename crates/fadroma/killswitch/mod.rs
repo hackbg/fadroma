@@ -4,7 +4,9 @@
 use std::fmt;
 
 use crate::{
+    self as fadroma,
     prelude::*,
+    cosmwasm_std,
     admin::{assert_admin, require_admin},
     derive_contract::*,
     impl_canonize_default
@@ -117,7 +119,7 @@ impl fmt::Display for ContractStatusLevel {
 // this structure can be merged with `ContractStatusLevel`, with
 // `reason` and `new_address` becoming propeties of `Migrating`
 /// Current state of a contract w/ optional description and pointer to new version
-#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug, Clone)]
+#[derive(Serialize, Deserialize, Canonize, JsonSchema, PartialEq, Debug, Clone)]
 pub struct ContractStatus<A> {
     pub level:       ContractStatusLevel,
     pub reason:      String,
@@ -130,30 +132,6 @@ impl<A> Default for ContractStatus<A> {
         reason:      String::new(),
         new_address: None
     } }
-}
-
-impl Humanize for ContractStatus<CanonicalAddr> {
-    type Output = ContractStatus<HumanAddr>;
-
-    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
-        Ok(ContractStatus {
-            level: self.level,
-            reason: self.reason,
-            new_address: self.new_address.humanize(api)?
-        })
-    }
-}
-
-impl Canonize for ContractStatus<HumanAddr> {
-    type Output = ContractStatus<CanonicalAddr>;
-
-    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
-        Ok(ContractStatus {
-            level: self.level,
-            reason: self.reason,
-            new_address: self.new_address.canonize(api)?
-        })
-    }
 }
 
 /// Return the current contract status. Defaults to operational if nothing was stored.

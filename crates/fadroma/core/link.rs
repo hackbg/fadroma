@@ -1,9 +1,10 @@
 use crate::{
-    cosmwasm_std::{self, StdResult, HumanAddr, CanonicalAddr, Api, Env},
+    self as fadroma,
+    prelude::{Humanize, Canonize},
+    cosmwasm_std::{self, HumanAddr, Env},
     schemars::{self, JsonSchema},
     impl_canonize_default
 };
-use super::addr::{Humanize, Canonize};
 
 use serde::{Deserialize, Serialize};
 
@@ -30,7 +31,7 @@ impl PartialEq for ContractInstantiationInfo {
 }
 
 /// Info needed to talk to a contract instance.
-#[derive(Default, Serialize, Deserialize, JsonSchema, Clone, Debug)]
+#[derive(Default, Serialize, Canonize, Deserialize, JsonSchema, Clone, Debug)]
 pub struct ContractLink<A> {
     pub address:   A,
     pub code_hash: CodeHash
@@ -43,28 +44,6 @@ pub struct ContractLink<A> {
 impl<A: PartialEq> PartialEq for ContractLink<A> {
     fn eq(&self, other: &Self) -> bool {
         self.address == other.address
-    }
-}
-
-impl Humanize for ContractLink<CanonicalAddr> {
-    type Output = ContractLink<HumanAddr>;
-
-    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
-        Ok(ContractLink {
-            address: self.address.humanize(api)?,
-            code_hash: self.code_hash
-        })
-    }
-}
-
-impl Canonize for ContractLink<HumanAddr> {
-    type Output = ContractLink<CanonicalAddr>;
-
-    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
-        Ok(ContractLink {
-            address: self.address.canonize(api)?,
-            code_hash: self.code_hash
-        })
     }
 }
 
