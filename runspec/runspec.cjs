@@ -46,31 +46,21 @@ async function runSpec (suites, selected = process.argv.slice(2)) {
       /** Output alignment, see above. */
       if (name.length > longestName) longestName = name.length
 
-      /** This try/catch block may be unnecessary? */
-      try {
-        /** Wrap the test case in a function that captures its result. */
-        tests[name] = () => {
-          try {
-            /** Run the test case, passing the assertion library. */
-            const result = fn(assert)
-            /** Convert all test cases to async. */
-            return Promise.resolve(result)
-              /** On success, record the success and any output data. */
-              .then(data=>results[name] = [true, JSON.stringify(data)])
-              /** On failure, record the failure and the error message. */
-              .catch(error=>results[name] = [false, error])
-          } catch (error) {
-            /** On failure, record the failure and the error message, redux.
-              * TODO making the test case function async makes this redundant? */
-            results[name] = [false, error]
-          }
+      /** Wrap the test case in a function that captures its result. */
+      tests[name] = async () => {
+        try {
+          /** Run the test case, passing the assertion library. */
+          const result = fn(assert)
+          /** Convert all test cases to async. */
+          return await Promise.resolve(result)
+            /** On success, record the success and any output data. */
+            .then(data=>results[name] = [true, JSON.stringify(data)])
+        } catch (error) {
+          /** On failure, record the failure and the error message. */
+          results[name] = [false, error]
         }
-      } catch (error) {
-        /** I don't think this catch block is reachable at all. */
-        tests[name] = error.message
-        results[name] = [false, error]
-        continue
       }
+
     }
 
     /** Run all the collected test cases. */
@@ -126,9 +116,9 @@ async function runSpec (suites, selected = process.argv.slice(2)) {
     /** Print the output to the console. */
     console.log(output)
 
-    console.info(`${passed} test(s) passed, ${failed} failed, ${undone} TODO.`)
-
   }
+
+  console.info(`${passed} test(s) passed, ${failed} failed, ${undone} TODO.`)
 
   /** If any test failed, exit with an error. */
   if (failed > 0) {
@@ -143,5 +133,8 @@ if (require.main === module) {
   const index = require('path').resolve(process.cwd(), process.argv[2])
   import(index).then(index=>{
     runSpec(index.default, process.argv.slice(3))
+  }).catch(e=>{
+    console.error(e)
+    process.exit(2)
   })
 }
