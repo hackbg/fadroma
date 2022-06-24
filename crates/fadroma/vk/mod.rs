@@ -2,7 +2,10 @@
 //! Viewing key authentication.
 
 //Copied from https://github.com/enigmampc/snip20-reference-impl/blob/master/src/viewing_key.rs
-use crate::prelude::*;
+use crate::{
+    prelude::*,
+    impl_canonize_default
+};
 use std::fmt;
 use serde::{Deserialize, Serialize};
 
@@ -16,6 +19,8 @@ const VIEWING_KEY_PREFIX: &str = "api_key_";
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct ViewingKey(pub String);
+
+impl_canonize_default!(ViewingKey);
 
 pub fn create_hashed_password(s1: &str) -> [u8; VIEWING_KEY_SIZE] {
     sha_256(s1.as_bytes())

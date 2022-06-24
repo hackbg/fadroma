@@ -5,15 +5,6 @@ pub use cosmwasm_schema;
 pub use serde;
 pub use schemars;
 
-pub mod addr;
-pub use addr::{Humanize, Canonize};
-
-mod link;
-pub use link::*;
-
-mod callback;
-pub use callback::*;
-
 use cosmwasm_std::{HumanAddr, StdResult, CosmosMsg, WasmMsg, to_binary};
 
 pub const BLOCK_SIZE: usize = 256;

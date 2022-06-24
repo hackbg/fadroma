@@ -16,7 +16,6 @@ impl<T: Serialize + JsonSchema + Clone + PartialEq> Permission for T { }
 #[cfg(target_arch = "wasm32")]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub struct Permit<P: Permission> {
     pub params: PermitParams<P>,
     pub signature: PermitSignature
@@ -25,7 +24,6 @@ pub struct Permit<P: Permission> {
 #[cfg(not(target_arch = "wasm32"))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-#[serde(deny_unknown_fields)]
 pub struct Permit<P: Permission> {
     pub params: PermitParams<P>,
     pub address: HumanAddr

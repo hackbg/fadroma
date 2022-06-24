@@ -3,9 +3,11 @@ use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::ops::{Add, Sub, Mul, Div};
 
-use crate::scrt::{
+use crate::{
     schemars,
-    cosmwasm_std::{StdResult, StdError, Uint128}
+    cosmwasm_std::{self, StdResult, StdError, Uint128},
+    core::{Humanize, Canonize},
+    impl_canonize_default
 };
 use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use schemars::JsonSchema;
@@ -18,6 +20,8 @@ use super::{
 
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, JsonSchema)]
 pub struct Uint256(#[schemars(with = "String")] pub U256);
+
+impl_canonize_default!(Uint256);
 
 impl Uint256 {
     /// U256 sqrt ported from here: https://ethereum.stackexchange.com/a/87713/12112

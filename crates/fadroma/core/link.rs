@@ -1,19 +1,23 @@
-use secret_cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Api, Env};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use crate::{
+    cosmwasm_std::{self, StdResult, HumanAddr, CanonicalAddr, Api, Env},
+    schemars::{self, JsonSchema},
+    impl_canonize_default
+};
+use super::addr::{Humanize, Canonize};
 
-use crate::addr::{Humanize, Canonize};
+use serde::{Deserialize, Serialize};
 
 pub type CodeId   = u64;
 pub type CodeHash = String;
 
 /// Info needed to instantiate a contract.
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct ContractInstantiationInfo {
     pub code_hash: CodeHash,
     pub id:        CodeId
 }
+
+impl_canonize_default!(ContractInstantiationInfo);
 
 // Disregard code hash because it is case insensitive.
 // Converting to the same case first and the comparing is unnecessary
@@ -27,7 +31,6 @@ impl PartialEq for ContractInstantiationInfo {
 
 /// Info needed to talk to a contract instance.
 #[derive(Default, Serialize, Deserialize, JsonSchema, Clone, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct ContractLink<A> {
     pub address:   A,
     pub code_hash: CodeHash

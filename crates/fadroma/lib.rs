@@ -8,6 +8,9 @@ pub use scrt::schemars;
 #[cfg(feature = "scrt")]
 pub use scrt::serde;
 
+#[cfg(feature = "scrt")]
+pub mod core;
+
 // Contract scaffoldings
 #[cfg(feature = "derive")]
 pub use fadroma_proc_derive as derive_contract;
@@ -59,6 +62,8 @@ pub mod prelude {
 
     /// Alias for `StdResult<Option<V>>`.
     pub type Eventually<V> = StdResult<Option<V>>;
+
+    pub use crate::core::*;
 
     #[cfg(feature = "scrt")]
     pub use crate::scrt::{*, cosmwasm_std, cosmwasm_std::*};

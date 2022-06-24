@@ -5,9 +5,11 @@ use std::{
     convert::TryFrom
 };
 
-use crate::scrt::{
+use crate::{
     schemars,
-    cosmwasm_std::{StdResult, Decimal, StdError}
+    cosmwasm_std::{self, StdResult, Decimal, StdError},
+    core::{Humanize, Canonize},
+    impl_canonize_default
 };
 use serde::{de, ser, Deserialize, Deserializer, Serialize};
 use primitive_types::U256;
@@ -19,6 +21,8 @@ use super::common::{error, impl_common_api};
 /// The greatest possible value that can be represented is 115792089237316195423570985008687907853269984665640564039457.584007913129639935 (which is (2^128 - 1) / 10^18)
 #[derive(Copy, Clone, Default, Debug, PartialEq, Eq, PartialOrd, Ord, schemars::JsonSchema)]
 pub struct Decimal256(#[schemars(with = "String")] pub U256);
+
+impl_canonize_default!(Decimal256);
 
 impl Decimal256 {
     pub const DECIMAL_FRACTIONAL: U256 = U256([1_000_000_000_000_000_000u64, 0, 0, 0]);

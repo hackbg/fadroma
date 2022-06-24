@@ -6,7 +6,8 @@ use std::fmt;
 use crate::{
     prelude::*,
     admin::{assert_admin, require_admin},
-    derive_contract::*
+    derive_contract::*,
+    impl_canonize_default
 };
 
 use serde::{Serialize, Deserialize};
@@ -99,6 +100,8 @@ pub enum ContractStatusLevel {
     /// Permanently disabled
     Migrating,
 }
+
+impl_canonize_default!(ContractStatusLevel);
 
 impl fmt::Display for ContractStatusLevel {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

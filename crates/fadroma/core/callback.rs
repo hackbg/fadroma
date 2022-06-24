@@ -1,14 +1,15 @@
-use secret_cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Api, Binary, CosmosMsg, WasmMsg};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-
 use crate::{
+    cosmwasm_std::{StdResult, HumanAddr, CanonicalAddr, Api, Binary, CosmosMsg, WasmMsg},
+    schemars::{self, JsonSchema}
+};
+use super::{
     addr::{Humanize, Canonize},
     link::ContractLink
 };
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-#[serde(deny_unknown_fields)]
 /// Info needed to have the other contract respond.
 pub struct Callback<A> {
     /// The message to call.

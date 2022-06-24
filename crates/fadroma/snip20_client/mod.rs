@@ -1,9 +1,10 @@
 //! *Feature flag: `snip20-client`*
 //! Command SNIP-20 tokens from a contract.
 
-use fadroma_platform_scrt::{
+use crate::{
     cosmwasm_std::{HumanAddr, Uint128, StdResult, CosmosMsg, Binary, Querier},
-    ContractLink, BLOCK_SIZE
+    core::ContractLink,
+    scrt::BLOCK_SIZE
 };
 use secret_toolkit::snip20;
 
