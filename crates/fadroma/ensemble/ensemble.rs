@@ -428,10 +428,13 @@ impl Context {
                         recipient,
                     } => {
                         // Query accumulated rewards to bank transaction can take place first
-                        let withdraw_amount = self.delegations.delegation(
+                        let withdraw_amount = match self.delegations.delegation(
                             sender,
                             validator,
-                        )?.accumulated_rewards;
+                        ) {
+                            Some(amount) => amount.accumulated_rewards;
+                            None => return Err(StdError::generic_err("Delegation not found"))
+                        };
                         
                         let funds_recipient = match recipient {
                             Some(recipient) => recipient,
@@ -439,13 +442,12 @@ impl Context {
                         };
 
                         let bank_res = self.bank.writable()
-                            .add_funds(funds_recipient, vec![withdraw_amount]);
-                        responses.push(Response::Bank(bank_res));
-
+                            .add_funds(&funds_recipient, vec![withdraw_amount]);
                         let withdraw_res = self.delegations.withdraw(
                             sender,
                             validator,
                         )?;
+
                         responses.push(Response::Staking(withdraw_res));
                     },
                     StakingMsg::Redelegate {

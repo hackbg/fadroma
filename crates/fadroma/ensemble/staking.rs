@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::prelude::*;
-use super::bank::Bank;
+use super::response::StakingResponse;
 
 #[derive(Clone, Default, Debug)]
 pub(crate) struct DelegationWithUnbonding {
@@ -300,7 +300,7 @@ impl Delegations {
                 Ok(StakingResponse {
                     delegator: delegator.clone(),
                     validator: dst_validator.clone(),
-                    amount: validator.clone(),
+                    amount: amount.clone(),
                 })
             },
             None => Err(StdError::not_found("Delegation not found"))
