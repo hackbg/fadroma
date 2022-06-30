@@ -430,7 +430,7 @@ impl Context {
                         // Query accumulated rewards to bank transaction can take place first
                         let withdraw_amount = match self.delegations.delegation(
                             sender.clone(),
-                            validator,
+                            validator.clone(),
                         ) {
                             Some(amount) => amount.accumulated_rewards,
                             None => return Err(StdError::generic_err("Delegation not found")),
