@@ -9,7 +9,8 @@ use crate::{
 pub enum Response {
     Instantiate(InstantiateResponse),
     Execute(ExecuteResponse),
-    Bank(BankResponse)
+    Bank(BankResponse),
+    Staking(StakingResponse),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -49,6 +50,17 @@ pub struct BankResponse {
     /// The funds that were sent.
     pub coins: Vec<Coin>
 }
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct StakingResponse {
+    /// The address that delegated the funds.
+    pub delegator: HumanAddr,
+    /// The address of the validator where the funds were sent.
+    pub validator: HumanAddr,
+    /// The funds that were sent.
+    pub amount: Coin,
+}
+
 
 pub struct Iter<'a> {
     responses: &'a [Response],

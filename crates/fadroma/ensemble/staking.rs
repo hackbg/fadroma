@@ -110,7 +110,7 @@ impl Delegations {
         delegator: HumanAddr, 
         validator: HumanAddr, 
         amount: Coin
-    ) -> StdResult<Option<CosmosMsg>> {
+    ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
             return Err(StdError::generic_err("Incorrect coin denom"));
         }
@@ -158,7 +158,11 @@ impl Delegations {
 
         self.insert_delegation(delegator, validator, new_delegation);
 
-        Ok(None)
+        Ok(StakingResponse {
+            delegator: delegator.clone(),
+            validator: validator.clone(),
+            amount: validator.clone(),
+        })
     }
 
     pub fn undelegate(
@@ -166,7 +170,7 @@ impl Delegations {
         delegator: HumanAddr,
         validator: HumanAddr,
         amount: Coin
-    ) -> StdResult<Option<CosmosMsg>> {
+    ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
             return Err(StdError::generic_err("Incorrect coin denom"));
         }
@@ -192,7 +196,12 @@ impl Delegations {
                     accumulated_rewards: delegation.accumulated_rewards,
                 };
                 self.insert_delegation(delegator, validator, new_delegation);
-                Ok(None)
+                
+                Ok(StakingResponse {
+                    delegator: delegator.clone(),
+                    validator: validator.clone(),
+                    amount: validator.clone(),
+                })
             },
             None => Err(StdError::not_found("Delegation not found"))
         }
@@ -202,7 +211,7 @@ impl Delegations {
         &mut self,
         delegator: HumanAddr,
         validator: HumanAddr,
-    ) -> StdResult<Option<CosmosMsg>> { 
+    ) -> StdResult<StakingResponse> { 
         match self.get_delegation(&delegator, &validator) {
             Some(delegation) => {
                 let new_delegation = DelegationWithUnbonding {
@@ -217,7 +226,12 @@ impl Delegations {
                     accumulated_rewards: delegation.accumulated_rewards,
                 };
                 self.insert_delegation(delegator, validator, new_delegation);
-                Ok(None)
+                
+                Ok(StakingResponse {
+                    delegator: delegator.clone(),
+                    validator: validator.clone(),
+                    amount: delegation.accumulated_rewards.clone(),
+                })
             },
             None => Err(StdError::not_found("Delegation not found"))
         }
@@ -229,7 +243,7 @@ impl Delegations {
         src_validator: HumanAddr,
         dst_validator: HumanAddr,
         amount: Coin
-        ) -> StdResult<Option<CosmosMsg>> {
+        ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
             return Err(StdError::generic_err("Incorrect coin denom"));
         }
@@ -283,7 +297,11 @@ impl Delegations {
                 };
                 self.insert_delegation(delegator.clone(), dst_validator.clone(), new_dst_delegation);
 
-                Ok(None)
+                Ok(StakingResponse {
+                    delegator: delegator.clone(),
+                    validator: dst_validator.clone(),
+                    amount: validator.clone(),
+                })
             },
             None => Err(StdError::not_found("Delegation not found"))
         }

@@ -398,6 +398,71 @@ impl Context {
                         responses.push(Response::Bank(res));
                     }
                 },
+                CosmosMsg::Staking(msg) => match msg {
+                    StakingMsg::Delegate {
+                        validator,
+                        amount,
+                    } => {
+                        let res = self.delegations.delegate(
+                            sender,
+                            validator,
+                            amount,
+                        )?;
+
+                        responses.push(Response::Staking(res));
+                    }, 
+                    StakingMsg::Undelegate {
+                        validator,
+                        amount,
+                    } => {
+                        let res = self.delegations.undelegate(
+                            sender,
+                            validator,
+                            amount,
+                        )?;
+
+                        responses.push(Response::Staking(res));
+                    },
+                    StakingMsg::Withdraw {
+                        validator,
+                        recipient,
+                    } => {
+                        // Query accumulated rewards to bank transaction can take place first
+                        let withdraw_amount = self.delegations.delegation(
+                            sender,
+                            validator,
+                        )?.accumulated_rewards;
+                        
+                        let funds_recipient = match recipient {
+                            Some(recipient) => recipient,
+                            None => sender,
+                        };
+
+                        let bank_res = self.bank.writable()
+                            .add_funds(funds_recipient, vec![withdraw_amount]);
+                        responses.push(Response::Bank(bank_res));
+
+                        let withdraw_res = self.delegations.withdraw(
+                            sender,
+                            validator,
+                        )?;
+                        responses.push(Response::Staking(withdraw_res));
+                    },
+                    StakingMsg::Redelegate {
+                        src_validator,
+                        dst_validator,
+                        amount,
+                    } => {
+                        let res = self.delegations.redelegate(
+                            sender,
+                            src_validator,
+                            dst_validator,
+                            amount,
+                        )?;
+
+                        responses.push(Response::Staking(res));
+                    },
+                }, 
                 _ => panic!("Unsupported message: {:?}", msg),
             }
         }
