@@ -432,8 +432,8 @@ impl Context {
                             sender,
                             validator,
                         ) {
-                            Some(amount) => amount.accumulated_rewards;
-                            None => return Err(StdError::generic_err("Delegation not found"))
+                            Some(amount) => amount.accumulated_rewards,
+                            None => return Err(StdError::generic_err("Delegation not found")),
                         };
                         
                         let funds_recipient = match recipient {

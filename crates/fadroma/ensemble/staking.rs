@@ -161,7 +161,7 @@ impl Delegations {
         Ok(StakingResponse {
             delegator: delegator.clone(),
             validator: validator.clone(),
-            amount: validator.clone(),
+            amount: amount.clone(),
         })
     }
 
@@ -200,7 +200,7 @@ impl Delegations {
                 Ok(StakingResponse {
                     delegator: delegator.clone(),
                     validator: validator.clone(),
-                    amount: validator.clone(),
+                    amount: amount.clone(),
                 })
             },
             None => Err(StdError::not_found("Delegation not found"))
