@@ -100,7 +100,7 @@ impl ContractEnsemble {
 
     #[inline]
     pub fn add_validator(&mut self, validator: Validator) {
-        self.delegations.add(validator);
+        self.ctx.delegations.add(validator);
     }
 
     // Returning a Result here is most flexible and requires the caller to assert that
