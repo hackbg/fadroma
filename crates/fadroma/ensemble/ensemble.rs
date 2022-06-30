@@ -10,7 +10,8 @@ use super::{
     revertable::Revertable,
     storage::TestStorage,
     block::Block,
-    response::{Response, InstantiateResponse, ExecuteResponse}
+    response::{Response, InstantiateResponse, ExecuteResponse},
+    staking::Delegations,
 };
 
 pub type MockDeps = Extern<Revertable<TestStorage>, MockApi, EnsembleQuerier>;
@@ -33,6 +34,7 @@ pub(crate) struct Context {
     pub(crate) instances: HashMap<HumanAddr, ContractInstance>,
     pub(crate) contracts: Vec<Box<dyn ContractHarness>>,
     pub(crate) bank: Revertable<Bank>,
+    pub(crate) delegations: Delegations,
     block: Block,
     chain_id: String,
     canonical_length: usize,
@@ -46,7 +48,13 @@ pub(crate) struct ContractInstance {
 impl ContractEnsemble {
     pub fn new(canonical_length: usize) -> Self {
         Self {
-            ctx: Box::new(Context::new(canonical_length)),
+            ctx: Box::new(Context::new(canonical_length, "uscrt".into())),
+        }
+    }
+
+    pub fn new_denom(canonical_length: usize, native_denom: String) -> Self {
+        Self {
+            ctx: Box::new(Context::new(canonical_length, native_denom)),
         }
     }
 
@@ -202,12 +210,13 @@ impl ContractInstance {
 }
 
 impl Context {
-    pub fn new(canonical_length: usize) -> Self {
+    pub fn new(canonical_length: usize, native_denom: String) -> Self {
         Self {
             canonical_length,
             bank: Default::default(),
             contracts: Default::default(),
             instances: Default::default(),
+            delegations: Delegations::new(native_denom),
             block: Block::default(),
             chain_id: "fadroma-ensemble-testnet".into()
         }

@@ -68,7 +68,39 @@ impl Querier for EnsembleQuerier {
                     }))
                 }
             },
-            _ => Ok(self.base.query(&request)),
+            QueryRequest::Staking(query) => match query {
+                StakingQuery::AllDelegations { delegator } => {
+                    let delegations = ctx.delegations.all_delegations(delegator);
+
+                    Ok(to_binary(&AllDelegationsResponse { delegations }))
+                },
+                StakingQuery::BondedDenom {} => {
+                    let denom = ctx.delegations.bonded_denom();
+
+                    Ok(to_binary(&BondedDenomResponse { denom }))
+                },
+                StakingQuery::Delegation { delegator, validator } => {
+                    let delegation = ctx.delegations.delegation(delegator, validator);
+
+                    // TODO: Look into why DelegationResponse is not supported
+                    //Ok(to_binary(&DelegationResponse { delegation }))
+                    Err(SystemError::Unknown {  })
+                },
+                StakingQuery::UnbondingDelegations { delegator } => {
+                    let delegations = ctx.delegations.unbonding_delegations(delegator);
+
+                    Ok(to_binary(&UnbondingDelegationsResponse { delegations }))
+                },
+                StakingQuery::Validators {} => {
+                    let validators = ctx.delegations.validators();
+
+                    Ok(to_binary(&ValidatorsResponse { validators }))
+                },
+            },
+            _ => {
+                println!("Sup, {:?}", request);
+                Ok(self.base.query(&request))
+            },
         }
     }
 }
