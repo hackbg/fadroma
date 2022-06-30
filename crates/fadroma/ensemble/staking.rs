@@ -159,7 +159,7 @@ impl Delegations {
         self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
 
         Ok(StakingResponse {
-            delegator: delegator.clone(),
+            sender: delegator.clone(),
             validator: validator.clone(),
             amount: amount.clone(),
         })
@@ -198,7 +198,7 @@ impl Delegations {
                 self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
                 
                 Ok(StakingResponse {
-                    delegator: delegator.clone(),
+                    sender: delegator.clone(),
                     validator: validator.clone(),
                     amount: amount.clone(),
                 })
@@ -228,7 +228,7 @@ impl Delegations {
                 self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
                 
                 Ok(StakingResponse {
-                    delegator: delegator.clone(),
+                    sender: delegator.clone(),
                     validator: validator.clone(),
                     amount: delegation.accumulated_rewards.clone(),
                 })
@@ -298,7 +298,7 @@ impl Delegations {
                 self.insert_delegation(delegator.clone(), dst_validator.clone(), new_dst_delegation);
 
                 Ok(StakingResponse {
-                    delegator: delegator.clone(),
+                    sender: delegator.clone(),
                     validator: dst_validator.clone(),
                     amount: amount.clone(),
                 })
