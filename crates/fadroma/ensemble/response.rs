@@ -54,7 +54,7 @@ pub struct BankResponse {
 #[derive(Clone, PartialEq, Debug)]
 pub struct StakingResponse {
     /// The address that delegated the funds.
-    pub delegator: HumanAddr,
+    pub sender: HumanAddr,
     /// The address of the validator where the funds were sent.
     pub validator: HumanAddr,
     /// The funds that were sent.
