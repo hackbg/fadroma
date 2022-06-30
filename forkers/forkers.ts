@@ -57,16 +57,18 @@ export function request <Id, Op, Arg, Ret> (
 export class Client <Op> {
 
   constructor (
-    readonly port:     MessagePort,
-    readonly topic:    string,
-    readonly callback: Function,
-    readonly timeout:  number
+    readonly port:      MessagePort,
+    readonly topic:     string,
+    readonly callback?: Function,
+    readonly timeout?:  number
   ) {
-    this.port.addEventListener('message', ({ data: [rTopic, rId, error, notification] })=>{
-      if (rTopic === this.topic && rId === null) {
-        callback(error, notification)
-      }
-    })
+    if (callback) {
+      this.port.addEventListener('message', ({ data: [rTopic, rId, error, notification] })=>{
+        if (rTopic === this.topic && rId === null) {
+          callback(error, notification)
+        }
+      })
+    }
   }
 
   opId = 0
@@ -78,6 +80,16 @@ export class Client <Op> {
     timeout:   number = this.timeout,
   ): Promise<Ret> {
     return request(this.port, this.topic, this.opId++, op, arg, transfer, timeout)
+  }
+
+  terminate () {
+    if (this.port.terminate) {
+      this.port.terminate()
+    } else if (this.port.close) {
+      this.port.close()
+    } else {
+      throw new Error('Client#terminate: no terminate or close method on port')
+    }
   }
 
 }
