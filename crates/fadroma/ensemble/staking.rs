@@ -53,6 +53,10 @@ impl Delegations {
             delegators: Default::default(),
         }
     }
+
+    pub fn add_validator(&mut self, new_validator: Validator) {
+        validators.push(Validator);
+    }
     
     pub fn bonded_denom(&self) -> String {
         self.bonded_denom.clone()

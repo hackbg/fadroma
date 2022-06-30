@@ -98,6 +98,11 @@ impl ContractEnsemble {
         self.ctx.bank.current.0.get_mut(&address.into())
     }
 
+    #[inline]
+    pub fn add_validator(&mut self, validator: Validator) {
+        self.delegations.add(validator);
+    }
+
     // Returning a Result here is most flexible and requires the caller to assert that
     // their closure was called, as it is really unlikely that they call this function
     // with an address they know doesn't exist. And we don't want to fail silently if
@@ -115,6 +120,7 @@ impl ContractEnsemble {
 
             return Ok(());
         }
+
 
         Err(format!("Contract not found: {}", address))
     }
@@ -247,7 +253,6 @@ impl Context {
             &contract_info.address,
             env.sent_funds.clone(),
         )?;
-
         self.instances.insert(contract_info.address.clone(), instance);
 
         let env = self.create_env(env);
