@@ -404,7 +404,7 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.delegate(
-                            sender,
+                            sender.clone(),
                             validator,
                             amount,
                         )?;
@@ -416,7 +416,7 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.undelegate(
-                            sender,
+                            sender.clone(),
                             validator,
                             amount,
                         )?;
@@ -429,7 +429,7 @@ impl Context {
                     } => {
                         // Query accumulated rewards to bank transaction can take place first
                         let withdraw_amount = match self.delegations.delegation(
-                            sender,
+                            sender.clone(),
                             validator,
                         ) {
                             Some(amount) => amount.accumulated_rewards,
@@ -438,13 +438,13 @@ impl Context {
                         
                         let funds_recipient = match recipient {
                             Some(recipient) => recipient,
-                            None => sender,
+                            None => sender.clone(),
                         };
 
                         let bank_res = self.bank.writable()
                             .add_funds(&funds_recipient, vec![withdraw_amount]);
                         let withdraw_res = self.delegations.withdraw(
-                            sender,
+                            sender.clone(),
                             validator,
                         )?;
 
@@ -456,7 +456,7 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.redelegate(
-                            sender,
+                            sender.clone(),
                             src_validator,
                             dst_validator,
                             amount,

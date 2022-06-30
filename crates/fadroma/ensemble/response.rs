@@ -130,7 +130,8 @@ impl<'a> Iter<'a> {
         self.filter(move |x| match x {
             Response::Instantiate(resp) => resp.sender == sender,
             Response::Execute(resp) => resp.sender == sender,
-            Response::Bank(resp) => resp.sender == sender
+            Response::Bank(resp) => resp.sender == sender,
+            Response::Staking(resp) => resp.sender == sender,
         })
     }
 
@@ -148,7 +149,8 @@ impl<'a> Iter<'a> {
                 self.stack.extend(resp.sent.iter().rev()),
             Response::Instantiate(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
-            Response::Bank(_) => { }
+            Response::Bank(_) => { },
+            Response::Staking(_) => { },
         }
     }
 }

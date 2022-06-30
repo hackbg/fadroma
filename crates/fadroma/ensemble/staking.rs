@@ -156,7 +156,7 @@ impl Delegations {
             None => { }
         };
 
-        self.insert_delegation(delegator, validator, new_delegation);
+        self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
 
         Ok(StakingResponse {
             delegator: delegator.clone(),
@@ -195,7 +195,7 @@ impl Delegations {
                     can_redelegate: delegation.can_redelegate,
                     accumulated_rewards: delegation.accumulated_rewards,
                 };
-                self.insert_delegation(delegator, validator, new_delegation);
+                self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
                 
                 Ok(StakingResponse {
                     delegator: delegator.clone(),
@@ -223,9 +223,9 @@ impl Delegations {
                         amount: Uint128::zero(),
                     },
                     can_redelegate: delegation.can_redelegate,
-                    accumulated_rewards: delegation.accumulated_rewards,
+                    accumulated_rewards: delegation.accumulated_rewards.clone(),
                 };
-                self.insert_delegation(delegator, validator, new_delegation);
+                self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
                 
                 Ok(StakingResponse {
                     delegator: delegator.clone(),
