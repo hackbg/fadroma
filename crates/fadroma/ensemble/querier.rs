@@ -83,7 +83,7 @@ impl Querier for EnsembleQuerier {
                     let delegation = ctx.delegations.delegation(delegator, validator);
 
                     // TODO: Look into why DelegationResponse is not supported
-                    //Ok(to_binary(&DelegationResponse { delegation }))
+                    Ok(to_binary(&DelegationResponse { delegation }));
                     Err(SystemError::Unknown {  })
                 },
                 StakingQuery::UnbondingDelegations { delegator } => {
@@ -98,7 +98,6 @@ impl Querier for EnsembleQuerier {
                 },
             },
             _ => {
-                println!("Sup, {:?}", request);
                 Ok(self.base.query(&request))
             },
         }
