@@ -55,7 +55,7 @@ impl Delegations {
     }
 
     pub fn add_validator(&mut self, new_validator: Validator) {
-        validators.push(new_validator);
+        self.validators.push(new_validator);
     }
     
     pub fn bonded_denom(&self) -> String {
