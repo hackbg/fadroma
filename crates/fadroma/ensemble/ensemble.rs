@@ -103,6 +103,11 @@ impl ContractEnsemble {
         self.ctx.delegations.add_validator(validator);
     }
 
+    #[inline]
+    pub fn add_rewards(&mut self, amount: Uint128) {
+        self.ctx.delegations.distribute_rewards(amount);
+    }
+
     // Returning a Result here is most flexible and requires the caller to assert that
     // their closure was called, as it is really unlikely that they call this function
     // with an address they know doesn't exist. And we don't want to fail silently if
