@@ -82,7 +82,6 @@ impl Querier for EnsembleQuerier {
                 StakingQuery::Delegation { delegator, validator } => {
                     let delegation = ctx.delegations.delegation(delegator, validator);
 
-                    // TODO: Look into why DelegationResponse is not supported
                     Ok(to_binary(&DelegationResponse { delegation }))
                 },
                 StakingQuery::UnbondingDelegations { delegator } => {

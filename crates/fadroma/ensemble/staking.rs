@@ -116,10 +116,16 @@ impl Delegations {
         match self.delegators.get(&delegator) {
             Some(delegations) => {
                 let mut return_delegations: Vec<Delegation> = vec![];
-                for delegation in delegations {
-                    // TODO: check what unbonding_relegation means, probably insert if statement
-                    // here
-                    return_delegations.push((*delegation.1).to_delegation());
+                for delegation_pair in delegations {
+                    let delegation = delegation_pair.1;
+                    for unbonding in delegation.unbondings.clone() {
+                        let unbonding_delegation = Delegation {
+                            delegator: delegation.delegator.clone(),
+                            validator: delegation.validator.clone(),
+                            amount: unbonding.amount,
+                        };
+                        return_delegations.push(unbonding_delegation);
+                    }
                 }
                 return_delegations
             },
