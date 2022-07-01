@@ -9,7 +9,8 @@ use crate::{
 pub enum Response {
     Instantiate(InstantiateResponse),
     Execute(ExecuteResponse),
-    Bank(BankResponse)
+    Bank(BankResponse),
+    Staking(StakingResponse),
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -49,6 +50,17 @@ pub struct BankResponse {
     /// The funds that were sent.
     pub coins: Vec<Coin>
 }
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct StakingResponse {
+    /// The address that delegated the funds.
+    pub sender: HumanAddr,
+    /// The address of the validator where the funds were sent.
+    pub validator: HumanAddr,
+    /// The funds that were sent.
+    pub amount: Coin,
+}
+
 
 pub struct Iter<'a> {
     responses: &'a [Response],
@@ -118,7 +130,8 @@ impl<'a> Iter<'a> {
         self.filter(move |x| match x {
             Response::Instantiate(resp) => resp.sender == sender,
             Response::Execute(resp) => resp.sender == sender,
-            Response::Bank(resp) => resp.sender == sender
+            Response::Bank(resp) => resp.sender == sender,
+            Response::Staking(resp) => resp.sender == sender,
         })
     }
 
@@ -136,7 +149,8 @@ impl<'a> Iter<'a> {
                 self.stack.extend(resp.sent.iter().rev()),
             Response::Instantiate(resp) =>
                 self.stack.extend(resp.sent.iter().rev()),
-            Response::Bank(_) => { }
+            Response::Bank(_) => { },
+            Response::Staking(_) => { },
         }
     }
 }

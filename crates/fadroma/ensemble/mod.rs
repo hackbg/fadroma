@@ -17,6 +17,8 @@ mod storage;
 mod block;
 #[cfg(not(target_arch = "wasm32"))]
 mod response;
+#[cfg(not(target_arch = "wasm32"))]
+mod staking;
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
 mod tests;

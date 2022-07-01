@@ -10,7 +10,8 @@ use super::{
     revertable::Revertable,
     storage::TestStorage,
     block::Block,
-    response::{Response, InstantiateResponse, ExecuteResponse}
+    response::{Response, InstantiateResponse, ExecuteResponse},
+    staking::Delegations,
 };
 
 pub type MockDeps = Extern<Revertable<TestStorage>, MockApi, EnsembleQuerier>;
@@ -33,6 +34,7 @@ pub(crate) struct Context {
     pub(crate) instances: HashMap<HumanAddr, ContractInstance>,
     pub(crate) contracts: Vec<Box<dyn ContractHarness>>,
     pub(crate) bank: Revertable<Bank>,
+    pub(crate) delegations: Delegations,
     block: Block,
     chain_id: String,
     canonical_length: usize,
@@ -46,7 +48,13 @@ pub(crate) struct ContractInstance {
 impl ContractEnsemble {
     pub fn new(canonical_length: usize) -> Self {
         Self {
-            ctx: Box::new(Context::new(canonical_length)),
+            ctx: Box::new(Context::new(canonical_length, "uscrt".into())),
+        }
+    }
+
+    pub fn new_denom(canonical_length: usize, native_denom: String) -> Self {
+        Self {
+            ctx: Box::new(Context::new(canonical_length, native_denom)),
         }
     }
 
@@ -90,6 +98,16 @@ impl ContractEnsemble {
         self.ctx.bank.current.0.get_mut(&address.into())
     }
 
+    #[inline]
+    pub fn add_validator(&mut self, validator: Validator) {
+        self.ctx.delegations.add_validator(validator);
+    }
+
+    #[inline]
+    pub fn add_rewards(&mut self, amount: Uint128) {
+        self.ctx.delegations.distribute_rewards(amount);
+    }
+
     // Returning a Result here is most flexible and requires the caller to assert that
     // their closure was called, as it is really unlikely that they call this function
     // with an address they know doesn't exist. And we don't want to fail silently if
@@ -107,6 +125,7 @@ impl ContractEnsemble {
 
             return Ok(());
         }
+
 
         Err(format!("Contract not found: {}", address))
     }
@@ -202,12 +221,13 @@ impl ContractInstance {
 }
 
 impl Context {
-    pub fn new(canonical_length: usize) -> Self {
+    pub fn new(canonical_length: usize, native_denom: String) -> Self {
         Self {
             canonical_length,
             bank: Default::default(),
             contracts: Default::default(),
             instances: Default::default(),
+            delegations: Delegations::new(native_denom),
             block: Block::default(),
             chain_id: "fadroma-ensemble-testnet".into()
         }
@@ -238,7 +258,6 @@ impl Context {
             &contract_info.address,
             env.sent_funds.clone(),
         )?;
-
         self.instances.insert(contract_info.address.clone(), instance);
 
         let env = self.create_env(env);
@@ -384,6 +403,73 @@ impl Context {
                         responses.push(Response::Bank(res));
                     }
                 },
+                CosmosMsg::Staking(msg) => match msg {
+                    StakingMsg::Delegate {
+                        validator,
+                        amount,
+                    } => {
+                        let res = self.delegations.delegate(
+                            sender.clone(),
+                            validator,
+                            amount,
+                        )?;
+
+                        responses.push(Response::Staking(res));
+                    }, 
+                    StakingMsg::Undelegate {
+                        validator,
+                        amount,
+                    } => {
+                        let res = self.delegations.undelegate(
+                            sender.clone(),
+                            validator,
+                            amount,
+                        )?;
+
+                        responses.push(Response::Staking(res));
+                    },
+                    StakingMsg::Withdraw {
+                        validator,
+                        recipient,
+                    } => {
+                        // Query accumulated rewards to bank transaction can take place first
+                        let withdraw_amount = match self.delegations.delegation(
+                            sender.clone(),
+                            validator.clone(),
+                        ) {
+                            Some(amount) => amount.accumulated_rewards,
+                            None => return Err(StdError::generic_err("Delegation not found")),
+                        };
+                        
+                        let funds_recipient = match recipient {
+                            Some(recipient) => recipient,
+                            None => sender.clone(),
+                        };
+
+                        self.bank.writable()
+                            .add_funds(&funds_recipient, vec![withdraw_amount]);
+                        let withdraw_res = self.delegations.withdraw(
+                            sender.clone(),
+                            validator,
+                        )?;
+
+                        responses.push(Response::Staking(withdraw_res));
+                    },
+                    StakingMsg::Redelegate {
+                        src_validator,
+                        dst_validator,
+                        amount,
+                    } => {
+                        let res = self.delegations.redelegate(
+                            sender.clone(),
+                            src_validator,
+                            dst_validator,
+                            amount,
+                        )?;
+
+                        responses.push(Response::Staking(res));
+                    },
+                }, 
                 _ => panic!("Unsupported message: {:?}", msg),
             }
         }
