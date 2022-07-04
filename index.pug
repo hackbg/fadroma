@@ -1,0 +1,56 @@
+doctype html
+html(lang='en')
+
+  head
+
+    meta(charset='utf-8')
+    title Fadroma by Hack.bg
+    link(rel='stylesheet' href='style.css')
+
+  body
+
+    header
+      a(href="https://github.com/hackbg/fadroma")
+        img(src='./logo.svg' height=300)
+      p#authorship Made with 💚 at <a href="https://hack.bg">Hack.bg</a>
+
+    div#quick-start
+      p Add to your project with:
+      code.block git submodule add -b v100 https://github.com/hackbg/fadroma
+
+    div#platforms
+      h2 Supported platforms
+
+      .grid
+        a.feature.center(href="https://scrt.network/")
+          img.feature-logo(src="./scrt.svg" alt="Secret Network by Scrt Labs")
+          p
+            strong.
+              Secret Network is an open-source, permissionless blockchain based on
+              original privacy research and papers first written at MIT in 2015,
+              including "Decentralizing Privacy", now one of the most
+              influential papers in the blockchain space with 2,000 academic citations.
+
+    div#features
+
+      h2 Provided capabilities
+
+      .grid
+        each feature in self.features
+          .feature
+            h4= feature.name
+            div.description= feature.info
+            .spacer
+            if feature.tags
+              each tag in feature.tags
+                .tag= tag
+
+    div#license
+
+      .grid
+        a.feature.center(href="https://www.gnu.org/licenses/agpl-3.0.txt")
+          img.feature-logo(src="./agpl3.svg" alt="GNU Affero General Public License, Version 3")
+          p.
+            Fadroma is normally available under the GNU Affero General Public License.
+            If that license doesn't work for you, email us at <pre>hello at hack dot bg</pre>
+            to discuss custom licensing options.

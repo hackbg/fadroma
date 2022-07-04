@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["AuthHandleAnswer",""],["AuthResponseStatus",""],["HandleMsg",""],["QueryMsg",""]],"fn":[["authenticate",""],["handle",""],["load_viewing_key",""],["query",""],["save_viewing_key",""]],"struct":[["DefaultImpl",""]],"trait":[["VkAuth",""]]});

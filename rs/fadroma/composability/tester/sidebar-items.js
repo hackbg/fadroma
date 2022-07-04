@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ClonableMemoryStorage",""],["MockExtern","Same as regular Extern but clonable."]]});
