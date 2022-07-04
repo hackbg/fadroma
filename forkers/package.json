@@ -13,9 +13,7 @@
     "zen-observable": "^0.8.15"
   },
   "devDependencies": {
-    "typescript":      "latest",
     "@types/node":     "latest",
-    "@hackbg/izdatel": "workspace:*",
     "@hackbg/ganesha": "^2"
   },
   "scripts": {

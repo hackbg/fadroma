@@ -25,7 +25,8 @@
   "devDependencies": {
     "dts-gen":    "^0.6.0",
     "typedoc":    "beta",
-    "typescript": "^4.5.4"
+    "typescript": "^4.7",
+    "@hackbg/izdatel": "workspace:*"
   },
   "scripts": {
     "build":       "tsc",

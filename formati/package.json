@@ -13,10 +13,6 @@
     "@iov/encoding": "^2.5.0",
     "bech32":        "^2.0.0"
   },
-  "devDependencies": {
-    "typescript":       "latest",
-    "@hackbg/izdatel":  "workspace:*"
-  },
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",

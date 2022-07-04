@@ -19,13 +19,11 @@
     "toml":            "^3"
   },
   "devDependencies": {
-    "typescript":      "latest",
     "@types/node":     "latest",
     "@types/mkdirp":   "^1.0.2",
     "@types/tmp":      "^0.2.3",
     "@hackbg/ganesha": "^2.0.3",
     "@hackbg/runspec": "workspace:*",
-    "@hackbg/izdatel": "workspace:*",
     "c8": "^7.11.2"
   },
   "scripts": {
