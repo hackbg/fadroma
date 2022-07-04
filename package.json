@@ -1,13 +1,10 @@
 {
-  "name": "@hackbg/fadroma",
+  "name":    "@hackbg/fadroma",
   "version": "100.0.0-pre",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/hackbg/fadroma"
-  },
-  "main": "index.ts",
+  "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
+  "type":    "module",
+  "main":    "index.ts",
   "browser": "index.browser.ts",
-  "type": "module",
   "dependencies": {
     "dotenv": "^15.0.1",
     "@fadroma/client":            "workspace:^3",
@@ -17,7 +14,7 @@
     "@fadroma/ops":               "workspace:^1",
     "@fadroma/ops-scrt":          "workspace:^1",
     "@fadroma/tokens":            "workspace:^2",
-    "@hackbg/ganesha": "^2.0.3",
+    "@hackbg/ganesha": "^2.1",
     "@hackbg/dokeres": "workspace:*",
     "@hackbg/kabinet": "workspace:*",
     "@hackbg/komandi": "workspace:*",
@@ -25,18 +22,18 @@
     "@hackbg/formati": "workspace:*"
   },
   "devDependencies": {
+    "typescript":  "^4.6.4",
+    "typedoc":     "^0.22.17",
     "@types/node": "^16.11.36",
 
     "@hackbg/runspec": "workspace:*",
+    "c8":              "^7.11.3",
 
-    "body-parser": "^1.20.0",
-    "c8": "^7.11.3",
-    "express": "^4.18.1",
+    "body-parser":    "^1.20.0",
+    "express":        "^4.18.1",
     "freeport-async": "^2.0.0",
-    "js-yaml": "^4.1.0",
-    "pug": "^3.0.2",
-    "typedoc": "^0.22.17",
-    "typescript": "^4.6.4"
+    "js-yaml":        "^4.1.0",
+    "pug":            "^3.0.2"
   },
   "scripts": {
     "check":    "tsc --noEmit",
