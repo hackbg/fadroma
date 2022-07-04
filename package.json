@@ -22,7 +22,7 @@
     "@hackbg/formati": "workspace:*"
   },
   "devDependencies": {
-    "typescript":  "^4.6.4",
+    "typescript":  "^4.7",
     "typedoc":     "^0.22.17",
     "@types/node": "^16.11.36",
 
@@ -59,7 +59,7 @@
         "google-protobuf"
       ],
       "allowedVersions": {
-        "typescript": "^4.6"
+        "typescript": "^4.6||^4.7"
       }
     }
   }

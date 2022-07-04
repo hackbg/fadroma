@@ -27,7 +27,7 @@ importers:
       js-yaml: ^4.1.0
       pug: ^3.0.2
       typedoc: ^0.22.17
-      typescript: ^4.6.4
+      typescript: ^4.7
     dependencies:
       '@fadroma/client': link:packages/client
       '@fadroma/client-scrt': link:packages/client-scrt
@@ -52,27 +52,27 @@ importers:
       freeport-async: 2.0.0
       js-yaml: 4.1.0
       pug: 3.0.2
-      typedoc: 0.22.17_typescript@4.7.3
-      typescript: 4.7.3
+      typedoc: 0.22.17_typescript@4.7.4
+      typescript: 4.7.4
 
   packages/client:
     specifiers:
       '@hackbg/izdatel': workspace:*
-      typescript: ^4.6.4
+      typescript: ^4.7
     devDependencies:
       '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.3
+      typescript: 4.7.4
 
   packages/client-scrt:
     specifiers:
       '@fadroma/client': workspace:^3
       '@hackbg/izdatel': workspace:^0
-      typescript: ^4.6.4
+      typescript: ^4.7
     dependencies:
       '@fadroma/client': link:../client
     devDependencies:
       '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.3
+      typescript: 4.7.4
 
   packages/client-scrt-amino:
     specifiers:
@@ -83,7 +83,7 @@ importers:
       axios: ^0.26.0
       exponential-backoff: ^3.1.0
       secretjs: 0.17.5
-      typescript: ^4.6.4
+      typescript: ^4.7
     dependencies:
       '@cosmjs/crypto': 0.20.1
       '@fadroma/client-scrt': link:../client-scrt
@@ -94,20 +94,20 @@ importers:
       axios: 0.26.1
     devDependencies:
       '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.3
+      typescript: 4.7.4
 
   packages/client-scrt-grpc:
     specifiers:
       '@fadroma/client-scrt': workspace:^4.0.0
       '@hackbg/izdatel': workspace:^0
       secretjs: beta
-      typescript: ^4.6.4
+      typescript: ^4.7
     dependencies:
       '@fadroma/client-scrt': link:../client-scrt
       secretjs: 1.3.0-beta.6
     devDependencies:
       '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.3
+      typescript: 4.7.4
 
   packages/ops:
     specifiers:
@@ -126,7 +126,7 @@ importers:
       line-transform-stream: ^0.1.0
       simple-git: ^3.7.1
       toml: ^3.0.0
-      typescript: ^4.6.4
+      typescript: ^4.7
       wasm-ffi: ^0.3.0
     dependencies:
       '@fadroma/client': link:../client
@@ -146,7 +146,7 @@ importers:
     devDependencies:
       '@hackbg/ganesha': 2.0.3
       '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.3
+      typescript: 4.7.4
 
   packages/ops-scrt:
     specifiers:
@@ -166,14 +166,14 @@ importers:
       '@fadroma/client-scrt': workspace:^4.0.0
       '@hackbg/izdatel': workspace:*
       '@hackbg/konzola': workspace:*
-      typescript: ^4.6.4
+      typescript: ^4.7
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/client-scrt': link:../client-scrt
       '@hackbg/konzola': link:../../toolbox/konzola
     devDependencies:
       '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.3
+      typescript: 4.7.4
 
   shim:
     specifiers: {}
@@ -181,6 +181,7 @@ importers:
   toolbox:
     specifiers:
       '@hackbg/dokeres': workspace:^3
+      '@hackbg/izdatel': workspace:*
       '@hackbg/kabinet': workspace:^2
       '@hackbg/komandi': workspace:^2
       '@hackbg/konzola': workspace:^1
@@ -192,7 +193,7 @@ importers:
       rimraf: ^3.0.2
       signal-exit: ^3.0.3
       typedoc: beta
-      typescript: ^4.5.4
+      typescript: ^4.7
     dependencies:
       '@hackbg/dokeres': link:dokeres
       '@hackbg/kabinet': link:kabinet
@@ -205,58 +206,46 @@ importers:
       rimraf: 3.0.2
       signal-exit: 3.0.7
     devDependencies:
+      '@hackbg/izdatel': link:izdatel
       dts-gen: 0.6.0
-      typedoc: 0.23.0-beta.7_typescript@4.7.3
-      typescript: 4.7.3
+      typedoc: 0.23.0-beta.7_typescript@4.7.4
+      typescript: 4.7.4
 
   toolbox/dokeres:
     specifiers:
-      '@hackbg/izdatel': workspace:*
       '@hackbg/konzola': workspace:*
       '@types/dockerode': ^3.3.8
       colors: ^1.4.0
       dockerode: ^3.3.1
-      typescript: latest
     dependencies:
       '@hackbg/konzola': link:../konzola
       colors: 1.4.0
       dockerode: 3.3.2
     devDependencies:
-      '@hackbg/izdatel': link:../izdatel
       '@types/dockerode': 3.3.9
-      typescript: 4.7.4
 
   toolbox/forkers:
     specifiers:
       '@hackbg/ganesha': ^2
-      '@hackbg/izdatel': workspace:*
       '@types/node': latest
       '@types/zen-observable': ^0.8.3
-      typescript: latest
       zen-observable: ^0.8.15
     dependencies:
       '@types/zen-observable': 0.8.3
       zen-observable: 0.8.15
     devDependencies:
       '@hackbg/ganesha': 2.0.3
-      '@hackbg/izdatel': link:../izdatel
       '@types/node': 18.0.1
-      typescript: 4.7.4
 
   toolbox/formati:
     specifiers:
-      '@hackbg/izdatel': workspace:*
       '@iov/crypto': ^2.5.0
       '@iov/encoding': ^2.5.0
       bech32: ^2.0.0
-      typescript: latest
     dependencies:
       '@iov/crypto': 2.5.0
       '@iov/encoding': 2.5.0
       bech32: 2.0.0
-    devDependencies:
-      '@hackbg/izdatel': link:../izdatel
-      typescript: 4.7.4
 
   toolbox/izdatel:
     specifiers: {}
@@ -264,7 +253,6 @@ importers:
   toolbox/kabinet:
     specifiers:
       '@hackbg/ganesha': ^2.0.3
-      '@hackbg/izdatel': workspace:*
       '@hackbg/konzola': workspace:*
       '@hackbg/runspec': workspace:*
       '@types/mkdirp': ^1.0.2
@@ -278,7 +266,6 @@ importers:
       symlink-dir: ^5.0.1
       tmp: ^0.2.1
       toml: ^3
-      typescript: latest
     dependencies:
       '@hackbg/konzola': link:../konzola
       js-yaml: 4.1.0
@@ -290,24 +277,17 @@ importers:
       toml: 3.0.0
     devDependencies:
       '@hackbg/ganesha': 2.0.3
-      '@hackbg/izdatel': link:../izdatel
       '@hackbg/runspec': link:../runspec
       '@types/mkdirp': 1.0.2
       '@types/node': 18.0.1
       '@types/tmp': 0.2.3
       c8: 7.11.3
-      typescript: 4.7.4
 
   toolbox/kitenik:
     specifiers: {}
 
   toolbox/komandi:
-    specifiers:
-      '@hackbg/izdatel': workspace:*
-      typescript: latest
-    devDependencies:
-      '@hackbg/izdatel': link:../izdatel
-      typescript: 4.7.4
+    specifiers: {}
 
   toolbox/konzola:
     specifiers:
@@ -699,10 +679,6 @@ packages:
 
   /@types/node/17.0.42:
     resolution: {integrity: sha512-Q5BPGyGKcvQgAMbsr7qEGN/kIPN6zZecYYABeTDBizOsau+2NMdSVTar9UQw21A2+JyA2KRNDYaYrPB0Rpk2oQ==}
-
-  /@types/node/18.0.0:
-    resolution: {integrity: sha512-cHlGmko4gWLVI27cGJntjs/Sj8th9aYwplmZFwmmgYQQvL5NUsgVJG7OddLvNfLqYS31KFN0s3qlaD9qCaxACA==}
-    dev: false
 
   /@types/node/18.0.1:
     resolution: {integrity: sha512-CmR8+Tsy95hhwtZBKJBs0/FFq4XX7sDZHlGGf+0q+BRZfMbOTkzkj0AFAuTyXbObDIoanaBBW0+KEW+m3N16Wg==}
@@ -2618,7 +2594,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.0.0
+      '@types/node': 18.0.1
       long: 4.0.0
     dev: false
 
@@ -3309,33 +3285,33 @@ packages:
     resolution: {integrity: sha512-eiDBDOmkih5pMbo9OqsqPRGMljLodLcwd5XD5JbtNB0o89xZAwynY9EdCDsJU7LtcVCClu9DvM7/0Ep1hYX3EQ==}
     dev: false
 
-  /typedoc/0.22.17_typescript@4.7.3:
+  /typedoc/0.22.17_typescript@4.7.4:
     resolution: {integrity: sha512-h6+uXHVVCPDaANzjwzdsj9aePBjZiBTpiMpBBeyh1zcN2odVsDCNajz8zyKnixF93HJeGpl34j/70yoEE5BfNg==}
     engines: {node: '>= 12.10.0'}
     hasBin: true
     peerDependencies:
-      typescript: 4.0.x || 4.1.x || 4.2.x || 4.3.x || 4.4.x || 4.5.x || 4.6.x || 4.7.x || ^4.6
+      typescript: 4.0.x || 4.1.x || 4.2.x || 4.3.x || 4.4.x || 4.5.x || 4.6.x || 4.7.x || ^4.6 || ^4.7
     dependencies:
       glob: 8.0.3
       lunr: 2.3.9
       marked: 4.0.16
       minimatch: 5.1.0
       shiki: 0.10.1
-      typescript: 4.7.3
+      typescript: 4.7.4
     dev: true
 
-  /typedoc/0.23.0-beta.7_typescript@4.7.3:
+  /typedoc/0.23.0-beta.7_typescript@4.7.4:
     resolution: {integrity: sha512-k8GKXXY4z3HIs7HdSu92jcze1nl71cLiHR329ZflhiO4Ta1rJc4F5uEtwUjCSChXFQaVZUI2l3VaF9nWm1/p7A==}
     engines: {node: '>= 14.14'}
     hasBin: true
     peerDependencies:
-      typescript: 4.6.x || 4.7.x || ^4.6
+      typescript: 4.6.x || 4.7.x || ^4.6 || ^4.7
     dependencies:
       lunr: 2.3.9
       marked: 4.0.16
       minimatch: 5.1.0
       shiki: 0.10.1
-      typescript: 4.7.3
+      typescript: 4.7.4
     dev: true
 
   /typeforce/1.18.0:
@@ -3344,12 +3320,6 @@ packages:
 
   /typescript/3.9.10:
     resolution: {integrity: sha512-w6fIxVE/H1PkLKcCPsFqKE7Kv7QUwhU8qQY2MueZXWx5cPZdwFupLgKK3vntcK98BtNHZtAF4LA/yl2a7k8R6Q==}
-    engines: {node: '>=4.2.0'}
-    hasBin: true
-    dev: true
-
-  /typescript/4.7.3:
-    resolution: {integrity: sha512-WOkT3XYvrpXx4vMMqlD+8R8R37fZkjyLGlxavMc4iB8lrl8L0DeTcHbYgw/v0N/z9wAFsgBhcsF0ruoySS22mA==}
     engines: {node: '>=4.2.0'}
     hasBin: true
     dev: true
