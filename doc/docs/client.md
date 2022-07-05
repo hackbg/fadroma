@@ -182,38 +182,139 @@ async function main () {
 }
 ```
 
-There are a few things going on here:
+## The three-tier model
 
-### Chain class
+Now we're getting somewhere! There are a few things going on in the above example -
+most importantly, it demonstrates the three-tier model of Fadroma Client.
+
+When using a client class, you're broadcasting transactions from a **specific address** on a
+**specific chain**, to a a **specific smart contract** on the **same chain**. This is specified
+in terms of the following entities:
+
+### `Chain`s
+
+Chain objects correspond to separate execution environments, i.e. **they represent blockchains**.
+
+Chains inherit from the base `Chain` class exported by `@fadroma/client`.
 
 `Scrt` is the **chain class** representing the Secret Network mainnet.
-`Scrt` is a subclass of the `Chain` class which is exported by `@fadroma/client`.
 
-### Agent class
+### `Agent`s
+
+Agent objects correspond to identities operating in a specific environment, i.e.
+**they represent wallets**.
+
+Agents inherit from the base `Agent` class exported by `@fadroma/client`.
 
 Calling `chain.getAgent({ keyPair })` returns an instance of `ScrtRPCAgent`.
 This is the **agent class** that uses `secretjs@beta` to talk to Secret Network API via gRPC
 and sign transactions with the `keyPair`.
 
-**The agent class corresponds to a wallet**. You can have multiple authenticated agents with
-different addresses and keys, to interact with the chain as different identities from the same
-script.
+Of course, you can have multiple authenticated agents with different addresses and keys,
+and interact with the chain as different identities from the same script.
 
-### Client class
+### `Client`s
+
+Client objects are interfaces to programs deployed in a specific environment, i.e.
+**they represent smart contracts**.
+
+Clients inherit from the base `Client` class exported by `@fadroma/client`.
 
 Calling `agent.getClient(MyContract, address)` returns an instance of `MyContract` that is bound
 to the contract at `address`. You can now query and make transactions, and the transactions will
 be signed with the agent's key and broadcast from the agent's address.
 
-### Portability and the single-responsibility principle
+## Cross-chain portability
 
-If we wanted to use the legacy Amino encoding, we'd simply change `@fadroma/client-scrt-grpc`
-to `@fadroma/client-scrt-amino`, and import `LegacyScrt` intead of `Scrt`. The agent would then
-use `secretjs@0.17` instead of `secretjs@beta`.
+In the above example, if we wanted to use the legacy Amino encoding, we'd simply replace
 
-This way we can implement client classes once, and make them work across different blockchains
-and versions - the client class's only responsibility is generating the messages.
+```typescript
+import { Scrt } from '@fadroma/client-scrt-grpc'
+```
 
-To support other blockchains in Fadroma, all we need to do is implement corresponding `Chain` and
-`Agent` classes in e.g. `@fadroma/client-cw-1-0`; and, as far as the two chains are the same, no
-changes to your `Client` class would be required.
+to:
+
+```typescript
+import { LegacyScrt as Scrt } from '@fadroma/client-scrt-amino'
+```
+
+Then, `secretjs@0.17` would be used in place of `secretjs@beta`. Normally, NPM would not even
+allow the same package to depend on two versions of `secretjs` at once - but since this is going
+through two different Fadroma packages, there's no problem.
+
+Right now, we only support Secret Network, but cross-chain portability is one of our main
+priorities. Adding support for other chains in Fadroma would be as simple as implementing the
+corresponding `Chain` and `Agent` subclasses in e.g. `@fadroma/client-cw-1-0`.
+
+## Single-responsibility principle
+
+Furthermore, in the above scenario, no changes to `MyContract` would be required. This is because
+`MyContract`'s only responsibility is to generate the API messages corresponding to its methods.
+
+This way, contract authors can implement client classes once, and make them work across
+all blockchains supported by the contract.
+
+## Specifying transaction fees
+
+When executing a transaction, a gas limit is specified so that invoking a transaction cannot
+consume too much gas. However, each smart contract transaction method performs different
+computations, and therefore need a different amount of gas.
+
+You can specify default gas limits for each method by defining the `fees: Record<string, IFee>`
+property of your client class:
+
+```typescript
+import { Client, Fee } from '@fadroma/client'
+export class MyContract extends Client {
+  fees = {
+    tx1: new Fee('10000', 'uscrt'),
+    tx2: new Fee('20000', 'uscrt'),
+    tx3: new Fee('30000', 'uscrt'),
+    tx4: new Fee('40000', 'uscrt'),
+  }
+  async tx1 ()  { return await this.execute("tx1") }
+  async tx2 (n) { return await this.execute({tx2: n}) }
+  async tx3 ()  { return await this.execute({tx3: {}}) }
+  async tx4 (n) { return await this.execute({tx4: {my_value: n}}) }
+}
+```
+
+You can also specify one fee for all transactions. This will replace the
+default `exec` fee configured in the agent.
+
+You can override these defaults by using the `withFee(fee: IFee)` method:
+
+```typescript
+const result = await client.withFee(new Fee('100000', 'uscrt')).tx1()
+```
+
+This method works by returning a new instance of `MyContract` that has
+the fee overridden.
+
+## Switching identities
+
+Similarly to `withFee`, the `as` method returns a new instance of your
+client class, bound to a different `agent`, thus allowing you to execute
+transactions as a different identity.
+
+```typescript
+const agent1 = await chain.getAgent(/*...*/)
+const agent2 = await chain.getAgent(/*...*/)
+const client = agent1.getClient(MyContract, "...")
+client.tx1() // signed by agent1
+client.as(agent2).tx1() // signed by agent2
+```
+
+## Getting contract info
+
+The `async populate()` method fetches the code ID, code hash, and label of the contract.
+
+```typescript
+await client.populate()
+console.log(
+  client.label,
+  client.codeId,
+  client.codeHash,
+  client.address,
+)
+```
