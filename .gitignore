@@ -9,6 +9,7 @@ coverage
 dist/
 doc/typedoc
 docs
+!doc/docs
 node_modules
 package-lock.json
 receipts
