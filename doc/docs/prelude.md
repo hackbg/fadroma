@@ -1,4 +1,4 @@
-# Writing a smart contract with Fadroma
+# Elements of Fadroma smart contracts
 
 CosmWasm contracts are simply WASM programs that run in a specific environment
 defined by the Cosmos runtime. This environment has the well-known blockchain

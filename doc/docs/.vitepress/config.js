@@ -1,7 +1,7 @@
 export default {
   lang:        'en-US',
-  title:       'Fadroma',
-  description: 'Fadroma Guide',
+  title:       'The Fadroma Guide',
+  description: 'How to write Secret Network dApps with Fadroma',
   lastUpdated: true,
   themeConfig: {
     sidebar: [
@@ -17,17 +17,17 @@ export default {
         text: "Rust",
         collapsible: false,
         items: [
-          { text: "Prelude: Writing contracts",  link: "/writing-contracts" },
-          { text: "Derive: Advanced contracts",  link: "/writing-contracts-with-derive" },
-          { text: "Ensemble: Testing contracts", link: "/testing-contracts" },
+          { text: "Prelude: Writing contracts",  link: "/prelude" },
+          { text: "Derive: Advanced contracts",  link: "/derive" },
+          { text: "Ensemble: Testing contracts", link: "/ensemble" },
         ]
       }, {
         text: "TypeScript",
         collapsible: false,
         items: [
-          { text: "Client: Writing clients",      link: "/writing-clients" },
-          { text: "Ops: Deploying and operating", link: "/deploying" },
-          { text: "Mocknet: Full-stack testing",  link: "/testing-clients" },
+          { text: "Client: Writing clients",      link: "/client" },
+          { text: "Ops: Deploying and operating", link: "/ops" },
+          { text: "Mocknet: Full-stack testing",  link: "/mocknet" },
         ]
       }
     ]

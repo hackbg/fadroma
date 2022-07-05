@@ -1,4 +1,4 @@
-# Writing client classes
+# Writing smart contract frontends with Fadroma Client
 
 Client classes let you invoke the methods of deployed smart contracts
 from JavaScript or TypeScript applications, such as your dApp's frontend.
@@ -54,6 +54,8 @@ are the `query` and `execute` methods:
 * If the returned value is an error, the promise will reject (i.e. if you're
   `await`ing the promise chain, an `Error` will be thrown).
 
+Here's an example client implementation for the contract from the previous section.
+
 ```javascript
 // MyContract.js
 import { Client } from '@fadroma/client'
@@ -68,6 +70,9 @@ export class MyContract extends Client {
   async tx4 (n) { return await this.execute({tx4: {my_value: n}}) }
 }
 ```
+Remember that there are two mutually incompatible ways of defining methods with
+no parameters (`"q1"` vs. `{"q3":{}}`). It's just how the deserialization works
+on the Rust end.
 
 :::info We miss ES5 and CommonJS, too.
 However, this example assumes an environment with native support for ES Modules,
@@ -139,11 +144,11 @@ export class MyContract extends Client {
 
 As you can see, the TypeScript client class implementation is not much different,
 except that you're also encouraged to use the type aliases exported by
-`@fadroma/client`, which correspond to the types used by the contract.
+`@fadroma/client`, which correspond to the types used by the contract (`Uint128`, `Address`, etc.)
 
-They mostly resolve to either `number` or `string`, so the type
-checker won't be much help, but at least you'll get type suggestions if
-you use IntelliSense.
+In practice, those type aliases mostly resolve to either `number` or `string`, so the type
+checker won't be much help, but at least the caller will get type suggestions
+if they use LSP.
 
 ## Using client classes
 
@@ -207,7 +212,7 @@ to `@fadroma/client-scrt-amino`, and import `LegacyScrt` intead of `Scrt`. The a
 use `secretjs@0.17` instead of `secretjs@beta`.
 
 This way we can implement client classes once, and make them work across different blockchains
-and versions - the client class' only responsibility is generating the messages.
+and versions - the client class's only responsibility is generating the messages.
 
 To support other blockchains in Fadroma, all we need to do is implement corresponding `Chain` and
 `Agent` classes in e.g. `@fadroma/client-cw-1-0`; and, as far as the two chains are the same, no

@@ -1,4 +1,4 @@
-# Deploying
+# Deploying and configuring smart contracts with Fadroma Ops
 
 ## Writing a deploy procedure
 
