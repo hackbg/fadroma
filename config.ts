@@ -104,7 +104,7 @@ if (config.project.chain.startsWith('LegacyScrt')) {
     config.scrt.mainnet.apiUrl = 'https://secret-4.api.trivium.network:9091'
   }
   if (config.scrt.testnet.apiUrl === null) {
-    config.scrt.testnet.apiUrl = 'http://rpc.pulsar.griptapejs.com:9091'
+    config.scrt.testnet.apiUrl = 'https://testnet-web-rpc.roninventures.io'
   }
 }
 
