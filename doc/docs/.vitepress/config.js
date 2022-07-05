@@ -26,8 +26,8 @@ export default {
         collapsible: false,
         items: [
           { text: "Client: Writing clients",      link: "/writing-clients" },
-          { text: "Mocknet: Full-stack testing",  link: "/testing-clients" },
           { text: "Ops: Deploying and operating", link: "/deploying" },
+          { text: "Mocknet: Full-stack testing",  link: "/testing-clients" },
         ]
       }
     ]
