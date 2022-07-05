@@ -14,7 +14,7 @@ export default {
           { text: "Contributing to Fadroma", link: "/contributing" },
         ]
       }, {
-        text: "Rust: Fadroma Engine",
+        text: "Rust",
         collapsible: false,
         items: [
           { text: "Prelude: Writing contracts",  link: "/writing-contracts" },
@@ -22,7 +22,7 @@ export default {
           { text: "Ensemble: Testing contracts", link: "/testing-contracts" },
         ]
       }, {
-        text: "TypeScript: Fadroma Ops",
+        text: "TypeScript",
         collapsible: false,
         items: [
           { text: "Client: Writing clients",      link: "/writing-clients" },
