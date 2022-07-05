@@ -349,11 +349,11 @@ export class DockerBuilder extends CachingBuilder {
     const readonly = {
       // The script that will run in the container
       [this.script]:                buildScript,
-      // For checking out submodules
-      '/root/.ssh/known_hosts':     knownHosts.isFile()    ? knownHosts.path    : undefined,
-      '/etc/ssh/ssh_known_hosts':   etcKnownHosts.isFile() ? etcKnownHosts.path : undefined,
       // Root directory of repository, containing real .git directory
       [$(root).path]:              `/src`,
+      // For non-interactively fetching submodules over SSH, we need to propagate known_hosts
+      ...(knownHosts.isFile()    ? { '/root/.ssh/known_hosts':   knownHosts.path    } : {}),
+      ...(etcKnownHosts.isFile() ? { '/etc/ssh/ssh_known_hosts': etcKnownHosts.path } : {})
     }
     const writable = {
       // Output path for final artifacts
