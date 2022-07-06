@@ -64,12 +64,13 @@ in their own right.
 
 ## Set up the deploy script
 
-Here's what a deploy script could look like:
+Here's a starter template for a deploy script:
 
 ```typescript
 // /path/to/your/project/deploy.ts
 
-import Fadroma, { OperationContext } from '@hackbg/fadroma'
+import Fadroma, { Workspace } from '@hackbg/fadroma'
+import type { OperationContext } from '@hackbg/fadroma'
 
 const common = [
   Fadroma.Build.Scrt,
@@ -80,21 +81,21 @@ const common = [
 Fadroma.command('new',
   ...common,
   Fadroma.Deploy.New,
-  deployContract
+  deployMyContract
 )
 
 Fadroma.command('add'
   ...common,
   Fadroma.Deploy.Append,
-  deployContract
+  deployMyContract
 )
 
-interface DeployContract extends OperationContext {
+interface DeployMyContract extends OperationContext {
   param1: any
   param2: any
 }
 
-async function deployContract (context: DeployContract) {
+async function deployMyContract (context: DeployMyContract) {
   /* we'll implement the deployment procedure here */
 }
 
@@ -108,18 +109,18 @@ development. This is how we currently write them, and it serves us well enough.
 However, in future versions of Fadroma, we aim to simplify it further.
 :::
 
-This system is intended to allow mixing and matching of deploy steps
+This system is intended to allow mixing and matching of operations
 for composing more complex deployments.
 
 When working on a complex distributed system in an append-only environment,
 the capability to define your operation procedures in smaller, composable steps,
 is invaluable.
 
-Let's break this down as we prepare to implement `deployContract`.
+Let's break this down as we prepare to implement `deployMyContract`.
 
 ## Import Fadroma
 
-The default export of Fadroma contains a collection of **deployment steps**.
+The default export of Fadroma contains a collection of **operations**.
 Those are functions that populate the **operation context** for performing
 a deployment action.
 
@@ -127,12 +128,12 @@ a deployment action.
 import Fadroma, { OperationContext } from '@hackbg/fadroma'
 ```
 
-Let's look at some pre-defined deployment steps; we'll see what's in `OperationContext`
-when we get to implementing `deployContract`.
+Let's look at some pre-defined operations; we'll see what's in `OperationContext`
+when we get to implementing `deployMyContract`.
 
 ## Enable building and uploading
 
-The most common deployment steps are `Fadroma.Build.Scrt`, `Fadroma.Chain.FromEnv`, and
+The most common operations are `Fadroma.Build.Scrt`, `Fadroma.Chain.FromEnv`, and
 `Fadroma.Upload.FromFile`.
 
 Since we may have multiple deploy commands, and all of them will need to be able to build and
@@ -159,7 +160,7 @@ the following values:
 
 ## Define commands
 
-Up next are two `Fadroma.command(name, ...steps)` invocations. The `Fadroma.command` function
+Up next are two `Fadroma.command(name, ...operations)` invocations. The `Fadroma.command` function
 defines a command which is then exposed to the outside world by the final `Fadroma.module` call.
 
 Having defined the `new` and `add` commands using:
@@ -188,8 +189,8 @@ The `new` and `add` commands differ by one pre-defined step: `Fadroma.Deploy.New
 `Fadroma.Deploy.Append`. What's the difference?
 
 ```typescript
-Fadroma.command('new', ...common, Fadroma.Deploy.New, deployContract)
-Fadroma.command('add', ...common, Fadroma.Deploy.Append, deployContract)
+Fadroma.command('new', ...common, Fadroma.Deploy.New, deployMyContract)
+Fadroma.command('add', ...common, Fadroma.Deploy.Append, deployMyContract)
 ```
 
 Unless they're one-off things, smart contract projects are deployed in multiple stages.
@@ -222,10 +223,171 @@ deployment receipt, and querying that transaction in the transaction explorer.
 ## The actual deploy procedure
 
 So far, we've set up an environment for deploying contracts and keeping track of our
-actions. Let's see how to implement `deployContract` in that environment.
+actions. Let's see how to implement the custom operation, `deployMyContract`, in that
+environment.
+
+## The operation context
+
+Operations are asynchronous functions that take a single argument, the `OperationContext`,
+and may return an object containing updates to the operation context.
+
+You can extend the `OperationContext` type to add custom parameters to your operations.
+
+```typescript
+interface DeployMyContract extends OperationContext {
+  param1: any
+  param2: any
+}
+
+async function deployMyContract (context: DeployMyContract) {
+  /* ... */
+}
+```
 
 ## Build for production
 
+The first thing we need to do is compile a production build of our contract.
+For this, we can use the `context.build(source: Source): Promise<Artifact>`
+provided by `Fadroma.Build.Scrt`.
+
+```typescript
+async function deployMyContract (context: DeployMyContract) {
+  const workspace = new Workspace(process.cwd())
+  const source    = workspace.crate('my-contract')
+  const artifact  = await context.build(source)
+  /* ... */
+}
+```
+
+The result of the build is stored under `artifacts/my-contract@HEAD.wasm`,
+and a checksum is stored at `artifacts/my-contract@HEAD.wasm.sha256`, relative
+to your project root.
+
 ## Upload the code
 
+Now that we have a compiled artifact, we can use
+`context.upload(artifact: Artifact): Promise<Template>`, provided by `Fadroma.Upload.FromFile`,
+to upload the artifact to the chain selected by `Fadroma.Chain.FromEnv`,
+resulting in a `Template` consisting of code ID and code hash.
+
+```typescript
+async function deployMyContract (context: DeployMyContract) {
+  const workspace = new Workspace(process.cwd())
+  const source    = workspace.crate('my-contract')
+  const artifact  = await context.build(source)
+  const template  = await context.upload(artifact)
+  /* ... */
+}
+```
+
+Since building code and uploading it to the blockchain go hand in hand,
+the `context.buildAndUpload(source: Source): Promise<Tramplte>` function is
+also present (provided both `Fadroma.Build.Scrt` and `Fadroma.Upload.FromFile` have been
+invoked). This gives us a shorter way of uploading code to the chain:
+
+```typescript
+async function deployMyContract (context: DeployMyContract) {
+  const source   = new Workspace(process.cwd()).crate('my-contract')
+  const template = await context.buildAndUpload(source)
+  /* ... */
+}
+```
+
 ## Instantiate the contract(s)
+
+Now that we have a `Template`, we are ready to create as many instances
+of our contract as needed.
+
+```typescript
+async function deployMyContract (context: DeployMyContract) {
+  const source   = new Workspace(process.cwd()).crate('my-contract')
+  const template = await context.buildAndUpload(source)
+  const name     = "My Contract"
+  const initMsg  = { param1: context.param1, param2: context.param2 }
+  const instance = await context.deploy(template, name, initMsg)
+  /* ... */
+}
+```
+
+Of course, this can also be written as a single expression:
+
+```typescript
+async function deployMyContract (context: DeployMyContract) {
+  const instance = await context.deploy(
+    await context.buildAndUpload(new Workspace(process.cwd()).crate('my-contract')),
+    "MyContract",
+    { param1: context.param1, param2: context.param2 }
+  )
+  /* ... */
+}
+```
+
+Invoking `npm run deploy new` will now deploy the contract to the chain
+specified by `FADROMA_CHAIN`.
+
+## Getting a contract client
+
+If we want to run further procedures after deployment, such as configuring our
+smart contract, we could obtain an instance of the corresponding client class.
+
+```typescript
+import { MyContract } from 'my-client-library'
+async function deployMyContract (context: DeployMyContract) {
+  const myContract = context.agent.getClient(MyContract, await context.deploy(
+    await context.buildAndUpload(new Workspace(process.cwd()).crate('my-contract')),
+    "MyContract",
+    { param1: context.param1, param2: context.param2 }
+  ))
+  await myContract.tx2("123")
+}
+```
+
+## Stacking operations
+
+Returning an object from an operation updates the context for subsequent steps.
+Hence, the following is valid:
+
+```typescript
+async function deployMyContract (context: DeployMyContract) {
+  const client = context.agent.getClient(MyContract, await context.deploy(
+    await context.buildAndUpload(new Workspace(process.cwd()).crate('my-contract')),
+    "MyContract",
+    { param1: context.param1, param2: context.param2 }
+  ))
+  return { myContract }
+}
+
+interface ConfigureMyContract extends OperationContext {
+  myContract: MyContract
+  myValue:    Uint128
+}
+
+async function configureMyContract (context: OperationContext) {
+  await context.myContract.tx2(context.myValue)
+}
+
+Fadroma.command('deploy-and-configure',
+  ...common,
+  Fadroma.Deploy.New,
+  deployMyContract,
+  configureMyContract
+)
+```
+
+## Working with an existing deployment
+
+Let's say you already deployed your contract and want to configure it at a later time.
+Use `Fadroma.Deploy.Append` to get the active deployment in `context`, and
+`context.deployment.getClient(agent, Client, name)` to get the client to the
+previously deployed contract.
+
+```typescript
+Fadroma.command('configure',
+  ...common,
+  Fadroma.Deploy.Append,
+  function getMyContract (context) {
+    return { myContract: context.deployment.getClient(context.agent, MyContract, "My Contract") }
+  },
+  configureMyContract
+)
+```
