@@ -25,8 +25,8 @@ export default {
         text: "TypeScript",
         collapsible: false,
         items: [
-          { text: "Client: Writing clients",      link: "/client" },
-          { text: "Ops: Deploying and operating", link: "/ops" },
+          { text: "Client: Talking to contracts", link: "/client" },
+          { text: "Ops: Launching contracts",     link: "/ops" },
           { text: "Mocknet: Full-stack testing",  link: "/mocknet" },
         ]
       }
