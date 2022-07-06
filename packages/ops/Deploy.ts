@@ -34,6 +34,9 @@ export interface DeployContext {
   /** Currently selected collection of interlinked contracts. */
   deployment:   Deployment
 
+  /** Shorthand for calling `deployment.instantiate(deployAgent, ...)` */
+  deploy:       (template: Template, name: string, initMsg: unknown) => Promise<Instance>
+
   /** Prefix to the labels of all deployed contracts.
     * Identifies which deployment they belong to. */
   prefix:       string

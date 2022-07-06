@@ -11,6 +11,7 @@ import {
   DeployContext,
   Deployments,
   FSUploader,
+  Message,
   Mocknet,
   Operation,
   Source,
@@ -131,7 +132,7 @@ const ChainOps = {
       agentOpts.mnemonic = config.scrt.agent.mnemonic
     }
     const agent = await chain.getAgent(agentOpts)
-    return { chain, agent, deployAgent: agent, clientAgent: agent }
+    return { chain, agent, clientAgent: agent }
   },
 
   /** Print the status of the active devnet */
@@ -214,6 +215,7 @@ export const DeployOps = {
   /** Create a new deployment and add it to the command context. */
   New: async function createDeployment ({
     chain,
+    agent,
     timestamp,
     deployments = Deployments.fromConfig(chain, config.project.root),
     cmdArgs     = [],
@@ -227,6 +229,7 @@ export const DeployOps = {
   /** Add the currently active deployment to the command context. */
   Append: async function activateDeployment ({
     chain,
+    agent,
     deployments = Deployments.fromConfig(chain, config.project.root)
   }: ConnectedContext): Promise<DeployContext> {
     const deployment = deployments.active
@@ -239,7 +242,14 @@ export const DeployOps = {
     contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
     console.info(bold('Active deployment:'), prefix, contracts)
     print(console).deployment(deployment)
-    return { deployment, prefix }
+    return {
+      prefix,
+      deployment,
+      deployAgent: agent,
+      async deploy (template: Template, name: string, initMsg: Message) {
+        return await deployment.init(agent, template, name, initMsg)
+      }
+    }
   },
 
   /** Add either the active deployment, or a newly created one, to the command context. */
