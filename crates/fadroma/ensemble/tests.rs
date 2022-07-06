@@ -609,3 +609,276 @@ fn block_freeze() {
     assert!(res.height > old_height);
     assert!(res.time > old_time);
 }
+
+#[test]
+fn staking() {
+    let ensemble_test = ContractEnsemble::new_denom(50, "something".to_string());
+    assert_eq!(ensemble_test.ctx.delegations.bonded_denom(), "something".to_string());
+
+    let mut ensemble = ContractEnsemble::new(50);
+    assert_eq!(ensemble.ctx.delegations.bonded_denom(), "uscrt".to_string());
+
+    let addr1 = HumanAddr("addr1".to_string());
+    let addr2 = HumanAddr("addr2".to_string());
+    let val_addr_1 = HumanAddr("validator1".to_string());
+    let val_addr_2 = HumanAddr("validator2".to_string());
+    let val_addr_3 = HumanAddr("validator3".to_string());
+    let validator1 = Validator {
+        address: val_addr_1.clone(),
+        commission: Decimal::percent(5),
+        max_commission: Decimal::percent(10),
+        max_change_rate: Decimal::percent(1),
+    };
+    let validator2 = Validator {
+        address: val_addr_2.clone(),
+        commission: Decimal::percent(7),
+        max_commission: Decimal::percent(15),
+        max_change_rate: Decimal::percent(5),
+    };
+    
+    ensemble.add_validator(validator1.clone());
+    ensemble.add_validator(validator2.clone());
+
+    assert_eq!(ensemble.ctx.delegations.validators(), vec![validator1.clone(), validator2.clone()]);
+    
+    // Delegating
+    ensemble.ctx.delegations.delegate(
+        &addr1,
+        &val_addr_1,
+        Coin::new(1000u128, "uscrt"),
+    ).unwrap();
+    match ensemble.ctx.delegations.delegate(
+        &addr1,
+        &val_addr_1,
+        Coin::new(314159u128, "notscrt"),
+    ) {
+        Err(error) => match error {
+            StdError::GenericErr { msg, .. } => assert_eq!("Incorrect coin denom", msg),
+            _ => panic!("Wrong denom error improperly caught"),
+        },
+        _ => panic!("Wrong denom error improperly caught"),
+    };
+    
+    match ensemble.ctx.delegations.delegate(
+        &addr1,
+        &val_addr_3,
+        Coin::new(314159u128, "uscrt"),
+    ) {
+        Err(error) => match error {
+            StdError::NotFound { kind, .. } => assert_eq!("Validator not found", kind),
+            _ => panic!("Invalid validator error improperly caught"),
+        },
+        _ => panic!("Invalid validator error improperly caught"),
+    };
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_1.clone(),
+            amount: Coin::new(1000u128, "uscrt"), 
+            can_redelegate: Coin::new(1000u128, "uscrt"),
+            accumulated_rewards: Coin::new(0u128, "uscrt"),
+        }),
+        _ => panic!("Incorrect response from delegation query"),
+    };
+    assert_eq!(ensemble.ctx.delegations.delegation(&addr1, &val_addr_2), None);
+    assert_eq!(ensemble.ctx.delegations.delegation(&addr2, &val_addr_1), None);
+   
+    // Undelegating
+    ensemble.ctx.delegations.undelegate(
+        &addr1, 
+        &val_addr_1, 
+        Coin::new(500u128, "uscrt"),
+    ).unwrap();
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_1.clone(),
+            amount: Coin::new(500u128, "uscrt"), 
+            can_redelegate: Coin::new(500u128, "uscrt"), 
+            accumulated_rewards: Coin::new(0u128, "uscrt"),
+        }),
+        None => panic!("Delegation not found"),
+    };
+    match ensemble.ctx.delegations.undelegate(
+        &addr1, 
+        &val_addr_2, 
+        Coin::new(300u128, "uscrt"),
+    ) {
+        Err(error) => match error {
+            StdError::NotFound { kind, .. } => assert_eq!("Delegation not found", kind),
+            _ => panic!("Invalid undelegation error improperly caught"),
+        },
+        _ => panic!("Invalid undelegation error improperly caught"),
+    };
+    match ensemble.ctx.delegations.undelegate(
+        &addr1, 
+        &val_addr_1, 
+        Coin::new(600u128, "uscrt"),
+    ) {
+        Err(error) => match error {
+            StdError::GenericErr { msg, .. } => assert_eq!("Insufficient funds", msg),
+            _ => panic!("Undelegate too much error improperly caught"),
+        },
+        _ => panic!("Undelegate too much error improperly caught"),
+    };
+    assert_eq!(
+        ensemble.ctx.delegations.unbonding_delegations(&addr1), 
+        vec![Delegation {
+            delegator: addr1.clone(),
+            validator: val_addr_1.clone(),
+            amount: Coin::new(500u128, "uscrt"),
+        }],
+    );
+
+    // Redelegate
+    ensemble.ctx.delegations.redelegate(
+        &addr1, 
+        &val_addr_1, 
+        &val_addr_2, 
+        Coin::new(300u128, "uscrt"),
+    ).unwrap();
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_1.clone(),
+            amount: Coin::new(200u128, "uscrt"),
+            can_redelegate: Coin::new(200u128, "uscrt"),
+            accumulated_rewards: Coin::new(0u128, "uscrt"),            
+        }),
+        None => panic!("Original delegation not found"),
+    };
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_2) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_2.clone(),
+            amount: Coin::new(300u128, "uscrt"),
+            can_redelegate: Coin::new(0u128, "uscrt"),
+            accumulated_rewards: Coin::new(0u128, "uscrt"),
+        }),
+        None => panic!("Redelegation not found"),
+    };
+    
+    ensemble.ctx.delegations.delegate(
+        &addr1, 
+        &val_addr_2,
+        Coin::new(100u128, "uscrt"),
+    ).unwrap();
+    ensemble.ctx.delegations.redelegate(
+        &addr1,
+        &val_addr_2,
+        &val_addr_1,
+        Coin::new(100u128, "uscrt"),
+    ).unwrap();
+    ensemble.ctx.delegations.redelegate(
+        &addr1,
+        &val_addr_1,
+        &val_addr_2,
+        Coin::new(200u128, "uscrt"),
+    ).unwrap();
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_1.clone(),
+            amount: Coin::new(100u128, "uscrt"),
+            can_redelegate: Coin::new(0u128, "uscrt"),
+            accumulated_rewards: Coin::new(0u128, "uscrt"),            
+        }),
+        None => panic!("Validator 1 delegation not found"),
+    };
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_2) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_2.clone(),
+            amount: Coin::new(500u128, "uscrt"),
+            can_redelegate: Coin::new(0u128, "uscrt"),
+            accumulated_rewards: Coin::new(0u128, "uscrt"),
+        }),
+        None => panic!("Validator 2 delegation not found"),
+    };
+
+    // Rewards
+    ensemble.add_rewards(Uint128::from(50u64));
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_1.clone(),
+            amount: Coin::new(100u128, "uscrt"),
+            can_redelegate: Coin::new(0u128, "uscrt"),
+            accumulated_rewards: Coin::new(50u128, "uscrt"),            
+        }),
+        None => panic!("Validator 1 delegation not found"),
+    };
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_2) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_2.clone(),
+            amount: Coin::new(500u128, "uscrt"),
+            can_redelegate: Coin::new(0u128, "uscrt"),
+            accumulated_rewards: Coin::new(50u128, "uscrt"),
+        }),
+        None => panic!("Validator 2 delegation not found"),
+    };
+
+    // Trying to replicate as much as possible from ctx.execute_messages() since it is a private
+    // function
+    let withdraw_amount = ensemble.ctx.delegations.delegation(
+        &addr1,
+        &val_addr_1,
+    ).unwrap().accumulated_rewards; 
+    println!("Amnt: {:?}", withdraw_amount);
+    println!("Bank: {:?}", ensemble.ctx.bank);
+    ensemble.ctx.bank.current.add_funds(&addr1, vec![withdraw_amount]);
+    println!("Bank: {:?}", ensemble.ctx.bank);
+    ensemble.ctx.delegations.withdraw(&addr1, &val_addr_1).unwrap();
+
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_1.clone(),
+            amount: Coin::new(100u128, "uscrt"),
+            can_redelegate: Coin::new(0u128, "uscrt"),
+            accumulated_rewards: Coin::new(0u128, "uscrt"),            
+        }),
+        None => panic!("Delegation not found"),
+    };
+    assert_eq!(
+        ensemble.ctx.bank.current.query_balances(&addr1, Some("uscrt".to_string())),
+        vec![Coin::new(50u128, "uscrt")],
+    );
+
+    assert_eq!(
+        ensemble.ctx.delegations.rewards(&addr1),
+        RewardsResponse {
+            rewards: vec![],
+            total: vec![Coin::new(50u128, "uscrt")],
+        },
+    );
+            
+    // Fast forward
+    ensemble.fast_forward_delegation_waits();
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_1.clone(),
+            amount: Coin::new(100u128, "uscrt"),
+            can_redelegate: Coin::new(100u128, "uscrt"),
+            accumulated_rewards: Coin::new(0u128, "uscrt"),            
+        }),
+        None => panic!("Validator 1 delegation not found"),
+    };
+    match ensemble.ctx.delegations.delegation(&addr1, &val_addr_2) {
+        Some(delegation) => assert_eq!(delegation, FullDelegation {
+            delegator: addr1.clone(),
+            validator: val_addr_2.clone(),
+            amount: Coin::new(500u128, "uscrt"),
+            can_redelegate: Coin::new(500u128, "uscrt"),
+            accumulated_rewards: Coin::new(50u128, "uscrt"),
+        }),
+        None => panic!("Validator 2 delegation not found"),
+    };
+    assert_eq!(
+        ensemble.ctx.bank.current.query_balances(&addr1, Some("uscrt".to_string())),
+        vec![Coin::new(550u128, "uscrt")],
+    );
+
+}

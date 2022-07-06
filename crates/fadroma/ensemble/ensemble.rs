@@ -457,6 +457,7 @@ impl Context {
 
                         self.bank.writable()
                             .add_funds(&funds_recipient, vec![withdraw_amount]);
+
                         let withdraw_res = self.delegations.withdraw(
                             &sender,
                             &validator,
