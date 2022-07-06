@@ -70,7 +70,7 @@ impl Querier for EnsembleQuerier {
             },
             QueryRequest::Staking(query) => match query {
                 StakingQuery::AllDelegations { delegator } => {
-                    let delegations = ctx.delegations.all_delegations(delegator);
+                    let delegations = ctx.delegations.all_delegations(&delegator);
 
                     Ok(to_binary(&AllDelegationsResponse { delegations }))
                 },
@@ -80,12 +80,12 @@ impl Querier for EnsembleQuerier {
                     Ok(to_binary(&BondedDenomResponse { denom }))
                 },
                 StakingQuery::Delegation { delegator, validator } => {
-                    let delegation = ctx.delegations.delegation(delegator, validator);
+                    let delegation = ctx.delegations.delegation(&delegator, &validator);
 
-                    Ok(to_binary(&DelegationResponse { delegation }))
+                    Ok(to_binary(&delegation))
                 },
                 StakingQuery::UnbondingDelegations { delegator } => {
-                    let delegations = ctx.delegations.unbonding_delegations(delegator);
+                    let delegations = ctx.delegations.unbonding_delegations(&delegator);
 
                     Ok(to_binary(&UnbondingDelegationsResponse { delegations }))
                 },
@@ -93,6 +93,13 @@ impl Querier for EnsembleQuerier {
                     let validators = ctx.delegations.validators();
 
                     Ok(to_binary(&ValidatorsResponse { validators }))
+                },
+            },
+            QueryRequest::Dist(query) => match query {
+                DistQuery::Rewards { delegator } => {
+                    let rewards = ctx.delegations.rewards(&delegator);
+
+                    Ok(to_binary(&rewards))
                 },
             },
             _ => {

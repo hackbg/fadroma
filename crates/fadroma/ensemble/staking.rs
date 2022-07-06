@@ -4,17 +4,11 @@ use crate::prelude::*;
 use super::response::StakingResponse;
 
 #[derive(Clone, Default, Debug)]
-pub(crate) struct Unbonding {
-    start_time: u64,
-    amount: Coin,
-}
-
-#[derive(Clone, Default, Debug)]
 pub(crate) struct DelegationWithUnbonding {
     delegator: HumanAddr,
     validator: HumanAddr,
     amount: Coin,
-    unbondings: Vec<Unbonding>,
+    unbonding_amount: Coin,
     can_redelegate: Coin,
     accumulated_rewards: Coin,
 }
@@ -25,8 +19,6 @@ pub(crate) type Delegator = HashMap<HumanAddr, DelegationWithUnbonding>;
 pub(crate) struct Delegations {
     /// Denom for bonded currency
     bonded_denom: String,
-    /// Time in seconds before undelegations are available
-
     /// List of all valid validators
     validators: Vec<Validator>,
     /// Doubly hashed array of delegations for easy access
@@ -78,14 +70,32 @@ impl Delegations {
             }
         }
     }
+
+    pub fn fast_forward_waits(&mut self) -> Vec<Delegation> {
+        let mut unbondings = vec![];
+        for delegator in self.delegators.iter_mut() {
+            for delegation_pair in delegator.1 {
+                let delegation = delegation_pair.1;
+                delegation.can_redelegate = delegation.amount.clone();
+                if delegation.unbonding_amount.amount > Uint128::zero() {
+                    unbondings.push(Delegation {
+                        delegator: delegation.delegator.clone(),
+                        validator: delegation.validator.clone(),
+                        amount: delegation.unbonding_amount.clone()
+                    });
+                }
+            }
+        }
+        unbondings
+    }
     
     // Validator queries
     pub fn bonded_denom(&self) -> String {
         self.bonded_denom.clone()
     }
 
-    pub fn all_delegations(&self, delegator: HumanAddr) -> Vec<Delegation> {
-        match self.delegators.get(&delegator) {
+    pub fn all_delegations(&self, delegator: &HumanAddr) -> Vec<Delegation> {
+        match self.delegators.get(delegator) {
             Some(delegations) => {
                 let mut return_delegations: Vec<Delegation> = vec![];
                 for delegation in delegations {
@@ -99,10 +109,10 @@ impl Delegations {
 
     pub fn delegation(
         &self, 
-        delegator: HumanAddr, 
-        validator: HumanAddr
+        delegator: &HumanAddr, 
+        validator: &HumanAddr
     ) -> Option<FullDelegation> {
-        match self.get_delegation(&delegator, &validator) {
+        match self.get_delegation(delegator, validator) {
             Some(delegation) => Some(delegation.to_full_delegation()),
             None => None,
         }
@@ -112,20 +122,17 @@ impl Delegations {
         self.validators.clone()
     }
 
-    pub fn unbonding_delegations(&self, delegator: HumanAddr) -> Vec<Delegation> {
+    pub fn unbonding_delegations(&self, delegator: &HumanAddr) -> Vec<Delegation> {
         match self.delegators.get(&delegator) {
             Some(delegations) => {
                 let mut return_delegations: Vec<Delegation> = vec![];
                 for delegation_pair in delegations {
                     let delegation = delegation_pair.1;
-                    for unbonding in delegation.unbondings.clone() {
-                        let unbonding_delegation = Delegation {
-                            delegator: delegation.delegator.clone(),
-                            validator: delegation.validator.clone(),
-                            amount: unbonding.amount,
-                        };
-                        return_delegations.push(unbonding_delegation);
-                    }
+                    return_delegations.push(Delegation {
+                        delegator: delegation.delegator.clone(),
+                        validator: delegation.validator.clone(),
+                        amount: delegation.unbonding_amount.clone(),
+                    });    
                 }
                 return_delegations
             },
@@ -133,11 +140,32 @@ impl Delegations {
         }
     }
 
+    pub fn rewards(&self, delegator: &HumanAddr) -> RewardsResponse {
+        match self.delegators.get(delegator) {
+            Some(delegations) => {
+                let mut total = 0u128;
+                for delegation_pair in delegations {
+                    let delegation = delegation_pair.1;
+                    total += delegation.accumulated_rewards.amount.u128();
+                }
+
+                RewardsResponse {
+                    rewards: vec![],
+                    total: vec![Coin::new(total, &self.bonded_denom)],
+                }
+            },
+            None => RewardsResponse {
+                rewards: vec![],
+                total: vec![],
+            },
+        }
+    }
+
     // Validator transaction messages 
     pub fn delegate(
         &mut self, 
-        delegator: HumanAddr, 
-        validator: HumanAddr, 
+        delegator: &HumanAddr, 
+        validator: &HumanAddr, 
         amount: Coin
     ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
@@ -151,11 +179,11 @@ impl Delegations {
             delegator: delegator.clone(),
             validator: validator.clone(),
             amount: amount.clone(),
-            unbondings: vec![],
-            can_redelegate: Coin {
+            unbonding_amount: Coin {
                 denom: self.bonded_denom.clone(),
                 amount: Uint128::zero(),
             },
+            can_redelegate: amount.clone(),
             accumulated_rewards: Coin {
                 denom: self.bonded_denom.clone(),
                 amount: Uint128::zero(),
@@ -172,8 +200,11 @@ impl Delegations {
                             denom: self.bonded_denom.clone(),
                             amount: old_delegation.amount.amount + amount.amount,
                         };
-                        new_delegation.unbondings = old_delegation.unbondings;
-                        new_delegation.can_redelegate = old_delegation.can_redelegate;
+                        new_delegation.unbonding_amount = old_delegation.unbonding_amount;
+                        new_delegation.can_redelegate = Coin {
+                            denom: self.bonded_denom.clone(),
+                            amount: old_delegation.can_redelegate.amount + amount.amount,
+                        };
                         new_delegation.accumulated_rewards = old_delegation.accumulated_rewards;
                     },
                     None => { }
@@ -182,7 +213,7 @@ impl Delegations {
             None => { }
         };
 
-        self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
+        self.insert_delegation(&delegator, &validator, new_delegation);
 
         Ok(StakingResponse {
             sender: delegator.clone(),
@@ -193,8 +224,8 @@ impl Delegations {
 
     pub fn undelegate(
         &mut self,
-        delegator: HumanAddr,
-        validator: HumanAddr,
+        delegator: &HumanAddr,
+        validator: &HumanAddr,
         amount: Coin
     ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
@@ -207,30 +238,27 @@ impl Delegations {
                     return Err(StdError::generic_err("Insufficient funds"));
                 }
 
-                let new_unbonding = Unbonding {
-                    start_time: std::time::SystemTime::now()
-                        .duration_since(std::time::UNIX_EPOCH)
-                        .unwrap().as_secs(),
-                    amount: Coin {
-                        denom: self.bonded_denom.clone(),
-                        amount: amount.amount,
-                    },
-                };
+                let mut new_can_redelegate = delegation.can_redelegate.clone();
+                if delegation.can_redelegate.amount + amount.amount > delegation.amount.amount {
+                    new_can_redelegate.amount = (delegation.can_redelegate.amount - amount.amount).unwrap();
+                }
 
-                let mut new_delegation = DelegationWithUnbonding {
+                let new_delegation = DelegationWithUnbonding {
                     delegator: delegator.clone(),
                     validator: validator.clone(),
                     amount: Coin {
                         denom: self.bonded_denom.clone(),
                         amount: (delegation.amount.amount - amount.amount).unwrap(),
                     },
-                    unbondings: delegation.unbondings,
-                    can_redelegate: delegation.can_redelegate,
+                    unbonding_amount: Coin {
+                        denom: self.bonded_denom.clone(),
+                        amount: delegation.unbonding_amount.amount + amount.amount,
+                    },
+                    can_redelegate: new_can_redelegate,
                     accumulated_rewards: delegation.accumulated_rewards,
                 };
-                new_delegation.unbondings.push(new_unbonding);
 
-                self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
+                self.insert_delegation(&delegator, &validator, new_delegation);
                 
                 Ok(StakingResponse {
                     sender: delegator.clone(),
@@ -244,8 +272,8 @@ impl Delegations {
 
     pub fn withdraw(
         &mut self,
-        delegator: HumanAddr,
-        validator: HumanAddr,
+        delegator: &HumanAddr,
+        validator: &HumanAddr,
     ) -> StdResult<StakingResponse> { 
         match self.get_delegation(&delegator, &validator) {
             Some(delegation) => {
@@ -253,14 +281,14 @@ impl Delegations {
                     delegator: delegator.clone(),
                     validator: validator.clone(),
                     amount: delegation.amount,
-                    unbondings: delegation.unbondings,
+                    unbonding_amount: delegation.unbonding_amount,
                     can_redelegate: delegation.can_redelegate,
                     accumulated_rewards: Coin {
                         denom: self.bonded_denom.clone(),
                         amount: Uint128::zero(),
                     },
                 };
-                self.insert_delegation(delegator.clone(), validator.clone(), new_delegation);
+                self.insert_delegation(&delegator, &validator, new_delegation);
                 
                 Ok(StakingResponse {
                     sender: delegator.clone(),
@@ -274,9 +302,9 @@ impl Delegations {
 
     pub fn redelegate(
         &mut self,
-        delegator: HumanAddr,
-        src_validator: HumanAddr,
-        dst_validator: HumanAddr,
+        delegator: &HumanAddr,
+        src_validator: &HumanAddr,
+        dst_validator: &HumanAddr,
         amount: Coin
         ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
@@ -287,6 +315,10 @@ impl Delegations {
             Some(delegation) => {
                 if amount.amount > delegation.amount.amount {
                     return Err(StdError::generic_err("Insufficient funds"));
+                }
+
+                if amount.amount > delegation.can_redelegate.amount {
+                    return Err(StdError::generic_err("Insufficient funds to redelegate"));
                 }
 
                 if !self.validate_validator(&dst_validator) {
@@ -300,35 +332,46 @@ impl Delegations {
                         denom: self.bonded_denom.clone(),
                         amount: (delegation.amount.amount - amount.amount).unwrap(),
                     },
-                    unbondings: delegation.unbondings,
-                    can_redelegate: delegation.can_redelegate,
-                    accumulated_rewards: delegation.accumulated_rewards,
-                };
-                self.insert_delegation(
-                    delegator.clone(), 
-                    src_validator.clone(), 
-                    new_src_delegation.clone()
-                );
-
-                let new_dst_delegation = DelegationWithUnbonding {
-                    delegator: delegator.clone(),
-                    validator: dst_validator.clone(),
-                    amount: Coin {
-                        denom: self.bonded_denom.clone(),
-                        amount: delegation.amount.amount + amount.amount,
-                    },
-                    unbondings: vec![],
+                    unbonding_amount: delegation.unbonding_amount,
                     can_redelegate: Coin {
                         denom: self.bonded_denom.clone(),
-                        amount: Uint128::zero(),
+                        amount: (delegation.can_redelegate.amount - amount.amount).unwrap(),
                     },
-                    accumulated_rewards: Coin {
-                        denom: self.bonded_denom.clone(),
-                        amount: Uint128::zero(),
-                    },
+                    accumulated_rewards: delegation.accumulated_rewards,
                 };
-                self.insert_delegation(delegator.clone(), dst_validator.clone(), new_dst_delegation);
-
+                self.insert_delegation(&delegator, &src_validator, new_src_delegation);
+                
+                // Check if delegation already exists with dst validator
+                match self.get_delegation(&delegator, &dst_validator) {
+                    Some(mut dst_delegation) => {
+                        dst_delegation.amount.amount += amount.amount;
+                        self.insert_delegation(&delegator, &dst_validator, dst_delegation);
+                    }
+                    None => {
+                        let new_dst_delegation = DelegationWithUnbonding {
+                            delegator: delegator.clone(),
+                            validator: dst_validator.clone(),
+                            amount: Coin {
+                                denom: self.bonded_denom.clone(),
+                                amount: amount.amount,
+                            },
+                            unbonding_amount: Coin {
+                                denom: self.bonded_denom.clone(),
+                                amount: Uint128::zero(),
+                            },
+                            can_redelegate: Coin {
+                                denom: self.bonded_denom.clone(),
+                                amount: Uint128::zero(),
+                            },
+                            accumulated_rewards: Coin {
+                                denom: self.bonded_denom.clone(),
+                                amount: Uint128::zero(),
+                            },
+                        };
+                        self.insert_delegation(&delegator, &dst_validator, new_dst_delegation);
+                    }
+                };
+                
                 Ok(StakingResponse {
                     sender: delegator.clone(),
                     validator: dst_validator.clone(),
@@ -359,18 +402,18 @@ impl Delegations {
 
     fn insert_delegation(
         &mut self,
-        delegator: HumanAddr,
-        validator: HumanAddr,
+        delegator: &HumanAddr,
+        validator: &HumanAddr,
         new_delegation: DelegationWithUnbonding
     ) -> Option<DelegationWithUnbonding> {
         match self.delegators.get_mut(&delegator) {
             Some(cur_delegator) => {
-                cur_delegator.insert(validator, new_delegation)
+                cur_delegator.insert(validator.clone(), new_delegation)
             },
             None => {
                 let mut new_delegator: Delegator = Default::default();
-                new_delegator.insert(validator, new_delegation);
-                self.delegators.insert(delegator, new_delegator);
+                new_delegator.insert(validator.clone(), new_delegation);
+                self.delegators.insert(delegator.clone(), new_delegator);
                 None
             },
         }

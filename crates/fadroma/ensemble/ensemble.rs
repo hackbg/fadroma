@@ -108,6 +108,15 @@ impl ContractEnsemble {
         self.ctx.delegations.distribute_rewards(amount);
     }
 
+    #[inline]
+    /// Re-allow redelegating and deposit unbondings
+    pub fn fast_forward_delegation_waits(&mut self) {
+        let unbondings = self.ctx.delegations.fast_forward_waits();
+        for unbonding in unbondings {
+            self.ctx.bank.current.add_funds(&unbonding.delegator, vec![unbonding.amount]);
+        }
+    }
+
     // Returning a Result here is most flexible and requires the caller to assert that
     // their closure was called, as it is really unlikely that they call this function
     // with an address they know doesn't exist. And we don't want to fail silently if
@@ -409,8 +418,8 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.delegate(
-                            sender.clone(),
-                            validator,
+                            &sender,
+                            &validator,
                             amount,
                         )?;
 
@@ -421,8 +430,8 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.undelegate(
-                            sender.clone(),
-                            validator,
+                            &sender,
+                            &validator,
                             amount,
                         )?;
 
@@ -434,8 +443,8 @@ impl Context {
                     } => {
                         // Query accumulated rewards to bank transaction can take place first
                         let withdraw_amount = match self.delegations.delegation(
-                            sender.clone(),
-                            validator.clone(),
+                            &sender,
+                            &validator,
                         ) {
                             Some(amount) => amount.accumulated_rewards,
                             None => return Err(StdError::generic_err("Delegation not found")),
@@ -449,8 +458,8 @@ impl Context {
                         self.bank.writable()
                             .add_funds(&funds_recipient, vec![withdraw_amount]);
                         let withdraw_res = self.delegations.withdraw(
-                            sender.clone(),
-                            validator,
+                            &sender,
+                            &validator,
                         )?;
 
                         responses.push(Response::Staking(withdraw_res));
@@ -461,9 +470,9 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.redelegate(
-                            sender.clone(),
-                            src_validator,
-                            dst_validator,
+                            &sender,
+                            &src_validator,
+                            &dst_validator,
                             amount,
                         )?;
 
