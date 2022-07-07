@@ -10,14 +10,13 @@ import {
   Template,
   UploadOps,
   runOperation,
-  populateBuildContext
 } from '@fadroma/ops'
 import { runCommands } from '@hackbg/komandi'
 import { Console, bold } from '@hackbg/konzola'
 import { ScrtChain } from '@fadroma/client-scrt'
 import { LegacyScrt } from '@fadroma/client-scrt-amino'
 import { Scrt } from '@fadroma/client-scrt-grpc'
-import { getScrtBuilder, getScrtDevnet } from '@fadroma/ops-scrt'
+import { ScrtBuildOps, getScrtDevnet } from '@fadroma/ops-scrt'
 import currentConfig from './config'
 
 const console = Console('Fadroma Ops')
@@ -25,26 +24,9 @@ const console = Console('Fadroma Ops')
 type WrappedCommand<T> = (args: string[])=>Promise<T>
 type Commands = Record<string, WrappedCommand<any>|Record<string, WrappedCommand<any>>>
 
-interface EnableScrtBuilder {
-  config: {
-    build: {
-      rebuild: boolean
-    }
-    scrt: {
-      build: object
-    }
-  }
-}
-
 export class FadromaOps {
 
-  static Build = {
-    /** Add a Secret Network builder to the command context. */
-    Scrt: function enableScrtBuilder ({ config }: EnableScrtBuilder) {
-      const builder = getScrtBuilder({caching: !config.build.rebuild, ...config.scrt.build})
-      return populateBuildContext(builder)
-    }
-  }
+  static Build  = { ...ScrtBuildOps }
   static Chain  = ChainOps
   static Upload = UploadOps
   static Deploy = DeployOps

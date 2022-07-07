@@ -42,7 +42,7 @@ function phase1 ({
   crates      = argv.slice(4), // all crates to build
   buildRoot   = resolve('/tmp/fadroma-build', sanitize(ref)),
   subdir      = env.SUBDIR      || '.',
-  gitRoot     = `/src/.git`,
+  gitRoot     = env.GIT_ROOT    || `/src/.git`,
   gitSubdir   = env.GIT_SUBDIR  || '',
   gitDir      = resolve(gitRoot, gitSubdir),
   gitRemote   = env.GIT_REMOTE  || 'origin',

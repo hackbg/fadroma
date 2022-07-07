@@ -472,33 +472,54 @@ export class DockerBuilder extends CachingBuilder {
 /** This build mode looks for a Rust toolchain in the same environment
   * as the one in which the script is running, i.e. no build container. */
 export class RawBuilder extends CachingBuilder {
-  constructor (
-    public readonly buildScript:    string,
-    public readonly checkoutScript: string
-  ) { super() }
 
+  constructor ({
+    caching,
+    script
+  }: { caching: boolean, script: string }) {
+    super({ caching })
+    this.script = $(script)
+  }
+
+  script: Path
+
+  /** Build a Source into an Artifact */
   async build (source: Source): Promise<Artifact> {
-    throw new Error('RawBuilder#build: not implemented')
-    const { workspace: { path: cwd, ref = HEAD }, workspace, crate } = source
-    // LD_LIBRARY_PATH=$(nix-build -E 'import <nixpkgs>' -A 'gcc.cc.lib')/lib64
-    if (ref && ref !== HEAD) {
-      await run(this.checkoutScript, [ref])
-    }
-    await run(this.buildScript, [])
-    const location = $(cwd, 'artifacts', artifactName(crate, ref)).path
-    const codeHash = codeHashForPath(location)
-    return { url: pathToFileURL(location), codeHash }
+    return (await this.buildMany([source]))[0]
+  }
 
-    function run (cmd, args) {
-      return new Promise((resolve, reject)=>{
-        const env = { ...process.env, CRATE: crate, REF: ref, WORKSPACE: workspace }
-        execFile(cmd, args, { cwd, env, stdio: 'inherit' } as any, (error, stdout, stderr) => {
+  /** This implementation groups the passed source by workspace and ref,
+    * in order to launch one build container per workspace/ref combination
+    * and have it build all the crates from that combination in sequence,
+    * reusing the container's internal intermediate build cache. */
+  async buildMany (sources: Source[]): Promise<Artifact[]> {
+    const artifacts = []
+    for (const source of sources) {
+      if (source.workspace.ref !== HEAD) {
+        throw new Error('Fadroma Build: RawBuilder: non-HEAD builds are not supported')
+      }
+      const cwd = source.workspace.path
+      const env = {
+        ...process.env,
+        BUILD_UID: process.getuid(),
+        BUILD_GID: process.getgid()
+      }
+      const cmd = process.argv[0]
+      const args = [this.script.path, 'phase1', HEAD, source.crate]
+      const opts = { cwd, env, stdio: 'inherit' }
+      console.log({cmd, args, opts})
+      await new Promise((resolve, reject)=>{
+        execFile(cmd, args, opts as any, (error, stdout, stderr)=>{
           if (error) return reject(error)
           resolve([stdout, stderr])
         })
       })
+      process.exit(123)
+      //artifacts.push({ url: pathToFileURL(location), codeHash })
     }
+    return artifacts
   }
+
 }
 
 /** This builder talks to a "remote" build server over HTTP.

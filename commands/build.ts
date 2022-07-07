@@ -5,6 +5,7 @@ import config from '../config'
 type CargoTOML = TOMLFile<{ package: { name: string } }>
 
 const console = Console('Fadroma Build')
+console.log(config)
 
 $(import.meta.url).entrypoint(buildCommand)
 
@@ -54,7 +55,7 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
     console.info('Build manifest:', bold(cargoToml.shortPath))
     const source = workspace.crate(cargoToml.load().package.name)
     try {
-      const builder  = getScrtBuilder({ caching: false, ...config.scrt.build })
+      const builder  = getScrtBuilder({ ...config.build, ...config.scrt.build, rebuild: true })
       const artifact = await builder.build(source)
       console.info('Built:    ', bold($(artifact.url).shortPath))
       console.info('Code hash:', bold(artifact.codeHash))
@@ -88,7 +89,7 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
         }
         const T0 = + new Date()
         try {
-          const builder = getScrtBuilder({ caching: false, ...config.scrt.build })
+          const builder = getScrtBuilder({ ...config.build, ...config.scrt.build, rebuild: true })
           await builder.buildMany(buildSources)
           const T1 = + new Date()
           console.info(`Build complete in ${T1-T0}ms.`)

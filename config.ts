@@ -28,7 +28,7 @@ export class FadromaConfig {
     /** URL to the build manager endpoint, if used. */
     manager:      getEnvString('FADROMA_BUILD_MANAGER',   ()=>null),
     /** Whether to bypass Docker and use the toolchain from the environment. */
-    raw:          getEnvString('FADROMA_BUILD_RAW',       ()=>null),
+    raw:          getEnvBool(  'FADROMA_BUILD_RAW',       ()=>null),
     /** Whether to ignore existing build artifacts and rebuild contracts. */
     rebuild:      getEnvBool(  'FADROMA_REBUILD',         ()=>false),
   }
@@ -66,7 +66,7 @@ export class FadromaConfig {
       dockerfile: getEnvString('SCRT_BUILD_DOCKERFILE', ()=>resolve(__dirname, 'packages/ops-scrt/build.Dockerfile')),
       image:      getEnvString('SCRT_BUILD_IMAGE',      ()=>'hackbg/fadroma-scrt-builder:1.2'),
       script:     getEnvString('SCRT_BUILD_SCRIPT',     ()=>resolve(__dirname, 'packages/ops-scrt/build-impl.mjs')),
-      service:    getEnvString('SCRT_BUILD_SCRIPT',     ()=>resolve(__dirname, 'packages/ops-scrt/build-server.mjs')),
+      service:    getEnvString('SCRT_BUILD_SERVICE',    ()=>resolve(__dirname, 'packages/ops-scrt/build-server.mjs')),
     },
     mainnet: {
       chainId:    getEnvString('SCRT_MAINNET_CHAIN_ID', ()=>'secret-4'),
