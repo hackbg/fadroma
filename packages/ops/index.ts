@@ -105,6 +105,14 @@ export async function runOperation (
       // Every step refreshes the context
       // by adding its outputs to it.
       context = { ...context, ...updates }
+      // Bind every function in the context so that `this` points to the current context object.
+      // This allows e.g. `deploy` to use the current value of `deployAgent`,
+      // but may break custom bound functions when passing them through the context.
+      Object.keys(context).forEach(key=>{
+        if (context[key] instanceof Function) {
+          context[key] = context[key].bind(context)
+        }
+      })
       const T2 = + new Date()
       console.info('🟢', colors.green('OK  '), bold(name), ` (${bold(String(T2-T1))}ms)\n`)
       stepTimings.push([name, T2-T1, false])
