@@ -62,7 +62,7 @@ export class FadromaOps {
   command (name: string, ...steps: Operation<any>[]) {
     // To each command, prepend a step that populates the global config.
     steps.unshift(async function loadConfiguration () {
-      return { config: currentConfig }
+      return { config: currentConfig, Chains }
     })
 
     const fragments = name.trim().split(' ')
