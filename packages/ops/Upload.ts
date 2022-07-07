@@ -27,12 +27,13 @@ export const UploadOps = {
   FromFile: function enableUploadingFromFile (context: UploadDependencies): UploadContext {
     const {
       config,
+      chain: { isMocknet },
       agent,
       caching = !config.upload.reupload,
       build,
       buildMany
     } = context
-    const uploader = caching
+    const uploader = (!isMocknet && caching)
       ? CachingFSUploader.fromConfig(agent, config.project.root)
       : new FSUploader(agent)
     return {
