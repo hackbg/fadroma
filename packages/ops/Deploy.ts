@@ -9,6 +9,7 @@ import alignYAML from 'align-yaml'
 
 import type {
   Agent, 
+  Chain,
   Client,
   ClientCtor,
   ClientOpts,
@@ -20,6 +21,163 @@ import type {
 import { print } from './Print'
 
 const console = Console('Fadroma Deploy')
+
+/** Part of base `OperationContext`. */
+export interface DeploymentsContext {
+  chain:        Chain
+  cmdArgs?:     string[]
+  deployments?: Deployments
+}
+
+/** Parameters for Fadroma.Deploy.Populate */
+interface PopulateDeployments {
+  config: {
+    project: {
+      root: string
+    }
+  }
+  chain:        Chain
+  deployments?: Deployments
+}
+
+/** Parameters for Fadroma.Deploy.New */
+interface CreateDeployment extends PopulateDeployments {
+  agent?:       Agent
+  timestamp:    string
+  cmdArgs?:     string[]
+}
+
+/** Parameters for Fadroma.Deploy.Append */
+interface ActivateDeployment extends PopulateDeployments {
+  agent?:       Agent
+}
+
+/** Parameters for Fadroma.Deploy.AppendOrNew */
+interface ActivateOrCreateDeployment extends PopulateDeployments {
+  run:          Function
+  timestamp:    string
+  cmdArgs:      string[]
+}
+
+/** Parameters for Fadroma.Deploy.Status */
+interface PrintStatusOfDeployment extends PopulateDeployments {
+  cmdArgs:      string[]
+}
+
+/** Parameters for Fadroma.Deploy.Select */
+interface SelectDeployment extends PopulateDeployments {
+  cmdArgs:      string[]
+}
+
+export const DeployOps = {
+
+  Populate: async function populateDeployments (
+    context: PopulateDeployments
+  ): Promise<typeof context> {
+    if (!context.deployments) {
+      const { chain, config: { project: { root } } } = context
+      context.deployments = Deployments.fromConfig(chain, root)
+    }
+    return context
+  },
+
+  /** Create a new deployment and add it to the command context. */
+  New: async function createDeployment (
+    context: CreateDeployment
+  ): Promise<DeployContext> {
+    DeployOps.Populate(context)
+    const [ prefix = context.timestamp ] = context.cmdArgs
+    await context.deployments.create(prefix)
+    await context.deployments.select(prefix)
+    return DeployOps.Append(context)
+  },
+
+  /** Add the currently active deployment to the command context. */
+  Append: async function activateDeployment (
+    context: ActivateDeployment
+  ): Promise<DeployContext> {
+    DeployOps.Populate(context)
+    const deployment = context.deployments.active
+    if (!deployment) {
+      console.error(join(bold('No selected deployment on chain:'), context.chain.id))
+      process.exit(1)
+    }
+    const prefix = deployment.prefix
+    let contracts: string|number = Object.values(deployment.receipts).length
+    contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+    console.info(bold('Active deployment:'), prefix, contracts)
+    print(console).deployment(deployment)
+    return {
+      prefix,
+      deployment,
+      deployAgent: context.agent,
+      async deploy (template: Template, name: string, initMsg: Message) {
+        if (!this.deployAgent) {
+          throw new Error('Fadroma Ops: no deployAgent in context')
+        }
+        return await deployment.init(this.deployAgent, template, name, initMsg)
+      }
+    }
+  },
+
+  /** Add either the active deployment, or a newly created one, to the command context. */
+  AppendOrNew: async function activateOrCreateDeployment (
+    context: ActivateOrCreateDeployment
+  ): Promise<DeployContext> {
+    DeployOps.Populate(context)
+    if (context.deployments.active) {
+      return DeployOps.Append(context)
+    } else {
+      return await DeployOps.New(context)
+    }
+  },
+
+  /** Print the status of a deployment. */
+  Status: async function printStatusOfDeployment (context: PrintStatusOfDeployment) {
+    DeployOps.Populate(context)
+    const { cmdArgs: [id] = [undefined] } = context
+    let deployment = context.deployments.active
+    if (id) {
+      deployment = context.deployments.get(id)
+    }
+    if (!deployment) {
+      console.error(join(bold('No selected deployment on chain:'), context.chain.id))
+      process.exit(1)
+    }
+    print(console).deployment(deployment)
+  },
+
+  /** Set a new deployment as active. */
+  Select: async function selectDeployment (context: SelectDeployment) {
+    DeployOps.Populate(context)
+    const { cmdArgs: [id] = [undefined] } = context
+    const list = context.deployments.list()
+    if (list.length < 1) {
+      console.info('\nNo deployments. Create one with `deploy new`')
+    }
+    if (id) {
+      console.info(bold(`Selecting deployment:`), id)
+      await context.deployments.select(id)
+    }
+    if (list.length > 0) {
+      console.info(bold(`Known deployments:`))
+      for (let deployment of context.deployments.list()) {
+        if (deployment === context.deployments.KEY) {
+          continue
+        }
+        const count = Object.keys(context.deployments.get(deployment).receipts).length
+        if (context.deployments.active && context.deployments.active.prefix === deployment) {
+          deployment = `${bold(deployment)} (selected)`
+        }
+        deployment = `${deployment} (${count} contracts)`
+        console.info(` `, deployment)
+      }
+    }
+    console.log()
+    context.deployments.printActive()
+  }
+
+}
 
 /** The part of OperationContext that deals with deploying
   * groups of contracts and keeping track of the receipts. */

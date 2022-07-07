@@ -1,5 +1,5 @@
 import { Console, bold, colors, timestamp } from '@hackbg/konzola'
-import { Chain, Agent } from '@fadroma/client'
+import { Chain, Agent, AgentOpts } from '@fadroma/client'
 import type { BuildContext } from './Build'
 import type { UploadContext } from './Upload'
 import type { DeployContext } from './Deploy'
@@ -31,7 +31,7 @@ export interface ConnectedContext {
   deployments?: Deployments
 }
 
-export interface AuthenticatedContext {
+export interface AuthenticatedContext extends ConnectedContext {
   /** An identity operating on the chain. */
   agent:       Agent
 
@@ -150,3 +150,77 @@ export * from './Deploy'
 export * from './Print'
 export * from './Mocknet'
 export * from './Endpoint'
+
+interface GetChainFromEnvironment {
+  config: {
+    project: {
+      chain: string
+    },
+    scrt: {
+      agent: {
+        mnemonic: string
+      }
+    }
+  }
+  Chains: Record<string, (config: unknown) => Promise<Chain>>
+}
+
+interface PrintChainStatus {
+  chain: Chain
+}
+
+interface ResetDevnet {
+  chain: Chain
+}
+
+export const ChainOps = {
+
+  /** Populate the migration context with chain and agent. */
+  FromEnv: async function getChainFromEnvironment (context: GetChainFromEnvironment) {
+    const { config, Chains } = context
+    const name = config.project.chain
+    if (!name || !Chains[name]) {
+      console.error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
+      console.info('Known chain names:')
+      for (const chain of Object.keys(Chains).sort()) {
+        console.info(`  ${chain}`)
+      }
+      process.exit(1)
+    }
+    const chain = await Chains[name](config)
+    const agentOpts: AgentOpts = { name: undefined }
+    if (chain.isDevnet) {
+      // for devnet, use auto-created genesis account
+      agentOpts.name = 'ADMIN'
+    } else if ((chain as any).isSecretNetwork) {
+      // for scrt-based chains, use mnemonic from config
+      agentOpts.mnemonic = config.scrt.agent.mnemonic
+    }
+    const agent = await chain.getAgent(agentOpts)
+    return { chain, agent, clientAgent: agent }
+  },
+
+  /** Print the status of the active devnet */
+  Status: async function printChainStatus ({ chain }: PrintChainStatus) {
+    if (!chain) {
+      console.info('No active chain.')
+    } else {
+      console.info(bold('Chain type:'), chain.constructor.name)
+      console.info(bold('Chain mode:'), chain.mode)
+      console.info(bold('Chain ID:  '), chain.id)
+      console.info(bold('Chain URL: '), chain.url.toString())
+    }
+  },
+
+  /** Reset the devnet. */
+  Reset: async function resetDevnet ({ chain }: ResetDevnet) {
+    if (!chain) {
+      console.info('No active chain.')
+    } else if (!chain.isDevnet) {
+      console.info('This command is only valid for devnets.')
+    } else {
+      await chain.node.terminate()
+    }
+  }
+
+}

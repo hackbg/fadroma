@@ -6,6 +6,60 @@ import type { Source } from './Build'
 
 const console = Console('Fadroma Upload')
 
+export interface UploadDependencies {
+  config: {
+    project: {
+      root: string
+    }
+    upload: {
+      reupload: boolean
+    }
+  }
+  agent:      Agent
+  caching?:   boolean
+  build?:     (source: Source) => Promise<Artifact>
+  buildMany?: (sources: Source[]) => Promise<Artifact[]>
+}
+
+export const UploadOps = {
+
+  /** Add an uploader to the command context. */
+  FromFile: function enableUploadingFromFile (context: UploadDependencies): UploadContext {
+    const {
+      config,
+      agent,
+      caching = !config.upload.reupload,
+      build,
+      buildMany
+    } = context
+    const uploader = caching
+      ? CachingFSUploader.fromConfig(agent, config.project.root)
+      : new FSUploader(agent)
+    return {
+      uploader,
+      async upload (artifact: Artifact): Promise<Template> {
+        return await uploader.upload(artifact)
+      },
+      async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
+        return await uploader.uploadMany(artifacts)
+      },
+      async buildAndUpload (source: Source): Promise<Template> {
+        if (!build) {
+          throw new Error('Builder is not specified.')
+        }
+        return await uploader.upload(await build(source))
+      },
+      async buildAndUploadMany (sources: Source[]): Promise<Template[]> {
+        if (!buildMany) {
+          throw new Error('Builder is not specified.')
+        }
+        return await uploader.uploadMany(await buildMany(sources))
+      }
+    }
+  }
+
+}
+
 /** The part of OperationContext that deals with uploading
   * contract code to the platform. */
 export interface UploadContext {

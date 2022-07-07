@@ -9,7 +9,8 @@ import {
 } from '@fadroma/client'
 
 export abstract class ScrtChain extends Chain {
-  defaultDenom = ScrtGas.denom
+  isSecretNetwork = true
+  defaultDenom    = ScrtGas.denom
 }
 
 export abstract class ScrtAgent extends Agent {

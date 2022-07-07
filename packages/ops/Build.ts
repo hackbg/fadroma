@@ -14,6 +14,18 @@ import { Artifact } from '@fadroma/client'
 
 import { Endpoint } from './Endpoint'
 
+export function populateBuildContext (builder: Builder): BuildContext {
+  return {
+    builder,
+    async build (source: Source): Promise<Artifact> {
+      return await builder.build(source)
+    },
+    async buildMany (sources: Source[]): Promise<Artifact[]> {
+      return await builder.buildMany(sources)
+    }
+  }
+}
+
 /** The part of OperationContext that deals with building
   * contracts from source code to WASM artifacts */
 export interface BuildContext {
