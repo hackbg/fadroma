@@ -157,7 +157,7 @@ export class CachingFSUploader extends FSUploader {
   }
 
   protected getUploadReceiptPath (artifact: Artifact): string {
-    const receiptName = `${this.getUploadReceiptName(artifact)}.json`
+    const receiptName = `${this.getUploadReceiptName(artifact)}`
     const receiptPath = this.cache.resolve(receiptName)
     return receiptPath
   }
@@ -168,7 +168,8 @@ export class CachingFSUploader extends FSUploader {
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (artifact: Artifact): Promise<Template> {
-    const receipt = this.cache.at(this.getUploadReceiptName(artifact)).as(JSONFile)
+    const name    = this.getUploadReceiptName(artifact)
+    const receipt = this.cache.at(name).as(JSONFile)
     if (receipt.exists()) {
       return receipt.load()
     }
