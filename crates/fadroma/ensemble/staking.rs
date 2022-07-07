@@ -148,7 +148,9 @@ impl Delegations {
                     let delegation = delegation_pair.1;
                     total += delegation.accumulated_rewards.amount.u128();
                 }
-
+                
+                // Cannot return any actual ValidatorRewards structs because the struct is
+                // private at the moment.
                 RewardsResponse {
                     rewards: vec![],
                     total: vec![Coin::new(total, &self.bonded_denom)],

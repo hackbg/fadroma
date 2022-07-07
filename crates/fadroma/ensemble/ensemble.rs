@@ -89,6 +89,15 @@ impl ContractEnsemble {
     }
 
     #[inline]
+    pub fn remove_funds(
+        &mut self, 
+        address: impl Into<HumanAddr>, 
+        coins: Vec<Coin>
+    ) -> StdResult<()> {
+        self.ctx.bank.current.remove_funds(&address.into(), coins)
+    }
+
+    #[inline]
     pub fn balances(&self, address: impl Into<HumanAddr>) -> Option<&Balances> {
         self.ctx.bank.current.0.get(&address.into())
     }
@@ -417,10 +426,14 @@ impl Context {
                         validator,
                         amount,
                     } => {
+                        self.bank.writable()
+                            .remove_funds(&sender, vec![amount.clone()])
+                            .expect("Insufficient funds to stake");
+                        
                         let res = self.delegations.delegate(
                             &sender,
                             &validator,
-                            amount,
+                            amount.clone(),
                         )?;
 
                         responses.push(Response::Staking(res));
@@ -432,8 +445,11 @@ impl Context {
                         let res = self.delegations.undelegate(
                             &sender,
                             &validator,
-                            amount,
+                            amount.clone(),
                         )?;
+                        
+                        self.bank.writable()
+                            .add_funds(&sender, vec![amount.clone()]);
 
                         responses.push(Response::Staking(res));
                     },
@@ -441,7 +457,7 @@ impl Context {
                         validator,
                         recipient,
                     } => {
-                        // Query accumulated rewards to bank transaction can take place first
+                        // Query accumulated rewards so bank transaction can take place first
                         let withdraw_amount = match self.delegations.delegation(
                             &sender,
                             &validator,
