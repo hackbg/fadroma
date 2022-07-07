@@ -301,6 +301,10 @@ export class Deployment {
     }
   }
 
+  has (name: string): boolean {
+    return !!this.receipts[name]
+  }
+
   /** Get the receipt for a contract, containing its address, codeHash, etc. */
   get (name: string, suffix?: string): Instance {
     const receipt = this.receipts[name]
