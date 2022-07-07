@@ -369,8 +369,8 @@ export class Deployment {
     msg:         Message
   ): Promise<Instance> {
     console.info(
-      'Deploying contract', bold(name),
-      'from code id', bold(template.codeId)
+      'Deploying code id', bold(template.codeId),
+      'as', bold(name),
     )
     const label = addPrefix(this.prefix, name)
     const instance = await deployAgent.instantiate(template, label, msg)
@@ -395,8 +395,8 @@ export class Deployment {
   ): Promise<Instance[]> {
     for (const [template, name] of configs) {
       console.info(
-        'Deploying contract', bold(name),
-        'from code id', bold(template.codeId)
+        'Deploying code id', bold(template.codeId),
+        'as', bold(name),
       )
     }
     const receipts = await deployAgent.instantiateMany(configs.map(
