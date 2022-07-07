@@ -29,6 +29,16 @@ export interface ScrtRPCAgentOpts extends AgentOpts {
   keyPair?: unknown
 }
 
+const decoder = new TextDecoder('utf-8', { fatal: true })
+
+const tryDecode = (data: Uint8Array): string => {
+  try {
+    return decoder.decode(data)
+  } catch (e) {
+    return '<binary data, see result.original for raw Uint8Array>'
+  }
+}
+
 export class ScrtRPCAgent extends ScrtAgent {
 
   // @ts-ignore
@@ -164,7 +174,31 @@ export class ScrtRPCAgent extends ScrtAgent {
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
     if (result.code !== 0) {
       const error = `ScrtRPCAgent#execute: gRPC error ${result.code}: ${result.rawLog}`
-      // TODO decode event contents so the error message doesn't take so many lines
+      // make the original result available on request
+      const original = structuredClone(result)
+      Object.defineProperty(result, "original", {
+        enumerable: false,
+        get () { return original }
+      })
+      // decode the values in the result
+      //@ts-ignore
+      result.txBytes = tryDecode(result.txBytes)
+      for (const i in result.tx.signatures) {
+        //@ts-ignore
+        result.tx.signatures[i] = tryDecode(result.tx.signatures[i])
+      }
+      for (const event of result.events) {
+        for (const attr of event.attributes) {
+          try {
+            //@ts-ignore
+            attr.key   = tryDecode(attr.key)
+          } catch (e) {}
+          try {
+            //@ts-ignore
+            attr.value = tryDecode(attr.value)
+          } catch (e) {}
+        }
+      }
       throw Object.assign(new Error(error), result)
     }
     return result as Tx
