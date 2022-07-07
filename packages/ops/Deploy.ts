@@ -115,7 +115,20 @@ export const DeployOps = {
         if (!this.deployAgent) {
           throw new Error('Fadroma Ops: no deployAgent in context')
         }
-        return await deployment.init(this.deployAgent, template, name, initMsg)
+        return await this.deployment.init(this.deployAgent, template, name, initMsg)
+      },
+      async deployMany (template: Template, configs: [string, Message][]) {
+        if (!this.deployAgent) {
+          throw new Error('Fadroma Ops: no deployAgent in context')
+        }
+        return await this.deployment.initMany(this.deployAgent, template, configs)
+      },
+      clientAgent: context.agent,
+      getInstance (name: string) {
+        return this.deployment.get(name)
+      },
+      getClient (Client, name) {
+        return this.clientAgent.getClient(Client, this.deployment.get(name))
       }
     }
   },
@@ -186,21 +199,25 @@ export interface DeployContext {
 
   templates?:   Template[]
 
-  /** Override agent used for deploys. */
-  deployAgent?: Agent
-
   /** Currently selected collection of interlinked contracts. */
   deployment:   Deployment
-
-  /** Shorthand for calling `deployment.instantiate(deployAgent, ...)` */
-  deploy:       (template: Template, name: string, initMsg: unknown) => Promise<Instance>
-
   /** Prefix to the labels of all deployed contracts.
     * Identifies which deployment they belong to. */
   prefix:       string
-
   /** Appended to contract labels in devnet deployments for faster iteration. */
   suffix?:      string
+  /** Who'll deploy new contracts */
+  deployAgent?: Agent
+  /** Shorthand for calling `deployment.init(deployAgent, ...)` */
+  deploy:       (template: Template, name: string, initMsg: Message) => Promise<Instance>
+  /** Shorthand for calling `deployment.initMany(deployAgent, ...)` */
+  deployMany:   (template: Template, configs: [string, Message][]) => Promise<Instance[]>
+  /** Who'll interact with existing contracts */
+  clientAgent?: Agent
+  /** Shorthand for calling `deployment.get(name)` */
+  getInstance:  (name: string) => Instance
+  /** Shorthand for calling `clientAgent.getClient(Client, deployment.get(name))` */
+  getClient:    <C extends Client, O extends ClientOpts>(Client: ClientCtor<C, O>, name: string)=>C
 }
 
 export class Deployments extends JSONDirectory<unknown> {
