@@ -1,5 +1,5 @@
 import { basename } from 'path'
-import { execFile } from 'child_process'
+import { spawn } from 'child_process'
 import { readFileSync } from 'fs'
 import { pathToFileURL } from 'url'
 import { homedir } from 'os'
@@ -390,19 +390,21 @@ export class DockerBuilder extends CachingBuilder {
       delete readonly[$(root).path]
       readonly[$(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST).path] = `/src/Cargo.toml`
     }
+    // Variables used by the build script are prefixed with underscore
+    // and variables used by the tools used by the build script are left as is
     const env = {
-      BUILD_USER:                   process.env.FADROMA_BUILD_USER || 'fadroma-builder',
-      BUILD_UID:                    process.env.FADROMA_BUILD_UID  || process.getuid(),
-      BUILD_GID:                    process.env.FADROMA_BUILD_GID  || process.getgid(),
+      _BUILD_USER:                   process.env.FADROMA_BUILD_USER || 'fadroma-builder',
+      _BUILD_UID:                    process.env.FADROMA_BUILD_UID  || process.getuid(),
+      _BUILD_GID:                    process.env.FADROMA_BUILD_GID  || process.getgid(),
+      _GIT_REMOTE:                   process.env.FADROMA_PREFERRED_REMOTE||'origin',
+      _GIT_SUBDIR:                   gitSubdir,
+      _SUBDIR:                       subdir,
       CARGO_HTTP_TIMEOUT:           '240',
       CARGO_NET_GIT_FETCH_WITH_CLI: 'true',
       GIT_PAGER:                    'cat',
-      GIT_REMOTE:                   process.env.FADROMA_PREFERRED_REMOTE||'origin',
-      GIT_SUBDIR:                   gitSubdir,
       GIT_TERMINAL_PROMPT:          '0',
       LOCKED:                       '',/*'--locked'*/
       SSH_AUTH_SOCK:                process.env.SSH_AUTH_SOCK,
-      SUBDIR:                       subdir,
       TERM:                         process.env.TERM,
     }
 
@@ -500,18 +502,28 @@ export class RawBuilder extends CachingBuilder {
       }
       const cwd = source.workspace.path
       const env = {
-        ...process.env,
-        BUILD_UID: process.getuid(),
-        BUILD_GID: process.getgid()
+        _BUILD_UID: process.getuid(),
+        _BUILD_GID: process.getgid(),
+        _REGISTRY:  '',
+        PATH:       process.env.PATH,
+        TERM:       process.env.TERM
       }
-      const cmd = process.argv[0]
+      const cmd  = process.argv[0]
       const args = [this.script.path, 'phase1', HEAD, source.crate]
       const opts = { cwd, env, stdio: 'inherit' }
-      console.log({cmd, args, opts})
-      await new Promise((resolve, reject)=>{
-        execFile(cmd, args, opts as any, (error, stdout, stderr)=>{
-          if (error) return reject(error)
-          resolve([stdout, stderr])
+      const sub  = spawn(cmd, args, opts as any)
+      await new Promise<void>((resolve, reject)=>{
+        sub.on('exit', (code, signal) => {
+          if (code === 0) {
+            resolve()
+          } else if (code !== null) {
+            console.error(`Build exited with code ${code}`)
+            throw new Error(`Build exited with code ${code}`)
+          } else if (signal !== null) {
+            console.warn(`Build exited due to signal ${signal}`)
+          } else {
+            throw new Error('Unreachable')
+          }
         })
       })
       process.exit(123)

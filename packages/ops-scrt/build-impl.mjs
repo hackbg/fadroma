@@ -2,7 +2,8 @@ import { execSync } from 'child_process'
 import { resolve, dirname, sep } from 'path'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 
-const { env, argv, umask, chdir, cwd, exit } = process
+const { argv, umask, chdir, cwd, exit } = process
+const env = (key, def) => (key in process.env) ? process.env[key] : def
 
 const slashes  = new RegExp("/", "g")
 const dashes   = new RegExp("-", "g")
@@ -11,7 +12,7 @@ const fumigate = x => x.replace(dashes,  "_")
 
 const run = (command, env2 = {}) => {
   console.info('$', command)
-  execSync(command, { env: { ...env, ...env2 }, stdio: 'inherit' })
+  execSync(command, { env: { ...process.env, ...env2 }, stdio: 'inherit' })
 }
 
 const call = command => {
@@ -36,24 +37,32 @@ phases[phase]()
   * checking out an old commit if specified. Then, call phase 2 with
   * the name of each crate sequentially. */
 function phase1 ({
+  tmpBuild    = env('_TMP_BUILD',  '/tmp/fadroma-build'),
+  tmpTarget   = env('_TMP_TARGET', '/tmp/target'),
+  tmpGit      = env('_TMP_GIT',    '/tmp/git'),
+  registry    = env('_REGISTRY',   '/usr/local/cargo/registry'),
+  subdir      = env('_SUBDIR',     '.') || '.',
+  gitRoot     = env('_GIT_ROOT',   `/src/.git`),
+  gitSubdir   = env('_GIT_SUBDIR', ''),
+  gitRemote   = env('_GIT_REMOTE', 'origin'),
+  uid         = env('_BUILD_UID',  1000),
+  gid         = env('_BUILD_GID',  1000),
   interpreter = argv[0],       // e.g. /usr/bin/node
   script      = argv[1],       // this file
   ref         = argv[3],       // "HEAD" | <git ref>
   crates      = argv.slice(4), // all crates to build
-  buildRoot   = resolve('/tmp/fadroma-build', sanitize(ref)),
-  subdir      = env.SUBDIR      || '.',
-  gitRoot     = env.GIT_ROOT    || `/src/.git`,
-  gitSubdir   = env.GIT_SUBDIR  || '',
-  gitDir      = resolve(gitRoot, gitSubdir),
-  gitRemote   = env.GIT_REMOTE  || 'origin',
-  uid         = env.BUILD_UID   || 1000,
-  gid         = env.BUILD_GID   || 1000,
   user        = 'fadroma-builder',
+  buildRoot   = resolve(tmpBuild, sanitize(ref)),
+  gitDir      = resolve(gitRoot, gitSubdir),
 } = {}) {
 
   console.log('Build phase 1: Preparing source repository for', ref)
 
-  // Create a non-root build user if one doesn't exist
+  // When running in a container, we must create a non-root build user
+  // whose uid/gid corresponds to the user outside the container.
+  // This is so that the permissions of the files output by the container
+  // match the ones expected if the build was being run without container
+  // (and the build artifacts don't end up e.g. root-owned)
   try {
     user = call(`id -un ${uid}`)
   } catch (e) {
@@ -64,7 +73,9 @@ function phase1 ({
   // The local registry is stored in a Docker volume mounted at /usr/local.
   // This makes sure it is accessible to non-root users.
   umask(0o000)
-  run(`mkdir -p "${buildRoot}" /tmp/target /usr/local/cargo/registry`)
+  if (buildRoot) run(`mkdir -p "${buildRoot}"`)
+  if (tmpTarget) run(`mkdir -p "${tmpTarget}"`)
+  if (registry)  run(`mkdir -p "${registry}"`)
   umask(0o022)
 
   // Copy the source into the build dir
@@ -78,7 +89,7 @@ function phase1 ({
     // and cloning from it. Since we may need to modify that directory,
     // we'll make a copy. This may be slow if ".git" is huge
     // (but at least it's not the entire working tree with node_modules etc)
-    time(`cp -r ${gitRoot} /tmp/git`)
+    time(`cp -r "${gitRoot}" "${tmpGit}"`)
     gitRoot = '/tmp/git'
     gitDir  = `${gitRoot}/${gitSubdir}`
     // Helper functions to run with ".git" in a non-default location.
@@ -130,21 +141,26 @@ function phase1 ({
     chdir(subdir)
   }
 
-  // Switch to build user and run phase 2 for each requested crate
+  // Run phase 2 for each requested crate.
+  // If not running as build user, switch to build user for each run of phase2.
   console.log(`Building in:`, call('pwd'))
   console.log(`Build phase 2 will begin with these crates: ${crates}`)
   for (const crate of crates) {
     console.log(`Building ${crate} from ${ref} in ${cwd()}`)
-    run(`su ${user} -c "${interpreter} ${script} phase2 ${ref} ${crate}"`)
+    let phase2Command = `${interpreter} ${script} phase2 ${ref} ${crate}`
+    if (process.getuid() != uid) {
+      phase2Command = `su ${user} -c "${phase2Command}"`
+    }
+    run(phase2Command)
   }
 
 }
 
 /** As a non-root user, execute a release build, then optimize it with Binaryen. */
 function phase2 ({
+  targetDir = env('_TMP_TARGET', '/tmp/target'),
   ref       = argv[3], // "HEAD" | <git ref>
   crate     = argv[4], // one crate to build
-  targetDir = '/tmp/target',
   platform  = 'wasm32-unknown-unknown',
   rustFlags = '-C link-arg=-s',
   locked    = '',
