@@ -20,13 +20,28 @@ import {
   MsgExecuteContract,
 } from 'secretjs'
 
-import * as constants from './scrt-grpc-constants'
-
 export interface ScrtRPCAgentOpts extends AgentOpts {
   wallet?:  Wallet
   url?:     string
   api?:     SecretNetworkClient
   keyPair?: unknown
+}
+
+export const constants = {
+  DEFAULT_CHAIN_ID:
+    'secret-4',
+  ERR_ONLY_FROM_MNEMONIC_OR_WALLET_ADDRESS:
+    'ScrtRPCAgent: Can only be created from mnemonic or wallet+address',
+  WARN_IGNORING_KEY_PAIR:
+    'ScrtRPCAgent: Created from mnemonic, ignoring keyPair',
+  ERR_EXPECTED_WRONG_ADDRESS:
+    'ScrtRPCAgent: Passed an address that does not correspond to the mnemonic',
+  WARN_NO_MEMO:
+    "ScrtRPCAgent: Transaction memos are not supported in SecretJS RPC API",
+  ERR_INIT_CHAIN_ID:
+    'ScrtRPCAgent: Tried to instantiate a contract that is uploaded to another chain',
+  COULD_NOT_DECODE:
+    '<binary data, see result.original for the raw Uint8Array>'
 }
 
 const decoder = new TextDecoder('utf-8', { fatal: true })
@@ -35,7 +50,7 @@ const tryDecode = (data: Uint8Array): string => {
   try {
     return decoder.decode(data)
   } catch (e) {
-    return '<binary data, see result.original for raw Uint8Array>'
+    return constants.COULD_NOT_DECODE
   }
 }
 
