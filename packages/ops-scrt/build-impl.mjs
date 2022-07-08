@@ -89,9 +89,9 @@ function phase1 ({
     // and cloning from it. Since we may need to modify that directory,
     // we'll make a copy. This may be slow if ".git" is huge
     // (but at least it's not the entire working tree with node_modules etc)
-    time(`cp -rvT "${gitRoot}" "${tmpGit}"`)
+    time(`cp -rT "${gitRoot}" "${tmpGit}"`)
     gitRoot = tmpGit
-    gitDir  = `${gitRoot}/${gitSubdir}`
+    gitDir  = resolve(gitRoot, gitSubdir)
     // Helper functions to run with ".git" in a non-default location.
     const gitRun  = command => run(`GIT_DIR=${gitDir} git ${command}`)
     const gitCall = command => call(`GIT_DIR=${gitDir} git ${command}`)
@@ -113,6 +113,7 @@ function phase1 ({
       // create a ref under refs/heads pointing to that branch.
       try {
         console.log(`${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}.`)
+        gitRun('fetch')
         const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
         const remoteRef = shown.split(' ')[0]
         const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
