@@ -89,7 +89,7 @@ function phase1 ({
     // and cloning from it. Since we may need to modify that directory,
     // we'll make a copy. This may be slow if ".git" is huge
     // (but at least it's not the entire working tree with node_modules etc)
-    time(`cp -r "${gitRoot}" "${tmpGit}"`)
+    time(`cp -rvT "${gitRoot}" "${tmpGit}"`)
     gitRoot = tmpGit
     gitDir  = `${gitRoot}/${gitSubdir}`
     // Helper functions to run with ".git" in a non-default location.

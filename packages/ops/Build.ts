@@ -2,7 +2,7 @@ import { basename } from 'path'
 import { spawn } from 'child_process'
 import { readFileSync, mkdtempSync } from 'fs'
 import { pathToFileURL } from 'url'
-import { homedir } from 'os'
+import { homedir, tmpdir } from 'os'
 import simpleGit from 'simple-git'
 
 import LineTransformStream from 'line-transform-stream'
@@ -497,8 +497,10 @@ export class RawBuilder extends CachingBuilder {
   async buildMany (sources: Source[]): Promise<Artifact[]> {
     const artifacts = []
     for (const source of sources) {
-      // Temporary Git dir for checkouts of non-HEAD builds
-      let tmpGit
+      // Temporary dirs used for checkouts of non-HEAD builds
+      let tmpGit, tmpBuild
+      // Most of the parameters are passed to the build script
+      // by way of environment variables.
       const env = {
         _BUILD_UID: process.getuid(),
         _BUILD_GID: process.getgid(),
@@ -517,10 +519,12 @@ export class RawBuilder extends CachingBuilder {
         // Create a temporary Git directory. The build script will copy the Git history
         // and modify the refs in order to be able to do a fresh checkout with submodules
         const { gitDir } = source.workspace
-        tmpGit = $(mkdtempSync('fadroma-git-'))
+        tmpGit   = $(mkdtempSync($(tmpdir(), 'fadroma-git-').path))
+        tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
         Object.assign(env, {
           _GIT_ROOT:   gitDir.path,
           _TMP_GIT:    tmpGit.path,
+          _TMP_BUILD:  tmpBuild.path,
           _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : ''
         })
       }
@@ -549,9 +553,8 @@ export class RawBuilder extends CachingBuilder {
       const codeHash = codeHashForPath(location.path)
       artifacts.push({ url: pathToFileURL(location.path), codeHash })
       // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
-      if (tmpGit.exists()) {
-        tmpGit.delete()
-      }
+      if (tmpGit.exists())   tmpGit.delete()
+      if (tmpBuild.exists()) tmpBuild.delete()
     }
     return artifacts
   }
