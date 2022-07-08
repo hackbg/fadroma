@@ -7,7 +7,7 @@ importers:
       '@fadroma/client': workspace:^3
       '@fadroma/client-scrt': workspace:^4
       '@fadroma/client-scrt-amino': workspace:^4
-      '@fadroma/client-scrt-grpc': workspace:^4
+      '@fadroma/client-scrt-grpc': workspace:^5
       '@fadroma/ops': workspace:^1
       '@fadroma/ops-scrt': workspace:^1
       '@fadroma/tokens': workspace:^2
@@ -104,7 +104,7 @@ importers:
 
   packages/client-scrt-grpc:
     specifiers:
-      '@fadroma/client-scrt': workspace:^4.0.0
+      '@fadroma/client-scrt': workspace:^4.0.1
       '@hackbg/izdatel': workspace:^0
       secretjs: beta
       typescript: ^4.7
@@ -157,7 +157,7 @@ importers:
   packages/ops-scrt:
     specifiers:
       '@fadroma/client-scrt-amino': workspace:^4
-      '@fadroma/client-scrt-grpc': workspace:^4
+      '@fadroma/client-scrt-grpc': workspace:^5
       '@fadroma/ops': workspace:^1
       '@hackbg/dokeres': workspace:*
     dependencies:
@@ -241,7 +241,7 @@ importers:
       zen-observable: 0.8.15
     devDependencies:
       '@hackbg/ganesha': 2.0.3
-      '@types/node': 18.0.1
+      '@types/node': 18.0.3
 
   toolbox/formati:
     specifiers:
@@ -285,7 +285,7 @@ importers:
       '@hackbg/ganesha': 2.0.3
       '@hackbg/runspec': link:../runspec
       '@types/mkdirp': 1.0.2
-      '@types/node': 18.0.1
+      '@types/node': 18.0.3
       '@types/tmp': 0.2.3
       c8: 7.11.3
 
@@ -597,7 +597,7 @@ packages:
       '@ganesha/core': 1.1.0
       '@ganesha/node': 2.1.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 18.0.1
+      '@types/node': 18.0.3
       chokidar: 3.5.3
       cross-spawn: 7.0.3
     dev: true
@@ -609,7 +609,7 @@ packages:
       '@ganesha/core': 1.1.0
       '@ganesha/node': 2.2.2
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 18.0.1
+      '@types/node': 18.0.3
       chokidar: 3.5.3
       cross-spawn: 7.0.3
     dev: false
@@ -809,7 +809,7 @@ packages:
   /@types/mkdirp/1.0.2:
     resolution: {integrity: sha512-o0K1tSO0Dx5X6xlU5F1D6625FawhC3dU3iqr25lluNv/+/QIVH8RLNEiVokgIZo+mz+87w/3Mkg/VvQS+J51fQ==}
     dependencies:
-      '@types/node': 18.0.1
+      '@types/node': 18.0.3
     dev: true
 
   /@types/node/10.12.18:
@@ -829,6 +829,10 @@ packages:
 
   /@types/node/18.0.1:
     resolution: {integrity: sha512-CmR8+Tsy95hhwtZBKJBs0/FFq4XX7sDZHlGGf+0q+BRZfMbOTkzkj0AFAuTyXbObDIoanaBBW0+KEW+m3N16Wg==}
+    dev: false
+
+  /@types/node/18.0.3:
+    resolution: {integrity: sha512-HzNRZtp4eepNitP+BD6k2L6DROIDG4Q0fm4x+dwfsr6LGmROENnok75VGw40628xf+iR24WeMFcHuuBDUAzzsQ==}
 
   /@types/prettier/2.6.3:
     resolution: {integrity: sha512-ymZk3LEC/fsut+/Q5qejp6R9O1rMxz3XaRHDV6kX8MrGAhOSPqVARbDi+EZvInBpw+BnCX3TD240byVkOfQsHg==}

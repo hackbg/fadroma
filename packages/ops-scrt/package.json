@@ -7,7 +7,7 @@
     "@hackbg/dokeres":            "workspace:*",
     "@fadroma/ops":               "workspace:^1",
     "@fadroma/client-scrt-amino": "workspace:^4",
-    "@fadroma/client-scrt-grpc":  "workspace:^4"
+    "@fadroma/client-scrt-grpc":  "workspace:^5"
   },
   "scripts": {
     "build": "tsc",
