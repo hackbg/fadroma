@@ -90,7 +90,7 @@ function phase1 ({
     // we'll make a copy. This may be slow if ".git" is huge
     // (but at least it's not the entire working tree with node_modules etc)
     time(`cp -r "${gitRoot}" "${tmpGit}"`)
-    gitRoot = '/tmp/git'
+    gitRoot = tmpGit
     gitDir  = `${gitRoot}/${gitSubdir}`
     // Helper functions to run with ".git" in a non-default location.
     const gitRun  = command => run(`GIT_DIR=${gitDir} git ${command}`)
@@ -166,7 +166,8 @@ function phase2 ({
   locked    = '',
   output    = `${fumigate(crate)}.wasm`,
   compiled  = resolve(targetDir, platform, 'release', output),
-  optimized = resolve('/output', `${sanitize(crate)}@${sanitize(ref)}.wasm`),
+  outputDir = env('_OUTPUT', '/output'),
+  optimized = resolve(outputDir, `${sanitize(crate)}@${sanitize(ref)}.wasm`),
   checksum  = `${optimized}.sha256`,
 } = {}) {
 

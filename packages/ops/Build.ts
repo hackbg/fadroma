@@ -1,6 +1,6 @@
 import { basename } from 'path'
 import { spawn } from 'child_process'
-import { readFileSync } from 'fs'
+import { readFileSync, mkdtempSync } from 'fs'
 import { pathToFileURL } from 'url'
 import { homedir } from 'os'
 import simpleGit from 'simple-git'
@@ -497,20 +497,37 @@ export class RawBuilder extends CachingBuilder {
   async buildMany (sources: Source[]): Promise<Artifact[]> {
     const artifacts = []
     for (const source of sources) {
-      if (source.workspace.ref !== HEAD) {
-        throw new Error('Fadroma Build: RawBuilder: non-HEAD builds are not supported')
-      }
-      const cwd = source.workspace.path
+      // Temporary Git dir for checkouts of non-HEAD builds
+      let tmpGit
       const env = {
         _BUILD_UID: process.getuid(),
         _BUILD_GID: process.getgid(),
         _REGISTRY:  '',
+        _OUTPUT:    $(source.workspace.path).in('artifacts').path,
         PATH:       process.env.PATH,
         TERM:       process.env.TERM
       }
+      if (source.workspace.ref !== HEAD) {
+        // Provide the build script with the config values that ar
+        // needed to make a temporary checkout of another commit
+        if (!source.workspace.gitDir.present) {
+          const error = new Error("Fadroma Build: could not find Git directory for source.")
+          throw Object.assign(error, { source })
+        }
+        // Create a temporary Git directory. The build script will copy the Git history
+        // and modify the refs in order to be able to do a fresh checkout with submodules
+        const { gitDir } = source.workspace
+        tmpGit = $(mkdtempSync('fadroma-git-'))
+        Object.assign(env, {
+          _GIT_ROOT:   gitDir.path,
+          _TMP_GIT:    tmpGit.path,
+          _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : ''
+        })
+      }
+      // Run the build script
       const cmd  = process.argv[0]
-      const args = [this.script.path, 'phase1', HEAD, source.crate]
-      const opts = { cwd, env, stdio: 'inherit' }
+      const args = [ this.script.path, 'phase1', source.workspace.ref, source.crate ]
+      const opts = { cwd: source.workspace.path, env, stdio: 'inherit' }
       const sub  = spawn(cmd, args, opts as any)
       await new Promise<void>((resolve, reject)=>{
         sub.on('exit', (code, signal) => {
@@ -526,8 +543,15 @@ export class RawBuilder extends CachingBuilder {
           }
         })
       })
-      process.exit(123)
-      //artifacts.push({ url: pathToFileURL(location), codeHash })
+      // Create an artifact for the build result
+      const location = $(env._OUTPUT, artifactName(source.crate, sanitize(source.workspace.ref)))
+      console.info('Build ok:', bold(location.shortPath))
+      const codeHash = codeHashForPath(location.path)
+      artifacts.push({ url: pathToFileURL(location.path), codeHash })
+      // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
+      if (tmpGit.exists()) {
+        tmpGit.delete()
+      }
     }
     return artifacts
   }
