@@ -611,8 +611,53 @@ fn block_freeze() {
 }
 
 #[test]
+fn remove_funds() {
+    let mut ensemble = ContractEnsemble::new(50);
+    let addr = HumanAddr("address".to_string());
+
+    ensemble.add_funds(&addr, vec![Coin::new(1000u128, "uscrt")]);
+    assert_eq!(
+        ensemble.ctx.bank.current.query_balances(&addr, Some("uscrt".to_string())),
+        vec![Coin::new(1000u128, "uscrt")],
+    );
+
+    ensemble.remove_funds(&addr, vec![Coin::new(500u128, "uscrt")]).unwrap();
+    assert_eq!(
+        ensemble.ctx.bank.current.query_balances(&addr, Some("uscrt".to_string())),
+        vec![Coin::new(500u128, "uscrt")],
+    );
+
+    match ensemble.remove_funds(&addr, vec![Coin::new(600u128, "uscrt")]) {
+        Err(error) => match error {
+            StdError::GenericErr { msg, .. } => 
+                assert_eq!(msg, "Insufficient uscrt balance 500 for remove balance 600"),
+            _ => panic!("Wrong error message"),
+        },
+        _ => panic!("No error message")
+    };
+
+    match ensemble.remove_funds(&addr, vec![Coin::new(300u128, "notscrt")]) {
+        Err(error) => match error {
+            StdError::GenericErr { msg, .. } => 
+                assert_eq!(msg, "Zero notscrt balance for remove balance"),
+            _ => panic!("Wrong error message"),
+        },
+        _ => panic!("No error message")
+    };
+
+    match ensemble.remove_funds(HumanAddr("address2".to_string()), vec![Coin::new(300u128, "uscrt")]) {
+        Err(error) => match error {
+            StdError::NotFound { kind, .. } => 
+                assert_eq!(kind, "Account address2 does not exist for remove balance"),
+            _ => panic!("Wrong error message"),
+        },
+        _ => panic!("No error message")
+    };
+}
+
+#[test]
 fn staking() {
-    let ensemble_test = ContractEnsemble::new_denom(50, "something".to_string());
+    let ensemble_test = ContractEnsemble::new_with_denom(50, "something".to_string());
     assert_eq!(ensemble_test.ctx.delegations.bonded_denom(), "something".to_string());
 
     let mut ensemble = ContractEnsemble::new(50);
@@ -635,41 +680,65 @@ fn staking() {
         max_commission: Decimal::percent(15),
         max_change_rate: Decimal::percent(5),
     };
-    
+   
+    ensemble.add_funds(&addr1, vec![Coin::new(1100u128, "uscrt")]);
+    ensemble.add_funds(&addr1, vec![Coin::new(314159u128, "notscrt")]);
     ensemble.add_validator(validator1.clone());
     ensemble.add_validator(validator2.clone());
 
+    // TODO test remove_funds
+
     assert_eq!(ensemble.ctx.delegations.validators(), vec![validator1.clone(), validator2.clone()]);
     
-    // Delegating
-    ensemble.ctx.delegations.delegate(
+    // Delegating (while replicating structure of the ensemble.rs execute_message() delegate code)
+    ensemble.ctx.bank.writable().remove_funds(&addr1, vec![Coin::new(1000u128, "uscrt")]).unwrap();
+    match ensemble.ctx.delegations.delegate(
         &addr1,
         &val_addr_1,
         Coin::new(1000u128, "uscrt"),
-    ).unwrap();
+    ) {
+        Ok(result) => Ok(result),
+        Err(result) => {
+            ensemble.ctx.bank.revert();
+            Err(result)
+        },
+    }.unwrap();
+    ensemble.ctx.bank.commit();
+    
+    ensemble.ctx.bank.writable().remove_funds(&addr1, vec![Coin::new(314159u128, "notscrt")]).unwrap();
     match ensemble.ctx.delegations.delegate(
         &addr1,
         &val_addr_1,
         Coin::new(314159u128, "notscrt"),
     ) {
-        Err(error) => match error {
-            StdError::GenericErr { msg, .. } => assert_eq!("Incorrect coin denom", msg),
-            _ => panic!("Wrong denom error improperly caught"),
+        Err(error) => {
+            ensemble.ctx.bank.revert();
+            match error {
+                StdError::GenericErr { msg, .. } => assert_eq!("Incorrect coin denom", msg),
+                _ => panic!("Wrong denom error improperly caught"),
+            };
         },
         _ => panic!("Wrong denom error improperly caught"),
     };
+    ensemble.ctx.bank.commit();
     
+    ensemble.ctx.bank.writable().remove_funds(&addr1, vec![Coin::new(100u128, "uscrt")]).unwrap();
     match ensemble.ctx.delegations.delegate(
         &addr1,
         &val_addr_3,
-        Coin::new(314159u128, "uscrt"),
+        Coin::new(100u128, "uscrt"),
     ) {
-        Err(error) => match error {
-            StdError::NotFound { kind, .. } => assert_eq!("Validator not found", kind),
-            _ => panic!("Invalid validator error improperly caught"),
+        Err(error) => {
+            ensemble.ctx.bank.revert();
+            match error {
+                StdError::NotFound { kind, .. } => assert_eq!("Validator not found", kind),
+                _ => panic!("Invalid validator error improperly caught"),
+            };
         },
         _ => panic!("Invalid validator error improperly caught"),
     };
+    ensemble.ctx.bank.commit();
+
     match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
         Some(delegation) => assert_eq!(delegation, FullDelegation {
             delegator: addr1.clone(),
@@ -758,11 +827,14 @@ fn staking() {
         None => panic!("Redelegation not found"),
     };
     
+    ensemble.ctx.bank.writable().remove_funds(&addr1, vec![Coin::new(100u128, "uscrt")]).unwrap();
     ensemble.ctx.delegations.delegate(
         &addr1, 
         &val_addr_2,
         Coin::new(100u128, "uscrt"),
     ).unwrap();
+    ensemble.ctx.bank.commit();
+
     ensemble.ctx.delegations.redelegate(
         &addr1,
         &val_addr_2,
@@ -825,10 +897,7 @@ fn staking() {
         &addr1,
         &val_addr_1,
     ).unwrap().accumulated_rewards; 
-    println!("Amnt: {:?}", withdraw_amount);
-    println!("Bank: {:?}", ensemble.ctx.bank);
     ensemble.ctx.bank.current.add_funds(&addr1, vec![withdraw_amount]);
-    println!("Bank: {:?}", ensemble.ctx.bank);
     ensemble.ctx.delegations.withdraw(&addr1, &val_addr_1).unwrap();
 
     match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {

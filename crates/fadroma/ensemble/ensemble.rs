@@ -52,7 +52,7 @@ impl ContractEnsemble {
         }
     }
 
-    pub fn new_denom(canonical_length: usize, native_denom: String) -> Self {
+    pub fn new_with_denom(canonical_length: usize, native_denom: String) -> Self {
         Self {
             ctx: Box::new(Context::new(canonical_length, native_denom)),
         }
@@ -427,14 +427,19 @@ impl Context {
                         amount,
                     } => {
                         self.bank.writable()
-                            .remove_funds(&sender, vec![amount.clone()])
-                            .expect("Insufficient funds to stake");
+                            .remove_funds(&sender, vec![amount.clone()])?;
                         
-                        let res = self.delegations.delegate(
+                        let res = match self.delegations.delegate(
                             &sender,
                             &validator,
                             amount.clone(),
-                        )?;
+                        ) {
+                            Ok(result) => Ok(result),
+                            Err(result) => {
+                                self.bank.revert();
+                                Err(result)
+                            },
+                        }?;
 
                         responses.push(Response::Staking(res));
                     }, 
@@ -448,9 +453,6 @@ impl Context {
                             amount.clone(),
                         )?;
                         
-                        self.bank.writable()
-                            .add_funds(&sender, vec![amount.clone()]);
-
                         responses.push(Response::Staking(res));
                     },
                     StakingMsg::Withdraw {

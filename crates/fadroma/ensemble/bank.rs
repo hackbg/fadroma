@@ -32,12 +32,34 @@ impl Bank {
             return Ok(());
         }
         
-        self.assert_account_exists(address);
+        if !self.0.contains_key(address) {
+            return Err(StdError::not_found(
+                format!("Account {} does not exist for remove balance", address)
+            ))
+        }
 
         let account = self.0.get_mut(address).unwrap();
 
         for coin in coins {
-            remove_balance(account, coin)?;
+            let balance = account.get_mut(&coin.denom);
+    
+            match balance {
+                Some(amount) => {
+                    if amount.0 >= coin.amount.0 {
+                        amount.0 -= coin.amount.0;
+                    } else {
+                        return Err(StdError::generic_err(format!(
+                            "Insufficient {} balance {} for remove balance {}", 
+                            coin.denom,
+                            amount.0,
+                            coin.amount.0
+                        )))
+                    }
+                },
+                None => {
+                    return Err(StdError::generic_err(format!("Zero {} balance for remove balance", coin.denom)))
+                }
+            }
         }
 
         Ok(())
@@ -135,17 +157,3 @@ fn add_balance(balances: &mut Balances, coin: Coin) {
     }
 }
 
-fn remove_balance(balances: &mut Balances, coin: Coin) -> StdResult<()> {
-    let balance = balances.get_mut(&coin.denom);
-
-    if let Some(amount) = balance {
-        if amount.0 > coin.amount.0 {
-            amount.0 -= coin.amount.0;
-            Ok(())
-        } else {
-            Err(StdError::generic_err("Insufficient balance for remove balance"))
-        }
-    } else {
-        Err(StdError::generic_err("Account doesn't exist, cannot remove balance"))
-    }
-}
