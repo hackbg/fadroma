@@ -5,7 +5,6 @@ import config from '../config'
 type CargoTOML = TOMLFile<{ package: { name: string } }>
 
 const console = Console('Fadroma Build')
-console.log(config)
 
 $(import.meta.url).entrypoint(buildCommand)
 
