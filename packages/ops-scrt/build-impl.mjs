@@ -98,7 +98,7 @@ function phase1 ({
     // Make this a bare checkout by removing the path to the working tree from the config.
     // We can't use "config --local --unset core.worktree" - since the working tree path
     // does not exist, git command invocations fail with "no such file or directory".
-    const gitConfigPath = resolve(gitDir, config)
+    const gitConfigPath = resolve(gitDir, 'config')
     let gitConfig = readFileSync(gitConfigPath, 'utf8')
     gitConfig = gitConfig.replace(/\s+worktree.*/g, '')
     writeFileSync(gitConfigPath, gitConfig, 'utf8')
