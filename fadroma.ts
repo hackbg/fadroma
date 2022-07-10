@@ -251,7 +251,7 @@ export interface Command {
 export class CommandCollection {
   constructor (public readonly name: string,) {}
   readonly commands: Record<string, Command> = {}
-  add (name, info, ...steps) {
+  command (name, info, ...steps) {
     this.commands[name] = { info, steps }
     return this
   }
@@ -272,23 +272,24 @@ export class CommandCollection {
   }
 }
 
-export class DeploymentRunner extends CommandCollection {
+export class Commands extends CommandCollection {
   constructor (name, public readonly extra: Step<unknown, unknown>) {
     super(name)
-    this.add('reset', 'reset the devnet',
+    this.command('reset', 'reset the devnet',
              resetDevnet)
-    this.add('status', 'print info about the current deployment',
+    this.command('status', 'print info about the current deployment',
              print(console).chainStatus,
              showDeployment)
-    this.add('list',   'print a list of all deployments',
+    this.command('list',   'print a list of all deployments',
              listDeployments)
-    this.add('select', 'select a new active deployment',
+    this.command('select', 'select a new active deployment',
              selectDeployment)
-    this.add('new',    'create a new empty deployment',
+    this.command('new',    'create a new empty deployment',
              createDeployment)
   }
-  add (name, info, ...steps) {
-    return super.add(name, info,
+  /** A command that runs in a popluated OperationContext */
+  operation (name, info, ...steps) {
+    return super.command(name, info,
       function getConfig () { return { config: currentConfig, chains } },
       getChain,
       getAgent,
@@ -301,25 +302,20 @@ export class DeploymentRunner extends CommandCollection {
   }
   /** A command that creates a new deployment when it starts. */
   deployment (name, info, ...steps) {
-    return this.add(name, info, createDeployment, ...steps)
+    return this.operation(name, info, createDeployment, ...steps)
   }
-  /** A command that uses the active deployment. */
-  operation (name, info, ...steps) {
-    return this.add(name, info, ...steps)
-  }
-  /** For iterating on irreversible mutations. */
+  /** For iterating on would-be irreversible mutations. */
   iteration (name, info, ...steps) {
-    return this.add(name, info, [asNewDeploymentIfDevnet, ...steps])
-    function asNewDeploymentIfDevnet (context) {
-      if (context.chain.isDevnet) {
+    return this.operation(name, info, function deploymentIteration (context) {
+      if (context.devMode) {
         return createDeployment(context)
       } else {
         return context
       }
-    }
+    }, ...steps)
   }
-  /** `export default myDeploymentRunner.main(import.meta.url)` */
-  async main (url: string, args = process.argv.slice(2)) {
+  /** `export default myCommands.main(import.meta.url)` */
+  async entrypoint (url: string, args = process.argv.slice(2)) {
     if (process.argv[1] === fileURLToPath(url)) {
       return this.run(args)
     } else {
