@@ -108,11 +108,6 @@ export default function command (info: string, ...steps: Function[]) {
 }
 
 export const connect = [
-  populateChain,
-  populateAgent,
-  enableScrtBuilder,
-  enableFileUpload,
-  enableDeployments,
 ]
 
 export async function populateChain (context: {
@@ -743,3 +738,61 @@ export class FadromaConfig {
 }
 
 export const currentConfig = new FadromaConfig(process.env)
+
+export class CommandRunner {
+  constructor (
+    public readonly name:   string,
+    public readonly before: Function[],
+    public readonly after:  Function[]
+  ) {}
+  commands = {}
+  add (name, info, steps) {
+    this.commands[name] = { info, steps }
+    return this
+  }
+  async main (url: string) {
+    if (process.argv[1] === fileURLToPath(url)) {
+      Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
+      return await runCommands(this.commands, process.argv.slice[2]).then(()=>process.exit(0))
+    } else {
+      return this
+    }
+  }
+}
+
+export class DeployCommandRunner extends CommandRunner {
+  constructor (
+    public readonly name:   string,
+    public readonly before: Function[] = [],
+    public readonly after:  Function[] = []
+  ) {
+    super(name, [
+      populateChain,
+      populateAgent,
+      enableScrtBuilder,
+      enableFileUpload,
+      enableDeployments,
+      ...before
+    ], [
+      ...after,
+      showDeployment
+    ])
+  }
+  asNewDeployment (name, info, ...steps) {
+    return this.add(name, info, [createDeployment, ...steps])
+  }
+  asCurrentDeployment (name, info, ...steps) {
+    return this.add(name, info, [enableDeployments, ...steps])
+  }
+  /** For iterating on irreversible mutations. */
+  asCurrentDeploymentIfNotOnDevnet (name, info, ...steps) {
+    return this.add(name, info, [asNewDeploymentIfDevnet, ...steps])
+    function asNewDeploymentIfDevnet (context) {
+      if (context.chain.isDevnet) {
+        return createDeployment(context)
+      } else {
+        return enableDeployments(context)
+      }
+    }
+  }
+}
