@@ -362,7 +362,7 @@ export class DeploymentRunner extends CommandCollection {
         )
         try {
           //@ts-ignore
-          return await procedure(context)
+          return await procedure({ ...context, ...args })
         } catch (e) {
           throw e
         }
