@@ -33,19 +33,11 @@ import {
   DevnetPortMode,
   DockerBuilder,
   RawBuilder,
-  populateBuildContext
 } from '@fadroma/ops'
 
 export * from '@fadroma/ops'
 
 export const __dirname = dirname(fileURLToPath(import.meta.url))
-
-export function enableScrtBuilder ({ config }: {
-  config: { build: { rebuild: boolean }, scrt: { build: object } }
-}) {
-  const builder = getScrtBuilder({ ...config.build, ...config.scrt.build })
-  return populateBuildContext(builder)
-}
 
 export function getScrtBuilder (context: {
   rebuild?:    boolean
