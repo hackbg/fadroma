@@ -53,7 +53,11 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
     console.info('Build manifest:', bold(cargoToml.shortPath))
     const source = workspace.crate(cargoToml.load().package.name)
     try {
-      const builder  = getScrtBuilder({ ...currentConfig.build, ...currentConfig.scrt.build, rebuild: true })
+      const builder = getScrtBuilder({
+        ...currentConfig.build,
+        ...currentConfig.scrt.build,
+        rebuild: true
+      })
       const artifact = await builder.build(source)
       console.info('Built:    ', bold($(artifact.url).shortPath))
       console.info('Code hash:', bold(artifact.codeHash))
