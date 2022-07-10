@@ -1,4 +1,5 @@
 /**
+
   Fadroma Ops and Fadroma Mocknet
   Copyright (C) 2022 Hack.bg
 
@@ -14,6 +15,7 @@
 
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 **/
 
 import { spawn, execFileSync } from 'child_process'
@@ -44,12 +46,11 @@ import $, {
   Path,
   TextFile,
 } from '@hackbg/kabinet'
-import { Agent, Bundle, Chain } from '@fadroma/client'
+import { Agent, Bundle, Chain, ChainMode } from '@fadroma/client'
 import type {
   Address,
   AgentOpts,
   Artifact,
-  ChainMode,
   Client,
   ClientCtor,
   ClientOpts,

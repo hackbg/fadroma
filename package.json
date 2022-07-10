@@ -3,8 +3,8 @@
   "version": "100.0.0-pre",
   "repository": { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type":    "module",
-  "main":    "index.ts",
-  "browser": "index.browser.ts",
+  "main":    "fadroma.ts",
+  "browser": "fadroma.browser.ts",
   "dependencies": {
     "dotenv": "^15.0.1",
     "@fadroma/client":            "workspace:^3",

@@ -112,7 +112,7 @@ function phase1 ({
       // If the branch is not checked out, but is fetched, do a "fake checkout":
       // create a ref under refs/heads pointing to that branch.
       try {
-        console.log(`${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}.`)
+        console.log(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}.`)
         gitRun('fetch')
         const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
         const remoteRef = shown.split(' ')[0]
