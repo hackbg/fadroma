@@ -279,7 +279,7 @@ export class CommandCollection {
 }
 
 export class DeploymentRunner extends CommandCollection {
-  constructor (name, setup, teardown) {
+  constructor (name, setup = [], teardown = []) {
     setup = [
       () => ({ config: currentConfig, chains }),
       getChain,
@@ -308,8 +308,21 @@ export class DeploymentRunner extends CommandCollection {
     }
   }
   async run (args = process.argv.slice(2)): Promise<void> {
+    if (args.length === 0) {
+      let longest = 0
+      for (const name of Object.keys(this.commands)) {
+        longest = Math.max(name.length, longest)
+      }
+      for (const [name, { info }] of Object.entries(this.commands)) {
+        console.log(`    ${bold(name.padEnd(longest))}  ${info}`)
+      }
+      process.exit(1)
+    }
     const command = this.parse(args)
-    console.log({command})
+    if (!command) {
+      console.error('Invalid command:', ...args)
+      process.exit(1)
+    }
     const [cmdName, { info, steps }, cmdArgs] = command
     console.info('DeploymentRunner#run', bold(cmdName), args)
     Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
@@ -395,7 +408,7 @@ export class DeploymentRunner extends CommandCollection {
     return this.add(name, info, [createDeployment, ...steps])
   }
   /** A command that uses the active deployment. */
-  migration (name, info, ...steps) {
+  operation (name, info, ...steps) {
     return this.add(name, info, [...steps])
   }
   /** For iterating on irreversible mutations. */
@@ -440,10 +453,10 @@ export type OperationContext =
   DeployContext
 
 export async function getChain (context: {
-  config?:    { project: { chain: string, root: string } },
-  chainList?: Record<string, (config: FadromaConfig)=>Promise<Chain>>
+  config?: { project: { chain: string, root: string } },
+  chains?: Record<string, (config: FadromaConfig)=>Promise<Chain>>
 }): Promise<Partial<ChainContext>> {
-  const { config = currentConfig, chainList = chains } = context
+  const { config = currentConfig, chains: chainList = chains } = context
   const name = config.project.chain
   if (!name || !chains[name]) {
     console.error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
@@ -455,12 +468,16 @@ export async function getChain (context: {
   }
   const chain = await chains[name](config)
   return {
+    config,
+    chains,
     chain:       await chains[name](config),
     deployments: Deployments.fromConfig(chain, config.project.root)
   }
 }
 
 export interface ChainContext extends CommandContext {
+  config:      Partial<FadromaConfig>,
+  chains:      typeof chains,
   /** The blockhain API to use. */
   chain:       Chain,
   /** Collections of interlinked contracts on the active chain. */
@@ -477,10 +494,7 @@ export async function resetDevnet ({ chain }: { chain: Chain }) {
   }
 }
 
-export async function getAgent (context: {
-  config?: FadromaConfig,
-  chain:   Chain
-}): Promise<Partial<AgentContext>> {
+export async function getAgent (context: ChainContext): Promise<Partial<AgentContext>> {
   const { config = currentConfig, chain } = context
   const agentOpts: AgentOpts = { name: undefined }
   if (context.chain.isDevnet) {
@@ -583,7 +597,7 @@ export async function getOrCreateDeployment (context: AgentContext) {
   }
 }
 
-export function getDeployContext (context: ChainContext & {
+export function getDeployContext (context: {
   deployment:   Deployment,
   agent?:       Agent,
   deployAgent?: Agent,
