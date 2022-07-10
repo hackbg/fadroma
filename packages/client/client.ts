@@ -229,7 +229,6 @@ export abstract class Chain implements Spectator {
   async getAgent (options: AgentOpts) {
     if (!options.mnemonic && options.name) {
       if (this.node) {
-        console.info('Using devnet genesis account:', options.name)
         options = await this.node.getGenesisAccount(options.name)
       } else {
         throw new Error('Chain#getAgent: getting agent by name only supported for devnets')

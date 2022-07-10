@@ -44,6 +44,7 @@ import {
   join
 } from '@fadroma/ops'
 
+import $ from '@hackbg/kabinet'
 import { Console, bold, colors, timestamp } from '@hackbg/konzola'
 
 import { getScrtBuilder, getScrtDevnet } from '@fadroma/ops-scrt'
@@ -249,25 +250,19 @@ export interface Command {
 }
 
 export class CommandCollection {
-  constructor (
-    public readonly name:     string,
-    public readonly setup:    Step<unknown, unknown>[] = [],
-    public readonly teardown: Step<unknown, unknown>[] = [],
-  ) {}
+  constructor (public readonly name: string,) {}
   readonly commands: Record<string, Command> = {}
   add (name, info, ...steps) {
-    this.commands[name] = { info, steps: [...this.setup, ...steps, ...this.teardown] }
+    this.commands[name] = { info, steps }
     return this
   }
   parse (args: string[]): [string, Command, string[]]|null {
-    console.log('CommandRunner#run', args)
     let commands = Object.entries(this.commands)
     for (let i = 0; i < args.length; i++) {
       const arg = args[i]
-      console.log(i, arg)
       commands = commands.filter(command=>command[0].startsWith(arg))
       if (commands.length === 1) {
-        return [...commands[0], args.slice(i)]
+        return [...commands[0], args.slice(i+1)]
       } else if (commands.length === 0) {
         return null
       } else {
@@ -279,17 +274,10 @@ export class CommandCollection {
 }
 
 export class DeploymentRunner extends CommandCollection {
-  constructor (name, setup = [], teardown = []) {
-    setup = [
-      () => ({ config: currentConfig, chains }),
-      getChain,
-      getAgent,
-      enableScrtBuilder,
-      getFileUploader,
-      getDeployContext,
-      ...setup
-    ]
-    super(name, setup, teardown)
+  constructor (name, public readonly extra: Step<unknown, unknown>) {
+    super(name)
+    this.add('reset', 'reset the devnet',
+             resetDevnet)
     this.add('status', 'print info about the current deployment',
              print(console).chainStatus,
              showDeployment)
@@ -300,6 +288,38 @@ export class DeploymentRunner extends CommandCollection {
     this.add('new',    'create a new empty deployment',
              createDeployment)
   }
+  add (name, info, ...steps) {
+    return super.add(name, info,
+      function getConfig () { return { config: currentConfig, chains } },
+      getChain,
+      getAgent,
+      enableScrtBuilder,
+      getFileUploader,
+      getDeployment,
+      ...this.extra?[this.extra]:[],
+      ...steps
+    )
+  }
+  /** A command that creates a new deployment when it starts. */
+  deployment (name, info, ...steps) {
+    return this.add(name, info, createDeployment, ...steps)
+  }
+  /** A command that uses the active deployment. */
+  operation (name, info, ...steps) {
+    return this.add(name, info, ...steps)
+  }
+  /** For iterating on irreversible mutations. */
+  iteration (name, info, ...steps) {
+    return this.add(name, info, [asNewDeploymentIfDevnet, ...steps])
+    function asNewDeploymentIfDevnet (context) {
+      if (context.chain.isDevnet) {
+        return createDeployment(context)
+      } else {
+        return context
+      }
+    }
+  }
+  /** `export default myDeploymentRunner.main(import.meta.url)` */
   async main (url: string, args = process.argv.slice(2)) {
     if (process.argv[1] === fileURLToPath(url)) {
       return this.run(args)
@@ -314,7 +334,7 @@ export class DeploymentRunner extends CommandCollection {
         longest = Math.max(name.length, longest)
       }
       for (const [name, { info }] of Object.entries(this.commands)) {
-        console.log(`    ${bold(name.padEnd(longest))}  ${info}`)
+        console.log(`    ... deploy ${bold(name.padEnd(longest))}  ${info}`)
       }
       process.exit(1)
     }
@@ -324,7 +344,7 @@ export class DeploymentRunner extends CommandCollection {
       process.exit(1)
     }
     const [cmdName, { info, steps }, cmdArgs] = command
-    console.info('DeploymentRunner#run', bold(cmdName), args)
+    console.info('$ fadroma', bold($(process.argv[1]).shortPath), bold(cmdName), ...cmdArgs)
     Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
     let context = {
       cmdArgs,
@@ -348,7 +368,6 @@ export class DeploymentRunner extends CommandCollection {
         }
       },
     }
-    console.log()
     const T0 = + new Date()
     const stepTimings = []
     // Composition of commands via steps:
@@ -382,7 +401,9 @@ export class DeploymentRunner extends CommandCollection {
           }
         })
         const T2 = + new Date()
-        console.info('🟢', colors.green('OK  '), bold(name), ` (${bold(String(T2-T1))}ms)\n`)
+        //if (name.trim()) {
+          //console.info('🟢', colors.green('OK  '), bold(name), ` (${bold(String(T2-T1))}ms)`)
+        //}
         stepTimings.push([name, T2-T1, false])
       } catch (e) {
         const T2 = + new Date()
@@ -401,25 +422,6 @@ export class DeploymentRunner extends CommandCollection {
         (duration/1000).toFixed(1).padStart(10),
         's'
       )
-    }
-  }
-  /** A command that creates a new deployment when it starts. */
-  deployment (name, info, ...steps) {
-    return this.add(name, info, [createDeployment, ...steps])
-  }
-  /** A command that uses the active deployment. */
-  operation (name, info, ...steps) {
-    return this.add(name, info, [...steps])
-  }
-  /** For iterating on irreversible mutations. */
-  iteration (name, info, ...steps) {
-    return this.add(name, info, [asNewDeploymentIfDevnet, ...steps])
-    function asNewDeploymentIfDevnet (context) {
-      if (context.chain.isDevnet) {
-        return createDeployment(context)
-      } else {
-        return context
-      }
     }
   }
 }
@@ -471,7 +473,8 @@ export async function getChain (context: {
     config,
     chains,
     chain:       await chains[name](config),
-    deployments: Deployments.fromConfig(chain, config.project.root)
+    deployments: Deployments.fromConfig(chain, config.project.root),
+    devMode:     chain.isDevnet || chain.isMocknet
   }
 }
 
@@ -482,6 +485,8 @@ export interface ChainContext extends CommandContext {
   chain:       Chain,
   /** Collections of interlinked contracts on the active chain. */
   deployments: Deployments
+  /** True if the chain is a devnet or mocknet */
+  devMode:     boolean
 }
 
 export async function resetDevnet ({ chain }: { chain: Chain }) {
@@ -520,11 +525,11 @@ export async function showDeployment (context: ChainContext): Promise<void> {
   if (id) {
     deployment = context.deployments.get(id)
   }
-  if (!deployment) {
-    console.error(join(bold('No selected deployment on chain:'), context.chain.id))
-    process.exit(1)
+  if (deployment) {
+    print(console).deployment(deployment)
+  } else {
+    console.info('No selected deployment on chain:', bold(context.chain.id))
   }
-  print(console).deployment(deployment)
 }
 
 export async function selectDeployment (context: ChainContext): Promise<void> {
@@ -540,7 +545,6 @@ export async function selectDeployment (context: ChainContext): Promise<void> {
   if (list.length > 0) {
     listDeployments(context)
   }
-  console.log()
   if (deployments.active) {
     console.info(`Currently selected deployment:`, bold(deployments.active.prefix))
   } else {
@@ -549,35 +553,30 @@ export async function selectDeployment (context: ChainContext): Promise<void> {
 }
 
 export async function listDeployments ({ chain, deployments }: ChainContext): Promise<void> {
-  console.info(`Deployments on chain ${bold(chain.id)}:`)
-  for (let deployment of deployments.list()) {
-    if (deployment === deployments.KEY) {
-      continue
+  const list = deployments.list()
+  if (list.length > 0) {
+    console.info(`Deployments on chain ${bold(chain.id)}:`)
+    for (let deployment of list) {
+      if (deployment === deployments.KEY) continue
+      const count = Object.keys(deployments.get(deployment).receipts).length
+      if (deployments.active && deployments.active.prefix === deployment) {
+        deployment = `${bold(deployment)} (selected)`
+      }
+      deployment = `${deployment} (${count} contracts)`
+      console.info(` `, deployment)
     }
-    const count = Object.keys(deployments.get(deployment).receipts).length
-    if (deployments.active && deployments.active.prefix === deployment) {
-      deployment = `${bold(deployment)} (selected)`
-    }
-    deployment = `${deployment} (${count} contracts)`
-    console.info(` `, deployment)
+  } else {
+    console.info(`No deployments on chain`, bold(chain.id))
   }
 }
 
-/** Add the currently active deployment to the command context. */
-export async function getDeployment (
-  context: ChainContext & { agent?: Agent }
-): Promise<Partial<DeployContext>> {
-  const deployment = context.deployments.active
-  if (!deployment) {
-    console.error(join(bold('No selected deployment on chain:'), context.chain.id))
-    process.exit(1)
+/** Add either the active deployment, or a newly created one, to the command context. */
+export async function getOrCreateDeployment (context: AgentContext) {
+  if (context.deployments.active) {
+    return getDeployment(context)
+  } else {
+    return await createDeployment(context)
   }
-  const prefix = deployment.prefix
-  let contracts: string|number = Object.values(deployment.receipts).length
-  contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-  console.info(bold('Active deployment:'), prefix, contracts)
-  print(console).deployment(deployment)
-  return await getDeployContext({ deployment, deployAgent: context.agent })
 }
 
 /** Create a new deployment and add it to the command context. */
@@ -588,13 +587,15 @@ export async function createDeployment (context: AgentContext): Promise<Partial<
   return await getDeployment(context)
 }
 
-/** Add either the active deployment, or a newly created one, to the command context. */
-export async function getOrCreateDeployment (context: AgentContext) {
-  if (context.deployments.active) {
-    return getDeployment(context)
-  } else {
-    return await createDeployment(context)
+/** Add the currently active deployment to the command context. */
+export async function getDeployment (
+  context: ChainContext & { agent?: Agent }
+): Promise<Partial<DeployContext>> {
+  const deployment = context.deployments.active
+  if (!deployment) {
+    console.info('No selected deployment on chain:', bold(context.chain.id))
   }
+  return await getDeployContext({ deployment, agent: context.agent })
 }
 
 export function getDeployContext (context: {
@@ -610,29 +611,51 @@ export function getDeployContext (context: {
     deployAgent = agent,
     clientAgent = agent
   } = context
-  return {
-    prefix: deployment.prefix,
-    suffix: context.suffix ?? `+${timestamp()}`,
-    deployment,
-    getInstance (name: string) {
-      return this.deployment.get(name)
-    },
-    deployAgent,
-    async deploy (template: Template, name: string, initMsg: Message) {
-      if (!this.deployAgent) {
-        throw new Error('Fadroma Ops: no deployAgent in context')
+  if (deployment) {
+    return {
+      prefix: deployment.prefix,
+      suffix: context.suffix ?? `+${timestamp()}`,
+      deployment,
+      deployAgent,
+      clientAgent,
+      async deploy (template: Template, name: string, initMsg: Message) {
+        if (!this.deployAgent) {
+          throw new Error('Fadroma Ops: no deployAgent in context')
+        }
+        return await this.deployment.init(this.deployAgent, template, name, initMsg)
+      },
+      async deployMany (template: Template, configs: [string, Message][]) {
+        if (!this.deployAgent) {
+          throw new Error('Fadroma Ops: no deployAgent in context')
+        }
+        return await this.deployment.initMany(this.deployAgent, template, configs)
+      },
+      getInstance (name: string) {
+        return this.deployment.get(name)
+      },
+      getClient (Client, name) {
+        return this.clientAgent.getClient(Client, this.deployment.get(name))
       }
-      return await this.deployment.init(this.deployAgent, template, name, initMsg)
-    },
-    async deployMany (template: Template, configs: [string, Message][]) {
-      if (!this.deployAgent) {
-        throw new Error('Fadroma Ops: no deployAgent in context')
+    }
+  } else {
+    return {
+      prefix: null,
+      suffix: context.suffix ?? `+${timestamp()}`,
+      deployment,
+      deployAgent,
+      clientAgent,
+      getInstance (name: string) {
+        throw new Error('Fadroma Ops: no active deployment')
+      },
+      async deploy (template: Template, name: string, initMsg: Message) {
+        throw new Error('Fadroma Ops: no active deployment')
+      },
+      async deployMany (template: Template, configs: [string, Message][]) {
+        throw new Error('Fadroma Ops: no active deployment')
+      },
+      getClient (Client, name) {
+        throw new Error('Fadroma Ops: no active deployment')
       }
-      return await this.deployment.initMany(this.deployAgent, template, configs)
-    },
-    clientAgent,
-    getClient (Client, name) {
-      return this.clientAgent.getClient(Client, this.deployment.get(name))
     }
   }
 }
@@ -814,6 +837,9 @@ export const print = console => {
       }
     },
     deployment ({ receipts, prefix }) {
+      let contracts: string|number = Object.values(receipts).length
+      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+      console.info('Active deployment:', bold(prefix), bold(contracts))
       const count = Object.values(receipts).length
       if (count > 0) {
         for (const name of Object.keys(receipts).sort()) {

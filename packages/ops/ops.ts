@@ -356,8 +356,9 @@ export class DockerBuilder extends CachingBuilder {
       // Root directory of repository, containing real .git directory
       [$(root).path]:              `/src`,
       // For non-interactively fetching submodules over SSH, we need to propagate known_hosts
-      ...(knownHosts.isFile()    ? { '/root/.ssh/known_hosts':   knownHosts.path    } : {}),
-      ...(etcKnownHosts.isFile() ? { '/etc/ssh/ssh_known_hosts': etcKnownHosts.path } : {})
+      ...(knownHosts.isFile()    ? { [knownHosts.path]:     '/root/.ssh/known_hosts'   } : {}),
+      ...(etcKnownHosts.isFile() ? { [etcKnownHosts.path] : '/etc/ssh/ssh_known_hosts' } : {}),
+      [process.env.SSH_AUTH_SOCK]: '/ssh_agent_socket'
     }
     const writable = {
       // Output path for final artifacts
@@ -396,7 +397,7 @@ export class DockerBuilder extends CachingBuilder {
       GIT_PAGER:                    'cat',
       GIT_TERMINAL_PROMPT:          '0',
       LOCKED:                       '',/*'--locked'*/
-      SSH_AUTH_SOCK:                process.env.SSH_AUTH_SOCK,
+      SSH_AUTH_SOCK:                '/ssh_agent_socket',
       TERM:                         process.env.TERM,
     }
     // Pre-populate the list of expected artifacts.
@@ -753,7 +754,7 @@ export interface DockerDevnetOpts extends DevnetOpts {
 export class DockerDevnet extends Devnet implements DevnetHandle {
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    console.info('Constructing', bold('Dockerode')+'-based devnet')
+    console.info('Constructing devnet with', bold('@hackbg/dokeres'))
     this.identities  = this.stateRoot.in('identities').as(JSONDirectory)
     this.image       = options.image
     this.initScript  = options.initScript
@@ -963,7 +964,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
       }
     } catch (e) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
-        console.warn(`Failed to delete ${path}: ${e.message}; trying cleanup container...`)
+        console.warn(`Failed to delete ${path}: ${e.code}; trying cleanup container...`)
         await this.image.ensure()
         const containerName = `${this.chainId}-${this.port}-cleanup`
         const options = {
@@ -1320,8 +1321,6 @@ export class Deployments extends JSONDirectory<unknown> {
   }
   list () {
     if (!existsSync(this.path)) {
-      console.info(`\n${this.path} does not exist, creating`)
-      $(this.path).make()
       return []
     }
     return readdirSync(this.path)

@@ -1,4 +1,4 @@
-# `@fadroma/client`
+# Fadroma Client
 
 Base layer for isomorphic contract clients.
 
