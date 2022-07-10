@@ -154,8 +154,8 @@ export class DotGit extends Path {
   }
   readonly present:     boolean
   readonly isSubmodule: boolean = false
-  get rootRepo (): Path { return $(this.path.split(DotGit.rootRepoRE)[0]) }
-  get submoduleDir (): string { return this.path.split(DotGit.rootRepoRE)[1] }
+  get rootRepo     (): Path   { return $(this.path.split(DotGit.rootRepoRE)[0]) }
+  get submoduleDir (): string { return this.path.split(DotGit.rootRepoRE)[1]    }
   /* Matches "/.git" or "/.git/" */
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 }
@@ -1289,13 +1289,6 @@ export class Deployments extends JSONDirectory<unknown> {
     return $(projectRoot).in('receipts').in(chain.id).in('deployments').as(Deployments)
   }
   KEY = '.active'
-  printActive () {
-    if (this.active) {
-      console.info(`Currently selected deployment:`, bold(this.active.prefix))
-    } else {
-      console.info(`No selected deployment.`)
-    }
-  }
   async create (id: string) {
     const path = resolve(this.path, `${id}.yml`)
     if (existsSync(path)) {
