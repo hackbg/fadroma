@@ -19,8 +19,17 @@
 **/
 
 import { resolve, dirname } from 'path'
-import { homedir } from 'os'
-import { fileURLToPath } from 'url'
+import { homedir }          from 'os'
+import { fileURLToPath }    from 'url'
+
+import $                                    from '@hackbg/kabinet'
+import { Console, bold, colors, timestamp } from '@hackbg/konzola'
+
+import { getScrtBuilder, getScrtDevnet }    from '@fadroma/ops-scrt'
+import { ScrtChain }                        from '@fadroma/client-scrt'
+import { LegacyScrt }                       from '@fadroma/client-scrt-amino'
+import { Scrt }                             from '@fadroma/client-scrt-grpc'
+
 import {
   Agent,
   AgentOpts,
@@ -44,21 +53,11 @@ import {
   join
 } from '@fadroma/ops'
 
-import $ from '@hackbg/kabinet'
-import { Console, bold, colors, timestamp } from '@hackbg/konzola'
-
-import { getScrtBuilder, getScrtDevnet } from '@fadroma/ops-scrt'
-import { ScrtChain } from '@fadroma/client-scrt'
-import { LegacyScrt } from '@fadroma/client-scrt-amino'
-import { Scrt } from '@fadroma/client-scrt-grpc'
-
 /** Update `process.env` with value from `.env` file */
 import dotenv from 'dotenv'
 dotenv.config()
 
 export const __dirname = dirname(fileURLToPath(import.meta.url))
-
-export { getScrtBuilder, getScrtDevnet, ScrtChain, LegacyScrt, Scrt }
 
 /// # Reexport the core platform vocabulary:
 
