@@ -1216,8 +1216,14 @@ export class CachingFSUploader extends FSUploader {
     if (receipt.exists()) {
       return receipt.load()
     }
-    const template = await super.upload(artifact)
-    console.info(bold(`Storing:  `), $(receipt.path).shortPath)
+    const data = $(artifact.url).as(BinaryFile).load()
+    console.info(
+      `Uploading:`, bold($(artifact.url).shortPath),
+      'with code hash', bold(artifact.codeHash),
+      'uncompressed', bold(String(data.length)), 'bytes'
+    )
+    const template = await this.agent.upload(data)
+    console.info(`Storing:  `, bold($(receipt.path).shortPath))
     receipt.save(template)
     return template
   }
