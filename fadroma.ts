@@ -273,21 +273,31 @@ export class CommandCollection {
 }
 
 export class Commands extends CommandCollection {
-  constructor (name, public readonly extra: Step<unknown, unknown>) {
+  constructor (name, ...extra: Step<unknown, unknown>[]) {
     super(name)
-    this.command('reset', 'reset the devnet',
-             resetDevnet)
-    this.command('status', 'print info about the current deployment',
-             print(console).chainStatus,
-             showDeployment)
-    this.command('list',   'print a list of all deployments',
-             listDeployments)
-    this.command('select', 'select a new active deployment',
-             selectDeployment)
-    this.command('new',    'create a new empty deployment',
-             createDeployment)
+    this.extra = extra
+    if (name === 'deploy') {
+      this.command('reset', 'reset the devnet',                 resetDevnet)
+      this.command('list',   'print a list of all deployments', listDeployments)
+      this.command('select', 'select a new active deployment',  selectDeployment)
+      this.command('new',    'create a new empty deployment',   createDeployment)
+      this.command('status', 'print info about the current deployment',
+        print(console).chainStatus,
+        showDeployment
+      )
+    }
   }
-  /** A command that runs in a popluated OperationContext */
+  readonly extra: Step<unknown, unknown>[] = []
+  /** A command that runs in a populated BuildContext */
+  build (name, info, ...steps) {
+    return super.command(name, info,
+      function getConfig () { return { config: currentConfig } },
+      enableScrtBuilder,
+      ...this.extra,
+      ...steps
+    )
+  }
+  /** A command that runs in a populated OperationContext */
   operation (name, info, ...steps) {
     return super.command(name, info,
       function getConfig () { return { config: currentConfig, chains } },
@@ -296,7 +306,7 @@ export class Commands extends CommandCollection {
       enableScrtBuilder,
       getFileUploader,
       getDeployment,
-      ...this.extra?[this.extra]:[],
+      ...this.extra,
       ...steps
     )
   }
@@ -315,12 +325,14 @@ export class Commands extends CommandCollection {
     }, ...steps)
   }
   /** `export default myCommands.main(import.meta.url)` */
-  async entrypoint (url: string, args = process.argv.slice(2)) {
-    if (process.argv[1] === fileURLToPath(url)) {
-      return this.run(args)
-    } else {
-      return this
-    }
+  entrypoint (url: string, args = process.argv.slice(2)): this {
+    const self = this
+    setTimeout(()=>{
+      if (process.argv[1] === fileURLToPath(url)) {
+        return self.run(args)
+      }
+    }, 0)
+    return self
   }
   async run (args = process.argv.slice(2)): Promise<void> {
     if (args.length === 0) {
@@ -329,7 +341,7 @@ export class Commands extends CommandCollection {
         longest = Math.max(name.length, longest)
       }
       for (const [name, { info }] of Object.entries(this.commands)) {
-        console.log(`    ... deploy ${bold(name.padEnd(longest))}  ${info}`)
+        console.log(`    ... ${this.name} ${bold(name.padEnd(longest))}  ${info}`)
       }
       process.exit(1)
     }
@@ -371,7 +383,7 @@ export class Commands extends CommandCollection {
       if (!(step instanceof Function)) {
         const msg = [
           'Each command step must be a function, but',
-          'step', bold(String(Number(i)+1)), 'in command', bold(cmdName),
+          'step', bold(String(Number(i)+1)), 'in command', bold(this.name), bold(cmdName),
           'is something else:', step, `(${typeof step})`
         ].join(' ')
         throw new Error(msg)
