@@ -259,13 +259,17 @@ export class CommandCollection {
     let commands = Object.entries(this.commands)
     for (let i = 0; i < args.length; i++) {
       const arg = args[i]
-      commands = commands.filter(command=>command[0].startsWith(arg))
-      if (commands.length === 1) {
-        return [...commands[0], args.slice(i+1)]
-      } else if (commands.length === 0) {
+      const nextCommands = []
+      for (const [name, impl] of commands) {
+        if (name === arg) {
+          return [name, impl, args.slice(i+1)]
+        } else if (name.startsWith(arg)) {
+          nextCommands.push([name.slice(arg.length).trim(), impl])
+        }
+      }
+      commands = nextCommands
+      if (commands.length === 0) {
         return null
-      } else {
-        commands = commands.map(command=>[command[0].slice(arg.length).trim(), command[1]])
       }
     }
     return null
@@ -273,10 +277,21 @@ export class CommandCollection {
 }
 
 export class Commands extends CommandCollection {
-  constructor (name, ...extra: Step<unknown, unknown>[]) {
+  constructor (
+    name,
+    private readonly before: Step<unknown, unknown>[] = [],
+    private readonly after:  Step<unknown, unknown>[] = []
+  ) {
     super(name)
+    before = [
+      function getConfig () { return { config: currentConfig } },
+      ...before
+    ]
     if (name === 'deploy') {
-      this.extra = [...extra, print(console).chainStatus]
+      this.before = [
+        ...before,
+        print(console).chainStatus
+      ]
       this.command('reset',  'reset the devnet',                resetDevnet)
       this.command('list',   'print a list of all deployments', listDeployments)
       this.command('select', 'select a new active deployment',  selectDeployment)
@@ -284,42 +299,19 @@ export class Commands extends CommandCollection {
       this.command('status', 'show the current deployment',     showDeployment)
     }
   }
-  readonly extra: Step<unknown, unknown>[] = []
-  /** A command that runs in a populated BuildContext */
-  build (name, info, ...steps) {
-    return super.command(name, info,
-      function getConfig () { return { config: currentConfig } },
-      enableScrtBuilder,
-      ...this.extra,
-      ...steps
-    )
-  }
-  /** A command that runs in a populated OperationContext */
-  operation (name, info, ...steps) {
-    return super.command(name, info,
-      function getConfig () { return { config: currentConfig, chains } },
-      getChain,
-      getAgent,
-      enableScrtBuilder,
-      getFileUploader,
-      getDeployment,
-      ...this.extra,
-      ...steps
-    )
-  }
-  /** A command that creates a new deployment when it starts. */
-  deployment (name, info, ...steps) {
-    return this.operation(name, info, createDeployment, ...steps)
+  command (name, info, ...steps) {
+    return super.command(name, info, ...this.before, ...steps, ...this.after)
   }
   /** For iterating on would-be irreversible mutations. */
   iteration (name, info, ...steps) {
-    return this.operation(name, info, function deploymentIteration (context) {
+    return this.command(name, info, deploymentIteration, ...steps)
+    function deploymentIteration (context) {
       if (context.devMode) {
         return createDeployment(context)
       } else {
         return context
       }
-    }, ...steps)
+    }
   }
   /** `export default myCommands.main(import.meta.url)` */
   entrypoint (url: string, args = process.argv.slice(2)): this {
