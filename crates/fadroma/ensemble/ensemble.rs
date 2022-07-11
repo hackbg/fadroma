@@ -108,6 +108,11 @@ impl ContractEnsemble {
     }
 
     #[inline]
+    pub fn delegations(&self, address: impl Into<HumanAddr>) -> Vec<Delegation> {
+        self.ctx.delegations.all_delegations(&address.into())
+    }
+
+    #[inline]
     pub fn add_validator(&mut self, validator: Validator) {
         self.ctx.delegations.add_validator(validator);
     }
