@@ -112,6 +112,14 @@ impl ContractEnsemble {
         self.ctx.delegations.all_delegations(&address.into())
     }
 
+    pub fn delegation(
+        &self, 
+        delegator: impl Into<HumanAddr>, 
+        validator: impl Into<HumanAddr>
+    ) -> Option<FullDelegation> {
+        self.ctx.delegations.delegation(&delegator.into(), &validator.into())
+    }
+
     #[inline]
     pub fn add_validator(&mut self, validator: Validator) {
         self.ctx.delegations.add_validator(validator);
