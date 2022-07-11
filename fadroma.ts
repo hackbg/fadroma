@@ -202,44 +202,42 @@ export const chains = {
     return new Mocknet()
   },
   async 'LegacyScrtMainnet' (config = currentConfig) {
-    return new LegacyScrt(config.scrt.mainnet.chainId, {
-      url:  config.scrt.mainnet.apiUrl,
-      mode: ChainMode.Mainnet
-    })
+    const mode = ChainMode.Mainnet
+    const id   = config.scrt.mainnet.chainId
+    const url  = config.scrt.mainnet.apiUrl
+    return new LegacyScrt(id, { url, mode })
   },
   async 'LegacyScrtTestnet' (config = currentConfig) {
-    return new LegacyScrt(config.scrt.testnet.chainId, {
-      url:  config.scrt.testnet.apiUrl,
-      mode: ChainMode.Testnet
-    })
+    const mode = ChainMode.Testnet
+    const id   = config.scrt.testnet.chainId
+    const url  = config.scrt.testnet.apiUrl
+    return new LegacyScrt(id, { url, mode })
   },
   async 'LegacyScrtDevnet'  (config = currentConfig) {
+    const mode = ChainMode.Devnet
     const node = await getScrtDevnet('1.2').respawn()
-    return new LegacyScrt(node.chainId, {
-      url:  node.url.toString(),
-      mode: ChainMode.Devnet,
-      node
-    })
+    const id   = node.chainId
+    const url  = node.url.toString()
+    return new LegacyScrt(id, { url, mode, node })
   },
   async 'ScrtMainnet'       (config = currentConfig) {
-    return new Scrt(config.scrt.mainnet.chainId, {
-      url:  config.scrt.mainnet.apiUrl,
-      mode: ChainMode.Mainnet
-    })
+    const mode = ChainMode.Mainnet
+    const id   = config.scrt.mainnet.chainId
+    const url  = config.scrt.mainnet.apiUrl
+    return new Scrt(id, { url, mode })
   },
   async 'ScrtTestnet'       (config = currentConfig) {
-    return new Scrt(config.scrt.testnet.chainId, {
-      url:  config.scrt.testnet.apiUrl,
-      mode: ChainMode.Testnet
-    })
+    const mode = ChainMode.Testnet
+    const id   = config.scrt.testnet.chainId
+    const url  = config.scrt.testnet.apiUrl
+    return new Scrt(id, { url, mode })
   },
   async 'ScrtDevnet'        (config = currentConfig) {
+    const mode = ChainMode.Devnet
     const node = await getScrtDevnet('1.3').respawn()
-    return new Scrt(node.chainId, {
-      url:  node.url.toString(),
-      mode: ChainMode.Devnet,
-      node
-    })
+    const id   = node.chainId
+    const url  = node.url.toString()
+    return new Scrt(id, { url, mode, node })
   },
 }
 
