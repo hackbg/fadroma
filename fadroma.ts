@@ -117,6 +117,8 @@ export class FadromaConfig {
     rebuild:      this.getBool('FADROMA_REBUILD',            ()=>false),
     /** Whether not to run `git fetch` during build. */
     noFetch:      this.getBool('FADROMA_NO_FETCH',           ()=>false),
+    /** Whether not to run `git fetch` during build. */
+    toolchain:    this.getBool('FADROMA_RUST',               ()=>undefined),
   }
   /** Devnet settings. */
   devnet = {

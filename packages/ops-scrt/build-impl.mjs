@@ -160,6 +160,7 @@ function phase1 ({
 
 /** As a non-root user, execute a release build, then optimize it with Binaryen. */
 function phase2 ({
+  toolchain = env('_TOOLCHAIN'),
   targetDir = env('_TMP_TARGET', '/tmp/target'),
   ref       = argv[3], // "HEAD" | <git ref>
   crate     = argv[4], // one crate to build
@@ -174,6 +175,10 @@ function phase2 ({
 } = {}) {
 
   console.log(`Build phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
+
+  if (toolchain) {
+    run(`rustup default ${toolchain}`)
+  }
 
   // Print versions of used tools
   run(`cargo --version`)

@@ -41,6 +41,7 @@ export const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export function getScrtBuilder (options: {
   rebuild?:    boolean
+  caching?:    boolean
   raw?:        boolean
   managerUrl?: string|URL
   image?:      string
@@ -48,19 +49,24 @@ export function getScrtBuilder (options: {
   script?:     string
   service?:    string
   noFetch?:    boolean
+  toolchain?:  string
 }) {
   const {
     rebuild,
+    caching = !rebuild,
+
     raw,
     managerUrl,
+
     image,
     dockerfile,
+    service,
     script,
-    service
+    noFetch,
+    toolchain
   } = options
-  const caching = !rebuild
   if (raw) {
-    return new ScrtRawBuilder({ caching, script, noFetch })
+    return new ScrtRawBuilder({ caching, script, noFetch, toolchain })
   } else if (managerUrl) {
     throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
     //return new ManagedBuilder({ managerURL })

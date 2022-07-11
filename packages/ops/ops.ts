@@ -456,21 +456,24 @@ export class DockerBuilder extends CachingBuilder {
 }
 
 export interface RawBuilderOptions {
-  caching:  boolean
-  script:   string,
-  noFetch?: boolean
+  caching:    boolean
+  script:     string
+  noFetch?:   boolean
+  toolchain?: string
 }
 
 /** This build mode looks for a Rust toolchain in the same environment
   * as the one in which the script is running, i.e. no build container. */
 export class RawBuilder extends CachingBuilder {
-  constructor ({ caching, script, noFetch }: RawBuilderOptions) {
+  constructor ({ caching, script, noFetch, toolchain = '1.59' }: RawBuilderOptions) {
     super({ caching })
-    this.script = $(script)
-    this.noFetch = noFetch
+    this.script    = $(script)
+    this.noFetch   = noFetch
+    this.toolchain = toolchain
   }
-  script:  Path
-  noFetch: boolean|undefined
+  script:    Path
+  noFetch:   boolean|undefined
+  toolchain: string
   /** Build a Source into an Artifact */
   async build (source: Source): Promise<Artifact> {
     return (await this.buildMany([source]))[0]
@@ -487,6 +490,7 @@ export class RawBuilder extends CachingBuilder {
       // Most of the parameters are passed to the build script
       // by way of environment variables.
       const env = {
+        _TOOLCHAIN: this.toolchain,
         _BUILD_UID: process.getuid(),
         _BUILD_GID: process.getgid(),
         _REGISTRY:  '',
@@ -511,7 +515,7 @@ export class RawBuilder extends CachingBuilder {
           _TMP_GIT:    tmpGit.path,
           _TMP_BUILD:  tmpBuild.path,
           _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
-          _NO_FETCH:   this.noFetch
+          _NO_FETCH:   this.noFetch,
         })
       }
       // Run the build script
