@@ -530,8 +530,8 @@ export class RawBuilder extends CachingBuilder {
       const codeHash = codeHashForPath(location.path)
       artifacts.push({ url: pathToFileURL(location.path), codeHash })
       // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
-      if (tmpGit.exists())   tmpGit.delete()
-      if (tmpBuild.exists()) tmpBuild.delete()
+      if (tmpGit   && tmpGit.exists())   tmpGit.delete()
+      if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
     }
     return artifacts
   }
