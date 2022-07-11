@@ -283,15 +283,8 @@ export class Commands extends CommandCollection {
     private readonly after:  Step<unknown, unknown>[] = []
   ) {
     super(name)
-    before = [
-      function getConfig () { return { config: currentConfig } },
-      ...before
-    ]
     if (name === 'deploy') {
-      this.before = [
-        ...before,
-        print(console).chainStatus
-      ]
+      this.before.push(print(console).chainStatus)
       this.command('reset',  'reset the devnet',                resetDevnet)
       this.command('list',   'print a list of all deployments', listDeployments)
       this.command('select', 'select a new active deployment',  selectDeployment)
@@ -318,7 +311,15 @@ export class Commands extends CommandCollection {
     const self = this
     setTimeout(()=>{
       if (process.argv[1] === fileURLToPath(url)) {
-        return self.run(args)
+        const command = this.parse(args)
+        if (command) {
+          const [cmdName, { info, steps }, cmdArgs] = command
+          console.info('$ fadroma', bold($(process.argv[1]).shortPath), bold(cmdName), ...cmdArgs)
+          return self.run(args)
+        } else {
+          console.error('Invalid command:', ...args)
+          process.exit(1)
+        }
       }
     }, 0)
     return self
@@ -340,9 +341,9 @@ export class Commands extends CommandCollection {
       process.exit(1)
     }
     const [cmdName, { info, steps }, cmdArgs] = command
-    console.info('$ fadroma', bold($(process.argv[1]).shortPath), bold(cmdName), ...cmdArgs)
     Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
     let context = {
+      config: currentConfig,
       cmdArgs,
       timestamp: timestamp(),
       /** Run a sub-procedure in the same context,
@@ -379,6 +380,7 @@ export class Commands extends CommandCollection {
       }
     }
     const longestName = steps.map(step=>step?.name||'').reduce((max,x)=>Math.max(max, x.length), 0)
+    let error
     for (const step of steps) {
       const name = (step.name||'').padEnd(longestName)
       const T1 = + new Date()
@@ -397,32 +399,40 @@ export class Commands extends CommandCollection {
           }
         })
         const T2 = + new Date()
-        //if (name.trim()) {
-          //console.info('🟢', colors.green('OK  '), bold(name), ` (${bold(String(T2-T1))}ms)`)
-        //}
         stepTimings.push([name, T2-T1, false])
       } catch (e) {
+        error = e
         const T2 = + new Date()
-        console.error('🔴', colors.red('FAIL'), bold(name), ` (${bold(String(T2-T1))}ms)`)
         stepTimings.push([name, T2-T1, true])
-        throw e
+        break
       }
     }
     const T3 = + new Date()
-    console.info(`The command`, bold(cmdName), `took`, ((T3-T0)/1000).toFixed(1), `s 🟢`)
+    const result = error ? colors.red('failed') : colors.green('completed')
+    console.info(`The command`, bold(cmdName), result, `in`, ((T3-T0)/1000).toFixed(3), `s`)
     for (const [name, duration, isError] of stepTimings) {
       console.info(
-        ' ',
-        isError?'🔴':'🟢',
+        isError?`${colors.red('FAIL')}`:`${colors.green('OK  ')}`,
         bold((name||'(nameless step)').padEnd(40)),
         (duration/1000).toFixed(1).padStart(10),
         's'
       )
     }
+    if (error) {
+      throw error
+    }
+  }
+}
+
+export function parallel (...commands) {
+  return function parallelCommands (context) {
+    return Promise.all(commands.map(command=>context.run(command)))
   }
 }
 
 export interface CommandContext {
+  /** The runtime configuration of Fadroma */
+  config:      FadromaConfig
   /** The moment at which the operation commenced. */
   timestamp:   string
   /** Arguments from the CLI invocation. */
@@ -678,12 +688,6 @@ export interface DeployContext extends ChainContext {
   getInstance:  (name: string) => Instance
   /** Shorthand for calling `clientAgent.getClient(Client, deployment.get(name))` */
   getClient:    <C extends Client, O extends ClientOpts>(Client: ClientCtor<C, O>, name: string)=>C
-}
-
-export function parallel (...commands) {
-  return function parallelCommands (context) {
-    return Promise.all(commands.map(command=>context.run(command)))
-  }
 }
 
 export function enableScrtBuilder ({ config }: {
