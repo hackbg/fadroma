@@ -1142,9 +1142,13 @@ export class Uploads extends JSONDirectory<UploadReceipt> {}
 export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
-    console.info(`Uploading:`, bold($(artifact.url).shortPath))
-    console.info(`Code hash:`, bold(artifact.codeHash))
-    const template = await this.agent.upload($(artifact.url).as(BinaryFile).load())
+    const data = $(artifact.url).as(BinaryFile).load()
+    console.info(
+      `Uploading:`, bold($(artifact.url).shortPath),
+      'with code hash', bold(artifact.codeHash),
+      'uncompressed', bold(String(data.length)), 'bytes'
+    )
+    const template = await this.agent.upload(data)
     await this.agent.nextBlock
     return template
   }
@@ -1158,7 +1162,12 @@ export class FSUploader extends Uploader {
       const artifact = artifacts[i]
       let template
       if (artifact) {
-        template = await this.agent.upload($(artifact.url).as(BinaryFile).load())
+        const path = $(artifact.url)
+        const data = path.as(BinaryFile).load()
+        console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
+        template = await this.agent.upload(data)
+        console.info('Uploaded:', bold(path.shortPath))
+        console.debug(template)
         this.checkCodeHash(artifact, template)
       }
       templates[i] = template
@@ -1222,7 +1231,6 @@ export class CachingFSUploader extends FSUploader {
       const receiptPath  = this.getUploadReceiptPath(artifact)
       const relativePath = $(receiptPath).shortPath
       if (!$(receiptPath).exists()) {
-        console.info(`Uploading:`, bold($(artifact.url).shortPath))
         artifactsToUpload[i] = artifact
       } else {
         const receiptFile     = $(receiptPath).as(JSONFile) as JSONFile<UploadReceipt>
