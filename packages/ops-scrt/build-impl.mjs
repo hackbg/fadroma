@@ -131,7 +131,7 @@ function phase1 ({
     }
 
     // Clone from the temporary local remote into the temporary working tree
-    run(`git clone -b ${ref} ${gitDir} ${buildRoot}`)
+    run(`git clone --recursive -b ${ref} ${gitDir} ${buildRoot}`)
     chdir(buildRoot)
 
     // Report which commit we're building and what it looks like
