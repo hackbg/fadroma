@@ -478,7 +478,7 @@ export async function getChain (context: {
   return {
     config,
     chains,
-    chain:       await chains[name](config),
+    chain,
     deployments: Deployments.fromConfig(chain, config.project.root),
     devMode:     chain.isDevnet || chain.isMocknet
   }
