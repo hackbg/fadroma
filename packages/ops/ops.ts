@@ -335,7 +335,7 @@ export class DockerBuilder extends CachingBuilder {
       const prebuilt = this.prebuild(outputDir, crate, ref)
       if (prebuilt) {
         const location = $(prebuilt.url).shortPath
-        console.info('Exists, not rebuilding:', bold($(location).shortPath))
+        //console.info('Exists, not rebuilding:', bold($(location).shortPath))
         artifacts[index] = prebuilt
       } else {
         shouldBuild[crate] = index
@@ -1242,9 +1242,7 @@ export class CachingFSUploader extends FSUploader {
           artifactsToUpload[i] = artifact
           continue
         }
-        console.info(
-          '✅', 'Exists, not reuploading (same code hash):', bold(relativePath)
-        )
+        //console.info('✅', 'Exists, not reuploading (same code hash):', bold(relativePath))
         templates[i] = {
           chainId:         this.chain.id,
           codeId:          receiptData.codeId,
