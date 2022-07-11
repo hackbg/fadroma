@@ -18,12 +18,12 @@ function Konzola (context) {
   const ERROR = () => bold(red(    `${context.padEnd(maxContextLength)} ERROR`))
   const TRACE = () => bold(magenta(`${context.padEnd(maxContextLength)} TRACE`))
 
-  const INDENT = "\n      "
+  const INDENT = (n = maxContextLength+7) => "\n" + [...Array(n)].map(x=>' ').join('')
   const format = (arg) => {
     if (typeof arg === 'object') {
-      return INDENT + render(arg).replace(/\n/g, INDENT).trim()
+      return INDENT() + render(arg).replace(/\n/g, INDENT()).trim()
     } else {
-      return INDENT + arg
+      return INDENT() + arg
     }
   }
 
