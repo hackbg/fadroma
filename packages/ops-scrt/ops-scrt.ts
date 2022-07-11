@@ -39,7 +39,7 @@ export * from '@fadroma/ops'
 
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export function getScrtBuilder (context: {
+export function getScrtBuilder (options: {
   rebuild?:    boolean
   raw?:        boolean
   managerUrl?: string|URL
@@ -47,6 +47,7 @@ export function getScrtBuilder (context: {
   dockerfile?: string
   script?:     string
   service?:    string
+  noFetch?:    boolean
 }) {
   const {
     rebuild,
@@ -56,10 +57,10 @@ export function getScrtBuilder (context: {
     dockerfile,
     script,
     service
-  } = context
+  } = options
   const caching = !rebuild
   if (raw) {
-    return new ScrtRawBuilder({ caching, script })
+    return new ScrtRawBuilder({ caching, script, noFetch })
   } else if (managerUrl) {
     throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
     //return new ManagedBuilder({ managerURL })
@@ -67,6 +68,8 @@ export function getScrtBuilder (context: {
     return new ScrtDockerBuilder({ caching, image, dockerfile, script, service })
   }
 }
+
+export class ScrtRawBuilder extends RawBuilder {}
 
 export class ScrtDockerBuilder extends DockerBuilder {
   constructor ({ caching, image, dockerfile, script, service }) {
@@ -81,8 +84,6 @@ export class ScrtDockerBuilder extends DockerBuilder {
     })
   }
 }
-
-export class ScrtRawBuilder extends RawBuilder {}
 
 export type ScrtDevnetVersion = '1.2'|'1.3'
 

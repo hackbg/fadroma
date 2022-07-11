@@ -47,6 +47,7 @@ function phase1 ({
   gitRemote   = env('_GIT_REMOTE', 'origin'),
   uid         = env('_BUILD_UID',  1000),
   gid         = env('_BUILD_GID',  1000),
+  noFetch     = env('_NO_FETCH'),
   interpreter = argv[0],       // e.g. /usr/bin/node
   script      = argv[1],       // this file
   ref         = argv[3],       // "HEAD" | <git ref>
@@ -113,7 +114,7 @@ function phase1 ({
       // create a ref under refs/heads pointing to that branch.
       try {
         console.log(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}.`)
-        gitRun('fetch')
+        if (!noFetch) gitRun('fetch')
         const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
         const remoteRef = shown.split(' ')[0]
         const refPath   = resolve(`${gitDir}/refs/heads/`, ref)

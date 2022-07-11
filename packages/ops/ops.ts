@@ -455,14 +455,22 @@ export class DockerBuilder extends CachingBuilder {
   }
 }
 
+export interface RawBuilderOptions {
+  caching:  boolean
+  script:   string,
+  noFetch?: boolean
+}
+
 /** This build mode looks for a Rust toolchain in the same environment
   * as the one in which the script is running, i.e. no build container. */
 export class RawBuilder extends CachingBuilder {
-  constructor ({ caching, script }: { caching: boolean, script: string }) {
+  constructor ({ caching, script, noFetch }: RawBuilderOptions) {
     super({ caching })
     this.script = $(script)
+    this.noFetch = noFetch
   }
-  script: Path
+  script:  Path
+  noFetch: boolean|undefined
   /** Build a Source into an Artifact */
   async build (source: Source): Promise<Artifact> {
     return (await this.buildMany([source]))[0]
@@ -502,7 +510,8 @@ export class RawBuilder extends CachingBuilder {
           _GIT_ROOT:   gitDir.path,
           _TMP_GIT:    tmpGit.path,
           _TMP_BUILD:  tmpBuild.path,
-          _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : ''
+          _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
+          _NO_FETCH:   this.noFetch
         })
       }
       // Run the build script
