@@ -114,13 +114,15 @@ function phase1 ({
       // create a ref under refs/heads pointing to that branch.
       try {
         console.log(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}.`)
-        if (!noFetch) gitRun('fetch')
-        const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
-        const remoteRef = shown.split(' ')[0]
-        const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
-        mkdirSync(dirname(refPath), { recursive: true })
-        writeFileSync(refPath, remoteRef, 'utf8')
-        gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
+        if (!noFetch) {
+          gitRun('fetch')
+          const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
+          const remoteRef = shown.split(' ')[0]
+          const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
+          mkdirSync(dirname(refPath), { recursive: true })
+          writeFileSync(refPath, remoteRef, 'utf8')
+          gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
+        }
       } catch (e) {
         console.log(e)
         console.log(`${ref} is not checked out or fetched. Run "git fetch" to update.`)

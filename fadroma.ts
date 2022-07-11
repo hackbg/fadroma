@@ -339,7 +339,7 @@ export class Commands extends CommandCollection {
     }
     const command = this.parse(args)
     if (!command) {
-      console.error('Invalid command:', ...args)
+      console.error('Invalid command', ...args)
       process.exit(1)
     }
     const [cmdName, { info, steps }, cmdArgs] = command
