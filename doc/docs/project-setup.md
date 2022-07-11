@@ -23,7 +23,13 @@ You'll need:
 * **Docker**, configured to run without `sudo`.
 > Fadroma uses Docker to encapsulate builds and launch local devnets.
 
-## Git submodule setup
+## Quick start from Fadroma Example repo
+
+* https://github.com/hackbg/fadroma-example
+
+## Step-by-step project setup
+
+### Git submodule setup
 
 Fadroma is currently in late beta and is distributed as a Git submodule.
 
@@ -40,7 +46,7 @@ git commit -m "tabula rasa"
 
 * Read more about [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 
-## Cargo workspace setup
+### Cargo workspace setup
 
 * Add `~/project/Cargo.toml`:
 
@@ -74,7 +80,7 @@ rpath            = false
 The names `allocator` and `generator` are just examples.
 Below, they are used as placeholders for actual contract names.
 
-## PNPM workspace setup
+### PNPM workspace setup
 
 * To install [PNPM](https://pnpm.io):
 
@@ -87,6 +93,7 @@ npm i -g pnpm
 ```toml
 prefer-workspace-packages=true
 ignore-workspace-root-check=true
+strict-peer-dependencies=false
 ```
 
 * Add `~/project/pnpm-workspace.yaml`:
@@ -115,6 +122,12 @@ ignore-workspace-root-check=true
 }
 ```
 
+* Make sure submodule is present:
+
+```shell
+git submodule update --init --recursive
+```
+
 * Install dependencies:
 
 ```shell
@@ -129,7 +142,7 @@ pnpm exec fadroma index.ts command arg1 arg2
 pnpm fadroma command arg1 arg2
 ```
 
-## Contract setup
+### Contract setup
 
 * Add `~/project/contracts/allocator/Cargo.toml`:
 
@@ -159,7 +172,7 @@ pub fn query  /*...*/
 fadroma::entrypoint!(fadroma, init, handle, query);
 ```
 
-## API client setup
+### API client setup
 
 * Add `~/project/api/package.json`:
 
@@ -206,7 +219,7 @@ export class Generator extends Snip20 {
 }
 ```
 
-## Deploy procedure
+### Deploy procedure
 
 * Add `~/project/index.ts`:
 
