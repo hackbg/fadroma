@@ -624,7 +624,7 @@ export function getDeployContext (context: {
       deployment,
       deployAgent,
       clientAgent,
-      async deploy (template: Template, name: string, initMsg: Message) {
+      async deploy (name: string, template: Template, initMsg: Message) {
         if (!this.deployAgent) {
           throw new Error('Fadroma Ops: no deployAgent in context')
         }
@@ -639,7 +639,8 @@ export function getDeployContext (context: {
       getInstance (name: string) {
         return this.deployment.get(name)
       },
-      getClient (Client, name) {
+      //@ts-ignore
+      getClient (name: string, _Client = Client) {
         return this.clientAgent.getClient(Client, this.deployment.get(name))
       }
     }
@@ -653,13 +654,13 @@ export function getDeployContext (context: {
       getInstance (name: string) {
         throw new Error('Fadroma Ops: no active deployment')
       },
-      async deploy (template: Template, name: string, initMsg: Message) {
+      async deploy (name: string, template: Template, initMsg: Message) {
         throw new Error('Fadroma Ops: no active deployment')
       },
       async deployMany (template: Template, configs: [string, Message][]) {
         throw new Error('Fadroma Ops: no active deployment')
       },
-      getClient (Client, name) {
+      getClient (name: string, Client) {
         throw new Error('Fadroma Ops: no active deployment')
       }
     }
@@ -679,7 +680,7 @@ export interface DeployContext extends ChainContext {
   /** Who'll deploy new contracts */
   deployAgent?: Agent
   /** Shorthand for calling `deployment.init(deployAgent, ...)` */
-  deploy:       (template: Template, name: string, initMsg: Message) => Promise<Instance>
+  deploy:       (name: string, template: Template, initMsg: Message) => Promise<Instance>
   /** Shorthand for calling `deployment.initMany(deployAgent, ...)` */
   deployMany:   (template: Template, configs: [string, Message][]) => Promise<Instance[]>
   /** Who'll interact with existing contracts */
@@ -687,7 +688,7 @@ export interface DeployContext extends ChainContext {
   /** Shorthand for calling `deployment.get(name)` */
   getInstance:  (name: string) => Instance
   /** Shorthand for calling `clientAgent.getClient(Client, deployment.get(name))` */
-  getClient:    <C extends Client, O extends ClientOpts>(Client: ClientCtor<C, O>, name: string)=>C
+  getClient:    <C extends Client, O extends ClientOpts>(name: string, Client?: ClientCtor<C, O>)=>C
 }
 
 export function enableScrtBuilder ({ config }: {
@@ -700,10 +701,10 @@ export function enableScrtBuilder ({ config }: {
 export function getBuildContext (builder: Builder): BuildContext {
   return {
     builder,
-    async build (source: Source): Promise<Artifact> {
+    async build (source: (Source|string)): Promise<Artifact> {
       return await builder.build(source)
     },
-    async buildMany (sources: Source[]): Promise<Artifact[]> {
+    async buildMany (sources: (Source|string)[]): Promise<Artifact[]> {
       return await builder.buildMany(sources)
     }
   }
@@ -713,18 +714,16 @@ export function getBuildContext (builder: Builder): BuildContext {
   * contracts from source code to WASM artifacts */
 export interface BuildContext {
   builder?:   Builder
-  build?:     (source: Source) => Promise<Artifact>
-  buildMany?: (sources: Source[]) => Promise<Artifact[]>
+  build?:     (source:   Source|string   )=> Promise<Artifact>
+  buildMany?: (sources: (Source|string)[]) => Promise<Artifact[]>
 }
 
 /** Add an uploader to the command context. */
 export function getFileUploader (context: {
-  agent:      Agent
-  caching?:   boolean
-  build?:     (source: Source) => Promise<Artifact>
-  buildMany?: (sources: Source[]) => Promise<Artifact[]>
-  config: { project: { root: string }, upload: { reupload: boolean } },
-}): UploadContext {
+  agent:    Agent
+  caching?: boolean
+  config:   { project: { root: string }, upload: { reupload: boolean } },
+} & Partial<BuildContext>): UploadContext {
   const {
     config,
     agent: { chain: { isMocknet } },
@@ -744,13 +743,13 @@ export function getFileUploader (context: {
     async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
       return await uploader.uploadMany(artifacts)
     },
-    async buildAndUpload (source: Source): Promise<Template> {
+    async buildAndUpload (source: Source|string): Promise<Template> {
       if (!build) {
         throw new Error('Builder is not specified.')
       }
       return await uploader.upload(await build(source))
     },
-    async buildAndUploadMany (sources: Source[]): Promise<Template[]> {
+    async buildAndUploadMany (sources: (Source|string)[]): Promise<Template[]> {
       if (!buildMany) {
         throw new Error('Builder is not specified.')
       }
@@ -763,10 +762,10 @@ export function getFileUploader (context: {
   * contract code to the platform. */
 export interface UploadContext {
   uploader?:          Uploader
-  upload:             (artifact:  Artifact)   => Promise<Template>
-  uploadMany:         (artifacts: Artifact[]) => Promise<Template[]>
-  buildAndUpload:     (source:    Source)     => Promise<Template>
-  buildAndUploadMany: (sources:   Source[])   => Promise<Template[]>
+  upload:             (artifact:  Artifact        ) => Promise<Template>
+  uploadMany:         (artifacts: Artifact[]      ) => Promise<Template[]>
+  buildAndUpload:     (source:    Source|string   ) => Promise<Template>
+  buildAndUploadMany: (sources:  (Source|string)[]) => Promise<Template[]>
 }
 
 export const print = console => {
