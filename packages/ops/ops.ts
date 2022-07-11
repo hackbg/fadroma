@@ -1252,7 +1252,7 @@ export class CachingFSUploader extends FSUploader {
       }
     }
     if (artifactsToUpload.length > 0) {
-      console.info('Need to upload', bold(String(artifactsToUpload.length)), 'artifacts')
+      //console.info('Need to upload', bold(String(artifactsToUpload.length)), 'artifacts')
       const uploaded = await super.uploadMany(artifactsToUpload)
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
