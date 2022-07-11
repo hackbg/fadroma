@@ -275,16 +275,13 @@ export class CommandCollection {
 export class Commands extends CommandCollection {
   constructor (name, ...extra: Step<unknown, unknown>[]) {
     super(name)
-    this.extra = extra
     if (name === 'deploy') {
-      this.command('reset', 'reset the devnet',                 resetDevnet)
+      this.extra = [...extra, print(console).chainStatus]
+      this.command('reset',  'reset the devnet',                resetDevnet)
       this.command('list',   'print a list of all deployments', listDeployments)
       this.command('select', 'select a new active deployment',  selectDeployment)
       this.command('new',    'create a new empty deployment',   createDeployment)
-      this.command('status', 'print info about the current deployment',
-        print(console).chainStatus,
-        showDeployment
-      )
+      this.command('status', 'show the current deployment',     showDeployment)
     }
   }
   readonly extra: Step<unknown, unknown>[] = []
