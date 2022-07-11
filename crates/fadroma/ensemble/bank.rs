@@ -49,15 +49,22 @@ impl Bank {
                         amount.0 -= coin.amount.0;
                     } else {
                         return Err(StdError::generic_err(format!(
-                            "Insufficient {} balance {} for remove balance {}", 
+                            "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}", 
+                            address,
                             coin.denom,
                             amount.0,
-                            coin.amount.0
+                            coin.amount.0,
                         )))
                     }
                 },
                 None => {
-                    return Err(StdError::generic_err(format!("Zero {} balance for remove balance", coin.denom)))
+                    return Err(StdError::generic_err(format!(
+                        "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}",
+                        address,
+                        coin.denom,
+                        Uint128::zero(),
+                        coin.amount.0,
+                    )))
                 }
             }
         }

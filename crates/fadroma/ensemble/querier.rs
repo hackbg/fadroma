@@ -77,7 +77,7 @@ impl Querier for EnsembleQuerier {
                 StakingQuery::BondedDenom {} => {
                     let denom = ctx.delegations.bonded_denom();
 
-                    Ok(to_binary(&BondedDenomResponse { denom }))
+                    Ok(to_binary(&BondedDenomResponse { denom: denom.to_string() }))
                 },
                 StakingQuery::Delegation { delegator, validator } => {
                     let delegation = ctx.delegations.delegation(&delegator, &validator);
@@ -92,7 +92,7 @@ impl Querier for EnsembleQuerier {
                 StakingQuery::Validators {} => {
                     let validators = ctx.delegations.validators();
 
-                    Ok(to_binary(&ValidatorsResponse { validators }))
+                    Ok(to_binary(&ValidatorsResponse { validators: validators.to_vec() }))
                 },
             },
             QueryRequest::Dist(query) => match query {

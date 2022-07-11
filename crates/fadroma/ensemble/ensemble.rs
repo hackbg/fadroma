@@ -52,9 +52,9 @@ impl ContractEnsemble {
         }
     }
 
-    pub fn new_with_denom(canonical_length: usize, native_denom: String) -> Self {
+    pub fn new_with_denom(canonical_length: usize, native_denom: impl Into<String>) -> Self {
         Self {
-            ctx: Box::new(Context::new(canonical_length, native_denom)),
+            ctx: Box::new(Context::new(canonical_length, native_denom.into())),
         }
     }
 
@@ -430,8 +430,8 @@ impl Context {
                             .remove_funds(&sender, vec![amount.clone()])?;
                         
                         let res = match self.delegations.delegate(
-                            &sender,
-                            &validator,
+                            sender.clone(),
+                            validator,
                             amount.clone(),
                         ) {
                             Ok(result) => Ok(result),
@@ -448,8 +448,8 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.undelegate(
-                            &sender,
-                            &validator,
+                            sender.clone(),
+                            validator,
                             amount.clone(),
                         )?;
                         
@@ -477,8 +477,8 @@ impl Context {
                             .add_funds(&funds_recipient, vec![withdraw_amount]);
 
                         let withdraw_res = self.delegations.withdraw(
-                            &sender,
-                            &validator,
+                            sender.clone(),
+                            validator,
                         )?;
 
                         responses.push(Response::Staking(withdraw_res));
@@ -489,9 +489,9 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.redelegate(
-                            &sender,
-                            &src_validator,
-                            &dst_validator,
+                            sender.clone(),
+                            src_validator,
+                            dst_validator,
                             amount,
                         )?;
 

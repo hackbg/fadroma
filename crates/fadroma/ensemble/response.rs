@@ -61,7 +61,6 @@ pub struct StakingResponse {
     pub amount: Coin,
 }
 
-
 pub struct Iter<'a> {
     responses: &'a [Response],
     index: usize,
