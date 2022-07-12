@@ -309,7 +309,19 @@ export class Commands extends CommandCollection {
       }
     }
   }
-  /** `export default myCommands.main(import.meta.url)` */
+  printUsage () {
+    let longest = 0
+    for (const name of Object.keys(this.commands)) {
+      longest = Math.max(name.length, longest)
+    }
+    console.log()
+    for (const [name, { info }] of Object.entries(this.commands)) {
+      console.log(`    ... ${this.name} ${bold(name.padEnd(longest))}  ${info}`)
+    }
+    console.log()
+  }
+  /** `export default myCommands.main(import.meta.url)`
+    * once per module after defining all commands */
   entrypoint (url: string, args = process.argv.slice(2)): this {
     const self = this
     setTimeout(()=>{
@@ -320,7 +332,7 @@ export class Commands extends CommandCollection {
           console.info('$ fadroma', bold($(process.argv[1]).shortPath), bold(cmdName), ...cmdArgs)
           return self.run(args)
         } else {
-          console.error('Invalid command:', ...args)
+          this.printUsage()
           process.exit(1)
         }
       }
@@ -329,13 +341,7 @@ export class Commands extends CommandCollection {
   }
   async run (args = process.argv.slice(2)): Promise<void> {
     if (args.length === 0) {
-      let longest = 0
-      for (const name of Object.keys(this.commands)) {
-        longest = Math.max(name.length, longest)
-      }
-      for (const [name, { info }] of Object.entries(this.commands)) {
-        console.log(`    ... ${this.name} ${bold(name.padEnd(longest))}  ${info}`)
-      }
+      this.printUsage()
       process.exit(1)
     }
     const command = this.parse(args)
@@ -806,7 +812,7 @@ export const print = console => {
       }
     },
     identities (chain: any) {
-      console.log('\nAvailable identities:')
+      console.info('\nAvailable identities:')
       for (const identity of chain.identities.list()) {
         console.log(`  ${chain.identities.load(identity).address} (${bold(identity)})`)
       }
