@@ -71,6 +71,7 @@ import * as http from 'http'
 export * from '@hackbg/formati'
 export * from '@fadroma/client'
 
+export { TOML, YAML }
 export const console          = Console('Fadroma Ops')
 export const HEAD             = 'HEAD'
 export const distinct         = <T> (x: T[]): T[] => [...new Set(x)]
