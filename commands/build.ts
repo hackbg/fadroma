@@ -51,7 +51,7 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
     )
   ) {
     console.info('Build manifest:', bold(cargoToml.shortPath))
-    const source = workspace.crate(cargoToml.load().package.name)
+    const source = workspace.crate((cargoToml.as(TOMLFile).load() as any).package.name)
     try {
       const builder = getScrtBuilder({
         ...currentConfig.build,
