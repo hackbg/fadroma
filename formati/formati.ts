@@ -1,20 +1,20 @@
 import { URL } from 'url'
 import { readFileSync } from 'fs'
-import { randomBytes } from 'crypto'
 import { bech32, bech32m } from 'bech32'
+import { randomBuffer } from 'secure-random'
 
 export const randomHex = (bytes = 1) =>
-  randomBytes(bytes).toString("hex")
+  randomBuffer(bytes).toString("hex")
 
 export const randomBase64 = (bytes = 1) =>
-  randomBytes(bytes).toString("base64")
+  randomBuffer(bytes).toString("base64")
 
 /** By default this generates 32 bytes - default length of canonical addr in Cosmos */
 export const randomBech32 = (prefix = 'hackbg', bytes = 32) =>
-  bech32.encode(prefix, bech32.toWords(randomBytes(bytes)))
+  bech32.encode(prefix, bech32.toWords(randomBuffer(bytes)))
 
 export const randomBech32m = (prefix = 'hackbg', bytes = 32) =>
-  bech32m.encode(prefix, bech32m.toWords(randomBytes(bytes)))
+  bech32m.encode(prefix, bech32m.toWords(randomBuffer(bytes)))
 
 export const loadJSON = (path = '', base = null) =>
   JSON.parse(String(
@@ -36,12 +36,6 @@ export function required (label) {
   return () => { throw new Error(`required: ${label}`) }
 }
 
-
-export {
-  bech32,
-  bech32m,
-  randomBytes
-}
-
+export { bech32, bech32m, randomBuffer as randomBytes }
 export { toBase64, fromBase64, fromUtf8, fromHex, toHex } from '@iov/encoding'
 export { Sha256 } from '@iov/crypto'

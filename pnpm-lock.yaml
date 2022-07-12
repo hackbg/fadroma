@@ -66,10 +66,12 @@ importers:
       '@iov/crypto': ^2.5.0
       '@iov/encoding': ^2.5.0
       bech32: ^2.0.0
+      secure-random: ^1.1.2
     dependencies:
       '@iov/crypto': 2.5.0
       '@iov/encoding': 2.5.0
       bech32: 2.0.0
+      secure-random: 1.1.2
 
   izdatel:
     specifiers: {}
@@ -1498,6 +1500,10 @@ packages:
 
   /safer-buffer/2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
+    dev: false
+
+  /secure-random/1.1.2:
+    resolution: {integrity: sha512-H2bdSKERKdBV1SwoqYm6C0y+9EA94v6SUBOWO8kDndc4NoUih7Dv6Tsgma7zO1lv27wIvjlD0ZpMQk7um5dheQ==}
     dev: false
 
   /semver/5.7.1:

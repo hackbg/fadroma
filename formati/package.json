@@ -11,7 +11,8 @@
   "dependencies": {
     "@iov/crypto":   "^2.5.0",
     "@iov/encoding": "^2.5.0",
-    "bech32":        "^2.0.0"
+    "bech32":        "^2.0.0",
+    "secure-random": "^1.1.2"
   },
   "scripts": {
     "build": "tsc",
