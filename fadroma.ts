@@ -717,14 +717,14 @@ export function getBuildContext (builder: Builder, root: string): BuildContext {
     builder,
     workspace,
     getSource (source: Source|string): Source {
-      if (typeof source === 'string') return workspace.crate(source)
+      if (typeof source === 'string') return this.workspace.crate(source)
       return source
     },
     async build (source: Source|string): Promise<Artifact> {
-      return await builder.build(this.getSource(source))
+      return await this.builder.build(this.getSource(source))
     },
     async buildMany (sources: (Source|string)[]): Promise<Artifact[]> {
-      return await builder.buildMany(sources.map(source=>this.getSource(source)))
+      return await this.builder.buildMany(sources.map(source=>this.getSource(source)))
     }
   }
 }

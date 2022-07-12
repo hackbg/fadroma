@@ -172,6 +172,7 @@ export class Source {
 
 /** Can perform builds. */
 export abstract class Builder {
+  outputDirName = 'artifacts'
   abstract build (source: Source, ...args): Promise<Artifact>
   buildMany (sources: Source[], ...args): Promise<Artifact[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
@@ -248,7 +249,7 @@ export class DockerBuilder extends CachingBuilder {
     console.info('Requested to build the following contracts:')
     const longestCrateName = sources.map(source=>source.crate.length).reduce((x,y)=>Math.max(x,y),0)
     for (const source of sources) {
-      const outputDir = $(source.workspace.path).resolve('artifacts')
+      const outputDir = $(source.workspace.path).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.workspace.ref)
       console.info(
         ' ',    bold(source.crate.padEnd(longestCrateName)),
@@ -324,7 +325,7 @@ export class DockerBuilder extends CachingBuilder {
     ref:       string,
     crates:    [number, string][],
     gitSubdir: string = '',
-    outputDir: string = $(root, subdir, process.env.FADROMA_BUILD_OUTPUT_DIR||'artifacts').path,
+    outputDir: string = $(root, subdir, this.outputDirName).path,
   ): Promise<(Artifact|null)[]> {
     // Create output directory as user if it does not exist
     $(outputDir).as(OpaqueDirectory).make()
