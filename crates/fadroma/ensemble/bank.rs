@@ -27,7 +27,7 @@ impl Bank {
         &mut self, 
         address: &HumanAddr, 
         coins: Vec<Coin>
-    ) -> StdResult<()> {
+    ) -> UsuallyOk {
         if coins.is_empty() {
             return Ok(());
         }

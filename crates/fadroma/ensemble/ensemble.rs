@@ -93,7 +93,7 @@ impl ContractEnsemble {
         &mut self, 
         address: impl Into<HumanAddr>, 
         coins: Vec<Coin>
-    ) -> StdResult<()> {
+    ) -> UsuallyOk {
         self.ctx.bank.current.remove_funds(&address.into(), coins)
     }
 

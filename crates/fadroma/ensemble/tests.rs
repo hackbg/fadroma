@@ -1,6 +1,7 @@
 use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 use super::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
+use super::response::{RewardsResponse, ValidatorRewards};
 
 const SEND_AMOUNT: u128 = 100;
 const SEND_DENOM: &str = "uscrt";
@@ -914,10 +915,19 @@ fn staking() {
         vec![Coin::new(50u128, "uscrt")],
     );
 
+    let mut rewards_result = ensemble.ctx.delegations.rewards(&addr1);
+    rewards_result.rewards.sort_by(|a, b| a.validator_address.to_string().cmp(&b.validator_address.to_string()));
     assert_eq!(
-        ensemble.ctx.delegations.rewards(&addr1),
+        rewards_result,
         RewardsResponse {
-            rewards: vec![],
+            rewards: vec![ValidatorRewards {
+                validator_address: val_addr_1.clone(),
+                reward: vec![Coin::new(0u128, "uscrt")],
+            },
+            ValidatorRewards {
+                validator_address: val_addr_2.clone(),
+                reward: vec![Coin::new(50u128, "uscrt")],
+            }],
             total: vec![Coin::new(50u128, "uscrt")],
         },
     );

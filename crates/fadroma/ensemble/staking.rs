@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::prelude::*;
-use super::response::StakingResponse;
+use super::response::{StakingResponse, RewardsResponse, ValidatorRewards};
 
 #[derive(Clone, Debug)]
 pub(crate) struct DelegationWithUnbonding {
@@ -146,21 +146,28 @@ impl Delegations {
         match self.delegators.get(delegator) {
             Some(delegations) => {
                 let mut total = 0u128;
+                let mut rewards = vec![];
                 for delegation_pair in delegations {
                     let delegation = delegation_pair.1;
                     total += delegation.accumulated_rewards.amount.u128();
+                    rewards.push(ValidatorRewards{
+                        validator_address: delegation.validator.clone(),
+                        reward: vec![delegation.accumulated_rewards.clone()],
+                    });
                 }
                 
                 // Cannot return any actual ValidatorRewards structs because the struct is
                 // private at the moment.
                 RewardsResponse {
-                    rewards: vec![],
+                    rewards,
                     total: vec![Coin::new(total, &self.bonded_denom)],
                 }
             },
-            None => RewardsResponse {
-                rewards: vec![],
-                total: vec![],
+            None => {
+                RewardsResponse {
+                    rewards: vec![],
+                    total: vec![],
+                }
             },
         }
     }
