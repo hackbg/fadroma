@@ -50,6 +50,7 @@ import {
   Source,
   Template,
   Uploader,
+  Workspace,
   join
 } from '@fadroma/ops'
 
@@ -98,7 +99,7 @@ export class FadromaConfig {
     /** The project's root directory. */
     root:         this.getStr( 'FADROMA_PROJECT',            ()=>process.cwd()),
     /** The selected chain backend. */
-    chain:        this.getStr( 'FADROMA_CHAIN',              ()=>undefined),
+    chain:        this.getStr( 'FADROMA_CHAIN',              ()=>''),
   }
   /** System settings. */
   system = {
@@ -173,23 +174,25 @@ export class FadromaConfig {
   }
 
   private configureScrt () {
-    if (this.project.chain.startsWith('LegacyScrt')) {
-      if (this.scrt.mainnet.apiUrl === null) {
-        this.scrt.mainnet.apiUrl =
-          `https://${this.scrt.mainnet.chainId}--lcd--full.datahub.figment.io`+
-          `/apikey/${this.datahub.key}/`
-      }
-      if (this.scrt.testnet.apiUrl === null) {
-        this.scrt.testnet.apiUrl =
-          `https://${this.scrt.testnet.chainId}--lcd--full.datahub.figment.io`+
-          `/apikey/${this.datahub.key}/`
-      }
-    } else if (this.project.chain.startsWith('Scrt')) {
-      if (this.scrt.mainnet.apiUrl === null) {
-        this.scrt.mainnet.apiUrl = 'https://secret-4.api.trivium.network:9091'
-      }
-      if (this.scrt.testnet.apiUrl === null) {
-        this.scrt.testnet.apiUrl = 'https://testnet-web-rpc.roninventures.io'
+    if (this.project.chain) {
+      if (this.project.chain.startsWith('LegacyScrt')) {
+        if (this.scrt.mainnet.apiUrl === null) {
+          this.scrt.mainnet.apiUrl =
+            `https://${this.scrt.mainnet.chainId}--lcd--full.datahub.figment.io`+
+            `/apikey/${this.datahub.key}/`
+        }
+        if (this.scrt.testnet.apiUrl === null) {
+          this.scrt.testnet.apiUrl =
+            `https://${this.scrt.testnet.chainId}--lcd--full.datahub.figment.io`+
+            `/apikey/${this.datahub.key}/`
+        }
+      } else if (this.project.chain.startsWith('Scrt')) {
+        if (this.scrt.mainnet.apiUrl === null) {
+          this.scrt.mainnet.apiUrl = 'https://secret-4.api.trivium.network:9091'
+        }
+        if (this.scrt.testnet.apiUrl === null) {
+          this.scrt.testnet.apiUrl = 'https://testnet-web-rpc.roninventures.io'
+        }
       }
     }
   }
@@ -432,7 +435,7 @@ export function parallel (...commands) {
 
 export interface CommandContext {
   /** The runtime configuration of Fadroma */
-  config:      FadromaConfig
+  config:      Partial<FadromaConfig>
   /** The moment at which the operation commenced. */
   timestamp:   string
   /** Arguments from the CLI invocation. */
@@ -447,7 +450,7 @@ export interface CommandContext {
 }
 
 export interface ConfigContext {
-  config:    FadromaConfig
+  config:    Partial<FadromaConfig>
   chainList: typeof chains
 }
 
@@ -521,7 +524,7 @@ export async function getAgent (context: ChainContext): Promise<Partial<AgentCon
 
 export interface AgentContext extends ChainContext {
   /** An identity operating on the chain. */
-  agent:       Agent
+  agent: Agent
 }
 
 /** Print the status of a deployment. */
@@ -691,21 +694,27 @@ export interface DeployContext extends ChainContext {
   getClient:    <C extends Client, O extends ClientOpts>(name: string, Client?: ClientCtor<C, O>)=>C
 }
 
-export function enableScrtBuilder ({ config }: {
-  config: { build: { rebuild: boolean }, scrt: { build: object } }
+export function enableBuilding ({ config }: {
+  config: { project: { root: string }, build: { rebuild: boolean }, scrt: { build: object } }
 }) {
   const builder = getScrtBuilder({ ...config.build, ...config.scrt.build })
-  return getBuildContext(builder)
+  return getBuildContext(builder, root)
 }
 
-export function getBuildContext (builder: Builder): BuildContext {
+export function getBuildContext (builder: Builder, root: string): BuildContext {
+  const workspace = new Workspace(root)
   return {
     builder,
-    async build (source: (Source|string)): Promise<Artifact> {
-      return await builder.build(source)
+    workspace,
+    getSource (source: Source|string): Source {
+      if (typeof source === 'string') return workspace.crate(source)
+      return source
+    },
+    async build (source: Source|string): Promise<Artifact> {
+      return await builder.build(this.getSource(source))
     },
     async buildMany (sources: (Source|string)[]): Promise<Artifact[]> {
-      return await builder.buildMany(sources)
+      return await builder.buildMany(sources.map(source=>this.getSource(source)))
     }
   }
 }
@@ -713,13 +722,15 @@ export function getBuildContext (builder: Builder): BuildContext {
 /** The part of OperationContext that deals with building
   * contracts from source code to WASM artifacts */
 export interface BuildContext {
-  builder?:   Builder
-  build?:     (source:   Source|string   )=> Promise<Artifact>
-  buildMany?: (sources: (Source|string)[]) => Promise<Artifact[]>
+  builder:   Builder
+  workspace: Workspace
+  getSource: (source: string) => Source
+  build:     (source:   Source|string   )=> Promise<Artifact>
+  buildMany: (sources: (Source|string)[]) => Promise<Artifact[]>
 }
 
 /** Add an uploader to the command context. */
-export function getFileUploader (context: {
+export function enableUploading (context: {
   agent:    Agent
   caching?: boolean
   config:   { project: { root: string }, upload: { reupload: boolean } },
@@ -761,7 +772,7 @@ export function getFileUploader (context: {
 /** The part of OperationContext that deals with uploading
   * contract code to the platform. */
 export interface UploadContext {
-  uploader?:          Uploader
+  uploader:           Uploader
   upload:             (artifact:  Artifact        ) => Promise<Template>
   uploadMany:         (artifacts: Artifact[]      ) => Promise<Template[]>
   buildAndUpload:     (source:    Source|string   ) => Promise<Template>
