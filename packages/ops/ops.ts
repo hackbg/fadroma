@@ -326,6 +326,8 @@ export class DockerBuilder extends CachingBuilder {
     gitSubdir: string = '',
     outputDir: string = $(root, subdir, process.env.FADROMA_BUILD_OUTPUT_DIR||'artifacts').path,
   ): Promise<(Artifact|null)[]> {
+    // Create output directory as user if it does not exist
+    $(outputDir).as(OpaqueDirectory).make()
     // Output slots. Indices should correspond to those of the input to buildMany
     const artifacts:   (Artifact|null)[] = crates.map(()=>null)
     // Whether any crates should be built, and at what indices they are in the input and output.
