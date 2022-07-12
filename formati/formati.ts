@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs'
 import { bech32, bech32m } from 'bech32'
 import { randomBuffer } from 'secure-random'
 
@@ -14,11 +13,6 @@ export const randomBech32 = (prefix = 'hackbg', bytes = 32) =>
 
 export const randomBech32m = (prefix = 'hackbg', bytes = 32) =>
   bech32m.encode(prefix, bech32m.toWords(randomBuffer(bytes)))
-
-export const loadJSON = (path = '', base = null) =>
-  JSON.parse(String(
-    base ? readFileSync(new URL(path, base))
-         : readFileSync(path)))
 
 export function pick (
   obj = {},
