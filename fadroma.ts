@@ -460,7 +460,7 @@ export interface ConfigContext {
   chainList: typeof chains
 }
 
-export type OperationContext =
+export type Context =
   CommandContext &
   ConfigContext  &
   ChainContext   &
@@ -676,7 +676,7 @@ export function getDeployContext (context: {
   }
 }
 
-/** The part of OperationContext that deals with deploying
+/** The part of Context that deals with deploying
   * groups of contracts and keeping track of the receipts. */
 export interface DeployContext extends ChainContext {
   /** Currently selected collection of interlinked contracts. */
@@ -729,7 +729,7 @@ export function getBuildContext (builder: Builder, root: string): BuildContext {
   }
 }
 
-/** The part of OperationContext that deals with building
+/** The part of Context that deals with building
   * contracts from source code to WASM artifacts */
 export interface BuildContext {
   builder:   Builder
@@ -779,7 +779,7 @@ export function enableUploading (context: {
   }
 }
 
-/** The part of OperationContext that deals with uploading
+/** The part of Context that deals with uploading
   * contract code to the platform. */
 export interface UploadContext {
   uploader:           Uploader
