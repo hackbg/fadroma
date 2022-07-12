@@ -45,3 +45,5 @@ export function timestamp (d = new Date()) {
     .replace(/[T]/g, '_')
     .slice(0, -3)
 }
+
+export const bold = x => x
