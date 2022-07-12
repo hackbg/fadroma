@@ -650,7 +650,7 @@ export function getDeployContext (context: {
       },
       //@ts-ignore
       getClient (name: string, _Client = Client) {
-        return this.clientAgent.getClient(Client, this.deployment.get(name))
+        return this.clientAgent.getClient(_Client, this.deployment.get(name))
       }
     }
   } else {
