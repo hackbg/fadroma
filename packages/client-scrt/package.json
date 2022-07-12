@@ -7,7 +7,8 @@
     "main": "scrt.ts"
   },
   "dependencies": {
-    "@fadroma/client": "workspace:^3"
+    "@fadroma/client": "workspace:^3",
+    "@hackbg/formati": "workspace:*"
   },
   "devDependencies": {
     "typescript":      "^4.7",

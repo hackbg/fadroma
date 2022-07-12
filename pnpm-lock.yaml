@@ -72,10 +72,12 @@ importers:
   packages/client-scrt:
     specifiers:
       '@fadroma/client': workspace:^3
+      '@hackbg/formati': workspace:*
       '@hackbg/izdatel': workspace:^0
       typescript: ^4.7
     dependencies:
       '@fadroma/client': link:../client
+      '@hackbg/formati': link:../../toolbox/formati
     devDependencies:
       '@hackbg/izdatel': link:../../toolbox/izdatel
       typescript: 4.7.4
@@ -248,10 +250,12 @@ importers:
       '@iov/crypto': ^2.5.0
       '@iov/encoding': ^2.5.0
       bech32: ^2.0.0
+      secure-random: ^1.1.2
     dependencies:
       '@iov/crypto': 2.5.0
       '@iov/encoding': 2.5.0
       bech32: 2.0.0
+      secure-random: 1.1.2
 
   toolbox/izdatel:
     specifiers: {}

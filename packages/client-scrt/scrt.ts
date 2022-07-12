@@ -12,7 +12,7 @@ import {
   Uint128
 } from '@fadroma/client'
 
-import { randomBytes } from 'crypto'
+import { randomBytes } from '@hackbg/formati'
 
 export abstract class ScrtChain extends Chain {
   isSecretNetwork = true
