@@ -476,7 +476,7 @@ export async function getChain (context: {
   const { config = currentConfig, chains: chainList = chains } = context
   const name = config.project.chain
   if (!name || !chains[name]) {
-    console.error('Chain.getNamed: pass a known chain name or set FADROMA_CHAIN env var.')
+    console.error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
     console.info('Known chain names:')
     for (const chain of Object.keys(chains).sort()) {
       console.info(`  ${chain}`)
@@ -704,7 +704,7 @@ export function enableBuilding ({ config }: {
   config: { project: { root: string }, build: { rebuild: boolean }, scrt: { build: object } }
 }) {
   const builder = getScrtBuilder({ ...config.build, ...config.scrt.build })
-  return getBuildContext(builder, root)
+  return getBuildContext(builder, config.project.root)
 }
 
 export function getBuildContext (builder: Builder, root: string): BuildContext {
