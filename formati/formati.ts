@@ -1,4 +1,3 @@
-import { URL } from 'url'
 import { readFileSync } from 'fs'
 import { bech32, bech32m } from 'bech32'
 import { randomBuffer } from 'secure-random'
