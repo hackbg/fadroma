@@ -687,7 +687,7 @@ export abstract class Devnet implements DevnetHandle {
   host     = 'localhost'
   /** The port of the API URL.
     * If `null`, `freePort` will be used to obtain a random port. */
-  port     = 0
+  port     = 9091
   /** Which service does the API URL port correspond to. */
   portMode: DevnetPortMode
   /** The API URL that can be used to talk to the devnet. */

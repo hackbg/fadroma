@@ -701,7 +701,11 @@ export interface DeployContext extends ChainContext {
 }
 
 export function enableBuilding ({ config }: {
-  config: { project: { root: string }, build: { rebuild: boolean }, scrt: { build: object } }
+  config: {
+    project: { root:    string  }
+    build:   { rebuild: boolean }
+    scrt:    { build:   object  }
+  }
 }) {
   const builder = getScrtBuilder({ ...config.build, ...config.scrt.build })
   return getBuildContext(builder, config.project.root)
