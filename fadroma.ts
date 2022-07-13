@@ -604,35 +604,42 @@ export async function createDeployment (context: AgentContext): Promise<Partial<
 
 /** Add the currently active deployment to the command context. */
 export async function getDeployment (
-  context: ChainContext & { agent?: Agent }
+  context: ChainContext & { agent?: Agent, deployment?: Deployment }
 ): Promise<Partial<DeployContext>> {
-  const deployment = context.deployments.active
-  if (!deployment) {
+  if (!context.deployments.active) {
     console.info('No selected deployment on chain:', bold(context.chain.id))
   }
-  return await getDeployContext({ deployment, agent: context.agent })
+  context.deployment = context.deployments.active
+  return await getDeployContext(context)
+}
+
+export function rebind (self, obj) {
+  for (const key in obj) {
+    if (obj[key] instanceof Function) {
+      obj[key] = obj[key].bind(self)
+    }
+  }
 }
 
 export function getDeployContext (context: {
-  deployment:   Deployment,
+  timestamp:    string,
+  deployment?:  Deployment,
   agent?:       Agent,
   deployAgent?: Agent,
   clientAgent?: Agent,
   suffix?:      string
 }): Partial<DeployContext> {
+
   const {
-    deployment,
-    agent,
-    deployAgent = agent,
-    clientAgent = agent
+    agent, deployAgent = agent, clientAgent = agent,
+    deployment, timestamp, suffix = `+${timestamp}`
   } = context
-  if (deployment) {
+
+  if (!deployment) {
+    const noActiveDeployment = () => { throw new Error('Fadroma Ops: no active deployment') }
     return {
-      prefix: deployment.prefix,
-      suffix: context.suffix ?? `+${timestamp()}`,
-      deployment,
-      deployAgent,
       clientAgent,
+<<<<<<< HEAD
       async deploy (name: string, template: Template, initMsg: Message) {
         if (!this.deployAgent) {
           throw new Error('Fadroma Ops: no deployAgent in context')
@@ -659,26 +666,87 @@ export function getDeployContext (context: {
       suffix: context.suffix ?? `+${timestamp()}`,
       deployment,
       deployAgent,
-      clientAgent,
-      getInstance (name: string) {
-        throw new Error('Fadroma Ops: no active deployment')
-      },
-      async deploy (name: string, template: Template, initMsg: Message) {
-        throw new Error('Fadroma Ops: no active deployment')
-      },
-      async deployMany (template: Template, configs: [string, Message][]) {
-        throw new Error('Fadroma Ops: no active deployment')
-      },
-      getClient (name: string, Client) {
-        throw new Error('Fadroma Ops: no active deployment')
-      }
+      deployment,
+      suffix,
+      deploy:      noActiveDeployment,
+      deployMany:  noActiveDeployment,
+      contract:    noActiveDeployment,
     }
   }
+
+  return {
+
+    contract <T extends Client> (
+      instance: string|{ address: string },
+      _Client:  ClientCtor<T, any>
+    ) {
+      //@ts-ignore
+      _Client = _Client ?? Client
+      let client = null
+      if (typeof instance === 'string') {
+        const name = instance
+        if (this.deployment.has(name)) {
+          console.info('Found contract:', bold(name))
+          client = this.clientAgent.getClient(_Client, this.deployment.get(name))
+        }
+        return rebind(this, { get, deploy, getOrDeploy })
+        async function get (fn?: (context: Partial<Context>)=>T): Promise<T> {
+          if (client) return client
+          console.info('Looking for contract:', bold(instance as string))
+          client = await Promise.resolve(fn(context))
+          if (client) return client
+          throw new Error(`Fadroma: no such contract: ${name}`)
+        }
+        async function deploy (code: string|Source|Template, initMsg: unknown): Promise<T> {
+          console.info(`Deploying contract:`, bold(name))
+          if (typeof code === 'string' || code instanceof Source) {
+            code = await this.buildAndUpload(code)
+            const instance = await this.deployment.init(this.deployAgent, code, name, initMsg)
+            return this.clientAgent.getClient(_Client, instance)
+          }
+        }
+        async function getOrDeploy (code: string|Source|Template, initMsg: unknown): Promise<T> {
+          if (client) return client
+          return this.deploy(code, initMsg)
+        }
+      } else if (instance.address) {
+        console.info('Using contract:', bold(instance.address))
+        return this.clientAgent.getClient(_Client, instance)
+      } else throw new Error('Fadroma: invalid contract helper invocation')
+    },
+
+    deployment,
+    suffix,
+    clientAgent: context.agent,
+    getInstance (name: string) {
+      return this.deployment.get(name)
+    },
+    getClient (name: string, _Client: typeof Client = Client) {
+      return this.clientAgent.getClient(Client, this.deployment.get(name))
+    },
+    deployAgent,
+    async deployMany (template: Template, configs: [string, Message][]) {
+      if (!this.deployAgent) {
+        throw new Error('Fadroma Ops: no deployAgent in context')
+      }
+      return await this.deployment.initMany(this.deployAgent, template, configs)
+    },
+
+  }
+
+}
+
+export interface ContractSlot {
+  get         <T extends Client> (errOrfn?: string|((context: Partial<Context>)=>T)): Promise<T>
+  deploy      <T extends Client> (code: string|Source|Template, initMsg: unknown): Promise<T>
+  getOrDeploy <T extends Client> (code: string|Source|Template, initMsg: unknown): Promise<T>
 }
 
 /** The part of Context that deals with deploying
   * groups of contracts and keeping track of the receipts. */
 export interface DeployContext extends ChainContext {
+  /** Universal contract getter. */
+  contract <T extends Client> (name, _Client?: ClientCtor<T, any>): ContractSlot
   /** Currently selected collection of interlinked contracts. */
   deployment:   Deployment
   /** Prefix to the labels of all deployed contracts.
@@ -758,10 +826,10 @@ export function enableUploading (context: {
     : new FSUploader(agent)
   return {
     uploader,
-    async upload (artifact: Artifact): Promise<Template> {
+    async upload (artifact: Artifact|Source|string): Promise<Template> {
       return await uploader.upload(artifact)
     },
-    async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
+    async uploadMany (artifacts: [Artifact|Source|string][]): Promise<Template[]> {
       return await uploader.uploadMany(artifacts)
     },
     async buildAndUpload (source: Source|string): Promise<Template> {
