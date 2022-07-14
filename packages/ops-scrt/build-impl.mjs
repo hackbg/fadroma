@@ -120,17 +120,16 @@ function phase1 ({
       } else {
         try {
           console.warn(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}\n.`)
-            gitRun('fetch')
-            const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
-            const remoteRef = shown.split(' ')[0]
-            const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
-            mkdirSync(dirname(refPath), { recursive: true })
-            writeFileSync(refPath, remoteRef, 'utf8')
-            gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
-          } catch (e) {
-            console.error(`${ref}: failed to fetch`)
-            exit(1)
-          }
+          gitRun('fetch')
+          const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
+          const remoteRef = shown.split(' ')[0]
+          const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
+          mkdirSync(dirname(refPath), { recursive: true })
+          writeFileSync(refPath, remoteRef, 'utf8')
+          gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
+        } catch (e) {
+          console.error(`${ref}: failed to fetch`)
+          exit(1)
         }
       }
     }
