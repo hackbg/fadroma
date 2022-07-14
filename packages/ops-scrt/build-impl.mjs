@@ -92,7 +92,7 @@ function phase1 ({
   } else {
     console.log(`Building from checkout of ${ref}`)
     if (!noFetch) {
-      gitRun('fetch --recurse-submodules')
+      run('git fetch --recurse-submodules')
     }
     // This works by using ".git" (or ".git/modules/something") as a remote
     // and cloning from it. Since we may need to modify that directory,
