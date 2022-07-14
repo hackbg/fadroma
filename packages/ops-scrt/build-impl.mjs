@@ -127,7 +127,7 @@ function phase1 ({
       } else {
         try {
           console.warn(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}\n.`)
-          gitRun('fetch --recurse-submodules')
+          gitRun(`fetch origin --recurse-submodules ${ref}`)
         } catch (e) {
           console.warn(`${ref}: failed to fetch: ${e.message}`)
         }
