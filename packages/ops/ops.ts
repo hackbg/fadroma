@@ -491,6 +491,7 @@ export class RawBuilder extends CachingBuilder {
   async buildMany (sources: Source[]): Promise<Artifact[]> {
     const artifacts = []
     for (const source of sources) {
+      let cwd = source.workspace.path
       // Temporary dirs used for checkouts of non-HEAD builds
       let tmpGit, tmpBuild
       // Most of the parameters are passed to the build script
@@ -516,6 +517,7 @@ export class RawBuilder extends CachingBuilder {
         const { gitDir } = source.workspace
         tmpGit   = $(mkdtempSync($(tmpdir(), 'fadroma-git-').path))
         tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
+        cwd = tmpBuild.path
         Object.assign(env, {
           _GIT_ROOT:   gitDir.path,
           _TMP_GIT:    tmpGit.path,
@@ -527,7 +529,7 @@ export class RawBuilder extends CachingBuilder {
       // Run the build script
       const cmd  = process.argv[0]
       const args = [ this.script.path, 'phase1', source.workspace.ref, source.crate ]
-      const opts = { cwd: source.workspace.path, env, stdio: 'inherit' }
+      const opts = { cwd, env, stdio: 'inherit' }
       const sub  = spawn(cmd, args, opts as any)
       await new Promise<void>((resolve, reject)=>{
         sub.on('exit', (code, signal) => {
