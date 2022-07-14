@@ -42,7 +42,8 @@ function izdatel (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
   try {
     // Compile TS -> JS
     execSync(prepareCommand, { cwd, stdio: 'inherit' })
-    Object.assign(files, { source: packageJSON.main || 'index.ts', })
+    const toRelative = path => isAbsolute(path)?relative(cwd, path):path
+    Object.assign(files, { source: $(packageJSON.main || 'index.ts'), })
     const replaceExtension = (x, a, b) => `${basename(x, a)}${b}`
     Object.assign(files, {
       esmBuild: $(outDirESM, replaceExtension(files.source, '.ts', '.esm.js')),
@@ -50,33 +51,32 @@ function izdatel (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
     })
     // Set main, types, and exports fields in package.json
     if (packageJSON.type === "module") {
-      packageJSON.main = files.esmBuild
+      packageJSON.main = toRelative(files.esmBuild)
       if (declarationESM) {
-        packageJSON.types = $(declarationDirESM, replaceExtension(files.source, '.ts', '.d.ts'))
+        const types = replaceExtension(files.source, '.ts', '.d.ts')
+        packageJSON.types = toRelative($(declarationDirESM, types))
       }
       packageJSON.exports = {
-        source:  files.source,
-        require: files.cjsBuild,
-        default: files.esmBuild
+        source:  toRelative(files.source),
+        require: toRelative(files.cjsBuild),
+        default: toRelative(files.esmBuild)
       }
     } else {
-      packageJSON.main = files.cjsBuild
+      packageJSON.main = toRelative(files.cjsBuild)
       if (declarationCJS) {
-        packageJSON.types = $(declarationDirCJS, replaceExtension(files.source, '.ts', '.d.ts'))
+        const types = replaceExtension(files.source, '.ts', '.d.ts')
+        packageJSON.types = toRelative($(declarationDirCJS, types))
       }
       packageJSON.exports = {
-        source:  files.source,
-        import:  files.esmBuild,
-        default: files.cjsBuild
+        source:  toRelative(files.source),
+        import:  toRelative(files.esmBuild),
+        default: toRelative(files.cjsBuild)
       }
     }
     Object.assign(files, { typedefs: packageJSON.types })
     // Set files field
     const sortedDistinct = (a=[], b=[]) => [...new Set([...a, ...b])].sort()
-    packageJSON.files = sortedDistinct(
-      packageJSON.files,
-      Object.values(files).map(path=>isAbsolute(path)?relative(cwd, path):path)
-    )
+    packageJSON.files = sortedDistinct(packageJSON.files, Object.values(files).map(toRelative))
     // Write modified package.json
     const modified = JSON.stringify(packageJSON, null, 2)
     console.log(modified)
