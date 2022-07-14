@@ -93,7 +93,7 @@ function phase1 ({
     console.log(`Building from checkout of ${ref}`)
     if (!noFetch) {
       run('pwd')
-      run('git fetch --recurse-submodules')
+      run('git pull --prune --recurse-submodules --force ')
     }
     // This works by using ".git" (or ".git/modules/something") as a remote
     // and cloning from it. Since we may need to modify that directory,
