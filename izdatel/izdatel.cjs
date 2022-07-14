@@ -3,11 +3,9 @@ const { readFileSync, writeFileSync } = require('fs')
 const { execSync } = require('child_process')
 const process = require('process')
 module.exports = module.exports.default = izdatel
-if (require.main === module) izdatel()
-function izdatel (
-  cwd = process.cwd(),
-  $   = (...args) => join(cwd, ...args)
-) {
+if (require.main === module) izdatel(process.cwd(), ...process.argv.slice(2))
+function izdatel (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
+  const $ = (...args) => join(cwd, ...args)
   const files = {
     packageJSON:  $('package.json'),
     tsconfigJSON: $('tsconfig.json'),
@@ -16,11 +14,11 @@ function izdatel (
   const { compilerOptions = {} } = JSON.parse(readFileSync(files.tsconfigJSON, 'utf8'))
   const { outDir = '.', declaration, declarationDir = outDir } = compilerOptions
   // Get original contents of package.json
-  const original    = readFileSync(packageJSON, 'utf8')
+  const original    = readFileSync(files.packageJSON, 'utf8')
   const packageJSON = JSON.parse(original)
   try {
     // Compile TS -> JS
-    execSync('pnpm run build', { cwd, stdio: 'inherit' })
+    execSync(prepareCommand, { cwd, stdio: 'inherit' })
     Object.assign(files, {
       source:   packageJSON.main || 'index.ts',
       typedefs: $(declarationDir, `${basename(source, '.ts')}.d.ts`), 
@@ -47,12 +45,20 @@ function izdatel (
         default: files.esmBuild
       }
     }
+    // Write modified package.json
+    const modified = JSON.stringify(packageJSON, null, 2)
+    console.log(modified)
+    writeFileSync(files.packageJSON, modified, 'utf8')
     // Publish modified package to NPM
-    execSync('pnpm publish --access public --no-git-checks', { cwd, stdio: 'inherit' })
+    execFileSync(
+      'pnpm',
+      ['publish', '--dry-run', '--no-git-checks', ...publishArgs],
+      { cwd, stdio: 'inherit', env: process.env }
+    )
     // Add Git tag
     execSync(`git tag "npm/${packageJSON.name}/${packageJSON.version}"`, { cwd, stdio: 'inherit' })
   } finally {
     // Restore original contents of package.json
-    writeFileSync(packageJSON, original, 'utf8')
+    writeFileSync(files.packageJSON, original, 'utf8')
   }
 }
