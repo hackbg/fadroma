@@ -3,4 +3,4 @@
 	url  = https://github.com/hackbg/toolbox
 [submodule "ganesha"]
 	path = ganesha
-	url = git@github.com:hackbg/ganesha.git
+	url  = https://github.com/hackbg/ganesha
