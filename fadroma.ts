@@ -861,13 +861,16 @@ export function getDeployContext ({
         APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>
       ) {
         template = await this.upload(template) as Template
-        console.info(
-          `Deploy ${bold(name)}:`,
-          'from code id:',      bold(template.codeId),
-          'with init message:', `\n${JSON.stringify(init, null, 2)}`
-        )
-        const instance = await this.deployment.init(this.deployAgent, template, name, init)
-        return this.deployAgent.getClient(APIClient, instance)
+        console.info(`Deploy ${bold(name)}:`, 'from code id:', bold(template.codeId))
+        try {
+          const instance = await this.deployment.init(this.deployAgent, template, name, init)
+          return this.deployAgent.getClient(APIClient, instance)
+        } catch (e) {
+          console.error(`Deploy ${bold(name)}: Failed: ${e.message}`)
+          console.error(`Deploy ${bold(name)}: Failed: Init message was:`)
+          console.log(JSON.stringify(init, null, 2))
+          throw e
+        }
       }
     ),
     deployMany: needsActiveDeployment(
@@ -941,7 +944,6 @@ export class ContractSlot<C extends Client> extends Slot<C> {
   /** Always deploy the specified contract. If a contract with the same name
     * already exists in the deployment, it will fail - use suffixes */
   async deploy (code: IntoTemplate, init: Message): Promise<C> {
-    console.info(`Deploy ${bold(this.reference as string)}`)
     const template = await this.context.upload(code)
     return await this.context.deploy(this.reference as string, template, init) as C
   }

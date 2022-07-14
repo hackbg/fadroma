@@ -1476,12 +1476,6 @@ export class Deployment {
     deployAgent: Agent,
     configs:     [Template, Label, Message][] = []
   ): Promise<Instance[]> {
-    for (const [template, name] of configs) {
-      console.info(
-        'Deploying code id', bold(template.codeId),
-        'as', bold(name),
-      )
-    }
     const receipts = await deployAgent.instantiateMany(configs.map(
       ([template, name, msg])=>[template, addPrefix(this.prefix, name), msg]
     ))
