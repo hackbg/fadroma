@@ -10,4 +10,5 @@
 	branch = v1.2
 [submodule "platforms/ganesha"]
 	path   = platforms/ganesha
-	url    = https://github.com/hackbg/ganesha.git
+  url    = https://github.com/hackbg/ganesha.git
+  branch = legacy
