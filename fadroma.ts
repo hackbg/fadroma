@@ -903,7 +903,6 @@ export function getDeployContext ({
       APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>,
       msgOrFn?:  InfoOrStep<C>,
     ): Promise<C> {
-      console.log('getcontract', {reference, APIClient, msgOrFn})
       return await new ContractSlot(this, reference, APIClient).get(msgOrFn)
     },
     async getOrDeployContract <C extends Client> (
@@ -928,7 +927,14 @@ export function getDeployContext ({
       APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>
     ) {
       template = await this.upload(template) as Template
-      return await this.deployment.initMany(this.deployer, template, configs)
+      try {
+        return await this.deployment.initMany(this.deployer, template, configs)
+      } catch (e) {
+        console.error(`Deploy failed: ${e.message}`)
+        console.error(`Deploy ffailed: Configs were:`)
+        console.log(JSON.stringify(configs, null, 2))
+        throw e
+      }
     },
   }
 

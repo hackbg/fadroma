@@ -2,7 +2,7 @@
   "name":    "@fadroma/tokens",
   "version": "2.0.0",
   "type":    "module",
-  "main":    "index.ts",
+  "main":    "tokens.ts",
   "dependencies": {
     "@hackbg/konzola":      "workspace:*",
     "@fadroma/client":      "workspace:^3.0.0",
