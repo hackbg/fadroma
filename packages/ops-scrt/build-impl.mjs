@@ -47,7 +47,7 @@ function phase1 ({
   gitRemote   = env('_GIT_REMOTE', 'origin'),
   uid         = env('_BUILD_UID',  1000),
   gid         = env('_BUILD_GID',  1000),
-  noFetch     = env('_NO_FETCH'),
+  noFetch     = env('_NO_FETCH',   false),
   interpreter = argv[0],       // e.g. /usr/bin/node
   script      = argv[1],       // this file
   ref         = argv[3],       // "HEAD" | <git ref>
@@ -113,7 +113,7 @@ function phase1 ({
       // If the branch is not checked out, but is fetched, do a "fake checkout":
       // create a ref under refs/heads pointing to that branch.
       try {
-        console.log(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}.`)
+        console.log(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}\n.`)
         if (!noFetch) {
           gitRun('fetch')
           const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
