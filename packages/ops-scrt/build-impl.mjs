@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 
 const { argv, umask, chdir, cwd, exit } = process
 const env = (key, def) => {
-  const val = (key in process.env) ? process.env[key] : def
+  let val = (key in process.env) ? process.env[key] : def
   if (val === '0')     val = 0
   if (val === 'false') val = false
   return val
