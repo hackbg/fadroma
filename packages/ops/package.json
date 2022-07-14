@@ -20,7 +20,7 @@
     "wasm-ffi":   "^0.3.0"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "^2.0.3",
+    "@hackbg/ganesha": "workspace:^2.0.3",
     "@hackbg/izdatel": "workspace:^0",
     "typescript": "^4.7"
   },

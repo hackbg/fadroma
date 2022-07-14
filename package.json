@@ -14,12 +14,12 @@
     "@fadroma/ops":               "workspace:^1",
     "@fadroma/ops-scrt":          "workspace:^1",
     "@fadroma/tokens":            "workspace:^2",
-    "@hackbg/ganesha": "^2.1",
-    "@hackbg/dokeres": "workspace:*",
-    "@hackbg/kabinet": "workspace:*",
-    "@hackbg/komandi": "workspace:*",
-    "@hackbg/konzola": "workspace:*",
-    "@hackbg/formati": "workspace:*"
+    "@hackbg/ganesha":            "workspace:^2.1",
+    "@hackbg/dokeres":            "workspace:*",
+    "@hackbg/kabinet":            "workspace:*",
+    "@hackbg/komandi":            "workspace:*",
+    "@hackbg/konzola":            "workspace:*",
+    "@hackbg/formati":            "workspace:*"
   },
   "devDependencies": {
     "typescript":  "^4.7",
