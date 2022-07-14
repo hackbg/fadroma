@@ -1,6 +1,6 @@
-const { resolve, basename, relative, join } = require('path')
+const { resolve, basename, relative, join, isAbsolute } = require('path')
 const { readFileSync, writeFileSync } = require('fs')
-const { execSync } = require('child_process')
+const { execSync, execFileSync } = require('child_process')
 const process = require('process')
 module.exports = module.exports.default = izdatel
 if (require.main === module) izdatel(process.cwd(), ...process.argv.slice(2))
@@ -21,9 +21,11 @@ function izdatel (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
     execSync(prepareCommand, { cwd, stdio: 'inherit' })
     Object.assign(files, {
       source:   packageJSON.main || 'index.ts',
-      typedefs: $(declarationDir, `${basename(source, '.ts')}.d.ts`), 
-      esmBuild: $(outDir,         `${basename(source, '.ts')}.import.js`),
-      cjsBuild: $(outDir,         `${basename(source, '.ts')}.require.js`),
+    })
+    Object.assign(files, {
+      typedefs: $(declarationDir, `${basename(files.source, '.ts')}.d.ts`),
+      esmBuild: $(outDir,         `${basename(files.source, '.ts')}.import.js`),
+      cjsBuild: $(outDir,         `${basename(files.source, '.ts')}.require.js`),
     })
     // Set types field
     if (declaration) {
@@ -45,6 +47,12 @@ function izdatel (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
         default: files.esmBuild
       }
     }
+    // Set files field
+    const sortedDistinct = (a=[], b=[]) => [...new Set([...a, ...b])].sort()
+    packageJSON.files = sortedDistinct(
+      packageJSON.files,
+      Object.values(files).map(path=>isAbsolute(path)?relative(cwd, path):path)
+    )
     // Write modified package.json
     const modified = JSON.stringify(packageJSON, null, 2)
     console.log(modified)
