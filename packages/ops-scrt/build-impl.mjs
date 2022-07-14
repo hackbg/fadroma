@@ -3,7 +3,12 @@ import { resolve, dirname, sep } from 'path'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 
 const { argv, umask, chdir, cwd, exit } = process
-const env = (key, def) => (key in process.env) ? process.env[key] : def
+const env = (key, def) => {
+  const val = (key in process.env) ? process.env[key] : def
+  if (val === '0')     val = 0
+  if (val === 'false') val = false
+  return val
+}
 
 const slashes  = new RegExp("/", "g")
 const dashes   = new RegExp("-", "g")
