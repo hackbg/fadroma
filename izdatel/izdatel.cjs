@@ -52,7 +52,7 @@ function izdatel (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
     // Publish modified package to NPM
     execFileSync(
       'pnpm',
-      ['publish', '--dry-run', '--no-git-checks', ...publishArgs],
+      ['publish', '--no-git-checks', ...publishArgs],
       { cwd, stdio: 'inherit', env: process.env }
     )
     // Add Git tag
