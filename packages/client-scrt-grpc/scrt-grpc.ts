@@ -148,7 +148,12 @@ export class ScrtRPCAgent extends ScrtAgent {
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     const chainId    = this.chain.id
-    return { uploadTx: result.transactionHash, chainId, codeId, codeHash }
+    return new Template(
+      chainId,
+      codeId,
+      codeHash,
+      result.transactionHash
+    )
   }
   async instantiate (template, label, initMsg, initFunds = []): Promise<Instance> {
     const { chainId, codeId, codeHash } = template
@@ -162,7 +167,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     if (result.arrayLog) {
       const findAddr = (log) => log.type === "message" && log.key === "contract_address"
       const address  = result.arrayLog.find(findAddr)?.value
-      return { chainId, codeId, codeHash, address, label }
+      return { initTx: result.transactionHash, chainId, codeId, codeHash, address, label, template }
     } else {
       throw Object.assign(
         new Error(`SecretRPCAgent#instantiate: ${result.rawLog}`), {

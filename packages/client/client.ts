@@ -13,28 +13,56 @@ export type Uint128    = string
 export type Uint256    = string
 
 /** Reference to a compiled smart contract. */
-export interface Artifact {
-  url:      URL
-  codeHash: CodeHash
+export class Artifact {
+  constructor (
+    url:            URL|string,
+    public readonly codeHash: CodeHash,
+    public readonly source?:  { crate: string, ref: string }
+  ) {
+    if (typeof url === 'string') url = new URL(url)
+    this.url = url
+  }
+  url: URL
+  upload (uploader: { upload: (artifact: Artifact)=>Promise<Template> }): Promise<Template> {
+    return uploader.upload(this)
+  }
 }
 
-/** Reference to an uploaded smart contract. */
-export interface Template {
-  uploadTx?: TxHash
+/** Reference to an uploaded smart contract.
+  * May contain reference to the artifact from which it was uploaded. */
+export class Template {
+  constructor (
+    public readonly chainId?:  ChainId,
+    public readonly codeId?:   CodeId,
+    public readonly codeHash?: CodeHash,
+    public readonly uploadTx?: TxHash,
+    public readonly artifact?: Artifact,
+  ) {
+    if (this.codeHash && artifact?.codeHash && (this.codeHash !== artifact.codeHash)) {
+      console.warn(
+        `Template: code hash mismatch: `+
+        `template: ${this.codeHash}, template.artifact: ${artifact.codeHash})`
+      )
+    }
+    this.codeHash ??= artifact?.codeHash
+  }
+}
+
+/** Reference to an instantiated smart contract.
+  * May contain reference to the template from wich it was instantiated. */
+export interface Instance {
+  initTx?:   TxHash
   chainId?:  ChainId
   codeId?:   CodeId
-  codeHash?: CodeHash
-}
-
-/** Reference to an instantiated smart contract. */
-export interface Instance extends Template {
   address:   Address
   codeHash?: CodeHash
   label?:    Label
+  template?: Template
 }
 
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export class ContractLink {
+  static fromInstance = ({ address, codeHash }) => new ContractLink(address, codeHash)
   constructor (
     readonly address:   Address,
     readonly code_hash: CodeHash

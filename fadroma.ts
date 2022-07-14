@@ -31,6 +31,7 @@ import { LegacyScrt }                       from '@fadroma/client-scrt-amino'
 import { Scrt }                             from '@fadroma/client-scrt-grpc'
 
 import {
+  Address,
   Agent,
   AgentOpts,
   Artifact,
@@ -219,79 +220,71 @@ export type Context = {
     ...extraArgs:  unknown[]
   ): Promise<T>
   /** Configuration of Fadroma. */
-  config:      FadromaConfig
+  config:       FadromaConfig
   /** Extra arguments passed from the command line. */
-  cmdArgs:     string[]
+  cmdArgs:      string[]
   /** Start of command execution. */
-  timestamp:   string
+  timestamp:    string
+
   /** Known block chains and connection methods. */
-  chains:      typeof knownChains,
+  chains:       typeof knownChains,
   /** The blockhain to connect to. */
-  chain:       Chain,
+  chain:        Chain,
   /** Collections of interlinked contracts on the active chain. */
-  deployments: Deployments
+  deployments:  Deployments
   /** = chain.isMainnet */
-  isMainnet:   boolean
+  isMainnet:    boolean
   /** = chain.isTestnet */
-  isTestnet:   boolean
+  isTestnet:    boolean
   /** = chain.isDevnet */
-  isDevnet:    boolean
+  isDevnet:     boolean
   /** = chain.isMocknet */
-  isMocknet:   boolean
+  isMocknet:    boolean
   /** True if the chain is a devnet or mocknet */
-  devMode:     boolean
+  devMode:      boolean
   /** Default identity to use when operating on the chain. */
-  agent:       Agent
-  /** Knows how to build contracts for a target. */
-  builder:     Builder
+  agent:        Agent
+
   /** Cargo workspace. */
-  workspace:   Workspace
+  workspace:    Workspace
   /** Get a Source by crate name from the current workspace. */
-  getSource:   (source: string) => Source
+  getSource:    (source: string) => Source
+
+  /** Knows how to build contracts for a target. */
+  builder:      Builder
   /** Get a Source by crate name from the current workspace. */
-  build:              (source:  IntoSource)   => Promise<Artifact>
-  buildMany:          (sources: IntoSource[]) => Promise<Artifact[]>
+  build:        (source:    IntoArtifact)   => Promise<Artifact>
+  buildMany:    (sources:   IntoArtifact[]) => Promise<Artifact[]>
+
   /** Knows how to upload contracts to a blockchain. */
-  uploader:           Uploader
-  upload:             (artifact:  IntoArtifact)   => Promise<Template>
-  uploadMany:         (artifacts: IntoArtifact[]) => Promise<Template[]>
-  buildAndUpload:     (source: Source|string   ) => Promise<Template>
-  buildAndUploadMany: (sources: (Source|string)[]) => Promise<Template[]>
-  /** Currently selected collection of interlinked contracts. */
-  deployment:   Deployment
+  uploader:     Uploader
+  upload:       (artifact:  IntoTemplate)   => Promise<Template>
+  uploadMany:   (artifacts: IntoTemplate[]) => Promise<Template[]>
+
+  /** Reproducibly obtain a template. */
+  template <T extends Client> (artifact: IntoTemplate): TemplateSlot
+
   /** Prefix to the labels of all deployed contracts.
     * Identifies which deployment they belong to. */
-  prefix:       string
-  /** Appended to contract labels in devnet deployments for faster iteration. */
   suffix?:      string
+  /** Currently selected collection of interlinked contracts. */
+  deployment:   Deployment
   /** Who'll deploy new contracts */
   deployAgent?: Agent
   /** Deploy a contract. */
   deploy:       (name: string, template: Template, initMsg: Message) => Promise<Instance>
   /** Deploy multiple contracts from the same template. */
   deployMany:   (template: Template, configs: [string, Message][]) => Promise<Instance[]>
+
   /** Who'll interact with existing contracts */
   clientAgent?: Agent
   /** Shorthand for calling `deployment.get(name)` */
   getInstance:  (name: string) => Instance
   /** Shorthand for calling `clientAgent.getClient(Client, deployment.get(name))` */
   getClient:    <C extends Client, O extends ClientOpts>(name: string, Client?: ClientCtor<C, O>)=>C
-  /** Reproducibly obtain a template. */
-  template <T extends Client> (artifact: IntoTemplate): TemplateSlot
+
   /** Idempotently deploy a contract. */
   contract <T extends Client> (name, _Client?: ClientCtor<T, any>): ContractSlot<T>
-}
-
-export interface TemplateSlot {
-  get         (errOrfn?: string|((context: Partial<Context>)=>Template)): Promise<Template>
-  getOrUpload (): Promise<Template>
-  upload      (): Promise<Template>
-}
-
-export interface ContractSlot<T extends Client> {
-  get         (errOrfn?: string|((context: Partial<Context>)=>T|Promise<T>)): Promise<T>
-  getOrDeploy (code: string|Source|Template, initMsg: unknown):               Promise<T>
-  deploy      (code: string|Source|Template, initMsg: unknown):               Promise<T>
 }
 
 export class Commands {
@@ -305,7 +298,8 @@ export class Commands {
     // validate that all steps are functions
     for (const i in steps) {
       if (!(steps[i] instanceof Function)) {
-        throw new Error(`${this.name} command ${name}: invalid step ${i} (not a Function)`)
+        console.log({name, info, steps, i})
+        throw new Error(`command: ${this.name} ${name}: invalid step ${i} (not a Function)`)
       }
     }
     // store command
@@ -379,7 +373,7 @@ export class Commands {
 export async function runSub <T> (
   operation:    Step<T>,
   extraContext: Record<string, any> = {},
-  extraArgs:    unknown[]
+  extraArgs:    unknown[] = []
 ): Promise<T> {
   if (!operation) {
     throw new Error('Tried to run missing operation.')
@@ -414,9 +408,6 @@ export async function runOperation (
   // Never hurts:
   Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
 
-  // Add step runner
-  context.run = runSub.bind(context)
-
   // Will count milliseconds
   const stepTimings = []
 
@@ -447,17 +438,18 @@ export async function runOperation (
       // Make sure `this` in every function of the context points to the up-to-date context.
       rebind(context)
 
+      // Add step runner
+      context.run = runSub.bind(context)
+
       // End of step
       const T2 = + new Date()
       stepTimings.push([name, T2-T1, false])
     } catch (e) {
       // If the step threw an error, store the timing and stop executing new steps
       error = e
-      break
-    } finally {
-      // End of step
       const T2 = + new Date()
       stepTimings.push([name, T2-T1, true])
+      break
     }
   }
 
@@ -468,12 +460,10 @@ export async function runOperation (
 
   // Print timing of each step
   for (const [name, duration, isError] of stepTimings) {
-    console.info(
-      isError?`${colors.red('FAIL')}`:`${colors.green('OK  ')}`,
-      bold((name||'(nameless step)').padEnd(40)),
-      (duration/1000).toFixed(1).padStart(10),
-      's'
-    )
+    const status   = isError?`${colors.red('FAIL')}`:`${colors.green('OK  ')}`
+    const stepName = bold((name||'(nameless step)').padEnd(40))
+    const timing   = (duration/1000).toFixed(1).padStart(10)
+    console.info(status, stepName, timing, 's')
   }
 
   // If there was an error throw it now
@@ -603,11 +593,12 @@ export class Deploy extends Commands {
   constructor (name, before, after) {
     super(name, before, after)
     this.before.push(print(console).chainStatus)
-    this.command('reset',  'reset the devnet',                resetDevnet)
-    this.command('list',   'print a list of all deployments', Deploy.list)
-    this.command('select', 'select a new active deployment',  Deploy.select)
-    this.command('new',    'create a new empty deployment',   Deploy.create)
-    this.command('status', 'show the current deployment',     Deploy.show)
+    this.command('reset',   'reset the devnet',                resetDevnet)
+    this.command('list',    'print a list of all deployments', Deploy.list)
+    this.command('select',  'select a new active deployment',  Deploy.select)
+    this.command('new',     'create a new empty deployment',   Deploy.create)
+    this.command('status',  'show the current deployment',     Deploy.show)
+    this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
   }
 
   static list = async function listDeployments ({ chain, deployments }: Partial<Context>): Promise<void> {
@@ -657,7 +648,7 @@ export class Deploy extends Commands {
       await deployments.select(id)
     }
     if (list.length > 0) {
-      this.list(context)
+      Deploy.list(context)
     }
     if (deployments.active) {
       console.info(`Currently selected deployment:`, bold(deployments.active.prefix))
@@ -671,9 +662,9 @@ export class Deploy extends Commands {
     context: Partial<Context>
   ): Promise<Partial<Context>> {
     if (context.deployments.active) {
-      return this.get(context)
+      return Deploy.get(context)
     } else {
-      return await this.create(context)
+      return await Deploy.create(context)
     }
   }
 
@@ -684,7 +675,7 @@ export class Deploy extends Commands {
     const [ prefix = context.timestamp ] = context.cmdArgs
     await context.deployments.create(prefix)
     await context.deployments.select(prefix)
-    return await this.get(context)
+    return await Deploy.get(context)
   }
 
   /** Add the currently active deployment to the command context. */
@@ -700,112 +691,11 @@ export class Deploy extends Commands {
 
 }
 
-export function getDeployContext (context: Partial<Context>): Partial<Context> {
+export type InfoOrStep<T> = string|((context: Partial<Context>)=>T)
 
-  const {
-    timestamp,
-    deployment,
-    agent,
-    deployAgent = agent,
-    clientAgent = agent,
-    suffix      = `+${timestamp}`
-  } = context
-
-  type Fn<T, U> = (...t: T[]) => U
-  function needsActiveDeployment <T, U> (fn: Fn<T, U>): Fn<T, U> {
-    if (!deployment) return () => { throw new Error('Fadroma Ops: no active deployment') }
-    return fn
-  }
-
-  return {
-
-    template (code: IntoTemplate) {
-    },
-
-    deployment,
-    clientAgent: agent,
-    contract: needsActiveDeployment(function contract <C extends Client> (
-      instance:  string|{ address: string },
-      APIClient: ClientCtor<C, any>
-    ) {
-      // By default, contracts are returned as the base Client class.
-      // Caller can pass a specific API class constructor as 2nd arg.
-      APIClient = APIClient ?? Client as typeof APIClient
-      let client = null
-
-      // When 1st arg is string, look for contract by name in deployment
-      if (typeof instance === 'string') {
-        const name = instance
-        if (this.deployment.has(name)) {
-          console.info('Found contract:', bold(name))
-          client = this.clientAgent.getClient(APIClient, this.deployment.get(name))
-        }
-        // Return an object with 3 methods bound to the containing context.
-        // (i.e. with access to `deployment`, `buildAndUpload`, etc. via `this`)
-        return rebind(this, { get, getOrDeploy, deploy })
-
-        // Get the specified contract. If it's not in the deployment,
-        // try fetching it from a subroutine or throw an error with a custom message.
-        async function get (errOrFn: string|((context: Partial<Context>)=>C) = ''): Promise<C> {
-          if (client) return client
-          if (errOrFn instanceof Function) {
-            console.info('Looking for contract:', bold(instance as string))
-            client = await Promise.resolve(errOrFn(context))
-            if (client) return client
-            throw new Error(`No such contract: ${name}.`)
-          } else {
-            errOrFn = `No such contract: ${name}. ${errOrFn||''}`
-            throw new Error(errOrFn)
-          }
-        }
-
-        // If the contract was found in the deployment, return it.
-        // Otherwise, deploy it under the specified name.
-        async function getOrDeploy (code: string|Source|Template, initMsg: unknown): Promise<C> {
-          if (client) return client
-          return this.deploy(code, initMsg)
-        }
-
-        // Always deploy the specified contract. If a contract with the same name
-        // already exists in the deployment, it will fail - use suffixes
-        async function deploy (code: IntoTemplate, initMsg: unknown): Promise<C> {
-          console.info(`Deploying contract:`, bold(name))
-          if (typeof code === 'string' || code instanceof Source) {
-            code = await this.buildAndUpload(code)
-            const instance = await this.deployment.init(this.deployAgent, code, name, initMsg)
-            return this.clientAgent.getClient(APIClient, instance)
-          }
-        }
-
-      } else if (instance.address) {
-
-        // When 1st instance has `address` property, just get client by address.
-        console.info('Using contract:', bold(instance.address))
-        return this.clientAgent.getClient(APIClient, instance)
-
-      } else {
-        throw new Error('Fadroma: invalid contract() invocation')
-      }
-
-    }),
-
-    suffix,
-    getInstance (name: string) {
-      return this.deployment.get(name)
-    },
-    getClient (name: string, _Client: typeof Client = Client) {
-      return this.clientAgent.getClient(Client, this.deployment.get(name))
-    },
-    deployAgent,
-    async deployMany (template: Template, configs: [string, Message][]) {
-      if (!this.deployAgent) {
-        throw new Error('Fadroma Ops: no deployAgent in context')
-      }
-      return await this.deployment.initMany(this.deployAgent, template, configs)
-    },
-
-  }
-
+export class Slot<T> {
+  abstract get (errOrFn: InfoOrStep<T>): Promise<T>
+  value: T|null = null
 }
 
 export function getBuildContext ({ config }: {
@@ -835,48 +725,179 @@ export function getBuildContext ({ config }: {
 }
 
 /** Add an uploader to the command context. */
-export function getUploadContext (context: {
-  agent:    Agent
-  caching?: boolean
-  config:   { project: { root: string }, upload: { reupload: boolean } },
-} & Partial<Context>): Partial<Context> {
-  const {
-    config,
-    agent: { chain: { isMocknet } },
-    agent,
-    caching = !config.upload.reupload,
-    build,
-    buildMany
-  } = context
+export function getUploadContext ({
+  config,
+  agent: { chain: { isMocknet } },
+  agent,
+  caching = !config.upload.reupload,
+  build,
+  buildMany,
+  workspace
+}: Partial<Context> & {
+  caching?:  boolean
+}): Partial<Context> {
+
   const uploader = (!isMocknet && caching)
     ? CachingFSUploader.fromConfig(agent, config.project.root)
     : new FSUploader(agent)
+
   return {
+
     uploader,
-    async upload (artifact: Artifact|Source|string): Promise<Template> {
-      return await uploader.upload(artifact)
+
+    async upload (code: IntoTemplate): Promise<Template> {
+      if (typeof code === 'string') code = this.workspace.crate(code)
+      if (code instanceof Source) {
+        if (this.build) {
+          code = await this.build(code)
+        } else {
+          throw new Error(`upload ${code.crate}@${code.workspace.ref}: building is not enabled`)
+        }
+      }
+      if (code instanceof Artifact) {
+        const rel = bold($(code.url).shortPath)
+        console.info(`Upload ${bold(rel)}: hash`, bold(code.codeHash))
+        code = await uploader.upload(code)
+        console.info(`Upload ${bold(rel)}: id  `, bold(code.codeId),)
+      }
+      if (code instanceof Template) return code
+      throw Object.assign(
+        new Error(`upload: invalid argument ${code}. must be crate name, Source, Artifact, or Template`),
+        { code }
+      )
     },
-    async uploadMany (artifacts: [Artifact|Source|string][]): Promise<Template[]> {
+
+    async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
       return await uploader.uploadMany(artifacts)
     },
-    async buildAndUpload (source: Source|string): Promise<Template> {
-      if (!build) {
-        throw new Error('Builder is not specified.')
-      }
-      return await uploader.upload(await build(source))
+
+    template (code: IntoTemplate): TemplateSlot {
+      return new TemplateSlot(this, code)
     },
-    async buildAndUploadMany (sources: (Source|string)[]): Promise<Template[]> {
-      if (!buildMany) {
-        throw new Error('Builder is not specified.')
-      }
-      return await uploader.uploadMany(await buildMany(sources))
-    }
+
   }
 }
 
-/** The part of Context that deals with uploading
-  * contract code to the platform. */
-export interface UploadContext {
+export class TemplateSlot extends Slot<Template> {
+  constructor (
+    public readonly context: Partial<Context>,
+    public readonly code:    IntoTemplate,
+  ) {
+    super()
+  }
+  get (errOrFn): Promise<Template> {
+    if (this.value) return this.value
+  }
+  getOrUpload (artifact: IntoArtifact) {
+  }
+  async upload (code: IntoArtifact) {
+    if (typeof code === 'string') code = this.context.workspace.crate(code)
+    if (code instanceof Source)   code = await code.build(this.context.builder)
+    if (code instanceof Artifact) code = await code.upload(this.context.uploader)
+    return code as Template
+  }
+}
+
+export function getDeployContext ({
+  timestamp,
+  deployment,
+  agent,
+  deployAgent = agent,
+  clientAgent = agent,
+  suffix      = `+${timestamp}`
+}: Partial<Context>): Partial<Context> {
+
+  type Fn<T, U> = (...t: T[]) => U
+  function needsActiveDeployment <T, U> (fn: Fn<T, U>): Fn<T, U> {
+    if (!deployment) return () => { throw new Error('Fadroma Ops: no active deployment') }
+    return fn
+  }
+
+  return {
+    deployment,
+    suffix,
+    deployAgent,
+    deploy: needsActiveDeployment(async function deploy (name: string, template: Template, init: Message) {
+      console.info(
+        `Deploy ${bold(name)}:`,
+        'from code id:',      bold(template.codeId),
+        'with init message:', `\n${JSON.stringify(init, null, 2)}`
+      )
+      return await this.deployment.init(this.deployAgent, template, name, init)
+    }),
+    deployMany: needsActiveDeployment(async function deployMany (template: Template, configs: [string, Message][]) {
+      return await this.deployment.initMany(this.deployAgent, template, configs)
+    }),
+    clientAgent,
+    getInstance: needsActiveDeployment(function getInstance (name: string) {
+      return this.deployment.get(name)
+    }),
+    getClient: needsActiveDeployment(function getClient (name: string, _Client: typeof Client = Client) {
+      return this.clientAgent.getClient(Client, this.deployment.get(name))
+    }),
+    contract: needsActiveDeployment(function contract <C extends Client> (
+      instance:  string|{ address: string },
+      APIClient: ClientCtor<C, any>
+    ) {
+      return new ContractSlot(this, instance, APIClient)
+    }),
+  }
+
+}
+
+/** Object returned by context.contract() helper.
+  * `getOrDeploy` method enables resumable deployments. */
+export class ContractSlot<C extends Client> extends Slot<C> {
+  constructor (
+    public readonly context:   Partial<Context>,
+    public readonly reference: string|{ address: Address },
+    /** By default, contracts are returned as the base Client class.
+      * Caller can pass a specific API class constructor as 2nd arg. */
+    public readonly APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>
+  ) {
+    super()
+    if (typeof reference === 'string') {
+      // When arg is string, look for contract by name in deployment
+      if (this.context.deployment.has(reference)) {
+        console.info('Found contract:', bold(reference))
+        this.client = this.context.deployAgent.getClient(
+          this.APIClient,
+          this.context.deployment.get(reference)
+        )
+      }
+    } else if (reference.address) {
+      // When arg has `address` property, just get client by address.
+      this.client = this.context.deployAgent.getClient(APIClient, reference)
+    }
+  }
+  client: C|null = null
+  /** Get the specified contract. If it's not in the deployment,
+    * try fetching it from a subroutine or throw an error with a custom message. */
+  async get (errOrFn: InfoOrStep<C> = ''): Promise<C> {
+    if (this.client) return this.client
+    if (errOrFn instanceof Function) {
+      console.info('Looking for contract:', bold(this.reference as string))
+      this.client = await Promise.resolve(errOrFn(this.context))
+      if (this.client) return this.client
+      throw new Error(`No such contract: ${this.reference}.`)
+    } else {
+      errOrFn = `No such contract: ${this.reference}. ${errOrFn||''}`
+      throw new Error(errOrFn)
+    }
+  }
+  /** If the contract was found in the deployment, return it.
+    * Otherwise, deploy it under the specified name. */
+  async getOrDeploy (code: IntoTemplate, init: Message): Promise<C> {
+    if (this.client) return this.client
+    return await this.deploy(code, init)
+  }
+  /** Always deploy the specified contract. If a contract with the same name
+    * already exists in the deployment, it will fail - use suffixes */
+  async deploy (code: IntoTemplate, init: Message): Promise<C> {
+    console.info(`Deploy ${bold(this.reference as string)}`)
+    const template = await this.context.upload(code)
+    return await this.context.deploy(this.reference as string, template, init) as C
+  }
 }
 
 export const print = console => {
@@ -889,8 +910,8 @@ export const print = console => {
         longest = Math.max(name.length, longest)
       }
       console.log()
-      for (const [name, { info }] of Object.entries(commands)) {
-        console.log(`    ... ${name} ${bold(name.padEnd(longest))}  ${info}`)
+      for (const [cmdName, { info }] of Object.entries(commands)) {
+        console.log(`    ... ${name} ${bold(cmdName.padEnd(longest))}  ${info}`)
       }
       console.log()
     },

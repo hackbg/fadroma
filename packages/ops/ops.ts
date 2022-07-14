@@ -46,11 +46,10 @@ import $, {
   Path,
   TextFile,
 } from '@hackbg/kabinet'
-import { Agent, Bundle, Chain, ChainMode } from '@fadroma/client'
+import { Agent, Bundle, Chain, ChainMode, Artifact, Template } from '@fadroma/client'
 import type {
   Address,
   AgentOpts,
-  Artifact,
   Client,
   ClientCtor,
   ClientOpts,
@@ -58,7 +57,6 @@ import type {
   Instance,
   Label,
   Message,
-  Template,
 } from '@fadroma/client'
 import { compileFromFile } from 'json-schema-to-typescript'
 import TOML from 'toml'
@@ -105,6 +103,10 @@ export class Workspace {
   }
   /** Get a Source object pointing to a crate from the current workspace and ref */
   crate (crate: string): Source {
+    if (crate.indexOf('@') > -1) {
+      const [name, ref] = crate.split('@')
+      return new Source(this.at(ref), name)
+    }
     return new Source(this, crate)
   }
   /** Get multiple Source objects pointing to crates from the current workspace and ref */
@@ -190,7 +192,7 @@ export abstract class CachingBuilder extends Builder {
     }
     const location = $(outputDir, artifactName(crate, ref))
     if (location.exists()) {
-      return { url: location.url, codeHash: codeHashForPath(location.path) }
+      return new Artifact(location.url, codeHashForPath(location.path))
     }
     return null
   }
@@ -247,17 +249,17 @@ export class DockerBuilder extends CachingBuilder {
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources: Source[]): Promise<Artifact[]> {
     // Announce what will be done
-    console.info('Requested to build the following contracts:')
+    //console.info('Requested to build the following contracts:')
     const longestCrateName = sources.map(source=>source.crate.length).reduce((x,y)=>Math.max(x,y),0)
     for (const source of sources) {
       const outputDir = $(source.workspace.path).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.workspace.ref)
-      console.info(
-        ' ',    bold(source.crate.padEnd(longestCrateName)),
-        'from', bold(`${$(source.workspace.path).shortPath}/`),
-        '@',    bold(source.workspace.ref),
-        prebuilt ? '(exists, not rebuilding)': ''
-      )
+      //console.info(
+        //' ',    bold(source.crate.padEnd(longestCrateName)),
+        //'from', bold(`${$(source.workspace.path).shortPath}/`),
+        //'@',    bold(source.workspace.ref),
+        //prebuilt ? '(exists, not rebuilding)': ''
+      //)
     }
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, Workspace> = {}
@@ -280,10 +282,10 @@ export class DockerBuilder extends CachingBuilder {
       // And for each ref of that workspace,
       for (const ref of refs) {
         let mounted = $(path)
-        console.info(
-          `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-          `@`, bold(ref)
-        )
+        //console.info(
+          //`Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+          //`@`, bold(ref)
+        //)
         if (ref !== HEAD) {
           mounted = gitDir.rootRepo
           console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
@@ -453,7 +455,7 @@ export class DockerBuilder extends CachingBuilder {
       if (location === null) {
         return null
       } else {
-        return { url: $(location).url, codeHash: codeHashForPath(location) }
+        return new Artifact($(location).url, codeHashForPath(location))
       }
     })
   }
@@ -1160,11 +1162,6 @@ export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
     const data = $(artifact.url).as(BinaryFile).load()
-    console.info(
-      `Uploading:`, bold($(artifact.url).shortPath),
-      'with code hash', bold(artifact.codeHash),
-      'uncompressed', bold(String(data.length)), 'bytes'
-    )
     const template = await this.agent.upload(data)
     await this.agent.nextBlock
     return template
@@ -1206,6 +1203,19 @@ export class FSUploader extends Uploader {
   }
 }
 
+export class UploadReceipt extends JSONFile<{ chainId, codeId, codeHash, uploadTx, artifact? }> {
+  toTemplate (): Template {
+    const { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
+    return new Template(
+      chainId,
+      codeId,
+      codeHash,
+      uploadTx,
+      artifact
+    )
+  }
+}
+
 /** Uploads contracts from the file system,
   * but only if a receipt does not exist in the chain's uploads directory. */
 export class CachingFSUploader extends FSUploader {
@@ -1229,9 +1239,9 @@ export class CachingFSUploader extends FSUploader {
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (artifact: Artifact): Promise<Template> {
     const name    = this.getUploadReceiptName(artifact)
-    const receipt = this.cache.at(name).as(JSONFile)
+    const receipt = this.cache.at(name).as(UploadReceipt)
     if (receipt.exists()) {
-      return receipt.load()
+      return receipt.toTemplate()
     }
     const data = $(artifact.url).as(BinaryFile).load()
     console.info(
@@ -1274,12 +1284,13 @@ export class CachingFSUploader extends FSUploader {
           continue
         }
         //console.info('✅', 'Exists, not reuploading (same code hash):', bold(relativePath))
-        templates[i] = {
-          chainId:         this.chain.id,
-          codeId:          receiptData.codeId,
-          codeHash:        artifact.codeHash,
-          transactionHash: receiptData.transactionHash as string,
-        }
+        templates[i] = new Template(
+          this.chain.id,
+          String(receiptData.codeId),
+          artifact.codeHash,
+          receiptData.transactionHash as string,
+          artifact
+        )
       }
     }
     if (artifactsToUpload.length > 0) {
@@ -1305,9 +1316,10 @@ export class CachingFSUploader extends FSUploader {
         'No code hash in artifact',
         bold($(artifact.url).shortPath)
       )
+      Object.assign(artifact, { codeHash: codeHashForPath($(artifact.url).path) })
       console.warn(
         'Computed checksum:',
-        bold(artifact.codeHash = codeHashForPath($(artifact.url).path))
+        bold(artifact.codeHash)
       )
     }
   }
@@ -1444,10 +1456,6 @@ export class Deployment {
     name:        Label,
     msg:         Message
   ): Promise<Instance> {
-    console.info(
-      'Deploying code id', bold(template.codeId),
-      'as', bold(name),
-    )
     const label = addPrefix(this.prefix, name)
     const instance = await deployAgent.instantiate(template, label, msg)
     this.set(name, instance)
@@ -1654,7 +1662,7 @@ export class MocknetBackend {
     const codeId   = ++this.codeId
     const content  = this.uploads[codeId] = blob
     const codeHash = codeHashForBlob(blob)
-    return { chainId, codeId: String(codeId), codeHash }
+    return new Template(chainId, String(codeId), codeHash)
   }
   instances = {}
   getInstance (address) {
