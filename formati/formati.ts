@@ -23,13 +23,10 @@ export const randomBech32 = (prefix = 'hackbg', bytes = 32) =>
 export const randomBech32m = (prefix = 'hackbg', bytes = 32) =>
   bech32m.encode(prefix, bech32m.toWords(secureRandom.randomBuffer(bytes)))
 
-export function pick (
-  obj = {},
-  ...keys: any[]
-) {
+export function pick (obj: Record<string, unknown> = {}, ...keys: string[]): Partial<typeof obj> {
   return Object.keys(obj)
     .filter(key=>keys.indexOf(key)>-1)
-    .reduce((obj2: any, key: any)=>{
+    .reduce((obj2: Partial<typeof obj>, key: string)=>{
       obj2[key] = obj[key]
       return obj2
     }, {})
