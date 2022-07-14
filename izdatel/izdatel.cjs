@@ -1,4 +1,4 @@
-const { resolve, rasename, relative, join } = require('path')
+const { resolve, basename, relative, join } = require('path')
 const { readFileSync, writeFileSync } = require('fs')
 const { execSync } = require('child_process')
 const process = require('process')
