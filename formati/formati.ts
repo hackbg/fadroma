@@ -25,15 +25,16 @@ export const randomBech32m = (prefix = 'hackbg', bytes = 32) =>
 
 export function pick (
   obj = {},
-  ...keys
+  ...keys: any[]
 ) {
   return Object.keys(obj)
     .filter(key=>keys.indexOf(key)>-1)
-    .reduce((obj2,key)=>{
+    .reduce((obj2: any, key: any)=>{
       obj2[key] = obj[key]
-      return obj2 }, {})
+      return obj2
+    }, {})
 }
 
-export function required (label) {
+export function required (label: string) {
   return () => { throw new Error(`required: ${label}`) }
 }
