@@ -62,7 +62,10 @@ export interface Instance {
 
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export class ContractLink {
-  static fromInstance = ({ address, codeHash }) => new ContractLink(address, codeHash)
+  static fromInstance = (
+    { address, codeHash }: { address: Address, codeHash: CodeHash }
+  ) => new ContractLink(address, codeHash)
+
   constructor (
     readonly address:   Address,
     readonly code_hash: CodeHash
