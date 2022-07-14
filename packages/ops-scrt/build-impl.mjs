@@ -112,6 +112,8 @@ function phase1 ({
     } catch (e) {
       // If the branch is not checked out, but is fetched, do a "fake checkout":
       // create a ref under refs/heads pointing to that branch.
+      console.warn(e)
+      console.log({noFetch})
       try {
         console.log(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}\n.`)
         if (!noFetch) {
@@ -124,7 +126,6 @@ function phase1 ({
           gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
         }
       } catch (e) {
-        console.log(e)
         console.log(`${ref} is not checked out or fetched. Run "git fetch" to update.`)
         exit(1)
       }
