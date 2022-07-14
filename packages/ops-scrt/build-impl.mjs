@@ -91,6 +91,9 @@ function phase1 ({
     chdir(subdir)
   } else {
     console.log(`Building from checkout of ${ref}`)
+    if (!noFetch) {
+      gitRun('fetch --recurse-submodules')
+    }
     // This works by using ".git" (or ".git/modules/something") as a remote
     // and cloning from it. Since we may need to modify that directory,
     // we'll make a copy. This may be slow if ".git" is huge
