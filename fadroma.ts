@@ -18,13 +18,11 @@
 
 **/
 
-import { resolve, dirname } from 'path'
-import { homedir }          from 'os'
-import { fileURLToPath }    from 'url'
-
+import { resolve, dirname }                 from 'path'
+import { homedir }                          from 'os'
+import { fileURLToPath }                    from 'url'
 import $                                    from '@hackbg/kabinet'
 import { Console, bold, colors, timestamp } from '@hackbg/konzola'
-
 import { getScrtBuilder, getScrtDevnet }    from '@fadroma/ops-scrt'
 import { ScrtChain }                        from '@fadroma/client-scrt'
 import { LegacyScrt }                       from '@fadroma/client-scrt-amino'
@@ -262,29 +260,50 @@ export type Context = {
   uploadMany:   (artifacts: IntoTemplate[]) => Promise<Template[]>
 
   /** Reproducibly obtain a template. */
-  template <T extends Client> (artifact: IntoTemplate): TemplateSlot
+  template (artifact: IntoTemplate): TemplateSlot
 
   /** Prefix to the labels of all deployed contracts.
     * Identifies which deployment they belong to. */
   suffix?:      string
+
   /** Currently selected collection of interlinked contracts. */
   deployment:   Deployment
+
   /** Who'll deploy new contracts */
   deployAgent?: Agent
+
   /** Deploy a contract. */
-  deploy:       (name: string, template: Template, initMsg: Message) => Promise<Instance>
+  deploy <C extends Client, O extends ClientOpts> (
+    name:       string,
+    template:   IntoTemplate,
+    initMsg:    Message,
+    APIClient?: ClientCtor<C, O>
+  ): Promise<C>
+
   /** Deploy multiple contracts from the same template. */
-  deployMany:   (template: Template, configs: [string, Message][]) => Promise<Instance[]>
+  deployMany <C extends Client, O extends ClientOpts> (
+    template:   IntoTemplate,
+    configs:    [string, Message][],
+    APIClient?: ClientCtor<C, O>
+  ): Promise<C[]>
 
   /** Who'll interact with existing contracts */
   clientAgent?: Agent
+
   /** Shorthand for calling `deployment.get(name)` */
-  getInstance:  (name: string) => Instance
+  getInstance (name: string): Instance
+
   /** Shorthand for calling `clientAgent.getClient(Client, deployment.get(name))` */
-  getClient:    <C extends Client, O extends ClientOpts>(name: string, Client?: ClientCtor<C, O>)=>C
+  getClient <C extends Client, O extends ClientOpts> (
+    name: string,
+    Client?: ClientCtor<C, O>
+  ): C
 
   /** Idempotently deploy a contract. */
-  contract <T extends Client> (name, _Client?: ClientCtor<T, any>): ContractSlot<T>
+  contract <C extends Client, O extends ClientOpts> (
+    name:       string,
+    APIClient?: ClientCtor<C, O>
+  ): ContractSlot<C>
 }
 
 export class Commands {
@@ -341,7 +360,7 @@ export class Commands {
   entrypoint (url: string, args = process.argv.slice(2)): this {
     const self = this
     setTimeout(()=>{
-      if (process.argv[1] === fileURLToPath(url)) {
+      if (process.argv[1] === $(url).path) {
         const command = this.parse(args)
         if (command) {
           const [cmdName, { info, steps }, cmdArgs] = command
@@ -693,7 +712,7 @@ export class Deploy extends Commands {
 
 export type InfoOrStep<T> = string|((context: Partial<Context>)=>T)
 
-export class Slot<T> {
+export abstract class Slot<T> {
   abstract get (errOrFn: InfoOrStep<T>): Promise<T>
   value: T|null = null
 }
@@ -767,8 +786,12 @@ export function getUploadContext ({
       )
     },
 
-    async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
-      return await uploader.uploadMany(artifacts)
+    async uploadMany (code: IntoTemplate[]): Promise<Template[]> {
+      const templates = []
+      for (const contract of code) {
+        templates.push(await this.upload(contract))
+      }
+      return templates
     },
 
     template (code: IntoTemplate): TemplateSlot {
@@ -785,16 +808,29 @@ export class TemplateSlot extends Slot<Template> {
   ) {
     super()
   }
-  get (errOrFn): Promise<Template> {
+  async get (errOrFn: InfoOrStep<Template> = ''): Promise<Template> {
     if (this.value) return this.value
+    if (errOrFn instanceof Function) {
+      console.info('Looking for template', this.code)
+      this.value = await Promise.resolve(errOrFn(this.context))
+      if (this.value) return this.value
+      throw Object.assign(new Error(`No such template`), { code: this.code })
+    } else {
+      errOrFn = `No such template.${errOrFn||''}`
+      throw new Error(errOrFn)
+    }
   }
-  getOrUpload (artifact: IntoArtifact) {
+  /** If the contract was found in the deployment, return it.
+    * Otherwise, deploy it under the specified name. */
+  async getOrUpload (): Promise<Template> {
+    if (this.value) return this.value
+    return await this.upload(this.code)
   }
-  async upload (code: IntoArtifact) {
-    if (typeof code === 'string') code = this.context.workspace.crate(code)
-    if (code instanceof Source)   code = await code.build(this.context.builder)
-    if (code instanceof Artifact) code = await code.upload(this.context.uploader)
-    return code as Template
+  async upload () {
+    if (typeof this.code === 'string') this.code = this.context.workspace.crate(this.code)
+    if (this.code instanceof Source)   this.code = await this.code.build(this.context.builder)
+    if (this.code instanceof Artifact) this.code = await this.code.upload(this.context.uploader)
+    return this.code as Template
   }
 }
 
@@ -817,17 +853,29 @@ export function getDeployContext ({
     deployment,
     suffix,
     deployAgent,
-    deploy: needsActiveDeployment(async function deploy (name: string, template: Template, init: Message) {
-      console.info(
-        `Deploy ${bold(name)}:`,
-        'from code id:',      bold(template.codeId),
-        'with init message:', `\n${JSON.stringify(init, null, 2)}`
-      )
-      return await this.deployment.init(this.deployAgent, template, name, init)
-    }),
-    deployMany: needsActiveDeployment(async function deployMany (template: Template, configs: [string, Message][]) {
-      return await this.deployment.initMany(this.deployAgent, template, configs)
-    }),
+    deploy: needsActiveDeployment(
+      async function deploy <C extends Client> (
+        name:      string,
+        template:  IntoTemplate,
+        init:      Message,
+        APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>
+      ) {
+        template = await this.upload(template) as Template
+        console.info(
+          `Deploy ${bold(name)}:`,
+          'from code id:',      bold(template.codeId),
+          'with init message:', `\n${JSON.stringify(init, null, 2)}`
+        )
+        const instance = await this.deployment.init(this.deployAgent, template, name, init)
+        return this.deployAgent.getClient(APIClient, instance)
+      }
+    ),
+    deployMany: needsActiveDeployment(
+      async function deployMany (template: IntoTemplate, configs: [string, Message][]) {
+        template = await this.upload(template) as Template
+        return await this.deployment.initMany(this.deployAgent, template, configs)
+      }
+    ),
     clientAgent,
     getInstance: needsActiveDeployment(function getInstance (name: string) {
       return this.deployment.get(name)
@@ -860,25 +908,24 @@ export class ContractSlot<C extends Client> extends Slot<C> {
       // When arg is string, look for contract by name in deployment
       if (this.context.deployment.has(reference)) {
         console.info('Found contract:', bold(reference))
-        this.client = this.context.deployAgent.getClient(
+        this.value = this.context.deployAgent.getClient(
           this.APIClient,
           this.context.deployment.get(reference)
         )
       }
     } else if (reference.address) {
       // When arg has `address` property, just get client by address.
-      this.client = this.context.deployAgent.getClient(APIClient, reference)
+      this.value = this.context.deployAgent.getClient(APIClient, reference)
     }
   }
-  client: C|null = null
   /** Get the specified contract. If it's not in the deployment,
     * try fetching it from a subroutine or throw an error with a custom message. */
   async get (errOrFn: InfoOrStep<C> = ''): Promise<C> {
-    if (this.client) return this.client
+    if (this.value) return this.value
     if (errOrFn instanceof Function) {
-      console.info('Looking for contract:', bold(this.reference as string))
-      this.client = await Promise.resolve(errOrFn(this.context))
-      if (this.client) return this.client
+      console.info('Finding contract:', bold(this.reference as string))
+      this.value = await Promise.resolve(errOrFn(this.context))
+      if (this.value) return this.value
       throw new Error(`No such contract: ${this.reference}.`)
     } else {
       errOrFn = `No such contract: ${this.reference}. ${errOrFn||''}`
@@ -888,7 +935,7 @@ export class ContractSlot<C extends Client> extends Slot<C> {
   /** If the contract was found in the deployment, return it.
     * Otherwise, deploy it under the specified name. */
   async getOrDeploy (code: IntoTemplate, init: Message): Promise<C> {
-    if (this.client) return this.client
+    if (this.value) return this.value
     return await this.deploy(code, init)
   }
   /** Always deploy the specified contract. If a contract with the same name
@@ -927,10 +974,12 @@ export const print = console => {
         console.info(bold('Deployments:'), deployments.list().length)
       }
     },
+
     url ({ protocol, hostname, port }: URL) {
       console.info(bold(`Protocol: `), protocol)
       console.info(bold(`Host:     `), `${hostname}:${port}`)
     },
+
     async agentBalance (agent: Agent) {
       console.info(bold(`Agent:    `), agent.address)
       try {
@@ -940,12 +989,14 @@ export const print = console => {
         console.warn(bold(`Could not fetch balance:`), e.message)
       }
     },
+
     identities (chain: any) {
       console.info('\nAvailable identities:')
       for (const identity of chain.identities.list()) {
         console.log(`  ${chain.identities.load(identity).address} (${bold(identity)})`)
       }
     },
+
     aligned (obj: Record<string, any>) {
       const maxKey = Math.max(...Object.keys(obj).map(x=>x.length), 15)
       for (let [key, val] of Object.entries(obj)) {
@@ -955,9 +1006,11 @@ export const print = console => {
         console.info(bold(`  ${key}:`.padEnd(maxKey+3)), val)
       }
     },
+
     contracts (contracts) {
       contracts.forEach(print.contract)
     },
+
     contract (contract) {
       console.info(
         String(contract.codeId).padStart(12),
@@ -965,6 +1018,7 @@ export const print = console => {
         contract.name
       )
     },
+
     async token (TOKEN) {
       if (typeof TOKEN === 'string') {
         console.info(
@@ -981,6 +1035,7 @@ export const print = console => {
         )
       }
     },
+
     deployment ({ receipts, prefix }) {
       let contracts: string|number = Object.values(receipts).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
@@ -994,6 +1049,7 @@ export const print = console => {
         console.info('This deployment is empty.')
       }
     },
+
     receipt (name, receipt) {
       if (receipt.address) {
         console.info(
@@ -1009,6 +1065,8 @@ export const print = console => {
         )
       }
     }
+
   }
+
   return print
 }

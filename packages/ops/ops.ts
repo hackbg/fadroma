@@ -288,7 +288,7 @@ export class DockerBuilder extends CachingBuilder {
         //)
         if (ref !== HEAD) {
           mounted = gitDir.rootRepo
-          console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
+          //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
           await simpleGit(gitDir.path)
             .fetch(process.env.FADROMA_PREFERRED_REMOTE || 'origin')
         }
@@ -1169,6 +1169,7 @@ export class FSUploader extends Uploader {
   /** Upload multiple Artifacts from the filesystem.
     * TODO: Optionally bundle them (where is max size defined?) */
   async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
+    console.log('uploadMany', artifacts)
     const templates = []
     for (const i in artifacts) {
       // support "holes" in artifact array
