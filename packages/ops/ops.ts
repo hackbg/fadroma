@@ -517,7 +517,6 @@ export class RawBuilder extends CachingBuilder {
         const { gitDir } = source.workspace
         tmpGit   = $(mkdtempSync($(tmpdir(), 'fadroma-git-').path))
         tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
-        cwd = tmpBuild.path
         Object.assign(env, {
           _GIT_ROOT:   gitDir.path,
           _TMP_GIT:    tmpGit.path,
