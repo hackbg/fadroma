@@ -200,7 +200,336 @@ export class FadromaConfig {
 
 export const currentConfig = new FadromaConfig(process.env)
 
-export const chains = {
+export interface Command {
+  info:  string,
+  steps: Step<unknown>[]
+}
+
+export type Step<U> = (context: Context) => U|Promise<U>
+
+export type IntoSource   = Source|string
+export type IntoArtifact = Artifact|Source|string
+export type IntoTemplate = Template|Artifact|Source|string
+
+export type Context = {
+  /** Run a subroutine in a copy of the current context, i.e. without changing the context. */
+  run <T> (
+    operation:     Step<T>,
+    extraContext?: Record<string, unknown>,
+    ...extraArgs:  unknown[]
+  ): Promise<T>
+  /** Configuration of Fadroma. */
+  config:      FadromaConfig
+  /** Extra arguments passed from the command line. */
+  cmdArgs:     string[]
+  /** Start of command execution. */
+  timestamp:   string
+  /** Known block chains and connection methods. */
+  chains:      typeof knownChains,
+  /** The blockhain to connect to. */
+  chain:       Chain,
+  /** Collections of interlinked contracts on the active chain. */
+  deployments: Deployments
+  /** = chain.isMainnet */
+  isMainnet:   boolean
+  /** = chain.isTestnet */
+  isTestnet:   boolean
+  /** = chain.isDevnet */
+  isDevnet:    boolean
+  /** = chain.isMocknet */
+  isMocknet:   boolean
+  /** True if the chain is a devnet or mocknet */
+  devMode:     boolean
+  /** Default identity to use when operating on the chain. */
+  agent:       Agent
+  /** Knows how to build contracts for a target. */
+  builder:     Builder
+  /** Cargo workspace. */
+  workspace:   Workspace
+  /** Get a Source by crate name from the current workspace. */
+  getSource:   (source: string) => Source
+  /** Get a Source by crate name from the current workspace. */
+  build:              (source:  IntoSource)   => Promise<Artifact>
+  buildMany:          (sources: IntoSource[]) => Promise<Artifact[]>
+  /** Knows how to upload contracts to a blockchain. */
+  uploader:           Uploader
+  upload:             (artifact:  IntoArtifact)   => Promise<Template>
+  uploadMany:         (artifacts: IntoArtifact[]) => Promise<Template[]>
+  buildAndUpload:     (source: Source|string   ) => Promise<Template>
+  buildAndUploadMany: (sources: (Source|string)[]) => Promise<Template[]>
+  /** Currently selected collection of interlinked contracts. */
+  deployment:   Deployment
+  /** Prefix to the labels of all deployed contracts.
+    * Identifies which deployment they belong to. */
+  prefix:       string
+  /** Appended to contract labels in devnet deployments for faster iteration. */
+  suffix?:      string
+  /** Who'll deploy new contracts */
+  deployAgent?: Agent
+  /** Deploy a contract. */
+  deploy:       (name: string, template: Template, initMsg: Message) => Promise<Instance>
+  /** Deploy multiple contracts from the same template. */
+  deployMany:   (template: Template, configs: [string, Message][]) => Promise<Instance[]>
+  /** Who'll interact with existing contracts */
+  clientAgent?: Agent
+  /** Shorthand for calling `deployment.get(name)` */
+  getInstance:  (name: string) => Instance
+  /** Shorthand for calling `clientAgent.getClient(Client, deployment.get(name))` */
+  getClient:    <C extends Client, O extends ClientOpts>(name: string, Client?: ClientCtor<C, O>)=>C
+  /** Reproducibly obtain a template. */
+  template <T extends Client> (artifact: IntoTemplate): TemplateSlot
+  /** Idempotently deploy a contract. */
+  contract <T extends Client> (name, _Client?: ClientCtor<T, any>): ContractSlot<T>
+}
+
+export interface TemplateSlot {
+  get         (errOrfn?: string|((context: Partial<Context>)=>Template)): Promise<Template>
+  getOrUpload (): Promise<Template>
+  upload      (): Promise<Template>
+}
+
+export interface ContractSlot<T extends Client> {
+  get         (errOrfn?: string|((context: Partial<Context>)=>T|Promise<T>)): Promise<T>
+  getOrDeploy (code: string|Source|Template, initMsg: unknown):               Promise<T>
+  deploy      (code: string|Source|Template, initMsg: unknown):               Promise<T>
+}
+
+export class Commands {
+  constructor (
+    public readonly name,
+    public readonly before:   Step<unknown>[] = [],
+    public readonly after:    Step<unknown>[] = [],
+    public readonly commands: Record<string, Command> = {}
+  ) {}
+  command (name: string, info: string, ...steps: Step<unknown>[]) {
+    // validate that all steps are functions
+    for (const i in steps) {
+      if (!(steps[i] instanceof Function)) {
+        throw new Error(`${this.name} command ${name}: invalid step ${i} (not a Function)`)
+      }
+    }
+    // store command
+    this.commands[name] = { info, steps: [...this.before, ...steps, ...this.after] }
+    return this
+  }
+  parse (args: string[]): [string, Command, string[]]|null {
+    let commands = Object.entries(this.commands)
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i]
+      const nextCommands = []
+      for (const [name, impl] of commands) {
+        if (name === arg) {
+          return [name, impl, args.slice(i+1)]
+        } else if (name.startsWith(arg)) {
+          nextCommands.push([name.slice(arg.length).trim(), impl])
+        }
+      }
+      commands = nextCommands
+      if (commands.length === 0) {
+        return null
+      }
+    }
+    return null
+  }
+  /** For iterating on would-be irreversible mutations. */
+  iteration (name, info, ...steps) {
+    return this.command(name, info, deploymentIteration, ...steps)
+    function deploymentIteration (context) {
+      if (context.devMode) {
+        return Deploy.create(context)
+      } else {
+        return context
+      }
+    }
+  }
+  /** `export default myCommands.main(import.meta.url)`
+    * once per module after defining all commands */
+  entrypoint (url: string, args = process.argv.slice(2)): this {
+    const self = this
+    setTimeout(()=>{
+      if (process.argv[1] === fileURLToPath(url)) {
+        const command = this.parse(args)
+        if (command) {
+          const [cmdName, { info, steps }, cmdArgs] = command
+          console.info('$ fadroma', bold($(process.argv[1]).shortPath), bold(cmdName), ...cmdArgs)
+          return self.run(args)
+        } else {
+          print(console).usage(this)
+          process.exit(1)
+        }
+      }
+    }, 0)
+    return self
+  }
+  async run (args = process.argv.slice(2)): Promise<void> {
+    if (args.length === 0) {
+      print(console).usage(this)
+      process.exit(1)
+    }
+    const command = this.parse(args)
+    if (!command) {
+      console.error('Invalid command', ...args)
+      process.exit(1)
+    }
+    const [cmd, { info, steps }, cmdArgs] = command
+    return await runOperation(cmd, info, steps, cmdArgs)
+  }
+}
+
+export async function runSub <T> (
+  operation:    Step<T>,
+  extraContext: Record<string, any> = {},
+  extraArgs:    unknown[]
+): Promise<T> {
+  if (!operation) {
+    throw new Error('Tried to run missing operation.')
+  }
+  const params = Object.keys(extraContext)
+  console.info(
+    'Running operation', bold(operation.name||'(unnamed)'),
+    ...((params.length > 0) ? ['with custom', bold(params.join(', '))] : [])
+  )
+  try {
+    //@ts-ignore
+    return await operation({ ...this, ...extraContext }, ...extraArgs)
+  } catch (e) {
+    throw e
+  }
+}
+
+export async function runOperation (
+  command,
+  cmdInfo,
+  cmdSteps,
+  cmdArgs,
+
+  // Establish context
+  context: Partial<Context> = {
+    cmdArgs,
+    config:    currentConfig,
+    timestamp: timestamp(),
+  }
+): Promise<void> {
+
+  // Never hurts:
+  Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
+
+  // Add step runner
+  context.run = runSub.bind(context)
+
+  // Will count milliseconds
+  const stepTimings = []
+
+  // Start of command
+  const T0 = + new Date()
+
+  // Will align output
+  const longestName = cmdSteps.map(step=>step?.name||'').reduce((max,x)=>Math.max(max, x.length), 0)
+
+  // Store thrown error and print report before it
+  let error
+
+  // Execute each step, updating the context
+  for (const step of cmdSteps) {
+    // Pad the name
+    const name = (step.name||'').padEnd(longestName)
+
+    // Start of step
+    const T1 = + new Date()
+
+    try {
+      // Object returned by step gets merged into context.
+      const updates = await step({ ...context })
+
+      // On every step, the context is recreated from the old context and the updates.
+      context = { ...context, ...updates }
+
+      // Make sure `this` in every function of the context points to the up-to-date context.
+      rebind(context)
+
+      // End of step
+      const T2 = + new Date()
+      stepTimings.push([name, T2-T1, false])
+    } catch (e) {
+      // If the step threw an error, store the timing and stop executing new steps
+      error = e
+      break
+    } finally {
+      // End of step
+      const T2 = + new Date()
+      stepTimings.push([name, T2-T1, true])
+    }
+  }
+
+  // Final execution report
+  const T3 = + new Date()
+  const result = error ? colors.red('failed') : colors.green('completed')
+  console.info(`The command`, bold(command), result, `in`, ((T3-T0)/1000).toFixed(3), `s`)
+
+  // Print timing of each step
+  for (const [name, duration, isError] of stepTimings) {
+    console.info(
+      isError?`${colors.red('FAIL')}`:`${colors.green('OK  ')}`,
+      bold((name||'(nameless step)').padEnd(40)),
+      (duration/1000).toFixed(1).padStart(10),
+      's'
+    )
+  }
+
+  // If there was an error throw it now
+  if (error) {
+    throw error
+  }
+}
+
+export function rebind (self, obj = self) {
+  for (const key in obj) {
+    if (obj[key] instanceof Function) {
+      obj[key] = obj[key].bind(self)
+    }
+  }
+}
+
+/** Run several operations in parallel in the same context. */
+export function parallel (...operations) {
+  return function parallelOperations (context) {
+    return Promise.all(operations.map(command=>context.run(command)))
+  }
+}
+
+export async function getChain (
+  { config, chains }, name = config.project.chain
+): Promise<Partial<Context>> {
+
+  config ??= currentConfig
+  chains ??= knownChains
+
+  // Check that a valid name is passed
+  if (!name || !chains[name]) {
+    console.error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
+    console.info('Known chain names:')
+    for (const chain of Object.keys(chains).sort()) {
+      console.info(`  ${chain}`)
+    }
+    process.exit(1)
+  }
+
+  // Return chain and deployments handle
+  const chain = await chains[name](config)
+  return {
+    chains,
+    chain,
+    deployments: Deployments.fromConfig(chain, config.project.root),
+    devMode:     chain.isDevnet || chain.isMocknet,
+    isDevnet:    chain.isDevnet,
+    isMocknet:   chain.isMocknet,
+    isTestnet:   chain.isTestnet,
+    isMainnet:   chain.isMainnet,
+  }
+
+}
+
+export const knownChains = {
   async 'Mocknet'           (config = currentConfig) {
     return new Mocknet()
   },
@@ -244,266 +573,6 @@ export const chains = {
   },
 }
 
-export type Step<T, U> = (context: T) => U|Promise<U>
-
-export interface Command {
-  info:  string,
-  steps: Step<unknown, unknown>[]
-}
-
-export class CommandCollection {
-  constructor (public readonly name: string,) {}
-  readonly commands: Record<string, Command> = {}
-  command (name, info, ...steps) {
-    this.commands[name] = { info, steps }
-    return this
-  }
-  parse (args: string[]): [string, Command, string[]]|null {
-    let commands = Object.entries(this.commands)
-    for (let i = 0; i < args.length; i++) {
-      const arg = args[i]
-      const nextCommands = []
-      for (const [name, impl] of commands) {
-        if (name === arg) {
-          return [name, impl, args.slice(i+1)]
-        } else if (name.startsWith(arg)) {
-          nextCommands.push([name.slice(arg.length).trim(), impl])
-        }
-      }
-      commands = nextCommands
-      if (commands.length === 0) {
-        return null
-      }
-    }
-    return null
-  }
-}
-
-export class Commands extends CommandCollection {
-  constructor (
-    name,
-    private readonly before: Step<unknown, unknown>[] = [],
-    private readonly after:  Step<unknown, unknown>[] = []
-  ) {
-    super(name)
-    if (name === 'deploy') {
-      this.before.push(print(console).chainStatus)
-      this.command('reset',  'reset the devnet',                resetDevnet)
-      this.command('list',   'print a list of all deployments', listDeployments)
-      this.command('select', 'select a new active deployment',  selectDeployment)
-      this.command('new',    'create a new empty deployment',   createDeployment)
-      this.command('status', 'show the current deployment',     showDeployment)
-    }
-  }
-  command (name, info, ...steps) {
-    return super.command(name, info, ...this.before, ...steps, ...this.after)
-  }
-  /** For iterating on would-be irreversible mutations. */
-  iteration (name, info, ...steps) {
-    return this.command(name, info, deploymentIteration, ...steps)
-    function deploymentIteration (context) {
-      if (context.devMode) {
-        return createDeployment(context)
-      } else {
-        return context
-      }
-    }
-  }
-  printUsage () {
-    let longest = 0
-    for (const name of Object.keys(this.commands)) {
-      longest = Math.max(name.length, longest)
-    }
-    console.log()
-    for (const [name, { info }] of Object.entries(this.commands)) {
-      console.log(`    ... ${this.name} ${bold(name.padEnd(longest))}  ${info}`)
-    }
-    console.log()
-  }
-  /** `export default myCommands.main(import.meta.url)`
-    * once per module after defining all commands */
-  entrypoint (url: string, args = process.argv.slice(2)): this {
-    const self = this
-    setTimeout(()=>{
-      if (process.argv[1] === fileURLToPath(url)) {
-        const command = this.parse(args)
-        if (command) {
-          const [cmdName, { info, steps }, cmdArgs] = command
-          console.info('$ fadroma', bold($(process.argv[1]).shortPath), bold(cmdName), ...cmdArgs)
-          return self.run(args)
-        } else {
-          this.printUsage()
-          process.exit(1)
-        }
-      }
-    }, 0)
-    return self
-  }
-  async run (args = process.argv.slice(2)): Promise<void> {
-    if (args.length === 0) {
-      this.printUsage()
-      process.exit(1)
-    }
-    const command = this.parse(args)
-    if (!command) {
-      console.error('Invalid command', ...args)
-      process.exit(1)
-    }
-    const [cmdName, { info, steps }, cmdArgs] = command
-    Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
-    let context = {
-      config: currentConfig,
-      cmdArgs,
-      timestamp: timestamp(),
-      /** Run a sub-procedure in the same context,
-        * but without mutating the context. */
-      async run <T, U> (procedure: Step<T, U>, args: Record<string, any> = {}): Promise<U> {
-        if (!procedure) {
-          throw new Error('Tried to run missing procedure.')
-        }
-        const params = Object.keys(args)
-        console.info(
-          'Running procedure', bold(procedure.name||'(unnamed)'),
-          ...((params.length > 0) ? ['with custom', bold(params.join(', '))] : [])
-        )
-        try {
-          //@ts-ignore
-          return await procedure({ ...context, ...args })
-        } catch (e) {
-          throw e
-        }
-      },
-    }
-    const T0 = + new Date()
-    const stepTimings = []
-    // Composition of commands via steps:
-    for (const i in steps) {
-      const step = steps[i]
-      if (!(step instanceof Function)) {
-        const msg = [
-          'Each command step must be a function, but',
-          'step', bold(String(Number(i)+1)), 'in command', bold(this.name), bold(cmdName),
-          'is something else:', step, `(${typeof step})`
-        ].join(' ')
-        throw new Error(msg)
-      }
-    }
-    const longestName = steps.map(step=>step?.name||'').reduce((max,x)=>Math.max(max, x.length), 0)
-    let error
-    for (const step of steps) {
-      const name = (step.name||'').padEnd(longestName)
-      const T1 = + new Date()
-      let updates
-      try {
-        updates = await step({ ...context })
-        // Every step refreshes the context
-        // by adding its outputs to it.
-        context = { ...context, ...updates }
-        // Bind every function in the context so that `this` points to the current context object.
-        // This allows e.g. `deploy` to use the current value of `deployAgent`,
-        // but may break custom bound functions when passing them through the context.
-        Object.keys(context).forEach(key=>{
-          if (context[key] instanceof Function) {
-            context[key] = context[key].bind(context)
-          }
-        })
-        const T2 = + new Date()
-        stepTimings.push([name, T2-T1, false])
-      } catch (e) {
-        error = e
-        const T2 = + new Date()
-        stepTimings.push([name, T2-T1, true])
-        break
-      }
-    }
-    const T3 = + new Date()
-    const result = error ? colors.red('failed') : colors.green('completed')
-    console.info(`The command`, bold(cmdName), result, `in`, ((T3-T0)/1000).toFixed(3), `s`)
-    for (const [name, duration, isError] of stepTimings) {
-      console.info(
-        isError?`${colors.red('FAIL')}`:`${colors.green('OK  ')}`,
-        bold((name||'(nameless step)').padEnd(40)),
-        (duration/1000).toFixed(1).padStart(10),
-        's'
-      )
-    }
-    if (error) {
-      throw error
-    }
-  }
-}
-
-export function parallel (...commands) {
-  return function parallelCommands (context) {
-    return Promise.all(commands.map(command=>context.run(command)))
-  }
-}
-
-export interface CommandContext {
-  /** The runtime configuration of Fadroma */
-  config:      Partial<FadromaConfig>
-  /** The moment at which the operation commenced. */
-  timestamp:   string
-  /** Arguments from the CLI invocation. */
-  cmdArgs:     string[]
-  /** Run a procedure in the operation context.
-    * - Procedures are functions that take 1 argument:
-    *   the result of merging `args?` into `context`.
-    * - Procedures can be sync or async
-    * - The return value of a procedure is *not* merged
-    *   into the context for subsequent steps. */
-  run <T, U, V extends object> (procedure: Step<T, U>, args?: V): Promise<U>
-}
-
-export interface ConfigContext {
-  config:    Partial<FadromaConfig>
-  chainList: typeof chains
-}
-
-export type Context =
-  CommandContext &
-  ConfigContext  &
-  ChainContext   &
-  AgentContext   &
-  BuildContext   &
-  UploadContext  &
-  DeployContext
-
-export async function getChain (context: {
-  config?: { project: { chain: string, root: string } },
-  chains?: Record<string, (config: FadromaConfig)=>Promise<Chain>>
-}): Promise<Partial<ChainContext>> {
-  const { config = currentConfig, chains: chainList = chains } = context
-  const name = config.project.chain
-  if (!name || !chains[name]) {
-    console.error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
-    console.info('Known chain names:')
-    for (const chain of Object.keys(chains).sort()) {
-      console.info(`  ${chain}`)
-    }
-    process.exit(1)
-  }
-  const chain = await chains[name](config)
-  return {
-    config,
-    chains,
-    chain,
-    deployments: Deployments.fromConfig(chain, config.project.root),
-    devMode:     chain.isDevnet || chain.isMocknet
-  }
-}
-
-export interface ChainContext extends CommandContext {
-  config:      Partial<FadromaConfig>,
-  chains:      typeof chains,
-  /** The blockhain API to use. */
-  chain:       Chain,
-  /** Collections of interlinked contracts on the active chain. */
-  deployments: Deployments
-  /** True if the chain is a devnet or mocknet */
-  devMode:     boolean
-}
-
 export async function resetDevnet ({ chain }: { chain: Chain }) {
   if (!chain) {
     console.info('No active chain.')
@@ -514,210 +583,213 @@ export async function resetDevnet ({ chain }: { chain: Chain }) {
   }
 }
 
-export async function getAgent (context: ChainContext): Promise<Partial<AgentContext>> {
-  const { config = currentConfig, chain } = context
+export async function getAgent ({ config, chain }: Partial<Context>): Promise<Partial<Context>> {
+  config ??= currentConfig
   const agentOpts: AgentOpts = { name: undefined }
-  if (context.chain.isDevnet) {
+  if (chain.isDevnet) {
     // for devnet, use auto-created genesis account
     agentOpts.name = 'ADMIN'
-  } else if ((context.chain as any).isSecretNetwork) {
+  } else if ((chain as any).isSecretNetwork) {
     // for scrt-based chains, use mnemonic from config
     agentOpts.mnemonic = config.scrt.agent.mnemonic
   }
   const agent = await chain.getAgent(agentOpts)
-  return { agent }
-}
-
-export interface AgentContext extends ChainContext {
-  /** An identity operating on the chain. */
-  agent: Agent
-}
-
-/** Print the status of a deployment. */
-export async function showDeployment (context: ChainContext): Promise<void> {
-  const { cmdArgs: [id] = [undefined] } = context
-  let deployment = context.deployments.active
-  if (id) {
-    deployment = context.deployments.get(id)
-  }
-  if (deployment) {
-    print(console).deployment(deployment)
-  } else {
-    console.info('No selected deployment on chain:', bold(context.chain.id))
+  return {
+    agent
   }
 }
 
-export async function selectDeployment (context: ChainContext): Promise<void> {
-  const { deployments, cmdArgs: [id] = [undefined] } = context
-  const list = deployments.list()
-  if (list.length < 1) {
-    console.info('\nNo deployments. Create one with `deploy new`')
+export class Deploy extends Commands {
+  constructor (name, before, after) {
+    super(name, before, after)
+    this.before.push(print(console).chainStatus)
+    this.command('reset',  'reset the devnet',                resetDevnet)
+    this.command('list',   'print a list of all deployments', Deploy.list)
+    this.command('select', 'select a new active deployment',  Deploy.select)
+    this.command('new',    'create a new empty deployment',   Deploy.create)
+    this.command('status', 'show the current deployment',     Deploy.show)
   }
-  if (id) {
-    console.info(bold(`Selecting deployment:`), id)
-    await deployments.select(id)
-  }
-  if (list.length > 0) {
-    listDeployments(context)
-  }
-  if (deployments.active) {
-    console.info(`Currently selected deployment:`, bold(deployments.active.prefix))
-  } else {
-    console.info(`No selected deployment.`)
-  }
-}
 
-export async function listDeployments ({ chain, deployments }: ChainContext): Promise<void> {
-  const list = deployments.list()
-  if (list.length > 0) {
-    console.info(`Deployments on chain ${bold(chain.id)}:`)
-    for (let deployment of list) {
-      if (deployment === deployments.KEY) continue
-      const count = Object.keys(deployments.get(deployment).receipts).length
-      if (deployments.active && deployments.active.prefix === deployment) {
-        deployment = `${bold(deployment)} (selected)`
+  static list = async function listDeployments ({ chain, deployments }: Partial<Context>): Promise<void> {
+    const list = deployments.list()
+    if (list.length > 0) {
+      console.info(`Deployments on chain ${bold(chain.id)}:`)
+      for (let deployment of list) {
+        if (deployment === deployments.KEY) continue
+        const count = Object.keys(deployments.get(deployment).receipts).length
+        if (deployments.active && deployments.active.prefix === deployment) {
+          deployment = `${bold(deployment)} (selected)`
+        }
+        deployment = `${deployment} (${count} contracts)`
+        console.info(` `, deployment)
       }
-      deployment = `${deployment} (${count} contracts)`
-      console.info(` `, deployment)
-    }
-  } else {
-    console.info(`No deployments on chain`, bold(chain.id))
-  }
-}
-
-/** Add either the active deployment, or a newly created one, to the command context. */
-export async function getOrCreateDeployment (context: AgentContext) {
-  if (context.deployments.active) {
-    return getDeployment(context)
-  } else {
-    return await createDeployment(context)
-  }
-}
-
-/** Create a new deployment and add it to the command context. */
-export async function createDeployment (context: AgentContext): Promise<Partial<DeployContext>> {
-  const [ prefix = context.timestamp ] = context.cmdArgs
-  await context.deployments.create(prefix)
-  await context.deployments.select(prefix)
-  return await getDeployment(context)
-}
-
-/** Add the currently active deployment to the command context. */
-export async function getDeployment (
-  context: ChainContext & { agent?: Agent, deployment?: Deployment }
-): Promise<Partial<DeployContext>> {
-  if (!context.deployments.active) {
-    console.info('No selected deployment on chain:', bold(context.chain.id))
-  }
-  context.deployment = context.deployments.active
-  return await getDeployContext(context)
-}
-
-export function rebind (self, obj) {
-  for (const key in obj) {
-    if (obj[key] instanceof Function) {
-      obj[key] = obj[key].bind(self)
+    } else {
+      console.info(`No deployments on chain`, bold(chain.id))
     }
   }
+
+  /** Print the status of a deployment. */
+  static show = async function showDeployment (
+    context: Partial<Context>,
+    id = context.cmdArgs[0]
+  ): Promise<void> {
+    let deployment = context.deployments.active
+    if (id) {
+      deployment = context.deployments.get(id)
+    }
+    if (deployment) {
+      print(console).deployment(deployment)
+    } else {
+      console.info('No selected deployment on chain:', bold(context.chain.id))
+    }
+  }
+
+  static select = async function selectDeployment (
+    context: Partial<Context>
+  ): Promise<void> {
+    const { deployments, cmdArgs: [id] = [undefined] } = context
+    const list = deployments.list()
+    if (list.length < 1) {
+      console.info('\nNo deployments. Create one with `deploy new`')
+    }
+    if (id) {
+      console.info(bold(`Selecting deployment:`), id)
+      await deployments.select(id)
+    }
+    if (list.length > 0) {
+      this.list(context)
+    }
+    if (deployments.active) {
+      console.info(`Currently selected deployment:`, bold(deployments.active.prefix))
+    } else {
+      console.info(`No selected deployment.`)
+    }
+  }
+
+  /** Add either the active deployment, or a newly created one, to the command context. */
+  static getOrCreate = async function getOrCreateDeployment (
+    context: Partial<Context>
+  ): Promise<Partial<Context>> {
+    if (context.deployments.active) {
+      return this.get(context)
+    } else {
+      return await this.create(context)
+    }
+  }
+
+  /** Create a new deployment and add it to the command context. */
+  static create = async function createDeployment (
+    context: Partial<Context>
+  ): Promise<Partial<Context>> {
+    const [ prefix = context.timestamp ] = context.cmdArgs
+    await context.deployments.create(prefix)
+    await context.deployments.select(prefix)
+    return await this.get(context)
+  }
+
+  /** Add the currently active deployment to the command context. */
+  static get = async function getDeployment (
+    context: Partial<Context>
+  ): Promise<Partial<Context>> {
+    if (!context.deployments.active) {
+      console.info('No selected deployment on chain:', bold(context.chain.id))
+    }
+    context.deployment = context.deployments.active
+    return await getDeployContext(context)
+  }
+
 }
 
-export function getDeployContext (context: {
-  timestamp:    string,
-  deployment?:  Deployment,
-  agent?:       Agent,
-  deployAgent?: Agent,
-  clientAgent?: Agent,
-  suffix?:      string
-}): Partial<DeployContext> {
+export function getDeployContext (context: Partial<Context>): Partial<Context> {
 
   const {
-    agent, deployAgent = agent, clientAgent = agent,
-    deployment, timestamp, suffix = `+${timestamp}`
+    timestamp,
+    deployment,
+    agent,
+    deployAgent = agent,
+    clientAgent = agent,
+    suffix      = `+${timestamp}`
   } = context
 
-  if (!deployment) {
-    const noActiveDeployment = () => { throw new Error('Fadroma Ops: no active deployment') }
-    return {
-      clientAgent,
-<<<<<<< HEAD
-      async deploy (name: string, template: Template, initMsg: Message) {
-        if (!this.deployAgent) {
-          throw new Error('Fadroma Ops: no deployAgent in context')
-        }
-        return await this.deployment.init(this.deployAgent, template, name, initMsg)
-      },
-      async deployMany (template: Template, configs: [string, Message][]) {
-        if (!this.deployAgent) {
-          throw new Error('Fadroma Ops: no deployAgent in context')
-        }
-        return await this.deployment.initMany(this.deployAgent, template, configs)
-      },
-      getInstance (name: string) {
-        return this.deployment.get(name)
-      },
-      //@ts-ignore
-      getClient (name: string, _Client = Client) {
-        return this.clientAgent.getClient(_Client, this.deployment.get(name))
-      }
-    }
-  } else {
-    return {
-      prefix: null,
-      suffix: context.suffix ?? `+${timestamp()}`,
-      deployment,
-      deployAgent,
-      deployment,
-      suffix,
-      deploy:      noActiveDeployment,
-      deployMany:  noActiveDeployment,
-      contract:    noActiveDeployment,
-    }
+  type Fn<T, U> = (...t: T[]) => U
+  function needsActiveDeployment <T, U> (fn: Fn<T, U>): Fn<T, U> {
+    if (!deployment) return () => { throw new Error('Fadroma Ops: no active deployment') }
+    return fn
   }
 
   return {
 
-    contract <T extends Client> (
-      instance: string|{ address: string },
-      _Client:  ClientCtor<T, any>
+    template (code: IntoTemplate) {
+    },
+
+    deployment,
+    clientAgent: agent,
+    contract: needsActiveDeployment(function contract <C extends Client> (
+      instance:  string|{ address: string },
+      APIClient: ClientCtor<C, any>
     ) {
-      //@ts-ignore
-      _Client = _Client ?? Client
+      // By default, contracts are returned as the base Client class.
+      // Caller can pass a specific API class constructor as 2nd arg.
+      APIClient = APIClient ?? Client as typeof APIClient
       let client = null
+
+      // When 1st arg is string, look for contract by name in deployment
       if (typeof instance === 'string') {
         const name = instance
         if (this.deployment.has(name)) {
           console.info('Found contract:', bold(name))
-          client = this.clientAgent.getClient(_Client, this.deployment.get(name))
+          client = this.clientAgent.getClient(APIClient, this.deployment.get(name))
         }
-        return rebind(this, { get, deploy, getOrDeploy })
-        async function get (fn?: (context: Partial<Context>)=>T): Promise<T> {
+        // Return an object with 3 methods bound to the containing context.
+        // (i.e. with access to `deployment`, `buildAndUpload`, etc. via `this`)
+        return rebind(this, { get, getOrDeploy, deploy })
+
+        // Get the specified contract. If it's not in the deployment,
+        // try fetching it from a subroutine or throw an error with a custom message.
+        async function get (errOrFn: string|((context: Partial<Context>)=>C) = ''): Promise<C> {
           if (client) return client
-          console.info('Looking for contract:', bold(instance as string))
-          client = await Promise.resolve(fn(context))
-          if (client) return client
-          throw new Error(`Fadroma: no such contract: ${name}`)
+          if (errOrFn instanceof Function) {
+            console.info('Looking for contract:', bold(instance as string))
+            client = await Promise.resolve(errOrFn(context))
+            if (client) return client
+            throw new Error(`No such contract: ${name}.`)
+          } else {
+            errOrFn = `No such contract: ${name}. ${errOrFn||''}`
+            throw new Error(errOrFn)
+          }
         }
-        async function deploy (code: string|Source|Template, initMsg: unknown): Promise<T> {
+
+        // If the contract was found in the deployment, return it.
+        // Otherwise, deploy it under the specified name.
+        async function getOrDeploy (code: string|Source|Template, initMsg: unknown): Promise<C> {
+          if (client) return client
+          return this.deploy(code, initMsg)
+        }
+
+        // Always deploy the specified contract. If a contract with the same name
+        // already exists in the deployment, it will fail - use suffixes
+        async function deploy (code: IntoTemplate, initMsg: unknown): Promise<C> {
           console.info(`Deploying contract:`, bold(name))
           if (typeof code === 'string' || code instanceof Source) {
             code = await this.buildAndUpload(code)
             const instance = await this.deployment.init(this.deployAgent, code, name, initMsg)
-            return this.clientAgent.getClient(_Client, instance)
+            return this.clientAgent.getClient(APIClient, instance)
           }
         }
-        async function getOrDeploy (code: string|Source|Template, initMsg: unknown): Promise<T> {
-          if (client) return client
-          return this.deploy(code, initMsg)
-        }
-      } else if (instance.address) {
-        console.info('Using contract:', bold(instance.address))
-        return this.clientAgent.getClient(_Client, instance)
-      } else throw new Error('Fadroma: invalid contract helper invocation')
-    },
 
-    deployment,
+      } else if (instance.address) {
+
+        // When 1st instance has `address` property, just get client by address.
+        console.info('Using contract:', bold(instance.address))
+        return this.clientAgent.getClient(APIClient, instance)
+
+      } else {
+        throw new Error('Fadroma: invalid contract() invocation')
+      }
+
+    }),
+
     suffix,
-    clientAgent: context.agent,
     getInstance (name: string) {
       return this.deployment.get(name)
     },
@@ -736,83 +808,38 @@ export function getDeployContext (context: {
 
 }
 
-export interface ContractSlot {
-  get         <T extends Client> (errOrfn?: string|((context: Partial<Context>)=>T)): Promise<T>
-  deploy      <T extends Client> (code: string|Source|Template, initMsg: unknown): Promise<T>
-  getOrDeploy <T extends Client> (code: string|Source|Template, initMsg: unknown): Promise<T>
-}
-
-/** The part of Context that deals with deploying
-  * groups of contracts and keeping track of the receipts. */
-export interface DeployContext extends ChainContext {
-  /** Universal contract getter. */
-  contract <T extends Client> (name, _Client?: ClientCtor<T, any>): ContractSlot
-  /** Currently selected collection of interlinked contracts. */
-  deployment:   Deployment
-  /** Prefix to the labels of all deployed contracts.
-    * Identifies which deployment they belong to. */
-  prefix:       string
-  /** Appended to contract labels in devnet deployments for faster iteration. */
-  suffix?:      string
-  /** Who'll deploy new contracts */
-  deployAgent?: Agent
-  /** Shorthand for calling `deployment.init(deployAgent, ...)` */
-  deploy:       (name: string, template: Template, initMsg: Message) => Promise<Instance>
-  /** Shorthand for calling `deployment.initMany(deployAgent, ...)` */
-  deployMany:   (template: Template, configs: [string, Message][]) => Promise<Instance[]>
-  /** Who'll interact with existing contracts */
-  clientAgent?: Agent
-  /** Shorthand for calling `deployment.get(name)` */
-  getInstance:  (name: string) => Instance
-  /** Shorthand for calling `clientAgent.getClient(Client, deployment.get(name))` */
-  getClient:    <C extends Client, O extends ClientOpts>(name: string, Client?: ClientCtor<C, O>)=>C
-}
-
-export function enableBuilding ({ config }: {
+export function getBuildContext ({ config }: {
   config: {
     project: { root:    string  }
     build:   { rebuild: boolean }
     scrt:    { build:   object  }
   }
-}) {
+}): Promise<Partial<Context>> {
   const builder = getScrtBuilder({ ...config.build, ...config.scrt.build })
-  return getBuildContext(builder, config.project.root)
-}
-
-export function getBuildContext (builder: Builder, root: string): BuildContext {
-  const workspace = new Workspace(root)
+  const workspace = new Workspace(config.project.root)
   return {
     builder,
     workspace,
-    getSource (source: Source|string): Source {
+    getSource (source: IntoSource): Source {
       if (typeof source === 'string') return this.workspace.crate(source)
       return source
     },
-    async build (source: Source|string): Promise<Artifact> {
+    async build (source: IntoSource): Promise<Artifact> {
       return await this.builder.build(this.getSource(source))
     },
-    async buildMany (sources: (Source|string)[]): Promise<Artifact[]> {
-      return await this.builder.buildMany(sources.map(source=>this.getSource(source)))
+    async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Artifact[]> {
+      sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
+      return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
     }
   }
 }
 
-/** The part of Context that deals with building
-  * contracts from source code to WASM artifacts */
-export interface BuildContext {
-  builder:   Builder
-  workspace: Workspace
-  getSource: (source: string) => Source
-  build:     (source:   Source|string   )=> Promise<Artifact>
-  buildMany: (sources: (Source|string)[]) => Promise<Artifact[]>
-}
-
 /** Add an uploader to the command context. */
-export function enableUploading (context: {
+export function getUploadContext (context: {
   agent:    Agent
   caching?: boolean
   config:   { project: { root: string }, upload: { reupload: boolean } },
-} & Partial<BuildContext>): UploadContext {
+} & Partial<Context>): Partial<Context> {
   const {
     config,
     agent: { chain: { isMocknet } },
@@ -850,15 +877,24 @@ export function enableUploading (context: {
 /** The part of Context that deals with uploading
   * contract code to the platform. */
 export interface UploadContext {
-  uploader:           Uploader
-  upload:             (artifact:  Artifact        ) => Promise<Template>
-  uploadMany:         (artifacts: Artifact[]      ) => Promise<Template[]>
-  buildAndUpload:     (source:    Source|string   ) => Promise<Template>
-  buildAndUploadMany: (sources:  (Source|string)[]) => Promise<Template[]>
 }
 
 export const print = console => {
   const print = {
+
+    // Usage of Command API
+    usage ({ name, commands }: Commands) {
+      let longest = 0
+      for (const name of Object.keys(commands)) {
+        longest = Math.max(name.length, longest)
+      }
+      console.log()
+      for (const [name, { info }] of Object.entries(commands)) {
+        console.log(`    ... ${name} ${bold(name.padEnd(longest))}  ${info}`)
+      }
+      console.log()
+    },
+
     chainStatus ({ chain, deployments }) {
       if (!chain) {
         console.info('No active chain.')
