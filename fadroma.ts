@@ -801,7 +801,16 @@ export function getUploadContext ({
     uploader,
 
     async upload (code: IntoTemplate): Promise<Template> {
-      if (typeof code === 'string') code = this.workspace.crate(code)
+      if (code instanceof Template) {
+        return code
+      }
+      if (typeof code === 'object' && code.url && code.codeHash) {
+        const { url, codeHash, source } = code as Artifact
+        code = new Artifact(url, codeHash, source)
+      }
+      if (typeof code === 'string') {
+        code = this.workspace.crate(code)
+      }
       if (code instanceof Source) {
         if (this.build) {
           code = await this.build(code)
@@ -812,12 +821,12 @@ export function getUploadContext ({
       if (code instanceof Artifact) {
         const rel = bold($(code.url).shortPath)
         console.info(`Upload ${bold(rel)}: hash`, bold(code.codeHash))
-        code = await uploader.upload(code)
+        code = await uploader.upload(code) as Template
         console.info(`Upload ${bold(rel)}: id  `, bold(code.codeId),)
+        return code
       }
-      if (code instanceof Template) return code
       throw Object.assign(
-        new Error(`upload: invalid argument ${code}. must be crate name, Source, Artifact, or Template`),
+        new Error(`Fadroma: can't upload ${code}. must be crate name, Source, Artifact, or Template`),
         { code }
       )
     },
@@ -930,8 +939,8 @@ export function getDeployContext ({
       try {
         return await this.deployment.initMany(this.deployer, template, configs)
       } catch (e) {
-        console.error(`Deploy failed: ${e.message}`)
-        console.error(`Deploy ffailed: Configs were:`)
+        console.error(`Deploy of multiple contracts failed: ${e.message}`)
+        console.error(`Deploy of multiple contracts failed: Configs were:`)
         console.log(JSON.stringify(configs, null, 2))
         throw e
       }
