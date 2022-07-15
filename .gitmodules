@@ -1,6 +1,4 @@
-[submodule "toolbox"]
-	path = toolbox
-	url  = https://github.com/hackbg/toolbox
-[submodule "ganesha"]
-	path = ganesha
-	url = https://github.com/hackbg/ganesha
+[submodule "ensuite"]
+	path   = ensuite
+	url    = https://github.com/hackbg/ensuite
+	branch = develop
