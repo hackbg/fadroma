@@ -8,10 +8,10 @@ switch (command) {
     console.log(`If you're seeing this then Fadroma installed successfully.\n`)
     break
   case 'create': // scaffold new project
-    main([interpreter, script, require.resolve('./commands/create.ts'), ...args])
+    main([interpreter, script, require.resolve('./create.ts'), ...args])
     break
   case 'build': // build list of sources
-    main([interpreter, script, require.resolve('./commands/build.ts'), ...args])
+    main([interpreter, script, require.resolve('./build.ts'), ...args])
     break
   default: // run passed script
     main()

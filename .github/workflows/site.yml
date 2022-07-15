@@ -1,4 +1,4 @@
-name: Publish documentation
+name: https://fadroma.tech
 on: [push]
 jobs:
   site:

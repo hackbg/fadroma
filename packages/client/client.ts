@@ -199,11 +199,11 @@ export abstract class Chain implements Spectator {
       if (options.mode === Chain.Mode.Devnet) {
         this.node = options.node
         if (this.url !== String(this.node.url)) {
-          console.warn(`chain.url is ${this.url}; node.url is ${this.node.url}; using the latter`)
+          console.warn(`Fadroma Chain: node.url "${this.node.url}" overrides chain.url "${this.url}"`)
           this.url = String(this.node.url)
         }
         if (this.id !== this.node.chainId) {
-          console.warn(`chain.id is ${this.id}, node.chainId is ${this.node.url}; using the latter`)
+          console.warn(`Fadroma Chain: node.id "${this.node.chainId}" overrides chain.id "${this.id}"`)
           this.id = this.node.chainId
         }
       } else {
@@ -255,7 +255,7 @@ export abstract class Chain implements Spectator {
     })
   }
   /** The Agent subclass to use for interacting with this chain. */
-  abstract Agent: AgentCtor<Agent>
+  Agent: AgentCtor<Agent> = Agent as AgentCtor<Agent>
   /** Get a new instance of the appropriate Agent subclass. */
   async getAgent (options: AgentOpts) {
     if (!options.mnemonic && options.name) {
@@ -290,7 +290,8 @@ export interface AgentFees {
 
 export abstract class Agent implements Executor {
   static create (chain: Chain, options: AgentOpts = {}): Promise<Agent> {
-    throw Object.assign(new Error('Agent.create: abstract, use subclass'), { options })
+    //@ts-ignore
+    return new this(chain, options)
   }
   constructor (readonly chain: Chain, options: AgentOpts = {}) {
     this.chain = chain

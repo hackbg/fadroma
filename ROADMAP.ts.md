@@ -18,13 +18,19 @@ import assert from 'assert'
 // TODO test that there are cargo urls corresponding to the repo contents...
 ```
 
-* Install the whole toolkit with `nix-shell https://fadroma.tech/nix`
+* Deliver through `npx fadroma`
+
+```typescript
+// TODO test project setup here...
+```
+
+* Deliver as shell with global `fadroma` command by calling `nix-shell https://fadroma.tech/nix`
 
 ```typescript
 // TODO test download link here...
 ```
 
-* Deliver as monolithic binary with semantic GUI
+* Deliver as monolithic binary with semantic GUI (DOM or other)
 
 ```typescript
 // TODO test download link here...
@@ -42,6 +48,27 @@ import assert from 'assert'
 
 ```typescript
 // TODO test here...
+```
+
+* Support for remote builders and devnets
+
+```typescript
+import { ManagedDevnet } from '../index'
+import { mockDevnetManager } from './_Harness'
+for (const version of ['1.2', '1.3']) {
+  const manager = await mockDevnetManager()
+  try {
+    const devnet = getScrtDevnet(version, manager.url)
+    ok(devnet instanceof ManagedDevnet)
+    await devnet.respawn()
+    console.info('Respawned')
+    await devnet.save()
+  } catch (e) {
+    console.warn(e) // TODO use whole devnet manager with mocked devnet init
+  } finally {
+    manager.close()
+  }
+}
 ```
 
 ## Usability
@@ -82,25 +109,4 @@ assert.ok(await fetch("https://github.com/hackbg/fadroma-example"))
 
 ```typescript
 // TODO run test suite of dashboard module here...
-```
-
-# Support for remote builders and devnets
-
-```typescript
-import { ManagedDevnet } from '../index'
-import { mockDevnetManager } from './_Harness'
-for (const version of ['1.2', '1.3']) {
-  const manager = await mockDevnetManager()
-  try {
-    const devnet = getScrtDevnet(version, manager.url)
-    ok(devnet instanceof ManagedDevnet)
-    await devnet.respawn()
-    console.info('Respawned')
-    await devnet.save()
-  } catch (e) {
-    console.warn(e) // TODO use whole devnet manager with mocked devnet init
-  } finally {
-    manager.close()
-  }
-}
 ```

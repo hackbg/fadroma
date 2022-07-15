@@ -1,4 +1,4 @@
-# Test context
+# Test context and helpers
 
 ## Test fixtures
 
@@ -10,7 +10,7 @@
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 export const here    = dirname(fileURLToPath(import.meta.url))
-export const fixture = x => resolve(here, '..', x)
+export const fixture = x => resolve(here, x)
 ```
 
 ## Mock of Dockerode API
@@ -278,4 +278,33 @@ export async function mockDevnetManager (port) {
   await new Promise(ok=>setTimeout(ok, 1000)) // FIXME flimsy!
   return { url: `http://localhost:${port}`, port, close () { manager.kill() } }
 }
+```
+
+## Example contracts
+
+* Testing of the mocknet is done with the help fo two minimal smart contracts.
+  * Compiled artifacts of those are stored under [`/fixtures`](../fixtures).
+  * You can recompile them with the Fadroma Build CLI.
+    See **[../examples/README.md]** for build instructions.
+* They are also used by the Fadroma Ops example project.
+
+* **Echo contract** (build with `pnpm rs:build:example examples/echo`).
+  Parrots back the data sent by the client, in order to validate
+  reading/writing and serializing/deserializing the input/output messages.
+* **KV contract** (build with `pnpm rs:build:example examples/kv`).
+  Exposes the key/value storage API available to contracts,
+  in order to validate reading/writing and serializing/deserializing stored values.
+
+```typescript
+export const ExampleContracts = {
+  KV: {
+    path: fixture('fixtures/fadroma-example-echo@HEAD.wasm')
+  },
+  Echo: {
+    path: fixture('fixtures/fadroma-example-kv@HEAD.wasm')
+  }
+}
+import { readFileSync } from 'fs'
+ExampleContracts.Echo.Blob = readFileSync(ExampleContracts.Echo.path)
+ExampleContracts.KV.Blob   = readFileSync(ExampleContracts.KV.path)
 ```

@@ -1,0 +1,37 @@
+name: Fadroma
+on: [push, pull_request]
+jobs:
+  rs-coverage:
+    name: cargo tarpaulin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile:   minimal
+          toolchain: stable
+          target:    wasm32-unknown-unknown
+          override:  true
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions/checkout@v2
+        with: { submodules: true }
+      - name: Prepare workspace
+        run: cp _Cargo.toml Cargo.toml
+      - uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: '0.18.3'
+          args: '--workspace --ignore-panics --ignore-tests --exclude-files=platforms/* --coveralls ${{secrets.COVERALLS_REPO_TOKEN}} --exclude-files platforms'
+  js:
+    name: pnpm check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.14.3
+          run_install: |
+            - recursive: true
+      - name: Run type checks
+        run: ls -al && pnpm ts:check
+      - name: Run type checks
+        run: ls -al && pnpm ts:test

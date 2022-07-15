@@ -12,12 +12,12 @@ importers:
       '@fadroma/ops-scrt': workspace:^1
       '@fadroma/tokens': workspace:^2
       '@hackbg/dokeres': workspace:*
+      '@hackbg/ensuite': workspace:*
       '@hackbg/formati': workspace:*
       '@hackbg/ganesha': workspace:^2.1
       '@hackbg/kabinet': workspace:*
       '@hackbg/komandi': workspace:*
       '@hackbg/konzola': workspace:*
-      '@hackbg/runspec': workspace:*
       '@types/node': ^16.11.36
       body-parser: ^1.20.0
       c8: ^7.11.3
@@ -34,15 +34,15 @@ importers:
       '@fadroma/ops': link:packages/ops
       '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/tokens': link:packages/tokens
-      '@hackbg/dokeres': link:toolbox/dokeres
-      '@hackbg/formati': link:toolbox/formati
-      '@hackbg/ganesha': link:ganesha
-      '@hackbg/kabinet': link:toolbox/kabinet
-      '@hackbg/komandi': link:toolbox/komandi
-      '@hackbg/konzola': link:toolbox/konzola
+      '@hackbg/dokeres': link:ensuite/toolbox/dokeres
+      '@hackbg/formati': link:ensuite/toolbox/formati
+      '@hackbg/ganesha': link:ensuite/ganesha
+      '@hackbg/kabinet': link:ensuite/toolbox/kabinet
+      '@hackbg/komandi': link:ensuite/toolbox/komandi
+      '@hackbg/konzola': link:ensuite/toolbox/konzola
       dotenv: 15.0.1
     devDependencies:
-      '@hackbg/runspec': link:toolbox/runspec
+      '@hackbg/ensuite': link:ensuite
       '@types/node': 16.11.39
       body-parser: 1.20.0
       c8: 7.11.3
@@ -61,7 +61,17 @@ importers:
       pug: 3.0.2
       vitepress: 1.0.0-alpha.4
 
-  ganesha:
+  ensuite:
+    specifiers:
+      '@hackbg/ganesha': workspace:*
+      '@hackbg/runspec': workspace:*
+      why-is-node-still-running: ^1.0.0
+    dependencies:
+      '@hackbg/ganesha': link:ganesha
+      '@hackbg/runspec': link:toolbox/runspec
+      why-is-node-still-running: 1.0.0
+
+  ensuite/ganesha:
     specifiers:
       '@ganesha/core': workspace:^1.1
       '@ganesha/node': workspace:^2.2.2
@@ -76,15 +86,15 @@ importers:
       '@ganesha/core': link:src/core
       '@ganesha/node': link:src/node
       '@ganesha/node-legacy': link:src/node-legacy
-      '@types/node': 18.0.4
+      '@types/node': 18.0.5
       chokidar: 3.5.3
       cross-spawn: 7.0.3
     devDependencies:
       '@hackbg/runspec': 2.2.1
       vite: 2.9.13
-      vsce: 2.9.2
+      vsce: 2.9.3
 
-  ganesha/src/core:
+  ensuite/ganesha/src/core:
     specifiers:
       joycon: ^3.0.1
       jsonc-parser: ^3.0.0
@@ -94,7 +104,7 @@ importers:
       jsonc-parser: 3.0.0
       typescript: 4.7.4
 
-  ganesha/src/node:
+  ensuite/ganesha/src/node:
     specifiers:
       '@ganesha/core': workspace:^1.1
       '@hackbg/runspec': ^2.2
@@ -113,7 +123,7 @@ importers:
       '@hackbg/runspec': 2.2.1
       c8: 7.11.3
 
-  ganesha/src/node-legacy:
+  ensuite/ganesha/src/node-legacy:
     specifiers:
       '@ganesha/core': workspace:^1.1
       front-matter: ^4.0.2
@@ -129,13 +139,13 @@ importers:
       pirates: 4.0.5
       source-map-support: 0.5.21
 
-  ganesha/src/rollup:
+  ensuite/ganesha/src/rollup:
     specifiers:
       '@ganesha/core': workspace:^1.1
     dependencies:
       '@ganesha/core': link:../core
 
-  ganesha/src/tsc:
+  ensuite/ganesha/src/tsc:
     specifiers:
       '@ganesha/core': workspace:^1.1
       '@ganesha/node': workspace:^2.1
@@ -148,15 +158,15 @@ importers:
       '@hackbg/ganesha': link:../..
       typescript: 4.7.4
 
-  ganesha/src/vsc:
+  ensuite/ganesha/src/vsc:
     specifiers:
       typescript: latest
       vsce: latest
     devDependencies:
       typescript: 4.7.4
-      vsce: 2.9.2
+      vsce: 2.9.3
 
-  ganesha/src/vsc/client:
+  ensuite/ganesha/src/vsc/client:
     specifiers:
       '@ganesha/vscode-shared': workspace:*
       '@types/vscode': latest
@@ -167,7 +177,7 @@ importers:
     devDependencies:
       '@types/vscode': 1.69.0
 
-  ganesha/src/vsc/server:
+  ensuite/ganesha/src/vsc/server:
     specifiers:
       '@ganesha/core': workspace:*
       '@ganesha/vscode-shared': workspace:*
@@ -185,13 +195,13 @@ importers:
       vscode-typescript-languageservice: 0.27.25
       vscode-uri: 3.0.3
 
-  ganesha/src/vsc/shared:
+  ensuite/ganesha/src/vsc/shared:
     specifiers:
       typescript: latest
     devDependencies:
       typescript: 4.7.4
 
-  ganesha/test:
+  ensuite/ganesha/test:
     specifiers:
       '@ganesha/core': workspace:*
       '@ganesha/node': workspace:*
@@ -211,132 +221,7 @@ importers:
       typescript: 4.7.4
       vite: 2.9.13
 
-  packages/client:
-    specifiers:
-      '@hackbg/izdatel': workspace:*
-      typescript: ^4.7
-    devDependencies:
-      '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.4
-
-  packages/client-scrt:
-    specifiers:
-      '@fadroma/client': workspace:^3
-      '@hackbg/formati': workspace:*
-      '@hackbg/izdatel': workspace:^0
-      typescript: ^4.7
-    dependencies:
-      '@fadroma/client': link:../client
-      '@hackbg/formati': link:../../toolbox/formati
-    devDependencies:
-      '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.4
-
-  packages/client-scrt-amino:
-    specifiers:
-      '@cosmjs/crypto': ^0.20.0
-      '@fadroma/client-scrt': workspace:^4.0.0
-      '@hackbg/izdatel': workspace:^0
-      '@iov/encoding': ^2.1.0
-      axios: ^0.26.0
-      exponential-backoff: ^3.1.0
-      secretjs: 0.17.5
-      typescript: ^4.7
-    dependencies:
-      '@cosmjs/crypto': 0.20.1
-      '@fadroma/client-scrt': link:../client-scrt
-      '@iov/encoding': 2.5.0
-      exponential-backoff: 3.1.0
-      secretjs: 0.17.5
-    optionalDependencies:
-      axios: 0.26.1
-    devDependencies:
-      '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.4
-
-  packages/client-scrt-grpc:
-    specifiers:
-      '@fadroma/client-scrt': workspace:^4.0.1
-      '@hackbg/izdatel': workspace:^0
-      secretjs: beta
-      typescript: ^4.7
-    dependencies:
-      '@fadroma/client-scrt': link:../client-scrt
-      secretjs: 1.3.0-beta.6
-    devDependencies:
-      '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.4
-
-  packages/ops:
-    specifiers:
-      '@fadroma/client': workspace:^3.0.0
-      '@hackbg/dokeres': workspace:*
-      '@hackbg/formati': workspace:*
-      '@hackbg/ganesha': workspace:^2.0.3
-      '@hackbg/izdatel': workspace:^0
-      '@hackbg/kabinet': workspace:*
-      '@hackbg/konzola': workspace:*
-      '@hackbg/portali': workspace:*
-      align-yaml: ^0.1.8
-      js-yaml: ^4.1.0
-      json-schema-to-typescript: ^10.1.5
-      limiter: ^2.1.0
-      line-transform-stream: ^0.1.0
-      simple-git: ^3.7.1
-      toml: ^3.0.0
-      typescript: ^4.7
-      wasm-ffi: ^0.3.0
-    dependencies:
-      '@fadroma/client': link:../client
-      '@hackbg/dokeres': link:../../toolbox/dokeres
-      '@hackbg/formati': link:../../toolbox/formati
-      '@hackbg/kabinet': link:../../toolbox/kabinet
-      '@hackbg/konzola': link:../../toolbox/konzola
-      '@hackbg/portali': link:../../toolbox/portali
-      align-yaml: 0.1.8
-      js-yaml: 4.1.0
-      json-schema-to-typescript: 10.1.5
-      limiter: 2.1.0
-      line-transform-stream: 0.1.0
-      simple-git: 3.7.1
-      toml: 3.0.0
-      wasm-ffi: 0.3.0
-    devDependencies:
-      '@hackbg/ganesha': link:../../ganesha
-      '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.4
-
-  packages/ops-scrt:
-    specifiers:
-      '@fadroma/client-scrt-amino': workspace:^4
-      '@fadroma/client-scrt-grpc': workspace:^5
-      '@fadroma/ops': workspace:^1
-      '@hackbg/dokeres': workspace:*
-    dependencies:
-      '@fadroma/client-scrt-amino': link:../client-scrt-amino
-      '@fadroma/client-scrt-grpc': link:../client-scrt-grpc
-      '@fadroma/ops': link:../ops
-      '@hackbg/dokeres': link:../../toolbox/dokeres
-
-  packages/tokens:
-    specifiers:
-      '@fadroma/client': workspace:^3.0.0
-      '@fadroma/client-scrt': workspace:^4.0.0
-      '@hackbg/izdatel': workspace:*
-      '@hackbg/konzola': workspace:*
-      typescript: ^4.7
-    dependencies:
-      '@fadroma/client': link:../client
-      '@fadroma/client-scrt': link:../client-scrt
-      '@hackbg/konzola': link:../../toolbox/konzola
-    devDependencies:
-      '@hackbg/izdatel': link:../../toolbox/izdatel
-      typescript: 4.7.4
-
-  shim:
-    specifiers: {}
-
-  toolbox:
+  ensuite/toolbox:
     specifiers:
       '@hackbg/dokeres': workspace:^3
       '@hackbg/izdatel': workspace:*
@@ -369,7 +254,7 @@ importers:
       typedoc: 0.23.0-beta.7_typescript@4.7.4
       typescript: 4.7.4
 
-  toolbox/dokeres:
+  ensuite/toolbox/dokeres:
     specifiers:
       '@hackbg/konzola': workspace:*
       '@types/dockerode': ^3.3.8
@@ -382,7 +267,7 @@ importers:
     devDependencies:
       '@types/dockerode': 3.3.9
 
-  toolbox/forkers:
+  ensuite/toolbox/forkers:
     specifiers:
       '@hackbg/ganesha': ^2
       '@types/node': latest
@@ -393,22 +278,24 @@ importers:
       zen-observable: 0.8.15
     devDependencies:
       '@hackbg/ganesha': 2.1.0
-      '@types/node': 18.0.4
+      '@types/node': 18.0.5
 
-  toolbox/formati:
+  ensuite/toolbox/formati:
     specifiers:
       '@iov/crypto': ^2.5.0
       '@iov/encoding': ^2.5.0
       bech32: ^2.0.0
+      secure-random: ^1.1.2
     dependencies:
       '@iov/crypto': 2.5.0
       '@iov/encoding': 2.5.0
       bech32: 2.0.0
+      secure-random: 1.1.2
 
-  toolbox/izdatel:
+  ensuite/toolbox/izdatel:
     specifiers: {}
 
-  toolbox/kabinet:
+  ensuite/toolbox/kabinet:
     specifiers:
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/konzola': workspace:*
@@ -437,17 +324,17 @@ importers:
       '@hackbg/ganesha': 2.1.0
       '@hackbg/runspec': link:../runspec
       '@types/mkdirp': 1.0.2
-      '@types/node': 18.0.4
+      '@types/node': 18.0.5
       '@types/tmp': 0.2.3
       c8: 7.11.3
 
-  toolbox/kitenik:
+  ensuite/toolbox/kitenik:
     specifiers: {}
 
-  toolbox/komandi:
+  ensuite/toolbox/komandi:
     specifiers: {}
 
-  toolbox/konzola:
+  ensuite/toolbox/konzola:
     specifiers:
       '@types/prettyjson': ^0.0.30
       '@types/prompts': ^2.0.14
@@ -464,13 +351,138 @@ importers:
       '@types/prettyjson': 0.0.30
       '@types/prompts': 2.0.14
 
-  toolbox/portali:
+  ensuite/toolbox/portali:
     specifiers:
       exponential-backoff: ^3.1.0
     dependencies:
       exponential-backoff: 3.1.0
 
-  toolbox/runspec:
+  ensuite/toolbox/runspec:
+    specifiers: {}
+
+  packages/client:
+    specifiers:
+      '@hackbg/izdatel': workspace:*
+      typescript: ^4.7
+    devDependencies:
+      '@hackbg/izdatel': link:../../ensuite/toolbox/izdatel
+      typescript: 4.7.4
+
+  packages/client-scrt:
+    specifiers:
+      '@fadroma/client': workspace:^3
+      '@hackbg/formati': workspace:*
+      '@hackbg/izdatel': workspace:^0
+      typescript: ^4.7
+    dependencies:
+      '@fadroma/client': link:../client
+      '@hackbg/formati': link:../../ensuite/toolbox/formati
+    devDependencies:
+      '@hackbg/izdatel': link:../../ensuite/toolbox/izdatel
+      typescript: 4.7.4
+
+  packages/client-scrt-amino:
+    specifiers:
+      '@cosmjs/crypto': ^0.20.0
+      '@fadroma/client-scrt': workspace:^4.0.0
+      '@hackbg/izdatel': workspace:^0
+      '@iov/encoding': ^2.1.0
+      axios: ^0.26.0
+      exponential-backoff: ^3.1.0
+      secretjs: 0.17.5
+      typescript: ^4.7
+    dependencies:
+      '@cosmjs/crypto': 0.20.1
+      '@fadroma/client-scrt': link:../client-scrt
+      '@iov/encoding': 2.5.0
+      exponential-backoff: 3.1.0
+      secretjs: 0.17.5
+    optionalDependencies:
+      axios: 0.26.1
+    devDependencies:
+      '@hackbg/izdatel': link:../../ensuite/toolbox/izdatel
+      typescript: 4.7.4
+
+  packages/client-scrt-grpc:
+    specifiers:
+      '@fadroma/client-scrt': workspace:^4.0.1
+      '@hackbg/izdatel': workspace:^0
+      secretjs: beta
+      typescript: ^4.7
+    dependencies:
+      '@fadroma/client-scrt': link:../client-scrt
+      secretjs: 1.3.0-beta.6
+    devDependencies:
+      '@hackbg/izdatel': link:../../ensuite/toolbox/izdatel
+      typescript: 4.7.4
+
+  packages/ops:
+    specifiers:
+      '@fadroma/client': workspace:^3.0.0
+      '@hackbg/dokeres': workspace:*
+      '@hackbg/formati': workspace:*
+      '@hackbg/ganesha': workspace:^2.0.3
+      '@hackbg/izdatel': workspace:^0
+      '@hackbg/kabinet': workspace:*
+      '@hackbg/konzola': workspace:*
+      '@hackbg/portali': workspace:*
+      align-yaml: ^0.1.8
+      js-yaml: ^4.1.0
+      json-schema-to-typescript: ^10.1.5
+      limiter: ^2.1.0
+      line-transform-stream: ^0.1.0
+      simple-git: ^3.7.1
+      toml: ^3.0.0
+      typescript: ^4.7
+      wasm-ffi: ^0.3.0
+    dependencies:
+      '@fadroma/client': link:../client
+      '@hackbg/dokeres': link:../../ensuite/toolbox/dokeres
+      '@hackbg/formati': link:../../ensuite/toolbox/formati
+      '@hackbg/kabinet': link:../../ensuite/toolbox/kabinet
+      '@hackbg/konzola': link:../../ensuite/toolbox/konzola
+      '@hackbg/portali': link:../../ensuite/toolbox/portali
+      align-yaml: 0.1.8
+      js-yaml: 4.1.0
+      json-schema-to-typescript: 10.1.5
+      limiter: 2.1.0
+      line-transform-stream: 0.1.0
+      simple-git: 3.7.1
+      toml: 3.0.0
+      wasm-ffi: 0.3.0
+    devDependencies:
+      '@hackbg/ganesha': link:../../ensuite/ganesha
+      '@hackbg/izdatel': link:../../ensuite/toolbox/izdatel
+      typescript: 4.7.4
+
+  packages/ops-scrt:
+    specifiers:
+      '@fadroma/client-scrt-amino': workspace:^4
+      '@fadroma/client-scrt-grpc': workspace:^5
+      '@fadroma/ops': workspace:^1
+      '@hackbg/dokeres': workspace:*
+    dependencies:
+      '@fadroma/client-scrt-amino': link:../client-scrt-amino
+      '@fadroma/client-scrt-grpc': link:../client-scrt-grpc
+      '@fadroma/ops': link:../ops
+      '@hackbg/dokeres': link:../../ensuite/toolbox/dokeres
+
+  packages/tokens:
+    specifiers:
+      '@fadroma/client': workspace:^3.0.0
+      '@fadroma/client-scrt': workspace:^4.0.0
+      '@hackbg/izdatel': workspace:*
+      '@hackbg/konzola': workspace:*
+      typescript: ^4.7
+    dependencies:
+      '@fadroma/client': link:../client
+      '@fadroma/client-scrt': link:../client-scrt
+      '@hackbg/konzola': link:../../ensuite/toolbox/konzola
+    devDependencies:
+      '@hackbg/izdatel': link:../../ensuite/toolbox/izdatel
+      typescript: 4.7.4
+
+  shim:
     specifiers: {}
 
 packages:
@@ -937,7 +949,7 @@ packages:
       '@ganesha/core': 1.1.0
       '@ganesha/node': 2.2.2
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 18.0.4
+      '@types/node': 18.0.5
       chokidar: 3.5.3
       cross-spawn: 7.0.3
     dev: true
@@ -1155,7 +1167,7 @@ packages:
   /@types/docker-modem/3.0.2:
     resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
     dependencies:
-      '@types/node': 17.0.42
+      '@types/node': 18.0.5
       '@types/ssh2': 0.5.52
     dev: true
 
@@ -1163,7 +1175,7 @@ packages:
     resolution: {integrity: sha512-SYRN5FF/qmwpxUT6snJP5D8k0wgoUKOGVs625XvpRJOOUi6s//UYI4F0tbyE3OmzpI70Fo1+aqpzX27zCrInww==}
     dependencies:
       '@types/docker-modem': 3.0.2
-      '@types/node': 17.0.42
+      '@types/node': 18.0.5
     dev: true
 
   /@types/glob/7.2.0:
@@ -1196,7 +1208,7 @@ packages:
   /@types/mkdirp/1.0.2:
     resolution: {integrity: sha512-o0K1tSO0Dx5X6xlU5F1D6625FawhC3dU3iqr25lluNv/+/QIVH8RLNEiVokgIZo+mz+87w/3Mkg/VvQS+J51fQ==}
     dependencies:
-      '@types/node': 18.0.4
+      '@types/node': 18.0.5
     dev: true
 
   /@types/node/10.12.18:
@@ -1213,9 +1225,14 @@ packages:
 
   /@types/node/17.0.42:
     resolution: {integrity: sha512-Q5BPGyGKcvQgAMbsr7qEGN/kIPN6zZecYYABeTDBizOsau+2NMdSVTar9UQw21A2+JyA2KRNDYaYrPB0Rpk2oQ==}
+    dev: false
 
   /@types/node/18.0.4:
     resolution: {integrity: sha512-M0+G6V0Y4YV8cqzHssZpaNCqvYwlCiulmm0PwpNLF55r/+cT8Ol42CHRU1SEaYFH2rTwiiE1aYg/2g2rrtGdPA==}
+    dev: false
+
+  /@types/node/18.0.5:
+    resolution: {integrity: sha512-En7tneq+j0qAiVwysBD79y86MT3ModuoIJbe7JXp+sb5UAjInSShmK3nXXMioBzfF7rXC12hv12d4IyCVwN4dA==}
 
   /@types/prettier/2.6.3:
     resolution: {integrity: sha512-ymZk3LEC/fsut+/Q5qejp6R9O1rMxz3XaRHDV6kX8MrGAhOSPqVARbDi+EZvInBpw+BnCX3TD240byVkOfQsHg==}
@@ -1228,19 +1245,19 @@ packages:
   /@types/prompts/2.0.14:
     resolution: {integrity: sha512-HZBd99fKxRWpYCErtm2/yxUZv6/PBI9J7N4TNFffl5JbrYMHBwF25DjQGTW3b3jmXq+9P6/8fCIb2ee57BFfYA==}
     dependencies:
-      '@types/node': 17.0.42
+      '@types/node': 18.0.5
     dev: true
 
   /@types/ssh2-streams/0.1.9:
     resolution: {integrity: sha512-I2J9jKqfmvXLR5GomDiCoHrEJ58hAOmFrekfFqmCFd+A6gaEStvWnPykoWUwld1PNg4G5ag1LwdA+Lz1doRJqg==}
     dependencies:
-      '@types/node': 17.0.42
+      '@types/node': 18.0.5
     dev: true
 
   /@types/ssh2/0.5.52:
     resolution: {integrity: sha512-lbLLlXxdCZOSJMCInKH2+9V/77ET2J6NPQHpFI0kda61Dd1KglJs+fPQBchizmzYSOJBgdTajhPqBO1xxLywvg==}
     dependencies:
-      '@types/node': 17.0.42
+      '@types/node': 18.0.5
       '@types/ssh2-streams': 0.1.9
     dev: true
 
@@ -5623,8 +5640,8 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
-  /vsce/2.9.2:
-    resolution: {integrity: sha512-xyLqL4U82BilUX1t6Ym2opQEa2tLGWYjbgB7+ETeNVXlIJz5sWBJjQJSYJVFOKJSpiOtQclolu88cj7oY6vvPQ==}
+  /vsce/2.9.3:
+    resolution: {integrity: sha512-hOLsxbev7Khho+bzDV/TV3jeTClzt8gFfkJvE1c5HidrgFsyE5aEg+e7XssaEU7LYLXDnWnpMt298UP7P/4Ycw==}
     engines: {node: '>= 14'}
     hasBin: true
     dependencies:
@@ -5768,6 +5785,10 @@ packages:
     hasBin: true
     dependencies:
       isexe: 2.0.0
+
+  /why-is-node-still-running/1.0.0:
+    resolution: {integrity: sha512-oLjSBpYU0cY77XUJZzu0acNMaM/23dncjWsMcvSt45ZyyBEUuVXGDV2rH3XOg85xobxIIp1jcrq91r74XT1QDg==}
+    dev: false
 
   /wif/2.0.6:
     resolution: {integrity: sha512-HIanZn1zmduSF+BQhkE+YXIbEiH0xPr1012QbFEGB0xsKqJii0/SqJjyn8dFv6y36kOznMgMB+LGcbZTJ1xACQ==}
