@@ -804,29 +804,21 @@ export function getUploadContext ({
       if (code instanceof Template) {
         return code
       }
-      if (typeof code === 'object' && code.url && code.codeHash) {
+      if (typeof code === 'string') {
+        code = this.workspace.crate(code) as Source
+        if (!this.build) throw new Error(`Upload ${code}: building is not enabled`)
+        code = await this.build(code) as Artifact
+      } else {
         const { url, codeHash, source } = code as Artifact
         code = new Artifact(url, codeHash, source)
       }
-      if (typeof code === 'string') {
-        code = this.workspace.crate(code)
-      }
-      if (code instanceof Source) {
-        if (this.build) {
-          code = await this.build(code)
-        } else {
-          throw new Error(`upload ${code.crate}@${code.workspace.ref}: building is not enabled`)
-        }
-      }
-      if (code instanceof Artifact) {
-        const rel = bold($(code.url).shortPath)
-        console.info(`Upload ${bold(rel)}: hash`, bold(code.codeHash))
-        code = await uploader.upload(code) as Template
-        console.info(`Upload ${bold(rel)}: id  `, bold(code.codeId),)
-        return code
-      }
+      const rel = bold($((code as Artifact).url).shortPath)
+      console.info(`Upload ${bold(rel)}: hash`, bold(code.codeHash))
+      code = await uploader.upload(code as Artifact) as Template
+      console.info(`Upload ${bold(rel)}: id  `, bold(code.codeId),)
+      return code
       throw Object.assign(
-        new Error(`Fadroma: can't upload ${code}. must be crate name, Source, Artifact, or Template`),
+        new Error(`Fadroma: can't upload ${code}: must be crate name, Source, Artifact, or Template`),
         { code }
       )
     },
