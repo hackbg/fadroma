@@ -82,13 +82,13 @@ function izdatel (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
     console.log(modified)
     writeFileSync(files.packageJSON, modified, 'utf8')
     // Publish modified package to NPM
+    console.log(`\npnpm publish --no-git-checks`, ...publishArgs)
     execFileSync(
-      'pnpm',
-      ['publish', '--no-git-checks', ...publishArgs],
+      'pnpm', ['publish', '--no-git-checks', ...publishArgs],
       { cwd, stdio: 'inherit', env: process.env }
     )
     // Add Git tag
-    execSync(`git tag "npm/${packageJSON.name}/${packageJSON.version}"`, { cwd, stdio: 'inherit' })
+    execSync(`git tag -f "npm/${packageJSON.name}/${packageJSON.version}"`, { cwd, stdio: 'inherit' })
   } finally {
     // Restore original contents of package.json
     writeFileSync(files.packageJSON, original, 'utf8')
