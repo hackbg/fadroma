@@ -322,7 +322,7 @@ export type Context = {
   getContract <C extends Client> (
     reference:  string|{ address: string },
     APIClient?: ClientCtor<C, any>,
-    msgOrFn?:   InfoOrStep<C>,
+    msgOrFn?:   InfoOrStep<any, C>,
   ): Promise<C>
 
   /** Get a contract or deploy it. */
@@ -746,6 +746,7 @@ export class Deploy extends Commands {
 
 }
 
+/** Error message or recovery function. */
 export type InfoOrStep<C extends Context, T> = string|((context: Partial<C>)=>T)
 
 export abstract class Slot<C extends Context, T> {
@@ -759,7 +760,7 @@ export function getBuildContext ({ config }: {
     build:   { rebuild: boolean }
     scrt:    { build:   object  }
   }
-}): Promise<Partial<Context>> {
+}): Partial<Context> {
   const builder = getScrtBuilder({ ...config.build, ...config.scrt.build })
   const workspace = new Workspace(config.project.root)
   return {
@@ -849,7 +850,7 @@ export class TemplateSlot extends Slot<Context, Template> {
   ) {
     super()
   }
-  async get (msgOrFn: InfoOrStep<Template> = ''): Promise<Template> {
+  async get (msgOrFn: InfoOrStep<Context, Template> = ''): Promise<Template> {
     if (this.value) return this.value
     if (msgOrFn instanceof Function) {
       console.info('Looking for template', this.code)
@@ -902,7 +903,7 @@ export function getDeployContext ({
     async getContract <C extends Client> (
       reference: string|{ address: string },
       APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>,
-      msgOrFn?:  InfoOrStep<C>,
+      msgOrFn?:  InfoOrStep<any, C>
     ): Promise<C> {
       return await new ContractSlot(this, reference, APIClient).get(msgOrFn)
     },
@@ -968,7 +969,7 @@ export class ContractSlot<C extends Client> extends Slot<Context, C> {
   }
   /** Get the specified contract. If it's not in the deployment,
     * try fetching it from a subroutine or throw an error with a custom message. */
-  async get (msgOrFn: InfoOrStep<C> = ''): Promise<C> {
+  async get (msgOrFn: InfoOrStep<any, C> = ''): Promise<C> {
     if (this.value) return this.value
     if (msgOrFn instanceof Function) {
       console.info('Finding contract:', bold(this.reference as string))

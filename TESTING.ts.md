@@ -1,4 +1,17 @@
-# Fadroma Testing Harness
+# Test context
+
+## Test fixtures
+
+* Files with a fixed content that are used in the test suites.
+* Stored in [./fixtures](./fixtures).
+* TODO use `fetch` instead of Node FS API
+
+```typescript
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+export const here    = dirname(fileURLToPath(import.meta.url))
+export const fixture = x => resolve(here, '..', x)
+```
 
 ## Mock of Dockerode API
 
@@ -9,55 +22,26 @@ Fadroma uses Docker for **build** and **devnet** containers.
 ```typescript
 export function mockDockerode (callback = () => {}) {
   return {
-    async pull () {},
     getImage () { return { async inspect () { return } } },
-    async run (...args) { callback({ run: args }); return [{Error:null, StatusCode:0}, Symbol()] },
-    async createContainer (options) { return mockDockerodeContainer(callback) },
     getContainer (options) { return mockDockerodeContainer(callback) }
+    async pull () {},
+    async createContainer (options) { return mockDockerodeContainer(callback) },
+    async run (...args) { callback({run:args}); return [{Error:null, StatusCode:0}, Symbol()] },
   }
 }
 export function mockDockerodeContainer (callback = () => {}) {
   return {
     id: 'mockmockmock',
     logs (options, cb) { cb(...(callback({ createContainer: options })||[])) },
-    async start () {}
-    async attach () { return { setEncoding () {}, pipe () {} } },
-    async wait () { return {Error: null, StatusCode: 0} }
-    async inspect () { return {Image: ' ', Name: null, Args: null, Path: null, State: { Running: null } } }
+    async start   () {}
+    async attach  () { return {setEncoding(){},pipe(){}} },
+    async wait    () { return {Error: null, StatusCode: 0}}
+    async inspect () { return {Image:' ',Name:null,Args:null,Path:null,State:{Running:null}}}
   }
 }
 ```
 
-## Mocking HTTP resources
-
-### Mock of devnet manager
-
-```typescript
-import { spawn } from 'child_process'
-const devnetManager = resolve(here, '../packages/ops-scrt/devnet-manager.mjs')
-const devnetInitScript = resolve(here, '_mock-devnet-init.mjs')
-export async function mockDevnetManager (port) {
-  port = port || await freePort(10000 + Math.floor(Math.random()*10000))
-  const manager = spawn(process.argv[0], [devnetManager], {
-    stdio: 'inherit',
-    env: {
-      PORT: port,
-      FADROMA_DEVNET_INIT_SCRIPT: devnetInitScript
-      PATH: process.env.path
-    }
-  })
-  await new Promise(ok=>setTimeout(ok, 1000)) // FIXME flimsy!
-  return {
-    url: `http://localhost:${port}`,
-    port,
-    close () {
-      manager.kill()
-    }
-  }
-}
-```
-
-### Mock of Secret Network 1.2 HTTP API
+## Mock of Secret Network 1.2 HTTP API
 
 > Not to be confused with the [Mocknet](./Mocknet.ts.md)
 
@@ -352,6 +336,59 @@ async function echoQuery ({query}) {
   } catch (e) {
     console.error(e)
     process.exit(123)
+  }
+}
+```
+
+```javascript
+import Agent   from './Agent.spec'
+import Build   from './Build.spec'
+import Chain   from './Chain.spec'
+import Client  from './Client.spec'
+import Deploy  from './Deploy.spec'
+import Devnet  from './Devnet.spec'
+import Operate from './Operate.spec'
+import Mocknet from './Mocknet.spec'
+import Upload  from './Upload.spec'
+
+const Specification = {
+  Agent,
+  Build,
+  Chain,
+  Client,
+  Deploy,
+  Devnet,
+  Operate,
+  Mocknet,
+  Upload,
+}
+
+export default Specification
+```
+
+### Mock of devnet manager
+
+```typescript
+import { spawn } from 'child_process'
+const devnetManager = resolve(here, '../packages/ops-scrt/devnet-manager.mjs')
+const devnetInitScript = resolve(here, '_mock-devnet-init.mjs')
+export async function mockDevnetManager (port) {
+  port = port || await freePort(10000 + Math.floor(Math.random()*10000))
+  const manager = spawn(process.argv[0], [devnetManager], {
+    stdio: 'inherit',
+    env: {
+      PORT: port,
+      FADROMA_DEVNET_INIT_SCRIPT: devnetInitScript
+      PATH: process.env.path
+    }
+  })
+  await new Promise(ok=>setTimeout(ok, 1000)) // FIXME flimsy!
+  return {
+    url: `http://localhost:${port}`,
+    port,
+    close () {
+      manager.kill()
+    }
   }
 }
 ```
