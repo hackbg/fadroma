@@ -532,14 +532,15 @@ export class RawBuilder extends CachingBuilder {
       const sub  = spawn(cmd, args, opts as any)
       await new Promise<void>((resolve, reject)=>{
         sub.on('exit', (code, signal) => {
+          const build = `Build of ${source.crate} from ${$(source.workspace.path).shortPath} @ ${source.workspace.ref}`
           if (code === 0) {
             resolve()
           } else if (code !== null) {
-            const message = `Build of ${source.crate} from ${$(source.workspace.path).shortPath} @ ${source.workspace.ref} exited with code ${code}`
+            const message = `${build} exited with code ${code}`
             console.error(message)
             throw Object.assign(new Error(message), { source, code })
           } else if (signal !== null) {
-            const message = `Build of ${source.crate} from ${$(source.workspace.path).shortPath} @ ${source.workspace.ref} exited due to signal ${signal}`
+            const message = `${build} exited by signal ${signal}`
             console.warn(message)
           } else {
             throw new Error('Unreachable')

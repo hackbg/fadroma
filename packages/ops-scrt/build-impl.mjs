@@ -190,6 +190,7 @@ function phase2 ({
 
   if (toolchain) {
     run(`rustup default ${toolchain}`)
+    run(`rustup target add ${platform}`)
   }
 
   // Print versions of used tools
