@@ -1,30 +1,14 @@
-# Fadroma Public Beta
-
-## Value proposal
-A portable development environment improves
-the accessibility and reliability of interacting
-with WASM-based blockchains.
-A toolkit of reusable smart contract primitives
-makes it easier to build and deploy smart contracts,
-thus advancing the technological state of the WASM
-blockchain ecosystem, and thus its economic viability.
-
-## Objective
-Provide a unified development experience
-for Cosmos-based smart contracts,
-throughout code, terminal and GUI.
-
-## Feature roadmap
+# Feature roadmap
 
 ### Delivery
 
-* **TODO:** Publish JS packages to NPM
+* **WIP:** Publish JS packages to NPM
 * **TODO:** Publish Rust crates to Cargo
 * **WIP:** Install the whole toolkit with `nix-shell https://fadroma.tech/nix`
 
 ### GUI
 * [ ] Package as Electron and Web app, posslbly other platforms
-      with corresponding capabilities 
+      with corresponding capabilities
 * [ ] Embed [Monaco](https://github.com/microsoft/monaco-editor)-based editor
       with targeted IDE utilities to provide a familiar text editing experience.
       Becoming an IDE is not a goal for Fadroma, however well-provisioned fields
@@ -58,7 +42,7 @@ throughout code, terminal and GUI.
 
 ### Language
 * [ ] Write contracts with the same syntax for different backing versions of CosmWasm (Secret Network - 0.10.1, Terra - 0.15.0), saving the user the repeated generics and the effort to figure out storage and ownership
-    * [ ] `struct Contract` 
+    * [ ] `struct Contract`
     * [ ] Storage field primitive
     * [ ] Attribute macro for canonize/humanize
 
@@ -73,3 +57,28 @@ throughout code, terminal and GUI.
 * [ ] Decide **license**. My proposal: dual AGPLv3 + paid commercial,
       in order to make all improvements to the codebase public yet
       allow commecrial users to keep their source code private.
+
+---
+
+# Support for remote builders and devnets
+
+#### Chain-specific managed devnets
+
+```typescript
+import { ManagedDevnet } from '../index'
+import { mockDevnetManager } from './_Harness'
+for (const version of ['1.2', '1.3']) {
+  const manager = await mockDevnetManager()
+  try {
+    const devnet = getScrtDevnet(version, manager.url)
+    ok(devnet instanceof ManagedDevnet)
+    await devnet.respawn()
+    console.info('Respawned')
+    await devnet.save()
+  } catch (e) {
+    console.warn(e) // TODO use whole devnet manager with mocked devnet init
+  } finally {
+    manager.close()
+  }
+}
+```

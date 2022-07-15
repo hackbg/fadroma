@@ -6,124 +6,72 @@ literate: typescript
 
 This file is a combination of spec and test suite.
 
-You can read it if you want to become familiar with the operating model of the framework.
+You can read it if you want to become familiar with the internal the framework.
 
 ```typescript
 import * as Fadroma from './fadroma'
 import * as Testing from './TESTING'
+import assert from 'assert'
 ```
 
 # The tripartite model
 
-## Chains
-
 ```typescript
-import assert from 'assert'
-const ChainSpec = {}
-const test = tests => Object.assign(ChainSpec, tests)
-export default ChainSpec
+import { Chain, Agent, Client } from '@hackbg/fadroma'
 ```
 
-### Chain config
+## Chain
 
 ```typescript
-import { Chain } from '../index'
-test({
-  'chain id' () {
-    const chain = new Chain('chainid')
-    assert(chain.id === 'chainid')
-  },
-  'chain API URL' () {
-    const url = 'http://example.com'
-    const chain = new Chain('chainid', { url })
-    assert(chain.url === url)
-  }
-})
+let chain: Chain
 ```
 
-### Chain modes
+* Chain config
 
 ```typescript
-import { ChainMode, Agent } from '../index'
-test({
-  'mainnet' () {
-    const mode = ChainMode.Mainnet
-    const chain = new Chain('chainid', { mode })
-    assert(chain.isMainnet)
-    assert(!chain.isTestnet)
-    assert(!chain.isDevnet)
-  },
-  'testnet' () {
-    const mode = ChainMode.Testnet
-    const chain = new Chain('chainid', { mode })
-    assert(!chain.isMainnet)
-    assert(chain.isTestnet)
-    assert(!chain.isDevnet)
-  },
-  'devnet' () {
-    const mode = ChainMode.Devnet
-    const chain = new Chain('chainid', { mode })
-    assert(!chain.isMainnet)
-    assert(!chain.isTestnet)
-    assert(chain.isDevnet)
-  },
-})
+chain = new Chain('any', { url: 'example.com' })
+assert.equal(chain.id,  'any')
+assert.equal(chain.url, 'example.com')
 ```
 
-### Chain features
+* Chain modes
 
 ```typescript
-test({
-  'Chain#getNonce must be implemented in subclass' ({ throws }) {
-    const chain = new Chain('chainid')
-    throws(()=>chain.getNonce())
-  },
-  async 'Chain#getAgent takes name only on devnet' ({ rejects, equal }) {
-    const agent = Symbol()
-    class TestChain extends Chain {
-      Agent = { async create () { return agent } }
-    }
-    const chain = new TestChain('chainid')
-    await rejects(chain.getAgent({ name: 'agent' }))
-    chain.node = { getGenesisAccount () { return {} } }
-    equal(await chain.getAgent({ name: 'agent' }), agent)
-  },
-  async 'Chain#getAgent takes Identity object' ({ rejects, ok }) {
-    class TestAgent extends Agent {
-      static create (options) {
-        return new this(options)
-      }
-    }
-    class TestChain extends Chain {
-      Agent = TestAgent
-    }
-    const chain = new TestChain('chainid')
-    ok(await chain.getAgent({}) instanceof Agent)
-  }
-})
+import { ChainMode } from '../index'
+
+chain = new Chain('any', { mode: ChainMode.Mainnet })
+assert(chain.isMainnet)
+
+chain = new Chain('any', { mode: ChainMode.Testnet })
+assert(chain.isTestnet && !chain.isMainnet)
+
+chain = new Chain('any', { mode: ChainMode.Devnet })
+assert(chain.isDevnet  && !chain.isMainnet && !chain.isTestnet)
+
+chain = new Chain('any', { mode: ChainMode.Mocknet })
+assert(chain.isMocknet && !chain.isMainnet && !chain.isDevnet)
 ```
 
-### Chain variants
-
-* `LegacyScrt`: creates secretjs@0.17.5 based agent using lcd/amino
-* `Scrt`: creates secretjs@beta based agent using grpc
+* Chain variants
+  * `LegacyScrt`: creates secretjs@0.17.5 based agent using lcd/amino
+  * `Scrt`: creates secretjs@beta based agent using grpc
 
 ```typescript
-import { LegacyScrt, Scrt } from '../index'
+import { LegacyScrt, Scrt } from '@hackbg/fadroma'
 for (const Chain of [
   LegacyScrt,
   Scrt
   /* add other supported chains here */
 ]) test({
   async [`${Chain.name}: mainnet`] ({ ok }) {
-    ok(await new Chain('main', { mode: Chain.Mode.Mainnet }))
+    ok(await new Chain('main', { mode: ChainMode.Mainnet }))
   },
   async [`${Chain.name}: testnet`] ({ ok }) {
-    ok(await new Chain('test', { mode: Chain.Mode.Testnet }))
+    ok(await new Chain('test', { mode: ChainMode.Testnet }))
   },
   async [`${Chain.name}: devnet`] ({ ok, equal }) {
     const node = { chainId: 'scrt-devnet', url: 'http://test:0' }
-    const chain = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
+    const chain = await new Chain('dev', { mode: ChainMode.Devnet, node })
     ok(chain)
     equal(chain.node, node)
     equal(chain.url,  node.url)
@@ -134,75 +82,68 @@ for (const Chain of [
 
 ## Agent
 
-The Agent class proxies the underlying API.
-
 ```typescript
-const AgentSpec = {}
-const test = tests => Object.assign(AgentSpec, tests)
-export default AgentSpec
+let agent: Agent
 ```
 
-**TODO:** Reusable test suite for every agent subclass
-
-### Base agent
+* Getting an agent from a chain
+  * This is asynchronous to allow for async crypto functions to run.
 
 ```typescript
-import { Agent } from '../index'
+agent = await chain.getAgent()
+assert(agent instanceof Agent)
+```
 
-test({
+* When using devnet, you can also get an agent from a named genesis account:
 
-  async "get balance for default denomination" ({ equal }) {
-    const balances = { 'foo': '1', 'bar': '2' }
-    class TestAgent extends Agent {
-      defaultDenom = 'foo'
-      getBalance (denom = this.defaultDenom) {
-        return Promise.resolve(balances[denom] || '0')
-      }
-    }
-    const agent = new TestAgent()
-    equal(await agent.balance,           '1')
-    equal(await agent.getBalance(),      '1')
-    equal(await agent.getBalance('foo'), '1')
-    equal(await agent.getBalance('bar'), '2')
-    equal(await agent.getBalance('baz'), '0')
-  },
+```typescript
+chain = new Chain('devnet', {mode: ChainMode.Devnet, node: {getGenesisAccount(){return{}}}})
+agent = await chain.getAgent({ name: 'Alice' })
+```
 
-  async "instantiate contract" ({ deepEqual }) {
-    const instance = Symbol()
-    const chainId  = Symbol()
-    class TestAgent extends Agent {
-      chain = { id: chainId }
-      instantiate (template, label, msg, funds) {
-        return {instance, template, label, msg, funds}
-      }
-    }
-    const codeId   = Symbol()
-    const template = {chainId, codeId}
-    const label    = Symbol()
-    const msg      = Symbol()
-    const funds    = Symbol()
-    const agent = new TestAgent()
-    deepEqual(
-      await agent.instantiate(template, label, msg, funds),
-      {instance, template, label, msg, funds}
-    )
-  },
+* Getting the agent's balance in native tokens
 
-  async "execute tx" ({ ok }) {
-    class TestAgent extends Agent {
-      async execute (contract, msg) { return {} }
-    }
-    ok(await new TestAgent().execute())
-  },
+```typescript
+const balances = { 'foo': '1', 'bar': '2' }
+class TestAgent1 extends Agent {
+  defaultDenom = 'foo'
+  getBalance (denom = this.defaultDenom) { return Promise.resolve(balances[denom] || '0') }
+}
+agent = new TestAgent1()
+equal(await agent.balance,           '1')
+equal(await agent.getBalance(),      '1')
+equal(await agent.getBalance('foo'), '1')
+equal(await agent.getBalance('bar'), '2')
+equal(await agent.getBalance('baz'), '0')
+```
 
-  async "query contract" ({ ok }) {
-    class TestAgent extends Agent {
-      async query (contract, msg) { return {} }
-    }
-    ok(await new TestAgent().query())
-  },
+* Sending native tokens
 
-})
+```typescript
+// to one recipient
+// TODO
+// to many recipients in one transaction
+// TODO
+```
+
+* Instantiating a contract
+
+```typescript
+assert.ok(await agent.instantiate(template, label, msg, funds))
+```
+
+* Executing a transaction
+
+```typescript
+agent = new class TestAgent3 extends Agent { async execute (contract, msg) { return {} } }
+assert.ok(await new TestAgent3().execute())
+```
+
+* Querying a contract
+
+```typescript
+agent = new class TestAgent4 extends Agent { async query (contract, msg) { return {} } }
+ok(await new TestAgent4().query())
 ```
 
 ### Chain-specific agents.
@@ -318,24 +259,14 @@ took 5 seconds. Hence, our TX bundling implementation.
 
 ```typescript
 import { Bundle } from '../index'
-test({
-  async "tx bundles" () {
-    class TestAgent extends Agent {
-      Bundle = class TestBundle extends Bundle {}
-    }
-    const agent = new TestAgent()
-    const bundle = agent.bundle()
-    ok(bundle instanceof Bundle)
-  },
+class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
+const agent = new TestAgent()
+const bundle = agent.bundle()
+ok(bundle instanceof Bundle)
 
-  async "agent uses bundle to instantiate many contracts in 1 tx" () {
-    class TestAgent extends Agent {
-      Bundle = class TestBundle extends Bundle {}
-    }
-    await new TestAgent().instantiateMany([])
-    await new TestAgent().instantiateMany([], 'prefix')
-  },
-})
+class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
+await new TestAgent().instantiateMany([])
+await new TestAgent().instantiateMany([], 'prefix')
 ```
 
 ##### Chain-specific bundles
@@ -354,21 +285,14 @@ for (const Scrt of [ Scrt_1_2, Scrt_1_3 ]) test({
 ## Clients
 
 ```typescript
-const ClientSpec = {}
-const test = tests => Object.assign(ClientSpec, tests)
-export default ClientSpec
+let client: Client
 ```
 
 The `Client` class allows you to transact with a specific smart contract
 deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agent.spec.ts.md).
 
 ```typescript
-import { Agent, Client } from '../index'
-test({
-  'to create a Client you need an Agent' ({ ok }) {
-    ok(new Client(new Agent(), {}))
-  }
-})
+ok(new Client(new Agent(), {}))
 ```
 
 ### Specifying per-transaction gas fees
@@ -689,6 +613,7 @@ test({
 ### Caching
 
 ```typescript
+import { Uploads } from '../index'
 import { Path, JSONDirectory, withTmpFile, withTmpDir } from '@hackbg/kabinet'
 import { CachingFSUploader } from '../index'
 import { resolve } from 'path'
@@ -740,103 +665,86 @@ test({
 })
 ```
 
-### Upload receipts directory
-
-```typescript
-import { Uploads } from '../index'
-```
-
-## Deployment
-
-```typescript
-const DeploySpec = {}
-const test = tests => Object.assign(DeploySpec, tests)
-export default DeploySpec
-```
-
 ### Deployment
 
 ```typescript
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
 import { Deployment } from '../index'
-test({
-  'Deployment get/set/load/save' ({ ok, equal, deepEqual, throws }) {
-    withTmpFile(f=>{
-      const d = new Deployment(f)
-      equal(d.prefix, basename(f))
-      deepEqual(d.receipts, {})
-      equal(d, d.save('test', JSON.stringify({ foo: 1 }))
-      equal(d, d.add('test1', { test1: 1 }))
-      ok(!d.load())
-      equal(d, d.set('test2', { test2: 2 }))
-      equal(d, d.setMany({test3: 3, test4: 4}))
-      throws(()=>d.get('missing'))
-    })
-  },
-  async 'Deployment#init' ({ equal, deepEqual }) {
-    await withTmpFile(async f=>{
-      const agent      = mockAgent()
-      const deployment = new Deployment(f)
-      const codeId     = 0
-      const template   = { codeId }
-      const initMsg    = Symbol()
-      const name       = 'contract'
-      const label      = `${basename(f)}/${name}`
-      deepEqual(await deployment.init(agent, template, name, initMsg), { codeId, label })
-      deepEqual(deployment.get(name), { name, codeId, label })
-    })
-  },
-  async 'Deployment#initMany' ({ equal, deepEqual }) {
-    await withTmpFile(async f=>{
-      const agent      = mockAgent()
-      const deployment = new Deployment(f)
-      const codeId     = 1
-      const template   = { codeId }
-      const initMsg    = Symbol()
-      const configs    = [['contract1', Symbol()], ['contract2', Symbol()]]
-      const receipts   = await deployment.initMany(agent, template, configs)
-      deepEqual(receipts, [
-        { codeId, label: `${basename(f)}/contract1` },
-        { codeId, label: `${basename(f)}/contract2` },
-      ])
-      deepEqual(deployment.get('contract1'), {
-        name: 'contract1',
-        label: `${basename(f)}/contract1`,
-        codeId,
-      })
-      deepEqual(deployment.get('contract2'), {
-        name: 'contract2',
-        label: `${basename(f)}/contract2`,
-        codeId,
-      })
-    })
-  },
-  async 'Deployment#initVarious' ({ equal, deepEqual }) {
-    await withTmpFile(async f=>{
-      const agent      = mockAgent()
-      const deployment = new Deployment(f)
-      const templateA  = { codeId: 2 }
-      const templateB  = { codeId: 3 }
-      const configs    = [[templateA, 'contractA', Symbol()], [templateB, 'contractB', Symbol()]]
-      const receipts   = await deployment.initVarious(agent, configs)
-      deepEqual(receipts, [
-        { codeId: 2, label: `${basename(f)}/contractA`, },
-        { codeId: 3, label: `${basename(f)}/contractB`, },
-      ])
-      deepEqual(deployment.get('contractA'), {
-        name: 'contractA',
-        label: `${basename(f)}/contractA`,
-        codeId: 2
-      })
-      deepEqual(deployment.get('contractB'), {
-        name: 'contractB',
-        label: `${basename(f)}/contractB`,
-        codeId: 3
-      })
-    })
-  },
 
+// save/load deployment data
+await withTmpFile(f=>{
+  const d = new Deployment(f)
+  equal(d.prefix, basename(f))
+  deepEqual(d.receipts, {})
+  equal(d, d.save('test', JSON.stringify({ foo: 1 }))
+  equal(d, d.add('test1', { test1: 1 }))
+  ok(!d.load())
+  equal(d, d.set('test2', { test2: 2 }))
+  equal(d, d.setMany({test3: 3, test4: 4}))
+  throws(()=>d.get('missing'))
+})
+
+// init contract from uploaded template
+await withTmpFile(async f=>{
+  const agent      = mockAgent()
+  const deployment = new Deployment(f)
+  const codeId     = 0
+  const template   = { codeId }
+  const initMsg    = Symbol()
+  const name       = 'contract'
+  const label      = `${basename(f)}/${name}`
+  deepEqual(await deployment.init(agent, template, name, initMsg), { codeId, label })
+  deepEqual(deployment.get(name), { name, codeId, label })
+})
+
+// init many contracts from the same template
+await withTmpFile(async f=>{
+  const agent      = mockAgent()
+  const deployment = new Deployment(f)
+  const codeId     = 1
+  const template   = { codeId }
+  const initMsg    = Symbol()
+  const configs    = [['contract1', Symbol()], ['contract2', Symbol()]]
+  const receipts   = await deployment.initMany(agent, template, configs)
+  deepEqual(receipts, [
+    { codeId, label: `${basename(f)}/contract1` },
+    { codeId, label: `${basename(f)}/contract2` },
+  ])
+  deepEqual(deployment.get('contract1'), {
+    name: 'contract1',
+    label: `${basename(f)}/contract1`,
+    codeId,
+  })
+  deepEqual(deployment.get('contract2'), {
+    name: 'contract2',
+    label: `${basename(f)}/contract2`,
+    codeId,
+  })
+})
+
+// init many contracts from different templates
+await withTmpFile(async f=>{
+  const agent      = mockAgent()
+  const deployment = new Deployment(f)
+  const templateA  = { codeId: 2 }
+  const templateB  = { codeId: 3 }
+  const configs    = [[templateA, 'contractA', Symbol()], [templateB, 'contractB', Symbol()]]
+  const receipts   = await deployment.initVarious(agent, configs)
+  deepEqual(receipts, [
+    { codeId: 2, label: `${basename(f)}/contractA`, },
+    { codeId: 3, label: `${basename(f)}/contractB`, },
+  ])
+  deepEqual(deployment.get('contractA'), {
+    name: 'contractA',
+    label: `${basename(f)}/contractA`,
+    codeId: 2
+  })
+  deepEqual(deployment.get('contractB'), {
+    name: 'contractB',
+    label: `${basename(f)}/contractB`,
+    codeId: 3
+  })
 })
 
 const mockAgent = () => ({
@@ -860,100 +768,79 @@ const mockAgent = () => ({
 ```typescript
 import { DeployOps, Deployments } from '../index'
 import { withTmpDir } from '@hackbg/kabinet'
-test({
-  async 'Deployments' () {
-    await withTmpDir(async dir=>{
-      const d = new Deployments(dir)
-      await d.create()
-      await d.select()
-      d.active
-      d.get()
-      d.list()
-      d.save('test', 'test')
-    })
-  },
-  async 'Deployments integrations' ({ equal }) {
-    const prefixOfActiveDeployment = Symbol()
-    const context = {
-      chain: {
-        deployments: {
-          get () {},
-          active: { prefix: prefixOfActiveDeployment, receipts: [] },
-          printActive () {},
-          list () { return [
-            {prefix: '.active.yml'},
-            {prefix: prefixOfActiveDeployment},
-            {prefix:'somethingelse'}]
-          },
-          async create () {},
-          async select () {}
-        }
-      }
-    }
-    await DeployOps.New(context)
-    const { deployment, prefix } = await DeployOps.Append(context)
-    equal(deployment, context.chain.deployments.active)
-    equal(prefix,     context.chain.deployments.active.prefix)
-    await DeployOps.Status(context)
-    await DeployOps.Status(context)
-  }
+
+// deployments
+await withTmpDir(async dir=>{
+  const d = new Deployments(dir)
+  await d.create()
+  await d.select()
+  d.active
+  d.get()
+  d.list()
+  d.save('test', 'test')
 })
+
+// integrations
+const prefixOfActiveDeployment = Symbol()
+const context = {
+  chain: {
+    deployments: {
+      get () {},
+      active: { prefix: prefixOfActiveDeployment, receipts: [] },
+      printActive () {},
+      list () { return [
+        {prefix: '.active.yml'},
+        {prefix: prefixOfActiveDeployment},
+        {prefix:'somethingelse'}]
+      },
+      async create () {},
+      async select () {}
+    }
+  }
+}
+await DeployOps.New(context)
+const { deployment, prefix } = await DeployOps.Append(context)
+equal(deployment, context.chain.deployments.active)
+equal(prefix,     context.chain.deployments.active.prefix)
+await DeployOps.Status(context)
+await DeployOps.Status(context)
 ```
 
 # Devnets
 
-The devnet is a temporary local server which simulates
-the behavior of a single-node blockchain network.
-
-```typescript
-import assert from 'assert'
-const DevnetSpec = {}
-const test = tests => Object.assign(DevnetSpec, tests)
-export default DevnetSpec
-```
+* The devnet is a temporary self-hosted instance of the selected blockchain network.
 
 ### Constructing a devnet
 
 ```typescript
 import { Devnet } from '../index'
 
-test({
-  'construct devnet' ({ ok, equal }) {
-    const chainId = 'test-devnet'
-    const devnet = new Devnet({ chainId })
-    equal(devnet.chainId, chainId)
-    ok(devnet.protocol)
-    ok(devnet.host)
-    equal(devnet.port, '')
-  },
-  'construct devnet requires chain id' ({ throws }) {
-    try { // FIXME: for some reason assert.throws doesn't work
-      new Devnet()
-    } catch (e) {
-      return // ok
-    }
-    ok(false, 'threw')
-  }
-})
+// constructing a devnet
+const chainId = 'test-devnet'
+const devnet = new Devnet({ chainId })
+equal(devnet.chainId, chainId)
+ok(devnet.protocol)
+ok(devnet.host)
+equal(devnet.port, '')
+
+// requires chain id:
+try { new Devnet() } catch (e) {}
 ```
 
 ### Devnets are persistent
 
 ```typescript
 import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/kabinet'
-test({
-  async 'save/load Devnet state' ({ ok, equal, deepEqual }) {
-    withTmpDir(stateRoot=>{
-      const chainId = 'test-devnet'
-      const devnet = new Devnet({ chainId, stateRoot })
-      ok(devnet.nodeState instanceof JSONFile)
-      ok(devnet.stateRoot instanceof BaseDirectory)
-      equal(devnet.stateRoot.path, stateRoot)
-      ok(!devnet.load())
-      equal(devnet.save(), devnet)
-      deepEqual(devnet.load(), { chainId, port: devnet.port })
-    })
-  }
+// save/load Devnet state
+withTmpDir(stateRoot=>{
+  const chainId = 'test-devnet'
+  const devnet = new Devnet({ chainId, stateRoot })
+  ok(devnet.nodeState instanceof JSONFile)
+  ok(devnet.stateRoot instanceof BaseDirectory)
+  equal(devnet.stateRoot.path, stateRoot)
+  ok(!devnet.load())
+  equal(devnet.save(), devnet)
+  deepEqual(devnet.load(), { chainId, port: devnet.port })
 })
 ```
 
@@ -966,88 +853,26 @@ import { resolve, basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
 import { Dokeres } from '@hackbg/dokeres'
 const readyPhrase = "I'm Freddy"
-test({
 
-  'construct dockerode devnet' ({ ok, equal }) {
-    withTmpDir(stateRoot=>{
-      const docker      = mockDockerode()
-      const imageName   = Symbol()
-      const image       = new Dokeres(docker).image(imageName)
-      const initScript  = Symbol()
-      const devnet = new DockerDevnet({ stateRoot, docker, image, initScript, readyPhrase })
-      equal(devnet.identities.path, resolve(stateRoot, 'identities'))
-      equal(devnet.image,           image)
-      equal(devnet.image.dockerode, docker)
-      equal(devnet.image.name,      imageName)
-      equal(devnet.initScript,      initScript)
-      equal(devnet.readyPhrase,     readyPhrase)
-    })
-  },
-
-  async 'spawn dockerode devnet' ({ equal }) {
-    await withTmpDir(async stateRoot => {
-      await withTmpFile(async initScript => {
-
-        const docker = mockDockerode(({ createContainer }) => {
-          if (createContainer) {
-            const stream = {
-              on (arg, cb) {
-                if (arg === 'data') {
-                  cb(readyPhrase)
-                }
-              },
-              off (arg, cb) {},
-              destroy () {},
-            }
-            return [ null, stream ]
-          }
-        })
-
-        class TestDockerDevnet extends DockerDevnet {
-          waitSeconds = 0.5
-          waitPort = () => Promise.resolve()
-        }
-
-        const devnet = new TestDockerDevnet({
-          stateRoot,
-          docker,
-          image: new Dokeres(docker).image(basename(stateRoot)),
-          initScript,
-          readyPhrase,
-          portMode: 'lcp' // or 'grpcWeb'
-        })
-
-        equal(await devnet.spawn(), devnet)
-
-      })
-    })
-  },
-
-  'pass names of accounts to prefund on genesis' ({ equal, ok }) {
-    const identities  = [ 'FOO', 'BAR' ]
-    const devnet = new Devnet({ identities })
-    equal(devnet.genesisAccounts, identities)
-    const image = {
-      name: Symbol(),
-      run (name, options, command, entrypoint) {
-        equal(name, image.name)
-        equal(options.env.GenesisAccounts, 'FOO BAR')
-      }
-    }
-    const dockerDevnet = new DockerDevnet({ identities, initScript: '', image })
-    equal(dockerDevnet.genesisAccounts, identities)
-  }
-
+// construct dockerode devnet
+await withTmpDir(stateRoot=>{
+  const docker      = mockDockerode()
+  const imageName   = Symbol()
+  const image       = new Dokeres(docker).image(imageName)
+  const initScript  = Symbol()
+  const devnet = new DockerDevnet({ stateRoot, docker, image, initScript, readyPhrase })
+  equal(devnet.identities.path, resolve(stateRoot, 'identities'))
+  equal(devnet.image,           image)
+  equal(devnet.image.dockerode, docker)
+  equal(devnet.image.name,      imageName)
+  equal(devnet.initScript,      initScript)
+  equal(devnet.readyPhrase,     readyPhrase)
 })
-```
 
-#### Chain-specific Dockerode devnets
-
-```typescript
-import { getScrtDevnet } from '../index'
-for (const version of ['1.2', '1.3']) test({
-  async [`${version}: get scrt devnet`] ({ ok }) {
-    const dokeres = new Dokeres(mockDockerode(({ createContainer })=>{
+// spawn dockerode devnet
+await withTmpDir(async stateRoot => {
+  await withTmpFile(async initScript => {
+    const docker = mockDockerode(({ createContainer }) => {
       if (createContainer) {
         const stream = {
           on (arg, cb) {
@@ -1060,311 +885,235 @@ for (const version of ['1.2', '1.3']) test({
         }
         return [ null, stream ]
       }
-    }))
-    const devnet = getScrtDevnet(version, undefined, undefined, dokeres)
-    ok(devnet instanceof DockerDevnet)
-    await devnet.respawn()
-    await devnet.kill()
-    await devnet.erase()
-  },
+    })
+    class TestDockerDevnet extends DockerDevnet {
+      waitSeconds = 0.5
+      waitPort = () => Promise.resolve()
+    }
+    const devnet = new TestDockerDevnet({
+      stateRoot,
+      docker,
+      image: new Dokeres(docker).image(basename(stateRoot)),
+      initScript,
+      readyPhrase,
+      portMode: 'lcp' // or 'grpcWeb'
+    })
+    equal(await devnet.spawn(), devnet)
+  })
 })
+
+// pass names of accounts to prefund on genesis
+const identities  = [ 'FOO', 'BAR' ]
+const devnet = new Devnet({ identities })
+equal(devnet.genesisAccounts, identities)
+const image = {
+  name: Symbol(),
+  run (name, options, command, entrypoint) {
+    equal(name, image.name)
+    equal(options.env.GenesisAccounts, 'FOO BAR')
+  }
+}
+const dockerDevnet = new DockerDevnet({ identities, initScript: '', image })
+equal(dockerDevnet.genesisAccounts, identities)
 ```
 
-### Managed devnet
-
-#### Chain-specific managed devnets
+#### Chain-specific Dockerode devnets
 
 ```typescript
-import { ManagedDevnet } from '../index'
-import { mockDevnetManager } from './_Harness'
-for (const version of ['1.2', '1.3']) test({
-  async [`${version}: get managed scrt devnet`] ({ ok }) {
-    const manager = await mockDevnetManager()
-    try {
-      const devnet = getScrtDevnet(version, manager.url)
-      ok(devnet instanceof ManagedDevnet)
-      await devnet.respawn()
-      console.info('Respawned')
-      await devnet.save()
-    } catch (e) {
-      console.warn(e) // TODO use whole devnet manager with mocked devnet init
-    } finally {
-      manager.close()
+import { getScrtDevnet } from '../index'
+for (const version of ['1.2', '1.3']) {
+  const dokeres = new Dokeres(mockDockerode(({ createContainer })=>{
+    if (createContainer) {
+      const stream = {
+        on  (arg, cb) { if (arg === 'data') { cb(readyPhrase) } },
+        off (arg, cb) {},
+        destroy () {},
+      }
+      return [ null, stream ]
     }
-  },
-})
+  }))
+  const devnet = getScrtDevnet(version, undefined, undefined, dokeres)
+  ok(devnet instanceof DockerDevnet)
+  await devnet.respawn()
+  await devnet.kill()
+  await devnet.erase()
+}
 ```
 
 # Mocknets
 
-The Fadroma Mocknet is a pure JS implementation of the
-API and environment that Cosmos smart contracts expect.
-It does not contain a distributed consensus mechanism,
-which enables smart contract-based programs to be executed in isolation.
+* The Fadroma Mocknet is a pure Node.js implementation of the API and environment that Cosmos
+  smart contracts expect.
+* Because it does not contain a distributed consensus mechanism,
+  it allows the interaction of multiple smart contracts to be tested at a much faster speed than
+  devnet.
+
+## Example contracts
+
+* Testing of the mocknet is conducted via two minimal smart contracts.
+  * Compiled artifacts of those are stored under [`/fixtures`](../fixtures).
+  * You can recompile them with the Fadroma Build CLI.
+    See **[../examples/README.md]** for build instructions.
+* They are also used by the Fadroma Ops example project.
+
+* **Echo contract**: parrots back the data sent by the client, in order to validate
+  reading/writing and serializing/deserializing the input/output messages.
+* **KV contract**: This exposes the key/value storage API available to contracts,
+  in order to validate reading/writing and serializing/deserializing stored values.
 
 ```typescript
-const MocknetSpec = {}
-const test = tests => Object.assign(MocknetSpec, tests)
-export default MocknetSpec
-```
-
-### Example contracts
-
-Testing of the mocknet is conducted via two minimal smart contracts.
-Compiled artifacts of those are stored under [`/fixtures`](../fixtures).
-You can recompile them with the Fadroma Build CLI.
-
-> See **[../examples/README.md]** for build instructions.
-
-```typescript
-import { fixture } from './_Harness'
-import { readFileSync } from 'fs'
-export const ExampleContracts = { Paths: {}, Blobs: {} }
-```
-
-#### Echo contract
-
-This parrots back the data sent by the client, in order to validate
-reading/writing and serializing/deserializing the input/output messages.
-
-```typescript
-ExampleContracts.Paths.Echo = fixture('fixtures/fadroma-example-echo@HEAD.wasm')
-ExampleContracts.Blobs.Echo = readFileSync(ExampleContracts.Paths.Echo)
-```
-
-### KV contract
-
-This exposes the key/value storage API available to contracts,
-in order to validate reading/writing and serializing/deserializing stored values.
-
-```typescript
-ExampleContracts.Paths.KV = fixture('fixtures/fadroma-example-kv@HEAD.wasm')
-ExampleContracts.Blobs.KV = readFileSync(ExampleContracts.Paths.KV)
-```
-
-### Mocking the environment
-
-When testing your own contracts with Fadroma Mocknet, you are responsible
-for providing the value of the `env` struct seen by the contracts.
-Since here we test the mocknet itself, we use this pre-defined value:
-
-```typescript
-import { randomBech32 } from '@hackbg/formati'
-const mockEnv = () => {
-  const height   = 0
-  const time     = 0
-  const chain_id = "mock"
-  const sender   = randomBech32('mocked')
-  const address  = randomBech32('mocked')
-  return {
-    block:    { height, time, chain_id }
-    message:  { sender: sender, sent_funds: [] },
-    contract: { address },
-    contract_key: "",
-    contract_code_hash: ""
+export const ExampleContracts = {
+  KV: {
+    path: Testing.fixture('fixtures/fadroma-example-echo@HEAD.wasm')
+  },
+  Echo: {
+    path: Testing.fixture('fixtures/fadroma-example-kv@HEAD.wasm')
   }
 }
+ExampleContracts.Echo.Blob = readFileSync(ExampleContracts.Echo.path)
+ExampleContracts.KV.Blob   = readFileSync(ExampleContracts.KV.path)
 ```
 
-### Tests of public API
-
-#### Can initialize and provide agent
+## Mocknet usage:
 
 ```typescript
-import { Mocknet, MocknetAgent } from '../index'
-test({
-  async "Mocknet: can initialize and create MocknetAgent" ({ ok }) {
-    const chain = new Mocknet()
-    const agent = await chain.getAgent()
-    ok(agent instanceof MocknetAgent)
-  }
-})
-```
+// initialize and provide agent
+import { Mocknet, MocknetAgent } from '@hackbg/fadroma'
 
-#### Can upload WASM blob, returning code ID
+chain = new Mocknet()
+agent = await chain.getAgent()
+ok(agent instanceof MocknetAgent)
 
-```typescript
+// upload WASM blob, returning code ID
 import { pathToFileURL } from 'url'
-test({
-  async 'MocknetAgent: can upload wasm blob, returning code id' ({ equal }) {
-    const agent     = await new Mocknet().getAgent()
-    const template  = await agent.upload(ExampleContracts.Blobs.Echo)
-    equal(template.chainId, agent.chain.id)
-    const template2 = await agent.upload(ExampleContracts.Blobs.Echo)
-    equal(template2.chainId, template.chainId)
-    equal(template2.codeId, String(Number(template.codeId) + 1))
-  }
-})
+agent           = await new Mocknet().getAgent()
+const template  = await agent.upload(ExampleContracts.Blobs.Echo)
+equal(template.chainId, agent.chain.id)
+const template2 = await agent.upload(ExampleContracts.Blobs.Echo)
+equal(template2.chainId, template.chainId)
+equal(template2.codeId, String(Number(template.codeId) + 1))
+
+// instantiate and call a contract
+chain = new Mocknet()
+agent = await chain.getAgent()
+const template = { chainId: 'Mocknet', codeId: '2' }
+rejects(agent.instantiate(template, 'test', {}))
+
+// instantiate and call a contract, successfully this time
+chain = new Mocknet()
+agent = await chain.getAgent()
+const template = await agent.upload(ExampleContracts.Blobs.Echo)
+const message  = { fail: false }
+const instance = await agent.instantiate(template, 'test', message)
+const client   = agent.getClient(Client, instance)
+equal(await client.query("Echo"), 'Echo')
+ok(await client.execute("Echo"), { data: "Echo" })
+
+// contract can use to platform APIs provided by Mocknet
+const chain    = new Mocknet()
+const agent    = await chain.getAgent()
+const template = await agent.upload(ExampleContracts.Blobs.KV)
+const instance = await agent.instantiate(template, 'test', { value: "foo" })
+const client   = agent.getClient(Client, instance)
+equal(await client.query("Get"), "foo")
+ok(await client.execute({Set: "bar"}))
+equal(await client.query("Get"), "bar")
+ok(await client.execute("Del"))
+rejects(client.query("Get"))
 ```
 
-#### Can instantiate and call a contract
+## Mocknet internals
 
-```typescript
-import { Client } from '../index'
-test({
-  async 'MocknetAgent: contract init from missing code ID fails' ({ rejects }) {
-    const chain    = new Mocknet()
-    const agent    = await chain.getAgent()
-    const template = { chainId: 'Mocknet', codeId: '2' }
-    rejects(agent.instantiate(template, 'test', {}))
-  },
-  async 'MocknetAgent: contract upload and init/query/execute' ({ ok, equal }) {
-    const chain    = new Mocknet()
-    const agent    = await chain.getAgent()
-    const template = await agent.upload(ExampleContracts.Blobs.Echo)
-    const message  = { fail: false }
-    const instance = await agent.instantiate(template, 'test', message)
-    const client   = agent.getClient(Client, instance)
-    equal(await client.query("Echo"), 'Echo')
-    ok(await client.execute("Echo"), { data: "Echo" })
-  }
-})
-```
+### `MocknetContract`
 
-#### Contract deployed to mocknet can use simulated platform APIs
-
-```typescript
-test({
-  async 'MocknetAgent: contract supports db_read/write/remove' ({ ok, equal, rejects }) {
-    const chain    = new Mocknet()
-    const agent    = await chain.getAgent()
-    const template = await agent.upload(ExampleContracts.Blobs.KV)
-    const instance = await agent.instantiate(template, 'test', { value: "foo" })
-    const client   = agent.getClient(Client, instance)
-    equal(await client.query("Get"), "foo")
-    ok(await client.execute({Set: "bar"}))
-    equal(await client.query("Get"), "bar")
-    ok(await client.execute("Del"))
-    rejects(client.query("Get"))
-  }
-})
-```
-
-### Tests of internals
-
-#### Base64 decoding
-
-Fields that are of type `Binary` (query responses and the `data` field of handle responses)
-are returned by the contract as Base64-encoded strings. This function decodes them.
-
-> If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
-
-```typescript
-import { b64toUtf8, utf8toB64 } from '../packages/ops/Mocknet'
-test({
-  'b64toUtf8' ({ equal }) {
-    equal(b64toUtf8('IkVjaG8i'), '"Echo"')
-  },
-  'utf8toB64' ({ equal }) {
-    equal(utf8toB64('"Echo"'), 'IkVjaG8i')
-  }
-})
-```
-
-#### MocknetContract
-
-The `MocknetContract` class calls methods on WASM contract blobs.
-Normally, it isn't used directly - `Mocknet`/`MocknetAgent` call
-`MocknetBackend` which calls this.
-
-* Every method has a slightly different shape:
-  * Assuming **Handle** is the "standard":
+* The **`MocknetContract`** class wraps WASM contract blobs and takes care of the CosmWasm
+  calling convention.
+  * Normally, it isn't used directly - `Mocknet`/`MocknetAgent` call
+    `MocknetBackend` which calls this.
+* Every method has a slightly different shape: Assuming **Handle** is the "standard":
   * **Init** is like Handle but has only 1 variant and response has no `data` attribute.
   * **Query** is like Handle but returns raw base64 and ignores `env`.
-* Every method returns the same thing - a JSON string of the form `{ "Ok": ... } | { "Err": ... }`
-  * This corresponds to the **StdResult** struct returned from the contract
-  * This result is returned to the contract's containing `MocknetBackend` as-is.
+  * Every method returns the same thing - a JSON string of the form `{ "Ok": ... } | { "Err": ... }`
+    * This corresponds to the **StdResult** struct returned from the contract
+    * This result is returned to the contract's containing `MocknetBackend` as-is.
 
 ```typescript
-import { MocknetContract } from '../index' // wait what
-test({
+import { MocknetContract } from '@hackbg/fadroma' // wait what
 
-  async "MocknetContract#init   -> Ok" ({ equal, deepEqual }) {
-    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const initMsg     = { fail: false }
-    const { Ok, Err } = contract.init(mockEnv(), initMsg)
-    const key         = "Echo"
-    const value       = utf8toB64(JSON.stringify(initMsg))
-    equal(Err, undefined)
-    deepEqual(Ok, { messages: [], log: [{ encrypted: false, key, value }] })
-  },
+const contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+const initMsg     = { fail: false }
+const { Ok, Err } = contract.init(Testing.mockEnv(), initMsg)
+const key         = "Echo"
 
-  async "MocknetContract#init   -> Err" ({ equal, deepEqual }) {
-    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const { Ok, Err } = contract.init(mockEnv(), { fail: true })
-    equal(Ok, undefined)
-    deepEqual(Err, { generic_err: { msg: 'caller requested the init to fail' } })
-  },
+const value       = utf8toB64(JSON.stringify(initMsg))
+equal(Err, undefined)
+deepEqual(Ok, { messages: [], log: [{ encrypted: false, key, value }] })
 
-  async "MocknetContract#handle -> Ok" ({ equal, deepEqual }) {
-    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const { Ok, Err } = contract.handle(mockEnv(), "Echo")
-    const data        = utf8toB64(JSON.stringify("Echo"))
-    equal(Err, undefined)
-    deepEqual(Ok, { messages: [], log: [], data })
-  },
+const { Ok, Err } = contract.init(Testing.mockEnv(), { fail: true })
+equal(Ok, undefined)
+deepEqual(Err, { generic_err: { msg: 'caller requested the init to fail' } })
 
-  async "MocknetContract#handle -> Err" ({ equal, deepEqual }) {
-    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const { Ok, Err } = contract.handle(mockEnv(), "Fail")
-    equal(Ok, undefined)
-    deepEqual(Err, { generic_err:  { msg: 'this transaction always fails' } })
-  },
+const { Ok, Err } = contract.handle(Testing.mockEnv(), "Echo")
+const data        = utf8toB64(JSON.stringify("Echo"))
+equal(Err, undefined)
+deepEqual(Ok, { messages: [], log: [], data })
 
-  async "MocknetContract#query  -> Ok" ({ equal }) {
-    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const { Ok, Err } = await contract.query("Echo")
-    equal(Err, undefined)
-    equal(Ok,  utf8toB64('"Echo"'))
-  },
+const { Ok, Err } = contract.handle(Testing.mockEnv(), "Fail")
+equal(Ok, undefined)
+deepEqual(Err, { generic_err:  { msg: 'this transaction always fails' } })
 
-  async "MocknetContract#query  -> Err" ({ equal, deepEqual }) {
-    const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-    const { Ok, Err } = await contract.query("Fail")
-    equal(Ok, undefined)
-    deepEqual(Err, { generic_err: { msg: 'this query always fails' } })
-  }
+const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+const { Ok, Err } = await contract.query("Echo")
+equal(Err, undefined)
+equal(Ok,  utf8toB64('"Echo"'))
 
-})
+const contract    = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
+const { Ok, Err } = await contract.query("Fail")
+equal(Ok, undefined)
+deepEqual(Err, { generic_err: { msg: 'this query always fails' } })
+```
+
+### Base64 IO
+
+* **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
+  responses) are returned by the contract as Base64-encoded strings
+  * If `to_binary` is used to produce the `Binary`, it's also JSON encoded through Serde.
+  * These functions are used by the mocknet code to encode/decode the base64.
+
+```typescript
+import { b64toUtf8, utf8toB64 } from './packages/ops/Mocknet'
+
+equal(b64toUtf8('IkVjaG8i'), '"Echo"')
+equal(utf8toB64('"Echo"'), 'IkVjaG8i')
 ```
 
 # The command model
 
 ```typescript
-import assert from 'assert'
-const OperateSpec = {}
-const test = tests => Object.assign(OperateSpec, tests)
-export default OperateSpec
-```
+import { runOperation } from '@hackbg/fadroma'
 
-```typescript
-import { runOperation } from '../index'
-test({
-  async 'run empty migration' () {
-    const result = await runOperation("", [], [])
-  },
-  async 'run migration with falsy step' ({ rejects }) {
-    rejects(runOperation("", [undefined], []))
-  },
-  async 'run migration with one step' ({ ok }) {
-    const result = await runOperation("", [()=>({foo:true})], [])
-    ok(result.foo)
-  }
-  async 'catch and rethrow step failure' ({ rejects }) {
-    const error = {}
-    await rejects(runOperation("", [()=>{throw error}], []))
-  },
-  async 'subsequent steps update the context' ({ ok }) {
-    const result = await runOperation("", [
-      ()=>({foo:true}),
-      ()=>({bar:true})
-    ], [])
-    ok(result.foo)
-    ok(result.bar)
-  },
-  async 'the context.run function runs steps without updating context' ({ rejects, ok }) {
-    await rejects(runOperation("", [ async ({ run }) => { await run() } ], []))
-    ok(await runOperation("", [ async ({ run }) => { await run(async () => {}) } ], []))
-  },
-})
+// run empty operation
+await runOperation("", [], [])
+
+// run operation with invalid step
+await assert.rejects(runOperation("", [undefined], []))
+
+// run operation with one step
+assert.ok(await runOperation("", [()=>({foo:true})], []))
+
+// catch and rethrow step failure
+const error = {}
+assert.ok(rejects(runOperation("", [()=>{throw error}], [])))
+
+// subsequent steps update the context
+const result = await runOperation("", [
+  ()=>({foo:true}),
+  ()=>({bar:true})
+], [])
+assert.ok(result.foo)
+assert.ok(result.bar)
+
+// the context.run function runs steps without updating context
+await assert.rejects(runOperation("", [ async ({ run }) => { await run() } ], []))
+assert.ok(await runOperation("", [ async ({ run }) => { await run(async () => {}) } ], []))
 ```

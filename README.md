@@ -25,6 +25,19 @@ Start exploring:
 
 or help yourself to the [contribution guidelines](CONTRIBUTING.md).
 
+---
+
+**A portable development environment** improves
+the accessibility and reliability of interacting
+with WASM-based blockchains.
+
+**A toolkit of reusable smart contract primitives**
+makes it easier to build and deploy smart contracts,
+thus advancing the technological state of the WASM
+blockchain ecosystem, and thus its economic viability.
+
+---
+
 ```
 "The reasonable man adapts himself to the world;
  the unreasonable one persists in trying to adapt the world to himself.
