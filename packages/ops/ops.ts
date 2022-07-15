@@ -535,10 +535,12 @@ export class RawBuilder extends CachingBuilder {
           if (code === 0) {
             resolve()
           } else if (code !== null) {
-            console.error(`Build exited with code ${code}`)
-            throw new Error(`Build exited with code ${code}`)
+            const message = `Build of ${source.crate} from ${$(source.workspace.path).shortPath} @ ${source.workspace.ref} exited with code ${code}`
+            console.error(message)
+            throw Object.assign(new Error(message), { source, code })
           } else if (signal !== null) {
-            console.warn(`Build exited due to signal ${signal}`)
+            const message = `Build of ${source.crate} from ${$(source.workspace.path).shortPath} @ ${source.workspace.ref} exited due to signal ${signal}`
+            console.warn(message)
           } else {
             throw new Error('Unreachable')
           }
