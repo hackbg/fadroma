@@ -13,28 +13,59 @@ export type Uint128    = string
 export type Uint256    = string
 
 /** Reference to a compiled smart contract. */
-export interface Artifact {
-  url:      URL
-  codeHash: CodeHash
+export class Artifact {
+  constructor (
+    url:            URL|string,
+    public readonly codeHash: CodeHash,
+    public readonly source?:  { crate: string, ref: string }
+  ) {
+    if (typeof url === 'string') url = new URL(url)
+    this.url = url
+  }
+  url: URL
+  upload (uploader: { upload: (artifact: Artifact)=>Promise<Template> }): Promise<Template> {
+    return uploader.upload(this)
+  }
 }
 
-/** Reference to an uploaded smart contract. */
-export interface Template {
-  uploadTx?: TxHash
+/** Reference to an uploaded smart contract.
+  * May contain reference to the artifact from which it was uploaded. */
+export class Template {
+  constructor (
+    public readonly chainId?:  ChainId,
+    public readonly codeId?:   CodeId,
+    public readonly codeHash?: CodeHash,
+    public readonly uploadTx?: TxHash,
+    public readonly artifact?: Artifact,
+  ) {
+    if (this.codeHash && artifact?.codeHash && (this.codeHash !== artifact.codeHash)) {
+      console.warn(
+        `Template: code hash mismatch: `+
+        `template: ${this.codeHash}, template.artifact: ${artifact.codeHash})`
+      )
+    }
+    this.codeHash ??= artifact?.codeHash
+  }
+}
+
+/** Reference to an instantiated smart contract.
+  * May contain reference to the template from wich it was instantiated. */
+export interface Instance {
+  initTx?:   TxHash
   chainId?:  ChainId
   codeId?:   CodeId
-  codeHash?: CodeHash
-}
-
-/** Reference to an instantiated smart contract. */
-export interface Instance extends Template {
   address:   Address
   codeHash?: CodeHash
   label?:    Label
+  template?: Template
 }
 
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export class ContractLink {
+  static fromInstance = (
+    { address, codeHash }: { address: Address, codeHash: CodeHash }
+  ) => new ContractLink(address, codeHash)
+
   constructor (
     readonly address:   Address,
     readonly code_hash: CodeHash
@@ -95,13 +126,10 @@ export interface ExecOpts {
   memo?: string
 }
 
-/** A native token. */
-export interface ICoin {
-  amount: Uint128
-  denom:  string
-}
+/** Represents some amount of native token. */
+export interface ICoin { amount: Uint128, denom: string }
 
-/** A native token constructor */
+/** Represents some amount of native token. */
 export class Coin implements ICoin {
   constructor (
     amount:         number|string,
@@ -138,9 +166,9 @@ export enum ChainMode {
 }
 
 export interface ChainOpts {
-  url?:  string
-  mode:  ChainMode
-  node?: DevnetHandle
+  url:  string
+  mode: ChainMode
+  node: DevnetHandle
 }
 
 export interface DevnetHandle {
@@ -154,7 +182,7 @@ export abstract class Chain implements Spectator {
   static Mode = ChainMode
   constructor (
     readonly id: ChainId,
-    options: ChainOpts
+    options: Partial<ChainOpts> = {}
   ) {
     if (!id) {
       throw new Error('Chain: need to pass chain id')
@@ -168,11 +196,11 @@ export abstract class Chain implements Spectator {
       if (options.mode === Chain.Mode.Devnet) {
         this.node = options.node
         if (this.url !== String(this.node.url)) {
-          console.warn(`chain.url is ${this.url}; node.url is ${this.node.url}; using the latter`)
+          console.warn(`Fadroma Chain: node.url "${this.node.url}" overrides chain.url "${this.url}"`)
           this.url = String(this.node.url)
         }
         if (this.id !== this.node.chainId) {
-          console.warn(`chain.id is ${this.id}, node.chainId is ${this.node.url}; using the latter`)
+          console.warn(`Fadroma Chain: node.id "${this.node.chainId}" overrides chain.id "${this.id}"`)
           this.id = this.node.chainId
         }
       } else {
@@ -223,20 +251,25 @@ export abstract class Chain implements Spectator {
       })
     })
   }
-  /** The Agent subclass to use for interacting with this chain. */
-  abstract Agent: AgentCtor<Agent>
   /** Get a new instance of the appropriate Agent subclass. */
-  async getAgent (options: AgentOpts) {
+  async getAgent <A extends Agent> (
+    options: Partial<AgentOpts> = {},
+    _Agent:  AgentCtor<Agent> = this.Agent as AgentCtor<Agent>
+  ): Promise<A> {
     if (!options.mnemonic && options.name) {
       if (this.node) {
-        console.info('Using devnet genesis account:', options.name)
         options = await this.node.getGenesisAccount(options.name)
       } else {
         throw new Error('Chain#getAgent: getting agent by name only supported for devnets')
       }
     }
-    return await this.Agent.create(this, options)
+    const agent = await _Agent.create(this, options) as A
+    return agent
   }
+
+  static Agent: AgentCtor<Agent> = null;
+  /** The Agent subclass to use for interacting with this chain. */
+  Agent: AgentCtor<Agent> = (this.constructor as Function & { Agent: AgentCtor<Agent> }).Agent
 }
 
 export interface AgentOpts {
@@ -260,10 +293,12 @@ export interface AgentFees {
 
 export abstract class Agent implements Executor {
   static create (chain: Chain, options: AgentOpts = {}): Promise<Agent> {
-    throw Object.assign(new Error('Agent.create: abstract, use subclass'), { options })
+    //@ts-ignore
+    return new this(chain, options)
   }
   constructor (readonly chain: Chain, options: AgentOpts = {}) {
     this.chain = chain
+    Object.defineProperty(this, 'chain', { enumerable: false })
     if (options.name) this.name = options.name
     if (options.fees) this.fees = options.fees
   }
@@ -293,9 +328,10 @@ export abstract class Agent implements Executor {
   getLabel  (address: Address) { return this.chain.getLabel(address) }
   getHash   (address: Address) { return this.chain.getHash(address) }
   getClient <C extends Client, O extends ClientOpts> (
-    Client: ClientCtor<C, O>, arg: Address|O
+    _Client: ClientCtor<C, O>   = Client as ClientCtor<C, O>,
+    arg:     Address|Partial<O> = {}
   ): C {
-    return new Client(this, arg)
+    return new _Client(this, arg)
   }
   query <R> (contract: Instance, msg: Message): Promise<R> {
     return this.chain.query(contract, msg)
@@ -315,12 +351,16 @@ export abstract class Agent implements Executor {
     ))
   }
   abstract execute (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|unknown>
+  static Bundle: typeof Bundle
+  Bundle = (this.constructor as Function & {Bundle: typeof Bundle}).Bundle
   bundle (): Bundle {
     //@ts-ignore
     return new this.Bundle(this)
   }
-  abstract Bundle: typeof Bundle
 }
+
+//@ts-ignore
+Chain.Agent = Agent as AgentCtor<Agent>
 
 /** Collection of messages to broadcast as a single transaction,
   * effectively executing them simultaneously. */
@@ -462,6 +502,8 @@ export abstract class Bundle implements Executor {
 
 }
 
+Agent.Bundle = Bundle
+
 /** Function passed to Bundle#wrap */
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
@@ -472,12 +514,12 @@ export interface ClientOpts extends Instance {
 }
 
 export interface ClientCtor<C extends Client, O extends ClientOpts> {
-  new (agent: Executor, options: Address|O): C
+  new (agent: Executor, options: Address|Partial<O>): C
 }
 
 /** Interface to a specific contract. Subclass to add contract-specific methods. */
 export class Client implements Instance {
-  constructor (readonly agent: Executor, arg: Address|ClientOpts) {
+  constructor (readonly agent: Executor, arg: Address|Partial<ClientOpts> = {}) {
     if (typeof arg === 'string') {
       this.address  = arg
     } else {

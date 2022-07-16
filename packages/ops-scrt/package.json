@@ -2,7 +2,7 @@
   "name":    "@fadroma/ops-scrt",
   "version": "1.0.0",
   "type":    "module",
-  "main":    "index.ts",
+  "main":    "ops-scrt.ts",
   "dependencies": {
     "@hackbg/dokeres":            "workspace:*",
     "@fadroma/ops":               "workspace:^1",

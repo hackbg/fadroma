@@ -1,6 +1,7 @@
 import {
   Address,
   AgentOpts,
+  Chain,
   ChainId,
   ChainOpts,
   Template,
@@ -60,7 +61,7 @@ export class ScrtRPCAgent extends ScrtAgent {
   Bundle = ScrtRPCBundle
 
   static async create (
-    chain:   Scrt,
+    chain:   Chain,
     options: ScrtRPCAgentOpts
   ): Promise<ScrtRPCAgent> {
     const { mnemonic, keyPair, address } = options
@@ -85,7 +86,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     return new ScrtRPCAgent(chain, { ...options, wallet, api })
   }
 
-  constructor (chain: Scrt, options: ScrtRPCAgentOpts) {
+  constructor (chain: Chain, options: ScrtRPCAgentOpts) {
     // @ts-ignore
     super(chain, options)
     this.wallet  = options.wallet
@@ -93,10 +94,8 @@ export class ScrtRPCAgent extends ScrtAgent {
     this.address = this.wallet?.address
   }
 
-  wallet: Wallet
-
-  api:    SecretNetworkClient
-
+  wallet:  Wallet
+  api:     SecretNetworkClient
   address: string
 
   get account () {
@@ -148,7 +147,12 @@ export class ScrtRPCAgent extends ScrtAgent {
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     const chainId    = this.chain.id
-    return { uploadTx: result.transactionHash, chainId, codeId, codeHash }
+    return new Template(
+      chainId,
+      codeId,
+      codeHash,
+      result.transactionHash
+    )
   }
   async instantiate (template, label, initMsg, initFunds = []): Promise<Instance> {
     const { chainId, codeId, codeHash } = template
@@ -162,7 +166,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     if (result.arrayLog) {
       const findAddr = (log) => log.type === "message" && log.key === "contract_address"
       const address  = result.arrayLog.find(findAddr)?.value
-      return { chainId, codeId, codeHash, address, label }
+      return { initTx: result.transactionHash, chainId, codeId, codeHash, address, label, template }
     } else {
       throw Object.assign(
         new Error(`SecretRPCAgent#instantiate: ${result.rawLog}`), {
@@ -204,14 +208,10 @@ export class ScrtRPCAgent extends ScrtAgent {
       }
       for (const event of result.events) {
         for (const attr of event.attributes) {
-          try {
-            //@ts-ignore
-            attr.key   = tryDecode(attr.key)
-          } catch (e) {}
-          try {
-            //@ts-ignore
-            attr.value = tryDecode(attr.value)
-          } catch (e) {}
+          //@ts-ignore
+          try { attr.key   = tryDecode(attr.key)   } catch (e) {}
+          //@ts-ignore
+          try { attr.value = tryDecode(attr.value) } catch (e) {}
         }
       }
       throw Object.assign(new Error(error), result)

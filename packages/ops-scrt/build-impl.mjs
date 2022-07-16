@@ -3,7 +3,12 @@ import { resolve, dirname, sep } from 'path'
 import { readFileSync, writeFileSync, mkdirSync } from 'fs'
 
 const { argv, umask, chdir, cwd, exit } = process
-const env = (key, def) => (key in process.env) ? process.env[key] : def
+const env = (key, def) => {
+  let val = (key in process.env) ? process.env[key] : def
+  if (val === '0')     val = 0
+  if (val === 'false') val = false
+  return val
+}
 
 const slashes  = new RegExp("/", "g")
 const dashes   = new RegExp("-", "g")
@@ -47,6 +52,7 @@ function phase1 ({
   gitRemote   = env('_GIT_REMOTE', 'origin'),
   uid         = env('_BUILD_UID',  1000),
   gid         = env('_BUILD_GID',  1000),
+  noFetch     = env('_NO_FETCH',   false),
   interpreter = argv[0],       // e.g. /usr/bin/node
   script      = argv[1],       // this file
   ref         = argv[3],       // "HEAD" | <git ref>
@@ -85,6 +91,10 @@ function phase1 ({
     chdir(subdir)
   } else {
     console.log(`Building from checkout of ${ref}`)
+    if (!noFetch) {
+      run(`git fetch --recurse-submodules origin ${ref}`)
+      run('pwd')
+    }
     // This works by using ".git" (or ".git/modules/something") as a remote
     // and cloning from it. Since we may need to modify that directory,
     // we'll make a copy. This may be slow if ".git" is huge
@@ -111,24 +121,27 @@ function phase1 ({
     } catch (e) {
       // If the branch is not checked out, but is fetched, do a "fake checkout":
       // create a ref under refs/heads pointing to that branch.
-      try {
-        console.log(`${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}.`)
-        gitRun('fetch')
+      if (noFetch) {
+        console.error(`${ref} is not checked out or fetched. Run "git fetch" to update.`)
+        exit(1)
+      } else {
+        try {
+          console.warn(`\n${ref} is not checked out. Creating branch ref from ${gitRemote}/${ref}\n.`)
+          gitRun(`fetch origin --recurse-submodules ${ref}`)
+        } catch (e) {
+          console.warn(`${ref}: failed to fetch: ${e.message}`)
+        }
         const shown     = gitCall(`show-ref --verify refs/remotes/${gitRemote}/${ref}`)
         const remoteRef = shown.split(' ')[0]
         const refPath   = resolve(`${gitDir}/refs/heads/`, ref)
         mkdirSync(dirname(refPath), { recursive: true })
         writeFileSync(refPath, remoteRef, 'utf8')
         gitRun(`show-ref --verify --quiet refs/heads/${ref}`)
-      } catch (e) {
-        console.log(e)
-        console.log(`${ref} is not checked out or fetched. Run "git fetch" to update.`)
-        exit(1)
       }
     }
 
     // Clone from the temporary local remote into the temporary working tree
-    run(`git clone -b ${ref} ${gitDir} ${buildRoot}`)
+    run(`git clone --recursive -b ${ref} ${gitDir} ${buildRoot}`)
     chdir(buildRoot)
 
     // Report which commit we're building and what it looks like
@@ -159,6 +172,7 @@ function phase1 ({
 
 /** As a non-root user, execute a release build, then optimize it with Binaryen. */
 function phase2 ({
+  toolchain = env('_TOOLCHAIN'),
   targetDir = env('_TMP_TARGET', '/tmp/target'),
   ref       = argv[3], // "HEAD" | <git ref>
   crate     = argv[4], // one crate to build
@@ -173,6 +187,11 @@ function phase2 ({
 } = {}) {
 
   console.log(`Build phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
+
+  if (toolchain) {
+    run(`rustup default ${toolchain}`)
+    run(`rustup target add ${platform}`)
+  }
 
   // Print versions of used tools
   run(`cargo --version`)

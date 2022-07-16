@@ -1,19 +1,8 @@
-<div align="center">
-<table><tr><td valign="middle" style="vertical-align:bottom">
+# Fadroma Ensemble
 
-[<img src="https://github.com/hackbg/fadroma/raw/22.01/doc/logo.svg" width="300">](https://fadroma.tech)
+![](https://img.shields.io/badge/version-0.1.0-blueviolet)
 
-</td><td valign="center">
-
-# Fadroma Ensemble ![](https://img.shields.io/badge/version-0.1.0-blueviolet)
-
-**This document describes how to write tests for CosmWasm smart contracts with multi-contract interactions using `fadroma-ensemble`**
-
-Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
-
-</td></tr></table>
-
-</div>
+**How to write multi-contract CosmWasm integration tests in Rust using `fadroma-ensemble`**
 
 ## Introduction
 Fadroma Ensemble provides a way to test multi-contract interactions without having to deploy contracts on-chain.

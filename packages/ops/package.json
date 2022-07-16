@@ -2,7 +2,7 @@
   "name": "@fadroma/ops",
   "version": "1.0.0",
   "type": "module",
-  "main": "./index.ts",
+  "main": "./ops.ts",
   "dependencies": {
     "@fadroma/client": "workspace:^3.0.0",
     "@hackbg/dokeres": "workspace:*",
@@ -20,7 +20,7 @@
     "wasm-ffi":   "^0.3.0"
   },
   "devDependencies": {
-    "@hackbg/ganesha": "^2.0.3",
+    "@hackbg/ganesha": "workspace:^2.0.3",
     "@hackbg/izdatel": "workspace:^0",
     "typescript": "^4.7"
   },
