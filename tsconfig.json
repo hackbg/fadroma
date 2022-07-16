@@ -15,6 +15,7 @@
     "commands/**/*",
     "packages/*/types",
     "packages/ops/wip/**/*",
-    "typedoc-theme.tsx"
+    "typedoc-theme.tsx",
+    "ensuite"
   ]
 }

@@ -190,6 +190,7 @@ export abstract class CachingBuilder extends Builder {
     if (!this.caching) {
       return null
     }
+    //console.log({outputDir, crate, ref}, artifactName(crate, ref))
     const location = $(outputDir, artifactName(crate, ref))
     if (location.exists()) {
       return new Artifact(location.url, codeHashForPath(location.path))
@@ -497,18 +498,16 @@ export class RawBuilder extends CachingBuilder {
       // Most of the parameters are passed to the build script
       // by way of environment variables.
       const env = {
-        _TOOLCHAIN: this.toolchain,
-        _BUILD_UID: process.getuid(),
         _BUILD_GID: process.getgid(),
-        _REGISTRY:  '',
+        _BUILD_UID: process.getuid(),
         _OUTPUT:    $(source.workspace.path).in('artifacts').path,
-        PATH:       process.env.PATH,
-        TERM:       process.env.TERM
+        _REGISTRY:  '',
+        _TOOLCHAIN: this.toolchain,
       }
-      if (source.workspace.ref !== HEAD) {
+      if ((source.workspace.ref ?? HEAD) !== HEAD) {
         // Provide the build script with the config values that ar
         // needed to make a temporary checkout of another commit
-        if (!source.workspace.gitDir.present) {
+        if (!source.workspace.gitDir?.present) {
           const error = new Error("Fadroma Build: could not find Git directory for source.")
           throw Object.assign(error, { source })
         }
@@ -519,17 +518,23 @@ export class RawBuilder extends CachingBuilder {
         tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
         Object.assign(env, {
           _GIT_ROOT:   gitDir.path,
-          _TMP_GIT:    tmpGit.path,
-          _TMP_BUILD:  tmpBuild.path,
           _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
           _NO_FETCH:   this.noFetch,
+          _TMP_BUILD:  tmpBuild.path,
+          _TMP_GIT:    tmpGit.path,
         })
       }
       // Run the build script
-      const cmd  = process.argv[0]
-      const args = [ this.script.path, 'phase1', source.workspace.ref, source.crate ]
-      const opts = { cwd, env, stdio: 'inherit' }
-      const sub  = spawn(cmd, args, opts as any)
+      const cmd = [
+        process.argv[0],
+        this.script.path,
+        'phase1',
+        source.workspace.ref,
+        source.crate
+      ]
+      const opts = { cwd, env: { ...process.env, ...env }, stdio: 'inherit' }
+      console.log(opts)
+      const sub  = spawn(cmd.shift(), cmd, opts as any)
       await new Promise<void>((resolve, reject)=>{
         sub.on('exit', (code, signal) => {
           const build = `Build of ${source.crate} from ${$(source.workspace.path).shortPath} @ ${source.workspace.ref}`
@@ -1173,7 +1178,7 @@ export class FSUploader extends Uploader {
   /** Upload multiple Artifacts from the filesystem.
     * TODO: Optionally bundle them (where is max size defined?) */
   async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
-    console.log('uploadMany', artifacts)
+    //console.log('uploadMany', artifacts)
     const templates = []
     for (const i in artifacts) {
       // support "holes" in artifact array

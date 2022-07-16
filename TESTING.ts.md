@@ -7,10 +7,13 @@
 * TODO use `fetch` instead of Node FS API
 
 ```typescript
+import { Console, bold } from '@hackbg/fadroma'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
-export const here    = dirname(fileURLToPath(import.meta.url))
-export const fixture = x => resolve(here, x)
+export const here      = dirname(fileURLToPath(import.meta.url))
+export const workspace = resolve(here)
+export const fixture   = x => resolve(here, 'fixtures', x)
+export const console   = Console('Fadroma Testing')
 ```
 
 ## Mock of Dockerode API
@@ -225,7 +228,7 @@ export async function mockAPIEndpoint (port) {
     port,
     state,
     close () {
-      console.info(`Closing ${url}`)
+      //console.trace(`Closing mock Amino endpoint:`, bold(url))
       clearInterval(blockIncrement)
       server.close()
     }
@@ -298,13 +301,26 @@ export async function mockDevnetManager (port) {
 ```typescript
 export const ExampleContracts = {
   KV: {
-    path: fixture('fixtures/fadroma-example-echo@HEAD.wasm')
+    path: fixture('fadroma-example-echo@HEAD.wasm')
   },
   Echo: {
-    path: fixture('fixtures/fadroma-example-kv@HEAD.wasm')
+    path: fixture('fadroma-example-kv@HEAD.wasm')
   }
 }
 import { readFileSync } from 'fs'
 ExampleContracts.Echo.Blob = readFileSync(ExampleContracts.Echo.path)
 ExampleContracts.KV.Blob   = readFileSync(ExampleContracts.KV.path)
+
+export const hashes = {
+  'empty.wasm': "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
+```
+
+## Example mnemonics
+
+```typescript
+export const mnemonics = [
+  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
+  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
+]
 ```

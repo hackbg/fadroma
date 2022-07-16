@@ -18,15 +18,17 @@
 
 **/
 
-import { resolve, dirname }                 from 'path'
-import { homedir }                          from 'os'
-import { fileURLToPath }                    from 'url'
+import { resolve, dirname } from 'path'
+import { homedir }          from 'os'
+import { fileURLToPath }    from 'url'
+
 import $                                    from '@hackbg/kabinet'
 import { Console, bold, colors, timestamp } from '@hackbg/konzola'
-import { getScrtBuilder, getScrtDevnet }    from '@fadroma/ops-scrt'
-import { ScrtChain }                        from '@fadroma/client-scrt'
-import { LegacyScrt }                       from '@fadroma/client-scrt-amino'
-import { Scrt }                             from '@fadroma/client-scrt-grpc'
+
+import SecretNetwork  from '@fadroma/ops-scrt'
+import { ScrtChain }  from '@fadroma/client-scrt'
+import { LegacyScrt } from '@fadroma/client-scrt-amino'
+import { Scrt }       from '@fadroma/client-scrt-grpc'
 
 import {
   Address,
@@ -209,18 +211,7 @@ export class FadromaConfig {
 
 export const currentConfig = new FadromaConfig({...process.env})
 
-export interface Command {
-  info:  string,
-  steps: Step<unknown>[]
-}
-
-export type Step<U> = (context: Context, ...args: unknown[]) => U|Promise<U>
-
-export type IntoSource   = Source|string
-export type IntoArtifact = Artifact|Source|string
-export type IntoTemplate = Template|Artifact|Source|string
-
-export type Context = {
+export interface BaseContext {
   /** Run a subroutine in a copy of the current context, i.e. without changing the context. */
   run <T> (
     operation:     Step<T>,
@@ -233,7 +224,24 @@ export type Context = {
   cmdArgs:      string[]
   /** Start of command execution. */
   timestamp:    string
+}
 
+export type IntoSource   = Source|string
+export type IntoArtifact = Artifact|IntoSource
+export interface BuildContext extends BaseContext {
+  /** Cargo workspace. */
+  workspace:    Workspace
+  /** Get a Source by crate name from the current workspace. */
+  getSource:    (source: IntoSource) => Source
+  /** Knows how to build contracts for a target. */
+  builder:      Builder
+  /** Get a Source by crate name from the current workspace. */
+  build:        (source: IntoArtifact, ref?: string)   => Promise<Artifact>
+  buildMany:    (ref?: string, ...sources: IntoArtifact[]) => Promise<Artifact[]>
+}
+
+export type IntoTemplate = Template|IntoArtifact
+export interface DeployContext extends BuildContext {
   /** Known block chains and connection methods. */
   chains:       typeof knownChains,
   /** The blockhain to connect to. */
@@ -252,103 +260,76 @@ export type Context = {
   devMode:      boolean
   /** Default identity to use when operating on the chain. */
   agent:        Agent
-
-  /** Cargo workspace. */
-  workspace:    Workspace
-  /** Get a Source by crate name from the current workspace. */
-  getSource:    (source: string) => Source
-
-  /** Knows how to build contracts for a target. */
-  builder:      Builder
-  /** Get a Source by crate name from the current workspace. */
-  build:        (source:    IntoArtifact)   => Promise<Artifact>
-  buildMany:    (sources:   IntoArtifact[]) => Promise<Artifact[]>
-
+  /** Get an object representing a dependency on a template (code id + hash),
+    * i.e. it can expect it to be there or upload it if it's not there. */
+  template      (source: IntoTemplate): TemplateSlot
+  /** Get an object representing a template (code id + hash)
+    * or upload the template from source if it's not already uploaded. */
+  getOrUploadTemplate (source: IntoTemplate): Promise<Template>
+  /** Upload a template, cache receipt under `receipts/$CHAIN/uploads`. */
+  upload:       (artifact:  IntoTemplate)   => Promise<Template>
+  /** Upload multiple templates, cache receipts under `receipts/$CHAIN/uploads`. */
+  uploadMany:   (artifacts: IntoTemplate[]) => Promise<Template[]>
   /** Knows how to upload contracts to a blockchain. */
   uploader:     Uploader
-  upload:       (artifact:  IntoTemplate)   => Promise<Template>
-  uploadMany:   (artifacts: IntoTemplate[]) => Promise<Template[]>
-
-  /** Reproducibly obtain a template. */
-  template            (source: IntoTemplate): TemplateSlot
-  getOrUploadTemplate (source: IntoTemplate): Promise<Template>
-
-  /** Prefix to the labels of all deployed contracts.
-    * Identifies which deployment they belong to. */
+  /** Optional global suffix of all smart contracts deployed.
+    * Useful for discerning multiple instanCan be usedces or versions of a contract. */
   suffix?:      string
-
   /** Currently selected collection of interlinked contracts. */
   deployment:   Deployment
-
   /** Shorthand for calling `deployment.get(name)` */
   getInstance (name: string): Instance
-
   /** Who'll deploy new contracts */
   deployer?: Agent
-
   /** Deploy a contract. */
   deploy <C extends Client, O extends ClientOpts> (
-    name:       string,
-    template:   IntoTemplate,
-    initMsg:    Message,
-    APIClient?: ClientCtor<C, O>
+    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, O>
   ): Promise<C>
-
   /** Deploy multiple contracts from the same template. */
   deployMany <C extends Client, O extends ClientOpts> (
-    template:   IntoTemplate,
-    configs:    [string, Message][],
-    APIClient?: ClientCtor<C, O>
+    template: IntoTemplate, configs: [string, Message][], APIClient?: ClientCtor<C, O>
   ): Promise<C[]>
-
   /** Shorthand for calling `agent.getClient(Client, deployment.get(name))` */
-  getClient <C extends Client, O extends ClientOpts> (
-    name:       string,
-    Client?:    ClientCtor<C, O>
-  ): C
-
-  /** Idempotently deploy a contract. */
+  getClient <C extends Client, O extends ClientOpts> (name: string, Client?: ClientCtor<C, O>): C
+  /** Get an object representing a dependency on a smart contract instance,
+    * i.e. it can expect it to be there or deploy it if it's not there. */
   contract <C extends Client, O extends ClientOpts> (
-    name:       string,
-    APIClient?: ClientCtor<C, O>
+    name: string, APIClient?: ClientCtor<C, O>
   ): ContractSlot<C>
-
+  /** Get a client interface to a contract. */
   getContract <C extends Client> (
-    reference:  string|{ address: string },
-    APIClient?: ClientCtor<C, any>,
+    reference:  string|{ address: string }, APIClient?: ClientCtor<C, any>,
   ): Promise<C|null>
-
   /** Get a contract or fail with a user-defined message. */
   getContract <C extends Client> (
-    reference:  string|{ address: string },
-    APIClient?: ClientCtor<C, any>,
-    msgOrFn?:   InfoOrStep<any, C>,
+    reference:  string|{ address: string }, APIClient?: ClientCtor<C, any>, msgOrFn?: InfoOrStep<any, C>,
   ): Promise<C>
-
   /** Get a contract or deploy it. */
   getOrDeployContract <C extends Client> (
-    name:       string,
-    template:   IntoTemplate,
-    initMsg:    Message,
-    APIClient?: ClientCtor<C, any>
+    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, any>
   ): Promise<C>
-
   /** Deploy a contract and fail if name already taken. */
   deployContract <C extends Client> (
-    name:       string,
-    template:   IntoTemplate,
-    initMsg:    Message,
-    APIClient?: ClientCtor<C, any>
+    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, any>
   ): Promise<C>
 }
 
+export type Context = DeployContext
+
+export interface Command {
+  info:  string,
+  steps: Step<unknown>[]
+}
+export type Step<U> = (context: Context, ...args: unknown[]) => U|Promise<U>
 export class Commands {
   constructor (
     public readonly name,
-    public readonly before:   Step<unknown>[] = [],
-    public readonly after:    Step<unknown>[] = [],
+    public readonly before:   Step<unknown>[]         = [],
+    public readonly after:    Step<unknown>[]         = [],
     public readonly commands: Record<string, Command> = {}
   ) {}
+  /** Define a command. Remember to put `.entrypoint(import.meta.url)`
+    * at the end of your main command object. */
   command (name: string, info: string, ...steps: Step<unknown>[]) {
     // validate that all steps are functions
     for (const i in steps) {
@@ -361,6 +342,8 @@ export class Commands {
     this.commands[name] = { info, steps: [...this.before, ...steps, ...this.after] }
     return this
   }
+  /** Filter commands by each word from the list of arguments
+    * then pass the rest as arguments to the found command. */
   parse (args: string[]): [string, Command, string[]]|null {
     let commands = Object.entries(this.commands)
     for (let i = 0; i < args.length; i++) {
@@ -410,6 +393,7 @@ export class Commands {
     }, 0)
     return self
   }
+  /** Parse and execute a command */
   async run (args = process.argv.slice(2)): Promise<void> {
     if (args.length === 0) {
       print(console).usage(this)
@@ -545,10 +529,8 @@ export function parallel (...operations) {
 export async function getChain (
   { config, chains }, name = config.project.chain
 ): Promise<Partial<Context>> {
-
   config ??= currentConfig
   chains ??= knownChains
-
   // Check that a valid name is passed
   if (!name || !chains[name]) {
     console.error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
@@ -558,10 +540,10 @@ export async function getChain (
     }
     process.exit(1)
   }
-
   // Return chain and deployments handle
   const chain = await chains[name](config)
   return {
+    config,
     chains,
     chain,
     deployments: Deployments.fromConfig(chain, config.project.root),
@@ -571,7 +553,6 @@ export async function getChain (
     isTestnet:   chain.isTestnet,
     isMainnet:   chain.isMainnet,
   }
-
 }
 
 export const knownChains = {
@@ -592,7 +573,7 @@ export const knownChains = {
   },
   async 'LegacyScrtDevnet'  (config = currentConfig) {
     const mode = ChainMode.Devnet
-    const node = await getScrtDevnet('1.2').respawn()
+    const node = await SecretNetwork.getDevnet('1.2').respawn()
     const id   = node.chainId
     const url  = node.url.toString()
     return new LegacyScrt(id, { url, mode, node })
@@ -611,7 +592,7 @@ export const knownChains = {
   },
   async 'ScrtDevnet'        (config = currentConfig) {
     const mode = ChainMode.Devnet
-    const node = await getScrtDevnet('1.3').respawn()
+    const node = await SecretNetwork.getDevnet('1.3').respawn()
     const id   = node.chainId
     const url  = node.url.toString()
     return new Scrt(id, { url, mode, node })
@@ -761,7 +742,9 @@ export function getBuildContext ({ config }: {
     scrt:    { build:   object  }
   }
 }): Partial<Context> {
-  const builder = getScrtBuilder({ ...config.build, ...config.scrt.build })
+  // Apply SecretNetwork-specific build vars on top of global build vars.
+  // TODO select builder implementation here
+  const builder   = SecretNetwork.getBuilder({ ...config.build, ...config.scrt.build })
   const workspace = new Workspace(config.project.root)
   return {
     builder,
@@ -770,10 +753,10 @@ export function getBuildContext ({ config }: {
       if (typeof source === 'string') return this.workspace.crate(source)
       return source
     },
-    async build (source: IntoSource): Promise<Artifact> {
-      return await this.builder.build(this.getSource(source))
+    async build (source: IntoSource, ref?: string): Promise<Artifact> {
+      return await this.builder.build(this.getSource(source).at(ref))
     },
-    async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Artifact[]> {
+    async buildMany (ref?: string, ...sources: IntoArtifact[][]): Promise<Artifact[]> {
       sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
       return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
     }
@@ -946,7 +929,7 @@ export function getDeployContext ({
   * `getOrDeploy` method enables resumable deployments. */
 export class ContractSlot<C extends Client> extends Slot<Context, C> {
   constructor (
-    public readonly context:   Partial<Context>,
+    public readonly context:   Partial<DeployContext>,
     public readonly reference: string|{ address: Address },
     /** By default, contracts are returned as the base Client class.
       * Caller can pass a specific API class constructor as 2nd arg. */

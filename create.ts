@@ -54,7 +54,7 @@ async function askContractNames () {
         type:    'text',
         name:    'projectName',
         message: 'Enter a contract name (lowercase alphanumerics only)'
-      })
+      }) as unknown as string
       if (name === 'lib' || name === 'api') {
         console.info(`"${name}" is a reserved name. Try something else.`)
         continue
@@ -74,7 +74,7 @@ async function askContractNames () {
         ...(contracts.size > 0) ? [{ title: 'Remove a contract', value: 'remove' }] : [],
         { title: 'Done, create project!', value: 'done' },
       ]
-    })
+    }) as unknown as "add"|"remove"|"done"
     if (action === 'done') {
       return contracts
     } else if (action === 'remove') {
@@ -82,8 +82,9 @@ async function askContractNames () {
         type:    'select',
         name:    'contractAction',
         message: 'Select contract to remove:',
-        choices: [...contracts].map(name=>({
-          title: name, value: name
+        choices: [...contracts].map((name: string)=>({
+          title: name,
+          value: name
         }))
       }))
     }

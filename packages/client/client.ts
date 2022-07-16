@@ -169,9 +169,9 @@ export enum ChainMode {
 }
 
 export interface ChainOpts {
-  url?:  string
-  mode:  ChainMode
-  node?: DevnetHandle
+  url:  string
+  mode: ChainMode
+  node: DevnetHandle
 }
 
 export interface DevnetHandle {
@@ -185,7 +185,7 @@ export abstract class Chain implements Spectator {
   static Mode = ChainMode
   constructor (
     readonly id: ChainId,
-    options: ChainOpts
+    options: Partial<ChainOpts> = {}
   ) {
     if (!id) {
       throw new Error('Chain: need to pass chain id')
@@ -254,10 +254,11 @@ export abstract class Chain implements Spectator {
       })
     })
   }
-  /** The Agent subclass to use for interacting with this chain. */
-  Agent: AgentCtor<Agent> = Agent as AgentCtor<Agent>
   /** Get a new instance of the appropriate Agent subclass. */
-  async getAgent (options: AgentOpts) {
+  async getAgent <A extends Agent> (
+    options: Partial<AgentOpts> = {},
+    _Agent:  AgentCtor<A> = Agent as AgentCtor<A>
+  ): Promise<A> {
     if (!options.mnemonic && options.name) {
       if (this.node) {
         options = await this.node.getGenesisAccount(options.name)
@@ -265,8 +266,13 @@ export abstract class Chain implements Spectator {
         throw new Error('Chain#getAgent: getting agent by name only supported for devnets')
       }
     }
-    return await this.Agent.create(this, options)
+    const agent = await this.Agent.create(this, options) as A
+    return agent
   }
+
+  static Agent: AgentCtor<Agent> = null;
+  /** The Agent subclass to use for interacting with this chain. */
+  Agent: AgentCtor<Agent> = (this.constructor as Function & { Agent: AgentCtor<Agent> }).Agent
 }
 
 export interface AgentOpts {
@@ -295,6 +301,7 @@ export abstract class Agent implements Executor {
   }
   constructor (readonly chain: Chain, options: AgentOpts = {}) {
     this.chain = chain
+    Object.defineProperty(this, 'chain', { enumerable: false })
     if (options.name) this.name = options.name
     if (options.fees) this.fees = options.fees
   }
@@ -324,9 +331,10 @@ export abstract class Agent implements Executor {
   getLabel  (address: Address) { return this.chain.getLabel(address) }
   getHash   (address: Address) { return this.chain.getHash(address) }
   getClient <C extends Client, O extends ClientOpts> (
-    Client: ClientCtor<C, O>, arg: Address|O
+    _Client: ClientCtor<C, O> = Client as ClientCtor<C, O>,
+    arg: Address|Partial<O> = {}
   ): C {
-    return new Client(this, arg)
+    return new _Client(this, arg)
   }
   query <R> (contract: Instance, msg: Message): Promise<R> {
     return this.chain.query(contract, msg)
@@ -346,12 +354,16 @@ export abstract class Agent implements Executor {
     ))
   }
   abstract execute (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|unknown>
+  static Bundle: typeof Bundle
+  Bundle = (this.constructor as Function & {Bundle: typeof Bundle}).Bundle
   bundle (): Bundle {
     //@ts-ignore
     return new this.Bundle(this)
   }
-  abstract Bundle: typeof Bundle
 }
+
+//@ts-ignore
+Chain.Agent = Agent as AgentCtor<Agent>
 
 /** Collection of messages to broadcast as a single transaction,
   * effectively executing them simultaneously. */
@@ -493,6 +505,8 @@ export abstract class Bundle implements Executor {
 
 }
 
+Agent.Bundle = Bundle
+
 /** Function passed to Bundle#wrap */
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
@@ -508,7 +522,7 @@ export interface ClientCtor<C extends Client, O extends ClientOpts> {
 
 /** Interface to a specific contract. Subclass to add contract-specific methods. */
 export class Client implements Instance {
-  constructor (readonly agent: Executor, arg: Address|ClientOpts) {
+  constructor (readonly agent: Executor, arg: Address|Partial<ClientOpts> = {}) {
     if (typeof arg === 'string') {
       this.address  = arg
     } else {

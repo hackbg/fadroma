@@ -39,32 +39,29 @@ export * from '@fadroma/ops'
 
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export function getScrtBuilder (options: {
-  rebuild?:    boolean
-  caching?:    boolean
-  raw?:        boolean
-  managerUrl?: string|URL
-  image?:      string
-  dockerfile?: string
-  script?:     string
-  service?:    string
-  noFetch?:    boolean
-  toolchain?:  string
-}) {
-  const {
-    rebuild,
-    caching = !rebuild,
+export default class SecretNetwork {
+  static getBuilder = getScrtBuilder
+  static getDevnet  = getScrtDevnet
+}
 
-    raw,
-    managerUrl,
+export interface ScrtBuilderOptions {
+  rebuild:    boolean
+  caching:    boolean
+  raw:        boolean
+  managerUrl: string|URL
+  image:      string
+  dockerfile: string
+  script:     string
+  service:    string
+  noFetch:    boolean
+  toolchain:  string
+}
 
-    image,
-    dockerfile,
-    service,
-    script,
-    noFetch,
-    toolchain
-  } = options
+export function getScrtBuilder ({
+  rebuild, caching = !rebuild,
+  raw, managerUrl,
+  image, dockerfile, service, script, toolchain, noFetch
+}: Partial<ScrtBuilderOptions> = {}) {
   if (raw) {
     return new ScrtRawBuilder({ caching, script, noFetch, toolchain })
   } else if (managerUrl) {
@@ -78,7 +75,7 @@ export function getScrtBuilder (options: {
 export class ScrtRawBuilder extends RawBuilder {}
 
 export class ScrtDockerBuilder extends DockerBuilder {
-  constructor ({ caching, image, dockerfile, script, service }) {
+  constructor ({ caching, image, dockerfile, script, service }: Partial<ScrtBuilderOptions> = {}) {
     super({
       caching,
       script,
