@@ -8,6 +8,8 @@
 
 [![](/homepage/logo.svg)](https://fadroma.tech)
 
+*Level the landscape.*
+
 **Essential groundwork** for **dApp development** with **Rust** and **TypeScript**.
 
 [![](https://img.shields.io/npm/v/@fadroma/client?color=%2365b34c&label=%40fadroma%2Fclient&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/client)
