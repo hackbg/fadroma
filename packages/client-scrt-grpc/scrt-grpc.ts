@@ -208,14 +208,10 @@ export class ScrtRPCAgent extends ScrtAgent {
       }
       for (const event of result.events) {
         for (const attr of event.attributes) {
-          try {
-            //@ts-ignore
-            attr.key   = tryDecode(attr.key)
-          } catch (e) {}
-          try {
-            //@ts-ignore
-            attr.value = tryDecode(attr.value)
-          } catch (e) {}
+          //@ts-ignore
+          try { attr.key   = tryDecode(attr.key)   } catch (e) {}
+          //@ts-ignore
+          try { attr.value = tryDecode(attr.value) } catch (e) {}
         }
       }
       throw Object.assign(new Error(error), result)
