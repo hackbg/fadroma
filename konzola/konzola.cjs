@@ -23,7 +23,7 @@ function Konzola (context) {
     if (typeof arg === 'object') {
       return INDENT() + render(arg).replace(/\n/g, INDENT()).trim()
     } else {
-      return INDENT() + arg
+      return INDENT() + String(arg)
     }
   }
 
