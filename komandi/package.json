@@ -1,13 +1,16 @@
 {
   "name":        "@hackbg/komandi",
-  "version":     "2.0.3",
-  "main":        "komandi.js",
-  "types":       "komandi.d.ts",
+  "version":     "3.0.0",
+  "main":        "komandi.ts",
   "homepage":    "https://github.com/hackbg/toolbox",
   "bugs":        "https://github.com/hackbg/toolbox/issues",
   "repository":  {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "komandi"},
   "license":     "MIT",
   "description": "Command runner.",
+  "dependencies": {
+    "@hackbg/konzola": "workspace:*",
+    "@hackbg/kabinet": "workspace:*"
+  },
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
