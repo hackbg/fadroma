@@ -92,7 +92,7 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
         const T0 = + new Date()
         try {
           const builder = getScrtBuilder({ ...currentConfig.build, ...currentConfig.scrt.build, rebuild: true })
-          await builder.buildVarious(buildSources)
+          await builder.buildMany(buildSources)
           const T1 = + new Date()
           console.info(`Build complete in ${T1-T0}ms.`)
           process.exit(0)

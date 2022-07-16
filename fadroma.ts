@@ -24,7 +24,7 @@ import { fileURLToPath }    from 'url'
 
 import $                                    from '@hackbg/kabinet'
 import { Console, bold, colors, timestamp } from '@hackbg/konzola'
-import { Commands }                         from '@hackbg/komandi'
+import { Commands, CommandContext }         from '@hackbg/komandi'
 
 import SecretNetwork  from '@fadroma/ops-scrt'
 import { ScrtChain }  from '@fadroma/client-scrt'
@@ -216,7 +216,7 @@ export const currentConfig = new FadromaConfig({...process.env})
 
 export type IntoSource   = Source|string
 export type IntoArtifact = Artifact|IntoSource
-export interface BuildContext extends BaseContext {
+export interface BuildContext extends CommandContext {
   /** Configuration of Fadroma. */
   config:       FadromaConfig
   /** Cargo workspace. */
@@ -226,8 +226,8 @@ export interface BuildContext extends BaseContext {
   /** Knows how to build contracts for a target. */
   builder:      Builder
   /** Get a Source by crate name from the current workspace. */
-  build:        (source: IntoArtifact, ref?: string)   => Promise<Artifact>
-  buildMany:    (ref?: string, ...sources: IntoArtifact[]) => Promise<Artifact[]>
+  build:        (source: IntoArtifact, ref?: string)         => Promise<Artifact>
+  buildMany:    (ref?: string, ...sources: IntoArtifact[][]) => Promise<Artifact[]>
 }
 
 export type IntoTemplate = Template|IntoArtifact
@@ -406,7 +406,7 @@ export async function getAgent ({ config, chain }: Partial<Context>): Promise<Pa
   }
 }
 
-export class Deploy extends Commands {
+export class Deploy extends Commands<DeployContext> {
   constructor (name, before, after) {
     super(name, before, after)
     this.before.push(print(console).chainStatus)
@@ -549,7 +549,7 @@ export function getBuildContext ({ config }: {
     async build (source: IntoSource, ref?: string): Promise<Artifact> {
       return await this.builder.build(this.getSource(source).at(ref))
     },
-    async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Artifact[]> {
+    async buildMany (ref?: string, ...sources: IntoArtifact[][]): Promise<Artifact[]> {
       sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
       return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
     }
@@ -783,19 +783,6 @@ export class ContractSlot<C extends Client> extends Slot<Context, C> {
 
 export const print = console => {
   const print = {
-
-    // Usage of Command API
-    usage ({ name, commands }: Commands) {
-      let longest = 0
-      for (const name of Object.keys(commands)) {
-        longest = Math.max(name.length, longest)
-      }
-      console.log()
-      for (const [cmdName, { info }] of Object.entries(commands)) {
-        console.log(`    ... ${name} ${bold(cmdName.padEnd(longest))}  ${info}`)
-      }
-      console.log()
-    },
 
     chainStatus ({ chain, deployments }) {
       if (!chain) {
