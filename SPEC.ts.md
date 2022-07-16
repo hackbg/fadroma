@@ -580,7 +580,6 @@ import { existsSync } from 'fs'
 // deployments
 await withTmpDir(async dir=>{
   const deployments = new Deployments(dir)
-  console.log({dir, deployments}, existsSync(dir))
   await deployments.create('test-deployment-1')
   await deployments.create('test-deployment-2')
   await deployments.select('test-deployment-1')
@@ -784,7 +783,7 @@ assert.ok(result.bar)
 
 // the context.run function runs steps without updating context
 await assert.rejects(runOperation("command", "usage",
-  [ async ({ run }) => { await run() } ], []))
+  [ async (context) => { await context.run() } ], []))
 assert.ok(await runOperation("command", "usage",
-  [ async (context) => { await run(async () => {}) } ], []))
+  [ async (context) => { await context.run(async () => {}) } ], []))
 ```
