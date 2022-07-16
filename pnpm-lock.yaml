@@ -363,6 +363,9 @@ importers:
   ensuite/toolbox/runspec:
     specifiers: {}
 
+  guide:
+    specifiers: {}
+
   homepage:
     specifiers:
       js-yaml: ^4.1.0
@@ -1227,10 +1230,6 @@ packages:
 
   /@types/node/17.0.42:
     resolution: {integrity: sha512-Q5BPGyGKcvQgAMbsr7qEGN/kIPN6zZecYYABeTDBizOsau+2NMdSVTar9UQw21A2+JyA2KRNDYaYrPB0Rpk2oQ==}
-    dev: false
-
-  /@types/node/18.0.4:
-    resolution: {integrity: sha512-M0+G6V0Y4YV8cqzHssZpaNCqvYwlCiulmm0PwpNLF55r/+cT8Ol42CHRU1SEaYFH2rTwiiE1aYg/2g2rrtGdPA==}
     dev: false
 
   /@types/node/18.0.5:
@@ -4460,7 +4459,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.0.4
+      '@types/node': 18.0.5
       long: 4.0.0
     dev: false
 

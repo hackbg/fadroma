@@ -24,11 +24,11 @@
   },
   "devDependencies": {
     "typescript":  "^4.7",
-    "typedoc":     "^0.22.17",
     "@types/node": "^16.11.36",
+    "typedoc":     "^0.22.17",
 
     "@hackbg/ensuite": "workspace:*",
-    "c8":          "^7.11.3",
+    "c8":              "^7.11.3",
 
     "body-parser": "^1.20.0",
     "cross-fetch": "^3.1.5",
@@ -42,18 +42,15 @@
   "scripts": {
     "rs:build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cjs build",
 
-    "ts:check": "tsc --noEmit",
-
-    "ts:test":  "time ensuite SPEC.ts.md",
-    "ts:cov":   "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
-    "ts:lcov":  "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
-
-    "ts:document": "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints toolbox/dokeres --entryPoints toolbox/kabinet --entryPoints toolbox/portali --entryPoints @hackbg/formati --entryPoints .",
-    "ts:render": "node doc/render.js",
-
-    "vp:dev":   "vitepress dev",
-    "vp:build": "vitepress build",
-    "vp:serve": "vitepress serve"
+    "ts:check":    "tsc --noEmit",
+    "ts:test":     "time ensuite SPEC.ts.md",
+    "ts:cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
+    "ts:lcov":     "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
+    "ts:apidocs":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints toolbox/dokeres --entryPoints toolbox/kabinet --entryPoints toolbox/portali --entryPoints @hackbg/formati --entryPoints .",
+    "ts:homepage": "node homepage/render.js",
+    "vp:dev":      "vitepress dev",
+    "vp:build":    "vitepress build",
+    "vp:serve":    "vitepress serve"
   },
   "bin": {
     "fadroma": "fadroma.cjs"

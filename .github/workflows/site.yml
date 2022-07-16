@@ -29,28 +29,26 @@ jobs:
           run_install: |
             - recursive: true
               args: [--frozen-lockfile, --strict-peer-dependencies]
-      - name: pnpm ts:document
-        run: |
-          NODE_OPTIONS=--max_old_space_size=8192 pnpm ts:document
-          ls -al
-      - name: pnpm ts:render
-        run:  pnpm ts:render
+      - name: pnpm ts:apidocs
+        run:  NODE_OPTIONS=--max_old_space_size=8192 pnpm ts:apidocs
+      - name: pnpm vp:build
+        run:  pnpm vp:build
       - name: publish to pages if default branch
         if:   github.ref == env.default_branch_ref
         run: |
           ls
-          rm .gitignore
-          mkdir .docs
-          cp -rv ./target/doc .docs/rs
-          cp -rv ./docs .docs/js
-          cp -rv ./doc/* .docs/
-          tar -cvf .docs/nix shell.nix
-          echo "fadroma.tech" > .docs/CNAME
-          touch .docs/.nojekyll
-          ls -al .docs
-          git add -f .docs
-          git config --global user.email "hello@hack.bg"
-          git config --global user.name "hack.bg"
-          git commit -m "🤖 built docs @ $(date -u)"
-          git subtree split --branch gh-pages --prefix .docs
-          git push --force origin gh-pages
+          rm    .gitignore
+          mkdir -p dist/docs
+          mv    .vitepress/dist/* dist/docs
+          mv    target/doc dist/docs/rs
+          mv    docs dist/docs/rs
+          tar   -cvf dist/docs/nix shell.nix
+          echo  "fadroma.tech" > dist/docs/CNAME
+          touch dist/docs/.nojekyll
+          ls    -al dist/docs
+          git   add     -f dist/docs
+          git   config  --global user.email "hello@hack.bg"
+          git   config  --global user.name "hack.bg"
+          git   commit  -m "🤖 built docs @ $(date -u)"
+          git   subtree split --branch gh-pages --prefix dist/docs
+          git   push    --force origin gh-pages
