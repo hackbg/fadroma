@@ -45,6 +45,7 @@ import $, {
   OpaqueDirectory,
   Path,
   TextFile,
+  YAMLFile
 } from '@hackbg/kabinet'
 import { Agent, Bundle, Chain, ChainMode, Artifact, Template } from '@fadroma/client'
 import type {
@@ -136,7 +137,7 @@ export class DotGit extends Path {
         const gitRel  = gitPointer.slice(prefix.length).trim()
         const gitPath = $(this.parent, gitRel).path
         const gitRoot = $(gitPath)
-        console.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
+        //console.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
         this.path      = gitRoot.path
         this.present   = true
         this.isSubmodule = true
@@ -533,7 +534,7 @@ export class RawBuilder extends CachingBuilder {
         source.crate
       ]
       const opts = { cwd, env: { ...process.env, ...env }, stdio: 'inherit' }
-      console.log(opts)
+      //console.log(opts)
       const sub  = spawn(cmd.shift(), cmd, opts as any)
       await new Promise<void>((resolve, reject)=>{
         sub.on('exit', (code, signal) => {
@@ -600,7 +601,7 @@ export class RemoteBuilder extends CachingBuilder {
 /** Run the schema generator example binary of each contract. */
 export async function generateSchema (projectRoot: string, dirs: Array<string>) {
   for (const dir of dirs) {
-    console.info(`Generating schema for ${bold(dir)}`)
+    //console.info(`Generating schema for ${bold(dir)}`)
     // Generate JSON schema
     const cargoToml = resolve(projectRoot, 'contracts', dir, 'Cargo.toml')
     const {package:{name}} = TOML.parse(readFileSync(cargoToml, 'utf8'))
@@ -631,7 +632,7 @@ export function schemaToTypes (...schemas: Array<string>) {
     compileFromFile(schema).then((ts: any)=>{
       const output = `${dirname(schema)}/${basename(schema, '.json')}.d.ts`
       writeFileSync(output, ts)
-      console.info(`Generated ${output}`)
+      //console.info(`Generated ${output}`)
     })))
 }
 
@@ -723,7 +724,7 @@ export abstract class Devnet implements DevnetHandle {
   /** Save the info needed to respawn the node */
   save (extraData = {}) {
     const shortPath = relative(cwd(), this.nodeState.path)
-    console.info(`Saving devnet node to ${shortPath}`)
+    //console.info(`Saving devnet node to ${shortPath}`)
     const data = { chainId: this.chainId, port: this.port, ...extraData }
     this.nodeState.save(data)
     return this
@@ -732,7 +733,7 @@ export abstract class Devnet implements DevnetHandle {
   async load (): Promise<DevnetState> {
     const path = relative(cwd(), this.nodeState.path)
     if (this.stateRoot.exists() && this.nodeState.exists()) {
-      console.info(bold(`Loading:  `), path)
+      //console.info(bold(`Loading:  `), path)
       try {
         const data = this.nodeState.load()
         const { chainId, port } = data
@@ -1188,10 +1189,10 @@ export class FSUploader extends Uploader {
       if (artifact) {
         const path = $(artifact.url)
         const data = path.as(BinaryFile).load()
-        console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
+        //console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
         template = await this.agent.upload(data)
-        console.info('Uploaded:', bold(path.shortPath))
-        console.debug(template)
+        //console.info('Uploaded:', bold(path.shortPath))
+        //console.debug(template)
         this.checkCodeHash(artifact, template)
       }
       templates[i] = template
@@ -1206,8 +1207,8 @@ export class FSUploader extends Uploader {
     if (template.codeHash !== artifact.codeHash) {
       console.warn(
         `Code hash mismatch from upload in TX ${template.uploadTx}:\n`+
-        `  Expected ${artifact.codeHash} (from ${$(artifact.url).shortPath})`+
-        `  Got      ${template.codeHash} (from codeId#${template.codeId})`
+        `   Expected ${artifact.codeHash} (from ${$(artifact.url).shortPath})\n`+
+        `   Got      ${template.codeHash} (from codeId#${template.codeId})`
       )
     }
   }
@@ -1254,13 +1255,13 @@ export class CachingFSUploader extends FSUploader {
       return receipt.toTemplate()
     }
     const data = $(artifact.url).as(BinaryFile).load()
-    console.info(
-      `Uploading:`, bold($(artifact.url).shortPath),
-      'with code hash', bold(artifact.codeHash),
-      'uncompressed', bold(String(data.length)), 'bytes'
-    )
+    //console.info(
+      //`Uploading:`, bold($(artifact.url).shortPath),
+      //'with code hash', bold(artifact.codeHash),
+      //'uncompressed', bold(String(data.length)), 'bytes'
+    //)
     const template = await this.agent.upload(data)
-    console.info(`Storing:  `, bold($(receipt.path).shortPath))
+    //console.info(`Storing:  `, bold($(receipt.path).shortPath))
     receipt.save(template)
     return template
   }
@@ -1280,14 +1281,12 @@ export class CachingFSUploader extends FSUploader {
         const receiptData     = receiptFile.load()
         const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
         if (!receiptCodeHash) {
-          console.info(
-            bold(`No code hash:`), `${relativePath}; reuploading...`
-          )
+          //console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
           artifactsToUpload[i] = artifact
           continue
         }
         if (receiptCodeHash !== artifact.codeHash) {
-          console.info(
+          console.warn(
             bold(`Different code hash:`), `${relativePath}; reuploading...`
           )
           artifactsToUpload[i] = artifact
@@ -1304,7 +1303,6 @@ export class CachingFSUploader extends FSUploader {
       }
     }
     if (artifactsToUpload.length > 0) {
-      //console.info('Need to upload', bold(String(artifactsToUpload.length)), 'artifacts')
       const uploaded = await super.uploadMany(artifactsToUpload)
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
@@ -1314,7 +1312,7 @@ export class CachingFSUploader extends FSUploader {
         templates[i] = uploaded[i]
       }
     } else {
-      console.info('No artifacts need to be uploaded.')
+      //console.info('No artifacts need to be uploaded.')
     }
     return templates
   }
@@ -1326,11 +1324,16 @@ export class CachingFSUploader extends FSUploader {
         'No code hash in artifact',
         bold($(artifact.url).shortPath)
       )
-      Object.assign(artifact, { codeHash: codeHashForPath($(artifact.url).path) })
-      console.warn(
-        'Computed checksum:',
-        bold(artifact.codeHash)
-      )
+      try {
+        const codeHash = codeHashForPath($(artifact.url).path)
+        Object.assign(artifact, { codeHash })
+        console.warn(
+          'Computed code hash:',
+          bold(artifact.codeHash)
+        )
+      } catch (e) {
+        console.warn('Could not compute code hash:', e.message)
+      }
     }
   }
 }
@@ -1341,23 +1344,22 @@ export class Deployments extends JSONDirectory<unknown> {
     return $(projectRoot).in('receipts').in(chain.id).in('deployments').as(Deployments)
   }
   KEY = '.active'
-  async create (id: string) {
-    const path = resolve(this.path, `${id}.yml`)
-    if (existsSync(path)) {
-      throw new Error(`[@fadroma/ops/Deployment] ${id} already exists`)
+  async create (deployment: string) {
+    const path = this.at(`${deployment}.yml`)
+    if (path.exists()) {
+      throw new Error(`${deployment} already exists`)
     }
-    console.info('Creating new deployment', bold(id))
-    await $(dirname(path)).as(OpaqueDirectory).make()
-    await writeFileSync(path, '')
+    return path.makeParent().as(YAMLFile).save(undefined)
+    return new Deployment(path.path)
   }
-  async select (id: string) {
-    const path = resolve(this.path, `${id}.yml`)
-    if (!existsSync(path)) {
-      throw new Error(`[@fadroma/ops/Deployment] ${id} does not exist`)
+  async select (deployment: string) {
+    const selection = this.at(`${deployment}.yml`)
+    if (!selection.exists) {
+      throw new Error(`${deployment} does not exist`)
     }
-    const active = resolve(this.path, `${this.KEY}.yml`)
-    try { unlinkSync(active) } catch (e) { console.warn(e.message) }
-    await symlinkSync(path, active)
+    const active = this.at(`${this.KEY}.yml`).as(YAMLFile)
+    try { active.delete() } catch (e) {}
+    await symlinkSync(selection.path, active.path)
   }
   get active (): Deployment|null {
     return this.get(this.KEY)
@@ -1381,14 +1383,14 @@ export class Deployments extends JSONDirectory<unknown> {
   }
   save <D> (name: string, data: D) {
     const file = this.at(`${name}.json`).as(JSONFile) as JSONFile<D>
-    console.info('Deployments writing:', bold(file.shortPath))
+    //console.info('Deployments writing:', bold(file.shortPath))
     return file.save(data)
   }
 }
 
 /** An individual deployment, represented as a multi-document YAML file. */
 export class Deployment {
-  constructor (public readonly path: string,) {
+  constructor (public readonly path: string) {
     this.load()
   }
   /** This is the name of the deployment.
@@ -1403,8 +1405,10 @@ export class Deployment {
     while (lstatSync(path).isSymbolicLink()) {
       path = resolve(dirname(path), readlinkSync(path))
     }
-    this.prefix = basename(path, extname(path))
-    for (const receipt of YAML.loadAll(readFileSync(path, 'utf8'))) {
+    this.prefix    = basename(path, extname(path))
+    const data     = readFileSync(path, 'utf8')
+    const receipts = YAML.loadAll(data)
+    for (const receipt of receipts) {
       const [contractName, _version] = receipt.name.split('+')
       this.receipts[contractName] = receipt
     }
@@ -1485,13 +1489,27 @@ export class Deployment {
     deployAgent: Agent,
     configs:     [Template, Label, Message][] = []
   ): Promise<Instance[]> {
-    const receipts = await deployAgent.instantiateMany(configs.map(
-      ([template, name, msg])=>[template, addPrefix(this.prefix, name), msg]
-    ))
-    for (const i in receipts) {
-      this.set(configs[i][1], receipts[i])
+    // Validate
+    for (const index in configs) {
+      const config = configs[index]
+      if (config.length !== 3) {
+        throw Object.assign(
+          new Error('initVarious: configs must be [Template, Name, Message] triples'),
+          { index, config }
+        )
+      }
     }
-    return Object.values(receipts)
+    // Add prefixes
+    const initConfigs = configs.map(([template, name, msg])=>
+      [template, addPrefix(this.prefix, name), msg]) as [Template, Label, Message][]
+    // Deploy
+    const instances = await deployAgent.instantiateMany(initConfigs)
+    // Store receipt
+    for (const [label, receipt] of Object.entries(instances)) {
+      const name = label.slice(this.prefix.length+1)
+      this.set(name, { name, ...receipt })
+    }
+    return Object.values(instances)
   }
 }
 

@@ -14,8 +14,8 @@ import $              from '@hackbg/kabinet'
 import fetch          from 'cross-fetch'
 import assert         from 'assert'
 import {readFileSync} from 'fs'
-const { ok, equal, deepEqual } = assert
-let console = Fadroma.Console('Spec')
+const { ok, equal, deepEqual, throws } = assert
+let console = Fadroma.Console('Fadroma Spec')
 ```
 
 # The tripartite model
@@ -119,7 +119,7 @@ agent = await chain.getAgent({ name: 'Alice' })
 ```typescript
 // waiting for next block
 for (const Chain of [Fadroma.LegacyScrt]) {
-  await withMockAPIEndpoint(async endpoint => {
+  await Testing.withMockAPIEndpoint(async endpoint => {
     const chain    = new Chain('test', { url: endpoint.url })
     const mnemonic = Testing.mnemonics[0]
     const agent    = await chain.getAgent({ mnemonic })
@@ -196,36 +196,21 @@ agent = new class TestAgent4 extends Agent { async execute () { return {} } }
 assert.ok(await agent.execute())
 agent = new class TestAgent5 extends Agent { async query () { return {} } }
 assert.ok(await agent.query())
-
-console.info('full contract lifecycle')
-import { withMockAPIEndpoint } from './TESTING'
-await withMockAPIEndpoint(async endpoint => {
-  const agent    = await new Fadroma.LegacyScrt('test', {url: endpoint.url}).getAgent({mnemonic: Testing.mnemonics[0]})
-  const artifact = { url: $(Testing.fixture('empty.wasm')).url.toString(), codeHash: Testing.hashes['empty.wasm'] }
-  const blob     = new Uint8Array(readFileSync(Testing.fixture('empty.wasm'), 'utf8'))
-  const template = await agent.upload(blob)
-  equal(artifact.codeHash, template.codeHash)
-  equal(template.codeId,   1)
-  const label    = `contract_deployed_by_${agent.name}`
-  const instance = await agent.instantiate(template, label, {})
-  const { address } = instance
-  ok(address, 'init tx returns contract address')
-  return
-  console.debug(`test q ${address}`)
-  throw 'TODO - how to decrypt/reencrypt query?'
-  const queryResult = await agent.query({ address }, 'status')
-  equal(queryResult, 'status')
-  console.debug(`test tx ${address}`)
-  const txResult = await agent.execute({ address }, 'tx', { option: "value" })
-  deepEqual(txResult, {})
-})
 ```
 
 * **Variants:**
-  * `LegacyScrt.Agent` a.k.a. `LegacyScrtAgent`: uses secretjs 0.17.5
-  * `Scrt.Agent` a.k.a. `ScrtRPCAgent`: which uses the new gRPC API
+  * **LegacyScrt.Agent** a.k.a. **LegacyScrtAgent**: uses secretjs 0.17.5
+  * **Scrt.Agent** a.k.a. **ScrtRPCAgent**: which uses the new gRPC API
     provided by secretjs 1.2-beta - as opposed to the old HTTP-based ("Amino"?) API
     supported in secretjs 0.17.5 and older.
+
+```typescript
+for (const Chain of supportedChains) {
+  const chain = new Chain('test')
+  const agent = await chain.getAgent({ mnemonic: Testing.mnemonics[0] })
+  assert(agent instanceof Chain.Agent, `${Chain.name}#getAgent returns Promise<${Chain.Agent.name}>`)
+}
+```
 
 * **Bundling** transactions:
 
@@ -355,13 +340,10 @@ builder = new class TestBuilder2 extends Builder {
 const source1 = Symbol()
 const source2 = Symbol()
 const args    = [Symbol(), Symbol()]
-deepEqual(
-  await builder.buildMany([source1, source2], args),
-  [
-    { built: true, source: source1, args },
-    { built: true, source: source2, args }
-  ]
-)
+deepEqual(await builder.buildMany([source1, source2], args), [
+  { built: true, source: source1, args },
+  { built: true, source: source2, args }
+])
 ```
 
 ### Build caching
@@ -383,108 +365,47 @@ await assert.throws(()=>builder.prebuild({}))
 equal(builder.prebuild('', 'empty'), null)
 ```
 
-* Raw builder
-
-```typescript
-import { RawBuilder } from '@hackbg/fadroma'
-let ran
-class TestRawBuilder extends RawBuilder { run = (...args) => ran.push(args) }
-const buildScript    = Symbol()
-const checkoutScript = Symbol()
-builder = new TestRawBuilder(buildScript, checkoutScript)
-const crate = 'empty'
-const ref   = 'ref'
-ran = []
-const sourceFromHead   = { workspace, crate }
-const templateFromHead = await builder.build(sourceFromHead)
-deepEqual(ran, [[buildScript, []]])
-ran = []
-const sourceFromRef   = { workspace, crate, ref }
-const templateFromRef = await builder.build(sourceFromRef)
-deepEqual(ran, [[checkoutScript, [ref]], [buildScript, []]])
-```
-
-* Dockerized builder
-
-```typescript
-import { DockerBuilder } from '@hackbg/fadroma'
-import { Dokeres, DokeresImage } from '@hackbg/dokeres'
-import { mockDockerode } from './TESTING'
-import { Transform } from 'stream'
-class TestDockerBuilder extends DockerBuilder {
-  prebuild (source) { return false }
-}
-class TestDokeresImage extends DokeresImage {
-  async ensure () { return theImage }
-}
-const theImage  = Symbol()
-source    = { workspace, crate }
-ran       = []
-const docker    = mockDockerode(({ run: [image, cmd, buildLogs, args] }) {
-  equal(image, theImage)
-  equal(cmd, `bash /build.sh HEAD empty`)
-  ok(buildLogs instanceof Transform)
-  equal(args.Tty, true)
-  equal(args.AttachStdin: true)
-  deepEqual(args.Entrypoint, [ '/bin/sh', '-c' ])
-  ok(args.HostConfig.Binds instanceof Array)
-  equal(args.HostConfig.AutoRemove, true)
-})
-image     = new Dokeres(docker).image(' ')
-const script    = "build.sh"
-const options   = { docker, image, script }
-builder   = new TestDockerBuilder(options)
-
-// build one
-artifact  = await builder.build({ workspace, crate })
-equal(artifact.location, resolve(workspace, 'artifacts/empty@HEAD.wasm'))
-equal(artifact.codeHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
-
-// build many
-artifacts = await builder.buildMany([
-  { workspace, crate: 'crate1' }
-  { workspace, ref: 'HEAD', crate: 'crate2' }
-  { workspace, ref: 'asdf', crate: 'crate3' }
-])
-```
-
 ### Builders for Secret Network
 
 ```typescript
 import { getScrtBuilder } from '@hackbg/fadroma'
+console.info('get ScrtDockerBuilder')
 ok(getScrtBuilder())
+console.info('get ScrtRawBuilder')
 ok(getScrtBuilder({ raw: true }))
 ```
 
 ## Uploading
 
+```typescript
+import { Uploader, FSUploader, CachingFSUploader } from '@hackbg/fadroma'
+let uploader: Uploader
+```
+
 * Basic uploader
 
 ```typescript
 import { pathToFileURL } from 'url'
-const emptyContract = pathToFileURL(fixture('examples/empty-contract/artifacts/empty@HEAD.wasm'))
+let chainId, codeId, codeHash, txHash, template, result
 
-import { FSUploader } from '@hackbg/fadroma'
-import { fixture } from './TESTING'
+const emptyContract = pathToFileURL(Testing.fixture('empty.wasm'))
 
-agent = Symbol()
+chainId  = 'test-uploads'
+agent    = { chain: { id: chainId }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
 uploader = new FSUploader(agent)
-ok(uploader.agent === agent)
-
-artifact        = { url: emptyContract }
-chainId         = Symbol()
-codeId          = Symbol()
-codeHash        = Symbol()
-transactionHash = Symbol()
-template = { chainId, codeId, codeHash, transactionHash }
-agent = { chain: { id: chainId }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
-uploader = new FSUploader(agent)
+artifact = { url: emptyContract }
+chainId  = Symbol()
+codeId   = Symbol()
+codeHash = Symbol()
+txHash   = Symbol()
+template = { chainId, codeId, codeHash, transactionHash: txHash }
 result   = await uploader.upload(artifact)
 deepEqual(result, template)
+ok(uploader.agent === agent)
 
 artifact = { url: emptyContract }
 template = Symbol()
-agent = { chain: { id: Symbol() }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
+agent    = { chain: { id: Symbol() }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
 uploader = new FSUploader(agent)
 deepEqual(await uploader.uploadMany([
   null,
@@ -537,13 +458,13 @@ const mockAgent = () => ({
 // 'add CachingFSUploader to operation context' ({ ok }) {
 agent = { chain: { uploads: Symbol() } }
 const cache = Symbol()
-const uploader = new CachingFSUploader(agent, cache)
+uploader = new CachingFSUploader(agent, cache)
 ok(uploader.agent === agent)
 
 // async 'upload 1 artifact with CachingFSUploader#upload' ({ ok }) {
 await withTmpDir(async cacheDir=>{
-  const agent = mockAgent()
-  const cache = new Path(cacheDir).in('uploads').as(JSONDirectory)
+  const agent    = mockAgent()
+  const cache    = new Path(cacheDir).in('uploads').as(JSONDirectory)
   const uploader = new CachingFSUploader(agent, cache)
   await withTmpFile(async location=>{
     const url = pathToFileURL(location)
@@ -553,15 +474,15 @@ await withTmpDir(async cacheDir=>{
 
 // async 'upload any number of artifacts with CachingFSUploader#uploadMany' ({ ok }) {
 await withTmpDir(async cacheDir=>{
-  const agent = mockAgent()
-  const cache = new Path(cacheDir).in('uploads').as(JSONDirectory)
+  const agent    = mockAgent()
+  const cache    = new Path(cacheDir).in('uploads').as(JSONDirectory)
   const uploader = new CachingFSUploader(agent, cache)
   ok(await uploader.uploadMany())
   ok(await uploader.uploadMany([]))
   await withTmpFile(async location=>{
     const url = pathToFileURL(location)
-    ok(await uploader.uploadMany([{url}]))
-    ok(await uploader.uploadMany([{url}, {url}]))
+    ok(await uploader.uploadMany([Testing.examples['KV']]))
+    ok(await uploader.uploadMany([Testing.examples['KV'], Testing.examples['Echo']]))
   })
 })
 ```
@@ -583,7 +504,7 @@ await withTmpFile(f=>{
   ok(!d.load())
   equal(d, d.set('test2', { test2: 2 }))
   equal(d, d.setMany({test3: 3, test4: 4}))
-  throws(()=>d.get('missing'))
+  assert.throws(()=>d.get('missing'))
 })
 
 // init contract from uploaded template
@@ -649,47 +570,26 @@ await withTmpFile(async f=>{
 })
 ```
 
-## Deployments directory
+### Deployments directory
 
 ```typescript
-import { DeployOps, Deployments } from '@hackbg/fadroma'
+import { Deployments, Deploy } from '@hackbg/fadroma'
 import { withTmpDir } from '@hackbg/kabinet'
+import { existsSync } from 'fs'
 
 // deployments
 await withTmpDir(async dir=>{
-  const d = new Deployments(dir)
-  await d.create()
-  await d.select()
-  d.active
-  d.get()
-  d.list()
-  d.save('test', 'test')
+  const deployments = new Deployments(dir)
+  console.log({dir, deployments}, existsSync(dir))
+  await deployments.create('test-deployment-1')
+  await deployments.create('test-deployment-2')
+  await deployments.select('test-deployment-1')
+  await deployments.select('test-deployment-2')
+  assert(deployments.active instanceof Deployment)
+  deployments.get()
+  deployments.list()
+  deployments.save('test', 'test')
 })
-
-// integrations
-const prefixOfActiveDeployment = Symbol()
-const context = {
-  chain: {
-    deployments: {
-      get () {},
-      active: { prefix: prefixOfActiveDeployment, receipts: [] },
-      printActive () {},
-      list () { return [
-        {prefix: '.active.yml'},
-        {prefix: prefixOfActiveDeployment},
-        {prefix:'somethingelse'}]
-      },
-      async create () {},
-      async select () {}
-    }
-  }
-}
-await Deploy.new(context)
-const { deployment, prefix } = await Deploy.get(context)
-equal(deployment, context.chain.deployments.active)
-equal(prefix,     context.chain.deployments.active.prefix)
-await Deploy.status(context)
-await Deploy.status(context)
 ```
 
 # Devnets
@@ -700,135 +600,36 @@ let devnet: Devnet
 ```
 
 * The devnet is a temporary self-hosted instance of the selected blockchain network.
-
-## Constructing a devnet
+* Constructing a devnet:
 
 ```typescript
-import { Devnet } from '../index'
-
 // constructing a devnet
-const chainId = 'test-devnet'
-devnet = new Devnet({ chainId })
+chainId = 'test-devnet'
+devnet  = new Devnet({ chainId })
 equal(devnet.chainId, chainId)
 ok(devnet.protocol)
 ok(devnet.host)
-equal(devnet.port, '')
+equal(devnet.port, 9091)
 
 // requires chain id:
 try { new Devnet() } catch (e) {}
 ```
 
-## Devnets are persistent
+* Devnets are persistent:
 
 ```typescript
 import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/kabinet'
 // save/load Devnet state
-withTmpDir(stateRoot=>{
+withTmpDir(async stateRoot=>{
   const chainId = 'test-devnet'
   const devnet = new Devnet({ chainId, stateRoot })
   ok(devnet.nodeState instanceof JSONFile)
   ok(devnet.stateRoot instanceof BaseDirectory)
   equal(devnet.stateRoot.path, stateRoot)
-  ok(!devnet.load())
+  //ok(await devnet.load())
   equal(devnet.save(), devnet)
-  deepEqual(devnet.load(), { chainId, port: devnet.port })
+  deepEqual(await devnet.load(), { chainId, port: devnet.port })
 })
-```
-
-## Dockerized devnet
-
-```typescript
-import { DockerDevnet }  from '@hackbg/fadroma'
-import { withTmpFile }   from '@hackbg/kabinet'
-import { Dokeres }       from '@hackbg/dokeres'
-import { mockDockerode } from './TESTING'
-import { resolve, basename } from 'path'
-const readyPhrase = "I'm Freddy"
-
-// construct dockerode devnet
-await withTmpDir(stateRoot=>{
-  const docker      = mockDockerode()
-  const imageName   = Symbol()
-  const image       = new Dokeres(docker).image(imageName)
-  const initScript  = Symbol()
-  const devnet = new DockerDevnet({ stateRoot, docker, image, initScript, readyPhrase })
-  equal(devnet.identities.path, resolve(stateRoot, 'identities'))
-  equal(devnet.image,           image)
-  equal(devnet.image.dockerode, docker)
-  equal(devnet.image.name,      imageName)
-  equal(devnet.initScript,      initScript)
-  equal(devnet.readyPhrase,     readyPhrase)
-})
-
-// spawn dockerode devnet
-await withTmpDir(async stateRoot => {
-  await withTmpFile(async initScript => {
-    const docker = mockDockerode(({ createContainer }) => {
-      if (createContainer) {
-        const stream = {
-          on (arg, cb) {
-            if (arg === 'data') {
-              cb(readyPhrase)
-            }
-          },
-          off (arg, cb) {},
-          destroy () {},
-        }
-        return [ null, stream ]
-      }
-    })
-    class TestDockerDevnet extends DockerDevnet {
-      waitSeconds = 0.5
-      waitPort = () => Promise.resolve()
-    }
-    const devnet = new TestDockerDevnet({
-      stateRoot,
-      docker,
-      image: new Dokeres(docker).image(basename(stateRoot)),
-      initScript,
-      readyPhrase,
-      portMode: 'lcp' // or 'grpcWeb'
-    })
-    equal(await devnet.spawn(), devnet)
-  })
-})
-
-// pass names of accounts to prefund on genesis
-const identities  = [ 'FOO', 'BAR' ]
-devnet = new Devnet({ identities })
-equal(devnet.genesisAccounts, identities)
-image = {
-  name: Symbol(),
-  run (name, options, command, entrypoint) {
-    equal(name, image.name)
-    equal(options.env.GenesisAccounts, 'FOO BAR')
-  }
-}
-const dockerDevnet = new DockerDevnet({ identities, initScript: '', image })
-equal(dockerDevnet.genesisAccounts, identities)
-```
-
-### Chain-specific Dockerode devnets
-
-```typescript
-import { getScrtDevnet } from '@hackbg/fadroma'
-for (const version of ['1.2', '1.3']) {
-  const dokeres = new Dokeres(mockDockerode(({ createContainer })=>{
-    if (createContainer) {
-      const stream = {
-        on  (arg, cb) { if (arg === 'data') { cb(readyPhrase) } },
-        off (arg, cb) {},
-        destroy () {},
-      }
-      return [ null, stream ]
-    }
-  }))
-  const devnet = getScrtDevnet(version, undefined, undefined, dokeres)
-  ok(devnet instanceof DockerDevnet)
-  await devnet.respawn()
-  await devnet.kill()
-  await devnet.erase()
-}
 ```
 
 # Mocknets
@@ -853,8 +654,8 @@ ok(agent instanceof MocknetAgent)
 import { pathToFileURL } from 'url'
 chain     = new Mocknet()
 agent     = await chain.getAgent()
-template  = await agent.upload(ExampleContracts.Blobs.Echo)
-template2 = await agent.upload(ExampleContracts.Blobs.KV)
+template  = await agent.upload(Testing.examples['Echo'].data)
+const template2 = await agent.upload(Testing.examples['KV'].data)
 equal(template.chainId,  agent.chain.id)
 equal(template2.chainId, template.chainId)
 equal(template2.codeId,  String(Number(template.codeId) + 1))
@@ -862,27 +663,24 @@ equal(template2.codeId,  String(Number(template.codeId) + 1))
 // instantiate and call a contract
 agent    = await new Mocknet().getAgent()
 template = { chainId: 'Mocknet', codeId: '2' }
-rejects(agent.instantiate(template, 'test', {}))
+assert.rejects(agent.instantiate(template, 'test', {}))
 
 // instantiate and call a contract, successfully this time
 agent    = await new Mocknet().getAgent()
-template = await agent.upload(ExampleContracts.Blobs.Echo)
-message  = { fail: false }
-instance = await agent.instantiate(template, 'test', message)
-client   = agent.getClient(Client, instance)
-equal(await client.query("Echo"), 'Echo')
-ok(await client.execute("Echo"), { data: "Echo" })
+template = await agent.upload(Testing.examples['Echo'].data)
+client   = agent.getClient(Client, await agent.instantiate(template, 'test', { fail: false }))
+equal(await client.query("echo"), 'echo')
+console.debug(await client.execute("echo"), { data: "echo" })
 
 // contract can use to platform APIs provided by Mocknet
 agent    = await new Mocknet().getAgent()
-template = await agent.upload(ExampleContracts.Blobs.KV)
-instance = await agent.instantiate(template, 'test', { value: "foo" })
-client   = agent.getClient(Client, instance)
-equal(await client.query("Get"), "foo")
-ok(await client.execute({Set: "bar"}))
-equal(await client.query("Get"), "bar")
-ok(await client.execute("Del"))
-rejects(client.query("Get"))
+template = await agent.upload(Testing.examples['KV'].data)
+client   = agent.getClient(Client, await agent.instantiate(template, 'test', { value: "foo" }))
+equal(await client.query("get"), "foo")
+console.debug(await client.execute({set: "bar"}))
+equal(await client.query("get"), "bar")
+console.debug(await client.execute("del"))
+assert.rejects(client.query("get"))
 ```
 
 ## Mocknet internals
@@ -907,37 +705,37 @@ let response: { Ok: any, Err: any }
     * This result is returned to the contract's containing `MocknetBackend` as-is.
 
 ```typescript
-contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-initMsg  = { fail: false }
+let key:   string
+let value: string
+let data:  string
 
-response = contract.init(Testing.mockEnv(), initMsg)
+contract = await new MocknetContract().load(Testing.examples['Echo'].data)
+response = contract.init(Testing.mockEnv(), { fail: false })
 key      = "Echo"
-value    = utf8toB64(JSON.stringify(initMsg))
-equal(response.Err, undefined)
-deepEqual(response.Ok, { messages: [], log: [{ encrypted: false, key, value }] })
+value    = utf8toB64(JSON.stringify({ fail: false }))
+deepEqual(response.Err, undefined)
+deepEqual(response.Ok,  { messages: [], log: [{ encrypted: true, key, value }] })
 
 response = contract.init(Testing.mockEnv(), { fail: true }))
-equal(Ok, undefined)
-deepEqual(Err, { generic_err: { msg: 'caller requested the init to fail' } })
+deepEqual(response.Ok,  undefined)
+deepEqual(response.Err, { generic_err: { msg: 'caller requested the init to fail' } })
 
-response = contract.handle(Testing.mockEnv(), "Echo")
-data     = utf8toB64(JSON.stringify("Echo"))
-equal(Err, undefined)
-deepEqual(Ok, { messages: [], log: [], data })
+response = contract.handle(Testing.mockEnv(), "echo")
+data     = utf8toB64(JSON.stringify("echo"))
+deepEqual(response.Err, undefined)
+deepEqual(response.Ok,  { messages: [], log: [], data })
 
-response = contract.handle(Testing.mockEnv(), "Fail")
-equal(Ok, undefined)
-deepEqual(Err, { generic_err:  { msg: 'this transaction always fails' } })
+response = contract.handle(Testing.mockEnv(), "fail")
+deepEqual(response.Ok,  undefined)
+deepEqual(response.Err, { generic_err:  { msg: 'this transaction always fails' } })
 
-contract = await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-response = await contract.query("Echo")
-equal(Err, undefined)
-equal(Ok,  utf8toB64('"Echo"'))
+response = await contract.query("echo")
+deepEqual(response.Err, undefined)
+deepEqual(response.Ok,  utf8toB64('"echo"'))
 
-await new MocknetContract().load(ExampleContracts.Blobs.Echo)
-response = await contract.query("Fail")
-equal(Ok, undefined)
-deepEqual(Err, { generic_err: { msg: 'this query always fails' } })
+response = await contract.query("fail")
+deepEqual(response.Ok, undefined)
+deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
 ```
 
 ### Base64 IO
@@ -960,27 +758,33 @@ equal(utf8toB64('"Echo"'), 'IkVjaG8i')
 import { runOperation } from '@hackbg/fadroma'
 
 // run empty operation
-await runOperation("", [], [])
+await runOperation("command", "usage",
+  [], [])
 
-// run operation with invalid step
-await assert.rejects(runOperation("", [undefined], []))
+// can't run operation with invalid step
+await assert.rejects(runOperation("command", "usage",
+  [undefined], []))
 
 // run operation with one step
-assert.ok(await runOperation("", [()=>({foo:true})], []))
+assert.ok(await runOperation("command", "usage",
+  [()=>({foo:true})], []))
 
 // catch and rethrow step failure
 const error = {}
-assert.ok(rejects(runOperation("", [()=>{throw error}], [])))
+assert.rejects(runOperation("command", "usage",
+  [()=>{throw error}], []))
 
 // subsequent steps update the context
-const result = await runOperation("", [
+result = await runOperation("command", "usage", [
   ()=>({foo:true}),
-  ()=>({bar:true})
-], [])
+  ()=>({bar:true})], [])
+
 assert.ok(result.foo)
 assert.ok(result.bar)
 
 // the context.run function runs steps without updating context
-await assert.rejects(runOperation("", [ async ({ run }) => { await run() } ], []))
-assert.ok(await runOperation("", [ async ({ run }) => { await run(async () => {}) } ], []))
+await assert.rejects(runOperation("command", "usage",
+  [ async ({ run }) => { await run() } ], []))
+assert.ok(await runOperation("command", "usage",
+  [ async (context) => { await run(async () => {}) } ], []))
 ```

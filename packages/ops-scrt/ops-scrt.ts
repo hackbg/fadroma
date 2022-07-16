@@ -58,24 +58,48 @@ export interface ScrtBuilderOptions {
 }
 
 export function getScrtBuilder ({
-  rebuild, caching = !rebuild,
-  raw, managerUrl,
-  image, dockerfile, service, script, toolchain, noFetch
+  rebuild,
+  caching = !rebuild,
+  raw,
+  managerUrl,
+  image,
+  dockerfile,
+  service,
+  script,
+  toolchain,
+  noFetch
 }: Partial<ScrtBuilderOptions> = {}) {
   if (raw) {
-    return new ScrtRawBuilder({ caching, script, noFetch, toolchain })
+    return new ScrtRawBuilder({
+      caching,
+      script,
+      noFetch,
+      toolchain
+    })
   } else if (managerUrl) {
     throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
     //return new ManagedBuilder({ managerURL })
   } else {
-    return new ScrtDockerBuilder({ caching, image, dockerfile, script, service })
+    return new ScrtDockerBuilder({
+      caching,
+      script,
+      image,
+      dockerfile,
+      service
+    })
   }
 }
 
 export class ScrtRawBuilder extends RawBuilder {}
 
 export class ScrtDockerBuilder extends DockerBuilder {
-  constructor ({ caching, image, dockerfile, script, service }: Partial<ScrtBuilderOptions> = {}) {
+  constructor ({
+    caching,
+    image,
+    dockerfile = resolve(__dirname, 'build.Dockerfile'),
+    script     = resolve(__dirname, 'build-impl.mjs'),
+    service    = resolve(__dirname, 'build-server.mjs')
+  }: Partial<ScrtBuilderOptions> = {}) {
     super({
       caching,
       script,

@@ -1,22 +1,69 @@
 # Test context and helpers
 
-## Test fixtures
+## Fixtures
 
 * Files with a fixed content that are used in the test suites.
 * Stored in [./fixtures](./fixtures).
 * TODO use `fetch` instead of Node FS API
 
 ```typescript
-import { Console, bold } from '@hackbg/fadroma'
+import { Console, bold }    from '@hackbg/fadroma'
+import $                    from '@hackbg/kabinet'
 import { resolve, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { fileURLToPath }    from 'url'
+```
+
+```typescript
 export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
 export const fixture   = x => resolve(here, 'fixtures', x)
 export const console   = Console('Fadroma Testing')
 ```
 
-## Mock of Dockerode API
+### Example mnemonics
+
+```typescript
+export const mnemonics = [
+  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
+  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
+]
+```
+
+### Example contracts
+
+* Testing of the mocknet is done with the help fo two minimal smart contracts.
+  * Compiled artifacts of those are stored under [`/fixtures`](../fixtures).
+  * You can recompile them with the Fadroma Build CLI.
+    See **[../examples/README.md]** for build instructions.
+* They are also used by the Fadroma Ops example project.
+
+* **Echo contract** (build with `pnpm rs:build:example examples/echo`).
+  Parrots back the data sent by the client, in order to validate
+  reading/writing and serializing/deserializing the input/output messages.
+* **KV contract** (build with `pnpm rs:build:example examples/kv`).
+  Exposes the key/value storage API available to contracts,
+  in order to validate reading/writing and serializing/deserializing stored values.
+
+```typescript
+import { readFileSync } from 'fs'
+export const examples = {}
+example('Empty', 'empty.wasm',                     'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+example('KV',    'fadroma-example-kv@HEAD.wasm',   '16dea8b55237085f24af980bbd408f1d6893384996e90e0ce2c6fc3432692a0d')
+example('Echo',  'fadroma-example-echo@HEAD.wasm', 'a4983efece1306aa897651fff74cae18436fc3280fc430d11a4997519659b6fd')
+function example (name, wasm, hash) {
+  return examples[name] = {
+    name,
+    path: fixture(wasm),
+    data: readFileSync(fixture(wasm)),
+    url:  $(fixture(wasm)).url,
+    hash
+  }
+}
+```
+
+## Mocks
+
+### Mock of Dockerode API
 
 The next best thing after booting rootless Docker in GitHub Actions.
 
@@ -44,7 +91,7 @@ export function mockDockerodeContainer (callback = () => {}) {
 }
 ```
 
-## Mock of Secret Network 1.2 HTTP API
+### Mock of Secret Network 1.2 HTTP API
 
 > Not to be confused with the [Mocknet](./Mocknet.ts.md)
 
@@ -236,7 +283,7 @@ export async function mockAPIEndpoint (port) {
 }
 ```
 
-### A mock query response which echoes the input
+#### A mock query response which echoes the input
 
 ```typescript
 async function echoQuery ({query}) {
@@ -283,44 +330,26 @@ export async function mockDevnetManager (port) {
 }
 ```
 
-## Example contracts
+### Mock of mocknet environment
 
-* Testing of the mocknet is done with the help fo two minimal smart contracts.
-  * Compiled artifacts of those are stored under [`/fixtures`](../fixtures).
-  * You can recompile them with the Fadroma Build CLI.
-    See **[../examples/README.md]** for build instructions.
-* They are also used by the Fadroma Ops example project.
-
-* **Echo contract** (build with `pnpm rs:build:example examples/echo`).
-  Parrots back the data sent by the client, in order to validate
-  reading/writing and serializing/deserializing the input/output messages.
-* **KV contract** (build with `pnpm rs:build:example examples/kv`).
-  Exposes the key/value storage API available to contracts,
-  in order to validate reading/writing and serializing/deserializing stored values.
+When testing your own contracts with Fadroma Mocknet, you are responsible
+for providing the value of the `env` struct seen by the contracts.
+Since here we test the mocknet itself, we use this pre-defined value:
 
 ```typescript
-export const ExampleContracts = {
-  KV: {
-    path: fixture('fadroma-example-echo@HEAD.wasm')
-  },
-  Echo: {
-    path: fixture('fadroma-example-kv@HEAD.wasm')
+import { randomBech32 } from '@hackbg/formati'
+export function mockEnv () {
+  const height   = 0
+  const time     = 0
+  const chain_id = "mock"
+  const sender   = randomBech32('mocked')
+  const address  = randomBech32('mocked')
+  return {
+    block:    { height, time, chain_id }
+    message:  { sender: sender, sent_funds: [] },
+    contract: { address },
+    contract_key: "",
+    contract_code_hash: ""
   }
 }
-import { readFileSync } from 'fs'
-ExampleContracts.Echo.Blob = readFileSync(ExampleContracts.Echo.path)
-ExampleContracts.KV.Blob   = readFileSync(ExampleContracts.KV.path)
-
-export const hashes = {
-  'empty.wasm': "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-}
-```
-
-## Example mnemonics
-
-```typescript
-export const mnemonics = [
-  'canoe argue shrimp bundle drip neglect odor ribbon method spice stick pilot produce actual recycle deposit year crawl praise royal enlist option scene spy',
-  'bounce orphan vicious end identify universe excess miss random bench coconut curious chuckle fitness clean space damp bicycle legend quick hood sphere blur thing'
-]
 ```

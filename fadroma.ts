@@ -442,7 +442,7 @@ export async function runOperation (
     config:    currentConfig,
     timestamp: timestamp(),
   }
-): Promise<void> {
+): Promise<Context> {
 
   // Never hurts:
   Error.stackTraceLimit = Math.max(1000, Error.stackTraceLimit)
@@ -468,6 +468,9 @@ export async function runOperation (
     const T1 = + new Date()
 
     try {
+      // Add step runner
+      context.run = runSub.bind(context)
+
       // Object returned by step gets merged into context.
       const updates = await step({ ...context })
 
@@ -476,9 +479,6 @@ export async function runOperation (
 
       // Make sure `this` in every function of the context points to the up-to-date context.
       rebind(context)
-
-      // Add step runner
-      context.run = runSub.bind(context)
 
       // End of step
       const T2 = + new Date()
@@ -509,6 +509,8 @@ export async function runOperation (
   if (error) {
     throw error
   }
+
+  return context
 }
 
 export function rebind (self, obj = self) {
@@ -637,6 +639,38 @@ export class Deploy extends Commands {
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
   }
 
+  /** Create a new deployment and add it to the command context. */
+  static create = async function createDeployment (
+    context: Partial<Context>
+  ): Promise<Partial<Context>> {
+    const [ prefix = context.timestamp ] = context.cmdArgs
+    await context.deployments.create(prefix)
+    await context.deployments.select(prefix)
+    return await Deploy.get(context)
+  }
+
+  /** Add the currently active deployment to the command context. */
+  static get = async function getDeployment (
+    context: Partial<Context>
+  ): Promise<Partial<Context>> {
+    if (!context.deployments.active) {
+      console.info('No selected deployment on chain:', bold(context.chain.id))
+    }
+    context.deployment = context.deployments.active
+    return await getDeployContext(context)
+  }
+
+  /** Add either the active deployment, or a newly created one, to the command context. */
+  static getOrCreate = async function getOrCreateDeployment (
+    context: Partial<Context>
+  ): Promise<Partial<Context>> {
+    if (context.deployments.active) {
+      return Deploy.get(context)
+    } else {
+      return await Deploy.create(context)
+    }
+  }
+
   static list = async function listDeployments ({ chain, deployments }: Partial<Context>): Promise<void> {
     const list = deployments.list()
     if (list.length > 0) {
@@ -652,22 +686,6 @@ export class Deploy extends Commands {
       }
     } else {
       console.info(`No deployments on chain`, bold(chain.id))
-    }
-  }
-
-  /** Print the status of a deployment. */
-  static show = async function showDeployment (
-    context: Partial<Context>,
-    id = context.cmdArgs[0]
-  ): Promise<void> {
-    let deployment = context.deployments.active
-    if (id) {
-      deployment = context.deployments.get(id)
-    }
-    if (deployment) {
-      print(console).deployment(deployment)
-    } else {
-      console.info('No selected deployment on chain:', bold(context.chain.id))
     }
   }
 
@@ -693,36 +711,20 @@ export class Deploy extends Commands {
     }
   }
 
-  /** Add either the active deployment, or a newly created one, to the command context. */
-  static getOrCreate = async function getOrCreateDeployment (
-    context: Partial<Context>
-  ): Promise<Partial<Context>> {
-    if (context.deployments.active) {
-      return Deploy.get(context)
-    } else {
-      return await Deploy.create(context)
+  /** Print the status of a deployment. */
+  static show = async function showDeployment (
+    context: Partial<Context>,
+    id = context.cmdArgs[0]
+  ): Promise<void> {
+    let deployment = context.deployments.active
+    if (id) {
+      deployment = context.deployments.get(id)
     }
-  }
-
-  /** Create a new deployment and add it to the command context. */
-  static create = async function createDeployment (
-    context: Partial<Context>
-  ): Promise<Partial<Context>> {
-    const [ prefix = context.timestamp ] = context.cmdArgs
-    await context.deployments.create(prefix)
-    await context.deployments.select(prefix)
-    return await Deploy.get(context)
-  }
-
-  /** Add the currently active deployment to the command context. */
-  static get = async function getDeployment (
-    context: Partial<Context>
-  ): Promise<Partial<Context>> {
-    if (!context.deployments.active) {
+    if (deployment) {
+      print(console).deployment(deployment)
+    } else {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }
-    context.deployment = context.deployments.active
-    return await getDeployContext(context)
   }
 
 }
@@ -756,7 +758,7 @@ export function getBuildContext ({ config }: {
     async build (source: IntoSource, ref?: string): Promise<Artifact> {
       return await this.builder.build(this.getSource(source).at(ref))
     },
-    async buildMany (ref?: string, ...sources: IntoArtifact[][]): Promise<Artifact[]> {
+    async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Artifact[]> {
       sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
       return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
     }
