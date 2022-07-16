@@ -16,7 +16,7 @@ importers:
       '@hackbg/formati': workspace:*
       '@hackbg/ganesha': workspace:^2.1
       '@hackbg/kabinet': workspace:*
-      '@hackbg/komandi': workspace:*
+      '@hackbg/komandi': workspace:^3
       '@hackbg/konzola': workspace:*
       '@types/node': ^16.11.36
       body-parser: ^1.20.0
@@ -228,7 +228,7 @@ importers:
       '@hackbg/dokeres': workspace:^3
       '@hackbg/izdatel': workspace:*
       '@hackbg/kabinet': workspace:^2
-      '@hackbg/komandi': workspace:^2
+      '@hackbg/komandi': workspace:^3
       '@hackbg/konzola': workspace:^1
       '@hackbg/portali': workspace:^1
       '@hackbg/runspec': workspace:^2
@@ -334,7 +334,12 @@ importers:
     specifiers: {}
 
   ensuite/toolbox/komandi:
-    specifiers: {}
+    specifiers:
+      '@hackbg/kabinet': workspace:*
+      '@hackbg/konzola': workspace:*
+    dependencies:
+      '@hackbg/kabinet': link:../kabinet
+      '@hackbg/konzola': link:../konzola
 
   ensuite/toolbox/konzola:
     specifiers:

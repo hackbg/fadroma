@@ -94,10 +94,8 @@ export class ScrtRPCAgent extends ScrtAgent {
     this.address = this.wallet?.address
   }
 
-  wallet: Wallet
-
-  api:    SecretNetworkClient
-
+  wallet:  Wallet
+  api:     SecretNetworkClient
   address: string
 
   get account () {
