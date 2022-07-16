@@ -4,6 +4,3 @@
 
 * Defines `freePort`
 * Reexports `waitPort`
-
-Does this really need to be a separate package,
-or should it be a part of [`@hackbg/dokeres`](../dokeres).

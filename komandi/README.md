@@ -7,7 +7,6 @@ Mini command parser.
 
 Only takes literal position arguments.
 No `-flags` and `--options`, structure your commands as sentences.
-WIP: Simplify it further, taking cues from [`@hackbg/runspec`](../runspec)
 
 ```typescript
 import runCommands from '@hackbg/komandi'

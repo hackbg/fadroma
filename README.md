@@ -1,49 +1,66 @@
-# Hack.bg Toolbox [![NPM version](https://img.shields.io/npm/v/@hackbg/toolbox?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/toolbox)
+<div align="center">
+
+# Hack.bg Toolbox
+
+[![NPM version](https://img.shields.io/npm/v/@hackbg/toolbox?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/toolbox)
 
 The big box of everything that came in handy during the
 development of [Fadroma](https://fadroma.tech), the
 distributed application framework by [Hack.bg](https://hack.bg).
 
+---
+
 This repo also establishes a baseline for a future port of
 dependent Node projects, such as Fadroma, to [Deno](https://deno.land) -
 should that be on our radars once again.
 
-Import the top-level module only if you're starting a new Node.js project
-and don't yet know which modules you need. This has the (dubious) benefit of
-importing all utilities from one single module, and is likely to pull
-in unneeded dependencies.
-
 Read on for a list of what's inside.
 
-## Contents
+## [**`@hackbg/dokeres`**](./dokeres/README.md)
 
-### [**`@hackbg/dokeres`**](./dokeres) [![NPM version](https://img.shields.io/npm/v/@hackbg/dokeres?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/dokeres)
+[![NPM version](https://img.shields.io/npm/v/@hackbg/dokeres?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/dokeres)
 
 **Docker utilities.**
 
-### [**`@hackbg/forkers`**](./forkers) [![NPM version](https://img.shields.io/npm/v/@hackbg/forkers?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/forkers)
+## [**`@hackbg/forkers`**](./forkers/README.md)
 
-**Web worker wrapper.** Work in progress. Meant to do what Comlink doesn't.
+[![NPM version](https://img.shields.io/npm/v/@hackbg/forkers?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/forkers)
 
-### [**`@hackbg/kabinet`**](./kabinet) [![NPM version](https://img.shields.io/npm/v/@hackbg/kabinet?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/kabinet)
+**Web worker wrapper.**
+
+## [**`@hackbg/kabinet`**](./kabinet/README.md)
+
+[![NPM version](https://img.shields.io/npm/v/@hackbg/kabinet?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/kabinet)
 
 **Filesystem manipulation.**
 
-### [**`@hackbg/komandi`**](./komandi) [![NPM version](https://img.shields.io/npm/v/@hackbg/komandi?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/komandi)
+## [**`@hackbg/komandi`**](./komandi/README.md)
+
+[![NPM version](https://img.shields.io/npm/v/@hackbg/komandi?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/komandi)
 
 **Simple command runner.**
 
-### [**`@hackbg/konzola`**](./konzola) [![NPM version](https://img.shields.io/npm/v/@hackbg/konzola?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/konzola)
+## [**`@hackbg/konzola`**](./konzola/README.md)
+
+[![NPM version](https://img.shields.io/npm/v/@hackbg/konzola?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/konzola)
 
 **Pretty console output.**
 
-### [**`@hackbg/portali`**](./portali) [![NPM version](https://img.shields.io/npm/v/@hackbg/portali?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/portali)
+## [**`@hackbg/portali`**](./portali/README.md)
+
+[![NPM version](https://img.shields.io/npm/v/@hackbg/portali?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/portali)
 
 **Network port utilities**
 
-### [**`@hackbg/runspec`**](./runspec) [![NPM version](https://img.shields.io/npm/v/@hackbg/runspec?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/runspec)
+## [**`@hackbg/runspec`**](./runspec/README.md)
+
+[![NPM version](https://img.shields.io/npm/v/@hackbg/runspec?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/runspec)
 
 **Minimal test runner and reporter.**
+
+</div>
+
+---
 
 ### **Miscellaneous helpers and reexports:**
   * Generate random values in different formats (TODO `@hackbg/formati`)
