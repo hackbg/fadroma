@@ -1616,25 +1616,25 @@ export class MocknetAgent extends Agent {
   static async create (chain: Mocknet, options: AgentOpts) {
     return new MocknetAgent(chain, options)
   }
-  constructor (readonly chain: Mocknet, readonly options: AgentOpts) {
+  constructor (readonly chain: Chain, readonly options: AgentOpts) {
     super(chain, options)
   }
   name:    string  = 'MocknetAgent'
   address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX)
+  get backend (): MocknetBackend {
+    const { backend }: Mocknet = this.chain as unknown as Mocknet
+    return backend
+  }
   async upload (blob: Uint8Array) {
-    return this.chain.backend.upload(blob)
+    return await this.backend.upload(blob)
   }
   async instantiate (template, label, msg, funds = []): Promise<Instance> {
-    return await this.chain.backend.instantiate(
-      this.address, template, label, msg, funds
-    )
+    return await this.backend.instantiate(this.address, template, label, msg, funds)
   }
-  async execute <M, R> (instance, msg: M, opts): Promise<R> {
-    return await this.chain.backend.execute(
-      this.address, instance, msg, opts.funds, opts.memo, opts.fee
-    )
+  async execute <R> (instance, msg: Message, opts): Promise<R> {
+    return await this.backend.execute(this.address, instance, msg, opts.funds, opts.memo, opts.fee)
   }
-  async query <M, R> (instance, msg: M): Promise<R> {
+  async query <R> (instance, msg: Message): Promise<R> {
     return await this.chain.query(instance, msg)
   }
   get nextBlock () { return Promise.resolve(0)   }

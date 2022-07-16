@@ -1,6 +1,7 @@
 import {
   Address,
   AgentOpts,
+  Chain,
   ChainId,
   ChainOpts,
   Template,
@@ -60,7 +61,7 @@ export class ScrtRPCAgent extends ScrtAgent {
   Bundle = ScrtRPCBundle
 
   static async create (
-    chain:   Scrt,
+    chain:   Chain,
     options: ScrtRPCAgentOpts
   ): Promise<ScrtRPCAgent> {
     const { mnemonic, keyPair, address } = options
@@ -85,7 +86,7 @@ export class ScrtRPCAgent extends ScrtAgent {
     return new ScrtRPCAgent(chain, { ...options, wallet, api })
   }
 
-  constructor (chain: Scrt, options: ScrtRPCAgentOpts) {
+  constructor (chain: Chain, options: ScrtRPCAgentOpts) {
     // @ts-ignore
     super(chain, options)
     this.wallet  = options.wallet

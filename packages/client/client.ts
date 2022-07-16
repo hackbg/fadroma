@@ -126,13 +126,10 @@ export interface ExecOpts {
   memo?: string
 }
 
-/** A native token. */
-export interface ICoin {
-  amount: Uint128
-  denom:  string
-}
+/** Represents some amount of native token. */
+export interface ICoin { amount: Uint128, denom: string }
 
-/** A native token constructor */
+/** Represents some amount of native token. */
 export class Coin implements ICoin {
   constructor (
     amount:         number|string,
@@ -257,7 +254,7 @@ export abstract class Chain implements Spectator {
   /** Get a new instance of the appropriate Agent subclass. */
   async getAgent <A extends Agent> (
     options: Partial<AgentOpts> = {},
-    _Agent:  AgentCtor<A> = Agent as AgentCtor<A>
+    _Agent:  AgentCtor<Agent> = this.Agent as AgentCtor<Agent>
   ): Promise<A> {
     if (!options.mnemonic && options.name) {
       if (this.node) {
@@ -266,7 +263,7 @@ export abstract class Chain implements Spectator {
         throw new Error('Chain#getAgent: getting agent by name only supported for devnets')
       }
     }
-    const agent = await this.Agent.create(this, options) as A
+    const agent = await _Agent.create(this, options) as A
     return agent
   }
 
@@ -331,8 +328,8 @@ export abstract class Agent implements Executor {
   getLabel  (address: Address) { return this.chain.getLabel(address) }
   getHash   (address: Address) { return this.chain.getHash(address) }
   getClient <C extends Client, O extends ClientOpts> (
-    _Client: ClientCtor<C, O> = Client as ClientCtor<C, O>,
-    arg: Address|Partial<O> = {}
+    _Client: ClientCtor<C, O>   = Client as ClientCtor<C, O>,
+    arg:     Address|Partial<O> = {}
   ): C {
     return new _Client(this, arg)
   }
@@ -517,7 +514,7 @@ export interface ClientOpts extends Instance {
 }
 
 export interface ClientCtor<C extends Client, O extends ClientOpts> {
-  new (agent: Executor, options: Address|O): C
+  new (agent: Executor, options: Address|Partial<O>): C
 }
 
 /** Interface to a specific contract. Subclass to add contract-specific methods. */
