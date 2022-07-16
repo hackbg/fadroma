@@ -6,7 +6,7 @@
                                      - Marvin Heemeyer
 ```
 
-[![](/doc/logo.svg)](https://fadroma.tech)
+[![](/homepage/logo.svg)](https://fadroma.tech)
 
 **Essential groundwork** for **dApp development** with **Rust** and **TypeScript**.
 
@@ -22,7 +22,7 @@
 
 Start exploring:
 
-[**Getting Started Guide**](./doc/docs) — [Rust Smart Contract API](https://fadroma.tech/rs/fadroma/index.html) — [TypeScript Operations API](https://fadroma.tech/js/modules.html)
+[**Getting Started Guide**](./guide/index.md) — [Rust Smart Contract API](https://fadroma.tech/rs/fadroma/index.html) — [TypeScript Operations API](https://fadroma.tech/js/modules.html)
 
 [**Executable Specification**](./SPEC.ts.md) — [Future Roadmap](./ROADMAP.ts.md) — [Contribution Guidelines](CONTRIBUTING.md)
 

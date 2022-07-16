@@ -18,7 +18,7 @@ const { ok, equal, deepEqual, throws } = assert
 let console = Fadroma.Console('Fadroma Spec')
 ```
 
-# The tripartite model
+## Chain, Agent, Client
 
 Base layer for isomorphic contract clients.
 
@@ -31,7 +31,7 @@ Base layer for isomorphic contract clients.
 import { Chain, Agent, Client } from '.'
 ```
 
-## Chain
+### Chain
 
 ```typescript
 let chain: Chain
@@ -86,7 +86,7 @@ for (const Chain of supportedChains) {
 }
 ```
 
-## Agent
+### Agent
 
 ```typescript
 let agent: Agent
@@ -239,7 +239,7 @@ for (const Chain of supportedChains) {
 }
 ```
 
-## Clients
+### Client
 
 ```typescript
 let client: Client
@@ -280,13 +280,12 @@ for (const Gas of [LegacyScrtGas, ScrtGas]) {
 }
 ```
 
-# Building contracts
 
 ```typescript
 import { Workspace, Source, Builder, Artifact } from '.'
 ```
 
-## The `Workspace` and `Source`
+## Crates and workspaces
 
 ```typescript
 let workspace: Workspace
@@ -307,7 +306,7 @@ for (const source of [
 }
 ```
 
-## The `Builder`: performs `Source -> Artifact`
+## Build
 
 ```typescript
 let builder:  Builder
@@ -375,7 +374,7 @@ console.info('get ScrtRawBuilder')
 ok(getScrtBuilder({ raw: true }))
 ```
 
-## Uploading
+## Upload
 
 ```typescript
 import { Uploader, FSUploader, CachingFSUploader } from '.'
@@ -487,7 +486,7 @@ await withTmpDir(async cacheDir=>{
 })
 ```
 
-## Deployment
+## Deploy
 
 ```typescript
 import { basename } from 'path'
@@ -591,6 +590,8 @@ await withTmpDir(async dir=>{
 })
 ```
 
+---
+
 # Devnets
 
 ```typescript
@@ -631,7 +632,9 @@ withTmpDir(async stateRoot=>{
 })
 ```
 
-# Mocknets
+---
+
+## Mocknet
 
 * The Fadroma Mocknet is a pure Node.js implementation of the API and environment that Cosmos
   smart contracts expect.
@@ -639,7 +642,7 @@ withTmpDir(async stateRoot=>{
   it allows the interaction of multiple smart contracts to be tested at a much faster speed than
   devnet.
 
-## Mocknet usage:
+### Mocknet usage
 
 ```typescript
 // initialize and provide agent
@@ -682,9 +685,9 @@ console.debug(await client.execute("del"))
 assert.rejects(client.query("get"))
 ```
 
-## Mocknet internals
+### Mocknet internals
 
-### `MocknetContract`
+#### `MocknetContract`
 
 ```typescript
 import { MocknetContract } from '.' // wait what
@@ -737,7 +740,7 @@ deepEqual(response.Ok, undefined)
 deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
 ```
 
-### Base64 IO
+#### Base64 IO
 
 * **Base64 I/O:** Fields that are of type `Binary` (query responses and the `data` field of handle
   responses) are returned by the contract as Base64-encoded strings
@@ -751,7 +754,9 @@ equal(b64toUtf8('IkVjaG8i'), '"Echo"')
 equal(utf8toB64('"Echo"'), 'IkVjaG8i')
 ```
 
-# The command model
+## Commands
+
+* **TODO:** Demonstrate how the actual command dispatch API works, and introduce `context`.
 
 ```typescript
 import { runOperation } from '.'

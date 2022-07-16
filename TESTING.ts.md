@@ -3,7 +3,7 @@
 ## Fixtures
 
 * Files with a fixed content that are used in the test suites.
-* Stored in [./fixtures](./fixtures).
+* Stored in [./fixtures](./fixtures/README.md).
 * TODO use `fetch` instead of Node FS API
 
 ```typescript
@@ -32,7 +32,7 @@ export const mnemonics = [
 ### Example contracts
 
 * Testing of the mocknet is done with the help fo two minimal smart contracts.
-  * Compiled artifacts of those are stored under [`/fixtures`](../fixtures).
+  * Compiled artifacts of those are stored under [`/fixtures`](./fixtures/README.md).
   * You can recompile them with the Fadroma Build CLI.
     See **[../examples/README.md]** for build instructions.
 * They are also used by the Fadroma Ops example project.

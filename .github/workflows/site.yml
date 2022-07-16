@@ -5,51 +5,37 @@ jobs:
     name: build website
     runs-on: ubuntu-latest
     steps:
-
-      - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
         with: { submodules: "recursive" }
-
       - name: Determine default branch
         run: |
           DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
           echo "default_branch=$DEFAULT_BRANCH" >> $GITHUB_ENV
           echo "default_branch_ref=refs/heads/$DEFAULT_BRANCH" >> $GITHUB_ENV
-
-      - name: Get Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
-
       - run: cp _Cargo.toml Cargo.toml
-
-      - name: Generate Rust documentation
-        uses: actions-rs/cargo@v1
+      - uses: actions-rs/cargo@v1
         with:
           command: doc
           args: --all-features
-
-      - name: Install PNPM and deps
-        uses: pnpm/action-setup@v2.0.1
+      - uses: pnpm/action-setup@v2.0.1
         with:
-          version: 6.14.3
+          version: 7.5.2
           run_install: |
             - recursive: true
               args: [--frozen-lockfile, --strict-peer-dependencies]
-
-      - name: Generate JS documentation
+      - name: pnpm ts:document
         run: |
           NODE_OPTIONS=--max_old_space_size=8192 pnpm ts:document
           ls -al
-
-      - name: Render homepage
-        run: |
-          pnpm ts:render
-
-      - name: Publish
+      - name: pnpm ts:render
+        run:  pnpm ts:render
+      - name: publish to pages if default branch
         if:   github.ref == env.default_branch_ref
         run: |
           ls
