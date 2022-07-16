@@ -37,12 +37,13 @@
   },
   "scripts": {
     "ts:check":    "tsc --noEmit",
-    "ts:document": "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints toolbox/dokeres --entryPoints toolbox/kabinet --entryPoints toolbox/portali --entryPoints @hackbg/formati --entryPoints .",
-    "ts:render":   "node doc/render.js",
 
     "ts:test":     "time ensuite SPEC.ts.md",
     "ts:cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
     "ts:lcov":     "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
+
+    "ts:document": "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints toolbox/dokeres --entryPoints toolbox/kabinet --entryPoints toolbox/portali --entryPoints @hackbg/formati --entryPoints .",
+    "ts:render":   "node doc/render.js",
 
     "rs:build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cjs build"
   },

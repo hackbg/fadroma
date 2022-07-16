@@ -28,10 +28,12 @@ jobs:
         with: { submodules: recursive }
       - uses: pnpm/action-setup@v2.0.1
         with:
-          version: 6.14.3
+          version: 7.5.2
           run_install: |
             - recursive: true
+      - name: Print versions
+        run: node --version && npm --version && pnpm --version
       - name: Run type checks
         run: ls -al && pnpm ts:check
-      - name: Run type checks
-        run: ls -al && pnpm ts:test
+      - name: Run tests and output coverage
+        run: ls -al && pnpm ts:cov

@@ -8,7 +8,7 @@ This file is a combination of spec and test suite.
   with the internals of the framework and the usage of its primitives.
 
 ```typescript
-import * as Fadroma   from '@hackbg/fadroma'
+import * as Fadroma   from '.'
 import * as Testing   from './TESTING'
 import $              from '@hackbg/kabinet'
 import fetch          from 'cross-fetch'
@@ -28,7 +28,7 @@ Base layer for isomorphic contract clients.
    appropriate `Client` subclass from the authorized `Agent`.
 
 ```typescript
-import { Chain, Agent, Client } from '@hackbg/fadroma'
+import { Chain, Agent, Client } from '.'
 ```
 
 ## Chain
@@ -48,7 +48,7 @@ assert.equal(chain.url, 'example.com')
 * Chain modes
 
 ```typescript
-import { ChainMode } from '@hackbg/fadroma'
+import { ChainMode } from '.'
 
 chain = new Chain('any', { mode: ChainMode.Mainnet })
 assert(chain.isMainnet)
@@ -215,7 +215,7 @@ for (const Chain of supportedChains) {
 * **Bundling** transactions:
 
 ```typescript
-import { Bundle } from '@hackbg/fadroma'
+import { Bundle } from '.'
 let bundle: Bundle
 ```
 
@@ -283,7 +283,7 @@ for (const Gas of [LegacyScrtGas, ScrtGas]) {
 # Building contracts
 
 ```typescript
-import { Workspace, Source, Builder, Artifact } from '@hackbg/fadroma'
+import { Workspace, Source, Builder, Artifact } from '.'
 ```
 
 ## The `Workspace` and `Source`
@@ -356,7 +356,7 @@ the build is skipped.
 Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
 
 ```typescript
-import { CachingBuilder } from '@hackbg/fadroma'
+import { CachingBuilder } from '.'
 builder = new class TestCachingBuilder extends CachingBuilder {
   async build (source) { return {} }
 }
@@ -368,7 +368,7 @@ equal(builder.prebuild('', 'empty'), null)
 ### Builders for Secret Network
 
 ```typescript
-import { getScrtBuilder } from '@hackbg/fadroma'
+import { getScrtBuilder } from '.'
 console.info('get ScrtDockerBuilder')
 ok(getScrtBuilder())
 console.info('get ScrtRawBuilder')
@@ -378,7 +378,7 @@ ok(getScrtBuilder({ raw: true }))
 ## Uploading
 
 ```typescript
-import { Uploader, FSUploader, CachingFSUploader } from '@hackbg/fadroma'
+import { Uploader, FSUploader, CachingFSUploader } from '.'
 let uploader: Uploader
 ```
 
@@ -428,7 +428,7 @@ deepEqual(await uploader.uploadMany([
 
 ```typescript
 import { Path, JSONDirectory, withTmpFile, withTmpDir } from '@hackbg/kabinet'
-import { CachingFSUploader, Uploads } from '@hackbg/fadroma'
+import { CachingFSUploader, Uploads } from '.'
 import { resolve } from 'path'
 
 const mockAgent = () => ({
@@ -492,7 +492,7 @@ await withTmpDir(async cacheDir=>{
 ```typescript
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
-import { Deployment } from '@hackbg/fadroma'
+import { Deployment } from '.'
 
 // save/load deployment data
 await withTmpFile(f=>{
@@ -573,7 +573,7 @@ await withTmpFile(async f=>{
 ### Deployments directory
 
 ```typescript
-import { Deployments, Deploy } from '@hackbg/fadroma'
+import { Deployments, Deploy } from '.'
 import { withTmpDir } from '@hackbg/kabinet'
 import { existsSync } from 'fs'
 
@@ -594,7 +594,7 @@ await withTmpDir(async dir=>{
 # Devnets
 
 ```typescript
-import { Devnet } from '@hackbg/fadroma'
+import { Devnet } from '.'
 let devnet: Devnet
 ```
 
@@ -643,7 +643,7 @@ withTmpDir(async stateRoot=>{
 
 ```typescript
 // initialize and provide agent
-import { Mocknet, MocknetAgent } from '@hackbg/fadroma'
+import { Mocknet, MocknetAgent } from '.'
 
 chain = new Mocknet()
 agent = await chain.getAgent()
@@ -687,7 +687,7 @@ assert.rejects(client.query("get"))
 ### `MocknetContract`
 
 ```typescript
-import { MocknetContract } from '@hackbg/fadroma' // wait what
+import { MocknetContract } from '.' // wait what
 let contract: MocknetContract
 let response: { Ok: any, Err: any }
 ```
@@ -745,7 +745,7 @@ deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
   * These functions are used by the mocknet code to encode/decode the base64.
 
 ```typescript
-import { b64toUtf8, utf8toB64 } from '@hackbg/fadroma'
+import { b64toUtf8, utf8toB64 } from '.'
 
 equal(b64toUtf8('IkVjaG8i'), '"Echo"')
 equal(utf8toB64('"Echo"'), 'IkVjaG8i')
@@ -754,7 +754,7 @@ equal(utf8toB64('"Echo"'), 'IkVjaG8i')
 # The command model
 
 ```typescript
-import { runOperation } from '@hackbg/fadroma'
+import { runOperation } from '.'
 
 // run empty operation
 await runOperation("command", "usage",

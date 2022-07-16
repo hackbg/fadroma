@@ -1,5 +1,5 @@
 import $, { Path, OpaqueDirectory, OpaqueFile, TOMLFile } from '@hackbg/kabinet'
-import { Workspace, getScrtBuilder, Source, Console, bold, currentConfig } from '@hackbg/fadroma'
+import { Workspace, getScrtBuilder, Source, Console, bold, currentConfig } from '.'
 
 type CargoTOML = TOMLFile<{ package: { name: string } }>
 

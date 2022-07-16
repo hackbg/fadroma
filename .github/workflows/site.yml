@@ -42,12 +42,12 @@ jobs:
 
       - name: Generate JS documentation
         run: |
-          NODE_OPTIONS=--max_old_space_size=8192 pnpm document
+          NODE_OPTIONS=--max_old_space_size=8192 pnpm ts:document
           ls -al
 
       - name: Render homepage
         run: |
-          pnpm render
+          pnpm ts:render
 
       - name: Publish
         if:   github.ref == env.default_branch_ref

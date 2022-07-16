@@ -1,7 +1,7 @@
 import { prompts, colors, bold } from '@hackbg/konzola'
 import $, { TextFile, JSONFile, YAMLFile } from '@hackbg/kabinet'
 import { execSync } from 'child_process'
-import pkg from '../package.json'
+import pkg from './package.json'
 
 async function create () {
   console.log(' ', bold('Fadroma:'), String(pkg.version).trim())
