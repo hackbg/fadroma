@@ -1,24 +1,17 @@
 import $ from '@hackbg/kabinet'
-import { Console, bold, colors } from '@hackbg/konzola'
+import { Console, bold, colors, timestamp } from '@hackbg/konzola'
 
 const console = Console('Komandi')
 
-export function timestamp (d = new Date()) {
-  return d.toISOString()
-    .replace(/[-:\.Z]/g, '')
-    .replace(/[T]/g, '_')
-    .slice(0, -3)
-}
-
-export interface Command {
+export interface Command<C extends CommandContext> {
   info:  string,
-  steps: Step<unknown>[]
+  steps: Step<C, unknown>[]
 }
 
 export interface CommandContext {
   /** Run a subroutine in a copy of the current context, i.e. without changing the context. */
-  run <T> (
-    operation:     Step<T>,
+  run <C extends CommandContext, T> (
+    operation:     Step<C, T>,
     extraContext?: Record<string, unknown>,
     ...extraArgs:  unknown[]
   ): Promise<T>
@@ -28,18 +21,18 @@ export interface CommandContext {
   timestamp:    string
 }
 
-export type Step<U> = (context: CommandContext, ...args: unknown[]) => U|Promise<U>
+export type Step<C extends CommandContext, U> = (context: C, ...args: unknown[]) => U|Promise<U>
 
-export class Commands {
+export class Commands<C extends CommandContext> {
   constructor (
     public readonly name,
-    public readonly before:   Step<unknown>[]         = [],
-    public readonly after:    Step<unknown>[]         = [],
-    public readonly commands: Record<string, Command> = {}
+    public readonly before:   Step<C, unknown>[]         = [],
+    public readonly after:    Step<C, unknown>[]         = [],
+    public readonly commands: Record<string, Command<C>> = {}
   ) {}
   /** Define a command. Remember to put `.entrypoint(import.meta.url)`
     * at the end of your main command object. */
-  command (name: string, info: string, ...steps: Step<unknown>[]) {
+  command (name: string, info: string, ...steps: Step<C, unknown>[]) {
     // validate that all steps are functions
     for (const i in steps) {
       if (!(steps[i] instanceof Function)) {
@@ -53,7 +46,7 @@ export class Commands {
   }
   /** Filter commands by each word from the list of arguments
     * then pass the rest as arguments to the found command. */
-  parse (args: string[]): [string, Command, string[]]|null {
+  parse (args: string[]): [string, Command<C>, string[]]|null {
     let commands = Object.entries(this.commands)
     for (let i = 0; i < args.length; i++) {
       const arg = args[i]
@@ -92,7 +85,7 @@ export class Commands {
     return self
   }
   /** Parse and execute a command */
-  async run (args = process.argv.slice(2)): Promise<void> {
+  async run <Context extends CommandContext> (args = process.argv.slice(2)): Promise<Context> {
     if (args.length === 0) {
       print(console).usage(this)
       process.exit(1)
@@ -107,8 +100,8 @@ export class Commands {
   }
 }
 
-export async function runSub <T> (
-  operation:    Step<T>,
+export async function runSub <C extends CommandContext, T> (
+  operation:    Step<C, T>,
   extraContext: Record<string, any> = {},
   extraArgs:    unknown[] = []
 ): Promise<T> {
@@ -128,7 +121,7 @@ export async function runSub <T> (
   }
 }
 
-export async function runOperation (
+export async function runOperation <Context extends CommandContext> (
   command,
   cmdInfo,
   cmdSteps,
@@ -207,7 +200,7 @@ export async function runOperation (
     throw error
   }
 
-  return context
+  return context as Context
 }
 export function rebind (self, obj = self) {
   for (const key in obj) {
@@ -225,9 +218,8 @@ export function parallel (...operations) {
 
 export const print = console => {
   return {
-
     // Usage of Command API
-    usage ({ name, commands }: Commands) {
+    usage ({ name, commands }: Commands<CommandContext>) {
       let longest = 0
       for (const name of Object.keys(commands)) {
         longest = Math.max(name.length, longest)
