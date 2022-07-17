@@ -6,91 +6,102 @@ module.exports = module.exports.default = izomorf
 if (require.main === module) izomorf(process.cwd(), ...process.argv.slice(2))
 function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
 
-  // Finding some files
-  const $ = (...args) => join(cwd, ...args)
-  const files = {
-    packageJSON:     $('package.json'),
-    tsconfigJSON:    $('tsconfig.json'),
-    tsconfigESMJSON: $('tsconfig.esm.json'),
-    tsconfigCJSJSON: $('tsconfig.cjs.json'),
+  // Find file relative to working directory
+  function $ (...args) {
+    return join(cwd, ...args)
   }
 
-  // Output directory for ESM build
-  if (!existsSync(files.tsconfigESMJSON)) throw new Error('could not find tsconfig.esm.json')
-  const {
-    compilerOptions: {
-      outDir:         outDirESM         = './dist/esm',
-      declaration:    declarationESM    = true,
-      declarationDir: declarationDirESM = outDirESM
+  // Configuration loader
+  function getConfig (variant = '') {
+    const file = $(`tsconfig${variant}.json`)
+    if (existsSync(file)) {
+      const { compilerOptions = {} } = JSON.parse(readFileSync(file, 'utf8'))
+      return [compilerOptions.outDir, compilerOptions.declaration, compilerOptions.declarationDir]
+    } else {
+      console.info(`Not found:`, file)
+      return [undefined, undefined, undefined]
     }
-  } = JSON.parse(readFileSync(files.tsconfigESMJSON, 'utf8'))
+  }
 
-  // Output directory for CJS build
-  if (!existsSync(files.tsconfigCJSJSON)) throw new Error('could not find tsconfig.cjs.json')
-  const {
-    compilerOptions: {
-      outDir:         outDirCJS         = './dist/cjs',
-      declaration:    declarationCJS    = true,
-      declarationDir: declarationDirCJS = outDirCJS
-    }
-  } = JSON.parse(readFileSync(files.tsconfigCJSJSON, 'utf8'))
+  // Configuration - what files are emitted by the builds and where
+  let [outDir            = './dist',
+       declaration       = true,
+       declarationDir    = outDir]    = getConfig()
 
-  // Get original contents of package.json
-  const original    = readFileSync(files.packageJSON, 'utf8')
+  let [outDirEsm         = outDir + '/esm',
+       declarationEsm    = declaration,
+       declarationDirEsm = outDirEsm] = getConfig('.esm')
+
+  let [outDirCjs         = outDir + '/cjs',
+       declarationCjs    = declaration,
+       declarationDirCjs = outDirCjs] = getConfig('.cjs')
+
+  // Patch package.json
+  const original    = readFileSync($('package.json'), 'utf8')
   const packageJSON = JSON.parse(original)
-
   try {
+
     // Compile TS -> JS
     execSync(prepareCommand, { cwd, stdio: 'inherit' })
-    const toRelative = path => isAbsolute(path)?relative(cwd, path):path
-    Object.assign(files, { source: $(packageJSON.main || 'index.ts'), })
+    const toRelative       = path => isAbsolute(path)?relative(cwd, path):path
+    const source           = $(packageJSON.main || 'index.ts')
+    const browserSource    = $(packageJSON.browser || source)
     const replaceExtension = (x, a, b) => `${basename(x, a)}${b}`
-    Object.assign(files, {
-      esmBuild: $(outDirESM, replaceExtension(files.source, '.ts', '.esm.js')),
-      cjsBuild: $(outDirCJS, replaceExtension(files.source, '.ts', '.cjs.js')),
-    })
+    const esmBuild         = $(outDirESM, replaceExtension(files.source, '.ts', '.esm.js'))
+    const cjsBuild         = $(outDirCJS, replaceExtension(files.source, '.ts', '.cjs.js'))
+
     // Set main, types, and exports fields in package.json
-    if (packageJSON.type === "module") {
-      packageJSON.main = toRelative(files.esmBuild)
-      if (declarationESM) {
-        const types = replaceExtension(files.source, '.ts', '.d.ts')
-        packageJSON.types = toRelative($(declarationDirESM, types))
-      }
-      packageJSON.exports = {
-        source:  toRelative(files.source),
-        require: toRelative(files.cjsBuild),
-        default: toRelative(files.esmBuild)
-      }
-    } else {
-      packageJSON.main = toRelative(files.cjsBuild)
-      if (declarationCJS) {
-        const types = replaceExtension(files.source, '.ts', '.d.ts')
-        packageJSON.types = toRelative($(declarationDirCJS, types))
-      }
-      packageJSON.exports = {
-        source:  toRelative(files.source),
-        import:  toRelative(files.esmBuild),
-        default: toRelative(files.cjsBuild)
-      }
-    }
-    Object.assign(files, { typedefs: packageJSON.types })
-    // Set files field
+    Object.assign(packageJSON, (packageJSON.type === "module")
+      ? ({
+
+        main: toRelative(files.esmBuild),
+        exports: {
+          source:  toRelative(files.source),
+          require: toRelative(files.cjsBuild),
+          default: toRelative(files.esmBuild)
+        },
+        ...declarationESM ? { types: toRelative(
+          $(declarationDirESM, replaceExtension(files.source, '.ts', '.d.ts'))
+        ) } : {},
+
+      }) : ({
+
+        main: toRelative(files.cjsBuild),
+        exports: {
+          source:  toRelative(files.source),
+          import:  toRelative(files.esmBuild),
+          default: toRelative(files.cjsBuild)
+        },
+        ...declarationCJS ? { types: toRelative(
+          $(declarationDirCJS, replaceExtension(files.source, '.ts', '.d.ts'))
+        ) } : {},
+
+      }))
+
+    // Set "files" field of package.json
     const sortedDistinct = (a=[], b=[]) => [...new Set([...a, ...b])].sort()
-    packageJSON.files = sortedDistinct(packageJSON.files, Object.values(files).map(toRelative))
+    Object.assign(packageJSON, {
+      files: sortedDistinct(packageJSON.files, Object.values(files).map(toRelative))
+    })
+
     // Write modified package.json
     const modified = JSON.stringify(packageJSON, null, 2)
     console.log(modified)
-    writeFileSync(files.packageJSON, modified, 'utf8')
-    // Publish modified package to NPM
+    writeFileSync($('package.json'), modified, 'utf8')
+
+    // Publish the package, thus modified, to NPM
     console.log(`\npnpm publish --no-git-checks`, ...publishArgs)
     execFileSync(
       'pnpm', ['publish', '--no-git-checks', ...publishArgs],
       { cwd, stdio: 'inherit', env: process.env }
     )
+
     // Add Git tag
     execSync(`git tag -f "npm/${packageJSON.name}/${packageJSON.version}"`, { cwd, stdio: 'inherit' })
+
   } finally {
     // Restore original contents of package.json
-    writeFileSync(files.packageJSON, original, 'utf8')
+    writeFileSync($('package.json'), original, 'utf8')
   }
+
 }
