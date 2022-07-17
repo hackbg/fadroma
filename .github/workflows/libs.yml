@@ -1,10 +1,14 @@
 name: Fadroma
 on: [push, pull_request]
+
 jobs:
+
   rs-coverage:
     name: cargo tarpaulin
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        with: { submodules: true }
       - uses: actions-rs/toolchain@v1
         with:
           profile:   minimal
@@ -12,16 +16,15 @@ jobs:
           target:    wasm32-unknown-unknown
           override:  true
       - uses: Swatinem/rust-cache@v1
-      - uses: actions/checkout@v2
-        with: { submodules: true }
       - name: Prepare workspace
         run: cp _Cargo.toml Cargo.toml
       - uses: actions-rs/tarpaulin@v0.1
         with:
           version: '0.18.3'
           args: '--workspace --ignore-panics --ignore-tests --exclude-files=platforms/* --coveralls ${{secrets.COVERALLS_REPO_TOKEN}} --exclude-files platforms'
+
   js:
-    name: pnpm check
+    name: pnpm ts:check && pnpm ts:cov
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -31,9 +34,26 @@ jobs:
           version: 7.5.2
           run_install: |
             - recursive: true
-      - name: Print versions
-        run: node --version && npm --version && pnpm --version
-      - name: Run type checks
-        run: ls -al && pnpm ts:check
-      - name: Run tests and output coverage
-        run: ls -al && pnpm ts:cov
+      - run: node --version && npm --version && pnpm --version && ls -al && pnpm ts:ci
+
+  ci-images:
+    name: build container images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with: { submodules: recursive }
+      - name: Set up Docker Buildx
+        id:   buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to Github Packages
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v2
+        with:
+          context: .
+          tags:    ghcr.io/hackbg/fadroma:${{ github.ref }}
+          push:    true
+      - run: echo ${{ steps.docker_build.outputs.digest }}

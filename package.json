@@ -27,6 +27,7 @@
     "@types/node": "^16.11.36",
     "typedoc":     "^0.22.17",
 
+    "concurrently":    "7.2.2",
     "@hackbg/ensuite": "workspace:*",
     "c8":              "^7.11.3",
 
@@ -42,6 +43,7 @@
   "scripts": {
     "rs:build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cjs build",
 
+    "ts:ci":       "concurrently ts:check ts:cov",
     "ts:check":    "tsc --noEmit",
     "ts:test":     "time ensuite SPEC.ts.md",
     "ts:cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
