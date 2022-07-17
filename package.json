@@ -1,6 +1,6 @@
 {
   "name":         "@hackbg/toolbox",
-  "version":      "4.0.1",
+  "version":      "4.0.2",
   "type":         "module",
   "main":         "index.ts",
   "files":        [ "*.js" ],
@@ -10,12 +10,12 @@
   "license":      "MIT",
   "description":  "Baseline utilities.",
   "dependencies": {
-    "@hackbg/dokeres": "workspace:^4",
-    "@hackbg/kabinet": "workspace:^3",
-    "@hackbg/komandi": "workspace:^3",
-    "@hackbg/konzola": "workspace:^1",
-    "@hackbg/portali": "workspace:^1",
-    "@hackbg/runspec": "workspace:^2",
+    "@hackbg/dokeres": "workspace:^4.0.1",
+    "@hackbg/kabinet": "workspace:^3.0.2",
+    "@hackbg/komandi": "workspace:^3.0.2",
+    "@hackbg/konzola": "workspace:^1.1.1",
+    "@hackbg/portali": "workspace:^1.1.2",
+    "@hackbg/runspec": "workspace:^2.3",
 
     "bech32":              "^2.0.0",
     "open":                "^8.0.2",
