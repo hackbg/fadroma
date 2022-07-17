@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/runspec",
-  "version":     "2.2.1",
+  "version":     "2.3.0",
   "main":        "runspec.cjs",
   "types":       "runspec.d.ts",
   "homepage":    "https://github.com/hackbg/toolbox",
@@ -8,10 +8,14 @@
   "repository":  {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "runspec"},
   "license":     "MIT",
   "description": "Test runner.",
-  "bin": {
-    "runspec": "runspec.cjs"
-  },
+  "bin": { "runspec": "runspec.cjs" },
+  "files": ["README.md", "runspec.cjs", "runspec.d.ts"],
   "scripts": {
-    "release": "pnpm publish --access public"
+    "release:dry": "npm publish --dry-run",
+    "release:wet": "npm publish || true",
+
+    "ts:test":  "ganesha-node README.md",
+    "ts:check": "tsc --noEmit",
+    "ts:clean": "rm -rf dist packages/*/dist packages/*/types"
   }
 }

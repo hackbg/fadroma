@@ -1,6 +1,6 @@
 {
   "name":         "@hackbg/dokeres",
-  "version":      "3.0.0",
+  "version":      "4.0.0",
   "main":         "dokeres.ts",
   "type":         "module",
   "license":      "MIT",
@@ -8,17 +8,23 @@
   "bugs":         "https://github.com/hackbg/toolbox/issues",
   "repository":   {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "dokeres"},
   "description":  "Docker utilities.",
+  "files":        [ "README.md", "dokeres.ts", "dist" ],
   "dependencies": {
     "colors":          "^1.4.0",
     "dockerode":       "^3.3.1",
-    "@hackbg/konzola": "workspace:*"
+    "@hackbg/konzola": "workspace:^1"
   },
   "devDependencies": {
     "@types/dockerode": "^3.3.8"
   },
   "scripts": {
-    "build": "tsc",
-    "check": "tsc --noEmit",
-    "release": "izomorf"
+    "release:dry": "izomorf 'npm run ts:build' --dry-run",
+    "release:wet": "izomorf 'npm run ts:build'",
+
+    "ts:check":     "tsc --noEmit",
+    "ts:clean":     "rm -rf dist packages/*/dist packages/*/types",
+    "ts:build":     "npm run ts:clean && concurrently 'npm:ts:build:*'",
+    "ts:build:esm": "tsc --outDir dist/esm --target es6 --module es6 --declaration --declarationDir dist/dts",
+    "ts:build:cjs": "tsc --outDir dist/cjs --target es6 --module commonjs"
   }
 }

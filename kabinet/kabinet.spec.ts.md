@@ -1,3 +1,4 @@
+```typescript
 import $, { getDirName, TOMLFile } from './kabinet'
 
 const Spec = {}
@@ -23,3 +24,4 @@ test({
     )
   }
 })
+```

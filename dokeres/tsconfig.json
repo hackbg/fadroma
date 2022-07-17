@@ -1,10 +1,5 @@
 {
   "extends": "../tsconfig.json",
   "include": [ "*.ts" ],
-  "exclude": ["dist/", "types/"],
-  "compilerOptions": {
-    "outDir": "dist",
-    "declaration": true,
-    "declarationDir": "types"
-  }
+  "exclude": ["dist/"]
 }

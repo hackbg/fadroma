@@ -4,5 +4,10 @@
   "type":    "module",
   "main":    "izomorf.cjs",
   "bin":     { "izomorf": "./izomorf.cjs" },
-  "description": "Shim for publishing isomorphic TypeScript modules to NPM."
+  "description": "Shim for publishing isomorphic TypeScript modules to NPM.",
+  "files":   [ "README.md", "izomorf.cjs" ],
+  "scripts": {
+    "release:dry": "pnpm publish --access=public --dry-run",
+    "release:wet": "pnpm publish --access=public || true"
+  }
 }

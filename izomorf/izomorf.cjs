@@ -18,7 +18,6 @@ function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
       const { compilerOptions = {} } = JSON.parse(readFileSync(file, 'utf8'))
       return [compilerOptions.outDir, compilerOptions.declaration, compilerOptions.declarationDir]
     } else {
-      console.info(`Not found:`, file)
       return [undefined, undefined, undefined]
     }
   }
@@ -38,54 +37,43 @@ function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
 
   // Patch package.json
   const original    = readFileSync($('package.json'), 'utf8')
-  const packageJSON = JSON.parse(original)
+  const packageJson = JSON.parse(original)
   try {
 
     // Compile TS -> JS
     execSync(prepareCommand, { cwd, stdio: 'inherit' })
-    const toRelative       = path => isAbsolute(path)?relative(cwd, path):path
-    const source           = $(packageJSON.main || 'index.ts')
-    const browserSource    = $(packageJSON.browser || source)
+    const toRel       = path => isAbsolute(path)?relative(cwd, path):path
+    const source           = $(packageJson.main || 'index.ts')
+    const browserSource    = $(packageJson.browser || source)
     const replaceExtension = (x, a, b) => `${basename(x, a)}${b}`
-    const esmBuild         = $(outDirESM, replaceExtension(files.source, '.ts', '.esm.js'))
-    const cjsBuild         = $(outDirCJS, replaceExtension(files.source, '.ts', '.cjs.js'))
+    const esmBuild         = $(outDirEsm, replaceExtension(source, '.ts', '.js'))
+    const cjsBuild         = $(outDirCjs, replaceExtension(source, '.ts', '.js'))
 
     // Set main, types, and exports fields in package.json
-    Object.assign(packageJSON, (packageJSON.type === "module")
-      ? ({
+    if (packageJson.type === 'module') { patchPackageJsonEsm() } else { patchPackageJsonCjs() }
+    function patchPackageJsonEsm () {
+      Object.assign(packageJson, {
+        main:    toRel(esmBuild),
+        exports: { source: toRel(source), require: toRel(cjsBuild), default: toRel(esmBuild) },
+      })
+      if (declarationEsm) packageJson.types = toRel(
+        $(declarationDirEsm, replaceExtension(source, '.ts', '.d.ts'))
+      )
+    }
+    function patchPackageJsonCjs () {
+      Object.assign(packageJson, {
+        main:    toRel(cjsBuild),
+        exports: { source: toRel(source), import: toRel(esmBuild), default: toRel(cjsBuild) },
+      })
+      if (declarationCjs) packageJson.types = toRel(
+        $(declarationDirCjs, replaceExtension(source, '.ts', '.d.ts'))
+      )
+    }
 
-        main: toRelative(files.esmBuild),
-        exports: {
-          source:  toRelative(files.source),
-          require: toRelative(files.cjsBuild),
-          default: toRelative(files.esmBuild)
-        },
-        ...declarationESM ? { types: toRelative(
-          $(declarationDirESM, replaceExtension(files.source, '.ts', '.d.ts'))
-        ) } : {},
-
-      }) : ({
-
-        main: toRelative(files.cjsBuild),
-        exports: {
-          source:  toRelative(files.source),
-          import:  toRelative(files.esmBuild),
-          default: toRelative(files.cjsBuild)
-        },
-        ...declarationCJS ? { types: toRelative(
-          $(declarationDirCJS, replaceExtension(files.source, '.ts', '.d.ts'))
-        ) } : {},
-
-      }))
-
-    // Set "files" field of package.json
-    const sortedDistinct = (a=[], b=[]) => [...new Set([...a, ...b])].sort()
-    Object.assign(packageJSON, {
-      files: sortedDistinct(packageJSON.files, Object.values(files).map(toRelative))
-    })
+    packageJson.types = $(outDir, 'types', replaceExtension(source, '.ts', '.d.ts'))
 
     // Write modified package.json
-    const modified = JSON.stringify(packageJSON, null, 2)
+    const modified = JSON.stringify(packageJson, null, 2)
     console.log(modified)
     writeFileSync($('package.json'), modified, 'utf8')
 
@@ -97,7 +85,7 @@ function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
     )
 
     // Add Git tag
-    execSync(`git tag -f "npm/${packageJSON.name}/${packageJSON.version}"`, { cwd, stdio: 'inherit' })
+    execSync(`git tag -f "npm/${packageJson.name}/${packageJson.version}"`, { cwd, stdio: 'inherit' })
 
   } finally {
     // Restore original contents of package.json

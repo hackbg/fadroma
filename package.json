@@ -10,8 +10,8 @@
   "license":      "MIT",
   "description":  "Baseline utilities.",
   "dependencies": {
-    "@hackbg/dokeres": "workspace:^3",
-    "@hackbg/kabinet": "workspace:^2",
+    "@hackbg/dokeres": "workspace:^4",
+    "@hackbg/kabinet": "workspace:^3",
     "@hackbg/komandi": "workspace:^3",
     "@hackbg/konzola": "workspace:^1",
     "@hackbg/portali": "workspace:^1",
@@ -23,17 +23,23 @@
     "signal-exit":         "^3.0.3"
   },
   "devDependencies": {
-    "dts-gen":    "^0.6.0",
-    "typedoc":    "beta",
-    "typescript": "^4.7",
-    "@hackbg/izomorf": "workspace:*"
+    "@hackbg/izomorf": "workspace:*",
+    "@types/node":     "latest",
+    "concurrently":    "7.2.2",
+    "typedoc":         "beta",
+    "typescript":      "^4.7"
   },
   "scripts": {
-    "build":       "tsc",
-    "check":       "tsc --noEmit",
-    "release":     "izomorf",
-    "document":    "typedoc index.d.ts",
-    "release-all": "pnpm -r release"
+    "release:dry":  "pnpm -r release:dry",
+    "release:wet":  "pnpm -r release:wet",
+
+    "ts:check":     "tsc --noEmit",
+    "ts:clean":     "rm -rf dist packages/*/dist packages/*/types",
+    "ts:build":     "npm run ts:clean && concurrently 'npm:ts:build:*'",
+    "ts:build:cjs": "ttsc -p tsconfig.cjs.json",
+    "ts:build:esm": "tsc -p tsconfig.esm.json",
+
+    "docs:typedoc": "typedoc index.d.ts"
   },
   "workspace": true,
   "packages": [

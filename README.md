@@ -18,5 +18,7 @@ General utilities for Node.js.
 |[**`@hackbg/portali`**](./portali/README.md)|[![NPM version](https://img.shields.io/npm/v/@hackbg/portali?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/portali)|**Network port utilities.**    |
 |[**`@hackbg/runspec`**](./runspec/README.md)|[![NPM version](https://img.shields.io/npm/v/@hackbg/runspec?color=9013fe&label=)](https://www.npmjs.com/package/@hackbg/runspec)|**Test runner and reporter.**  |
 
-Used by [Fadroma](https://github.com/hackbg/fadroma), the distributed application framework by [Hack.bg](https://hack.bg),<br>
-and [Ensuite](https://github.com/hackbg/ensuite), the associated testing and validation framework.
+Used by [**Fadroma**](https://github.com/hackbg/fadroma), the distributed application framework by [**Hack.bg**](https://hack.bg),<br>
+and [**Ensuite**](https://github.com/hackbg/ensuite), the associated testing and validation framework.
+
+</div>

@@ -83,8 +83,8 @@ export class Client <Op> {
   }
 
   terminate () {
-    if (this.port.terminate) {
-      this.port.terminate()
+    if ((this.port as any).terminate) {
+      (this.port as any).terminate()
     } else if (this.port.close) {
       this.port.close()
     } else {
