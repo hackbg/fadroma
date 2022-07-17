@@ -21,7 +21,7 @@ jobs:
             - recursive: true
               args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: Generate TS reference
-        run:  NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedocs
+        run:  NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedoc
       - name: Generate VitePress guide
         run:  pnpm docs:vp:build
       - name: Collect docs
