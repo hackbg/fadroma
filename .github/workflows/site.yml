@@ -5,9 +5,8 @@ jobs:
     name: build website
     runs-on: ubuntu-latest
     steps:
-      - name: Get the source with its submodules
+      - name: Get the source, no submodules
         uses: actions/checkout@v2
-        with: { submodules: "recursive" }
       - name: Determine default branch
         run: |
           DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
@@ -21,9 +20,9 @@ jobs:
             - recursive: true
               args: [--frozen-lockfile, --strict-peer-dependencies]
       - name: Generate TS reference
-        run:  NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedocs
+        run:  NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedoc
       - name: Generate VitePress guide
-        run:  pnpm docs:vp:build
+        run:  VITEPRESS_BASE="/${{ github.ref_name }}/" pnpm docs:vp:build
       - name: Get a Rust toolchain going
         uses: actions-rs/toolchain@v1
         with:
@@ -41,21 +40,29 @@ jobs:
       - name: Collect docs
         run: |
           mkdir -p dist/docs
-          mv    .vitepress/dist/* dist/docs
-          mv    target/doc dist/docs/rs
-          mv    docs dist/docs/rs
-          tar   -cvf dist/docs/nix shell.nix
+          mv .vitepress/dist/* dist/docs
+          mv target/doc dist/docs/rs
+          mv docs dist/docs/ts
+          tar -cvf dist/docs/nix shell.nix
       - name: Publish docs
         run: |
+          pwd
+          ls -al
+          ls -al ~
+          git remote get-url origin
           git fetch origin gh-pages
-          git clone -b gh-pages .git ~/page
-          rm -rf "~/page/{{github.ref_name}}"
-          mkdir -p "~/page/{{github.ref_name}}"
-          mv dist/docs/* "~/page/{{github.ref_name}}"
-          cd ~/page
+          cat .git/config
+          echo $(git show-ref --verify refs/remotes/origin/gh-pages | cut -c-40) > .git/refs/heads/gh-pages
+          mkdir -p ../page
+          mv dist/docs/* ../page
+          git checkout gh-pages
+          git clean -fdx
           touch .nojekyll
-          echo "fadroma.tech" > CHAME
+          echo "fadroma.tech" > CNAME
+          rm -rf "${{ github.ref_name }}"
+          mv ../page  "${{ github.ref_name }}"
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
-          git commit -m "🤖 built docs for {{ github.ref_name }} @ $(date -u)"
-          git push --force
+          git add .
+          git commit -m "🤖 built docs for ${{ github.ref_name }} @ $(date -u)" || true
+          git push -u origin gh-pages --force

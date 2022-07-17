@@ -1,16 +1,10 @@
 <div align="center">
 
-```
-"I was always willing to be reasonable until I had to be unreasonable.
- Sometimes reasonable men must do unreasonable things."
-                                     - Marvin Heemeyer
-```
-
-[![](/homepage/logo.svg)](https://fadroma.tech)
-
 *Level the landscape.*
 
-**Essential groundwork** for **dApp development** with **Rust** and **TypeScript**.
+[![Fadroma](/homepage/logo.svg)](https://fadroma.tech)
+
+**Essential groundwork** for **dApp development** with **Rust** and **TypeScript** on **Secret Network**.
 
 [![](https://img.shields.io/npm/v/@hackbg/fadroma?color=%2365b34c&label=%40hackbg%2Ffadroma&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/fadroma)
 
@@ -37,7 +31,7 @@ build your dApp with Fadroma.
 "The reasonable man adapts himself to the world;
  the unreasonable one persists in trying to adapt the world to himself.
  Therefore, all progress depends on the unreasonable man."
-                                    - George Bernard Shaw
+                                    - Marvin Heemeyer
 ```
 
 ---

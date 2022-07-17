@@ -22,7 +22,7 @@
     "ts:test:cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
 
     "docs:homepage":    "node homepage/render.js",
-    "docs:typedocs":    "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints .",
+    "docs:typedoc":     "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints .",
     "docs:lcov":        "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
     "docs:vp:dev":      "vitepress dev",
     "docs:vp:build":    "vitepress build",

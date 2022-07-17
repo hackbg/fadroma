@@ -7,8 +7,8 @@ jobs:
     name: cargo publish --dry-run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-        with: { submodules: true }
+      - name: Get the source, no submodules
+        uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile:   minimal
@@ -18,10 +18,11 @@ jobs:
       - name: Unveil Cargo.toml
         run: cp _Cargo.toml Cargo.toml
       - name: Run cargo publish --dry-run
-        run: cargo publish --dry-run -p fadroma-platform-scrt
-        run: cargo publish --dry-run -p fadroma-proc-auth
-        run: cargo publish --dry-run -p fadroma-proc-derive
-        run: cargo publish --dry-run -p fadroma-proc-message
+        run: |
+          cargo publish --dry-run -p fadroma-platform-scrt
+          cargo publish --dry-run -p fadroma-proc-auth
+          cargo publish --dry-run -p fadroma-proc-derive
+          cargo publish --dry-run -p fadroma-proc-message
 
   rs-coverage:
     name: cargo tarpaulin
