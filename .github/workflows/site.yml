@@ -1,0 +1,44 @@
+name: https://hackbg.github.io/toolbox
+on: [push]
+jobs:
+  site:
+    name: build website
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the source with its submodules
+        uses: actions/checkout@v2
+        with: { submodules: "recursive" }
+      - name: Determine default branch
+        run: |
+          DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+          echo "default_branch=$DEFAULT_BRANCH" >> $GITHUB_ENV
+          echo "default_branch_ref=refs/heads/$DEFAULT_BRANCH" >> $GITHUB_ENV
+      - name: Setup Node and PNPM
+        uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 7.5.2
+          run_install: |
+            - recursive: true
+              args: [--frozen-lockfile, --strict-peer-dependencies]
+      - name: Generate TS reference
+        run:  NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedocs
+      - name: Generate VitePress guide
+        run:  pnpm docs:vp:build
+      - name: Collect docs
+        run: |
+          mkdir -p dist/docs
+          mv .vitepress/dist/* dist/docs
+      - name: Publish docs
+        run: |
+          git fetch origin gh-pages
+          echo $(git show-ref --verify refs/remotes/origin/gh-pages | cut -c-40) > .git/branches
+          git clone -b gh-pages .git ~/page
+          rm -rf "~/page/{{github.ref_name}}"
+          mkdir -p "~/page/{{github.ref_name}}"
+          mv dist/docs/* "~/page/{{github.ref_name}}"
+          cd ~/page
+          touch .nojekyll
+          git config --global user.email "hello@hack.bg"
+          git config --global user.name "hack.bg"
+          git commit -m "🤖 built docs for {{ github.ref_name }} @ $(date -u)"
+          git push --force
