@@ -34,10 +34,9 @@ async function izomorf (cwd, dryWet, ...publishArgs) {
   const name    = packageJson.name
   const version = packageJson.version
   const url     = `https://registry.npmjs.org/${name}/${version}`
-  console.info('Checking that', url, 'is free...')
   const response = await fetch(url)
   if (response.status === 200) {
-    console.log(`${name} ${version} already exists. Not publishing.`)
+    console.log(`${name} ${version} already exists, not publishing:`, url)
     return
   } else if (response.status !== 404) {
     throw new Error(`izomorf: NPM returned ${response.statusCode}`)
