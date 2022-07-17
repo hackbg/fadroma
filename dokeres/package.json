@@ -19,6 +19,6 @@
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
-    "release": "izdatel"
+    "release": "izomorf"
   }
 }

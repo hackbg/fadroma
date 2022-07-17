@@ -1,0 +1,8 @@
+{
+  "name":    "@hackbg/izomorf",
+  "version": "1.0.0",
+  "type":    "module",
+  "main":    "izomorf.cjs",
+  "bin":     { "izomorf": "./izomorf.cjs" },
+  "description": "Shim for publishing isomorphic TypeScript modules to NPM."
+}

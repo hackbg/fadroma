@@ -32,6 +32,6 @@
     "test":    "time ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
     "cov":     "Ganesha_NoSourceMap=1 time c8 -r text -x *.spec.* ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
     "lcov":    "Ganesha_NoSourceMap=1 time c8 -r lcov -x *.spec.* ganesha-node node_modules/@hackbg/runspec kabinet.spec.ts",
-    "release": "izdatel"
+    "release": "izomorf"
   }
 }

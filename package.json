@@ -26,12 +26,12 @@
     "dts-gen":    "^0.6.0",
     "typedoc":    "beta",
     "typescript": "^4.7",
-    "@hackbg/izdatel": "workspace:*"
+    "@hackbg/izomorf": "workspace:*"
   },
   "scripts": {
     "build":       "tsc",
     "check":       "tsc --noEmit",
-    "release":     "izdatel",
+    "release":     "izomorf",
     "document":    "typedoc index.d.ts",
     "release-all": "pnpm -r release"
   },
@@ -40,7 +40,7 @@
     "./dokeres",
     "./forkers",
     "./formati",
-    "./izdatel",
+    "./izomorf",
     "./kabinet",
     "./komandi",
     "./konzola",

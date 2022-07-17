@@ -20,6 +20,6 @@
     "build":   "tsc",
     "check":   "tsc --noEmit",
     "test":    "ganesha-node README.md",
-    "release": "izdatel"
+    "release": "izomorf"
   }
 }

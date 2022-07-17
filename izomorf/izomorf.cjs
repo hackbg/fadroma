@@ -2,9 +2,9 @@ const { resolve, basename, relative, join, isAbsolute } = require('path')
 const { existsSync, readFileSync, writeFileSync } = require('fs')
 const { execSync, execFileSync } = require('child_process')
 const process = require('process')
-module.exports = module.exports.default = izdatel
-if (require.main === module) izdatel(process.cwd(), ...process.argv.slice(2))
-function izdatel (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
+module.exports = module.exports.default = izomorf
+if (require.main === module) izomorf(process.cwd(), ...process.argv.slice(2))
+function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
 
   // Finding some files
   const $ = (...args) => join(cwd, ...args)
