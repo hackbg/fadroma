@@ -23,15 +23,15 @@
     "signal-exit":         "^3.0.3"
   },
   "devDependencies": {
-    "@hackbg/izomorf": "workspace:^2",
+    "@hackbg/izomorf": "workspace:^2.0.1",
     "@types/node":     "latest",
     "concurrently":    "7.2.2",
     "typedoc":         "beta",
     "typescript":      "^4.7"
   },
   "scripts": {
-    "release:dry":  "pnpm -r release:dry",
-    "release:wet":  "pnpm -r release:wet",
+    "release:dry":  "pnpm -r release:dry && izomorf dry",
+    "release:wet":  "pnpm -r release:wet && izomorf wet",
 
     "ts:check":     "tsc --noEmit",
     "ts:clean":     "rm -rf dist packages/*/dist packages/*/types",

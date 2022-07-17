@@ -116,7 +116,7 @@ async function izomorf (cwd, dryWet, ...publishArgs) {
 
   // Convert absolute path to relative
   function toRel (path) {
-    `./${isAbsolute(path)?relative(cwd, path):path}`
+    return `./${isAbsolute(path)?relative(cwd, path):path}`
   }
 
 }
