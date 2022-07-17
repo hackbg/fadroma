@@ -17,7 +17,7 @@ importers:
       '@hackbg/ganesha': ^2.2
       '@hackbg/izomorf': ^2
       '@hackbg/kabinet': ^3.0.2
-      '@hackbg/komandi': ^3
+      '@hackbg/komandi': ^3.0.3
       '@hackbg/konzola': ^1.0.8
       '@magic-works/commonjs-import.meta': ^1.0.1
       '@types/node': ^16.11.36
@@ -46,7 +46,7 @@ importers:
       '@hackbg/formati': 1.0.2
       '@hackbg/ganesha': 2.2.4
       '@hackbg/kabinet': 3.0.2
-      '@hackbg/komandi': 3.0.2
+      '@hackbg/komandi': 3.0.3
       '@hackbg/konzola': 1.1.1
       dotenv: 15.0.1
     devDependencies:
@@ -501,8 +501,8 @@ packages:
       toml: 3.0.0
     dev: false
 
-  /@hackbg/komandi/3.0.2:
-    resolution: {integrity: sha512-Kem56wbKEz+5+MjJc23k3GzdeNtGwzn3KUg8WfX5Ww5ju60pdJIcwEwyFFLc/ccEtYwzthavokDNeycrhMFnMA==}
+  /@hackbg/komandi/3.0.3:
+    resolution: {integrity: sha512-KAHSU09RngIKSDZo8ySituD1jsU0t9gU0ZAKxqjA/lGLomoPEu04TO7yTluE2PevHH0C7U25ilS+H5aHXWItbw==}
     dependencies:
       '@hackbg/kabinet': 3.0.2
       '@hackbg/konzola': 1.1.1

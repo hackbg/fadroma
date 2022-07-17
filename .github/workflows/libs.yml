@@ -18,7 +18,10 @@ jobs:
       - name: Unveil Cargo.toml
         run: cp _Cargo.toml Cargo.toml
       - name: Run cargo publish --dry-run
-        run: cargo publish --dry-run
+        run: cargo publish --dry-run -p fadroma-platform-scrt
+        run: cargo publish --dry-run -p fadroma-proc-auth
+        run: cargo publish --dry-run -p fadroma-proc-derive
+        run: cargo publish --dry-run -p fadroma-proc-message
 
   rs-coverage:
     name: cargo tarpaulin

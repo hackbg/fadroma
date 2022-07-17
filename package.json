@@ -40,7 +40,7 @@
     "@hackbg/ganesha":            "^2.2",
     "@hackbg/dokeres":            "^4.0.2",
     "@hackbg/kabinet":            "^3.0.2",
-    "@hackbg/komandi":            "^3",
+    "@hackbg/komandi":            "^3.0.3",
     "@hackbg/konzola":            "^1.0.8",
     "@hackbg/formati":            "^1.0.2"
   },
