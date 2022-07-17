@@ -4,17 +4,13 @@
   "type":    "module",
   "main":    "tokens.ts",
   "dependencies": {
-    "@hackbg/konzola":      "workspace:*",
+    "@hackbg/konzola":      "workspace:^1",
     "@fadroma/client":      "workspace:^3.0.0",
     "@fadroma/client-scrt": "workspace:^4.0.0"
-  },
-  "devDependencies": {
-    "typescript":      "^4.7",
-    "@hackbg/izdatel": "workspace:*"
   },
   "scripts": {
     "build":   "tsc",
     "check":   "tsc --noEmit",
-    "release": "izdatel"
+    "release": "izomorf"
   }
 }

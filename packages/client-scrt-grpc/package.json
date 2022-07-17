@@ -3,20 +3,13 @@
   "version": "5.0.0",
   "type":    "module",
   "main":    "scrt-grpc.ts",
-  "ganesha": {
-    "main": "scrt-grpc.ts"
-  },
   "dependencies": {
     "@fadroma/client-scrt": "workspace:^4.0.1",
     "secretjs":             "beta"
   },
-  "devDependencies": {
-    "typescript":      "^4.7",
-    "@hackbg/izdatel": "workspace:^0"
-  },
   "scripts": {
     "build":   "tsc",
     "check":   "tsc --noEmit",
-    "release": "izdatel"
+    "release": "izomorf"
   }
 }
