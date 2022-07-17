@@ -4,14 +4,12 @@
   "type":    "module",
   "main":    "scrt-amino.ts",
   "dependencies": {
-    "@fadroma/client-scrt": "workspace:^4.0.0",
+    "@fadroma/client-scrt": "workspace:^4",
     "@cosmjs/crypto":       "^0.20.0",
     "@iov/encoding":        "^2.1.0",
     "secretjs":             "0.17.5",
-    "exponential-backoff":  "^3.1.0"
-  },
-  "optionalDependencies": {
-    "axios": "^0.26.0"
+    "exponential-backoff":  "^3.1.0",
+    "axios":                "^0.26.0"
   },
   "scripts": {
     "build":   "tsc",

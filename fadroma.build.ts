@@ -1,3 +1,5 @@
+/// # Fadroma CLI: Build command
+
 import $, { Path, OpaqueDirectory, OpaqueFile, TOMLFile } from '@hackbg/kabinet'
 import { Workspace, getScrtBuilder, Source, Console, bold, currentConfig } from '.'
 
@@ -5,7 +7,7 @@ type CargoTOML = TOMLFile<{ package: { name: string } }>
 
 const console = Console('Fadroma Build')
 
-$(import.meta.url).entrypoint(buildCommand)
+buildCommand(process.argv.slice(2))
 
 export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
 

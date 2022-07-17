@@ -5,7 +5,7 @@
   "main":    "scrt.ts",
   "dependencies": {
     "@fadroma/client": "workspace:^3",
-    "@hackbg/formati": "workspace:^1"
+    "@hackbg/formati": "^1"
   },
   "scripts": {
     "build":   "tsc",

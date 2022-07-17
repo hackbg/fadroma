@@ -8,14 +8,25 @@
     "allowJs":                      true,
     "resolveJsonModule":            true,
     "downlevelIteration":           true,
-    "lib":                          ["ES2020", "DOM"]
+    "lib":                          ["ES2020", "DOM"],
+    "plugins": [
+      { "transform": "@magic-works/commonjs-import.meta" }
+    ]
   },
   "exclude": [
+    "fadroma.cli.cjs",
     "**/*.spec.ts",
-    "commands/**/*",
+    "dist/**/*",
+    "types",
+    "packages/*/dist",
+    "packages/*/types",
+    "ensuite",
+    "fixtures",
+    "homepage",
+    "packages/**/*",
     "packages/*/types",
     "packages/ops/wip/**/*",
-    "typedoc-theme.tsx",
-    "ensuite"
+    "shim",
+    "typedoc-theme.tsx"
   ]
 }

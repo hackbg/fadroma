@@ -15,8 +15,9 @@ Fadroma Ops.
 
 ### Add Fadroma and your script to `package.json`
 
+* `workspace/package.json`
+
 ```json
-// /path/to/your/project/package.json
 {
   "devDependencies": {
     "fadroma": "^100.0.0"
@@ -35,38 +36,22 @@ deploy procedures.
 
 ### Set up the deploy script
 
-Here's a starter template for a deploy script:
+* `workspace/fadroma.ts'`:
 
 ```typescript
-// /path/to/your/project/deploy.ts
-
 import Fadroma, { Workspace } from '@hackbg/fadroma'
 import type { OperationContext } from '@hackbg/fadroma'
 
-const common = [
-  Fadroma.Build.Scrt,
-  Fadroma.Chain.FromEnv,
-  Fadroma.Upload.FromFile,
-]
+export default Fadroma.Deploy()
+  .command('new',
+    Fadroma.Deploy.new,
+    deployMyContract)
+  .command('add'
+    Fadroma.Deploy.append,
+    deployMyContract)
+  .entrypoint(import.meta.url)
 
-Fadroma.command('new',
-  ...common,
-  Fadroma.Deploy.New,
-  deployMyContract
-)
-
-Fadroma.command('add'
-  ...common,
-  Fadroma.Deploy.Append,
-  deployMyContract
-)
-
-interface DeployMyContract extends OperationContext {
-  param1: any
-  param2: any
-}
-
-async function deployMyContract (context: DeployMyContract) {
+async function deployMyContract (ops) {
   /* we'll implement the deployment procedure here */
 }
 

@@ -25,6 +25,7 @@ import {
   makeSignBytes,
   pubkeyToAddress, 
 } from 'secretjs'
+import Axios from 'axios'
 
 export const ERR_ZERO_RECIPIENTS =
   'Tried to send to 0 recipients'
@@ -533,17 +534,9 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   _queryUrl = ''
 
   _queryClient = null
-
   get queryClient () {
     if (this._queryClient) return this._queryClient
-    return this._queryClient = import('axios').then(axios=>axios.default.create({
-      baseURL: this._queryUrl,
-    })).catch(e=>{
-      console.warn('Failed to create query client:', e.message, ' - falling back to default client')
-      console.error(e)
-      // @ts-ignore
-      return this.client
-    })
+    return this._queryClient = Axios.create({ baseURL: this._queryUrl })
   }
 
   async get (path) {

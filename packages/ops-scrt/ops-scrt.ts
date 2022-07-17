@@ -93,12 +93,15 @@ export function getScrtBuilder ({
 export class ScrtRawBuilder extends RawBuilder {}
 
 export class ScrtDockerBuilder extends DockerBuilder {
+  static dockerfile = resolve(__dirname, 'build.Dockerfile')
+  static script     = resolve(__dirname, 'build-impl.mjs')
+  static service    = resolve(__dirname, 'build-server.mjs')
   constructor ({
     caching,
     image,
-    dockerfile = resolve(__dirname, 'build.Dockerfile'),
-    script     = resolve(__dirname, 'build-impl.mjs'),
-    service    = resolve(__dirname, 'build-server.mjs')
+    dockerfile = ScrtDockerBuilder.dockerfile,
+    script     = ScrtDockerBuilder.script,
+    service    = ScrtDockerBuilder.service
   }: Partial<ScrtBuilderOptions> = {}) {
     super({
       caching,
@@ -114,13 +117,30 @@ export class ScrtDockerBuilder extends DockerBuilder {
 
 export type ScrtDevnetVersion = '1.2'|'1.3'
 
+export class ScrtDevnet extends DockerDevnet {
+  static dockerfiles: Record<ScrtDevnetVersion, string> = {
+    '1.2': resolve(__dirname, 'devnet_1_2.Dockerfile'),
+    '1.3': resolve(__dirname, 'devnet_1_3.Dockerfile')
+  }
+  static dockerTags: Record<ScrtDevnetVersion, string> = {
+    '1.2': 'fadroma/scrt-devnet:1.2',
+    '1.3': 'fadroma/scrt-devnet:1.3',
+  }
+  static portModes: Record<ScrtDevnetVersion, DevnetPortMode> = {
+    '1.2': 'lcp',
+    '1.3': 'grpcWeb'
+  }
+  static initScriptName    = 'devnet-init.mjs'
+  static managerScriptName = 'devnet-manager.mjs'
+}
+
 export function getScrtDevnet (
   version:    ScrtDevnetVersion,
   managerURL: string  = undefined,
   chainId:    string  = undefined,
   dokeres:    Dokeres = new Dokeres()
 ) {
-  const portMode = scrtDevnetPortModes[version]
+  const portMode = ScrtDevnet.portModes[version]
   if (managerURL) {
     return RemoteDevnet.getOrCreate(
       managerURL,
@@ -129,29 +149,14 @@ export function getScrtDevnet (
       portMode
     )
   } else {
-    const dockerfile  = scrtDevnetDockerfiles[version]
-    const imageTag    = scrtDevnetDockerTags[version]
-    const image       = dokeres.image(imageTag, dockerfile, [initScriptName, managerScriptName])
+    const dockerfile  = ScrtDevnet.dockerfiles[version]
+    const imageTag    = ScrtDevnet.dockerTags[version]
     const readyPhrase = 'indexed block'
-    const initScript  = resolve(__dirname, initScriptName)
+    const initScript  = resolve(__dirname, ScrtDevnet.initScriptName)
+    const image       = dokeres.image(imageTag, dockerfile, [
+      ScrtDevnet.initScriptName,
+      ScrtDevnet.managerScriptName
+    ])
     return new DockerDevnet({ portMode, image, readyPhrase, initScript })
   }
 }
-
-export const scrtDevnetDockerfiles: Record<ScrtDevnetVersion, string> = {
-  '1.2': resolve(__dirname, 'devnet_1_2.Dockerfile'),
-  '1.3': resolve(__dirname, 'devnet_1_3.Dockerfile')
-}
-
-export const scrtDevnetDockerTags: Record<ScrtDevnetVersion, string> = {
-  '1.2': 'fadroma/scrt-devnet:1.2',
-  '1.3': 'fadroma/scrt-devnet:1.3',
-}
-
-export const scrtDevnetPortModes: Record<ScrtDevnetVersion, DevnetPortMode> = {
-  '1.2': 'lcp',
-  '1.3': 'grpcWeb'
-}
-
-export const initScriptName    = 'devnet-init.mjs'
-export const managerScriptName = 'devnet-manager.mjs'

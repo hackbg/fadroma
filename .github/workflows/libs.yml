@@ -3,6 +3,23 @@ on: [push, pull_request]
 
 jobs:
 
+  rs-publish:
+    name: cargo publish --dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with: { submodules: true }
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile:   minimal
+          toolchain: stable
+          target:    wasm32-unknown-unknown
+          override:  true
+      - name: Unveil Cargo.toml
+        run: cp _Cargo.toml Cargo.toml
+      - name: Run cargo publish --dry-run
+        run: cargo publish --dry-run
+
   rs-coverage:
     name: cargo tarpaulin
     runs-on: ubuntu-latest
@@ -16,7 +33,7 @@ jobs:
           target:    wasm32-unknown-unknown
           override:  true
       - uses: Swatinem/rust-cache@v1
-      - name: Prepare workspace
+      - name: Unveil Cargo.toml
         run: cp _Cargo.toml Cargo.toml
       - uses: actions-rs/tarpaulin@v0.1
         with:
@@ -24,7 +41,7 @@ jobs:
           args: '--workspace --ignore-panics --ignore-tests --exclude-files=platforms/* --coveralls ${{secrets.COVERALLS_REPO_TOKEN}} --exclude-files platforms'
 
   js:
-    name: pnpm ts:check && pnpm ts:cov
+    name: pnpm ts:ci
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -34,7 +51,7 @@ jobs:
           version: 7.5.2
           run_install: |
             - recursive: true
-      - run: node --version && npm --version && pnpm --version && ls -al && pnpm ts:ci
+      - run: pnpm ts:ci
 
   ci-images:
     name: build container images

@@ -4,9 +4,9 @@
   "type":    "module",
   "main":    "tokens.ts",
   "dependencies": {
-    "@hackbg/konzola":      "workspace:^1",
-    "@fadroma/client":      "workspace:^3.0.0",
-    "@fadroma/client-scrt": "workspace:^4.0.0"
+    "@hackbg/konzola":      "^1.1",
+    "@fadroma/client":      "workspace:^3",
+    "@fadroma/client-scrt": "workspace:^4"
   },
   "scripts": {
     "build":   "tsc",
