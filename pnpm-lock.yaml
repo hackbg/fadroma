@@ -5,7 +5,7 @@ importers:
   .:
     specifiers:
       '@hackbg/dokeres': workspace:^4
-      '@hackbg/izomorf': workspace:*
+      '@hackbg/izomorf': workspace:^2
       '@hackbg/kabinet': workspace:^3
       '@hackbg/komandi': workspace:^3
       '@hackbg/konzola': workspace:^1
@@ -32,7 +32,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/izomorf': link:izomorf
-      '@types/node': 18.0.5
+      '@types/node': 18.0.6
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.7.2
       typescript: 4.7.2
@@ -74,7 +74,10 @@ importers:
       secure-random: 1.1.2
 
   izomorf:
-    specifiers: {}
+    specifiers:
+      node-fetch: ^2
+    dependencies:
+      node-fetch: 2.6.7
 
   kabinet:
     specifiers:
@@ -228,7 +231,7 @@ packages:
       '@ganesha/core': 1.1.0
       '@ganesha/node': 2.1.0
       '@ganesha/node-legacy': 1.0.0
-      '@types/node': 18.0.5
+      '@types/node': 18.0.6
       chokidar: 3.5.3
       cross-spawn: 7.0.3
     dev: true
@@ -303,6 +306,10 @@ packages:
 
   /@types/node/18.0.5:
     resolution: {integrity: sha512-En7tneq+j0qAiVwysBD79y86MT3ModuoIJbe7JXp+sb5UAjInSShmK3nXXMioBzfF7rXC12hv12d4IyCVwN4dA==}
+    dev: true
+
+  /@types/node/18.0.6:
+    resolution: {integrity: sha512-/xUq6H2aQm261exT6iZTMifUySEt4GR5KX8eYyY+C4MSNPqSh9oNIP7tz2GLKTlFaiBbgZNxffoR3CVRG+cljw==}
     dev: true
 
   /@types/prettyjson/0.0.30:
@@ -1082,6 +1089,18 @@ packages:
     dev: false
     optional: true
 
+  /node-fetch/2.6.7:
+    resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
+    engines: {node: 4.x || >=6.0.0}
+    peerDependencies:
+      encoding: ^0.1.0
+    peerDependenciesMeta:
+      encoding:
+        optional: true
+    dependencies:
+      whatwg-url: 5.0.0
+    dev: false
+
   /normalize-path/3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
@@ -1479,6 +1498,10 @@ packages:
     resolution: {integrity: sha512-y/mWCZinnvxjTKYhJ+pYxwD0mRLVvOtdS2Awbgxln6iEnt4rk0yBxeSBHkGJcPucRiG0e55mwWp+g/05rsrd6w==}
     dev: false
 
+  /tr46/0.0.3:
+    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+    dev: false
+
   /tree-kill/1.2.2:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
     hasBin: true
@@ -1547,6 +1570,17 @@ packages:
   /vscode-textmate/5.2.0:
     resolution: {integrity: sha512-Uw5ooOQxRASHgu6C7GVvUxisKXfSgW4oFlO+aa+PAkgmH89O3CXxEEzNRNtHSqtXFTl0nAC1uYj0GMSH27uwtQ==}
     dev: true
+
+  /webidl-conversions/3.0.1:
+    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+    dev: false
+
+  /whatwg-url/5.0.0:
+    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
+    dependencies:
+      tr46: 0.0.3
+      webidl-conversions: 3.0.1
+    dev: false
 
   /which/2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}

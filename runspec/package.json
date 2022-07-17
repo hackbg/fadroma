@@ -11,11 +11,7 @@
   "bin": { "runspec": "runspec.cjs" },
   "files": ["README.md", "runspec.cjs", "runspec.d.ts"],
   "scripts": {
-    "release:dry": "npm publish --dry-run",
-    "release:wet": "npm publish || true",
-
-    "ts:test":  "ganesha-node README.md",
-    "ts:check": "tsc --noEmit",
-    "ts:clean": "rm -rf dist packages/*/dist packages/*/types"
+    "release:dry": "izomorf dry",
+    "release:wet": "izomorf wet --access=public"
   }
 }

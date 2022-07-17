@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/konzola",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "main": "konzola.cjs",
   "browser": "konzola.browser.mjs",
   "types": "konzola.d.ts",
@@ -23,7 +23,7 @@
     "@types/prompts":    "^2.0.14"
   },
   "scripts": {
-    "release:dry": "pnpm publish --dry-run",
-    "release:wet": "pnpm publish || true"
+    "release:dry": "izomorf dry",
+    "release:wet": "izomorf wet --access=public"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/komandi",
-  "version":     "3.0.0",
+  "version":     "3.0.1",
   "main":        "komandi.ts",
   "homepage":    "https://github.com/hackbg/toolbox",
   "bugs":        "https://github.com/hackbg/toolbox/issues",
@@ -13,15 +13,12 @@
     "@hackbg/kabinet": "workspace:^3"
   },
   "scripts": {
+    "release:dry": "npm run ts:check && npm run ts:clean && izomorf dry",
+    "release:wet": "npm run ts:check && npm run ts:clean && izomorf wet --access=public",
+
     "test":      "ganesha-node README.md",
 
-    "release:dry":   "izomorf 'npm run ts:build' --dry-run",
-    "release:wet":   "izomorf 'npm run ts:build'",
-
     "ts:check":     "tsc --noEmit",
-    "ts:clean":     "rm -rf dist packages/*/dist packages/*/types",
-    "ts:build":     "npm run ts:clean && concurrently 'npm:ts:build:*'",
-    "ts:build:esm": "tsc --outDir dist/esm --target es6 --module es6 --declaration --declarationDir dist/dts",
-    "ts:build:cjs": "tsc --outDir dist/cjs --target es6 --module commonjs"
+    "ts:clean":     "rm -rf dist packages/*/dist packages/*/types"
   }
 }

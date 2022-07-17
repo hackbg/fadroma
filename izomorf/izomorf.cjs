@@ -2,34 +2,45 @@
 const { extname, resolve, basename, relative, join, isAbsolute } = require('path')
 const { existsSync, readFileSync, writeFileSync } = require('fs')
 const { execSync, execFileSync } = require('child_process')
+const { request } = require('https')
 const process = require('process')
+const concurrently = require('concurrently')
+const fetch = require('node-fetch')
 module.exports = module.exports.default = izomorf
 if (require.main === module) izomorf(process.cwd(), ...process.argv.slice(2))
+const TSC = process.env.TSC || 'tsc'
+async function izomorf (cwd, dryWet, ...publishArgs) {
 
-const tsc = process.env.TSC || 'tsc'
+  const dry = dryWet !== 'wet'
 
-async function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
-
-  // Start with a dry run
-  execFileSync(
-    'pnpm', ['publish', '--dry-run'],
-    { cwd, stdio: 'inherit', env: process.env }
-  )
-
-  // Read package.json
-  const original    = readFileSync($('package.json'), 'utf8')
-  const packageJson = JSON.parse(original)
-
-  const isTypescript = (packageJson.main||'').endsWith('.ts')
-
-  // Find file relative to working directory
-  function $ (...args) {
-    return join(cwd, ...args)
+  if (dry && !publishArgs.includes('--dry-run')) {
+    publishArgs.unshift('--dry-run')
   }
 
-  // Convert absolute path to relative
-  function toRel (path) {
-    `./${isAbsolute(path)?relative(cwd, path):path}`
+  if (!dry) {
+    // Start with a dry run
+    execFileSync(
+      'pnpm', ['publish', '--dry-run'],
+      { cwd, stdio: 'inherit', env: process.env }
+    )
+  }
+
+  // Read package.json
+  const original     = readFileSync($('package.json'), 'utf8')
+  const packageJson  = JSON.parse(original)
+  const isTypescript = (packageJson.main||'').endsWith('.ts')
+
+  // Check if this version is already uploaded
+  const name    = packageJson.name
+  const version = packageJson.version
+  const url     = `https://registry.npmjs.org/${name}/${version}`
+  console.info('Checking that', url, 'is free...')
+  const response = await fetch(url)
+  if (response.status === 200) {
+    console.log(`${name} ${version} already exists. Not publishing.`)
+    return
+  } else if (response.status !== 404) {
+    throw new Error(`izomorf: NPM returned ${response.statusCode}`)
   }
 
   // Patch package.json
@@ -37,72 +48,32 @@ async function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
 
     if (isTypescript) {
 
-      const result = await concurrently(
+      const result = await concurrently([
         `${TSC} --outDir dist/esm --target es6 --module es6 --declaration --declarationDir dist/dts`,
         `${TSC} --outDir dist/cjs --target es6 --module commonjs`
-      ).result
-
-      console.log({result})
-      process.exit(123)
-
-      execFileSync(
-        tsc, [ "--outDir", "dist/cjs", "--target", "es6", "--module", "commonjs" ],
-        { cwd, stdio: 'inherit', env: process.env }
-      )
-
-      // Configuration - what files are emitted by the builds and where
-      let [outDir            = './dist',
-           declaration       = true,
-           declarationDir    = outDir]    = getConfig()
-
-      let [outDirEsm         = outDir + '/esm',
-           declarationEsm    = declaration,
-           declarationDirEsm = outDirEsm] = getConfig('.esm')
-
-      let [outDirCjs         = outDir + '/cjs',
-           declarationCjs    = declaration,
-           declarationDirCjs = outDirCjs] = getConfig('.cjs')
+      ]).result
 
       // Compile TS -> JS
-      execSync(prepareCommand, { cwd, stdio: 'inherit' })
       const source           = $(packageJson.main || 'index.ts')
       const browserSource    = $(packageJson.browser || source)
       const replaceExtension = (x, a, b) => `${basename(x, a)}${b}`
-      const esmBuild         = $(outDirEsm, replaceExtension(source, '.ts', '.js'))
-      const cjsBuild         = $(outDirCjs, replaceExtension(source, '.ts', '.js'))
+      const dtsBuild         = $('dist/dts', replaceExtension(source, '.ts', '.js'))
+      const esmBuild         = $('dist/esm', replaceExtension(source, '.ts', '.js'))
+      const cjsBuild         = $('dist/cjs', replaceExtension(source, '.ts', '.js'))
 
       // Set main, types, and exports fields in package.json
-      if (packageJson.type === 'module') { patchPackageJsonEsm() } else { patchPackageJsonCjs() }
-      function patchPackageJsonEsm () {
+      if (packageJson.type === 'module') {
         Object.assign(packageJson, {
           main:    toRel(esmBuild),
+          types:   toRel(dtsBuild),
           exports: { source: toRel(source), require: toRel(cjsBuild), default: toRel(esmBuild) },
         })
-        if (declarationEsm) packageJson.types = toRel(
-          $(declarationDirEsm, replaceExtension(source, '.ts', '.d.ts'))
-        )
-      }
-      function patchPackageJsonCjs () {
+      } else {
         Object.assign(packageJson, {
           main:    toRel(cjsBuild),
+          types:   toRel(dtsBuild),
           exports: { source: toRel(source), import: toRel(esmBuild), default: toRel(cjsBuild) },
         })
-        if (declarationCjs) packageJson.types = toRel(
-          $(declarationDirCjs, replaceExtension(source, '.ts', '.d.ts'))
-        )
-      }
-
-      packageJson.types = $(outDir, 'types', replaceExtension(source, '.ts', '.d.ts'))
-
-      // Configuration loader
-      function getConfig (variant = '') {
-        const file = $(`tsconfig${variant}.json`)
-        if (existsSync(file)) {
-          const { compilerOptions = {} } = JSON.parse(readFileSync(file, 'utf8'))
-          return [compilerOptions.outDir, compilerOptions.declaration, compilerOptions.declarationDir]
-        } else {
-          return [undefined, undefined, undefined]
-        }
       }
 
       // Write modified package.json
@@ -120,7 +91,7 @@ async function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
 
     } else {
 
-      // Publish the package, thus modified, to NPM
+      // Publish the package, unmodified, to NPM
       console.log(`\npnpm publish`, ...publishArgs)
       execFileSync(
         'pnpm', ['publish', ...publishArgs],
@@ -129,12 +100,24 @@ async function izomorf (cwd, prepareCommand = 'npm prepare', ...publishArgs) {
 
     }
 
-    // Add Git tag
-    execSync(`git tag -f "npm/${packageJson.name}/${packageJson.version}"`, { cwd, stdio: 'inherit' })
+    if (!dry) {
+      // Add Git tag
+      execSync(`git tag -f "npm/${packageJson.name}/${packageJson.version}"`, { cwd, stdio: 'inherit' })
+    }
 
   } finally {
     // Restore original contents of package.json
     writeFileSync($('package.json'), original, 'utf8')
+  }
+
+  // Find file relative to working directory
+  function $ (...args) {
+    return join(cwd, ...args)
+  }
+
+  // Convert absolute path to relative
+  function toRel (path) {
+    `./${isAbsolute(path)?relative(cwd, path):path}`
   }
 
 }

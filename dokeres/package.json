@@ -1,6 +1,6 @@
 {
   "name":         "@hackbg/dokeres",
-  "version":      "4.0.0",
+  "version":      "4.0.1",
   "main":         "dokeres.ts",
   "type":         "module",
   "license":      "MIT",
@@ -18,13 +18,10 @@
     "@types/dockerode": "^3.3.8"
   },
   "scripts": {
-    "release:dry": "izomorf 'npm run ts:build' --dry-run",
-    "release:wet": "izomorf 'npm run ts:build'",
+    "release:dry": "npm run ts:check && npm run ts:clean && izomorf dry",
+    "release:wet": "npm run ts:check && npm run ts:clean && izomorf wet --access=public",
 
-    "ts:check":     "tsc --noEmit",
-    "ts:clean":     "rm -rf dist packages/*/dist packages/*/types",
-    "ts:build":     "npm run ts:clean && concurrently 'npm:ts:build:*'",
-    "ts:build:esm": "tsc --outDir dist/esm --target es6 --module es6 --declaration --declarationDir dist/dts",
-    "ts:build:cjs": "tsc --outDir dist/cjs --target es6 --module commonjs"
+    "ts:check": "tsc --noEmit",
+    "ts:clean": "rm -rf dist packages/*/dist packages/*/types"
   }
 }
