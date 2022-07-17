@@ -4,7 +4,7 @@
   "type":    "module",
   "main":    "ops-scrt.ts",
   "dependencies": {
-    "@hackbg/dokeres":            "^4",
+    "@hackbg/dokeres":            "^4.0.2",
     "@fadroma/ops":               "workspace:^1",
     "@fadroma/client-scrt-amino": "workspace:^4",
     "@fadroma/client-scrt-grpc":  "workspace:^5"

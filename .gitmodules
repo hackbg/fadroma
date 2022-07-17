@@ -1,4 +1,0 @@
-[submodule "ensuite"]
-	path   = ensuite
-	url    = https://github.com/hackbg/ensuite
-	branch = develop
