@@ -54,6 +54,6 @@ jobs:
       - uses: docker/build-push-action@v2
         with:
           context: .
-          tags:    ghcr.io/hackbg/fadroma:${{ github.ref }}
+          tags:    ghcr.io/hackbg/fadroma:${{ github.ref_name }}
           push:    true
       - run: echo ${{ steps.docker_build.outputs.digest }}
