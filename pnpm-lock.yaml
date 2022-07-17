@@ -4,13 +4,13 @@ importers:
 
   .:
     specifiers:
-      '@hackbg/dokeres': workspace:^4
+      '@hackbg/dokeres': workspace:^4.0.1
       '@hackbg/izomorf': workspace:^2.0.1
-      '@hackbg/kabinet': workspace:^3
-      '@hackbg/komandi': workspace:^3
-      '@hackbg/konzola': workspace:^1
-      '@hackbg/portali': workspace:^1
-      '@hackbg/runspec': workspace:^2
+      '@hackbg/kabinet': workspace:^3.0.2
+      '@hackbg/komandi': workspace:^3.0.2
+      '@hackbg/konzola': workspace:^1.1.1
+      '@hackbg/portali': workspace:^1.1.3
+      '@hackbg/runspec': workspace:^2.3
       '@types/node': latest
       bech32: ^2.0.0
       concurrently: 7.2.2
