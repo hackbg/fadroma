@@ -10,7 +10,7 @@
 
 **Fadroma Ops is the core object model of the Fadroma suite of smart contract tools.**
 
-Made with [💚](mailto:hello@hack.bg) at [Hack.bg](https://hack.bg).
+[![](https://img.shields.io/npm/v/@fadroma/ops?color=%2365b34c&label=%40fadroma%2Fops&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/ops)
 
 </td></tr></table>
 
