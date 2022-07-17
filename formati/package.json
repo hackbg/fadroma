@@ -26,7 +26,7 @@
   },
   "scripts": {
     "release:dry": "izomorf 'npm run ts:build' --dry-run",
-    "release:wet": "izomorf 'npm run ts:build' --access=public",
+    "release:wet": "izomorf 'npm run ts:build' --access=public || true",
     "ts:test": "ganesha-node README.md",
     "ts:check": "tsc --noEmit",
     "ts:clean": "rm -rf dist packages/*/dist packages/*/types",
