@@ -12,7 +12,7 @@ importers:
       '@fadroma/ops-scrt': workspace:^1
       '@fadroma/tokens': workspace:^2
       '@hackbg/dokeres': workspace:^3
-      '@hackbg/ensuite': workspace:*
+      '@hackbg/ensuite': workspace:^1
       '@hackbg/formati': workspace:^1
       '@hackbg/ganesha': workspace:^2.1
       '@hackbg/izomorf': workspace:^1
@@ -80,8 +80,10 @@ importers:
       '@ganesha/node-legacy': workspace:^1
       '@hackbg/runspec': ^2.2
       '@types/node': latest
+      c8: ^7.11.0
       chokidar: ^3.5.3
       cross-spawn: ^7.0.3
+      typescript: ^4.7
       vite: ^2.8.4
       vsce: latest
     dependencies:
@@ -93,6 +95,8 @@ importers:
       cross-spawn: 7.0.3
     devDependencies:
       '@hackbg/runspec': 2.2.1
+      c8: 7.11.3
+      typescript: 4.7.4
       vite: 2.9.13
       vsce: 2.9.3
 
@@ -109,8 +113,6 @@ importers:
   ensuite/ganesha/src/node:
     specifiers:
       '@ganesha/core': workspace:^1.1
-      '@hackbg/runspec': ^2.2
-      c8: ^7.11.0
       front-matter: ^4.0.2
       joycon: ^3.0.1
       jsonc-parser: ^3.0.0
@@ -121,9 +123,6 @@ importers:
       joycon: 3.1.1
       jsonc-parser: 3.0.0
       source-map-support: 0.5.21
-    devDependencies:
-      '@hackbg/runspec': 2.2.1
-      c8: 7.11.3
 
   ensuite/ganesha/src/node-legacy:
     specifiers:

@@ -24,14 +24,12 @@ Start exploring:
 
 ---
 
-**A portable development environment** improves
-the accessibility and reliability of interacting
-with WASM-based blockchains.
+**Fadroma** aims to take the CosmWasm Compute module and spin it into a fully integrated app platform.
 
-**A toolkit of reusable smart contract primitives**
-makes it easier to build and deploy smart contracts,
-thus advancing the technological state of the WASM
-blockchain ecosystem, and thus its economic viability.
+This repository contains Rust libraries and a TypeScript build and deploy system.
+
+Check out our [example project](https://github.com/hackbg/fadroma-example) to see how to
+build your dApp with Fadroma.
 
 ---
 
