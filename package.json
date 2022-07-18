@@ -1,6 +1,6 @@
 {
   "name":         "@hackbg/toolbox",
-  "version":      "4.1.3",
+  "version":      "4.2.0",
   "type":         "module",
   "main":         "index.ts",
   "files":        [ "*.js" ],
@@ -16,12 +16,12 @@
     "@hackbg/konzola": "workspace:^1.1.1",
     "@hackbg/portali": "workspace:^1.1.3",
     "@hackbg/runspec": "workspace:^2.3",
-    "@hackbg/formati": "workspace:^1.0.2",
+    "@hackbg/formati": "workspace:^1.1.0",
 
-    "bech32":              "^2.0.0",
-    "open":                "^8.0.2",
-    "rimraf":              "^3.0.2",
-    "signal-exit":         "^3.0.3"
+    "bech32":          "^2.0.0",
+    "open":            "^8.0.2",
+    "rimraf":          "^3.0.2",
+    "signal-exit":     "^3.0.3"
   },
   "devDependencies": {
     "@hackbg/izomorf": "workspace:^2.0.1",
