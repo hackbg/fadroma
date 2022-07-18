@@ -9,13 +9,13 @@ importers:
       '@fadroma/client-scrt-amino': workspace:^4
       '@fadroma/client-scrt-grpc': workspace:^5
       '@fadroma/ops': workspace:^1.0.3
-      '@fadroma/ops-scrt': workspace:^1.0.2
+      '@fadroma/ops-scrt': workspace:^1.0.3
       '@fadroma/tokens': workspace:^2
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/ensuite': ^1
       '@hackbg/formati': ^1.0.2
       '@hackbg/ganesha': ^2.2
-      '@hackbg/izomorf': ^2
+      '@hackbg/izomorf': ^2.0.1
       '@hackbg/kabinet': ^3.0.2
       '@hackbg/komandi': ^3.0.3
       '@hackbg/konzola': ^1.0.8
