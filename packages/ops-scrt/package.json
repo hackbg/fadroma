@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/ops-scrt",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type":    "module",
   "main":    "ops-scrt.ts",
+  "description": "Secret Network-specific deployment config from Fadroma",
   "dependencies": {
     "@hackbg/dokeres":            "^4.0.2",
     "@fadroma/ops":               "workspace:^1",

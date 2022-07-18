@@ -1,8 +1,9 @@
 {
   "name": "@fadroma/ops",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "main": "./ops.ts",
+  "description": "Deployment system of Fadroma",
   "dependencies": {
     "@fadroma/client": "workspace:^3",
     "@hackbg/dokeres": "^4.0.2",
