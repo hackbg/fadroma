@@ -1,0 +1,1 @@
+initSidebarItems({"attr":[["require_admin",""]],"enum":[["HandleMsg",""],["QueryMsg",""]],"fn":[["assert_admin",""],["handle",""],["init",""],["load_admin",""],["load_pending_admin",""],["query",""],["save_admin",""],["save_pending_admin",""]],"struct":[["DefaultImpl",""],["InitMsg",""]],"trait":[["Admin",""]]});

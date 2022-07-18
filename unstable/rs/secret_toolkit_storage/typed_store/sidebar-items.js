@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["TypedStore",""],["TypedStoreMut",""]]});

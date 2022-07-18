@@ -1,0 +1,1 @@
+initSidebarItems({"attr":[["require_admin",""]]});

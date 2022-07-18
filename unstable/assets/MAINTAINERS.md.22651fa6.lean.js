@@ -1,0 +1,1 @@
+import{_ as a,c as e,o as t,a as i}from"./app.e47c6291.js";const k=JSON.parse('{"title":"Maintainers","description":"","frontmatter":{},"headers":[],"relativePath":"MAINTAINERS.md"}'),r={name:"MAINTAINERS.md"},n=i("",2),s=[n];function o(c,m,_,h,d,l){return t(),e("div",null,s)}var f=a(r,[["render",o]]);export{k as __pageData,f as default};

@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["pad_handle_result","Pad the data and logs in a `HandleResult` to the block size, with spaces."],["pad_query_result","Pad a `QueryResult` with spaces"],["space_pad","Take a Vec and pad it up to a multiple of `block_size`, using spaces at the end."]]});
