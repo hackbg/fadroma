@@ -528,7 +528,7 @@ export abstract class Slot<C extends Context, T> {
   value: T|null = null
 }
 
-export function getBuildContext ({ config = {} }: any = {}): Partial<Context> {
+export function getBuildContext ({ config = currentConfig }: any = {}): Partial<Context> {
   let {
     project: { root = process.cwd() } = {},
     build = {},
