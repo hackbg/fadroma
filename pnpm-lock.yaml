@@ -45,7 +45,7 @@ importers:
     specifiers:
       '@hackbg/konzola': workspace:^1
       '@types/dockerode': ^3.3.8
-      colors: ^1.4.0
+      colors: 1.4.0
       dockerode: ^3.3.1
     dependencies:
       '@hackbg/konzola': link:../konzola
