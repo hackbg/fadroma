@@ -18,3 +18,4 @@ target
 yarn-error.log
 yarn.lock
 *.js
+fadroma*.d.ts
