@@ -29,6 +29,7 @@ export default {
           { text: "Client: Talking to contracts", link: "/guide/client" },
           { text: "Ops: Launching contracts",     link: "/guide/ops" },
           { text: "Mocknet: Full-stack testing",  link: "/guide/mocknet" },
+          { text: "Toolbox: General utilites",    link: "https://hackbg.github.io/toolbox/main/README.html" }
         ]
       }
     ]

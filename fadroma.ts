@@ -60,6 +60,7 @@ import {
 import dotenv from 'dotenv'
 dotenv.config()
 
+//@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /// # Reexport the core platform vocabulary:

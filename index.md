@@ -18,7 +18,7 @@
 
 ### [TypeScript API Reference](https://fadroma.tech/js/modules.html)
 
-### [Introductory guide](./guide/index.md)
+### [Introductory guide](./guide/overview.md)
 
 ### [Specification](./SPEC.ts.md)
 

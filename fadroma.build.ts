@@ -75,6 +75,7 @@ export default function buildCommand ([buildPath, ...buildArgs]: string[]) {
     const buildSetName = buildArgs.join(' ')
     console.info('Build script:', bold(buildScript.shortPath))
     console.info('Build set:   ', bold(buildSetName || '(none)'))
+    //@ts-ignore
     const {default: buildSets} = await import(buildScript.path)
     if (buildArgs.length > 0) {
       const buildSet = buildSets[buildSetName]

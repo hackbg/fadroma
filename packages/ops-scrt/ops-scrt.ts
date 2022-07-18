@@ -37,6 +37,7 @@ import {
 
 export * from '@fadroma/ops'
 
+//@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export default class SecretNetwork {
