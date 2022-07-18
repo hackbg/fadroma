@@ -15,7 +15,7 @@ importers:
       '@hackbg/ensuite': ^1
       '@hackbg/formati': ^1.1.0
       '@hackbg/ganesha': ^2.2
-      '@hackbg/izomorf': ^3
+      '@hackbg/izomorf': ^3.0.1
       '@hackbg/kabinet': ^3.0.2
       '@hackbg/komandi': ^3.0.3
       '@hackbg/konzola': ^1.0.8
@@ -51,7 +51,7 @@ importers:
       dotenv: 15.0.1
     devDependencies:
       '@hackbg/ensuite': 1.0.0
-      '@hackbg/izomorf': 3.0.0
+      '@hackbg/izomorf': 3.0.1
       '@magic-works/commonjs-import.meta': 1.0.1_typescript@4.7.4
       '@types/node': 16.11.45
       body-parser: 1.20.0
@@ -488,8 +488,8 @@ packages:
       '@ganesha/node-legacy': 3.0.2
       cross-spawn: 7.0.3
 
-  /@hackbg/izomorf/3.0.0:
-    resolution: {integrity: sha512-2xb1LowDmfvIQz1eQcLTEhfgPMPtD34lYF+q/VKbOWGECyl4honroVTgwM4bvhYmzgMz1UWC4m1l9SoMlfF+yA==}
+  /@hackbg/izomorf/3.0.1:
+    resolution: {integrity: sha512-b48Dkq/SaKpHU6LO+OBbbt8a5epb0GfQupPz5DrY1dldky7mkPMr7UbyXCigngiIQwNNWvd2JUJ5kn9ne46elg==}
     hasBin: true
     dependencies:
       node-fetch: 2.6.7
