@@ -1,0 +1,1 @@
+import{_ as e,c as t,o as a}from"./app.66afa4f2.js";const f=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"fixtures/README.md","lastUpdated":1658120511000}'),r={name:"fixtures/README.md"};function s(o,c,n,p,d,i){return a(),t("div")}var m=e(r,[["render",s]]);export{f as __pageData,m as default};
