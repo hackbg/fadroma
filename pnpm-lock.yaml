@@ -13,7 +13,7 @@ importers:
       '@fadroma/tokens': workspace:^2
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/ensuite': ^1
-      '@hackbg/formati': ^1.0.2
+      '@hackbg/formati': ^1.1.0
       '@hackbg/ganesha': ^2.2
       '@hackbg/izomorf': ^2.0.1
       '@hackbg/kabinet': ^3.0.2
@@ -43,7 +43,7 @@ importers:
       '@fadroma/ops-scrt': link:packages/ops-scrt
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/dokeres': 4.0.2
-      '@hackbg/formati': 1.0.2
+      '@hackbg/formati': 1.1.0
       '@hackbg/ganesha': 2.2.4
       '@hackbg/kabinet': 3.0.2
       '@hackbg/komandi': 3.0.3
@@ -463,6 +463,15 @@ packages:
 
   /@hackbg/formati/1.0.2:
     resolution: {integrity: sha512-GuiQXTk3uOwLksgWEp+xFJ+QYTelSpgBrJRNIJRtZhgu9j8TcwutL38PAY/aV5ONofhlI6s2j12AvhK35uOpHg==}
+    dependencies:
+      '@iov/crypto': 2.5.0
+      '@iov/encoding': 2.5.0
+      bech32: 2.0.0
+      secure-random: 1.1.2
+    dev: false
+
+  /@hackbg/formati/1.1.0:
+    resolution: {integrity: sha512-54m4qi3uLFUheEKomZYVtu/A+4L8MkijSseXAeAI/3Dt2VpT54V/VPA40r20ScLU6Tz27Y2byO3L1oJvcrzjFg==}
     dependencies:
       '@iov/crypto': 2.5.0
       '@iov/encoding': 2.5.0

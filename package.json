@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/fadroma",
-  "version":     "1.0.0-beta.10",
+  "version":     "1.0.0-beta.11",
   "repository":  { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type":        "module",
   "main":        "fadroma.ts",
@@ -42,7 +42,7 @@
     "@hackbg/kabinet":            "^3.0.2",
     "@hackbg/komandi":            "^3.0.3",
     "@hackbg/konzola":            "^1.0.8",
-    "@hackbg/formati":            "^1.0.2"
+    "@hackbg/formati":            "^1.1.0"
   },
   "devDependencies": {
     "@hackbg/ensuite":                   "^1",
