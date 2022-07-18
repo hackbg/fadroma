@@ -10,7 +10,7 @@ importers:
       '@fadroma/client-scrt-grpc': workspace:^6
       '@fadroma/ops': workspace:^2
       '@fadroma/ops-scrt': workspace:^2
-      '@fadroma/tokens': workspace:^2
+      '@fadroma/tokens': workspace:^3
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/ensuite': ^1
       '@hackbg/formati': ^1.1.0
