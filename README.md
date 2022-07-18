@@ -8,7 +8,7 @@ General utilities for Node.js.
 
 |Package|Status|Description|
 |---|---|---|
-|[**`@hackbg/dokeres`**](./dokeres/README.md)|[![NPM version](https://img.shields.io/npm/v/@hackbg/dokeres?color=9013fe&label=&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/dokeres)|**Docker utilities.**          |
+|[**`@hackbg/dokeres`**](./dokeres/README.md)|[![NPM version](https://img.shields.io/npm/v/@hackbg/dokeres?color=9013fe&label=&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/dokeres)|**Dockerize commands.**        |
 |[**`@hackbg/forkers`**](./forkers/README.md)|[![NPM version](https://img.shields.io/npm/v/@hackbg/forkers?color=9013fe&label=&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/forkers)|**Web worker wrapper.**        |
 |[**`@hackbg/formati`**](./formati/README.md)|[![NPM version](https://img.shields.io/npm/v/@hackbg/formati?color=9013fe&label=&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/formati)|**Data encodings and formats.**|
 |[**`@hackbg/izomorf`**](./izomorf/README.md)|[![NPM version](https://img.shields.io/npm/v/@hackbg/izomorf?color=9013fe&label=&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/izomorf)|**Helper for publishing isomorphic TS modules.**|

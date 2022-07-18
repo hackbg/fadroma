@@ -2,12 +2,15 @@
   "$schema": "https://typedoc.org/schema.json",
   "out": "docs",
   "entryPoints": [
-    "./dokeres/dokeres.d.ts",
-    "./kabinet/index.d.ts",
-    "./komandi/komandi.d.ts",
+    "./dokeres/dokeres.ts",
+    "./dokeres/forkers.ts",
+    "./kabinet/formati.ts",
+    "./kabinet/kabinet.ts",
+    "./komandi/komandi.ts",
     "./konzola/konzola.d.ts",
+    "./komandi/portali.ts",
     "./runspec/runspec.d.ts",
-    "./index.d.ts"
+    "./index.ts"
   ],
   "entryPointStrategy": "expand"
 }

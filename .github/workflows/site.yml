@@ -30,15 +30,26 @@ jobs:
           mv .vitepress/dist/* dist/docs
       - name: Publish docs
         run: |
+          pwd
+          ls -al
+          ls -al ~
+          cat .git/config
+          git remote get-url origin
           git fetch origin gh-pages
-          echo $(git show-ref --verify refs/remotes/origin/gh-pages | cut -c-40) > .git/branches
+          echo $(git show-ref --verify refs/remotes/origin/gh-pages | cut -c-40) > .git/refs/heads/gh-pages
           git clone -b gh-pages .git ~/page
-          rm -rf "~/page/{{github.ref_name}}"
-          mkdir -p "~/page/{{github.ref_name}}"
-          mv dist/docs/* "~/page/{{github.ref_name}}"
+          rm -rf "~/page/${{github.ref_name}}"
+          mkdir -p "~/page/${{github.ref_name}}"
+          mv dist/docs/* "~/page/${{github.ref_name}}"
           cd ~/page
+          ls -al
           touch .nojekyll
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
-          git commit -m "🤖 built docs for {{ github.ref_name }} @ $(date -u)"
+          git add .
+          git commit -m "🤖 built docs for ${{ github.ref_name }} @ $(date -u)" || true
+          git remote set-url origin https://github.com/hackbg/toolbox
+          printf '\n[http "https://github.com/"]\n\textraheader = AUTHORIZATION: basic ***\n\n' >> .git/config
+          cat .git/config
+          git fetch
           git push --force

@@ -41,7 +41,7 @@
     "ts:build:cjs": "ttsc -p tsconfig.cjs.json",
     "ts:build:esm": "tsc -p tsconfig.esm.json",
 
-    "docs:typedoc":  "typedoc index.d.ts",
+    "docs:typedoc":  "typedoc",
     "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve"

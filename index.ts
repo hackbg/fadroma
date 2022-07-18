@@ -8,15 +8,6 @@ export * from '@hackbg/komandi'
 export * from '@hackbg/dokeres'
 export * from '@hackbg/runspec'
 
-export function entrypoint (
-  url  = '',
-  main = () => {/**/}
-) {
-  if (process.argv[1] === fileURLToPath(url)) {
-    main(process.argv.slice(2)).then(()=>process.exit(0))
-  }
-}
-
 export {
   open,
   onExit
