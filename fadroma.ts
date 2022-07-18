@@ -148,27 +148,7 @@ export class FadromaConfig {
     rateLimit:    this.getBool('FADROMA_DATAHUB_RATE_LIMIT', ()=>false)
   }
   /** Secret Network settings. */
-  scrt = {
-    agent: {
-      name:       this.getStr( 'SCRT_AGENT_NAME',            ()=>null),
-      address:    this.getStr( 'SCRT_AGENT_ADDRESS',         ()=>null),
-      mnemonic:   this.getStr( 'SCRT_AGENT_MNEMONIC',        ()=>null),
-    },
-    build: {
-      dockerfile: this.getStr( 'SCRT_BUILD_DOCKERFILE',      ()=>this.$('packages/ops-scrt/build.Dockerfile')),
-      image:      this.getStr( 'SCRT_BUILD_IMAGE',           ()=>'hackbg/fadroma-scrt-builder:1.2'),
-      script:     this.getStr( 'SCRT_BUILD_SCRIPT',          ()=>this.$('packages/ops-scrt/build-impl.mjs')),
-      service:    this.getStr( 'SCRT_BUILD_SERVICE',         ()=>this.$('packages/ops-scrt/build-server.mjs')),
-    },
-    mainnet: {
-      chainId:    this.getStr( 'SCRT_MAINNET_CHAIN_ID',      ()=>'secret-4'),
-      apiUrl:     this.getStr( 'SCRT_MAINNET_API_URL',       ()=>null),
-    },
-    testnet: {
-      chainId:    this.getStr( 'SCRT_TESTNET_CHAIN_ID',      ()=>'pulsar-2'),
-      apiUrl:     this.getStr( 'SCRT_TESTNET_API_URL',       ()=>null),
-    }
-  }
+  scrt = SecretNetwork.getEnvConfig(this)
 
   $ (...args) {
     // file finder function.

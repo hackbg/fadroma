@@ -28,6 +28,7 @@ import { resolve, relative, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { Dokeres } from '@hackbg/dokeres'
 import {
+  Devnet,
   DockerDevnet,
   RemoteDevnet,
   DevnetPortMode,
@@ -39,11 +40,6 @@ export * from '@fadroma/ops'
 
 //@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
-
-export default class SecretNetwork {
-  static getBuilder = getScrtBuilder
-  static getDevnet  = getScrtDevnet
-}
 
 export interface ScrtBuilderOptions {
   rebuild:    boolean
@@ -58,106 +54,151 @@ export interface ScrtBuilderOptions {
   toolchain:  string
 }
 
-export function getScrtBuilder ({
-  rebuild,
-  caching = !rebuild,
-  raw,
-  managerUrl,
-  image,
-  dockerfile,
-  service,
-  script,
-  toolchain,
-  noFetch
-}: Partial<ScrtBuilderOptions> = {}) {
-  if (raw) {
-    return new ScrtRawBuilder({
-      caching,
-      script,
-      noFetch,
-      toolchain
-    })
-  } else if (managerUrl) {
-    throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
-    //return new ManagedBuilder({ managerURL })
-  } else {
-    return new ScrtDockerBuilder({
-      caching,
-      script,
-      image,
-      dockerfile,
-      service
-    })
-  }
-}
-
-export class ScrtRawBuilder extends RawBuilder {}
-
-export class ScrtDockerBuilder extends DockerBuilder {
-  static dockerfile = resolve(__dirname, 'build.Dockerfile')
-  static script     = resolve(__dirname, 'build-impl.mjs')
-  static service    = resolve(__dirname, 'build-server.mjs')
-  constructor ({
-    caching,
-    image,
-    dockerfile = ScrtDockerBuilder.dockerfile,
-    script     = ScrtDockerBuilder.script,
-    service    = ScrtDockerBuilder.service
-  }: Partial<ScrtBuilderOptions> = {}) {
-    super({
-      caching,
-      script,
-      image: new Dokeres().image(
-        image,
-        dockerfile,
-        [script, service].map(x=>relative(dirname(dockerfile), x))
-      )
-    })
-  }
-}
-
 export type ScrtDevnetVersion = '1.2'|'1.3'
 
-export class ScrtDevnet extends DockerDevnet {
-  static dockerfiles: Record<ScrtDevnetVersion, string> = {
-    '1.2': resolve(__dirname, 'devnet_1_2.Dockerfile'),
-    '1.3': resolve(__dirname, 'devnet_1_3.Dockerfile')
-  }
-  static dockerTags: Record<ScrtDevnetVersion, string> = {
-    '1.2': 'fadroma/scrt-devnet:1.2',
-    '1.3': 'fadroma/scrt-devnet:1.3',
-  }
-  static portModes: Record<ScrtDevnetVersion, DevnetPortMode> = {
-    '1.2': 'lcp',
-    '1.3': 'grpcWeb'
-  }
-  static initScriptName    = 'devnet-init.mjs'
-  static managerScriptName = 'devnet-manager.mjs'
+const SecretNetwork = {
+
+  Builder: {
+
+    Raw:    class ScrtRawBuilder extends RawBuilder {},
+
+    Docker: class ScrtDockerBuilder extends DockerBuilder {
+      static image      = 'hackbg/fadroma:unstable'
+      static dockerfile = resolve(__dirname, 'build.Dockerfile')
+      static script     = resolve(__dirname, 'build-impl.mjs')
+      static service    = resolve(__dirname, 'build-server.mjs')
+      constructor ({
+        caching,
+        image,
+        dockerfile = ScrtDockerBuilder.dockerfile,
+        script     = ScrtDockerBuilder.script,
+        service    = ScrtDockerBuilder.service
+      }: Partial<ScrtBuilderOptions> = {}) {
+        super({
+          caching,
+          script,
+          image: new Dokeres().image(
+            image,
+            dockerfile,
+            [script, service].map(x=>relative(dirname(dockerfile), x))
+          )
+        })
+      }
+    }
+
+  },
+
+  getBuilder: function getScrtBuilder ({
+    rebuild,
+    caching = !rebuild,
+    raw,
+    managerUrl,
+    image,
+    dockerfile,
+    service,
+    script,
+    toolchain,
+    noFetch
+  }: Partial<ScrtBuilderOptions> = {}) {
+    if (raw) {
+      return new SecretNetwork.Builder.Raw({
+        caching,
+        script,
+        noFetch,
+        toolchain
+      })
+    } else if (managerUrl) {
+      throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
+      //return new ManagedBuilder({ managerURL })
+    } else {
+      return new SecretNetwork.Builder.Docker({
+        caching,
+        script,
+        image,
+        dockerfile,
+        service
+      })
+    }
+  },
+
+  Devnet: class ScrtDevnet extends DockerDevnet {
+
+    static dockerfiles: Record<ScrtDevnetVersion, string> = {
+      '1.2': resolve(__dirname, 'devnet_1_2.Dockerfile'),
+      '1.3': resolve(__dirname, 'devnet_1_3.Dockerfile')
+    }
+
+    static dockerTags: Record<ScrtDevnetVersion, string> = {
+      '1.2': 'fadroma/scrt-devnet:1.2',
+      '1.3': 'fadroma/scrt-devnet:1.3',
+    }
+
+    static portModes: Record<ScrtDevnetVersion, DevnetPortMode> = {
+      '1.2': 'lcp',
+      '1.3': 'grpcWeb'
+    }
+
+    static initScriptName = 'devnet-init.mjs'
+
+    static managerScriptName = 'devnet-manager.mjs'
+
+    static Remote = class RemoteScrtDevnet extends RemoteDevnet {}
+
+    static Docker = class DockerScrtDevnet extends DockerDevnet {
+      static fromVersion (version: ScrtDevnetVersion, dokeres = new Dokeres()) {
+        const portMode = SecretNetwork.Devnet.portModes[version]
+        const dockerfile  = SecretNetwork.Devnet.dockerfiles[version]
+        const imageTag    = SecretNetwork.Devnet.dockerTags[version]
+        const readyPhrase = 'indexed block'
+        const initScript  = resolve(__dirname, SecretNetwork.Devnet.initScriptName)
+        const image       = dokeres.image(imageTag, dockerfile, [
+          SecretNetwork.Devnet.initScriptName,
+          SecretNetwork.Devnet.managerScriptName
+        ])
+        return new DockerDevnet({ portMode, image, readyPhrase, initScript })
+      }
+    }
+
+  },
+
+  getDevnet: function getScrtDevnet (
+    version:    ScrtDevnetVersion,
+    managerURL: string = undefined,
+    chainId:    string = undefined,
+    dokeres?:   Dokeres
+  ): Devnet {
+    if (managerURL) {
+      const portMode = SecretNetwork.Devnet.portModes[version]
+      return SecretNetwork.Devnet.Remote.getOrCreate(
+        managerURL, chainId, chainId ? null : chainId, portMode
+      )
+    } else {
+      return SecretNetwork.Devnet.Docker.fromVersion(version, dokeres)
+    }
+  },
+
+  getEnvConfig: ({ getStr }) => ({
+    agent: {
+      name:       getStr( 'SCRT_AGENT_NAME',       ()=>null),
+      address:    getStr( 'SCRT_AGENT_ADDRESS',    ()=>null),
+      mnemonic:   getStr( 'SCRT_AGENT_MNEMONIC',   ()=>null),
+    },
+    build: {
+      image:      getStr( 'SCRT_BUILD_IMAGE',      ()=>SecretNetwork.Builder.Docker.image),
+      dockerfile: getStr( 'SCRT_BUILD_DOCKERFILE', ()=>SecretNetwork.Builder.Docker.dockerfile),
+      script:     getStr( 'SCRT_BUILD_SCRIPT',     ()=>SecretNetwork.Builder.Docker.script),
+      service:    getStr( 'SCRT_BUILD_SERVICE',    ()=>SecretNetwork.Builder.Docker.service),
+    },
+    mainnet: {
+      chainId:    getStr( 'SCRT_MAINNET_CHAIN_ID', ()=>'secret-4'),
+      apiUrl:     getStr( 'SCRT_MAINNET_API_URL',  ()=>null),
+    },
+    testnet: {
+      chainId:    getStr( 'SCRT_TESTNET_CHAIN_ID', ()=>'pulsar-2'),
+      apiUrl:     getStr( 'SCRT_TESTNET_API_URL',  ()=>null),
+    }
+  })
+
 }
 
-export function getScrtDevnet (
-  version:    ScrtDevnetVersion,
-  managerURL: string  = undefined,
-  chainId:    string  = undefined,
-  dokeres:    Dokeres = new Dokeres()
-) {
-  const portMode = ScrtDevnet.portModes[version]
-  if (managerURL) {
-    return RemoteDevnet.getOrCreate(
-      managerURL,
-      chainId,
-      chainId ? null : chainId,
-      portMode
-    )
-  } else {
-    const dockerfile  = ScrtDevnet.dockerfiles[version]
-    const imageTag    = ScrtDevnet.dockerTags[version]
-    const readyPhrase = 'indexed block'
-    const initScript  = resolve(__dirname, ScrtDevnet.initScriptName)
-    const image       = dokeres.image(imageTag, dockerfile, [
-      ScrtDevnet.initScriptName,
-      ScrtDevnet.managerScriptName
-    ])
-    return new DockerDevnet({ portMode, image, readyPhrase, initScript })
-  }
-}
+export default SecretNetwork

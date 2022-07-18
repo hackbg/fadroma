@@ -3,13 +3,8 @@
 .pnpm-debug.log
 .vscode
 .yarn
-Cargo.lock
 artifacts
 coverage
-dist/
-doc/typedoc
-docs
-!doc/docs
 node_modules
 package-lock.json
 receipts
@@ -18,4 +13,11 @@ target
 yarn-error.log
 yarn.lock
 *.js
-fadroma*.d.ts
+
+# Generated files:
+*.esm.js
+*.cjs.js
+*.d.ts
+dist/
+doc/typedoc
+docs
