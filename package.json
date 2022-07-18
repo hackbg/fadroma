@@ -24,7 +24,7 @@
     "signal-exit":     "^3.0.3"
   },
   "devDependencies": {
-    "@hackbg/izomorf": "workspace:^2.0.1",
+    "@hackbg/izomorf": "workspace:^3.0.1",
     "@types/node":     "latest",
     "concurrently":    "7.2.2",
     "typedoc":         "beta",
@@ -32,7 +32,7 @@
     "vitepress":       "^1.0.0-alpha.4"
   },
   "scripts": {
-    "release:dry":  "pnpm -r release:dry && izomorf dry",
+    "release:dry":  "pnpm i && pnpm -r release:dry && izomorf dry",
     "release:wet":  "pnpm i && pnpm -r release:wet && izomorf wet",
 
     "ts:check":     "tsc --noEmit",

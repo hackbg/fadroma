@@ -1,34 +1,21 @@
 #!/usr/bin/env node
 const { extname, resolve, basename, relative, join, isAbsolute } = require('path')
-const { existsSync, readFileSync, writeFileSync } = require('fs')
+const { existsSync, readFileSync, writeFileSync, readdirSync, copyFileSync } = require('fs')
 const { execSync, execFileSync } = require('child_process')
 const { request } = require('https')
 const process = require('process')
 const concurrently = require('concurrently')
 const fetch = require('node-fetch')
 module.exports = module.exports.default = izomorf
-if (require.main === module) izomorf(process.cwd(), ...process.argv.slice(2))
 const TSC = process.env.TSC || 'tsc'
+if (require.main === module) izomorf(process.cwd(), ...process.argv.slice(2)).then(()=>process.exit(0))
 async function izomorf (cwd, dryWet, ...publishArgs) {
 
   const dry = dryWet !== 'wet'
 
-  if (dry && !publishArgs.includes('--dry-run')) {
-    publishArgs.unshift('--dry-run')
-  }
-
-  if (!dry) {
-    // Start with a dry run
-    execFileSync(
-      'pnpm', ['publish', '--dry-run'],
-      { cwd, stdio: 'inherit', env: process.env }
-    )
-  }
-
   // Read package.json
   const original     = readFileSync($('package.json'), 'utf8')
   const packageJson  = JSON.parse(original)
-  const isTypescript = (packageJson.main||'').endsWith('.ts')
 
   // Check if this version is already uploaded
   const name    = packageJson.name
@@ -42,44 +29,87 @@ async function izomorf (cwd, dryWet, ...publishArgs) {
     throw new Error(`izomorf: NPM returned ${response.statusCode}`)
   }
 
+  if (dry && !publishArgs.includes('--dry-run')) {
+    publishArgs.unshift('--dry-run')
+  }
+
+  if (!dry) {
+    // Start with a dry run
+    execFileSync(
+      'pnpm', ['publish', '--dry-run'],
+      { cwd, stdio: 'inherit', env: process.env }
+    )
+  }
+
   // Patch package.json
   try {
-
+    const isTypescript = (packageJson.main||'').endsWith('.ts')
     if (isTypescript) {
-
-      const result = await concurrently([
-        `${TSC} --outDir dist/esm --target es6 --module es6 --declaration --declarationDir dist/dts`,
-        `${TSC} --outDir dist/cjs --target es6 --module commonjs`
-      ]).result
-
-      // Compile TS -> JS
-      const source           = $(packageJson.main || 'index.ts')
-      const browserSource    = $(packageJson.browser || source)
+      const dtsOut = 'dist/dts'
+      const esmOut = 'dist/esm'
+      const cjsOut = 'dist/cjs'
       const replaceExtension = (x, a, b) => `${basename(x, a)}${b}`
-      const dtsBuild         = $('dist/dts', replaceExtension(source, '.ts', '.js'))
-      const esmBuild         = $('dist/esm', replaceExtension(source, '.ts', '.js'))
-      const cjsBuild         = $('dist/cjs', replaceExtension(source, '.ts', '.js'))
-
-      // Set main, types, and exports fields in package.json
+      // Compile TS -> JS
+      const result = await concurrently([
+        `${TSC} --outDir ${esmOut} --target es2016 --module es6 --declaration --declarationDir ${dtsOut}`,
+        `${TSC} --outDir ${cjsOut} --target es6 --module commonjs`
+      ]).result
+      const files = []
+      for (const file of readdirSync($(dtsOut))) {
+        if (file.endsWith('.d.ts')) {
+          copyFileSync($(dtsOut, file), $(file))
+          files.push(file)
+        }
+      }
+      for (const file of readdirSync($(esmOut))) {
+        if (file.endsWith('.js')) {
+          const newFile = replaceExtension(file, '.js', '.esm.js')
+          copyFileSync($(esmOut, file), $(newFile))
+          files.push(newFile)
+        }
+      }
+      for (const file of readdirSync($(cjsOut))) {
+        if (file.endsWith('.js')) {
+          const newFile = replaceExtension(file, '.js', '.cjs.js')
+          copyFileSync($(cjsOut, file), $(newFile))
+          files.push(newFile)
+        }
+      }
+      const main        = $(packageJson.main    || 'index.ts')
+      const browserMain = $(packageJson.browser || 'index.browser.ts')
+      const dtsMain     = replaceExtension(main, '.ts', '.d.ts')
+      const esmMain     = replaceExtension(main, '.ts', '.esm.js')
+      const cjsMain     = replaceExtension(main, '.ts', '.cjs.js')
+      // Set main, types, files, and exports fields in package.json
       if (packageJson.type === 'module') {
         Object.assign(packageJson, {
-          main:    toRel(esmBuild),
-          types:   toRel(dtsBuild),
-          exports: { source: toRel(source), require: toRel(cjsBuild), default: toRel(esmBuild) },
+          main:    toRel(esmMain),
+          types:   toRel(dtsMain),
+          exports: { source: toRel(main), require: toRel(cjsMain), default: toRel(esmMain) },
         })
       } else {
         Object.assign(packageJson, {
-          main:    toRel(cjsBuild),
-          types:   toRel(dtsBuild),
-          exports: { source: toRel(source), import: toRel(esmBuild), default: toRel(cjsBuild) },
+          main:    toRel(cjsMain),
+          types:   toRel(dtsMain),
+          exports: { source: toRel(main), import: toRel(esmMain), default: toRel(cjsMain) },
         })
       }
+      console.log(files, packageJson.files)
+      packageJson.files = [...new Set([
+        ...packageJson.files||[],
+        ...files
+      ])].sort()
 
       // Write modified package.json
       console.warn("\nTemporary modification to package.json (don't commit!)\n")
       const modified = JSON.stringify(packageJson, null, 2)
       console.log(modified)
       writeFileSync($('package.json'), modified, 'utf8')
+
+      execFileSync(
+        'ls', ['-al'],
+        { cwd, stdio: 'inherit', env: process.env }
+      )
 
       // Publish the package, thus modified, to NPM
       console.log(`\npnpm publish --no-git-checks`, ...publishArgs)
@@ -99,7 +129,9 @@ async function izomorf (cwd, dryWet, ...publishArgs) {
 
     }
 
-    if (!dry) {
+    if (dry) {
+      console.log('Dry run successful.')
+    } else {
       // Add Git tag
       execSync(`git tag -f "npm/${packageJson.name}/${packageJson.version}"`, { cwd, stdio: 'inherit' })
     }

@@ -6,3 +6,8 @@ node_modules
 docs
 coverage
 dist
+*.esm.js
+*.cjs.js
+*.d.ts
+!konzola.d.ts
+!runspec.d.ts

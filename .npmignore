@@ -1,5 +1,4 @@
 *.ignore
-*
 !index.ts
 !docs
 !README.md

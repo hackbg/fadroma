@@ -1,6 +1,6 @@
 {
   "name":         "@hackbg/dokeres",
-  "version":      "4.0.3",
+  "version":      "4.0.7",
   "main":         "dokeres.ts",
   "type":         "module",
   "license":      "MIT",
@@ -8,7 +8,7 @@
   "bugs":         "https://github.com/hackbg/toolbox/issues",
   "repository":   {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "dokeres"},
   "description":  "Docker utilities.",
-  "files":        [ "README.md", "dokeres.ts", "dist" ],
+  "files":        [ "README.md", "dokeres.ts" ],
   "dependencies": {
     "colors":          "1.4.0",
     "dockerode":       "^3.3.1",
