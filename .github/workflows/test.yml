@@ -1,4 +1,4 @@
-name: test js mini-libs
+name: Toolbox
 on: [push, pull_request]
 jobs:
 

@@ -23,7 +23,7 @@ jobs:
       - name: Generate TS reference
         run:  NODE_OPTIONS=--max_old_space_size=8192 pnpm docs:typedoc
       - name: Generate VitePress guide
-        run:  pnpm docs:vp:build
+        run:  VITEPRESS_BASE="/toolbox/${{ github.ref_name}}/" pnpm docs:vp:build
       - name: Collect docs
         run: |
           mkdir -p dist/docs
@@ -37,19 +37,17 @@ jobs:
           git remote get-url origin
           git fetch origin gh-pages
           echo $(git show-ref --verify refs/remotes/origin/gh-pages | cut -c-40) > .git/refs/heads/gh-pages
-          git clone -b gh-pages .git ~/page
-          rm -rf "~/page/${{github.ref_name}}"
-          mkdir -p "~/page/${{github.ref_name}}"
-          mv dist/docs/* "~/page/${{github.ref_name}}"
-          cd ~/page
-          ls -al
+          mkdir ../page
+          mv dist/docs/* ../page
+          mv docs/ ../page/ts
+          git checkout gh-pages
+          git clean -fdx
           touch .nojekyll
+          rm -rf "${{ github.ref_name }}"
+          mv ../page "${{ github.ref_name }}"
+          ls -al "${{ github.ref_name }}"
           git config --global user.email "hello@hack.bg"
           git config --global user.name "hack.bg"
           git add .
           git commit -m "🤖 built docs for ${{ github.ref_name }} @ $(date -u)" || true
-          git remote set-url origin https://github.com/hackbg/toolbox
-          printf '\n[http "https://github.com/"]\n\textraheader = AUTHORIZATION: basic ***\n\n' >> .git/config
-          cat .git/config
-          git fetch
-          git push --force
+          git push -u origin gh-pages --force
