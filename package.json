@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/fadroma",
-  "version":     "1.0.0-beta.8",
+  "version":     "1.0.0-beta.9",
   "repository":  { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type":        "module",
   "main":        "fadroma.ts",
@@ -8,8 +8,10 @@
   "description": "CosmWasm dApp framework.",
   "bin":         { "fadroma": "fadroma.cli.cjs" },
   "scripts": {
-    "release:dry":      "pnpm ts:clean && pnpm ts:check && pnpm -r release:dry && izomorf dry",
-    "release:wet":      "pnpm ts:clean && pnpm ts:check && pnpm -r release:wet && izomorf wet --access=public",
+    "release:dry":     "pnpm ts:clean && pnpm ts:check && izomorf dry",
+    "release:wet":     "pnpm ts:clean && pnpm ts:check && izomorf wet --access=public",
+    "release:all:dry": "pnpm ts:clean && pnpm ts:check && pnpm -r release:dry && izomorf dry",
+    "release:all:wet": "pnpm ts:clean && pnpm ts:check && pnpm -r release:wet && izomorf wet --access=public",
 
     "rs:build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",
 
@@ -32,8 +34,8 @@
     "@fadroma/client-scrt":       "workspace:^4",
     "@fadroma/client-scrt-amino": "workspace:^4",
     "@fadroma/client-scrt-grpc":  "workspace:^5",
-    "@fadroma/ops":               "^1.0.3",
-    "@fadroma/ops-scrt":          "workspace:^1",
+    "@fadroma/ops":               "workspace:^1.0.3",
+    "@fadroma/ops-scrt":          "workspace:^1.0.2",
     "@fadroma/tokens":            "workspace:^2",
     "@hackbg/ganesha":            "^2.2",
     "@hackbg/dokeres":            "^4.0.2",
