@@ -1,6 +1,6 @@
 {
   "name": "@fadroma/ops",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "type": "module",
   "main": "./ops.ts",
   "description": "Deployment system of Fadroma",
