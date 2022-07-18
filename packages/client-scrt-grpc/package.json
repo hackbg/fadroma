@@ -8,8 +8,8 @@
     "secretjs":             "beta"
   },
   "scripts": {
-    "build":   "tsc",
-    "check":   "tsc --noEmit",
-    "release": "izomorf"
+    "ts:check":    "tsc --noEmit",
+    "release:dry": "pnpm ts:check && izomorf dry",
+    "release:wet": "pnpm ts:check && izomorf wet --access=public"
   }
 }
