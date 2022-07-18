@@ -308,7 +308,7 @@ export interface DeployContext extends BuildContext {
 export type Context = DeployContext
 
 export async function getChain (
-  { config, chains }, name = config.project.chain
+  { config = currentConfig, chains }: Context, name = config?.project?.chain
 ): Promise<Partial<Context>> {
   config ??= currentConfig
   chains ??= knownChains
