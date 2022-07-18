@@ -179,6 +179,7 @@ export interface DevnetHandle {
 }
 
 export abstract class Chain implements Spectator {
+  isSecretNetwork = false
   static Mode = ChainMode
   constructor (
     readonly id: ChainId,

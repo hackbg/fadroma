@@ -1,10 +1,10 @@
 {
   "name":    "@fadroma/client-scrt",
-  "version": "4.0.2",
+  "version": "5.0.0",
   "type":    "module",
   "main":    "scrt.ts",
   "dependencies": {
-    "@fadroma/client": "workspace:^3",
+    "@fadroma/client": "workspace:^4",
     "@hackbg/formati": "^1.0.2"
   },
   "scripts": {

@@ -1,10 +1,10 @@
 {
   "name":    "@fadroma/client-scrt-amino",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "type":    "module",
   "main":    "scrt-amino.ts",
   "dependencies": {
-    "@fadroma/client-scrt": "workspace:^4",
+    "@fadroma/client-scrt": "workspace:^5",
     "@cosmjs/crypto":       "^0.20.0",
     "@iov/encoding":        "^2.1.0",
     "secretjs":             "0.17.5",
