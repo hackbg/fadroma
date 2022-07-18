@@ -1,3 +1,11 @@
+*.log
+*.md
+.dockerignore
+.github
+.vitepress
+Cargo.lock
+Dockerfile
+coverage
 crates
 docs
 examples
@@ -5,11 +13,10 @@ fixtures
 guide
 homepage
 packages
+pnpm-lock.yaml
+pnpm-workspace.yaml
+receipts
 shim
 target
-coverage
-receipts
-*.md
+typedoc-theme.tsx
 !README.md
-pnpm-workspace.yaml
-*.log
