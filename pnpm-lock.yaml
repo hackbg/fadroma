@@ -8,7 +8,7 @@ importers:
       '@fadroma/client-scrt': workspace:^5
       '@fadroma/client-scrt-amino': workspace:^5
       '@fadroma/client-scrt-grpc': workspace:^6
-      '@fadroma/ops': workspace:^2
+      '@fadroma/ops': workspace:^2.1
       '@fadroma/ops-scrt': workspace:^2
       '@fadroma/tokens': workspace:^3
       '@hackbg/dokeres': ^4.0.2
