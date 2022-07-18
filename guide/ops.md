@@ -11,19 +11,17 @@ the deployment of smart contracts is a workflow from their subsequent operation.
 The following is a guide to understanding and using the smart contract deployment system,
 Fadroma Ops.
 
-## Preparation
+## Add Fadroma and your script to `package.json`
 
-### Add Fadroma and your script to `package.json`
-
-* `workspace/package.json`
+* `project/package.json`:
 
 ```json
 {
   "devDependencies": {
-    "fadroma": "^100.0.0"
+    "fadroma": "^1.0.0"
   },
   "scripts": {
-    "deploy": "fadroma ./deploy.ts"
+    "fadroma": "fadroma ops.ts"
   }
 }
 ```
@@ -34,108 +32,43 @@ deployment scripts on each run. You can use TypeScript seamlessly in your
 deploy procedures.
 :::
 
-### Set up the deploy script
+## Write deploy script
 
-* `workspace/fadroma.ts'`:
+* `project/ops.ts'`:
 
 ```typescript
-import Fadroma, { Workspace } from '@hackbg/fadroma'
-import type { OperationContext } from '@hackbg/fadroma'
+import Fadroma from '@hackbg/fadroma'
+import type { DeployContext } from '@hackbg/fadroma'
 
 export default Fadroma.Deploy()
-  .command('new',
+  .command('new', 'deploy contract in new deployment'
     Fadroma.Deploy.new,
     deployMyContract)
-  .command('add'
+  .command('add', 'add contract to existing deployment'
     Fadroma.Deploy.append,
     deployMyContract)
   .entrypoint(import.meta.url)
 
-async function deployMyContract (ops) {
+async function deployMyContract (ops: DeployContext) {
   /* we'll implement the deployment procedure here */
 }
-
-// IMPORTANT: keep this line at the end of the file!
-export default Fadroma.module(import.meta.url)
 ```
 
-:::info
-The structure of Fadroma deployment scripts has went through many changes during
-development. This is how we currently write them, and it serves us well enough.
-However, in future versions of Fadroma, we aim to simplify it further.
-:::
+The **.command(name, info, ...steps)** method declares commands
+that are then invoked like this:
 
-This system is intended to allow mixing and matching of operations
-for composing more complex deployments.
+```typescript
+npm run fadroma new
+npm run fadroma add
+# ...
+```
 
-When working on a complex distributed system in an append-only environment,
-the capability to define your operation procedures in smaller, composable steps,
-is invaluable.
+Steps are executed one after another, with a shared `context: DeployContext` argument
+to allow for composition and reuse.
 
 Let's break this down as we prepare to implement `deployMyContract`.
 
-### Import Fadroma
-
-The default export of Fadroma contains a collection of **operations**.
-Those are functions that populate the **operation context** for performing
-a deployment action.
-
-```typescript
-import Fadroma, { OperationContext } from '@hackbg/fadroma'
-```
-
-### Enable building and uploading
-
-Since we may have multiple deploy commands, and all of them will need to be able to build and
-upload contracts, we collect the pre-defined preparation steps in an array, `common`.
-
-```typescript
-const common = [
-  Fadroma.Build.Scrt,
-  Fadroma.Chain.FromEnv,
-  Fadroma.Upload.FromFile,
-]
-```
-
-The most common pre-defined operations are:
-* `Fadroma.Build.Scrt`: subsequent steps will be able to `build` contracts for Secret Network
-* `Fadroma.Chain.FromEnv`: subsequent steps will have access to the `chain` and `agent` defined
-  by the `FADROMA_CHAIN` and `SCRT_AGENT_MNEMONIC` environment variables.
-* `Fadroma.Upload.FromFile`: subsequent steps will be able to `upload` contracts to the selected
-  `chain`.
-
-`FADROMA_CHAIN` and supports the following values:
-
-* `Mocknet`
-* `LegacyScrtMainnet`, `LegacyScrtTestnet`, `LegacyScrtDevnet`
-* `ScrtMainnet`, `ScrtTestnet`, `ScrtDevnet`
-
-### Define commands
-
-Up next are two `Fadroma.command(name, ...operations)` invocations. The `Fadroma.command` function
-defines a command which is then exposed to the outside world by the final `Fadroma.module` call.
-
-Having defined the `new` and `add` commands using:
-
-```typescript
-Fadroma.command('new', /*...*/)
-Fadroma.command('add', /*...*/)
-```
-
-you will be able to invoke them with:
-
-```shell
-$ npm run deploy new
-$ npm run deploy add
-```
-
-:::warning
-**PNPM users:** PNPM after 7.4.0 introduces its own `deploy` command which is unrelated to
-what we're doing here but shadows the `deploy` command defined in scripts. Make sure to run
-`pnpm run deploy` and not `pnpm deploy`.
-:::
-
-### About deployment receipts
+## Deployments
 
 The `new` and `add` commands differ by one pre-defined step: `Fadroma.Deploy.New` vs
 `Fadroma.Deploy.Append`. What's the difference?
@@ -178,7 +111,7 @@ So far, we've set up an environment for deploying contracts and keeping track of
 actions. Let's see how to implement the custom operation, `deployMyContract`, in that
 environment.
 
-### About operations and the operation context
+## About operations and the operation context
 
 Operations are asynchronous functions that take a single argument, the `OperationContext`,
 and may return an object containing updates to the operation context.
@@ -197,7 +130,7 @@ async function deployMyContract (context: DeployMyContract) {
 }
 ```
 
-### Build for production
+## Build for production
 
 The first thing we need to do is compile a production build of our contract.
 For this, we can use the `context.build(source: Source): Promise<Artifact>`
