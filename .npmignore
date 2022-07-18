@@ -11,3 +11,5 @@ coverage
 receipts
 *.md
 !README.md
+pnpm-workspace.yaml
+*.log
