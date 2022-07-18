@@ -541,7 +541,9 @@ export function getBuildContext ({ config = {} }: any = {}): Partial<Context> {
   return {
     builder,
     workspace,
-    getSource (source: IntoSource): Source {
+    getSource (source: IntoSource, ref?: string): Source {
+      let workspace = this.workspace
+      if (ref) workspace = workspace.at(ref)
       if (typeof source === 'string') return this.workspace.crate(source)
       return source
     },

@@ -172,6 +172,10 @@ export class Source {
   build (builder: Builder): Promise<Artifact> {
     return builder.build(this)
   }
+  at (ref?: string): Source {
+    if (!ref) return this
+    return new Source(new Workspace(this.workspace.path, ref, this.workspace.gitDir), this.crate)
+  }
 }
 
 /** Can perform builds. */

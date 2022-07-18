@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/fadroma",
-  "version":     "1.0.0-beta.18",
+  "version":     "1.0.0-beta.19",
   "repository":  { "type": "git", "url": "https://github.com/hackbg/fadroma" },
   "type":        "module",
   "main":        "fadroma.ts",
@@ -34,7 +34,7 @@
     "@fadroma/client-scrt":       "workspace:^5",
     "@fadroma/client-scrt-amino": "workspace:^5",
     "@fadroma/client-scrt-grpc":  "workspace:^6",
-    "@fadroma/ops":               "workspace:^2",
+    "@fadroma/ops":               "workspace:^2.1",
     "@fadroma/ops-scrt":          "workspace:^2",
     "@fadroma/tokens":            "workspace:^3",
     "@hackbg/ganesha":            "^2.2",
