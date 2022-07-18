@@ -2,9 +2,11 @@
 *.md
 .dockerignore
 .github
+.gitmodules
 .vitepress
 Cargo.lock
 Dockerfile
+_Cargo.toml
 coverage
 crates
 docs
@@ -16,7 +18,9 @@ packages
 pnpm-lock.yaml
 pnpm-workspace.yaml
 receipts
+shell.nix
 shim
 target
 typedoc-theme.tsx
+
 !README.md
