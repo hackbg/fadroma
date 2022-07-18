@@ -529,7 +529,11 @@ export abstract class Slot<C extends Context, T> {
 }
 
 export function getBuildContext ({ config = {} }: any = {}): Partial<Context> {
-  let { project: { root = process.cwd() }, build = {}, scrt: { build: scrtBuild = {} } = {} }=config
+  let {
+    project: { root = process.cwd() } = {},
+    build = {},
+    scrt: { build: scrtBuild = {} } = {}
+  } = config || {}
   // Apply SecretNetwork-specific build vars on top of global build vars.
   // TODO select builder implementation here
   const builder   = SecretNetwork.getBuilder({ ...build, ...scrtBuild })
