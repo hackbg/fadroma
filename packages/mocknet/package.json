@@ -1,11 +1,10 @@
 {
-  "name":    "@fadroma/client-scrt",
-  "version": "5.0.0",
+  "name":    "@fadroma/mocknet",
+  "version": "1.0.0-beta.0",
   "type":    "module",
-  "main":    "scrt.ts",
+  "main":    "./mocknet.ts",
+  "description": "Test smart contracts without the overhead of spawning a real chain.",
   "dependencies": {
-    "@fadroma/client": "workspace:^4",
-    "@hackbg/formati": "^1.0.2"
   },
   "scripts": {
     "ts:check":    "tsc --noEmit",

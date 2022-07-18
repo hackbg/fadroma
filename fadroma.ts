@@ -22,39 +22,35 @@ import { resolve, dirname } from 'path'
 import { homedir }          from 'os'
 import { fileURLToPath }    from 'url'
 
-import $                                    from '@hackbg/kabinet'
-import { Console, bold, colors, timestamp } from '@hackbg/konzola'
-import { Commands, CommandContext }         from '@hackbg/komandi'
+import $                                         from '@hackbg/kabinet'
+import { Console, bold, colors, timestamp }      from '@hackbg/konzola'
+import { Environment, Commands, CommandContext } from '@hackbg/komandi'
 
-import SecretNetwork  from '@fadroma/ops-scrt'
-import { ScrtChain }  from '@fadroma/client-scrt'
-import { LegacyScrt } from '@fadroma/client-scrt-amino'
-import { Scrt }       from '@fadroma/client-scrt-grpc'
-
+import { BuildConfig, getBuilder, Builder, Source, Workspace } from '@fadroma/build'
+import { DevnetConfig, getDevnet }                             from '@fadroma/devnet'
+import { SecretNetworkConfig }                                 from '@fadroma/scrt'
+import { Mocknet }                                             from '@fadroma/mocknet'
+import {
+  Uploader,
+  FSUploader,
+  CachingFSUploader,
+  Deployments,
+  Deployment
+} from '@fadroma/deploy'
 import {
   Address,
   Agent,
   AgentOpts,
   Artifact,
-  Builder,
-  CachingFSUploader,
   Chain,
   ChainMode,
   Client,
   ClientCtor,
   ClientOpts,
-  Deployment,
-  Deployments,
-  FSUploader,
   Instance,
   Message,
-  Mocknet,
-  Source,
   Template,
-  Uploader,
-  Workspace,
-  join
-} from '@fadroma/ops'
+} from '@fadroma/client'
 
 /** Update `process.env` with value from `.env` file */
 import dotenv from 'dotenv'
@@ -65,135 +61,81 @@ export const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /// # Reexport the core platform vocabulary:
 
-export * from '@fadroma/client'            /// * core model
-export * from '@fadroma/client-scrt-amino' /// * old secret network support
-export * from '@fadroma/client-scrt-grpc'  /// * new secret network support
-export * from '@fadroma/ops'               /// * deployment system
-export * from '@fadroma/ops-scrt'          /// * deployment to secret network
-export * from '@fadroma/tokens'            /// * tokenomics types and snip20 client
-export * from '@hackbg/konzola'            /// * console formatting
-export * from '@hackbg/kabinet'            /// * filesystem utilities
-export * from '@hackbg/komandi'            /// * command runner
+export * from '@hackbg/konzola'
+export * from '@hackbg/kabinet'
+export * from '@hackbg/komandi'
+export * from '@hackbg/formati'
+
+export * from '@fadroma/build'
+export * from '@fadroma/client'
+export * from '@fadroma/deploy'
+export * from '@fadroma/devnet'
+export * from '@fadroma/mocknet'
+export * from '@fadroma/tokens'
+
+export * from '@fadroma/scrt'
+export * from '@fadroma/scrt-amino'
 
 /// # Define the top-level conventions and idioms:
 
 export const console = Console('Fadroma Ops')
 
-export class FadromaConfig {
-  envVarAllowList?: Set<string> = new Set()
-  getStr (name: string, fallback: ()=>string|null): string|null {
-    this.envVarAllowList.add(name)
-    if (this.env.hasOwnProperty(name)) {
-      return String(process.env[name] as string)
-    } else {
-      return fallback()
-    }
+export class FadromaConfig extends Environment {
+
+  constructor (public readonly env: Record<string, string> = process.env) {
+    super(env)
+    this.build  = new BuildConfig(this.env)
+    this.devnet = new DevnetConfig(this.env)
+    this.scrt   = new SecretNetworkConfig(this.env)
+    this.validateScrtConfig()
   }
-  getBool (name: string, fallback: ()=>boolean|null): boolean|null {
-    this.envVarAllowList.add(name)
-    if (this.env.hasOwnProperty(name)) {
-      return Boolean(process.env[name] as string)
-    } else {
-      return fallback()
-    }
-  }
+
+  /** Build settings. */
+  build:  BuildConfig
+
+  /** Devnet settings.*/
+  devnet: DevnetConfig
+
+  /** Secret Network settings. */
+  scrt:   SecretNetworkConfig
+
   /** Project settings. */
   project = {
     /** The project's root directory. */
-    root:         this.getStr( 'FADROMA_PROJECT',            ()=>process.cwd()),
+    root:         this.getStr( 'FADROMA_PROJECT',  ()=>process.cwd()),
     /** The selected chain backend. */
-    chain:        this.getStr( 'FADROMA_CHAIN',              ()=>''),
+    chain:        this.getStr( 'FADROMA_CHAIN',    ()=>''),
   }
+
   /** System settings. */
   system = {
     /** The user's home directory. */
-    homeDir:      this.getStr( 'HOME',                       ()=>homedir()),
+    homeDir:      this.getStr( 'HOME',             ()=>homedir()),
     /** Address of Docker socket to use. */
-    dockerHost:   this.getStr( 'DOCKER_HOST',                ()=>'/var/run/docker.sock'),
+    dockerHost:   this.getStr( 'DOCKER_HOST',      ()=>'/var/run/docker.sock'),
   }
-  /** Build settings. */
-  build = {
-    /** URL to the build manager endpoint, if used. */
-    manager:      this.getStr( 'FADROMA_BUILD_MANAGER',      ()=>null),
-    /** Whether to bypass Docker and use the toolchain from the environment. */
-    raw:          this.getBool('FADROMA_BUILD_RAW',          ()=>null),
-    /** Whether to ignore existing build artifacts and rebuild contracts. */
-    rebuild:      this.getBool('FADROMA_REBUILD',            ()=>false),
-    /** Whether not to run `git fetch` during build. */
-    noFetch:      this.getBool('FADROMA_NO_FETCH',           ()=>false),
-    /** Whether not to run `git fetch` during build. */
-    toolchain:    this.getStr('FADROMA_RUST',                ()=>''),
-  }
-  /** Devnet settings. */
-  devnet = {
-    /** URL to the devnet manager endpoint, if used. */
-    manager:      this.getStr( 'FADROMA_DEVNET_MANAGER',     ()=>null),
-    /** Whether to remove the devnet after the command ends. */
-    ephemeral:    this.getBool('FADROMA_DEVNET_EPHEMERAL',   ()=>false),
-    /** Chain id for devnet .*/
-    chainId:      this.getStr( 'FADROMA_DEVNET_CHAIN_ID',    ()=>"fadroma-devnet"),
-    /** Port for devnet. */
-    port:         this.getStr( 'FADROMA_DEVNET_PORT',        ()=>null),
-  }
+
   /** Upload settings. */
   upload = {
     /** Whether to ignore existing upload receipts and reupload contracts. */
-    reupload:     this.getBool('FADROMA_REUPLOAD',           ()=>false),
-  }
-  /** DataHub API settings. */
-  datahub = {
-    /** API key for Figment DataHub APIs. */
-    key:          this.getStr( 'FADROMA_DATAHUB_KEY',        ()=>null),
-    /** Whether to apply DataHub rate limits */
-    rateLimit:    this.getBool('FADROMA_DATAHUB_RATE_LIMIT', ()=>false)
-  }
-  /** Secret Network settings. */
-  scrt = SecretNetwork.getEnvConfig(this)
-
-  $ (...args) {
-    // file finder function.
-    // FIXME: won't find em when installed through npm
-    return resolve(__dirname, ...args)
+    reupload:     this.getBool('FADROMA_REUPLOAD', ()=>false),
   }
 
-  private configureScrt () {
-    if (this.project.chain) {
-      if (this.project.chain.startsWith('LegacyScrt')) {
-        if (this.scrt.mainnet.apiUrl === null) {
-          this.scrt.mainnet.apiUrl =
-            `https://${this.scrt.mainnet.chainId}--lcd--full.datahub.figment.io`+
-            `/apikey/${this.datahub.key}/`
-        }
-        if (this.scrt.testnet.apiUrl === null) {
-          this.scrt.testnet.apiUrl =
-            `https://${this.scrt.testnet.chainId}--lcd--full.datahub.figment.io`+
-            `/apikey/${this.datahub.key}/`
-        }
-      } else if (this.project.chain.startsWith('Scrt')) {
-        if (this.scrt.mainnet.apiUrl === null) {
-          this.scrt.mainnet.apiUrl = 'https://secret-4.api.trivium.network:9091'
-        }
-        if (this.scrt.testnet.apiUrl === null) {
-          this.scrt.testnet.apiUrl = 'https://testnet-web-rpc.roninventures.io'
-        }
+  private validateScrtConfig () {
+    const { project: { chain }, scrt } = this
+    if (chain.includes('Scrt')) {
+      if (chain.endsWith('Legacy')) {
+        if (chain.includes('Mainnet') && !scrt.mainnet.apiUrl) throw new Error('set SCRT_MAINNET_API_URL')
+        if (chain.includes('Testnet') && !scrt.testnet.apiUrl) throw new Error('set SCRT_TESTNET_API_URL')
+      } else {
+        scrt.mainnet.apiUrl ??= 'https://secret-4.api.trivium.network:9091'
+        scrt.testnet.apiUrl ??= 'https://testnet-web-rpc.roninventures.io'
       }
     }
-  }
-
-  constructor (
-    public readonly env: typeof process.env,
-  ) {
-    this.configureScrt()
-    for (const key of Object.keys(env)) {
-      if (!this.envVarAllowList.has(key)) {
-        delete env[key]
-      }
-    }
-    delete this.envVarAllowList
   }
 }
 
-export const currentConfig = new FadromaConfig({...process.env})
+export const currentConfig = new FadromaConfig()
 
 export type IntoSource   = Source|string
 export type IntoArtifact = Artifact|IntoSource
@@ -334,7 +276,7 @@ export const knownChains = {
   },
   async 'LegacyScrtDevnet'  (config = currentConfig) {
     const mode = ChainMode.Devnet
-    const node = await SecretNetwork.getDevnet('1.2').respawn()
+    const node = await getDevnet('scrt_1.2').respawn()
     const id   = node.chainId
     const url  = node.url.toString()
     return new LegacyScrt(id, { url, mode, node })
@@ -353,7 +295,7 @@ export const knownChains = {
   },
   async 'ScrtDevnet'        (config = currentConfig) {
     const mode = ChainMode.Devnet
-    const node = await SecretNetwork.getDevnet('1.3').respawn()
+    const node = await getDevnet('scrt_1.3').respawn()
     const id   = node.chainId
     const url  = node.url.toString()
     return new Scrt(id, { url, mode, node })
@@ -516,7 +458,7 @@ export function getBuildContext ({ config = currentConfig }: any = {}): Partial<
   } = config || {}
   // Apply SecretNetwork-specific build vars on top of global build vars.
   // TODO select builder implementation here
-  const builder   = SecretNetwork.getBuilder({ ...build, ...scrtBuild })
+  const builder   = getBuilder({ ...build, ...scrtBuild })
   const workspace = new Workspace(root)
   return {
     builder,

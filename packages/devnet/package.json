@@ -1,0 +1,15 @@
+{
+  "name": "@fadroma/devnet",
+  "version": "1.0.0-beta.0",
+  "type": "module",
+  "main": "./devnet.ts",
+  "description": "Spawn local instance of blockchain for smart contract development.",
+  "dependencies": {
+    "@hackbg/portali": "^1.2"
+  },
+  "scripts": {
+    "ts:check": "tsc --noEmit",
+    "release:dry": "pnpm ts:check && izomorf dry",
+    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+  }
+}

@@ -1,5 +1,5 @@
 import { Address, Client, Executor, Uint128, ICoin, Coin } from '@fadroma/client'
-import { Permit, ViewingKeyClient } from '@fadroma/client-scrt'
+import { Permit, ViewingKeyClient } from '@fadroma/scrt'
 import { Console, bold } from '@hackbg/konzola'
 
 export const console = Console('Fadroma Tokens')

@@ -1,12 +1,12 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "3.0.0",
+  "version": "4.0.0-beta.0",
   "type":    "module",
   "main":    "tokens.ts",
   "dependencies": {
-    "@hackbg/konzola":      "^1.1",
-    "@fadroma/client":      "workspace:^4",
-    "@fadroma/client-scrt": "workspace:^5"
+    "@hackbg/konzola": "^1.1",
+    "@fadroma/client": "workspace:^4",
+    "@fadroma/scrt":   "workspace:^1"
   },
   "scripts": {
     "ts:check":    "tsc --noEmit",

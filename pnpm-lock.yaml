@@ -4,20 +4,21 @@ importers:
 
   .:
     specifiers:
+      '@fadroma/build': workspace:^1.0.0-beta.0
       '@fadroma/client': workspace:^4
-      '@fadroma/client-scrt': workspace:^5
-      '@fadroma/client-scrt-amino': workspace:^5
-      '@fadroma/client-scrt-grpc': workspace:^6
-      '@fadroma/ops': workspace:^2.1.1
-      '@fadroma/ops-scrt': workspace:^2.0.1
-      '@fadroma/tokens': workspace:^3
+      '@fadroma/deploy': workspace:^1.0.0-beta.0
+      '@fadroma/devnet': workspace:^1.0.0-beta.0
+      '@fadroma/mocknet': workspace:^1.0.0-beta.0
+      '@fadroma/scrt': workspace:^1
+      '@fadroma/scrt-amino': workspace:^1
+      '@fadroma/tokens': workspace:^4.0.0-beta.0
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/ensuite': ^1
       '@hackbg/formati': ^1.1.0
       '@hackbg/ganesha': ^2.2
       '@hackbg/izomorf': ^3.0.1
       '@hackbg/kabinet': ^3.0.2
-      '@hackbg/komandi': ^3.0.3
+      '@hackbg/komandi': ^3.1.0
       '@hackbg/konzola': ^1.0.8
       '@magic-works/commonjs-import.meta': ^1.0.1
       '@types/node': ^16.11.36
@@ -35,18 +36,19 @@ importers:
       typescript: ^4.7
       vitepress: ^1.0.0-alpha.4
     dependencies:
+      '@fadroma/build': link:packages/build
       '@fadroma/client': link:packages/client
-      '@fadroma/client-scrt': link:packages/client-scrt
-      '@fadroma/client-scrt-amino': link:packages/client-scrt-amino
-      '@fadroma/client-scrt-grpc': link:packages/client-scrt-grpc
-      '@fadroma/ops': link:packages/ops
-      '@fadroma/ops-scrt': link:packages/ops-scrt
+      '@fadroma/deploy': link:packages/deploy
+      '@fadroma/devnet': link:packages/devnet
+      '@fadroma/mocknet': link:packages/mocknet
+      '@fadroma/scrt': link:platforms/scrt
+      '@fadroma/scrt-amino': link:platforms/scrt-amino
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/dokeres': 4.0.2
       '@hackbg/formati': 1.1.0
       '@hackbg/ganesha': 2.2.4
       '@hackbg/kabinet': 3.0.2
-      '@hackbg/komandi': 3.0.3
+      '@hackbg/komandi': 3.1.0
       '@hackbg/konzola': 1.1.1
       dotenv: 15.0.1
     devDependencies:
@@ -80,42 +82,34 @@ importers:
       pug: 3.0.2
       vitepress: 1.0.0-alpha.4
 
+  packages/build:
+    specifiers:
+      '@fadroma/client': workspace:^4
+      '@hackbg/dokeres': ^4.0.2
+      '@hackbg/formati': ^1.0.2
+      '@hackbg/kabinet': ^3.0.2
+      '@hackbg/konzola': ^1.1
+      '@hackbg/portali': ^1
+      json-schema-to-typescript: ^10.1.5
+      line-transform-stream: ^0.1.0
+      simple-git: ^3.7.1
+      toml: ^3.0.0
+    dependencies:
+      '@fadroma/client': link:../client
+      '@hackbg/dokeres': 4.0.2
+      '@hackbg/formati': 1.1.0
+      '@hackbg/kabinet': 3.0.2
+      '@hackbg/konzola': 1.1.1
+      '@hackbg/portali': 1.1.3
+      json-schema-to-typescript: 10.1.5
+      line-transform-stream: 0.1.0
+      simple-git: 3.10.0
+      toml: 3.0.0
+
   packages/client:
     specifiers: {}
 
-  packages/client-scrt:
-    specifiers:
-      '@fadroma/client': workspace:^4
-      '@hackbg/formati': ^1.0.2
-    dependencies:
-      '@fadroma/client': link:../client
-      '@hackbg/formati': 1.0.2
-
-  packages/client-scrt-amino:
-    specifiers:
-      '@cosmjs/crypto': ^0.20.0
-      '@fadroma/client-scrt': workspace:^5
-      '@iov/encoding': ^2.1.0
-      axios: ^0.26.0
-      exponential-backoff: ^3.1.0
-      secretjs: 0.17.5
-    dependencies:
-      '@cosmjs/crypto': 0.20.1
-      '@fadroma/client-scrt': link:../client-scrt
-      '@iov/encoding': 2.5.0
-      axios: 0.26.1
-      exponential-backoff: 3.1.0
-      secretjs: 0.17.5
-
-  packages/client-scrt-grpc:
-    specifiers:
-      '@fadroma/client-scrt': workspace:^5
-      secretjs: beta
-    dependencies:
-      '@fadroma/client-scrt': link:../client-scrt
-      secretjs: 1.3.0-beta.7
-
-  packages/ops:
+  packages/deploy:
     specifiers:
       '@fadroma/client': workspace:^4
       '@hackbg/dokeres': ^4.0.2
@@ -134,7 +128,7 @@ importers:
     dependencies:
       '@fadroma/client': link:../client
       '@hackbg/dokeres': 4.0.2
-      '@hackbg/formati': 1.0.2
+      '@hackbg/formati': 1.1.0
       '@hackbg/kabinet': 3.0.2
       '@hackbg/konzola': 1.1.1
       '@hackbg/portali': 1.1.3
@@ -147,27 +141,50 @@ importers:
       toml: 3.0.0
       wasm-ffi: 0.3.0
 
-  packages/ops-scrt:
+  packages/devnet:
     specifiers:
-      '@fadroma/client-scrt-amino': workspace:^5
-      '@fadroma/client-scrt-grpc': workspace:^6
-      '@fadroma/ops': workspace:^2
-      '@hackbg/dokeres': ^4.0.2
+      '@hackbg/portali': ^1.2
     dependencies:
-      '@fadroma/client-scrt-amino': link:../client-scrt-amino
-      '@fadroma/client-scrt-grpc': link:../client-scrt-grpc
-      '@fadroma/ops': link:../ops
-      '@hackbg/dokeres': 4.0.2
+      '@hackbg/portali': 1.2.1
+
+  packages/mocknet:
+    specifiers: {}
 
   packages/tokens:
     specifiers:
       '@fadroma/client': workspace:^4
-      '@fadroma/client-scrt': workspace:^5
+      '@fadroma/scrt': workspace:^1
       '@hackbg/konzola': ^1.1
     dependencies:
       '@fadroma/client': link:../client
-      '@fadroma/client-scrt': link:../client-scrt
+      '@fadroma/scrt': link:../../platforms/scrt
       '@hackbg/konzola': 1.1.1
+
+  platforms/scrt:
+    specifiers:
+      '@fadroma/client': workspace:^4
+      '@hackbg/formati': ^1.0.2
+      secretjs: beta
+    dependencies:
+      '@fadroma/client': link:../../packages/client
+      '@hackbg/formati': 1.1.0
+      secretjs: 1.3.0-beta.7
+
+  platforms/scrt-amino:
+    specifiers:
+      '@cosmjs/crypto': ^0.20.0
+      '@fadroma/scrt': workspace:^1
+      '@iov/encoding': ^2.1.0
+      axios: ^0.26.0
+      exponential-backoff: ^3.1.0
+      secretjs: 0.17.5
+    dependencies:
+      '@cosmjs/crypto': 0.20.1
+      '@fadroma/scrt': link:../scrt
+      '@iov/encoding': 2.5.0
+      axios: 0.26.1
+      exponential-backoff: 3.1.0
+      secretjs: 0.17.5
 
   shim:
     specifiers: {}
@@ -461,15 +478,6 @@ packages:
       why-is-node-still-running: 1.0.0
     dev: true
 
-  /@hackbg/formati/1.0.2:
-    resolution: {integrity: sha512-GuiQXTk3uOwLksgWEp+xFJ+QYTelSpgBrJRNIJRtZhgu9j8TcwutL38PAY/aV5ONofhlI6s2j12AvhK35uOpHg==}
-    dependencies:
-      '@iov/crypto': 2.5.0
-      '@iov/encoding': 2.5.0
-      bech32: 2.0.0
-      secure-random: 1.1.2
-    dev: false
-
   /@hackbg/formati/1.1.0:
     resolution: {integrity: sha512-54m4qi3uLFUheEKomZYVtu/A+4L8MkijSseXAeAI/3Dt2VpT54V/VPA40r20ScLU6Tz27Y2byO3L1oJvcrzjFg==}
     dependencies:
@@ -510,8 +518,8 @@ packages:
       toml: 3.0.0
     dev: false
 
-  /@hackbg/komandi/3.0.3:
-    resolution: {integrity: sha512-KAHSU09RngIKSDZo8ySituD1jsU0t9gU0ZAKxqjA/lGLomoPEu04TO7yTluE2PevHH0C7U25ilS+H5aHXWItbw==}
+  /@hackbg/komandi/3.1.0:
+    resolution: {integrity: sha512-cdNLV571dCUpYA/8HtbIWyYSA57P5AfkJT+i3/fKy9expMdRH9d5QPHv67xxl9dm/DiYyOL8bbuyTkdNoyNxYA==}
     dependencies:
       '@hackbg/kabinet': 3.0.2
       '@hackbg/konzola': 1.1.1
@@ -528,6 +536,12 @@ packages:
 
   /@hackbg/portali/1.1.3:
     resolution: {integrity: sha512-VdJ8UMTONSCTO8Ouc1zKEwZYeSZ7P8eawsiFJWeTzvWk6+drxiTq9zS6+RuE2BsGgcfB3Va2nnQTrPcvPc5Xzw==}
+    dependencies:
+      exponential-backoff: 3.1.0
+    dev: false
+
+  /@hackbg/portali/1.2.1:
+    resolution: {integrity: sha512-4vgjL+eE+I/bmKZzvyLqiW8PS5ziDAVOvHOKmVX266ukGN7BMWZW9UP57sKXdQkUJYU6tPRyv9tesP4LEiQxbw==}
     dependencies:
       exponential-backoff: 3.1.0
     dev: false

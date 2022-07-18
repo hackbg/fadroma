@@ -1,9 +1,9 @@
 {
-  "name": "@fadroma/ops",
-  "version": "2.1.1",
+  "name": "@fadroma/deploy",
+  "version": "1.0.0-beta.0",
   "type": "module",
-  "main": "./ops.ts",
-  "description": "Deployment system of Fadroma",
+  "main": "./deploy.ts",
+  "description": "Upload and instantiate smart contracts.",
   "dependencies": {
     "@fadroma/client": "workspace:^4",
     "@hackbg/dokeres": "^4.0.2",
