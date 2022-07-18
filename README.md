@@ -2,7 +2,7 @@
 
 *Level the landscape.*
 
-[![Fadroma](/homepage/logo.svg)](https://fadroma.tech)
+[![Fadroma](./homepage/logo.svg)](https://fadroma.tech)
 
 **Essential groundwork** for **dApp development** with **Rust** and **TypeScript** on **Secret Network**.
 
