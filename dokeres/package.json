@@ -19,7 +19,7 @@
   },
   "scripts": {
     "release:dry": "npm run ts:check && npm run ts:clean && izomorf dry",
-    "release:wet": "npm run ts:check && npm run ts:clean && izomorf wet --access=public",
+    "release:wet": "pnpm i && npm run ts:check && npm run ts:clean && izomorf wet --access=public",
 
     "ts:check": "tsc --noEmit",
     "ts:clean": "rm -rf dist packages/*/dist packages/*/types"

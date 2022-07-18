@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/forkers",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "main": "forkers.ts",
   "type": "module",
   "license": "MIT",
