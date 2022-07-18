@@ -19,5 +19,14 @@
     "ts:check":    "tsc --noEmit",
     "release:dry": "pnpm ts:check && izomorf dry",
     "release:wet": "pnpm ts:check && izomorf wet --access=public"
-  }
+  },
+  "files": [
+    "build.Dockerfile",
+    "build-impl.mjs",
+    "build-server.mjs",
+    "devnet_1_2.Dockerfile",
+    "devnet_1_3.Dockerfile",
+    "devnet-init.mjs",
+    "devnet-manager.mjs"
+  ]
 }
