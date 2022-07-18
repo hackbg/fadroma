@@ -535,10 +535,11 @@ export function getBuildContext ({ config }: {
     scrt:    { build:   object  }
   }
 }): Partial<Context> {
+  let { project: { root = process.cwd() }, build = {}, scrt: { build: scrtBuild = {} } = {} }=config
   // Apply SecretNetwork-specific build vars on top of global build vars.
   // TODO select builder implementation here
-  const builder   = SecretNetwork.getBuilder({ ...config.build, ...config.scrt.build })
-  const workspace = new Workspace(config.project.root)
+  const builder   = SecretNetwork.getBuilder({ ...build, ...scrtBuild })
+  const workspace = new Workspace(root)
   return {
     builder,
     workspace,
