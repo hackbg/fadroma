@@ -82,22 +82,19 @@ export const console = Console('Fadroma Ops')
 
 export class FadromaConfig extends Environment {
 
-  constructor (public readonly env: Record<string, string> = process.env) {
+  constructor (env) {
     super(env)
-    this.build  = new BuildConfig(this.env)
-    this.devnet = new DevnetConfig(this.env)
-    this.scrt   = new SecretNetworkConfig(this.env)
     this.validateScrtConfig()
   }
 
   /** Build settings. */
-  build:  BuildConfig
+  build:  BuildConfig = new BuildConfig(this.env)
 
   /** Devnet settings.*/
-  devnet: DevnetConfig
+  devnet: DevnetConfig = new DevnetConfig(this.env)
 
   /** Secret Network settings. */
-  scrt:   SecretNetworkConfig
+  scrt:   SecretNetworkConfig = new SecretNetworkConfig(this.env)
 
   /** Project settings. */
   project = {
@@ -135,7 +132,7 @@ export class FadromaConfig extends Environment {
   }
 }
 
-export const currentConfig = new FadromaConfig()
+export const currentConfig = new FadromaConfig(process.env)
 
 export type IntoSource   = Source|string
 export type IntoArtifact = Artifact|IntoSource

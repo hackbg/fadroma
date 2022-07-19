@@ -2,11 +2,12 @@ import { Artifact }                           from '@fadroma/client'
 import $, { Path, TextFile, OpaqueDirectory } from '@hackbg/kabinet'
 import { Console, bold }                      from '@hackbg/konzola'
 import { toHex, Sha256 }                      from '@hackbg/formati'
+import { Environment }                        from '@hackbg/komandi'
 import { Dokeres, DokeresImage }              from '@hackbg/dokeres'
 import simpleGit                              from 'simple-git'
 import LineTransformStream                    from 'line-transform-stream'
 import { compileFromFile }                    from 'json-schema-to-typescript'
-import TOML                                   from 'toml'
+import { parse as parseToml }                 from 'toml'
 
 import { spawn, execFileSync }               from 'child_process'
 import { basename, resolve, dirname }        from 'path'
@@ -566,7 +567,7 @@ export async function generateSchema (projectRoot: string, dirs: Array<string>) 
     //console.info(`Generating schema for ${bold(dir)}`)
     // Generate JSON schema
     const cargoToml = resolve(projectRoot, 'contracts', dir, 'Cargo.toml')
-    const {package:{name}} = TOML.parse(readFileSync(cargoToml, 'utf8'))
+    const {package:{name}} = parseToml(readFileSync(cargoToml, 'utf8'))
     execFileSync('cargo', ['run', '-p', name, '--example', 'schema'], { stdio: 'inherit' })
 
     // Collect generated schema definitions

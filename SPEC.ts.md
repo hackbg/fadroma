@@ -10,7 +10,7 @@ This file is a combination of spec and test suite.
 
 ```typescript
 import { Commands } from '@hackbg/komandi'
-const spec    = new Command()
+const spec    = new Commands()
 const subSpec = (name, ...steps) => spec.command(name, `test ${name}`, ...steps)
 export default spec.entrypoint(import.meta.url)
 ```

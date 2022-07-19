@@ -5,7 +5,8 @@
   "main": "./devnet.ts",
   "description": "Spawn local instance of blockchain for smart contract development.",
   "dependencies": {
-    "@hackbg/portali": "^1.2"
+    "@hackbg/portali": "^1.2",
+    "@hackbg/komandi": "^3.1.1"
   },
   "scripts": {
     "ts:check": "tsc --noEmit",

@@ -66,9 +66,6 @@ import { cwd } from 'process'
 import { freePort, waitPort } from '@hackbg/portali'
 import * as http from 'http'
 
-export * from '@hackbg/formati'
-export * from '@fadroma/client'
-
 export { TOML, YAML }
 export const console          = Console('Fadroma Ops')
 export const HEAD             = 'HEAD'

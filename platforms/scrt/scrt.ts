@@ -27,6 +27,7 @@ import type { Tx } from 'secretjs'
 export type { Tx }
 
 import { randomBytes } from '@hackbg/formati'
+import { Environment } from '@hackbg/komandi'
 
 export interface SecretNetworkAgentOpts extends AgentOpts {
   wallet?:  Wallet
@@ -569,36 +570,18 @@ export class ViewingKeyClient extends Client {
 
 export * from '@fadroma/client'
 
-export function getSecretNetworkConfig (config) {
-  return {
-    agent: {
-      name:     config.getStr( 'SCRT_AGENT_NAME',       ()=>null),
-      address:  config.getStr( 'SCRT_AGENT_ADDRESS',    ()=>null),
-      mnemonic: config.getStr( 'SCRT_AGENT_MNEMONIC',   ()=>null),
-    },
-    mainnet: {
-      chainId:  config.getStr( 'SCRT_MAINNET_CHAIN_ID', ()=>'secret-4'),
-      apiUrl:   config.getStr( 'SCRT_MAINNET_API_URL',  ()=>null),
-    },
-    testnet: {
-      chainId:  config.getStr( 'SCRT_TESTNET_CHAIN_ID', ()=>'pulsar-2'),
-      apiUrl:   config.getStr( 'SCRT_TESTNET_API_URL',  ()=>null),
-    }
+export class SecretNetworkConfig extends Environment {
+  agent = {
+    name:     this.getStr( 'SCRT_AGENT_NAME',       ()=>null),
+    address:  this.getStr( 'SCRT_AGENT_ADDRESS',    ()=>null),
+    mnemonic: this.getStr( 'SCRT_AGENT_MNEMONIC',   ()=>null),
   }
-}
-
-export interface SecretNetworkConfig {
-  agent: {
-    name:     string|null
-    address:  string|null
-    mnemonic: string|null
-  },
-  mainnet: {
-    chainId:  string
-    apiUrl:   string|null
-  },
-  testnet: {
-    chainId:  string
-    apiUrl:   string|null
+  mainnet = {
+    chainId:  this.getStr( 'SCRT_MAINNET_CHAIN_ID', ()=>'secret-4'),
+    apiUrl:   this.getStr( 'SCRT_MAINNET_API_URL',  ()=>null),
+  }
+  testnet = {
+    chainId:  this.getStr( 'SCRT_TESTNET_CHAIN_ID', ()=>'pulsar-2'),
+    apiUrl:   this.getStr( 'SCRT_TESTNET_API_URL',  ()=>null),
   }
 }
