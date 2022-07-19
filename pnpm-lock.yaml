@@ -123,11 +123,9 @@ importers:
     specifiers:
       '@hackbg/kabinet': workspace:^3
       '@hackbg/konzola': workspace:^1.1
-      rimraf: ^3.0.2
     dependencies:
       '@hackbg/kabinet': link:../kabinet
       '@hackbg/konzola': link:../konzola
-      rimraf: 3.0.2
 
   konzola:
     specifiers:

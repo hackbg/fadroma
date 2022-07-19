@@ -179,7 +179,7 @@ async function izomorf (cwd, command, ...publishArgs) {
         const srcFile = $(dtsOut, file)
         const newFile = replaceExtension(file, '.d.ts', distDtsExt)
         console.log(`${toRel(srcFile)} -> ${newFile}`)
-        copyFileSync(srcFile, $(file))
+        copyFileSync(srcFile, $(newFile))
         unlinkSync(srcFile)
         files.push(newFile)
       }
