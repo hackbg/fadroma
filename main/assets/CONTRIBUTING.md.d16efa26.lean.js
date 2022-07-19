@@ -1,0 +1,1 @@
+import{_ as e,c as o,o as a,a as t}from"./app.7853f90a.js";const u=JSON.parse('{"title":"@hackbg/toolbox contribution guidelines","description":"","frontmatter":{},"headers":[],"relativePath":"CONTRIBUTING.md"}'),i={name:"CONTRIBUTING.md"},r=t("",2),c=[r];function n(s,l,d,p,_,h){return a(),o("div",null,c)}var b=e(i,[["render",n]]);export{u as __pageData,b as default};

@@ -1,0 +1,1 @@
+import{_ as s,c as n,o as a,a as l}from"./app.7853f90a.js";const i=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"kabinet/kabinet.spec.ts.md"}'),p={name:"kabinet/kabinet.spec.ts.md"},o=l("",1),e=[o];function t(F,c,r,y,D,A){return a(),n("div",null,e)}var _=s(p,[["render",t]]);export{i as __pageData,_ as default};
