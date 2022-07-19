@@ -1,16 +1,22 @@
 {
-  "name":    "@hackbg/izomorf",
-  "version": "3.0.1",
-  "type":    "module",
-  "main":    "izomorf.cjs",
-  "bin":     { "izomorf": "./izomorf.cjs" },
-  "description": "Shim for publishing isomorphic TypeScript modules to NPM.",
-  "files":   [ "README.md", "izomorf.cjs" ],
+  "name": "@hackbg/izomorf",
+  "version": "4.0.0",
+  "type": "module",
+  "main": "izomorf.cjs",
+  "bin": {
+    "izomorf": "./izomorf.cjs"
+  },
+  "description": "Publish flat isomorphic packaged from TypeScript with PNPM.",
+  "files": [
+    "README.md",
+    "izomorf.cjs"
+  ],
   "scripts": {
     "release:dry": "./izomorf.cjs dry",
     "release:wet": "./izomorf.cjs wet"
   },
   "dependencies": {
+    "concurrently": "7.2.2",
     "node-fetch": "^2"
   }
 }

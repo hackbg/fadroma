@@ -23,7 +23,7 @@
     "signal-exit":     "^3.0.3"
   },
   "devDependencies": {
-    "@hackbg/izomorf": "workspace:^3.0.1",
+    "@hackbg/izomorf": "workspace:^4",
     "@types/node":     "latest",
     "concurrently":    "7.2.2",
     "typedoc":         "beta",

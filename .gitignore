@@ -11,3 +11,4 @@ dist
 *.d.ts
 !konzola.d.ts
 !runspec.d.ts
+*.dist.*

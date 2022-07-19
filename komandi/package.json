@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/komandi",
-  "version":     "3.1.0",
+  "version":     "3.1.1",
   "main":        "komandi.ts",
   "type":        "module",
   "homepage":    "https://github.com/hackbg/toolbox",
@@ -17,9 +17,9 @@
     "release:dry": "npm run ts:check && npm run ts:clean && izomorf dry",
     "release:wet": "npm run ts:check && npm run ts:clean && izomorf wet --access=public",
 
-    "test":      "ganesha-node README.md",
+    "test":        "ganesha-node README.md",
 
-    "ts:check":     "tsc --noEmit",
-    "ts:clean":     "rm -rf dist types *.js *.d.ts"
+    "ts:check":    "tsc --noEmit",
+    "ts:clean":    "izomorf clean && rm -rf dist types *.dist.*"
   }
 }
