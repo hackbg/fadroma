@@ -181,7 +181,7 @@ async function izomorf (cwd, command, ...publishArgs) {
         console.log(`${toRel(srcFile)} -> ${newFile}`)
         copyFileSync(srcFile, $(file))
         unlinkSync(srcFile)
-        files.push(file)
+        files.push(newFile)
       }
     }
 
