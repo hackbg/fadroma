@@ -18,7 +18,7 @@ import { readFileSync, mkdtempSync, readdirSync, writeFileSync } from 'fs'
 const console = Console('Fadroma Build')
 
 export const HEAD            = 'HEAD'
-export const distinct        = <T> (x: T[]): T[] => [...new Set(x)]
+export const distinct        = <T> (x: T[]): T[] => [...new Set(x) as any]
 export const sanitize        = ref => ref.replace(/\//g, '_')
 export const artifactName    = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
 export const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
@@ -163,36 +163,47 @@ export abstract class CachingBuilder extends Builder {
   }
 }
 
+export interface DockerBuilderOptions {
+  socketPath: string
+  docker:     Dokeres
+  image:      string|DokeresImage
+  dockerfile: string
+  script:     string
+  caching:    boolean
+  service:    string
+}
+
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends CachingBuilder {
   static image      = 'hackbg/fadroma:unstable'
   static dockerfile = resolve(__dirname, 'build.Dockerfile')
   static script     = resolve(__dirname, 'build-impl.mjs')
   static service    = resolve(__dirname, 'build-server.mjs')
-  constructor (options: {
-    socketPath?: string,
-    docker?:     Dokeres,
-    image?:      string|DokeresImage,
-    dockerfile?: string,
-    script?:     string
-    caching?:    boolean
-    service?:    string
-  } = {}) {
-    super({ caching: options.caching })
+  constructor ({
+    caching,
+    socketPath,
+    docker,
+    image,
+    dockerfile,
+    script
+  }: Partial<DockerBuilderOptions> = {}) {
+    super({ caching })
     // Set up Docker API handle
-    if (options.socketPath) {
-      this.docker = new Dokeres(this.socketPath = options.socketPath)
-    } else if (options.docker) {
-      this.docker = options.docker
+    if (socketPath) {
+      this.docker = new Dokeres(this.socketPath = socketPath)
+    } else if (docker) {
+      this.docker = docker
+    }
+    if (image instanceof DokeresImage) {
+      this.image = image
+    } else if (image) {
+      this.image = new DokeresImage(this.docker, image)
+    } else {
+      this.image = new DokeresImage(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
     }
     // Set up Docker image
-    this.dockerfile = options.dockerfile
-    this.script     = options.script
-    if (options.image instanceof DokeresImage) {
-      this.image = options.image
-    } else {
-      this.image = new DokeresImage(this.docker, options.image)
-    }
+    this.dockerfile = dockerfile
+    this.script     = script
   }
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'

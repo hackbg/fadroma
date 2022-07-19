@@ -1,5 +1,17 @@
 # Fadroma Deploy Spec
 
+```typescript
+import * as Testing from '../../TESTING.ts.md'
+import assert, { ok, equal, deepEqual } from 'assert'
+```
+
+```typescript
+import { Chain, Agent } from '@fadroma/client'
+let chain: Chain
+let agent: Agent
+let chainId, codeId, codeHash, txHash, template, result, artifact
+```
+
 ## Upload
 
 ```typescript
@@ -11,20 +23,14 @@ let uploader: Uploader
 
 ```typescript
 import { pathToFileURL } from 'url'
-let chainId, codeId, codeHash, txHash, template, result
-
 const emptyContract = pathToFileURL(Testing.fixture('empty.wasm'))
-
 chainId  = 'test-uploads'
 agent    = { chain: { id: chainId }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
 uploader = new FSUploader(agent)
 artifact = { url: emptyContract }
-chainId  = Symbol()
-codeId   = Symbol()
-codeHash = Symbol()
-txHash   = Symbol()
-template = { chainId, codeId, codeHash, transactionHash: txHash }
+template = { chainId: Symbol(), codeId: Symbol(), codeHash: Symbol(), transactionHash: Symbol() }
 result   = await uploader.upload(artifact)
+
 deepEqual(result, template)
 ok(uploader.agent === agent)
 

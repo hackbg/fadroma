@@ -67,7 +67,7 @@ import { freePort, waitPort } from '@hackbg/portali'
 import * as http from 'http'
 
 export { TOML, YAML }
-export const console          = Console('Fadroma Ops')
+export const console          = Console('Fadroma Deploy')
 export const HEAD             = 'HEAD'
 export const distinct         = <T> (x: T[]): T[] => [...new Set(x)]
 export const sanitize         = ref => ref.replace(/\//g, '_')
@@ -398,7 +398,6 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
       if (this.ephemeral) {
         this.container.kill()
       } else {
-        console.log()
         console.info(
           'Devnet is running on port', bold(String(this.port)),
           'from container', bold(this.container.id.slice(0,8))

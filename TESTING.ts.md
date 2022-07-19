@@ -102,7 +102,7 @@ in order to ensure that the client code (secretjs+fadroma stack) handles them co
 import freePort from 'freeport-async'
 import Express from 'express'
 import bodyParser from 'body-parser'
-import { randomHex } from '@fadroma/ops'
+import { randomHex } from '@hackbg/formati'
 
 export async function withMockAPIEndpoint (cb) {
   const endpoint = await mockAPIEndpoint()

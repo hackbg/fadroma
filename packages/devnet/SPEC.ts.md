@@ -1,24 +1,33 @@
 # Fadroma Devnet Spec
 
 ```typescript
-import { Devnet } from '.'
-let devnet: Devnet
+import * as Testing from '../../TESTING.ts.md'
+import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
-* The devnet is a temporary self-hosted instance of the selected blockchain network.
+* The devnet is a temporary self-hosted instance of the selected blockchain network,
+  with a user-specified chain id.
+
+```typescript
+import { Devnet } from '.'
+let devnet:  Devnet
+let chainId: string
+```
+
 * Constructing a devnet:
 
 ```typescript
+// requires chain id:
+try { new Devnet() } catch (e) {}
+
 // constructing a devnet
 chainId = 'test-devnet'
 devnet  = new Devnet({ chainId })
+
 equal(devnet.chainId, chainId)
 ok(devnet.protocol)
 ok(devnet.host)
 equal(devnet.port, 9091)
-
-// requires chain id:
-try { new Devnet() } catch (e) {}
 ```
 
 * Devnets are persistent:

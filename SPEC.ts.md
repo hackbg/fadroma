@@ -9,85 +9,37 @@ This file is a combination of spec and test suite.
   This happens automatically in CI to prevent the most egregious regressions.
 
 ```typescript
-import { Commands } from '@hackbg/komandi'
-const spec    = new Commands()
-const subSpec = (name, ...steps) => spec.command(name, `test ${name}`, ...steps)
-export default spec.entrypoint(import.meta.url)
+const spec    = { Spec: {} }
+const subSpec = (name, step) => spec.Spec[name] = step
+export default spec
 ```
 
 ## Client
 
 ```typescript
-subSpec('client', () => import('./packages/client/SPEC.ts.md'))
+subSpec('Client', () => import('./packages/client/SPEC.ts.md').then(console.log))
 ```
 
 ## Building
 
 ```typescript
-subSpec('build', () => import('./packages/build/SPEC.ts.md'))
+subSpec('Build', () => import('./packages/build/SPEC.ts.md').then(console.log))
 ```
 
 ## Deploying
 
 ```typescript
-subSpec('deploy', () => import('./packages/deploy/SPEC.ts.md'))
+subSpec('Deploy', () => import('./packages/deploy/SPEC.ts.md').then(console.log))
 ```
 
 ## Devnet
 
 ```typescript
-subSpec('devnet', () => import('./packages/devnet/SPEC.ts.md'))
+subSpec('Devnet', () => import('./packages/devnet/SPEC.ts.md').then(console.log))
 ```
 
 ## Mocknet
 
 ```typescript
-subSpec('mocknet', () => import('./packages/mocknet/SPEC.ts.md'))
-```
-
-## Commands
-
-```typescript
-import * as Fadroma   from '.'
-import * as Testing   from './TESTING'
-import $              from '@hackbg/kabinet'
-import fetch          from 'cross-fetch'
-import assert         from 'assert'
-import {readFileSync} from 'fs'
-import { runOperation } from '.'
-const { ok, equal, deepEqual, throws } = assert
-let console = Fadroma.Console('Fadroma Spec')
-subSpec('commands', async function testCommands () {
-
-  // run empty operation
-  await runOperation("command", "usage",
-    [], [])
-
-  // can't run operation with invalid step
-  await assert.rejects(runOperation("command", "usage",
-    [undefined], []))
-
-  // run operation with one step
-  assert.ok(await runOperation("command", "usage",
-    [()=>({foo:true})], []))
-
-  // catch and rethrow step failure
-  const error = {}
-  assert.rejects(runOperation("command", "usage",
-    [()=>{throw error}], []))
-
-  // subsequent steps update the context
-  result = await runOperation("command", "usage", [
-    ()=>({foo:true}),
-    ()=>({bar:true})], [])
-
-  assert.ok(result.foo)
-  assert.ok(result.bar)
-
-  // the context.run function runs steps without updating context
-  await assert.rejects(runOperation("command", "usage",
-    [ async (context) => { await context.run() } ], []))
-  assert.ok(await runOperation("command", "usage",
-    [ async (context) => { await context.run(async () => {}) } ], []))
-})
+subSpec('Mocknet', () => import('./packages/mocknet/SPEC.ts.md').then(console.log))
 ```

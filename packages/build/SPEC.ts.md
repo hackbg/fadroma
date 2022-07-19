@@ -1,9 +1,41 @@
 # Fadroma Build Spec
 
 ```typescript
-let builder:  Builder
-let artifact: Artifact
+import * as Testing from '../../TESTING.ts.md'
+import assert, { ok, equal, deepEqual } from 'assert'
 ```
+
+# Builders compile artifacts from crates in the workspace
+
+```typescript
+import { Workspace, Source, Builder, Artifact } from '@fadroma/build'
+let workspace: Workspace
+let source:    Source
+let builder:   Builder
+let artifact:  Artifact
+```
+
+## Getting builders
+
+```typescript
+import { getBuilder, DockerBuilder, RawBuilder } from '@fadroma/build'
+```
+
+* DockerBuilder (the default) runs builds in Docker container:
+
+```typescript
+import { DockerBuilder } from '@fadroma/build'
+ok(getBuilder() instanceof DockerBuilder)
+```
+
+* RawBuilder (enabled by `FADROMA_BUILD_RAW=1`) runs builds in host environment.
+
+```typescript
+import { RawBuilder } from '@fadroma/build'
+ok(getBuilder({ raw: true }) instanceof RawBuilder)
+```
+
+## Some mock builders
 
 ```typescript
 console.info('builder')
@@ -57,11 +89,3 @@ equal(builder.prebuild('', 'empty'), null)
 ```
 
 ## Builders for Secret Network
-
-```typescript
-import { getScrtBuilder } from '.'
-console.info('get ScrtDockerBuilder')
-ok(getScrtBuilder())
-console.info('get ScrtRawBuilder')
-ok(getScrtBuilder({ raw: true }))
-```
