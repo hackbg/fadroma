@@ -1,12 +1,12 @@
 {
   "name": "@hackbg/izomorf",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "type": "module",
   "main": "izomorf.cjs",
   "bin": {
     "izomorf": "./izomorf.cjs"
   },
-  "description": "Publish flat isomorphic packaged from TypeScript with PNPM.",
+  "description": "Publish flat isomorphic packages from TypeScript with PNPM.",
   "files": [
     "README.md",
     "izomorf.cjs"
