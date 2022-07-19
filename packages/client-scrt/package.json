@@ -9,13 +9,10 @@
   "dependencies": {
     "@fadroma/client": "workspace:^3"
   },
-  "devDependencies": {
-    "typescript":      "^4.7",
-    "@hackbg/izdatel": "workspace:^0"
-  },
   "scripts": {
     "build":   "tsc",
     "check":   "tsc --noEmit",
-    "release": "izdatel"
+    "release:wet": "izomorf wet",
+    "release:dry": "izomorf dry"
   }
 }

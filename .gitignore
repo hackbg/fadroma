@@ -17,3 +17,4 @@ scratch.rs
 target
 yarn-error.log
 yarn.lock
+*.dist.*

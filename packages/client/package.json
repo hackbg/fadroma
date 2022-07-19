@@ -3,13 +3,10 @@
   "version": "3.0.0",
   "type":    "module",
   "main":    "client.ts",
-  "devDependencies": {
-    "typescript":      "^4.7",
-    "@hackbg/izdatel": "workspace:*"
-  },
   "scripts": {
     "build":   "tsc",
     "check":   "tsc --noEmit",
-    "release": "izdatel"
+    "release:wet": "izomorf wet",
+    "release:dry": "izomorf dry"
   }
 }

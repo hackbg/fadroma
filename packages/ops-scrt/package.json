@@ -10,8 +10,9 @@
     "@fadroma/client-scrt-grpc":  "workspace:^4"
   },
   "scripts": {
-    "build": "tsc",
-    "check": "tsc --noEmit",
-    "release": "izdatel"
+    "build":   "tsc",
+    "check":   "tsc --noEmit",
+    "release:dry": "izomorf dry",
+    "release:wet": "izomorf wet"
   }
 }
