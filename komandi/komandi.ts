@@ -3,6 +3,28 @@ import { Console, bold, colors, timestamp } from '@hackbg/konzola'
 
 const console = Console('Komandi')
 
+/** Wrapper around process.env with null handling. */
+export class Environment {
+  constructor (public readonly env: Record<string, string>) {}
+  allowedVars?: Set<string> = new Set()
+  getStr (name: string, fallback: ()=>string|null): string|null {
+    this.allowedVars.add(name)
+    if (this.env.hasOwnProperty(name)) {
+      return String(process.env[name] as string)
+    } else {
+      return fallback()
+    }
+  }
+  getBool (name: string, fallback: ()=>boolean|null): boolean|null {
+    this.allowedVars.add(name)
+    if (this.env.hasOwnProperty(name)) {
+      return Boolean(process.env[name] as string)
+    } else {
+      return fallback()
+    }
+  }
+}
+
 export interface Command<C extends CommandContext> {
   info:  string,
   steps: Step<C, unknown>[]

@@ -1,6 +1,6 @@
 {
   "name":        "@hackbg/komandi",
-  "version":     "3.0.4",
+  "version":     "3.1.0",
   "main":        "komandi.ts",
   "type":        "module",
   "homepage":    "https://github.com/hackbg/toolbox",
@@ -20,6 +20,6 @@
     "test":      "ganesha-node README.md",
 
     "ts:check":     "tsc --noEmit",
-    "ts:clean":     "rm -rf dist packages/*/dist packages/*/types"
+    "ts:clean":     "rm -rf dist types *.js *.d.ts"
   }
 }
