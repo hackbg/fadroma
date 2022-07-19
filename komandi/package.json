@@ -8,7 +8,7 @@
   "repository":  {"type": "git", "url": "https://github.com/hackbg/toolbox", "directory": "komandi"},
   "license":     "MIT",
   "description": "Command runner.",
-  "files":        [ "README.md", "komandi.ts", "dist", "types" ],
+  "files":        [ "README.md", "komandi.ts" ],
   "dependencies": {
     "@hackbg/konzola": "workspace:^1.1",
     "@hackbg/kabinet": "workspace:^3"
