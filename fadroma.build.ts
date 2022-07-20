@@ -1,15 +1,15 @@
 /// # Fadroma CLI: Build command
 
-import $, { Path, OpaqueDirectory, OpaqueFile, TOMLFile } from '@hackbg/kabinet'
-import { Console, bold }                                  from '@hackbg/konzola'
-import { BuildConfig, getBuilder, Workspace, Source }     from '@fadroma/build'
-import { SecretNetworkConfig }                            from '@fadroma/scrt'
+import $, { Path, OpaqueDirectory, OpaqueFile, TOMLFile }  from '@hackbg/kabinet'
+import { Console, bold }                                   from '@hackbg/konzola'
+import { getBuilderConfig, getBuilder, Workspace, Source } from '@fadroma/build'
+import { getSecretNetworkConfig }                          from '@fadroma/scrt'
 
 export const config = {
   /** Build settings. */
-  build: new BuildConfig(process.env),
+  build: getBuilderConfig(process.cwd, process.env),
   /** Secret Network settings. */
-  scrt:  new SecretNetworkConfig(process.env)
+  scrt:  getSecretNetworkConfig(process.cwd, process.env)
 }
 
 type CargoTOML = TOMLFile<{ package: { name: string } }>

@@ -2,7 +2,7 @@ import { Artifact }                           from '@fadroma/client'
 import $, { Path, TextFile, OpaqueDirectory } from '@hackbg/kabinet'
 import { Console, bold }                      from '@hackbg/konzola'
 import { toHex, Sha256 }                      from '@hackbg/formati'
-import { Environment }                        from '@hackbg/komandi'
+import { getFromEnv }                         from '@hackbg/komandi'
 import { Dokeres, DokeresImage }              from '@hackbg/dokeres'
 import simpleGit                              from 'simple-git'
 import LineTransformStream                    from 'line-transform-stream'
@@ -610,26 +610,6 @@ export function schemaToTypes (...schemas: Array<string>) {
     })))
 }
 
-/** Get build settings from environment. */
-export function getBuildConfig (config) {
-  return {
-    /** URL to the build manager endpoint, if used. */
-    manager:    config.getStr( 'FADROMA_BUILD_MANAGER',    ()=>null),
-    /** Whether to bypass Docker and use the toolchain from the environment. */
-    raw:        config.getBool('FADROMA_BUILD_RAW',        ()=>null),
-    /** Whether to ignore existing build artifacts and rebuild contracts. */
-    rebuild:    config.getBool('FADROMA_REBUILD',          ()=>false),
-    /** Whether not to run `git fetch` during build. */
-    noFetch:    config.getBool('FADROMA_NO_FETCH',         ()=>false),
-    /** Whether not to run `git fetch` during build. */
-    toolchain:  config.getStr( 'FADROMA_RUST',             ()=>''),
-    image:      config.getStr( 'FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image),
-    dockerfile: config.getStr( 'FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile),
-    script:     config.getStr( 'FADROMA_BUILD_SCRIPT',     ()=>DockerBuilder.script),
-    service:    config.getStr( 'FADROMA_BUILD_SERVICE',    ()=>DockerBuilder.service),
-  }
-}
-
 export function getBuilder ({
   rebuild,
   caching = !rebuild,
@@ -652,5 +632,36 @@ export function getBuilder ({
   }
 }
 
-export class BuildConfig extends Environment {
+/** Builder settings. */
+export interface BuilderConfig {
+  /** URL to the build manager endpoint, if used. */
+  manager:    string|null
+  /** Whether to bypass Docker and use the toolchain from the environment. */
+  raw:        boolean
+  /** Whether to ignore existing build artifacts and rebuild contracts. */
+  rebuild:    boolean
+  /** Whether not to run `git fetch` during build. */
+  noFetch:    boolean
+
+  toolchain:  string
+  image:      string
+  dockerfile: string
+  script:     string
+  service:    string
+}
+
+export function getBuilderConfig (cwd = process.cwd(), env = process.env): BuilderConfig {
+  const { Str, Bool } = getFromEnv(env)
+  return {
+    /** URL to the build manager endpoint, if used. */
+    manager:    Str ('FADROMA_BUILD_MANAGER',    ()=>null),
+    raw:        Bool('FADROMA_BUILD_RAW',        ()=>false),
+    rebuild:    Bool('FADROMA_REBUILD',          ()=>false),
+    noFetch:    Bool('FADROMA_NO_FETCH',         ()=>false),
+    toolchain:  Str ('FADROMA_RUST',             ()=>''),
+    image:      Str ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image),
+    dockerfile: Str ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile),
+    script:     Str ('FADROMA_BUILD_SCRIPT',     ()=>DockerBuilder.script),
+    service:    Str ('FADROMA_BUILD_SERVICE',    ()=>DockerBuilder.service),
+  }
 }

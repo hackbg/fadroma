@@ -1,6 +1,6 @@
 import { resolve, relative, basename, dirname } from 'path'
 import { bold } from '@hackbg/konzola'
-import { Environment } from '@hackbg/komandi'
+import { getFromEnv } from '@hackbg/komandi'
 import { AgentOpts, DevnetHandle } from '@fadroma/client'
 import { cwd } from 'process'
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
@@ -555,22 +555,6 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
   }
 }
 
-/** Devnet settings. */
-export class DevnetConfig extends Environment {
-  /** URL to the devnet manager endpoint, if used. */
-  manager   = this.getStr( 'FADROMA_DEVNET_MANAGER',   ()=>null)
-  /** Whether to remove the devnet after the command ends. */
-  ephemeral = this.getBool('FADROMA_DEVNET_EPHEMERAL', ()=>false)
-  /** Chain id for devnet .*/
-  chainId   = this.getStr( 'FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet")
-  /** Port for devnet. */
-  port      = this.getStr( 'FADROMA_DEVNET_PORT',      ()=>null)
-
-  getDevnet (kind: DevnetKind, dokeres?: Dokeres) {
-    return getDevnet(kind, this.manager, this.chainId, dokeres)
-  }
-}
-
 export function getDevnet (
   kind:     DevnetKind,
   manager:  string = undefined,
@@ -581,5 +565,27 @@ export function getDevnet (
     return RemoteDevnet.getOrCreate(kind, manager, null, chainId, chainId ? null : chainId)
   } else {
     return DockerDevnet.getOrCreate(kind, dokeres)
+  }
+}
+
+/** Devnet settings. */
+export interface DevnetConfig {
+  /** URL to the devnet manager endpoint, if used. */
+  manager:   string|null
+  /** Whether to remove the devnet after the command ends. */
+  ephemeral: boolean
+  /** Chain id for devnet .*/
+  chainId:   string
+  /** Port for devnet. */
+  port:      string|null
+}
+
+export function getDevnetConfig (cwd = process.cwd(), env = process.env): DevnetConfig {
+  const { Str, Bool } = getFromEnv(env)
+  return {
+    manager:   Str ('FADROMA_DEVNET_MANAGER',   ()=>null),
+    ephemeral: Bool('FADROMA_DEVNET_EPHEMERAL', ()=>false),
+    chainId:   Str ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet"),
+    port:      Str ('FADROMA_DEVNET_PORT',      ()=>null)
   }
 }

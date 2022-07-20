@@ -19,17 +19,50 @@
 **/
 
 import { resolve, dirname } from 'path'
-import { homedir }          from 'os'
-import { fileURLToPath }    from 'url'
+import { homedir } from 'os'
+import { fileURLToPath } from 'url'
 
-import $                                         from '@hackbg/kabinet'
-import { Console, bold, colors, timestamp }      from '@hackbg/konzola'
-import { Environment, Commands, CommandContext } from '@hackbg/komandi'
+import $ from '@hackbg/kabinet'
+import {
+  Console,
+  bold,
+  colors,
+  timestamp
+} from '@hackbg/konzola'
 
-import { BuildConfig, getBuilder, Builder, Source, Workspace } from '@fadroma/build'
-import { DevnetConfig, getDevnet }                             from '@fadroma/devnet'
-import { SecretNetworkConfig }                                 from '@fadroma/scrt'
-import { Mocknet }                                             from '@fadroma/mocknet'
+import {
+  getFromEnv,
+  Commands,
+  CommandContext
+} from '@hackbg/komandi'
+
+import {
+  BuilderConfig,
+  getBuilderConfig,
+  getBuilder,
+  Builder,
+  Source,
+  Workspace
+} from '@fadroma/build'
+
+import {
+  DevnetConfig,
+  getDevnetConfig,
+  getDevnet
+} from '@fadroma/devnet'
+
+import {
+  ScrtConfig,
+  getScrtConfig,
+  ScrtGrpc
+} from '@fadroma/scrt'
+
+import {
+  ScrtAmino
+} from '@fadroma/scrt-amino'
+
+import { Mocknet } from '@fadroma/mocknet'
+
 import {
   Uploader,
   FSUploader,
@@ -37,6 +70,7 @@ import {
   Deployments,
   Deployment
 } from '@fadroma/deploy'
+
 import {
   Address,
   Agent,
@@ -65,61 +99,61 @@ export * from '@hackbg/konzola'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/komandi'
 export * from '@hackbg/formati'
-
-export * from '@fadroma/build'
 export * from '@fadroma/client'
-export * from '@fadroma/deploy'
-export * from '@fadroma/devnet'
-export * from '@fadroma/mocknet'
 export * from '@fadroma/tokens'
-
-export * from '@fadroma/scrt'
-export * from '@fadroma/scrt-amino'
 
 /// # Define the top-level conventions and idioms:
 
 export const console = Console('Fadroma Ops')
 
-export class FadromaConfig extends Environment {
-
-  constructor (env) {
-    super(env)
-    this.validateScrtConfig()
-  }
-
-  /** Build settings. */
-  build:  BuildConfig = new BuildConfig(this.env)
-
-  /** Devnet settings.*/
-  devnet: DevnetConfig = new DevnetConfig(this.env)
-
-  /** Secret Network settings. */
-  scrt:   SecretNetworkConfig = new SecretNetworkConfig(this.env)
-
+export interface FadromaConfig {
+  build:  BuilderConfig
+  devnet: DevnetConfig
+  scrt:   ScrtConfig
   /** Project settings. */
-  project = {
+  project: {
     /** The project's root directory. */
-    root:         this.getStr( 'FADROMA_PROJECT',  ()=>process.cwd()),
+    root:       string
     /** The selected chain backend. */
-    chain:        this.getStr( 'FADROMA_CHAIN',    ()=>''),
+    chain:      string|null
   }
-
   /** System settings. */
-  system = {
+  system: {
     /** The user's home directory. */
-    homeDir:      this.getStr( 'HOME',             ()=>homedir()),
+    homeDir:    string
     /** Address of Docker socket to use. */
-    dockerHost:   this.getStr( 'DOCKER_HOST',      ()=>'/var/run/docker.sock'),
+    dockerHost: string
   }
-
   /** Upload settings. */
-  upload = {
+  upload: {
     /** Whether to ignore existing upload receipts and reupload contracts. */
-    reupload:     this.getBool('FADROMA_REUPLOAD', ()=>false),
+    reupload:   boolean
   }
+}
 
-  private validateScrtConfig () {
-    const { project: { chain }, scrt } = this
+export function getConfig (cwd: string, env: Record<string, string> = {}): FadromaConfig {
+  const { Str, Bool } = getFromEnv(env)
+  const config = {
+    build:        getBuilderConfig(cwd, env),
+    devnet:       getDevnetConfig(cwd, env),
+    scrt:         getScrtConfig(cwd, env),
+    project: {
+      root:       Str('FADROMA_PROJECT', ()=>cwd),
+      chain:      Str('FADROMA_CHAIN', ()=>'')
+    },
+    system: {
+      homeDir:    Str('HOME', ()=>homedir()),
+      dockerHost: Str('DOCKER_HOST', ()=>'/var/run/docker.sock')
+    },
+    upload: {
+      reupload:   Bool('FADRPOMA_REUPLOAD', ()=>false)
+    }
+  }
+  validateScrtConfig()
+  return config
+
+  function validateScrtConfig () {
+    const { project: { chain }, scrt } = config
     if (chain.includes('Scrt')) {
       if (chain.endsWith('Legacy')) {
         if (chain.includes('Mainnet') && !scrt.mainnet.apiUrl) throw new Error('set SCRT_MAINNET_API_URL')
@@ -132,7 +166,7 @@ export class FadromaConfig extends Environment {
   }
 }
 
-export const currentConfig = new FadromaConfig(process.env)
+export const currentConfig: FadromaConfig = getConfig(process.cwd(), process.env)
 
 export type IntoSource   = Source|string
 export type IntoArtifact = Artifact|IntoSource
@@ -256,46 +290,46 @@ export async function getChain (
 }
 
 export const knownChains = {
-  async 'Mocknet'           (config = currentConfig) {
+  async 'Mocknet'          (config = currentConfig) {
     return new Mocknet()
   },
-  async 'LegacyScrtMainnet' (config = currentConfig) {
+  async 'ScrtAminoMainnet' (config = currentConfig) {
     const mode = ChainMode.Mainnet
     const id   = config.scrt.mainnet.chainId
     const url  = config.scrt.mainnet.apiUrl
-    return new LegacyScrt(id, { url, mode })
+    return new ScrtAmino(id, { url, mode })
   },
-  async 'LegacyScrtTestnet' (config = currentConfig) {
+  async 'ScrtAminoTestnet' (config = currentConfig) {
     const mode = ChainMode.Testnet
     const id   = config.scrt.testnet.chainId
     const url  = config.scrt.testnet.apiUrl
-    return new LegacyScrt(id, { url, mode })
+    return new ScrtAmino(id, { url, mode })
   },
-  async 'LegacyScrtDevnet'  (config = currentConfig) {
+  async 'ScrtAminoDevnet'  (config = currentConfig) {
     const mode = ChainMode.Devnet
     const node = await getDevnet('scrt_1.2').respawn()
     const id   = node.chainId
     const url  = node.url.toString()
-    return new LegacyScrt(id, { url, mode, node })
+    return new ScrtAmino(id, { url, mode, node })
   },
-  async 'ScrtMainnet'       (config = currentConfig) {
+  async 'ScrtGrpcMainnet'  (config = currentConfig) {
     const mode = ChainMode.Mainnet
     const id   = config.scrt.mainnet.chainId
     const url  = config.scrt.mainnet.apiUrl
-    return new Scrt(id, { url, mode })
+    return new ScrtGrpc(id, { url, mode })
   },
-  async 'ScrtTestnet'       (config = currentConfig) {
+  async 'ScrtGrpcTestnet'  (config = currentConfig) {
     const mode = ChainMode.Testnet
     const id   = config.scrt.testnet.chainId
     const url  = config.scrt.testnet.apiUrl
-    return new Scrt(id, { url, mode })
+    return new ScrtGrpc(id, { url, mode })
   },
-  async 'ScrtDevnet'        (config = currentConfig) {
+  async 'ScrtGrpcDevnet'   (config = currentConfig) {
     const mode = ChainMode.Devnet
     const node = await getDevnet('scrt_1.3').respawn()
     const id   = node.chainId
     const url  = node.url.toString()
-    return new Scrt(id, { url, mode, node })
+    return new ScrtGrpc(id, { url, mode, node })
   },
 }
 

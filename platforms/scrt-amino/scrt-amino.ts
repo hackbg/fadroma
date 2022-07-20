@@ -1,13 +1,18 @@
-import { Bip39 } from '@cosmjs/crypto'
 import {
-  SecretNetwork,
   Address,
+  AgentCtor,
   AgentOpts,
   CodeId,
   CodeHash,
+} from '@fadroma/client'
+
+import {
+  Scrt,
+  ScrtAgent,
+  ScrtBundle,
+  ScrtAgentOpts
 } from '@fadroma/scrt'
-import { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
-import { backOff } from 'exponential-backoff'
+
 import {
   BroadcastMode,
   CosmWasmClient,
@@ -22,19 +27,21 @@ import {
   makeSignBytes,
   pubkeyToAddress, 
 } from 'secretjs'
+
+import { Bip39 } from '@cosmjs/crypto'
+
+import { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
+
+import { backOff } from 'exponential-backoff'
+
 import Axios from 'axios'
 
-export const ERR_ZERO_RECIPIENTS =
-  'Tried to send to 0 recipients'
-
-export const ERR_TEMPLATE_NO_CODE_HASH =
-  'Template must contain codeHash'
-
-export const ERR_ENCRYPT_NO_CODE_HASH =
-  'Missing code hash'
-
-export const ERR_UPLOAD_BINARY =
-  'The upload method takes a Uint8Array'
+export const Errors = {
+  ZeroRecipients     () { throw new Error('Tried to send to 0 recipients')  },
+  TemplateNoCodeHash () { throw new Error('Template must contain codeHash') },
+  EncryptNoCodeHash  () { throw new Error('Missing code hash') },
+  UploadBinary       () { throw new Error('The upload method takes a Uint8Array') }
+}
 
 const privKeyToMnemonic = privKey => (Bip39.encode(privKey) as any).data
 
@@ -48,15 +55,10 @@ export interface ScrtNonce {
   sequence:      number
 }
 
-export interface SecretNetworkAgentAminoOpts extends AgentOpts {
-  keyPair?: { privkey: Uint8Array }
-  pen?:     SigningPen
-}
-
-export class SecretNetworkAmino extends SecretNetwork {
+export class ScrtAmino extends Scrt {
 
   // @ts-ignore
-  Agent = SecretNetworkAmino.Agent
+  Agent = ScrtAmino.Agent
 
   api = new CosmWasmClient(this.url)
 
@@ -107,378 +109,389 @@ export class SecretNetworkAmino extends SecretNetwork {
     return api.queryContractSmart(address, msg, undefined, codeHash)
   }
 
-  Agent = class SecretNetworkAgentAmino extends SecretNetwork.Agent {
+  static Agent: AgentCtor<ScrtAminoAgent>
+}
 
-    Bundle = class SecretNetworkBundleAmino extends SecretNetwork.Agent.Bundle {
+/** Amino-specific configuration objects for the agent. */
+export interface ScrtAminoAgentOpts extends ScrtAgentOpts {
+  keyPair: { privkey: Uint8Array }
+  pen:     SigningPen
+}
 
-      declare agent: SecretNetworkAgentAmino
+export class ScrtAminoAgent extends ScrtAgent {
 
-      static bundleCounter = 0
-
-      get nonce () {
-        return getNonce(this.chain, this.agent.address)
-      }
-
-      async encrypt (codeHash, msg) {
-        return this.agent.encrypt(codeHash, msg)
-      }
-
-      async submit (memo = "") {
-        this.assertCanSubmit()
-        const msgs   = await this.buildForSubmit()
-        const limit  = Number(SecretNetwork.defaultFees.exec.amount[0].amount)
-        const gas    = SecretNetwork.gas(msgs.length*limit)
-        const signed = await this.agent.signTx(msgs, gas, memo)
-        try {
-          const txResult = await this.agent.api.postTx(signed)
-          const results  = this.collectSubmitResults(msgs, txResult)
-          return results
-        } catch (err) {
-          await this.handleSubmitError(err)
+  static async create (chain: Scrt, options: ScrtAminoAgentOpts) {
+    const { name = 'Anonymous', ...args } = options
+    let   { mnemonic, keyPair } = options
+    switch (true) {
+      case !!mnemonic:
+        // if keypair doesnt correspond to the mnemonic, delete the keypair
+        if (keyPair && mnemonic !== privKeyToMnemonic(keyPair.privkey)) {
+          console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
+          keyPair = null
         }
-      }
-
-      /** Format the messages for API v1 like secretjs and encrypt them. */
-      async buildForSubmit () {
-        const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
-          if (init) {
-            const { sender, codeId, codeHash, label, msg, funds } = init
-            return this.encrypt(codeHash, msg).then(msg=>init1(sender, String(codeId), label, msg, funds))
-          }
-          if (exec) {
-            const { sender, contract, codeHash, msg, funds } = exec
-            return this.encrypt(codeHash, msg).then(msg=>exec1(sender, contract, msg, funds))
-          }
-          throw 'unreachable'
-        }))
-        return encrypted
-      }
-
-      collectSubmitResults (msgs, txResult) {
-        const results = []
-        for (const i in msgs) {
-          results[i] = {
-            sender:  this.address,
-            tx:      txResult.transactionHash,
-            type:    msgs[i].type,
-            chainId: this.chain.id
-          }
-          if (msgs[i].type === 'wasm/MsgInstantiateContract') {
-            const attrs = mergeAttrs(txResult.logs[i].events[0].attributes)
-            results[i].label   = msgs[i].value.label,
-            results[i].address = attrs.contract_address
-            results[i].codeId  = attrs.code_id
-          }
-          if (msgs[i].type === 'wasm/MsgExecuteContract') {
-            results[i].address = msgs[i].contract
-          }
-        }
-        return results
-      }
-
-      async handleSubmitError (err) {
-        try {
-          console.error('Submitting bundle failed:', err.message)
-          console.error('Trying to decrypt...')
-          const errorMessageRgx = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
-          const rgxMatches = errorMessageRgx.exec(err.message);
-          if (rgxMatches == null || rgxMatches.length != 3) {
-              throw err;
-          }
-          const errorCipherB64 = rgxMatches[1];
-          const errorCipherBz  = fromBase64(errorCipherB64);
-          const msgIndex       = Number(rgxMatches[2]);
-          const msg            = await this.msgs[msgIndex]
-          const nonce          = fromBase64(msg.value.msg).slice(0, 32);
-          const errorPlainBz   = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce);
-          err.message = err.message.replace(errorCipherB64, fromUtf8(errorPlainBz));
-        } catch (decryptionError) {
-          console.error('Failed to decrypt :(')
-          throw new Error(`Failed to decrypt the following error message: ${err.message}. Decryption error of the error message: ${decryptionError.message}`);
-        }
-        throw err
-      }
-
-      /** Format the messages for API v1beta1 like secretcli
-        * and generate a multisig-ready unsigned transaction bundle;
-        * don't execute it, but save it in `receipts/$CHAIN_ID/transactions`
-        * and output a signing command for it to the console. */
-      async save (name) {
-        // number of bundle, just for identification in console
-        const N = ++SecretNetworkBundleAmino.bundleCounter
-        name = name || `TX.${N}.${+new Date()}`
-        // get signer's account number and sequence via the canonical API
-        const { accountNumber, sequence } = await this.nonce
-        // the base Bundle class stores messages
-        // as (immediately resolved) promises
-        const msgs = await this.buildForSave(this.msgs)
-        // print the body of the bundle
-        console.info(`Encrypted messages in bundle`, `#${N}:`)
-        console.log()
-        console.log(JSON.stringify(msgs))
-        console.log()
-        const finalUnsignedTx = this.finalizeForSave(msgs, name)
-        console.log(JSON.stringify(
-          { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx },
-          null, 2
-        ))
-      }
-
-      async buildForSave (msgs) {
-        const encrypted = await Promise.all(msgs.map(({init, exec})=>{
-          if (init) {
-            const { sender, codeId, codeHash, label, msg, funds } = init
-            return this.encrypt(codeHash, msg).then(msg=>init2(sender, String(codeId), label, msg, funds))
-          }
-          if (exec) {
-            const { sender, contract, codeHash, msg, funds } = exec
-            return this.encrypt(codeHash, msg).then(msg=>exec2(sender, contract, msg, funds))
-          }
-          throw 'unreachable'
-        }))
-        return encrypted
-      }
-
-      finalizeForSave (messages, memo) {
-        const fee = SecretNetwork.gas(10000000)
-        const finalUnsignedTx = {
-          body: {
-            messages,
-            memo,
-            timeout_height: "0",
-            extension_options: [],
-            non_critical_extension_options: []
-          },
-          auth_info: {
-            signer_infos: [],
-            fee: { ...fee, gas: fee.gas, payer: "", granter: "" },
-          },
-          signatures: []
-        }
-        return finalUnsignedTx
-      }
-
+        break
+      case !!keyPair:
+        // if there's a keypair but no mnemonic, generate mnemonic from keyapir
+        mnemonic = privKeyToMnemonic(keyPair.privkey)
+        break
+      default:
+        // if there is neither, generate a new keypair and corresponding mnemonic
+        keyPair  = EnigmaUtils.GenerateNewKeyPair()
+        mnemonic = privKeyToMnemonic(keyPair.privkey)
     }
+    return new ScrtAminoAgent(chain, {
+      name,
+      mnemonic,
+      keyPair,
+      pen: await Secp256k1Pen.fromMnemonic(mnemonic),
+      ...args
+    })
+  }
 
-    static async create (chain, options) {
-      const { name = 'Anonymous', ...args } = options
-      let   { mnemonic, keyPair } = options
-      switch (true) {
-        case !!mnemonic:
-          // if keypair doesnt correspond to the mnemonic, delete the keypair
-          if (keyPair && mnemonic !== privKeyToMnemonic(keyPair.privkey)) {
-            console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
-            keyPair = null
-          }
-          break
-        case !!keyPair:
-          // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-          mnemonic = privKeyToMnemonic(keyPair.privkey)
-          break
-        default:
-          // if there is neither, generate a new keypair and corresponding mnemonic
-          keyPair  = EnigmaUtils.GenerateNewKeyPair()
-          mnemonic = privKeyToMnemonic(keyPair.privkey)
+  constructor (chain, options: Partial<ScrtAminoAgentOpts> = {}) {
+    super(chain, options)
+    this.name     = options?.name || ''
+    // @ts-ignore
+    this.fees     = options?.fees || Scrt.defaultFees
+    this.keyPair  = options?.keyPair
+    this.mnemonic = options?.mnemonic
+    this.pen      = options?.pen
+    if (this.pen) {
+      this.pubkey   = encodeSecp256k1Pubkey(options?.pen.pubkey)
+      this.address  = pubkeyToAddress(this.pubkey, 'secret')
+      this.sign     = this.pen.sign.bind(this.pen)
+      this.seed     = EnigmaUtils.GenerateNewSeed()
+    }
+  }
+
+  readonly keyPair
+
+  readonly mnemonic
+
+  readonly pen: SigningPen
+
+  readonly sign
+
+  readonly pubkey
+
+  readonly seed
+
+  API = PatchedSigningCosmWasmClient_1_2
+
+  get api () {
+    return new this.API(
+      this.chain?.url,
+      this.address,
+      this.sign,
+      this.seed,
+      this.fees,
+      BroadcastMode.Sync
+    )
+  }
+
+  get block () {
+    return this.api.getBlock()
+  }
+
+  get height () {
+    return this.block.then(block=>block.header.height)
+  }
+
+  get account () {
+    return this.api.getAccount(this.address)
+  }
+
+  /** Get up-to-date balance of this address in specified denomination. */
+  async getBalance (denomination: string = this.defaultDenom, address: Address = this.address) {
+    const account = await this.api.getAccount(address)
+    const balance = account.balance || []
+    const inDenom = ({denom}) => denom === denomination
+    const balanceInDenom = balance.filter(inDenom)[0]
+    if (!balanceInDenom) return '0'
+    return balanceInDenom.amount
+  }
+
+  async send (to, amounts, opts?): Promise<PostTxResult> {
+    return await this.api.sendTokens(to, amounts, opts?.memo)
+  }
+
+  async sendMany (outputs, opts) {
+    if (outputs.length < 0) {
+      return Errors.ZeroRecipients()
+    }
+    const from_address = this.address
+    //const {accountNumber, sequence} = await this.api.getNonce(from_address)
+    let accountNumber
+    let sequence
+    const msg = await Promise.all(outputs.map(async ([to_address, amount])=>{
+      ({accountNumber, sequence} = await this.api.getNonce(from_address)) // increment nonce?
+      if (typeof amount === 'number') amount = String(amount)
+      const value = {from_address, to_address, amount}
+      return { type: 'cosmos-sdk/MsgSend', value }
+    }))
+    const memo      = opts?.memo
+    const fee       = opts?.fee || Scrt.gas(500000 * outputs.length)
+    const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence)
+    return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
+  }
+
+  async checkCodeHash (address, codeHash) {
+    // Soft code hash checking for now
+    const realCodeHash = await this.getHash(address)
+    if (codeHash !== realCodeHash) {
+      console.warn('Code hash mismatch for address:', address)
+      console.warn('  Expected code hash:', codeHash)
+      console.warn('  Code hash on chain:', realCodeHash)
+    } else {
+      console.info(`Code hash of ${address}:`, realCodeHash)
+    }
+  }
+
+  async upload (data) {
+    if (!(data instanceof Uint8Array)) {
+      return Errors.UploadBinary()
+    }
+    const uploadResult = await this.api.upload(data, {})
+    let codeId = String(uploadResult.codeId)
+    if (codeId === "-1") {
+      codeId = uploadResult.logs[0].events[0].attributes[3].value
+    }
+    const codeHash = uploadResult.originalChecksum
+    return {
+      uploadTx: uploadResult.transactionHash,
+      chainId:  this.chain.id,
+      codeId,
+      codeHash
+    }
+  }
+
+  async instantiate (template, label, msg, funds = []) {
+    if (!template.codeHash) {
+      return Errors.TemplateNoCodeHash()
+    }
+    const { codeId, codeHash } = template
+    const { api } = this
+    //@ts-ignore
+    const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, funds)
+    return {
+      chainId:  this.chain.id,
+      codeId:   String(codeId),
+      codeHash: codeHash,
+      address:  logs[0].events[0].attributes[4].value,
+      transactionHash,
+    }
+  }
+
+  async getHash (idOrAddr: number|string) {
+    const { api } = this
+    if (typeof idOrAddr === 'number') {
+      return await api.getCodeHashByCodeId(idOrAddr)
+    } else if (typeof idOrAddr === 'string') {
+      return await api.getCodeHashByContractAddr(idOrAddr)
+    } else {
+      throw new TypeError('getCodeHash id or addr')
+    }
+  }
+
+  async getCodeId (address) {
+    const { api } = this
+    const { codeId } = await api.getContract(address)
+    return String(codeId)
+  }
+
+  async getLabel (address) {
+    const { api } = this
+    const { label } = await api.getContract(address)
+    return label
+  }
+
+  async query <T, U> ({ address, codeHash }, msg: T): Promise<U> {
+    const { api } = this
+    // @ts-ignore
+    return api.queryContractSmart(address, msg, undefined, codeHash)
+  }
+
+  async execute ({ address, codeHash }, msg, opts): Promise<TxsResponse> {
+    const { memo, amount, fee } = opts
+    return await this.api.execute(address, msg, memo, amount, fee, codeHash)
+  }
+
+  async encrypt (codeHash, msg) {
+    if (!codeHash) {
+      return Errors.EncryptNoCodeHash()
+    }
+    const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg)
+    return toBase64(encrypted)
+  }
+
+  async signTx (msgs, gas, memo) {
+    const { accountNumber, sequence } = await this.api.getNonce()
+    return await this.api.signAdapter(
+      msgs,
+      gas,
+      this.chain.id,
+      memo,
+      accountNumber,
+      sequence
+    )
+  }
+
+  initialWait = 1000
+
+  config
+
+}
+
+ScrtAmino.Agent = ScrtAminoAgent
+
+class ScrtAminoBundle extends ScrtBundle {
+
+  declare agent: ScrtAminoAgent
+
+  static bundleCounter = 0
+
+  get nonce () {
+    return getNonce(this.chain, this.agent.address)
+  }
+
+  async encrypt (codeHash, msg) {
+    return this.agent.encrypt(codeHash, msg)
+  }
+
+  async submit (memo = "") {
+    this.assertCanSubmit()
+    const msgs   = await this.buildForSubmit()
+    const limit  = Number(Scrt.defaultFees.exec.amount[0].amount)
+    const gas    = Scrt.gas(msgs.length*limit)
+    const signed = await this.agent.signTx(msgs, gas, memo)
+    try {
+      const txResult = await this.agent.api.postTx(signed)
+      const results  = this.collectSubmitResults(msgs, txResult)
+      return results
+    } catch (err) {
+      await this.handleSubmitError(err)
+    }
+  }
+
+  /** Format the messages for API v1 like secretjs and encrypt them. */
+  async buildForSubmit () {
+    const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
+      if (init) {
+        const { sender, codeId, codeHash, label, msg, funds } = init
+        return this.encrypt(codeHash, msg).then(msg=>init1(sender, String(codeId), label, msg, funds))
       }
-      return new SecretNetworkAgentAmino(chain, {
-        name,
-        mnemonic,
-        keyPair,
-        pen: await Secp256k1Pen.fromMnemonic(mnemonic),
-        ...args
-      })
-    }
-
-    constructor (chain, options: SecretNetworkAgentAminoOpts = {}) {
-      super(chain, options)
-      this.name     = options?.name || ''
-      // @ts-ignore
-      this.fees     = options?.fees || SecretNetwork.defaultFees
-      this.keyPair  = options?.keyPair
-      this.mnemonic = options?.mnemonic
-      this.pen      = options?.pen
-      if (this.pen) {
-        this.pubkey   = encodeSecp256k1Pubkey(options?.pen.pubkey)
-        this.address  = pubkeyToAddress(this.pubkey, 'secret')
-        this.sign     = this.pen.sign.bind(this.pen)
-        this.seed     = EnigmaUtils.GenerateNewSeed()
+      if (exec) {
+        const { sender, contract, codeHash, msg, funds } = exec
+        return this.encrypt(codeHash, msg).then(msg=>exec1(sender, contract, msg, funds))
       }
-    }
+      throw 'unreachable'
+    }))
+    return encrypted
+  }
 
-    readonly keyPair
-
-    readonly mnemonic
-
-    readonly pen: SigningPen
-
-    readonly sign
-
-    readonly pubkey
-
-    readonly seed
-
-    API = PatchedSigningCosmWasmClient_1_2
-
-    get api () {
-      return new this.API(
-        this.chain?.url,
-        this.address,
-        this.sign,
-        this.seed,
-        this.fees,
-        BroadcastMode.Sync
-      )
-    }
-
-    get block () {
-      return this.api.getBlock()
-    }
-
-    get height () {
-      return this.block.then(block=>block.header.height)
-    }
-
-    get account () {
-      return this.api.getAccount(this.address)
-    }
-
-    /** Get up-to-date balance of this address in specified denomination. */
-    async getBalance (denomination: string = this.defaultDenom, address: Address = this.address) {
-      const account = await this.api.getAccount(address)
-      const balance = account.balance || []
-      const inDenom = ({denom}) => denom === denomination
-      const balanceInDenom = balance.filter(inDenom)[0]
-      if (!balanceInDenom) return '0'
-      return balanceInDenom.amount
-    }
-
-    async send (to, amounts, opts?): Promise<PostTxResult> {
-      return await this.api.sendTokens(to, amounts, opts?.memo)
-    }
-
-    async sendMany (outputs, opts) {
-      if (outputs.length < 0) {
-        throw new Error(ERR_ZERO_RECIPIENTS)
+  collectSubmitResults (msgs, txResult) {
+    const results = []
+    for (const i in msgs) {
+      results[i] = {
+        sender:  this.address,
+        tx:      txResult.transactionHash,
+        type:    msgs[i].type,
+        chainId: this.chain.id
       }
-      const from_address = this.address
-      //const {accountNumber, sequence} = await this.api.getNonce(from_address)
-      let accountNumber
-      let sequence
-      const msg = await Promise.all(outputs.map(async ([to_address, amount])=>{
-        ({accountNumber, sequence} = await this.api.getNonce(from_address)) // increment nonce?
-        if (typeof amount === 'number') amount = String(amount)
-        const value = {from_address, to_address, amount}
-        return { type: 'cosmos-sdk/MsgSend', value }
-      }))
-      const memo      = opts?.memo
-      const fee       = opts?.fee || SecretNetwork.gas(500000 * outputs.length)
-      const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence)
-      return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
-    }
-
-    async checkCodeHash (address, codeHash) {
-      // Soft code hash checking for now
-      const realCodeHash = await this.getHash(address)
-      if (codeHash !== realCodeHash) {
-        console.warn('Code hash mismatch for address:', address)
-        console.warn('  Expected code hash:', codeHash)
-        console.warn('  Code hash on chain:', realCodeHash)
-      } else {
-        console.info(`Code hash of ${address}:`, realCodeHash)
+      if (msgs[i].type === 'wasm/MsgInstantiateContract') {
+        const attrs = mergeAttrs(txResult.logs[i].events[0].attributes)
+        results[i].label   = msgs[i].value.label,
+        results[i].address = attrs.contract_address
+        results[i].codeId  = attrs.code_id
       }
-    }
-
-    async upload (data) {
-      if (!(data instanceof Uint8Array)) {
-        throw new Error(ERR_UPLOAD_BINARY)
-      }
-      const uploadResult = await this.api.upload(data, {})
-      let codeId = String(uploadResult.codeId)
-      if (codeId === "-1") {
-        codeId = uploadResult.logs[0].events[0].attributes[3].value
-      }
-      const codeHash = uploadResult.originalChecksum
-      return {
-        uploadTx: uploadResult.transactionHash,
-        chainId:  this.chain.id,
-        codeId,
-        codeHash
-      }
-    }
-
-    async instantiate (template, label, msg, funds = []) {
-      if (!template.codeHash) {
-        throw new Error(ERR_TEMPLATE_NO_CODE_HASH)
-      }
-      const { codeId, codeHash } = template
-      const { api } = this
-      //@ts-ignore
-      const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, funds)
-      return {
-        chainId:  this.chain.id,
-        codeId:   String(codeId),
-        codeHash: codeHash,
-        address:  logs[0].events[0].attributes[4].value,
-        transactionHash,
+      if (msgs[i].type === 'wasm/MsgExecuteContract') {
+        results[i].address = msgs[i].contract
       }
     }
+    return results
+  }
 
-    async getHash (idOrAddr: number|string) {
-      const { api } = this
-      if (typeof idOrAddr === 'number') {
-        return await api.getCodeHashByCodeId(idOrAddr)
-      } else if (typeof idOrAddr === 'string') {
-        return await api.getCodeHashByContractAddr(idOrAddr)
-      } else {
-        throw new TypeError('getCodeHash id or addr')
+  async handleSubmitError (err) {
+    try {
+      console.error('Submitting bundle failed:', err.message)
+      console.error('Trying to decrypt...')
+      const errorMessageRgx = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
+      const rgxMatches = errorMessageRgx.exec(err.message);
+      if (rgxMatches == null || rgxMatches.length != 3) {
+          throw err;
       }
+      const errorCipherB64 = rgxMatches[1];
+      const errorCipherBz  = fromBase64(errorCipherB64);
+      const msgIndex       = Number(rgxMatches[2]);
+      const msg            = await this.msgs[msgIndex]
+      const nonce          = fromBase64(msg.value.msg).slice(0, 32);
+      const errorPlainBz   = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce);
+      err.message = err.message.replace(errorCipherB64, fromUtf8(errorPlainBz));
+    } catch (decryptionError) {
+      console.error('Failed to decrypt :(')
+      throw new Error(`Failed to decrypt the following error message: ${err.message}. Decryption error of the error message: ${decryptionError.message}`);
     }
+    throw err
+  }
 
-    async getCodeId (address) {
-      const { api } = this
-      const { codeId } = await api.getContract(address)
-      return String(codeId)
-    }
+  /** Format the messages for API v1beta1 like secretcli
+    * and generate a multisig-ready unsigned transaction bundle;
+    * don't execute it, but save it in `receipts/$CHAIN_ID/transactions`
+    * and output a signing command for it to the console. */
+  async save (name) {
+    // number of bundle, just for identification in console
+    const N = ++ScrtAminoBundle.bundleCounter
+    name = name || `TX.${N}.${+new Date()}`
+    // get signer's account number and sequence via the canonical API
+    const { accountNumber, sequence } = await this.nonce
+    // the base Bundle class stores messages
+    // as (immediately resolved) promises
+    const msgs = await this.buildForSave(this.msgs)
+    // print the body of the bundle
+    console.info(`Encrypted messages in bundle`, `#${N}:`)
+    console.log()
+    console.log(JSON.stringify(msgs))
+    console.log()
+    const finalUnsignedTx = this.finalizeForSave(msgs, name)
+    console.log(JSON.stringify(
+      { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx },
+      null, 2
+    ))
+  }
 
-    async getLabel (address) {
-      const { api } = this
-      const { label } = await api.getContract(address)
-      return label
-    }
+  async buildForSave (msgs) {
+    const encrypted = await Promise.all(msgs.map(({init, exec})=>{
+      if (init) {
+        const { sender, codeId, codeHash, label, msg, funds } = init
+        return this.encrypt(codeHash, msg).then(msg=>init2(sender, String(codeId), label, msg, funds))
+      }
+      if (exec) {
+        const { sender, contract, codeHash, msg, funds } = exec
+        return this.encrypt(codeHash, msg).then(msg=>exec2(sender, contract, msg, funds))
+      }
+      throw 'unreachable'
+    }))
+    return encrypted
+  }
 
-    async query <T, U> ({ address, codeHash }, msg: T): Promise<U> {
-      const { api } = this
-      // @ts-ignore
-      return api.queryContractSmart(address, msg, undefined, codeHash)
-    }
-
-    async execute ({ address, codeHash }, msg, opts): Promise<TxsResponse> {
-      const { memo, amount, fee } = opts
-      return await this.api.execute(address, msg, memo, amount, fee, codeHash)
-    }
-
-    async encrypt (codeHash, msg) {
-      if (!codeHash) throw new Error(ERR_ENCRYPT_NO_CODE_HASH)
-      const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg)
-      return toBase64(encrypted)
-    }
-
-    async signTx (msgs, gas, memo) {
-      const { accountNumber, sequence } = await this.api.getNonce()
-      return await this.api.signAdapter(
-        msgs,
-        gas,
-        this.chain.id,
+  finalizeForSave (messages, memo) {
+    const fee = Scrt.gas(10000000)
+    const finalUnsignedTx = {
+      body: {
+        messages,
         memo,
-        accountNumber,
-        sequence
-      )
+        timeout_height: "0",
+        extension_options: [],
+        non_critical_extension_options: []
+      },
+      auth_info: {
+        signer_infos: [],
+        fee: { ...fee, gas: fee.gas, payer: "", granter: "" },
+      },
+      signatures: []
     }
-
-    initialWait = 1000
-
-    config
-
+    return finalUnsignedTx
   }
 
 }
@@ -515,7 +528,6 @@ export async function getNonce (url, address) {
 export function mergeAttrs (attrs) {
   return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
 }
-
 
 /** This is the latest version of the SigningCosmWasmClient async broadcast/retry patch. */
 

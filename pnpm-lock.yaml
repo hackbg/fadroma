@@ -9,8 +9,8 @@ importers:
       '@fadroma/deploy': workspace:^1.0.0-beta.0
       '@fadroma/devnet': workspace:^1.0.0-beta.0
       '@fadroma/mocknet': workspace:^1.0.0-beta.0
-      '@fadroma/scrt': workspace:^1
-      '@fadroma/scrt-amino': workspace:^1
+      '@fadroma/scrt': workspace:*
+      '@fadroma/scrt-amino': workspace:*
       '@fadroma/tokens': workspace:^4.0.0-beta.0
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/ensuite': ^1
@@ -18,7 +18,7 @@ importers:
       '@hackbg/ganesha': ^2.2
       '@hackbg/izomorf': ^3.0.1
       '@hackbg/kabinet': ^3.0.2
-      '@hackbg/komandi': ^3.1.0
+      '@hackbg/komandi': workspace:^4
       '@hackbg/konzola': ^1.0.8
       '@magic-works/commonjs-import.meta': ^1.0.1
       '@types/node': ^16.11.36
@@ -48,7 +48,7 @@ importers:
       '@hackbg/formati': 1.1.0
       '@hackbg/ganesha': 2.2.4
       '@hackbg/kabinet': 3.0.2
-      '@hackbg/komandi': 3.1.0
+      '@hackbg/komandi': link:toolbox/komandi
       '@hackbg/konzola': 1.1.1
       dotenv: 15.0.1
     devDependencies:
@@ -88,6 +88,7 @@ importers:
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/formati': ^1.0.2
       '@hackbg/kabinet': ^3.0.2
+      '@hackbg/komandi': workspace:^4
       '@hackbg/konzola': ^1.1
       '@hackbg/portali': ^1
       json-schema-to-typescript: ^10.1.5
@@ -99,6 +100,7 @@ importers:
       '@hackbg/dokeres': 4.0.2
       '@hackbg/formati': 1.1.0
       '@hackbg/kabinet': 3.0.2
+      '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/konzola': 1.1.1
       '@hackbg/portali': 1.1.3
       json-schema-to-typescript: 10.1.5
@@ -143,10 +145,10 @@ importers:
 
   packages/devnet:
     specifiers:
-      '@hackbg/komandi': ^3.1.1
+      '@hackbg/komandi': workspace:^4
       '@hackbg/portali': ^1.2
     dependencies:
-      '@hackbg/komandi': 3.1.1
+      '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/portali': 1.2.1
 
   packages/mocknet:
@@ -166,12 +168,12 @@ importers:
     specifiers:
       '@fadroma/client': workspace:^4
       '@hackbg/formati': ^1.0.2
-      '@hackbg/komandi': ^3.1.1
+      '@hackbg/komandi': workspace:^4
       secretjs: beta
     dependencies:
       '@fadroma/client': link:../../packages/client
       '@hackbg/formati': 1.1.0
-      '@hackbg/komandi': 3.1.1
+      '@hackbg/komandi': link:../../toolbox/komandi
       secretjs: 1.3.0-beta.7
 
   platforms/scrt-amino:
@@ -199,7 +201,7 @@ importers:
       '@hackbg/formati': workspace:^1.1.1
       '@hackbg/izomorf': workspace:^4
       '@hackbg/kabinet': workspace:^3.0.3
-      '@hackbg/komandi': workspace:^3.0.4
+      '@hackbg/komandi': workspace:^4
       '@hackbg/konzola': workspace:^1.1.1
       '@hackbg/portali': workspace:^1.1.4
       '@hackbg/runspec': workspace:^2.3
@@ -671,20 +673,6 @@ packages:
       symlink-dir: 5.0.1
       tmp: 0.2.1
       toml: 3.0.0
-    dev: false
-
-  /@hackbg/komandi/3.1.0:
-    resolution: {integrity: sha512-cdNLV571dCUpYA/8HtbIWyYSA57P5AfkJT+i3/fKy9expMdRH9d5QPHv67xxl9dm/DiYyOL8bbuyTkdNoyNxYA==}
-    dependencies:
-      '@hackbg/kabinet': 3.0.2
-      '@hackbg/konzola': 1.1.1
-    dev: false
-
-  /@hackbg/komandi/3.1.1:
-    resolution: {integrity: sha512-8dkdmFgbWDSQ7lG3WWE6EAdZPXznnewDjIvyP71l54B21bKr+FmN6e3FqCkFAhugO0dDvc3psQ03CpGWVU86QQ==}
-    dependencies:
-      '@hackbg/kabinet': 3.0.2
-      '@hackbg/konzola': 1.1.1
     dev: false
 
   /@hackbg/konzola/1.1.1:

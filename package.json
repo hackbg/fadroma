@@ -34,7 +34,7 @@
     "@hackbg/ganesha":     "^2.2",
     "@hackbg/dokeres":     "^4.0.2",
     "@hackbg/kabinet":     "^3.0.2",
-    "@hackbg/komandi":     "^3.1.0",
+    "@hackbg/komandi":     "workspace:^4",
     "@hackbg/konzola":     "^1.0.8",
     "@hackbg/formati":     "^1.1.0",
 
@@ -45,8 +45,8 @@
     "@fadroma/mocknet":    "workspace:^1.0.0-beta.0",
     "@fadroma/tokens":     "workspace:^4.0.0-beta.0",
 
-    "@fadroma/scrt":       "workspace:^1",
-    "@fadroma/scrt-amino": "workspace:^1"
+    "@fadroma/scrt":       "workspace:*",
+    "@fadroma/scrt-amino": "workspace:*"
   },
   "devDependencies": {
     "@hackbg/ensuite":                   "^1",

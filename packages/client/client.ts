@@ -178,6 +178,11 @@ export interface DevnetHandle {
   getGenesisAccount: (name: string) => Promise<AgentOpts>
 }
 
+export interface AgentCtor<A extends Agent> {
+  new    (chain: Chain, options: AgentOpts): A
+  create (chain: Chain, options: AgentOpts): Promise<A>
+}
+
 export abstract class Chain implements Spectator {
   isSecretNetwork = false
   static Mode = ChainMode
@@ -352,12 +357,21 @@ export abstract class Agent implements Executor {
     ))
   }
   abstract execute (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|unknown>
-  static Bundle: typeof Bundle
-  Bundle = (this.constructor as Function & {Bundle: typeof Bundle}).Bundle
+  static Bundle: BundleCtor<Bundle>
+  Bundle: BundleCtor<Bundle> = (this.constructor as Function & {Bundle: typeof Agent.Bundle}).Bundle
   bundle (): Bundle {
     //@ts-ignore
     return new this.Bundle(this)
   }
+}
+
+export interface AgentCtor<A extends Agent> {
+  create (chain: Chain, options: AgentOpts): Promise<A>
+  Bundle?: BundleCtor<Bundle>
+}
+
+export interface BundleCtor<B extends Bundle> {
+  new (agent: Agent): B
 }
 
 //@ts-ignore

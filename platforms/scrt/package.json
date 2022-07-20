@@ -6,7 +6,7 @@
   "dependencies": {
     "@fadroma/client": "workspace:^4",
     "@hackbg/formati": "^1.0.2",
-    "@hackbg/komandi": "^3.1.1",
+    "@hackbg/komandi": "workspace:^4",
     "secretjs":        "beta"
   },
   "scripts": {
