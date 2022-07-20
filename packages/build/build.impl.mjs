@@ -16,12 +16,12 @@ const sanitize = x => x.replace(slashes, "_")
 const fumigate = x => x.replace(dashes,  "_")
 
 const run = (command, env2 = {}) => {
-  console.info('$', command)
+  console.info('\n$', command)
   execSync(command, { env: { ...process.env, ...env2 }, stdio: 'inherit' })
 }
 
 const call = command => {
-  console.info('$', command)
+  console.info('\n$', command)
   const result = String(execSync(command)).trim()
   console.info(result)
   return result
@@ -62,7 +62,7 @@ function phase1 ({
   gitDir      = resolve(gitRoot, gitSubdir),
 } = {}) {
 
-  console.log('Build phase 1: Preparing source repository for', ref)
+  console.log('\nBuild phase 1: Preparing source repository for', ref)
 
   // When running in a container, we must create a non-root build user
   // whose uid/gid corresponds to the user outside the container.
@@ -88,6 +88,8 @@ function phase1 ({
   run(`git --version`)
   if (ref === 'HEAD') {
     console.log(`Building from working tree.`)
+    run(`pwd`)
+    console.log({subdir})
     chdir(subdir)
   } else {
     console.log(`Building from checkout of ${ref}`)
@@ -157,10 +159,10 @@ function phase1 ({
 
   // Run phase 2 for each requested crate.
   // If not running as build user, switch to build user for each run of phase2.
-  console.log(`Building in:`, call('pwd'))
-  console.log(`Build phase 2 will begin with these crates: ${crates}`)
+  console.log(`\nBuilding in:`, call('pwd'))
+  console.log(`Build phase 2 will run for these crates: ${crates}`)
   for (const crate of crates) {
-    console.log(`Building ${crate} from ${ref} in ${cwd()}`)
+    console.log(`\nBuilding ${crate} from ${ref} in ${cwd()}`)
     let phase2Command = `${interpreter} ${script} phase2 ${ref} ${crate}`
     if (process.getuid() != uid) {
       phase2Command = `su ${user} -c "${phase2Command}"`
@@ -186,7 +188,7 @@ function phase2 ({
   checksum  = `${optimized}.sha256`,
 } = {}) {
 
-  console.log(`Build phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
+  console.log(`\nBuild phase 2: Compiling and optimizing contract: ${crate}@${ref}.wasm`)
 
   if (toolchain) {
     run(`rustup default ${toolchain}`)
@@ -198,6 +200,7 @@ function phase2 ({
   run(`rustc --version`)
   run(`wasm-opt --version`)
   run(`sha256sum --version | head -n1`)
+  run(`ls -al`)
 
   // Compile crate for production
   run(`cargo build -p ${crate} --release --target ${platform} ${locked} --verbose`, {

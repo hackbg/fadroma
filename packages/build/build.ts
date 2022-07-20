@@ -1,12 +1,14 @@
-import { Artifact }                           from '@fadroma/client'
-import { Console, bold }                      from '@hackbg/konzola'
-import { toHex, Sha256 }                      from '@hackbg/formati'
-import { getFromEnv }                         from '@hackbg/komandi'
-import { Dokeres, DokeresImage }              from '@hackbg/dokeres'
-import { default as simpleGit }               from 'simple-git'
-import LineTransformStream                    from 'line-transform-stream'
-import { compileFromFile }                    from 'json-schema-to-typescript'
-import { parse as parseToml }                 from 'toml'
+#!/usr/bin/env ganesha-node
+
+import { Artifact }              from '@fadroma/client'
+import { Console, bold }         from '@hackbg/konzola'
+import { toHex, Sha256 }         from '@hackbg/formati'
+import { getFromEnv }            from '@hackbg/komandi'
+import { Dokeres, DokeresImage } from '@hackbg/dokeres'
+import { default as simpleGit }  from 'simple-git'
+import LineTransformStream       from 'line-transform-stream'
+import { compileFromFile }       from 'json-schema-to-typescript'
+import { parse as parseToml }    from 'toml'
 
 import $, {
   Path,
@@ -22,35 +24,27 @@ import { homedir, tmpdir }                    from 'os'
 import { URL, pathToFileURL, fileURLToPath }  from 'url'
 import { readFileSync, mkdtempSync, readdirSync, writeFileSync } from 'fs'
 
-//@ts-ignore
-export const __dirname = dirname(fileURLToPath(import.meta.url))
-
 const console = Console('Fadroma Build')
 
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  const [buildPath, ...buildArgs] = process.argv.slice(2)
-  const buildSpec = $(buildPath)
-  if (buildSpec.isDirectory()) {
-    console.log(buildSpec)
-    buildFromDirectory(buildSpec.as(OpaqueDirectory))
-  } else if (buildSpec.isFile()) {
-    buildFromFile(buildSpec.as(OpaqueFile))
-  } else {
-    printUsage()
+export const BuildMessages = {
+  BuildOne (source, prebuilt, longestCrateName) {
+    console.info(
+      ' ',    bold(source.crate.padEnd(longestCrateName)),
+      'from', bold(`${$(source.workspace.path).shortPath}/`),
+      '@',    bold(source.workspace.ref),
+      prebuilt ? '(exists, not rebuilding)': ''
+    )
+  },
+  BuildMany (mounted, ref) {
+    console.info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
   }
 }
 
-export function printUsage () {
-  console.log(`
-    Usage:
-      fadroma-build path/to/crate
-      fadroma-build path/to/Cargo.toml
-      fadroma-build buildConfig.{js|ts}`)
-  process.exit(6)
-}
-
 /** Getting builder settings from process runtime environment. */
-export function getBuilderConfig (cwd = '', env = {}): BuilderConfig {
+export function getBuilderConfig (cwd = process.cwd, env = process.env): BuilderConfig {
   const { Str, Bool } = getFromEnv(env)
   return {
     /** URL to the build manager endpoint, if used. */
@@ -166,13 +160,6 @@ export class Workspace {
     return crates.map(crate=>this.crate(crate))
   }
 }
-
-const x = new Path()
-x.exists()
-
-class Foo extends Path {}
-const y = new Foo()
-y.exists()
 
 /** Represents the real location of the Git data directory.
   * - In standalone repos this is `.git/`
@@ -304,7 +291,6 @@ export abstract class CachingBuilder extends Builder {
     if (!this.caching) {
       return null
     }
-    //console.log({outputDir, crate, ref}, artifactName(crate, ref))
     const location = $(outputDir, artifactName(crate, ref))
     if (location.exists()) {
       return new Artifact(location.url, codeHashForPath(location.path))
@@ -329,6 +315,9 @@ export interface DockerBuilderOptions {
 }
 
 export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
+
+//@ts-ignore
+export const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends CachingBuilder {
@@ -543,6 +532,7 @@ export class DockerBuilder extends CachingBuilder {
       remove: true,
       readonly,
       writable,
+      cwd: '/src',
       env,
       extra: {
         Tty:         true,
@@ -657,7 +647,6 @@ export class RawBuilder extends CachingBuilder {
         source.crate
       ]
       const opts = { cwd, env: { ...process.env, ...env }, stdio: 'inherit' }
-      //console.log(opts)
       const sub  = spawn(cmd.shift(), cmd, opts as any)
       await new Promise<void>((resolve, reject)=>{
         sub.on('exit', (code, signal) => {
@@ -723,23 +712,6 @@ export class RemoteBuilder extends CachingBuilder {
 
 type CargoTOML = TOMLFile<{ package: { name: string } }>
 
-export function buildFromDirectory (dir: OpaqueDirectory) {
-  const cargoToml = dir.at('Cargo.toml').as(TOMLFile)
-  if (cargoToml.exists()) {
-    buildFromCargoToml(cargoToml as CargoTOML)
-  } else {
-    printUsage()
-  }
-}
-
-export function buildFromFile (file: TOMLFile<unknown>|OpaqueFile) {
-  if (file.name === 'Cargo.toml') {
-    buildFromCargoToml(file as CargoTOML)
-  } else {
-    buildFromBuildScript(file as OpaqueFile)
-  }
-}
-
 export async function buildFromCargoToml (
   cargoToml: CargoTOML,
   workspace: Workspace = new Workspace(
@@ -749,7 +721,7 @@ export async function buildFromCargoToml (
   console.info('Build manifest:', bold(cargoToml.shortPath))
   const source = workspace.crate((cargoToml.as(TOMLFile).load() as any).package.name)
   try {
-    const builder  = getBuilder({ ...(config?.build??{}), rebuild: true })
+    const builder  = getBuilder({ ...getBuilderConfig(), rebuild: true })
     const artifact = await builder.build(source)
     console.info('Built:    ', bold($(artifact.url).shortPath))
     console.info('Code hash:', bold(artifact.codeHash))
@@ -853,19 +825,43 @@ export function schemaToTypes (...schemas: Array<string>) {
     })))
 }
 
-export const BuildMessages = {
-  BuildOne (source, prebuilt, longestCrateName) {
-    console.info(
-      ' ',    bold(source.crate.padEnd(longestCrateName)),
-      'from', bold(`${$(source.workspace.path).shortPath}/`),
-      '@',    bold(source.workspace.ref),
-      prebuilt ? '(exists, not rebuilding)': ''
-    )
-  },
-  BuildMany (mounted, ref) {
-    console.info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-      `@`, bold(ref)
-    )
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  const config = { build: getBuilderConfig(process.cwd(), process.env) }
+  const [buildPath, ...buildArgs] = process.argv.slice(2)
+  const buildSpec = $(buildPath)
+  if (buildSpec.isDirectory()) {
+    console.log(buildSpec)
+    buildFromDirectory(buildSpec.as(OpaqueDirectory))
+  } else if (buildSpec.isFile()) {
+    buildFromFile(buildSpec.as(OpaqueFile))
+  } else {
+    printUsage()
+  }
+}
+
+export function printUsage () {
+  console.log(`
+    Usage:
+      fadroma-build path/to/crate
+      fadroma-build path/to/Cargo.toml
+      fadroma-build buildConfig.{js|ts}
+  `)
+  process.exit(6)
+}
+
+export function buildFromDirectory (dir: OpaqueDirectory) {
+  const cargoToml = dir.at('Cargo.toml').as(TOMLFile)
+  if (cargoToml.exists()) {
+    buildFromCargoToml(cargoToml as CargoTOML)
+  } else {
+    printUsage()
+  }
+}
+
+export function buildFromFile (file: TOMLFile<unknown>|OpaqueFile) {
+  if (file.name === 'Cargo.toml') {
+    buildFromCargoToml(file as CargoTOML)
+  } else {
+    buildFromBuildScript(file as OpaqueFile)
   }
 }

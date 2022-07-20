@@ -9,5 +9,5 @@ crate-type = ["cdylib", "rlib"]
 path = "echo.rs"
 
 [dependencies]
-fadroma = { path = "../../crates/fadroma" }
+fadroma = { git = "https://github.com/hackbg/fadroma", branch = "stable", features = ["scrt"] }
 serde   = { version = "1.0.103", default-features = false, features = ["derive"] }

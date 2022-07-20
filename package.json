@@ -20,6 +20,8 @@
     "ts:check":         "time tsc --noEmit",
     "ts:test":          "time ensuite SPEC.ts.md",
     "ts:test:cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
+    "ts:test:build":    "./packages/build/build.ts",
+    "ts:test:build:kv": "./packages/build/build.ts examples/kv",
 
     "docs:homepage":    "node homepage/render.js",
     "docs:typedoc":     "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints .",
