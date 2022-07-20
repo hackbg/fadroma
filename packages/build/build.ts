@@ -175,7 +175,7 @@ export interface DockerBuilderOptions {
 
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends CachingBuilder {
-  static image      = 'hackbg/fadroma:unstable'
+  static image      = 'ghcr.io/hackbg/fadroma:unstable'
   static dockerfile = resolve(__dirname, 'build.Dockerfile')
   static script     = resolve(__dirname, 'build-impl.mjs')
   static service    = resolve(__dirname, 'build-server.mjs')
