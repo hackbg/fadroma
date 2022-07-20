@@ -51,11 +51,11 @@ export class Template {
 /** Reference to an instantiated smart contract.
   * May contain reference to the template from wich it was instantiated. */
 export interface Instance {
-  initTx?:   TxHash
-  chainId?:  ChainId
-  codeId?:   CodeId
   address:   Address
   codeHash?: CodeHash
+  codeId?:   CodeId
+  chainId?:  ChainId
+  initTx?:   TxHash
   label?:    Label
   template?: Template
 }

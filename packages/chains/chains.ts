@@ -1,3 +1,5 @@
+#!/usr/bin/env ganesha-node
+
 import { CommandContext } from '@hackbg/komandi'
 
 import { Chain, ChainMode, Agent, AgentOpts } from '@fadroma/client'

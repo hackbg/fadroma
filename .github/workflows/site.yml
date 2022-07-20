@@ -30,6 +30,8 @@ jobs:
           toolchain: stable
           target: wasm32-unknown-unknown
           override: true
+      - name: Generate TypeScript coverage
+        run: pnpm ts:test:lcov
       - name: Unveil Cargo.toml
         run:  cp _Cargo.toml Cargo.toml
       - name: Generate Rust reference
@@ -41,8 +43,9 @@ jobs:
         run: |
           mkdir -p dist/docs
           mv .vitepress/dist/* dist/docs
-          mv target/doc dist/docs/rs
-          mv docs dist/docs/ts
+          mv target/doc dist/docs/rs-api
+          mv docs dist/docs/ts-api
+          mv coverage dist/docs/ts-coverage
           tar -cvf dist/docs/nix shell.nix
       - name: Publish docs
         run: |
