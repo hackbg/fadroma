@@ -3,13 +3,10 @@
 import $, { Path, OpaqueDirectory, OpaqueFile, TOMLFile }  from '@hackbg/kabinet'
 import { Console, bold }                                   from '@hackbg/konzola'
 import { getBuilderConfig, getBuilder, Workspace, Source } from '@fadroma/build'
-import { getSecretNetworkConfig }                          from '@fadroma/scrt'
 
 export const config = {
   /** Build settings. */
-  build: getBuilderConfig(process.cwd, process.env),
-  /** Secret Network settings. */
-  scrt:  getSecretNetworkConfig(process.cwd, process.env)
+  build: getBuilderConfig(process.cwd(), process.env),
 }
 
 type CargoTOML = TOMLFile<{ package: { name: string } }>
@@ -66,7 +63,6 @@ async function buildFromCargoToml (
   try {
     const builder = getBuilder({
       ...(config?.build??{}),
-      ...(config?.scrt?.build??{}),
       rebuild: true
     })
     const artifact = await builder.build(source)
@@ -105,7 +101,6 @@ async function buildFromBuildScript (buildScript: OpaqueFile) {
       try {
         const builder = getBuilder({
           ...(config?.build??{}),
-          ...(config?.scrt?.build??{}),
           rebuild: true
         })
         await builder.buildMany(buildSources)

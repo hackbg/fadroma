@@ -87,7 +87,7 @@ importers:
       '@fadroma/client': workspace:^4
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/formati': ^1.0.2
-      '@hackbg/kabinet': ^3.0.2
+      '@hackbg/kabinet': workspace:^3
       '@hackbg/komandi': workspace:^4
       '@hackbg/konzola': ^1.1
       '@hackbg/portali': ^1
@@ -99,7 +99,7 @@ importers:
       '@fadroma/client': link:../client
       '@hackbg/dokeres': 4.0.2
       '@hackbg/formati': 1.1.0
-      '@hackbg/kabinet': 3.0.2
+      '@hackbg/kabinet': link:../../toolbox/kabinet
       '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/konzola': 1.1.1
       '@hackbg/portali': 1.1.3
@@ -116,7 +116,7 @@ importers:
       '@fadroma/client': workspace:^4
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/formati': ^1.0.2
-      '@hackbg/kabinet': ^3.0.2
+      '@hackbg/kabinet': workspace:^3.0.4
       '@hackbg/konzola': ^1.1
       '@hackbg/portali': ^1
       align-yaml: ^0.1.8
@@ -131,7 +131,7 @@ importers:
       '@fadroma/client': link:../client
       '@hackbg/dokeres': 4.0.2
       '@hackbg/formati': 1.1.0
-      '@hackbg/kabinet': 3.0.2
+      '@hackbg/kabinet': link:../../toolbox/kabinet
       '@hackbg/konzola': 1.1.1
       '@hackbg/portali': 1.1.3
       align-yaml: 0.1.8
