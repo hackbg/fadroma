@@ -5,8 +5,9 @@
   "main":    "scrt.ts",
   "dependencies": {
     "@fadroma/client": "workspace:^4",
+
     "@hackbg/formati": "^1.0.2",
-    "@hackbg/komandi": "workspace:^4",
+    "@hackbg/komandi": "^4",
     "secretjs":        "beta"
   },
   "scripts": {
