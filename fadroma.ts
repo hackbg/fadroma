@@ -145,7 +145,7 @@ export interface FadromaConfig {
   }
 }
 
-export function getConfig (cwd: string, env: Record<string, string> = {}): FadromaConfig {
+export function getFadromaConfig (cwd: string, env: Record<string, string> = {}): FadromaConfig {
   const { Str, Bool } = getFromEnv(env)
   const config = {
     build:        getBuilderConfig(cwd, env),
@@ -180,85 +180,10 @@ export function getConfig (cwd: string, env: Record<string, string> = {}): Fadro
   }
 }
 
-export const currentConfig: FadromaConfig = getConfig(process.cwd(), process.env)
-
 export type Context =
   { config: FadromaConfig }
   & BuildContext
   & DeployContext
-
-export async function getChain (
-  { config = currentConfig, chains }: Context, name = config?.project?.chain
-): Promise<Partial<Context>> {
-  config ??= currentConfig
-  chains ??= knownChains
-  // Check that a valid name is passed
-  if (!name || !chains[name]) {
-    console.error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
-    console.info('Known chain names:')
-    for (const chain of Object.keys(chains).sort()) {
-      console.info(`  ${chain}`)
-    }
-    process.exit(1)
-  }
-  // Return chain and deployments handle
-  const chain = await chains[name](config)
-  return {
-    config,
-    chains,
-    chain,
-    deployments: Deployments.fromConfig(chain, config.project.root),
-    devMode:     chain.isDevnet || chain.isMocknet,
-    isDevnet:    chain.isDevnet,
-    isMocknet:   chain.isMocknet,
-    isTestnet:   chain.isTestnet,
-    isMainnet:   chain.isMainnet,
-  }
-}
-
-export const knownChains = {
-  async 'Mocknet'          (config = currentConfig) {
-    return new Mocknet()
-  },
-  async 'ScrtAminoMainnet' (config = currentConfig) {
-    const mode = ChainMode.Mainnet
-    const id   = config.scrt.mainnet.chainId
-    const url  = config.scrt.mainnet.apiUrl
-    return new ScrtAmino(id, { url, mode })
-  },
-  async 'ScrtAminoTestnet' (config = currentConfig) {
-    const mode = ChainMode.Testnet
-    const id   = config.scrt.testnet.chainId
-    const url  = config.scrt.testnet.apiUrl
-    return new ScrtAmino(id, { url, mode })
-  },
-  async 'ScrtAminoDevnet'  (config = currentConfig) {
-    const mode = ChainMode.Devnet
-    const node = await getDevnet('scrt_1.2').respawn()
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new ScrtAmino(id, { url, mode, node })
-  },
-  async 'ScrtGrpcMainnet'  (config = currentConfig) {
-    const mode = ChainMode.Mainnet
-    const id   = config.scrt.mainnet.chainId
-    const url  = config.scrt.mainnet.apiUrl
-    return new ScrtGrpc(id, { url, mode })
-  },
-  async 'ScrtGrpcTestnet'  (config = currentConfig) {
-    const mode = ChainMode.Testnet
-    const id   = config.scrt.testnet.chainId
-    const url  = config.scrt.testnet.apiUrl
-    return new ScrtGrpc(id, { url, mode })
-  },
-  async 'ScrtGrpcDevnet'   (config = currentConfig) {
-    const mode = ChainMode.Devnet
-    const node = await getDevnet('scrt_1.3').respawn()
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new ScrtGrpc(id, { url, mode, node })
-  },
-}
 
 export async function resetDevnet ({ chain }: { chain: Chain }) {
   if (!chain) {
@@ -270,36 +195,8 @@ export async function resetDevnet ({ chain }: { chain: Chain }) {
   }
 }
 
-export async function getAgent ({ config, chain }: Partial<Context>): Promise<Partial<Context>> {
-  config ??= currentConfig
-  const agentOpts: AgentOpts = { name: undefined }
-  if (chain.isDevnet) {
-    // for devnet, use auto-created genesis account
-    agentOpts.name = 'ADMIN'
-  } else if ((chain as any).isSecretNetwork) {
-    // for scrt-based chains, use mnemonic from config
-    agentOpts.mnemonic = config.scrt.agent.mnemonic
-  }
-  const agent = await chain.getAgent(agentOpts)
-  return {
-    agent
-  }
-}
-
 export const print = console => {
   const print = {
-
-    chainStatus ({ chain, deployments }) {
-      if (!chain) {
-        console.info('No active chain.')
-      } else {
-        console.info(bold('Chain type: '), chain.constructor.name)
-        console.info(bold('Chain mode: '), chain.mode)
-        console.info(bold('Chain ID:   '), chain.id)
-        console.info(bold('Chain URL:  '), chain.url.toString())
-        console.info(bold('Deployments:'), deployments.list().length)
-      }
-    },
 
     url ({ protocol, hostname, port }: URL) {
       console.info(bold(`Protocol: `), protocol)
@@ -359,20 +256,6 @@ export const print = console => {
           name.padEnd(25).slice(0, 25),
           TOKEN.address
         )
-      }
-    },
-
-    deployment ({ receipts, prefix }) {
-      let contracts: string|number = Object.values(receipts).length
-      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      console.info('Active deployment:', bold(prefix), bold(contracts))
-      const count = Object.values(receipts).length
-      if (count > 0) {
-        for (const name of Object.keys(receipts).sort()) {
-          print.receipt(name, receipts[name])
-        }
-      } else {
-        console.info('This deployment is empty.')
       }
     },
 

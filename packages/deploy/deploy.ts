@@ -18,46 +18,30 @@
 
 **/
 
+import { Address, Agent, AgentOpts, Artifact, Bundle, Chain, ChainMode, Client, ClientCtor,
+         ClientOpts, DevnetHandle, Instance, Label, Message, Template } from '@fadroma/client'
+import { Source, IntoArtifact } from '@fadroma/build'
+import { AgentContext } from '@fadroma/chains'
+
+import { toHex, Sha256 }                        from '@hackbg/formati'
+import { Console, bold }                        from '@hackbg/konzola'
+import { Commands, CommandContext, StepOrInfo } from '@hackbg/komandi'
+import { freePort, waitPort }                   from '@hackbg/portali'
+import $, { BinaryFile, JSONDirectory, JSONFile, YAMLFile } from '@hackbg/kabinet'
+
 import { basename, resolve, dirname, relative, extname } from 'path'
 import { readFileSync, writeFileSync, readdirSync, readlinkSync, lstatSync, existsSync,
          symlinkSync } from 'fs'
-import { toHex, Sha256 } from '@hackbg/formati'
-import { Console, bold } from '@hackbg/konzola'
-import { Commands }      from '@hackbg/komandi'
-import $, { BinaryFile, JSONDirectory, JSONFile, YAMLFile } from '@hackbg/kabinet'
-
-import {
-  Address,
-  Agent,
-  AgentOpts,
-  Artifact,
-  Bundle,
-  Chain,
-  ChainMode,
-  Client,
-  ClientCtor,
-  ClientOpts,
-  DevnetHandle,
-  Instance,
-  Label,
-  Message,
-  Template,
-} from '@fadroma/client'
 
 import TOML from 'toml'
 import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 import { cwd } from 'process'
-import { freePort, waitPort } from '@hackbg/portali'
 import * as http from 'http'
 
 export { TOML, YAML }
 
-export const console          = Console('Fadroma Deploy')
-
-export const HEAD             = 'HEAD'
-
-export const addPrefix        = (prefix, name) => `${prefix}/${name}`
+export const console   = Console('Fadroma Deploy')
 
 export abstract class Uploader {
   constructor (public agent: Agent) {}
@@ -431,85 +415,12 @@ export class Deployment {
   }
 }
 
-export type IntoTemplate = Template|IntoArtifact
-export interface DeployContext {
-  /** Known block chains and connection methods. */
-  chains:       typeof knownChains,
-  /** The blockhain to connect to. */
-  chain:        Chain,
-  /** Collections of interlinked contracts on the active chain. */
-  deployments:  Deployments
-  /** = chain.isMainnet */
-  isMainnet:    boolean
-  /** = chain.isTestnet */
-  isTestnet:    boolean
-  /** = chain.isDevnet */
-  isDevnet:     boolean
-  /** = chain.isMocknet */
-  isMocknet:    boolean
-  /** True if the chain is a devnet or mocknet */
-  devMode:      boolean
-  /** Default identity to use when operating on the chain. */
-  agent:        Agent
-  /** Get an object representing a dependency on a template (code id + hash),
-    * i.e. it can expect it to be there or upload it if it's not there. */
-  template      (source: IntoTemplate): TemplateSlot
-  /** Get an object representing a template (code id + hash)
-    * or upload the template from source if it's not already uploaded. */
-  getOrUploadTemplate (source: IntoTemplate): Promise<Template>
-  /** Upload a template, cache receipt under `receipts/$CHAIN/uploads`. */
-  upload:       (artifact:  IntoTemplate)   => Promise<Template>
-  /** Upload multiple templates, cache receipts under `receipts/$CHAIN/uploads`. */
-  uploadMany:   (artifacts: IntoTemplate[]) => Promise<Template[]>
-  /** Knows how to upload contracts to a blockchain. */
-  uploader:     Uploader
-  /** Optional global suffix of all smart contracts deployed.
-    * Useful for discerning multiple instanCan be usedces or versions of a contract. */
-  suffix?:      string
-  /** Currently selected collection of interlinked contracts. */
-  deployment:   Deployment
-  /** Shorthand for calling `deployment.get(name)` */
-  getInstance (name: string): Instance
-  /** Who'll deploy new contracts */
-  deployer?: Agent
-  /** Deploy a contract. */
-  deploy <C extends Client, O extends ClientOpts> (
-    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, O>
-  ): Promise<C>
-  /** Deploy multiple contracts from the same template. */
-  deployMany <C extends Client, O extends ClientOpts> (
-    template: IntoTemplate, configs: [string, Message][], APIClient?: ClientCtor<C, O>
-  ): Promise<C[]>
-  /** Shorthand for calling `agent.getClient(Client, deployment.get(name))` */
-  getClient <C extends Client, O extends ClientOpts> (name: string, Client?: ClientCtor<C, O>): C
-  /** Get an object representing a dependency on a smart contract instance,
-    * i.e. it can expect it to be there or deploy it if it's not there. */
-  contract <C extends Client, O extends ClientOpts> (
-    name: string, APIClient?: ClientCtor<C, O>
-  ): ContractSlot<C>
-  /** Get a client interface to a contract. */
-  getContract <C extends Client> (
-    reference:  string|{ address: string }, APIClient?: ClientCtor<C, any>,
-  ): Promise<C|null>
-  /** Get a contract or fail with a user-defined message. */
-  getContract <C extends Client> (
-    reference:  string|{ address: string }, APIClient?: ClientCtor<C, any>, msgOrFn?: InfoOrStep<any, C>,
-  ): Promise<C>
-  /** Get a contract or deploy it. */
-  getOrDeployContract <C extends Client> (
-    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, any>
-  ): Promise<C>
-  /** Deploy a contract and fail if name already taken. */
-  deployContract <C extends Client> (
-    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, any>
-  ): Promise<C>
-}
+export const addPrefix = (prefix, name) => `${prefix}/${name}`
 
-/** Error message or recovery function. */
-export type InfoOrStep<C extends Context, T> = string|((context: Partial<C>)=>T)
+export type IntoTemplate = Template|IntoArtifact
 
 export abstract class Slot<C extends Context, T> {
-  abstract get (msgOrFn: InfoOrStep<C, T>): Promise<T>
+  abstract get (msgOrFn: StepOrInfo<C, T>): Promise<T>
   value: T|null = null
 }
 
@@ -520,7 +431,7 @@ export class TemplateSlot extends Slot<Context, Template> {
   ) {
     super()
   }
-  async get (msgOrFn: InfoOrStep<Context, Template> = ''): Promise<Template> {
+  async get (msgOrFn: StepOrInfo<Context, Template> = ''): Promise<Template> {
     if (this.value) return this.value
     if (msgOrFn instanceof Function) {
       console.info('Looking for template', this.code)
@@ -543,68 +454,6 @@ export class TemplateSlot extends Slot<Context, Template> {
   }
 }
 
-/** Add an uploader to the command context. */
-export function getUploadContext ({
-  config,
-  agent: { chain: { isMocknet } },
-  agent,
-  caching = !config.upload.reupload,
-  build,
-  buildMany,
-  workspace
-}: Partial<Context> & {
-  caching?:  boolean
-}): Partial<Context> {
-
-  const uploader = (!isMocknet && caching)
-    ? CachingFSUploader.fromConfig(agent, config.project.root)
-    : new FSUploader(agent)
-
-  return {
-
-    uploader,
-
-    async upload (code: IntoTemplate): Promise<Template> {
-      if (code instanceof Template) {
-        return code
-      }
-      if (typeof code === 'string') {
-        code = this.workspace.crate(code) as Source
-        if (!this.build) throw new Error(`Upload ${code}: building is not enabled`)
-        code = await this.build(code) as Artifact
-      } else {
-        const { url, codeHash, source } = code as Artifact
-        code = new Artifact(url, codeHash, source)
-      }
-      const rel = bold($((code as Artifact).url).shortPath)
-      console.info(`Upload ${bold(rel)}: hash`, bold(code.codeHash))
-      code = await uploader.upload(code as Artifact) as Template
-      console.info(`Upload ${bold(rel)}: id  `, bold(code.codeId),)
-      return code
-      throw Object.assign(
-        new Error(`Fadroma: can't upload ${code}: must be crate name, Source, Artifact, or Template`),
-        { code }
-      )
-    },
-
-    async uploadMany (code: IntoTemplate[]): Promise<Template[]> {
-      const templates = []
-      for (const contract of code) {
-        templates.push(await this.upload(contract))
-      }
-      return templates
-    },
-
-    template (code: IntoTemplate): TemplateSlot {
-      return new TemplateSlot(this, code)
-    },
-
-    async getOrUploadTemplate (code: IntoTemplate): Promise<Template> {
-      return await new TemplateSlot(this, code).getOrUpload()
-    }
-
-  }
-}
 
 /** Object returned by context.contract() helper.
   * `getOrDeploy` method enables resumable deployments. */
@@ -633,7 +482,7 @@ export class ContractSlot<C extends Client> extends Slot<DeployContext, C> {
   }
   /** Get the specified contract. If it's not in the deployment,
     * try fetching it from a subroutine or throw an error with a custom message. */
-  async get (msgOrFn: InfoOrStep<any, C> = ''): Promise<C> {
+  async get (msgOrFn: StepOrInfo<any, C> = ''): Promise<C> {
     if (this.value) return this.value
     if (msgOrFn instanceof Function) {
       console.info('Finding contract:', bold(this.reference as string))
@@ -669,24 +518,126 @@ export class ContractSlot<C extends Client> extends Slot<DeployContext, C> {
   }
 }
 
-export function getDeployContext ({
-  timestamp,
-  deployment,
-  agent,
-  deployer = agent,
-  suffix   = `+${timestamp}`
-}: Partial<Context>): Partial<Context> {
+export interface UploadContext extends AgentContext {
+  /** Get an object representing a dependency on a template (code id + hash),
+    * i.e. it can expect it to be there or upload it if it's not there. */
+  template      (source: IntoTemplate):        TemplateSlot
+  /** Get an object representing a template (code id + hash)
+    * or upload the template from source if it's not already uploaded. */
+  getOrUploadTemplate (source: IntoTemplate):  Promise<Template>
+  /** Upload a template, cache receipt under `receipts/$CHAIN/uploads`. */
+  upload:       (artifact:  IntoTemplate)   => Promise<Template>
+  /** Upload multiple templates, cache receipts under `receipts/$CHAIN/uploads`. */
+  uploadMany:   (artifacts: IntoTemplate[]) => Promise<Template[]>
+  /** Knows how to upload contracts to a blockchain. */
+  uploader:     Uploader
+  /** Whether to skip reuploading of known uploaded contracts. */
+  uploadCache?: boolean
+  /** Which agent to use for uploading. */
+  uploadAgent?: Agent
+}
 
+/** Add an uploader to the operation context. */
+export function getUploadContext (
+  context: AgentContext & Partial<UploadContext> & { config: UploadConfig }
+): Promise<UploadContext> {
+  context.uploadAgent ??= context.agent
+  context.uploadCache ??= !context.config.upload.reupload
+  context.uploader    ??= (!context.isMocknet && context.uploadCache)
+    ? CachingFSUploader.fromConfig(context.uploadAgent, config.project.root)
+    : new FSUploader(context.uploadAgent)
+  return {
+    ...context,
+    async upload (code: IntoTemplate): Promise<Template> {
+      if (code instanceof Template) {
+        return code
+      }
+      if (typeof code === 'string') {
+        code = this.workspace.crate(code) as Source
+        if (!this.build) throw new Error(`Upload ${code}: building is not enabled`)
+        code = await this.build(code) as Artifact
+      } else {
+        const { url, codeHash, source } = code as Artifact
+        code = new Artifact(url, codeHash, source)
+      }
+      const rel = bold($((code as Artifact).url).shortPath)
+      console.info(`Upload ${bold(rel)}: hash`, bold(code.codeHash))
+      code = await this.uploader.upload(code as Artifact) as Template
+      console.info(`Upload ${bold(rel)}: id  `, bold(code.codeId),)
+      return code
+      throw Object.assign(
+        new Error(`Fadroma: can't upload ${code}: must be crate name, Source, Artifact, or Template`),
+        { code }
+      )
+    },
+    async uploadMany (code: IntoTemplate[]): Promise<Template[]> {
+      const templates = []
+      for (const contract of code) {
+        templates.push(await this.upload(contract))
+      }
+      return templates
+    },
+    template (code: IntoTemplate): TemplateSlot {
+      return new TemplateSlot(this, code)
+    },
+    async getOrUploadTemplate (code: IntoTemplate): Promise<Template> {
+      return await new TemplateSlot(this, code).getOrUpload()
+    }
+  }
+}
+
+export interface DeployContext extends UploadContext {
+  /** Optional global suffix of all smart contracts deployed.
+    * Useful for discerning multiple instanCan be usedces or versions of a contract. */
+  suffix?:      string
+  /** Currently selected collection of interlinked contracts. */
+  deployment?:  Deployment
+  /** Shorthand for calling `deployment.get(name)` */
+  getInstance (name: string): Instance
+  /** Who'll deploy new contracts */
+  deployer?: Agent
+  /** Deploy a contract. */
+  deploy <C extends Client, O extends ClientOpts> (
+    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, O>
+  ): Promise<C>
+  /** Deploy multiple contracts from the same template. */
+  deployMany <C extends Client, O extends ClientOpts> (
+    template: IntoTemplate, configs: [string, Message][], APIClient?: ClientCtor<C, O>
+  ): Promise<C[]>
+  /** Shorthand for calling `agent.getClient(Client, deployment.get(name))` */
+  getClient <C extends Client, O extends ClientOpts> (name: string, Client?: ClientCtor<C, O>): C
+  /** Get an object representing a dependency on a smart contract instance,
+    * i.e. it can expect it to be there or deploy it if it's not there. */
+  contract <C extends Client, O extends ClientOpts> (
+    name: string, APIClient?: ClientCtor<C, O>
+  ): ContractSlot<C>
+  /** Get a client interface to a contract. */
+  getContract <C extends Client> (
+    reference:  string|{ address: string }, APIClient?: ClientCtor<C, any>,
+  ): Promise<C|null>
+  /** Get a contract or fail with a user-defined message. */
+  getContract <C extends Client> (
+    reference:  string|{ address: string }, APIClient?: ClientCtor<C, any>, msgOrFn?: StepOrInfo<any, C>,
+  ): Promise<C>
+  /** Get a contract or deploy it. */
+  getOrDeployContract <C extends Client> (
+    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, any>
+  ): Promise<C>
+  /** Deploy a contract and fail if name already taken. */
+  deployContract <C extends Client> (
+    name: string, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, any>
+  ): Promise<C>
+}
+
+export function getDeployContext (context: UploadContext & Partial<DeployContext>): DeployContext {
+  context.deployer ??= context.agent
   type Fn<T, U> = (...t: T[]) => U
   function needsActiveDeployment <T, U> (fn: Fn<T, U>): Fn<T, U> {
-    if (!deployment) return () => { throw new Error('Fadroma Ops: no active deployment') }
+    if (!context.deployment) return () => { throw new Error('Fadroma Ops: no active deployment') }
     return fn
   }
-
   return {
-    deployment,
-    suffix,
-    deployer,
+    ...context,
     contract <C extends Client> (
       instance:  string|{ address: string },
       APIClient: ClientCtor<C, any>
@@ -699,7 +650,7 @@ export function getDeployContext ({
     async getContract <C extends Client> (
       reference: string|{ address: string },
       APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>,
-      msgOrFn?:  InfoOrStep<any, C>
+      msgOrFn?:  StepOrInfo<any, C>
     ): Promise<C> {
       return await new ContractSlot(this, reference, APIClient).get(msgOrFn)
     },
@@ -738,10 +689,51 @@ export function getDeployContext ({
 
 }
 
+export const DeployMessages = ({ info, warn }) => {
+  const print = {
+    ShowChainStatus ({ chain, deployments }) {
+      if (!chain) {
+        info('No active chain.')
+      } else {
+        info(bold('Chain type: '), chain.constructor.name)
+        info(bold('Chain mode: '), chain.mode)
+        info(bold('Chain ID:   '), chain.id)
+        info(bold('Chain URL:  '), chain.url.toString())
+        info(bold('Deployments:'), deployments.list().length)
+      }
+    },
+    ShowDeployment ({ receipts, prefix }) {
+      let contracts: string|number = Object.values(receipts).length
+      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+      console.info('Active deployment:', bold(prefix), bold(contracts))
+      const count = Object.values(receipts).length
+      if (count > 0) {
+        for (const name of Object.keys(receipts).sort()) {
+          print.receipt(name, receipts[name])
+        }
+      } else {
+        info('This deployment is empty.')
+      }
+    },
+    ShowReceipt (name, receipt) {
+      name = bold(name.padEnd(35))
+      if (receipt.address) {
+        const address = `${receipt.address}`.padStart(45)
+        const codeId  = String(receipt.codeId||'n/a').padStart(6)
+        info(address, codeId, name)
+      } else {
+        warn('(non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+      }
+    }
+  }
+  return print
+}
+
 export class Deploy extends Commands<DeployContext> {
+
   constructor (name, before, after) {
     super(name, before, after)
-    this.before.push(print(console).chainStatus)
+    this.before.push(DeployMessages(console).ShowChainStats)
     this.command('reset',   'reset the devnet',                resetDevnet)
     this.command('list',    'print a list of all deployments', Deploy.list)
     this.command('select',  'select a new active deployment',  Deploy.select)
@@ -750,39 +742,7 @@ export class Deploy extends Commands<DeployContext> {
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
   }
 
-  /** Create a new deployment and add it to the command context. */
-  static create = async function createDeployment (
-    context: Partial<Context>
-  ): Promise<Partial<Context>> {
-    const [ prefix = context.timestamp ] = context.cmdArgs
-    await context.deployments.create(prefix)
-    await context.deployments.select(prefix)
-    return await Deploy.get(context)
-  }
-
-  /** Add the currently active deployment to the command context. */
-  static get = async function getDeployment (
-    context: Partial<Context>
-  ): Promise<Partial<Context>> {
-    if (!context.deployments.active) {
-      console.info('No selected deployment on chain:', bold(context.chain.id))
-    }
-    context.deployment = context.deployments.active
-    return await getDeployContext(context)
-  }
-
-  /** Add either the active deployment, or a newly created one, to the command context. */
-  static getOrCreate = async function getOrCreateDeployment (
-    context: Partial<Context>
-  ): Promise<Partial<Context>> {
-    if (context.deployments.active) {
-      return Deploy.get(context)
-    } else {
-      return await Deploy.create(context)
-    }
-  }
-
-  static list = async function listDeployments ({ chain, deployments }: Partial<Context>): Promise<void> {
+  static list = async function listDeployments ({ chain, deployments }: Partial<DeployContext>): Promise<void> {
     const list = deployments.list()
     if (list.length > 0) {
       console.info(`Deployments on chain ${bold(chain.id)}:`)
@@ -800,8 +760,40 @@ export class Deploy extends Commands<DeployContext> {
     }
   }
 
+  /** Add the currently active deployment to the command context. */
+  static get = async function getDeployment (
+    context: Partial<DeployContext>
+  ): Promise<DeployContext> {
+    if (!context.deployments?.active) {
+      console.info('No selected deployment on chain:', bold(context.chain.id))
+    }
+    context.deployment = context.deployments.active
+    return await getDeployContext(context)
+  }
+
+  /** Create a new deployment and add it to the command context. */
+  static create = async function createDeployment (
+    context: Partial<DeployContext> & { cmdArgs?: string[], prefix?: string, timestamp: string }
+  ): Promise<DeployContext> {
+    const [ prefix = context.timestamp ] = context.cmdArgs
+    await context.deployments.create(prefix)
+    await context.deployments.select(prefix)
+    return await Deploy.get(context)
+  }
+
+  /** Add either the active deployment, or a newly created one, to the command context. */
+  static getOrCreate = async function getOrCreateDeployment (
+    context: Partial<DeployContext> & { cmdArgs?: string[], prefix?: string, timestamp: string }
+  ): Promise<DeployContext> {
+    if (context.deployments.active) {
+      return Deploy.get(context)
+    } else {
+      return await Deploy.create(context)
+    }
+  }
+
   static select = async function selectDeployment (
-    context: Partial<Context>
+    context: Partial<DeployContext>
   ): Promise<void> {
     const { deployments, cmdArgs: [id] = [undefined] } = context
     const list = deployments.list()
@@ -824,7 +816,7 @@ export class Deploy extends Commands<DeployContext> {
 
   /** Print the status of a deployment. */
   static show = async function showDeployment (
-    context: Partial<Context>,
+    context: Partial<DeployContext>,
     id = context.cmdArgs[0]
   ): Promise<void> {
     let deployment = context.deployments.active
@@ -832,7 +824,7 @@ export class Deploy extends Commands<DeployContext> {
       deployment = context.deployments.get(id)
     }
     if (deployment) {
-      print(console).deployment(deployment)
+      DeployMessages(console).ShowDeployment(deployment)
     } else {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }

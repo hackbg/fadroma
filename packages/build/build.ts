@@ -1,5 +1,4 @@
 import { Artifact }                           from '@fadroma/client'
-import $, { Path, TextFile, OpaqueDirectory } from '@hackbg/kabinet'
 import { Console, bold }                      from '@hackbg/konzola'
 import { toHex, Sha256 }                      from '@hackbg/formati'
 import { getFromEnv }                         from '@hackbg/komandi'
@@ -9,28 +8,139 @@ import LineTransformStream                    from 'line-transform-stream'
 import { compileFromFile }                    from 'json-schema-to-typescript'
 import { parse as parseToml }                 from 'toml'
 
+import $, {
+  Path,
+  TextFile,
+  OpaqueFile,
+  OpaqueDirectory,
+  TOMLFile
+} from '@hackbg/kabinet'
+
 import { spawn, execFileSync }                from 'child_process'
 import { basename, resolve, dirname }         from 'path'
 import { homedir, tmpdir }                    from 'os'
 import { URL, pathToFileURL, fileURLToPath }  from 'url'
 import { readFileSync, mkdtempSync, readdirSync, writeFileSync } from 'fs'
 
-const console = Console('Fadroma Build')
-
-const HEAD            = 'HEAD'
-export const distinct        = <T> (x: T[]): T[] => [...new Set(x) as any]
-export const sanitize        = ref => ref.replace(/\//g, '_')
-export const artifactName    = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
-export const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
-export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
-
 //@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
-/** Represents a Cargo workspace containing multiple smart contract crates.
-  * - Select a crate with `new Workspace(path).crate(name)`
-  * - Select from past commit with `new Workspace(path).at(ref).crate(name)`
-  * - Use `.crates([name1, name2])` to get multiple crates */
+const console = Console('Fadroma Build')
+
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  const [buildPath, ...buildArgs] = process.argv.slice(2)
+  const buildSpec = $(buildPath)
+  if (buildSpec.isDirectory()) {
+    console.log(buildSpec)
+    buildFromDirectory(buildSpec.as(OpaqueDirectory))
+  } else if (buildSpec.isFile()) {
+    buildFromFile(buildSpec.as(OpaqueFile))
+  } else {
+    printUsage()
+  }
+}
+
+export function printUsage () {
+  console.log(`
+    Usage:
+      fadroma-build path/to/crate
+      fadroma-build path/to/Cargo.toml
+      fadroma-build buildConfig.{js|ts}`)
+  process.exit(6)
+}
+
+/** Getting builder settings from process runtime environment. */
+export function getBuilderConfig (cwd = '', env = {}): BuilderConfig {
+  const { Str, Bool } = getFromEnv(env)
+  return {
+    /** URL to the build manager endpoint, if used. */
+    manager:    Str ('FADROMA_BUILD_MANAGER',    ()=>null),
+    raw:        Bool('FADROMA_BUILD_RAW',        ()=>false),
+    rebuild:    Bool('FADROMA_REBUILD',          ()=>false),
+    noFetch:    Bool('FADROMA_NO_FETCH',         ()=>false),
+    toolchain:  Str ('FADROMA_RUST',             ()=>''),
+    image:      Str ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image),
+    dockerfile: Str ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile),
+    script:     Str ('FADROMA_BUILD_SCRIPT',     ()=>DockerBuilder.script),
+    service:    Str ('FADROMA_BUILD_SERVICE',    ()=>DockerBuilder.service),
+  }
+}
+
+/** Builder settings definitions. */
+export interface BuilderConfig {
+  /** URL to the build manager endpoint, if used. */
+  manager:    string|null
+  /** Whether to bypass Docker and use the toolchain from the environment. */
+  raw:        boolean
+  /** Whether to ignore existing build artifacts and rebuild contracts. */
+  rebuild:    boolean
+  /** Whether not to run `git fetch` during build. */
+  noFetch:    boolean
+  /** Which version of the Rust toolchain to use, e.g. `1.59.0` */
+  toolchain:  string
+  /** Docker image to use for dockerized builds. */
+  image:      string
+  /** Dockerfile to build the build image if not downloadable. */
+  dockerfile: string
+  /** Script that runs the actual build, e.g. build.impl.mjs */
+  script:     string
+  /** Script that runs a build server (WIP) */
+  service:    string
+}
+
+/** Add build vocabulary to context of REPL and deploy scripts. */
+export function getBuildContext ({ config }: any = {}): BuildContext {
+  let {
+    project: { root = process.cwd() } = {},
+    build = {},
+    scrt: { build: scrtBuild = {} } = {}
+  } = config || {}
+  // Apply SecretNetwork-specific build vars on top of global build vars.
+  // TODO select builder implementation here
+  const builder   = getBuilder({ ...build, ...scrtBuild })
+  const workspace = new Workspace(root)
+  return {
+    builder,
+    workspace,
+    getSource (source: IntoSource, ref?: string): Source {
+      let workspace = this.workspace
+      if (ref) workspace = workspace.at(ref)
+      if (typeof source === 'string') return this.workspace.crate(source)
+      return source
+    },
+    async build (source: IntoSource, ref?: string): Promise<Artifact> {
+      return await this.builder.build(this.getSource(source).at(ref))
+    },
+    async buildMany (ref?: string, ...sources: IntoArtifact[][]): Promise<Artifact[]> {
+      sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
+      return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
+    }
+  }
+}
+
+/** The nouns and verbs exposed to REPL and Commands. */
+export interface BuildContext {
+  /** Cargo workspace of the current project. */
+  workspace: Workspace
+  /** Get a Source by crate name from the current workspace. */
+  getSource: (source: IntoSource) => Source
+  /** Knows how to build contracts for a target. */
+  builder:   Builder
+  /** Get a Source by crate name from the current workspace. */
+  build:     (source: IntoArtifact, ref?: string)         => Promise<Artifact>
+  buildMany: (ref?: string, ...sources: IntoArtifact[][]) => Promise<Artifact[]>
+}
+
+/** A Source or a string to be passed to workspace.crate */
+export type IntoSource   = Source|string
+
+/** An Artifact or an IntoSource to be built */
+export type IntoArtifact = Artifact|IntoSource
+
+/** The Git reference pointing to the currently checked out working tree. */
+export const HEAD = 'HEAD'
+
+/** Represents a Cargo workspace containing multiple smart contract crates. */
 export class Workspace {
   constructor (
     public readonly path:   string,
@@ -56,6 +166,13 @@ export class Workspace {
     return crates.map(crate=>this.crate(crate))
   }
 }
+
+const x = new Path()
+x.exists()
+
+class Foo extends Path {}
+const y = new Foo()
+y.exists()
 
 /** Represents the real location of the Git data directory.
   * - In standalone repos this is `.git/`
@@ -99,12 +216,19 @@ export class DotGit extends Path {
   }
   readonly present:     boolean
   readonly isSubmodule: boolean = false
-  get rootRepo     (): Path   { return $(this.path.split(DotGit.rootRepoRE)[0]) }
-  get submoduleDir (): string { return this.path.split(DotGit.rootRepoRE)[1]    }
+  get rootRepo (): Path {
+    return $(this.path.split(DotGit.rootRepoRE)[0])
+  }
+  get submoduleDir (): string {
+    return this.path.split(DotGit.rootRepoRE)[1]
+  }
   /* Matches "/.git" or "/.git/" */
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 }
 
+/** Represents a crate in a workspace.
+  * The workspace may be at HEAD (build from working tree)
+  * or another ref (build from Git history). */
 export class Source {
   constructor (
     public readonly workspace: Workspace,
@@ -116,15 +240,6 @@ export class Source {
   at (ref?: string): Source {
     if (!ref) return this
     return new Source(new Workspace(this.workspace.path, ref, this.workspace.gitDir), this.crate)
-  }
-}
-
-/** Can perform builds. */
-export abstract class Builder {
-  outputDirName = 'artifacts'
-  abstract build (source: Source, ...args): Promise<Artifact>
-  buildMany (sources: Source[], ...args): Promise<Artifact[]> {
-    return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
 }
 
@@ -140,6 +255,46 @@ export interface BuilderOptions {
   noFetch:    boolean
   toolchain:  string
 }
+
+export function getBuilder ({
+  rebuild,
+  caching = !rebuild,
+  raw,
+  managerUrl,
+  image,
+  dockerfile,
+  service,
+  script,
+  toolchain,
+  noFetch
+}: Partial<BuilderOptions> = {}) {
+  if (raw) {
+    return new RawBuilder({ caching, script, noFetch, toolchain })
+  } else if (managerUrl) {
+    throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
+    //return new ManagedBuilder({ managerURL })
+  } else {
+    return new DockerBuilder({ caching, script, image, dockerfile, service })
+  }
+}
+
+/** Can perform builds. */
+export abstract class Builder {
+  outputDirName = 'artifacts'
+  abstract build (source: Source, ...args): Promise<Artifact>
+  buildMany (sources: Source[], ...args): Promise<Artifact[]> {
+    return Promise.all(sources.map(source=>this.build(source, ...args)))
+  }
+  verbose = false
+}
+
+export const sanitize = ref => ref.replace(/\//g, '_')
+
+export const artifactName = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
+
+export const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
+
+export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
 
 /** Can perform builds, if necessary or if explicitly asked (by setting FADROMA_REBUILD=1) */
 export abstract class CachingBuilder extends Builder {
@@ -173,12 +328,14 @@ export interface DockerBuilderOptions {
   service:    string
 }
 
+export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
+
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends CachingBuilder {
   static image      = 'ghcr.io/hackbg/fadroma:unstable'
   static dockerfile = resolve(__dirname, 'build.Dockerfile')
-  static script     = resolve(__dirname, 'build-impl.mjs')
-  static service    = resolve(__dirname, 'build-server.mjs')
+  static script     = resolve(__dirname, 'build.impl.mjs')
+  static service    = resolve(__dirname, 'build.server.mjs')
   constructor ({
     caching,
     socketPath,
@@ -230,12 +387,7 @@ export class DockerBuilder extends CachingBuilder {
     for (const source of sources) {
       const outputDir = $(source.workspace.path).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.workspace.ref)
-      //console.info(
-        //' ',    bold(source.crate.padEnd(longestCrateName)),
-        //'from', bold(`${$(source.workspace.path).shortPath}/`),
-        //'@',    bold(source.workspace.ref),
-        //prebuilt ? '(exists, not rebuilding)': ''
-      //)
+      if (this.verbose) BuildMessages.BuildOne(source, prebuilt, longestCrateName)
     }
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, Workspace> = {}
@@ -258,10 +410,7 @@ export class DockerBuilder extends CachingBuilder {
       // And for each ref of that workspace,
       for (const ref of refs) {
         let mounted = $(path)
-        //console.info(
-          //`Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-          //`@`, bold(ref)
-        //)
+        if (this.verbose) BuildMessages.BuildMany(mounted, ref)
         if (ref !== HEAD) {
           mounted = gitDir.rootRepo
           //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
@@ -572,6 +721,100 @@ export class RemoteBuilder extends CachingBuilder {
   }
 }
 
+type CargoTOML = TOMLFile<{ package: { name: string } }>
+
+export function buildFromDirectory (dir: OpaqueDirectory) {
+  const cargoToml = dir.at('Cargo.toml').as(TOMLFile)
+  if (cargoToml.exists()) {
+    buildFromCargoToml(cargoToml as CargoTOML)
+  } else {
+    printUsage()
+  }
+}
+
+export function buildFromFile (file: TOMLFile<unknown>|OpaqueFile) {
+  if (file.name === 'Cargo.toml') {
+    buildFromCargoToml(file as CargoTOML)
+  } else {
+    buildFromBuildScript(file as OpaqueFile)
+  }
+}
+
+export async function buildFromCargoToml (
+  cargoToml: CargoTOML,
+  workspace: Workspace = new Workspace(
+    process.env.FADROMA_BUILD_WORKSPACE_ROOT||cargoToml.parent
+  )
+) {
+  console.info('Build manifest:', bold(cargoToml.shortPath))
+  const source = workspace.crate((cargoToml.as(TOMLFile).load() as any).package.name)
+  try {
+    const builder  = getBuilder({ ...(config?.build??{}), rebuild: true })
+    const artifact = await builder.build(source)
+    console.info('Built:    ', bold($(artifact.url).shortPath))
+    console.info('Code hash:', bold(artifact.codeHash))
+    process.exit(0)
+  } catch (e) {
+    console.error(`Build failed.`)
+    console.error(e)
+    process.exit(5)
+  }
+}
+
+export async function buildFromBuildScript (buildScript: OpaqueFile) {
+  const buildSetName = buildArgs.join(' ')
+  console.info('Build script:', bold(buildScript.shortPath))
+  console.info('Build set:   ', bold(buildSetName || '(none)'))
+  //@ts-ignore
+  const {default: buildSets} = await import(buildScript.path)
+  if (buildArgs.length > 0) {
+    const buildSet = buildSets[buildSetName]
+    if (!buildSet) {
+      console.error(`No build set ${bold(buildSetName)}.`)
+      listBuildSets(buildSets)
+      process.exit(1)
+    } else if (!(buildSet instanceof Function)) {
+      console.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
+      process.exit(2)
+    } else {
+      const buildSources = buildSet()
+      if (!(buildSources instanceof Array)) {
+        console.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
+        process.exit(3)
+      }
+      const T0 = + new Date()
+      try {
+        const builder = getBuilder({
+          ...(config?.build??{}),
+          rebuild: true
+        })
+        await builder.buildMany(buildSources)
+        const T1 = + new Date()
+        console.info(`Build complete in ${T1-T0}ms.`)
+        process.exit(0)
+      } catch (e) {
+        console.error(`Build failed.`)
+        console.error(e)
+        process.exit(4)
+      }
+    }
+  } else {
+    console.warn(bold('No build set specified.'))
+    listBuildSets(buildSets)
+  }
+}
+
+export function listBuildSets (buildSets) {
+  console.log('Available build sets:')
+  for (let [name, sources] of Object.entries(buildSets)) {
+    console.log(`\n  ${name}`)
+    sources = (sources as Function)() as any
+    for (const source of sources as Array<Source>) {
+      console.log(`    ${bold(source.crate)} @ ${source.workspace.ref}`)
+    }
+  }
+}
+
 /** Run the schema generator example binary of each contract. */
 export async function generateSchema (projectRoot: string, dirs: Array<string>) {
   for (const dir of dirs) {
@@ -610,101 +853,19 @@ export function schemaToTypes (...schemas: Array<string>) {
     })))
 }
 
-export function getBuilder ({
-  rebuild,
-  caching = !rebuild,
-  raw,
-  managerUrl,
-  image,
-  dockerfile,
-  service,
-  script,
-  toolchain,
-  noFetch
-}: Partial<BuilderOptions> = {}) {
-  if (raw) {
-    return new RawBuilder({ caching, script, noFetch, toolchain })
-  } else if (managerUrl) {
-    throw new Error('unimplemented: managed builder will be available in a future version of Fadroma')
-    //return new ManagedBuilder({ managerURL })
-  } else {
-    return new DockerBuilder({ caching, script, image, dockerfile, service })
-  }
-}
-
-/** Builder settings. */
-export interface BuilderConfig {
-  /** URL to the build manager endpoint, if used. */
-  manager:    string|null
-  /** Whether to bypass Docker and use the toolchain from the environment. */
-  raw:        boolean
-  /** Whether to ignore existing build artifacts and rebuild contracts. */
-  rebuild:    boolean
-  /** Whether not to run `git fetch` during build. */
-  noFetch:    boolean
-
-  toolchain:  string
-  image:      string
-  dockerfile: string
-  script:     string
-  service:    string
-}
-
-export function getBuilderConfig (cwd = process.cwd(), env = process.env): BuilderConfig {
-  const { Str, Bool } = getFromEnv(env)
-  return {
-    /** URL to the build manager endpoint, if used. */
-    manager:    Str ('FADROMA_BUILD_MANAGER',    ()=>null),
-    raw:        Bool('FADROMA_BUILD_RAW',        ()=>false),
-    rebuild:    Bool('FADROMA_REBUILD',          ()=>false),
-    noFetch:    Bool('FADROMA_NO_FETCH',         ()=>false),
-    toolchain:  Str ('FADROMA_RUST',             ()=>''),
-    image:      Str ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image),
-    dockerfile: Str ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile),
-    script:     Str ('FADROMA_BUILD_SCRIPT',     ()=>DockerBuilder.script),
-    service:    Str ('FADROMA_BUILD_SERVICE',    ()=>DockerBuilder.service),
-  }
-}
-
-export type IntoSource   = Source|string
-export type IntoArtifact = Artifact|IntoSource
-export interface BuildContext {
-  /** Cargo workspace. */
-  workspace:    Workspace
-  /** Get a Source by crate name from the current workspace. */
-  getSource:    (source: IntoSource) => Source
-  /** Knows how to build contracts for a target. */
-  builder:      Builder
-  /** Get a Source by crate name from the current workspace. */
-  build:        (source: IntoArtifact, ref?: string)         => Promise<Artifact>
-  buildMany:    (ref?: string, ...sources: IntoArtifact[][]) => Promise<Artifact[]>
-}
-
-export function getBuildContext ({ config = currentConfig }: any = {}): Partial<Context> {
-  let {
-    project: { root = process.cwd() } = {},
-    build = {},
-    scrt: { build: scrtBuild = {} } = {}
-  } = config || {}
-  // Apply SecretNetwork-specific build vars on top of global build vars.
-  // TODO select builder implementation here
-  const builder   = getBuilder({ ...build, ...scrtBuild })
-  const workspace = new Workspace(root)
-  return {
-    builder,
-    workspace,
-    getSource (source: IntoSource, ref?: string): Source {
-      let workspace = this.workspace
-      if (ref) workspace = workspace.at(ref)
-      if (typeof source === 'string') return this.workspace.crate(source)
-      return source
-    },
-    async build (source: IntoSource, ref?: string): Promise<Artifact> {
-      return await this.builder.build(this.getSource(source).at(ref))
-    },
-    async buildMany (ref?: string, ...sources: IntoArtifact[][]): Promise<Artifact[]> {
-      sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
-      return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
-    }
+export const BuildMessages = {
+  BuildOne (source, prebuilt, longestCrateName) {
+    console.info(
+      ' ',    bold(source.crate.padEnd(longestCrateName)),
+      'from', bold(`${$(source.workspace.path).shortPath}/`),
+      '@',    bold(source.workspace.ref),
+      prebuilt ? '(exists, not rebuilding)': ''
+    )
+  },
+  BuildMany (mounted, ref) {
+    console.info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
   }
 }

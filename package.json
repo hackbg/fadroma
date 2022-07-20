@@ -17,7 +17,7 @@
 
     "ts:ci":            "node --version && npm --version && pnpm --version && ls -al && pnpm ts:clean && concurrently npm:ts:check npm:ts:test:cov && pnpm release:dry && ls -al",
     "ts:clean":         "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
-    "ts:check":         "tsc --noEmit",
+    "ts:check":         "time tsc --noEmit",
     "ts:test":          "time ensuite SPEC.ts.md",
     "ts:test:cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
 
@@ -34,7 +34,7 @@
     "@hackbg/ganesha":     "^2.2",
     "@hackbg/dokeres":     "^4.0.2",
     "@hackbg/kabinet":     "^3.0.2",
-    "@hackbg/komandi":     "^4",
+    "@hackbg/komandi":     "^4.0.0",
     "@hackbg/konzola":     "^1.0.8",
     "@hackbg/formati":     "^1.1.0",
 
