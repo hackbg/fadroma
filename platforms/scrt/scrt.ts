@@ -31,7 +31,7 @@ export type { Tx }
 import { randomBytes } from '@hackbg/formati'
 import { getFromEnv } from '@hackbg/komandi'
 
-export const Errors = {
+export const ScrtErrors = {
   UseOtherLib () {
     throw new Error('Use @fadroma/scrt-amino')
   },
@@ -43,7 +43,7 @@ export const Errors = {
   }
 }
 
-export const Warnings = {
+export const ScrtWarnings = {
   IgnoringKeyPair () {
     console.warn('ScrtGrpcAgent: Created from mnemonic, ignoring keyPair')
   },
@@ -96,7 +96,7 @@ export abstract class ScrtAgent extends Agent {
 
   static async create (chain: Scrt, options?: Partial<ScrtAgentOpts>): Promise<ScrtAgent> {
     if (options.legacy) {
-      return Errors.UseOtherLib()
+      return ScrtErrors.UseOtherLib()
     } else {
       return await ScrtGrpcAgent.create(chain, options) as ScrtAgent
     }
@@ -177,12 +177,12 @@ export class ScrtGrpcAgent extends ScrtAgent {
       if (mnemonic) {
         wallet = new Wallet(mnemonic)
       } else {
-        return Errors.WalletMnemonic()
+        return ScrtErrors.WalletMnemonic()
       }
     }
 
     if (keyPair) {
-      Warnings.IgnoringKeyPair()
+      ScrtWarnings.IgnoringKeyPair()
       delete options.keyPair
     }
 
@@ -300,7 +300,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   async instantiate (template, label, initMsg, initFunds = []): Promise<Instance> {
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) {
-      return Errors.AnotherChain()
+      return ScrtErrors.AnotherChain()
     }
     const sender   = this.address
     const args     = { sender, codeId, codeHash, initMsg, label, initFunds }
@@ -323,7 +323,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
     if (memo) {
-      Warnings.NoMemos()
+      ScrtWarnings.NoMemos()
     }
     const result = await this.api.tx.compute.executeContract({
       sender:          this.address,

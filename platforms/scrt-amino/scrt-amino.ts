@@ -36,11 +36,22 @@ import { backOff } from 'exponential-backoff'
 
 import { default as Axios } from 'axios'
 
-export const Errors = {
+export const ScrtAminoErrors = {
   ZeroRecipients     () { throw new Error('Tried to send to 0 recipients')  },
   TemplateNoCodeHash () { throw new Error('Template must contain codeHash') },
   EncryptNoCodeHash  () { throw new Error('Missing code hash') },
   UploadBinary       () { throw new Error('The upload method takes a Uint8Array') }
+}
+
+export const ScrtAminoWarnings = {
+  Keypair () {
+    console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
+  },
+  CodeHash (address, codeHash, realCodeHash) {
+    console.warn('Code hash mismatch for address:', address)
+    console.warn('  Expected code hash:',           codeHash)
+    console.warn('  Code hash on chain:',           realCodeHash)
+  }
 }
 
 const privKeyToMnemonic = privKey => (Bip39.encode(privKey) as any).data
@@ -127,7 +138,7 @@ export class ScrtAminoAgent extends ScrtAgent {
       case !!mnemonic:
         // if keypair doesnt correspond to the mnemonic, delete the keypair
         if (keyPair && mnemonic !== privKeyToMnemonic(keyPair.privkey)) {
-          console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
+          ScrtAminoWarnings.Keypair()
           keyPair = null
         }
         break
@@ -240,9 +251,7 @@ export class ScrtAminoAgent extends ScrtAgent {
     // Soft code hash checking for now
     const realCodeHash = await this.getHash(address)
     if (codeHash !== realCodeHash) {
-      console.warn('Code hash mismatch for address:', address)
-      console.warn('  Expected code hash:', codeHash)
-      console.warn('  Code hash on chain:', realCodeHash)
+      ScrtAminoWarnings.CodeHash(address, codeHash, realCodeHash)
     } else {
       console.info(`Code hash of ${address}:`, realCodeHash)
     }
