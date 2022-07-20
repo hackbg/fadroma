@@ -665,3 +665,46 @@ export function getBuilderConfig (cwd = process.cwd(), env = process.env): Build
     service:    Str ('FADROMA_BUILD_SERVICE',    ()=>DockerBuilder.service),
   }
 }
+
+export type IntoSource   = Source|string
+export type IntoArtifact = Artifact|IntoSource
+export interface BuildContext {
+  /** Cargo workspace. */
+  workspace:    Workspace
+  /** Get a Source by crate name from the current workspace. */
+  getSource:    (source: IntoSource) => Source
+  /** Knows how to build contracts for a target. */
+  builder:      Builder
+  /** Get a Source by crate name from the current workspace. */
+  build:        (source: IntoArtifact, ref?: string)         => Promise<Artifact>
+  buildMany:    (ref?: string, ...sources: IntoArtifact[][]) => Promise<Artifact[]>
+}
+
+export function getBuildContext ({ config = currentConfig }: any = {}): Partial<Context> {
+  let {
+    project: { root = process.cwd() } = {},
+    build = {},
+    scrt: { build: scrtBuild = {} } = {}
+  } = config || {}
+  // Apply SecretNetwork-specific build vars on top of global build vars.
+  // TODO select builder implementation here
+  const builder   = getBuilder({ ...build, ...scrtBuild })
+  const workspace = new Workspace(root)
+  return {
+    builder,
+    workspace,
+    getSource (source: IntoSource, ref?: string): Source {
+      let workspace = this.workspace
+      if (ref) workspace = workspace.at(ref)
+      if (typeof source === 'string') return this.workspace.crate(source)
+      return source
+    },
+    async build (source: IntoSource, ref?: string): Promise<Artifact> {
+      return await this.builder.build(this.getSource(source).at(ref))
+    },
+    async buildMany (ref?: string, ...sources: IntoArtifact[][]): Promise<Artifact[]> {
+      sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
+      return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
+    }
+  }
+}
