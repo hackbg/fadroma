@@ -181,14 +181,14 @@ importers:
       '@cosmjs/crypto': ^0.20.0
       '@fadroma/scrt': workspace:^1
       '@iov/encoding': ^2.1.0
-      axios: ^0.26.0
+      axios: 0.26.0
       exponential-backoff: ^3.1.0
       secretjs: 0.17.5
     dependencies:
       '@cosmjs/crypto': 0.20.1
       '@fadroma/scrt': link:../scrt
       '@iov/encoding': 2.5.0
-      axios: 0.26.1
+      axios: 0.26.0
       exponential-backoff: 3.1.0
       secretjs: 0.17.5
 
@@ -1248,8 +1248,8 @@ packages:
       - debug
     dev: false
 
-  /axios/0.26.1:
-    resolution: {integrity: sha512-fPwcX4EvnSHuInCMItEhAGnaSEXRBjtzh9fOtsE6E1G6p7vl7edEeZe11QHf18+6+9gR5PbKV/sGKNaD8YaMeA==}
+  /axios/0.26.0:
+    resolution: {integrity: sha512-lKoGLMYtHvFrPVt3r+RBMp9nh34N0M8zEfCWqdWZx6phynIEhQqAdydpyBAAG211zlhX9Rgu08cOamy6XjE5Og==}
     dependencies:
       follow-redirects: 1.15.1
     transitivePeerDependencies:

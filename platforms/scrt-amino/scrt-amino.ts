@@ -34,7 +34,7 @@ import { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
 
 import { backOff } from 'exponential-backoff'
 
-import Axios from 'axios'
+import { default as Axios } from 'axios'
 
 export const Errors = {
   ZeroRecipients     () { throw new Error('Tried to send to 0 recipients')  },

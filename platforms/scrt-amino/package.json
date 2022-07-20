@@ -9,7 +9,7 @@
     "@iov/encoding":        "^2.1.0",
     "secretjs":             "0.17.5",
     "exponential-backoff":  "^3.1.0",
-    "axios":                "^0.26.0"
+    "axios":                "0.26.0"
   },
   "scripts": {
     "ts:check":    "tsc --noEmit",

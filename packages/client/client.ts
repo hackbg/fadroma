@@ -278,16 +278,16 @@ export abstract class Chain implements Spectator {
   Agent: AgentCtor<Agent> = (this.constructor as Function & { Agent: AgentCtor<Agent> }).Agent
 }
 
+export interface AgentCtor<A extends Agent> {
+  new    (chain: Chain, options: AgentOpts): A
+  create (chain: Chain, options: AgentOpts): Promise<A>
+}
+
 export interface AgentOpts {
   name?:     string
   mnemonic?: string
   address?:  Address
   fees?:     AgentFees
-}
-
-export interface AgentCtor<A extends Agent> {
-  new    (chain: Chain, options: AgentOpts): A
-  create (chain: Chain, options: AgentOpts): Promise<A>
 }
 
 export interface AgentFees {
@@ -358,7 +358,7 @@ export abstract class Agent implements Executor {
   }
   abstract execute (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|unknown>
   static Bundle: BundleCtor<Bundle>
-  Bundle: BundleCtor<Bundle> = (this.constructor as Function & {Bundle: typeof Agent.Bundle}).Bundle
+  Bundle: BundleCtor<Bundle> = (this.constructor as AgentCtor<typeof this>).Bundle
   bundle (): Bundle {
     //@ts-ignore
     return new this.Bundle(this)
@@ -370,12 +370,15 @@ export interface AgentCtor<A extends Agent> {
   Bundle?: BundleCtor<Bundle>
 }
 
+//@ts-ignore
+Chain.Agent = Agent as AgentCtor<Agent>
+
 export interface BundleCtor<B extends Bundle> {
   new (agent: Agent): B
 }
 
-//@ts-ignore
-Chain.Agent = Agent as AgentCtor<Agent>
+/** Function passed to Bundle#wrap */
+export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
 /** Collection of messages to broadcast as a single transaction,
   * effectively executing them simultaneously. */
@@ -517,10 +520,8 @@ export abstract class Bundle implements Executor {
 
 }
 
+//@ts-ignore
 Agent.Bundle = Bundle
-
-/** Function passed to Bundle#wrap */
-export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
 export interface ClientOpts extends Instance {
   name?: string
