@@ -254,8 +254,13 @@ export class Snip20 extends Client {
     recipient: Address,
     callback?: string | object
   ) {
-    const callbackB64 = Buffer.from(JSON.stringify(callback)).toString('base64')
-    const msg = { send: { amount, recipient, msg: callbackB64 } }
+    const msg = {
+      send: {
+        amount,
+        recipient,
+        msg: callback ? Buffer.from(JSON.stringify(callback)).toString('base64') : undefined
+      }
+    }
     return this.execute(msg)
   }
 
