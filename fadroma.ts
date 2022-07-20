@@ -23,6 +23,8 @@ import { homedir } from 'os'
 import { fileURLToPath } from 'url'
 
 import $ from '@hackbg/kabinet'
+
+export * from '@hackbg/konzola'
 import {
   Console,
   bold,
@@ -30,47 +32,14 @@ import {
   timestamp
 } from '@hackbg/konzola'
 
+export * from '@hackbg/komandi'
 import {
   getFromEnv,
   Commands,
   CommandContext
 } from '@hackbg/komandi'
 
-import {
-  BuilderConfig,
-  getBuilderConfig,
-  getBuilder,
-  Builder,
-  Source,
-  Workspace
-} from '@fadroma/build'
-
-import {
-  DevnetConfig,
-  getDevnetConfig,
-  getDevnet
-} from '@fadroma/devnet'
-
-import {
-  ScrtConfig,
-  getScrtConfig,
-  ScrtGrpc
-} from '@fadroma/scrt'
-
-import {
-  ScrtAmino
-} from '@fadroma/scrt-amino'
-
-import { Mocknet } from '@fadroma/mocknet'
-
-import {
-  Uploader,
-  FSUploader,
-  CachingFSUploader,
-  Deployments,
-  Deployment
-} from '@fadroma/deploy'
-
+export * from '@fadroma/client'
 import {
   Address,
   Agent,
@@ -86,6 +55,48 @@ import {
   Template,
 } from '@fadroma/client'
 
+export * from '@fadroma/scrt'
+import {
+  ScrtConfig,
+  getScrtConfig,
+  ScrtGrpc
+} from '@fadroma/scrt'
+
+export * from '@fadroma/scrt-amino'
+import {
+  ScrtAmino
+} from '@fadroma/scrt-amino'
+
+export * from '@fadroma/build'
+import {
+  BuilderConfig,
+  getBuilderConfig,
+  getBuilder,
+  Builder,
+  Source,
+  Workspace
+} from '@fadroma/build'
+
+import {
+  DevnetConfig,
+  getDevnetConfig,
+  getDevnet
+} from '@fadroma/devnet'
+
+export * from '@fadroma/mocknet'
+import {
+  Mocknet
+} from '@fadroma/mocknet'
+
+export * from '@fadroma/deploy'
+import {
+  Uploader,
+  FSUploader,
+  CachingFSUploader,
+  Deployments,
+  Deployment
+} from '@fadroma/deploy'
+
 /** Update `process.env` with value from `.env` file */
 import dotenv from 'dotenv'
 dotenv.config()
@@ -95,16 +106,14 @@ export const __dirname = dirname(fileURLToPath(import.meta.url))
 
 /// # Reexport the core platform vocabulary:
 
-export * from '@hackbg/konzola'
 export * from '@hackbg/kabinet'
-export * from '@hackbg/komandi'
 export * from '@hackbg/formati'
 export * from '@fadroma/client'
 export * from '@fadroma/tokens'
 
 /// # Define the top-level conventions and idioms:
 
-export const console = Console('Fadroma Ops')
+export const console = Console('Fadroma')
 
 export interface FadromaConfig {
   build:  BuilderConfig

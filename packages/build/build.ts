@@ -17,7 +17,7 @@ import { readFileSync, mkdtempSync, readdirSync, writeFileSync } from 'fs'
 
 const console = Console('Fadroma Build')
 
-export const HEAD            = 'HEAD'
+const HEAD            = 'HEAD'
 export const distinct        = <T> (x: T[]): T[] => [...new Set(x) as any]
 export const sanitize        = ref => ref.replace(/\//g, '_')
 export const artifactName    = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`

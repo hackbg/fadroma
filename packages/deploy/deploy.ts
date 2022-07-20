@@ -53,20 +53,12 @@ import { freePort, waitPort } from '@hackbg/portali'
 import * as http from 'http'
 
 export { TOML, YAML }
+
 export const console          = Console('Fadroma Deploy')
+
 export const HEAD             = 'HEAD'
-export const distinct         = <T> (x: T[]): T[] => [...new Set(x)]
-export const sanitize         = ref => ref.replace(/\//g, '_')
-export const artifactName     = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
-export const codeHashForPath  = (location: string) => codeHashForBlob(readFileSync(location))
-export const codeHashForBlob  = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
-export const join             = (...x:any[]) => x.map(String).join(' ')
+
 export const addPrefix        = (prefix, name) => `${prefix}/${name}`
-export const overrideDefaults = (obj, defaults, options = {}) => {
-  for (const k of Object.keys(defaults)) {
-    obj[k] = obj[k] || ((k in options) ? options[k] : defaults[k].apply(obj))
-  }
-}
 
 export abstract class Uploader {
   constructor (public agent: Agent) {}
@@ -259,6 +251,9 @@ export class CachingFSUploader extends FSUploader {
     }
   }
 }
+
+const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
+const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
 
 /** Deployments for a chain, represented by a directory with 1 YAML file per deployment. */
 export class Deployments extends JSONDirectory<unknown> {

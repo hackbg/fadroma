@@ -554,4 +554,4 @@ export function bufferToUtf8 (buf: Buffer) {
   return buf.toString('utf8')
 }
 
-export const codeHashForBlob  = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
+const codeHashForBlob  = (blob: Uint8Array) => toHex(new Sha256(blob).digest())

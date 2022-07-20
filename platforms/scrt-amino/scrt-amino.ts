@@ -229,7 +229,7 @@ export class ScrtAminoAgent extends ScrtAgent {
 
   async sendMany (outputs, opts) {
     if (outputs.length < 0) {
-      return Errors.ZeroRecipients()
+      return ScrtAminoErrors.ZeroRecipients()
     }
     const from_address = this.address
     //const {accountNumber, sequence} = await this.api.getNonce(from_address)
@@ -259,7 +259,7 @@ export class ScrtAminoAgent extends ScrtAgent {
 
   async upload (data) {
     if (!(data instanceof Uint8Array)) {
-      return Errors.UploadBinary()
+      return ScrtAminoErrors.UploadBinary()
     }
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
@@ -277,7 +277,7 @@ export class ScrtAminoAgent extends ScrtAgent {
 
   async instantiate (template, label, msg, funds = []) {
     if (!template.codeHash) {
-      return Errors.TemplateNoCodeHash()
+      return ScrtAminoErrors.TemplateNoCodeHash()
     }
     const { codeId, codeHash } = template
     const { api } = this
@@ -328,7 +328,7 @@ export class ScrtAminoAgent extends ScrtAgent {
 
   async encrypt (codeHash, msg) {
     if (!codeHash) {
-      return Errors.EncryptNoCodeHash()
+      return ScrtAminoErrors.EncryptNoCodeHash()
     }
     const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg)
     return toBase64(encrypted)
