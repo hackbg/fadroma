@@ -15,7 +15,7 @@ importers:
       '@hackbg/formati': ^1.1.1
       '@hackbg/ganesha': ^2.1
       '@hackbg/izomorf': ^4.0.3
-      '@hackbg/kabinet': ^3.0.4
+      '@hackbg/kabinet': ^3.0.6
       '@hackbg/komandi': ^4.1.2
       '@hackbg/konzola': ^1.1.1
       '@hackbg/runspec': ^2.3
@@ -38,7 +38,7 @@ importers:
       '@hackbg/dokeres': 4.1.0
       '@hackbg/formati': 1.1.1
       '@hackbg/ganesha': 2.1.0
-      '@hackbg/kabinet': 3.0.4
+      '@hackbg/kabinet': 3.0.6
       '@hackbg/komandi': 4.1.2
       '@hackbg/konzola': 1.1.1
       dotenv: 15.0.1
@@ -107,7 +107,7 @@ importers:
       '@hackbg/dokeres': ^4.1.0
       '@hackbg/formati': ^1.1.1
       '@hackbg/ganesha': ^2.0.3
-      '@hackbg/kabinet': ^3.0.4
+      '@hackbg/kabinet': ^3.0.6
       '@hackbg/konzola': ^1.1.1
       '@hackbg/portali': ^1.2.1
       align-yaml: ^0.1.8
@@ -122,7 +122,7 @@ importers:
       '@fadroma/client': link:../client
       '@hackbg/dokeres': 4.1.0
       '@hackbg/formati': 1.1.1
-      '@hackbg/kabinet': 3.0.4
+      '@hackbg/kabinet': 3.0.6
       '@hackbg/konzola': 1.1.1
       '@hackbg/portali': 1.2.1
       align-yaml: 0.1.8
@@ -490,8 +490,8 @@ packages:
       - encoding
     dev: true
 
-  /@hackbg/kabinet/3.0.4:
-    resolution: {integrity: sha512-l8ATaWQ1quY5QWAlze4t0Q/v5MrIcTzD1qXWrRm9BeyvcrFKhcRwhiuJuOYFXqlfC+Afus02zAbfbesZ0wRewQ==}
+  /@hackbg/kabinet/3.0.6:
+    resolution: {integrity: sha512-/CMOR+qyjzgoP0PIehM+Hxpq7LkKqHqI/3/aX177MTXYkd8/+XnqIpMSdh1qnZVdXrtwFVVqNYbCCMAoDE2JWQ==}
     dependencies:
       '@hackbg/konzola': 1.1.1
       js-yaml: 4.1.0
@@ -506,7 +506,7 @@ packages:
   /@hackbg/komandi/4.1.2:
     resolution: {integrity: sha512-l+nf2AbXvK8mnqbqUYmApKlz0+l1cD+FBToylktDY1SOjgrppQdcAPR3VOyLQL5vR+RHx8KQCYXmRjSl+OjdGw==}
     dependencies:
-      '@hackbg/kabinet': 3.0.4
+      '@hackbg/kabinet': 3.0.6
       '@hackbg/konzola': 1.1.1
     dev: false
 

@@ -7,7 +7,7 @@
     "@fadroma/client": "workspace:^3.0.0",
     "@hackbg/dokeres": "^4.1.0",
     "@hackbg/formati": "^1.1.1",
-    "@hackbg/kabinet": "^3.0.4",
+    "@hackbg/kabinet": "^3.0.6",
     "@hackbg/konzola": "^1.1.1",
     "@hackbg/portali": "^1.2.1",
     "align-yaml": "^0.1.8",
