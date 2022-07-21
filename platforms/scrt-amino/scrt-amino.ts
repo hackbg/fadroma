@@ -2,6 +2,7 @@ import {
   Address,
   AgentCtor,
   AgentOpts,
+  ChainMode,
   CodeId,
   CodeHash,
 } from '@fadroma/client'
@@ -67,6 +68,21 @@ export interface ScrtNonce {
 }
 
 export class ScrtAmino extends Scrt {
+
+  static Chains = {
+    async 'ScrtAminoMainnet' (config) {
+      const mode = ChainMode.Mainnet
+      const id   = config.scrtMainnetChainId ?? Scrt.mainnetChainId
+      const url  = config.scrtMainnetApiUrl
+      return new ScrtAmino(id, { url, mode })
+    },
+    async 'ScrtAminoTestnet' (config) {
+      const mode = ChainMode.Testnet
+      const id   = config.scrtTestnetChainId ?? Scrt.testnetChainId
+      const url  = config.scrtTestnetApiUrl
+      return new ScrtAmino(id, { url, mode })
+    },
+  }
 
   // @ts-ignore
   Agent = ScrtAmino.Agent

@@ -5,8 +5,8 @@ importers:
   .:
     specifiers:
       '@fadroma/build': workspace:^1.0.0-beta.0
-      '@fadroma/chains': workspace:*
       '@fadroma/client': workspace:^4
+      '@fadroma/connect': workspace:*
       '@fadroma/deploy': workspace:^1.0.0-beta.0
       '@fadroma/devnet': workspace:^1.0.0-beta.0
       '@fadroma/mocknet': workspace:^1.0.0-beta.0
@@ -38,8 +38,8 @@ importers:
       vitepress: ^1.0.0-alpha.4
     dependencies:
       '@fadroma/build': link:packages/build
-      '@fadroma/chains': link:packages/chains
       '@fadroma/client': link:packages/client
+      '@fadroma/connect': link:packages/connect
       '@fadroma/deploy': link:packages/deploy
       '@fadroma/devnet': link:packages/devnet
       '@fadroma/mocknet': link:packages/mocknet
@@ -110,7 +110,10 @@ importers:
       simple-git: 3.10.0
       toml: 3.0.0
 
-  packages/chains:
+  packages/client:
+    specifiers: {}
+
+  packages/connect:
     specifiers:
       '@fadroma/client': workspace:^4
       '@fadroma/mocknet': workspace:*
@@ -124,13 +127,10 @@ importers:
       '@fadroma/scrt-amino': link:../../platforms/scrt-amino
       '@hackbg/komandi': link:../../toolbox/komandi
 
-  packages/client:
-    specifiers: {}
-
   packages/deploy:
     specifiers:
-      '@fadroma/chains': workspace:*
       '@fadroma/client': workspace:^4
+      '@fadroma/connect': workspace:*
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/formati': ^1.0.2
       '@hackbg/kabinet': ^3.0.4
@@ -146,8 +146,8 @@ importers:
       toml: ^3.0.0
       wasm-ffi: ^0.3.0
     dependencies:
-      '@fadroma/chains': link:../chains
       '@fadroma/client': link:../client
+      '@fadroma/connect': link:../connect
       '@hackbg/dokeres': link:../../toolbox/dokeres
       '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/kabinet': link:../../toolbox/kabinet

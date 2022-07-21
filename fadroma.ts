@@ -104,11 +104,11 @@ import {
   Mocknet
 } from '@fadroma/mocknet'
 
-export * from '@fadroma/chains'
+export * from '@fadroma/connect'
 import {
   ChainConfig,
   getChainConfig
-} from '@fadroma/chains'
+} from '@fadroma/connect'
 
 export * from '@fadroma/client'
 export * from '@fadroma/tokens'

@@ -7,6 +7,7 @@ import {
   BundleCtor,
   Chain,
   ChainId,
+  ChainMode,
   ChainOpts,
   Client,
   ExecOpts,
@@ -54,7 +55,7 @@ export function getScrtConfig (cwd: string, env: Record<string, string> = {}): S
     scrtMainnetChainId: Str('SCRT_MAINNET_CHAIN_ID', ()=>Scrt.mainnetChainId),
     scrtMainnetApiUrl:  Str('SCRT_MAINNET_API_URL',  ()=>{
       if (config.chain.includes('Amino')) {
-        ScrtWarnings.NoDefaultAmino('SCRT_TESTNET_API_URL')
+        Scrt.Warnings.NoDefaultAmino('SCRT_TESTNET_API_URL')
         return null
       } else {
         return 'https://secret-4.api.trivium.network:9091'
@@ -63,7 +64,7 @@ export function getScrtConfig (cwd: string, env: Record<string, string> = {}): S
     scrtTestnetChainId: Str('SCRT_TESTNET_CHAIN_ID', ()=>Scrt.testnetChainId),
     scrtTestnetApiUrl:  Str('SCRT_TESTNET_API_URL',  ()=>{
       if (config.chain.includes('Amino')) {
-        ScrtWarnings.NoDefaultAmino('SCRT_TESTNET_API_URL')
+        Scrt.Warnings.NoDefaultAmino('SCRT_TESTNET_API_URL')
         return null
       } else {
         return 'https://testnet-web-rpc.roninventures.io'
@@ -71,33 +72,6 @@ export function getScrtConfig (cwd: string, env: Record<string, string> = {}): S
     }),
   }
   return config
-}
-
-export const ScrtErrors = {
-  UseOtherLib () {
-    throw new Error('Use @fadroma/scrt-amino')
-  },
-  WalletMnemonic () {
-    throw new Error('ScrtGrpcAgent: Can only be created from mnemonic or wallet+address')
-  },
-  AnotherChain () {
-    throw new Error('ScrtGrpcAgent: Tried to instantiate a contract that is uploaded to another chain')
-  },
-}
-
-export const ScrtWarnings = {
-  IgnoringKeyPair () {
-    console.warn('ScrtGrpcAgent: Created from mnemonic, ignoring keyPair')
-  },
-  NoMemos () {
-    console.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
-  },
-  NoDefaultAmino (envVar) {
-    console.warn(
-      "getScrtConfig: no default API endpoints are provided for legacy Amino mode." +
-      (envVar ? `\nSet ${envVar} to provide yout known API endpoint.` : '')
-    )
-  }
 }
 
 const decoder = new TextDecoder('utf-8', { fatal: true })
@@ -128,6 +102,33 @@ export abstract class Scrt extends Chain {
     exec:   this.gas(1000000),
     send:   this.gas( 500000),
   }
+
+  static Errors = {
+    UseOtherLib () {
+      throw new Error('Use @fadroma/scrt-amino')
+    },
+    WalletMnemonic () {
+      throw new Error('ScrtGrpcAgent: Can only be created from mnemonic or wallet+address')
+    },
+    AnotherChain () {
+      throw new Error('ScrtGrpcAgent: Tried to instantiate a contract that is uploaded to another chain')
+    },
+  }
+
+  static Warnings = {
+    IgnoringKeyPair () {
+      console.warn('ScrtGrpcAgent: Created from mnemonic, ignoring keyPair')
+    },
+    NoMemos () {
+      console.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
+    },
+    NoDefaultAmino (envVar) {
+      console.warn(
+        "getScrtConfig: no default API endpoints are provided for legacy Amino mode." +
+        (envVar ? `\nSet ${envVar} to provide yout known API endpoint.` : '')
+      )
+    }
+  }
  
 }
 
@@ -146,7 +147,7 @@ export abstract class ScrtAgent extends Agent {
 
   static async create (chain: Scrt, options?: Partial<ScrtAgentOpts>): Promise<ScrtAgent> {
     if (options.legacy) {
-      return ScrtErrors.UseOtherLib()
+      return Scrt.Errors.UseOtherLib()
     } else {
       return await ScrtGrpcAgent.create(chain, options) as ScrtAgent
     }
@@ -163,6 +164,21 @@ export abstract class ScrtBundle extends Bundle {}
 Scrt.Agent.Bundle = ScrtBundle
 
 export class ScrtGrpc extends Scrt {
+
+  static Chains = {
+    async 'ScrtGrpcMainnet'  (config) {
+      const mode = ChainMode.Mainnet
+      const id   = config.scrtMainnetChainId ?? Scrt.mainnetChainId
+      const url  = config.scrtMainnetApiUrl
+      return new ScrtGrpc(id, { url, mode })
+    },
+    async 'ScrtGrpcTestnet'  (config) {
+      const mode = ChainMode.Testnet
+      const id   = config.scrtTestnetChainId ?? Scrt.testnetChainId
+      const url  = config.scrtTestnetApiUrl
+      return new ScrtGrpc(id, { url, mode })
+    },
+  }
 
   static Agent: AgentCtor<ScrtGrpcAgent>
          Agent: AgentCtor<ScrtGrpcAgent> = ScrtGrpc.Agent
@@ -227,12 +243,12 @@ export class ScrtGrpcAgent extends ScrtAgent {
       if (mnemonic) {
         wallet = new Wallet(mnemonic)
       } else {
-        return ScrtErrors.WalletMnemonic()
+        return Scrt.Errors.WalletMnemonic()
       }
     }
 
     if (keyPair) {
-      ScrtWarnings.IgnoringKeyPair()
+      Scrt.Warnings.IgnoringKeyPair()
       delete options.keyPair
     }
 
@@ -350,7 +366,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   async instantiate (template, label, initMsg, initFunds = []): Promise<Instance> {
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) {
-      return ScrtErrors.AnotherChain()
+      return Scrt.Errors.AnotherChain()
     }
     const sender   = this.address
     const args     = { sender, codeId, codeHash, initMsg, label, initFunds }
@@ -373,7 +389,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
     if (memo) {
-      ScrtWarnings.NoMemos()
+      Scrt.Warnings.NoMemos()
     }
     const result = await this.api.tx.compute.executeContract({
       sender:          this.address,

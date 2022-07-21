@@ -41,7 +41,7 @@
     "@hackbg/formati":     "^1.1.0",
 
     "@fadroma/build":      "workspace:^1.0.0-beta.0",
-    "@fadroma/chains":     "workspace:*",
+    "@fadroma/connect":    "workspace:*",
     "@fadroma/client":     "workspace:^4",
     "@fadroma/deploy":     "workspace:^1.0.0-beta.0",
     "@fadroma/devnet":     "workspace:^1.0.0-beta.0",

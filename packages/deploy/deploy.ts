@@ -21,7 +21,8 @@
 import { Address, Agent, AgentOpts, Artifact, Bundle, Chain, ChainMode, Client, ClientCtor,
          ClientOpts, DevnetHandle, Instance, Label, Message, Template } from '@fadroma/client'
 import { Source, IntoArtifact } from '@fadroma/build'
-import { ChainContext, AgentContext } from '@fadroma/chains'
+import { ChainContext, knownChains, ChainMessages, getChainConfig,
+         getAgentContext, AgentContext } from '@fadroma/connect'
 
 import { toHex, Sha256 } from '@hackbg/formati'
 import { Console, bold } from '@hackbg/konzola'
@@ -711,11 +712,11 @@ export class Deployment {
 }
 
 
-export function DeployMessages ({ info, warn }) {
+export function deployMessages ({ info, warn }) {
 
-  return { ShowChainStatus, ShowDeployment, ShowReceipt }
+  return { showChainStatus, showDeployment, showReceipt }
 
-  function ShowChainStatus ({ chain, deployments }) {
+  function showChainStatus ({ chain, deployments }) {
     if (!chain) {
       info('No active chain.')
     } else {
@@ -727,21 +728,26 @@ export function DeployMessages ({ info, warn }) {
     }
   }
 
-  function ShowDeployment ({ receipts, prefix }) {
-    let contracts: string|number = Object.values(receipts).length
-    contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-    console.info('Active deployment:', bold(prefix), bold(contracts))
-    const count = Object.values(receipts).length
-    if (count > 0) {
-      for (const name of Object.keys(receipts).sort()) {
-        ShowReceipt(name, receipts[name])
+  function showDeployment ({ deployment }) {
+    if (deployment) {
+      const { receipts, prefix } = deployment
+      let contracts: string|number = Object.values(receipts).length
+      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+      console.info('Active deployment:', bold(prefix), bold(contracts))
+      const count = Object.values(receipts).length
+      if (count > 0) {
+        for (const name of Object.keys(receipts).sort()) {
+          showReceipt(name, receipts[name])
+        }
+      } else {
+        info('This deployment is empty.')
       }
     } else {
-      info('This deployment is empty.')
+      info('There is no selected deployment.')
     }
   }
 
-  function ShowReceipt (name, receipt) {
+  function showReceipt (name, receipt) {
     name = bold(name.padEnd(35))
     if (receipt.address) {
       const address = `${receipt.address}`.padStart(45)
@@ -758,7 +764,7 @@ export class Deploy extends Commands<DeployContext> {
 
   constructor (name, before, after) {
     super(name, before, after)
-    this.before.push(DeployMessages(console).ShowChainStatus)
+    this.before.push(deployMessages(console).showChainStatus)
     this.command('list',    'print a list of all deployments', Deploy.list)
     this.command('select',  'select a new active deployment',  Deploy.select)
     this.command('new',     'create a new empty deployment',   Deploy.create)
@@ -848,7 +854,7 @@ export class Deploy extends Commands<DeployContext> {
       deployment = context.deployments.get(id)
     }
     if (deployment) {
-      DeployMessages(console).ShowDeployment(deployment)
+      deployMessages(console).showDeployment({ deployment })
     } else {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }
@@ -866,4 +872,17 @@ export class Deploy extends Commands<DeployContext> {
     }
   }
 
+}
+
+import {fileURLToPath} from 'url'
+import {runOperation } from '@hackbg/komandi'
+
+//@ts-ignore
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  runOperation('deploy status', 'show deployment status', [
+    getAgentContext,
+    deployMessages(console).showChainStatus,
+    getDeployContext,
+    deployMessages(console).showDeployment
+  ], process.argv.slice(2))
 }

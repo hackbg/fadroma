@@ -8,12 +8,29 @@ const commands = {
     console.log(`\nhttps://hack.bg presents: Fadroma v${require('./package.json').version}`)
     console.log(`If you're seeing this then Fadroma installed successfully.\n`)
   },
-  create  () {
-    run(require.resolve('./fadroma.create.ts'))
-  },
-  build   () {
-    run(require.resolve('./fadroma.build.ts'))
-  },
+}
+
+for (const pkg of [
+  'build',
+  'connect',
+  //'create',
+  'deploy',
+  'devnet',
+  'mocknet',
+  //'repl',
+  'tokens',
+  'scrt',
+  'scrt-amino'
+]) {
+  let cmd
+  try {
+    cmd = require.resolve(`@fadroma/${pkg}`)
+  } catch (e) {}
+  if (cmd) {
+    commands[pkg] = () => run(cmd)
+  } else {
+    commands[pkg] = () => `@fadroma/${pkg} is not available`
+  }
 }
 
 const Ganesha = require('@hackbg/ganesha')

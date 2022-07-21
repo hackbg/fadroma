@@ -1,11 +1,14 @@
 #!/usr/bin/env ganesha-node
 
+import { Console, bold                      } from '@hackbg/konzola'
 import { CommandContext, getFromEnv         } from '@hackbg/komandi'
 import { Chain, ChainMode, Agent, AgentOpts } from '@fadroma/client'
 import { ScrtGrpc  } from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 import { getDevnet } from '@fadroma/devnet'
 import { Mocknet   } from '@fadroma/mocknet'
+
+const console = Console('Fadroma Chains')
 
 /** Getting builder settings from process runtime environment. */
 export function getChainConfig (cwd = process.cwd(), env = process.env): ChainConfig {
@@ -33,7 +36,6 @@ export interface ChainConfig {
 export async function getChainContext (
   context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
 ): Promise<ChainContext> {
-  console.log({context})
   context.chains ??= knownChains
   context.config ??= getChainConfig()
   const name = context.config.chain
@@ -55,48 +57,28 @@ export async function getChainContext (
 export type Chains = Partial<typeof knownChains>
 
 export const knownChains = {
-  async 'Mocknet'          (config): Promise<Mocknet> {
+  async Mocknet (config): Promise<Mocknet> {
     return new Mocknet() as Mocknet
   },
-  async 'ScrtAminoMainnet' (config) {
-    const mode = ChainMode.Mainnet
-    const id   = config.scrt.mainnet.chainId
-    const url  = config.scrt.mainnet.apiUrl
-    return new ScrtAmino(id, { url, mode })
-  },
-  async 'ScrtAminoTestnet' (config) {
-    const mode = ChainMode.Testnet
-    const id   = config.scrt.testnet.chainId
-    const url  = config.scrt.testnet.apiUrl
-    return new ScrtAmino(id, { url, mode })
-  },
-  async 'ScrtAminoDevnet'  (config) {
-    const mode = ChainMode.Devnet
-    const node = await getDevnet('scrt_1.2').respawn()
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new ScrtAmino(id, { url, mode, node })
-  },
-  async 'ScrtGrpcMainnet'  (config) {
-    const mode = ChainMode.Mainnet
-    const id   = config.scrt.mainnet.chainId
-    const url  = config.scrt.mainnet.apiUrl
-    return new ScrtGrpc(id, { url, mode })
-  },
-  async 'ScrtGrpcTestnet'  (config) {
-    const mode = ChainMode.Testnet
-    const id   = config.scrt.testnet.chainId
-    const url  = config.scrt.testnet.apiUrl
-    return new ScrtGrpc(id, { url, mode })
-  },
-  async 'ScrtGrpcDevnet'   (config) {
+  ...ScrtGrpc.Chains,
+  async ScrtGrpcDevnet (config) {
     const mode = ChainMode.Devnet
     const node = await getDevnet('scrt_1.3').respawn()
     const id   = node.chainId
     const url  = node.url.toString()
     return new ScrtGrpc(id, { url, mode, node })
   },
+  ...ScrtAmino.Chains,
+  async ScrtAminoDevnet (config) {
+    const mode = ChainMode.Devnet
+    const node = await getDevnet('scrt_1.2').respawn()
+    const id   = node.chainId
+    const url  = node.url.toString()
+    return new ScrtAmino(id, { url, mode, node })
+  }
 }
+
+
 
 export async function getDeploymentsForChain (chain: Chain, project: string) {
   //@ts-ignore
@@ -106,6 +88,7 @@ export async function getDeploymentsForChain (chain: Chain, project: string) {
 }
 
 export interface ChainContext extends CommandContext {
+  config?:     ChainConfig
   /** Known blockchains and connection methods. */
   chains?:     Chains
   /** The selected blockhain to connect to. */
@@ -125,10 +108,13 @@ export interface ChainContext extends CommandContext {
 }
 
 /** Adds an Agent to the Context. */
-export async function getAgentContext (
-  context: ChainContext & { config: Partial<ChainConfig> }
-): Promise<AgentContext> {
-  context.config ??= getChainConfig()
+export async function getAgentContext (context: ChainContext): Promise<AgentContext> {
+  const config = context.config ?? getChainConfig()
+  if (!context.chain) context = {
+    config: context.config,
+    ...context,
+    ...await getChainContext(context)
+  }
   const agentOpts: AgentOpts = { name: undefined }
   if (context.chain.isDevnet) {
     // for devnet, use auto-created genesis account
@@ -140,6 +126,7 @@ export async function getAgentContext (
   const agent = await context.chain.getAgent(agentOpts)
   return {
     ...context,
+    config: { ...context.config||{}, ...config },
     agent,
   }
 }
@@ -162,13 +149,34 @@ export function chainFlags (chain) {
 export const ChainMessages = {
   NoName (chains) {
     console.error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
-    console.info('Known chain names:')
-    for (const chain of Object.keys(chains).sort()) {
-      console.info(`  ${chain}`)
-    }
+    ChainMessages.KnownChains(chains)
   },
   NoDeploy () {
     console.warn('@fadroma/deploy not installed. Deployment system unavailable.')
     return null
+  },
+  KnownChains (knownChains) {
+    console.log()
+    console.info('Known chain names:')
+    for (const chain of Object.keys(knownChains).sort()) {
+      console.info(`  ${chain}`)
+    }
+  },
+  SelectedChain ({ chain }) {
+    console.log()
+    if (chain) {
+      console.info('Selected chain:')
+      console.info(`  ${chain}`)
+    } else {
+      console.info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
+    }
   }
+}
+
+import {fileURLToPath} from 'url'
+
+//@ts-ignore
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  ChainMessages.KnownChains(knownChains)
+  ChainMessages.SelectedChain(getChainConfig())
 }

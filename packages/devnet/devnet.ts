@@ -15,6 +15,29 @@ import { fileURLToPath } from 'url'
 //@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
+/** Get devnet settings from environment. */
+export function getDevnetConfig (cwd = process.cwd(), env = process.env): DevnetConfig {
+  const { Str, Bool } = getFromEnv(env)
+  return {
+    manager:   Str ('FADROMA_DEVNET_MANAGER',   ()=>null),
+    ephemeral: Bool('FADROMA_DEVNET_EPHEMERAL', ()=>false),
+    chainId:   Str ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet"),
+    port:      Str ('FADROMA_DEVNET_PORT',      ()=>null)
+  }
+}
+
+/** Devnet settings. */
+export interface DevnetConfig {
+  /** URL to the devnet manager endpoint, if used. */
+  manager:   string|null
+  /** Whether to remove the devnet after the command ends. */
+  ephemeral: boolean
+  /** Chain id for devnet .*/
+  chainId:   string
+  /** Port for devnet. */
+  port:      string|null
+}
+
 /** Domain API. A Devnet is created from a given chain ID
   * with given pre-configured identities, and its state is stored
   * in a given directory. */
@@ -567,28 +590,6 @@ export function getDevnet (
     return RemoteDevnet.getOrCreate(kind, manager, null, chainId, chainId ? null : chainId)
   } else {
     return DockerDevnet.getOrCreate(kind, dokeres)
-  }
-}
-
-/** Devnet settings. */
-export interface DevnetConfig {
-  /** URL to the devnet manager endpoint, if used. */
-  manager:   string|null
-  /** Whether to remove the devnet after the command ends. */
-  ephemeral: boolean
-  /** Chain id for devnet .*/
-  chainId:   string
-  /** Port for devnet. */
-  port:      string|null
-}
-
-export function getDevnetConfig (cwd = process.cwd(), env = process.env): DevnetConfig {
-  const { Str, Bool } = getFromEnv(env)
-  return {
-    manager:   Str ('FADROMA_DEVNET_MANAGER',   ()=>null),
-    ephemeral: Bool('FADROMA_DEVNET_EPHEMERAL', ()=>false),
-    chainId:   Str ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet"),
-    port:      Str ('FADROMA_DEVNET_PORT',      ()=>null)
   }
 }
 

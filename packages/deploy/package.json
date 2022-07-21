@@ -5,8 +5,8 @@
   "main": "./deploy.ts",
   "description": "Upload and instantiate smart contracts.",
   "dependencies": {
-    "@fadroma/client": "workspace:^4",
-    "@fadroma/chains": "workspace:*",
+    "@fadroma/client":  "workspace:^4",
+    "@fadroma/connect": "workspace:*",
     "@hackbg/dokeres": "^4.0.2",
     "@hackbg/formati": "^1.0.2",
     "@hackbg/kabinet": "^3.0.4",
