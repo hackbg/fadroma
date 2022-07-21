@@ -1,0 +1,1 @@
+import{_ as t,c as e,o as r,a as o}from"./app.66afa4f2.js";const b=JSON.parse('{"title":"Hack.bg Toolbox","description":"","frontmatter":{},"headers":[],"relativePath":"toolbox/README.md","lastUpdated":null}'),a={name:"toolbox/README.md"},n=o("",1),s=[n];function g(d,l,h,c,p,i){return r(),e("div",null,s)}var k=t(a,[["render",g]]);export{b as __pageData,k as default};
