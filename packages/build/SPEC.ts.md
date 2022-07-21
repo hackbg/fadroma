@@ -32,7 +32,7 @@ ok(getBuilder() instanceof DockerBuilder)
 
 ```typescript
 import { RawBuilder } from '@fadroma/build'
-ok(getBuilder({ raw: true }) instanceof RawBuilder)
+ok(getBuilder({ buildRaw: true }) instanceof RawBuilder)
 ```
 
 ## Some mock builders

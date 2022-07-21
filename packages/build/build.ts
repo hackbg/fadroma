@@ -1,12 +1,12 @@
 #!/usr/bin/env ganesha-node
 
-import { Artifact }              from '@fadroma/client'
-import { Console, bold }         from '@hackbg/konzola'
-import { toHex, Sha256 }         from '@hackbg/formati'
-import { getFromEnv }            from '@hackbg/komandi'
-import { Dokeres, DokeresImage } from '@hackbg/dokeres'
-import { default as simpleGit }  from 'simple-git'
-import LineTransformStream       from 'line-transform-stream'
+import { Artifact }                   from '@fadroma/client'
+import { Console, bold }              from '@hackbg/konzola'
+import { toHex, Sha256 }              from '@hackbg/formati'
+import { getFromEnv, CommandContext } from '@hackbg/komandi'
+import { Dokeres, DokeresImage }      from '@hackbg/dokeres'
+import { default as simpleGit }       from 'simple-git'
+import LineTransformStream            from 'line-transform-stream'
 
 import $, {
   Path,
@@ -102,7 +102,7 @@ export function getBuildContext (context: Partial<BuildContext>): BuildContext {
 }
 
 /** The nouns and verbs exposed to REPL and Commands. */
-export interface BuildContext {
+export interface BuildContext extends CommandContext {
   config:    BuilderConfig
   /** Cargo workspace of the current project. */
   workspace: Workspace
@@ -145,7 +145,7 @@ export abstract class Builder {
   outputDirName: string      = 'artifacts'
   noFetch:       boolean     = false
   toolchain:     string|null = null
-  script:        string
+  script:        string      = Builder.script
   constructor (opts: Partial<BuilderOptions> = {}) {
     this.noFetch       = opts.noFetch       ?? this.noFetch
     this.outputDirName = opts.outputDirName ?? this.outputDirName
@@ -231,8 +231,6 @@ export class DockerBuilder extends CachingBuilder {
   image:      DokeresImage
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
-  /** Path to the build script to be mounted and executed in the container. */
-  script:     string
   /** Build a Source into an Artifact */
   async build (source: Source): Promise<Artifact> {
     return (await this.buildMany([source]))[0]
