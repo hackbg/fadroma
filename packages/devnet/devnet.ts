@@ -1,12 +1,14 @@
-import { resolve, relative, basename, dirname } from 'path'
-import { bold } from '@hackbg/konzola'
-import { getFromEnv } from '@hackbg/komandi'
-import { AgentOpts, DevnetHandle } from '@fadroma/client'
-import { cwd } from 'process'
-import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
+import $, { JSONFile, JSONDirectory, OpaqueDirectory }               from '@hackbg/kabinet'
 import { Dokeres, DokeresImage, DokeresContainer, waitUntilLogsSay } from '@hackbg/dokeres'
+import { bold }               from '@hackbg/konzola'
+import { getFromEnv }         from '@hackbg/komandi'
 import { freePort, Endpoint } from '@hackbg/portali'
-import { randomHex } from '@hackbg/formati'
+import { randomHex }          from '@hackbg/formati'
+
+import { AgentOpts, Chain, DevnetHandle } from '@fadroma/client'
+
+import { resolve, relative, basename, dirname } from 'path'
+import { cwd } from 'process'
 import { readlinkSync, symlinkSync } from 'fs'
 import { fileURLToPath } from 'url'
 
@@ -587,5 +589,15 @@ export function getDevnetConfig (cwd = process.cwd(), env = process.env): Devnet
     ephemeral: Bool('FADROMA_DEVNET_EPHEMERAL', ()=>false),
     chainId:   Str ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet"),
     port:      Str ('FADROMA_DEVNET_PORT',      ()=>null)
+  }
+}
+
+export async function resetDevnet ({ chain }: { chain: Chain }) {
+  if (!chain) {
+    console.info('No active chain.')
+  } else if (!chain.isDevnet) {
+    console.info('This command is only valid for devnets.')
+  } else {
+    await chain.node.terminate()
   }
 }

@@ -85,12 +85,12 @@ importers:
   packages/build:
     specifiers:
       '@fadroma/client': workspace:^4
-      '@hackbg/dokeres': ^4.0.2
-      '@hackbg/formati': ^1.0.2
-      '@hackbg/kabinet': ^3.0.4
-      '@hackbg/komandi': ^4
-      '@hackbg/konzola': ^1.1
-      '@hackbg/portali': ^1
+      '@hackbg/dokeres': workspace:*
+      '@hackbg/formati': workspace:*
+      '@hackbg/kabinet': workspace:*
+      '@hackbg/komandi': workspace:*
+      '@hackbg/konzola': workspace:*
+      '@hackbg/portali': workspace:*
       json-schema-to-typescript: ^10.1.5
       line-transform-stream: ^0.1.0
       simple-git: ^3.7.1

@@ -26,28 +26,11 @@ import { readFileSync, mkdtempSync, readdirSync, writeFileSync } from 'fs'
 
 const console = Console('Fadroma Build')
 
-export const BuildMessages = {
-  BuildOne (source, prebuilt, longestCrateName) {
-    console.info(
-      ' ',    bold(source.crate.padEnd(longestCrateName)),
-      'from', bold(`${$(source.workspace.path).shortPath}/`),
-      '@',    bold(source.workspace.ref),
-      prebuilt ? '(exists, not rebuilding)': ''
-    )
-  },
-  BuildMany (mounted, ref) {
-    console.info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-      `@`, bold(ref)
-    )
-  }
-}
-
 /** Getting builder settings from process runtime environment. */
-export function getBuilderConfig (cwd = process.cwd, env = process.env): BuilderConfig {
+export function getBuilderConfig (cwd = process.cwd(), env = process.env): BuilderConfig {
   const { Str, Bool } = getFromEnv(env)
   return {
-    /** URL to the build manager endpoint, if used. */
+    root:       Str ('FADROMA_PROJECT_ROOT',     ()=>cwd),
     manager:    Str ('FADROMA_BUILD_MANAGER',    ()=>null),
     raw:        Bool('FADROMA_BUILD_RAW',        ()=>false),
     rebuild:    Bool('FADROMA_REBUILD',          ()=>false),
@@ -62,6 +45,8 @@ export function getBuilderConfig (cwd = process.cwd, env = process.env): Builder
 
 /** Builder settings definitions. */
 export interface BuilderConfig {
+  /** Project root. Defaults to current working directory. */
+  root:       string
   /** URL to the build manager endpoint, if used. */
   manager:    string|null
   /** Whether to bypass Docker and use the toolchain from the environment. */
@@ -80,6 +65,23 @@ export interface BuilderConfig {
   script:     string
   /** Script that runs a build server (WIP) */
   service:    string
+}
+
+export const BuildMessages = {
+  BuildOne (source, prebuilt, longestCrateName) {
+    console.info(
+      ' ',    bold(source.crate.padEnd(longestCrateName)),
+      'from', bold(`${$(source.workspace.path).shortPath}/`),
+      '@',    bold(source.workspace.ref),
+      prebuilt ? '(exists, not rebuilding)': ''
+    )
+  },
+  BuildMany (mounted, ref) {
+    console.info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
+  }
 }
 
 /** Add build vocabulary to context of REPL and deploy scripts. */
@@ -733,7 +735,10 @@ export async function buildFromCargoToml (
   }
 }
 
-export async function buildFromBuildScript (buildScript: OpaqueFile) {
+export async function buildFromBuildScript (
+  buildScript: OpaqueFile,
+  buildArgs:   string[] = []
+) {
   const buildSetName = buildArgs.join(' ')
   console.info('Build script:', bold(buildScript.shortPath))
   console.info('Build set:   ', bold(buildSetName || '(none)'))
@@ -756,11 +761,7 @@ export async function buildFromBuildScript (buildScript: OpaqueFile) {
       }
       const T0 = + new Date()
       try {
-        const builder = getBuilder({
-          ...(config?.build??{}),
-          rebuild: true
-        })
-        await builder.buildMany(buildSources)
+        await getBuilder({ ...getBuilderConfig(), rebuild: true }).buildMany(buildSources)
         const T1 = + new Date()
         console.info(`Build complete in ${T1-T0}ms.`)
         process.exit(0)
@@ -833,7 +834,7 @@ if (fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(buildSpec)
     buildFromDirectory(buildSpec.as(OpaqueDirectory))
   } else if (buildSpec.isFile()) {
-    buildFromFile(buildSpec.as(OpaqueFile))
+    buildFromFile(buildSpec.as(OpaqueFile), buildArgs)
   } else {
     printUsage()
   }
@@ -858,10 +859,13 @@ export function buildFromDirectory (dir: OpaqueDirectory) {
   }
 }
 
-export function buildFromFile (file: TOMLFile<unknown>|OpaqueFile) {
+export function buildFromFile (
+  file:      TOMLFile<unknown>|OpaqueFile,
+  buildArgs: string[] = []
+) {
   if (file.name === 'Cargo.toml') {
     buildFromCargoToml(file as CargoTOML)
   } else {
-    buildFromBuildScript(file as OpaqueFile)
+    buildFromBuildScript(file as OpaqueFile, buildArgs)
   }
 }

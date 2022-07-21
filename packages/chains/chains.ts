@@ -1,13 +1,55 @@
 #!/usr/bin/env ganesha-node
 
-import { CommandContext } from '@hackbg/komandi'
-
+import { CommandContext, getFromEnv         } from '@hackbg/komandi'
 import { Chain, ChainMode, Agent, AgentOpts } from '@fadroma/client'
-
 import { ScrtGrpc  } from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 import { getDevnet } from '@fadroma/devnet'
 import { Mocknet   } from '@fadroma/mocknet'
+
+/** Getting builder settings from process runtime environment. */
+export function getChainConfig (cwd = process.cwd(), env = process.env): ChainConfig {
+  const { Str, Bool } = getFromEnv(env)
+  return {
+    chain:    Str('FADROMA_CHAIN',    ()=>null),
+    name:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
+    mnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
+  }
+}
+
+export interface ChainConfig {
+  /** Name of chain to use. */
+  chain:    string
+  /** Mnemonic to use for authentication. */
+  mnemonic: string
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  name:     string
+}
+
+/** Add a Chain and its Deployments to the Context. */
+export async function getChainContext (
+  context: CommandContext & Partial<{ config, chains: Chains }>,
+  name:    keyof Chains = context.config?.project?.chain,
+  root:    string       = context.config?.project?.root
+): Promise<ChainContext> {
+  context.config ??= {}
+  context.chains ??= knownChains
+  // Check that a valid name is passed
+  if (!name || !context.chains[name]) {
+    ChainMessages.NoName(context.chains)
+    process.exit(1)
+  }
+  // Return chain and deployments handle
+  const chain = await context.chains[name](context.config)
+  return {
+    ...context,
+    chain,
+    ...chainFlags(chain),
+    deployments: await getDeploymentsForChain(chain, root)
+  }
+}
+
+export type Chains = Partial<typeof knownChains>
 
 export const knownChains = {
   async 'Mocknet'          (config): Promise<Mocknet> {
@@ -53,29 +95,6 @@ export const knownChains = {
   },
 }
 
-export type Chains = Partial<typeof knownChains>
-
-export async function getChainContext (
-  { config, chains },
-  name = config?.project?.chain
-): Promise<ChainContext> {
-  config ??= {}
-  chains ??= knownChains
-  // Check that a valid name is passed
-  if (!name || !chains[name]) {
-    ChainMessages.NoName(chains)
-    process.exit(1)
-  }
-  // Return chain and deployments handle
-  const chain = await chains[name](config)
-  return {
-    chains,
-    chain,
-    ...chainFlags(chain),
-    deployments: await getDeploymentsForChain(chain, config.project.root)
-  }
-}
-
 export async function getDeploymentsForChain (chain: Chain, project: string) {
   return await import('@fadroma/deploy')
     .then(({Deployments})=>Deployments.fromConfig(chain, project))
@@ -101,22 +120,23 @@ export interface ChainContext extends CommandContext {
   deployments: import('@fadroma/deploy').Deployments|null
 }
 
-export async function getAgentContext ({ config, chain }): Promise<AgentContext> {
-  config ??= {}
+/** Adds an Agent to the Context. */
+export async function getAgentContext (
+  context: ChainContext & { config: Partial<ChainConfig> }
+): Promise<AgentContext> {
+  context.config ??= getChainConfig()
   const agentOpts: AgentOpts = { name: undefined }
-  if (chain.isDevnet) {
+  if (context.chain.isDevnet) {
     // for devnet, use auto-created genesis account
-    agentOpts.name = 'ADMIN'
-  } else if ((chain as any).isSecretNetwork) {
+    agentOpts.name = context.config.name
+  } else {
     // for scrt-based chains, use mnemonic from config
-    agentOpts.mnemonic = config.scrt.agent.mnemonic
+    agentOpts.mnemonic = context.config.mnemonic
   }
-  const agent = await chain.getAgent(agentOpts)
+  const agent = await context.chain.getAgent(agentOpts)
   return {
+    ...context,
     agent,
-    chain: agent.chain,
-    ...chainFlags(agent.chain),
-    deployments: await getDeploymentsForChain(chain, config.project.root)
   }
 }
 
