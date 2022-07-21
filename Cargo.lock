@@ -138,9 +138,10 @@ checksum = "fea41bba32d969b513997752735605054bc0dfa92b4c56bf1189f2e174be7a10"
 
 [[package]]
 name = "fadroma"
-version = "100.0.0"
+version = "1.0.0"
 dependencies = [
  "bincode2",
+ "fadroma-derive-canonize",
  "fadroma-platform-scrt",
  "fadroma-proc-auth",
  "fadroma-proc-derive",
@@ -157,6 +158,58 @@ dependencies = [
  "serde",
  "sha2",
  "subtle",
+]
+
+[[package]]
+name = "fadroma-derive-canonize"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "syn",
+]
+
+[[package]]
+name = "fadroma-example-derive-contract-impl"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "serde",
+]
+
+[[package]]
+name = "fadroma-example-derive-contract-interface"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "serde",
+]
+
+[[package]]
+name = "fadroma-example-echo"
+version = "1.0.0"
+dependencies = [
+ "fadroma",
+ "serde",
+]
+
+[[package]]
+name = "fadroma-example-ensemble"
+version = "0.1.0"
+dependencies = [
+ "fadroma",
+ "fadroma-example-derive-contract-interface",
+ "serde",
+]
+
+[[package]]
+name = "fadroma-example-kv"
+version = "1.0.0"
+dependencies = [
+ "fadroma",
+ "serde",
 ]
 
 [[package]]
