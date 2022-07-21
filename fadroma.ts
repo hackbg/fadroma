@@ -89,6 +89,8 @@ import {
   FSUploader,
   IntoTemplate,
   Uploader,
+  DeployConfig,
+  getDeployConfig
 } from '@fadroma/deploy'
 
 import {
@@ -102,96 +104,46 @@ import {
   Mocknet
 } from '@fadroma/mocknet'
 
-/** Update `process.env` with value from `.env` file */
-import dotenv from 'dotenv'
-dotenv.config()
+export * from '@fadroma/chains'
+import {
+  ChainConfig,
+  getChainConfig
+} from '@fadroma/chains'
 
-//@ts-ignore
-export const __dirname = dirname(fileURLToPath(import.meta.url))
-
-/// # Reexport the core platform vocabulary:
+export * from '@fadroma/client'
+export * from '@fadroma/tokens'
 
 export * from '@hackbg/komandi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
-export * from '@fadroma/client'
-export * from '@fadroma/tokens'
 
-/// # Define the top-level conventions and idioms:
-
-export const console = Console('Fadroma')
-
-export interface FadromaConfig {
-  build:  BuilderConfig
-  devnet: DevnetConfig
-  scrt:   ScrtConfig
-  /** Project settings. */
-  project: {
-    /** The project's root directory. */
-    root:       string
-    /** The selected chain backend. */
-    chain:      string|null
-  }
-  /** System settings. */
-  system: {
-    /** The user's home directory. */
-    homeDir:    string
-    /** Address of Docker socket to use. */
-    dockerHost: string
-  }
-  /** Upload settings. */
-  upload: {
-    /** Whether to ignore existing upload receipts and reupload contracts. */
-    reupload:   boolean
-  }
-}
+/** Update `process.env` with value from `.env` file */
+import dotenv from 'dotenv'
+dotenv.config()
 
 export function getFadromaConfig (cwd: string, env: Record<string, string> = {}): FadromaConfig {
   const { Str, Bool } = getFromEnv(env)
   const config = {
-    build:        getBuilderConfig(cwd, env),
-    devnet:       getDevnetConfig(cwd, env),
-    scrt:         getScrtConfig(cwd, env),
-    project: {
-      root:       Str('FADROMA_PROJECT', ()=>cwd),
-      chain:      Str('FADROMA_CHAIN', ()=>'')
-    },
-    system: {
-      homeDir:    Str('HOME', ()=>homedir()),
-      dockerHost: Str('DOCKER_HOST', ()=>'/var/run/docker.sock')
-    },
-    upload: {
-      reupload:   Bool('FADRPOMA_REUPLOAD', ()=>false)
-    }
+    project: Str('FADROMA_PROJECT', ()=>cwd),
+    ...getBuilderConfig(cwd, env),
+    ...getChainConfig(cwd, env),
+    ...getDeployConfig(cwd, env),
+    ...getDevnetConfig(cwd, env),
+    ...getScrtConfig(cwd, env),
   }
-  validateScrtConfig()
   return config
-
-  function validateScrtConfig () {
-    const { project: { chain }, scrt } = config
-    if (chain.includes('Scrt')) {
-      if (chain.endsWith('Legacy')) {
-        if (chain.includes('Mainnet') && !scrt.mainnet.apiUrl) throw new Error('set SCRT_MAINNET_API_URL')
-        if (chain.includes('Testnet') && !scrt.testnet.apiUrl) throw new Error('set SCRT_TESTNET_API_URL')
-      } else {
-        scrt.mainnet.apiUrl ??= 'https://secret-4.api.trivium.network:9091'
-        scrt.testnet.apiUrl ??= 'https://testnet-web-rpc.roninventures.io'
-      }
-    }
-  }
 }
+
+export type FadromaConfig =
+  BuilderConfig &
+  ChainConfig   &
+  DeployConfig  &
+  DevnetConfig  &
+  ScrtConfig    &
+  DevnetConfig
 
 export type Context =
-  { config: FadromaConfig }
+  CommandContext
   & BuildContext
   & DeployContext
-
-export async function resetDevnet ({ chain }: { chain: Chain }) {
-  if (!chain) {
-    console.info('No active chain.')
-  } else if (!chain.isDevnet) {
-    console.info('This command is only valid for devnets.')
-  } else {
-    await chain.node.terminate()
-  }
-}
+  & { config: FadromaConfig }

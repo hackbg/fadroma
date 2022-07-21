@@ -317,7 +317,7 @@ async function echoQuery ({query}) {
 
 ```typescript
 import { spawn } from 'child_process'
-const devnetManager = resolve(here, '../packages/ops-scrt/devnet-manager.mjs')
+const devnetManager = resolve(here, '../packages/devnet/devnet-manager.mjs')
 const devnetInitScript = resolve(here, '_mock-devnet-init.mjs')
 export async function mockDevnetManager (port) {
   port = port || await freePort(10000 + Math.floor(Math.random()*10000))

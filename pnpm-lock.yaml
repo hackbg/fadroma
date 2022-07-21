@@ -5,6 +5,7 @@ importers:
   .:
     specifiers:
       '@fadroma/build': workspace:^1.0.0-beta.0
+      '@fadroma/chains': workspace:*
       '@fadroma/client': workspace:^4
       '@fadroma/deploy': workspace:^1.0.0-beta.0
       '@fadroma/devnet': workspace:^1.0.0-beta.0
@@ -37,6 +38,7 @@ importers:
       vitepress: ^1.0.0-alpha.4
     dependencies:
       '@fadroma/build': link:packages/build
+      '@fadroma/chains': link:packages/chains
       '@fadroma/client': link:packages/client
       '@fadroma/deploy': link:packages/deploy
       '@fadroma/devnet': link:packages/devnet

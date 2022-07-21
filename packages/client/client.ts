@@ -297,6 +297,8 @@ export interface AgentFees {
   exec?:   IFee
 }
 
+/** By authenticating to a network you obtain an Agent,
+  * which can perform transactions as the authenticated identity. */
 export abstract class Agent implements Executor {
   static create (chain: Chain, options: AgentOpts = {}): Promise<Agent> {
     //@ts-ignore
@@ -380,8 +382,8 @@ export interface BundleCtor<B extends Bundle> {
 /** Function passed to Bundle#wrap */
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
-/** Collection of messages to broadcast as a single transaction,
-  * effectively executing them simultaneously. */
+/** Collects messages to broadcast as a single transaction
+  * in ordert to execute them simultaneously. */
 export abstract class Bundle implements Executor {
 
   constructor (readonly agent: Agent) {}
@@ -533,7 +535,8 @@ export interface ClientCtor<C extends Client, O extends ClientOpts> {
   new (agent: Executor, options: Address|Partial<O>): C
 }
 
-/** Interface to a specific contract. Subclass to add contract-specific methods. */
+/** Interface to a specific contract.
+  * Subclass Client to add your contract-specific methods. */
 export class Client implements Instance {
   constructor (readonly agent: Executor, arg: Address|Partial<ClientOpts> = {}) {
     if (typeof arg === 'string') {

@@ -41,7 +41,7 @@ import * as http from 'http'
 
 export { TOML, YAML }
 
-export const console   = Console('Fadroma Deploy')
+const console   = Console('Fadroma Deploy')
 
 /** Getting builder settings from process runtime environment. */
 export function getDeployConfig (cwd = process.cwd(), env = process.env): DeployConfig {
@@ -250,7 +250,7 @@ export class FSUploader extends Uploader {
 /** Uploads contracts from the file system,
   * but only if a receipt does not exist in the chain's uploads directory. */
 export class CachingFSUploader extends FSUploader {
-  static fromConfig (agent, projectRoot) {
+  static fromConfig (agent: Agent, projectRoot) {
     return new CachingFSUploader(
       agent,
       $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)

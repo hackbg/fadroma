@@ -30,7 +30,7 @@ const console = Console('Fadroma Build')
 export function getBuilderConfig (cwd = process.cwd(), env = process.env): BuilderConfig {
   const { Str, Bool } = getFromEnv(env)
   return {
-    root:       Str ('FADROMA_PROJECT_ROOT',     ()=>cwd),
+    project:    Str ('FADROMA_PROJECT',          ()=>cwd),
     manager:    Str ('FADROMA_BUILD_MANAGER',    ()=>null),
     raw:        Bool('FADROMA_BUILD_RAW',        ()=>false),
     rebuild:    Bool('FADROMA_REBUILD',          ()=>false),
@@ -46,7 +46,7 @@ export function getBuilderConfig (cwd = process.cwd(), env = process.env): Build
 /** Builder settings definitions. */
 export interface BuilderConfig {
   /** Project root. Defaults to current working directory. */
-  root:       string
+  project:    string
   /** URL to the build manager endpoint, if used. */
   manager:    string|null
   /** Whether to bypass Docker and use the toolchain from the environment. */
@@ -85,19 +85,13 @@ export const BuildMessages = {
 }
 
 /** Add build vocabulary to context of REPL and deploy scripts. */
-export function getBuildContext ({ config }: any = {}): BuildContext {
-  let {
-    project: { root = process.cwd() } = {},
-    build = {},
-    scrt: { build: scrtBuild = {} } = {}
-  } = config || {}
-  // Apply SecretNetwork-specific build vars on top of global build vars.
-  // TODO select builder implementation here
-  const builder   = getBuilder({ ...build, ...scrtBuild })
-  const workspace = new Workspace(root)
+export function getBuildContext (context: Partial<BuildContext>): BuildContext {
+  context.config ??= getBuilderConfig()
   return {
-    builder,
-    workspace,
+    ...context,
+    config:    context.config,
+    builder:   getBuilder({ ...context.config }),
+    workspace: new Workspace(context.config.project),
     getSource (source: IntoSource, ref?: string): Source {
       let workspace = this.workspace
       if (ref) workspace = workspace.at(ref)
@@ -116,6 +110,7 @@ export function getBuildContext ({ config }: any = {}): BuildContext {
 
 /** The nouns and verbs exposed to REPL and Commands. */
 export interface BuildContext {
+  config:    BuilderConfig
   /** Cargo workspace of the current project. */
   workspace: Workspace
   /** Get a Source by crate name from the current workspace. */
@@ -133,10 +128,10 @@ export type IntoSource   = Source|string
 /** An Artifact or an IntoSource to be built */
 export type IntoArtifact = Artifact|IntoSource
 
-/** The Git reference pointing to the currently checked out working tree. */
+/** The Git reference pointing to the currently checked out working tree */
 export const HEAD = 'HEAD'
 
-/** Represents a Cargo workspace containing multiple smart contract crates. */
+/** Represents a Cargo workspace containing multiple smart contract crates */
 export class Workspace {
   constructor (
     public readonly path:   string,

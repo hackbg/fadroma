@@ -31,6 +31,48 @@ export type { Tx }
 import { randomBytes } from '@hackbg/formati'
 import { getFromEnv } from '@hackbg/komandi'
 
+/** Environment settings for Secret Network API. */
+export interface ScrtConfig {
+  scrtAgentName:      string|null
+  scrtAgentAddress:   string|null
+  scrtAgentMnemonic:  string|null
+  scrtMainnetChainId: string
+  scrtMainnetApiUrl:  string|null
+  scrtTestnetChainId: string
+  scrtTestnetApiUrl:  string|null
+}
+
+/** Get configuration from the environment. */
+export function getScrtConfig (cwd: string, env: Record<string, string> = {}): ScrtConfig {
+  const { Str, Bool } = getFromEnv(env)
+  // Known defaults only for gRPC nodes,
+  const config = {
+    chain:              Str('FADROMA_CHAIN',         ()=>null),
+    scrtAgentName:      Str('SCRT_AGENT_NAME',       ()=>null),
+    scrtAgentAddress:   Str('SCRT_AGENT_ADDRESS',    ()=>null),
+    scrtAgentMnemonic:  Str('SCRT_AGENT_MNEMONIC',   ()=>null),
+    scrtMainnetChainId: Str('SCRT_MAINNET_CHAIN_ID', ()=>Scrt.mainnetChainId),
+    scrtMainnetApiUrl:  Str('SCRT_MAINNET_API_URL',  ()=>{
+      if (config.chain.includes('Amino')) {
+        ScrtWarnings.NoDefaultAmino('SCRT_TESTNET_API_URL')
+        return null
+      } else {
+        return 'https://secret-4.api.trivium.network:9091'
+      }
+    }),
+    scrtTestnetChainId: Str('SCRT_TESTNET_CHAIN_ID', ()=>Scrt.testnetChainId),
+    scrtTestnetApiUrl:  Str('SCRT_TESTNET_API_URL',  ()=>{
+      if (config.chain.includes('Amino')) {
+        ScrtWarnings.NoDefaultAmino('SCRT_TESTNET_API_URL')
+        return null
+      } else {
+        return 'https://testnet-web-rpc.roninventures.io'
+      }
+    }),
+  }
+  return config
+}
+
 export const ScrtErrors = {
   UseOtherLib () {
     throw new Error('Use @fadroma/scrt-amino')
@@ -40,7 +82,7 @@ export const ScrtErrors = {
   },
   AnotherChain () {
     throw new Error('ScrtGrpcAgent: Tried to instantiate a contract that is uploaded to another chain')
-  }
+  },
 }
 
 export const ScrtWarnings = {
@@ -49,6 +91,12 @@ export const ScrtWarnings = {
   },
   NoMemos () {
     console.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
+  },
+  NoDefaultAmino (envVar) {
+    console.warn(
+      "getScrtConfig: no default API endpoints are provided for legacy Amino mode." +
+      (envVar ? `\nSet ${envVar} to provide yout known API endpoint.` : '')
+    )
   }
 }
 
@@ -70,6 +118,8 @@ export abstract class Scrt extends Chain {
   static Agent: AgentCtor<ScrtAgent>
          Agent: AgentCtor<ScrtAgent> = Scrt.Agent
 
+  static mainnetChainId = 'secret-4'
+  static testnetChainId = 'pulsar-2'
   static defaultDenom = 'uscrt'
   static gas          = (amount: Uint128|number) => new Fee(amount, this.defaultDenom)
   static defaultFees  = {
@@ -613,40 +663,5 @@ export class ViewingKeyClient extends Client {
 
 }
 
+/** Allow Scrt-chain clients to be implemented with just `@fadroma/scrt` dependency */
 export * from '@fadroma/client'
-
-/** Environment settings for Secret Network API. */
-export interface ScrtConfig {
-  agent: {
-    name:     string|null
-    address:  string|null
-    mnemonic: string|null
-  }
-  mainnet: {
-    chainId:  string|null
-    apiUrl:   string|null
-  }
-  testnet: {
-    chainId:  string|null
-    apiUrl:   string|null
-  }
-}
-
-export function getScrtConfig (cwd: string, env: Record<string, string> = {}): ScrtConfig {
-  const { Str, Bool } = getFromEnv(env)
-  return {
-    agent: {
-      name:     Str( 'SCRT_AGENT_NAME',       ()=>null),
-      address:  Str( 'SCRT_AGENT_ADDRESS',    ()=>null),
-      mnemonic: Str( 'SCRT_AGENT_MNEMONIC',   ()=>null),
-    },
-    mainnet: {
-      chainId:  Str( 'SCRT_MAINNET_CHAIN_ID', ()=>'secret-4'),
-      apiUrl:   Str( 'SCRT_MAINNET_API_URL',  ()=>null),
-    },
-    testnet: {
-      chainId:  Str( 'SCRT_TESTNET_CHAIN_ID', ()=>'pulsar-2'),
-      apiUrl:   Str( 'SCRT_TESTNET_API_URL',  ()=>null),
-    }
-  }
-}

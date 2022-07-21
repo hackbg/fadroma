@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-const Ganesha = require('@hackbg/ganesha');
 
-const [node, self, command, ...cmdArgs] = process.argv
+printNameVersion(require('./package.json'))
+printNameVersion(require('@hackbg/ganesha/package.json'))
 
 const commands = {
   version () {
@@ -16,12 +16,22 @@ const commands = {
   },
 }
 
-;(commands[command] || runScript)(...process.argv)
+const Ganesha = require('@hackbg/ganesha')
+const [node, self, commandName, ...cmdArgs] = process.argv
+const command = commands[commandName] || runScript
+command(...process.argv)
 
-function run (command) {
-  Ganesha.main([node, self, command, ...cmdArgs])
+function run (script) {
+  Ganesha.main([node, self, script, ...cmdArgs])
 }
 
 function runScript () {
+  if (!commandName) {
+    // TODO setup repl
+  }
   Ganesha.main()
+}
+
+function printNameVersion (pkg) {
+  console.log(`${pkg.name} ${pkg.version}`)
 }

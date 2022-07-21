@@ -11,29 +11,32 @@ import { Mocknet   } from '@fadroma/mocknet'
 export function getChainConfig (cwd = process.cwd(), env = process.env): ChainConfig {
   const { Str, Bool } = getFromEnv(env)
   return {
-    chain:    Str('FADROMA_CHAIN',    ()=>null),
-    name:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
-    mnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
+    project:       Str('FADROMA_PROJECT',  ()=>cwd),
+    chain:         Str('FADROMA_CHAIN',    ()=>null),
+    agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
+    agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
   }
 }
 
 export interface ChainConfig {
+  /** Path to root of project. */
+  project:  string
   /** Name of chain to use. */
   chain:    string
-  /** Mnemonic to use for authentication. */
-  mnemonic: string
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  name:     string
+  agentName:     string
+  /** Mnemonic to use for authentication. */
+  agentMnemonic: string
 }
 
 /** Add a Chain and its Deployments to the Context. */
 export async function getChainContext (
-  context: CommandContext & Partial<{ config, chains: Chains }>,
-  name:    keyof Chains = context.config?.project?.chain,
-  root:    string       = context.config?.project?.root
+  context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
 ): Promise<ChainContext> {
-  context.config ??= {}
+  console.log({context})
   context.chains ??= knownChains
+  context.config ??= getChainConfig()
+  const name = context.config.chain
   // Check that a valid name is passed
   if (!name || !context.chains[name]) {
     ChainMessages.NoName(context.chains)
@@ -45,7 +48,7 @@ export async function getChainContext (
     ...context,
     chain,
     ...chainFlags(chain),
-    deployments: await getDeploymentsForChain(chain, root)
+    deployments: await getDeploymentsForChain(chain, context.config.project)
   }
 }
 
@@ -128,10 +131,10 @@ export async function getAgentContext (
   const agentOpts: AgentOpts = { name: undefined }
   if (context.chain.isDevnet) {
     // for devnet, use auto-created genesis account
-    agentOpts.name = context.config.name
+    agentOpts.name = context.config.agentName
   } else {
     // for scrt-based chains, use mnemonic from config
-    agentOpts.mnemonic = context.config.mnemonic
+    agentOpts.mnemonic = context.config.agentMnemonic
   }
   const agent = await context.chain.getAgent(agentOpts)
   return {
