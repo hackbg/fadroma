@@ -59,27 +59,9 @@ export interface BuilderConfig {
   script:     string
 }
 
-export const BuildMessages = {
-  BuildOne (source, prebuilt, longestCrateName) {
-    console.info(
-      ' ',    bold(source.crate.padEnd(longestCrateName)),
-      'from', bold(`${$(source.workspace.path).shortPath}/`),
-      '@',    bold(source.workspace.ref),
-      prebuilt ? '(exists, not rebuilding)': ''
-    )
-  },
-  BuildMany (mounted, ref) {
-    console.info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-      `@`, bold(ref)
-    )
-  }
-}
-
 /** Add build vocabulary to context of REPL and deploy scripts. */
 export function getBuildContext (context: CommandContext & Partial<BuildContext>): BuildContext {
   const config = { ...getBuilderConfig(), ...context.config ?? {} }
-  console.log({config})
   return {
     ...context,
     config:    context.config,
@@ -723,7 +705,6 @@ if (fileURLToPath(import.meta.url) === process.argv[1]) {
   const [buildPath, ...buildArgs] = process.argv.slice(2)
   const buildSpec = $(buildPath)
   if (buildSpec.isDirectory()) {
-    console.log(buildSpec)
     buildFromDirectory(buildSpec.as(OpaqueDirectory))
   } else if (buildSpec.isFile()) {
     buildFromFile(buildSpec.as(OpaqueFile), buildArgs)
@@ -737,14 +718,14 @@ export function printUsage () {
     Usage:
       fadroma-build path/to/crate
       fadroma-build path/to/Cargo.toml
-      fadroma-build buildConfig.{js|ts}
-  `)
+      fadroma-build buildConfig.{js|ts}`)
   process.exit(6)
 }
 
 export function buildFromDirectory (dir: OpaqueDirectory) {
   const cargoToml = dir.at('Cargo.toml').as(TOMLFile)
   if (cargoToml.exists()) {
+    console.info('Building from', bold(cargoToml.shortPath))
     buildFromCargoToml(cargoToml as CargoTOML)
   } else {
     printUsage()
@@ -756,8 +737,33 @@ export function buildFromFile (
   buildArgs: string[] = []
 ) {
   if (file.name === 'Cargo.toml') {
+    BuildMessages.CargoToml(file)
     buildFromCargoToml(file as CargoTOML)
   } else {
+    BuildMessages.BuildScript(file)
     buildFromBuildScript(file as OpaqueFile, buildArgs)
+  }
+}
+
+export const BuildMessages = {
+  CargoToml (file: Path) {
+    console.info('Building from', bold(file.shortPath))
+  },
+  BuildScript (file: Path) {
+    console.info('Running build script', bold(file.shortPath))
+  },
+  BuildOne (source, prebuilt, longestCrateName) {
+    console.info(
+      ' ',    bold(source.crate.padEnd(longestCrateName)),
+      'from', bold(`${$(source.workspace.path).shortPath}/`),
+      '@',    bold(source.workspace.ref),
+      prebuilt ? '(exists, not rebuilding)': ''
+    )
+  },
+  BuildMany (mounted, ref) {
+    console.info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
   }
 }
