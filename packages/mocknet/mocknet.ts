@@ -343,10 +343,10 @@ export class MocknetBackend {
         throw e
       }
     }
-    private pass (data) {
+    pass (data) {
       return pass(this.instance.exports, data)
     }
-    private readUtf8 (ptr) {
+    readUtf8 (ptr) {
       return JSON.parse(readUtf8(this.instance.exports, ptr))
     }
     storage = new Map<string, Buffer>()
