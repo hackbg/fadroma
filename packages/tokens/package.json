@@ -4,7 +4,7 @@
   "type":    "module",
   "main":    "tokens.ts",
   "dependencies": {
-    "@hackbg/konzola":      "workspace:*",
+    "@hackbg/konzola":      "^1.1.1",
     "@fadroma/client":      "workspace:^3.0.0",
     "@fadroma/client-scrt": "workspace:^4.0.0"
   },
