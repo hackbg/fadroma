@@ -821,6 +821,7 @@ export function schemaToTypes (...schemas: Array<string>) {
     })))
 }
 
+//@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   const config = { build: getBuilderConfig(process.cwd(), process.env) }
   const [buildPath, ...buildArgs] = process.argv.slice(2)

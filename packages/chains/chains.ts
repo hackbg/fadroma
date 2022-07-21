@@ -99,6 +99,7 @@ export const knownChains = {
 }
 
 export async function getDeploymentsForChain (chain: Chain, project: string) {
+  //@ts-ignore
   return await import('@fadroma/deploy')
     .then(({Deployments})=>Deployments.fromConfig(chain, project))
     .catch(ChainMessages.NoDeploy)
