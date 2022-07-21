@@ -77,7 +77,7 @@ export const BuildMessages = {
 }
 
 /** Add build vocabulary to context of REPL and deploy scripts. */
-export function getBuildContext (context: Partial<BuildContext>): BuildContext {
+export function getBuildContext (context: CommandContext & Partial<BuildContext>): BuildContext {
   const config = { ...getBuilderConfig(), ...context.config ?? {} }
   console.log({config})
   return {

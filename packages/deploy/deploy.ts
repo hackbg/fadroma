@@ -21,7 +21,7 @@
 import { Address, Agent, AgentOpts, Artifact, Bundle, Chain, ChainMode, Client, ClientCtor,
          ClientOpts, DevnetHandle, Instance, Label, Message, Template } from '@fadroma/client'
 import { Source, IntoArtifact } from '@fadroma/build'
-import { ChainContext, knownChains, ChainMessages, getChainConfig,
+import { ChainContext, knownChains, ChainMessages, ChainConfig, getChainConfig,
          getAgentContext, AgentContext } from '@fadroma/connect'
 
 import { toHex, Sha256 } from '@hackbg/formati'
@@ -48,17 +48,15 @@ const console   = Console('Fadroma Deploy')
 export function getDeployConfig (cwd = process.cwd(), env = process.env): DeployConfig {
   const { Str, Bool } = getFromEnv(env)
   return {
-    root:       Str ('FADROMA_PROJECT_ROOT',     ()=>cwd),
-    reupload:   Bool('FADROMA_REUPLOAD',         ()=>false)
+    ...getChainConfig(cwd, env),
+    reupload: Bool('FADROMA_REUPLOAD', ()=>false)
   }
 }
 
 /** Deploy settings definitions. */
-export interface DeployConfig {
-  /** Project root. Defaults to current working directory. */
-  root:       string
+export interface DeployConfig extends ChainConfig {
   /** Whether to ignore upload receipts and upload contracts anew. */
-  reupload:   boolean
+  reupload: boolean
 }
 
 export abstract class Slot<C extends CommandContext, T> {
@@ -69,7 +67,7 @@ export abstract class Slot<C extends CommandContext, T> {
 /** Template or a type that can be uploaded. */
 export type IntoTemplate = Template|IntoArtifact
 
-export interface UploadContext extends CommandContext {
+export interface UploadContext extends AgentContext {
   config?:      DeployConfig
   /** Specify a template. Populate with its get/upload/getOrUpload methods. */
   template      (source: IntoTemplate):        TemplateSlot
@@ -94,7 +92,7 @@ export function getUploadContext (context: AgentContext & Partial<UploadContext>
   context.uploadAgent ??= context.agent
   context.uploadCache ??= !context.config.reupload
   context.uploader    ??= (!context.isMocknet && context.uploadCache)
-    ? CachingFSUploader.fromConfig(context.uploadAgent, context.config.root)
+    ? CachingFSUploader.fromConfig(context.uploadAgent, context.config.project)
     : new FSUploader(context.uploadAgent)
   return {
     ...context,
@@ -760,7 +758,7 @@ export function deployMessages ({ info, warn }) {
 
 }
 
-export class Deploy extends Commands<DeployContext> {
+export class Deploy extends Commands<AgentContext & Partial<DeployContext>> {
 
   constructor (name, before, after) {
     super(name, before, after)
@@ -770,24 +768,6 @@ export class Deploy extends Commands<DeployContext> {
     this.command('new',     'create a new empty deployment',   Deploy.create)
     this.command('status',  'show the current deployment',     Deploy.show)
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
-  }
-
-  static list = async function listDeployments ({ chain, deployments }: Partial<DeployContext>): Promise<void> {
-    const list = deployments.list()
-    if (list.length > 0) {
-      console.info(`Deployments on chain ${bold(chain.id)}:`)
-      for (let deployment of list) {
-        if (deployment === deployments.KEY) continue
-        const count = Object.keys(deployments.get(deployment).receipts).length
-        if (deployments.active && deployments.active.prefix === deployment) {
-          deployment = `${bold(deployment)} (selected)`
-        }
-        deployment = `${deployment} (${count} contracts)`
-        console.info(` `, deployment)
-      }
-    } else {
-      console.info(`No deployments on chain`, bold(chain.id))
-    }
   }
 
   /** Add the currently active deployment to the command context. */
@@ -822,8 +802,27 @@ export class Deploy extends Commands<DeployContext> {
     }
   }
 
+  static list = async function listDeployments (context: ChainContext): Promise<void> {
+    const { chain, deployments } = context
+    const list = deployments.list()
+    if (list.length > 0) {
+      console.info(`Deployments on chain ${bold(chain.id)}:`)
+      for (let deployment of list) {
+        if (deployment === deployments.KEY) continue
+        const count = Object.keys(deployments.get(deployment).receipts).length
+        if (deployments.active && deployments.active.prefix === deployment) {
+          deployment = `${bold(deployment)} (selected)`
+        }
+        deployment = `${deployment} (${count} contracts)`
+        console.info(` `, deployment)
+      }
+    } else {
+      console.info(`No deployments on chain`, bold(chain.id))
+    }
+  }
+
   static select = async function selectDeployment (
-    context: Partial<DeployContext>
+    context: ChainContext
   ): Promise<void> {
     const { deployments, cmdArgs: [id] = [undefined] } = context
     const list = deployments.list()
@@ -846,7 +845,7 @@ export class Deploy extends Commands<DeployContext> {
 
   /** Print the status of a deployment. */
   static show = async function showDeployment (
-    context: Partial<DeployContext>,
+    context: ChainContext,
     id = context.cmdArgs[0]
   ): Promise<void> {
     let deployment = context.deployments.active
