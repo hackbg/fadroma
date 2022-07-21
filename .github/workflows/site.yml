@@ -5,8 +5,9 @@ jobs:
     name: build website
     runs-on: ubuntu-latest
     steps:
-      - name: Get the source, no submodules
+      - name: Get the source with submodules
         uses: actions/checkout@v2
+        with: { submodules: true }
       - name: Determine default branch
         run: |
           DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
