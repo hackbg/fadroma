@@ -28,9 +28,9 @@ pub(crate) struct Delegations {
 impl Into<Delegation> for DelegationWithUnbonding {
     fn into(self) -> Delegation {
         Delegation {
-            delegator: self.delegator.clone(),
-            validator: self.validator.clone(),
-            amount: self.amount.clone(),
+            delegator: self.delegator,
+            validator: self.validator,
+            amount: self.amount,
         }
     }
 }
@@ -38,11 +38,11 @@ impl Into<Delegation> for DelegationWithUnbonding {
 impl Into<FullDelegation> for DelegationWithUnbonding {
     fn into(self) -> FullDelegation {
         FullDelegation {
-            delegator: self.delegator.clone(),
-            validator: self.validator.clone(),
-            amount: self.amount.clone(),
-            can_redelegate: self.can_redelegate.clone(),
-            accumulated_rewards: self.accumulated_rewards.clone(),
+            delegator: self.delegator,
+            validator: self.validator,
+            amount: self.amount,
+            can_redelegate: self.can_redelegate,
+            accumulated_rewards: self.accumulated_rewards,
         }
     }
 }
@@ -229,7 +229,7 @@ impl Delegations {
         Ok(StakingResponse {
             sender: delegator,
             validator,
-            amount: amount.clone(),
+            amount
         })
     }
 
@@ -274,7 +274,7 @@ impl Delegations {
                 Ok(StakingResponse {
                     sender: delegator,
                     validator,
-                    amount: amount.clone(),
+                    amount
                 })
             },
             None => Err(StdError::not_found("Delegation not found"))
@@ -304,7 +304,7 @@ impl Delegations {
                 Ok(StakingResponse {
                     sender: delegator,
                     validator,
-                    amount: delegation.accumulated_rewards.clone(),
+                    amount: delegation.accumulated_rewards,
                 })
             },
             None => Err(StdError::not_found("Delegation not found"))
@@ -386,7 +386,7 @@ impl Delegations {
                 Ok(StakingResponse {
                     sender: delegator,
                     validator: dst_validator,
-                    amount: amount.clone(),
+                    amount
                 })
             },
             None => Err(StdError::not_found("Delegation not found"))
@@ -432,10 +432,11 @@ impl Delegations {
 
     fn validate_validator(&self, validator: &HumanAddr) -> bool {
         for real_validator in self.validators.iter() {
-            if real_validator.address == validator.into() {
+            if real_validator.address == *validator {
                 return true;
             }
         }
+        
         false
     }
 
