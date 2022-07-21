@@ -94,7 +94,7 @@ function phase1 ({
   } else {
     console.log(`Building from checkout of ${ref}`)
     if (!noFetch) {
-      run(`git fetch --recurse-submodules origin ${ref}`)
+      run(`git fetch origin ${ref}`)
       run('pwd')
     }
     // This works by using ".git" (or ".git/modules/something") as a remote

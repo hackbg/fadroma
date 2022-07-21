@@ -116,23 +116,12 @@ export interface BuildContext {
   buildMany: (ref?: string, ...sources: IntoArtifact[][]) => Promise<Artifact[]>
 }
 
-export function getBuilder (config: Partial<AllBuilderOptions> = {}) {
-  if (config.raw) {
+export function getBuilder (config: Partial<BuilderConfig> = {}) {
+  if (config.buildRaw) {
     return new RawBuilder({ ...config, caching: !config.rebuild })
   } else {
     return new DockerBuilder({ ...config, caching: !config.rebuild })
   }
-}
-
-export interface AllBuilderOptions {
-  rebuild:    boolean
-  caching:    boolean
-  raw:        boolean
-  image:      string
-  dockerfile: string
-  script:     string
-  noFetch:    boolean
-  toolchain:  string
 }
 
 //@ts-ignore
@@ -156,14 +145,16 @@ export abstract class Builder {
   outputDirName: string      = 'artifacts'
   noFetch:       boolean     = false
   toolchain:     string|null = null
-  abstract build (source: Source, ...args): Promise<Artifact>
+  script:        string
+  constructor (opts: Partial<BuilderOptions> = {}) {
+    this.noFetch       = opts.noFetch       ?? this.noFetch
+    this.outputDirName = opts.outputDirName ?? this.outputDirName
+    this.script        = opts.script        ?? this.script
+  }
   buildMany (sources: Source[], ...args): Promise<Artifact[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
-  constructor (opts: Partial<BuilderOptions> = {}) {
-    this.noFetch       = opts.noFetch ?? this.noFetch
-    this.outputDirName = opts.outputDirName ?? this.outputDirName
-  }
+  abstract build (source: Source, ...args): Promise<Artifact>
 }
 
 export interface CachingBuilderOptions extends BuilderOptions {
@@ -213,31 +204,24 @@ export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
 export class DockerBuilder extends CachingBuilder {
   static image      = 'ghcr.io/hackbg/fadroma:unstable'
   static dockerfile = resolve(__dirname, 'build.Dockerfile')
-  constructor ({
-    caching,
-    socketPath,
-    docker,
-    image,
-    dockerfile,
-    script
-  }: Partial<DockerBuilderOptions> = {}) {
-    super({ caching })
+  constructor (opts: Partial<DockerBuilderOptions> = {}) {
+    super(opts)
     // Set up Docker API handle
-    if (socketPath) {
-      this.docker = new Dokeres(this.socketPath = socketPath)
-    } else if (docker) {
-      this.docker = docker
+    if (opts.socketPath) {
+      this.docker = new Dokeres(this.socketPath = opts.socketPath)
+    } else if (opts.docker) {
+      this.docker = opts.docker
     }
-    if (image instanceof DokeresImage) {
-      this.image = image
-    } else if (image) {
-      this.image = new DokeresImage(this.docker, image)
+    if (opts.image instanceof DokeresImage) {
+      this.image = opts.image
+    } else if (opts.image) {
+      this.image = new DokeresImage(this.docker, opts.image)
     } else {
       this.image = new DokeresImage(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
     }
     // Set up Docker image
-    this.dockerfile = dockerfile
-    this.script     = script
+    this.dockerfile = opts.dockerfile
+    this.script     = opts.script
   }
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'
@@ -465,18 +449,9 @@ export class DockerBuilder extends CachingBuilder {
   }
 }
 
-export interface RawBuilderOptions extends CachingBuilderOptions {}
-
 /** This build mode looks for a Rust toolchain in the same environment
   * as the one in which the script is running, i.e. no build container. */
 export class RawBuilder extends CachingBuilder {
-  constructor (options: Partial<RawBuilderOptions> = {}) {
-    super(options)
-    this.script    = $(options.script)
-    this.noFetch   = options.noFetch   ?? this.noFetch
-  }
-  script:    Path
-  toolchain: string
   /** Build a Source into an Artifact */
   async build (source: Source): Promise<Artifact> {
     return (await this.buildMany([source]))[0]
@@ -523,7 +498,7 @@ export class RawBuilder extends CachingBuilder {
       // Run the build script
       const cmd = [
         process.argv[0],
-        this.script.path,
+        this.script,
         'phase1',
         source.workspace.ref,
         source.crate
