@@ -69,7 +69,7 @@ export abstract class Slot<C extends CommandContext, T> {
 /** Template or a type that can be uploaded. */
 export type IntoTemplate = Template|IntoArtifact
 
-export interface UploadContext extends AgentContext {
+export interface UploadContext extends CommandContext {
   config?:      DeployConfig
   /** Specify a template. Populate with its get/upload/getOrUpload methods. */
   template      (source: IntoTemplate):        TemplateSlot
