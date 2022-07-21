@@ -10,6 +10,7 @@ importers:
       '@fadroma/deploy': workspace:^1.0.0-beta.0
       '@fadroma/devnet': workspace:^1.0.0-beta.0
       '@fadroma/mocknet': workspace:^1.0.0-beta.0
+      '@fadroma/schema': workspace:^1.0.0-beta.0
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-amino': workspace:*
       '@fadroma/tokens': workspace:^4.0.0-beta.0
@@ -21,7 +22,6 @@ importers:
       '@hackbg/kabinet': ^3.0.2
       '@hackbg/komandi': ^4.0.0
       '@hackbg/konzola': ^1.0.8
-      '@magic-works/commonjs-import.meta': ^1.0.1
       '@types/node': ^16.11.36
       body-parser: ^1.20.0
       c8: ^7.11.3
@@ -32,7 +32,6 @@ importers:
       freeport-async: ^2.0.0
       js-yaml: ^4.1.0
       pug: ^3.0.2
-      ttypescript: ^1.5.13
       typedoc: ^0.22.17
       typescript: ^4.7
       vitepress: ^1.0.0-alpha.4
@@ -43,6 +42,7 @@ importers:
       '@fadroma/deploy': link:packages/deploy
       '@fadroma/devnet': link:packages/devnet
       '@fadroma/mocknet': link:packages/mocknet
+      '@fadroma/schema': link:packages/schema
       '@fadroma/scrt': link:platforms/scrt
       '@fadroma/scrt-amino': link:platforms/scrt-amino
       '@fadroma/tokens': link:packages/tokens
@@ -56,7 +56,6 @@ importers:
     devDependencies:
       '@hackbg/ensuite': 1.0.2
       '@hackbg/izomorf': 3.0.1
-      '@magic-works/commonjs-import.meta': 1.0.1_typescript@4.7.4
       '@types/node': 16.11.45
       body-parser: 1.20.0
       c8: 7.12.0
@@ -66,7 +65,6 @@ importers:
       freeport-async: 2.0.0
       js-yaml: 4.1.0
       pug: 3.0.2
-      ttypescript: 1.5.13_typescript@4.7.4
       typedoc: 0.22.18_typescript@4.7.4
       typescript: 4.7.4
       vitepress: 1.0.0-alpha.4
@@ -173,6 +171,14 @@ importers:
 
   packages/mocknet:
     specifiers: {}
+
+  packages/schema:
+    specifiers:
+      json-schema-to-typescript: ^10.1.5
+      toml: ^3.0.0
+    dependencies:
+      json-schema-to-typescript: 10.1.5
+      toml: 3.0.0
 
   packages/tokens:
     specifiers:
@@ -762,14 +768,6 @@ packages:
   /@kwsites/promise-deferred/1.1.1:
     resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
     dev: false
-
-  /@magic-works/commonjs-import.meta/1.0.1_typescript@4.7.4:
-    resolution: {integrity: sha512-yNUyMkGXH/c/fh6UB7TfK2+zYbBRzuNi5yucb2M1MCcIAA+gBKoRiY9DFJEJM0XnUOF1bpAlztHoXVkt9x6M7g==}
-    peerDependencies:
-      typescript: ^3.5 || ^4 || ^4.6 || ^4.7
-    dependencies:
-      typescript: 4.7.4
-    dev: true
 
   /@noble/hashes/1.0.0:
     resolution: {integrity: sha512-DZVbtY62kc3kkBtMHqwCOfXrT/hnoORy5BJ4+HU1IR59X0KWAOqsfzQPcUl/lQLlG7qXbe/fZ3r/emxtAl+sqg==}
@@ -3600,20 +3598,6 @@ packages:
 
   /tslib/2.4.0:
     resolution: {integrity: sha512-d6xOpEDfsi2CZVlPQzGeux8XMwLT9hssAsaPYExaQMuYskwb+x1x7J371tWlbBdWHroy99KnVB6qIkUbs5X3UQ==}
-
-  /ttypescript/1.5.13_typescript@4.7.4:
-    resolution: {integrity: sha512-KT/RBfGGlVJFqEI8cVvI3nMsmYcFvPSZh8bU0qX+pAwbi7/ABmYkzn7l/K8skw0xmYjVCoyaV6WLsBQxdadybQ==}
-    hasBin: true
-    peerDependencies:
-      ts-node: '>=8.0.2'
-      typescript: '>=3.2.2 || ^4.6 || ^4.7'
-    peerDependenciesMeta:
-      ts-node:
-        optional: true
-    dependencies:
-      resolve: 1.22.1
-      typescript: 4.7.4
-    dev: true
 
   /tweetnacl/0.14.5:
     resolution: {integrity: sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA==}

@@ -37,20 +37,21 @@ export async function getChainContext (
   context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
 ): Promise<ChainContext> {
   context.chains ??= knownChains
-  context.config ??= getChainConfig()
-  const name = context.config.chain
+  const config = { ...getChainConfig(), ...context.config ?? {} }
+  const name = config.chain
   // Check that a valid name is passed
   if (!name || !context.chains[name]) {
     ChainMessages.NoName(context.chains)
     process.exit(1)
   }
   // Return chain and deployments handle
-  const chain = await context.chains[name](context.config)
+  const chain = await context.chains[name](config)
   return {
     ...context,
+    config,
     chain,
     ...chainFlags(chain),
-    deployments: await getDeploymentsForChain(chain, context.config.project)
+    deployments: await getDeploymentsForChain(chain, config.project)
   }
 }
 

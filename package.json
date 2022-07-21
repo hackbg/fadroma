@@ -46,28 +46,27 @@
     "@fadroma/deploy":     "workspace:^1.0.0-beta.0",
     "@fadroma/devnet":     "workspace:^1.0.0-beta.0",
     "@fadroma/mocknet":    "workspace:^1.0.0-beta.0",
+    "@fadroma/schema":     "workspace:^1.0.0-beta.0",
     "@fadroma/tokens":     "workspace:^4.0.0-beta.0",
 
     "@fadroma/scrt":       "workspace:*",
     "@fadroma/scrt-amino": "workspace:*"
   },
   "devDependencies": {
-    "@hackbg/ensuite":                   "^1",
-    "@hackbg/izomorf":                   "^3.0.1",
-    "@magic-works/commonjs-import.meta": "^1.0.1",
-    "@types/node":                       "^16.11.36",
-    "body-parser":                       "^1.20.0",
-    "c8":                                "^7.11.3",
-    "concurrently":                      "7.2.2",
-    "cross-fetch":                       "^3.1.5",
-    "express":                           "^4.18.1",
-    "freeport-async":                    "^2.0.0",
-    "js-yaml":                           "^4.1.0",
-    "pug":                               "^3.0.2",
-    "typedoc":                           "^0.22.17",
-    "typescript":                        "^4.7",
-    "ttypescript":                       "^1.5.13",
-    "vitepress":                         "^1.0.0-alpha.4"
+    "@hackbg/ensuite": "^1",
+    "@hackbg/izomorf": "^3.0.1",
+    "@types/node":     "^16.11.36",
+    "body-parser":     "^1.20.0",
+    "c8":              "^7.11.3",
+    "concurrently":    "7.2.2",
+    "cross-fetch":     "^3.1.5",
+    "express":         "^4.18.1",
+    "freeport-async":  "^2.0.0",
+    "js-yaml":         "^4.1.0",
+    "pug":             "^3.0.2",
+    "typedoc":         "^0.22.17",
+    "typescript":      "^4.7",
+    "vitepress":       "^1.0.0-alpha.4"
   },
   "pnpm": {
     "peerDependencyRules": {
