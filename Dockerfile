@@ -1,10 +1,9 @@
 FROM rust:1.59-slim
-RUN apt update && apt install -y nodejs npm curl wget binaryen git clang
+RUN apt update && apt install -y nodejs npm curl wget binaryen git clang && ls -al /var/cache/apt/archives && apt-get clean
 RUN npm i -g n && n i 18
-RUN which node && node --version
-RUN npm i -g pnpm
-RUN rustup target add wasm32-unknown-unknown
+RUN npm i -g pnpm && pnpm --version
 RUN rustup default 1.59
+RUN rustup target add wasm32-unknown-unknown
 
 ##Old:
 #FROM node:18-slim
