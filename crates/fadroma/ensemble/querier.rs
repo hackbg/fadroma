@@ -68,7 +68,43 @@ impl Querier for EnsembleQuerier {
                     }))
                 }
             },
-            _ => Ok(self.base.query(&request)),
+            QueryRequest::Staking(query) => match query {
+                StakingQuery::AllDelegations { delegator } => {
+                    let delegations = ctx.delegations.all_delegations(&delegator);
+
+                    Ok(to_binary(&AllDelegationsResponse { delegations }))
+                },
+                StakingQuery::BondedDenom {} => {
+                    let denom = ctx.delegations.bonded_denom();
+
+                    Ok(to_binary(&BondedDenomResponse { denom: denom.to_string() }))
+                },
+                StakingQuery::Delegation { delegator, validator } => {
+                    let delegation = ctx.delegations.delegation(&delegator, &validator);
+
+                    Ok(to_binary(&delegation))
+                },
+                StakingQuery::UnbondingDelegations { delegator } => {
+                    let delegations = ctx.delegations.unbonding_delegations(&delegator);
+
+                    Ok(to_binary(&UnbondingDelegationsResponse { delegations }))
+                },
+                StakingQuery::Validators {} => {
+                    let validators = ctx.delegations.validators();
+
+                    Ok(to_binary(&ValidatorsResponse { validators: validators.to_vec() }))
+                },
+            },
+            QueryRequest::Dist(query) => match query {
+                DistQuery::Rewards { delegator } => {
+                    let rewards = ctx.delegations.rewards(&delegator);
+
+                    Ok(to_binary(&rewards))
+                },
+            },
+            _ => {
+                Ok(self.base.query(&request))
+            },
         }
     }
 }

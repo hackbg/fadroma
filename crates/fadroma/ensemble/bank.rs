@@ -23,6 +23,55 @@ impl Bank {
         }
     }
 
+    pub fn remove_funds(
+        &mut self, 
+        address: &HumanAddr, 
+        coins: Vec<Coin>
+    ) -> UsuallyOk {
+        if coins.is_empty() {
+            return Ok(());
+        }
+        
+        if !self.0.contains_key(address) {
+            return Err(StdError::not_found(
+                format!("Account {} does not exist for remove balance", address)
+            ))
+        }
+
+        let account = self.0.get_mut(address).unwrap();
+
+        for coin in coins {
+            let balance = account.get_mut(&coin.denom);
+    
+            match balance {
+                Some(amount) => {
+                    if amount.0 >= coin.amount.0 {
+                        amount.0 -= coin.amount.0;
+                    } else {
+                        return Err(StdError::generic_err(format!(
+                            "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}", 
+                            address,
+                            coin.denom,
+                            amount.0,
+                            coin.amount.0,
+                        )))
+                    }
+                },
+                None => {
+                    return Err(StdError::generic_err(format!(
+                        "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}",
+                        address,
+                        coin.denom,
+                        Uint128::zero(),
+                        coin.amount.0,
+                    )))
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn transfer(
         &mut self,
         from: &HumanAddr,
@@ -114,3 +163,4 @@ fn add_balance(balances: &mut Balances, coin: Coin) {
         balances.insert(coin.denom, coin.amount);
     }
 }
+
