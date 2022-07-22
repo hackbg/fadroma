@@ -1,8 +1,0 @@
-{
-  "name":    "@fadroma/client-cw",
-  "version": "0.1.0",
-  "type":    "module",
-  "dependencies": {
-    "@fadroma/client": "workspace:^0"
-  }
-}
