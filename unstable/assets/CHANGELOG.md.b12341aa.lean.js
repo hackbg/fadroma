@@ -1,0 +1,1 @@
+import{_ as e,c as o,o as t,a}from"./app.66afa4f2.js";const h=JSON.parse('{"title":"2022-07-08","description":"","frontmatter":{},"headers":[],"relativePath":"CHANGELOG.md","lastUpdated":1658448767000}'),r={name:"CHANGELOG.md"},l=a("",5),i=[l];function d(c,s,n,_,u,m){return t(),o("div",null,i)}var f=e(r,[["render",d]]);export{h as __pageData,f as default};
