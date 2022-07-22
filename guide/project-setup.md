@@ -1,37 +1,26 @@
-# Creating a new project
+# Advanced project setup
+
+This is mostly useful for hacking on Fadroma itself.
 
 ## Prerequisites
 
 You'll need:
 
-* **Your preferred code editor.**
-> We use NeoVim and VSCode.
-
-* **Linux or macOS.**
-> WSL might also work but we haven't really tried.
->
-> If you're using Fadroma on something more exotic, do get in touch and
-> share your experience!
-
+* **Your preferred code editor.** We use NeoVim and VSCode.
+* **Linux or macOS.** WSL might also work but we haven't really tested that much.
+  (Whoever runs Fadroma on Plan 9 ascends.)
 * **Git**, for keeping track of your changes.
+* **Node.js, versions >= 16.12, and the [PNPM](https://pnpm.io) package manager**,
+* At least one of the following:
+  * **A Rust toolchain**, stable or nightly.
+  * **Docker, configured to run without `sudo`.** Fadroma uses Docker to encapsulate builds
+    (providing Rust 1.59 in the default build container) and to launch devnets (providing a
+    local development environment).
 
-* **A Rust toolchain**, stable or nightly.
+## Git submodule setup
 
-* **Node.js**, versions >= 16.12
-> We prefer the PNPM package manager, because it has the most complete implementation of workspaces.
-
-* **Docker**, configured to run without `sudo`.
-> Fadroma uses Docker to encapsulate builds and launch local devnets.
-
-## Quick start from Fadroma Example repo
-
-* https://github.com/hackbg/fadroma-example
-
-## Step-by-step project setup
-
-### Git submodule setup
-
-Fadroma is currently in late beta and is distributed as a Git submodule.
+Fadroma uses Git submodules in its development workflow,
+and can itself be included as a submodule in your project:
 
 * To create an empty project:
 
@@ -39,14 +28,25 @@ Fadroma is currently in late beta and is distributed as a Git submodule.
 mkdir project
 cd project
 git init
+```
+
+* To add Fadroma as Git submodule:
+
+```sh
 git submodule add -b refactor/x git@github.com:hackbg/fadroma.git
 git submodule update --init --recursive
 git commit -m "tabula rasa"
 ```
 
-* Read more about [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
+> Read more about [Git submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
 
-### Cargo workspace setup
+## Cargo workspace setup
+
+* Fadroma contains several Rust crates, and therefore projects that embed it as a Git submodule
+  need to use Cargo workspaces.
+
+* For a project containing two contracts, `Allocator` and `Generator`, and two non-contract
+  crates, `api` and `shared`, the root `Cargo.toml` could look like this:
 
 * Add `~/project/Cargo.toml`:
 
@@ -77,10 +77,7 @@ panic            = 'abort'
 rpath            = false
 ```
 
-The names `allocator` and `generator` are just examples.
-Below, they are used as placeholders for actual contract names.
-
-### PNPM workspace setup
+## PNPM workspace setup
 
 * To install [PNPM](https://pnpm.io):
 
@@ -142,7 +139,7 @@ pnpm exec fadroma index.ts command arg1 arg2
 pnpm fadroma command arg1 arg2
 ```
 
-### Contract setup
+## Contract setup
 
 * Add `~/project/contracts/allocator/Cargo.toml`:
 
@@ -172,7 +169,7 @@ pub fn query  /*...*/
 fadroma::entrypoint!(fadroma, init, handle, query);
 ```
 
-### API client setup
+## API client setup
 
 * Add `~/project/api/package.json`:
 
@@ -219,7 +216,7 @@ export class Generator extends Snip20 {
 }
 ```
 
-### Deploy procedure
+## Deploy procedure
 
 * Add `~/project/index.ts`:
 
