@@ -10,9 +10,8 @@ export default {
         text: "Welcome to Fadroma",
         collapsible: false,
         items: [
-          { text: "Overview",                     link: "/guide/overview" },
-          { text: "Project setup",                link: "/guide/project-setup" },
-          { text: "Contributing to Fadroma",      link: "/guide/contributing" },
+          { text: "Basic project setup",    link: "/guide/basic-project-setup" },
+          { text: "Advanced project setup", link: "/guide/advanced-project-setup" },
         ]
       }, {
         text: "Rust",

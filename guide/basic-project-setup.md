@@ -1,15 +1,16 @@
-# Overview
+# Basic project setup
 
-[Fadroma](https://fadroma.tech) is a full-stack application framework
-for the [CosmWasm](https://cosmwasm.com/) ecosystem.
-
-## Quick start from Fadroma Example repo
+---
 
 <div align="center">
+
+## Quick start from Fadroma Example repo
 
 **https://github.com/hackbg/fadroma-example**
 
 </div>
+
+---
 
 ## To create a new Fadroma project
 
