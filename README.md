@@ -1,10 +1,10 @@
 <div align="center">
 
-*Level the landscape.*
-
 [![Fadroma](./homepage/logo.svg)](https://fadroma.tech)
 
-**Essential groundwork** for **dApp development** with **Rust** and **TypeScript** on **Secret Network**.
+*Level the landscape.*
+
+**Groundwork** for **dApp development** with **Rust** and **TypeScript** on **Secret Network**.
 
 [![](https://img.shields.io/npm/v/@hackbg/fadroma?color=%2365b34c&label=%40hackbg%2Ffadroma&style=for-the-badge)](https://www.npmjs.com/package/@hackbg/fadroma)
 
