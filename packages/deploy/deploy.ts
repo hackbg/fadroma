@@ -367,7 +367,7 @@ export interface DeployContext extends UploadContext {
   /** Currently selected collection of interlinked contracts. */
   deployment?:  Deployment
   /** Who'll deploy new contracts */
-  deployer?:    Agent
+  deployer:     Agent
   /** Specify a contract instance. Populate with its get/deploy/getOrDeploy methods. */
   contract <C extends Client, O extends ClientOpts> (
     name:       string,
@@ -418,6 +418,7 @@ export function getDeployContext (context: UploadContext & Partial<DeployContext
   }
   return {
     ...context,
+    deployer: context.deployer,
     contract <C extends Client> (
       instance:  string|{ address: string },
       APIClient: ClientCtor<C, any>
