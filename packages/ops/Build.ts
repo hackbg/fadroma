@@ -359,7 +359,7 @@ export class DockerBuilder extends CachingBuilder {
       // Output path for final artifacts
       [outputDir]:                  `/output`,
       // Persist cache to make future rebuilds faster. May be unneccessary.
-      [`project_cache_${safeRef}`]: `/tmp/target`,
+      //[`project_cache_${safeRef}`]: `/tmp/target`,
       [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
     }
     // Since Fadroma can be included as a Git submodule, but
