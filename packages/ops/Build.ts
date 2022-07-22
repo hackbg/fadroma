@@ -379,6 +379,7 @@ export class DockerBuilder extends CachingBuilder {
       readonly[$(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST).path] = `/src/Cargo.toml`
     }
     const env = {
+      RUNNING_IN_DOCKER:            true,
       BUILD_USER:                   process.env.FADROMA_BUILD_USER || 'fadroma-builder',
       BUILD_UID:                    process.env.FADROMA_BUILD_UID  || process.getuid(),
       BUILD_GID:                    process.env.FADROMA_BUILD_GID  || process.getgid(),

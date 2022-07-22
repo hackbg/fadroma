@@ -36,6 +36,7 @@ phases[phase]()
   * checking out an old commit if specified. Then, call phase 2 with
   * the name of each crate sequentially. */
 function phase1 ({
+  docker      = env.RUNNING_IN_DOCKER || false, // are we running in a container?
   interpreter = argv[0],       // e.g. /usr/bin/node
   script      = argv[1],       // this file
   ref         = argv[3],       // "HEAD" | <git ref>
@@ -65,6 +66,9 @@ function phase1 ({
   // This makes sure it is accessible to non-root users.
   umask(0o000)
   run(`mkdir -p "${buildRoot}" /tmp/target /usr/local/cargo/registry`)
+  if (docker) {
+    run(`chmod ugo+rwx /usr/local/cargo/registry`)
+  }
   umask(0o022)
 
   // Copy the source into the build dir
