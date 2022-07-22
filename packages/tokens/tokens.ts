@@ -123,6 +123,17 @@ export class TokenPairAmount {
 
 /** # Secret Network SNIP20 token client. */
 
+export interface Snip20InitMsg {
+  name:      string
+  symbol:    string
+  decimals:  number
+  admin:     Address
+  prng_seed: string
+  config:    { public_total_supply: boolean, enable_mint: boolean }
+  // Allow to be cast as Record<string, unknown>:
+  [name: string]: unknown
+}
+
 export class Snip20 extends Client {
 
   static fromDescriptor (agent: Executor, descriptor: CustomToken): Snip20 {

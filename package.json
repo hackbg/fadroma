@@ -37,7 +37,7 @@
     "@hackbg/ganesha":     "^2.2",
     "@hackbg/dokeres":     "^4.0.2",
     "@hackbg/kabinet":     "^3.0.6",
-    "@hackbg/komandi":     "^4.0.0",
+    "@hackbg/komandi":     "workspace:^4.1.2",
     "@hackbg/konzola":     "^1.0.8",
     "@hackbg/formati":     "^1.1.0",
 

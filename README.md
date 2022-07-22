@@ -12,7 +12,7 @@
 
 Start exploring:
 
-[**Getting Started Guide**](./guide/overview.md) — [Rust Smart Contract API](https://fadroma.tech/rs/fadroma/index.html) — [TypeScript Operations API](https://fadroma.tech/js/modules.html)
+[**Getting Started Guide**](./guide/basic-project-setup.md) — [Rust Smart Contract API](https://fadroma.tech/rs/fadroma/index.html) — [TypeScript Operations API](https://fadroma.tech/js/modules.html)
 
 [**Executable Specification**](./SPEC.ts.md) — [Future Roadmap](./ROADMAP.ts.md) — [Contribution Guidelines](CONTRIBUTING.md)
 

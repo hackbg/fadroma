@@ -110,6 +110,7 @@ import {
   getChainConfig
 } from '@fadroma/connect'
 
+export * from '@fadroma/schema'
 export * from '@fadroma/client'
 export * from '@fadroma/tokens'
 
@@ -121,10 +122,10 @@ export * from '@hackbg/formati'
 import dotenv from 'dotenv'
 dotenv.config()
 
-export function getFadromaConfig (cwd: string, env: Record<string, string> = {}): FadromaConfig {
+export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
   const { Str, Bool } = getFromEnv(env)
   const config = {
-    project: Str('FADROMA_PROJECT', ()=>cwd),
+    //project: Str('FADROMA_PROJECT', ()=>cwd),
     ...getBuilderConfig(cwd, env),
     ...getChainConfig(cwd, env),
     ...getDeployConfig(cwd, env),

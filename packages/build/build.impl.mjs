@@ -80,7 +80,7 @@ function phase1 ({
   // This makes sure it is accessible to non-root users.
   umask(0o000)
   if (buildRoot) run(`mkdir -p "${buildRoot}"`)
-  if (tmpTarget) run(`mkdir -p "${tmpTarget}"`)
+  if (tmpTarget) run(`mkdir -p "${tmpTarget}" && chmod -t "${tmpTarget}"`)
   if (registry)  run(`mkdir -p "${registry}"`)
   umask(0o022)
 
@@ -201,6 +201,7 @@ function phase2 ({
   run(`wasm-opt --version`)
   run(`sha256sum --version | head -n1`)
   run(`ls -al`)
+  run(`ls -al /tmp/target`)
 
   // Compile crate for production
   run(`cargo build -p ${crate} --release --target ${platform} ${locked} --verbose`, {

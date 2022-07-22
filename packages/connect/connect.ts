@@ -55,7 +55,7 @@ export async function getChainContext (
   }
 }
 
-export type Chains = Partial<typeof knownChains>
+export type Chains = Record<string, ()=>Chain>
 
 export const knownChains = {
   async Mocknet (config): Promise<Mocknet> {

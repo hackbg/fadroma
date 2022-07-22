@@ -48,11 +48,6 @@ export const ScrtAminoWarnings = {
   Keypair () {
     console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
   },
-  CodeHash (address, codeHash, realCodeHash) {
-    console.warn('Code hash mismatch for address:', address)
-    console.warn('  Expected code hash:',           codeHash)
-    console.warn('  Code hash on chain:',           realCodeHash)
-  }
 }
 
 const privKeyToMnemonic = privKey => (Bip39.encode(privKey) as any).data
@@ -261,16 +256,6 @@ export class ScrtAminoAgent extends ScrtAgent {
     const fee       = opts?.fee || Scrt.gas(500000 * outputs.length)
     const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence)
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
-  }
-
-  async checkCodeHash (address, codeHash) {
-    // Soft code hash checking for now
-    const realCodeHash = await this.getHash(address)
-    if (codeHash !== realCodeHash) {
-      ScrtAminoWarnings.CodeHash(address, codeHash, realCodeHash)
-    } else {
-      console.info(`Code hash of ${address}:`, realCodeHash)
-    }
   }
 
   async upload (data) {

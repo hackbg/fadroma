@@ -1,4 +1,4 @@
-/**
+/*
 
   Fadroma Ops and Fadroma Mocknet
   Copyright (C) 2022 Hack.bg
@@ -40,9 +40,7 @@ import alignYAML from 'align-yaml'
 import { cwd } from 'process'
 import * as http from 'http'
 
-export { TOML, YAML }
-
-const console   = Console('Fadroma Deploy')
+const console = Console('Fadroma Deploy')
 
 /** Getting builder settings from process runtime environment. */
 export function getDeployConfig (cwd = process.cwd(), env = process.env): DeployConfig {
@@ -56,7 +54,7 @@ export function getDeployConfig (cwd = process.cwd(), env = process.env): Deploy
 /** Deploy settings definitions. */
 export interface DeployConfig extends ChainConfig {
   /** Whether to ignore upload receipts and upload contracts anew. */
-  reupload: boolean
+  reupload?: boolean
 }
 
 export abstract class Slot<C extends CommandContext, T> {
@@ -370,7 +368,7 @@ export interface DeployContext extends UploadContext {
   deployer:     Agent
   /** Specify a contract instance. Populate with its get/deploy/getOrDeploy methods. */
   contract <C extends Client, O extends ClientOpts> (
-    name:       string,
+    reference:  Name|Instance,
     APIClient?: ClientCtor<C, O>
   ): ContractSlot<C>
   /** Get a client interface to a contract. */
@@ -420,17 +418,17 @@ export function getDeployContext (context: UploadContext & Partial<DeployContext
     ...context,
     deployer: context.deployer,
     contract <C extends Client> (
-      instance:  string|{ address: string },
+      reference: string|{ address: string },
       APIClient: ClientCtor<C, any>
     ): ContractSlot<C> {
-      return new ContractSlot(this, instance, APIClient)
+      return new ContractSlot(this, reference, APIClient)
     },
     async getContract <C extends Client> (
       reference: string|{ address: string },
       APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>,
       msgOrFn?:  StepOrInfo<any, C>
     ): Promise<C> {
-      return await new ContractSlot(this, reference, APIClient).get(msgOrFn)
+      return await new ContractSlot(this, reference, APIClient).get(msgOrFn) as C
     },
     async getOrDeployContract <C extends Client> (
       name:      string,
@@ -759,7 +757,7 @@ export function deployMessages ({ info, warn }) {
 
 }
 
-export class Deploy extends Commands<AgentContext & Partial<DeployContext>> {
+export class Deploy <C extends AgentContext> extends Commands <C> {
 
   constructor (name, before, after) {
     super(name, before, after)

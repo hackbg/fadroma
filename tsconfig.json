@@ -9,6 +9,8 @@
     "resolveJsonModule":            true,
     "downlevelIteration":           true,
     "lib":                          ["ES2020", "DOM"],
+    "strict":                       true,
+    "useUnknownInCatchVariables":   false,
     "plugins": [ { "transform": "@magic-works/commonjs-import.meta" } ]
   },
   "exclude": [

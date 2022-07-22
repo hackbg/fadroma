@@ -25,7 +25,10 @@ import { readFileSync, mkdtempSync    } from 'fs'
 const console = Console('Fadroma Build')
 
 /** Getting builder settings from process runtime environment. */
-export function getBuilderConfig (cwd = process.cwd(), env = process.env): BuilderConfig {
+export function getBuilderConfig (
+  cwd: string                 = process.cwd(),
+  env: Record<string, string> = process.env
+): BuilderConfig {
   const { Str, Bool } = getFromEnv(env)
   return {
     project:    Str ('FADROMA_PROJECT',          ()=>cwd),

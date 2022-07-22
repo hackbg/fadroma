@@ -52,7 +52,7 @@ export class Template {
   * May contain reference to the template from wich it was instantiated. */
 export interface Instance {
   address:   Address
-  codeHash?: CodeHash
+  codeHash:  CodeHash
   codeId?:   CodeId
   chainId?:  ChainId
   initTx?:   TxHash
@@ -77,23 +77,25 @@ export interface Spectator {
   /** The chain on which this object operates. */
   chain:        Chain
   /** Query a smart contract. */
-  query <U>     (contract: Instance, msg: Message): Promise<U>
+  query <U>     (contract: Instance, msg: Message):      Promise<U>
   /** Get the code id of a smart contract. */
-  getCodeId     (address: Address):                 Promise<string>
+  getCodeId     (address: Address):                      Promise<string>
   /** Get the label of a smart contract. */
-  getLabel      (address: Address):                 Promise<string>
+  getLabel      (address: Address):                      Promise<string>
   /** Get the code hash of a smart contract. */
-  getHash       (address: Address):                 Promise<string>
+  getHash       (address: Address):                      Promise<string>
+  /** Get the code hash of a smart contract. */
+  checkHash     (address: Address, codeHash?: CodeHash): Promise<string>
   /** Get the current block height. */
-  get height    ():                                 Promise<number>
+  get height    ():                                      Promise<number>
   /** Wait for the block height to increment. */
-  get nextBlock ():                                 Promise<number>
+  get nextBlock ():                                      Promise<number>
 }
 
 /** Something that can execute mutating transactions. */
 export interface Executor extends Spectator {
   /** The address from which transactions are signed and sent. */
-  address?:        Address
+  address:         Address
   /** Default fee maximums for send, upload, init, and execute. */
   fees?:           AgentFees
   /** Send native tokens to 1 recipient. */
@@ -238,6 +240,25 @@ export abstract class Chain implements Spectator {
   abstract getCodeId (address: Address): Promise<CodeId>
   abstract getLabel (address: Address): Promise<string>
   abstract getHash (address: Address): Promise<CodeHash>
+  async checkHash (address: Address, codeHash?: CodeHash) {
+    // Soft code hash checking for now
+    const realCodeHash = await this.getHash(address)
+    if (!codeHash) {
+      console.warn(
+        'Code hash not provided for address:', address,
+        '  Code hash on chain:', realCodeHash
+      )
+    } if (codeHash !== realCodeHash) {
+      console.warn(
+        'Code hash mismatch for address:', address,
+        '  Expected code hash:',           codeHash,
+        '  Code hash on chain:',           realCodeHash
+      )
+    } else {
+      console.info(`Code hash of ${address}:`, realCodeHash)
+    }
+    return realCodeHash
+  }
   abstract get height (): Promise<number>
   get nextBlock (): Promise<number> {
     console.info('Waiting for next block...')
@@ -311,11 +332,11 @@ export abstract class Agent implements Executor {
     if (options.fees) this.fees = options.fees
   }
   /** The address of this agent. */
-  address?: Address
+  address: Address
   /** The friendly name of the agent. */
-  name?:    string
+  name?:   string
   /** Default transaction fees to use for interacting with the chain. */
-  fees?:    AgentFees
+  fees?:   AgentFees
   /** The default denomination in which the agent operates. */
   get defaultDenom () { return this.chain.defaultDenom }
   /** Get the balance of this or another address. */
@@ -335,6 +356,9 @@ export abstract class Agent implements Executor {
   getCodeId (address: Address) { return this.chain.getCodeId(address) }
   getLabel  (address: Address) { return this.chain.getLabel(address) }
   getHash   (address: Address) { return this.chain.getHash(address) }
+  checkHash (address: Address, codeHash?: CodeHash) {
+    return this.chain.checkHash(address, codeHash)
+  }
   getClient <C extends Client, O extends ClientOpts> (
     _Client: ClientCtor<C, O>   = Client as ClientCtor<C, O>,
     arg:     Address|Partial<O> = {}
@@ -404,6 +428,9 @@ export abstract class Bundle implements Executor {
   getCodeId (address: Address) { return this.agent.getCodeId(address) }
   getLabel  (address: Address) { return this.agent.getLabel(address)  }
   getHash   (address: Address) { return this.agent.getHash(address)   }
+  checkHash (address: Address, codeHash?: CodeHash) {
+    return this.agent.checkHash(address, codeHash)
+  }
   get balance () {
     throw new Error("don't query inside bundle")
     return Promise.resolve('0')

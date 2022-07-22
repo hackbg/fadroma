@@ -14,6 +14,6 @@
     "@fadroma/scrt":       "workspace:*",
     "@fadroma/scrt-amino": "workspace:*",
     "@fadroma/mocknet":    "workspace:*",
-    "@hackbg/komandi":     "^4"
+    "@hackbg/komandi":     "workspace:*"
   }
 }
