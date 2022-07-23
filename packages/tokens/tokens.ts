@@ -268,6 +268,20 @@ export class Snip20 extends Client {
 
 }
 
+export interface Snip20InitMsg {
+  name:      string
+  symbol:    string
+  decimals:  number
+  admin:     string
+  prng_seed: unknown
+  config:    {
+    public_total_supply?: boolean
+    enable_mint?:         boolean
+    [name: string]:       boolean
+  }
+  [name: string]: unknown
+}
+
 export interface Allowance {
   spender:     Address
   owner:       Address
