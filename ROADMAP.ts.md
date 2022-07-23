@@ -4,6 +4,14 @@
 import assert from 'assert'
 ```
 
+## Performance
+
+* **Resumable deployments:** so that working on a sequence of operations does not get slower the longer the sequence gets.
+
+```typescript
+// TODO test that deploy is resumable
+```
+
 ## Deliverability
 
 * **WIP:** Publish JS packages to NPM
