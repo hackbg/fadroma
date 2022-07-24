@@ -8,15 +8,18 @@ import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 
 import type {
-  Agent, 
-  Client,
+  Agent,
   ClientCtor,
   ClientOpts,
+  Chain,
   Instance,
   Label,
   Message,
   Template,
 } from '@fadroma/client'
+
+import { Client } from '@fadroma/client'
+
 import { print } from './Print'
 
 const console = Console('Fadroma Deploy')
@@ -143,6 +146,11 @@ export class Deployment {
     }
   }
 
+  /** Whether a contract of this name exists in the deployment. */
+  has (name: string): boolean {
+    return !!this.receipts[name]
+  }
+
   /** Get the receipt for a contract, containing its address, codeHash, etc. */
   get (name: string, suffix?: string): Instance {
     const receipt = this.receipts[name]
@@ -208,7 +216,8 @@ export class Deployment {
   ): Promise<Instance> {
     console.info(
       'Deploying contract', bold(name),
-      'from code id', bold(template.codeId)
+      'from code id', bold(template.codeId),
+      'as', name, 'with', msg
     )
     const label = addPrefix(this.prefix, name)
     const instance = await deployAgent.instantiate(template, label, msg)
@@ -257,3 +266,199 @@ export const overrideDefaults = (obj, defaults, options = {}) => {
 }
 
 export const addPrefix = (prefix, name) => `${prefix}/${name}`
+
+export class Defer<X> extends Promise<X> {
+  resolve: (v: X|PromiseLike<X>) => void
+  reject:  (e: Error|string)     => void
+  constructor () {
+    super((resolve, reject)=>{
+      this.resolve = resolve
+      this.reject  = reject
+    })
+  }
+}
+
+export class Lazy<X> extends Promise<X> {
+  protected readonly resolver: ()=>X|PromiseLike<X>
+  private resolved: PromiseLike<X>
+  constructor (resolver?: ()=>X|PromiseLike<X>) {
+    super(()=>{})
+    this.resolver ??= resolver
+  }
+  then <Y> (resolved, rejected): Promise<Y> {
+    this.resolved ??= Promise.resolve(this.resolver())
+    return this.resolved.then(resolved, rejected) as Promise<Y>
+  }
+}
+
+export abstract class OneShot<T> extends (function Runnable<T> () {
+  let called = false
+  let result: T
+  return function Task (...args): T {
+    if (!called) {
+      called = true
+      return result = this.run(...args)
+    } else {
+      return result
+    }
+  }.bind(this)
+} as any) {
+  run: (...args) => T
+  constructor (run?: (...args) => T) {
+    super()
+    this.run ??= run.bind(this)
+  }
+}
+
+export abstract class Slot<X> {
+  abstract get (): X|null
+  expect (msg: string|Error, orElse?: ()=>Promise<X>): Promise<X> {
+    const val = this.get()
+    if (val) {
+      return Promise.resolve(val)
+    } else if (orElse) {
+      console.info(msg)
+      return orElse()
+    } else {
+      if (typeof msg === 'string') msg = new Error(msg)
+      throw msg
+    }
+  }
+}
+
+export class DeployTask<X> extends Lazy<X> {
+  constructor (
+    public readonly context: DeployContext,
+    fn: ()=>X
+  ) {
+    super(fn)
+    this.chain      ??= context.chain
+    this.deployment ??= context.deployment
+    this.creator    ??= context.deployAgent
+  }
+  chain:      Chain
+  deployment: Deployment
+  creator:    Agent
+  gitRef:     string = 'HEAD'
+  instance = (name: string): Instance|null => {
+    return this.deployment.has(name) ? this.deployment.get(name) : null
+  }
+  template = (t: IntoTemplate): TemplateSlot => {
+    if (typeof t === 'string') {
+      if (t.indexOf('@')===-1 && this.gitRef) {
+        t = `${name}@${this.gitRef}`
+      }
+      return new TemplateSlot(this.context, t as string)
+    }
+    if (t instanceof TemplateSlot && t.context === this.context) {
+      return t
+    }
+    console.warn(t)
+    throw new Error(`template: unknown argument ${t}`)
+  }
+  contract = <C extends Client> (
+    name:    string,
+    _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+  ): ContractSlot<C> => {
+    return new ContractSlot(this, name, _Client)
+  }
+  deploy = async <C extends Client> (
+    name:     string,
+    template: IntoTemplate,
+    init:     Message,
+    Client?:  ClientCtor<C, ClientOpts>
+  ): Promise<C> => {
+    if (template instanceof Function) template = await Promise.resolve(template())
+    const instance = await this.deployment.init(this.creator, template, name, init)
+    const client   = new Client(this.creator, instance)
+    return client as C
+  }
+  deployMany = async <C extends Client> (
+    template: IntoTemplate,
+    configs:  [string, Message][],
+    Client?:  ClientCtor<C, ClientOpts>
+  ): Promise<C[]> => {
+    return (await this.deployment.initMany(
+      this.creator,
+      await this.template(template).getOrUpload(),
+      configs
+    )).map(instance=>this.creator.getClient(Client, instance))
+  }
+}
+
+export type Into<T> = T|(()=>T)|(()=>Promise<T>)
+export type IntoTemplate = string|Into<Template>|TemplateSlot
+
+class TemplateSlot extends Slot<Template> {
+
+  constructor (
+    public readonly context: DeployContext,
+    public readonly name:    string,
+  ) { super() }
+
+  get (): Template {}
+
+  async getOrUpload (): Promise<Template> {}
+
+  async upload (): Promise<Template> {}
+
+}
+
+class ContractSlot<C extends Client> extends Slot<C> {
+
+  constructor (
+    public readonly context: DeployTask<unknown>,
+    public readonly name:    string,
+    public readonly Client:  ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+  ) { super() }
+
+  get (): C|null {
+    const instance = this.context.instance(this.name)
+    if (instance) {
+      return new this.Client(this.context.creator, instance)
+    } else {
+      return null
+    }
+  }
+
+  async getOrDeploy (
+    template: Into<Template>,
+    init:     Message
+  ): Promise<C> {
+    return this.get() || await this.deploy(template, init)
+  }
+
+  async deploy (
+    template: Into<Template>,
+    init:     Message
+  ): Promise<C> {
+    const instance = this.context.instance(this.name)
+    if (instance) {
+      console.error(`Name ${this.name} already corresponds to:`)
+      console.trace(instance)
+      throw new Error(`Already exists: ${this.name}`)
+    }
+    return this.context.deploy(this.name, template, init, this.Client)
+  }
+
+}
+
+//////////////////////////////// RIP //////////////////////////////////////////////
+
+export function Runnable<T> () {
+  return function Task(...args): T {
+    return this.run(...args)
+  }.bind(this)
+}
+
+export class Task<T> extends (function Runnable<T> () {
+  return function Task (...args): T {
+    return this.run(...args)
+  }.bind(this)
+} as any) {
+  run: (...args) => T
+  constructor (run?: (...args) => T) {
+    super()
+    this.run ??= run.bind(this)
+  }
+}
