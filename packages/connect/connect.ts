@@ -8,14 +8,15 @@ import { Mocknet                            } from '@fadroma/mocknet'
 import { Console, bold             } from '@hackbg/konzola'
 import { CommandContext, envConfig } from '@hackbg/komandi'
 
-const console = Console('Fadroma Chains')
+const console = Console('Fadroma Connect')
+
+/// # CHAINS //////////////////////////////////////////////////////////////////////////////////////
 
 /** Get chain settings from process runtime environment. */
-export const getChainConfig = envConfig(
-  ({ Str, Bool }, cwd): ChainConfig => ({
-    project:       Str('FADROMA_PROJECT',  ()=>cwd),
-    chain:         Str('FADROMA_CHAIN',    ()=>null),
-  }))
+export const getChainConfig = envConfig(({ Str, Bool }, cwd): ChainConfig => ({
+  project: Str('FADROMA_PROJECT',  ()=>cwd),
+  chain:   Str('FADROMA_CHAIN',    ()=>null),
+}))
 /** Chain settings. */
 export interface ChainConfig {
   /** Path to root of project. */
@@ -23,24 +24,7 @@ export interface ChainConfig {
   /** Name of chain to use. */
   chain:    string
 }
-
-/** Get agent+chain settings from process runtime environment. */
-export const getAgentConfig = envConfig(
-  ({ Str }, cwd, env): AgentConfig => ({
-    ...getChainConfig(cwd, env),
-    agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
-    agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
-  }))
-/* Agent settings. */
-export interface AgentConfig extends ChainConfig {
-  /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  agentName:     string
-  /** Mnemonic to use for authentication. */
-  agentMnemonic: string
-}
-
 export type Chains = Record<string, (config: unknown)=>Chain|Promise<Chain>>
-
 /** Add a Chain and its Deployments to the Context. */
 export async function getChainContext (
   context: CommandContext & Partial<{
@@ -53,7 +37,7 @@ export async function getChainContext (
   const name = config.chain
   // Check that a valid name is passed
   if (!name || !context.chains[name]) {
-    ChainLogger(console).NoName(context.chains)
+    ConnectLogger(console).NoName(context.chains)
     process.exit(1)
   }
   // Return chain and deployments handle
@@ -66,29 +50,26 @@ export async function getChainContext (
     deployments: await getDeploymentsForChain(chain, config.project)
   }
 }
-
-export const defineDevnetMode = (Chain: { new(...args:any[]): Chain }, version: DevnetKind) =>
-  async (config: unknown) => {
-    const mode = ChainMode.Devnet
-    const node = await getDevnet(version)
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new Chain(id, { url, mode, node })
-  }
-
+export const defineDevnetMode =
+  (Chain: { new(...args:any[]): Chain }, version: DevnetKind) =>
+    async (config: unknown) => {
+      const mode = ChainMode.Devnet
+      const node = await getDevnet(version)
+      const id   = node.chainId
+      const url  = node.url.toString()
+      return new Chain(id, { url, mode, node })
+    }
 export const knownChains = {
   Mocknet: async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
   ...ScrtGrpc.Chains,  ScrtGrpcDevnet:  defineDevnetMode(ScrtGrpc,  'scrt_1.3'),
   ...ScrtAmino.Chains, ScrtAminoDevnet: defineDevnetMode(ScrtAmino, 'scrt_1.2'),
 }
-
 export async function getDeploymentsForChain (chain: Chain, project: string) {
   //@ts-ignore
   return await import('@fadroma/deploy')
-    .then(({Deployments})=>Deployments.fromConfig(chain, project))
-    .catch(ChainLogger(console).NoDeploy)
+    .then(({Deployments})=>Deployments.fromConfig(chain.id, project))
+    .catch(ConnectLogger(console).NoDeploy)
 }
-
 export interface ChainContext extends CommandContext {
   config?:     ChainConfig
   /** Known blockchains and connection methods. */
@@ -107,6 +88,22 @@ export interface ChainContext extends CommandContext {
   isMocknet:   boolean
   /** Collections of interlinked contracts on the selected chain. */
   deployments: import('@fadroma/deploy').Deployments|null
+}
+
+/// # AGENTS //////////////////////////////////////////////////////////////////////////////////////
+
+/** Get agent+chain settings from process runtime environment. */
+export const getAgentConfig = envConfig(({ Str }, cwd, env): AgentConfig => ({
+  ...getChainConfig(cwd, env),
+  agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
+  agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
+}))
+/* Agent settings. */
+export interface AgentConfig extends ChainConfig {
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  agentName:     string
+  /** Mnemonic to use for authentication. */
+  agentMnemonic: string
 }
 
 /** Adds an Agent to the Context. */
@@ -148,7 +145,7 @@ export function chainFlags (chain: Chain) {
   }
 }
 
-export const ChainLogger = ({ log, info, warn, error }: Console) => ({
+export const ConnectLogger = ({ log, info, warn, error }: Console) => ({
   NoName (chains: object) {
     error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
     this.KnownChains(chains)
@@ -198,6 +195,6 @@ import {fileURLToPath} from 'url'
 
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  ChainLogger(console).KnownChains(knownChains)
-  ChainLogger(console).SelectedChain(getChainConfig())
+  ConnectLogger(console).KnownChains(knownChains)
+  ConnectLogger(console).SelectedChain(getChainConfig())
 }

@@ -1,12 +1,12 @@
 #!/usr/bin/env ganesha-node
 
-import { Artifact }                   from '@fadroma/client'
-import { Console, bold }              from '@hackbg/konzola'
-import { toHex, Sha256 }              from '@hackbg/formati'
-import { getFromEnv, CommandContext } from '@hackbg/komandi'
-import { Dokeres, DokeresImage }      from '@hackbg/dokeres'
-import { default as simpleGit }       from 'simple-git'
-import LineTransformStream            from 'line-transform-stream'
+import { Artifact }                  from '@fadroma/client'
+import { Console, bold }             from '@hackbg/konzola'
+import { toHex, Sha256 }             from '@hackbg/formati'
+import { envConfig, CommandContext } from '@hackbg/komandi'
+import { Dokeres, DokeresImage }     from '@hackbg/dokeres'
+import { default as simpleGit }      from 'simple-git'
+import LineTransformStream           from 'line-transform-stream'
 
 import $, {
   Path,
@@ -24,24 +24,17 @@ import { readFileSync, mkdtempSync    } from 'fs'
 
 const console = Console('Fadroma Build')
 
-/** Getting builder settings from process runtime environment. */
-export function getBuilderConfig (
-  cwd: string                 = process.cwd(),
-  env: Record<string, string> = process.env
-): BuilderConfig {
-  const { Str, Bool } = getFromEnv(env)
-  return {
-    project:    Str ('FADROMA_PROJECT',          ()=>cwd),
-    buildRaw:   Bool('FADROMA_BUILD_RAW',        ()=>false),
-    rebuild:    Bool('FADROMA_REBUILD',          ()=>false),
-    noFetch:    Bool('FADROMA_NO_FETCH',         ()=>false),
-    toolchain:  Str ('FADROMA_RUST',             ()=>''),
-    script:     Str ('FADROMA_BUILD_SCRIPT',     ()=>Builder.script),
-    image:      Str ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image),
-    dockerfile: Str ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile),
-  }
-}
-
+/** Function to get builder settings from process runtime environment. */
+export const getBuilderConfig = envConfig(({Str, Bool}, cwd): BuilderConfig => ({
+  project:    Str ('FADROMA_PROJECT',          ()=>cwd),
+  buildRaw:   Bool('FADROMA_BUILD_RAW',        ()=>false),
+  rebuild:    Bool('FADROMA_REBUILD',          ()=>false),
+  noFetch:    Bool('FADROMA_NO_FETCH',         ()=>false),
+  toolchain:  Str ('FADROMA_RUST',             ()=>''),
+  script:     Str ('FADROMA_BUILD_SCRIPT',     ()=>Builder.script),
+  image:      Str ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image),
+  dockerfile: Str ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile),
+}))
 /** Builder settings definitions. */
 export interface BuilderConfig {
   /** Project root. Defaults to current working directory. */
@@ -61,7 +54,28 @@ export interface BuilderConfig {
   /** Script that runs the actual build, e.g. build.impl.mjs */
   script:     string
 }
-
+/** Get a builder based on the builder config. */
+export function getBuilder (config: Partial<BuilderConfig> = getBuilderConfig()) {
+  if (config.buildRaw) {
+    return new RawBuilder({ ...config, caching: !config.rebuild })
+  } else {
+    return new DockerBuilder({ ...config, caching: !config.rebuild })
+  }
+}
+/** The nouns and verbs exposed to REPL and Commands. */
+export interface BuildContext extends CommandContext {
+  config:    BuilderConfig
+  /** Cargo workspace of the current project. */
+  workspace: Workspace
+  /** Get a Source by crate name from the current workspace. */
+  getSource: (source: IntoSource) => Source
+  /** Knows how to build contracts for a target. */
+  builder:   Builder
+  /** Get an Artifact from Source or crate name. */
+  build:     (source: IntoArtifact, ref?: string)         => Promise<Artifact>
+  /** Get one or more Artifacts from Source or crate name */
+  buildMany: (ref?: string, ...sources: IntoArtifact[][]) => Promise<Artifact[]>
+}
 /** Add build vocabulary to context of REPL and deploy scripts. */
 export function getBuildContext (context: CommandContext & Partial<BuildContext>): BuildContext {
   const config = { ...getBuilderConfig(), ...context.config ?? {} }
@@ -85,44 +99,8 @@ export function getBuildContext (context: CommandContext & Partial<BuildContext>
     }
   }
 }
-
-/** The nouns and verbs exposed to REPL and Commands. */
-export interface BuildContext extends CommandContext {
-  config:    BuilderConfig
-  /** Cargo workspace of the current project. */
-  workspace: Workspace
-  /** Get a Source by crate name from the current workspace. */
-  getSource: (source: IntoSource) => Source
-  /** Knows how to build contracts for a target. */
-  builder:   Builder
-  /** Get an Artifact from Source or crate name. */
-  build:     (source: IntoArtifact, ref?: string)         => Promise<Artifact>
-  /** Get one or more Artifacts from Source or crate name */
-  buildMany: (ref?: string, ...sources: IntoArtifact[][]) => Promise<Artifact[]>
-}
-
-export function getBuilder (config: Partial<BuilderConfig> = {}) {
-  if (config.buildRaw) {
-    return new RawBuilder({ ...config, caching: !config.rebuild })
-  } else {
-    return new DockerBuilder({ ...config, caching: !config.rebuild })
-  }
-}
-
 //@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
-
-export interface BuilderOptions {
-  /** The build script. */
-  script:        string
-  /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
-  noFetch:       boolean
-  /** Name of directory where build artifacts are collected. */
-  outputDirName: string
-  /** Version of Rust toolchain to use. */
-  toolchain:     string
-}
-
 /** Can perform builds. */
 export abstract class Builder {
   static script = resolve(__dirname, 'build.impl.mjs')
@@ -140,6 +118,16 @@ export abstract class Builder {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
   abstract build (source: Source, ...args): Promise<Artifact>
+}
+export interface BuilderOptions {
+  /** The build script. */
+  script:        string
+  /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
+  noFetch:       boolean
+  /** Name of directory where build artifacts are collected. */
+  outputDirName: string
+  /** Version of Rust toolchain to use. */
+  toolchain:     string
 }
 
 export interface CachingBuilderOptions extends BuilderOptions {
@@ -162,7 +150,7 @@ export abstract class CachingBuilder extends Builder {
     }
     const location = $(outputDir, artifactName(crate, ref))
     if (location.exists()) {
-      return new Artifact(location.url, codeHashForPath(location.path))
+      return new Artifact(undefined, location.url, codeHashForPath(location.path))
     }
     return null
   }
@@ -427,7 +415,7 @@ export class DockerBuilder extends CachingBuilder {
       if (location === null) {
         return null
       } else {
-        return new Artifact($(location).url, codeHashForPath(location))
+        return new Artifact(undefined, $(location).url, codeHashForPath(location))
       }
     })
   }

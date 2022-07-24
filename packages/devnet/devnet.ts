@@ -4,8 +4,8 @@ import { Console, bold }                                             from '@hack
 import { envConfig, runOperation }                                   from '@hackbg/komandi'
 import { freePort, waitPort, Endpoint }                              from '@hackbg/portali'
 import { randomHex }                                                 from '@hackbg/formati'
-import { AgentOpts, Chain, ChainMode, DevnetHandle  } from '@fadroma/client'
-import { getChainContext, ChainContext, ChainLogger } from '@fadroma/connect'
+import { AgentOpts, Chain, ChainMode, DevnetHandle    } from '@fadroma/client'
+import { getChainContext, ChainContext, ConnectLogger } from '@fadroma/connect'
 import { resolve, relative, basename, dirname } from 'path'
 import { cwd }                                  from 'process'
 import { readlinkSync, symlinkSync }            from 'fs'
@@ -588,7 +588,7 @@ export async function resetDevnet ({ chain }: { chain: Chain }) {
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   runOperation('devnet status', 'show deployment status', [
     getChainContext,
-    ChainLogger(console).ChainStatus,
+    ConnectLogger(console).ChainStatus,
     function optionallyReset ({ cmdArgs = [], chain }: ChainContext) {
       if (cmdArgs[0] === 'reset') {
         return resetDevnet(chain)

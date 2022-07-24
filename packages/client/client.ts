@@ -1,3 +1,4 @@
+/** Core types. */
 export type Address    = string
 export type ChainId    = string
 export type CodeHash   = string
@@ -11,32 +12,34 @@ export type Moment     = number
 export type TxHash     = string
 export type Uint128    = string
 export type Uint256    = string
-
-/** Reference to a compiled smart contract. */
+/** A compiled smart contract in WASM binary form.
+  * Can be uploaded with provided uploader, producing a Template. */
 export class Artifact {
   constructor (
-    url:            URL|string,
-    public readonly codeHash: CodeHash,
-    public readonly source?:  { crate: string, ref: string }
+    public readonly   source?: { crate: string, workspace: { ref: string } },
+                         url?: URL|string,
+    public readonly codeHash?: CodeHash
   ) {
     if (typeof url === 'string') url = new URL(url)
     this.url = url
   }
-  url: URL
-  upload (uploader: { upload: (artifact: Artifact)=>Promise<Template> }): Promise<Template> {
+  url?: URL
+  upload (uploader: UploaderHandle): Promise<Template> {
     return uploader.upload(this)
   }
 }
-
-/** Reference to an uploaded smart contract.
-  * May contain reference to the artifact from which it was uploaded. */
+/** Uploader is implemented in @fadroma/deploy */
+export interface UploaderHandle { upload: (artifact: Artifact)=>Promise<Template> }
+/** An uploaded smart contract, referenced by chain ID, code ID and code hash.
+  * May contain reference to the Artifact from which it was uploaded.
+  * Can be instantiated with provided agent and config, producing an Instance. */
 export class Template {
   constructor (
+    public readonly artifact?: Artifact,
+    public readonly codeHash?: CodeHash,
     public readonly chainId?:  ChainId,
     public readonly codeId?:   CodeId,
-    public readonly codeHash?: CodeHash,
     public readonly uploadTx?: TxHash,
-    public readonly artifact?: Artifact,
   ) {
     if (this.codeHash && artifact?.codeHash && (this.codeHash !== artifact.codeHash)) {
       console.warn(
@@ -46,8 +49,10 @@ export class Template {
     }
     this.codeHash ??= artifact?.codeHash
   }
+  instantiate (agent: Agent, label: string, initMsg: Message): Promise<Instance> {
+    return agent.instantiate(this, label, initMsg)
+  }
 }
-
 /** Reference to an instantiated smart contract.
   * May contain reference to the template from wich it was instantiated. */
 export interface Instance {
@@ -59,7 +64,6 @@ export interface Instance {
   label?:    Label
   template?: Template
 }
-
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export class ContractLink {
   static fromInstance = (
@@ -71,7 +75,102 @@ export class ContractLink {
     readonly code_hash: CodeHash
   ) {}
 }
-
+/** Interface to a specific contract.
+  * Subclass Client to add your contract-specific methods. */
+export class Client implements Instance {
+  constructor (readonly agent: Executor, arg: Address|Partial<ClientOpts> = {}) {
+    if (typeof arg === 'string') {
+      this.address  = arg
+    } else {
+      this.address  = arg.address
+      this.name     = arg.name     || this.name
+      this.label    = arg.label    || this.label
+      this.codeHash = arg.codeHash || this.codeHash
+      this.codeId   = arg.codeId   || this.codeId
+      this.fee      = arg.fee      || this.fee
+      this.fees = Object.assign(this.fees||{}, arg.fees||{})
+    }
+  }
+  /** Friendly name of the contract. */
+  name?:     string
+  /** The Chain on which this contract exists. */
+  get chain () { return this.agent.chain }
+  /** Label of the contract on the chain. */
+  label?:    string
+  /** Address of the contract on the chain. */
+  address:   Address
+  /** Code hash representing the content of the contract's code. */
+  codeHash?: CodeHash
+  /** Code ID representing the identity of the contract's code. */
+  codeId?:   CodeId
+  /** Default fee for transactions. */
+  fee?:      IFee
+  /** Default fee for specific transactions. */
+  fees:      Record<string, IFee> = {}
+  /** Get the recommended fee for a specific transaction. */
+  getFee (msg?: string|Record<string, unknown>): IFee|undefined {
+    const defaultFee = this.fee || this.agent.fees?.exec
+    if (typeof msg === 'string') {
+      return this.fees[msg] || defaultFee
+    } else if (typeof msg === 'object') {
+      const keys = Object.keys(msg)
+      if (keys.length !== 1) {
+        throw new Error('Client#getFee: messages must have exactly 1 root key')
+      }
+      return this.fees[keys[0]] || defaultFee
+    }
+    return this.fee || defaultFee
+  }
+  /** Execute a query on the specified contract as the specified Agent. */
+  async query <U> (msg: Message): Promise<U> {
+    return await this.agent.query(this, msg)
+  }
+  /** Execute a transaction on the specified contract as the specified Agent. */
+  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
+    opt.fee = opt.fee || this.getFee(msg)
+    return await this.agent.execute(this, msg, opt)
+  }
+  /** Fetch the label, code ID, and code hash from the Chain.
+    * You can override this method to populate custom contract info from the chain on your client,
+    * e.g. fetch the symbol and decimals of a token contract. */
+  async populate (): Promise<this> {
+    const [label, codeId, codeHash] = await Promise.all([
+      this.agent.getLabel(this.address),
+      this.agent.getCodeId(this.address),
+      this.agent.getHash(this.address)
+    ])
+    // TODO warn if retrieved values contradict current ones
+    this.label    = label
+    this.codeId   = codeId
+    this.codeHash = codeHash
+    return this
+  }
+  /** Create a copy of this Client with all transaction fees set to the provided value.
+    * If the fee is undefined, returns a copy of the client with unmodified fee config. */
+  withFee (fee: IFee|undefined): this {
+    const Self = this.constructor as ClientCtor<typeof this, any>
+    if (fee) {
+      return new Self(this.agent, {...this, fee, fees: {}})
+    } else {
+      return new Self(this.agent, {...this, fee: this.fee, fees: this.fees})
+    }
+  }
+  /** Create a copy of this Client that will execute the transactions as a different Agent. */
+  as (agent: Executor): this {
+    const Self = this.constructor as ClientCtor<typeof this, any>
+    return new Self(agent, { ...this })
+  }
+}
+/** Options when creating a Client. */
+export interface ClientOpts extends Instance {
+  name?: string
+  fee?:  IFee
+  fees?: Record<string, IFee>
+}
+/** Client constructor - used by functions which create user-specified Clients. */
+export interface ClientCtor<C extends Client, O extends ClientOpts> {
+  new (agent: Executor, options: Address|Partial<O>): C
+}
 /** Something that can execute read-only API calls. */
 export interface Spectator {
   /** The chain on which this object operates. */
@@ -91,7 +190,6 @@ export interface Spectator {
   /** Wait for the block height to increment. */
   get nextBlock ():                                      Promise<number>
 }
-
 /** Something that can execute mutating transactions. */
 export interface Executor extends Spectator {
   /** The address from which transactions are signed and sent. */
@@ -117,7 +215,6 @@ export interface Executor extends Spectator {
   /** Get a client instance for talking to a specific smart contract as this executor. */
   getClient <C extends Client, O extends ClientOpts> (Client: ClientCtor<C, O>, arg: Address|O): C
 }
-
 /** Options for a compute transaction. */
 export interface ExecOpts {
   /** The maximum fee. */
@@ -127,10 +224,11 @@ export interface ExecOpts {
   /** A transaction memo. */
   memo?: string
 }
-
 /** Represents some amount of native token. */
-export interface ICoin { amount: Uint128, denom: string }
-
+export interface ICoin {
+  amount: Uint128,
+  denom:  string
+}
 /** Represents some amount of native token. */
 export class Coin implements ICoin {
   constructor (
@@ -141,13 +239,11 @@ export class Coin implements ICoin {
   }
   readonly amount: string
 }
-
 /** A gas fee, payable in native tokens. */
 export interface IFee {
   amount: readonly ICoin[]
   gas:    Uint128
 }
-
 /** A constructable gas fee in native tokens. */
 export class Fee implements IFee {
   constructor (
@@ -159,33 +255,12 @@ export class Fee implements IFee {
   }
   readonly amount: readonly ICoin[]
 }
-
 export enum ChainMode {
   Mainnet = 'Mainnet',
   Testnet = 'Testnet',
   Devnet  = 'Devnet',
   Mocknet = 'Mocknet'
 }
-
-export interface ChainOpts {
-  url:  string
-  mode: ChainMode
-  node: DevnetHandle
-}
-
-export interface DevnetHandle {
-  chainId: string
-  url:     URL
-  respawn:           ()             => Promise<unknown>
-  terminate:         ()             => Promise<void>
-  getGenesisAccount: (name: string) => Promise<AgentOpts>
-}
-
-export interface AgentCtor<A extends Agent> {
-  new    (chain: Chain, options: AgentOpts): A
-  create (chain: Chain, options: AgentOpts): Promise<A>
-}
-
 export abstract class Chain implements Spectator {
   isSecretNetwork = false
   static Mode = ChainMode
@@ -295,31 +370,22 @@ export abstract class Chain implements Spectator {
     const agent = await _Agent.create(this, options) as A
     return agent
   }
-
-  static Agent: AgentCtor<Agent> = null;
+  static Agent: AgentCtor<Agent>
   /** The Agent subclass to use for interacting with this chain. */
   Agent: AgentCtor<Agent> = (this.constructor as Function & { Agent: AgentCtor<Agent> }).Agent
 }
-
-export interface AgentCtor<A extends Agent> {
-  new    (chain: Chain, options: AgentOpts): A
-  create (chain: Chain, options: AgentOpts): Promise<A>
+export interface ChainOpts {
+  url:  string
+  mode: ChainMode
+  node: DevnetHandle
 }
-
-export interface AgentOpts {
-  name?:     string
-  mnemonic?: string
-  address?:  Address
-  fees?:     AgentFees
+export interface DevnetHandle {
+  chainId: string
+  url:     URL
+  respawn:           ()             => Promise<unknown>
+  terminate:         ()             => Promise<void>
+  getGenesisAccount: (name: string) => Promise<AgentOpts>
 }
-
-export interface AgentFees {
-  send?:   IFee
-  upload?: IFee
-  init?:   IFee
-  exec?:   IFee
-}
-
 /** By authenticating to a network you obtain an Agent,
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent implements Executor {
@@ -392,41 +458,43 @@ export abstract class Agent implements Executor {
     return new this.Bundle(this)
   }
 }
-
 export interface AgentCtor<A extends Agent> {
+  new    (chain: Chain, options: AgentOpts): A
   create (chain: Chain, options: AgentOpts): Promise<A>
-  Bundle?: BundleCtor<Bundle>
+  Bundle: BundleCtor<Bundle>
 }
-
+export interface AgentOpts {
+  name?:     string
+  mnemonic?: string
+  address?:  Address
+  fees?:     AgentFees
+}
+export interface AgentFees {
+  send?:   IFee
+  upload?: IFee
+  init?:   IFee
+  exec?:   IFee
+}
 //@ts-ignore
 Chain.Agent = Agent as AgentCtor<Agent>
-
-export interface BundleCtor<B extends Bundle> {
-  new (agent: Agent): B
-}
-
-/** Function passed to Bundle#wrap */
-export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
-
-/** Collects messages to broadcast as a single transaction
-  * in ordert to execute them simultaneously. */
+/** Bundle is an alternate executor that collects collects messages to broadcast
+  * as a single transaction in order to execute them simultaneously. For that, it
+  * uses the API of its parent Agent. You can use it in scripts with:
+  *    agent.bundle().wrap(async bundle=>{ client.as(bundle).exec(...) })
+  * */
 export abstract class Bundle implements Executor {
-
   constructor (readonly agent: Agent) {}
-
   depth  = 0
   Bundle = this.constructor
   bundle (): this {
     console.warn('Nest bundles with care. Depth:', ++this.depth)
     return this
   }
-
   get chain        () { return this.agent.chain            }
   get address      () { return this.agent.address          }
   get name         () { return `${this.agent.name}@BUNDLE` }
   get fees         () { return this.agent.fees             }
   get defaultDenom () { return this.agent.defaultDenom     }
-
   getCodeId (address: Address) { return this.agent.getCodeId(address) }
   getLabel  (address: Address) { return this.agent.getLabel(address)  }
   getHash   (address: Address) { return this.agent.getHash(address)   }
@@ -513,7 +581,6 @@ export abstract class Bundle implements Executor {
   ): C {
     return new Client(this as Executor, arg)
   }
-
   id = 0
   msgs: any[] = []
   add (msg: Message) {
@@ -521,13 +588,11 @@ export abstract class Bundle implements Executor {
     this.msgs[id] = msg
     return id
   }
-
   //@ts-ignore
   async wrap (cb: BundleCallback<this>, opts = { memo: "" }): Promise<any[]> {
     await cb(this)
     return this.run(opts.memo)
   }
-
   run (memo = ""): Promise<any> {
     if (this.depth > 0) {
       console.warn('Unnesting bundle. Depth:', --this.depth)
@@ -538,115 +603,17 @@ export abstract class Bundle implements Executor {
       return this.submit(memo)
     }
   }
-
   assertCanSubmit () {
-    if (this.msgs.length < 1) {
-      throw new Error('Trying to submit bundle with no messages')
-    }
+    if (this.msgs.length < 1) throw new Error('Trying to submit bundle with no messages')
   }
-
   abstract submit (memo: string): Promise<unknown>
-
-  abstract save (name: string): Promise<unknown>
-
+  abstract save   (name: string): Promise<unknown>
 }
+export interface BundleCtor<B extends Bundle> {
+  new (agent: Agent): B
+}
+/** Function passed to Bundle#wrap */
+export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
 //@ts-ignore
 Agent.Bundle = Bundle
-
-export interface ClientOpts extends Instance {
-  name?: string
-  fee?:  IFee
-  fees?: Record<string, IFee>
-}
-
-export interface ClientCtor<C extends Client, O extends ClientOpts> {
-  new (agent: Executor, options: Address|Partial<O>): C
-}
-
-/** Interface to a specific contract.
-  * Subclass Client to add your contract-specific methods. */
-export class Client implements Instance {
-  constructor (readonly agent: Executor, arg: Address|Partial<ClientOpts> = {}) {
-    if (typeof arg === 'string') {
-      this.address  = arg
-    } else {
-      this.address  = arg.address
-      this.name     = arg.name     || this.name
-      this.label    = arg.label    || this.label
-      this.codeHash = arg.codeHash || this.codeHash
-      this.codeId   = arg.codeId   || this.codeId
-      this.fee      = arg.fee      || this.fee
-      this.fees = Object.assign(this.fees||{}, arg.fees||{})
-    }
-  }
-  /** Friendly name of the contract. */
-  name?:     string
-  /** The Chain on which this contract exists. */
-  get chain () { return this.agent.chain }
-  /** Label of the contract on the chain. */
-  label?:    string
-  /** Address of the contract on the chain. */
-  address:   Address
-  /** Code hash representing the content of the contract's code. */
-  codeHash?: CodeHash
-  /** Code ID representing the identity of the contract's code. */
-  codeId?:   CodeId
-  /** Default fee for transactions. */
-  fee?:      IFee
-  /** Default fee for specific transactions. */
-  fees:      Record<string, IFee> = {}
-  /** Get the recommended fee for a specific transaction. */
-  getFee (msg?: string|Record<string, unknown>): IFee|undefined {
-    const defaultFee = this.fee || this.agent.fees?.exec
-    if (typeof msg === 'string') {
-      return this.fees[msg] || defaultFee
-    } else if (typeof msg === 'object') {
-      const keys = Object.keys(msg)
-      if (keys.length !== 1) {
-        throw new Error('Client#getFee: messages must have exactly 1 root key')
-      }
-      return this.fees[keys[0]] || defaultFee
-    }
-    return this.fee || defaultFee
-  }
-  /** Execute a query on the specified contract as the specified Agent. */
-  async query <U> (msg: Message): Promise<U> {
-    return await this.agent.query(this, msg)
-  }
-  /** Execute a transaction on the specified contract as the specified Agent. */
-  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
-    opt.fee = opt.fee || this.getFee(msg)
-    return await this.agent.execute(this, msg, opt)
-  }
-  /** Fetch the label, code ID, and code hash from the Chain.
-    * You can override this method to populate custom contract info from the chain on your client,
-    * e.g. fetch the symbol and decimals of a token contract. */
-  async populate (): Promise<this> {
-    const [label, codeId, codeHash] = await Promise.all([
-      this.agent.getLabel(this.address),
-      this.agent.getCodeId(this.address),
-      this.agent.getHash(this.address)
-    ])
-    // TODO warn if retrieved values contradict current ones
-    this.label    = label
-    this.codeId   = codeId
-    this.codeHash = codeHash
-    return this
-  }
-  /** Create a copy of this Client with all transaction fees set to the provided value.
-    * If the fee is undefined, returns a copy of the client with unmodified fee config. */
-  withFee (fee: IFee|undefined): this {
-    const Self = this.constructor as ClientCtor<typeof this, any>
-    if (fee) {
-      return new Self(this.agent, {...this, fee, fees: {}})
-    } else {
-      return new Self(this.agent, {...this, fee: this.fee, fees: this.fees})
-    }
-  }
-  /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  as (agent: Executor): this {
-    const Self = this.constructor as ClientCtor<typeof this, any>
-    return new Self(agent, { ...this })
-  }
-}

@@ -356,9 +356,10 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     const chainId    = this.chain.id
     return new Template(
+      undefined,
+      codeHash,
       chainId,
       codeId,
-      codeHash,
       result.transactionHash
     )
   }

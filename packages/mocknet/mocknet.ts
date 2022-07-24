@@ -177,7 +177,7 @@ export class MocknetBackend {
     const codeId   = ++this.codeId
     const content  = this.uploads[codeId] = blob
     const codeHash = codeHashForBlob(blob)
-    return new Template(chainId, String(codeId), codeHash)
+    return new Template(undefined, codeHash, chainId, String(codeId))
   }
   instances = {}
   getInstance (address) {
