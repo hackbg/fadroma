@@ -422,14 +422,14 @@ class ContractSlot<C extends Client> extends Slot<C> {
   }
 
   async getOrDeploy (
-    template: Into<Template>,
+    template: IntoTemplate,
     init:     Message
   ): Promise<C> {
     return this.get() || await this.deploy(template, init)
   }
 
   async deploy (
-    template: Into<Template>,
+    template: IntoTemplate,
     init:     Message
   ): Promise<C> {
     const instance = this.context.instance(this.name)
