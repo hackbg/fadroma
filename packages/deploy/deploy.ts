@@ -20,19 +20,21 @@
 
 import { Address, Agent, AgentOpts, Artifact, Bundle, Chain, ChainMode, Client, ClientCtor,
          ClientOpts, DevnetHandle, Instance, Label, Message, Template } from '@fadroma/client'
-import { Source, IntoArtifact } from '@fadroma/build'
-import { ChainContext, knownChains, ChainMessages, ChainConfig, getChainConfig,
+import { Source, IntoArtifact, getBuildContext } from '@fadroma/build'
+import { ChainContext, knownChains, ChainLogger, AgentConfig, getAgentConfig, getChainContext,
          getAgentContext, AgentContext } from '@fadroma/connect'
 
 import { toHex, Sha256 } from '@hackbg/formati'
 import { Console, bold } from '@hackbg/konzola'
-import { Commands, CommandContext, StepOrInfo, getFromEnv } from '@hackbg/komandi'
+import { Commands, CommandContext, envConfig, Lazy,
+         runOperation, Step, StepOrInfo } from '@hackbg/komandi'
 import { freePort, waitPort } from '@hackbg/portali'
 import $, { BinaryFile, JSONDirectory, JSONFile, YAMLFile } from '@hackbg/kabinet'
 
 import { basename, resolve, dirname, relative, extname } from 'path'
 import { readFileSync, writeFileSync, readdirSync, readlinkSync, lstatSync, existsSync,
          symlinkSync } from 'fs'
+import {fileURLToPath} from 'url'
 
 import TOML from 'toml'
 import YAML from 'js-yaml'
@@ -43,27 +45,23 @@ import * as http from 'http'
 const console = Console('Fadroma Deploy')
 
 /** Getting builder settings from process runtime environment. */
-export function getDeployConfig (cwd = process.cwd(), env = process.env): DeployConfig {
-  const { Str, Bool } = getFromEnv(env)
-  return {
-    ...getChainConfig(cwd, env),
+export const getDeployConfig = envConfig(
+  ({Str, Bool}, cwd, env): DeployConfig => ({
+    ...getAgentConfig(cwd, env),
     reupload: Bool('FADROMA_REUPLOAD', ()=>false)
-  }
-}
+  }))
 
 /** Deploy settings definitions. */
-export interface DeployConfig extends ChainConfig {
+export interface DeployConfig extends AgentConfig {
   /** Whether to ignore upload receipts and upload contracts anew. */
   reupload?: boolean
 }
 
-export abstract class Slot<C extends CommandContext, T> {
-  abstract get (msgOrFn: StepOrInfo<C, T>): Promise<T>
-  value: T|null = null
-}
-
 /** Template or a type that can be uploaded. */
-export type IntoTemplate = Template|IntoArtifact
+export type IntoTemplate = Template|TemplateSlot|Into<Template>|IntoArtifact
+
+/** The thing T, or a function that returns the thing, synchronously or asynchronously. */
+export type Into<T> = T|(()=>T)|(()=>Promise<T>)
 
 export interface UploadContext extends AgentContext {
   config?:      DeployConfig
@@ -130,36 +128,6 @@ export function getUploadContext (context: AgentContext & Partial<UploadContext>
     async getOrUploadTemplate (code: IntoTemplate): Promise<Template> {
       return await new TemplateSlot(this, code).getOrUpload()
     }
-  }
-}
-
-export class TemplateSlot extends Slot<UploadContext, Template> {
-  constructor (
-    public readonly context: Partial<UploadContext>,
-    public readonly code:    IntoTemplate,
-  ) {
-    super()
-  }
-  async get (msgOrFn): Promise<Template> {
-    if (this.value) return this.value
-    if (msgOrFn instanceof Function) {
-      console.info('Looking for template', this.code)
-      this.value = await Promise.resolve(msgOrFn(this.context))
-      if (this.value) return this.value
-      throw Object.assign(new Error(`No such template`), { code: this.code })
-    } else {
-      msgOrFn = `No such template.${msgOrFn||''}`
-      throw new Error(msgOrFn)
-    }
-  }
-  /** If the contract was found in the deployment, return it.
-    * Otherwise, deploy it under the specified name. */
-  async getOrUpload (): Promise<Template> {
-    if (this.value) return this.value
-    return await this.upload()
-  }
-  async upload () {
-    return await this.context.upload(this.code)
   }
 }
 
@@ -363,9 +331,9 @@ export interface DeployContext extends UploadContext {
     * Useful for discerning multiple instanCan be usedces or versions of a contract. */
   suffix?:      string
   /** Currently selected collection of interlinked contracts. */
-  deployment?:  Deployment
+  deployment:   Deployment|null
   /** Who'll deploy new contracts */
-  deployer:     Agent
+  creator:     Agent
   /** Specify a contract instance. Populate with its get/deploy/getOrDeploy methods. */
   contract <C extends Client, O extends ClientOpts> (
     reference:  Name|Instance,
@@ -408,7 +376,7 @@ export const addPrefix = (prefix, name) => `${prefix}/${name}`
 export type  Name      = string
 
 export function getDeployContext (context: UploadContext & Partial<DeployContext>): DeployContext {
-  context.deployer ??= context.agent
+  context.creator ??= context.agent
   type Fn<T, U> = (...t: T[]) => U
   function needsActiveDeployment <T, U> (fn: Fn<T, U>): Fn<T, U> {
     if (!context.deployment) return () => { throw new Error('Fadroma Ops: no active deployment') }
@@ -416,7 +384,7 @@ export function getDeployContext (context: UploadContext & Partial<DeployContext
   }
   return {
     ...context,
-    deployer: context.deployer,
+    creator: context.creator,
     contract <C extends Client> (
       reference: string|{ address: string },
       APIClient: ClientCtor<C, any>
@@ -453,7 +421,7 @@ export function getDeployContext (context: UploadContext & Partial<DeployContext
     ) {
       template = await this.upload(template) as Template
       try {
-        return await this.deployment.initMany(this.deployer, template, contracts)
+        return await this.deployment.initMany(this.creator, template, contracts)
       } catch (e) {
         console.error(`Deploy of multiple contracts failed: ${e.message}`)
         console.error(`Deploy of multiple contracts failed: Configs were:`)
@@ -468,9 +436,104 @@ export function getDeployContext (context: UploadContext & Partial<DeployContext
 
 }
 
+export class DeployTask<X> extends Lazy<X> {
+  constructor (public readonly context: DeployContext, getResult: ()=>X) {
+    super(getResult)
+  }
+  gitRef: string = 'HEAD'
+  get chain      () { return this.context.chain }
+  get deployment () { return this.context.deployment }
+  get creator    () { return this.context.creator }
+  instance = (name: string): Instance|null => {
+    return this.deployment?.has(name) ? this.deployment.get(name) : null
+  }
+  template = (t: IntoTemplate): TemplateSlot => {
+    if (t instanceof Function) {
+      return new TemplateSlot(this, t)
+    }
+    if (typeof t === 'string') {
+      if (t.indexOf('@')===-1 && this.gitRef) {
+        t = `${name}@${this.gitRef}`
+      }
+      return new TemplateSlot(this.context, t as string)
+    }
+    if (t instanceof TemplateSlot && t.context === this.context) {
+      return t
+    }
+    console.warn(t)
+    throw new Error(`template: unknown argument ${t}`)
+  }
+  contract = <C extends Client> (
+    name:    string,
+    _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+  ): ContractSlot<C> => {
+    return new ContractSlot(this.context, name, _Client)
+  }
+  deploy = async <C extends Client> (
+    name: string,
+    code: IntoTemplate,
+    init: Message,
+    Client?: ClientCtor<C, ClientOpts>
+  ): Promise<C> => {
+    code = await this.template(code)
+    if (code instanceof Function) code = await Promise.resolve(code()) as Template
+    const instance = await this.deployment.init(this.creator, code, name, init)
+    const client   = new Client(this.creator, instance)
+    return client as C
+  }
+  deployMany = async <C extends Client> (
+    template: IntoTemplate,
+    configs:  [string, Message][],
+    Client?:  ClientCtor<C, ClientOpts>
+  ): Promise<C[]> => {
+    return (await this.deployment.initMany(
+      this.creator,
+      await this.template(template).getOrUpload(),
+      configs
+    )).map(instance=>this.creator.getClient(Client, instance))
+  }
+}
+
+export abstract class Slot<X, C> extends Lazy<X> {
+  constructor (
+    public readonly context: C,
+  ) {
+    super(async ()=>await Promise.resolve(this.get()))
+  }
+  value: X|null = null
+  get (): X {
+    if (!this.value) throw new Error('Missing slot value')
+    return this.value
+  }
+  expect (msg: string|Error, orElse?: ()=>Promise<X>): Promise<X> {
+    if (this.value) return Promise.resolve(this.value)
+    if (orElse) { console.info(msg); return orElse() }
+    if (typeof msg === 'string') msg = new Error(msg)
+    throw msg
+  }
+}
+
+export class TemplateSlot extends Slot<Template, , IntoTemplate> {
+  constructor (
+    public readonly context:   UploadContext,
+    public readonly reference: IntoTemplate
+  ) {
+    super(context, async ()=>await Promise.resolve(this.get()))
+  }
+  /** If the contract was found in the deployment, return it.
+    * Otherwise, deploy it under the specified name. */
+  async getOrUpload (): Promise<Template> {
+    if (this.value) return this.value
+    return await this.upload()
+  }
+  async upload () {
+    return await this.context.upload(this.code)
+  }
+}
+
 /** Object returned by context.contract() helper.
   * `getOrDeploy` method enables resumable deployments. */
-export class ContractSlot<C extends Client> extends Slot<DeployContext, C> {
+export class ContractSlot<C extends Client> extends Slot<C, DeployContext,> {
   constructor (
     public readonly context:   Partial<DeployContext>,
     public readonly reference: string|{ address: Address },
@@ -483,14 +546,14 @@ export class ContractSlot<C extends Client> extends Slot<DeployContext, C> {
       // When arg is string, look for contract by name in deployment
       if (this.context.deployment.has(reference)) {
         console.info('Found contract:', bold(reference))
-        this.value = this.context.deployer.getClient(
+        this.value = this.context.creator.getClient(
           this.APIClient,
           this.context.deployment.get(reference)
         )
       }
     } else if (reference.address) {
       // When arg has `address` property, just get client by address.
-      this.value = this.context.deployer.getClient(APIClient, reference)
+      this.value = this.context.creator.getClient(APIClient, reference)
     }
   }
   /** Get the specified contract. If it's not in the deployment,
@@ -520,8 +583,8 @@ export class ContractSlot<C extends Client> extends Slot<DeployContext, C> {
     const template = await this.context.upload(code)
     console.info(`Deploy ${bold(name)}:`, 'from code id:', bold(template.codeId))
     try {
-      const instance = await this.context.deployment.init(this.context.deployer, template, name, init)
-      return this.context.deployer.getClient(this.APIClient, instance) as C
+      const instance = await this.context.deployment.init(this.context.creator, template, name, init)
+      return this.context.creator.getClient(this.APIClient, instance) as C
     } catch (e) {
       console.error(`Deploy ${bold(name)}: Failed: ${e.message}`)
       console.error(`Deploy ${bold(name)}: Failed: Init message was:`)
@@ -529,6 +592,44 @@ export class ContractSlot<C extends Client> extends Slot<DeployContext, C> {
       throw e
     }
   }
+}
+class ContractSlot2<C extends Client> extends Slot<C> {
+
+  constructor (
+    public readonly context: DeployTask<unknown>,
+    public readonly name:    string,
+    public readonly Client:  ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+  ) { super() }
+
+  get (): C|null {
+    const instance = this.context.instance(this.name)
+    if (instance) {
+      return new this.Client(this.context.creator, instance)
+    } else {
+      return null
+    }
+  }
+
+  async getOrDeploy (
+    template: IntoTemplate,
+    init:     Message
+  ): Promise<C> {
+    return this.get() || await this.deploy(template, init)
+  }
+
+  async deploy (
+    template: IntoTemplate,
+    init:     Message
+  ): Promise<C> {
+    const instance = this.context.instance(this.name)
+    if (instance) {
+      console.error(`Name ${this.name} already corresponds to:`)
+      console.trace(instance)
+      throw new Error(`Already exists: ${this.name}`)
+    }
+    return this.context.deploy(this.name, template, init, this.Client)
+  }
+
 }
 
 /** Deployments for a chain, represented by a directory with 1 YAML file per deployment. */
@@ -708,64 +809,29 @@ export class Deployment {
   }
 }
 
-
-export function deployMessages ({ info, warn }) {
-
-  return { showChainStatus, showDeployment, showReceipt }
-
-  function showChainStatus ({ chain, deployments }) {
-    if (!chain) {
-      info('No active chain.')
-    } else {
-      info(bold('Chain type: '), chain.constructor.name)
-      info(bold('Chain mode: '), chain.mode)
-      info(bold('Chain ID:   '), chain.id)
-      info(bold('Chain URL:  '), chain.url.toString())
-      info(bold('Deployments:'), deployments.list().length)
-    }
+const expectDeployments = (context: { deployments: Deployments|null }): Deployments => {
+  if (!(context.deployments instanceof Deployments)) {
+    //console.error('context.deployments was not populated')
+    //console.log(context)
+    throw new Error('Deployments were not enabled')
   }
-
-  function showDeployment ({ deployment }) {
-    if (deployment) {
-      const { receipts, prefix } = deployment
-      let contracts: string|number = Object.values(receipts).length
-      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      console.info('Active deployment:', bold(prefix), bold(contracts))
-      const count = Object.values(receipts).length
-      if (count > 0) {
-        for (const name of Object.keys(receipts).sort()) {
-          showReceipt(name, receipts[name])
-        }
-      } else {
-        info('This deployment is empty.')
-      }
-    } else {
-      info('There is no selected deployment.')
-    }
-  }
-
-  function showReceipt (name, receipt) {
-    name = bold(name.padEnd(35))
-    if (receipt.address) {
-      const address = `${receipt.address}`.padStart(45)
-      const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      info(address, codeId, name)
-    } else {
-      warn('(non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
-    }
-  }
-
+  return context.deployments
 }
 
-export class Deploy <C extends AgentContext> extends Commands <C> {
+export class DeployCommands <C extends AgentContext> extends Commands <C> {
 
-  constructor (name, before, after) {
-    super(name, before, after)
-    this.before.push(deployMessages(console).showChainStatus)
-    this.command('list',    'print a list of all deployments', Deploy.list)
-    this.command('select',  'select a new active deployment',  Deploy.select)
-    this.command('new',     'create a new empty deployment',   Deploy.create)
-    this.command('status',  'show the current deployment',     Deploy.show)
+  constructor (name: string = 'deploy', before = [], after = []) {
+    super(name, [
+      getBuildContext,
+      getChainContext,
+      ChainLogger(console).ChainStatus,
+      getAgentContext,
+      ...before
+    ], after)
+    this.command('list',    'print a list of all deployments', DeployCommands.list)
+    this.command('select',  'select a new active deployment',  DeployCommands.select)
+    this.command('new',     'create a new empty deployment',   DeployCommands.create)
+    this.command('status',  'show the current deployment',     DeployCommands.status)
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
   }
 
@@ -773,10 +839,11 @@ export class Deploy <C extends AgentContext> extends Commands <C> {
   static get = async function getDeployment (
     context: AgentContext & Partial<DeployContext>
   ): Promise<DeployContext> {
-    if (!context.deployments?.active) {
+    const deployments = expectDeployments(context)
+    if (!deployments.active) {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }
-    context.deployment = context.deployments.active
+    context.deployment = deployments.active
     return getDeployContext(getUploadContext(context))
   }
 
@@ -784,31 +851,34 @@ export class Deploy <C extends AgentContext> extends Commands <C> {
   static create = async function createDeployment (
     context: AgentContext & Partial<DeployContext>
   ): Promise<DeployContext> {
+    const deployments = expectDeployments(context)
     const [ prefix = context.timestamp ] = context.cmdArgs
-    await context.deployments.create(prefix)
-    await context.deployments.select(prefix)
-    return await Deploy.get(context)
+    await deployments?.create(prefix)
+    await deployments?.select(prefix)
+    return await DeployCommands.get(context)
   }
 
   /** Add either the active deployment, or a newly created one, to the command context. */
   static getOrCreate = async function getOrCreateDeployment (
     context: AgentContext & Partial<DeployContext>
   ): Promise<DeployContext> {
-    if (context.deployments.active) {
-      return Deploy.get(context)
+    const deployments = expectDeployments(context)
+    if (deployments?.active) {
+      return DeployCommands.get(context)
     } else {
-      return await Deploy.create(context)
+      return await DeployCommands.create(context)
     }
   }
 
   static list = async function listDeployments (context: ChainContext): Promise<void> {
-    const { chain, deployments } = context
+    const deployments = expectDeployments(context)
+    const { chain } = context
     const list = deployments.list()
     if (list.length > 0) {
       console.info(`Deployments on chain ${bold(chain.id)}:`)
       for (let deployment of list) {
         if (deployment === deployments.KEY) continue
-        const count = Object.keys(deployments.get(deployment).receipts).length
+        const count = Object.keys(deployments.get(deployment)!.receipts).length
         if (deployments.active && deployments.active.prefix === deployment) {
           deployment = `${bold(deployment)} (selected)`
         }
@@ -823,7 +893,8 @@ export class Deploy <C extends AgentContext> extends Commands <C> {
   static select = async function selectDeployment (
     context: ChainContext
   ): Promise<void> {
-    const { deployments, cmdArgs: [id] = [undefined] } = context
+    const deployments = expectDeployments(context)
+    const { cmdArgs: [id] = [undefined] } = context
     const list = deployments.list()
     if (list.length < 1) {
       console.info('\nNo deployments. Create one with `deploy new`')
@@ -833,7 +904,7 @@ export class Deploy <C extends AgentContext> extends Commands <C> {
       await deployments.select(id)
     }
     if (list.length > 0) {
-      Deploy.list(context)
+      DeployCommands.list(context)
     }
     if (deployments.active) {
       console.info(`Currently selected deployment:`, bold(deployments.active.prefix))
@@ -843,27 +914,25 @@ export class Deploy <C extends AgentContext> extends Commands <C> {
   }
 
   /** Print the status of a deployment. */
-  static show = async function showDeployment (
+  static status = async function showDeployment (
     context: ChainContext,
     id = context.cmdArgs[0]
   ): Promise<void> {
-    let deployment = context.deployments.active
-    if (id) {
-      deployment = context.deployments.get(id)
-    }
+    const deployments = expectDeployments(context)
+    const deployment  = id ? deployments.get(id) : deployments.active
     if (deployment) {
-      deployMessages(console).showDeployment({ deployment })
+      DeployLogger(console).showDeployment({ deployment })
     } else {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }
   }
 
   /** For iterating on would-be irreversible mutations. */
-  iteration (name, info, ...steps) {
+  iteration (name: string, info: string, ...steps: Step<DeployContext, unknown>[]) {
     return this.command(name, info, deploymentIteration, ...steps)
     function deploymentIteration (context) {
       if (context.devMode) {
-        return Deploy.create(context)
+        return DeployCommands.create(context)
       } else {
         return context
       }
@@ -872,15 +941,44 @@ export class Deploy <C extends AgentContext> extends Commands <C> {
 
 }
 
-import {fileURLToPath} from 'url'
-import {runOperation } from '@hackbg/komandi'
+export const DeployLogger = ({ info, warn }: Console) => ({
+
+  Deployment ({ deployment }: DeployContext) {
+    if (deployment) {
+      const { receipts, prefix } = deployment
+      let contracts: string|number = Object.values(receipts).length
+      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+      console.info('Active deployment:', bold(prefix), bold(contracts))
+      const count = Object.values(receipts).length
+      if (count > 0) {
+        for (const name of Object.keys(receipts).sort()) {
+          this.Receipt(name, receipts[name])
+        }
+      } else {
+        info('This deployment is empty.')
+      }
+    } else {
+      info('There is no selected deployment.')
+    }
+  },
+
+  Receipt (name: string, receipt: any) {
+    name = bold(name.padEnd(35))
+    if (receipt.address) {
+      const address = `${receipt.address}`.padStart(45)
+      const codeId  = String(receipt.codeId||'n/a').padStart(6)
+      info(address, codeId, name)
+    } else {
+      warn('(non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+    }
+  }
+
+})
 
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   runOperation('deploy status', 'show deployment status', [
-    getAgentContext,
-    deployMessages(console).showChainStatus,
-    getDeployContext,
-    deployMessages(console).showDeployment
+    getAgentContext,  ChainLogger(console).ChainStatus,
+    getDeployContext, DeployLogger(console).Deployment
   ], process.argv.slice(2))
 }

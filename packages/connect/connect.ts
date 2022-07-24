@@ -1,47 +1,59 @@
 #!/usr/bin/env ganesha-node
 
-import { Console, bold                      } from '@hackbg/konzola'
-import { CommandContext, getFromEnv         } from '@hackbg/komandi'
 import { Chain, ChainMode, Agent, AgentOpts } from '@fadroma/client'
-import { ScrtGrpc  } from '@fadroma/scrt'
-import { ScrtAmino } from '@fadroma/scrt-amino'
-import { getDevnet } from '@fadroma/devnet'
-import { Mocknet   } from '@fadroma/mocknet'
+import { Scrt, ScrtGrpc                     } from '@fadroma/scrt'
+import { ScrtAmino                          } from '@fadroma/scrt-amino'
+import { DevnetKind, getDevnet              } from '@fadroma/devnet'
+import { Mocknet                            } from '@fadroma/mocknet'
+import { Console, bold             } from '@hackbg/konzola'
+import { CommandContext, envConfig } from '@hackbg/komandi'
 
 const console = Console('Fadroma Chains')
 
-/** Getting builder settings from process runtime environment. */
-export function getChainConfig (cwd = process.cwd(), env = process.env): ChainConfig {
-  const { Str, Bool } = getFromEnv(env)
-  return {
+/** Get chain settings from process runtime environment. */
+export const getChainConfig = envConfig(
+  ({ Str, Bool }, cwd): ChainConfig => ({
     project:       Str('FADROMA_PROJECT',  ()=>cwd),
     chain:         Str('FADROMA_CHAIN',    ()=>null),
-    agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
-    agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
-  }
-}
-
+  }))
+/** Chain settings. */
 export interface ChainConfig {
   /** Path to root of project. */
   project:  string
   /** Name of chain to use. */
   chain:    string
+}
+
+/** Get agent+chain settings from process runtime environment. */
+export const getAgentConfig = envConfig(
+  ({ Str }, cwd, env): AgentConfig => ({
+    ...getChainConfig(cwd, env),
+    agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
+    agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
+  }))
+/* Agent settings. */
+export interface AgentConfig extends ChainConfig {
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName:     string
   /** Mnemonic to use for authentication. */
   agentMnemonic: string
 }
 
+export type Chains = Record<string, (config: unknown)=>Chain|Promise<Chain>>
+
 /** Add a Chain and its Deployments to the Context. */
 export async function getChainContext (
-  context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
+  context: CommandContext & Partial<{
+    config: ChainConfig,
+    chains: Chains
+  }>,
 ): Promise<ChainContext> {
   context.chains ??= knownChains
   const config = { ...getChainConfig(), ...context.config ?? {} }
   const name = config.chain
   // Check that a valid name is passed
   if (!name || !context.chains[name]) {
-    ChainMessages.NoName(context.chains)
+    ChainLogger(console).NoName(context.chains)
     process.exit(1)
   }
   // Return chain and deployments handle
@@ -55,37 +67,26 @@ export async function getChainContext (
   }
 }
 
-export type Chains = Record<string, ()=>Chain>
+export const defineDevnetMode = (Chain: { new(...args:any[]): Chain }, version: DevnetKind) =>
+  async (config: unknown) => {
+    const mode = ChainMode.Devnet
+    const node = await getDevnet(version)
+    const id   = node.chainId
+    const url  = node.url.toString()
+    return new Chain(id, { url, mode, node })
+  }
 
 export const knownChains = {
-  async Mocknet (config): Promise<Mocknet> {
-    return new Mocknet() as Mocknet
-  },
-  ...ScrtGrpc.Chains,
-  async ScrtGrpcDevnet (config) {
-    const mode = ChainMode.Devnet
-    const node = await getDevnet('scrt_1.3').respawn()
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new ScrtGrpc(id, { url, mode, node })
-  },
-  ...ScrtAmino.Chains,
-  async ScrtAminoDevnet (config) {
-    const mode = ChainMode.Devnet
-    const node = await getDevnet('scrt_1.2').respawn()
-    const id   = node.chainId
-    const url  = node.url.toString()
-    return new ScrtAmino(id, { url, mode, node })
-  }
+  Mocknet: async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
+  ...ScrtGrpc.Chains,  ScrtGrpcDevnet:  defineDevnetMode(ScrtGrpc,  'scrt_1.3'),
+  ...ScrtAmino.Chains, ScrtAminoDevnet: defineDevnetMode(ScrtAmino, 'scrt_1.2'),
 }
-
-
 
 export async function getDeploymentsForChain (chain: Chain, project: string) {
   //@ts-ignore
   return await import('@fadroma/deploy')
     .then(({Deployments})=>Deployments.fromConfig(chain, project))
-    .catch(ChainMessages.NoDeploy)
+    .catch(ChainLogger(console).NoDeploy)
 }
 
 export interface ChainContext extends CommandContext {
@@ -110,7 +111,7 @@ export interface ChainContext extends CommandContext {
 
 /** Adds an Agent to the Context. */
 export async function getAgentContext (context: ChainContext): Promise<AgentContext> {
-  const config = context.config ?? getChainConfig()
+  const config = { ...context.config ?? {}, ...getAgentConfig() }
   if (!context.chain) context = {
     config: context.config,
     ...context,
@@ -119,10 +120,10 @@ export async function getAgentContext (context: ChainContext): Promise<AgentCont
   const agentOpts: AgentOpts = { name: undefined }
   if (context.chain.isDevnet) {
     // for devnet, use auto-created genesis account
-    agentOpts.name = context.config.agentName
+    agentOpts.name = config.agentName
   } else {
     // for scrt-based chains, use mnemonic from config
-    agentOpts.mnemonic = context.config.agentMnemonic
+    agentOpts.mnemonic = config.agentMnemonic
   }
   const agent = await context.chain.getAgent(agentOpts)
   return {
@@ -137,7 +138,7 @@ export interface AgentContext extends ChainContext {
   agent:     Agent
 }
 
-export function chainFlags (chain) {
+export function chainFlags (chain: Chain) {
   return {
     devMode:     chain.isDevnet || chain.isMocknet,
     isDevnet:    chain.isDevnet,
@@ -147,37 +148,56 @@ export function chainFlags (chain) {
   }
 }
 
-export const ChainMessages = {
-  NoName (chains) {
-    console.error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
-    ChainMessages.KnownChains(chains)
+export const ChainLogger = ({ log, info, warn, error }: Console) => ({
+  NoName (chains: object) {
+    error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
+    this.KnownChains(chains)
   },
   NoDeploy () {
-    console.warn('@fadroma/deploy not installed. Deployment system unavailable.')
+    warn('@fadroma/deploy not installed. Deployment system unavailable.')
     return null
   },
-  KnownChains (knownChains) {
-    console.log()
-    console.info('Known chain names:')
+  KnownChains (knownChains: object) {
+    log()
+    info('Known chain names:')
     for (const chain of Object.keys(knownChains).sort()) {
-      console.info(`  ${chain}`)
+      info(`  ${chain}`)
     }
   },
-  SelectedChain ({ chain }) {
-    console.log()
+  SelectedChain ({ chain }: ChainConfig) {
+    log()
     if (chain) {
-      console.info('Selected chain:')
-      console.info(`  ${chain}`)
+      info('Selected chain:')
+      info(`  ${chain}`)
     } else {
-      console.info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
+      info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
     }
-  }
-}
+  },
+  ChainStatus ({ chain, deployments }: ChainContext) {
+    info()
+    if (!chain) {
+      info('No active chain.')
+    } else {
+      info('Chain type: ', bold(chain.constructor.name))
+      info('Chain mode: ', bold(chain.mode))
+      info('Chain ID:   ', bold(chain.id))
+      info('Chain URL:  ', bold(chain.url.toString()))
+      info()
+      info('Deployments:', bold(String(deployments?.list().length)))
+      if (deployments?.active) {
+        info('Active:     ', bold(String(deployments?.active?.prefix)))
+      } else {
+        info('No active deployment.')
+      }
+    }
+    info()
+  },
+})
 
 import {fileURLToPath} from 'url'
 
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  ChainMessages.KnownChains(knownChains)
-  ChainMessages.SelectedChain(getChainConfig())
+  ChainLogger(console).KnownChains(knownChains)
+  ChainLogger(console).SelectedChain(getChainConfig())
 }

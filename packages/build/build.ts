@@ -67,7 +67,7 @@ export function getBuildContext (context: CommandContext & Partial<BuildContext>
   const config = { ...getBuilderConfig(), ...context.config ?? {} }
   return {
     ...context,
-    config:    context.config,
+    config,
     builder:   getBuilder(config),
     workspace: new Workspace(config.project),
     getSource (source: IntoSource, ref?: string): Source {
@@ -136,7 +136,7 @@ export abstract class Builder {
     this.outputDirName = opts.outputDirName ?? this.outputDirName
     this.script        = opts.script        ?? this.script
   }
-  buildMany (sources: Source[], ...args): Promise<Artifact[]> {
+  buildMany (sources: Source[]): Promise<Artifact[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
   abstract build (source: Source, ...args): Promise<Artifact>

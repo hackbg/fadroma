@@ -32,8 +32,6 @@
     "docs:vp:serve":    "vitepress serve"
   },
   "dependencies": {
-    "dotenv":              "^15.0.1",
-
     "@hackbg/ganesha":     "^2.2",
     "@hackbg/dokeres":     "^4.0.2",
     "@hackbg/kabinet":     "^3.0.6",

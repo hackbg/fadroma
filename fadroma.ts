@@ -118,10 +118,6 @@ export * from '@hackbg/komandi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
 
-/** Update `process.env` with value from `.env` file */
-import dotenv from 'dotenv'
-dotenv.config()
-
 export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
   const { Str, Bool } = getFromEnv(env)
   const config = {

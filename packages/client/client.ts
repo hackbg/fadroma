@@ -176,6 +176,7 @@ export interface ChainOpts {
 export interface DevnetHandle {
   chainId: string
   url:     URL
+  respawn:           ()             => Promise<unknown>
   terminate:         ()             => Promise<void>
   getGenesisAccount: (name: string) => Promise<AgentOpts>
 }
@@ -283,6 +284,7 @@ export abstract class Chain implements Spectator {
     options: Partial<AgentOpts> = {},
     _Agent:  AgentCtor<Agent> = this.Agent as AgentCtor<Agent>
   ): Promise<A> {
+    if (this.node) await this.node.respawn()
     if (!options.mnemonic && options.name) {
       if (this.node) {
         options = await this.node.getGenesisAccount(options.name)

@@ -1,8 +1,11 @@
-import { Address, Client, Executor, Uint128, ICoin, Coin } from '@fadroma/client'
+import { Address, Client, CodeHash, Executor, Uint128, ICoin, Coin } from '@fadroma/client'
 import { Permit, ViewingKeyClient } from '@fadroma/scrt'
 import { Console, bold } from '@hackbg/konzola'
+import { randomHex } from '@hackbg/formati'
 
 const console = Console('Fadroma Tokens')
+
+export type Tokens = Record<string, Snip20|Token>
 
 /** # Token descriptors. */
 
@@ -33,25 +36,46 @@ export function getTokenId (token: Token): string {
   return address;
 }
 
-/** Token descriptor. Specifies:
-  * - kind of token (native or custom)
-  * - identity of token (denomination or addr/hash) */
+/** Token descriptor. Specifies kind (native or custom) and identity of token (denom/addr+hash) */
 export type Token = NativeToken | CustomToken;
-
+export function isTokenDescriptor (obj: any): obj is Token {
+  return isNativeToken(obj) || isCustomToken(obj)
+}
+/** Native token. Supported natively by the underlying blockchain. */
+export interface NativeToken {
+  native_token: {
+    denom: string
+  }
+}
+export function isNativeToken (obj: any): obj is NativeToken {
+  return (
+    typeof obj === 'object' &&
+    typeof obj.native_token === 'object' &&
+    typeof obj.native_token.denom === 'string'
+  )
+}
+export function nativeToken (denom: string) {
+  return { native_token: { denom } }
+}
+/** Custom token. Implemented as a smart contract in the blockchain's compute module. */
 export interface CustomToken {
   custom_token: {
     contract_addr:    Address
     token_code_hash?: string
   }
 }
-
-export interface NativeToken {
-  native_token: {
-    denom: string
-  }
+export function isCustomToken (obj: any): obj is NativeToken {
+  return (
+    typeof obj                              === 'object' &&
+    typeof obj.custom_token                 === 'object' &&
+    typeof obj.custom_token.contract_addr   === 'string' &&
+    typeof obj.custom_token.token_code_hash === 'string'
+  )
 }
-
-/** An amount of a token. */
+export function customToken (contract_addr: Address, token_code_hash?: CodeHash) {
+  return { custom_token: { contract_addr, token_code_hash } }
+}
+/** Token amount descriptor. Specifies a particular amount of a particular token. */
 export class TokenAmount {
   constructor (
     readonly token:  Token,
@@ -129,12 +153,36 @@ export interface Snip20InitMsg {
   decimals:  number
   admin:     Address
   prng_seed: string
-  config:    { public_total_supply: boolean, enable_mint: boolean }
+  config:    Partial<Snip20InitConfig>
   // Allow to be cast as Record<string, unknown>:
   [name: string]: unknown
 }
 
+export interface Snip20InitConfig {
+  public_total_supply: boolean
+  enable_mint:         boolean
+  enable_burn:         boolean
+  enable_deposit:      boolean
+  enable_redeem:       boolean
+  // Allow unknown properties:
+  [name: string]: unknown
+}
+
 export class Snip20 extends Client {
+
+  static init = (
+    name:     string,
+    symbol:   string,
+    decimals: number,
+    admin:    Address|{ address: Address },
+    config:   Partial<Snip20InitConfig> = {}
+  ): Snip20InitMsg => {
+    if (typeof admin === 'object') admin = admin.address
+    return {
+      name, symbol, decimals, admin, config,
+      prng_seed: randomHex(36),
+    }
+  }
 
   static fromDescriptor (agent: Executor, descriptor: CustomToken): Snip20 {
     const { custom_token } = descriptor

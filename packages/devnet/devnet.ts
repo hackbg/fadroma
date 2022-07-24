@@ -1,31 +1,27 @@
 import $, { JSONFile, JSONDirectory, OpaqueDirectory }               from '@hackbg/kabinet'
 import { Dokeres, DokeresImage, DokeresContainer, waitUntilLogsSay } from '@hackbg/dokeres'
-import { bold }               from '@hackbg/konzola'
-import { getFromEnv }         from '@hackbg/komandi'
-import { freePort, Endpoint } from '@hackbg/portali'
-import { randomHex }          from '@hackbg/formati'
-
-import { AgentOpts, Chain, DevnetHandle } from '@fadroma/client'
-
+import { Console, bold }                                             from '@hackbg/konzola'
+import { envConfig, runOperation }                                   from '@hackbg/komandi'
+import { freePort, waitPort, Endpoint }                              from '@hackbg/portali'
+import { randomHex }                                                 from '@hackbg/formati'
+import { AgentOpts, Chain, ChainMode, DevnetHandle  } from '@fadroma/client'
+import { getChainContext, ChainContext, ChainLogger } from '@fadroma/connect'
 import { resolve, relative, basename, dirname } from 'path'
-import { cwd } from 'process'
-import { readlinkSync, symlinkSync } from 'fs'
-import { fileURLToPath } from 'url'
-
+import { cwd }                                  from 'process'
+import { readlinkSync, symlinkSync }            from 'fs'
+import { fileURLToPath }                        from 'url'
 //@ts-ignore
-export const __dirname = dirname(fileURLToPath(import.meta.url))
-
+export const __dirname = dirname(fileURLToPath(import.meta.url)) // resource finder
+/** Module-specific console. */
+export const console = Console('Fadroma Devnet')
 /** Get devnet settings from environment. */
-export function getDevnetConfig (cwd = process.cwd(), env = process.env): DevnetConfig {
-  const { Str, Bool } = getFromEnv(env)
-  return {
+export const getDevnetConfig = envConfig(
+  ({ Str, Bool }): DevnetConfig => ({
     manager:   Str ('FADROMA_DEVNET_MANAGER',   ()=>null),
     ephemeral: Bool('FADROMA_DEVNET_EPHEMERAL', ()=>false),
     chainId:   Str ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet"),
     port:      Str ('FADROMA_DEVNET_PORT',      ()=>null)
-  }
-}
-
+  }))
 /** Devnet settings. */
 export interface DevnetConfig {
   /** URL to the devnet manager endpoint, if used. */
@@ -37,10 +33,8 @@ export interface DevnetConfig {
   /** Port for devnet. */
   port:      string|null
 }
-
-/** Domain API. A Devnet is created from a given chain ID
-  * with given pre-configured identities, and its state is stored
-  * in a given directory. */
+/** A Devnet is created from a given chain ID with given pre-configured identities,
+  * and its state is stored in a given directory (e.g. `receipts/fadroma-devnet`). */
 export interface DevnetOpts {
   /** Internal name that will be given to chain. */
   chainId?:    string
@@ -55,7 +49,6 @@ export interface DevnetOpts {
   /** Whether to destroy this devnet on exit. */
   ephemeral?:  boolean
 }
-
 /** Used to reconnect between runs. */
 export interface DevnetState {
   /** ID of Docker container to restart. */
@@ -65,7 +58,6 @@ export interface DevnetState {
   /** The port on which the devnet will be listening. */
   port:         number|string
 }
-
 export abstract class Devnet implements DevnetHandle {
   /** Default connection type to expose on the devnets. */
   static defaultPort: Record<DevnetKind, DevnetPortMode> = {
@@ -170,9 +162,7 @@ export abstract class Devnet implements DevnetHandle {
   /** Erase the state of the node. */
   abstract erase (): Promise<void>
 }
-
 export type DevnetPortMode = 'lcp'|'grpcWeb'
-
 /** Parameters for the Dockerode-based implementation of Devnet.
   * (https://www.npmjs.com/package/dockerode) */
 export interface DockerDevnetOpts extends DevnetOpts {
@@ -184,25 +174,19 @@ export interface DockerDevnetOpts extends DevnetOpts {
     * from the container, the devnet is ready to accept requests. */
   readyPhrase?: string
 }
-
 export type DevnetKind = 'scrt_1.2'|'scrt_1.3'
-
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
 export class DockerDevnet extends Devnet implements DevnetHandle {
-
   static dockerfiles: Record<DevnetKind, string> = {
     'scrt_1.2': resolve(__dirname, 'scrt_1_2.Dockerfile'),
     'scrt_1.3': resolve(__dirname, 'scrt_1_3.Dockerfile')
   }
-
   static dockerTags: Record<DevnetKind, string> = {
     'scrt_1.2': 'fadroma/scrt-devnet:1.2',
     'scrt_1.3': 'fadroma/scrt-devnet:1.3',
   }
-
   static initScriptName = 'devnet-init.mjs'
-
   static getOrCreate (kind: DevnetKind, dokeres = new Dokeres()) {
     const portMode    = Devnet.defaultPort[kind]
     const dockerfile  = this.dockerfiles[kind]
@@ -212,16 +196,15 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     const image       = dokeres.image(imageTag, dockerfile, [this.initScriptName])
     return new DockerDevnet({ portMode, image, readyPhrase, initScript })
   }
-
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
     console.info('Constructing devnet with', bold('@hackbg/dokeres'))
-    this.identities  = this.stateRoot.in('identities').as(JSONDirectory)
-    this.image       = options.image
-    this.initScript  = options.initScript
-    this.readyPhrase = options.readyPhrase
+    this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
+    this.image       ??= options.image
+    this.initScript  ??= options.initScript
+    this.readyPhrase ??= options.readyPhrase
   }
-  get dokeres (): Dokeres {
+  get dokeres (): Dokeres|null {
     return this.image.dokeres
   }
   /** This should point to the standard production docker image for the network. */
@@ -455,13 +438,11 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
 }
-
 /** Parameters for the HTTP API-managed implementation of Devnet. */
 export type RemoteDevnetOpts = DevnetOpts & {
   /** Base URL of the API that controls the managed node. */
   managerURL: string
 }
-
 /** When running in docker-compose, Fadroma needs to request
   * from the devnet container to spawn a chain node with the
   * given chain id and identities via a HTTP API. */
@@ -582,8 +563,8 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
 
 export function getDevnet (
   kind:     DevnetKind,
-  manager:  string = undefined,
-  chainId:  string = undefined,
+  manager?:  string,
+  chainId?:  string,
   dokeres?: Dokeres
 ): Devnet {
   if (manager) {
@@ -596,9 +577,24 @@ export function getDevnet (
 export async function resetDevnet ({ chain }: { chain: Chain }) {
   if (!chain) {
     console.info('No active chain.')
-  } else if (!chain.isDevnet) {
+  } else if (!chain.isDevnet || !chain.node) {
     console.info('This command is only valid for devnets.')
   } else {
     await chain.node.terminate()
   }
+}
+
+//@ts-ignore
+if (fileURLToPath(import.meta.url) === process.argv[1]) {
+  runOperation('devnet status', 'show deployment status', [
+    getChainContext,
+    ChainLogger(console).ChainStatus,
+    function optionallyReset ({ cmdArgs = [], chain }: ChainContext) {
+      if (cmdArgs[0] === 'reset') {
+        return resetDevnet(chain)
+      } else {
+        console.info('Pass "reset" to this command to remove this devnet.')
+      }
+    }
+  ], process.argv.slice(2))
 }
