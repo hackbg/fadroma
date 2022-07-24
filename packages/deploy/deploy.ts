@@ -18,22 +18,39 @@
 
 **/
 
-import { Address, Agent, AgentOpts, Artifact, Bundle, Chain, ChainMode, Client, ClientCtor,
-         ClientOpts, DevnetHandle, Instance, Label, Message, Template } from '@fadroma/client'
-import { Source, IntoArtifact, getBuildContext } from '@fadroma/build'
-import { ChainContext, knownChains, ChainLogger, AgentConfig, getAgentConfig, getChainContext,
-         getAgentContext, AgentContext } from '@fadroma/connect'
+import {
+  Chain, ChainMode, Agent, AgentOpts, Bundle, Client, ClientCtor, ClientOpts, DevnetHandle,
+  Artifact, Template, Instance, Label, Message, Address
+} from '@fadroma/client'
+
+import {
+  Source, IntoArtifact,
+  BuildContext, getBuildContext,
+  BuilderConfig, getBuilderConfig
+} from '@fadroma/build'
+
+import {
+  knownChains,
+  ChainLogger,
+  ChainContext, getChainContext,
+  AgentConfig, getAgentConfig,
+  AgentContext, getAgentContext
+} from '@fadroma/connect'
 
 import { toHex, Sha256 } from '@hackbg/formati'
 import { Console, bold } from '@hackbg/konzola'
-import { Commands, CommandContext, envConfig, Lazy,
-         runOperation, Step, StepOrInfo } from '@hackbg/komandi'
+import {
+  Commands, CommandContext, envConfig, Lazy,
+  runOperation, Step, StepOrInfo
+} from '@hackbg/komandi'
 import { freePort, waitPort } from '@hackbg/portali'
 import $, { BinaryFile, JSONDirectory, JSONFile, YAMLFile } from '@hackbg/kabinet'
 
 import { basename, resolve, dirname, relative, extname } from 'path'
-import { readFileSync, writeFileSync, readdirSync, readlinkSync, lstatSync, existsSync,
-         symlinkSync } from 'fs'
+import {
+  readFileSync, writeFileSync, readdirSync, lstatSync, existsSync,
+  readlinkSync, symlinkSync
+} from 'fs'
 import {fileURLToPath} from 'url'
 
 import TOML from 'toml'
@@ -47,6 +64,7 @@ const console = Console('Fadroma Deploy')
 /** Getting builder settings from process runtime environment. */
 export const getDeployConfig = envConfig(
   ({Str, Bool}, cwd, env): DeployConfig => ({
+    ...getBuilderConfig(cwd, env),
     ...getAgentConfig(cwd, env),
     reupload: Bool('FADROMA_REUPLOAD', ()=>false)
   }))
@@ -63,8 +81,10 @@ export type IntoTemplate = Template|TemplateSlot|Into<Template>|IntoArtifact
 /** The thing T, or a function that returns the thing, synchronously or asynchronously. */
 export type Into<T> = T|(()=>T)|(()=>Promise<T>)
 
-export interface UploadContext extends AgentContext {
-  config?:      DeployConfig
+type AgentAndBuildContext = AgentContext & BuildContext
+
+export interface UploadContext extends AgentAndBuildContext {
+  config:      AgentConfig & BuilderConfig & DeployConfig
   /** Specify a template. Populate with its get/upload/getOrUpload methods. */
   template      (source: IntoTemplate):        TemplateSlot
   /** Get an object representing a template (code id + hash)
@@ -494,10 +514,8 @@ export class DeployTask<X> extends Lazy<X> {
   }
 }
 
-export abstract class Slot<X, C> extends Lazy<X> {
-  constructor (
-    public readonly context: C,
-  ) {
+export abstract class Slot<X> extends Lazy<X> {
+  constructor () {
     super(async ()=>await Promise.resolve(this.get()))
   }
   value: X|null = null
@@ -513,12 +531,24 @@ export abstract class Slot<X, C> extends Lazy<X> {
   }
 }
 
-export class TemplateSlot extends Slot<Template, , IntoTemplate> {
+export class TemplateSlot extends Slot<Template> {
   constructor (
     public readonly context:   UploadContext,
     public readonly reference: IntoTemplate
   ) {
-    super(context, async ()=>await Promise.resolve(this.get()))
+    super()
+    if (reference instanceof TemplateSlot) {
+      this.value = reference.value
+    }
+    if (reference instanceof Function) {
+      const value = reference()
+      if (value instanceof Promise) {
+        throw new Error('Passing async functions into TemplateSlot is not supported.')
+      }
+    }
+    if (reference instanceof String) {
+      const source = context.getSource(reference)
+    }
   }
   /** If the contract was found in the deployment, return it.
     * Otherwise, deploy it under the specified name. */
@@ -553,21 +583,7 @@ export class ContractSlot<C extends Client> extends Slot<C, DeployContext,> {
       }
     } else if (reference.address) {
       // When arg has `address` property, just get client by address.
-      this.value = this.context.creator.getClient(APIClient, reference)
-    }
-  }
-  /** Get the specified contract. If it's not in the deployment,
-    * try fetching it from a subroutine or throw an error with a custom message. */
-  async get (msgOrFn: StepOrInfo<any, C> = ''): Promise<C> {
-    if (this.value) return this.value
-    if (msgOrFn instanceof Function) {
-      console.info('Finding contract:', bold(this.reference as string))
-      this.value = await Promise.resolve(msgOrFn(this.context))
-      if (this.value) return this.value
-      throw new Error(`No such contract: ${this.reference}.`)
-    } else {
-      msgOrFn = `No such contract: ${this.reference}. ${msgOrFn||''}`
-      throw new Error(msgOrFn)
+      this.value = this.context.creator?.getClient(APIClient, reference)
     }
   }
   /** If the contract was found in the deployment, return it.

@@ -225,13 +225,14 @@ export class DockerBuilder extends CachingBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources: Source[]): Promise<Artifact[]> {
+    BuildLogger(console).BuildMany(sources)
     // Announce what will be done
     //console.info('Requested to build the following contracts:')
     const longestCrateName = sources.map(source=>source.crate.length).reduce((x,y)=>Math.max(x,y),0)
     for (const source of sources) {
       const outputDir = $(source.workspace.path).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.workspace.ref)
-      if (this.verbose) BuildMessages.BuildOne(source, prebuilt, longestCrateName)
+      if (this.verbose) BuildLogger(console).BuildOne(source, prebuilt, longestCrateName)
     }
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, Workspace> = {}
@@ -254,7 +255,7 @@ export class DockerBuilder extends CachingBuilder {
       // And for each ref of that workspace,
       for (const ref of refs) {
         let mounted = $(path)
-        if (this.verbose) BuildMessages.BuildMany(mounted, ref)
+        if (this.verbose) BuildLogger(console).Workspace(mounted, ref)
         if (ref !== HEAD) {
           mounted = gitDir.rootRepo
           //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
@@ -395,8 +396,8 @@ export class DockerBuilder extends CachingBuilder {
         AttachStdin: true,
       }
     }
-    console.info('Building with command:', bold(command.join(' ')))
-    console.debug('Building in a container with this configuration:', options)
+    //console.info('Building with command:', bold(command.join(' ')))
+    //console.debug('Building in a container with this configuration:', options)
     // Prepare the log output stream
     const buildLogPrefix = `[${ref}]`.padEnd(16)
     const logs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
@@ -740,33 +741,45 @@ export function buildFromFile (
   buildArgs: string[] = []
 ) {
   if (file.name === 'Cargo.toml') {
-    BuildMessages.CargoToml(file)
+    BuildLogger(console).CargoToml(file)
     buildFromCargoToml(file as CargoTOML)
   } else {
-    BuildMessages.BuildScript(file)
+    BuildLogger(console).BuildScript(file)
     buildFromBuildScript(file as OpaqueFile, buildArgs)
   }
 }
 
-export const BuildMessages = {
+export const BuildLogger = ({ info }: Console) => ({
   CargoToml (file: Path) {
-    console.info('Building from', bold(file.shortPath))
+    info('Building from', bold(file.shortPath))
   },
   BuildScript (file: Path) {
-    console.info('Running build script', bold(file.shortPath))
+    info('Running build script', bold(file.shortPath))
   },
-  BuildOne (source, prebuilt, longestCrateName) {
-    console.info(
+  BuildOne (source: Source, prebuilt, longestCrateName) {
+    info(
       ' ',    bold(source.crate.padEnd(longestCrateName)),
       'from', bold(`${$(source.workspace.path).shortPath}/`),
       '@',    bold(source.workspace.ref),
       prebuilt ? '(exists, not rebuilding)': ''
     )
   },
-  BuildMany (mounted, ref) {
-    console.info(
+  BuildMany (sources: Source[]) {
+    info('Building the following contracts:')
+    for (const source of sources) {
+      const { crate, workspace: { path, ref = 'HEAD' } } = source
+      if (ref === 'HEAD') {
+        info(' ', bold(source.crate), 'from working tree')
+      } else {
+        info(' ', bold(source.crate), 'from Git reference', bold(ref))
+      }
+    }
+    info()
+  }
+  Workspace (mounted, ref) {
+    info(
       `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
       `@`, bold(ref)
     )
   }
-}
+})
