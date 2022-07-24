@@ -13,14 +13,14 @@ importers:
       '@fadroma/schema': workspace:^1.0.0-beta.0
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-amino': workspace:*
-      '@fadroma/tokens': workspace:^4.0.0-beta.0
+      '@fadroma/tokens': workspace:^3.0.0-beta.0
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/ensuite': ^1
       '@hackbg/formati': ^1.1.0
       '@hackbg/ganesha': ^2.2
       '@hackbg/izomorf': ^3.0.1
       '@hackbg/kabinet': ^3.0.6
-      '@hackbg/komandi': ^4.0.0
+      '@hackbg/komandi': workspace:^4.1.2
       '@hackbg/konzola': ^1.0.8
       '@types/node': ^16.11.36
       body-parser: ^1.20.0
@@ -117,7 +117,7 @@ importers:
       '@fadroma/mocknet': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-amino': workspace:*
-      '@hackbg/komandi': ^4
+      '@hackbg/komandi': workspace:*
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/mocknet': link:../mocknet

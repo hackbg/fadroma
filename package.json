@@ -48,7 +48,7 @@
     "@fadroma/devnet":     "workspace:^1.0.0-beta.0",
     "@fadroma/mocknet":    "workspace:^1.0.0-beta.0",
     "@fadroma/schema":     "workspace:^1.0.0-beta.0",
-    "@fadroma/tokens":     "workspace:^4.0.0-beta.0",
+    "@fadroma/tokens":     "workspace:^3.0.0-beta.0",
 
     "@fadroma/scrt":       "workspace:*",
     "@fadroma/scrt-amino": "workspace:*"
