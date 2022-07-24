@@ -335,6 +335,33 @@ export class FadromaOps {
   Upload = FadromaOps.Upload
   Deploy = FadromaOps.Deploy
 
+  // command preludes!
+
+  /** Command prelude: add these steps to the start of a command
+    * to enable building and uploading contracts *from* local sources
+    * and *for* Secret Network 1.2, *ignoring* deployments. */
+  canBuildAndUpload = [
+    this.Chain.FromEnv,        // determine the chain to operate on
+    this.Build.Scrt,           // enable building for Secret Network
+    this.Upload.FromFile,      // enable uploading from local files
+  ]
+
+  /** Command prelude: add these steps to the start of a command
+    * to enable building and uploading contracts *from* local sources
+    * and *for* Secret Network 1.2, inside a *new* deployment. */
+  inNewDeployment = [
+    ...this.canBuildAndUpload, // standard setup, see above
+    FadromaOps.Deploy.New      // create a new deployment upon commencement
+  ]
+
+  /** Command prelude: add these steps to the start of a command
+    * to enable building and uploading contracts *from* local sources
+    * and *for* Secret Network 1.2, inside the *currently selected* deployment. */
+  inCurrentDeployment = [
+    ...this.canBuildAndUpload, // standard setup, see above
+    FadromaOps.Deploy.Append   // enable appending to the currently active deployment
+  ]
+
   /** Call this with `import.meta.url` at the end of a command module.
     * TODO get rid of this mechanic and use "fadroma run" + default exports */
   module (url: string): this {
@@ -378,7 +405,8 @@ export default new FadromaOps()
 
 export { LegacyScrt, Scrt }
 
-// Reexport the full vocabulary
+/// Reexport the platform vocabulary ///////////////////////////////////////////////////////////////
+
 export * from '@fadroma/client'
 export * from '@fadroma/client-scrt-amino'
 export * from '@fadroma/client-scrt-grpc'
