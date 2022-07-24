@@ -5,7 +5,9 @@ import type { UploadContext } from './Upload'
 import type { DeployContext } from './Deploy'
 import { Deployments } from './Deploy'
 
-export type Operation<T> = (context: OperationContext) => Promise<T>
+/** A function that runs in the operation context.
+  * May be synchronous or asynchronous: runOperation conforms it to async using Promise.resolve() */
+export type Operation<T> = (context: OperationContext) => T|Promise<T>
 
 export interface CommandContext {
   /** The moment at which the operation commenced. */
