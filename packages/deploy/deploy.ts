@@ -395,8 +395,12 @@ export class MultiTemplateSlot {
     this.slots = slots.map(value=>new TemplateSlot(value, context))
   }
   public readonly slots: TemplateSlot[]
-  getOrUploadMany (): Promise<Template>[] {
-    return this.slots.map((template: TemplateSlot)=>template.getOrUpload())
+  async getOrUploadMany (): Promise<Template[]> {
+    const templates: Template[] = []
+    for (const template of this.slots) {
+      templates.push(await template.getOrUpload())
+    }
+    return templates
   }
 }
 /** Directory collecting upload receipts.
