@@ -200,8 +200,12 @@ export class ScrtGrpc extends Scrt {
     return codeId
   }
 
-  async getHash (address: string): Promise<string> {
-    return await (await this.api).query.compute.contractCodeHash(address)
+  async getHash (address: string|number): Promise<string> {
+    if (typeof address === 'number') {
+      return await (await this.api).query.compute.codeHash(address)
+    } else {
+      return await (await this.api).query.compute.contractCodeHash(address)
+    }
   }
 
   async query <U> (instance: Instance, query: Message): Promise<U> {

@@ -16,7 +16,7 @@ export type Uint256    = string
   * Can be uploaded with provided uploader, producing a Template. */
 export class Artifact {
   constructor (
-    public readonly   source?: { crate: string, workspace: { ref: string } },
+    public readonly   source?: SourceHandle,
                          url?: URL|string,
     public readonly codeHash?: CodeHash
   ) {
@@ -24,10 +24,23 @@ export class Artifact {
     this.url = url
   }
   url?: URL
+  build (builder: BuilderHandle): Promise<Artifact> {
+    if (!this.source) throw new Error('Artifact: no Source to build')
+    return builder.build(this.source)
+  }
   upload (uploader: UploaderHandle): Promise<Template> {
     return uploader.upload(this)
   }
 }
+/** Source is implemented in @fadroma/build */
+export interface SourceHandle {
+  crate:     string
+  workspace: { ref: string }
+  build (builder: BuilderHandle): Promise<Artifact>
+  at    (ref?:    string):        SourceHandle
+}
+/** Builder is implemented in @fadroma/build */
+export interface BuilderHandle { build: (source: SourceHandle)=>Promise<Artifact> }
 /** Uploader is implemented in @fadroma/deploy */
 export interface UploaderHandle { upload: (artifact: Artifact)=>Promise<Template> }
 /** An uploaded smart contract, referenced by chain ID, code ID and code hash.
@@ -168,7 +181,7 @@ export interface ClientOpts extends Instance {
   fees?: Record<string, IFee>
 }
 /** Client constructor - used by functions which create user-specified Clients. */
-export interface ClientCtor<C extends Client, O extends ClientOpts> {
+export interface ClientCtor<C extends Client, O extends Instance> {
   new (agent: Executor, options: Address|Partial<O>): C
 }
 /** Something that can execute read-only API calls. */
@@ -182,7 +195,7 @@ export interface Spectator {
   /** Get the label of a smart contract. */
   getLabel      (address: Address):                      Promise<string>
   /** Get the code hash of a smart contract. */
-  getHash       (address: Address):                      Promise<string>
+  getHash       (addressOrCodeId: Address|number):       Promise<string>
   /** Get the code hash of a smart contract. */
   checkHash     (address: Address, codeHash?: CodeHash): Promise<string>
   /** Get the current block height. */
@@ -213,7 +226,7 @@ export interface Executor extends Spectator {
   /** Begin a transaction bundle. */
   bundle          (): Bundle
   /** Get a client instance for talking to a specific smart contract as this executor. */
-  getClient <C extends Client, O extends ClientOpts> (Client: ClientCtor<C, O>, arg: Address|O): C
+  getClient <C extends Client, O extends Instance> (Client: ClientCtor<C, O>, arg: Address|O): C
 }
 /** Options for a compute transaction. */
 export interface ExecOpts {
@@ -315,7 +328,7 @@ export abstract class Chain implements Spectator {
   abstract query <U> (contract: Instance, msg: Message): Promise<U>
   abstract getCodeId (address: Address): Promise<CodeId>
   abstract getLabel (address: Address): Promise<string>
-  abstract getHash (address: Address): Promise<CodeHash>
+  abstract getHash (address: Address|number): Promise<CodeHash>
   async checkHash (address: Address, codeHash?: CodeHash) {
     // Soft code hash checking for now
     const realCodeHash = await this.getHash(address)
@@ -423,11 +436,11 @@ export abstract class Agent implements Executor {
   get nextBlock () { return this.chain.nextBlock }
   getCodeId (address: Address) { return this.chain.getCodeId(address) }
   getLabel  (address: Address) { return this.chain.getLabel(address) }
-  getHash   (address: Address) { return this.chain.getHash(address) }
+  getHash   (address: Address|number) { return this.chain.getHash(address) }
   checkHash (address: Address, codeHash?: CodeHash) {
     return this.chain.checkHash(address, codeHash)
   }
-  getClient <C extends Client, O extends ClientOpts> (
+  getClient <C extends Client, O extends Instance> (
     _Client: ClientCtor<C, O>   = Client as ClientCtor<C, O>,
     arg:     Address|Partial<O> = {}
   ): C {
@@ -497,7 +510,7 @@ export abstract class Bundle implements Executor {
   get defaultDenom () { return this.agent.defaultDenom     }
   getCodeId (address: Address) { return this.agent.getCodeId(address) }
   getLabel  (address: Address) { return this.agent.getLabel(address)  }
-  getHash   (address: Address) { return this.agent.getHash(address)   }
+  getHash   (address: Address|number) { return this.agent.getHash(address)   }
   checkHash (address: Address, codeHash?: CodeHash) {
     return this.agent.checkHash(address, codeHash)
   }
@@ -576,7 +589,7 @@ export abstract class Bundle implements Executor {
   async uploadMany (code: Uint8Array[]) {
     throw new Error("don't upload inside bundle")
   }
-  getClient <C extends Client, O extends ClientOpts> (
+  getClient <C extends Client, O extends Instance> (
     Client: ClientCtor<C, O>, arg: Address|O
   ): C {
     return new Client(this as Executor, arg)

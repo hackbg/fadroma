@@ -197,14 +197,18 @@ export class Deployment {
     return !!this.receipts[name]
   }
   /** Get the receipt for a contract, containing its address, codeHash, etc. */
-  get (name: string, suffix?: string): DeployReceipt {
+  get (name: string): DeployReceipt|null {
     const receipt = this.receipts[name]
-    if (!receipt) {
-      const msg = `@fadroma/ops/Deploy: ${name}: no such contract in deployment`
-      throw new Error(msg)
-    }
+    if (!receipt) return null
     receipt.name = name
     return receipt
+  }
+  expect (
+    name: string, message: string = `${name}: no such contract in deployment`
+  ): DeployReceipt {
+    const receipt = this.get(name)
+    if (receipt) return receipt
+    throw new Error(message)
   }
   /** Get a handle to the contract with the specified name. */
   getClient <C extends Client, O extends ClientOpts> (
@@ -241,7 +245,8 @@ export class Deployment {
   }
   /** Instantiate multiple contracts from different Templates with different parameters. */
   async initVarious (
-    agent: Agent = this.agent, contracts: [Template, Label, Message][] = []
+    agent: Agent = this.agent,
+    contracts: [Template, Label, Message][] = []
   ): Promise<Instance[]> {
     // Validate
     for (const index in contracts) {
@@ -444,6 +449,8 @@ const expectDeployments = (context: { deployments: Deployments|null }): Deployme
   return context.deployments
 }
 
+/// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
+
 export const DeployLogger = ({ info, warn }: Console) => ({
 
   Deployment ({ deployment }: DeployContext) {
@@ -491,239 +498,112 @@ export type Into<T> = T|(()=>T)|(()=>Promise<T>)
   * once you're authenticated and can compile code locally */
 export interface DeployContext extends AgentAndBuildContext {
   /** All the environment config so far. */
-  config:       ChainConfig & AgentConfig & BuilderConfig & DeployConfig
-
-/// ## DEPLOY CONTEXT: TEMPLATE UPLOAD ////////////////////////////////////////////////////////////
-
-  /** Specify a template. Populate with its get/upload/getOrUpload methods. */
-  template      (source: IntoTemplate):        TemplateSlot
-  /** Get an object representing a template (code id + hash)
-    * or upload the template from source if it's not already uploaded. */
-  getOrUploadTemplate (source: IntoTemplate):  Promise<Template>
-  /** Upload a template, cache receipt under `receipts/$CHAIN/uploads`. */
-  upload:       (artifact:  IntoTemplate)   => Promise<Template>
-  /** Upload multiple templates, cache receipts under `receipts/$CHAIN/uploads`. */
-  uploadMany:   (artifacts: IntoTemplate[]) => Promise<Template[]>
+  config: ChainConfig & AgentConfig & BuilderConfig & DeployConfig
   /** Knows how to upload contracts to a blockchain. */
-  uploader:     Uploader
-  /** Whether to skip reuploading of known uploaded contracts. */
-  uploadCache?: boolean
-
-/// ## DEPLOY CONTEXT: CONTRACT INSTANTIATION //////////////////////////////////////////////////////
-
-  /** Optional global suffix of all smart contracts deployed.
-    * Useful for discerning multiple instanCan be usedces or versions of a contract. */
-  suffix?:      string
-  /** Currently selected collection of interlinked contracts. */
-  deployment:   Deployment|null
-  /** Who'll deploy new contracts */
-  creator:     Agent
-  /** Specify a contract instance. Populate with its get/deploy/getOrDeploy methods. */
-  contract            <C extends Client, O extends ClientOpts> (
-    reference: Name|Instance, APIClient?: ClientCtor<C, O>
-  ): ContractSlot<C>
-  /** Get a client interface to a contract. */
-  /** Get a contract or fail with a user-defined message. */
-  getContract         <C extends Client> (
-    reference: Name|Instance, APIClient?: ClientCtor<C, any>, msgOrFn?: StepOrInfo<any, C>,
-  ): Promise<C>
-  /** Get a contract or deploy it. */
-  getOrDeployContract <C extends Client> (
-    name: Name, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, any>
-  ): Promise<C>
-  /** Deploy a contract and fail if name already taken. */
-  deployContract      <C extends Client> (
-    name: Name, template: IntoTemplate, initMsg: Message, APIClient?: ClientCtor<C, any>
-  ): Promise<C>
-  /** Deploy multiple contracts from the same template. */
-  deployMany          <C extends Client, O extends ClientOpts> (
-    template: IntoTemplate, contracts: [Name, Message][], APIClient?: ClientCtor<C, O>
-  ): Promise<C[]>
-  /** Deploy multiple different contracts. */
-  deployVarious (
-    contracts: [IntoTemplate, Name, ClientCtor<Client, ClientOpts>]
-  ): Promise<Client[]>
+  uploader: Uploader
+  /** Specify one or more templates. */
+  template (...sources: IntoTemplateSlotX[]): TemplateSlotX|MultiTemplateSlot
+  /** Currently selected deployment. */
+  deployment: Deployment|null
+  /** Specify one or more contract instances. */
+  contract <C extends Client, O extends ClientOpts> (
+    reference: Name|Instance|([Name|Instance][]), APIClient?: ClientCtor<C, O>
+  ): ContractSlot<C>|MultiContractSlot<C>
 }
 
-/// # DEPLOY CONTEXT FUNCTIONAL IMPLEMENTATION /////////////////////////////////////////////////////
-
-// Now it gets hairy. The deploy/upload context is implemented once as an interface + populator
-// function, once as a class partially delegating to it (DeployTask). The two need to be made into
-// one entity, so that class-based commands can work without breaking the support for
-// function-based commands.
-
+/** Taking merged Agent and Build context as a basis, populate deploy context. */
 export function getDeployContext (
   context: AgentAndBuildContext & Partial<DeployContext>,
   agent:   Agent = context.agent
 ): DeployContext {
-  context.config         ??= getDeployConfig()
-  context.uploadCache    ??= !context.config.reupload
-  context.uploader       ??= (!context.isMocknet && context.uploadCache)
-    ? CachingFSUploader.fromConfig(agent, context.config.project)
-    : new FSUploader(agent)
-  context.creator ??= context.agent
-  type Fn<T, U> = (...t: T[]) => U
-  function needsActiveDeployment <T, U> (fn: Fn<T, U>): Fn<T, U> {
-    if (!context.deployment) return () => { throw new Error('Fadroma Ops: no active deployment') }
-    return fn
+  // Make sure we're operating in a deployment
+  context.deployment ??= context.deployments?.active
+  if (!context.deployment) {
+    throw new Error('getDeployContext: no active deployment')
+  }
+  // Get configuration
+  const config = getDeployConfig()
+  // Setup code uploader
+  const uploader = (!context.isMocknet && !config.reupload)
+      ? CachingFSUploader.fromConfig(agent, config.project)
+      : new FSUploader(agent)
+  // Hook for template upload
+  const template = (...sources: IntoTemplateSlotX[]): TemplateSlotX|MultiTemplateSlot => {
+    if (sources.length === 1) {
+      return new TemplateSlotX(sources[0], context.workspace, context.builder, uploader)
+    } else {
+      return new MultiTemplateSlot(sources, context.workspace, context.builder, uploader)
+    }
+  }
+  // Hook for contract instantiation and retrieval
+  const contract = <C extends Client> (
+    name: [Name|Instance][], _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+  ): ContractSlot<C> => {
+    if (name instanceof Array) {
+      return new MultiContractSlot(context, name, _Client)
+    } else {
+      return new ContractSlot(context, name, _Client)
+    }
   }
   return {
     ...context,
-    config:   context.config,
-
-    /// ## DEPLOY CONTEXT FUNCTIONAL: TEMPLATES ///////////////////////////////////////////////////
-
-    uploader: context.uploader,
-    async upload (code: IntoTemplate): Promise<Template> {
-      if (code instanceof Template) {
-        return code
-      }
-      if (typeof code === 'string') {
-        code = this.workspace.crate(code) as Source
-        if (!this.build) throw new Error(`Upload ${code}: building is not enabled`)
-        code = await this.build(code) as Artifact
-      } else {
-        const { url, codeHash, source } = code as Artifact
-        code = new Artifact(source, url, codeHash)
-      }
-      const rel = bold($((code as Artifact).url).shortPath)
-      code = await this.uploader.upload(code as Artifact) as Template
-      console.info(`Upload ${bold(rel)}:`)
-      console.info(`  Code hash:`, bold(code.codeHash))
-      console.info(`  Code id:  `, bold(code.codeId))
-      return code
-      throw Object.assign(
-        new Error(`Fadroma: can't upload ${code}: must be crate name, Source, Artifact, or Template`),
-        { code }
-      )
-    },
-    async uploadMany (code: IntoTemplate[]): Promise<Template[]> {
-      const templates = []
-      for (const contract of code) {
-        templates.push(await this.upload(contract))
-      }
-      return templates
-    },
-    template (code: IntoTemplate): TemplateSlot {
-      return new TemplateSlot(this, code)
-    },
-    async getOrUploadTemplate (code: IntoTemplate): Promise<Template> {
-      return await new TemplateSlot(this, code).getOrUpload()
-    }
-
-    /// ## DEPLOY CONTEXT FUNCTIONAL: CONTRACTS ///////////////////////////////////////////////////
-
-    creator: context.creator,
-    contract <C extends Client> (
-      reference: string|{ address: string }, APIClient: ClientCtor<C, any>
-    ): ContractSlot<C> {
-      return new ContractSlot(this, reference, APIClient)
-    },
-    async getContract <C extends Client> (
-      reference: string|{ address: string },
-      APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>,
-      msgOrFn?:  StepOrInfo<any, C>
-    ): Promise<C> {
-      return await new ContractSlot(this, reference, APIClient).get(msgOrFn) as C
-    },
-    async getOrDeployContract <C extends Client> (
-      name: string, template: IntoTemplate, initMsg: Message,
-      APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>,
-    ): Promise<C> {
-      return await new ContractSlot(this, name, APIClient).getOrDeploy(template, initMsg)
-    },
-    async deployContract <C extends Client> (
-      name: string,template: IntoTemplate, initMsg: Message,
-      APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>,
-    ): Promise<C> {
-      return await new ContractSlot(this, name, APIClient).deploy(template, initMsg)
-    },
-    async deployMany <C extends Client> (
-      template: IntoTemplate, contracts: [string, Message][],
-      APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>
-    ) {
-      template = await this.upload(template) as Template
-      try {
-        return await this.deployment.initMany(this.creator, template, contracts)
-      } catch (e) {
-        console.error(`Deploy of multiple contracts failed: ${e.message}`)
-        console.error(`Deploy of multiple contracts failed: Configs were:`)
-        console.log(JSON.stringify(contracts, null, 2))
-        throw e
-      }
-    },
-    async deployVarious () {
-      throw 'TODO'
-    }
+    deployment: context.deployment!,
+    config,
+    uploader,
+    template,
+    contract,
   }
-
 }
 
-/// # DEPLOY CONTEXT CLASS-BASED
-
+/** Class-based deploy procedure. */
 export class DeployTask<X> extends Lazy<X> {
-  constructor (public readonly context: DeployContext, getResult: ()=>X) {
+  constructor (
+    public readonly context: DeployContext,
+    getResult: ()=>X
+  ) {
     super(getResult)
   }
-  gitRef: string = 'HEAD'
-  get chain      () { return this.context.chain }
-  get deployment () { return this.context.deployment }
-  get creator    () { return this.context.creator }
-  instance = (name: string): Instance|null => {
-    return this.deployment?.has(name) ? this.deployment.get(name) : null
+  lazy <X> (cb: ()=>X|Promise<X>): Lazy<X> {
+    return new Lazy(cb.bind(this.context))
   }
-  template = (t: IntoTemplate): TemplateSlot => {
-    if (t instanceof Function) {
-      return new TemplateSlot(this, t)
-    }
-    if (typeof t === 'string') {
-      if (t.indexOf('@')===-1 && this.gitRef) {
-        t = `${name}@${this.gitRef}`
-      }
-      return new TemplateSlot(this.context, t as string)
-    }
-    if (t instanceof TemplateSlot && t.context === this.context) {
-      return t
-    }
-    console.warn(t)
-    throw new Error(`template: unknown argument ${t}`)
+}
+
+async function deployMany <C extends Client, O extends Instance> (
+  template:    IntoTemplateSlotX,
+  contracts:   [Name, Message][],
+  APIClient:   ClientCtor<C, O> = Client as ClientCtor<C, O>,
+  builder?:    Builder,
+  uploader?:   Uploader,
+  deployment?: Deployment|null,
+  creator?:    Agent,
+) {
+  template = new TemplateSlotX(template) as TemplateSlotX
+  // Expect deployment to exits
+  if (!deployment) {
+    throw new Error('deployMany: no deployment')
   }
-  contract = <C extends Client> (
-    name:    string,
-    _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
-  ): ContractSlot<C> => {
-    return new ContractSlot(this.context, name, _Client)
+  // Deploy multiple contracts from the same template with 1 tx
+  let instances: Instance[]
+  try {
+    instances = await deployment.initMany(creator, await template, contracts)
+  } catch (e) {
+    console.error(`Deploy of multiple contracts failed: ${e.message}`)
+    console.error(`Deploy of multiple contracts failed: Configs were:`)
+    console.log(JSON.stringify(contracts, null, 2))
+    throw e
   }
-  deploy = async <C extends Client> (
-    name: string,
-    code: IntoTemplate,
-    init: Message,
-    Client?: ClientCtor<C, ClientOpts>
-  ): Promise<C> => {
-    code = await this.template(code)
-    if (code instanceof Function) code = await Promise.resolve(code()) as Template
-    const instance = await this.deployment.init(this.creator, code, name, init)
-    const client   = new Client(this.creator, instance)
-    return client as C
-  }
-  deployMany = async <C extends Client> (
-    template: IntoTemplate,
-    configs:  [string, Message][],
-    Client?:  ClientCtor<C, ClientOpts>
-  ): Promise<C[]> => {
-    return (await this.deployment.initMany(
-      this.creator,
-      await this.template(template).getOrUpload(),
-      configs
-    )).map(instance=>this.creator.getClient(Client, instance))
-  }
+  // Return API client to each contract
+  return instances.map(instance=>creator.getClient(APIClient, instance))
 }
 
 /// # SLOTS ///////////////////////////////////////////////////////////////////////////////////////
 
+export type IntoTemplateSlotX = string|Source|Artifact|Template|TemplateSlotX
+
 export class TemplateSlotX extends Template {
+
   constructor (
-    public readonly value:      string|Source|Artifact|Template,
+    value: IntoTemplateSlotX,
     public readonly workspace?: Workspace, // for string   -> Source
     public readonly builder?:   Builder,   // for Source   -> Artifact
     public readonly uploader?:  Uploader   // for Artifact -> Template
@@ -731,23 +611,106 @@ export class TemplateSlotX extends Template {
     if (value instanceof Template) {
       super(value.artifact, value.chainId, value.codeId, value.codeHash, value.uploadTx)
     } else if (value instanceof Artifact) {
-      if (!uploader) {
-        throw new Error("Can't pass artifact into template slot with no uploader")
-      }
+      if (!uploader) throw TemplateSlotX.E01()
       super(value, uploader.agent.chain.id, value.codeHash)
     } else if (value instanceof Source) {
-      if (!builder || !uploader) {
-        throw new Error("Can't pass artifact into template slot with no builder and uploader")
-      }
+      if (!builder || !uploader) throw TemplateSlotX.E02()
       super(new Artifact(value), uploader.agent.chain.id)
     } else if (typeof value === 'string') {
-      if (!workspace || !builder || !uploader) {
-        throw new Error("Can't pass string into template slot with no workspace, builder and uploader")
-      }
+      if (!workspace || !builder || !uploader) throw TemplateSlotX.E03()
       super(new Artifact(new Source(workspace, value)), uploader.agent.chain.id)
     } else {
-      throw new Error(`TemplateSlot: unsupported value: ${value}`)
+      throw TemplateSlotX.E04(value)
     }
+  }
+  /** Here the Template pretends to be a Promise. That way,
+    * a fully populated Template is available synchronously,
+    * and a TemplateSlot can also be awaited to populate itself. */
+  then <Y> (
+    resolved: (t: Template)=>Y,
+    rejected: (e: Error)=>never
+  ): Promise<Y> {
+    return this.populate().then(resolved, rejected)
+  }
+  /** Depending on what pre-Template type we start from, this function
+    * invokes builder and uploader to produce a Template from it. */
+  async populate (): Promise<Template> {
+    // Repopulate
+    this.chainId ??= this.uploader?.agent?.chain?.id
+    if (!this.chainId) throw TemplateSlotX.E05()
+    if (this.codeId && this.codeHash) return this
+    if (this.codeId) {
+      this.codeHash ??= await this.uploader?.agent?.getHash(Number(this.codeId))
+      if (this.codeHash) { return this } else throw TemplateSlotX.E06()
+    } else {
+      if (!this.artifact) throw TemplateSlotX.E07()
+      if (!this.uploader) throw TemplateSlotX.E01()
+      if (this.artifact.url) {
+        console.info('Uploading', bold(this.artifact.url.toString()))
+        const template = await this.artifact.upload(this.uploader)
+        this.codeId = template.codeId
+        if (this.codeHash && this.codeHash !== template.codeHash) TemplateSlotX.W01(this, template)
+        this.codeHash = template.codeHash
+        return this
+      } else if (this.artifact.source) {
+        if (!this.builder) throw TemplateSlotX.E09()
+        this.artifact = await this.artifact.build(this.builder)
+      }
+      throw TemplateSlotX.E08()
+    }
+  }
+
+  declare codeId;
+  declare chainId;
+  declare codeHash;
+  declare artifact;
+
+  static E01 = () => new Error("Can't pass artifact into template slot with no uploader")
+  static E02 = () => new Error("Can't pass artifact into template slot with no builder and uploader")
+  static E03 = () => new Error("Can't pass string into template slot with no workspace, builder and uploader")
+  static E04 = (value: any) => { return new Error(`TemplateSlot: unsupported value: ${value}`) } // sh fux
+  static E05 = () => new Error("No chain ID specified")
+  static E06 = () => new Error("Still no code hash")
+  static E07 = () => new Error("No code id and no artifact to upload")
+  static E08 = () => new Error("No artifact url and no source to build")
+  static E09 = () => new Error("No builder")
+  static W01 = (a:any, b:any) => console.warn(`codeHash mismatch: ${a.codeHash} vs ${b.codeHash}`)
+}
+
+async function upload (code: IntoTemplate): Promise<Template> {
+  if (code instanceof Template) {
+    return code
+  }
+  if (typeof code === 'string') {
+    code = this.workspace.crate(code) as Source
+    if (!this.build) throw new Error(`Upload ${code}: building is not enabled`)
+    code = await this.build(code) as Artifact
+  } else {
+    const { url, codeHash, source } = code as Artifact
+    code = new Artifact(source, url, codeHash)
+  }
+  const rel = bold($((code as Artifact).url).shortPath)
+  code = await this.uploader.upload(code as Artifact) as Template
+  console.info(`Upload ${bold(rel)}:`)
+  console.info(`  Code hash:`, bold(code.codeHash))
+  console.info(`  Code id:  `, bold(code.codeId))
+  return code
+  throw Object.assign(
+    new Error(`Fadroma: can't upload ${code}: must be crate name, Source, Artifact, or Template`),
+    { code }
+  )
+}
+
+export class MultiTemplateSlot extends Array<TemplateSlotX> {
+  constructor (
+    values: IntoTemplateSlotX[] = [],
+    public readonly workspace?: Workspace,
+    public readonly builder?:   Builder,
+    public readonly uploader?:  Uploader
+  ) {
+    super(...values.map(
+      (value: IntoTemplateSlotX)=>new TemplateSlotX(value, workspace, builder, uploader)
+    ))
   }
   /** Here the Template pretends to be a Promise. That way,
     * a fully populated Template is available synchronously,
@@ -764,7 +727,20 @@ export class TemplateSlotX extends Template {
     if (this.chainId && this.codeId && this.codeHash) {
       return this
     } else {
+      throw 'TODO'
+    }
+  }
+}
 
+export class ContractSlotX extends TemplateSlotX {
+  async populate (): Client {
+    return []
+  }
+}
+
+export class MultiContractSlot extends MultiTemplateSlot {
+  async populate (): Client[] {
+    return []
   }
 }
 
@@ -925,7 +901,7 @@ export class FSUploader extends Uploader {
     * TODO: Optionally bundle them (where is max size defined?) */
   async uploadMany (artifacts: Artifact[]): Promise<Template[]> {
     //console.log('uploadMany', artifacts)
-    const templates = []
+    const templates: Template[] = []
     for (const i in artifacts) {
       // support "holes" in artifact array
       // (used by caching subclass)
