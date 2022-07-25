@@ -269,10 +269,10 @@ export class Deployment {
   /// ## CREATING AND LOADING DEPLOYMENT //////////////////////////////////////////////////////////
 
   constructor (
-    /** The default identity to use when interacting with this deployment. */
-    public readonly agent: Agent,
     /** Path to the file containing the receipts. */
-    public readonly path?: string,
+    public readonly path?:  string,
+    /** The default identity to use when interacting with this deployment. */
+    public readonly agent?: Agent,
   ) {
     if (this.path) this.load()
   }
