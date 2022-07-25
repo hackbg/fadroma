@@ -1,5 +1,4 @@
 /*
-
   Fadroma Deploy System
   Copyright (C) 2022 Hack.bg
 
@@ -15,7 +14,6 @@
 
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 **/
 import {
   Chain, ChainMode, Agent, AgentOpts, Bundle, Client, ClientCtor, ClientOpts, DevnetHandle,
@@ -236,7 +234,7 @@ export interface DeployContext extends AgentAndBuildContext {
   /** Knows how to upload contracts to a blockchain. */
   uploader: Uploader
   /** Specify one or more templates. */
-  template (...sources: IntoTemplateSlot[]): TemplateSlot|MultiTemplateSlot
+  template (source: IntoTemplateSlot|IntoTemplateSlot[]): TemplateSlot|MultiTemplateSlot
   /** Agent that will instantiate the templates. */
   creator: Agent
   /** Specify one or more contract instances. */
@@ -254,6 +252,11 @@ export function getDeployContext (
   if (!context.deployment) {
     throw new Error('getDeployContext: no active deployment')
   }
+  // Make sure we have an operating identitiy
+  context.creator ??= agent
+  if (!context.creator) {
+    throw new Error('getDeployContext: no deploy agent')
+  }
   // Get configuration
   const config = getDeployConfig()
   // Setup code uploader
@@ -261,91 +264,73 @@ export function getDeployContext (
       ? CachingFSUploader.fromConfig(agent, config.project)
       : new FSUploader(agent)
   // Hook for template upload
-  const template = (...sources: IntoTemplateSlot[]): TemplateSlot|MultiTemplateSlot => {
-    if (sources.length === 1) {
-      return new TemplateSlot(sources[0], context.workspace, context.builder, uploader)
-    } else {
-      return new MultiTemplateSlot(sources, context.workspace, context.builder, uploader)
-    }
+  const template = (arg: IntoTemplateSlot|IntoTemplateSlot[]): TemplateSlot|MultiTemplateSlot => {
+    return (arg instanceof Array)
+      ? new MultiTemplateSlot(arg, context as DeployContext)
+      : new TemplateSlot(     arg, context as DeployContext)
   }
   // Hook for contract instantiation and retrieval
   const contract = <C extends Client> (
-    name: [Name|Instance][], _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+    arg: Name|Instance|[Name|Instance][],
+    _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
   ): ContractSlot<C>|MultiContractSlot<C> => {
-    if (name instanceof Array) {
-      return new MultiContractSlot(context, name, _Client)
-    } else {
-      return new ContractSlot(context, name, _Client)
-    }
+    return (arg instanceof Array)
+      ? new MultiContractSlot(arg, _Client, context as DeployContext)
+      : new ContractSlot(     arg, _Client, context as DeployContext)
   }
-  return {
+  context = {
     ...context, config,
     uploader, template,
     deployment: context.deployment!, creator: agent, contract,
   }
+  return context as DeployContext
 }
 /** Base class for class-based deploy procedure */
 export class DeployTask<X> extends Lazy<X> {
-  constructor (public readonly context: DeployContext, getResult: ()=>X) {
-    super(getResult)
-  }
-  lazy <X> (cb: ()=>X|Promise<X>): Lazy<X> {
-    return new Lazy(cb.bind(this.context))
-  }
+  constructor (public readonly context: DeployContext, getResult: ()=>X) { super(getResult) }
+  slot <X> (cb: ()=>X|Promise<X>): Lazy<X> { return new Lazy(cb.bind(this)) }
 }
 /// # UPLOADING ///////////////////////////////////////////////////////////////////////////////////
 export type IntoTemplateSlot = string|Source|Artifact|Template|TemplateSlot
 export class TemplateSlot extends Template {
-  constructor (
-    value: IntoTemplateSlot,
-    public readonly workspace?: Workspace, // for string   -> Source
-    public readonly builder?:   Builder,   // for Source   -> Artifact
-    public readonly uploader?:  Uploader   // for Artifact -> Template
-  ) {
+  constructor (value: IntoTemplateSlot, context: DeployContext) {
     if (value instanceof Template) {
-      super(value.artifact, value.chainId, value.codeId, value.codeHash, value.uploadTx)
+      super(value.artifact, value.codeHash, value.chainId, value.codeId, value.uploadTx)
     } else if (value instanceof Artifact) {
-      if (!uploader) throw TemplateSlot.E01()
-      super(value, uploader.agent.chain.id, value.codeHash)
+      if (!context.uploader) throw TemplateSlot.E01()
+      super(value, context.uploader?.agent?.chain?.id)
     } else if (value instanceof Source) {
-      if (!builder || !uploader) throw TemplateSlot.E02()
-      super(new Artifact(value), uploader.agent.chain.id)
+      if (!context.builder || !context.uploader) throw TemplateSlot.E02()
+      super(new Artifact(value), context.uploader?.agent?.chain?.id)
     } else if (typeof value === 'string') {
-      if (!workspace || !builder || !uploader) throw TemplateSlot.E03()
-      super(new Artifact(new Source(workspace, value)), uploader.agent.chain.id)
+      if (!context.workspace || !context.builder || !context.uploader) throw TemplateSlot.E03()
+      let workspace = context.workspace
+      const [crate, ref] = value.split('@')
+      if (ref) workspace = workspace.at(ref)
+      super(new Artifact(new Source(workspace, crate)), undefined, context.uploader?.agent?.chain?.id)
     } else {
+      super(undefined, undefined, context.uploader?.agent?.chain?.id)
       throw TemplateSlot.E04(value)
     }
+    this.context ??= context
   }
-  /** Here the Template pretends to be a Promise. That way,
-    * a fully populated Template is available synchronously,
-    * and a TemplateSlot can also be awaited to populate itself. */
-  then <Y> (
-    resolved: (t: Template)=>Y,
-    rejected: (e: Error)=>never
-  ): Promise<Y> {
-    return this.getOrUpload().then(resolved, rejected)
-  }
+  readonly context: DeployContext
   /** Depending on what pre-Template type we start from, this function
     * invokes builder and uploader to produce a Template from it. */
   async getOrUpload (): Promise<Template> {
     // Repopulate
-    this.chainId ??= this.uploader?.agent?.chain?.id
+    this.chainId ??= this.context.uploader?.agent?.chain?.id
     if (!this.chainId) throw TemplateSlot.E05()
     if (this.codeId && this.codeHash) return this
     if (this.codeId) {
-      this.codeHash ??= await this.uploader?.agent?.getHash(Number(this.codeId))
+      this.codeHash ??= await this.context.uploader?.agent?.getHash(Number(this.codeId))
       if (this.codeHash) { return this } else throw TemplateSlot.E06()
     } else {
       if (!this.artifact) throw TemplateSlot.E07()
-      if (!this.uploader) throw TemplateSlot.E01()
+      if (!this.context.uploader) throw TemplateSlot.E01()
       const upload = async () => {
-        console.info('Uploading', bold(this.artifact!.url!.toString()))
-        const template = await this.artifact!.upload(this.uploader!)
+        const template = await this.artifact!.upload(this.context.uploader!)
         this.codeId = template.codeId
-                              /* * * * * * * * * * * * * * */
-                             /* * * TAKE A DEEP BREATH * * /
-                            /* * * * * * * * * * * * * * */
         if (this.codeHash && this.codeHash !== template.codeHash) TemplateSlot.W01(this, template)
         this.codeHash = template.codeHash
         return this
@@ -353,12 +338,8 @@ export class TemplateSlot extends Template {
       if (this.artifact.url) {
         return await upload()
       } else if (this.artifact.source) {
-        if (!this.builder) throw TemplateSlot.E09()
-        console.info(
-          'Compiling', bold(this.artifact.source.crate),
-          '@', bold(this.artifact.source.workspace.ref)
-        )
-        this.artifact = await this.artifact.build(this.builder)
+        if (!this.context.builder) throw TemplateSlot.E09()
+        this.artifact = await this.artifact.build(this.context.builder)
         if (!this.artifact.url) throw TemplateSlot.E10()
         return await upload()
       }
@@ -382,13 +363,8 @@ export class TemplateSlot extends Template {
   static W01 = (a:any, b:any) => console.warn(`codeHash mismatch: ${a.codeHash} vs ${b.codeHash}`)
 }
 export class MultiTemplateSlot extends Array<TemplateSlot> {
-  constructor (
-    values: IntoTemplateSlot[] = [],
-    public readonly workspace?: Workspace,
-    public readonly builder?:   Builder,
-    public readonly uploader?:  Uploader
-  ) {
-    super(...values.map(value=>new TemplateSlot(value, workspace, builder, uploader)))
+  constructor (values: IntoTemplateSlot[] = [], public readonly context: DeployContext) {
+    super(...values.map(value=>new TemplateSlot(value, context)))
   }
   then <Y> (resolved: (t: Template[])=>Y, rejected: (e: Error)=>never): Promise<Y> {
     return Promise.all(this.getOrUploadMany()).then(resolved, rejected)
@@ -435,6 +411,8 @@ export abstract class Uploader {
 export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
+    console.info('Uploading', bold($(artifact.url).shortPath))
+    console.info()
     const data = $(artifact.url).as(BinaryFile).load()
     const template = await this.agent.upload(data)
     await this.agent.nextBlock
@@ -458,8 +436,8 @@ export class FSUploader extends Uploader {
         //console.info('Uploaded:', bold(path.shortPath))
         //console.debug(template)
         this.checkCodeHash(artifact, template)
+        templates[i] = template
       }
-      templates[i] = template
     }
     return templates
   }
@@ -467,7 +445,7 @@ export class FSUploader extends Uploader {
     * doesn't match the one specified in the Artifact.
     * This means the Artifact is wrong, and may become
     * a hard error in the future. */
-  checkCodeHash (artifact: Artifact, template: Template) {
+  private checkCodeHash (artifact: Artifact, template: Template) {
     if (template.codeHash !== artifact.codeHash) {
       console.warn(
         `Code hash mismatch from upload in TX ${template.uploadTx}:\n`+
@@ -480,7 +458,7 @@ export class FSUploader extends Uploader {
 /** Uploads contracts from the file system,
   * but only if a receipt does not exist in the chain's uploads directory. */
 export class CachingFSUploader extends FSUploader {
-  static fromConfig (agent: Agent, projectRoot) {
+  static fromConfig (agent: Agent, projectRoot: string) {
     return new CachingFSUploader(
       agent,
       $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
@@ -568,7 +546,7 @@ export class CachingFSUploader extends FSUploader {
   }
   /** Warns if a code hash is missing in the Artifact,
     * and mutates the Artifact to set the code hash. */
-  protected ensureCodeHash (artifact: Artifact) {
+  private ensureCodeHash (artifact: Artifact) {
     if (!artifact.codeHash) {
       console.warn(
         'No code hash in artifact',
@@ -600,24 +578,28 @@ export class ContractSlot<C extends Client> {
   static E07 = () =>
     new Error("Value is not Client and not a name.")
   constructor (
-    value:                       IntoContractSlot,
-    public readonly Client:      ClientCtor<C, any> = Client,
-    public readonly workspace?:  Workspace,
-    public readonly builder?:    Builder,
-    public readonly uploader?:   Uploader,
-    public readonly deployment?: Deployment,
-    public readonly creator?:    Agent
+    value:   IntoContractSlot,
+    $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
+    context: DeployContext
   ) {
     if (typeof value === 'string') {
-      if (!deployment) throw ContractSlot.E01(value)
-      if (deployment.has(value)) this.value = deployment.get(value)!
+      this.name = value
+      if (!context.deployment) throw ContractSlot.E01(value)
+      if (context.deployment.has(value)) this.value = context.deployment.get(value)!
     } else {
       this.value = value
-      if (this.value.address) this.value = new this.Client(this.creator, this.value)
     }
+    this.Client ??= $Client
+    if ((this.value as { address: Address }).address) {
+      this.value = new this.Client(context.creator, this.value)
+    }
+    this.context ??= context
   }
+  name?:   string
+  Client:  ClientCtor<C, any>
+  context: DeployContext
   /** Info about the contract that we have so far. */
-  value: Partial<Instance> = {}
+  value:   Partial<Instance> = {}
   /** Here the ContractSlot pretends to be a Promise. That way,
     * a fully populated Instance is available synchronously if possible,
     * and a ContractSlot can also be awaited to populate itself. */
@@ -628,18 +610,22 @@ export class ContractSlot<C extends Client> {
     if (!(this.value instanceof this.Client)) throw ContractSlot.E03()
     return Promise.resolve(this.value).then(resolved, rejected)
   }
-  async getOrDeploy (template: Template|TemplateSlot|IntoTemplateSlot, init: Message): Promise<C> {
-    if (this.value instanceof this.Client) return this.value
-    if (typeof this.value === 'string') {
-      if (!this.creator)    throw ContractSlot.E04()
-      if (!this.deployment) throw ContractSlot.E05()
-      if (!(template instanceof Template)) template = new TemplateSlot(template)
-      await (template as TemplateSlot).getOrUpload()
-      const instance = await this.deployment.init(this.creator, template, this.value, init)
-      const client = new this.Client(this.creator, instance)
-      this.value = client
-      return client
+  async getOrDeploy (template: Template|TemplateSlot|IntoTemplateSlot, msg: Message): Promise<C> {
+    if (this.value instanceof this.Client) {
+      return this.value
+    } else if (this.value.address) {
+      this.value = new this.Client(this.context.creator, this.value)
+    } else if (this.name) {
+      if (!this.context.creator)    throw ContractSlot.E04()
+      if (!this.context.deployment) throw ContractSlot.E05()
+      template = await new TemplateSlot(template, this.context).getOrUpload()
+      const instance = await this.context.deployment!.init(
+        this.context.creator, template as Template, this.name,  msg
+      )
+      const client = new this.Client(this.context.creator, instance)
+      return this.value = client
     }
+    console.log(this)
     throw ContractSlot.E07()
   }
 }
@@ -647,28 +633,28 @@ export class ContractSlot<C extends Client> {
   * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
 export class MultiContractSlot<C extends Client> extends Array<ContractSlot<C>> {
   constructor (
-    values:                      IntoContractSlot[],
-    public readonly Client:      ClientCtor<C, any> = Client,
-    public readonly workspace?:  Workspace,
-    public readonly builder?:    Builder,
-    public readonly uploader?:   Uploader,
-    public readonly deployment?: Deployment,
-    public readonly creator?:    Agent
+    values:                  IntoContractSlot[],
+    public readonly Client:  ClientCtor<C, any> = Client,
+    public readonly context: DeployContext,
   ) {
-    super(...values.map(value=>new ContractSlot(value, Client, workspace, builder, uploader)))
+    super(...values.map(value=>new ContractSlot(value, Client, context)))
   }
   async deployMany (
-    template : Template|TemplateSlot|IntoTemplateSlot,
-    contracts: [Name, Message][] = []
+    template: Template|TemplateSlot|IntoTemplateSlot,
+    messages: Message[] = []
   ): Promise<C[]> {
-    if (!this.creator)    throw ContractSlot.E04()
-    if (!this.deployment) throw ContractSlot.E05()
-    if (!(template instanceof Template)) template = new TemplateSlot(template)
+    if (!this.context.creator)    throw ContractSlot.E04()
+    if (!this.context.deployment) throw ContractSlot.E05()
+    if (!(template instanceof Template)) template = new TemplateSlot(template, this.context)
     await (template as TemplateSlot).getOrUpload()
     // Deploy multiple contracts from the same template with 1 tx
     let instances: Instance[]
     try {
-      instances = await this.deployment.initMany(this.creator, await template, contracts)
+      instances = await this.context.deployment.initMany(
+        this.context.creator,
+        await template,
+        this.map((slot: ContractSlot<C>, i: number)=>[slot.value, messages[i]])
+      )
     } catch (e) {
       console.error(`Deploy of multiple contracts failed: ${e.message}`)
       console.error(`Deploy of multiple contracts failed: Configs were:`)
@@ -676,7 +662,7 @@ export class MultiContractSlot<C extends Client> extends Array<ContractSlot<C>> 
       throw e
     }
     // Return API client to each contract
-    return instances.map(instance=>this.creator!.getClient(this.Client, instance))
+    return instances.map(instance=>this.context.creator!.getClient(this.Client, instance))
   }
 }
 /// # DEPLOY RECEIPTS DIRECTORY ///////////////////////////////////////////////////////////////////
@@ -797,9 +783,14 @@ export class Deployment {
   /** Instantiate one contract and save its receipt to the deployment. */
   async init (agent: Agent, template: Template, name: Label, msg: Message): Promise<Instance> {
     const label = addPrefix(this.prefix, name)
-    const instance = await agent.instantiate(template, label, msg)
-    this.set(name, instance)
-    return instance
+    try {
+      const instance = await agent.instantiate(template, label, msg)
+      this.set(name, instance)
+      return instance
+    } catch (e) {
+      console.debug(msg)
+      throw e
+    }
   }
   /** Instantiate multiple contracts from the same Template with different parameters. */
   async initMany (
@@ -810,8 +801,7 @@ export class Deployment {
   }
   /** Instantiate multiple contracts from different Templates with different parameters. */
   async initVarious (
-    agent: Agent = this.agent,
-    contracts: [Template, Label, Message][] = []
+    agent: Agent, contracts: [Template, Label, Message][] = []
   ): Promise<Instance[]> {
     // Validate
     for (const index in contracts) {
@@ -895,6 +885,6 @@ export type  Name      = string
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   runOperation('deploy status', 'show deployment status', [
     getAgentContext,  ConnectLogger(console).ChainStatus,
-    getDeployContext, ({deployment}) => DeployLogger(console).Deployment(deployment)
+    getDeployContext, DeployLogger(console).Deployment
   ], process.argv.slice(2))
 }

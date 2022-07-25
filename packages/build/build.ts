@@ -746,24 +746,23 @@ export const BuildLogger = ({ info }: Console) => ({
   },
   BuildOne (source: Source, prebuilt, longestCrateName) {
     info(
-      ' ',    bold(source.crate.padEnd(longestCrateName)),
-      'from', bold(`${$(source.workspace.path).shortPath}/`),
-      '@',    bold(source.workspace.ref),
+      'Building', bold(source.crate.padEnd(longestCrateName)),
+      'from',     bold(`${$(source.workspace.path).shortPath}/`),
+      '@',        bold(source.workspace.ref),
       prebuilt ? '(exists, not rebuilding)': ''
     )
   },
   BuildMany (sources: Source[]) {
-    info('Building the following contracts:')
     for (const source of sources) {
       const { crate, workspace: { path, ref = 'HEAD' } } = source
       if (ref === 'HEAD') {
-        info(' ', bold(source.crate), 'from working tree')
+        info('Building', bold(source.crate), 'from working tree')
       } else {
-        info(' ', bold(source.crate), 'from Git reference', bold(ref))
+        info('Building', bold(source.crate), 'from Git reference', bold(ref))
       }
     }
     info()
-  }
+  },
   Workspace (mounted, ref) {
     info(
       `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
