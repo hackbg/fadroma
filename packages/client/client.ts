@@ -35,14 +35,21 @@ export class Artifact {
 /** Source is implemented in @fadroma/build */
 export interface SourceHandle {
   crate:     string
-  workspace: { ref: string }
+  workspace: { ref: string; [name: string]: any }
   build (builder: BuilderHandle): Promise<Artifact>
   at    (ref?:    string):        SourceHandle
+  [name: string]: any
 }
 /** Builder is implemented in @fadroma/build */
-export interface BuilderHandle { build: (source: SourceHandle)=>Promise<Artifact> }
+export interface BuilderHandle {
+  build: (source: SourceHandle, ...args: any[])=>Promise<Artifact>
+  [name: string]: any
+}
 /** Uploader is implemented in @fadroma/deploy */
-export interface UploaderHandle { upload: (artifact: Artifact)=>Promise<Template> }
+export interface UploaderHandle {
+  upload: (artifact: Artifact)=>Promise<Template>
+  [name: string]: any
+}
 /** An uploaded smart contract, referenced by chain ID, code ID and code hash.
   * May contain reference to the Artifact from which it was uploaded.
   * Can be instantiated with provided agent and config, producing an Instance. */
@@ -91,7 +98,7 @@ export class ContractLink {
 /** Interface to a specific contract.
   * Subclass Client to add your contract-specific methods. */
 export class Client implements Instance {
-  constructor (readonly agent: Executor, arg: Address|Partial<ClientOpts> = {}) {
+  constructor (readonly agent?: Executor, arg: Address|Partial<ClientOpts> = {}) {
     if (typeof arg === 'string') {
       this.address  = arg
     } else {
@@ -107,7 +114,7 @@ export class Client implements Instance {
   /** Friendly name of the contract. */
   name?:     string
   /** The Chain on which this contract exists. */
-  get chain () { return this.agent.chain }
+  get chain () { return this.agent?.chain }
   /** Label of the contract on the chain. */
   label?:    string
   /** Address of the contract on the chain. */
@@ -182,7 +189,7 @@ export interface ClientOpts extends Instance {
 }
 /** Client constructor - used by functions which create user-specified Clients. */
 export interface ClientCtor<C extends Client, O extends Instance> {
-  new (agent: Executor, options: Address|Partial<O>): C
+  new (agent?: Executor, options?: Address|Partial<O>): C
 }
 /** Something that can execute read-only API calls. */
 export interface Spectator {

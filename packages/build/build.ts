@@ -1,6 +1,6 @@
 #!/usr/bin/env ganesha-node
 
-import { Artifact }                  from '@fadroma/client'
+import { Artifact, SourceHandle }    from '@fadroma/client'
 import { Console, bold }             from '@hackbg/konzola'
 import { toHex, Sha256 }             from '@hackbg/formati'
 import { envConfig, CommandContext } from '@hackbg/komandi'
@@ -117,7 +117,7 @@ export abstract class Builder {
   buildMany (sources: Source[]): Promise<Artifact[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
-  abstract build (source: Source, ...args): Promise<Artifact>
+  abstract build (source: SourceHandle, ...args): Promise<Artifact>
 }
 export interface BuilderOptions {
   /** The build script. */
