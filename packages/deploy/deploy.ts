@@ -870,7 +870,18 @@ export class Deployment {
     let output = ''
     for (let [name, data] of Object.entries(this.receipts)) {
       output += '---\n'
-      output += alignYAML(YAML.dump({ name, ...data }, { noRefs: true }))
+      const obj = { name, ...data }
+      if (obj.template instanceof Template) {
+        obj.template = JSON.parse(JSON.stringify(new Template(
+          obj.template.artifact,
+          obj.template.codeHash,
+          obj.template.chainId,
+          obj.template.codeId,
+          obj.template.uploadTx
+        )))
+      }
+      delete obj.template?.artifact?.source?.workspace?.path
+      output += alignYAML(YAML.dump(obj, { noRefs: true }))
     }
     // Write the data to disk.
     writeFileSync(path, output)
