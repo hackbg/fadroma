@@ -57,13 +57,9 @@ import YAML from 'js-yaml'
 import alignYAML from 'align-yaml'
 import { cwd } from 'process'
 import * as http from 'http'
-
 /// WHEN YOUR IMPORTS ARE MORE THAN A SCREENFUL, WORRY
-
 const console = Console('Fadroma Deploy')
-
 /// # ENVIRONMENT CONFIGURATION ///////////////////////////////////////////////////////////////////
-
 /** TypeScript made me do it! */
 type AgentBuilderConfig = (AgentConfig & BuilderConfig)
 /** Deploy settings definitions. */
@@ -77,258 +73,7 @@ export const getDeployConfig = envConfig(({Str, Bool}, cwd, env): DeployConfig =
   ...getAgentConfig(cwd, env),
   reupload: Bool('FADROMA_REUPLOAD', ()=>false)
 }))
-
-/// # UPLOAD RECEIPTS /////////////////////////////////////////////////////////////////////////////
-
-/** Directory collecting upload receipts.
-  * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
-  * and are kept so that we don't reupload the same contracts. */
-export class Uploads extends JSONDirectory<UploadReceipt> {}
-/** Content of upload receipt. */
-export interface IUploadReceipt {
-  chainId?:           string 
-  codeHash:           string
-  codeId:             number|string
-  compressedChecksum: string
-  compressedSize:     string
-  logs:               any[]
-  originalChecksum:   string
-  originalSize:       number
-  transactionHash:    string
-  uploadTx?:          string
-  artifact?:          Artifact
-}
-/** Class that convert itself to a Template, from which contracts can be instantiated. */
-export class UploadReceipt extends JSONFile<IUploadReceipt> {
-  toTemplate (defaultChainId?: string): Template {
-    let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
-    chainId ??= defaultChainId
-    codeId  = String(codeId)
-    return new Template(artifact, codeHash, chainId, codeId, uploadTx)
-  }
-}
-
-/// # DEPLOY RECEIPTS DIRECTORY ///////////////////////////////////////////////////////////////////
-
-/** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
-  * Each deployment is represented by 1 multi-document YAML file, where every
-  * document is delimited by the `\n---\n` separator and represents a deployed
-  * smart contract. */
-export class Deployments extends YAMLDirectory<DeployReceipt[]> {
-  /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
-    * and convert it to a Deployments instance. See: @hackbg/kabinet */
-  static fromConfig = (chainId: string, projectRoot: string) =>
-    $(projectRoot).in('receipts').in(chainId).in('deployments').as(Deployments)
-  /** Name of symlink pointing to active deployment, without extension. */
-  KEY = '.active'
-  /** Create a deployment with a specific name. */
-  async create (name: string = timestamp()) {
-    const path = this.at(`${name}.yml`)
-    if (path.exists()) {
-      throw new Error(`${name} already exists`)
-    }
-    return path.makeParent().as(YAMLFile).save(undefined)
-    return new Deployment(path.path)
-  }
-  /** Make the specified deployment be the active deployment. */
-  async select (name: string) {
-    const selection = this.at(`${name}.yml`)
-    if (!selection.exists) {
-      throw new Error(`Deployment ${name} does not exist`)
-    }
-    const active = this.at(`${this.KEY}.yml`).as(YAMLFile)
-    try { active.delete() } catch (e) {}
-    await symlinkSync(selection.path, active.path)
-  }
-  /** Get the contents of the active deployment, or null if there isn't one. */
-  get active (): Deployment|null {
-    return this.get(this.KEY)
-  }
-  /** Get the contents of the named deployment, or null if it doesn't exist. */
-  get (name: string): Deployment|null {
-    const path = resolve(this.path, `${name}.yml`)
-    if (!existsSync(path)) {
-      return null
-    }
-    return new Deployment(path)
-  }
-  /** List the deployments in the deployments directory. */
-  list () {
-    if (!existsSync(this.path)) {
-      return []
-    }
-    return readdirSync(this.path)
-      .filter(x=>x!=this.KEY)
-      .filter(x=>x.endsWith('.yml'))
-      .map(x=>basename(x,'.yml'))
-  }
-  /** DEPRECATED: Save some extra data into the deployments directory. */
-  save <D> (name: string, data: D) {
-    const file = this.at(`${name}.json`).as(JSONFile) as JSONFile<D>
-    //console.info('Deployments writing:', bold(file.shortPath))
-    return file.save(data)
-  }
-}
-/** Each deploy receipt contains, as a minimum, name, address, and codeHash. */
-export interface DeployReceipt extends Instance {
-  name: string
-}
-
-/// # DEPLOYMENT / DEPLOYMENT RECEIPT /////////////////////////////////////////////////////////////
-
-/** An individual deployment, represented as a multi-document YAML file.
-  * Deployments are collections of receipts, which represent contracts.
-  * To interact with the contract corresponding to a DeployReceipt,
-  * first create a Client from it using the **deployment.getClient(name, Client?, agent?)**
-  * method, where you can pass a Client subclass class with your the contract's API methods. */
-export class Deployment {
-
-  /// ## BUSINESS END OF DEPLOYMENT ///////////////////////////////////////////////////////////////
-
-  /** This is the unique identifier of the deployment.
-    * It's used as a prefix to contract labels
-    * (which need to be globally unique). */
-  prefix: string = timestamp()
-  /** These are the entries contained by the Deployment.
-    * They correspond to individual contract instances. */
-  receipts: Record<string, DeployReceipt> = {}
-  /** Check if the deployment contains a certain entry. */
-  has (name: string): boolean {
-    return !!this.receipts[name]
-  }
-  /** Get the receipt for a contract, containing its address, codeHash, etc. */
-  get (name: string): DeployReceipt|null {
-    const receipt = this.receipts[name]
-    if (!receipt) return null
-    receipt.name = name
-    return receipt
-  }
-  expect (
-    name: string, message: string = `${name}: no such contract in deployment`
-  ): DeployReceipt {
-    const receipt = this.get(name)
-    if (receipt) return receipt
-    throw new Error(message)
-  }
-  /** Get a handle to the contract with the specified name. */
-  getClient <C extends Client, O extends ClientOpts> (
-    name: string, $Client: ClientCtor<C, O> = Client as ClientCtor<C, O>, agent = this.agent,
-  ): C {
-    return new $Client(agent, this.get(name) as O)
-  }
-  /** Chainable. Add multiple to the deployment, replacing existing. */
-  setMany (receipts: Record<string, any>) {
-    for (const [name, receipt] of Object.entries(receipts)) {
-      this.receipts[name] = receipt
-    }
-    return this.save()
-  }
-  /** Resolve a path relative to the deployment directory. */
-  resolve (...fragments: Array<string>) {
-    // Expect path to be present
-    if (!this.path) throw new Error('Deployment: no path to resolve by')
-    return resolve(this.path, ...fragments)
-  }
-  /** Instantiate one contract and save its receipt to the deployment. */
-  async init (agent: Agent, template: Template, name: Label, msg: Message): Promise<Instance> {
-    const label = addPrefix(this.prefix, name)
-    const instance = await agent.instantiate(template, label, msg)
-    this.set(name, instance)
-    return instance
-  }
-  /** Instantiate multiple contracts from the same Template with different parameters. */
-  async initMany (
-    agent: Agent, template: Template, contracts: [Label, Message][] = []
-  ): Promise<Instance[]> {
-    // this adds just the template - prefix is added in initVarious
-    return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
-  }
-  /** Instantiate multiple contracts from different Templates with different parameters. */
-  async initVarious (
-    agent: Agent = this.agent,
-    contracts: [Template, Label, Message][] = []
-  ): Promise<Instance[]> {
-    // Validate
-    for (const index in contracts) {
-      const triple = contracts[index]
-      if (triple.length !== 3) {
-        throw Object.assign(
-          new Error('initVarious: contracts must be [Template, Name, Message] triples'),
-          { index, contract: triple }
-        )
-      }
-    }
-    // Add prefixes
-    const initConfigs = contracts.map(([template, name, msg])=>
-      [template, addPrefix(this.prefix, name), msg]) as [Template, Label, Message][]
-    // Deploy
-    const instances = await agent.instantiateMany(initConfigs)
-    // Store receipt
-    for (const [label, receipt] of Object.entries(instances)) {
-      const name = label.slice(this.prefix.length+1)
-      this.set(name, { name, ...receipt })
-    }
-    return Object.values(instances)
-  }
-
-  /// ## CREATING AND LOADING DEPLOYMENT //////////////////////////////////////////////////////////
-
-  constructor (
-    /** Path to the file containing the receipts. */
-    public readonly path?:  string,
-    /** The default identity to use when interacting with this deployment. */
-    public readonly agent?: Agent,
-  ) {
-    if (this.path) this.load()
-  }
-  /** Load deployment state from YAML file. */
-  load (path = this.path) {
-    // Expect path to be present
-    if (!path) throw new Error('Deployment: no path to load from')
-    // Resolve symbolic links to file
-    while (lstatSync(path).isSymbolicLink()) path = resolve(dirname(path), readlinkSync(path))
-    // Set own prefix from name of file
-    this.prefix    = basename(path, extname(path))
-    // Load the receipt data
-    const data     = readFileSync(path, 'utf8')
-    const receipts = YAML.loadAll(data) as DeployReceipt[]
-    for (const receipt of receipts) {
-      const [contractName, _version] = receipt.name.split('+')
-      this.receipts[contractName] = receipt
-    }
-    // TODO: Automatically convert receipts to Client subclasses
-    // by means of an identifier shared between the deploy and client libraries
-  }
-
-  /// ## UPDATING DEPLOYMENT //////////////////////////////////////////////////////////////////////
-
-  /** Chainable. Add entry to deployment, replacing existing receipt. */
-  set (name: string, data: Partial<DeployReceipt> & any): this {
-    this.receipts[name] = { name, ...data }
-    return this.save()
-  }
-  /** Chainable. Add to deployment, merging into existing receipts. */
-  add (name: string, data: any): this {
-    return this.set(name, { ...this.receipts[name] || {}, ...data })
-  }
-  /** Chainable: Serialize deployment state to YAML file. */
-  save (path = this.path): this {
-    // Expect path to be present
-    if (!path) throw new Error('Deployment: no path to save to')
-    // Serialize data to multi-document YAML
-    let output = ''
-    for (let [name, data] of Object.entries(this.receipts)) {
-      output += '---\n'
-      output += alignYAML(YAML.dump({ name, ...data }, { noRefs: true }))
-    }
-    // Write the data to disk.
-    writeFileSync(path, output)
-    return this
-  }
-}
-
 /// # DEPLOY COMMANDS /////////////////////////////////////////////////////////////////////////////
-
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
@@ -439,7 +184,6 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
     }
   }
 }
-
 const expectDeployments = (context: { deployments: Deployments|null }): Deployments => {
   if (!(context.deployments instanceof Deployments)) {
     //console.error('context.deployments was not populated')
@@ -448,12 +192,9 @@ const expectDeployments = (context: { deployments: Deployments|null }): Deployme
   }
   return context.deployments
 }
-
 /// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
-
 export const DeployLogger = ({ info, warn }: Console) => ({
-
-  Deployment ({ deployment }: DeployContext) {
+  Deployment ({ deployment }: { deployment: Deployment }) {
     if (deployment) {
       const { receipts, prefix } = deployment
       let contracts: string|number = Object.values(receipts).length
@@ -471,7 +212,6 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       info('There is no selected deployment.')
     }
   },
-
   Receipt (name: string, receipt: any) {
     name = bold(name.padEnd(35))
     if (receipt.address) {
@@ -482,35 +222,28 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       warn('(non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
   }
-
 })
-
 /// # DEPLOY CONTEXT ///////////////////////////////////////////////////////////////////////////////
-
 /** TypeScript made me do it! */
 type AgentAndBuildContext = AgentContext & BuildContext
-/** Template or a type that can be uploaded. */
-export type IntoTemplate = Template|TemplateSlot|Into<Template>|IntoArtifact
-/** The thing T, or a function that returns the thing, synchronously or asynchronously. */
-export type Into<T> = T|(()=>T)|(()=>Promise<T>)
-
 /** The full list of deployment procedures that open up
   * once you're authenticated and can compile code locally */
 export interface DeployContext extends AgentAndBuildContext {
   /** All the environment config so far. */
   config: ChainConfig & AgentConfig & BuilderConfig & DeployConfig
+  /** Currently selected deployment. */
+  deployment: Deployment|null
   /** Knows how to upload contracts to a blockchain. */
   uploader: Uploader
   /** Specify one or more templates. */
-  template (...sources: IntoTemplateSlotX[]): TemplateSlotX|MultiTemplateSlot
-  /** Currently selected deployment. */
-  deployment: Deployment|null
+  template (...sources: IntoTemplateSlot[]): TemplateSlot|MultiTemplateSlot
+  /** Agent that will instantiate the templates. */
+  creator: Agent
   /** Specify one or more contract instances. */
   contract <C extends Client, O extends ClientOpts> (
     reference: Name|Instance|([Name|Instance][]), APIClient?: ClientCtor<C, O>
   ): ContractSlot<C>|MultiContractSlot<C>
 }
-
 /** Taking merged Agent and Build context as a basis, populate deploy context. */
 export function getDeployContext (
   context: AgentAndBuildContext & Partial<DeployContext>,
@@ -528,9 +261,9 @@ export function getDeployContext (
       ? CachingFSUploader.fromConfig(agent, config.project)
       : new FSUploader(agent)
   // Hook for template upload
-  const template = (...sources: IntoTemplateSlotX[]): TemplateSlotX|MultiTemplateSlot => {
+  const template = (...sources: IntoTemplateSlot[]): TemplateSlot|MultiTemplateSlot => {
     if (sources.length === 1) {
-      return new TemplateSlotX(sources[0], context.workspace, context.builder, uploader)
+      return new TemplateSlot(sources[0], context.workspace, context.builder, uploader)
     } else {
       return new MultiTemplateSlot(sources, context.workspace, context.builder, uploader)
     }
@@ -538,7 +271,7 @@ export function getDeployContext (
   // Hook for contract instantiation and retrieval
   const contract = <C extends Client> (
     name: [Name|Instance][], _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
-  ): ContractSlot<C> => {
+  ): ContractSlot<C>|MultiContractSlot<C> => {
     if (name instanceof Array) {
       return new MultiContractSlot(context, name, _Client)
     } else {
@@ -546,64 +279,25 @@ export function getDeployContext (
     }
   }
   return {
-    ...context,
-    deployment: context.deployment!,
-    config,
-    uploader,
-    template,
-    contract,
+    ...context, config,
+    uploader, template,
+    deployment: context.deployment!, creator: agent, contract,
   }
 }
-
-/** Class-based deploy procedure. */
+/** Base class for class-based deploy procedure */
 export class DeployTask<X> extends Lazy<X> {
-  constructor (
-    public readonly context: DeployContext,
-    getResult: ()=>X
-  ) {
+  constructor (public readonly context: DeployContext, getResult: ()=>X) {
     super(getResult)
   }
   lazy <X> (cb: ()=>X|Promise<X>): Lazy<X> {
     return new Lazy(cb.bind(this.context))
   }
 }
-
-async function deployMany <C extends Client, O extends Instance> (
-  template:    IntoTemplateSlotX,
-  contracts:   [Name, Message][],
-  APIClient:   ClientCtor<C, O> = Client as ClientCtor<C, O>,
-  builder?:    Builder,
-  uploader?:   Uploader,
-  deployment?: Deployment|null,
-  creator?:    Agent,
-) {
-  template = new TemplateSlotX(template) as TemplateSlotX
-  // Expect deployment to exits
-  if (!deployment) {
-    throw new Error('deployMany: no deployment')
-  }
-  // Deploy multiple contracts from the same template with 1 tx
-  let instances: Instance[]
-  try {
-    instances = await deployment.initMany(creator, await template, contracts)
-  } catch (e) {
-    console.error(`Deploy of multiple contracts failed: ${e.message}`)
-    console.error(`Deploy of multiple contracts failed: Configs were:`)
-    console.log(JSON.stringify(contracts, null, 2))
-    throw e
-  }
-  // Return API client to each contract
-  return instances.map(instance=>creator.getClient(APIClient, instance))
-}
-
-/// # SLOTS ///////////////////////////////////////////////////////////////////////////////////////
-
-export type IntoTemplateSlotX = string|Source|Artifact|Template|TemplateSlotX
-
-export class TemplateSlotX extends Template {
-
+/// # UPLOADING ///////////////////////////////////////////////////////////////////////////////////
+export type IntoTemplateSlot = string|Source|Artifact|Template|TemplateSlot
+export class TemplateSlot extends Template {
   constructor (
-    value: IntoTemplateSlotX,
+    value: IntoTemplateSlot,
     public readonly workspace?: Workspace, // for string   -> Source
     public readonly builder?:   Builder,   // for Source   -> Artifact
     public readonly uploader?:  Uploader   // for Artifact -> Template
@@ -611,16 +305,16 @@ export class TemplateSlotX extends Template {
     if (value instanceof Template) {
       super(value.artifact, value.chainId, value.codeId, value.codeHash, value.uploadTx)
     } else if (value instanceof Artifact) {
-      if (!uploader) throw TemplateSlotX.E01()
+      if (!uploader) throw TemplateSlot.E01()
       super(value, uploader.agent.chain.id, value.codeHash)
     } else if (value instanceof Source) {
-      if (!builder || !uploader) throw TemplateSlotX.E02()
+      if (!builder || !uploader) throw TemplateSlot.E02()
       super(new Artifact(value), uploader.agent.chain.id)
     } else if (typeof value === 'string') {
-      if (!workspace || !builder || !uploader) throw TemplateSlotX.E03()
+      if (!workspace || !builder || !uploader) throw TemplateSlot.E03()
       super(new Artifact(new Source(workspace, value)), uploader.agent.chain.id)
     } else {
-      throw TemplateSlotX.E04(value)
+      throw TemplateSlot.E04(value)
     }
   }
   /** Here the Template pretends to be a Promise. That way,
@@ -630,41 +324,51 @@ export class TemplateSlotX extends Template {
     resolved: (t: Template)=>Y,
     rejected: (e: Error)=>never
   ): Promise<Y> {
-    return this.populate().then(resolved, rejected)
+    return this.getOrUpload().then(resolved, rejected)
   }
   /** Depending on what pre-Template type we start from, this function
     * invokes builder and uploader to produce a Template from it. */
-  async populate (): Promise<Template> {
+  async getOrUpload (): Promise<Template> {
     // Repopulate
     this.chainId ??= this.uploader?.agent?.chain?.id
-    if (!this.chainId) throw TemplateSlotX.E05()
+    if (!this.chainId) throw TemplateSlot.E05()
     if (this.codeId && this.codeHash) return this
     if (this.codeId) {
       this.codeHash ??= await this.uploader?.agent?.getHash(Number(this.codeId))
-      if (this.codeHash) { return this } else throw TemplateSlotX.E06()
+      if (this.codeHash) { return this } else throw TemplateSlot.E06()
     } else {
-      if (!this.artifact) throw TemplateSlotX.E07()
-      if (!this.uploader) throw TemplateSlotX.E01()
-      if (this.artifact.url) {
-        console.info('Uploading', bold(this.artifact.url.toString()))
-        const template = await this.artifact.upload(this.uploader)
+      if (!this.artifact) throw TemplateSlot.E07()
+      if (!this.uploader) throw TemplateSlot.E01()
+      const upload = async () => {
+        console.info('Uploading', bold(this.artifact!.url!.toString()))
+        const template = await this.artifact!.upload(this.uploader!)
         this.codeId = template.codeId
-        if (this.codeHash && this.codeHash !== template.codeHash) TemplateSlotX.W01(this, template)
+                              /* * * * * * * * * * * * * * */
+                             /* * * TAKE A DEEP BREATH * * /
+                            /* * * * * * * * * * * * * * */
+        if (this.codeHash && this.codeHash !== template.codeHash) TemplateSlot.W01(this, template)
         this.codeHash = template.codeHash
         return this
-      } else if (this.artifact.source) {
-        if (!this.builder) throw TemplateSlotX.E09()
-        this.artifact = await this.artifact.build(this.builder)
       }
-      throw TemplateSlotX.E08()
+      if (this.artifact.url) {
+        return await upload()
+      } else if (this.artifact.source) {
+        if (!this.builder) throw TemplateSlot.E09()
+        console.info(
+          'Compiling', bold(this.artifact.source.crate),
+          '@', bold(this.artifact.source.workspace.ref)
+        )
+        this.artifact = await this.artifact.build(this.builder)
+        if (!this.artifact.url) throw TemplateSlot.E10()
+        return await upload()
+      }
+      throw TemplateSlot.E08()
     }
   }
-
   declare codeId;
   declare chainId;
   declare codeHash;
   declare artifact;
-
   static E01 = () => new Error("Can't pass artifact into template slot with no uploader")
   static E02 = () => new Error("Can't pass artifact into template slot with no builder and uploader")
   static E03 = () => new Error("Can't pass string into template slot with no workspace, builder and uploader")
@@ -674,220 +378,59 @@ export class TemplateSlotX extends Template {
   static E07 = () => new Error("No code id and no artifact to upload")
   static E08 = () => new Error("No artifact url and no source to build")
   static E09 = () => new Error("No builder")
+  static E10 = () => new Error("Still no artifact url")
   static W01 = (a:any, b:any) => console.warn(`codeHash mismatch: ${a.codeHash} vs ${b.codeHash}`)
 }
-
-async function upload (code: IntoTemplate): Promise<Template> {
-  if (code instanceof Template) {
-    return code
-  }
-  if (typeof code === 'string') {
-    code = this.workspace.crate(code) as Source
-    if (!this.build) throw new Error(`Upload ${code}: building is not enabled`)
-    code = await this.build(code) as Artifact
-  } else {
-    const { url, codeHash, source } = code as Artifact
-    code = new Artifact(source, url, codeHash)
-  }
-  const rel = bold($((code as Artifact).url).shortPath)
-  code = await this.uploader.upload(code as Artifact) as Template
-  console.info(`Upload ${bold(rel)}:`)
-  console.info(`  Code hash:`, bold(code.codeHash))
-  console.info(`  Code id:  `, bold(code.codeId))
-  return code
-  throw Object.assign(
-    new Error(`Fadroma: can't upload ${code}: must be crate name, Source, Artifact, or Template`),
-    { code }
-  )
-}
-
-export class MultiTemplateSlot extends Array<TemplateSlotX> {
+export class MultiTemplateSlot extends Array<TemplateSlot> {
   constructor (
-    values: IntoTemplateSlotX[] = [],
+    values: IntoTemplateSlot[] = [],
     public readonly workspace?: Workspace,
     public readonly builder?:   Builder,
     public readonly uploader?:  Uploader
   ) {
-    super(...values.map(
-      (value: IntoTemplateSlotX)=>new TemplateSlotX(value, workspace, builder, uploader)
-    ))
+    super(...values.map(value=>new TemplateSlot(value, workspace, builder, uploader)))
   }
-  /** Here the Template pretends to be a Promise. That way,
-    * a fully populated Template is available synchronously,
-    * and a TemplateSlot can also be awaited to populate itself. */
-  then <Y> (
-    resolved: (t: this)=>Y,
-    rejected: (e: Error)=>never
-  ): Promise<Y> {
-    return this.populate().then(resolved, rejected)
+  then <Y> (resolved: (t: Template[])=>Y, rejected: (e: Error)=>never): Promise<Y> {
+    return Promise.all(this.getOrUploadMany()).then(resolved, rejected)
   }
-  /** Depending on what pre-Template type we start from, this function
-    * invokes builder and uploader to produce a Template from it. */
-  async populate () {
-    if (this.chainId && this.codeId && this.codeHash) {
-      return this
-    } else {
-      throw 'TODO'
-    }
+  getOrUploadMany (): Promise<Template>[] {
+    return this.map(template=>template.getOrUpload())
   }
 }
-
-export class ContractSlotX extends TemplateSlotX {
-  async populate (): Client {
-    return []
+/** Directory collecting upload receipts.
+  * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
+  * and are kept so that we don't reupload the same contracts. */
+export class Uploads extends JSONDirectory<UploadReceipt> {}
+/** Content of upload receipt. */
+export interface IUploadReceipt {
+  chainId?:           string 
+  codeHash:           string
+  codeId:             number|string
+  compressedChecksum: string
+  compressedSize:     string
+  logs:               any[]
+  originalChecksum:   string
+  originalSize:       number
+  transactionHash:    string
+  uploadTx?:          string
+  artifact?:          Artifact
+}
+/** Class that convert itself to a Template, from which contracts can be instantiated. */
+export class UploadReceipt extends JSONFile<IUploadReceipt> {
+  toTemplate (defaultChainId?: string): Template {
+    let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
+    chainId ??= defaultChainId
+    codeId  = String(codeId)
+    return new Template(artifact, codeHash, chainId, codeId, uploadTx)
   }
 }
-
-export class MultiContractSlot extends MultiTemplateSlot {
-  async populate (): Client[] {
-    return []
-  }
-}
-
-
-export abstract class Slot<X> extends Lazy<X> {
-  constructor () {
-    super(async ()=>await Promise.resolve(this.get()))
-  }
-  value: X|null = null
-  get (): X {
-    if (!this.value) throw new Error('Missing slot value')
-    return this.value
-  }
-  expect (msg: string|Error, orElse?: ()=>Promise<X>): Promise<X> {
-    if (this.value) return Promise.resolve(this.value)
-    if (orElse) { console.info(msg); return orElse() }
-    if (typeof msg === 'string') msg = new Error(msg)
-    throw msg
-  }
-}
-
-export class TemplateSlot extends Slot<Template> {
-  constructor (
-    public readonly context:   UploadContext,
-    public readonly reference: IntoTemplate
-  ) {
-    super()
-    if (reference instanceof TemplateSlot) {
-      this.value = reference.value
-    }
-    if (reference instanceof Function) {
-      const value = reference()
-      if (value instanceof Promise) {
-        throw new Error('Passing async functions into TemplateSlot is not supported.')
-      }
-    }
-    if (reference instanceof String) {
-      const source = context.getSource(reference)
-    }
-  }
-  /** If the contract was found in the deployment, return it.
-    * Otherwise, deploy it under the specified name. */
-  async getOrUpload (): Promise<Template> {
-    if (this.value) return this.value
-    return await this.upload()
-  }
-  async upload () {
-    return await this.context.upload(this.code)
-  }
-}
-
-/** Object returned by context.contract() helper.
-  * `getOrDeploy` method enables resumable deployments. */
-export class ContractSlot<C extends Client> extends Slot<C, DeployContext,> {
-  constructor (
-    public readonly context:   Partial<DeployContext>,
-    public readonly reference: string|{ address: Address },
-    /** By default, contracts are returned as the base Client class.
-      * Caller can pass a specific API class constructor as 2nd arg. */
-    public readonly APIClient: ClientCtor<C, any> = Client as ClientCtor<C, any>
-  ) {
-    super()
-    if (typeof reference === 'string') {
-      // When arg is string, look for contract by name in deployment
-      if (this.context.deployment.has(reference)) {
-        console.info('Found contract:', bold(reference))
-        this.value = this.context.creator.getClient(
-          this.APIClient,
-          this.context.deployment.get(reference)
-        )
-      }
-    } else if (reference.address) {
-      // When arg has `address` property, just get client by address.
-      this.value = this.context.creator?.getClient(APIClient, reference)
-    }
-  }
-  /** If the contract was found in the deployment, return it.
-    * Otherwise, deploy it under the specified name. */
-  async getOrDeploy (code: IntoTemplate, init: Message): Promise<C> {
-    if (this.value) return this.value
-    return await this.deploy(code, init)
-  }
-  /** Always deploy the specified contract. If a contract with the same name
-    * already exists in the deployment, it will fail - use suffixes */
-  async deploy (code: IntoTemplate, init: Message): Promise<C> {
-    const name     = this.reference as string
-    const template = await this.context.upload(code)
-    console.info(`Deploy ${bold(name)}:`, 'from code id:', bold(template.codeId))
-    try {
-      const instance = await this.context.deployment.init(this.context.creator, template, name, init)
-      return this.context.creator.getClient(this.APIClient, instance) as C
-    } catch (e) {
-      console.error(`Deploy ${bold(name)}: Failed: ${e.message}`)
-      console.error(`Deploy ${bold(name)}: Failed: Init message was:`)
-      console.log(JSON.stringify(init, null, 2))
-      throw e
-    }
-  }
-}
-class ContractSlot2<C extends Client> extends Slot<C> {
-
-  constructor (
-    public readonly context: DeployTask<unknown>,
-    public readonly name:    string,
-    public readonly Client:  ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
-  ) { super() }
-
-  get (): C|null {
-    const instance = this.context.instance(this.name)
-    if (instance) {
-      return new this.Client(this.context.creator, instance)
-    } else {
-      return null
-    }
-  }
-
-  async getOrDeploy (
-    template: IntoTemplate,
-    init:     Message
-  ): Promise<C> {
-    return this.get() || await this.deploy(template, init)
-  }
-
-  async deploy (
-    template: IntoTemplate,
-    init:     Message
-  ): Promise<C> {
-    const instance = this.context.instance(this.name)
-    if (instance) {
-      console.error(`Name ${this.name} already corresponds to:`)
-      console.trace(instance)
-      throw new Error(`Already exists: ${this.name}`)
-    }
-    return this.context.deploy(this.name, template, init, this.Client)
-  }
-
-}
-
 /// # UPLOADERS (THESE WORK, LEAVE EM ALONE) //////////////////////////////////////////////////////
-
 export abstract class Uploader {
   constructor (public agent: Agent) {}
   get chain () { return this.agent.chain }
-  abstract upload     (artifact:  Artifact, ...args): Promise<Template>
-  abstract uploadMany (artifacts: Artifact[]):        Promise<Template[]>
+  abstract upload     (artifact:  Artifact):   Promise<Template>
+  abstract uploadMany (artifacts: Artifact[]): Promise<Template[]>
 }
-
 /** Uploads contracts from the local file system. */
 export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
@@ -934,7 +477,6 @@ export class FSUploader extends Uploader {
     }
   }
 }
-
 /** Uploads contracts from the file system,
   * but only if a receipt does not exist in the chain's uploads directory. */
 export class CachingFSUploader extends FSUploader {
@@ -1042,12 +584,313 @@ export class CachingFSUploader extends FSUploader {
     }
   }
 }
-
+/// # DEPLOYING ///////////////////////////////////////////////////////////////////////////////////
+export type IntoContractSlot = Name|Partial<Instance>
+export class ContractSlot<C extends Client> {
+  static E01 = (value: string) =>
+    new Error("No deployment, can't find contract by name: "+value)
+  static E02 = (prefix: string, value: string) =>
+    new Error("Deployment "+prefix+" doesn't have "+value)
+  static E03 = () =>
+    new Error("Contract not found. Try .getOrDeploy(template, init)")
+  static E04 = () =>
+    new Error("No agent to deploy contract.")
+  static E05 = () =>
+    new Error("No deployment for contract.")
+  static E07 = () =>
+    new Error("Value is not Client and not a name.")
+  constructor (
+    value:                       IntoContractSlot,
+    public readonly Client:      ClientCtor<C, any> = Client,
+    public readonly workspace?:  Workspace,
+    public readonly builder?:    Builder,
+    public readonly uploader?:   Uploader,
+    public readonly deployment?: Deployment,
+    public readonly creator?:    Agent
+  ) {
+    if (typeof value === 'string') {
+      if (!deployment) throw ContractSlot.E01(value)
+      if (deployment.has(value)) this.value = deployment.get(value)!
+    } else {
+      this.value = value
+      if (this.value.address) this.value = new this.Client(this.creator, this.value)
+    }
+  }
+  /** Info about the contract that we have so far. */
+  value: Partial<Instance> = {}
+  /** Here the ContractSlot pretends to be a Promise. That way,
+    * a fully populated Instance is available synchronously if possible,
+    * and a ContractSlot can also be awaited to populate itself. */
+  then <Y> (
+    resolved: (c: C)=>Y,
+    rejected: (e: Error)=>never
+  ): Promise<Y> {
+    if (!(this.value instanceof this.Client)) throw ContractSlot.E03()
+    return Promise.resolve(this.value).then(resolved, rejected)
+  }
+  async getOrDeploy (template: Template|TemplateSlot|IntoTemplateSlot, init: Message): Promise<C> {
+    if (this.value instanceof this.Client) return this.value
+    if (typeof this.value === 'string') {
+      if (!this.creator)    throw ContractSlot.E04()
+      if (!this.deployment) throw ContractSlot.E05()
+      if (!(template instanceof Template)) template = new TemplateSlot(template)
+      await (template as TemplateSlot).getOrUpload()
+      const instance = await this.deployment.init(this.creator, template, this.value, init)
+      const client = new this.Client(this.creator, instance)
+      this.value = client
+      return client
+    }
+    throw ContractSlot.E07()
+  }
+}
+/** Instantiates multiple contracts of the same type in one transaction.
+  * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
+export class MultiContractSlot<C extends Client> extends Array<ContractSlot<C>> {
+  constructor (
+    values:                      IntoContractSlot[],
+    public readonly Client:      ClientCtor<C, any> = Client,
+    public readonly workspace?:  Workspace,
+    public readonly builder?:    Builder,
+    public readonly uploader?:   Uploader,
+    public readonly deployment?: Deployment,
+    public readonly creator?:    Agent
+  ) {
+    super(...values.map(value=>new ContractSlot(value, Client, workspace, builder, uploader)))
+  }
+  async deployMany (
+    template : Template|TemplateSlot|IntoTemplateSlot,
+    contracts: [Name, Message][] = []
+  ): Promise<C[]> {
+    if (!this.creator)    throw ContractSlot.E04()
+    if (!this.deployment) throw ContractSlot.E05()
+    if (!(template instanceof Template)) template = new TemplateSlot(template)
+    await (template as TemplateSlot).getOrUpload()
+    // Deploy multiple contracts from the same template with 1 tx
+    let instances: Instance[]
+    try {
+      instances = await this.deployment.initMany(this.creator, await template, contracts)
+    } catch (e) {
+      console.error(`Deploy of multiple contracts failed: ${e.message}`)
+      console.error(`Deploy of multiple contracts failed: Configs were:`)
+      console.log(JSON.stringify(contracts, null, 2))
+      throw e
+    }
+    // Return API client to each contract
+    return instances.map(instance=>this.creator!.getClient(this.Client, instance))
+  }
+}
+/// # DEPLOY RECEIPTS DIRECTORY ///////////////////////////////////////////////////////////////////
+/** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
+  * Each deployment is represented by 1 multi-document YAML file, where every
+  * document is delimited by the `\n---\n` separator and represents a deployed
+  * smart contract. */
+export class Deployments extends YAMLDirectory<DeployReceipt[]> {
+  /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
+    * and convert it to a Deployments instance. See: @hackbg/kabinet */
+  static fromConfig = (chainId: string, projectRoot: string) =>
+    $(projectRoot).in('receipts').in(chainId).in('deployments').as(Deployments)
+  /** Name of symlink pointing to active deployment, without extension. */
+  KEY = '.active'
+  /** Create a deployment with a specific name. */
+  async create (name: string = timestamp()) {
+    const path = this.at(`${name}.yml`)
+    if (path.exists()) {
+      throw new Error(`${name} already exists`)
+    }
+    return path.makeParent().as(YAMLFile).save(undefined)
+    return new Deployment(path.path)
+  }
+  /** Make the specified deployment be the active deployment. */
+  async select (name: string) {
+    const selection = this.at(`${name}.yml`)
+    if (!selection.exists) {
+      throw new Error(`Deployment ${name} does not exist`)
+    }
+    const active = this.at(`${this.KEY}.yml`).as(YAMLFile)
+    try { active.delete() } catch (e) {}
+    await symlinkSync(selection.path, active.path)
+  }
+  /** Get the contents of the active deployment, or null if there isn't one. */
+  get active (): Deployment|null {
+    return this.get(this.KEY)
+  }
+  /** Get the contents of the named deployment, or null if it doesn't exist. */
+  get (name: string): Deployment|null {
+    const path = resolve(this.path, `${name}.yml`)
+    if (!existsSync(path)) {
+      return null
+    }
+    return new Deployment(path)
+  }
+  /** List the deployments in the deployments directory. */
+  list () {
+    if (!existsSync(this.path)) {
+      return []
+    }
+    return readdirSync(this.path)
+      .filter(x=>x!=this.KEY)
+      .filter(x=>x.endsWith('.yml'))
+      .map(x=>basename(x,'.yml'))
+  }
+  /** DEPRECATED: Save some extra data into the deployments directory. */
+  save <D> (name: string, data: D) {
+    const file = this.at(`${name}.json`).as(JSONFile) as JSONFile<D>
+    //console.info('Deployments writing:', bold(file.shortPath))
+    return file.save(data)
+  }
+}
+/** Each deploy receipt contains, as a minimum, name, address, and codeHash. */
+export interface DeployReceipt extends Instance {
+  name: string
+}
+/// # DEPLOYMENT / DEPLOYMENT RECEIPT /////////////////////////////////////////////////////////////
+/** An individual deployment, represented as a multi-document YAML file.
+  * Each entry in the file is a Receipt, representing a deployed contract.
+  * You can deploy contracts with a Deployment using **deployment.init...**
+  * and get Clients for interacting with existing contracts using **deployment.get...**. */
+export class Deployment {
+  /// ## BUSINESS END OF DEPLOYMENT ///////////////////////////////////////////////////////////////
+  /** This is the unique identifier of the deployment.
+    * It's used as a prefix to contract labels
+    * (which need to be globally unique). */
+  prefix: string = timestamp()
+  /** These are the entries contained by the Deployment.
+    * They correspond to individual contract instances. */
+  receipts: Record<string, DeployReceipt> = {}
+  /** Check if the deployment contains a certain entry. */
+  has (name: string): boolean {
+    return !!this.receipts[name]
+  }
+  /** Get the receipt for a contract, containing its address, codeHash, etc. */
+  get (name: string): DeployReceipt|null {
+    const receipt = this.receipts[name]
+    if (!receipt) return null
+    receipt.name = name
+    return receipt
+  }
+  expect (
+    name: string, message: string = `${name}: no such contract in deployment`
+  ): DeployReceipt {
+    const receipt = this.get(name)
+    if (receipt) return receipt
+    throw new Error(message)
+  }
+  /** Get a handle to the contract with the specified name. */
+  getClient <C extends Client, O extends ClientOpts> (
+    name: string, $Client: ClientCtor<C, O> = Client as ClientCtor<C, O>, agent = this.agent,
+  ): C {
+    return new $Client(agent, this.get(name) as O)
+  }
+  /** Chainable. Add multiple to the deployment, replacing existing. */
+  setMany (receipts: Record<string, any>) {
+    for (const [name, receipt] of Object.entries(receipts)) {
+      this.receipts[name] = receipt
+    }
+    return this.save()
+  }
+  /** Resolve a path relative to the deployment directory. */
+  resolve (...fragments: Array<string>) {
+    // Expect path to be present
+    if (!this.path) throw new Error('Deployment: no path to resolve by')
+    return resolve(this.path, ...fragments)
+  }
+  /** Instantiate one contract and save its receipt to the deployment. */
+  async init (agent: Agent, template: Template, name: Label, msg: Message): Promise<Instance> {
+    const label = addPrefix(this.prefix, name)
+    const instance = await agent.instantiate(template, label, msg)
+    this.set(name, instance)
+    return instance
+  }
+  /** Instantiate multiple contracts from the same Template with different parameters. */
+  async initMany (
+    agent: Agent, template: Template, contracts: [Label, Message][] = []
+  ): Promise<Instance[]> {
+    // this adds just the template - prefix is added in initVarious
+    return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
+  }
+  /** Instantiate multiple contracts from different Templates with different parameters. */
+  async initVarious (
+    agent: Agent = this.agent,
+    contracts: [Template, Label, Message][] = []
+  ): Promise<Instance[]> {
+    // Validate
+    for (const index in contracts) {
+      const triple = contracts[index]
+      if (triple.length !== 3) {
+        throw Object.assign(
+          new Error('initVarious: contracts must be [Template, Name, Message] triples'),
+          { index, contract: triple }
+        )
+      }
+    }
+    // Add prefixes
+    const initConfigs = contracts.map(([template, name, msg])=>
+      [template, addPrefix(this.prefix, name), msg]) as [Template, Label, Message][]
+    // Deploy
+    const instances = await agent.instantiateMany(initConfigs)
+    // Store receipt
+    for (const [label, receipt] of Object.entries(instances)) {
+      const name = label.slice(this.prefix.length+1)
+      this.set(name, { name, ...receipt })
+    }
+    return Object.values(instances)
+  }
+  /// ## CREATING AND LOADING DEPLOYMENT //////////////////////////////////////////////////////////
+  constructor (
+    /** Path to the file containing the receipts. */
+    public readonly path?:  string,
+    /** The default identity to use when interacting with this deployment. */
+    public readonly agent?: Agent,
+  ) {
+    if (this.path) this.load()
+  }
+  /** Load deployment state from YAML file. */
+  load (path = this.path) {
+    // Expect path to be present
+    if (!path) throw new Error('Deployment: no path to load from')
+    // Resolve symbolic links to file
+    while (lstatSync(path).isSymbolicLink()) path = resolve(dirname(path), readlinkSync(path))
+    // Set own prefix from name of file
+    this.prefix    = basename(path, extname(path))
+    // Load the receipt data
+    const data     = readFileSync(path, 'utf8')
+    const receipts = YAML.loadAll(data) as DeployReceipt[]
+    for (const receipt of receipts) {
+      const [contractName, _version] = receipt.name.split('+')
+      this.receipts[contractName] = receipt
+    }
+    // TODO: Automatically convert receipts to Client subclasses
+    // by means of an identifier shared between the deploy and client libraries
+  }
+  /// ## UPDATING DEPLOYMENT //////////////////////////////////////////////////////////////////////
+  /** Chainable. Add entry to deployment, replacing existing receipt. */
+  set (name: string, data: Partial<DeployReceipt> & any): this {
+    this.receipts[name] = { name, ...data }
+    return this.save()
+  }
+  /** Chainable. Add to deployment, merging into existing receipts. */
+  add (name: string, data: any): this {
+    return this.set(name, { ...this.receipts[name] || {}, ...data })
+  }
+  /** Chainable: Serialize deployment state to YAML file. */
+  save (path = this.path): this {
+    // Expect path to be present
+    if (!path) throw new Error('Deployment: no path to save to')
+    // Serialize data to multi-document YAML
+    let output = ''
+    for (let [name, data] of Object.entries(this.receipts)) {
+      output += '---\n'
+      output += alignYAML(YAML.dump({ name, ...data }, { noRefs: true }))
+    }
+    // Write the data to disk.
+    writeFileSync(path, output)
+    return this
+  }
+}
 const codeHashForBlob  = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
 const codeHashForPath  = (location: string) => codeHashForBlob(readFileSync(location))
 export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 export type  Name      = string
-
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   runOperation('deploy status', 'show deployment status', [
