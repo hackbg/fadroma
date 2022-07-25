@@ -37,7 +37,7 @@ export async function getChainContext (
   const name = config.chain
   // Check that a valid name is passed
   if (!name || !context.chains[name]) {
-    ConnectLogger(console).NoName(context.chains)
+    ConnectLogger(console).noName(context.chains)
     process.exit(1)
   }
   // Return chain and deployments handle
@@ -68,7 +68,7 @@ export async function getDeploymentsForChain (chain: Chain, project: string) {
   //@ts-ignore
   return await import('@fadroma/deploy')
     .then(({Deployments})=>Deployments.fromConfig(chain.id, project))
-    .catch(ConnectLogger(console).NoDeploy)
+    .catch(ConnectLogger(console).noDeploy)
 }
 export interface ChainContext extends CommandContext {
   config?:     ChainConfig
@@ -146,22 +146,22 @@ export function chainFlags (chain: Chain) {
 }
 
 export const ConnectLogger = ({ log, info, warn, error }: Console) => ({
-  NoName (chains: object) {
+  noName (chains: object) {
     error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
-    this.KnownChains(chains)
+    this.knownChains(chains)
   },
-  NoDeploy () {
+  noDeploy () {
     warn('@fadroma/deploy not installed. Deployment system unavailable.')
     return null
   },
-  KnownChains (knownChains: object) {
+  knownChains (knownChains: object) {
     log()
     info('Known chain names:')
     for (const chain of Object.keys(knownChains).sort()) {
       info(`  ${chain}`)
     }
   },
-  SelectedChain ({ chain }: ChainConfig) {
+  selectedChain ({ chain }: ChainConfig) {
     log()
     if (chain) {
       info('Selected chain:')
@@ -170,7 +170,7 @@ export const ConnectLogger = ({ log, info, warn, error }: Console) => ({
       info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
     }
   },
-  ChainStatus ({ chain, deployments }: ChainContext) {
+  chainStatus ({ chain, deployments }: ChainContext) {
     info()
     if (!chain) {
       info('No active chain.')
@@ -195,6 +195,6 @@ import {fileURLToPath} from 'url'
 
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  ConnectLogger(console).KnownChains(knownChains)
-  ConnectLogger(console).SelectedChain(getChainConfig())
+  ConnectLogger(console).knownChains(knownChains)
+  ConnectLogger(console).selectedChain(getChainConfig())
 }

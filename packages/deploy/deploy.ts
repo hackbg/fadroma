@@ -83,7 +83,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
     super(name, [
       getBuildContext,
       getChainContext,
-      ConnectLogger(console).ChainStatus,
+      ConnectLogger(console).chainStatus,
       getAgentContext,
       ...before
     ], after)
@@ -176,7 +176,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
     const deployments = expectDeployments(context)
     const deployment  = id ? deployments.get(id) : deployments.active
     if (deployment) {
-      DeployLogger(console).Deployment({ deployment })
+      DeployLogger(console).deployment({ deployment })
     } else {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }
@@ -192,7 +192,7 @@ const expectDeployments = (context: { deployments: Deployments|null }): Deployme
 }
 /// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
 export const DeployLogger = ({ info, warn }: Console) => ({
-  Deployment ({ deployment }: { deployment: Deployment }) {
+  deployment ({ deployment }: { deployment: Deployment }) {
     if (deployment) {
       const { receipts, prefix } = deployment
       let contracts: string|number = Object.values(receipts).length
@@ -201,7 +201,7 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       const count = Object.values(receipts).length
       if (count > 0) {
         for (const name of Object.keys(receipts).sort()) {
-          this.Receipt(name, receipts[name])
+          this.receipt(name, receipts[name])
         }
       } else {
         info('This deployment is empty.')
@@ -210,7 +210,7 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       info('There is no selected deployment.')
     }
   },
-  Receipt (name: string, receipt: any) {
+  receipt (name: string, receipt: any) {
     name = bold(name.padEnd(35))
     if (receipt.address) {
       const address = `${receipt.address}`.padStart(45)
@@ -228,19 +228,25 @@ type AgentAndBuildContext = AgentContext & BuildContext
   * once you're authenticated and can compile code locally */
 export interface DeployContext extends AgentAndBuildContext {
   /** All the environment config so far. */
-  config: ChainConfig & AgentConfig & BuilderConfig & DeployConfig
+  config:     ChainConfig & AgentConfig & BuilderConfig & DeployConfig
   /** Currently selected deployment. */
   deployment: Deployment|null
   /** Knows how to upload contracts to a blockchain. */
-  uploader: Uploader
-  /** Specify one or more templates. */
-  template (source: IntoTemplateSlot|IntoTemplateSlot[]): TemplateSlot|MultiTemplateSlot
+  uploader:   Uploader
+  /** Specify a template. */
+  template    (source: IntoTemplateSlot): TemplateSlot
+  /** Specify multiple templates. */
+  templates   (sources: IntoTemplateSlot[]): MultiTemplateSlot
   /** Agent that will instantiate the templates. */
-  creator: Agent
-  /** Specify one or more contract instances. */
+  creator:    Agent
+  /** Specify a contract. */
   contract <C extends Client, O extends ClientOpts> (
-    reference: Name|Instance|([Name|Instance][]), APIClient?: ClientCtor<C, O>
-  ): ContractSlot<C>|MultiContractSlot<C>
+    reference: Name|Instance, APIClient?: ClientCtor<C, O>
+  ): ContractSlot<C>
+  /** Specify multiple contracts of the same kind. */
+  contracts <C extends Client, O extends ClientOpts> (
+    references: Array<Name|Instance>, APIClient?: ClientCtor<C, O>
+  ): MultiContractSlot<C>
 }
 /** Taking merged Agent and Build context as a basis, populate deploy context. */
 export function getDeployContext (
@@ -263,25 +269,27 @@ export function getDeployContext (
   const uploader = (!context.isMocknet && !config.reupload)
       ? CachingFSUploader.fromConfig(agent, config.project)
       : new FSUploader(agent)
-  // Hook for template upload
-  const template = (arg: IntoTemplateSlot|IntoTemplateSlot[]): TemplateSlot|MultiTemplateSlot => {
-    return (arg instanceof Array)
-      ? new MultiTemplateSlot(arg, context as DeployContext)
-      : new TemplateSlot(     arg, context as DeployContext)
-  }
+  // Hooks for template upload
+  const template = (arg: IntoTemplateSlot): TemplateSlot =>
+    new TemplateSlot(arg, context as DeployContext)
+  const templates = (arg: IntoTemplateSlot[]): MultiTemplateSlot =>
+    new MultiTemplateSlot(arg, context as DeployContext)
   // Hook for contract instantiation and retrieval
   const contract = <C extends Client> (
-    arg: Name|Instance|[Name|Instance][],
-    _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
-  ): ContractSlot<C>|MultiContractSlot<C> => {
-    return (arg instanceof Array)
-      ? new MultiContractSlot(arg, _Client, context as DeployContext)
-      : new ContractSlot(     arg, _Client, context as DeployContext)
-  }
+    arg: Name|Instance, _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+  ): ContractSlot<C> =>
+    new ContractSlot(arg, _Client, context as DeployContext) as ContractSlot<C>
+  const contracts = <C extends Client> (
+    arg: (Name|Instance)[], _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+  ): MultiContractSlot<C> =>
+    new MultiContractSlot(arg, _Client, context as DeployContext) as MultiContractSlot<C>
   context = {
-    ...context, config,
-    uploader, template,
-    deployment: context.deployment!, creator: agent, contract,
+    ...context,
+    config,
+    uploader,
+    template, templates,
+    deployment: context.deployment!, creator: agent,
+    contract, contracts
   }
   return context as DeployContext
 }
@@ -480,14 +488,11 @@ export class CachingFSUploader extends FSUploader {
     const name    = this.getUploadReceiptName(artifact)
     const receipt = this.cache.at(name).as(UploadReceipt)
     if (receipt.exists()) {
+      console.info('Reusing', bold(this.cache.at(name).shortPath))
+      console.info()
       return receipt.toTemplate()
     }
     const data = $(artifact.url).as(BinaryFile).load()
-    //console.info(
-      //`Uploading:`, bold($(artifact.url).shortPath),
-      //'with code hash', bold(artifact.codeHash),
-      //'uncompressed', bold(String(data.length)), 'bytes'
-    //)
     const template = await this.agent.upload(data)
     //console.info(`Storing:  `, bold($(receipt.path).shortPath))
     receipt.save(template)
@@ -612,9 +617,12 @@ export class ContractSlot<C extends Client> {
   }
   async getOrDeploy (template: Template|TemplateSlot|IntoTemplateSlot, msg: Message): Promise<C> {
     if (this.value instanceof this.Client) {
+      console.info('Found', bold(this.name||'(unnamed)'), 'at', bold(this.value.address))
       return this.value
     } else if (this.value.address) {
       this.value = new this.Client(this.context.creator, this.value)
+      console.info('Found', bold(this.name||'(unnamed)'), 'at', bold((this.value as C).address))
+      return this.value as C
     } else if (this.name) {
       if (!this.context.creator)    throw ContractSlot.E04()
       if (!this.context.deployment) throw ContractSlot.E05()
@@ -623,9 +631,14 @@ export class ContractSlot<C extends Client> {
         this.context.creator, template as Template, this.name,  msg
       )
       const client = new this.Client(this.context.creator, instance)
+      console.info(
+        'Deployed', bold(this.name),
+        'at', bold(client.address),
+        'from code id', bold(String(template.codeId||'(unknown)'))
+      )
+      console.info()
       return this.value = client
     }
-    console.log(this)
     throw ContractSlot.E07()
   }
 }
@@ -653,7 +666,7 @@ export class MultiContractSlot<C extends Client> extends Array<ContractSlot<C>> 
       instances = await this.context.deployment.initMany(
         this.context.creator,
         await template,
-        this.map((slot: ContractSlot<C>, i: number)=>[slot.value, messages[i]])
+        this.map((slot: ContractSlot<C>, i: number)=>[slot.name!, messages[i]])
       )
     } catch (e) {
       console.error(`Deploy of multiple contracts failed: ${e.message}`)
@@ -895,7 +908,7 @@ export type  Name      = string
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   runOperation('deploy status', 'show deployment status', [
-    getAgentContext,  ConnectLogger(console).ChainStatus,
-    getDeployContext, DeployLogger(console).Deployment
+    getAgentContext,  ConnectLogger(console).chainStatus,
+    getDeployContext, DeployLogger(console).deployment
   ], process.argv.slice(2))
 }

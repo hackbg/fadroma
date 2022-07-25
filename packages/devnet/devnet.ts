@@ -588,7 +588,7 @@ export async function resetDevnet ({ chain }: { chain: Chain }) {
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   runOperation('devnet status', 'show deployment status', [
     getChainContext,
-    ConnectLogger(console).ChainStatus,
+    ConnectLogger(console).chainStatus,
     function optionallyReset ({ cmdArgs = [], chain }: ChainContext) {
       if (cmdArgs[0] === 'reset') {
         return resetDevnet(chain)

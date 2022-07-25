@@ -213,14 +213,13 @@ export class DockerBuilder extends CachingBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources: Source[]): Promise<Artifact[]> {
-    BuildLogger(console).BuildMany(sources)
     // Announce what will be done
     //console.info('Requested to build the following contracts:')
     const longestCrateName = sources.map(source=>source.crate.length).reduce((x,y)=>Math.max(x,y),0)
     for (const source of sources) {
       const outputDir = $(source.workspace.path).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.workspace.ref)
-      if (this.verbose) BuildLogger(console).BuildOne(source, prebuilt, longestCrateName)
+      BuildLogger(console).BuildOne(source, prebuilt, longestCrateName)
     }
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, Workspace> = {}
@@ -744,12 +743,18 @@ export const BuildLogger = ({ info }: Console) => ({
   BuildScript (file: Path) {
     info('Running build script', bold(file.shortPath))
   },
-  BuildOne (source: Source, prebuilt, longestCrateName) {
+  BuildOne (source: Source, prebuilt: Artifact|null, longestCrateName: number) {
+    if (prebuilt) {
+      info('Reusing', bold($(prebuilt.url).shortPath))
+    } else {
+      const { crate, workspace: { path, ref = 'HEAD' } } = source
+      if (ref === 'HEAD') {
+        info('Building', bold(source.crate), 'from working tree')
+      } else {
+        info('Building', bold(source.crate), 'from Git reference', bold(ref))
+      }
+    }
     info(
-      'Building', bold(source.crate.padEnd(longestCrateName)),
-      'from',     bold(`${$(source.workspace.path).shortPath}/`),
-      '@',        bold(source.workspace.ref),
-      prebuilt ? '(exists, not rebuilding)': ''
     )
   },
   BuildMany (sources: Source[]) {
