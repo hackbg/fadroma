@@ -745,7 +745,7 @@ export const BuildLogger = ({ info }: Console) => ({
   },
   BuildOne (source: Source, prebuilt: Artifact|null, longestCrateName: number) {
     if (prebuilt) {
-      info('Reusing', bold($(prebuilt.url).shortPath))
+      info('Reusing  ', bold($(prebuilt.url).shortPath))
     } else {
       const { crate, workspace: { path, ref = 'HEAD' } } = source
       if (ref === 'HEAD') {
@@ -754,8 +754,6 @@ export const BuildLogger = ({ info }: Console) => ({
         info('Building', bold(source.crate), 'from Git reference', bold(ref))
       }
     }
-    info(
-    )
   },
   BuildMany (sources: Source[]) {
     for (const source of sources) {

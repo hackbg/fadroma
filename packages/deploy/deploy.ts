@@ -197,7 +197,8 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       const { receipts, prefix } = deployment
       let contracts: string|number = Object.values(receipts).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      console.info('Active deployment:', bold(prefix), bold(contracts))
+      info()
+      info('Active deployment:', bold(prefix), bold(contracts))
       const count = Object.values(receipts).length
       if (count > 0) {
         for (const name of Object.keys(receipts).sort()) {
@@ -206,6 +207,7 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       } else {
         info('This deployment is empty.')
       }
+      info()
     } else {
       info('There is no selected deployment.')
     }
@@ -215,9 +217,9 @@ export const DeployLogger = ({ info, warn }: Console) => ({
     if (receipt.address) {
       const address = `${receipt.address}`.padStart(45)
       const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      info(address, codeId, name)
+      info('    ', name, address, codeId)
     } else {
-      warn('(non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+      warn('  (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
   }
 })
@@ -370,15 +372,16 @@ export class TemplateSlot extends Template {
   static E10 = () => new Error("Still no artifact url")
   static W01 = (a:any, b:any) => console.warn(`codeHash mismatch: ${a.codeHash} vs ${b.codeHash}`)
 }
-export class MultiTemplateSlot extends Array<TemplateSlot> {
-  constructor (values: IntoTemplateSlot[] = [], public readonly context: DeployContext) {
-    super(...values.map(value=>new TemplateSlot(value, context)))
+export class MultiTemplateSlot {
+  constructor (
+    templates: IntoTemplateSlot[] = [],
+    public readonly context: DeployContext
+  ) {
+    this.templates = templates.map(value=>new TemplateSlot(value, context))
   }
-  then <Y> (resolved: (t: Template[])=>Y, rejected: (e: Error)=>never): Promise<Y> {
-    return Promise.all(this.getOrUploadMany()).then(resolved, rejected)
-  }
+  public readonly templates: TemplateSlot[]
   getOrUploadMany (): Promise<Template>[] {
-    return this.map(template=>template.getOrUpload())
+    return this.templates.map((template: TemplateSlot)=>template.getOrUpload())
   }
 }
 /** Directory collecting upload receipts.
@@ -420,7 +423,6 @@ export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
     console.info('Uploading', bold($(artifact.url).shortPath))
-    console.info()
     const data = $(artifact.url).as(BinaryFile).load()
     const template = await this.agent.upload(data)
     await this.agent.nextBlock
@@ -488,8 +490,7 @@ export class CachingFSUploader extends FSUploader {
     const name    = this.getUploadReceiptName(artifact)
     const receipt = this.cache.at(name).as(UploadReceipt)
     if (receipt.exists()) {
-      console.info('Reusing', bold(this.cache.at(name).shortPath))
-      console.info()
+      console.info('Reusing  ', bold(this.cache.at(name).shortPath))
       return receipt.toTemplate()
     }
     const data = $(artifact.url).as(BinaryFile).load()
@@ -582,6 +583,8 @@ export class ContractSlot<C extends Client> {
     new Error("No deployment for contract.")
   static E07 = () =>
     new Error("Value is not Client and not a name.")
+  static E08 = () =>
+    new Error("No name.")
   constructor (
     value:   IntoContractSlot,
     $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
@@ -627,19 +630,29 @@ export class ContractSlot<C extends Client> {
       if (!this.context.creator)    throw ContractSlot.E04()
       if (!this.context.deployment) throw ContractSlot.E05()
       template = await new TemplateSlot(template, this.context).getOrUpload()
-      const instance = await this.context.deployment!.init(
-        this.context.creator, template as Template, this.name,  msg
-      )
-      const client = new this.Client(this.context.creator, instance)
-      console.info(
-        'Deployed', bold(this.name),
-        'at', bold(client.address),
-        'from code id', bold(String(template.codeId||'(unknown)'))
-      )
-      console.info()
-      return this.value = client
+      return await this.deploy(template, msg)
     }
     throw ContractSlot.E07()
+  }
+  async getOr (getter: ()=>C|Promise<C>): Promise<C> {
+    return await Promise.resolve(getter())
+  }
+  async deploy (template: Template, msg: Message): Promise<C> {
+    const { creator, deployment } = this.context
+    if (!deployment) throw ContractSlot.E05()
+    if (!this.name)  throw ContractSlot.E08()
+    console.info(
+      'Deploying',    bold(this.name!),
+      'from code id', bold(String(template.codeId  ||'(unknown)')),
+      'hash',         bold(String(template.codeHash||'(unknown)'))
+    )
+    const instance = await this.context.deployment!.init(creator, template, this.name,  msg)
+    const client = new this.Client(this.context.creator, instance)
+    console.info(
+      'Deployed ',    bold(this.name!), 'at', bold(client.address),
+      'from code id', bold(String(template.codeId  ||'(unknown)'))
+    )
+    return this.value = client
   }
 }
 /** Instantiates multiple contracts of the same type in one transaction.
@@ -647,10 +660,10 @@ export class ContractSlot<C extends Client> {
 export class MultiContractSlot<C extends Client> extends Array<ContractSlot<C>> {
   constructor (
     values:                  IntoContractSlot[],
-    public readonly Client:  ClientCtor<C, any> = Client,
+    public readonly $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
     public readonly context: DeployContext,
   ) {
-    super(...values.map(value=>new ContractSlot(value, Client, context)))
+    super(...values.map(value=>new ContractSlot(value, Client, context) as ContractSlot<C>))
   }
   async deployMany (
     template: Template|TemplateSlot|IntoTemplateSlot,
@@ -670,8 +683,8 @@ export class MultiContractSlot<C extends Client> extends Array<ContractSlot<C>> 
       )
     } catch (e) {
       console.error(`Deploy of multiple contracts failed: ${e.message}`)
-      console.error(`Deploy of multiple contracts failed: Configs were:`)
-      console.log(JSON.stringify(contracts, null, 2))
+      console.error(`  Template:`, template)
+      console.error(`  Configs`,   this.values.map((name, i)=>[name, messages[i]]))
       throw e
     }
     // Return API client to each contract
