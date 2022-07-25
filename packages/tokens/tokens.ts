@@ -168,36 +168,43 @@ export interface Snip20InitConfig {
   [name: string]: unknown
 }
 
-export class Snip20 extends Client {
+export class Snip20 extends Client implements CustomToken {
 
-  static init = (
-    name:     string,
-    symbol:   string,
-    decimals: number,
-    admin:    Address|{ address: Address },
-    config:   Partial<Snip20InitConfig> = {}
-  ): Snip20InitMsg => {
-    if (typeof admin === 'object') admin = admin.address
+  /** Return the address and code hash of this token in the format
+    * required by the Factory to create a swap pair with this token */
+  get custom_token () {
     return {
-      name, symbol, decimals, admin, config,
-      prng_seed: randomHex(36),
+      contract_addr:   this.address,
+      token_code_hash: this.codeHash
     }
   }
 
+  /** Old version of Token descriptor support. See `get custom_token`. */
+  get asDescriptor () {
+    return this.custom_token
+  }
+
+  /** Create a SNIP20 token client from a Token descriptor. */
   static fromDescriptor (agent: Executor, descriptor: CustomToken): Snip20 {
     const { custom_token } = descriptor
     const { contract_addr: address, token_code_hash: codeHash } = custom_token
     return new Snip20(agent, { address, codeHash })
   }
 
-  /** Return the address and code hash of this token in the format
-   * required by the Factory to create a swap pair with this token */
-  get asDescriptor () {
+  /** Create a SNIP20 init message. */
+  static init = (
+    name:     string,
+    symbol:   string,
+    decimals: number,
+    admin:    Address|{ address: Address },
+    config:   Partial<Snip20InitConfig> = {},
+    balances: Array<{address: Address, amount: Uint128}> = []
+  ): Snip20InitMsg => {
+    if (typeof admin === 'object') admin = admin.address
     return {
-      custom_token: {
-        contract_addr:   this.address,
-        token_code_hash: this.codeHash
-      }
+      name, symbol, decimals, admin, config,
+      initial_balances: balances,
+      prng_seed: randomHex(36),
     }
   }
 
