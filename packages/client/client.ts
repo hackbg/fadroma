@@ -98,6 +98,7 @@ export class ContractLink {
 /** Interface to a specific contract.
   * Subclass Client to add your contract-specific methods. */
 export class Client implements Instance {
+  static E00 = () => new Error("Client has no Agent")
   constructor (readonly agent?: Executor, arg: Address|Partial<ClientOpts> = {}) {
     if (typeof arg === 'string') {
       this.address  = arg
@@ -143,10 +144,12 @@ export class Client implements Instance {
   }
   /** Execute a query on the specified contract as the specified Agent. */
   async query <U> (msg: Message): Promise<U> {
+    if (!this.agent) throw Client.E00()
     return await this.agent.query(this, msg)
   }
   /** Execute a transaction on the specified contract as the specified Agent. */
   async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
+    if (!this.agent) throw Client.E00()
     opt.fee = opt.fee || this.getFee(msg)
     return await this.agent.execute(this, msg, opt)
   }
@@ -154,6 +157,7 @@ export class Client implements Instance {
     * You can override this method to populate custom contract info from the chain on your client,
     * e.g. fetch the symbol and decimals of a token contract. */
   async populate (): Promise<this> {
+    if (!this.agent) throw Client.E00()
     const [label, codeId, codeHash] = await Promise.all([
       this.agent.getLabel(this.address),
       this.agent.getCodeId(this.address),
