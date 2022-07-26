@@ -1007,8 +1007,19 @@ export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 export type  Name      = string
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  runOperation('deploy status', 'show deployment status', [
-    getAgentContext,  ConnectLogger(console).chainStatus,
-    getDeployContext, DeployLogger(console).deployment
-  ], process.argv.slice(2))
+  if (process.argv.length > 2) {
+    console.info('Using deploy script:', bold(process.argv[2]))
+    import(resolve(process.argv[2])).then(deployScript=>{
+      const deployCommands = deployScript.default
+      return deployCommands.launch(process.argv.slice(3))
+    }).catch(e=>{
+      console.error(e)
+      process.exit(1)
+    })
+  } else {
+    runOperation('deploy status', 'show deployment status', [
+      getAgentContext,  ConnectLogger(console).chainStatus,
+      getDeployContext, DeployLogger(console).deployment
+    ], process.argv.slice(2))
+  }
 }
