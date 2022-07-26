@@ -210,8 +210,9 @@ const expectDeployments = (context: { deployments: Deployments|null }): Deployme
   return context.deployments
 }
 /// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
-export const DeployLogger = ({ info, warn }: Console) => ({
-  deployment ({ deployment }: { deployment: Deployment }) {
+export const DeployLogger = ({ info, warn }: Console) => {
+  return { deployment, receipt, deployFailed, deployManyFailed, deployFailedTemplate }
+  function deployment ({ deployment }: { deployment: Deployment }) {
     if (deployment) {
       const { receipts, prefix } = deployment
       let contracts: string|number = Object.values(receipts).length
@@ -221,7 +222,7 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       const count = Object.values(receipts).length
       if (count > 0) {
         for (const name of Object.keys(receipts)) {
-          this.receipt(name, receipts[name], len)
+          receipt(name, receipts[name], len)
         }
       } else {
         info('│ This deployment is empty.')
@@ -229,8 +230,8 @@ export const DeployLogger = ({ info, warn }: Console) => ({
     } else {
       info('│ There is no selected deployment.')
     }
-  },
-  receipt (name: string, receipt: any, len = 35) {
+  }
+  function receipt (name: string, receipt: any, len = 35) {
     name = bold(name.padEnd(len))
     if (receipt.address) {
       const address = `${receipt.address}`.padStart(45)
@@ -239,30 +240,30 @@ export const DeployLogger = ({ info, warn }: Console) => ({
     } else {
       warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
-  },
-  deployFailed (e: Error, template: Template, name: Label, msg: Message) {
+  }
+  function deployFailed (e: Error, template: Template, name: Label, msg: Message) {
     console.error()
     console.error(`  Deploy of ${bold(name)} failed:`)
     console.error(`    ${e.message}`)
-    this.deployFailedTemplate(template)
+    deployFailedTemplate(template)
     console.error()
     console.error(`  Init message: `)
     console.error(`    ${JSON.stringify(msg)}`)
     console.error()
-  },
-  deployManyFailed (e: Error, template: Template, contracts: DeployArgs[]) {
+  }
+  function deployManyFailed (e: Error, template: Template, contracts: DeployArgs[]) {
     console.error()
     console.error(`  Deploy of multiple contracts failed:`)
     console.error(`    ${e.message}`)
-    this.deployFailedTemplate(template)
+    deployFailedTemplate(template)
     console.error()
     console.error(`  Configs: `)
     for (const [name, init] of contracts) {
       console.error(`    ${bold(name)}: `, JSON.stringify(init))
     }
     console.error()
-  },
-  deployFailedTemplate (template?: Template) {
+  }
+  function deployFailedTemplate (template?: Template) {
     console.error()
     if (template) {
       console.error(`  Template:   `)
@@ -273,7 +274,7 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       console.error(`  No template was providede.`)
     }
   }
-})
+}
 /// # DEPLOY CONTEXT ///////////////////////////////////////////////////////////////////////////////
 /** TypeScript made me do it! */
 type AgentAndBuildContext = AgentContext & BuildContext
