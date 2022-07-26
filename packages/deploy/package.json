@@ -11,7 +11,7 @@
     "release:wet": "pnpm ts:check && izomorf wet --access=public"
   },
   "peerDependencies": {
-    "@hackbg/ganesha": "^2.2"
+    "@hackbg/ganesha": "^2.2.5"
   },
   "peerDependenciesMeta": {
     "@hackbg/ganesha": {

@@ -40,7 +40,7 @@
     "docs:vp:serve":    "vitepress serve"
   },
   "dependencies": {
-    "@hackbg/ganesha":     "^2.2",
+    "@hackbg/ganesha":     "^2.2.5",
     "@hackbg/dokeres":     "^4.0.2",
     "@hackbg/kabinet":     "^3.0.6",
     "@hackbg/komandi":     "workspace:^4.1.2",
