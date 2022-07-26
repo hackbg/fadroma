@@ -77,7 +77,7 @@ export class Template {
   * May contain reference to the template from wich it was instantiated. */
 export interface Instance {
   address:   Address
-  codeHash:  CodeHash
+  codeHash?: CodeHash
   codeId?:   CodeId
   chainId?:  ChainId
   initTx?:   TxHash
@@ -95,18 +95,33 @@ export class ContractLink {
     readonly code_hash: CodeHash
   ) {}
 }
+
 /** Interface to a specific contract.
   * Subclass Client to add your contract-specific methods. */
 export class Client implements Instance {
-  static E00 = () => new Error("Client has no Agent")
-  constructor (readonly agent?: Executor, arg: Address|Partial<ClientOpts> = {}) {
+  constructor (
+    readonly agent?: Executor,
+    arg:             Address|Partial<ClientOpts> = {},
+    hash?:           CodeHash
+  ) {
+    const className = this.constructor.name
+    if (!agent) console.warn(
+      `Creating ${className} without Agent. Transactions and queries not possible.`
+    )
     if (typeof arg === 'string') {
       this.address  = arg
+      this.codeHash = hash
     } else {
-      this.address  = arg.address
+      this.address  = arg.address!
+      if (!this.address) console.warn(
+        `${className} created with no address. Transactions and queries not possible.`
+      )
       this.name     = arg.name     || this.name
       this.label    = arg.label    || this.label
       this.codeHash = arg.codeHash || this.codeHash
+      if (!this.codeHash) console.warn(
+        `${className} created with no code hash. await client.fetchCodeHash() to populate.`
+      )
       this.codeId   = arg.codeId   || this.codeId
       this.fee      = arg.fee      || this.fee
       this.fees = Object.assign(this.fees||{}, arg.fees||{})
@@ -130,7 +145,7 @@ export class Client implements Instance {
   fees:      Record<string, IFee> = {}
   /** Get the recommended fee for a specific transaction. */
   getFee (msg?: string|Record<string, unknown>): IFee|undefined {
-    const defaultFee = this.fee || this.agent.fees?.exec
+    const defaultFee = this.fee || this.agent?.fees?.exec
     if (typeof msg === 'string') {
       return this.fees[msg] || defaultFee
     } else if (typeof msg === 'object') {
@@ -144,28 +159,43 @@ export class Client implements Instance {
   }
   /** Execute a query on the specified contract as the specified Agent. */
   async query <U> (msg: Message): Promise<U> {
-    if (!this.agent) throw Client.E00()
-    return await this.agent.query(this, msg)
+    this.assertOperational()
+    return await this.agent!.query(this, msg)
   }
   /** Execute a transaction on the specified contract as the specified Agent. */
   async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
-    if (!this.agent) throw Client.E00()
+    this.assertOperational()
     opt.fee = opt.fee || this.getFee(msg)
-    return await this.agent.execute(this, msg, opt)
+    return await this.agent!.execute(this, msg, opt)
   }
   /** Fetch the label, code ID, and code hash from the Chain.
     * You can override this method to populate custom contract info from the chain on your client,
     * e.g. fetch the symbol and decimals of a token contract. */
   async populate (): Promise<this> {
-    if (!this.agent) throw Client.E00()
-    const [label, codeId, codeHash] = await Promise.all([
-      this.agent.getLabel(this.address),
-      this.agent.getCodeId(this.address),
-      this.agent.getHash(this.address)
+    this.assertOperational()
+    await Promise.all([
+      this.fetchLabel(), this.fetchCodeId(), this.fetchCodeHash()
     ])
-    // TODO warn if retrieved values contradict current ones
-    this.label    = label
-    this.codeId   = codeId
+    return this
+  }
+  async fetchLabel (expected?: CodeHash): Promise<this> {
+    this.assertOperational()
+    const label = await this.agent!.getLabel(this.address)
+    if (!!expected) this.assertCorrect('label', expected, label)
+    this.label = label
+    return this
+  }
+  async fetchCodeId (expected?: CodeHash): Promise<this> {
+    this.assertOperational()
+    const codeId = await this.agent!.getHash(this.address)
+    if (!!expected) this.assertCorrect('codeId', expected, codeId)
+    this.codeId = codeId
+    return this
+  }
+  async fetchCodeHash (expected?: CodeHash): Promise<this> {
+    this.assertOperational()
+    const codeHash = await this.agent!.getHash(this.address)
+    if (!!expected) this.assertCorrect('codeHash', expected, codeHash)
     this.codeHash = codeHash
     return this
   }
@@ -183,6 +213,21 @@ export class Client implements Instance {
   as (agent: Executor): this {
     const Self = this.constructor as ClientCtor<typeof this, any>
     return new Self(agent, { ...this })
+  }
+  /** Throw if trying to do something with no agent or address. */
+  assertOperational () {
+    if (!this.address) new Error(
+      `${name} has no Agent and can't operate. Pass an address with "new ${name}(agent, ...)"`
+    )
+    if (!this.agent) new Error(
+      `${name} has no address and can't operate. Pass an address with "new ${name}(agent, addr)"`
+    )
+  }
+  /** Throw if fetched metadata differs from configures. */
+  assertCorrect (kind: string, expected: any, actual: any) {
+    if (expected !== actual) {
+      throw new Error(`Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
+    }
   }
 }
 /** Options when creating a Client. */
