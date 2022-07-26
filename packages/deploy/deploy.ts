@@ -310,12 +310,14 @@ export function getDeployContext (
   // Make sure we're operating in a deployment
   context.deployment ??= context.deployments?.active
   if (!context.deployment) {
-    throw new Error('getDeployContext: no active deployment')
+    console.warn('No active deployment. Most commands will fail.')
+    console.warn('You can create a deployment using `fadroma-deploy create`')
+    console.warn('or select one using `fadroma-deploy list` and `fadroma-deploy select`')
   }
   // Make sure we have an operating identitiy
   context.creator ??= agent
   if (!context.creator) {
-    throw new Error('getDeployContext: no deploy agent')
+    throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
   }
   // Get configuration
   const config = getDeployConfig()
