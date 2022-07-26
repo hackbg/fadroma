@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /*
   Fadroma Build System
   Copyright (C) 2022 Hack.bg
@@ -18,13 +16,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Artifact, SourceHandle }    from '@fadroma/client'
-import { Console, bold }             from '@hackbg/konzola'
-import { toHex, Sha256 }             from '@hackbg/formati'
-import { envConfig, CommandContext } from '@hackbg/komandi'
-import { Dokeres, DokeresImage }     from '@hackbg/dokeres'
-import { default as simpleGit }      from 'simple-git'
-import LineTransformStream           from 'line-transform-stream'
+import { Artifact, SourceHandle }          from '@fadroma/client'
+import { Console, bold }                   from '@hackbg/konzola'
+import { toHex, Sha256 }                   from '@hackbg/formati'
+import { envConfig, CommandContext, Lazy } from '@hackbg/komandi'
+import { Dokeres, DokeresImage }           from '@hackbg/dokeres'
+import { default as simpleGit }            from 'simple-git'
+import LineTransformStream                 from 'line-transform-stream'
 
 import $, {
   Path,
@@ -153,6 +151,25 @@ export function getBuildContext (context: CommandContext & Partial<BuildContext>
       sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
       return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
     }
+  }
+}/** Base class for class-based deploy procedure. Adds progress logging. */
+export class BuildTask<X> extends Lazy<X> {
+  constructor (public readonly context: BuildContext, getResult: ()=>X) {
+    let self: this
+    super(()=>{
+      console.info()
+      console.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
+      return getResult.bind(self)()
+    })
+    self = this
+  }
+  subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
+    const self = this
+    return new Lazy(()=>{
+      console.info()
+      console.info('Subtask  ', cb.name ? bold(cb.name) : '')
+      return cb.bind(self)()
+    })
   }
 }
 //@ts-ignore

@@ -1,10 +1,5 @@
 #!/usr/bin/env node
 
-try {
-  const Ganesha = await import('@hackbg/ganesha')
-  console.log({Ganesha})
-} catch (e) {}
-
 /*
   Fadroma Deployment and Operations System
   Copyright (C) 2022 Hack.bg
