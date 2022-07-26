@@ -693,10 +693,11 @@ export class ContractSlot<C extends Client> {
     if (!(this.value instanceof this.Client)) throw ContractSlot.E03()
     return Promise.resolve(this.value).then(resolved, rejected)
   }
-  async deploy (template: Template, msg: Message): Promise<C> {
+  async deploy (template: Template|TemplateSlot|IntoTemplateSlot, msg: Message): Promise<C> {
     const { creator, deployment } = this.context
     if (!deployment) throw ContractSlot.E05()
     if (!this.name)  throw ContractSlot.E08()
+    template = await new TemplateSlot(template, this.context).getOrUpload()
     console.info(
       'Deploy   ',    bold(this.name!),
       'from code id', bold(String(template.codeId  ||'(unknown)')),
@@ -721,7 +722,6 @@ export class ContractSlot<C extends Client> {
     } else if (this.name) {
       if (!this.context.creator)    throw ContractSlot.E04()
       if (!this.context.deployment) throw ContractSlot.E05()
-      template = await new TemplateSlot(template, this.context).getOrUpload()
       return await this.deploy(template, msg)
     }
     throw ContractSlot.E07()

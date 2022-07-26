@@ -612,8 +612,10 @@ export abstract class Bundle implements Executor {
     this.msgs[id] = msg
     return id
   }
-  //@ts-ignore
-  async wrap (cb: BundleCallback<this>, opts = { memo: "" }): Promise<any[]> {
+  async wrap (
+    cb:   BundleCallback<this>,
+    opts: ExecOpts = { memo: "" }
+  ): Promise<any[]> {
     await cb(this)
     return this.run(opts.memo)
   }
