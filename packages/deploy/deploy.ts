@@ -236,6 +236,39 @@ export const DeployLogger = ({ info, warn }: Console) => ({
     } else {
       warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
+  },
+  deployFailed (e: Error, template: Template, name: Label, msg: Message) {
+    console.error()
+    console.error(`  Deploy of ${bold(name)} failed:`)
+    console.error(`    ${e.message}`)
+    this.deployFailedTemplate(template)
+    console.error()
+    console.error(`  Init message: `)
+    console.error(`    ${JSON.stringify(msg)}`)
+    console.error()
+  },
+  deployManyFailed (e: Error, template: Template, contracts: DeployArgs[]) {
+    console.error()
+    console.error(`  Deploy of multiple contracts failed:`)
+    console.error(`    ${e.message}`)
+    this.deployFailedTemplate(template)
+    console.error()
+    console.error(`  Configs: `)
+    for (const [name, init] of contracts) {
+      console.error(`    ${bold(name)}: `, JSON.stringify(init))
+    }
+    console.error()
+  },
+  deployFailedTemplate (template?: Template) {
+    console.error()
+    if (template) {
+      console.error(`  Template:   `)
+      console.error(`    Chain ID: `, bold(template.chainId ||''))
+      console.error(`    Code ID:  `, bold(template.codeId  ||''))
+      console.error(`    Code hash:`, bold(template.codeHash||''))
+    } else {
+      console.error(`  No template was providede.`)
+    }
   }
 })
 /// # DEPLOY CONTEXT ///////////////////////////////////////////////////////////////////////////////
@@ -721,22 +754,18 @@ export class MultiContractSlot<C extends Client> {
     // Deploy multiple contracts from the same template with 1 tx
     let instances: Instance[]
     try {
-      instances = await this.context.deployment.initMany(
-        this.context.creator,
-        template,
-        contracts
-      )
+      const creator = this.context.creator
+      instances = await this.context.deployment.initMany(creator, template, contracts)
     } catch (e) {
-      console.error(`Deploy of multiple contracts failed: ${e.message}`)
-      console.error(`  Template:`, template)
-      console.error(`  Configs: `, contracts)
+      DeployLogger(console).deployManyFailed(e, template, contracts)
       throw e
     }
     // Return API client to each contract
     return instances.map(instance=>this.context.creator!.getClient(this.Client, instance))
   }
 }
-export type DeployArgs = [Name, Message]
+export type DeployArgs       = [Name, Message]
+export type DeployArgsTriple = [Template, Name, Message]
 /// # DEPLOY RECEIPTS DIRECTORY ///////////////////////////////////////////////////////////////////
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
   * Each deployment is represented by 1 multi-document YAML file, where every
@@ -860,20 +889,25 @@ export class Deployment {
       this.set(name, instance)
       return instance
     } catch (e) {
-      console.debug(msg)
+      DeployLogger(console).deployFailed(e, template, name, msg)
       throw e
     }
   }
   /** Instantiate multiple contracts from the same Template with different parameters. */
   async initMany (
-    agent: Agent, template: Template, contracts: [Label, Message][] = []
+    agent: Agent, template: Template, contracts: DeployArgs[] = []
   ): Promise<Instance[]> {
     // this adds just the template - prefix is added in initVarious
-    return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
+    try {
+      return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
+    } catch (e) {
+      DeployLogger(console).deployManyFailed(e, template, contracts)
+      throw e
+    }
   }
   /** Instantiate multiple contracts from different Templates with different parameters. */
   async initVarious (
-    agent: Agent, contracts: [Template, Label, Message][] = []
+    agent: Agent, contracts: DeployArgsTriple[] = []
   ): Promise<Instance[]> {
     // Validate
     for (const index in contracts) {
@@ -886,10 +920,10 @@ export class Deployment {
       }
     }
     // Add prefixes
-    const initConfigs = contracts.map(([template, name, msg])=>
-      [template, addPrefix(this.prefix, name), msg]) as [Template, Label, Message][]
+    const toInitConfig = ([t, n, m]: DeployArgsTriple)=>[t, addPrefix(this.prefix, n), m]
+    const initConfigs = contracts.map(toInitConfig)
     // Deploy
-    const instances = await agent.instantiateMany(initConfigs)
+    const instances = await agent.instantiateMany(initConfigs as [Template, Label, Message][])
     // Store receipts
     for (const instance of Object.values(instances)) {
       const name = (instance.label as string).slice(this.prefix.length+1)
