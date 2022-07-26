@@ -216,6 +216,7 @@ export class Client implements Instance {
   }
   /** Throw if trying to do something with no agent or address. */
   assertOperational () {
+    const name = this.constructor.name
     if (!this.address) new Error(
       `${name} has no Agent and can't operate. Pass an address with "new ${name}(agent, ...)"`
     )
@@ -225,6 +226,7 @@ export class Client implements Instance {
   }
   /** Throw if fetched metadata differs from configures. */
   assertCorrect (kind: string, expected: any, actual: any) {
+    const name = this.constructor.name
     if (expected !== actual) {
       throw new Error(`Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
     }
