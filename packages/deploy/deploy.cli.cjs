@@ -16,5 +16,4 @@ try {
   process.exit(1)
 }
 
-require('@hackbg/ganesha').main([process.argv[0], deploy, process.argv.slice(2)]) 
-
+require('@hackbg/ganesha').main([process.argv[0], deploy, ...process.argv.slice(2)])
