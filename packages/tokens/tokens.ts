@@ -96,13 +96,11 @@ export class TokenAmount {
 /** A pair of two token descriptors. */
 export class TokenPair {
   constructor (readonly token_0: Token, readonly token_1: Token) {}
-  get reverse () {
-    return new TokenPair(this.token_1, this.token_0)
-  }
-  static fromName (knownTokens: Record<string, Token>, name: string) {
+  get reverse (): TokenPair { return new TokenPair(this.token_1, this.token_0) }
+  static fromName (tokens: Record<string, Token>, name: string): TokenPair {
     const [token_0_symbol, token_1_symbol] = name.split('-')
-    const token_0 = knownTokens[token_0_symbol]
-    const token_1 = knownTokens[token_1_symbol]
+    const token_0 = tokens[token_0_symbol]
+    const token_1 = tokens[token_1_symbol]
     if (!token_0) {
       throw Object.assign(
         new Error(`TokenPair#fromName: unknown token ${token_0_symbol}`),
@@ -147,23 +145,26 @@ export class TokenPairAmount {
 
 /** # Secret Network SNIP20 token client. */
 
-export interface Snip20InitMsg {
+export interface TokenConfig {
   name:      string
   symbol:    string
   decimals:  number
+}
+
+export interface Snip20InitMsg extends TokenConfig {
   admin:     Address
   prng_seed: string
-  config:    Partial<Snip20InitConfig>
+  config:    Snip20InitConfig
   // Allow to be cast as Record<string, unknown>:
   [name: string]: unknown
 }
 
 export interface Snip20InitConfig {
-  public_total_supply: boolean
-  enable_mint:         boolean
-  enable_burn:         boolean
-  enable_deposit:      boolean
-  enable_redeem:       boolean
+  public_total_supply?: boolean
+  enable_mint?:         boolean
+  enable_burn?:         boolean
+  enable_deposit?:      boolean
+  enable_redeem?:       boolean
   // Allow unknown properties:
   [name: string]: unknown
 }
@@ -181,7 +182,7 @@ export class Snip20 extends Client implements CustomToken {
 
   /** Old version of Token descriptor support. See `get custom_token`. */
   get asDescriptor () {
-    return this.custom_token
+    return { custom_token: this.custom_token }
   }
 
   /** Create a SNIP20 token client from a Token descriptor. */
@@ -263,7 +264,7 @@ export class Snip20 extends Client implements CustomToken {
   /** Mint tokens */
   mint (
     amount:    string | number | bigint,
-    recipient: string | undefined = this.agent.address
+    recipient: string | undefined = this.agent?.address
   ) {
     if (!recipient) {
       throw new Error('Snip20#mint: specify recipient')
@@ -285,7 +286,7 @@ export class Snip20 extends Client implements CustomToken {
     spender: Address,
   ) {
     console.info(
-      `${bold(this.agent.address||'(missing address)')}: increasing allowance of`,
+      `${bold(this.agent?.address||'(missing address)')}: increasing allowance of`,
       bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.address))
     )
     return this.execute({

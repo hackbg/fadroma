@@ -171,23 +171,20 @@ export const ConnectLogger = ({ log, info, warn, error }: Console) => ({
     }
   },
   chainStatus ({ chain, deployments }: ChainContext) {
-    info()
     if (!chain) {
-      info('No active chain.')
+      info('│ No active chain.')
     } else {
-      info('Chain type: ', bold(chain.constructor.name))
-      info('Chain mode: ', bold(chain.mode))
-      info('Chain ID:   ', bold(chain.id))
-      info('Chain URL:  ', bold(chain.url.toString()))
-      info()
-      info('Deployments:', bold(String(deployments?.list().length)))
+      info('│ Chain type: ', bold(chain.constructor.name))
+      info('│ Chain mode: ', bold(chain.mode))
+      info('│ Chain ID:   ', bold(chain.id))
+      info('│ Chain URL:  ', bold(chain.url.toString()))
+      info('│ Deployments:', bold(String(deployments?.list().length)))
       if (deployments?.active) {
-        info('Active:     ', bold(String(deployments?.active?.prefix)))
+        info('│ Deployment: ', bold(String(deployments?.active?.prefix)))
       } else {
-        info('No active deployment.')
+        info('│ No active deployment.')
       }
     }
-    info()
   },
 })
 

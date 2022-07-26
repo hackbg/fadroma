@@ -85,6 +85,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
       getChainContext,
       ConnectLogger(console).chainStatus,
       getAgentContext,
+      getDeployContext,
       ...before
     ], after)
     this.command('list',    'print a list of all deployments', DeployCommands.list)
@@ -212,29 +213,28 @@ export const DeployLogger = ({ info, warn }: Console) => ({
       const { receipts, prefix } = deployment
       let contracts: string|number = Object.values(receipts).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      info()
-      info('Active deployment:', bold(prefix), bold(contracts))
+      const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
+      info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path).shortPath), contracts)
       const count = Object.values(receipts).length
       if (count > 0) {
-        for (const name of Object.keys(receipts).sort()) {
-          this.receipt(name, receipts[name])
+        for (const name of Object.keys(receipts)) {
+          this.receipt(name, receipts[name], len)
         }
       } else {
-        info('This deployment is empty.')
+        info('│ This deployment is empty.')
       }
-      info()
     } else {
-      info('There is no selected deployment.')
+      info('│ There is no selected deployment.')
     }
   },
-  receipt (name: string, receipt: any) {
-    name = bold(name.padEnd(35))
+  receipt (name: string, receipt: any, len = 35) {
+    name = bold(name.padEnd(len))
     if (receipt.address) {
       const address = `${receipt.address}`.padStart(45)
       const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      info('    ', name, address, codeId)
+      info('│', name, address, codeId)
     } else {
-      warn('  (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+      warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
   }
 })
@@ -262,7 +262,7 @@ export interface DeployContext extends AgentAndBuildContext {
   ): ContractSlot<C>
   /** Specify multiple contracts of the same kind. */
   contracts <C extends Client, O extends ClientOpts> (
-    references: Array<Name|Instance>, APIClient?: ClientCtor<C, O>
+    APIClient?: ClientCtor<C, O>
   ): MultiContractSlot<C>
 }
 /** Taking merged Agent and Build context as a basis, populate deploy context. */
@@ -297,9 +297,9 @@ export function getDeployContext (
   ): ContractSlot<C> =>
     new ContractSlot(arg, _Client, context as DeployContext) as ContractSlot<C>
   const contracts = <C extends Client> (
-    arg: (Name|Instance)[], _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+    _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
   ): MultiContractSlot<C> =>
-    new MultiContractSlot(arg, _Client, context as DeployContext) as MultiContractSlot<C>
+    new MultiContractSlot(_Client, context as DeployContext) as MultiContractSlot<C>
   context = {
     ...context,
     config,
@@ -310,10 +310,25 @@ export function getDeployContext (
   }
   return context as DeployContext
 }
-/** Base class for class-based deploy procedure */
+/** Base class for class-based deploy procedure. Adds progress logging. */
 export class DeployTask<X> extends Lazy<X> {
-  constructor (public readonly context: DeployContext, getResult: ()=>X) { super(getResult) }
-  slot <X> (cb: ()=>X|Promise<X>): Lazy<X> { return new Lazy(cb.bind(this)) }
+  constructor (public readonly context: DeployContext, getResult: ()=>X) {
+    let self: this
+    super(()=>{
+      console.info()
+      console.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
+      return getResult.bind(self)()
+    })
+    self = this
+  }
+  subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
+    const self = this
+    return new Lazy(()=>{
+      console.info()
+      console.info('Subtask  ', cb.name ? bold(cb.name) : '')
+      return cb.bind(self)()
+    })
+  }
 }
 /// # UPLOADING ///////////////////////////////////////////////////////////////////////////////////
 export type IntoTemplateSlot = string|Source|Artifact|Template|TemplateSlot
@@ -441,8 +456,8 @@ export abstract class Uploader {
 export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
-    console.info('Uploading', bold($(artifact.url).shortPath))
-    const data = $(artifact.url).as(BinaryFile).load()
+    console.info('Upload   ', bold($(artifact.url).shortPath))
+    const data     = $(artifact.url).as(BinaryFile).load()
     const template = await this.agent.upload(data)
     await this.agent.nextBlock
     return template
@@ -509,12 +524,11 @@ export class CachingFSUploader extends FSUploader {
     const name    = this.getUploadReceiptName(artifact)
     const receipt = this.cache.at(name).as(UploadReceipt)
     if (receipt.exists()) {
-      console.info('Reusing  ', bold(this.cache.at(name).shortPath))
+      console.info('Reuse    ', bold(this.cache.at(name).shortPath))
       return receipt.toTemplate()
     }
     const data = $(artifact.url).as(BinaryFile).load()
     const template = await this.agent.upload(data)
-    //console.info(`Storing:  `, bold($(receipt.path).shortPath))
     receipt.save(template)
     return template
   }
@@ -590,6 +604,8 @@ export class CachingFSUploader extends FSUploader {
 /// # DEPLOYING ///////////////////////////////////////////////////////////////////////////////////
 export type IntoContractSlot = Name|Partial<Instance>
 export class ContractSlot<C extends Client> {
+  static E00 = () =>
+    new Error("Tried to create ContractSlot with nullish value")
   static E01 = (value: string) =>
     new Error("No deployment, can't find contract by name: "+value)
   static E02 = (prefix: string, value: string) =>
@@ -609,6 +625,7 @@ export class ContractSlot<C extends Client> {
     $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
     context: DeployContext
   ) {
+    if (!value) throw ConstractSlot.E00
     if (typeof value === 'string') {
       this.name = value
       if (!context.deployment) throw ContractSlot.E01(value)
@@ -617,7 +634,7 @@ export class ContractSlot<C extends Client> {
       this.value = value
     }
     this.Client ??= $Client
-    if ((this.value as { address: Address }).address) {
+    if (this.value && (this.value as { address: Address }).address) {
       this.value = new this.Client(context.creator, this.value)
     }
     this.context ??= context
@@ -642,25 +659,25 @@ export class ContractSlot<C extends Client> {
     if (!deployment) throw ContractSlot.E05()
     if (!this.name)  throw ContractSlot.E08()
     console.info(
-      'Deploying',    bold(this.name!),
+      'Deploy   ',    bold(this.name!),
       'from code id', bold(String(template.codeId  ||'(unknown)')),
       'hash',         bold(String(template.codeHash||'(unknown)'))
     )
     const instance = await this.context.deployment!.init(creator, template, this.name,  msg)
     const client = new this.Client(this.context.creator, instance)
     console.info(
-      'Deployed ',    bold(this.name!), 'at', bold(client.address),
+      'Deployed ',    bold(this.name!), 'is', bold(client.address),
       'from code id', bold(String(template.codeId  ||'(unknown)'))
     )
     return this.value = client
   }
   async getOrDeploy (template: Template|TemplateSlot|IntoTemplateSlot, msg: Message): Promise<C> {
     if (this.value instanceof this.Client) {
-      console.info('Found', bold(this.name||'(unnamed)'), 'at', bold(this.value.address))
+      console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.value.address))
       return this.value
-    } else if (this.value.address) {
+    } else if (this.value && this.value.address) {
       this.value = new this.Client(this.context.creator, this.value)
-      console.info('Found', bold(this.name||'(unnamed)'), 'at', bold((this.value as C).address))
+      console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold((this.value as C).address))
       return this.value as C
     } else if (this.name) {
       if (!this.context.creator)    throw ContractSlot.E04()
@@ -687,41 +704,39 @@ export class ContractSlot<C extends Client> {
   * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
 export class MultiContractSlot<C extends Client> {
   constructor (
-    slots:   IntoContractSlot[],
     $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
     public readonly context: DeployContext,
   ) {
     this.Client = $Client
-    this.slots = slots.map(slot=>new ContractSlot(slot, Client, context) as ContractSlot<C>)
   }
   public readonly Client: ClientCtor<C, any>
-  public readonly slots:  ContractSlot<C>[]
   async deployMany (
-    template: Template|TemplateSlot|IntoTemplateSlot,
-    messages: Message[] = []
+    template:  Template|TemplateSlot|IntoTemplateSlot,
+    contracts: DeployArgs[] = []
   ): Promise<C[]> {
     if (!this.context.creator)    throw ContractSlot.E04()
     if (!this.context.deployment) throw ContractSlot.E05()
-    if (!(template instanceof Template)) template = new TemplateSlot(template, this.context)
-    await (template as TemplateSlot).getOrUpload()
+    // Provide the template
+    template = await new TemplateSlot(template, this.context).getOrUpload() as Template
     // Deploy multiple contracts from the same template with 1 tx
     let instances: Instance[]
     try {
       instances = await this.context.deployment.initMany(
         this.context.creator,
-        await template,
-        this.slots.map((slot: ContractSlot<C>, i: number)=>[slot.name!, messages[i]])
+        template,
+        contracts
       )
     } catch (e) {
       console.error(`Deploy of multiple contracts failed: ${e.message}`)
       console.error(`  Template:`, template)
-      console.error(`  Configs`,   this.slots.map((name, i)=>[name, messages[i]]))
+      console.error(`  Configs: `, contracts)
       throw e
     }
     // Return API client to each contract
     return instances.map(instance=>this.context.creator!.getClient(this.Client, instance))
   }
 }
+export type DeployArgs = [Name, Message]
 /// # DEPLOY RECEIPTS DIRECTORY ///////////////////////////////////////////////////////////////////
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
   * Each deployment is represented by 1 multi-document YAML file, where every
@@ -875,10 +890,11 @@ export class Deployment {
       [template, addPrefix(this.prefix, name), msg]) as [Template, Label, Message][]
     // Deploy
     const instances = await agent.instantiateMany(initConfigs)
-    // Store receipt
-    for (const [label, receipt] of Object.entries(instances)) {
-      const name = label.slice(this.prefix.length+1)
-      this.set(name, { name, ...receipt })
+    // Store receipts
+    for (const instance of Object.values(instances)) {
+      const name = (instance.label as string).slice(this.prefix.length+1)
+      this.receipts[name] = { name, ...instance}
+      this.save()
     }
     return Object.values(instances)
   }

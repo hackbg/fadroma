@@ -745,7 +745,7 @@ export const BuildLogger = ({ info }: Console) => ({
   },
   BuildOne (source: Source, prebuilt: Artifact|null, longestCrateName: number) {
     if (prebuilt) {
-      info('Reusing  ', bold($(prebuilt.url).shortPath))
+      info('Reuse    ', bold($(prebuilt.url).shortPath))
     } else {
       const { crate, workspace: { path, ref = 'HEAD' } } = source
       if (ref === 'HEAD') {

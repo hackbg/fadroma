@@ -514,7 +514,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
   protected async handleSubmitError (err) {
     console.error('Submitting bundle failed:', err.message)
     console.error('Decrypting gRPC bundle errors is not implemented.')
-    process.exit(124)
+    throw err
   }
 
   async save (name) {
