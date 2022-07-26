@@ -54,6 +54,44 @@ export interface BuilderConfig {
   /** Script that runs the actual build, e.g. build.impl.mjs */
   script:     string
 }
+/** Messages output by builder. */
+export const BuildLogger = ({ info }: Console) => ({
+  CargoToml (file: Path) {
+    info('Building from', bold(file.shortPath))
+  },
+  BuildScript (file: Path) {
+    info('Running build script', bold(file.shortPath))
+  },
+  BuildOne (source: Source, prebuilt: Artifact|null, longestCrateName: number) {
+    if (prebuilt) {
+      info('Reuse    ', bold($(prebuilt.url).shortPath))
+    } else {
+      const { crate, workspace: { path, ref = 'HEAD' } } = source
+      if (ref === 'HEAD') {
+        info('Building', bold(source.crate), 'from working tree')
+      } else {
+        info('Building', bold(source.crate), 'from Git reference', bold(ref))
+      }
+    }
+  },
+  BuildMany (sources: Source[]) {
+    for (const source of sources) {
+      const { crate, workspace: { path, ref = 'HEAD' } } = source
+      if (ref === 'HEAD') {
+        info('Building', bold(source.crate), 'from working tree')
+      } else {
+        info('Building', bold(source.crate), 'from Git reference', bold(ref))
+      }
+    }
+    info()
+  },
+  Workspace (mounted, ref) {
+    info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
+  }
+})
 /** Get a builder based on the builder config. */
 export function getBuilder (config: Partial<BuilderConfig> = getBuilderConfig()) {
   if (config.buildRaw) {
@@ -735,41 +773,3 @@ export function buildFromFile (
     buildFromBuildScript(file as OpaqueFile, buildArgs)
   }
 }
-
-export const BuildLogger = ({ info }: Console) => ({
-  CargoToml (file: Path) {
-    info('Building from', bold(file.shortPath))
-  },
-  BuildScript (file: Path) {
-    info('Running build script', bold(file.shortPath))
-  },
-  BuildOne (source: Source, prebuilt: Artifact|null, longestCrateName: number) {
-    if (prebuilt) {
-      info('Reuse    ', bold($(prebuilt.url).shortPath))
-    } else {
-      const { crate, workspace: { path, ref = 'HEAD' } } = source
-      if (ref === 'HEAD') {
-        info('Building', bold(source.crate), 'from working tree')
-      } else {
-        info('Building', bold(source.crate), 'from Git reference', bold(ref))
-      }
-    }
-  },
-  BuildMany (sources: Source[]) {
-    for (const source of sources) {
-      const { crate, workspace: { path, ref = 'HEAD' } } = source
-      if (ref === 'HEAD') {
-        info('Building', bold(source.crate), 'from working tree')
-      } else {
-        info('Building', bold(source.crate), 'from Git reference', bold(ref))
-      }
-    }
-    info()
-  },
-  Workspace (mounted, ref) {
-    info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-      `@`, bold(ref)
-    )
-  }
-})
