@@ -6,7 +6,15 @@
   "main":        "fadroma.ts",
   "browser":     "fadroma.browser.ts",
   "description": "CosmWasm dApp framework.",
-  "bin":         { "fadroma": "fadroma.cli.cjs" },
+  "bin": {
+    "fadroma":        "fadroma.cli.cjs",
+    "fadroma-build":  "packages/build/build.cli.cjs",
+    "fadroma-deploy": "packages/deploy/deploy.cli.cjs"
+  },
+  "files": [
+    "packages/build/build.cli.cjs",
+    "packages/deploy/deploy.cli.cjs"
+  ],
   "scripts": {
     "release:dry":      "pnpm ts:clean && pnpm ts:check && izomorf dry",
     "release:wet":      "pnpm ts:clean && pnpm ts:check && izomorf wet --access=public",
@@ -39,14 +47,14 @@
     "@hackbg/konzola":     "^1.0.8",
     "@hackbg/formati":     "^1.1.0",
 
-    "@fadroma/build":      "workspace:^1.0.0-beta.0",
+    "@fadroma/build":      "workspace:*",
     "@fadroma/connect":    "workspace:*",
-    "@fadroma/client":     "workspace:^4",
-    "@fadroma/deploy":     "workspace:^1.0.0-beta.0",
-    "@fadroma/devnet":     "workspace:^1.0.0-beta.0",
-    "@fadroma/mocknet":    "workspace:^1.0.0-beta.0",
-    "@fadroma/schema":     "workspace:^1.0.0-beta.0",
-    "@fadroma/tokens":     "workspace:^3.0.0-beta.0",
+    "@fadroma/client":     "workspace:*",
+    "@fadroma/deploy":     "workspace:*",
+    "@fadroma/devnet":     "workspace:*",
+    "@fadroma/mocknet":    "workspace:*",
+    "@fadroma/schema":     "workspace:*",
+    "@fadroma/tokens":     "workspace:*",
 
     "@fadroma/scrt":       "workspace:*",
     "@fadroma/scrt-amino": "workspace:*"

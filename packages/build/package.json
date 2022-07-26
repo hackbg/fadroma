@@ -4,7 +4,21 @@
   "type":    "module",
   "main":    "./build.ts",
   "description": "Build smart contracts with or without container.",
-  "bin":     { "fadroma-build": "build.dist.cjs" },
+  "bin": { "fadroma-build": "build.cli.cjs" },
+  "scripts": {
+    "ts:check":    "tsc --noEmit",
+    "release:dry": "pnpm ts:check && izomorf dry",
+    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+  },
+  "peerDependencies": {
+    "@hackbg/ganesha": "^2.2"
+  },
+  "peerDependenciesMeta": {
+    "@hackbg/ganesha": {
+      "optional": true,
+      "description": "For fadroma-deploy command."
+    }
+  },
   "dependencies": {
     "@fadroma/client": "workspace:^4",
     "@hackbg/dokeres": "^4.0.2",
@@ -17,10 +31,5 @@
     "line-transform-stream": "^0.1.0",
     "simple-git": "^3.7.1",
     "toml":       "^3.0.0"
-  },
-  "scripts": {
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
   }
 }

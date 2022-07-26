@@ -3,7 +3,22 @@
   "version": "1.0.0-beta.0",
   "type": "module",
   "main": "./deploy.ts",
+  "bin": { "fadroma-deploy": "deploy.cli.cjs" },
   "description": "Upload and instantiate smart contracts.",
+  "scripts": {
+    "ts:check":    "tsc --noEmit",
+    "release:dry": "pnpm ts:check && izomorf dry",
+    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+  },
+  "peerDependencies": {
+    "@hackbg/ganesha": "^2.2"
+  },
+  "peerDependenciesMeta": {
+    "@hackbg/ganesha": {
+      "optional": true,
+      "description": "For fadroma-deploy command."
+    }
+  },
   "dependencies": {
     "@fadroma/client":  "workspace:^4",
     "@fadroma/connect": "workspace:*",
@@ -21,10 +36,5 @@
     "simple-git": "^3.7.1",
     "toml":       "^3.0.0",
     "wasm-ffi":   "^0.3.0"
-  },
-  "scripts": {
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
   }
 }

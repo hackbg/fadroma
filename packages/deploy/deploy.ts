@@ -1,5 +1,12 @@
+#!/usr/bin/env node
+
+try {
+  const Ganesha = await import('@hackbg/ganesha')
+  console.log({Ganesha})
+} catch (e) {}
+
 /*
-  Fadroma Deploy System
+  Fadroma Deployment and Operations System
   Copyright (C) 2022 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
@@ -15,6 +22,7 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
+
 import {
   Chain, ChainMode, Agent, AgentOpts, Bundle, Client, ClientCtor, ClientOpts, DevnetHandle,
   Artifact, Template, Instance, Label, Message, Address

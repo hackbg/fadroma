@@ -4,7 +4,6 @@
   "type":    "module",
   "main":    "./schema.ts",
   "description": "Generate JSON schema and TypeScript types from smart contract source.",
-  "bin":     { "fadroma-build": "build.cli.cjs" },
   "dependencies": {
     "json-schema-to-typescript": "^10.1.5",
     "toml":       "^3.0.0"

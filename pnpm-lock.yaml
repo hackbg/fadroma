@@ -4,16 +4,16 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/build': workspace:^1.0.0-beta.0
-      '@fadroma/client': workspace:^4
+      '@fadroma/build': workspace:*
+      '@fadroma/client': workspace:*
       '@fadroma/connect': workspace:*
-      '@fadroma/deploy': workspace:^1.0.0-beta.0
-      '@fadroma/devnet': workspace:^1.0.0-beta.0
-      '@fadroma/mocknet': workspace:^1.0.0-beta.0
-      '@fadroma/schema': workspace:^1.0.0-beta.0
+      '@fadroma/deploy': workspace:*
+      '@fadroma/devnet': workspace:*
+      '@fadroma/mocknet': workspace:*
+      '@fadroma/schema': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-amino': workspace:*
-      '@fadroma/tokens': workspace:^3.0.0-beta.0
+      '@fadroma/tokens': workspace:*
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/ensuite': ^1
       '@hackbg/formati': ^1.1.0
@@ -27,7 +27,6 @@ importers:
       c8: ^7.11.3
       concurrently: 7.2.2
       cross-fetch: ^3.1.5
-      dotenv: ^15.0.1
       express: ^4.18.1
       freeport-async: ^2.0.0
       js-yaml: ^4.1.0
@@ -52,7 +51,6 @@ importers:
       '@hackbg/kabinet': link:toolbox/kabinet
       '@hackbg/komandi': link:toolbox/komandi
       '@hackbg/konzola': link:toolbox/konzola
-      dotenv: 15.0.1
     devDependencies:
       '@hackbg/ensuite': 1.0.2
       '@hackbg/izomorf': 3.0.1
@@ -254,7 +252,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/izomorf': link:izomorf
-      '@types/node': 18.0.6
+      '@types/node': 18.6.1
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.7.4
       typescript: 4.7.4
@@ -342,9 +340,11 @@ importers:
     specifiers:
       '@hackbg/kabinet': workspace:^3
       '@hackbg/konzola': workspace:^1.1
+      dotenv: ^15.0.1
     dependencies:
       '@hackbg/kabinet': link:../kabinet
       '@hackbg/konzola': link:../konzola
+      dotenv: 15.0.1
 
   toolbox/konzola:
     specifiers:
@@ -889,6 +889,10 @@ packages:
 
   /@types/node/18.0.6:
     resolution: {integrity: sha512-/xUq6H2aQm261exT6iZTMifUySEt4GR5KX8eYyY+C4MSNPqSh9oNIP7tz2GLKTlFaiBbgZNxffoR3CVRG+cljw==}
+
+  /@types/node/18.6.1:
+    resolution: {integrity: sha512-z+2vB6yDt1fNwKOeGbckpmirO+VBDuQqecXkgeIqDlaOtmKn6hPR/viQ8cxCfqLU4fTlvM3+YjM367TukWdxpg==}
+    dev: true
 
   /@types/prettier/2.6.3:
     resolution: {integrity: sha512-ymZk3LEC/fsut+/Q5qejp6R9O1rMxz3XaRHDV6kX8MrGAhOSPqVARbDi+EZvInBpw+BnCX3TD240byVkOfQsHg==}
