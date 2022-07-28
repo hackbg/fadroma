@@ -145,13 +145,13 @@ export class TokenPairAmount {
 
 /** # Secret Network SNIP20 token client. */
 
-export interface TokenConfig {
+export interface Snip20BaseConfig {
   name:      string
   symbol:    string
   decimals:  number
 }
 
-export interface Snip20InitMsg extends TokenConfig {
+export interface Snip20InitMsg extends Snip20BaseConfig {
   admin:     Address
   prng_seed: string
   config:    Snip20InitConfig
