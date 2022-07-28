@@ -1,13 +1,13 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type":    "module",
   "main":    "scrt.ts",
   "dependencies": {
     "@fadroma/client": "workspace:^4.1",
 
     "@hackbg/formati": "^1.1.2",
-    "@hackbg/komandi": "^4",
+    "@hackbg/konfizi": "^1",
     "secretjs":        "beta"
   },
   "scripts": {

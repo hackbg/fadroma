@@ -30,7 +30,7 @@ import type { Tx } from 'secretjs'
 export type ScrtGrpcTxResult = SecretJS.Tx
 
 import { randomBytes } from '@hackbg/formati'
-import { getFromEnv } from '@hackbg/komandi'
+import { getFromEnv } from '@hackbg/konfizi'
 
 /** Environment settings for Secret Network API. */
 export interface ScrtConfig {

@@ -192,12 +192,12 @@ importers:
     specifiers:
       '@fadroma/client': workspace:^4.1
       '@hackbg/formati': ^1.1.2
-      '@hackbg/komandi': ^4
+      '@hackbg/konfizi': ^1
       secretjs: beta
     dependencies:
       '@fadroma/client': link:../../packages/client
       '@hackbg/formati': link:../../toolbox/formati
-      '@hackbg/komandi': link:../../toolbox/komandi
+      '@hackbg/konfizi': link:../../toolbox/konfizi
       secretjs: 1.3.0-beta.7
 
   platforms/scrt-amino:
@@ -346,12 +346,15 @@ importers:
   toolbox/komandi:
     specifiers:
       '@hackbg/kabinet': workspace:^3
+      '@hackbg/konfizi': workspace:^1
       '@hackbg/konzola': workspace:^1.1
-      dotenv: ^15.0.1
     dependencies:
       '@hackbg/kabinet': link:../kabinet
+      '@hackbg/konfizi': link:../konfizi
       '@hackbg/konzola': link:../konzola
-      dotenv: 15.0.1
+
+  toolbox/konfizi:
+    specifiers: {}
 
   toolbox/konzola:
     specifiers:
@@ -1731,11 +1734,6 @@ packages:
   /doctypes/1.1.0:
     resolution: {integrity: sha512-LLBi6pEqS6Do3EKQ3J0NqHWV5hhb78Pi8vvESYwyOy2c31ZEZVdtitdzsQsKb7878PEERhzUk0ftqGhG6Mz+pQ==}
     dev: true
-
-  /dotenv/15.0.1:
-    resolution: {integrity: sha512-4OnbwRfzR+xQThp7uq1xpUS9fmgZ//njexOtPjPSbK3yHGrSHSJnaJRsXderSSm2elfvVj+Y5awDC0I8Oy8rkA==}
-    engines: {node: '>=12'}
-    dev: false
 
   /ee-first/1.1.1:
     resolution: {integrity: sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0=}
