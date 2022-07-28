@@ -14,6 +14,7 @@ import {
   CodeHash,
   ExecOpts,
   Fee,
+  ICoin,
   IFee,
   Instance,
   Label,
@@ -216,7 +217,7 @@ export class ScrtGrpc extends Scrt {
   }
 
   get height () {
-    return this.block.then(block=>Number(block.block.header.height))
+    return this.block.then(block=>Number(block.block?.header?.height))
   }
 
 }
@@ -310,10 +311,10 @@ export class ScrtGrpcAgent extends ScrtAgent {
 
   async getBalance (denom = this.defaultDenom, address: Address) {
     const response = await this.api.query.bank.balance({ address, denom })
-    return response.balance.amount
+    return response.balance!.amount
   }
 
-  async send (to, amounts, opts?) {
+  async send (to: Address, amounts: ICoin[], opts?: any) {
     return this.api.tx.bank.send({
       fromAddress: this.address,
       toAddress:   to,
@@ -323,7 +324,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     })
   }
 
-  async sendMany (outputs, opts) {
+  async sendMany (outputs: never, opts: never) {
     throw new Error('ScrtAgent#sendMany: not implemented')
   }
 
