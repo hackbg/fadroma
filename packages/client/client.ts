@@ -471,7 +471,7 @@ export abstract class Agent implements Executor {
     if (options.fees) this.fees = options.fees
   }
   /** The address of this agent. */
-  address: Address
+  abstract address: Address
   /** The friendly name of the agent. */
   name?:   string
   /** Default transaction fees to use for interacting with the chain. */
