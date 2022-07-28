@@ -34,13 +34,17 @@ import { getFromEnv } from '@hackbg/komandi'
 
 /** Environment settings for Secret Network API. */
 export interface ScrtConfig {
-  scrtAgentName:      string|null
-  scrtAgentAddress:   string|null
-  scrtAgentMnemonic:  string|null
-  scrtMainnetChainId: string
-  scrtMainnetApiUrl:  string|null
-  scrtTestnetChainId: string
-  scrtTestnetApiUrl:  string|null
+  scrtAgentName:       string|null
+  scrtAgentAddress:    string|null
+  scrtAgentMnemonic:   string|null
+
+  scrtMainnetChainId:  string
+  scrtMainnetGrpcUrl:  string
+  scrtMainnetAminoUrl: string|null
+
+  scrtTestnetChainId:  string
+  scrtTestnetGrpcUrl:  string
+  scrtTestnetAminoUrl: string|null
 }
 
 /** Get configuration from the environment. */
@@ -48,28 +52,18 @@ export function getScrtConfig (cwd: string, env: Record<string, string> = {}): S
   const { Str, Bool } = getFromEnv(env)
   // Known defaults only for gRPC nodes,
   const config = {
-    chain:              Str('FADROMA_CHAIN',         ()=>null),
-    scrtAgentName:      Str('SCRT_AGENT_NAME',       ()=>null),
-    scrtAgentAddress:   Str('SCRT_AGENT_ADDRESS',    ()=>null),
-    scrtAgentMnemonic:  Str('SCRT_AGENT_MNEMONIC',   ()=>null),
-    scrtMainnetChainId: Str('SCRT_MAINNET_CHAIN_ID', ()=>Scrt.mainnetChainId),
-    scrtMainnetApiUrl:  Str('SCRT_MAINNET_API_URL',  ()=>{
-      if (config.chain.includes('Amino')) {
-        Scrt.Warnings.NoDefaultAmino('SCRT_TESTNET_API_URL')
-        return null
-      } else {
-        return 'https://secret-4.api.trivium.network:9091'
-      }
-    }),
-    scrtTestnetChainId: Str('SCRT_TESTNET_CHAIN_ID', ()=>Scrt.testnetChainId),
-    scrtTestnetApiUrl:  Str('SCRT_TESTNET_API_URL',  ()=>{
-      if (config.chain.includes('Amino')) {
-        Scrt.Warnings.NoDefaultAmino('SCRT_TESTNET_API_URL')
-        return null
-      } else {
-        return 'https://testnet-web-rpc.roninventures.io'
-      }
-    }),
+    chain:               Str('FADROMA_CHAIN',          ()=>null),
+    scrtAgentName:       Str('SCRT_AGENT_NAME',        ()=>null),
+    scrtAgentAddress:    Str('SCRT_AGENT_ADDRESS',     ()=>null),
+    scrtAgentMnemonic:   Str('SCRT_AGENT_MNEMONIC',    ()=>null),
+
+    scrtMainnetChainId:  Str('SCRT_MAINNET_CHAIN_ID',  ()=>Scrt.defaultMainnetChainId) as string,
+    scrtMainnetGrpcUrl:  Str('SCRT_MAINNET_GRPC_URL',  ()=>Scrt.defaultMainnetGrpcUrl) as string,
+    scrtMainnetAminoUrl: Str('SCRT_MAINNET_AMINO_URL', ()=>Scrt.defaultMainnetAminoUrl),
+
+    scrtTestnetChainId:  Str('SCRT_TESTNET_CHAIN_ID',  ()=>Scrt.defaultTestnetChainId) as string,
+    scrtTestnetGrpcUrl:  Str('SCRT_TESTNET_GRPC_URL',  ()=>Scrt.defaultTestnetGrpcUrl) as string,
+    scrtTestnetAminoUrl: Str('SCRT_MAINNET_AMINO_URL', ()=>Scrt.defaultTestnetAminoUrl),
   }
   return config
 }
@@ -92,42 +86,21 @@ export abstract class Scrt extends Chain {
   static Agent: AgentCtor<ScrtAgent>
          Agent: AgentCtor<ScrtAgent> = Scrt.Agent
 
-  static mainnetChainId = 'secret-4'
-  static testnetChainId = 'pulsar-2'
-  static defaultDenom = 'uscrt'
-  static gas          = (amount: Uint128|number) => new Fee(amount, this.defaultDenom)
+  static gas = (amount: Uint128|number) => new Fee(amount, this.defaultDenom)
+
+  static defaultMainnetChainId:  string      = 'secret-4'
+  static defaultMainnetGrpcUrl:  string      = 'https://secret-4.api.trivium.network:9091'
+  static defaultMainnetAminoUrl: string|null = null
+  static defaultTestnetChainId:  string      = 'pulsar-2'
+  static defaultTestnetGrpcUrl:  string      = 'https://testnet-web-rpc.roninventures.io'
+  static defaultTestnetAminoUrl: string|null = null
+  static defaultDenom:           string      = 'uscrt'
+
   static defaultFees  = {
     upload: this.gas(4000000),
     init:   this.gas(1000000),
     exec:   this.gas(1000000),
     send:   this.gas( 500000),
-  }
-
-  static Errors = {
-    UseOtherLib () {
-      throw new Error('Use @fadroma/scrt-amino')
-    },
-    WalletMnemonic () {
-      throw new Error('ScrtGrpcAgent: Can only be created from mnemonic or wallet+address')
-    },
-    AnotherChain () {
-      throw new Error('ScrtGrpcAgent: Tried to instantiate a contract that is uploaded to another chain')
-    },
-  }
-
-  static Warnings = {
-    IgnoringKeyPair () {
-      console.warn('ScrtGrpcAgent: Created from mnemonic, ignoring keyPair')
-    },
-    NoMemos () {
-      console.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
-    },
-    NoDefaultAmino (envVar) {
-      console.warn(
-        "getScrtConfig: no default API endpoints are provided for legacy Amino mode." +
-        (envVar ? `\nSet ${envVar} to provide yout known API endpoint.` : '')
-      )
-    }
   }
  
 }
@@ -145,9 +118,9 @@ export abstract class ScrtAgent extends Agent {
   static Bundle: BundleCtor<ScrtBundle>
          Bundle: BundleCtor<ScrtBundle> = ScrtAgent.Bundle
 
-  static async create (chain: Scrt, options?: Partial<ScrtAgentOpts>): Promise<ScrtAgent> {
-    if (options.legacy) {
-      return Scrt.Errors.UseOtherLib()
+  static async create (chain: Scrt, options: Partial<ScrtAgentOpts> = {}): Promise<ScrtAgent> {
+    if (options?.legacy) {
+      throw Errors.UseOtherLib()
     } else {
       return await ScrtGrpcAgent.create(chain, options) as ScrtAgent
     }
@@ -166,16 +139,16 @@ Scrt.Agent.Bundle = ScrtBundle
 export class ScrtGrpc extends Scrt {
 
   static Chains = {
-    async 'ScrtGrpcMainnet'  (config) {
+    async 'ScrtGrpcMainnet'  (config: ScrtConfig) {
       const mode = ChainMode.Mainnet
-      const id   = config.scrtMainnetChainId ?? Scrt.mainnetChainId
-      const url  = config.scrtMainnetApiUrl
+      const id   = config.scrtMainnetChainId ?? Scrt.defaultMainnetChainId
+      const url  = config.scrtMainnetGrpcUrl
       return new ScrtGrpc(id, { url, mode })
     },
-    async 'ScrtGrpcTestnet'  (config) {
+    async 'ScrtGrpcTestnet'  (config: ScrtConfig) {
       const mode = ChainMode.Testnet
-      const id   = config.scrtTestnetChainId ?? Scrt.testnetChainId
-      const url  = config.scrtTestnetApiUrl
+      const id   = config.scrtTestnetChainId ?? Scrt.defaultTestnetChainId
+      const url  = config.scrtTestnetGrpcUrl
       return new ScrtGrpc(id, { url, mode })
     },
   }
@@ -187,7 +160,7 @@ export class ScrtGrpc extends Scrt {
 
   async getBalance (denom = this.defaultDenom, address: Address) {
     const response = await (await this.api).query.bank.balance({ address, denom })
-    return response.balance.amount
+    return response.balance!.amount
   }
 
   async getLabel (address: string): Promise<string> {
@@ -247,12 +220,12 @@ export class ScrtGrpcAgent extends ScrtAgent {
       if (mnemonic) {
         wallet = new SecretJS.Wallet(mnemonic)
       } else {
-        return Scrt.Errors.WalletMnemonic()
+        throw Errors.WalletMnemonic()
       }
     }
 
     if (keyPair) {
-      Scrt.Warnings.IgnoringKeyPair()
+      Warnings.IgnoringKeyPair()
       delete options.keyPair
     }
 
@@ -274,6 +247,8 @@ export class ScrtGrpcAgent extends ScrtAgent {
 
   constructor (chain: ScrtGrpc, options: Partial<ScrtGrpcAgentOpts>) {
     super(chain as Chain, options)
+    if (!options.wallet) throw Errors.NoWallet()
+    if (!options.api)    throw Errors.NoAPI()
     this.wallet  = options.wallet
     this.api     = options.api
     this.address = this.wallet?.address
@@ -351,11 +326,12 @@ export class ScrtGrpcAgent extends ScrtAgent {
   }
 
   async upload (data: Uint8Array): Promise<Template> {
+    type Log = { type: string, key: string }
     const sender     = this.address
     const args       = {sender, wasmByteCode: data, source: "", builder: ""}
     const gasLimit   = Number(Scrt.defaultFees.upload.amount[0].amount)
     const result     = await this.api.tx.compute.storeCode(args, { gasLimit })
-    const findCodeId = (log) => log.type === "message" && log.key === "code_id"
+    const findCodeId = (log: Log) => log.type === "message" && log.key === "code_id"
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     const chainId    = this.chain.id
@@ -372,17 +348,16 @@ export class ScrtGrpcAgent extends ScrtAgent {
     template: Template, label: Label, initMsg: T, initFunds = []
   ): Promise<Instance> {
     const { chainId, codeId, codeHash } = template
-    if (chainId !== this.chain.id) {
-      return Scrt.Errors.AnotherChain()
-    }
+    if (chainId !== this.chain.id) throw Errors.AnotherChain()
+    if (isNaN(Number(codeId)))     throw Errors.NoCodeId()
     const sender   = this.address
-    const args     = { sender, codeId, codeHash, initMsg, label, initFunds }
+    const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
     const gasLimit = Number(Scrt.defaultFees.init.amount[0].amount)
     const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
     if (result.arrayLog) {
       type Log = { type: string, key: string }
       const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
-      const address  = result.arrayLog.find(findAddr)?.value
+      const address  = result.arrayLog.find(findAddr)?.value!
       return { initTx: result.transactionHash, chainId, codeId, codeHash, address, label, template }
     } else {
       throw Object.assign(
@@ -396,9 +371,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   async execute (instance: Instance, msg: Message, opts: ExecOpts = {}): Promise<Tx> {
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
-    if (memo) {
-      Scrt.Warnings.NoMemos()
-    }
+    if (memo) Warnings.NoMemos()
     const result = await this.api.tx.compute.executeContract({
       sender:          this.address,
       contractAddress: address,
@@ -698,3 +671,39 @@ export class ViewingKeyClient extends Client {
 
 /** Allow Scrt-chain clients to be implemented with just `@fadroma/scrt` dependency */
 export * from '@fadroma/client'
+
+const Errors = {
+  UseOtherLib () {
+    return new Error('Use @fadroma/scrt-amino')
+  },
+  WalletMnemonic () {
+    return new Error('ScrtGrpcAgent: Can only be created from mnemonic or wallet+address')
+  },
+  AnotherChain () {
+    return new Error('ScrtGrpcAgent: Tried to instantiate a contract that is uploaded to another chain')
+  },
+  NoWallet () {
+    return new Error('ScrtGrpcAgent: no wallet')
+  },
+  NoAPI () {
+    return new Error('ScrtGrpcAgent: no api')
+  },
+  NoCodeId () {
+    console.warn("ScrtGrpcAgent: need code ID to instantiate contract")
+  },
+}
+
+const Warnings = {
+  IgnoringKeyPair () {
+    console.warn('ScrtGrpcAgent: Created from mnemonic, ignoring keyPair')
+  },
+  NoMemos () {
+    console.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
+  },
+  NoDefaultAmino (envVar: string) {
+    console.warn(
+      "getScrtConfig: no default API endpoints are provided for legacy Amino mode." +
+      (envVar ? `\nSet ${envVar} to provide yout known API endpoint.` : '')
+    )
+  }
+}
