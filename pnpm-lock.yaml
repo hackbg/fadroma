@@ -286,6 +286,7 @@ importers:
     specifiers:
       '@iov/crypto': ^2.5.0
       '@iov/encoding': ^2.5.0
+      '@types/secure-random': ^1.1.0
       bech32: ^2.0.0
       secure-random: ^1.1.2
     dependencies:
@@ -293,6 +294,8 @@ importers:
       '@iov/encoding': 2.5.0
       bech32: 2.0.0
       secure-random: 1.1.2
+    devDependencies:
+      '@types/secure-random': 1.1.0
 
   toolbox/izomorf:
     specifiers:
@@ -922,7 +925,6 @@ packages:
 
   /@types/node/18.6.2:
     resolution: {integrity: sha512-KcfkBq9H4PI6Vpu5B/KoPeuVDAbmi+2mDBqGPGUgoL7yXQtcWGu2vJWmmRkneWK3Rh0nIAX192Aa87AqKHYChQ==}
-    dev: true
 
   /@types/prettier/2.6.3:
     resolution: {integrity: sha512-ymZk3LEC/fsut+/Q5qejp6R9O1rMxz3XaRHDV6kX8MrGAhOSPqVARbDi+EZvInBpw+BnCX3TD240byVkOfQsHg==}
@@ -943,6 +945,12 @@ packages:
     dependencies:
       '@types/glob': 7.2.0
       '@types/node': 18.6.1
+    dev: true
+
+  /@types/secure-random/1.1.0:
+    resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
+    dependencies:
+      '@types/node': 18.6.2
     dev: true
 
   /@types/ssh2/1.11.5:
@@ -3013,7 +3021,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.0.6
+      '@types/node': 18.6.2
       long: 4.0.0
     dev: false
 
