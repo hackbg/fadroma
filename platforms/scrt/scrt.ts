@@ -10,24 +10,23 @@ import {
   ChainMode,
   ChainOpts,
   Client,
+  CodeId,
+  CodeHash,
   ExecOpts,
   Fee,
   IFee,
   Instance,
+  Label,
   Message,
   Template,
+  TxHash,
   Uint128,
 } from '@fadroma/client'
 
-import {
-  SecretNetworkClient,
-  Wallet,
-  MsgInstantiateContract,
-  MsgExecuteContract,
-} from 'secretjs'
+import * as SecretJS from 'secretjs'
 
 import type { Tx } from 'secretjs'
-export type { Tx }
+export type ScrtGrpcTxResult = SecretJS.Tx
 
 import { randomBytes } from '@hackbg/formati'
 import { getFromEnv } from '@hackbg/komandi'
@@ -183,7 +182,7 @@ export class ScrtGrpc extends Scrt {
   static Agent: AgentCtor<ScrtGrpcAgent>
          Agent: AgentCtor<ScrtGrpcAgent> = ScrtGrpc.Agent
 
-  api = SecretNetworkClient.create({ chainId: this.id, grpcWebUrl: this.url })
+  api = SecretJS.SecretNetworkClient.create({ chainId: this.id, grpcWebUrl: this.url })
 
   async getBalance (denom = this.defaultDenom, address: Address) {
     const response = await (await this.api).query.bank.balance({ address, denom })
@@ -224,9 +223,9 @@ export class ScrtGrpc extends Scrt {
 
 /** gRPC-specific configuration options. */
 export interface ScrtGrpcAgentOpts extends ScrtAgentOpts {
-  wallet:  Wallet
+  wallet:  SecretJS.Wallet
   url:     string
-  api:     SecretNetworkClient
+  api:     SecretJS.SecretNetworkClient
 }
 
 export class ScrtGrpcAgent extends ScrtAgent {
@@ -245,7 +244,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
 
     if (!wallet) {
       if (mnemonic) {
-        wallet = new Wallet(mnemonic)
+        wallet = new SecretJS.Wallet(mnemonic)
       } else {
         return Scrt.Errors.WalletMnemonic()
       }
@@ -256,7 +255,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
       delete options.keyPair
     }
 
-    const api = await SecretNetworkClient.create({
+    const api = await SecretJS.SecretNetworkClient.create({
       chainId:    chain.id,
       grpcWebUrl: chain.url || "http://rpc.pulsar.griptapejs.com:9091",
       wallet,
@@ -297,9 +296,9 @@ export class ScrtGrpcAgent extends ScrtAgent {
     return instances
   }
 
-  wallet:  Wallet
+  wallet:  SecretJS.Wallet
 
-  api:     SecretNetworkClient
+  api:     SecretJS.SecretNetworkClient
 
   get account () {
     return this.api.query.auth.account({ address: this.address })
@@ -368,7 +367,9 @@ export class ScrtGrpcAgent extends ScrtAgent {
     )
   }
 
-  async instantiate (template, label, initMsg, initFunds = []): Promise<Instance> {
+  async instantiate <T> (
+    template: Template, label: Label, initMsg: T, initFunds = []
+  ): Promise<Instance> {
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) {
       return Scrt.Errors.AnotherChain()
@@ -378,7 +379,8 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const gasLimit = Number(Scrt.defaultFees.init.amount[0].amount)
     const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
     if (result.arrayLog) {
-      const findAddr = (log) => log.type === "message" && log.key === "contract_address"
+      type Log = { type: string, key: string }
+      const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
       const address  = result.arrayLog.find(findAddr)?.value
       return { initTx: result.transactionHash, chainId, codeId, codeHash, address, label, template }
     } else {
@@ -453,7 +455,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
       const results = this.collectSubmitResults(msgs, txResult)
       return results
     } catch (err) {
-      await this.handleSubmitError(err)
+      await this.handleSubmitError(err as Error)
     }
   }
 
@@ -461,7 +463,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
   protected async buildForSubmit () {
     const encrypted = await Promise.all(this.msgs.map(async ({init, exec})=>{
       if (init) {
-        return new MsgInstantiateContract({
+        return new SecretJS.MsgInstantiateContract({
           sender:    init.sender,
           codeId:    init.codeId,
           codeHash:  init.codeHash,
@@ -471,7 +473,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
         })
       }
       if (exec) {
-        return new MsgExecuteContract({
+        return new SecretJS.MsgExecuteContract({
           sender:          exec.sender,
           contractAddress: exec.contract,
           codeHash:        exec.codeHash,
@@ -484,40 +486,44 @@ export class ScrtGrpcBundle extends ScrtBundle {
     return encrypted
   }
 
-  protected collectSubmitResults (msgs, txResult) {
-    const results = []
+  protected collectSubmitResults (
+    msgs:     ScrtBundleMessage[],
+    txResult: ScrtGrpcTxResult
+  ): ScrtBundleResult[] {
+    const results: ScrtBundleResult[] = []
     for (const i in msgs) {
       const msg = msgs[i]
-      results[i] = {
-        sender:  this.address,
-        tx:      txResult.transactionHash,
-        chainId: this.chain.id
-      }
-      if (msg instanceof MsgInstantiateContract) {
-        const findAddr = ({msg, type, key}) =>
-          msg  ==  i         &&
+      const result: Partial<ScrtBundleResult> = {}
+      result.sender  = this.address
+      result.tx      = txResult.transactionHash
+      result.chainId = this.chain.id
+      if (msg instanceof SecretJS.MsgInstantiateContract) {
+        type Log = { msg: number, type: string, key: string }
+        const findAddr = ({msg, type, key}: Log) =>
+          msg  ==  Number(i) &&
           type === "message" &&
           key  === "contract_address"
-        results[i].type    = 'wasm/MsgInstantiateContract'
-        results[i].codeId  = msg.codeId
-        results[i].label   = msg.label,
-        results[i].address = txResult.arrayLog.find(findAddr)?.value
+        result.type    = 'wasm/MsgInstantiateContract'
+        result.codeId  = msg.codeId
+        result.label   = msg.label
+        result.address = txResult.arrayLog?.find(findAddr)?.value
       }
-      if (msgs[i] instanceof MsgExecuteContract) {
-        results[i].type    = 'wasm/MsgExecuteContract'
-        results[i].address = msg.contractAddress
+      if (msg instanceof SecretJS.MsgExecuteContract) {
+        result.type    = 'wasm/MsgExecuteContract'
+        result.address = msg.contractAddress
       }
+      results[Number(i)] = result as ScrtBundleResult
     }
     return results
   }
 
-  protected async handleSubmitError (err) {
+  protected async handleSubmitError (err: Error) {
     console.error('Submitting bundle failed:', err.message)
     console.error('Decrypting gRPC bundle errors is not implemented.')
     throw err
   }
 
-  async save (name) {
+  async save (name: never) {
     throw new Error('ScrtGrpcBundle#save: not implemented')
   }
 
@@ -531,14 +537,19 @@ export interface ScrtBundleCtor <B extends ScrtBundle> {
   new (agent: ScrtAgent): B
 }
 
+export type ScrtBundleMessage =
+  |SecretJS.MsgInstantiateContract
+  |SecretJS.MsgExecuteContract<object>
+
 export interface ScrtBundleResult {
-  tx:        string
-  type:      string
-  chainId:   string
-  codeId?:   string
-  codeHash?: string
-  address?:  string
-  label?:    string
+  sender?:   Address
+  tx:        TxHash
+  type:      'wasm/MsgInstantiateContract'|'wasm/MsgExecuteContract'
+  chainId:   ChainId
+  codeId?:   CodeId
+  codeHash?: CodeHash
+  address?:  Address
+  label?:    Label
 }
 
 /** Data used for creating a signature as per the SNIP-24 spec:

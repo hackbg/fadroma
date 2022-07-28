@@ -343,7 +343,7 @@ export abstract class Chain implements Spectator {
       throw new Error('Chain: need to pass chain id')
     }
     this.id   = id
-    this.mode = options.mode
+    this.mode = options.mode!
     if (options.url) {
       this.url = options.url
     }
