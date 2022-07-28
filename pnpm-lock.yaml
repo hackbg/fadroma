@@ -17,7 +17,7 @@ importers:
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/ensuite': ^1
       '@hackbg/formati': ^1.1.0
-      '@hackbg/ganesha': ^2.2
+      '@hackbg/ganesha': ^2.2.5
       '@hackbg/izomorf': ^3.0.1
       '@hackbg/kabinet': ^3.0.6
       '@hackbg/komandi': workspace:^4.1.2
@@ -47,7 +47,7 @@ importers:
       '@fadroma/tokens': link:packages/tokens
       '@hackbg/dokeres': link:toolbox/dokeres
       '@hackbg/formati': link:toolbox/formati
-      '@hackbg/ganesha': 2.2.4
+      '@hackbg/ganesha': 2.2.5
       '@hackbg/kabinet': link:toolbox/kabinet
       '@hackbg/komandi': link:toolbox/komandi
       '@hackbg/konzola': link:toolbox/konzola
@@ -252,7 +252,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/izomorf': link:izomorf
-      '@types/node': 18.6.1
+      '@types/node': 18.6.2
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.7.4
       typescript: 4.7.4
@@ -307,7 +307,9 @@ importers:
       '@hackbg/ganesha': ^2.0.3
       '@hackbg/konzola': workspace:^1
       '@hackbg/runspec': workspace:*
+      '@types/js-yaml': ^4.0.5
       '@types/mkdirp': ^1.0.2
+      '@types/rimraf': ^3.0.2
       '@types/tmp': ^0.2.3
       c8: ^7.11.2
       js-yaml: ^4.1.0
@@ -329,7 +331,9 @@ importers:
     devDependencies:
       '@hackbg/ganesha': 2.2.4
       '@hackbg/runspec': link:../runspec
+      '@types/js-yaml': 4.0.5
       '@types/mkdirp': 1.0.2
+      '@types/rimraf': 3.0.2
       '@types/tmp': 0.2.3
       c8: 7.12.0
 
@@ -641,12 +645,22 @@ packages:
       joycon: 3.1.1
       jsonc-parser: 3.1.0
       source-map-support: 0.5.21
+    dev: true
+
+  /@ganesha/node/2.3.3:
+    resolution: {integrity: sha512-/8mp/vqGHEv7KjzV8lCfIdQ3NWqgtIU7/h0iNqlF3QiMJKD3OaesafBs9/HrTfi31rYu9rOV/awCFlGUWkLmgg==}
+    dependencies:
+      '@ganesha/core': 2.0.1
+      front-matter: 4.0.2
+      joycon: 3.1.1
+      jsonc-parser: 3.1.0
+      source-map-support: 0.5.21
 
   /@hackbg/ensuite/1.0.2:
     resolution: {integrity: sha512-bx0opJC9P43FeRZRtMm2iifVT+71gE5k1fBOJxV0T8CUPbhPCoaQluZtiRQ51UOxRUbGTxYFid8yZSV6njPHQg==}
     hasBin: true
     dependencies:
-      '@hackbg/ganesha': 2.2.4
+      '@hackbg/ganesha': 2.2.5
       '@hackbg/runspec': link:toolbox/runspec
       why-is-node-still-running: 1.0.0
     dev: true
@@ -657,6 +671,16 @@ packages:
     dependencies:
       '@ganesha/core': 2.0.1
       '@ganesha/node': 2.3.2
+      '@ganesha/node-legacy': 3.0.2
+      cross-spawn: 7.0.3
+    dev: true
+
+  /@hackbg/ganesha/2.2.5:
+    resolution: {integrity: sha512-GL36jTYwRwvLFl3omJgL6gBVVU+XOXd92TX4OmBNKYayaQu4J5tD+qCwXCqggcRrFhyEd+lHThEJgG7Pj1/kyA==}
+    hasBin: true
+    dependencies:
+      '@ganesha/core': 2.0.1
+      '@ganesha/node': 2.3.3
       '@ganesha/node-legacy': 3.0.2
       cross-spawn: 7.0.3
 
@@ -847,10 +871,13 @@ packages:
     dependencies:
       '@types/minimatch': 3.0.5
       '@types/node': 18.0.6
-    dev: false
 
   /@types/istanbul-lib-coverage/2.0.4:
     resolution: {integrity: sha512-z/QT1XN4K4KYuslS23k62yDIDLwLFkzxOuMplDtObz0+y7VqJCaO2o+SPwHCvLFZh7xazvvoor2tA/hPz9ee7g==}
+    dev: true
+
+  /@types/js-yaml/4.0.5:
+    resolution: {integrity: sha512-FhpRzf927MNQdRZP0J5DLIdTXhjLYzeUTmLAu69mnVksLH9CJY3IuSeEgbKUki7GQZm0WqDkGzyxju2EZGD2wA==}
     dev: true
 
   /@types/json-schema/7.0.11:
@@ -867,7 +894,6 @@ packages:
 
   /@types/minimatch/3.0.5:
     resolution: {integrity: sha512-Klz949h02Gz2uZCMGwDUSDS1YBlTdDDgbWHi+81l29tQALUtvz4rAYi5uoVhE5Lagoq6DeqAUlbrHvW/mXDgdQ==}
-    dev: false
 
   /@types/mkdirp/1.0.2:
     resolution: {integrity: sha512-o0K1tSO0Dx5X6xlU5F1D6625FawhC3dU3iqr25lluNv/+/QIVH8RLNEiVokgIZo+mz+87w/3Mkg/VvQS+J51fQ==}
@@ -894,6 +920,10 @@ packages:
     resolution: {integrity: sha512-z+2vB6yDt1fNwKOeGbckpmirO+VBDuQqecXkgeIqDlaOtmKn6hPR/viQ8cxCfqLU4fTlvM3+YjM367TukWdxpg==}
     dev: true
 
+  /@types/node/18.6.2:
+    resolution: {integrity: sha512-KcfkBq9H4PI6Vpu5B/KoPeuVDAbmi+2mDBqGPGUgoL7yXQtcWGu2vJWmmRkneWK3Rh0nIAX192Aa87AqKHYChQ==}
+    dev: true
+
   /@types/prettier/2.6.3:
     resolution: {integrity: sha512-ymZk3LEC/fsut+/Q5qejp6R9O1rMxz3XaRHDV6kX8MrGAhOSPqVARbDi+EZvInBpw+BnCX3TD240byVkOfQsHg==}
     dev: false
@@ -906,6 +936,13 @@ packages:
     resolution: {integrity: sha512-HZBd99fKxRWpYCErtm2/yxUZv6/PBI9J7N4TNFffl5JbrYMHBwF25DjQGTW3b3jmXq+9P6/8fCIb2ee57BFfYA==}
     dependencies:
       '@types/node': 18.0.6
+    dev: true
+
+  /@types/rimraf/3.0.2:
+    resolution: {integrity: sha512-F3OznnSLAUxFrCEu/L5PY8+ny8DtcFRjx7fZZ9bycvXRi3KPTRS9HOitGZwvPg0juRhXFWIeKX58cnX5YqLohQ==}
+    dependencies:
+      '@types/glob': 7.2.0
+      '@types/node': 18.6.1
     dev: true
 
   /@types/ssh2/1.11.5:
