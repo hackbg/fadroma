@@ -240,7 +240,7 @@ export interface ClientOpts extends Instance {
 }
 /** Client constructor - used by functions which create user-specified Clients. */
 export interface ClientCtor<C extends Client, O extends Instance> {
-  new (agent?: Executor, options?: Address|Partial<O>): C
+  new (agent?: Executor, options?: Address|Partial<O>, hash?: CodeHash): C
 }
 /** Something that can execute read-only API calls. */
 export interface Spectator {
