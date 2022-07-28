@@ -57,7 +57,9 @@
     "@fadroma/tokens":     "workspace:*",
 
     "@fadroma/scrt":       "workspace:*",
-    "@fadroma/scrt-amino": "workspace:*"
+    "@fadroma/scrt-amino": "workspace:*",
+
+    "dotenv": "^16.0.1"
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1",
@@ -82,7 +84,7 @@
         "@types/react",
         "react",
         "react-dom",
-        "@algolia/client-search",
+        "vitepress",
         "ts-node"
       ],
       "allowedVersions": {

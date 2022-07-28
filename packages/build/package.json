@@ -27,6 +27,7 @@
     "@hackbg/konzola": "^1.1.1",
     "@hackbg/komandi": "workspace:*",
     "@hackbg/portali": "workspace:*",
+    "dotenv": "^16.0.1",
     "json-schema-to-typescript": "^10.1.5",
     "line-transform-stream": "^0.1.0",
     "simple-git": "^3.7.1",

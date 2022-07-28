@@ -1,16 +1,18 @@
+#!/usr/bin/env node
+
+let dotenv
+try { dotenv = require('dotenv') } catch (e) {}
+if (dotenv) dotenv.config()
+
 let ganesha
-try {
-  ganesha = require.resolve('@hackbg/ganesha')
-} catch (e) {
+try { ganesha = require.resolve('@hackbg/ganesha') } catch (e) {
   console.error(e)
   console.error('Could not find @hackbg/ganesha. CLI not available ;d')
   process.exit(1)
 }
 
 let deploy
-try {
-  deploy = require.resolve('@fadroma/deploy/deploy.ts')
-} catch (e) {
+try { deploy = require.resolve('@fadroma/deploy/deploy.ts') } catch (e) {
   console.error(e)
   console.error('Could not find @fadroma/deploy. CLI not available ;d')
   process.exit(1)

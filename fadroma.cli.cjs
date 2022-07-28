@@ -3,6 +3,10 @@
 printNameVersion(require('./package.json'))
 printNameVersion(require('@hackbg/ganesha/package.json'))
 
+let dotenv
+try { dotenv = require('dotenv') } catch (e) {}
+if (dotenv) dotenv.config()
+
 const commands = {
   version () {
     console.log(`\nhttps://hack.bg presents: Fadroma v${require('./package.json').version}`)
