@@ -669,9 +669,6 @@ export class ViewingKeyClient extends Client {
 
 }
 
-/** Allow Scrt-chain clients to be implemented with just `@fadroma/scrt` dependency */
-export * from '@fadroma/client'
-
 const Errors = {
   UseOtherLib () {
     return new Error('Use @fadroma/scrt-amino')
@@ -707,3 +704,6 @@ const Warnings = {
     )
   }
 }
+
+/** Allow Scrt clients to be implemented with just `@fadroma/scrt` */
+export * from '@fadroma/client'
