@@ -116,14 +116,14 @@ export class Client implements Instance {
       if (!this.address) console.warn(
         `${className} created with no address. Transactions and queries not possible.`
       )
-      this.name     = arg.name     || this.name
-      this.label    = arg.label    || this.label
-      this.codeHash = arg.codeHash || this.codeHash
+      this.name     = arg.name     ?? this.name
+      this.label    = arg.label    ?? this.label
+      this.codeHash = arg.codeHash ?? this.codeHash ?? hash
       if (!this.codeHash) console.warn(
         `${className} created with no code hash. await client.fetchCodeHash() to populate.`
       )
-      this.codeId   = arg.codeId   || this.codeId
-      this.fee      = arg.fee      || this.fee
+      this.codeId   = arg.codeId   ?? this.codeId
+      this.fee      = arg.fee      ?? this.fee
       this.fees = Object.assign(this.fees||{}, arg.fees||{})
     }
   }
@@ -500,9 +500,11 @@ export abstract class Agent implements Executor {
   }
   getClient <C extends Client, O extends Instance> (
     _Client: ClientCtor<C, O>   = Client as ClientCtor<C, O>,
-    arg:     Address|Partial<O> = {}
+    arg:     Address|Partial<O> = {},
+    hash?:   CodeHash
   ): C {
-    return new _Client(this, arg)
+    hash ??= (arg as Partial<O>).codeHash
+    return new _Client(this, arg, hash)
   }
   query <R> (contract: Instance, msg: Message): Promise<R> {
     return this.chain.query(contract, msg)
