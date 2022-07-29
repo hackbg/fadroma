@@ -12,12 +12,12 @@ scratch.rs
 target
 yarn-error.log
 yarn.lock
-*.js
 
 # Generated files:
+*.js
 *.esm.js
 *.cjs.js
 *.d.ts
-dist/
+*.dist.*
 doc/typedoc
 docs

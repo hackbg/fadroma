@@ -1,12 +1,11 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "3.0.0-beta.0",
+  "version": "3.0.0",
   "type":    "module",
   "main":    "tokens.ts",
   "dependencies": {
     "@fadroma/client": "workspace:^4",
     "@fadroma/scrt":   "workspace:^1",
-
     "@hackbg/konzola": "^1.1"
   },
   "scripts": {

@@ -6,7 +6,6 @@ import { randomHex } from '@hackbg/formati'
 const console = Console('Fadroma Tokens')
 
 export type Tokens = Record<string, Snip20|Token>
-
 /** # Token descriptors. */
 
 /** There are two kinds of token supported:
@@ -75,6 +74,11 @@ export function isCustomToken (obj: any): obj is NativeToken {
 export function customToken (contract_addr: Address, token_code_hash?: CodeHash) {
   return { custom_token: { contract_addr, token_code_hash } }
 }
+export interface NativeToken {
+  native_token: {
+    denom: string
+  }
+}
 /** Token amount descriptor. Specifies a particular amount of a particular token. */
 export class TokenAmount {
   constructor (
@@ -97,10 +101,10 @@ export class TokenAmount {
 export class TokenPair {
   constructor (readonly token_0: Token, readonly token_1: Token) {}
   get reverse (): TokenPair { return new TokenPair(this.token_1, this.token_0) }
-  static fromName (tokens: Record<string, Token>, name: string): TokenPair {
+  static fromName (knownTokens: Record<string, Token>, name: string): TokenPair {
     const [token_0_symbol, token_1_symbol] = name.split('-')
-    const token_0 = tokens[token_0_symbol]
-    const token_1 = tokens[token_1_symbol]
+    const token_0 = knownTokens[token_0_symbol]
+    const token_1 = knownTokens[token_1_symbol]
     if (!token_0) {
       throw Object.assign(
         new Error(`TokenPair#fromName: unknown token ${token_0_symbol}`),
@@ -117,7 +121,7 @@ export class TokenPair {
   }
 }
 
-/** A pair of two token descriptors, and amounts of each token. */
+/** A pair of two token descriptors, and amounts of each token, such as when specifying a swap. */
 export class TokenPairAmount {
   constructor (
     readonly pair:     TokenPair,
@@ -180,7 +184,7 @@ export class Snip20 extends Client implements CustomToken {
     }
   }
 
-  /** Old version of Token descriptor support. See `get custom_token`. */
+  /** Convert to plain CustomToken. */
   get asDescriptor () {
     return { custom_token: this.custom_token }
   }

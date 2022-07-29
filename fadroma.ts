@@ -87,7 +87,6 @@ import {
   Deployment,
   Deployments,
   FSUploader,
-  IntoTemplate,
   Uploader,
   DeployConfig,
   getDeployConfig

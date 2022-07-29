@@ -5,13 +5,17 @@ import {
   ChainMode,
   CodeId,
   CodeHash,
-} from '@fadroma/client'
-
-import {
+  ExecOpts,
+  IFee,
+  Instance,
+  Label,
+  Message,
   Scrt,
   ScrtAgent,
+  ScrtAgentOpts,
   ScrtBundle,
-  ScrtAgentOpts
+  ScrtConfig,
+  Template
 } from '@fadroma/scrt'
 
 import {
@@ -38,10 +42,10 @@ import { backOff } from 'exponential-backoff'
 import { default as Axios } from 'axios'
 
 export const ScrtAminoErrors = {
-  ZeroRecipients     () { throw new Error('Tried to send to 0 recipients')  },
-  TemplateNoCodeHash () { throw new Error('Template must contain codeHash') },
-  EncryptNoCodeHash  () { throw new Error('Missing code hash') },
-  UploadBinary       () { throw new Error('The upload method takes a Uint8Array') }
+  ZeroRecipients:     () => new Error('Tried to send to 0 recipients'),
+  TemplateNoCodeHash: () => new Error('Template must contain codeHash'),
+  EncryptNoCodeHash:  () => new Error('Missing code hash'),
+  UploadBinary:       () => new Error('The upload method takes a Uint8Array')
 }
 
 export const ScrtAminoWarnings = {
@@ -50,7 +54,7 @@ export const ScrtAminoWarnings = {
   },
 }
 
-const privKeyToMnemonic = privKey => (Bip39.encode(privKey) as any).data
+export const privKeyToMnemonic = (privKey: Uint8Array) => (Bip39.encode(privKey) as any).data
 
 interface SigningPen {
   pubkey: Uint8Array,
@@ -65,16 +69,16 @@ export interface ScrtNonce {
 export class ScrtAmino extends Scrt {
 
   static Chains = {
-    async 'ScrtAminoMainnet' (config) {
+    async 'ScrtAminoMainnet' (config: ScrtConfig) {
       const mode = ChainMode.Mainnet
-      const id   = config.scrtMainnetChainId ?? Scrt.mainnetChainId
-      const url  = config.scrtMainnetApiUrl
+      const id   = config.scrtMainnetChainId  ?? Scrt.defaultMainnetChainId
+      const url  = config.scrtMainnetAminoUrl ?? Scrt.defaultMainnetAminoUrl ?? undefined
       return new ScrtAmino(id, { url, mode })
     },
-    async 'ScrtAminoTestnet' (config) {
+    async 'ScrtAminoTestnet' (config: ScrtConfig) {
       const mode = ChainMode.Testnet
-      const id   = config.scrtTestnetChainId ?? Scrt.testnetChainId
-      const url  = config.scrtTestnetApiUrl
+      const id   = config.scrtTestnetChainId  ?? Scrt.defaultTestnetChainId
+      const url  = config.scrtTestnetAminoUrl ?? Scrt.defaultTestnetAminoUrl ?? undefined
       return new ScrtAmino(id, { url, mode })
     },
   }
@@ -95,8 +99,8 @@ export class ScrtAmino extends Scrt {
   /** Get up-to-date balance of this address in specified denomination. */
   async getBalance (denomination: string = this.defaultDenom, address: Address) {
     const account = await this.api.getAccount(address)
-    const balance = account.balance || []
-    const inDenom = ({denom}) => denom === denomination
+    const balance = account?.balance || []
+    const inDenom = ({denom}:{denom:string}) => denom === denomination
     const balanceInDenom = balance.filter(inDenom)[0]
     if (!balanceInDenom) return '0'
     return balanceInDenom.amount
@@ -113,19 +117,19 @@ export class ScrtAmino extends Scrt {
     }
   }
 
-  async getCodeId (address) {
+  async getCodeId (address: Address) {
     const { api } = this
     const { codeId } = await api.getContract(address)
     return String(codeId)
   }
 
-  async getLabel (address) {
+  async getLabel (address: Address) {
     const { api } = this
     const { label } = await api.getContract(address)
     return label
   }
 
-  async query <T, U> ({ address, codeHash }, msg: T) {
+  async query <T, U> ({ address, codeHash }: Instance, msg: T) {
     const { api } = this
     // @ts-ignore
     return api.queryContractSmart(address, msg, undefined, codeHash)
@@ -163,15 +167,15 @@ export class ScrtAminoAgent extends ScrtAgent {
         mnemonic = privKeyToMnemonic(keyPair.privkey)
     }
     return new ScrtAminoAgent(chain, {
+      ...args,
       name,
       mnemonic,
-      keyPair,
-      pen: await Secp256k1Pen.fromMnemonic(mnemonic),
-      ...args
+      pen: await Secp256k1Pen.fromMnemonic(mnemonic!),
+      keyPair
     })
   }
 
-  constructor (chain, options: Partial<ScrtAminoAgentOpts> = {}) {
+  constructor (chain: ScrtAmino, options: Partial<ScrtAminoAgentOpts> = {}) {
     super(chain, options)
     this.name     = options?.name || ''
     // @ts-ignore
@@ -239,9 +243,7 @@ export class ScrtAminoAgent extends ScrtAgent {
   }
 
   async sendMany (outputs, opts) {
-    if (outputs.length < 0) {
-      return ScrtAminoErrors.ZeroRecipients()
-    }
+    if (outputs.length < 0) throw ScrtAminoErrors.ZeroRecipients()
     const from_address = this.address
     //const {accountNumber, sequence} = await this.api.getNonce(from_address)
     let accountNumber
@@ -258,15 +260,11 @@ export class ScrtAminoAgent extends ScrtAgent {
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async upload (data) {
-    if (!(data instanceof Uint8Array)) {
-      return ScrtAminoErrors.UploadBinary()
-    }
+  async upload (data: Uint8Array): Template {
+    if (!(data instanceof Uint8Array)) throw ScrtAminoErrors.UploadBinary()
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
-    if (codeId === "-1") {
-      codeId = uploadResult.logs[0].events[0].attributes[3].value
-    }
+    if (codeId === "-1") codeId = uploadResult.logs[0].events[0].attributes[3].value
     const codeHash = uploadResult.originalChecksum
     return {
       uploadTx: uploadResult.transactionHash,
@@ -277,9 +275,7 @@ export class ScrtAminoAgent extends ScrtAgent {
   }
 
   async instantiate (template, label, msg, funds = []) {
-    if (!template.codeHash) {
-      return ScrtAminoErrors.TemplateNoCodeHash()
-    }
+    if (!template.codeHash) throw ScrtAminoErrors.TemplateNoCodeHash()
     const { codeId, codeHash } = template
     const { api } = this
     //@ts-ignore
@@ -293,7 +289,7 @@ export class ScrtAminoAgent extends ScrtAgent {
     }
   }
 
-  async getHash (idOrAddr: number|string) {
+  async getHash (idOrAddr: number|string): Promise<CodeHash> {
     const { api } = this
     if (typeof idOrAddr === 'number') {
       return await api.getCodeHashByCodeId(idOrAddr)
@@ -304,38 +300,33 @@ export class ScrtAminoAgent extends ScrtAgent {
     }
   }
 
-  async getCodeId (address) {
-    const { api } = this
-    const { codeId } = await api.getContract(address)
-    return String(codeId)
+  async getCodeId (address: Address): Promise<CodeId> {
+    return String((await this.api.getContract(address)).codeId)
   }
 
-  async getLabel (address) {
-    const { api } = this
-    const { label } = await api.getContract(address)
-    return label
+  async getLabel (address: Address): Promise<Label> {
+    return (await this.api.getContract(address)).label
   }
 
-  async query <T, U> ({ address, codeHash }, msg: T): Promise<U> {
-    const { api } = this
+  async query <T, U> ({ address, codeHash }: Instance, msg: T): Promise<U> {
     // @ts-ignore
-    return api.queryContractSmart(address, msg, undefined, codeHash)
+    return await this.api.queryContractSmart(address, msg, undefined, codeHash)
   }
 
-  async execute ({ address, codeHash }, msg, opts): Promise<TxsResponse> {
+  async execute (
+    { address, codeHash }: Instance, msg: Message, opts: ExecOpts = {}
+  ): Promise<TxsResponse> {
     const { memo, amount, fee } = opts
     return await this.api.execute(address, msg, memo, amount, fee, codeHash)
   }
 
-  async encrypt (codeHash, msg) {
-    if (!codeHash) {
-      return ScrtAminoErrors.EncryptNoCodeHash()
-    }
-    const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg)
+  async encrypt (codeHash: CodeHash, msg: Message) {
+    if (!codeHash) throw ScrtAminoErrors.EncryptNoCodeHash()
+    const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg as object)
     return toBase64(encrypted)
   }
 
-  async signTx (msgs, gas, memo) {
+  async signTx (msgs: any[], gas: IFee, memo: string = '') {
     const { accountNumber, sequence } = await this.api.getNonce()
     return await this.api.signAdapter(
       msgs,
@@ -348,8 +339,6 @@ export class ScrtAminoAgent extends ScrtAgent {
   }
 
   initialWait = 1000
-
-  config
 
 }
 
@@ -548,10 +537,12 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   _queryClient = null
   get queryClient () {
     if (this._queryClient) return this._queryClient
-    return this._queryClient = Axios.create({ baseURL: this._queryUrl })
+    return this._queryClient = Axios.create({
+      baseURL: this._queryUrl,
+    })
   }
 
-  async get (path) {
+  async get (path: string|URL) {
     const client = await this.queryClient
     const { data } = await client.get(path).catch(parseAxiosError)
     if (data === null) {
@@ -778,3 +769,5 @@ function parseAxiosError (err) {
     throw err
   }
 }
+
+export * from '@fadroma/scrt'

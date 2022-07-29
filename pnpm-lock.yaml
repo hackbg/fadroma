@@ -14,14 +14,15 @@ importers:
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-amino': workspace:*
       '@fadroma/tokens': workspace:*
-      '@hackbg/dokeres': ^4.0.2
+      '@hackbg/dokeres': ^4.1.0
       '@hackbg/ensuite': ^1
-      '@hackbg/formati': ^1.1.0
+      '@hackbg/formati': ^1.1.1
       '@hackbg/ganesha': ^2.2.5
-      '@hackbg/izomorf': ^3.0.1
+      '@hackbg/izomorf': ^4.0.3
       '@hackbg/kabinet': ^3.0.6
-      '@hackbg/komandi': workspace:^4.1.2
-      '@hackbg/konzola': ^1.0.8
+      '@hackbg/komandi': ^4.1.2
+      '@hackbg/konzola': ^1.1.1
+      '@hackbg/runspec': ^2.3
       '@types/node': ^16.11.36
       body-parser: ^1.20.0
       c8: ^7.11.3
@@ -55,7 +56,8 @@ importers:
       dotenv: 16.0.1
     devDependencies:
       '@hackbg/ensuite': 1.0.2
-      '@hackbg/izomorf': 3.0.1
+      '@hackbg/izomorf': link:toolbox/izomorf
+      '@hackbg/runspec': link:toolbox/runspec
       '@types/node': 16.11.45
       body-parser: 1.20.0
       c8: 7.12.0
@@ -91,6 +93,7 @@ importers:
       '@hackbg/komandi': workspace:*
       '@hackbg/konzola': ^1.1.1
       '@hackbg/portali': workspace:*
+      dotenv: ^16.0.1
       json-schema-to-typescript: ^10.1.5
       line-transform-stream: ^0.1.0
       simple-git: ^3.7.1
@@ -103,6 +106,7 @@ importers:
       '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/konzola': link:../../toolbox/konzola
       '@hackbg/portali': link:../../toolbox/portali
+      dotenv: 16.0.1
       json-schema-to-typescript: 10.1.5
       line-transform-stream: 0.1.0
       simple-git: 3.10.0
@@ -136,6 +140,7 @@ importers:
       '@hackbg/konzola': ^1.1.1
       '@hackbg/portali': ^1
       align-yaml: ^0.1.8
+      dotenv: ^16.0.1
       js-yaml: ^4.1.0
       json-schema-to-typescript: ^10.1.5
       limiter: ^2.1.0
@@ -153,6 +158,7 @@ importers:
       '@hackbg/konzola': link:../../toolbox/konzola
       '@hackbg/portali': link:../../toolbox/portali
       align-yaml: 0.1.8
+      dotenv: 16.0.1
       js-yaml: 4.1.0
       json-schema-to-typescript: 10.1.5
       limiter: 2.1.0
@@ -194,7 +200,7 @@ importers:
     specifiers:
       '@fadroma/client': workspace:^4.1
       '@hackbg/formati': ^1.1.2
-      '@hackbg/konfizi': ^1
+      '@hackbg/konfizi': ^1.0.1
       secretjs: beta
     dependencies:
       '@fadroma/client': link:../../packages/client
@@ -691,15 +697,6 @@ packages:
       '@ganesha/node': 2.3.3
       '@ganesha/node-legacy': 3.0.2
       cross-spawn: 7.0.3
-
-  /@hackbg/izomorf/3.0.1:
-    resolution: {integrity: sha512-b48Dkq/SaKpHU6LO+OBbbt8a5epb0GfQupPz5DrY1dldky7mkPMr7UbyXCigngiIQwNNWvd2JUJ5kn9ne46elg==}
-    hasBin: true
-    dependencies:
-      node-fetch: 2.6.7
-    transitivePeerDependencies:
-      - encoding
-    dev: true
 
   /@improbable-eng/grpc-web-node-http-transport/0.15.0_fng5pv4qmdetiqq66m6yjkaacu:
     resolution: {integrity: sha512-HLgJfVolGGpjc9DWPhmMmXJx8YGzkek7jcCFO1YYkSOoO81MWRZentPOd/JiKiZuU08wtc4BG+WNuGzsQB5jZA==}

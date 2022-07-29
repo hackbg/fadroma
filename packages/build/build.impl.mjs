@@ -53,6 +53,7 @@ function phase1 ({
   uid         = env('_BUILD_UID',  1000),
   gid         = env('_BUILD_GID',  1000),
   noFetch     = env('_NO_FETCH',   false),
+  docker      = env.RUNNING_IN_DOCKER || false, // are we running in a container?
   interpreter = argv[0],       // e.g. /usr/bin/node
   script      = argv[1],       // this file
   ref         = argv[3],       // "HEAD" | <git ref>
@@ -82,6 +83,9 @@ function phase1 ({
   if (buildRoot) run(`mkdir -p "${buildRoot}"`)
   if (tmpTarget) run(`mkdir -p "${tmpTarget}" && chmod -t "${tmpTarget}"`)
   if (registry)  run(`mkdir -p "${registry}"`)
+  if (docker) {
+    run(`chmod ugo+rwx /usr/local/cargo/registry`)
+  }
   umask(0o022)
 
   // Copy the source into the build dir
