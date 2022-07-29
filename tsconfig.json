@@ -24,6 +24,7 @@
     "packages/ops/wip/**/*",
     "shim",
     "typedoc-theme.tsx",
-    "types"
+    "types",
+    "toolbox"
   ]
 }
