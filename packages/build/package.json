@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/build",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0",
   "type":    "module",
   "main":    "./build.ts",
   "description": "Build smart contracts with or without container.",
@@ -22,7 +22,7 @@
   "dependencies": {
     "@fadroma/client": "workspace:^4",
     "@hackbg/dokeres": "^4.0.2",
-    "@hackbg/formati": "^1.0.2",
+    "@hackbg/formati": "^1.1.2",
     "@hackbg/kabinet": "^3.0.6",
     "@hackbg/konzola": "^1.1.1",
     "@hackbg/komandi": "^4.2.3",

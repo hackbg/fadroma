@@ -40,16 +40,15 @@
     "docs:vp:serve":    "vitepress serve"
   },
   "dependencies": {
-    "@fadroma/build":             "workspace:*",
-    "@fadroma/client":            "workspace:*",
-    "@fadroma/connect":           "workspace:*",
-    "@fadroma/deploy":            "workspace:*",
-    "@fadroma/devnet":            "workspace:*",
-    "@fadroma/mocknet":           "workspace:*",
-    "@fadroma/schema":            "workspace:*",
-    "@fadroma/scrt":              "workspace:*",
-    "@fadroma/scrt-amino":        "workspace:*",
-    "@fadroma/tokens":            "workspace:*",
+    "@fadroma/build":             "workspace:^1",
+    "@fadroma/client":            "workspace:^4.1",
+    "@fadroma/connect":           "workspace:^1",
+    "@fadroma/deploy":            "workspace:^1",
+    "@fadroma/devnet":            "workspace:^1",
+    "@fadroma/mocknet":           "workspace:^1",
+    "@fadroma/scrt":              "workspace:^1",
+    "@fadroma/scrt-amino":        "workspace:^1",
+    "@fadroma/tokens":            "workspace:^3",
     "@hackbg/dokeres":            "^4.1.0",
     "@hackbg/formati":            "^1.1.1",
     "@hackbg/ganesha":            "^2.2.5",
@@ -59,10 +58,15 @@
     "dotenv": "^16.0.1"
   },
   "devDependencies": {
+    "@types/node":          "^16.11.36",
+    "@types/prettyjson":    "^0.0.30",
+    "@types/prompts":       "^2.0.14",
+    "@types/secure-random": "^1.1.0",
+
     "@hackbg/ensuite": "^1",
     "@hackbg/izomorf": "^4.0.3",
     "@hackbg/runspec": "^2.3",
-    "@types/node":     "^16.11.36",
+
     "body-parser":     "^1.20.0",
     "c8":              "^7.11.3",
     "concurrently":    "7.2.2",

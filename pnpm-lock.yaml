@@ -4,16 +4,15 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/build': workspace:*
-      '@fadroma/client': workspace:*
-      '@fadroma/connect': workspace:*
-      '@fadroma/deploy': workspace:*
-      '@fadroma/devnet': workspace:*
-      '@fadroma/mocknet': workspace:*
-      '@fadroma/schema': workspace:*
-      '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-amino': workspace:*
-      '@fadroma/tokens': workspace:*
+      '@fadroma/build': workspace:^1
+      '@fadroma/client': workspace:^4.1
+      '@fadroma/connect': workspace:^1
+      '@fadroma/deploy': workspace:^1
+      '@fadroma/devnet': workspace:^1
+      '@fadroma/mocknet': workspace:^1
+      '@fadroma/scrt': workspace:^1
+      '@fadroma/scrt-amino': workspace:^1
+      '@fadroma/tokens': workspace:^3
       '@hackbg/dokeres': ^4.1.0
       '@hackbg/ensuite': ^1
       '@hackbg/formati': ^1.1.1
@@ -24,6 +23,9 @@ importers:
       '@hackbg/konzola': ^1.1.1
       '@hackbg/runspec': ^2.3
       '@types/node': ^16.11.36
+      '@types/prettyjson': ^0.0.30
+      '@types/prompts': ^2.0.14
+      '@types/secure-random': ^1.1.0
       body-parser: ^1.20.0
       c8: ^7.11.3
       concurrently: 7.2.2
@@ -43,7 +45,6 @@ importers:
       '@fadroma/deploy': link:packages/deploy
       '@fadroma/devnet': link:packages/devnet
       '@fadroma/mocknet': link:packages/mocknet
-      '@fadroma/schema': link:packages/schema
       '@fadroma/scrt': link:platforms/scrt
       '@fadroma/scrt-amino': link:platforms/scrt-amino
       '@fadroma/tokens': link:packages/tokens
@@ -53,6 +54,9 @@ importers:
       '@hackbg/kabinet': 3.0.7
       '@hackbg/komandi': 4.2.3_dotenv@16.0.1
       '@hackbg/konzola': 1.1.1
+      '@types/prettyjson': 0.0.30
+      '@types/prompts': 2.0.14
+      '@types/secure-random': 1.1.0
       dotenv: 16.0.1
     devDependencies:
       '@hackbg/ensuite': 1.0.2
@@ -88,7 +92,7 @@ importers:
     specifiers:
       '@fadroma/client': workspace:^4
       '@hackbg/dokeres': ^4.0.2
-      '@hackbg/formati': ^1.0.2
+      '@hackbg/formati': ^1.1.2
       '@hackbg/kabinet': ^3.0.6
       '@hackbg/komandi': ^4.2.3
       '@hackbg/konzola': ^1.1.1
@@ -134,7 +138,7 @@ importers:
       '@fadroma/client': workspace:^4
       '@fadroma/connect': workspace:*
       '@hackbg/dokeres': ^4.0.2
-      '@hackbg/formati': ^1.0.2
+      '@hackbg/formati': ^1.1.2
       '@hackbg/kabinet': ^3.0.6
       '@hackbg/komandi': ^4.2.3
       '@hackbg/konzola': ^1.1.1
@@ -177,14 +181,6 @@ importers:
 
   packages/mocknet:
     specifiers: {}
-
-  packages/schema:
-    specifiers:
-      json-schema-to-typescript: ^10.1.5
-      toml: ^3.0.0
-    dependencies:
-      json-schema-to-typescript: 10.1.5
-      toml: 3.0.0
 
   packages/tokens:
     specifiers:
@@ -829,6 +825,22 @@ packages:
 
   /@types/prettier/2.6.3:
     resolution: {integrity: sha512-ymZk3LEC/fsut+/Q5qejp6R9O1rMxz3XaRHDV6kX8MrGAhOSPqVARbDi+EZvInBpw+BnCX3TD240byVkOfQsHg==}
+    dev: false
+
+  /@types/prettyjson/0.0.30:
+    resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
+    dev: false
+
+  /@types/prompts/2.0.14:
+    resolution: {integrity: sha512-HZBd99fKxRWpYCErtm2/yxUZv6/PBI9J7N4TNFffl5JbrYMHBwF25DjQGTW3b3jmXq+9P6/8fCIb2ee57BFfYA==}
+    dependencies:
+      '@types/node': 18.6.2
+    dev: false
+
+  /@types/secure-random/1.1.0:
+    resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
+    dependencies:
+      '@types/node': 18.6.2
     dev: false
 
   /@types/web-bluetooth/0.0.14:

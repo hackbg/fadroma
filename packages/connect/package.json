@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0",
   "type":    "module",
   "main":    "./connect.ts",
   "description": "Catalog of platforms that Fadroma can operate on.",

@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/mocknet",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.0",
   "type":    "module",
   "main":    "./mocknet.ts",
   "description": "Test smart contracts without the overhead of spawning a real chain.",

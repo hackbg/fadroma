@@ -1,8 +1,8 @@
 {
-  "name": "@fadroma/deploy",
-  "version": "1.0.0-beta.0",
-  "type": "module",
-  "main": "./deploy.ts",
+  "name":    "@fadroma/deploy",
+  "version": "1.0.0",
+  "type":    "module",
+  "main":    "./deploy.ts",
   "bin": { "fadroma-deploy": "deploy.cli.cjs" },
   "description": "Upload and instantiate smart contracts.",
   "scripts": {
@@ -23,7 +23,7 @@
     "@fadroma/client":  "workspace:^4",
     "@fadroma/connect": "workspace:*",
     "@hackbg/dokeres": "^4.0.2",
-    "@hackbg/formati": "^1.0.2",
+    "@hackbg/formati": "^1.1.2",
     "@hackbg/kabinet": "^3.0.6",
     "@hackbg/konzola": "^1.1.1",
     "@hackbg/komandi": "^4.2.3",
