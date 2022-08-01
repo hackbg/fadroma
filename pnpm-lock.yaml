@@ -22,6 +22,7 @@ importers:
       '@hackbg/komandi': ^4.2.3
       '@hackbg/konzola': ^1.1.1
       '@hackbg/runspec': ^2.3
+      '@types/dockerode': ^3.3.9
       '@types/node': ^16.11.36
       '@types/prettyjson': ^0.0.30
       '@types/prompts': ^2.0.14
@@ -54,15 +55,16 @@ importers:
       '@hackbg/kabinet': 3.0.7
       '@hackbg/komandi': 4.2.3_dotenv@16.0.1
       '@hackbg/konzola': 1.1.1
-      '@types/prettyjson': 0.0.30
-      '@types/prompts': 2.0.14
-      '@types/secure-random': 1.1.0
       dotenv: 16.0.1
     devDependencies:
       '@hackbg/ensuite': 1.0.2
       '@hackbg/izomorf': 4.1.0
       '@hackbg/runspec': 2.3.1
+      '@types/dockerode': 3.3.9
       '@types/node': 16.11.45
+      '@types/prettyjson': 0.0.30
+      '@types/prompts': 2.0.14
+      '@types/secure-random': 1.1.0
       body-parser: 1.20.0
       c8: 7.12.0
       concurrently: 7.2.2
@@ -93,28 +95,22 @@ importers:
       '@fadroma/client': workspace:^4
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/formati': ^1.1.2
-      '@hackbg/kabinet': ^3.0.6
-      '@hackbg/komandi': ^4.2.3
+      '@hackbg/kabinet': ^3.0.8
+      '@hackbg/komandi': ^4.2.5
       '@hackbg/konzola': ^1.1.1
       '@hackbg/portali': ^1.2.1
       dotenv: ^16.0.1
-      json-schema-to-typescript: ^10.1.5
-      line-transform-stream: ^0.1.0
       simple-git: ^3.7.1
-      toml: ^3.0.0
     dependencies:
       '@fadroma/client': link:../client
       '@hackbg/dokeres': 4.1.2
       '@hackbg/formati': 1.1.2
-      '@hackbg/kabinet': 3.0.7
-      '@hackbg/komandi': 4.2.3_dotenv@16.0.1
+      '@hackbg/kabinet': 3.0.8
+      '@hackbg/komandi': 4.2.5_dotenv@16.0.1
       '@hackbg/konzola': 1.1.1
       '@hackbg/portali': 1.2.1
       dotenv: 16.0.1
-      json-schema-to-typescript: 10.1.5
-      line-transform-stream: 0.1.0
       simple-git: 3.10.0
-      toml: 3.0.0
 
   packages/client:
     specifiers: {}
@@ -553,6 +549,19 @@ packages:
       toml: 3.0.0
     dev: false
 
+  /@hackbg/kabinet/3.0.8:
+    resolution: {integrity: sha512-f9ULvNX5Slk/EjzyBNeMkF7q807sHE715MVdI40B7l0HXNXVQ2PqWr3Dh3aguGMBmnP/Qlg+7deKm8TjkDynYg==}
+    dependencies:
+      '@hackbg/konzola': 1.1.1
+      js-yaml: 4.1.0
+      mkdirp: 1.0.4
+      recursive-copy: 2.0.14
+      rimraf: 3.0.2
+      symlink-dir: 5.0.1
+      tmp: 0.2.1
+      toml: 3.0.0
+    dev: false
+
   /@hackbg/komandi/4.2.1:
     resolution: {integrity: sha512-piVULhwv8SZBY58BNKZ+azF8O5QGFzrM6FFAEK5KhbXl0Cv7WbQWML76QEkQqg7+citq69yfIno3/pSf+xQlYA==}
     peerDependencies:
@@ -587,7 +596,21 @@ packages:
       dotenv:
         optional: true
     dependencies:
-      '@hackbg/kabinet': 3.0.7
+      '@hackbg/kabinet': 3.0.8
+      '@hackbg/konfizi': 1.0.1
+      '@hackbg/konzola': 1.1.1
+      dotenv: 16.0.1
+    dev: false
+
+  /@hackbg/komandi/4.2.5_dotenv@16.0.1:
+    resolution: {integrity: sha512-PhI21kigx47mdlF4+jrrcq4CNgaRrGCu1dGplaw0O8lr6wBjFoB3mMHKS4f8Xylr/DnJ1dz61DOwHAzTZLzkqg==}
+    peerDependencies:
+      dotenv: ^15.0.1||^16
+    peerDependenciesMeta:
+      dotenv:
+        optional: true
+    dependencies:
+      '@hackbg/kabinet': 3.0.8
       '@hackbg/konfizi': 1.0.1
       '@hackbg/konzola': 1.1.1
       dotenv: 16.0.1
@@ -776,6 +799,20 @@ packages:
     resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
     dev: false
 
+  /@types/docker-modem/3.0.2:
+    resolution: {integrity: sha512-qC7prjoEYR2QEe6SmCVfB1x3rfcQtUr1n4x89+3e0wSTMQ/KYCyf+/RAA9n2tllkkNc6//JMUZePdFRiGIWfaQ==}
+    dependencies:
+      '@types/node': 18.6.2
+      '@types/ssh2': 1.11.5
+    dev: true
+
+  /@types/dockerode/3.3.9:
+    resolution: {integrity: sha512-SYRN5FF/qmwpxUT6snJP5D8k0wgoUKOGVs625XvpRJOOUi6s//UYI4F0tbyE3OmzpI70Fo1+aqpzX27zCrInww==}
+    dependencies:
+      '@types/docker-modem': 3.0.2
+      '@types/node': 18.6.2
+    dev: true
+
   /@types/glob/7.2.0:
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
     dependencies:
@@ -821,7 +858,6 @@ packages:
 
   /@types/node/18.6.2:
     resolution: {integrity: sha512-KcfkBq9H4PI6Vpu5B/KoPeuVDAbmi+2mDBqGPGUgoL7yXQtcWGu2vJWmmRkneWK3Rh0nIAX192Aa87AqKHYChQ==}
-    dev: false
 
   /@types/prettier/2.6.3:
     resolution: {integrity: sha512-ymZk3LEC/fsut+/Q5qejp6R9O1rMxz3XaRHDV6kX8MrGAhOSPqVARbDi+EZvInBpw+BnCX3TD240byVkOfQsHg==}
@@ -829,19 +865,25 @@ packages:
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
-    dev: false
+    dev: true
 
   /@types/prompts/2.0.14:
     resolution: {integrity: sha512-HZBd99fKxRWpYCErtm2/yxUZv6/PBI9J7N4TNFffl5JbrYMHBwF25DjQGTW3b3jmXq+9P6/8fCIb2ee57BFfYA==}
     dependencies:
       '@types/node': 18.6.2
-    dev: false
+    dev: true
 
   /@types/secure-random/1.1.0:
     resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
     dependencies:
       '@types/node': 18.6.2
-    dev: false
+    dev: true
+
+  /@types/ssh2/1.11.5:
+    resolution: {integrity: sha512-RaBsPKr+YP/slH8iR7XfC7chyomU+V57F/gJ5cMSP2n6/YWKVmeRLx7lrkgw4YYLpEW5lXLAdfZJqGo0PXboSA==}
+    dependencies:
+      '@types/node': 18.6.2
+    dev: true
 
   /@types/web-bluetooth/0.0.14:
     resolution: {integrity: sha512-5d2RhCard1nQUC3aHcq/gHzWYO6K0WJmAbjO7mQJgCQKtZpgXxv1rOM6O/dBDhDYYVutk1sciOgNSe+5YyfM8A==}

@@ -58,6 +58,7 @@
     "dotenv": "^16.0.1"
   },
   "devDependencies": {
+    "@types/dockerode":     "^3.3.9",
     "@types/node":          "^16.11.36",
     "@types/prettyjson":    "^0.0.30",
     "@types/prompts":       "^2.0.14",
