@@ -1015,6 +1015,7 @@ export type  Name      = string
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   if (process.argv.length > 2) {
     console.info('Using deploy script:', bold(process.argv[2]))
+    //@ts-ignore
     import(resolve(process.argv[2])).then(deployScript=>{
       const deployCommands = deployScript.default
       return deployCommands.launch(process.argv.slice(3))
