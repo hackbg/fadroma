@@ -33,8 +33,8 @@ export async function getChainContext (
   const config = { ...getChainConfig(), ...context.config ?? {} }
   const name = config.chain
   // Check that a valid name is passed
-  if (!name || !context.chains[name]) {
-    ConnectLogger(console).noName(context.chains)
+  if (!name || !context.chains![name]) {
+    ConnectLogger(console).noName(context.chains!)
     process.exit(1)
   }
   // Return chain and deployments handle
@@ -92,15 +92,15 @@ export interface ChainContext extends CommandContext {
 /** Get agent+chain settings from process runtime environment. */
 export const getAgentConfig = envConfig(({ Str }, cwd, env): AgentConfig => ({
   ...getChainConfig(cwd, env),
-  agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
-  agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
+  agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',  ()=>'ADMIN')) as string,
+  agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>null)) as string|null,
 }))
 /* Agent settings. */
 export interface AgentConfig extends ChainConfig {
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName:     string
   /** Mnemonic to use for authentication. */
-  agentMnemonic: string
+  agentMnemonic: string|null
 }
 
 /** Adds an Agent to the Context. */
