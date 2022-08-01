@@ -159,11 +159,13 @@ importers:
 
   packages/devnet:
     specifiers:
+      '@hackbg/kabinet': ^3.0.8
       '@hackbg/komandi': ^4.2.5
-      '@hackbg/portali': ^1.2
+      '@hackbg/portali': ^1.2.3
     dependencies:
+      '@hackbg/kabinet': 3.0.8
       '@hackbg/komandi': 4.2.5
-      '@hackbg/portali': 1.2.1
+      '@hackbg/portali': 1.2.3
 
   packages/mocknet:
     specifiers: {}
@@ -585,6 +587,12 @@ packages:
 
   /@hackbg/portali/1.2.1:
     resolution: {integrity: sha512-4vgjL+eE+I/bmKZzvyLqiW8PS5ziDAVOvHOKmVX266ukGN7BMWZW9UP57sKXdQkUJYU6tPRyv9tesP4LEiQxbw==}
+    dependencies:
+      exponential-backoff: 3.1.0
+    dev: false
+
+  /@hackbg/portali/1.2.3:
+    resolution: {integrity: sha512-47IEicl7ocvasBudx+/AA8wIb8XPeoyxY7Y+rNlimfGjyIYuE9lvONBVJZ0IVJL3BoNYRc5L4o4mvOPKJ+Tpmw==}
     dependencies:
       exponential-backoff: 3.1.0
     dev: false

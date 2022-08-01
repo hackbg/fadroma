@@ -72,7 +72,7 @@ export interface DeployConfig extends AgentBuilderConfig {
 export const getDeployConfig = envConfig(({Str, Bool}, cwd, env): DeployConfig => ({
   ...getBuilderConfig(cwd, env),
   ...getAgentConfig(cwd, env),
-  reupload: Bool('FADROMA_REUPLOAD', ()=>false)
+  reupload: Bool('FADROMA_REUPLOAD', ()=>false) as boolean
 }))
 /// # DEPLOY COMMANDS /////////////////////////////////////////////////////////////////////////////
 /** Command runner. Instantiate one in your script then use the
