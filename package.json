@@ -54,7 +54,7 @@
     "@hackbg/formati":            "^1.1.1",
     "@hackbg/ganesha":            "^2.2.5",
     "@hackbg/kabinet":            "^3.0.6",
-    "@hackbg/komandi":            "^4.1.2",
+    "@hackbg/komandi":            "^4.2.3",
     "@hackbg/konzola":            "^1.1.1",
     "dotenv": "^16.0.1"
   },

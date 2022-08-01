@@ -16,7 +16,7 @@
   "peerDependenciesMeta": {
     "@hackbg/ganesha": {
       "optional": true,
-      "description": "For fadroma-deploy command."
+      "description": "For fadroma-build command."
     }
   },
   "dependencies": {
@@ -25,8 +25,8 @@
     "@hackbg/formati": "^1.0.2",
     "@hackbg/kabinet": "^3.0.6",
     "@hackbg/konzola": "^1.1.1",
-    "@hackbg/komandi": "workspace:*",
-    "@hackbg/portali": "workspace:*",
+    "@hackbg/komandi": "^4.2.3",
+    "@hackbg/portali": "^1.2.1",
     "dotenv": "^16.0.1",
     "json-schema-to-typescript": "^10.1.5",
     "line-transform-stream": "^0.1.0",
