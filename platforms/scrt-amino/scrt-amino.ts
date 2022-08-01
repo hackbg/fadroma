@@ -161,13 +161,13 @@ export class ScrtAmino extends Scrt {
 
 /** Amino-specific configuration objects for the agent. */
 export interface ScrtAminoAgentOpts extends ScrtAgentOpts {
-  keyPair: { privkey: Uint8Array }
+  keyPair: { privkey: Uint8Array }|null
   pen:     SigningPen
 }
 
 export class ScrtAminoAgent extends ScrtAgent {
 
-  static async create (chain: Scrt, options: ScrtAminoAgentOpts) {
+  static async create (chain: ScrtAmino, options: ScrtAminoAgentOpts) {
     const { name = 'Anonymous', ...args } = options
     let   { mnemonic, keyPair } = options
     switch (true) {
@@ -180,14 +180,14 @@ export class ScrtAminoAgent extends ScrtAgent {
         break
       case !!keyPair:
         // if there's a keypair but no mnemonic, generate mnemonic from keyapir
-        mnemonic = privKeyToMnemonic(keyPair.privkey)
+        mnemonic = privKeyToMnemonic(keyPair!.privkey)
         break
       default:
         // if there is neither, generate a new keypair and corresponding mnemonic
         keyPair  = EnigmaUtils.GenerateNewKeyPair()
         mnemonic = privKeyToMnemonic(keyPair.privkey)
     }
-    return new ScrtAminoAgent(chain as Chain, {
+    return new ScrtAminoAgent(chain, {
       ...args,
       name,
       mnemonic,
@@ -205,7 +205,7 @@ export class ScrtAminoAgent extends ScrtAgent {
     this.mnemonic = options?.mnemonic
     this.pen      = options?.pen
     if (this.pen) {
-      this.pubkey   = encodeSecp256k1Pubkey(options?.pen.pubkey)
+      this.pubkey   = encodeSecp256k1Pubkey(options?.pen!.pubkey)
       this.address  = pubkeyToAddress(this.pubkey, 'secret')
       this.sign     = this.pen.sign.bind(this.pen)
       this.seed     = EnigmaUtils.GenerateNewSeed()
@@ -214,7 +214,7 @@ export class ScrtAminoAgent extends ScrtAgent {
 
   readonly keyPair
   readonly mnemonic
-  readonly pen: SigningPen
+  readonly pen?: SigningPen
   readonly sign
   readonly pubkey
   readonly seed
@@ -360,6 +360,7 @@ export class ScrtAminoAgent extends ScrtAgent {
 
 }
 
+//@ts-ignore
 ScrtAmino.Agent = ScrtAminoAgent
 
 class ScrtAminoBundle extends ScrtBundle {
