@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/scrt-amino",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type":    "module",
   "main":    "scrt-amino.ts",
+  "files": [ "scrt-amino.ts" ],
   "dependencies": {
     "@fadroma/scrt":        "workspace:^1",
 

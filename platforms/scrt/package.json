@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type":    "module",
   "main":    "scrt.ts",
+  "files": [ "scrt.ts" ],
   "dependencies": {
     "@fadroma/client": "workspace:^4.1",
 

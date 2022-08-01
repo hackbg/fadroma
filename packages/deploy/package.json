@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/deploy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type":    "module",
   "main":    "./deploy.ts",
+  "files":   [ "deploy.ts" ],
   "bin": { "fadroma-deploy": "deploy.cli.cjs" },
   "description": "Upload and instantiate smart contracts.",
   "scripts": {

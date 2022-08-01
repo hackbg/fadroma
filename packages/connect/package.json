@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/connect",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type":    "module",
   "main":    "./connect.ts",
+  "files":   [ "connect.ts" ],
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
     "ts:check":    "tsc --noEmit",

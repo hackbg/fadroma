@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/build",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type":    "module",
   "main":    "./build.ts",
+  "files":   [ "build.ts" ],
   "description": "Build smart contracts with or without container.",
   "bin": { "fadroma-build": "build.cli.cjs" },
   "scripts": {
