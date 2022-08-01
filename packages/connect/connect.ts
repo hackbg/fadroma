@@ -24,7 +24,7 @@ export interface ChainConfig {
   /** Name of chain to use. */
   chain:    string|null
 }
-export type Chains = Record<string, (config: unknown)=>Chain|Promise<Chain>>
+export type Chains = Record<string, (config: any)=>Chain|Promise<Chain>>
 /** Add a Chain and its Deployments to the Context. */
 export async function getChainContext (
   context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
@@ -38,7 +38,7 @@ export async function getChainContext (
     process.exit(1)
   }
   // Return chain and deployments handle
-  const chain = await context.chains[name](config)
+  const chain = await context.chains![name](config)
   return {
     ...context,
     config,
@@ -49,7 +49,7 @@ export async function getChainContext (
 }
 export const defineDevnetMode =
   (Chain: { new(...args:any[]): Chain }, version: DevnetKind) =>
-    async (config: unknown) => {
+    async <T> (config: T) => {
       const mode = ChainMode.Devnet
       const node = await getDevnet(version)
       const id   = node.chainId
