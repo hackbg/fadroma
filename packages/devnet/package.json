@@ -6,7 +6,7 @@
   "description": "Spawn local instance of blockchain for smart contract development.",
   "dependencies": {
     "@hackbg/portali": "^1.2",
-    "@hackbg/komandi": "^4"
+    "@hackbg/komandi": "^4.2.5"
   },
   "scripts": {
     "ts:check": "tsc --noEmit",

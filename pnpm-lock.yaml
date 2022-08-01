@@ -19,7 +19,7 @@ importers:
       '@hackbg/ganesha': ^2.2.5
       '@hackbg/izomorf': ^4.0.3
       '@hackbg/kabinet': ^3.0.6
-      '@hackbg/komandi': ^4.2.3
+      '@hackbg/komandi': ^4.2.5
       '@hackbg/konzola': ^1.1.1
       '@hackbg/runspec': ^2.3
       '@types/dockerode': ^3.3.9
@@ -53,7 +53,7 @@ importers:
       '@hackbg/formati': 1.1.2
       '@hackbg/ganesha': 2.2.5
       '@hackbg/kabinet': 3.0.7
-      '@hackbg/komandi': 4.2.3_dotenv@16.0.1
+      '@hackbg/komandi': 4.2.5_dotenv@16.0.1
       '@hackbg/konzola': 1.1.1
       dotenv: 16.0.1
     devDependencies:
@@ -121,13 +121,13 @@ importers:
       '@fadroma/mocknet': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-amino': workspace:*
-      '@hackbg/komandi': ^4.2.3
+      '@hackbg/komandi': ^4.2.5
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/mocknet': link:../mocknet
       '@fadroma/scrt': link:../../platforms/scrt
       '@fadroma/scrt-amino': link:../../platforms/scrt-amino
-      '@hackbg/komandi': 4.2.3
+      '@hackbg/komandi': 4.2.5
 
   packages/deploy:
     specifiers:
@@ -136,7 +136,7 @@ importers:
       '@hackbg/dokeres': ^4.0.2
       '@hackbg/formati': ^1.1.2
       '@hackbg/kabinet': ^3.0.6
-      '@hackbg/komandi': ^4.2.3
+      '@hackbg/komandi': ^4.2.5
       '@hackbg/konzola': ^1.1.1
       '@hackbg/portali': ^1
       align-yaml: ^0.1.8
@@ -154,7 +154,7 @@ importers:
       '@hackbg/dokeres': 4.1.2
       '@hackbg/formati': 1.1.2
       '@hackbg/kabinet': 3.0.7
-      '@hackbg/komandi': 4.2.3_dotenv@16.0.1
+      '@hackbg/komandi': 4.2.5_dotenv@16.0.1
       '@hackbg/konzola': 1.1.1
       '@hackbg/portali': 1.2.1
       align-yaml: 0.1.8
@@ -169,10 +169,10 @@ importers:
 
   packages/devnet:
     specifiers:
-      '@hackbg/komandi': ^4
+      '@hackbg/komandi': ^4.2.5
       '@hackbg/portali': ^1.2
     dependencies:
-      '@hackbg/komandi': 4.2.1
+      '@hackbg/komandi': 4.2.5
       '@hackbg/portali': 1.2.1
 
   packages/mocknet:
@@ -562,34 +562,8 @@ packages:
       toml: 3.0.0
     dev: false
 
-  /@hackbg/komandi/4.2.1:
-    resolution: {integrity: sha512-piVULhwv8SZBY58BNKZ+azF8O5QGFzrM6FFAEK5KhbXl0Cv7WbQWML76QEkQqg7+citq69yfIno3/pSf+xQlYA==}
-    peerDependencies:
-      dotenv: ^15.0.1
-    peerDependenciesMeta:
-      dotenv:
-        optional: true
-    dependencies:
-      '@hackbg/kabinet': 3.0.7
-      '@hackbg/konfizi': 1.0.1
-      '@hackbg/konzola': 1.1.1
-    dev: false
-
-  /@hackbg/komandi/4.2.3:
-    resolution: {integrity: sha512-eKlraKzztWCJV/o4PtGcQjkgzYz5KSQrDFnS6raorjpAxjknvWvfTBoutYu6+giIUQmSVu8Dh9nlPi49aZ38zw==}
-    peerDependencies:
-      dotenv: ^15.0.1||^16
-    peerDependenciesMeta:
-      dotenv:
-        optional: true
-    dependencies:
-      '@hackbg/kabinet': 3.0.7
-      '@hackbg/konfizi': 1.0.1
-      '@hackbg/konzola': 1.1.1
-    dev: false
-
-  /@hackbg/komandi/4.2.3_dotenv@16.0.1:
-    resolution: {integrity: sha512-eKlraKzztWCJV/o4PtGcQjkgzYz5KSQrDFnS6raorjpAxjknvWvfTBoutYu6+giIUQmSVu8Dh9nlPi49aZ38zw==}
+  /@hackbg/komandi/4.2.5:
+    resolution: {integrity: sha512-PhI21kigx47mdlF4+jrrcq4CNgaRrGCu1dGplaw0O8lr6wBjFoB3mMHKS4f8Xylr/DnJ1dz61DOwHAzTZLzkqg==}
     peerDependencies:
       dotenv: ^15.0.1||^16
     peerDependenciesMeta:
@@ -599,7 +573,6 @@ packages:
       '@hackbg/kabinet': 3.0.8
       '@hackbg/konfizi': 1.0.1
       '@hackbg/konzola': 1.1.1
-      dotenv: 16.0.1
     dev: false
 
   /@hackbg/komandi/4.2.5_dotenv@16.0.1:
