@@ -4,11 +4,13 @@ import {
   Agent,
   AgentCtor,
   AgentOpts,
-  Bundle, 
+  Bundle,
+  BundleCtor,
   Chain,
   ChainMode,
   CodeHash,
   CodeId,
+  ExecOpts,
   Instance, 
   Message,
   Template,
@@ -22,11 +24,11 @@ export class Mocknet extends Chain {
     super(id, { ...options, mode: ChainMode.Mocknet })
   }
   backend = new MocknetBackend(this.id)
-  async getAgent (options: AgentOpts): Promise<MocknetAgent> {
-    return new Mocknet.Agent(this, options)
+  async getAgent <A extends MocknetAgent> (options: AgentOpts): Promise<A> {
+    return new MocknetAgent(this, options) as A
   }
   async query <T, U> (contract: Instance, msg: T): Promise<U> {
-    return this.backend.query(contract, msg)
+    return this.backend.query(contract, msg as Message)
   }
   async getHash (_: any) {
     return Promise.resolve("SomeCodeHash")
@@ -66,11 +68,11 @@ class MocknetAgent extends Agent {
   async upload (blob: Uint8Array) {
     return await this.backend.upload(blob)
   }
-  async instantiate (template: Template, label: string, msg: Message, funds = []): Promise<Instance> {
-    return await this.backend.instantiate(this.address, template, label, msg, funds)
+  async instantiate <T> (template: Template, label: string, msg: T, send = []): Promise<Instance> {
+    return await this.backend.instantiate(this.address, template, label, msg as Message, send)
   }
-  async execute <R> (instance: Instance, msg: Message, opts): Promise<R> {
-    return await this.backend.execute(this.address, instance, msg, opts.funds, opts.memo, opts.fee)
+  async execute <R> (instance: Instance, msg: Message, opts: ExecOpts = {}): Promise<R> {
+    return await this.backend.execute(this.address, instance, msg, opts.send, opts.memo, opts.fee)
   }
   async query <R> (instance: Instance, msg: Message): Promise<R> {
     return await this.chain.query(instance, msg)
@@ -97,31 +99,36 @@ class MocknetAgent extends Agent {
     return Promise.resolve()
   }
   /** Message bundle that warns about unsupported messages. */
-  static Bundle = class MocknetBundle extends Bundle {
-    declare agent: MocknetAgent
-    async submit (memo = "") {
-      const results = []
-      for (const { init, exec } of this.msgs) {
-        if (init) {
-          const { sender, codeId, codeHash, label, msg, funds } = init
-          results.push(await this.agent.instantiate({ codeId, codeHash }, label, msg, funds))
-        } else if (exec) {
-          const { sender, contract, codeHash, msg, funds } = exec
-          results.push(await this.agent.execute({ address: contract, codeHash }, msg, { send: funds }))
-        } else {
-          console.warn('MocknetBundle#submit: found unknown message in bundle, ignoring')
-          results.push(null)
-        }
-      }
-      return results
-    }
-    save (name: string): Promise<unknown> {
-      throw new Error('MocknetBundle#save: not implemented')
-    }
-  }
+  static Bundle: BundleCtor<MocknetBundle>
 }
 
 Mocknet.Agent = MocknetAgent
+
+class MocknetBundle extends Bundle {
+  //declare agent: MocknetAgent
+  async submit (memo = "") {
+    const results = []
+    for (const { init, exec } of this.msgs) {
+      if (init) {
+        const { sender, codeId, codeHash, label, msg, funds } = init
+        const template = new Template(undefined, codeHash, undefined, String(codeId))
+        results.push(await this.agent.instantiate(template, label, msg, funds))
+      } else if (exec) {
+        const { sender, contract, codeHash, msg, funds } = exec
+        results.push(await this.agent.execute({ address: contract, codeHash }, msg, { send: funds }))
+      } else {
+        console.warn('MocknetBundle#submit: found unknown message in bundle, ignoring')
+        results.push(null)
+      }
+    }
+    return results
+  }
+  save (name: string): Promise<unknown> {
+    throw new Error('MocknetBundle#save: not implemented')
+  }
+}
+
+Mocknet.Agent.Bundle = MocknetBundle
 
 const decoder = new TextDecoder()
 const encoder = new TextEncoder()
