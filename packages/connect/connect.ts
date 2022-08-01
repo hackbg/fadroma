@@ -14,7 +14,7 @@ const console = Console('Fadroma Connect')
 
 /** Get chain settings from process runtime environment. */
 export const getChainConfig = envConfig(({ Str, Bool }, cwd): ChainConfig => ({
-  project: Str('FADROMA_PROJECT',  ()=>cwd),
+  project: Str('FADROMA_PROJECT',  ()=>cwd) as string,
   chain:   Str('FADROMA_CHAIN',    ()=>null),
 }))
 /** Chain settings. */
@@ -22,15 +22,12 @@ export interface ChainConfig {
   /** Path to root of project. */
   project:  string
   /** Name of chain to use. */
-  chain:    string
+  chain:    string|null
 }
 export type Chains = Record<string, (config: unknown)=>Chain|Promise<Chain>>
 /** Add a Chain and its Deployments to the Context. */
 export async function getChainContext (
-  context: CommandContext & Partial<{
-    config: ChainConfig,
-    chains: Chains
-  }>,
+  context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
 ): Promise<ChainContext> {
   context.chains ??= knownChains
   const config = { ...getChainConfig(), ...context.config ?? {} }

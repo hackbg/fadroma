@@ -1,11 +1,31 @@
+/*
+  Fadroma Legacy Platform Package for Secret Network with Amino API
+  Copyright (C) 2022 Hack.bg
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+**/
+
 import {
   Address,
   AgentCtor,
   AgentOpts,
+  Chain,
   ChainMode,
   CodeId,
   CodeHash,
   ExecOpts,
+  ICoin,
   IFee,
   Instance,
   Label,
@@ -15,7 +35,8 @@ import {
   ScrtAgentOpts,
   ScrtBundle,
   ScrtConfig,
-  Template
+  Template,
+  Uint128
 } from '@fadroma/scrt'
 
 import {
@@ -39,7 +60,7 @@ import { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
 
 import { backOff } from 'exponential-backoff'
 
-import { default as Axios } from 'axios'
+import { default as Axios, AxiosInstance } from 'axios'
 
 export const ScrtAminoErrors = {
   ZeroRecipients:     () => new Error('Tried to send to 0 recipients'),
@@ -166,7 +187,7 @@ export class ScrtAminoAgent extends ScrtAgent {
         keyPair  = EnigmaUtils.GenerateNewKeyPair()
         mnemonic = privKeyToMnemonic(keyPair.privkey)
     }
-    return new ScrtAminoAgent(chain, {
+    return new ScrtAminoAgent(chain as Chain, {
       ...args,
       name,
       mnemonic,
@@ -192,15 +213,10 @@ export class ScrtAminoAgent extends ScrtAgent {
   }
 
   readonly keyPair
-
   readonly mnemonic
-
   readonly pen: SigningPen
-
   readonly sign
-
   readonly pubkey
-
   readonly seed
 
   API = PatchedSigningCosmWasmClient_1_2
@@ -231,24 +247,24 @@ export class ScrtAminoAgent extends ScrtAgent {
   /** Get up-to-date balance of this address in specified denomination. */
   async getBalance (denomination: string = this.defaultDenom, address: Address = this.address) {
     const account = await this.api.getAccount(address)
-    const balance = account.balance || []
-    const inDenom = ({denom}) => denom === denomination
+    const balance = account!.balance || []
+    const inDenom = ({denom}:{denom: string}) => denom === denomination
     const balanceInDenom = balance.filter(inDenom)[0]
     if (!balanceInDenom) return '0'
     return balanceInDenom.amount
   }
 
-  async send (to, amounts, opts?): Promise<PostTxResult> {
+  async send (to: Address, amounts: any, opts?: any): Promise<PostTxResult> {
     return await this.api.sendTokens(to, amounts, opts?.memo)
   }
 
-  async sendMany (outputs, opts) {
+  async sendMany (outputs: any, opts?: any) {
     if (outputs.length < 0) throw ScrtAminoErrors.ZeroRecipients()
     const from_address = this.address
     //const {accountNumber, sequence} = await this.api.getNonce(from_address)
-    let accountNumber
-    let sequence
-    const msg = await Promise.all(outputs.map(async ([to_address, amount])=>{
+    let accountNumber: number
+    let sequence:      number
+    const msg = await Promise.all(outputs.map(async ([to_address, amount]:[Address, Uint128])=>{
       ({accountNumber, sequence} = await this.api.getNonce(from_address)) // increment nonce?
       if (typeof amount === 'number') amount = String(amount)
       const value = {from_address, to_address, amount}
@@ -256,35 +272,37 @@ export class ScrtAminoAgent extends ScrtAgent {
     }))
     const memo      = opts?.memo
     const fee       = opts?.fee || Scrt.gas(500000 * outputs.length)
-    const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber, sequence)
+    const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber!, sequence!)
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async upload (data: Uint8Array): Template {
+  async upload (data: Uint8Array): Promise<Template> {
     if (!(data instanceof Uint8Array)) throw ScrtAminoErrors.UploadBinary()
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
     if (codeId === "-1") codeId = uploadResult.logs[0].events[0].attributes[3].value
     const codeHash = uploadResult.originalChecksum
-    return {
-      uploadTx: uploadResult.transactionHash,
-      chainId:  this.chain.id,
+    return new Template(
+      undefined, // TODO pass Artifact as 2nd arg to method - or unify Source/Artifact/Template outright
+      codeHash,
+      this.chain.id,
       codeId,
-      codeHash
-    }
+      uploadResult.transactionHash
+    )
   }
 
-  async instantiate (template, label, msg, funds = []) {
+  async instantiate <T> (template: Template, label: string, msg: T, funds = []) {
     if (!template.codeHash) throw ScrtAminoErrors.TemplateNoCodeHash()
     const { codeId, codeHash } = template
     const { api } = this
     //@ts-ignore
     const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, funds)
+    const address = logs![0].events[0].attributes[4].value
     return {
-      chainId:  this.chain.id,
-      codeId:   String(codeId),
-      codeHash: codeHash,
-      address:  logs[0].events[0].attributes[4].value,
+      chainId: this.chain.id,
+      codeId:  String(codeId),
+      codeHash,
+      address,
       transactionHash,
     }
   }
@@ -316,8 +334,8 @@ export class ScrtAminoAgent extends ScrtAgent {
   async execute (
     { address, codeHash }: Instance, msg: Message, opts: ExecOpts = {}
   ): Promise<TxsResponse> {
-    const { memo, amount, fee } = opts
-    return await this.api.execute(address, msg, memo, amount, fee, codeHash)
+    const { memo, send, fee } = opts
+    return await this.api.execute(address, msg, memo, send, fee, codeHash)
   }
 
   async encrypt (codeHash: CodeHash, msg: Message) {
@@ -345,19 +363,14 @@ export class ScrtAminoAgent extends ScrtAgent {
 ScrtAmino.Agent = ScrtAminoAgent
 
 class ScrtAminoBundle extends ScrtBundle {
-
   declare agent: ScrtAminoAgent
-
   static bundleCounter = 0
-
   get nonce () {
-    return getNonce(this.chain, this.agent.address)
+    return getNonce(this.chain.url, this.agent.address)
   }
-
-  async encrypt (codeHash, msg) {
+  async encrypt (codeHash: CodeHash, msg: any) {
     return this.agent.encrypt(codeHash, msg)
   }
-
   async submit (memo = "") {
     this.assertCanSubmit()
     const msgs   = await this.buildForSubmit()
@@ -372,7 +385,6 @@ class ScrtAminoBundle extends ScrtBundle {
       await this.handleSubmitError(err)
     }
   }
-
   /** Format the messages for API v1 like secretjs and encrypt them. */
   async buildForSubmit () {
     const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
@@ -388,30 +400,30 @@ class ScrtAminoBundle extends ScrtBundle {
     }))
     return encrypted
   }
-
-  collectSubmitResults (msgs, txResult) {
-    const results = []
+  collectSubmitResults (msgs: any[], txResult: any): any[] {
+    const results: any[] = []
     for (const i in msgs) {
-      results[i] = {
+      const result: Record<string, unknown> = {
         sender:  this.address,
         tx:      txResult.transactionHash,
         type:    msgs[i].type,
         chainId: this.chain.id
       }
       if (msgs[i].type === 'wasm/MsgInstantiateContract') {
-        const attrs = mergeAttrs(txResult.logs[i].events[0].attributes)
-        results[i].label   = msgs[i].value.label,
-        results[i].address = attrs.contract_address
-        results[i].codeId  = attrs.code_id
+        type Attrs = { contract_address: Address, code_id: unknown }
+        const attrs = mergeAttrs(txResult.logs[i].events[0].attributes) as Attrs
+        result.label   = msgs[i].value.label,
+        result.address = attrs.contract_address
+        result.codeId  = attrs.code_id
       }
       if (msgs[i].type === 'wasm/MsgExecuteContract') {
-        results[i].address = msgs[i].contract
+        result.address = msgs[i].contract
       }
+      results[Number(i)] = result
     }
     return results
   }
-
-  async handleSubmitError (err) {
+  async handleSubmitError (err: Error) {
     try {
       console.error('Submitting bundle failed:', err.message)
       console.error('Trying to decrypt...')
@@ -433,12 +445,11 @@ class ScrtAminoBundle extends ScrtBundle {
     }
     throw err
   }
-
   /** Format the messages for API v1beta1 like secretcli
     * and generate a multisig-ready unsigned transaction bundle;
     * don't execute it, but save it in `receipts/$CHAIN_ID/transactions`
     * and output a signing command for it to the console. */
-  async save (name) {
+  async save (name: string) {
     // number of bundle, just for identification in console
     const N = ++ScrtAminoBundle.bundleCounter
     name = name || `TX.${N}.${+new Date()}`
@@ -458,8 +469,7 @@ class ScrtAminoBundle extends ScrtBundle {
       null, 2
     ))
   }
-
-  async buildForSave (msgs) {
+  async buildForSave (msgs: { init: any, exec: any }[]) {
     const encrypted = await Promise.all(msgs.map(({init, exec})=>{
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
@@ -473,8 +483,7 @@ class ScrtAminoBundle extends ScrtBundle {
     }))
     return encrypted
   }
-
-  finalizeForSave (messages, memo) {
+  finalizeForSave (messages: unknown[], memo: string) {
     const fee = Scrt.gas(10000000)
     const finalUnsignedTx = {
       body: {
@@ -492,39 +501,38 @@ class ScrtAminoBundle extends ScrtBundle {
     }
     return finalUnsignedTx
   }
-
 }
 
-const init1 = (sender, code_id, label, init_msg, init_funds) => ({
+const init1 = (sender: Address, code_id: any, label: any, init_msg: any, init_funds: any) => ({
   "type": 'wasm/MsgInstantiateContract',
   value: { sender, code_id, label, init_msg, init_funds }
 })
 
-const init2 = (sender, code_id, label, init_msg, init_funds) => ({
+const init2 = (sender: Address, code_id: any, label: any, init_msg: any, init_funds: any) => ({
   "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
   callback_code_hash: "", callback_sig: null,
   sender, code_id, label, init_msg, init_funds,
 })
 
-const exec1 = (sender, contract, msg, sent_funds) => ({
+const exec1 = (sender: Address, contract: Address, msg: any, sent_funds: any) => ({
   "type": 'wasm/MsgExecuteContract',
   value: { sender, contract, msg, sent_funds }
 })
 
-const exec2 = (sender, contract, msg, sent_funds) => ({
+const exec2 = (sender: Address, contract: Address, msg: any, sent_funds: any) => ({
   "@type": '/secret.compute.v1beta1.MsgExecuteContract',
   callback_code_hash: "", callback_sig: null,
   sender, contract, msg, sent_funds,
 })
 
-export async function getNonce (url, address) {
+export async function getNonce (url: string, address: Address) {
   const sign = () => {throw new Error('unreachable')}
   const client = new SigningCosmWasmClient(url, address, sign)
   const { accountNumber, sequence } = await client.getNonce()
   return { accountNumber, sequence }
 }
 
-export function mergeAttrs (attrs) {
+export function mergeAttrs (attrs: {key:string, value:string}[]) {
   return attrs.reduce((obj,{key,value})=>Object.assign(obj,{[key]:value}),{})
 }
 
@@ -533,8 +541,7 @@ export function mergeAttrs (attrs) {
 export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   _queryUrl = ''
-
-  _queryClient = null
+  _queryClient: AxiosInstance|null = null
   get queryClient () {
     if (this._queryClient) return this._queryClient
     return this._queryClient = Axios.create({
@@ -543,8 +550,9 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
   }
 
   async get (path: string|URL) {
+    if (path instanceof URL) path = path.toString()
     const client = await this.queryClient
-    const { data } = await client.get(path).catch(parseAxiosError)
+    const { data } = await client.get(path).catch(parseAxiosError) as { data: any }
     if (data === null) {
       throw new Error("Received null response from server")
     }
@@ -571,7 +579,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     )).transactionHash)
   }
 
-  async waitForNextBlock (sent) {
+  async waitForNextBlock (sent: number) {
     while (true) {
       await new Promise(ok=>setTimeout(ok, this.blockQueryInterval))
       const now = (await this.getBlock()).header.height
@@ -579,7 +587,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     }
   }
 
-  async waitForNextNonce (sent) {
+  async waitForNextNonce (sent: number) {
     // TODO
     //while (true) {
       //await new Promise(ok=>setTimeout(ok, this.blockQueryInterval))
@@ -590,11 +598,9 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
   // @ts-ignore
   async postTx (tx) {
-
     //console.trace('postTx', tx.msg)
-
-    const info = (...args) => console.info('[@fadroma/scrt/postTx]', ...args)
-    const warn = (...args) => console.warn('[@fadroma/scrt/postTx]', ...args)
+    const info = (...args:any[]) => console.info('[@fadroma/scrt-amino][postTx]', ...args)
+    const warn = (...args:any[]) => console.warn('[@fadroma/scrt-amino][postTx]', ...args)
 
     // 0. Validate that we're not sending an empty transaction
     if (!tx || !tx.msg || !tx.msg.length || tx.msg.length < 1) {
@@ -660,56 +666,43 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
     }
 
     throw new Error(`Submitting TX ${id} failed after ${this.submitRetries} retries.`)
-
   }
 
-  async getTxResult (id) {
-
-    const info = (...args) => console.info('[@fadroma/scrt/getTxResult]', ...args)
-    const warn = (...args) => console.warn('[@fadroma/scrt/getTxResult]', ...args)
+  async getTxResult (id: string) {
+    const info = (...args: any[]) => console.info('[@fadroma/scrt-amino][getTxResult]', ...args)
+    const warn = (...args: any[]) => console.warn('[@fadroma/scrt-amino][getTxResult]', ...args)
 
     // 1. Loop until we run out of retires or we successfully get a TX result
     let resultRetries = this.resultRetries
-    while (resultRetries--) {
-
-      try {
-
-        // 2. Try getting the transaction by id
-        info(`[@fadroma/scrt] Requesting result of TX ${id}`)
-        const result = await this.restClient.txById(id)
-        const {raw_log, logs = []} = result
-
-        // 3. If the raw log contains a known failure message, throw error
-        if (!this.shouldRetry(raw_log, true)) {
-          warn(`[@fadroma/scrt] TX ${id} failed`)
-          throw new Error(raw_log)
-        }
-
-        // 4. Set tx hash and logs on the tx result and return it
-        Object.assign(result, { transactionHash: id, logs })
-        return result
-
-      } catch (e) {
-
-        if (this.shouldRetry(e.message)) {
-          warn(`Getting result of TX ${id} failed (${e.message}): ${resultRetries} retries left...`)
-          await new Promise(ok=>setTimeout(ok, this.resultRetryDelay))
-        } else {
-          warn(`Getting result of TX ${id} failed (${e.message}): not retrying`)
-          throw e
-        }
-
+    while (resultRetries--) try {
+      // 2. Try getting the transaction by id
+      info(`[@fadroma/scrt] Requesting result of TX ${id}`)
+      const result = await this.restClient.txById(id)
+      const {raw_log, logs = []} = result
+      // 3. If the raw log contains a known failure message, throw error
+      if (!this.shouldRetry(raw_log, true)) {
+        warn(`[@fadroma/scrt] TX ${id} failed`)
+        throw new Error(raw_log)
       }
-
+      // 4. Set tx hash and logs on the tx result and return it
+      Object.assign(result, { transactionHash: id, logs })
+      return result
+    } catch (e) {
+      if (this.shouldRetry(e.message)) {
+        warn(`Getting result of TX ${id} failed (${e.message}): ${resultRetries} retries left...`)
+        await new Promise(ok=>setTimeout(ok, this.resultRetryDelay))
+      } else {
+        warn(`Getting result of TX ${id} failed (${e.message}): not retrying`)
+        throw e
+      }
     }
 
     throw new Error(`Getting result of TX ${id} failed: ran out of retries.`)
-
   }
 
-  shouldRetry (message, isActuallyOk = false) {
+  shouldRetry (message: string, isActuallyOk = false) {
 
-    const warn = (...args) => console.warn('[@fadroma/scrt/shouldRetry]', ...args)
+    const warn = (...args: any[]) => console.warn('[@fadroma/scrt-amino][shouldRetry]', ...args)
 
     if (message.includes('does not support Amino serialization')) {
       warn('Protocol mismatch, not retrying')
@@ -751,7 +744,9 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
 }
 
-function parseAxiosError (err) {
+function parseAxiosError (
+  err: { response?: { status: string|number, data: { error?: string } } }
+) {
   // use the error message sent from server, not default 500 msg
   if (err.response?.data) {
     let errorText

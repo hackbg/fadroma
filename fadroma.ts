@@ -109,7 +109,8 @@ import {
   getChainConfig
 } from '@fadroma/connect'
 
-export * from '@fadroma/schema'
+//export * from '@fadroma/schema'
+
 export * from '@fadroma/client'
 export * from '@fadroma/tokens'
 
