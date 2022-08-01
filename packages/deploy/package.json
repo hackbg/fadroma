@@ -24,11 +24,10 @@
     "@fadroma/connect": "workspace:*",
     "@hackbg/dokeres": "^4.0.2",
     "@hackbg/formati": "^1.1.2",
-    "@hackbg/kabinet": "^3.0.6",
+    "@hackbg/kabinet": "^3.1.0",
     "@hackbg/konzola": "^1.1.1",
     "@hackbg/komandi": "^4.2.5",
-    "@hackbg/portali": "^1",
-    "align-yaml": "^0.1.8",
+    "@hackbg/portali": "^1.2.3",
     "dotenv":     "^16.0.1",
     "js-yaml":    "^4.1.0"
   }
