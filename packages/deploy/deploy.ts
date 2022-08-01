@@ -86,11 +86,13 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
       getChainContext,
       ConnectLogger(console).chainStatus,
       getAgentContext,
+      //@ts-ignore
       getDeployContext,
       ...before
     ], after)
     this.command('list',    'print a list of all deployments', DeployCommands.list)
     this.command('select',  'select a new active deployment',  DeployCommands.select)
+    //@ts-ignore
     this.command('new',     'create a new empty deployment',   DeployCommands.create)
     this.command('status',  'show the current deployment',     DeployCommands.status)
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
@@ -105,8 +107,10 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
     const parsed = super.parse(args)
     if (!parsed) return null
     if (resume) {
-      parsed[1].steps = parsed[1].steps.map(
-        x=>x===DeployCommands.create?DeployCommands.get:x)
+      // replace create with get
+      const toResume = (x: Step<any, any>): Step<any, any> =>
+        (x === DeployCommands.create) ? DeployCommands.get : x
+      parsed[1].steps = parsed[1].steps.map(toResume)
     }
     return parsed
   }
@@ -216,7 +220,7 @@ export const DeployLogger = ({ info, warn }: Console) => {
       let contracts: string|number = Object.values(receipts).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
       const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
-      info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path).shortPath), contracts)
+      info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
       const count = Object.values(receipts).length
       if (count > 0) {
         for (const name of Object.keys(receipts)) {
@@ -494,8 +498,8 @@ export abstract class Uploader {
 export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
-    console.info('Upload   ', bold($(artifact.url).shortPath))
-    const data     = $(artifact.url).as(BinaryFile).load()
+    console.info('Upload   ', bold($(artifact.url!).shortPath))
+    const data     = $(artifact.url!).as(BinaryFile).load()
     const template = await this.agent.upload(data)
     await this.agent.nextBlock
     return template
@@ -511,7 +515,7 @@ export class FSUploader extends Uploader {
       const artifact = artifacts[i]
       let template
       if (artifact) {
-        const path = $(artifact.url)
+        const path = $(artifact.url!)
         const data = path.as(BinaryFile).load()
         //console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
         template = await this.agent.upload(data)
@@ -531,7 +535,7 @@ export class FSUploader extends Uploader {
     if (template.codeHash !== artifact.codeHash) {
       console.warn(
         `Code hash mismatch from upload in TX ${template.uploadTx}:\n`+
-        `   Expected ${artifact.codeHash} (from ${$(artifact.url).shortPath})\n`+
+        `   Expected ${artifact.codeHash} (from ${$(artifact.url!).shortPath})\n`+
         `   Got      ${template.codeHash} (from codeId#${template.codeId})`
       )
     }
@@ -555,7 +559,7 @@ export class CachingFSUploader extends FSUploader {
     return receiptPath
   }
   protected getUploadReceiptName (artifact: Artifact): string {
-    return `${$(artifact.url).name}.json`
+    return `${$(artifact.url!).name}.json`
   }
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (artifact: Artifact): Promise<Template> {
@@ -565,7 +569,7 @@ export class CachingFSUploader extends FSUploader {
       console.info('Reuse    ', bold(this.cache.at(name).shortPath))
       return receipt.toTemplate()
     }
-    const data = $(artifact.url).as(BinaryFile).load()
+    const data = $(artifact.url!).as(BinaryFile).load()
     const template = await this.agent.upload(data)
     receipt.save(template)
     return template
@@ -576,7 +580,7 @@ export class CachingFSUploader extends FSUploader {
     for (const i in artifacts) {
       const artifact = artifacts[i]
       this.ensureCodeHash(artifact)
-      const blobName     = $(artifact.url).name
+      const blobName     = $(artifact.url!).name
       const receiptPath  = this.getUploadReceiptPath(artifact)
       const relativePath = $(receiptPath).shortPath
       if (!$(receiptPath).exists()) {
@@ -627,10 +631,10 @@ export class CachingFSUploader extends FSUploader {
     if (!artifact.codeHash) {
       console.warn(
         'No code hash in artifact',
-        bold($(artifact.url).shortPath)
+        bold($(artifact.url!).shortPath)
       )
       try {
-        const codeHash = codeHashForPath($(artifact.url).path)
+        const codeHash = codeHashForPath($(artifact.url!).path)
         Object.assign(artifact, { codeHash })
         console.warn('Computed code hash:', bold(artifact.codeHash!))
       } catch (e) {
@@ -663,7 +667,7 @@ export class ContractSlot<C extends Client> {
     $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
     context: DeployContext
   ) {
-    if (!value) throw ConstractSlot.E00
+    if (!value) throw ContractSlot.E00
     if (typeof value === 'string') {
       this.name = value
       if (!context.deployment) throw ContractSlot.E01(value)
@@ -982,7 +986,9 @@ export class Deployment {
     let output = ''
     for (let [name, data] of Object.entries(this.receipts)) {
       output += '---\n'
-      const obj = { name, ...data }
+      data.name ??= name
+      const obj = { ...data }
+      // convert Template to serializable plain object
       if (obj.template instanceof Template) {
         obj.template = JSON.parse(JSON.stringify(new Template(
           obj.template.artifact,
