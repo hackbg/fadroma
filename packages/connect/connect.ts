@@ -29,6 +29,7 @@ export type Chains = Record<string, (config: any)=>Chain|Promise<Chain>>
 export async function getChainContext (
   context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
 ): Promise<ChainContext> {
+  //@ts-ignore
   context.chains ??= knownChains
   const config = { ...getChainConfig(), ...context.config ?? {} }
   const name = config.chain
@@ -117,7 +118,7 @@ export async function getAgentContext (context: ChainContext): Promise<AgentCont
     agentOpts.name = config.agentName
   } else {
     // for scrt-based chains, use mnemonic from config
-    agentOpts.mnemonic = config.agentMnemonic
+    agentOpts.mnemonic = config.agentMnemonic!
   }
   const agent = await context.chain.getAgent(agentOpts)
   return {

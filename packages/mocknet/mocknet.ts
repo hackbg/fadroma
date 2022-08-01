@@ -24,6 +24,7 @@ export class Mocknet extends Chain {
     super(id, { ...options, mode: ChainMode.Mocknet })
   }
   backend = new MocknetBackend(this.id)
+  //@ts-ignore
   async getAgent <A extends MocknetAgent> (options: AgentOpts): Promise<A> {
     return new MocknetAgent(this, options) as A
   }
@@ -47,17 +48,20 @@ export class Mocknet extends Chain {
   }
 
   /** Agent instance calling its Chain's Mocknet backend. */
+  //@ts-ignore
   static Agent: AgentCtor<MocknetAgent>
+  //@ts-ignore
   Agent: AgentCtor<MocknetAgent> = Mocknet.Agent
 }
 
+//@ts-ignore
 class MocknetAgent extends Agent {
   get defaultDenom () { return this.chain.defaultDenom }
   static async create (chain: Mocknet, options: AgentOpts) {
     return new MocknetAgent(chain, options)
   }
   constructor (readonly chain: Mocknet, readonly options: AgentOpts) {
-    super(chain, options)
+    super(chain as Chain, options)
   }
   name:    string  = 'MocknetAgent'
   address: Address = randomBech32(MOCKNET_ADDRESS_PREFIX)
@@ -102,6 +106,7 @@ class MocknetAgent extends Agent {
   static Bundle: BundleCtor<MocknetBundle>
 }
 
+//@ts-ignore
 Mocknet.Agent = MocknetAgent
 
 class MocknetBundle extends Bundle {
@@ -112,6 +117,7 @@ class MocknetBundle extends Bundle {
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         const template = new Template(undefined, codeHash, undefined, String(codeId))
+        //@ts-ignore
         results.push(await this.agent.instantiate(template, label, msg, funds))
       } else if (exec) {
         const { sender, contract, codeHash, msg, funds } = exec
