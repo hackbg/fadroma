@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/deploy",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "type":    "module",
   "main":    "./deploy.ts",
   "files":   [ "deploy.ts" ],
@@ -13,7 +13,7 @@
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5",
-    "@fadroma/build":  "workspace:^1.0.2"
+    "@fadroma/build":  "workspace:^1.0.3"
   },
   "peerDependenciesMeta": {
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-deploy command." },
