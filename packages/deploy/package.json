@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/deploy",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type":    "module",
   "main":    "./deploy.ts",
   "files":   [ "deploy.ts" ],
@@ -12,13 +12,12 @@
     "release:wet": "pnpm ts:check && izomorf wet --access=public"
   },
   "peerDependencies": {
-    "@hackbg/ganesha": "^2.2.5"
+    "@hackbg/ganesha": "^2.2.5",
+    "@fadroma/build":  "workspace:^1.0.2"
   },
   "peerDependenciesMeta": {
-    "@hackbg/ganesha": {
-      "optional": true,
-      "description": "For fadroma-deploy command."
-    }
+    "@hackbg/ganesha": { "optional": true, "description": "For fadroma-deploy command." },
+    "@fadroma/build":  { "optional": true, "description": "For building from deployment scripts." }
   },
   "dependencies": {
     "@fadroma/client":  "workspace:^4.1.1",
