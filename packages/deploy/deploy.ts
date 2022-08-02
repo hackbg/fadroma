@@ -1013,9 +1013,7 @@ export type  Name      = string
 
 if (
   //@ts-ignore
-  fileURLToPath(import.meta.url)          === process.argv[1] ||
-  //@ts-ignore
-  dirname(fileURLToPath(import.meta.url)) === process.argv[1] // hacky
+  dirname(fileURLToPath(import.meta.url)) === process.argv[1]
 ) {
   if (process.argv.length > 2) {
     console.info('Using deploy script:', bold(process.argv[2]))
