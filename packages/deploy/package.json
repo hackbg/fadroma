@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/deploy",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "type":    "module",
   "main":    "./deploy.ts",
   "files":   [ "deploy.ts" ],
@@ -24,7 +24,7 @@
     "@fadroma/connect": "workspace:^1.0.4",
     "@hackbg/dokeres": "^4.0.2",
     "@hackbg/formati": "^1.1.2",
-    "@hackbg/kabinet": "^3.1.0",
+    "@hackbg/kabinet": "^3.1.1",
     "@hackbg/konzola": "^1.1.1",
     "@hackbg/komandi": "^4.2.6",
     "@hackbg/portali": "^1.2.3",
