@@ -315,7 +315,7 @@ export function getDeployContext (
     console.warn('No active deployment. Most commands will fail.')
     console.warn('You can create a deployment using `fadroma-deploy new`')
     console.warn('or select a deployment using `fadroma-deploy select`')
-    console.warn('among the ones listed by `fadroma-deploy select`')
+    console.warn('among the ones listed by `fadroma-deploy list`')
   }
   // Make sure we have an operating identitiy
   context.creator ??= agent
