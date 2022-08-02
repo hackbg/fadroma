@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/deploy",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "type":    "module",
   "main":    "./deploy.ts",
   "files":   [ "deploy.ts" ],
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@fadroma/client":  "workspace:^4.1.1",
-    "@fadroma/connect": "workspace:^1.0.2",
+    "@fadroma/connect": "workspace:^1.0.3",
     "@hackbg/dokeres": "^4.0.2",
     "@hackbg/formati": "^1.1.2",
     "@hackbg/kabinet": "^3.1.0",
