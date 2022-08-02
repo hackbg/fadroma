@@ -12,7 +12,7 @@ try { ganesha = require.resolve('@hackbg/ganesha') } catch (e) {
 }
 
 let deploy
-try { deploy = require.resolve('@fadroma/deploy/deploy.ts') } catch (e) {
+try { deploy = require('path').dirname(require.resolve('@fadroma/deploy')) } catch (e) {
   console.error(e)
   console.error('Could not find @fadroma/deploy. CLI not available ;d')
   process.exit(1)
