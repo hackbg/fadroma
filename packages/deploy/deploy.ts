@@ -1011,8 +1011,12 @@ const codeHashForPath  = (location: string) => codeHashForBlob(readFileSync(loca
 export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 export type  Name      = string
 
-//@ts-ignore
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
+if (
+  //@ts-ignore
+  fileURLToPath(import.meta.url)          === process.argv[1] ||
+  //@ts-ignore
+  dirname(fileURLToPath(import.meta.url)) === process.argv[1] // hacky
+) {
   if (process.argv.length > 2) {
     console.info('Using deploy script:', bold(process.argv[2]))
     //@ts-ignore
