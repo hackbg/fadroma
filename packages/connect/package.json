@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "connect.ts" ],
@@ -16,5 +16,11 @@
     "@fadroma/scrt-amino": "workspace:*",
     "@fadroma/mocknet":    "workspace:*",
     "@hackbg/komandi":     "^4.2.5"
+  },
+  "peerDependencies": {
+    "@fadroma/devnet":     "workspace:^1.0.1"
+  },
+  "peerDependenciesMeta": {
+    "@fadroma/devnet":   { "optional": true, "description": "For connecting to local devnet." }
   }
 }
