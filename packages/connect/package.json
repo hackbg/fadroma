@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "connect.ts" ],
@@ -18,7 +18,7 @@
     "@hackbg/komandi":     "^4.2.5"
   },
   "peerDependencies": {
-    "@fadroma/devnet":     "workspace:^1.0.2"
+    "@fadroma/devnet":     "workspace:^1.0.3"
   },
   "peerDependenciesMeta": {
     "@fadroma/devnet":   { "optional": true, "description": "For connecting to local devnet." }
