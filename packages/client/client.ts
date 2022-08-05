@@ -665,18 +665,23 @@ export abstract class Bundle implements Executor {
   async wrap (
     cb:   BundleCallback<this>,
     opts: ExecOpts = { memo: "" }
+    save: boolean  = false
   ): Promise<any[]> {
     await cb(this)
-    return this.run(opts.memo)
+    return this.run(opts.memo, save)
   }
-  run (memo = ""): Promise<any> {
+  run (memo = "", save: boolean = false): Promise<any> {
     if (this.depth > 0) {
       console.warn('Unnesting bundle. Depth:', --this.depth)
       this.depth--
       //@ts-ignore
       return null
     } else {
-      return this.submit(memo)
+      if (save) {
+        return this.save(memo)
+      } else {
+        return this.submit(memo)
+      }
     }
   }
   assertCanSubmit () {
