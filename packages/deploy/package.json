@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/deploy",
-  "version": "1.0.14",
+  "version": "1.1.0",
   "type":    "module",
   "main":    "./deploy.ts",
   "files":   [ "deploy.ts" ],

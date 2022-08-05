@@ -65,12 +65,15 @@ type AgentBuilderConfig = (AgentConfig & BuilderConfig)
 export interface DeployConfig extends AgentBuilderConfig {
   /** Whether to ignore upload receipts and upload contracts anew. */
   reupload?: boolean
+  /** Whether to generate unsigned transactions for manual multisig signing. */
+  multisig?: boolean
 }
 /** Get deploy settings from process runtime environment. */
 export const getDeployConfig = envConfig(({Str, Bool}, cwd, env): DeployConfig => ({
   ...getBuilderConfig(cwd, env),
   ...getAgentConfig(cwd, env),
   reupload: Bool('FADROMA_REUPLOAD', ()=>false) as boolean
+  multisig: Bool('FADROMA_MULTISIG', ()=>false) as boolean
 }))
 /// # DEPLOY COMMANDS /////////////////////////////////////////////////////////////////////////////
 /** Command runner. Instantiate one in your script then use the
