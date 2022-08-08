@@ -4,15 +4,15 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/build': workspace:^1.0.5
-      '@fadroma/client': workspace:^4.2.0
-      '@fadroma/connect': workspace:^1.0.4
-      '@fadroma/deploy': workspace:^1.1.0
-      '@fadroma/devnet': workspace:^1.0.3
+      '@fadroma/build': workspace:^1.0.7
+      '@fadroma/client': workspace:^4.2.1
+      '@fadroma/connect': workspace:^1.0.5
+      '@fadroma/deploy': workspace:^1.1.2
+      '@fadroma/devnet': workspace:^1.0.4
       '@fadroma/mocknet': workspace:^1.0.1
       '@fadroma/scrt': workspace:^1.0.4
-      '@fadroma/scrt-amino': workspace:^1.0.2
-      '@fadroma/tokens': workspace:^3.0.2
+      '@fadroma/scrt-amino': workspace:^1.0.3
+      '@fadroma/tokens': workspace:^3.0.4
       '@hackbg/dokeres': ^4.1.2
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/formati': ^2.0.1
@@ -20,7 +20,7 @@ importers:
       '@hackbg/izomorf': ^4.1.0
       '@hackbg/kabinet': ^3.1.1
       '@hackbg/komandi': ^4.2.7
-      '@hackbg/konzola': ^1.1.1
+      '@hackbg/konzola': ^1.1.2
       '@hackbg/runspec': ^2.3.1
       '@types/dockerode': ^3.3.9
       '@types/js-yaml': ^4.0.5
@@ -55,7 +55,7 @@ importers:
       '@hackbg/ganesha': 2.3.0
       '@hackbg/kabinet': 3.1.1
       '@hackbg/komandi': 4.2.7_dotenv@16.0.1
-      '@hackbg/konzola': 1.1.1
+      '@hackbg/konzola': 1.1.2
       dotenv: 16.0.1
     devDependencies:
       '@hackbg/ensuite': 1.0.2
@@ -99,7 +99,7 @@ importers:
       '@hackbg/formati': ^1.1.2
       '@hackbg/kabinet': ^3.0.8
       '@hackbg/komandi': ^4.2.7
-      '@hackbg/konzola': ^1.1.1
+      '@hackbg/konzola': ^1.1.2
       '@hackbg/portali': ^1.2.1
       dotenv: ^16.0.1
       simple-git: ^3.7.1
@@ -109,7 +109,7 @@ importers:
       '@hackbg/formati': 1.1.2
       '@hackbg/kabinet': 3.0.8
       '@hackbg/komandi': 4.2.7_dotenv@16.0.1
-      '@hackbg/konzola': 1.1.1
+      '@hackbg/konzola': 1.1.2
       '@hackbg/portali': 1.2.1
       dotenv: 16.0.1
       simple-git: 3.10.0
@@ -140,7 +140,7 @@ importers:
       '@hackbg/kabinet': ^3.1.1
       '@hackbg/komandi': ^4.2.7
       '@hackbg/konfizi': ^1.0.4
-      '@hackbg/konzola': ^1.1.1
+      '@hackbg/konzola': ^1.1.2
       '@hackbg/portali': ^1.2.3
       dotenv: ^16.0.1
       js-yaml: ^4.1.0
@@ -152,7 +152,7 @@ importers:
       '@hackbg/kabinet': 3.1.1
       '@hackbg/komandi': 4.2.7_dotenv@16.0.1
       '@hackbg/konfizi': 1.0.4
-      '@hackbg/konzola': 1.1.1
+      '@hackbg/konzola': 1.1.2
       '@hackbg/portali': 1.2.3
       dotenv: 16.0.1
       js-yaml: 4.1.0
@@ -177,12 +177,12 @@ importers:
       '@fadroma/client': workspace:^4
       '@fadroma/scrt': workspace:^1
       '@hackbg/formati': ^2.0.1
-      '@hackbg/konzola': ^1.1
+      '@hackbg/konzola': ^1.1.2
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/scrt': link:../../platforms/scrt
       '@hackbg/formati': 2.0.1
-      '@hackbg/konzola': 1.1.1
+      '@hackbg/konzola': 1.1.2
 
   platforms/scrt:
     specifiers:
@@ -494,7 +494,7 @@ packages:
   /@hackbg/dokeres/4.1.2:
     resolution: {integrity: sha512-u6/5my80Qv3MBcl6OMQOSfZXVxQL3Xa/+fy8rFpBbNklDKh4CfqFM7pucx2UV8bgdqA+KMREuDsVhCGCxKeypg==}
     dependencies:
-      '@hackbg/konzola': 1.1.1
+      '@hackbg/konzola': 1.1.2
       colors: 1.4.0
       dockerode: 3.3.3
     transitivePeerDependencies:
@@ -572,7 +572,7 @@ packages:
   /@hackbg/kabinet/3.1.1:
     resolution: {integrity: sha512-/GeC7YnAkplNNrHAzqbJtaKhhg0lnelskI6Jb6GOB8fl88ArZr0u3uMX5tvaLendqb8lfq6B588a97McndPb6w==}
     dependencies:
-      '@hackbg/konzola': 1.1.1
+      '@hackbg/konzola': 1.1.2
       js-yaml: 4.1.0
       mkdirp: 1.0.4
       recursive-copy: 2.0.14
@@ -605,7 +605,7 @@ packages:
     dependencies:
       '@hackbg/kabinet': 3.1.1
       '@hackbg/konfizi': 1.0.4
-      '@hackbg/konzola': 1.1.1
+      '@hackbg/konzola': 1.1.2
       dotenv: 16.0.1
     dev: false
 
@@ -616,6 +616,17 @@ packages:
   /@hackbg/konzola/1.1.1:
     resolution: {integrity: sha512-MNxW2N7ffkGW3I33jDQk6a9qmPUsUfa66F5W+hgQnhHpGNIhLDSzlkTeWS5Ot68+6f8ozKd/1BLg7B0QnxXKkQ==}
     dependencies:
+      colors: 1.4.0
+      prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
+      prompts: 2.4.2
+      table: 6.8.0
+    dev: false
+
+  /@hackbg/konzola/1.1.2:
+    resolution: {integrity: sha512-wc4As05j84yDVsFKlNsDXJCcGXJ010RX9tM/vVGcJLMBgjurXNJ2wmEiE9kYaIbtTjQxGGncs8TGcF30pDp+Nw==}
+    dependencies:
+      '@types/prettyjson': 0.0.30
+      '@types/prompts': 2.0.14
       colors: 1.4.0
       prettyjson: github.com/slavaGanzin/prettyjson/d880b8af2973a1a1b277944c3b573d7d6a93ba8f
       prompts: 2.4.2
@@ -830,7 +841,6 @@ packages:
 
   /@types/node/16.11.47:
     resolution: {integrity: sha512-fpP+jk2zJ4VW66+wAMFoBJlx1bxmBKx4DUFf68UHgdGCOuyUTDlLWqsaNPJh7xhNDykyJ9eIzAygilP/4WoN8g==}
-    dev: true
 
   /@types/node/18.6.2:
     resolution: {integrity: sha512-KcfkBq9H4PI6Vpu5B/KoPeuVDAbmi+2mDBqGPGUgoL7yXQtcWGu2vJWmmRkneWK3Rh0nIAX192Aa87AqKHYChQ==}
@@ -838,13 +848,11 @@ packages:
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
-    dev: true
 
   /@types/prompts/2.0.14:
     resolution: {integrity: sha512-HZBd99fKxRWpYCErtm2/yxUZv6/PBI9J7N4TNFffl5JbrYMHBwF25DjQGTW3b3jmXq+9P6/8fCIb2ee57BFfYA==}
     dependencies:
       '@types/node': 16.11.47
-    dev: true
 
   /@types/secure-random/1.1.0:
     resolution: {integrity: sha512-FVkD9qNAeuc1m53VQfWhuUdn9IWjv6griflGfLcSoF3ZexyNv1ciPlZLyrucWYcdhNjKERgDb45IJwb8a/ZKDQ==}
