@@ -658,9 +658,9 @@ export class ContractSlot<C extends Client> {
   static E03 = () =>
     new Error("Contract not found. Try .getOrDeploy(template, init)")
   static E04 = () =>
-    new Error("No agent to deploy contract.")
+    new Error("Expected an identity to be selected.")
   static E05 = () =>
-    new Error("No deployment for contract.")
+    new Error("Expected a deployment to be selected.")
   static E07 = () =>
     new Error("Value is not Client and not a name.")
   static E08 = () =>
