@@ -664,7 +664,7 @@ export abstract class Bundle implements Executor {
   }
   async wrap (
     cb:   BundleCallback<this>,
-    opts: ExecOpts = { memo: "" }
+    opts: ExecOpts = { memo: "" },
     save: boolean  = false
   ): Promise<any[]> {
     await cb(this)

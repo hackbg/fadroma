@@ -1,5 +1,5 @@
 /*
-  Fadroma Legacy Platform Package for Secret Network with Amino API
+  Fadroma Platform Package for Secret Network with Legacy Amino API
   Copyright (C) 2022 Hack.bg
 
   This program is free software: you can redistribute it and/or modify
@@ -16,57 +16,19 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import {
-  Address,
-  AgentCtor,
-  AgentOpts,
-  Chain,
-  ChainMode,
-  CodeId,
-  CodeHash,
-  ExecOpts,
-  ICoin,
-  IFee,
-  Instance,
-  Label,
-  Message,
-  Scrt,
-  ScrtAgent,
-  ScrtAgentOpts,
-  ScrtBundle,
-  ScrtConfig,
-  Template,
-  Uint128
-} from '@fadroma/scrt'
-
-import {
-  BroadcastMode,
-  CosmWasmClient,
-  EnigmaUtils,
-  //ExecuteResult,
-  InstantiateResult,
-  PostTxResult,
-  TxsResponse,
-  Secp256k1Pen,
-  SigningCosmWasmClient,
-  encodeSecp256k1Pubkey,
-  makeSignBytes,
-  pubkeyToAddress, 
-} from 'secretjs'
-
-import { Bip39 } from '@cosmjs/crypto'
-
-import { toBase64, fromBase64, fromUtf8 } from '@iov/encoding'
-
-import { backOff } from 'exponential-backoff'
-
+import * as SecretJS  from 'secretjs' // this implementation uses secretjs 0.17.5
+import * as Fadroma   from '@fadroma/scrt'
+import * as Formati   from '@hackbg/formati'
+import * as Konfizi   from '@hackbg/konfizi'
+import { backOff }    from 'exponential-backoff'
 import { default as Axios, AxiosInstance } from 'axios'
 
 export const ScrtAminoErrors = {
   ZeroRecipients:     () => new Error('Tried to send to 0 recipients'),
   TemplateNoCodeHash: () => new Error('Template must contain codeHash'),
   EncryptNoCodeHash:  () => new Error('Missing code hash'),
-  UploadBinary:       () => new Error('The upload method takes a Uint8Array')
+  UploadBinary:       () => new Error('The upload method takes a Uint8Array'),
+  NoAPIUrl:           () => new Error('ScrtAmino: no Amino API URL')
 }
 
 export const ScrtAminoWarnings = {
@@ -75,39 +37,57 @@ export const ScrtAminoWarnings = {
   },
 }
 
-export const privKeyToMnemonic = (privKey: Uint8Array) => (Bip39.encode(privKey) as any).data
+export const privKeyToMnemonic = (privKey: Uint8Array) =>
+  (Formati.Bip39.encode(privKey) as any).data
 
-interface SigningPen {
-  pubkey: Uint8Array,
-  sign:   Function
+/** Amino-specific Secret Network settings. */
+export interface ScrtAminoConfig extends Fadroma.ScrtConfig {
+  scrtMainnetAminoUrl: string|null
+  scrtTestnetAminoUrl: string|null
 }
 
-export interface ScrtNonce {
-  accountNumber: number
-  sequence:      number
-}
-
-export class ScrtAmino extends Scrt {
+/** The Secret Network, accessed via Amino protocol. */
+export class ScrtAmino extends Fadroma.Scrt {
 
   static Chains = {
-    async 'ScrtAminoMainnet' (config: ScrtConfig) {
-      const mode = ChainMode.Mainnet
-      const id   = config.scrtMainnetChainId  ?? Scrt.defaultMainnetChainId
-      const url  = config.scrtMainnetAminoUrl ?? Scrt.defaultMainnetAminoUrl ?? undefined
+    async 'ScrtAminoMainnet' (config: ScrtAminoConfig) {
+      const mode = Fadroma.ChainMode.Mainnet
+      const id   = config.scrtMainnetChainId  ?? Fadroma.Scrt.defaultMainnetChainId
+      const url  = config.scrtMainnetAminoUrl ?? ScrtAmino.defaultMainnetAminoUrl ?? undefined
       return new ScrtAmino(id, { url, mode })
     },
-    async 'ScrtAminoTestnet' (config: ScrtConfig) {
-      const mode = ChainMode.Testnet
-      const id   = config.scrtTestnetChainId  ?? Scrt.defaultTestnetChainId
-      const url  = config.scrtTestnetAminoUrl ?? Scrt.defaultTestnetAminoUrl ?? undefined
+    async 'ScrtAminoTestnet' (config: ScrtAminoConfig) {
+      const mode = Fadroma.ChainMode.Testnet
+      const id   = config.scrtTestnetChainId  ?? Fadroma.Scrt.defaultTestnetChainId
+      const url  = config.scrtTestnetAminoUrl ?? ScrtAmino.defaultTestnetAminoUrl ?? undefined
       return new ScrtAmino(id, { url, mode })
     },
+    // devnet and mocknet modes are defined in @fadroma/connect
   }
 
-  // @ts-ignore
-  Agent = ScrtAmino.Agent
+  static getConfig = function getScrtAminoConfig (
+    cwd: string,
+    env: Record<string, string> = {}
+  ): ScrtAminoConfig {
+    const { Str, Bool } = Konfizi.getFromEnv(env)
+    return {
+      scrtAgentName:       Str('SCRT_AGENT_NAME',        ()=>null),
+      scrtAgentAddress:    Str('SCRT_AGENT_ADDRESS',     ()=>null),
+      scrtAgentMnemonic:   Str('SCRT_AGENT_MNEMONIC',    ()=>null),
+      scrtMainnetChainId:  Str('SCRT_MAINNET_CHAIN_ID',  ()=>Fadroma.Scrt.defaultMainnetChainId),
+      scrtMainnetAminoUrl: Str('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultMainnetAminoUrl),
+      scrtTestnetChainId:  Str('SCRT_TESTNET_CHAIN_ID',  ()=>Fadroma.Scrt.defaultTestnetChainId),
+      scrtTestnetAminoUrl: Str('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultTestnetAminoUrl),
+    }
+  }
 
-  api = new CosmWasmClient(this.url)
+  static defaultMainnetAminoUrl: string|null = null
+  static defaultTestnetAminoUrl: string|null = null
+
+  static Agent: Fadroma.AgentCtor<ScrtAminoAgent>
+         Agent: Fadroma.AgentCtor<ScrtAminoAgent> = ScrtAmino.Agent
+
+  api = new SecretJS.CosmWasmClient(this.url)
 
   get block () {
     return this.api.getBlock()
@@ -118,7 +98,7 @@ export class ScrtAmino extends Scrt {
   }
 
   /** Get up-to-date balance of this address in specified denomination. */
-  async getBalance (denomination: string = this.defaultDenom, address: Address) {
+  async getBalance (denomination: string = this.defaultDenom, address: Fadroma.Address) {
     const account = await this.api.getAccount(address)
     const balance = account?.balance || []
     const inDenom = ({denom}:{denom:string}) => denom === denomination
@@ -138,34 +118,38 @@ export class ScrtAmino extends Scrt {
     }
   }
 
-  async getCodeId (address: Address) {
+  async getCodeId (address: Fadroma.Address) {
     const { api } = this
     const { codeId } = await api.getContract(address)
     return String(codeId)
   }
 
-  async getLabel (address: Address) {
+  async getLabel (address: Fadroma.Address) {
     const { api } = this
     const { label } = await api.getContract(address)
     return label
   }
 
-  async query <T, U> ({ address, codeHash }: Instance, msg: T) {
+  async query <T, U> ({ address, codeHash }: Fadroma.Instance, msg: T) {
     const { api } = this
     // @ts-ignore
     return api.queryContractSmart(address, msg, undefined, codeHash)
   }
 
-  static Agent: AgentCtor<ScrtAminoAgent>
 }
 
 /** Amino-specific configuration objects for the agent. */
-export interface ScrtAminoAgentOpts extends ScrtAgentOpts {
+export interface ScrtAminoAgentOpts extends Fadroma.ScrtAgentOpts {
   keyPair: { privkey: Uint8Array }|null
   pen:     SigningPen
 }
 
-export class ScrtAminoAgent extends ScrtAgent {
+interface SigningPen {
+  pubkey: Uint8Array,
+  sign:   Function
+}
+
+export class ScrtAminoAgent extends Fadroma.ScrtAgent {
 
   static async create (chain: ScrtAmino, options: ScrtAminoAgentOpts) {
     const { name = 'Anonymous', ...args } = options
@@ -184,14 +168,14 @@ export class ScrtAminoAgent extends ScrtAgent {
         break
       default:
         // if there is neither, generate a new keypair and corresponding mnemonic
-        keyPair  = EnigmaUtils.GenerateNewKeyPair()
+        keyPair  = SecretJS.EnigmaUtils.GenerateNewKeyPair()
         mnemonic = privKeyToMnemonic(keyPair.privkey)
     }
     return new ScrtAminoAgent(chain, {
       ...args,
       name,
       mnemonic,
-      pen: await Secp256k1Pen.fromMnemonic(mnemonic!),
+      pen: await SecretJS.Secp256k1Pen.fromMnemonic(mnemonic!),
       keyPair
     })
   }
@@ -200,15 +184,15 @@ export class ScrtAminoAgent extends ScrtAgent {
     super(chain, options)
     this.name     = options?.name || ''
     // @ts-ignore
-    this.fees     = options?.fees || Scrt.defaultFees
+    this.fees     = options?.fees || Fadroma.Scrt.defaultFees
     this.keyPair  = options?.keyPair
     this.mnemonic = options?.mnemonic
     this.pen      = options?.pen
     if (this.pen) {
-      this.pubkey   = encodeSecp256k1Pubkey(options?.pen!.pubkey)
-      this.address  = pubkeyToAddress(this.pubkey, 'secret')
+      this.pubkey   = SecretJS.encodeSecp256k1Pubkey(options?.pen!.pubkey)
+      this.address  = SecretJS.pubkeyToAddress(this.pubkey, 'secret')
       this.sign     = this.pen.sign.bind(this.pen)
-      this.seed     = EnigmaUtils.GenerateNewSeed()
+      this.seed     = SecretJS.EnigmaUtils.GenerateNewSeed()
     }
   }
 
@@ -228,7 +212,7 @@ export class ScrtAminoAgent extends ScrtAgent {
       this.sign,
       this.seed,
       this.fees,
-      BroadcastMode.Sync
+      SecretJS.BroadcastMode.Sync
     )
   }
 
@@ -245,7 +229,10 @@ export class ScrtAminoAgent extends ScrtAgent {
   }
 
   /** Get up-to-date balance of this address in specified denomination. */
-  async getBalance (denomination: string = this.defaultDenom, address: Address = this.address) {
+  async getBalance (
+    denomination: string          = this.defaultDenom,
+    address:      Fadroma.Address = this.address
+  ) {
     const account = await this.api.getAccount(address)
     const balance = account!.balance || []
     const inDenom = ({denom}:{denom: string}) => denom === denomination
@@ -254,7 +241,7 @@ export class ScrtAminoAgent extends ScrtAgent {
     return balanceInDenom.amount
   }
 
-  async send (to: Address, amounts: any, opts?: any): Promise<PostTxResult> {
+  async send (to: Fadroma.Address, amounts: any, opts?: any): Promise<SecretJS.PostTxResult> {
     return await this.api.sendTokens(to, amounts, opts?.memo)
   }
 
@@ -264,26 +251,28 @@ export class ScrtAminoAgent extends ScrtAgent {
     //const {accountNumber, sequence} = await this.api.getNonce(from_address)
     let accountNumber: number
     let sequence:      number
-    const msg = await Promise.all(outputs.map(async ([to_address, amount]:[Address, Uint128])=>{
+    const toMsg = async ([to_address, amount]: [Fadroma.Address, Fadroma.Uint128])=>{
       ({accountNumber, sequence} = await this.api.getNonce(from_address)) // increment nonce?
       if (typeof amount === 'number') amount = String(amount)
       const value = {from_address, to_address, amount}
       return { type: 'cosmos-sdk/MsgSend', value }
-    }))
+    }
+    const msg = await Promise.all(outputs.map(toMsg))
     const memo      = opts?.memo
-    const fee       = opts?.fee || Scrt.gas(500000 * outputs.length)
-    const signBytes = makeSignBytes(msg, fee, this.chain.id, memo, accountNumber!, sequence!)
+    const fee       = opts?.fee || Fadroma.Scrt.gas(500000 * outputs.length)
+    const chainId   = this.chain.id
+    const signBytes = SecretJS.makeSignBytes(msg, fee, chainId, memo, accountNumber!, sequence!)
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async upload (data: Uint8Array): Promise<Template> {
+  async upload (data: Uint8Array): Promise<Fadroma.Template> {
     if (!(data instanceof Uint8Array)) throw ScrtAminoErrors.UploadBinary()
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
     if (codeId === "-1") codeId = uploadResult.logs[0].events[0].attributes[3].value
     const codeHash = uploadResult.originalChecksum
-    return new Template(
-      undefined, // TODO pass Artifact as 2nd arg to method - or unify Source/Artifact/Template outright
+    return new Fadroma.Template(
+      undefined, // TODO pass Artifact as 2nd arg to method - or unify Source/Artifact/Template?
       codeHash,
       this.chain.id,
       codeId,
@@ -291,7 +280,7 @@ export class ScrtAminoAgent extends ScrtAgent {
     )
   }
 
-  async instantiate <T> (template: Template, label: string, msg: T, funds = []) {
+  async instantiate <T> (template: Fadroma.Template, label: string, msg: T, funds = []) {
     if (!template.codeHash) throw ScrtAminoErrors.TemplateNoCodeHash()
     const { codeId, codeHash } = template
     const { api } = this
@@ -307,7 +296,7 @@ export class ScrtAminoAgent extends ScrtAgent {
     }
   }
 
-  async getHash (idOrAddr: number|string): Promise<CodeHash> {
+  async getHash (idOrAddr: number|string): Promise<Fadroma.CodeHash> {
     const { api } = this
     if (typeof idOrAddr === 'number') {
       return await api.getCodeHashByCodeId(idOrAddr)
@@ -318,33 +307,33 @@ export class ScrtAminoAgent extends ScrtAgent {
     }
   }
 
-  async getCodeId (address: Address): Promise<CodeId> {
+  async getCodeId (address: Fadroma.Address): Promise<Fadroma.CodeId> {
     return String((await this.api.getContract(address)).codeId)
   }
 
-  async getLabel (address: Address): Promise<Label> {
+  async getLabel (address: Fadroma.Address): Promise<Fadroma.Label> {
     return (await this.api.getContract(address)).label
   }
 
-  async query <T, U> ({ address, codeHash }: Instance, msg: T): Promise<U> {
+  async query <T, U> ({ address, codeHash }: Fadroma.Instance, msg: T): Promise<U> {
     // @ts-ignore
     return await this.api.queryContractSmart(address, msg, undefined, codeHash)
   }
 
   async execute (
-    { address, codeHash }: Instance, msg: Message, opts: ExecOpts = {}
-  ): Promise<TxsResponse> {
+    { address, codeHash }: Fadroma.Instance, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
+  ): Promise<SecretJS.TxsResponse> {
     const { memo, send, fee } = opts
     return await this.api.execute(address, msg, memo, send, fee, codeHash)
   }
 
-  async encrypt (codeHash: CodeHash, msg: Message) {
+  async encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message) {
     if (!codeHash) throw ScrtAminoErrors.EncryptNoCodeHash()
     const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg as object)
-    return toBase64(encrypted)
+    return Formati.toBase64(encrypted)
   }
 
-  async signTx (msgs: any[], gas: IFee, memo: string = '') {
+  async signTx (msgs: any[], gas: Fadroma.IFee, memo: string = '') {
     const { accountNumber, sequence } = await this.api.getNonce()
     return await this.api.signAdapter(
       msgs,
@@ -363,20 +352,20 @@ export class ScrtAminoAgent extends ScrtAgent {
 //@ts-ignore
 ScrtAmino.Agent = ScrtAminoAgent
 
-class ScrtAminoBundle extends ScrtBundle {
+class ScrtAminoBundle extends Fadroma.ScrtBundle {
   declare agent: ScrtAminoAgent
   static bundleCounter = 0
   get nonce () {
     return getNonce(this.chain.url, this.agent.address)
   }
-  async encrypt (codeHash: CodeHash, msg: any) {
+  async encrypt (codeHash: Fadroma.CodeHash, msg: any) {
     return this.agent.encrypt(codeHash, msg)
   }
   async submit (memo = "") {
     this.assertCanSubmit()
     const msgs   = await this.buildForSubmit()
-    const limit  = Number(Scrt.defaultFees.exec.amount[0].amount)
-    const gas    = Scrt.gas(msgs.length*limit)
+    const limit  = Number(Fadroma.Scrt.defaultFees.exec.amount[0].amount)
+    const gas    = Fadroma.Scrt.gas(msgs.length*limit)
     const signed = await this.agent.signTx(msgs, gas, memo)
     try {
       const txResult = await this.agent.api.postTx(signed)
@@ -391,7 +380,8 @@ class ScrtAminoBundle extends ScrtBundle {
     const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
-        return this.encrypt(codeHash, msg).then(msg=>init1(sender, String(codeId), label, msg, funds))
+        const toMsg = (msg: unknown) =>init1(sender, String(codeId), label, msg, funds)
+        return this.encrypt(codeHash, msg).then(toMsg)
       }
       if (exec) {
         const { sender, contract, codeHash, msg, funds } = exec
@@ -411,7 +401,7 @@ class ScrtAminoBundle extends ScrtBundle {
         chainId: this.chain.id
       }
       if (msgs[i].type === 'wasm/MsgInstantiateContract') {
-        type Attrs = { contract_address: Address, code_id: unknown }
+        type Attrs = { contract_address: Fadroma.Address, code_id: unknown }
         const attrs = mergeAttrs(txResult.logs[i].events[0].attributes) as Attrs
         result.label   = msgs[i].value.label,
         result.address = attrs.contract_address
@@ -433,16 +423,19 @@ class ScrtAminoBundle extends ScrtBundle {
       if (rgxMatches == null || rgxMatches.length != 3) {
           throw err;
       }
-      const errorCipherB64 = rgxMatches[1];
-      const errorCipherBz  = fromBase64(errorCipherB64);
-      const msgIndex       = Number(rgxMatches[2]);
+      const errorCipherB64 = rgxMatches[1]
+      const errorCipherBz  = Formati.fromBase64(errorCipherB64)
+      const msgIndex       = Number(rgxMatches[2])
       const msg            = await this.msgs[msgIndex]
-      const nonce          = fromBase64(msg.value.msg).slice(0, 32);
-      const errorPlainBz   = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce);
-      err.message = err.message.replace(errorCipherB64, fromUtf8(errorPlainBz));
+      const nonce          = Formati.fromBase64(msg.value.msg).slice(0, 32)
+      const errorPlainBz   = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce)
+      err.message = err.message.replace(errorCipherB64, Formati.fromUtf8(errorPlainBz))
     } catch (decryptionError) {
       console.error('Failed to decrypt :(')
-      throw new Error(`Failed to decrypt the following error message: ${err.message}. Decryption error of the error message: ${decryptionError.message}`);
+      throw new Error(
+        `Failed to decrypt the following error message: ${err.message}. `+
+        `Decryption error of the error message: ${decryptionError.message}`
+      )
     }
     throw err
   }
@@ -474,7 +467,8 @@ class ScrtAminoBundle extends ScrtBundle {
     const encrypted = await Promise.all(msgs.map(({init, exec})=>{
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
-        return this.encrypt(codeHash, msg).then(msg=>init2(sender, String(codeId), label, msg, funds))
+        const toMsg = (msg:unknown)=>init2(sender, String(codeId), label, msg, funds)
+        return this.encrypt(codeHash, msg).then(toMsg)
       }
       if (exec) {
         const { sender, contract, codeHash, msg, funds } = exec
@@ -485,7 +479,7 @@ class ScrtAminoBundle extends ScrtBundle {
     return encrypted
   }
   finalizeForSave (messages: unknown[], memo: string) {
-    const fee = Scrt.gas(10000000)
+    const fee = Fadroma.Scrt.gas(10000000)
     const finalUnsignedTx = {
       body: {
         messages,
@@ -504,31 +498,39 @@ class ScrtAminoBundle extends ScrtBundle {
   }
 }
 
-const init1 = (sender: Address, code_id: any, label: any, init_msg: any, init_funds: any) => ({
+const init1 = (
+  sender: Fadroma.Address, code_id: any, label: any, init_msg: any, init_funds: any
+) => ({
   "type": 'wasm/MsgInstantiateContract',
   value: { sender, code_id, label, init_msg, init_funds }
 })
 
-const init2 = (sender: Address, code_id: any, label: any, init_msg: any, init_funds: any) => ({
+const init2 = (
+  sender: Fadroma.Address, code_id: any, label: any, init_msg: any, init_funds: any
+) => ({
   "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
   callback_code_hash: "", callback_sig: null,
   sender, code_id, label, init_msg, init_funds,
 })
 
-const exec1 = (sender: Address, contract: Address, msg: any, sent_funds: any) => ({
+const exec1 = (
+  sender: Fadroma.Address, contract: Fadroma.Address, msg: any, sent_funds: any
+) => ({
   "type": 'wasm/MsgExecuteContract',
   value: { sender, contract, msg, sent_funds }
 })
 
-const exec2 = (sender: Address, contract: Address, msg: any, sent_funds: any) => ({
+const exec2 = (
+  sender: Fadroma.Address, contract: Fadroma.Address, msg: any, sent_funds: any
+) => ({
   "@type": '/secret.compute.v1beta1.MsgExecuteContract',
   callback_code_hash: "", callback_sig: null,
   sender, contract, msg, sent_funds,
 })
 
-export async function getNonce (url: string, address: Address) {
+export async function getNonce (url: string, address: Fadroma.Address) {
   const sign = () => {throw new Error('unreachable')}
-  const client = new SigningCosmWasmClient(url, address, sign)
+  const client = new SecretJS.SigningCosmWasmClient(url, address, sign)
   const { accountNumber, sequence } = await client.getNonce()
   return { accountNumber, sequence }
 }
@@ -539,7 +541,7 @@ export function mergeAttrs (attrs: {key:string, value:string}[]) {
 
 /** This is the latest version of the SigningCosmWasmClient async broadcast/retry patch. */
 
-export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
+export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmClient {
 
   _queryUrl = ''
   _queryClient: AxiosInstance|null = null
@@ -611,7 +613,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
     // 1. This patch only works in non-default broadcast modes (Sync or Async);
     //    in Block mode there is no way to get the tx hash of a half-failed TX.
-    if (this.restClient.broadcastMode === BroadcastMode.Block) {
+    if (this.restClient.broadcastMode === SecretJS.BroadcastMode.Block) {
       warn('Broadcast mode is set to BroadcastMode.Block, bypassing patch')
       return super.postTx(tx)
     }
@@ -626,8 +628,9 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
 
       // 4. Submit the transaction
       try {
-        info(`Submitting TX (${JSON.stringify(tx).length} chars) (${submitRetries} retries left)...`)
-        //info(`Submitting TX (${JSON.stringify(tx).slice(0, 200)}...) (${submitRetries} retries left)...`)
+        info(
+          `Submitting TX (${JSON.stringify(tx).length} chars) (${submitRetries} retries left)...`
+        )
         const result = await super.postTx(tx)
         id = result.transactionHash
       } catch (e) {
@@ -653,7 +656,9 @@ export class PatchedSigningCosmWasmClient_1_2 extends SigningCosmWasmClient {
             warn("Enclave error: actually, let's retry this one...")
             // 7. If the transaction simply hasn't committed yet,
             //    query for the result again until we run out of retries.
-            warn(`Getting result of TX ${id} failed (${e.message}): ${submitRetries} retries left...`)
+            warn(
+              `Getting result of TX ${id} failed (${e.message}): ${submitRetries} retries left...`
+            )
             await new Promise(ok=>setTimeout(ok, this.resultSubmitDelay))
           } else {
             // 8. If the transaction resulted in an error, rethrow it so it can be decrypted
@@ -764,6 +769,11 @@ function parseAxiosError (
   } else {
     throw err
   }
+}
+
+export interface ScrtNonce {
+  accountNumber: number
+  sequence:      number
 }
 
 export * from '@fadroma/scrt'

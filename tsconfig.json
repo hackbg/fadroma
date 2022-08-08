@@ -21,7 +21,7 @@
     "fadroma.cli.cjs",
     "fixtures",
     "homepage",
-    "packages/ops/wip/**/*",
+    "packages/schema",
     "shim",
     "typedoc-theme.tsx",
     "types",

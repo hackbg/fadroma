@@ -29,15 +29,18 @@ export type Chains = Record<string, (config: any)=>Chain|Promise<Chain>>
 export async function getChainContext (
   context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
 ): Promise<ChainContext> {
+
   //@ts-ignore
   context.chains ??= knownChains
   const config = { ...getChainConfig(), ...context.config ?? {} }
   const name = config.chain
+
   // Check that a valid name is passed
   if (!name || !context.chains![name]) {
     ConnectLogger(console).noName(context.chains!)
     process.exit(1)
   }
+
   // Return chain and deployments handle
   const chain = await context.chains![name](config)
   return {

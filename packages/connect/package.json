@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "connect.ts" ],
@@ -15,7 +15,7 @@
     "@fadroma/scrt":       "workspace:*",
     "@fadroma/scrt-amino": "workspace:*",
     "@fadroma/mocknet":    "workspace:*",
-    "@hackbg/komandi":     "^4.2.5"
+    "@hackbg/komandi":     "^4.2.7"
   },
   "peerDependencies": {
     "@fadroma/devnet":     "workspace:^1.0.3"
