@@ -736,9 +736,12 @@ export class ContractSlot<C extends Client> {
     return await Promise.resolve(getter())
   }
   get (message: string = `Contract not found: ${this.name}`): C {
-    if (this.context.deployment?.has(this.name!)) {
-      const instance = this.context.deployment!.get(this.name!)
-      const client = new this.Client(this.context.creator, instance!)
+    if (this.name && this.context.deployment && this.context.deployment.has(this.name)) {
+      const instance = this.context.deployment.get(this.name)
+      const client   = new this.Client(this.context.creator, instance!)
+      return client
+    } else if (this.value) {
+      const client = new this.Client(this.context.creator, this.value)
       return client
     } else {
       throw new Error(message)
