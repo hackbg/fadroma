@@ -1037,8 +1037,8 @@ if (
           `    import { DeployCommands } from '@fadroma/deploy'\n\n` +
           `    const deploy = new DeployCommands('deploy')\n`        +
           `    export default deploy\n\n`                            +
-          `    deploy.command('my-deploy-command', 'command info', async function (context) {\n` +
-          `      /* ... your deploy procedure here ...*/\n` +
+          `    deploy.command('my-deploy-command', 'command info', async function (context) {\n\n` +
+          `      /* your deploy procedure here */\n\n` +
           `    })\n`
         )
         process.exit(2)
