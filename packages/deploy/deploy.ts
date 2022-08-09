@@ -1026,6 +1026,21 @@ if (
     //@ts-ignore
     import(resolve(process.argv[2])).then(deployScript=>{
       const deployCommands = deployScript.default
+      if (!deployCommands) {
+        console.error(`${process.argv[2]} has no default export.`)
+        console.info(
+          `Export an instance of DeployCommands `+
+          `to make this file a deploy script:`
+        )
+        console.info(
+          `\n\n`                                                     +
+          `    import { DeployCommands } from '@fadroma/deploy'\n\n` +
+          `    const deploy = new DeployCommands('deploy')\n`        +
+          `    export default deploy\n\n`                            +
+          `    deploy.command('my-deploy-command', async function (context) { /*...*/ })\n`
+        )
+        process.exit(2)
+      }
       return deployCommands.launch(process.argv.slice(3))
     }).catch(e=>{
       console.error(e)
