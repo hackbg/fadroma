@@ -16,11 +16,11 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import * as SecretJS  from 'secretjs' // this implementation uses secretjs 0.17.5
-import * as Fadroma   from '@fadroma/scrt'
-import * as Formati   from '@hackbg/formati'
-import * as Konfizi   from '@hackbg/konfizi'
-import { backOff }    from 'exponential-backoff'
+import * as SecretJS from 'secretjs' // this implementation uses secretjs 0.17.5
+import * as Fadroma  from '@fadroma/scrt'
+import * as Formati  from '@hackbg/formati'
+import * as Konfizi  from '@hackbg/konfizi'
+import { backOff }   from 'exponential-backoff'
 import { default as Axios, AxiosInstance } from 'axios'
 
 export const ScrtAminoErrors = {
@@ -572,14 +572,14 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
   async instantiate (codeId, initMsg, label, memo, transferAmount, fee, hash) {
     return await this.getTxResult((await super.instantiate(
       codeId, initMsg, label, memo, transferAmount, fee, hash
-    )).transactionHash)
+    )).transactionHash) as any
   }
 
   // @ts-ignore
   async execute (contractAddress, handleMsg, memo, transferAmount, fee, contractCodeHash) {
     return await this.getTxResult((await super.execute(
       contractAddress, handleMsg, memo, transferAmount, fee, contractCodeHash
-    )).transactionHash)
+    )).transactionHash) as any
   }
 
   async waitForNextBlock (sent: number) {
@@ -694,7 +694,7 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
       }
       // 4. Set tx hash and logs on the tx result and return it
       Object.assign(result, { transactionHash: id, logs })
-      return result
+      return result as any
     } catch (e) {
       const { message } = e as Error
       if (this.shouldRetry(message)) {
