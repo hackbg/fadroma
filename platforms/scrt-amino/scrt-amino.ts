@@ -372,7 +372,7 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
       const results  = this.collectSubmitResults(msgs, txResult)
       return results
     } catch (err) {
-      await this.handleSubmitError(err)
+      await this.handleSubmitError(err as Error)
     }
   }
   /** Format the messages for API v1 like secretjs and encrypt them. */
@@ -434,7 +434,7 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
       console.error('Failed to decrypt :(')
       throw new Error(
         `Failed to decrypt the following error message: ${err.message}. `+
-        `Decryption error of the error message: ${decryptionError.message}`
+        `Decryption error of the error message: ${(decryptionError as Error).message}`
       )
     }
     throw err
@@ -634,11 +634,12 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
         const result = await super.postTx(tx)
         id = result.transactionHash
       } catch (e) {
-        if (this.shouldRetry(e.message)) {
-          warn(`Submitting TX failed (${e.message}): ${submitRetries} retries left...`)
+        const { message } = e as Error
+        if (this.shouldRetry(message)) {
+          warn(`Submitting TX failed (${message}): ${submitRetries} retries left...`)
           await new Promise(ok=>setTimeout(ok, this.resultSubmitDelay))
         } else {
-          warn(`Submitting TX failed (${e.message}): not retrying`)
+          warn(`Submitting TX failed (${message}): not retrying`)
           throw e
         }
       }
@@ -651,19 +652,20 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
         try {
           return await this.getTxResult(id)
         } catch (e) {
-          const weirdPanic = e.message.includes('Enclave: panicked due to unexpected behavior')
-          if (this.shouldRetry(e.message) || weirdPanic) {
+          const { message } = e as Error
+          const weirdPanic = message.includes('Enclave: panicked due to unexpected behavior')
+          if (this.shouldRetry(message) || weirdPanic) {
             warn("Enclave error: actually, let's retry this one...")
             // 7. If the transaction simply hasn't committed yet,
             //    query for the result again until we run out of retries.
             warn(
-              `Getting result of TX ${id} failed (${e.message}): ${submitRetries} retries left...`
+              `Getting result of TX ${id} failed (${message}): ${submitRetries} retries left...`
             )
             await new Promise(ok=>setTimeout(ok, this.resultSubmitDelay))
           } else {
             // 8. If the transaction resulted in an error, rethrow it so it can be decrypted
             //    FIXME: is this necessary now that txById is being used?
-            warn(`Getting result of TX ${id} failed (${e.message}): not retrying`)
+            warn(`Getting result of TX ${id} failed (${message}): not retrying`)
             throw e
           }
         }
@@ -694,11 +696,12 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
       Object.assign(result, { transactionHash: id, logs })
       return result
     } catch (e) {
-      if (this.shouldRetry(e.message)) {
-        warn(`Getting result of TX ${id} failed (${e.message}): ${resultRetries} retries left...`)
+      const { message } = e as Error
+      if (this.shouldRetry(message)) {
+        warn(`Getting result of TX ${id} failed (${message}): ${resultRetries} retries left...`)
         await new Promise(ok=>setTimeout(ok, this.resultRetryDelay))
       } else {
-        warn(`Getting result of TX ${id} failed (${e.message}): not retrying`)
+        warn(`Getting result of TX ${id} failed (${message}): not retrying`)
         throw e
       }
     }

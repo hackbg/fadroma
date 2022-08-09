@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt-amino",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type":    "module",
   "main":    "scrt-amino.ts",
   "files": [ "scrt-amino.ts" ],
