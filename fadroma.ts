@@ -73,4 +73,4 @@ export * from '@hackbg/formati'
 
 // There's apparently also a decimal in @iov/encoding?
 // Gotta see if it's compatible.
-export { Decimal } from '@fadroma/client'
+export type { Decimal } from '@fadroma/client'
