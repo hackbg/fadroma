@@ -100,22 +100,21 @@ export interface ScrtGrpcConfig extends ScrtConfig {
 /** The Secret Network, accessed via gRPC API. */
 export class ScrtGrpc extends Scrt {
 
+  /** Values of FADROMA_CHAIN provided by the ScrtGrpc implementation.
+    * Devnets and mocknets are defined downstream in @fadroma/connect */
   static Chains = {
     async 'ScrtGrpcMainnet' (config: ScrtGrpcConfig) {
       const mode = Fadroma.ChainMode.Mainnet
       const id   = config.scrtMainnetChainId ?? Scrt.defaultMainnetChainId
-      const url  = config.scrtMainnetGrpcUrl
-      if (!url) throw Errors.NoAPIUrl()
+      const url  = config.scrtMainnetGrpcUrl || ScrtGrpc.defaultMainnetGrpcUrl
       return new ScrtGrpc(id, { url, mode })
     },
     async 'ScrtGrpcTestnet' (config: ScrtGrpcConfig) {
       const mode = Fadroma.ChainMode.Testnet
       const id   = config.scrtTestnetChainId ?? Scrt.defaultTestnetChainId
-      const url  = config.scrtTestnetGrpcUrl
-      if (!url) throw Errors.NoAPIUrl()
+      const url  = config.scrtTestnetGrpcUrl || ScrtGrpc.defaultTestnetGrpcUrl
       return new ScrtGrpc(id, { url, mode })
     },
-    // devnet and mocknet modes are defined in @fadroma/connect
   }
 
   /** Get configuration from the environment. */
