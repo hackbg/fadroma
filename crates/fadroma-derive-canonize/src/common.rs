@@ -1,5 +1,5 @@
 use syn::{
-    ItemStruct, Fields, LitInt,
+    Fields, LitInt,
     Expr, FieldValue, parse_quote,
     punctuated::Punctuated,
     token::Comma
@@ -7,8 +7,8 @@ use syn::{
 use proc_macro2::Span;
 use quote::quote;
 
-pub fn canonize_fields(strukt: &ItemStruct, canonize: bool) -> proc_macro2::TokenStream {
-    match &strukt.fields {
+pub fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStream {
+    match &fields {
         Fields::Named(fields) => {
             let mut members: Punctuated<FieldValue, Comma> = Punctuated::new();
 

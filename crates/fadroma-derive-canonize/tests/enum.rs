@@ -1,0 +1,42 @@
+use fadroma::{
+    self,
+    cosmwasm_std::{self, testing::mock_dependencies, HumanAddr, Uint128},
+    prelude::{Canonize},
+};
+
+#[derive(Canonize, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+enum TestEnum {
+    TestVarTwo { from: HumanAddr, to: HumanAddr },
+    TestVar(HumanAddr, Uint128),
+}
+
+#[test]
+fn test_derive_enum() {
+    let addr_1 = HumanAddr::from("Alice");
+    let addr_2 = HumanAddr::from("Bob");
+    let deps = mock_dependencies(20, &[]);
+
+    let test = TestEnum::TestVarTwo {
+        from: addr_1.clone(),
+        to: addr_2.clone(),
+    };
+
+    match test.canonize(&deps.api).unwrap() {
+        TestEnumCanon::TestVarTwo { from: x, to: y } => {
+            assert_eq!(x, addr_1.clone().canonize(&deps.api).unwrap());
+            assert_eq!(y, addr_2.canonize(&deps.api).unwrap());
+        }
+        _ => unreachable!(),
+    };
+
+    let test = TestEnum::TestVar(addr_1.clone(), Uint128::from(128u128));
+
+    match test.canonize(&deps.api).unwrap() {
+        TestEnumCanon::TestVar(x, y) => {
+            assert_eq!(x, addr_1.canonize(&deps.api).unwrap());
+            assert_eq!(y, Uint128::from(128u128).canonize(&deps.api).unwrap());
+            assert_eq!(y, Uint128::from(128u128));
+        }
+        _ => unreachable!(),
+    }
+}
