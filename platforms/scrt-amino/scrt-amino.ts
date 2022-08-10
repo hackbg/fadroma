@@ -353,180 +353,111 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
 ScrtAmino.Agent = ScrtAminoAgent
 
 class ScrtAminoBundle extends Fadroma.ScrtBundle {
+
   declare agent: ScrtAminoAgent
-  static bundleCounter = 0
+
   get nonce () {
     return getNonce(this.chain.url, this.agent.address)
   }
-  async encrypt (codeHash: Fadroma.CodeHash, msg: any) {
-    return this.agent.encrypt(codeHash, msg)
-  }
+
   async submit (memo = "") {
+
+    const results: any[] = []
+
     this.assertCanSubmit()
-    const msgs   = await this.buildForSubmit()
-    const limit  = Number(Fadroma.Scrt.defaultFees.exec.amount[0].amount)
-    const gas    = Fadroma.Scrt.gas(msgs.length*limit)
-    const signed = await this.agent.signTx(msgs, gas, memo)
-    try {
-      const txResult = await this.agent.api.postTx(signed)
-      const results  = this.collectSubmitResults(msgs, txResult)
-      return results
-    } catch (err) {
-      await this.handleSubmitError(err as Error)
-    }
-  }
-  /** Format the messages for API v1 like secretjs and encrypt them. */
-  async buildForSubmit () {
-    const encrypted = await Promise.all(this.msgs.map(({init, exec})=>{
+
+    /** Format the messages for API v1 like secretjs and encrypt them. */
+    const init1 = (
+      sender: Fadroma.Address, code_id: any, label: any, init_msg: any, init_funds: any
+    ) => ({
+      "type": 'wasm/MsgInstantiateContract',
+      value: { sender, code_id, label, init_msg, init_funds }
+    })
+
+    const exec1 = (
+      sender: Fadroma.Address, contract: Fadroma.Address, msg: any, sent_funds: any
+    ) => ({
+      "type": 'wasm/MsgExecuteContract',
+      value: { sender, contract, msg, sent_funds }
+    })
+
+    const msgs = await Promise.all(this.msgs.map(({init, exec})=>{
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         const toMsg = (msg: unknown) =>init1(sender, String(codeId), label, msg, funds)
-        return this.encrypt(codeHash, msg).then(toMsg)
+        return this.agent.encrypt(codeHash, msg).then(toMsg)
       }
       if (exec) {
         const { sender, contract, codeHash, msg, funds } = exec
-        return this.encrypt(codeHash, msg).then(msg=>exec1(sender, contract, msg, funds))
+        return this.agent.encrypt(codeHash, msg).then(msg=>exec1(sender, contract, msg, funds))
       }
       throw 'unreachable'
     }))
-    return encrypted
-  }
-  collectSubmitResults (msgs: any[], txResult: any): any[] {
-    const results: any[] = []
-    for (const i in msgs) {
-      const result: Record<string, unknown> = {
-        sender:  this.address,
-        tx:      txResult.transactionHash,
-        type:    msgs[i].type,
-        chainId: this.chain.id
-      }
-      if (msgs[i].type === 'wasm/MsgInstantiateContract') {
-        type Attrs = { contract_address: Fadroma.Address, code_id: unknown }
-        const attrs = mergeAttrs(txResult.logs[i].events[0].attributes) as Attrs
-        result.label   = msgs[i].value.label,
-        result.address = attrs.contract_address
-        result.codeId  = attrs.code_id
-      }
-      if (msgs[i].type === 'wasm/MsgExecuteContract') {
-        result.address = msgs[i].contract
-      }
-      results[Number(i)] = result
-    }
-    return results
-  }
-  async handleSubmitError (err: Error) {
+
+    const limit  = Number(Fadroma.Scrt.defaultFees.exec.amount[0].amount)
+    const gas    = Fadroma.Scrt.gas(msgs.length*limit)
+    const signed = await this.agent.signTx(msgs, gas, memo)
+
     try {
-      console.error('Submitting bundle failed:', err.message)
-      console.error('Trying to decrypt...')
-      const errorMessageRgx = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
-      const rgxMatches = errorMessageRgx.exec(err.message);
-      if (rgxMatches == null || rgxMatches.length != 3) {
-          throw err;
+
+      const txResult = await this.agent.api.postTx(signed)
+
+      for (const i in msgs) {
+        const result: Record<string, unknown> = {
+          sender:  this.address,
+          tx:      txResult.transactionHash,
+          type:    msgs[i].type,
+          chainId: this.chain.id
+        }
+        if (msgs[i].type === 'wasm/MsgInstantiateContract') {
+          type Attrs = { contract_address: Fadroma.Address, code_id: unknown }
+          const attrs = mergeAttrs(txResult.logs[i].events[0].attributes) as Attrs
+          result.label   = msgs[i].value.label,
+          result.address = attrs.contract_address
+          result.codeId  = attrs.code_id
+        }
+        if (msgs[i].type === 'wasm/MsgExecuteContract') {
+          result.address = msgs[i].contract
+        }
+        results[Number(i)] = result
       }
-      const errorCipherB64 = rgxMatches[1]
-      const errorCipherBz  = Formati.fromBase64(errorCipherB64)
-      const msgIndex       = Number(rgxMatches[2])
-      const msg            = await this.msgs[msgIndex]
-      const nonce          = Formati.fromBase64(msg.value.msg).slice(0, 32)
-      const errorPlainBz   = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce)
-      err.message = err.message.replace(errorCipherB64, Formati.fromUtf8(errorPlainBz))
-    } catch (decryptionError) {
-      console.error('Failed to decrypt :(')
-      throw new Error(
-        `Failed to decrypt the following error message: ${err.message}. `+
-        `Decryption error of the error message: ${(decryptionError as Error).message}`
-      )
+
+    } catch (err) {
+
+      try {
+
+        console.error('Submitting bundle failed:', err.message)
+        console.error('Trying to decrypt...')
+
+        const errorMessageRgx = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
+        const rgxMatches = errorMessageRgx.exec(err.message);
+        if (rgxMatches == null || rgxMatches.length != 3) throw err;
+        const errorCipherB64 = rgxMatches[1]
+        const errorCipherBz  = Formati.fromBase64(errorCipherB64)
+        const msgIndex       = Number(rgxMatches[2])
+        const msg            = await this.msgs[msgIndex]
+        const nonce          = Formati.fromBase64(msg.value.msg).slice(0, 32)
+        const errorPlainBz   = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce)
+        err.message = err.message.replace(errorCipherB64, Formati.fromUtf8(errorPlainBz))
+
+      } catch (decryptionError) {
+
+        console.error('Failed to decrypt :(')
+        throw new Error(
+          `Failed to decrypt the following error message: ${err.message}. `+
+          `Decryption error of the error message: ${(decryptionError as Error).message}`
+        )
+
+      }
+
+      throw err
     }
-    throw err
+
+    return results
+
   }
-  /** Format the messages for API v1beta1 like secretcli
-    * and generate a multisig-ready unsigned transaction bundle;
-    * don't execute it, but save it in `receipts/$CHAIN_ID/transactions`
-    * and output a signing command for it to the console. */
-  async save (name: string) {
-    // number of bundle, just for identification in console
-    const N = ++ScrtAminoBundle.bundleCounter
-    name = name || `TX.${N}.${+new Date()}`
-    // get signer's account number and sequence via the canonical API
-    const { accountNumber, sequence } = await this.nonce
-    // the base Bundle class stores messages
-    // as (immediately resolved) promises
-    const msgs = await this.buildForSave(this.msgs)
-    // print the body of the bundle
-    console.info(`Encrypted messages in bundle`, `#${N}:`)
-    console.log()
-    console.log(JSON.stringify(msgs))
-    console.log()
-    const finalUnsignedTx = this.finalizeForSave(msgs, name)
-    console.log(JSON.stringify(
-      { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx },
-      null, 2
-    ))
-  }
-  async buildForSave (msgs: { init: any, exec: any }[]) {
-    const encrypted = await Promise.all(msgs.map(({init, exec})=>{
-      if (init) {
-        const { sender, codeId, codeHash, label, msg, funds } = init
-        const toMsg = (msg:unknown)=>init2(sender, String(codeId), label, msg, funds)
-        return this.encrypt(codeHash, msg).then(toMsg)
-      }
-      if (exec) {
-        const { sender, contract, codeHash, msg, funds } = exec
-        return this.encrypt(codeHash, msg).then(msg=>exec2(sender, contract, msg, funds))
-      }
-      throw 'unreachable'
-    }))
-    return encrypted
-  }
-  finalizeForSave (messages: unknown[], memo: string) {
-    const fee = Fadroma.Scrt.gas(10000000)
-    const finalUnsignedTx = {
-      body: {
-        messages,
-        memo,
-        timeout_height: "0",
-        extension_options: [],
-        non_critical_extension_options: []
-      },
-      auth_info: {
-        signer_infos: [],
-        fee: { ...fee, gas: fee.gas, payer: "", granter: "" },
-      },
-      signatures: []
-    }
-    return finalUnsignedTx
-  }
+
 }
-
-const init1 = (
-  sender: Fadroma.Address, code_id: any, label: any, init_msg: any, init_funds: any
-) => ({
-  "type": 'wasm/MsgInstantiateContract',
-  value: { sender, code_id, label, init_msg, init_funds }
-})
-
-const init2 = (
-  sender: Fadroma.Address, code_id: any, label: any, init_msg: any, init_funds: any
-) => ({
-  "@type": "/secret.compute.v1beta1.MsgInstantiateContract",
-  callback_code_hash: "", callback_sig: null,
-  sender, code_id, label, init_msg, init_funds,
-})
-
-const exec1 = (
-  sender: Fadroma.Address, contract: Fadroma.Address, msg: any, sent_funds: any
-) => ({
-  "type": 'wasm/MsgExecuteContract',
-  value: { sender, contract, msg, sent_funds }
-})
-
-const exec2 = (
-  sender: Fadroma.Address, contract: Fadroma.Address, msg: any, sent_funds: any
-) => ({
-  "@type": '/secret.compute.v1beta1.MsgExecuteContract',
-  callback_code_hash: "", callback_sig: null,
-  sender, contract, msg, sent_funds,
-})
 
 export async function getNonce (url: string, address: Fadroma.Address) {
   const sign = () => {throw new Error('unreachable')}

@@ -19,11 +19,13 @@
 import * as Fadroma  from '@fadroma/client'
 import * as SecretJS from 'secretjs'
 
-export type ScrtGrpcTxResult = SecretJS.Tx
-
 import { randomBytes } from '@hackbg/formati'
 import { getFromEnv }  from '@hackbg/konfizi'
 import structuredClone from '@ungap/structured-clone'
+
+/// # CORE SECRET NETWORK DEFINITIONS /////////////////////////////////////////////////////////////
+
+export type ScrtGrpcTxResult = SecretJS.Tx
 
 /** Environment settings for Secret Network API
   * that are common between gRPC and Amino implementations. */
@@ -87,10 +89,83 @@ export abstract class ScrtAgent extends Fadroma.Agent {
 Scrt.Agent = ScrtAgent
 
 /** Base class for transaction-bundling Agent for both Secret Network implementations. */
-export abstract class ScrtBundle extends Fadroma.Bundle {}
+export abstract class ScrtBundle extends Fadroma.Bundle {
+
+  static bundleCounter: number = 0
+
+  /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
+    * unsigned transaction bundle; don't execute it, but save it in
+    * `receipts/$CHAIN_ID/transactions` and output a signing command for it to the console. */
+  async save (name?: string) {
+
+    // Number of bundle, just for identification in console
+    const N = ++ScrtBundle.bundleCounter
+    name ??= name || `TX.${N}.${+new Date()}`
+
+    // Get signer's account number and sequence via the canonical API
+    const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
+
+    // The base Bundle class stores messages as (immediately resolved) promises
+    const messages = await Promise.all(this.msgs.map(({init, exec})=>{
+      // Init messages are supported
+      if (init) return this.agent.encrypt(init.codeHash, init.msg).then((encrypted: unknown) => ({
+        "@type":            "/secret.compute.v1beta1.MsgInstantiateContract",
+        callback_code_hash: '',
+        callback_sig:       null,
+        sender:             init.sender,
+        code_id:     String(init.codeId),
+        init_funds:         init.funds,
+        label:              init.label,
+        init_msg:           encrypted,
+      }))
+      // Exec/handle messages are supported
+      if (exec) return this.agent.encrypt(exec.codeHash, exec.msg).then((encrypted: unknown) => ({
+        "@type":            '/secret.compute.v1beta1.MsgExecuteContract',
+        callback_code_hash: '',
+        callback_sig:       null,
+        sender:             exec.sender,
+        contract:           exec.contract,
+        sent_funds:         exec.funds,
+        msg:                encrypted,
+      }))
+      // Anything in the messages array that does not have init or exec key is ignored
+    }))
+
+    // Print the body of the bundle
+    console.info(`Encrypted messages in bundle`, `#${N}:`)
+    console.log()
+    console.log(JSON.stringify(messages))
+    console.log()
+
+    const fee     = Scrt.gas(10000000)
+    const gas     = fee.gas
+    const payer   = ""
+    const granter = ""
+    const finalUnsignedTx = {
+      auth_info:  { signer_infos: [], fee: { ...fee, gas, payer, granter }, },
+      signatures: [],
+      body: {
+        messages,
+        memo:                           name,
+        timeout_height:                 "0",
+        extension_options:              [],
+        non_critical_extension_options: []
+      },
+    }
+    const result = { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx }
+    console.log(JSON.stringify(result, null, 2))
+    console.info('Now you are ready to execute this manually.')
+    console.info('Only one bundle can be saved at a time.')
+    process.exit(0)
+
+  }
+
+}
 
 //@ts-ignore
 Scrt.Agent.Bundle = ScrtBundle
+
+/// # GRPC API ////////////////////////////////////////////////////////////////////////////////////
 
 /** gRPC-specific Secret Network settings. */
 export interface ScrtGrpcConfig extends ScrtConfig {
@@ -417,9 +492,32 @@ const tryDecode = (data: Uint8Array): string|Symbol => {
 
 export class ScrtGrpcBundle extends ScrtBundle {
 
-  async submit (memo = "") {
+  async submit (memo = ""): Promise<ScrtBundleResult[]> {
+
     this.assertCanSubmit()
-    const msgs  = await this.buildForSubmit()
+
+    const results: ScrtBundleResult[] = []
+
+    /** Format the messages for API v1 like secretjs and encrypt them. */
+    const msgs  = await Promise.all(this.msgs.map(async ({init, exec})=>{
+      if (init) return new SecretJS.MsgInstantiateContract({
+        sender:          init.sender,
+        codeId:          init.codeId,
+        codeHash:        init.codeHash,
+        label:           init.label,
+        initMsg:         init.msg,
+        initFunds:       init.funds,
+      })
+      if (exec) return new SecretJS.MsgExecuteContract({
+        sender:          exec.sender,
+        contractAddress: exec.contract,
+        codeHash:        exec.codeHash,
+        msg:             exec.msg,
+        sentFunds:       exec.funds,
+      })
+      throw 'unreachable'
+    }))
+
     const limit = Number(Scrt.defaultFees.exec.amount[0].amount)
     const gas   = msgs.length * limit
     try {
@@ -429,84 +527,41 @@ export class ScrtGrpcBundle extends ScrtBundle {
         const error = `ScrtBundle#execute: gRPC error ${txResult.code}: ${txResult.rawLog}`
         throw Object.assign(new Error(error), txResult)
       }
-      const results = this.collectSubmitResults(msgs, txResult)
-      return results
+      for (const i in msgs) {
+        const msg = msgs[i]
+        const result: Partial<ScrtBundleResult> = {}
+        result.sender  = this.address
+        result.tx      = txResult.transactionHash
+        result.chainId = this.chain.id
+        if (msg instanceof SecretJS.MsgInstantiateContract) {
+          type Log = { msg: number, type: string, key: string }
+          const findAddr = ({msg, type, key}: Log) =>
+            msg  ==  Number(i) &&
+            type === "message" &&
+            key  === "contract_address"
+          result.type    = 'wasm/MsgInstantiateContract'
+          result.codeId  = msg.codeId
+          result.label   = msg.label
+          result.address = txResult.arrayLog?.find(findAddr)?.value
+        }
+        if (msg instanceof SecretJS.MsgExecuteContract) {
+          result.type    = 'wasm/MsgExecuteContract'
+          result.address = msg.contractAddress
+        }
+        results[Number(i)] = result as ScrtBundleResult
+      }
     } catch (err) {
-      await this.handleSubmitError(err as Error)
+      console.error('Submitting bundle failed:', (err as Error).message)
+      console.error('Decrypting gRPC bundle errors is not implemented.')
     }
-  }
 
-  /** Format the messages for API v1 like secretjs and encrypt them. */
-  protected async buildForSubmit () {
-    const encrypted = await Promise.all(this.msgs.map(async ({init, exec})=>{
-      if (init) {
-        return new SecretJS.MsgInstantiateContract({
-          sender:    init.sender,
-          codeId:    init.codeId,
-          codeHash:  init.codeHash,
-          label:     init.label,
-          initMsg:   init.msg,
-          initFunds: init.funds,
-        })
-      }
-      if (exec) {
-        return new SecretJS.MsgExecuteContract({
-          sender:          exec.sender,
-          contractAddress: exec.contract,
-          codeHash:        exec.codeHash,
-          msg:             exec.msg,
-          sentFunds:       exec.funds,
-        })
-      }
-      throw 'unreachable'
-    }))
-    return encrypted
-  }
-
-  protected collectSubmitResults (
-    msgs:     ScrtBundleMessage[],
-    txResult: ScrtGrpcTxResult
-  ): ScrtBundleResult[] {
-    const results: ScrtBundleResult[] = []
-    for (const i in msgs) {
-      const msg = msgs[i]
-      const result: Partial<ScrtBundleResult> = {}
-      result.sender  = this.address
-      result.tx      = txResult.transactionHash
-      result.chainId = this.chain.id
-      if (msg instanceof SecretJS.MsgInstantiateContract) {
-        type Log = { msg: number, type: string, key: string }
-        const findAddr = ({msg, type, key}: Log) =>
-          msg  ==  Number(i) &&
-          type === "message" &&
-          key  === "contract_address"
-        result.type    = 'wasm/MsgInstantiateContract'
-        result.codeId  = msg.codeId
-        result.label   = msg.label
-        result.address = txResult.arrayLog?.find(findAddr)?.value
-      }
-      if (msg instanceof SecretJS.MsgExecuteContract) {
-        result.type    = 'wasm/MsgExecuteContract'
-        result.address = msg.contractAddress
-      }
-      results[Number(i)] = result as ScrtBundleResult
-    }
     return results
-  }
 
-  protected async handleSubmitError (err: Error) {
-    console.error('Submitting bundle failed:', err.message)
-    console.error('Decrypting gRPC bundle errors is not implemented.')
-    throw err
-  }
-
-  async save (name: never) {
-    throw new Error('ScrtGrpcBundle#save: not implemented')
   }
 
 }
 
-ScrtGrpc.Agent       = ScrtGrpcAgent as Fadroma.AgentCtor<ScrtGrpcAgent>
+ScrtGrpc.Agent = ScrtGrpcAgent as Fadroma.AgentCtor<ScrtGrpcAgent>
 
 ScrtGrpcAgent.Bundle = ScrtGrpcBundle
 
