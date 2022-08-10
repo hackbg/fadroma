@@ -1055,3 +1055,5 @@ if (
     ], process.argv.slice(2))
   }
 }
+
+export { YAML }
