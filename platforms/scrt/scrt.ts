@@ -22,7 +22,8 @@ import * as SecretJS from 'secretjs'
 export type ScrtGrpcTxResult = SecretJS.Tx
 
 import { randomBytes } from '@hackbg/formati'
-import { getFromEnv } from '@hackbg/konfizi'
+import { getFromEnv }  from '@hackbg/konfizi'
+import structuredClone from '@ungap/structured-clone'
 
 /** Environment settings for Secret Network API
   * that are common between gRPC and Amino implementations. */

@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "scrt.ts" ],
@@ -9,7 +9,12 @@
     "@hackbg/formati": "^1.1.2",
     "@hackbg/konfizi": "^1.0.4",
 
-    "secretjs":        "beta"
+    "secretjs": "beta",
+
+    "@ungap/structured-clone": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/ungap__structured-clone": "^0.3.0"
   },
   "scripts": {
     "ts:check":    "tsc --noEmit",
