@@ -1,7 +1,7 @@
 use fadroma::{
     self,
     cosmwasm_std::{self, testing::mock_dependencies, HumanAddr, Uint128},
-    prelude::{Canonize},
+    prelude::Canonize,
 };
 
 #[derive(Canonize, PartialEq, Clone, serde::Serialize, serde::Deserialize)]

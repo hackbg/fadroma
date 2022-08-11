@@ -2,25 +2,39 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{
     parse_quote, punctuated::Punctuated, token::Comma, Expr, FieldValue, Fields, Ident, ItemEnum,
+    Variant,
 };
 
 const CANONIZED_POSTFIX: &str = "Canon";
 
 pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
-    let original_ident = input.ident.clone();
+    // Original identifier.
+    let humanized = input.ident;
     input.ident = Ident::new(
-        &format!("{}{}", original_ident, CANONIZED_POSTFIX),
+        &format!("{}{}", humanized, CANONIZED_POSTFIX),
         Span::call_site(),
     );
-    let canonized = &input.ident.clone();
-    let canonized_impls = generate_trait_impls(&mut input, &original_ident, &canonized, true);
-    let humanized_impls = generate_trait_impls(&mut input, &canonized, &original_ident, false);
 
+    // Identifier for new enum.
+    let canonized = &input.ident.clone();
     add_serde_derive(&mut input);
+
+    // Transform each variant's fields.
+    let mut variants = &mut input.variants;
+    for (_, variant) in variants.iter_mut().enumerate() {
+        if let Err(err) = transform_fields(&mut variant.fields) {
+            let err = err.into_compile_error();
+
+            return proc_macro::TokenStream::from(quote!(#err));
+        }
+    }
+
+    let canonized_impls = generate_match_arms(&mut variants, &humanized, &canonized, true);
+    let humanized_impls = generate_match_arms(&mut variants, &canonized, &humanized, false);
 
     proc_macro::TokenStream::from(quote! {
         #input
-        impl fadroma::prelude::Canonize for #original_ident {
+        impl fadroma::prelude::Canonize for #humanized {
             type Output = #canonized;
 
             fn canonize(self, api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
@@ -30,7 +44,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
             }
         }
         impl fadroma::prelude::Humanize for #canonized {
-            type Output = #original_ident;
+            type Output = #humanized;
 
             fn humanize(self, api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(match self {
@@ -49,7 +63,7 @@ fn add_serde_derive(strukt: &mut ItemEnum) {
         .push(parse_quote!(#[derive(serde::Deserialize)]));
 }
 
-pub fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
+fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
     match fields {
         Fields::Named(fields) => {
             for mut field in fields.named.iter_mut() {
@@ -74,19 +88,14 @@ pub fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
     Ok(())
 }
 
-fn generate_trait_impls(
-    r#enum: &mut ItemEnum,
-    ident: &Ident,
-    orig: &Ident,
+fn generate_match_arms(
+    variants: &mut Punctuated<Variant, Comma>,
+    from: &Ident,
+    to: &Ident,
     canonize: bool,
 ) -> proc_macro2::TokenStream {
-    let variants = &mut r#enum.variants;
     let mut res = Vec::new();
-    // Transform each variant's fields
     for (_, variant) in variants.iter_mut().enumerate() {
-        if canonize {
-            transform_fields(&mut variant.fields).unwrap();
-        }
         let name = &variant.ident;
 
         let names = extract_field_names(&variant.fields);
@@ -94,7 +103,7 @@ fn generate_trait_impls(
         let fields = canonize_fields(&variant.fields, canonize);
 
         res.push(quote! {
-            #ident::#name #names => #orig::#name #fields,
+            #from::#name #names => #to::#name #fields,
         })
     }
 
@@ -108,7 +117,8 @@ fn extract_field_names(fields: &Fields) -> proc_macro2::TokenStream {
         Fields::Named(fields) => {
             let mut members: Punctuated<FieldValue, Comma> = Punctuated::new();
             for field in fields.named.iter() {
-                let name = field.ident.as_ref().unwrap(); // It's a named field.
+                // Named field, unwrap is fine here.
+                let name = field.ident.as_ref().unwrap();
                 let value = parse_quote!(#name);
 
                 members.push(value);
@@ -119,8 +129,8 @@ fn extract_field_names(fields: &Fields) -> proc_macro2::TokenStream {
         Fields::Unnamed(fields) => {
             let mut members: Punctuated<Expr, Comma> = Punctuated::new();
             for i in 0..fields.unnamed.len() {
-                let nm = Ident::new(&format!("{}{}", "var", &i.to_string()), Span::call_site());
-                let value = parse_quote!(#nm);
+                let ident = Ident::new(&format!("{}{}", "var", &i.to_string()), Span::call_site());
+                let value = parse_quote!(#ident);
 
                 members.push(value);
             }
@@ -128,18 +138,19 @@ fn extract_field_names(fields: &Fields) -> proc_macro2::TokenStream {
             quote!((#members))
         }
         Fields::Unit => {
-            unimplemented!()
+            unreachable!()
         }
     }
 }
 
-pub fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStream {
+fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStream {
     match &fields {
         Fields::Named(fields) => {
             let mut members: Punctuated<FieldValue, Comma> = Punctuated::new();
 
             for field in fields.named.iter() {
-                let name = field.ident.as_ref().unwrap(); // It's a named field.
+                // Named field, unwrap is fine here.
+                let name = field.ident.as_ref().unwrap();
                 let value = if canonize {
                     parse_quote!(#name: fadroma::prelude::Canonize::canonize(#name, api)?)
                 } else {
@@ -155,12 +166,12 @@ pub fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStr
             let mut members: Punctuated<Expr, Comma> = Punctuated::new();
 
             for i in 0..fields.unnamed.len() {
-                let nm = Ident::new(&format!("{}{}", "var", &i.to_string()), Span::call_site());
+                let ident = Ident::new(&format!("{}{}", "var", &i.to_string()), Span::call_site());
 
                 let value = if canonize {
-                    parse_quote!(fadroma::prelude::Canonize::canonize(#nm, api)?)
+                    parse_quote!(fadroma::prelude::Canonize::canonize(#ident, api)?)
                 } else {
-                    parse_quote!(fadroma::prelude::Humanize::humanize(#nm, api)?)
+                    parse_quote!(fadroma::prelude::Humanize::humanize(#ident, api)?)
                 };
 
                 members.push(value);
