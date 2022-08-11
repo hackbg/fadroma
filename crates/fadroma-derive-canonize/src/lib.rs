@@ -2,6 +2,7 @@ mod common;
 mod r#enum;
 mod generic;
 mod non_generic;
+mod generic_enum;
 
 use syn::{parse_macro_input, Item};
 
@@ -17,7 +18,13 @@ pub fn derive_canonize(stream: proc_macro::TokenStream) -> proc_macro::TokenStre
                 generic::generate(input)
             }
         }
-        Item::Enum(input) => r#enum::generate(input),
+        Item::Enum(input) => {
+            if input.generics.params.len() == 0 {
+                r#enum::generate(input)
+            } else {
+                generic_enum::generate(input)
+            }
+        }
         // ignore
         _ => proc_macro::TokenStream::new(),
     }

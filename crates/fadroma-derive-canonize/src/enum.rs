@@ -88,7 +88,7 @@ fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
     Ok(())
 }
 
-fn generate_match_arms(
+pub fn generate_match_arms(
     variants: &mut Punctuated<Variant, Comma>,
     from: &Ident,
     to: &Ident,
