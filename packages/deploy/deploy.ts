@@ -357,11 +357,12 @@ export function getDeployContext (
 }
 /** Base class for class-based deploy procedure. Adds progress logging. */
 export class DeployTask<X> extends Lazy<X> {
+  log = Console(this.constructor.name)
   constructor (public readonly context: DeployContext, getResult: ()=>X) {
     let self: this
     super(()=>{
-      console.info()
-      console.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
+      this.log.info()
+      this.log.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
       return getResult.bind(self)()
     })
     self = this
@@ -369,8 +370,8 @@ export class DeployTask<X> extends Lazy<X> {
   subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
     const self = this
     return new Lazy(()=>{
-      console.info()
-      console.info('Subtask  ', cb.name ? bold(cb.name) : '')
+      this.log.info()
+      this.log.info('Subtask  ', cb.name ? bold(cb.name) : '')
       return cb.bind(self)()
     })
   }
