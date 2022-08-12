@@ -138,16 +138,16 @@ export abstract class ScrtBundle extends Fadroma.Bundle {
     }))
 
     // Print the body of the bundle
-    console.info(`Encrypted messages in bundle`, `#${N}:`)
+    console.info(`\nEncrypted messages in bundle`, `#${N}:`)
     console.log()
-    console.log(JSON.stringify(messages))
+    console.log(JSON.stringify(messages, null, 2))
     console.log()
 
     const fee     = Scrt.gas(10000000)
     const gas     = fee.gas
     const payer   = ""
     const granter = ""
-    const finalUnsignedTx = {
+    const finalUnsignedTx = JSON.stringify({
       auth_info:  { signer_infos: [], fee: { ...fee, gas, payer, granter }, },
       signatures: [],
       body: {
@@ -157,9 +157,34 @@ export abstract class ScrtBundle extends Fadroma.Bundle {
         extension_options:              [],
         non_critical_extension_options: []
       },
-    }
+    })
+
+    console.log(`Run the following command to sign the bundle:\n`)
+
+    const t = Math.floor(+ new Date()/1000)
+    console.log(`secretcli tx sign /dev/stdin --output-document=${t}.signed.json \\
+--offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${this.agent.address} \\
+--chain-id=${this.agent.chain.id} --account-number=${accountNumber} --sequence=${sequence} \\
+<<< ${shellescape([finalUnsignedTx])}\n`)
+
+    console.log(`Bundle as JSON:\n`)
+    console.log(finalUnsignedTx + '\n')
 
     return { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx }
+
+    function shellescape(a: string[]) {
+      const ret: string[] = [];
+      a.forEach(function(s: string) {
+        if (/[^A-Za-z0-9_\/:=-]/.test(s)) {
+          s = "'"+s.replace(/'/g,"'\\''")+"'";
+          s = s.replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
+            .replace(/\\'''/g, "\\'" ); // remove non-escaped single-quote if there are enclosed between 2 escaped
+        }
+        ret.push(s);
+      });
+      return ret.join(' ');
+    }
+
 
   }
 

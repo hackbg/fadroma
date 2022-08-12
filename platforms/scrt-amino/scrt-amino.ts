@@ -478,11 +478,8 @@ export class PatchedSigningCosmWasmClient_1_2 extends SecretJS.SigningCosmWasmCl
   _queryClient: AxiosInstance|null = null
   get queryClient () {
     if (this._queryClient) return this._queryClient
-    return this._queryClient = Axios.create({
-      baseURL: this._queryUrl,
-    })
+    return this._queryClient = Axios.create({ baseURL: this._queryUrl })
   }
-
   async get (path: string|URL) {
     if (path instanceof URL) path = path.toString()
     const client = await this.queryClient
