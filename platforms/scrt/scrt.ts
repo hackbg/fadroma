@@ -17,6 +17,7 @@
 **/
 
 import * as Fadroma  from '@fadroma/client'
+import * as Formati  from '@hackbg/formati'
 import * as SecretJS from 'secretjs'
 
 import { randomBytes } from '@hackbg/formati'
@@ -82,6 +83,9 @@ export abstract class ScrtAgent extends Fadroma.Agent {
       return await ScrtGrpcAgent.create(chain, options) as ScrtAgent
     }
   }
+
+  abstract getNonce (): Promise<{ accountNumber: number, sequence: number }>
+  abstract encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message): Promise<string>
  
 }
 
@@ -90,6 +94,8 @@ Scrt.Agent = ScrtAgent
 
 /** Base class for transaction-bundling Agent for both Secret Network implementations. */
 export abstract class ScrtBundle extends Fadroma.Bundle {
+
+  declare agent: ScrtAgent
 
   static bundleCounter: number = 0
 
@@ -152,11 +158,8 @@ export abstract class ScrtBundle extends Fadroma.Bundle {
         non_critical_extension_options: []
       },
     }
-    const result = { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx }
-    console.log(JSON.stringify(result, null, 2))
-    console.info('Now you are ready to execute this manually.')
-    console.info('Only one bundle can be saved at a time.')
-    process.exit(0)
+
+    return { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx }
 
   }
 
@@ -473,6 +476,22 @@ export class ScrtGrpcAgent extends ScrtAgent {
     return result as ScrtGrpcTxResult
   }
 
+  async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
+    const { account } =
+      (await this.api.query.auth.account({ address: this.address, }))
+      ?? (()=>{throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`,)})()
+    const { accountNumber, sequence } =
+      account as { accountNumber: string, sequence: string }
+    return { accountNumber: Number(accountNumber), sequence: Number(sequence) }
+  }
+
+  async encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message) {
+    if (!codeHash) throw Errors.EncryptNoCodeHash()
+    const { encryptionUtils } = await this.api as any
+    const encrypted = encryptionUtils.encrypt(codeHash, msg as object)
+    return Formati.toBase64(encrypted)
+  }
+
 }
 
 /** Used to decode Uint8Array-represented UTF8 strings in TX responses. */
@@ -749,6 +768,7 @@ const Errors = {
   NoCodeId () {
     return new Error("ScrtGrpcAgent: need code ID to instantiate contract")
   },
+  EncryptNoCodeHash: () => new Error('Missing code hash'),
 }
 
 const Warnings = {
