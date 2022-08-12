@@ -111,9 +111,15 @@ export abstract class ScrtBundle extends Fadroma.Bundle {
     // Get signer's account number and sequence via the canonical API
     const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
 
+    // Print the body of the bundle
+    console.info(`\nMessages in bundle`, `#${N}:`)
+    console.log()
+    console.log(JSON.stringify(this.msgs, null, 2))
+    console.log()
+
     // The base Bundle class stores messages as (immediately resolved) promises
     const messages = await Promise.all(this.msgs.map(({init, exec})=>{
-      // Init messages are supported
+      // Encrypt init message
       if (init) return this.agent.encrypt(init.codeHash, init.msg).then((encrypted: unknown) => ({
         "@type":            "/secret.compute.v1beta1.MsgInstantiateContract",
         callback_code_hash: '',
@@ -124,7 +130,7 @@ export abstract class ScrtBundle extends Fadroma.Bundle {
         label:              init.label,
         init_msg:           encrypted,
       }))
-      // Exec/handle messages are supported
+      // Encrypt exec/handle message
       if (exec) return this.agent.encrypt(exec.codeHash, exec.msg).then((encrypted: unknown) => ({
         "@type":            '/secret.compute.v1beta1.MsgExecuteContract',
         callback_code_hash: '',
@@ -513,7 +519,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   async encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message) {
     if (!codeHash) throw Errors.EncryptNoCodeHash()
     const { encryptionUtils } = await this.api as any
-    const encrypted = encryptionUtils.encrypt(codeHash, msg as object)
+    const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return Formati.toBase64(encrypted)
   }
 
