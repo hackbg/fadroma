@@ -245,7 +245,7 @@ export class ScrtGrpc extends Scrt {
   }
 
   static defaultMainnetGrpcUrl: string = 'https://secret-4.api.trivium.network:9091'
-  static defaultTestnetGrpcUrl: string = 'https://testnet-web-rpc.roninventures.io'
+  static defaultTestnetGrpcUrl: string = 'https://grpc.testnet.secretsaturn.net'
 
   static Agent: Fadroma.AgentCtor<ScrtGrpcAgent>
          Agent: Fadroma.AgentCtor<ScrtGrpcAgent> = ScrtGrpc.Agent
