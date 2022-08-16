@@ -59,7 +59,7 @@ export abstract class Scrt extends Fadroma.Chain {
 
   static Agent: Fadroma.AgentCtor<ScrtAgent>
          Agent: Fadroma.AgentCtor<ScrtAgent> = Scrt.Agent
- 
+
 }
 
 /** May contain configuration options that are common betweeen gRPC and Amino implementations. */
@@ -86,7 +86,7 @@ export abstract class ScrtAgent extends Fadroma.Agent {
 
   abstract getNonce (): Promise<{ accountNumber: number, sequence: number }>
   abstract encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message): Promise<string>
- 
+
 }
 
 //@ts-ignore
@@ -542,14 +542,11 @@ const tryDecode = (data: Uint8Array): string|Symbol => {
 
 export class ScrtGrpcBundle extends ScrtBundle {
 
-  async submit (memo = ""): Promise<ScrtBundleResult[]> {
+  declare agent: ScrtGrpcAgent
 
-    this.assertCanSubmit()
-
-    const results: ScrtBundleResult[] = []
-
-    /** Format the messages for API v1 like secretjs and encrypt them. */
-    const msgs  = await Promise.all(this.msgs.map(async ({init, exec})=>{
+  /** Format the messages for API v1 like secretjs and encrypt them. */
+  private get conformedMsgs () {
+    return Promise.all(this.msgs.map(async ({init, exec})=>{
       if (init) return new SecretJS.MsgInstantiateContract({
         sender:          init.sender,
         codeId:          init.codeId,
@@ -567,7 +564,16 @@ export class ScrtGrpcBundle extends ScrtBundle {
       })
       throw 'unreachable'
     }))
+  }
 
+  async simulate () {
+    return await this.agent.api.tx.simulate(await this.conformedMsgs)
+  }
+
+  async submit (memo = ""): Promise<ScrtBundleResult[]> {
+    this.assertCanSubmit()
+    const results: ScrtBundleResult[] = []
+    const msgs  = await this.conformedMsgs
     const limit = Number(Scrt.defaultFees.exec.amount[0].amount)
     const gas   = msgs.length * limit
     try {
@@ -604,9 +610,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
       console.error('Submitting bundle failed:', (err as Error).message)
       console.error('Decrypting gRPC bundle errors is not implemented.')
     }
-
     return results
-
   }
 
 }
