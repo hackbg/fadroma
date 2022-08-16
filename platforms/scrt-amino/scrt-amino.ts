@@ -347,6 +347,11 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
 
   initialWait = 1000
 
+  async getNonce () {
+    const { accountNumber, sequence } = await this.api.getNonce()
+    return { accountNumber, sequence }
+  }
+
 }
 
 //@ts-ignore
@@ -412,11 +417,13 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
         if (msgs[i].type === 'wasm/MsgInstantiateContract') {
           type Attrs = { contract_address: Fadroma.Address, code_id: unknown }
           const attrs = mergeAttrs(txResult.logs[i].events[0].attributes) as Attrs
-          result.label   = msgs[i].value.label,
+          //@ts-ignore
+          result.label   = msgs[i].value.label
           result.address = attrs.contract_address
           result.codeId  = attrs.code_id
         }
         if (msgs[i].type === 'wasm/MsgExecuteContract') {
+          //@ts-ignore
           result.address = msgs[i].contract
         }
         results[Number(i)] = result
@@ -708,3 +715,4 @@ export interface ScrtNonce {
 }
 
 export * from '@fadroma/scrt'
+export { SecretJS }
