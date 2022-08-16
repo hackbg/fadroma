@@ -611,7 +611,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
 
 }
 
-ScrtGrpc.Agent = ScrtGrpcAgent as Fadroma.AgentCtor<ScrtGrpcAgent>
+ScrtGrpc.Agent = ScrtGrpcAgent as unknown as Fadroma.AgentCtor<ScrtGrpcAgent>
 
 ScrtGrpcAgent.Bundle = ScrtGrpcBundle
 
