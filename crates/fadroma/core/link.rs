@@ -1,12 +1,12 @@
 use crate::{
     self as fadroma,
     prelude::{Humanize, Canonize},
-    cosmwasm_std::{self, HumanAddr, Env},
+    cosmwasm_std::{self, HumanAddr, Env, to_binary, CosmosMsg, WasmMsg, StdResult, QueryRequest, WasmQuery, Querier},
     schemars::{self, JsonSchema},
     impl_canonize_default
 };
 
-use serde::{Deserialize, Serialize};
+use serde::{Serialize, Deserialize, de::DeserializeOwned};
 
 pub type CodeId   = u64;
 pub type CodeHash = String;
@@ -35,6 +35,26 @@ impl PartialEq for ContractInstantiationInfo {
 pub struct ContractLink<A> {
     pub address:   A,
     pub code_hash: CodeHash
+}
+
+impl ContractLink<HumanAddr> {
+    pub fn query <Q: Querier, M: Serialize, T: DeserializeOwned> (
+        &self, querier: &Q, msg: &M
+    ) -> StdResult<T> {
+        querier.query::<T>(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr:      self.address.clone(),
+            callback_code_hash: self.code_hash.clone(),
+            msg: to_binary(msg)?,
+        }))
+    }
+    pub fn execute <M: Serialize> (&self, msg: &M) -> StdResult<CosmosMsg> {
+        Ok(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr:      self.address.clone(),
+            callback_code_hash: self.code_hash.clone(),
+            send:               vec![],
+            msg:                to_binary(msg)?
+        }))
+    }
 }
 
 // Disregard code hash because it is case insensitive.
