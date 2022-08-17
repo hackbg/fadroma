@@ -1,7 +1,19 @@
 use crate::{
     self as fadroma,
     prelude::{Humanize, Canonize},
-    cosmwasm_std::{self, HumanAddr, Env, to_binary, CosmosMsg, WasmMsg, StdResult, QueryRequest, WasmQuery, Querier},
+    cosmwasm_std::{
+        self,
+        HumanAddr,
+        Env,
+        to_binary,
+        CosmosMsg,
+        WasmMsg,
+        StdResult,
+        QueryRequest,
+        WasmQuery,
+        Querier,
+        Binary
+    },
     schemars::{self, JsonSchema},
     impl_canonize_default
 };
@@ -41,18 +53,26 @@ impl ContractLink<HumanAddr> {
     pub fn query <Q: Querier, M: Serialize, T: DeserializeOwned> (
         &self, querier: &Q, msg: &M
     ) -> StdResult<T> {
+        self.query_bin(querier, to_binary(msg)?)
+    }
+    pub fn query_bin <Q: Querier, T: DeserializeOwned> (
+        &self, querier: &Q, msg: Binary
+    ) -> StdResult<T> {
         querier.query::<T>(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr:      self.address.clone(),
             callback_code_hash: self.code_hash.clone(),
-            msg: to_binary(msg)?,
+            msg,
         }))
     }
     pub fn execute <M: Serialize> (&self, msg: &M) -> StdResult<CosmosMsg> {
+        self.execute_bin(to_binary(msg)?)
+    }
+    pub fn execute_bin (&self, msg: Binary) -> StdResult<CosmosMsg> {
         Ok(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr:      self.address.clone(),
             callback_code_hash: self.code_hash.clone(),
             send:               vec![],
-            msg:                to_binary(msg)?
+            msg
         }))
     }
 }
