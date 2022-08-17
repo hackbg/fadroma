@@ -101,16 +101,25 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
   }
   parse (args: string[]) {
+    let forceNew = false
+    if (args.includes('--new')) {
+      forceNew = true
+      args = args.filter(x=>x!=='--resume')
+    }
     let resume = false
     if (args.includes('--resume')) {
-      console.warn('Experimental: Resuming last deployment')
       resume = true
       args = args.filter(x=>x!=='--resume')
     }
     const parsed = super.parse(args)
     if (!parsed) return null
-    if (resume) {
+    if (forceNew) {
+      console.warn('--new: Creating new deployment')
+      const toNew = (x: Step<any, any>): Step<any, any> =>
+        (x === DeployCommands.get || x === DeployCommands.getOrCreate) ? DeployCommands.create : x
+    } else if (resume) {
       // replace create with get
+      console.warn('--resume: Resuming last deployment')
       const toResume = (x: Step<any, any>): Step<any, any> =>
         (x === DeployCommands.create) ? DeployCommands.get : x
       parsed[1].steps = parsed[1].steps.map(toResume)
