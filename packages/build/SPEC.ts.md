@@ -109,6 +109,19 @@ builder = getBuilder({ buildRaw: true })
 ok(builder instanceof RawBuilder)
 ```
 
+* RawBuilder launches the **build script** in a subprocess.
+* By default, the interpreter is the same version of Node that is running Fadroma.
+
+```typescript
+import { execSync } from 'child_process'
+equal(builder.runtime, process.argv[0])
+builder.runtime = String(execSync('which true')).trim() // mock out build script interpreter
+builder.codeHashForPath = () => 'sha256'                // mock out code hash function
+artifact = await builder.build(source)
+```
+
+## Build caching
+
 * When **builder.caching == true**, each build call first checks in `./artifacts`
   for a corresponding pre-existing build and reuses it if present.
 

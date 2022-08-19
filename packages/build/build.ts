@@ -548,7 +548,7 @@ export class RawBuilder extends CachingBuilder {
       }
       // Run the build script
       const cmd = [
-        process.argv[0],
+        this.runtime,
         this.script,
         'phase1',
         source.workspace.ref,
@@ -584,6 +584,8 @@ export class RawBuilder extends CachingBuilder {
     }
     return artifacts
   }
+
+  runtime = process.argv[0]
 }
 
 type CargoTOML = TOMLFile<{ package: { name: string } }>
