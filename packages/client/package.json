@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/client",
-  "version": "4.1.0",
+  "version": "4.2.1",
   "type":    "module",
   "main":    "client.ts",
+  "files": [ "client.ts" ],
   "scripts": {
     "ts:check":    "tsc --noEmit",
     "release:dry": "pnpm ts:check && izomorf dry",

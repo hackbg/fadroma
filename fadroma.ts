@@ -18,128 +18,59 @@
 
 **/
 
-import { resolve, dirname } from 'path'
-import { homedir } from 'os'
-import { fileURLToPath } from 'url'
+import * as Komandi          from '@hackbg/komandi'
+import * as FadromaBuild     from '@fadroma/build'
+import * as FadromaDeploy    from '@fadroma/deploy'
+import * as FadromaDevnet    from '@fadroma/devnet'
+import * as FadromaConnect   from '@fadroma/connect'
+import * as FadromaScrtGrpc  from '@fadroma/scrt'
+import * as FadromaScrtAmino from '@fadroma/scrt-amino'
 
-import $ from '@hackbg/kabinet'
+/** Complete environment configuration of Fadroma as flat namespace. */
+export type FadromaConfig =
+  & FadromaBuild.BuilderConfig
+  & FadromaConnect.ChainConfig
+  & FadromaDeploy.DeployConfig
+  & FadromaDevnet.DevnetConfig
+  & FadromaScrtGrpc.ScrtGrpcConfig
+  & FadromaScrtAmino.ScrtAminoConfig
 
-export * from '@hackbg/konzola'
-import {
-  Console,
-  bold,
-  colors,
-  timestamp
-} from '@hackbg/konzola'
+/** Get the combined Fadroma config for all modules from the runtime environment. */
+export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
+  return {
+    ...FadromaBuild.getBuilderConfig(cwd, env),
+    ...FadromaConnect.getChainConfig(cwd, env),
+    ...FadromaDeploy.getDeployConfig(cwd, env),
+    ...FadromaDevnet.getDevnetConfig(cwd, env),
+    ...FadromaScrtGrpc.ScrtGrpc.getConfig(cwd, env),
+    ...FadromaScrtAmino.ScrtAmino.getConfig(cwd, env),
+  }
+}
 
-export * from '@hackbg/komandi'
-import {
-  getFromEnv,
-  Commands,
-  CommandContext
-} from '@hackbg/komandi'
+/** Context for Fadroma commands. */
+export type Context =
+  & Komandi.CommandContext
+  & { config: FadromaConfig }
+  & FadromaBuild.BuildContext
+  & FadromaDeploy.DeployContext
 
-export * from '@fadroma/client'
-import {
-  Address,
-  Agent,
-  AgentOpts,
-  Artifact,
-  Chain,
-  ChainMode,
-  Client,
-  ClientCtor,
-  ClientOpts,
-  Instance,
-  Message,
-  Template,
-} from '@fadroma/client'
-
-export * from '@fadroma/scrt'
-import {
-  ScrtConfig,
-  getScrtConfig,
-  ScrtGrpc
-} from '@fadroma/scrt'
-
-export * from '@fadroma/scrt-amino'
-import {
-  ScrtAmino
-} from '@fadroma/scrt-amino'
-
+// Reexport the entirety of the Fadroma suite.
 export * from '@fadroma/build'
-import {
-  BuildContext,
-  Builder,
-  BuilderConfig,
-  IntoArtifact,
-  IntoSource,
-  Source,
-  Workspace,
-  getBuilder,
-  getBuilderConfig,
-} from '@fadroma/build'
-
-export * from '@fadroma/deploy'
-import {
-  CachingFSUploader,
-  DeployContext,
-  Deployment,
-  Deployments,
-  FSUploader,
-  Uploader,
-  DeployConfig,
-  getDeployConfig
-} from '@fadroma/deploy'
-
-import {
-  DevnetConfig,
-  getDevnetConfig,
-  getDevnet
-} from '@fadroma/devnet'
-
-export * from '@fadroma/mocknet'
-import {
-  Mocknet
-} from '@fadroma/mocknet'
-
-export * from '@fadroma/connect'
-import {
-  ChainConfig,
-  getChainConfig
-} from '@fadroma/connect'
-
-export * from '@fadroma/schema'
 export * from '@fadroma/client'
+export * from '@fadroma/connect'
+export * from '@fadroma/deploy'
+export * from '@fadroma/mocknet'
+export * from '@fadroma/scrt'
+export * from '@fadroma/scrt-amino'
 export * from '@fadroma/tokens'
+//export * from '@fadroma/schema' // not updated yet
 
+// Reexport some toolbox utilities.
 export * from '@hackbg/komandi'
+export * from '@hackbg/konzola'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
 
-export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
-  const { Str, Bool } = getFromEnv(env)
-  const config = {
-    //project: Str('FADROMA_PROJECT', ()=>cwd),
-    ...getBuilderConfig(cwd, env),
-    ...getChainConfig(cwd, env),
-    ...getDeployConfig(cwd, env),
-    ...getDevnetConfig(cwd, env),
-    ...getScrtConfig(cwd, env),
-  }
-  return config
-}
-
-export type FadromaConfig =
-  BuilderConfig &
-  ChainConfig   &
-  DeployConfig  &
-  DevnetConfig  &
-  ScrtConfig    &
-  DevnetConfig
-
-export type Context =
-  CommandContext
-  & BuildContext
-  & DeployContext
-  & { config: FadromaConfig }
+// There's apparently also a decimal in @iov/encoding?
+// Gotta see if it's compatible.
+export type { Decimal } from '@fadroma/client'

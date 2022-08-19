@@ -1,13 +1,14 @@
 {
   "name":    "@fadroma/scrt-amino",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type":    "module",
   "main":    "scrt-amino.ts",
+  "files": [ "scrt-amino.ts" ],
   "dependencies": {
-    "@fadroma/scrt":        "workspace:^1",
+    "@fadroma/scrt":   "workspace:^1",
+    "@hackbg/konfizi": "^1.0.4",
+    "@hackbg/formati": "^1.2.0",
 
-    "@cosmjs/crypto":       "^0.20.0",
-    "@iov/encoding":        "^2.1.0",
     "secretjs":             "0.17.5",
     "exponential-backoff":  "^3.1.0",
     "axios":                "0.26.0"

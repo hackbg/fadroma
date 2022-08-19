@@ -1,5 +1,1 @@
-{
-  "extends": "../../tsconfig.json",
-  "include": [ "*.ts" ],
-  "exclude": [ "dist/" ]
-}
+{ "extends": "../../tsconfig.json", "include": [ "scrt-amino.ts" ] }

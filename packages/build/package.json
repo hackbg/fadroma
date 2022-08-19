@@ -1,8 +1,9 @@
 {
   "name":    "@fadroma/build",
-  "version": "1.0.0-beta.0",
+  "version": "1.0.7",
   "type":    "module",
   "main":    "./build.ts",
+  "files":   [ "build.ts", "build.impl.mjs" ],
   "description": "Build smart contracts with or without container.",
   "bin": { "fadroma-build": "build.cli.cjs" },
   "scripts": {
@@ -16,21 +17,18 @@
   "peerDependenciesMeta": {
     "@hackbg/ganesha": {
       "optional": true,
-      "description": "For fadroma-deploy command."
+      "description": "For fadroma-build command."
     }
   },
   "dependencies": {
     "@fadroma/client": "workspace:^4",
     "@hackbg/dokeres": "^4.0.2",
-    "@hackbg/formati": "^1.0.2",
-    "@hackbg/kabinet": "^3.0.6",
-    "@hackbg/konzola": "^1.1.1",
-    "@hackbg/komandi": "workspace:*",
-    "@hackbg/portali": "workspace:*",
-    "dotenv": "^16.0.1",
-    "json-schema-to-typescript": "^10.1.5",
-    "line-transform-stream": "^0.1.0",
-    "simple-git": "^3.7.1",
-    "toml":       "^3.0.0"
+    "@hackbg/formati": "^1.1.2",
+    "@hackbg/kabinet": "^3.0.8",
+    "@hackbg/konzola": "^1.1.2",
+    "@hackbg/komandi": "^4.2.8",
+    "@hackbg/portali": "^1.2.1",
+    "dotenv":     "^16.0.1",
+    "simple-git": "^3.7.1"
   }
 }

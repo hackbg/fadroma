@@ -17,10 +17,10 @@ export const console = Console('Fadroma Devnet')
 /** Get devnet settings from environment. */
 export const getDevnetConfig = envConfig(
   ({ Str, Bool }): DevnetConfig => ({
-    manager:   Str ('FADROMA_DEVNET_MANAGER',   ()=>null),
-    ephemeral: Bool('FADROMA_DEVNET_EPHEMERAL', ()=>false),
-    chainId:   Str ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet"),
-    port:      Str ('FADROMA_DEVNET_PORT',      ()=>null)
+    manager:   Str ('FADROMA_DEVNET_MANAGER',   ()=>null)             as string|null,
+    ephemeral: Bool('FADROMA_DEVNET_EPHEMERAL', ()=>false)            as boolean,
+    chainId:   Str ('FADROMA_DEVNET_CHAIN_ID',  ()=>"fadroma-devnet") as string,
+    port:      Str ('FADROMA_DEVNET_PORT',      ()=>null)             as string|null
   }))
 /** Devnet settings. */
 export interface DevnetConfig {
@@ -74,10 +74,10 @@ export abstract class Devnet implements DevnetHandle {
     portMode,
     ephemeral
   }: DevnetOpts) {
-    this.ephemeral = ephemeral
+    this.ephemeral = ephemeral ?? this.ephemeral
     this.chainId   = chainId      || this.chainId
     this.port      = Number(port) || this.port
-    this.portMode  = portMode
+    this.portMode  = portMode!
     if (!this.chainId) {
       throw new Error(
         '@fadroma/ops/Devnet: refusing to create directories for devnet with empty chain id'
@@ -129,7 +129,7 @@ export abstract class Devnet implements DevnetHandle {
     return this
   }
   /** Restore this node from the info stored in the nodeState file */
-  async load (): Promise<DevnetState> {
+  async load (): Promise<DevnetState|null> {
     const path = relative(cwd(), this.nodeState.path)
     if (this.stateRoot.exists() && this.nodeState.exists()) {
       //console.info(bold(`Loading:  `), path)
@@ -148,6 +148,7 @@ export abstract class Devnet implements DevnetHandle {
       }
     } else {
       console.info(`${path} does not exist.`)
+      return null
     }
   }
   /** Start the node if stopped. */
@@ -200,17 +201,17 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     super(options)
     console.info('Constructing devnet with', bold('@hackbg/dokeres'))
     this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
-    this.image       ??= options.image
-    this.initScript  ??= options.initScript
-    this.readyPhrase ??= options.readyPhrase
+    this.image       ??= options.image!
+    this.initScript  ??= options.initScript!
+    this.readyPhrase ??= options.readyPhrase!
   }
   get dokeres (): Dokeres|null {
     return this.image.dokeres
   }
   /** This should point to the standard production docker image for the network. */
   image: DokeresImage
-  /** */
-  container: DokeresContainer|null
+  /** Handle to created devnet container */
+  container: DokeresContainer|null = null
   /** Mounted into devnet container in place of default init script
     * in order to add custom genesis accounts with initial balances
     * and store their keys. */
@@ -219,7 +220,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   identities: JSONDirectory<unknown>
   /** Gets the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<AgentOpts> {
-    return this.identities.at(`${name}.json`).as(JSONFile).load()
+    return this.identities.at(`${name}.json`).as(JSONFile).load() as AgentOpts
   }
   /** Once this phrase is encountered in the log output
     * from the container, the devnet is ready to accept requests. */
@@ -315,8 +316,8 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
   async load (): Promise<DevnetState> {
     const data = await super.load()
-    if (data.containerId) {
-      this.container = await this.dokeres.container(data.containerId)
+    if (data?.containerId) {
+      this.container = await this.dokeres!.container(data.containerId)
     } else {
       throw new Error('@fadroma/ops/Devnet: missing container id in devnet state')
     }
@@ -324,7 +325,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
   /** Write the state of the devnet to a file. */
   save () {
-    return super.save({ containerId: this.container.id })
+    return super.save({ containerId: this.container!.id })
   }
   /** Spawn the existing localnet, or a new one if that is impossible */
   async respawn () {
@@ -337,14 +338,14 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     // get stored info about the container was supposed to be
     let id: string
     try {
-      id = (await this.load()).containerId
+      id = (await this.load()).containerId!
     } catch (e) {
       // if node state is corrupted, spawn
       console.warn(e)
       console.info(`Reading ${bold(shortPath)} failed`)
       return this.spawn()
     }
-    this.container = await this.dokeres.container(id)
+    this.container = await this.dokeres!.container(id)
     // check if contract is running
     let running: boolean
     try {
@@ -365,12 +366,12 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     // ...and try to make sure it dies when the Node process dies
     process.on('beforeExit', () => {
       if (this.ephemeral) {
-        this.container.kill()
+        this.container!.kill()
       } else {
         console.log()
         console.info(
           'Devnet is running on port', bold(String(this.port)),
-          'from container', bold(this.container.id.slice(0,8))
+          'from container', bold(this.container!.id.slice(0,8))
         )
       }
     })
@@ -390,8 +391,8 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
       )
       try {
         const { containerId } = await this.load()
-        await this.container.kill()
-        console.info(`Stopped container ${bold(containerId)}.`)
+        await this.container!.kill()
+        console.info(`Stopped container ${bold(containerId!)}.`)
       } catch (_e) {
         console.info("Didn't stop any container.")
       }
@@ -483,7 +484,7 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
     }
     return new RemoteDevnet({ managerURL, chainId, portMode })
   }
-  constructor (options) {
+  constructor (options: any) {
     super(options)
     console.info('Constructing', bold('remotely managed'), 'devnet')
     this.manager = new Endpoint(options.managerURL)
@@ -494,18 +495,12 @@ export class RemoteDevnet extends Devnet implements DevnetHandle {
     const port = await freePort()
     this.port = port
     console.info(bold('Spawning managed devnet'), this.chainId, 'on port', port)
-    const params = {
+    const result = await this.manager.get('/spawn', {
       id:          this.chainId,
       genesis:     this.genesisAccounts.join(','),
-      lcpPort:     undefined,
-      grpcWebAddr: undefined
-    }
-    if (this.portMode === 'lcp') {
-      params.lcpPort = port
-    } else if (this.portMode === 'grpcWeb') {
-      params.grpcWebAddr = `0.0.0.0:${port}`
-    }
-    const result = await this.manager.get('/spawn', params)
+      lcpPort:     (this.portMode === 'lcp')     ? String(port)      : undefined,
+      grpcWebAddr: (this.portMode === 'grpcWeb') ? `0.0.0.0:${port}` : undefined
+    })
     if (result.error === 'Node already running') {
       console.info('Remote devnet already running')
       if (this.portMode === 'lcp' && result.lcpPort) {
@@ -568,7 +563,7 @@ export function getDevnet (
   dokeres?: Dokeres
 ): Devnet {
   if (manager) {
-    return RemoteDevnet.getOrCreate(kind, manager, null, chainId, chainId ? null : chainId)
+    return RemoteDevnet.getOrCreate(kind, 'TODO', manager, undefined, chainId, chainId)
   } else {
     return DockerDevnet.getOrCreate(kind, dokeres)
   }

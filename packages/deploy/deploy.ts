@@ -45,7 +45,7 @@ import { freePort, waitPort } from '@hackbg/portali'
 import $, {
   BinaryFile,
   JSONDirectory, JSONFile,
-  YAMLDirectory, YAMLFile
+  YAMLDirectory, YAMLFile, alignYAML
 } from '@hackbg/kabinet'
 import { basename, resolve, dirname, relative, extname } from 'path'
 import {
@@ -53,9 +53,7 @@ import {
   readlinkSync, symlinkSync
 } from 'fs'
 import {fileURLToPath} from 'url'
-import TOML from 'toml'
 import YAML from 'js-yaml'
-import alignYAML from 'align-yaml'
 import { cwd } from 'process'
 import * as http from 'http'
 /// WHEN YOUR IMPORTS ARE MORE THAN A SCREENFUL, WORRY
@@ -67,12 +65,15 @@ type AgentBuilderConfig = (AgentConfig & BuilderConfig)
 export interface DeployConfig extends AgentBuilderConfig {
   /** Whether to ignore upload receipts and upload contracts anew. */
   reupload?: boolean
+  /** Whether to generate unsigned transactions for manual multisig signing. */
+  multisig?: boolean
 }
 /** Get deploy settings from process runtime environment. */
 export const getDeployConfig = envConfig(({Str, Bool}, cwd, env): DeployConfig => ({
   ...getBuilderConfig(cwd, env),
   ...getAgentConfig(cwd, env),
-  reupload: Bool('FADROMA_REUPLOAD', ()=>false)
+  reupload: Bool('FADROMA_REUPLOAD', ()=>false),
+  multisig: Bool('FADROMA_MULTISIG', ()=>false)
 }))
 /// # DEPLOY COMMANDS /////////////////////////////////////////////////////////////////////////////
 /** Command runner. Instantiate one in your script then use the
@@ -88,27 +89,40 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
       getChainContext,
       ConnectLogger(console).chainStatus,
       getAgentContext,
+      //@ts-ignore
       getDeployContext,
       ...before
     ], after)
     this.command('list',    'print a list of all deployments', DeployCommands.list)
     this.command('select',  'select a new active deployment',  DeployCommands.select)
+    //@ts-ignore
     this.command('new',     'create a new empty deployment',   DeployCommands.create)
     this.command('status',  'show the current deployment',     DeployCommands.status)
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
   }
   parse (args: string[]) {
+    let forceNew = false
+    if (args.includes('--new')) {
+      forceNew = true
+      args = args.filter(x=>x!=='--resume')
+    }
     let resume = false
     if (args.includes('--resume')) {
-      console.warn('Experimental: Resuming last deployment')
       resume = true
       args = args.filter(x=>x!=='--resume')
     }
     const parsed = super.parse(args)
     if (!parsed) return null
-    if (resume) {
-      parsed[1].steps = parsed[1].steps.map(
-        x=>x===DeployCommands.create?DeployCommands.get:x)
+    if (forceNew) {
+      console.warn('--new: Creating new deployment')
+      const toNew = (x: Step<any, any>): Step<any, any> =>
+        (x === DeployCommands.get || x === DeployCommands.getOrCreate) ? DeployCommands.create : x
+    } else if (resume) {
+      // replace create with get
+      console.warn('--resume: Resuming last deployment')
+      const toResume = (x: Step<any, any>): Step<any, any> =>
+        (x === DeployCommands.create) ? DeployCommands.get : x
+      parsed[1].steps = parsed[1].steps.map(toResume)
     }
     return parsed
   }
@@ -218,7 +232,7 @@ export const DeployLogger = ({ info, warn }: Console) => {
       let contracts: string|number = Object.values(receipts).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
       const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
-      info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path).shortPath), contracts)
+      info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
       const count = Object.values(receipts).length
       if (count > 0) {
         for (const name of Object.keys(receipts)) {
@@ -313,7 +327,7 @@ export function getDeployContext (
     console.warn('No active deployment. Most commands will fail.')
     console.warn('You can create a deployment using `fadroma-deploy new`')
     console.warn('or select a deployment using `fadroma-deploy select`')
-    console.warn('among the ones listed by `fadroma-deploy select`')
+    console.warn('among the ones listed by `fadroma-deploy list`')
   }
   // Make sure we have an operating identitiy
   context.creator ??= agent
@@ -352,11 +366,12 @@ export function getDeployContext (
 }
 /** Base class for class-based deploy procedure. Adds progress logging. */
 export class DeployTask<X> extends Lazy<X> {
+  log = Console(this.constructor.name)
   constructor (public readonly context: DeployContext, getResult: ()=>X) {
     let self: this
     super(()=>{
-      console.info()
-      console.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
+      this.log.info()
+      this.log.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
       return getResult.bind(self)()
     })
     self = this
@@ -364,8 +379,8 @@ export class DeployTask<X> extends Lazy<X> {
   subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
     const self = this
     return new Lazy(()=>{
-      console.info()
-      console.info('Subtask  ', cb.name ? bold(cb.name) : '')
+      this.log.info()
+      this.log.info('Subtask  ', cb.name ? bold(cb.name) : '')
       return cb.bind(self)()
     })
   }
@@ -496,8 +511,8 @@ export abstract class Uploader {
 export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
-    console.info('Upload   ', bold($(artifact.url).shortPath))
-    const data     = $(artifact.url).as(BinaryFile).load()
+    console.info('Upload   ', bold($(artifact.url!).shortPath))
+    const data     = $(artifact.url!).as(BinaryFile).load()
     const template = await this.agent.upload(data)
     await this.agent.nextBlock
     return template
@@ -513,7 +528,7 @@ export class FSUploader extends Uploader {
       const artifact = artifacts[i]
       let template
       if (artifact) {
-        const path = $(artifact.url)
+        const path = $(artifact.url!)
         const data = path.as(BinaryFile).load()
         //console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
         template = await this.agent.upload(data)
@@ -533,7 +548,7 @@ export class FSUploader extends Uploader {
     if (template.codeHash !== artifact.codeHash) {
       console.warn(
         `Code hash mismatch from upload in TX ${template.uploadTx}:\n`+
-        `   Expected ${artifact.codeHash} (from ${$(artifact.url).shortPath})\n`+
+        `   Expected ${artifact.codeHash} (from ${$(artifact.url!).shortPath})\n`+
         `   Got      ${template.codeHash} (from codeId#${template.codeId})`
       )
     }
@@ -557,7 +572,7 @@ export class CachingFSUploader extends FSUploader {
     return receiptPath
   }
   protected getUploadReceiptName (artifact: Artifact): string {
-    return `${$(artifact.url).name}.json`
+    return `${$(artifact.url!).name}.json`
   }
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (artifact: Artifact): Promise<Template> {
@@ -567,7 +582,7 @@ export class CachingFSUploader extends FSUploader {
       console.info('Reuse    ', bold(this.cache.at(name).shortPath))
       return receipt.toTemplate()
     }
-    const data = $(artifact.url).as(BinaryFile).load()
+    const data = $(artifact.url!).as(BinaryFile).load()
     const template = await this.agent.upload(data)
     receipt.save(template)
     return template
@@ -578,7 +593,7 @@ export class CachingFSUploader extends FSUploader {
     for (const i in artifacts) {
       const artifact = artifacts[i]
       this.ensureCodeHash(artifact)
-      const blobName     = $(artifact.url).name
+      const blobName     = $(artifact.url!).name
       const receiptPath  = this.getUploadReceiptPath(artifact)
       const relativePath = $(receiptPath).shortPath
       if (!$(receiptPath).exists()) {
@@ -629,10 +644,10 @@ export class CachingFSUploader extends FSUploader {
     if (!artifact.codeHash) {
       console.warn(
         'No code hash in artifact',
-        bold($(artifact.url).shortPath)
+        bold($(artifact.url!).shortPath)
       )
       try {
-        const codeHash = codeHashForPath($(artifact.url).path)
+        const codeHash = codeHashForPath($(artifact.url!).path)
         Object.assign(artifact, { codeHash })
         console.warn('Computed code hash:', bold(artifact.codeHash!))
       } catch (e) {
@@ -653,9 +668,9 @@ export class ContractSlot<C extends Client> {
   static E03 = () =>
     new Error("Contract not found. Try .getOrDeploy(template, init)")
   static E04 = () =>
-    new Error("No agent to deploy contract.")
+    new Error("Expected an identity to be selected.")
   static E05 = () =>
-    new Error("No deployment for contract.")
+    new Error("Expected a deployment to be selected.")
   static E07 = () =>
     new Error("Value is not Client and not a name.")
   static E08 = () =>
@@ -665,7 +680,7 @@ export class ContractSlot<C extends Client> {
     $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
     context: DeployContext
   ) {
-    if (!value) throw ConstractSlot.E00
+    if (!value) throw ContractSlot.E00
     if (typeof value === 'string') {
       this.name = value
       if (!context.deployment) throw ContractSlot.E01(value)
@@ -731,9 +746,12 @@ export class ContractSlot<C extends Client> {
     return await Promise.resolve(getter())
   }
   get (message: string = `Contract not found: ${this.name}`): C {
-    if (this.context.deployment?.has(this.name!)) {
-      const instance = this.context.deployment!.get(this.name!)
-      const client = new this.Client(this.context.creator, instance!)
+    if (this.name && this.context.deployment && this.context.deployment.has(this.name)) {
+      const instance = this.context.deployment.get(this.name)
+      const client   = new this.Client(this.context.creator, instance!)
+      return client
+    } else if (this.value) {
+      const client = new this.Client(this.context.creator, this.value)
       return client
     } else {
       throw new Error(message)
@@ -984,7 +1002,9 @@ export class Deployment {
     let output = ''
     for (let [name, data] of Object.entries(this.receipts)) {
       output += '---\n'
-      const obj = { name, ...data }
+      data.name ??= name
+      const obj = { ...data }
+      // convert Template to serializable plain object
       if (obj.template instanceof Template) {
         obj.template = JSON.parse(JSON.stringify(new Template(
           obj.template.artifact,
@@ -1006,12 +1026,33 @@ const codeHashForBlob  = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
 const codeHashForPath  = (location: string) => codeHashForBlob(readFileSync(location))
 export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 export type  Name      = string
-//@ts-ignore
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
+
+if (
+  //@ts-ignore
+  fileURLToPath(import.meta.url) === process.argv[1]
+) {
   if (process.argv.length > 2) {
     console.info('Using deploy script:', bold(process.argv[2]))
+    //@ts-ignore
     import(resolve(process.argv[2])).then(deployScript=>{
       const deployCommands = deployScript.default
+      if (!deployCommands) {
+        console.error(`${process.argv[2]} has no default export.`)
+        console.info(
+          `Export an instance of DeployCommands `+
+          `to make this file a deploy script:`
+        )
+        console.info(
+          `\n\n`                                                     +
+          `    import { DeployCommands } from '@fadroma/deploy'\n\n` +
+          `    const deploy = new DeployCommands('deploy')\n`        +
+          `    export default deploy\n\n`                            +
+          `    deploy.command('my-deploy-command', 'command info', async function (context) {\n\n` +
+          `      /* your deploy procedure here */\n\n` +
+          `    })\n`
+        )
+        process.exit(2)
+      }
       return deployCommands.launch(process.argv.slice(3))
     }).catch(e=>{
       console.error(e)
@@ -1024,3 +1065,5 @@ if (fileURLToPath(import.meta.url) === process.argv[1]) {
     ], process.argv.slice(2))
   }
 }
+
+export { YAML }

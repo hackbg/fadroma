@@ -22,7 +22,6 @@ import { toHex, Sha256 }                   from '@hackbg/formati'
 import { envConfig, CommandContext, Lazy } from '@hackbg/komandi'
 import { Dokeres, DokeresImage }           from '@hackbg/dokeres'
 import { default as simpleGit }            from 'simple-git'
-import LineTransformStream                 from 'line-transform-stream'
 
 import $, {
   Path,
@@ -37,19 +36,20 @@ import { basename, resolve, dirname   } from 'path'
 import { homedir, tmpdir              } from 'os'
 import { pathToFileURL, fileURLToPath } from 'url'
 import { readFileSync, mkdtempSync    } from 'fs'
+import { Transform                    } from 'stream'
 
 const console = Console('Fadroma Build')
 
 /** Function to get builder settings from process runtime environment. */
 export const getBuilderConfig = envConfig(({Str, Bool}, cwd): BuilderConfig => ({
-  project:    Str ('FADROMA_PROJECT',          ()=>cwd),
-  buildRaw:   Bool('FADROMA_BUILD_RAW',        ()=>false),
-  rebuild:    Bool('FADROMA_REBUILD',          ()=>false),
-  noFetch:    Bool('FADROMA_NO_FETCH',         ()=>false),
-  toolchain:  Str ('FADROMA_RUST',             ()=>''),
-  script:     Str ('FADROMA_BUILD_SCRIPT',     ()=>Builder.script),
-  image:      Str ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image),
-  dockerfile: Str ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile),
+  project:    Str ('FADROMA_PROJECT',          ()=>cwd)                      as string,
+  buildRaw:   Bool('FADROMA_BUILD_RAW',        ()=>false)                    as boolean,
+  rebuild:    Bool('FADROMA_REBUILD',          ()=>false)                    as boolean,
+  noFetch:    Bool('FADROMA_NO_FETCH',         ()=>false)                    as boolean,
+  toolchain:  Str ('FADROMA_RUST',             ()=>'')                       as string,
+  script:     Str ('FADROMA_BUILD_SCRIPT',     ()=>Builder.script)           as string,
+  image:      Str ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image)      as string,
+  dockerfile: Str ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile) as string,
 }))
 /** Builder settings definitions. */
 export interface BuilderConfig {
@@ -80,7 +80,7 @@ export const BuildLogger = ({ info }: Console) => ({
   },
   BuildOne (source: Source, prebuilt: Artifact|null, longestCrateName: number) {
     if (prebuilt) {
-      info('Reuse    ', bold($(prebuilt.url).shortPath))
+      info('Reuse    ', bold($(prebuilt.url!).shortPath))
     } else {
       const { crate, workspace: { path, ref = 'HEAD' } } = source
       if (ref === 'HEAD') {
@@ -101,7 +101,7 @@ export const BuildLogger = ({ info }: Console) => ({
     }
     info()
   },
-  Workspace (mounted, ref) {
+  Workspace (mounted: Path, ref: string) {
     info(
       `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
       `@`, bold(ref)
@@ -126,9 +126,9 @@ export interface BuildContext extends CommandContext {
   /** Knows how to build contracts for a target. */
   builder:   Builder
   /** Get an Artifact from Source or crate name. */
-  build:     (source: IntoArtifact, ref?: string)         => Promise<Artifact>
+  build:     (source: IntoSource, ref?: string)         => Promise<Artifact>
   /** Get one or more Artifacts from Source or crate name */
-  buildMany: (ref?: string, ...sources: IntoArtifact[][]) => Promise<Artifact[]>
+  buildMany: (ref?: string, ...sources: IntoSource[][]) => Promise<Artifact[]>
 }
 /** Add build vocabulary to context of REPL and deploy scripts. */
 export function getBuildContext (context: CommandContext & Partial<BuildContext>): BuildContext {
@@ -147,12 +147,13 @@ export function getBuildContext (context: CommandContext & Partial<BuildContext>
     async build (source: IntoSource, ref?: string): Promise<Artifact> {
       return await this.builder.build(this.getSource(source).at(ref))
     },
-    async buildMany (ref?: string, ...sources: IntoArtifact[][]): Promise<Artifact[]> {
+    async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Artifact[]> {
       sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
       return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
     }
   }
-}/** Base class for class-based deploy procedure. Adds progress logging. */
+}
+/** Base class for class-based deploy procedure. Adds progress logging. */
 export class BuildTask<X> extends Lazy<X> {
   constructor (public readonly context: BuildContext, getResult: ()=>X) {
     let self: this
@@ -165,6 +166,7 @@ export class BuildTask<X> extends Lazy<X> {
   }
   subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
     const self = this
+    //@ts-ignore
     return new Lazy(()=>{
       console.info()
       console.info('Subtask  ', cb.name ? bold(cb.name) : '')
@@ -172,8 +174,10 @@ export class BuildTask<X> extends Lazy<X> {
     })
   }
 }
+
 //@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
+
 /** Can perform builds. */
 export abstract class Builder {
   static script = resolve(__dirname, 'build.impl.mjs')
@@ -187,11 +191,12 @@ export abstract class Builder {
     this.outputDirName = opts.outputDirName ?? this.outputDirName
     this.script        = opts.script        ?? this.script
   }
-  buildMany (sources: Source[]): Promise<Artifact[]> {
+  buildMany (sources: Source[], ...args: unknown[]): Promise<Artifact[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
-  abstract build (source: SourceHandle, ...args): Promise<Artifact>
+  abstract build (source: SourceHandle, ...args: unknown[]): Promise<Artifact>
 }
+
 export interface BuilderOptions {
   /** The build script. */
   script:        string
@@ -229,9 +234,9 @@ export abstract class CachingBuilder extends Builder {
   }
 }
 
-export const artifactName = (crate, ref) => `${crate}@${sanitize(ref)}.wasm`
+export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize(ref)}.wasm`
 
-export const sanitize = ref => ref.replace(/\//g, '_')
+export const sanitize = (ref: string) => ref.replace(/\//g, '_')
 
 export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
 
@@ -266,8 +271,8 @@ export class DockerBuilder extends CachingBuilder {
       this.image = new DokeresImage(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
     }
     // Set up Docker image
-    this.dockerfile = opts.dockerfile
-    this.script     = opts.script
+    this.dockerfile ??= opts.dockerfile!
+    this.script     ??= opts.script!
   }
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'
@@ -370,7 +375,7 @@ export class DockerBuilder extends CachingBuilder {
     for (const [index, crate] of crates) {
       const prebuilt = this.prebuild(outputDir, crate, ref)
       if (prebuilt) {
-        const location = $(prebuilt.url).shortPath
+        const location = $(prebuilt.url!).shortPath
         //console.info('Exists, not rebuilding:', bold($(location).shortPath))
         artifacts[index] = prebuilt
       } else {
@@ -394,8 +399,9 @@ export class DockerBuilder extends CachingBuilder {
       // For non-interactively fetching submodules over SSH, we need to propagate known_hosts
       ...(knownHosts.isFile()    ? { [knownHosts.path]:     '/root/.ssh/known_hosts'   } : {}),
       ...(etcKnownHosts.isFile() ? { [etcKnownHosts.path] : '/etc/ssh/ssh_known_hosts' } : {}),
-      [process.env.SSH_AUTH_SOCK]: '/ssh_agent_socket'
     }
+    // For fetching from private repos, we need to give the container access to ssh-agent
+    if (process.env.SSH_AUTH_SOCK) readonly[process.env.SSH_AUTH_SOCK] = '/ssh_agent_socket'
     const writable = {
       // Output path for final artifacts
       [outputDir]:                  `/output`,
@@ -438,7 +444,7 @@ export class DockerBuilder extends CachingBuilder {
       TERM:                         process.env.TERM,
     }
     // Pre-populate the list of expected artifacts.
-    const outputWasms = [...new Array(crates.length)].map(()=>null)
+    const outputWasms: Array<string|null> = [...new Array(crates.length)].map(()=>null)
     for (const [crate, index] of Object.entries(shouldBuild)) {
       outputWasms[index] = $(outputDir, artifactName(crate, safeRef)).path
     }
@@ -460,7 +466,7 @@ export class DockerBuilder extends CachingBuilder {
     //console.debug('Building in a container with this configuration:', options)
     // Prepare the log output stream
     const buildLogPrefix = `[${ref}]`.padEnd(16)
-    const logs = new LineTransformStream(line=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
+    const logs = new LineTransformStream((line:string)=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
     logs.pipe(process.stdout)
     // Run the build container
     const rootName       = sanitize(basename(root))
@@ -505,7 +511,7 @@ export class RawBuilder extends CachingBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources: Source[]): Promise<Artifact[]> {
-    const artifacts = []
+    const artifacts: Artifact[] = []
     for (const source of sources) {
       let cwd = source.workspace.path
       // Temporary dirs used for checkouts of non-HEAD builds
@@ -548,7 +554,7 @@ export class RawBuilder extends CachingBuilder {
         source.crate
       ]
       const opts = { cwd, env: { ...process.env, ...env }, stdio: 'inherit' }
-      const sub  = spawn(cmd.shift(), cmd, opts as any)
+      const sub  = spawn(cmd.shift() as string, cmd, opts as any)
       await new Promise<void>((resolve, reject)=>{
         sub.on('exit', (code, signal) => {
           const build = `Build of ${source.crate} from ${$(source.workspace.path).shortPath} @ ${source.workspace.ref}`
@@ -570,7 +576,7 @@ export class RawBuilder extends CachingBuilder {
       const location = $(env._OUTPUT, artifactName(source.crate, sanitize(source.workspace.ref)))
       console.info('Build ok:', bold(location.shortPath))
       const codeHash = codeHashForPath(location.path)
-      artifacts.push({ url: pathToFileURL(location.path), codeHash })
+      artifacts.push(new Artifact(source, pathToFileURL(location.path), codeHash))
       // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
       if (tmpGit   && tmpGit.exists())   tmpGit.delete()
       if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
@@ -593,8 +599,8 @@ export async function buildFromCargoToml (
     const config   = { ...getBuilderConfig(), rebuild: true }
     const builder  = getBuilder(config)
     const artifact = await builder.build(source)
-    console.info('Built:    ', bold($(artifact.url).shortPath))
-    console.info('Code hash:', bold(artifact.codeHash))
+    console.info('Built:    ', bold($(artifact.url!).shortPath))
+    console.info('Code hash:', bold(artifact.codeHash!))
     process.exit(0)
   } catch (e) {
     console.error(`Build failed.`)
@@ -646,11 +652,11 @@ export async function buildFromBuildScript (
   }
 }
 
-export function listBuildSets (buildSets) {
+export function listBuildSets (buildSets: Record<string, ()=>Source[]>) {
   console.log('Available build sets:')
-  for (let [name, sources] of Object.entries(buildSets)) {
+  for (let [name, getSources] of Object.entries(buildSets)) {
     console.log(`\n  ${name}`)
-    sources = (sources as Function)() as any
+    const sources = getSources()
     for (const source of sources as Array<Source>) {
       console.log(`    ${bold(source.crate)} @ ${source.workspace.ref}`)
     }
@@ -715,7 +721,7 @@ export class Workspace {
   * - If the contracts workspace repository is a submodule,
   *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
 export class DotGit extends Path {
-  constructor (base, ...fragments) {
+  constructor (base: string, ...fragments: string[]) {
     super(base, ...fragments, '.git')
     if (!this.exists()) {
       // If .git does not exist, it is not possible to build past commits
@@ -762,10 +768,9 @@ export class DotGit extends Path {
   static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
 }
 
-
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  const config = { build: getBuilderConfig(process.cwd(), process.env) }
+  const config = { build: getBuilderConfig(process.cwd(), process.env as Record<string, string>) }
   const [buildPath, ...buildArgs] = process.argv.slice(2)
   const buildSpec = $(buildPath)
   if (buildSpec.isDirectory()) {
@@ -806,5 +811,52 @@ export function buildFromFile (
   } else {
     BuildLogger(console).BuildScript(file)
     buildFromBuildScript(file as OpaqueFile, buildArgs)
+  }
+}
+
+/** Based on: Line Transform Stream by Nick Schwarzenberg <nick@bitfasching.de>
+  * https://github.com/bitfasching/node-line-transform-stream#readme
+  * Used under MIT license. */
+class LineTransformStream extends Transform {
+  declare transformCallback: Function
+  declare stringEncoding:    string
+  declare lineBuffer:        string
+  constructor (transformCallback: Function, stringEncoding: string = 'utf8') {
+    // fail if callback is not a function
+    if (typeof transformCallback != 'function') throw new TypeError("Callback must be a function.")
+    // initialize parent
+    super()
+    // set callback for transforming lines
+    this.transformCallback = transformCallback
+    // set string encoding
+    this.stringEncoding = stringEncoding
+    // initialize internal line buffer
+    this.lineBuffer = ''
+  }
+  // implement transform method (input encoding is ignored)
+  _transform(data: any, encoding: string, callback: Function) {
+    // convert data to string
+    data = data.toString(this.stringEncoding)
+    // split data at line breaks
+    const lines = data.split( '\n' )
+    // prepend buffered data to first line
+    lines[0] = this.lineBuffer + lines[0]
+    // last "line" is actually not a complete line,
+    // remove it and store it for next time
+    this.lineBuffer = lines.pop()
+    // collect output
+    let output = ''
+    // process line by line
+    lines.forEach((line: string) => {
+      try {
+        // pass line to callback, transform it and add line-break back
+        output += this.transformCallback( line ) + '\n'
+      } catch (error) {
+        // catch processing errors and emit as stream error
+        callback(error)
+      }
+    })
+    // push output
+    callback(null, output)
   }
 }

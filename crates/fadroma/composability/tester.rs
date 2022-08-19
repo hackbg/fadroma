@@ -1,4 +1,4 @@
-use crate::{prelude::{*, testing::MockApi}, make_composable};
+use crate::{prelude::testing::MockApi, make_composable};
 use super::*;
 
 #[derive(Clone)]
@@ -8,6 +8,7 @@ pub struct MockExtern<S: Storage, A: Api, Q: Querier> {
     pub api: A,
     pub querier: Q,
 }
+
 impl<Q: Querier> MockExtern<ClonableMemoryStorage, MockApi, Q> {
     pub fn new (querier: Q) -> Self {
         Self {

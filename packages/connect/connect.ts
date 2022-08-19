@@ -14,7 +14,7 @@ const console = Console('Fadroma Connect')
 
 /** Get chain settings from process runtime environment. */
 export const getChainConfig = envConfig(({ Str, Bool }, cwd): ChainConfig => ({
-  project: Str('FADROMA_PROJECT',  ()=>cwd),
+  project: Str('FADROMA_PROJECT',  ()=>cwd) as string,
   chain:   Str('FADROMA_CHAIN',    ()=>null),
 }))
 /** Chain settings. */
@@ -22,26 +22,27 @@ export interface ChainConfig {
   /** Path to root of project. */
   project:  string
   /** Name of chain to use. */
-  chain:    string
+  chain:    string|null
 }
-export type Chains = Record<string, (config: unknown)=>Chain|Promise<Chain>>
+export type Chains = Record<string, (config: any)=>Chain|Promise<Chain>>
 /** Add a Chain and its Deployments to the Context. */
 export async function getChainContext (
-  context: CommandContext & Partial<{
-    config: ChainConfig,
-    chains: Chains
-  }>,
+  context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
 ): Promise<ChainContext> {
+
+  //@ts-ignore
   context.chains ??= knownChains
   const config = { ...getChainConfig(), ...context.config ?? {} }
   const name = config.chain
+
   // Check that a valid name is passed
-  if (!name || !context.chains[name]) {
-    ConnectLogger(console).noName(context.chains)
+  if (!name || !context.chains![name]) {
+    ConnectLogger(console).noName(context.chains!)
     process.exit(1)
   }
+
   // Return chain and deployments handle
-  const chain = await context.chains[name](config)
+  const chain = await context.chains![name](config)
   return {
     ...context,
     config,
@@ -52,7 +53,7 @@ export async function getChainContext (
 }
 export const defineDevnetMode =
   (Chain: { new(...args:any[]): Chain }, version: DevnetKind) =>
-    async (config: unknown) => {
+    async <T> (config: T) => {
       const mode = ChainMode.Devnet
       const node = await getDevnet(version)
       const id   = node.chainId
@@ -95,15 +96,15 @@ export interface ChainContext extends CommandContext {
 /** Get agent+chain settings from process runtime environment. */
 export const getAgentConfig = envConfig(({ Str }, cwd, env): AgentConfig => ({
   ...getChainConfig(cwd, env),
-  agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',     ()=>'ADMIN')),
-  agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>undefined))
+  agentName:     Str('FADROMA_AGENT',    ()=>Str('SCRT_AGENT_NAME',  ()=>'ADMIN')) as string,
+  agentMnemonic: Str('FADROMA_MNEMONIC', ()=>Str('SCRT_AGENT_MNEMONIC', ()=>null)) as string|null,
 }))
 /* Agent settings. */
 export interface AgentConfig extends ChainConfig {
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName:     string
   /** Mnemonic to use for authentication. */
-  agentMnemonic: string
+  agentMnemonic: string|null
 }
 
 /** Adds an Agent to the Context. */
@@ -120,7 +121,7 @@ export async function getAgentContext (context: ChainContext): Promise<AgentCont
     agentOpts.name = config.agentName
   } else {
     // for scrt-based chains, use mnemonic from config
-    agentOpts.mnemonic = config.agentMnemonic
+    agentOpts.mnemonic = config.agentMnemonic!
   }
   const agent = await context.chain.getAgent(agentOpts)
   return {
