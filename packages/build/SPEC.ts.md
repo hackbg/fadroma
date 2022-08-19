@@ -67,12 +67,16 @@ The outputs of builds are called **Artifact**s. They have the following properti
     instantiated contracts.
 
 ```typescript
-import { Artifact } from '@fadroma/build'
+import { Artifact } from '@fadroma/client'
 let artifact: Artifact
 ```
 
-* **DockerBuilder** (the default) runs builds in Docker container
-  using [`@hackbg/dokeres`](https://www.npmjs.com/package/@hackbg/dokeres).
+* **DockerBuilder** (the default) launches the [**build script**](./build.impl.mjs)
+  in Docker container provided by [`@hackbg/dokeres`](https://www.npmjs.com/package/@hackbg/dokeres).
+  * DockerBuilder comes with default **build image** and **Dockerfile**,
+    which can be overridden:
+    * **builder.image** is the build image to use (`hackbg/fadroma`)
+    * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
 
 ```typescript
 import { DockerBuilder } from '@fadroma/build'
@@ -80,28 +84,13 @@ import { Dokeres } from '@hackbg/dokeres'
 builder = getBuilder()
 ok(builder instanceof DockerBuilder)
 ok(builder.docker instanceof Dokeres)
-```
-
-* The Docker builder comes with default **build image** and **Dockerfile**,
-  which can be overridden:
-  * **builder.image** is the build image to use (`hackbg/fadroma`)
-  * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
-
-```typescript
 equal(builder.image.name, DockerBuilder.image)
 equal(builder.dockerfile, DockerBuilder.dockerfile)
-const docker     = Dokeres.mock(x=>console.log({x}))
-const dockerfile = '/path/to/a/Dockerfile'
-const image      = 'my-custom/build-image:version'
-builder = getBuilder({ docker, dockerfile, image })
-builder.codeHashForPath = () => 'sha256' // mock out code hash function (touch fs directly - yuck)
-artifact = await builder.build(source)
-deepEqual(artifact.url,  new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'))
-equal(artifact.source,   undefined)
-equal(artifact.codeHash, 'sha256')
 ```
 
 * **RawBuilder** (enabled by `FADROMA_BUILD_RAW=1`) runs builds in host environment.
+  * RawBuilder launches the [**build script**](./build.impl.mjs) in a subprocess.
+  * By default, the interpreter is the same version of Node that is running Fadroma.
 
 ```typescript
 import { RawBuilder } from '@fadroma/build'
@@ -109,15 +98,49 @@ builder = getBuilder({ buildRaw: true })
 ok(builder instanceof RawBuilder)
 ```
 
-* RawBuilder launches the **build script** in a subprocess.
-* By default, the interpreter is the same version of Node that is running Fadroma.
+* Let's create a DockerBuilder and a RawBuilder with mocked values and try them out!
 
 ```typescript
+const builders = [
+  getBuilder({
+    docker:     Dokeres.mock(),
+    dockerfile: '/path/to/a/Dockerfile',
+    image:      'my-custom/build-image:version'
+  }),
+  getBuilder({
+    buildRaw: true
+  })
+]
+// mock out code hash function
+builders[0].codeHashForPath = () => 'sha256'
+builders[1].codeHashForPath = () => 'sha256'
+
+// mock out runtime in raw builder
 import { execSync } from 'child_process'
-equal(builder.runtime, process.argv[0])
-builder.runtime = String(execSync('which true')).trim() // mock out build script interpreter
-builder.codeHashForPath = () => 'sha256'                // mock out code hash function
-artifact = await builder.build(source)
+builders[1].runtime = String(execSync('which true')).trim()
+```
+
+* Building one contract:
+
+```typescript
+for (const builder of builders) {
+  artifact = await builder.build(source)
+  deepEqual(artifact.url,  new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'))
+  equal(artifact.source,   source)
+  equal(artifact.codeHash, 'sha256')
+}
+```
+
+* Building multiple contracts:
+
+```typescript
+for (const builder of builders) {
+  const sources = [source, workspace.crate('crate-2')]
+  deepEqual(await builder.buildMany(sources), [
+    new Artifact(sources[0], new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'), 'sha256'),
+    new Artifact(sources[1], new URL('file:///path/to/project/artifacts/crate-2@HEAD.wasm'), 'sha256')
+  ])
+}
 ```
 
 ## Build caching

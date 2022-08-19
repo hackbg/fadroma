@@ -351,7 +351,9 @@ export class DockerBuilder extends CachingBuilder {
         for (const index in buildArtifacts) {
           const artifact = buildArtifacts[index]
           if (artifact) {
-            artifacts[index] = artifact
+            artifacts[index] = Object.assign(artifact, {
+              source: artifact.source ?? sources[index]
+            })
           }
         }
       }
