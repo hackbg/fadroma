@@ -228,10 +228,11 @@ export abstract class CachingBuilder extends Builder {
     }
     const location = $(outputDir, artifactName(crate, ref))
     if (location.exists()) {
-      return new Artifact(undefined, location.url, codeHashForPath(location.path))
+      return new Artifact(undefined, location.url, this.codeHashForPath(location.path))
     }
     return null
   }
+  codeHashForPath = codeHashForPath
 }
 
 export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize(ref)}.wasm`
@@ -493,7 +494,7 @@ export class DockerBuilder extends CachingBuilder {
       if (location === null) {
         return null
       } else {
-        return new Artifact(undefined, $(location).url, codeHashForPath(location))
+        return new Artifact(undefined, $(location).url, this.codeHashForPath(location))
       }
     })
   }
@@ -575,7 +576,7 @@ export class RawBuilder extends CachingBuilder {
       // Create an artifact for the build result
       const location = $(env._OUTPUT, artifactName(source.crate, sanitize(source.workspace.ref)))
       console.info('Build ok:', bold(location.shortPath))
-      const codeHash = codeHashForPath(location.path)
+      const codeHash = this.codeHashForPath(location.path)
       artifacts.push(new Artifact(source, pathToFileURL(location.path), codeHash))
       // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
       if (tmpGit   && tmpGit.exists())   tmpGit.delete()

@@ -55,8 +55,7 @@ deepEqual(ran, [[checkoutScript, [ref]], [buildScript, []]])
 
 ```typescript
 import { DockerBuilder } from '@hackbg/fadroma'
-import { Dokeres, DokeresImage } from '@hackbg/dokeres'
-import { mockDockerode } from './TESTING'
+import { Dokeres, DokeresImage, mockDockerode } from '@hackbg/dokeres'
 import { Transform } from 'stream'
 class TestDockerBuilder extends DockerBuilder {
   prebuild (source) { return false }
@@ -99,10 +98,9 @@ artifacts = await builder.buildMany([
 
 
 ```typescript
-import { DockerDevnet }  from '@hackbg/fadroma'
-import { withTmpFile }   from '@hackbg/kabinet'
-import { Dokeres }       from '@hackbg/dokeres'
-import { mockDockerode } from './TESTING'
+import { DockerDevnet } from '@hackbg/fadroma'
+import { withTmpFile } from '@hackbg/kabinet'
+import { Dokeres, mockDockerode } from '@hackbg/dokeres'
 import { resolve, basename } from 'path'
 const readyPhrase = "I'm Freddy"
 

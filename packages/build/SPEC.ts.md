@@ -52,29 +52,68 @@ deepEqual(workspace.crates(['crate-1', 'crate-2'])[0], source)
 # Getting and configuring builders
 
 The subclasses of **Builder** perform the builds of the specified **Source**s.
+You can obtain a **Builder** instance using **getBuilder(config: BuilderConfig)**.
 
 ```typescript
 import { Builder, getBuilder } from '@fadroma/build'
 let builder: Builder
 ```
 
-* DockerBuilder (the default) runs builds in Docker container:
-
-```typescript
-import { DockerBuilder } from '@fadroma/build'
-ok(getBuilder() instanceof DockerBuilder)
-```
-
-* RawBuilder (enabled by `FADROMA_BUILD_RAW=1`) runs builds in host environment.
-
-```typescript
-import { RawBuilder } from '@fadroma/build'
-ok(getBuilder({ buildRaw: true }) instanceof RawBuilder)
-```
+The outputs of builds are called **Artifact**s. They have the following properties:
+  * **artifact.url** points to the canonical location of the artifact.
+  * **artifact.source** points to the **Source** from which this was built.
+  * **artifact.codeHash** is a SHA256 checksum of the artifact, which should correspond
+    to the **template.codeHash** and **instance.codeHash** properties of uploaded and
+    instantiated contracts.
 
 ```typescript
 import { Artifact } from '@fadroma/build'
 let artifact: Artifact
+```
+
+* **DockerBuilder** (the default) runs builds in Docker container
+  using [`@hackbg/dokeres`](https://www.npmjs.com/package/@hackbg/dokeres).
+
+```typescript
+import { DockerBuilder } from '@fadroma/build'
+import { Dokeres } from '@hackbg/dokeres'
+builder = getBuilder()
+ok(builder instanceof DockerBuilder)
+ok(builder.docker instanceof Dokeres)
+```
+
+* The Docker builder comes with default **build image** and **Dockerfile**,
+  which can be overridden:
+  * **builder.image** is the build image to use (`hackbg/fadroma`)
+  * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
+
+```typescript
+equal(builder.image.name, DockerBuilder.image)
+equal(builder.dockerfile, DockerBuilder.dockerfile)
+const docker     = Dokeres.mock(x=>console.log({x}))
+const dockerfile = '/path/to/a/Dockerfile'
+const image      = 'my-custom/build-image:version'
+builder = getBuilder({ docker, dockerfile, image })
+builder.codeHashForPath = () => 'sha256' // mock out code hash function (touch fs directly - yuck)
+artifact = await builder.build(source)
+deepEqual(artifact.url,  new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'))
+equal(artifact.source,   undefined)
+equal(artifact.codeHash, 'sha256')
+```
+
+* **RawBuilder** (enabled by `FADROMA_BUILD_RAW=1`) runs builds in host environment.
+
+```typescript
+import { RawBuilder } from '@fadroma/build'
+builder = getBuilder({ buildRaw: true })
+ok(builder instanceof RawBuilder)
+```
+
+* When **builder.caching == true**, each build call first checks in `./artifacts`
+  for a corresponding pre-existing build and reuses it if present.
+
+```typescript
+equal(typeof getBuilder().caching, 'boolean')
 ```
 
 ## Some mock builders

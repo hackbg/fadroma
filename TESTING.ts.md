@@ -63,34 +63,6 @@ function example (name, wasm, hash) {
 
 ## Mocks
 
-### Mock of Dockerode API
-
-The next best thing after booting rootless Docker in GitHub Actions.
-
-Fadroma uses Docker for **build** and **devnet** containers.
-
-```typescript
-export function mockDockerode (callback = () => {}) {
-  return {
-    getImage () { return { async inspect () { return } } },
-    getContainer (options) { return mockDockerodeContainer(callback) }
-    async pull () {},
-    async createContainer (options) { return mockDockerodeContainer(callback) },
-    async run (...args) { callback({run:args}); return [{Error:null,StatusCode:0},Symbol()] }
-  }
-}
-export function mockDockerodeContainer (callback = () => {}) {
-  return {
-    id: 'mockmockmock',
-    logs (options, cb) { cb(...(callback({ createContainer: options })||[])) },
-    async start   () {}
-    async attach  () { return {setEncoding(){},pipe(){}} },
-    async wait    () { return {Error:null,StatusCode:0}}
-    async inspect () { return {Image:' ',Name:null,Args:null,Path:null,State:{Running:null}}}
-  }
-}
-```
-
 ### Mock of Secret Network 1.2 HTTP API
 
 > Not to be confused with the [Mocknet](./Mocknet.ts.md)

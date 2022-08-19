@@ -28,7 +28,7 @@
     "ts:clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
     "ts:check": "time tsc --noEmit",
     "ts:test": "time ensuite SPEC.ts.md",
-    "ts:test:cov": "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
+    "ts:test:cov": "time npx c8 -r text -n packages ensuite SPEC.ts.md",
     "ts:test:lcov": "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
     "ts:test:build": "./packages/build/build.ts",
     "ts:test:build:kv": "./packages/build/build.ts examples/kv",
