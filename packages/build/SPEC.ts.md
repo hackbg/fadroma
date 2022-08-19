@@ -5,20 +5,57 @@ import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
-# Builders compile artifacts from crates in the workspace
+# Specifying projects and sources
+
+A **Workspace** object points to the root of a project's [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)
+  * [ ] TODO: Test with non-workspace project.
 
 ```typescript
-import { Workspace, Source, Builder, Artifact } from '@fadroma/build'
+import { Workspace, DotGit } from '@fadroma/build'
 let workspace: Workspace
-let source:    Source
-let builder:   Builder
-let artifact:  Artifact
+const project = '/path/to/project'
 ```
 
-## Getting builders
+* A Workspace object can also point to a specific Git reference
+  (**workspace.ref**, defaults to `HEAD`, i.e. the working tree).
+* **workspace.at('ref')**. returns a *new* Workspace with the same path and new ref.
 
 ```typescript
-import { getBuilder, DockerBuilder, RawBuilder } from '@fadroma/build'
+workspace = new Workspace(project)
+deepEqual(workspace.at('my-branch'), new Workspace(project, 'my-branch'))
+```
+
+* If the `.git` directory (represented as **workspace.gitDir**) exists, this allows
+  the builder to check out and build a past commit of the repo (the one specified by
+  **workspace.ref**), instead of building from the working tree.
+
+```typescript
+import { DotGit } from '@fadroma/build'
+assert(workspace.gitDir instanceof DotGit)
+```
+
+A **Source** object points to a crate in a **Workspace**.
+
+```typescript
+let source: Source
+```
+
+* Given a **Workspace**, call **workspace.crate('my-crate')** to get a **Source** object
+  representing a crate in that workspace.
+* Use **workspace.crates(['crate-1', 'crate-2'])** to get multiple crates.
+
+```typescript
+source = workspace.crate('crate-1')
+deepEqual(workspace.crates(['crate-1', 'crate-2'])[0], source)
+```
+
+# Getting and configuring builders
+
+The subclasses of **Builder** perform the builds of the specified **Source**s.
+
+```typescript
+import { Builder, getBuilder } from '@fadroma/build'
+let builder: Builder
 ```
 
 * DockerBuilder (the default) runs builds in Docker container:
@@ -33,6 +70,11 @@ ok(getBuilder() instanceof DockerBuilder)
 ```typescript
 import { RawBuilder } from '@fadroma/build'
 ok(getBuilder({ buildRaw: true }) instanceof RawBuilder)
+```
+
+```typescript
+import { Artifact } from '@fadroma/build'
+let artifact: Artifact
 ```
 
 ## Some mock builders
