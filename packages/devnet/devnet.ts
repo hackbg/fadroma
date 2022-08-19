@@ -325,7 +325,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
   /** Write the state of the devnet to a file. */
   save () {
-    return super.save({ containerId: this.container!.id })
+    return super.save({ containerId: this.container?.id })
   }
   /** Spawn the existing localnet, or a new one if that is impossible */
   async respawn () {

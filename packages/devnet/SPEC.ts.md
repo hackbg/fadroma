@@ -30,21 +30,28 @@ ok(devnet.host)
 equal(devnet.port, 9091)
 ```
 
-* Devnets are persistent:
+* Devnets are persistent, and can be started and stopped,
+  thanks to the file **devnet.nodeState** which contains
+  info about the devnet container:
 
 ```typescript
 import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/kabinet'
+import { Dokeres } from '@hackbg/dokeres'
+import { DockerDevnet } from '.'
 // save/load Devnet state
 withTmpDir(async stateRoot=>{
-  const chainId = 'test-devnet'
-  const devnet = new Devnet({ chainId, stateRoot })
+  const chainId = 'fadroma-devnet'
+  const devnet = DockerDevnet.getOrCreate('scrt_1.3', Dokeres.mock())
+  devnet.stateRoot.path = stateRoot
   ok(devnet.nodeState instanceof JSONFile)
   ok(devnet.stateRoot instanceof BaseDirectory)
   equal(devnet.stateRoot.path, stateRoot)
-  //ok(await devnet.load())
+  devnet.container = { id: 'mocked' }
   equal(devnet.save(), devnet)
-  deepEqual(await devnet.load(), { chainId, port: devnet.port })
+  deepEqual(await devnet.load(), { containerId: 'mocked', chainId, port: devnet.port })
+  await devnet.spawn()
+  await devnet.kill()
+  await devnet.respawn()
+  await devnet.erase()
 })
 ```
-
-
