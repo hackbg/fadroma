@@ -38,14 +38,16 @@ artifact = { url: emptyContract }
 template = Symbol()
 agent    = { chain: { id: Symbol() }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
 uploader = new FSUploader(agent)
-deepEqual(await uploader.uploadMany([
+const results = await uploader.uploadMany([
   null,
   artifact,
   undefined,
   artifact,
   artifact,
   false
-]), [
+])
+console.log(results)
+deepEqual(results, [
   undefined,
   template,
   undefined,
@@ -134,8 +136,8 @@ await withTmpFile(f=>{
   equal(d, d.add('test1', { test1: 1 }))
   ok(!d.load())
   equal(d, d.set('test2', { test2: 2 }))
-  equal(d, d.setMany({test3: 3, test4: 4}))
-  assert.throws(()=>d.get('missing'))
+  equal(d, d.setMany({test3: {test:3}, test4: {test:4}}))
+  equal(d.get('missing'), null)
 })
 
 // init contract from uploaded template

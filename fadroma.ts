@@ -60,12 +60,16 @@ export * from '@fadroma/client'
 export * from '@fadroma/connect'
 export * from '@fadroma/deploy'
 export * from '@fadroma/mocknet'
-export * from '@fadroma/scrt'
-export * from '@fadroma/scrt-amino'
 export * from '@fadroma/tokens'
 //export * from '@fadroma/schema' // not updated yet
 
-// Reexport some toolbox utilities.
+// Platform support:
+export * from '@fadroma/scrt'
+export { SecretJS } from '@fadroma/scrt'
+export * from '@fadroma/scrt-amino'
+export { SecretJS as SecretJSAmino } from '@fadroma/scrt-amino'
+
+// Reexport some toolbox utilities:
 export * from '@hackbg/komandi'
 export * from '@hackbg/konzola'
 export * from '@hackbg/kabinet'

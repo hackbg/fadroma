@@ -535,8 +535,9 @@ export class FSUploader extends Uploader {
         //console.info('Uploaded:', bold(path.shortPath))
         //console.debug(template)
         this.checkCodeHash(artifact, template)
-        templates[i] = template
       }
+      //@ts-ignore
+      templates[i] = template
     }
     return templates
   }

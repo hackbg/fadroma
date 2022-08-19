@@ -60,15 +60,16 @@ let agent: Agent
   * This is asynchronous to allow for async crypto functions to run.
 
 ```typescript
-agent = await chain.getAgent({})
-assert(agent instanceof Agent)
+assert(await chain.getAgent({}) instanceof Agent)
 ```
 
 * When using devnet, you can also get an agent from a named genesis account:
 
 ```typescript
-chain = new Chain('devnet', {mode: ChainMode.Devnet, node: {getGenesisAccount(){return{}}}})
-agent = await chain.getAgent({ name: 'Alice' })
+assert(await new Chain('devnet', {
+  mode: ChainMode.Devnet,
+  node: { getGenesisAccount () { return {} }, respawn () {} }
+}).getAgent({ name: 'Alice' }) instanceof Agent)
 ```
 
 * **Waiting** until the block height has incremented
