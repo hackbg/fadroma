@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@fadroma/client": "workspace:^4",
-    "@hackbg/dokeres": "^4.2.0",
+    "@hackbg/dokeres": "^4.3.0",
     "@hackbg/formati": "^1.1.2",
     "@hackbg/kabinet": "^3.0.8",
     "@hackbg/konzola": "^1.1.2",
