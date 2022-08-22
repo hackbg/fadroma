@@ -58,15 +58,15 @@ pub use secret_toolkit;
 pub mod prelude {
 
     /// Alias for `StdResult<()>`.
-    pub type UsuallyOk = cosmwasm_std::StdResult<()>;
+    pub type UsuallyOk = StdResult<()>;
 
     /// Alias for `StdResult<Option<V>>`.
-    pub type Eventually<V> = cosmwasm_std::StdResult<Option<V>>;
+    pub type Eventually<V> = StdResult<Option<V>>;
 
     pub use crate::core::*;
 
     #[cfg(feature = "scrt")]
-    pub use crate::scrt::{*, cosmwasm_std};
+    pub use crate::scrt::{*, cosmwasm_std::{self, *}};
 
     #[cfg(feature = "scrt")]
     pub use schemars::{self, JsonSchema};
