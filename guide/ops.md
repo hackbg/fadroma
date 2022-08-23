@@ -64,11 +64,18 @@ deploy procedures.
 ## Defining deploy commands
 
 The **Commands#command(name, info, ...steps)** method declares commands.
+
   * **name** is the string used to invoke the command from the shell
   * **info** is a short help description
   * **steps** is one or more synchronous or asynchronous functions that constitute the command.
     They are run one after another, and the value returned from each step is added to the `context`
     (1st argument) of the next step.
+  * `commands.command(...)` returns `commands`, so it supports chaining.
+  * The `Commands` instance must be `export default`
+
+:::info
+Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
+:::
 
 Let's break this down as we prepare to implement `deployMyContract`.
 
