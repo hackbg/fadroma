@@ -44,26 +44,25 @@
     "@fadroma/client": "workspace:^4.2.1",
     "@fadroma/connect": "workspace:^1.0.5",
     "@fadroma/deploy": "workspace:^1.3.0",
-    "@fadroma/devnet": "workspace:^1.0.4",
+    "@fadroma/devnet": "workspace:^1.0.5",
     "@fadroma/mocknet": "workspace:^1.0.1",
-    "@fadroma/scrt": "workspace:^1.0.6",
-    "@fadroma/scrt-amino": "workspace:^1.0.5",
+    "@fadroma/scrt": "workspace:^1.3.0",
+    "@fadroma/scrt-amino": "workspace:^1.1.0",
     "@fadroma/tokens": "workspace:^3.0.4",
-    "@hackbg/dokeres": "^4.1.2",
     "@hackbg/formati": "^2.0.1",
     "@hackbg/ganesha": "^2.3.0",
-    "@hackbg/kabinet": "^3.1.1",
+    "@hackbg/kabinet": "^3.1.2",
     "@hackbg/komandi": "^4.2.8",
     "@hackbg/konzola": "^1.1.2",
     "dotenv": "^16.0.1"
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1.0.2",
-    "@hackbg/izomorf": "^4.2.3",
+    "@hackbg/izomorf": "^4.2.4",
     "@hackbg/runspec": "^2.3.1",
     "@types/dockerode": "^3.3.9",
     "@types/js-yaml": "^4.0.5",
-    "@types/node": "^16.11.48",
+    "@types/node": "^16.11.55",
     "@types/prettyjson": "^0.0.30",
     "@types/secure-random": "^1.1.0",
     "body-parser": "^1.20.0",
@@ -76,7 +75,7 @@
     "pug": "^3.0.2",
     "typedoc": "^0.22.18",
     "typescript": "^4.7.4",
-    "vitepress": "^1.0.0-alpha.4"
+    "vitepress": "^1.0.0-alpha.10"
   },
   "pnpm": {
     "peerDependencyRules": {

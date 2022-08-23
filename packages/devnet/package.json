@@ -1,13 +1,14 @@
 {
   "name":    "@fadroma/devnet",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type":    "module",
   "main":    "./devnet.ts",
   "files":   [ "devnet.ts", "devnet-init.mjs" ],
   "description": "Spawn local instance of blockchain for smart contract development.",
   "dependencies": {
-    "@hackbg/portali": "^1.2.3",
-    "@hackbg/kabinet": "^3.0.8",
+    "@hackbg/dokeres": "^4.4.1",
+    "@hackbg/portali": "^1.2.4",
+    "@hackbg/kabinet": "^3.1.2",
     "@hackbg/komandi": "^4.2.8",
     "@hackbg/formati": "^2.0.1"
   },

@@ -22,12 +22,11 @@
   },
   "dependencies": {
     "@fadroma/client": "workspace:^4",
-    "@hackbg/dokeres": "^4.3.0",
+    "@hackbg/dokeres": "^4.4.1",
     "@hackbg/formati": "^1.1.2",
-    "@hackbg/kabinet": "^3.0.8",
+    "@hackbg/kabinet": "^3.1.2",
     "@hackbg/konzola": "^1.1.2",
     "@hackbg/komandi": "^4.2.8",
-    "@hackbg/portali": "^1.2.1",
     "dotenv":     "^16.0.1",
     "simple-git": "^3.7.1"
   }
