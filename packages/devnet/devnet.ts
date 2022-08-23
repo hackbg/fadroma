@@ -282,13 +282,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     // update the record
     this.save()
     // wait for logs to confirm that the genesis is done
-    await waitUntilLogsSay(
-      this.container.container,
-      this.readyPhrase,
-      false,
-      this.waitSeconds,
-      DockerDevnet.logFilter
-    )
+    await this.container.waitLog(this.readyPhrase, false, this.waitSeconds, DockerDevnet.logFilter)
     // wait for port to be open
     await this.waitPort({ host: this.host, port: Number(this.port) })
     return this
