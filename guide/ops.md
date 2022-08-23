@@ -1,17 +1,9 @@
 # Deploying and configuring smart contracts with Fadroma Ops
 
-CosmWasm contract API consists of `init`, `handle`, and `query` methods,
-but client classes only support calling `execute` (corresponding to `handle`) and
-`query`.
+The following is a guide to understanding and using the smart contract
+deployment system, Fadroma Ops.
 
-So, who calls `init`? The **deployer** does. While there's nothing stopping you
-from using Fadroma to deploy smart contracts from a browser environment,
-the deployment of smart contracts is a workflow from their subsequent operation.
-
-The following is a guide to understanding and using the smart contract deployment system,
-Fadroma Ops.
-
-## Add Fadroma and your script to `package.json`
+## Example: deploying a single contract
 
 * `project/package.json`:
 
@@ -19,9 +11,46 @@ Fadroma Ops.
 {
   "devDependencies": {
     "fadroma": "^1.0.0"
-  },
+  }
+}
+```
+
+* `project/ops.ts'`:
+
+```typescript
+import Fadroma from '@hackbg/fadroma'
+const console = Fadroma.Console('MyDeploy')
+export default new Fadroma.DeployCommands('deploy')
+  .command('deploy', 'deploy an instance of my-contract', deployMyContract)
+  .command('status', 'print status of deployed contract', statusOfContract)
+
+async function deployMyContract (ops) {
+  console.info('Deploying...')
+  await ops.contract('MyContract').deploy('my-contract')
+}
+
+async function statusOfContract (ops) {
+  console.info('Querying status...')
+  const contract = await ops.contract('MyContract').get('Deploy the contract first.').populate()
+  console.debug(contract)
+}
+
+/** add more commands here */
+```
+
+* run with `npx`
+
+```shell
+npx fadroma ops.ts deploy
+npx fadroma ops.ts status
+```
+
+* or add to `package.json` scripts to run with `npm run`:
+
+```json
+{
   "scripts": {
-    "fadroma": "fadroma ops.ts"
+    "ops": "fadroma ops.ts"
   }
 }
 ```
@@ -32,39 +61,14 @@ deployment scripts on each run. You can use TypeScript seamlessly in your
 deploy procedures.
 :::
 
-## Write deploy script
+## Defining deploy commands
 
-* `project/ops.ts'`:
-
-```typescript
-import Fadroma from '@hackbg/fadroma'
-import type { DeployContext } from '@hackbg/fadroma'
-
-export default Fadroma.Deploy()
-  .command('new', 'deploy contract in new deployment'
-    Fadroma.Deploy.new,
-    deployMyContract)
-  .command('add', 'add contract to existing deployment'
-    Fadroma.Deploy.append,
-    deployMyContract)
-  .entrypoint(import.meta.url)
-
-async function deployMyContract (ops: DeployContext) {
-  /* we'll implement the deployment procedure here */
-}
-```
-
-The **.command(name, info, ...steps)** method declares commands
-that are then invoked like this:
-
-```typescript
-npm run fadroma new
-npm run fadroma add
-# ...
-```
-
-Steps are executed one after another, with a shared `context: DeployContext` argument
-to allow for composition and reuse.
+The **Commands#command(name, info, ...steps)** method declares commands.
+  * **name** is the string used to invoke the command from the shell
+  * **info** is a short help description
+  * **steps** is one or more synchronous or asynchronous functions that constitute the command.
+    They are run one after another, and the value returned from each step is added to the `context`
+    (1st argument) of the next step.
 
 Let's break this down as we prepare to implement `deployMyContract`.
 
