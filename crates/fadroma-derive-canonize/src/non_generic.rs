@@ -1,55 +1,30 @@
-use syn::{ItemStruct, Ident, Fields, ItemImpl, parse_quote};
 use proc_macro2::Span;
 use quote::quote;
+use syn::{parse_quote, Ident, ItemImpl, ItemStruct};
 
-use crate::common::canonize_fields;
-
-const CANONIZED_POSTFIX: &str = "Canon";
+use crate::common::{add_serde_derive, canonize_fields, transform_fields, CANONIZED_POSTFIX};
 
 pub fn generate(mut strukt: ItemStruct) -> proc_macro::TokenStream {
     let original_ident = strukt.ident;
-    strukt.ident = Ident::new(&format!("{}{}", original_ident, CANONIZED_POSTFIX), Span::call_site());
+    strukt.ident = Ident::new(
+        &format!("{}{}", original_ident, CANONIZED_POSTFIX),
+        Span::call_site(),
+    );
 
-    add_serde_derive(&mut strukt);
+    add_serde_derive(&mut strukt.attrs);
 
     if let Err(err) = transform_fields(&mut strukt.fields) {
         let err = err.into_compile_error();
 
-        return proc_macro::TokenStream::from(quote!(#err))
+        return proc_macro::TokenStream::from(quote!(#err));
     }
 
     let impls = generate_trait_impls(&strukt, &original_ident);
 
-    proc_macro::TokenStream::from(quote!{
+    proc_macro::TokenStream::from(quote! {
         #strukt
         #impls
     })
-}
-
-fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
-    match fields {
-        Fields::Named(fields) => {
-            for mut field in fields.named.iter_mut() {
-                let ty = &field.ty;
-                field.ty = parse_quote!(<#ty as fadroma::prelude::Canonize>::Output);
-            }
-        },
-        Fields::Unnamed(fields) => {
-            for mut field in fields.unnamed.iter_mut() {
-                let ty = &field.ty;
-                field.ty = parse_quote!(<#ty as fadroma::prelude::Canonize>::Output);
-            }
-        },
-        Fields::Unit => return Err(syn::Error::new(Span::call_site(), "Unit structs are not supported."))
-    }
-
-    Ok(())
-}
-
-fn add_serde_derive(strukt: &mut ItemStruct) {
-    strukt.attrs.clear();
-    strukt.attrs.push(parse_quote!(#[derive(serde::Serialize)]));
-    strukt.attrs.push(parse_quote!(#[derive(serde::Deserialize)]));
 }
 
 fn generate_trait_impls(strukt: &ItemStruct, humanized: &Ident) -> proc_macro2::TokenStream {

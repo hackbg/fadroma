@@ -5,7 +5,7 @@ use syn::{
     Variant,
 };
 
-const CANONIZED_POSTFIX: &str = "Canon";
+use crate::common::{add_serde_derive, transform_fields, CANONIZED_POSTFIX};
 
 pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
     // Original identifier.
@@ -17,7 +17,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
 
     // Identifier for new enum.
     let canonized = &input.ident.clone();
-    add_serde_derive(&mut input);
+    add_serde_derive(&mut input.attrs);
 
     // Transform each variant's fields.
     let mut variants = &mut input.variants;
@@ -53,39 +53,6 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
             }
         }
     })
-}
-
-fn add_serde_derive(strukt: &mut ItemEnum) {
-    strukt.attrs.clear();
-    strukt.attrs.push(parse_quote!(#[derive(serde::Serialize)]));
-    strukt
-        .attrs
-        .push(parse_quote!(#[derive(serde::Deserialize)]));
-}
-
-fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
-    match fields {
-        Fields::Named(fields) => {
-            for mut field in fields.named.iter_mut() {
-                let ty = &field.ty;
-                field.ty = parse_quote!(<#ty as fadroma::prelude::Canonize>::Output);
-            }
-        }
-        Fields::Unnamed(fields) => {
-            for mut field in fields.unnamed.iter_mut() {
-                let ty = &field.ty;
-                field.ty = parse_quote!(<#ty as fadroma::prelude::Canonize>::Output);
-            }
-        }
-        Fields::Unit => {
-            return Err(syn::Error::new(
-                Span::call_site(),
-                "Unit variants are not supported.",
-            ))
-        }
-    }
-
-    Ok(())
 }
 
 pub fn generate_match_arms(

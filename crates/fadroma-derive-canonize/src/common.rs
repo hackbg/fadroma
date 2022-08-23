@@ -1,11 +1,10 @@
-use syn::{
-    Fields, LitInt,
-    Expr, FieldValue, parse_quote,
-    punctuated::Punctuated,
-    token::Comma
-};
 use proc_macro2::Span;
 use quote::quote;
+use syn::{
+    parse_quote, punctuated::Punctuated, token::Comma, Attribute, Expr, FieldValue, Fields, LitInt,
+};
+
+pub const CANONIZED_POSTFIX: &str = "Canon";
 
 pub fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStream {
     match &fields {
@@ -24,7 +23,7 @@ pub fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStr
             }
 
             quote!({ #members })
-        },
+        }
         Fields::Unnamed(fields) => {
             let mut members: Punctuated<Expr, Comma> = Punctuated::new();
 
@@ -41,7 +40,39 @@ pub fn canonize_fields(fields: &Fields, canonize: bool) -> proc_macro2::TokenStr
             }
 
             quote!((#members))
-        },
-        Fields::Unit => unreachable!()
+        }
+        Fields::Unit => unreachable!(),
     }
+}
+
+pub fn add_serde_derive(attrs: &mut Vec<Attribute>) {
+    attrs.clear();
+    attrs.push(parse_quote!(#[derive(serde::Serialize)]));
+    attrs.push(parse_quote!(#[derive(serde::Deserialize)]));
+}
+
+
+pub fn transform_fields(fields: &mut Fields) -> syn::Result<()> {
+    match fields {
+        Fields::Named(fields) => {
+            for mut field in fields.named.iter_mut() {
+                let ty = &field.ty;
+                field.ty = parse_quote!(<#ty as fadroma::prelude::Canonize>::Output);
+            }
+        }
+        Fields::Unnamed(fields) => {
+            for mut field in fields.unnamed.iter_mut() {
+                let ty = &field.ty;
+                field.ty = parse_quote!(<#ty as fadroma::prelude::Canonize>::Output);
+            }
+        }
+        Fields::Unit => {
+            return Err(syn::Error::new(
+                Span::call_site(),
+                "Unit variants are not supported.",
+            ))
+        }
+    }
+
+    Ok(())
 }
