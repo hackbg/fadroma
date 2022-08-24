@@ -3,7 +3,7 @@
 The following is a guide to understanding and using the smart contract
 deployment system, Fadroma Ops.
 
-## Example: deploying a single contract
+## Example: deploying a contract
 
 * `project/package.json`:
 
@@ -15,7 +15,7 @@ deployment system, Fadroma Ops.
 }
 ```
 
-* `project/ops.ts'`:
+* `project/ops.ts`:
 
 ```typescript
 import Fadroma from '@hackbg/fadroma'
@@ -24,28 +24,28 @@ export default new Fadroma.DeployCommands('deploy')
   .command('deploy', 'deploy an instance of my-contract', deployMyContract)
   .command('status', 'print status of deployed contract', statusOfContract)
 
-async function deployMyContract (ops) {
+async function deployMyContract (context) {
   console.info('Deploying...')
-  await ops.contract('MyContract').deploy('my-contract')
+  await context.contract('MyContract').deploy('my-contract')
 }
 
-async function statusOfContract (ops) {
+async function statusOfContract (context) {
   console.info('Querying status...')
-  const contract = await ops.contract('MyContract').get('Deploy the contract first.').populate()
+  const contract = await context.contract('MyContract').get('Deploy the contract first.').populate()
   console.debug(contract)
 }
 
 /** add more commands here */
 ```
 
-* run with `npx`
+* run with `npx fadroma <SCRIPT> <COMMAND> <ARGUMENTS>`
 
 ```shell
 npx fadroma ops.ts deploy
 npx fadroma ops.ts status
 ```
 
-* or add to `package.json` scripts to run with `npm run`:
+* or add to `package.json` scripts to run with e.g. `npm run ops`:
 
 ```json
 {
@@ -61,54 +61,109 @@ deployment scripts on each run. You can use TypeScript seamlessly in your
 deploy procedures.
 :::
 
-## Defining deploy commands
+## How to define commands
 
 The **Commands#command(name, info, ...steps)** method declares commands.
 
   * **name** is the string used to invoke the command from the shell
   * **info** is a short help description
-  * **steps** is one or more synchronous or asynchronous functions that constitute the command.
-    They are run one after another, and the value returned from each step is added to the `context`
-    (1st argument) of the next step.
-  * `commands.command(...)` returns `commands`, so it supports chaining.
-  * The `Commands` instance must be `export default`
+  * **...steps** is one or more synchronous or asynchronous functions that constitute the command.
+
+**Steps** are run sequentially. The first argument to each step is a `context: DeployContext`.
+If a step returns an `Object`, the object's entries are added to the `context` for subsequent
+steps.
+
+:::info
+The `commands.command(...)` method returns `commands`, so it supports chaining.
+:::
 
 :::info
 Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
 :::
 
-Let's break this down as we prepare to implement `deployMyContract`.
+## Deployment context
 
-## Deployments
-
-The `new` and `add` commands differ by one pre-defined step: `Fadroma.Deploy.New` vs
-`Fadroma.Deploy.Append`. What's the difference?
-
-```typescript
-Fadroma.command('new', ...common, Fadroma.Deploy.New, deployMyContract)
-Fadroma.command('add', ...common, Fadroma.Deploy.Append, deployMyContract)
-```
-
-Unless they're one-off things, smart contract projects are deployed in multiple stages.
-You write some smart contracts, you deploy them on mainnet, then some time later
-you've written the next part of the system and you want to link it to the previous one.
+### How deployments are stored
 
 The **deployment receipt system** keeps track of the addresses, code ids, code hashes, and other
-info about the smart contracts that you deployed, as YAML files under `receipts/$CHAIN_ID/$DATE.yml`.
+info about the smart contracts that you deployed, in the form of files under
+`receipts/$CHAIN_ID/$DEPLOYMENT.yml`.
 
-* By adding `Fadroma.Deploy.New` to your command, you tell Fadroma to deploy contracts in a new,
-  empty deployment, unrelated to previously deployed contracts, and store info about these contracts
-  in a new receipt file.
-* By adding `Fadroma.Deploy.Append` to your command, you tell Fadroma to deploy contracts in the
-  currently active deployment, and store info about them in the existing receipt file.
+* `context.deployments: Deployments`: list of all deployments for the current project and chain.
+* `context.deployment: Deployment`: handle to currently selected deployment.
 
-It is recommended to keep receipts for mainnet and testnet in Git to keep track of the contracts
-that you deploy to public networks.
 
-The other thing that the deployments system does is prefix all contract labels with the name
-of the deployment. Labels are expected to be both meaningful and globally unique, so if you name
-your contracts `ALICE` and `BOB`, their actual labels will be e.g. `20220706_033003/ALICE` and
-`20220706_033003/BOB`.
+:::info
+It is recommended to keep receipts for mainnet and testnet in your VCS
+in order to keep track of the contracts that you deploy to public networks.
+:::
+
+:::info
+The deployments system prefixes all contract labels with the name of the deployment.
+This is because labels are expected to be both meaningful and globally unique.
+So if you `name` your contracts `ALICE` and `BOB`, and your deployment is called `20220706`,
+the on-chain labels of the contracts will be `20220706/ALICE` and `20220706/BOB`.
+:::
+
+## How to deploy contracts
+
+The `context.contract(name, Client?)` method, which returns a `ContractSlot` - a placeholder
+representing a contract that might or might not already be deployed.
+
+* `context.contract(name, Client?)` returns a `ContractSlot` - an object representing the role
+  of a contract in a deployment. You can use it to deploy a contract, or get a contract that is
+  already deployed. Either way, a `Client` is returned representing the deployed contract; you
+  can pass a custom `Client` subclass as 2nd argument to `context.contract(...)` to get a client
+  instance with your custom methods.
+  * `await context.contract(name, Client?).getOrDeploy(source, init)` is the most handy method
+    of `ContractSlot`: if a contract is found by `name` in the current deployment, it returns that;
+    otherwise, it deploys `source` with the specified `init` message and auto-generated label.
+  * `await context.contract(name, Client?).deploy(source, init)` deploys a contract from `source`
+    with the specified `init` msg and an auto-generated label; but if a contract with the same
+    label already exists on the chain, the call will fail.
+  * `context.contract(name, Client?).get(message)` looks up a contract by `name` in the current
+    deployment; if the contract is not found in the deployment, `message` is thrown.
+
+:::info
+`init` can be either an init message, or a function returned an init message.
+This is useful when there is extra preparation needed when deploying a contract,
+but not if it's already deployed.
+:::
+
+## Templates and factories
+
+Sometimes you want to upload a contract to the chain, but not instantiate it. For example, one of
+your contracts serves a factory and deploys new instances of another contract based on its id
+and code hash. You can use the `context.template(source)` method. Similar to `context.contract`,
+this returns a `TemplateSlot`; its methods are `get(message)`, `async upload()` and
+`async getOrUpload()`.
+
+### Example: deploying a factory contract with a template
+
+The following function only deploys the factory context if it's not already deployed,
+and uploads its template only if needed.
+
+```typescript
+async function idempotentlyDeployFactoryAndTemplate (context) {
+  await context.contract('Factory').getOrDeploy('factory', () => {
+    const { id, codeHash } = await context.template('product').getOrUpload()
+    return { id, code_hash: codeHash }
+  })
+}
+```
+
+## Deploying in bulk
+
+Sometimes it is useful to deploy multiple contracts in a single transaction.
+
+* `context.contracts(Client?).deployMany(source, inits: [name, init][])`
+  deploys multiple instances of the same `source`, each with a different `name` and `init`.
+* `context.templates([template1, template2]).uploadMany()` uploads multiple different templates,
+  as in the case when a factory contract is able to instantiate multiple different contracts.
+
+## Class-based deployments
+
+## Deployments
 
 :::info
 The timestamp here corresponds to the moment the deployment was created, and not the moment
