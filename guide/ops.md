@@ -58,6 +58,8 @@ npx fadroma ops.ts status
 ```
 
 :::info
+### TypeScript
+
 Fadroma will use [Ganesha](https://github.com/hackbg/ganesha) to compile
 deployment scripts on each run. You can use TypeScript seamlessly in your
 deploy procedures.
@@ -76,11 +78,13 @@ If a step returns an `Object`, the object's entries are added to the `context` f
 steps.
 
 :::info
-The `commands.command(...)` method returns `commands`, so it supports chaining.
-:::
+### Commands
 
-:::info
-Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
+* The `commands.command(...)` method returns `commands`, so it supports chaining.
+* Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
+* Fadroma uses [`@hackbg/komandi`](https://github.com/hackbg/toolbox/blob/main/komandi/komandi.ts)
+  to parse commands. This is a simple and loose command parser which does not support flags.
+  Arguments to a command are available in `context.cmdArgs` so you can define your own flags.
 :::
 
 ## How to deploy contracts
