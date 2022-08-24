@@ -1,18 +1,13 @@
 use fadroma::{
     self,
-    cosmwasm_std::{
-        self,
-        Uint128, HumanAddr,
-        testing::mock_dependencies
-    },
-    prelude::{Canonize, Humanize, save}
+    cosmwasm_std::{self, testing::mock_dependencies, HumanAddr, Uint128},
+    prelude::{save, Canonize, Humanize},
 };
 
-#[derive(Canonize, PartialEq, Clone)]
-#[derive(serde::Serialize)]
+#[derive(Canonize, PartialEq, Clone, serde::Serialize)]
 struct Test {
     pub addr: HumanAddr,
-    amount: Uint128
+    amount: Uint128,
 }
 
 #[derive(Canonize, PartialEq, Clone, serde::Deserialize)]
@@ -22,7 +17,7 @@ impl Default for Test {
     fn default() -> Self {
         Self {
             addr: HumanAddr::from("marigold"),
-            amount: Uint128(100)
+            amount: Uint128(100),
         }
     }
 }
@@ -45,7 +40,7 @@ fn test_derive() {
 
     let canonized = TestCanon {
         addr: test.addr.clone().canonize(&deps.api).unwrap(),
-        amount: test.amount
+        amount: test.amount,
     };
 
     save(&mut deps.storage, b"store", &canonized).unwrap();
@@ -67,10 +62,7 @@ fn test_derive_tuple() {
 
     let canon = test.clone().canonize(&deps.api).unwrap();
 
-    let canonized = TestTupleCanon(
-        test.0.clone().canonize(&deps.api).unwrap(),
-        test.1
-    );
+    let canonized = TestTupleCanon(test.0.clone().canonize(&deps.api).unwrap(), test.1);
 
     assert_eq!(canon.0, canonized.0);
     assert_eq!(canon.1, canonized.1);
