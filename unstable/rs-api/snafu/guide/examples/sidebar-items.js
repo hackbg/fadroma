@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["backtrace","Exposing complete backtraces to the location of the error."],["basic","The most common usage of SNAFU — an enumeration of possible errors."]]});
+window.SIDEBAR_ITEMS = {"mod":[["backtrace","Exposing complete backtraces to the location of the error."],["basic","The most common usage of SNAFU — an enumeration of possible errors."]]};

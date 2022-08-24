@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Snip20ReceiveMsg","Snip20ReceiveMsg should be de/serialized under `Receive()` variant in a HandleMsg"]]});
+window.SIDEBAR_ITEMS = {"struct":[["Snip20ReceiveMsg","Snip20ReceiveMsg should be de/serialized under `Receive()` variant in a HandleMsg"]]};

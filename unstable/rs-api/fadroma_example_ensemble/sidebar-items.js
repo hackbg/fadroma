@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["OracleQuery",""]],"struct":[["Oracle",""],["TestContract",""]]});
+window.SIDEBAR_ITEMS = {"enum":[["OracleQuery",""]],"struct":[["Oracle",""],["TestContract",""]]};

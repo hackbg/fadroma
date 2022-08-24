@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["batch",""],["handle",""],["query",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["batch",""],["handle",""],["query",""]]};

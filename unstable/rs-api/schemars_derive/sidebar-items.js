@@ -1,1 +1,1 @@
-initSidebarItems({"derive":[["JsonSchema",""]]});
+window.SIDEBAR_ITEMS = {"derive":[["JsonSchema",""]]};

@@ -1,1 +1,1 @@
-initSidebarItems({"trait":[["ResponseBuilder",""]]});
+window.SIDEBAR_ITEMS = {"trait":[["ResponseBuilder",""]]};

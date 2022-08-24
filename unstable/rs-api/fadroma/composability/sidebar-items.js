@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["tester",""]],"trait":[["BaseComposable",""],["Composable",""],["HandleDispatch","Trait for handle messages"],["QueryDispatch","Trait for query messages"]]});
+window.SIDEBAR_ITEMS = {"mod":[["tester",""]],"trait":[["ApiWrapper",""],["Composable",""],["HandleDispatch","Trait for handle messages"],["MutableStorageWrapper",""],["QuerierWrapper",""],["QueryDispatch","Trait for query messages"],["ReadonlyStorageWrapper",""]]};

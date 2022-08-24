@@ -1,1 +1,1 @@
-initSidebarItems({"attr":[["message",""]]});
+window.SIDEBAR_ITEMS = {"attr":[["message",""]]};

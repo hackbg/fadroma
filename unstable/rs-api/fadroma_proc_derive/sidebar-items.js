@@ -1,1 +1,1 @@
-initSidebarItems({"attr":[["contract",""],["contract_impl",""],["handle",""],["handle_guard",""],["init",""],["interface",""],["query",""]],"derive":[["DeserializeFlat",""]]});
+window.SIDEBAR_ITEMS = {"attr":[["contract",""],["contract_impl",""],["handle",""],["handle_guard",""],["init",""],["interface",""],["query",""]],"derive":[["DeserializeFlat",""]]};

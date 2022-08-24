@@ -1,1 +1,1 @@
-initSidebarItems({"derive":[["Canonize",""]]});
+window.SIDEBAR_ITEMS = {"derive":[["Canonize",""]]};

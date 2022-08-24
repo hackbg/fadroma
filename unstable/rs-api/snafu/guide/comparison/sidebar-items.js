@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["failure","SNAFU vs. Failure"]]});
+window.SIDEBAR_ITEMS = {"mod":[["failure","SNAFU vs. Failure"]]};

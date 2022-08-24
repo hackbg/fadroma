@@ -1,1 +1,1 @@
-initSidebarItems({"constant":[["BLOCK_SIZE",""]],"fn":[["space_pad","Take a Vec and pad it up to a multiple of `block_size`, using spaces at the end."],["to_cosmos_msg",""]]});
+window.SIDEBAR_ITEMS = {"constant":[["BLOCK_SIZE",""]],"fn":[["space_pad","Take a Vec and pad it up to a multiple of `block_size`, using spaces at the end."],["to_cosmos_msg",""]]};

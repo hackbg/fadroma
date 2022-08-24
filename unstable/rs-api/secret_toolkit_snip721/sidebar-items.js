@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["expiration",""],["handle",""],["metadata",""],["query",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["expiration",""],["handle",""],["metadata",""],["query",""]]};

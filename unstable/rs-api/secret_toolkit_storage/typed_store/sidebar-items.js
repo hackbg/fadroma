@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["TypedStore",""],["TypedStoreMut",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["TypedStore",""],["TypedStoreMut",""]]};
