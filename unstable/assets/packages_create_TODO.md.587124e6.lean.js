@@ -1,1 +1,0 @@
-import{_ as e,c as t,o as a}from"./app.b18454ba.js";const m=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"packages/create/TODO.md","lastUpdated":1661359727000}'),r={name:"packages/create/TODO.md"};function c(s,o,n,p,d,_){return a(),t("div")}const f=e(r,[["render",c]]);export{m as __pageData,f as default};
