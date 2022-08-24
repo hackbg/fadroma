@@ -87,8 +87,11 @@ export interface Instance {
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export class ContractLink {
   static fromInstance = (
-    { address, codeHash }: { address: Address, codeHash: CodeHash }
-  ) => new ContractLink(address, codeHash)
+    { address, codeHash }: { address: Address, codeHash?: CodeHash }
+  ) => {
+    if (!codeHash) throw new Error("Can't link to contract with no code hash")
+    return new ContractLink(address, codeHash)
+  }
 
   constructor (
     readonly address:   Address,
@@ -137,6 +140,10 @@ export class Client implements Instance {
   address:   Address
   /** Code hash representing the content of the contract's code. */
   codeHash?: CodeHash
+  /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
+  get asLink (): ContractLink {
+    return ContractLink.fromInstance(this)
+  }
   /** Code ID representing the identity of the contract's code. */
   codeId?:   CodeId
   /** Default fee for transactions. */

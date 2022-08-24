@@ -224,3 +224,41 @@ await withTmpDir(async dir=>{
 })
 ```
 
+### Deploy classes
+
+```typescript
+import { DeployTask } from './deploy'
+class DeployMyContracts extends DeployTask<Promise<{
+  contract1: Client
+  contract2: Client
+}>> {
+  result = async () => [await this.contract1, await this.contract2]
+  contract1 = this.contract('Contract1').getOrDeploy('contract-1', {})
+  contract2 = this.contract('Contract2').getOrDeploy('contract-2', async () => ({
+    dependency: (await this.contract1).asLink
+  }))
+}
+```
+
+```typescript
+import { getAgentContext, getChainContext } from '@fadroma/connect'
+import { getDeployContext } from './deploy'
+const context = await getDeployContext(await getAgentContext(await getChainContext({
+  config: { chain: 'Mocknet' }
+  deployment: {
+    has () { return true }
+    get (name) { return { address: name, codeHash: name } }
+  },
+  workspace: {},
+  builder:   {},
+  uploader:  {}
+})))
+```
+
+```typescript
+import { Client } from '@fadroma/client'
+result = await DeployMyContracts.run(context)
+assert(result instanceof Array)
+assert(result[0] instanceof Client)
+assert(result[1] instanceof Client)
+```

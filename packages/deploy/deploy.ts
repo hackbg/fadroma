@@ -366,16 +366,31 @@ export function getDeployContext (
 }
 /** Base class for class-based deploy procedure. Adds progress logging. */
 export class DeployTask<X> extends Lazy<X> {
+
+  static get run () {
+    const self = this
+    Object.defineProperty(runDeployTask, 'name', { value: `run ${this.name}` })
+    return runDeployTask
+    async function runDeployTask (context: DeployContext) {
+      return new self(context, ()=>{})
+    }
+  }
+
   log = Console(this.constructor.name)
-  constructor (public readonly context: DeployContext, getResult: ()=>X) {
+  constructor (public readonly context: DeployContext, cb?: ()=>X) {
     let self: this
     super(()=>{
       this.log.info()
       this.log.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
-      return getResult.bind(self)()
+      cb = this.result ?? cb
+      if (!cb) {
+        throw new Error('No callback passed and no return property defined on the class')
+      }
+      return cb.bind(self)()
     })
     self = this
   }
+  result?: ()=>X
   subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
     const self = this
     return new Lazy(()=>{
@@ -383,6 +398,11 @@ export class DeployTask<X> extends Lazy<X> {
       this.log.info('Subtask  ', cb.name ? bold(cb.name) : '')
       return cb.bind(self)()
     })
+  }
+  contract <C extends Client> (
+    arg: Name|Instance, _Client?: ClientCtor<C, ClientOpts>
+  ): ContractSlot<C> {
+    return this.context.contract(arg, _Client)
   }
 }
 /// # UPLOADING ///////////////////////////////////////////////////////////////////////////////////
@@ -679,7 +699,8 @@ export class ContractSlot<C extends Client> {
   constructor (
     value:   IntoContractSlot,
     $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
-    context: DeployContext
+    context: DeployContext,
+    task?:   DeployTask<unknown>
   ) {
     if (!value) throw ContractSlot.E00
     if (typeof value === 'string') {
@@ -694,10 +715,12 @@ export class ContractSlot<C extends Client> {
       this.value = new this.Client(context.creator, this.value)
     }
     this.context ??= context
+    this.task    ??= task
   }
   name?:   string
   Client:  ClientCtor<C, any>
   context: DeployContext
+  task?:   DeployTask<unknown>
   /** Info about the contract that we have so far. */
   value:   Partial<Instance> = {}
   /** Here the ContractSlot pretends to be a Promise. That way,
@@ -711,40 +734,64 @@ export class ContractSlot<C extends Client> {
     return Promise.resolve(this.value).then(resolved, rejected)
   }
   async deploy (template: Template|TemplateSlot|IntoTemplateSlot, msg: Message): Promise<C> {
-    const { creator, deployment } = this.context
-    if (!deployment) throw ContractSlot.E05()
-    if (!this.name)  throw ContractSlot.E08()
-    template = await new TemplateSlot(template, this.context).getOrUpload()
-    console.info(
-      'Deploy   ',    bold(this.name!),
-      'from code id', bold(String(template.codeId  ||'(unknown)')),
-      'hash',         bold(String(template.codeHash||'(unknown)'))
-    )
-    const instance = await this.context.deployment!.init(creator, template, this.name,  msg)
-    const client = new this.Client(this.context.creator, instance)
-    console.info(
-      'Deployed ',    bold(this.name!), 'is', bold(client.address),
-      'from code id', bold(String(template.codeId  ||'(unknown)'))
-    )
-    return this.value = client
+    if (this.task) {
+      const value = `deploy ${this.name??'contract'}`
+      Object.defineProperty(deployContract, 'name', { value })
+      return this.task.subtask(deployContract)
+    }
+    return await deployContract.bind(this)()
+    async function deployContract (this: ContractSlot<C>) {
+      const { creator, deployment } = this.context
+      if (!deployment) throw ContractSlot.E05()
+      if (!this.name)  throw ContractSlot.E08()
+      template = await new TemplateSlot(template, this.context).getOrUpload()
+      console.info(
+        'Deploy   ',    bold(this.name!),
+        'from code id', bold(String(template.codeId  ||'(unknown)')),
+        'hash',         bold(String(template.codeHash||'(unknown)'))
+      )
+      const instance = await this.context.deployment!.init(creator, template, this.name,  msg)
+      const client = new this.Client(this.context.creator, instance)
+      console.info(
+        'Deployed ',    bold(this.name!), 'is', bold(client.address),
+        'from code id', bold(String(template.codeId  ||'(unknown)'))
+      )
+      return this.value = client
+    }
   }
   async getOrDeploy (template: Template|TemplateSlot|IntoTemplateSlot, msg: Message): Promise<C> {
-    if (this.value instanceof this.Client) {
-      console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.value.address))
-      return this.value
-    } else if (this.value && this.value.address) {
-      this.value = new this.Client(this.context.creator, this.value)
-      console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold((this.value as C).address))
-      return this.value as C
-    } else if (this.name) {
-      if (!this.context.creator)    throw ContractSlot.E04()
-      if (!this.context.deployment) throw ContractSlot.E05()
-      return await this.deploy(template, msg)
+    if (this.task) {
+      const value = `get or deploy ${this.name??'contract'}`
+      Object.defineProperty(getOrDeployContract, 'name', { value })
+      return this.task.subtask(getOrDeployContract)
     }
-    throw ContractSlot.E07()
+    return await getOrDeployContract.bind(this)()
+    async function getOrDeployContract (this: ContractSlot<C>) {
+      if (this.value instanceof this.Client) {
+        console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.value.address))
+        return this.value
+      } else if (this.value && this.value.address) {
+        this.value = new this.Client(this.context.creator, this.value)
+        console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold((this.value as C).address))
+        return this.value as C
+      } else if (this.name) {
+        if (!this.context.creator)    throw ContractSlot.E04()
+        if (!this.context.deployment) throw ContractSlot.E05()
+        return await this.deploy(template, msg)
+      }
+      throw ContractSlot.E07()
+    }
   }
   async getOr (getter: ()=>C|Promise<C>): Promise<C> {
-    return await Promise.resolve(getter())
+    if (this.task) {
+      const value = `get or provide ${this.name??'contract'}`
+      Object.defineProperty(getContractOr, 'name', { value })
+      return this.task.subtask(getContractOr)
+    }
+    return await getContractOr.bind(this)()
+    async function getContractOr () {
+      return await Promise.resolve(getter())
+    }
   }
   get (message: string = `Contract not found: ${this.name}`): C {
     if (this.name && this.context.deployment && this.context.deployment.has(this.name)) {

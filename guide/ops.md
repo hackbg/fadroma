@@ -18,11 +18,14 @@ deployment system, Fadroma Ops.
 * `project/ops.ts`:
 
 ```typescript
+#!/usr/bin/env fadroma-deploy
 import Fadroma from '@hackbg/fadroma'
-const console = Fadroma.Console('MyDeploy')
+
 export default new Fadroma.DeployCommands('deploy')
   .command('deploy', 'deploy an instance of my-contract', deployMyContract)
   .command('status', 'print status of deployed contract', statusOfContract)
+
+const console = Fadroma.Console('MyDeploy')
 
 async function deployMyContract (context) {
   console.info('Deploying...')
@@ -34,7 +37,6 @@ async function statusOfContract (context) {
   const contract = await context.contract('MyContract').get('Deploy the contract first.').populate()
   console.debug(contract)
 }
-
 /** add more commands here */
 ```
 
@@ -180,46 +182,20 @@ In other words:
 * Instances of `DeployTask` can also be `await`ed, returning an object the ultimate result of the
   deployment.
 
-Here's a contrived example:
+Here's an example script containing one class-based deployment procedure:
 
 ```typescript
-interface MyContractGroup {
-  contract1:  Client
-  contract2:  Client
-}
-
+#!/usr/bin/env fadroma-deploy
+import Fadroma from '@hackbg/fadroma'
 export default new FadromaCommands('deploy')
-  .command('group', 'run DeployMyContractGroup', deployGroup)
+  .command('group', 'deploy multiple interdependent contracts', DeployPair.run)
 
-async function deployGroup (context): Promise<MyContractGroup> {
-  return await new DeployMyContractGroup(context)
-})
-
-class DeployMyContractGroup extends Fadroma.DeployTask<Promise<MyContractGroup>> {
-  constructor (context, args = context.cmdArgs) {
-
-    super(context, async function deployMyContract () {
-      return {
-        contract1: await this.contract1,
-        contract2: await this.contract2,
-      }
-    })
-  }
-
-  contract1 = this.subtask(async getOrDeployContract1 () {
-    return this.context.contract('Contract1').getOrDeploy('contract-1', {})
-  })
-
-  contract2 = this.subtask(async getOrDeployContract2 () {
-    const contract1 = await this.contract1
-    return this.context.contract('Contract2')
-      .getOrDeploy('contract-2', {
-        dependencies: [
-          { address: contract1.address, code_hash: contract1.codeHash }
-        ]
-      })
-  })
-
+class DeployPair extends DeployTask<Promise<[Fadroma.Client, Fadroma.Client]>> {
+  result = async () => [await this.contract1, await this.contract2]
+  contract1 = this.contract('Contract1').getOrDeploy('contract-1', {})
+  contract2 = this.contract('Contract2').getOrDeploy('contract-2', async () => ({
+    dependency: (await this.contract1).asLink
+  }))
 }
 ```
 
