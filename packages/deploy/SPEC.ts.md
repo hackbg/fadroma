@@ -232,7 +232,9 @@ class DeployMyContracts extends DeployTask<Promise<{
   contract1: Client
   contract2: Client
 }>> {
-  result = async () => [await this.contract1, await this.contract2]
+  constructor (context, ...args) {
+    super(context, async () => [await this.contract1, await this.contract2])
+  }
   contract1 = this.contract('Contract1').getOrDeploy('contract-1', {})
   contract2 = this.contract('Contract2').getOrDeploy('contract-2', async () => ({
     dependency: (await this.contract1).asLink

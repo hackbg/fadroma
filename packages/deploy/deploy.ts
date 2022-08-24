@@ -372,20 +372,19 @@ export class DeployTask<X> extends Lazy<X> {
     Object.defineProperty(runDeployTask, 'name', { value: `run ${this.name}` })
     return runDeployTask
     async function runDeployTask (context: DeployContext) {
-      return new self(context, ()=>{})
+      return new self(context)
     }
   }
 
   log = Console(this.constructor.name)
   constructor (public readonly context: DeployContext, cb?: ()=>X) {
+    if (!cb) {
+      throw new Error('No callback passed. Define task roots with super(context, callback)')
+    }
     let self: this
     super(()=>{
       this.log.info()
       this.log.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
-      cb = this.result ?? cb
-      if (!cb) {
-        throw new Error('No callback passed and no return property defined on the class')
-      }
       return cb.bind(self)()
     })
     self = this
