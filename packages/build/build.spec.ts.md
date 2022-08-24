@@ -2,6 +2,7 @@
 
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
+import * as Fadroma from '@fadroma/build'
 import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
@@ -11,8 +12,7 @@ A **Workspace** object points to the root of a project's [Cargo workspace](https
   * [ ] TODO: Test with non-workspace project.
 
 ```typescript
-import { Workspace, DotGit } from '@fadroma/build'
-let workspace: Workspace
+let workspace: Fadroma.Workspace
 const project = '/tmp/fadroma-test'
 ```
 
@@ -21,8 +21,8 @@ const project = '/tmp/fadroma-test'
 * **workspace.at('ref')**. returns a *new* Workspace with the same path and new ref.
 
 ```typescript
-workspace = new Workspace(project)
-deepEqual(workspace.at('my-branch'), new Workspace(project, 'my-branch'))
+workspace = new Fadroma.Workspace(project)
+deepEqual(workspace.at('my-branch'), new Fadroma.Workspace(project, 'my-branch'))
 ```
 
 * If the `.git` directory (represented as **workspace.gitDir**) exists, this allows
@@ -30,14 +30,13 @@ deepEqual(workspace.at('my-branch'), new Workspace(project, 'my-branch'))
   **workspace.ref**), instead of building from the working tree.
 
 ```typescript
-import { DotGit } from '@fadroma/build'
-assert(workspace.gitDir instanceof DotGit)
+assert(workspace.gitDir instanceof Fadroma.DotGit)
 ```
 
 A **Source** object points to a crate in a **Workspace**.
 
 ```typescript
-let source: Source
+let source: Fadroma.Source
 ```
 
 * Given a **Workspace**, call **workspace.crate('my-crate')** to get a **Source** object
@@ -46,6 +45,7 @@ let source: Source
 
 ```typescript
 source = workspace.crate('crate-1')
+ok(source instanceof Fadroma.Source)
 deepEqual(workspace.crates(['crate-1', 'crate-2'])[0], source)
 ```
 
@@ -55,8 +55,7 @@ The subclasses of **Builder** perform the builds of the specified **Source**s.
 You can obtain a **Builder** instance using **getBuilder(config: BuilderConfig)**.
 
 ```typescript
-import { Builder, getBuilder } from '@fadroma/build'
-let builder: Builder
+let builder: Fadroma.Builder
 ```
 
 The outputs of builds are called **Artifact**s. They have the following properties:
@@ -79,13 +78,12 @@ let artifact: Artifact
     * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
 
 ```typescript
-import { DockerBuilder } from '@fadroma/build'
 import { Dokeres } from '@hackbg/dokeres'
-builder = getBuilder()
-ok(builder instanceof DockerBuilder)
+builder = Fadroma.getBuilder()
+ok(builder instanceof Fadroma.DockerBuilder)
 ok(builder.docker instanceof Dokeres)
-equal(builder.image.name, DockerBuilder.image)
-equal(builder.dockerfile, DockerBuilder.dockerfile)
+equal(builder.image.name, Fadroma.DockerBuilder.image)
+equal(builder.dockerfile, Fadroma.DockerBuilder.dockerfile)
 ```
 
 * **RawBuilder** (enabled by `FADROMA_BUILD_RAW=1`) runs builds in host environment.
@@ -93,21 +91,20 @@ equal(builder.dockerfile, DockerBuilder.dockerfile)
   * By default, the interpreter is the same version of Node that is running Fadroma.
 
 ```typescript
-import { RawBuilder } from '@fadroma/build'
-builder = getBuilder({ buildRaw: true })
-ok(builder instanceof RawBuilder)
+builder = Fadroma.getBuilder({ buildRaw: true })
+ok(builder instanceof Fadroma.RawBuilder)
 ```
 
-* Let's create a DockerBuilder and a RawBuilder with mocked values and try them out!
+* Let's create a DockerBuilder and a RawBuilder with mocked values and try them out:
 
 ```typescript
 const builders = [
-  getBuilder({
+  Fadroma.getBuilder({
     docker:     Dokeres.mock(),
     dockerfile: '/path/to/a/Dockerfile',
     image:      'my-custom/build-image:version'
   }),
-  getBuilder({
+  Fadroma.getBuilder({
     buildRaw: true
   })
 ]
@@ -120,7 +117,7 @@ import { execSync } from 'child_process'
 builders[1].runtime = String(execSync('which true')).trim()
 ```
 
-* Building one contract:
+* Building the same contract with each builder:
 
 ```typescript
 for (const builder of builders) {
@@ -131,7 +128,7 @@ for (const builder of builders) {
 }
 ```
 
-* Building multiple contracts:
+* Building multiple contracts in parallel:
 
 ```typescript
 for (const builder of builders) {
@@ -149,14 +146,14 @@ for (const builder of builders) {
   for a corresponding pre-existing build and reuses it if present.
 
 ```typescript
-equal(typeof getBuilder().caching, 'boolean')
+equal(typeof Fadroma.getBuilder().caching, 'boolean')
 ```
 
 ## Some mock builders
 
 ```typescript
 console.info('builder')
-builder = new class TestBuilder1 extends Builder {
+builder = new class TestBuilder1 extends Fadroma.Builder {
   async build (source: Source): Promise<Artifact> {
     return { location: '', codeHash: '', source }
   }
@@ -174,7 +171,7 @@ assert(artifacts[0].source === sources[0])
 assert(artifacts[1].source === sources[1])
 assert(artifacts[2].source === sources[2])
 
-builder = new class TestBuilder2 extends Builder {
+builder = new class TestBuilder2 extends Fadroma.Builder {
   async build (source, args) { return { built: true, source, args } }
 }
 const source1 = Symbol()
@@ -197,7 +194,7 @@ Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
 
 ```typescript
 import { CachingBuilder } from '.'
-builder = new class TestCachingBuilder extends CachingBuilder {
+builder = new class TestCachingBuilder extends Fadroma.CachingBuilder {
   async build (source) { return {} }
 }
 workspace = { path: Testing.here, ref: 'HEAD' }
@@ -205,4 +202,48 @@ await assert.throws(()=>builder.prebuild({}))
 equal(builder.prebuild('', 'empty'), null)
 ```
 
-## Builders for Secret Network
+## Defining build tasks
+
+These are similar to the deploy tasks but are only concerned with building contracts,
+not uploading or instantiating them - i.e. they don't need access to any chain (though
+builds may pull compile-time dependencies from the network).
+
+Build tasks run in the following context:
+
+```typescript
+const buildContext: Fadroma.BuildContext = Fadroma.getBuildContext({})
+ok(buildContext.builder   instanceof Fadroma.Builder)
+ok(buildContext.workspace instanceof Fadroma.Workspace)
+ok(buildContext.getSource instanceof Function)
+ok(buildContext.build     instanceof Function)
+ok(buildContext.buildMany instanceof Function)
+```
+
+And can be defined and invoked like this:
+
+```typescript
+const buildTask: Fadroma.BuildTask = await new Fadroma.BuildTask(buildContext, () => {
+  // ...
+})
+```
+
+Or like this:
+
+```typescript
+class MyBuildTask extends Fadroma.BuildTask {
+  constructor (context) {
+    super(context, () => {
+      // ...
+    })
+  }
+}
+await new MyBuildTask(buildContext)
+```
+
+## Build messages
+
+WIP: Convert all status outputs from build module to semantic logs.
+
+```typescript
+for (const event of Object.values(Fadroma.BuildLogger({ info: () => {} })) event([],[])
+```
