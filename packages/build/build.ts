@@ -16,19 +16,18 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Artifact, SourceHandle } from '@fadroma/client'
 import { Console, bold } from '@hackbg/konzola'
 import { toHex, Sha256 } from '@hackbg/formati'
-import { envConfig, CommandContext, Lazy } from '@hackbg/komandi'
-import { Dokeres, DokeresImage, LineTransformStream } from '@hackbg/dokeres'
+import EnvConfig         from '@hackbg/konfizi'
+import * as Komandi from '@hackbg/komandi'
+import * as Dokeres from '@hackbg/dokeres'
+import * as Kabinet from '@hackbg/kabinet'
+import $ from '@hackbg/kabinet'
+
+import * as Fadroma from '@fadroma/client'
+
 import { default as simpleGit } from 'simple-git'
-import $, {
-  Path,
-  TextFile,
-  OpaqueFile,
-  OpaqueDirectory,
-  TOMLFile
-} from '@hackbg/kabinet'
+
 import { spawn                        } from 'child_process'
 import { basename, resolve, dirname   } from 'path'
 import { homedir, tmpdir              } from 'os'
@@ -37,42 +36,39 @@ import { readFileSync, mkdtempSync    } from 'fs'
 
 const console = Console('Fadroma Build')
 
-/** Function to get builder settings from process runtime environment. */
-export const getBuilderConfig = envConfig(({Str, Bool}, cwd): BuilderConfig => ({
-  project:    Str ('FADROMA_PROJECT',          ()=>cwd)                      as string,
-  buildRaw:   Bool('FADROMA_BUILD_RAW',        ()=>false)                    as boolean,
-  rebuild:    Bool('FADROMA_REBUILD',          ()=>false)                    as boolean,
-  noFetch:    Bool('FADROMA_NO_FETCH',         ()=>false)                    as boolean,
-  toolchain:  Str ('FADROMA_RUST',             ()=>'')                       as string,
-  script:     Str ('FADROMA_BUILD_SCRIPT',     ()=>Builder.script)           as string,
-  image:      Str ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image)      as string,
-  dockerfile: Str ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile) as string,
-}))
-/** Builder settings definitions. */
-export interface BuilderConfig {
+export class BuilderConfig extends EnvConfig {
   /** Project root. Defaults to current working directory. */
-  project:    string
+  project:    string =
+    this.getStr ('FADROMA_PROJECT',          ()=>cwd)
   /** Whether to bypass Docker and use the toolchain from the environment. */
-  buildRaw:   boolean
+  buildRaw:   boolean =
+    this.getBool('FADROMA_BUILD_RAW',        ()=>false)
   /** Whether to ignore existing build artifacts and rebuild contracts. */
-  rebuild:    boolean
+  rebuild:    boolean =
+    this.getBool('FADROMA_REBUILD',          ()=>false)
   /** Whether not to run `git fetch` during build. */
-  noFetch:    boolean
+  noFetch:    boolean =
+    this.getBool('FADROMA_NO_FETCH',         ()=>false)
   /** Which version of the Rust toolchain to use, e.g. `1.59.0` */
-  toolchain:  string
+  toolchain:  string =
+    this.getStr ('FADROMA_RUST',             ()=>'')
   /** Docker image to use for dockerized builds. */
-  image:      string
+  image:      string =
+    this.getStr ('FADROMA_BUILD_SCRIPT',     ()=>Builder.script)
   /** Dockerfile to build the build image if not downloadable. */
-  dockerfile: string
+  dockerfile: string =
+    this.getStr ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image)
   /** Script that runs the actual build, e.g. build.impl.mjs */
-  script:     string
+  script:     string =
+    this.getStr ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile)
 }
+
 /** Messages output by builder. */
 export const BuildLogger = ({ info }: Console) => ({
-  CargoToml (file: Path) {
+  CargoToml (file: Kabinet.Path) {
     info('Building from', bold(file.shortPath))
   },
-  BuildScript (file: Path) {
+  BuildScript (file: Kabinet.Path) {
     info('Running build script', bold(file.shortPath))
   },
   BuildOne (source: Source, prebuilt: Artifact|null, longestCrateName: number) {
@@ -98,13 +94,14 @@ export const BuildLogger = ({ info }: Console) => ({
     }
     info()
   },
-  Workspace (mounted: Path, ref: string) {
+  Workspace (mounted: Kabinet.Path, ref: string) {
     info(
       `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
       `@`, bold(ref)
     )
   }
 })
+
 /** Get a builder based on the builder config. */
 export function getBuilder (config: Partial<BuilderConfig> = getBuilderConfig()) {
   if (config.buildRaw) {
@@ -113,8 +110,9 @@ export function getBuilder (config: Partial<BuilderConfig> = getBuilderConfig())
     return new DockerBuilder({ ...config, caching: !config.rebuild })
   }
 }
+
 /** The nouns and verbs exposed to REPL and Commands. */
-export interface BuildContext extends CommandContext {
+export interface BuildContext extends Komandi.CommandContext {
   config:    BuilderConfig
   /** Cargo workspace of the current project. */
   workspace: Workspace
@@ -127,8 +125,9 @@ export interface BuildContext extends CommandContext {
   /** Get one or more Artifacts from Source or crate name */
   buildMany: (ref?: string, ...sources: IntoSource[][]) => Promise<Artifact[]>
 }
+
 /** Add build vocabulary to context of REPL and deploy scripts. */
-export function getBuildContext (context: CommandContext & Partial<BuildContext>): BuildContext {
+export function getBuildContext (context: Komandi.CommandContext & Partial<BuildContext>): BuildContext {
   const config = { ...getBuilderConfig(), ...context.config ?? {} }
   return {
     ...context,
@@ -150,8 +149,9 @@ export function getBuildContext (context: CommandContext & Partial<BuildContext>
     }
   }
 }
+
 /** Base class for class-based deploy procedure. Adds progress logging. */
-export class BuildTask<X> extends Lazy<X> {
+export class BuildTask<X> extends Komandi.Lazy<X> {
   constructor (public readonly context: BuildContext, getResult: ()=>X) {
     let self: this
     super(()=>{
@@ -164,7 +164,7 @@ export class BuildTask<X> extends Lazy<X> {
   subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
     const self = this
     //@ts-ignore
-    return new Lazy(()=>{
+    return new Komandi.Lazy(()=>{
       console.info()
       console.info('Subtask  ', cb.name ? bold(cb.name) : '')
       return cb.bind(self)()
@@ -175,14 +175,21 @@ export class BuildTask<X> extends Lazy<X> {
 //@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
+export interface IBuilder {
+  build: (source: ISource, ...args: any[])=>Promise<{ artifact: URL, codeHash: CodeHash }>
+  [name: string]: any
+}
+export abstract class IBuilder {
+}
+
 /** Can perform builds. */
-export abstract class Builder {
+export abstract class LocalBuilder extends Fadroma.Builder {
   static script = resolve(__dirname, 'build.impl.mjs')
   verbose:       boolean     = false
   outputDirName: string      = 'artifacts'
   noFetch:       boolean     = false
   toolchain:     string|null = null
-  script:        string      = Builder.script
+  script:        string      = LocalBuilder.script
   constructor (opts: Partial<BuilderOptions> = {}) {
     this.noFetch       = opts.noFetch       ?? this.noFetch
     this.outputDirName = opts.outputDirName ?? this.outputDirName
@@ -242,8 +249,8 @@ export const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).dige
 
 export interface DockerBuilderOptions extends CachingBuilderOptions {
   socketPath: string
-  docker:     Dokeres
-  image:      string|DokeresImage
+  docker:     Dokeres.Dokeres
+  image:      string|Dokeres.DokeresImage
   dockerfile: string
 }
 
@@ -257,16 +264,16 @@ export class DockerBuilder extends CachingBuilder {
     super(opts)
     // Set up Docker API handle
     if (opts.socketPath) {
-      this.docker = new Dokeres(this.socketPath = opts.socketPath)
+      this.docker = new Dokeres.Dokeres(this.socketPath = opts.socketPath)
     } else if (opts.docker) {
       this.docker = opts.docker
     }
-    if (opts.image instanceof DokeresImage) {
+    if (opts.image instanceof Dokeres.DokeresImage) {
       this.image = opts.image
     } else if (opts.image) {
-      this.image = new DokeresImage(this.docker, opts.image)
+      this.image = new Dokeres.DokeresImage(this.docker, opts.image)
     } else {
-      this.image = new DokeresImage(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
+      this.image = new Dokeres.DokeresImage(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
     }
     // Set up Docker image
     this.dockerfile ??= opts.dockerfile!
@@ -275,9 +282,9 @@ export class DockerBuilder extends CachingBuilder {
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'
   /** Used to launch build container. */
-  docker:     Dokeres = new Dokeres(this.socketPath)
+  docker:     Dokeres.Dokeres = new Dokeres.Dokeres(this.socketPath)
   /** Tag of the docker image for the build container. */
-  image:      DokeresImage
+  image:      Dokeres.DokeresImage
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
   /** Build a Source into an Artifact */
@@ -366,7 +373,7 @@ export class DockerBuilder extends CachingBuilder {
     outputDir: string = $(root, subdir, this.outputDirName).path,
   ): Promise<(Artifact|null)[]> {
     // Create output directory as user if it does not exist
-    $(outputDir).as(OpaqueDirectory).make()
+    $(outputDir).as(Kabinet.OpaqueDirectory).make()
     // Output slots. Indices should correspond to those of the input to buildMany
     const artifacts:   (Artifact|null)[] = crates.map(()=>null)
     // Whether any crates should be built, and at what indices they are in the input and output.
@@ -466,7 +473,8 @@ export class DockerBuilder extends CachingBuilder {
     //console.debug('Building in a container with this configuration:', options)
     // Prepare the log output stream
     const buildLogPrefix = `[${ref}]`.padEnd(16)
-    const logs = new LineTransformStream((line:string)=>`[Fadroma Build] ${buildLogPrefix} ${line}`)
+    const transformLine  = (line:string)=>`[Fadroma Build] ${buildLogPrefix} ${line}`
+    const logs = new Dokeres.LineTransformStream(transformLine)
     logs.pipe(process.stdout)
     // Run the build container
     const rootName       = sanitize(basename(root))
@@ -587,7 +595,7 @@ export class RawBuilder extends CachingBuilder {
   runtime = process.argv[0]
 }
 
-type CargoTOML = TOMLFile<{ package: { name: string } }>
+type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
 
 export async function buildFromCargoToml (
   cargoToml: CargoTOML,
@@ -596,7 +604,7 @@ export async function buildFromCargoToml (
   )
 ) {
   console.info('Build manifest:', bold(cargoToml.shortPath))
-  const source = workspace.crate((cargoToml.as(TOMLFile).load() as any).package.name)
+  const source = workspace.crate((cargoToml.as(Kabinet.TOMLFile).load() as any).package.name)
   try {
     const config   = { ...getBuilderConfig(), rebuild: true }
     const builder  = getBuilder(config)
@@ -612,7 +620,7 @@ export async function buildFromCargoToml (
 }
 
 export async function buildFromBuildScript (
-  buildScript: OpaqueFile,
+  buildScript: Kabinet.OpaqueFile,
   buildArgs:   string[] = []
 ) {
   const buildSetName = buildArgs.join(' ')
@@ -677,9 +685,9 @@ export const HEAD = 'HEAD'
 /** Represents a crate in a workspace.
   * The workspace may be at HEAD (build from working tree)
   * or another ref (build from Git history). */
-export class Source {
+export class LocalSource extends Fadroma.Source {
   constructor (
-    public readonly workspace: Workspace,
+    public readonly workspace: LocalWorkspace,
     public readonly crate:     string,
   ) {}
   build (builder: Builder): Promise<Artifact> {
@@ -692,7 +700,7 @@ export class Source {
 }
 
 /** Represents a Cargo workspace containing multiple smart contract crates */
-export class Workspace {
+export class LocalWorkspace {
   constructor (
     public readonly path:   string,
     public readonly ref:    string = HEAD,
@@ -722,7 +730,7 @@ export class Workspace {
   * - In standalone repos this is `.git/`
   * - If the contracts workspace repository is a submodule,
   *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
-export class DotGit extends Path {
+export class DotGit extends Kabinet.Path {
   constructor (base: string, ...fragments: string[]) {
     super(base, ...fragments, '.git')
     if (!this.exists()) {
@@ -731,7 +739,7 @@ export class DotGit extends Path {
       this.present = false
     } else if (this.isFile()) {
       // If .git is a file, the workspace is contained in a submodule
-      const gitPointer = this.as(TextFile).load().trim()
+      const gitPointer = this.as(Kabinet.TextFile).load().trim()
       const prefix = 'gitdir:'
       if (gitPointer.startsWith(prefix)) {
         // If .git contains a pointer to the actual git directory,
@@ -760,14 +768,14 @@ export class DotGit extends Path {
   }
   readonly present:     boolean
   readonly isSubmodule: boolean = false
-  get rootRepo (): Path {
+  get rootRepo (): Kabinet.Path {
     return $(this.path.split(DotGit.rootRepoRE)[0])
   }
   get submoduleDir (): string {
     return this.path.split(DotGit.rootRepoRE)[1]
   }
   /* Matches "/.git" or "/.git/" */
-  static rootRepoRE = new RegExp(`${Path.separator}.git${Path.separator}?`)
+  static rootRepoRE = new RegExp(`${Kabinet.Path.separator}.git${Kabinet.Path.separator}?`)
 }
 
 //@ts-ignore
@@ -776,9 +784,9 @@ if (fileURLToPath(import.meta.url) === process.argv[1]) {
   const [buildPath, ...buildArgs] = process.argv.slice(2)
   const buildSpec = $(buildPath)
   if (buildSpec.isDirectory()) {
-    buildFromDirectory(buildSpec.as(OpaqueDirectory))
+    buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
   } else if (buildSpec.isFile()) {
-    buildFromFile(buildSpec.as(OpaqueFile), buildArgs)
+    buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
   } else {
     printUsage()
   }
@@ -793,8 +801,8 @@ export function printUsage () {
   process.exit(6)
 }
 
-export function buildFromDirectory (dir: OpaqueDirectory) {
-  const cargoToml = dir.at('Cargo.toml').as(TOMLFile)
+export function buildFromDirectory (dir: Kabinet.OpaqueDirectory) {
+  const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
   if (cargoToml.exists()) {
     console.info('Building from', bold(cargoToml.shortPath))
     buildFromCargoToml(cargoToml as CargoTOML)
@@ -804,7 +812,7 @@ export function buildFromDirectory (dir: OpaqueDirectory) {
 }
 
 export function buildFromFile (
-  file:      TOMLFile<unknown>|OpaqueFile,
+  file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
   buildArgs: string[] = []
 ) {
   if (file.name === 'Cargo.toml') {
@@ -812,6 +820,6 @@ export function buildFromFile (
     buildFromCargoToml(file as CargoTOML)
   } else {
     BuildLogger(console).BuildScript(file)
-    buildFromBuildScript(file as OpaqueFile, buildArgs)
+    buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
   }
 }

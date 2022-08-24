@@ -18,7 +18,7 @@ import {
 import { bech32, randomBech32, toHex, Sha256 } from '@hackbg/formati'
 
 /** Chain instance containing a local MocknetBackend. */
-export class Mocknet extends Chain {
+export default class Mocknet extends Chain {
   defaultDenom = 'umock'
   constructor (id = 'fadroma-mocknet', options = {}) {
     super(id, { ...options, mode: ChainMode.Mocknet })

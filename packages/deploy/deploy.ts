@@ -18,77 +18,57 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import {
-  Chain, ChainMode, Agent, AgentOpts, Bundle, Client, ClientCtor, ClientOpts, DevnetHandle,
-  Artifact, Template, Instance, Label, Message, Address
-} from '@fadroma/client'
-import {
-  Workspace, Source, IntoArtifact,
-  BuildContext, getBuildContext,
-  BuilderConfig, getBuilderConfig,
-  Builder,
-} from '@fadroma/build'
-import {
-  knownChains,
-  ConnectLogger,
-  ChainContext, getChainContext,
-  AgentConfig, getAgentConfig, ChainConfig,
-  AgentContext, getAgentContext
-} from '@fadroma/connect'
-import { toHex, Sha256 } from '@hackbg/formati'
 import { Console, bold, timestamp } from '@hackbg/konzola'
-import {
-  Commands, CommandContext, envConfig, Lazy,
-  runOperation, Step, StepOrInfo
-} from '@hackbg/komandi'
-import { freePort, waitPort } from '@hackbg/portali'
-import $, {
-  BinaryFile,
-  JSONDirectory, JSONFile,
-  YAMLDirectory, YAMLFile, alignYAML
-} from '@hackbg/kabinet'
+import * as Formati from '@hackbg/formati'
+import * as Komandi from '@hackbg/komandi'
+import * as Konfizi from '@hackbg/konfizi'
+import * as Kabinet from '@hackbg/kabinet'
+import $ from '@hackbg/kabinet'
+
+import * as Fadroma from '@fadroma/client'
+import * as Build   from '@fadroma/build'
+import * as Connect from '@fadroma/connect'
+
 import { basename, resolve, dirname, relative, extname } from 'path'
-import {
-  readFileSync, writeFileSync, readdirSync, lstatSync, existsSync,
-  readlinkSync, symlinkSync
-} from 'fs'
-import {fileURLToPath} from 'url'
-import YAML from 'js-yaml'
+import { fileURLToPath } from 'url'
 import { cwd } from 'process'
-import * as http from 'http'
-/// WHEN YOUR IMPORTS ARE MORE THAN A SCREENFUL, WORRY
+import * as FS from 'fs'
+
+import YAML from 'js-yaml'
+export { YAML }
+
 const console = Console('Fadroma Deploy')
-/// # ENVIRONMENT CONFIGURATION ///////////////////////////////////////////////////////////////////
-/** TypeScript made me do it! */
-type AgentBuilderConfig = (AgentConfig & BuilderConfig)
-/** Deploy settings definitions. */
+
+type AgentBuilderConfig = (Connect.ConnectConfig & Build.BuilderConfig)
+
 export interface DeployConfig extends AgentBuilderConfig {
   /** Whether to ignore upload receipts and upload contracts anew. */
   reupload?: boolean
   /** Whether to generate unsigned transactions for manual multisig signing. */
   multisig?: boolean
 }
+
 /** Get deploy settings from process runtime environment. */
-export const getDeployConfig = envConfig(({Str, Bool}, cwd, env): DeployConfig => ({
-  ...getBuilderConfig(cwd, env),
-  ...getAgentConfig(cwd, env),
+export const getDeployConfig = Konfizi.envConfig(({Str, Bool}, cwd, env): DeployConfig => ({
+  ...new Build.BuilderConfig(env, cwd),
+  ...new Connect.ConnectConfig(env, cwd),
   reupload: Bool('FADROMA_REUPLOAD', ()=>false),
   multisig: Bool('FADROMA_MULTISIG', ()=>false)
 }))
+
 /// # DEPLOY COMMANDS /////////////////////////////////////////////////////////////////////////////
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C> {
+export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Commands <C> {
   constructor (name: string = 'deploy', before = [], after = []) {
     // Deploy commands are like regular commands but
     // they already have a whole lot of deploy handles
     // pre-populated in the context.
     super(name, [
-      getBuildContext,
-      getChainContext,
-      ConnectLogger(console).chainStatus,
-      getAgentContext,
+      Build.getBuildContext,
+      Connect.getConnectContext,
+      new Connect.ConnectReporter(console).chainStatus,
       //@ts-ignore
       getDeployContext,
       ...before
@@ -115,12 +95,12 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
     if (!parsed) return null
     if (forceNew) {
       console.warn('--new: Creating new deployment')
-      const toNew = (x: Step<any, any>): Step<any, any> =>
+      const toNew = (x: Komandi.Step<any, any>): Komandi.Step<any, any> =>
         (x === DeployCommands.get || x === DeployCommands.getOrCreate) ? DeployCommands.create : x
     } else if (resume) {
       // replace create with get
       console.warn('--resume: Resuming last deployment')
-      const toResume = (x: Step<any, any>): Step<any, any> =>
+      const toResume = (x: Komandi.Step<any, any>): Komandi.Step<any, any> =>
         (x === DeployCommands.create) ? DeployCommands.get : x
       parsed[1].steps = parsed[1].steps.map(toResume)
     }
@@ -159,7 +139,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
     }
   }
   /** Print a list of deployments on the selected chain. */
-  static list = async function listDeployments (context: ChainContext): Promise<void> {
+  static list = async function listDeployments (context: Connect.ConnectContext): Promise<void> {
     const deployments = expectDeployments(context)
     const { chain } = context
     const list = deployments.list()
@@ -180,7 +160,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
   }
   /** Make a new deployment the active one. */
   static select = async function selectDeployment (
-    context: ChainContext
+    context: Connect.ConnectContext
   ): Promise<void> {
     const deployments = expectDeployments(context)
     const { cmdArgs: [id] = [undefined] } = context
@@ -203,7 +183,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
   }
   /** Print the status of a deployment. */
   static status = async function showDeployment (
-    context: ChainContext,
+    context: Connect.ConnectContext,
     id = context.cmdArgs[0]
   ): Promise<void> {
     const deployments = expectDeployments(context)
@@ -215,6 +195,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Commands <C
     }
   }
 }
+
 const expectDeployments = (context: { deployments: Deployments|null }): Deployments => {
   if (!(context.deployments instanceof Deployments)) {
     //console.error('context.deployments was not populated')
@@ -223,6 +204,7 @@ const expectDeployments = (context: { deployments: Deployments|null }): Deployme
   }
   return context.deployments
 }
+
 /// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
 export const DeployLogger = ({ info, warn }: Console) => {
   return { deployment, receipt, deployFailed, deployManyFailed, deployFailedTemplate }
@@ -289,14 +271,17 @@ export const DeployLogger = ({ info, warn }: Console) => {
     }
   }
 }
+
 /// # DEPLOY CONTEXT ///////////////////////////////////////////////////////////////////////////////
+
 /** TypeScript made me do it! */
-type AgentAndBuildContext = AgentContext & BuildContext
+type AgentAndBuildContext = Connect.ConnectContext & Build.BuildContext
+
 /** The full list of deployment procedures that open up
   * once you're authenticated and can compile code locally */
 export interface DeployContext extends AgentAndBuildContext {
   /** All the environment config so far. */
-  config:     ChainConfig & AgentConfig & BuilderConfig & DeployConfig
+  config:     Connect.ConnectConfig & Build.BuilderConfig & DeployConfig
   /** Currently selected deployment. */
   deployment: Deployment|null
   /** Knows how to upload contracts to a blockchain. */
@@ -316,6 +301,7 @@ export interface DeployContext extends AgentAndBuildContext {
     APIClient?: ClientCtor<C, O>
   ): MultiContractSlot<C>
 }
+
 /** Taking merged Agent and Build context as a basis, populate deploy context. */
 export function getDeployContext (
   context: AgentAndBuildContext & Partial<DeployContext>,
@@ -364,8 +350,9 @@ export function getDeployContext (
   }
   return context as DeployContext
 }
+
 /** Base class for class-based deploy procedure. Adds progress logging. */
-export class DeployTask<X> extends Lazy<X> {
+export class DeployTask<X> extends Komandi.Lazy<X> {
 
   static get run () {
     const self = this
@@ -392,7 +379,7 @@ export class DeployTask<X> extends Lazy<X> {
   result?: ()=>X
   subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
     const self = this
-    return new Lazy(()=>{
+    return new Komandi.Lazy(()=>{
       this.log.info()
       this.log.info('Subtask  ', cb.name ? bold(cb.name) : '')
       return cb.bind(self)()
@@ -404,8 +391,9 @@ export class DeployTask<X> extends Lazy<X> {
     return this.context.contract(arg, _Client)
   }
 }
+
 /// # UPLOADING ///////////////////////////////////////////////////////////////////////////////////
-export type IntoTemplateSlot = string|Source|Artifact|Template|TemplateSlot
+export type IntoTemplateSlot = string|Build.Source|Artifact|Template|TemplateSlot
 export class TemplateSlot extends Template {
   constructor (value: IntoTemplateSlot, context: DeployContext) {
     if (value instanceof Template) {
@@ -413,7 +401,7 @@ export class TemplateSlot extends Template {
     } else if (value instanceof Artifact) {
       if (!context.uploader) throw TemplateSlot.E01()
       super(value, context.uploader?.agent?.chain?.id)
-    } else if (value instanceof Source) {
+    } else if (value instanceof Build.Source) {
       if (!context.builder || !context.uploader) throw TemplateSlot.E02()
       super(new Artifact(value), context.uploader?.agent?.chain?.id)
     } else if (typeof value === 'string') {
@@ -421,7 +409,7 @@ export class TemplateSlot extends Template {
       let workspace = context.workspace
       const [crate, ref] = value.split('@')
       if (ref) workspace = workspace.at(ref)
-      super(new Artifact(new Source(workspace, crate)), undefined, context.uploader?.agent?.chain?.id)
+      super(new Artifact(new Build.Source(workspace, crate)), undefined, context.uploader?.agent?.chain?.id)
     } else {
       super(undefined, undefined, context.uploader?.agent?.chain?.id)
       throw TemplateSlot.E04(value)
@@ -476,6 +464,7 @@ export class TemplateSlot extends Template {
   static E10 = () => new Error("Still no artifact url")
   static W01 = (a:any, b:any) => console.warn(`codeHash mismatch: ${a.codeHash} vs ${b.codeHash}`)
 }
+
 export class MultiTemplateSlot {
   constructor (
     slots: IntoTemplateSlot[] = [],
@@ -492,10 +481,12 @@ export class MultiTemplateSlot {
     return templates
   }
 }
+
 /** Directory collecting upload receipts.
   * Upload receipts are JSON files of the format `$CRATE@$REF.wasm.json`
   * and are kept so that we don't reupload the same contracts. */
-export class Uploads extends JSONDirectory<UploadReceipt> {}
+export class Uploads extends Kabinet.JSONDirectory<UploadReceipt> {}
+
 /** Content of upload receipt. */
 export interface IUploadReceipt {
   chainId?:           string 
@@ -510,8 +501,9 @@ export interface IUploadReceipt {
   uploadTx?:          string
   artifact?:          Artifact
 }
+
 /** Class that convert itself to a Template, from which contracts can be instantiated. */
-export class UploadReceipt extends JSONFile<IUploadReceipt> {
+export class UploadReceipt extends Kabinet.JSONFile<IUploadReceipt> {
   toTemplate (defaultChainId?: string): Template {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
@@ -519,6 +511,7 @@ export class UploadReceipt extends JSONFile<IUploadReceipt> {
     return new Template(artifact, codeHash, chainId, codeId, uploadTx)
   }
 }
+
 /// # UPLOADERS (THESE WORK, LEAVE EM ALONE) //////////////////////////////////////////////////////
 export abstract class Uploader {
   constructor (public agent: Agent) {}
@@ -526,12 +519,13 @@ export abstract class Uploader {
   abstract upload     (artifact:  Artifact):   Promise<Template>
   abstract uploadMany (artifacts: Artifact[]): Promise<Template[]>
 }
+
 /** Uploads contracts from the local file system. */
 export class FSUploader extends Uploader {
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (artifact: Artifact): Promise<Template> {
     console.info('Upload   ', bold($(artifact.url!).shortPath))
-    const data     = $(artifact.url!).as(BinaryFile).load()
+    const data     = $(artifact.url!).as(Kabinet.BinaryFile).load()
     const template = await this.agent.upload(data)
     await this.agent.nextBlock
     return template
@@ -548,7 +542,7 @@ export class FSUploader extends Uploader {
       let template
       if (artifact) {
         const path = $(artifact.url!)
-        const data = path.as(BinaryFile).load()
+        const data = path.as(Kabinet.BinaryFile).load()
         //console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
         template = await this.agent.upload(data)
         //console.info('Uploaded:', bold(path.shortPath))
@@ -574,6 +568,7 @@ export class FSUploader extends Uploader {
     }
   }
 }
+
 /** Uploads contracts from the file system,
   * but only if a receipt does not exist in the chain's uploads directory. */
 export class CachingFSUploader extends FSUploader {
@@ -602,7 +597,7 @@ export class CachingFSUploader extends FSUploader {
       console.info('Reuse    ', bold(this.cache.at(name).shortPath))
       return receipt.toTemplate()
     }
-    const data = $(artifact.url!).as(BinaryFile).load()
+    const data = $(artifact.url!).as(Kabinet.BinaryFile).load()
     const template = await this.agent.upload(data)
     receipt.save(template)
     return template
@@ -619,7 +614,7 @@ export class CachingFSUploader extends FSUploader {
       if (!$(receiptPath).exists()) {
         artifactsToUpload[i] = artifact
       } else {
-        const receiptFile = $(receiptPath).as(JSONFile) as JSONFile<IUploadReceipt>
+        const receiptFile = $(receiptPath).as(Kabinet.JSONFile) as Kabinet.JSONFile<IUploadReceipt>
         const receiptData: IUploadReceipt = receiptFile.load()
         const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
         if (!receiptCodeHash) {
@@ -676,8 +671,11 @@ export class CachingFSUploader extends FSUploader {
     }
   }
 }
+
 /// # DEPLOYING ///////////////////////////////////////////////////////////////////////////////////
+
 export type IntoContractSlot = Name|Partial<Instance>
+
 export class ContractSlot<C extends Client> {
   static E00 = () =>
     new Error("Tried to create ContractSlot with nullish value")
@@ -805,6 +803,7 @@ export class ContractSlot<C extends Client> {
     }
   }
 }
+
 /** Instantiates multiple contracts of the same type in one transaction.
   * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
 export class MultiContractSlot<C extends Client> {
@@ -836,14 +835,18 @@ export class MultiContractSlot<C extends Client> {
     return instances.map(instance=>this.context.creator!.getClient(this.Client, instance))
   }
 }
+
 export type DeployArgs       = [Name, Message]
+
 export type DeployArgsTriple = [Template, Name, Message]
+
 /// # DEPLOY RECEIPTS DIRECTORY ///////////////////////////////////////////////////////////////////
+
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class Deployments extends YAMLDirectory<DeployReceipt[]> {
+export class Deployments extends Kabinet.YAMLDirectory<DeployReceipt[]> {
   /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
     * and convert it to a Deployments instance. See: @hackbg/kabinet */
   static fromConfig = (chainId: string, projectRoot: string) =>
@@ -856,7 +859,7 @@ export class Deployments extends YAMLDirectory<DeployReceipt[]> {
     if (path.exists()) {
       throw new Error(`${name} already exists`)
     }
-    return path.makeParent().as(YAMLFile).save(undefined)
+    return path.makeParent().as(Kabinet.YAMLFile).save(undefined)
     return new Deployment(path.path)
   }
   /** Make the specified deployment be the active deployment. */
@@ -865,9 +868,9 @@ export class Deployments extends YAMLDirectory<DeployReceipt[]> {
     if (!selection.exists) {
       throw new Error(`Deployment ${name} does not exist`)
     }
-    const active = this.at(`${this.KEY}.yml`).as(YAMLFile)
+    const active = this.at(`${this.KEY}.yml`).as(Kabinet.YAMLFile)
     try { active.delete() } catch (e) {}
-    await symlinkSync(selection.path, active.path)
+    await FS.symlinkSync(selection.path, active.path)
   }
   /** Get the contents of the active deployment, or null if there isn't one. */
   get active (): Deployment|null {
@@ -876,32 +879,34 @@ export class Deployments extends YAMLDirectory<DeployReceipt[]> {
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   get (name: string): Deployment|null {
     const path = resolve(this.path, `${name}.yml`)
-    if (!existsSync(path)) {
+    if (!FS.existsSync(path)) {
       return null
     }
     return new Deployment(path)
   }
   /** List the deployments in the deployments directory. */
   list () {
-    if (!existsSync(this.path)) {
+    if (!FS.existsSync(this.path)) {
       return []
     }
-    return readdirSync(this.path)
+    return FS.readdirSync(this.path)
       .filter(x=>x!=this.KEY)
       .filter(x=>x.endsWith('.yml'))
       .map(x=>basename(x,'.yml'))
   }
   /** DEPRECATED: Save some extra data into the deployments directory. */
   save <D> (name: string, data: D) {
-    const file = this.at(`${name}.json`).as(JSONFile) as JSONFile<D>
+    const file = this.at(`${name}.json`).as(Kabinet.JSONFile) as Kabinet.JSONFile<D>
     //console.info('Deployments writing:', bold(file.shortPath))
     return file.save(data)
   }
 }
+
 /** Each deploy receipt contains, as a minimum, name, address, and codeHash. */
 export interface DeployReceipt extends Instance {
   name: string
 }
+
 /// # DEPLOYMENT / DEPLOYMENT RECEIPT /////////////////////////////////////////////////////////////
 /** An individual deployment, represented as a multi-document YAML file.
   * Each entry in the file is a Receipt, representing a deployed contract.
@@ -1018,11 +1023,11 @@ export class Deployment {
     // Expect path to be present
     if (!path) throw new Error('Deployment: no path to load from')
     // Resolve symbolic links to file
-    while (lstatSync(path).isSymbolicLink()) path = resolve(dirname(path), readlinkSync(path))
+    while (FS.lstatSync(path).isSymbolicLink()) path = resolve(dirname(path), FS.readlinkSync(path))
     // Set own prefix from name of file
     this.prefix    = basename(path, extname(path))
     // Load the receipt data
-    const data     = readFileSync(path, 'utf8')
+    const data     = FS.readFileSync(path, 'utf8')
     const receipts = YAML.loadAll(data) as DeployReceipt[]
     for (const receipt of receipts) {
       const [contractName, _version] = receipt.name.split('+')
@@ -1062,15 +1067,16 @@ export class Deployment {
         )))
       }
       delete obj.template?.artifact?.source?.workspace?.path
-      output += alignYAML(YAML.dump(obj, { noRefs: true }))
+      output += Kabinet.alignYAML(YAML.dump(obj, { noRefs: true }))
     }
     // Write the data to disk.
-    writeFileSync(path, output)
+    FS.writeFileSync(path, output)
     return this
   }
 }
-const codeHashForBlob  = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
-const codeHashForPath  = (location: string) => codeHashForBlob(readFileSync(location))
+
+const codeHashForBlob  = (blob: Uint8Array) => Formati.toHex(new Formati.Sha256(blob).digest())
+const codeHashForPath  = (location: string) => codeHashForBlob(FS.readFileSync(location))
 export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 export type  Name      = string
 
@@ -1106,11 +1112,9 @@ if (
       process.exit(1)
     })
   } else {
-    runOperation('deploy status', 'show deployment status', [
-      getAgentContext,  ConnectLogger(console).chainStatus,
+    Komandi.runOperation('deploy status', 'show deployment status', [
+      Connect.getConnectContext,  new Connect.ConnectReporter(console).chainStatus,
       getDeployContext, DeployLogger(console).deployment
     ], process.argv.slice(2))
   }
 }
-
-export { YAML }

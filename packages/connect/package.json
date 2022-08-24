@@ -15,7 +15,8 @@
     "@fadroma/scrt":       "workspace:*",
     "@fadroma/scrt-amino": "workspace:*",
     "@fadroma/mocknet":    "workspace:*",
-    "@hackbg/komandi":     "^4.2.8"
+    "@hackbg/komandi":     "^4.2.8",
+    "@hackbg/konfizi":     "workspace:*"
   },
   "peerDependencies": {
     "@fadroma/devnet":     "workspace:^1.0.3"
