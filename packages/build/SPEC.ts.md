@@ -13,7 +13,7 @@ A **Workspace** object points to the root of a project's [Cargo workspace](https
 ```typescript
 import { Workspace, DotGit } from '@fadroma/build'
 let workspace: Workspace
-const project = '/path/to/project'
+const project = '/tmp/fadroma-test'
 ```
 
 * A Workspace object can also point to a specific Git reference
