@@ -44,9 +44,9 @@ jobs:
         run: |
           mkdir -p dist/docs
           mv .vitepress/dist/* dist/docs
-          mv target/doc dist/docs/rs-api
-          mv docs dist/docs/ts-api
-          mv coverage dist/docs/ts-coverage
+          mv target/doc dist/docs/api/rs
+          mv docs dist/docs/api/ts
+          mv coverage/lcov-report dist/docs/coverage/ts
           tar -cvf dist/docs/nix shell.nix
       - name: Publish docs
         run: |
