@@ -104,12 +104,14 @@ info about the smart contracts that you deployed, in the form of files under
 `receipts/$CHAIN_ID/$DEPLOYMENT.yml`.
 
 Besides `context.contract.get()` and `.getOrDeploy()`, you can access it directly via:
-* `context.deployments: Deployments`: list of all deployments for the current project and chain.
 * `context.deployment: Deployment`: handle to currently selected deployment.
+* `context.deployments: Deployments`: deployment directory for current project and chain,
+  listing other deployments.
 
-* The deployments system prefixes all contract labels with the name of the deployment.
-  This is because labels are expected to be both meaningful and globally unique.
-  So if you `name` your contracts `ALICE` and `BOB`, and your deployment is called `20220706`,
+The deployments system prefixes all contract labels with the name of the deployment.
+This is because labels are expected to be both meaningful and globally unique.
+
+* So if you `name` your contracts `ALICE` and `BOB`, and your deployment is called `20220706`,
   the on-chain labels of the contracts will be `20220706/ALICE` and `20220706/BOB`.
 
 * The timestamp here corresponds to the moment the deployment was created, and not the moment
@@ -164,37 +166,50 @@ Sometimes it is useful to deploy multiple contracts in a single transaction.
 ## Class-based deployments
 
 More complex deployments (such as that of a whole subsystem consisting of multiple contracts)
-can be expressed as classes, inheriting from `Fadroma.DeployTask<Promise<Result>>`.
+can be expressed as classes, by inheriting from `Fadroma.DeployTask`.
 
-:::warning
-This API is a work in progress.
-* Wrapper function `deployGroup` is necessary to preserve naming in final operation report
-* `this.subtask(()=>this.context.contract)` should become just `this.contract()`
-* same for `template`
-:::
+The semantics of class-based deployments approach a declarative workflow: by using `this.subtask`
+to wrap the individual stages of the deployment and awaiting the result of the deployment in the
+main function defined in the constructor, the structure of the deployment procedure becomes a
+directed acyclic graph.
+
+In other words:
+* Subtasks only execute when `await`ed.
+* Subtasks can `await` each other to define inter-contract dependencies as well as dependencies on
+  other data sources.
+* Instances of `DeployTask` can also be `await`ed, returning an object the ultimate result of the
+  deployment.
+
+Here's a contrived example:
 
 ```typescript
 interface MyContractGroup {
   contract1:  Client
   contract2:  Client
 }
+
 export default new FadromaCommands('deploy')
   .command('group', 'run DeployMyContractGroup', deployGroup)
+
 async function deployGroup (context): Promise<MyContractGroup> {
   return await new DeployMyContractGroup(context)
 })
+
 class DeployMyContractGroup extends Fadroma.DeployTask<Promise<MyContractGroup>> {
   constructor (context, args = context.cmdArgs) {
+
     super(context, async function deployMyContract () {
       return {
         contract1: await this.contract1,
         contract2: await this.contract2,
       }
-    }
+    })
   }
+
   contract1 = this.subtask(async getOrDeployContract1 () {
     return this.context.contract('Contract1').getOrDeploy('contract-1', {})
   })
+
   contract2 = this.subtask(async getOrDeployContract2 () {
     const contract1 = await this.contract1
     return this.context.contract('Contract2')
@@ -204,5 +219,12 @@ class DeployMyContractGroup extends Fadroma.DeployTask<Promise<MyContractGroup>>
         ]
       })
   })
+
 }
 ```
+
+:::warning
+This API is a work in progress.
+* Wrapper function `deployGroup` is necessary to preserve naming in final operation report
+* `this.subtask(()=>this.context.contract)` should become just `this.contract()`; same for template
+:::
