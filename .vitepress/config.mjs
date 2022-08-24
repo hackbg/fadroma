@@ -1,4 +1,5 @@
 export default {
+  srcExclude:  [ '*SPEC*', '*spec*' ],
   base:        process.env.VITEPRESS_BASE,
   lang:        'en-US',
   title:       'The Fadroma Guide',
