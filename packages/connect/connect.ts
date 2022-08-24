@@ -146,48 +146,51 @@ export function chainFlags (chain: Chain) {
   }
 }
 
-export const ConnectLogger = ({ log, info, warn, error }: Console) => ({
-  noName (chains: object) {
-    error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
-    this.knownChains(chains)
-  },
-  noDeploy () {
-    warn('@fadroma/deploy not installed. Deployment system unavailable.')
-    return null
-  },
-  knownChains (knownChains: object) {
+export const ConnectLogger = ({ log, info, warn, error }: Console) => {
+  function knownChains (knownChains: object) {
     log()
     info('Known chain names:')
     for (const chain of Object.keys(knownChains).sort()) {
       info(`  ${chain}`)
     }
-  },
-  selectedChain ({ chain }: ChainConfig) {
-    log()
-    if (chain) {
-      info('Selected chain:')
-      info(`  ${chain}`)
-    } else {
-      info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
-    }
-  },
-  chainStatus ({ chain, deployments }: ChainContext) {
-    if (!chain) {
-      info('│ No active chain.')
-    } else {
-      info('│ Chain type: ', bold(chain.constructor.name))
-      info('│ Chain mode: ', bold(chain.mode))
-      info('│ Chain ID:   ', bold(chain.id))
-      info('│ Chain URL:  ', bold(chain.url.toString()))
-      info('│ Deployments:', bold(String(deployments?.list().length)))
-      if (deployments?.active) {
-        info('│ Deployment: ', bold(String(deployments?.active?.prefix)))
+  }
+  return {
+    knownChains,
+    noName (chains: object) {
+      error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
+      knownChains(chains)
+    },
+    noDeploy () {
+      warn('@fadroma/deploy not installed. Deployment system unavailable.')
+      return null
+    },
+    selectedChain ({ chain }: ChainConfig) {
+      log()
+      if (chain) {
+        info('Selected chain:')
+        info(`  ${chain}`)
       } else {
-        info('│ No active deployment.')
+        info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
       }
-    }
-  },
-})
+    },
+    chainStatus ({ chain, deployments }: ChainContext) {
+      if (!chain) {
+        info('│ No active chain.')
+      } else {
+        info('│ Chain type: ', bold(chain.constructor.name))
+        info('│ Chain mode: ', bold(chain.mode))
+        info('│ Chain ID:   ', bold(chain.id))
+        info('│ Chain URL:  ', bold(chain.url.toString()))
+        info('│ Deployments:', bold(String(deployments?.list().length)))
+        if (deployments?.active) {
+          info('│ Deployment: ', bold(String(deployments?.active?.prefix)))
+        } else {
+          info('│ No active deployment.')
+        }
+      }
+    },
+  }
+}
 
 import {fileURLToPath} from 'url'
 
