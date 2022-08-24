@@ -81,36 +81,6 @@ The `commands.command(...)` method returns `commands`, so it supports chaining.
 Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
 :::
 
-## Deployment context
-
-### How deployments are stored
-
-The **deployment receipt system** keeps track of the addresses, code ids, code hashes, and other
-info about the smart contracts that you deployed, in the form of files under
-`receipts/$CHAIN_ID/$DEPLOYMENT.yml`.
-
-* `context.deployments: Deployments`: list of all deployments for the current project and chain.
-* `context.deployment: Deployment`: handle to currently selected deployment.
-
-
-:::info
-It is recommended to keep receipts for mainnet and testnet in your VCS
-in order to keep track of the contracts that you deploy to public networks.
-:::
-
-:::info
-The deployments system prefixes all contract labels with the name of the deployment.
-This is because labels are expected to be both meaningful and globally unique.
-So if you `name` your contracts `ALICE` and `BOB`, and your deployment is called `20220706`,
-the on-chain labels of the contracts will be `20220706/ALICE` and `20220706/BOB`.
-:::
-
-:::info
-The timestamp here corresponds to the moment the deployment was created, and not the moment
-when a particular contract was deployed. You can get the latter by looking at `initTx` in the
-deployment receipt, and querying that transaction in the transaction explorer.
-:::
-
 ## How to deploy contracts
 
 The `context.contract(name, Client?)` method, which returns a `ContractSlot` - a placeholder
@@ -127,8 +97,33 @@ a custom `Client` class used to interact with the deployed contract.
     deployment; if the contract is not found in the deployment, `message` is thrown.
 
 :::info
+### Receipts
+
+The **deployment receipt system** keeps track of the addresses, code ids, code hashes, and other
+info about the smart contracts that you deployed, in the form of files under
+`receipts/$CHAIN_ID/$DEPLOYMENT.yml`.
+
+Besides `context.contract.get()` and `.getOrDeploy()`, you can access it directly via:
+* `context.deployments: Deployments`: list of all deployments for the current project and chain.
+* `context.deployment: Deployment`: handle to currently selected deployment.
+
+* The deployments system prefixes all contract labels with the name of the deployment.
+  This is because labels are expected to be both meaningful and globally unique.
+  So if you `name` your contracts `ALICE` and `BOB`, and your deployment is called `20220706`,
+  the on-chain labels of the contracts will be `20220706/ALICE` and `20220706/BOB`.
+
+* The timestamp here corresponds to the moment the deployment was created, and not the moment
+  when a particular contract was deployed. You can get the latter by looking at `initTx` in the
+  deployment receipt, and querying that transaction in the transaction explorer.
+
+* We recommend that you keep receipts of your primary mainnet and testnet deployments in your
+  VCS system, in order to keep track of your project's footprint on public networks.
+:::
+
+:::info
 `init` can be either an init message, or a function returning an init message.
-This is useful when there is extra preparation needed when deploying a contract,
+
+This is useful when there is [extra preparation](#templates-and-factories) needed when deploying a contract,
 but you don't want to repeat those steps if the contract is already deployed.
 :::
 
