@@ -8,7 +8,7 @@ import assert, { ok, equal, deepEqual } from 'assert'
 
 ## Chain variants:
 
-* `LegacyScrt`: creates secretjs@0.17.5 based agent using lcd/amino
+* `ScrtAmino`: creates secretjs@0.17.5 based agent using lcd/amino
 * `Scrt`: creates secretjs@beta based agent using grpc
 
 ```typescript
@@ -40,8 +40,8 @@ for (const Chain of supportedChains) {
 
 Agent variants:
 
-* **LegacyScrt.Agent** a.k.a. **LegacyScrtAgent**: uses secretjs 0.17.5
-* **Scrt.Agent** a.k.a. **ScrtRPCAgent**: which uses the new gRPC API
+* **ScrtAmino.Agent** a.k.a. **ScrtAminoAgent**: uses secretjs 0.17.5
+* **Scrt.Agent** a.k.a. **ScrtGrpcAgent**: which uses the new gRPC API
   provided by secretjs 1.2-beta - as opposed to the old HTTP-based ("Amino"?) API
   supported in secretjs 0.17.5 and older.
 
