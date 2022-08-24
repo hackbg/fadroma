@@ -204,9 +204,3 @@ class DeployPair extends DeployTask<Promise<[Fadroma.Client, Fadroma.Client]>> {
   }))
 }
 ```
-
-:::warning
-This API is a work in progress.
-* Wrapper function `deployGroup` is necessary to preserve naming in final operation report
-* `this.subtask(()=>this.context.contract)` should become just `this.contract()`; same for template
-:::
