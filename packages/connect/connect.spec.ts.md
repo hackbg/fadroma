@@ -1,17 +1,23 @@
 # Fadroma Chains Spec
 
+```typescript
+import * as Testing from '../../TESTING.ts.md'
+import * as Fadroma from '@fadroma/connect'
+import assert, { ok, equal, deepEqual } from 'assert'
+```
+
 ## Chain variants:
 
 * `LegacyScrt`: creates secretjs@0.17.5 based agent using lcd/amino
 * `Scrt`: creates secretjs@beta based agent using grpc
 
 ```typescript
-import { SecretNetwork } from '@fadroma/scrt'
-import { SecretNetworkAmino } from '@fadroma/scrt-amino'
+import { Scrt } from '@fadroma/scrt'
+import { ScrtAmino } from '@fadroma/scrt-amino'
 
 const supportedChains = [
-  SecretNetwork,
-  SecretNetworkAmino
+  Scrt,
+  ScrtAmino
 ]
 
 for (const Chain of supportedChains) {
@@ -21,10 +27,10 @@ for (const Chain of supportedChains) {
 }
 
 for (const Chain of supportedChains) {
-  ok(await new Chain('main', { mode: ChainMode.Mainnet }))
-  ok(await new Chain('test', { mode: ChainMode.Testnet }))
+  ok(await new Chain('main', { mode: Chain.Mode.Mainnet }))
+  ok(await new Chain('test', { mode: Chain.Mode.Testnet }))
   const node = { chainId: 'scrt-devnet', url: 'http://test:0' }
-  const chain = await new Chain('dev', { mode: ChainMode.Devnet, node })
+  const chain = await new Chain('dev', { mode: Chain.Mode.Devnet, node })
   ok(chain)
   equal(chain.node, node)
   equal(chain.url,  node.url)
@@ -49,7 +55,7 @@ for (const Chain of supportedChains) {
 }
 // waiting for next block
 for (const Chain of [
-  SecretNetworkAmino
+  ScrtAmino
 ]) {
   await Testing.withMockAPIEndpoint(async endpoint => {
     const chain    = new Chain('test', { url: endpoint.url })
@@ -68,7 +74,7 @@ for (const Chain of [
 
 // native token balance and transactions
 for (const Chain of [
-  SecretNetworkAmino
+  ScrtAmino
 ]) {
   continue // TODO
   await withMockAPIEndpoint(async endpoint => {
@@ -103,4 +109,12 @@ for (const Chain of supportedChains) {
   const bundle   = agent.bundle()
   ok(bundle instanceof Chain.Agent.Bundle)
 }
+```
 
+## Connect messages
+
+WIP: Convert all status outputs from connect module to semantic logs.
+
+```typescript
+for (const event of Object.values(Fadroma.ConnectLogger({ info: () => {} })) event([],[])
+```

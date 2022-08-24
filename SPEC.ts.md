@@ -14,31 +14,37 @@ const subSpec = (name, step) => spec.Spec[name] = step
 export default spec
 ```
 
-## Client
+## [Core client model](./packages/client/client.spec.ts.md)
 
 ```typescript
 subSpec('Client', () => import('./packages/client/client.spec.ts.md').then(console.log))
 ```
 
-## Building
+## [Connecting to chains](./packages/connect/connect.spec.ts.md')
+
+```typescript
+subSpec('Connect', () => import('./packages/connect/connect.spec.ts.md').then(console.log))
+```
+
+## [Building contracts](./packages/build/build.spec.ts.md)
 
 ```typescript
 subSpec('Build', () => import('./packages/build/build.spec.ts.md').then(console.log))
 ```
 
-## Deploying
+## [Deploying contracts](./packages/deploy/deploy.spec.ts.md)
 
 ```typescript
 subSpec('Deploy', () => import('./packages/deploy/deploy.spec.ts.md').then(console.log))
 ```
 
-## Devnet
+## [Devnet](./packages/devnet/devnet.spec.ts.md)
 
 ```typescript
 subSpec('Devnet', () => import('./packages/devnet/devnet.spec.ts.md').then(console.log))
 ```
 
-## Mocknet
+## [Mocknet](./packages/mocknet/mocknet.spec.ts.md)
 
 ```typescript
 subSpec('Mocknet', () => import('./packages/mocknet/mocknet.spec.ts.md').then(console.log))
