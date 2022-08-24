@@ -42,11 +42,11 @@ jobs:
           args: --all-features
       - name: Collect docs
         run: |
-          mkdir -p dist/docs
+          mkdir -p dist/docs dist/docs/api dist/docs/cov
           mv .vitepress/dist/* dist/docs
           mv target/doc dist/docs/api/rs
           mv docs dist/docs/api/ts
-          mv coverage/lcov-report dist/docs/coverage/ts
+          mv coverage/lcov-report dist/docs/cov/ts
           tar -cvf dist/docs/nix shell.nix
       - name: Publish docs
         run: |
