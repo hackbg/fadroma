@@ -116,5 +116,7 @@ for (const Chain of supportedChains) {
 WIP: Convert all status outputs from connect module to semantic logs.
 
 ```typescript
-for (const event of Object.values(Fadroma.ConnectLogger({ info: () => {} })) event([],[])
+for (const event of Object.values(Fadroma.ConnectLogger({
+  log: () => {}, info: () => {}, warn: () => {}, error: () => {}
+})) event([],[])
 ```
