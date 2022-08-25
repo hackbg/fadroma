@@ -20,7 +20,7 @@ import { Console, bold } from '@hackbg/konzola'
 import { toHex, Sha256 } from '@hackbg/formati'
 import EnvConfig         from '@hackbg/konfizi'
 import * as Komandi      from '@hackbg/komandi'
-import * as Dokeres      from '@hackbg/dokeres'
+import Dokeres           from '@hackbg/dokeres'
 import * as Kabinet      from '@hackbg/kabinet'
 import $                 from '@hackbg/kabinet'
 
@@ -64,7 +64,7 @@ export class BuilderConfig extends EnvConfig {
 }
 
 /** Get a builder based on the builder config. */
-export function getBuilder (config: Partial<BuilderConfig> = getBuilderConfig()) {
+export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()) {
   if (config.buildRaw) {
     return new RawBuilder({ ...config, caching: !config.rebuild })
   } else {
@@ -83,13 +83,13 @@ export interface BuildContext extends Komandi.CommandContext {
   /** Cargo workspace of the current project. */
   workspace: LocalWorkspace
   /** Get a Source by crate name from the current workspace. */
-  getSource (source: IntoSource): Fadroma.Source
+  getSource (source: Fadroma.IntoSource): Fadroma.Source
   /** Knows how to build contracts for a target. */
   builder: Fadroma.Builder
   /** Get a Template from Source or crate name. */
-  build (source: IntoSource, ref?: string): Promise<Fadroma.Template>
+  build (source: Fadroma.IntoSource, ref?: string): Promise<Fadroma.Template>
   /** Get one or more Templates from Source or crate name */
-  buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Fadroma.Template[]>
+  buildMany (ref?: string, ...sources: Fadroma.IntoSource[][]): Promise<Fadroma.Template[]>
 }
 
 /** Add build vocabulary to context of REPL and deploy scripts. */
@@ -124,20 +124,13 @@ export const HEAD = 'HEAD'
   * or another ref (build from Git history). */
 export class LocalSource extends Fadroma.Source {
 
-  constructor (
-    specifier: Fadroma.IntoSource   = {},
-    options:   Partial<LocalSource> = {}
-  ) {
-    if (options.workspace) {
-      options.path = options.workspace.path
-      delete options.workspace
-    }
+  constructor (specifier: Fadroma.IntoSource = {}, options: Partial<LocalSource> = {}) {
     super(specifier, options)
   }
 
-  workspace?: LocalWorkspace
+  workspace?: string
 
-  path?: string
+  path?:      string
 
   get gitDir (): DotGit {
     if (!this.path) throw new Error('LocalSource: no path when trying to access gitDir')
@@ -166,7 +159,7 @@ export class LocalWorkspace {
     if (ref) {
       self = self.at(ref)
     }
-    return new LocalSource(crate, { workspace: self })
+    return new LocalSource(crate, { workspace: self.path })
   }
   /** Get multiple Source objects pointing to crates from the current workspace and ref */
   crates (crates: string[]): Fadroma.Source[] {
@@ -240,31 +233,10 @@ export const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).dige
 export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
 
 export interface LocalBuilderOptions {
-  /** The build script. */
   script:        string
-  /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
   noFetch:       boolean
-  /** Name of directory where build artifacts are collected. */
   outputDirName: string
-  /** Version of Rust toolchain to use. */
   toolchain:     string
-}
-
-/** Can perform builds. */
-export abstract class LocalBuilder extends Fadroma.Builder {
-  id = 'local'
-  static script = resolve(__dirname, 'build.impl.mjs')
-  verbose:       boolean     = false
-  outputDirName: string      = 'artifacts'
-  noFetch:       boolean     = false
-  toolchain:     string|null = null
-  script:        string      = LocalBuilder.script
-  constructor (opts: Partial<LocalBuilderOptions> = {}) {
-    super()
-    this.noFetch       = opts.noFetch       ?? this.noFetch
-    this.outputDirName = opts.outputDirName ?? this.outputDirName
-    this.script        = opts.script        ?? this.script
-  }
 }
 
 export interface CachingBuilderOptions extends LocalBuilderOptions {
@@ -272,14 +244,57 @@ export interface CachingBuilderOptions extends LocalBuilderOptions {
   caching: boolean
 }
 
+export interface DockerBuilderOptions extends CachingBuilderOptions {
+  /** Path to Docker API endpoint. */
+  socketPath: string
+  /** Docker API client instance. */
+  docker:     Dokeres
+  /** Build image. */
+  image:      string|Dokeres.Image
+  /** Dockerfile for building the build image. */
+  dockerfile: string
+}
+
+/** Can perform builds. */
+export abstract class LocalBuilder extends Fadroma.Builder {
+
+  /** Default build script */
+  static script = resolve(__dirname, 'build.impl.mjs')
+
+  constructor (opts: Partial<LocalBuilder> = {}) {
+    super(opts)
+  }
+
+  /** The build script. */
+  script:        string      = LocalBuilder.script
+
+  /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
+  noFetch:       boolean     = false
+
+  /** Name of directory where build artifacts are collected. */
+  outputDirName: string      = 'artifacts'
+
+  /** Version of Rust toolchain to use. */
+  toolchain:     string|null = null
+
+  /** Whether the build process should print more detail to the console. */
+  verbose:       boolean     = false
+
+}
+
 /** Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
 export abstract class CachingBuilder extends LocalBuilder {
-  id = 'local-caching'
-  caching: boolean = true
+
   constructor (options: Partial<CachingBuilderOptions> = {}) {
     super(options)
-    this.caching = options.caching ?? this.caching
   }
+
+  /** Mockable. */
+  codeHashForPath = codeHashForPath
+
+  /** Whether to enable caching. */
+  caching: boolean = true
+
   /** Check if artifact exists in local artifacts cache directory.
     * If it does, don't rebuild it but return it from there. */ 
   protected prebuild (
@@ -298,7 +313,7 @@ export abstract class CachingBuilder extends LocalBuilder {
     }
     return null
   }
-  codeHashForPath = codeHashForPath // mockable
+
 }
 
 /** This build mode looks for a Rust toolchain in the same environment
@@ -327,7 +342,7 @@ export class RawBuilder extends CachingBuilder {
       const env = {
         _BUILD_GID: process.getgid(),
         _BUILD_UID: process.getuid(),
-        _OUTPUT:    $(source.path).in('artifacts').path,
+        _OUTPUT:    $(source.workspace).in('artifacts').path,
         _REGISTRY:  '',
         _TOOLCHAIN: this.toolchain,
       }
@@ -394,17 +409,6 @@ export class RawBuilder extends CachingBuilder {
 
 }
 
-export interface DockerBuilderOptions extends CachingBuilderOptions {
-  /** Path to Docker API endpoint. */
-  socketPath: string
-  /** Docker API client instance. */
-  docker:     Dokeres.Dokeres
-  /** Build image. */
-  image:      string|Dokeres.DokeresImage
-  /** Dockerfile for building the build image. */
-  dockerfile: string
-}
-
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends CachingBuilder {
 
@@ -418,16 +422,16 @@ export class DockerBuilder extends CachingBuilder {
     super(opts)
     // Set up Docker API handle
     if (opts.socketPath) {
-      this.docker = new Dokeres.Dokeres(this.socketPath = opts.socketPath)
+      this.docker = new Dokeres(this.socketPath = opts.socketPath)
     } else if (opts.docker) {
       this.docker = opts.docker
     }
-    if (opts.image instanceof Dokeres.DokeresImage) {
+    if (opts.image instanceof Dokeres.Image) {
       this.image = opts.image
     } else if (opts.image) {
-      this.image = new Dokeres.DokeresImage(this.docker, opts.image)
+      this.image = new Dokeres.Image(this.docker, opts.image)
     } else {
-      this.image = new Dokeres.DokeresImage(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
+      this.image = new Dokeres.Image(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
     }
     // Set up Docker image
     this.dockerfile ??= opts.dockerfile!
@@ -438,10 +442,10 @@ export class DockerBuilder extends CachingBuilder {
   socketPath: string  = '/var/run/docker.sock'
 
   /** Used to launch build container. */
-  docker:     Dokeres.Dokeres = new Dokeres.Dokeres(this.socketPath)
+  docker:     Dokeres = new Dokeres(this.socketPath)
 
   /** Tag of the docker image for the build container. */
-  image:      Dokeres.DokeresImage
+  image:      Dokeres.Image
 
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
@@ -753,7 +757,7 @@ export function listBuildSets (buildSets: Record<string, ()=>LocalSource[]>) {
 
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  const config = { build: getBuilderConfig(process.cwd(), process.env as Record<string, string>) }
+  const config = { build: new BuilderConfig(process.env as Record<string, string>, process.cwd()) }
   const [buildPath, ...buildArgs] = process.argv.slice(2)
   const buildSpec = $(buildPath)
   if (buildSpec.isDirectory()) {

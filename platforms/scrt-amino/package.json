@@ -6,7 +6,6 @@
   "files": [ "scrt-amino.ts" ],
   "dependencies": {
     "@fadroma/scrt":   "workspace:^1",
-    "@hackbg/konfizi": "^1.0.4",
     "@hackbg/formati": "^1.2.0",
 
     "secretjs":             "0.17.5",

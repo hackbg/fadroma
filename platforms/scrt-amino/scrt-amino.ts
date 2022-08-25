@@ -19,7 +19,6 @@
 import * as SecretJS from 'secretjs' // this implementation uses secretjs 0.17.5
 import * as Fadroma  from '@fadroma/scrt'
 import * as Formati  from '@hackbg/formati'
-import * as Konfizi  from '@hackbg/konfizi'
 import { backOff }   from 'exponential-backoff'
 import { default as Axios, AxiosInstance } from 'axios'
 
@@ -41,9 +40,11 @@ export const privKeyToMnemonic = (privKey: Uint8Array) =>
   (Formati.Bip39.encode(privKey) as any).data
 
 /** Amino-specific Secret Network settings. */
-export interface ScrtAminoConfig extends Fadroma.ScrtConfig {
+export class ScrtAminoConfig extends Fadroma.ScrtConfig {
   scrtMainnetAminoUrl: string|null
+    = this.getStr('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultMainnetAminoUrl)
   scrtTestnetAminoUrl: string|null
+    = this.getStr('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultTestnetAminoUrl)
 }
 
 /** The Secret Network, accessed via Amino protocol. */
@@ -65,20 +66,11 @@ export class ScrtAmino extends Fadroma.Scrt {
     // devnet and mocknet modes are defined in @fadroma/connect
   }
 
-  static getConfig = function getScrtAminoConfig (
+  static getConfig (
     cwd: string,
     env: Record<string, string> = {}
   ): ScrtAminoConfig {
-    const { Str, Bool } = Konfizi.getFromEnv(env)
-    return {
-      scrtAgentName:       Str('SCRT_AGENT_NAME',        ()=>null),
-      scrtAgentAddress:    Str('SCRT_AGENT_ADDRESS',     ()=>null),
-      scrtAgentMnemonic:   Str('SCRT_AGENT_MNEMONIC',    ()=>null),
-      scrtMainnetChainId:  Str('SCRT_MAINNET_CHAIN_ID',  ()=>Fadroma.Scrt.defaultMainnetChainId),
-      scrtMainnetAminoUrl: Str('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultMainnetAminoUrl),
-      scrtTestnetChainId:  Str('SCRT_TESTNET_CHAIN_ID',  ()=>Fadroma.Scrt.defaultTestnetChainId),
-      scrtTestnetAminoUrl: Str('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultTestnetAminoUrl),
-    }
+    return new ScrtAminoConfig(env, cwd)
   }
 
   static defaultMainnetAminoUrl: string|null = null
@@ -130,7 +122,7 @@ export class ScrtAmino extends Fadroma.Scrt {
     return label
   }
 
-  async query <T, U> ({ address, codeHash }: Fadroma.Instance, msg: T) {
+  async query <T, U> ({ address, codeHash }: Partial<Fadroma.Contract>, msg: T) {
     const { api } = this
     // @ts-ignore
     return api.queryContractSmart(address, msg, undefined, codeHash)
@@ -270,30 +262,31 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
     if (codeId === "-1") codeId = uploadResult.logs[0].events[0].attributes[3].value
-    const codeHash = uploadResult.originalChecksum
-    return new Fadroma.Template(
-      undefined, // TODO pass Artifact as 2nd arg to method - or unify Source/Artifact/Template?
-      codeHash,
-      this.chain.id,
+    return new Fadroma.Template({
+      artifact: undefined,
+      codeHash: uploadResult.originalChecksum,
+      chainId:  this.chain.id,
       codeId,
-      uploadResult.transactionHash
-    )
+      uploadTx: uploadResult.transactionHash
+    })
   }
 
-  async instantiate <T> (template: Fadroma.Template, label: string, msg: T, funds = []) {
+  async instantiate <T> (
+    template: Fadroma.Template, label: string, msg: T, funds = []
+  ): Promise<Fadroma.Contract> {
     if (!template.codeHash) throw ScrtAminoErrors.TemplateNoCodeHash()
     const { codeId, codeHash } = template
     const { api } = this
     //@ts-ignore
     const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, funds)
     const address = logs![0].events[0].attributes[4].value
-    return {
+    return new Fadroma.Contract({
       chainId: this.chain.id,
       codeId:  String(codeId),
       codeHash,
       address,
-      transactionHash,
-    }
+      initTx: transactionHash,
+    })
   }
 
   async getHash (idOrAddr: number|string): Promise<Fadroma.CodeHash> {
@@ -315,13 +308,15 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     return (await this.api.getContract(address)).label
   }
 
-  async query <T, U> ({ address, codeHash }: Fadroma.Instance, msg: T): Promise<U> {
-    // @ts-ignore
-    return await this.api.queryContractSmart(address, msg, undefined, codeHash)
+  async query <U> (
+    { address, codeHash }: Partial<Fadroma.Contract>, msg: Fadroma.Message
+  ): Promise<U> {
+    return await this.api.queryContractSmart(address!, msg as object, undefined, codeHash)
   }
 
   async execute (
-    { address, codeHash }: Fadroma.Instance, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
+    { address, codeHash }: Partial<Fadroma.Contract>, msg: Fadroma.Message,
+    opts: Fadroma.ExecOpts = {}
   ): Promise<SecretJS.TxsResponse> {
     const { memo, send, fee } = opts
     return await this.api.execute(address, msg, memo, send, fee, codeHash)

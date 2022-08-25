@@ -21,7 +21,7 @@ import * as Formati  from '@hackbg/formati'
 import * as SecretJS from 'secretjs'
 
 import { randomBytes } from '@hackbg/formati'
-import { getFromEnv }  from '@hackbg/konfizi'
+import EnvConfig       from '@hackbg/konfizi'
 import structuredClone from '@ungap/structured-clone'
 
 /// # CORE SECRET NETWORK DEFINITIONS /////////////////////////////////////////////////////////////
@@ -30,12 +30,17 @@ export type ScrtGrpcTxResult = SecretJS.Tx
 
 /** Environment settings for Secret Network API
   * that are common between gRPC and Amino implementations. */
-export interface ScrtConfig {
+export abstract class ScrtConfig extends EnvConfig {
   scrtAgentName:      string|null
+    = this.getStr('SCRT_AGENT_NAME',       ()=>null)
   scrtAgentAddress:   string|null
+    = this.getStr('SCRT_AGENT_ADDRESS',    ()=>null)
   scrtAgentMnemonic:  string|null
+    = this.getStr('SCRT_AGENT_MNEMONIC',   ()=>null)
   scrtMainnetChainId: string
+    = this.getStr('SCRT_MAINNET_CHAIN_ID', ()=>Scrt.defaultMainnetChainId)
   scrtTestnetChainId: string
+    = this.getStr('SCRT_TESTNET_CHAIN_ID', ()=>Scrt.defaultTestnetChainId)
 }
 
 /** Base class for both implementations of Secret Network API (gRPC and Amino) */
@@ -202,9 +207,11 @@ Scrt.Agent.Bundle = ScrtBundle
 /// # GRPC API ////////////////////////////////////////////////////////////////////////////////////
 
 /** gRPC-specific Secret Network settings. */
-export interface ScrtGrpcConfig extends ScrtConfig {
+export class ScrtGrpcConfig extends ScrtConfig {
   scrtMainnetGrpcUrl: string|null
+    = this.getStr('SCRT_MAINNET_GRPC_URL',  ()=>ScrtGrpc.defaultMainnetGrpcUrl)
   scrtTestnetGrpcUrl: string|null
+    = this.getStr('SCRT_TESTNET_GRPC_URL',  ()=>ScrtGrpc.defaultTestnetGrpcUrl)
 }
 
 /** The Secret Network, accessed via gRPC API. */
@@ -228,20 +235,11 @@ export class ScrtGrpc extends Scrt {
   }
 
   /** Get configuration from the environment. */
-  static getConfig = function getScrtGrpcConfig (
+  static getConfig (
     cwd: string,
     env: Record<string, string> = {}
   ): ScrtGrpcConfig {
-    const { Str, Bool } = getFromEnv(env)
-    return {
-      scrtAgentName:       Str('SCRT_AGENT_NAME',        ()=>null),
-      scrtAgentAddress:    Str('SCRT_AGENT_ADDRESS',     ()=>null),
-      scrtAgentMnemonic:   Str('SCRT_AGENT_MNEMONIC',    ()=>null),
-      scrtMainnetChainId:  Str('SCRT_MAINNET_CHAIN_ID',  ()=>Scrt.defaultMainnetChainId),
-      scrtMainnetGrpcUrl:  Str('SCRT_MAINNET_GRPC_URL',  ()=>ScrtGrpc.defaultMainnetGrpcUrl),
-      scrtTestnetChainId:  Str('SCRT_TESTNET_CHAIN_ID',  ()=>Scrt.defaultTestnetChainId),
-      scrtTestnetGrpcUrl:  Str('SCRT_TESTNET_GRPC_URL',  ()=>ScrtGrpc.defaultTestnetGrpcUrl),
-    }
+    return new ScrtGrpcConfig(env, cwd)
   }
 
   static defaultMainnetGrpcUrl: string = 'https://secret-4.api.trivium.network:9091'
@@ -276,7 +274,7 @@ export class ScrtGrpc extends Scrt {
     }
   }
 
-  async query <U> (instance: Fadroma.Instance, query: Fadroma.Message): Promise<U> {
+  async query <U> (instance: Partial<Fadroma.Contract>, query: Fadroma.Message): Promise<U> {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
 
@@ -413,7 +411,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   }
 
   // @ts-ignore
-  async query <U> (instance: Fadroma.Instance, query: Fadroma.Message): Promise<U> {
+  async query <U> (instance: Partial<Fadroma.Contract>, query: Fadroma.Message): Promise<U> {
     const { address: contractAddress, codeHash } = instance
     const args = { contractAddress, codeHash, query: query as Record<string, unknown> }
     // @ts-ignore
@@ -430,18 +428,17 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     const chainId    = this.chain.id
-    return new Fadroma.Template(
-      undefined,
+    return new Fadroma.Template({
       codeHash,
       chainId,
       codeId,
-      result.transactionHash
-    )
+      uploadTx: result.transactionHash
+    })
   }
 
   async instantiate <T> (
     template: Fadroma.Template, label: Fadroma.Label, initMsg: T, initFunds = []
-  ): Promise<Fadroma.Instance> {
+  ): Promise<Fadroma.Contract> {
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) throw Errors.AnotherChain()
     if (isNaN(Number(codeId)))     throw Errors.NoCodeId()
@@ -449,29 +446,32 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
     const gasLimit = Number(Scrt.defaultFees.init.amount[0].amount)
     const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
-    if (result.arrayLog) {
-      type Log = { type: string, key: string }
-      const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
-      const address  = result.arrayLog.find(findAddr)?.value!
-      return { initTx: result.transactionHash, chainId, codeId, codeHash, address, label, template }
-    } else {
+    if (!result.arrayLog) {
       throw Object.assign(
         new Error(`SecretRPCAgent#instantiate: ${result.rawLog}`), {
           jsonLog: result.jsonLog
         }
       )
     }
+    type Log = { type: string, key: string }
+    const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
+    return new Fadroma.Contract({
+      ...template,
+      initTx:  result.transactionHash,
+      address: result.arrayLog.find(findAddr)?.value!,
+      label
+    })
   }
 
   async execute (
-    instance: Fadroma.Instance, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
+    instance: Partial<Fadroma.Contract>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
   ): Promise<ScrtGrpcTxResult> {
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
     if (memo) Warnings.NoMemos()
     const result = await this.api.tx.compute.executeContract({
       sender:          this.address,
-      contractAddress: address,
+      contractAddress: address!,
       codeHash,
       msg:             msg as Record<string, unknown>,
       sentFunds:       send

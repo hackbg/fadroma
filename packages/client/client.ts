@@ -149,9 +149,9 @@ export type IntoBuilder = string|BuilderCtor|Partial<Builder>
 export interface BuilderCtor { new (options?: Partial<Builder>): Builder }
 
 /** Builder: turns `Source` into `Template`, providing `artifact` and `codeHash` */
-export abstract class Builder {
+export abstract class Builder extends Overridable {
 
-  static get (specifier: IntoBuilder, options: Partial<Builder> = {}) {
+  static get (specifier: IntoBuilder = '', options: Partial<Builder> = {}) {
     if (typeof specifier === 'string') {
       const Builder = Builders[specifier]
       if (!Builder) {
@@ -165,8 +165,6 @@ export abstract class Builder {
       return new Builder({ ...specifier, ...options })
     }
   }
-
-  abstract id: string
 
   abstract build (source: IntoSource, ...args: any[]): Promise<Template>
 
@@ -214,6 +212,9 @@ export class Template extends Source {
 
   /** Code ID representing the identity of the contract's code on a specific chain. */
   codeId?:    CodeId
+
+  /** Hash of transaction that performed the upload. */
+  uploadTx?:  TxHash
 
   /** Upload source code to a chain. */
   upload (uploader: string|Uploader|undefined = this.uploader): Promise<Template> {
@@ -383,22 +384,31 @@ export type Message    = string|Record<string, unknown>
 
 /** Interface for executing read-only, unauthenticated API calls. */
 export interface Spectator {
+
   /** The chain on which this object operates. */
   chain:        Chain
+
   /** Query a smart contract. */
   query <U>     (contract: Partial<Contract>, msg: Message): Promise<U>
+
   /** Get the code id of a smart contract. */
   getCodeId     (address: Address):                          Promise<string>
+
   /** Get the label of a smart contract. */
   getLabel      (address: Address):                          Promise<string>
+
   /** Get the code hash of a smart contract. */
   getHash       (addressOrCodeId: Address|number):           Promise<string>
+
   /** Get the code hash of a smart contract. */
   checkHash     (address: Address, codeHash?: CodeHash):     Promise<string>
+
   /** Get the current block height. */
   get height    ():                                          Promise<number>
+
   /** Wait for the block height to increment. */
   get nextBlock ():                                          Promise<number>
+
 }
 
 /** A chain can be in one of the following modes: */
@@ -863,7 +873,7 @@ export abstract class Bundle implements Executor {
     * even though the bundle API is structured as multiple function calls,
     * the bundle is ultimately submitted as a single transaction and
     * it doesn't make sense to query state in the middle of that. */
-  async query <U> (contract: Instance, msg: Message): Promise<U> {
+  async query <U> (contract: Contract, msg: Message): Promise<U> {
     throw new Error("don't query inside bundle")
   }
 
@@ -1139,14 +1149,14 @@ export class Contract extends Template {
   get chain () { return this.agent?.chain }
 
   /** Address of the contract on the chain. */
-  address: Address
+  address?: Address
 
   /** Label of the contract on the chain. */
   label?: string
 
   async fetchLabel (expected?: CodeHash): Promise<this> {
     this.assertOperational()
-    const label = await this.agent!.getLabel(this.address)
+    const label = await this.agent!.getLabel(this.address!)
     if (!!expected) this.assertCorrect('label', expected, label)
     this.label = label
     return this
@@ -1154,7 +1164,7 @@ export class Contract extends Template {
 
   async fetchCodeHash (expected?: CodeHash): Promise<this> {
     this.assertOperational()
-    const codeHash = await this.agent!.getHash(this.address)
+    const codeHash = await this.agent!.getHash(this.address!)
     if (!!expected) this.assertCorrect('codeHash', expected, codeHash)
     this.codeHash = codeHash
     return this
@@ -1162,7 +1172,7 @@ export class Contract extends Template {
 
   async fetchCodeId (expected?: CodeHash): Promise<this> {
     this.assertOperational()
-    const codeId = await this.agent!.getCodeId(this.address)
+    const codeId = await this.agent!.getCodeId(this.address!)
     if (!!expected) this.assertCorrect('codeId', expected, codeId)
     this.codeId = codeId
     return this
@@ -1171,16 +1181,15 @@ export class Contract extends Template {
   /** Fetch the label, code ID, and code hash from the Chain.
     * You can override this method to populate custom contract info from the chain on your client,
     * e.g. fetch the symbol and decimals of a token contract. */
-  async fetchMetadata (): Promise<this> {
+  async populate (): Promise<this> {
     this.assertOperational()
-    await Promise.all([
-      this.fetchLabel(), this.fetchCodeId(), this.fetchCodeHash()
-    ])
+    await Promise.all([this.fetchLabel(), this.fetchCodeId(), this.fetchCodeHash()])
     return this
   }
 
   /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
   get asLink (): ContractLink {
+    if (!this.address)  throw new Error("Can't link to contract with no address")
     if (!this.codeHash) throw new Error("Can't link to contract with no code hash")
     return { address: this.address, code_hash: this.codeHash }
   }
@@ -1265,19 +1274,19 @@ export interface ContractCtor<C extends Contract, O extends Partial<Contract>> {
 export class Client extends Contract {
   constructor (
     readonly agent?: Executor,
-    arg:             Address|Partial<Contract> = {},
-    hash?:           CodeHash
+    addrOrOpts: Address|Partial<Contract> = {},
+    codeHash?:  CodeHash
   ) {
     console.warn('Fadroma.Client is deprecated. Inherit from Fadroma.Contract')
-    if (typeof arg === 'string') {
-      arg = { address: arg }
+    if (typeof addrOrOpts === 'string') {
+      addrOrOpts = { address: addrOrOpts }
     }
-    super(agent, arg, hash)
+    super({ agent, ...addrOrOpts, codeHash })
   }
 }
 
 /** Client constructor - used by functions which create user-specified Clients. */
-export interface ClientCtor<C extends Client, O extends Partial<Contract>> {
+export interface ClientCtor<C extends Client, O extends Partial<Client>> {
   new (agent?: Executor, address?: Address, hash?: CodeHash): C
   new (agent?: Executor, options?: Partial<O>): C
 }
@@ -1288,16 +1297,22 @@ export interface ContractLink {
   readonly code_hash: CodeHash
 }
 
+/** Pair of name and init message. Used when instantiating multiple contracts from one template. */
+export type DeployArgs = [Name, Message]
+
 /** Instantiates multiple contracts of the same type in one transaction.
   * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
 export class Contracts<C extends Contract> {
+
   constructor (
-    $Client: ClientCtor<C, any> = Client as ClientCtor<C, any>,
+    _Contract: ContractCtor<C, any> = Contract as ContractCtor<C, any>,
     public readonly context: DeployContext,
   ) {
-    this.Client = $Client
+    this.Contract = _Contract
   }
-  public readonly Client: ClientCtor<C, any>
+
+  public readonly Contract: ContractCtor<C, any>
+
   async deployMany (
     template:  IntoTemplate,
     contracts: DeployArgs[] = []
@@ -1312,22 +1327,18 @@ export class Contracts<C extends Contract> {
       const creator = this.context.creator
       instances = await this.context.deployment.initMany(creator, template, contracts)
     } catch (e) {
-      DeployLogger(console).deployManyFailed(e, template, contracts)
-      throw e
+      throw new ContractError.DeployManyFailed(e)
     }
     // Return API client to each contract
-    return instances.map(instance=>this.context.creator!.getClient(this.Client, instance))
+    return instances.map(instance=>this.context.creator!.getClient(this.Contract, instance))
   }
 }
 
-export type DeployArgs       = [Name, Message]
-
-
 /** A moment in time. */
-export type Moment     = number
+export type Moment   = number
 
-/** A period of time. */
-export type Duration   = number
+/** A length of time. */
+export type Duration = number
 
 export class ContractError extends Error {
   static Empty = class EmptyContractSpec extends ContractError {
@@ -1368,6 +1379,12 @@ export class ContractError extends Error {
   static NoName = class NoContractName extends ContractError {
     constructor () {
       super("No name.")
+    }
+  }
+  static DeployManyFailed = class DeployManyFailed extends ContractError {
+    constructor (e: any) {
+      //DeployLogger(console).deployManyFailed(e, template, contracts)
+      super('Deploy of multiple contracts failed. ' + e?.message??'')
     }
   }
 }

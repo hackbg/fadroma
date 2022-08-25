@@ -1,7 +1,7 @@
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
 import { Console, bold }                               from '@hackbg/konzola'
 import { runOperation }                                from '@hackbg/komandi'
-import { Config }                                      from '@hackbg/konfizi'
+import EnvConfig                                       from '@hackbg/konfizi'
 import { freePort, waitPort, Endpoint }                from '@hackbg/portali'
 import { randomHex }                                   from '@hackbg/formati'
 
@@ -21,7 +21,7 @@ export const __dirname = dirname(fileURLToPath(import.meta.url)) // resource fin
 export const console = Console('Fadroma Devnet')
 
 /** Gets devnet settings from environment. */
-export class DevnetConfig extends Config {
+export class DevnetConfig extends EnvConfig {
 
   /** URL to the devnet manager endpoint, if used. */
   manager:   string|null =

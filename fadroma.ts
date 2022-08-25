@@ -41,7 +41,7 @@ export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
     ...new Build.BuilderConfig(env, cwd),
     ...new Connect.ConnectConfig(env, cwd),
     ...new Deploy.DeployConfig(env, cwd),
-    ...new Devnet.getDevnetConfig(env, cwd),
+    ...new Devnet.DevnetConfig(env, cwd),
     ...ScrtGrpc.ScrtGrpc.getConfig(cwd, env),
     ...ScrtAmino.ScrtAmino.getConfig(cwd, env),
   }
@@ -50,9 +50,9 @@ export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
 /** Context for Fadroma commands. */
 export type Context =
   & Komandi.CommandContext
+  & Build.BuildContext
+  & Deploy.DeployContext
   & { config: FadromaConfig }
-  & FadromaBuild.BuildContext
-  & FadromaDeploy.DeployContext
 
 // Reexport the entirety of the Fadroma suite.
 export * from '@fadroma/build'
