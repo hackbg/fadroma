@@ -9,15 +9,16 @@ export function override (
   overrides: object,
   allowed:   string[] = Object.getOwnPropertyNames(self),
 ): Record<string, valof<typeof overrides>> {
-  const filtered = {}
+  const filtered: Record<string, valof<typeof overrides>> = {}
   for (const [key, val] of Object.entries(overrides)) {
     if (allowed.includes(key)) {
-      if (strict && self[key] && self[key] !== val) {
+      const current: typeof val = (self as any)[key]
+      if (strict && current && current !== val) {
         throw new Error(`Tried to override pre-defined ${key}`)
       }
-      self[key] = val
+      (self as any)[key] = val
     } else {
-      filtered[key] = val
+      (filtered as any)[key] = val
     }
   }
   return filtered
@@ -49,7 +50,8 @@ export abstract class Source extends Overridable implements Partial<Source> {
   /** Allow Source to be specified from string or URL. */
   static parse (specifier: IntoSource, options: Partial<Source> = {}): Partial<Source> {
     if (typeof specifier === 'string') {
-      return { ...options, crate: specifier }
+      const [ crate, ref ] = specifier.split('@')
+      return { ...options, crate, ref }
     } else if (specifier instanceof URL) {
       return { ...options, repo: specifier }
     } else if (typeof specifier === 'object') {
@@ -184,9 +186,9 @@ export class Template extends Source {
   static parse (specifier: IntoTemplate, options: Partial<Template> = {}): Partial<Template> {
     if (typeof specifier === 'string') {
       const [crate, ref] = specifier.split('@')
-      options = { ...options, crate, ref }
+      return { ...options, crate, ref }
     } else if (specifier instanceof URL) {
-      options = { ...options, artifact: specifier }
+      return { ...options, artifact: specifier }
     } else if (typeof specifier === 'object') {
       return { ...specifier, ...options }
     } else {
@@ -214,7 +216,7 @@ export class Template extends Source {
   codeId?:    CodeId
 
   /** Upload source code to a chain. */
-  upload (uploader: string|Uploader = this.uploader): Promise<Template> {
+  upload (uploader: string|Uploader|undefined = this.uploader): Promise<Template> {
     if (!this.artifact) {
       throw new TemplateError.NoArtifact()
     }
@@ -258,15 +260,15 @@ export class Template extends Source {
         this.codeHash = template.codeHash
         return this
       }
-      if (this.artifact) {
-        return await upload()
-      } else if (this.crate) {
+      if (!this.artifact) {
         const { artifact, codeHash } = await this.build()
-        if (!this.artifact) {
+        this.artifact = artifact
+        this.codeHash = codeHash
+        if (!artifact) {
           throw new TemplateError.NoArtifactURL()
         }
-        return await upload()
       }
+      return await upload()
       throw new TemplateError.NoSource()
     }
   }
@@ -379,26 +381,27 @@ export type Address    = string
 /** A transaction message that can be sent to a contract. */
 export type Message    = string|Record<string, unknown>
 
-/** Something that can execute read-only API calls. */
+/** Interface for executing read-only, unauthenticated API calls. */
 export interface Spectator {
   /** The chain on which this object operates. */
   chain:        Chain
   /** Query a smart contract. */
-  query <U>     (contract: Instance, msg: Message):      Promise<U>
+  query <U>     (contract: Partial<Contract>, msg: Message): Promise<U>
   /** Get the code id of a smart contract. */
-  getCodeId     (address: Address):                      Promise<string>
+  getCodeId     (address: Address):                          Promise<string>
   /** Get the label of a smart contract. */
-  getLabel      (address: Address):                      Promise<string>
+  getLabel      (address: Address):                          Promise<string>
   /** Get the code hash of a smart contract. */
-  getHash       (addressOrCodeId: Address|number):       Promise<string>
+  getHash       (addressOrCodeId: Address|number):           Promise<string>
   /** Get the code hash of a smart contract. */
-  checkHash     (address: Address, codeHash?: CodeHash): Promise<string>
+  checkHash     (address: Address, codeHash?: CodeHash):     Promise<string>
   /** Get the current block height. */
-  get height    ():                                      Promise<number>
+  get height    ():                                          Promise<number>
   /** Wait for the block height to increment. */
-  get nextBlock ():                                      Promise<number>
+  get nextBlock ():                                          Promise<number>
 }
 
+/** A chain can be in one of the following modes: */
 export enum ChainMode {
   Mainnet = 'Mainnet',
   Testnet = 'Testnet',
@@ -409,6 +412,7 @@ export enum ChainMode {
 /** The unique ID of a chain. */
 export type ChainId = string
 
+/** Represents a particular chain. */
 export abstract class Chain implements Spectator {
 
   static Mode = ChainMode
@@ -474,7 +478,7 @@ export abstract class Chain implements Spectator {
   /** Get the native balance of an address. */
   abstract getBalance (denom: string, address: Address): Promise<string>
 
-  abstract query <U> (contract: Instance, msg: Message): Promise<U>
+  abstract query <U> (contract: Contract, msg: Message): Promise<U>
 
   abstract getCodeId (address: Address): Promise<CodeId>
 
@@ -576,16 +580,18 @@ export interface Executor extends Spectator {
   /** Upload multiple pieces of code, generating multiple code id/hash pairs. */
   uploadMany      (code: Uint8Array[]):                                Promise<void|Template[]>
   /** Create a new smart contract from a code id, label and init message. */
-  instantiate     (template: Template, label: string, msg: Message):   Promise<void|Instance>
+  instantiate     (template: Template, label: string, msg: Message):   Promise<void|Contract>
   /** Create multiple smart contracts from a list of code id/label/init message triples. */
-  instantiateMany (configs: [Template, string, Message][]):            Promise<void|Instance[]>
+  instantiateMany (configs: DeployArgsTriple[]):                       Promise<void|Contract[]>
   /** Call a transaction method on a smart contract. */
-  execute         (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|unknown>
+  execute         (contract: Contract, msg: Message, opts?: ExecOpts): Promise<void|unknown>
   /** Begin a transaction bundle. */
   bundle          (): Bundle
   /** Get a client instance for talking to a specific smart contract as this executor. */
-  getClient <C extends Client, O extends Instance> (Client: ClientCtor<C, O>, arg: Address|O): C
+  getClient <C extends Client, O extends Partial<Contract>> (Client: ClientCtor<C, O>, arg: Address|O): C
 }
+
+export type DeployArgsTriple = [Template, Name, Message]
 
 /** Options for a compute transaction. */
 export interface ExecOpts {
@@ -687,7 +693,7 @@ export abstract class Agent implements Executor {
     return this.chain.checkHash(address, codeHash)
   }
 
-  getClient <C extends Client, O extends Instance> (
+  getClient <C extends Client, O extends Partial<Contract>> (
     _Client: ClientCtor<C, O>   = Client as ClientCtor<C, O>,
     arg:     Address|Partial<O> = {},
     hash?:   CodeHash
@@ -696,7 +702,7 @@ export abstract class Agent implements Executor {
     return new _Client(this, arg, hash)
   }
 
-  query <R> (contract: Instance, msg: Message): Promise<R> {
+  query <R> (contract: Contract, msg: Message): Promise<R> {
     return this.chain.query(contract, msg)
   }
 
@@ -710,17 +716,13 @@ export abstract class Agent implements Executor {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
 
-  abstract instantiate <T> (template: Template, label: string, msg: T): Promise<Instance>
+  abstract instantiate <T> (template: Template, label: string, msg: T): Promise<Contract>
 
-  instantiateMany (configs: [Template, string, Message][] = []): Promise<Instance[]> {
-    return Promise.all(configs.map(
-      async ([template, label, msg])=>Object.assign(await this.instantiate(template, label, msg), {
-        codeHash: template.codeHash
-      })
-    ))
+  instantiateMany (configs: DeployArgsTriple[] = []): Promise<Contract[]> {
+    return Promise.all(configs.map(triple=>this.instantiate(...triple)))
   }
 
-  abstract execute (contract: Instance, msg: Message, opts?: ExecOpts): Promise<void|unknown>
+  abstract execute (contract: Contract, msg: Message, opts?: ExecOpts): Promise<void|unknown>
 
   static Bundle: BundleCtor<Bundle>
 
@@ -1319,8 +1321,6 @@ export class Contracts<C extends Contract> {
 }
 
 export type DeployArgs       = [Name, Message]
-
-export type DeployArgsTriple = [Template, Name, Message]
 
 
 /** A moment in time. */

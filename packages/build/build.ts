@@ -19,10 +19,10 @@
 import { Console, bold } from '@hackbg/konzola'
 import { toHex, Sha256 } from '@hackbg/formati'
 import EnvConfig         from '@hackbg/konfizi'
-import * as Komandi from '@hackbg/komandi'
-import * as Dokeres from '@hackbg/dokeres'
-import * as Kabinet from '@hackbg/kabinet'
-import $ from '@hackbg/kabinet'
+import * as Komandi      from '@hackbg/komandi'
+import * as Dokeres      from '@hackbg/dokeres'
+import * as Kabinet      from '@hackbg/kabinet'
+import $                 from '@hackbg/kabinet'
 
 import * as Fadroma from '@fadroma/client'
 
@@ -39,7 +39,7 @@ const console = Console('Fadroma Build')
 export class BuilderConfig extends EnvConfig {
   /** Project root. Defaults to current working directory. */
   project:    string =
-    this.getStr ('FADROMA_PROJECT',          ()=>cwd)
+    this.getStr ('FADROMA_PROJECT',          ()=>this.cwd)
   /** Whether to bypass Docker and use the toolchain from the environment. */
   buildRaw:   boolean =
     this.getBool('FADROMA_BUILD_RAW',        ()=>false)
@@ -54,7 +54,7 @@ export class BuilderConfig extends EnvConfig {
     this.getStr ('FADROMA_RUST',             ()=>'')
   /** Docker image to use for dockerized builds. */
   image:      string =
-    this.getStr ('FADROMA_BUILD_SCRIPT',     ()=>Builder.script)
+    this.getStr ('FADROMA_BUILD_SCRIPT',     ()=>LocalBuilder.script)
   /** Dockerfile to build the build image if not downloadable. */
   dockerfile: string =
     this.getStr ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image)
@@ -62,45 +62,6 @@ export class BuilderConfig extends EnvConfig {
   script:     string =
     this.getStr ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile)
 }
-
-/** Messages output by builder. */
-export const BuildLogger = ({ info }: Console) => ({
-  CargoToml (file: Kabinet.Path) {
-    info('Building from', bold(file.shortPath))
-  },
-  BuildScript (file: Kabinet.Path) {
-    info('Running build script', bold(file.shortPath))
-  },
-  BuildOne (source: Source, prebuilt: Artifact|null, longestCrateName: number) {
-    if (prebuilt) {
-      info('Reuse    ', bold($(prebuilt.url!).shortPath))
-    } else {
-      const { crate, workspace: { path, ref = 'HEAD' } } = source
-      if (ref === 'HEAD') {
-        info('Building', bold(source.crate), 'from working tree')
-      } else {
-        info('Building', bold(source.crate), 'from Git reference', bold(ref))
-      }
-    }
-  },
-  BuildMany (sources: Source[]) {
-    for (const source of sources) {
-      const { crate, workspace: { path, ref = 'HEAD' } } = source
-      if (ref === 'HEAD') {
-        info('Building', bold(source.crate), 'from working tree')
-      } else {
-        info('Building', bold(source.crate), 'from Git reference', bold(ref))
-      }
-    }
-    info()
-  },
-  Workspace (mounted: Kabinet.Path, ref: string) {
-    info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-      `@`, bold(ref)
-    )
-  }
-})
 
 /** Get a builder based on the builder config. */
 export function getBuilder (config: Partial<BuilderConfig> = getBuilderConfig()) {
@@ -111,97 +72,174 @@ export function getBuilder (config: Partial<BuilderConfig> = getBuilderConfig())
   }
 }
 
+/** Base class for class-based deploy procedure. Adds progress logging. */
+export class BuildTask<X> extends Komandi.Task<BuildContext, X> {
+  console = console
+}
+
 /** The nouns and verbs exposed to REPL and Commands. */
 export interface BuildContext extends Komandi.CommandContext {
-  config:    BuilderConfig
+  config:    Partial<BuilderConfig>
   /** Cargo workspace of the current project. */
-  workspace: Workspace
+  workspace: LocalWorkspace
   /** Get a Source by crate name from the current workspace. */
-  getSource: (source: IntoSource) => Source
+  getSource (source: IntoSource): Fadroma.Source
   /** Knows how to build contracts for a target. */
-  builder:   Builder
-  /** Get an Artifact from Source or crate name. */
-  build:     (source: IntoSource, ref?: string)         => Promise<Artifact>
-  /** Get one or more Artifacts from Source or crate name */
-  buildMany: (ref?: string, ...sources: IntoSource[][]) => Promise<Artifact[]>
+  builder: Fadroma.Builder
+  /** Get a Template from Source or crate name. */
+  build (source: IntoSource, ref?: string): Promise<Fadroma.Template>
+  /** Get one or more Templates from Source or crate name */
+  buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Fadroma.Template[]>
 }
 
 /** Add build vocabulary to context of REPL and deploy scripts. */
 export function getBuildContext (context: Komandi.CommandContext & Partial<BuildContext>): BuildContext {
-  const config = { ...getBuilderConfig(), ...context.config ?? {} }
+  const config = { ...new BuilderConfig(), ...context.config ?? {} }
   return {
     ...context,
     config,
     builder:   getBuilder(config),
-    workspace: new Workspace(config.project),
-    getSource (source: IntoSource, ref?: string): Source {
+    workspace: new LocalWorkspace(config.project),
+    getSource (source: Fadroma.IntoSource, ref?: string): Fadroma.Source {
       let workspace = this.workspace
       if (ref) workspace = workspace.at(ref)
       if (typeof source === 'string') return this.workspace.crate(source)
       return source
     },
-    async build (source: IntoSource, ref?: string): Promise<Artifact> {
+    async build (source: Fadroma.IntoSource, ref?: string): Promise<Fadroma.Template> {
       return await this.builder.build(this.getSource(source).at(ref))
     },
-    async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Artifact[]> {
+    async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Fadroma.Template[]> {
       sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
       return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
     }
   }
 }
 
-/** Base class for class-based deploy procedure. Adds progress logging. */
-export class BuildTask<X> extends Komandi.Lazy<X> {
-  constructor (public readonly context: BuildContext, getResult: ()=>X) {
-    let self: this
-    super(()=>{
-      console.info()
-      console.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
-      return getResult.bind(self)()
-    })
-    self = this
+/** The Git reference pointing to the currently checked out working tree */
+export const HEAD = 'HEAD'
+
+/** Represents a crate in a workspace.
+  * The workspace may be at HEAD (build from working tree)
+  * or another ref (build from Git history). */
+export class LocalSource extends Fadroma.Source {
+
+  constructor (
+    specifier: Fadroma.IntoSource   = {},
+    options:   Partial<LocalSource> = {}
+  ) {
+    if (options.workspace) {
+      options.path = options.workspace.path
+      delete options.workspace
+    }
+    super(specifier, options)
   }
-  subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
-    const self = this
-    //@ts-ignore
-    return new Komandi.Lazy(()=>{
-      console.info()
-      console.info('Subtask  ', cb.name ? bold(cb.name) : '')
-      return cb.bind(self)()
-    })
+
+  workspace?: LocalWorkspace
+
+  path?: string
+
+  get gitDir (): DotGit {
+    if (!this.path) throw new Error('LocalSource: no path when trying to access gitDir')
+    return new DotGit(this.path)
   }
+
+}
+
+/** Represents a Cargo workspace containing multiple smart contract crates */
+export class LocalWorkspace {
+  constructor (
+    public readonly path:   string,
+    public readonly ref:    string = HEAD,
+    public readonly gitDir: DotGit = new DotGit(path)
+  ) {}
+  /** Create a new instance of the same workspace that will
+    * return Source objects pointing to a specific Git ref. */
+  at (ref: string): this {
+    interface WorkspaceCtor<W> { new (path: string, ref?: string, gitDir?: DotGit): W }
+    return new (this.constructor as WorkspaceCtor<typeof this>)(this.path, ref, this.gitDir)
+  }
+  /** Get a Source object pointing to a crate from the current workspace and ref */
+  crate (specifier: string): Fadroma.Source {
+    const [ crate, ref ] = specifier.split('@')
+    let self = this
+    if (ref) {
+      self = self.at(ref)
+    }
+    return new LocalSource(crate, { workspace: self })
+  }
+  /** Get multiple Source objects pointing to crates from the current workspace and ref */
+  crates (crates: string[]): Fadroma.Source[] {
+    return crates.map(crate=>this.crate(crate))
+  }
+}
+
+/** Represents the real location of the Git data directory.
+  * - In standalone repos this is `.git/`
+  * - If the contracts workspace repository is a submodule,
+  *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
+export class DotGit extends Kabinet.Path {
+  constructor (base: string, ...fragments: string[]) {
+    super(base, ...fragments, '.git')
+    if (!this.exists()) {
+      // If .git does not exist, it is not possible to build past commits
+      console.warn(bold(this.shortPath), 'does not exist')
+      this.present = false
+    } else if (this.isFile()) {
+      // If .git is a file, the workspace is contained in a submodule
+      const gitPointer = this.as(Kabinet.TextFile).load().trim()
+      const prefix = 'gitdir:'
+      if (gitPointer.startsWith(prefix)) {
+        // If .git contains a pointer to the actual git directory,
+        // building past commits is possible.
+        const gitRel  = gitPointer.slice(prefix.length).trim()
+        const gitPath = $(this.parent, gitRel).path
+        const gitRoot = $(gitPath)
+        //console.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
+        this.path      = gitRoot.path
+        this.present   = true
+        this.isSubmodule = true
+      } else {
+        // Otherwise, who knows?
+        console.info(bold(this.shortPath), 'is an unknown file.')
+        this.present = false
+      }
+    } else if (this.isDirectory()) {
+      // If .git is a directory, this workspace is not in a submodule
+      // and it is easy to build past commits
+      this.present = true
+    } else {
+      // Otherwise, who knows?
+      console.warn(bold(this.shortPath), `is not a file or directory`)
+      this.present = false
+    }
+  }
+  readonly present:     boolean
+  readonly isSubmodule: boolean = false
+  get rootRepo (): Kabinet.Path {
+    return $(this.path.split(DotGit.rootRepoRE)[0])
+  }
+  get submoduleDir (): string {
+    return this.path.split(DotGit.rootRepoRE)[1]
+  }
+  /* Matches "/.git" or "/.git/" */
+  static rootRepoRE = new RegExp(`${Kabinet.Path.separator}.git${Kabinet.Path.separator}?`)
 }
 
 //@ts-ignore
 export const __dirname = dirname(fileURLToPath(import.meta.url))
 
-export interface IBuilder {
-  build: (source: ISource, ...args: any[])=>Promise<{ artifact: URL, codeHash: CodeHash }>
-  [name: string]: any
-}
-export abstract class IBuilder {
-}
+export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize(ref)}.wasm`
 
-/** Can perform builds. */
-export abstract class LocalBuilder extends Fadroma.Builder {
-  static script = resolve(__dirname, 'build.impl.mjs')
-  verbose:       boolean     = false
-  outputDirName: string      = 'artifacts'
-  noFetch:       boolean     = false
-  toolchain:     string|null = null
-  script:        string      = LocalBuilder.script
-  constructor (opts: Partial<BuilderOptions> = {}) {
-    this.noFetch       = opts.noFetch       ?? this.noFetch
-    this.outputDirName = opts.outputDirName ?? this.outputDirName
-    this.script        = opts.script        ?? this.script
-  }
-  buildMany (sources: Source[], ...args: unknown[]): Promise<Artifact[]> {
-    return Promise.all(sources.map(source=>this.build(source, ...args)))
-  }
-  abstract build (source: SourceHandle, ...args: unknown[]): Promise<Artifact>
-}
+export const sanitize = (ref: string) => ref.replace(/\//g, '_')
 
-export interface BuilderOptions {
+export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
+
+export const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
+
+export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
+
+export interface LocalBuilderOptions {
   /** The build script. */
   script:        string
   /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
@@ -212,13 +250,31 @@ export interface BuilderOptions {
   toolchain:     string
 }
 
-export interface CachingBuilderOptions extends BuilderOptions {
+/** Can perform builds. */
+export abstract class LocalBuilder extends Fadroma.Builder {
+  id = 'local'
+  static script = resolve(__dirname, 'build.impl.mjs')
+  verbose:       boolean     = false
+  outputDirName: string      = 'artifacts'
+  noFetch:       boolean     = false
+  toolchain:     string|null = null
+  script:        string      = LocalBuilder.script
+  constructor (opts: Partial<LocalBuilderOptions> = {}) {
+    super()
+    this.noFetch       = opts.noFetch       ?? this.noFetch
+    this.outputDirName = opts.outputDirName ?? this.outputDirName
+    this.script        = opts.script        ?? this.script
+  }
+}
+
+export interface CachingBuilderOptions extends LocalBuilderOptions {
   /** Whether to enable caching and reuse contracts from artifacts directory. */
   caching: boolean
 }
 
 /** Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
-export abstract class CachingBuilder extends Builder {
+export abstract class CachingBuilder extends LocalBuilder {
+  id = 'local-caching'
   caching: boolean = true
   constructor (options: Partial<CachingBuilderOptions> = {}) {
     super(options)
@@ -226,40 +282,138 @@ export abstract class CachingBuilder extends Builder {
   }
   /** Check if artifact exists in local artifacts cache directory.
     * If it does, don't rebuild it but return it from there. */ 
-  protected prebuild (outputDir: string, crate: string, ref: string = HEAD): Artifact|null {
-    if (!this.caching) {
-      return null
-    }
-    const location = $(outputDir, artifactName(crate, ref))
-    if (location.exists()) {
-      return new Artifact(undefined, location.url, this.codeHashForPath(location.path))
+  protected prebuild (
+    outputDir: string, crate?: string, ref: string = HEAD
+  ): Fadroma.Template|null {
+    if (this.caching && crate) {
+      const location = $(outputDir, artifactName(crate, ref))
+      if (location.exists()) {
+        return new Fadroma.Template({
+          crate,
+          ref,
+          artifact: location.url,
+          codeHash: this.codeHashForPath(location.path)
+        })
+      }
     }
     return null
   }
-  codeHashForPath = codeHashForPath
+  codeHashForPath = codeHashForPath // mockable
 }
 
-export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize(ref)}.wasm`
+/** This build mode looks for a Rust toolchain in the same environment
+  * as the one in which the script is running, i.e. no build container. */
+export class RawBuilder extends CachingBuilder {
 
-export const sanitize = (ref: string) => ref.replace(/\//g, '_')
+  readonly id = 'local-caching-raw'
 
-export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
+  /** Build a Source into a Template */
+  async build (source: LocalSource): Promise<Fadroma.Template> {
+    return (await this.buildMany([source]))[0]
+  }
 
-export const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
+  /** This implementation groups the passed source by workspace and ref,
+    * in order to launch one build container per workspace/ref combination
+    * and have it build all the crates from that combination in sequence,
+    * reusing the container's internal intermediate build cache. */
+  async buildMany (sources: LocalSource[]): Promise<Fadroma.Template[]> {
+    const templates: Fadroma.Template[] = []
+    for (const source of sources) {
+      let cwd = source.path
+      // Temporary dirs used for checkouts of non-HEAD builds
+      let tmpGit, tmpBuild
+      // Most of the parameters are passed to the build script
+      // by way of environment variables.
+      const env = {
+        _BUILD_GID: process.getgid(),
+        _BUILD_UID: process.getuid(),
+        _OUTPUT:    $(source.path).in('artifacts').path,
+        _REGISTRY:  '',
+        _TOOLCHAIN: this.toolchain,
+      }
+      if ((source.ref ?? HEAD) !== HEAD) {
+        // Provide the build script with the config values that ar
+        // needed to make a temporary checkout of another commit
+        const { gitDir } = source
+        if (!gitDir?.present) {
+          const error = new Error("Fadroma Build: could not find Git directory for source.")
+          throw Object.assign(error, { source })
+        }
+        // Create a temporary Git directory. The build script will copy the Git history
+        // and modify the refs in order to be able to do a fresh checkout with submodules
+        tmpGit   = $(mkdtempSync($(tmpdir(), 'fadroma-git-').path))
+        tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
+        Object.assign(env, {
+          _GIT_ROOT:   gitDir.path,
+          _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
+          _NO_FETCH:   this.noFetch,
+          _TMP_BUILD:  tmpBuild.path,
+          _TMP_GIT:    tmpGit.path,
+        })
+      }
+      // Run the build script
+      const cmd = [
+        this.runtime,
+        this.script,
+        'phase1',
+        source.ref,
+        source.crate
+      ]
+      const opts = { cwd, env: { ...process.env, ...env }, stdio: 'inherit' }
+      const sub  = spawn(cmd.shift() as string, cmd, opts as any)
+      await new Promise<void>((resolve, reject)=>{
+        sub.on('exit', (code, signal) => {
+          const build = `Build of ${source.crate} from ${$(source.path).shortPath} @ ${source.ref}`
+          if (code === 0) {
+            resolve()
+          } else if (code !== null) {
+            const message = `${build} exited with code ${code}`
+            console.error(message)
+            throw Object.assign(new Error(message), { source, code })
+          } else if (signal !== null) {
+            const message = `${build} exited by signal ${signal}`
+            console.warn(message)
+          } else {
+            throw new Error('Unreachable')
+          }
+        })
+      })
+      // Create an artifact for the build result
+      const location = $(env._OUTPUT, artifactName(source.crate, sanitize(source.ref)))
+      console.info('Build ok:', bold(location.shortPath))
+      const codeHash = this.codeHashForPath(location.path)
+      templates.push(new Fadroma.Template(source, pathToFileURL(location.path), codeHash))
+      // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
+      if (tmpGit   && tmpGit.exists())   tmpGit.delete()
+      if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
+    }
+    return templates
+  }
+
+  runtime = process.argv[0]
+
+}
 
 export interface DockerBuilderOptions extends CachingBuilderOptions {
+  /** Path to Docker API endpoint. */
   socketPath: string
+  /** Docker API client instance. */
   docker:     Dokeres.Dokeres
+  /** Build image. */
   image:      string|Dokeres.DokeresImage
+  /** Dockerfile for building the build image. */
   dockerfile: string
 }
 
-export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
-
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends CachingBuilder {
-  static image      = 'ghcr.io/hackbg/fadroma:unstable'
+
+  readonly id = 'local-caching-docker'
+
+  static image = 'ghcr.io/hackbg/fadroma:unstable'
+
   static dockerfile = resolve(__dirname, 'build.Dockerfile')
+
   constructor (opts: Partial<DockerBuilderOptions> = {}) {
     super(opts)
     // Set up Docker API handle
@@ -279,53 +433,61 @@ export class DockerBuilder extends CachingBuilder {
     this.dockerfile ??= opts.dockerfile!
     this.script     ??= opts.script!
   }
+
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'
+
   /** Used to launch build container. */
   docker:     Dokeres.Dokeres = new Dokeres.Dokeres(this.socketPath)
+
   /** Tag of the docker image for the build container. */
   image:      Dokeres.DokeresImage
+
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
-  /** Build a Source into an Artifact */
-  async build (source: Source): Promise<Artifact> {
+
+  /** Build a Source into a Template */
+  async build (source: LocalSource): Promise<Fadroma.Template> {
     return (await this.buildMany([source]))[0]
   }
+
   /** This implementation groups the passed source by workspace and ref,
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (sources: Source[]): Promise<Artifact[]> {
+  async buildMany (sources: LocalSource[]): Promise<Fadroma.Template[]> {
     // Announce what will be done
     //console.info('Requested to build the following contracts:')
-    const longestCrateName = sources.map(source=>source.crate.length).reduce((x,y)=>Math.max(x,y),0)
+    const longestCrateName = sources
+      .map(source=>source.crate?.length||0)
+      .reduce((x,y)=>Math.max(x,y),0)
     for (const source of sources) {
       const outputDir = $(source.workspace.path).resolve(this.outputDirName)
-      const prebuilt  = this.prebuild(outputDir, source.crate, source.workspace.ref)
-      BuildLogger(console).BuildOne(source, prebuilt, longestCrateName)
+      const prebuilt  = this.prebuild(outputDir, source.crate, source.ref)
+      BuildReporter(console).BuildOne(source, prebuilt, longestCrateName)
     }
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, Workspace> = {}
     for (const source of sources) {
       workspaces[source.workspace.path] = source.workspace
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
-      if (source.workspace.ref !== HEAD && !source.workspace.gitDir.present) {
+      if (source.ref !== HEAD && !source.workspace.gitDir.present) {
         const error = new Error("Fadroma Build: could not find Git directory for source.")
         throw Object.assign(error, { source })
       }
     }
     // Here we will collect the build outputs
-    const artifacts:  Artifact[] = []
+    const templates:  Fadroma.Template[] = []
     // Get the distinct workspaces and refs by which to group the crate builds
-    const workspaceRoots: string[] = distinct(sources.map(source=>source.workspace.path))
-    const refs:           string[] = distinct(sources.map(source=>source.workspace.ref))
+    const workspaceRoots:   string[] = distinct(sources.map(source=>source.workspace.path))
+    const refs: (string|undefined)[] = distinct(sources.map(source=>source.ref))
     // For each workspace,
     for (const path of workspaceRoots) {
       const { gitDir } = workspaces[path]
       // And for each ref of that workspace,
       for (const ref of refs) {
         let mounted = $(path)
-        if (this.verbose) BuildLogger(console).Workspace(mounted, ref)
+        if (this.verbose) BuildReporter(console).Workspace(mounted, ref)
         if (ref !== HEAD) {
           mounted = gitDir.rootRepo
           //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
@@ -338,7 +500,7 @@ export class DockerBuilder extends CachingBuilder {
         const crates: [number, string][] = []
         for (let index = 0; index < sources.length; index++) {
           const source = sources[index]
-          if (source.workspace.path === path && source.workspace.ref === ref) {
+          if (source.workspace.path === path && source.ref === ref) {
             crates.push([index, source.crate])
           }
         }
@@ -351,19 +513,20 @@ export class DockerBuilder extends CachingBuilder {
           crates,
           gitDir.isSubmodule ? gitDir.submoduleDir : ''
         )
-        // Collect the artifacts built by the container
+        // Collect the templates built by the container
         for (const index in buildArtifacts) {
           const artifact = buildArtifacts[index]
           if (artifact) {
-            artifacts[index] = Object.assign(artifact, {
+            templates[index] = Object.assign(artifact, {
               source: artifact.source ?? sources[index]
             })
           }
         }
       }
     }
-    return artifacts
+    return templates
   }
+
   protected async runBuildContainer (
     root:      string,
     subdir:    string,
@@ -371,27 +534,27 @@ export class DockerBuilder extends CachingBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = $(root, subdir, this.outputDirName).path,
-  ): Promise<(Artifact|null)[]> {
+  ): Promise<(Fadroma.Template|null)[]> {
     // Create output directory as user if it does not exist
     $(outputDir).as(Kabinet.OpaqueDirectory).make()
     // Output slots. Indices should correspond to those of the input to buildMany
-    const artifacts:   (Artifact|null)[] = crates.map(()=>null)
+    const templates:   (Fadroma.Template|null)[] = crates.map(()=>null)
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
-    // Collect cached artifacts. If any are missing from the cache mark them as buildable.
+    // Collect cached templates. If any are missing from the cache mark them as buildable.
     for (const [index, crate] of crates) {
       const prebuilt = this.prebuild(outputDir, crate, ref)
       if (prebuilt) {
-        const location = $(prebuilt.url!).shortPath
+        const location = $(prebuilt.artifact!).shortPath
         //console.info('Exists, not rebuilding:', bold($(location).shortPath))
-        artifacts[index] = prebuilt
+        templates[index] = prebuilt
       } else {
         shouldBuild[crate] = index
       }
     }
-    // If there are no artifacts to build, this means everything was cached and we're done.
+    // If there are no templates to build, this means everything was cached and we're done.
     if (Object.keys(shouldBuild).length === 0) {
-      return artifacts
+      return templates
     }
     // Define the mounts and environment variables of the build container
     const buildScript   = `/${basename(this.script)}`
@@ -501,116 +664,30 @@ export class DockerBuilder extends CachingBuilder {
       if (location === null) {
         return null
       } else {
-        return new Artifact(undefined, $(location).url, this.codeHashForPath(location))
+        return new Fadroma.Template(undefined, $(location).url, this.codeHashForPath(location))
       }
     })
   }
-}
 
-/** This build mode looks for a Rust toolchain in the same environment
-  * as the one in which the script is running, i.e. no build container. */
-export class RawBuilder extends CachingBuilder {
-  /** Build a Source into an Artifact */
-  async build (source: Source): Promise<Artifact> {
-    return (await this.buildMany([source]))[0]
-  }
-  /** This implementation groups the passed source by workspace and ref,
-    * in order to launch one build container per workspace/ref combination
-    * and have it build all the crates from that combination in sequence,
-    * reusing the container's internal intermediate build cache. */
-  async buildMany (sources: Source[]): Promise<Artifact[]> {
-    const artifacts: Artifact[] = []
-    for (const source of sources) {
-      let cwd = source.workspace.path
-      // Temporary dirs used for checkouts of non-HEAD builds
-      let tmpGit, tmpBuild
-      // Most of the parameters are passed to the build script
-      // by way of environment variables.
-      const env = {
-        _BUILD_GID: process.getgid(),
-        _BUILD_UID: process.getuid(),
-        _OUTPUT:    $(source.workspace.path).in('artifacts').path,
-        _REGISTRY:  '',
-        _TOOLCHAIN: this.toolchain,
-      }
-      if ((source.workspace.ref ?? HEAD) !== HEAD) {
-        // Provide the build script with the config values that ar
-        // needed to make a temporary checkout of another commit
-        if (!source.workspace.gitDir?.present) {
-          const error = new Error("Fadroma Build: could not find Git directory for source.")
-          throw Object.assign(error, { source })
-        }
-        // Create a temporary Git directory. The build script will copy the Git history
-        // and modify the refs in order to be able to do a fresh checkout with submodules
-        const { gitDir } = source.workspace
-        tmpGit   = $(mkdtempSync($(tmpdir(), 'fadroma-git-').path))
-        tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
-        Object.assign(env, {
-          _GIT_ROOT:   gitDir.path,
-          _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
-          _NO_FETCH:   this.noFetch,
-          _TMP_BUILD:  tmpBuild.path,
-          _TMP_GIT:    tmpGit.path,
-        })
-      }
-      // Run the build script
-      const cmd = [
-        this.runtime,
-        this.script,
-        'phase1',
-        source.workspace.ref,
-        source.crate
-      ]
-      const opts = { cwd, env: { ...process.env, ...env }, stdio: 'inherit' }
-      const sub  = spawn(cmd.shift() as string, cmd, opts as any)
-      await new Promise<void>((resolve, reject)=>{
-        sub.on('exit', (code, signal) => {
-          const build = `Build of ${source.crate} from ${$(source.workspace.path).shortPath} @ ${source.workspace.ref}`
-          if (code === 0) {
-            resolve()
-          } else if (code !== null) {
-            const message = `${build} exited with code ${code}`
-            console.error(message)
-            throw Object.assign(new Error(message), { source, code })
-          } else if (signal !== null) {
-            const message = `${build} exited by signal ${signal}`
-            console.warn(message)
-          } else {
-            throw new Error('Unreachable')
-          }
-        })
-      })
-      // Create an artifact for the build result
-      const location = $(env._OUTPUT, artifactName(source.crate, sanitize(source.workspace.ref)))
-      console.info('Build ok:', bold(location.shortPath))
-      const codeHash = this.codeHashForPath(location.path)
-      artifacts.push(new Artifact(source, pathToFileURL(location.path), codeHash))
-      // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
-      if (tmpGit   && tmpGit.exists())   tmpGit.delete()
-      if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
-    }
-    return artifacts
-  }
-
-  runtime = process.argv[0]
 }
 
 type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
 
 export async function buildFromCargoToml (
   cargoToml: CargoTOML,
-  workspace: Workspace = new Workspace(
-    process.env.FADROMA_BUILD_WORKSPACE_ROOT||cargoToml.parent
+  workspace: LocalWorkspace = new LocalWorkspace(
+    process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
   )
 ) {
   console.info('Build manifest:', bold(cargoToml.shortPath))
   const source = workspace.crate((cargoToml.as(Kabinet.TOMLFile).load() as any).package.name)
   try {
-    const config   = { ...getBuilderConfig(), rebuild: true }
+    const config   = { ...new BuilderConfig(), rebuild: true }
     const builder  = getBuilder(config)
-    const artifact = await builder.build(source)
-    console.info('Built:    ', bold($(artifact.url!).shortPath))
-    console.info('Code hash:', bold(artifact.codeHash!))
+    const template = await builder.build(source)
+    const { artifact, codeHash } = template
+    console.info('Built:    ', bold($(artifact!).shortPath))
+    console.info('Code hash:', bold(codeHash!))
     process.exit(0)
   } catch (e) {
     console.error(`Build failed.`)
@@ -645,7 +722,7 @@ export async function buildFromBuildScript (
       }
       const T0 = + new Date()
       try {
-        const config = { ...getBuilderConfig(), rebuild: true }
+        const config = { ...new BuilderConfig(), rebuild: true }
         await getBuilder(config).buildMany(buildSources)
         const T1 = + new Date()
         console.info(`Build complete in ${T1-T0}ms.`)
@@ -662,121 +739,17 @@ export async function buildFromBuildScript (
   }
 }
 
-export function listBuildSets (buildSets: Record<string, ()=>Source[]>) {
+export function listBuildSets (buildSets: Record<string, ()=>LocalSource[]>) {
   console.log('Available build sets:')
   for (let [name, getSources] of Object.entries(buildSets)) {
     console.log(`\n  ${name}`)
     const sources = getSources()
-    for (const source of sources as Array<Source>) {
-      console.log(`    ${bold(source.crate)} @ ${source.workspace.ref}`)
+    for (const source of sources as Array<LocalSource>) {
+      console.log(`    ${bold(source.crate!)} @ ${source.ref}`)
     }
   }
 }
 
-/** A Source or a string to be passed to workspace.crate */
-export type IntoSource   = Source|string
-
-/** An Artifact or an IntoSource to be built */
-export type IntoArtifact = Artifact|IntoSource
-
-/** The Git reference pointing to the currently checked out working tree */
-export const HEAD = 'HEAD'
-
-/** Represents a crate in a workspace.
-  * The workspace may be at HEAD (build from working tree)
-  * or another ref (build from Git history). */
-export class LocalSource extends Fadroma.Source {
-  constructor (
-    public readonly workspace: LocalWorkspace,
-    public readonly crate:     string,
-  ) {}
-  build (builder: Builder): Promise<Artifact> {
-    return builder.build(this)
-  }
-  at (ref?: string): Source {
-    if (!ref) return this
-    return new Source(this.workspace.at(ref), this.crate)
-  }
-}
-
-/** Represents a Cargo workspace containing multiple smart contract crates */
-export class LocalWorkspace {
-  constructor (
-    public readonly path:   string,
-    public readonly ref:    string = HEAD,
-    public readonly gitDir: DotGit = new DotGit(path)
-  ) {}
-  /** Create a new instance of the same workspace that will
-    * return Source objects pointing to a specific Git ref. */
-  at (ref: string): this {
-    interface WorkspaceCtor<W> { new (path: string, ref?: string, gitDir?: DotGit): W }
-    return new (this.constructor as WorkspaceCtor<typeof this>)(this.path, ref, this.gitDir)
-  }
-  /** Get a Source object pointing to a crate from the current workspace and ref */
-  crate (crate: string): Source {
-    if (crate.indexOf('@') > -1) {
-      const [name, ref] = crate.split('@')
-      return new Source(this.at(ref), name)
-    }
-    return new Source(this, crate)
-  }
-  /** Get multiple Source objects pointing to crates from the current workspace and ref */
-  crates (crates: string[]): Source[] {
-    return crates.map(crate=>this.crate(crate))
-  }
-}
-
-/** Represents the real location of the Git data directory.
-  * - In standalone repos this is `.git/`
-  * - If the contracts workspace repository is a submodule,
-  *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
-export class DotGit extends Kabinet.Path {
-  constructor (base: string, ...fragments: string[]) {
-    super(base, ...fragments, '.git')
-    if (!this.exists()) {
-      // If .git does not exist, it is not possible to build past commits
-      console.warn(bold(this.shortPath), 'does not exist')
-      this.present = false
-    } else if (this.isFile()) {
-      // If .git is a file, the workspace is contained in a submodule
-      const gitPointer = this.as(Kabinet.TextFile).load().trim()
-      const prefix = 'gitdir:'
-      if (gitPointer.startsWith(prefix)) {
-        // If .git contains a pointer to the actual git directory,
-        // building past commits is possible.
-        const gitRel  = gitPointer.slice(prefix.length).trim()
-        const gitPath = $(this.parent, gitRel).path
-        const gitRoot = $(gitPath)
-        //console.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
-        this.path      = gitRoot.path
-        this.present   = true
-        this.isSubmodule = true
-      } else {
-        // Otherwise, who knows?
-        console.info(bold(this.shortPath), 'is an unknown file.')
-        this.present = false
-      }
-    } else if (this.isDirectory()) {
-      // If .git is a directory, this workspace is not in a submodule
-      // and it is easy to build past commits
-      this.present = true
-    } else {
-      // Otherwise, who knows?
-      console.warn(bold(this.shortPath), `is not a file or directory`)
-      this.present = false
-    }
-  }
-  readonly present:     boolean
-  readonly isSubmodule: boolean = false
-  get rootRepo (): Kabinet.Path {
-    return $(this.path.split(DotGit.rootRepoRE)[0])
-  }
-  get submoduleDir (): string {
-    return this.path.split(DotGit.rootRepoRE)[1]
-  }
-  /* Matches "/.git" or "/.git/" */
-  static rootRepoRE = new RegExp(`${Kabinet.Path.separator}.git${Kabinet.Path.separator}?`)
-}
 
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
@@ -816,10 +789,49 @@ export function buildFromFile (
   buildArgs: string[] = []
 ) {
   if (file.name === 'Cargo.toml') {
-    BuildLogger(console).CargoToml(file)
+    BuildReporter(console).CargoToml(file)
     buildFromCargoToml(file as CargoTOML)
   } else {
-    BuildLogger(console).BuildScript(file)
+    BuildReporter(console).BuildScript(file)
     buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
   }
 }
+
+/** Messages output by builder. */
+export const BuildReporter = ({ info }: Console) => ({
+  CargoToml (file: Kabinet.Path) {
+    info('Building from', bold(file.shortPath))
+  },
+  BuildScript (file: Kabinet.Path) {
+    info('Running build script', bold(file.shortPath))
+  },
+  BuildOne (source: Fadroma.Source, prebuilt: Fadroma.Template|null, longestCrateName: number) {
+    if (prebuilt) {
+      info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
+    } else {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        info('Building', bold(crate), 'from working tree')
+      } else {
+        info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
+    }
+  },
+  BuildMany (sources: Fadroma.Source[]) {
+    for (const source of sources) {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        info('Building', bold(crate), 'from working tree')
+      } else {
+        info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
+    }
+    info()
+  },
+  Workspace (mounted: Kabinet.Path, ref: string = HEAD) {
+    info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
+  }
+})

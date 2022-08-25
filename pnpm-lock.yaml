@@ -95,6 +95,7 @@ importers:
       '@hackbg/formati': ^1.1.2
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^4.2.8
+      '@hackbg/konfizi': workspace:*
       '@hackbg/konzola': ^1.1.2
       dotenv: ^16.0.1
       simple-git: ^3.7.1
@@ -104,6 +105,7 @@ importers:
       '@hackbg/formati': 1.1.2
       '@hackbg/kabinet': 3.1.2
       '@hackbg/komandi': link:../../toolbox/komandi
+      '@hackbg/konfizi': link:../../toolbox/konfizi
       '@hackbg/konzola': link:../../toolbox/konzola
       dotenv: 16.0.1
       simple-git: 3.10.0
@@ -134,6 +136,7 @@ importers:
       '@hackbg/formati': ^1.1.2
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^4.2.8
+      '@hackbg/konfizi': workspace:*
       '@hackbg/konzola': ^1.1.2
       '@hackbg/portali': ^1.2.4
       dotenv: ^16.0.1
@@ -144,6 +147,7 @@ importers:
       '@hackbg/formati': 1.1.2
       '@hackbg/kabinet': 3.1.2
       '@hackbg/komandi': link:../../toolbox/komandi
+      '@hackbg/konfizi': link:../../toolbox/konfizi
       '@hackbg/konzola': link:../../toolbox/konzola
       '@hackbg/portali': 1.2.4
       dotenv: 16.0.1
@@ -1003,7 +1007,6 @@ packages:
 
   /@types/node/18.7.13:
     resolution: {integrity: sha512-46yIhxSe5xEaJZXWdIBP7GU4HDTG8/eo0qd9atdiL+lFpA03y8KS+lkTN834TWJj5767GbWv4n/P6efyTFt1Dw==}
-    dev: true
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -2892,7 +2895,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.7.11
+      '@types/node': 18.7.13
       long: 4.0.0
     dev: false
 

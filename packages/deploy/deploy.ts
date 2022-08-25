@@ -21,7 +21,7 @@
 import { Console, bold, timestamp } from '@hackbg/konzola'
 import * as Formati from '@hackbg/formati'
 import * as Komandi from '@hackbg/komandi'
-import * as Konfizi from '@hackbg/konfizi'
+import EnvConfig    from '@hackbg/konfizi'
 import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
@@ -39,22 +39,14 @@ export { YAML }
 
 const console = Console('Fadroma Deploy')
 
-type AgentBuilderConfig = (Connect.ConnectConfig & Build.BuilderConfig)
+type PriorConfig = (Connect.ConnectConfig & Build.BuilderConfig)
 
-export interface DeployConfig extends AgentBuilderConfig {
-  /** Whether to ignore upload receipts and upload contracts anew. */
-  reupload?: boolean
+export class DeployConfig extends EnvConfig {
+  /** Whether to always upload contracts, ignoring upload receipts that match. */
+  reupload: boolean = this.getBool('FADROMA_REUPLOAD', () => false)
   /** Whether to generate unsigned transactions for manual multisig signing. */
-  multisig?: boolean
+  multisig: boolean = this.getBool('FADROMA_MULTISIG', () => false)
 }
-
-/** Get deploy settings from process runtime environment. */
-export const getDeployConfig = Konfizi.envConfig(({Str, Bool}, cwd, env): DeployConfig => ({
-  ...new Build.BuilderConfig(env, cwd),
-  ...new Connect.ConnectConfig(env, cwd),
-  reupload: Bool('FADROMA_REUPLOAD', ()=>false),
-  multisig: Bool('FADROMA_MULTISIG', ()=>false)
-}))
 
 /// # DEPLOY COMMANDS /////////////////////////////////////////////////////////////////////////////
 /** Command runner. Instantiate one in your script then use the
@@ -189,7 +181,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Com
     const deployments = expectDeployments(context)
     const deployment  = id ? deployments.get(id) : deployments.active
     if (deployment) {
-      DeployLogger(console).deployment({ deployment })
+      DeployReporter(console).deployment({ deployment })
     } else {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }
@@ -205,72 +197,6 @@ const expectDeployments = (context: { deployments: Deployments|null }): Deployme
   return context.deployments
 }
 
-/// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
-export const DeployLogger = ({ info, warn }: Console) => {
-  return { deployment, receipt, deployFailed, deployManyFailed, deployFailedTemplate }
-  function deployment ({ deployment }: { deployment: Deployment }) {
-    if (deployment) {
-      const { receipts, prefix } = deployment
-      let contracts: string|number = Object.values(receipts).length
-      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
-      info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
-      const count = Object.values(receipts).length
-      if (count > 0) {
-        for (const name of Object.keys(receipts)) {
-          receipt(name, receipts[name], len)
-        }
-      } else {
-        info('│ This deployment is empty.')
-      }
-    } else {
-      info('│ There is no selected deployment.')
-    }
-  }
-  function receipt (name: string, receipt: any, len = 35) {
-    name = bold(name.padEnd(len))
-    if (receipt.address) {
-      const address = `${receipt.address}`.padStart(45)
-      const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      info('│', name, address, codeId)
-    } else {
-      warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
-    }
-  }
-  function deployFailed (e: Error, template: Template, name: Label, msg: Message) {
-    console.error()
-    console.error(`  Deploy of ${bold(name)} failed:`)
-    console.error(`    ${e.message}`)
-    deployFailedTemplate(template)
-    console.error()
-    console.error(`  Init message: `)
-    console.error(`    ${JSON.stringify(msg)}`)
-    console.error()
-  }
-  function deployManyFailed (e: Error, template: Template, contracts: DeployArgs[]) {
-    console.error()
-    console.error(`  Deploy of multiple contracts failed:`)
-    console.error(`    ${e.message}`)
-    deployFailedTemplate(template)
-    console.error()
-    console.error(`  Configs: `)
-    for (const [name, init] of contracts) {
-      console.error(`    ${bold(name)}: `, JSON.stringify(init))
-    }
-    console.error()
-  }
-  function deployFailedTemplate (template?: Template) {
-    console.error()
-    if (template) {
-      console.error(`  Template:   `)
-      console.error(`    Chain ID: `, bold(template.chainId ||''))
-      console.error(`    Code ID:  `, bold(template.codeId  ||''))
-      console.error(`    Code hash:`, bold(template.codeHash||''))
-    } else {
-      console.error(`  No template was providede.`)
-    }
-  }
-}
 
 /// # DEPLOY CONTEXT ///////////////////////////////////////////////////////////////////////////////
 
@@ -281,7 +207,7 @@ type AgentAndBuildContext = Connect.ConnectContext & Build.BuildContext
   * once you're authenticated and can compile code locally */
 export interface DeployContext extends AgentAndBuildContext {
   /** All the environment config so far. */
-  config:     Connect.ConnectConfig & Build.BuilderConfig & DeployConfig
+  config:     PriorConfig & DeployConfig
   /** Currently selected deployment. */
   deployment: Deployment|null
   /** Knows how to upload contracts to a blockchain. */
@@ -321,7 +247,12 @@ export function getDeployContext (
     throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
   }
   // Get configuration
-  const config = getDeployConfig()
+  const config = {
+    ...new Build.BuilderConfig(env, cwd),
+    ...new Connect.ConnectConfig(env, cwd),
+    ...new DeployConfig(env, cwd),
+    getDeployConfig()
+  }
   // Setup code uploader
   const uploader = (!context.isMocknet && !config.reupload)
       ? CachingFSUploader.fromConfig(agent, config.project)
@@ -828,7 +759,7 @@ export class MultiContractSlot<C extends Client> {
       const creator = this.context.creator
       instances = await this.context.deployment.initMany(creator, template, contracts)
     } catch (e) {
-      DeployLogger(console).deployManyFailed(e, template, contracts)
+      DeployReporter(console).deployManyFailed(e, template, contracts)
       throw e
     }
     // Return API client to each contract
@@ -966,7 +897,7 @@ export class Deployment {
       this.set(name, instance)
       return instance
     } catch (e) {
-      DeployLogger(console).deployFailed(e, template, name, msg)
+      DeployReporter(console).deployFailed(e, template, name, msg)
       throw e
     }
   }
@@ -978,7 +909,7 @@ export class Deployment {
     try {
       return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
     } catch (e) {
-      DeployLogger(console).deployManyFailed(e, template, contracts)
+      DeployReporter(console).deployManyFailed(e, template, contracts)
       throw e
     }
   }
@@ -1114,7 +1045,73 @@ if (
   } else {
     Komandi.runOperation('deploy status', 'show deployment status', [
       Connect.getConnectContext,  new Connect.ConnectReporter(console).chainStatus,
-      getDeployContext, DeployLogger(console).deployment
+      getDeployContext, DeployReporter(console).deployment
     ], process.argv.slice(2))
+  }
+}
+/// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
+export const DeployReporter = ({ info, warn }: Console) => {
+  return { deployment, receipt, deployFailed, deployManyFailed, deployFailedTemplate }
+  function deployment ({ deployment }: { deployment: Deployment }) {
+    if (deployment) {
+      const { receipts, prefix } = deployment
+      let contracts: string|number = Object.values(receipts).length
+      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+      const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
+      info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
+      const count = Object.values(receipts).length
+      if (count > 0) {
+        for (const name of Object.keys(receipts)) {
+          receipt(name, receipts[name], len)
+        }
+      } else {
+        info('│ This deployment is empty.')
+      }
+    } else {
+      info('│ There is no selected deployment.')
+    }
+  }
+  function receipt (name: string, receipt: any, len = 35) {
+    name = bold(name.padEnd(len))
+    if (receipt.address) {
+      const address = `${receipt.address}`.padStart(45)
+      const codeId  = String(receipt.codeId||'n/a').padStart(6)
+      info('│', name, address, codeId)
+    } else {
+      warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+    }
+  }
+  function deployFailed (e: Error, template: Template, name: Label, msg: Message) {
+    console.error()
+    console.error(`  Deploy of ${bold(name)} failed:`)
+    console.error(`    ${e.message}`)
+    deployFailedTemplate(template)
+    console.error()
+    console.error(`  Init message: `)
+    console.error(`    ${JSON.stringify(msg)}`)
+    console.error()
+  }
+  function deployManyFailed (e: Error, template: Template, contracts: DeployArgs[]) {
+    console.error()
+    console.error(`  Deploy of multiple contracts failed:`)
+    console.error(`    ${e.message}`)
+    deployFailedTemplate(template)
+    console.error()
+    console.error(`  Configs: `)
+    for (const [name, init] of contracts) {
+      console.error(`    ${bold(name)}: `, JSON.stringify(init))
+    }
+    console.error()
+  }
+  function deployFailedTemplate (template?: Template) {
+    console.error()
+    if (template) {
+      console.error(`  Template:   `)
+      console.error(`    Chain ID: `, bold(template.chainId ||''))
+      console.error(`    Code ID:  `, bold(template.codeId  ||''))
+      console.error(`    Code hash:`, bold(template.codeHash||''))
+    } else {
+      console.error(`  No template was providede.`)
+    }
   }
 }

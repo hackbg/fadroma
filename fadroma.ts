@@ -18,32 +18,32 @@
 
 **/
 
-import * as Komandi          from '@hackbg/komandi'
-import * as FadromaBuild     from '@fadroma/build'
-import * as FadromaDeploy    from '@fadroma/deploy'
-import * as FadromaDevnet    from '@fadroma/devnet'
-import * as FadromaConnect   from '@fadroma/connect'
-import * as FadromaScrtGrpc  from '@fadroma/scrt'
-import * as FadromaScrtAmino from '@fadroma/scrt-amino'
+import * as Komandi   from '@hackbg/komandi'
+import * as Build     from '@fadroma/build'
+import * as Deploy    from '@fadroma/deploy'
+import * as Devnet    from '@fadroma/devnet'
+import * as Connect   from '@fadroma/connect'
+import * as ScrtGrpc  from '@fadroma/scrt'
+import * as ScrtAmino from '@fadroma/scrt-amino'
 
 /** Complete environment configuration of Fadroma as flat namespace. */
 export type FadromaConfig =
-  & FadromaBuild.BuilderConfig
-  & FadromaConnect.ChainConfig
-  & FadromaDeploy.DeployConfig
-  & FadromaDevnet.DevnetConfig
-  & FadromaScrtGrpc.ScrtGrpcConfig
-  & FadromaScrtAmino.ScrtAminoConfig
+  & Build.BuilderConfig
+  & Connect.ConnectConfig
+  & Deploy.DeployConfig
+  & Devnet.DevnetConfig
+  & ScrtGrpc.ScrtGrpcConfig
+  & ScrtAmino.ScrtAminoConfig
 
 /** Get the combined Fadroma config for all modules from the runtime environment. */
 export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
   return {
-    ...FadromaBuild.getBuilderConfig(cwd, env),
-    ...FadromaConnect.getChainConfig(cwd, env),
-    ...FadromaDeploy.getDeployConfig(cwd, env),
-    ...FadromaDevnet.getDevnetConfig(cwd, env),
-    ...FadromaScrtGrpc.ScrtGrpc.getConfig(cwd, env),
-    ...FadromaScrtAmino.ScrtAmino.getConfig(cwd, env),
+    ...new Build.BuilderConfig(env, cwd),
+    ...new Connect.ConnectConfig(env, cwd),
+    ...new Deploy.DeployConfig(env, cwd),
+    ...new Devnet.getDevnetConfig(env, cwd),
+    ...ScrtGrpc.ScrtGrpc.getConfig(cwd, env),
+    ...ScrtAmino.ScrtAmino.getConfig(cwd, env),
   }
 }
 

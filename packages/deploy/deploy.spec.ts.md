@@ -243,9 +243,9 @@ class DeployMyContracts extends DeployTask<Promise<{
 ```
 
 ```typescript
-import { getAgentContext, getChainContext } from '@fadroma/connect'
+import { getConnectContext } from '@fadroma/connect'
 import { getDeployContext } from './deploy'
-const context = await getDeployContext(await getAgentContext(await getChainContext({
+const context = await getDeployContext(await getConnectContext(await getChainContext({
   config: { chain: 'Mocknet' }
   deployment: {
     has () { return true }

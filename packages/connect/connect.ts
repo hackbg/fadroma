@@ -51,6 +51,53 @@ export class ConnectConfig extends EnvConfig {
 
 }
 
+/** Add a Chain and its Deployments to the Context. */
+export default async function connect (
+  context: CommandContext & Partial<{ config: ConnectConfig, chains: Chains }>,
+): Promise<ConnectContext> {
+
+  const chains = context.chains ?? knownChains
+
+  const config = { ...context.config ?? {}, ...new ConnectConfig() }
+
+  const id     = config.chain
+
+  // Check that a valid id is passed
+  if (!id || !chains[id]) {
+    new ConnectReporter(console).noName(chains)
+    process.exit(1)
+  }
+
+  // Return chain and deployments handle
+  const chain = await context.chains![id](context.config)
+
+  // Get agent TODO optional
+  const agentOpts: Fadroma.AgentOpts = { name: undefined }
+  if (chain.isDevnet) {
+    // for devnet, use auto-created genesis account
+    agentOpts.name = config.agentName
+  } else {
+    // for scrt-based chains, use mnemonic from config
+    agentOpts.mnemonic = config.agentMnemonic!
+  }
+  const agent = await chain.getAgent(agentOpts)
+
+  return {
+    ...context,
+    config,
+    chain,
+    agent,
+    devMode:   chain.isDevnet || chain.isMocknet,
+    isDevnet:  chain.isDevnet,
+    isMocknet: chain.isMocknet,
+    isTestnet: chain.isTestnet,
+    isMainnet: chain.isMainnet,
+    deployments: await import('@fadroma/deploy')
+      .then(({Deployments})=>Deployments.fromConfig(chain.id, config.project))
+      .catch(new ConnectReporter(console).noDeploy)
+  }
+}
+
 export interface ConnectContext extends CommandContext {
   config?:     ConnectConfig
   /** Known blockchains and connection methods. */
@@ -73,61 +120,13 @@ export interface ConnectContext extends CommandContext {
   agent:       Fadroma.Agent
 }
 
-/** Add a Chain and its Deployments to the Context. */
-export async function getConnectContext (
-  context: CommandContext & Partial<{ config: ChainConfig, chains: Chains }>,
-): Promise<ConnectContext> {
-
-  context.chains ??= knownChains
-  const config = { ...new ConnectConfig(), ...context.config ?? {} }
-  const name = config.chain
-
-  // Check that a valid name is passed
-  if (!name || !context.chains![name]) {
-    new ConnectReporter(console).noName(context.chains!)
-    process.exit(1)
-  }
-
-  // Return chain and deployments handle
-  const chain = await context.chains![name](config)
-  return {
-    ...context,
-    config,
-    chain,
-    devMode:   chain.isDevnet || chain.isMocknet,
-    isDevnet:  chain.isDevnet,
-    isMocknet: chain.isMocknet,
-    isTestnet: chain.isTestnet,
-    isMainnet: chain.isMainnet,
-    deployments: await import('@fadroma/deploy')
-      .then(({Deployments})=>Deployments.fromConfig(chain.id, config.project))
-      .catch(new ConnectReporter(console).noDeploy)
-  }
-}
-
-/** Adds an Agent to the Context. */
-export async function getAgentContext (context: ChainContext): Promise<AgentContext> {
-  const config = { ...context.config ?? {}, ...new AgentConfig() }
-  if (!context.chain) context = {
-    config: context.config,
-    ...context,
-    ...await getChainContext(context)
-  }
-  const agentOpts: AgentOpts = { name: undefined }
-  if (context.chain.isDevnet) {
-    // for devnet, use auto-created genesis account
-    agentOpts.name = config.agentName
-  } else {
-    // for scrt-based chains, use mnemonic from config
-    agentOpts.mnemonic = config.agentMnemonic!
-  }
-  const agent = await context.chain.getAgent(agentOpts)
-  return {
-    ...context,
-    config: { ...context.config||{}, ...config },
-    agent,
-  }
-}
+import {fileURLToPath} from 'url'
+//@ts-ignore
+if (fileURLToPath(import.meta.url) === process.argv[1]) setImmediate(()=>{
+  const print = new ConnectReporter(console)
+  print.knownChains(knownChains)
+  print.selectedChain(new ConnectConfig())
+})
 
 export class ConnectReporter {
 
@@ -161,7 +160,7 @@ export class ConnectReporter {
     return null
   }
 
-  selectedChain ({ chain }: ChainConfig) {
+  selectedChain ({ chain }: ConnectConfig) {
     this.log()
     if (chain) {
       this.info('Selected chain:')
@@ -171,7 +170,7 @@ export class ConnectReporter {
     }
   }
 
-  chainStatus ({ chain, deployments }: ChainContext) {
+  chainStatus ({ chain, deployments }: ConnectContext) {
     if (!chain) {
       this.info('│ No active chain.')
     } else {
@@ -188,13 +187,4 @@ export class ConnectReporter {
     }
   }
 
-}
-
-import {fileURLToPath} from 'url'
-
-//@ts-ignore
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  const print = new ConnectReporter(console)
-  print.knownChains(knownChains)
-  print.selectedChain(new ChainConfig())
 }
