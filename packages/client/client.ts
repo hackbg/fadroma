@@ -598,7 +598,9 @@ export interface Executor extends Spectator {
   /** Begin a transaction bundle. */
   bundle          (): Bundle
   /** Get a client instance for talking to a specific smart contract as this executor. */
-  getClient <C extends Client, O extends Partial<Contract>> (Client: ClientCtor<C, O>, arg: Address|O): C
+  getContract <C extends Contract, O extends Partial<Contract>> (
+    Contract: ContractCtor<C, O>, arg: Address|O
+  ): C
 }
 
 export type DeployArgsTriple = [Template, Name, Message]
@@ -898,10 +900,10 @@ export abstract class Bundle implements Executor {
     throw new Error("don't upload inside bundle")
   }
 
-  getClient <C extends Client, O extends Instance> (
-    Client: ClientCtor<C, O>, arg: Address|O
+  getContract <C extends Contract, O extends Partial<Contract>> (
+    Client: ContractCtor<C, O>, arg: Address|O
   ): C {
-    return new Client(this as Executor, arg)
+    return new Contract(arg, { agent: this as Executor })
   }
 
   id = 0
@@ -1056,9 +1058,9 @@ export class Contract extends Template {
   /** Friendly name of the contract. Used for looking it up in the deployment. */
   name?:   Name
 
-  Client:  ClientCtor<this, any>
+  Client:  ContractCtor<this, any>
 
-  task?:   DeployTask<unknown>
+  task?:   Task<unknown>
 
   agent?:  Executor
 
@@ -1229,7 +1231,7 @@ export class Contract extends Template {
   /** Create a copy of this Client with all transaction fees set to the provided value.
     * If the fee is undefined, returns a copy of the client with unmodified fee config. */
   withFee (fee: IFee|undefined): this {
-    const Self = this.constructor as ClientCtor<typeof this, any>
+    const Self = this.constructor as ContractCtor<typeof this, any>
     if (fee) {
       return new Self(this.agent, {...this, fee, fees: {}})
     } else {
@@ -1246,7 +1248,7 @@ export class Contract extends Template {
 
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   as (agent: Executor): this {
-    const Self = this.constructor as ClientCtor<typeof this, any>
+    const Self = this.constructor as ContractCtor<typeof this, any>
     return new Self(agent, { ...this })
   }
 
@@ -1276,26 +1278,6 @@ export interface ContractCtor<C extends Contract, O extends Partial<Contract>> {
   new (agent?: Executor, options?: O): C
 }
 
-export class Client extends Contract {
-  constructor (
-    readonly agent?: Executor,
-    addrOrOpts: Address|Partial<Contract> = {},
-    codeHash?:  CodeHash
-  ) {
-    console.warn('Fadroma.Client is deprecated. Inherit from Fadroma.Contract')
-    if (typeof addrOrOpts === 'string') {
-      addrOrOpts = { address: addrOrOpts }
-    }
-    super({ agent, ...addrOrOpts, codeHash })
-  }
-}
-
-/** Client constructor - used by functions which create user-specified Clients. */
-export interface ClientCtor<C extends Client, O extends Partial<Client>> {
-  new (agent?: Executor, address?: Address, hash?: CodeHash): C
-  new (agent?: Executor, options?: Partial<O>): C
-}
-
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export interface ContractLink {
   readonly address:   Address
@@ -1311,7 +1293,7 @@ export class Contracts<C extends Contract> {
 
   constructor (
     _Contract: ContractCtor<C, any> = Contract as ContractCtor<C, any>,
-    public readonly context: DeployContext,
+    public readonly context?: DeployContext,
   ) {
     this.Contract = _Contract
   }

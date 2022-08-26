@@ -198,6 +198,9 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
   API = PatchedSigningCosmWasmClient_1_2
 
   get api () {
+    if (!this.address) {
+      throw new Error("No address, can't get API")
+    }
     return new this.API(
       this.chain?.url,
       this.address,
@@ -222,8 +225,8 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
 
   /** Get up-to-date balance of this address in specified denomination. */
   async getBalance (
-    denomination: string          = this.defaultDenom,
-    address:      Fadroma.Address = this.address
+    denomination: string                    = this.defaultDenom,
+    address:      Fadroma.Address|undefined = this.address
   ) {
     const account = await this.api.getAccount(address)
     const balance = account!.balance || []
@@ -357,6 +360,7 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
   declare agent: ScrtAminoAgent
 
   get nonce () {
+    if (!this.agent || !this.agent.address) throw new Error("Missing address, can't get nonce")
     return getNonce(this.chain.url, this.agent.address)
   }
 

@@ -93,7 +93,9 @@ export interface BuildContext extends Komandi.CommandContext {
 }
 
 /** Add build vocabulary to context of REPL and deploy scripts. */
-export function getBuildContext (context: Komandi.CommandContext & Partial<BuildContext>): BuildContext {
+export function getBuildContext (
+  context: Komandi.CommandContext & Partial<BuildContext>
+): BuildContext {
   const config = { ...new BuilderConfig(), ...context.config ?? {} }
   return {
     ...context,

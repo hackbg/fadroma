@@ -219,13 +219,14 @@ export interface DeployContext extends AgentAndBuildContext {
   /** Agent that will instantiate the templates. */
   creator:    Fadroma.Agent
   /** Specify a contract. */
-  contract <C extends Fadroma.Client, O extends Fadroma.ClientOpts> (
-    reference: Fadroma.Name|Fadroma.Instance, APIClient?: Fadroma.ClientCtor<C, O>
+  contract <C extends Fadroma.Contract, O extends Partial<Fadroma.Contract>> (
+    reference:  Fadroma.IntoContract,
+    APIClient?: Fadroma.ContractCtor<C, O>
   ): Fadroma.Contract
   /** Specify multiple contracts of the same kind. */
-  contracts <C extends Client, O extends ClientOpts> (
-    APIClient?: ClientCtor<C, O>
-  ): Fadroma.Contracts
+  contracts <C extends Fadroma.Contract, O extends Partial<Fadroma.Contract>> (
+    APIClient?: Fadroma.ContractCtor<C, O>
+  ): Fadroma.Contracts<C>
 }
 
 /** Taking merged Agent and Build context as a basis, populate deploy context. */
@@ -254,10 +255,9 @@ export function getDeployContext (
 
   // Get configuration
   const config = {
-    ...new Build.BuilderConfig(env, cwd()),
-    ...new Connect.ConnectConfig(env, cwd()),
-    ...new DeployConfig(env, cwd()),
-    getDeployConfig()
+    ...new Build.BuilderConfig(process.env, cwd()),
+    ...new Connect.ConnectConfig(process.env, cwd()),
+    ...new DeployConfig(process.env, cwd()),
   }
 
   context = {
@@ -284,15 +284,17 @@ export function getDeployContext (
 
     contract <C extends Fadroma.Contract> (
       specifier: Fadroma.IntoContract,
-      _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+      _Client:   Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
+        = Fadroma.Contract as Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
     ): C {
       return new Fadroma.Contract(specifier, _Client, context as DeployContext) as C
     },
 
     contracts <C extends Fadroma.Contract> (
-      _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
-    ): Fadroma.Contracts {
-      return new Fadroma.Contracts(_Client, context as DeployContext) as Fadroma.Contracts
+      _Client: Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
+        = Fadroma.Contract as Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
+    ): Fadroma.Contracts<C> {
+      return new Fadroma.Contracts(_Client, context as DeployContext) as Fadroma.Contracts<C>
     }
 
   }
@@ -305,7 +307,7 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
   console = console
 
   contract <C extends Fadroma.Contract> (
-    arg: Name|Instance, _Client?: ClientCtor<C, ClientOpts>
+    arg: Name|Instance, _Client?: ContractCtor<C, Partial<Fadroma.Contract>>
   ): C {
     return this.context.contract(arg, _Client) as C
   }
@@ -581,15 +583,15 @@ export class Deployment {
   expect (
     name:    string,
     message: string = `${name}: no such contract in deployment`
-  ): Fadroma.Contract {
+  ): Partial<Fadroma.Contract> {
     const receipt = this.get(name)
     if (receipt) return receipt
     throw new Error(message)
   }
   /** Get a handle to the contract with the specified name. */
-  getClient <C extends Fadroma.Contract, O extends Fadroma.ClientOpts> (
+  getClient <C extends Fadroma.Contract, O extends Partial<Fadroma.Contract>> (
     name:    string,
-    $Client: Fadroma.ClientCtor<C, O> = Client as Fadroma.ClientCtor<C, O>,
+    $Client: Fadroma.ContractCtor<C, O> = Client as Fadroma.ContractCtor<C, O>,
     agent:   Fadroma.Agent|undefined = this.agent,
   ): C {
     return new $Client(agent, this.get(name) as O)

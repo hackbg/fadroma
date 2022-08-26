@@ -773,7 +773,7 @@ export interface PermitAminoMsg<T> {
 
 export type ViewingKey = string
 
-export class ViewingKeyClient extends Fadroma.Client {
+export class ViewingKeyClient extends Fadroma.Contract {
 
   async create (entropy = randomBytes(32).toString("hex")) {
     const msg    = { create_viewing_key: { entropy, padding: null } }

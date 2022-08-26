@@ -1,5 +1,5 @@
-import { Address, Client, CodeHash, Executor, Uint128, ICoin, Coin } from '@fadroma/client'
-import { Permit, ViewingKeyClient } from '@fadroma/scrt'
+import * as Fadroma from '@fadroma/client'
+import * as Scrt    from '@fadroma/scrt'
 import { Console, bold } from '@hackbg/konzola'
 import { randomHex } from '@hackbg/formati'
 
@@ -59,7 +59,7 @@ export function nativeToken (denom: string) {
 /** Custom token. Implemented as a smart contract in the blockchain's compute module. */
 export interface CustomToken {
   custom_token: {
-    contract_addr:    Address
+    contract_addr:    Fadroma.Address
     token_code_hash?: string
   }
 }
@@ -71,7 +71,7 @@ export function isCustomToken (obj: any): obj is NativeToken {
     typeof obj.custom_token.token_code_hash === 'string'
   )
 }
-export function customToken (contract_addr: Address, token_code_hash?: CodeHash) {
+export function customToken (contract_addr: Fadroma.Address, token_code_hash?: Fadroma.CodeHash) {
   return { custom_token: { contract_addr, token_code_hash } }
 }
 export interface NativeToken {
@@ -83,13 +83,13 @@ export interface NativeToken {
 export class TokenAmount {
   constructor (
     readonly token:  Token,
-    readonly amount: Uint128
+    readonly amount: Fadroma.Uint128
   ) {}
   /** Pass this to 'send' field of ExecOpts */
-  get asNativeBalance (): ICoin[]|undefined {
-    let result: ICoin[] | undefined = []
+  get asNativeBalance (): Fadroma.ICoin[]|undefined {
+    let result: Fadroma.ICoin[] | undefined = []
     if (getTokenKind(this.token) == TokenKind.Native) {
-      result.push(new Coin(this.amount, (this.token as NativeToken).native_token.denom))
+      result.push(new Fadroma.Coin(this.amount, (this.token as NativeToken).native_token.denom))
     } else {
       result = undefined
     }
@@ -123,28 +123,32 @@ export class TokenPair {
 
 /** A pair of two token descriptors, and amounts of each token, such as when specifying a swap. */
 export class TokenPairAmount {
+
   constructor (
     readonly pair:     TokenPair,
-    readonly amount_0: Uint128,
-    readonly amount_1: Uint128
+    readonly amount_0: Fadroma.Uint128,
+    readonly amount_1: Fadroma.Uint128
   ) {}
+
   get reverse () {
     return new TokenPairAmount(this.pair.reverse, this.amount_1, this.amount_0)
   }
+
   /** Pass this to 'send' field of ExecOpts */
   get asNativeBalance () {
-    let result: ICoin[] | undefined = []
+    let result: Fadroma.ICoin[] | undefined = []
     if (getTokenKind(this.pair.token_0) == TokenKind.Native) {
       const {native_token:{denom}} = this.pair.token_0 as NativeToken
-      result.push(new Coin(this.amount_0, denom))
+      result.push(new Fadroma.Coin(this.amount_0, denom))
     } else if (getTokenKind(this.pair.token_1) == TokenKind.Native) {
       const {native_token:{denom}} = this.pair.token_1 as NativeToken
-      result.push(new Coin(this.amount_1, denom))
+      result.push(new Fadroma.Coin(this.amount_1, denom))
     } else {
       result = undefined
     }
     return result
   }
+
 }
 
 /** # Secret Network SNIP20 token client. */
@@ -156,7 +160,7 @@ export interface Snip20BaseConfig {
 }
 
 export interface Snip20InitMsg extends Snip20BaseConfig {
-  admin:     Address
+  admin:     Fadroma.Address
   prng_seed: string
   config:    Snip20InitConfig
   // Allow to be cast as Record<string, unknown>:
@@ -173,7 +177,7 @@ export interface Snip20InitConfig {
   [name: string]: unknown
 }
 
-export class Snip20 extends Client implements CustomToken {
+export class Snip20 extends Fadroma.Contract implements CustomToken {
 
   /** Return the address and code hash of this token in the format
     * required by the Factory to create a swap pair with this token */
@@ -196,10 +200,10 @@ export class Snip20 extends Client implements CustomToken {
   }
 
   /** Create a SNIP20 token client from a Token descriptor. */
-  static fromDescriptor (agent: Executor, descriptor: CustomToken): Snip20 {
+  static fromDescriptor (agent: Fadroma.Executor, descriptor: CustomToken): Snip20 {
     const { custom_token } = descriptor
     const { contract_addr: address, token_code_hash: codeHash } = custom_token
-    return new Snip20(agent, { address, codeHash })
+    return new Snip20({ address, codeHash, agent })
   }
 
   /** Create a SNIP20 init message. */
@@ -207,9 +211,9 @@ export class Snip20 extends Client implements CustomToken {
     name:     string,
     symbol:   string,
     decimals: number,
-    admin:    Address|{ address: Address },
+    admin:    Fadroma.Address|{ address: Fadroma.Address },
     config:   Partial<Snip20InitConfig> = {},
-    balances: Array<{address: Address, amount: Uint128}> = []
+    balances: Array<{address: Fadroma.Address, amount: Fadroma.Uint128}> = []
   ): Snip20InitMsg => {
     if (typeof admin === 'object') admin = admin.address
     return {
@@ -222,7 +226,7 @@ export class Snip20 extends Client implements CustomToken {
   tokenName:   string  | null = null
   symbol:      string  | null = null
   decimals:    number  | null = null
-  totalSupply: Uint128 | null = null
+  totalSupply: Fadroma.Uint128 | null = null
 
   async populate (): Promise<this> {
     await super.populate()
@@ -240,9 +244,9 @@ export class Snip20 extends Client implements CustomToken {
     return token_info
   }
 
-  async getBalance (address: Address, key: string) {
+  async getBalance (address: Fadroma.Address, key: string) {
     const msg = { balance: { address, key } }
-    const response: { balance: { amount: Uint128 } } = await this.query(msg)
+    const response: { balance: { amount: Fadroma.Uint128 } } = await this.query(msg)
     if (response.balance && response.balance.amount) {
       return response.balance.amount
     } else {
@@ -284,7 +288,11 @@ export class Snip20 extends Client implements CustomToken {
     })
   }
 
-  async getAllowance (owner: Address, spender: Address, key: string): Promise<Allowance> {
+  async getAllowance (
+    owner:   Fadroma.Address, 
+    spender: Fadroma.Address,
+    key:     string
+  ): Promise<Allowance> {
     const msg = { allowance: { owner, spender, key } }
     const response: { allowance: Allowance } = await this.query(msg)
     return response.allowance
@@ -293,7 +301,7 @@ export class Snip20 extends Client implements CustomToken {
   /** Increase allowance to spender */
   increaseAllowance (
     amount:  string | number | bigint,
-    spender: Address,
+    spender: Fadroma.Address,
   ) {
     console.info(
       `${bold(this.agent?.address||'(missing address)')}: increasing allowance of`,
@@ -307,7 +315,7 @@ export class Snip20 extends Client implements CustomToken {
   /** Decrease allowance to spender */
   decreaseAllowance (
     amount:  string | number | bigint,
-    spender: Address,
+    spender: Fadroma.Address,
   ) {
     return this.execute({
       decrease_allowance: { amount: String(amount), spender }
@@ -317,7 +325,7 @@ export class Snip20 extends Client implements CustomToken {
   /** Transfer tokens to address */
   transfer (
     amount:    string | number | bigint,
-    recipient: Address,
+    recipient: Fadroma.Address,
   ) {
     return this.execute({
       transfer: { amount, recipient }
@@ -328,7 +336,7 @@ export class Snip20 extends Client implements CustomToken {
     * Same as transfer but allows for receive callback. */
   send (
     amount:    string | number | bigint,
-    recipient: Address,
+    recipient: Fadroma.Address,
     callback?: string | object
   ) {
     const callbackB64 = callback
@@ -338,14 +346,16 @@ export class Snip20 extends Client implements CustomToken {
     return this.execute(msg)
   }
 
-  vk: ViewingKeyClient = new ViewingKeyClient(this.agent, this)
+  get vk (): Scrt.ViewingKeyClient {
+    return new Scrt.ViewingKeyClient(this, { agent: this.agent })
+  }
 
 }
 
 export interface Allowance {
-  spender:     Address
-  owner:       Address
-  allowance:   Uint128
+  spender:     Fadroma.Address
+  owner:       Fadroma.Address
+  allowance:   Fadroma.Uint128
   expiration?: number|null
 }
 
@@ -353,10 +363,10 @@ export interface TokenInfo {
   name:          string
   symbol:        string
   decimals:      number
-  total_supply?: Uint128 | null
+  total_supply?: Fadroma.Uint128 | null
 }
 
-export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
+export type Snip20Permit = Scrt.Permit<'allowance' | 'balance' | 'history' | 'owner'>
 
 export type QueryWithPermit <Q, P> = { with_permit: { query: Q, permit: P } }
 
