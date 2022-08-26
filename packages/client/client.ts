@@ -772,6 +772,427 @@ export interface AgentFees {
 //@ts-ignore
 Chain.Agent = Agent as AgentCtor<Agent>
 
+/** Populated by @fadroma/deploy */
+export const Uploaders: Record<string, Uploader> = {}
+
+/** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
+  * binding the `Template` to a particular `chainId` and `codeId`. */
+export abstract class Uploader implements IUploader {
+  constructor (public agent: Agent) {}
+  get chain () { return this.agent.chain }
+  abstract upload     (template: Template):   Promise<Template>
+  abstract uploadMany (template: Template[]): Promise<Template[]>
+}
+
+export type IntoUploader = string|UploaderCtor|Partial<IUploader>
+
+export interface UploaderCtor {
+  new (options?: Partial<IUploader>): Uploader 
+}
+
+export interface IUploader {
+  upload (template: Template): Promise<Template>
+  [name: string]: any
+}
+
+/** A transaction hash, uniquely identifying an executed transaction on a chain. */
+export type TxHash     = string
+
+export type IntoContract = Name|Partial<Contract>
+
+/** Contract: instantiated template.
+  * Has an `address` on a specific `chain` and can do the things that it's programmed to. */
+export class Contract extends Template {
+
+  static parse (specifier: IntoContract, options: IntoContract): Partial<Contract> {
+    if (typeof specifier === 'string' && typeof options === 'string') {
+      return { address: specifier, codeHash: options }
+    } else {
+      return { ...specifier, ...options }
+    }
+  }
+
+  constructor (specifier: IntoContract, options: Partial<Contract> = {}) {
+
+    super(Contract.parse(specifier, options))
+
+    // Support the `new Contract(agent, address, codeHash)` signature
+    if (typeof options === 'string') {
+      options = { address: options, codeHash: hash }
+    }
+
+    // Populate properties 
+    super(options)
+
+    // Warn if missing agent
+    const className = this.constructor.name
+    if (!agent) console.warn(
+      `Creating ${className} without Agent. Transactions and queries not possible.`
+    )
+
+    //if (!value) throw new ContractError.Empty()
+    //if (typeof value === 'string') {
+      //this.name = value
+      //if (!context.deployment) throw new ContractError.CantFind(value)
+      //if (context.deployment.has(value)) this.value = context.deployment.get(value)!
+    //} else {
+      //this.value = value
+    //}
+    //if (this.value && (this.value as { address: Address }).address) {
+      //this.value = new this.Client(context.creator, this.value)
+    //}
+    //this.context ??= context
+    //this.task    ??= task
+    //if (typeof arg === 'string') {
+      //this.address  = arg
+      //this.codeHash = hash
+    //} else {
+      //this.address  = arg.address!
+      //if (!this.address) console.warn(
+        //`${className} created with no address. Transactions and queries not possible.`
+      //)
+      //this.name     = arg.name     ?? this.name
+      //this.label    = arg.label    ?? this.label
+      //this.codeHash = arg.codeHash ?? this.codeHash ?? hash
+      //if (!this.codeHash) console.warn(
+        //`${className} created with no code hash. await client.fetchCodeHash() to populate.`
+      //)
+      //this.codeId   = arg.codeId   ?? this.codeId
+      //this.fee      = arg.fee      ?? this.fee
+      //this.fees = Object.assign(this.fees||{}, arg.fees||{})
+    //}
+  }
+
+  /** Friendly name of the contract. Used for looking it up in the deployment. */
+  name?:   Name
+
+  Client:  ContractCtor<this, any>
+
+  task?:   Task<unknown>
+
+  agent?:  Executor
+
+  initTx?: TxHash
+
+  /** Info about the contract that we have so far. */
+  value:   Partial<Contract> = {}
+
+  /** Here the Contract pretends to be a Promise. That way,
+    * a fully populated Contract is available synchronously if possible,
+    * and a ContractSlot can also be awaited to populate itself. */
+  then <Y> (
+    resolved: (c: Y)=>Y,
+    rejected: (e: Error)=>never
+  ): Promise<Y> {
+    if (!(this.value instanceof this.Client)) throw new ContractError.NotFound2()
+    return Promise.resolve(this.value).then(resolved, rejected)
+  }
+
+  async deploy (
+    specifier: IntoTemplate,
+    initMsg:  Message|(()=>Message|Promise<Message>)
+  ): Promise<this> {
+    if (this.task) {
+      const value = `deploy ${this.name??'contract'}`
+      Object.defineProperty(deployContract, 'name', { value })
+      return this.task.subtask(deployContract)
+    }
+    return await deployContract.call(this)
+    async function deployContract (this: Contract) {
+      const { creator, deployment } = this.context
+      if (!deployment) throw new ContractError.NoDeployment()
+      if (!this.name)  throw new ContractError.NoName()
+      const template = await new Template(specifier, this.context).getOrUpload()
+      console.info(
+        'Deploy   ',    bold(this.name!),
+        'from code id', bold(String(template.codeId  ||'(unknown)')),
+        'hash',         bold(String(template.codeHash||'(unknown)'))
+      )
+      if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
+      const instance = deployment!.init(creator, template, this.name, initMsg)
+      const client = new this.Client(creator, instance)
+      console.info(
+        'Deployed ',    bold(this.name!), 'is', bold(client.address),
+        'from code id', bold(String(template.codeId  ||'(unknown)'))
+      )
+      return this
+    }
+  }
+
+  async getOrDeploy (
+    template: IntoTemplate,
+    initMsg:  Message|(()=>Message|Promise<Message>)
+  ): Promise<this> {
+    if (this.task) {
+      const value = `get or deploy ${this.name??'contract'}`
+      Object.defineProperty(getOrDeployContract, 'name', { value })
+      return this.task.subtask(getOrDeployContract)
+    }
+    return await getOrDeployContract.call(this)
+    async function getOrDeployContract (this: Contract) {
+      if (this.address) {
+        console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address))
+        return this
+      } else if (this.name) {
+        if (!this.context.creator)    throw new ContractError.NoCreator()
+        if (!this.context.deployment) throw new ContractError.NoDeployment()
+        return await this.deploy(template, initMsg)
+      }
+      throw new ContractError.InvalidValue()
+    }
+  }
+
+  async getOr (getter: ()=>this|Promise<this>): Promise<this> {
+    if (this.task) {
+      const value = `get or provide ${this.name??'contract'}`
+      Object.defineProperty(getContractOr, 'name', { value })
+      return this.task.subtask(getContractOr)
+    }
+    return await getContractOr.bind(this)()
+    async function getContractOr () {
+      return await Promise.resolve(getter())
+    }
+  }
+
+  get (message: string = `Contract not found: ${this.name}`): this {
+    if (this.name && this.deployment && this.deployment.has(this.name)) {
+      const instance = this.deployment.get(this.name)
+      const client   = new this.Client(this.context.creator, instance!)
+      return client
+    } else if (this.value) {
+      const client = new this.Client(this.context.creator, this.value)
+      return client
+    } else {
+      throw new Error(message)
+    }
+  }
+
+  /** The Chain on which this contract exists. */
+  get chain () { return this.agent?.chain }
+
+  /** Address of the contract on the chain. */
+  address?: Address
+
+  /** Label of the contract on the chain. */
+  label?: string
+
+  async fetchLabel (expected?: CodeHash): Promise<this> {
+    this.assertOperational()
+    const label = await this.agent!.getLabel(this.address!)
+    if (!!expected) this.assertCorrect('label', expected, label)
+    this.label = label
+    return this
+  }
+
+  async fetchCodeHash (expected?: CodeHash): Promise<this> {
+    this.assertOperational()
+    const codeHash = await this.agent!.getHash(this.address!)
+    if (!!expected) this.assertCorrect('codeHash', expected, codeHash)
+    this.codeHash = codeHash
+    return this
+  }
+
+  async fetchCodeId (expected?: CodeHash): Promise<this> {
+    this.assertOperational()
+    const codeId = await this.agent!.getCodeId(this.address!)
+    if (!!expected) this.assertCorrect('codeId', expected, codeId)
+    this.codeId = codeId
+    return this
+  }
+
+  /** Fetch the label, code ID, and code hash from the Chain.
+    * You can override this method to populate custom contract info from the chain on your client,
+    * e.g. fetch the symbol and decimals of a token contract. */
+  async populate (): Promise<this> {
+    this.assertOperational()
+    await Promise.all([this.fetchLabel(), this.fetchCodeId(), this.fetchCodeHash()])
+    return this
+  }
+
+  /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
+  get asLink (): ContractLink {
+    if (!this.address)  throw new Error("Can't link to contract with no address")
+    if (!this.codeHash) throw new Error("Can't link to contract with no code hash")
+    return { address: this.address, code_hash: this.codeHash }
+  }
+
+  /** Execute a query on the specified contract as the specified Agent. */
+  async query <U> (msg: Message): Promise<U> {
+    this.assertOperational()
+    return await this.agent!.query(this, msg)
+  }
+
+  /** Default fee for all contract transactions. */
+  fee?: IFee
+
+  /** Default fee for specific transactions. */
+  fees: Record<string, IFee> = {}
+
+  /** Get the recommended fee for a specific transaction. */
+  getFee (msg?: string|Record<string, unknown>): IFee|undefined {
+    const defaultFee = this.fee || this.agent?.fees?.exec
+    if (typeof msg === 'string') {
+      return this.fees[msg] || defaultFee
+    } else if (typeof msg === 'object') {
+      const keys = Object.keys(msg)
+      if (keys.length !== 1) {
+        throw new Error('Client#getFee: messages must have exactly 1 root key')
+      }
+      return this.fees[keys[0]] || defaultFee
+    }
+    return this.fee || defaultFee
+  }
+
+  /** Create a copy of this Client with all transaction fees set to the provided value.
+    * If the fee is undefined, returns a copy of the client with unmodified fee config. */
+  withFee (fee: IFee|undefined): this {
+    const Self = this.constructor as ContractCtor<typeof this, any>
+    if (fee) {
+      return new Self(this.agent, {...this, fee, fees: {}})
+    } else {
+      return new Self(this.agent, {...this, fee: this.fee, fees: this.fees})
+    }
+  }
+
+  /** Execute a transaction on the specified contract as the specified Agent. */
+  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
+    this.assertOperational()
+    opt.fee = opt.fee || this.getFee(msg)
+    return await this.agent!.execute(this, msg, opt)
+  }
+
+  /** Create a copy of this Client that will execute the transactions as a different Agent. */
+  as (agent: Executor): this {
+    const Self = this.constructor as ContractCtor<typeof this, any>
+    return new Self(agent, { ...this })
+  }
+
+  /** Throw if trying to do something with no agent or address. */
+  assertOperational () {
+    const name = this.constructor.name
+    if (!this.address) new Error(
+      `${name} has no Agent and can't operate. Pass an address with "new ${name}(agent, ...)"`
+    )
+    if (!this.agent) new Error(
+      `${name} has no address and can't operate. Pass an address with "new ${name}(agent, addr)"`
+    )
+  }
+
+  /** Throw if fetched metadata differs from configured. */
+  assertCorrect (kind: string, expected: any, actual: any) {
+    const name = this.constructor.name
+    if (expected !== actual) {
+      throw new Error(`Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
+    }
+  }
+
+}
+
+export const Client = Contract
+
+export interface ContractCtor<C extends Contract, O extends Partial<Contract>> {
+  new (agent?: Executor, address?: Address, hash?: CodeHash): C
+  new (agent?: Executor, options?: O): C
+}
+
+/** Reference to an instantiated smart contract in the format of Fadroma ICC. */
+export interface ContractLink {
+  readonly address:   Address
+  readonly code_hash: CodeHash
+}
+
+/** Pair of name and init message. Used when instantiating multiple contracts from one template. */
+export type DeployArgs = [Name, Message]
+
+/** Instantiates multiple contracts of the same type in one transaction.
+  * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
+export class Contracts<C extends Contract> {
+
+  constructor (
+    _Contract: ContractCtor<C, any> = Contract as ContractCtor<C, any>,
+    public readonly context?: DeployContext,
+  ) {
+    this.Contract = _Contract
+  }
+
+  public readonly Contract: ContractCtor<C, any>
+
+  async deployMany (
+    template:  IntoTemplate,
+    contracts: DeployArgs[] = []
+  ): Promise<C[]> {
+    if (!this.context.creator)    throw new ContractError.NoCreator()
+    if (!this.context.deployment) throw new ContractError.NoDeployment()
+    // Provide the template
+    template = await new Template(template, this.context).getOrUpload() as Template
+    // Deploy multiple contracts from the same template with 1 tx
+    let instances: Contract[]
+    try {
+      const creator = this.context.creator
+      instances = await this.context.deployment.initMany(creator, template, contracts)
+    } catch (e) {
+      throw new ContractError.DeployManyFailed(e)
+    }
+    // Return API client to each contract
+    return instances.map(instance=>this.context.creator!.getClient(this.Contract, instance))
+  }
+}
+
+/** A moment in time. */
+export type Moment   = number
+
+/** A length of time. */
+export type Duration = number
+
+export class ContractError extends Error {
+  static Empty = class EmptyContractSpec extends ContractError {
+    constructor () {
+      super("Tried to create ContractSlot with nullish value")
+    }
+  }
+  static CantFind = class CantFindContract extends ContractError {
+    constructor (name: string) {
+      super(`No deployment, can't find contract by name: ${name}`)
+    }
+  }
+  static NotFound = class ContractNotFound extends ContractError {
+    constructor (prefix: string, name: string) {
+      super(`Contract ${name} not found in deployment ${prefix}`)
+    }
+  }
+  static NotFound2 = class ContractNotFound2 extends ContractError {
+    constructor () {
+      super("Contract not found. Try .getOrDeploy(template, init)")
+    }
+  }
+  static NoCreator = class NoContractCreator extends ContractError {
+    constructor () {
+      super("Missing creator.")
+    }
+  }
+  static NoDeployment = class NoContractDeployment extends ContractError {
+    constructor () {
+      super("Missing deployment.")
+    }
+  }
+  static InvalidValue = class InvalidContractValue extends ContractError {
+    constructor () {
+      super("Value is not Client and not a name.")
+    }
+  }
+  static NoName = class NoContractName extends ContractError {
+    constructor () {
+      super("No name.")
+    }
+  }
+  static DeployManyFailed = class DeployManyFailed extends ContractError {
+    constructor (e: any) {
+      //DeployLogger(console).deployManyFailed(e, template, contracts)
+      super('Deploy of multiple contracts failed. ' + e?.message??'')
+    }
+  }
+}
+
 /** Bundle is an alternate executor that collects collects messages to broadcast
   * as a single transaction in order to execute them simultaneously. For that, it
   * uses the API of its parent Agent. You can use it in scripts with:
@@ -961,417 +1382,3 @@ export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
 //@ts-ignore
 Agent.Bundle = Bundle
-
-
-/** Populated by @fadroma/deploy */
-export const Uploaders: Record<string, Uploader> = {}
-
-/** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
-  * binding the `Template` to a particular `chainId` and `codeId`. */
-export abstract class Uploader implements IUploader {
-  constructor (public agent: Agent) {}
-  get chain () { return this.agent.chain }
-  abstract upload     (template: Template):   Promise<Template>
-  abstract uploadMany (template: Template[]): Promise<Template[]>
-}
-
-export type IntoUploader = string|UploaderCtor|Partial<IUploader>
-
-export interface UploaderCtor {
-  new (options?: Partial<IUploader>): Uploader 
-}
-
-export interface IUploader {
-  upload (template: Template): Promise<Template>
-  [name: string]: any
-}
-
-/** A transaction hash, uniquely identifying an executed transaction on a chain. */
-export type TxHash     = string
-
-export type IntoContract = Name|Partial<Contract>
-
-/** Contract: instantiated template.
-  * Has an `address` on a specific `chain` and can do the things that it's programmed to. */
-export class Contract extends Template {
-
-  static parse (specifier: Address, options: CodeHash): Partial<Contract>
-  static parse (specifier: IntoContract, options: IntoContract): Partial<Contract> {
-    if (typeof specifier === 'string' && typeof options === 'string') {
-      return { address: specifier, codeHash: options }
-    } else {
-      return { ...specifier, ...options }
-    }
-  }
-
-  constructor (specifier: IntoContract, options: Partial<Contract> = {}) {
-
-    super(Contract.parse(specifier, options))
-
-    // Support the `new Contract(agent, address, codeHash)` signature
-    if (typeof options === 'string') {
-      options = { address: options, codeHash: hash }
-    }
-
-    // Populate properties 
-    super(options)
-
-    // Warn if missing agent
-    const className = this.constructor.name
-    if (!agent) console.warn(
-      `Creating ${className} without Agent. Transactions and queries not possible.`
-    )
-
-    //if (!value) throw new ContractError.Empty()
-    //if (typeof value === 'string') {
-      //this.name = value
-      //if (!context.deployment) throw new ContractError.CantFind(value)
-      //if (context.deployment.has(value)) this.value = context.deployment.get(value)!
-    //} else {
-      //this.value = value
-    //}
-    //if (this.value && (this.value as { address: Address }).address) {
-      //this.value = new this.Client(context.creator, this.value)
-    //}
-    //this.context ??= context
-    //this.task    ??= task
-    //if (typeof arg === 'string') {
-      //this.address  = arg
-      //this.codeHash = hash
-    //} else {
-      //this.address  = arg.address!
-      //if (!this.address) console.warn(
-        //`${className} created with no address. Transactions and queries not possible.`
-      //)
-      //this.name     = arg.name     ?? this.name
-      //this.label    = arg.label    ?? this.label
-      //this.codeHash = arg.codeHash ?? this.codeHash ?? hash
-      //if (!this.codeHash) console.warn(
-        //`${className} created with no code hash. await client.fetchCodeHash() to populate.`
-      //)
-      //this.codeId   = arg.codeId   ?? this.codeId
-      //this.fee      = arg.fee      ?? this.fee
-      //this.fees = Object.assign(this.fees||{}, arg.fees||{})
-    //}
-  }
-
-  /** Friendly name of the contract. Used for looking it up in the deployment. */
-  name?:   Name
-
-  Client:  ContractCtor<this, any>
-
-  task?:   Task<unknown>
-
-  agent?:  Executor
-
-  initTx?: TxHash
-
-  /** Info about the contract that we have so far. */
-  value:   Partial<Contract> = {}
-
-  /** Here the Contract pretends to be a Promise. That way,
-    * a fully populated Contract is available synchronously if possible,
-    * and a ContractSlot can also be awaited to populate itself. */
-  then <Y> (
-    resolved: (c: Y)=>Y,
-    rejected: (e: Error)=>never
-  ): Promise<Y> {
-    if (!(this.value instanceof this.Client)) throw new ContractError.NotFound2()
-    return Promise.resolve(this.value).then(resolved, rejected)
-  }
-
-  async deploy (template: IntoTemplate, msg: Message): Promise<this> {
-    if (this.task) {
-      const value = `deploy ${this.name??'contract'}`
-      Object.defineProperty(deployContract, 'name', { value })
-      return this.task.subtask(deployContract)
-    }
-    return await deployContract.bind(this)()
-    async function deployContract (this: Contract) {
-      const { creator, deployment } = this.context
-      if (!deployment) throw new ContractError.NoDeployment()
-      if (!this.name)  throw new ContractError.NoName()
-      template = await new Template(template, this.context).getOrUpload()
-      console.info(
-        'Deploy   ',    bold(this.name!),
-        'from code id', bold(String(template.codeId  ||'(unknown)')),
-        'hash',         bold(String(template.codeHash||'(unknown)'))
-      )
-      const instance = await this.context.deployment!.init(creator, template, this.name,  msg)
-      const client = new this.Client(this.context.creator, instance)
-      console.info(
-        'Deployed ',    bold(this.name!), 'is', bold(client.address),
-        'from code id', bold(String(template.codeId  ||'(unknown)'))
-      )
-      return this
-    }
-  }
-
-  async getOrDeploy (template: IntoTemplate, msg: Message): Promise<this> {
-    if (this.task) {
-      const value = `get or deploy ${this.name??'contract'}`
-      Object.defineProperty(getOrDeployContract, 'name', { value })
-      return this.task.subtask(getOrDeployContract)
-    }
-    return await getOrDeployContract.bind(this)()
-    async function getOrDeployContract (this: Contract) {
-      if (this.address) {
-        console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address))
-        return this
-      } else if (this.name) {
-        if (!this.context.creator)    throw new ContractError.NoCreator()
-        if (!this.context.deployment) throw new ContractError.NoDeployment()
-        return await this.deploy(template, msg)
-      }
-      throw new ContractError.InvalidValue()
-    }
-  }
-
-  async getOr (getter: ()=>this|Promise<this>): Promise<this> {
-    if (this.task) {
-      const value = `get or provide ${this.name??'contract'}`
-      Object.defineProperty(getContractOr, 'name', { value })
-      return this.task.subtask(getContractOr)
-    }
-    return await getContractOr.bind(this)()
-    async function getContractOr () {
-      return await Promise.resolve(getter())
-    }
-  }
-
-  get (message: string = `Contract not found: ${this.name}`): this {
-    if (this.name && this.deployment && this.deployment.has(this.name)) {
-      const instance = this.deployment.get(this.name)
-      const client   = new this.Client(this.context.creator, instance!)
-      return client
-    } else if (this.value) {
-      const client = new this.Client(this.context.creator, this.value)
-      return client
-    } else {
-      throw new Error(message)
-    }
-  }
-
-  /** The Chain on which this contract exists. */
-  get chain () { return this.agent?.chain }
-
-  /** Address of the contract on the chain. */
-  address?: Address
-
-  /** Label of the contract on the chain. */
-  label?: string
-
-  async fetchLabel (expected?: CodeHash): Promise<this> {
-    this.assertOperational()
-    const label = await this.agent!.getLabel(this.address!)
-    if (!!expected) this.assertCorrect('label', expected, label)
-    this.label = label
-    return this
-  }
-
-  async fetchCodeHash (expected?: CodeHash): Promise<this> {
-    this.assertOperational()
-    const codeHash = await this.agent!.getHash(this.address!)
-    if (!!expected) this.assertCorrect('codeHash', expected, codeHash)
-    this.codeHash = codeHash
-    return this
-  }
-
-  async fetchCodeId (expected?: CodeHash): Promise<this> {
-    this.assertOperational()
-    const codeId = await this.agent!.getCodeId(this.address!)
-    if (!!expected) this.assertCorrect('codeId', expected, codeId)
-    this.codeId = codeId
-    return this
-  }
-
-  /** Fetch the label, code ID, and code hash from the Chain.
-    * You can override this method to populate custom contract info from the chain on your client,
-    * e.g. fetch the symbol and decimals of a token contract. */
-  async populate (): Promise<this> {
-    this.assertOperational()
-    await Promise.all([this.fetchLabel(), this.fetchCodeId(), this.fetchCodeHash()])
-    return this
-  }
-
-  /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
-  get asLink (): ContractLink {
-    if (!this.address)  throw new Error("Can't link to contract with no address")
-    if (!this.codeHash) throw new Error("Can't link to contract with no code hash")
-    return { address: this.address, code_hash: this.codeHash }
-  }
-
-  /** Execute a query on the specified contract as the specified Agent. */
-  async query <U> (msg: Message): Promise<U> {
-    this.assertOperational()
-    return await this.agent!.query(this, msg)
-  }
-
-  /** Default fee for all contract transactions. */
-  fee?: IFee
-
-  /** Default fee for specific transactions. */
-  fees: Record<string, IFee> = {}
-
-  /** Get the recommended fee for a specific transaction. */
-  getFee (msg?: string|Record<string, unknown>): IFee|undefined {
-    const defaultFee = this.fee || this.agent?.fees?.exec
-    if (typeof msg === 'string') {
-      return this.fees[msg] || defaultFee
-    } else if (typeof msg === 'object') {
-      const keys = Object.keys(msg)
-      if (keys.length !== 1) {
-        throw new Error('Client#getFee: messages must have exactly 1 root key')
-      }
-      return this.fees[keys[0]] || defaultFee
-    }
-    return this.fee || defaultFee
-  }
-
-  /** Create a copy of this Client with all transaction fees set to the provided value.
-    * If the fee is undefined, returns a copy of the client with unmodified fee config. */
-  withFee (fee: IFee|undefined): this {
-    const Self = this.constructor as ContractCtor<typeof this, any>
-    if (fee) {
-      return new Self(this.agent, {...this, fee, fees: {}})
-    } else {
-      return new Self(this.agent, {...this, fee: this.fee, fees: this.fees})
-    }
-  }
-
-  /** Execute a transaction on the specified contract as the specified Agent. */
-  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
-    this.assertOperational()
-    opt.fee = opt.fee || this.getFee(msg)
-    return await this.agent!.execute(this, msg, opt)
-  }
-
-  /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  as (agent: Executor): this {
-    const Self = this.constructor as ContractCtor<typeof this, any>
-    return new Self(agent, { ...this })
-  }
-
-  /** Throw if trying to do something with no agent or address. */
-  assertOperational () {
-    const name = this.constructor.name
-    if (!this.address) new Error(
-      `${name} has no Agent and can't operate. Pass an address with "new ${name}(agent, ...)"`
-    )
-    if (!this.agent) new Error(
-      `${name} has no address and can't operate. Pass an address with "new ${name}(agent, addr)"`
-    )
-  }
-
-  /** Throw if fetched metadata differs from configured. */
-  assertCorrect (kind: string, expected: any, actual: any) {
-    const name = this.constructor.name
-    if (expected !== actual) {
-      throw new Error(`Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
-    }
-  }
-
-}
-
-export interface ContractCtor<C extends Contract, O extends Partial<Contract>> {
-  new (agent?: Executor, address?: Address, hash?: CodeHash): C
-  new (agent?: Executor, options?: O): C
-}
-
-/** Reference to an instantiated smart contract in the format of Fadroma ICC. */
-export interface ContractLink {
-  readonly address:   Address
-  readonly code_hash: CodeHash
-}
-
-/** Pair of name and init message. Used when instantiating multiple contracts from one template. */
-export type DeployArgs = [Name, Message]
-
-/** Instantiates multiple contracts of the same type in one transaction.
-  * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
-export class Contracts<C extends Contract> {
-
-  constructor (
-    _Contract: ContractCtor<C, any> = Contract as ContractCtor<C, any>,
-    public readonly context?: DeployContext,
-  ) {
-    this.Contract = _Contract
-  }
-
-  public readonly Contract: ContractCtor<C, any>
-
-  async deployMany (
-    template:  IntoTemplate,
-    contracts: DeployArgs[] = []
-  ): Promise<C[]> {
-    if (!this.context.creator)    throw new ContractError.NoCreator()
-    if (!this.context.deployment) throw new ContractError.NoDeployment()
-    // Provide the template
-    template = await new Template(template, this.context).getOrUpload() as Template
-    // Deploy multiple contracts from the same template with 1 tx
-    let instances: Contract[]
-    try {
-      const creator = this.context.creator
-      instances = await this.context.deployment.initMany(creator, template, contracts)
-    } catch (e) {
-      throw new ContractError.DeployManyFailed(e)
-    }
-    // Return API client to each contract
-    return instances.map(instance=>this.context.creator!.getClient(this.Contract, instance))
-  }
-}
-
-/** A moment in time. */
-export type Moment   = number
-
-/** A length of time. */
-export type Duration = number
-
-export class ContractError extends Error {
-  static Empty = class EmptyContractSpec extends ContractError {
-    constructor () {
-      super("Tried to create ContractSlot with nullish value")
-    }
-  }
-  static CantFind = class CantFindContract extends ContractError {
-    constructor (name: string) {
-      super(`No deployment, can't find contract by name: ${name}`)
-    }
-  }
-  static NotFound = class ContractNotFound extends ContractError {
-    constructor (prefix: string, name: string) {
-      super(`Contract ${name} not found in deployment ${prefix}`)
-    }
-  }
-  static NotFound2 = class ContractNotFound2 extends ContractError {
-    constructor () {
-      super("Contract not found. Try .getOrDeploy(template, init)")
-    }
-  }
-  static NoCreator = class NoContractCreator extends ContractError {
-    constructor () {
-      super("Missing creator.")
-    }
-  }
-  static NoDeployment = class NoContractDeployment extends ContractError {
-    constructor () {
-      super("Missing deployment.")
-    }
-  }
-  static InvalidValue = class InvalidContractValue extends ContractError {
-    constructor () {
-      super("Value is not Client and not a name.")
-    }
-  }
-  static NoName = class NoContractName extends ContractError {
-    constructor () {
-      super("No name.")
-    }
-  }
-  static DeployManyFailed = class DeployManyFailed extends ContractError {
-    constructor (e: any) {
-      //DeployLogger(console).deployManyFailed(e, template, contracts)
-      super('Deploy of multiple contracts failed. ' + e?.message??'')
-    }
-  }
-}
