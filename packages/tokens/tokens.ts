@@ -178,6 +178,12 @@ export class Snip20 extends Client implements CustomToken {
   /** Return the address and code hash of this token in the format
     * required by the Factory to create a swap pair with this token */
   get custom_token () {
+    if (!this.address) {
+      throw new Error("Can't create token reference without address.")
+    }
+    if (!this.codeHash) {
+      throw new Error("Can't create token reference without code hash.")
+    }
     return {
       contract_addr:   this.address,
       token_code_hash: this.codeHash
@@ -218,7 +224,7 @@ export class Snip20 extends Client implements CustomToken {
   decimals:    number  | null = null
   totalSupply: Uint128 | null = null
 
-  async populate () {
+  async populate (): Promise<this> {
     await super.populate()
     const { name, symbol, decimals, total_supply } = await this.getTokenInfo()
     this.tokenName   = name
@@ -332,7 +338,7 @@ export class Snip20 extends Client implements CustomToken {
     return this.execute(msg)
   }
 
-  vk = new ViewingKeyClient(this.agent, this)
+  vk: ViewingKeyClient = new ViewingKeyClient(this.agent, this)
 
 }
 

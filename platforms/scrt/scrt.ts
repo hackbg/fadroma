@@ -30,7 +30,7 @@ export type ScrtGrpcTxResult = SecretJS.Tx
 
 /** Environment settings for Secret Network API
   * that are common between gRPC and Amino implementations. */
-export abstract class ScrtConfig extends EnvConfig {
+export class ScrtConfig extends EnvConfig {
   scrtAgentName:      string|null
     = this.getStr('SCRT_AGENT_NAME',       ()=>null)
   scrtAgentAddress:   string|null

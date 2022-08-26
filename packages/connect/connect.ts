@@ -52,7 +52,7 @@ export class ConnectConfig extends EnvConfig {
 }
 
 /** Add a Chain and its Deployments to the Context. */
-export default async function connect (
+export async function connect (
   context: CommandContext & Partial<{ config: ConnectConfig, chains: Chains }>,
 ): Promise<ConnectContext> {
 
@@ -99,7 +99,7 @@ export default async function connect (
 }
 
 export interface ConnectContext extends CommandContext {
-  config?:     ConnectConfig
+  config?:     Partial<ConnectConfig>
   /** Known blockchains and connection methods. */
   chains?:     Chains
   /** The selected blockhain to connect to. */

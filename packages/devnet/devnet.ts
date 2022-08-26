@@ -224,7 +224,7 @@ export default abstract class Devnet implements Fadroma.DevnetHandle {
       const node = await Devnet.get(version)
       const id   = node.chainId
       const url  = node.url.toString()
-      return new Fadroma.Chain(id, { url, mode, node })
+      return new Chain(id, { url, mode, node })
     }
   }
 }
@@ -624,9 +624,9 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
 //@ts-ignore
 if (fileURLToPath(import.meta.url) === process.argv[1]) {
   runOperation('devnet status', 'show deployment status', [
-    Connect.getChainContext,
-    new Connect.ConnectEvents(console).chainStatus,
-    function optionallyReset ({ cmdArgs = [], chain }: Connect.ChainContext) {
+    Connect.connect,
+    new Connect.ConnectReporter(console).chainStatus,
+    function optionallyReset ({ cmdArgs = [], chain }: Connect.ConnectContext) {
       if (cmdArgs[0] === 'reset') {
         return Devnet.reset({ chain })
       } else {

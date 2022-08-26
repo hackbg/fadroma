@@ -211,116 +211,105 @@ export interface DeployContext extends AgentAndBuildContext {
   /** Currently selected deployment. */
   deployment: Deployment|null
   /** Knows how to upload contracts to a blockchain. */
-  uploader:   Uploader
+  uploader:   Fadroma.Uploader
   /** Specify a template. */
-  template    (source: IntoTemplateSlot):    TemplateSlot
+  template    (specifier: Fadroma.IntoTemplate):    Fadroma.Template
   /** Specify multiple templates. */
-  templates   (sources: IntoTemplateSlot[]): MultiTemplateSlot
+  templates   (specifiers: Fadroma.IntoTemplate[]): Fadroma.Templates
   /** Agent that will instantiate the templates. */
-  creator:    Agent
+  creator:    Fadroma.Agent
   /** Specify a contract. */
-  contract <C extends Client, O extends ClientOpts> (
-    reference: Name|Instance, APIClient?: ClientCtor<C, O>
-  ): ContractSlot<C>
+  contract <C extends Fadroma.Client, O extends Fadroma.ClientOpts> (
+    reference: Fadroma.Name|Fadroma.Instance, APIClient?: Fadroma.ClientCtor<C, O>
+  ): Fadroma.Contract
   /** Specify multiple contracts of the same kind. */
   contracts <C extends Client, O extends ClientOpts> (
     APIClient?: ClientCtor<C, O>
-  ): MultiContractSlot<C>
+  ): Fadroma.Contracts
 }
 
 /** Taking merged Agent and Build context as a basis, populate deploy context. */
 export function getDeployContext (
   context: AgentAndBuildContext & Partial<DeployContext>,
-  agent:   Agent = context.agent
+  agent:   Fadroma.Agent = context.agent
 ): DeployContext {
+
   // Make sure we're operating in a deployment
   context.deployment ??= context.deployments?.active
+
   if (!context.deployment) {
     console.warn('No active deployment. Most commands will fail.')
     console.warn('You can create a deployment using `fadroma-deploy new`')
     console.warn('or select a deployment using `fadroma-deploy select`')
     console.warn('among the ones listed by `fadroma-deploy list`')
   }
+
   // Make sure we have an operating identitiy
+
   context.creator ??= agent
+
   if (!context.creator) {
     throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
   }
+
   // Get configuration
   const config = {
-    ...new Build.BuilderConfig(env, cwd),
-    ...new Connect.ConnectConfig(env, cwd),
-    ...new DeployConfig(env, cwd),
+    ...new Build.BuilderConfig(env, cwd()),
+    ...new Connect.ConnectConfig(env, cwd()),
+    ...new DeployConfig(env, cwd()),
     getDeployConfig()
   }
-  // Setup code uploader
-  const uploader = (!context.isMocknet && !config.reupload)
-      ? CachingFSUploader.fromConfig(agent, config.project)
-      : new FSUploader(agent)
-  // Hooks for template upload
-  const template = (arg: IntoTemplateSlot): TemplateSlot =>
-    new TemplateSlot(arg, context as DeployContext)
-  const templates = (arg: IntoTemplateSlot[]): MultiTemplateSlot =>
-    new MultiTemplateSlot(arg, context as DeployContext)
-  // Hook for contract instantiation and retrieval
-  const contract = <C extends Client> (
-    arg: Name|Instance, _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
-  ): ContractSlot<C> =>
-    new ContractSlot(arg, _Client, context as DeployContext) as ContractSlot<C>
-  const contracts = <C extends Client> (
-    _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
-  ): MultiContractSlot<C> =>
-    new MultiContractSlot(_Client, context as DeployContext) as MultiContractSlot<C>
+
   context = {
+
     ...context,
+
     config,
-    uploader,
-    template, templates,
-    deployment: context.deployment!, creator: agent,
-    contract, contracts
+
+    uploader: (!context.isMocknet && !config.reupload)
+      ? CachingFSUploader.fromConfig(agent, config.project)
+      : new FSUploader(agent),
+
+    template (specifier: Fadroma.IntoTemplate): Fadroma.Template {
+      return new Fadroma.Template(specifier)
+    },
+
+    templates (specifiers: Fadroma.IntoTemplate[]): Fadroma.Templates {
+      return new Fadroma.Templates(specifiers)
+    },
+
+    deployment: context.deployment!,
+
+    creator: agent,
+
+    contract <C extends Fadroma.Contract> (
+      specifier: Fadroma.IntoContract,
+      _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+    ): C {
+      return new Fadroma.Contract(specifier, _Client, context as DeployContext) as C
+    },
+
+    contracts <C extends Fadroma.Contract> (
+      _Client: ClientCtor<C, ClientOpts> = Client as ClientCtor<C, ClientOpts>
+    ): Fadroma.Contracts {
+      return new Fadroma.Contracts(_Client, context as DeployContext) as Fadroma.Contracts
+    }
+
   }
   return context as DeployContext
 }
 
 /** Base class for class-based deploy procedure. Adds progress logging. */
-export class DeployTask<X> extends Komandi.Lazy<X> {
+export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 
-  static get run () {
-    const self = this
-    Object.defineProperty(runDeployTask, 'name', { value: `run ${this.name}` })
-    return runDeployTask
-    async function runDeployTask (context: DeployContext) {
-      return new self(context)
-    }
-  }
+  console = console
 
-  log = Console(this.constructor.name)
-  constructor (public readonly context: DeployContext, cb?: ()=>X) {
-    if (!cb) {
-      throw new Error('No callback passed. Define task roots with super(context, callback)')
-    }
-    let self: this
-    super(()=>{
-      this.log.info()
-      this.log.info('Task     ', this.constructor.name ? bold(this.constructor.name) : '')
-      return cb.bind(self)()
-    })
-    self = this
-  }
-  result?: ()=>X
-  subtask <X> (cb: ()=>X|Promise<X>): Promise<X> {
-    const self = this
-    return new Komandi.Lazy(()=>{
-      this.log.info()
-      this.log.info('Subtask  ', cb.name ? bold(cb.name) : '')
-      return cb.bind(self)()
-    })
-  }
-  contract <C extends Client> (
+  contract <C extends Fadroma.Contract> (
     arg: Name|Instance, _Client?: ClientCtor<C, ClientOpts>
-  ): ContractSlot<C> {
-    return this.context.contract(arg, _Client)
+  ): C {
+    return this.context.contract(arg, _Client) as C
   }
+
 }
 
 /** Directory collecting upload receipts.
@@ -745,8 +734,6 @@ const codeHashForBlob  = (blob: Uint8Array) => Formati.toHex(new Formati.Sha256(
 const codeHashForPath  = (location: string) => codeHashForBlob(FS.readFileSync(location))
 
 export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
-
-export type  Name      = string
 
 if (
   //@ts-ignore

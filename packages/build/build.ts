@@ -38,29 +38,29 @@ const console = Console('Fadroma Build')
 
 export class BuilderConfig extends EnvConfig {
   /** Project root. Defaults to current working directory. */
-  project:    string =
-    this.getStr ('FADROMA_PROJECT',          ()=>this.cwd)
+  project:    string
+    = this.getStr ('FADROMA_PROJECT',          ()=>this.cwd)
   /** Whether to bypass Docker and use the toolchain from the environment. */
-  buildRaw:   boolean =
-    this.getBool('FADROMA_BUILD_RAW',        ()=>false)
+  buildRaw:   boolean
+    = this.getBool('FADROMA_BUILD_RAW',        ()=>false)
   /** Whether to ignore existing build artifacts and rebuild contracts. */
-  rebuild:    boolean =
-    this.getBool('FADROMA_REBUILD',          ()=>false)
+  rebuild:    boolean
+    = this.getBool('FADROMA_REBUILD',          ()=>false)
   /** Whether not to run `git fetch` during build. */
-  noFetch:    boolean =
-    this.getBool('FADROMA_NO_FETCH',         ()=>false)
+  noFetch:    boolean
+    = this.getBool('FADROMA_NO_FETCH',         ()=>false)
   /** Which version of the Rust toolchain to use, e.g. `1.59.0` */
-  toolchain:  string =
-    this.getStr ('FADROMA_RUST',             ()=>'')
+  toolchain:  string
+    = this.getStr ('FADROMA_RUST',             ()=>'')
   /** Docker image to use for dockerized builds. */
-  image:      string =
-    this.getStr ('FADROMA_BUILD_SCRIPT',     ()=>LocalBuilder.script)
+  image:      string
+    = this.getStr ('FADROMA_BUILD_SCRIPT',     ()=>LocalBuilder.script)
   /** Dockerfile to build the build image if not downloadable. */
-  dockerfile: string =
-    this.getStr ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image)
+  dockerfile: string
+    = this.getStr ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image)
   /** Script that runs the actual build, e.g. build.impl.mjs */
-  script:     string =
-    this.getStr ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile)
+  script:     string
+    = this.getStr ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile)
 }
 
 /** Get a builder based on the builder config. */

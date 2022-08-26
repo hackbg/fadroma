@@ -392,22 +392,22 @@ export interface Spectator {
   query <U>     (contract: Partial<Contract>, msg: Message): Promise<U>
 
   /** Get the code id of a smart contract. */
-  getCodeId     (address: Address):                          Promise<string>
+  getCodeId     (address: Address):                      Promise<string>
 
   /** Get the label of a smart contract. */
-  getLabel      (address: Address):                          Promise<string>
+  getLabel      (address: Address):                      Promise<string>
 
   /** Get the code hash of a smart contract. */
-  getHash       (addressOrCodeId: Address|number):           Promise<string>
+  getHash       (addressOrCodeId: Address|number):       Promise<string>
 
   /** Get the code hash of a smart contract. */
-  checkHash     (address: Address, codeHash?: CodeHash):     Promise<string>
+  checkHash     (address: Address, codeHash?: CodeHash): Promise<string>
 
   /** Get the current block height. */
-  get height    ():                                          Promise<number>
+  get height    ():                                      Promise<number>
 
   /** Wait for the block height to increment. */
-  get nextBlock ():                                          Promise<number>
+  get nextBlock ():                                      Promise<number>
 
 }
 
@@ -732,7 +732,9 @@ export abstract class Agent implements Executor {
     return Promise.all(configs.map(triple=>this.instantiate(...triple)))
   }
 
-  abstract execute (contract: Contract, msg: Message, opts?: ExecOpts): Promise<void|unknown>
+  abstract execute (
+    contract: Partial<Contract>, msg: Message, opts?: ExecOpts
+  ): Promise<void|unknown>
 
   static Bundle: BundleCtor<Bundle>
 
@@ -997,7 +999,7 @@ export class Contract extends Template {
     }
   }
 
-  constructor (specifier: IntoContract, options: Partial<IContract> = {}) {
+  constructor (specifier: IntoContract, options: Partial<Contract> = {}) {
 
     super(Contract.parse(specifier, options))
 
