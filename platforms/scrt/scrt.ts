@@ -370,10 +370,12 @@ export class ScrtGrpcAgent extends ScrtAgent {
   api:     SecretJS.SecretNetworkClient
 
   get account () {
+    if (!this.address) throw new Error("No address")
     return this.api.query.auth.account({ address: this.address })
   }
 
   get balance () {
+    if (!this.address) throw new Error("No address")
     return this.getBalance(this.defaultDenom, this.address)
   }
 
@@ -383,6 +385,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   }
 
   async send (to: Fadroma.Address, amounts: Fadroma.ICoin[], opts?: any) {
+    if (!this.address) throw new Error("No address")
     return this.api.tx.bank.send({
       fromAddress: this.address,
       toAddress:   to,
@@ -420,6 +423,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
 
   async upload (data: Uint8Array): Promise<Fadroma.Template> {
     type Log = { type: string, key: string }
+    if (!this.address) throw new Error("No address")
     const sender     = this.address
     const args       = {sender, wasmByteCode: data, source: "", builder: ""}
     const gasLimit   = Number(Scrt.defaultFees.upload.amount[0].amount)
@@ -439,6 +443,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   async instantiate <T> (
     template: Fadroma.Template, label: Fadroma.Label, initMsg: T, initFunds = []
   ): Promise<Fadroma.Contract> {
+    if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) throw Errors.AnotherChain()
     if (isNaN(Number(codeId)))     throw Errors.NoCodeId()
@@ -466,6 +471,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   async execute (
     instance: Partial<Fadroma.Contract>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
   ): Promise<ScrtGrpcTxResult> {
+    if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
     if (memo) Warnings.NoMemos()
@@ -508,6 +514,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   }
 
   async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
+    if (!this.address) throw new Error("No address")
     const { account } =
       (await this.api.query.auth.account({ address: this.address, }))
       ?? (()=>{throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`,)})()

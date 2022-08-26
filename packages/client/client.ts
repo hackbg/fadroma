@@ -578,7 +578,7 @@ export interface DevnetHandle {
 /** Something that can execute mutating transactions. */
 export interface Executor extends Spectator {
   /** The address from which transactions are signed and sent. */
-  address:         Address
+  address?:        Address
   /** Default fee maximums for send, upload, init, and execute. */
   fees?:           AgentFees
   /** Send native tokens to 1 recipient. */
@@ -664,13 +664,13 @@ export abstract class Agent implements Executor {
   }
 
   /** The address of this agent. */
-  address: Address
+  address?: Address
 
   /** The friendly name of the agent. */
-  name?:   string
+  name?:    string
 
   /** Default transaction fees to use for interacting with the chain. */
-  fees?:   AgentFees
+  fees?:    AgentFees
 
   /** The default denomination in which the agent operates. */
   get defaultDenom () { return this.chain.defaultDenom }
@@ -703,8 +703,8 @@ export abstract class Agent implements Executor {
     return this.chain.checkHash(address, codeHash)
   }
 
-  getClient <C extends Client, O extends Partial<Contract>> (
-    _Client: ClientCtor<C, O>   = Client as ClientCtor<C, O>,
+  getContract <C extends Contract, O extends Partial<Contract>> (
+    _Client: ContractCtor<C, O> = Contract as ContractCtor<C, O>,
     arg:     Address|Partial<O> = {},
     hash?:   CodeHash
   ): C {
@@ -836,7 +836,7 @@ export abstract class Bundle implements Executor {
 
   async instantiate (
     template: Template, label: Label, msg: Message, funds = []
-  ): Promise<Instance> {
+  ): Promise<Contract> {
     const init = {
       sender:   this.address,
       codeId:   String(template.codeId),
@@ -851,14 +851,17 @@ export abstract class Bundle implements Executor {
     return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
   }
 
-  async instantiateMany (configs: [Template, Label, Message][]): Promise<Instance[]> {
+  async instantiateMany (configs: [Template, Label, Message][]): Promise<Contract[]> {
     return await Promise.all(configs.map(([template, label, initMsg])=>
       this.instantiate(template, label, initMsg)
     ))
   }
 
-  //@ts-ignore
-  async execute (instance: Instance, msg: Message, { send }: ExecOpts = {}): Promise<this> {
+  async execute (
+    instance: Partial<Contract>,
+    msg:      Message,
+    { send }: ExecOpts = {}
+  ): Promise<this> {
     this.add({
       exec: {
         sender:   this.address,

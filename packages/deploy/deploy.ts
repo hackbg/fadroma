@@ -59,7 +59,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Com
     // pre-populated in the context.
     super(name, [
       Build.getBuildContext,
-      Connect.getConnectContext,
+      Connect.connect,
       new Connect.ConnectReporter(console).chainStatus,
       //@ts-ignore
       getDeployContext,
@@ -403,62 +403,59 @@ export class CachingFSUploader extends FSUploader {
   constructor (readonly agent: Agent, readonly cache: Uploads) {
     super(agent)
   }
-  protected getUploadReceiptPath (artifact: Artifact): string {
-    const receiptName = `${this.getUploadReceiptName(artifact)}`
+  protected getUploadReceiptPath (template: Fadroma.Template): string {
+    const receiptName = `${this.getUploadReceiptName(template)}`
     const receiptPath = this.cache.resolve(receiptName)
     return receiptPath
   }
-  protected getUploadReceiptName (artifact: Artifact): string {
-    return `${$(artifact.url!).name}.json`
+  protected getUploadReceiptName (template: Fadroma.Template): string {
+    return `${$(template.artifact!).name}.json`
   }
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (artifact: Template): Promise<Template> {
-    const name    = this.getUploadReceiptName(artifact)
+  async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
+    const name    = this.getUploadReceiptName(template)
     const receipt = this.cache.at(name).as(UploadReceipt)
     if (receipt.exists()) {
       console.info('Reuse    ', bold(this.cache.at(name).shortPath))
       return receipt.toTemplate()
     }
-    const data = $(artifact.url!).as(Kabinet.BinaryFile).load()
-    const template = await this.agent.upload(data)
+    const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
+    template = new Fadroma.Template(template, await this.agent.upload(data))
     receipt.save(template)
     return template
   }
-  async uploadMany (artifacts: Fadroma.Template[]): Promise<Fadroma.Template[]> {
-    const templates:         Fadroma.Template[] = []
+  async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
+    const outputs:           Fadroma.Template[] = []
     const artifactsToUpload: Fadroma.Template[] = []
-    for (const i in artifacts) {
-      const artifact = artifacts[i]
-      this.ensureCodeHash(artifact)
-      const blobName     = $(artifact.url!).name
-      const receiptPath  = this.getUploadReceiptPath(artifact)
+    for (const i in inputs) {
+      const input = inputs[i]
+      this.ensureCodeHash(input)
+      const blobName     = $(input.artifact!).name
+      const receiptPath  = this.getUploadReceiptPath(input)
       const relativePath = $(receiptPath).shortPath
       if (!$(receiptPath).exists()) {
-        artifactsToUpload[i] = artifact
+        artifactsToUpload[i] = input
       } else {
         const receiptFile = $(receiptPath).as(Kabinet.JSONFile) as Kabinet.JSONFile<IUploadReceipt>
         const receiptData: IUploadReceipt = receiptFile.load()
         const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
         if (!receiptCodeHash) {
           //console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
-          artifactsToUpload[i] = artifact
+          artifactsToUpload[i] = input
           continue
         }
-        if (receiptCodeHash !== artifact.codeHash) {
+        if (receiptCodeHash !== input.codeHash) {
           console.warn(
             bold(`Different code hash:`), `${relativePath}; reuploading...`
           )
-          artifactsToUpload[i] = artifact
+          artifactsToUpload[i] = input
           continue
         }
         //console.info('✅', 'Exists, not reuploading (same code hash):', bold(relativePath))
-        templates[i] = new Fadroma.Template(
-          artifact,
-          artifact.codeHash,
-          this.chain.id,
-          String(receiptData.codeId),
-          receiptData.transactionHash as string,
-        )
+        outputs[i] = new Fadroma.Template(input, {
+          codeId:   String(receiptData.codeId),
+          uploadTx: receiptData.transactionHash as string
+        })
       }
     }
     if (artifactsToUpload.length > 0) {
@@ -466,14 +463,14 @@ export class CachingFSUploader extends FSUploader {
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const receiptName = this.getUploadReceiptName(artifactsToUpload[i])
-        const receiptFile = $(this.cache, receiptName).as(JSONFile)
+        const receiptFile = $(this.cache, receiptName).as(Kabinet.JSONFile)
         receiptFile.save(uploaded[i])
-        templates[i] = uploaded[i]
+        outputs[i] = uploaded[i]
       }
     } else {
       //console.info('No artifacts need to be uploaded.')
     }
-    return templates
+    return outputs
   }
   /** Warns if a code hash is missing in the Artifact,
     * and mutates the Artifact to set the code hash. */
@@ -500,7 +497,7 @@ export class CachingFSUploader extends FSUploader {
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class Deployments extends Kabinet.YAMLDirectory<DeployReceipt[]> {
+export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
   /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
     * and convert it to a Deployments instance. See: @hackbg/kabinet */
   static fromConfig = (chainId: string, projectRoot: string) =>
@@ -556,11 +553,6 @@ export class Deployments extends Kabinet.YAMLDirectory<DeployReceipt[]> {
   }
 }
 
-/** Each deploy receipt contains, as a minimum, name, address, and codeHash. */
-export interface DeployReceipt extends Instance {
-  name: string
-}
-
 /// # DEPLOYMENT / DEPLOYMENT RECEIPT /////////////////////////////////////////////////////////////
 /** An individual deployment, represented as a multi-document YAML file.
   * Each entry in the file is a Receipt, representing a deployed contract.
@@ -574,28 +566,31 @@ export class Deployment {
   prefix: string = timestamp()
   /** These are the entries contained by the Deployment.
     * They correspond to individual contract instances. */
-  receipts: Record<string, DeployReceipt> = {}
+  receipts: Record<string, Partial<Fadroma.Contract>> = {}
   /** Check if the deployment contains a certain entry. */
   has (name: string): boolean {
     return !!this.receipts[name]
   }
   /** Get the receipt for a contract, containing its address, codeHash, etc. */
-  get (name: string): DeployReceipt|null {
+  get (name: string): Partial<Fadroma.Contract>|null {
     const receipt = this.receipts[name]
     if (!receipt) return null
     receipt.name = name
     return receipt
   }
   expect (
-    name: string, message: string = `${name}: no such contract in deployment`
-  ): DeployReceipt {
+    name:    string,
+    message: string = `${name}: no such contract in deployment`
+  ): Fadroma.Contract {
     const receipt = this.get(name)
     if (receipt) return receipt
     throw new Error(message)
   }
   /** Get a handle to the contract with the specified name. */
-  getClient <C extends Client, O extends ClientOpts> (
-    name: string, $Client: ClientCtor<C, O> = Client as ClientCtor<C, O>, agent = this.agent,
+  getClient <C extends Fadroma.Contract, O extends Fadroma.ClientOpts> (
+    name:    string,
+    $Client: Fadroma.ClientCtor<C, O> = Client as Fadroma.ClientCtor<C, O>,
+    agent:   Fadroma.Agent|undefined = this.agent,
   ): C {
     return new $Client(agent, this.get(name) as O)
   }
@@ -613,7 +608,12 @@ export class Deployment {
     return resolve(this.path, ...fragments)
   }
   /** Instantiate one contract and save its receipt to the deployment. */
-  async init (agent: Agent, template: Template, name: Label, msg: Message): Promise<Instance> {
+  async init (
+    agent:    Fadroma.Agent,
+    template: Fadroma.Template,
+    name:     Fadroma.Label,
+    msg:      Fadroma.Message
+  ): Promise<Fadroma.Contract> {
     const label = addPrefix(this.prefix, name)
     try {
       const instance = await agent.instantiate(template, label, msg)
@@ -626,8 +626,10 @@ export class Deployment {
   }
   /** Instantiate multiple contracts from the same Template with different parameters. */
   async initMany (
-    agent: Agent, template: Template, contracts: DeployArgs[] = []
-  ): Promise<Instance[]> {
+    agent:     Fadroma.Agent,
+    template:  Fadroma.Template,
+    contracts: Fadroma.DeployArgs[] = []
+  ): Promise<Fadroma.Contract[]> {
     // this adds just the template - prefix is added in initVarious
     try {
       return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
@@ -638,8 +640,9 @@ export class Deployment {
   }
   /** Instantiate multiple contracts from different Templates with different parameters. */
   async initVarious (
-    agent: Agent, contracts: DeployArgsTriple[] = []
-  ): Promise<Instance[]> {
+    agent:     Fadroma.Agent,
+    contracts: Fadroma.DeployArgsTriple[] = []
+  ): Promise<Fadroma.Contract[]> {
     // Validate
     for (const index in contracts) {
       const triple = contracts[index]
@@ -651,10 +654,10 @@ export class Deployment {
       }
     }
     // Add prefixes
-    const toInitConfig = ([t, n, m]: DeployArgsTriple)=>[t, addPrefix(this.prefix, n), m]
+    const toInitConfig = ([t, n, m]: Fadroma.DeployArgsTriple)=>[t, addPrefix(this.prefix, n), m]
     const initConfigs = contracts.map(toInitConfig)
     // Deploy
-    const instances = await agent.instantiateMany(initConfigs as [Template, Label, Message][])
+    const instances = await agent.instantiateMany(initConfigs as Fadroma.DeployArgsTriple[])
     // Store receipts
     for (const instance of Object.values(instances)) {
       const name = (instance.label as string).slice(this.prefix.length+1)
@@ -668,7 +671,7 @@ export class Deployment {
     /** Path to the file containing the receipts. */
     public readonly path?:  string,
     /** The default identity to use when interacting with this deployment. */
-    public readonly agent?: Agent,
+    public readonly agent?: Fadroma.Agent,
   ) {
     if (this.path) this.load()
   }
@@ -682,7 +685,7 @@ export class Deployment {
     this.prefix    = basename(path, extname(path))
     // Load the receipt data
     const data     = FS.readFileSync(path, 'utf8')
-    const receipts = YAML.loadAll(data) as DeployReceipt[]
+    const receipts = YAML.loadAll(data) as Fadroma.Contract[]
     for (const receipt of receipts) {
       const [contractName, _version] = receipt.name.split('+')
       this.receipts[contractName] = receipt
@@ -692,7 +695,7 @@ export class Deployment {
   }
   /// ## UPDATING DEPLOYMENT //////////////////////////////////////////////////////////////////////
   /** Chainable. Add entry to deployment, replacing existing receipt. */
-  set (name: string, data: Partial<DeployReceipt> & any): this {
+  set (name: string, data: Partial<Fadroma.Contract> & any): this {
     this.receipts[name] = { name, ...data }
     return this.save()
   }
@@ -708,20 +711,8 @@ export class Deployment {
     let output = ''
     for (let [name, data] of Object.entries(this.receipts)) {
       output += '---\n'
-      data.name ??= name
-      const obj = { ...data }
-      // convert Template to serializable plain object
-      if (obj.template instanceof Template) {
-        obj.template = JSON.parse(JSON.stringify(new Template(
-          obj.template.artifact,
-          obj.template.codeHash,
-          obj.template.chainId,
-          obj.template.codeId,
-          obj.template.uploadTx
-        )))
-      }
-      delete obj.template?.artifact?.source?.workspace?.path
-      output += Kabinet.alignYAML(YAML.dump(obj, { noRefs: true }))
+      data = { ...data, name: data.name ?? name }
+      output += Kabinet.alignYAML(YAML.dump(data, { noRefs: true }))
     }
     // Write the data to disk.
     FS.writeFileSync(path, output)
@@ -768,14 +759,14 @@ if (
     })
   } else {
     Komandi.runOperation('deploy status', 'show deployment status', [
-      Connect.getConnectContext,  new Connect.ConnectReporter(console).chainStatus,
+      Connect.connect, new Connect.ConnectReporter(console).chainStatus,
       getDeployContext, DeployReporter(console).deployment
     ], process.argv.slice(2))
   }
 }
 
 /// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
-export const DeployReporter = ({ info, warn }: Console) => {
+export function DeployReporter ({ info, warn }: Console) {
   return { deployment, receipt, deployFailed, deployManyFailed, deployFailedTemplate }
   function deployment ({ deployment }: { deployment: Deployment }) {
     if (deployment) {
@@ -806,7 +797,7 @@ export const DeployReporter = ({ info, warn }: Console) => {
       warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
   }
-  function deployFailed (e: Error, template: Template, name: Label, msg: Message) {
+  function deployFailed (e: Error, template: Fadroma.Template, name: Fadroma.Label, msg: Fadroma.Message) {
     console.error()
     console.error(`  Deploy of ${bold(name)} failed:`)
     console.error(`    ${e.message}`)
@@ -816,7 +807,7 @@ export const DeployReporter = ({ info, warn }: Console) => {
     console.error(`    ${JSON.stringify(msg)}`)
     console.error()
   }
-  function deployManyFailed (e: Error, template: Template, contracts: DeployArgs[]) {
+  function deployManyFailed (e: Error, template: Fadroma.Template, contracts: Fadroma.DeployArgs[]) {
     console.error()
     console.error(`  Deploy of multiple contracts failed:`)
     console.error(`    ${e.message}`)
@@ -828,7 +819,7 @@ export const DeployReporter = ({ info, warn }: Console) => {
     }
     console.error()
   }
-  function deployFailedTemplate (template?: Template) {
+  function deployFailedTemplate (template?: Fadroma.Template) {
     console.error()
     if (template) {
       console.error(`  Template:   `)

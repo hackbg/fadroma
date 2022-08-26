@@ -189,8 +189,8 @@ const debug = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
 export class MocknetBackend {
   constructor (readonly chainId: string) {}
   codeId  = 0
-  uploads: Record<CodeId, unknown> = {}
-  getCode (codeId: CodeId) {
+  uploads: Record<Fadroma.CodeId, unknown> = {}
+  getCode (codeId: Fadroma.CodeId) {
     const code = this.uploads[codeId]
     if (!code) {
       throw new Error(`No code with id ${codeId}`)
