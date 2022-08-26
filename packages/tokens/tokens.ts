@@ -376,3 +376,112 @@ export function createPermitMsg <Q> (
 ): QueryWithPermit<Q, Snip20Permit> {
   return { with_permit: { query, permit } }
 }
+
+/** Keeps track of real and mock tokens using during stackable deployment procedures. */
+export class TokenRegistry {
+  static E00 = ()               => new Error('Pass a symbol to get a token')
+  static E01 = (symbol: string) => new Error('No token in registry: '+symbol)
+  static E02 = ()               => new Error('Pass a token to register')
+  static E03 = ()               => new Error("Can't register token without symbol")
+  static E04 = (symbol: string) => new Error('Token already in registry: '+symbol)
+  /** Command step: add the token registry to the context.
+    * Registered as plugin in the local DeployCommands instance. */
+  static addToContext = function addTokenRegistryToContext (
+    context,
+    tokenRegistry = new TokenRegistry(context)
+  ) {
+    return { tokenRegistry }
+  }
+  /** Default token config. */
+  static defaultConfig: Snip20InitConfig = { public_total_supply: true, enable_mint: true }
+  /** Command step: Deploy a single Snip20 token.
+    * Exposed below as the "deploy token" command.
+    * Invocation is "pnpm run deploy token $name $symbol $decimals [$admin] [$crate]" */
+  static deployToken = async function deployToken (
+    context:   Context,
+    name:      string =                    context.cmdArgs[0]??'MockToken',
+    symbol:    string =                    context.cmdArgs[1]??'MOCK',
+    decimals:  number =             Number(context.cmdArgs[2]??6),
+    admin:     Fadroma.Address|undefined = context.cmdArgs[3]??context.deployment?.agent?.address,
+    template:  Fadroma.IntoTemplate      = context.cmdArgs[4]??'amm-snip20'
+  ) {
+    const args   = context.cmdArgs.slice(5)
+    const config = structuredClone(this.defaultConfig)
+    if (args.includes('--no-public-total-supply')) delete config.public_total_supply
+    if (args.includes('--no-mint'))     delete config.enable_mint
+    if (args.includes('--can-burn'))    config.enable_burn    = true
+    if (args.includes('--can-deposit')) config.enable_deposit = true
+    if (args.includes('--can-redeem'))  config.enable_redeem  = true
+    const tokenRegistry = new TokenRegistry(context)
+    await this.deployToken(name, symbol, decimals, admin, template)
+    return { tokenRegistry: this }
+  }
+  constructor (
+    /** This contains all the deploy API handles. */
+    public readonly context: Context
+  ) {}
+  /** Every thing can get its own Console. Later replace with structured logging. */
+  log = Console('Token Registry')
+  /** Say that we're deploying a token. */
+  logToken = ({ name, symbol, decimals }) =>
+    this.log.info(`Deploying token ${bold(name)}: ${symbol} (${decimals} decimals)`)
+  /** The collection of token contracts that are known to the deployment. */
+  tokens: Record<string, Snip20> = {}
+  /** Get a token by symbol. */
+  getToken (symbol: string) {
+    if (!symbol)                throw TokenRegistry.E00()
+    if (!(this.tokens[symbol])) throw TokenRegistry.E01(symbol)
+  }
+  /** Add a token to the registry. */
+  addToken (token: Snip20, symbol: string = token.symbol) {
+    if (!token)              throw TokenRegistry.E02()
+    if (!symbol)             throw TokenRegistry.E03()
+    if (this.tokens[symbol]) throw TokenRegistry.E04(symbol)
+    this.tokens[symbol] = token
+    return token
+  }
+  /** Deploy a Snip20 token and add it to the registry. */
+  async deployToken (
+    name,
+    symbol,
+    decimals,
+    admin, 
+    template,
+    config: Snip20InitConfig = TokenRegistry.defaultConfig
+  ): Promise<Snip20> {
+    this.logToken({ name, symbol, decimals })
+    // generate snip20 init message
+    const init  = Snip20.init(name, symbol, decimals, admin, config)
+    // get or create contract with the name (names are internal to deployment)
+    const token = await this.context.contract(name, Snip20).getOrDeploy('amm-snip20', init)
+    // add and return the token
+    return this.addToken(token, symbol)
+  }
+  /** Deploy multiple Snip20 tokens in one transaction and add them to the registry. */
+  async deployTokens (
+    tokens:   Snip20BaseConfig[]        = [],
+    config:   Snip20InitConfig          = TokenRegistry.defaultConfig,
+    template: Fadroma.IntoTemplate      = 'amm-snip20',
+    admin:    Fadroma.Address|undefined = this.context.agent.address,
+  ): Promise<Snip20[]> {
+    tokens.forEach(this.logToken)
+    // to deploy multiple contracts of the same type in 1 tx:
+    const toDeployArgs = ({name, symbol, decimals})=>
+      [name, Snip20.init(name, symbol, decimals, admin, config)] as Fadroma.DeployArgs
+    // first generate all the [name, init message] pairs
+    const inits    = tokens.map(toDeployArgs)
+    // then call `.contracts(optional client class).deployMany(template,[[name,msg],[name,msg]])`
+    const deployed = await this.context.contracts(Snip20).deployMany('amm-snip20', inits)
+    // post-process the thus deployed tokens:
+    for (const i in deployed) {
+      // populate metadata for free since we just created them
+      deployed[i].tokenName = tokens[i].name
+      deployed[i].symbol    = tokens[i].symbol
+      deployed[i].decimals  = tokens[i].decimals
+      // add to registry
+      this.addToken(deployed[i], tokens[i].symbol)
+    }
+    // return array of `API.Snip20` handles corresponding to input `TokenConfig`s.
+    return deployed
+  }
+}
