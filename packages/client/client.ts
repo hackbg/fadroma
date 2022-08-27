@@ -26,7 +26,7 @@ export function override (
 
 /** An object that allows its meaningful properties to be overridden. */
 export class Overridable {
-  constructor (options: object = {}) {
+  override (options: object = {}) {
     override(true, this, options)
   }
   /** Return copy of self with overridden properties. */
@@ -62,26 +62,27 @@ export abstract class Source extends Overridable implements Partial<Source> {
   }
 
   constructor (
-    specifier: IntoSource = {},
+    specifier: IntoSource      = {},
     options:   Partial<Source> = {}
   ) {
-    super(Source.parse(specifier, options))
+    super()
+    this.override(Source.parse(specifier, options))
   }
 
   /** URL to local or remote Git repository containing the source code. */
-  repo?:    string|URL
+  repo?:    string|URL     = undefined
 
   /** Commit hash of source commit. Points to last commit if building from HEAD. */
-  commit?:  string
+  commit?:  string         = undefined
 
   /** Git ref (branch or tag) pointing to source commit. */
-  ref?:     string
+  ref?:     string         = undefined
 
   /** Name of crate. Used to find contract crate in workspace repos. */
-  crate?:   string
+  crate?:   string         = undefined
 
   /** Builder implementation that produces a Template from the Source. */
-  builder?: string|Builder
+  builder?: string|Builder = undefined
 
   /** Compile the source using the selected builder. */
   build (builder: typeof this.builder = this.builder): Promise<Template> {
@@ -195,30 +196,31 @@ export class Template extends Source {
   }
 
   constructor (
-    specifier: IntoTemplate = {},
+    specifier: IntoTemplate      = {},
     options:   Partial<Template> = {},
     public readonly context?: UploadInitContext
   ) {
-    super(Template.parse(specifier, options))
+    super()
+    this.override(Template.parse(specifier, options))
   }
 
   /** URL to the compiled code. */
-  artifact?:  string|URL
+  artifact?:  string|URL      = undefined
 
   /** Code hash ensuring immutability of the compiled code. */
-  codeHash?:  CodeHash
+  codeHash?:  CodeHash        = undefined
 
   /** Object containing upload logic. */
-  uploader?:  string|Uploader
+  uploader?:  string|Uploader = undefined
 
   /** ID of chain to which this template is uploaded. */
-  chainId?:   ChainId
+  chainId?:   ChainId         = undefined
 
   /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:    CodeId
+  codeId?:    CodeId          = undefined
 
   /** Hash of transaction that performed the upload. */
-  uploadTx?:  TxHash
+  uploadTx?:  TxHash          = undefined
 
   /** Upload source code to a chain. */
   upload (uploader: string|Uploader|undefined = this.uploader): Promise<Template> {
@@ -757,26 +759,21 @@ export const Uploaders: Record<string, Uploader> = {}
 
 /** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
   * binding the `Template` to a particular `chainId` and `codeId`. */
-export abstract class Uploader implements IUploader {
+export abstract class Uploader {
   constructor (public agent: Agent) {}
   get chain () { return this.agent.chain }
   abstract upload     (template: Template):   Promise<Template>
   abstract uploadMany (template: Template[]): Promise<Template[]>
 }
 
-export type IntoUploader = string|UploaderCtor|Partial<IUploader>
+export type IntoUploader = string|UploaderCtor|Partial<Uploader>
 
 export interface UploaderCtor {
-  new (options?: Partial<IUploader>): Uploader 
-}
-
-export interface IUploader {
-  upload (template: Template): Promise<Template>
-  [name: string]: any
+  new (options?: IntoUploader): Uploader 
 }
 
 /** A transaction hash, uniquely identifying an executed transaction on a chain. */
-export type TxHash     = string
+export type TxHash = string
 
 export type IntoContract = Name|Partial<Contract>
 
@@ -850,6 +847,18 @@ export class Contract extends Template {
   agent?:   Executor                = undefined
 
   initTx?:  TxHash                  = undefined
+
+  /** Address of the contract on the chain. */
+  address?: Address                 = undefined
+
+  /** Label of the contract on the chain. */
+  label?:   string                  = undefined
+
+  /** Default fee for all contract transactions. */
+  fee?:     IFee                    = undefined
+
+  /** Default fee for specific transactions. */
+  fees:     Record<string, IFee>    = {}
 
   async deploy (
     specifier: IntoTemplate,
@@ -937,12 +946,6 @@ export class Contract extends Template {
   /** The Chain on which this contract exists. */
   get chain () { return this.agent?.chain }
 
-  /** Address of the contract on the chain. */
-  address?: Address
-
-  /** Label of the contract on the chain. */
-  label?: string
-
   async fetchLabel (expected?: CodeHash): Promise<this> {
     this.assertOperational()
     const label = await this.agent!.getLabel(this.address!)
@@ -988,12 +991,6 @@ export class Contract extends Template {
     this.assertOperational()
     return await this.agent!.query(this, msg)
   }
-
-  /** Default fee for all contract transactions. */
-  fee?: IFee
-
-  /** Default fee for specific transactions. */
-  fees: Record<string, IFee> = {}
 
   /** Get the recommended fee for a specific transaction. */
   getFee (msg?: string|Record<string, unknown>): IFee|undefined {
@@ -1219,12 +1216,10 @@ export abstract class Bundle implements Executor {
 
   get balance () {
     throw new Error("don't query inside bundle")
-    return Promise.resolve('0')
   }
 
   async getBalance (denom: string) {
     throw new Error("can't get balance in bundle")
-    return Promise.resolve(denom)
   }
 
   get height (): Promise<number> {
@@ -1308,7 +1303,8 @@ export abstract class Bundle implements Executor {
   }
 
   getContract <C extends Contract, O extends Partial<Contract>> (
-    Client: ContractCtor<C, O>, arg: Address|O
+    Contract: ContractCtor<C, O>, 
+    arg:      Address|O
   ): C {
     return new Contract(arg, { agent: this as Executor })
   }
@@ -1347,8 +1343,9 @@ export abstract class Bundle implements Executor {
     }
   }
 
-  assertCanSubmit () {
+  assertCanSubmit (): true {
     if (this.msgs.length < 1) throw new Error('Trying to submit bundle with no messages')
+    return true
   }
 
   /** Broadcast a bundle to the chain. */

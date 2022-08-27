@@ -2,7 +2,7 @@
 
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
-import assert, { ok, equal, deepEqual } from 'assert'
+import assert, { ok, equal, deepEqual, throws, rejects } from 'assert'
 ```
 
 ## Chain, Agent, Client
@@ -117,8 +117,63 @@ assert.ok(await agent.query())
 * **Bundling** transactions:
 
 ```typescript
-import { Bundle } from '.'
+import { Bundle, Contract } from '.'
 let bundle: Bundle
+class TestBundle extends Bundle {
+  async submit () { return 'submitted' }
+  async save   () { return 'saved' }
+}
+```
+
+```typescript
+equal(await new TestBundle().wrap(async()=>{}), 'submitted')
+equal(await new TestBundle().wrap(async()=>{}, undefined, true), 'saved')
+```
+
+```typescript
+bundle = new Bundle({ chain: {}, checkHash () { return 'hash' } })
+ok(bundle.getContract(Contract, '') instanceof Contract)
+rejects(()=>bundle.query())
+rejects(()=>bundle.upload())
+rejects(()=>bundle.uploadMany())
+rejects(()=>bundle.sendMany())
+rejects(()=>bundle.send())
+rejects(()=>bundle.getBalance())
+throws(()=>bundle.height)
+throws(()=>bundle.nextBlock)
+throws(()=>bundle.balance)
+equal(await bundle.execute({}), bundle)
+equal(bundle.id, 1)
+ok(await bundle.instantiateMany([]))
+ok(await bundle.instantiateMany([[{}]]))
+ok(await bundle.instantiate({}))
+equal(await bundle.checkHash(), 'hash')
+```
+
+```typescript
+bundle = new TestBundle()
+deepEqual(bundle.msgs, [])
+equal(bundle.id, 0)
+bundle.add(null)
+deepEqual(bundle.msgs, [null])
+equal(bundle.id, 1)
+```
+
+```typescript
+bundle = new Bundle()
+throws(()=>bundle.assertCanSubmit())
+bundle.msgs.push(null)
+ok(bundle.assertCanSubmit())
+```
+
+```typescript
+bundle = new TestBundle()
+equal(await bundle.run(""),       "submitted")
+equal(await bundle.run("", true), "saved")
+equal(bundle.depth, 0)
+bundle = bundle.bundle()
+equal(bundle.depth, 1)
+equal(await bundle.run(), null)
 ```
 
 ```typescript
@@ -133,9 +188,51 @@ await agent.instantiateMany([])
 await agent.instantiateMany([], 'prefix')
 ```
 
-### Client
+### Template
 
 ```typescript
+import { Template } from '.'
+let template: Template
+deepEqual(new Template(), {
+ artifact: undefined,
+ builder:  undefined,
+ chainId:  undefined,
+ codeHash: undefined,
+ codeId:   undefined,
+ commit:   undefined,
+ context:  undefined,
+ crate:    undefined,
+ ref:      undefined,
+ repo:     undefined,
+ uploadTx: undefined,
+ uploader: undefined
+})
+equal(new Template('crate').crate,     'crate')
+equal(new Template('crate@ref').crate, 'crate')
+equal(new Template('crate@ref').ref,   'ref')
+const url = new URL('file:///tmp/artifact.wasm')
+equal(new Template(url).artifact, url)
+```
+
+## `Template`: Contract templates
+
+### Template errors
+
+Template errors inherit from **TemplateError** and are defined as its static properties.
+
+```typescript
+import { TemplateError } from '.'
+for (const kind of Object.keys(TemplateError)) {
+  ok(new TemplateError[kind] instanceof TemplateError)
+}
+```
+
+## `Templates`: Uploading multiple templates
+
+## `Contract`: Contract clients
+
+```typescript
+import { Contract, Contracts } from '.'
 let client: Client
 ```
 
@@ -155,3 +252,22 @@ ok(client)
 * `client.withFee(fee: IFee)` allows the caller to override the default fees.
   Calling it returns a new instance of the Client, which talks to the same contract
   but executes all transactions with the specified custom fee.
+
+### Contract errors
+
+Contract errors inherit from **ContractError** and are defined as its static properties.
+
+```typescript
+import { ContractError } from '.'
+for (const kind of Object.keys(ContractError)) {
+  ok(new ContractError[kind] instanceof ContractError)
+}
+```
+
+## `Contracts`: managing multiple contracts
+
+```typescript
+import { Contracts } from '.'
+ok(new Contracts(Contract, { creator: {}, deployment: {} }))
+ok(await new Contracts(Contract, { creator: {}, deployment: {} }).deployMany())
+```
