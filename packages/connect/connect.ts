@@ -31,7 +31,7 @@ export class ConnectConsole extends CustomConsole {
     return null
   }
 
-  selectedChain ({ chain }: ConnectConfig) {
+  selectedChain ({ chain }: { chain?: string }) {
     this.log()
     if (chain) {
       this.info('Selected chain:')
@@ -41,7 +41,10 @@ export class ConnectConsole extends CustomConsole {
     }
   }
 
-  chainStatus ({ chain, deployments }: ConnectContext) {
+  chainStatus ({ chain, deployments }: {
+    chain?: Fadroma.Chain,
+    deployments?: { active?: { prefix: string }, list (): string[] }
+  }) {
     if (!chain) {
       this.info('│ No active chain.')
     } else {
@@ -113,7 +116,7 @@ export async function connect (
 
   // Check that a valid id is passed
   if (!id || !chains[id]) {
-    new ConnectConsole(console).noName(chains)
+    log.noName(chains)
     process.exit(1)
   }
 

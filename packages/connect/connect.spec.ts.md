@@ -111,12 +111,42 @@ for (const Chain of supportedChains) {
 }
 ```
 
-## Connect messages
-
-WIP: Convert all status outputs from connect module to semantic logs.
+## Connect config
 
 ```typescript
-for (const event of Object.values(new Fadroma.ConnectConsole({
+const config = new Fadroma.ConnectConfig({ FADROMA_CHAIN: '' }, '')
+```
+
+## Connect context
+
+```typescript
+let context: Fadroma.ConnectContext
+//context = Fadroma.connect()
+//context = Fadroma.connect({ config: { chain: 'id' } })
+context = Fadroma.connect({ config: { chain: 'id' }, chains: { async id () { return {} } } })
+```
+
+## Connect messages
+
+```typescript
+const log = new Fadroma.ConnectConsole({
   log: () => {}, info: () => {}, warn: () => {}, error: () => {}
-})) event([],[])
+})
+log.knownChains({x:1})
+log.noName({})
+log.noDeploy()
+log.selectedChain({})
+log.selectedChain({ chain: 'x' })
+log.chainStatus({})
+log.chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+})
+log.chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+  deployments: { list () { return [] } }
+})
+log.chainStatus({
+  chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
+  deployments: { list () { return [] }, active: { prefix: 4 } }
+})
 ```
