@@ -3,7 +3,7 @@ import * as Fadroma from '@fadroma/client'
 import * as Formati from '@hackbg/formati'
 
 /** Chain instance containing a local MocknetBackend. */
-export default class Mocknet extends Fadroma.Chain {
+export class Mocknet extends Fadroma.Chain {
   defaultDenom = 'umock'
   constructor (id = 'fadroma-mocknet', options = {}) {
     super(id, { ...options, mode: Fadroma.ChainMode.Mocknet })

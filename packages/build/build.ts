@@ -38,9 +38,7 @@ const bold = Konzola.bold
 
 export class BuildConsole extends Konzola.CustomConsole {
 
-  constructor (console?: Console) {
-    super('Fadroma Build', console)
-  }
+  name = 'Fadroma Build'
 
   buildingFromCargoToml (file: Kabinet.Path) {
     this.info('Building from', bold(file.shortPath))

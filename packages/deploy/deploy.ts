@@ -40,9 +40,7 @@ export { YAML }
 
 export class DeployConsole extends Konzola.CustomConsole {
 
-  constructor (console?: Konzola.Console) {
-    super('Fadroma Deploy', console)
-  }
+  name = 'Fadroma Deploy'
 
   deployment ({ deployment }: { deployment: Deployment }) {
     if (deployment) {

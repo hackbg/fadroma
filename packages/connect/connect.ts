@@ -3,17 +3,15 @@ import { Commands, CommandContext }     from '@hackbg/komandi'
 import { EnvConfig }                    from '@hackbg/konfizi'
 
 import * as Fadroma  from '@fadroma/client'
-import Devnet        from '@fadroma/devnet'
-import Mocknet       from '@fadroma/mocknet'
+import { Devnet }    from '@fadroma/devnet'
+import { Mocknet }   from '@fadroma/mocknet'
 
 import { ScrtGrpc }  from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 
 export class ConnectConsole extends CustomConsole {
 
-  constructor (console?: Console) {
-    super('Fadroma Connect', console)
-  }
+  name = 'Fadroma Connect'
 
   knownChains (knownChains: object) {
     this.log()
