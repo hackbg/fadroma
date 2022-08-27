@@ -785,8 +785,12 @@ export type IntoContract = Name|Partial<Contract>
 export class Contract extends Template {
 
   static parse (specifier: IntoContract, options: IntoContract): Partial<Contract> {
-    if (typeof specifier === 'string' && typeof options === 'string') {
-      return { address: specifier, codeHash: options }
+    if (typeof specifier === 'string') {
+      if (typeof options === 'string') {
+        return { address: specifier, codeHash: options }
+      } else {
+        return { ...options, address: specifier }
+      }
     } else {
       return { ...specifier, ...options }
     }
@@ -795,24 +799,15 @@ export class Contract extends Template {
   constructor (
     specifier: IntoContract,
     options:   Partial<Contract> = {},
-    public readonly context?: UploadInitContext
   ) {
 
     super(Contract.parse(specifier, options))
 
-    // Support the `new Contract(agent, address, codeHash)` signature
-    if (typeof options === 'string') {
-      options = { address: options, codeHash: hash }
-    }
-
-    // Populate properties 
-    super(options)
-
     // Warn if missing agent
-    const className = this.constructor.name
-    if (!agent) console.warn(
-      `Creating ${className} without Agent. Transactions and queries not possible.`
-    )
+    //const className = this.constructor.name
+    //if (!agent) console.warn(
+      //`Creating ${className} without Agent. Transactions and queries not possible.`
+    //)
 
     //if (!value) throw new ContractError.Empty()
     //if (typeof value === 'string') {
@@ -848,39 +843,26 @@ export class Contract extends Template {
   }
 
   /** Friendly name of the contract. Used for looking it up in the deployment. */
-  name?:   Name
+  name?:    Name                    = undefined
 
-  Client:  ContractCtor<this, any>
+  Client?:  ContractCtor<this, any> = undefined
 
-  agent?:  Executor
+  agent?:   Executor                = undefined
 
-  initTx?: TxHash
-
-  /** Info about the contract that we have so far. */
-  value:   Partial<Contract> = {}
-
-  /** Here the Contract pretends to be a Promise. That way,
-    * a fully populated Contract is available synchronously if possible,
-    * and a ContractSlot can also be awaited to populate itself. */
-  then <Y> (
-    resolved: (c: Y)=>Y,
-    rejected: (e: Error)=>never
-  ): Promise<Y> {
-    if (!(this.value instanceof this.Client)) throw new ContractError.NotFound2()
-    return Promise.resolve(this.value).then(resolved, rejected)
-  }
+  initTx?:  TxHash                  = undefined
 
   async deploy (
     specifier: IntoTemplate,
     initMsg:  Message|(()=>Message|Promise<Message>)
   ): Promise<this> {
+    const self = this
     if (this.context?.task) {
       const value = `deploy ${this.name??'contract'}`
       Object.defineProperty(deployContract, 'name', { value })
-      return this.context.task.subtask(deployContract)
+      return this.context.task.subtask(deployContract.bind(this))
     }
     return await deployContract.call(this)
-    async function deployContract (this: Contract) {
+    async function deployContract (this: typeof self) {
       if (!this.name)               throw new ContractError.NoName()
       if (!this.context)            throw new ContractError.NoContext()
       if (!this.context.creator)    throw new ContractError.NoCreator()
@@ -906,13 +888,14 @@ export class Contract extends Template {
     template: IntoTemplate,
     initMsg:  Message|(()=>Message|Promise<Message>)
   ): Promise<this> {
+    const self = this
     if (this.context?.task) {
       const value = `get or deploy ${this.name??'contract'}`
       Object.defineProperty(getOrDeployContract, 'name', { value })
       return this.context?.task.subtask(getOrDeployContract)
     }
     return await getOrDeployContract.call(this)
-    async function getOrDeployContract (this: Contract) {
+    async function getOrDeployContract (this: typeof self) {
       if (this.address) {
         console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address))
         return this

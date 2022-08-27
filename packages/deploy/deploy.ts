@@ -216,14 +216,16 @@ export function getDeployContext (
       _Client:   Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
         = Fadroma.Contract as Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
     ): C {
-      return new Fadroma.Contract(specifier, _Client, context as DeployContext) as C
+      return new Fadroma.Contract(specifier, _Client)
+        .but({ context: context as Fadroma.UploadInitContext }) as C
     },
 
     contracts <C extends Fadroma.Contract> (
       _Client: Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
         = Fadroma.Contract as Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
     ): Fadroma.Contracts<C> {
-      return new Fadroma.Contracts(_Client, context as DeployContext) as Fadroma.Contracts<C>
+      return new Fadroma.Contracts(_Client)
+        .but({ context: context as DeployContext }) as Fadroma.Contracts<C>
     }
 
   }
@@ -236,7 +238,8 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
   console = console
 
   contract <C extends Fadroma.Contract> (
-    arg: Name|Instance, _Client?: ContractCtor<C, Partial<Fadroma.Contract>>
+    arg:      Fadroma.IntoContract,
+    _Client?: Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
   ): C {
     return this.context.contract(arg, _Client) as C
   }

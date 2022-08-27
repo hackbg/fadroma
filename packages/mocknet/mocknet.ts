@@ -297,7 +297,7 @@ export class MocknetBackend {
         trace(
           `Callback from ${bold(sender)}: instantiated contract`, bold(label),
           'from code id', bold(code_id), 'with hash', bold(callback_code_hash),
-          'at address', bold(instance.address)
+          'at address', bold(instance.address!)
         )
       } else if (execute) {
         const { contract_addr, callback_code_hash, msg, send } = execute
