@@ -729,16 +729,11 @@ export class DockerBuilder extends CachingBuilder {
     }
 
     // Return a sparse array of the resulting artifacts
-    return outputWasms.map(location => {
-      if (location === null) {
-        return null
-      } else {
-        return new Fadroma.Template({
-          artifact: $(location).url,
-          codeHash: this.codeHashForPath(location)
-        })
-      }
-    })
+    return outputWasms.map(location =>
+      (location === null) ? null : new Fadroma.Template({
+        artifact: $(location).url,
+        codeHash: this.codeHashForPath(location)
+      }))
 
   }
 
@@ -750,10 +745,10 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
 
   constructor (name: string = 'build', before = [], after = []) {
     super(name, [getBuildContext, ...before], after) 
-    this.command('one', 'print the status of the current devnet', this.buildOne)
+    this.command('one', 'print the status of the current devnet', BuildCommands.buildOne)
   }
 
-  buildOne = () => {
+  static buildOne = () => {
     const config = { build: new BuilderConfig(process.env as Record<string, string>, process.cwd()) }
     const [buildPath, ...buildArgs] = process.argv.slice(2)
     const buildSpec = $(buildPath)
@@ -766,7 +761,7 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
     }
   }
 
-  buildFromCargoToml = async (
+  static buildFromCargoToml = async (
     cargoToml: CargoTOML,
     workspace: LocalWorkspace = new LocalWorkspace(
       process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
@@ -789,7 +784,7 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
     }
   }
 
-  buildFromBuildScript = async (
+  static buildFromBuildScript = async (
     buildScript: Kabinet.OpaqueFile,
     buildArgs:   string[] = []
   ) => {
@@ -832,7 +827,7 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
     }
   }
 
-  listBuildSets = (buildSets: Record<string, ()=>LocalSource[]>) => {
+  static listBuildSets = (buildSets: Record<string, ()=>LocalSource[]>) => {
     console.log('Available build sets:')
     for (let [name, getSources] of Object.entries(buildSets)) {
       console.log(`\n  ${name}`)
@@ -843,7 +838,7 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
     }
   }
 
-  buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
+  static buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
     const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
     if (cargoToml.exists()) {
       console.info('Building from', bold(cargoToml.shortPath))
@@ -853,7 +848,7 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
     }
   }
 
-  buildFromFile = async (
+  static buildFromFile = async (
     file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
     buildArgs: string[] = []
   ) => {
@@ -866,7 +861,7 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
     }
   }
 
-  printUsage = () => {
+  static printUsage = () => {
     console.log(`
       Usage:
         fadroma-build path/to/crate

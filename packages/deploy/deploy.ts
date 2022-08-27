@@ -39,7 +39,7 @@ export { YAML }
 
 /// # Deploy console ///////////////////////////////////////////////////////////////////////////////
 
-export default class DeployConsole extends CustomConsole {
+export class DeployConsole extends CustomConsole {
 
   constructor (console: Partial<Console> = {}) {
     super('Fadroma Deploy', console)
@@ -265,16 +265,19 @@ export interface IUploadReceipt {
 
 /** Class that convert itself to a Template, from which contracts can be instantiated. */
 export class UploadReceipt extends Kabinet.JSONFile<IUploadReceipt> {
+
   toTemplate (defaultChainId?: string): Fadroma.Template {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
     return new Fadroma.Template({ artifact, codeHash, chainId, codeId, uploadTx })
   }
+
 }
 
 /** Uploads contracts from the local file system. */
 export class FSUploader extends Fadroma.Uploader {
+
   /** Upload an Artifact from the filesystem, returning a Template. */
   async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
     console.info('Upload   ', bold($(template.artifact!).shortPath))
@@ -283,6 +286,7 @@ export class FSUploader extends Fadroma.Uploader {
     await this.agent.nextBlock
     return template
   }
+
   /** Upload multiple Artifacts from the filesystem.
     * TODO: Optionally bundle them (where is max size defined?) */
   async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
@@ -307,11 +311,12 @@ export class FSUploader extends Fadroma.Uploader {
     }
     return outputs
   }
+
   /** Print a warning if the code hash returned by the upload
     * doesn't match the one specified in the Artifact.
     * This means the Artifact is wrong, and may become
     * a hard error in the future. */
-  private checkCodeHash (artifact: Artifact, template: Template) {
+  private checkCodeHash (artifact: Artifact, template: Fadroma.Template) {
     if (template.codeHash !== artifact.codeHash) {
       console.warn(
         `Code hash mismatch from upload in TX ${template.uploadTx}:\n`+
@@ -325,23 +330,28 @@ export class FSUploader extends Fadroma.Uploader {
 /** Uploads contracts from the file system,
   * but only if a receipt does not exist in the chain's uploads directory. */
 export class CachingFSUploader extends FSUploader {
+
   static fromConfig (agent: Fadroma.Agent, projectRoot: string) {
     return new CachingFSUploader(
       agent,
       $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
     )
   }
-  constructor (readonly agent: Agent, readonly cache: Uploads) {
+
+  constructor (readonly agent: Fadroma.Agent, readonly cache: Uploads) {
     super(agent)
   }
+
   protected getUploadReceiptPath (template: Fadroma.Template): string {
     const receiptName = `${this.getUploadReceiptName(template)}`
     const receiptPath = this.cache.resolve(receiptName)
     return receiptPath
   }
+
   protected getUploadReceiptName (template: Fadroma.Template): string {
     return `${$(template.artifact!).name}.json`
   }
+
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
     const name    = this.getUploadReceiptName(template)
@@ -355,6 +365,7 @@ export class CachingFSUploader extends FSUploader {
     receipt.save(template)
     return template
   }
+
   async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
     const outputs:           Fadroma.Template[] = []
     const artifactsToUpload: Fadroma.Template[] = []
@@ -403,6 +414,7 @@ export class CachingFSUploader extends FSUploader {
     }
     return outputs
   }
+
   /** Warns if a code hash is missing in the Artifact,
     * and mutates the Artifact to set the code hash. */
   private ensureCodeHash (artifact: Artifact) {
@@ -420,6 +432,7 @@ export class CachingFSUploader extends FSUploader {
       }
     }
   }
+
 }
 
 /// # DEPLOY RECEIPTS DIRECTORY ///////////////////////////////////////////////////////////////////
@@ -429,12 +442,15 @@ export class CachingFSUploader extends FSUploader {
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
 export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
+
   /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
     * and convert it to a Deployments instance. See: @hackbg/kabinet */
   static fromConfig = (chainId: string, projectRoot: string) =>
     $(projectRoot).in('receipts').in(chainId).in('deployments').as(Deployments)
+
   /** Name of symlink pointing to active deployment, without extension. */
   KEY = '.active'
+
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()) {
     const path = this.at(`${name}.yml`)
@@ -444,6 +460,7 @@ export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
     return path.makeParent().as(Kabinet.YAMLFile).save(undefined)
     return new Deployment(path.path)
   }
+
   /** Make the specified deployment be the active deployment. */
   async select (name: string) {
     const selection = this.at(`${name}.yml`)
@@ -454,10 +471,12 @@ export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
     try { active.delete() } catch (e) {}
     await FS.symlinkSync(selection.path, active.path)
   }
+
   /** Get the contents of the active deployment, or null if there isn't one. */
   get active (): Deployment|null {
     return this.get(this.KEY)
   }
+
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   get (name: string): Deployment|null {
     const path = resolve(this.path, `${name}.yml`)
@@ -466,6 +485,7 @@ export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
     }
     return new Deployment(path)
   }
+
   /** List the deployments in the deployments directory. */
   list () {
     if (!FS.existsSync(this.path)) {
@@ -476,6 +496,7 @@ export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
       .filter(x=>x.endsWith('.yml'))
       .map(x=>basename(x,'.yml'))
   }
+
   /** DEPRECATED: Save some extra data into the deployments directory. */
   save <D> (name: string, data: D) {
     const file = this.at(`${name}.json`).as(Kabinet.JSONFile) as Kabinet.JSONFile<D>
@@ -490,18 +511,23 @@ export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
   * You can deploy contracts with a Deployment using **deployment.init...**
   * and get Clients for interacting with existing contracts using **deployment.get...**. */
 export class Deployment {
+
   /// ## BUSINESS END OF DEPLOYMENT ///////////////////////////////////////////////////////////////
+
   /** This is the unique identifier of the deployment.
     * It's used as a prefix to contract labels
     * (which need to be globally unique). */
   prefix: string = timestamp()
+
   /** These are the entries contained by the Deployment.
     * They correspond to individual contract instances. */
   receipts: Record<string, Partial<Fadroma.Contract>> = {}
+
   /** Check if the deployment contains a certain entry. */
   has (name: string): boolean {
     return !!this.receipts[name]
   }
+
   /** Get the receipt for a contract, containing its address, codeHash, etc. */
   get (name: string): Partial<Fadroma.Contract>|null {
     const receipt = this.receipts[name]
@@ -509,6 +535,7 @@ export class Deployment {
     receipt.name = name
     return receipt
   }
+
   expect (
     name:    string,
     message: string = `${name}: no such contract in deployment`
@@ -517,14 +544,16 @@ export class Deployment {
     if (receipt) return receipt
     throw new Error(message)
   }
+
   /** Get a handle to the contract with the specified name. */
   getClient <C extends Fadroma.Contract, O extends Partial<Fadroma.Contract>> (
     name:    string,
-    $Client: Fadroma.ContractCtor<C, O> = Client as Fadroma.ContractCtor<C, O>,
+    $Client: Fadroma.ContractCtor<C, O> = Contract as Fadroma.ContractCtor<C, O>,
     agent:   Fadroma.Agent|undefined = this.agent,
   ): C {
     return new $Client(agent, this.get(name) as O)
   }
+
   /** Chainable. Add multiple to the deployment, replacing existing. */
   setMany (receipts: Record<string, any>) {
     for (const [name, receipt] of Object.entries(receipts)) {
@@ -532,12 +561,14 @@ export class Deployment {
     }
     return this.save()
   }
+
   /** Resolve a path relative to the deployment directory. */
   resolve (...fragments: Array<string>) {
     // Expect path to be present
     if (!this.path) throw new Error('Deployment: no path to resolve by')
     return resolve(this.path, ...fragments)
   }
+
   /** Instantiate one contract and save its receipt to the deployment. */
   async init (
     agent:    Fadroma.Agent,
@@ -551,10 +582,11 @@ export class Deployment {
       this.set(name, instance)
       return instance
     } catch (e) {
-      DeployReporter(console).deployFailed(e, template, name, msg)
+      log.deployFailed(e, template, name, msg)
       throw e
     }
   }
+
   /** Instantiate multiple contracts from the same Template with different parameters. */
   async initMany (
     agent:     Fadroma.Agent,
@@ -565,15 +597,17 @@ export class Deployment {
     try {
       return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
     } catch (e) {
-      DeployReporter(console).deployManyFailed(e, template, contracts)
+      log.deployManyFailed(e, template, contracts)
       throw e
     }
   }
+
   /** Instantiate multiple contracts from different Templates with different parameters. */
   async initVarious (
     agent:     Fadroma.Agent,
     contracts: Fadroma.DeployArgsTriple[] = []
   ): Promise<Fadroma.Contract[]> {
+
     // Validate
     for (const index in contracts) {
       const triple = contracts[index]
@@ -584,20 +618,26 @@ export class Deployment {
         )
       }
     }
+
     // Add prefixes
     const toInitConfig = ([t, n, m]: Fadroma.DeployArgsTriple)=>[t, addPrefix(this.prefix, n), m]
     const initConfigs = contracts.map(toInitConfig)
+
     // Deploy
     const instances = await agent.instantiateMany(initConfigs as Fadroma.DeployArgsTriple[])
+
     // Store receipts
     for (const instance of Object.values(instances)) {
       const name = (instance.label as string).slice(this.prefix.length+1)
       this.receipts[name] = { name, ...instance}
       this.save()
     }
+
     return Object.values(instances)
   }
+
   /// ## CREATING AND LOADING DEPLOYMENT //////////////////////////////////////////////////////////
+
   constructor (
     /** Path to the file containing the receipts. */
     public readonly path?:  string,
@@ -606,6 +646,7 @@ export class Deployment {
   ) {
     if (this.path) this.load()
   }
+
   /** Load deployment state from YAML file. */
   load (path = this.path) {
     // Expect path to be present
@@ -624,16 +665,20 @@ export class Deployment {
     // TODO: Automatically convert receipts to Client subclasses
     // by means of an identifier shared between the deploy and client libraries
   }
+
   /// ## UPDATING DEPLOYMENT //////////////////////////////////////////////////////////////////////
+
   /** Chainable. Add entry to deployment, replacing existing receipt. */
   set (name: string, data: Partial<Fadroma.Contract> & any): this {
     this.receipts[name] = { name, ...data }
     return this.save()
   }
+
   /** Chainable. Add to deployment, merging into existing receipts. */
   add (name: string, data: any): this {
     return this.set(name, { ...this.receipts[name] || {}, ...data })
   }
+
   /** Chainable: Serialize deployment state to YAML file. */
   save (path = this.path): this {
     // Expect path to be present
@@ -649,6 +694,7 @@ export class Deployment {
     FS.writeFileSync(path, output)
     return this
   }
+
 }
 
 const codeHashForBlob  = (blob: Uint8Array) => Formati.toHex(new Formati.Sha256(blob).digest())
@@ -661,7 +707,8 @@ export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Commands <C> {
+export default class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Commands <C> {
+
   constructor (name: string = 'deploy', before = [], after = []) {
     // Deploy commands are like regular commands but
     // they already have a whole lot of deploy handles
@@ -670,7 +717,6 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Com
       Build.getBuildContext,
       Connect.connect,
       Connect.log.chainStatus,
-      //@ts-ignore
       getDeployContext,
       ...before
     ], after)
@@ -681,6 +727,7 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Com
     this.command('status',  'show the current deployment',     DeployCommands.status)
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
   }
+
   parse (args: string[]) {
     let forceNew = false
     if (args.includes('--new')) {
@@ -707,41 +754,54 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Com
     }
     return parsed
   }
+
+  static expectEnabled = (context: { deployments: Deployments|null }): Deployments => {
+    if (!(context.deployments instanceof Deployments)) {
+      //console.error('context.deployments was not populated')
+      //console.log(context)
+      throw new Error('Deployments were not enabled')
+    }
+    return context.deployments
+  }
+
   /** Add the currently active deployment to the command context. */
-  static get = async function getDeployment (
+  static get = async (
     context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> {
-    const deployments = expectDeployments(context)
+  ): Promise<DeployContext> => {
+    const deployments = this.expectEnabled(context)
     if (!deployments.active) {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }
     context.deployment = deployments.active
     return getDeployContext(context)
   }
+
   /** Create a new deployment and add it to the command context. */
-  static create = async function createDeployment (
+  static create = async (
     context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> {
-    const deployments = expectDeployments(context)
+  ): Promise<DeployContext> => {
+    const deployments = this.expectEnabled(context)
     const [ prefix = context.timestamp ] = context.cmdArgs
     await deployments?.create(prefix)
     await deployments?.select(prefix)
     return await DeployCommands.get(context)
   }
+
   /** Add either the active deployment, or a newly created one, to the command context. */
-  static getOrCreate = async function getOrCreateDeployment (
+  static getOrCreate = async (
     context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> {
-    const deployments = expectDeployments(context)
+  ): Promise<DeployContext> => {
+    const deployments = this.expectEnabled(context)
     if (deployments?.active) {
       return DeployCommands.get(context)
     } else {
       return await DeployCommands.create(context)
     }
   }
+
   /** Print a list of deployments on the selected chain. */
-  static list = async function listDeployments (context: Connect.ConnectContext): Promise<void> {
-    const deployments = expectDeployments(context)
+  static list = async (context: Connect.ConnectContext): Promise<void> => {
+    const deployments = this.expectEnabled(context)
     const { chain } = context
     const list = deployments.list()
     if (list.length > 0) {
@@ -759,11 +819,10 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Com
       console.info(`No deployments on chain`, bold(chain.id))
     }
   }
+
   /** Make a new deployment the active one. */
-  static select = async function selectDeployment (
-    context: Connect.ConnectContext
-  ): Promise<void> {
-    const deployments = expectDeployments(context)
+  static select = async (context: Connect.ConnectContext): Promise<void> => {
+    const deployments = this.expectEnabled(context)
     const { cmdArgs: [id] = [undefined] } = context
     const list = deployments.list()
     if (list.length < 1) {
@@ -782,28 +841,21 @@ export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Com
       console.info(`No selected deployment.`)
     }
   }
+
   /** Print the status of a deployment. */
-  static status = async function showDeployment (
+  static status = async (
     context: Connect.ConnectContext,
     id = context.cmdArgs[0]
-  ): Promise<void> {
-    const deployments = expectDeployments(context)
+  ): Promise<void> => {
+    const deployments = this.expectEnabled(context)
     const deployment  = id ? deployments.get(id) : deployments.active
     if (deployment) {
-      DeployReporter(console).deployment({ deployment })
+      log.deployment({ deployment })
     } else {
       console.info('No selected deployment on chain:', bold(context.chain.id))
     }
   }
-}
 
-const expectDeployments = (context: { deployments: Deployments|null }): Deployments => {
-  if (!(context.deployments instanceof Deployments)) {
-    //console.error('context.deployments was not populated')
-    //console.log(context)
-    throw new Error('Deployments were not enabled')
-  }
-  return context.deployments
 }
 
 if (
@@ -839,8 +891,10 @@ if (
     })
   } else {
     Komandi.runOperation('deploy status', 'show deployment status', [
-      Connect.connect, new Connect.ConnectReporter(console).chainStatus,
-      getDeployContext, DeployReporter(console).deployment
+      Connect.connect,
+      Connect.log.chainStatus,
+      getDeployContext,
+      log.deployment
     ], process.argv.slice(2))
   }
 }
