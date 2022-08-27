@@ -12,7 +12,7 @@ A **Workspace** object points to the root of a project's [Cargo workspace](https
   * [ ] TODO: Test with non-workspace project.
 
 ```typescript
-let workspace: Fadroma.Workspace
+let workspace: Fadroma.LocalWorkspace
 const project = '/tmp/fadroma-test'
 ```
 
@@ -21,8 +21,8 @@ const project = '/tmp/fadroma-test'
 * **workspace.at('ref')**. returns a *new* Workspace with the same path and new ref.
 
 ```typescript
-workspace = new Fadroma.Workspace(project)
-deepEqual(workspace.at('my-branch'), new Fadroma.Workspace(project, 'my-branch'))
+workspace = new Fadroma.LocalWorkspace(project)
+deepEqual(workspace.at('my-branch'), new Fadroma.LocalWorkspace(project, 'my-branch'))
 ```
 
 * If the `.git` directory (represented as **workspace.gitDir**) exists, this allows
@@ -45,7 +45,7 @@ let source: Fadroma.Source
 
 ```typescript
 source = workspace.crate('crate-1')
-ok(source instanceof Fadroma.Source)
+ok(source instanceof Fadroma.LocalSource)
 deepEqual(workspace.crates(['crate-1', 'crate-2'])[0], source)
 ```
 
@@ -58,17 +58,12 @@ You can obtain a **Builder** instance using **getBuilder(config: BuilderConfig)*
 let builder: Fadroma.Builder
 ```
 
-The outputs of builds are called **Artifact**s. They have the following properties:
-  * **artifact.url** points to the canonical location of the artifact.
-  * **artifact.source** points to the **Source** from which this was built.
-  * **artifact.codeHash** is a SHA256 checksum of the artifact, which should correspond
+The outputs of builds are called **artifact**s, and are represented by two properties
+of **Template**:
+  * **template.artifact** points to the canonical location of the artifact.
+  * **template.codeHash** is a SHA256 checksum of the artifact, which should correspond
     to the **template.codeHash** and **instance.codeHash** properties of uploaded and
     instantiated contracts.
-
-```typescript
-import { Artifact } from '@fadroma/client'
-let artifact: Artifact
-```
 
 * **DockerBuilder** (the default) launches the [**build script**](./build.impl.mjs)
   in Docker container provided by [`@hackbg/dokeres`](https://www.npmjs.com/package/@hackbg/dokeres).
@@ -78,10 +73,10 @@ let artifact: Artifact
     * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
 
 ```typescript
-import { Dokeres } from '@hackbg/dokeres'
+import * as Dokeres from '@hackbg/dokeres'
 builder = Fadroma.getBuilder()
 ok(builder instanceof Fadroma.DockerBuilder)
-ok(builder.docker instanceof Dokeres)
+ok(builder.docker instanceof Dokeres.Engine)
 equal(builder.image.name, Fadroma.DockerBuilder.image)
 equal(builder.dockerfile, Fadroma.DockerBuilder.dockerfile)
 ```
@@ -100,7 +95,7 @@ ok(builder instanceof Fadroma.RawBuilder)
 ```typescript
 const builders = [
   Fadroma.getBuilder({
-    docker:     Dokeres.mock(),
+    docker:     Dokeres.Engine.mock(),
     dockerfile: '/path/to/a/Dockerfile',
     image:      'my-custom/build-image:version'
   }),
@@ -134,8 +129,14 @@ for (const builder of builders) {
 for (const builder of builders) {
   const sources = [source, workspace.crate('crate-2')]
   deepEqual(await builder.buildMany(sources), [
-    new Artifact(sources[0], new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'), 'sha256'),
-    new Artifact(sources[1], new URL('file:///path/to/project/artifacts/crate-2@HEAD.wasm'), 'sha256')
+    new Template(sources[0], {
+      artifact: new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'),
+      codeHash: 'sha256'
+    }),
+    new Template(sources[1], {
+      artifact: new URL('file:///path/to/project/artifacts/crate-2@HEAD.wasm'),
+      codeHash: 'sha256'
+    })
   ])
 }
 ```
@@ -154,7 +155,7 @@ equal(typeof Fadroma.getBuilder().caching, 'boolean')
 ```typescript
 console.info('builder')
 builder = new class TestBuilder1 extends Fadroma.Builder {
-  async build (source: Source): Promise<Artifact> {
+  async build (source: Source): Promise<Template> {
     return { location: '', codeHash: '', source }
   }
 }
