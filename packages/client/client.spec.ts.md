@@ -144,7 +144,7 @@ deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agen
 
 ```typescript
 // get a contract client from the agent
-client = agent.getClient()
+client = agent.getContract()
 ok(client)
 ```
 
