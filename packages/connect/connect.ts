@@ -1,8 +1,8 @@
 #!/usr/bin/env ganesha-node
 
-import { CustomConsole, Console, bold }  from '@hackbg/konzola'
-import { Commands, CommandContext } from '@hackbg/komandi'
-import EnvConfig          from '@hackbg/konfizi'
+import { CustomConsole, Console, bold } from '@hackbg/konzola'
+import { Commands, CommandContext }     from '@hackbg/komandi'
+import { EnvConfig }                    from '@hackbg/konfizi'
 
 import * as Fadroma  from '@fadroma/client'
 import Devnet        from '@fadroma/devnet'
@@ -13,7 +13,7 @@ import { ScrtAmino } from '@fadroma/scrt-amino'
 
 export class ConnectConsole extends CustomConsole {
 
-  constructor (console: Partial<Console> = {}) {
+  constructor (console?: Console) {
     super('Fadroma Connect', console)
   }
 

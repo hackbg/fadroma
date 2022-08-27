@@ -429,8 +429,8 @@ export class TokenRegistry extends Map<string, Snip20> {
 
   constructor (
     /** This contains all the deploy API handles. */
-    public readonly context:  TokenRegistryContext,
-    readonly defaultTemplate: Fadroma.IntoTemplate
+    public readonly context:   TokenRegistryContext,
+    readonly defaultTemplate?: Fadroma.IntoTemplate
   ) {
     super()
   }
@@ -454,24 +454,24 @@ export class TokenRegistry extends Map<string, Snip20> {
     name:     string,
     decimals: number,
     admin:    Fadroma.Address,
-    template: Fadroma.Template,
-    config:   Snip20InitConfig = TokenRegistry.defaultConfig
+    template: Fadroma.IntoTemplate = this.defaultTemplate!,
+    config:   Snip20InitConfig     = TokenRegistry.defaultConfig
   ): Promise<Snip20> {
     this.logToken(name, symbol, decimals)
     // generate snip20 init message
     const init  = Snip20.init(name, symbol, decimals, admin, config)
     // get or create contract with the name (names are internal to deployment)
-    const token = await this.context.contract(name, Snip20).getOrDeploy('amm-snip20', init)
+    const token = await this.context.contract(name, Snip20).getOrDeploy(template, init)
     // add and return the token
     return this.add(token, symbol)
   }
 
   /** Deploy multiple Snip20 tokens in one transaction and add them to the registry. */
   async getOrDeployTokens (
-    tokens:   Snip20BaseConfig[]        = [],
-    config:   Snip20InitConfig          = TokenRegistry.defaultConfig,
-    template: Fadroma.IntoTemplate      = 'amm-snip20',
-    admin:    Fadroma.Address           = this.context.agent.address!,
+    tokens:   Snip20BaseConfig[]   = [],
+    config:   Snip20InitConfig     = TokenRegistry.defaultConfig,
+    template: Fadroma.IntoTemplate = this.defaultTemplate!,
+    admin:    Fadroma.Address      = this.context.agent.address!,
   ): Promise<Snip20[]> {
     tokens.forEach(({name, symbol, decimals})=>this.logToken(name, symbol, decimals))
     // to deploy multiple contracts of the same type in 1 tx:
@@ -502,7 +502,6 @@ export class TokenRegistry extends Map<string, Snip20> {
     this.set(symbol, token)
     return token
   }
-
 
   /** Say that we're deploying a token. */
   logToken = (name: string, symbol: string, decimals: number) => this.log.info(

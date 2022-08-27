@@ -34,13 +34,14 @@ export default class Mocknet extends Fadroma.Chain {
 
   /** Agent instance calling its Chain's Mocknet backend. */
   //@ts-ignore
-  static Agent: AgentCtor<MocknetAgent>
+  static Agent: Fadroma.AgentCtor<MocknetAgent>
+
   //@ts-ignore
-  Agent: AgentCtor<MocknetAgent> = Mocknet.Agent
+  Agent: Fadroma.AgentCtor<MocknetAgent> = Mocknet.Agent
 }
 
 //@ts-ignore
-class MocknetAgent extends Agent {
+class MocknetAgent extends Fadroma.Agent {
   get defaultDenom () { return this.chain.defaultDenom }
   static async create (chain: Mocknet, options: Fadroma.AgentOpts) {
     return new MocknetAgent(chain, options)

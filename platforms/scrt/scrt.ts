@@ -21,7 +21,7 @@ import * as Formati  from '@hackbg/formati'
 import * as SecretJS from 'secretjs'
 
 import { randomBytes } from '@hackbg/formati'
-import EnvConfig       from '@hackbg/konfizi'
+import { EnvConfig }   from '@hackbg/konfizi'
 import structuredClone from '@ungap/structured-clone'
 
 /// # CORE SECRET NETWORK DEFINITIONS /////////////////////////////////////////////////////////////

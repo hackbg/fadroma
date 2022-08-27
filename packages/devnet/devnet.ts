@@ -1,10 +1,10 @@
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
 import { Console, bold }                               from '@hackbg/konzola'
-import { Commands }                                    from '@hackbg/komandi'
-import EnvConfig                                       from '@hackbg/konfizi'
+import { EnvConfig }                                   from '@hackbg/konfizi'
 import { freePort, waitPort, Endpoint }                from '@hackbg/portali'
 import { randomHex }                                   from '@hackbg/formati'
 
+import * as Komandi from '@hackbg/komandi'
 import * as Dokeres from '@hackbg/dokeres'
 import * as Fadroma from '@fadroma/client'
 import * as Connect from '@fadroma/connect'
@@ -194,9 +194,9 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
 
   static get (
     kind:     DevnetKind,
-    manager?:  string,
-    chainId?:  string,
-    dokeres?: Dokeres.Dokeres
+    manager?: string,
+    chainId?: string,
+    dokeres?: Dokeres.Engine
   ): Devnet {
     if (manager) {
       return RemoteDevnet.getOrCreate(kind, 'TODO', manager, undefined, chainId, chainId)
@@ -235,7 +235,7 @@ export type DevnetPortMode = 'lcp'|'grpcWeb'
   * (https://www.npmjs.com/package/dockerode) */
 export interface DockerDevnetOpts extends DevnetOpts {
   /** Docker image of the chain's runtime. */
-  image?:       Dokeres.DokeresImage
+  image?:       Dokeres.Image
   /** Init script to launch the devnet. */
   initScript?:  string
   /** Once this string is encountered in the log output
@@ -257,7 +257,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
     'scrt_1.3': 'fadroma/scrt-devnet:1.3',
   }
   static initScriptName = 'devnet-init.mjs'
-  static getOrCreate (kind: DevnetKind, dokeres = new Dokeres.Dokeres()) {
+  static getOrCreate (kind: DevnetKind, dokeres = new Dokeres.Engine()) {
     const portMode    = Devnet.defaultPort[kind]
     const dockerfile  = this.dockerfiles[kind]
     const imageTag    = this.dockerTags[kind]
@@ -274,13 +274,13 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
   }
-  get dokeres (): Dokeres.Dokeres|null {
+  get dokeres (): Dokeres.Engine|null {
     return this.image.dokeres
   }
   /** This should point to the standard production docker image for the network. */
-  image: Dokeres.DokeresImage
+  image: Dokeres.Image
   /** Handle to created devnet container */
-  container: Dokeres.DokeresContainer|null = null
+  container: Dokeres.Container|null = null
   /** Mounted into devnet container in place of default init script
     * in order to add custom genesis accounts with initial balances
     * and store their keys. */
@@ -621,7 +621,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
   }
 }
 
-export default class DevnetCommands extends Commands<CommandContext> {
+export default class DevnetCommands extends Komandi.Commands<Komandi.CommandContext> {
 
   constructor (name: string = 'devnet', before = [], after = []) {
     super(name, [Connect.connect, ...before], after)
@@ -631,8 +631,8 @@ export default class DevnetCommands extends Commands<CommandContext> {
     this.command('reset',  'print the status of the current devnet', this.reset)
   }
 
-  status = ({ chain, deployments }) => {
-    Connect.log.chainStatus({ chain, deployments })
+  status = (context: Connect.ConnectContext) => {
+    Connect.log.chainStatus(context)
   }
 
   reset = ({ chain }: Connect.ConnectContext) => {

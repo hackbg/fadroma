@@ -276,36 +276,8 @@ export class Template extends Source {
     }
   }
 
-  instantiate (agent: Agent, label: string, initMsg: Message): Promise<Contract> {
-    return agent.instantiate(this, label, initMsg)
-  }
-
-  async instantiate (msg: Message, agent: Executor = this.uploader): Promise<Contract> {
-    if (this.context?.task) {
-      const value = `deploy ${this.name??'contract'}`
-      Object.defineProperty(deployContract, 'name', { value })
-      return this.context.task.subtask(deployContract)
-    }
-    return await deployContract.call(this)
-    async function deployContract (this: Template): Promise<Contract> {
-      if (!this.context?.deployment) throw new ContractError.NoDeployment()
-      if (!this.name)  throw new ContractError.NoName()
-      await this.getOrUpload()
-      console.info(
-        'Deploy   ',    bold(this.name!),
-        'from code id', bold(String(this.codeId  ||'(unknown)')),
-        'hash',         bold(String(this.codeHash||'(unknown)'))
-      )
-      const instance = await this.context?.deployment.init(
-        this.context.creator, template, this.name, msg
-      )
-      const client = new this.Client(this.context.creator, instance)
-      console.info(
-        'Deployed ',    bold(this.name!), 'is', bold(client.address),
-        'from code id', bold(String(template.codeId  ||'(unknown)'))
-      )
-      return this
-    }
+  async instantiate (agent: Agent, label: string, initMsg: Message): Promise<Contract> {
+    return await agent.instantiate(this, label, initMsg)
   }
 
 }
@@ -1117,10 +1089,11 @@ export interface ContractLink {
 export type DeployArgs = [Name, Message]
 
 export interface UploadInitContext {
-  creator?:    Agent
+  creator?: Agent
   deployment?: {
     has (name: string): boolean
     get (name: string): Contract
+    init (creator: Agent, template: IntoTemplate, name: Name, message: Message): Promise<Contract>
     initMany (creator: Agent, template: Template, contracts: DeployArgs[]): Promise<Contract[]>
   }
   task?: {

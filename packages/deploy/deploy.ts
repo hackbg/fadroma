@@ -260,7 +260,7 @@ export interface IUploadReceipt {
   originalSize:       number
   transactionHash:    string
   uploadTx?:          string
-  artifact?:          Artifact
+  artifact?:          any
 }
 
 /** Class that convert itself to a Template, from which contracts can be instantiated. */
@@ -557,7 +557,7 @@ export class Deployment {
   /** Get a handle to the contract with the specified name. */
   getClient <C extends Fadroma.Contract, O extends Partial<Fadroma.Contract>> (
     name:    string,
-    $Client: Fadroma.ContractCtor<C, O> = Contract as Fadroma.ContractCtor<C, O>,
+    $Client: Fadroma.ContractCtor<C, O> = Fadroma.Contract as Fadroma.ContractCtor<C, O>,
     agent:   Fadroma.Agent|undefined = this.agent,
   ): C {
     return new $Client(agent, this.get(name) as O)
