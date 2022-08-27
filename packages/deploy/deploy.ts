@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /*
   Fadroma Deployment and Operations System
   Copyright (C) 2022 Hack.bg
@@ -18,10 +16,11 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { CustomConsole, Console, bold, timestamp } from '@hackbg/konzola'
+import * as Konzola from '@hackbg/konzola'
+import { bold, timestamp } from '@hackbg/konzola'
 import * as Formati from '@hackbg/formati'
 import * as Komandi from '@hackbg/komandi'
-import EnvConfig    from '@hackbg/konfizi'
+import * as Konfizi from '@hackbg/konfizi'
 import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
@@ -39,9 +38,9 @@ export { YAML }
 
 /// # Deploy console ///////////////////////////////////////////////////////////////////////////////
 
-export class DeployConsole extends CustomConsole {
+export class DeployConsole extends Konzola.CustomConsole {
 
-  constructor (console: Partial<Console> = {}) {
+  constructor (console?: Konzola.Console) {
     super('Fadroma Deploy', console)
   }
 
@@ -120,7 +119,7 @@ export const log = new DeployConsole(console)
 
 type PriorConfig = (Connect.ConnectConfig & Build.BuilderConfig)
 
-export class DeployConfig extends EnvConfig {
+export class DeployConfig extends Konfizi.EnvConfig {
   /** Whether to always upload contracts, ignoring upload receipts that match. */
   reupload: boolean = this.getBool('FADROMA_REUPLOAD', () => false)
   /** Whether to generate unsigned transactions for manual multisig signing. */
@@ -293,41 +292,39 @@ export class FSUploader extends Fadroma.Uploader {
   /** Upload multiple Artifacts from the filesystem.
     * TODO: Optionally bundle them (where is max size defined?) */
   async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
+
     //console.log('uploadMany', inputs)
     const outputs: Fadroma.Template[] = []
+
     for (const i in inputs) {
       // support "holes" in artifact array
       // (used by caching subclass)
       const input = inputs[i]
-      let template
+      let output
       if (input.artifact) {
         const path = $(input.artifact!)
         const data = path.as(Kabinet.BinaryFile).load()
-        //console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
-        template = input.but(await this.agent.upload(data))
-        //console.info('Uploaded:', bold(path.shortPath))
-        //console.debug(template)
-        this.checkCodeHash(input, template)
+        console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
+        output = input.but(await this.agent.upload(data))
+        if (input.codeHash !== output.codeHash) {
+          // Print a warning if the code hash returned by the upload
+          // doesn't match the one specified in the Artifact.
+          // This means the Artifact is wrong, and may become
+          // a hard error in the future. */
+          console.warn(
+            `Code hash mismatch from upload in TX ${output.uploadTx}:\n`+
+            `   Expected ${input.codeHash} (from ${$(input.artifact!).shortPath})\n`+
+            `   Got      ${output.codeHash} (from code id ${output.codeId} on ${output.chainId})`
+          )
+        }
       }
-      //@ts-ignore
-      outputs[i] = template
+      outputs[i] = output
     }
+
     return outputs
+
   }
 
-  /** Print a warning if the code hash returned by the upload
-    * doesn't match the one specified in the Artifact.
-    * This means the Artifact is wrong, and may become
-    * a hard error in the future. */
-  private checkCodeHash (artifact: Artifact, template: Fadroma.Template) {
-    if (template.codeHash !== artifact.codeHash) {
-      console.warn(
-        `Code hash mismatch from upload in TX ${template.uploadTx}:\n`+
-        `   Expected ${artifact.codeHash} (from ${$(artifact.url!).shortPath})\n`+
-        `   Got      ${template.codeHash} (from codeId#${template.codeId})`
-      )
-    }
-  }
 }
 
 /** Uploads contracts from the file system,
@@ -357,54 +354,79 @@ export class CachingFSUploader extends FSUploader {
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
+
     const name    = this.getUploadReceiptName(template)
     const receipt = this.cache.at(name).as(UploadReceipt)
     if (receipt.exists()) {
       console.info('Reuse    ', bold(this.cache.at(name).shortPath))
       return receipt.toTemplate()
     }
+
     const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
     template = new Fadroma.Template(template, await this.agent.upload(data))
     receipt.save(template)
+
     return template
+
   }
 
   async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
+
     const outputs:           Fadroma.Template[] = []
     const artifactsToUpload: Fadroma.Template[] = []
+
     for (const i in inputs) {
+
       const input = inputs[i]
-      this.ensureCodeHash(input)
+
+      if (!input.codeHash) {
+        const artifact = $(input.artifact!)
+        console.warn('No code hash in artifact', bold(artifact.shortPath))
+        try {
+          const codeHash = Build.codeHashForPath($(input.artifact!).path)
+          Object.assign(artifact, { codeHash })
+          console.warn('Computed code hash:', bold(input.codeHash!))
+        } catch (e) {
+          console.warn('Could not compute code hash:', e.message)
+        }
+      }
+
       const blobName     = $(input.artifact!).name
       const receiptPath  = this.getUploadReceiptPath(input)
       const relativePath = $(receiptPath).shortPath
       if (!$(receiptPath).exists()) {
         artifactsToUpload[i] = input
-      } else {
-        const receiptFile = $(receiptPath).as(Kabinet.JSONFile) as Kabinet.JSONFile<IUploadReceipt>
-        const receiptData: IUploadReceipt = receiptFile.load()
-        const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
-        if (!receiptCodeHash) {
-          //console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
-          artifactsToUpload[i] = input
-          continue
-        }
-        if (receiptCodeHash !== input.codeHash) {
-          console.warn(
-            bold(`Different code hash:`), `${relativePath}; reuploading...`
-          )
-          artifactsToUpload[i] = input
-          continue
-        }
-        //console.info('✅', 'Exists, not reuploading (same code hash):', bold(relativePath))
-        outputs[i] = new Fadroma.Template(input, {
-          codeId:   String(receiptData.codeId),
-          uploadTx: receiptData.transactionHash as string
-        })
+        continue
       }
+
+      const receiptFile = $(receiptPath).as(Kabinet.JSONFile) as Kabinet.JSONFile<IUploadReceipt>
+      const receiptData: IUploadReceipt = receiptFile.load()
+      const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
+      if (!receiptCodeHash) {
+        //console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
+        artifactsToUpload[i] = input
+        continue
+      }
+      if (receiptCodeHash !== input.codeHash) {
+        console.warn(
+          bold(`Different code hash:`), `${relativePath}; reuploading...`
+        )
+        artifactsToUpload[i] = input
+        continue
+      }
+
+      //console.info('✅', 'Exists, not reuploading (same code hash):', bold(relativePath))
+      outputs[i] = new Fadroma.Template(input, {
+        codeId:   String(receiptData.codeId),
+        uploadTx: receiptData.transactionHash as string
+      })
+
     }
+
     if (artifactsToUpload.length > 0) {
+
       const uploaded = await super.uploadMany(artifactsToUpload)
+
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const receiptName = this.getUploadReceiptName(artifactsToUpload[i])
@@ -412,28 +434,13 @@ export class CachingFSUploader extends FSUploader {
         receiptFile.save(uploaded[i])
         outputs[i] = uploaded[i]
       }
+
     } else {
       //console.info('No artifacts need to be uploaded.')
     }
-    return outputs
-  }
 
-  /** Warns if a code hash is missing in the Artifact,
-    * and mutates the Artifact to set the code hash. */
-  private ensureCodeHash (artifact: Artifact) {
-    if (!artifact.codeHash) {
-      console.warn(
-        'No code hash in artifact',
-        bold($(artifact.url!).shortPath)
-      )
-      try {
-        const codeHash = Build.codeHashForPath($(artifact.url!).path)
-        Object.assign(artifact, { codeHash })
-        console.warn('Computed code hash:', bold(artifact.codeHash!))
-      } catch (e) {
-        console.warn('Could not compute code hash:', e.message)
-      }
-    }
+    return outputs
+
   }
 
 }

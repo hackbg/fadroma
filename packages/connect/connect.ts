@@ -1,5 +1,3 @@
-#!/usr/bin/env ganesha-node
-
 import { CustomConsole, Console, bold } from '@hackbg/konzola'
 import { Commands, CommandContext }     from '@hackbg/komandi'
 import { EnvConfig }                    from '@hackbg/konfizi'
