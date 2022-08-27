@@ -7,7 +7,7 @@
 * TODO use `fetch` instead of Node FS API
 
 ```typescript
-import { Console, bold }    from '.'
+import { Console, bold }    from '@hackbg/konzola'
 import $                    from '@hackbg/kabinet'
 import { resolve, dirname } from 'path'
 import { fileURLToPath }    from 'url'
