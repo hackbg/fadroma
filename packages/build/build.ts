@@ -16,7 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Console, bold } from '@hackbg/konzola'
+import { CustomConsole, Console, bold } from '@hackbg/konzola'
 import { toHex, Sha256 } from '@hackbg/formati'
 import EnvConfig         from '@hackbg/konfizi'
 import * as Komandi      from '@hackbg/komandi'
@@ -34,7 +34,55 @@ import { homedir, tmpdir              } from 'os'
 import { pathToFileURL, fileURLToPath } from 'url'
 import { readFileSync, mkdtempSync    } from 'fs'
 
-const console = Console('Fadroma Build')
+export class BuildConsole extends CustomConsole {
+
+  constructor (console: Partial<Console> = {}) {
+    super('Fadroma Build', console)
+  }
+
+  buildingFromCargoToml (file: Kabinet.Path) {
+    this.info('Building from', bold(file.shortPath))
+  }
+
+  buildingFromBuildScript (file: Kabinet.Path) {
+    this.info('Running build script', bold(file.shortPath))
+  }
+
+  buildingFromWorkspace (mounted: Kabinet.Path, ref: string = HEAD) {
+    this.info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
+  }
+
+  buildingOne (source: Fadroma.Source, prebuilt: Fadroma.Template|null, longestCrateName: number) {
+    if (prebuilt) {
+      this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
+    } else {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        this.info('Building', bold(crate), 'from working tree')
+      } else {
+        this.info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
+    }
+  }
+
+  buildingMany (sources: Fadroma.Source[]) {
+    for (const source of sources) {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        this.info('Building', bold(crate), 'from working tree')
+      } else {
+        this.info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
+    }
+    this.info()
+  }
+
+}
+
+const log = new BuildConsole(console)
 
 export class BuilderConfig extends EnvConfig {
   /** Project root. Defaults to current working directory. */
@@ -74,7 +122,7 @@ export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()
 
 /** Base class for class-based deploy procedure. Adds progress logging. */
 export class BuildTask<X> extends Komandi.Task<BuildContext, X> {
-  console = console
+  console = log
 }
 
 /** The nouns and verbs exposed to REPL and Commands. */
@@ -178,7 +226,7 @@ export class DotGit extends Kabinet.Path {
     super(base, ...fragments, '.git')
     if (!this.exists()) {
       // If .git does not exist, it is not possible to build past commits
-      console.warn(bold(this.shortPath), 'does not exist')
+      log.warn(bold(this.shortPath), 'does not exist')
       this.present = false
     } else if (this.isFile()) {
       // If .git is a file, the workspace is contained in a submodule
@@ -190,13 +238,13 @@ export class DotGit extends Kabinet.Path {
         const gitRel  = gitPointer.slice(prefix.length).trim()
         const gitPath = $(this.parent, gitRel).path
         const gitRoot = $(gitPath)
-        //console.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
+        //log.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
         this.path      = gitRoot.path
         this.present   = true
         this.isSubmodule = true
       } else {
         // Otherwise, who knows?
-        console.info(bold(this.shortPath), 'is an unknown file.')
+        log.info(bold(this.shortPath), 'is an unknown file.')
         this.present = false
       }
     } else if (this.isDirectory()) {
@@ -205,7 +253,7 @@ export class DotGit extends Kabinet.Path {
       this.present = true
     } else {
       // Otherwise, who knows?
-      console.warn(bold(this.shortPath), `is not a file or directory`)
+      log.warn(bold(this.shortPath), `is not a file or directory`)
       this.present = false
     }
   }
@@ -543,10 +591,13 @@ export class DockerBuilder extends CachingBuilder {
   ): Promise<(Fadroma.Template|null)[]> {
     // Create output directory as user if it does not exist
     $(outputDir).as(Kabinet.OpaqueDirectory).make()
+
     // Output slots. Indices should correspond to those of the input to buildMany
     const templates:   (Fadroma.Template|null)[] = crates.map(()=>null)
+
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
+
     // Collect cached templates. If any are missing from the cache mark them as buildable.
     for (const [index, crate] of crates) {
       const prebuilt = this.prebuild(outputDir, crate, ref)
@@ -558,10 +609,12 @@ export class DockerBuilder extends CachingBuilder {
         shouldBuild[crate] = index
       }
     }
+
     // If there are no templates to build, this means everything was cached and we're done.
     if (Object.keys(shouldBuild).length === 0) {
       return templates
     }
+
     // Define the mounts and environment variables of the build container
     const buildScript   = `/${basename(this.script)}`
     const safeRef       = sanitize(ref)
@@ -576,6 +629,7 @@ export class DockerBuilder extends CachingBuilder {
       ...(knownHosts.isFile()    ? { [knownHosts.path]:     '/root/.ssh/known_hosts'   } : {}),
       ...(etcKnownHosts.isFile() ? { [etcKnownHosts.path] : '/etc/ssh/ssh_known_hosts' } : {}),
     }
+
     // For fetching from private repos, we need to give the container access to ssh-agent
     if (process.env.SSH_AUTH_SOCK) readonly[process.env.SSH_AUTH_SOCK] = '/ssh_agent_socket'
     const writable = {
@@ -585,6 +639,7 @@ export class DockerBuilder extends CachingBuilder {
       //[`project_cache_${safeRef}`]: `/tmp/target`,
       [`cargo_cache_${safeRef}`]:   `/usr/local/cargo`
     }
+
     // Since Fadroma can be included as a Git submodule, but
     // Cargo doesn't support nested workspaces, Fadroma's
     // workpace root manifest is renamed to _Cargo.toml.
@@ -601,6 +656,7 @@ export class DockerBuilder extends CachingBuilder {
       delete readonly[$(root).path]
       readonly[$(process.env.FADROMA_BUILD_WORKSPACE_MANIFEST).path] = `/src/Cargo.toml`
     }
+
     // Variables used by the build script are prefixed with underscore
     // and variables used by the tools used by the build script are left as is
     const env = {
@@ -619,11 +675,13 @@ export class DockerBuilder extends CachingBuilder {
       SSH_AUTH_SOCK:                '/ssh_agent_socket',
       TERM:                         process.env.TERM,
     }
+
     // Pre-populate the list of expected artifacts.
     const outputWasms: Array<string|null> = [...new Array(crates.length)].map(()=>null)
     for (const [crate, index] of Object.entries(shouldBuild)) {
       outputWasms[index] = $(outputDir, artifactName(crate, safeRef)).path
     }
+
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
     const command = ['node', buildScript, 'phase1', ref, ...cratesToBuild]
@@ -638,6 +696,7 @@ export class DockerBuilder extends CachingBuilder {
         AttachStdin: true,
       }
     }
+
     //console.info('Building with command:', bold(command.join(' ')))
     //console.debug('Building in a container with this configuration:', options)
     // Prepare the log output stream
@@ -645,15 +704,18 @@ export class DockerBuilder extends CachingBuilder {
     const transformLine  = (line:string)=>`[Fadroma Build] ${buildLogPrefix} ${line}`
     const logs = new Dokeres.LineTransformStream(transformLine)
     logs.pipe(process.stdout)
+
     // Run the build container
     const rootName       = sanitize(basename(root))
     const buildName      = `fadroma-build-${rootName}@${ref}`
     const buildContainer = await this.image.run(buildName, options, command, '/usr/bin/env', logs)
     const {Error: err, StatusCode: code} = await buildContainer.wait()
+
     // Throw error if launching the container failed
     if (err) {
       throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
     }
+
     // Throw error if the build failed
     if (code !== 0) {
       const crateList = cratesToBuild.join(' ')
@@ -665,179 +727,152 @@ export class DockerBuilder extends CachingBuilder {
         `[@fadroma/ops/Build] Build of crates: "${crateList}" exited with status ${code}`
       )
     }
+
     // Return a sparse array of the resulting artifacts
     return outputWasms.map(location => {
       if (location === null) {
         return null
       } else {
-        return new Fadroma.Template(undefined, $(location).url, this.codeHashForPath(location))
+        return new Fadroma.Template({
+          artifact: $(location).url,
+          codeHash: this.codeHashForPath(location)
+        })
       }
     })
+
   }
 
 }
 
 type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
 
-export async function buildFromCargoToml (
-  cargoToml: CargoTOML,
-  workspace: LocalWorkspace = new LocalWorkspace(
-    process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
-  )
-) {
-  console.info('Build manifest:', bold(cargoToml.shortPath))
-  const source = workspace.crate((cargoToml.as(Kabinet.TOMLFile).load() as any).package.name)
-  try {
-    const config   = { ...new BuilderConfig(), rebuild: true }
-    const builder  = getBuilder(config)
-    const template = await builder.build(source)
-    const { artifact, codeHash } = template
-    console.info('Built:    ', bold($(artifact!).shortPath))
-    console.info('Code hash:', bold(codeHash!))
-    process.exit(0)
-  } catch (e) {
-    console.error(`Build failed.`)
-    console.error(e)
-    process.exit(5)
-  }
-}
+export default class BuildCommands extends Komandi.Commands<Komandi.CommandContext> {
 
-export async function buildFromBuildScript (
-  buildScript: Kabinet.OpaqueFile,
-  buildArgs:   string[] = []
-) {
-  const buildSetName = buildArgs.join(' ')
-  console.info('Build script:', bold(buildScript.shortPath))
-  console.info('Build set:   ', bold(buildSetName || '(none)'))
-  //@ts-ignore
-  const {default: buildSets} = await import(buildScript.path)
-  if (buildArgs.length > 0) {
-    const buildSet = buildSets[buildSetName]
-    if (!buildSet) {
-      console.error(`No build set ${bold(buildSetName)}.`)
-      listBuildSets(buildSets)
-      process.exit(1)
-    } else if (!(buildSet instanceof Function)) {
-      console.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
-      process.exit(2)
+  constructor (name: string = 'build', before = [], after = []) {
+    super(name, [getBuildContext, ...before], after) 
+    this.command('one', 'print the status of the current devnet', this.buildOne)
+  }
+
+  buildOne = () => {
+    const config = { build: new BuilderConfig(process.env as Record<string, string>, process.cwd()) }
+    const [buildPath, ...buildArgs] = process.argv.slice(2)
+    const buildSpec = $(buildPath)
+    if (buildSpec.isDirectory()) {
+      this.buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
+    } else if (buildSpec.isFile()) {
+      this.buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
     } else {
-      const buildSources = buildSet()
-      if (!(buildSources instanceof Array)) {
-        console.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
-        process.exit(3)
-      }
-      const T0 = + new Date()
-      try {
-        const config = { ...new BuilderConfig(), rebuild: true }
-        await getBuilder(config).buildMany(buildSources)
-        const T1 = + new Date()
-        console.info(`Build complete in ${T1-T0}ms.`)
-        process.exit(0)
-      } catch (e) {
-        console.error(`Build failed.`)
-        console.error(e)
-        process.exit(4)
-      }
-    }
-  } else {
-    console.warn(bold('No build set specified.'))
-    listBuildSets(buildSets)
-  }
-}
-
-export function listBuildSets (buildSets: Record<string, ()=>LocalSource[]>) {
-  console.log('Available build sets:')
-  for (let [name, getSources] of Object.entries(buildSets)) {
-    console.log(`\n  ${name}`)
-    const sources = getSources()
-    for (const source of sources as Array<LocalSource>) {
-      console.log(`    ${bold(source.crate!)} @ ${source.ref}`)
+      this.printUsage()
     }
   }
-}
 
-
-//@ts-ignore
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  const config = { build: new BuilderConfig(process.env as Record<string, string>, process.cwd()) }
-  const [buildPath, ...buildArgs] = process.argv.slice(2)
-  const buildSpec = $(buildPath)
-  if (buildSpec.isDirectory()) {
-    buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
-  } else if (buildSpec.isFile()) {
-    buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
-  } else {
-    printUsage()
-  }
-}
-
-export function printUsage () {
-  console.log(`
-    Usage:
-      fadroma-build path/to/crate
-      fadroma-build path/to/Cargo.toml
-      fadroma-build buildConfig.{js|ts}`)
-  process.exit(6)
-}
-
-export function buildFromDirectory (dir: Kabinet.OpaqueDirectory) {
-  const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
-  if (cargoToml.exists()) {
-    console.info('Building from', bold(cargoToml.shortPath))
-    buildFromCargoToml(cargoToml as CargoTOML)
-  } else {
-    printUsage()
-  }
-}
-
-export function buildFromFile (
-  file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
-  buildArgs: string[] = []
-) {
-  if (file.name === 'Cargo.toml') {
-    BuildReporter(console).CargoToml(file)
-    buildFromCargoToml(file as CargoTOML)
-  } else {
-    BuildReporter(console).BuildScript(file)
-    buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
-  }
-}
-
-/** Messages output by builder. */
-export const BuildReporter = ({ info }: Console) => ({
-  CargoToml (file: Kabinet.Path) {
-    info('Building from', bold(file.shortPath))
-  },
-  BuildScript (file: Kabinet.Path) {
-    info('Running build script', bold(file.shortPath))
-  },
-  BuildOne (source: Fadroma.Source, prebuilt: Fadroma.Template|null, longestCrateName: number) {
-    if (prebuilt) {
-      info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
-    } else {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        info('Building', bold(crate), 'from working tree')
-      } else {
-        info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
-    }
-  },
-  BuildMany (sources: Fadroma.Source[]) {
-    for (const source of sources) {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        info('Building', bold(crate), 'from working tree')
-      } else {
-        info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
-    }
-    info()
-  },
-  Workspace (mounted: Kabinet.Path, ref: string = HEAD) {
-    info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-      `@`, bold(ref)
+  buildFromCargoToml = async (
+    cargoToml: CargoTOML,
+    workspace: LocalWorkspace = new LocalWorkspace(
+      process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
     )
+  ) => {
+    console.info('Build manifest:', bold(cargoToml.shortPath))
+    const source = workspace.crate((cargoToml.as(Kabinet.TOMLFile).load() as any).package.name)
+    try {
+      const config   = { ...new BuilderConfig(), rebuild: true }
+      const builder  = getBuilder(config)
+      const template = await builder.build(source)
+      const { artifact, codeHash } = template
+      console.info('Built:    ', bold($(artifact!).shortPath))
+      console.info('Code hash:', bold(codeHash!))
+      process.exit(0)
+    } catch (e) {
+      console.error(`Build failed.`)
+      console.error(e)
+      process.exit(5)
+    }
   }
-})
+
+  buildFromBuildScript = async (
+    buildScript: Kabinet.OpaqueFile,
+    buildArgs:   string[] = []
+  ) => {
+    const buildSetName = buildArgs.join(' ')
+    console.info('Build script:', bold(buildScript.shortPath))
+    console.info('Build set:   ', bold(buildSetName || '(none)'))
+    //@ts-ignore
+    const {default: buildSets} = await import(buildScript.path)
+    if (buildArgs.length > 0) {
+      const buildSet = buildSets[buildSetName]
+      if (!buildSet) {
+        console.error(`No build set ${bold(buildSetName)}.`)
+        this.listBuildSets(buildSets)
+        process.exit(1)
+      } else if (!(buildSet instanceof Function)) {
+        console.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
+        process.exit(2)
+      } else {
+        const buildSources = buildSet()
+        if (!(buildSources instanceof Array)) {
+          console.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
+          process.exit(3)
+        }
+        const T0 = + new Date()
+        try {
+          const config = { ...new BuilderConfig(), rebuild: true }
+          await getBuilder(config).buildMany(buildSources)
+          const T1 = + new Date()
+          console.info(`Build complete in ${T1-T0}ms.`)
+          process.exit(0)
+        } catch (e) {
+          console.error(`Build failed.`)
+          console.error(e)
+          process.exit(4)
+        }
+      }
+    } else {
+      console.warn(bold('No build set specified.'))
+      this.listBuildSets(buildSets)
+    }
+  }
+
+  listBuildSets = (buildSets: Record<string, ()=>LocalSource[]>) => {
+    console.log('Available build sets:')
+    for (let [name, getSources] of Object.entries(buildSets)) {
+      console.log(`\n  ${name}`)
+      const sources = getSources()
+      for (const source of sources as Array<LocalSource>) {
+        console.log(`    ${bold(source.crate!)} @ ${source.ref}`)
+      }
+    }
+  }
+
+  buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
+    const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
+    if (cargoToml.exists()) {
+      console.info('Building from', bold(cargoToml.shortPath))
+      this.buildFromCargoToml(cargoToml as CargoTOML)
+    } else {
+      this.printUsage()
+    }
+  }
+
+  buildFromFile = async (
+    file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
+    buildArgs: string[] = []
+  ) => {
+    if (file.name === 'Cargo.toml') {
+      log.buildingFromCargoToml(file)
+      this.buildFromCargoToml(file as CargoTOML)
+    } else {
+      log.buildingFromBuildScript(file)
+      this.buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
+    }
+  }
+
+  printUsage = () => {
+    console.log(`
+      Usage:
+        fadroma-build path/to/crate
+        fadroma-build path/to/Cargo.toml
+        fadroma-build buildConfig.{js|ts}`)
+    process.exit(6)
+  }
+
+}

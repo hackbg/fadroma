@@ -1,6 +1,6 @@
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
 import { Console, bold }                               from '@hackbg/konzola'
-import { runOperation }                                from '@hackbg/komandi'
+import { Commands }                                    from '@hackbg/komandi'
 import EnvConfig                                       from '@hackbg/konfizi'
 import { freePort, waitPort, Endpoint }                from '@hackbg/portali'
 import { randomHex }                                   from '@hackbg/formati'
@@ -621,17 +621,30 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
   }
 }
 
-//@ts-ignore
-if (fileURLToPath(import.meta.url) === process.argv[1]) {
-  runOperation('devnet status', 'show deployment status', [
-    Connect.connect,
-    new Connect.ConnectReporter(console).chainStatus,
-    function optionallyReset ({ cmdArgs = [], chain }: Connect.ConnectContext) {
-      if (cmdArgs[0] === 'reset') {
-        return Devnet.reset({ chain })
-      } else {
-        console.info('Pass "reset" to this command to remove this devnet.')
-      }
-    }
-  ], process.argv.slice(2))
+export default class DevnetCommands extends Commands<CommandContext> {
+
+  constructor (name: string = 'devnet', before = [], after = []) {
+    super(name, [Connect.connect, ...before], after)
+    this.command('status', 'print the status of the current devnet', this.status)
+    this.command('start',  'start the devnet container',             this.start)
+    this.command('stop',   'stop the devnet container',              this.stop)
+    this.command('reset',  'print the status of the current devnet', this.reset)
+  }
+
+  status = ({ chain, deployments }) => {
+    Connect.log.chainStatus({ chain, deployments })
+  }
+
+  reset = ({ chain }: Connect.ConnectContext) => {
+    return Devnet.reset({ chain })
+  }
+
+  start = () => {
+    throw 'TODO'
+  }
+
+  stop = () => {
+    throw 'TODO'
+  }
+
 }

@@ -18,7 +18,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { Console, bold, timestamp } from '@hackbg/konzola'
+import { CustomConsole, Console, bold, timestamp } from '@hackbg/konzola'
 import * as Formati from '@hackbg/formati'
 import * as Komandi from '@hackbg/komandi'
 import EnvConfig    from '@hackbg/konfizi'
@@ -37,7 +37,86 @@ import * as FS from 'fs'
 import YAML from 'js-yaml'
 export { YAML }
 
-const console = Console('Fadroma Deploy')
+/// # Deploy console ///////////////////////////////////////////////////////////////////////////////
+
+export default class DeployConsole extends CustomConsole {
+
+  constructor (console: Partial<Console> = {}) {
+    super('Fadroma Deploy', console)
+  }
+
+  deployment ({ deployment }: { deployment: Deployment }) {
+    if (deployment) {
+      const { receipts, prefix } = deployment
+      let contracts: string|number = Object.values(receipts).length
+      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+      const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
+      this.info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
+      const count = Object.values(receipts).length
+      if (count > 0) {
+        for (const name of Object.keys(receipts)) {
+          this.receipt(name, receipts[name], len)
+        }
+      } else {
+        this.info('│ This deployment is empty.')
+      }
+    } else {
+      this.info('│ There is no selected deployment.')
+    }
+  }
+
+  receipt (name: string, receipt: any, len = 35) {
+    name = bold(name.padEnd(len))
+    if (receipt.address) {
+      const address = `${receipt.address}`.padStart(45)
+      const codeId  = String(receipt.codeId||'n/a').padStart(6)
+      this.info('│', name, address, codeId)
+    } else {
+      this.warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+    }
+  }
+
+  deployFailed (e: Error, template: Fadroma.Template, name: Fadroma.Label, msg: Fadroma.Message) {
+    console.error()
+    console.error(`  Deploy of ${bold(name)} failed:`)
+    console.error(`    ${e.message}`)
+    this.deployFailedTemplate(template)
+    console.error()
+    console.error(`  Init message: `)
+    console.error(`    ${JSON.stringify(msg)}`)
+    console.error()
+  }
+
+  deployManyFailed (e: Error, template: Fadroma.Template, contracts: Fadroma.DeployArgs[]) {
+    console.error()
+    console.error(`  Deploy of multiple contracts failed:`)
+    console.error(`    ${e.message}`)
+    this.deployFailedTemplate(template)
+    console.error()
+    console.error(`  Configs: `)
+    for (const [name, init] of contracts) {
+      console.error(`    ${bold(name)}: `, JSON.stringify(init))
+    }
+    console.error()
+  }
+
+  deployFailedTemplate (template?: Fadroma.Template) {
+    console.error()
+    if (template) {
+      console.error(`  Template:   `)
+      console.error(`    Chain ID: `, bold(template.chainId ||''))
+      console.error(`    Code ID:  `, bold(template.codeId  ||''))
+      console.error(`    Code hash:`, bold(template.codeHash||''))
+    } else {
+      console.error(`  No template was providede.`)
+    }
+  }
+
+}
+
+export const log = new DeployConsole(console)
+
+/// # Deploy config ////////////////////////////////////////////////////////////////////////////////
 
 type PriorConfig = (Connect.ConnectConfig & Build.BuilderConfig)
 
@@ -48,157 +127,7 @@ export class DeployConfig extends EnvConfig {
   multisig: boolean = this.getBool('FADROMA_MULTISIG', () => false)
 }
 
-/// # DEPLOY COMMANDS /////////////////////////////////////////////////////////////////////////////
-/** Command runner. Instantiate one in your script then use the
-  * **.command(name, info, ...steps)**. Export it as default and
-  * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Commands <C> {
-  constructor (name: string = 'deploy', before = [], after = []) {
-    // Deploy commands are like regular commands but
-    // they already have a whole lot of deploy handles
-    // pre-populated in the context.
-    super(name, [
-      Build.getBuildContext,
-      Connect.connect,
-      new Connect.ConnectReporter(console).chainStatus,
-      //@ts-ignore
-      getDeployContext,
-      ...before
-    ], after)
-    this.command('list',    'print a list of all deployments', DeployCommands.list)
-    this.command('select',  'select a new active deployment',  DeployCommands.select)
-    //@ts-ignore
-    this.command('new',     'create a new empty deployment',   DeployCommands.create)
-    this.command('status',  'show the current deployment',     DeployCommands.status)
-    this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
-  }
-  parse (args: string[]) {
-    let forceNew = false
-    if (args.includes('--new')) {
-      forceNew = true
-      args = args.filter(x=>x!=='--resume')
-    }
-    let resume = false
-    if (args.includes('--resume')) {
-      resume = true
-      args = args.filter(x=>x!=='--resume')
-    }
-    const parsed = super.parse(args)
-    if (!parsed) return null
-    if (forceNew) {
-      console.warn('--new: Creating new deployment')
-      const toNew = (x: Komandi.Step<any, any>): Komandi.Step<any, any> =>
-        (x === DeployCommands.get || x === DeployCommands.getOrCreate) ? DeployCommands.create : x
-    } else if (resume) {
-      // replace create with get
-      console.warn('--resume: Resuming last deployment')
-      const toResume = (x: Komandi.Step<any, any>): Komandi.Step<any, any> =>
-        (x === DeployCommands.create) ? DeployCommands.get : x
-      parsed[1].steps = parsed[1].steps.map(toResume)
-    }
-    return parsed
-  }
-  /** Add the currently active deployment to the command context. */
-  static get = async function getDeployment (
-    context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> {
-    const deployments = expectDeployments(context)
-    if (!deployments.active) {
-      console.info('No selected deployment on chain:', bold(context.chain.id))
-    }
-    context.deployment = deployments.active
-    return getDeployContext(context)
-  }
-  /** Create a new deployment and add it to the command context. */
-  static create = async function createDeployment (
-    context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> {
-    const deployments = expectDeployments(context)
-    const [ prefix = context.timestamp ] = context.cmdArgs
-    await deployments?.create(prefix)
-    await deployments?.select(prefix)
-    return await DeployCommands.get(context)
-  }
-  /** Add either the active deployment, or a newly created one, to the command context. */
-  static getOrCreate = async function getOrCreateDeployment (
-    context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> {
-    const deployments = expectDeployments(context)
-    if (deployments?.active) {
-      return DeployCommands.get(context)
-    } else {
-      return await DeployCommands.create(context)
-    }
-  }
-  /** Print a list of deployments on the selected chain. */
-  static list = async function listDeployments (context: Connect.ConnectContext): Promise<void> {
-    const deployments = expectDeployments(context)
-    const { chain } = context
-    const list = deployments.list()
-    if (list.length > 0) {
-      console.info(`Deployments on chain ${bold(chain.id)}:`)
-      for (let deployment of list) {
-        if (deployment === deployments.KEY) continue
-        const count = Object.keys(deployments.get(deployment)!.receipts).length
-        if (deployments.active && deployments.active.prefix === deployment) {
-          deployment = `${bold(deployment)} (selected)`
-        }
-        deployment = `${deployment} (${count} contracts)`
-        console.info(` `, deployment)
-      }
-    } else {
-      console.info(`No deployments on chain`, bold(chain.id))
-    }
-  }
-  /** Make a new deployment the active one. */
-  static select = async function selectDeployment (
-    context: Connect.ConnectContext
-  ): Promise<void> {
-    const deployments = expectDeployments(context)
-    const { cmdArgs: [id] = [undefined] } = context
-    const list = deployments.list()
-    if (list.length < 1) {
-      console.info('\nNo deployments. Create one with `deploy new`')
-    }
-    if (id) {
-      console.info(bold(`Selecting deployment:`), id)
-      await deployments.select(id)
-    }
-    if (list.length > 0) {
-      DeployCommands.list(context)
-    }
-    if (deployments.active) {
-      console.info(`Currently selected deployment:`, bold(deployments.active.prefix))
-    } else {
-      console.info(`No selected deployment.`)
-    }
-  }
-  /** Print the status of a deployment. */
-  static status = async function showDeployment (
-    context: Connect.ConnectContext,
-    id = context.cmdArgs[0]
-  ): Promise<void> {
-    const deployments = expectDeployments(context)
-    const deployment  = id ? deployments.get(id) : deployments.active
-    if (deployment) {
-      DeployReporter(console).deployment({ deployment })
-    } else {
-      console.info('No selected deployment on chain:', bold(context.chain.id))
-    }
-  }
-}
-
-const expectDeployments = (context: { deployments: Deployments|null }): Deployments => {
-  if (!(context.deployments instanceof Deployments)) {
-    //console.error('context.deployments was not populated')
-    //console.log(context)
-    throw new Error('Deployments were not enabled')
-  }
-  return context.deployments
-}
-
-
-/// # DEPLOY CONTEXT ///////////////////////////////////////////////////////////////////////////////
+/// # Deploy context ///////////////////////////////////////////////////////////////////////////////
 
 /** TypeScript made me do it! */
 type AgentAndBuildContext = Connect.ConnectContext & Build.BuildContext
@@ -728,6 +657,155 @@ const codeHashForPath  = (location: string) => codeHashForBlob(FS.readFileSync(l
 
 export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 
+/// # DEPLOY COMMANDS /////////////////////////////////////////////////////////////////////////////
+/** Command runner. Instantiate one in your script then use the
+  * **.command(name, info, ...steps)**. Export it as default and
+  * run the script with `npm exec fadroma my-script.ts` for a CLI. */
+export class DeployCommands <C extends AgentAndBuildContext> extends Komandi.Commands <C> {
+  constructor (name: string = 'deploy', before = [], after = []) {
+    // Deploy commands are like regular commands but
+    // they already have a whole lot of deploy handles
+    // pre-populated in the context.
+    super(name, [
+      Build.getBuildContext,
+      Connect.connect,
+      Connect.log.chainStatus,
+      //@ts-ignore
+      getDeployContext,
+      ...before
+    ], after)
+    this.command('list',    'print a list of all deployments', DeployCommands.list)
+    this.command('select',  'select a new active deployment',  DeployCommands.select)
+    //@ts-ignore
+    this.command('new',     'create a new empty deployment',   DeployCommands.create)
+    this.command('status',  'show the current deployment',     DeployCommands.status)
+    this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
+  }
+  parse (args: string[]) {
+    let forceNew = false
+    if (args.includes('--new')) {
+      forceNew = true
+      args = args.filter(x=>x!=='--resume')
+    }
+    let resume = false
+    if (args.includes('--resume')) {
+      resume = true
+      args = args.filter(x=>x!=='--resume')
+    }
+    const parsed = super.parse(args)
+    if (!parsed) return null
+    if (forceNew) {
+      console.warn('--new: Creating new deployment')
+      const toNew = (x: Komandi.Step<any, any>): Komandi.Step<any, any> =>
+        (x === DeployCommands.get || x === DeployCommands.getOrCreate) ? DeployCommands.create : x
+    } else if (resume) {
+      // replace create with get
+      console.warn('--resume: Resuming last deployment')
+      const toResume = (x: Komandi.Step<any, any>): Komandi.Step<any, any> =>
+        (x === DeployCommands.create) ? DeployCommands.get : x
+      parsed[1].steps = parsed[1].steps.map(toResume)
+    }
+    return parsed
+  }
+  /** Add the currently active deployment to the command context. */
+  static get = async function getDeployment (
+    context: AgentAndBuildContext & Partial<DeployContext>
+  ): Promise<DeployContext> {
+    const deployments = expectDeployments(context)
+    if (!deployments.active) {
+      console.info('No selected deployment on chain:', bold(context.chain.id))
+    }
+    context.deployment = deployments.active
+    return getDeployContext(context)
+  }
+  /** Create a new deployment and add it to the command context. */
+  static create = async function createDeployment (
+    context: AgentAndBuildContext & Partial<DeployContext>
+  ): Promise<DeployContext> {
+    const deployments = expectDeployments(context)
+    const [ prefix = context.timestamp ] = context.cmdArgs
+    await deployments?.create(prefix)
+    await deployments?.select(prefix)
+    return await DeployCommands.get(context)
+  }
+  /** Add either the active deployment, or a newly created one, to the command context. */
+  static getOrCreate = async function getOrCreateDeployment (
+    context: AgentAndBuildContext & Partial<DeployContext>
+  ): Promise<DeployContext> {
+    const deployments = expectDeployments(context)
+    if (deployments?.active) {
+      return DeployCommands.get(context)
+    } else {
+      return await DeployCommands.create(context)
+    }
+  }
+  /** Print a list of deployments on the selected chain. */
+  static list = async function listDeployments (context: Connect.ConnectContext): Promise<void> {
+    const deployments = expectDeployments(context)
+    const { chain } = context
+    const list = deployments.list()
+    if (list.length > 0) {
+      console.info(`Deployments on chain ${bold(chain.id)}:`)
+      for (let deployment of list) {
+        if (deployment === deployments.KEY) continue
+        const count = Object.keys(deployments.get(deployment)!.receipts).length
+        if (deployments.active && deployments.active.prefix === deployment) {
+          deployment = `${bold(deployment)} (selected)`
+        }
+        deployment = `${deployment} (${count} contracts)`
+        console.info(` `, deployment)
+      }
+    } else {
+      console.info(`No deployments on chain`, bold(chain.id))
+    }
+  }
+  /** Make a new deployment the active one. */
+  static select = async function selectDeployment (
+    context: Connect.ConnectContext
+  ): Promise<void> {
+    const deployments = expectDeployments(context)
+    const { cmdArgs: [id] = [undefined] } = context
+    const list = deployments.list()
+    if (list.length < 1) {
+      console.info('\nNo deployments. Create one with `deploy new`')
+    }
+    if (id) {
+      console.info(bold(`Selecting deployment:`), id)
+      await deployments.select(id)
+    }
+    if (list.length > 0) {
+      DeployCommands.list(context)
+    }
+    if (deployments.active) {
+      console.info(`Currently selected deployment:`, bold(deployments.active.prefix))
+    } else {
+      console.info(`No selected deployment.`)
+    }
+  }
+  /** Print the status of a deployment. */
+  static status = async function showDeployment (
+    context: Connect.ConnectContext,
+    id = context.cmdArgs[0]
+  ): Promise<void> {
+    const deployments = expectDeployments(context)
+    const deployment  = id ? deployments.get(id) : deployments.active
+    if (deployment) {
+      DeployReporter(console).deployment({ deployment })
+    } else {
+      console.info('No selected deployment on chain:', bold(context.chain.id))
+    }
+  }
+}
+
+const expectDeployments = (context: { deployments: Deployments|null }): Deployments => {
+  if (!(context.deployments instanceof Deployments)) {
+    //console.error('context.deployments was not populated')
+    //console.log(context)
+    throw new Error('Deployments were not enabled')
+  }
+  return context.deployments
+}
+
 if (
   //@ts-ignore
   fileURLToPath(import.meta.url) === process.argv[1]
@@ -764,72 +842,5 @@ if (
       Connect.connect, new Connect.ConnectReporter(console).chainStatus,
       getDeployContext, DeployReporter(console).deployment
     ], process.argv.slice(2))
-  }
-}
-
-/// # RUDIMENTS OF STRUCTURED LOGGING by Meshuggah (now playing) //////////////////////////////////
-export function DeployReporter ({ info, warn }: Console) {
-  return { deployment, receipt, deployFailed, deployManyFailed, deployFailedTemplate }
-  function deployment ({ deployment }: { deployment: Deployment }) {
-    if (deployment) {
-      const { receipts, prefix } = deployment
-      let contracts: string|number = Object.values(receipts).length
-      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
-      info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
-      const count = Object.values(receipts).length
-      if (count > 0) {
-        for (const name of Object.keys(receipts)) {
-          receipt(name, receipts[name], len)
-        }
-      } else {
-        info('│ This deployment is empty.')
-      }
-    } else {
-      info('│ There is no selected deployment.')
-    }
-  }
-  function receipt (name: string, receipt: any, len = 35) {
-    name = bold(name.padEnd(len))
-    if (receipt.address) {
-      const address = `${receipt.address}`.padStart(45)
-      const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      info('│', name, address, codeId)
-    } else {
-      warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
-    }
-  }
-  function deployFailed (e: Error, template: Fadroma.Template, name: Fadroma.Label, msg: Fadroma.Message) {
-    console.error()
-    console.error(`  Deploy of ${bold(name)} failed:`)
-    console.error(`    ${e.message}`)
-    deployFailedTemplate(template)
-    console.error()
-    console.error(`  Init message: `)
-    console.error(`    ${JSON.stringify(msg)}`)
-    console.error()
-  }
-  function deployManyFailed (e: Error, template: Fadroma.Template, contracts: Fadroma.DeployArgs[]) {
-    console.error()
-    console.error(`  Deploy of multiple contracts failed:`)
-    console.error(`    ${e.message}`)
-    deployFailedTemplate(template)
-    console.error()
-    console.error(`  Configs: `)
-    for (const [name, init] of contracts) {
-      console.error(`    ${bold(name)}: `, JSON.stringify(init))
-    }
-    console.error()
-  }
-  function deployFailedTemplate (template?: Fadroma.Template) {
-    console.error()
-    if (template) {
-      console.error(`  Template:   `)
-      console.error(`    Chain ID: `, bold(template.chainId ||''))
-      console.error(`    Code ID:  `, bold(template.codeId  ||''))
-      console.error(`    Code hash:`, bold(template.codeHash||''))
-    } else {
-      console.error(`  No template was providede.`)
-    }
   }
 }
