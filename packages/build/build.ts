@@ -102,13 +102,13 @@ export class BuilderConfig extends Konfizi.EnvConfig {
     = this.getStr ('FADROMA_RUST',             ()=>'')
   /** Docker image to use for dockerized builds. */
   image:      string
-    = this.getStr ('FADROMA_BUILD_SCRIPT',     ()=>LocalBuilder.script)
+    = this.getStr ('FADROMA_BUILD_SCRIPT',     ()=>DockerBuilder.image)
   /** Dockerfile to build the build image if not downloadable. */
   dockerfile: string
-    = this.getStr ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.image)
+    = this.getStr ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.dockerfile)
   /** Script that runs the actual build, e.g. build.impl.mjs */
   script:     string
-    = this.getStr ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile)
+    = this.getStr ('FADROMA_BUILD_DOCKERFILE', ()=>LocalBuilder.script)
 }
 
 /** Base class for class-based deploy procedure. Adds progress logging. */
@@ -394,7 +394,6 @@ export class RawBuilder extends CachingBuilder {
         ref = HEAD,
         crate,
         workspace,
-        gitDir
       } = source
 
       // Temporary dirs used for checkouts of non-HEAD builds
@@ -411,6 +410,7 @@ export class RawBuilder extends CachingBuilder {
       }
 
       if ((ref ?? HEAD) !== HEAD) {
+        const { gitDir } = source
         // Provide the build script with the config values that ar
         // needed to make a temporary checkout of another commit
         if (!gitDir?.present) {
