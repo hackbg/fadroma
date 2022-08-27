@@ -6,27 +6,75 @@ import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
 ```typescript
-import { Chain, Agent } from '@fadroma/client'
-let chain: Chain
-let agent: Agent
-let chainId, codeId, codeHash, txHash, template, result, artifact
+import * as Fadroma from '@fadroma/client'
+let chain:    Fadroma.Chain    = null
+let agent:    Fadroma.Agent    = null
+let template: Fadroma.Template = null
+let artifact: Fadroma.URL      = null
+let chainId, codeId, codeHash, txHash, result
 ```
 
 ## Upload
 
 ```typescript
-import { Uploader, FSUploader, CachingFSUploader } from '.'
-let uploader: Uploader
+import * as Upload from '.'
+let uploader: Upload.Uploader
 ```
 
 * Basic uploader
 
 ```typescript
 import { pathToFileURL } from 'url'
-const emptyContract = pathToFileURL(Testing.fixture('empty.wasm'))
+uploader = new Upload.FSUploader(agent)
+
+const testUpload = async (cb) => {
+  const { template, uploader, uploaded } = await cb()
+  ok(uploaded !== template)
+  ok(uploaded.artifact === template.artifact)
+  ok(uploaded.uploader === uploader)
+}
+
+chain    = { id: chainId }
+agent    = { chain, upload: async (artifact) => template, nextBlock: Promise.resolve() }
+artifact = pathToFileURL(Testing.fixture('empty.wasm'))
+
+await testUpload(async () => {
+  const template = new Fadroma.Template(artifact)
+  const uploaded = await uploader.upload(template)
+  return { template, uploader, uploaded }
+})
+
+await testUpload(async () => {
+  const template = new Fadroma.Template({ artifact })
+  const uploaded = await uploader.upload(template)
+  return { template, uploader, uploaded }
+})
+
+await testUpload(async () => {
+  const template = new Fadroma.Template(artifact)
+  const uploaded = await template.upload(uploader)
+  return { template, uploader, uploaded }
+})
+
+await testUpload(async () => {
+  const template = new Fadroma.Template(artifact, { uploader })
+  const uploaded = await template.upload(uploader)
+  return { template, uploader, uploaded }
+})
+
+await testUpload(async () => {
+  const template = new Fadroma.Template({ artifact, uploader })
+  const uploaded = await template.upload()
+  return { template, uploader, uploaded }
+})
+
+await testUpload(async () => {
+  const template = new Fadroma.Template({ artifact }, { uploader })
+  const uploaded = await template.upload()
+  return { template, uploader, uploaded }
+})
+
 chainId  = 'test-uploads'
-agent    = { chain: { id: chainId }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
-uploader = new FSUploader(agent)
 artifact = { url: emptyContract }
 template = { chainId: Symbol(), codeId: Symbol(), codeHash: Symbol(), transactionHash: Symbol() }
 result   = await uploader.upload(artifact)

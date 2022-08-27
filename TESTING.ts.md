@@ -280,7 +280,6 @@ async function echoQuery ({query}) {
     console.log(6, query.toString());return { result: { smart: query } }
   } catch (e) {
     console.error(e)
-    process.exit(123)
   }
 }
 ```
