@@ -1,5 +1,0 @@
-chain-id = "enigma-pub-testnet-3"
-indent = true
-keyring-backend = "test"
-output = "json"
-trust-node = true
