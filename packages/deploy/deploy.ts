@@ -424,7 +424,7 @@ export class CachingFSUploader extends FSUploader {
         bold($(artifact.url!).shortPath)
       )
       try {
-        const codeHash = codeHashForPath($(artifact.url!).path)
+        const codeHash = Build.codeHashForPath($(artifact.url!).path)
         Object.assign(artifact, { codeHash })
         console.warn('Computed code hash:', bold(artifact.codeHash!))
       } catch (e) {
@@ -511,6 +511,15 @@ export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
   * You can deploy contracts with a Deployment using **deployment.init...**
   * and get Clients for interacting with existing contracts using **deployment.get...**. */
 export class Deployment {
+
+  constructor (
+    /** Path to the file containing the receipts. */
+    public readonly path?:  string,
+    /** The default identity to use when interacting with this deployment. */
+    public readonly agent?: Fadroma.Agent,
+  ) {
+    if (this.path) this.load()
+  }
 
   /// ## BUSINESS END OF DEPLOYMENT ///////////////////////////////////////////////////////////////
 
@@ -634,18 +643,10 @@ export class Deployment {
     }
 
     return Object.values(instances)
+
   }
 
   /// ## CREATING AND LOADING DEPLOYMENT //////////////////////////////////////////////////////////
-
-  constructor (
-    /** Path to the file containing the receipts. */
-    public readonly path?:  string,
-    /** The default identity to use when interacting with this deployment. */
-    public readonly agent?: Fadroma.Agent,
-  ) {
-    if (this.path) this.load()
-  }
 
   /** Load deployment state from YAML file. */
   load (path = this.path) {
@@ -696,10 +697,6 @@ export class Deployment {
   }
 
 }
-
-const codeHashForBlob  = (blob: Uint8Array) => Formati.toHex(new Formati.Sha256(blob).digest())
-
-const codeHashForPath  = (location: string) => codeHashForBlob(FS.readFileSync(location))
 
 export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 

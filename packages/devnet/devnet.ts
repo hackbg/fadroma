@@ -68,7 +68,7 @@ export interface DevnetState {
   port:         number|string
 }
 
-export default abstract class Devnet implements Fadroma.DevnetHandle {
+export abstract class Devnet implements Fadroma.DevnetHandle {
 
   /** Default connection type to expose on the devnets. */
   static defaultPort: Record<DevnetKind, DevnetPortMode> = {

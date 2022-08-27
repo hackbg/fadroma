@@ -429,8 +429,8 @@ export class TokenRegistry extends Map<string, Snip20> {
 
   constructor (
     /** This contains all the deploy API handles. */
-    public readonly context: TokenRegistryContext,
-    readonly defaultTemplate: IntoTemplate
+    public readonly context:  TokenRegistryContext,
+    readonly defaultTemplate: Fadroma.IntoTemplate
   ) {
     super()
   }

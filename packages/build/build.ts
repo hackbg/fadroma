@@ -16,13 +16,13 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { CustomConsole, Console, bold } from '@hackbg/konzola'
-import { toHex, Sha256 } from '@hackbg/formati'
-import EnvConfig         from '@hackbg/konfizi'
-import * as Komandi      from '@hackbg/komandi'
-import Dokeres           from '@hackbg/dokeres'
-import * as Kabinet      from '@hackbg/kabinet'
-import $                 from '@hackbg/kabinet'
+import * as Konzola from '@hackbg/konzola'
+import * as Formati from '@hackbg/formati'
+import * as Konfizi from '@hackbg/konfizi'
+import * as Komandi from '@hackbg/komandi'
+import * as Dokeres from '@hackbg/dokeres'
+import * as Kabinet from '@hackbg/kabinet'
+import $ from '@hackbg/kabinet'
 
 import * as Fadroma from '@fadroma/client'
 
@@ -34,9 +34,11 @@ import { homedir, tmpdir              } from 'os'
 import { pathToFileURL, fileURLToPath } from 'url'
 import { readFileSync, mkdtempSync    } from 'fs'
 
-export class BuildConsole extends CustomConsole {
+const bold = Konzola.bold
 
-  constructor (console: Partial<Console> = {}) {
+export class BuildConsole extends Konzola.CustomConsole {
+
+  constructor (console?: Console) {
     super('Fadroma Build', console)
   }
 
@@ -84,7 +86,7 @@ export class BuildConsole extends CustomConsole {
 
 const log = new BuildConsole(console)
 
-export class BuilderConfig extends EnvConfig {
+export class BuilderConfig extends Konfizi.EnvConfig {
   /** Project root. Defaults to current working directory. */
   project:    string
     = this.getStr ('FADROMA_PROJECT',          ()=>this.cwd)
@@ -109,15 +111,6 @@ export class BuilderConfig extends EnvConfig {
   /** Script that runs the actual build, e.g. build.impl.mjs */
   script:     string
     = this.getStr ('FADROMA_BUILD_DOCKERFILE', ()=>DockerBuilder.dockerfile)
-}
-
-/** Get a builder based on the builder config. */
-export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()) {
-  if (config.buildRaw) {
-    return new RawBuilder({ ...config, caching: !config.rebuild })
-  } else {
-    return new DockerBuilder({ ...config, caching: !config.rebuild })
-  }
 }
 
 /** Base class for class-based deploy procedure. Adds progress logging. */
@@ -150,19 +143,32 @@ export function getBuildContext (
     config,
     builder:   getBuilder(config),
     workspace: new LocalWorkspace(config.project),
-    getSource (source: Fadroma.IntoSource, ref?: string): Fadroma.Source {
+    getSource (source: Fadroma.IntoSource, ref?: string): LocalSource {
       let workspace = this.workspace
       if (ref) workspace = workspace.at(ref)
       if (typeof source === 'string') return this.workspace.crate(source)
-      return source
+      if (source instanceof URL) return new LocalSource({ repo: source })
+      return source as LocalSource
     },
     async build (source: Fadroma.IntoSource, ref?: string): Promise<Fadroma.Template> {
       return await this.builder.build(this.getSource(source).at(ref))
     },
-    async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Fadroma.Template[]> {
+    async buildMany (
+      ref?: string,
+      ...sources: Fadroma.IntoSource[][]
+    ): Promise<Fadroma.Template[]> {
       sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
       return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
     }
+  }
+}
+
+/** Get a builder based on the builder config. */
+export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()) {
+  if (config.buildRaw) {
+    return new RawBuilder({ ...config, caching: !config.rebuild })
+  } else {
+    return new DockerBuilder({ ...config, caching: !config.rebuild })
   }
 }
 
@@ -203,7 +209,7 @@ export class LocalWorkspace {
     return new (this.constructor as WorkspaceCtor<typeof this>)(this.path, ref, this.gitDir)
   }
   /** Get a Source object pointing to a crate from the current workspace and ref */
-  crate (specifier: string): Fadroma.Source {
+  crate (specifier: string): LocalSource {
     const [ crate, ref ] = specifier.split('@')
     let self = this
     if (ref) {
@@ -212,7 +218,7 @@ export class LocalWorkspace {
     return new LocalSource(crate, { workspace: self.path })
   }
   /** Get multiple Source objects pointing to crates from the current workspace and ref */
-  crates (crates: string[]): Fadroma.Source[] {
+  crates (crates: string[]): LocalSource[] {
     return crates.map(crate=>this.crate(crate))
   }
 }
@@ -278,7 +284,8 @@ export const sanitize = (ref: string) => ref.replace(/\//g, '_')
 
 export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
 
-export const codeHashForBlob = (blob: Uint8Array) => toHex(new Sha256(blob).digest())
+export const codeHashForBlob = (blob: Uint8Array) =>
+  Formati.toHex(new Formati.Sha256(blob).digest())
 
 export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
 
@@ -298,7 +305,7 @@ export interface DockerBuilderOptions extends CachingBuilderOptions {
   /** Path to Docker API endpoint. */
   socketPath: string
   /** Docker API client instance. */
-  docker:     Dokeres
+  docker:     Dokeres.Engine
   /** Build image. */
   image:      string|Dokeres.Image
   /** Dockerfile for building the build image. */
@@ -384,22 +391,30 @@ export class RawBuilder extends CachingBuilder {
   async buildMany (sources: LocalSource[]): Promise<Fadroma.Template[]> {
     const templates: Fadroma.Template[] = []
     for (const source of sources) {
-      let cwd = source.path
+      const {
+        path,
+        ref = HEAD,
+        crate,
+        workspace,
+        gitDir
+      } = source
+
       // Temporary dirs used for checkouts of non-HEAD builds
       let tmpGit, tmpBuild
+
       // Most of the parameters are passed to the build script
       // by way of environment variables.
       const env = {
         _BUILD_GID: process.getgid(),
         _BUILD_UID: process.getuid(),
-        _OUTPUT:    $(source.workspace).in('artifacts').path,
+        _OUTPUT:    $(workspace).in('artifacts').path,
         _REGISTRY:  '',
         _TOOLCHAIN: this.toolchain,
       }
-      if ((source.ref ?? HEAD) !== HEAD) {
+
+      if ((ref ?? HEAD) !== HEAD) {
         // Provide the build script with the config values that ar
         // needed to make a temporary checkout of another commit
-        const { gitDir } = source
         if (!gitDir?.present) {
           const error = new Error("Fadroma Build: could not find Git directory for source.")
           throw Object.assign(error, { source })
@@ -416,19 +431,14 @@ export class RawBuilder extends CachingBuilder {
           _TMP_GIT:    tmpGit.path,
         })
       }
+
       // Run the build script
-      const cmd = [
-        this.runtime,
-        this.script,
-        'phase1',
-        source.ref,
-        source.crate
-      ]
-      const opts = { cwd, env: { ...process.env, ...env }, stdio: 'inherit' }
+      const cmd = [this.runtime, this.script, 'phase1', ref, crate ]
+      const opts = { cwd: source.path, env: { ...process.env, ...env }, stdio: 'inherit' }
       const sub  = spawn(cmd.shift() as string, cmd, opts as any)
       await new Promise<void>((resolve, reject)=>{
-        sub.on('exit', (code, signal) => {
-          const build = `Build of ${source.crate} from ${$(source.path).shortPath} @ ${source.ref}`
+        sub.on('exit', (code: number, signal: any) => {
+          const build = `Build of ${source.crate} from ${$(source.path!).shortPath} @ ${source.ref}`
           if (code === 0) {
             resolve()
           } else if (code !== null) {
@@ -472,7 +482,7 @@ export class DockerBuilder extends CachingBuilder {
     super(opts)
     // Set up Docker API handle
     if (opts.socketPath) {
-      this.docker = new Dokeres(this.socketPath = opts.socketPath)
+      this.docker = new Dokeres.Engine(this.socketPath = opts.socketPath)
     } else if (opts.docker) {
       this.docker = opts.docker
     }
@@ -492,7 +502,7 @@ export class DockerBuilder extends CachingBuilder {
   socketPath: string  = '/var/run/docker.sock'
 
   /** Used to launch build container. */
-  docker:     Dokeres = new Dokeres(this.socketPath)
+  docker:     Dokeres.Engine = new Dokeres.Engine(this.socketPath)
 
   /** Tag of the docker image for the build container. */
   image:      Dokeres.Image
@@ -510,44 +520,57 @@ export class DockerBuilder extends CachingBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources: LocalSource[]): Promise<Fadroma.Template[]> {
+
     // Announce what will be done
     //console.info('Requested to build the following contracts:')
     const longestCrateName = sources
       .map(source=>source.crate?.length||0)
       .reduce((x,y)=>Math.max(x,y),0)
+
     for (const source of sources) {
-      const outputDir = $(source.workspace.path).resolve(this.outputDirName)
+      const { path, crate, ref } = source
+      const outputDir = $(path).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.ref)
-      BuildReporter(console).BuildOne(source, prebuilt, longestCrateName)
+      log.buildingOne(source, prebuilt, longestCrateName)
     }
+
     // Collect a mapping of workspace path -> Workspace object
-    const workspaces: Record<string, Workspace> = {}
+    const workspaces: Record<string, LocalWorkspace> = {}
+
     for (const source of sources) {
-      workspaces[source.workspace.path] = source.workspace
+      const { path, gitDir } = source
+      workspaces[path] = source.workspace
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
-      if (source.ref !== HEAD && !source.workspace.gitDir.present) {
+      if (source.ref !== HEAD && !gitDir.present) {
         const error = new Error("Fadroma Build: could not find Git directory for source.")
         throw Object.assign(error, { source })
       }
     }
+
     // Here we will collect the build outputs
     const templates:  Fadroma.Template[] = []
+
     // Get the distinct workspaces and refs by which to group the crate builds
     const workspaceRoots:   string[] = distinct(sources.map(source=>source.workspace.path))
     const refs: (string|undefined)[] = distinct(sources.map(source=>source.ref))
+
     // For each workspace,
     for (const path of workspaceRoots) {
       const { gitDir } = workspaces[path]
       // And for each ref of that workspace,
       for (const ref of refs) {
+
         let mounted = $(path)
-        if (this.verbose) BuildReporter(console).Workspace(mounted, ref)
+
+        if (this.verbose) log.buildingFromWorkspace(mounted, ref)
+
         if (ref !== HEAD) {
           mounted = gitDir.rootRepo
           //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
           await simpleGit(gitDir.path)
             .fetch(process.env.FADROMA_PREFERRED_REMOTE || 'origin')
         }
+
         // Create a list of sources for the container to build,
         // along with their indices in the input and output arrays
         // of this function.
@@ -558,6 +581,7 @@ export class DockerBuilder extends CachingBuilder {
             crates.push([index, source.crate])
           }
         }
+
         // Build the crates from the same workspace/ref
         // sequentially in the same container.
         const buildArtifacts = await this.runBuildContainer(
@@ -567,6 +591,7 @@ export class DockerBuilder extends CachingBuilder {
           crates,
           gitDir.isSubmodule ? gitDir.submoduleDir : ''
         )
+
         // Collect the templates built by the container
         for (const index in buildArtifacts) {
           const artifact = buildArtifacts[index]
@@ -576,8 +601,10 @@ export class DockerBuilder extends CachingBuilder {
             })
           }
         }
+
       }
     }
+
     return templates
   }
 
@@ -684,18 +711,9 @@ export class DockerBuilder extends CachingBuilder {
 
     // Pass the compacted list of crates to build into the container
     const cratesToBuild = Object.keys(shouldBuild)
-    const command = ['node', buildScript, 'phase1', ref, ...cratesToBuild]
-    const options = {
-      remove: true,
-      readonly,
-      writable,
-      cwd: '/src',
-      env,
-      extra: {
-        Tty:         true,
-        AttachStdin: true,
-      }
-    }
+    const command = [ 'node', buildScript, 'phase1', ref, ...cratesToBuild ]
+    const extra   = { Tty: true, AttachStdin: true, }
+    const options = { remove: true, readonly, writable, cwd: '/src', env, extra }
 
     //console.info('Building with command:', bold(command.join(' ')))
     //console.debug('Building in a container with this configuration:', options)

@@ -194,7 +194,11 @@ export class Template extends Source {
     }
   }
 
-  constructor (specifier: IntoTemplate = {}, options: Partial<Template> = {}) {
+  constructor (
+    specifier: IntoTemplate = {},
+    options:   Partial<Template> = {},
+    public readonly context?: UploadInitContext
+  ) {
     super(Template.parse(specifier, options))
   }
 
@@ -218,28 +222,26 @@ export class Template extends Source {
 
   /** Upload source code to a chain. */
   upload (uploader: string|Uploader|undefined = this.uploader): Promise<Template> {
-    if (!this.artifact) {
-      throw new TemplateError.NoArtifact()
-    }
-    if (!uploader) {
-      throw new TemplateError.NoUploader()
-    }
-    if (typeof uploader === 'string') {
-      throw new TemplateError.ProvideUploader(uploader)
-    }
+    if (!this.artifact) throw new TemplateError.NoArtifact()
+    if (!uploader) throw new TemplateError.NoUploader()
+    if (typeof uploader === 'string') throw new TemplateError.ProvideUploader(uploader)
+    if (!uploader.agent) throw new TemplateError.NoUploaderAgent()
     return uploader.upload(this)
   }
 
   /** Depending on what pre-Template type we start from, this function
     * invokes builder and uploader to produce a Template from it. */
   async getOrUpload (): Promise<Template> {
-    this.chainId ??= this.uploader?.agent?.chain?.id
+    if (!this.uploader) throw new TemplateError.NoUploader()
+    if (typeof this.uploader === 'string') throw new TemplateError.ProvideUploader(this.uploader)
+    if (!this.uploader.agent) throw new TemplateError.NoUploaderAgent()
+    this.chainId ??= this.uploader.agent?.chain?.id
     if (!this.chainId) {
       throw new TemplateError.NoChainId()
     } else if (this.codeId && this.codeHash) {
       return this
     } else if (this.codeId) {
-      this.codeHash ??= await this.uploader?.agent?.getHash(Number(this.codeId))
+      this.codeHash ??= await this.uploader.agent?.getHash(Number(this.codeId))
       if (this.codeHash) {
         return this
       } else {
@@ -274,20 +276,19 @@ export class Template extends Source {
     }
   }
 
-  instantiate (agent: Agent, label: string, initMsg: Message): Promise<Instance> {
+  instantiate (agent: Agent, label: string, initMsg: Message): Promise<Contract> {
     return agent.instantiate(this, label, initMsg)
   }
 
   async instantiate (msg: Message, agent: Executor = this.uploader): Promise<Contract> {
-    if (this.task) {
+    if (this.context?.task) {
       const value = `deploy ${this.name??'contract'}`
       Object.defineProperty(deployContract, 'name', { value })
-      return this.task.subtask(deployContract)
+      return this.context.task.subtask(deployContract)
     }
-    return await deployContract.bind(this)()
-    async function deployContract (this: Contract) {
-      const { creator, deployment } = this.context
-      if (!deployment) throw new ContractError.NoDeployment()
+    return await deployContract.call(this)
+    async function deployContract (this: Template): Promise<Contract> {
+      if (!this.context?.deployment) throw new ContractError.NoDeployment()
       if (!this.name)  throw new ContractError.NoName()
       await this.getOrUpload()
       console.info(
@@ -295,8 +296,10 @@ export class Template extends Source {
         'from code id', bold(String(this.codeId  ||'(unknown)')),
         'hash',         bold(String(this.codeHash||'(unknown)'))
       )
-      const instance = await this.deployment!.init(creator, template, this.name,  msg)
-      const client = new this.Client(this.creator, instance)
+      const instance = await this.context?.deployment.init(
+        this.context.creator, template, this.name, msg
+      )
+      const client = new this.Client(this.context.creator, instance)
       console.info(
         'Deployed ',    bold(this.name!), 'is', bold(client.address),
         'from code id', bold(String(template.codeId  ||'(unknown)'))
@@ -312,9 +315,9 @@ export class Template extends Source {
 export class Templates {
   constructor (
     slots: IntoTemplate[] = [],
-    public readonly context: DeployContext
+    public readonly context: UploadInitContext
   ) {
-    this.slots = slots.map(value=>new Template(value, context))
+    this.slots = slots.map(value=>new Template(value, { context }))
   }
   public readonly slots: Template[]
   async getOrUploadMany (): Promise<Template[]> {
@@ -343,7 +346,12 @@ export class TemplateError extends Error {
       super("No uploader specified")
     }
   }
-  static ProvideUploader = class TemplateNoUploader extends TemplateError {
+  static NoUploaderAgent = class TemplateNoUploaderAgent extends TemplateError {
+    constructor () {
+      super("No uploader agent specified")
+    }
+  }
+  static ProvideUploader = class TemplateProvideUploader extends TemplateError {
     constructor (id: string) {
       super(`Provide a "${id}" uploader`)
     }
@@ -812,7 +820,11 @@ export class Contract extends Template {
     }
   }
 
-  constructor (specifier: IntoContract, options: Partial<Contract> = {}) {
+  constructor (
+    specifier: IntoContract,
+    options:   Partial<Contract> = {},
+    public readonly context?: UploadInitContext
+  ) {
 
     super(Contract.parse(specifier, options))
 
@@ -868,8 +880,6 @@ export class Contract extends Template {
 
   Client:  ContractCtor<this, any>
 
-  task?:   Task<unknown>
-
   agent?:  Executor
 
   initTx?: TxHash
@@ -892,25 +902,26 @@ export class Contract extends Template {
     specifier: IntoTemplate,
     initMsg:  Message|(()=>Message|Promise<Message>)
   ): Promise<this> {
-    if (this.task) {
+    if (this.context?.task) {
       const value = `deploy ${this.name??'contract'}`
       Object.defineProperty(deployContract, 'name', { value })
-      return this.task.subtask(deployContract)
+      return this.context.task.subtask(deployContract)
     }
     return await deployContract.call(this)
     async function deployContract (this: Contract) {
-      const { creator, deployment } = this.context
-      if (!deployment) throw new ContractError.NoDeployment()
-      if (!this.name)  throw new ContractError.NoName()
-      const template = await new Template(specifier, this.context).getOrUpload()
+      if (!this.name)               throw new ContractError.NoName()
+      if (!this.context)            throw new ContractError.NoContext()
+      if (!this.context.creator)    throw new ContractError.NoCreator()
+      if (!this.context.deployment) throw new ContractError.NoDeployment()
+      const template = await new Template(specifier, { context: this.context }).getOrUpload()
       console.info(
         'Deploy   ',    bold(this.name!),
         'from code id', bold(String(template.codeId  ||'(unknown)')),
         'hash',         bold(String(template.codeHash||'(unknown)'))
       )
       if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-      const instance = deployment!.init(creator, template, this.name, initMsg)
-      const client = new this.Client(creator, instance)
+      const instance = this.context.deployment.init(this.context.creator, template, this.name, initMsg)
+      const client = new this.Client(this.context.creator, instance)
       console.info(
         'Deployed ',    bold(this.name!), 'is', bold(client.address),
         'from code id', bold(String(template.codeId  ||'(unknown)'))
@@ -923,10 +934,10 @@ export class Contract extends Template {
     template: IntoTemplate,
     initMsg:  Message|(()=>Message|Promise<Message>)
   ): Promise<this> {
-    if (this.task) {
+    if (this.context?.task) {
       const value = `get or deploy ${this.name??'contract'}`
       Object.defineProperty(getOrDeployContract, 'name', { value })
-      return this.task.subtask(getOrDeployContract)
+      return this.context?.task.subtask(getOrDeployContract)
     }
     return await getOrDeployContract.call(this)
     async function getOrDeployContract (this: Contract) {
@@ -934,6 +945,7 @@ export class Contract extends Template {
         console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address))
         return this
       } else if (this.name) {
+        if (!this.context)            throw new ContractError.NoContext()
         if (!this.context.creator)    throw new ContractError.NoCreator()
         if (!this.context.deployment) throw new ContractError.NoDeployment()
         return await this.deploy(template, initMsg)
@@ -943,10 +955,10 @@ export class Contract extends Template {
   }
 
   async getOr (getter: ()=>this|Promise<this>): Promise<this> {
-    if (this.task) {
+    if (this.context?.task) {
       const value = `get or provide ${this.name??'contract'}`
       Object.defineProperty(getContractOr, 'name', { value })
-      return this.task.subtask(getContractOr)
+      return this.context.task.subtask(getContractOr)
     }
     return await getContractOr.bind(this)()
     async function getContractOr () {
@@ -955,12 +967,12 @@ export class Contract extends Template {
   }
 
   get (message: string = `Contract not found: ${this.name}`): this {
-    if (this.name && this.deployment && this.deployment.has(this.name)) {
-      const instance = this.deployment.get(this.name)
+    if (this.name && this.context?.deployment && this.context?.deployment.has(this.name)) {
+      const instance = this.context?.deployment.get(this.name)
       const client   = new this.Client(this.context.creator, instance!)
       return client
     } else if (this.value) {
-      const client = new this.Client(this.context.creator, this.value)
+      const client = new this.Client(this.context?.creator, this.value)
       return client
     } else {
       throw new Error(message)
@@ -1104,13 +1116,25 @@ export interface ContractLink {
 /** Pair of name and init message. Used when instantiating multiple contracts from one template. */
 export type DeployArgs = [Name, Message]
 
+export interface UploadInitContext {
+  creator?:    Agent
+  deployment?: {
+    has (name: string): boolean
+    get (name: string): Contract
+    initMany (creator: Agent, template: Template, contracts: DeployArgs[]): Promise<Contract[]>
+  }
+  task?: {
+    subtask <C> (cb: ()=>(C|Promise<C>)): Promise<C>
+  }
+}
+
 /** Instantiates multiple contracts of the same type in one transaction.
   * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
 export class Contracts<C extends Contract> {
 
   constructor (
     _Contract: ContractCtor<C, any> = Contract as ContractCtor<C, any>,
-    public readonly context?: DeployContext,
+    public readonly context?: UploadInitContext,
   ) {
     this.Contract = _Contract
   }
@@ -1118,13 +1142,14 @@ export class Contracts<C extends Contract> {
   public readonly Contract: ContractCtor<C, any>
 
   async deployMany (
-    template:  IntoTemplate,
+    specifier: IntoTemplate,
     contracts: DeployArgs[] = []
   ): Promise<C[]> {
+    if (!this.context)            throw new ContractError.NoContext()
     if (!this.context.creator)    throw new ContractError.NoCreator()
     if (!this.context.deployment) throw new ContractError.NoDeployment()
     // Provide the template
-    template = await new Template(template, this.context).getOrUpload() as Template
+    const template = await new Template(specifier, { context: this.context }).getOrUpload()
     // Deploy multiple contracts from the same template with 1 tx
     let instances: Contract[]
     try {
@@ -1134,7 +1159,7 @@ export class Contracts<C extends Contract> {
       throw new ContractError.DeployManyFailed(e)
     }
     // Return API client to each contract
-    return instances.map(instance=>this.context.creator!.getClient(this.Contract, instance))
+    return instances.map(instance=>this.context!.creator!.getContract(this.Contract, instance))
   }
 }
 
@@ -1163,6 +1188,11 @@ export class ContractError extends Error {
   static NotFound2 = class ContractNotFound2 extends ContractError {
     constructor () {
       super("Contract not found. Try .getOrDeploy(template, init)")
+    }
+  }
+  static NoContext = class NoUploadInitContext extends ContractError {
+    constructor () {
+      super("Missing deploy context.")
     }
   }
   static NoCreator = class NoContractCreator extends ContractError {
