@@ -10,9 +10,11 @@
   "browser": "fadroma.browser.ts",
   "description": "CosmWasm dApp framework.",
   "bin": {
-    "fadroma": "fadroma.cli.cjs",
-    "fadroma-build": "packages/build/build.cli.cjs",
-    "fadroma-deploy": "packages/deploy/deploy.cli.cjs"
+    "fadroma":         "fadroma.cli.cjs",
+    "fadroma-build":   "packages/build/build.cli.cjs",
+    "fadroma-connect": "packages/connect/connect.cli.cjs",
+    "fadroma-deploy":  "packages/deploy/deploy.cli.cjs",
+    "fadroma-devnet":  "packages/devnet/devnet.cli.cjs"
   },
   "files": [
     "packages/build/build.cli.cjs",

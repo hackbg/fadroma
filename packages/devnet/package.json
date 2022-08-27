@@ -4,6 +4,7 @@
   "type":    "module",
   "main":    "./devnet.ts",
   "files":   [ "devnet.ts", "devnet-init.mjs" ],
+  "bin": { "fadroma-devnet": "devnet.cli.cjs" },
   "description": "Spawn local instance of blockchain for smart contract development.",
   "dependencies": {
     "@hackbg/dokeres": "^4.4.1",
@@ -17,5 +18,11 @@
     "ts:check": "tsc --noEmit",
     "release:dry": "pnpm ts:check && izomorf dry",
     "release:wet": "pnpm ts:check && izomorf wet --access=public"
+  },
+  "peerDependencies": {
+    "@hackbg/ganesha": "^2.2.5"
+  },
+  "peerDependenciesMeta": {
+    "@hackbg/ganesha": { "optional": true, "description": "For fadroma-devnet command." }
   }
 }
