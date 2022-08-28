@@ -84,18 +84,16 @@ export abstract class Source extends Overridable implements Partial<Source> {
   /** Builder implementation that produces a Template from the Source. */
   builder?: string|Builder = undefined
 
+  assertBuilder (builder: typeof this.builder = this.builder): Builder {
+    if (!this.crate) throw new SourceError.NoCrate()
+    if (!builder) throw new SourceError.NoBuilder()
+    if (typeof builder === 'string') throw new SourceError.ProvideBuilder(builder)
+    return builder
+  }
+
   /** Compile the source using the selected builder. */
-  build (builder: typeof this.builder = this.builder): Promise<Template> {
-    if (!this.crate) {
-      throw new SourceError.NoCrate()
-    }
-    if (!builder) {
-      throw new SourceError.NoBuilder()
-    }
-    if (typeof builder === 'string') {
-      throw new SourceError.ProvideBuilder(builder)
-    }
-    return builder.build(this)
+  build (builder?: typeof this.builder): Promise<Template> {
+    return this.assertBuilder(builder).build(this)
   }
 
   at (ref?: string): Source {
@@ -222,60 +220,40 @@ export class Template extends Source {
   /** Hash of transaction that performed the upload. */
   uploadTx?:  TxHash          = undefined
 
-  /** Upload source code to a chain. */
-  upload (uploader: string|Uploader|undefined = this.uploader): Promise<Template> {
-    if (!this.artifact) throw new TemplateError.NoArtifact()
-    if (!uploader) throw new TemplateError.NoUploader()
+  /** Return the Uploader for this Template or throw. */
+  private assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
+    if (!uploader)                    throw new TemplateError.NoUploader()
     if (typeof uploader === 'string') throw new TemplateError.ProvideUploader(uploader)
-    if (!uploader.agent) throw new TemplateError.NoUploaderAgent()
-    return uploader.upload(this)
+    if (!uploader.agent)              throw new TemplateError.NoUploaderAgent()
+    return uploader
+  }
+
+  /** Upload source code to a chain. */
+  async upload (uploader?: typeof this.uploader): Promise<Template> {
+    let self: Template = this
+    if (!self.artifact) self = await self.build()
+    return self.assertUploader(uploader).upload(this)
   }
 
   /** Depending on what pre-Template type we start from, this function
     * invokes builder and uploader to produce a Template from it. */
   async getOrUpload (): Promise<Template> {
-    if (!this.uploader) throw new TemplateError.NoUploader()
-    if (typeof this.uploader === 'string') throw new TemplateError.ProvideUploader(this.uploader)
-    if (!this.uploader.agent) throw new TemplateError.NoUploaderAgent()
-    this.chainId ??= this.uploader.agent?.chain?.id
-    if (!this.chainId) {
-      throw new TemplateError.NoChainId()
-    } else if (this.codeId && this.codeHash) {
-      return this
-    } else if (this.codeId) {
-      this.codeHash ??= await this.uploader.agent?.getHash(Number(this.codeId))
-      if (this.codeHash) {
-        return this
-      } else {
-        throw new TemplateError.NoCodeHash()
-      }
-    } else {
-      if (!this.artifact) {
-        throw new TemplateError.NoArtifact()
-      }
-      if (!this.uploader) {
-        throw new TemplateError.NoUploader()
-      }
-      const upload = async () => {
-        const template = await this.upload()
-        this.codeId = template.codeId
-        if (this.codeHash && this.codeHash !== template.codeHash) {
-          console.warn(`codeHash mismatch: ${this.codeHash} vs ${template.codeHash}`)
-        }
-        this.codeHash = template.codeHash
-        return this
-      }
-      if (!this.artifact) {
-        const { artifact, codeHash } = await this.build()
-        this.artifact = artifact
-        this.codeHash = codeHash
-        if (!artifact) {
-          throw new TemplateError.NoArtifactURL()
-        }
-      }
-      return await upload()
-      throw new TemplateError.NoSource()
+    // We're gonna do this immutably, generating new instances of Template when changes are needed.
+    let self: Template = this
+    // If chain ID, code ID and code hash are present, this template is ready to uploade
+    if (self.chainId && self.codeId && self.codeHash) return self
+    // Otherwise we're gonna need an uploader
+    const uploader = self.assertUploader()
+    // And if we still can't determine the chain ID, bail
+    const chainId = self.chainId ?? uploader.chain.id
+    if (!chainId) throw new TemplateError.NoChainId()
+    // If we have chain ID and code ID, try to get code hash
+    if (self.codeId) {
+      self = new Template(self, { codeHash: await uploader.getHash(self.codeId) })
+      if (!self.codeHash) throw new TemplateError.NoCodeHash()
+      return self
     }
+    return await this.upload()
   }
 
   async instantiate (agent: Agent, label: string, initMsg: Message): Promise<Contract> {
@@ -760,10 +738,21 @@ export const Uploaders: Record<string, Uploader> = {}
 /** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
   * binding the `Template` to a particular `chainId` and `codeId`. */
 export abstract class Uploader {
+
   constructor (public agent: Agent) {}
-  get chain () { return this.agent.chain }
+
+  get chain () {
+    return this.agent.chain
+  }
+
+  async getHash (id: CodeId): Promise<CodeHash> {
+    return await this.agent.getHash(Number(id))
+  }
+
   abstract upload     (template: Template):   Promise<Template>
+
   abstract uploadMany (template: Template[]): Promise<Template[]>
+
 }
 
 export type IntoUploader = string|UploaderCtor|Partial<Uploader>
@@ -786,10 +775,12 @@ export class Contract extends Template {
       if (typeof options === 'string') {
         return { address: specifier, codeHash: options }
       } else {
-        return { ...options, address: specifier }
+        return { ...options, name: specifier }
       }
-    } else {
+    } else if (typeof options === 'object') {
       return { ...specifier, ...options }
+    } else {
+      throw 'TODO'
     }
   }
 
@@ -797,8 +788,9 @@ export class Contract extends Template {
     specifier: IntoContract,
     options:   Partial<Contract> = {},
   ) {
-
-    super(Contract.parse(specifier, options))
+    super()
+    this.override(Contract.parse(specifier, options))
+    console.log(this)
 
     // Warn if missing agent
     //const className = this.constructor.name
@@ -864,33 +856,40 @@ export class Contract extends Template {
     specifier: IntoTemplate,
     initMsg:  Message|(()=>Message|Promise<Message>)
   ): Promise<this> {
+
     const self = this
+
     if (this.context?.task) {
       const value = `deploy ${this.name??'contract'}`
       Object.defineProperty(deployContract, 'name', { value })
       return this.context.task.subtask(deployContract.bind(this))
     }
-    return await deployContract.call(this)
-    async function deployContract (this: typeof self) {
-      if (!this.name)               throw new ContractError.NoName()
-      if (!this.context)            throw new ContractError.NoContext()
-      if (!this.context.creator)    throw new ContractError.NoCreator()
-      if (!this.context.deployment) throw new ContractError.NoDeployment()
-      const template = await new Template(specifier, { context: this.context }).getOrUpload()
-      console.info(
-        'Deploy   ',    bold(this.name!),
-        'from code id', bold(String(template.codeId  ||'(unknown)')),
-        'hash',         bold(String(template.codeHash||'(unknown)'))
-      )
+
+    return await deployContract()
+
+    async function deployContract () {
+
+      const name     = self.name
+      if (!name) throw new ContractError.NoName()
+
+      const creator  = self.context?.creator ?? self.agent
+      if (!creator) throw new ContractError.NoCreator()
+
+      const template = await self.getOrUpload()
+      log.beforeDeploy(self, template)
+
       if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-      const instance = this.context.deployment.init(this.context.creator, template, this.name, initMsg)
-      const client = new this.Client(this.context.creator, instance)
-      console.info(
-        'Deployed ',    bold(this.name!), 'is', bold(client.address),
-        'from code id', bold(String(template.codeId  ||'(unknown)'))
-      )
-      return this
+      const instance = self.context?.deployment
+        ? self.context.deployment.init(creator, template, name, initMsg)
+        : creator.instantiate(template, name, initMsg)
+
+      const client = new self.Client(creator, instance)
+      log.afterDeploy(self, client, template)
+
+      return self
+
     }
+
   }
 
   async getOrDeploy (
@@ -1071,10 +1070,10 @@ export type DeployArgs = [Name, Message]
 export interface UploadInitContext {
   creator?: Agent
   deployment?: {
-    has (name: string): boolean
-    get (name: string): Contract
-    init (creator: Agent, template: IntoTemplate, name: Name, message: Message): Promise<Contract>
-    initMany (creator: Agent, template: Template, contracts: DeployArgs[]): Promise<Contract[]>
+    has      (name: string): boolean
+    get      (name: string): Contract
+    init     (creator: Executor, ...args: DeployArgsTriple): Promise<Contract>
+    initMany (creator: Executor, template: Template, contracts: DeployArgs[]): Promise<Contract[]>
   }
   task?: {
     subtask <C> (cb: ()=>(C|Promise<C>)): Promise<C>
@@ -1216,10 +1215,12 @@ export abstract class Bundle implements Executor {
 
   get balance () {
     throw new Error("don't query inside bundle")
+    return Promise.resolve('0')
   }
 
   async getBalance (denom: string) {
     throw new Error("can't get balance in bundle")
+    return Promise.resolve(denom)
   }
 
   get height (): Promise<number> {
@@ -1365,3 +1366,19 @@ export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
 
 //@ts-ignore
 Agent.Bundle = Bundle
+
+export const log = {
+  beforeDeploy (contract: Contract, template: Template) {
+    console.info(
+      'Deploy   ',    bold(contract.name!),
+      'from code id', bold(String(template.codeId  ||'(unknown)')),
+      'hash',         bold(String(template.codeHash||'(unknown)'))
+    )
+  },
+  afterDeploy (contract: Contract, client: Contract, template: Template) {
+    console.info(
+      'Deployed ',    bold(contract.name!), 'is', bold(client.address!),
+      'from code id', bold(String(template.codeId  ||'(unknown)'))
+    )
+  }
+}
