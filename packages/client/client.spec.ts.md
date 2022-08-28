@@ -5,7 +5,7 @@ import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual, throws, rejects } from 'assert'
 ```
 
-## Chain, Agent, Client
+## `Chain`: selecting a network
 
 Base layer for isomorphic contract clients.
 
@@ -15,12 +15,7 @@ Base layer for isomorphic contract clients.
    appropriate `Client` subclass from the authorized `Agent`.
 
 ```typescript
-import { Chain, Agent, Client } from '.'
-```
-
-### Chain
-
-```typescript
+import { Chain } from '.'
 let chain: Chain
 ```
 
@@ -50,11 +45,14 @@ chain = new Chain('any', { mode: ChainMode.Mocknet })
 assert(chain.isMocknet && !chain.isMainnet && !chain.isDevnet)
 ```
 
-### Agent
+## `Agent`: asserting an identity
 
 ```typescript
+import { Agent } from '.'
 let agent: Agent
 ```
+
+### Getting an `Agent` from a `Chain` by mnemonic
 
 * Getting an agent from a chain
   * This is asynchronous to allow for async crypto functions to run.
@@ -62,6 +60,8 @@ let agent: Agent
 ```typescript
 assert(await chain.getAgent({}) instanceof Agent)
 ```
+
+### Getting an `Agent` from a `Devnet`'s genesis account
 
 * When using devnet, you can also get an agent from a named genesis account:
 
@@ -72,13 +72,15 @@ assert(await new Chain('devnet', {
 }).getAgent({ name: 'Alice' }) instanceof Agent)
 ```
 
+### Waiting for block height to increment
+
 * **Waiting** until the block height has incremented
 
 ```
 //todo
 ```
 
-* **Sending** native tokens
+### Native token operations
 
 ```typescript
 // getting agent's balance in native tokens
@@ -100,6 +102,8 @@ equal(await agent.getBalance('baz'), '0')
 // TODO
 ```
 
+### Smart contract operations
+
 * **Instantiating** a contract
 * **Executing** a transaction
 * **Querying** a contract
@@ -114,7 +118,7 @@ agent = new class TestAgent5 extends Agent { async query () { return {} } }
 assert.ok(await agent.query())
 ```
 
-* **Bundling** transactions:
+### `Bundle`: combining multiple messages in 1 transaction
 
 ```typescript
 import { Bundle, Contract } from '.'
@@ -188,10 +192,22 @@ await agent.instantiateMany([])
 await agent.instantiateMany([], 'prefix')
 ```
 
-### Template
+## `Source`, `Builder`: compiling smart contracts
 
 ```typescript
-import { Template } from '.'
+import { Source, Builder } from '.'
+let source:  Source
+let builder: Builder = new class TestBuilder extends Builder {
+  async build (source: Source): Promise<Template> {
+    return new Template(source)
+  }
+}
+```
+
+## `Template`, `Uploader`: uploading smart contracts
+
+```typescript
+import { Template, TemplateError } from '.'
 let template: Template
 deepEqual(new Template(), {
  artifact: undefined,
@@ -214,38 +230,72 @@ const url = new URL('file:///tmp/artifact.wasm')
 equal(new Template(url).artifact, url)
 ```
 
-## `Template`: Contract templates
-
-### Template errors
+### `TemplateError`: Template error conditions
 
 Template errors inherit from **TemplateError** and are defined as its static properties.
 
 ```typescript
-import { TemplateError } from '.'
 for (const kind of Object.keys(TemplateError)) {
   ok(new TemplateError[kind] instanceof TemplateError)
 }
 ```
 
-## `Templates`: Uploading multiple templates
+### `Templates`: Upload of multiple templates
 
-## `Contract`: Contract clients
+### `Uploader`: Upload manager 
 
 ```typescript
-import { Contract, Contracts } from '.'
-let client: Client
+import { Uploader } from '.'
+let uploader: Uploader
+agent    = new (class TestAgent extends Agent {
+  instantiate (source: Template): Promise<Contract> {
+    return new Contract(source)
+  }
+})({ id: 'chain' })
+uploader = new (class TestUploader extends Uploader {
+  upload (template: Template): Promise<Template> {
+    return new Template(template)
+  }
+})(agent)
 ```
+
+## `Contract`: Instantiating and operating smart contracts
+
+```typescript
+import { Contract } from '.'
+let contract: Contract
+new Contract().assertOperational()
+new Contract().assertCorrect()
+```
+
+### Deploying a smart contract
+
+```typescript
+ok(await new Contract('Name', { crate: 'empty', agent, builder, uploader }).deploy())
+ok(await new Contract('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy())
+```
+
+### Connecting to a smart contract
 
 The `Client` class allows you to transact with a specific smart contract
 deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agent.spec.ts.md).
 
 ```typescript
+ok(await new Contract('Name').get())
+ok(await new Contract('Name').getOr(()=>{}))
 // get a contract client from the agent
-client = agent.getContract()
-ok(client)
+contract = agent.getContract()
+ok(contract)
 ```
 
-### Specifying per-transaction gas fees
+```typescript
+```
+
+### `Fee`: Specifying per-transaction gas fees
+
+```typescript
+import { Fee } from '.'
+```
 
 * `client.fee` is the default fee for all transactions
 * `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
@@ -253,7 +303,7 @@ ok(client)
   Calling it returns a new instance of the Client, which talks to the same contract
   but executes all transactions with the specified custom fee.
 
-### Contract errors
+### `ContractError`: contract error conditions
 
 Contract errors inherit from **ContractError** and are defined as its static properties.
 
