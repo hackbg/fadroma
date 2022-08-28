@@ -179,9 +179,9 @@ export function getDeployContext (
 
   // Get configuration
   const config = {
-    ...new Build.BuilderConfig(process.env, cwd()),
-    ...new Connect.ConnectConfig(process.env, cwd()),
-    ...new DeployConfig(process.env, cwd()),
+    ...new Build.BuilderConfig(context.env, context.cwd),
+    ...new Connect.ConnectConfig(context.env, context.cwd),
+    ...new DeployConfig(context.env, context.cwd),
   }
 
   context = {

@@ -5,6 +5,15 @@ import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual, throws } from 'assert'
 ```
 
+```typescript
+import * as Fadroma from '@fadroma/client'
+let chain:    Fadroma.Chain    = null
+let agent:    Fadroma.Agent    = null
+let template: Fadroma.Template = null
+let artifact: Fadroma.URL      = null
+let chainId, codeId, codeHash, txHash, result
+```
+
 ## Deploy events
 
 ```typescript
@@ -33,8 +42,19 @@ let config: DeployConfig = new DeployConfig({}, '')
 
 ```typescript
 import { DeployContext, getDeployContext } from '.'
+import { Template, Templates, Contract, Contracts } from '@fadroma/client'
 throws(()=>getDeployContext({}))
-let context: DeployContext = getDeployContext({}, {})
+agent = { chain: { id: '' } }
+
+let context: DeployContext = getDeployContext({ env: { FADROMA_CHAIN: 'Mocknet' } }, agent)
+
+ok(context.template('crate') instanceof Template)
+
+ok(context.templates(['crate1', 'crate2']) instanceof Templates)
+
+ok(context.contract('crate') instanceof Contract)
+
+ok(context.contracts() instanceof Contracts)
 ```
 
 ## Deploy task
@@ -49,6 +69,8 @@ new DeployTask()
 ```typescript
 import { FSUploader, CachingFSUploader } from '.'
 new FSUploader()
+await new FSUploader().upload()
+await new FSUploader().uploadMany()
 new CachingFSUploader()
 ```
 
@@ -58,15 +80,6 @@ new CachingFSUploader()
 import { Deployment, Deployments } from '.'
 new Deployment()
 new Deployments()
-```
-
-```typescript
-import * as Fadroma from '@fadroma/client'
-let chain:    Fadroma.Chain    = null
-let agent:    Fadroma.Agent    = null
-let template: Fadroma.Template = null
-let artifact: Fadroma.URL      = null
-let chainId, codeId, codeHash, txHash, result
 ```
 
 ## Upload
