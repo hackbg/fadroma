@@ -120,16 +120,18 @@ const config = new Fadroma.ConnectConfig({ FADROMA_CHAIN: '' }, '')
 ## Connect context
 
 ```typescript
-let context: Fadroma.ConnectContext
-//context = Fadroma.connect()
-//context = Fadroma.connect({ config: { chain: 'id' } })
-context = Fadroma.connect({ config: { chain: 'id' }, chains: { async id () { return {} } } })
+import { ConnectContext, connect } from '.'
+let context: ConnectContext
+//context = connect()
+//context = connect({ config: { chain: 'id' } })
+context = connect({ config: { chain: 'id' }, chains: { async id () { return {} } } })
 ```
 
-## Connect messages
+## Connect events
 
 ```typescript
-const log = new Fadroma.ConnectConsole({
+import { ConnectConsole } from '.'
+const log = new ConnectConsole({
   log: () => {}, info: () => {}, warn: () => {}, error: () => {}
 })
 log.knownChains({x:1})

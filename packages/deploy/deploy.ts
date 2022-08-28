@@ -74,38 +74,38 @@ export class DeployConsole extends Konzola.CustomConsole {
   }
 
   deployFailed (e: Error, template: Fadroma.Template, name: Fadroma.Label, msg: Fadroma.Message) {
-    console.error()
-    console.error(`  Deploy of ${bold(name)} failed:`)
-    console.error(`    ${e.message}`)
+    this.error()
+    this.error(`  Deploy of ${bold(name)} failed:`)
+    this.error(`    ${e.message}`)
     this.deployFailedTemplate(template)
-    console.error()
-    console.error(`  Init message: `)
-    console.error(`    ${JSON.stringify(msg)}`)
-    console.error()
+    this.error()
+    this.error(`  Init message: `)
+    this.error(`    ${JSON.stringify(msg)}`)
+    this.error()
   }
 
   deployManyFailed (e: Error, template: Fadroma.Template, contracts: Fadroma.DeployArgs[]) {
-    console.error()
-    console.error(`  Deploy of multiple contracts failed:`)
-    console.error(`    ${e.message}`)
+    this.error()
+    this.error(`  Deploy of multiple contracts failed:`)
+    this.error(`    ${e.message}`)
     this.deployFailedTemplate(template)
-    console.error()
-    console.error(`  Configs: `)
+    this.error()
+    this.error(`  Configs: `)
     for (const [name, init] of contracts) {
-      console.error(`    ${bold(name)}: `, JSON.stringify(init))
+      this.error(`    ${bold(name)}: `, JSON.stringify(init))
     }
-    console.error()
+    this.error()
   }
 
   deployFailedTemplate (template?: Fadroma.Template) {
-    console.error()
+    this.error()
     if (template) {
-      console.error(`  Template:   `)
-      console.error(`    Chain ID: `, bold(template.chainId ||''))
-      console.error(`    Code ID:  `, bold(template.codeId  ||''))
-      console.error(`    Code hash:`, bold(template.codeHash||''))
+      this.error(`  Template:   `)
+      this.error(`    Chain ID: `, bold(template.chainId ||''))
+      this.error(`    Code ID:  `, bold(template.codeId  ||''))
+      this.error(`    Code hash:`, bold(template.codeHash||''))
     } else {
-      console.error(`  No template was providede.`)
+      this.error(`  No template was providede.`)
     }
   }
 
@@ -158,7 +158,7 @@ export interface DeployContext extends AgentAndBuildContext {
 /** Taking merged Agent and Build context as a basis, populate deploy context. */
 export function getDeployContext (
   context: AgentAndBuildContext & Partial<DeployContext>,
-  agent:   Fadroma.Agent = context.agent
+  agent:   Fadroma.Agent = context.creator ?? context.agent
 ): DeployContext {
 
   // Make sure we're operating in a deployment
@@ -173,9 +173,7 @@ export function getDeployContext (
 
   // Make sure we have an operating identitiy
 
-  context.creator ??= agent
-
-  if (!context.creator) {
+  if (!agent) {
     throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
   }
 
