@@ -780,7 +780,7 @@ export class Contract extends Template {
     } else if (typeof options === 'object') {
       return { ...specifier, ...options }
     } else {
-      throw 'TODO'
+      throw new Error('TODO')
     }
   }
 
