@@ -6,7 +6,7 @@ import * as Fadroma from '@fadroma/build'
 import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
-# Specifying projects and sources
+## Specifying projects and sources
 
 A **Workspace** object points to the root of a project's [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)
   * [ ] TODO: Test with non-workspace project.

@@ -5,13 +5,20 @@ import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
-* The devnet is a temporary self-hosted instance of the selected blockchain network,
-  with a user-specified chain id.
+The devnet is a temporary self-hosted instance of the selected blockchain network,
+with a user-specified chain id.
 
 ```typescript
 import { Devnet } from '.'
 let devnet:  Devnet
 let chainId: string
+```
+
+* Devnet config
+
+```typescript
+import { DevnetConfig } from '.'
+let config: DevnetConfig = new DevnetConfig({}, '')
 ```
 
 * Constructing a devnet:

@@ -2,7 +2,62 @@
 
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
-import assert, { ok, equal, deepEqual } from 'assert'
+import assert, { ok, equal, deepEqual, throws } from 'assert'
+```
+
+## Deploy events
+
+```typescript
+import { DeployConsole } from '.'
+const log = new DeployConsole({
+  log: () => {}, info: () => {}, warn: () => {}, error: () => {}
+})
+log.deployment({})
+log.deployment({ deployment: { receipts: {}, prefix: '' } })
+log.deployment({ deployment: { receipts: { x: { address: 'x' } }, prefix: '' } })
+log.receipt('', '')
+log.deployFailed(new Error(), {}, '', '')
+log.deployManyFailed(new Error(), {}, [])
+log.deployManyFailed(new Error(), {}, [['name', 'init']])
+log.deployFailedTemplate()
+```
+
+## Deploy config
+
+```typescript
+import { DeployConfig } from '.'
+let config: DeployConfig = new DeployConfig({}, '')
+```
+
+## Deploy context
+
+```typescript
+import { DeployContext, getDeployContext } from '.'
+throws(()=>getDeployContext({}))
+let context: DeployContext = getDeployContext({}, {})
+```
+
+## Deploy task
+
+```typescript
+import { DeployTask } from '.'
+new DeployTask()
+```
+
+## `FSUploader`, `CachingFSUploader`: uploading local files
+
+```typescript
+import { FSUploader, CachingFSUploader } from '.'
+new FSUploader()
+new CachingFSUploader()
+```
+
+## `Deployment`, `Deployments`: keeping track of deployed contracts
+
+```typescript
+import { Deployment, Deployments } from '.'
+new Deployment()
+new Deployments()
 ```
 
 ```typescript
@@ -293,7 +348,7 @@ class DeployMyContracts extends DeployTask<Promise<{
 ```typescript
 import { connect } from '@fadroma/connect'
 import { getDeployContext } from './deploy'
-const context = await getDeployContext(await connect(await getChainContext({
+context = await getDeployContext(await connect(await getChainContext({
   config: { chain: 'Mocknet' }
   deployment: {
     has () { return true }
