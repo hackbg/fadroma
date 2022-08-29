@@ -162,7 +162,6 @@ const results = await uploader.uploadMany([
   artifact,
   false
 ])
-console.log(results)
 deepEqual(results, [
   undefined,
   template,

@@ -1,5 +1,5 @@
 import { CustomConsole, Console, bold } from '@hackbg/konzola'
-import { Commands, CommandContext }     from '@hackbg/komandi'
+import * as Komandi                     from '@hackbg/komandi'
 import { EnvConfig }                    from '@hackbg/konfizi'
 
 import * as Fadroma  from '@fadroma/client'
@@ -8,6 +8,125 @@ import { Mocknet }   from '@fadroma/mocknet'
 
 import { ScrtGrpc }  from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
+
+export class ConnectConfig extends EnvConfig {
+
+  /** Path to root of project. */
+  project: string =
+    this.getString('FADROMA_PROJECT',  ()=>this.cwd)
+
+  /** Name of chain to use. */
+  chain:   string | null =
+    this.getString('FADROMA_CHAIN')
+
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  agentName:     string =
+    this.getString('FADROMA_AGENT',    ()=>this.getString('SCRT_AGENT_NAME',     ()=>'ADMIN'))
+
+  /** Mnemonic to use for authentication. */
+  agentMnemonic: string|null =
+    this.getString('FADROMA_MNEMONIC', ()=>this.getString('SCRT_AGENT_MNEMONIC', ()=>null))
+
+}
+
+/** A collection of functions that return Chain instances. */
+export type ChainRegistry = Record<string, (config: any)=>Fadroma.Chain|Promise<Fadroma.Chain>>
+
+/** The known chains. */
+export class ConnectContext extends Komandi.Context {
+
+  /** All supported chains. */
+  static chains: ChainRegistry = {
+    Mocknet: async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
+    // Support for current Secret Network
+    ...ScrtGrpc.Chains,
+    ScrtGrpcDevnet:  Devnet.define(ScrtGrpc,  'scrt_1.3'),
+    // Support for Secret Network legacy amino API
+    ...ScrtAmino.Chains,
+    ScrtAminoDevnet: Devnet.define(ScrtAmino, 'scrt_1.2'),
+  }
+
+  static async connect (
+    chain?: Fadroma.Chain|keyof ChainRegistry,
+    agent?: Fadroma.Agent
+  ): Promise<ConnectContext> {
+    if (typeof chain === 'string') {
+      chain = await Promise.resolve(this.chains[chain]())
+    }
+
+    const chains = context.chains ?? knownChains
+
+    const config = { ...context.config ?? {}, ...new ConnectConfig() }
+
+    const id     = config.chain
+
+    // Check that a valid id is passed
+    if (!id || !chains[id]) {
+      log.noName(chains)
+      process.exit(1)
+    }
+
+    // Return chain and deployments handle
+    const chain = await context.chains![id](context.config)
+
+    // Get agent TODO optional
+    const agentOpts: Fadroma.AgentOpts = { name: undefined }
+    if (chain.isDevnet) {
+      // for devnet, use auto-created genesis account
+      agentOpts.name = config.agentName
+    } else {
+      // for scrt-based chains, use mnemonic from config
+      agentOpts.mnemonic = config.agentMnemonic!
+    }
+    const agent = await chain.getAgent(agentOpts)
+
+    return new this(chain, agent)
+  }
+
+  constructor (
+    config: ConnectConfig,
+    /** The selected blockhain to connect to. */
+    public chain?: Fadroma.Chain,
+    /** The selected agent to operate as. */
+    public agent?: Fadroma.Agent
+  ) {
+    super()
+    this.config = config ?? new ConnectConfig(this.env, this.cwd)
+  }
+
+  config: ConnectConfig
+
+  /** True if the chain is a devnet or mocknet */
+  get devMode   (): boolean { return this.chain?.devMode ?? false }
+
+  /** = chain.isMainnet */
+  get isMainnet (): boolean { return this.chain?.isMainnet ?? false }
+
+  /** = chain.isTestnet */
+  get isTestnet (): boolean { return this.chain?.isTestnet ?? false }
+
+  /** = chain.isDevnet */
+  get isDevnet  (): boolean { return this.chain?.isDevnet ?? false }
+
+  /** = chain.isMocknet */
+  get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
+
+}
+
+/** Commands for @fadroma/connect cli */
+export default class ConnectCommands extends Komandi.Commands<ConnectContext> {
+
+  constructor (name: string = 'connect', before = [], after = []) {
+    super(name, [connect, ...before], after)
+    this.command('chains', 'print a list of all known chains', this.chains)
+  }
+
+  chains = () => {
+    log.knownChains(knownChains)
+    log.selectedChain(new ConnectConfig())
+  }
+
+}
 
 export class ConnectConsole extends CustomConsole {
 
@@ -64,125 +183,3 @@ export class ConnectConsole extends CustomConsole {
 }
 
 export const log = new ConnectConsole(console)
-
-export class ConnectConfig extends EnvConfig {
-
-  /** Path to root of project. */
-  project: string =
-    this.getStr('FADROMA_PROJECT', ()=>this.cwd)
-
-  /** Name of chain to use. */
-  chain:   string | null =
-    this.getStr('FADROMA_CHAIN')
-
-  /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  agentName:     string =
-    this.getStr('FADROMA_AGENT',    ()=>this.getStr('SCRT_AGENT_NAME',     ()=>'ADMIN'))
-
-  /** Mnemonic to use for authentication. */
-  agentMnemonic: string|null =
-    this.getStr('FADROMA_MNEMONIC', ()=>this.getStr('SCRT_AGENT_MNEMONIC', ()=>null))
-
-}
-
-/** A collection of functions that return Chain instances. */
-export type Chains = Record<string, (config: any)=>Fadroma.Chain|Promise<Fadroma.Chain>>
-
-/** The known chains. */
-export const knownChains: Chains = {
-
-  Mocknet: async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
-
-  // Support for current Secret Network
-  ...ScrtGrpc.Chains,
-  ScrtGrpcDevnet:  Devnet.define(ScrtGrpc,  'scrt_1.3'),
-
-  // Support for Secret Network legacy amino API
-  ...ScrtAmino.Chains,
-  ScrtAminoDevnet: Devnet.define(ScrtAmino, 'scrt_1.2'),
-
-}
-
-/** Add a Chain and its Deployments to the Context. */
-export async function connect (
-  context: CommandContext & Partial<{ config: ConnectConfig, chains: Chains }>,
-): Promise<ConnectContext> {
-
-  const chains = context.chains ?? knownChains
-
-  const config = { ...context.config ?? {}, ...new ConnectConfig() }
-
-  const id     = config.chain
-
-  // Check that a valid id is passed
-  if (!id || !chains[id]) {
-    log.noName(chains)
-    process.exit(1)
-  }
-
-  // Return chain and deployments handle
-  const chain = await context.chains![id](context.config)
-
-  // Get agent TODO optional
-  const agentOpts: Fadroma.AgentOpts = { name: undefined }
-  if (chain.isDevnet) {
-    // for devnet, use auto-created genesis account
-    agentOpts.name = config.agentName
-  } else {
-    // for scrt-based chains, use mnemonic from config
-    agentOpts.mnemonic = config.agentMnemonic!
-  }
-  const agent = await chain.getAgent(agentOpts)
-
-  return {
-    ...context,
-    config,
-    chain,
-    agent,
-    devMode:   chain.isDevnet || chain.isMocknet,
-    isDevnet:  chain.isDevnet,
-    isMocknet: chain.isMocknet,
-    isTestnet: chain.isTestnet,
-    isMainnet: chain.isMainnet,
-    deployments: await import('@fadroma/deploy')
-      .then(({Deployments})=>Deployments.fromConfig(chain.id, config.project))
-      .catch(new ConnectConsole(console).noDeploy)
-  }
-}
-
-export interface ConnectContext extends CommandContext {
-  config?:     Partial<ConnectConfig>
-  /** Known blockchains and connection methods. */
-  chains?:     Chains
-  /** The selected blockhain to connect to. */
-  chain:       Fadroma.Chain
-  /** True if the chain is a devnet or mocknet */
-  devMode:     boolean
-  /** = chain.isMainnet */
-  isMainnet:   boolean
-  /** = chain.isTestnet */
-  isTestnet:   boolean
-  /** = chain.isDevnet */
-  isDevnet:    boolean
-  /** = chain.isMocknet */
-  isMocknet:   boolean
-  /** Collections of interlinked contracts on the selected chain. */
-  deployments: import('@fadroma/deploy').Deployments|null
-  /** Default identity to use when operating on the chain. */
-  agent:       Fadroma.Agent
-}
-
-/** Commands for @fadroma/connect cli */
-export default class ConnectCommands extends Commands<CommandContext> {
-
-  constructor (name: string = 'connect', before = [], after = []) {
-    super(name, [connect, ...before], after)
-    this.command('chains', 'print a list of all known chains', this.chains)
-  }
-
-  chains = () => {
-    log.knownChains(knownChains)
-    log.selectedChain(new ConnectConfig())
-  }
-
-}

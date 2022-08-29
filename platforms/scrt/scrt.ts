@@ -32,15 +32,15 @@ export type ScrtGrpcTxResult = SecretJS.Tx
   * that are common between gRPC and Amino implementations. */
 export class ScrtConfig extends EnvConfig {
   scrtAgentName:      string|null
-    = this.getStr('SCRT_AGENT_NAME',       ()=>null)
+    = this.getString('SCRT_AGENT_NAME',       ()=>null)
   scrtAgentAddress:   string|null
-    = this.getStr('SCRT_AGENT_ADDRESS',    ()=>null)
+    = this.getString('SCRT_AGENT_ADDRESS',    ()=>null)
   scrtAgentMnemonic:  string|null
-    = this.getStr('SCRT_AGENT_MNEMONIC',   ()=>null)
+    = this.getString('SCRT_AGENT_MNEMONIC',   ()=>null)
   scrtMainnetChainId: string
-    = this.getStr('SCRT_MAINNET_CHAIN_ID', ()=>Scrt.defaultMainnetChainId)
+    = this.getString('SCRT_MAINNET_CHAIN_ID', ()=>Scrt.defaultMainnetChainId)
   scrtTestnetChainId: string
-    = this.getStr('SCRT_TESTNET_CHAIN_ID', ()=>Scrt.defaultTestnetChainId)
+    = this.getString('SCRT_TESTNET_CHAIN_ID', ()=>Scrt.defaultTestnetChainId)
 }
 
 /** Base class for both implementations of Secret Network API (gRPC and Amino) */
@@ -90,6 +90,7 @@ export abstract class ScrtAgent extends Fadroma.Agent {
   }
 
   abstract getNonce (): Promise<{ accountNumber: number, sequence: number }>
+
   abstract encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message): Promise<string>
 
 }
@@ -209,9 +210,9 @@ Scrt.Agent.Bundle = ScrtBundle
 /** gRPC-specific Secret Network settings. */
 export class ScrtGrpcConfig extends ScrtConfig {
   scrtMainnetGrpcUrl: string|null
-    = this.getStr('SCRT_MAINNET_GRPC_URL',  ()=>ScrtGrpc.defaultMainnetGrpcUrl)
+    = this.getString('SCRT_MAINNET_GRPC_URL',  ()=>ScrtGrpc.defaultMainnetGrpcUrl)
   scrtTestnetGrpcUrl: string|null
-    = this.getStr('SCRT_TESTNET_GRPC_URL',  ()=>ScrtGrpc.defaultTestnetGrpcUrl)
+    = this.getString('SCRT_TESTNET_GRPC_URL',  ()=>ScrtGrpc.defaultTestnetGrpcUrl)
 }
 
 /** The Secret Network, accessed via gRPC API. */

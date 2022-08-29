@@ -42,9 +42,9 @@ export const privKeyToMnemonic = (privKey: Uint8Array) =>
 /** Amino-specific Secret Network settings. */
 export class ScrtAminoConfig extends Fadroma.ScrtConfig {
   scrtMainnetAminoUrl: string|null
-    = this.getStr('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultMainnetAminoUrl)
+    = this.getString('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultMainnetAminoUrl)
   scrtTestnetAminoUrl: string|null
-    = this.getStr('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultTestnetAminoUrl)
+    = this.getString('SCRT_MAINNET_AMINO_URL', ()=>ScrtAmino.defaultTestnetAminoUrl)
 }
 
 /** The Secret Network, accessed via Amino protocol. */
