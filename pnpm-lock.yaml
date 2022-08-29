@@ -19,6 +19,7 @@ importers:
       '@hackbg/izomorf': ^4.2.4
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^4.2.8
+      '@hackbg/konfizi': workspace:*
       '@hackbg/konzola': ^1.1.2
       '@hackbg/runspec': ^2.3.1
       '@types/dockerode': ^3.3.9
@@ -52,6 +53,7 @@ importers:
       '@hackbg/ganesha': 2.3.0
       '@hackbg/kabinet': link:toolbox/kabinet
       '@hackbg/komandi': link:toolbox/komandi
+      '@hackbg/konfizi': link:toolbox/konfizi
       '@hackbg/konzola': link:toolbox/konzola
       dotenv: 16.0.1
     devDependencies:

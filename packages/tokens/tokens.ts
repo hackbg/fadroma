@@ -531,16 +531,6 @@ interface TokenRegistryContext {
 
 export class TokenError extends Error {
 
-  static define (name: string, message: (...args: any)=>string): typeof TokenError {
-    return Object.assign(class extends TokenError {}, {
-      name,
-      constructor (...args: any) {
-        //@ts-ignore
-        super(message(args))
-      }
-    })
-  }
-
   static NoSymbol = this.define('NoSymbol',
     ()=>'Pass a symbol to get a token')
 
@@ -555,5 +545,15 @@ export class TokenError extends Error {
 
   static AlreadyRegistered = this.define('AlreadyRegistered',
     (symbol: string) => 'Token already in registry: ')
+
+  static define (name: string, message: (...args: any)=>string): typeof TokenError {
+    return Object.assign(class extends TokenError {}, {
+      name: `${name}Error`,
+      constructor (...args: any) {
+        //@ts-ignore
+        super(message(args))
+      }
+    })
+  }
 
 }

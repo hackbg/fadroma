@@ -55,6 +55,7 @@
     "@hackbg/ganesha": "^2.3.0",
     "@hackbg/kabinet": "^3.1.2",
     "@hackbg/komandi": "^4.2.8",
+    "@hackbg/konfizi": "workspace:*",
     "@hackbg/konzola": "^1.1.2",
     "dotenv": "^16.0.1"
   },

@@ -4,30 +4,41 @@ import * as Formati from '@hackbg/formati'
 
 /** Chain instance containing a local MocknetBackend. */
 export class Mocknet extends Fadroma.Chain {
+
+  balances: Record<Fadroma.Address, Fadroma.Uint128> = {}
+
   defaultDenom = 'umock'
+
   constructor (id = 'fadroma-mocknet', options = {}) {
     super(id, { ...options, mode: Fadroma.ChainMode.Mocknet })
   }
+
   backend = new MocknetBackend(this.id)
-  //@ts-ignore
-  async getAgent <A extends MocknetAgent> (options: AgentOpts): Promise<A> {
-    return new MocknetAgent(this, options) as A
+
+  async getAgent <A> (options: Fadroma.AgentOpts): Promise<A> {
+    return new MocknetAgent(this, options) as unknown as A
   }
+
   async query <T, U> (contract: Partial<Fadroma.Contract>, msg: T): Promise<U> {
     return this.backend.query(contract, msg as Fadroma.Message)
   }
+
   async getHash (_: any) {
     return Promise.resolve("SomeCodeHash")
   }
+
   async getCodeId (_: any) {
     return Promise.resolve("1")
   }
-  async getLabel (_: any) {
+
+  async getLabel (address: Fadroma.Address) {
     return "SomeLabel"
   }
-  async getBalance (_: string) {
-    return "0"
+
+  async getBalance (address: Fadroma.Address) {
+    return this.balances[address] || '0'
   }
+
   get height () {
     return Promise.resolve(0)
   }
@@ -38,71 +49,79 @@ export class Mocknet extends Fadroma.Chain {
 
   //@ts-ignore
   Agent: Fadroma.AgentCtor<MocknetAgent> = Mocknet.Agent
+
 }
 
 //@ts-ignore
 class MocknetAgent extends Fadroma.Agent {
-  get defaultDenom () { return this.chain.defaultDenom }
+
+  get defaultDenom () {
+    return this.chain.defaultDenom
+  }
+
   static async create (chain: Mocknet, options: Fadroma.AgentOpts) {
     return new MocknetAgent(chain, options)
   }
+
   constructor (readonly chain: Mocknet, readonly options: Fadroma.AgentOpts) {
     super(chain as Fadroma.Chain, options)
   }
+
   name:    string  = 'MocknetAgent'
+
   address: Fadroma.Address = Formati.randomBech32(MOCKNET_ADDRESS_PREFIX)
+
   get backend (): MocknetBackend {
     const { backend }: Mocknet = this.chain as unknown as Mocknet
     return backend
   }
+
   async upload (blob: Uint8Array) {
     return await this.backend.upload(blob)
   }
+
   async instantiate <T> (
     template: Fadroma.Template, label: string, msg: T, send = []
   ): Promise<Fadroma.Contract> {
     return await this.backend.instantiate(this.address, template, label, msg as Fadroma.Message, send)
   }
+
   async execute <R> (
     instance: Partial<Fadroma.Contract>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
   ): Promise<R> {
     return await this.backend.execute(this.address, instance, msg, opts.send, opts.memo, opts.fee)
   }
+
   async query <R> (
     instance: Partial<Fadroma.Contract>, msg: Fadroma.Message
   ): Promise<R> {
     return await this.chain.query(instance, msg)
   }
-  get nextBlock () {
-    return Promise.resolve(0)
+
+  get account () {
+    return Promise.resolve({})
   }
-  get block     () {
-    return Promise.resolve(0)
-  }
-  get account   () {
-    return Promise.resolve()
-  }
-  get balance   () {
-    return Promise.resolve("0")
-  }
-  getBalance (_: string) {
-    return Promise.resolve("0")
-  }
+
   send (_1:any, _2:any, _3?:any, _4?:any, _5?:any) {
     return Promise.resolve()
   }
+
   sendMany (_1:any, _2:any, _3?:any, _4?:any) {
     return Promise.resolve()
   }
+
   /** Message bundle that warns about unsupported messages. */
   static Bundle: Fadroma.BundleCtor<MocknetBundle>
+
 }
 
 //@ts-ignore
 Mocknet.Agent = MocknetAgent
 
 class MocknetBundle extends Fadroma.Bundle {
+
   //declare agent: MocknetAgent
+
   async submit (memo = "") {
     const results = []
     for (const { init, exec } of this.msgs) {
@@ -121,9 +140,11 @@ class MocknetBundle extends Fadroma.Bundle {
     }
     return results
   }
+
   save (name: string): Promise<unknown> {
     throw new Error('MocknetBundle#save: not implemented')
   }
+
 }
 
 Mocknet.Agent.Bundle = MocknetBundle

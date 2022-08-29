@@ -25,19 +25,19 @@ export class DevnetConfig extends EnvConfig {
 
   /** URL to the devnet manager endpoint, if used. */
   manager:   string|null =
-    this.getStr('FADROMA_DEVNET_MANAGER',    ()=>null)
+    this.getString ('FADROMA_DEVNET_MANAGER',    ()=>null)
 
   /** Whether to remove the devnet after the command ends. */
   ephemeral: boolean =
-    this.getBool('FADROMA_DEVNET_EPHEMERAL', ()=>false)
+    this.getBoolean('FADROMA_DEVNET_EPHEMERAL', ()=>false)
 
   /** Chain id for devnet .*/
   chainId:   string =
-    this.getStr('FADROMA_DEVNET_CHAIN_ID',   ()=>"fadroma-devnet")
+    this.getString ('FADROMA_DEVNET_CHAIN_ID',   ()=>"fadroma-devnet")
 
   /** Port for devnet. */
   port:      string|null =
-    this.getStr('FADROMA_DEVNET_PORT',       ()=>null)
+    this.getString ('FADROMA_DEVNET_PORT',       ()=>null)
 
 }
 
@@ -705,3 +705,31 @@ export default class DevnetCommands extends Komandi.Commands<Connect.ConnectCont
   }
 
 }
+
+export class DevnetError extends Error {
+
+  static NoChainId = this.define('NoChainId',
+    ()=>'No chain id')
+
+  static PortMode = this.define('PortMode',
+    ()=>"DockerDevnet#portMode must be either 'lcp' or 'grpcWeb'")
+
+  static NoContainerId = this.define('NoContainerId',
+    ()=>'Missing container id in devnet state')
+
+  static NoGenesisAccount = this.define('NoGenesisAccount',
+    (name: string, error: any)=>
+      `Genesis account not found: ${name} (${error})`)
+
+  static define (name: string, message: (...args: any)=>string): typeof DevnetError {
+    return Object.assign(class extends DevnetError {}, {
+      name: `Devnet${name}Error`,
+      constructor (...args: any) {
+        //@ts-ignore
+        super(message(args))
+      }
+    })
+  }
+
+}
+  

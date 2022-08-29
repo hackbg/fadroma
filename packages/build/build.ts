@@ -34,81 +34,31 @@ import { homedir, tmpdir              } from 'os'
 import { pathToFileURL, fileURLToPath } from 'url'
 import { readFileSync, mkdtempSync    } from 'fs'
 
-const bold = Konzola.bold
-
-export class BuildConsole extends Konzola.CustomConsole {
-
-  name = 'Fadroma Build'
-
-  buildingFromCargoToml (file: Kabinet.Path) {
-    this.info('Building from', bold(file.shortPath))
-  }
-
-  buildingFromBuildScript (file: Kabinet.Path) {
-    this.info('Running build script', bold(file.shortPath))
-  }
-
-  buildingFromWorkspace (mounted: Kabinet.Path, ref: string = HEAD) {
-    this.info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-      `@`, bold(ref)
-    )
-  }
-
-  buildingOne (source: Fadroma.Source, prebuilt: Fadroma.Template|null, longestCrateName: number) {
-    if (prebuilt) {
-      this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
-    } else {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        this.info('Building', bold(crate), 'from working tree')
-      } else {
-        this.info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
-    }
-  }
-
-  buildingMany (sources: Fadroma.Source[]) {
-    for (const source of sources) {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        this.info('Building', bold(crate), 'from working tree')
-      } else {
-        this.info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
-    }
-    this.info()
-  }
-
-}
-
-const log = new BuildConsole(console)
-
 export class BuilderConfig extends Konfizi.EnvConfig {
   /** Project root. Defaults to current working directory. */
   project:    string
-    = this.getStr ('FADROMA_PROJECT',          ()=>this.cwd)
+    = this.getString ('FADROMA_PROJECT',          ()=>this.cwd)
   /** Whether to bypass Docker and use the toolchain from the environment. */
   buildRaw:   boolean
-    = this.getBool('FADROMA_BUILD_RAW',        ()=>false)
+    = this.getBoolean('FADROMA_BUILD_RAW',        ()=>false)
   /** Whether to ignore existing build artifacts and rebuild contracts. */
   rebuild:    boolean
-    = this.getBool('FADROMA_REBUILD',          ()=>false)
+    = this.getBoolean('FADROMA_REBUILD',          ()=>false)
   /** Whether not to run `git fetch` during build. */
   noFetch:    boolean
-    = this.getBool('FADROMA_NO_FETCH',         ()=>false)
+    = this.getBoolean('FADROMA_NO_FETCH',         ()=>false)
   /** Which version of the Rust toolchain to use, e.g. `1.59.0` */
   toolchain:  string
-    = this.getStr ('FADROMA_RUST',             ()=>'')
+    = this.getString ('FADROMA_RUST',             ()=>'')
   /** Docker image to use for dockerized builds. */
   image:      string
-    = this.getStr ('FADROMA_BUILD_SCRIPT',     ()=>DockerBuilder.image)
+    = this.getString ('FADROMA_BUILD_SCRIPT',     ()=>DockerBuilder.image)
   /** Dockerfile to build the build image if not downloadable. */
   dockerfile: string
-    = this.getStr ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.dockerfile)
+    = this.getString ('FADROMA_BUILD_IMAGE',      ()=>DockerBuilder.dockerfile)
   /** Script that runs the actual build, e.g. build.impl.mjs */
   script:     string
-    = this.getStr ('FADROMA_BUILD_DOCKERFILE', ()=>LocalBuilder.script)
+    = this.getString ('FADROMA_BUILD_DOCKERFILE', ()=>LocalBuilder.script)
 }
 
 /** Base class for class-based deploy procedure. Adds progress logging. */
@@ -116,49 +66,46 @@ export class BuildTask<X> extends Komandi.Task<BuildContext, X> {
   console = log
 }
 
-/** The nouns and verbs exposed to REPL and Commands. */
-export interface BuildContext extends Komandi.CommandContext {
-  config:    Partial<BuilderConfig>
+export class BuildContext extends Komandi.Context {
+
+  constructor (
+    config: BuilderConfig
+  ) {
+    super()
+    this.config    = config ?? new BuilderConfig(this.env, this.cwd)
+    this.builder   = getBuilder(this.config)
+    this.workspace = new LocalWorkspace(this.config.project)
+  }
+
+  /** Setting for the build context. */
+  config:    BuilderConfig
+
+  /** Knows how to build contracts for a target. */
+  builder:   Fadroma.Builder
+
   /** Cargo workspace of the current project. */
   workspace: LocalWorkspace
-  /** Get a Source by crate name from the current workspace. */
-  getSource (source: Fadroma.IntoSource): Fadroma.Source
-  /** Knows how to build contracts for a target. */
-  builder: Fadroma.Builder
-  /** Get a Template from Source or crate name. */
-  build (source: Fadroma.IntoSource, ref?: string): Promise<Fadroma.Template>
-  /** Get one or more Templates from Source or crate name */
-  buildMany (ref?: string, ...sources: Fadroma.IntoSource[][]): Promise<Fadroma.Template[]>
-}
 
-/** Add build vocabulary to context of REPL and deploy scripts. */
-export function getBuildContext (
-  context: Komandi.CommandContext & Partial<BuildContext>
-): BuildContext {
-  const config = { ...new BuilderConfig(), ...context.config ?? {} }
-  return {
-    ...context,
-    config,
-    builder:   getBuilder(config),
-    workspace: new LocalWorkspace(config.project),
-    getSource (source: Fadroma.IntoSource, ref?: string): LocalSource {
-      let workspace = this.workspace
-      if (ref) workspace = workspace.at(ref)
-      if (typeof source === 'string') return this.workspace.crate(source)
-      if (source instanceof URL) return new LocalSource({ repo: source })
-      return source as LocalSource
-    },
-    async build (source: Fadroma.IntoSource, ref?: string): Promise<Fadroma.Template> {
-      return await this.builder.build(this.getSource(source).at(ref))
-    },
-    async buildMany (
-      ref?: string,
-      ...sources: Fadroma.IntoSource[][]
-    ): Promise<Fadroma.Template[]> {
-      sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
-      return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
-    }
+  /** Get a Source by crate name from the current workspace. */
+  getSource (source: Fadroma.IntoSource, ref?: string): LocalSource {
+    let workspace = this.workspace
+    if (ref) workspace = workspace.at(ref)
+    if (typeof source === 'string') return this.workspace.crate(source)
+    if (source instanceof URL) return new LocalSource({ repo: source })
+    return source as LocalSource
   }
+
+  /** Get a Template from Source or crate name. */
+  async build (source: Fadroma.IntoSource, ref?: string): Promise<Fadroma.Template> {
+    return await this.builder.build(this.getSource(source).at(ref))
+  }
+
+  /** Get one or more Templates from Source or crate name */
+  async buildMany (ref?: string, ...sources: Fadroma.IntoSource[][]): Promise<Fadroma.Template[]> {
+    sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
+    return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
+  }
+
 }
 
 /** Get a builder based on the builder config. */
@@ -195,17 +142,20 @@ export class LocalSource extends Fadroma.Source {
 
 /** Represents a Cargo workspace containing multiple smart contract crates */
 export class LocalWorkspace {
+
   constructor (
     public readonly path:   string,
     public readonly ref:    string = HEAD,
     public readonly gitDir: DotGit = new DotGit(path)
   ) {}
+
   /** Create a new instance of the same workspace that will
     * return Source objects pointing to a specific Git ref. */
   at (ref: string): this {
     interface WorkspaceCtor<W> { new (path: string, ref?: string, gitDir?: DotGit): W }
     return new (this.constructor as WorkspaceCtor<typeof this>)(this.path, ref, this.gitDir)
   }
+
   /** Get a Source object pointing to a crate from the current workspace and ref */
   crate (specifier: string): LocalSource {
     const [ crate, ref ] = specifier.split('@')
@@ -215,10 +165,12 @@ export class LocalWorkspace {
     }
     return new LocalSource(crate, { workspace: self.path })
   }
+
   /** Get multiple Source objects pointing to crates from the current workspace and ref */
   crates (crates: string[]): LocalSource[] {
     return crates.map(crate=>this.crate(crate))
   }
+
 }
 
 /** Represents the real location of the Git data directory.
@@ -226,12 +178,19 @@ export class LocalWorkspace {
   * - If the contracts workspace repository is a submodule,
   *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
 export class DotGit extends Kabinet.Path {
+
+  /* Matches "/.git" or "/.git/" */
+  static rootRepoRE = new RegExp(`${Kabinet.Path.separator}.git${Kabinet.Path.separator}?`)
+
   constructor (base: string, ...fragments: string[]) {
+
     super(base, ...fragments, '.git')
+
     if (!this.exists()) {
       // If .git does not exist, it is not possible to build past commits
       log.warn(bold(this.shortPath), 'does not exist')
       this.present = false
+
     } else if (this.isFile()) {
       // If .git is a file, the workspace is contained in a submodule
       const gitPointer = this.as(Kabinet.TextFile).load().trim()
@@ -251,26 +210,32 @@ export class DotGit extends Kabinet.Path {
         log.info(bold(this.shortPath), 'is an unknown file.')
         this.present = false
       }
+
     } else if (this.isDirectory()) {
       // If .git is a directory, this workspace is not in a submodule
       // and it is easy to build past commits
       this.present = true
+
     } else {
       // Otherwise, who knows?
       log.warn(bold(this.shortPath), `is not a file or directory`)
       this.present = false
     }
+
   }
+
   readonly present:     boolean
+
   readonly isSubmodule: boolean = false
+
   get rootRepo (): Kabinet.Path {
     return $(this.path.split(DotGit.rootRepoRE)[0])
   }
+
   get submoduleDir (): string {
     return this.path.split(DotGit.rootRepoRE)[1]
   }
-  /* Matches "/.git" or "/.git/" */
-  static rootRepoRE = new RegExp(`${Kabinet.Path.separator}.git${Kabinet.Path.separator}?`)
+
 }
 
 //@ts-ignore
@@ -316,8 +281,9 @@ export abstract class LocalBuilder extends Fadroma.Builder {
   /** Default build script */
   static script = resolve(__dirname, 'build.impl.mjs')
 
-  constructor (opts: Partial<LocalBuilder> = {}) {
-    super(opts)
+  constructor (options: Partial<LocalBuilder> = {}) {
+    super()
+    this.override(options)
   }
 
   /** The build script. */
@@ -341,7 +307,8 @@ export abstract class LocalBuilder extends Fadroma.Builder {
 export abstract class CachingBuilder extends LocalBuilder {
 
   constructor (options: Partial<CachingBuilderOptions> = {}) {
-    super(options)
+    super()
+    this.override(options)
   }
 
   /** Mockable. */
@@ -887,3 +854,53 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
   }
 
 }
+
+export class BuildConsole extends Konzola.CustomConsole {
+
+  name = 'Fadroma Build'
+
+  buildingFromCargoToml (file: Kabinet.Path) {
+    this.info('Building from', bold(file.shortPath))
+  }
+
+  buildingFromBuildScript (file: Kabinet.Path) {
+    this.info('Running build script', bold(file.shortPath))
+  }
+
+  buildingFromWorkspace (mounted: Kabinet.Path, ref: string = HEAD) {
+    this.info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
+  }
+
+  buildingOne (source: Fadroma.Source, prebuilt: Fadroma.Template|null, longestCrateName: number) {
+    if (prebuilt) {
+      this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
+    } else {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        this.info('Building', bold(crate), 'from working tree')
+      } else {
+        this.info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
+    }
+  }
+
+  buildingMany (sources: Fadroma.Source[]) {
+    for (const source of sources) {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        this.info('Building', bold(crate), 'from working tree')
+      } else {
+        this.info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
+    }
+    this.info()
+  }
+
+}
+
+const bold = Konzola.bold
+
+const log = new BuildConsole(console)

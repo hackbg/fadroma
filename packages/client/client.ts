@@ -436,6 +436,9 @@ export abstract class Chain implements Spectator {
   /** Whether this is a mocknet. */
   get isMocknet () { return this.mode === ChainMode.Mocknet }
 
+  /** Whether this is a devnet or mocknet. */
+  get devMode   () { return this.isDevnet || this.isMocknet }
+
   /** Return self. */
   get chain     () { return this }
 
@@ -655,10 +658,13 @@ export abstract class Agent implements Executor {
   /** Wait until the block height increments. */
   get nextBlock () { return this.chain.nextBlock }
 
+  /** Get the code ID of a contract. */
   getCodeId (address: Address) { return this.chain.getCodeId(address) }
 
+  /** Get the label of a contract. */
   getLabel  (address: Address) { return this.chain.getLabel(address) }
 
+  /** Get the code hash of a contract or template. */
   getHash   (address: Address|number) { return this.chain.getHash(address) }
 
   checkHash (address: Address, codeHash?: CodeHash) {
