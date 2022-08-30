@@ -101,11 +101,9 @@ export class DeployContext extends Komandi.Context {
   /** Specify a contract to deploy or operate. */
   contract <C extends Fadroma.Contract> (
     specifier: Fadroma.IntoContract,
-    _Client:   Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
-      = Fadroma.Contract as Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
+    options = { Client: Fadroma.Contract as Fadroma.ContractCtor<C, any> }
   ): C {
-    return new Fadroma.Contract(specifier, _Client)
-      .but({ context: context as Fadroma.UploadInitContext }) as C
+    return new Fadroma.Contract(specifier, options).but({ context: this })
   }
 
   /** Specify multiple contracts of the same kind. */
@@ -113,8 +111,7 @@ export class DeployContext extends Komandi.Context {
     _Client: Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
       = Fadroma.Contract as Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
   ): Fadroma.Contracts<C> {
-    return new Fadroma.Contracts(_Client)
-      .but({ context: context as DeployContext }) as Fadroma.Contracts<C>
+    return new Fadroma.Contracts(_Client, { context: this })
   }
 
 }
@@ -124,7 +121,7 @@ export class DeployContext extends Komandi.Context {
 /** Base class for class-based deploy procedure. Adds progress logging. */
 export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 
-  console = console
+  console = log
 
   contract <C extends Fadroma.Contract> (
     arg:      Fadroma.IntoContract,
@@ -146,13 +143,7 @@ export default class DeployCommands <C extends DeployContext> extends Komandi.Co
     // Deploy commands are like regular commands but
     // they already have a whole lot of deploy handles
     // pre-populated in the context.
-    super(name, [
-      Build.getBuildContext,
-      Connect.connect,
-      Connect.log.chainStatus,
-      DeployContext.enable,
-      ...before
-    ], after)
+    super(name, before, after)
     this.command('list',    'print a list of all deployments', DeployCommands.list)
     this.command('select',  'select a new active deployment',  DeployCommands.select)
     //@ts-ignore
@@ -188,7 +179,7 @@ export default class DeployCommands <C extends DeployContext> extends Komandi.Co
     return parsed
   }
 
-  static expectEnabled = (context: { deployments: Deployments|null }): Deployments => {
+  static expectEnabled = (context: DeployContext): Deployments => {
     if (!(context.deployments instanceof Deployments)) {
       //console.error('context.deployments was not populated')
       //console.log(context)
@@ -198,9 +189,7 @@ export default class DeployCommands <C extends DeployContext> extends Komandi.Co
   }
 
   /** Add the currently active deployment to the command context. */
-  static get = async (
-    context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> => {
+  static get = async (context: DeployContext): Promise<DeployContext> => {
     const deployments = this.expectEnabled(context)
     if (!deployments.active) {
       console.info('No selected deployment on chain:', bold(context.chain.id))
@@ -210,20 +199,16 @@ export default class DeployCommands <C extends DeployContext> extends Komandi.Co
   }
 
   /** Create a new deployment and add it to the command context. */
-  static create = async (
-    context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> => {
+  static create = async (context: DeployContext): Promise<DeployContext> => {
     const deployments = this.expectEnabled(context)
-    const [ prefix = context.timestamp ] = context.cmdArgs
+    const [ prefix = context.timestamp ] = context.args
     await deployments?.create(prefix)
     await deployments?.select(prefix)
     return await DeployCommands.get(context)
   }
 
   /** Add either the active deployment, or a newly created one, to the command context. */
-  static getOrCreate = async (
-    context: AgentAndBuildContext & Partial<DeployContext>
-  ): Promise<DeployContext> => {
+  static getOrCreate = async (context: DeployContext): Promise<DeployContext> => {
     const deployments = this.expectEnabled(context)
     if (deployments?.active) {
       return DeployCommands.get(context)
@@ -233,7 +218,7 @@ export default class DeployCommands <C extends DeployContext> extends Komandi.Co
   }
 
   /** Print a list of deployments on the selected chain. */
-  static list = async (context: Connect.ConnectContext): Promise<void> => {
+  static list = async (context: DeployContext): Promise<void> => {
     const deployments = this.expectEnabled(context)
     const { chain } = context
     const list = deployments.list()
@@ -254,9 +239,9 @@ export default class DeployCommands <C extends DeployContext> extends Komandi.Co
   }
 
   /** Make a new deployment the active one. */
-  static select = async (context: Connect.ConnectContext): Promise<void> => {
+  static select = async (context: DeployContext): Promise<void> => {
     const deployments = this.expectEnabled(context)
-    const { cmdArgs: [id] = [undefined] } = context
+    const [id] = context.args ?? [undefined]
     const list = deployments.list()
     if (list.length < 1) {
       console.info('\nNo deployments. Create one with `deploy new`')
@@ -276,10 +261,7 @@ export default class DeployCommands <C extends DeployContext> extends Komandi.Co
   }
 
   /** Print the status of a deployment. */
-  static status = async (
-    context: Connect.ConnectContext,
-    id = context.cmdArgs[0]
-  ): Promise<void> => {
+  static status = async (context: DeployContext, [id] = context.args): Promise<void> => {
     const deployments = this.expectEnabled(context)
     const deployment  = id ? deployments.get(id) : deployments.active
     if (deployment) {
@@ -711,11 +693,12 @@ export class Deployment {
     // Resolve symbolic links to file
     while (FS.lstatSync(path).isSymbolicLink()) path = resolve(dirname(path), FS.readlinkSync(path))
     // Set own prefix from name of file
-    this.prefix    = basename(path, extname(path))
+    this.prefix = basename(path, extname(path))
     // Load the receipt data
-    const data     = FS.readFileSync(path, 'utf8')
+    const data = FS.readFileSync(path, 'utf8')
     const receipts = YAML.loadAll(data) as Fadroma.Contract[]
     for (const receipt of receipts) {
+      if (!receipt.name) continue
       const [contractName, _version] = receipt.name.split('+')
       this.receipts[contractName] = receipt
     }

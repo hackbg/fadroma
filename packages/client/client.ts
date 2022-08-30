@@ -2,7 +2,7 @@ import { bold } from '@hackbg/konzola'
 
 type valof<T> = T[keyof T]
 
-/** Override only allowed properties. */
+/** Inheritance model. Override only allowed properties. */
 export function override (
   strict:    boolean,
   self:      object,
@@ -24,7 +24,26 @@ export function override (
   return filtered
 }
 
-/** An object that allows its meaningful properties to be overridden. */
+/** A ***value object*** that allows its meaningful properties to be overridden.
+  * For the override to work, empty properties must be defined as:
+  *
+  *     class Named extends Overridable {
+  *         name?: Type = undefined
+  *     }
+  *
+  * Otherwise Object.getOwnPropertyNames won't see the property slots,
+  * and `new Named.but({ name: 'something' })` won't update `name`.
+  * (This is because of how TypeScript handles class properties;
+  * in raw JS, they seem to be defined as undefined by default?)
+  *
+  * Even in when not inheriting from `Overridable`, try to follow the pattern of
+  * ***immutable value objects*** which represent a piece of state in context
+  * and which, instead of mutating themselves, emit changed copies of themselves
+  * using the idioms:
+  *     this.but({ name: 'value' }) // internally
+  * or:
+  *     new Named(oldNamed, { name: 'value' }) // externally.
+  **/
 export class Overridable {
   override (options: object = {}) {
     override(true, this, options)
@@ -84,23 +103,27 @@ export abstract class Source extends Overridable implements Partial<Source> {
   /** Builder implementation that produces a Template from the Source. */
   builder?: string|Builder = undefined
 
-  assertBuilder (builder: typeof this.builder = this.builder): Builder {
+  /** Compile the source using the selected builder. */
+  build (builder?: typeof this.builder): Promise<Template> {
+    return this.assertBuildable(builder).build(this)
+  }
+
+  /** Throw appropriate error if not buildable. */
+  assertBuildable (builder: typeof this.builder = this.builder): Builder {
     if (!this.crate) throw new SourceError.NoCrate()
-    if (!builder) throw new SourceError.NoBuilder()
+    if (!builder)    throw new SourceError.NoBuilder()
     if (typeof builder === 'string') throw new SourceError.ProvideBuilder(builder)
     return builder
   }
 
-  /** Compile the source using the selected builder. */
-  build (builder?: typeof this.builder): Promise<Template> {
-    return this.assertBuilder(builder).build(this)
-  }
-
+  /** Return a copy of self pinned to a certain Git reference.
+    * Used to specify historical builds. */
   at (ref?: string): Source {
     return ref ? this : this.but({ ref })
   }
 
-  toJSON (): Partial<Source> {
+  /** Serialize for storage as JSON-formatted plaintext. */
+  flatten (): Partial<Source> {
     return {
       repo:    this.repo?.toString(),
       commit:  this.commit,
@@ -150,6 +173,8 @@ export interface BuilderCtor { new (options?: Partial<Builder>): Builder }
 /** Builder: turns `Source` into `Template`, providing `artifact` and `codeHash` */
 export abstract class Builder extends Overridable {
 
+  static variants: Record<string, Builder> = {}
+
   static get (specifier: IntoBuilder = '', options: Partial<Builder> = {}) {
     if (typeof specifier === 'string') {
       const Builder = Builders[specifier]
@@ -164,6 +189,8 @@ export abstract class Builder extends Overridable {
       return new Builder({ ...specifier, ...options })
     }
   }
+
+  abstract id: string
 
   abstract build (source: IntoSource, ...args: any[]): Promise<Template>
 
@@ -772,9 +799,94 @@ export type TxHash = string
 
 export type IntoContract = Name|Partial<Contract>
 
+export class Client extends Overridable {
+
+  address?:  Address
+
+  codeHash?: CodeHash
+
+  agent?:    Agent
+
+  /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
+  get asLink (): ContractLink {
+    if (!this.address)  throw new Error("Can't link to contract with no address")
+    if (!this.codeHash) throw new Error("Can't link to contract with no code hash")
+    return { address: this.address, code_hash: this.codeHash }
+  }
+
+  /** Execute a query on the specified contract as the specified Agent. */
+  async query <U> (msg: Message): Promise<U> {
+    return await this.assertOperational().query(this, msg)
+  }
+
+  /** Get the recommended fee for a specific transaction. */
+  getFee (msg?: string|Record<string, unknown>): IFee|undefined {
+    const defaultFee = this.fee || this.agent?.fees?.exec
+    if (typeof msg === 'string') {
+      return this.fees[msg] || defaultFee
+    } else if (typeof msg === 'object') {
+      const keys = Object.keys(msg)
+      if (keys.length !== 1) {
+        throw new Error('Client#getFee: messages must have exactly 1 root key')
+      }
+      return this.fees[keys[0]] || defaultFee
+    }
+    return this.fee || defaultFee
+  }
+
+  /** Create a copy of this Client with all transaction fees set to the provided value.
+    * If the fee is undefined, returns a copy of the client with unmodified fee config. */
+  withFee (fee: IFee|undefined): this {
+    const Self = this.constructor as ContractCtor<typeof this, any>
+    if (fee) {
+      return new Self(this.agent, {...this, fee, fees: {}})
+    } else {
+      return new Self(this.agent, {...this, fee: this.fee, fees: this.fees})
+    }
+  }
+
+  /** Execute a transaction on the specified contract as the specified Agent. */
+  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
+    this.assertOperational()
+    opt.fee = opt.fee || this.getFee(msg)
+    return await this.agent!.execute(this, msg, opt)
+  }
+
+  /** Create a copy of this Client that will execute the transactions as a different Agent. */
+  as (agent: Executor): this {
+    const Self = this.constructor as ContractCtor<typeof this, any>
+    return new Self(agent, { ...this })
+  }
+
+  /** Throw if trying to do something with no agent or address. */
+  assertOperational (): Agent {
+    const name = this.constructor.name
+    if (!this.address) throw new Error(
+      `${name} has no Agent and can't operate. Pass an address with "new ${name}(agent, ...)"`
+    )
+    if (!this.agent) throw new Error(
+      `${name} has no address and can't operate. Pass an address with "new ${name}(agent, addr)"`
+    )
+    return this.agent
+  }
+
+  /** Throw if fetched metadata differs from configured. */
+  assertCorrect (kind: string, expected: any, actual: any) {
+    const name = this.constructor.name
+    if (expected !== actual) {
+      throw new Error(`Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
+    }
+  }
+}
+
+export interface ClientCtor<C extends Client> {
+  new (agent?: Executor, address?: Address, hash?: CodeHash): C
+  new (agent?: Executor, options?: Partial<C>): C
+}
+
 /** Contract: instantiated template.
   * Has an `address` on a specific `chain` and can do the things that it's programmed to. */
-export class Contract extends Template {
+export class Contract extends Client {
 
   static parse (specifier: IntoContract, options: IntoContract): Partial<Contract> {
     if (typeof specifier === 'string') {
@@ -984,80 +1096,8 @@ export class Contract extends Template {
     return this
   }
 
-  /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
-  get asLink (): ContractLink {
-    if (!this.address)  throw new Error("Can't link to contract with no address")
-    if (!this.codeHash) throw new Error("Can't link to contract with no code hash")
-    return { address: this.address, code_hash: this.codeHash }
-  }
-
-  /** Execute a query on the specified contract as the specified Agent. */
-  async query <U> (msg: Message): Promise<U> {
-    this.assertOperational()
-    return await this.agent!.query(this, msg)
-  }
-
-  /** Get the recommended fee for a specific transaction. */
-  getFee (msg?: string|Record<string, unknown>): IFee|undefined {
-    const defaultFee = this.fee || this.agent?.fees?.exec
-    if (typeof msg === 'string') {
-      return this.fees[msg] || defaultFee
-    } else if (typeof msg === 'object') {
-      const keys = Object.keys(msg)
-      if (keys.length !== 1) {
-        throw new Error('Client#getFee: messages must have exactly 1 root key')
-      }
-      return this.fees[keys[0]] || defaultFee
-    }
-    return this.fee || defaultFee
-  }
-
-  /** Create a copy of this Client with all transaction fees set to the provided value.
-    * If the fee is undefined, returns a copy of the client with unmodified fee config. */
-  withFee (fee: IFee|undefined): this {
-    const Self = this.constructor as ContractCtor<typeof this, any>
-    if (fee) {
-      return new Self(this.agent, {...this, fee, fees: {}})
-    } else {
-      return new Self(this.agent, {...this, fee: this.fee, fees: this.fees})
-    }
-  }
-
-  /** Execute a transaction on the specified contract as the specified Agent. */
-  async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
-    this.assertOperational()
-    opt.fee = opt.fee || this.getFee(msg)
-    return await this.agent!.execute(this, msg, opt)
-  }
-
-  /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  as (agent: Executor): this {
-    const Self = this.constructor as ContractCtor<typeof this, any>
-    return new Self(agent, { ...this })
-  }
-
-  /** Throw if trying to do something with no agent or address. */
-  assertOperational () {
-    const name = this.constructor.name
-    if (!this.address) new Error(
-      `${name} has no Agent and can't operate. Pass an address with "new ${name}(agent, ...)"`
-    )
-    if (!this.agent) new Error(
-      `${name} has no address and can't operate. Pass an address with "new ${name}(agent, addr)"`
-    )
-  }
-
-  /** Throw if fetched metadata differs from configured. */
-  assertCorrect (kind: string, expected: any, actual: any) {
-    const name = this.constructor.name
-    if (expected !== actual) {
-      throw new Error(`Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
-    }
-  }
 
 }
-
-export const Client = Contract
 
 export interface ContractCtor<C extends Contract, O extends Partial<Contract>> {
   new (agent?: Executor, address?: Address, hash?: CodeHash): C

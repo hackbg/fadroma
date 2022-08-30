@@ -84,7 +84,7 @@ steps.
 * Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
 * Fadroma uses [`@hackbg/komandi`](https://github.com/hackbg/toolbox/blob/main/komandi/komandi.ts)
   to parse commands. This is a simple and loose command parser which does not support flags.
-  Arguments to a command are available in `context.cmdArgs` so you can define your own flags.
+  Arguments to a command are available in `context.args` so you can define your own flags.
 :::
 
 ## How to deploy contracts

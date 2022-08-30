@@ -681,7 +681,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
 export default class DevnetCommands extends Komandi.Commands<Connect.ConnectContext> {
 
   constructor (name: string = 'devnet', before = [], after = []) {
-    super(name, [Connect.connect, ...before], after)
+    super(name, before, after)
     this.command('status', 'print the status of the current devnet', this.status)
     this.command('start',  'start the devnet container',             this.start)
     this.command('stop',   'stop the devnet container',              this.stop)
@@ -693,7 +693,7 @@ export default class DevnetCommands extends Komandi.Commands<Connect.ConnectCont
   }
 
   reset = ({ chain }: Connect.ConnectContext) => {
-    return Devnet.reset({ chain })
+    if (chain) return Devnet.reset({ chain })
   }
 
   start = () => {

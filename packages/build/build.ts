@@ -245,8 +245,6 @@ export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize
 
 export const sanitize = (ref: string) => ref.replace(/\//g, '_')
 
-export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
-
 export const codeHashForBlob = (blob: Uint8Array) =>
   Formati.toHex(new Formati.Sha256(blob).digest())
 
@@ -278,6 +276,8 @@ export interface DockerBuilderOptions extends CachingBuilderOptions {
 /** Can perform builds. */
 export abstract class LocalBuilder extends Fadroma.Builder {
 
+  readonly id: string = 'local'
+
   /** Default build script */
   static script = resolve(__dirname, 'build.impl.mjs')
 
@@ -301,18 +301,21 @@ export abstract class LocalBuilder extends Fadroma.Builder {
   /** Whether the build process should print more detail to the console. */
   verbose:       boolean     = false
 
+  codeHashForPath = codeHashForPath
+
 }
+
+export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
 
 /** Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
 export abstract class CachingBuilder extends LocalBuilder {
+
+  readonly id: string = 'caching-local'
 
   constructor (options: Partial<CachingBuilderOptions> = {}) {
     super()
     this.override(options)
   }
-
-  /** Mockable. */
-  codeHashForPath = codeHashForPath
 
   /** Whether to enable caching. */
   caching: boolean = true
@@ -325,12 +328,9 @@ export abstract class CachingBuilder extends LocalBuilder {
     if (this.caching && crate) {
       const location = $(outputDir, artifactName(crate, ref))
       if (location.exists()) {
-        return new Fadroma.Template({
-          crate,
-          ref,
-          artifact: location.url,
-          codeHash: this.codeHashForPath(location.path)
-        })
+        const artifact = location.url
+        const codeHash = this.codeHashForPath(location.path)
+        return new Fadroma.Template({ crate, ref, artifact, codeHash })
       }
     }
     return null
@@ -342,7 +342,9 @@ export abstract class CachingBuilder extends LocalBuilder {
   * as the one in which the script is running, i.e. no build container. */
 export class RawBuilder extends CachingBuilder {
 
-  readonly id = 'local-caching-raw'
+  readonly id = 'raw-caching-local'
+
+  runtime = process.argv[0]
 
   /** Build a Source into a Template */
   async build (source: LocalSource): Promise<Fadroma.Template> {
@@ -355,13 +357,13 @@ export class RawBuilder extends CachingBuilder {
     * reusing the container's internal intermediate build cache. */
   async buildMany (sources: LocalSource[]): Promise<Fadroma.Template[]> {
     const templates: Fadroma.Template[] = []
-    for (const source of sources) {
-      const {
-        path,
-        ref = HEAD,
-        crate,
-        workspace,
-      } = source
+    for (const source of sources) await buildOneOfMany.call(this, source)
+    return templates
+
+    async function buildOneOfMany (this: RawBuilder, source: LocalSource) {
+      const { path, ref = HEAD, crate, workspace } = source
+      if (!workspace) throw new Error('no workspace')
+      if (!crate) throw new Error('no crate')
 
       // Temporary dirs used for checkouts of non-HEAD builds
       let tmpGit, tmpBuild
@@ -418,26 +420,28 @@ export class RawBuilder extends CachingBuilder {
           }
         })
       })
+
       // Create an artifact for the build result
-      const location = $(env._OUTPUT, artifactName(source.crate, sanitize(source.ref)))
+      const location = $(env._OUTPUT, artifactName(crate, sanitize(ref)))
       console.info('Build ok:', bold(location.shortPath))
-      const codeHash = this.codeHashForPath(location.path)
-      templates.push(new Fadroma.Template(source, pathToFileURL(location.path), codeHash))
+      templates.push(new Fadroma.Template(source, {
+        artifact: pathToFileURL(location.path),
+        codeHash: this.codeHashForPath(location.path)
+      }))
+
       // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
       if (tmpGit   && tmpGit.exists())   tmpGit.delete()
       if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
     }
-    return templates
-  }
 
-  runtime = process.argv[0]
+  }
 
 }
 
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends CachingBuilder {
 
-  readonly id = 'local-caching-docker'
+  readonly id = 'docker-caching-local'
 
   static image = 'ghcr.io/hackbg/fadroma:unstable'
 
