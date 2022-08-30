@@ -623,11 +623,11 @@ export class Deployment {
     name:     Fadroma.Label,
     msg:      Fadroma.Message
   ): Promise<Fadroma.Contract> {
-    const label = addPrefix(this.prefix, name)
+    const label = Fadroma.Contract.addPrefix(this.prefix, name)
     try {
-      const instance = await agent.instantiate(template, label, msg)
-      this.set(name, instance)
-      return instance
+      const contract = new Fadroma.Contract(template).as(agent).deploy(label, msg)
+      this.set(name, contract)
+      return contract
     } catch (e) {
       log.deployFailed(e, template, name, msg)
       throw e
@@ -649,39 +649,19 @@ export class Deployment {
     }
   }
 
-  /** Instantiate multiple contracts from different Templates with different parameters. */
+  /** Instantiate multiple contracts from different Templates with different parameters,
+    * and store their receipts in the deployment. */
   async initVarious (
     agent:     Fadroma.Agent,
     contracts: Fadroma.DeployArgsTriple[] = []
   ): Promise<Fadroma.Contract[]> {
-
-    // Validate
-    for (const index in contracts) {
-      const triple = contracts[index]
-      if (triple.length !== 3) {
-        throw Object.assign(
-          new Error('initVarious: contracts must be [Template, Name, Message] triples'),
-          { index, contract: triple }
-        )
-      }
-    }
-
-    // Add prefixes
-    const toInitConfig = ([t, n, m]: Fadroma.DeployArgsTriple)=>[t, addPrefix(this.prefix, n), m]
-    const initConfigs = contracts.map(toInitConfig)
-
-    // Deploy
-    const instances = await agent.instantiateMany(initConfigs as Fadroma.DeployArgsTriple[])
-
-    // Store receipts
+    const instances = await new Fadroma.Contract().deployVarious(contracts)
     for (const instance of Object.values(instances)) {
       const name = (instance.label as string).slice(this.prefix.length+1)
       this.receipts[name] = { name, ...instance}
       this.save()
     }
-
-    return Object.values(instances)
-
+    return instances
   }
 
   /// ## CREATING AND LOADING DEPLOYMENT //////////////////////////////////////////////////////////
@@ -736,8 +716,6 @@ export class Deployment {
   }
 
 }
-
-export const addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 
 /// # Deploy console ///////////////////////////////////////////////////////////////////////////////
 

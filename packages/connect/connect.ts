@@ -144,7 +144,7 @@ export class ConnectConsole extends CustomConsole {
     return null
   }
 
-  selectedChain = ({ chain }: { chain?: string }) => {
+  selectedChain = (chain?: string) => {
     this.log()
     if (chain) {
       this.info('Selected chain:')
