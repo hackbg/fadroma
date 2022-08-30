@@ -169,7 +169,7 @@ interface TokenRegistryContext {
 }
 
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
-export class TokenRegistry extends Map<string, Snip20> {
+export class TokenRegistry extends Fadroma.Overridable {
 
   /** Command step: add the token registry to the context.
     * Registered as plugin in the local DeployCommands instance. */
@@ -227,25 +227,47 @@ export class TokenRegistry extends Map<string, Snip20> {
   get (symbol: string): Snip20 {
     if (!symbol) throw new TokenError.NoSymbol()
     if (!this.has(symbol)) throw new TokenError.NotFound(symbol)
-    return super.get(symbol)!
+    return this.tokens[symbol]!
+  }
+
+  /** See if this symbol is registered. */
+  has (symbol: string): boolean {
+    return Object.keys(this.tokens).includes(symbol)
+  }
+
+  add (symbol: string, token?: Snip20): this {
+    if (!token) throw new TokenError.PassToken()
+    if (!symbol) throw new TokenError.CantRegister()
+    if (this.has(symbol)) throw new TokenError.AlreadyRegistered(symbol)
+    // TODO compare and don't throw if it's the same token
+    this.set(symbol, token)
+    return token
   }
 
   /** Get or deploy a Snip20 token and add it to the registry. */
   async getOrDeployToken (
     symbol:   string,
-    name:     string,
-    decimals: number,
-    admin:    Fadroma.Address,
-    template: Fadroma.IntoTemplate = this.defaultTemplate!,
-    config:   Snip20InitConfig     = TokenRegistry.defaultConfig
+    options:  {
+      template?: Fadroma.IntoTemplate
+      name:      string
+      decimals:  number
+      admin:     Fadroma.Address,
+      config?:   Snip20InitConfig
+    }
   ): Promise<Snip20> {
-    this.logToken(name, symbol, decimals)
-    // generate snip20 init message
-    const init  = Snip20.init(name, symbol, decimals, admin, config)
-    // get or create contract with the name (names are internal to deployment)
-    const token = await this.context.contract(name, { Client: Snip20 }).getOrDeploy(template, init)
-    // add and return the token
-    return this.add(token, symbol)
+    if (this.has(symbol)) {
+      return this.get(symbol)
+    } else {
+      this.logToken(options.name, symbol, options.decimals)
+      // generate snip20 init message
+      const init  = Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
+      // get or create contract with the name (names are internal to deployment)
+      const token = await this.context.contract(options.name, { Client: Snip20 })
+        .getOrDeploy(options.template ?? this.defaultTemplate, init)
+      // add and return the token
+      this.add(symbol, token)
+      return token
+    }
   }
 
   /** Deploy multiple Snip20 tokens in one transaction and add them to the registry. */
@@ -274,15 +296,6 @@ export class TokenRegistry extends Map<string, Snip20> {
     }
     // return array of `Snip20` handles corresponding to input `TokenConfig`s.
     return deployed
-  }
-
-  add (token?: Snip20, symbol: string|null|undefined = token?.symbol): Snip20 {
-    if (!token) throw new TokenError.PassToken()
-    if (!symbol) throw new TokenError.CantRegister()
-    if (this.has(symbol)) throw new TokenError.AlreadyRegistered(symbol)
-    // TODO compare and don't throw if it's the same token
-    this.set(symbol, token)
-    return token
   }
 
   /** Say that we're deploying a token. */

@@ -126,13 +126,93 @@ export class DeployContext extends Komandi.Context {
 /** Base class for class-based deploy procedure. Adds progress logging. */
 export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 
-  console = log
+  log = new DeployConsole(console, 'Fadroma.DeployTask')
 
   contract <C extends Fadroma.Contract> (
-    arg:      Fadroma.IntoContract,
-    _Client?: Fadroma.NewContract
+    ...args: ConstructorParameters<Fadroma.NewContract>
   ): C {
-    return this.context.contract(arg, _Client) as C
+    return this.context.contract(...args) as C
+  }
+
+  contracts <C extends Fadroma.Contract> (
+    ...args: ConstructorParameters<Fadroma.NewContract>
+  ): Contracts<C> {
+    return this.context.contracts(...args) as Contracts<C>
+  }
+
+}
+
+/// # Deploy console
+
+export class DeployConsole extends Konzola.CustomConsole {
+
+  name = 'Fadroma Deploy'
+
+  deployment ({ deployment }: { deployment: Deployment }) {
+    if (deployment) {
+      const { receipts, prefix } = deployment
+      let contracts: string|number = Object.values(receipts).length
+      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+      const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
+      this.info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
+      const count = Object.values(receipts).length
+      if (count > 0) {
+        for (const name of Object.keys(receipts)) {
+          this.receipt(name, receipts[name], len)
+        }
+      } else {
+        this.info('│ This deployment is empty.')
+      }
+    } else {
+      this.info('│ There is no selected deployment.')
+    }
+  }
+
+  receipt (name: string, receipt: any, len = 35) {
+    name = bold(name.padEnd(len))
+    if (receipt.address) {
+      const address = `${receipt.address}`.padStart(45)
+      const codeId  = String(receipt.codeId||'n/a').padStart(6)
+      this.info('│', name, address, codeId)
+    } else {
+      this.warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+    }
+  }
+
+  deployFailed (e: Error, template: Fadroma.Template, name: Fadroma.Label, msg: Fadroma.Message) {
+    this.error()
+    this.error(`  Deploy of ${bold(name)} failed:`)
+    this.error(`    ${e.message}`)
+    this.deployFailedTemplate(template)
+    this.error()
+    this.error(`  Init message: `)
+    this.error(`    ${JSON.stringify(msg)}`)
+    this.error()
+  }
+
+  deployManyFailed (e: Error, template: Fadroma.Template, contracts: Fadroma.DeployArgs[]) {
+    this.error()
+    this.error(`  Deploy of multiple contracts failed:`)
+    this.error(`    ${e.message}`)
+    this.deployFailedTemplate(template)
+    this.error()
+    this.error(`  Configs: `)
+    for (const [name, init] of contracts) {
+      this.error(`    ${bold(name)}: `, JSON.stringify(init))
+    }
+    this.error()
+  }
+
+  deployFailedTemplate (template?: Fadroma.Template) {
+    this.error()
+    if (template) {
+      this.error(`  Template:   `)
+      this.error(`    Chain ID: `, bold(template.chainId ||''))
+      this.error(`    Code ID:  `, bold(template.codeId  ||''))
+      this.error(`    Code hash:`, bold(template.codeHash||''))
+    } else {
+      this.error(`  No template was providede.`)
+    }
   }
 
 }
@@ -142,7 +222,7 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export default class DeployCommands extends Komandi.Commands<DeployContext> {
+export class DeployCommands extends Komandi.Commands<DeployContext> {
 
   constructor (name: string = 'deploy', before = [], after = []) {
     // Deploy commands are like regular commands but
@@ -270,11 +350,13 @@ export default class DeployCommands extends Komandi.Commands<DeployContext> {
     const deployments = this.expectEnabled(context)
     const deployment  = id ? deployments.get(id) : deployments.active
     if (deployment) {
-      log.deployment({ deployment })
+      this.log.deployment(deployment)
     } else {
-      console.info('No selected deployment on chain:', bold(context.chain.id))
+      console.info('No selected deployment on chain:', bold(context.chain?.id??'(no chain)'))
     }
   }
+
+  static log = new DeployConsole(console, 'Fadroma.DeployCommands')
 
 }
 
@@ -285,6 +367,7 @@ export default class DeployCommands extends Komandi.Commands<DeployContext> {
   * allows for uploaded contracts to be reused. */
 export class FSUploader extends Fadroma.Uploader {
 
+  /** This defines the default path for the upload receipt cache. */
   static fromConfig (agent: Fadroma.Agent, projectRoot: string) {
     return new this(
       agent,
@@ -292,36 +375,45 @@ export class FSUploader extends Fadroma.Uploader {
     )
   }
 
-  constructor (readonly agent: Fadroma.Agent, readonly cache?: Uploads) {
+  constructor (
+    /** Agent that will sign the upload transactions(s). */
+    readonly agent:  Fadroma.Agent,
+    /** If present, upload receipts are stored in it and reused to save reuploads. */
+    readonly cache?: Uploads
+  ) {
     super(agent)
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
+    let receipt: UploadReceipt|null = null
     if (this.cache) {
-      const name    = this.getUploadReceiptName(template)
-      const receipt = this.cache.at(name).as(UploadReceipt)
+      const name = this.getUploadReceiptName(template)
+      receipt = this.cache.at(name).as(UploadReceipt)
       if (receipt.exists()) {
         console.info('Reuse    ', bold(this.cache.at(name).shortPath))
         return receipt.toTemplate()
       }
-      const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
-      template = new Fadroma.Template(template, await this.agent.upload(data))
-      receipt.save(template)
-      return template
-    } else {
-      console.info('Upload   ', bold($(template.artifact!).shortPath))
-      const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
-      template = template.but(await this.agent.upload(data))
-      await this.agent.nextBlock
-      return template
     }
+    const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
+    template = template.but(await this.agent.upload(data))
+    if (receipt) {
+      receipt.save(template)
+    }
+    //await this.agent.nextBlock
+    return template
+  }
+
+  getUploadReceiptName (template: Fadroma.Template): string {
+    return `${$(template.artifact!).name}.json`
   }
 
   /** Upload multiple Artifacts from the filesystem.
     * TODO: Optionally bundle them (where is max size defined?) */
   async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
+
     const outputs: Fadroma.Template[] = []
+
     if (this.cache) {
       const artifactsToUpload: Fadroma.Template[] = []
       for (const i in inputs) {
@@ -375,8 +467,11 @@ export class FSUploader extends Fadroma.Uploader {
       } else {
         //console.info('No artifacts need to be uploaded.')
       }
+
       return outputs
+
     } else {
+
       for (const i in inputs) {
         // support "holes" in artifact array
         // (used by caching subclass)
@@ -401,18 +496,17 @@ export class FSUploader extends Fadroma.Uploader {
         }
         outputs[i] = output
       }
+
     }
+
     return outputs
+
   }
 
-  protected getUploadReceiptPath (template: Fadroma.Template): string {
+  getUploadReceiptPath (template: Fadroma.Template): string {
     const receiptName = `${this.getUploadReceiptName(template)}`
     const receiptPath = this.cache!.resolve(receiptName)
     return receiptPath
-  }
-
-  protected getUploadReceiptName (template: Fadroma.Template): string {
-    return `${$(template.artifact!).name}.json`
   }
 
 }
@@ -605,7 +699,7 @@ export class Deployment {
       this.set(name, contract)
       return contract
     } catch (e) {
-      log.deployFailed(e, template, name, msg)
+      this.log.deployFailed(e, template, name, msg)
       throw e
     }
   }
@@ -620,7 +714,7 @@ export class Deployment {
     try {
       return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
     } catch (e) {
-      log.deployManyFailed(e, template, contracts)
+      this.log.deployManyFailed(e, template, contracts)
       throw e
     }
   }
@@ -692,82 +786,5 @@ export class Deployment {
   }
 
 }
-
-/// # Deploy console ///////////////////////////////////////////////////////////////////////////////
-
-export class DeployConsole extends Konzola.CustomConsole {
-
-  name = 'Fadroma Deploy'
-
-  deployment ({ deployment }: { deployment: Deployment }) {
-    if (deployment) {
-      const { receipts, prefix } = deployment
-      let contracts: string|number = Object.values(receipts).length
-      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
-      this.info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
-      const count = Object.values(receipts).length
-      if (count > 0) {
-        for (const name of Object.keys(receipts)) {
-          this.receipt(name, receipts[name], len)
-        }
-      } else {
-        this.info('│ This deployment is empty.')
-      }
-    } else {
-      this.info('│ There is no selected deployment.')
-    }
-  }
-
-  receipt (name: string, receipt: any, len = 35) {
-    name = bold(name.padEnd(len))
-    if (receipt.address) {
-      const address = `${receipt.address}`.padStart(45)
-      const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      this.info('│', name, address, codeId)
-    } else {
-      this.warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
-    }
-  }
-
-  deployFailed (e: Error, template: Fadroma.Template, name: Fadroma.Label, msg: Fadroma.Message) {
-    this.error()
-    this.error(`  Deploy of ${bold(name)} failed:`)
-    this.error(`    ${e.message}`)
-    this.deployFailedTemplate(template)
-    this.error()
-    this.error(`  Init message: `)
-    this.error(`    ${JSON.stringify(msg)}`)
-    this.error()
-  }
-
-  deployManyFailed (e: Error, template: Fadroma.Template, contracts: Fadroma.DeployArgs[]) {
-    this.error()
-    this.error(`  Deploy of multiple contracts failed:`)
-    this.error(`    ${e.message}`)
-    this.deployFailedTemplate(template)
-    this.error()
-    this.error(`  Configs: `)
-    for (const [name, init] of contracts) {
-      this.error(`    ${bold(name)}: `, JSON.stringify(init))
-    }
-    this.error()
-  }
-
-  deployFailedTemplate (template?: Fadroma.Template) {
-    this.error()
-    if (template) {
-      this.error(`  Template:   `)
-      this.error(`    Chain ID: `, bold(template.chainId ||''))
-      this.error(`    Code ID:  `, bold(template.codeId  ||''))
-      this.error(`    Code hash:`, bold(template.codeHash||''))
-    } else {
-      this.error(`  No template was providede.`)
-    }
-  }
-
-}
-
-export const log = new DeployConsole(console)
 
 const bold = Konzola.bold

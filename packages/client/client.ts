@@ -66,287 +66,6 @@ export type Name       = string
 /** The contract's full unique on-chain label. */
 export type Label      = string
 
-/** Allows sources to be specified as strings, URLs, or key-value maps. */
-export type IntoSource = string|URL|Partial<Source>
-
-/** Source: a smart contract that exists in source code form and can be compiled. */
-export abstract class Source extends Overridable implements Partial<Source> {
-
-  /** Allow Source to be specified from string or URL. */
-  static get (specifier: IntoSource, options: Partial<Source> = {}): Partial<Source> {
-    if (typeof specifier === 'string') {
-      const [ crate, ref ] = specifier.split('@')
-      return { ...options, crate, ref }
-    } else if (specifier instanceof URL) {
-      return { ...options, repo: specifier }
-    } else if (typeof specifier === 'object') {
-      return { ...specifier, ...options }
-    } else {
-      throw new SourceError.Invalid(specifier)
-    }
-  }
-
-  constructor (specifier: IntoSource = {}, options: Partial<Source> = {}) {
-    super()
-    this.override(Source.get(specifier, options))
-  }
-
-  /** URL to local or remote Git repository containing the source code. */
-  repo?:    string|URL     = undefined
-
-  /** Commit hash of source commit. Points to last commit if building from HEAD. */
-  commit?:  string         = undefined
-
-  /** Git ref (branch or tag) pointing to source commit. */
-  ref?:     string         = undefined
-
-  /** Name of crate. Used to find contract crate in workspace repos. */
-  crate?:   string         = undefined
-
-  /** Builder implementation that produces a Template from the Source. */
-  builder?: string|Builder = undefined
-
-  /** Compile the source using the selected builder. */
-  build (builder?: typeof this.builder): Promise<Template> {
-    return this.assertBuildable(builder).build(this)
-  }
-
-  /** Throw appropriate error if not buildable. */
-  assertBuildable (builder: typeof this.builder = this.builder): Builder {
-    if (!this.crate) throw new SourceError.NoCrate()
-    if (!builder)    throw new SourceError.NoBuilder()
-    if (typeof builder === 'string') throw new SourceError.ProvideBuilder(builder)
-    return builder
-  }
-
-  /** Return a copy of self pinned to a certain Git reference.
-    * Used to specify historical builds. */
-  at (ref?: string): Source {
-    return ref ? this : this.but({ ref })
-  }
-
-  /** Serialize for storage as JSON-formatted plaintext. */
-  flatten (): Partial<Source> {
-    return {
-      repo:    this.repo?.toString(),
-      commit:  this.commit,
-      ref:     this.ref,
-      crate:   this.crate,
-      builder: (typeof this.builder === 'object') ? this.builder.id : this.builder
-    }
-  }
-
-}
-
-/** Constructor type for builder. */
-export type NewBuilder = New<Builder, IntoBuilder>
-
-/** Builders can be specified as ids, class names, or objects. */
-export type IntoBuilder = string|NewBuilder|Partial<Builder>
-
-/** Builder: turns `Source` into `Template`, providing `artifact` and `codeHash` */
-export abstract class Builder extends Overridable {
-
-  /** Populated by @fadroma/build */
-  static variants: Record<string, Builder> = {}
-
-  /** Get a Builder from a specifier and optional overrides. */
-  static get (specifier: IntoBuilder = '', options: Partial<Builder> = {}) {
-    if (typeof specifier === 'string') {
-      const B = Builder.variants[specifier]
-      if (!B) {
-        throw new Error(`No "${specifier}" builder installed. Make sure @fadroma/build is imported`)
-      }
-      return new (B as any)(options)
-    } else if (typeof specifier === 'function') {
-      if (!options.id) {
-        throw new Error(`No builder specified.`)
-      }
-      return new (specifier as NewBuilder)(options)
-    } else {
-      const B = Builder.variants[specifier?.id as string]
-      return new (B as any)({ ...specifier, ...options })
-    }
-  }
-
-  /** For serialization/deserialization. */
-  abstract id: string
-
-  /** Up to the implementation.
-    * `@fadroma/build` implements dockerized and non-dockerized
-    * variants on top of the `build.impl.mjs` script. */
-  abstract build (source: IntoSource, ...args: any[]): Promise<Template>
-
-  /** Default implementation of buildMany is parallel.
-    * Builder implementations override this, though. */
-  buildMany (sources: IntoSource[], ...args: unknown[]): Promise<Template[]> {
-    return Promise.all(sources.map(source=>this.build(source, ...args)))
-  }
-
-}
-
-export type NewTemplate = New<Template, IntoTemplate>
-
-export type IntoTemplate = IntoSource|Partial<Template>
-
-/** Template: contract that is compiled but not deployed.
-  * Can be uploaded, and, after uploading, instantiated. */
-export class Template extends Source {
-
-  /** Allow Template to be specified from string, URL or Source */
-  static parse (specifier: IntoTemplate, options: Partial<Template> = {}): Partial<Template> {
-    if (typeof specifier === 'string') {
-      const [crate, ref] = specifier.split('@')
-      return { ...options, crate, ref }
-    } else if (specifier instanceof URL) {
-      return { ...options, artifact: specifier }
-    } else if (typeof specifier === 'object') {
-      return { ...specifier, ...options }
-    } else {
-      throw new TemplateError.Invalid(specifier)
-    }
-  }
-
-  constructor (
-    specifier: IntoTemplate      = {},
-    options:   Partial<Template> = {},
-  ) {
-    super()
-    this.override(Template.parse(specifier, options))
-  }
-
-  /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
-  task?:      Task
-
-  /** Object containing upload logic. */
-  uploader?:  Uploader   = undefined
-
-  /** Return the Uploader for this Template or throw. */
-  assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
-    if (!uploader)       throw new TemplateError.NoUploader()
-    if (!uploader.agent) throw new TemplateError.NoUploaderAgent()
-    return uploader
-  }
-
-  /** URL to the compiled code. */
-  artifact?: string|URL = undefined
-
-  /** Code hash uniquely identifying the compiled code. */
-  codeHash?: CodeHash   = undefined
-
-  /** Upload source code to a chain. */
-  async upload (uploader?: typeof this.uploader): Promise<Template> {
-    if (!this.task) return upload.call(this)
-    Object.defineProperty(upload, 'name', { value: `upload contract template` })
-    return this.task.subtask(upload.bind(this))
-    async function upload (this: Template): Promise<Template> {
-      uploader = this.assertUploader() // Don't start if there is no uploader
-      let self: Template = this        // Start with self
-      if (!self.artifact) self = await self.build() // Replace with built
-      return uploader.upload(self)     // Return uploaded
-    }
-  }
-
-  /** ID of chain to which this template is uploaded. */
-  chainId?:  ChainId = undefined
-
-  /** Hash of transaction that performed the upload. */
-  uploadTx?: TxHash  = undefined
-
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:   CodeId  = undefined
-
-  /** Depending on what pre-Template type we start from, this function
-    * invokes builder and uploader to produce a Template from it. */
-  async getOrUpload (): Promise<Template> {
-    // We're gonna do this immutably, generating new instances of Template when changes are needed.
-    let self: Template = this
-    // If chain ID, code ID and code hash are present, this template is ready to uploade
-    if (self.chainId && self.codeId && self.codeHash) return self
-    // Otherwise we're gonna need an uploader
-    const uploader = self.assertUploader()
-    // And if we still can't determine the chain ID, bail
-    const chainId = self.chainId ?? uploader.chain.id
-    if (!chainId) throw new TemplateError.NoChainId()
-    // If we have chain ID and code ID, try to get code hash
-    if (self.codeId) {
-      self = new Template(self, { codeHash: await uploader.getHash(self.codeId) })
-      if (!self.codeHash) throw new TemplateError.NoCodeHash()
-      return self
-    }
-    return await this.upload()
-  }
-
-  /** Intended client class */
-  Client: NewClient<Client> = Client
-
-  /** Default agent that will perform inits. */
-  creator?: Agent = this.uploader?.agent
-
-  /** Deploy a contract from this template. */
-  async deploy <C extends Client> (
-    /** Must be unique. @fadroma/deploy adds prefix here. */
-    label:   Label,
-    /** Init message, or a function to produce it. */
-    initMsg: Message|(()=>Message|Promise<Message>),
-    /** Agent to do the deploy. */
-    agent?:  Agent
-  ): Promise<C> {
-    let self = this
-    if (!self.task) return deploy.call(self)
-    Object.defineProperty(deploy, 'name', { value: `upload contract ${label}` })
-    return self.task.subtask(deploy.bind(self))
-    async function deploy (this: Template): Promise<C> {
-      agent ??= this.creator
-      if (!agent) throw new ContractError.NoCreator()
-      const template = await this.getOrUpload()
-      log.beforeDeploy(this, template)
-      if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-      const instance = await agent.instantiate(template, label, initMsg)
-      const client = new this.Client(agent, instance)
-      log.afterDeploy(this, client, template)
-      return client as C
-    }
-  }
-
-  /** Deploy multiple contracts from the same template with 1 tx */
-  async deployMany (contracts: DeployArgs[] = [], agent?: Agent): Promise<Client[]> {
-    agent ??= this.creator
-    if (!agent) throw new ContractError.NoCreator()
-    let instances
-    try {
-      const configs: DeployArgsTriple[] = contracts.map(([name, initMsg]: DeployArgs)=>[
-        this, prefix ? Contract.addPrefix(prefix, name) : name, initMsg
-      ])
-      instances = Object.values(await agent.instantiateMany(configs)) 
-    } catch (e) {
-      log.deployManyFailed(e, this, contracts)
-      throw e
-    }
-    // Return API client to each contract
-    return instances.map(instance=>this.context!.creator!.getClient(this.Client, instance))
-  }
-
-}
-
-/** Instantiates multiple contracts of the same type in one transaction.
-  * To instantiatie different types of contracts in 1 tx, see deployment.initVarious */
-export class Contracts {
-  constructor (
-    public readonly $Client:  NewClient<any> = Client,
-    public readonly context?: UploadInitContext,
-  ) {}
-  /** Multiple different templates that can be uploaded in one invocation.
-    * Not uploaded in parallel by default. */
-  async getOrUploadMany (slots: IntoTemplate[]): Promise<Template[]> {
-    const templates: Template[] = []
-    for (const template of slots) {
-      templates.push(await new Template(template).getOrUpload())
-    }
-    return templates
-  }
-}
-
 /** A code ID, identifying uploaded code on a chain. */
 export type CodeId     = string
 
@@ -750,6 +469,328 @@ export interface AgentFees {
   exec?:   IFee
 }
 
+/** Allows sources to be specified as strings, URLs, or key-value maps. */
+export type IntoSource = string|URL|Partial<Source>
+
+/** Source: a smart contract that exists in source code form and can be compiled. */
+export abstract class Source extends Overridable implements Partial<Source> {
+
+  /** Allow Source to be specified from string or URL. */
+  static get (specifier: IntoSource, options: Partial<Source> = {}): Partial<Source> {
+    if (typeof specifier === 'string') {
+      const [ crate, ref ] = specifier.split('@')
+      return { ...options, crate, ref }
+    } else if (specifier instanceof URL) {
+      return { ...options, repo: specifier }
+    } else if (typeof specifier === 'object') {
+      return { ...specifier, ...options }
+    } else {
+      throw new SourceError.Invalid(specifier)
+    }
+  }
+
+  constructor (specifier: IntoSource = {}, options: Partial<Source> = {}) {
+    super()
+    this.override(Source.get(specifier, options))
+  }
+
+  /** URL to local or remote Git repository containing the source code. */
+  repo?:    string|URL     = undefined
+
+  /** Commit hash of source commit. Points to last commit if building from HEAD. */
+  commit?:  string         = undefined
+
+  /** Git ref (branch or tag) pointing to source commit. */
+  ref?:     string         = undefined
+
+  /** Name of crate. Used to find contract crate in workspace repos. */
+  crate?:   string         = undefined
+
+  /** Builder implementation that produces a Template from the Source. */
+  builder?: string|Builder = undefined
+
+  /** Compile the source using the selected builder. */
+  build (builder?: typeof this.builder): Promise<Template> {
+    return this.assertBuildable(builder).build(this)
+  }
+
+  /** Throw appropriate error if not buildable. */
+  assertBuildable (builder: typeof this.builder = this.builder): Builder {
+    if (!this.crate) throw new SourceError.NoCrate()
+    if (!builder)    throw new SourceError.NoBuilder()
+    if (typeof builder === 'string') throw new SourceError.ProvideBuilder(builder)
+    return builder
+  }
+
+  /** Return a copy of self pinned to a certain Git reference.
+    * Used to specify historical builds. */
+  at (ref?: string): Source {
+    return ref ? this : this.but({ ref })
+  }
+
+  /** Serialize for storage as JSON-formatted plaintext. */
+  flatten (): Partial<Source> {
+    return {
+      repo:    this.repo?.toString(),
+      commit:  this.commit,
+      ref:     this.ref,
+      crate:   this.crate,
+      builder: (typeof this.builder === 'object') ? this.builder.id : this.builder
+    }
+  }
+
+}
+
+/** Constructor type for builder. */
+export type NewBuilder = New<Builder, IntoBuilder>
+
+/** Builders can be specified as ids, class names, or objects. */
+export type IntoBuilder = string|NewBuilder|Partial<Builder>
+
+/** Builder: turns `Source` into `Template`, providing `artifact` and `codeHash` */
+export abstract class Builder extends Overridable {
+
+  /** Populated by @fadroma/build */
+  static variants: Record<string, Builder> = {}
+
+  /** Get a Builder from a specifier and optional overrides. */
+  static get (specifier: IntoBuilder = '', options: Partial<Builder> = {}) {
+    if (typeof specifier === 'string') {
+      const B = Builder.variants[specifier]
+      if (!B) {
+        throw new Error(`No "${specifier}" builder installed. Make sure @fadroma/build is imported`)
+      }
+      return new (B as any)(options)
+    } else if (typeof specifier === 'function') {
+      if (!options.id) {
+        throw new Error(`No builder specified.`)
+      }
+      return new (specifier as NewBuilder)(options)
+    } else {
+      const B = Builder.variants[specifier?.id as string]
+      return new (B as any)({ ...specifier, ...options })
+    }
+  }
+
+  /** For serialization/deserialization. */
+  abstract id: string
+
+  /** Up to the implementation.
+    * `@fadroma/build` implements dockerized and non-dockerized
+    * variants on top of the `build.impl.mjs` script. */
+  abstract build (source: IntoSource, ...args: any[]): Promise<Template>
+
+  /** Default implementation of buildMany is parallel.
+    * Builder implementations override this, though. */
+  buildMany (sources: IntoSource[], ...args: unknown[]): Promise<Template[]> {
+    return Promise.all(sources.map(source=>this.build(source, ...args)))
+  }
+
+}
+
+export interface UploadInitContext {
+  task?: Task
+  creator?: Agent
+  deployment?: {
+    has      (name: string): boolean
+    get      (name: string): Contract
+    initMany (creator: Executor, template: Template, contracts: DeployArgs[]): Promise<Contract[]>
+  }
+}
+
+interface Task {
+  subtask <C> (cb: ()=>(C|Promise<C>)): Promise<C>
+}
+
+export type NewTemplate = New<Template, IntoTemplate>
+
+export type IntoTemplate = IntoSource|Partial<Template>
+
+/** Template: contract that is compiled but not deployed.
+  * Can be uploaded, and, after uploading, instantiated. */
+export class Template extends Source {
+
+  /** Allow Template to be specified from string, URL or Source */
+  static parse (specifier: IntoTemplate, options: Partial<Template> = {}): Partial<Template> {
+    if (typeof specifier === 'string') {
+      const [crate, ref] = specifier.split('@')
+      return { ...options, crate, ref }
+    } else if (specifier instanceof URL) {
+      return { ...options, artifact: specifier }
+    } else if (typeof specifier === 'object') {
+      return { ...specifier, ...options }
+    } else {
+      throw new TemplateError.Invalid(specifier)
+    }
+  }
+
+  constructor (
+    specifier: IntoTemplate      = {},
+    options:   Partial<Template> = {},
+  ) {
+    super()
+    this.override(Template.parse(specifier, options))
+  }
+
+  /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
+  task?:      Task
+
+  /** Object containing upload logic. */
+  uploader?:  Uploader   = undefined
+
+  /** Return the Uploader for this Template or throw. */
+  assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
+    if (!uploader)       throw new TemplateError.NoUploader()
+    if (!uploader.agent) throw new TemplateError.NoUploaderAgent()
+    return uploader
+  }
+
+  /** URL to the compiled code. */
+  artifact?: string|URL = undefined
+
+  /** Code hash uniquely identifying the compiled code. */
+  codeHash?: CodeHash   = undefined
+
+  /** Upload source code to a chain. */
+  async upload (uploader?: typeof this.uploader): Promise<Template> {
+    if (!this.task) return upload.call(this)
+    Object.defineProperty(upload, 'name', { value: `upload contract template` })
+    return this.task.subtask(upload.bind(this))
+    async function upload (this: Template): Promise<Template> {
+      uploader = this.assertUploader() // Don't start if there is no uploader
+      let self: Template = this        // Start with self
+      if (!self.artifact) self = await self.build() // Replace with built
+      return uploader.upload(self)     // Return uploaded
+    }
+  }
+
+  /** ID of chain to which this template is uploaded. */
+  chainId?:  ChainId = undefined
+
+  /** Hash of transaction that performed the upload. */
+  uploadTx?: TxHash  = undefined
+
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  codeId?:   CodeId  = undefined
+
+  /** Depending on what pre-Template type we start from, this function
+    * invokes builder and uploader to produce a Template from it. */
+  async getOrUpload (): Promise<Template> {
+    // We're gonna do this immutably, generating new instances of Template when changes are needed.
+    let self: Template = this
+    // If chain ID, code ID and code hash are present, this template is ready to uploade
+    if (self.chainId && self.codeId && self.codeHash) return self
+    // Otherwise we're gonna need an uploader
+    const uploader = self.assertUploader()
+    // And if we still can't determine the chain ID, bail
+    const chainId = self.chainId ?? uploader.chain.id
+    if (!chainId) throw new TemplateError.NoChainId()
+    // If we have chain ID and code ID, try to get code hash
+    if (self.codeId) {
+      self = new Template(self, { codeHash: await uploader.getHash(self.codeId) })
+      if (!self.codeHash) throw new TemplateError.NoCodeHash()
+      return self
+    }
+    return await this.upload()
+  }
+
+  /** Intended client class */
+  Client: NewClient<Client> = Client
+
+  /** Default agent that will perform inits. */
+  creator?: Agent = this.uploader?.agent
+
+  /** Deploy a contract from this template. */
+  async deploy <C extends Client> (
+    /** Must be unique. @fadroma/deploy adds prefix here. */
+    label:   Label,
+    /** Init message, or a function to produce it. */
+    initMsg: Message|(()=>Message|Promise<Message>),
+    /** Agent to do the deploy. */
+    agent?:  Agent
+  ): Promise<C> {
+    let self = this
+    if (!self.task) return deploy.call(self)
+    Object.defineProperty(deploy, 'name', { value: `upload contract ${label}` })
+    return self.task.subtask(deploy.bind(self))
+    async function deploy (this: Template): Promise<C> {
+      agent ??= this.creator
+      if (!agent) throw new ContractError.NoCreator()
+      const template = await this.getOrUpload()
+      this.log.beforeDeploy(this, template)
+      if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
+      const instance = await agent.instantiate(template, label, initMsg)
+      const client = new this.Client(agent, instance)
+      this.log.afterDeploy(this, client, template)
+      return client as C
+    }
+  }
+
+  /** Deploy multiple contracts from the same template with 1 tx */
+  async deployMany (contracts: DeployArgs[] = [], agent?: Agent): Promise<Client[]> {
+    agent ??= this.creator
+    if (!agent) throw new ContractError.NoCreator()
+    let instances
+    try {
+      const configs: DeployArgsTriple[] = contracts.map(([name, initMsg]: DeployArgs)=>[
+        this, prefix ? Contract.addPrefix(prefix, name) : name, initMsg
+      ])
+      instances = Object.values(await agent.instantiateMany(configs))
+    } catch (e) {
+      log.deployManyFailed(e, this, contracts)
+      throw e
+    }
+    // Return API client to each contract
+    return instances.map(instance=>this.context!.creator!.getClient(this.Client, instance))
+  }
+
+  /** Uploaded templates can be passed to factory contracts in this format: */
+  get asInfo (): { id: number, code_hash: string } {
+    if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
+      throw new TemplateError.Unpopulated()
+    }
+    return templateStruct(this)
+  }
+
+}
+
+/** `{ id, codeHash }` -> `{ id, code_hash }`; nothing else */
+export const templateStruct = (template: Template) => ({
+  id:        Number(template.codeId),
+  code_hash: codeHashOf(template)
+})
+
+/** Allow code hash to be passed with either cap convention; warn if missing or invalid. */
+export function codeHashOf ({ code_hash, codeHash }: Hashed): CodeHash|undefined {
+  if (typeof code_hash === 'string') code_hash = code_hash.toLowerCase()
+  if (typeof codeHash  === 'string') codeHash  = codeHash.toLowerCase()
+  if (code_hash && codeHash && code_hash !== codeHash) {
+    throw new Error('Passed an object with codeHash and code_hash both different')
+  }
+  return code_hash ?? codeHash
+}
+
+/** Objects that have a code hash in either capitalization. */
+interface Hashed { code_hash?: CodeHash, codeHash?: CodeHash }
+
+/** Instantiates multiple contracts of the same type in one transaction.
+  * To instantiatie different types of contracts in 1 tx, see deployment.initVarious */
+export class Contracts {
+  constructor (
+    public readonly $Client:  NewClient<any> = Client,
+    public readonly context?: UploadInitContext,
+  ) {}
+  /** Multiple different templates that can be uploaded in one invocation.
+    * Not uploaded in parallel by default. */
+  async getOrUploadMany (slots: IntoTemplate[]): Promise<Template[]> {
+    const templates: Template[] = []
+    for (const template of slots) {
+      templates.push(await new Template(template).getOrUpload())
+    }
+    return templates
+  }
+}
+
 export type IntoUploader = string|NewUploader|Partial<Uploader>
 
 export type NewUploader  = New<Uploader, IntoUploader>
@@ -934,6 +975,11 @@ export class Client extends Template {
 
 }
 
+export interface ClientCtor<C extends Client> {
+  new (agent?: Executor, address?: Address, hash?: CodeHash): C
+  new (agent?: Executor, options?: Partial<Client>): C
+}
+
 export type IntoContract = Name|Partial<Client>|Partial<Contract>
 export type NewContract  = New<Contract, IntoContract>
 
@@ -1028,34 +1074,32 @@ export class Contract extends Client {
 
 }
 
-export interface ClientCtor<C extends Client> {
-  new (agent?: Executor, address?: Address, hash?: CodeHash): C
-  new (agent?: Executor, options?: Partial<Client>): C
-}
-
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export interface ContractLink {
   readonly address:   Address
   readonly code_hash: CodeHash
 }
 
+/** Convert Fadroma.Instance to address/hash struct (ContractLink) */
+export const linkStruct = (instance: IntoLink): ContractLink => ({
+  address:   addressOf(instance),
+  code_hash: codeHashOf(instance)
+})
+
+/** Objects that have an address and code hash.
+  * Pass to linkTuple or linkStruct to get either format of link. */
+export interface IntoLink extends Hashed {
+  address: Address
+}
+
+export function addressOf (instance?: { address?: Address }): Address {
+  if (!instance)         throw new Error("Can't create an inter-contract link without a target")
+  if (!instance.address) throw new Error("Can't create an inter-contract link without an address")
+  return instance.address
+}
+
 /** Pair of name and init message. Used when instantiating multiple contracts from one template. */
 export type DeployArgs = [Name, Message]
-
-export interface UploadInitContext {
-  task?: Task
-  creator?: Agent
-  deployment?: {
-    has      (name: string): boolean
-    get      (name: string): Contract
-    initMany (creator: Executor, template: Template, contracts: DeployArgs[]): Promise<Contract[]>
-  }
-}
-
-interface Task {
-  subtask <C> (cb: ()=>(C|Promise<C>)): Promise<C>
-}
-
 
 /** A moment in time. */
 export type Moment   = number
@@ -1306,6 +1350,8 @@ export class SourceError extends CustomError {
 }
 
 export class TemplateError extends CustomError {
+  static Unpopulated = this.define('Unpopulated',
+    () => "template.codeId and template.codeHash must be defined to use template.asLink")
   static Invalid = this.define('InvalidSpecifier',
     (specifier: unknown) => `Can't create template from: ${specifier}`)
   static NoArtifact = this.define('NoArtifact',
