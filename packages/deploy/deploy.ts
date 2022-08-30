@@ -107,8 +107,10 @@ export class DeployContext extends Komandi.Context {
   creator:     Fadroma.Agent
 
   /** Specify a contract to deploy or operate. */
-  contract <C extends Fadroma.Contract> (...args: ConstructorParameters<Fadroma.NewContract>): C {
-    return new Fadroma.Contract(...args).but({ context: this })
+  contract <C extends Fadroma.Contract> (
+    ...args: ConstructorParameters<Fadroma.NewContract>
+  ): C {
+    return new Fadroma.Contract(...args).but({ context: this }) as C
   }
 
   /** Specify multiple contracts of the same kind. */
@@ -116,7 +118,7 @@ export class DeployContext extends Komandi.Context {
     _Client: Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
       = Fadroma.Contract as Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
   ): Fadroma.Contracts<C> {
-    return new Fadroma.Contracts(_Client, { context: this })
+    return new Fadroma.Contracts(_Client, { context: this }) as Fadroma.Contracts<C>
   }
 
 }
@@ -128,17 +130,11 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 
   log = new DeployConsole(console, 'Fadroma.DeployTask')
 
-  contract <C extends Fadroma.Contract> (
-    ...args: ConstructorParameters<Fadroma.NewContract>
-  ): C {
-    return this.context.contract(...args) as C
-  }
+  contract = (...args: ConstructorParameters<Fadroma.NewContract>) =>
+    this.context.contract(...args)
 
-  contracts <C extends Fadroma.Contract> (
-    ...args: ConstructorParameters<Fadroma.NewContract>
-  ): Contracts<C> {
-    return this.context.contracts(...args) as Contracts<C>
-  }
+  contracts = (...args: ConstructorParameters<Fadroma.NewContract>) =>
+    this.context.contracts(...args)
 
 }
 
@@ -235,6 +231,14 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     this.command('new',     'create a new empty deployment',   DeployCommands.create)
     this.command('status',  'show the current deployment',     DeployCommands.status)
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
+  }
+
+  inCurrentDeployment (...[name, info, ...steps]: Parameters<typeof this.command>): this {
+    return this.command(name, `(in current deployment) ${info}`, DeployCommands.get, ...steps)
+  }
+
+  inNewDeployment (...[name, info, ...steps]: Parameters<typeof this.command>): this {
+    return this.command(name, `(in new deployment) ${info}`, DeployCommands.create, ...steps)
   }
 
   parse (args: string[]) {

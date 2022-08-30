@@ -309,7 +309,7 @@ export abstract class LocalBuilder extends Fadroma.Builder {
   caching:       boolean     = true
 
   /** Check if artifact exists in local artifacts cache directory.
-    * If it does, don't rebuild it but return it from there. */ 
+    * If it does, don't rebuild it but return it from there. */
   protected prebuild (
     outputDir: string, crate?: string, ref: string = HEAD
   ): Fadroma.Template|null {
@@ -776,8 +776,8 @@ const bold = Konzola.bold
 export default class BuildCommands extends Komandi.Commands<Komandi.Context> {
 
   constructor (name: string = 'build', before = [], after = []) {
-    super(name, [getBuildContext, ...before], after) 
-    this.command('one', 'print the status of the current devnet', BuildCommands.buildOne)
+    super(name, before, after)
+    this.command('one', 'build one crate from working tree', BuildCommands.buildOne)
   }
 
   static buildOne = () => {
