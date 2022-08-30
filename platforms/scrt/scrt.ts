@@ -275,7 +275,7 @@ export class ScrtGrpc extends Scrt {
     }
   }
 
-  async query <U> (instance: Partial<Fadroma.Contract>, query: Fadroma.Message): Promise<U> {
+  async query <U> (instance: Partial<Fadroma.Client>, query: Fadroma.Message): Promise<U> {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
 
@@ -414,8 +414,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     return await this.api.query.compute.contractCodeHash(address)
   }
 
-  // @ts-ignore
-  async query <U> (instance: Partial<Fadroma.Contract>, query: Fadroma.Message): Promise<U> {
+  async query <U> (instance: Partial<Fadroma.Client>, query: Fadroma.Message): Promise<U> {
     const { address: contractAddress, codeHash } = instance
     const args = { contractAddress, codeHash, query: query as Record<string, unknown> }
     // @ts-ignore
@@ -443,7 +442,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
 
   async instantiate <T> (
     template: Fadroma.Template, label: Fadroma.Label, initMsg: T, initFunds = []
-  ): Promise<Fadroma.Contract> {
+  ): Promise<Fadroma.Client> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) throw Errors.AnotherChain()
@@ -461,7 +460,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     }
     type Log = { type: string, key: string }
     const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
-    return new Fadroma.Contract({
+    return new Fadroma.Client(this, {
       ...template,
       initTx:  result.transactionHash,
       address: result.arrayLog.find(findAddr)?.value!,
@@ -470,7 +469,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   }
 
   async execute (
-    instance: Partial<Fadroma.Contract>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
+    instance: Partial<Fadroma.Client>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
   ): Promise<ScrtGrpcTxResult> {
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
@@ -774,7 +773,7 @@ export interface PermitAminoMsg<T> {
 
 export type ViewingKey = string
 
-export class ViewingKeyClient extends Fadroma.Contract {
+export class ViewingKeyClient extends Fadroma.Client {
 
   async create (entropy = randomBytes(32).toString("hex")) {
     const msg    = { create_viewing_key: { entropy, padding: null } }

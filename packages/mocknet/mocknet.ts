@@ -19,7 +19,7 @@ export class Mocknet extends Fadroma.Chain {
     return new MocknetAgent(this, options) as unknown as A
   }
 
-  async query <T, U> (contract: Partial<Fadroma.Contract>, msg: T): Promise<U> {
+  async query <T, U> (contract: Partial<Fadroma.Client>, msg: T): Promise<U> {
     return this.backend.query(contract, msg as Fadroma.Message)
   }
 
@@ -82,18 +82,18 @@ class MocknetAgent extends Fadroma.Agent {
 
   async instantiate <T> (
     template: Fadroma.Template, label: string, msg: T, send = []
-  ): Promise<Fadroma.Contract> {
+  ): Promise<Fadroma.Client> {
     return await this.backend.instantiate(this.address, template, label, msg as Fadroma.Message, send)
   }
 
   async execute <R> (
-    instance: Partial<Fadroma.Contract>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
+    instance: Partial<Fadroma.Client>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
   ): Promise<R> {
     return await this.backend.execute(this.address, instance, msg, opts.send, opts.memo, opts.fee)
   }
 
   async query <R> (
-    instance: Partial<Fadroma.Contract>, msg: Fadroma.Message
+    instance: Partial<Fadroma.Client>, msg: Fadroma.Message
   ): Promise<R> {
     return await this.chain.query(instance, msg)
   }
@@ -243,7 +243,7 @@ export class MocknetBackend {
     label: string,
     msg:   Fadroma.Message,
     funds = []
-  ): Promise<Fadroma.Contract> {
+  ): Promise<Fadroma.Client> {
     const chainId  = this.chainId
     const code     = this.getCode(codeId!)
     const contract = await new MocknetBackend.Contract(this).load(code)
@@ -252,11 +252,11 @@ export class MocknetBackend {
     const initResponse = parseResult(response, 'instantiate', contract.address)
     this.instances[contract.address] = contract
     await this.passCallbacks(contract.address, initResponse.messages)
-    return new Fadroma.Contract({ chainId, codeId, codeHash, address: contract.address, label })
+    return new Fadroma.Client(undefined, { chainId, codeId, codeHash, address: contract.address, label })
   }
   async execute (
     sender: Fadroma.Address,
-    { address, codeHash }: Partial<Fadroma.Contract>,
+    { address, codeHash }: Partial<Fadroma.Client>,
     msg: Fadroma.Message,
     funds: unknown,
     memo?: unknown, 
@@ -341,7 +341,7 @@ export class MocknetBackend {
       }
     }
   }
-  async query ({ address, codeHash }: Partial<Fadroma.Contract>, msg: Fadroma.Message) {
+  async query ({ address, codeHash }: Partial<Fadroma.Client>, msg: Fadroma.Message) {
     const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
     return JSON.parse(result)
   }

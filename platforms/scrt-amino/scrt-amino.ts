@@ -122,7 +122,7 @@ export class ScrtAmino extends Fadroma.Scrt {
     return label
   }
 
-  async query <T, U> ({ address, codeHash }: Partial<Fadroma.Contract>, msg: T) {
+  async query <T, U> ({ address, codeHash }: Partial<Fadroma.Client>, msg: T) {
     const { api } = this
     // @ts-ignore
     return api.queryContractSmart(address, msg, undefined, codeHash)
@@ -276,14 +276,14 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
 
   async instantiate <T> (
     template: Fadroma.Template, label: string, msg: T, funds = []
-  ): Promise<Fadroma.Contract> {
+  ): Promise<Fadroma.Client> {
     if (!template.codeHash) throw ScrtAminoErrors.TemplateNoCodeHash()
     const { codeId, codeHash } = template
     const { api } = this
     //@ts-ignore
     const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, funds)
     const address = logs![0].events[0].attributes[4].value
-    return new Fadroma.Contract({
+    return new Fadroma.Client(this, {
       chainId: this.chain.id,
       codeId:  String(codeId),
       codeHash,
@@ -312,13 +312,13 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
   }
 
   async query <U> (
-    { address, codeHash }: Partial<Fadroma.Contract>, msg: Fadroma.Message
+    { address, codeHash }: Partial<Fadroma.Client>, msg: Fadroma.Message
   ): Promise<U> {
     return await this.api.queryContractSmart(address!, msg as object, undefined, codeHash)
   }
 
   async execute (
-    { address, codeHash }: Partial<Fadroma.Contract>, msg: Fadroma.Message,
+    { address, codeHash }: Partial<Fadroma.Client>, msg: Fadroma.Message,
     opts: Fadroma.ExecOpts = {}
   ): Promise<SecretJS.TxsResponse> {
     const { memo, send, fee } = opts

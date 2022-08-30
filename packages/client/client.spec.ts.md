@@ -1,25 +1,25 @@
 # Fadroma Client Spec
 
+## API connections and transactions:
+
+3. User interacts with contract by obtaining an instance of the
+   appropriate `Client` subclass from the authorized `Agent`.
+
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual, throws, rejects } from 'assert'
 ```
 
-## `Chain`: selecting a network
-
-Base layer for isomorphic contract clients.
+## Chain
 
 1. User selects chain by instantiating a `Chain` object.
-2. User authorizes agent by obtaining an `Agent` instance from the `Chain`.
-3. User interacts with contract by obtaining an instance of the
-   appropriate `Client` subclass from the authorized `Agent`.
 
 ```typescript
 import { Chain } from '.'
 let chain: Chain
 ```
 
-* Chain config
+### Chain config
 
 ```typescript
 chain = new Chain('any', { url: 'example.com' })
@@ -27,7 +27,7 @@ assert.equal(chain.id,  'any')
 assert.equal(chain.url, 'example.com')
 ```
 
-* Chain modes
+### Chain modes
 
 ```typescript
 import { ChainMode } from '.'
@@ -45,7 +45,10 @@ chain = new Chain('any', { mode: ChainMode.Mocknet })
 assert(chain.isMocknet && !chain.isMainnet && !chain.isDevnet)
 ```
 
-## `Agent`: asserting an identity
+## Agent
+
+User authenticates (=authorizes agent)
+by obtaining an `Agent` instance from the `Chain`.
 
 ```typescript
 import { Agent } from '.'
@@ -118,7 +121,10 @@ agent = new class TestAgent5 extends Agent { async query () { return {} } }
 assert.ok(await agent.query())
 ```
 
-### `Bundle`: combining multiple messages in 1 transaction
+### Bundle
+
+Create one with `Agent#getBundle()` then use with `Client`
+to combine various messages in a single transaction.
 
 ```typescript
 import { Bundle, Contract } from '.'
@@ -136,7 +142,7 @@ equal(await new TestBundle().wrap(async()=>{}, undefined, true), 'saved')
 
 ```typescript
 bundle = new Bundle({ chain: {}, checkHash () { return 'hash' } })
-ok(bundle.getContract(Contract, '') instanceof Contract)
+ok(bundle.getClient(Contract, '') instanceof Contract)
 rejects(()=>bundle.query())
 rejects(()=>bundle.upload())
 rejects(()=>bundle.uploadMany())
@@ -284,7 +290,7 @@ deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agen
 ok(await new Contract('Name').get())
 ok(await new Contract('Name').getOr(()=>{}))
 // get a contract client from the agent
-contract = agent.getContract()
+contract = agent.getClient()
 ok(contract)
 ```
 
