@@ -2,7 +2,8 @@ import { bold } from '@hackbg/konzola'
 
 type valof<T> = T[keyof T]
 
-/** Inheritance model. Override only allowed properties. */
+/** Core of inheritance model. Override only allowed properties.
+  * Thanks to this atrocity, Contract inherits from Template inherits from Source. */
 export function override (
   strict:    boolean,
   self:      object,
@@ -54,6 +55,11 @@ export class Overridable {
   }
 }
 
+/** `new Overridable(specifier, overrides)` idiom. */
+export interface New<T, U> {
+  new (specifier?: U, options?: Partial<T>): T
+}
+
 /** The friendly name of the contract. Used as part of the label. */
 export type Name       = string
 
@@ -67,7 +73,7 @@ export type IntoSource = string|URL|Partial<Source>
 export abstract class Source extends Overridable implements Partial<Source> {
 
   /** Allow Source to be specified from string or URL. */
-  static parse (specifier: IntoSource, options: Partial<Source> = {}): Partial<Source> {
+  static get (specifier: IntoSource, options: Partial<Source> = {}): Partial<Source> {
     if (typeof specifier === 'string') {
       const [ crate, ref ] = specifier.split('@')
       return { ...options, crate, ref }
@@ -80,12 +86,9 @@ export abstract class Source extends Overridable implements Partial<Source> {
     }
   }
 
-  constructor (
-    specifier: IntoSource      = {},
-    options:   Partial<Source> = {}
-  ) {
+  constructor (specifier: IntoSource = {}, options: Partial<Source> = {}) {
     super()
-    this.override(Source.parse(specifier, options))
+    this.override(Source.get(specifier, options))
   }
 
   /** URL to local or remote Git repository containing the source code. */
@@ -135,70 +138,77 @@ export abstract class Source extends Overridable implements Partial<Source> {
 
 }
 
-export class SourceError extends Error {
-
-  static Invalid = class Invalid extends SourceError {
-    constructor (specifier: unknown) {
-      super(`Can't create source from: ${specifier}`)
-    }
+export class CustomError extends Error {
+  static define (name: string, message: (...args: any)=>string): typeof this {
+    return Object.assign(class extends this {}, {
+      name: `${name}Error`,
+      constructor (...args: any) {
+        //@ts-ignore
+        super(message(args))
+      }
+    })
   }
-
-  static NoCrate = class NoCrate extends SourceError {
-    constructor () {
-      super(`No crate specified for building`)
-    }
-  }
-
-  static NoBuilder = class NoBuilder extends SourceError {
-    constructor () {
-      super("No builder")
-    }
-  }
-
-  static ProvideBuilder = class ProvideBuilder extends SourceError {
-    constructor (id: string) {
-      super(`Provide a "${id}" builder`)
-    }
-  }
-
 }
 
-/** Populated by @fadroma/build */
-export const Builders: Record<string, BuilderCtor> = {}
+export class SourceError extends CustomError {
+  static Invalid        = this.define('InvalidSource',
+    (specifier: unknown) => `Can't create source from: ${specifier}`)
+  static NoCrate        = this.define('NoCrate',
+    () => `No crate specified for building`)
+  static NoBuilder      = this.define('NoBuilder',
+    () => `No builder selected.`)
+  static ProvideBuilder = this.define('ProvideBuilder',
+    (id: string) => `Provide a "${id}" builder`)
+}
 
-export type IntoBuilder = string|BuilderCtor|Partial<Builder>
+/** Constructor type for builder. */
+export type NewBuilder = New<Builder, IntoBuilder>
 
-export interface BuilderCtor { new (options?: Partial<Builder>): Builder }
+/** Builders can be specified as ids, class names, or objects. */
+export type IntoBuilder = string|NewBuilder|Partial<Builder>
 
 /** Builder: turns `Source` into `Template`, providing `artifact` and `codeHash` */
 export abstract class Builder extends Overridable {
 
+  /** Populated by @fadroma/build */
   static variants: Record<string, Builder> = {}
 
+  /** Get a Builder from a specifier and optional overrides. */
   static get (specifier: IntoBuilder = '', options: Partial<Builder> = {}) {
     if (typeof specifier === 'string') {
-      const Builder = Builders[specifier]
-      if (!Builder) {
+      const B = Builder.variants[specifier]
+      if (!B) {
         throw new Error(`No "${specifier}" builder installed. Make sure @fadroma/build is imported`)
       }
-      return new Builder(options)
+      return new (B as any)(options)
     } else if (typeof specifier === 'function') {
-      return new (specifier as BuilderCtor)(options)
+      if (!options.id) {
+        throw new Error(`No builder specified.`)
+      }
+      return new (specifier as NewBuilder)(options)
     } else {
-      const Builder = Builders[specifier.id]
-      return new Builder({ ...specifier, ...options })
+      const B = Builder.variants[specifier?.id as string]
+      return new (B as any)({ ...specifier, ...options })
     }
   }
 
+  /** For serialization/deserialization. */
   abstract id: string
 
+  /** Up to the implementation.
+    * `@fadroma/build` implements dockerized and non-dockerized
+    * variants on top of the `build.impl.mjs` script. */
   abstract build (source: IntoSource, ...args: any[]): Promise<Template>
 
+  /** Default implementation of buildMany is parallel.
+    * Builder implementations override this, though. */
   buildMany (sources: IntoSource[], ...args: unknown[]): Promise<Template[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
 
 }
+
+export type NewTemplate = New<Template, IntoTemplate>
 
 export type IntoTemplate = IntoSource|Partial<Template>
 
@@ -308,53 +318,25 @@ export class Templates {
   }
 }
 
-export class TemplateError extends Error {
-
-  static Invalid = class Invalid extends TemplateError {
-    constructor (specifier: unknown) {
-      super(`Can't create template from: ${specifier}`)
-    }
-  }
-  static NoArtifact = class TemplateNoArtifact extends TemplateError {
-    constructor () {
-      super("No code id and no artifact to upload")
-    }
-  }
-  static NoUploader = class TemplateNoUploader extends TemplateError {
-    constructor () {
-      super("No uploader specified")
-    }
-  }
-  static NoUploaderAgent = class TemplateNoUploaderAgent extends TemplateError {
-    constructor () {
-      super("No uploader agent specified")
-    }
-  }
-  static ProvideUploader = class TemplateProvideUploader extends TemplateError {
-    constructor (id: string) {
-      super(`Provide a "${id}" uploader`)
-    }
-  }
-  static NoChainId = class TemplateNoChainId extends TemplateError {
-    constructor () {
-      super("No chain ID specified")
-    }
-  }
-  static NoCodeHash = class TemplateNoChainId extends TemplateError {
-    constructor () {
-      super("No code hash")
-    }
-  }
-  static NoSource = class TemplateNoSource extends TemplateError {
-    constructor () {
-      super("No artifact and no source to build")
-    }
-  }
-  static NoArtifactURL = class TemplateNoArtifactURL extends TemplateError {
-    constructor () {
-      super("Still no artifact URL")
-    }
-  }
+export class TemplateError extends CustomError {
+  static Invalid = this.define('InvalidSpecifier',
+    (specifier: unknown) => `Can't create template from: ${specifier}`)
+  static NoArtifact = this.define('NoArtifact',
+    () => "No code id and no artifact to upload")
+  static NoUploader = this.define('NoUploader',
+    () => "No uploader specified")
+  static NoUploaderAgent = this.define('NoUploaderAgent',
+    () => "No uploader agent specified")
+  static ProvideUploader = this.define('ProvideUploader',
+    (id: string) => `Provide a "${id}" uploader`)
+  static NoChainId = this.define('NoChainId',
+    () => "No chain ID specified")
+  static NoCodeHash = this.define('NoCodeHash',
+    () => "No code hash")
+  static NoSource = this.define('TemplateNoSource',
+    () => "No artifact and no source to build")
+  static NoArtifactURL = this.define('NoArtifactUrl',
+    () => "Still no artifact URL")
 }
 
 /** A code ID, identifying uploaded code on a chain. */
@@ -376,25 +358,25 @@ export interface Spectator {
   chain:        Chain
 
   /** Query a smart contract. */
-  query <U>     (contract: Partial<Contract>, msg: Message): Promise<U>
+  query <U>     (contract: Partial<Client>, msg: Message): Promise<U>
 
   /** Get the code id of a smart contract. */
-  getCodeId     (address: Address):                      Promise<string>
+  getCodeId     (address: Address):                        Promise<string>
 
   /** Get the label of a smart contract. */
-  getLabel      (address: Address):                      Promise<string>
+  getLabel      (address: Address):                        Promise<string>
 
   /** Get the code hash of a smart contract. */
-  getHash       (addressOrCodeId: Address|number):       Promise<string>
+  getHash       (addressOrCodeId: Address|number):         Promise<string>
 
   /** Get the code hash of a smart contract. */
-  checkHash     (address: Address, codeHash?: CodeHash): Promise<string>
+  checkHash     (address: Address, codeHash?: CodeHash):   Promise<string>
 
   /** Get the current block height. */
-  get height    ():                                      Promise<number>
+  get height    ():                                        Promise<number>
 
   /** Wait for the block height to increment. */
-  get nextBlock ():                                      Promise<number>
+  get nextBlock ():                                        Promise<number>
 
 }
 
@@ -478,7 +460,7 @@ export abstract class Chain implements Spectator {
   /** Get the native balance of an address. */
   abstract getBalance (denom: string, address: Address): Promise<string>
 
-  abstract query <U> (contract: Contract, msg: Message): Promise<U>
+  abstract query <U> (contract: Client, msg: Message): Promise<U>
 
   abstract getCodeId (address: Address): Promise<CodeId>
 
@@ -588,8 +570,8 @@ export interface Executor extends Spectator {
   /** Begin a transaction bundle. */
   bundle          (): Bundle
   /** Get a client instance for talking to a specific smart contract as this executor. */
-  getContract <C extends Contract, O extends Partial<Contract>> (
-    Contract: ContractCtor<C, O>, arg: Address|O
+  getClient <C extends Client> (
+    Client: NewClient<C>, specifier: Address|Partial<C>, codeHash?: CodeHash
   ): C
 }
 
@@ -698,16 +680,14 @@ export abstract class Agent implements Executor {
     return this.chain.checkHash(address, codeHash)
   }
 
-  getContract <C extends Contract, O extends Partial<Contract>> (
-    _Client: ContractCtor<C, O> = Contract as ContractCtor<C, O>,
-    arg:     Address|Partial<O> = {},
-    hash?:   CodeHash
+  getClient <C extends Client> (
+    Client: NewClient<C>, specifier: Address|Partial<C>, codeHash?: CodeHash
   ): C {
-    hash ??= (arg as Partial<O>).codeHash
-    return new _Client(this, arg, hash)
+    if (typeof specifier === 'string') specifier = { address: specifier } as Partial<C>
+    return new Client(this, { ...specifier, codeHash })
   }
 
-  query <R> (contract: Contract, msg: Message): Promise<R> {
+  query <R> (contract: Client, msg: Message): Promise<R> {
     return this.chain.query(contract, msg)
   }
 
@@ -762,15 +742,16 @@ export interface AgentFees {
   exec?:   IFee
 }
 
-//@ts-ignore
-Chain.Agent = Agent as AgentCtor<Agent>
+export type IntoUploader = string|NewUploader|Partial<Uploader>
 
-/** Populated by @fadroma/deploy */
-export const Uploaders: Record<string, Uploader> = {}
+export type NewUploader  = New<Uploader, IntoUploader>
 
 /** Uploader: uploads a `Template`'s `artifact` to a specific `Chain`,
   * binding the `Template` to a particular `chainId` and `codeId`. */
 export abstract class Uploader {
+
+  /** Populated by @fadroma/deploy */
+  static variants: Record<string, Uploader> = {}
 
   constructor (public agent: Agent) {}
 
@@ -788,24 +769,52 @@ export abstract class Uploader {
 
 }
 
-export type IntoUploader = string|UploaderCtor|Partial<Uploader>
+/** A transaction hash, uniquely identifying an executed transaction on a chain. */
+export type TxHash       = string
 
-export interface UploaderCtor {
-  new (options?: IntoUploader): Uploader 
+export interface NewClient<C extends Client> {
+  new (agent?: Executor, address?: Address, hash?: CodeHash): C
+  new (agent?: Executor, options?: Partial<C>): C
 }
 
-/** A transaction hash, uniquely identifying an executed transaction on a chain. */
-export type TxHash = string
+export class Client extends Template {
 
-export type IntoContract = Name|Partial<Contract>
-
-export class Client extends Overridable {
-
-  address?:  Address
-
-  codeHash?: CodeHash
+  constructor (
+    agent?:    Executor,
+    address?:  Address|Partial<Client>,
+    codeHash?: CodeHash
+  ) {
+    super()
+    if (typeof address === 'string') address = { address }
+    this.override({ ...address, codeHash, agent })
+    const { name } = this.constructor
+    if (!this.agent) console.warn(
+      `${name}: created without agent. Transactions and queries not possible.`
+    )
+    if (!this.address) console.warn(
+      `${name}: created without address. Transactions and queries not possible.`
+    )
+    if (!this.codeHash) console.warn(
+      `${name}: created without codeHash. Transactions and queries may be slower.`
+    )
+  }
 
   agent?:    Agent
+
+  /** Address of the contract on the chain. */
+  address?: Address                 = undefined
+
+  /** TXID of transaction where this contract was created. */
+  initTx?:  TxHash                  = undefined
+
+  /** Label of the contract on the chain. */
+  label?:   string                  = undefined
+
+  /** Default fee for all contract transactions. */
+  fee?:     IFee                    = undefined
+
+  /** Default fee for specific transactions. */
+  fees:     Record<string, IFee>    = {}
 
   /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
   get asLink (): ContractLink {
@@ -837,7 +846,7 @@ export class Client extends Overridable {
   /** Create a copy of this Client with all transaction fees set to the provided value.
     * If the fee is undefined, returns a copy of the client with unmodified fee config. */
   withFee (fee: IFee|undefined): this {
-    const Self = this.constructor as ContractCtor<typeof this, any>
+    const Self = this.constructor as NewContract
     if (fee) {
       return new Self(this.agent, {...this, fee, fees: {}})
     } else {
@@ -870,23 +879,16 @@ export class Client extends Overridable {
     return this.agent
   }
 
-  /** Throw if fetched metadata differs from configured. */
-  assertCorrect (kind: string, expected: any, actual: any) {
-    const name = this.constructor.name
-    if (expected !== actual) {
-      throw new Error(`Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
-    }
-  }
 }
 
-export interface ClientCtor<C extends Client> {
-  new (agent?: Executor, address?: Address, hash?: CodeHash): C
-  new (agent?: Executor, options?: Partial<C>): C
-}
+export type IntoContract = Name|Partial<Client>|Partial<Contract>
+export type NewContract  = New<Contract, IntoContract>
 
 /** Contract: instantiated template.
   * Has an `address` on a specific `chain` and can do the things that it's programmed to. */
 export class Contract extends Client {
+
+  static addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 
   static parse (specifier: IntoContract, options: IntoContract): Partial<Contract> {
     if (typeof specifier === 'string') {
@@ -906,108 +908,44 @@ export class Contract extends Client {
     specifier: IntoContract,
     options:   Partial<Contract> = {},
   ) {
-    super()
-    this.override(Contract.parse(specifier, options))
-    console.log(this)
-
-    // Warn if missing agent
-    //const className = this.constructor.name
-    //if (!agent) console.warn(
-      //`Creating ${className} without Agent. Transactions and queries not possible.`
-    //)
-
-    //if (!value) throw new ContractError.Empty()
-    //if (typeof value === 'string') {
-      //this.name = value
-      //if (!context.deployment) throw new ContractError.CantFind(value)
-      //if (context.deployment.has(value)) this.value = context.deployment.get(value)!
-    //} else {
-      //this.value = value
-    //}
-    //if (this.value && (this.value as { address: Address }).address) {
-      //this.value = new this.Client(context.creator, this.value)
-    //}
-    //this.context ??= context
-    //this.task    ??= task
-    //if (typeof arg === 'string') {
-      //this.address  = arg
-      //this.codeHash = hash
-    //} else {
-      //this.address  = arg.address!
-      //if (!this.address) console.warn(
-        //`${className} created with no address. Transactions and queries not possible.`
-      //)
-      //this.name     = arg.name     ?? this.name
-      //this.label    = arg.label    ?? this.label
-      //this.codeHash = arg.codeHash ?? this.codeHash ?? hash
-      //if (!this.codeHash) console.warn(
-        //`${className} created with no code hash. await client.fetchCodeHash() to populate.`
-      //)
-      //this.codeId   = arg.codeId   ?? this.codeId
-      //this.fee      = arg.fee      ?? this.fee
-      //this.fees = Object.assign(this.fees||{}, arg.fees||{})
-    //}
+    const parsed = Contract.parse(specifier, options)
+    const { agent, address, codeHash } = parsed
+    super(agent, address, codeHash)
+    this.override(parsed)
   }
+
+  /** Client class to use. */
+  Client:   NewClient<any>          = Client as NewClient<Client>
 
   /** Friendly name of the contract. Used for looking it up in the deployment. */
   name?:    Name                    = undefined
 
-  Client?:  ContractCtor<this, any> = undefined
+  /** Deployment prefix of the contract. If present, label becomes `prefix/name` */
+  prefix?:  Name                    = undefined
 
-  agent?:   Executor                = undefined
+  get (message: string = `Contract not found: ${this.name}`): this {
+    if (this.name && this.context?.deployment && this.context?.deployment.has(this.name)) {
+      const instance = this.context?.deployment.get(this.name)
+      const client   = new this.Client(this.context.creator, instance!)
+      return client
+    } else if (this.value) {
+      const client = new this.Client(this.context?.creator, this.value)
+      return client
+    } else {
+      throw new Error(message)
+    }
+  }
 
-  initTx?:  TxHash                  = undefined
-
-  /** Address of the contract on the chain. */
-  address?: Address                 = undefined
-
-  /** Label of the contract on the chain. */
-  label?:   string                  = undefined
-
-  /** Default fee for all contract transactions. */
-  fee?:     IFee                    = undefined
-
-  /** Default fee for specific transactions. */
-  fees:     Record<string, IFee>    = {}
-
-  async deploy (
-    specifier: IntoTemplate,
-    initMsg:  Message|(()=>Message|Promise<Message>)
-  ): Promise<this> {
-
-    const self = this
-
+  async getOr (getter: ()=>this|Promise<this>): Promise<this> {
     if (this.context?.task) {
-      const value = `deploy ${this.name??'contract'}`
-      Object.defineProperty(deployContract, 'name', { value })
-      return this.context.task.subtask(deployContract.bind(this))
+      const value = `get or provide ${this.name??'contract'}`
+      Object.defineProperty(getContractOr, 'name', { value })
+      return this.context.task.subtask(getContractOr)
     }
-
-    return await deployContract()
-
-    async function deployContract () {
-
-      const name     = self.name
-      if (!name) throw new ContractError.NoName()
-
-      const creator  = self.context?.creator ?? self.agent
-      if (!creator) throw new ContractError.NoCreator()
-
-      const template = await self.getOrUpload()
-      log.beforeDeploy(self, template)
-
-      if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-      const instance = self.context?.deployment
-        ? self.context.deployment.init(creator, template, name, initMsg)
-        : creator.instantiate(template, name, initMsg)
-
-      const client = new self.Client(creator, instance)
-      log.afterDeploy(self, client, template)
-
-      return self
-
+    return await getContractOr.bind(this)()
+    async function getContractOr () {
+      return await Promise.resolve(getter())
     }
-
   }
 
   async getOrDeploy (
@@ -1035,29 +973,84 @@ export class Contract extends Client {
     }
   }
 
-  async getOr (getter: ()=>this|Promise<this>): Promise<this> {
+  async deploy (
+    label:   Label,
+    initMsg: Message|(()=>Message|Promise<Message>)
+  ): Promise<this> {
+
+    const self = this
+
     if (this.context?.task) {
-      const value = `get or provide ${this.name??'contract'}`
-      Object.defineProperty(getContractOr, 'name', { value })
-      return this.context.task.subtask(getContractOr)
+      const value = `deploy ${this.name??'contract'}`
+      Object.defineProperty(deployContract, 'name', { value })
+      return this.context.task.subtask(deployContract.bind(this))
     }
-    return await getContractOr.bind(this)()
-    async function getContractOr () {
-      return await Promise.resolve(getter())
+
+    return await deployContract()
+
+    async function deployContract () {
+
+      const name     = self.name
+      if (!name) throw new ContractError.NoName()
+
+      const creator  = self.context?.creator ?? self.agent
+      if (!creator) throw new ContractError.NoCreator()
+
+      const template = await self.getOrUpload()
+      log.beforeDeploy(self, template)
+
+      if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
+      const instance = creator.instantiate(template, name, initMsg)
+
+      const client = new self.Client(creator, instance)
+      log.afterDeploy(self, client, template)
+
+      return self
+
     }
+
   }
 
-  get (message: string = `Contract not found: ${this.name}`): this {
-    if (this.name && this.context?.deployment && this.context?.deployment.has(this.name)) {
-      const instance = this.context?.deployment.get(this.name)
-      const client   = new this.Client(this.context.creator, instance!)
-      return client
-    } else if (this.value) {
-      const client = new this.Client(this.context?.creator, this.value)
-      return client
-    } else {
-      throw new Error(message)
+  async deployMany (
+    specifier: IntoTemplate,
+    contracts: DeployArgs[] = []
+  ): Promise<this[]> {
+    if (!this.context)            throw new ContractError.NoContext()
+    if (!this.context.creator)    throw new ContractError.NoCreator()
+    if (!this.context.deployment) throw new ContractError.NoDeployment()
+    // Provide the template
+    const template = await new Template(specifier, { context: this.context }).getOrUpload()
+    // Deploy multiple contracts from the same template with 1 tx
+    const creator = this.context.creator
+    let instances
+    try {
+      instances = await this.deployVarious(contracts.map(([name, msg])=>[template, name, msg]))
+    } catch (e) {
+      log.deployManyFailed(e, template, contracts)
+      throw e
     }
+    // Return API client to each contract
+    return instances.map(instance=>this.context!.creator!.getClient(this.Client, instance))
+  }
+
+  async deployVarious (
+    contracts: DeployArgsTriple[] = []
+  ): Promise<this[]> {
+    if (!this.agent) throw new ContractError.NoAgent()
+    for (const index in contracts) {
+      const triple = contracts[index]
+      if (triple.length !== 3) {
+        throw Object.assign(
+          new Error('initVarious: contracts must be [Template, Name, Message] triples'),
+          { index, contract: triple }
+        )
+      }
+    }
+    return Object.values(
+      await this.agent.instantiateMany(contracts.map(([template, name, initMsg]: DeployArgsTriple)=>[
+        template, this.prefix ? Contract.addPrefix(this.prefix, name) : name, initMsg
+      ]) as DeployArgsTriple[])
+    ) as this[]
   }
 
   /** The Chain on which this contract exists. */
@@ -1087,6 +1080,14 @@ export class Contract extends Client {
     return this
   }
 
+  /** Throw if fetched metadata differs from configured. */
+  assertCorrect (kind: string, expected: any, actual: any) {
+    const name = this.constructor.name
+    if (expected !== actual) {
+      throw new Error(`Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
+    }
+  }
+
   /** Fetch the label, code ID, and code hash from the Chain.
     * You can override this method to populate custom contract info from the chain on your client,
     * e.g. fetch the symbol and decimals of a token contract. */
@@ -1096,12 +1097,11 @@ export class Contract extends Client {
     return this
   }
 
-
 }
 
 export interface ContractCtor<C extends Contract, O extends Partial<Contract>> {
   new (agent?: Executor, address?: Address, hash?: CodeHash): C
-  new (agent?: Executor, options?: O): C
+  new (agent?: Executor, options?: Partial<Contract>): C
 }
 
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
@@ -1118,7 +1118,6 @@ export interface UploadInitContext {
   deployment?: {
     has      (name: string): boolean
     get      (name: string): Contract
-    init     (creator: Executor, ...args: DeployArgsTriple): Promise<Contract>
     initMany (creator: Executor, template: Template, contracts: DeployArgs[]): Promise<Contract[]>
   }
   task?: {
@@ -1138,87 +1137,37 @@ export class Contracts<C extends Contract> {
   }
 
   public readonly Contract: ContractCtor<C, any>
-
-  async deployMany (
-    specifier: IntoTemplate,
-    contracts: DeployArgs[] = []
-  ): Promise<C[]> {
-    if (!this.context)            throw new ContractError.NoContext()
-    if (!this.context.creator)    throw new ContractError.NoCreator()
-    if (!this.context.deployment) throw new ContractError.NoDeployment()
-    // Provide the template
-    const template = await new Template(specifier, { context: this.context }).getOrUpload()
-    // Deploy multiple contracts from the same template with 1 tx
-    let instances: Contract[]
-    try {
-      const creator = this.context.creator
-      instances = await this.context.deployment.initMany(creator, template, contracts)
-    } catch (e) {
-      throw new ContractError.DeployManyFailed(e)
-    }
-    // Return API client to each contract
-    return instances.map(instance=>this.context!.creator!.getContract(this.Contract, instance))
-  }
 }
 
 /** A moment in time. */
 export type Moment   = number
 
-/** A length of time. */
+/** A period of time. */
 export type Duration = number
 
-export class ContractError extends Error {
-  static Empty = class EmptyContractSpec extends ContractError {
-    constructor () {
-      super("Tried to create ContractSlot with nullish value")
-    }
-  }
-  static CantFind = class CantFindContract extends ContractError {
-    constructor (name: string) {
-      super(`No deployment, can't find contract by name: ${name}`)
-    }
-  }
-  static NotFound = class ContractNotFound extends ContractError {
-    constructor (prefix: string, name: string) {
-      super(`Contract ${name} not found in deployment ${prefix}`)
-    }
-  }
-  static NotFound2 = class ContractNotFound2 extends ContractError {
-    constructor () {
-      super("Contract not found. Try .getOrDeploy(template, init)")
-    }
-  }
-  static NoContext = class NoUploadInitContext extends ContractError {
-    constructor () {
-      super("Missing deploy context.")
-    }
-  }
-  static NoCreator = class NoContractCreator extends ContractError {
-    constructor () {
-      super("Missing creator.")
-    }
-  }
-  static NoDeployment = class NoContractDeployment extends ContractError {
-    constructor () {
-      super("Missing deployment.")
-    }
-  }
-  static InvalidValue = class InvalidContractValue extends ContractError {
-    constructor () {
-      super("Value is not Client and not a name.")
-    }
-  }
-  static NoName = class NoContractName extends ContractError {
-    constructor () {
-      super("No name.")
-    }
-  }
-  static DeployManyFailed = class DeployManyFailed extends ContractError {
-    constructor (e: any) {
-      //DeployLogger(console).deployManyFailed(e, template, contracts)
-      super('Deploy of multiple contracts failed. ' + e?.message??'')
-    }
-  }
+export class ContractError extends CustomError {
+  static Empty = this.define('Empty',
+    () => "Tried to create ContractSlot with nullish value")
+  static CantFind = this.define('CantFindContract',
+    (name: string) => `No deployment, can't find contract by name: ${name}`)
+  static NotFound = this.define('NotFound',
+    (prefix: string, name: string) => `Contract ${name} not found in deployment ${prefix}`)
+  static NotFound2 = this.define('NotFound2',
+    () => "Contract not found. Try .getOrDeploy(template, init)")
+  static NoAgent = this.define('NoUploadInitContext',
+    () => "Missing execution agent.")
+  static NoContext = this.define('NoUploadInitContext',
+    () => "Missing deploy context.")
+  static NoCreator = this.define('NoContractCreator',
+    () => "Missing creator.")
+  static NoDeployment = this.define("NoDeployment",
+    () => "Missing deployment.")
+  static InvalidValue = this.define("InvalidContractValue",
+    () => "Value is not Client and not a name.")
+  static NoName = this.define("NoContractName",
+    () => "No name.")
+  static DeployManyFailed = this.define('DeployManyFailed',
+    (e: any) => 'Deploy of multiple contracts failed. ' + e?.message??'')
 }
 
 /** Bundle is an alternate executor that collects collects messages to broadcast
@@ -1329,7 +1278,7 @@ export abstract class Bundle implements Executor {
     * even though the bundle API is structured as multiple function calls,
     * the bundle is ultimately submitted as a single transaction and
     * it doesn't make sense to query state in the middle of that. */
-  async query <U> (contract: Contract, msg: Message): Promise<U> {
+  async query <U> (contract: Client, msg: Message): Promise<U> {
     throw new Error("don't query inside bundle")
   }
 
@@ -1349,11 +1298,11 @@ export abstract class Bundle implements Executor {
     throw new Error("don't upload inside bundle")
   }
 
-  getContract <C extends Contract, O extends Partial<Contract>> (
-    Contract: ContractCtor<C, O>, 
-    arg:      Address|O
+  getClient <C extends Client> (
+    Client: NewClient<C>, specifier: Address|Partial<C>, codeHash?: CodeHash
   ): C {
-    return new Contract(arg, { agent: this as Executor })
+    if (typeof specifier === 'string') specifier = { address: specifier } as Partial<C>
+    return new Client({ ...specifier, codeHash }).as(this)
   }
 
   id = 0
@@ -1409,6 +1358,9 @@ export interface BundleCtor<B extends Bundle> {
 
 /** Function passed to Bundle#wrap */
 export type BundleCallback<B extends Bundle> = (bundle: B)=>Promise<void>
+
+//@ts-ignore
+Chain.Agent = Agent as AgentCtor<Agent>
 
 //@ts-ignore
 Agent.Bundle = Bundle
