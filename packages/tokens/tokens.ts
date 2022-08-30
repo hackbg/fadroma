@@ -409,13 +409,13 @@ export class TokenRegistry extends Map<string, Snip20> {
     * Invocation is "pnpm run deploy token $name $symbol $decimals [$admin] [$crate]" */
   static async deployToken (
     context:   TokenRegistryContext,
-    name:      string =                    context.cmdArgs[0]??'MockToken',
-    symbol:    string =                    context.cmdArgs[1]??'MOCK',
-    decimals:  number =             Number(context.cmdArgs[2]??6),
-    admin:     Fadroma.Address|undefined = context.cmdArgs[3]??context.deployment?.agent?.address,
-    template:  Fadroma.IntoTemplate      = context.cmdArgs[4]??'amm-snip20'
+    name:      string =                    context.args[0]??'MockToken',
+    symbol:    string =                    context.args[1]??'MOCK',
+    decimals:  number =             Number(context.args[2]??6),
+    admin:     Fadroma.Address|undefined = context.args[3]??context.deployment?.agent?.address,
+    template:  Fadroma.IntoTemplate      = context.args[4]??'amm-snip20'
   ) {
-    const args   = context.cmdArgs.slice(5)
+    const args   = context.args.slice(5)
     const config = structuredClone(this.defaultConfig)
     if (args.includes('--no-public-total-supply')) delete config.public_total_supply
     if (args.includes('--no-mint'))     delete config.enable_mint
@@ -461,7 +461,7 @@ export class TokenRegistry extends Map<string, Snip20> {
     // generate snip20 init message
     const init  = Snip20.init(name, symbol, decimals, admin, config)
     // get or create contract with the name (names are internal to deployment)
-    const token = await this.context.contract(name, Snip20).getOrDeploy(template, init)
+    const token = await this.context.contract(name, { Client: Snip20 }).getOrDeploy(template, init)
     // add and return the token
     return this.add(token, symbol)
   }
@@ -512,7 +512,7 @@ export class TokenRegistry extends Map<string, Snip20> {
 
 interface TokenRegistryContext {
 
-  cmdArgs: string[]
+  args: string[]
 
   agent: Fadroma.Agent
 

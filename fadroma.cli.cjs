@@ -38,12 +38,12 @@ for (const pkg of [
 }
 
 const Ganesha = require('@hackbg/ganesha')
-const [node, self, commandName, ...cmdArgs] = process.argv
+const [node, self, commandName, ...args] = process.argv
 const command = commands[commandName] || runScript
 command(...process.argv)
 
 function run (script) {
-  Ganesha.main([node, self, script, ...cmdArgs])
+  Ganesha.main([node, self, script, ...args])
 }
 
 function runScript () {
