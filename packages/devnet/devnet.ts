@@ -1,9 +1,10 @@
-import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
+import $, { JSONFile } from '@hackbg/kabinet'
 import { Console, bold }                               from '@hackbg/konzola'
 import { EnvConfig }                                   from '@hackbg/konfizi'
 import { freePort, waitPort, Endpoint }                from '@hackbg/portali'
 import { randomHex }                                   from '@hackbg/formati'
 
+import * as Kabinet from '@hackbg/kabinet'
 import * as Komandi from '@hackbg/komandi'
 import * as Dokeres from '@hackbg/dokeres'
 import * as Fadroma from '@fadroma/client'
@@ -135,8 +136,8 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
       this.genesisAccounts = identities
     }
     stateRoot      = stateRoot || resolve(cwd(), 'receipts', this.chainId)
-    this.stateRoot = $(stateRoot).as(OpaqueDirectory)
-    this.nodeState = this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
+    this.stateRoot = $(stateRoot).as(Kabinet.OpaqueDirectory)
+    this.nodeState = this.stateRoot.at('node.json').as(Kabinet.JSONFile) as Kabinet.JSONFile<DevnetState>
   }
 
   /** Whether to destroy this devnet on exit. */
@@ -164,7 +165,7 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
   }
 
   /** This directory is created to remember the state of the devnet setup. */
-  stateRoot: OpaqueDirectory
+  stateRoot: Kabinet.OpaqueDirectory
 
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
@@ -275,7 +276,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
     console.info('Constructing devnet with', bold('@hackbg/dokeres'))
-    this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
+    this.identities  ??= this.stateRoot.in('identities').as(Kabinet.JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
@@ -297,7 +298,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
   initScript: string
 
   /** Mounted out of devnet container to persist keys of genesis wallets. */
-  identities: JSONDirectory<unknown>
+  identities: Kabinet.JSONDirectory<unknown>
 
   /** Gets the info for a genesis account, including the mnemonic */
   async getGenesisAccount (name: string): Promise<Fadroma.AgentOpts> {

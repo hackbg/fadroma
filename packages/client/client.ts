@@ -408,10 +408,12 @@ export abstract class Agent implements Executor {
   }
 
   getClient <C extends Client> (
-    Client: NewClient<C>, specifier: Address|Partial<C>, codeHash?: CodeHash
+    $Client:   NewClient<C>,
+    specifier: Address|Partial<C>,
+    codeHash?: CodeHash
   ): C {
     if (typeof specifier === 'string') specifier = { address: specifier } as Partial<C>
-    return new Client(this, { ...specifier, codeHash })
+    return new $Client(this, { ...specifier, codeHash }) as C
   }
 
   query <R> (contract: Client, msg: Message): Promise<R> {
@@ -473,7 +475,7 @@ export interface AgentFees {
 export type IntoSource = string|URL|Partial<Source>
 
 /** Source: a smart contract that exists in source code form and can be compiled. */
-export abstract class Source extends Overridable implements Partial<Source> {
+export class Source extends Overridable implements Partial<Source> {
 
   /** Allow Source to be specified from string or URL. */
   static get (specifier: IntoSource, options: Partial<Source> = {}): Partial<Source> {
@@ -537,6 +539,32 @@ export abstract class Source extends Overridable implements Partial<Source> {
       crate:   this.crate,
       builder: (typeof this.builder === 'object') ? this.builder.id : this.builder
     }
+  }
+
+}
+
+export class Sources extends Overridable {
+
+  constructor (specifiers: IntoSource[], options: Partial<Source> = {}) {
+    super()
+    this.override({ ...options, sources: specifiers.map(this.intoSource) })
+  }
+
+  builder?: Builder  = undefined
+
+  sources:  Source[] = []
+
+  protected intoSource = (specifier: IntoSource) =>
+    new Source(specifier)
+
+  at (ref: string) {
+    return new Sources(this.sources.map(source=>source.at(ref)))
+  }
+
+  async build (builder?: Builder): Promise<Template[]> {
+    builder ??= this.builder
+    if (!builder) throw new SourceError.NoBuilder()
+    return await builder.buildMany(this.sources)
   }
 
 }
@@ -741,11 +769,11 @@ export class Template extends Source {
       throw e
     }
     // Return API client to each contract
-    return instances.map(instance=>this.context!.creator!.getClient(this.Client, instance))
+    return instances.map(instance=>agent!.getClient(this.Client, instance))
   }
 
   /** Uploaded templates can be passed to factory contracts in this format: */
-  get asInfo (): { id: number, code_hash: string } {
+  get asInfo (): TemplateInfo {
     if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
       throw new TemplateError.Unpopulated()
     }
@@ -754,8 +782,13 @@ export class Template extends Source {
 
 }
 
+export interface TemplateInfo {
+  id:        number,
+  code_hash: string
+}
+
 /** `{ id, codeHash }` -> `{ id, code_hash }`; nothing else */
-export const templateStruct = (template: Template) => ({
+export const templateStruct = (template: Template): TemplateInfo => ({
   id:        Number(template.codeId),
   code_hash: codeHashOf(template)
 })
@@ -975,11 +1008,6 @@ export class Client extends Template {
 
 }
 
-export interface ClientCtor<C extends Client> {
-  new (agent?: Executor, address?: Address, hash?: CodeHash): C
-  new (agent?: Executor, options?: Partial<Client>): C
-}
-
 export type IntoContract = Name|Partial<Client>|Partial<Contract>
 export type NewContract  = New<Contract, IntoContract>
 
@@ -1023,12 +1051,12 @@ export class Contract extends Client {
   prefix?:  Name                    = undefined
 
   get (message: string = `Contract not found: ${this.name}`): this {
-    if (this.name && this.context?.deployment && this.context?.deployment.has(this.name)) {
-      const instance = this.context?.deployment.get(this.name)
-      const client   = new this.Client(this.context.creator, instance!)
+    if (this.name && this.deployment && this.deployment.has(this.name)) {
+      const instance = this.deployment.get(this.name)
+      const client   = new this.Client(this.creator, instance!)
       return client
     } else if (this.value) {
-      const client = new this.Client(this.context?.creator, this.value)
+      const client = new this.Client(this.creator, this.value)
       return client
     } else {
       throw new Error(message)
@@ -1036,10 +1064,10 @@ export class Contract extends Client {
   }
 
   async getOr (getter: ()=>this|Promise<this>): Promise<this> {
-    if (this.context?.task) {
+    if (this.task) {
       const value = `get or provide ${this.name??'contract'}`
       Object.defineProperty(getContractOr, 'name', { value })
-      return this.context.task.subtask(getContractOr)
+      return this.task.subtask(getContractOr)
     }
     return await getContractOr.bind(this)()
     async function getContractOr () {
@@ -1052,10 +1080,10 @@ export class Contract extends Client {
     initMsg:  Message|(()=>Message|Promise<Message>)
   ): Promise<this> {
     const self = this
-    if (this.context?.task) {
+    if (this.task) {
       const value = `get or deploy ${this.name??'contract'}`
       Object.defineProperty(getOrDeployContract, 'name', { value })
-      return this.context?.task.subtask(getOrDeployContract)
+      return this.task.subtask(getOrDeployContract)
     }
     return await getOrDeployContract.call(this)
     async function getOrDeployContract (this: typeof self) {
@@ -1063,9 +1091,8 @@ export class Contract extends Client {
         console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address))
         return this
       } else if (this.name) {
-        if (!this.context)            throw new ContractError.NoContext()
-        if (!this.context.creator)    throw new ContractError.NoCreator()
-        if (!this.context.deployment) throw new ContractError.NoDeployment()
+        if (!this.creator)    throw new ContractError.NoCreator()
+        if (!this.deployment) throw new ContractError.NoDeployment()
         return await this.deploy(template, initMsg)
       }
       throw new ContractError.InvalidValue()
@@ -1202,8 +1229,8 @@ export abstract class Bundle implements Executor {
     this.add({
       exec: {
         sender:   this.address,
-        contract: instance.address,
-        codeHash: instance.codeHash,
+        contract: contract.address,
+        codeHash: contract.codeHash,
         msg,
         funds: send
       }
@@ -1239,7 +1266,7 @@ export abstract class Bundle implements Executor {
     Client: NewClient<C>, specifier: Address|Partial<C>, codeHash?: CodeHash
   ): C {
     if (typeof specifier === 'string') specifier = { address: specifier } as Partial<C>
-    return new Client({ ...specifier, codeHash }).as(this)
+    return new Client(this, { ...specifier, codeHash }) as C
   }
 
   id = 0
@@ -1340,7 +1367,7 @@ export class CustomError extends Error {
 
 export class SourceError extends CustomError {
   static Invalid        = this.define('InvalidSource',
-    (specifier: unknown) => `Can't create source from: ${specifier}`)
+    (specifier: any) => `Can't create source from: ${specifier}`)
   static NoCrate        = this.define('NoCrate',
     () => `No crate specified for building`)
   static NoBuilder      = this.define('NoBuilder',
