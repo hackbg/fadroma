@@ -188,7 +188,7 @@ export class DotGit extends Kabinet.Path {
 
     if (!this.exists()) {
       // If .git does not exist, it is not possible to build past commits
-      log.warn(bold(this.shortPath), 'does not exist')
+      this.log.warn(bold(this.shortPath), 'does not exist')
       this.present = false
 
     } else if (this.isFile()) {
@@ -201,13 +201,13 @@ export class DotGit extends Kabinet.Path {
         const gitRel  = gitPointer.slice(prefix.length).trim()
         const gitPath = $(this.parent, gitRel).path
         const gitRoot = $(gitPath)
-        //log.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
+        //this.log.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
         this.path      = gitRoot.path
         this.present   = true
         this.isSubmodule = true
       } else {
         // Otherwise, who knows?
-        log.info(bold(this.shortPath), 'is an unknown file.')
+        this.log.info(bold(this.shortPath), 'is an unknown file.')
         this.present = false
       }
 
@@ -218,11 +218,13 @@ export class DotGit extends Kabinet.Path {
 
     } else {
       // Otherwise, who knows?
-      log.warn(bold(this.shortPath), `is not a file or directory`)
+      this.log.warn(bold(this.shortPath), `is not a file or directory`)
       this.present = false
     }
 
   }
+
+  log = new BuildConsole(console, 'Fadroma.DotGit')
 
   readonly present:     boolean
 
@@ -239,7 +241,7 @@ export class DotGit extends Kabinet.Path {
 }
 
 //@ts-ignore
-export const __dirname = dirname(fileURLToPath(import.meta.url))
+export const buildPackage = dirname(fileURLToPath(import.meta.url))
 
 export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize(ref)}.wasm`
 
@@ -281,7 +283,7 @@ export abstract class LocalBuilder extends Fadroma.Builder {
   readonly id: string = 'local'
 
   /** Default build script */
-  static script = resolve(__dirname, 'build.impl.mjs')
+  static script = resolve(buildPackage, 'build.impl.mjs')
 
   constructor (options: Partial<LocalBuilder> = {}) {
     super()
@@ -435,7 +437,7 @@ export class DockerBuilder extends LocalBuilder {
 
   static image = 'ghcr.io/hackbg/fadroma:unstable'
 
-  static dockerfile = resolve(__dirname, 'build.Dockerfile')
+  static dockerfile = resolve(buildPackage, 'build.Dockerfile')
 
   constructor (opts: Partial<DockerBuilderOptions> = {}) {
     super(opts)
@@ -456,6 +458,8 @@ export class DockerBuilder extends LocalBuilder {
     this.dockerfile ??= opts.dockerfile!
     this.script     ??= opts.script!
   }
+
+  log = new BuildConsole(console, 'Fadroma.DockerBuilder')
 
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'
@@ -491,7 +495,7 @@ export class DockerBuilder extends LocalBuilder {
       if (!path) throw new Error('missing path in source')
       const outputDir = $(path).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.ref)
-      log.buildingOne(source, prebuilt, longestCrateName)
+      this.log.buildingOne(source, prebuilt, longestCrateName)
     }
 
     // Collect a mapping of workspace path -> Workspace object
@@ -512,7 +516,7 @@ export class DockerBuilder extends LocalBuilder {
     const templates:  Fadroma.Template[] = []
 
     // Get the distinct workspaces and refs by which to group the crate builds
-    const workspaceRoots:   string[] = distinct(sources.map(source=>source.workspace.path))
+    const workspaceRoots: (string|undefined)[] = distinct(sources.map(source=>source.workspace))
     const refs: (string|undefined)[] = distinct(sources.map(source=>source.ref))
 
     // For each workspace,
@@ -523,7 +527,7 @@ export class DockerBuilder extends LocalBuilder {
 
         let mounted = $(path)
 
-        if (this.verbose) log.buildingFromWorkspace(mounted, ref)
+        if (this.verbose) this.log.buildingFromWorkspace(mounted, ref)
 
         if (ref !== HEAD) {
           mounted = gitDir.rootRepo
@@ -692,7 +696,7 @@ export class DockerBuilder extends LocalBuilder {
 
     // Throw error if launching the container failed
     if (err) {
-      throw new Error(`[@fadroma/ops/Build] Docker error: ${err}`)
+      throw new Error(`[@fadroma/build] Docker error: ${err}`)
     }
 
     // Throw error if the build failed
@@ -703,7 +707,7 @@ export class DockerBuilder extends LocalBuilder {
         'exited with status', bold(code)
       )
       throw new Error(
-        `[@fadroma/ops/Build] Build of crates: "${crateList}" exited with status ${code}`
+        `[@fadroma/build] Build of crates: "${crateList}" exited with status ${code}`
       )
     }
 
@@ -720,7 +724,56 @@ export class DockerBuilder extends LocalBuilder {
 
 type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
 
-export default class BuildCommands extends Komandi.Commands<Komandi.CommandContext> {
+
+export class BuildConsole extends Konzola.CustomConsole {
+
+  name = '@fadroma/build'
+
+  buildingFromCargoToml (file: Kabinet.Path) {
+    this.info('Building from', bold(file.shortPath))
+  }
+
+  buildingFromBuildScript (file: Kabinet.Path) {
+    this.info('Running build script', bold(file.shortPath))
+  }
+
+  buildingFromWorkspace (mounted: Kabinet.Path, ref: string = HEAD) {
+    this.info(
+      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `@`, bold(ref)
+    )
+  }
+
+  buildingOne (source: Fadroma.Source, prebuilt: Fadroma.Template|null, longestCrateName: number) {
+    if (prebuilt) {
+      this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
+    } else {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        this.info('Building', bold(crate), 'from working tree')
+      } else {
+        this.info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
+    }
+  }
+
+  buildingMany (sources: Fadroma.Source[]) {
+    for (const source of sources) {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        this.info('Building', bold(crate), 'from working tree')
+      } else {
+        this.info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
+    }
+    this.info()
+  }
+
+}
+
+const bold = Konzola.bold
+
+export default class BuildCommands extends Komandi.Commands<Komandi.Context> {
 
   constructor (name: string = 'build', before = [], after = []) {
     super(name, [getBuildContext, ...before], after) 
@@ -832,10 +885,10 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
     buildArgs: string[] = []
   ) => {
     if (file.name === 'Cargo.toml') {
-      log.buildingFromCargoToml(file)
+      this.log.buildingFromCargoToml(file)
       this.buildFromCargoToml(file as CargoTOML)
     } else {
-      log.buildingFromBuildScript(file)
+      this.log.buildingFromBuildScript(file)
       this.buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
     }
   }
@@ -849,54 +902,6 @@ export default class BuildCommands extends Komandi.Commands<Komandi.CommandConte
     process.exit(6)
   }
 
-}
-
-export class BuildConsole extends Konzola.CustomConsole {
-
-  name = 'Fadroma Build'
-
-  buildingFromCargoToml (file: Kabinet.Path) {
-    this.info('Building from', bold(file.shortPath))
-  }
-
-  buildingFromBuildScript (file: Kabinet.Path) {
-    this.info('Running build script', bold(file.shortPath))
-  }
-
-  buildingFromWorkspace (mounted: Kabinet.Path, ref: string = HEAD) {
-    this.info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
-      `@`, bold(ref)
-    )
-  }
-
-  buildingOne (source: Fadroma.Source, prebuilt: Fadroma.Template|null, longestCrateName: number) {
-    if (prebuilt) {
-      this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
-    } else {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        this.info('Building', bold(crate), 'from working tree')
-      } else {
-        this.info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
-    }
-  }
-
-  buildingMany (sources: Fadroma.Source[]) {
-    for (const source of sources) {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        this.info('Building', bold(crate), 'from working tree')
-      } else {
-        this.info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
-    }
-    this.info()
-  }
+  static log = new BuildConsole(console, 'Fadroma.BuildCommands')
 
 }
-
-const bold = Konzola.bold
-
-const log = new BuildConsole(console)

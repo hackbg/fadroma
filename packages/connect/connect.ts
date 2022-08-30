@@ -17,7 +17,10 @@ export class ConnectConfig extends EnvConfig {
 
   /** Name of chain to use. */
   chain:          string | undefined =
-    this.getString('FADROMA_CHAIN',    ()=>process.exit(log.noName(chains)))
+    this.getString('FADROMA_CHAIN',    ()=>{
+      const log = new ConnectConsole(console, 'Fadroma.ConnectConfig')
+      process.exit(log.noName(chains))
+    })
 
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName:      string =
@@ -47,6 +50,8 @@ export async function connect (
   chain:  Fadroma.Chain|keyof ChainRegistry|null = config.chain as keyof ChainRegistry,
   agent?: Fadroma.Agent|Fadroma.AgentOpts|string
 ): Promise<ConnectContext> {
+
+  const log = new ConnectConsole(console, 'Fadroma.connect')
 
   if (!chain) {
     process.exit(log.noName(chains))
@@ -115,6 +120,7 @@ export default class ConnectCommands extends Komandi.Commands<ConnectContext> {
   }
 
   chains = async () => {
+    const log = new ConnectConsole(console, 'Fadroma.ConnectCommands')
     log.supportedChains(chains)
     log.selectedChain((await connect()).config.chain)
   }
@@ -175,5 +181,3 @@ export class ConnectConsole extends CustomConsole {
   }
 
 }
-
-export const log = new ConnectConsole(console)
