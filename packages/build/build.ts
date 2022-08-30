@@ -251,18 +251,19 @@ export const codeHashForBlob = (blob: Uint8Array) =>
 export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
 
 export interface LocalBuilderOptions {
+  /** Script that implements the actual build procedure. */
   script:        string
+  /** Don't run "git fetch" during build. */
   noFetch:       boolean
+  /** Name of output directory. */
   outputDirName: string
+  /** Which version of the language toolchain to use. */
   toolchain:     string
-}
-
-export interface CachingBuilderOptions extends LocalBuilderOptions {
   /** Whether to enable caching and reuse contracts from artifacts directory. */
   caching: boolean
 }
 
-export interface DockerBuilderOptions extends CachingBuilderOptions {
+export interface DockerBuilderOptions extends LocalBuilderOptions {
   /** Path to Docker API endpoint. */
   socketPath: string
   /** Docker API client instance. */
@@ -273,7 +274,8 @@ export interface DockerBuilderOptions extends CachingBuilderOptions {
   dockerfile: string
 }
 
-/** Can perform builds. */
+/** Can perform builds.
+  * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
 export abstract class LocalBuilder extends Fadroma.Builder {
 
   readonly id: string = 'local'
@@ -301,24 +303,8 @@ export abstract class LocalBuilder extends Fadroma.Builder {
   /** Whether the build process should print more detail to the console. */
   verbose:       boolean     = false
 
-  codeHashForPath = codeHashForPath
-
-}
-
-export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
-
-/** Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
-export abstract class CachingBuilder extends LocalBuilder {
-
-  readonly id: string = 'caching-local'
-
-  constructor (options: Partial<CachingBuilderOptions> = {}) {
-    super()
-    this.override(options)
-  }
-
   /** Whether to enable caching. */
-  caching: boolean = true
+  caching:       boolean     = true
 
   /** Check if artifact exists in local artifacts cache directory.
     * If it does, don't rebuild it but return it from there. */ 
@@ -336,13 +322,17 @@ export abstract class CachingBuilder extends LocalBuilder {
     return null
   }
 
+  codeHashForPath = codeHashForPath
+
 }
+
+export const codeHashForPath = (location: string) => codeHashForBlob(readFileSync(location))
 
 /** This build mode looks for a Rust toolchain in the same environment
   * as the one in which the script is running, i.e. no build container. */
-export class RawBuilder extends CachingBuilder {
+export class RawBuilder extends LocalBuilder {
 
-  readonly id = 'raw-caching-local'
+  readonly id = 'raw-local'
 
   runtime = process.argv[0]
 
@@ -439,9 +429,9 @@ export class RawBuilder extends CachingBuilder {
 }
 
 /** This builder launches a one-off build container using Dockerode. */
-export class DockerBuilder extends CachingBuilder {
+export class DockerBuilder extends LocalBuilder {
 
-  readonly id = 'docker-caching-local'
+  readonly id = 'docker-local'
 
   static image = 'ghcr.io/hackbg/fadroma:unstable'
 
@@ -498,6 +488,7 @@ export class DockerBuilder extends CachingBuilder {
 
     for (const source of sources) {
       const { path, crate, ref } = source
+      if (!path) throw new Error('missing path in source')
       const outputDir = $(path).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.ref)
       log.buildingOne(source, prebuilt, longestCrateName)
@@ -508,6 +499,7 @@ export class DockerBuilder extends CachingBuilder {
 
     for (const source of sources) {
       const { path, gitDir } = source
+      if (!path) throw new Error('missing path in source')
       workspaces[path] = source.workspace
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
       if (source.ref !== HEAD && !gitDir.present) {
