@@ -69,7 +69,7 @@ export interface CustomToken {
   }
 }
 
-export function isCustomToken (obj: any): obj is NativeToken {
+export function isCustomToken (obj: any): obj is CustomToken {
   return (
     typeof obj                              === 'object' &&
     typeof obj.custom_token                 === 'object' &&
