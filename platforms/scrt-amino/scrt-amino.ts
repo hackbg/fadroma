@@ -431,29 +431,35 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
     } catch (err) {
 
       try {
-
-        console.error('Submitting bundle failed:', err.message)
+        console.error('Submitting bundle failed:', (err as Error).message)
         console.error('Trying to decrypt...')
+        const errorMessageRgx
+          = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
+        const rgxMatches
+          = errorMessageRgx.exec((err as Error).message);
+        if (rgxMatches == null || rgxMatches.length != 3)
+          throw err
+        const errorCipherB64
+          = rgxMatches[1]
+        const errorCipherBz
+          = Formati.fromBase64(errorCipherB64)
+        const msgIndex
+          = Number(rgxMatches[2])
+        const msg
+          = await this.msgs[msgIndex]
+        const nonce
+          = Formati.fromBase64(msg.value.msg).slice(0, 32)
+        const errorPlainBz
+          = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce)
 
-        const errorMessageRgx = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
-        const rgxMatches = errorMessageRgx.exec(err.message);
-        if (rgxMatches == null || rgxMatches.length != 3) throw err;
-        const errorCipherB64 = rgxMatches[1]
-        const errorCipherBz  = Formati.fromBase64(errorCipherB64)
-        const msgIndex       = Number(rgxMatches[2])
-        const msg            = await this.msgs[msgIndex]
-        const nonce          = Formati.fromBase64(msg.value.msg).slice(0, 32)
-        const errorPlainBz   = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce)
-        err.message = err.message.replace(errorCipherB64, Formati.fromUtf8(errorPlainBz))
-
+        ;(err as Error).message = (err as Error).message
+          .replace(errorCipherB64, Formati.fromUtf8(errorPlainBz))
       } catch (decryptionError) {
-
         console.error('Failed to decrypt :(')
         throw new Error(
-          `Failed to decrypt the following error message: ${err.message}. `+
+          `Failed to decrypt the following error message: ${(err as Error).message}. `+
           `Decryption error of the error message: ${(decryptionError as Error).message}`
         )
-
       }
 
       throw err
