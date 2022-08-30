@@ -80,13 +80,13 @@ export class DeployContext extends Komandi.Context {
   uploader:    Fadroma.Uploader
 
   /** Specify a template to upload or use. */
-  template (specifier: Fadroma.IntoTemplate): Fadroma.Template {
-    return new Fadroma.Template(specifier, { context: this })
+  template (...args: ConstructorParameters<Fadroma.NewTemplate>): Fadroma.Template {
+    return new Fadroma.Template(...args)
   }
 
   /** Specify multiple templates to upload or use. */
   templates (specifiers: Fadroma.IntoTemplate[]): Fadroma.Templates {
-    return new Fadroma.Templates(specifiers, { context: this })
+    return new Fadroma.Templates(specifiers, this)
   }
 
   /** All available deployments for the current chain. */
@@ -99,11 +99,8 @@ export class DeployContext extends Komandi.Context {
   creator:     Fadroma.Agent
 
   /** Specify a contract to deploy or operate. */
-  contract <C extends Fadroma.Contract> (
-    specifier: Fadroma.IntoContract,
-    options = { Client: Fadroma.Contract as Fadroma.ContractCtor<C, any> }
-  ): C {
-    return new Fadroma.Contract(specifier, options).but({ context: this })
+  contract <C extends Fadroma.Contract> (...args: ConstructorParameters<Fadroma.NewContract>): C {
+    return new Fadroma.Contract(...args).but({ context: this })
   }
 
   /** Specify multiple contracts of the same kind. */
@@ -125,7 +122,7 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 
   contract <C extends Fadroma.Contract> (
     arg:      Fadroma.IntoContract,
-    _Client?: Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
+    _Client?: Fadroma.NewContract
   ): C {
     return this.context.contract(arg, _Client) as C
   }
@@ -273,6 +270,145 @@ export default class DeployCommands <C extends DeployContext> extends Komandi.Co
 
 }
 
+/// # Uploaders
+
+/** Uploads contracts from the local filesystem.
+  * If provided with an Uploads directory containing upload receipts,
+  * allows for uploaded contracts to be reused. */
+export class FSUploader extends Fadroma.Uploader {
+
+  static fromConfig (agent: Fadroma.Agent, projectRoot: string) {
+    return new this(
+      agent,
+      $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
+    )
+  }
+
+  constructor (readonly agent: Fadroma.Agent, readonly cache?: Uploads) {
+    super(agent)
+  }
+
+  /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
+  async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
+    if (this.cache) {
+      const name    = this.getUploadReceiptName(template)
+      const receipt = this.cache.at(name).as(UploadReceipt)
+      if (receipt.exists()) {
+        console.info('Reuse    ', bold(this.cache.at(name).shortPath))
+        return receipt.toTemplate()
+      }
+      const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
+      template = new Fadroma.Template(template, await this.agent.upload(data))
+      receipt.save(template)
+      return template
+    } else {
+      console.info('Upload   ', bold($(template.artifact!).shortPath))
+      const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
+      template = template.but(await this.agent.upload(data))
+      await this.agent.nextBlock
+      return template
+    }
+  }
+
+  /** Upload multiple Artifacts from the filesystem.
+    * TODO: Optionally bundle them (where is max size defined?) */
+  async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
+    const outputs: Fadroma.Template[] = []
+    if (this.cache) {
+      const artifactsToUpload: Fadroma.Template[] = []
+      for (const i in inputs) {
+        const input = inputs[i]
+        if (!input.codeHash) {
+          const artifact = $(input.artifact!)
+          console.warn('No code hash in artifact', bold(artifact.shortPath))
+          try {
+            const codeHash = Build.codeHashForPath($(input.artifact!).path)
+            Object.assign(artifact, { codeHash })
+            console.warn('Computed code hash:', bold(input.codeHash!))
+          } catch (e) {
+            console.warn('Could not compute code hash:', e.message)
+          }
+        }
+        const blobName     = $(input.artifact!).name
+        const receiptPath  = this.getUploadReceiptPath(input)
+        const relativePath = $(receiptPath).shortPath
+        if (!$(receiptPath).exists()) {
+          artifactsToUpload[i] = input
+          continue
+        }
+        const receiptData = $(receiptPath).as(UploadReceipt).load()
+        const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
+        if (!receiptCodeHash) {
+          //console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
+          artifactsToUpload[i] = input
+          continue
+        }
+        if (receiptCodeHash !== input.codeHash) {
+          console.warn(
+            bold(`Different code hash:`), `${relativePath}; reuploading...`
+          )
+          artifactsToUpload[i] = input
+          continue
+        }
+        //console.info('✅', 'Exists, not reuploading (same code hash):', bold(relativePath))
+        outputs[i] = new Fadroma.Template(input, {
+          codeId:   String(receiptData.codeId),
+          uploadTx: receiptData.transactionHash as string
+        })
+      }
+      if (artifactsToUpload.length > 0) {
+        const uploaded = await super.uploadMany(artifactsToUpload)
+        for (const i in uploaded) {
+          if (!uploaded[i]) continue // skip empty ones, preserving index
+          const receiptName = this.getUploadReceiptName(artifactsToUpload[i])
+          $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i])
+          outputs[i] = uploaded[i]
+        }
+      } else {
+        //console.info('No artifacts need to be uploaded.')
+      }
+      return outputs
+    } else {
+      for (const i in inputs) {
+        // support "holes" in artifact array
+        // (used by caching subclass)
+        const input = inputs[i]
+        let output
+        if (input.artifact) {
+          const path = $(input.artifact!)
+          const data = path.as(Kabinet.BinaryFile).load()
+          console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
+          output = input.but(await this.agent.upload(data))
+          if (input.codeHash !== output.codeHash) {
+            // Print a warning if the code hash returned by the upload
+            // doesn't match the one specified in the Artifact.
+            // This means the Artifact is wrong, and may become
+            // a hard error in the future. */
+            console.warn(
+              `Code hash mismatch from upload in TX ${output.uploadTx}:\n`+
+              `   Expected ${input.codeHash} (from ${$(input.artifact!).shortPath})\n`+
+              `   Got      ${output.codeHash} (from code id ${output.codeId} on ${output.chainId})`
+            )
+          }
+        }
+        outputs[i] = output
+      }
+    }
+    return outputs
+  }
+
+  protected getUploadReceiptPath (template: Fadroma.Template): string {
+    const receiptName = `${this.getUploadReceiptName(template)}`
+    const receiptPath = this.cache!.resolve(receiptName)
+    return receiptPath
+  }
+
+  protected getUploadReceiptName (template: Fadroma.Template): string {
+    return `${$(template.artifact!).name}.json`
+  }
+
+}
+
 /// # Upload receipts
 
 /** Directory collecting upload receipts.
@@ -300,174 +436,6 @@ export class UploadReceipt extends Kabinet.JSONFile<{
     chainId ??= defaultChainId
     codeId  = String(codeId)
     return new Fadroma.Template({ artifact, codeHash, chainId, codeId, uploadTx })
-  }
-
-}
-
-/// # Uploaders
-
-/** Uploads contracts from the local file system. */
-export class FSUploader extends Fadroma.Uploader {
-
-  /** Upload an Artifact from the filesystem, returning a Template. */
-  async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
-    console.info('Upload   ', bold($(template.artifact!).shortPath))
-    const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
-    template = template.but(await this.agent.upload(data))
-    await this.agent.nextBlock
-    return template
-  }
-
-  /** Upload multiple Artifacts from the filesystem.
-    * TODO: Optionally bundle them (where is max size defined?) */
-  async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
-
-    //console.log('uploadMany', inputs)
-    const outputs: Fadroma.Template[] = []
-
-    for (const i in inputs) {
-      // support "holes" in artifact array
-      // (used by caching subclass)
-      const input = inputs[i]
-      let output
-      if (input.artifact) {
-        const path = $(input.artifact!)
-        const data = path.as(Kabinet.BinaryFile).load()
-        console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
-        output = input.but(await this.agent.upload(data))
-        if (input.codeHash !== output.codeHash) {
-          // Print a warning if the code hash returned by the upload
-          // doesn't match the one specified in the Artifact.
-          // This means the Artifact is wrong, and may become
-          // a hard error in the future. */
-          console.warn(
-            `Code hash mismatch from upload in TX ${output.uploadTx}:\n`+
-            `   Expected ${input.codeHash} (from ${$(input.artifact!).shortPath})\n`+
-            `   Got      ${output.codeHash} (from code id ${output.codeId} on ${output.chainId})`
-          )
-        }
-      }
-      outputs[i] = output
-    }
-
-    return outputs
-
-  }
-
-}
-
-/** Uploads contracts from the file system,
-  * but only if a receipt does not exist in the chain's uploads directory. */
-export class CachingFSUploader extends FSUploader {
-
-  static fromConfig (agent: Fadroma.Agent, projectRoot: string) {
-    return new CachingFSUploader(
-      agent,
-      $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
-    )
-  }
-
-  constructor (readonly agent: Fadroma.Agent, readonly cache: Uploads) {
-    super(agent)
-  }
-
-  protected getUploadReceiptPath (template: Fadroma.Template): string {
-    const receiptName = `${this.getUploadReceiptName(template)}`
-    const receiptPath = this.cache.resolve(receiptName)
-    return receiptPath
-  }
-
-  protected getUploadReceiptName (template: Fadroma.Template): string {
-    return `${$(template.artifact!).name}.json`
-  }
-
-  /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
-
-    const name    = this.getUploadReceiptName(template)
-    const receipt = this.cache.at(name).as(UploadReceipt)
-    if (receipt.exists()) {
-      console.info('Reuse    ', bold(this.cache.at(name).shortPath))
-      return receipt.toTemplate()
-    }
-
-    const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
-    template = new Fadroma.Template(template, await this.agent.upload(data))
-    receipt.save(template)
-
-    return template
-
-  }
-
-  async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
-
-    const outputs:           Fadroma.Template[] = []
-    const artifactsToUpload: Fadroma.Template[] = []
-
-    for (const i in inputs) {
-
-      const input = inputs[i]
-
-      if (!input.codeHash) {
-        const artifact = $(input.artifact!)
-        console.warn('No code hash in artifact', bold(artifact.shortPath))
-        try {
-          const codeHash = Build.codeHashForPath($(input.artifact!).path)
-          Object.assign(artifact, { codeHash })
-          console.warn('Computed code hash:', bold(input.codeHash!))
-        } catch (e) {
-          console.warn('Could not compute code hash:', e.message)
-        }
-      }
-
-      const blobName     = $(input.artifact!).name
-      const receiptPath  = this.getUploadReceiptPath(input)
-      const relativePath = $(receiptPath).shortPath
-      if (!$(receiptPath).exists()) {
-        artifactsToUpload[i] = input
-        continue
-      }
-
-      const receiptData = $(receiptPath).as(UploadReceipt).load()
-      const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
-      if (!receiptCodeHash) {
-        //console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
-        artifactsToUpload[i] = input
-        continue
-      }
-      if (receiptCodeHash !== input.codeHash) {
-        console.warn(
-          bold(`Different code hash:`), `${relativePath}; reuploading...`
-        )
-        artifactsToUpload[i] = input
-        continue
-      }
-
-      //console.info('✅', 'Exists, not reuploading (same code hash):', bold(relativePath))
-      outputs[i] = new Fadroma.Template(input, {
-        codeId:   String(receiptData.codeId),
-        uploadTx: receiptData.transactionHash as string
-      })
-
-    }
-
-    if (artifactsToUpload.length > 0) {
-
-      const uploaded = await super.uploadMany(artifactsToUpload)
-
-      for (const i in uploaded) {
-        if (!uploaded[i]) continue // skip empty ones, preserving index
-        const receiptName = this.getUploadReceiptName(artifactsToUpload[i])
-        $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i])
-        outputs[i] = uploaded[i]
-      }
-
-    } else {
-      //console.info('No artifacts need to be uploaded.')
-    }
-
-    return outputs
-
   }
 
 }
@@ -593,12 +561,12 @@ export class Deployment {
   }
 
   /** Get a handle to the contract with the specified name. */
-  getClient <C extends Fadroma.Contract, O extends Partial<Fadroma.Contract>> (
+  getClient <C extends Fadroma.Contract> (
     name:    string,
-    $Client: Fadroma.ContractCtor<C, O> = Fadroma.Contract as Fadroma.ContractCtor<C, O>,
-    agent:   Fadroma.Agent|undefined = this.agent,
+    $Client: Fadroma.NewContract = Fadroma.Contract as Fadroma.NewContract,
+    agent:   Fadroma.Agent       = this.agent!,
   ): C {
-    return new $Client(agent, this.get(name) as O)
+    return new $Client({ ...this.get(name), agent }) as C
   }
 
   /** Chainable. Add multiple to the deployment, replacing existing. */
