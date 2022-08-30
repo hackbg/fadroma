@@ -18,35 +18,12 @@
 
 **/
 
-export * from '@hackbg/konzola'
-export * from '@hackbg/kabinet'
-export * from '@hackbg/formati'
-
-export * from '@fadroma/client'
-export type { Decimal } from '@fadroma/client'
-
 import * as Build     from '@fadroma/build'
-export * as Build     from '@fadroma/build'
-
 import * as Deploy    from '@fadroma/deploy'
-export * as Deploy    from '@fadroma/deploy'
-
 import * as Devnet    from '@fadroma/devnet'
-export * as Devnet    from '@fadroma/devnet'
-
 import * as Connect   from '@fadroma/connect'
-export * as Connect   from '@fadroma/connect'
-
 import * as ScrtGrpc  from '@fadroma/scrt'
-export * as ScrtGrpc  from '@fadroma/scrt'
-
 import * as ScrtAmino from '@fadroma/scrt-amino'
-export * as ScrtAmino from '@fadroma/scrt-amino'
-
-export * as Mocknet   from '@fadroma/mocknet'
-
-export * as Tokens    from '@fadroma/tokens'
-
 import * as Konfizi   from '@hackbg/konfizi'
 import * as Komandi   from '@hackbg/komandi'
 
@@ -67,3 +44,20 @@ export class FadromaContext extends Komandi.Context {
   connect = new Connect.ConnectContext(this.config.connect)
   deploy  = new Deploy.DeployContext(this.config.deploy, this.connect, this.build)
 }
+
+export * from '@hackbg/konzola'
+export * from '@hackbg/komandi'
+export * from '@hackbg/konfizi'
+export * from '@hackbg/kabinet'
+export * from '@hackbg/formati'
+
+export * from '@fadroma/client'
+export type { Decimal } from '@fadroma/client'
+export * from '@fadroma/build'
+export * from '@fadroma/deploy'
+export * from '@fadroma/devnet'
+export * from '@fadroma/connect'
+export * from '@fadroma/mocknet'
+export * from '@fadroma/tokens'
+export * as ScrtGrpc  from '@fadroma/scrt'
+export * as ScrtAmino from '@fadroma/scrt-amino'

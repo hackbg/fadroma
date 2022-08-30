@@ -76,6 +76,14 @@ export class DeployContext extends Komandi.Context {
 
   config:      DeployConfig
 
+  get chain (): Fadroma.Chain|undefined {
+    return this.connect?.chain
+  }
+
+  get agent (): Fadroma.Agent|undefined {
+    return this.connect?.agent
+  }
+
   /** Knows how to upload contracts to a blockchain. */
   uploader:    Fadroma.Uploader
 
@@ -134,7 +142,7 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export default class DeployCommands <C extends DeployContext> extends Komandi.Commands<C> {
+export default class DeployCommands extends Komandi.Commands<DeployContext> {
 
   constructor (name: string = 'deploy', before = [], after = []) {
     // Deploy commands are like regular commands but

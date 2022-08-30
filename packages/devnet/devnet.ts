@@ -15,7 +15,7 @@ import { readlinkSync, symlinkSync }            from 'fs'
 import { fileURLToPath }                        from 'url'
 
 //@ts-ignore
-export const __dirname = dirname(fileURLToPath(import.meta.url)) // resource finder
+export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource finder
 
 /** Module-specific console. */
 export const console = Console('Fadroma Devnet')
@@ -251,8 +251,8 @@ export type DevnetKind = 'scrt_1.2'|'scrt_1.3'
 export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
 
   static dockerfiles: Record<DevnetKind, string> = {
-    'scrt_1.2': resolve(__dirname, 'scrt_1_2.Dockerfile'),
-    'scrt_1.3': resolve(__dirname, 'scrt_1_3.Dockerfile')
+    'scrt_1.2': resolve(devnetPackage, 'scrt_1_2.Dockerfile'),
+    'scrt_1.3': resolve(devnetPackage, 'scrt_1_3.Dockerfile')
   }
 
   static dockerTags: Record<DevnetKind, string> = {
@@ -267,7 +267,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
     const dockerfile  = this.dockerfiles[kind]
     const imageTag    = this.dockerTags[kind]
     const readyPhrase = 'indexed block'
-    const initScript  = resolve(__dirname, this.initScriptName)
+    const initScript  = resolve(devnetPackage, this.initScriptName)
     const image       = dokeres.image(imageTag, dockerfile, [this.initScriptName])
     return new DockerDevnet({ portMode, image, readyPhrase, initScript })
   }
@@ -732,4 +732,3 @@ export class DevnetError extends Error {
   }
 
 }
-  

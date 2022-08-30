@@ -215,50 +215,46 @@ export class Template extends Source {
     this.override(Template.parse(specifier, options))
   }
 
-  /** Intended client class */
-  Client:     NewClient<Client> = Client
-
-  /** URL to the compiled code. */
-  artifact?:  string|URL        = undefined
-
-  /** Code hash ensuring immutability of the compiled code. */
-  codeHash?:  CodeHash          = undefined
-
-  /** Object containing upload logic. */
-  uploader?:  string|Uploader   = undefined
-
-  /** ID of chain to which this template is uploaded. */
-  chainId?:   ChainId           = undefined
-
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:    CodeId            = undefined
-
-  /** Hash of transaction that performed the upload. */
-  uploadTx?:  TxHash            = undefined
-
   /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
   task?:      Task
 
+  /** Object containing upload logic. */
+  uploader?:  Uploader   = undefined
+
   /** Return the Uploader for this Template or throw. */
-  private assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
-    if (!uploader)                    throw new TemplateError.NoUploader()
-    if (typeof uploader === 'string') throw new TemplateError.ProvideUploader(uploader)
-    if (!uploader.agent)              throw new TemplateError.NoUploaderAgent()
+  assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
+    if (!uploader)       throw new TemplateError.NoUploader()
+    if (!uploader.agent) throw new TemplateError.NoUploaderAgent()
     return uploader
   }
 
+  /** URL to the compiled code. */
+  artifact?: string|URL = undefined
+
+  /** Code hash uniquely identifying the compiled code. */
+  codeHash?: CodeHash   = undefined
+
   /** Upload source code to a chain. */
   async upload (uploader?: typeof this.uploader): Promise<Template> {
-    if (this.task) {
-      const value = `upload contract template`
-      Object.defineProperty(uploadTemplae, 'name', { value })
-      return this.task.subtask(deployContract.bind(this))
+    if (!this.task) return upload.call(this)
+    Object.defineProperty(upload, 'name', { value: `upload contract template` })
+    return this.task.subtask(upload.bind(this))
+    async function upload (this: Template): Promise<Template> {
+      uploader = this.assertUploader() // Don't start if there is no uploader
+      let self: Template = this        // Start with self
+      if (!self.artifact) self = await self.build() // Replace with built
+      return uploader.upload(self)     // Return uploaded
     }
-    uploader = this.assertUploader() // Don't start if there is no uploader
-    let self: Template = this        // Start with self
-    if (!self.artifact) self = await self.build() // Replace with built
-    return uploader.upload(self)     // Return uploaded
   }
+
+  /** ID of chain to which this template is uploaded. */
+  chainId?:  ChainId = undefined
+
+  /** Hash of transaction that performed the upload. */
+  uploadTx?: TxHash  = undefined
+
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  codeId?:   CodeId  = undefined
 
   /** Depending on what pre-Template type we start from, this function
     * invokes builder and uploader to produce a Template from it. */
@@ -281,47 +277,36 @@ export class Template extends Source {
     return await this.upload()
   }
 
+  /** Intended client class */
+  Client: NewClient<Client> = Client
+
   /** Default agent that will perform inits. */
-  creator?: Agent
+  creator?: Agent = this.uploader?.agent
 
   /** Deploy a contract from this template. */
-  async deploy (
+  async deploy <C extends Client> (
     /** Must be unique. @fadroma/deploy adds prefix here. */
     label:   Label,
     /** Init message, or a function to produce it. */
     initMsg: Message|(()=>Message|Promise<Message>),
     /** Agent to do the deploy. */
     agent?:  Agent
-  ): Promise<this> {
-
-    const self = this
-
-    if (this.task) {
-      const value = `deploy ${label}`
-      Object.defineProperty(deployContract, 'name', { value })
-      return this.task.subtask(deployContract.bind(this))
-    }
-
-    return await deployContract.call(this)
-
-    async function deployContract (this: Template) {
-
+  ): Promise<C> {
+    let self = this
+    if (!self.task) return deploy.call(self)
+    Object.defineProperty(deploy, 'name', { value: `upload contract ${label}` })
+    return self.task.subtask(deploy.bind(self))
+    async function deploy (this: Template): Promise<C> {
       agent ??= this.creator
       if (!agent) throw new ContractError.NoCreator()
-
-      const template = await self.getOrUpload()
-      log.beforeDeploy(self, template)
-
+      const template = await this.getOrUpload()
+      log.beforeDeploy(this, template)
       if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-      const instance = creator.instantiate(template, label, initMsg)
-
-      const client = new self.Client(creator, instance)
-      log.afterDeploy(self, client, template)
-
-      return self
-
+      const instance = await agent.instantiate(template, label, initMsg)
+      const client = new this.Client(agent, instance)
+      log.afterDeploy(this, client, template)
+      return client as C
     }
-
   }
 
   /** Deploy multiple contracts from the same template with 1 tx */
@@ -335,63 +320,31 @@ export class Template extends Source {
       ])
       instances = Object.values(await agent.instantiateMany(configs)) 
     } catch (e) {
-      log.deployManyFailed(e, template, contracts)
+      log.deployManyFailed(e, this, contracts)
       throw e
     }
     // Return API client to each contract
     return instances.map(instance=>this.context!.creator!.getClient(this.Client, instance))
   }
 
-  async deployVarious <C extends Client> (
-    contracts: DeployArgsTriple[] = [],
-    agent?:    Agent,
-    prefix?:   string
-  ): Promise<C[]> {
-    if (!agent) throw new ContractError.NoAgent()
-    for (const index in contracts) {
-      const triple = contracts[index]
-      if (triple.length !== 3) {
-        throw Object.assign(
-          new Error('initVarious: contracts must be [Template, Name, Message] triples'),
-          { index, contract: triple }
-        )
-      }
-    }
-    return 
-  }
-
 }
 
-/** Multiple different templates that can be uploaded in one invocation.
-  * Not uploaded in parallel by default. */
-export class Templates {
+/** Instantiates multiple contracts of the same type in one transaction.
+  * To instantiatie different types of contracts in 1 tx, see deployment.initVarious */
+export class Contracts {
   constructor (
-    slots: IntoTemplate[] = [],
-    public readonly context: UploadInitContext
-  ) {
-    this.slots = slots.map(value=>new Template(value, { context }))
-  }
-  public readonly slots: Template[]
-  async getOrUploadMany (): Promise<Template[]> {
+    public readonly $Client:  NewClient<any> = Client,
+    public readonly context?: UploadInitContext,
+  ) {}
+  /** Multiple different templates that can be uploaded in one invocation.
+    * Not uploaded in parallel by default. */
+  async getOrUploadMany (slots: IntoTemplate[]): Promise<Template[]> {
     const templates: Template[] = []
-    for (const template of this.slots) {
-      templates.push(await template.getOrUpload())
+    for (const template of slots) {
+      templates.push(await new Template(template).getOrUpload())
     }
     return templates
   }
-}
-/** Instantiates multiple contracts of the same type in one transaction.
-  * For instantiating different types of contracts in 1 tx, see deployment.initVarious */
-export class Contracts<C extends Contract> {
-
-  constructor (
-    _Contract: ClientCtor<C> = Contract as ClientCtor<C>,
-    public readonly context?: UploadInitContext,
-  ) {
-    this.Contract = _Contract
-  }
-
-  public readonly Contract: ClientCtor<C>
 }
 
 /** A code ID, identifying uploaded code on a chain. */
@@ -1308,17 +1261,17 @@ Agent.Bundle = Bundle
 
 /// # Logging
 
-export const log = {
+export const clientLog = {
 
-  beforeDeploy (contract: Contract, template: Template) {
+  beforeDeploy (template: Template, label: Label) {
     console.info(
-      'Deploy   ',    bold(contract.name!),
+      'Deploy   ',    bold(label),
       'from code id', bold(String(template.codeId  ||'(unknown)')),
       'hash',         bold(String(template.codeHash||'(unknown)'))
     )
   },
 
-  afterDeploy (contract: Contract, client: Contract, template: Template) {
+  afterDeploy (contract: Partial<Contract>, client: Client, template: Template) {
     console.info(
       'Deployed ',    bold(contract.name!), 'is', bold(client.address!),
       'from code id', bold(String(template.codeId  ||'(unknown)'))
