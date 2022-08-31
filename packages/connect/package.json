@@ -12,12 +12,12 @@
     "release:wet": "pnpm ts:check && izomorf wet --access=public"
   },
   "dependencies": {
-    "@fadroma/client":     "workspace:^4",
+    "@fadroma/client":     "workspace:^5",
     "@fadroma/scrt":       "workspace:*",
     "@fadroma/scrt-amino": "workspace:*",
     "@fadroma/mocknet":    "workspace:*",
-    "@hackbg/komandi":     "^4.2.8",
-    "@hackbg/konfizi":     "workspace:*"
+    "@hackbg/komandi":     "^5",
+    "@hackbg/konfizi":     "^2"
   },
   "peerDependencies": {
     "@fadroma/devnet": "workspace:^1.0.3",

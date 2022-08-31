@@ -684,8 +684,6 @@ export default class DevnetCommands extends Komandi.Commands<Connect.ConnectCont
   constructor (name: string = 'devnet', before = [], after = []) {
     super(name, before, after)
     this.command('status', 'print the status of the current devnet', this.status)
-    this.command('start',  'start the devnet container',             this.start)
-    this.command('stop',   'stop the devnet container',              this.stop)
     this.command('reset',  'print the status of the current devnet', this.reset)
   }
 
@@ -695,14 +693,6 @@ export default class DevnetCommands extends Komandi.Commands<Connect.ConnectCont
 
   reset = ({ chain }: Connect.ConnectContext) => {
     if (chain) return Devnet.reset({ chain })
-  }
-
-  start = () => {
-    throw 'TODO'
-  }
-
-  stop = () => {
-    throw 'TODO'
   }
 
 }

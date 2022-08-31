@@ -1,6 +1,6 @@
 {
   "name": "@hackbg/fadroma",
-  "version": "1.0.0-beta.26",
+  "version": "1.0.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/hackbg/fadroma"
@@ -21,43 +21,55 @@
     "packages/deploy/deploy.cli.cjs"
   ],
   "scripts": {
-    "release:dry": "pnpm i && pnpm ts:clean && pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm i && pnpm ts:clean && pnpm ts:check && izomorf wet --access=public",
-    "release:all:dry": "pnpm i && pnpm ts:clean && pnpm ts:check && pnpm -r release:dry && izomorf dry",
-    "release:all:wet": "pnpm i && pnpm ts:clean && pnpm ts:check && pnpm -r release:wet && izomorf wet --access=public",
+    "release:dry":      "pnpm i && pnpm ts:clean && pnpm ts:check && izomorf dry",
+    "release:wet":      "pnpm i && pnpm ts:clean && pnpm ts:check && izomorf wet --access=public",
+    "release:all:dry":  "pnpm i && pnpm ts:clean && pnpm ts:check && pnpm -r release:dry && izomorf dry",
+    "release:all:wet":  "pnpm i && pnpm ts:clean && pnpm ts:check && pnpm -r release:wet && izomorf wet --access=public",
+
     "rs:build:example": "FADROMA_REBUILD=1 FADROMA_BUILD_WORKSPACE_ROOT=. FADROMA_BUILD_WORKSPACE_MANIFEST=_Cargo.toml FADROMA_BUILD_OUTPUT_DIR=fixtures ./fadroma.cli.cjs build",
-    "ts:ci": "node --version && npm --version && pnpm --version && ls -al && pnpm ts:clean && concurrently npm:ts:check npm:ts:test:cov && pnpm release:dry && ls -al",
-    "ts:clean": "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
-    "ts:check": "time tsc --noEmit",
-    "ts:test": "time ensuite SPEC.ts.md",
-    "ts:test:cov": "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
-    "ts:test:lcov": "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
-    "ts:test:build": "./packages/build/build.ts",
+
+    "ts:ci":            "node --version && npm --version && pnpm --version && ls -al && pnpm ts:clean && concurrently npm:ts:check npm:ts:test:cov && pnpm release:dry && ls -al",
+    "ts:clean":         "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
+    "ts:check":         "time tsc --noEmit",
+    "ts:test":          "time ensuite SPEC.ts.md",
+    "ts:test:cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages ensuite SPEC.ts.md",
+    "ts:test:lcov":     "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
+    "ts:test:build":    "./packages/build/build.ts",
     "ts:test:build:kv": "./packages/build/build.ts examples/kv",
+
     "docs:homepage": "node homepage/render.js",
-    "docs:typedoc": "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints platforms/* --entryPoints .",
-    "docs:lcov": "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
-    "docs:vp:dev": "vitepress dev",
+    "docs:typedoc":  "time typedoc --tsconfig ./tsconfig.json --entryPointStrategy packages --entryPoints packages/* --entryPoints platforms/* --entryPoints .",
+    "docs:lcov":     "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages ensuite SPEC.ts.md",
+    "docs:vp:dev":   "vitepress dev",
     "docs:vp:build": "vitepress build",
     "docs:vp:serve": "vitepress serve"
   },
   "dependencies": {
-    "@fadroma/build": "workspace:^1.0.7",
-    "@fadroma/client": "workspace:^4.2.1",
-    "@fadroma/connect": "workspace:^1.0.5",
-    "@fadroma/deploy": "workspace:^1.3.0",
-    "@fadroma/devnet": "workspace:^1.0.5",
-    "@fadroma/mocknet": "workspace:^1.0.1",
-    "@fadroma/scrt": "workspace:^1.3.0",
-    "@fadroma/scrt-amino": "workspace:^1.1.0",
-    "@fadroma/tokens": "workspace:^3.0.4",
-    "@hackbg/formati": "^2.0.1",
-    "@hackbg/ganesha": "^2.3.0",
-    "@hackbg/kabinet": "^3.1.2",
-    "@hackbg/komandi": "^4.2.8",
-    "@hackbg/konfizi": "workspace:*",
-    "@hackbg/konzola": "^1.1.2",
-    "dotenv": "^16.0.1"
+    "@fadroma/mocknet": "workspace:^1",
+    "@fadroma/tokens":  "workspace:^3",
+    "@hackbg/formati":  "^2.0.1",
+    "@hackbg/kabinet":  "^3.1.2",
+    "@hackbg/komandi":  "^5",
+    "@hackbg/konfizi":  "^2",
+    "@hackbg/konzola":  "^1.1.2"
+  },
+  "peerDependencies": {
+    "dotenv":              "^16.0.1",
+    "@hackbg/ganesha":     "^2.3.0",
+    "@fadroma/build":      "workspace:^1",
+    "@fadroma/deploy":     "workspace:^1",
+    "@fadroma/devnet":     "workspace:^1",
+    "@fadroma/scrt":       "workspace:^1",
+    "@fadroma/scrt-amino": "workspace:^1"
+  },
+  "peerDependenciesMeta": {
+    "dotenv":              { "optional": true },
+    "@hackbg/ganesha":     { "optional": true },
+    "@fadroma/build":      { "optional": true },
+    "@fadroma/deploy":     { "optional": true },
+    "@fadroma/devnet":     { "optional": true },
+    "@fadroma/scrt":       { "optional": true },
+    "@fadroma/scrt-amino": { "optional": true }
   },
   "devDependencies": {
     "@hackbg/ensuite": "^1.0.2",

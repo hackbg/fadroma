@@ -5,9 +5,9 @@
   "main":    "scrt.ts",
   "files": [ "scrt.ts" ],
   "dependencies": {
-    "@fadroma/client": "workspace:^4.1",
+    "@fadroma/client": "workspace:^5",
     "@hackbg/formati": "^1.1.2",
-    "@hackbg/konfizi": "^1.0.4",
+    "@hackbg/konfizi": "^2",
 
     "secretjs": "beta",
 

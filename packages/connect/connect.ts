@@ -4,77 +4,86 @@ import { EnvConfig }                    from '@hackbg/konfizi'
 
 import * as Fadroma  from '@fadroma/client'
 import { Devnet }    from '@fadroma/devnet'
-import { Mocknet }   from '@fadroma/mocknet'
-
 import { ScrtGrpc }  from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
+import { Mocknet }   from '@fadroma/mocknet'
 
-export class ConnectConfig extends EnvConfig {
+export { Mocknet, ScrtGrpc, ScrtAmino, Devnet }
 
-  /** Path to root of project. */
-  project:        string =
-    this.getString('FADROMA_PROJECT',  ()=>this.cwd)
+/** Construct catalog of possible connections. */
+Object.assign(Fadroma.Chain.variants as Fadroma.ChainRegistry, {
 
-  /** Name of chain to use. */
-  chain:          string | undefined =
-    this.getString('FADROMA_CHAIN',    ()=>{
-      const log = new ConnectConsole(console, 'Fadroma.ConnectConfig')
-      process.exit(log.noName(chains))
-    })
-
-  /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  agentName:      string =
-    this.getString('FADROMA_AGENT',    ()=>this.getString('SCRT_AGENT_NAME',     ()=>'ADMIN'))
-
-  /** Mnemonic to use for authentication. */
-  agentMnemonic?: string =
-    this.getString('FADROMA_MNEMONIC', ()=>this.getString('SCRT_AGENT_MNEMONIC', ()=>undefined))
-
-}
-
-/** A collection of functions that return Chain instances. */
-export type ChainRegistry = Record<string, (config: any)=>Fadroma.Chain|Promise<Fadroma.Chain>>
-
-export const chains: ChainRegistry = {
+  // Support for Mocknet.
+  // TODO switch this out and give each chain implementation its own Mocknet subclass
+  // (as CW1.0 contract env is different)
   Mocknet: async (config: unknown): Promise<Mocknet> => new Mocknet() as Mocknet,
+
   // Support for current Secret Network
   ...ScrtGrpc.Chains,
-  ScrtGrpcDevnet:  Devnet.define(ScrtGrpc,  'scrt_1.3'),
+  ScrtGrpcDevnet:  Devnet.define(ScrtGrpc,   'scrt_1.3' /** TODO use image name directly here */),
+
   // Support for Secret Network legacy amino API
   ...ScrtAmino.Chains,
   ScrtAminoDevnet: Devnet.define(ScrtAmino, 'scrt_1.2'),
+
+})
+
+/** Connection and identity configuration from environment variables. */
+export class ConnectConfig extends EnvConfig {
+
+  chains = Fadroma.Chain.variants
+
+  /** Name of chain to use. */
+  chain?: keyof Fadroma.ChainRegistry
+    = this.getString('FADROMA_CHAIN', ()=>
+        process.exit(new ConnectConsole(console, 'Fadroma.ConnectConfig').noName(this.chains)))
+
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  agentName: string
+    = this.getString('FADROMA_AGENT',   ()=>
+      this.getString('SCRT_AGENT_NAME', ()=>
+                       'ADMIN'))
+
+  /** Mnemonic to use for authentication. */
+  agentMnemonic?: string
+    = this.getString('FADROMA_MNEMONIC',    ()=>
+      this.getString('SCRT_AGENT_MNEMONIC', ()=>
+                       undefined))
+
 }
 
 export async function connect (
-  config: ConnectConfig                          = new ConnectConfig(),
-  chain:  Fadroma.Chain|keyof ChainRegistry|null = config.chain as keyof ChainRegistry,
-  agent?: Fadroma.Agent|Fadroma.AgentOpts|string
+  /** Select a chain. Defaults to FADROMA_CHAIN */
+  chain?: Fadroma.Chain|keyof Fadroma.ChainRegistry|null,
+  /** Authorize an agent. Defaults to FADROMA_AGENT */
+  agent?: Fadroma.Agent|Fadroma.AgentOpts|string|null,
+  /** Optionally, override settings. */
+  config: ConnectConfig = new ConnectConfig()
 ): Promise<ConnectContext> {
 
   const log = new ConnectConsole(console, 'Fadroma.connect')
 
+  chain ??= config.chain
   if (!chain) {
-    process.exit(log.noName(chains))
+    process.exit(log.noName(config.chains))
   }
-
   if (typeof chain === 'string') {
-    if (!chains[chain]) {
-      process.exit(log.noName(chains))
+    if (!Fadroma.Chain.variants[chain]) {
+      process.exit(log.noName(config.chains))
     }
-    chain = await Promise.resolve(chains[chain](config))
+    chain = await Promise.resolve(config.chains[chain](config))
   }
 
   if (typeof agent === 'string') {
-    if (chain.isDevnet) {
-      agent = { name: agent }
-    } else {
+    if (!chain.isDevnet) {
       throw new Error('agent from string is only supported for devnet genesis accounts')
     }
-  } else if (agent && !(agent instanceof Fadroma.Agent)) {
+    agent = { name: agent }
+  } else if (agent instanceof Object && !(agent instanceof Fadroma.Agent)) {
     agent.mnemonic = config.agentMnemonic
   }
 
-  return new ConnectContext(config, chain, await chain.getAgent(agent))
+  return new ConnectContext(config, chain, agent ? await chain.getAgent(agent) : undefined)
 
 }
 

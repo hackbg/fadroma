@@ -20,10 +20,31 @@ Start exploring:
 
 **Fadroma** aims to take the CosmWasm Compute module and spin it into a fully integrated app platform.
 
-This repository contains assorted **Rust** libraries and a **TypeScript** build and deploy system.
+This repository contains assorted **Rust** libraries for smart contracts
+and a **TypeScript** system for building, deploying, and interacting with them.
 
 Check out our [**example project**](https://github.com/hackbg/fadroma-example) to see how to
 build your dApp with Fadroma.
+
+---
+
+Fadroma models the domain of interacting with Cosmos-like APIs
+in 3 layers of value objects:
+
+* API connection and transactions:
+  * [`Chain`](./fadroma.client.spec.ts.md#Chain)
+  * [`Agent`](./fadroma.client.spec.ts.md#Agent)
+  * [`Bundle`](./fadroma.client.spec.ts.md#Bundle)
+
+* Contract lifecycle:
+  * [`Source`](./fadroma.contract.spec.ts.md#Source)
+  * [`Template`](./fadroma.contract.spec.ts.md#Template)
+  * [`Client`](././fadroma.contract.spec.ts.md#Client)
+
+* Contract lifecycle transformers:
+  * [`Builder`](./client.spec.ts.md#Builder)
+  * [`Uploader`](./client.spec.ts.md#Uploader)
+  * [`Contract`](./client.spec.ts.md#Contract)
 
 ---
 

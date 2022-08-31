@@ -114,11 +114,8 @@ export class DeployContext extends Komandi.Context {
   }
 
   /** Specify multiple contracts of the same kind. */
-  contracts <C extends Fadroma.Contract> (
-    _Client: Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
-      = Fadroma.Contract as Fadroma.ContractCtor<C, Partial<Fadroma.Contract>>
-  ): Fadroma.Contracts<C> {
-    return new Fadroma.Contracts(_Client, { context: this }) as Fadroma.Contracts<C>
+  contracts <C extends Fadroma.Client> (Client?: Fadroma.NewClient<C>): Fadroma.Contracts<C> {
+    return new Fadroma.Contracts({ Client, context: this }) as Fadroma.Contracts<C>
   }
 
 }
@@ -400,7 +397,7 @@ export class FSUploader extends Fadroma.Uploader {
       }
     }
     const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
-    template = template.but(await this.agent.upload(data))
+    template = template.where(await this.agent.upload(data))
     if (receipt) {
       receipt.save(template)
     }
