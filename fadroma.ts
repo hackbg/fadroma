@@ -54,7 +54,7 @@ export class Config extends Konfizi.EnvConfig {
 export class Context extends Komandi.Context {
   config  = new Config(this.env, this.cwd)
   project = this.config.project
-  build   = new Build.BuildContext(this.config.build, project)
+  build   = new Build.BuildContext(this.config.build, this.project)
   connect = new Connect.ConnectContext(this.config.connect)
   deploy  = new Deploy.DeployContext(this.config.deploy, this.connect, this.build)
   constructor (
@@ -66,60 +66,6 @@ export class Context extends Komandi.Context {
   ) {
     super()
   }
-
-  /** True if the chain is a devnet or mocknet */
-  get devMode   (): boolean { return this.chain?.devMode ?? false }
-
-  /** = chain.isMainnet */
-  get isMainnet (): boolean { return this.chain?.isMainnet ?? false }
-
-  /** = chain.isTestnet */
-  get isTestnet (): boolean { return this.chain?.isTestnet ?? false }
-
-  /** = chain.isDevnet */
-  get isDevnet  (): boolean { return this.chain?.isDevnet ?? false }
-
-  /** = chain.isMocknet */
-  get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
-}
-
-export async function connect (
-
-  config: Config
-    = new Config(proce),
-
-  chain:  Fadroma.Chain|keyof ChainRegistry|null
-    = config.chain as keyof ChainRegistry,
-
-  agent?: Fadroma.Agent|Fadroma.AgentOpts|string
-
-): Promise<Context> {
-
-  const log = new ConnectConsole(console, 'Fadroma.connect')
-
-  if (!chain) {
-    process.exit(log.noName(chains))
-  }
-
-  if (typeof chain === 'string') {
-    if (!chains[chain]) {
-      process.exit(log.noName(chains))
-    }
-    chain = await Promise.resolve(chains[chain](config))
-  }
-
-  if (typeof agent === 'string') {
-    if (chain.isDevnet) {
-      agent = { name: agent }
-    } else {
-      throw new Error('agent from string is only supported for devnet genesis accounts')
-    }
-  } else if (agent && !(agent instanceof Fadroma.Agent)) {
-    agent.mnemonic = config.agentMnemonic
-  }
-
-  return new Context(config, chain, await chain.getAgent(agent))
-
 }
 
 export * from '@hackbg/konzola'
@@ -138,3 +84,5 @@ export * from '@fadroma/mocknet'
 export * from '@fadroma/tokens'
 export * as ScrtGrpc  from '@fadroma/scrt'
 export * as ScrtAmino from '@fadroma/scrt-amino'
+
+export { connect } from '@fadroma/connect'

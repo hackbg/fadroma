@@ -63,7 +63,7 @@ export class BuilderConfig extends Konfizi.EnvConfig {
 
 /** Base class for class-based deploy procedure. Adds progress logging. */
 export class BuildTask<X> extends Komandi.Task<BuildContext, X> {
-  console = log
+  log = new BuildConsole(console, 'Fadroma.BuildTask')
 }
 
 export class BuildContext extends Komandi.Context {
