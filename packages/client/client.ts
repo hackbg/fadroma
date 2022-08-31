@@ -685,23 +685,19 @@ export type IntoSource = string|URL|Partial<Source>
 /** Source: a smart contract that exists in source code form and can be compiled. */
 export class Source extends Overridable implements Partial<Source> {
 
-  /** Allow Source to be specified from string or URL. */
-  static get (specifier: IntoSource, options: Partial<Source> = {}): Partial<Source> {
+  constructor (specifier: IntoSource = {}, options: Partial<Source> = {}) {
+    super()
     if (typeof specifier === 'string') {
       const [ crate, ref ] = specifier.split('@')
-      return { ...options, crate, ref }
+      options = { ...options, crate, ref }
     } else if (specifier instanceof URL) {
-      return { ...options, repo: specifier }
+      options = { ...options, repo: specifier }
     } else if (typeof specifier === 'object') {
-      return { ...specifier, ...options }
+      options = { ...specifier, ...options }
     } else {
       throw new SourceError.Invalid(specifier)
     }
-  }
-
-  constructor (specifier: IntoSource = {}, options: Partial<Source> = {}) {
-    super()
-    this.override(Source.get(specifier, options))
+    this.override(options)
   }
 
   /** URL to local or remote Git repository containing the source code. */
@@ -759,26 +755,22 @@ export type IntoTemplate = IntoSource|Partial<Template>
   * Can be uploaded, and, after uploading, instantiated. */
 export class Template extends Source {
 
-  /** Allow Template to be specified from string, URL or Source */
-  static parse (specifier: IntoTemplate, options: Partial<Template> = {}): Partial<Template> {
-    if (typeof specifier === 'string') {
-      const [crate, ref] = specifier.split('@')
-      return { ...options, crate, ref }
-    } else if (specifier instanceof URL) {
-      return { ...options, artifact: specifier }
-    } else if (typeof specifier === 'object') {
-      return { ...specifier, ...options }
-    } else {
-      throw new TemplateError.Invalid(specifier)
-    }
-  }
-
   constructor (
     specifier: IntoTemplate      = {},
     options:   Partial<Template> = {},
   ) {
     super()
-    this.override(Template.parse(specifier, options))
+    if (typeof specifier === 'string') {
+      const [crate, ref] = specifier.split('@')
+      options = { ...options, crate, ref }
+    } else if (specifier instanceof URL) {
+      options = { ...options, artifact: specifier }
+    } else if (typeof specifier === 'object') {
+      options = { ...specifier, ...options }
+    } else {
+      throw new TemplateError.Invalid(specifier)
+    }
+    this.override(options)
   }
 
   /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
@@ -1109,8 +1101,11 @@ export class Client extends Template {
 
 }
 
-export type IntoContract = Name|Partial<Client>|Partial<Contract>
-export type NewContract  = New<Contract, IntoContract>
+export type IntoContract = Name|Partial<Contract>|undefined
+
+export interface NewContract extends New<Contract, IntoContract> {
+  new (specifier?: IntoContract, options?: NewClient<any>): Contract
+}
 
 /** Contract: instantiated template.
   * Has an `address` on a specific `chain` and can do the things that it's programmed to. */
@@ -1118,28 +1113,28 @@ export class Contract extends Client {
 
   static addPrefix = (prefix: string, name: string) => `${prefix}/${name}`
 
-  static parse (specifier: IntoContract, options: IntoContract): Partial<Contract> {
+  constructor (
+    specifier: IntoContract,
+    options:   NewClient<any>|Partial<Contract> = {},
+  ) {
     if (typeof specifier === 'string') {
       if (typeof options === 'string') {
-        return { address: specifier, codeHash: options }
-      } else {
-        return { ...options, name: specifier }
+        options = { address: specifier, codeHash: options }
+      } else if (typeof options === 'function') {
+        options = { name: specifier, Client: options }
+      }{
+        options = { ...options, name: specifier }
       }
+    } else if (typeof options === 'function') {
+      options = { ...specifier, Client: options }
     } else if (typeof options === 'object') {
-      return { ...specifier, ...options }
+      options = { ...specifier, ...options }
     } else {
       throw new Error('TODO')
     }
-  }
-
-  constructor (
-    specifier: IntoContract,
-    options:   Partial<Contract> = {},
-  ) {
-    const parsed = Contract.parse(specifier, options)
-    const { agent, address, codeHash } = parsed
+    const { agent, address, codeHash } = options
     super(agent, address, codeHash)
-    this.override(parsed)
+    this.override(options)
   }
 
   /** Client class to use. */
@@ -1288,19 +1283,15 @@ interface Task {
   subtask <C> (cb: ()=>(C|Promise<C>)): Promise<C>
 }
 
-/** Instantiates multiple contracts of the same type in one transaction.
-  * To instantiatie different types of contracts in 1 tx, see deployment.initVarious */
-export class Contracts<C extends Client> extends Overridable {
+export class Sources {
+  constructor (args: IntoSource[], options: Partial<Source> = {}) {}
+}
+
+export class Templates extends Sources {
+
+  constructor (args: IntoTemplate[], options: Partial<Template> = {}) { super(args, options) }
 
   agent?:     Agent        = undefined
-  Client?:    NewClient<C> = undefined
-  template?:  IntoTemplate = undefined
-  instances?: DeployArgs[] = undefined
-
-  constructor (options: Partial<Contracts<C>>) {
-    super()
-    this.override(options)
-  }
 
   /** Multiple different templates that can be uploaded in one invocation.
     * Not uploaded in parallel by default. */
@@ -1312,25 +1303,39 @@ export class Contracts<C extends Client> extends Overridable {
     return templates
   }
 
+}
+
+/** Instantiates multiple contracts of the same type in one transaction.
+  * To instantiatie different types of contracts in 1 tx, see deployment.initVarious */
+export class Contracts<C extends Client> extends Templates {
+
+  constructor (
+    readonly Client: NewClient<C>|undefined = undefined,
+  ) {
+    super([], {})
+  }
+
   /** Deploy multiple contracts from the same template with 1 tx */
   async deployMany (
     template:  IntoTemplate,
     instances: DeployArgs[],
-    agent?:    Agent
+    agent:     Agent|undefined = this.agent
   ): Promise<Client[]> {
-    agent ??= this.context?.agent
     if (!agent) throw new ContractError.NoCreator()
-    const prefix = ""
     try {
+      const prefix   = "" // TODO from deployment
+      const prefixed = (x: string) => prefix ? Contract.addPrefix(prefix, x) : x
+      template = new Template(template).where({ agent }).getOrUpload()
       return Object.values(
         await agent.instantiateMany(instances.map(([name, initMsg]: DeployArgs)=>[
-          template, prefix ? Contract.addPrefix(prefix, name) : name, initMsg
+          template, prefixed(name), initMsg
         ]))
       ).map(instance=>agent!.getClient(this.$Client, instance))
     } catch (e) {
       this.log.deployManyFailed(this, contracts, e as Error)
       throw e
     }
+
   }
 }
 

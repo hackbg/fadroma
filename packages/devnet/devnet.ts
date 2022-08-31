@@ -688,7 +688,7 @@ export default class DevnetCommands extends Komandi.Commands<Connect.ConnectCont
   }
 
   status = (context: Connect.ConnectContext) => {
-    Connect.log.chainStatus(context)
+    new Connect.ConnectConsole().chainStatus(context)
   }
 
   reset = ({ chain }: Connect.ConnectContext) => {

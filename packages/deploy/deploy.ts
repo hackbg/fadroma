@@ -68,9 +68,7 @@ export class DeployContext extends Komandi.Context {
       throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
     }
 
-    this.uploader = (!this.connect.isMocknet && !this.config.reupload)
-      ? CachingFSUploader.fromConfig(agent, build?.config.project)
-      : new FSUploader(connect.agent)
+    this.uploader = FSUploader.fromConfig(this.agent!, build?.config.project)
 
   }
 
@@ -88,14 +86,12 @@ export class DeployContext extends Komandi.Context {
   uploader:    Fadroma.Uploader
 
   /** Specify a template to upload or use. */
-  template (...args: ConstructorParameters<Fadroma.NewTemplate>): Fadroma.Template {
-    return new Fadroma.Template(...args)
-  }
+  template = (...args: ConstructorParameters<Fadroma.NewTemplate>): Fadroma.Template =>
+    new Fadroma.Template(...args)
 
   /** Specify multiple templates to upload or use. */
-  templates (specifiers: Fadroma.IntoTemplate[]): Fadroma.Templates {
-    return new Fadroma.Templates(specifiers, this)
-  }
+  templates = (specifiers: Fadroma.IntoTemplate[]): Fadroma.Templates =>
+    new Fadroma.Templates(specifiers)
 
   /** All available deployments for the current chain. */
   deployments: Deployments|null = null
@@ -107,16 +103,16 @@ export class DeployContext extends Komandi.Context {
   creator:     Fadroma.Agent
 
   /** Specify a contract to deploy or operate. */
-  contract <C extends Fadroma.Contract> (
+  contract = <C extends Fadroma.Contract> (
     ...args: ConstructorParameters<Fadroma.NewContract>
-  ): C {
-    return new Fadroma.Contract(...args).but({ context: this }) as C
-  }
+  ): C =>
+    new Fadroma.Contract(...args) as C
 
   /** Specify multiple contracts of the same kind. */
-  contracts <C extends Fadroma.Client> (Client?: Fadroma.NewClient<C>): Fadroma.Contracts<C> {
-    return new Fadroma.Contracts({ Client, context: this }) as Fadroma.Contracts<C>
-  }
+  contracts = <C extends Fadroma.Client> (
+    Client?: Fadroma.NewClient<C>
+  ): Fadroma.Contracts<C> =>
+    new Fadroma.Contracts(Client) as Fadroma.Contracts<C>
 
 }
 
@@ -126,12 +122,6 @@ export class DeployContext extends Komandi.Context {
 export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 
   log = new DeployConsole(console, 'Fadroma.DeployTask')
-
-  contract = (...args: ConstructorParameters<Fadroma.NewContract>) =>
-    this.context.contract(...args)
-
-  contracts = (...args: ConstructorParameters<Fadroma.NewContract>) =>
-    this.context.contracts(...args)
 
 }
 
@@ -238,33 +228,6 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     return this.command(name, `(in new deployment) ${info}`, DeployCommands.create, ...steps)
   }
 
-  parse (args: string[]) {
-    let forceNew = false
-    if (args.includes('--new')) {
-      forceNew = true
-      args = args.filter(x=>x!=='--resume')
-    }
-    let resume = false
-    if (args.includes('--resume')) {
-      resume = true
-      args = args.filter(x=>x!=='--resume')
-    }
-    const parsed = super.parse(args)
-    if (!parsed) return null
-    if (forceNew) {
-      console.warn('--new: Creating new deployment')
-      const toNew = (x: Komandi.Step<any, any>): Komandi.Step<any, any> =>
-        (x === DeployCommands.get || x === DeployCommands.getOrCreate) ? DeployCommands.create : x
-    } else if (resume) {
-      // replace create with get
-      console.warn('--resume: Resuming last deployment')
-      const toResume = (x: Komandi.Step<any, any>): Komandi.Step<any, any> =>
-        (x === DeployCommands.create) ? DeployCommands.get : x
-      parsed[1].steps = parsed[1].steps.map(toResume)
-    }
-    return parsed
-  }
-
   static expectEnabled = (context: DeployContext): Deployments => {
     if (!(context.deployments instanceof Deployments)) {
       //console.error('context.deployments was not populated')
@@ -275,13 +238,12 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
   }
 
   /** Add the currently active deployment to the command context. */
-  static get = async (context: DeployContext): Promise<DeployContext> => {
+  static get = async (context: DeployContext): Promise<Partial<DeployContext>> => {
     const deployments = this.expectEnabled(context)
     if (!deployments.active) {
-      console.info('No selected deployment on chain:', bold(context.chain.id))
+      console.info('No selected deployment on chain:', bold(context.chain?.id??'(unspecifier)'))
     }
-    context.deployment = deployments.active
-    return getDeployContext(context)
+    return { deployment: deployments.active }
   }
 
   /** Create a new deployment and add it to the command context. */
@@ -306,7 +268,7 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
   /** Print a list of deployments on the selected chain. */
   static list = async (context: DeployContext): Promise<void> => {
     const deployments = this.expectEnabled(context)
-    const { chain } = context
+    const { chain = { id: '(unspecified)' } } = context
     const list = deployments.list()
     if (list.length > 0) {
       console.info(`Deployments on chain ${bold(chain.id)}:`)
@@ -369,11 +331,15 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
 export class FSUploader extends Fadroma.Uploader {
 
   /** This defines the default path for the upload receipt cache. */
-  static fromConfig (agent: Fadroma.Agent, projectRoot: string) {
-    return new this(
-      agent,
-      $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
-    )
+  static fromConfig (
+    agent:        Fadroma.Agent,
+    projectRoot?: string|Kabinet.Path|false,
+    cacheRoot?:   string|Kabinet.Path|false
+  ) {
+    if (projectRoot) {
+      cacheRoot ??= $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
+    }
+    return new this(agent, cacheRoot ? $(cacheRoot).as(Uploads) : undefined)
   }
 
   constructor (
@@ -482,7 +448,7 @@ export class FSUploader extends Fadroma.Uploader {
           const path = $(input.artifact!)
           const data = path.as(Kabinet.BinaryFile).load()
           console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
-          output = input.but(await this.agent.upload(data))
+          output = input.where(await this.agent.upload(data))
           if (input.codeHash !== output.codeHash) {
             // Print a warning if the code hash returned by the upload
             // doesn't match the one specified in the Artifact.
@@ -637,6 +603,8 @@ export class Deployment {
     * (which need to be globally unique). */
   prefix: string = Konzola.timestamp()
 
+  log = new DeployConsole(console, 'this.prefix')
+
   /** These are the entries contained by the Deployment.
     * They correspond to individual contract instances. */
   receipts: Record<string, Partial<Fadroma.Contract>> = {}
@@ -664,12 +632,12 @@ export class Deployment {
   }
 
   /** Get a handle to the contract with the specified name. */
-  getClient <C extends Fadroma.Contract> (
+  getClient <C extends Fadroma.Client> (
     name:    string,
-    $Client: Fadroma.NewContract = Fadroma.Contract as Fadroma.NewContract,
+    $Client: Fadroma.NewClient<C> = Fadroma.Client as Fadroma.NewClient<C>,
     agent:   Fadroma.Agent       = this.agent!,
   ): C {
-    return new $Client({ ...this.get(name), agent }) as C
+    return new $Client(agent, { ...this.get(name) }) as C
   }
 
   /** Chainable. Add multiple to the deployment, replacing existing. */
@@ -726,7 +694,10 @@ export class Deployment {
     agent:     Fadroma.Agent,
     contracts: Fadroma.DeployArgsTriple[] = []
   ): Promise<Fadroma.Contract[]> {
-    const instances = await new Fadroma.Contract().deployVarious(contracts)
+    contracts =
+      contracts.map(c=>[new Fadroma.Template(c[0]), ...c.slice(1)] as Fadroma.DeployArgsTriple)
+    const instances =
+      await agent.instantiateMany(contracts)
     for (const instance of Object.values(instances)) {
       const name = (instance.label as string).slice(this.prefix.length+1)
       this.receipts[name] = { name, ...instance}
