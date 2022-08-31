@@ -50,6 +50,8 @@ export class ScrtAminoConfig extends Fadroma.ScrtConfig {
 /** The Secret Network, accessed via Amino protocol. */
 export class ScrtAmino extends Fadroma.Scrt {
 
+  static Config = ScrtAminoConfig
+
   static Chains = {
     async 'ScrtAminoMainnet' (config: ScrtAminoConfig) {
       const mode = Fadroma.ChainMode.Mainnet
@@ -64,13 +66,6 @@ export class ScrtAmino extends Fadroma.Scrt {
       return new ScrtAmino(id, { url, mode })
     },
     // devnet and mocknet modes are defined in @fadroma/connect
-  }
-
-  static getConfig (
-    cwd: string,
-    env: Record<string, string> = {}
-  ): ScrtAminoConfig {
-    return new ScrtAminoConfig(env, cwd)
   }
 
   static defaultMainnetAminoUrl: string|null = null

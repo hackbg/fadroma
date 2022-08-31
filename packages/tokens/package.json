@@ -5,7 +5,7 @@
   "main":    "tokens.ts",
   "files": [ "tokens.ts" ],
   "dependencies": {
-    "@fadroma/client": "workspace:^4",
+    "@fadroma/client": "workspace:^5",
     "@fadroma/scrt":   "workspace:^1",
     "@hackbg/konzola": "^1.1.2",
     "@hackbg/formati": "^2.0.1"

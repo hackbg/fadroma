@@ -18,31 +18,108 @@
 
 **/
 
-import * as Build     from '@fadroma/build'
-import * as Deploy    from '@fadroma/deploy'
-import * as Devnet    from '@fadroma/devnet'
-import * as Connect   from '@fadroma/connect'
-import * as ScrtGrpc  from '@fadroma/scrt'
-import * as ScrtAmino from '@fadroma/scrt-amino'
 import * as Konfizi   from '@hackbg/konfizi'
 import * as Komandi   from '@hackbg/komandi'
+import * as Konzola   from '@hackbg/konzola'
+
+import * as Fadroma   from '@fadroma/client'
+import * as Build     from '@fadroma/build'
+import * as Connect   from '@fadroma/connect'
+import * as Deploy    from '@fadroma/deploy'
+import * as Devnet    from '@fadroma/devnet'
+
+/** A collection of functions that return Chain instances. */
+export type ChainRegistry = Record<string, (config: any)=>Fadroma.Chain|Promise<Fadroma.Chain>>
 
 /** Complete environment configuration of all Fadroma subsystems. */
-export class FadromaConfig extends Konfizi.EnvConfig {
-  build     = new Build.BuilderConfig(this.env, this.cwd)
-  connect   = new Connect.ConnectConfig(this.env, this.cwd)
-  deploy    = new Deploy.DeployConfig(this.env, this.cwd)
-  devnet    = new Devnet.DevnetConfig(this.env, this.cwd)
-  scrtGrpc  = new ScrtGrpc.ScrtGrpcConfig(this.env, this.cwd)
-  scrtAmino = new ScrtAmino.ScrtAminoConfig(this.env, this.cwd)
+export class Config extends Konfizi.EnvConfig {
+  /** Path to root of project. Defaults to current working directory. */
+  project: string
+    = this.getString('FADROMA_PROJECT', ()=>this.cwd)
+  build
+    = new Build.BuilderConfig(this.env, this.cwd)
+  connect
+    = new Connect.ConnectConfig(this.env, this.cwd)
+  deploy
+    = new Deploy.DeployConfig(this.env, this.cwd)
+  devnet
+    = new Devnet.DevnetConfig(this.env, this.cwd)
+  scrtGrpc
+    = new Connect.ScrtGrpc.Config(this.env, this.cwd)
+  scrtAmino
+    = new Connect.ScrtAmino.Config(this.env, this.cwd)
 }
 
 /** Context for Fadroma commands. */
-export class FadromaContext extends Komandi.Context {
-  config  = new FadromaConfig(this.env, this.cwd)
-  build   = new Build.BuildContext(this.config.build)
+export class Context extends Komandi.Context {
+  config  = new Config(this.env, this.cwd)
+  project = this.config.project
+  build   = new Build.BuildContext(this.config.build, project)
   connect = new Connect.ConnectContext(this.config.connect)
   deploy  = new Deploy.DeployContext(this.config.deploy, this.connect, this.build)
+  constructor (
+    config: Config,
+    /** The selected blockhain to connect to. */
+    public chain?: Fadroma.Chain,
+    /** The selected agent to operate as. */
+    public agent?: Fadroma.Agent
+  ) {
+    super()
+  }
+
+  /** True if the chain is a devnet or mocknet */
+  get devMode   (): boolean { return this.chain?.devMode ?? false }
+
+  /** = chain.isMainnet */
+  get isMainnet (): boolean { return this.chain?.isMainnet ?? false }
+
+  /** = chain.isTestnet */
+  get isTestnet (): boolean { return this.chain?.isTestnet ?? false }
+
+  /** = chain.isDevnet */
+  get isDevnet  (): boolean { return this.chain?.isDevnet ?? false }
+
+  /** = chain.isMocknet */
+  get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
+}
+
+export async function connect (
+
+  config: Config
+    = new Config(proce),
+
+  chain:  Fadroma.Chain|keyof ChainRegistry|null
+    = config.chain as keyof ChainRegistry,
+
+  agent?: Fadroma.Agent|Fadroma.AgentOpts|string
+
+): Promise<Context> {
+
+  const log = new ConnectConsole(console, 'Fadroma.connect')
+
+  if (!chain) {
+    process.exit(log.noName(chains))
+  }
+
+  if (typeof chain === 'string') {
+    if (!chains[chain]) {
+      process.exit(log.noName(chains))
+    }
+    chain = await Promise.resolve(chains[chain](config))
+  }
+
+  if (typeof agent === 'string') {
+    if (chain.isDevnet) {
+      agent = { name: agent }
+    } else {
+      throw new Error('agent from string is only supported for devnet genesis accounts')
+    }
+  } else if (agent && !(agent instanceof Fadroma.Agent)) {
+    agent.mnemonic = config.agentMnemonic
+  }
+
+  return new Context(config, chain, await chain.getAgent(agent))
+
 }
 
 export * from '@hackbg/konzola'

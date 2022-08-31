@@ -205,7 +205,7 @@ export class TokenRegistry extends Fadroma.Overridable {
     if (args.includes('--can-deposit')) config.enable_deposit = true
     if (args.includes('--can-redeem'))  config.enable_redeem  = true
     const tokenRegistry = new TokenRegistry(context)
-    await tokenRegistry.getOrDeployToken(name, symbol, decimals, admin, template)
+    await tokenRegistry.getOrDeployToken(symbol, { name, decimals, admin, template })
     return { tokenRegistry: this }
   }
 
@@ -235,13 +235,27 @@ export class TokenRegistry extends Fadroma.Overridable {
     return Object.keys(this.tokens).includes(symbol)
   }
 
+  /** Add a token to the registry, failing if invalid. */
   add (symbol: string, token?: Snip20): this {
     if (!token) throw new TokenError.PassToken()
     if (!symbol) throw new TokenError.CantRegister()
     if (this.has(symbol)) throw new TokenError.AlreadyRegistered(symbol)
     // TODO compare and don't throw if it's the same token
-    this.set(symbol, token)
-    return token
+    return this.set(symbol, token)
+  }
+
+  set (symbol: string, token?: Snip20): this {
+    if (token) {
+      this.tokens[symbol] = token
+      return this
+    } else {
+      return this.del(symbol)
+    }
+  }
+
+  del (symbol: string): this {
+    delete this.tokens[symbol]
+    return this
   }
 
   /** Get or deploy a Snip20 token and add it to the registry. */
@@ -262,7 +276,7 @@ export class TokenRegistry extends Fadroma.Overridable {
       // generate snip20 init message
       const init  = Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
       // get or create contract with the name (names are internal to deployment)
-      const token = await this.context.contract(options.name, { Client: Snip20 })
+      const token = await this.context.contract(options.name, Snip20)
         .getOrDeploy(options.template ?? this.defaultTemplate, init)
       // add and return the token
       this.add(symbol, token)
@@ -284,7 +298,7 @@ export class TokenRegistry extends Fadroma.Overridable {
     // first generate all the [name, init message] pairs
     const inits    = tokens.map(toDeployArgs)
     // then call `.contracts(optional client class).deployMany(template,[[name,msg],[name,msg]])`
-    const deployed = await this.context.contract(Snip20).deployMany('amm-snip20', inits)
+    const deployed = await this.context.contracts(Snip20).deployMany('amm-snip20', inits)
     // post-process the thus deployed tokens:
     for (const i in deployed) {
       // populate metadata for free since we just created them
@@ -292,7 +306,7 @@ export class TokenRegistry extends Fadroma.Overridable {
       deployed[i].symbol    = tokens[i as any].symbol
       deployed[i].decimals  = tokens[i as any].decimals
       // add to registry
-      this.add(deployed[i], tokens[i as any].symbol)
+      this.add(tokens[i as any].symbol, deployed[i])
     }
     // return array of `Snip20` handles corresponding to input `TokenConfig`s.
     return deployed

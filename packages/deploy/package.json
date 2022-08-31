@@ -11,18 +11,6 @@
     "release:dry": "pnpm ts:check && izomorf dry",
     "release:wet": "pnpm ts:check && izomorf wet --access=public"
   },
-  "dependencies": {
-    "@fadroma/client":  "workspace:^4.1.1",
-    "@fadroma/connect": "workspace:^1.0.4",
-    "@hackbg/formati": "^1.1.2",
-    "@hackbg/kabinet": "^3.1.2",
-    "@hackbg/konzola": "^1.1.2",
-    "@hackbg/konfizi": "workspace:*",
-    "@hackbg/komandi": "^4.2.8",
-    "@hackbg/portali": "^1.2.4",
-    "dotenv":  "^16.0.1",
-    "js-yaml": "^4.1.0"
-  },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5",
     "@fadroma/build":  "workspace:^1.0.3"
@@ -30,5 +18,16 @@
   "peerDependenciesMeta": {
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-deploy command." },
     "@fadroma/build":  { "optional": true, "description": "For building from deployment scripts." }
+  },
+  "dependencies": {
+    "@fadroma/client": "^5",
+    "@hackbg/formati": "^1.1.2",
+    "@hackbg/kabinet": "^3.1.2",
+    "@hackbg/konzola": "^1.1.2",
+    "@hackbg/konfizi": "^2",
+    "@hackbg/komandi": "^5",
+    "@hackbg/portali": "^1.2.4",
+    "dotenv":  "^16.0.1",
+    "js-yaml": "^4.1.0"
   }
 }

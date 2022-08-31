@@ -69,7 +69,8 @@ export class BuildTask<X> extends Komandi.Task<BuildContext, X> {
 export class BuildContext extends Komandi.Context {
 
   constructor (
-    config: BuilderConfig
+    config:  BuilderConfig,
+    project: string = process.cwd()
   ) {
     super()
     this.config    = config ?? new BuilderConfig(this.env, this.cwd)

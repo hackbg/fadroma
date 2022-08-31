@@ -11,21 +11,21 @@
     "release:dry": "pnpm ts:check && izomorf dry",
     "release:wet": "pnpm ts:check && izomorf wet --access=public"
   },
-  "dependencies": {
-    "@fadroma/client": "workspace:^4",
-    "@hackbg/dokeres": "workspace:^4.4.1",
-    "@hackbg/formati": "^1.1.2",
-    "@hackbg/kabinet": "^3.1.2",
-    "@hackbg/konzola": "^1.1.2",
-    "@hackbg/komandi": "^4.2.8",
-    "@hackbg/konfizi": "workspace:*",
-    "dotenv":     "^16.0.1",
-    "simple-git": "^3.7.1"
-  },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5"
   },
   "peerDependenciesMeta": {
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-build command." }
+  },
+  "dependencies": {
+    "@fadroma/client": "workspace:^5",
+    "@hackbg/dokeres": "workspace:^4.4.1",
+    "@hackbg/formati": "^1.1.2",
+    "@hackbg/kabinet": "^3.1.2",
+    "@hackbg/konzola": "^1.1.2",
+    "@hackbg/komandi": "^5",
+    "@hackbg/konfizi": "^2",
+    "dotenv":     "^16.0.1",
+    "simple-git": "^3.7.1"
   }
 }

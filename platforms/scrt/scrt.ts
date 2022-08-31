@@ -46,15 +46,14 @@ export class ScrtConfig extends EnvConfig {
 /** Base class for both implementations of Secret Network API (gRPC and Amino) */
 export abstract class Scrt extends Fadroma.Chain {
 
-  defaultDenom    = Scrt.defaultDenom
-  isSecretNetwork = true
+  static Config = ScrtConfig
+  static Agent: Fadroma.AgentCtor<ScrtAgent>
 
   static defaultMainnetChainId: string = 'secret-4'
   static defaultTestnetChainId: string = 'pulsar-2'
   static defaultDenom:          string = 'uscrt'
 
   static gas = (amount: Fadroma.Uint128|number) => new Fadroma.Fee(amount, this.defaultDenom)
-
   static defaultFees  = {
     upload: this.gas(4000000),
     init:   this.gas(1000000),
@@ -62,8 +61,12 @@ export abstract class Scrt extends Fadroma.Chain {
     send:   this.gas( 500000),
   }
 
-  static Agent: Fadroma.AgentCtor<ScrtAgent>
-         Agent: Fadroma.AgentCtor<ScrtAgent> = Scrt.Agent
+  defaultDenom
+    = Scrt.defaultDenom
+  isSecretNetwork
+    = true
+  Agent: Fadroma.AgentCtor<ScrtAgent>
+    = Scrt.Agent
 
 }
 
@@ -218,6 +221,11 @@ export class ScrtGrpcConfig extends ScrtConfig {
 /** The Secret Network, accessed via gRPC API. */
 export class ScrtGrpc extends Scrt {
 
+  static defaultMainnetGrpcUrl: string = 'https://secret-4.api.trivium.network:9091'
+  static defaultTestnetGrpcUrl: string = 'https://grpc.testnet.secretsaturn.net'
+
+  static Config = ScrtGrpcConfig
+
   /** Values of FADROMA_CHAIN provided by the ScrtGrpc implementation.
     * Devnets and mocknets are defined downstream in @fadroma/connect */
   static Chains = {
@@ -235,19 +243,8 @@ export class ScrtGrpc extends Scrt {
     },
   }
 
-  /** Get configuration from the environment. */
-  static getConfig (
-    cwd: string,
-    env: Record<string, string> = {}
-  ): ScrtGrpcConfig {
-    return new ScrtGrpcConfig(env, cwd)
-  }
-
-  static defaultMainnetGrpcUrl: string = 'https://secret-4.api.trivium.network:9091'
-  static defaultTestnetGrpcUrl: string = 'https://grpc.testnet.secretsaturn.net'
-
   static Agent: Fadroma.AgentCtor<ScrtGrpcAgent>
-         Agent: Fadroma.AgentCtor<ScrtGrpcAgent> = ScrtGrpc.Agent
+  Agent: Fadroma.AgentCtor<ScrtGrpcAgent> = ScrtGrpc.Agent
 
   api: Promise<SecretJS.SecretNetworkClient> =
     SecretJS.SecretNetworkClient.create({ chainId: this.id, grpcWebUrl: this.url })
