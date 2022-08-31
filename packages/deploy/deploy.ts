@@ -511,11 +511,77 @@ export class UploadReceipt extends Kabinet.JSONFile<{
 
 /// # Deploy receipts
 
+export class YAMLDeployment extends Fadroma.Deployment {
+
+  constructor (
+    path:   string,
+    agent?: Fadroma.Agent,
+  ) {
+    const file = $(path).as(Kabinet.YAMLFile)
+    super({}, '', agent)
+    this.load()
+  }
+
+  file?: Kabinet.YAMLFile<unknown>
+
+  /** Resolve a path relative to the deployment directory. */
+  resolve (...fragments: Array<string>) {
+    // Expect path to be present
+    if (!this.path) throw new Error('Deployment: no path to resolve by')
+    return resolve(this.path, ...fragments)
+  }
+
+  /** Load deployment state from YAML file. */
+  load (path = this.path) {
+    // Expect path to be present
+    if (!path) throw new Error('Deployment: no path to load from')
+    // Resolve symbolic links to file
+    while (FS.lstatSync(path).isSymbolicLink()) path = resolve(dirname(path), FS.readlinkSync(path))
+    // Set own prefix from name of file
+    this.prefix = basename(path, extname(path))
+    // Load the receipt data
+    const data = FS.readFileSync(path, 'utf8')
+    const receipts = YAML.loadAll(data) as Contract[]
+    for (const receipt of receipts) {
+      if (!receipt.name) continue
+      const [contractName, _version] = receipt.name.split('+')
+      this.receipts[contractName] = receipt
+    }
+    // TODO: Automatically convert receipts to Client subclasses
+    // by means of an identifier shared between the deploy and client libraries
+  }
+
+  /** Chainable: Serialize deployment state to YAML file. */
+  save (path = this.path): this {
+    // Expect path to be present
+    if (!path) throw new Error('Deployment: no path to save to')
+    // Serialize data to multi-document YAML
+    let output = ''
+    for (let [name, data] of Object.entries(this.receipts)) {
+      output += '---\n'
+      data = { ...data, name: data.name ?? name }
+      output += Kabinet.alignYAML(YAML.dump(data, { noRefs: true }))
+    }
+    // Write the data to disk.
+    FS.writeFileSync(path, output)
+    return this
+  }
+
+  set (name: string, data: Partial<Fadroma.Client> & any): this {
+    super.set(name, data)
+    return this.save()
+  }
+  setMany (data: Record<string, Fadroma.Client>): this {
+    super.setMany(data)
+    return this.save()
+  }
+}
+
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Contract[]> {
+export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Client[]> {
 
   /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
     * and convert it to a Deployments instance. See: @hackbg/kabinet */
