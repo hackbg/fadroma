@@ -7,7 +7,7 @@ importers:
       '@fadroma/mocknet': workspace:^1
       '@fadroma/tokens': workspace:^3
       '@hackbg/ensuite': ^1.0.2
-      '@hackbg/formati': ^2.0.1
+      '@hackbg/formati': ^3.0.1
       '@hackbg/izomorf': ^4.2.4
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^5
@@ -33,7 +33,7 @@ importers:
     dependencies:
       '@fadroma/mocknet': link:packages/mocknet
       '@fadroma/tokens': link:packages/tokens
-      '@hackbg/formati': 2.0.1
+      '@hackbg/formati': link:toolbox/formati
       '@hackbg/kabinet': link:toolbox/kabinet
       '@hackbg/komandi': link:toolbox/komandi
       '@hackbg/konfizi': link:toolbox/konfizi
@@ -76,7 +76,7 @@ importers:
     specifiers:
       '@fadroma/client': workspace:^5
       '@hackbg/dokeres': workspace:^4.4.1
-      '@hackbg/formati': ^1.1.2
+      '@hackbg/formati': ^3.0.1
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^5
       '@hackbg/konfizi': ^2
@@ -86,7 +86,7 @@ importers:
     dependencies:
       '@fadroma/client': link:../client
       '@hackbg/dokeres': link:../../toolbox/dokeres
-      '@hackbg/formati': 1.1.2
+      '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/kabinet': link:../../toolbox/kabinet
       '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/konfizi': link:../../toolbox/konfizi
@@ -100,6 +100,7 @@ importers:
   packages/connect:
     specifiers:
       '@fadroma/client': workspace:^5
+      '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:*
       '@fadroma/scrt': workspace:*
       '@fadroma/scrt-amino': workspace:*
@@ -107,6 +108,7 @@ importers:
       '@hackbg/konfizi': ^2
     dependencies:
       '@fadroma/client': link:../client
+      '@fadroma/devnet': link:../devnet
       '@fadroma/mocknet': link:../mocknet
       '@fadroma/scrt': link:../../platforms/scrt
       '@fadroma/scrt-amino': link:../../platforms/scrt-amino
@@ -116,7 +118,7 @@ importers:
   packages/deploy:
     specifiers:
       '@fadroma/client': ^5
-      '@hackbg/formati': ^1.1.2
+      '@hackbg/formati': ^3.0.1
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^5
       '@hackbg/konfizi': ^2
@@ -126,7 +128,7 @@ importers:
       js-yaml: ^4.1.0
     dependencies:
       '@fadroma/client': link:../client
-      '@hackbg/formati': 1.1.2
+      '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/kabinet': link:../../toolbox/kabinet
       '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/konfizi': link:../../toolbox/konfizi
@@ -137,46 +139,55 @@ importers:
 
   packages/devnet:
     specifiers:
+      '@fadroma/client': workspace:^5
       '@hackbg/dokeres': ^4.4.1
-      '@hackbg/formati': ^2.0.1
+      '@hackbg/formati': ^3.0.1
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^5
       '@hackbg/konfizi': workspace:*
       '@hackbg/portali': ^1.2.4
     dependencies:
+      '@fadroma/client': link:../client
       '@hackbg/dokeres': link:../../toolbox/dokeres
-      '@hackbg/formati': 2.0.1
+      '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/kabinet': link:../../toolbox/kabinet
       '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/konfizi': link:../../toolbox/konfizi
       '@hackbg/portali': link:../../toolbox/portali
 
   packages/mocknet:
-    specifiers: {}
+    specifiers:
+      '@fadroma/client': ^5
+      '@hackbg/formati': ^3.0.1
+      '@hackbg/konzola': ^2
+    dependencies:
+      '@fadroma/client': link:../client
+      '@hackbg/formati': link:../../toolbox/formati
+      '@hackbg/konzola': link:../../toolbox/konzola
 
   packages/tokens:
     specifiers:
       '@fadroma/client': workspace:^5
       '@fadroma/scrt': workspace:^1
-      '@hackbg/formati': ^2.0.1
+      '@hackbg/formati': ^3.0.1
       '@hackbg/konzola': ^2
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/scrt': link:../../platforms/scrt
-      '@hackbg/formati': 2.0.1
+      '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/konzola': link:../../toolbox/konzola
 
   platforms/scrt:
     specifiers:
       '@fadroma/client': workspace:^5
-      '@hackbg/formati': ^1.1.2
+      '@hackbg/formati': ^3.0.1
       '@hackbg/konfizi': ^2
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
       secretjs: beta
     dependencies:
       '@fadroma/client': link:../../packages/client
-      '@hackbg/formati': 1.1.2
+      '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/konfizi': link:../../toolbox/konfizi
       '@ungap/structured-clone': 1.0.1
       secretjs: 1.3.0-beta.25
@@ -186,13 +197,13 @@ importers:
   platforms/scrt-amino:
     specifiers:
       '@fadroma/scrt': workspace:^1
-      '@hackbg/formati': ^1.2.0
+      '@hackbg/formati': ^3.0.1
       axios: 0.26.0
       exponential-backoff: ^3.1.0
       secretjs: 0.17.5
     dependencies:
       '@fadroma/scrt': link:../scrt
-      '@hackbg/formati': 1.2.0
+      '@hackbg/formati': link:../../toolbox/formati
       axios: 0.26.0
       exponential-backoff: 3.1.0
       secretjs: 0.17.5
@@ -705,33 +716,6 @@ packages:
       why-is-node-still-running: 1.0.0
     dev: true
 
-  /@hackbg/formati/1.1.2:
-    resolution: {integrity: sha512-jU6LMT6/hZZXUqLRrci7ErMqEImOtfnVW56sW96Nswlh+jAt70w0zFgjgm6Q7tY0sDHFypKQblsqEmLkok9ePg==}
-    dependencies:
-      '@iov/crypto': 2.5.0
-      '@iov/encoding': 2.5.0
-      bech32: 2.0.0
-      secure-random: 1.1.2
-    dev: false
-
-  /@hackbg/formati/1.2.0:
-    resolution: {integrity: sha512-1HMDTKUsdFHF8ymtKVA+4EdCsNfX+1RwXXezyeYR/BLB19EbIX16+msOYzY7XHNkIBLHfb2oUdTNLAMTU28XJg==}
-    dependencies:
-      '@cosmjs/crypto': 0.20.1
-      '@iov/encoding': 2.5.0
-      bech32: 2.0.0
-      secure-random: 1.1.2
-    dev: false
-
-  /@hackbg/formati/2.0.1:
-    resolution: {integrity: sha512-EGXmrk4IVjgxdZ0n5kInoq46jnT+tH+otN1NZetszZB+IJGsAFm1zQJLU7v6RBXfZm5r84Rp1HrlBI+QdFb9rA==}
-    dependencies:
-      '@cosmjs/crypto': 0.20.1
-      '@iov/encoding': 2.5.0
-      bech32: 2.0.0
-      secure-random: 1.1.2
-    dev: false
-
   /@hackbg/ganesha/2.3.0:
     resolution: {integrity: sha512-kpSgGTooNwWg5ROR6TMrh+9xKRjGLRy0MWE7L3M/cltZQpvJQ83b5Pf5QM7UiVboaW9iXCSKZTrC8/lNjk1e/w==}
     hasBin: true
@@ -775,12 +759,6 @@ packages:
       sha.js: 2.4.11
       type-tagger: 1.0.0
       unorm: 1.6.0
-    dev: false
-
-  /@iov/crypto/2.5.0:
-    resolution: {integrity: sha512-lEqrMRagPyv9S0KQG2c1OfacspHZUTyC2neyy/7mKSfOaJZABJiMzZEHi0Z/aCJOo34Wd/DQqfbaG9o2gtBKnw==}
-    dependencies:
-      '@cosmjs/crypto': 0.20.1
     dev: false
 
   /@iov/encoding/2.1.0:

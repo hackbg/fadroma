@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fadroma/client":     "workspace:^5",
+    "@fadroma/devnet":     "workspace:^1",
     "@fadroma/scrt":       "workspace:*",
     "@fadroma/scrt-amino": "workspace:*",
     "@fadroma/mocknet":    "workspace:*",

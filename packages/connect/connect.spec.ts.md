@@ -114,7 +114,8 @@ for (const Chain of supportedChains) {
 ## Connect config
 
 ```typescript
-const config = new Fadroma.ConnectConfig({ FADROMA_CHAIN: '' }, '')
+import { ConnectConfig } from '.'
+const config = new ConnectConfig({ FADROMA_CHAIN: '' }, '')
 ```
 
 ## Connect context
