@@ -1,4 +1,4 @@
-import * as Konzola from '@hackbg/konzola'
+import { CustomConsole, bold, timestamp } from '@hackbg/konzola'
 
 type valof<T> = T[keyof T]
 
@@ -884,7 +884,7 @@ export class Template extends Source {
     }
   }
 
-  log = new ClientConsole('Fadroma.Template')
+  log = new ClientConsole(console, 'Fadroma.Template')
 
   /** Intended client class */
   Client: NewClient<any> = Client as unknown as NewClient<any>
@@ -1272,14 +1272,14 @@ export class Deployment {
 
   constructor (
     /** Unique ID of deployment, used as label prefix for deployed contracts. */
-    public prefix: string = Konzola.timestamp(),
+    public prefix: string = timestamp(),
     /** Default agent to use when interacting with this deployment. */
     public readonly agent?: Agent,
     /** Mapping of names to contract instances. */
     public readonly state:  Record<string, Client> = {},
   ) {}
 
-  log = new ClientConsole('Fadroma.Deployment')
+  log = new ClientConsole(console, 'Fadroma.Deployment')
 
   /** Number of contracts in deployment. */
   get count () {
@@ -1431,7 +1431,7 @@ export class Contracts<C extends Client> extends Templates {
     super([], {})
   }
 
-  log = new ClientConsole('Fadroma.Templates')
+  log = new ClientConsole(console, 'Fadroma.Templates')
 
   /** Deploy multiple contracts from the same template with 1 tx */
   async deployMany (
@@ -1658,18 +1658,10 @@ export class ClientError extends CustomError {
     () => "template.codeId and template.codeHash must be defined to use template.asLink")
 
 }
+
 /// # Logging
 
-const bold = Konzola.bold
-
-function cloneSystemConsole () { console.log(super.prototype); process.exit(123); return { ...console } }
-
-/** There is a way to slip the ES5 custom constructors past TypeScript.
-  * This class uses it. TODO try to implement `await new` with this? */
-export class ClientConsole extends (cloneSystemConsole as unknown as { new (): Console }) {
-  constructor (readonly name: string) {
-    super()
-  }
+export class ClientConsole extends CustomConsole {
   beforeDeploy (template: Template, label: Label) {
     console.info(
       'Deploy   ', bold(label),

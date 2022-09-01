@@ -249,7 +249,16 @@ uploader = new (class TestUploader extends Uploader {
 
 ```typescript
 ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).deploy())
-ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy())
+
+ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy({
+  init: 'arg'
+}))
+ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy(()=>({
+  init: 'arg'
+})))
+ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy(async ()=>({
+  init: 'arg'
+})))
 ```
 
 ### Connecting to a smart contract

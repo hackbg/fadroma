@@ -5,6 +5,7 @@
   "main":    "client.ts",
   "files": [ "client.ts" ],
   "scripts": {
+    "@hackbg/konzola": "^2",
     "ts:check":    "tsc --noEmit",
     "release:dry": "pnpm ts:check && izomorf dry",
     "release:wet": "pnpm ts:check && izomorf wet --access=public"
