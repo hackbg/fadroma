@@ -841,13 +841,6 @@ export class Template extends Source {
     }
   }
 
-  async fetchCodeId (expected?: CodeHash): Promise<this> {
-    const codeId = await this.connected().getCodeId(this.codeHash!)
-    if (!!expected) this.validate('codeId', expected, codeId)
-    this.codeId = codeId
-    return this
-  }
-
   /** Throw if trying to do something with no agent or address. */
   protected connected (): Agent {
     const { name } = this.constructor
@@ -1053,6 +1046,13 @@ export class Client extends Template {
     const codeHash = await this.connected().getHash(this.codeId!)
     if (!!expected) this.validate('codeHash', expected, codeHash)
     this.codeHash = codeHash
+    return this
+  }
+
+  async fetchCodeId (expected?: CodeHash): Promise<this> {
+    const codeId = await this.connected().getCodeId(this.codeHash!)
+    if (!!expected) this.validate('codeId', expected, codeId)
+    this.codeId = codeId
     return this
   }
 
@@ -1351,19 +1351,23 @@ export class Deployment {
   }
 
   /** Instantiate multiple contracts from the same Template with different parameters. */
-  async initMany (agent: Agent, template: Template, contracts: DeployArgs[] = []): Promise<Client> {
+  async initMany (
+    agent: Agent, template: Template, contracts: DeployArgs[] = []
+  ): Promise<Client[]> {
     // this adds just the template - prefix is added in initVarious
     try {
       return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
     } catch (e) {
-      this.log.deployManyFailed(e, template, contracts)
+      this.log.deployManyFailed(template, contracts, e)
       throw e
     }
   }
 
   /** Instantiate multiple contracts from different Templates with different parameters,
     * and store their receipts in the deployment. */
-  async initVarious (agent: Agent, contracts: DeployArgsTriple[] = []): Promise<Client[]> {
+  async initVarious (
+    agent: Agent, contracts: DeployArgsTriple[] = []
+  ): Promise<Client[]> {
     contracts =
       contracts.map(c=>[new Template(c[0]), ...c.slice(1)] as DeployArgsTriple)
     const instances =
@@ -1440,12 +1444,12 @@ export class Contracts<C extends Client> extends Templates {
     template = new Template(template, { agent })
     try {
       template = await (template as Template).getOrUpload()
-      const contracts = specifiers.map(([name, initMsg]: DeployArgs)=>new (Client as NewClient<C>)(agent, {
-        ...template as Template, name, initMsg
-      }))
-      const instances   = await agent.instantiateMany(contracts)
-      const toNewClient = (c: Client) =>agent.getClient(this.Client, c as unknown as Partial<C>)
-      return Object.values(instances).map(toNewClient) as C[]
+      const toGenericClient = ([name, initMsg]: DeployArgs): Client =>
+        new Client(agent, { ...template as Template, name, initMsg})
+      const toSpecificClient = (c: Client): C =>
+        agent.getClient(this.Client, c as unknown as Partial<C>)
+      return Object.values(await agent.instantiateMany(specifiers.map(toGenericClient)))
+        .map(toSpecificClient)
     } catch (e) {
       this.log.deployManyFailed(template as Template, specifiers, e as Error)
       throw e

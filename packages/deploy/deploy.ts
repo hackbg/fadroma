@@ -232,25 +232,13 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     return this.command(name, `(in current deployment) ${info}`, DeployCommands.get, ...steps)
   }
 
-  static expectEnabled = (context: DeployContext): Deployments => {
-    if (!(context.deployments instanceof Deployments)) {
-      //console.error('context.deployments was not populated')
-      //console.log(context)
-      throw new Error('Deployments were not enabled')
-    }
-    return context.deployments
-  }
-
   /** Add the currently active deployment to the command context. */
   static get = async (context: DeployContext): Promise<DeployContext> => {
     const deployments = this.expectEnabled(context)
     if (!deployments.active) {
       console.info('No selected deployment on chain:', bold(context.chain?.id??'(unspecifier)'))
     }
-    return {
-      ...context,
-      deployment: deployments.active
-    }
+    return { ...context, deployment: deployments.active } as DeployContext
   }
 
   /** Create a new deployment and add it to the command context. */
@@ -259,10 +247,7 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     const [ prefix = context.timestamp ] = context.args
     await deployments?.create(prefix)
     await deployments?.select(prefix)
-    return {
-      ...context,
-      ...await this.get(context)
-    }
+    return { ...context, ...await this.get(context) } as DeployContext
   }
 
   /** Add either the active deployment, or a newly created one, to the command context. */
@@ -330,6 +315,15 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     } else {
       console.info('No selected deployment on chain:', bold(context.chain?.id??'(no chain)'))
     }
+  }
+
+  private static expectEnabled = (context: DeployContext): Deployments => {
+    if (!(context.deployments instanceof Deployments)) {
+      //console.error('context.deployments was not populated')
+      //console.log(context)
+      throw new Error('Deployments were not enabled')
+    }
+    return context.deployments
   }
 
   static log = new DeployConsole(console, 'Fadroma.DeployCommands')
