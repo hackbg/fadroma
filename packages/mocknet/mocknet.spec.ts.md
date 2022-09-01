@@ -52,7 +52,7 @@ assert.rejects(agent.instantiate(template, 'test', {}))
 ```typescript
 agent    = await new Mocknet().getAgent()
 template = await agent.upload(Testing.examples['Echo'].data)
-client   = agent.getClient(Client, await agent.instantiate(template, 'test', { fail: false }))
+client   = await agent.instantiate(template, 'test', { fail: false })
 equal(await client.query("echo"), 'echo')
 console.debug(await client.execute("echo"), { data: "echo" })
 ```

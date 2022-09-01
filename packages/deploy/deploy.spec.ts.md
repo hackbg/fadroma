@@ -41,18 +41,20 @@ let config: DeployConfig = new DeployConfig({}, '')
 ## Deploy context
 
 ```typescript
-import { DeployContext, getDeployContext } from '.'
-import { Template, Templates, Contract, Contracts } from '@fadroma/client'
-throws(()=>getDeployContext({}))
+import { DeployContext, DeployConfig } from '.'
+import { Template, Templates, Client, Contracts } from '@fadroma/client'
 agent = { chain: { id: '' } }
 
-let context: DeployContext = getDeployContext({ env: { FADROMA_CHAIN: 'Mocknet' } }, agent)
+let context: DeployContext = new DeployContext(new DeployConfig({
+  FADROMA_CHAIN:    'Mocknet',
+  FADROMA_MNEMONIC: 'genius supply lecture echo follow that silly meadow used gym nerve together'
+}))
 
 ok(context.template('crate') instanceof Template)
 
 ok(context.templates(['crate1', 'crate2']) instanceof Templates)
 
-ok(context.contract('crate') instanceof Contract)
+ok(context.contract('crate') instanceof Client)
 
 ok(context.contracts() instanceof Contracts)
 ```
@@ -64,21 +66,22 @@ import { DeployTask } from '.'
 new DeployTask()
 ```
 
-## `FSUploader`, `CachingFSUploader`: uploading local files
+## `FSUploader`: uploading local files
 
 ```typescript
-import { FSUploader, CachingFSUploader } from '.'
+import { FSUploader } from '.'
 new FSUploader()
 await new FSUploader().upload()
 await new FSUploader().uploadMany()
-new CachingFSUploader()
 ```
 
 ## `Deployment`, `Deployments`: keeping track of deployed contracts
 
 ```typescript
-import { Deployment, Deployments } from '.'
+const Deployment = Fadroma.Deployment
 new Deployment()
+
+import { Deployments } from '.'
 new Deployments()
 ```
 
@@ -176,7 +179,7 @@ deepEqual(results, [
 
 ```typescript
 import { Path, JSONDirectory, withTmpFile, withTmpDir } from '@hackbg/kabinet'
-import { CachingFSUploader, Uploads } from '.'
+import { Uploads } from '.'
 import { resolve } from 'path'
 
 const mockAgent = () => ({
@@ -203,28 +206,28 @@ const mockAgent = () => ({
   }
 })
 
-// 'add CachingFSUploader to operation context' ({ ok }) {
+// 'add FSUploader to operation context' ({ ok }) {
 agent = { chain: { uploads: Symbol() } }
 const cache = Symbol()
-uploader = new CachingFSUploader(agent, cache)
+uploader = new FSUploader(agent, cache)
 ok(uploader.agent === agent)
 
-// async 'upload 1 artifact with CachingFSUploader#upload' ({ ok }) {
+// async 'upload 1 artifact with FSUploader#upload' ({ ok }) {
 await withTmpDir(async cacheDir=>{
   const agent    = mockAgent()
   const cache    = new Path(cacheDir).in('uploads').as(JSONDirectory)
-  const uploader = new CachingFSUploader(agent, cache)
+  const uploader = new FSUploader(agent, cache)
   await withTmpFile(async location=>{
     const url = pathToFileURL(location)
     ok(await uploader.upload({url}))
   })
 })
 
-// async 'upload any number of artifacts with CachingFSUploader#uploadMany' ({ ok }) {
+// async 'upload any number of artifacts with FSUploader#uploadMany' ({ ok }) {
 await withTmpDir(async cacheDir=>{
   const agent    = mockAgent()
   const cache    = new Path(cacheDir).in('uploads').as(JSONDirectory)
-  const uploader = new CachingFSUploader(agent, cache)
+  const uploader = new FSUploader(agent, cache)
   ok(await uploader.uploadMany())
   ok(await uploader.uploadMany([]))
   await withTmpFile(async location=>{
@@ -359,8 +362,14 @@ class DeployMyContracts extends DeployTask<Promise<{
 
 ```typescript
 import { connect } from '@fadroma/connect'
-import { getDeployContext } from './deploy'
-context = await getDeployContext(await connect(await getChainContext({
+import { BuildContext } from '@fadroma/build'
+import { DeployContext } from '.'
+context = new DeployContext(
+  undefined,
+  await connect(),
+  new BuildContext()
+)
+/*  await getDeployContext(await connect(await getChainContext({
   config: { chain: 'Mocknet' }
   deployment: {
     has () { return true }
@@ -369,7 +378,7 @@ context = await getDeployContext(await connect(await getChainContext({
   workspace: {},
   builder:   {},
   uploader:  {}
-})))
+})))*/
 ```
 
 ```typescript

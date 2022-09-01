@@ -79,10 +79,10 @@ class MocknetAgent extends Fadroma.Agent {
     return await this.backend.upload(blob)
   }
 
-  async instantiate <T> (
-    template: Fadroma.Template, label: string, msg: T, send = []
+  async instantiate (
+    template: Fadroma.Template, label: string, msg: Fadroma.Message, send = []
   ): Promise<Fadroma.Client> {
-    return await this.backend.instantiate(this.address, template, label, msg as Fadroma.Message, send)
+    return await this.backend.instantiate(this, template, label, msg, send)
   }
 
   async execute <R> (
@@ -236,7 +236,7 @@ export class MocknetBackend {
     return instance
   }
   async instantiate (
-    sender: Fadroma.Address,
+    sender: MocknetAgent,
     { codeId, codeHash }: Partial<Fadroma.Template>,
     label: string,
     msg:   Fadroma.Message,
@@ -245,12 +245,14 @@ export class MocknetBackend {
     const chainId  = this.chainId
     const code     = this.getCode(codeId!)
     const contract = await new MocknetBackend.Contract(this).load(code)
-    const env      = this.makeEnv(sender, contract.address, codeHash)
+    const env      = this.makeEnv(sender.address, contract.address, codeHash)
     const response = contract.init(env, msg)
     const initResponse = parseResult(response, 'instantiate', contract.address)
     this.instances[contract.address] = contract
     await this.passCallbacks(contract.address, initResponse.messages)
-    return new Fadroma.Client(undefined, { chainId, codeId, codeHash, address: contract.address, label })
+    return new Fadroma.Client(sender, {
+      chainId, codeId, codeHash, address: contract.address, label
+    })
   }
   async execute (
     sender: Fadroma.Address,
@@ -629,4 +631,5 @@ export function bufferToUtf8 (buf: Buffer) {
   return buf.toString('utf8')
 }
 
-const codeHashForBlob  = (blob: Uint8Array) => Formati.toHex(new Formati.Sha256(blob).digest())
+const codeHashForBlob = (blob: Uint8Array) => Formati.Encoding.toHex(
+  new Formati.Crypto.Sha256(blob).digest())
