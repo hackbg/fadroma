@@ -131,15 +131,15 @@ export class DeployConsole extends Komandi.CommandsConsole {
 
   deployment ({ deployment }: { deployment: Deployment }) {
     if (deployment) {
-      const { receipts, prefix } = deployment
-      let contracts: string|number = Object.values(receipts).length
+      const { state, prefix } = deployment
+      let contracts: string|number = Object.values(state).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      const len = Math.min(40, Object.keys(receipts).reduce((x,r)=>Math.max(x,r.length),0))
-      this.info('│ Active deployment:'.padEnd(len+2), bold($(deployment.path!).shortPath), contracts)
-      const count = Object.values(receipts).length
+      const len = Math.min(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
+      this.info('│ Active deployment:'.padEnd(len+2), bold($(deployment.prefix!).shortPath), contracts)
+      const count = Object.values(state).length
       if (count > 0) {
-        for (const name of Object.keys(receipts)) {
-          this.receipt(name, receipts[name], len)
+        for (const name of Object.keys(state)) {
+          this.receipt(name, state[name], len)
         }
       } else {
         this.info('│ This deployment is empty.')
@@ -560,7 +560,7 @@ export class YAMLDeployment extends Deployment {
     agent?: Agent,
   ) {
     const file = $(path).as(Kabinet.YAMLFile)
-    super({}, '', agent)
+    super('', agent)
     this.load()
   }
 
@@ -569,43 +569,57 @@ export class YAMLDeployment extends Deployment {
   /** Resolve a path relative to the deployment directory. */
   resolve (...fragments: Array<string>) {
     // Expect path to be present
-    if (!this.path) throw new Error('Deployment: no path to resolve by')
-    return resolve(this.path, ...fragments)
+    if (!this.file) throw new Error('Deployment: no path to resolve by')
+    return resolve(this.file.path, ...fragments)
   }
 
   /** Load deployment state from YAML file. */
-  load (path = this.path) {
+  load (file?: Kabinet.Path|string) {
+
     // Expect path to be present
-    if (!path) throw new Error('Deployment: no path to load from')
-    // Resolve symbolic links to file
-    while (FS.lstatSync(path).isSymbolicLink()) path = resolve(dirname(path), FS.readlinkSync(path))
+    file ??= this.file
+    if (!file) throw new Error('Deployment: no path to load from')
+
+    // Resolve symbolic links
+    if (!(typeof file === 'string')) file = file.path
+    while (FS.lstatSync(file).isSymbolicLink()) {
+      file = resolve(dirname(file), FS.readlinkSync(file))
+    }
+
     // Set own prefix from name of file
-    this.prefix = basename(path, extname(path))
+    this.prefix = basename(file, extname(file))
+
     // Load the receipt data
-    const data = FS.readFileSync(path, 'utf8')
-    const receipts = YAML.loadAll(data) as Contract[]
+    const data = FS.readFileSync(file, 'utf8')
+    const receipts = YAML.loadAll(data) as Client[]
     for (const receipt of receipts) {
       if (!receipt.name) continue
       const [contractName, _version] = receipt.name.split('+')
-      this.receipts[contractName] = receipt
+      this.state[contractName] = receipt
     }
+
     // TODO: Automatically convert receipts to Client subclasses
     // by means of an identifier shared between the deploy and client libraries
   }
 
   /** Chainable: Serialize deployment state to YAML file. */
-  save (path = this.path): this {
+  save (file?: Kabinet.Path|string): this {
+
     // Expect path to be present
-    if (!path) throw new Error('Deployment: no path to save to')
+    file ??= this.file
+    if (!file) throw new Error('Deployment: no path to save to')
+    if (!(typeof file === 'string')) file = file.path
+
     // Serialize data to multi-document YAML
     let output = ''
-    for (let [name, data] of Object.entries(this.receipts)) {
+    for (let [name, data] of Object.entries(this.state)) {
       output += '---\n'
-      data = { ...data, name: data.name ?? name }
-      output += Kabinet.alignYAML(YAML.dump(data, { noRefs: true }))
+      const dump = YAML.dump({ ...data, name: data.name ?? name }, { noRefs: true })
+      output += Kabinet.alignYAML(dump)
     }
+
     // Write the data to disk.
-    FS.writeFileSync(path, output)
+    FS.writeFileSync(file, output)
     return this
   }
 

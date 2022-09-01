@@ -130,7 +130,7 @@ export default class ConnectCommands extends Komandi.Commands<ConnectContext> {
 
   chains = async () => {
     const log = new ConnectConsole(console, 'Fadroma.ConnectCommands')
-    log.supportedChains(chains)
+    log.supportedChains()
     log.selectedChain((await connect()).config.chain)
   }
 
@@ -140,7 +140,7 @@ export class ConnectConsole extends CustomConsole {
 
   name = 'Fadroma Connect'
 
-  supportedChains = (supportedChains: object) => {
+  supportedChains = (supportedChains: object = Fadroma.Chain.variants) => {
     this.log()
     this.info('Known chain names:')
     for (const chain of Object.keys(supportedChains).sort()) {
