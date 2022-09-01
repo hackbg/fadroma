@@ -161,11 +161,11 @@ export class TokenPairAmount {
 }
 
 interface TokenRegistryContext {
-  args: string[]
-  agent: Fadroma.Agent
+  args:        string[]
+  agent:       Fadroma.Agent
   deployment?: { agent?: Fadroma.Agent }
-  contract <C extends Fadroma.Contract> (...args: ConstructorParameters<Fadroma.NewContract>): C
-  contracts <C extends Fadroma.Contract> (Contract: Fadroma.NewContract): Fadroma.Contracts<C>
+  contract  <C extends Fadroma.Client> (...args: ConstructorParameters<Fadroma.NewClient<C>>): C
+  contracts <C extends Fadroma.Client> (Client: Fadroma.NewClient<C>): Fadroma.Contracts<C>
 }
 
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */

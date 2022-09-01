@@ -24,7 +24,7 @@ import * as Dokeres from '@hackbg/dokeres'
 import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
-import * as Fadroma from '@fadroma/client'
+import { Builder, Source, IntoSource, Template } from '@fadroma/client'
 
 import { default as simpleGit } from 'simple-git'
 
@@ -82,13 +82,13 @@ export class BuildContext extends Komandi.Context {
   config:    BuilderConfig
 
   /** Knows how to build contracts for a target. */
-  builder:   Fadroma.Builder
+  builder:   Builder
 
   /** Cargo workspace of the current project. */
   workspace: LocalWorkspace
 
   /** Get a Source by crate name from the current workspace. */
-  getSource (source: Fadroma.IntoSource, ref?: string): LocalSource {
+  getSource (source: IntoSource, ref?: string): LocalSource {
     let workspace = this.workspace
     if (ref) workspace = workspace.at(ref)
     if (typeof source === 'string') return this.workspace.crate(source)
@@ -97,12 +97,12 @@ export class BuildContext extends Komandi.Context {
   }
 
   /** Get a Template from Source or crate name. */
-  async build (source: Fadroma.IntoSource, ref?: string): Promise<Fadroma.Template> {
+  async build (source: IntoSource, ref?: string): Promise<Template> {
     return await this.builder.build(this.getSource(source).at(ref))
   }
 
   /** Get one or more Templates from Source or crate name */
-  async buildMany (ref?: string, ...sources: Fadroma.IntoSource[][]): Promise<Fadroma.Template[]> {
+  async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Template[]> {
     sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
     return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
   }
@@ -124,9 +124,9 @@ export const HEAD = 'HEAD'
 /** Represents a crate in a workspace.
   * The workspace may be at HEAD (build from working tree)
   * or another ref (build from Git history). */
-export class LocalSource extends Fadroma.Source {
+export class LocalSource extends Source {
 
-  constructor (specifier: Fadroma.IntoSource = {}, options: Partial<LocalSource> = {}) {
+  constructor (specifier: IntoSource = {}, options: Partial<LocalSource> = {}) {
     super(specifier, options)
   }
 
@@ -279,7 +279,7 @@ export interface DockerBuilderOptions extends LocalBuilderOptions {
 
 /** Can perform builds.
   * Will only perform a build if a contract is not built yet or FADROMA_REBUILD=1 is set. */
-export abstract class LocalBuilder extends Fadroma.Builder {
+export abstract class LocalBuilder extends Builder {
 
   readonly id: string = 'local'
 
@@ -313,13 +313,13 @@ export abstract class LocalBuilder extends Fadroma.Builder {
     * If it does, don't rebuild it but return it from there. */
   protected prebuild (
     outputDir: string, crate?: string, ref: string = HEAD
-  ): Fadroma.Template|null {
+  ): Template|null {
     if (this.caching && crate) {
       const location = $(outputDir, artifactName(crate, ref))
       if (location.exists()) {
         const artifact = location.url
         const codeHash = this.codeHashForPath(location.path)
-        return new Fadroma.Template({ crate, ref, artifact, codeHash })
+        return new Template({ crate, ref, artifact, codeHash })
       }
     }
     return null
@@ -340,7 +340,7 @@ export class RawBuilder extends LocalBuilder {
   runtime = process.argv[0]
 
   /** Build a Source into a Template */
-  async build (source: LocalSource): Promise<Fadroma.Template> {
+  async build (source: LocalSource): Promise<Template> {
     return (await this.buildMany([source]))[0]
   }
 
@@ -348,12 +348,12 @@ export class RawBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (sources: LocalSource[]): Promise<Fadroma.Template[]> {
-    const templates: Fadroma.Template[] = []
-    for (const source of sources) await buildOneOfMany.call(this, source)
-    return templates
+  async buildMany (inputs: LocalSource[]): Promise<Template[]> {
 
-    async function buildOneOfMany (this: RawBuilder, source: LocalSource) {
+    const templates: Template[] = []
+
+    const buildOneOfMany = async (source: LocalSource) => {
+
       const { path, ref = HEAD, crate, workspace } = source
       if (!workspace) throw new Error('no workspace')
       if (!crate) throw new Error('no crate')
@@ -417,7 +417,7 @@ export class RawBuilder extends LocalBuilder {
       // Create an artifact for the build result
       const location = $(env._OUTPUT, artifactName(crate, sanitize(ref)))
       console.info('Build ok:', bold(location.shortPath))
-      templates.push(new Fadroma.Template(source, {
+      templates.push(new Template(source, {
         artifact: pathToFileURL(location.path),
         codeHash: this.codeHashForPath(location.path)
       }))
@@ -426,6 +426,10 @@ export class RawBuilder extends LocalBuilder {
       if (tmpGit   && tmpGit.exists())   tmpGit.delete()
       if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
     }
+
+    for (const source of inputs) await buildOneOfMany(source)
+
+    return templates
 
   }
 
@@ -475,7 +479,7 @@ export class DockerBuilder extends LocalBuilder {
   dockerfile: string
 
   /** Build a Source into a Template */
-  async build (source: LocalSource): Promise<Fadroma.Template> {
+  async build (source: LocalSource): Promise<Template> {
     return (await this.buildMany([source]))[0]
   }
 
@@ -483,15 +487,13 @@ export class DockerBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (sources: LocalSource[]): Promise<Fadroma.Template[]> {
+  async buildMany (inputs: LocalSource[]): Promise<Template[]> {
 
-    // Announce what will be done
-    //console.info('Requested to build the following contracts:')
-    const longestCrateName = sources
+    const longestCrateName = inputs
       .map(source=>source.crate?.length||0)
       .reduce((x,y)=>Math.max(x,y),0)
 
-    for (const source of sources) {
+    for (const source of inputs) {
       const { path, crate, ref } = source
       if (!path) throw new Error('missing path in source')
       const outputDir = $(path).resolve(this.outputDirName)
@@ -501,11 +503,11 @@ export class DockerBuilder extends LocalBuilder {
 
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, LocalWorkspace> = {}
-
-    for (const source of sources) {
-      const { path, gitDir } = source
-      if (!path) throw new Error('missing path in source')
-      workspaces[path] = source.workspace
+    for (const source of inputs) {
+      const { path, gitDir, workspace } = source
+      if (!path)      throw new Error('missing path in source')
+      if (!workspace) throw new Error('missing workspace in source')
+      workspaces[workspace] = new LocalWorkspace(workspace)
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
       if (source.ref !== HEAD && !gitDir.present) {
         const error = new Error("Fadroma Build: could not find Git directory for source.")
@@ -514,20 +516,20 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Here we will collect the build outputs
-    const templates:  Fadroma.Template[] = []
+    const outputs: Template[] = []
 
     // Get the distinct workspaces and refs by which to group the crate builds
-    const workspaceRoots: (string|undefined)[] = distinct(sources.map(source=>source.workspace))
-    const refs: (string|undefined)[] = distinct(sources.map(source=>source.ref))
+    const roots: string[] = distinct(inputs.map(source=>source.workspace!))
+    const refs:  string[] = distinct(inputs.map(source=>source.ref??HEAD))
 
     // For each workspace,
-    for (const path of workspaceRoots) {
+    for (const path of roots) {
       const { gitDir } = workspaces[path]
+
       // And for each ref of that workspace,
       for (const ref of refs) {
 
         let mounted = $(path)
-
         if (this.verbose) this.log.buildingFromWorkspace(mounted, ref)
 
         if (ref !== HEAD) {
@@ -541,16 +543,17 @@ export class DockerBuilder extends LocalBuilder {
         // along with their indices in the input and output arrays
         // of this function.
         const crates: [number, string][] = []
-        for (let index = 0; index < sources.length; index++) {
-          const source = sources[index]
-          if (source.workspace.path === path && source.ref === ref) {
-            crates.push([index, source.crate])
+        for (let index = 0; index < inputs.length; index++) {
+          const source = inputs[index]
+          if (source.workspace === path && source.ref === ref) {
+            crates.push([index, source.crate!])
           }
         }
 
-        // Build the crates from the same workspace/ref
+        // Build the crates from each same workspace/ref pair and collect the results.
         // sequentially in the same container.
-        const buildArtifacts = await this.runBuildContainer(
+        // Collect the templates built by the container
+        const results = await this.runBuildContainer(
           mounted.path,
           mounted.relative(path),
           ref,
@@ -558,20 +561,16 @@ export class DockerBuilder extends LocalBuilder {
           gitDir.isSubmodule ? gitDir.submoduleDir : ''
         )
 
-        // Collect the templates built by the container
-        for (const index in buildArtifacts) {
-          const artifact = buildArtifacts[index]
-          if (artifact) {
-            templates[index] = Object.assign(artifact, {
-              source: artifact.source ?? sources[index]
-            })
-          }
+        for (const index in results) {
+          if (results[index]) continue
+          outputs[index] = new Template({ ...inputs[index], ...results[index] })
         }
 
       }
     }
 
-    return templates
+    return outputs
+
   }
 
   protected async runBuildContainer (
@@ -581,12 +580,12 @@ export class DockerBuilder extends LocalBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = $(root, subdir, this.outputDirName).path,
-  ): Promise<(Fadroma.Template|null)[]> {
+  ): Promise<(Template|null)[]> {
     // Create output directory as user if it does not exist
     $(outputDir).as(Kabinet.OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
-    const templates:   (Fadroma.Template|null)[] = crates.map(()=>null)
+    const templates:   (Template|null)[] = crates.map(()=>null)
 
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
@@ -714,7 +713,7 @@ export class DockerBuilder extends LocalBuilder {
 
     // Return a sparse array of the resulting artifacts
     return outputWasms.map(location =>
-      (location === null) ? null : new Fadroma.Template({
+      (location === null) ? null : new Template({
         artifact: $(location).url,
         codeHash: this.codeHashForPath(location)
       }))
@@ -745,7 +744,7 @@ export class BuildConsole extends Konzola.CustomConsole {
     )
   }
 
-  buildingOne (source: Fadroma.Source, prebuilt: Fadroma.Template|null, longestCrateName: number) {
+  buildingOne (source: Source, prebuilt: Template|null, longestCrateName: number) {
     if (prebuilt) {
       this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
     } else {
@@ -758,7 +757,7 @@ export class BuildConsole extends Konzola.CustomConsole {
     }
   }
 
-  buildingMany (sources: Fadroma.Source[]) {
+  buildingMany (sources: Source[]) {
     for (const source of sources) {
       const { crate = '(unknown)', ref = 'HEAD' } = source
       if (ref === 'HEAD') {
