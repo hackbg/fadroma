@@ -709,6 +709,9 @@ export class Source extends Overridable implements Partial<Source> {
 
   constructor (specifier: IntoSource = {}, options: Partial<Source> = {}) {
     super()
+    
+    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
+
     if (typeof specifier === 'string') {
       const [ crate, ref ] = specifier.split('@')
       options = { ...options, crate, ref }
@@ -785,6 +788,9 @@ export class Template extends Source {
     options:   Partial<Template> = {},
   ) {
     super()
+    
+    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
+
     if (typeof specifier === 'string') {
       const [crate, ref] = specifier.split('@')
       options = { ...options, crate, ref }
@@ -836,6 +842,7 @@ export class Template extends Source {
     async function upload (this: Template): Promise<Template> {
       uploader = this.assertUploader() // Don't start if there is no uploader
       let self: Template = this        // Start with self
+      console.log({self})
       if (!self.artifact) self = await self.build() // Replace with built
       return uploader.upload(self)     // Return uploaded
     }
@@ -983,6 +990,9 @@ export class Client extends Template {
   constructor (...args: [(IntoClient|Agent|null)?, (Partial<Client>|Address)?, CodeHash?]) {
 
     super()
+    
+    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
+    Object.defineProperty(this, 'Client', { writable: true, enumerable: false })
 
     const isStr = (x: any): x is string => typeof x === 'string'
     const isObj = (x: any): x is object => typeof x === 'object'
@@ -999,7 +1009,7 @@ export class Client extends Template {
       }
 
       // new Client(agent, (address|options)?)
-      case (args.length === 2 && isStr(args[0])): {
+      case (args.length === 2 && isObj(args[0])): {
         this.agent = args[0] as Agent
         if (isStr(args[1])) {
           this.address = args[1]
@@ -1225,9 +1235,9 @@ export class Client extends Template {
         switch (true) {
           case !!this.address:
             console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
-            return new this.Client({ ...this, agent: this.creator }) as C
+            return new this.Client({ ...this, agent: this.agent }) as C
           case !!this.name:
-            if (!this.creator)    throw new ClientError.NoCreator()
+            if (!this.agent)      throw new ClientError.NoCreator()
             if (!this.deployment) throw new ClientError.NoDeployment()
             return new this.Client(await template.deploy(this.label, initMsg)) as C
           default:
@@ -1382,32 +1392,50 @@ export class Deployment {
 
 export class Sources extends Overridable {
 
-  constructor (specifiers: IntoSource[], options: Partial<Source> = {}) {
+  log = new ClientConsole(console, 'Fadroma.Sources')
+
+  constructor (specifiers: IntoSource[] = [], options: Partial<Source> = {}) {
     super()
-    this.override({ ...options, sources: specifiers.map(this.intoSource) })
+    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
+    this.override({
+      ...options,
+      values: specifiers.map(specifier=>new Template(specifier, options))
+    })
   }
+
+  values:   Source[] = []
 
   builder?: Builder  = undefined
 
-  sources:  Source[] = []
-
-  protected intoSource = (specifier: IntoSource) => new Source(specifier)
-
-  at = (ref: string) => new Sources(this.sources.map(source=>source.at(ref)))
+  at = (ref: string) => new Sources(this.values.map(source=>source.at(ref)))
 
   async build (builder?: Builder): Promise<Template[]> {
     builder ??= this.builder
     if (!builder) throw new ClientError.NoBuilder()
-    return await builder.buildMany(this.sources)
+    return await builder.buildMany(this.values)
   }
 
 }
 
 export class Templates extends Sources {
 
-  constructor (args: IntoTemplate[], options: Partial<Template> = {}) { super(args, options) }
+  log = new ClientConsole(console, 'Fadroma.Templates')
 
-  agent?:     Agent        = undefined
+  constructor (specifiers: IntoTemplate[] = [], options: Partial<Template> = {}) {
+    super()
+    this.override({
+      ...options,
+      templates: specifiers.map(specifier=>new Template(specifier, options))
+    })
+  }
+
+  values:    Template[] = []
+
+  uploader?: Uploader = undefined
+
+  agent?:    Agent    = undefined
+
+  Client?:   NewClient<any> = Client
 
   /** Multiple different templates that can be uploaded in one invocation.
     * Not uploaded in parallel by default. */
@@ -1424,14 +1452,20 @@ export class Templates extends Sources {
   * To instantiatie different types of contracts in 1 tx, see deployment.initVarious */
 export class Contracts<C extends Client> extends Templates {
 
-  constructor (
-    /** Client class to use. */
-    readonly Client: NewClient<C> = Client
-  ) {
-    super([], {})
+  log = new ClientConsole(console, 'Fadroma.Contracts')
+
+  constructor (specifiers: IntoClient[] = [], options: Partial<C> = {}) {
+    super()
+    this.override({
+      ...options,
+      values: specifiers.map(specifier=>new Template(specifier, options))
+    })
+    Object.defineProperty(this, 'Client', { writable: true, enumerable: false })
   }
 
-  log = new ClientConsole(console, 'Fadroma.Templates')
+  values:  C[] = []
+
+  Client?: NewClient<C> = Client as unknown as NewClient<C>
 
   /** Deploy multiple contracts from the same template with 1 tx */
   async deployMany (
@@ -1439,16 +1473,26 @@ export class Contracts<C extends Client> extends Templates {
     specifiers: DeployArgs[],
     agent:      Agent|undefined = this.agent
   ): Promise<C[]> {
+    console.log(this)
     if (!agent) throw new ClientError.NoCreator()
-    template = new Template(template, { agent })
+    template = new Template(template, { builder: this.builder, uploader: this.uploader, agent })
     try {
+      // Make sure template is uploaded
       template = await (template as Template).getOrUpload()
+
+      // Instantiate contracts, return generic Client instances
       const toGenericClient = ([name, initMsg]: DeployArgs): Client =>
         new Client(agent, { ...template as Template, name, initMsg})
-      const toSpecificClient = (c: Client): C =>
-        agent.getClient(this.Client, c as unknown as Partial<C>)
-      return Object.values(await agent.instantiateMany(specifiers.map(toGenericClient)))
-        .map(toSpecificClient)
+      const instances = await agent.instantiateMany(specifiers.map(toGenericClient)) as C[]
+
+      if (this.Client) {
+        // If a custom Client is set, assign it to the new contracts
+        const toSpecificClient = (c: Partial<C>): C => agent.getClient(this.Client!, c)
+        return Object.values(instances).map(toSpecificClient)
+      } else {
+        // Otherwise return the generic ones
+        return instances
+      }
     } catch (e) {
       this.log.deployManyFailed(template as Template, specifiers, e as Error)
       throw e
