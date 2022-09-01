@@ -69,8 +69,8 @@ export class BuildTask<X> extends Komandi.Task<BuildContext, X> {
 export class BuildContext extends Komandi.Context {
 
   constructor (
-    config:  BuilderConfig,
-    project: string = process.cwd()
+    config:  Partial<BuilderConfig> = {},
+    project: string = config.project ?? process.cwd()
   ) {
     super()
     this.config    = config ?? new BuilderConfig(this.env, this.cwd)
@@ -128,15 +128,16 @@ export class LocalSource extends Source {
 
   constructor (specifier: IntoSource = {}, options: Partial<LocalSource> = {}) {
     super(specifier, options)
+    this.override(options)
   }
 
-  workspace?: string
+  workspace?: string = undefined
 
-  path?:      string
+  path?:      string = undefined
 
   get gitDir (): DotGit {
-    if (!this.path) throw new Error('LocalSource: no path when trying to access gitDir')
-    return new DotGit(this.path)
+    if (!this.repo) throw new Error('LocalSource: no path when trying to access gitDir')
+    return new DotGit(this.repo)
   }
 
 }
@@ -164,7 +165,9 @@ export class LocalWorkspace {
     if (ref) {
       self = self.at(ref)
     }
-    return new LocalSource(crate, { workspace: self.path })
+    return new LocalSource(crate, {
+      ref: self.ref, repo: self.path, workspace: self.path, path: self.path
+    })
   }
 
   /** Get multiple Source objects pointing to crates from the current workspace and ref */
@@ -183,7 +186,9 @@ export class DotGit extends Kabinet.Path {
   /* Matches "/.git" or "/.git/" */
   static rootRepoRE = new RegExp(`${Kabinet.Path.separator}.git${Kabinet.Path.separator}?`)
 
-  constructor (base: string, ...fragments: string[]) {
+  constructor (base: string|URL, ...fragments: string[]) {
+
+    if (base instanceof URL) base = fileURLToPath(base)
 
     super(base, ...fragments, '.git')
 
@@ -341,7 +346,77 @@ export class RawBuilder extends LocalBuilder {
 
   /** Build a Source into a Template */
   async build (source: LocalSource): Promise<Template> {
-    return (await this.buildMany([source]))[0]
+    const { path, ref = HEAD, crate, workspace } = source
+    if (!workspace) throw new Error('no workspace')
+    if (!crate)     throw new Error('no crate')
+
+    // Temporary dirs used for checkouts of non-HEAD builds
+    let tmpGit, tmpBuild
+
+    // Most of the parameters are passed to the build script
+    // by way of environment variables.
+    const env = {
+      _BUILD_GID: process.getgid(),
+      _BUILD_UID: process.getuid(),
+      _OUTPUT:    $(workspace).in('artifacts').path,
+      _REGISTRY:  '',
+      _TOOLCHAIN: this.toolchain,
+    }
+
+    if ((ref ?? HEAD) !== HEAD) {
+      const { gitDir } = source
+      // Provide the build script with the config values that ar
+      // needed to make a temporary checkout of another commit
+      if (!gitDir?.present) {
+        const error = new Error("Fadroma Build: could not find Git directory for source.")
+        throw Object.assign(error, { source })
+      }
+      // Create a temporary Git directory. The build script will copy the Git history
+      // and modify the refs in order to be able to do a fresh checkout with submodules
+      tmpGit   = $(mkdtempSync($(tmpdir(), 'fadroma-git-').path))
+      tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
+      Object.assign(env, {
+        _GIT_ROOT:   gitDir.path,
+        _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
+        _NO_FETCH:   this.noFetch,
+        _TMP_BUILD:  tmpBuild.path,
+        _TMP_GIT:    tmpGit.path,
+      })
+    }
+
+    // Run the build script
+    const cmd = [this.runtime, this.script, 'phase1', ref, crate ]
+    const opts = { cwd: source.path, env: { ...process.env, ...env }, stdio: 'inherit' }
+    const sub  = spawn(cmd.shift() as string, cmd, opts as any)
+    await new Promise<void>((resolve, reject)=>{
+      sub.on('exit', (code: number, signal: any) => {
+        const build = `Build of ${source.crate} from ${$(source.path!).shortPath} @ ${source.ref}`
+        if (code === 0) {
+          resolve()
+        } else if (code !== null) {
+          const message = `${build} exited with code ${code}`
+          console.error(message)
+          throw Object.assign(new Error(message), { source, code })
+        } else if (signal !== null) {
+          const message = `${build} exited by signal ${signal}`
+          console.warn(message)
+        } else {
+          throw new Error('Unreachable')
+        }
+      })
+    })
+
+    // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
+    if (tmpGit   && tmpGit.exists())   tmpGit.delete()
+    if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
+
+    // Create an artifact for the build result
+    const location = $(env._OUTPUT, artifactName(crate, sanitize(ref)))
+    console.info('Build ok:', bold(location.shortPath))
+    return new Template(source, {
+      artifact: pathToFileURL(location.path),
+      codeHash: this.codeHashForPath(location.path)
+    })
   }
 
   /** This implementation groups the passed source by workspace and ref,
@@ -349,88 +424,9 @@ export class RawBuilder extends LocalBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (inputs: LocalSource[]): Promise<Template[]> {
-
     const templates: Template[] = []
-
-    const buildOneOfMany = async (source: LocalSource) => {
-
-      const { path, ref = HEAD, crate, workspace } = source
-      if (!workspace) throw new Error('no workspace')
-      if (!crate) throw new Error('no crate')
-
-      // Temporary dirs used for checkouts of non-HEAD builds
-      let tmpGit, tmpBuild
-
-      // Most of the parameters are passed to the build script
-      // by way of environment variables.
-      const env = {
-        _BUILD_GID: process.getgid(),
-        _BUILD_UID: process.getuid(),
-        _OUTPUT:    $(workspace).in('artifacts').path,
-        _REGISTRY:  '',
-        _TOOLCHAIN: this.toolchain,
-      }
-
-      if ((ref ?? HEAD) !== HEAD) {
-        const { gitDir } = source
-        // Provide the build script with the config values that ar
-        // needed to make a temporary checkout of another commit
-        if (!gitDir?.present) {
-          const error = new Error("Fadroma Build: could not find Git directory for source.")
-          throw Object.assign(error, { source })
-        }
-        // Create a temporary Git directory. The build script will copy the Git history
-        // and modify the refs in order to be able to do a fresh checkout with submodules
-        tmpGit   = $(mkdtempSync($(tmpdir(), 'fadroma-git-').path))
-        tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
-        Object.assign(env, {
-          _GIT_ROOT:   gitDir.path,
-          _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
-          _NO_FETCH:   this.noFetch,
-          _TMP_BUILD:  tmpBuild.path,
-          _TMP_GIT:    tmpGit.path,
-        })
-      }
-
-      // Run the build script
-      const cmd = [this.runtime, this.script, 'phase1', ref, crate ]
-      const opts = { cwd: source.path, env: { ...process.env, ...env }, stdio: 'inherit' }
-      const sub  = spawn(cmd.shift() as string, cmd, opts as any)
-      await new Promise<void>((resolve, reject)=>{
-        sub.on('exit', (code: number, signal: any) => {
-          const build = `Build of ${source.crate} from ${$(source.path!).shortPath} @ ${source.ref}`
-          if (code === 0) {
-            resolve()
-          } else if (code !== null) {
-            const message = `${build} exited with code ${code}`
-            console.error(message)
-            throw Object.assign(new Error(message), { source, code })
-          } else if (signal !== null) {
-            const message = `${build} exited by signal ${signal}`
-            console.warn(message)
-          } else {
-            throw new Error('Unreachable')
-          }
-        })
-      })
-
-      // Create an artifact for the build result
-      const location = $(env._OUTPUT, artifactName(crate, sanitize(ref)))
-      console.info('Build ok:', bold(location.shortPath))
-      templates.push(new Template(source, {
-        artifact: pathToFileURL(location.path),
-        codeHash: this.codeHashForPath(location.path)
-      }))
-
-      // If this was a non-HEAD build, remove the temporary Git dir used to do the checkout
-      if (tmpGit   && tmpGit.exists())   tmpGit.delete()
-      if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
-    }
-
-    for (const source of inputs) await buildOneOfMany(source)
-
+    for (const source of inputs) templates.push(await this.build(source))
     return templates
-
   }
 
 }
@@ -494,9 +490,9 @@ export class DockerBuilder extends LocalBuilder {
       .reduce((x,y)=>Math.max(x,y),0)
 
     for (const source of inputs) {
-      const { path, crate, ref } = source
-      if (!path) throw new Error('missing path in source')
-      const outputDir = $(path).resolve(this.outputDirName)
+      const { repo, crate, ref } = source
+      if (!repo) throw new Error('missing repo path in source')
+      const outputDir = $(repo).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.ref)
       this.log.buildingOne(source, prebuilt, longestCrateName)
     }
@@ -504,8 +500,8 @@ export class DockerBuilder extends LocalBuilder {
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, LocalWorkspace> = {}
     for (const source of inputs) {
-      const { path, gitDir, workspace } = source
-      if (!path)      throw new Error('missing path in source')
+      const { repo, gitDir, workspace } = source
+      if (!repo)      throw new Error('missing repo path in source')
       if (!workspace) throw new Error('missing workspace in source')
       workspaces[workspace] = new LocalWorkspace(workspace)
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
@@ -516,60 +512,55 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Here we will collect the build outputs
-    const outputs: Template[] = []
+    const outputs: Template[] = inputs.map(input=>new Template({ ...input, builder: this }))
 
     // Get the distinct workspaces and refs by which to group the crate builds
     const roots: string[] = distinct(inputs.map(source=>source.workspace!))
     const refs:  string[] = distinct(inputs.map(source=>source.ref??HEAD))
 
-    // For each workspace,
-    for (const path of roots) {
-      const { gitDir } = workspaces[path]
-
-      // And for each ref of that workspace,
-      for (const ref of refs) {
-
-        let mounted = $(path)
-        if (this.verbose) this.log.buildingFromWorkspace(mounted, ref)
-
-        if (ref !== HEAD) {
-          mounted = gitDir.rootRepo
-          //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
-          await simpleGit(gitDir.path)
-            .fetch(process.env.FADROMA_PREFERRED_REMOTE || 'origin')
-        }
-
-        // Create a list of sources for the container to build,
-        // along with their indices in the input and output arrays
-        // of this function.
-        const crates: [number, string][] = []
-        for (let index = 0; index < inputs.length; index++) {
-          const source = inputs[index]
-          if (source.workspace === path && source.ref === ref) {
-            crates.push([index, source.crate!])
-          }
-        }
-
-        // Build the crates from each same workspace/ref pair and collect the results.
-        // sequentially in the same container.
-        // Collect the templates built by the container
-        const results = await this.runBuildContainer(
-          mounted.path,
-          mounted.relative(path),
-          ref,
-          crates,
-          gitDir.isSubmodule ? gitDir.submoduleDir : ''
-        )
-
-        for (const index in results) {
-          if (results[index]) continue
-          outputs[index] = new Template({ ...inputs[index], ...results[index] })
-        }
-
-      }
+    // For each workspace/ref pair
+    for (const path of roots) for (const ref of refs) {
+      await buildFor.call(this, path, ref)
     }
 
     return outputs
+
+    const self = this
+    async function buildFor (this: typeof self, path: string, ref: string) {
+      const { gitDir } = workspaces[path]
+      let mounted = $(path)
+      if (this.verbose) this.log.buildingFromWorkspace(mounted, ref)
+      if (ref !== HEAD) {
+        mounted = gitDir.rootRepo
+        //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
+        await simpleGit(gitDir.path)
+          .fetch(process.env.FADROMA_PREFERRED_REMOTE || 'origin')
+      }
+      // Create a list of sources for the container to build,
+      // along with their indices in the input and output arrays
+      // of this function.
+      const crates: [number, string][] = []
+      for (let index = 0; index < inputs.length; index++) {
+        const source = inputs[index]
+        if (source.workspace === path && source.ref === ref) {
+          crates.push([index, source.crate!])
+        }
+      }
+      // Build the crates from each same workspace/ref pair and collect the results.
+      // sequentially in the same container.
+      // Collect the templates built by the container
+      const results = await this.runBuildContainer(
+        mounted.path,
+        mounted.relative(path),
+        ref,
+        crates,
+        gitDir.isSubmodule ? gitDir.submoduleDir : ''
+      )
+      for (const index in results) {
+        if (!results[index]) continue
+        outputs[index] = new Template({ ...results[index], ...inputs[index] })
+      }
+    }
 
   }
 
@@ -729,22 +720,22 @@ export class BuildConsole extends Konzola.CustomConsole {
 
   name = '@fadroma/build'
 
-  buildingFromCargoToml (file: Kabinet.Path) {
-    this.info('Building from', bold(file.shortPath))
+  buildingFromCargoToml (file: Kabinet.Path|string) {
+    this.info('Building from', bold($(file).shortPath))
   }
 
-  buildingFromBuildScript (file: Kabinet.Path) {
-    this.info('Running build script', bold(file.shortPath))
+  buildingFromBuildScript (file: Kabinet.Path|string) {
+    this.info('Running build script', bold($(file).shortPath))
   }
 
-  buildingFromWorkspace (mounted: Kabinet.Path, ref: string = HEAD) {
+  buildingFromWorkspace (mounted: Kabinet.Path|string, ref: string = HEAD) {
     this.info(
-      `Building contracts from workspace:`, bold(`${mounted.shortPath}/`),
+      `Building contracts from workspace:`, bold(`${$(mounted).shortPath}/`),
       `@`, bold(ref)
     )
   }
 
-  buildingOne (source: Source, prebuilt: Template|null, longestCrateName: number) {
+  buildingOne (source: Source, prebuilt: Template|null) {
     if (prebuilt) {
       this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
     } else {
