@@ -80,7 +80,7 @@ export function codeHashOf ({ code_hash, codeHash }: Hashed): CodeHash {
     throw new Error('Passed an object with codeHash and code_hash both different')
   }
   const result = code_hash ?? codeHash
-  if (!result) throw new ContractError.NoCodeHash()
+  if (!result) throw new ClientError.NoCodeHash()
   return result
 }
 
@@ -717,7 +717,7 @@ export class Source extends Overridable implements Partial<Source> {
     } else if (typeof specifier === 'object') {
       options = { ...specifier, ...options }
     } else {
-      throw new ContractError.InvalidSource(specifier)
+      throw new ClientError.InvalidSource(specifier)
     }
     this.override(options)
   }
@@ -747,9 +747,9 @@ export class Source extends Overridable implements Partial<Source> {
 
   /** Throw appropriate error if not buildable. */
   assertBuildable (builder: typeof this.builder = this.builder): Builder {
-    if (!this.crate) throw new ContractError.NoCrate()
-    if (!builder)    throw new ContractError.NoBuilder()
-    if (typeof builder === 'string') throw new ContractError.ProvideBuilder(builder)
+    if (!this.crate) throw new ClientError.NoCrate()
+    if (!builder)    throw new ClientError.NoBuilder()
+    if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
     return builder
   }
 
@@ -793,7 +793,7 @@ export class Template extends Source {
     } else if (typeof specifier === 'object') {
       options = { ...specifier, ...options }
     } else {
-      throw new ContractError.InvalidTemplate(specifier)
+      throw new ClientError.InvalidTemplate(specifier)
     }
     this.override(options)
   }
@@ -819,8 +819,8 @@ export class Template extends Source {
 
   /** Return the Uploader for this Template or throw. */
   assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
-    if (!uploader)       throw new ContractError.NoUploader()
-    if (!uploader.agent) throw new ContractError.NoUploaderAgent()
+    if (!uploader)       throw new ClientError.NoUploader()
+    if (!uploader.agent) throw new ClientError.NoUploaderAgent()
     return uploader
   }
 
@@ -873,11 +873,11 @@ export class Template extends Source {
       const uploader = self.assertUploader()
       // And if we still can't determine the chain ID, bail
       const chainId = self.chainId ?? uploader.chain.id
-      if (!chainId) throw new ContractError.NoChainId()
+      if (!chainId) throw new ClientError.NoChainId()
       // If we have chain ID and code ID, try to get code hash
       if (self.codeId) {
         self = new Template(self, { codeHash: await uploader.getHash(self.codeId) })
-        if (!self.codeHash) throw new ContractError.NoCodeHash()
+        if (!self.codeHash) throw new ClientError.NoCodeHash()
         return self
       }
       return await this.upload()
@@ -907,7 +907,7 @@ export class Template extends Source {
     return self.task.subtask(deploy.bind(self))
     async function deploy (this: Template): Promise<C> {
       agent ??= this.creator
-      if (!agent) throw new ContractError.NoCreator()
+      if (!agent) throw new ClientError.NoCreator()
       const template = await this.getOrUpload()
       this.log.beforeDeploy(this, label)
       if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
@@ -921,7 +921,7 @@ export class Template extends Source {
   /** Deploy multiple contracts from the same template with 1 tx */
   async deployMany (contracts: DeployArgs[] = [], agent?: Agent): Promise<Client[]> {
     agent ??= this.creator
-    if (!agent) throw new ContractError.NoCreator()
+    if (!agent) throw new ClientError.NoCreator()
     let instances
     try {
       const prefix = 'TODO'
@@ -940,7 +940,7 @@ export class Template extends Source {
   /** Uploaded templates can be passed to factory contracts in this format: */
   get asInfo (): TemplateInfo {
     if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
-      throw new ContractError.Unpopulated()
+      throw new ClientError.Unpopulated()
     }
     return templateStruct(this)
   }
@@ -1098,7 +1098,7 @@ export class Client extends Template {
 
   /** Label of the contract on the chain. */
   get label (): Label {
-    if (!this.name) throw new ContractError.NoName()
+    if (!this.name) throw new ClientError.NoName()
     let label = this.name
     if (this.prefix) label = `${this.prefix}/${label}`
     if (this.suffix) label = `${label}+${this.suffix}`
@@ -1108,9 +1108,9 @@ export class Client extends Template {
   /** Setting the label breaks it down into prefix, name, and suffix. */
   set label (label: Label) {
     const matches = label.match(Client.RE_LABEL)
-    if (!matches || !matches.groups) throw new ContractError.InvalidLabel(label)
+    if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
     const {prefix, name, suffix} = matches.groups
-    if (!name) throw new ContractError.InvalidLabel(label)
+    if (!name) throw new ClientError.InvalidLabel(label)
     this.prefix = prefix
     this.name   = name
     this.suffix = suffix
@@ -1217,8 +1217,8 @@ export class Client extends Template {
       template = this
       initMsg  = args[0] as IntoMessage
     }
-    if (!template) throw new ContractError.NoTemplate()
-    if (!initMsg)  throw new ContractError.NoInitMessage()
+    if (!template) throw new ClientError.NoTemplate()
+    if (!initMsg)  throw new ClientError.NoInitMessage()
 
     return this.asTask(
       `get or deploy ${this.name??'contract'}`,
@@ -1228,11 +1228,11 @@ export class Client extends Template {
             console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
             return new this.Client({ ...this, agent: this.creator }) as C
           case !!this.name:
-            if (!this.creator)    throw new ContractError.NoCreator()
-            if (!this.deployment) throw new ContractError.NoDeployment()
+            if (!this.creator)    throw new ClientError.NoCreator()
+            if (!this.deployment) throw new ClientError.NoDeployment()
             return new this.Client(await template.deploy(this.label, initMsg)) as C
           default:
-            throw new ContractError.InvalidValue()
+            throw new ClientError.InvalidValue()
         }
       }
     )
@@ -1333,7 +1333,7 @@ export class Deployment {
     agent:   Agent        = this.agent!,
   ): C {
     const info = this.get(name)
-    if (!info) throw new ContractError.NotFound()
+    if (!info) throw new ClientError.NotFound()
     return new $Client({ ...(info! as Partial<C>), agent }) as C
   }
 
@@ -1398,7 +1398,7 @@ export class Sources extends Overridable {
 
   async build (builder?: Builder): Promise<Template[]> {
     builder ??= this.builder
-    if (!builder) throw new ContractError.NoBuilder()
+    if (!builder) throw new ClientError.NoBuilder()
     return await builder.buildMany(this.sources)
   }
 
@@ -1440,7 +1440,7 @@ export class Contracts<C extends Client> extends Templates {
     specifiers: DeployArgs[],
     agent:      Agent|undefined = this.agent
   ): Promise<C[]> {
-    if (!agent) throw new ContractError.NoCreator()
+    if (!agent) throw new ClientError.NoCreator()
     template = new Template(template, { agent })
     try {
       template = await (template as Template).getOrUpload()
@@ -1573,7 +1573,7 @@ export class CustomError extends Error {
   }
 }
 
-export class ContractError extends CustomError {
+export class ClientError extends CustomError {
 
   static DeployManyFailed = this.define('DeployManyFailed',
     (e: any) => 'Deploy of multiple contracts failed. ' + e?.message??'')
