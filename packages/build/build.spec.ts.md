@@ -2,7 +2,7 @@
 
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
-import * as Fadroma from '.'
+import * as Fadroma from '@fadroma/client'
 import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
@@ -12,7 +12,8 @@ A **Workspace** object points to the root of a project's [Cargo workspace](https
   * [ ] TODO: Test with non-workspace project.
 
 ```typescript
-let workspace: Fadroma.LocalWorkspace
+import { LocalWorkspace } from '.'
+let workspace: LocalWorkspace
 const project = '/tmp/fadroma-test'
 ```
 
@@ -21,8 +22,10 @@ const project = '/tmp/fadroma-test'
 * **workspace.at('ref')**. returns a *new* Workspace with the same path and new ref.
 
 ```typescript
-workspace = new Fadroma.LocalWorkspace(project)
-deepEqual(workspace.at('my-branch'), new Fadroma.LocalWorkspace(project, 'my-branch'))
+import { HEAD } from '.'
+workspace = new LocalWorkspace(project)
+deepEqual(workspace.ref, HEAD)
+deepEqual(workspace.at('my-branch').ref, 'my-branch')
 ```
 
 * If the `.git` directory (represented as **workspace.gitDir**) exists, this allows
@@ -30,7 +33,8 @@ deepEqual(workspace.at('my-branch'), new Fadroma.LocalWorkspace(project, 'my-bra
   **workspace.ref**), instead of building from the working tree.
 
 ```typescript
-assert(workspace.gitDir instanceof Fadroma.DotGit)
+import { DotGit } from '.'
+assert(workspace.gitDir instanceof DotGit)
 ```
 
 A **Source** object points to a crate in a **Workspace**.
@@ -44,8 +48,9 @@ let source: Fadroma.Source
 * Use **workspace.crates(['crate-1', 'crate-2'])** to get multiple crates.
 
 ```typescript
+import { LocalSource } from '.'
 source = workspace.crate('crate-1')
-ok(source instanceof Fadroma.LocalSource)
+ok(source instanceof LocalSource)
 deepEqual(workspace.crates(['crate-1', 'crate-2'])[0], source)
 ```
 
@@ -73,12 +78,16 @@ of **Template**:
     * **builder.dockerfile** is a path to a Dockerfile to build **builder.image** if it can't be pulled.
 
 ```typescript
+import { getBuilder } from '.'
+builder = getBuilder()
+
+import { DockerBuilder } from '.'
+ok(builder instanceof DockerBuilder)
+equal(builder.image.name, DockerBuilder.image)
+equal(builder.dockerfile, DockerBuilder.dockerfile)
+
 import * as Dokeres from '@hackbg/dokeres'
-builder = Fadroma.getBuilder()
-ok(builder instanceof Fadroma.DockerBuilder)
 ok(builder.docker instanceof Dokeres.Engine)
-equal(builder.image.name, Fadroma.DockerBuilder.image)
-equal(builder.dockerfile, Fadroma.DockerBuilder.dockerfile)
 ```
 
 * **RawBuilder** (enabled by `FADROMA_BUILD_RAW=1`) runs builds in host environment.
@@ -86,20 +95,20 @@ equal(builder.dockerfile, Fadroma.DockerBuilder.dockerfile)
   * By default, the interpreter is the same version of Node that is running Fadroma.
 
 ```typescript
-builder = Fadroma.getBuilder({ buildRaw: true })
-ok(builder instanceof Fadroma.RawBuilder)
+import { RawBuilder } from '.'
+ok(getBuilder({ buildRaw: true }) instanceof RawBuilder)
 ```
 
 * Let's create a DockerBuilder and a RawBuilder with mocked values and try them out:
 
 ```typescript
 const builders = [
-  Fadroma.getBuilder({
+  getBuilder({
     docker:     Dokeres.Engine.mock(),
     dockerfile: '/path/to/a/Dockerfile',
     image:      'my-custom/build-image:version'
   }),
-  Fadroma.getBuilder({
+  getBuilder({
     buildRaw: true
   })
 ]
@@ -115,11 +124,13 @@ builders[1].runtime = String(execSync('which true')).trim()
 * Building the same contract with each builder:
 
 ```typescript
+let template: Fadroma.Template
+const artifact: URL = new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm')
 for (const builder of builders) {
-  artifact = await builder.build(source)
-  deepEqual(artifact.url,  new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'))
-  equal(artifact.source,   source)
-  equal(artifact.codeHash, 'sha256')
+  template = await builder.build(source)
+  deepEqual(template.artifact, artifact)
+  equal(template.crate,    source.crate)
+  equal(template.codeHash, 'sha256')
 }
 ```
 
@@ -129,11 +140,11 @@ for (const builder of builders) {
 for (const builder of builders) {
   const sources = [source, workspace.crate('crate-2')]
   deepEqual(await builder.buildMany(sources), [
-    new Template(sources[0], {
+    new Fadroma.Template(sources[0], {
       artifact: new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'),
       codeHash: 'sha256'
     }),
-    new Template(sources[1], {
+    new Fadroma.Template(sources[1], {
       artifact: new URL('file:///path/to/project/artifacts/crate-2@HEAD.wasm'),
       codeHash: 'sha256'
     })
@@ -147,7 +158,7 @@ for (const builder of builders) {
   for a corresponding pre-existing build and reuses it if present.
 
 ```typescript
-equal(typeof Fadroma.getBuilder().caching, 'boolean')
+equal(typeof getBuilder().caching, 'boolean')
 ```
 
 ## Some mock builders
@@ -162,15 +173,11 @@ builder = new class TestBuilder1 extends Fadroma.Builder {
 
 console.info('build one')
 source   = {}
-artifact = await builder.build(source)
-assert(artifact.source === source, source)
+template = await builder.build(source)
 
 console.info('build many')
-let sources = [{}, {}, {}]
-let artifacts = await builder.buildMany(sources)
-assert(artifacts[0].source === sources[0])
-assert(artifacts[1].source === sources[1])
-assert(artifacts[2].source === sources[2])
+let sources   = [{}, {}, {}]
+let templates = await builder.buildMany(sources)
 
 builder = new class TestBuilder2 extends Fadroma.Builder {
   async build (source, args) { return { built: true, source, args } }
@@ -186,7 +193,7 @@ deepEqual(await builder.buildMany([source1, source2], args), [
 
 ## Build caching
 
-The `CachingBuilder` abstract class makes sure that,
+The `LocalBuilder` abstract class makes sure that,
 if a compiled artifact for the requested build
 already exists in the project's `artifacts` directory,
 the build is skipped.
@@ -194,12 +201,11 @@ the build is skipped.
 Set the `FADROMA_REBUILD` environment variable to bypass this behavior.
 
 ```typescript
-import { CachingBuilder } from '.'
-builder = new class TestCachingBuilder extends Fadroma.CachingBuilder {
+import { LocalBuilder } from '.'
+builder = new class TestLocalBuilder extends LocalBuilder {
   async build (source) { return {} }
 }
-workspace = { path: Testing.here, ref: 'HEAD' }
-await assert.throws(()=>builder.prebuild({}))
+//await assert.throws(()=>builder.prebuild({}))
 equal(builder.prebuild('', 'empty'), null)
 ```
 
@@ -212,9 +218,10 @@ builds may pull compile-time dependencies from the network).
 Build tasks run in the following context:
 
 ```typescript
-const buildContext: Fadroma.BuildContext = Fadroma.getBuildContext({})
+import { BuildContext } from '.'
+const buildContext: BuildContext = new BuildContext()
 ok(buildContext.builder   instanceof Fadroma.Builder)
-ok(buildContext.workspace instanceof Fadroma.Workspace)
+ok(buildContext.workspace instanceof LocalWorkspace)
 ok(buildContext.getSource instanceof Function)
 ok(buildContext.build     instanceof Function)
 ok(buildContext.buildMany instanceof Function)
@@ -223,7 +230,8 @@ ok(buildContext.buildMany instanceof Function)
 And can be defined and invoked like this:
 
 ```typescript
-const buildTask: Fadroma.BuildTask = await new Fadroma.BuildTask(buildContext, () => {
+import { BuildTask } from '.'
+const buildTask: BuildTask = await new BuildTask(buildContext, () => {
   // ...
 })
 ```
@@ -231,7 +239,7 @@ const buildTask: Fadroma.BuildTask = await new Fadroma.BuildTask(buildContext, (
 Or like this:
 
 ```typescript
-class MyBuildTask extends Fadroma.BuildTask {
+class MyBuildTask extends BuildTask {
   constructor (context) {
     super(context, () => {
       // ...
@@ -246,5 +254,11 @@ await new MyBuildTask(buildContext)
 WIP: Convert all status outputs from build module to semantic logs.
 
 ```typescript
-for (const event of Object.values(Fadroma.BuildLogger({ info: () => {} })) event([],[])
+import { BuildConsole } from '.'
+const log = new BuildConsole({ info: () => {} })
+log.buildingFromCargoToml('foo')
+log.buildingFromBuildScript('foo')
+log.buildingFromWorkspace('foo')
+log.buildingOne(workspace.crate('foo'))
+log.buildingMany([workspace.crate('foo'), workspace.crate('bar')])
 ```
