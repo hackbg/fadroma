@@ -7,17 +7,17 @@
 * TODO use `fetch` instead of Node FS API
 
 ```typescript
-import { Console, bold }    from '@hackbg/konzola'
-import $                    from '@hackbg/kabinet'
-import { resolve, dirname } from 'path'
-import { fileURLToPath }    from 'url'
+import { CustomConsole, bold } from '@hackbg/konzola'
+import $                      from '@hackbg/kabinet'
+import { resolve, dirname }   from 'path'
+import { fileURLToPath }      from 'url'
 ```
 
 ```typescript
 export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
 export const fixture   = x => resolve(here, 'fixtures', x)
-export const console   = Console('Fadroma Testing')
+export const log       = new CustomConsole(console, 'Fadroma Testing')
 ```
 
 ### Example mnemonics
@@ -79,7 +79,7 @@ import { randomHex } from '@hackbg/formati'
 export async function withMockAPIEndpoint (cb) {
   const endpoint = await mockAPIEndpoint()
   try       { await Promise.resolve(cb(endpoint)) }
-  catch (e) { console.warn(e) throw e }
+  catch (e) { log.warn(e) throw e }
   finally   { endpoint.close() }
 }
 
@@ -90,7 +90,7 @@ export async function mockAPIEndpoint (port) {
   const app = new Express()
   app.use(bodyParser.json())
   /*app.use((req, res, next)=>{
-    console.debug(`${req.method} ${req.url}`)
+    log.debug(`${req.method} ${req.url}`)
     next()
   })*/
   const respond = (fn) => (req, res, next) => Promise.resolve(fn(req.params, req.body))
@@ -215,13 +215,13 @@ export async function mockAPIEndpoint (port) {
     }
     for (const {type, value} of msg) {
       const mockHandler = mockHandlers[type]
-      if (mockHandler) { mockHandler(value) } else { console.warn(type, value) }
+      if (mockHandler) { mockHandler(value) } else { log.warn(type, value) }
     }
     return { txhash }
   }))
   app.get('/txs/:txhash', respond(({txhash})=>{
     const response = state.txs[txhash]
-    console.debug('response', response)
+    log.debug('response', response)
     if (response) { return response } else { throw 404 }
   }))
   app.get('/wasm/code/:id/hash', respond(()=>({
@@ -247,7 +247,7 @@ export async function mockAPIEndpoint (port) {
     port,
     state,
     close () {
-      //console.trace(`Closing mock Amino endpoint:`, bold(url))
+      //log.trace(`Closing mock Amino endpoint:`, bold(url))
       clearInterval(blockIncrement)
       server.close()
     }
@@ -265,21 +265,21 @@ async function echoQuery ({query}) {
     const encrypted = query
     const nonce = encrypted.slice(0, 32)
     const step1 = fromHex(responseData.result.smart)
-    console.debug(1,{step1_fromHex:step1})
+    log.debug(1,{step1_fromHex:step1})
     const step2 = await this.enigmautils.decrypt(step1, nonce)
-    console.debug(2,{step2_decrypt:step2})
+    log.debug(2,{step2_decrypt:step2})
     const step3 = fromUtf8(step2)
-    console.debug(3,{step3_fromutf8:step3})
+    log.debug(3,{step3_fromutf8:step3})
     query = query2
     */
-    console.log(1, query);           query = fromHex(query)
-    console.log(2, query.toString());query = fromUtf8(query)
-    console.log(3, query.toString());query = fromBase64(query)
-    console.log(4, query.toString());query = query.slice(64)
-    console.log(5, query.toString());query = toBase64(query)
-    console.log(6, query.toString());return { result: { smart: query } }
+    log.log(1, query);           query = fromHex(query)
+    log.log(2, query.toString());query = fromUtf8(query)
+    log.log(3, query.toString());query = fromBase64(query)
+    log.log(4, query.toString());query = query.slice(64)
+    log.log(5, query.toString());query = toBase64(query)
+    log.log(6, query.toString());return { result: { smart: query } }
   } catch (e) {
-    console.error(e)
+    log.error(e)
   }
 }
 ```

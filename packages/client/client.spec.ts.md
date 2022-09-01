@@ -233,32 +233,29 @@ equal(new Template(url).artifact, url)
 ```typescript
 import { Uploader } from '.'
 let uploader: Uploader
-agent    = new (class TestAgent extends Agent {
+
+agent = new (class TestAgent extends Agent {
   instantiate (source: Template): Promise<Client> {
     return new Client(source)
   }
 })({ id: 'chain' })
+
 uploader = new (class TestUploader extends Uploader {
   upload (template: Template): Promise<Template> {
     return new Template(template)
   }
 })(agent)
+
 ```
 
 ### Deploying a smart contract
 
 ```typescript
-ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).deploy())
-
-ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy({
-  init: 'arg'
-}))
-ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy(()=>({
-  init: 'arg'
-})))
-ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy(async ()=>({
-  init: 'arg'
-})))
+const options = { crate: 'empty', agent, builder, uploader, deployment: { get () {} } }
+ok(await new Client('Name', options).deploy())
+ok(await new Client('Name', options).getOrDeploy({ init: 'arg' }))
+ok(await new Client('Name', options).getOrDeploy(()=>({ init: 'arg' })))
+ok(await new Client('Name', options).getOrDeploy(async ()=>({ init: 'arg' })))
 ```
 
 ### Connecting to a smart contract
@@ -267,11 +264,10 @@ The `Client` class allows you to transact with a specific smart contract
 deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agent.spec.ts.md).
 
 ```typescript
-ok(await new Client('Name').get())
-ok(await new Client('Name').getOr(()=>{}))
+throws(()=>new Client('Name').get())
+ok(await new Client('Name').getOr(()=>true))
 // get a contract client from the agent
-contract = agent.getClient()
-ok(contract)
+ok(agent.getClient(Client))
 ```
 
 ### `ClientError`: contract error conditions
@@ -289,8 +285,10 @@ for (const kind of Object.keys(ClientError)) {
 
 ```typescript
 import { Contracts } from '.'
-ok(new Contracts(Contract, { creator: {}, deployment: {} }))
-ok(await new Contracts(Contract, { creator: {}, deployment: {} }).deployMany())
+
+ok(new Contracts()) // empty
+
+ok(await new Contracts([], { Client, builder, uploader }).deployMany('crate@ref', [], agent))
 ```
 
 ## `Fee`: Specifying per-transaction gas fees
