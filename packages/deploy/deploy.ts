@@ -23,9 +23,17 @@ import * as Konfizi from '@hackbg/konfizi'
 import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
-import * as Fadroma from '@fadroma/client'
 import * as Build   from '@fadroma/build'
 import * as Connect from '@fadroma/connect'
+import {
+  Chain, Agent,
+  Uploader,
+  Template, Templates, NewTemplate, IntoTemplate,
+  Client, NewClient, Contracts,
+  Deployment, DeployArgs,
+  Label, Message,
+  SparseArray
+} from '@fadroma/client'
 
 import { basename, resolve, dirname, relative, extname } from 'path'
 import * as FS from 'fs'
@@ -47,14 +55,13 @@ export class DeployConfig extends Konfizi.EnvConfig {
 export class DeployContext extends Komandi.Context {
 
   constructor (
-    config:          DeployConfig,
-    private connect: Connect.ConnectContext,
-    private build?:  Build.BuildContext
+    config?:          DeployConfig,
+    private connect?: Connect.ConnectContext,
+    private build?:   Build.BuildContext
   ) {
     super()
-
+    // Populate the config
     this.config = config ?? new DeployConfig(this.env, this.cwd)
-
     // Make sure we're operating in a deployment
     if (!this.deployment) {
       console.warn('No active deployment. Most commands will fail.')
@@ -62,36 +69,35 @@ export class DeployContext extends Komandi.Context {
       console.warn('or select a deployment using `fadroma-deploy select`')
       console.warn('among the ones listed by `fadroma-deploy list`')
     }
-
     // Make sure we have an operating identitiy
-    if (!this.creator) {
+    if (!this.agent) {
       throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
     }
-
+    // Populate the uploader
     this.uploader = FSUploader.fromConfig(this.agent!, build?.config.project)
-
   }
 
-  config:      DeployConfig
+  config: DeployConfig
 
-  get chain (): Fadroma.Chain|undefined {
+  log = new DeployConsole(console, 'Fadroma.DeployTask')
+
+  get chain (): Chain|undefined {
     return this.connect?.chain
   }
 
-  get agent (): Fadroma.Agent|undefined {
+  /** Agent that will instantiate the templates. */
+  get agent (): Agent|undefined {
     return this.connect?.agent
   }
 
   /** Knows how to upload contracts to a blockchain. */
-  uploader:    Fadroma.Uploader
+  uploader:    Uploader
 
   /** Specify a template to upload or use. */
-  template = (...args: ConstructorParameters<Fadroma.NewTemplate>): Fadroma.Template =>
-    new Fadroma.Template(...args)
+  template = (...args: ConstructorParameters<NewTemplate>): Template => new Template(...args)
 
   /** Specify multiple templates to upload or use. */
-  templates = (specifiers: Fadroma.IntoTemplate[]): Fadroma.Templates =>
-    new Fadroma.Templates(specifiers)
+  templates = (specifiers: IntoTemplate[]): Templates => new Templates(specifiers)
 
   /** All available deployments for the current chain. */
   deployments: Deployments|null = null
@@ -99,20 +105,12 @@ export class DeployContext extends Komandi.Context {
   /** Currently selected deployment. */
   deployment:  Deployment|null  = this.deployments?.active || null
 
-  /** Agent that will instantiate the templates. */
-  creator:     Fadroma.Agent
-
   /** Specify a contract to deploy or operate. */
-  contract = <C extends Fadroma.Contract> (
-    ...args: ConstructorParameters<Fadroma.NewContract>
-  ): C =>
-    new Fadroma.Contract(...args) as C
+  contract = <C extends Client> (...args: ConstructorParameters<NewClient<C>>): C =>
+    new Client(...args) as C
 
   /** Specify multiple contracts of the same kind. */
-  contracts = <C extends Fadroma.Client> (
-    Client?: Fadroma.NewClient<C>
-  ): Fadroma.Contracts<C> =>
-    new Fadroma.Contracts(Client) as Fadroma.Contracts<C>
+  contracts = <C extends Client> (Client?: NewClient<C>): Contracts<C> => new Contracts(Client)
 
 }
 
@@ -127,7 +125,7 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
 
 /// # Deploy console
 
-export class DeployConsole extends Konzola.CustomConsole {
+export class DeployConsole extends Komandi.CommandsConsole {
 
   name = 'Fadroma Deploy'
 
@@ -162,7 +160,7 @@ export class DeployConsole extends Konzola.CustomConsole {
     }
   }
 
-  deployFailed (e: Error, template: Fadroma.Template, name: Fadroma.Label, msg: Fadroma.Message) {
+  deployFailed (e: Error, template: Template, name: Label, msg: Message) {
     this.error()
     this.error(`  Deploy of ${bold(name)} failed:`)
     this.error(`    ${e.message}`)
@@ -173,7 +171,7 @@ export class DeployConsole extends Konzola.CustomConsole {
     this.error()
   }
 
-  deployManyFailed (e: Error, template: Fadroma.Template, contracts: Fadroma.DeployArgs[]) {
+  deployManyFailed (e: Error, template: Template, contracts: DeployArgs[]) {
     this.error()
     this.error(`  Deploy of multiple contracts failed:`)
     this.error(`    ${e.message}`)
@@ -186,7 +184,7 @@ export class DeployConsole extends Konzola.CustomConsole {
     this.error()
   }
 
-  deployFailedTemplate (template?: Fadroma.Template) {
+  deployFailedTemplate (template?: Template) {
     this.error()
     if (template) {
       this.error(`  Template:   `)
@@ -200,6 +198,8 @@ export class DeployConsole extends Konzola.CustomConsole {
 
 }
 
+const bold = Konzola.bold
+
 /// # Deploy commands
 
 /** Command runner. Instantiate one in your script then use the
@@ -208,9 +208,6 @@ export class DeployConsole extends Konzola.CustomConsole {
 export class DeployCommands extends Komandi.Commands<DeployContext> {
 
   constructor (name: string = 'deploy', before = [], after = []) {
-    // Deploy commands are like regular commands but
-    // they already have a whole lot of deploy handles
-    // pre-populated in the context.
     super(name, before, after)
     this.command('list',    'print a list of all deployments', DeployCommands.list)
     this.command('select',  'select a new active deployment',  DeployCommands.select)
@@ -220,12 +217,18 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
   }
 
-  inCurrentDeployment (...[name, info, ...steps]: Parameters<typeof this.command>): this {
-    return this.command(name, `(in current deployment) ${info}`, DeployCommands.get, ...steps)
+  /** Defines a command that creates and selects a new deployment before running. */
+  inNewDeployment (
+    ...[name, info, ...steps]: Parameters<typeof this.command>
+  ): this {
+    return this.command(name, `(in new deployment) ${info}`, DeployCommands.create, ...steps)
   }
 
-  inNewDeployment (...[name, info, ...steps]: Parameters<typeof this.command>): this {
-    return this.command(name, `(in new deployment) ${info}`, DeployCommands.create, ...steps)
+  /** Defines a command that runs in the currently selected deployment. */
+  inSelectedDeployment (
+    ...[name, info, ...steps]: Parameters<typeof this.command>
+  ): this {
+    return this.command(name, `(in current deployment) ${info}`, DeployCommands.get, ...steps)
   }
 
   static expectEnabled = (context: DeployContext): Deployments => {
@@ -238,12 +241,15 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
   }
 
   /** Add the currently active deployment to the command context. */
-  static get = async (context: DeployContext): Promise<Partial<DeployContext>> => {
+  static get = async (context: DeployContext): Promise<DeployContext> => {
     const deployments = this.expectEnabled(context)
     if (!deployments.active) {
       console.info('No selected deployment on chain:', bold(context.chain?.id??'(unspecifier)'))
     }
-    return { deployment: deployments.active }
+    return {
+      ...context,
+      deployment: deployments.active
+    }
   }
 
   /** Create a new deployment and add it to the command context. */
@@ -252,16 +258,20 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     const [ prefix = context.timestamp ] = context.args
     await deployments?.create(prefix)
     await deployments?.select(prefix)
-    return await DeployCommands.get(context)
+    return {
+      ...context,
+      ...await this.get(context)
+    }
   }
 
   /** Add either the active deployment, or a newly created one, to the command context. */
   static getOrCreate = async (context: DeployContext): Promise<DeployContext> => {
     const deployments = this.expectEnabled(context)
-    if (deployments?.active) {
-      return DeployCommands.get(context)
-    } else {
-      return await DeployCommands.create(context)
+    return {
+      ...context,
+      ...await deployments?.active
+        ? DeployCommands.get(context)
+        : DeployCommands.create(context)
     }
   }
 
@@ -272,14 +282,16 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     const list = deployments.list()
     if (list.length > 0) {
       console.info(`Deployments on chain ${bold(chain.id)}:`)
-      for (let deployment of list) {
-        if (deployment === deployments.KEY) continue
-        const count = Object.keys(deployments.get(deployment)!.receipts).length
-        if (deployments.active && deployments.active.prefix === deployment) {
-          deployment = `${bold(deployment)} (selected)`
+      for (let name of list) {
+        if (name === deployments.KEY) continue
+        const deployment = deployments.get(name)!
+        const count = Object.keys(deployment.state).length
+        let info
+        if (deployments.active && deployments.active.prefix === name) {
+          info = `${bold(name)} (selected)`
         }
-        deployment = `${deployment} (${count} contracts)`
-        console.info(` `, deployment)
+        info = `${deployment} (${deployment.count} contracts)`
+        console.info(` `, info)
       }
     } else {
       console.info(`No deployments on chain`, bold(chain.id))
@@ -313,7 +325,7 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     const deployments = this.expectEnabled(context)
     const deployment  = id ? deployments.get(id) : deployments.active
     if (deployment) {
-      this.log.deployment(deployment)
+      this.log.deployment({ deployment })
     } else {
       console.info('No selected deployment on chain:', bold(context.chain?.id??'(no chain)'))
     }
@@ -328,11 +340,13 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
 /** Uploads contracts from the local filesystem.
   * If provided with an Uploads directory containing upload receipts,
   * allows for uploaded contracts to be reused. */
-export class FSUploader extends Fadroma.Uploader {
+export class FSUploader extends Uploader {
+
+  log = new DeployConsole(console, 'Fadroma.FSUploader')
 
   /** This defines the default path for the upload receipt cache. */
   static fromConfig (
-    agent:        Fadroma.Agent,
+    agent:        Agent,
     projectRoot?: string|Kabinet.Path|false,
     cacheRoot?:   string|Kabinet.Path|false
   ) {
@@ -344,7 +358,7 @@ export class FSUploader extends Fadroma.Uploader {
 
   constructor (
     /** Agent that will sign the upload transactions(s). */
-    readonly agent:  Fadroma.Agent,
+    readonly agent:  Agent,
     /** If present, upload receipts are stored in it and reused to save reuploads. */
     readonly cache?: Uploads
   ) {
@@ -352,7 +366,7 @@ export class FSUploader extends Fadroma.Uploader {
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (template: Fadroma.Template): Promise<Fadroma.Template> {
+  async upload (template: Template): Promise<Template> {
     let receipt: UploadReceipt|null = null
     if (this.cache) {
       const name = this.getUploadReceiptName(template)
@@ -371,109 +385,137 @@ export class FSUploader extends Fadroma.Uploader {
     return template
   }
 
-  getUploadReceiptName (template: Fadroma.Template): string {
+  getUploadReceiptName (template: Template): string {
     return `${$(template.artifact!).name}.json`
   }
 
-  /** Upload multiple Artifacts from the filesystem.
-    * TODO: Optionally bundle them (where is max size defined?) */
-  async uploadMany (inputs: Fadroma.Template[]): Promise<Fadroma.Template[]> {
+  getUploadReceiptPath (template: Template): string {
+    const receiptName = `${this.getUploadReceiptName(template)}`
+    const receiptPath = this.cache!.resolve(receiptName)
+    return receiptPath
+  }
 
-    const outputs: Fadroma.Template[] = []
+  /** Upload multiple templates from the filesystem.
+    * TODO: Optionally bundle multiple templates in one transaction,
+    * if they add up to less than the max API request size (which is defined... where?) */
+  async uploadMany (inputs: SparseArray<Template>): Promise<SparseArray<Template>> {
 
-    if (this.cache) {
-      const artifactsToUpload: Fadroma.Template[] = []
-      for (const i in inputs) {
-        const input = inputs[i]
-        if (!input.codeHash) {
-          const artifact = $(input.artifact!)
-          console.warn('No code hash in artifact', bold(artifact.shortPath))
-          try {
-            const codeHash = Build.codeHashForPath($(input.artifact!).path)
-            Object.assign(artifact, { codeHash })
-            console.warn('Computed code hash:', bold(input.codeHash!))
-          } catch (e) {
-            console.warn('Could not compute code hash:', e.message)
-          }
-        }
-        const blobName     = $(input.artifact!).name
-        const receiptPath  = this.getUploadReceiptPath(input)
-        const relativePath = $(receiptPath).shortPath
-        if (!$(receiptPath).exists()) {
-          artifactsToUpload[i] = input
-          continue
-        }
-        const receiptData = $(receiptPath).as(UploadReceipt).load()
-        const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
-        if (!receiptCodeHash) {
-          //console.info(bold(`No code hash:`), `${relativePath}; reuploading...`)
-          artifactsToUpload[i] = input
-          continue
-        }
-        if (receiptCodeHash !== input.codeHash) {
-          console.warn(
-            bold(`Different code hash:`), `${relativePath}; reuploading...`
-          )
-          artifactsToUpload[i] = input
-          continue
-        }
-        //console.info('✅', 'Exists, not reuploading (same code hash):', bold(relativePath))
-        outputs[i] = new Fadroma.Template(input, {
-          codeId:   String(receiptData.codeId),
-          uploadTx: receiptData.transactionHash as string
-        })
-      }
-      if (artifactsToUpload.length > 0) {
-        const uploaded = await super.uploadMany(artifactsToUpload)
-        for (const i in uploaded) {
-          if (!uploaded[i]) continue // skip empty ones, preserving index
-          const receiptName = this.getUploadReceiptName(artifactsToUpload[i])
-          $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i])
-          outputs[i] = uploaded[i]
-        }
-      } else {
-        //console.info('No artifacts need to be uploaded.')
+    if (!this.cache) return this.uploadManySansCache(inputs)
+
+    const outputs:  Template[] = []
+    const toUpload: Template[] = []
+
+    for (const i in inputs) {
+
+      // Skip empty positions
+      let input = inputs[i]
+      if (!input) {
+        continue
       }
 
-      return outputs
+      // Make sure local code hash is available to compare against the result of the upload
+      // If these two don't match, the local contract was rebuilt and needs to be reuploaded.
+      // If they still don't match after the reupload, there's a problem.
+      input = this.ensureLocalCodeHash(input)
 
+      // If there's no local upload receipt, time to reupload.
+      const blobName     = $(input.artifact!).name
+      const receiptPath  = this.getUploadReceiptPath(input)
+      const relativePath = $(receiptPath).shortPath
+      if (!$(receiptPath).exists()) {
+        console.warn(bold(`No receipt:`), `${relativePath}; uploading...`)
+        toUpload[i] = input
+        continue
+      }
+
+      // If there's a local upload receipt and it doesn't contain a code hash, time to reupload.
+      const receiptData = $(receiptPath).as(UploadReceipt).load()
+      const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
+      if (!receiptCodeHash) {
+        console.warn(bold(`No code hash in receipt:`), `${relativePath}; reuploading...`)
+        toUpload[i] = input
+        continue
+      }
+
+      // If there's a local upload receipt and it contains a different code hash
+      // from the one computed earlier, time to reupload.
+      if (receiptCodeHash !== input.codeHash) {
+        console.warn(bold(`Different code hash from receipt:`), `${relativePath}; reuploading...`)
+        toUpload[i] = input
+        continue
+      }
+
+      // Otherwise reuse the code ID from the receipt.
+      outputs[i] = new Template(input, {
+        codeId:   String(receiptData.codeId),
+        uploadTx: receiptData.transactionHash as string
+      })
+
+    }
+
+    // If any contracts are marked for uploading:
+    // - upload them and save the receipts
+    // - update outputs with data from upload results (containing new code ids)
+    if (toUpload.length > 0) {
+      const uploaded = await this.uploadManySansCache(toUpload)
+      for (const i in uploaded) {
+        if (!uploaded[i]) continue // skip empty ones, preserving index
+        const receiptName = this.getUploadReceiptName(toUpload[i])
+        $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i])
+        outputs[i] = uploaded[i] as Template
+      }
     } else {
-
-      for (const i in inputs) {
-        // support "holes" in artifact array
-        // (used by caching subclass)
-        const input = inputs[i]
-        let output
-        if (input.artifact) {
-          const path = $(input.artifact!)
-          const data = path.as(Kabinet.BinaryFile).load()
-          console.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
-          output = input.where(await this.agent.upload(data))
-          if (input.codeHash !== output.codeHash) {
-            // Print a warning if the code hash returned by the upload
-            // doesn't match the one specified in the Artifact.
-            // This means the Artifact is wrong, and may become
-            // a hard error in the future. */
-            console.warn(
-              `Code hash mismatch from upload in TX ${output.uploadTx}:\n`+
-              `   Expected ${input.codeHash} (from ${$(input.artifact!).shortPath})\n`+
-              `   Got      ${output.codeHash} (from code id ${output.codeId} on ${output.chainId})`
-            )
-          }
-        }
-        outputs[i] = output
-      }
-
+      this.log.info('No artifacts were uploaded.')
     }
 
     return outputs
 
   }
 
-  getUploadReceiptPath (template: Fadroma.Template): string {
-    const receiptName = `${this.getUploadReceiptName(template)}`
-    const receiptPath = this.cache!.resolve(receiptName)
-    return receiptPath
+  /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
+  async uploadManySansCache (inputs: SparseArray<Template>): Promise<SparseArray<Template>> {
+    const outputs: SparseArray<Template> = []
+    for (const i in inputs) {
+      const input = inputs[i]
+      if (input?.artifact) {
+        const path = $(input.artifact!)
+        const data = path.as(Kabinet.BinaryFile).load()
+        this.log.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
+        const output = new Template({ ...input, ...await this.agent.upload(data) })
+        this.checkLocalCodeHash(input, output)
+        outputs[i] = output
+      } else {
+        outputs[i] = input
+      }
+    }
+    return outputs
+  }
+
+  private ensureLocalCodeHash (input: Template): Template {
+    if (!input.codeHash) {
+      const artifact = $(input.artifact!)
+      console.warn('No code hash in artifact', bold(artifact.shortPath))
+      try {
+        const codeHash = Build.codeHashForPath($(input.artifact!).path)
+        console.warn('Computed code hash:', bold(input.codeHash!))
+        input = new Template({ ...input,  codeHash })
+      } catch (e) {
+        console.warn('Could not compute code hash:', e.message)
+      }
+    }
+    return input
+  }
+
+  /** Panic if the code hash returned by the upload
+    * doesn't match the one specified in the Template. */
+  private checkLocalCodeHash (input: Template, output: Template) {
+    if (input.codeHash !== output.codeHash) {
+      throw new Error(`
+        The upload transaction ${output.uploadTx}
+        returned code hash ${output.codeHash} (of code id ${output.codeId})
+        instead of the expected ${input.codeHash} (of artifact ${input.artifact})
+      `.trim().split('\n').map(x=>x.trim()).join(' '))
+    }
   }
 
 }
@@ -500,22 +542,22 @@ export class UploadReceipt extends Kabinet.JSONFile<{
   artifact?:          any
 }> {
 
-  toTemplate (defaultChainId?: string): Fadroma.Template {
+  toTemplate (defaultChainId?: string): Template {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
-    return new Fadroma.Template({ artifact, codeHash, chainId, codeId, uploadTx })
+    return new Template({ artifact, codeHash, chainId, codeId, uploadTx })
   }
 
 }
 
 /// # Deploy receipts
 
-export class YAMLDeployment extends Fadroma.Deployment {
+export class YAMLDeployment extends Deployment {
 
   constructor (
     path:   string,
-    agent?: Fadroma.Agent,
+    agent?: Agent,
   ) {
     const file = $(path).as(Kabinet.YAMLFile)
     super({}, '', agent)
@@ -567,21 +609,23 @@ export class YAMLDeployment extends Fadroma.Deployment {
     return this
   }
 
-  set (name: string, data: Partial<Fadroma.Client> & any): this {
+  set (name: string, data: Partial<Client> & any): this {
     super.set(name, data)
     return this.save()
   }
-  setMany (data: Record<string, Fadroma.Client>): this {
+
+  setMany (data: Record<string, Client>): this {
     super.setMany(data)
     return this.save()
   }
+
 }
 
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Client[]> {
+export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
 
   /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
     * and convert it to a Deployments instance. See: @hackbg/kabinet */
@@ -646,183 +690,3 @@ export class Deployments extends Kabinet.YAMLDirectory<Fadroma.Client[]> {
 
 }
 
-/// # DEPLOYMENT / DEPLOYMENT RECEIPT /////////////////////////////////////////////////////////////
-/** An individual deployment, represented as a multi-document YAML file.
-  * Each entry in the file is a Receipt, representing a deployed contract.
-  * You can deploy contracts with a Deployment using **deployment.init...**
-  * and get Clients for interacting with existing contracts using **deployment.get...**. */
-export class Deployment {
-
-  constructor (
-    /** Path to the file containing the receipts. */
-    public readonly path?:  string,
-    /** The default identity to use when interacting with this deployment. */
-    public readonly agent?: Fadroma.Agent,
-  ) {
-    if (this.path) this.load()
-  }
-
-  /// ## BUSINESS END OF DEPLOYMENT ///////////////////////////////////////////////////////////////
-
-  /** This is the unique identifier of the deployment.
-    * It's used as a prefix to contract labels
-    * (which need to be globally unique). */
-  prefix: string = Konzola.timestamp()
-
-  log = new DeployConsole(console, 'this.prefix')
-
-  /** These are the entries contained by the Deployment.
-    * They correspond to individual contract instances. */
-  receipts: Record<string, Partial<Fadroma.Contract>> = {}
-
-  /** Check if the deployment contains a certain entry. */
-  has (name: string): boolean {
-    return !!this.receipts[name]
-  }
-
-  /** Get the receipt for a contract, containing its address, codeHash, etc. */
-  get (name: string): Partial<Fadroma.Contract>|null {
-    const receipt = this.receipts[name]
-    if (!receipt) return null
-    receipt.name = name
-    return receipt
-  }
-
-  expect (
-    name:    string,
-    message: string = `${name}: no such contract in deployment`
-  ): Partial<Fadroma.Contract> {
-    const receipt = this.get(name)
-    if (receipt) return receipt
-    throw new Error(message)
-  }
-
-  /** Get a handle to the contract with the specified name. */
-  getClient <C extends Fadroma.Client> (
-    name:    string,
-    $Client: Fadroma.NewClient<C> = Fadroma.Client as Fadroma.NewClient<C>,
-    agent:   Fadroma.Agent       = this.agent!,
-  ): C {
-    return new $Client(agent, { ...this.get(name) }) as C
-  }
-
-  /** Chainable. Add multiple to the deployment, replacing existing. */
-  setMany (receipts: Record<string, any>) {
-    for (const [name, receipt] of Object.entries(receipts)) {
-      this.receipts[name] = receipt
-    }
-    return this.save()
-  }
-
-  /** Resolve a path relative to the deployment directory. */
-  resolve (...fragments: Array<string>) {
-    // Expect path to be present
-    if (!this.path) throw new Error('Deployment: no path to resolve by')
-    return resolve(this.path, ...fragments)
-  }
-
-  /** Instantiate one contract and save its receipt to the deployment. */
-  async init (
-    agent:    Fadroma.Agent,
-    template: Fadroma.Template,
-    name:     Fadroma.Label,
-    msg:      Fadroma.Message
-  ): Promise<Fadroma.Contract> {
-    const label = Fadroma.Contract.addPrefix(this.prefix, name)
-    try {
-      const contract = new Fadroma.Contract(template).as(agent).deploy(label, msg)
-      this.set(name, contract)
-      return contract
-    } catch (e) {
-      this.log.deployFailed(e, template, name, msg)
-      throw e
-    }
-  }
-
-  /** Instantiate multiple contracts from the same Template with different parameters. */
-  async initMany (
-    agent:     Fadroma.Agent,
-    template:  Fadroma.Template,
-    contracts: Fadroma.DeployArgs[] = []
-  ): Promise<Fadroma.Contract[]> {
-    // this adds just the template - prefix is added in initVarious
-    try {
-      return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
-    } catch (e) {
-      this.log.deployManyFailed(e, template, contracts)
-      throw e
-    }
-  }
-
-  /** Instantiate multiple contracts from different Templates with different parameters,
-    * and store their receipts in the deployment. */
-  async initVarious (
-    agent:     Fadroma.Agent,
-    contracts: Fadroma.DeployArgsTriple[] = []
-  ): Promise<Fadroma.Contract[]> {
-    contracts =
-      contracts.map(c=>[new Fadroma.Template(c[0]), ...c.slice(1)] as Fadroma.DeployArgsTriple)
-    const instances =
-      await agent.instantiateMany(contracts)
-    for (const instance of Object.values(instances)) {
-      const name = (instance.label as string).slice(this.prefix.length+1)
-      this.receipts[name] = { name, ...instance}
-      this.save()
-    }
-    return instances
-  }
-
-  /// ## CREATING AND LOADING DEPLOYMENT //////////////////////////////////////////////////////////
-
-  /** Load deployment state from YAML file. */
-  load (path = this.path) {
-    // Expect path to be present
-    if (!path) throw new Error('Deployment: no path to load from')
-    // Resolve symbolic links to file
-    while (FS.lstatSync(path).isSymbolicLink()) path = resolve(dirname(path), FS.readlinkSync(path))
-    // Set own prefix from name of file
-    this.prefix = basename(path, extname(path))
-    // Load the receipt data
-    const data = FS.readFileSync(path, 'utf8')
-    const receipts = YAML.loadAll(data) as Fadroma.Contract[]
-    for (const receipt of receipts) {
-      if (!receipt.name) continue
-      const [contractName, _version] = receipt.name.split('+')
-      this.receipts[contractName] = receipt
-    }
-    // TODO: Automatically convert receipts to Client subclasses
-    // by means of an identifier shared between the deploy and client libraries
-  }
-
-  /// ## UPDATING DEPLOYMENT //////////////////////////////////////////////////////////////////////
-
-  /** Chainable. Add entry to deployment, replacing existing receipt. */
-  set (name: string, data: Partial<Fadroma.Contract> & any): this {
-    this.receipts[name] = { name, ...data }
-    return this.save()
-  }
-
-  /** Chainable. Add to deployment, merging into existing receipts. */
-  add (name: string, data: any): this {
-    return this.set(name, { ...this.receipts[name] || {}, ...data })
-  }
-
-  /** Chainable: Serialize deployment state to YAML file. */
-  save (path = this.path): this {
-    // Expect path to be present
-    if (!path) throw new Error('Deployment: no path to save to')
-    // Serialize data to multi-document YAML
-    let output = ''
-    for (let [name, data] of Object.entries(this.receipts)) {
-      output += '---\n'
-      data = { ...data, name: data.name ?? name }
-      output += Kabinet.alignYAML(YAML.dump(data, { noRefs: true }))
-    }
-    // Write the data to disk.
-    FS.writeFileSync(path, output)
-    return this
-  }
-
-}
-
-const bold = Konzola.bold
