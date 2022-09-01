@@ -1,4 +1,5 @@
-import { CustomConsole, CustomError, bold, timestamp } from '@hackbg/konzola'
+import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
+import { Context as CommandContext } from '@hackbg/komandi'
 
 type valof<T> = T[keyof T]
 
@@ -1284,7 +1285,7 @@ export class Deployment {
 
   constructor (
     /** Unique ID of deployment, used as label prefix for deployed contracts. */
-    public prefix: string = timestamp(),
+    public prefix: string = Konzola.timestamp(),
     /** Default agent to use when interacting with this deployment. */
     public readonly agent?: Agent,
     /** Mapping of names to contract instances. */
@@ -1389,6 +1390,34 @@ export class Deployment {
     }
     return instances
   }
+
+}
+
+export class Context extends CommandContext {
+
+  constructor (
+    /** The selected blockhain to connect to. */
+    public chain?: Chain,
+    /** The selected agent to operate as. */
+    public agent?: Agent
+  ) {
+    super()
+  }
+
+  /** True if the chain is a devnet or mocknet */
+  get devMode   (): boolean { return this.chain?.devMode ?? false }
+
+  /** = chain.isMainnet */
+  get isMainnet (): boolean { return this.chain?.isMainnet ?? false }
+
+  /** = chain.isTestnet */
+  get isTestnet (): boolean { return this.chain?.isTestnet ?? false }
+
+  /** = chain.isDevnet */
+  get isDevnet  (): boolean { return this.chain?.isDevnet ?? false }
+
+  /** = chain.isMocknet */
+  get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
 
 }
 
@@ -1747,6 +1776,25 @@ export class ClientConsole extends CustomConsole {
       this.error(`    Code hash:`, bold(template.codeHash||''))
     } else {
       this.error(`  No template was providede.`)
+    }
+  }
+  chainStatus = ({ chain, deployments }: {
+    chain?: Chain,
+    deployments?: { active?: { prefix: string }, list (): string[] }
+  }) => {
+    if (!chain) {
+      this.info('│ No active chain.')
+    } else {
+      this.info('│ Chain type: ', bold(chain.constructor.name))
+      this.info('│ Chain mode: ', bold(chain.mode))
+      this.info('│ Chain ID:   ', bold(chain.id))
+      this.info('│ Chain URL:  ', bold(chain.url.toString()))
+      this.info('│ Deployments:', bold(String(deployments?.list().length)))
+      if (deployments?.active) {
+        this.info('│ Deployment: ', bold(String(deployments?.active?.prefix)))
+      } else {
+        this.info('│ No active deployment.')
+      }
     }
   }
 }

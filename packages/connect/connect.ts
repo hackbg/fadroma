@@ -10,7 +10,7 @@ import { Mocknet }   from '@fadroma/mocknet'
 
 export { Mocknet, ScrtGrpc, ScrtAmino, Devnet }
 
-/** Construct catalog of possible connections. */
+/** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
 Object.assign(Fadroma.Chain.variants as Fadroma.ChainRegistry, {
 
   // Support for Mocknet.
@@ -27,30 +27,6 @@ Object.assign(Fadroma.Chain.variants as Fadroma.ChainRegistry, {
   ScrtAminoDevnet: Devnet.define(ScrtAmino, 'scrt_1.2'),
 
 })
-
-/** Connection and identity configuration from environment variables. */
-export class ConnectConfig extends EnvConfig {
-
-  chains = Fadroma.Chain.variants
-
-  /** Name of chain to use. */
-  chain?: keyof Fadroma.ChainRegistry
-    = this.getString('FADROMA_CHAIN', ()=>
-        process.exit(new ConnectConsole(console, 'Fadroma.ConnectConfig').noName(this.chains)))
-
-  /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  agentName: string
-    = this.getString('FADROMA_AGENT',   ()=>
-      this.getString('SCRT_AGENT_NAME', ()=>
-                       'ADMIN'))
-
-  /** Mnemonic to use for authentication. */
-  agentMnemonic?: string
-    = this.getString('FADROMA_MNEMONIC',    ()=>
-      this.getString('SCRT_AGENT_MNEMONIC', ()=>
-                       undefined))
-
-}
 
 export async function connect (
   /** Select a chain. Defaults to FADROMA_CHAIN */
@@ -87,53 +63,52 @@ export async function connect (
 
 }
 
-/** The known chains. */
-export class ConnectContext extends Komandi.Context {
-
+export class ConnectContext extends Fadroma.Context {
   constructor (
-    config: ConnectConfig,
-    /** The selected blockhain to connect to. */
-    public chain?: Fadroma.Chain,
-    /** The selected agent to operate as. */
-    public agent?: Fadroma.Agent
+    config:  ConnectConfig = new ConnectConfig(),
+    ...args: ConstructorParameters<typeof Fadroma.Context>
   ) {
-    super()
-    this.config = config ?? new ConnectConfig(this.env, this.cwd)
+    super(...args)
+    this.config ??= new ConnectConfig(this.env, this.cwd)
   }
-
   config: ConnectConfig
+}
 
-  /** True if the chain is a devnet or mocknet */
-  get devMode   (): boolean { return this.chain?.devMode ?? false }
+/** Connection and identity configuration from environment variables. */
+export class ConnectConfig extends EnvConfig {
 
-  /** = chain.isMainnet */
-  get isMainnet (): boolean { return this.chain?.isMainnet ?? false }
+  chains = Fadroma.Chain.variants
 
-  /** = chain.isTestnet */
-  get isTestnet (): boolean { return this.chain?.isTestnet ?? false }
+  /** Name of chain to use. */
+  chain?: keyof Fadroma.ChainRegistry
+    = this.getString('FADROMA_CHAIN', ()=>
+        process.exit(new ConnectConsole(console, 'Fadroma.ConnectConfig').noName(this.chains)))
 
-  /** = chain.isDevnet */
-  get isDevnet  (): boolean { return this.chain?.isDevnet ?? false }
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  agentName: string
+    = this.getString('FADROMA_AGENT',   ()=>
+      this.getString('SCRT_AGENT_NAME', ()=>
+                       'ADMIN'))
 
-  /** = chain.isMocknet */
-  get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
+  /** Mnemonic to use for authentication. */
+  agentMnemonic?: string
+    = this.getString('FADROMA_MNEMONIC',    ()=>
+      this.getString('SCRT_AGENT_MNEMONIC', ()=>
+                       undefined))
 
 }
 
 /** Commands for @fadroma/connect cli */
 export default class ConnectCommands extends Komandi.Commands<ConnectContext> {
-
   constructor (name: string = 'connect', before = [], after = []) {
     super(name, before, after)
     this.command('chains', 'print a list of all known chains', this.chains)
   }
-
   chains = async () => {
     const log = new ConnectConsole(console, 'Fadroma.ConnectCommands')
     log.supportedChains()
     log.selectedChain((await connect()).config.chain)
   }
-
 }
 
 export class ConnectConsole extends CustomConsole {
@@ -149,7 +124,7 @@ export class ConnectConsole extends CustomConsole {
   }
 
   noName = (chains: object) => {
-    this.error('Fadroma: pass a known chain name or set FADROMA_CHAIN env var.')
+    this.error('Pass a known chain name or set FADROMA_CHAIN env var.')
     this.supportedChains(chains)
     return 1
   }
