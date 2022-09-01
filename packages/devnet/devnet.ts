@@ -1,8 +1,8 @@
 import $, { JSONFile } from '@hackbg/kabinet'
 import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
-import { EnvConfig }                    from '@hackbg/konfizi'
+import { EnvConfig } from '@hackbg/konfizi'
 import { freePort, waitPort, Endpoint } from '@hackbg/portali'
-import { randomHex }                    from '@hackbg/formati'
+import { randomHex } from '@hackbg/formati'
 
 import * as Kabinet from '@hackbg/kabinet'
 import * as Komandi from '@hackbg/komandi'

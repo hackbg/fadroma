@@ -117,6 +117,7 @@ importers:
 
   packages/deploy:
     specifiers:
+      '@fadroma/build': ^1
       '@fadroma/client': ^5
       '@hackbg/formati': ^3.0.1
       '@hackbg/kabinet': ^3.1.2
@@ -127,6 +128,7 @@ importers:
       dotenv: ^16.0.1
       js-yaml: ^4.1.0
     dependencies:
+      '@fadroma/build': link:../build
       '@fadroma/client': link:../client
       '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/kabinet': link:../../toolbox/kabinet
@@ -935,10 +937,10 @@ packages:
 
   /@types/node/18.7.13:
     resolution: {integrity: sha512-46yIhxSe5xEaJZXWdIBP7GU4HDTG8/eo0qd9atdiL+lFpA03y8KS+lkTN834TWJj5767GbWv4n/P6efyTFt1Dw==}
+    dev: true
 
   /@types/node/18.7.14:
     resolution: {integrity: sha512-6bbDaETVi8oyIARulOE9qF1/Qdi/23z6emrUh0fNJRUmjznqrixD4MpGDdgOFk5Xb0m2H6Xu42JGdvAxaJR/wA==}
-    dev: true
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -2847,7 +2849,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.7.13
+      '@types/node': 18.7.14
       long: 4.0.0
     dev: false
 
