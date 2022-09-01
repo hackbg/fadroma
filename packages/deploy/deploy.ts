@@ -110,8 +110,10 @@ export class DeployContext extends Komandi.Context {
     new Client(...args) as C
 
   /** Specify multiple contracts of the same kind. */
-  contracts = <C extends Client> (Client?: NewClient<C>): Contracts<C> =>
-    new Contracts(Client)
+  contracts = <C extends Client> (
+    $Client: NewClient<C> = Client as unknown as NewClient<C>
+  ): Contracts<C> =>
+    new Contracts([], { Client: $Client }) as Contracts<C>
 
 }
 

@@ -1,4 +1,4 @@
-import { CustomConsole, bold, timestamp } from '@hackbg/konzola'
+import { CustomConsole, CustomError, bold, timestamp } from '@hackbg/konzola'
 
 type valof<T> = T[keyof T]
 
@@ -923,8 +923,10 @@ export class Template extends Source {
   }
 
   /** Deploy multiple contracts from the same template with 1 tx */
-  async deployMany (contracts: DeployArgs[] = [], agent?: Agent): Promise<Client[]> {
-    agent ??= this.creator
+  async deployMany (
+    contracts: DeployArgs[] = [],
+    agent:     Agent|null = this.agent
+  ): Promise<Client[]> {
     if (!agent) throw new ClientError.NoCreator()
     let instances
     try {
@@ -1603,18 +1605,6 @@ export type Duration = number
 
 
 /// # Error types
-
-export class CustomError extends Error {
-  static define (name: string, message: (...args: any)=>string): typeof this {
-    const CustomError = class extends this {
-      constructor (...args: any) {
-        super(message(args))
-      }
-    }
-    Object.defineProperty(CustomError, 'name', { value: `${name}Error` })
-    return CustomError
-  }
-}
 
 export class ClientError extends CustomError {
 

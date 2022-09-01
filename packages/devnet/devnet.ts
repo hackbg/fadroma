@@ -1,8 +1,8 @@
 import $, { JSONFile } from '@hackbg/kabinet'
-import { Console, bold }                               from '@hackbg/konzola'
-import { EnvConfig }                                   from '@hackbg/konfizi'
-import { freePort, waitPort, Endpoint }                from '@hackbg/portali'
-import { randomHex }                                   from '@hackbg/formati'
+import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
+import { EnvConfig }                    from '@hackbg/konfizi'
+import { freePort, waitPort, Endpoint } from '@hackbg/portali'
+import { randomHex }                    from '@hackbg/formati'
 
 import * as Kabinet from '@hackbg/kabinet'
 import * as Komandi from '@hackbg/komandi'
@@ -18,8 +18,8 @@ import { fileURLToPath }                        from 'url'
 //@ts-ignore
 export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource finder
 
-/** Module-specific console. */
-export const console = Console('Fadroma Devnet')
+/** Module-specific log. */
+const log = new CustomConsole(console, 'Fadroma Devnet')
 
 /** Gets devnet settings from environment. */
 export class DevnetConfig extends EnvConfig {
@@ -92,9 +92,9 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
 
   static async reset ({ chain }: { chain: Fadroma.Chain }) {
     if (!chain) {
-      console.info('No active chain.')
+      log.info('No active chain.')
     } else if (!chain.isDevnet || !chain.node) {
-      console.info('This command is only valid for devnets.')
+      log.info('This command is only valid for devnets.')
     } else {
       await chain.node.terminate()
     }
@@ -178,7 +178,7 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
   /** Save the info needed to respawn the node */
   save (extraData = {}) {
     const shortPath = relative(cwd(), this.nodeState.path)
-    //console.info(`Saving devnet node to ${shortPath}`)
+    //log.info(`Saving devnet node to ${shortPath}`)
     const data = { chainId: this.chainId, port: this.port, ...extraData }
     this.nodeState.save(data)
     return this
@@ -188,22 +188,22 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
   async load (): Promise<DevnetState|null> {
     const path = relative(cwd(), this.nodeState.path)
     if (this.stateRoot.exists() && this.nodeState.exists()) {
-      //console.info(bold(`Loading:  `), path)
+      //log.info(bold(`Loading:  `), path)
       try {
         const data = this.nodeState.load()
         const { chainId, port } = data
         if (this.chainId !== chainId) {
-          console.warn(`Loading state of ${chainId} into Devnet with id ${this.chainId}`)
+          log.warn(`Loading state of ${chainId} into Devnet with id ${this.chainId}`)
         }
         this.port = port as number
         return data
       } catch (e) {
-        console.warn(`Failed to load ${path}. Deleting it`)
+        log.warn(`Failed to load ${path}. Deleting it`)
         this.stateRoot.delete()
         throw e
       }
     } else {
-      console.info(`${path} does not exist.`)
+      log.info(`${path} does not exist.`)
       return null
     }
   }
@@ -275,7 +275,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
 
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    console.info('Constructing devnet with', bold('@hackbg/dokeres'))
+    log.info('Constructing devnet with', bold('@hackbg/dokeres'))
     this.identities  ??= this.stateRoot.in('identities').as(Kabinet.JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
@@ -316,7 +316,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
 
   async spawn () {
     // tell the user that we have begun
-    console.info(`Spawning new node...`)
+    log.info(`Spawning new node...`)
     // if no port is specified, use a random port
     if (!this.port) {
       this.port = (await freePort()) as number
@@ -327,12 +327,12 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
       try {
         item.make()
       } catch (e) {
-        console.warn(`Failed to create ${item.path}: ${e.message}`)
+        log.warn(`Failed to create ${item.path}: ${e.message}`)
       }
     }
     // run the container
     const containerName = `${this.chainId}-${this.port}`
-    console.info('Creating and starting devnet container:', bold(containerName))
+    log.info('Creating and starting devnet container:', bold(containerName))
     this.container = await this.image.run(
       containerName, this.spawnOptions, ['node', this.initScriptName], '/usr/bin/env'
     )
@@ -425,7 +425,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
 
     // if no node state, spawn
     if (!this.nodeState.exists()) {
-      console.info(`No devnet found at ${bold(shortPath)}`)
+      log.info(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }
 
@@ -435,8 +435,8 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
       id = (await this.load()).containerId!
     } catch (e) {
       // if node state is corrupted, spawn
-      console.warn(e)
-      console.info(`Reading ${bold(shortPath)} failed`)
+      log.warn(e)
+      log.info(`Reading ${bold(shortPath)} failed`)
       return this.spawn()
     }
 
@@ -448,11 +448,11 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
       running = await this.container.isRunning
     } catch (e) {
       // if error when checking, RESPAWN
-      console.info(`✋ Failed to get container ${bold(id)}`)
-      console.info('Error was:', e)
-      console.info(`Cleaning up outdated state...`)
+      log.info(`✋ Failed to get container ${bold(id)}`)
+      log.info('Error was:', e)
+      log.info(`Cleaning up outdated state...`)
       await this.erase()
-      console.info(`Trying to launch a new node...`)
+      log.info(`Trying to launch a new node...`)
       return this.spawn()
     }
 
@@ -466,8 +466,8 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
       if (this.ephemeral) {
         this.container!.kill()
       } else {
-        console.log()
-        console.info(
+        log.log()
+        log.info(
           'Devnet is running on port', bold(String(this.port)),
           'from container', bold(this.container!.id.slice(0,8))
         )
@@ -484,20 +484,20 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
     if (this.container) {
       const { id } = this.container
       await this.container.kill()
-      console.info(
+      log.info(
         `Stopped container`, bold(id)
       )
       return
     }
 
-    console.info(`Checking if there's an old node that needs to be stopped...`)
+    log.info(`Checking if there's an old node that needs to be stopped...`)
 
     try {
       const { containerId } = await this.load()
       await this.container!.kill()
-      console.info(`Stopped container ${bold(containerId!)}.`)
+      log.info(`Stopped container ${bold(containerId!)}.`)
     } catch (_e) {
-      console.info("Didn't stop any container.")
+      log.info("Didn't stop any container.")
     }
 
   }
@@ -508,12 +508,12 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
     const path = bold(relative(cwd(), this.stateRoot.path))
     try {
       if (this.stateRoot.exists()) {
-        console.info(`Deleting ${path}...`)
+        log.info(`Deleting ${path}...`)
         this.stateRoot.delete()
       }
     } catch (e) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
-        console.warn(`Failed to delete ${path}: ${e.code}; trying cleanup container...`)
+        log.warn(`Failed to delete ${path}: ${e.code}; trying cleanup container...`)
         await this.image.ensure()
         const containerName = `${this.chainId}-${this.port}-cleanup`
         const options = {
@@ -530,13 +530,13 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
           ['-rvf', '/state'],
           '/bin/rm'
         )
-        console.info(`Starting cleanup container...`)
+        log.info(`Starting cleanup container...`)
         await cleanupContainer.start()
-        console.info('Waiting for cleanup to finish...')
+        log.info('Waiting for cleanup to finish...')
         await cleanupContainer.wait()
-        console.info(`Deleted ${path} via cleanup container.`)
+        log.info(`Deleted ${path} via cleanup container.`)
       } else {
-        console.warn(`Failed to delete ${path}: ${e.message}`)
+        log.warn(`Failed to delete ${path}: ${e.message}`)
         throw e
       }
     }
@@ -570,7 +570,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
 
     // If passed a chain id, use it; this makes a passed prefix irrelevant.
     if (chainId && prefix) {
-      console.warn('Passed both chainId and prefix to RemoteDevnet.getOrCreate: ignoring prefix')
+      log.warn('Passed both chainId and prefix to RemoteDevnet.getOrCreate: ignoring prefix')
     }
 
     // Establish default prefix. Chain subclasses should define this.
@@ -584,13 +584,13 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
       const active = $(projectRoot, 'receipts', `${prefix}-active`)
       if ($(active).exists()) {
         chainId = basename(readlinkSync(active.path))
-        console.info('Reusing existing managed devnet with chain id', bold(chainId))
+        log.info('Reusing existing managed devnet with chain id', bold(chainId))
       } else {
         chainId = `${prefix}-${randomHex(4)}`
         const devnet = $(projectRoot).in('receipts').in(chainId)
         devnet.make()
         symlinkSync(devnet.path, active.path)
-        console.info('Creating new managed devnet with chain id', bold(chainId))
+        log.info('Creating new managed devnet with chain id', bold(chainId))
       }
     }
 
@@ -600,7 +600,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
 
   constructor (options: any) {
     super(options)
-    console.info('Constructing', bold('remotely managed'), 'devnet')
+    log.info('Constructing', bold('remotely managed'), 'devnet')
     this.manager = new Endpoint(options.managerURL)
     this.host    = this.manager.url.hostname
   }
@@ -610,7 +610,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
   async spawn () {
     const port = await freePort()
     this.port = port
-    console.info(bold('Spawning managed devnet'), this.chainId, 'on port', port)
+    log.info(bold('Spawning managed devnet'), this.chainId, 'on port', port)
     const result = await this.manager.get('/spawn', {
       id:          this.chainId,
       genesis:     this.genesisAccounts.join(','),
@@ -618,23 +618,23 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
       grpcWebAddr: (this.portMode === 'grpcWeb') ? `0.0.0.0:${port}` : undefined
     })
     if (result.error === 'Node already running') {
-      console.info('Remote devnet already running')
+      log.info('Remote devnet already running')
       if (this.portMode === 'lcp' && result.lcpPort) {
         this.port = Number(result.lcpPort)
       } else if (this.portMode === 'grpcWeb' && result.grpcWebAddr) {
         this.port = Number(new URL('idk://'+result.grpcWebAddr).port)
       }
-      console.info('Reusing port', this.port, 'for', this.portMode)
+      log.info('Reusing port', this.port, 'for', this.portMode)
     }
     await this.ready()
-    console.info(`Waiting 7 seconds for good measure...`)
+    log.info(`Waiting 7 seconds for good measure...`)
     await new Promise(ok=>setTimeout(ok, 7000))
     return this
   }
 
   save () {
     const shortPath = $(this.nodeState.path).shortPath
-    console.info(`Saving devnet node to ${shortPath}`)
+    log.info(`Saving devnet node to ${shortPath}`)
     const data = { chainId: this.chainId, port: this.port }
     this.nodeState.save(data)
     return this
@@ -644,7 +644,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
     const shortPath = $(this.nodeState.path).shortPath
     // if no node state, spawn
     if (!this.nodeState.exists()) {
-      console.info(`No devnet found at ${bold(shortPath)}`)
+      log.info(`No devnet found at ${bold(shortPath)}`)
       return this.spawn()
     }
     return this
@@ -656,7 +656,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
       if (ready) {
         break
       }
-      console.info('Waiting for devnet to become ready...')
+      log.info('Waiting for devnet to become ready...')
       await new Promise(resolve=>setTimeout(resolve, 2000))
     }
   }
@@ -697,7 +697,7 @@ export default class DevnetCommands extends Komandi.Commands<Connect.ConnectCont
 
 }
 
-export class DevnetError extends Error {
+export class DevnetError extends CustomError {
 
   static NoChainId = this.define('NoChainId',
     ()=>'No chain id')
@@ -711,15 +711,5 @@ export class DevnetError extends Error {
   static NoGenesisAccount = this.define('NoGenesisAccount',
     (name: string, error: any)=>
       `Genesis account not found: ${name} (${error})`)
-
-  static define (name: string, message: (...args: any)=>string): typeof DevnetError {
-    return Object.assign(class extends DevnetError {}, {
-      name: `Devnet${name}Error`,
-      constructor (...args: any) {
-        //@ts-ignore
-        super(message(args))
-      }
-    })
-  }
 
 }

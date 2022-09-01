@@ -1,9 +1,9 @@
 import * as Fadroma from '@fadroma/client'
 import * as Scrt    from '@fadroma/scrt'
-import { Console, bold } from '@hackbg/konzola'
+import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
 import { randomHex } from '@hackbg/formati'
 
-const console = Console('Fadroma Tokens')
+const log = new CustomConsole(console, 'Fadroma Tokens')
 
 export type Tokens = Record<string, Snip20|Token>
 /** # Token descriptors. */
@@ -219,7 +219,7 @@ export class TokenRegistry extends Fadroma.Overridable {
   }
 
   /** Every thing can get its own Console. Later replace with structured logging. */
-  log = Console('Token Registry')
+  log = new CustomConsole(console, 'Fadroma.TokenRegistry')
 
   /** The collection of token contracts that are known to the deployment. */
   tokens: Record<string, Snip20> = {}
@@ -472,7 +472,7 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
     amount:  string | number | bigint,
     spender: Fadroma.Address,
   ) {
-    console.info(
+    log.info(
       `${bold(this.agent?.address||'(missing address)')}: increasing allowance of`,
       bold(spender), 'by', bold(String(amount)), bold(String(this.symbol||this.address))
     )
@@ -546,7 +546,7 @@ export function createPermitMsg <Q> (
   return { with_permit: { query, permit } }
 }
 
-export class TokenError extends Fadroma.CustomError {
+export class TokenError extends CustomError {
   static NoSymbol = this.define('NoSymbol',
     ()=>'Pass a symbol to get a token')
   static NotFound = this.define('NotFound',

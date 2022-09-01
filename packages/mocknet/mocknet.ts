@@ -52,7 +52,6 @@ export class Mocknet extends Fadroma.Chain {
 
 }
 
-//@ts-ignore
 class MocknetAgent extends Fadroma.Agent {
 
   get defaultDenom () {
@@ -115,7 +114,6 @@ class MocknetAgent extends Fadroma.Agent {
 
 }
 
-//@ts-ignore
 Mocknet.Agent = MocknetAgent
 
 class MocknetBundle extends Fadroma.Bundle {
