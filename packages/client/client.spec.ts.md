@@ -1,10 +1,5 @@
 # Fadroma Client Spec
 
-## API connections and transactions:
-
-3. User interacts with contract by obtaining an instance of the
-   appropriate `Client` subclass from the authorized `Agent`.
-
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual, throws, rejects } from 'assert'
@@ -199,7 +194,19 @@ await agent.instantiateMany([])
 await agent.instantiateMany([], 'prefix')
 ```
 
-## `Source`, `Builder`: compiling smart contracts
+## `Client`: Instantiating and operating smart contracts
+
+User interacts with contract by obtaining an instance of the
+appropriate `Client` subclass from the authorized `Agent`.
+
+```typescript
+import { Client } from '.'
+let contract: Client
+throws(()=>new Client().connected())
+ok(new Client({ agent: true, address: true }).connected())
+```
+
+### `Source`, `Builder`: compiling smart contracts
 
 ```typescript
 import { Source, Builder } from '.'
@@ -211,7 +218,7 @@ let builder: Builder = new class TestBuilder extends Builder {
 }
 ```
 
-## `Template`, `Uploader`: uploading smart contracts
+### `Template`, `Uploader`: uploading smart contracts
 
 ```typescript
 import { Template } from '.'
@@ -222,19 +229,6 @@ equal(new Template('crate@ref').ref,   'ref')
 const url = new URL('file:///tmp/artifact.wasm')
 equal(new Template(url).artifact, url)
 ```
-
-### `ClientError`: error conditions
-
-```typescript
-import { ClientError } from '.'
-for (const kind of Object.keys(ClientError)) {
-  ok(new ClientError[kind] instanceof ClientError)
-}
-```
-
-### `Templates`: Upload of multiple templates
-
-### `Uploader`: Upload manager 
 
 ```typescript
 import { Uploader } from '.'
@@ -249,15 +243,6 @@ uploader = new (class TestUploader extends Uploader {
     return new Template(template)
   }
 })(agent)
-```
-
-## `Client`: Instantiating and operating smart contracts
-
-```typescript
-import { Client } from '.'
-let contract: Client
-throws(()=>new Client().connected())
-ok(new Client({ agent: true, address: true }).connected())
 ```
 
 ### Deploying a smart contract
@@ -280,21 +265,6 @@ contract = agent.getClient()
 ok(contract)
 ```
 
-```typescript
-```
-
-### `Fee`: Specifying per-transaction gas fees
-
-```typescript
-import { Fee } from '.'
-```
-
-* `client.fee` is the default fee for all transactions
-* `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
-* `client.withFee(fee: IFee)` allows the caller to override the default fees.
-  Calling it returns a new instance of the Client, which talks to the same contract
-  but executes all transactions with the specified custom fee.
-
 ### `ClientError`: contract error conditions
 
 Contract errors inherit from **ClientError** and are defined as its static properties.
@@ -313,3 +283,15 @@ import { Contracts } from '.'
 ok(new Contracts(Contract, { creator: {}, deployment: {} }))
 ok(await new Contracts(Contract, { creator: {}, deployment: {} }).deployMany())
 ```
+
+## `Fee`: Specifying per-transaction gas fees
+
+```typescript
+import { Fee } from '.'
+```
+
+* `client.fee` is the default fee for all transactions
+* `client.fees: Record<string, IFee>` is a map of default fees for specific transactions
+* `client.withFee(fee: IFee)` allows the caller to override the default fees.
+  Calling it returns a new instance of the Client, which talks to the same contract
+  but executes all transactions with the specified custom fee.
