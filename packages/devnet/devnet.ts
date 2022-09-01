@@ -8,7 +8,6 @@ import * as Kabinet from '@hackbg/kabinet'
 import * as Komandi from '@hackbg/komandi'
 import * as Dokeres from '@hackbg/dokeres'
 import * as Fadroma from '@fadroma/client'
-import * as Connect from '@fadroma/connect'
 
 import { resolve, relative, basename, dirname } from 'path'
 import { cwd }                                  from 'process'
@@ -679,7 +678,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
 
 }
 
-export default class DevnetCommands extends Komandi.Commands<Connect.ConnectContext> {
+export default class DevnetCommands extends Komandi.Commands<Fadroma.Context> {
 
   constructor (name: string = 'devnet', before = [], after = []) {
     super(name, before, after)
@@ -687,11 +686,11 @@ export default class DevnetCommands extends Komandi.Commands<Connect.ConnectCont
     this.command('reset',  'print the status of the current devnet', this.reset)
   }
 
-  status = (context: Connect.ConnectContext) => {
-    new Connect.ConnectConsole().chainStatus(context)
+  status = (context: Fadroma.Context) => {
+    new Fadroma.ClientConsole().chainStatus(context)
   }
 
-  reset = ({ chain }: Connect.ConnectContext) => {
+  reset = ({ chain }: Fadroma.Context) => {
     if (chain) return Devnet.reset({ chain })
   }
 
