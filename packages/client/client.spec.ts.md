@@ -127,7 +127,7 @@ Create one with `Agent#getBundle()` then use with `Client`
 to combine various messages in a single transaction.
 
 ```typescript
-import { Bundle, Contract } from '.'
+import { Bundle } from '.'
 let bundle: Bundle
 class TestBundle extends Bundle {
   async submit () { return 'submitted' }
@@ -141,8 +141,9 @@ equal(await new TestBundle().wrap(async()=>{}, undefined, true), 'saved')
 ```
 
 ```typescript
+import { Client } from '.'
 bundle = new Bundle({ chain: {}, checkHash () { return 'hash' } })
-ok(bundle.getClient(Contract, '') instanceof Contract)
+ok(bundle.getClient(Client, '') instanceof Client)
 rejects(()=>bundle.query())
 rejects(()=>bundle.upload())
 rejects(()=>bundle.uploadMany())
@@ -254,8 +255,8 @@ for (const kind of Object.keys(TemplateError)) {
 import { Uploader } from '.'
 let uploader: Uploader
 agent    = new (class TestAgent extends Agent {
-  instantiate (source: Template): Promise<Contract> {
-    return new Contract(source)
+  instantiate (source: Template): Promise<Client> {
+    return new Client(source)
   }
 })({ id: 'chain' })
 uploader = new (class TestUploader extends Uploader {
@@ -265,20 +266,20 @@ uploader = new (class TestUploader extends Uploader {
 })(agent)
 ```
 
-## `Contract`: Instantiating and operating smart contracts
+## `Client`: Instantiating and operating smart contracts
 
 ```typescript
-import { Contract } from '.'
-let contract: Contract
-new Contract().assertOperational()
-new Contract().assertCorrect()
+import { Client } from '.'
+let contract: Client
+new Client().assertOperational()
+new Client().assertCorrect()
 ```
 
 ### Deploying a smart contract
 
 ```typescript
-ok(await new Contract('Name', { crate: 'empty', agent, builder, uploader }).deploy())
-ok(await new Contract('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy())
+ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).deploy())
+ok(await new Client('Name', { crate: 'empty', agent, builder, uploader }).getOrDeploy())
 ```
 
 ### Connecting to a smart contract
@@ -287,8 +288,8 @@ The `Client` class allows you to transact with a specific smart contract
 deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agent.spec.ts.md).
 
 ```typescript
-ok(await new Contract('Name').get())
-ok(await new Contract('Name').getOr(()=>{}))
+ok(await new Client('Name').get())
+ok(await new Client('Name').getOr(()=>{}))
 // get a contract client from the agent
 contract = agent.getClient()
 ok(contract)

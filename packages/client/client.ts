@@ -1334,7 +1334,7 @@ export class Deployment {
   ): C {
     const info = this.get(name)
     if (!info) throw new ContractError.NotFound()
-    return new $Client({ ...info!, agent }) as C
+    return new $Client({ ...(info! as Partial<C>), agent }) as C
   }
 
   /** Instantiate one contract and save its receipt to the deployment. */
@@ -1435,7 +1435,7 @@ export class Contracts<C extends Client> extends Templates {
     template:   IntoTemplate,
     specifiers: DeployArgs[],
     agent:      Agent|undefined = this.agent
-  ): Promise<Client[]> {
+  ): Promise<C[]> {
     if (!agent) throw new ContractError.NoCreator()
     template = new Template(template, { agent })
     try {
@@ -1443,8 +1443,9 @@ export class Contracts<C extends Client> extends Templates {
       const contracts = specifiers.map(([name, initMsg]: DeployArgs)=>new (Client as NewClient<C>)(agent, {
         ...template as Template, name, initMsg
       }))
-      const instances = await agent.instantiateMany(contracts)
-      return Object.values(instances).map(instance=>agent.getClient(this.Client, instance as unknown as Partial<C>))
+      const instances   = await agent.instantiateMany(contracts)
+      const toNewClient = (c: Client) =>agent.getClient(this.Client, c as unknown as Partial<C>)
+      return Object.values(instances).map(toNewClient) as C[]
     } catch (e) {
       this.log.deployManyFailed(template as Template, specifiers, e as Error)
       throw e
