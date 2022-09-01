@@ -1345,7 +1345,7 @@ export class Deployment {
       this.set(name, contract)
       return contract
     } catch (e) {
-      this.log.deployFailed(e, template, name, msg)
+      this.log.deployFailed(e as Error, template, name, msg)
       throw e
     }
   }
@@ -1358,7 +1358,7 @@ export class Deployment {
     try {
       return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
     } catch (e) {
-      this.log.deployManyFailed(template, contracts, e)
+      this.log.deployManyFailed(template, contracts, e as Error)
       throw e
     }
   }
