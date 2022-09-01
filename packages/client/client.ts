@@ -1272,12 +1272,12 @@ export function addressOf (instance?: { address?: Address }): Address {
 export class Deployment {
 
   constructor (
-    /** Mapping of names to contract instances. */
-    public readonly state:  Record<string, Client> = {},
     /** Unique ID of deployment, used as label prefix for deployed contracts. */
-    public readonly prefix: string = Konzola.timestamp(),
+    public prefix: string = Konzola.timestamp(),
     /** Default agent to use when interacting with this deployment. */
     public readonly agent?: Agent,
+    /** Mapping of names to contract instances. */
+    public readonly state:  Record<string, Client> = {},
   ) {}
 
   log = new ClientConsole('Fadroma.Deployment')
