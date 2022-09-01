@@ -214,7 +214,7 @@ let builder: Builder = new class TestBuilder extends Builder {
 ## `Template`, `Uploader`: uploading smart contracts
 
 ```typescript
-import { Template, TemplateError } from '.'
+import { Template } from '.'
 let template: Template
 deepEqual(new Template(), {
  artifact: undefined,
@@ -237,13 +237,12 @@ const url = new URL('file:///tmp/artifact.wasm')
 equal(new Template(url).artifact, url)
 ```
 
-### `TemplateError`: Template error conditions
-
-Template errors inherit from **TemplateError** and are defined as its static properties.
+### `ClientError`: error conditions
 
 ```typescript
-for (const kind of Object.keys(TemplateError)) {
-  ok(new TemplateError[kind] instanceof TemplateError)
+import { ClientError } from '.'
+for (const kind of Object.keys(ClientError)) {
+  ok(new TemplateError[kind] instanceof ClientError)
 }
 ```
 
@@ -310,14 +309,14 @@ import { Fee } from '.'
   Calling it returns a new instance of the Client, which talks to the same contract
   but executes all transactions with the specified custom fee.
 
-### `ContractError`: contract error conditions
+### `ClientError`: contract error conditions
 
-Contract errors inherit from **ContractError** and are defined as its static properties.
+Contract errors inherit from **ClientError** and are defined as its static properties.
 
 ```typescript
-import { ContractError } from '.'
-for (const kind of Object.keys(ContractError)) {
-  ok(new ContractError[kind] instanceof ContractError)
+import { ClientError } from '.'
+for (const kind of Object.keys(ClientError)) {
+  ok(new ClientError[kind] instanceof ClientError)
 }
 ```
 
