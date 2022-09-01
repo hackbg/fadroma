@@ -164,7 +164,8 @@ interface TokenRegistryContext {
   args:        string[]
   agent:       Fadroma.Agent
   deployment?: { agent?: Fadroma.Agent }
-  contract  <C extends Fadroma.Client> (...args: ConstructorParameters<Fadroma.NewClient<C>>): C
+  contract  <C extends Fadroma.Client> (name: Fadroma.IntoClient): C
+  contract  <C extends Fadroma.Client> (name: Fadroma.IntoClient, Client: Fadroma.NewClient<C>): C
   contracts <C extends Fadroma.Client> (Client: Fadroma.NewClient<C>): Fadroma.Contracts<C>
 }
 
@@ -277,7 +278,7 @@ export class TokenRegistry extends Fadroma.Overridable {
       const init  = Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
       // get or create contract with the name (names are internal to deployment)
       const token = await this.context.contract(options.name, Snip20)
-        .getOrDeploy(options.template ?? this.defaultTemplate, init)
+        .getOrDeploy(options.template ?? this.defaultTemplate, init) as Snip20
       // add and return the token
       this.add(symbol, token)
       return token
@@ -368,7 +369,7 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
   }
 
   /** Create a SNIP20 token client from a Token descriptor. */
-  static fromDescriptor (agent: Fadroma.Executor, descriptor: CustomToken): Snip20 {
+  static fromDescriptor (agent: Fadroma.Agent, descriptor: CustomToken): Snip20 {
     const { custom_token } = descriptor
     const { contract_addr: address, token_code_hash: codeHash } = custom_token
     return new Snip20(agent, address, codeHash)
