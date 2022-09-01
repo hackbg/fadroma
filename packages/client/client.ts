@@ -464,11 +464,13 @@ export abstract class Agent implements Executor {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
 
-  abstract instantiate <T> (template: Template, label: string, msg: T): Promise<Client>
+  abstract instantiate (template: Template, label: Label, msg: Message): Promise<Client>
 
   instantiateMany (configs: (DeployArgsTriple|Client)[] = []): Promise<Client[]> {
     return Promise.all(configs.map(client=>
-      (client instanceof Array) ? this.instantiate(...client) : this.instantiate(client as Template, client.label, client.initMsg) ))
+      (client instanceof Array)
+        ? this.instantiate(...client)
+        : this.instantiate(client as Template, client.label, client.initMsg!) ))
   }
 
   abstract execute (
@@ -583,8 +585,7 @@ export abstract class Bundle implements Executor {
     }
     this.add({ init })
     const { codeId, codeHash } = template
-    // @ts-ignore
-    return { chainId: this.agent.chain.id, codeId, codeHash, address: null }
+    return new Client(this, { chainId: this.agent.chain.id, codeId, codeHash, address: null })
   }
 
   async instantiateMany (configs: [Template, Label, Message][]): Promise<Client[]> {
@@ -621,16 +622,14 @@ export abstract class Bundle implements Executor {
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
-  //@ts-ignore
-  async upload (code: Uint8Array) {
+  async upload (code: Uint8Array): Promise<Template> {
     throw new Error("don't upload inside bundle")
   }
 
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
-  //@ts-ignore
-  async uploadMany (code: Uint8Array[]) {
+  async uploadMany (code: Uint8Array[]): Promise<Template[]> {
     throw new Error("don't upload inside bundle")
   }
 
@@ -1399,7 +1398,9 @@ export class Context extends CommandContext {
     /** The selected blockhain to connect to. */
     public chain?: Chain,
     /** The selected agent to operate as. */
-    public agent?: Agent
+    public agent?: Agent,
+    /** The selected deployment, if applicable of contracts. */
+    public deployment?: Deployment
   ) {
     super()
   }

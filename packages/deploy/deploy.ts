@@ -32,7 +32,7 @@ import {
   Client, NewClient, Contracts,
   Deployment, DeployArgs,
   Label, Message,
-  SparseArray
+  SparseArray,
 } from '@fadroma/client'
 
 import { basename, resolve, dirname, relative, extname } from 'path'
@@ -41,25 +41,13 @@ import * as FS from 'fs'
 import YAML from 'js-yaml'
 export { YAML }
 
-/// # Deploy config ////////////////////////////////////////////////////////////////////////////////
-
-export class DeployConfig extends Konfizi.EnvConfig {
-  /** Whether to always upload contracts, ignoring upload receipts that match. */
-  reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
-  /** Whether to generate unsigned transactions for manual multisig signing. */
-  multisig: boolean = this.getBoolean('FADROMA_MULTISIG', () => false)
-}
-
-/// # Deploy context ///////////////////////////////////////////////////////////////////////////////
-
-export class DeployContext extends Komandi.Context {
+export class DeployContext extends Connect.ConnectContext {
 
   constructor (
-    config?:          DeployConfig,
-    private connect?: Connect.ConnectContext,
+    config:           Partial<DeployConfig> = new DeployConfig(),
     private build?:   Build.BuildContext
   ) {
-    super()
+    super(config)
     // Populate the config
     this.config = config ?? new DeployConfig(this.env, this.cwd)
     // Make sure we're operating in a deployment
@@ -80,15 +68,6 @@ export class DeployContext extends Komandi.Context {
   config: DeployConfig
 
   log = new DeployConsole(console, 'Fadroma.DeployTask')
-
-  get chain (): Chain|undefined {
-    return this.connect?.chain
-  }
-
-  /** Agent that will instantiate the templates. */
-  get agent (): Agent|undefined {
-    return this.connect?.agent
-  }
 
   /** Knows how to upload contracts to a blockchain. */
   uploader:    Uploader
@@ -117,6 +96,82 @@ export class DeployContext extends Komandi.Context {
 
 }
 
+export class DeployConfig extends Connect.ConnectConfig {
+  /** Whether to always upload contracts, ignoring upload receipts that match. */
+  reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
+  /** Whether to generate unsigned transactions for manual multisig signing. */
+  multisig: boolean = this.getBoolean('FADROMA_MULTISIG', () => false)
+}
+
+/** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
+  * Each deployment is represented by 1 multi-document YAML file, where every
+  * document is delimited by the `\n---\n` separator and represents a deployed
+  * smart contract. */
+export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
+
+  /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
+    * and convert it to a Deployments instance. See: @hackbg/kabinet */
+  static fromConfig = (chainId: string, projectRoot: string) =>
+    $(projectRoot).in('receipts').in(chainId).in('deployments').as(Deployments)
+
+  /** Name of symlink pointing to active deployment, without extension. */
+  KEY = '.active'
+
+  /** Create a deployment with a specific name. */
+  async create (name: string = Konzola.timestamp()) {
+    const path = this.at(`${name}.yml`)
+    if (path.exists()) {
+      throw new Error(`${name} already exists`)
+    }
+    return path.makeParent().as(Kabinet.YAMLFile).save(undefined)
+    return new Deployment(path.path)
+  }
+
+  /** Make the specified deployment be the active deployment. */
+  async select (name: string) {
+    const selection = this.at(`${name}.yml`)
+    if (!selection.exists) {
+      throw new Error(`Deployment ${name} does not exist`)
+    }
+    const active = this.at(`${this.KEY}.yml`).as(Kabinet.YAMLFile)
+    try { active.delete() } catch (e) {}
+    await FS.symlinkSync(selection.path, active.path)
+  }
+
+  /** Get the contents of the active deployment, or null if there isn't one. */
+  get active (): Deployment|null {
+    return this.get(this.KEY)
+  }
+
+  /** Get the contents of the named deployment, or null if it doesn't exist. */
+  get (name: string): Deployment|null {
+    const path = resolve(this.path, `${name}.yml`)
+    if (!FS.existsSync(path)) {
+      return null
+    }
+    return new Deployment(path)
+  }
+
+  /** List the deployments in the deployments directory. */
+  list () {
+    if (!FS.existsSync(this.path)) {
+      return []
+    }
+    return FS.readdirSync(this.path)
+      .filter(x=>x!=this.KEY)
+      .filter(x=>x.endsWith('.yml'))
+      .map(x=>basename(x,'.yml'))
+  }
+
+  /** DEPRECATED: Save some extra data into the deployments directory. */
+  save <D> (name: string, data: D) {
+    const file = this.at(`${name}.json`).as(Kabinet.JSONFile) as Kabinet.JSONFile<D>
+    //console.info('Deployments writing:', bold(file.shortPath))
+    return file.save(data)
+  }
+
+}
+
 /// # Deploy task
 
 /** Base class for class-based deploy procedure. Adds progress logging. */
@@ -134,7 +189,7 @@ export class DeployConsole extends Komandi.CommandsConsole {
 
   deployment ({ deployment }: { deployment: Deployment }) {
     if (deployment) {
-      const { state, prefix } = deployment
+      const { state = {}, prefix } = deployment
       let contracts: string|number = Object.values(state).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
       const len = Math.min(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
@@ -628,75 +683,6 @@ export class YAMLDeployment extends Deployment {
   setMany (data: Record<string, Client>): this {
     super.setMany(data)
     return this.save()
-  }
-
-}
-
-/** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
-  * Each deployment is represented by 1 multi-document YAML file, where every
-  * document is delimited by the `\n---\n` separator and represents a deployed
-  * smart contract. */
-export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
-
-  /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
-    * and convert it to a Deployments instance. See: @hackbg/kabinet */
-  static fromConfig = (chainId: string, projectRoot: string) =>
-    $(projectRoot).in('receipts').in(chainId).in('deployments').as(Deployments)
-
-  /** Name of symlink pointing to active deployment, without extension. */
-  KEY = '.active'
-
-  /** Create a deployment with a specific name. */
-  async create (name: string = Konzola.timestamp()) {
-    const path = this.at(`${name}.yml`)
-    if (path.exists()) {
-      throw new Error(`${name} already exists`)
-    }
-    return path.makeParent().as(Kabinet.YAMLFile).save(undefined)
-    return new Deployment(path.path)
-  }
-
-  /** Make the specified deployment be the active deployment. */
-  async select (name: string) {
-    const selection = this.at(`${name}.yml`)
-    if (!selection.exists) {
-      throw new Error(`Deployment ${name} does not exist`)
-    }
-    const active = this.at(`${this.KEY}.yml`).as(Kabinet.YAMLFile)
-    try { active.delete() } catch (e) {}
-    await FS.symlinkSync(selection.path, active.path)
-  }
-
-  /** Get the contents of the active deployment, or null if there isn't one. */
-  get active (): Deployment|null {
-    return this.get(this.KEY)
-  }
-
-  /** Get the contents of the named deployment, or null if it doesn't exist. */
-  get (name: string): Deployment|null {
-    const path = resolve(this.path, `${name}.yml`)
-    if (!FS.existsSync(path)) {
-      return null
-    }
-    return new Deployment(path)
-  }
-
-  /** List the deployments in the deployments directory. */
-  list () {
-    if (!FS.existsSync(this.path)) {
-      return []
-    }
-    return FS.readdirSync(this.path)
-      .filter(x=>x!=this.KEY)
-      .filter(x=>x.endsWith('.yml'))
-      .map(x=>basename(x,'.yml'))
-  }
-
-  /** DEPRECATED: Save some extra data into the deployments directory. */
-  save <D> (name: string, data: D) {
-    const file = this.at(`${name}.json`).as(Kabinet.JSONFile) as Kabinet.JSONFile<D>
-    //console.info('Deployments writing:', bold(file.shortPath))
-    return file.save(data)
   }
 
 }

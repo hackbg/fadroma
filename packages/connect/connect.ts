@@ -65,11 +65,11 @@ export async function connect (
 
 export class ConnectContext extends Fadroma.Context {
   constructor (
-    config:  ConnectConfig = new ConnectConfig(),
+    config:  Partial<ConnectConfig> = new ConnectConfig(),
     ...args: ConstructorParameters<typeof Fadroma.Context>
   ) {
     super(...args)
-    this.config ??= new ConnectConfig(this.env, this.cwd)
+    this.config = config ?? new ConnectConfig(this.env, this.cwd)
   }
   config: ConnectConfig
 }
@@ -81,7 +81,7 @@ export class ConnectConfig extends EnvConfig {
 
   /** Name of chain to use. */
   chain?: keyof Fadroma.ChainRegistry
-    = this.getString('FADROMA_CHAIN')
+    = this.getString('FADROMA_CHAIN',   ()=>undefined)
 
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName: string

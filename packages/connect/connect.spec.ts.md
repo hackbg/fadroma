@@ -135,7 +135,6 @@ import { ConnectConsole } from '.'
 const log = new ConnectConsole({
   log: () => {}, info: () => {}, warn: () => {}, error: () => {}
 })
-log.knownChains({x:1})
 log.noName({})
 log.noDeploy()
 log.selectedChain({})
