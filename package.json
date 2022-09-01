@@ -51,7 +51,7 @@
     "@hackbg/kabinet":  "^3.1.2",
     "@hackbg/komandi":  "^5",
     "@hackbg/konfizi":  "^2",
-    "@hackbg/konzola":  "^1.1.2"
+    "@hackbg/konzola":  "^2"
   },
   "peerDependencies": {
     "dotenv":              "^16.0.1",
