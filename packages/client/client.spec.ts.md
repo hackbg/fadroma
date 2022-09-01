@@ -216,20 +216,6 @@ let builder: Builder = new class TestBuilder extends Builder {
 ```typescript
 import { Template } from '.'
 let template: Template
-deepEqual(new Template(), {
- artifact: undefined,
- builder:  undefined,
- chainId:  undefined,
- codeHash: undefined,
- codeId:   undefined,
- commit:   undefined,
- context:  undefined,
- crate:    undefined,
- ref:      undefined,
- repo:     undefined,
- uploadTx: undefined,
- uploader: undefined
-})
 equal(new Template('crate').crate,     'crate')
 equal(new Template('crate@ref').crate, 'crate')
 equal(new Template('crate@ref').ref,   'ref')
@@ -242,7 +228,7 @@ equal(new Template(url).artifact, url)
 ```typescript
 import { ClientError } from '.'
 for (const kind of Object.keys(ClientError)) {
-  ok(new TemplateError[kind] instanceof ClientError)
+  ok(new ClientError[kind] instanceof ClientError)
 }
 ```
 
@@ -270,8 +256,8 @@ uploader = new (class TestUploader extends Uploader {
 ```typescript
 import { Client } from '.'
 let contract: Client
-new Client().assertOperational()
-new Client().assertCorrect()
+throws(()=>new Client().connected())
+ok(new Client({ agent: true, address: true }).connected())
 ```
 
 ### Deploying a smart contract
