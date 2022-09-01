@@ -24,7 +24,7 @@ type valof<T> = T[keyof T]
   **/
 export class Overridable {
   override (options: object = {}) {
-    override(true, this, options)
+    override(false, this, options)
   }
   /** Return copy of self with overridden properties. */
   where (options: Partial<Source> = {}) {
@@ -889,9 +889,6 @@ export class Template extends Source {
   /** Intended client class */
   Client: NewClient<any> = Client as unknown as NewClient<any>
 
-  /** Default agent that will perform inits. */
-  creator?: Agent = this.uploader?.agent
-
   /** Deploy a contract from this template. */
   async deploy <C extends Client> (
     /** Must be unique. @fadroma/deploy adds prefix here. */
@@ -899,16 +896,16 @@ export class Template extends Source {
     /** Init message, or a function to produce it. */
     initMsg?: Message|(()=>Message|Promise<Message>),
     /** Agent to do the deploy. */
-    agent?:   Agent
+    agent:    Agent|null = this.agent
   ): Promise<C> {
     let self = this
     if (!self.task) return deploy.call(self)
     Object.defineProperty(deploy, 'name', { value: `upload contract ${label}` })
     return self.task.subtask(deploy.bind(self))
     async function deploy (this: Template): Promise<C> {
-      agent ??= this.creator
       if (!agent) throw new ClientError.NoCreator()
       const template = await this.getOrUpload()
+    console.log(this)
       this.log.beforeDeploy(this, label)
       if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
       const instance = await agent.instantiate(template, label, initMsg)
@@ -1665,7 +1662,11 @@ export class ClientError extends CustomError {
 
 const bold = Konzola.bold
 
-export class ClientConsole extends Konzola.CustomConsole {
+function cloneSystemConsole () { console.log(super.prototype); process.exit(123); return { ...console } }
+
+/** There is a way to slip the ES5 custom constructors past TypeScript.
+  * This class uses it. TODO try to implement `await new` with this? */
+export class ClientConsole extends (cloneSystemConsole as unknown as { new (): Console }) {
   constructor (readonly name: string) {
     super()
   }
