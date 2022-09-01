@@ -1071,9 +1071,11 @@ export class Client extends Template {
 
   protected connected (): Agent {
     const { name } = this.constructor
+    const label = this.name ? ` (${this.label})` : ''
     if (!this.address) throw new Error(
-      `${name} (for ${this.label} has no Address and can't operate.` +
-      ` Pass an address with "new ${name}(agent, ...)"`
+      `${name}${label} has no address and can't operate.` +
+      ` Pass an address with "new ${name}(agent, address)" ` +
+      ` or "new ${name}({ address })" `
     )
     return super.connected()
   }
