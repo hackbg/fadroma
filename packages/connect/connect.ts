@@ -1,6 +1,6 @@
-import { CustomConsole, Console, bold } from '@hackbg/konzola'
-import * as Komandi                     from '@hackbg/komandi'
-import { EnvConfig }                    from '@hackbg/konfizi'
+import * as Komandi from '@hackbg/komandi'
+import { CustomConsole, bold } from '@hackbg/konzola'
+import { EnvConfig } from '@hackbg/konfizi'
 
 import * as Fadroma  from '@fadroma/client'
 import { Devnet }    from '@fadroma/devnet'
@@ -81,8 +81,7 @@ export class ConnectConfig extends EnvConfig {
 
   /** Name of chain to use. */
   chain?: keyof Fadroma.ChainRegistry
-    = this.getString('FADROMA_CHAIN', ()=>
-        process.exit(new ConnectConsole(console, 'Fadroma.ConnectConfig').noName(this.chains)))
+    = this.getString('FADROMA_CHAIN')
 
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName: string

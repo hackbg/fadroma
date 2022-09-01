@@ -2,7 +2,7 @@
 
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
-import * as Fadroma from '@fadroma/build'
+import * as Fadroma from '.'
 import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
