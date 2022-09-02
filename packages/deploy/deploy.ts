@@ -510,7 +510,7 @@ export class FSUploader extends Uploader {
       }
     }
     if (!template.artifact) {
-      throw new Error('No artifact')
+      throw new Error('No artifact specified in template')
     }
     const data = $(template.artifact).as(Kabinet.BinaryFile).load()
     const result = await this.agent.upload(data)

@@ -119,6 +119,7 @@ importers:
     specifiers:
       '@fadroma/build': ^1
       '@fadroma/client': ^5
+      '@hackbg/dokeres': workspace:^4.4.1
       '@hackbg/formati': ^3.0.1
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^5
@@ -138,6 +139,8 @@ importers:
       '@hackbg/portali': link:../../toolbox/portali
       dotenv: 16.0.1
       js-yaml: 4.1.0
+    devDependencies:
+      '@hackbg/dokeres': link:../../toolbox/dokeres
 
   packages/devnet:
     specifiers:

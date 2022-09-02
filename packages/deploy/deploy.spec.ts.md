@@ -159,7 +159,7 @@ const mockAgent = () => new class MockAgent extends Fadroma.Agent {
 
 // 'add FSUploader to operation context' ({ ok }) {
 agent = { chain: { uploads: Symbol() } }
-const cache = Symbol()
+const cache = new JSONDirectory()
 uploader = new FSUploader(agent, cache)
 ok(uploader.agent === agent)
 
@@ -316,12 +316,21 @@ class DeployMyContracts extends DeployTask<Promise<{
 ```typescript
 import { Client } from '@fadroma/client'
 import { connect } from '@fadroma/connect'
-import { BuildContext } from '@fadroma/build'
+import * as Dokeres from '@hackbg/dokeres'
+import { BuildContext, getBuilder } from '@fadroma/build'
 import { DeployContext } from '.'
 inTmpDeployment(async deployment=>{
   context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildContext())
+  context.build.builder = getBuilder({
+    docker:     Dokeres.Engine.mock(),
+    dockerfile: '/path/to/a/Dockerfile',
+    image:      'my-custom/build-image:version'
+  }),
+  context.build.builder.build = x => Object.assign(x, { artifact: x.name })
+  context.build.builder.codeHashForPath = () => 'codehash'
   context.deployment = deployment
   context.uploader   = uploader
+  delete context.uploader.cache
   result = await DeployMyContracts.run(context)
   assert(result instanceof Array)
   assert(result[0] instanceof Client)

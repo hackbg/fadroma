@@ -30,5 +30,8 @@
     "@hackbg/portali": "^1.2.4",
     "dotenv":  "^16.0.1",
     "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@hackbg/dokeres": "workspace:^4.4.1"
   }
 }

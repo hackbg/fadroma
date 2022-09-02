@@ -510,7 +510,6 @@ export class DockerBuilder extends LocalBuilder {
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, LocalWorkspace> = {}
     for (const source of inputs) {
-      console.trace({source})
       const { repo, gitDir, workspace } = source
       if (!repo)      throw new Error('missing repo path in source')
       if (!workspace) throw new Error('missing workspace in source')
@@ -803,19 +802,19 @@ export default class BuildCommands extends Komandi.Commands<Komandi.Context> {
       process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
     )
   ) => {
-    console.info('Build manifest:', bold(cargoToml.shortPath))
+    this.log.info('Build manifest:', bold(cargoToml.shortPath))
     const source = workspace.crate((cargoToml.as(Kabinet.TOMLFile).load() as any).package.name)
     try {
       const config   = { ...new BuilderConfig(), rebuild: true }
       const builder  = getBuilder(config)
       const template = await builder.build(source)
       const { artifact, codeHash } = template
-      console.info('Built:    ', bold($(artifact!).shortPath))
-      console.info('Code hash:', bold(codeHash!))
+      this.log.info('Built:    ', bold($(artifact!).shortPath))
+      this.log.info('Code hash:', bold(codeHash!))
       process.exit(0)
     } catch (e) {
-      console.error(`Build failed.`)
-      console.error(e)
+      this.log.error(`Build failed.`)
+      this.log.error(e)
       process.exit(5)
     }
   }
@@ -825,23 +824,23 @@ export default class BuildCommands extends Komandi.Commands<Komandi.Context> {
     buildArgs:   string[] = []
   ) => {
     const buildSetName = buildArgs.join(' ')
-    console.info('Build script:', bold(buildScript.shortPath))
-    console.info('Build set:   ', bold(buildSetName || '(none)'))
+    this.log.info('Build script:', bold(buildScript.shortPath))
+    this.log.info('Build set:   ', bold(buildSetName || '(none)'))
     //@ts-ignore
     const {default: buildSets} = await import(buildScript.path)
     if (buildArgs.length > 0) {
       const buildSet = buildSets[buildSetName]
       if (!buildSet) {
-        console.error(`No build set ${bold(buildSetName)}.`)
+        this.log.error(`No build set ${bold(buildSetName)}.`)
         this.listBuildSets(buildSets)
         process.exit(1)
       } else if (!(buildSet instanceof Function)) {
-        console.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
+        this.log.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
         process.exit(2)
       } else {
         const buildSources = buildSet()
         if (!(buildSources instanceof Array)) {
-          console.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
+          this.log.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
           process.exit(3)
         }
         const T0 = + new Date()
@@ -849,27 +848,27 @@ export default class BuildCommands extends Komandi.Commands<Komandi.Context> {
           const config = { ...new BuilderConfig(), rebuild: true }
           await getBuilder(config).buildMany(buildSources)
           const T1 = + new Date()
-          console.info(`Build complete in ${T1-T0}ms.`)
+          this.log.info(`Build complete in ${T1-T0}ms.`)
           process.exit(0)
         } catch (e) {
-          console.error(`Build failed.`)
-          console.error(e)
+          this.log.error(`Build failed.`)
+          this.log.error(e)
           process.exit(4)
         }
       }
     } else {
-      console.warn(bold('No build set specified.'))
+      this.log.warn(bold('No build set specified.'))
       this.listBuildSets(buildSets)
     }
   }
 
   static listBuildSets = (buildSets: Record<string, ()=>LocalSource[]>) => {
-    console.log('Available build sets:')
+    this.log.log('Available build sets:')
     for (let [name, getSources] of Object.entries(buildSets)) {
-      console.log(`\n  ${name}`)
+      this.log.log(`\n  ${name}`)
       const sources = getSources()
       for (const source of sources as Array<LocalSource>) {
-        console.log(`    ${bold(source.crate!)} @ ${source.ref}`)
+        this.log.log(`    ${bold(source.crate!)} @ ${source.ref}`)
       }
     }
   }
@@ -877,7 +876,7 @@ export default class BuildCommands extends Komandi.Commands<Komandi.Context> {
   static buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
     const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
     if (cargoToml.exists()) {
-      console.info('Building from', bold(cargoToml.shortPath))
+      this.log.info('Building from', bold(cargoToml.shortPath))
       this.buildFromCargoToml(cargoToml as CargoTOML)
     } else {
       this.printUsage()
@@ -898,7 +897,7 @@ export default class BuildCommands extends Komandi.Commands<Komandi.Context> {
   }
 
   static printUsage = () => {
-    console.log(`
+    this.log.info(`
       Usage:
         fadroma-build path/to/crate
         fadroma-build path/to/Cargo.toml
