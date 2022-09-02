@@ -465,7 +465,7 @@ class MocknetContract {
         canonicalize_address (srcPtr, dstPtr) {
           const exports = getExports()
           const human   = readUtf8(exports, srcPtr)
-          const canon   = Formati.bech32.fromWords(Formati.bech32.decode(human).words)
+          const canon   = Formati.Bech32.bech32.fromWords(Formati.Bech32.bech32.decode(human).words)
           const dst     = region(exports.memory.buffer, dstPtr)
           trace(bold(contract.address), `canonize:`, human, '->', `${canon}`)
           writeToRegion(exports, dstPtr, canon)
@@ -474,7 +474,7 @@ class MocknetContract {
         humanize_address (srcPtr, dstPtr) {
           const exports = getExports()
           const canon   = readBuffer(exports, srcPtr)
-          const human   = Formati.bech32.encode(MOCKNET_ADDRESS_PREFIX, Formati.bech32.toWords(canon))
+          const human   = Formati.Bech32.bech32.encode(MOCKNET_ADDRESS_PREFIX, Formati.Bech32.bech32.toWords(canon))
           const dst     = region(exports.memory.buffer, dstPtr)
           trace(bold(contract.address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(exports, dstPtr, human)

@@ -37,7 +37,7 @@ export const ScrtAminoWarnings = {
 }
 
 export const privKeyToMnemonic = (privKey: Uint8Array) =>
-  (Formati.Bip39.encode(privKey) as any).data
+  (Formati.Crypto.Bip39.encode(privKey) as any).data
 
 /** Amino-specific Secret Network settings. */
 export class ScrtAminoConfig extends Fadroma.ScrtConfig {
@@ -323,7 +323,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
   async encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message) {
     if (!codeHash) throw ScrtAminoErrors.EncryptNoCodeHash()
     const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg as object)
-    return Formati.toBase64(encrypted)
+    return Formati.Encoding.toBase64(encrypted)
   }
 
   async signTx (msgs: any[], gas: Fadroma.IFee, memo: string = '') {
@@ -437,18 +437,18 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
         const errorCipherB64
           = rgxMatches[1]
         const errorCipherBz
-          = Formati.fromBase64(errorCipherB64)
+          = Formati.Encoding.fromBase64(errorCipherB64)
         const msgIndex
           = Number(rgxMatches[2])
         const msg
           = await this.msgs[msgIndex]
         const nonce
-          = Formati.fromBase64(msg.value.msg).slice(0, 32)
+          = Formati.Encoding.fromBase64(msg.value.msg).slice(0, 32)
         const errorPlainBz
           = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce)
 
         ;(err as Error).message = (err as Error).message
-          .replace(errorCipherB64, Formati.fromUtf8(errorPlainBz))
+          .replace(errorCipherB64, Formati.Encoding.fromUtf8(errorPlainBz))
       } catch (decryptionError) {
         console.error('Failed to decrypt :(')
         throw new Error(

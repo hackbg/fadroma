@@ -524,7 +524,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     if (!codeHash) throw Errors.EncryptNoCodeHash()
     const { encryptionUtils } = await this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
-    return Formati.toBase64(encrypted)
+    return Formati.Encoding.toBase64(encrypted)
   }
 
 }

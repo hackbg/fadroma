@@ -45,8 +45,15 @@
     "docs:vp:serve": "vitepress serve"
   },
   "dependencies": {
-    "@fadroma/mocknet": "workspace:^1",
-    "@fadroma/tokens":  "workspace:^3",
+    "@fadroma/client":     "workspace:^5",
+    "@fadroma/connect":    "workspace:^1",
+    "@fadroma/mocknet":    "workspace:^1",
+    "@fadroma/tokens":     "workspace:^3",
+    "@fadroma/build":      "workspace:^1",
+    "@fadroma/deploy":     "workspace:^1",
+    "@fadroma/devnet":     "workspace:^1",
+    "@fadroma/scrt":       "workspace:^1",
+    "@fadroma/scrt-amino": "workspace:^1",
     "@hackbg/formati":  "^3.0.1",
     "@hackbg/kabinet":  "^3.1.2",
     "@hackbg/komandi":  "^5",
@@ -55,12 +62,7 @@
   },
   "peerDependencies": {
     "dotenv":              "^16.0.1",
-    "@hackbg/ganesha":     "^2.3.0",
-    "@fadroma/build":      "workspace:^1",
-    "@fadroma/deploy":     "workspace:^1",
-    "@fadroma/devnet":     "workspace:^1",
-    "@fadroma/scrt":       "workspace:^1",
-    "@fadroma/scrt-amino": "workspace:^1"
+    "@hackbg/ganesha":     "^2.3.0"
   },
   "peerDependenciesMeta": {
     "dotenv":              { "optional": true },

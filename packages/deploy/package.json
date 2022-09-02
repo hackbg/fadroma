@@ -20,14 +20,15 @@
     "@fadroma/build":  { "optional": true, "description": "For building from deployment scripts." }
   },
   "dependencies": {
-    "@fadroma/client": "^5",
-    "@fadroma/build":  "^1",
-    "@hackbg/formati": "^3.0.1",
-    "@hackbg/kabinet": "^3.1.2",
-    "@hackbg/konzola": "^2",
-    "@hackbg/konfizi": "^2",
-    "@hackbg/komandi": "^5",
-    "@hackbg/portali": "^1.2.4",
+    "@fadroma/client":  "^5",
+    "@fadroma/connect": "^1",
+    "@fadroma/build":   "^1",
+    "@hackbg/formati":  "^3.0.1",
+    "@hackbg/kabinet":  "^3.1.2",
+    "@hackbg/konzola":  "^2",
+    "@hackbg/konfizi":  "^2",
+    "@hackbg/komandi":  "^5",
+    "@hackbg/portali":  "^1.2.4",
     "dotenv":  "^16.0.1",
     "js-yaml": "^4.1.0"
   },

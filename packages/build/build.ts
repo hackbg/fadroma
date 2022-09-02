@@ -24,7 +24,7 @@ import * as Dokeres from '@hackbg/dokeres'
 import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
-import { Builder, Source, IntoSource, Template } from '@fadroma/client'
+import { Contract, Builder } from '@fadroma/client'
 
 import { default as simpleGit } from 'simple-git'
 
@@ -168,9 +168,9 @@ export class LocalWorkspace {
 
   /** Get a Source object pointing to a crate from the current workspace and ref */
   crate (specifier: string): LocalSource {
-    const [ crate, ref ] = specifier.split('@')
+    const [ crate, ref ] = Contract.sourceToCrateRef(specifier)
     let self = this
-    if (ref) {
+    if (ref !== 'HEAD') {
       self = self.at(ref)
     }
     return new LocalSource(crate, {

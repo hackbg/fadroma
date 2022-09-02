@@ -1,5 +1,6 @@
 import * as Fadroma from '@fadroma/client'
 import * as Scrt    from '@fadroma/scrt'
+import { Overridable } from '@hackbg/konfizi'
 import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
 import { randomHex } from '@hackbg/formati'
 
@@ -170,7 +171,7 @@ interface TokenRegistryContext {
 }
 
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
-export class TokenRegistry extends Fadroma.Overridable {
+export class TokenRegistry extends Overridable {
 
   /** Command step: add the token registry to the context.
     * Registered as plugin in the local DeployCommands instance. */
