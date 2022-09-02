@@ -1,6 +1,7 @@
 import * as Komandi from '@hackbg/komandi'
 import { CustomConsole, bold } from '@hackbg/konzola'
 import { EnvConfig } from '@hackbg/konfizi'
+import type { Env } from '@hackbg/konfizi'
 
 import * as Fadroma  from '@fadroma/client'
 import { Devnet }    from '@fadroma/devnet'
@@ -10,8 +11,8 @@ import { Mocknet }   from '@fadroma/mocknet'
 
 export { Mocknet, ScrtGrpc, ScrtAmino, Devnet }
 
-/** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
-Object.assign(Fadroma.Chain.variants as Fadroma.ChainRegistry, {
+/** Populate `Fadroma.Chain.Variants` with catalog of possible connections. */
+Object.assign(Fadroma.Chain.Variants as Fadroma.ChainRegistry, {
 
   // Support for Mocknet.
   // TODO switch this out and give each chain implementation its own Mocknet subclass
@@ -20,7 +21,7 @@ Object.assign(Fadroma.Chain.variants as Fadroma.ChainRegistry, {
 
   // Support for current Secret Network
   ...ScrtGrpc.Chains,
-  ScrtGrpcDevnet:  Devnet.define(ScrtGrpc,   'scrt_1.3' /** TODO use image name directly here */),
+  ScrtGrpcDevnet:  Devnet.define(ScrtGrpc,  'scrt_1.3' /** TODO use image name directly here */),
 
   // Support for Secret Network legacy amino API
   ...ScrtAmino.Chains,
@@ -29,47 +30,41 @@ Object.assign(Fadroma.Chain.variants as Fadroma.ChainRegistry, {
 })
 
 export async function connect (
-  /** Select a chain. Defaults to FADROMA_CHAIN */
-  chain?: Fadroma.Chain|keyof Fadroma.ChainRegistry|null,
-  /** Authorize an agent. Defaults to FADROMA_AGENT */
-  agent?: Fadroma.Agent|Fadroma.AgentOpts|string|null,
-  /** Optionally, override settings. */
-  config: ConnectConfig = new ConnectConfig()
+  config: Partial<ConnectConfig> = new ConnectConfig()
 ): Promise<ConnectContext> {
-
+  config = new ConnectConfig(process.env, process.cwd(), config)
   const log = new ConnectConsole(console, 'Fadroma.connect')
-
-  chain ??= config.chain
-  if (!chain) {
-    process.exit(log.noName(config.chains))
+  let chain: Fadroma.Chain|null = null
+  let agent: Fadroma.AgentOpts = {}
+  if (config.chain) {
+    const getChain = config.chains![config.chain]
+    chain = await Promise.resolve(getChain(config))
   }
-  if (typeof chain === 'string') {
-    if (!Fadroma.Chain.variants[chain]) {
-      process.exit(log.noName(config.chains))
+  if (config.agentName) {
+    if (!chain?.isDevnet) {
+      console.warn('Agent name only supported for devnet')
+    } else {
+      agent.name = config.agentName
     }
-    chain = await Promise.resolve(config.chains[chain](config))
   }
-
-  if (typeof agent === 'string') {
-    if (!chain.isDevnet) {
-      throw new Error('agent from string is only supported for devnet genesis accounts')
-    }
-    agent = { name: agent }
-  } else if (agent instanceof Object && !(agent instanceof Fadroma.Agent)) {
-    agent.mnemonic = config.agentMnemonic
+  if (config.mnemonic) {
+    agent.mnemonic = config.mnemonic
   }
-
-  return new ConnectContext(config, chain, agent ? await chain.getAgent(agent) : undefined)
-
+  console.log({ config, chain, agent })
+  return new ConnectContext(
+    config, chain!, chain ? await chain!.getAgent(agent) : undefined
+  )
 }
 
 export class ConnectContext extends Fadroma.Context {
   constructor (
-    config:  Partial<ConnectConfig> = new ConnectConfig(),
-    ...args: ConstructorParameters<typeof Fadroma.Context>
+    config:      Partial<ConnectConfig> = new ConnectConfig(),
+    chain?:      Fadroma.Chain,
+    agent?:      Fadroma.Agent,
+    deployment?: Fadroma.Deployment
   ) {
-    super(...args)
-    this.config = config ?? new ConnectConfig(this.env, this.cwd)
+    super(chain, agent, deployment)
+    this.config = new ConnectConfig(this.env, this.cwd, config)
   }
   config: ConnectConfig
 }
@@ -77,7 +72,16 @@ export class ConnectContext extends Fadroma.Context {
 /** Connection and identity configuration from environment variables. */
 export class ConnectConfig extends EnvConfig {
 
-  chains = Fadroma.Chain.variants
+  constructor (
+    readonly env: Env    = {},
+    readonly cwd: string = '',
+    defaults: Partial<ConnectConfig> = {}
+  ) {
+    super(env, cwd)
+    this.override(defaults)
+  }
+
+  chains = Fadroma.Chain.Variants
 
   /** Name of chain to use. */
   chain?: keyof Fadroma.ChainRegistry
@@ -90,7 +94,7 @@ export class ConnectConfig extends EnvConfig {
                        'ADMIN'))
 
   /** Mnemonic to use for authentication. */
-  agentMnemonic?: string
+  mnemonic?: string
     = this.getString('FADROMA_MNEMONIC',    ()=>
       this.getString('SCRT_AGENT_MNEMONIC', ()=>
                        undefined))
@@ -114,7 +118,7 @@ export class ConnectConsole extends CustomConsole {
 
   name = 'Fadroma Connect'
 
-  supportedChains = (supportedChains: object = Fadroma.Chain.variants) => {
+  supportedChains = (supportedChains: object = Fadroma.Chain.Variants) => {
     this.log()
     this.info('Known chain names:')
     for (const chain of Object.keys(supportedChains).sort()) {

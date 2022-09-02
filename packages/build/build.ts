@@ -35,6 +35,16 @@ import { pathToFileURL, fileURLToPath } from 'url'
 import { readFileSync, mkdtempSync    } from 'fs'
 
 export class BuilderConfig extends Konfizi.EnvConfig {
+
+  constructor (
+    readonly env: Konfizi.Env = {},
+    readonly cwd: string = '',
+    defaults: Partial<BuilderConfig> = {}
+  ) {
+    super(env, cwd)
+    this.override(defaults)
+  }
+
   /** Project root. Defaults to current working directory. */
   project:    string
     = this.getString ('FADROMA_PROJECT',          ()=>this.cwd)
@@ -69,11 +79,11 @@ export class BuildTask<X> extends Komandi.Task<BuildContext, X> {
 export class BuildContext extends Komandi.Context {
 
   constructor (
-    config:  Partial<BuilderConfig> = {},
+    config:  Partial<BuilderConfig> = new BuilderConfig(),
     project: string = config.project ?? process.cwd()
   ) {
     super()
-    this.config    = config ?? new BuilderConfig(this.env, this.cwd)
+    this.config    = new BuilderConfig(this.env, this.cwd, config)
     this.builder   = getBuilder(this.config)
     this.workspace = new LocalWorkspace(this.config.project)
   }

@@ -202,8 +202,9 @@ appropriate `Client` subclass from the authorized `Agent`.
 ```typescript
 import { Client } from '.'
 let contract: Client
-throws(()=>new Client().connected())
-ok(new Client({ agent: true, address: true }).connected())
+throws(()=>new Client().assertAddress())
+throws(()=>new Client().assertAgent())
+ok(new Client(agent, { address: true }).assertAddress().assertAgent() instanceof Agent)
 ```
 
 ### `Source`, `Builder`: compiling smart contracts

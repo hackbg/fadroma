@@ -41,23 +41,55 @@ import * as FS from 'fs'
 import YAML from 'js-yaml'
 export { YAML }
 
+export async function deploy (config: Partial<DeployConfig> = {}) {
+  const { chain, agent } = await Connect.connect(config)
+  return new DeployContext(config, chain, agent, undefined)
+}
+
+/** Base class for class-based deploy procedure. */
+export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
+
+  log = new DeployConsole(console, 'Fadroma.DeployTask')
+
+  /** Specify a template to upload or use. */
+  template = (...args: ConstructorParameters<NewTemplate>): Template => new Template(...args)
+
+  /** Specify multiple templates to upload or use. */
+  templates = (specifiers: IntoTemplate[]): Templates => new Templates(specifiers)
+
+  /** Specify a contract to deploy or operate. */
+  contract = <C extends Client> (...args: ConstructorParameters<NewClient<C>>): C =>
+    new Client(...args) as C
+
+  /** Specify multiple contracts of the same kind. */
+  contracts = <C extends Client> (
+    $Client: NewClient<C> = Client as unknown as NewClient<C>
+  ): Contracts<C> =>
+    new Contracts([], { Client: $Client }) as Contracts<C>
+
+}
+
 export class DeployContext extends Connect.ConnectContext {
 
   constructor (
-    config:           Partial<DeployConfig> = new DeployConfig(),
-    private build?:   Build.BuildContext
+    config:          Partial<DeployConfig> = new DeployConfig(),
+    chain?:          Chain,
+    agent?:          Agent,
+    deployment?:     Deployment,
+    readonly build?: Build.BuildContext
   ) {
     super(config)
     // Populate the config
-    this.config = config ?? new DeployConfig(this.env, this.cwd)
+    this.config = new DeployConfig(process.env, process.cwd(), config)
     // Make sure we're operating in a deployment
-    if (!this.deployment) {
+    if (!deployment) {
       console.warn('No active deployment. Most commands will fail.')
       console.warn('You can create a deployment using `fadroma-deploy new`')
       console.warn('or select a deployment using `fadroma-deploy select`')
       console.warn('among the ones listed by `fadroma-deploy list`')
     }
     // Make sure we have an operating identitiy
+    this.agent ??= agent
     if (!this.agent) {
       throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
     }
@@ -67,7 +99,7 @@ export class DeployContext extends Connect.ConnectContext {
 
   config: DeployConfig
 
-  log = new DeployConsole(console, 'Fadroma.DeployTask')
+  log = new DeployConsole(console, 'Fadroma.DeployContext')
 
   /** Knows how to upload contracts to a blockchain. */
   uploader:    Uploader
@@ -97,6 +129,16 @@ export class DeployContext extends Connect.ConnectContext {
 }
 
 export class DeployConfig extends Connect.ConnectConfig {
+
+  constructor (
+    readonly env: Konfizi.Env = {},
+    readonly cwd: string = '',
+    defaults: Partial<DeployConfig> = {}
+  ) {
+    super(env, cwd)
+    this.override(defaults)
+  }
+
   /** Whether to always upload contracts, ignoring upload receipts that match. */
   reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
   /** Whether to generate unsigned transactions for manual multisig signing. */
@@ -166,22 +208,11 @@ export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
   /** DEPRECATED: Save some extra data into the deployments directory. */
   save <D> (name: string, data: D) {
     const file = this.at(`${name}.json`).as(Kabinet.JSONFile) as Kabinet.JSONFile<D>
-    //console.info('Deployments writing:', bold(file.shortPath))
+    //this.log.info('Deployments writing:', bold(file.shortPath))
     return file.save(data)
   }
 
 }
-
-/// # Deploy task
-
-/** Base class for class-based deploy procedure. Adds progress logging. */
-export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
-
-  log = new DeployConsole(console, 'Fadroma.DeployTask')
-
-}
-
-/// # Deploy console
 
 export class DeployConsole extends Komandi.CommandsConsole {
 
@@ -272,7 +303,7 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     //@ts-ignore
     this.command('new',     'create a new empty deployment',   DeployCommands.create)
     this.command('status',  'show the current deployment',     DeployCommands.status)
-    this.command('nothing', 'check that the script runs', () => console.log('So far so good'))
+    this.command('nothing', 'check that the script runs', () => this.log.info('So far so good'))
   }
 
   /** Defines a command that creates and selects a new deployment before running. */
@@ -293,7 +324,7 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
   static get = async (context: DeployContext): Promise<DeployContext> => {
     const deployments = this.expectEnabled(context)
     if (!deployments.active) {
-      console.info('No selected deployment on chain:', bold(context.chain?.id??'(unspecifier)'))
+      this.log.error('No selected deployment on chain:', bold(context.chain?.id??'(unspecifier)'))
     }
     return { ...context, deployment: deployments.active } as DeployContext
   }
@@ -324,7 +355,7 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     const { chain = { id: '(unspecified)' } } = context
     const list = deployments.list()
     if (list.length > 0) {
-      console.info(`Deployments on chain ${bold(chain.id)}:`)
+      this.log.info(`Deployments on chain ${bold(chain.id)}:`)
       for (let name of list) {
         if (name === deployments.KEY) continue
         const deployment = deployments.get(name)!
@@ -334,10 +365,10 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
           info = `${bold(name)} (selected)`
         }
         info = `${deployment} (${deployment.count} contracts)`
-        console.info(` `, info)
+        this.log.info(` `, info)
       }
     } else {
-      console.info(`No deployments on chain`, bold(chain.id))
+      this.log.info(`No deployments on chain`, bold(chain.id))
     }
   }
 
@@ -347,19 +378,19 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     const [id] = context.args ?? [undefined]
     const list = deployments.list()
     if (list.length < 1) {
-      console.info('\nNo deployments. Create one with `deploy new`')
+      this.log.info('\nNo deployments. Create one with `deploy new`')
     }
     if (id) {
-      console.info(bold(`Selecting deployment:`), id)
+      this.log.info(bold(`Selecting deployment:`), id)
       await deployments.select(id)
     }
     if (list.length > 0) {
       DeployCommands.list(context)
     }
     if (deployments.active) {
-      console.info(`Currently selected deployment:`, bold(deployments.active.prefix))
+      this.log.info(`Currently selected deployment:`, bold(deployments.active.prefix))
     } else {
-      console.info(`No selected deployment.`)
+      this.log.info(`No selected deployment.`)
     }
   }
 
@@ -370,14 +401,14 @@ export class DeployCommands extends Komandi.Commands<DeployContext> {
     if (deployment) {
       this.log.deployment({ deployment })
     } else {
-      console.info('No selected deployment on chain:', bold(context.chain?.id??'(no chain)'))
+      this.log.info('No selected deployment on chain:', bold(context.chain?.id??'(no chain)'))
     }
   }
 
   private static expectEnabled = (context: DeployContext): Deployments => {
     if (!(context.deployments instanceof Deployments)) {
-      //console.error('context.deployments was not populated')
-      //console.log(context)
+      //this.log.error('context.deployments was not populated')
+      //this.log.log(context)
       throw new Error('Deployments were not enabled')
     }
     return context.deployments
@@ -428,8 +459,18 @@ export class FSUploader extends Uploader {
         return receipt.toTemplate()
       }
     }
-    const data = $(template.artifact!).as(Kabinet.BinaryFile).load()
-    template = template.where(await this.agent.upload(data))
+    if (!template.artifact) {
+      throw new Error('No artifact')
+    }
+    const data = $(template.artifact).as(Kabinet.BinaryFile).load()
+    const result = await this.agent.upload(data)
+    if (template.codeHash && result.codeHash && template.codeHash !== result.codeHash) {
+      throw new Error(
+        `Code hash mismatch when uploading ${template.artifact?.toString()}: ` +
+        `${template.codeHash} vs ${result.codeHash}`
+      )
+    }
+    template = new Template(template, result)
     if (receipt) {
       receipt.save(template)
     }
@@ -608,12 +649,17 @@ export class UploadReceipt extends Kabinet.JSONFile<{
 export class YAMLDeployment extends Deployment {
 
   constructor (
-    path:   string,
+    path?:  string,
     agent?: Agent,
   ) {
-    const file = $(path).as(Kabinet.YAMLFile)
-    super('', agent)
-    this.load()
+    if (path) {
+      const file = $(path).as(Kabinet.YAMLFile)
+      super(file.name, agent)
+      this.file = file
+      this.load()
+    } else {
+      super('', agent)
+    }
   }
 
   file?: Kabinet.YAMLFile<unknown>
@@ -666,7 +712,10 @@ export class YAMLDeployment extends Deployment {
     let output = ''
     for (let [name, data] of Object.entries(this.state)) {
       output += '---\n'
-      const dump = YAML.dump({ ...data, name: data.name ?? name }, { noRefs: true })
+      name ??= data.name!
+      if (!name) throw new Error('Deployment: no name')
+      data = JSON.parse(JSON.stringify({ ...data, name, deployment: undefined }))
+      const dump = YAML.dump(data, { noRefs: true })
       output += Kabinet.alignYAML(dump)
     }
 

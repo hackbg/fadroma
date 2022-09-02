@@ -3,6 +3,7 @@
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual, throws } from 'assert'
+import { pathToFileURL } from 'url'
 ```
 
 ```typescript
@@ -10,8 +11,9 @@ import * as Fadroma from '@fadroma/client'
 let chain:    Fadroma.Chain    = null
 let agent:    Fadroma.Agent    = null
 let template: Fadroma.Template = null
-let artifact: Fadroma.URL      = null
-let chainId, codeId, codeHash, txHash, result
+let artifact: Fadroma.URL      = pathToFileURL(Testing.fixture('empty.wasm'))
+let chainId:  Fadroma.ChainId  = 'mocknet'
+let codeId, codeHash, txHash, result
 ```
 
 ## Deploy events
@@ -41,22 +43,15 @@ let config: DeployConfig = new DeployConfig({}, '')
 ## Deploy context
 
 ```typescript
-import { DeployContext, DeployConfig } from '.'
-import { Template, Templates, Client, Contracts } from '@fadroma/client'
-agent = { chain: { id: '' } }
-
-let context: DeployContext = new DeployContext(new DeployConfig({
-  FADROMA_CHAIN:    'Mocknet',
-  FADROMA_MNEMONIC: 'genius supply lecture echo follow that silly meadow used gym nerve together'
-}))
-
-ok(context.template('crate') instanceof Template)
-
-ok(context.templates(['crate1', 'crate2']) instanceof Templates)
-
-ok(context.contract('crate') instanceof Client)
-
-ok(context.contracts() instanceof Contracts)
+import { deploy, DeployContext, DeployConfig } from '.'
+const mnemonic = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
+let context: DeployContext = await deploy({ chain: 'Mocknet', mnemonic })
+ok(context                                 instanceof DeployContext)
+ok(context.uploader                        instanceof Fadroma.Uploader)
+ok(context.template('crate')               instanceof Fadroma.Template)
+ok(context.templates(['crate1', 'crate2']) instanceof Fadroma.Templates)
+ok(context.contract('crate')               instanceof Fadroma.Client)
+ok(context.contracts()                     instanceof Fadroma.Contracts)
 ```
 
 ## Deploy task
@@ -70,44 +65,20 @@ new DeployTask()
 
 ```typescript
 import { FSUploader } from '.'
-new FSUploader()
-await new FSUploader().upload()
-await new FSUploader().uploadMany()
-```
 
-## `Deployment`, `Deployments`: keeping track of deployed contracts
+let uploader: Fadroma.Uploader = context.uploader
+ok(uploader instanceof FSUploader)
 
-```typescript
-const Deployment = Fadroma.Deployment
-new Deployment()
+await uploader.upload(new Fadroma.Template({ artifact }))
 
-import { Deployments } from '.'
-new Deployments()
-```
-
-## Upload
-
-```typescript
-import * as Upload from '.'
-let uploader: Upload.Uploader
-```
-
-* Basic uploader
-
-```typescript
-import { pathToFileURL } from 'url'
-uploader = new Upload.FSUploader(agent)
+await uploader.uploadMany([])
 
 const testUpload = async (cb) => {
   const { template, uploader, uploaded } = await cb()
   ok(uploaded !== template)
-  ok(uploaded.artifact === template.artifact)
-  ok(uploaded.uploader === uploader)
+  ok(uploaded.artifact?.toString() === template.artifact.toString())
+  //ok(uploaded.uploader === uploader)
 }
-
-chain    = { id: chainId }
-agent    = { chain, upload: async (artifact) => template, nextBlock: Promise.resolve() }
-artifact = pathToFileURL(Testing.fixture('empty.wasm'))
 
 await testUpload(async () => {
   const template = new Fadroma.Template(artifact)
@@ -144,35 +115,6 @@ await testUpload(async () => {
   const uploaded = await template.upload()
   return { template, uploader, uploaded }
 })
-
-chainId  = 'test-uploads'
-artifact = { url: emptyContract }
-template = { chainId: Symbol(), codeId: Symbol(), codeHash: Symbol(), transactionHash: Symbol() }
-result   = await uploader.upload(artifact)
-
-deepEqual(result, template)
-ok(uploader.agent === agent)
-
-artifact = { url: emptyContract }
-template = Symbol()
-agent    = { chain: { id: Symbol() }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
-uploader = new FSUploader(agent)
-const results = await uploader.uploadMany([
-  null,
-  artifact,
-  undefined,
-  artifact,
-  artifact,
-  false
-])
-deepEqual(results, [
-  undefined,
-  template,
-  undefined,
-  template,
-  template,
-  undefined,
-])
 ```
 
 * Caching uploader
@@ -182,19 +124,23 @@ import { Path, JSONDirectory, withTmpFile, withTmpDir } from '@hackbg/kabinet'
 import { Uploads } from '.'
 import { resolve } from 'path'
 
-const mockAgent = () => ({
-  async upload () { return {} }
-  chain: {
-    uploads: {
-      resolve: () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
-      make: () => ({
-        resolve: () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
-      })
+const mockAgent = () => new class MockAgent extends Fadroma.Agent {
+
+  chain = new (class MockChain extends Fadroma.Chain {
+    uploads = new class MockUploader extends Fadroma.Uploader {
+      resolve = () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+      make = () => new class MockFile {
+        resolve = () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+      }
     }
-  },
-  instantiate ({ codeId }, label, msg) {
-    return { codeId, label }
-  },
+  })('mock')
+
+  async upload () { return {} }
+
+  instantiate (template, label, initMsg) {
+    return new Client({ ...template, label, initMsg, address: 'some address' })
+  }
+
   instantiateMany (configs, prefix) {
     const receipts = {}
     for (const [{codeId}, name] of configs) {
@@ -204,7 +150,12 @@ const mockAgent = () => ({
     }
     return receipts
   }
-})
+
+  async getHash () {
+    return 'sha256'
+  }
+
+}
 
 // 'add FSUploader to operation context' ({ ok }) {
 agent = { chain: { uploads: Symbol() } }
@@ -219,7 +170,7 @@ await withTmpDir(async cacheDir=>{
   const uploader = new FSUploader(agent, cache)
   await withTmpFile(async location=>{
     const url = pathToFileURL(location)
-    ok(await uploader.upload({url}))
+    ok(await uploader.upload(new Fadroma.Template({artifact})))
   })
 })
 
@@ -238,19 +189,30 @@ await withTmpDir(async cacheDir=>{
 })
 ```
 
-## Deploy
+## `Deployment`, `Deployments`: keeping track of deployed contracts
+
+```typescript
+import { YAMLDeployment } from '.'
+ok(new YAMLDeployment() instanceof Fadroma.Deployment)
+
+import { Deployments } from '.'
+new Deployments()
+```
 
 ```typescript
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
-import { Deployment } from '.'
+import { YAMLDeployment } from '.'
 
-// save/load deployment data
-await withTmpFile(f=>{
-  const d = new Deployment(f)
+const inTmpDeployment = cb => withTmpFile(f=>{
+  const d = new YAMLDeployment(f, mockAgent())
   equal(d.prefix, basename(f))
-  deepEqual(d.receipts, {})
-  equal(d, d.save('test', JSON.stringify({ foo: 1 }))
+  return cb(d)
+})
+
+await inTmpDeployment(async d => {
+  deepEqual(d.state, {})
+  equal(d, d.save('test', JSON.stringify({ foo: 1 })))
   equal(d, d.add('test1', { test1: 1 }))
   ok(!d.load())
   equal(d, d.set('test2', { test2: 2 }))
@@ -259,65 +221,56 @@ await withTmpFile(f=>{
 })
 
 // init contract from uploaded template
-await withTmpFile(async f=>{
-  const agent      = mockAgent()
-  const deployment = new Deployment(f)
-  const codeId     = 0
-  const template   = { codeId }
+await inTmpDeployment(async deployment =>{
+  const { prefix } = deployment
+  const codeId     = 1
+  const template   = new Fadroma.Template({ chainId, codeId })
   const initMsg    = Symbol()
   const name       = 'contract'
-  const label      = `${basename(f)}/${name}`
-  deepEqual(await deployment.init(agent, template, name, initMsg), { codeId, label })
-  deepEqual(deployment.get(name), { name, codeId, label })
+  const label      = `${prefix}/${name}`
+
+  const deployed   = await deployment.init(template, name, initMsg)
+  ok(deployed instanceof Client)
+  equal(deployed.deployment, deployment)
+  equal(deployed.name,       name)
+  equal(deployed.chainId,    chainId)
+  equal(deployed.codeId,     codeId)
+  equal(deployed.label,      label)
+
+  const loaded = deployment.get(name)
+  equal(loaded.deployment, deployment)
+  equal(loaded.name,       name)
+  equal(loaded.chainId,    chainId)
+  equal(loaded.codeId,     codeId)
+  equal(loaded.label,      label)
 })
 
 // init many contracts from the same template
-await withTmpFile(async f=>{
-  const agent      = mockAgent()
-  const deployment = new Deployment(f)
-  const codeId     = 1
-  const template   = { codeId }
-  const initMsg    = Symbol()
-  const configs    = [['contract1', Symbol()], ['contract2', Symbol()]]
-  const receipts   = await deployment.initMany(agent, template, configs)
-  deepEqual(receipts, [
-    { codeId, label: `${basename(f)}/contract1` },
-    { codeId, label: `${basename(f)}/contract2` },
-  ])
-  deepEqual(deployment.get('contract1'), {
-    name: 'contract1',
-    label: `${basename(f)}/contract1`,
-    codeId,
-  })
-  deepEqual(deployment.get('contract2'), {
-    name: 'contract2',
-    label: `${basename(f)}/contract2`,
-    codeId,
-  })
+await inTmpDeployment(async deployment=>{
+  const {prefix} = deployment
+  const codeId   = 2
+  const template = new Fadroma.Template({ chainId, codeId })
+  const initMsg  = Symbol()
+  const configs  = [['contract1', Symbol()], ['contract2', Symbol()]]
+  const receipts = await deployment.initMany(template, configs)
+  for (const [name] of configs) {
+    equal(deployment.get(name).name,   name)
+    equal(deployment.get(name).label,  `${basename(deployment.file.name)}/${name}`)
+    equal(deployment.get(name).codeId, codeId)
+  }
 })
 
 // init many contracts from different templates
-await withTmpFile(async f=>{
-  const agent      = mockAgent()
-  const deployment = new Deployment(f)
+await inTmpDeployment(async deployment=>{
   const templateA  = { codeId: 2 }
   const templateB  = { codeId: 3 }
   const configs    = [[templateA, 'contractA', Symbol()], [templateB, 'contractB', Symbol()]]
-  const receipts   = await deployment.initVarious(agent, configs)
-  deepEqual(receipts, [
-    { codeId: 2, label: `${basename(f)}/contractA`, },
-    { codeId: 3, label: `${basename(f)}/contractB`, },
-  ])
-  deepEqual(deployment.get('contractA'), {
-    name: 'contractA',
-    label: `${basename(f)}/contractA`,
-    codeId: 2
-  })
-  deepEqual(deployment.get('contractB'), {
-    name: 'contractB',
-    label: `${basename(f)}/contractB`,
-    codeId: 3
-  })
+  const receipts   = await deployment.initVarious(configs)
+  for (const [template, name] of configs) {
+    equal(deployment.get(name).name,   name)
+    equal(deployment.get(name).label,  `${basename(deployment.file.name)}/${name}`)
+    equal(deployment.get(name).codeId, template.codeId)
+  }
 })
 ```
 
@@ -335,7 +288,7 @@ await withTmpDir(async dir=>{
   await deployments.create('test-deployment-2')
   await deployments.select('test-deployment-1')
   await deployments.select('test-deployment-2')
-  assert(deployments.active instanceof Deployment)
+  assert(deployments.active instanceof Fadroma.Deployment)
   deployments.get()
   deployments.list()
   deployments.save('test', 'test')

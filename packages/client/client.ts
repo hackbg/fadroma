@@ -1,65 +1,6 @@
-import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
+import { Overridable } from '@hackbg/konfizi'
+import { CustomConsole, CustomError, bold, timestamp } from '@hackbg/konzola'
 import { Context as CommandContext } from '@hackbg/komandi'
-
-type valof<T> = T[keyof T]
-
-/** A ***value object*** that allows its meaningful properties to be overridden.
-  * For the override to work, empty properties must be defined as:
-  *
-  *     class Named extends Overridable {
-  *         name?: Type = undefined
-  *     }
-  *
-  * (Otherwise Object.getOwnPropertyNames wouldn't see the property slots,
-  * and `new Named.where({ name: 'something' })` wouldn't update `name`.
-  * This is because of how TypeScript handles class properties;
-  * in raw JS, they seem to be defined as undefined by default?)
-  *
-  * Even in when not inheriting from `Overridable`, try to follow the pattern of
-  * ***immutable value objects*** which represent a piece of state in context
-  * and which, instead of mutating themselves, emit changed copies of themselves
-  * using the idioms:
-  *     this.where({ name: 'value' }) // internally
-  * or:
-  *     new Named(oldNamed, { name: 'value' }) // externally.
-  **/
-export class Overridable {
-  override (options: object = {}) {
-    override(false, this, options)
-  }
-  /** Return copy of self with overridden properties. */
-  where (options: Partial<Source> = {}) {
-    return new (this.constructor as any)(this, options)
-  }
-}
-
-/** Override only allowed properties. */
-export function override (
-  /** Whether to fail on unexpected properties. */
-  strict:    boolean,
-  /** The object being overridden. */
-  self:      object,
-  /** The object containing the overrides. */
-  overrides: object,
-  /** List of allowed properties (defaults to the defined properties on the object;
-    * that's why many fields explicitly default to `undefined` - otherwise TypeScript
-    * does not generate them, somewhat contrarily to native JS class behavior) */
-  allowed:   string[] = Object.getOwnPropertyNames(self),
-): Record<string, valof<typeof overrides>> {
-  const filtered: Record<string, valof<typeof overrides>> = {}
-  for (const [key, val] of Object.entries(overrides)) {
-    if (allowed.includes(key)) {
-      const current: typeof val = (self as any)[key]
-      if (strict && current && current !== val) {
-        throw new Error(`Tried to override pre-defined ${key}`)
-      }
-      (self as any)[key] = val
-    } else {
-      (filtered as any)[key] = val
-    }
-  }
-  return filtered
-}
 
 /** Idiom for copy-on-write usage of Overridables. */
 export interface New<T, U> {
@@ -142,7 +83,7 @@ export abstract class Chain implements Spectator {
 
   /** Async functions that return Chain instances in different modes.
     * Values for `FADROMA_CHAIN` environment variable. */
-  static variants: ChainRegistry = {}
+  static Variants: ChainRegistry = {}
 
   static Mode = ChainMode
 
@@ -793,19 +734,29 @@ export class Template extends Source {
 
     if (typeof specifier === 'string') {
       const [crate, ref] = specifier.split('@')
-      options = { ...options, crate, ref }
+      this.override({ ...options, crate, ref })
     } else if (specifier instanceof URL) {
-      options = { ...options, artifact: specifier }
+      this.override({ ...options, artifact: specifier })
     } else if (typeof specifier === 'object') {
-      options = { ...specifier, ...options }
+      this.override(specifier)
+      this.override(options)
     } else {
       throw new ClientError.InvalidTemplate(specifier)
     }
-    this.override(options)
   }
 
   /** Agent to use for uploading and instantiating a contract. */
   agent: Agent|null = null
+
+  /** Throw if trying to do something with no agent or address. */
+  protected assertAgent (): Agent {
+    const { name } = this.constructor
+    if (!this.agent) throw new Error(
+      `${name} has no address and can't operate. `+
+      `Pass an address when calling "new ${name}(agent, addr)"`
+    )
+    return this.agent
+  }
 
   /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
   task?: Task
@@ -833,39 +784,34 @@ export class Template extends Source {
   /** URL to the compiled code. */
   artifact?: string|URL = undefined
 
+  /** ID of chain to which this template is uploaded. */
+  chainId?:  ChainId    = undefined
+
+  /** Hash of transaction that performed the upload. */
+  uploadTx?: TxHash     = undefined
+
+  /** Code ID representing the identity of the contract's code on a specific chain. */
+  codeId?:   CodeId     = undefined
+
   /** Code hash uniquely identifying the compiled code. */
   codeHash?: CodeHash   = undefined
 
+  async fetchCodeHashByCodeId (): Promise<Template> {
+    const codeHash = await this.assertAgent().getHash(this.codeId!)
+    if (this.codeHash) this.validate('codeHash', this.codeHash, codeHash)
+    return new Template(this, { codeHash })
+  }
+
   /** Upload source code to a chain. */
-  async upload (uploader?: typeof this.uploader): Promise<Template> {
+  async upload (uploader: typeof this.uploader = this.uploader): Promise<Template> {
     return this.asTask(`upload contract template`, upload)
     async function upload (this: Template): Promise<Template> {
-      uploader = this.assertUploader() // Don't start if there is no uploader
+      uploader = this.assertUploader(uploader) // Don't start if there is no uploader
       let self: Template = this        // Start with self
-      console.log({self})
       if (!self.artifact) self = await self.build() // Replace with built
       return uploader.upload(self)     // Return uploaded
     }
   }
-
-  /** Throw if trying to do something with no agent or address. */
-  protected connected (): Agent {
-    const { name } = this.constructor
-    if (!this.agent) throw new Error(
-      `${name} has no address and can't operate. `+
-      `Pass an address when calling "new ${name}(agent, addr)"`
-    )
-    return this.agent
-  }
-
-  /** ID of chain to which this template is uploaded. */
-  chainId?:  ChainId = undefined
-
-  /** Hash of transaction that performed the upload. */
-  uploadTx?: TxHash  = undefined
-
-  /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:   CodeId  = undefined
 
   /** Depending on what pre-Template type we start from, this function
     * invokes builder and uploader to produce a Template from it. */
@@ -876,6 +822,7 @@ export class Template extends Source {
       let self: Template = this
       // If chain ID, code ID and code hash are present, this template is ready to uploade
       if (self.chainId && self.codeId && self.codeHash) return self
+      if (self.chainId && self.codeId) return await self.fetchCodeHashByCodeId()
       // Otherwise we're gonna need an uploader
       const uploader = self.assertUploader()
       // And if we still can't determine the chain ID, bail
@@ -912,11 +859,13 @@ export class Template extends Source {
     async function deploy (this: Template): Promise<C> {
       if (!agent) throw new ClientError.NoCreator()
       const template = await this.getOrUpload()
-    console.log(this)
       this.log.beforeDeploy(this, label)
       if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-      const instance = await agent.instantiate(template, label, initMsg)
-      const client = new this.Client({ ...instance, agent })
+      const client = new this.Client({
+        ...this,
+        ...await agent.instantiate(template, label, initMsg as Message),
+        agent
+      })
       this.log.afterDeploy(client)
       return client as C
     }
@@ -1050,16 +999,27 @@ export class Client extends Template {
     * TODO fetchAddress from label */
   address?: Address = undefined
 
+  protected assertAddress (): this {
+    const { name } = this.constructor
+    const label = this.name ? ` (${this.label})` : ''
+    if (!this.address) throw new Error(
+      `${name}${label} has no address and can't operate.` +
+      ` Pass an address with "new ${name}(agent, address)" ` +
+      ` or "new ${name}({ address })" `
+    )
+    return this
+  }
+
   /** Fetch code hash from address. */
   async fetchCodeHash (expected?: CodeHash): Promise<this> {
-    const codeHash = await this.connected().getHash(this.codeId!)
+    const codeHash = await this.assertAddress().assertAgent().getHash(this.codeId!)
     if (!!expected) this.validate('codeHash', expected, codeHash)
     this.codeHash = codeHash
     return this
   }
 
   async fetchCodeId (expected?: CodeHash): Promise<this> {
-    const codeId = await this.connected().getCodeId(this.codeHash!)
+    const codeId = await this.assertAddress().assertAgent().getCodeId(this.codeHash!)
     if (!!expected) this.validate('codeId', expected, codeId)
     this.codeId = codeId
     return this
@@ -1076,17 +1036,6 @@ export class Client extends Template {
   as (agent: Executor): this {
     const Self = this.constructor as NewClient<typeof this>
     return new Self({ ...this, agent })
-  }
-
-  protected connected (): Agent {
-    const { name } = this.constructor
-    const label = this.name ? ` (${this.label})` : ''
-    if (!this.address) throw new Error(
-      `${name}${label} has no address and can't operate.` +
-      ` Pass an address with "new ${name}(agent, address)" ` +
-      ` or "new ${name}({ address })" `
-    )
-    return super.connected()
   }
 
   /** The message used to instantiate the contract. */
@@ -1129,8 +1078,7 @@ export class Client extends Template {
 
   /** Fetch the label by the address. */
   async fetchLabel (expected?: CodeHash): Promise<this> {
-    this.connected()
-    const label = await this.agent!.getLabel(this.address!)
+    const label = await this.assertAddress().assertAgent().getLabel(this.address!)
     if (!!expected) this.validate('label', expected, label)
     this.label = label
     return this
@@ -1138,7 +1086,7 @@ export class Client extends Template {
 
   /** Execute a query on the specified contract as the specified Agent. */
   async query <U> (msg: Message): Promise<U> {
-    return await this.connected().query(this, msg)
+    return await this.assertAgent().query(this, msg)
   }
 
   /** Default fee for all contract transactions. */
@@ -1176,7 +1124,7 @@ export class Client extends Template {
 
   /** Execute a transaction on the specified contract as the specified Agent. */
   async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
-    this.connected()
+    this.assertAddress().assertAgent()
     opt.fee = opt.fee || this.getFee(msg)
     return await this.agent!.execute(this, msg, opt)
   }
@@ -1185,7 +1133,7 @@ export class Client extends Template {
     * You can override this method to populate custom contract info from the chain on your client,
     * e.g. fetch the symbol and decimals of a token contract. */
   async populate (): Promise<this> {
-    this.connected()
+    this.assertAddress().assertAgent()
     await Promise.all([this.fetchLabel(), this.fetchCodeId(), this.fetchCodeHash()])
     return this
   }
@@ -1253,6 +1201,8 @@ export class Client extends Template {
 
 }
 
+Object.defineProperty(Client, 'RE_LABEL', { enumerable: false, writable: true })
+
 /** Reference to an instantiated smart contract in the format of Fadroma ICC. */
 export interface ContractLink {
   readonly address:   Address
@@ -1284,7 +1234,7 @@ export class Deployment {
 
   constructor (
     /** Unique ID of deployment, used as label prefix for deployed contracts. */
-    public prefix: string = Konzola.timestamp(),
+    public prefix: string = timestamp(),
     /** Default agent to use when interacting with this deployment. */
     public readonly agent?: Agent,
     /** Mapping of names to contract instances. */
@@ -1314,8 +1264,7 @@ export class Deployment {
   get (name: string): Partial<Client>|null {
     const receipt = this.state[name]
     if (!receipt) return null
-    receipt.name = name
-    return receipt
+    return new Client({ ...receipt, name, deployment: this, prefix: this.prefix })
   }
 
   /** Chainable. Add entry to deployment, replacing existing receipt. */
@@ -1349,10 +1298,14 @@ export class Deployment {
   }
 
   /** Instantiate one contract and save its receipt to the deployment. */
-  async init (agent: Agent, template: Template, name: Label, msg: Message): Promise<Client> {
+  async init (template: Template, name: Label, msg: Message): Promise<Client> {
     const label = new Client({ prefix: this.prefix, name }).label
     try {
-      const contract = new Client(template).as(agent).deploy(label, msg)
+      const client   = new Client({ ...template, deployment: this, name, agent: this.agent })
+      const contract = await client.deploy(label, msg)
+      contract.deployment = this
+      contract.prefix     = this.prefix
+      contract.name       = name
       this.set(name, contract)
       return contract
     } catch (e) {
@@ -1362,30 +1315,28 @@ export class Deployment {
   }
 
   /** Instantiate multiple contracts from the same Template with different parameters. */
-  async initMany (
-    agent: Agent, template: Template, contracts: DeployArgs[] = []
-  ): Promise<Client[]> {
+  async initMany (template: Template, specifiers: DeployArgs[] = []): Promise<Client[]> {
     // this adds just the template - prefix is added in initVarious
     try {
-      return this.initVarious(agent, contracts.map(([name, msg])=>[template, name, msg]))
+      return this.initVarious(specifiers.map(([name, msg])=>[template, name, msg]))
     } catch (e) {
-      this.log.deployManyFailed(template, contracts, e as Error)
+      this.log.deployManyFailed(template, specifiers, e as Error)
       throw e
     }
   }
 
   /** Instantiate multiple contracts from different Templates with different parameters,
     * and store their receipts in the deployment. */
-  async initVarious (
-    agent: Agent, contracts: DeployArgsTriple[] = []
-  ): Promise<Client[]> {
-    contracts =
-      contracts.map(c=>[new Template(c[0]), ...c.slice(1)] as DeployArgsTriple)
-    const instances =
-      await agent.instantiateMany(contracts)
-    for (const instance of Object.values(instances)) {
-      const name = (instance.label as string).slice(this.prefix.length+1)
-      this.set(name, instance)
+  async initVarious (specifiers: DeployArgsTriple[] = []): Promise<Client[]> {
+    specifiers = specifiers.map(c=>[new Template(c[0]), ...c.slice(1)] as DeployArgsTriple)
+    const instances = Object.values(await this.agent!.instantiateMany(specifiers))
+    for (const i in instances) {
+      const instance = instances[i]
+      const contract = specifiers[i]
+      instance.name       = contract[1]
+      instance.deployment = this
+      instance.prefix     = this.prefix
+      this.set(instance.name, instance)
     }
     return instances
   }
@@ -1544,12 +1495,12 @@ export type IntoBuilder = string|NewBuilder|Partial<Builder>
 export abstract class Builder extends Overridable {
 
   /** Populated by @fadroma/build */
-  static variants: Record<string, Builder> = {}
+  static Variants: Record<string, Builder> = {}
 
   /** Get a Builder from a specifier and optional overrides. */
   static get (specifier: IntoBuilder = '', options: Partial<Builder> = {}) {
     if (typeof specifier === 'string') {
-      const B = Builder.variants[specifier]
+      const B = Builder.Variants[specifier]
       if (!B) {
         throw new Error(`No "${specifier}" builder installed. Make sure @fadroma/build is imported`)
       }
@@ -1560,7 +1511,7 @@ export abstract class Builder extends Overridable {
       }
       return new (specifier as NewBuilder)(options)
     } else {
-      const B = Builder.variants[specifier?.id as string]
+      const B = Builder.Variants[specifier?.id as string]
       return new (B as any)({ ...specifier, ...options })
     }
   }
@@ -1600,7 +1551,7 @@ export type NewUploader  = New<Uploader, IntoUploader>
 export abstract class Uploader {
 
   /** Populated by @fadroma/deploy */
-  static variants: Record<string, Uploader> = {}
+  static Variants: Record<string, Uploader> = {}
 
   constructor (public agent: Agent) {}
 
