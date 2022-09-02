@@ -42,7 +42,7 @@ export async function connect (
   }
   if (config.agentName) {
     if (!chain?.isDevnet) {
-      console.warn('Agent name only supported for devnet')
+      log.warn('Agent name only supported for devnet')
     } else {
       agent.name = config.agentName
     }
@@ -50,7 +50,6 @@ export async function connect (
   if (config.mnemonic) {
     agent.mnemonic = config.mnemonic
   }
-  console.log({ config, chain, agent })
   return new ConnectContext(
     config, chain!, chain ? await chain!.getAgent(agent) : undefined
   )

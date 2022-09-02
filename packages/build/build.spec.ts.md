@@ -164,18 +164,18 @@ equal(typeof getBuilder().caching, 'boolean')
 ## Some mock builders
 
 ```typescript
-console.info('builder')
+//console.info('builder')
 builder = new class TestBuilder1 extends Fadroma.Builder {
   async build (source: Source): Promise<Template> {
     return { location: '', codeHash: '', source }
   }
 }
 
-console.info('build one')
+//console.info('build one')
 source   = {}
 template = await builder.build(source)
 
-console.info('build many')
+//console.info('build many')
 let sources   = [{}, {}, {}]
 let templates = await builder.buildMany(sources)
 

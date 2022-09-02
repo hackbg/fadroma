@@ -87,6 +87,8 @@ export abstract class Chain implements Spectator {
 
   static Mode = ChainMode
 
+  log = new ClientConsole(console, 'Fadroma.Chain')
+
   constructor (
     readonly id: ChainId,
     options: Partial<ChainOpts> = {}
@@ -103,15 +105,15 @@ export abstract class Chain implements Spectator {
       if (options.mode === Chain.Mode.Devnet) {
         this.node = options.node
         if (this.url !== String(this.node.url)) {
-          console.warn(`Fadroma Chain: node.url "${this.node.url}" overrides chain.url "${this.url}"`)
+          this.log.warn(`Fadroma Chain: node.url "${this.node.url}" overrides chain.url "${this.url}"`)
           this.url = String(this.node.url)
         }
         if (this.id !== this.node.chainId) {
-          console.warn(`Fadroma Chain: node.id "${this.node.chainId}" overrides chain.id "${this.id}"`)
+          this.log.warn(`Fadroma Chain: node.id "${this.node.chainId}" overrides chain.id "${this.id}"`)
           this.id = this.node.chainId
         }
       } else {
-        console.warn('Chain: "node" option passed to non-devnet. Ignoring')
+        this.log.warn('Chain: "node" option passed to non-devnet. Ignoring')
       }
     }
   }
@@ -163,18 +165,18 @@ export abstract class Chain implements Spectator {
     // Soft code hash checking for now
     const realCodeHash = await this.getHash(address)
     if (!codeHash) {
-      console.warn(
+      this.log.warn(
         'Code hash not provided for address:', address,
         '  Code hash on chain:', realCodeHash
       )
     } if (codeHash !== realCodeHash) {
-      console.warn(
+      this.log.warn(
         'Code hash mismatch for address:', address,
         '  Expected code hash:',           codeHash,
         '  Code hash on chain:',           realCodeHash
       )
     } else {
-      console.info(`Code hash of ${address}:`, realCodeHash)
+      this.log.info(`Code hash of ${address}:`, realCodeHash)
     }
     return realCodeHash
   }
@@ -182,7 +184,7 @@ export abstract class Chain implements Spectator {
   abstract get height (): Promise<number>
 
   get nextBlock (): Promise<number> {
-    console.info('Waiting for next block...')
+    this.log.info('Waiting for next block...')
     return new Promise((resolve, reject)=>{
       this.height.then(async startingHeight=>{
         try {
@@ -463,7 +465,7 @@ export abstract class Bundle implements Executor {
   Bundle = this.constructor
 
   bundle (): this {
-    console.warn('Nest bundles with care. Depth:', ++this.depth)
+    this.log.warn('Nest bundles with care. Depth:', ++this.depth)
     return this
   }
 
@@ -602,7 +604,7 @@ export abstract class Bundle implements Executor {
 
   run (memo = "", save: boolean = false): Promise<any> {
     if (this.depth > 0) {
-      console.warn('Unnesting bundle. Depth:', --this.depth)
+      this.log.warn('Unnesting bundle. Depth:', --this.depth)
       this.depth--
       //@ts-ignore
       return null
@@ -654,7 +656,7 @@ export class Source extends Overridable implements Partial<Source> {
     Object.defineProperty(this, 'log', { writable: true, enumerable: false })
 
     if (typeof specifier === 'string') {
-      const [ crate, ref ] = specifier.split('@')
+      const [ crate, ref = 'HEAD' ] = specifier.split('@')
       options = { ...options, crate, ref }
     } else if (specifier instanceof URL) {
       options = { ...options, repo: specifier }
@@ -667,19 +669,27 @@ export class Source extends Overridable implements Partial<Source> {
   }
 
   /** URL to local or remote Git repository containing the source code. */
-  repo?:    string|URL     = undefined
+  repo?:      string|URL = undefined
+
+  /** Absolute path to Cargo workspace
+    * TODO: replace with path to workspace relative to repo root. */
+  workspace?: string     = undefined
+
+  /** Path to Cargo workspace
+    * TODO: replace with path to crate relative to repo root. */
+  path?:      string     = undefined
 
   /** Commit hash of source commit. Points to last commit if building from HEAD. */
-  commit?:  string         = undefined
+  commit?:  string       = undefined
 
   /** Git ref (branch or tag) pointing to source commit. */
-  ref?:     string         = undefined
+  ref?:     string       = undefined
 
   /** Name of crate. Used to find contract crate in workspace repos. */
-  crate?:   string         = undefined
+  crate?:   string       = undefined
 
   /** List of crate features to enable during build. */
-  features?: string[]      = undefined
+  features?: string[]    = undefined
 
   /** Builder implementation that produces a Template from the Source. */
   builder?: string|Builder = undefined
@@ -729,11 +739,9 @@ export class Template extends Source {
     options:   Partial<Template> = {},
   ) {
     super()
-    
     Object.defineProperty(this, 'log', { writable: true, enumerable: false })
-
     if (typeof specifier === 'string') {
-      const [crate, ref] = specifier.split('@')
+      const [crate, ref = 'HEAD'] = specifier.split('@')
       this.override({ ...options, crate, ref })
     } else if (specifier instanceof URL) {
       this.override({ ...options, artifact: specifier })
@@ -826,7 +834,10 @@ export class Template extends Source {
       // Otherwise we're gonna need an uploader
       const uploader = self.assertUploader()
       // And if we still can't determine the chain ID, bail
-      const chainId = self.chainId ?? uploader.chain.id
+      const chainId = self.chainId
+        ?? uploader.chain?.id
+        ?? uploader.agent?.chain?.id
+        ?? this.agent?.chain?.id
       if (!chainId) throw new ClientError.NoChainId()
       // If we have chain ID and code ID, try to get code hash
       if (self.codeId) {
@@ -1166,11 +1177,10 @@ export class Client extends Template {
   async getOrDeploy <C extends Client> (...args: [(IntoTemplate|IntoMessage)?, IntoMessage?]):
     Promise<C>
   {
-
     let template: Template
     let initMsg:  IntoMessage|undefined
     if (args.length === 2) {
-      template = new Template(this)
+      template = new Template(args[0] as any, this)
       initMsg  = args[1]
     } else {
       template = this
@@ -1178,13 +1188,12 @@ export class Client extends Template {
     }
     if (!template) throw new ClientError.NoTemplate()
     if (!initMsg)  throw new ClientError.NoInitMessage()
-
     return this.asTask(
       `get or deploy ${this.name??'contract'}`,
       async function getOrDeployContract (this: Client): Promise<C> {
         switch (true) {
           case !!this.address:
-            console.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
+            this.log.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
             return new this.Client({ ...this, agent: this.agent }) as C
           case !!this.name:
             if (!this.agent)      throw new ClientError.NoCreator()
@@ -1456,7 +1465,6 @@ export class Contracts<C extends Client> extends Templates {
     specifiers: DeployArgs[],
     agent:      Agent|undefined = this.agent
   ): Promise<C[]> {
-    console.log(this)
     if (!agent) throw new ClientError.NoCreator()
     template = new Template(template, { builder: this.builder, uploader: this.uploader, agent })
     try {
@@ -1678,14 +1686,14 @@ export class ClientError extends CustomError {
 
 export class ClientConsole extends CustomConsole {
   beforeDeploy (template: Template, label: Label) {
-    console.info(
+    this.info(
       'Deploy   ', bold(label),
       'from code id', bold(String(template.codeId  ||'(unknown)')),
       'hash', bold(String(template.codeHash||'(unknown)'))
     )
   }
   afterDeploy (contract: Partial<Client>) {
-    console.info(
+    this.info(
       'Deployed ', bold(contract.name!), 'is', bold(contract.address!),
       'from code id', bold(contract.codeId!)
     )

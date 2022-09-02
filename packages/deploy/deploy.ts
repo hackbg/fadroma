@@ -29,9 +29,9 @@ import {
   Chain, Agent,
   Uploader,
   Template, Templates, NewTemplate, IntoTemplate,
-  Client, NewClient, Contracts,
+  Client, IntoClient, NewClient, Contracts,
   Deployment, DeployArgs,
-  Label, Message,
+  Name, Label, Message,
   SparseArray,
 } from '@fadroma/client'
 
@@ -41,9 +41,12 @@ import * as FS from 'fs'
 import YAML from 'js-yaml'
 export { YAML }
 
-export async function deploy (config: Partial<DeployConfig> = {}) {
+export async function deploy (
+  config: Partial<DeployConfig> = {},
+  build?: Build.BuildContext
+) {
   const { chain, agent } = await Connect.connect(config)
-  return new DeployContext(config, chain, agent, undefined)
+  return new DeployContext(config, chain, agent, undefined, build)
 }
 
 /** Base class for class-based deploy procedure. */
@@ -52,20 +55,25 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
   log = new DeployConsole(console, 'Fadroma.DeployTask')
 
   /** Specify a template to upload or use. */
-  template = (...args: ConstructorParameters<NewTemplate>): Template => new Template(...args)
+  template = (specifier: IntoTemplate, options: Partial<Template> = {}): Template =>
+    this.context.template(specifier, options)
 
   /** Specify multiple templates to upload or use. */
-  templates = (specifiers: IntoTemplate[]): Templates => new Templates(specifiers)
+  templates = (specifiers: IntoTemplate[], options: Partial<Template> = {}): Templates =>
+    this.context.templates(specifiers, options)
 
   /** Specify a contract to deploy or operate. */
-  contract = <C extends Client> (...args: ConstructorParameters<NewClient<C>>): C =>
-    new Client(...args) as C
+  contract = <C extends Client> (
+    specifier: Name,
+    $Client:   NewClient<C> = Client as unknown as NewClient<C>
+  ): C =>
+    this.context.contract(specifier, $Client)
 
   /** Specify multiple contracts of the same kind. */
   contracts = <C extends Client> (
     $Client: NewClient<C> = Client as unknown as NewClient<C>
   ): Contracts<C> =>
-    new Contracts([], { Client: $Client }) as Contracts<C>
+    this.context.contracts($Client)
 
 }
 
@@ -83,10 +91,10 @@ export class DeployContext extends Connect.ConnectContext {
     this.config = new DeployConfig(process.env, process.cwd(), config)
     // Make sure we're operating in a deployment
     if (!deployment) {
-      console.warn('No active deployment. Most commands will fail.')
-      console.warn('You can create a deployment using `fadroma-deploy new`')
-      console.warn('or select a deployment using `fadroma-deploy select`')
-      console.warn('among the ones listed by `fadroma-deploy list`')
+      this.log.warn('No active deployment. Most commands will fail.')
+      this.log.warn('You can create a deployment using `fadroma-deploy new`')
+      this.log.warn('or select a deployment using `fadroma-deploy select`')
+      this.log.warn('among the ones listed by `fadroma-deploy list`')
     }
     // Make sure we have an operating identitiy
     this.agent ??= agent
@@ -95,6 +103,8 @@ export class DeployContext extends Connect.ConnectContext {
     }
     // Populate the uploader
     this.uploader = FSUploader.fromConfig(this.agent!, build?.config.project)
+    Object.defineProperty(this, 'cwd', { enumerable: false, writable: true })
+    Object.defineProperty(this, 'env', { enumerable: false, writable: true })
   }
 
   config: DeployConfig
@@ -104,27 +114,67 @@ export class DeployContext extends Connect.ConnectContext {
   /** Knows how to upload contracts to a blockchain. */
   uploader:    Uploader
 
-  /** Specify a template to upload or use. */
-  template = (...args: ConstructorParameters<NewTemplate>): Template => new Template(...args)
-
-  /** Specify multiple templates to upload or use. */
-  templates = (specifiers: IntoTemplate[]): Templates => new Templates(specifiers)
-
   /** All available deployments for the current chain. */
   deployments: Deployments|null = null
 
   /** Currently selected deployment. */
   deployment:  Deployment|null  = this.deployments?.active || null
 
+  /** Specify a template to upload or use. */
+  template = (specifier: IntoTemplate, options: Partial<Template> = {}): Template =>
+    new Template(specifier, {
+      agent:      this.agent,
+      uploader:   this.uploader,
+      builder:    this.build?.builder,
+      repo:       this.build?.workspace?.path,
+      workspace:  this.build?.workspace?.path,
+      path:       this.build?.workspace?.path,
+      ...options,
+    })
+
+  /** Specify multiple templates to upload or use. */
+  templates = (specifiers: IntoTemplate[], options: Partial<Template> = {}): Templates =>
+    new Templates(specifiers, {
+      agent:      this.agent,
+      uploader:   this.uploader,
+      builder:    this.build?.builder,
+      repo:       this.build?.workspace?.path,
+      workspace:  this.build?.workspace?.path,
+      path:       this.build?.workspace?.path,
+      ...options
+    })
+
   /** Specify a contract to deploy or operate. */
-  contract = <C extends Client> (...args: ConstructorParameters<NewClient<C>>): C =>
-    new Client(...args) as C
+  contract = <C extends Client> (
+    specifier: Name,
+    $Client:   NewClient<C> = Client as unknown as NewClient<C>
+  ): C =>
+    new Client({
+      name:       specifier,
+      Client:     $Client,
+      deployment: this.deployment!,
+      agent:      this.agent,
+      uploader:   this.uploader,
+      builder:    this.build?.builder,
+      repo:       this.build?.workspace?.path,
+      workspace:  this.build?.workspace?.path,
+      path:       this.build?.workspace?.path,
+    }) as C
 
   /** Specify multiple contracts of the same kind. */
   contracts = <C extends Client> (
     $Client: NewClient<C> = Client as unknown as NewClient<C>
   ): Contracts<C> =>
-    new Contracts([], { Client: $Client }) as Contracts<C>
+    new Contracts([], {
+      Client:     $Client,
+      deployment: this.deployment!,
+      agent:      this.agent,
+      uploader:   this.uploader,
+      builder:    this.build?.builder,
+      repo:       this.build?.workspace?.path,
+      workspace:  this.build?.workspace?.path,
+      path:       this.build?.workspace?.path,
+    }) as Contracts<C>
 
 }
 
@@ -455,7 +505,7 @@ export class FSUploader extends Uploader {
       const name = this.getUploadReceiptName(template)
       receipt = this.cache.at(name).as(UploadReceipt)
       if (receipt.exists()) {
-        console.info('Reuse    ', bold(this.cache.at(name).shortPath))
+        this.log.info('Reuse    ', bold(this.cache.at(name).shortPath))
         return receipt.toTemplate()
       }
     }
@@ -516,7 +566,7 @@ export class FSUploader extends Uploader {
       const receiptPath  = this.getUploadReceiptPath(input)
       const relativePath = $(receiptPath).shortPath
       if (!$(receiptPath).exists()) {
-        console.warn(bold(`No receipt:`), `${relativePath}; uploading...`)
+        this.log.warn(bold(`No receipt:`), `${relativePath}; uploading...`)
         toUpload[i] = input
         continue
       }
@@ -525,7 +575,7 @@ export class FSUploader extends Uploader {
       const receiptData = $(receiptPath).as(UploadReceipt).load()
       const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
       if (!receiptCodeHash) {
-        console.warn(bold(`No code hash in receipt:`), `${relativePath}; reuploading...`)
+        this.log.warn(bold(`No code hash in receipt:`), `${relativePath}; reuploading...`)
         toUpload[i] = input
         continue
       }
@@ -533,7 +583,7 @@ export class FSUploader extends Uploader {
       // If there's a local upload receipt and it contains a different code hash
       // from the one computed earlier, time to reupload.
       if (receiptCodeHash !== input.codeHash) {
-        console.warn(bold(`Different code hash from receipt:`), `${relativePath}; reuploading...`)
+        this.log.warn(bold(`Different code hash from receipt:`), `${relativePath}; reuploading...`)
         toUpload[i] = input
         continue
       }
@@ -587,13 +637,13 @@ export class FSUploader extends Uploader {
   private ensureLocalCodeHash (input: Template): Template {
     if (!input.codeHash) {
       const artifact = $(input.artifact!)
-      console.warn('No code hash in artifact', bold(artifact.shortPath))
+      this.log.warn('No code hash in artifact', bold(artifact.shortPath))
       try {
         const codeHash = Build.codeHashForPath($(input.artifact!).path)
-        console.warn('Computed code hash:', bold(input.codeHash!))
+        this.log.warn('Computed code hash:', bold(input.codeHash!))
         input = new Template({ ...input,  codeHash })
       } catch (e) {
-        console.warn('Could not compute code hash:', e.message)
+        this.log.warn('Could not compute code hash:', e.message)
       }
     }
     return input

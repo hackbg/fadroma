@@ -37,8 +37,8 @@ import { readFileSync, mkdtempSync    } from 'fs'
 export class BuilderConfig extends Konfizi.EnvConfig {
 
   constructor (
-    readonly env: Konfizi.Env = {},
-    readonly cwd: string = '',
+    readonly env: Konfizi.Env = process.env,
+    readonly cwd: string      = process.cwd(),
     defaults: Partial<BuilderConfig> = {}
   ) {
     super(env, cwd)
@@ -86,6 +86,8 @@ export class BuildContext extends Komandi.Context {
     this.config    = new BuilderConfig(this.env, this.cwd, config)
     this.builder   = getBuilder(this.config)
     this.workspace = new LocalWorkspace(this.config.project)
+    Object.defineProperty(this, 'cwd', { enumerable: false, writable: true })
+    Object.defineProperty(this, 'env', { enumerable: false, writable: true })
   }
 
   /** Setting for the build context. */
@@ -140,10 +142,6 @@ export class LocalSource extends Source {
     super(specifier, options)
     this.override(options)
   }
-
-  workspace?: string = undefined
-
-  path?:      string = undefined
 
   get gitDir (): DotGit {
     if (!this.repo) throw new Error('LocalSource: no path when trying to access gitDir')
@@ -352,6 +350,8 @@ export class RawBuilder extends LocalBuilder {
 
   readonly id = 'raw-local'
 
+  log = new BuildConsole(console, 'Fadroma.RawBuilder')
+
   runtime = process.argv[0]
 
   /** Build a Source into a Template */
@@ -405,11 +405,11 @@ export class RawBuilder extends LocalBuilder {
           resolve()
         } else if (code !== null) {
           const message = `${build} exited with code ${code}`
-          console.error(message)
+          this.log.error(message)
           throw Object.assign(new Error(message), { source, code })
         } else if (signal !== null) {
           const message = `${build} exited by signal ${signal}`
-          console.warn(message)
+          this.log.warn(message)
         } else {
           throw new Error('Unreachable')
         }
@@ -422,7 +422,7 @@ export class RawBuilder extends LocalBuilder {
 
     // Create an artifact for the build result
     const location = $(env._OUTPUT, artifactName(crate, sanitize(ref)))
-    console.info('Build ok:', bold(location.shortPath))
+    this.log.info('Build ok:', bold(location.shortPath))
     return new Template(source, {
       artifact: pathToFileURL(location.path),
       codeHash: this.codeHashForPath(location.path)
@@ -510,12 +510,13 @@ export class DockerBuilder extends LocalBuilder {
     // Collect a mapping of workspace path -> Workspace object
     const workspaces: Record<string, LocalWorkspace> = {}
     for (const source of inputs) {
+      console.trace({source})
       const { repo, gitDir, workspace } = source
       if (!repo)      throw new Error('missing repo path in source')
       if (!workspace) throw new Error('missing workspace in source')
       workspaces[workspace] = new LocalWorkspace(workspace)
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
-      if (source.ref !== HEAD && !gitDir.present) {
+      if (source.ref !== HEAD && !gitDir?.present) {
         const error = new Error("Fadroma Build: could not find Git directory for source.")
         throw Object.assign(error, { source })
       }
@@ -537,10 +538,10 @@ export class DockerBuilder extends LocalBuilder {
 
     const self = this
     async function buildFor (this: typeof self, path: string, ref: string) {
-      const { gitDir } = workspaces[path]
       let mounted = $(path)
       if (this.verbose) this.log.buildingFromWorkspace(mounted, ref)
       if (ref !== HEAD) {
+        const { gitDir } = workspaces[path]
         mounted = gitDir.rootRepo
         //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
         await simpleGit(gitDir.path)
@@ -564,7 +565,9 @@ export class DockerBuilder extends LocalBuilder {
         mounted.relative(path),
         ref,
         crates,
-        gitDir.isSubmodule ? gitDir.submoduleDir : ''
+        (ref !== HEAD)
+          ? (workspaces[path].gitDir.isSubmodule ? workspaces[path].gitDir.submoduleDir: '')
+          : ''
       )
       for (const index in results) {
         if (!results[index]) continue
@@ -703,7 +706,7 @@ export class DockerBuilder extends LocalBuilder {
     // Throw error if the build failed
     if (code !== 0) {
       const crateList = cratesToBuild.join(' ')
-      console.error(
+      this.log.error(
         'Build of crates:',   bold(crateList),
         'exited with status', bold(code)
       )
@@ -728,7 +731,7 @@ type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
 
 export class BuildConsole extends Konzola.CustomConsole {
 
-  name = '@fadroma/build'
+  name = 'Fadroma Build'
 
   buildingFromCargoToml (file: Kabinet.Path|string) {
     this.info('Building from', bold($(file).shortPath))

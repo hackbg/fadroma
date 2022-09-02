@@ -10,6 +10,7 @@ import { pathToFileURL } from 'url'
 import * as Fadroma from '@fadroma/client'
 let chain:    Fadroma.Chain    = null
 let agent:    Fadroma.Agent    = null
+let mnemonic: string           = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
 let template: Fadroma.Template = null
 let artifact: Fadroma.URL      = pathToFileURL(Testing.fixture('empty.wasm'))
 let chainId:  Fadroma.ChainId  = 'mocknet'
@@ -44,7 +45,6 @@ let config: DeployConfig = new DeployConfig({}, '')
 
 ```typescript
 import { deploy, DeployContext, DeployConfig } from '.'
-const mnemonic = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
 let context: DeployContext = await deploy({ chain: 'Mocknet', mnemonic })
 ok(context                                 instanceof DeployContext)
 ok(context.uploader                        instanceof Fadroma.Uploader)
@@ -314,30 +314,17 @@ class DeployMyContracts extends DeployTask<Promise<{
 ```
 
 ```typescript
+import { Client } from '@fadroma/client'
 import { connect } from '@fadroma/connect'
 import { BuildContext } from '@fadroma/build'
 import { DeployContext } from '.'
-context = new DeployContext(
-  undefined,
-  await connect(),
-  new BuildContext()
-)
-/*  await getDeployContext(await connect(await getChainContext({
-  config: { chain: 'Mocknet' }
-  deployment: {
-    has () { return true }
-    get (name) { return { address: name, codeHash: name } }
-  },
-  workspace: {},
-  builder:   {},
-  uploader:  {}
-})))*/
-```
-
-```typescript
-import { Client } from '@fadroma/client'
-result = await DeployMyContracts.run(context)
-assert(result instanceof Array)
-assert(result[0] instanceof Client)
-assert(result[1] instanceof Client)
+inTmpDeployment(async deployment=>{
+  context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildContext())
+  context.deployment = deployment
+  context.uploader   = uploader
+  result = await DeployMyContracts.run(context)
+  assert(result instanceof Array)
+  assert(result[0] instanceof Client)
+  assert(result[1] instanceof Client)
+})
 ```
