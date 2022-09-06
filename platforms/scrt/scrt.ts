@@ -345,19 +345,18 @@ export class ScrtGrpcAgent extends ScrtAgent {
     this.address = this.wallet?.address
   }
 
-  async instantiateMany (configs: [Fadroma.Template, string, Fadroma.Message][] = []) {
+  async instantiateMany (template: Fadroma.Contract, configs: Fadroma.DeployArgs[]) {
     // instantiate multiple contracts in a bundle:
     const instances = await this.bundle().wrap(async bundle=>{
-      await bundle.instantiateMany(configs)
+      await bundle.instantiateMany(template, configs)
     })
     // add code hashes to them:
     for (const i in configs) {
-      const [{ codeId, codeHash }, label] = configs[i]
       const instance = instances[i]
       if (instance) {
-        instance.codeId   = codeId
-        instance.codeHash = codeHash
-        instance.label    = label
+        instance.codeId   = template.codeId
+        instance.codeHash = template.codeHash
+        instance.label    = configs[i][0]
       }
     }
     return instances
@@ -418,7 +417,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     return await this.api.query.compute.queryContract(args) as U
   }
 
-  async upload (data: Uint8Array): Promise<Fadroma.Template> {
+  async upload (data: Uint8Array): Promise<Fadroma.Contract> {
     type Log = { type: string, key: string }
     if (!this.address) throw new Error("No address")
     const sender     = this.address
@@ -429,7 +428,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     const chainId    = this.chain.id
-    return new Fadroma.Template({
+    return Object.assign(new Fadroma.Contract(), {
       codeHash,
       chainId,
       codeId,
@@ -437,9 +436,12 @@ export class ScrtGrpcAgent extends ScrtAgent {
     })
   }
 
-  async instantiate <T> (
-    template: Fadroma.Template, label: Fadroma.Label, initMsg: T, initFunds = []
-  ): Promise<Fadroma.Client> {
+  async instantiate (
+    template: Fadroma.Contract,
+    label:    Fadroma.Label,
+    initMsg:  Fadroma.Message,
+    initFunds = []
+  ): Promise<Fadroma.Contract> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) throw Errors.AnotherChain()
@@ -457,12 +459,9 @@ export class ScrtGrpcAgent extends ScrtAgent {
     }
     type Log = { type: string, key: string }
     const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
-    return new Fadroma.Client(this, {
-      ...template,
-      initTx:  result.transactionHash,
-      address: result.arrayLog.find(findAddr)?.value!,
-      label
-    })
+    const address  = result.arrayLog.find(findAddr)?.value!
+    const initTx   = result.transactionHash
+    return Object.assign(new Fadroma.Contract(template), { address })
   }
 
   async execute (
@@ -827,5 +826,5 @@ const Warnings = {
 
 /** Allow Scrt clients to be implemented with just `@fadroma/scrt` */
 export * from '@fadroma/client'
-
+export type { Receipts } from '@fadroma/client'
 export { SecretJS }

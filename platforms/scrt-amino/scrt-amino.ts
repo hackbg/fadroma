@@ -255,12 +255,12 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async upload (data: Uint8Array): Promise<Fadroma.Template> {
+  async upload (data: Uint8Array): Promise<Fadroma.Contract> {
     if (!(data instanceof Uint8Array)) throw ScrtAminoErrors.UploadBinary()
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
     if (codeId === "-1") codeId = uploadResult.logs[0].events[0].attributes[3].value
-    return new Fadroma.Template({
+    return Object.assign(new Fadroma.Contract(), {
       artifact: undefined,
       codeHash: uploadResult.originalChecksum,
       chainId:  this.chain.id,
@@ -269,22 +269,21 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     })
   }
 
-  async instantiate <T> (
-    template: Fadroma.Template, label: string, msg: T, funds = []
-  ): Promise<Fadroma.Client> {
+  async instantiate (
+    template: Fadroma.Contract,
+    label:    string,
+    msg:      Fadroma.Message,
+    funds = []
+  ): Promise<Fadroma.Contract> {
     if (!template.codeHash) throw ScrtAminoErrors.TemplateNoCodeHash()
-    const { codeId, codeHash } = template
+    let { codeId, codeHash } = template
     const { api } = this
     //@ts-ignore
     const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, funds)
     const address = logs![0].events[0].attributes[4].value
-    return new Fadroma.Client(this, {
-      chainId: this.chain.id,
-      codeId:  String(codeId),
-      codeHash,
-      address,
-      initTx: transactionHash,
-    })
+    codeId = String(codeId)
+    const initTx = transactionHash
+    return Object.assign(new Fadroma.Contract(template), { address, codeHash })
   }
 
   async getHash (idOrAddr: number|string): Promise<Fadroma.CodeHash> {

@@ -11,7 +11,7 @@ import * as Fadroma from '@fadroma/client'
 let chain:    Fadroma.Chain    = null
 let agent:    Fadroma.Agent    = null
 let mnemonic: string           = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
-let template: Fadroma.Template = null
+let template: Fadroma.Contract = null
 let artifact: Fadroma.URL      = pathToFileURL(Testing.fixture('empty.wasm'))
 let chainId:  Fadroma.ChainId  = 'mocknet'
 let codeId, codeHash, txHash, result
@@ -48,8 +48,8 @@ import { deploy, DeployContext, DeployConfig } from '.'
 let context: DeployContext = await deploy({ chain: 'Mocknet', mnemonic })
 ok(context                                 instanceof DeployContext)
 ok(context.uploader                        instanceof Fadroma.Uploader)
-ok(context.template('crate')               instanceof Fadroma.Template)
-ok(context.templates(['crate1', 'crate2']) instanceof Fadroma.Templates)
+ok(context.template('crate')               instanceof Fadroma.Contract)
+ok(context.templates(['crate1', 'crate2']) instanceof Fadroma.Contracts)
 ok(context.contract('crate')               instanceof Fadroma.Client)
 ok(context.contracts()                     instanceof Fadroma.Contracts)
 ```
@@ -69,7 +69,7 @@ import { FSUploader } from '.'
 let uploader: Fadroma.Uploader = context.uploader
 ok(uploader instanceof FSUploader)
 
-await uploader.upload(new Fadroma.Template({ artifact }))
+await uploader.upload(new Fadroma.Contract({ artifact }))
 
 await uploader.uploadMany([])
 
@@ -81,37 +81,37 @@ const testUpload = async (cb) => {
 }
 
 await testUpload(async () => {
-  const template = new Fadroma.Template(artifact)
+  const template = new Fadroma.Contract(artifact)
   const uploaded = await uploader.upload(template)
   return { template, uploader, uploaded }
 })
 
 await testUpload(async () => {
-  const template = new Fadroma.Template({ artifact })
+  const template = new Fadroma.Contract({ artifact })
   const uploaded = await uploader.upload(template)
   return { template, uploader, uploaded }
 })
 
 await testUpload(async () => {
-  const template = new Fadroma.Template(artifact)
+  const template = new Fadroma.Contract(artifact)
   const uploaded = await template.upload(uploader)
   return { template, uploader, uploaded }
 })
 
 await testUpload(async () => {
-  const template = new Fadroma.Template(artifact, { uploader })
+  const template = new Fadroma.Contract(artifact, { uploader })
   const uploaded = await template.upload(uploader)
   return { template, uploader, uploaded }
 })
 
 await testUpload(async () => {
-  const template = new Fadroma.Template({ artifact, uploader })
+  const template = new Fadroma.Contract({ artifact, uploader })
   const uploaded = await template.upload()
   return { template, uploader, uploaded }
 })
 
 await testUpload(async () => {
-  const template = new Fadroma.Template({ artifact }, { uploader })
+  const template = new Fadroma.Contract({ artifact }, { uploader })
   const uploaded = await template.upload()
   return { template, uploader, uploaded }
 })
@@ -170,7 +170,7 @@ await withTmpDir(async cacheDir=>{
   const uploader = new FSUploader(agent, cache)
   await withTmpFile(async location=>{
     const url = pathToFileURL(location)
-    ok(await uploader.upload(new Fadroma.Template({artifact})))
+    ok(await uploader.upload(new Fadroma.Contract({artifact})))
   })
 })
 
@@ -224,7 +224,7 @@ await inTmpDeployment(async d => {
 await inTmpDeployment(async deployment =>{
   const { prefix } = deployment
   const codeId     = 1
-  const template   = new Fadroma.Template({ chainId, codeId })
+  const template   = new Fadroma.Contract({ chainId, codeId })
   const initMsg    = Symbol()
   const name       = 'contract'
   const label      = `${prefix}/${name}`
@@ -249,7 +249,7 @@ await inTmpDeployment(async deployment =>{
 await inTmpDeployment(async deployment=>{
   const {prefix} = deployment
   const codeId   = 2
-  const template = new Fadroma.Template({ chainId, codeId })
+  const template = new Fadroma.Contract({ chainId, codeId })
   const initMsg  = Symbol()
   const configs  = [['contract1', Symbol()], ['contract2', Symbol()]]
   const receipts = await deployment.initMany(template, configs)

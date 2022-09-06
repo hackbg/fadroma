@@ -124,7 +124,7 @@ builders[1].runtime = String(execSync('which true')).trim()
 * Building the same contract with each builder:
 
 ```typescript
-let template: Fadroma.Template
+let template: Fadroma.Contract
 const artifact: URL = new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm')
 for (const builder of builders) {
   template = await builder.build(source)
@@ -140,11 +140,11 @@ for (const builder of builders) {
 for (const builder of builders) {
   const sources = [source, workspace.crate('crate-2')]
   deepEqual(await builder.buildMany(sources), [
-    new Fadroma.Template(sources[0], {
+    new Fadroma.Contract(sources[0], {
       artifact: new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm'),
       codeHash: 'sha256'
     }),
-    new Fadroma.Template(sources[1], {
+    new Fadroma.Contract(sources[1], {
       artifact: new URL('file:///path/to/project/artifacts/crate-2@HEAD.wasm'),
       codeHash: 'sha256'
     })

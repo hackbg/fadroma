@@ -80,7 +80,7 @@ class MocknetAgent extends Fadroma.Agent {
   }
 
   async instantiate (
-    template: Fadroma.Template, label: string, msg: Fadroma.Message, send = []
+    template: Fadroma.Contract, label: string, msg: Fadroma.Message, send = []
   ): Promise<Fadroma.Client> {
     return await this.backend.instantiate(this, template, label, msg, send)
   }
@@ -125,7 +125,7 @@ class MocknetBundle extends Fadroma.Bundle {
     for (const { init, exec } of this.msgs) {
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
-        const template = new Fadroma.Template({ codeHash, codeId: String(codeId) })
+        const template = new Fadroma.Contract({ codeHash, codeId: String(codeId) })
         //@ts-ignore
         results.push(await this.agent.instantiate(template, label, msg, funds))
       } else if (exec) {
@@ -217,12 +217,12 @@ export class MocknetBackend {
     }
     return code
   }
-  upload (blob: Uint8Array): Fadroma.Template {
+  upload (blob: Uint8Array): Fadroma.Contract {
     const chainId  = this.chainId
     const codeId   = ++this.codeId
     const content  = this.uploads[codeId] = blob
     const codeHash = codeHashForBlob(blob)
-    return new Fadroma.Template({ codeHash, chainId, codeId: String(codeId) })
+    return new Fadroma.Contract({ codeHash, chainId, codeId: String(codeId) })
   }
   instances: Record<Fadroma.Address, MocknetContract> = {}
   getInstance (address?: Fadroma.Address) {
@@ -237,7 +237,7 @@ export class MocknetBackend {
   }
   async instantiate (
     sender: MocknetAgent,
-    { codeId, codeHash }: Partial<Fadroma.Template>,
+    { codeId, codeHash }: Partial<Fadroma.Contract>,
     label: string,
     msg:   Fadroma.Message,
     funds = []
@@ -310,7 +310,7 @@ export class MocknetBackend {
         const { code_id, callback_code_hash, label, msg, send } = instantiate
         const instance = await this.instantiate(
           sender, /* who is sender? */
-          new Fadroma.Template({ codeHash: callback_code_hash, codeId: code_id }),
+          new Fadroma.Contract({ codeHash: callback_code_hash, codeId: code_id }),
           label,
           JSON.parse(b64toUtf8(msg)),
           send
