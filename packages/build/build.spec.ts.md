@@ -4,54 +4,102 @@
 import * as Testing from '../../TESTING.ts.md'
 import * as Fadroma from '@fadroma/client'
 import assert, { ok, equal, deepEqual } from 'assert'
+
+const contract = new Fadroma.Contract({ repo: '/tmp/fadroma-test' })
+```
+
+## The build context
+
+These are similar to the deploy tasks but are only concerned with building contracts,
+not uploading or instantiating them - i.e. they don't need access to any chain (though
+builds may pull compile-time dependencies from the network).
+
+Build tasks run in the following context:
+
+```typescript
+import { BuildCommands } from '.'
+const build: BuildCommands = new BuildCommands()
+ok(build.builder instanceof Fadroma.Builder)
+
+// mock out externs
+build.builder = { async build () { return {} } }
+build.exit    = () => {}
+
+const mockCargoToml = {
+  as     () { return this },
+  at     () { return this },
+  exists () { return true },
+  load   () { return { package: { name: 'mocked1' } } },
+  path:      'mocked2/mocked3',
+  parent:    'mocked2'
+  shortPath: 'mocked3',
+}
+
+ok(await build.buildFromCargoToml(mockCargoToml),
+   'build from Cargo.toml')
+ok(await build.buildFromDirectory(mockCargoToml),
+   'build from directory')
+ok(await build.buildOne([], { ...mockCargoToml, isDirectory: () => true }),
+   'build one dir')
+//ok(await build.buildOne([], { ...mockCargoToml, isFile: () => true, isDirectory: () => false }),
+//   'build one file')
+//ok(await build.buildFromFile(mockCargoToml), 'build from file')
+//ok(await build.buildMany(), 'build many')
+//ok(await build.listBuildSets(), 'list build sets')
+```
+
+### Build messages
+
+WIP: Convert all status outputs from build module to semantic logs.
+
+```typescript
+import { Contract } from '@fadroma/client'
+import { BuildConsole } from '.'
+const log = new BuildConsole({ info: () => {} })
+log.buildingFromCargoToml('foo')
+log.buildingFromBuildScript('foo')
+log.buildingFromWorkspace('foo')
+log.buildingOne(contract.fromCrate('bar'))
+log.buildingOne(contract.fromCrate('bar').fromRef('commit'))
+log.buildingOne(contract.fromCrate('bar').fromRef('commit'), contract)
+log.buildingMany([contract.fromCrate('bar'), contract.fromCrate('bar').fromRef('commit')])
 ```
 
 ## Specifying projects and sources
 
-A **Workspace** object points to the root of a project's [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html)
-  * [ ] TODO: Test with non-workspace project.
+The `Contract` class has the following properties for specifying source:
 
-```typescript
-import { LocalWorkspace } from '.'
-let workspace: LocalWorkspace
-const project = '/tmp/fadroma-test'
-```
-
-* A Workspace object can also point to a specific Git reference
-  (**workspace.ref**, defaults to `HEAD`, i.e. the working tree).
-* **workspace.at('ref')**. returns a *new* Workspace with the same path and new ref.
+* `contract.repo` points to the Git repository containing the contract sources.
+  * This is all you need if your smart contract is a single crate.
+  * Use `contract.fromRepo(pathOrUrl)` to declare this.
+* `contract.ref` can points to a Git reference (branch or tag).
+  * This defaults to `HEAD`, i.e. the currently checked out working tree
+  * If set to something else, the builder will check out and build a past commit.
+  * Use `contract.fromRef(gitRef)` to declare this.
+* `contract.workspace` points to the Cargo workspace containing the contract sources.
+  * This may or may not be equal to `contract.repo`,
+  * This may be empty if the contract is a single crate.
+  * Use `contract.fromWorkspace(pathOrUrl)` to declare this.
+* `contract.crate` points to the Cargo crate containing the individual contract source.
+  * If `contract.workspace` is set, this is required.
+  * Use `contract.fromCrate(name)` to declare this.
 
 ```typescript
 import { HEAD } from '.'
-workspace = new LocalWorkspace(project)
-deepEqual(workspace.ref, HEAD)
-deepEqual(workspace.at('my-branch').ref, 'my-branch')
+deepEqual(contract.fromRepo('REPO').repo,                'REPO')
+deepEqual(contract.fromRef('REF').ref,                   'REF')
+deepEqual(contract.fromWorkspace('WORKSPACE').workspace, 'WORKSPACE')
+deepEqual(contract.fromCrate('CRATE').crate,             'CRATE')
 ```
 
-* If the `.git` directory (represented as **workspace.gitDir**) exists, this allows
-  the builder to check out and build a past commit of the repo (the one specified by
-  **workspace.ref**), instead of building from the working tree.
+### The `.git` directory
+
+If `.git` directory is present, builders can check out and build a past commits of the repo,
+as specifier by `contract.ref`.
 
 ```typescript
-import { DotGit } from '.'
-assert(workspace.gitDir instanceof DotGit)
-```
-
-A **Source** object points to a crate in a **Workspace**.
-
-```typescript
-let source: Fadroma.Source
-```
-
-* Given a **Workspace**, call **workspace.crate('my-crate')** to get a **Source** object
-  representing a crate in that workspace.
-* Use **workspace.crates(['crate-1', 'crate-2'])** to get multiple crates.
-
-```typescript
-import { LocalSource } from '.'
-source = workspace.crate('crate-1')
-ok(source instanceof LocalSource)
-deepEqual(workspace.crates(['crate-1', 'crate-2'])[0], source)
+import { getGitDir, DotGit } from '.'
+assert(getGitDir(contract) instanceof DotGit)
 ```
 
 # Getting and configuring builders
@@ -127,6 +175,7 @@ builders[1].runtime = String(execSync('which true')).trim()
 let template: Fadroma.Contract
 const artifact: URL = new URL('file:///path/to/project/artifacts/crate-1@HEAD.wasm')
 for (const builder of builders) {
+  const source = contract.fromCrate('foo')
   template = await builder.build(source)
   deepEqual(template.artifact, artifact)
   equal(template.crate,    source.crate)
@@ -207,58 +256,4 @@ builder = new class TestLocalBuilder extends LocalBuilder {
 }
 //await assert.throws(()=>builder.prebuild({}))
 equal(builder.prebuild('', 'empty'), null)
-```
-
-## Defining build tasks
-
-These are similar to the deploy tasks but are only concerned with building contracts,
-not uploading or instantiating them - i.e. they don't need access to any chain (though
-builds may pull compile-time dependencies from the network).
-
-Build tasks run in the following context:
-
-```typescript
-import { BuildContext } from '.'
-const buildContext: BuildContext = new BuildContext()
-ok(buildContext.builder   instanceof Fadroma.Builder)
-ok(buildContext.workspace instanceof LocalWorkspace)
-ok(buildContext.getSource instanceof Function)
-ok(buildContext.build     instanceof Function)
-ok(buildContext.buildMany instanceof Function)
-```
-
-And can be defined and invoked like this:
-
-```typescript
-import { BuildTask } from '.'
-const buildTask: BuildTask = await new BuildTask(buildContext, () => {
-  // ...
-})
-```
-
-Or like this:
-
-```typescript
-class MyBuildTask extends BuildTask {
-  constructor (context) {
-    super(context, () => {
-      // ...
-    })
-  }
-}
-await new MyBuildTask(buildContext)
-```
-
-## Build messages
-
-WIP: Convert all status outputs from build module to semantic logs.
-
-```typescript
-import { BuildConsole } from '.'
-const log = new BuildConsole({ info: () => {} })
-log.buildingFromCargoToml('foo')
-log.buildingFromBuildScript('foo')
-log.buildingFromWorkspace('foo')
-log.buildingOne(workspace.crate('foo'))
-log.buildingMany([workspace.crate('foo'), workspace.crate('bar')])
 ```

@@ -115,26 +115,6 @@ export class DeployConsole extends ClientConsole {
 
 }
 
-/** Base class for class-based deploy procedure. */
-export class DeployTask<X> extends Komandi.Task<DeployCommands, X> {
-
-  log = new DeployConsole(console, 'Fadroma.DeployTask')
-
-  /** Specify a contract to deploy or operate. */
-  //contract = <C extends Client> (
-    //specifier: Name,
-    //$Client:   NewClient<C> = Client as unknown as NewClient<C>
-  //): C =>
-    //this.context.contract(specifier, $Client)
-
-  /** Specify multiple contracts of the same kind. */
-  //contracts = <C extends Client> (
-    //$Client: NewClient<C> = Client as unknown as NewClient<C>
-  //): Contracts =>
-    //this.context.contracts($Client)
-
-}
-
 /// # Deploy commands
 
 /** Command runner. Instantiate one in your script then use the

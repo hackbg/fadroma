@@ -7,7 +7,7 @@ import assert, { ok, equal, deepEqual, throws, rejects } from 'assert'
 
 ## Chain
 
-1. User selects chain by instantiating a `Chain` object.
+User selects chain by instantiating a `Chain` object.
 
 ```typescript
 import { Chain } from '.'
@@ -64,10 +64,11 @@ assert(await chain.getAgent({}) instanceof Agent)
 * When using devnet, you can also get an agent from a named genesis account:
 
 ```typescript
-assert(await new Chain('devnet', {
+chain = new Chain('devnet', {
   mode: ChainMode.Devnet,
   node: { getGenesisAccount () { return {} }, respawn () {} }
-}).getAgent({ name: 'Alice' }) instanceof Agent)
+})
+assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
 ```
 
 ### Waiting for block height to increment
@@ -131,8 +132,8 @@ class TestBundle extends Bundle {
 ```
 
 ```typescript
-equal(await new TestBundle().wrap(async()=>{}), 'submitted')
-equal(await new TestBundle().wrap(async()=>{}, undefined, true), 'saved')
+equal(await new TestBundle(agent).wrap(async()=>{}), 'submitted')
+equal(await new TestBundle(agent).wrap(async()=>{}, undefined, true), 'saved')
 ```
 
 ```typescript
@@ -150,14 +151,14 @@ throws(()=>bundle.nextBlock)
 throws(()=>bundle.balance)
 equal(await bundle.execute({}), bundle)
 equal(bundle.id, 1)
-ok(await bundle.instantiateMany([]))
-ok(await bundle.instantiateMany([[{}]]))
-ok(await bundle.instantiate({}))
+ok(await bundle.instantiateMany(new Contract(), []))
+ok(await bundle.instantiateMany(new Contract(), [['label', 'init']]))
+ok(await bundle.instantiate(new Contract(), 'label', 'init'))
 equal(await bundle.checkHash(), 'hash')
 ```
 
 ```typescript
-bundle = new TestBundle()
+bundle = new TestBundle(agent)
 deepEqual(bundle.msgs, [])
 equal(bundle.id, 0)
 bundle.add(null)
@@ -166,14 +167,14 @@ equal(bundle.id, 1)
 ```
 
 ```typescript
-bundle = new Bundle()
+bundle = new Bundle(agent)
 throws(()=>bundle.assertCanSubmit())
 bundle.msgs.push(null)
 ok(bundle.assertCanSubmit())
 ```
 
 ```typescript
-bundle = new TestBundle()
+bundle = new TestBundle(agent)
 equal(await bundle.run(""),       "submitted")
 equal(await bundle.run("", true), "saved")
 equal(bundle.depth, 0)
@@ -190,28 +191,58 @@ ok(bundle instanceof Bundle)
 
 console.info('auto use bundle in agent for instantiateMany')
 agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
-await agent.instantiateMany([])
-await agent.instantiateMany([], 'prefix')
+await agent.instantiateMany(new Contract(), [])
+await agent.instantiateMany(new Contract(), [], 'prefix')
 ```
 
-## `Client`: Instantiating and operating smart contracts
+## `Contract`, `Client`: operating smart contracts
+
+## `Deployment`, `Contract`, `Client`: describing collections of related smart contracts
 
 User interacts with contract by obtaining an instance of the
 appropriate `Client` subclass from the authorized `Agent`.
 
+The `Contract` class extends `Client` and can
+build, upload, and instantiate smart contracts.
+
 ```typescript
 import { Client } from '.'
-let contract: Client
+let client: Client
 throws(()=>new Client().assertAddress())
 throws(()=>new Client().assertAgent())
-ok(new Client(agent, { address: true }).assertAddress().assertAgent() instanceof Agent)
+ok(new Client(agent, { address: 'some-address' })
+  .assertAddress()
+  .assertAgent() instanceof Agent)
 ```
 
-### `Source`, `Builder`: compiling smart contracts
+```typescript
+import { Deployment } from '.'
+export class DeployMyContracts extends Deployment {
+  constructor (context, ...args) {
+    super(context, async () => [await this.contract1, await this.contract2])
+  }
+  contract1 = this.contract()
+    .fromCrate('contract-1')
+    .withName('Contract1')
+    .deploy({})
+  contract2 = this.contract()
+    .fromCrate('contract-2')
+    .withName('Contract2')
+    .deploy(async () => ({ dependency: (await this.contract1).asLink }))
+}
+```
+
+### `Builder`: Compiling from source
 
 ```typescript
-import { Source, Builder } from '.'
-let source:  Source
+import { Contract } from '.'
+equal(new Contract('crate').crate,     'crate')
+equal(new Contract('crate@ref').crate, 'crate')
+equal(new Contract('crate@ref').ref,   'ref')
+```
+
+```typescript
+import { Builder } from '.'
 let builder: Builder = new class TestBuilder extends Builder {
   async build (source: Source): Promise<Contract> {
     return new Contract(source)
@@ -219,44 +250,36 @@ let builder: Builder = new class TestBuilder extends Builder {
 }
 ```
 
-### `Contract`, `Uploader`: uploading smart contracts
+### `Uploader`: Uploading artifacts
 
 ```typescript
-import { Contract } from '.'
-let template: Contract
-equal(new Contract('crate').crate,     'crate')
-equal(new Contract('crate@ref').crate, 'crate')
-equal(new Contract('crate@ref').ref,   'ref')
 const url = new URL('file:///tmp/artifact.wasm')
-equal(new Contract(url).artifact, url)
+equal(new Contract({ artifact: url }).artifact, url)
 ```
 
 ```typescript
 import { Uploader } from '.'
 let uploader: Uploader
-
 agent = new (class TestAgent extends Agent {
   instantiate (source: Contract): Promise<Client> {
     return new Client(source)
   }
 })({ id: 'chain' })
-
 uploader = new (class TestUploader extends Uploader {
   upload (template: Contract): Promise<Contract> {
     return new Contract(template)
   }
 })(agent)
-
 ```
 
 ### Deploying a smart contract
 
 ```typescript
 const options = { crate: 'empty', agent, builder, uploader, deployment: { get () {} } }
-ok(await new Client('Name', options).deploy())
-ok(await new Client('Name', options).getOrDeploy({ init: 'arg' }))
-ok(await new Client('Name', options).getOrDeploy(()=>({ init: 'arg' })))
-ok(await new Client('Name', options).getOrDeploy(async ()=>({ init: 'arg' })))
+rejects(new Contract(options).deploy())
+ok(await new Contract(options).deploy({ init: 'arg' }))
+ok(await new Contract(options).deploy(()=>({ init: 'arg' })))
+ok(await new Contract(options).deploy(async ()=>({ init: 'arg' })))
 ```
 
 ### Connecting to a smart contract
@@ -266,7 +289,7 @@ deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agen
 
 ```typescript
 throws(()=>new Client('Name').get())
-ok(await new Client('Name').getOr(()=>true))
+ok(await new Contract(options).getOr(()=>true))
 // get a contract client from the agent
 ok(agent.getClient(Client))
 ```
@@ -286,10 +309,11 @@ for (const kind of Object.keys(ClientError)) {
 
 ```typescript
 import { Contracts } from '.'
-
 ok(new Contracts()) // empty
-
-ok(await new Contracts([], { Client, builder, uploader }).deployMany('crate@ref', [], agent))
+ok(await new Contracts('crate@ref')
+  .withBuilder(builder)
+  .withUploader(uploader)
+  .deploy([]))
 ```
 
 ## `Fee`: Specifying per-transaction gas fees

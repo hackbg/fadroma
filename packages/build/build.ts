@@ -24,7 +24,7 @@ import * as Dokeres from '@hackbg/dokeres'
 import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
-import { Contract, Builder } from '@fadroma/client'
+import { Contract, Builder, Deployment } from '@fadroma/client'
 import type { IntoContract } from '@fadroma/client'
 
 import { default as simpleGit } from 'simple-git'
@@ -72,174 +72,53 @@ export class BuilderConfig extends Konfizi.EnvConfig {
     = this.getString ('FADROMA_BUILD_DOCKERFILE', ()=>LocalBuilder.script)
 }
 
-/** Base class for class-based deploy procedure. Adds progress logging. */
-export class BuildTask<X> extends Komandi.Task<BuildCommands, X> {
-  log = new BuildConsole(console, 'Fadroma.BuildTask')
-}
+export class BuildConsole extends Komandi.CommandsConsole {
 
-export class BuildCommands extends Komandi.CommandContext {
+  name = 'Fadroma Build'
 
-  constructor (options: Partial<BuildCommands> = {}) {
-    super('build')
-    this.config ??= new BuilderConfig(this.env, this.cwd, options.config)
-    this.builder = getBuilder(this.config)
-    this.command('one', 'build one crate from working tree', this.buildOne)
+  buildingFromCargoToml (file: Kabinet.Path|string) {
+    this.info('Building from', bold($(file).shortPath))
   }
 
-  /** Setting for the build context. */
-  config:    BuilderConfig
-
-  project:   string = ''
-
-  /** Knows how to build contracts for a target. */
-  builder:   Builder
-
-  /** Get a Contract by crate name from the current workspace. */
-  getSource = (source: IntoContract, ref?: string): Contract => {
-    if (typeof source === 'string') return new Contract(source).atRef(ref)
-    if (source instanceof URL) return new Contract().fromRepo(source)
-    return source as Contract
+  buildingFromBuildScript (file: Kabinet.Path|string) {
+    this.info('Running build script', bold($(file).shortPath))
   }
 
-  /** Get a Template from Source or crate name. */
-  build = async (source: IntoContract, ref?: string): Promise<Contract> => {
-    return await this.builder.build(this.getSource(source).atRef(ref))
+  buildingFromWorkspace (mounted: Kabinet.Path|string, ref: string = HEAD) {
+    this.info(
+      `Building contracts from workspace:`, bold(`${$(mounted).shortPath}/`),
+      `@`, bold(ref)
+    )
   }
 
-  /** Get one or more Templates from Source or crate name */
-  buildMany = async (ref?: string, ...sources: IntoContract[][]): Promise<Contract[]> => {
-    sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
-    return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
-  }
-
-  buildOne = () => {
-    const config = {
-      build: new BuilderConfig(process.env as Record<string, string>, process.cwd())
-    }
-    const [buildPath, ...buildArgs] = process.argv.slice(2)
-    const buildSpec = $(buildPath)
-    if (buildSpec.isDirectory()) {
-      this.buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
-    } else if (buildSpec.isFile()) {
-      this.buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
+  buildingOne (source: Contract, prebuilt: Contract|null) {
+    if (prebuilt) {
+      this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
     } else {
-      this.printUsage()
-    }
-  }
-
-  buildFromCargoToml = async (
-    cargoToml: CargoTOML,
-    workspace = process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
-  ) => {
-    this.log.info('Build manifest:', bold(cargoToml.shortPath))
-    const crate  = (cargoToml.as(Kabinet.TOMLFile).load() as any).package.name
-    const source = new Contract({ workspace, crate })
-    try {
-      const config   = { ...new BuilderConfig(), rebuild: true }
-      const builder  = getBuilder(config)
-      const template = await builder.build(source)
-      const { artifact, codeHash } = template
-      this.log.info('Built:    ', bold($(artifact!).shortPath))
-      this.log.info('Code hash:', bold(codeHash!))
-      process.exit(0)
-    } catch (e) {
-      this.log.error(`Build failed.`)
-      this.log.error(e)
-      process.exit(5)
-    }
-  }
-
-  buildFromBuildScript = async (
-    buildScript: Kabinet.OpaqueFile,
-    buildArgs:   string[] = []
-  ) => {
-    const buildSetName = buildArgs.join(' ')
-    this.log.info('Build script:', bold(buildScript.shortPath))
-    this.log.info('Build set:   ', bold(buildSetName || '(none)'))
-    //@ts-ignore
-    const {default: buildSets} = await import(buildScript.path)
-    if (buildArgs.length > 0) {
-      const buildSet = buildSets[buildSetName]
-      if (!buildSet) {
-        this.log.error(`No build set ${bold(buildSetName)}.`)
-        this.listBuildSets(buildSets)
-        process.exit(1)
-      } else if (!(buildSet instanceof Function)) {
-        this.log.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
-        process.exit(2)
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        this.info('Building', bold(crate), 'from working tree')
       } else {
-        const buildSources = buildSet()
-        if (!(buildSources instanceof Array)) {
-          this.log.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
-          process.exit(3)
-        }
-        const T0 = + new Date()
-        try {
-          const config = { ...new BuilderConfig(), rebuild: true }
-          await getBuilder(config).buildMany(buildSources)
-          const T1 = + new Date()
-          this.log.info(`Build complete in ${T1-T0}ms.`)
-          process.exit(0)
-        } catch (e) {
-          this.log.error(`Build failed.`)
-          this.log.error(e)
-          process.exit(4)
-        }
-      }
-    } else {
-      this.log.warn(bold('No build set specified.'))
-      this.listBuildSets(buildSets)
-    }
-  }
-
-  listBuildSets = (buildSets: Record<string, ()=>Contract[]>) => {
-    this.log.log('Available build sets:')
-    for (let [name, getSources] of Object.entries(buildSets)) {
-      this.log.log(`\n  ${name}`)
-      const sources = getSources()
-      for (const source of sources as Array<Contract>) {
-        this.log.log(`    ${bold(source.crate!)} @ ${source.ref}`)
+        this.info('Building', bold(crate), 'from Git reference', bold(ref))
       }
     }
   }
 
-  buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
-    const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
-    if (cargoToml.exists()) {
-      this.log.info('Building from', bold(cargoToml.shortPath))
-      this.buildFromCargoToml(cargoToml as CargoTOML)
-    } else {
-      this.printUsage()
+  buildingMany (sources: Contract[]) {
+    for (const source of sources) {
+      const { crate = '(unknown)', ref = 'HEAD' } = source
+      if (ref === 'HEAD') {
+        this.info('Building', bold(crate), 'from working tree')
+      } else {
+        this.info('Building', bold(crate), 'from Git reference', bold(ref))
+      }
     }
+    this.info()
   }
-
-  buildFromFile = async (
-    file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
-    buildArgs: string[] = []
-  ) => {
-    if (file.name === 'Cargo.toml') {
-      this.log.buildingFromCargoToml(file)
-      this.buildFromCargoToml(file as CargoTOML)
-    } else {
-      this.log.buildingFromBuildScript(file)
-      this.buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
-    }
-  }
-
-  printUsage = () => {
-    this.log.info(`
-      Usage:
-        fadroma-build path/to/crate
-        fadroma-build path/to/Cargo.toml
-        fadroma-build buildConfig.{js|ts}`)
-    process.exit(6)
-  }
-
-  log = new BuildConsole(console, 'Fadroma.BuildCommands')
 
 }
 
-export default new BuildCommands()
+const bold = Konzola.bold
 
 /** Get a builder based on the builder config. */
 export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()) {
@@ -335,7 +214,7 @@ export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize
 export const sanitize = (ref: string) => ref.replace(/\//g, '_')
 
 export const codeHashForBlob = (blob: Uint8Array) =>
-  Formati.toHex(new Formati.Sha256(blob).digest())
+  Formati.Encoding.toHex(new Formati.Crypto.Sha256(blob).digest())
 
 export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
 
@@ -577,7 +456,7 @@ export class DockerBuilder extends LocalBuilder {
       if (!repo) throw new Error('missing repo path in source')
       const outputDir = $(repo).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, source.crate, source.ref)
-      this.log.buildingOne(source, prebuilt, longestCrateName)
+      this.log.buildingOne(source, prebuilt)
     }
 
     // Collect a mapping of workspace path -> Workspace object
@@ -801,51 +680,152 @@ export class DockerBuilder extends LocalBuilder {
 
 type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
 
-export class BuildConsole extends Komandi.CommandsConsole {
+export class BuildCommands extends Deployment {
 
-  name = 'Fadroma Build'
-
-  buildingFromCargoToml (file: Kabinet.Path|string) {
-    this.info('Building from', bold($(file).shortPath))
+  constructor (options: Partial<BuildCommands> = {}) {
+    super({ name: 'build' })
+    this.config ??= new BuilderConfig(this.env, this.cwd, options.config)
+    this.builder = getBuilder(this.config)
+    this.command('one', 'build one crate from working tree', this.buildOne)
   }
 
-  buildingFromBuildScript (file: Kabinet.Path|string) {
-    this.info('Running build script', bold($(file).shortPath))
-  }
+  /** Setting for the build context. */
+  config:    BuilderConfig
 
-  buildingFromWorkspace (mounted: Kabinet.Path|string, ref: string = HEAD) {
-    this.info(
-      `Building contracts from workspace:`, bold(`${$(mounted).shortPath}/`),
-      `@`, bold(ref)
-    )
-  }
+  project:   string = ''
 
-  buildingOne (source: Contract, prebuilt: Contract|null) {
-    if (prebuilt) {
-      this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
+  /** Knows how to build contracts for a target. */
+  builder:   Builder
+
+  buildOne = (
+    [buildPath, ...buildArgs] = process.argv.slice(2),
+    buildSpec = $(buildPath)
+  ) => {
+    
+    if (buildSpec.isDirectory()) {
+      return this.buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
+    } else if (buildSpec.isFile()) {
+      return this.buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
     } else {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        this.info('Building', bold(crate), 'from working tree')
-      } else {
-        this.info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
+      return this.printUsage()
     }
   }
 
-  buildingMany (sources: Contract[]) {
-    for (const source of sources) {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        this.info('Building', bold(crate), 'from working tree')
-      } else {
-        this.info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
+  buildFromCargoToml = async (
+    cargoToml: CargoTOML,
+    repo      = process.env.FADROMA_BUILD_REPO_ROOT      || cargoToml.parent,
+    workspace = process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
+  ) => {
+    this.log.info('Build manifest:', bold(cargoToml.shortPath))
+    const source = new Contract({
+      repo,
+      workspace,
+      crate: (cargoToml.as(Kabinet.TOMLFile).load() as any).package.name
+    })
+    try {
+      (this.builder as LocalBuilder).caching = false
+      const result = await this.builder.build(source)
+      const { artifact, codeHash } = result
+      this.log.info('Built:    ', bold($(artifact!).shortPath))
+      this.log.info('Code hash:', bold(codeHash!))
+      this.exit(0)
+      return result
+    } catch (e) {
+      this.log.error(`Build failed.`)
+      this.log.error(e)
+      this.exit(5)
     }
-    this.info()
   }
+
+  buildFromBuildScript = async (
+    buildScript: Kabinet.OpaqueFile,
+    buildArgs:   string[] = []
+  ) => {
+    const buildSetName = buildArgs.join(' ')
+    this.log.info('Build script:', bold(buildScript.shortPath))
+    this.log.info('Build set:   ', bold(buildSetName || '(none)'))
+    //@ts-ignore
+    const {default: buildSets} = await import(buildScript.path)
+    if (buildArgs.length > 0) {
+      const buildSet = buildSets[buildSetName]
+      if (!buildSet) {
+        this.log.error(`No build set ${bold(buildSetName)}.`)
+        this.listBuildSets(buildSets)
+        this.exit(1)
+      } else if (!(buildSet instanceof Function)) {
+        this.log.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
+        this.exit(2)
+      } else {
+        const buildSources = buildSet()
+        if (!(buildSources instanceof Array)) {
+          this.log.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
+          this.exit(3)
+        }
+        const T0 = + new Date()
+        try {
+          const config = { ...new BuilderConfig(), rebuild: true }
+          await getBuilder(config).buildMany(buildSources)
+          const T1 = + new Date()
+          this.log.info(`Build complete in ${T1-T0}ms.`)
+          this.exit(0)
+        } catch (e) {
+          this.log.error(`Build failed.`)
+          this.log.error(e)
+          this.exit(4)
+        }
+      }
+    } else {
+      this.log.warn(bold('No build set specified.'))
+      this.listBuildSets(buildSets)
+    }
+  }
+
+  listBuildSets = (buildSets: Record<string, ()=>Contract[]>) => {
+    //this.log.log('Available build sets:')
+    //for (let [name, getSources] of Object.entries(buildSets)) {
+      //this.log.log(`\n  ${name}`)
+      //const sources = getSources()
+      //for (const source of sources as Array<Contract>) {
+        //this.log.log(`    ${bold(source.crate!)} @ ${source.ref}`)
+      //}
+    //}
+  }
+
+  buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
+    const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
+    if (cargoToml.exists()) {
+      this.log.info('Building from', bold(cargoToml.shortPath))
+      return this.buildFromCargoToml(cargoToml as CargoTOML)
+    } else {
+      this.printUsage()
+    }
+  }
+
+  buildFromFile = async (
+    file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
+    buildArgs: string[] = []
+  ) => {
+    if (file.name === 'Cargo.toml') {
+      this.log.buildingFromCargoToml(file)
+      return this.buildFromCargoToml(file as CargoTOML)
+    } else {
+      this.log.buildingFromBuildScript(file)
+      return this.buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
+    }
+  }
+
+  printUsage = () => {
+    this.log.info(`
+      Usage:
+        fadroma-build path/to/crate
+        fadroma-build path/to/Cargo.toml
+        fadroma-build buildConfig.{js|ts}`)
+    this.exit(6)
+    return true
+  }
+
+  log = new BuildConsole(console, 'Fadroma.BuildCommands')
 
 }
 
-const bold = Konzola.bold
-
+export default new BuildCommands()

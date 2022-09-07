@@ -21,7 +21,7 @@ export class MocknetBackend {
     const codeId   = ++this.codeId
     const content  = this.uploads[codeId] = blob
     const codeHash = codeHashForBlob(blob)
-    return new Fadroma.Contract({ codeHash, chainId, codeId: String(codeId) })
+    return new Fadroma.Contract({ codeHash, codeId: String(codeId) })
   }
   instances: Record<Fadroma.Address, MocknetContract> = {}
   getInstance (address?: Fadroma.Address) {

@@ -280,6 +280,7 @@ export abstract class Agent {
   static create (chain: Chain, options: AgentOpts = {}): Promise<Agent> {
     //@ts-ignore
     return new this(chain, options)
+    Object.defineProperty(this, 'log', { enumerable: false, writable: true })
   }
 
   constructor (readonly chain: Chain, options: AgentOpts = {}) {
@@ -417,6 +418,7 @@ export abstract class Bundle extends Agent {
   log = new ClientConsole(console, 'Fadroma.Bundle')
 
   constructor (readonly agent: Agent) {
+    if (!agent) throw new ClientError.NoBundleAgent()
     super(agent.chain)
     this.address = this.agent.address
     this.name    = `${this.agent.name}@BUNDLE`
@@ -766,31 +768,22 @@ export class Contract extends Client {
   static sourceToCrateRef = (specifier: string) => specifier.split('@') as [string, string?]
 
   constructor (
-    public specifier?: IntoContract,
+    public specifier?: IntoContract|Partial<Contract>,
     options: Partial<Contract> = {}
   ) {
     super()
     if (typeof specifier === 'string') {
       const [ crate, ref ] = Contract.sourceToCrateRef(specifier)
       this.crate = crate
-      this.ref ??= ref ?? 'HEAD'
-    } else {
-      throw 'TODO'
+      this.ref   = ref ?? this.ref
+    } else if (typeof specifier === 'object') {
+      Object.assign(this, specifier)
     }
     Object.assign(this, options)
   }
 
-  /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
-  protected task?: Task
-
-  /** Wrap the method in a lazy subtask if this.task is set. */
-  protected asTask <T> (name: string, callback: (this: typeof this)=>Promise<T>): Promise<T> {
-    if (this.task) {
-      Object.defineProperty(callback, 'name', { value: name })
-      return this.task.subtask(callback)
-    } else {
-      return callback.call(this)
-    }
+  extend (options: Partial<Contract> = {}): this {
+    return new (this.constructor as NewContract)(this, options) as this
   }
 
   /** URL to local or remote Git repository containing the source code. */
@@ -800,26 +793,40 @@ export class Contract extends Client {
     * Used to specify historical builds. */
   fromRepo (repo?: string|URL): this {
     if (repo === this.repo) return this
-    return Object.assign(new (this.constructor as NewContract)(this), { repo }) as this
+    return this.extend({ repo })
   }
 
   workspace?: string = undefined
 
+  fromWorkspace (workspace?: string): this {
+    if (workspace === this.workspace) return this
+    return this.extend({ workspace })
+  }
+
   /** Git ref (branch or tag) pointing to source commit. */
-  ref?:  string     = undefined
+  ref?:  string     = 'HEAD'
 
   /** Return a copy of self pinned to a certain Git reference.
     * Used to specify historical builds. */
-  atRef (ref?: string): this {
+  fromRef (ref?: string): this {
     if (ref === this.ref) return this
-    return Object.assign(new (this.constructor as NewContract)(this), { ref }) as this
+    return this.extend({ ref })
   }
 
   /** Name of crate. Used to find contract crate in workspace repos. */
   crate?:    string     = undefined
 
+  fromCrate (crate?: string): this {
+    if (crate === this.crate) return this
+    return this.extend({ crate })
+  }
+
   /** List of crate features to enable during build. */
   features?: string[]   = undefined
+
+  withFeatures (features: string[]): this {
+    return this.extend({ features })
+  }
 
   get source () {
     return `${this.crate}@${this.ref}`
@@ -829,10 +836,8 @@ export class Contract extends Client {
   builder?: string|Builder = undefined
 
   withBuilder (builder?: Builder): this {
-    if (!builder) return this
-    return Object.assign(new (this.constructor as NewContract)(this.specifier), {
-      builder
-    }) as this
+    if (!builder || (builder === this.builder)) return this
+    return this.extend({ builder })
   }
 
   /** Throw appropriate error if not buildable. */
@@ -930,8 +935,7 @@ export class Contract extends Client {
 
   /** Label of the contract on the chain. */
   get label (): Label {
-    if (!this.name) throw new ClientError.NoName()
-    let label = this.name
+    let label = this.name || '(unnamed)'
     if (this.prefix) label = `${this.prefix}/${label}`
     if (this.suffix) label = `${label}+${this.suffix}`
     return label
@@ -1007,55 +1011,36 @@ export class Contract extends Client {
     return templateStruct(this)
   }
 
-  async deploy (initMsg: IntoMessage|undefined = this.initMsg): Promise<Client> {
+  async deploy (initMsg: IntoMessage|undefined = this.initMsg): Promise<this> {
+    const self = this
     if (!initMsg) throw new ClientError.NoInitMessage()
-    return this.asTask(
-      `get or deploy ${this.name??'contract'}`,
-      async function getOrDeployContract (this: Contract): Promise<Client> {
-        if (this.address) {
-          this.log.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
-          return new Client(this.agent, this.address, this.codeHash)
-        }
-        if (this.name) {
-          if (!this.agent) throw new ClientError.NoCreator()
-          let self = this
-          const label = self.label
-          const agent = self.agent
-          if (!self.task) return deploy.call(self)
-          Object.defineProperty(deploy, 'name', { value: `upload contract ${label}` })
-          return self.task.subtask(deploy.bind(self))
-          async function deploy (this: typeof self): Promise<Client> {
-            if (!agent) throw new ClientError.NoCreator()
-            const template = await this.upload()
-            this.log.beforeDeploy(this, label)
-            if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-            const contract = await agent.instantiate(template, label, initMsg as Message)
-            const client   = new Client(agent, contract.address, contract.codeHash)
-            this.log.afterDeploy(contract)
-            return client
-          }
-        }
-        throw new ClientError.InvalidValue()
+    return this.asTask(`get or deploy ${this.name??'contract'}`, getOrDeployContract)
+    async function getOrDeployContract (this: typeof self): Promise<typeof self> {
+      console.log(this)
+      if (this.address) {
+        this.log.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
+        const address  = this.address
+        const codeHash = this.codeHash ?? (await this.fetchCodeHash()).codeHash
+        return new (this.constructor as NewContract)(this, { address, codeHash }) as typeof self
       }
-    )
+      if (this.name && this.deployment?.has(this.name)) {
+        const { address, codeHash } = this.deployment.get(this.name)!
+        return new (this.constructor as NewContract)(this, { address, codeHash }) as typeof self
+      }
+      return self.asTask(`deploy contract ${this.label}`, deploy)
+      throw new ClientError.InvalidValue()
+      async function deploy (this: typeof self): Promise<typeof self> {
+        const { label, agent } = this
+        if (!agent) throw new ClientError.NoCreator()
+        const template = await this.upload()
+        this.log.beforeDeploy(this, label)
+        if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
+        const contract = await agent.instantiate(template, label, initMsg as Message)
+        this.log.afterDeploy(contract)
+        return contract as typeof self
+      }
+    }
   }
-
-  /** Instantiate one contract and save its receipt to the deployment. */
-  //async init (template: Contract, name: Label, msg: Message): Promise<Client> {
-    //const label = Object.assign(new Contract(), { prefix: this.prefix, name }).label
-    //try {
-      //const client   = new Client(this.agent, { ...template, deployment: this, name })
-      //const contract = await client.deploy(label, msg)
-      //contract.deployment = this
-      //contract.prefix     = this.prefix
-      //contract.name       = name
-      //this.set(name, contract)
-      //return contract
-    //} catch (e) {
-      //this.log.deployFailed(e as Error, template, name, msg)
-      //throw e
-    //}
-  //}
 
   client <C extends Client, D extends ContractOf<C>> (
     $Client: NewClient<C> = Client as unknown as NewClient<C>
@@ -1064,6 +1049,23 @@ export class Contract extends Client {
       new (this.constructor as NewContract)(this.specifier),
       { Client: $Client }
     ) as unknown as C
+  }
+
+  /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
+  inTask?: Task
+
+  /** Wrap the method in a lazy subtask if this.task is set. */
+  asTask <T> (name: string, callback: (this: typeof this)=>Promise<T>): Promise<T> {
+    Object.defineProperty(callback, 'name', { value: name })
+    if (this.inTask) {
+      return this.inTask.subtask(callback)
+    } else {
+      return callback.call(this)
+    }
+  }
+
+  withTask (inTask?: Task) {
+    return this.extend({ inTask })
   }
 
 }
@@ -1144,9 +1146,9 @@ export class Contracts extends Overridable {
     }) as this
   }
 
-  ref?: string = undefined
+  ref?: string = 'HEAD'
 
-  at (ref?: string) {
+  fromRef (ref?: string) {
     if (ref === this.ref) return this
     return Object.assign(new (this.constructor as NewContracts)(this.specifier), {
       ref
@@ -1159,9 +1161,9 @@ export class Contracts extends Overridable {
     return await builder.buildMany(this.values)
   }
 
-  values:    Contract[] = []
+  values: Contract[] = []
 
-  agent?:    Agent    = undefined
+  agent?: Agent    = undefined
 
   client <C extends Client> (Client: NewClient<C>): ContractsOf<C> {
     return Object.assign(new ContractsOf(this.specifier), { Client }) as ContractsOf<C>
@@ -1359,12 +1361,14 @@ export class Deployment extends CommandContext {
 
   contract = (...args: ConstructorParameters<typeof Contract>): Contract =>
     new Contract(...args)
+      .withTask(this)
       .withBuilder(this.builder)
       .withUploader(this.uploader)
       .withDeployment(this)
 
   contracts = (...args: ConstructorParameters<typeof Contracts>): Contracts =>
     new Contracts(...args)
+      .withTask(this)
       .withBuilder(this.builder)
       .withUploader(this.uploader)
       .withDeployment(this)
@@ -1518,8 +1522,11 @@ export class ClientError extends CustomError {
   static InvalidValue     = this.define("InvalidContractValue",
     () => "Value is not Client and not a name.")
 
-  static NoAgent          = this.define('NoUploadInitContext',
-    () => "Missing execution agent.")
+  static NoAgent          = this.define('NoAgent',
+    () => "Missing agent.")
+
+  static NoBundleAgent    = this.define('NoBundleAgent',
+    () => "Missing agent for bundle.")
 
   static NoArtifact       = this.define('NoArtifact',
     () => "No code id and no artifact to upload")

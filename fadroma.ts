@@ -51,7 +51,7 @@ export class Commands extends Komandi.CommandContext {
     /** The selected agent to operate as. */
     public agent?: Fadroma.Agent
   ) {
-    super(name)
+    super('Fadroma')
   }
   config  = new Config(this.env, this.cwd)
   project = this.config.project

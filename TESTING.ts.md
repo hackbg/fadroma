@@ -63,6 +63,44 @@ function example (name, wasm, hash) {
 
 ## Mocks
 
+### Mock agent
+
+```typescript
+import { Agent, Chain, Uploader } from '@fadroma/client'
+export const mockAgent = () => new class MockAgent extends Agent {
+
+  chain = new (class MockChain extends Chain {
+    uploads = new class MockUploader extends Uploader {
+      resolve = () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+      make = () => new class MockFile {
+        resolve = () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+      }
+    }
+  })('mock')
+
+  async upload () { return {} }
+
+  instantiate (template, label, initMsg) {
+    return new Client({ ...template, label, initMsg, address: 'some address' })
+  }
+
+  instantiateMany (configs, prefix) {
+    const receipts = {}
+    for (const [{codeId}, name] of configs) {
+      let label = name
+      if (prefix) label = `${prefix}/${label}`
+      receipts[name] = { codeId, label }
+    }
+    return receipts
+  }
+
+  async getHash () {
+    return 'sha256'
+  }
+
+}
+```
+
 ### Mock of Secret Network 1.2 HTTP API
 
 > Not to be confused with the [Mocknet](./Mocknet.ts.md)

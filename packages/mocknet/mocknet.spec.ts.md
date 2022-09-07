@@ -34,8 +34,8 @@ agent     = await chain.getAgent()
 template  = await agent.upload(Testing.examples['Echo'].data)
 template2 = await agent.upload(Testing.examples['KV'].data)
 
-equal(template.chainId,  agent.chain.id)
-equal(template2.chainId, template.chainId)
+//equal(template.chainId,  agent.chain.id)
+//equal(template2.chainId, template.chainId)
 equal(template2.codeId,  String(Number(template.codeId) + 1))
 ```
 
