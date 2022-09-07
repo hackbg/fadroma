@@ -325,7 +325,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
     for (const item of items) {
       try {
         item.make()
-      } catch (e) {
+      } catch (e: any) {
         log.warn(`Failed to create ${item.path}: ${e.message}`)
       }
     }
@@ -678,20 +678,22 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
 
 }
 
-export default class DevnetCommands extends Komandi.Commands<Fadroma.Deployment> {
+export default class DevnetCommands extends Fadroma.Deployment {
 
-  constructor (name: string = 'devnet', before = [], after = []) {
-    super(name, before, after)
-    this.command('status', 'print the status of the current devnet', this.status)
-    this.command('reset',  'print the status of the current devnet', this.reset)
+  constructor (options: Partial<DevnetCommands> = {}) {
+    options.name ??= 'devnet'
+    super(options)
+    this
+      .command('status', 'print the status of the current devnet', this.status)
+      .command('reset',  'print the status of the current devnet', this.reset)
   }
 
-  status = (context: Fadroma.Deployment) => {
-    new Fadroma.Console().chainStatus(context)
+  status = () => {
+    new Fadroma.ClientConsole().chainStatus(this)
   }
 
-  reset = ({ chain }: Fadroma.Deployment) => {
-    if (chain) return Devnet.reset({ chain })
+  reset = () => {
+    if (this.chain) return Devnet.reset({ chain: this.chain })
   }
 
 }

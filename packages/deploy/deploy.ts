@@ -42,11 +42,18 @@ import YAML from 'js-yaml'
 export { YAML }
 
 export async function deploy (
-  config: Partial<DeployConfig> = {},
+  config: DeployConfig|Partial<DeployConfig> = {},
   build?: Build.BuildCommands
 ) {
   const { chain, agent } = await Connect.connect(config)
-  return new DeployCommands('deploy', [], [], config, chain, agent, undefined, build)
+  config = new DeployConfig(process.env, process.cwd(), config)
+  return new DeployCommands({
+    name: 'deploy',
+    config: config as DeployConfig,
+    chain,
+    agent,
+    build
+  })
 }
 
 export class DeployConfig extends Connect.ConnectConfig {
@@ -99,6 +106,13 @@ export class DeployConsole extends ClientConsole {
     }
   }
 
+  warnNoDeployment () {
+    this.warn('No active deployment. Most commands will fail.')
+    this.warn('You can create a deployment using `fadroma-deploy new`')
+    this.warn('or select a deployment using `fadroma-deploy select`')
+    this.warn('among the ones listed by `fadroma-deploy list`')
+  }
+
 }
 
 /** Base class for class-based deploy procedure. */
@@ -106,26 +120,18 @@ export class DeployTask<X> extends Komandi.Task<DeployCommands, X> {
 
   log = new DeployConsole(console, 'Fadroma.DeployTask')
 
-  /** Specify a template to upload or use. */
-  template = (specifier: IntoContract, options: Partial<Contract> = {}): Contract =>
-    this.context.template(specifier, options)
-
-  /** Specify multiple templates to upload or use. */
-  templates = (specifiers: IntoContract[], options: Partial<Contract> = {}): Contracts =>
-    this.context.templates(specifiers, options)
-
   /** Specify a contract to deploy or operate. */
-  contract = <C extends Client> (
-    specifier: Name,
-    $Client:   NewClient<C> = Client as unknown as NewClient<C>
-  ): C =>
-    this.context.contract(specifier, $Client)
+  //contract = <C extends Client> (
+    //specifier: Name,
+    //$Client:   NewClient<C> = Client as unknown as NewClient<C>
+  //): C =>
+    //this.context.contract(specifier, $Client)
 
   /** Specify multiple contracts of the same kind. */
-  contracts = <C extends Client> (
-    $Client: NewClient<C> = Client as unknown as NewClient<C>
-  ): Contracts =>
-    this.context.contracts($Client)
+  //contracts = <C extends Client> (
+    //$Client: NewClient<C> = Client as unknown as NewClient<C>
+  //): Contracts =>
+    //this.context.contracts($Client)
 
 }
 
@@ -134,46 +140,28 @@ export class DeployTask<X> extends Komandi.Task<DeployCommands, X> {
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export class DeployCommands extends Komandi.Commands<Deployment> {
+export class DeployCommands extends Deployment {
 
   log = new DeployConsole(console, 'Fadroma.DeployCommands')
 
-  constructor (
-    name: string = 'deploy',
-    before = [],
-    after  = [],
-    config:          Partial<DeployConfig> = new DeployConfig(),
-    chain?:          Chain,
-    public agent?:          Agent,
-    deployment?:     Deployment,
-    readonly build?: Build.BuildCommands
-  ) {
-    super(name, before, after)
-    this.command('list',    'print a list of all deployments', this.list)
-    this.command('select',  'select a new active deployment',  this.select)
-    //@ts-ignore
-    this.command('new',     'create a new empty deployment',   this.create)
-    this.command('status',  'show the current deployment',     this.status)
-    this.command('nothing', 'check that the script runs', () => this.log.info('So far so good'))
-    // Populate the config
-    this.config = new DeployConfig(process.env, process.cwd(), config)
-    // Make sure we're operating in a deployment
-    if (!deployment) {
-      this.log.warn('No active deployment. Most commands will fail.')
-      this.log.warn('You can create a deployment using `fadroma-deploy new`')
-      this.log.warn('or select a deployment using `fadroma-deploy select`')
-      this.log.warn('among the ones listed by `fadroma-deploy list`')
-    }
-    // Make sure we have an operating identitiy
-    this.agent ??= agent
+  constructor (options: Partial<DeployCommands>) {
+    super(options)
     if (!this.agent) {
       throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
     }
+    this.config = options.config ?? new DeployConfig(process.env, process.cwd())
+    this.build  = options.build
+    this
+      .command('list',    'print a list of all deployments', this.list)
+      .command('select',  'select a new active deployment',  this.select)
+      .command('new',     'create a new empty deployment',   this.create)
+      .command('status',  'show the current deployment',     this.status)
+      .command('nothing', 'check that the script runs', () => this.log.info('So far so good'))
     // Populate the uploader
-    this.uploader = FSUploader.fromConfig(this.agent!, build?.config.project)
-    Object.defineProperty(this, 'cwd', { enumerable: false, writable: true })
-    Object.defineProperty(this, 'env', { enumerable: false, writable: true })
+    this.uploader = FSUploader.fromConfig(this.agent!, this.build?.config.project)
   }
+
+  build?:      Build.BuildCommands
 
   config:      DeployConfig
 
@@ -185,63 +173,6 @@ export class DeployCommands extends Komandi.Commands<Deployment> {
 
   /** Currently selected deployment. */
   deployment:  Deployment|null  = this.deployments?.active || null
-
-  /** Specify a template to upload or use. */
-  template = (specifier: IntoContract, options: Partial<Contract> = {}): Contract =>
-    Object.assign(new Contract(specifier), {
-      agent:      this.agent,
-      uploader:   this.uploader,
-      builder:    this.build?.builder,
-      repo:       this.build?.project,
-      workspace:  this.build?.project,
-      path:       this.build?.project,
-      ...options,
-    })
-
-  /** Specify multiple templates to upload or use. */
-  templates = (specifiers: IntoContract[], options: Partial<Contract> = {}): Contracts =>
-    Object.assign(new Contracts(specifiers), {
-      agent:      this.agent,
-      uploader:   this.uploader,
-      builder:    this.build?.builder,
-      repo:       this.build?.project,
-      workspace:  this.build?.project,
-      path:       this.build?.project,
-      ...options
-    })
-
-  /** Specify a contract to deploy or operate. */
-  contract = <C extends Client> (
-    specifier: Name,
-    $Client:   NewClient<C> = Client as unknown as NewClient<C>
-  ): C =>
-    new Contract({
-      name:       specifier,
-      Client:     $Client,
-      deployment: this.deployment!,
-      agent:      this.agent,
-      uploader:   this.uploader,
-      builder:    this.build?.builder,
-      repo:       this.build?.project,
-      workspace:  this.build?.project,
-      path:       this.build?.project,
-    }) as C
-
-  /** Specify multiple contracts of the same kind. */
-  contracts = <C extends Client> (
-    $Client: NewClient<C> = Client as unknown as NewClient<C>
-  ): Contracts =>
-    new Contracts([], {
-      Client:     $Client,
-      deployment: this.deployment!,
-      agent:      this.agent,
-      uploader:   this.uploader,
-      builder:    this.build?.builder,
-      repo:       this.build?.project,
-      workspace:  this.build?.project,
-      path:       this.build?.project,
-    })
-
 
   /** Defines a command that creates and selects a new deployment before running. */
   inNewDeployment (
@@ -257,39 +188,36 @@ export class DeployCommands extends Komandi.Commands<Deployment> {
     return this.command(name, `(in current deployment) ${info}`, this.getDeployment, ...steps)
   }
 
+  /** Add either the active deployment, or a newly created one, to the command context. */
+  getOrCreate = async (context: Deployment): Promise<DeployCommands> => {
+    const deployments = this.expectEnabled()
+    return {
+      ...context,
+      ...await deployments?.active ? this.getDeployment() : this.create()
+    }
+  }
+
   /** Add the currently active deployment to the command context. */
-  getDeployment = async (context: Deployment): Promise<DeployCommands> => {
-    const deployments = this.expectEnabled(context)
+  getDeployment = async (): Promise<DeployCommands> => {
+    const deployments = this.expectEnabled()
     if (!deployments.active) {
-      this.log.error('No selected deployment on chain:', bold(context.chain?.id??'(unspecifier)'))
+      this.log.error('No selected deployment on chain:', bold(this.chain?.id??'(unspecifier)'))
     }
     return { ...context, deployment: deployments.active } as DeployCommands
   }
 
   /** Create a new deployment and add it to the command context. */
-  create = async (
-    context: Deployment,
-    name: string = context.timestamp
-  ): Promise<DeployCommands> => {
-    const deployments = this.expectEnabled(context)
+  create = async (name: string = this.timestamp): Promise<DeployCommands> => {
+    const deployments = this.expectEnabled()
     await deployments?.create(name)
     await deployments?.select(name)
-    return { ...context, ...await this.get(context) } as DeployCommands
-  }
-
-  /** Add either the active deployment, or a newly created one, to the command context. */
-  getOrCreate = async (context: Deployment): Promise<DeployCommands> => {
-    const deployments = this.expectEnabled(context)
-    return {
-      ...context,
-      ...await deployments?.active ? this.getDeployment(context) : this.create(context)
-    }
+    return { ...context, ...await this.getDeployment() } as DeployCommands
   }
 
   /** Print a list of deployments on the selected chain. */
-  list = async (context: Deployment): Promise<void> => {
-    const deployments = this.expectEnabled(context)
-    const { chain = { id: '(unspecified)' } } = context
+  list = async (): Promise<void> => {
+    const deployments = this.expectEnabled()
+    const { chain = { id: '(unspecified)' } } = this
     const list = deployments.list()
     if (list.length > 0) {
       this.log.info(`Deployments on chain ${bold(chain.id)}:`)
@@ -310,9 +238,8 @@ export class DeployCommands extends Komandi.Commands<Deployment> {
   }
 
   /** Make a new deployment the active one. */
-  select = async (context: Deployment): Promise<void> => {
-    const deployments = this.expectEnabled(context)
-    const [id] = context.args ?? [undefined]
+  select = async (id?: string): Promise<void> => {
+    const deployments = this.expectEnabled()
     const list = deployments.list()
     if (list.length < 1) {
       this.log.info('\nNo deployments. Create one with `deploy new`')
@@ -322,7 +249,7 @@ export class DeployCommands extends Komandi.Commands<Deployment> {
       await deployments.select(id)
     }
     if (list.length > 0) {
-      this.list(context)
+      this.list()
     }
     if (deployments.active) {
       this.log.info(`Currently selected deployment:`, bold(deployments.active.name))
@@ -332,23 +259,23 @@ export class DeployCommands extends Komandi.Commands<Deployment> {
   }
 
   /** Print the status of a deployment. */
-  status = async (context: Deployment, [id] = context.args): Promise<void> => {
-    const deployments = this.expectEnabled(context)
+  status = async (id?: string): Promise<void> => {
+    const deployments = this.expectEnabled()
     const deployment  = id ? deployments.get(id) : deployments.active
     if (deployment) {
       this.log.deployment({ deployment })
     } else {
-      this.log.info('No selected deployment on chain:', bold(context.chain?.id??'(no chain)'))
+      this.log.info('No selected deployment on chain:', bold(this.chain?.id??'(no chain)'))
     }
   }
 
-  private expectEnabled = (context: Deployment): Deployments => {
-    if (!(context.deployments instanceof Deployments)) {
+  private expectEnabled = (): Deployments => {
+    if (!(this.deployments instanceof Deployments)) {
       //this.log.error('context.deployments was not populated')
       //this.log.log(context)
       throw new Error('Deployments were not enabled')
     }
-    return context.deployments
+    return this.deployments
   }
 
 }
@@ -374,7 +301,7 @@ export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
       throw new Error(`${name} already exists`)
     }
     return path.makeParent().as(Kabinet.YAMLFile).save(undefined)
-    return new Deployment(path.path)
+    return new YAMLDeployment(path.path)
   }
 
   /** Make the specified deployment be the active deployment. */
@@ -396,10 +323,8 @@ export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   get (name: string): Deployment|null {
     const path = resolve(this.path, `${name}.yml`)
-    if (!FS.existsSync(path)) {
-      return null
-    }
-    return new Deployment(path)
+    if (!FS.existsSync(path)) return null
+    return new YAMLDeployment(path)
   }
 
   /** List the deployments in the deployments directory. */
@@ -599,7 +524,7 @@ export class FSUploader extends Uploader {
         const codeHash = Build.codeHashForPath($(input.artifact!).path)
         this.log.warn('Computed code hash:', bold(input.codeHash!))
         input = new Contract({ ...input,  codeHash })
-      } catch (e) {
+      } catch (e: any) {
         this.log.warn('Could not compute code hash:', e.message)
       }
     }

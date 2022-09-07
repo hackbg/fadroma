@@ -63,8 +63,14 @@ export class ConnectContext extends Fadroma.Deployment {
   ) {
     super({ chain, agent })
     this.config = new ConnectConfig(this.env, this.cwd, config)
+    this.command('chains', 'print a list of all known chains', this.showChains)
   }
   config: ConnectConfig
+  showChains = async () => {
+    const log = new ConnectConsole(console, 'Fadroma.ConnectCommands')
+    log.supportedChains()
+    log.selectedChain((await connect()).config.chain)
+  }
 }
 
 /** Connection and identity configuration from environment variables. */
@@ -97,19 +103,6 @@ export class ConnectConfig extends EnvConfig {
       this.getString('SCRT_AGENT_MNEMONIC', ()=>
                        undefined))
 
-}
-
-/** Commands for @fadroma/connect cli */
-export default class ConnectCommands extends Komandi.Commands<ConnectContext> {
-  constructor (name: string = 'connect', before = [], after = []) {
-    super(name, before, after)
-    this.command('chains', 'print a list of all known chains', this.chains)
-  }
-  chains = async () => {
-    const log = new ConnectConsole(console, 'Fadroma.ConnectCommands')
-    log.supportedChains()
-    log.selectedChain((await connect()).config.chain)
-  }
 }
 
 export class ConnectConsole extends Fadroma.ClientConsole {

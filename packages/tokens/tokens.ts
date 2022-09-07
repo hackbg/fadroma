@@ -238,9 +238,11 @@ export class TokenRegistry extends Fadroma.Deployment {
     const toDeployArgs = ({name, symbol, decimals}: Snip20BaseConfig)=>
       [name, Snip20.init(name, symbol, decimals, admin, config)] as Fadroma.DeployArgs
     // first generate all the [name, init message] pairs
-    const inits    = tokens.map(toDeployArgs)
+    const inits = tokens.map(toDeployArgs)
     // then call `.contracts(optional client class).deployMany(template,[[name,msg],[name,msg]])`
-    const deployed = await this.contracts('amm-snip20').client(Snip20).deploy(inits) as Fadroma.ContractOf<Snip20>[]
+    const deployed = (await this.contracts('amm-snip20').deploy(inits)).map(contract=>new Snip20(
+      contract.agent, contract.address, contract.codeHash
+    ))
     // post-process the thus deployed tokens:
     for (const i in deployed) {
       // populate metadata for free since we just created them
@@ -288,29 +290,28 @@ export class TokenRegistry extends Fadroma.Deployment {
     enable_mint:         true
   }
 
-}
+  /** Command step: Deploy a single Snip20 token.
+    * Exposed below as the "deploy token" command.
+    * Invocation is "pnpm run deploy token $name $symbol $decimals [$admin] [$crate]" */
+  async deployToken (
+    label:     string,
+    name:      string =                    this.args[0]??'MockToken',
+    symbol:    string =                    this.args[1]??'MOCK',
+    decimals:  number =             Number(this.args[2]??6),
+    admin:     Fadroma.Address|undefined = this.args[3]??this.agent?.address,
+    template:  Fadroma.IntoContract      = this.args[4]??'amm-snip20'
+  ) {
+    const args   = this.args.slice(5)
+    const config = structuredClone(TokenRegistry.defaultConfig)
+    if (args.includes('--no-public-total-supply')) delete config.public_total_supply
+    if (args.includes('--no-mint'))     delete config.enable_mint
+    if (args.includes('--can-burn'))    config.enable_burn    = true
+    if (args.includes('--can-deposit')) config.enable_deposit = true
+    if (args.includes('--can-redeem'))  config.enable_redeem  = true
+    return await new TokenRegistry(this)
+      .getOrDeployToken(symbol, label, { name, decimals, admin, template })
+  }
 
-/** Command step: Deploy a single Snip20 token.
-  * Exposed below as the "deploy token" command.
-  * Invocation is "pnpm run deploy token $name $symbol $decimals [$admin] [$crate]" */
-export async function deployToken (
-  this:      Fadroma.Deployment,
-  label:     string,
-  name:      string =                    this.args[0]??'MockToken',
-  symbol:    string =                    this.args[1]??'MOCK',
-  decimals:  number =             Number(this.args[2]??6),
-  admin:     Fadroma.Address|undefined = this.args[3]??this.agent?.address,
-  template:  Fadroma.IntoContract      = this.args[4]??'amm-snip20'
-) {
-  const args   = this.args.slice(5)
-  const config = structuredClone(TokenRegistry.defaultConfig)
-  if (args.includes('--no-public-total-supply')) delete config.public_total_supply
-  if (args.includes('--no-mint'))     delete config.enable_mint
-  if (args.includes('--can-burn'))    config.enable_burn    = true
-  if (args.includes('--can-deposit')) config.enable_deposit = true
-  if (args.includes('--can-redeem'))  config.enable_redeem  = true
-  return await new TokenRegistry(this)
-    .getOrDeployToken(symbol, label, { name, decimals, admin, template })
 }
 
 /** # Secret Network SNIP20 token client. */

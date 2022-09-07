@@ -1,6 +1,6 @@
 import { Overridable } from '@hackbg/konfizi'
 import { CustomError, bold, timestamp } from '@hackbg/konzola'
-import { Commands, CommandsConsole } from '@hackbg/komandi'
+import { CommandContext, CommandsConsole } from '@hackbg/komandi'
 
 /** Idiom for copy-on-write usage of Overridables. */
 export interface New<T, U> {
@@ -765,7 +765,10 @@ export class Contract extends Client {
 
   static sourceToCrateRef = (specifier: string) => specifier.split('@') as [string, string?]
 
-  constructor (public specifier?: IntoContract) {
+  constructor (
+    public specifier?: IntoContract,
+    options: Partial<Contract> = {}
+  ) {
     super()
     if (typeof specifier === 'string') {
       const [ crate, ref ] = Contract.sourceToCrateRef(specifier)
@@ -774,6 +777,7 @@ export class Contract extends Client {
     } else {
       throw 'TODO'
     }
+    Object.assign(this, options)
   }
 
   /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
@@ -1163,6 +1167,12 @@ export class Contracts extends Overridable {
     return Object.assign(new ContractsOf(this.specifier), { Client }) as ContractsOf<C>
   }
 
+  intoClients <C extends Client> (Client: NewClient<C>): C[] {
+    return this.values.map(contract=>new Client(
+      contract.agent, contract.address, contract.codeHash
+    ))
+  }
+
   /** Multiple different templates that can be uploaded in one invocation.
     * Not uploaded in parallel by default. */
   async upload (slots: IntoContract[]): Promise<Contract[]> {
@@ -1205,7 +1215,7 @@ export class ContractsOf<C extends Client> extends Contracts {
   }
 
   client <D extends Client> (Client?: NewClient<D>): ContractsOf<D> {
-    if (Client == this.Client) return this as unknown as ContractsOf<D>
+    if (Client as any === this.Client as any) return this as unknown as ContractsOf<D>
     return Object.assign(new (this.constructor as NewContractsOf<D>)(this.specifier), {
       Client
     }) as unknown as ContractsOf<D>
@@ -1254,7 +1264,7 @@ export function addressOf (instance?: { address?: Address }): Address {
 /** Group of contracts sharing the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
-export class Deployment extends Commands<Deployment> {
+export class Deployment extends CommandContext {
 
   constructor (options: Partial<Deployment> = {}) {
     super(options.name ?? 'Deployment')
@@ -1358,6 +1368,20 @@ export class Deployment extends Commands<Deployment> {
       .withBuilder(this.builder)
       .withUploader(this.uploader)
       .withDeployment(this)
+
+  /** Defines a command that creates and selects a new deployment before running. */
+  inNewDeployment (
+    ...[name, info, ...steps]: Parameters<typeof this.command>
+  ): this {
+    return this.command(name, `(in new deployment) ${info}`, this.create, ...steps)
+  }
+
+  /** Defines a command that runs in the currently selected deployment. */
+  inSelectedDeployment (
+    ...[name, info, ...steps]: Parameters<typeof this.command>
+  ): this {
+    return this.command(name, `(in current deployment) ${info}`, this.getDeployment, ...steps)
+  }
 
 }
 

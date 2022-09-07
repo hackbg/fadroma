@@ -77,23 +77,19 @@ export class BuildTask<X> extends Komandi.Task<BuildCommands, X> {
   log = new BuildConsole(console, 'Fadroma.BuildTask')
 }
 
-export class BuildCommands extends Komandi.Commands<BuildCommands> {
+export class BuildCommands extends Komandi.CommandContext {
 
-  constructor (
-    name: string = 'build',
-    before = [],
-    after  = [],
-    config:  Partial<BuilderConfig> = new BuilderConfig(),
-    public project: string = config.project ?? process.cwd()
-  ) {
-    super(name, before, after)
-    this.config ??= new BuilderConfig(this.env, this.cwd, config)
+  constructor (options: Partial<BuildCommands> = {}) {
+    super('build')
+    this.config ??= new BuilderConfig(this.env, this.cwd, options.config)
     this.builder = getBuilder(this.config)
     this.command('one', 'build one crate from working tree', this.buildOne)
   }
 
   /** Setting for the build context. */
   config:    BuilderConfig
+
+  project:   string = ''
 
   /** Knows how to build contracts for a target. */
   builder:   Builder

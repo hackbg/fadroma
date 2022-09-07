@@ -43,7 +43,7 @@ export class Config extends Konfizi.EnvConfig {
 }
 
 /** Context for Fadroma commands. */
-export class Commands extends Komandi.Context {
+export class Commands extends Komandi.CommandContext {
   constructor (
     config: Config,
     /** The selected blockhain to connect to. */
@@ -51,15 +51,17 @@ export class Commands extends Komandi.Context {
     /** The selected agent to operate as. */
     public agent?: Fadroma.Agent
   ) {
-    super()
+    super(name)
   }
   config  = new Config(this.env, this.cwd)
   project = this.config.project
-  build   = new Build.BuildCommands('build', [], [], this.config.build, this.project)
+  build   = new Build.BuildCommands({
+    name: 'build',  config: this.config.build,  project: this.project
+  })
   connect = new Connect.ConnectContext(this.config.connect)
-  deploy  = new Deploy.DeployCommands(
-    'deploy', [], [], this.config.deploy, undefined, undefined, this, this.build
-  )
+  deploy  = new Deploy.DeployCommands({
+    name: 'deploy', config: this.config.deploy, build: this.build
+  })
 }
 
 export const Console = Fadroma.ClientConsole

@@ -1,6 +1,170 @@
-import { bold } from '@hackbg/konzola'
+import { CustomConsole, bold } from '@hackbg/konzola'
 import * as Fadroma from '@fadroma/client'
 import * as Formati from '@hackbg/formati'
+
+const log = new CustomConsole(console, 'Fadroma Mocknet')
+
+/** Hosts MocknetContract instances. */
+export class MocknetBackend {
+  constructor (readonly chainId: string) {}
+  codeId  = 0
+  uploads: Record<Fadroma.CodeId, unknown> = {}
+  getCode (codeId: Fadroma.CodeId) {
+    const code = this.uploads[codeId]
+    if (!code) {
+      throw new Error(`No code with id ${codeId}`)
+    }
+    return code
+  }
+  upload (blob: Uint8Array): Fadroma.Contract {
+    const chainId  = this.chainId
+    const codeId   = ++this.codeId
+    const content  = this.uploads[codeId] = blob
+    const codeHash = codeHashForBlob(blob)
+    return new Fadroma.Contract({ codeHash, chainId, codeId: String(codeId) })
+  }
+  instances: Record<Fadroma.Address, MocknetContract> = {}
+  getInstance (address?: Fadroma.Address) {
+    if (!address) {
+      throw new Error(`MocknetBackend#getInstance: can't get instance without address`)
+    }
+    const instance = this.instances[address]
+    if (!instance) {
+      throw new Error(`MocknetBackend#getInstance: no contract at ${address}`)
+    }
+    return instance
+  }
+  async instantiate (
+    sender: Fadroma.Address,
+    { codeId, codeHash }: Partial<Fadroma.Contract>,
+    label: string,
+    msg:   Fadroma.Message,
+    funds = []
+  ): Promise<Partial<Fadroma.Contract>> {
+    const chainId  = this.chainId
+    const code     = this.getCode(codeId!)
+    const contract = await new MocknetBackend.Contract(this).load(code)
+    const env      = this.makeEnv(sender, contract.address, codeHash)
+    const response = contract.init(env, msg)
+    const initResponse = parseResult(response, 'instantiate', contract.address)
+    this.instances[contract.address] = contract
+    await this.passCallbacks(contract.address, initResponse.messages)
+    return {
+      address: contract.address,
+      chainId,
+      codeId,
+      codeHash,
+      label
+    }
+  }
+  async execute (
+    sender: Fadroma.Address,
+    { address, codeHash }: Partial<Fadroma.Client>,
+    msg: Fadroma.Message,
+    funds: unknown,
+    memo?: unknown, 
+    fee?:  unknown
+  ) {
+    const result   = this.getInstance(address).handle(this.makeEnv(sender, address), msg)
+    const response = parseResult(result, 'execute', address)
+    if (response.data !== null) {
+      response.data = b64toUtf8(response.data)
+    }
+    await this.passCallbacks(address, response.messages)
+    return response
+  }
+  /** Populate the `Env` object available in transactions. */
+  makeEnv (
+    sender:   Fadroma.Address,
+    address?: Fadroma.Address,
+    codeHash: Fadroma.CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
+    now: number = + new Date()
+  ) {
+    if (!address) {
+      throw new Error("MocknetBackend#makeEnv: Can't create contract environment without address")
+    }
+    const height            = Math.floor(now/5000)
+    const time              = Math.floor(now/1000)
+    const chain_id          = this.chainId
+    const sent_funds: any[] = []
+    return {
+      block:    { height, time, chain_id },
+      message:  { sender, sent_funds },
+      contract: { address },
+      contract_key: "",
+      contract_code_hash: codeHash
+    }
+  }
+  async passCallbacks (sender: Fadroma.Address|undefined, messages: Array<any>) {
+    if (!sender) {
+      throw new Error("MocknetBackend#passCallbacks: can't pass callbacks without sender")
+    }
+    for (const message of messages) {
+      const { wasm } = message
+      if (!wasm) {
+        log.warn(
+          'MocknetBackend#execute: transaction returned non-wasm message, ignoring:',
+          message
+        )
+        continue
+      }
+      const { instantiate, execute } = wasm
+      if (instantiate) {
+        const { code_id, callback_code_hash, label, msg, send } = instantiate
+        const instance = await this.instantiate(
+          sender, /* who is sender? */
+          new Fadroma.Contract({ codeHash: callback_code_hash, codeId: code_id }),
+          label,
+          JSON.parse(b64toUtf8(msg)),
+          send
+        )
+        trace(
+          `Callback from ${bold(sender)}: instantiated contract`, bold(label),
+          'from code id', bold(code_id), 'with hash', bold(callback_code_hash),
+          'at address', bold(instance.address!)
+        )
+      } else if (execute) {
+        const { contract_addr, callback_code_hash, msg, send } = execute
+        const response = await this.execute(
+          sender,
+          { address: contract_addr, codeHash: callback_code_hash },
+          JSON.parse(b64toUtf8(msg)),
+          send
+        )
+        trace(
+          `Callback from ${bold(sender)}: executed transaction`,
+          'on contract', bold(contract_addr), 'with hash', bold(callback_code_hash),
+        )
+      } else {
+        log.warn(
+          'MocknetBackend#execute: transaction returned wasm message that was not '+
+          '"instantiate" or "execute", ignoring:',
+          message
+        )
+      }
+    }
+  }
+  async query ({ address, codeHash }: Partial<Fadroma.Client>, msg: Fadroma.Message) {
+    const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
+    return JSON.parse(result)
+  }
+  private resultOf (address: Fadroma.Address, action: string, response: any) {
+    const { Ok, Err } = response
+    if (Err !== undefined) {
+      const errData = JSON.stringify(Err)
+      const message = `MocknetBackend#${action}: contract ${address} returned Err: ${errData}`
+      throw Object.assign(new Error(message), Err)
+    }
+    if (Ok !== undefined) {
+      return Ok
+    }
+    throw new Error(`MocknetBackend#${action}: contract ${address} returned non-Result type`)
+  }
+
+  /** Hosts a WASM contract blob and contains the contract-local storage. */
+  static Contract: typeof MocknetContract
+
+}
 
 /** Chain instance containing a local MocknetBackend. */
 export class Mocknet extends Fadroma.Chain {
@@ -82,7 +246,10 @@ class MocknetAgent extends Fadroma.Agent {
   async instantiate (
     template: Fadroma.Contract, label: string, msg: Fadroma.Message, send = []
   ): Promise<Fadroma.Contract> {
-    return await this.backend.instantiate(this, template, label, msg, send)
+    return new Fadroma.Contract({
+      agent: this,
+      ...await this.backend.instantiate(this.address, template, label, msg, send)
+    })
   }
 
   async execute <R> (
@@ -133,7 +300,7 @@ class MocknetBundle extends Fadroma.Bundle {
         const { sender, contract, codeHash, msg, funds } = exec
         results.push(await this.agent.execute({ address: contract, codeHash }, msg, { send: funds }))
       } else {
-        console.warn('MocknetBundle#submit: found unknown message in bundle, ignoring')
+        log.warn('MocknetBundle#submit: found unknown message in bundle, ignoring')
         results.push(null)
       }
     }
@@ -197,172 +364,14 @@ export const MOCKNET_ADDRESS_PREFIX = 'mocked'
 
 // TODO move this env var to global config
 const trace = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
-  console.info(...args)
-  console.log()
+  log.info(...args)
+  log.log()
 }) : (...args: any[]) => {}
 
 const debug = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
-  console.debug(...args)
-  console.log()
+  log.debug(...args)
+  log.log()
 }) : (...args: any[]) => {}
-
-/** Hosts MocknetContract instances. */
-export class MocknetBackend {
-  constructor (readonly chainId: string) {}
-  codeId  = 0
-  uploads: Record<Fadroma.CodeId, unknown> = {}
-  getCode (codeId: Fadroma.CodeId) {
-    const code = this.uploads[codeId]
-    if (!code) {
-      throw new Error(`No code with id ${codeId}`)
-    }
-    return code
-  }
-  upload (blob: Uint8Array): Fadroma.Contract {
-    const chainId  = this.chainId
-    const codeId   = ++this.codeId
-    const content  = this.uploads[codeId] = blob
-    const codeHash = codeHashForBlob(blob)
-    return new Fadroma.Contract({ codeHash, chainId, codeId: String(codeId) })
-  }
-  instances: Record<Fadroma.Address, MocknetContract> = {}
-  getInstance (address?: Fadroma.Address) {
-    if (!address) {
-      throw new Error(`MocknetBackend#getInstance: can't get instance without address`)
-    }
-    const instance = this.instances[address]
-    if (!instance) {
-      throw new Error(`MocknetBackend#getInstance: no contract at ${address}`)
-    }
-    return instance
-  }
-  async instantiate (
-    sender: MocknetAgent,
-    { codeId, codeHash }: Partial<Fadroma.Contract>,
-    label: string,
-    msg:   Fadroma.Message,
-    funds = []
-  ): Promise<Fadroma.Contract> {
-    const chainId  = this.chainId
-    const code     = this.getCode(codeId!)
-    const contract = await new MocknetBackend.Contract(this).load(code)
-    const env      = this.makeEnv(sender.address, contract.address, codeHash)
-    const response = contract.init(env, msg)
-    const initResponse = parseResult(response, 'instantiate', contract.address)
-    this.instances[contract.address] = contract
-    await this.passCallbacks(contract.address, initResponse.messages)
-    return new Fadroma.Contract(sender, {
-      chainId, codeId, codeHash, address: contract.address, label
-    })
-  }
-  async execute (
-    sender: Fadroma.Address,
-    { address, codeHash }: Partial<Fadroma.Client>,
-    msg: Fadroma.Message,
-    funds: unknown,
-    memo?: unknown, 
-    fee?:  unknown
-  ) {
-    const result   = this.getInstance(address).handle(this.makeEnv(sender, address), msg)
-    const response = parseResult(result, 'execute', address)
-    if (response.data !== null) {
-      response.data = b64toUtf8(response.data)
-    }
-    await this.passCallbacks(address, response.messages)
-    return response
-  }
-  /** Populate the `Env` object available in transactions. */
-  makeEnv (
-    sender:   Fadroma.Address,
-    address?: Fadroma.Address,
-    codeHash: Fadroma.CodeHash|undefined = address ? this.instances[address]?.codeHash : undefined,
-    now: number = + new Date()
-  ) {
-    if (!address) {
-      throw new Error("MocknetBackend#makeEnv: Can't create contract environment without address")
-    }
-    const height            = Math.floor(now/5000)
-    const time              = Math.floor(now/1000)
-    const chain_id          = this.chainId
-    const sent_funds: any[] = []
-    return {
-      block:    { height, time, chain_id },
-      message:  { sender, sent_funds },
-      contract: { address },
-      contract_key: "",
-      contract_code_hash: codeHash
-    }
-  }
-  async passCallbacks (sender: Fadroma.Address|undefined, messages: Array<any>) {
-    if (!sender) {
-      throw new Error("MocknetBackend#passCallbacks: can't pass callbacks without sender")
-    }
-    for (const message of messages) {
-      const { wasm } = message
-      if (!wasm) {
-        console.warn(
-          'MocknetBackend#execute: transaction returned non-wasm message, ignoring:',
-          message
-        )
-        continue
-      }
-      const { instantiate, execute } = wasm
-      if (instantiate) {
-        const { code_id, callback_code_hash, label, msg, send } = instantiate
-        const instance = await this.instantiate(
-          sender, /* who is sender? */
-          new Fadroma.Contract({ codeHash: callback_code_hash, codeId: code_id }),
-          label,
-          JSON.parse(b64toUtf8(msg)),
-          send
-        )
-        trace(
-          `Callback from ${bold(sender)}: instantiated contract`, bold(label),
-          'from code id', bold(code_id), 'with hash', bold(callback_code_hash),
-          'at address', bold(instance.address!)
-        )
-      } else if (execute) {
-        const { contract_addr, callback_code_hash, msg, send } = execute
-        const response = await this.execute(
-          sender,
-          { address: contract_addr, codeHash: callback_code_hash },
-          JSON.parse(b64toUtf8(msg)),
-          send
-        )
-        trace(
-          `Callback from ${bold(sender)}: executed transaction`,
-          'on contract', bold(contract_addr), 'with hash', bold(callback_code_hash),
-        )
-      } else {
-        console.warn(
-          'MocknetBackend#execute: transaction returned wasm message that was not '+
-          '"instantiate" or "execute", ignoring:',
-          message
-        )
-      }
-    }
-  }
-  async query ({ address, codeHash }: Partial<Fadroma.Client>, msg: Fadroma.Message) {
-    const result = b64toUtf8(parseResult(this.getInstance(address).query(msg), 'query', address))
-    return JSON.parse(result)
-  }
-  private resultOf (address: Fadroma.Address, action: string, response: any) {
-    const { Ok, Err } = response
-    if (Err !== undefined) {
-      const errData = JSON.stringify(Err)
-      const message = `MocknetBackend#${action}: contract ${address} returned Err: ${errData}`
-      throw Object.assign(new Error(message), Err)
-    }
-    if (Ok !== undefined) {
-      return Ok
-    }
-    throw new Error(`MocknetBackend#${action}: contract ${address} returned non-Result type`)
-  }
-
-  /** Hosts a WASM contract blob and contains the contract-local storage. */
-  static Contract: typeof MocknetContract
-
-}
 
 class MocknetContract {
   constructor (
@@ -386,8 +395,8 @@ class MocknetContract {
       const retPtr  = this.instance!.exports.init(envBuf, msgBuf)
       const retData = this.readUtf8(retPtr)
       return retData
-    } catch (e) {
-      console.error(bold(this.address), `crashed on init:`, e.message)
+    } catch (e: any) {
+      log.error(bold(this.address), `crashed on init:`, e.message)
       throw e
     }
   }
@@ -399,8 +408,8 @@ class MocknetContract {
       const retPtr = this.instance!.exports.handle(envBuf, msgBuf)
       const retBuf = this.readUtf8(retPtr)
       return retBuf
-    } catch (e) {
-      console.error(bold(this.address), `crashed on handle:`, e.message)
+    } catch (e: any) {
+      log.error(bold(this.address), `crashed on handle:`, e.message)
       throw e
     }
   }
@@ -411,8 +420,8 @@ class MocknetContract {
       const retPtr = this.instance!.exports.query(msgBuf)
       const retBuf = this.readUtf8(retPtr)
       return retBuf
-    } catch (e) {
-      console.error(bold(this.address), `crashed on query:`, e.message)
+    } catch (e: any) {
+      log.error(bold(this.address), `crashed on query:`, e.message)
       throw e
     }
   }
@@ -614,7 +623,7 @@ export function drop (exports: IOExports, ptr: Ptr): void {
   if (exports.deallocate) {
     exports.deallocate(ptr)
   } else {
-    //console.warn("Can't deallocate", ptr)
+    //log.warn("Can't deallocate", ptr)
   }
 }
 /** Convert base64 to string */
