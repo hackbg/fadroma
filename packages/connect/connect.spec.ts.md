@@ -149,6 +149,6 @@ log.chainStatus({
 })
 log.chainStatus({
   chain: { constructor: { name: 1 }, mode: 2, id: 3, url: new URL('http://example.com') }
-  deployments: { list () { return [] }, active: { prefix: 4 } }
+  deployments: { list () { return [] }, active: { name: 4 } }
 })
 ```

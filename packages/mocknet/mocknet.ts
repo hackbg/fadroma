@@ -7,13 +7,13 @@ export class Mocknet extends Fadroma.Chain {
 
   balances: Record<Fadroma.Address, Fadroma.Uint128> = {}
 
+  backend = new MocknetBackend(this.id)
+
   defaultDenom = 'umock'
 
   constructor (id = 'fadroma-mocknet', options = {}) {
     super(id, { ...options, mode: Fadroma.ChainMode.Mocknet })
   }
-
-  backend = new MocknetBackend(this.id)
 
   async getAgent <A> (options: Fadroma.AgentOpts): Promise<A> {
     return new MocknetAgent(this, options) as unknown as A
@@ -43,12 +43,12 @@ export class Mocknet extends Fadroma.Chain {
     return Promise.resolve(0)
   }
 
+  //@ts-ignore
+  Agent: Fadroma.AgentCtor<MocknetAgent> = Mocknet.Agent
+
   /** Agent instance calling its Chain's Mocknet backend. */
   //@ts-ignore
   static Agent: Fadroma.AgentCtor<MocknetAgent>
-
-  //@ts-ignore
-  Agent: Fadroma.AgentCtor<MocknetAgent> = Mocknet.Agent
 
 }
 
@@ -81,7 +81,7 @@ class MocknetAgent extends Fadroma.Agent {
 
   async instantiate (
     template: Fadroma.Contract, label: string, msg: Fadroma.Message, send = []
-  ): Promise<Fadroma.Client> {
+  ): Promise<Fadroma.Contract> {
     return await this.backend.instantiate(this, template, label, msg, send)
   }
 
@@ -114,6 +114,7 @@ class MocknetAgent extends Fadroma.Agent {
 
 }
 
+//@ts-ignore
 Mocknet.Agent = MocknetAgent
 
 class MocknetBundle extends Fadroma.Bundle {
@@ -241,7 +242,7 @@ export class MocknetBackend {
     label: string,
     msg:   Fadroma.Message,
     funds = []
-  ): Promise<Fadroma.Client> {
+  ): Promise<Fadroma.Contract> {
     const chainId  = this.chainId
     const code     = this.getCode(codeId!)
     const contract = await new MocknetBackend.Contract(this).load(code)
@@ -250,7 +251,7 @@ export class MocknetBackend {
     const initResponse = parseResult(response, 'instantiate', contract.address)
     this.instances[contract.address] = contract
     await this.passCallbacks(contract.address, initResponse.messages)
-    return new Fadroma.Client(sender, {
+    return new Fadroma.Contract(sender, {
       chainId, codeId, codeHash, address: contract.address, label
     })
   }

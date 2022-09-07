@@ -25,6 +25,7 @@ import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
 import { Contract, Builder } from '@fadroma/client'
+import type { IntoContract } from '@fadroma/client'
 
 import { default as simpleGit } from 'simple-git'
 
@@ -72,22 +73,23 @@ export class BuilderConfig extends Konfizi.EnvConfig {
 }
 
 /** Base class for class-based deploy procedure. Adds progress logging. */
-export class BuildTask<X> extends Komandi.Task<BuildContext, X> {
+export class BuildTask<X> extends Komandi.Task<BuildCommands, X> {
   log = new BuildConsole(console, 'Fadroma.BuildTask')
 }
 
-export class BuildContext extends Komandi.Context {
+export class BuildCommands extends Komandi.Commands<BuildCommands> {
 
   constructor (
+    name: string = 'build',
+    before = [],
+    after  = [],
     config:  Partial<BuilderConfig> = new BuilderConfig(),
-    project: string = config.project ?? process.cwd()
+    public project: string = config.project ?? process.cwd()
   ) {
-    super()
-    this.config    = new BuilderConfig(this.env, this.cwd, config)
-    this.builder   = getBuilder(this.config)
-    this.workspace = new LocalWorkspace(this.config.project)
-    Object.defineProperty(this, 'cwd', { enumerable: false, writable: true })
-    Object.defineProperty(this, 'env', { enumerable: false, writable: true })
+    super(name, before, after)
+    this.config ??= new BuilderConfig(this.env, this.cwd, config)
+    this.builder = getBuilder(this.config)
+    this.command('one', 'build one crate from working tree', this.buildOne)
   }
 
   /** Setting for the build context. */
@@ -96,30 +98,152 @@ export class BuildContext extends Komandi.Context {
   /** Knows how to build contracts for a target. */
   builder:   Builder
 
-  /** Cargo workspace of the current project. */
-  workspace: LocalWorkspace
-
-  /** Get a Source by crate name from the current workspace. */
-  getSource (source: IntoSource, ref?: string): LocalSource {
-    let workspace = this.workspace
-    if (ref) workspace = workspace.at(ref)
-    if (typeof source === 'string') return this.workspace.crate(source)
-    if (source instanceof URL) return new LocalSource({ repo: source })
-    return source as LocalSource
+  /** Get a Contract by crate name from the current workspace. */
+  getSource = (source: IntoContract, ref?: string): Contract => {
+    if (typeof source === 'string') return new Contract(source).atRef(ref)
+    if (source instanceof URL) return new Contract().fromRepo(source)
+    return source as Contract
   }
 
   /** Get a Template from Source or crate name. */
-  async build (source: IntoSource, ref?: string): Promise<Template> {
-    return await this.builder.build(this.getSource(source).at(ref))
+  build = async (source: IntoContract, ref?: string): Promise<Contract> => {
+    return await this.builder.build(this.getSource(source).atRef(ref))
   }
 
   /** Get one or more Templates from Source or crate name */
-  async buildMany (ref?: string, ...sources: IntoSource[][]): Promise<Template[]> {
+  buildMany = async (ref?: string, ...sources: IntoContract[][]): Promise<Contract[]> => {
     sources = [sources.reduce((s1, s2)=>[...new Set([...s1, ...s2])], [])]
     return await this.builder.buildMany(sources[0].map(source=>this.getSource(source)))
   }
 
+  buildOne = () => {
+    const config = {
+      build: new BuilderConfig(process.env as Record<string, string>, process.cwd())
+    }
+    const [buildPath, ...buildArgs] = process.argv.slice(2)
+    const buildSpec = $(buildPath)
+    if (buildSpec.isDirectory()) {
+      this.buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
+    } else if (buildSpec.isFile()) {
+      this.buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
+    } else {
+      this.printUsage()
+    }
+  }
+
+  buildFromCargoToml = async (
+    cargoToml: CargoTOML,
+    workspace = process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
+  ) => {
+    this.log.info('Build manifest:', bold(cargoToml.shortPath))
+    const crate  = (cargoToml.as(Kabinet.TOMLFile).load() as any).package.name
+    const source = new Contract({ workspace, crate })
+    try {
+      const config   = { ...new BuilderConfig(), rebuild: true }
+      const builder  = getBuilder(config)
+      const template = await builder.build(source)
+      const { artifact, codeHash } = template
+      this.log.info('Built:    ', bold($(artifact!).shortPath))
+      this.log.info('Code hash:', bold(codeHash!))
+      process.exit(0)
+    } catch (e) {
+      this.log.error(`Build failed.`)
+      this.log.error(e)
+      process.exit(5)
+    }
+  }
+
+  buildFromBuildScript = async (
+    buildScript: Kabinet.OpaqueFile,
+    buildArgs:   string[] = []
+  ) => {
+    const buildSetName = buildArgs.join(' ')
+    this.log.info('Build script:', bold(buildScript.shortPath))
+    this.log.info('Build set:   ', bold(buildSetName || '(none)'))
+    //@ts-ignore
+    const {default: buildSets} = await import(buildScript.path)
+    if (buildArgs.length > 0) {
+      const buildSet = buildSets[buildSetName]
+      if (!buildSet) {
+        this.log.error(`No build set ${bold(buildSetName)}.`)
+        this.listBuildSets(buildSets)
+        process.exit(1)
+      } else if (!(buildSet instanceof Function)) {
+        this.log.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
+        process.exit(2)
+      } else {
+        const buildSources = buildSet()
+        if (!(buildSources instanceof Array)) {
+          this.log.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
+          process.exit(3)
+        }
+        const T0 = + new Date()
+        try {
+          const config = { ...new BuilderConfig(), rebuild: true }
+          await getBuilder(config).buildMany(buildSources)
+          const T1 = + new Date()
+          this.log.info(`Build complete in ${T1-T0}ms.`)
+          process.exit(0)
+        } catch (e) {
+          this.log.error(`Build failed.`)
+          this.log.error(e)
+          process.exit(4)
+        }
+      }
+    } else {
+      this.log.warn(bold('No build set specified.'))
+      this.listBuildSets(buildSets)
+    }
+  }
+
+  listBuildSets = (buildSets: Record<string, ()=>Contract[]>) => {
+    this.log.log('Available build sets:')
+    for (let [name, getSources] of Object.entries(buildSets)) {
+      this.log.log(`\n  ${name}`)
+      const sources = getSources()
+      for (const source of sources as Array<Contract>) {
+        this.log.log(`    ${bold(source.crate!)} @ ${source.ref}`)
+      }
+    }
+  }
+
+  buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
+    const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
+    if (cargoToml.exists()) {
+      this.log.info('Building from', bold(cargoToml.shortPath))
+      this.buildFromCargoToml(cargoToml as CargoTOML)
+    } else {
+      this.printUsage()
+    }
+  }
+
+  buildFromFile = async (
+    file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
+    buildArgs: string[] = []
+  ) => {
+    if (file.name === 'Cargo.toml') {
+      this.log.buildingFromCargoToml(file)
+      this.buildFromCargoToml(file as CargoTOML)
+    } else {
+      this.log.buildingFromBuildScript(file)
+      this.buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
+    }
+  }
+
+  printUsage = () => {
+    this.log.info(`
+      Usage:
+        fadroma-build path/to/crate
+        fadroma-build path/to/Cargo.toml
+        fadroma-build buildConfig.{js|ts}`)
+    process.exit(6)
+  }
+
+  log = new BuildConsole(console, 'Fadroma.BuildCommands')
+
 }
+
+export default new BuildCommands()
 
 /** Get a builder based on the builder config. */
 export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()) {
@@ -133,56 +257,9 @@ export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()
 /** The Git reference pointing to the currently checked out working tree */
 export const HEAD = 'HEAD'
 
-/** Represents a crate in a workspace.
-  * The workspace may be at HEAD (build from working tree)
-  * or another ref (build from Git history). */
-export class LocalSource extends Source {
-
-  constructor (specifier: IntoSource = {}, options: Partial<LocalSource> = {}) {
-    super(specifier, options)
-    this.override(options)
-  }
-
-  get gitDir (): DotGit {
-    if (!this.repo) throw new Error('LocalSource: no path when trying to access gitDir')
-    return new DotGit(this.repo)
-  }
-
-}
-
-/** Represents a Cargo workspace containing multiple smart contract crates */
-export class LocalWorkspace {
-
-  constructor (
-    public readonly path:   string,
-    public readonly ref:    string = HEAD,
-    public readonly gitDir: DotGit = new DotGit(path)
-  ) {}
-
-  /** Create a new instance of the same workspace that will
-    * return Source objects pointing to a specific Git ref. */
-  at (ref: string): this {
-    interface WorkspaceCtor<W> { new (path: string, ref?: string, gitDir?: DotGit): W }
-    return new (this.constructor as WorkspaceCtor<typeof this>)(this.path, ref, this.gitDir)
-  }
-
-  /** Get a Source object pointing to a crate from the current workspace and ref */
-  crate (specifier: string): LocalSource {
-    const [ crate, ref ] = Contract.sourceToCrateRef(specifier)
-    let self = this
-    if (ref !== 'HEAD') {
-      self = self.at(ref)
-    }
-    return new LocalSource(crate, {
-      ref: self.ref, repo: self.path, workspace: self.path, path: self.path
-    })
-  }
-
-  /** Get multiple Source objects pointing to crates from the current workspace and ref */
-  crates (crates: string[]): LocalSource[] {
-    return crates.map(crate=>this.crate(crate))
-  }
-
+export function getGitDir ({ repo }: Contract): DotGit {
+  if (!repo) throw new Error('Contract: no path when trying to access gitDir')
+  return new DotGit(repo)
 }
 
 /** Represents the real location of the Git data directory.
@@ -326,13 +403,13 @@ export abstract class LocalBuilder extends Builder {
     * If it does, don't rebuild it but return it from there. */
   protected prebuild (
     outputDir: string, crate?: string, ref: string = HEAD
-  ): Template|null {
+  ): Contract|null {
     if (this.caching && crate) {
       const location = $(outputDir, artifactName(crate, ref))
       if (location.exists()) {
         const artifact = location.url
         const codeHash = this.codeHashForPath(location.path)
-        return new Template({ crate, ref, artifact, codeHash })
+        return new Contract({ crate, ref, artifact, codeHash })
       }
     }
     return null
@@ -355,8 +432,8 @@ export class RawBuilder extends LocalBuilder {
   runtime = process.argv[0]
 
   /** Build a Source into a Template */
-  async build (source: LocalSource): Promise<Template> {
-    const { path, ref = HEAD, crate, workspace } = source
+  async build (source: Contract): Promise<Contract> {
+    const { workspace, ref = HEAD, crate } = source
     if (!workspace) throw new Error('no workspace')
     if (!crate)     throw new Error('no crate')
 
@@ -374,7 +451,7 @@ export class RawBuilder extends LocalBuilder {
     }
 
     if ((ref ?? HEAD) !== HEAD) {
-      const { gitDir } = source
+      const gitDir = getGitDir(source)
       // Provide the build script with the config values that ar
       // needed to make a temporary checkout of another commit
       if (!gitDir?.present) {
@@ -396,11 +473,11 @@ export class RawBuilder extends LocalBuilder {
 
     // Run the build script
     const cmd = [this.runtime, this.script, 'phase1', ref, crate ]
-    const opts = { cwd: source.path, env: { ...process.env, ...env }, stdio: 'inherit' }
+    const opts = { cwd: source.workspace, env: { ...process.env, ...env }, stdio: 'inherit' }
     const sub  = spawn(cmd.shift() as string, cmd, opts as any)
     await new Promise<void>((resolve, reject)=>{
       sub.on('exit', (code: number, signal: any) => {
-        const build = `Build of ${source.crate} from ${$(source.path!).shortPath} @ ${source.ref}`
+        const build = `Build of ${source.crate} from ${$(source.workspace!).shortPath} @ ${source.ref}`
         if (code === 0) {
           resolve()
         } else if (code !== null) {
@@ -423,7 +500,7 @@ export class RawBuilder extends LocalBuilder {
     // Create an artifact for the build result
     const location = $(env._OUTPUT, artifactName(crate, sanitize(ref)))
     this.log.info('Build ok:', bold(location.shortPath))
-    return new Template(source, {
+    return Object.assign(new Contract(source), {
       artifact: pathToFileURL(location.path),
       codeHash: this.codeHashForPath(location.path)
     })
@@ -433,8 +510,8 @@ export class RawBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: LocalSource[]): Promise<Template[]> {
-    const templates: Template[] = []
+  async buildMany (inputs: Contract[]): Promise<Contract[]> {
+    const templates: Contract[] = []
     for (const source of inputs) templates.push(await this.build(source))
     return templates
   }
@@ -485,7 +562,7 @@ export class DockerBuilder extends LocalBuilder {
   dockerfile: string
 
   /** Build a Source into a Template */
-  async build (source: LocalSource): Promise<Template> {
+  async build (source: Contract): Promise<Contract> {
     return (await this.buildMany([source]))[0]
   }
 
@@ -493,7 +570,7 @@ export class DockerBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: LocalSource[]): Promise<Template[]> {
+  async buildMany (inputs: Contract[]): Promise<Contract[]> {
 
     const longestCrateName = inputs
       .map(source=>source.crate?.length||0)
@@ -508,12 +585,13 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Collect a mapping of workspace path -> Workspace object
-    const workspaces: Record<string, LocalWorkspace> = {}
+    const workspaces: Record<string, Contract> = {}
     for (const source of inputs) {
-      const { repo, gitDir, workspace } = source
+      const { repo, workspace } = source
+      const gitDir = getGitDir(source)
       if (!repo)      throw new Error('missing repo path in source')
       if (!workspace) throw new Error('missing workspace in source')
-      workspaces[workspace] = new LocalWorkspace(workspace)
+      workspaces[workspace] = new Contract(workspace)
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
       if (source.ref !== HEAD && !gitDir?.present) {
         const error = new Error("Fadroma Build: could not find Git directory for source.")
@@ -522,7 +600,7 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Here we will collect the build outputs
-    const outputs: Template[] = inputs.map(input=>new Template({ ...input, builder: this }))
+    const outputs: Contract[] = inputs.map(input=>new Contract({ ...input, builder: this }))
 
     // Get the distinct workspaces and refs by which to group the crate builds
     const roots: string[] = distinct(inputs.map(source=>source.workspace!))
@@ -540,7 +618,7 @@ export class DockerBuilder extends LocalBuilder {
       let mounted = $(path)
       if (this.verbose) this.log.buildingFromWorkspace(mounted, ref)
       if (ref !== HEAD) {
-        const { gitDir } = workspaces[path]
+        const gitDir = getGitDir(workspaces[path])
         mounted = gitDir.rootRepo
         //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
         await simpleGit(gitDir.path)
@@ -565,12 +643,12 @@ export class DockerBuilder extends LocalBuilder {
         ref,
         crates,
         (ref !== HEAD)
-          ? (workspaces[path].gitDir.isSubmodule ? workspaces[path].gitDir.submoduleDir: '')
+          ? (gitDir=>gitDir.isSubmodule?gitDir.submoduleDir:'')(getGitDir(workspaces[path]))
           : ''
       )
       for (const index in results) {
         if (!results[index]) continue
-        outputs[index] = new Template({ ...results[index], ...inputs[index] })
+        outputs[index] = new Contract({ ...results[index], ...inputs[index] })
       }
     }
 
@@ -583,12 +661,12 @@ export class DockerBuilder extends LocalBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = $(root, subdir, this.outputDirName).path,
-  ): Promise<(Template|null)[]> {
+  ): Promise<(Contract|null)[]> {
     // Create output directory as user if it does not exist
     $(outputDir).as(Kabinet.OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
-    const templates:   (Template|null)[] = crates.map(()=>null)
+    const templates:   (Contract|null)[] = crates.map(()=>null)
 
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
@@ -716,7 +794,7 @@ export class DockerBuilder extends LocalBuilder {
 
     // Return a sparse array of the resulting artifacts
     return outputWasms.map(location =>
-      (location === null) ? null : new Template({
+      (location === null) ? null : new Contract({
         artifact: $(location).url,
         codeHash: this.codeHashForPath(location)
       }))
@@ -727,8 +805,7 @@ export class DockerBuilder extends LocalBuilder {
 
 type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
 
-
-export class BuildConsole extends Konzola.CustomConsole {
+export class BuildConsole extends Komandi.CommandsConsole {
 
   name = 'Fadroma Build'
 
@@ -747,7 +824,7 @@ export class BuildConsole extends Konzola.CustomConsole {
     )
   }
 
-  buildingOne (source: Source, prebuilt: Template|null) {
+  buildingOne (source: Contract, prebuilt: Contract|null) {
     if (prebuilt) {
       this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
     } else {
@@ -760,7 +837,7 @@ export class BuildConsole extends Konzola.CustomConsole {
     }
   }
 
-  buildingMany (sources: Source[]) {
+  buildingMany (sources: Contract[]) {
     for (const source of sources) {
       const { crate = '(unknown)', ref = 'HEAD' } = source
       if (ref === 'HEAD') {
@@ -776,135 +853,3 @@ export class BuildConsole extends Konzola.CustomConsole {
 
 const bold = Konzola.bold
 
-export default class BuildCommands extends Komandi.Commands<Komandi.Context> {
-
-  constructor (name: string = 'build', before = [], after = []) {
-    super(name, before, after)
-    this.command('one', 'build one crate from working tree', BuildCommands.buildOne)
-  }
-
-  static buildOne = () => {
-    const config = { build: new BuilderConfig(process.env as Record<string, string>, process.cwd()) }
-    const [buildPath, ...buildArgs] = process.argv.slice(2)
-    const buildSpec = $(buildPath)
-    if (buildSpec.isDirectory()) {
-      this.buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
-    } else if (buildSpec.isFile()) {
-      this.buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
-    } else {
-      this.printUsage()
-    }
-  }
-
-  static buildFromCargoToml = async (
-    cargoToml: CargoTOML,
-    workspace: LocalWorkspace = new LocalWorkspace(
-      process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
-    )
-  ) => {
-    this.log.info('Build manifest:', bold(cargoToml.shortPath))
-    const source = workspace.crate((cargoToml.as(Kabinet.TOMLFile).load() as any).package.name)
-    try {
-      const config   = { ...new BuilderConfig(), rebuild: true }
-      const builder  = getBuilder(config)
-      const template = await builder.build(source)
-      const { artifact, codeHash } = template
-      this.log.info('Built:    ', bold($(artifact!).shortPath))
-      this.log.info('Code hash:', bold(codeHash!))
-      process.exit(0)
-    } catch (e) {
-      this.log.error(`Build failed.`)
-      this.log.error(e)
-      process.exit(5)
-    }
-  }
-
-  static buildFromBuildScript = async (
-    buildScript: Kabinet.OpaqueFile,
-    buildArgs:   string[] = []
-  ) => {
-    const buildSetName = buildArgs.join(' ')
-    this.log.info('Build script:', bold(buildScript.shortPath))
-    this.log.info('Build set:   ', bold(buildSetName || '(none)'))
-    //@ts-ignore
-    const {default: buildSets} = await import(buildScript.path)
-    if (buildArgs.length > 0) {
-      const buildSet = buildSets[buildSetName]
-      if (!buildSet) {
-        this.log.error(`No build set ${bold(buildSetName)}.`)
-        this.listBuildSets(buildSets)
-        process.exit(1)
-      } else if (!(buildSet instanceof Function)) {
-        this.log.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
-        process.exit(2)
-      } else {
-        const buildSources = buildSet()
-        if (!(buildSources instanceof Array)) {
-          this.log.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
-          process.exit(3)
-        }
-        const T0 = + new Date()
-        try {
-          const config = { ...new BuilderConfig(), rebuild: true }
-          await getBuilder(config).buildMany(buildSources)
-          const T1 = + new Date()
-          this.log.info(`Build complete in ${T1-T0}ms.`)
-          process.exit(0)
-        } catch (e) {
-          this.log.error(`Build failed.`)
-          this.log.error(e)
-          process.exit(4)
-        }
-      }
-    } else {
-      this.log.warn(bold('No build set specified.'))
-      this.listBuildSets(buildSets)
-    }
-  }
-
-  static listBuildSets = (buildSets: Record<string, ()=>LocalSource[]>) => {
-    this.log.log('Available build sets:')
-    for (let [name, getSources] of Object.entries(buildSets)) {
-      this.log.log(`\n  ${name}`)
-      const sources = getSources()
-      for (const source of sources as Array<LocalSource>) {
-        this.log.log(`    ${bold(source.crate!)} @ ${source.ref}`)
-      }
-    }
-  }
-
-  static buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
-    const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
-    if (cargoToml.exists()) {
-      this.log.info('Building from', bold(cargoToml.shortPath))
-      this.buildFromCargoToml(cargoToml as CargoTOML)
-    } else {
-      this.printUsage()
-    }
-  }
-
-  static buildFromFile = async (
-    file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
-    buildArgs: string[] = []
-  ) => {
-    if (file.name === 'Cargo.toml') {
-      this.log.buildingFromCargoToml(file)
-      this.buildFromCargoToml(file as CargoTOML)
-    } else {
-      this.log.buildingFromBuildScript(file)
-      this.buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
-    }
-  }
-
-  static printUsage = () => {
-    this.log.info(`
-      Usage:
-        fadroma-build path/to/crate
-        fadroma-build path/to/Cargo.toml
-        fadroma-build buildConfig.{js|ts}`)
-    process.exit(6)
-  }
-
-  static log = new BuildConsole(console, 'Fadroma.BuildCommands')
-
-}

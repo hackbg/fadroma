@@ -217,11 +217,9 @@ export class TokenRegistry extends Fadroma.Deployment {
     } else {
       this.logToken(options.name, symbol, options.decimals)
       // generate snip20 init message
-      const init  = Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
+      const init = Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
       // get or create contract with the name (names are internal to deployment)
-      const token = await this.contract(options.name)
-        .client(Snip20)
-        .deploy(init) as Snip20
+      const token = (await this.contract(options.name).deploy(init)).client(Snip20) as Snip20
       // add and return the token
       this.add(symbol, token)
       return token
@@ -242,9 +240,7 @@ export class TokenRegistry extends Fadroma.Deployment {
     // first generate all the [name, init message] pairs
     const inits    = tokens.map(toDeployArgs)
     // then call `.contracts(optional client class).deployMany(template,[[name,msg],[name,msg]])`
-    const deployed = await this.contracts('amm-snip20')
-      .client(Snip20)
-      .deploy(inits) as Fadroma.ContractOf<Snip20>[]
+    const deployed = await this.contracts('amm-snip20').client(Snip20).deploy(inits) as Fadroma.ContractOf<Snip20>[]
     // post-process the thus deployed tokens:
     for (const i in deployed) {
       // populate metadata for free since we just created them
@@ -263,21 +259,17 @@ export class TokenRegistry extends Fadroma.Deployment {
     `Deploying token ${bold(name)}: ${symbol} (${decimals} decimals)`
   )
 
+  /** Get a TokenPair object from a string like "SYMBOL1-SYMBOL2"
+    * where both symbols are registered */ 
   getPair (name: string): TokenPair {
     const [token_0_symbol, token_1_symbol] = name.split('-')
     let token_0: Token|Snip20 = this.tokens[token_0_symbol]
     let token_1: Token|Snip20 = this.tokens[token_1_symbol]
     if (!token_0) {
-      throw Object.assign(
-        new Error(`TokenPair#fromName: unknown token ${token_0_symbol}`),
-        { symbol: token_0_symbol }
-      )
+      throw Object.assign(new Error(`Unknown token ${token_0_symbol}`), { symbol: token_0_symbol })
     }
     if (!token_1) {
-      throw Object.assign(
-        new Error(`TokenPair#fromName: unknown token ${token_1_symbol}`),
-        { symbol: token_1_symbol }
-      )
+      throw Object.assign(new Error(`Unknown token ${token_1_symbol}`), { symbol: token_1_symbol })
     }
     if (token_0 instanceof Snip20) token_0 = { custom_token: token_0.custom_token }
     if (token_1 instanceof Snip20) token_1 = { custom_token: token_1.custom_token }
@@ -303,6 +295,7 @@ export class TokenRegistry extends Fadroma.Deployment {
   * Invocation is "pnpm run deploy token $name $symbol $decimals [$admin] [$crate]" */
 export async function deployToken (
   this:      Fadroma.Deployment,
+  label:     string,
   name:      string =                    this.args[0]??'MockToken',
   symbol:    string =                    this.args[1]??'MOCK',
   decimals:  number =             Number(this.args[2]??6),
@@ -317,7 +310,7 @@ export async function deployToken (
   if (args.includes('--can-deposit')) config.enable_deposit = true
   if (args.includes('--can-redeem'))  config.enable_redeem  = true
   return await new TokenRegistry(this)
-    .getOrDeployToken(symbol, { name, decimals, admin, template })
+    .getOrDeployToken(symbol, label, { name, decimals, admin, template })
 }
 
 /** # Secret Network SNIP20 token client. */

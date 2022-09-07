@@ -510,7 +510,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
         log.info(`Deleting ${path}...`)
         this.stateRoot.delete()
       }
-    } catch (e) {
+    } catch (e: any) {
       if (e.code === 'EACCES' || e.code === 'ENOTEMPTY') {
         log.warn(`Failed to delete ${path}: ${e.code}; trying cleanup container...`)
         await this.image.ensure()
@@ -678,7 +678,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
 
 }
 
-export default class DevnetCommands extends Komandi.Commands<Fadroma.Context> {
+export default class DevnetCommands extends Komandi.Commands<Fadroma.Deployment> {
 
   constructor (name: string = 'devnet', before = [], after = []) {
     super(name, before, after)
@@ -686,11 +686,11 @@ export default class DevnetCommands extends Komandi.Commands<Fadroma.Context> {
     this.command('reset',  'print the status of the current devnet', this.reset)
   }
 
-  status = (context: Fadroma.Context) => {
-    new Fadroma.ClientConsole().chainStatus(context)
+  status = (context: Fadroma.Deployment) => {
+    new Fadroma.Console().chainStatus(context)
   }
 
-  reset = ({ chain }: Fadroma.Context) => {
+  reset = ({ chain }: Fadroma.Deployment) => {
     if (chain) return Devnet.reset({ chain })
   }
 

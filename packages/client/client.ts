@@ -1,6 +1,6 @@
 import { Overridable } from '@hackbg/konfizi'
 import { CustomError, bold, timestamp } from '@hackbg/konzola'
-import { Context as CommandContext, CommandsConsole } from '@hackbg/komandi'
+import { Commands, CommandsConsole } from '@hackbg/komandi'
 
 /** Idiom for copy-on-write usage of Overridables. */
 export interface New<T, U> {
@@ -52,7 +52,7 @@ export type ChainRegistry = Record<string, (config: any)=>Chain|Promise<Chain>>
 /** Represents a particular chain. */
 export abstract class Chain {
 
-  log = new Console(console, 'Fadroma.Chain')
+  log = new ClientConsole(console, 'Fadroma.Chain')
 
   /** Async functions that return Chain instances in different modes.
     * Values for `FADROMA_CHAIN` environment variable. */
@@ -202,9 +202,6 @@ export abstract class Chain {
 
 }
 
-//@ts-ignore
-Chain.Agent = Agent
-
 export interface ChainOpts {
   url:  string
   mode: ChainMode
@@ -278,7 +275,7 @@ export class Fee implements IFee {
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
 
-  log = new Console(console, 'Fadroma.Agent')
+  log = new ClientConsole(console, 'Fadroma.Agent')
 
   static create (chain: Chain, options: AgentOpts = {}): Promise<Agent> {
     //@ts-ignore
@@ -388,7 +385,7 @@ export abstract class Agent {
 }
 
 //@ts-ignore
-Agent.Bundle = Bundle
+Chain.Agent = Agent
 
 export interface AgentCtor<A extends Agent> {
   new    (chain: Chain, options: AgentOpts): A
@@ -417,7 +414,7 @@ export interface AgentFees {
   * */
 export abstract class Bundle extends Agent {
 
-  log = new Console(console, 'Fadroma.Bundle')
+  log = new ClientConsole(console, 'Fadroma.Bundle')
 
   constructor (readonly agent: Agent) {
     super(agent.chain)
@@ -568,6 +565,9 @@ export abstract class Bundle extends Agent {
 
 }
 
+//@ts-ignore
+Agent.Bundle = Bundle
+
 export interface BundleCtor<B extends Bundle> {
   new (agent: Agent): B
 }
@@ -584,7 +584,7 @@ export interface NewClient<C extends Client> {
   * Subclass this to add the contract's methods. */
 export class Client {
 
-  log = new Console(console, 'Fadroma.Client')
+  log = new ClientConsole(console, 'Fadroma.Client')
 
   static RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
 
@@ -757,11 +757,11 @@ export interface NewContract {
   new (...args: ConstructorParameters<typeof Contract>): Contract
 }
 
-export type IntoContract = string|Client|Contract
+export type IntoContract = string|Client|Partial<Contract>
 
 export class Contract extends Client {
 
-  log = new Console(console, 'Fadroma.Contract')
+  log = new ClientConsole(console, 'Fadroma.Contract')
 
   static sourceToCrateRef = (specifier: string) => specifier.split('@') as [string, string?]
 
@@ -789,39 +789,40 @@ export class Contract extends Client {
     }
   }
 
-  client <C extends Client, D extends ContractOf<C>> (
-    $Client: NewClient<C> = Client as unknown as NewClient<C>
-  ): ContractOf<C> {
-    if ($Client === Client as unknown as NewClient<C>) return this
-    const Self = (this.constructor as NewContract)
-    return Object.assign(new Self(this.specifier), { Client: $Client }) as unknown as ContractOf<C>
+  /** URL to local or remote Git repository containing the source code. */
+  repo?: string|URL = undefined
+
+  /** Return a copy of self pinned to a certain Git remote.
+    * Used to specify historical builds. */
+  fromRepo (repo?: string|URL): this {
+    if (repo === this.repo) return this
+    return Object.assign(new (this.constructor as NewContract)(this), { repo }) as this
   }
 
-  /** URL to local or remote Git repository containing the source code. */
-  repo?:       string|URL = undefined
+  workspace?: string = undefined
 
   /** Git ref (branch or tag) pointing to source commit. */
-  ref?:        string     = undefined
+  ref?:  string     = undefined
 
   /** Return a copy of self pinned to a certain Git reference.
     * Used to specify historical builds. */
-  at (ref?: string): this {
+  atRef (ref?: string): this {
     if (ref === this.ref) return this
     return Object.assign(new (this.constructor as NewContract)(this), { ref }) as this
   }
 
   /** Name of crate. Used to find contract crate in workspace repos. */
-  crate?:      string     = undefined
+  crate?:    string     = undefined
 
   /** List of crate features to enable during build. */
-  features?:   string[]   = undefined
+  features?: string[]   = undefined
 
   get source () {
     return `${this.crate}@${this.ref}`
   }
 
   /** Builder implementation that produces a Contract from the Source. */
-  builder?:    string|Builder = undefined
+  builder?: string|Builder = undefined
 
   withBuilder (builder?: Builder): this {
     if (!builder) return this
@@ -830,13 +831,21 @@ export class Contract extends Client {
     }) as this
   }
 
+  /** Throw appropriate error if not buildable. */
+  assertBuildable (builder: typeof this.builder = this.builder): Builder {
+    if (!this.crate) throw new ClientError.NoCrate()
+    if (!builder)    throw new ClientError.NoBuilder()
+    if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
+    return builder
+  }
+
   /** Compile the source using the selected builder. */
   build (builder?: typeof this.builder): Promise<Contract> {
     return this.assertBuildable(builder).build(this)
   }
 
   /** URL to the compiled code. */
-  artifact?: string|URL   = undefined
+  artifact?: string|URL = undefined
 
   /** ID of chain to which this template is uploaded. */
   get chainId (): ChainId|undefined {
@@ -844,13 +853,20 @@ export class Contract extends Client {
   }
 
   /** Object containing upload logic. */
-  uploader?:   Uploader   = undefined
+  uploader?: Uploader = undefined
 
   withUploader (uploader?: Uploader): this {
     if (!uploader) return this
     return Object.assign(new (this.constructor as NewContract)(this.specifier), {
       uploader
     }) as this
+  }
+
+  /** Return the Uploader for this Template or throw. */
+  assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
+    if (!uploader)       throw new ClientError.NoUploader()
+    if (!uploader.agent) throw new ClientError.NoUploaderAgent()
+    return uploader
   }
 
   /** Upload compiled source code to the selected chain. */
@@ -872,7 +888,7 @@ export class Contract extends Client {
       if (!chainId) throw new ClientError.NoChainId()
       // If we have chain ID and code ID, try to get code hash
       if (self.codeId) {
-        self = new Contract(self, { codeHash: await uploader.getHash(self.codeId) })
+        self = Object.assign(new Contract(self), { codeHash: await uploader.getHash(self.codeId) })
         if (!self.codeHash) throw new ClientError.NoCodeHash()
         return self
       }
@@ -952,14 +968,6 @@ export class Contract extends Client {
     return this
   }
 
-  /** Throw appropriate error if not buildable. */
-  assertBuildable (builder: typeof this.builder = this.builder): Builder {
-    if (!this.crate) throw new ClientError.NoCrate()
-    if (!builder)    throw new ClientError.NoBuilder()
-    if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
-    return builder
-  }
-
   get (message: string = `Contract not found: ${this.name}`): Client {
     if (this.address) {
       return new Client(this.agent, this.address, this.codeHash)
@@ -980,17 +988,11 @@ export class Contract extends Client {
     )
   }
 
-  /** Return the Uploader for this Template or throw. */
-  assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
-    if (!uploader)       throw new ClientError.NoUploader()
-    if (!uploader.agent) throw new ClientError.NoUploaderAgent()
-    return uploader
-  }
-
   async fetchCodeHashByCodeId (): Promise<Contract> {
     const codeHash = await this.assertAgent().getHash(this.codeId!)
     if (this.codeHash) this.validate('codeHash', this.codeHash, codeHash)
-    return new Contract(this, { codeHash })
+    this.codeHash = codeHash
+    return this
   }
 
   /** Uploaded templates can be passed to factory contracts in this format: */
@@ -1001,63 +1003,63 @@ export class Contract extends Client {
     return templateStruct(this)
   }
 
-  async deploy <C extends Client> (initMsg: IntoMessage|undefined = this.initMsg): Promise<C> {
+  async deploy (initMsg: IntoMessage|undefined = this.initMsg): Promise<Client> {
     if (!initMsg) throw new ClientError.NoInitMessage()
     return this.asTask(
       `get or deploy ${this.name??'contract'}`,
-      async function getOrDeployContract (this: Contract): Promise<C> {
-
-        if (!!this.address) {
+      async function getOrDeployContract (this: Contract): Promise<Client> {
+        if (this.address) {
           this.log.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
-          return new this.Client(this.agent, this.address, this.codeHash) as C
+          return new Client(this.agent, this.address, this.codeHash)
         }
-
-        if (!!this.name) {
-
-          if (!this.agent)      throw new ClientError.NoCreator()
-          if (!this.deployment) throw new ClientError.NoDeployment()
-
+        if (this.name) {
+          if (!this.agent) throw new ClientError.NoCreator()
           let self = this
           const label = self.label
           const agent = self.agent
           if (!self.task) return deploy.call(self)
           Object.defineProperty(deploy, 'name', { value: `upload contract ${label}` })
           return self.task.subtask(deploy.bind(self))
-
-          async function deploy (this: typeof self): Promise<C> {
+          async function deploy (this: typeof self): Promise<Client> {
             if (!agent) throw new ClientError.NoCreator()
             const template = await this.upload()
             this.log.beforeDeploy(this, label)
             if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-            const instance = await agent.instantiate(template, label, initMsg as Message)
-            const client = new this.Client(agent, instance.address, instance.codeHash)
-            this.log.afterDeploy(client)
-            return client as C
+            const contract = await agent.instantiate(template, label, initMsg as Message)
+            const client   = new Client(agent, contract.address, contract.codeHash)
+            this.log.afterDeploy(contract)
+            return client
           }
-
         }
-
         throw new ClientError.InvalidValue()
-
       }
     )
   }
 
   /** Instantiate one contract and save its receipt to the deployment. */
-  async init (template: Contract, name: Label, msg: Message): Promise<Client> {
-    const label = new Client({ prefix: this.prefix, name }).label
-    try {
-      const client   = new Client({ ...template, deployment: this, name, agent: this.agent })
-      const contract = await client.deploy(label, msg)
-      contract.deployment = this
-      contract.prefix     = this.prefix
-      contract.name       = name
-      this.set(name, contract)
-      return contract
-    } catch (e) {
-      this.log.deployFailed(e as Error, template, name, msg)
-      throw e
-    }
+  //async init (template: Contract, name: Label, msg: Message): Promise<Client> {
+    //const label = Object.assign(new Contract(), { prefix: this.prefix, name }).label
+    //try {
+      //const client   = new Client(this.agent, { ...template, deployment: this, name })
+      //const contract = await client.deploy(label, msg)
+      //contract.deployment = this
+      //contract.prefix     = this.prefix
+      //contract.name       = name
+      //this.set(name, contract)
+      //return contract
+    //} catch (e) {
+      //this.log.deployFailed(e as Error, template, name, msg)
+      //throw e
+    //}
+  //}
+
+  client <C extends Client, D extends ContractOf<C>> (
+    $Client: NewClient<C> = Client as unknown as NewClient<C>
+  ): C {
+    return Object.assign(
+      new (this.constructor as NewContract)(this.specifier),
+      { Client: $Client }
+    ) as unknown as C
   }
 
 }
@@ -1067,17 +1069,18 @@ export class ContractOf<C extends Client> extends Contract {
   constructor (
     options: Partial<ContractOf<C>> = {},
     /** Intended client class */
-    Client: NewClient<C> = options?.client
+    public Client: NewClient<C> = options?.Client ?? Client as NewClient<C>
   ) {
-    super(options)
+    super(options as Partial<Contract>)
   }
 
   get <C> (message: string = `Contract not found: ${this.name}`): C {
     if (this.address) {
-      return new this.Client(this.agent, this.address, this.codeHash) as C
+      return new this.Client(this.agent, this.address, this.codeHash) as unknown as C
     }
     if (this.deployment && this.name && this.deployment.has(this.name)) {
-      return new this.Client({ ...this.deployment.get(this.name)!, agent: this.agent }) as C
+      const { address, codeHash } = this.deployment.get(this.name)!
+      return new this.Client(this.agent, address, codeHash) as unknown as C
     }
     throw new Error(message)
   }
@@ -1090,19 +1093,20 @@ export interface NewContracts {
 
 export class Contracts extends Overridable {
 
-  log = new Console(console, 'Fadroma.Contracts')
+  log = new ClientConsole(console, 'Fadroma.Contracts')
 
   static fromDeployment = (
     deployment: Deployment,
     predicate: (key: string, val: { name?: string }) => boolean
   ): Contracts => {
-    return new Contracts(Object.entries(deployment.state)
-      .filter(([key, val])=>predicate?predicate(key, val):true)
-      .map(([key, val])=>val))
+    const entries  = Object.entries(deployment.state)
+    const filtered = entries.filter(([key, val])=>predicate?predicate(key, val):true)
+    const mapped   = filtered.map(([key, val])=>val)
+    return mapped
   }
 
   constructor (
-    public readonly specifier?: string
+    public readonly specifier?: IntoContract
   ) {
     super()
     Object.defineProperty(this, 'log',    { writable: true, enumerable: false })
@@ -1247,77 +1251,24 @@ export function addressOf (instance?: { address?: Address }): Address {
   return instance.address
 }
 
-export type Receipts = Record<string, Partial<Contract>>
-
 /** Group of contracts sharing the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
-export class Deployment extends CommandContext {
-
-  log = new Console(console, 'Fadroma.Deployment')
+export class Deployment extends Commands<Deployment> {
 
   constructor (options: Partial<Deployment> = {}) {
-    super()
+    super(options.name ?? 'Deployment')
     this.name  = options.name  ?? this.name
     this.state = options.state ?? this.state
     this.agent = options.agent ?? this.agent
+    this.chain = options.agent?.chain ?? options.chain ?? this.chain
   }
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
   name:   string   = timestamp()
 
   /** Mapping of names to contract instances. */
-  state:  Receipts = {}
-
-  /** Agent to use when deploying contracts. */
-  agent?: Agent
-
-  client = <C extends Client> (
-    $Client: NewClient<C> = Client as unknown as NewClient<C>,
-  ): C =>
-    new $Client(this.agent, undefined, undefined) as C
-
-  clients = <C extends Client> (
-    $Client: NewClient<C> = Client as unknown as NewClient<C>,
-  ): Clients<C> =>
-    new Clients($Client, this) as Clients<C>
-
-  builder?:  Builder
-
-  uploader?: Uploader
-
-  contract = (
-    ...args: ConstructorParameters<typeof Contract>
-  ): Contract =>
-    new Contract(...args)
-      .withBuilder(this.builder)
-      .withUploader(this.uploader)
-      .withDeployment(this)
-
-  contracts = (
-    ...args: ConstructorParameters<typeof Contracts>
-  ): Contracts =>
-    new Contracts(...args)
-      .withBuilder(this.builder)
-      .withUploader(this.uploader)
-      .withDeployment(this)
-
-  get chain (): Chain|undefined { return this.agent?.chain }
-
-  /** True if the chain is a devnet or mocknet */
-  get devMode   (): boolean { return this.agent?.chain?.devMode   ?? false }
-
-  /** = chain.isMainnet */
-  get isMainnet (): boolean { return this.agent?.chain?.isMainnet ?? false }
-
-  /** = chain.isTestnet */
-  get isTestnet (): boolean { return this.agent?.chain?.isTestnet ?? false }
-
-  /** = chain.isDevnet */
-  get isDevnet  (): boolean { return this.agent?.chain?.isDevnet  ?? false }
-
-  /** = chain.isMocknet */
-  get isMocknet (): boolean { return this.agent?.chain?.isMocknet ?? false }
+  state:  Record<string, Partial<Contract>> = {}
 
   /** Number of contracts in deployment. */
   get size () { return Object.keys(this.state).length }
@@ -1363,6 +1314,50 @@ export class Deployment extends CommandContext {
   add (name: string, data: any): this {
     return this.set(name, { ...this.state[name] || {}, ...data })
   }
+
+  /** Agent to use when deploying contracts. */
+  agent?: Agent
+
+  chain?: Chain
+
+  /** True if the chain is a devnet or mocknet */
+  get devMode   (): boolean { return this.chain?.devMode   ?? false }
+
+  /** = chain.isMainnet */
+  get isMainnet (): boolean { return this.chain?.isMainnet ?? false }
+
+  /** = chain.isTestnet */
+  get isTestnet (): boolean { return this.chain?.isTestnet ?? false }
+
+  /** = chain.isDevnet */
+  get isDevnet  (): boolean { return this.chain?.isDevnet  ?? false }
+
+  /** = chain.isMocknet */
+  get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
+
+  client = <C extends Client> ($Client: NewClient<C> = Client as unknown as NewClient<C>): C =>
+    new $Client(this.agent, undefined, undefined) as C
+
+  clients = <C extends Client> (
+    $Client: NewClient<C> = Client as unknown as NewClient<C>,
+  ): Clients<C> =>
+    new Clients($Client, this) as Clients<C>
+
+  builder?:  Builder
+
+  uploader?: Uploader
+
+  contract = (...args: ConstructorParameters<typeof Contract>): Contract =>
+    new Contract(...args)
+      .withBuilder(this.builder)
+      .withUploader(this.uploader)
+      .withDeployment(this)
+
+  contracts = (...args: ConstructorParameters<typeof Contracts>): Contracts =>
+    new Contracts(...args)
+      .withBuilder(this.builder)
+      .withUploader(this.uploader)
+      .withDeployment(this)
 
 }
 
@@ -1581,7 +1576,7 @@ export class ClientError extends CustomError {
 
 /// # Logging
 
-export class Console extends CommandsConsole {
+export class ClientConsole extends CommandsConsole {
 
   beforeDeploy (template: Contract, label: Label) {
     this.info(
@@ -1643,7 +1638,7 @@ export class Console extends CommandsConsole {
 
   chainStatus = ({ chain, deployments }: {
     chain?: Chain,
-    deployments?: { active?: { prefix: string }, list (): string[] }
+    deployments?: { active?: { name: string }, list (): string[] }
   }) => {
     if (!chain) {
       this.info('│ No active chain.')
@@ -1654,7 +1649,7 @@ export class Console extends CommandsConsole {
       this.info('│ Chain URL:  ', bold(chain.url.toString()))
       this.info('│ Deployments:', bold(String(deployments?.list().length)))
       if (deployments?.active) {
-        this.info('│ Deployment: ', bold(String(deployments?.active?.prefix)))
+        this.info('│ Deployment: ', bold(String(deployments?.active?.name)))
       } else {
         this.info('│ No active deployment.')
       }

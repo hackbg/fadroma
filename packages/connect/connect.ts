@@ -1,7 +1,7 @@
-import * as Komandi from '@hackbg/komandi'
 import { CustomConsole, bold } from '@hackbg/konzola'
+import * as Komandi  from '@hackbg/komandi'
 import { EnvConfig } from '@hackbg/konfizi'
-import type { Env } from '@hackbg/konfizi'
+import type { Env }  from '@hackbg/konfizi'
 
 import * as Fadroma  from '@fadroma/client'
 import { Devnet }    from '@fadroma/devnet'
@@ -55,14 +55,13 @@ export async function connect (
   )
 }
 
-export class ConnectContext extends Fadroma.Context {
+export class ConnectContext extends Fadroma.Deployment {
   constructor (
-    config:      Partial<ConnectConfig> = new ConnectConfig(),
-    chain?:      Fadroma.Chain,
-    agent?:      Fadroma.Agent,
-    deployment?: Fadroma.Deployment
+    config: Partial<ConnectConfig> = new ConnectConfig(),
+    chain?: Fadroma.Chain,
+    agent?: Fadroma.Agent,
   ) {
-    super(chain, agent, deployment)
+    super({ chain, agent })
     this.config = new ConnectConfig(this.env, this.cwd, config)
   }
   config: ConnectConfig
@@ -113,7 +112,7 @@ export default class ConnectCommands extends Komandi.Commands<ConnectContext> {
   }
 }
 
-export class ConnectConsole extends CustomConsole {
+export class ConnectConsole extends Fadroma.ClientConsole {
 
   name = 'Fadroma Connect'
 
@@ -143,26 +142,6 @@ export class ConnectConsole extends CustomConsole {
       this.info(`  ${chain}`)
     } else {
       this.info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
-    }
-  }
-
-  chainStatus = ({ chain, deployments }: {
-    chain?: Fadroma.Chain,
-    deployments?: { active?: { prefix: string }, list (): string[] }
-  }) => {
-    if (!chain) {
-      this.info('│ No active chain.')
-    } else {
-      this.info('│ Chain type: ', bold(chain.constructor.name))
-      this.info('│ Chain mode: ', bold(chain.mode))
-      this.info('│ Chain ID:   ', bold(chain.id))
-      this.info('│ Chain URL:  ', bold(chain.url.toString()))
-      this.info('│ Deployments:', bold(String(deployments?.list().length)))
-      if (deployments?.active) {
-        this.info('│ Deployment: ', bold(String(deployments?.active?.prefix)))
-      } else {
-        this.info('│ No active deployment.')
-      }
     }
   }
 

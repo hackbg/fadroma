@@ -826,5 +826,4 @@ const Warnings = {
 
 /** Allow Scrt clients to be implemented with just `@fadroma/scrt` */
 export * from '@fadroma/client'
-export type { Receipts } from '@fadroma/client'
 export { SecretJS }

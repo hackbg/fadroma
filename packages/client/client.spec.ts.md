@@ -213,22 +213,22 @@ ok(new Client(agent, { address: true }).assertAddress().assertAgent() instanceof
 import { Source, Builder } from '.'
 let source:  Source
 let builder: Builder = new class TestBuilder extends Builder {
-  async build (source: Source): Promise<Template> {
-    return new Template(source)
+  async build (source: Source): Promise<Contract> {
+    return new Contract(source)
   }
 }
 ```
 
-### `Template`, `Uploader`: uploading smart contracts
+### `Contract`, `Uploader`: uploading smart contracts
 
 ```typescript
-import { Template } from '.'
-let template: Template
-equal(new Template('crate').crate,     'crate')
-equal(new Template('crate@ref').crate, 'crate')
-equal(new Template('crate@ref').ref,   'ref')
+import { Contract } from '.'
+let template: Contract
+equal(new Contract('crate').crate,     'crate')
+equal(new Contract('crate@ref').crate, 'crate')
+equal(new Contract('crate@ref').ref,   'ref')
 const url = new URL('file:///tmp/artifact.wasm')
-equal(new Template(url).artifact, url)
+equal(new Contract(url).artifact, url)
 ```
 
 ```typescript
@@ -236,14 +236,14 @@ import { Uploader } from '.'
 let uploader: Uploader
 
 agent = new (class TestAgent extends Agent {
-  instantiate (source: Template): Promise<Client> {
+  instantiate (source: Contract): Promise<Client> {
     return new Client(source)
   }
 })({ id: 'chain' })
 
 uploader = new (class TestUploader extends Uploader {
-  upload (template: Template): Promise<Template> {
-    return new Template(template)
+  upload (template: Contract): Promise<Contract> {
+    return new Contract(template)
   }
 })(agent)
 

@@ -28,11 +28,11 @@ import * as Connect from '@fadroma/connect'
 import {
   Chain, Agent,
   Uploader,
-  Template, Templates, NewTemplate, IntoTemplate,
-  Client, IntoClient, NewClient, Contracts,
+  Client, IntoClient, NewClient,
+  Contract, IntoContract, Contracts,
   Deployment, DeployArgs,
   Name, Label, Message,
-  SparseArray,
+  SparseArray, ClientConsole
 } from '@fadroma/client'
 
 import { basename, resolve, dirname, relative, extname } from 'path'
@@ -43,23 +43,75 @@ export { YAML }
 
 export async function deploy (
   config: Partial<DeployConfig> = {},
-  build?: Build.BuildContext
+  build?: Build.BuildCommands
 ) {
   const { chain, agent } = await Connect.connect(config)
-  return new DeployContext(config, chain, agent, undefined, build)
+  return new DeployCommands('deploy', [], [], config, chain, agent, undefined, build)
+}
+
+export class DeployConfig extends Connect.ConnectConfig {
+  constructor (
+    readonly env: Konfizi.Env = {},
+    readonly cwd: string = '',
+    defaults: Partial<DeployConfig> = {}
+  ) {
+    super(env, cwd)
+    this.override(defaults)
+  }
+  /** Whether to always upload contracts, ignoring upload receipts that match. */
+  reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
+  /** Whether to generate unsigned transactions for manual multisig signing. */
+  multisig: boolean = this.getBoolean('FADROMA_MULTISIG', () => false)
+}
+
+export class DeployConsole extends ClientConsole {
+
+  name = 'Fadroma Deploy'
+
+  deployment ({ deployment }: { deployment: Deployment }) {
+    if (deployment) {
+      const { state = {}, name } = deployment
+      let contracts: string|number = Object.values(state).length
+      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
+      const len = Math.min(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
+      this.info('│ Active deployment:'.padEnd(len+2), bold($(deployment.name).shortPath), contracts)
+      const count = Object.values(state).length
+      if (count > 0) {
+        for (const name of Object.keys(state)) {
+          this.receipt(name, state[name], len)
+        }
+      } else {
+        this.info('│ This deployment is empty.')
+      }
+    } else {
+      this.info('│ There is no selected deployment.')
+    }
+  }
+
+  receipt (name: string, receipt: any, len = 35) {
+    name = bold(name.padEnd(len))
+    if (receipt.address) {
+      const address = `${receipt.address}`.padStart(45)
+      const codeId  = String(receipt.codeId||'n/a').padStart(6)
+      this.info('│', name, address, codeId)
+    } else {
+      this.warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+    }
+  }
+
 }
 
 /** Base class for class-based deploy procedure. */
-export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
+export class DeployTask<X> extends Komandi.Task<DeployCommands, X> {
 
   log = new DeployConsole(console, 'Fadroma.DeployTask')
 
   /** Specify a template to upload or use. */
-  template = (specifier: IntoTemplate, options: Partial<Template> = {}): Template =>
+  template = (specifier: IntoContract, options: Partial<Contract> = {}): Contract =>
     this.context.template(specifier, options)
 
   /** Specify multiple templates to upload or use. */
-  templates = (specifiers: IntoTemplate[], options: Partial<Template> = {}): Templates =>
+  templates = (specifiers: IntoContract[], options: Partial<Contract> = {}): Contracts =>
     this.context.templates(specifiers, options)
 
   /** Specify a contract to deploy or operate. */
@@ -72,21 +124,37 @@ export class DeployTask<X> extends Komandi.Task<DeployContext, X> {
   /** Specify multiple contracts of the same kind. */
   contracts = <C extends Client> (
     $Client: NewClient<C> = Client as unknown as NewClient<C>
-  ): Contracts<C> =>
+  ): Contracts =>
     this.context.contracts($Client)
 
 }
 
-export class DeployContext extends Connect.ConnectContext {
+/// # Deploy commands
+
+/** Command runner. Instantiate one in your script then use the
+  * **.command(name, info, ...steps)**. Export it as default and
+  * run the script with `npm exec fadroma my-script.ts` for a CLI. */
+export class DeployCommands extends Komandi.Commands<Deployment> {
+
+  log = new DeployConsole(console, 'Fadroma.DeployCommands')
 
   constructor (
+    name: string = 'deploy',
+    before = [],
+    after  = [],
     config:          Partial<DeployConfig> = new DeployConfig(),
     chain?:          Chain,
-    agent?:          Agent,
+    public agent?:          Agent,
     deployment?:     Deployment,
-    readonly build?: Build.BuildContext
+    readonly build?: Build.BuildCommands
   ) {
-    super(config)
+    super(name, before, after)
+    this.command('list',    'print a list of all deployments', this.list)
+    this.command('select',  'select a new active deployment',  this.select)
+    //@ts-ignore
+    this.command('new',     'create a new empty deployment',   this.create)
+    this.command('status',  'show the current deployment',     this.status)
+    this.command('nothing', 'check that the script runs', () => this.log.info('So far so good'))
     // Populate the config
     this.config = new DeployConfig(process.env, process.cwd(), config)
     // Make sure we're operating in a deployment
@@ -107,9 +175,7 @@ export class DeployContext extends Connect.ConnectContext {
     Object.defineProperty(this, 'env', { enumerable: false, writable: true })
   }
 
-  config: DeployConfig
-
-  log = new DeployConsole(console, 'Fadroma.DeployContext')
+  config:      DeployConfig
 
   /** Knows how to upload contracts to a blockchain. */
   uploader:    Uploader
@@ -121,26 +187,26 @@ export class DeployContext extends Connect.ConnectContext {
   deployment:  Deployment|null  = this.deployments?.active || null
 
   /** Specify a template to upload or use. */
-  template = (specifier: IntoTemplate, options: Partial<Template> = {}): Template =>
-    new Template(specifier, {
+  template = (specifier: IntoContract, options: Partial<Contract> = {}): Contract =>
+    Object.assign(new Contract(specifier), {
       agent:      this.agent,
       uploader:   this.uploader,
       builder:    this.build?.builder,
-      repo:       this.build?.workspace?.path,
-      workspace:  this.build?.workspace?.path,
-      path:       this.build?.workspace?.path,
+      repo:       this.build?.project,
+      workspace:  this.build?.project,
+      path:       this.build?.project,
       ...options,
     })
 
   /** Specify multiple templates to upload or use. */
-  templates = (specifiers: IntoTemplate[], options: Partial<Template> = {}): Templates =>
-    new Templates(specifiers, {
+  templates = (specifiers: IntoContract[], options: Partial<Contract> = {}): Contracts =>
+    Object.assign(new Contracts(specifiers), {
       agent:      this.agent,
       uploader:   this.uploader,
       builder:    this.build?.builder,
-      repo:       this.build?.workspace?.path,
-      workspace:  this.build?.workspace?.path,
-      path:       this.build?.workspace?.path,
+      repo:       this.build?.project,
+      workspace:  this.build?.project,
+      path:       this.build?.project,
       ...options
     })
 
@@ -149,50 +215,142 @@ export class DeployContext extends Connect.ConnectContext {
     specifier: Name,
     $Client:   NewClient<C> = Client as unknown as NewClient<C>
   ): C =>
-    new Client({
+    new Contract({
       name:       specifier,
       Client:     $Client,
       deployment: this.deployment!,
       agent:      this.agent,
       uploader:   this.uploader,
       builder:    this.build?.builder,
-      repo:       this.build?.workspace?.path,
-      workspace:  this.build?.workspace?.path,
-      path:       this.build?.workspace?.path,
+      repo:       this.build?.project,
+      workspace:  this.build?.project,
+      path:       this.build?.project,
     }) as C
 
   /** Specify multiple contracts of the same kind. */
   contracts = <C extends Client> (
     $Client: NewClient<C> = Client as unknown as NewClient<C>
-  ): Contracts<C> =>
+  ): Contracts =>
     new Contracts([], {
       Client:     $Client,
       deployment: this.deployment!,
       agent:      this.agent,
       uploader:   this.uploader,
       builder:    this.build?.builder,
-      repo:       this.build?.workspace?.path,
-      workspace:  this.build?.workspace?.path,
-      path:       this.build?.workspace?.path,
-    }) as Contracts<C>
+      repo:       this.build?.project,
+      workspace:  this.build?.project,
+      path:       this.build?.project,
+    })
 
-}
 
-export class DeployConfig extends Connect.ConnectConfig {
-
-  constructor (
-    readonly env: Konfizi.Env = {},
-    readonly cwd: string = '',
-    defaults: Partial<DeployConfig> = {}
-  ) {
-    super(env, cwd)
-    this.override(defaults)
+  /** Defines a command that creates and selects a new deployment before running. */
+  inNewDeployment (
+    ...[name, info, ...steps]: Parameters<typeof this.command>
+  ): this {
+    return this.command(name, `(in new deployment) ${info}`, this.create, ...steps)
   }
 
-  /** Whether to always upload contracts, ignoring upload receipts that match. */
-  reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
-  /** Whether to generate unsigned transactions for manual multisig signing. */
-  multisig: boolean = this.getBoolean('FADROMA_MULTISIG', () => false)
+  /** Defines a command that runs in the currently selected deployment. */
+  inSelectedDeployment (
+    ...[name, info, ...steps]: Parameters<typeof this.command>
+  ): this {
+    return this.command(name, `(in current deployment) ${info}`, this.getDeployment, ...steps)
+  }
+
+  /** Add the currently active deployment to the command context. */
+  getDeployment = async (context: Deployment): Promise<DeployCommands> => {
+    const deployments = this.expectEnabled(context)
+    if (!deployments.active) {
+      this.log.error('No selected deployment on chain:', bold(context.chain?.id??'(unspecifier)'))
+    }
+    return { ...context, deployment: deployments.active } as DeployCommands
+  }
+
+  /** Create a new deployment and add it to the command context. */
+  create = async (
+    context: Deployment,
+    name: string = context.timestamp
+  ): Promise<DeployCommands> => {
+    const deployments = this.expectEnabled(context)
+    await deployments?.create(name)
+    await deployments?.select(name)
+    return { ...context, ...await this.get(context) } as DeployCommands
+  }
+
+  /** Add either the active deployment, or a newly created one, to the command context. */
+  getOrCreate = async (context: Deployment): Promise<DeployCommands> => {
+    const deployments = this.expectEnabled(context)
+    return {
+      ...context,
+      ...await deployments?.active ? this.getDeployment(context) : this.create(context)
+    }
+  }
+
+  /** Print a list of deployments on the selected chain. */
+  list = async (context: Deployment): Promise<void> => {
+    const deployments = this.expectEnabled(context)
+    const { chain = { id: '(unspecified)' } } = context
+    const list = deployments.list()
+    if (list.length > 0) {
+      this.log.info(`Deployments on chain ${bold(chain.id)}:`)
+      for (let name of list) {
+        if (name === deployments.KEY) continue
+        const deployment = deployments.get(name)!
+        const count = Object.keys(deployment.state).length
+        let info
+        if (deployments.active && deployments.active.name === name) {
+          info = `${bold(name)} (selected)`
+        }
+        info = `${deployment} (${deployment.size} contracts)`
+        this.log.info(` `, info)
+      }
+    } else {
+      this.log.info(`No deployments on chain`, bold(chain.id))
+    }
+  }
+
+  /** Make a new deployment the active one. */
+  select = async (context: Deployment): Promise<void> => {
+    const deployments = this.expectEnabled(context)
+    const [id] = context.args ?? [undefined]
+    const list = deployments.list()
+    if (list.length < 1) {
+      this.log.info('\nNo deployments. Create one with `deploy new`')
+    }
+    if (id) {
+      this.log.info(bold(`Selecting deployment:`), id)
+      await deployments.select(id)
+    }
+    if (list.length > 0) {
+      this.list(context)
+    }
+    if (deployments.active) {
+      this.log.info(`Currently selected deployment:`, bold(deployments.active.name))
+    } else {
+      this.log.info(`No selected deployment.`)
+    }
+  }
+
+  /** Print the status of a deployment. */
+  status = async (context: Deployment, [id] = context.args): Promise<void> => {
+    const deployments = this.expectEnabled(context)
+    const deployment  = id ? deployments.get(id) : deployments.active
+    if (deployment) {
+      this.log.deployment({ deployment })
+    } else {
+      this.log.info('No selected deployment on chain:', bold(context.chain?.id??'(no chain)'))
+    }
+  }
+
+  private expectEnabled = (context: Deployment): Deployments => {
+    if (!(context.deployments instanceof Deployments)) {
+      //this.log.error('context.deployments was not populated')
+      //this.log.log(context)
+      throw new Error('Deployments were not enabled')
+    }
+    return context.deployments
+  }
+
 }
 
 /** Directory containing deploy receipts, e.g. `receipts/$CHAIN/deployments`.
@@ -264,209 +422,7 @@ export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
 
 }
 
-export class DeployConsole extends Komandi.CommandsConsole {
-
-  name = 'Fadroma Deploy'
-
-  deployment ({ deployment }: { deployment: Deployment }) {
-    if (deployment) {
-      const { state = {}, prefix } = deployment
-      let contracts: string|number = Object.values(state).length
-      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      const len = Math.min(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
-      this.info('│ Active deployment:'.padEnd(len+2), bold($(deployment.prefix!).shortPath), contracts)
-      const count = Object.values(state).length
-      if (count > 0) {
-        for (const name of Object.keys(state)) {
-          this.receipt(name, state[name], len)
-        }
-      } else {
-        this.info('│ This deployment is empty.')
-      }
-    } else {
-      this.info('│ There is no selected deployment.')
-    }
-  }
-
-  receipt (name: string, receipt: any, len = 35) {
-    name = bold(name.padEnd(len))
-    if (receipt.address) {
-      const address = `${receipt.address}`.padStart(45)
-      const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      this.info('│', name, address, codeId)
-    } else {
-      this.warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
-    }
-  }
-
-  deployFailed (e: Error, template: Template, name: Label, msg: Message) {
-    this.error()
-    this.error(`  Deploy of ${bold(name)} failed:`)
-    this.error(`    ${e.message}`)
-    this.deployFailedTemplate(template)
-    this.error()
-    this.error(`  Init message: `)
-    this.error(`    ${JSON.stringify(msg)}`)
-    this.error()
-  }
-
-  deployManyFailed (e: Error, template: Template, contracts: DeployArgs[]) {
-    this.error()
-    this.error(`  Deploy of multiple contracts failed:`)
-    this.error(`    ${e.message}`)
-    this.deployFailedTemplate(template)
-    this.error()
-    this.error(`  Configs: `)
-    for (const [name, init] of contracts) {
-      this.error(`    ${bold(name)}: `, JSON.stringify(init))
-    }
-    this.error()
-  }
-
-  deployFailedTemplate (template?: Template) {
-    this.error()
-    if (template) {
-      this.error(`  Template:   `)
-      this.error(`    Chain ID: `, bold(template.chainId ||''))
-      this.error(`    Code ID:  `, bold(template.codeId  ||''))
-      this.error(`    Code hash:`, bold(template.codeHash||''))
-    } else {
-      this.error(`  No template was providede.`)
-    }
-  }
-
-}
-
 const bold = Konzola.bold
-
-/// # Deploy commands
-
-/** Command runner. Instantiate one in your script then use the
-  * **.command(name, info, ...steps)**. Export it as default and
-  * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export class DeployCommands extends Komandi.Commands<DeployContext> {
-
-  constructor (name: string = 'deploy', before = [], after = []) {
-    super(name, before, after)
-    this.command('list',    'print a list of all deployments', DeployCommands.list)
-    this.command('select',  'select a new active deployment',  DeployCommands.select)
-    //@ts-ignore
-    this.command('new',     'create a new empty deployment',   DeployCommands.create)
-    this.command('status',  'show the current deployment',     DeployCommands.status)
-    this.command('nothing', 'check that the script runs', () => this.log.info('So far so good'))
-  }
-
-  /** Defines a command that creates and selects a new deployment before running. */
-  inNewDeployment (
-    ...[name, info, ...steps]: Parameters<typeof this.command>
-  ): this {
-    return this.command(name, `(in new deployment) ${info}`, DeployCommands.create, ...steps)
-  }
-
-  /** Defines a command that runs in the currently selected deployment. */
-  inSelectedDeployment (
-    ...[name, info, ...steps]: Parameters<typeof this.command>
-  ): this {
-    return this.command(name, `(in current deployment) ${info}`, DeployCommands.get, ...steps)
-  }
-
-  /** Add the currently active deployment to the command context. */
-  static get = async (context: DeployContext): Promise<DeployContext> => {
-    const deployments = this.expectEnabled(context)
-    if (!deployments.active) {
-      this.log.error('No selected deployment on chain:', bold(context.chain?.id??'(unspecifier)'))
-    }
-    return { ...context, deployment: deployments.active } as DeployContext
-  }
-
-  /** Create a new deployment and add it to the command context. */
-  static create = async (context: DeployContext): Promise<DeployContext> => {
-    const deployments = this.expectEnabled(context)
-    const [ prefix = context.timestamp ] = context.args
-    await deployments?.create(prefix)
-    await deployments?.select(prefix)
-    return { ...context, ...await this.get(context) } as DeployContext
-  }
-
-  /** Add either the active deployment, or a newly created one, to the command context. */
-  static getOrCreate = async (context: DeployContext): Promise<DeployContext> => {
-    const deployments = this.expectEnabled(context)
-    return {
-      ...context,
-      ...await deployments?.active
-        ? DeployCommands.get(context)
-        : DeployCommands.create(context)
-    }
-  }
-
-  /** Print a list of deployments on the selected chain. */
-  static list = async (context: DeployContext): Promise<void> => {
-    const deployments = this.expectEnabled(context)
-    const { chain = { id: '(unspecified)' } } = context
-    const list = deployments.list()
-    if (list.length > 0) {
-      this.log.info(`Deployments on chain ${bold(chain.id)}:`)
-      for (let name of list) {
-        if (name === deployments.KEY) continue
-        const deployment = deployments.get(name)!
-        const count = Object.keys(deployment.state).length
-        let info
-        if (deployments.active && deployments.active.prefix === name) {
-          info = `${bold(name)} (selected)`
-        }
-        info = `${deployment} (${deployment.count} contracts)`
-        this.log.info(` `, info)
-      }
-    } else {
-      this.log.info(`No deployments on chain`, bold(chain.id))
-    }
-  }
-
-  /** Make a new deployment the active one. */
-  static select = async (context: DeployContext): Promise<void> => {
-    const deployments = this.expectEnabled(context)
-    const [id] = context.args ?? [undefined]
-    const list = deployments.list()
-    if (list.length < 1) {
-      this.log.info('\nNo deployments. Create one with `deploy new`')
-    }
-    if (id) {
-      this.log.info(bold(`Selecting deployment:`), id)
-      await deployments.select(id)
-    }
-    if (list.length > 0) {
-      DeployCommands.list(context)
-    }
-    if (deployments.active) {
-      this.log.info(`Currently selected deployment:`, bold(deployments.active.prefix))
-    } else {
-      this.log.info(`No selected deployment.`)
-    }
-  }
-
-  /** Print the status of a deployment. */
-  static status = async (context: DeployContext, [id] = context.args): Promise<void> => {
-    const deployments = this.expectEnabled(context)
-    const deployment  = id ? deployments.get(id) : deployments.active
-    if (deployment) {
-      this.log.deployment({ deployment })
-    } else {
-      this.log.info('No selected deployment on chain:', bold(context.chain?.id??'(no chain)'))
-    }
-  }
-
-  private static expectEnabled = (context: DeployContext): Deployments => {
-    if (!(context.deployments instanceof Deployments)) {
-      //this.log.error('context.deployments was not populated')
-      //this.log.log(context)
-      throw new Error('Deployments were not enabled')
-    }
-    return context.deployments
-  }
-
-  static log = new DeployConsole(console, 'Fadroma.DeployCommands')
-
-}
 
 /// # Uploaders
 
@@ -499,7 +455,7 @@ export class FSUploader extends Uploader {
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (template: Template): Promise<Template> {
+  async upload (template: Contract): Promise<Contract> {
     console.trace(template)
     let receipt: UploadReceipt|null = null
     if (this.cache) {
@@ -507,7 +463,7 @@ export class FSUploader extends Uploader {
       receipt = this.cache.at(name).as(UploadReceipt)
       if (receipt.exists()) {
         this.log.info('Reuse    ', bold(this.cache.at(name).shortPath))
-        return receipt.toTemplate()
+        return receipt.toContract()
       }
     }
     if (!template.artifact) {
@@ -521,7 +477,7 @@ export class FSUploader extends Uploader {
         `${template.codeHash} vs ${result.codeHash}`
       )
     }
-    template = new Template(template, result)
+    template = new Contract(template, result)
     if (receipt) {
       receipt.save(template)
     }
@@ -529,11 +485,11 @@ export class FSUploader extends Uploader {
     return template
   }
 
-  getUploadReceiptName (template: Template): string {
+  getUploadReceiptName (template: Contract): string {
     return `${$(template.artifact!).name}.json`
   }
 
-  getUploadReceiptPath (template: Template): string {
+  getUploadReceiptPath (template: Contract): string {
     const receiptName = `${this.getUploadReceiptName(template)}`
     const receiptPath = this.cache!.resolve(receiptName)
     return receiptPath
@@ -542,12 +498,12 @@ export class FSUploader extends Uploader {
   /** Upload multiple templates from the filesystem.
     * TODO: Optionally bundle multiple templates in one transaction,
     * if they add up to less than the max API request size (which is defined... where?) */
-  async uploadMany (inputs: SparseArray<Template>): Promise<SparseArray<Template>> {
+  async uploadMany (inputs: SparseArray<Contract>): Promise<SparseArray<Contract>> {
 
     if (!this.cache) return this.uploadManySansCache(inputs)
 
-    const outputs:  Template[] = []
-    const toUpload: Template[] = []
+    const outputs:  Contract[] = []
+    const toUpload: Contract[] = []
 
     for (const i in inputs) {
 
@@ -590,7 +546,7 @@ export class FSUploader extends Uploader {
       }
 
       // Otherwise reuse the code ID from the receipt.
-      outputs[i] = new Template(input, {
+      outputs[i] = new Contract(input, {
         codeId:   String(receiptData.codeId),
         uploadTx: receiptData.transactionHash as string
       })
@@ -606,7 +562,7 @@ export class FSUploader extends Uploader {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const receiptName = this.getUploadReceiptName(toUpload[i])
         $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i])
-        outputs[i] = uploaded[i] as Template
+        outputs[i] = uploaded[i] as Contract
       }
     } else {
       this.log.info('No artifacts were uploaded.')
@@ -617,15 +573,15 @@ export class FSUploader extends Uploader {
   }
 
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
-  async uploadManySansCache (inputs: SparseArray<Template>): Promise<SparseArray<Template>> {
-    const outputs: SparseArray<Template> = []
+  async uploadManySansCache (inputs: SparseArray<Contract>): Promise<SparseArray<Contract>> {
+    const outputs: SparseArray<Contract> = []
     for (const i in inputs) {
       const input = inputs[i]
       if (input?.artifact) {
         const path = $(input.artifact!)
         const data = path.as(Kabinet.BinaryFile).load()
         this.log.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
-        const output = new Template({ ...input, ...await this.agent.upload(data) })
+        const output = new Contract({ ...input, ...await this.agent.upload(data) })
         this.checkLocalCodeHash(input, output)
         outputs[i] = output
       } else {
@@ -635,14 +591,14 @@ export class FSUploader extends Uploader {
     return outputs
   }
 
-  private ensureLocalCodeHash (input: Template): Template {
+  private ensureLocalCodeHash (input: Contract): Contract {
     if (!input.codeHash) {
       const artifact = $(input.artifact!)
       this.log.warn('No code hash in artifact', bold(artifact.shortPath))
       try {
         const codeHash = Build.codeHashForPath($(input.artifact!).path)
         this.log.warn('Computed code hash:', bold(input.codeHash!))
-        input = new Template({ ...input,  codeHash })
+        input = new Contract({ ...input,  codeHash })
       } catch (e) {
         this.log.warn('Could not compute code hash:', e.message)
       }
@@ -651,8 +607,8 @@ export class FSUploader extends Uploader {
   }
 
   /** Panic if the code hash returned by the upload
-    * doesn't match the one specified in the Template. */
-  private checkLocalCodeHash (input: Template, output: Template) {
+    * doesn't match the one specified in the Contract. */
+  private checkLocalCodeHash (input: Contract, output: Contract) {
     if (input.codeHash !== output.codeHash) {
       throw new Error(`
         The upload transaction ${output.uploadTx}
@@ -671,7 +627,7 @@ export class FSUploader extends Uploader {
   * and are kept so that we don't reupload the same contracts. */
 export class Uploads extends Kabinet.JSONDirectory<UploadReceipt> {}
 
-/** Class that convert itself to a Template, from which contracts can be instantiated. */
+/** Class that convert itself to a Contract, from which contracts can be instantiated. */
 export class UploadReceipt extends Kabinet.JSONFile<{
   chainId?:           string
   codeHash:           string
@@ -686,11 +642,11 @@ export class UploadReceipt extends Kabinet.JSONFile<{
   artifact?:          any
 }> {
 
-  toTemplate (defaultChainId?: string): Template {
+  toContract (defaultChainId?: string): Contract {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
-    return new Template({ artifact, codeHash, chainId, codeId, uploadTx })
+    return new Contract({ artifact, codeHash, chainId, codeId, uploadTx })
   }
 
 }
@@ -705,11 +661,11 @@ export class YAMLDeployment extends Deployment {
   ) {
     if (path) {
       const file = $(path).as(Kabinet.YAMLFile)
-      super(file.name, agent)
+      super({ name: file.name, agent })
       this.file = file
       this.load()
     } else {
-      super('', agent)
+      super({ agent })
     }
   }
 
@@ -735,16 +691,13 @@ export class YAMLDeployment extends Deployment {
       file = resolve(dirname(file), FS.readlinkSync(file))
     }
 
-    // Set own prefix from name of file
-    this.prefix = basename(file, extname(file))
-
     // Load the receipt data
     const data = FS.readFileSync(file, 'utf8')
-    const receipts = YAML.loadAll(data) as Client[]
+    const receipts = YAML.loadAll(data) as Partial<Contract>[]
     for (const receipt of receipts) {
       if (!receipt.name) continue
       const [contractName, _version] = receipt.name.split('+')
-      this.state[contractName] = receipt
+      this.state[contractName] = new Contract(receipt)
     }
 
     // TODO: Automatically convert receipts to Client subclasses

@@ -21,7 +21,6 @@
 import * as Konfizi   from '@hackbg/konfizi'
 import * as Komandi   from '@hackbg/komandi'
 import * as Konzola   from '@hackbg/konzola'
-
 import * as Fadroma   from '@fadroma/client'
 import * as Build     from '@fadroma/build'
 import * as Connect   from '@fadroma/connect'
@@ -34,29 +33,17 @@ export type ChainRegistry = Record<string, (config: any)=>Fadroma.Chain|Promise<
 /** Complete environment configuration of all Fadroma subsystems. */
 export class Config extends Konfizi.EnvConfig {
   /** Path to root of project. Defaults to current working directory. */
-  project: string
-    = this.getString('FADROMA_PROJECT', ()=>this.cwd)
-  build
-    = new Build.BuilderConfig(this.env, this.cwd)
-  connect
-    = new Connect.ConnectConfig(this.env, this.cwd)
-  deploy
-    = new Deploy.DeployConfig(this.env, this.cwd)
-  devnet
-    = new Devnet.DevnetConfig(this.env, this.cwd)
-  scrtGrpc
-    = new Connect.ScrtGrpc.Config(this.env, this.cwd)
-  scrtAmino
-    = new Connect.ScrtAmino.Config(this.env, this.cwd)
+  project: string = this.getString('FADROMA_PROJECT', ()=>this.cwd)
+  build     = new Build.BuilderConfig(this.env, this.cwd)
+  connect   = new Connect.ConnectConfig(this.env, this.cwd)
+  deploy    = new Deploy.DeployConfig(this.env, this.cwd)
+  devnet    = new Devnet.DevnetConfig(this.env, this.cwd)
+  scrtGrpc  = new Connect.ScrtGrpc.Config(this.env, this.cwd)
+  scrtAmino = new Connect.ScrtAmino.Config(this.env, this.cwd)
 }
 
 /** Context for Fadroma commands. */
-export class Context extends Komandi.Context {
-  config  = new Config(this.env, this.cwd)
-  project = this.config.project
-  build   = new Build.BuildContext(this.config.build, this.project)
-  connect = new Connect.ConnectContext(this.config.connect)
-  deploy  = new Deploy.DeployContext(this.config.deploy, this.connect, this.build)
+export class Commands extends Komandi.Context {
   constructor (
     config: Config,
     /** The selected blockhain to connect to. */
@@ -66,14 +53,21 @@ export class Context extends Komandi.Context {
   ) {
     super()
   }
+  config  = new Config(this.env, this.cwd)
+  project = this.config.project
+  build   = new Build.BuildCommands('build', [], [], this.config.build, this.project)
+  connect = new Connect.ConnectContext(this.config.connect)
+  deploy  = new Deploy.DeployCommands(
+    'deploy', [], [], this.config.deploy, undefined, undefined, this, this.build
+  )
 }
 
+export const Console = Fadroma.ClientConsole
 export * from '@hackbg/konzola'
 export * from '@hackbg/komandi'
 export * from '@hackbg/konfizi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
-
 export * from '@fadroma/client'
 export type { Decimal } from '@fadroma/client'
 export * from '@fadroma/build'
@@ -84,5 +78,4 @@ export * from '@fadroma/mocknet'
 export * from '@fadroma/tokens'
 export * as ScrtGrpc  from '@fadroma/scrt'
 export * as ScrtAmino from '@fadroma/scrt-amino'
-
 export { connect } from '@fadroma/connect'
