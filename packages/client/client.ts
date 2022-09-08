@@ -1018,6 +1018,7 @@ export class Contract extends Client {
   }
 
   async deployMany (inits: DeployArgs[]): Promise<this[]> {
+    console.trace({inits})
     const self = this
     return this.asTask(
       `get or deploy ${inits.length}x ${this.name??'contract'}`,
@@ -1067,7 +1068,7 @@ export class Contract extends Client {
     return bound
   }
 
-  intoClient <C extends Client> ($Client: NewClient<C>): C {
+  intoClient <C extends Client> ($Client: NewClient<C> = Client as unknown as NewClient<C>): C {
     return new $Client(this.agent, this.address, this.codeHash)
   }
 
@@ -1175,7 +1176,7 @@ export class Deployment extends CommandContext {
   get (name: string): Contract|null {
     const receipt = this.state[name]
     if (!receipt) return null
-    return new Contract(receipt)
+    return new Contract({ ...receipt, deployment: this })
   }
 
   filter (predicate: (key: string, val: { name?: string }) => boolean): Contract[] {

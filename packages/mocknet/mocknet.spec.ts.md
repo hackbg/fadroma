@@ -10,11 +10,12 @@ import assert, { ok, equal, deepEqual } from 'assert'
 * initialize and provide agent:
 
 ```typescript
-import { Chain, Agent, Client, Template } from '@fadroma/client'
+import { Chain, Agent, Client, Contract } from '@fadroma/client'
 let chain:     Chain
 let agent:     Agent
-let template:  Template
-let template2: Template
+let template:  Contract
+let template2: Contract
+let instance:  Contract
 let client:    Client
 ```
 
@@ -62,7 +63,9 @@ console.debug(await client.execute("echo"), { data: "echo" })
 ```typescript
 agent    = await new Mocknet().getAgent()
 template = await agent.upload(Testing.examples['KV'].data)
-client   = agent.getClient(Client, await agent.instantiate(template, 'test', { value: "foo" }))
+instance = await agent.instantiate(template, 'test', { value: "foo" })
+client   = instance.intoClient()
+console.log({ instance, client })
 equal(await client.query("get"), "foo")
 console.debug(await client.execute({set: "bar"}))
 equal(await client.query("get"), "bar")

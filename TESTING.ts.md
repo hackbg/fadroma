@@ -84,11 +84,10 @@ export const mockAgent = () => new class MockAgent extends Agent {
     return new Contract({ ...template, label, initMsg, address: 'some address' })
   }
 
-  async instantiateMany (configs, prefix) {
+  async instantiateMany (contract, configs) {
     const receipts = {}
     for (const [{codeId}, name] of configs) {
       let label = name
-      if (prefix) label = `${prefix}/${label}`
       receipts[name] = { codeId, label }
     }
     return receipts
