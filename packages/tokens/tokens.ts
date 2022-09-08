@@ -168,7 +168,7 @@ export class TokenRegistry extends Fadroma.Deployment {
   /** Get a token by symbol. */
   getToken (symbol: TokenSymbol): Snip20 {
     if (!symbol) throw new TokenError.NoSymbol()
-    if (!this.has(symbol)) throw new TokenError.NotFound(symbol)
+    if (!this.hasToken(symbol)) throw new TokenError.NotFound(symbol)
     return this.tokens[symbol]!
   }
 
@@ -181,7 +181,7 @@ export class TokenRegistry extends Fadroma.Deployment {
   addToken (symbol: TokenSymbol, token?: Snip20): this {
     if (!token) throw new TokenError.PassToken()
     if (!symbol) throw new TokenError.CantRegister()
-    if (this.has(symbol)) throw new TokenError.AlreadyRegistered(symbol)
+    if (this.hasToken(symbol)) throw new TokenError.AlreadyRegistered(symbol)
     // TODO compare and don't throw if it's the same token
     return this.setToken(symbol, token)
   }
@@ -212,7 +212,7 @@ export class TokenRegistry extends Fadroma.Deployment {
       config?:   Snip20InitConfig
     }
   ): Promise<Snip20> {
-    if (this.has(symbol)) {
+    if (this.hasToken(symbol)) {
       return this.getToken(symbol)
     } else {
       this.logToken(options.name, symbol, options.decimals)
@@ -334,12 +334,8 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
   /** Return the address and code hash of this token in the format
     * required by the Factory to create a swap pair with this token */
   get custom_token () {
-    if (!this.address) {
-      throw new Error("Can't create token reference without address.")
-    }
-    if (!this.codeHash) {
-      throw new Error("Can't create token reference without code hash.")
-    }
+    if (!this.address) throw new Error("Can't create token reference without address.")
+    if (!this.codeHash) throw new Error("Can't create token reference without code hash.")
     return {
       contract_addr:   this.address,
       token_code_hash: this.codeHash
