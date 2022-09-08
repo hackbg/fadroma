@@ -753,113 +753,70 @@ export interface NewContract {
   new (...args: ConstructorParameters<typeof Contract>): Contract
 }
 
-export type IntoContract = string|Client|Partial<Contract>
-
 export class Contract extends Client {
 
   log = new ClientConsole(console, 'Fadroma.Contract')
 
-  static sourceToCrateRef = (specifier: string) => specifier.split('@') as [string, string?]
-
   constructor (
-    specifier?: IntoContract|Partial<Contract>,
-    options:    Partial<Contract> = {}
+    specifier?:  Partial<Contract>,
+    definitions: Partial<Contract> = {}
   ) {
     super()
-    if (typeof specifier === 'string') {
-      const [ crate, ref ] = Contract.sourceToCrateRef(specifier)
-      this.crate = crate
-      this.ref   = ref ?? this.ref
-    } else if (typeof specifier === 'object') {
-      for (const [key, val] of Object.entries(specifier as Partial<Contract>)) {
-        if (val === undefined) continue
-        if (key === 'source')  continue
-        if (key === 'chainId') continue
-        ;(this as any)[key] = val
-      }
-    }
-    for (const [key, val] of Object.entries(options as Partial<Contract>)) {
+    this.inherit(specifier   as object)
+    this.inherit(definitions as object)
+  }
+
+  inherit (options: Partial<this> = {}): this {
+    for (const [key, val] of Object.entries(options)) {
       if (val === undefined) continue
       if (key === 'source')  continue
       if (key === 'chainId') continue
       ;(this as any)[key] = val
     }
+    return this
   }
 
-  extend (options: Partial<Contract> = {}): this {
+  define (options: Partial<Contract> = {}): this {
     return new (this.constructor as NewContract)(this, options) as this
   }
 
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   as (agent?: Agent): this {
     if (!agent || (agent === this.agent)) return this
-    return this.extend({ agent })
+    return this.define({ agent })
   }
 
   withDeployment (deployment: Deployment|undefined = this.deployment): this {
     if (deployment === this.deployment) return this
-    return this.extend({ deployment })
-  }
-
-  /** Return a copy of this object with redefined name. */
-  withName (name: Name): this {
-    if (this.name === name) return this
-    return this.extend({ name })
+    return this.define({ deployment })
   }
 
   /** URL to local or remote Git repository containing the source code. */
-  repo?: string|URL = undefined
-
-  /** Return a copy of self pinned to a certain Git remote.
-    * Used to specify historical builds. */
-  fromRepo (repo?: string|URL): this {
-    if (repo === this.repo) return this
-    return this.extend({ repo })
-  }
-
-  workspace?: string = undefined
-
-  fromWorkspace (workspace?: string): this {
-    if (!workspace || (workspace === this.workspace)) return this
-    return this.extend({ workspace })
-  }
+  gitRepo?:   string|URL = undefined
 
   /** Git ref (branch or tag) pointing to source commit. */
-  ref?:  string     = 'HEAD'
+  gitRef?:    string     = 'HEAD'
 
-  /** Return a copy of self pinned to a certain Git reference.
-    * Used to specify historical builds. */
-  fromRef (ref?: string): this {
-    if (ref === this.ref) return this
-    return this.extend({ ref })
-  }
+  /** Path to Cargo workspace. */
+  workspace?: string = undefined
 
   /** Name of crate. Used to find contract crate in workspace repos. */
-  crate?:    string     = undefined
-
-  fromCrate (crate?: string): this {
-    if (crate === this.crate) return this
-    return this.extend({ crate })
-  }
+  crate?:     string     = undefined
 
   /** List of crate features to enable during build. */
-  features?: string[]   = undefined
+  features:   string[]   = []
 
-  withFeatures (features: string[]): this {
-    return this.extend({ features })
-  }
-
-  get source () {
-    return `${this.crate}@${this.ref}`
+  /** Returns a string in the format `crate[@ref][+flag][+flag]...` */
+  getSourceSpecifier (): string {
+    const { crate, gitRef, features } = this
+    let result = crate ?? ''
+    if (this.gitRef !== 'HEAD') result = `${result}@${gitRef}`
+    if (features && features.length > 0) result = `${result}+${features.join('+')}`
+    return result
   }
 
   /** Builder implementation that produces a Contract from the Source. */
   builder?: string|Builder = undefined
-
-  withBuilder (builder?: Builder): this {
-    if (!builder || (builder === this.builder)) return this
-    return this.extend({ builder })
-  }
 
   /** Throw appropriate error if not buildable. */
   assertBuildable (builder: typeof this.builder = this.builder): Builder {
@@ -889,11 +846,6 @@ export class Contract extends Client {
   /** Object containing upload logic. */
   uploader?: Uploader = undefined
 
-  withUploader (uploader?: Uploader): this {
-    if (!uploader || (uploader === this.uploader)) return this
-    return this.extend({ uploader })
-  }
-
   /** Return the Uploader for this Template or throw. */
   assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
     if (!uploader)       throw new ClientError.NoUploader()
@@ -920,7 +872,7 @@ export class Contract extends Client {
       if (!chainId) throw new ClientError.NoChainId()
       // If we have chain ID and code ID, try to get code hash
       if (self.codeId) {
-        self = self.extend({ codeHash: await uploader.getHash(self.codeId) })
+        self = self.define({ codeHash: await uploader.getHash(self.codeId) })
         if (!self.codeHash) throw new ClientError.NoCodeHash()
         return self
       }
@@ -1035,30 +987,33 @@ export class Contract extends Client {
   }
 
   async deploy (initMsg: IntoMessage|undefined = this.initMsg): Promise<this> {
+
+    const self = this
+
     if (this.address) {
       this.log.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
       const address  = this.address
       const codeHash = this.codeHash ?? (this.agent && (await this.fetchCodeHash()).codeHash)
       return new (this.constructor as NewContract)(this, { address, codeHash }) as typeof self
     }
-    if (this.name && this.deployment?.has(this.name)) {
+
+    if (this.deployment && this.name && this.deployment.has(this.name)) {
       const { address, codeHash } = this.deployment.get(this.name)!
       return new (this.constructor as NewContract)(this, { address, codeHash }) as typeof self
     }
-    const self = this
-    if (!initMsg) throw new ClientError.NoInitMessage()
+
     return this.asTask(`deploy ${this.name??'contract'}`, deployContract)
+
     async function deployContract (this: typeof self): Promise<typeof self> {
-      if (this.agent) {
-        const template = await this.upload()
-        this.log.beforeDeploy(this, this.label)
-        if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-        const contract = await this.agent.instantiate(template, this.label, initMsg as Message)
-        this.log.afterDeploy(contract)
-        return contract as typeof self
-      } else {
-        throw new ClientError.NoCreator()
-      }
+      if (!this.name)  throw new ClientError.NoName()
+      if (!this.agent) throw new ClientError.NoCreator()
+      const template = await this.upload()
+      this.log.beforeDeploy(this, this.label)
+      if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
+      const contract = await this.agent.instantiate(template, this.label, initMsg as Message)
+      this.log.afterDeploy(contract)
+      if (this.deployment) this.deployment.add(this.name, contract)
+      return contract as typeof self
     }
   }
 
@@ -1094,14 +1049,14 @@ export class Contract extends Client {
 
   withTask (task?: Task) {
     if (!task) return this
-    return this.extend({ task })
+    return this.define({ task })
   }
 
   /** Wrap the method in a lazy subtask if this.task is set. */
   asTask <T> (name: string, callback: (this: typeof this)=>Promise<T>): Promise<T> {
     Object.defineProperty(callback, 'name', { value: name })
     if (this.task) {
-      return this.task.subtask(callback)
+      return this.task.subtask(callback.bind(this))
     } else {
       return callback.call(this)
     }
@@ -1196,10 +1151,10 @@ export class Deployment extends CommandContext {
   }
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:   string   = timestamp()
+  name: string   = timestamp()
 
   /** Mapping of names to contract instances. */
-  state:  Record<string, Partial<Contract>> = {}
+  state: Record<string, Partial<Contract>> = {}
 
   /** Number of contracts in deployment. */
   get size () { return Object.keys(this.state).length }
@@ -1217,10 +1172,10 @@ export class Deployment extends CommandContext {
   }
 
   /** Get the receipt for a contract, containing its address, codeHash, etc. */
-  get (name: string): Client|null {
+  get (name: string): Contract|null {
     const receipt = this.state[name]
     if (!receipt) return null
-    return new Client(this.agent, receipt.address, receipt.codeHash)
+    return new Contract(receipt)
   }
 
   filter (predicate: (key: string, val: { name?: string }) => boolean): Contract[] {
@@ -1273,15 +1228,14 @@ export class Deployment extends CommandContext {
 
   uploader?: Uploader
 
-  contract <C extends Client> (
-    $Client: NewClient<C> = Client as unknown as NewClient<C>
-  ): Contract {
-    return Object.assign(new Contract(), {
-      task:       this,
+  contract <C extends Client> (options: Partial<Contract> = {}): Contract {
+    return new Contract({
+      deployment: this,
+      prefix:     this.name,
       builder:    this.builder,
       uploader:   this.uploader,
-      deployment: this,
       agent:      this.agent,
+      ...options,
     })
     //const contract = new Contract()
       ////.as(this.agent)

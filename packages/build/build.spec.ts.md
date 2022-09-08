@@ -4,7 +4,7 @@
 import * as Testing from '../../TESTING.ts.md'
 import * as Fadroma from '@fadroma/client'
 import $ from '@hackbg/kabinet'
-import assert, { ok, equal, deepEqual } from 'assert'
+import assert, { ok, equal, deepEqual, throws } from 'assert'
 
 const contract = new Fadroma.Contract({
   repo:      '/tmp/fadroma-test',
@@ -12,45 +12,38 @@ const contract = new Fadroma.Contract({
 })
 ```
 
-## The build context
+## Build function
 
-These are similar to the deploy tasks but are only concerned with building contracts,
-not uploading or instantiating them - i.e. they don't need access to any chain (though
-builds may pull compile-time dependencies from the network).
+```typescript
+import { build } from '.'
+await build(['crate'], undefined, undefined, { buildMany: x => x })
+```
 
-Build tasks run in the following context:
+## Build tasks
+
+These are similar to the deploy tasks but don't need access to any chain
+(because they don't upload or instantiate).
 
 ```typescript
 import { BuildCommands } from '.'
-const build: BuildCommands = new BuildCommands()
-ok(build.builder instanceof Fadroma.Builder)
+const buildTask: BuildCommands = new BuildCommands()
+ok(buildTask.builder instanceof Fadroma.Builder)
 
-// mock out externs
-build.builder = { async build () { return {} } }
-build.exit    = () => {}
+// mock out:
+buildTask.builder = { async build () { return {} } }
+buildTask.exit    = () => {}
+buildTask.project = '.'
 
-const mockCargoToml = {
-  as     () { return this },
-  at     () { return this },
-  exists () { return true },
-  load   () { return { package: { name: 'mocked1' } } },
-  path:      'mocked2/mocked3',
-  parent:    'mocked2'
-  shortPath: 'mocked3',
-}
-
-ok(await build.buildFromCargoToml($('examples/kv/Cargo.toml')),
-   'build from Cargo.toml')
-ok(await build.buildFromDirectory($('examples/kv')),
+ok(buildTask.contract() instanceof Fadroma.Contract,
+  'define a contract to build')
+ok(buildTask.contract({ crate: 'kv' }).build() instanceof Promise,
+  'build is asynchronous')
+ok(await buildTask.buildFromPath($('examples/kv'), []),
    'build from directory')
-ok(await build.buildFromFile($('packages/build/build.example.ts'), 'kv'),
-   'build from file')
-//ok(await build.buildOne([], { ...mockCargoToml, isDirectory: () => true }),
-//   'build one dir')
-//ok(await build.buildOne([], { ...mockCargoToml, isFile: () => true, isDirectory: () => false }),
-//   'build one file')
-//ok(await build.buildMany(), 'build many')
-//ok(await build.listBuildSets(), 'list build sets')
+ok(await buildTask.buildFromPath($('examples/kv/Cargo.toml'), []),
+   'build from file: Cargo.toml')
+ok(await buildTask.buildFromPath($('packages/build/build.example.ts'), ['kv']),
+   'build from file: build script')
 ```
 
 ### Build messages
@@ -64,47 +57,56 @@ const log = new BuildConsole({ info: () => {} })
 log.buildingFromCargoToml('foo')
 log.buildingFromBuildScript('foo')
 log.buildingFromWorkspace('foo')
-log.buildingOne(contract.fromCrate('bar'))
-log.buildingOne(contract.fromCrate('bar').fromRef('commit'))
-log.buildingOne(contract.fromCrate('bar').fromRef('commit'), contract)
-log.buildingMany([contract.fromCrate('bar'), contract.fromCrate('bar').fromRef('commit')])
+log.buildingOne(contract.define({ crate: 'bar' }))
+log.buildingOne(contract.define({ crate: 'bar', gitRef: 'commit' }))
+log.buildingOne(contract.define({ crate: 'bar', gitRef: 'commit' }), contract)
+log.buildingMany([
+  contract.define({ crate: 'bar' }),
+  contract.define({ crate: 'bar', gitRef: 'commit' })
+])
 ```
 
 ## Specifying projects and sources
 
-The `Contract` class has the following properties for specifying source:
+The `Contract` class has the following properties for specifying the source.
+Use `contract.define({ key: value })` to define their values.
+This returns a new copy of `contract` without modifying the original one.
 
-* `contract.repo` points to the Git repository containing the contract sources.
+* `contract.gitRepo: Path|URL` points to the Git repository containing the contract sources.
   * This is all you need if your smart contract is a single crate.
-  * Use `contract.fromRepo(pathOrUrl)` to declare this.
-* `contract.ref` can points to a Git reference (branch or tag).
+* `contract.gitRef: string` can points to a Git reference (branch or tag).
   * This defaults to `HEAD`, i.e. the currently checked out working tree
   * If set to something else, the builder will check out and build a past commit.
-  * Use `contract.fromRef(gitRef)` to declare this.
-* `contract.workspace` points to the Cargo workspace containing the contract sources.
+* `contract.workspace: Path|URL` points to the Cargo workspace containing the contract sources.
   * This may or may not be equal to `contract.repo`,
   * This may be empty if the contract is a single crate.
-  * Use `contract.fromWorkspace(pathOrUrl)` to declare this.
-* `contract.crate` points to the Cargo crate containing the individual contract source.
+* `contract.crate: string` points to the Cargo crate containing the individual contract source.
   * If `contract.workspace` is set, this is required.
-  * Use `contract.fromCrate(name)` to declare this.
 
 ```typescript
 import { HEAD } from '.'
-deepEqual(contract.fromRepo('REPO').repo,                'REPO')
-deepEqual(contract.fromRef('REF').ref,                   'REF')
-deepEqual(contract.fromWorkspace('WORKSPACE').workspace, 'WORKSPACE')
-deepEqual(contract.fromCrate('CRATE').crate,             'CRATE')
+const contractWithSource = contract.define({
+  gitRepo:   'REPO',
+  gitRef:    'REF',
+  workspace: 'WORKSPACE'
+  crate:     'CRATE'
+})
+equal(contractWithSource.gitRepo,   'REPO')
+equal(contractWithSource.gitRef,    'REF')
+equal(contractWithSource.workspace, 'WORKSPACE')
+equal(contractWithSource.crate,     'CRATE')
+equal(contract.gitRef, 'HEAD')
 ```
 
 ### The `.git` directory
 
 If `.git` directory is present, builders can check out and build a past commits of the repo,
-as specifier by `contract.ref`.
+as specifier by `contract.gitRef`.
 
 ```typescript
 import { getGitDir, DotGit } from '.'
-assert(getGitDir(contract) instanceof DotGit)
+throws(()=>getGitDir(contract))
+ok(getGitDir(contractWithSource) instanceof DotGit)
 ```
 
 # Getting and configuring builders
@@ -181,19 +183,22 @@ builders[1].codeHashForPath = () => 'sha256'
 import { execSync } from 'child_process'
 builders[1].runtime = String(execSync('which true')).trim()
 
+const contractFromHead = contractWithSource.define({ gitRef: 'HEAD' })
+
 for (const builder of builders) {
-  const source   = contract.fromCrate('foo')
+  const source   = contractFromHead.define({ crate: 'foo' })
   const template = await builder.build(source)
-  equal(template.crate,    source.crate)
+  //equal(template.crate,    source.crate)
   //equal(template.codeHash, 'sha256')
 }
 
 for (const builder of builders) {
   const sources = [
-    contract.fromCrate('crate-1'),
-    contract.fromCrate('crate-2')
+    contractFromHead.define({ crate: 'crate-1' }),
+    contractFromHead.define({ crate: 'crate-2' })
   ]
-  ok(await builder.buildMany(sources), 'buildMany')
+  const compiled = await builder.buildMany(sources)
+  ok(compiled, 'buildMany')
 }
 ```
 

@@ -196,14 +196,11 @@ build, upload, and instantiate smart contracts.
 
 ```typescript
 import { Contract, Builder, Uploader } from '.'
-let contract: Contract = new Contract()
 let builder:  Builder  = Symbol()
 let uploader: Uploader = Symbol()
-contract = contract.withBuilder(builder)
-equal(contract.builder,  builder,  'withBuilder sets builder')
-contract = contract.withUploader(uploader)
-equal(contract.builder,  builder,  'builder still set')
-equal(contract.uploader, uploader, 'uploader also set')
+let contract: Contract = new Contract({ builder, uploader })
+equal(contract.builder,  builder,  'builder is set')
+equal(contract.uploader, uploader, 'uploader is set')
 contract = contract.as(agent)
 equal(contract.builder,  builder,  'builder still set')
 equal(contract.uploader, uploader, 'uploader still set')
@@ -226,10 +223,14 @@ equal(contract.agent,      agent)
 ### Building and uploading
 
 ```typescript
-import { Contract } from '.'
-equal(new Contract('crate').crate,     'crate')
-equal(new Contract('crate@ref').crate, 'crate')
-equal(new Contract('crate@ref').ref,   'ref')
+contract = new Contract({ crate: 'crate' })
+equal(contract.crate,  'crate')
+equal(contract.gitRef, 'HEAD')
+
+contract = new Contract({ crate: 'crate', gitRef: 'ref' })
+equal(contract.crate,  'crate')
+equal(contract.gitRef, 'ref')
+
 builder = new class TestBuilder extends Builder {
   async build (source: Source): Promise<Contract> { return new Contract(source) }
 }
@@ -251,10 +252,17 @@ uploader = new (class TestUploader extends Uploader {
 ### Deploying a smart contract
 
 ```typescript
-const options = { crate: 'empty', agent, builder, uploader, deployment: { get () {} } }
+const options = {
+  name:  'empty',
+  crate: 'empty',
+  agent,
+  builder,
+  uploader,
+  deployment: { has () {}, get () {}, add () {} }
+}
 
-rejects(new Contract(options).deploy(),
-        'deploying requires init msg')
+ok(new Contract(options).deploy(),
+   'deploying without init msg?')
 
 ok(await new Contract(options).deploy({ init: 'arg' })
    'deploy pre-configured contract with init msg')
@@ -265,7 +273,7 @@ ok(await new Contract(options).deploy(()=>({ init: 'arg' })),
 ok(await new Contract(options).deploy(async ()=>({ init: 'arg' })),
    'deploy pre-configured contract with laziest init msg')
 
-ok(await new Contract('crate@ref').withBuilder(builder).withUploader(uploader).as(agent).deploy([]),
+ok(await new Contract({ ...options, crate: 'crate', ref: 'ref' }).deploy([]),
    'deploy from source')
 ```
 

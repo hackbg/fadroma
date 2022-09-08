@@ -66,7 +66,7 @@ function example (name, wasm, hash) {
 ### Mock agent
 
 ```typescript
-import { Agent, Chain, Uploader } from '@fadroma/client'
+import { Agent, Chain, Uploader, Contract, Client } from '@fadroma/client'
 export const mockAgent = () => new class MockAgent extends Agent {
 
   chain = new (class MockChain extends Chain {
@@ -81,10 +81,10 @@ export const mockAgent = () => new class MockAgent extends Agent {
   async upload () { return {} }
 
   instantiate (template, label, initMsg) {
-    return new Client({ ...template, label, initMsg, address: 'some address' })
+    return new Contract({ ...template, label, initMsg, address: 'some address' })
   }
 
-  instantiateMany (configs, prefix) {
+  async instantiateMany (configs, prefix) {
     const receipts = {}
     for (const [{codeId}, name] of configs) {
       let label = name
@@ -367,8 +367,11 @@ export function mockEnv () {
 
 ```typescript
 import { YAMLDeployment } from './packages/deploy'
+import { withTmpFile } from '@hackbg/kabinet'
+import { equal } from 'assert'
+import { basename } from 'path'
 export const inTmpDeployment = cb => withTmpFile(f=>{
-  const d = new YAMLDeployment(f, Testing.mockAgent())
+  const d = new YAMLDeployment(f, mockAgent())
   equal(d.name, basename(f))
   return cb(d)
 })

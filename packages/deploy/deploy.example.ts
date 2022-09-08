@@ -10,15 +10,13 @@ export class ExampleDeployment extends Deployment {
     this.command('all',  'deploy both contracts')
   }
 
-  echo = this.contract()
-    .fromCrate('kv')
-    .withName('KV')
+  echo = this.contract({ crate: 'kv', name: 'KV' })
     .deploy({})
 
-  kv = this.contract()
-    .fromCrate('echo')
-    .withName('Echo')
-    .deploy(async () => ({ dependency: (await this.echo).asLink }))
+  kv = this.contract({ crate: 'echo', name: 'Echo' })
+    .deploy(async () => ({
+      dependency: (await this.echo).asLink
+    }))
 
   all = this.subtask(()=>Promise.all([
     this.echo,

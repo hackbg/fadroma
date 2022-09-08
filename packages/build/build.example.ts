@@ -10,21 +10,12 @@ export default class ExampleBuild extends BuildCommands {
     this.command('all',  'build all contracts', this.all)
   }
 
-  repo = $('.')
+  project = '.'
 
-  echo = () => this.contract()
-    .fromWorkspace(this.repo.path)
-    .fromCrate('echo')
-    .build()
+  echo = () => this.contract({ crate: 'echo' }).build()
 
-  kv = () => this.contract()
-    .fromWorkspace(this.repo.path)
-    .fromCrate('kv')
-    .build()
+  kv   = () => this.contract({ crate: 'kv' }).build()
 
-  all = () => Promise.all([
-    this.echo(), 
-    this.kv()
-  ])
+  all  = () => Promise.all([this.echo(), this.kv()])
 
 }
