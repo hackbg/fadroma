@@ -20,6 +20,12 @@ export default spec
 subSpec('Client', () => import('./packages/client/client.spec.ts.md').then(console.log))
 ```
 
+## [Tokens](./packages/tokens/tokens.spec.ts.md)
+
+```typescript
+subSpec('Tokens', () => import('./packages/tokens/tokens.spec.ts.md').then(console.log))
+```
+
 ## [Connecting to chains](./packages/connect/connect.spec.ts.md')
 
 ```typescript

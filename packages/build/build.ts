@@ -72,53 +72,172 @@ export class BuilderConfig extends Konfizi.EnvConfig {
     = this.getString ('FADROMA_BUILD_DOCKERFILE', ()=>LocalBuilder.script)
 }
 
+export class BuildCommands extends Deployment {
+
+  constructor (options: Partial<BuildCommands> = {}) {
+    super({ name: 'build' })
+    this.config ??= new BuilderConfig(this.env, this.cwd, options.config)
+    this.builder = getBuilder(this.config)
+    this.command('one', 'build one crate from working tree', this.buildOne)
+  }
+
+  /** Setting for the build context. */
+  config:    BuilderConfig
+
+  project:   string = ''
+
+  /** Knows how to build contracts for a target. */
+  builder:   Builder
+
+  buildOne = (
+    [buildPath, ...buildArgs] = process.argv.slice(2),
+    buildSpec = $(buildPath)
+  ) => {
+    if (buildSpec.isDirectory()) {
+      return this.buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
+    } else if (buildSpec.isFile()) {
+      return this.buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
+    } else {
+      return this.printUsage()
+    }
+  }
+
+  buildFromCargoToml = async (
+    cargoToml: CargoTOML,
+    repo      = process.env.FADROMA_BUILD_REPO_ROOT      || cargoToml.parent,
+    workspace = process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
+  ) => {
+    this.log.info('Build manifest:', bold(cargoToml.shortPath))
+    const source = new Contract({
+      repo,
+      workspace,
+      crate: (cargoToml.as(Kabinet.TOMLFile).load() as any).package.name
+    })
+    try {
+      (this.builder as LocalBuilder).caching = false
+      const result = await this.builder.build(source)
+      const { artifact, codeHash } = result
+      this.log.info('Built:    ', bold($(artifact!).shortPath))
+      this.log.info('Code hash:', bold(codeHash!))
+      this.exit(0)
+      return result
+    } catch (e) {
+      this.log.error(`Build failed.`)
+      this.log.error(e)
+      this.exit(5)
+    }
+  }
+
+  buildFromBuildScript = async (script: Kabinet.OpaqueFile, ...args: string[]) => {
+    this.log.buildingFromBuildScript(script, args)
+    const {default: BuildCommands} = await import(script.path)
+    const commands = new BuildCommands(this)
+    const T0 = + new Date()
+    try {
+      const result = await commands.run(args)
+      const T1 = + new Date()
+      this.log.info(`Build finished in ${T1-T0}msec.`)
+      return result
+    } catch (e: any) {
+      const T1 = + new Date()
+      this.log.error(`Build failed in ${T1-T0}msec: ${e.message}`)
+      this.log.error(e)
+      throw e
+    }
+  }
+
+  listBuildSets = (buildSets: Record<string, ()=>Contract[]>) => {
+    //this.log.log('Available build sets:')
+    //for (let [name, getSources] of Object.entries(buildSets)) {
+      //this.log.log(`\n  ${name}`)
+      //const sources = getSources()
+      //for (const source of sources as Array<Contract>) {
+        //this.log.log(`    ${bold(source.crate!)} @ ${source.ref}`)
+      //}
+    //}
+  }
+
+  buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
+    const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
+    if (cargoToml.exists()) {
+      this.log.info('Building from', bold(cargoToml.shortPath))
+      return this.buildFromCargoToml(cargoToml as CargoTOML)
+    } else {
+      this.printUsage()
+    }
+  }
+
+  buildFromFile = async (file: Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile, args: string[]) => {
+    console.log('BFF',{args})
+    if (file.name === 'Cargo.toml') {
+      this.log.buildingFromCargoToml(file)
+      return this.buildFromCargoToml(file as CargoTOML)
+    } else {
+      return this.buildFromBuildScript(file as Kabinet.OpaqueFile, ...args)
+    }
+  }
+
+  printUsage = () => {
+    this.log.info(`
+      Usage:
+        fadroma-build path/to/crate
+        fadroma-build path/to/Cargo.toml
+        fadroma-build buildConfig.{js|ts}`)
+    this.exit(6)
+    return true
+  }
+
+  log = new BuildConsole(console, 'Fadroma.BuildCommands')
+
+}
+
 export class BuildConsole extends Komandi.CommandsConsole {
-
   name = 'Fadroma Build'
-
   buildingFromCargoToml (file: Kabinet.Path|string) {
     this.info('Building from', bold($(file).shortPath))
   }
-
-  buildingFromBuildScript (file: Kabinet.Path|string) {
-    this.info('Running build script', bold($(file).shortPath))
+  buildingFromBuildScript (file: Kabinet.Path, args: string[]) {
+    this.info('Build script:', bold(file.shortPath))
+    this.info('Build args:  ', bold(args.join(' ') || '(none)'))
   }
-
   buildingFromWorkspace (mounted: Kabinet.Path|string, ref: string = HEAD) {
     this.info(
       `Building contracts from workspace:`, bold(`${$(mounted).shortPath}/`),
       `@`, bold(ref)
     )
   }
-
-  buildingOne (source: Contract, prebuilt: Contract|null) {
+  buildingOne (source: Contract, prebuilt: Contract|null = null) {
     if (prebuilt) {
       this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
     } else {
       const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        this.info('Building', bold(crate), 'from working tree')
-      } else {
-        this.info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
+      this.info('Building', bold(crate), ...
+        (ref === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(ref)])
     }
   }
-
   buildingMany (sources: Contract[]) {
     for (const source of sources) {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
-      if (ref === 'HEAD') {
-        this.info('Building', bold(crate), 'from working tree')
-      } else {
-        this.info('Building', bold(crate), 'from Git reference', bold(ref))
-      }
+      this.buildingOne(source, null)
     }
     this.info()
   }
-
 }
 
 const bold = Konzola.bold
+
+export async function build (
+  crates: string[],
+  ref:    string = 'HEAD',
+  config: Partial<BuilderConfig> = new BuilderConfig(),
+) {
+  const builder = getBuilder(config)
+  return await builder.buildMany(crates.map(crate=>new Contract({
+    repo:      config.project,
+    workspace: config.project,
+    crate,
+    ref
+  })))
+}
 
 /** Get a builder based on the builder config. */
 export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()) {
@@ -131,80 +250,6 @@ export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()
 
 /** The Git reference pointing to the currently checked out working tree */
 export const HEAD = 'HEAD'
-
-export function getGitDir ({ repo }: Contract): DotGit {
-  if (!repo) throw new Error('Contract: no path when trying to access gitDir')
-  return new DotGit(repo)
-}
-
-/** Represents the real location of the Git data directory.
-  * - In standalone repos this is `.git/`
-  * - If the contracts workspace repository is a submodule,
-  *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
-export class DotGit extends Kabinet.Path {
-
-  /* Matches "/.git" or "/.git/" */
-  static rootRepoRE = new RegExp(`${Kabinet.Path.separator}.git${Kabinet.Path.separator}?`)
-
-  constructor (base: string|URL, ...fragments: string[]) {
-
-    if (base instanceof URL) base = fileURLToPath(base)
-
-    super(base, ...fragments, '.git')
-
-    if (!this.exists()) {
-      // If .git does not exist, it is not possible to build past commits
-      this.log.warn(bold(this.shortPath), 'does not exist')
-      this.present = false
-
-    } else if (this.isFile()) {
-      // If .git is a file, the workspace is contained in a submodule
-      const gitPointer = this.as(Kabinet.TextFile).load().trim()
-      const prefix = 'gitdir:'
-      if (gitPointer.startsWith(prefix)) {
-        // If .git contains a pointer to the actual git directory,
-        // building past commits is possible.
-        const gitRel  = gitPointer.slice(prefix.length).trim()
-        const gitPath = $(this.parent, gitRel).path
-        const gitRoot = $(gitPath)
-        //this.log.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
-        this.path      = gitRoot.path
-        this.present   = true
-        this.isSubmodule = true
-      } else {
-        // Otherwise, who knows?
-        this.log.info(bold(this.shortPath), 'is an unknown file.')
-        this.present = false
-      }
-
-    } else if (this.isDirectory()) {
-      // If .git is a directory, this workspace is not in a submodule
-      // and it is easy to build past commits
-      this.present = true
-
-    } else {
-      // Otherwise, who knows?
-      this.log.warn(bold(this.shortPath), `is not a file or directory`)
-      this.present = false
-    }
-
-  }
-
-  log = new BuildConsole(console, 'Fadroma.DotGit')
-
-  readonly present:     boolean
-
-  readonly isSubmodule: boolean = false
-
-  get rootRepo (): Kabinet.Path {
-    return $(this.path.split(DotGit.rootRepoRE)[0])
-  }
-
-  get submoduleDir (): string {
-    return this.path.split(DotGit.rootRepoRE)[1]
-  }
-
-}
 
 //@ts-ignore
 export const buildPackage = dirname(fileURLToPath(import.meta.url))
@@ -678,154 +723,80 @@ export class DockerBuilder extends LocalBuilder {
 
 }
 
-type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
+export function getGitDir ({ repo }: Partial<Contract> = {}): DotGit {
+  if (!repo) throw new Error('Contract: no path when trying to access gitDir')
+  return new DotGit(repo)
+}
 
-export class BuildCommands extends Deployment {
+/** Represents the real location of the Git data directory.
+  * - In standalone repos this is `.git/`
+  * - If the contracts workspace repository is a submodule,
+  *   `.git` will be a file containing e.g. "gitdir: ../.git/modules/something" */
+export class DotGit extends Kabinet.Path {
 
-  constructor (options: Partial<BuildCommands> = {}) {
-    super({ name: 'build' })
-    this.config ??= new BuilderConfig(this.env, this.cwd, options.config)
-    this.builder = getBuilder(this.config)
-    this.command('one', 'build one crate from working tree', this.buildOne)
-  }
+  /* Matches "/.git" or "/.git/" */
+  static rootRepoRE = new RegExp(`${Kabinet.Path.separator}.git${Kabinet.Path.separator}?`)
 
-  /** Setting for the build context. */
-  config:    BuilderConfig
+  constructor (base: string|URL, ...fragments: string[]) {
 
-  project:   string = ''
+    if (base instanceof URL) base = fileURLToPath(base)
 
-  /** Knows how to build contracts for a target. */
-  builder:   Builder
+    super(base, ...fragments, '.git')
 
-  buildOne = (
-    [buildPath, ...buildArgs] = process.argv.slice(2),
-    buildSpec = $(buildPath)
-  ) => {
-    
-    if (buildSpec.isDirectory()) {
-      return this.buildFromDirectory(buildSpec.as(Kabinet.OpaqueDirectory))
-    } else if (buildSpec.isFile()) {
-      return this.buildFromFile(buildSpec.as(Kabinet.OpaqueFile), buildArgs)
-    } else {
-      return this.printUsage()
-    }
-  }
+    if (!this.exists()) {
+      // If .git does not exist, it is not possible to build past commits
+      this.log.warn(bold(this.shortPath), 'does not exist')
+      this.present = false
 
-  buildFromCargoToml = async (
-    cargoToml: CargoTOML,
-    repo      = process.env.FADROMA_BUILD_REPO_ROOT      || cargoToml.parent,
-    workspace = process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
-  ) => {
-    this.log.info('Build manifest:', bold(cargoToml.shortPath))
-    const source = new Contract({
-      repo,
-      workspace,
-      crate: (cargoToml.as(Kabinet.TOMLFile).load() as any).package.name
-    })
-    try {
-      (this.builder as LocalBuilder).caching = false
-      const result = await this.builder.build(source)
-      const { artifact, codeHash } = result
-      this.log.info('Built:    ', bold($(artifact!).shortPath))
-      this.log.info('Code hash:', bold(codeHash!))
-      this.exit(0)
-      return result
-    } catch (e) {
-      this.log.error(`Build failed.`)
-      this.log.error(e)
-      this.exit(5)
-    }
-  }
-
-  buildFromBuildScript = async (
-    buildScript: Kabinet.OpaqueFile,
-    buildArgs:   string[] = []
-  ) => {
-    const buildSetName = buildArgs.join(' ')
-    this.log.info('Build script:', bold(buildScript.shortPath))
-    this.log.info('Build set:   ', bold(buildSetName || '(none)'))
-    //@ts-ignore
-    const {default: buildSets} = await import(buildScript.path)
-    if (buildArgs.length > 0) {
-      const buildSet = buildSets[buildSetName]
-      if (!buildSet) {
-        this.log.error(`No build set ${bold(buildSetName)}.`)
-        this.listBuildSets(buildSets)
-        this.exit(1)
-      } else if (!(buildSet instanceof Function)) {
-        this.log.error(`Invalid build set ${bold(buildSetName)} - must be function, got: ${typeof buildSet}`)
-        this.exit(2)
+    } else if (this.isFile()) {
+      // If .git is a file, the workspace is contained in a submodule
+      const gitPointer = this.as(Kabinet.TextFile).load().trim()
+      const prefix = 'gitdir:'
+      if (gitPointer.startsWith(prefix)) {
+        // If .git contains a pointer to the actual git directory,
+        // building past commits is possible.
+        const gitRel  = gitPointer.slice(prefix.length).trim()
+        const gitPath = $(this.parent, gitRel).path
+        const gitRoot = $(gitPath)
+        //this.log.info(bold(this.shortPath), 'is a file, pointing to', bold(gitRoot.shortPath))
+        this.path      = gitRoot.path
+        this.present   = true
+        this.isSubmodule = true
       } else {
-        const buildSources = buildSet()
-        if (!(buildSources instanceof Array)) {
-          this.log.error(`Invalid build set ${bold(buildSetName)} - must return Array<Source>, got: ${typeof buildSources}`)
-          this.exit(3)
-        }
-        const T0 = + new Date()
-        try {
-          const config = { ...new BuilderConfig(), rebuild: true }
-          await getBuilder(config).buildMany(buildSources)
-          const T1 = + new Date()
-          this.log.info(`Build complete in ${T1-T0}ms.`)
-          this.exit(0)
-        } catch (e) {
-          this.log.error(`Build failed.`)
-          this.log.error(e)
-          this.exit(4)
-        }
+        // Otherwise, who knows?
+        this.log.info(bold(this.shortPath), 'is an unknown file.')
+        this.present = false
       }
+
+    } else if (this.isDirectory()) {
+      // If .git is a directory, this workspace is not in a submodule
+      // and it is easy to build past commits
+      this.present = true
+
     } else {
-      this.log.warn(bold('No build set specified.'))
-      this.listBuildSets(buildSets)
+      // Otherwise, who knows?
+      this.log.warn(bold(this.shortPath), `is not a file or directory`)
+      this.present = false
     }
+
   }
 
-  listBuildSets = (buildSets: Record<string, ()=>Contract[]>) => {
-    //this.log.log('Available build sets:')
-    //for (let [name, getSources] of Object.entries(buildSets)) {
-      //this.log.log(`\n  ${name}`)
-      //const sources = getSources()
-      //for (const source of sources as Array<Contract>) {
-        //this.log.log(`    ${bold(source.crate!)} @ ${source.ref}`)
-      //}
-    //}
+  log = new BuildConsole(console, 'Fadroma.DotGit')
+
+  readonly present:     boolean
+
+  readonly isSubmodule: boolean = false
+
+  get rootRepo (): Kabinet.Path {
+    return $(this.path.split(DotGit.rootRepoRE)[0])
   }
 
-  buildFromDirectory = (dir: Kabinet.OpaqueDirectory) => {
-    const cargoToml = dir.at('Cargo.toml').as(Kabinet.TOMLFile)
-    if (cargoToml.exists()) {
-      this.log.info('Building from', bold(cargoToml.shortPath))
-      return this.buildFromCargoToml(cargoToml as CargoTOML)
-    } else {
-      this.printUsage()
-    }
+  get submoduleDir (): string {
+    return this.path.split(DotGit.rootRepoRE)[1]
   }
-
-  buildFromFile = async (
-    file:      Kabinet.TOMLFile<unknown>|Kabinet.OpaqueFile,
-    buildArgs: string[] = []
-  ) => {
-    if (file.name === 'Cargo.toml') {
-      this.log.buildingFromCargoToml(file)
-      return this.buildFromCargoToml(file as CargoTOML)
-    } else {
-      this.log.buildingFromBuildScript(file)
-      return this.buildFromBuildScript(file as Kabinet.OpaqueFile, buildArgs)
-    }
-  }
-
-  printUsage = () => {
-    this.log.info(`
-      Usage:
-        fadroma-build path/to/crate
-        fadroma-build path/to/Cargo.toml
-        fadroma-build buildConfig.{js|ts}`)
-    this.exit(6)
-    return true
-  }
-
-  log = new BuildConsole(console, 'Fadroma.BuildCommands')
 
 }
+
+type CargoTOML = Kabinet.TOMLFile<{ package: { name: string } }>
 
 export default new BuildCommands()

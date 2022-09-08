@@ -682,7 +682,7 @@ export default class DevnetCommands extends Fadroma.Deployment {
 
   constructor (options: Partial<DevnetCommands> = {}) {
     options.name ??= 'devnet'
-    super(options)
+    super(options as Partial<Fadroma.Deployment>)
     this
       .command('status', 'print the status of the current devnet', this.status)
       .command('reset',  'print the status of the current devnet', this.reset)

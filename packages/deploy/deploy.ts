@@ -29,7 +29,7 @@ import {
   Chain, Agent,
   Uploader,
   Client, IntoClient, NewClient,
-  Contract, IntoContract, Contracts,
+  Contract, IntoContract,
   Deployment, DeployArgs,
   Name, Label, Message,
   SparseArray, ClientConsole
@@ -47,6 +47,9 @@ export async function deploy (
 ) {
   const { chain, agent } = await Connect.connect(config)
   config = new DeployConfig(process.env, process.cwd(), config)
+  if (!agent) {
+    new DeployConsole(console, 'Fadroma Deploy').warnNoAgent()
+  }
   return new DeployCommands({
     name: 'deploy',
     config: config as DeployConfig,
@@ -75,7 +78,7 @@ export class DeployConsole extends ClientConsole {
 
   name = 'Fadroma Deploy'
 
-  deployment ({ deployment }: { deployment: Deployment }) {
+  deployment = ({ deployment }: { deployment: Deployment }) => {
     if (deployment) {
       const { state = {}, name } = deployment
       let contracts: string|number = Object.values(state).length
@@ -95,7 +98,7 @@ export class DeployConsole extends ClientConsole {
     }
   }
 
-  receipt (name: string, receipt: any, len = 35) {
+  receipt = (name: string, receipt: any, len = 35) => {
     name = bold(name.padEnd(len))
     if (receipt.address) {
       const address = `${receipt.address}`.padStart(45)
@@ -106,12 +109,20 @@ export class DeployConsole extends ClientConsole {
     }
   }
 
-  warnNoDeployment () {
-    this.warn('No active deployment. Most commands will fail.')
-    this.warn('You can create a deployment using `fadroma-deploy new`')
-    this.warn('or select a deployment using `fadroma-deploy select`')
-    this.warn('among the ones listed by `fadroma-deploy list`')
-  }
+  warnNoDeployment = () => this.warn(
+    'No active deployment. Most commands will fail. ' +
+    'You can create a deployment using `fadroma-deploy new` ' +
+    'or select a deployment using `fadroma-deploy select` ' +
+    'among the ones listed by `fadroma-deploy list`.'
+  )
+
+  warnNoAgent = () => this.warn(
+    'No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'
+  )
+
+  warnNoDeployAgent = () => this.warn(
+    'No deploy agent. Deployments will not be possible.'
+  )
 
 }
 
@@ -124,11 +135,9 @@ export class DeployCommands extends Deployment {
 
   log = new DeployConsole(console, 'Fadroma.DeployCommands')
 
-  constructor (options: Partial<DeployCommands>) {
-    super(options)
-    if (!this.agent) {
-      throw new Error('No deploy agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.')
-    }
+  constructor (options: Partial<DeployCommands> = {}) {
+    super(options as Partial<Deployment>)
+    if (!this.agent) this.log.warnNoDeployAgent()
     this.config = options.config ?? new DeployConfig(process.env, process.cwd())
     this.build  = options.build
     this
@@ -153,46 +162,6 @@ export class DeployCommands extends Deployment {
 
   /** Currently selected deployment. */
   deployment:  Deployment|null  = this.deployments?.active || null
-
-  /** Defines a command that creates and selects a new deployment before running. */
-  inNewDeployment (
-    ...[name, info, ...steps]: Parameters<typeof this.command>
-  ): this {
-    return this.command(name, `(in new deployment) ${info}`, this.create, ...steps)
-  }
-
-  /** Defines a command that runs in the currently selected deployment. */
-  inSelectedDeployment (
-    ...[name, info, ...steps]: Parameters<typeof this.command>
-  ): this {
-    return this.command(name, `(in current deployment) ${info}`, this.getDeployment, ...steps)
-  }
-
-  /** Add either the active deployment, or a newly created one, to the command context. */
-  getOrCreate = async (context: Deployment): Promise<DeployCommands> => {
-    const deployments = this.expectEnabled()
-    return {
-      ...context,
-      ...await deployments?.active ? this.getDeployment() : this.create()
-    }
-  }
-
-  /** Add the currently active deployment to the command context. */
-  getDeployment = async (): Promise<DeployCommands> => {
-    const deployments = this.expectEnabled()
-    if (!deployments.active) {
-      this.log.error('No selected deployment on chain:', bold(this.chain?.id??'(unspecifier)'))
-    }
-    return { ...context, deployment: deployments.active } as DeployCommands
-  }
-
-  /** Create a new deployment and add it to the command context. */
-  create = async (name: string = this.timestamp): Promise<DeployCommands> => {
-    const deployments = this.expectEnabled()
-    await deployments?.create(name)
-    await deployments?.select(name)
-    return { ...context, ...await this.getDeployment() } as DeployCommands
-  }
 
   /** Print a list of deployments on the selected chain. */
   list = async (): Promise<void> => {
@@ -238,6 +207,14 @@ export class DeployCommands extends Deployment {
     }
   }
 
+  /** Create a new deployment and add it to the command context. */
+  create = async (name: string = this.timestamp): Promise<DeployCommands> => {
+    const deployments = this.expectEnabled()
+    await deployments?.create(name)
+    await deployments?.select(name)
+    return { ...context, ...await this.getDeployment() } as DeployCommands
+  }
+
   /** Print the status of a deployment. */
   status = async (id?: string): Promise<void> => {
     const deployments = this.expectEnabled()
@@ -256,6 +233,20 @@ export class DeployCommands extends Deployment {
       throw new Error('Deployments were not enabled')
     }
     return this.deployments
+  }
+
+  /** Defines a command that creates and selects a new deployment before running. */
+  inNewDeployment (
+    ...[name, info, ...steps]: Parameters<typeof this.command>
+  ): this {
+    return this.command(name, `(in new deployment) ${info}`, this.create, ...steps)
+  }
+
+  /** Defines a command that runs in the currently selected deployment. */
+  inSelectedDeployment (
+    ...[name, info, ...steps]: Parameters<typeof this.command>
+  ): this {
+    return this.command(name, `(in current deployment) ${info}`, this.getDeployment, ...steps)
   }
 
 }
@@ -309,9 +300,7 @@ export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
 
   /** List the deployments in the deployments directory. */
   list () {
-    if (!FS.existsSync(this.path)) {
-      return []
-    }
+    if (!FS.existsSync(this.path)) return []
     return FS.readdirSync(this.path)
       .filter(x=>x!=this.KEY)
       .filter(x=>x.endsWith('.yml'))

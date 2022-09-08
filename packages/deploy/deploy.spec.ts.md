@@ -8,12 +8,12 @@ import { pathToFileURL } from 'url'
 
 ```typescript
 import * as Fadroma from '@fadroma/client'
+let chainId:  Fadroma.ChainId  = 'mocknet'
 let chain:    Fadroma.Chain    = null
 let agent:    Fadroma.Agent    = null
 let mnemonic: string           = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
 let template: Fadroma.Contract = null
 let artifact: Fadroma.URL      = pathToFileURL(Testing.fixture('empty.wasm'))
-let chainId:  Fadroma.ChainId  = 'mocknet'
 let codeId, codeHash, txHash, result
 ```
 
@@ -46,33 +46,30 @@ let config: DeployConfig = new DeployConfig({}, '')
 ```typescript
 import { deploy, DeployCommands, DeployConfig } from '.'
 let context: DeployCommands = await deploy({ chain: 'Mocknet', mnemonic })
-ok(context             instanceof DeployCommands)
-ok(context.uploader    instanceof Fadroma.Uploader)
-ok(context.contract()  instanceof Fadroma.Contract)
-ok(context.contracts() instanceof Fadroma.Contracts)
+ok(context            instanceof DeployCommands)
+ok(context.uploader   instanceof Fadroma.Uploader)
+ok(context.contract() instanceof Fadroma.Contract)
 ```
 
 ## `Deployment` classes
 
 ```typescript
-import { Client } from '@fadroma/client'
+import { Client, Deployment } from '@fadroma/client'
 import { connect } from '@fadroma/connect'
 import * as Dokeres from '@hackbg/dokeres'
 import { BuildCommands, getBuilder } from '@fadroma/build'
 import { deploy, DeployCommands, YAMLDeployment } from '.'
-import { DeployMyContracts } from '../client/client.spec.ts.md'
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
+import { ExampleDeployment } from './deploy.example'
 
-ok(await deploy() instanceof DeployCommands)
+ok(await deploy() instanceof DeployCommands
+   'deploy() returns a deploy context')
 
-ok(new YAMLDeployment() instanceof Fadroma.Deployment)
-const inTmpDeployment = cb => withTmpFile(f=>{
-  const d = new YAMLDeployment(f, Testing.mockAgent())
-  equal(d.name, basename(f))
-  return cb(d)
-})
-inTmpDeployment(async deployment=>{
+ok(new YAMLDeployment() instanceof Fadroma.Deployment,
+   'deployments can be loaded/saved in yaml')
+
+/*await Testing.inTmpDeployment(async deployment=>{
   context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildCommands())
   context.build.builder = getBuilder({
     docker:     Dokeres.Engine.mock(),
@@ -83,11 +80,14 @@ inTmpDeployment(async deployment=>{
   context.build.builder.codeHashForPath = () => 'codehash'
   context.deployment = deployment
   delete context.uploader.cache
-  result = await DeployMyContracts.run(context)
-  assert(result instanceof Array)
-  assert(result[0] instanceof Client)
-  assert(result[1] instanceof Client)
-})
+  const op = new ExampleDeployment(context)
+  op.task = {}
+  context.agent = Testing.mockAgent()
+  result = await op.run()
+  assert(result    instanceof Array)
+  assert(result[0] instanceof Fadroma.Contract)
+  assert(result[1] instanceof Fadroma.Contract)
+})*/
 ```
 
 ## `Deployments` directory
@@ -115,9 +115,10 @@ await withTmpDir(async dir=>{
 
 ```typescript
 import { FSUploader } from '.'
-
+let uploader: Fadroma.Uploader
+uploader = new FSUploader(agent, new JSONDirectory())
+ok(uploader.agent === agent)
 await uploader.upload(new Fadroma.Contract({ artifact }))
-
 await uploader.uploadMany([])
 
 const testUpload = async (cb) => {
@@ -173,10 +174,6 @@ import { resolve } from 'path'
 }
 
 // 'add FSUploader to operation context' ({ ok }) {
-agent = { chain: { uploads: Symbol() } }
-const cache = new JSONDirectory()
-uploader = new FSUploader(agent, cache)
-ok(uploader.agent === agent)
 
 // async 'upload 1 artifact with FSUploader#upload' ({ ok }) {
 await withTmpDir(async cacheDir=>{
@@ -214,7 +211,7 @@ new Deployments()
 
 ```typescript
 
-await inTmpDeployment(async d => {
+await Testing.inTmpDeployment(async d => {
   deepEqual(d.state, {})
   equal(d, d.save('test', JSON.stringify({ foo: 1 })))
   equal(d, d.add('test1', { test1: 1 }))
@@ -225,7 +222,7 @@ await inTmpDeployment(async d => {
 })
 
 // init contract from uploaded template
-await inTmpDeployment(async deployment =>{
+await Testing.inTmpDeployment(async deployment =>{
   const codeId     = 1
   const template   = new Fadroma.Contract({ chainId, codeId })
   const initMsg    = Symbol()
@@ -249,9 +246,9 @@ await inTmpDeployment(async deployment =>{
 })
 
 // init many contracts from the same template
-await inTmpDeployment(async deployment=>{
+await Testing.inTmpDeployment(async deployment=>{
   const codeId   = 2
-  const template = new Fadroma.Contract({ chainId, codeId })
+  const template = new Fadroma.Contract({ agent, chainId, codeId })
   const initMsg  = Symbol()
   const configs  = [['contract1', Symbol()], ['contract2', Symbol()]]
   const receipts = await deployment.initMany(template, configs)
@@ -263,7 +260,7 @@ await inTmpDeployment(async deployment=>{
 })
 
 // init many contracts from different templates
-await inTmpDeployment(async deployment=>{
+await Testing.inTmpDeployment(async deployment=>{
   const templateA  = { codeId: 2 }
   const templateB  = { codeId: 3 }
   const configs    = [[templateA, 'contractA', Symbol()], [templateB, 'contractB', Symbol()]]

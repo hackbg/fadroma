@@ -362,3 +362,14 @@ export function mockEnv () {
   }
 }
 ```
+
+### Mock deployment
+
+```typescript
+import { YAMLDeployment } from './packages/deploy'
+export const inTmpDeployment = cb => withTmpFile(f=>{
+  const d = new YAMLDeployment(f, Testing.mockAgent())
+  equal(d.name, basename(f))
+  return cb(d)
+})
+```

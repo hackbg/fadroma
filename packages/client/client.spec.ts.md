@@ -11,69 +11,45 @@ User selects chain by instantiating a `Chain` object.
 
 ```typescript
 import { Chain } from '.'
-let chain: Chain
-```
-
-### Chain config
-
-```typescript
-chain = new Chain('any', { url: 'example.com' })
+let chain: Chain = new Chain('any', { url: 'example.com' })
 assert.equal(chain.id,  'any')
 assert.equal(chain.url, 'example.com')
-```
-
-### Chain modes
-
-```typescript
-import { ChainMode } from '.'
-
-chain = new Chain('any', { mode: ChainMode.Mainnet })
-assert(chain.isMainnet)
-
-chain = new Chain('any', { mode: ChainMode.Testnet })
-assert(chain.isTestnet && !chain.isMainnet)
-
-chain = new Chain('any', { mode: ChainMode.Devnet })
-assert(chain.isDevnet  && !chain.isMainnet && !chain.isTestnet)
-
-chain = new Chain('any', { mode: ChainMode.Mocknet })
-assert(chain.isMocknet && !chain.isMainnet && !chain.isDevnet)
+chain = new Chain('any', { mode: Chain.Mode.Mocknet })
+assert(chain.isMocknet && chain.devMode)
+chain = new Chain('any', { mode: Chain.Mode.Devnet })
+assert(chain.isDevnet  && chain.devMode)
+chain = new Chain('any', { mode: Chain.Mode.Testnet })
+assert(chain.isTestnet && !chain.devMode)
+chain = new Chain('any', { mode: Chain.Mode.Mainnet })
+assert(chain.isMainnet && !chain.devMode)
 ```
 
 ## Agent
 
 User authenticates (=authorizes agent)
 by obtaining an `Agent` instance from the `Chain`.
+* Pass it a `mnemonic` to authenticate.
+* This is asynchronous to allow for async crypto functions to run,
+  as required by platform APIs.
 
 ```typescript
 import { Agent } from '.'
-let agent: Agent
-```
-
-### Getting an `Agent` from a `Chain` by mnemonic
-
-* Getting an agent from a chain
-  * This is asynchronous to allow for async crypto functions to run.
-
-```typescript
-assert(await chain.getAgent({}) instanceof Agent)
+let agent: Agent = await chain.getAgent({ mnemonic: undefined })
+assert(agent instanceof Agent)
 ```
 
 ### Getting an `Agent` from a `Devnet`'s genesis account
 
-* When using devnet, you can also get an agent from a named genesis account:
+When using devnet, you can also get an agent from a named genesis account:
 
 ```typescript
-chain = new Chain('devnet', {
-  mode: ChainMode.Devnet,
-  node: { getGenesisAccount () { return {} }, respawn () {} }
-})
+import type { DevnetHandle } from '.'
+const node: DevnetHandle = { getGenesisAccount () { return {} }, respawn () {} }
+chain = new Chain('devnet', { mode: Chain.Mode.Devnet, node })
 assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
 ```
 
 ### Waiting for block height to increment
-
-* **Waiting** until the block height has incremented
 
 ```
 //todo
@@ -195,80 +171,80 @@ await agent.instantiateMany(new Contract(), [])
 await agent.instantiateMany(new Contract(), [], 'prefix')
 ```
 
-## `Contract`, `Client`: operating smart contracts
+## `Deployment`, `Contract`, `Client`: deploying and operating contracts
 
-## `Deployment`, `Contract`, `Client`: describing collections of related smart contracts
+### Client
 
 User interacts with contract by obtaining an instance of the
 appropriate `Client` subclass from the authorized `Agent`.
+
+```typescript
+import { Client } from '.'
+let client: Client
+
+throws(()=>new Client().assertAddress())
+
+throws(()=>new Client().assertAgent())
+
+ok(new Client(agent, { address: 'some-address' }).assertAddress().assertAgent() instanceof Agent)
+```
+
+### Contract
 
 The `Contract` class extends `Client` and can
 build, upload, and instantiate smart contracts.
 
 ```typescript
-import { Client } from '.'
-let client: Client
-throws(()=>new Client().assertAddress())
-throws(()=>new Client().assertAgent())
-ok(new Client(agent, { address: 'some-address' })
-  .assertAddress()
-  .assertAgent() instanceof Agent)
+import { Contract, Builder, Uploader } from '.'
+let contract: Contract = new Contract()
+let builder:  Builder  = Symbol()
+let uploader: Uploader = Symbol()
+contract = contract.withBuilder(builder)
+equal(contract.builder,  builder,  'withBuilder sets builder')
+contract = contract.withUploader(uploader)
+equal(contract.builder,  builder,  'builder still set')
+equal(contract.uploader, uploader, 'uploader also set')
+contract = contract.as(agent)
+equal(contract.builder,  builder,  'builder still set')
+equal(contract.uploader, uploader, 'uploader still set')
+equal(contract.agent,    agent,    'agent also set')
 ```
+
+### Deployment
 
 ```typescript
 import { Deployment } from '.'
-export class DeployMyContracts extends Deployment {
-  constructor (context, ...args) {
-    super(context, async () => [await this.contract1, await this.contract2])
-  }
-  contract1 = this.contract()
-    .fromCrate('contract-1')
-    .withName('Contract1')
-    .deploy({})
-  contract2 = this.contract()
-    .fromCrate('contract-2')
-    .withName('Contract2')
-    .deploy(async () => ({ dependency: (await this.contract1).asLink }))
-}
+let deployment: Deployment = new Deployment()
+deployment = new Deployment({ builder, uploader, agent })
+contract   = deployment.contract()
+equal(contract.deployment, deployment)
+equal(contract.builder,    builder)
+equal(contract.uploader,   uploader)
+equal(contract.agent,      agent)
 ```
 
-### `Builder`: Compiling from source
+### Building and uploading
 
 ```typescript
 import { Contract } from '.'
 equal(new Contract('crate').crate,     'crate')
 equal(new Contract('crate@ref').crate, 'crate')
 equal(new Contract('crate@ref').ref,   'ref')
-```
-
-```typescript
-import { Builder } from '.'
-let builder: Builder = new class TestBuilder extends Builder {
-  async build (source: Source): Promise<Contract> {
-    return new Contract(source)
-  }
+builder = new class TestBuilder extends Builder {
+  async build (source: Source): Promise<Contract> { return new Contract(source) }
 }
 ```
 
 ### `Uploader`: Uploading artifacts
 
 ```typescript
-const url = new URL('file:///tmp/artifact.wasm')
-equal(new Contract({ artifact: url }).artifact, url)
-```
-
-```typescript
-import { Uploader } from '.'
-let uploader: Uploader
+const artifact = new URL('file:///tmp/artifact.wasm')
+equal(new Contract({ artifact }).artifact, artifact)
 agent = new (class TestAgent extends Agent {
-  instantiate (source: Contract): Promise<Client> {
-    return new Client(source)
-  }
+  instantiate (source: Contract): Promise<Client> { return new Client(source) }
 })({ id: 'chain' })
 uploader = new (class TestUploader extends Uploader {
-  upload (template: Contract): Promise<Contract> {
-    return new Contract(template)
-  }
+  upload (template: Contract): Promise<Contract> { return new Contract(template) }
 })(agent)
 ```
 
@@ -276,10 +252,21 @@ uploader = new (class TestUploader extends Uploader {
 
 ```typescript
 const options = { crate: 'empty', agent, builder, uploader, deployment: { get () {} } }
-rejects(new Contract(options).deploy())
-ok(await new Contract(options).deploy({ init: 'arg' }))
-ok(await new Contract(options).deploy(()=>({ init: 'arg' })))
-ok(await new Contract(options).deploy(async ()=>({ init: 'arg' })))
+
+rejects(new Contract(options).deploy(),
+        'deploying requires init msg')
+
+ok(await new Contract(options).deploy({ init: 'arg' })
+   'deploy pre-configured contract with init msg')
+
+ok(await new Contract(options).deploy(()=>({ init: 'arg' })),
+   'deploy pre-configured contract with lazy init msg')
+
+ok(await new Contract(options).deploy(async ()=>({ init: 'arg' })),
+   'deploy pre-configured contract with laziest init msg')
+
+ok(await new Contract('crate@ref').withBuilder(builder).withUploader(uploader).as(agent).deploy([]),
+   'deploy from source')
 ```
 
 ### Connecting to a smart contract
@@ -288,10 +275,14 @@ The `Client` class allows you to transact with a specific smart contract
 deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agent.spec.ts.md).
 
 ```typescript
-throws(()=>new Client('Name').get())
-ok(await new Contract(options).getOr(()=>true))
-// get a contract client from the agent
-ok(agent.getClient(Client))
+throws(()=>new Contract('Name').get(),
+       'naming a contract that is not in the deployment throws')
+
+ok(await new Contract(options).getOr(()=>true),
+   'use getOr to provide alternate value if contract is not in deployment')
+
+ok(agent.getClient(Client),
+   'get a contract client from the agent')
 ```
 
 ### `ClientError`: contract error conditions
@@ -301,19 +292,8 @@ Contract errors inherit from **ClientError** and are defined as its static prope
 ```typescript
 import { ClientError } from '.'
 for (const kind of Object.keys(ClientError)) {
-  ok(new ClientError[kind] instanceof ClientError)
+  ok(new ClientError[kind] instanceof ClientError, 'constructing each error')
 }
-```
-
-## `Contracts`: managing multiple contracts
-
-```typescript
-import { Contracts } from '.'
-ok(new Contracts()) // empty
-ok(await new Contracts('crate@ref')
-  .withBuilder(builder)
-  .withUploader(uploader)
-  .deploy([]))
 ```
 
 ## `Fee`: Specifying per-transaction gas fees
