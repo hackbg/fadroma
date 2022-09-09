@@ -668,12 +668,6 @@ export class Client {
     return new Self(agent, this.address, this.codeHash)
   }
 
-  /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  client <C extends Client> ($Client: NewClient<C> = this.constructor as NewClient<C>): C {
-    if ($Client === this.constructor) return this as unknown as C
-    return new $Client(this.agent, this.address, this.codeHash)
-  }
-
   /** Execute a query on the specified contract as the specified Agent. */
   async query <U> (msg: Message): Promise<U> {
     return await this.assertAgent().query(this, msg)
@@ -1036,15 +1030,6 @@ export class Contract extends Client {
     }
   }
 
-  client <C extends Client, D extends ContractOf<C>> (
-    $Client: NewClient<C> = Client as unknown as NewClient<C>
-  ): C {
-    return Object.assign(
-      new (this.constructor as NewContract)(this),
-      { Client: $Client }
-    ) as unknown as C
-  }
-
   /** Optional hook into @hackbg/komandi lazy one-shot task hook system. */
   task?: Task
 
@@ -1068,7 +1053,7 @@ export class Contract extends Client {
     return bound
   }
 
-  intoClient <C extends Client> ($Client: NewClient<C> = Client as unknown as NewClient<C>): C {
+  client <C extends Client> ($Client: NewClient<C> = Client as unknown as NewClient<C>): C {
     return new $Client(this.agent, this.address, this.codeHash)
   }
 
@@ -1093,6 +1078,10 @@ export class ContractOf<C extends Client> extends Contract {
       return new this.Client(this.agent, address, codeHash) as unknown as C
     }
     throw new Error(message)
+  }
+
+  client <C extends Client> ($Client: NewClient<C> = this.Client as unknown as NewClient<C>): C {
+    return new $Client(this.agent, this.address, this.codeHash)
   }
 
 }
@@ -1140,7 +1129,7 @@ export function addressOf (instance?: { address?: Address }): Address {
   * - Extend this class in deployer script to define how the contracts are deployed. */
 export class Deployment extends CommandContext {
 
-  constructor (options: Partial<Deployment> = {}) {
+  constructor (options: Partial<Deployment> & any = {}) {
     super(options.name ?? 'Deployment')
     this.name     = options.name     ?? this.name
     this.state    = options.state    ?? this.state
@@ -1225,35 +1214,71 @@ export class Deployment extends CommandContext {
   /** = chain.isMocknet */
   get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
 
+  /** Default Git ref from which contracts would be built if needed. */
+  gitRef: string = 'HEAD'
+
+  /** Build implementation. Can't build from source if missing. */
   builder?:  Builder
 
+  /** Upload implementation. Can't upload to chain if missing. */
   uploader?: Uploader
 
-  contract <C extends Client> (options: Partial<Contract> = {}): Contract {
-    return new Contract({
+  /** Specify a contract with optional client class and metadata.
+    *
+    * When defined as part of a Deployment, the methods of the Contract instance
+    * are lazy and only execute when awaited:
+    *
+    *   class ADeployment {
+    *     aContract = this.contract({...}).deploy()
+    *     bContract = this.contract({...}).deploy(async()=>({ init: await this.aContract.address }))
+    *   }
+    *   const aDeployment = new ADeployment() // nothing happens yet
+    *   await aDeployment.bContract // bContract in deployed and pulls in aContract
+    *   await aDeployment.aContract // aContract is now also resolved
+    *
+    * Use the methods of the returned Contract instance
+    * to define what is to be done with the contract:
+    *
+    *   // This will bail if ExternalContract is not in the deployment.
+    *   this.contract({ name: 'ExternalContract' }).expect('Dependency not found.')
+    *
+    *   // This will only deploy OwnContract but if it's not already in the deployment,
+    *   // otherwise it will return a handle to the existing instance.
+    *   this.contract({ name: 'OwnContract' }).deploy(init?, callback?)
+    *
+    *   // This will deploy multiple instances of the same contract.
+    *   this.contract({ name: 'OwnContract' }).deployMany(inits?)
+    *
+    *   // This will upload the contract code but not instantiate it.
+    *   this.contract({ name: 'OwnContractTemplate' }).upload()
+    *
+    **/
+  contract (options?: Partial<Contract>): Contract
+  contract <C extends Client> (Client: NewClient<C>, options?: Partial<Contract>): ContractOf<C>
+  contract <C extends Client> (...args: Array<unknown>): Contract {
+    const defaults = {
       deployment: this,
       prefix:     this.name,
       builder:    this.builder,
       uploader:   this.uploader,
       agent:      this.agent,
-      ...options,
-    })
-    //const contract = new Contract()
-      ////.as(this.agent)
-      //.withTask(this)
-      //.withBuilder(this.builder)
-      //.withUploader(this.uploader)
-      //.withDeployment(this)
-      ////.withClient($Client)
-    //console.log(this, $Client, contract)
-    //return contract
+      gitRef:     this.gitRef,
+    }
+    let options: Partial<Contract>|undefined = args[0] as Partial<Contract>
+    if (args.length === 2) {
+      const [Client, options] = args as [NewClient<C>, Partial<Contract>]
+      return new ContractOf({ ...defaults, ...options! }, Client)
+    } else {
+      const [options] = args as [Partial<Contract>]
+      return new Contract({ ...defaults, ...options! })
+    }
   }
 
 }
 
 export class VersionedDeployment<V> extends Deployment {
   constructor (
-    options: Partial<VersionedDeployment<V>> = {},
+    options: object = {},
     public version: V|undefined = (options as any)?.version
   ) {
     super(options as Partial<Deployment>)
