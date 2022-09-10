@@ -255,7 +255,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
 
-  async upload (data: Uint8Array): Promise<Fadroma.Contract> {
+  async upload (data: Uint8Array): Promise<Fadroma.Contract<any>> {
     if (!(data instanceof Uint8Array)) throw ScrtAminoErrors.UploadBinary()
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
@@ -270,11 +270,11 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
   }
 
   async instantiate (
-    template: Fadroma.Contract,
+    template: Fadroma.Contract<any>,
     label:    string,
     msg:      Fadroma.Message,
     funds = []
-  ): Promise<Fadroma.Contract> {
+  ): Promise<Fadroma.Contract<any>> {
     if (!template.codeHash) throw ScrtAminoErrors.TemplateNoCodeHash()
     let { codeId, codeHash } = template
     const { api } = this

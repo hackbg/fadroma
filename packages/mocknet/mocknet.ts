@@ -16,7 +16,7 @@ export class MocknetBackend {
     }
     return code
   }
-  upload (blob: Uint8Array): Fadroma.Contract {
+  upload (blob: Uint8Array): Fadroma.Contract<any> {
     const chainId  = this.chainId
     const codeId   = ++this.codeId
     const content  = this.uploads[codeId] = blob
@@ -36,11 +36,11 @@ export class MocknetBackend {
   }
   async instantiate (
     sender: Fadroma.Address,
-    { codeId, codeHash }: Partial<Fadroma.Contract>,
+    { codeId, codeHash }: Partial<Fadroma.Contract<any>>,
     label: string,
     msg:   Fadroma.Message,
     funds = []
-  ): Promise<Partial<Fadroma.Contract>> {
+  ): Promise<Partial<Fadroma.Contract<any>>> {
     const chainId  = this.chainId
     const code     = this.getCode(codeId!)
     const contract = await new MocknetBackend.Contract(this).load(code)
@@ -244,8 +244,8 @@ class MocknetAgent extends Fadroma.Agent {
   }
 
   async instantiate (
-    template: Fadroma.Contract, label: string, msg: Fadroma.Message, send = []
-  ): Promise<Fadroma.Contract> {
+    template: Fadroma.Contract<any>, label: string, msg: Fadroma.Message, send = []
+  ): Promise<Fadroma.Contract<any>> {
     return new Fadroma.Contract({
       agent: this,
       ...await this.backend.instantiate(this.address, template, label, msg, send)

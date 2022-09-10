@@ -345,7 +345,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     this.address = this.wallet?.address
   }
 
-  async instantiateMany (template: Fadroma.Contract, configs: Fadroma.DeployArgs[]) {
+  async instantiateMany (template: Fadroma.Contract<any>, configs: Fadroma.DeployArgs[]) {
     // instantiate multiple contracts in a bundle:
     const instances = await this.bundle().wrap(async bundle=>{
       await bundle.instantiateMany(template, configs)
@@ -417,7 +417,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     return await this.api.query.compute.queryContract(args) as U
   }
 
-  async upload (data: Uint8Array): Promise<Fadroma.Contract> {
+  async upload (data: Uint8Array): Promise<Fadroma.Contract<any>> {
     type Log = { type: string, key: string }
     if (!this.address) throw new Error("No address")
     const sender     = this.address
@@ -437,11 +437,11 @@ export class ScrtGrpcAgent extends ScrtAgent {
   }
 
   async instantiate (
-    template: Fadroma.Contract,
+    template: Fadroma.Contract<any>,
     label:    Fadroma.Label,
     initMsg:  Fadroma.Message,
     initFunds = []
-  ): Promise<Fadroma.Contract> {
+  ): Promise<Fadroma.Contract<any>> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
     if (chainId !== this.chain.id) throw Errors.AnotherChain()

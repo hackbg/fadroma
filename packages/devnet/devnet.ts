@@ -689,7 +689,7 @@ export default class DevnetCommands extends Fadroma.Deployment {
   }
 
   status = () => {
-    new Fadroma.ClientConsole().chainStatus(this)
+    new Fadroma.ClientConsole(console, 'Fadroma Devnet').chainStatus(this)
   }
 
   reset = () => {

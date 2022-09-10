@@ -27,9 +27,8 @@ import * as Build   from '@fadroma/build'
 import * as Connect from '@fadroma/connect'
 import {
   Chain, Agent,
-  Uploader,
-  Client, IntoClient, NewClient,
-  Contract, IntoContract,
+  Builder, Uploader,
+  Contract, Client, IntoClient, NewClient,
   Deployment, DeployArgs,
   Name, Label, Message,
   SparseArray, ClientConsole
@@ -147,15 +146,14 @@ export class DeployCommands extends Deployment {
       .command('status',  'show the current deployment',     this.status)
       .command('nothing', 'check that the script runs', () => this.log.info('So far so good'))
     // Populate the uploader
-    this.uploader = FSUploader.fromConfig(this.agent!, this.build?.config.project)
+    this.uploader = FSUploader.fromConfig(this.agent!, this.build?.config?.project)
   }
 
   build?:      Build.BuildCommands
 
   config:      DeployConfig
 
-  /** Knows how to upload contracts to a blockchain. */
-  uploader:    Uploader
+  uploader?:   Uploader
 
   /** All available deployments for the current chain. */
   deployments: Deployments|null = null
@@ -208,11 +206,10 @@ export class DeployCommands extends Deployment {
   }
 
   /** Create a new deployment and add it to the command context. */
-  create = async (name: string = this.timestamp): Promise<DeployCommands> => {
+  create = async (name: string = this.timestamp): Promise<void> => {
     const deployments = this.expectEnabled()
     await deployments?.create(name)
     await deployments?.select(name)
-    return { ...context, ...await this.getDeployment() } as DeployCommands
   }
 
   /** Print the status of a deployment. */
@@ -233,20 +230,6 @@ export class DeployCommands extends Deployment {
       throw new Error('Deployments were not enabled')
     }
     return this.deployments
-  }
-
-  /** Defines a command that creates and selects a new deployment before running. */
-  inNewDeployment (
-    ...[name, info, ...steps]: Parameters<typeof this.command>
-  ): this {
-    return this.command(name, `(in new deployment) ${info}`, this.create, ...steps)
-  }
-
-  /** Defines a command that runs in the currently selected deployment. */
-  inSelectedDeployment (
-    ...[name, info, ...steps]: Parameters<typeof this.command>
-  ): this {
-    return this.command(name, `(in current deployment) ${info}`, this.getDeployment, ...steps)
   }
 
 }
@@ -316,6 +299,93 @@ export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
 
 }
 
+export class YAMLDeployment extends Deployment {
+
+  constructor (
+    path?:  string,
+    agent?: Agent,
+  ) {
+    if (path) {
+      const file = $(path).as(Kabinet.YAMLFile)
+      super({ name: file.name, agent })
+      this.file = file
+      this.load()
+    } else {
+      super({ agent })
+    }
+  }
+
+  file?: Kabinet.YAMLFile<unknown>
+
+  /** Resolve a path relative to the deployment directory. */
+  resolve (...fragments: Array<string>) {
+    // Expect path to be present
+    if (!this.file) throw new Error('Deployment: no path to resolve by')
+    return resolve(this.file.path, ...fragments)
+  }
+
+  /** Load deployment state from YAML file. */
+  load (file?: Kabinet.Path|string) {
+
+    // Expect path to be present
+    file ??= this.file
+    if (!file) throw new Error('Deployment: no path to load from')
+
+    // Resolve symbolic links
+    if (!(typeof file === 'string')) file = file.path
+    while (FS.lstatSync(file).isSymbolicLink()) {
+      file = resolve(dirname(file), FS.readlinkSync(file))
+    }
+
+    // Load the receipt data
+    const data = FS.readFileSync(file, 'utf8')
+    const receipts = YAML.loadAll(data) as Partial<Contract<any>>[]
+    for (const receipt of receipts) {
+      if (!receipt.name) continue
+      const [contractName, _version] = receipt.name.split('+')
+      this.state[contractName] = new Contract(receipt)
+    }
+
+    // TODO: Automatically convert receipts to Client subclasses
+    // by means of an identifier shared between the deploy and client libraries
+  }
+
+  /** Chainable: Serialize deployment state to YAML file. */
+  save (file?: Kabinet.Path|string): this {
+
+    // Expect path to be present
+    file ??= this.file
+    if (!file) throw new Error('Deployment: no path to save to')
+    if (!(typeof file === 'string')) file = file.path
+
+    // Serialize data to multi-document YAML
+    let output = ''
+    for (let [name, data] of Object.entries(this.state)) {
+      output += '---\n'
+      name ??= data.name!
+      if (!name) throw new Error('Deployment: no name')
+      data = JSON.parse(JSON.stringify({ ...data, name, deployment: undefined }))
+      const dump = YAML.dump(data, { noRefs: true })
+      output += Kabinet.alignYAML(dump)
+    }
+
+    // Write the data to disk.
+    FS.writeFileSync(file, output)
+    return this
+  }
+
+  set (name: string, data: Partial<Client> & any): this {
+    super.set(name, data)
+    return this.save()
+  }
+
+  setMany (data: Record<string, Client>): this {
+    super.setMany(data)
+    return this.save()
+  }
+
+}
+
 const bold = Konzola.bold
 
 /// # Uploaders
@@ -349,7 +419,7 @@ export class FSUploader extends Uploader {
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (template: Contract): Promise<Contract> {
+  async upload (template: Contract<any>): Promise<Contract<any>> {
     console.trace(template)
     let receipt: UploadReceipt|null = null
     if (this.cache) {
@@ -379,11 +449,11 @@ export class FSUploader extends Uploader {
     return template
   }
 
-  getUploadReceiptName (template: Contract): string {
+  getUploadReceiptName (template: Contract<any>): string {
     return `${$(template.artifact!).name}.json`
   }
 
-  getUploadReceiptPath (template: Contract): string {
+  getUploadReceiptPath (template: Contract<any>): string {
     const receiptName = `${this.getUploadReceiptName(template)}`
     const receiptPath = this.cache!.resolve(receiptName)
     return receiptPath
@@ -392,12 +462,12 @@ export class FSUploader extends Uploader {
   /** Upload multiple templates from the filesystem.
     * TODO: Optionally bundle multiple templates in one transaction,
     * if they add up to less than the max API request size (which is defined... where?) */
-  async uploadMany (inputs: SparseArray<Contract>): Promise<SparseArray<Contract>> {
+  async uploadMany (inputs: SparseArray<Contract<any>>): Promise<SparseArray<Contract<any>>> {
 
     if (!this.cache) return this.uploadManySansCache(inputs)
 
-    const outputs:  Contract[] = []
-    const toUpload: Contract[] = []
+    const outputs:  Contract<any>[] = []
+    const toUpload: Contract<any>[] = []
 
     for (const i in inputs) {
 
@@ -456,7 +526,7 @@ export class FSUploader extends Uploader {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const receiptName = this.getUploadReceiptName(toUpload[i])
         $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i])
-        outputs[i] = uploaded[i] as Contract
+        outputs[i] = uploaded[i] as Contract<any>
       }
     } else {
       this.log.info('No artifacts were uploaded.')
@@ -467,8 +537,8 @@ export class FSUploader extends Uploader {
   }
 
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
-  async uploadManySansCache (inputs: SparseArray<Contract>): Promise<SparseArray<Contract>> {
-    const outputs: SparseArray<Contract> = []
+  async uploadManySansCache (inputs: SparseArray<Contract<any>>): Promise<SparseArray<Contract<any>>> {
+    const outputs: SparseArray<Contract<any>> = []
     for (const i in inputs) {
       const input = inputs[i]
       if (input?.artifact) {
@@ -485,7 +555,7 @@ export class FSUploader extends Uploader {
     return outputs
   }
 
-  private ensureLocalCodeHash (input: Contract): Contract {
+  private ensureLocalCodeHash (input: Contract<any>): Contract<any> {
     if (!input.codeHash) {
       const artifact = $(input.artifact!)
       this.log.warn('No code hash in artifact', bold(artifact.shortPath))
@@ -502,7 +572,7 @@ export class FSUploader extends Uploader {
 
   /** Panic if the code hash returned by the upload
     * doesn't match the one specified in the Contract. */
-  private checkLocalCodeHash (input: Contract, output: Contract) {
+  private checkLocalCodeHash (input: Contract<any>, output: Contract<any>) {
     if (input.codeHash !== output.codeHash) {
       throw new Error(`
         The upload transaction ${output.uploadTx}
@@ -536,7 +606,7 @@ export class UploadReceipt extends Kabinet.JSONFile<{
   artifact?:          any
 }> {
 
-  toContract (defaultChainId?: string): Contract {
+  toContract (defaultChainId?: string) {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
@@ -544,93 +614,3 @@ export class UploadReceipt extends Kabinet.JSONFile<{
   }
 
 }
-
-/// # Deploy receipts
-
-export class YAMLDeployment extends Deployment {
-
-  constructor (
-    path?:  string,
-    agent?: Agent,
-  ) {
-    if (path) {
-      const file = $(path).as(Kabinet.YAMLFile)
-      super({ name: file.name, agent })
-      this.file = file
-      this.load()
-    } else {
-      super({ agent })
-    }
-  }
-
-  file?: Kabinet.YAMLFile<unknown>
-
-  /** Resolve a path relative to the deployment directory. */
-  resolve (...fragments: Array<string>) {
-    // Expect path to be present
-    if (!this.file) throw new Error('Deployment: no path to resolve by')
-    return resolve(this.file.path, ...fragments)
-  }
-
-  /** Load deployment state from YAML file. */
-  load (file?: Kabinet.Path|string) {
-
-    // Expect path to be present
-    file ??= this.file
-    if (!file) throw new Error('Deployment: no path to load from')
-
-    // Resolve symbolic links
-    if (!(typeof file === 'string')) file = file.path
-    while (FS.lstatSync(file).isSymbolicLink()) {
-      file = resolve(dirname(file), FS.readlinkSync(file))
-    }
-
-    // Load the receipt data
-    const data = FS.readFileSync(file, 'utf8')
-    const receipts = YAML.loadAll(data) as Partial<Contract>[]
-    for (const receipt of receipts) {
-      if (!receipt.name) continue
-      const [contractName, _version] = receipt.name.split('+')
-      this.state[contractName] = new Contract(receipt)
-    }
-
-    // TODO: Automatically convert receipts to Client subclasses
-    // by means of an identifier shared between the deploy and client libraries
-  }
-
-  /** Chainable: Serialize deployment state to YAML file. */
-  save (file?: Kabinet.Path|string): this {
-
-    // Expect path to be present
-    file ??= this.file
-    if (!file) throw new Error('Deployment: no path to save to')
-    if (!(typeof file === 'string')) file = file.path
-
-    // Serialize data to multi-document YAML
-    let output = ''
-    for (let [name, data] of Object.entries(this.state)) {
-      output += '---\n'
-      name ??= data.name!
-      if (!name) throw new Error('Deployment: no name')
-      data = JSON.parse(JSON.stringify({ ...data, name, deployment: undefined }))
-      const dump = YAML.dump(data, { noRefs: true })
-      output += Kabinet.alignYAML(dump)
-    }
-
-    // Write the data to disk.
-    FS.writeFileSync(file, output)
-    return this
-  }
-
-  set (name: string, data: Partial<Client> & any): this {
-    super.set(name, data)
-    return this.save()
-  }
-
-  setMany (data: Record<string, Client>): this {
-    super.setMany(data)
-    return this.save()
-  }
-
-}
-

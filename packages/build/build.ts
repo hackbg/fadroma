@@ -25,7 +25,6 @@ import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
 import { Client, NewClient, Contract, Builder, Deployment } from '@fadroma/client'
-import type { IntoContract } from '@fadroma/client'
 
 import { default as simpleGit } from 'simple-git'
 

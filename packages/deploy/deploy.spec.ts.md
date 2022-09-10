@@ -226,7 +226,7 @@ await Testing.inTmpDeployment(async deployment => {
   ok(contract instanceof Contract)
   equal(contract.deployment, deployment)
 
-  const deployed = await contract.deploy(initMsg, contract => contract.intoClient())
+  const deployed = await contract.deploy(initMsg, contract => contract.client())
   ok(deployed instanceof Client)
   equal(deployed.name, name)
   equal(deployed.label, label)

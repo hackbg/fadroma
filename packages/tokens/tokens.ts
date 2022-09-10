@@ -148,7 +148,7 @@ export type TokenSymbol = string
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
 export class TokenRegistry extends Fadroma.Deployment {
 
-  constructor (options: Partial<TokenRegistry> = {},) {
+  constructor (options: object & { template?: Fadroma.Contract<any> } = {}) {
     super(options as Partial<Fadroma.Deployment>)
     this.template = options.template ?? this.template
   }
@@ -157,7 +157,7 @@ export class TokenRegistry extends Fadroma.Deployment {
   tokens: Record<TokenSymbol, Snip20> = {}
 
   /** Template for deploying new tokens. */
-  template?: Fadroma.Contract
+  template?: Fadroma.Contract<any>
 
   /** Default token config. */
   defaultConfig: Snip20InitConfig = {
@@ -205,7 +205,7 @@ export class TokenRegistry extends Fadroma.Deployment {
     symbol:   TokenSymbol,
     label:    Fadroma.Label,
     options:  {
-      template?: Fadroma.IntoContract
+      template?: any
       name:      string
       decimals:  number
       admin:     Fadroma.Address,
@@ -220,7 +220,7 @@ export class TokenRegistry extends Fadroma.Deployment {
       const init = Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
       // get or create contract with the name (names are internal to deployment)
       const contract = await this.template!.withName(options.name).deploy(init)
-      const client   = contract.intoClient(Snip20)
+      const client   = contract.client(Snip20)
       // add and return the token
       this.add(symbol, client)
       return client
@@ -231,7 +231,7 @@ export class TokenRegistry extends Fadroma.Deployment {
   async getOrDeployTokens (
     tokens:   Snip20BaseConfig[]   = [],
     config:   Snip20InitConfig     = this.defaultConfig,
-    template: Fadroma.IntoContract = this.template!,
+    template: any = this.template!,
     admin:    Fadroma.Address      = this.agent?.address!,
   ): Promise<Snip20[]> {
     tokens.forEach(({name, symbol, decimals})=>this.logToken(name, symbol, decimals))
@@ -245,7 +245,7 @@ export class TokenRegistry extends Fadroma.Deployment {
     // then instantiate the contract
     const contracts = await this.template!.deployMany(inits)
     // then construct the clients
-    const clients   = contracts.map(contract=>contract.intoClient(Snip20))
+    const clients   = contracts.map(contract=>contract.client(Snip20))
     for (const i in clients) {
       // populate metadata for free since we just created them
       clients[i].tokenName = tokens[i as any].name
@@ -288,7 +288,7 @@ export class TokenRegistry extends Fadroma.Deployment {
     symbol:    string =                    this.args[1]??'MOCK',
     decimals:  number =             Number(this.args[2]??6),
     admin:     Fadroma.Address|undefined = this.args[3]??this.agent?.address,
-    template:  Fadroma.IntoContract      = this.args[4]??'amm-snip20'
+    template:  any      = this.args[4]??'amm-snip20'
   ) {
     const args   = this.args.slice(5)
     const config = structuredClone(this.defaultConfig)
