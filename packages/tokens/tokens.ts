@@ -1,8 +1,28 @@
-import * as Fadroma from '@fadroma/client'
-import * as Scrt    from '@fadroma/scrt'
-import { Overridable } from '@hackbg/konfizi'
-import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
-import { randomHex } from '@hackbg/formati'
+import {
+  Address,
+  Agent,
+  Client,
+  CodeHash,
+  Coin,
+  Contract,
+  DeployArgs,
+  Deployment,
+  ICoin,
+  Label,
+  Uint128,
+} from '@fadroma/client'
+import {
+  Permit,
+  ViewingKeyClient
+} from '@fadroma/scrt'
+import {
+  CustomConsole,
+  CustomError,
+  bold
+} from '@hackbg/konzola'
+import {
+  randomBase64
+} from '@hackbg/formati'
 
 const log = new CustomConsole(console, 'Fadroma Tokens')
 
@@ -65,7 +85,7 @@ export function nativeToken (denom: string) {
 /** Custom token. Implemented as a smart contract in the blockchain's compute module. */
 export interface CustomToken {
   custom_token: {
-    contract_addr:    Fadroma.Address
+    contract_addr:    Address
     token_code_hash?: string
   }
 }
@@ -79,7 +99,7 @@ export function isCustomToken (obj: any): obj is CustomToken {
   )
 }
 
-export function customToken (contract_addr: Fadroma.Address, token_code_hash?: Fadroma.CodeHash) {
+export function customToken (contract_addr: Address, token_code_hash?: CodeHash) {
   return { custom_token: { contract_addr, token_code_hash } }
 }
 
@@ -93,13 +113,13 @@ export interface NativeToken {
 export class TokenAmount {
   constructor (
     readonly token:  Token,
-    readonly amount: Fadroma.Uint128
+    readonly amount: Uint128
   ) {}
   /** Pass this to 'send' field of ExecOpts */
-  get asNativeBalance (): Fadroma.ICoin[]|undefined {
-    let result: Fadroma.ICoin[] | undefined = []
+  get asNativeBalance (): ICoin[]|undefined {
+    let result: ICoin[] | undefined = []
     if (getTokenKind(this.token) == TokenKind.Native) {
-      result.push(new Fadroma.Coin(this.amount, (this.token as NativeToken).native_token.denom))
+      result.push(new Coin(this.amount, (this.token as NativeToken).native_token.denom))
     } else {
       result = undefined
     }
@@ -118,8 +138,8 @@ export class TokenPairAmount {
 
   constructor (
     readonly pair:     TokenPair,
-    readonly amount_0: Fadroma.Uint128,
-    readonly amount_1: Fadroma.Uint128
+    readonly amount_0: Uint128,
+    readonly amount_1: Uint128
   ) {}
 
   get reverse () {
@@ -128,13 +148,13 @@ export class TokenPairAmount {
 
   /** Pass this to 'send' field of ExecOpts */
   get asNativeBalance () {
-    let result: Fadroma.ICoin[] | undefined = []
+    let result: ICoin[] | undefined = []
     if (getTokenKind(this.pair.token_0) == TokenKind.Native) {
       const {native_token:{denom}} = this.pair.token_0 as NativeToken
-      result.push(new Fadroma.Coin(this.amount_0, denom))
+      result.push(new Coin(this.amount_0, denom))
     } else if (getTokenKind(this.pair.token_1) == TokenKind.Native) {
       const {native_token:{denom}} = this.pair.token_1 as NativeToken
-      result.push(new Fadroma.Coin(this.amount_1, denom))
+      result.push(new Coin(this.amount_1, denom))
     } else {
       result = undefined
     }
@@ -146,18 +166,18 @@ export class TokenPairAmount {
 export type TokenSymbol = string
 
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
-export class TokenRegistry extends Fadroma.Deployment {
+export class TokenRegistry extends Deployment {
 
-  constructor (options: object & { template?: Fadroma.Contract<any> } = {}) {
-    super(options as Partial<Fadroma.Deployment>)
+  constructor (options: object & { template?: Contract<any> } = {}) {
+    super(options as Partial<Deployment>)
     this.template = options.template ?? this.template
   }
 
   /** Collection of known tokens, keyed by symbol. */
-  tokens: Record<TokenSymbol, Snip20> = {}
+  tokens: Record<TokenSymbol, Contract<Snip20>> = {}
 
   /** Template for deploying new tokens. */
-  template?: Fadroma.Contract<any>
+  template?: Contract<any>
 
   /** Default token config. */
   defaultConfig: Snip20InitConfig = {
@@ -166,7 +186,7 @@ export class TokenRegistry extends Fadroma.Deployment {
   }
 
   /** Get a token by symbol. */
-  getToken (symbol: TokenSymbol): Snip20 {
+  getToken (symbol: TokenSymbol): Contract<Snip20> {
     if (!symbol) throw new TokenError.NoSymbol()
     if (!this.hasToken(symbol)) throw new TokenError.NotFound(symbol)
     return this.tokens[symbol]!
@@ -178,7 +198,7 @@ export class TokenRegistry extends Fadroma.Deployment {
   }
 
   /** Add a token to the registry, failing if invalid. */
-  addToken (symbol: TokenSymbol, token?: Snip20): this {
+  addToken (symbol: TokenSymbol, token?: Contract<Snip20>): this {
     if (!token) throw new TokenError.PassToken()
     if (!symbol) throw new TokenError.CantRegister()
     if (this.hasToken(symbol)) throw new TokenError.AlreadyRegistered(symbol)
@@ -186,7 +206,7 @@ export class TokenRegistry extends Fadroma.Deployment {
     return this.setToken(symbol, token)
   }
 
-  setToken (symbol: TokenSymbol, token?: Snip20): this {
+  setToken (symbol: TokenSymbol, token?: Contract<Snip20>): this {
     if (token) {
       this.tokens[symbol] = token
       return this
@@ -201,29 +221,29 @@ export class TokenRegistry extends Fadroma.Deployment {
   }
 
   /** Get or deploy a Snip20 token and add it to the registry. */
-  async getOrDeployToken (
-    symbol:   TokenSymbol,
-    label:    Fadroma.Label,
-    options:  {
+  token (
+    symbol:  TokenSymbol,
+    options?: {
       template?: any
       name:      string
       decimals:  number
-      admin:     Fadroma.Address,
+      admin:     Address,
       config?:   Snip20InitConfig
     }
-  ): Promise<Snip20> {
+  ): Contract<Snip20> {
     if (this.hasToken(symbol)) {
       return this.getToken(symbol)
+    } else if (options) {
+      const { name, decimals, admin, config } = options
+      this.logToken(name, symbol, decimals)
+      const contract = this.contract(this.template)
+      contract.name   = name
+      contract.prefix = this.name
+      this.add(symbol, contract)
+      const init = Snip20.init(name, symbol, decimals, admin, config)
+      return contract.deploy(init)
     } else {
-      this.logToken(options.name, symbol, options.decimals)
-      // generate snip20 init message
-      const init = Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
-      // get or create contract with the name (names are internal to deployment)
-      const contract = await this.template!.withName(options.name).deploy(init)
-      const client   = contract.client(Snip20)
-      // add and return the token
-      this.add(symbol, client)
-      return client
+      throw new Error(`Token ${symbol}: not found`)
     }
   }
 
@@ -232,11 +252,11 @@ export class TokenRegistry extends Fadroma.Deployment {
     tokens:   Snip20BaseConfig[]   = [],
     config:   Snip20InitConfig     = this.defaultConfig,
     template: any = this.template!,
-    admin:    Fadroma.Address      = this.agent?.address!,
+    admin:    Address      = this.agent?.address!,
   ): Promise<Snip20[]> {
     tokens.forEach(({name, symbol, decimals})=>this.logToken(name, symbol, decimals))
     // to deploy multiple contracts of the same type in 1 tx:
-    const toDeployArgs = ({name, symbol, decimals}: Snip20BaseConfig): Fadroma.DeployArgs => [
+    const toDeployArgs = ({name, symbol, decimals}: Snip20BaseConfig): DeployArgs => [
       name,
       Snip20.init(name, symbol, decimals, admin, config)
     ]
@@ -263,19 +283,19 @@ export class TokenRegistry extends Fadroma.Deployment {
   )
 
   /** Get a TokenPair object from a string like "SYMBOL1-SYMBOL2"
-    * where both symbols are registered */ 
-  getPair (name: string): TokenPair {
+    * where both symbols are registered */
+  pair (name: string): TokenPair {
     const [token_0_symbol, token_1_symbol] = name.split('-')
-    let token_0: Token|Snip20 = this.tokens[token_0_symbol]
-    let token_1: Token|Snip20 = this.tokens[token_1_symbol]
+    let token_0: Token|Contract<Snip20> = this.tokens[token_0_symbol]
+    let token_1: Token|Contract<Snip20> = this.tokens[token_1_symbol]
     if (!token_0) {
       throw Object.assign(new Error(`Unknown token ${token_0_symbol}`), { symbol: token_0_symbol })
     }
     if (!token_1) {
       throw Object.assign(new Error(`Unknown token ${token_1_symbol}`), { symbol: token_1_symbol })
     }
-    if (token_0 instanceof Snip20) token_0 = { custom_token: token_0.custom_token }
-    if (token_1 instanceof Snip20) token_1 = { custom_token: token_1.custom_token }
+    if (token_0 instanceof Contract) token_0 = { custom_token: token_0.intoClientSync().custom_token }
+    if (token_1 instanceof Contract) token_1 = { custom_token: token_1.intoClientSync().custom_token }
     return new TokenPair(token_0, token_1)
   }
 
@@ -283,12 +303,11 @@ export class TokenRegistry extends Fadroma.Deployment {
     * Exposed below as the "deploy token" command.
     * Invocation is "pnpm run deploy token $name $symbol $decimals [$admin] [$crate]" */
   async deployToken (
-    label:     string,
-    name:      string =                    this.args[0]??'MockToken',
-    symbol:    string =                    this.args[1]??'MOCK',
-    decimals:  number =             Number(this.args[2]??6),
-    admin:     Fadroma.Address|undefined = this.args[3]??this.agent?.address,
-    template:  any      = this.args[4]??'amm-snip20'
+    name:      string = this.args[0]??'MockToken',
+    symbol:    string = this.args[1]??'MOCK',
+    decimals:  number = Number(this.args[2]??6),
+    admin:     Address|undefined = this.args[3]??this.agent?.address,
+    template:  any = this.args[4]??'amm-snip20'
   ) {
     const args   = this.args.slice(5)
     const config = structuredClone(this.defaultConfig)
@@ -297,8 +316,7 @@ export class TokenRegistry extends Fadroma.Deployment {
     if (args.includes('--can-burn'))    config.enable_burn    = true
     if (args.includes('--can-deposit')) config.enable_deposit = true
     if (args.includes('--can-redeem'))  config.enable_redeem  = true
-    return await new TokenRegistry(this)
-      .getOrDeployToken(symbol, label, { name, decimals, admin, template })
+    return await new TokenRegistry(this).token(symbol, { name, decimals, admin, template })
   }
 
 }
@@ -306,13 +324,13 @@ export class TokenRegistry extends Fadroma.Deployment {
 /** # Secret Network SNIP20 token client. */
 
 export interface Snip20BaseConfig {
-  name:      string
-  symbol:    string
-  decimals:  number
+  name:     string
+  symbol:   string
+  decimals: number
 }
 
 export interface Snip20InitMsg extends Snip20BaseConfig {
-  admin:     Fadroma.Address
+  admin:     Address
   prng_seed: string
   config:    Snip20InitConfig
   // Allow to be cast as Record<string, unknown>:
@@ -326,15 +344,15 @@ export interface Snip20InitConfig {
   enable_deposit?:      boolean
   enable_redeem?:       boolean
   // Allow unknown properties:
-  [name: string]: unknown
+  [name: string]:       unknown
 }
 
-export class Snip20 extends Fadroma.Client implements CustomToken {
+export class Snip20 extends Client implements CustomToken {
 
   /** Return the address and code hash of this token in the format
     * required by the Factory to create a swap pair with this token */
   get custom_token () {
-    if (!this.address) throw new Error("Can't create token reference without address.")
+    if (!this.address)  throw new Error("Can't create token reference without address.")
     if (!this.codeHash) throw new Error("Can't create token reference without code hash.")
     return {
       contract_addr:   this.address,
@@ -348,7 +366,7 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
   }
 
   /** Create a SNIP20 token client from a Token descriptor. */
-  static fromDescriptor (agent: Fadroma.Agent, descriptor: CustomToken): Snip20 {
+  static fromDescriptor (agent: Agent, descriptor: CustomToken): Snip20 {
     const { custom_token } = descriptor
     const { contract_addr: address, token_code_hash: codeHash } = custom_token
     return new Snip20(agent, address, codeHash)
@@ -359,22 +377,26 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
     name:     string,
     symbol:   string,
     decimals: number,
-    admin:    Fadroma.Address|{ address: Fadroma.Address },
+    admin:    Address|{ address: Address },
     config:   Partial<Snip20InitConfig> = {},
-    balances: Array<{address: Fadroma.Address, amount: Fadroma.Uint128}> = []
+    balances: Array<{address: Address, amount: Uint128}> = []
   ): Snip20InitMsg => {
     if (typeof admin === 'object') admin = admin.address
     return {
-      name, symbol, decimals, admin, config,
+      name,
+      symbol,
+      decimals,
+      admin,
+      config,
       initial_balances: balances,
-      prng_seed: randomHex(36),
+      prng_seed:        randomBase64(),
     }
   }
 
   tokenName:   string  | null = null
   symbol:      string  | null = null
   decimals:    number  | null = null
-  totalSupply: Fadroma.Uint128 | null = null
+  totalSupply: Uint128 | null = null
 
   async populate (): Promise<this> {
     await super.populate()
@@ -392,9 +414,9 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
     return token_info
   }
 
-  async getBalance (address: Fadroma.Address, key: string) {
+  async getBalance (address: Address, key: string) {
     const msg = { balance: { address, key } }
-    const response: { balance: { amount: Fadroma.Uint128 } } = await this.query(msg)
+    const response: { balance: { amount: Uint128 } } = await this.query(msg)
     if (response.balance && response.balance.amount) {
       return response.balance.amount
     } else {
@@ -437,8 +459,8 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
   }
 
   async getAllowance (
-    owner:   Fadroma.Address,
-    spender: Fadroma.Address,
+    owner:   Address,
+    spender: Address,
     key:     string
   ): Promise<Allowance> {
     const msg = { allowance: { owner, spender, key } }
@@ -449,7 +471,7 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
   /** Increase allowance to spender */
   increaseAllowance (
     amount:  string | number | bigint,
-    spender: Fadroma.Address,
+    spender: Address,
   ) {
     log.info(
       `${bold(this.agent?.address||'(missing address)')}: increasing allowance of`,
@@ -463,7 +485,7 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
   /** Decrease allowance to spender */
   decreaseAllowance (
     amount:  string | number | bigint,
-    spender: Fadroma.Address,
+    spender: Address,
   ) {
     return this.execute({
       decrease_allowance: { amount: String(amount), spender }
@@ -473,7 +495,7 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
   /** Transfer tokens to address */
   transfer (
     amount:    string | number | bigint,
-    recipient: Fadroma.Address,
+    recipient: Address,
   ) {
     return this.execute({
       transfer: { amount, recipient }
@@ -484,7 +506,7 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
     * Same as transfer but allows for receive callback. */
   send (
     amount:    string | number | bigint,
-    recipient: Fadroma.Address,
+    recipient: Address,
     callback?: string | object
   ) {
     const callbackB64 = callback
@@ -494,16 +516,16 @@ export class Snip20 extends Fadroma.Client implements CustomToken {
     return this.execute(msg)
   }
 
-  get vk (): Scrt.ViewingKeyClient {
-    return new Scrt.ViewingKeyClient(this.agent, this.address, this.codeHash)
+  get vk (): ViewingKeyClient {
+    return new ViewingKeyClient(this.agent, this.address, this.codeHash)
   }
 
 }
 
 export interface Allowance {
-  spender:     Fadroma.Address
-  owner:       Fadroma.Address
-  allowance:   Fadroma.Uint128
+  spender:     Address
+  owner:       Address
+  allowance:   Uint128
   expiration?: number|null
 }
 
@@ -511,10 +533,10 @@ export interface TokenInfo {
   name:          string
   symbol:        string
   decimals:      number
-  total_supply?: Fadroma.Uint128 | null
+  total_supply?: Uint128 | null
 }
 
-export type Snip20Permit = Scrt.Permit<'allowance' | 'balance' | 'history' | 'owner'>
+export type Snip20Permit = Permit<'allowance' | 'balance' | 'history' | 'owner'>
 
 export type QueryWithPermit <Q, P> = { with_permit: { query: Q, permit: P } }
 

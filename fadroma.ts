@@ -56,7 +56,7 @@ export class Commands extends Komandi.CommandContext {
   config  = new Config(this.env, this.cwd)
   project = this.config.project
   build   = new Build.BuildCommands({
-    name: 'build',  config: this.config.build,  project: this.project
+    name: 'build',  config: this.config.build,
   })
   connect = new Connect.ConnectContext(this.config.connect)
   deploy  = new Deploy.DeployCommands({

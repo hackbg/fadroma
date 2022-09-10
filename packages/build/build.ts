@@ -36,7 +36,7 @@ import { readFileSync, mkdtempSync    } from 'fs'
 
 export async function build (
   crates:  string[]               = [],
-  ref:     string                 = 'HEAD',
+  gitRef:  string                 = 'HEAD',
   config:  Partial<BuilderConfig> = new BuilderConfig(),
   builder: Builder                = getBuilder(config)
 ) {
@@ -44,7 +44,7 @@ export async function build (
     gitRepo:      config.project,
     workspace: config.project,
     crate,
-    ref
+    gitRef
   })))
 }
 
@@ -111,11 +111,6 @@ export class BuildCommands extends Deployment {
 
   /** Path to `.git` directory. */
   gitDir:    string = `${this.gitRepo}/.git`
-
-  contract (options: Partial<Contract> = {}) {
-    const { builder, gitRepo, gitRef, workspace } = this
-    return super.contract(options).define({ builder, gitRepo, gitRef, workspace })
-  }
 
   buildFromPath = (
     path: string|Kabinet.Path = process.argv[2],
@@ -221,16 +216,16 @@ export class BuildConsole extends Komandi.CommandsConsole {
       `@`, bold(ref)
     )
   }
-  buildingOne (source: Contract, prebuilt: Contract|null = null) {
+  buildingOne (source: Contract<any>, prebuilt: Contract<any>|null = null) {
     if (prebuilt) {
       this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
     } else {
-      const { crate = '(unknown)', ref = 'HEAD' } = source
+      const { crate = '(unknown)', gitRef = 'HEAD' } = source
       this.info('Building', bold(crate), ...
-        (ref === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(ref)])
+        (gitRef === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(gitRef)])
     }
   }
-  buildingMany (sources: Contract[]) {
+  buildingMany (sources: Contract<any>[]) {
     for (const source of sources) {
       this.buildingOne(source, null)
     }
@@ -323,14 +318,14 @@ export abstract class LocalBuilder extends Builder {
   /** Check if artifact exists in local artifacts cache directory.
     * If it does, don't rebuild it but return it from there. */
   protected prebuild (
-    outputDir: string, crate?: string, ref: string = HEAD
-  ): Contract|null {
+    outputDir: string, crate?: string, gitRef: string = HEAD
+  ): Contract<any>|null {
     if (this.caching && crate) {
-      const location = $(outputDir, artifactName(crate, ref))
+      const location = $(outputDir, artifactName(crate, gitRef))
       if (location.exists()) {
         const artifact = location.url
         const codeHash = this.codeHashForPath(location.path)
-        return new Contract({ crate, ref, artifact, codeHash })
+        return new Contract({ crate, gitRef, artifact, codeHash })
       }
     }
     return null
@@ -353,7 +348,7 @@ export class RawBuilder extends LocalBuilder {
   runtime = process.argv[0]
 
   /** Build a Source into a Template */
-  async build (source: Contract): Promise<Contract> {
+  async build (source: Contract<any>): Promise<Contract<any>> {
     const { workspace, gitRef = HEAD, crate } = source
     if (!workspace) throw new Error('no workspace')
     if (!crate)     throw new Error('no crate')
@@ -431,8 +426,8 @@ export class RawBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: Contract[]): Promise<Contract[]> {
-    const templates: Contract[] = []
+  async buildMany (inputs: Contract<any>[]): Promise<Contract<any>[]> {
+    const templates: Contract<any>[] = []
     for (const source of inputs) templates.push(await this.build(source))
     return templates
   }
@@ -483,7 +478,7 @@ export class DockerBuilder extends LocalBuilder {
   dockerfile: string
 
   /** Build a Source into a Template */
-  async build (source: Contract): Promise<Contract> {
+  async build (source: Contract<any>): Promise<Contract<any>> {
     return (await this.buildMany([source]))[0]
   }
 
@@ -491,7 +486,7 @@ export class DockerBuilder extends LocalBuilder {
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: Contract[]): Promise<Contract[]> {
+  async buildMany (inputs: Contract<any>[]): Promise<Contract<any>[]> {
 
     const longestCrateName = inputs
       .map(source=>source.crate?.length||0)
@@ -506,13 +501,13 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Collect a mapping of workspace path -> Workspace object
-    const workspaces: Record<string, Contract> = {}
+    const workspaces: Record<string, Contract<any>> = {}
     for (const source of inputs) {
       const { gitRepo, gitRef, workspace } = source
       const gitDir = getGitDir(source)
       if (!gitRepo) throw new Error('missing source.gitRepo')
       if (!workspace) throw new Error('missing source.workspace')
-      workspaces[workspace] = new Contract(workspace)
+      workspaces[workspace] = new Contract({ workspace })
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
       console.log('->',source)
       if (gitRef !== HEAD && !gitDir?.present) {
@@ -522,7 +517,7 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Here we will collect the build outputs
-    const outputs: Contract[] = inputs.map(input=>new Contract({ ...input, builder: this }))
+    const outputs: Contract<any>[] = inputs.map(input=>new Contract({ ...input, builder: this }))
 
     // Get the distinct workspaces and refs by which to group the crate builds
     const roots:   string[] = distinct(inputs.map(source=>source.workspace!))
@@ -583,12 +578,12 @@ export class DockerBuilder extends LocalBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = $(root, subdir, this.outputDirName).path,
-  ): Promise<(Contract|null)[]> {
+  ): Promise<(Contract<any>|null)[]> {
     // Create output directory as user if it does not exist
     $(outputDir).as(Kabinet.OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
-    const templates:   (Contract|null)[] = crates.map(()=>null)
+    const templates:   (Contract<any>|null)[] = crates.map(()=>null)
 
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}
@@ -715,17 +710,20 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Return a sparse array of the resulting artifacts
-    return outputWasms.map(location =>
-      (location === null) ? null : new Contract({
-        artifact: $(location).url,
-        codeHash: this.codeHashForPath(location)
-      }))
+    return outputWasms.map(this.locationToContract)
 
+  }
+
+  private locationToContract = (location: any) => {
+    if (location === null) return null
+    const artifact = $(location).url
+    const codeHash = this.codeHashForPath(location)
+    return new Contract({ artifact, codeHash })
   }
 
 }
 
-export function getGitDir ({ gitRepo }: Partial<Contract> = {}): DotGit {
+export function getGitDir ({ gitRepo }: Partial<Contract<any>> = {}): DotGit {
   if (!gitRepo) throw new Error('Contract: no path when trying to access gitDir')
   return new DotGit(gitRepo)
 }

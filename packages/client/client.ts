@@ -840,10 +840,10 @@ export class Contract<C extends Client> extends Client {
   }
 
   /** Compile the source using the selected builder. */
-  build (builder: Builder = this.assertBuildable()): Promise<this> {
+  build (builder: Builder = this.assertBuildable()): Promise<Contract<C>> {
     const self = this
     return this.asTask(`build ${this.getSourceSpecifier()}`, buildContract)
-    async function buildContract (this: typeof self): Promise<typeof self> {
+    async function buildContract (this: typeof self): Promise<Contract<C>> {
       if (this.artifact) return this
       return builder.build(this)
     }
@@ -868,7 +868,7 @@ export class Contract<C extends Client> extends Client {
   }
 
   /** Upload compiled source code to the selected chain. */
-  async upload (uploader: typeof this.uploader = this.uploader): Promise<this> {
+  async upload (uploader: typeof this.uploader = this.uploader): Promise<Contract<C>> {
     // If chain ID, code ID and code hash are present, this template is ready to uploade
     const { chainId, codeId, codeHash } = this
     if (chainId && codeId && codeHash) return this
@@ -892,8 +892,8 @@ export class Contract<C extends Client> extends Client {
         return self
       } else {
         // Replace with built and return uploaded
-        if (!self.artifact) self = await self.build()
-        return await uploader.upload(self)
+        if (!self.artifact) self = await self.build() as Contract<C>
+        return await uploader.upload(self) as Contract<C>
       }
     }
   }
@@ -1003,20 +1003,22 @@ export class Contract<C extends Client> extends Client {
     return templateStruct(this)
   }
 
-  async deploy (
-    initMsg: IntoMessage|undefined = this.initMsg
-  ): Promise<C> {
+  deploy     (initMsg: IntoMessage|undefined): Contract<C>
+  deploy <D> (initMsg: IntoMessage|undefined, callback: (c: Contract<C>)=>D): Promise<D>
+  deploy <D> (
+    initMsg:   IntoMessage|undefined = this.initMsg,
+    callback?: (c: Contract<C>)=>D
+  ) {
     const self = this
 
     if (this.address) {
       this.log.info('Found    ', bold(this.name||'(unnamed)'), 'at', bold(this.address!))
-      this.codeHash ??= (this.agent && (await this.fetchCodeHash()).codeHash)
-      return this.intoClient()
+      return this
     } else if (this.deployment && this.name && this.deployment.has(this.name)) {
       const { address, codeHash } = this.deployment.get(this.name) ?? {}
       this.address  ??= address
       this.codeHash ??= codeHash
-      return this.intoClient()
+      return this
     } else {
       return this.asTask(`deploy ${this.name??'contract'}`, deployContract)
     }
@@ -1030,7 +1032,7 @@ export class Contract<C extends Client> extends Client {
       const contract = await this.agent.instantiate(template, this.label, initMsg as Message)
       this.log.afterDeploy(contract)
       if (this.deployment) this.deployment.add(this.name, contract)
-      return contract.intoClient()
+      return this as unknown as Promise<C>
     }
   }
 
@@ -1045,7 +1047,7 @@ export class Contract<C extends Client> extends Client {
     async function getOrDeployContracts (this: typeof self): Promise<C[]> {
       const agent = this.agent
       if (!agent) throw new ClientError.NoCreator()
-      const contract = await this.upload()
+      const contract: Contract<C> = await this.upload()
       if (typeof inits === 'function') inits = await Promise.resolve(inits())
       try {
         return await Promise.all(
@@ -1066,6 +1068,11 @@ export class Contract<C extends Client> extends Client {
       : Promise.reject(new Error(`${$Client.name} "${this.name}" not found.`))
   }
 
+  intoClientSync ($Client: typeof this.client = this.client): C {
+    if (this.address) return new $Client(this.agent, this.address, this.codeHash)
+    throw new Error(`${$Client.name} "${this.name}" not found.`)
+  }
+
   then <Y, Z> (
     resolved:  (value:  C) => Y | PromiseLike<Y>,
     rejected?: (reason: Z) => Z | PromiseLike<Z>
@@ -1074,35 +1081,6 @@ export class Contract<C extends Client> extends Client {
   }
 
 }
-
-//export class ContractOf<C extends Client> extends Contract {
-
-  //constructor (
-    //options: Partial<Contract> = {},
-    //[>* Intended client class <]
-    //public Client: NewClient<C>
-  //) {
-    //super(options as Partial<Contract>)
-  //}
-
-  //get <C> (message: string = `Contract not found: ${this.name}`): C {
-    //if (this.address) {
-      //return new this.Client(this.agent, this.address, this.codeHash) as unknown as C
-    //}
-    //if (this.deployment && this.name && this.deployment.has(this.name)) {
-      //const { address, codeHash } = this.deployment.get(this.name)!
-      //return new this.Client(this.agent, address, codeHash) as unknown as C
-    //}
-    //throw new Error(message)
-  //}
-
-  //client <C extends Client> (
-    //$Client: NewClient<C> = this.Client as unknown as NewClient<C>
-  //): Promise<C> {
-    //return super.client($Client)
-  //}
-
-//}
 
 export interface ContractInfo {
   id:        number,
@@ -1164,51 +1142,16 @@ export class Deployment extends CommandContext {
   /** Mapping of names to contract instances. */
   state: Record<string, Partial<Contract<any>>> = {}
 
-  /** Number of contracts in deployment. */
-  get size () { return Object.keys(this.state).length }
+  /** Default Git ref from which contracts would be built if needed. */
+  gitRef: string = 'HEAD'
 
-  /** Check if the deployment contains a certain entry. */
-  has (name: string): boolean {
-    return !!this.state[name]
-  }
+  /** Build implementation. Can't build from source if missing. */
+  builder?:  Builder
 
-  expect (name: string, message?: string): Partial<Client> {
-    message ??= `${name}: no such contract in deployment`
-    const receipt = this.get(name)
-    if (receipt) return receipt
-    throw new Error(message)
-  }
-
-  /** Get the receipt for a contract, containing its address, codeHash, etc. */
-  get (name: string): Contract<any>|null {
-    const receipt = this.state[name]
-    if (!receipt) return null
-    return new Contract({ ...receipt, deployment: this })
-  }
-
-  filter (predicate: (key: string, val: { name?: string }) => boolean): Contract<any>[] {
-    return Object.entries(this.state)
-      .filter(([key, val])=>predicate(key, val))
-      .map(([name, data])=>new Contract({ name, ...data }))
-  }
-
-  /** Chainable. Add entry to deployment, replacing existing receipt. */
-  set (name: string, data: Partial<Client> & any): this {
-    this.state[name] = { name, ...data }
-    return this
-  }
-
-  /** Chainable. Add multiple entries to the deployment, replacing existing receipts. */
-  setMany (receipts: Record<string, any>): this {
-    for (const [name, receipt] of Object.entries(receipts)) {
-      this.state[name] = receipt
-    }
-    return this
-  }
-
-  /** Chainable. Add entry to deployment, merging into existing receipts. */
-  add (name: string, data: any): this {
-    return this.set(name, { ...this.state[name] || {}, ...data })
+  /** Build multiple contracts. */
+  buildMany = async (contracts: (string|Contract<any>)[]): Promise<Contract<any>[]> => {
+    if (!this.builder) throw new ClientError.NoBuilder()
+    return await this.builder.buildMany(contracts)
   }
 
   /** Agent to use when deploying contracts. */
@@ -1232,18 +1175,14 @@ export class Deployment extends CommandContext {
   /** = chain.isMocknet */
   get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
 
-  /** Default Git ref from which contracts would be built if needed. */
-  gitRef: string = 'HEAD'
-
-  /** Build implementation. Can't build from source if missing. */
-  builder?:  Builder
-
-  buildMany = async (contracts: (string|Contract<any>)[]): Promise<Contract<any>> => {}
-
   /** Upload implementation. Can't upload to chain if missing. */
   uploader?: Uploader
 
-  uploadMany = async (contracts: (string|Contract<any>)[]): Promise<Contract<any>> => {}
+  /** Upload multiple contracts to the chain. */
+  uploadMany = async (contracts: Contract<any>[]): Promise<Contract<any>[]> => {
+    if (!this.uploader) throw new ClientError.NoUploader()
+    return this.uploader.uploadMany(contracts)
+  }
 
   /** Specify a contract with optional client class and metadata.
     *
@@ -1288,9 +1227,7 @@ export class Deployment extends CommandContext {
       uploader:   this.uploader,
       agent:      this.agent,
       gitRef:     this.gitRef,
-      ...(typeof arg === 'string')
-        ? { name: arg }
-        : arg
+      ...((typeof arg === 'string') ? { name: arg } : arg)
     }
     if (options.name && this.has(options.name)) Object.assign(options, this.get(options.name))
     return new Contract(options)
@@ -1314,6 +1251,52 @@ export class Deployment extends CommandContext {
     }
   }
 
+  /** Number of contracts in deployment. */
+  get size () { return Object.keys(this.state).length }
+
+  /** Check if the deployment contains a certain entry. */
+  has (name: string): boolean {
+    return !!this.state[name]
+  }
+
+  expect (name: string, message?: string): Contract<any> {
+    message ??= `${name}: no such contract in deployment`
+    const receipt = this.get(name)
+    if (receipt) return this.contract({...receipt, name})
+    throw new Error(message)
+  }
+
+  /** Get the receipt for a contract, containing its address, codeHash, etc. */
+  get (name: string): Contract<any>|null {
+    const receipt = this.state[name]
+    if (!receipt) return null
+    return new Contract({ ...receipt, deployment: this })
+  }
+
+  filter (predicate: (key: string, val: { name?: string }) => boolean): Contract<any>[] {
+    return Object.entries(this.state)
+      .filter(([key, val])=>predicate(key, val))
+      .map(([name, data])=>new Contract({ name, ...data }))
+  }
+
+  /** Chainable. Add entry to deployment, replacing existing receipt. */
+  set (name: string, data: Partial<Client> & any): this {
+    this.state[name] = { name, ...data }
+    return this
+  }
+
+  /** Chainable. Add multiple entries to the deployment, replacing existing receipts. */
+  setMany (receipts: Record<string, any>): this {
+    for (const [name, receipt] of Object.entries(receipts)) {
+      this.state[name] = receipt
+    }
+    return this
+  }
+
+  /** Chainable. Add entry to deployment, merging into existing receipts. */
+  add (name: string, data: any): this {
+    return this.set(name, { ...this.state[name] || {}, ...data })
+  }
 }
 
 export class VersionedDeployment<V> extends Deployment {
