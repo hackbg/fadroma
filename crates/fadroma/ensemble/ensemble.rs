@@ -31,7 +31,7 @@ pub struct ContractEnsemble {
 }
 
 pub(crate) struct Context {
-    pub(crate) instances: HashMap<HumanAddr, ContractInstance>,
+    pub(crate) instances: HashMap<Addr, ContractInstance>,
     pub(crate) contracts: Vec<Box<dyn ContractHarness>>,
     pub(crate) bank: Revertable<Bank>,
     pub(crate) delegations: Delegations,
@@ -84,38 +84,38 @@ impl ContractEnsemble {
     }
 
     #[inline]
-    pub fn add_funds(&mut self, address: impl Into<HumanAddr>, coins: Vec<Coin>) {
+    pub fn add_funds(&mut self, address: impl Into<Addr>, coins: Vec<Coin>) {
         self.ctx.bank.current.add_funds(&address.into(), coins);
     }
 
     #[inline]
     pub fn remove_funds(
         &mut self, 
-        address: impl Into<HumanAddr>, 
+        address: impl Into<Addr>, 
         coins: Vec<Coin>
     ) -> StdResult<()> {
         self.ctx.bank.current.remove_funds(&address.into(), coins)
     }
 
     #[inline]
-    pub fn balances(&self, address: impl Into<HumanAddr>) -> Option<&Balances> {
+    pub fn balances(&self, address: impl Into<Addr>) -> Option<&Balances> {
         self.ctx.bank.current.0.get(&address.into())
     }
 
     #[inline]
-    pub fn balances_mut(&mut self, address: impl Into<HumanAddr>) -> Option<&mut Balances> {
+    pub fn balances_mut(&mut self, address: impl Into<Addr>) -> Option<&mut Balances> {
         self.ctx.bank.current.0.get_mut(&address.into())
     }
 
     #[inline]
-    pub fn delegations(&self, address: impl Into<HumanAddr>) -> Vec<Delegation> {
+    pub fn delegations(&self, address: impl Into<Addr>) -> Vec<Delegation> {
         self.ctx.delegations.all_delegations(&address.into())
     }
 
     pub fn delegation(
         &self, 
-        delegator: impl Into<HumanAddr>, 
-        validator: impl Into<HumanAddr>
+        delegator: impl Into<Addr>, 
+        validator: impl Into<Addr>
     ) -> Option<FullDelegation> {
         self.ctx.delegations.delegation(&delegator.into(), &validator.into())
     }
@@ -145,7 +145,7 @@ impl ContractEnsemble {
     // a non-existent address is provided. So returning nothing or bool is bad here.
 
     /// Returns an `Err` if the contract with `address` wasn't found.
-    pub fn deps<F>(&self, address: impl Into<HumanAddr>, borrow: F) -> Result<(), String>
+    pub fn deps<F>(&self, address: impl Into<Addr>, borrow: F) -> Result<(), String>
     where
         F: FnOnce(&MockDeps),
     {
@@ -162,7 +162,7 @@ impl ContractEnsemble {
     }
 
     /// Returns an `Err` if the contract with `address` wasn't found.
-    pub fn deps_mut<F>(&mut self, address: impl Into<HumanAddr>, mutate: F) -> Result<(), String>
+    pub fn deps_mut<F>(&mut self, address: impl Into<Addr>, mutate: F) -> Result<(), String>
     where
         F: FnOnce(&mut MockDeps),
     {
@@ -219,7 +219,7 @@ impl ContractEnsemble {
     #[inline]
     pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
         &self,
-        address: impl Into<HumanAddr>,
+        address: impl Into<Addr>,
         msg: &T,
     ) -> StdResult<R> {
         let result = self.ctx.query(address.into(), to_binary(msg)?)?;
@@ -360,7 +360,7 @@ impl Context {
         Ok(res)
     }
 
-    pub(crate) fn query(&self, address: HumanAddr, msg: Binary) -> StdResult<Binary> {
+    pub(crate) fn query(&self, address: Addr, msg: Binary) -> StdResult<Binary> {
         let instance = self
             .instances
             .get(&address)
@@ -374,7 +374,7 @@ impl Context {
     fn execute_messages(
         &mut self,
         messages: Vec<CosmosMsg>,
-        sender: HumanAddr
+        sender: Addr
     ) -> StdResult<Vec<Response>> {
         let mut responses = vec![];
 

@@ -140,7 +140,7 @@ primitive-types = { optional = true, version = "0.9.1",   default-features = fal
 rand_chacha     = { optional = true, version = "0.2.2",   default-features = false }
 rand_core       = { optional = true, version = "0.5.1",   default-features = false }
 remain          = { optional = true, version = "0.2.2"  }
-schemars        = { optional = true, version = "0.7"    }
+schemars        = { optional = true, version = "0.8.10"    }
 ripemd160       = { optional = true, version = "0.9.1"  }
 secp256k1       = { optional = true, version = "0.20.3" }
 secret-toolkit  = { optional = true, version = "0.3.0",   default-features = false, features = ["snip20", "snip721", "storage"] }

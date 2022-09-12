@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use fadroma_platform_scrt::cosmwasm_std::{
-    Storage, ReadonlyStorage, StdResult, StdError
+    Storage, StdResult, StdError
 };
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -30,7 +30,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     }
 
     #[inline]
-    pub fn iter<'storage, S: ReadonlyStorage>(
+    pub fn iter<'storage, S: Storage>(
         &self,
         storage: &'storage S
     ) -> StdResult<StorageIterator<'storage, '_, T, S>> {
@@ -54,7 +54,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     }
 
     #[inline]
-    pub fn get_at(&self, storage: &impl ReadonlyStorage, index: u64) -> StdResult<Option<T>> {
+    pub fn get_at(&self, storage: &impl Storage, index: u64) -> StdResult<Option<T>> {
         ns_load(storage, self.ns, &index.to_be_bytes())
     }
 
@@ -111,7 +111,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
         Ok(Some(last_item))
     }
 
-    pub fn len(&self, storage: &impl ReadonlyStorage) -> StdResult<u64> {
+    pub fn len(&self, storage: &impl Storage) -> StdResult<u64> {
         if let Some(len) = self.len {
             return Ok(len)
         }
@@ -142,7 +142,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     }
 }
 
-pub struct StorageIterator<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> {
+pub struct StorageIterator<'a, 'b, T: DeserializeOwned, S: Storage> {
     storage: &'a S,
     ns: &'b [u8],
     current: u64,
@@ -150,7 +150,7 @@ pub struct StorageIterator<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> {
     result: PhantomData<T>
 }
 
-impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> StorageIterator<'a, 'b, T, S> {
+impl<'a, 'b, T: DeserializeOwned, S: Storage> StorageIterator<'a, 'b, T, S> {
     pub fn new(storage: &'a S, ns: &'b [u8], len: u64) -> Self {
         Self {
             storage,
@@ -166,7 +166,7 @@ impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> StorageIterator<'a, 'b, T,
     }
 }
 
-impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> Iterator for StorageIterator<'a, 'b, T, S> {
+impl<'a, 'b, T: DeserializeOwned, S: Storage> Iterator for StorageIterator<'a, 'b, T, S> {
     type Item = StdResult<T>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -197,7 +197,7 @@ impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> Iterator for StorageIterat
     }
 }
 
-impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> DoubleEndedIterator for StorageIterator<'a, 'b, T, S> {
+impl<'a, 'b, T: DeserializeOwned, S: Storage> DoubleEndedIterator for StorageIterator<'a, 'b, T, S> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.current >= self.end {
             return None;
@@ -221,7 +221,7 @@ impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> DoubleEndedIterator for St
     }
 }
 
-impl<'a, 'b, T: DeserializeOwned, S: ReadonlyStorage> ExactSizeIterator for StorageIterator<'a, 'b, T, S> { }
+impl<'a, 'b, T: DeserializeOwned, S: Storage> ExactSizeIterator for StorageIterator<'a, 'b, T, S> { }
 
 #[cfg(test)]
 mod tests {
@@ -230,7 +230,7 @@ mod tests {
 
     #[test]
     fn iterable_storage_insertion() {
-        let ref mut deps = mock_dependencies(20, &[]);
+        let ref mut deps = mock_dependencies();
 
         let mut storage = IterableStorage::<u8>::new(b"numbers");
         
@@ -282,7 +282,7 @@ mod tests {
 
     #[test]
     fn iterable_storage_iter() {
-        let ref mut deps = mock_dependencies(20, &[]);
+        let ref mut deps = mock_dependencies();
 
         let mut storage = IterableStorage::<u8>::new(b"numbers");
         
@@ -318,7 +318,7 @@ mod tests {
 
     #[test]
     fn iterable_storage_swap_remove() {
-        let ref mut deps = mock_dependencies(20, &[]);
+        let ref mut deps = mock_dependencies();
         let mut storage = IterableStorage::<u8>::new(b"numbers");
 
         for i in 1..=6 {
@@ -380,7 +380,7 @@ mod tests {
 
         let num_items: u8 = 20;
 
-        let ref mut deps = mock_dependencies(20, &[]);
+        let ref mut deps = mock_dependencies();
         let mut storage = IterableStorage::<u8>::new(b"numbers");
 
         for i in 0..num_items {
@@ -401,7 +401,7 @@ mod tests {
 
         assert_eq!(storage.len(&deps.storage).unwrap(), 0);
 
-        let ref mut deps = mock_dependencies(20, &[]);
+        let ref mut deps = mock_dependencies();
         let mut storage = IterableStorage::<u8>::new(b"numbers");
 
         for i in 0..num_items {

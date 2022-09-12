@@ -11,9 +11,9 @@ use crate::{
 #[cfg(not(target_arch = "wasm32"))] pub use tester::*;
 
 pub trait Composable<S: Storage, A: Api, Q: Querier>:
-    ReadonlyStorageWrapper<S> + MutableStorageWrapper<S> + ApiWrapper<A> + QuerierWrapper<Q> {}
+    StorageWrapper<S> + MutableStorageWrapper<S> + ApiWrapper<A> + QuerierWrapper<Q> {}
 
-pub trait ReadonlyStorageWrapper<S: Storage> {
+pub trait StorageWrapper<S: Storage> {
     fn storage(&self) -> &S;
 
     #[inline] fn get<Value: DeserializeOwned>(&self, key: &[u8]) -> Eventually<Value> {
@@ -89,7 +89,7 @@ pub trait QuerierWrapper<Q: Querier> {
 #[macro_export]
 macro_rules! make_composable {
     ($Struct:ty) => {
-        impl<S: Storage, A: Api, Q: Querier> ReadonlyStorageWrapper<S> for $Struct {
+        impl<S: Storage, A: Api, Q: Querier> StorageWrapper<S> for $Struct {
             #[inline] fn storage(&self) -> &S { &self.storage }
         }
         impl<S: Storage, A: Api, Q: Querier> MutableStorageWrapper<S> for $Struct {

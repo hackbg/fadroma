@@ -427,7 +427,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        recipient: HumanAddr,
+        recipient: Addr,
         amount: Uint128,
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
@@ -448,7 +448,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        recipient: HumanAddr,
+        recipient: Addr,
         recipient_code_hash: Option<String>,
         amount: Uint128,
         memo: Option<String>,
@@ -602,7 +602,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        spender: HumanAddr,
+        spender: Addr,
         amount: Uint128,
         expiration: Option<u64>,
     ) -> StdResult<HandleResponse> {
@@ -650,7 +650,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        spender: HumanAddr,
+        spender: Addr,
         amount: Uint128,
         expiration: Option<u64>,
     ) -> StdResult<HandleResponse> {
@@ -698,8 +698,8 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        owner: HumanAddr,
-        recipient: HumanAddr,
+        owner: Addr,
+        recipient: Addr,
         amount: Uint128,
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
@@ -721,8 +721,8 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        owner: HumanAddr,
-        recipient: HumanAddr,
+        owner: Addr,
+        recipient: Addr,
         recipient_code_hash: Option<String>,
         amount: Uint128,
         memo: Option<String>,
@@ -758,7 +758,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        owner: HumanAddr,
+        owner: Addr,
         amount: Uint128,
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
@@ -825,7 +825,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        recipient: HumanAddr,
+        recipient: Addr,
         amount: Uint128,
         memo: Option<String>,
     ) -> StdResult<HandleResponse> {
@@ -880,7 +880,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        address: HumanAddr,
+        address: Addr,
     ) -> StdResult<HandleResponse> {
         let mut config = Config::from_storage(&mut deps.storage);
 
@@ -922,7 +922,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        minters_to_add: Vec<HumanAddr>,
+        minters_to_add: Vec<Addr>,
     ) -> StdResult<HandleResponse> {
         let mut config = Config::from_storage(&mut deps.storage);
         let constants = config.constants()?;
@@ -948,7 +948,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        minters_to_remove: Vec<HumanAddr>,
+        minters_to_remove: Vec<Addr>,
     ) -> StdResult<HandleResponse> {
         let mut config = Config::from_storage(&mut deps.storage);
         let constants = config.constants()?;
@@ -973,7 +973,7 @@ pub trait Snip20  {
         &self,
         deps: &mut Extern<S, A, Q>,
         env: Env,
-        minters_to_set: Vec<HumanAddr>,
+        minters_to_set: Vec<Addr>,
     ) -> StdResult<HandleResponse> {
         let mut config = Config::from_storage(&mut deps.storage);
         let constants = config.constants()?;
@@ -1275,7 +1275,7 @@ pub trait Snip20  {
 
     // Query
 
-    fn query_exchange_rate(&self, storage: &impl ReadonlyStorage) -> StdResult<Binary> {
+    fn query_exchange_rate(&self, storage: &impl Storage) -> StdResult<Binary> {
         let config = ReadonlyConfig::from_storage(storage);
         let constants = config.constants()?;
 
@@ -1299,7 +1299,7 @@ pub trait Snip20  {
         })
     }
 
-    fn query_token_info(&self, storage: &impl ReadonlyStorage) -> StdResult<Binary> {
+    fn query_token_info(&self, storage: &impl Storage) -> StdResult<Binary> {
         let config = ReadonlyConfig::from_storage(storage);
         let constants = config.constants()?;
 
@@ -1317,7 +1317,7 @@ pub trait Snip20  {
         })
     }
 
-    fn query_contract_status<S: ReadonlyStorage>(&self, storage: &S) -> StdResult<Binary> {
+    fn query_contract_status<S: Storage>(&self, storage: &S) -> StdResult<Binary> {
         let config = ReadonlyConfig::from_storage(storage);
 
         to_binary(&QueryAnswer::ContractStatus {
@@ -1335,7 +1335,7 @@ pub trait Snip20  {
     fn query_balance<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
-        account: &HumanAddr,
+        account: &Addr,
     ) -> StdResult<Binary> {
         let address = deps.api.canonical_address(account)?;
 
@@ -1347,8 +1347,8 @@ pub trait Snip20  {
     fn query_allowance<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
-        owner: HumanAddr,
-        spender: HumanAddr,
+        owner: Addr,
+        spender: Addr,
     ) -> StdResult<Binary> {
         let owner_address = deps.api.canonical_address(&owner)?;
         let spender_address = deps.api.canonical_address(&spender)?;
@@ -1369,7 +1369,7 @@ pub trait Snip20  {
     fn query_transfers<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
-        account: &HumanAddr,
+        account: &Addr,
         page: u32,
         page_size: u32,
     ) -> StdResult<Binary> {
@@ -1386,7 +1386,7 @@ pub trait Snip20  {
     fn query_transactions<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
-        account: &HumanAddr,
+        account: &Addr,
         page: u32,
         page_size: u32,
     ) -> StdResult<Binary> {
@@ -1459,9 +1459,9 @@ pub fn perform_transfer<T: Storage>(
 pub fn send_impl<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     messages: &mut Vec<CosmosMsg>,
-    sender: HumanAddr,
+    sender: Addr,
     sender_canon: &CanonicalAddr, // redundant but more efficient
-    recipient: HumanAddr,
+    recipient: Addr,
     recipient_code_hash: Option<String>,
     amount: Uint128,
     memo: Option<String>,
@@ -1495,14 +1495,14 @@ pub fn send_impl<S: Storage, A: Api, Q: Querier>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn add_receiver_api_callback<S: ReadonlyStorage>(
+pub fn add_receiver_api_callback<S: Storage>(
     storage: &S,
     messages: &mut Vec<CosmosMsg>,
-    recipient: HumanAddr,
+    recipient: Addr,
     recipient_code_hash: Option<String>,
     msg: Option<Binary>,
-    sender: HumanAddr,
-    from: HumanAddr,
+    sender: Addr,
+    from: Addr,
     amount: Uint128,
     memo: Option<String>,
 ) -> StdResult<()> {
@@ -1585,8 +1585,8 @@ pub fn send_from_impl<S: Storage, A: Api, Q: Querier>(
     env: Env,
     messages: &mut Vec<CosmosMsg>,
     spender_canon: &CanonicalAddr, // redundant but more efficient
-    owner: HumanAddr,
-    recipient: HumanAddr,
+    owner: Addr,
+    recipient: Addr,
     recipient_code_hash: Option<String>,
     amount: Uint128,
     memo: Option<String>,
@@ -1654,7 +1654,7 @@ pub fn mint_impl<S: Storage>(
     Ok(())
 }
 
-pub fn check_if_admin<S: Storage>(config: &Config<S>, account: &HumanAddr) -> StdResult<()> {
+pub fn check_if_admin<S: Storage>(config: &Config<S>, account: &Addr) -> StdResult<()> {
     if !is_admin(config, account)? {
         return Err(StdError::generic_err(
             "This is an admin command. Admin commands can only be run from admin address",
@@ -1861,7 +1861,7 @@ fn permit_queries<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-fn is_admin<S: Storage>(config: &Config<S>, account: &HumanAddr) -> StdResult<bool> {
+fn is_admin<S: Storage>(config: &Config<S>, account: &Addr) -> StdResult<bool> {
     let consts = config.constants()?;
     if &consts.admin != account {
         return Ok(false);

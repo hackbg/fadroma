@@ -26,15 +26,15 @@ pub struct Permit<P: Permission> {
 #[serde(rename_all = "snake_case")]
 pub struct Permit<P: Permission> {
     pub params: PermitParams<P>,
-    pub address: HumanAddr
+    pub address: Addr
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl<P: Permission> Permit<P> {
     pub fn new(
-        address: impl Into<HumanAddr>,
+        address: impl Into<Addr>,
         permissions: Vec<P>,
-        allowed_tokens: Vec<HumanAddr>,
+        allowed_tokens: Vec<Addr>,
         permit_name: impl Into<String>
     ) -> Self {
         Self {
@@ -53,7 +53,7 @@ impl<P: Permission> Permit<P> {
     const NS_PERMITS: &'static [u8] = b"GAl8kO8Z8w";
 
     #[inline]
-    pub fn check_token(&self, token: &HumanAddr) -> bool {
+    pub fn check_token(&self, token: &Addr) -> bool {
         self.params.allowed_tokens.contains(token)
     }
 
@@ -65,9 +65,9 @@ impl<P: Permission> Permit<P> {
     pub fn validate_with_permissions<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
-        current_contract_addr: HumanAddr,
+        current_contract_addr: Addr,
         expected_permissions: Vec<P>
-    ) -> StdResult<HumanAddr> {
+    ) -> StdResult<Addr> {
         if !expected_permissions.iter().all(|x| self.check_permission(x)) {
             return Err(StdError::generic_err(format!(
                 "Expected permission(s): {}, got: {}",
@@ -83,8 +83,8 @@ impl<P: Permission> Permit<P> {
     pub fn validate<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
-        current_contract_addr: HumanAddr
-    ) -> StdResult<HumanAddr> {
+        current_contract_addr: Addr
+    ) -> StdResult<Addr> {
         if !self.check_token(&current_contract_addr) {
             return Err(StdError::generic_err(self.check_token_err(current_contract_addr)));
         }
@@ -98,8 +98,8 @@ impl<P: Permission> Permit<P> {
     pub fn validate<S: Storage, A: Api, Q: Querier>(
         &self,
         deps: &Extern<S, A, Q>,
-        current_contract_addr: HumanAddr
-    ) -> StdResult<HumanAddr> {
+        current_contract_addr: Addr
+    ) -> StdResult<Addr> {
         if !self.check_token(&current_contract_addr) {
             return Err(StdError::generic_err(self.check_token_err(current_contract_addr)));
         }
@@ -144,7 +144,7 @@ impl<P: Permission> Permit<P> {
 
     pub fn assert_not_revoked(
         storage: &impl Storage,
-        account: &HumanAddr,
+        account: &Addr,
         permit_name: &str
     ) -> StdResult<()> {
         let key = [ Self::NS_PERMITS, account.0.as_bytes(), permit_name.as_bytes() ].concat();
@@ -162,7 +162,7 @@ impl<P: Permission> Permit<P> {
     
     pub fn revoke(
         storage: &mut impl Storage,
-        account: &HumanAddr,
+        account: &Addr,
         permit_name: &str
     ) {
         let key = [ Self::NS_PERMITS, account.0.as_bytes(), permit_name.as_bytes() ].concat();
@@ -186,7 +186,7 @@ impl<P: Permission> Permit<P> {
         Ok(result.join(", "))
     }
 
-    fn check_token_err(&self, current_contract_addr: HumanAddr) -> String {
+    fn check_token_err(&self, current_contract_addr: Addr) -> String {
         format!(
             "Permit doesn't apply to contract {}, allowed contracts: {}",
             current_contract_addr.0,
@@ -212,7 +212,7 @@ impl<P: Permission> Permit<P> {
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
 pub struct PermitParams<P: Permission> {
-    pub allowed_tokens: Vec<HumanAddr>,
+    pub allowed_tokens: Vec<Addr>,
     pub permit_name: String,
     pub chain_id: String,
     pub permissions: Vec<P>
@@ -332,7 +332,7 @@ impl<P: Permission> PermitMsg<P> {
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
 pub struct PermitContent<P: Permission> {
-    pub allowed_tokens: Vec<HumanAddr>,
+    pub allowed_tokens: Vec<Addr>,
     pub permissions: Vec<P>,
     pub permit_name: String
 }
@@ -364,9 +364,9 @@ mod tests {
 
         let ref mut deps = mock_dependencies(20, &[]);
 
-        let contract_addr = HumanAddr::from("contract");
+        let contract_addr = Addr::unchecked("contract");
         let permissions = vec![ Permission::One ];
-        let sender = HumanAddr::from("sender");
+        let sender = Addr::unchecked("sender");
 
         let permit = Permit::new(
             sender.clone(),
@@ -375,7 +375,7 @@ mod tests {
             "permit"
         );
 
-        let wrong_contract = HumanAddr::from("wrong_contract");
+        let wrong_contract = Addr::unchecked("wrong_contract");
         let err = permit.validate_with_permissions(
             deps,
             wrong_contract.clone(),

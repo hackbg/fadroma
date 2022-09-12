@@ -29,7 +29,7 @@ pub const PREFIX_RECEIVERS: &[u8] = b"V1SJqXtGju";
 #[serde(deny_unknown_fields)]
 pub struct Constants {
     pub name: String,
-    pub admin: HumanAddr,
+    pub admin: Addr,
     pub symbol: String,
     pub decimals: u8,
     pub prng_seed: Vec<u8>,
@@ -45,11 +45,11 @@ pub struct Constants {
     pub burn_is_enabled: bool,
 }
 
-pub struct ReadonlyConfig<'a, S: ReadonlyStorage> {
+pub struct ReadonlyConfig<'a, S: Storage> {
     storage: ReadonlyPrefixedStorage<'a, S>,
 }
 
-impl<'a, S: ReadonlyStorage> ReadonlyConfig<'a, S> {
+impl<'a, S: Storage> ReadonlyConfig<'a, S> {
     pub fn from_storage(storage: &'a S) -> Self {
         Self {
             storage: ReadonlyPrefixedStorage::new(PREFIX_CONFIG, storage),
@@ -64,7 +64,7 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfig<'a, S> {
         self.as_readonly().constants()
     }
 
-    pub fn self_address(&self) -> StdResult<HumanAddr> {
+    pub fn self_address(&self) -> StdResult<Addr> {
         self.as_readonly().self_address()
     }
 
@@ -76,7 +76,7 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfig<'a, S> {
         self.as_readonly().contract_status()
     }
 
-    pub fn minters(&self) -> Vec<HumanAddr> {
+    pub fn minters(&self) -> Vec<Addr> {
         self.as_readonly().minters()
     }
 
@@ -100,7 +100,7 @@ fn set_bin_data<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], data: &T)
     Ok(())
 }
 
-fn get_bin_data<T: DeserializeOwned, S: ReadonlyStorage>(storage: &S, key: &[u8]) -> StdResult<T> {
+fn get_bin_data<T: DeserializeOwned, S: Storage>(storage: &S, key: &[u8]) -> StdResult<T> {
     let bin_data = storage.get(key);
 
     match bin_data {
@@ -132,7 +132,7 @@ impl<'a, S: Storage> Config<'a, S> {
         set_bin_data(&mut self.storage, KEY_CONSTANTS, constants)
     }
 
-    pub fn set_self_address(&mut self, address: &HumanAddr) -> StdResult<()> {
+    pub fn set_self_address(&mut self, address: &Addr) -> StdResult<()> {
         set_bin_data(&mut self.storage, KEY_SELF, address)
     }
 
@@ -154,18 +154,18 @@ impl<'a, S: Storage> Config<'a, S> {
             .set(KEY_CONTRACT_STATUS, &status_u8.to_be_bytes());
     }
 
-    pub fn set_minters(&mut self, minters_to_set: Vec<HumanAddr>) -> StdResult<()> {
+    pub fn set_minters(&mut self, minters_to_set: Vec<Addr>) -> StdResult<()> {
         set_bin_data(&mut self.storage, KEY_MINTERS, &minters_to_set)
     }
 
-    pub fn add_minters(&mut self, minters_to_add: Vec<HumanAddr>) -> StdResult<()> {
+    pub fn add_minters(&mut self, minters_to_add: Vec<Addr>) -> StdResult<()> {
         let mut minters = self.minters();
         minters.extend(minters_to_add);
 
         self.set_minters(minters)
     }
 
-    pub fn remove_minters(&mut self, minters_to_remove: Vec<HumanAddr>) -> StdResult<()> {
+    pub fn remove_minters(&mut self, minters_to_remove: Vec<Addr>) -> StdResult<()> {
         let mut minters = self.minters();
 
         for minter in minters_to_remove {
@@ -175,7 +175,7 @@ impl<'a, S: Storage> Config<'a, S> {
         self.set_minters(minters)
     }
 
-    pub fn minters(&mut self) -> Vec<HumanAddr> {
+    pub fn minters(&mut self) -> Vec<Addr> {
         self.as_readonly().minters()
     }
 
@@ -193,9 +193,9 @@ impl<'a, S: Storage> Config<'a, S> {
 ///
 /// This was the only way to prevent code duplication of these methods because of the way
 /// that `ReadonlyPrefixedStorage` and `PrefixedStorage` are implemented in `cosmwasm-std`
-struct ReadonlyConfigImpl<'a, S: ReadonlyStorage>(&'a S);
+struct ReadonlyConfigImpl<'a, S: Storage>(&'a S);
 
-impl<'a, S: ReadonlyStorage> ReadonlyConfigImpl<'a, S> {
+impl<'a, S: Storage> ReadonlyConfigImpl<'a, S> {
     fn constants(&self) -> StdResult<Constants> {
         let consts_bytes = self
             .0
@@ -214,14 +214,14 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfigImpl<'a, S> {
         slice_to_u128(&supply_bytes).unwrap()
     }
 
-    fn self_address(&self) -> StdResult<HumanAddr> {
+    fn self_address(&self) -> StdResult<Addr> {
         let bytes = self
             .0
             .get(KEY_SELF)
             .ok_or_else(|| StdError::generic_err("no constants stored in configuration"))?;
 
-        bincode2::deserialize::<HumanAddr>(&bytes)
-            .map_err(|e| StdError::serialize_err(type_name::<HumanAddr>(), e))
+        bincode2::deserialize::<Addr>(&bytes)
+            .map_err(|e| StdError::serialize_err(type_name::<Addr>(), e))
     }
 
     fn contract_status(&self) -> ContractStatusLevel {
@@ -235,7 +235,7 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfigImpl<'a, S> {
         u8_to_status_level(status).unwrap()
     }
 
-    fn minters(&self) -> Vec<HumanAddr> {
+    fn minters(&self) -> Vec<Addr> {
         get_bin_data(self.0, KEY_MINTERS).unwrap()
     }
 
@@ -246,11 +246,11 @@ impl<'a, S: ReadonlyStorage> ReadonlyConfigImpl<'a, S> {
 
 // Balances
 
-pub struct ReadonlyBalances<'a, S: ReadonlyStorage> {
+pub struct ReadonlyBalances<'a, S: Storage> {
     storage: ReadonlyPrefixedStorage<'a, S>,
 }
 
-impl<'a, S: ReadonlyStorage> ReadonlyBalances<'a, S> {
+impl<'a, S: Storage> ReadonlyBalances<'a, S> {
     pub fn from_storage(storage: &'a S) -> Self {
         Self {
             storage: ReadonlyPrefixedStorage::new(PREFIX_BALANCES, storage),
@@ -295,9 +295,9 @@ impl<'a, S: Storage> Balances<'a, S> {
 ///
 /// This was the only way to prevent code duplication of these methods because of the way
 /// that `ReadonlyPrefixedStorage` and `PrefixedStorage` are implemented in `cosmwasm-std`
-struct ReadonlyBalancesImpl<'a, S: ReadonlyStorage>(&'a S);
+struct ReadonlyBalancesImpl<'a, S: Storage>(&'a S);
 
-impl<'a, S: ReadonlyStorage> ReadonlyBalancesImpl<'a, S> {
+impl<'a, S: Storage> ReadonlyBalancesImpl<'a, S> {
     pub fn account_amount(&self, account: &CanonicalAddr) -> u128 {
         let account_bytes = account.as_slice();
         let result = self.0.get(account_bytes);
@@ -366,9 +366,9 @@ pub fn read_viewing_key<S: Storage>(store: &S, owner: &CanonicalAddr) -> Option<
 
 // Receiver Interface
 
-pub fn get_receiver_hash<S: ReadonlyStorage>(
+pub fn get_receiver_hash<S: Storage>(
     store: &S,
-    account: &HumanAddr,
+    account: &Addr,
 ) -> Option<StdResult<String>> {
     let store = ReadonlyPrefixedStorage::new(PREFIX_RECEIVERS, store);
     store.get(account.as_str().as_bytes()).map(|data| {
@@ -377,7 +377,7 @@ pub fn get_receiver_hash<S: ReadonlyStorage>(
     })
 }
 
-pub fn set_receiver_hash<S: Storage>(store: &mut S, account: &HumanAddr, code_hash: String) {
+pub fn set_receiver_hash<S: Storage>(store: &mut S, account: &Addr, code_hash: String) {
     let mut store = PrefixedStorage::new(PREFIX_RECEIVERS, store);
     store.set(account.as_str().as_bytes(), code_hash.as_bytes());
 }

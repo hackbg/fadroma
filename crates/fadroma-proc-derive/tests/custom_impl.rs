@@ -1,7 +1,7 @@
 use fadroma_proc_derive::*;
 use cosmwasm_std::{
-    StdResult, StdError, InitResponse, HandleResponse, Storage, to_vec, from_slice, from_binary,
-    testing::{mock_dependencies, mock_env}
+    StdResult, StdError, Response, Storage, to_vec, from_slice, from_binary,
+    testing::{mock_dependencies, mock_env, mock_info}
 };
 use schemars;
 use serde;
@@ -13,7 +13,7 @@ pub mod string_component {
 
     #[contract]
     pub trait StringComponent {
-        fn new(storage: &mut impl Storage, string: String) -> StdResult<()> {
+        fn new(storage: &mut dyn Storage, string: String) -> StdResult<()> {
             Ok(storage.set(KEY_STRING, &to_vec(&string)?))
         }
 
@@ -23,10 +23,10 @@ pub mod string_component {
         }
 
         #[handle]
-        fn set_string(string: String) -> StdResult<HandleResponse> {
+        fn set_string(string: String) -> StdResult<Response> {
             deps.storage.set(KEY_STRING, &to_vec(&string)?);
 
-            Ok(HandleResponse::default())
+            Ok(Response::default())
         }
 
         #[query]
@@ -68,10 +68,10 @@ mod test_skip {
     #[contract(component(path = "string_component", custom_impl = "CustomStringImpl", skip(handle)))]
     pub trait CustomImplContractWithSkip {
         #[init]
-        fn new(string: String) -> StdResult<InitResponse> {
-            CustomStringImpl::new(&mut deps.storage, string)?;
+        fn new(string: String) -> StdResult<Response> {
+            CustomStringImpl::new(deps.storage, string)?;
 
-            Ok(InitResponse::default())
+            Ok(Response::default())
         }
     }
 }
@@ -79,27 +79,28 @@ mod test_skip {
 #[contract(component(path = "string_component", custom_impl = "CustomStringImpl"))]
 pub trait CustomImplContract {
     #[init]
-    fn new(string: String) -> StdResult<InitResponse> {
-        CustomStringImpl::new(&mut deps.storage, string)?;
+    fn new(string: String) -> StdResult<Response> {
+        CustomStringImpl::new(deps.storage, string)?;
 
-        Ok(InitResponse::default())
+        Ok(Response::default())
     }
 }
 
 #[test]
 fn uses_custom_impl() {
-    let ref mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("sender", &[]);
+    let ref mut deps = mock_dependencies();
+    let env = mock_env();
 
     let msg = InitMsg {
         string: String::from("test")
     };
 
-    init(deps, env.clone(), msg, DefaultImpl).unwrap();
+    init(deps.as_mut(), env.clone(), mock_info("sender", &[]), msg, DefaultImpl).unwrap();
 
     let err = handle(
-        deps,
+        deps.as_mut(),
         env,
+        mock_info("sender", &[]),
         HandleMsg::StringComponent(
             string_component::HandleMsg::SetString { string: String::new() }
         ),
@@ -109,7 +110,8 @@ fn uses_custom_impl() {
     assert_eq!(err, StdError::generic_err("String cannot be empty."));
 
     let result = query(
-        deps,
+        deps.as_ref(),
+        env,
         QueryMsg::StringComponent(
             string_component::QueryMsg::GetString { padding: None }
         ),

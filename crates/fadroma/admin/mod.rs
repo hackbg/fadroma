@@ -12,7 +12,7 @@ const PENDING_ADMIN_KEY: &[u8] = b"b5QaJXDibK";
 #[contract]
 pub trait Admin {
     #[init]
-    fn new(admin: Option<HumanAddr>) -> StdResult<InitResponse> {
+    fn new(admin: Option<Addr>) -> StdResult<InitResponse> {
         let admin = if let Some(addr) = admin {
             addr
         } else {
@@ -25,7 +25,7 @@ pub trait Admin {
     }
 
     #[handle]
-    fn change_admin(address: HumanAddr) -> StdResult<HandleResponse> {
+    fn change_admin(address: Addr) -> StdResult<HandleResponse> {
         assert_admin(deps, &env)?;
         save_pending_admin(deps, &address)?;
     
@@ -55,7 +55,7 @@ pub trait Admin {
     }
 
     #[query]
-    fn admin() -> StdResult<HumanAddr> {
+    fn admin() -> StdResult<Addr> {
         let address = load_admin(deps)?;
 
         Ok(address)
@@ -64,24 +64,24 @@ pub trait Admin {
 
 pub fn load_admin<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
-) -> StdResult<HumanAddr> {
+) -> StdResult<Addr> {
     let result = deps.storage.get(ADMIN_KEY);
 
     match result {
         Some(bytes) => {
-            let admin = CanonicalAddr::from(bytes);
+            let admin = CanonicalAddr::unchecked(bytes);
 
             deps.api.human_address(&admin)
         },
         None => {
-            Ok(HumanAddr::default())
+            Ok(Addr::default())
         }
     }
 }
 
 pub fn save_admin<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    address: &HumanAddr
+    address: &Addr
 ) -> StdResult<()> {
     let admin = deps.api.canonical_address(address)?;
     deps.storage.set(ADMIN_KEY, &admin.as_slice());
@@ -92,12 +92,12 @@ pub fn save_admin<S: Storage, A: Api, Q: Querier>(
 
 pub fn load_pending_admin<S: Storage, A: Api, Q: Querier>(
     deps: &Extern<S, A, Q>
-) -> StdResult<HumanAddr> {
+) -> StdResult<Addr> {
     let result = deps.storage.get(PENDING_ADMIN_KEY);
 
     match result {
         Some(bytes) => {
-            let admin = CanonicalAddr::from(bytes);
+            let admin = CanonicalAddr::unchecked(bytes);
 
             deps.api.human_address(&admin)
         },
@@ -109,7 +109,7 @@ pub fn load_pending_admin<S: Storage, A: Api, Q: Querier>(
 
 pub fn save_pending_admin<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
-    address: &HumanAddr
+    address: &Addr
 ) -> StdResult<()> {
     let admin = deps.api.canonical_address(address)?;
     deps.storage.set(PENDING_ADMIN_KEY, &admin.as_slice());
@@ -134,7 +134,7 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 mod tests {
     use super::*;
     use fadroma_platform_scrt::cosmwasm_std::{
-        ReadonlyStorage, from_binary,
+        Storage, from_binary,
         testing::{mock_dependencies, mock_env}
     };
 
@@ -143,10 +143,10 @@ mod tests {
         let ref mut deps = mock_dependencies(10, &[]);
 
         let admin = "admin";
-        save_admin(deps, &HumanAddr::from(admin)).unwrap();
+        save_admin(deps, &Addr::unchecked(admin)).unwrap();
 
         let msg = HandleMsg::ChangeAdmin { 
-            address: HumanAddr::from("will fail")
+            address: Addr::unchecked("will fail")
         };
 
         let result = handle(
@@ -161,7 +161,7 @@ mod tests {
             _ => panic!("Expected \"StdError::Unauthorized\"")
         };
 
-        let new_admin = HumanAddr::from("new_admin");
+        let new_admin = Addr::unchecked("new_admin");
 
         let result = handle(
             deps,
@@ -214,7 +214,7 @@ mod tests {
             _ => panic!("Expected \"StdError::Unauthorized\"")
         };
 
-        assert_eq!(load_admin(deps).unwrap(), HumanAddr::from(admin));
+        assert_eq!(load_admin(deps).unwrap(), Addr::unchecked(admin));
 
         handle(
             deps,
@@ -233,14 +233,14 @@ mod tests {
 
         let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
 
-        let address: HumanAddr = from_binary(&result).unwrap();
-        assert!(address == HumanAddr::default());
+        let address: Addr = from_binary(&result).unwrap();
+        assert!(address == Addr::default());
 
-        let admin = HumanAddr::from("admin");
+        let admin = Addr::unchecked("admin");
         save_admin(deps, &admin).unwrap();
 
         let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
-        let address: HumanAddr = from_binary(&result).unwrap();
+        let address: Addr = from_binary(&result).unwrap();
         assert!(address == admin);
     }
 }

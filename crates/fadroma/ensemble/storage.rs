@@ -19,7 +19,7 @@ impl Storage for Revertable<TestStorage> {
     }
 }
 
-impl ReadonlyStorage for Revertable<TestStorage> {
+impl Storage for Revertable<TestStorage> {
     #[inline]
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         self.readable().get(key)
@@ -49,7 +49,7 @@ impl Storage for TestStorage {
     }
 }
 
-impl ReadonlyStorage for TestStorage {
+impl Storage for TestStorage {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         self.0.get(key).cloned()
     }

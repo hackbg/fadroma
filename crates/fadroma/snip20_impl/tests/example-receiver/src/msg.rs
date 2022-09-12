@@ -1,4 +1,4 @@
-use cosmwasm_std::{Binary, HumanAddr, Uint128};
+use cosmwasm_std::{Binary, Addr, Uint128};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -15,20 +15,20 @@ pub enum HandleMsg {
         count: i32,
     },
     Register {
-        reg_addr: HumanAddr,
+        reg_addr: Addr,
         reg_hash: String,
     },
     Receive {
-        sender: HumanAddr,
-        from: HumanAddr,
+        sender: Addr,
+        from: Addr,
         amount: Uint128,
         memo: Option<String>,
         msg: Binary,
     },
     Redeem {
-        addr: HumanAddr,
+        addr: Addr,
         hash: String,
-        to: HumanAddr,
+        to: Addr,
         amount: Uint128,
     },
     Fail {},

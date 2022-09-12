@@ -32,7 +32,7 @@ impl ClonableMemoryStorage {
     }
 }
 
-impl ReadonlyStorage for ClonableMemoryStorage {
+impl Storage for ClonableMemoryStorage {
     fn get(&self, key: &[u8]) -> Option<Vec<u8>> {
         self.data.get(key).cloned()
     }

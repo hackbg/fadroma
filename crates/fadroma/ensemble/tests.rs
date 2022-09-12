@@ -39,7 +39,7 @@ impl ContractHarness for Counter {
             &mut deps.storage,
             b"mul",
             &ContractLink {
-                address: HumanAddr::default(),
+                address: Addr::default(),
                 code_hash: msg.info.code_hash.clone(),
             },
         )?;
@@ -77,14 +77,14 @@ impl ContractHarness for Counter {
                 increment(&mut deps.storage)?;
             }
             CounterHandle::RegisterMultiplier => {
-                let mut info: ContractLink<HumanAddr> = load(&deps.storage, b"mul")?.unwrap();
+                let mut info: ContractLink<Addr> = load(&deps.storage, b"mul")?.unwrap();
                 info.address = env.message.sender;
 
                 save(&mut deps.storage, b"mul", &info)?;
             }
             CounterHandle::IncrementAndMultiply { by } => {
                 let number = increment(&mut deps.storage)?;
-                let multiplier: ContractLink<HumanAddr> = load(&deps.storage, b"mul")?.unwrap();
+                let multiplier: ContractLink<Addr> = load(&deps.storage, b"mul")?.unwrap();
 
                 return Ok(HandleResponse {
                     messages: vec![CosmosMsg::Wasm(WasmMsg::Execute {
@@ -115,7 +115,7 @@ impl ContractHarness for Counter {
                 to_binary(&number)
             }
             CounterQuery::Multiplier => {
-                let multiplier: ContractLink<HumanAddr> = load(&deps.storage, b"mul")?.unwrap();
+                let multiplier: ContractLink<Addr> = load(&deps.storage, b"mul")?.unwrap();
 
                 to_binary(&multiplier)
             }
@@ -137,7 +137,7 @@ struct Multiplier;
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 struct MultiplierInit {
-    callback: Callback<HumanAddr>,
+    callback: Callback<Addr>,
     fail: bool,
 }
 
@@ -189,8 +189,8 @@ impl ContractHarness for Multiplier {
 
 #[derive(Debug)]
 struct InitResult {
-    counter: ContractLink<HumanAddr>,
-    multiplier: ContractLink<HumanAddr>,
+    counter: ContractLink<Addr>,
+    multiplier: ContractLink<Addr>,
 }
 
 fn init(
@@ -298,7 +298,7 @@ fn test_removes_instances_on_failed_init() {
         .unwrap();
     assert_eq!(number, 0);
 
-    let multiplier: ContractLink<HumanAddr> = ensemble
+    let multiplier: ContractLink<Addr> = ensemble
         .query(result.counter.address, &CounterQuery::Multiplier)
         .unwrap();
     assert_eq!(multiplier, result.multiplier);
@@ -614,7 +614,7 @@ fn block_freeze() {
 #[test]
 fn remove_funds() {
     let mut ensemble = ContractEnsemble::new(50);
-    let addr = HumanAddr("address".to_string());
+    let addr = Addr("address".to_string());
 
     ensemble.add_funds(&addr, vec![Coin::new(1000u128, "uscrt")]);
     assert_eq!(
@@ -646,7 +646,7 @@ fn remove_funds() {
         _ => panic!("No error message")
     };
 
-    match ensemble.remove_funds(HumanAddr("address2".to_string()), vec![Coin::new(300u128, "uscrt")]) {
+    match ensemble.remove_funds(Addr("address2".to_string()), vec![Coin::new(300u128, "uscrt")]) {
         Err(error) => match error {
             StdError::NotFound { kind, .. } => 
                 assert_eq!(kind, "Account address2 does not exist for remove balance"),
@@ -664,11 +664,11 @@ fn staking() {
     let mut ensemble = ContractEnsemble::new(50);
     assert_eq!(ensemble.ctx.delegations.bonded_denom(), "uscrt".to_string());
 
-    let addr1 = HumanAddr("addr1".to_string());
-    let addr2 = HumanAddr("addr2".to_string());
-    let val_addr_1 = HumanAddr("validator1".to_string());
-    let val_addr_2 = HumanAddr("validator2".to_string());
-    let val_addr_3 = HumanAddr("validator3".to_string());
+    let addr1 = Addr("addr1".to_string());
+    let addr2 = Addr("addr2".to_string());
+    let val_addr_1 = Addr("validator1".to_string());
+    let val_addr_2 = Addr("validator2".to_string());
+    let val_addr_3 = Addr("validator3".to_string());
     let validator1 = Validator {
         address: val_addr_1.clone(),
         commission: Decimal::percent(5),

@@ -2,15 +2,15 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use fadroma_platform_scrt::cosmwasm_std::{
-    Storage, ReadonlyStorage, StdResult, to_vec, from_slice
+    Storage, StdResult, to_vec, from_slice
 };
 
 /// Save something to the storage.
 #[inline]
-pub fn save <T: Serialize, S: Storage> (
-    storage: &mut S,
-    key: &[u8],
-    value: &T
+pub fn save <T: Serialize> (
+    storage: &mut dyn Storage,
+    key:     &[u8],
+    value:   &T
 ) -> StdResult<()> {
     storage.set(key, &to_vec(value)?);
     Ok(())
@@ -18,32 +18,32 @@ pub fn save <T: Serialize, S: Storage> (
 
 /// Remove something from the storage.
 #[inline]
-pub fn remove <S: Storage> (
-    storage: &mut S,
-    key: &[u8]
+pub fn remove (
+    storage: &mut dyn Storage,
+    key:     &[u8]
 ) {
     storage.remove(key);
 }
 
 /// Load something from the storage.
 #[inline]
-pub fn load <T: DeserializeOwned, S: ReadonlyStorage> (
-    storage: &S,
-    key: &[u8]
+pub fn load <T: DeserializeOwned> (
+    storage: &dyn Storage,
+    key:     &[u8]
 ) -> StdResult<Option<T>> {
     match storage.get(key) {
-        Some(data) => Ok(Some(from_slice(&data)?)),
+        Some(data) => from_slice(&data),
         None => Ok(None)
     }
 }
 
 /// Save something to the storage under a namespaced key.
 #[inline]
-pub fn ns_save <T: Serialize, S: Storage> (
-    storage: &mut S,
+pub fn ns_save <T: Serialize> (
+    storage: &mut dyn Storage,
     namespace: &[u8],
-    key: &[u8],
-    value: &T
+    key:       &[u8],
+    value:     &T
 ) -> StdResult<()> {
     storage.set(&concat(namespace, key), &to_vec(value)?);
     Ok(())
@@ -51,10 +51,10 @@ pub fn ns_save <T: Serialize, S: Storage> (
 
 /// Remove the value of a namespaced key from the storage.
 #[inline]
-pub fn ns_remove <S: Storage> (
-    storage: &mut S,
+pub fn ns_remove(
+    storage: &mut dyn Storage,
     namespace: &[u8],
-    key: &[u8]
+    key:       &[u8]
 ) {
     let key = concat(namespace, key);
     storage.remove(&key);
@@ -62,10 +62,10 @@ pub fn ns_remove <S: Storage> (
 
 /// Load the value of a namespaced key.
 #[inline]
-pub fn ns_load <T: DeserializeOwned, S: ReadonlyStorage> (
-    storage: &S,
+pub fn ns_load <T: DeserializeOwned> (
+    storage: &dyn Storage,
     namespace: &[u8],
-    key: &[u8]
+    key:       &[u8]
 ) -> StdResult<Option<T>> {
     load(storage, &concat(namespace, key))
 }
@@ -74,10 +74,9 @@ pub fn ns_load <T: DeserializeOwned, S: ReadonlyStorage> (
 #[inline]
 pub fn concat(
     namespace: &[u8],
-    key: &[u8]
+    key:       &[u8]
 ) -> Vec<u8> {
     let mut k = namespace.to_vec();
     k.extend_from_slice(key);
-    
     k
 }

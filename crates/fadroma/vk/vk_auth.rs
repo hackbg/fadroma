@@ -102,14 +102,14 @@ pub fn authenticate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{from_binary, HumanAddr};
+    use cosmwasm_std::{from_binary, Addr};
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
     #[test]
     fn test_handle() {
         let ref mut deps = mock_dependencies(10, &[]);
 
-        let sender = HumanAddr("sender".into());
+        let sender = Addr("sender".into());
         let sender_canonical = deps.api.canonical_address(&sender).unwrap();
         let env = mock_env(sender, &[]);
 

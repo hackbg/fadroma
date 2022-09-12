@@ -2,7 +2,7 @@ use std::iter::Iterator;
 
 use crate::{
     prelude::ContractLink,
-    cosmwasm_std::{HumanAddr, Binary, InitResponse, HandleResponse, Coin}
+    cosmwasm_std::{Addr, Binary, InitResponse, HandleResponse, Coin}
 };
 
 use serde::{Serialize, Deserialize};
@@ -18,9 +18,9 @@ pub enum Response {
 #[derive(Clone, PartialEq, Debug)]
 pub struct InstantiateResponse {
     /// The address that triggered the instantiation.
-    pub sender: HumanAddr,
+    pub sender: Addr,
     /// The address and code hash of the new instance.
-    pub instance: ContractLink<HumanAddr>,
+    pub instance: ContractLink<Addr>,
     /// The init message that was sent.
     pub msg: Binary,
     /// The init response returned by the contract.
@@ -32,9 +32,9 @@ pub struct InstantiateResponse {
 #[derive(Clone, PartialEq, Debug)]
 pub struct ExecuteResponse {
     /// The address that triggered the instantiation.
-    pub sender: HumanAddr,
+    pub sender: Addr,
     /// The contract that was called.
-    pub target: HumanAddr,
+    pub target: Addr,
     /// The execute message that was sent.
     pub msg: Binary,
     /// The execute response returned by the contract.
@@ -46,9 +46,9 @@ pub struct ExecuteResponse {
 #[derive(Clone, PartialEq, Debug)]
 pub struct BankResponse {
     /// The address that sent the funds.
-    pub sender: HumanAddr,
+    pub sender: Addr,
     /// The address that the funds were sent to.
-    pub receiver: HumanAddr,
+    pub receiver: Addr,
     /// The funds that were sent.
     pub coins: Vec<Coin>
 }
@@ -56,9 +56,9 @@ pub struct BankResponse {
 #[derive(Clone, PartialEq, Debug)]
 pub struct StakingResponse {
     /// The address that delegated the funds.
-    pub sender: HumanAddr,
+    pub sender: Addr,
     /// The address of the validator where the funds were sent.
-    pub validator: HumanAddr,
+    pub validator: Addr,
     /// The funds that were sent.
     pub amount: Coin,
 }
@@ -74,7 +74,7 @@ pub struct RewardsResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ValidatorRewards {
-    pub validator_address: HumanAddr,
+    pub validator_address: Addr,
     pub reward: Vec<Coin>,
 }
 
@@ -140,7 +140,7 @@ impl From<BankResponse> for Response {
 
 impl<'a> Iter<'a> {
     /// Yields all responses that were initiated by the given `sender`.
-    pub fn by_sender(self, sender: impl Into<HumanAddr>) -> impl Iterator<Item = &'a Response> {
+    pub fn by_sender(self, sender: impl Into<Addr>) -> impl Iterator<Item = &'a Response> {
         let sender = sender.into();
 
         self.filter(move |x| match x {
@@ -372,7 +372,7 @@ mod tests {
         resp
     }
 
-    fn execute_resp(sender: impl Into<HumanAddr>, target: impl Into<HumanAddr>) -> ExecuteResponse {
+    fn execute_resp(sender: impl Into<Addr>, target: impl Into<Addr>) -> ExecuteResponse {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         let resp = ExecuteResponse {
@@ -388,7 +388,7 @@ mod tests {
         resp
     }
 
-    fn instantiate_resp(sender: impl Into<HumanAddr>) -> InstantiateResponse {
+    fn instantiate_resp(sender: impl Into<Addr>) -> InstantiateResponse {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         let resp = InstantiateResponse {
@@ -404,7 +404,7 @@ mod tests {
         resp
     }
 
-    fn bank_resp(sender: impl Into<HumanAddr>, to: impl Into<HumanAddr>) -> BankResponse {
+    fn bank_resp(sender: impl Into<Addr>, to: impl Into<Addr>) -> BankResponse {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         BankResponse {

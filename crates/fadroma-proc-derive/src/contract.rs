@@ -85,11 +85,11 @@ impl Contract {
                                 return Err(syn::Error::new(segment.span(), "Only one method can be annotated as #[init]."));
                             }
 
-                            validate_method(&method, Some(parse_quote!(InitResponse)), ty)?;
+                            validate_method(&method, Some(parse_quote!(Response)), ty)?;
                             init = Some(method);
                         },
                         attr::HANDLE => {
-                            validate_method(&method, Some(parse_quote!(HandleResponse)), ty)?;
+                            validate_method(&method, Some(parse_quote!(Response)), ty)?;
                             handle.push(method);
                         },
                         attr::QUERY => {
@@ -287,12 +287,13 @@ impl Contract {
             let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
     
             let mut result: ItemFn = parse_quote! {
-                pub fn #fn_name<S: cosmwasm_std::Storage, A: cosmwasm_std::Api, Q: cosmwasm_std::Querier>(
-                    deps: &mut cosmwasm_std::Extern<S, A, Q>,
+                pub fn #fn_name(
+                    deps: cosmwasm_std::DepsMut,
                     env: cosmwasm_std::Env,
+                    info: cosmwasm_std::MessageInfo,
                     msg: #msg,
                     #arg_name: impl #trait_name
-                ) -> cosmwasm_std::StdResult<cosmwasm_std::InitResponse> { }
+                ) -> cosmwasm_std::StdResult<cosmwasm_std::Response> { }
             };
         
             let mut args = Punctuated::<ExprField, Comma>::new();
@@ -306,7 +307,7 @@ impl Contract {
     
             let ref method_name = init.sig.ident;
     
-            let call: Expr = parse_quote!(#arg_name.#method_name(#args deps, env));
+            let call: Expr = parse_quote!(#arg_name.#method_name(#args deps, env, info));
             result.block.stmts.push(Stmt::Expr(call));
     
             return Ok(quote!(#result));
@@ -323,19 +324,20 @@ impl Contract {
         let arg_name = Ident::new(CONTRACT_ARG, Span::call_site());
 
         let mut result: ItemFn = parse_quote! {
-            pub fn #fn_name<S: cosmwasm_std::Storage, A: cosmwasm_std::Api, Q: cosmwasm_std::Querier>(
-                deps: &mut cosmwasm_std::Extern<S, A, Q>,
+            pub fn #fn_name(
+                deps: cosmwasm_std::DepsMut,
                 env: cosmwasm_std::Env,
+                info: cosmwasm_std::MessageInfo,
                 msg: #msg,
                 #arg_name: impl #trait_name
-            ) -> cosmwasm_std::StdResult<cosmwasm_std::HandleResponse> { }
+            ) -> cosmwasm_std::StdResult<cosmwasm_std::Response> { }
         };
 
         if let Some(guard) = &self.handle_guard {
             let ref method_name = guard.sig.ident;
 
             result.block.stmts.push(parse_quote! {
-                #arg_name.#method_name(&msg, deps, &env)?;
+                #arg_name.#method_name(&msg, deps, env, info)?;
             });
         }
 
@@ -355,8 +357,9 @@ impl Contract {
         let match_expr = self.create_match_expr(MsgType::Query)?;
 
         let mut result: ItemFn = parse_quote! {
-            pub fn #fn_name<S: cosmwasm_std::Storage, A: cosmwasm_std::Api, Q: cosmwasm_std::Querier>(
-                deps: &cosmwasm_std::Extern<S, A, Q>,
+            pub fn #fn_name(
+                deps: cosmwasm_std::Deps,
+                env: cosmwasm_std::Env,
                 msg: #msg,
                 #arg_name: impl #trait_name
             ) -> cosmwasm_std::StdResult<cosmwasm_std::Binary> { }
@@ -396,14 +399,14 @@ impl Contract {
             match msg_type {
                 MsgType::Handle => {
                     match_expr.arms.push(
-                        parse_quote!(#enum_name::#variant { #args } => #arg_name.#method_name(#args deps, env))
+                        parse_quote!(#enum_name::#variant { #args } => #arg_name.#method_name(#args deps, env, info))
                     );
                 },
                 MsgType::Query => {
                     match_expr.arms.push(
                         parse_quote! {
                             #enum_name::#variant { #args } => { 
-                                let result = #arg_name.#method_name(#args deps)?;
+                                let result = #arg_name.#method_name(#args deps, env)?;
 
                                 cosmwasm_std::to_binary(&result)
                             }
@@ -422,7 +425,7 @@ impl Contract {
                     let handle_fn = Ident::new(HANDLE_FN, Span::call_site());
 
                     match_expr.arms.push(
-                        parse_quote!(#enum_name::#mod_name(msg) => #mod_path::#handle_fn(deps, env, msg, #impl_struct))
+                        parse_quote!(#enum_name::#mod_name(msg) => #mod_path::#handle_fn(deps, env, info, msg, #impl_struct))
                     );
                 }
             },
@@ -434,7 +437,7 @@ impl Contract {
                     let query_fn = Ident::new(QUERY_FN, Span::call_site());
 
                     match_expr.arms.push(
-                        parse_quote!(#enum_name::#mod_name(msg) => #mod_path::#query_fn(deps, msg, #impl_struct))
+                        parse_quote!(#enum_name::#mod_name(msg) => #mod_path::#query_fn(deps, env, msg, #impl_struct))
                     );
                 }
             }

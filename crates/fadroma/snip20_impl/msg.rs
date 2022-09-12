@@ -10,15 +10,15 @@ use super::{
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InitialBalance {
-    pub address: HumanAddr,
+    pub address: Addr,
     pub amount: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InitialAllowance {
-    pub owner: HumanAddr,
-    pub spender: HumanAddr,
+    pub owner: Addr,
+    pub spender: Addr,
     pub amount: Uint128,
     pub expiration: Option<u64>,
 }
@@ -27,14 +27,14 @@ pub struct InitialAllowance {
 #[serde(deny_unknown_fields)]
 pub struct InitMsg {
     pub name: String,
-    pub admin: Option<HumanAddr>,
+    pub admin: Option<Addr>,
     pub symbol: String,
     pub decimals: u8,
     pub initial_balances: Option<Vec<InitialBalance>>,
     pub initial_allowances: Option<Vec<InitialAllowance>>,
     pub prng_seed: Binary,
     pub config: Option<InitConfig>,
-    pub callback: Option<Callback<HumanAddr>>
+    pub callback: Option<Callback<Addr>>
 }
 
 /// This type represents optional configuration values which can be overridden.
@@ -163,13 +163,13 @@ pub enum HandleMsg {
 
     // Base ERC-20 stuff
     Transfer {
-        recipient: HumanAddr,
+        recipient: Addr,
         amount: Uint128,
         memo: Option<String>,
         padding: Option<String>,
     },
     Send {
-        recipient: HumanAddr,
+        recipient: Addr,
         recipient_code_hash: Option<String>,
         amount: Uint128,
         msg: Option<Binary>,
@@ -204,27 +204,27 @@ pub enum HandleMsg {
 
     // Allowance
     IncreaseAllowance {
-        spender: HumanAddr,
+        spender: Addr,
         amount: Uint128,
         expiration: Option<u64>,
         padding: Option<String>,
     },
     DecreaseAllowance {
-        spender: HumanAddr,
+        spender: Addr,
         amount: Uint128,
         expiration: Option<u64>,
         padding: Option<String>,
     },
     TransferFrom {
-        owner: HumanAddr,
-        recipient: HumanAddr,
+        owner: Addr,
+        recipient: Addr,
         amount: Uint128,
         memo: Option<String>,
         padding: Option<String>,
     },
     SendFrom {
-        owner: HumanAddr,
-        recipient: HumanAddr,
+        owner: Addr,
+        recipient: Addr,
         recipient_code_hash: Option<String>,
         amount: Uint128,
         msg: Option<Binary>,
@@ -240,7 +240,7 @@ pub enum HandleMsg {
         padding: Option<String>,
     },
     BurnFrom {
-        owner: HumanAddr,
+        owner: Addr,
         amount: Uint128,
         memo: Option<String>,
         padding: Option<String>,
@@ -252,7 +252,7 @@ pub enum HandleMsg {
 
     // Mint
     Mint {
-        recipient: HumanAddr,
+        recipient: Addr,
         amount: Uint128,
         memo: Option<String>,
         padding: Option<String>,
@@ -262,21 +262,21 @@ pub enum HandleMsg {
         padding: Option<String>,
     },
     AddMinters {
-        minters: Vec<HumanAddr>,
+        minters: Vec<Addr>,
         padding: Option<String>,
     },
     RemoveMinters {
-        minters: Vec<HumanAddr>,
+        minters: Vec<Addr>,
         padding: Option<String>,
     },
     SetMinters {
-        minters: Vec<HumanAddr>,
+        minters: Vec<Addr>,
         padding: Option<String>,
     },
 
     // Admin
     ChangeAdmin {
-        address: HumanAddr,
+        address: Addr,
         padding: Option<String>,
     },
     SetContractStatus {
@@ -331,13 +331,13 @@ pub enum HandleAnswer {
 
     // Allowance
     IncreaseAllowance {
-        spender: HumanAddr,
-        owner: HumanAddr,
+        spender: Addr,
+        owner: Addr,
         allowance: Uint128,
     },
     DecreaseAllowance {
-        spender: HumanAddr,
-        owner: HumanAddr,
+        spender: Addr,
+        owner: Addr,
         allowance: Uint128,
     },
     TransferFrom {
@@ -398,22 +398,22 @@ pub enum QueryMsg {
     ContractStatus {},
     ExchangeRate {},
     Allowance {
-        owner: HumanAddr,
-        spender: HumanAddr,
+        owner: Addr,
+        spender: Addr,
         key: String,
     },
     Balance {
-        address: HumanAddr,
+        address: Addr,
         key: String,
     },
     TransferHistory {
-        address: HumanAddr,
+        address: Addr,
         key: String,
         page: Option<u32>,
         page_size: u32,
     },
     TransactionHistory {
-        address: HumanAddr,
+        address: Addr,
         key: String,
         page: Option<u32>,
         page_size: u32,
@@ -430,8 +430,8 @@ pub enum QueryMsg {
 #[serde(deny_unknown_fields)]
 pub enum QueryWithPermit {
     Allowance {
-        owner: HumanAddr,
-        spender: HumanAddr,
+        owner: Addr,
+        spender: Addr,
     },
     Balance {},
     TransferHistory {
@@ -465,7 +465,7 @@ pub enum QueryPermission {
 }
 
 impl QueryMsg {
-    pub fn get_validation_params(&self) -> (Vec<&HumanAddr>, ViewingKey) {
+    pub fn get_validation_params(&self) -> (Vec<&Addr>, ViewingKey) {
         match self {
             Self::Balance { address, key } => (vec![address], ViewingKey(key.clone())),
             Self::TransferHistory { address, key, .. } => (vec![address], ViewingKey(key.clone())),
@@ -501,8 +501,8 @@ pub enum QueryAnswer {
         denom: String,
     },
     Allowance {
-        spender: HumanAddr,
-        owner: HumanAddr,
+        spender: Addr,
+        owner: Addr,
         allowance: Uint128,
         expiration: Option<u64>,
     },
@@ -521,7 +521,7 @@ pub enum QueryAnswer {
         msg: String,
     },
     Minters {
-        minters: Vec<HumanAddr>,
+        minters: Vec<Addr>,
     },
 }
 

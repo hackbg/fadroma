@@ -1,7 +1,7 @@
 use crate::scrt::{
     cosmwasm_std::{
-        HumanAddr, CanonicalAddr, Uint128, StdResult, StdError,
-        Storage, ReadonlyStorage, Api, BlockInfo, Coin, debug_print
+        Addr, CanonicalAddr, Uint128, StdResult, StdError,
+        Storage, Storage, Api, BlockInfo, Coin, debug_print
     },
     cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage}
 };
@@ -23,9 +23,9 @@ const PREFIX_TRANSFERS: &[u8] = b"transfers";
 #[serde(deny_unknown_fields)]
 pub struct Tx {
     pub id: u64,
-    pub from: HumanAddr,
-    pub sender: HumanAddr,
-    pub receiver: HumanAddr,
+    pub from: Addr,
+    pub sender: Addr,
+    pub receiver: Addr,
     pub coins: Coin,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub memo: Option<String>,
@@ -40,17 +40,17 @@ pub struct Tx {
 #[serde(deny_unknown_fields)]
 pub enum TxAction {
     Transfer {
-        from: HumanAddr,
-        sender: HumanAddr,
-        recipient: HumanAddr,
+        from: Addr,
+        sender: Addr,
+        recipient: Addr,
     },
     Mint {
-        minter: HumanAddr,
-        recipient: HumanAddr,
+        minter: Addr,
+        recipient: Addr,
     },
     Burn {
-        burner: HumanAddr,
-        owner: HumanAddr,
+        burner: Addr,
+        owner: Addr,
     },
     Deposit {},
     Redeem {},
@@ -445,7 +445,7 @@ fn append_transfer<S: Storage>(
     store.push(tx)
 }
 
-pub fn get_txs<A: Api, S: ReadonlyStorage>(
+pub fn get_txs<A: Api, S: Storage>(
     api: &A,
     storage: &S,
     for_address: &CanonicalAddr,
@@ -478,7 +478,7 @@ pub fn get_txs<A: Api, S: ReadonlyStorage>(
     txs.map(|txs| (txs, store.len() as u64))
 }
 
-pub fn get_transfers<A: Api, S: ReadonlyStorage>(
+pub fn get_transfers<A: Api, S: Storage>(
     api: &A,
     storage: &S,
     for_address: &CanonicalAddr,

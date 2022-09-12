@@ -1,6 +1,6 @@
 use cosmwasm_std::{
     from_binary, to_binary, Api, BankMsg, Binary, Coin, Context, CosmosMsg, Env, Extern,
-    HandleResponse, HumanAddr, InitResponse, Querier, StdError, StdResult, Storage, Uint128,
+    HandleResponse, Addr, InitResponse, Querier, StdError, StdResult, Storage, Uint128,
     WasmMsg,
 };
 
@@ -85,7 +85,7 @@ pub fn try_reset<S: Storage, A: Api, Q: Querier>(
 pub fn try_register<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    reg_addr: HumanAddr,
+    reg_addr: Addr,
     reg_hash: String,
 ) -> StdResult<HandleResponse> {
     let mut conf = config(&mut deps.storage);
@@ -113,8 +113,8 @@ pub fn try_register<S: Storage, A: Api, Q: Querier>(
 pub fn try_receive<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    _sender: HumanAddr,
-    _from: HumanAddr,
+    _sender: Addr,
+    _from: Addr,
     _amount: Uint128,
     msg: Binary,
 ) -> StdResult<HandleResponse> {
@@ -141,9 +141,9 @@ pub fn try_receive<S: Storage, A: Api, Q: Querier>(
 fn try_redeem<S: Storage, A: Api, Q: Querier>(
     deps: &mut Extern<S, A, Q>,
     env: Env,
-    addr: HumanAddr,
+    addr: Addr,
     hash: String,
-    to: HumanAddr,
+    to: Addr,
     amount: Uint128,
 ) -> StdResult<HandleResponse> {
     let state = config_read(&deps.storage).load()?;

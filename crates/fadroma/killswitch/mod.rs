@@ -23,7 +23,7 @@ pub trait Killswitch {
     fn set_status(
         level: ContractStatusLevel,
         reason: String,
-        new_address: Option<HumanAddr>
+        new_address: Option<Addr>
     ) -> StdResult<HandleResponse> {
         set_status(deps, env, level, reason, new_address)?;
 
@@ -38,7 +38,7 @@ pub trait Killswitch {
     }
 
     #[query]
-    fn get_status() -> StdResult<ContractStatus<HumanAddr>> {
+    fn get_status() -> StdResult<ContractStatus<Addr>> {
         let status = load(&deps.storage)?;
 
         status.humanize(&deps.api)
@@ -73,7 +73,7 @@ macro_rules! migration_message {
     ) };
     (migration: $reason:expr, $new_address:expr) => { format!(
          "This contract is being migrated to {}, please use that address instead. Reason: {}",
-         &$new_address.unwrap_or(HumanAddr::default()),
+         &$new_address.unwrap_or(Addr::default()),
          &$reason
     ) };
 }
@@ -137,7 +137,7 @@ impl<A> Default for ContractStatus<A> {
 /// Return the current contract status. Defaults to operational if nothing was stored.
 pub fn get_status <S: Storage, A: Api, Q: Querier> (
     deps: &Extern<S, A, Q>
-) -> StdResult<ContractStatus<HumanAddr>> {
+) -> StdResult<ContractStatus<Addr>> {
     load(&deps.storage)?.humanize(&deps.api)
 }
 
@@ -189,7 +189,7 @@ pub fn set_status <S: Storage, A: Api, Q: Querier> (
     env: Env,
     level: ContractStatusLevel,
     reason: String,
-    new_address: Option<HumanAddr>
+    new_address: Option<Addr>
 ) -> StdResult<()> {
     can_set_status(deps, level)?;
     
@@ -222,7 +222,7 @@ mod tests {
         is_operational(deps).unwrap();
 
         let reason = String::from("Reason");
-        let new_address = HumanAddr("new_address".into());
+        let new_address = Addr("new_address".into());
 
         let err = set_status(
             deps,

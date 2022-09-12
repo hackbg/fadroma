@@ -42,9 +42,6 @@ pub mod snip20_impl;
 pub mod storage;
 #[cfg(feature = "message")]
 pub use fadroma_proc_message as proc_message;
-#[cfg(feature = "response")]
-pub mod response;
-
 // Testing system
 #[cfg(all(feature = "ensemble", not(target_arch = "wasm32")))]
 pub mod ensemble;
@@ -66,7 +63,10 @@ pub mod prelude {
     pub use crate::core::*;
 
     #[cfg(feature = "scrt")]
-    pub use crate::scrt::{*, cosmwasm_std::{self, *}};
+    pub use crate::scrt::{
+        cosmwasm_std::{self, *},
+        *,
+    };
 
     #[cfg(feature = "scrt")]
     pub use schemars::{self, JsonSchema};
@@ -75,10 +75,7 @@ pub mod prelude {
     pub use crate::math::*;
 
     #[cfg(feature = "storage")]
-    pub use crate::storage::{
-        load, save, remove,
-        ns_load, ns_save, ns_remove
-    };
+    pub use crate::storage::{load, ns_load, ns_remove, ns_save, remove, save};
 
     #[cfg(feature = "snip20-client")]
     pub use crate::snip20_client::ISnip20;
@@ -86,23 +83,20 @@ pub mod prelude {
     #[cfg(feature = "message")]
     pub use crate::proc_message::message;
 
-    #[cfg(feature = "response")]
-    pub use crate::response::*;
-
     #[cfg(feature = "vk")]
     pub use crate::vk::ViewingKey;
 
     #[cfg(feature = "permit")]
-    pub use crate::permit::{Permit, Permission};
+    pub use crate::permit::{Permission, Permit};
 
     #[cfg(feature = "composability")]
     pub use crate::composability::Composable;
-
 }
 
 /// Define the `mod wasm` entrypoint of production builds.
 #[cfg(feature = "scrt")]
-#[macro_export] macro_rules! entrypoint {
+#[macro_export]
+macro_rules! entrypoint {
     ($($fadroma:ident)::+, $($contract:ident)::+ $(,)?) => {
         $($fadroma)::+::entrypoint!(
             $($fadroma)::+,

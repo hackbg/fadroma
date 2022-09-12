@@ -6,10 +6,10 @@ use super::response::BankResponse;
 pub type Balances = HashMap<String, Uint128>;
 
 #[derive(Clone, Default, Debug)]
-pub(crate) struct Bank(pub(crate) HashMap<HumanAddr, Balances>);
+pub(crate) struct Bank(pub(crate) HashMap<Addr, Balances>);
 
 impl Bank {
-    pub fn add_funds(&mut self, address: &HumanAddr, coins: Vec<Coin>) {
+    pub fn add_funds(&mut self, address: &Addr, coins: Vec<Coin>) {
         if coins.is_empty() {
             return;
         }
@@ -25,7 +25,7 @@ impl Bank {
 
     pub fn remove_funds(
         &mut self, 
-        address: &HumanAddr, 
+        address: &Addr, 
         coins: Vec<Coin>
     ) -> StdResult<()> {
         if coins.is_empty() {
@@ -74,8 +74,8 @@ impl Bank {
 
     pub fn transfer(
         &mut self,
-        from: &HumanAddr,
-        to: &HumanAddr,
+        from: &Addr,
+        to: &Addr,
         coins: Vec<Coin>,
     ) -> StdResult<BankResponse> {
         let res = BankResponse {
@@ -120,7 +120,7 @@ impl Bank {
         Ok(res)
     }
 
-    pub fn query_balances(&self, address: &HumanAddr, denom: Option<String>) -> Vec<Coin> {
+    pub fn query_balances(&self, address: &Addr, denom: Option<String>) -> Vec<Coin> {
         let account = self.0.get(address);
 
         match account {
@@ -147,7 +147,7 @@ impl Bank {
         }
     }
 
-    fn assert_account_exists(&mut self, address: &HumanAddr) {
+    fn assert_account_exists(&mut self, address: &Addr) {
         if !self.0.contains_key(address) {
             self.0.insert(address.clone(), Default::default());
         }

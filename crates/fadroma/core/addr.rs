@@ -1,10 +1,8 @@
-//! `HumanAddr`<->`CanonicalAddr` conversion
+//! `Addr`<->`CanonicalAddr` conversion
 
 use crate::cosmwasm_std::{
-    self,
-    StdResult, HumanAddr, CanonicalAddr, Api, Uint128, Coin, Binary, Decimal,
-    ContractInfo, BlockInfo, MessageInfo, Validator, Delegation, FullDelegation,
-    Empty
+    self, Api, Binary, BlockInfo, CanonicalAddr, Coin, ContractInfo, Decimal, Empty, Addr,
+    MessageInfo, StdResult, Uint128,
 };
 
 pub trait Canonize {
@@ -19,41 +17,37 @@ pub trait Humanize {
     fn humanize(self, api: &impl Api) -> StdResult<Self::Output>;
 }
 
-/// Attempting to canonicalize an empty address will fail. 
+/// Attempting to canonicalize an empty address will fail.
 /// This function skips calling `canonical_address` if the input is empty
 /// and returns `CanonicalAddr::default()` instead.
-pub fn canonize_maybe_empty(api: &impl Api, addr: &HumanAddr) -> StdResult<CanonicalAddr> {
-    Ok(
-        if *addr == HumanAddr::default() {
-            CanonicalAddr::default()
-        } else {
-            api.canonical_address(addr)?
-        }
-    )
+pub fn canonize_maybe_empty(api: &impl Api, addr: &Addr) -> StdResult<CanonicalAddr> {
+    Ok(if addr.as_str() == "" {
+        CanonicalAddr(Binary(Vec::new()))
+    } else {
+        api.addr_canonicalize(addr.as_str())?
+    })
 }
 
-/// Attempting to humanize an empty address will fail. 
+/// Attempting to humanize an empty address will fail.
 /// This function skips calling `human_address` if the input is empty
-/// and returns `HumanAddr::default()` instead.
-pub fn humanize_maybe_empty(api: &impl Api, addr: &CanonicalAddr) -> StdResult<HumanAddr> {
-    Ok(
-        if *addr == CanonicalAddr::default() {
-            HumanAddr::default()
-        } else {
-            api.human_address(addr)?
-        }
-    )
+/// and returns `Addr::default()` instead.
+pub fn humanize_maybe_empty(api: &impl Api, addr: &CanonicalAddr) -> StdResult<Addr> {
+    Ok(if *addr == CanonicalAddr(Binary(Vec::new())) {
+        Addr::unchecked("")
+    } else {
+        api.addr_humanize(addr)?
+    })
 }
 
 impl Humanize for CanonicalAddr {
-    type Output = HumanAddr;
+    type Output = Addr;
 
     fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         humanize_maybe_empty(api, &self)
     }
 }
 
-impl Canonize for HumanAddr {
+impl Canonize for Addr {
     type Output = CanonicalAddr;
 
     fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
@@ -62,14 +56,14 @@ impl Canonize for HumanAddr {
 }
 
 impl Humanize for &CanonicalAddr {
-    type Output = HumanAddr;
+    type Output = Addr;
 
     fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         humanize_maybe_empty(api, self)
     }
 }
 
-impl Canonize for &HumanAddr {
+impl Canonize for &Addr {
     type Output = CanonicalAddr;
 
     fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
@@ -99,7 +93,7 @@ impl<T: Humanize> Humanize for Option<T> {
     fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
         match self {
             Some(item) => Ok(Some(item.humanize(api)?)),
-            None => Ok(None)
+            None => Ok(None),
         }
     }
 }
@@ -110,7 +104,7 @@ impl<T: Canonize> Canonize for Option<T> {
     fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
         match self {
             Some(item) => Ok(Some(item.canonize(api)?)),
-            None => Ok(None)
+            None => Ok(None),
         }
     }
 }
@@ -120,22 +114,28 @@ macro_rules! impl_canonize_default {
     ($ty: ty) => {
         impl Humanize for $ty {
             type Output = Self;
-        
+
             #[inline(always)]
-            fn humanize(self, _api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
+            fn humanize(
+                self,
+                _api: &impl cosmwasm_std::Api,
+            ) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(self)
             }
         }
-        
+
         impl Canonize for $ty {
             type Output = Self;
-        
+
             #[inline(always)]
-            fn canonize(self, _api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
+            fn canonize(
+                self,
+                _api: &impl cosmwasm_std::Api,
+            ) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(self)
             }
         }
-    }
+    };
 }
 
 impl_canonize_default!(u8);
@@ -164,7 +164,4 @@ impl_canonize_default!(Coin);
 impl_canonize_default!(BlockInfo);
 impl_canonize_default!(ContractInfo);
 impl_canonize_default!(MessageInfo);
-impl_canonize_default!(Validator);
-impl_canonize_default!(Delegation);
-impl_canonize_default!(FullDelegation);
 impl_canonize_default!(Empty);
