@@ -9,7 +9,7 @@
     "@hackbg/formati": "^3.0.1",
     "@hackbg/konfizi": "^2",
 
-    "secretjs": "beta",
+    "secretjs": "1.4.0-alpha.4",
 
     "@ungap/structured-clone": "^1.0.1"
   },
