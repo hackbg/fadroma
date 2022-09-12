@@ -783,10 +783,12 @@ export class Contract<C extends Client> extends Client {
 
   /** Wrap the method in a lazy task if this.task is set. */
   task <T> (name: string, callback: (this: typeof this)=>Promise<T>): Promise<T> {
-    Object.defineProperty(callback, 'name', { value: name })
     if (this.deployment) {
-      return this.deployment.task(callback.bind(this))
+      callback = callback.bind(this)
+      Object.defineProperty(callback, 'name', { value: name })
+      return this.deployment.task(callback)
     } else {
+      Object.defineProperty(callback, 'name', { value: name })
       return callback.call(this)
     }
   }
@@ -997,7 +999,7 @@ export class Contract<C extends Client> extends Client {
         : this.fetchCodeHashByCodeId().then(codeHash=>Object.assign(this, { codeHash }))
     } else {
       return this.task(
-        `upload contract`,
+        `upload contract ${this.getSourceSpecifier()}`,
         async function uploadContract (this: Contract<C>): Promise<Contract<C>> {
           // Otherwise we're gonna need an uploader
           const uploader = this.assertUploader()
@@ -1036,7 +1038,7 @@ export class Contract<C extends Client> extends Client {
   deployMany = async (
     inits: (DeployArgs[])|(()=>DeployArgs[])|(()=>Promise<DeployArgs[]>)
   ): Promise<C[]> => this.task(
-    `get or deploy ${inits.length}x ${this.name??'contract'}`,
+    `deploy ${this.name??'contract'} (${inits.length} instances)`,
     function getOrDeployContracts (this: Contract<C>): Promise<C[]> {
       const agent = this.agent
       if (!agent) throw new ClientError.NoCreator()

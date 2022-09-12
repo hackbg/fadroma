@@ -49,6 +49,8 @@ export class DeployConfig extends Connect.ConnectConfig {
     super(env, cwd)
     this.override(defaults)
   }
+  /** Project root. Defaults to current working directory. */
+  project:  string  = this.getString ('FADROMA_PROJECT',  ()=>this.cwd)
   /** Whether to always upload contracts, ignoring upload receipts that match. */
   reupload: boolean = this.getBoolean('FADROMA_REUPLOAD', () => false)
   /** Whether to generate unsigned transactions for manual multisig signing. */
@@ -122,7 +124,8 @@ export class DeployCommands extends Deployment {
     const config = new DeployConfig(process.env, process.cwd(), options) as DeployConfig
     const { chain, agent } = await Connect.connect(options)
     if (!agent) new DeployConsole(console, 'Fadroma Deploy').warnNoAgent()
-    return new this({ name, config, chain, agent, build })
+    const deployments = chain ? Deployments.init(chain.id, config.project) : null
+    return new this({ name, config, chain, agent, build, deployments })
   }
 
   log = new DeployConsole(console, 'Fadroma.DeployCommands')
@@ -130,8 +133,9 @@ export class DeployCommands extends Deployment {
   constructor (options: Partial<DeployCommands> = {}) {
     super(options as Partial<Deployment>)
     if (!this.agent) this.log.warnNoDeployAgent()
-    this.config = options.config ?? new DeployConfig(process.env, process.cwd())
-    this.build  = options.build
+    this.config      = options.config ?? new DeployConfig(process.env, process.cwd())
+    this.build       = options.build
+    this.deployments = options.deployments ?? null
     this
       .command('list',    'print a list of all deployments', this.list)
       .command('select',  'select a new active deployment',  this.select)
@@ -165,11 +169,9 @@ export class DeployCommands extends Deployment {
         if (name === deployments.KEY) continue
         const deployment = deployments.get(name)!
         const count = Object.keys(deployment.state).length
-        let info
-        if (deployments.active && deployments.active.name === name) {
-          info = `${bold(name)} (selected)`
-        }
-        info = `${deployment} (${deployment.size} contracts)`
+        let info = `${bold(name)}`
+        if (deployments.active && deployments.active.name === name) info = `${bold(name)} (selected)`
+        info = `${info} (${deployment.size} contracts)`
         this.log.info(` `, info)
       }
     } else {
@@ -235,7 +237,7 @@ export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
 
   /** Get a Path instance for `$projectRoot/receipts/$chainId/deployments`
     * and convert it to a Deployments instance. See: @hackbg/kabinet */
-  static fromConfig = (chainId: string, projectRoot: string) =>
+  static init = (chainId: string, projectRoot: string) =>
     $(projectRoot).in('receipts').in(chainId).in('deployments').as(Deployments)
 
   /** Name of symlink pointing to active deployment, without extension. */
