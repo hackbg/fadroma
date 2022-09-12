@@ -34,10 +34,14 @@ export async function connect (
 ): Promise<ConnectContext> {
   config = new ConnectConfig(process.env, process.cwd(), config)
   const log = new ConnectConsole(console, 'Fadroma.connect')
+  const { chains = {} } = config
   let chain: Fadroma.Chain|null = null
   let agent: Fadroma.AgentOpts = {}
   if (config.chain) {
-    const getChain = config.chains![config.chain]
+    const getChain = chains[config.chain]
+    if (!getChain) throw new Error(
+      `Unknown chain ${config.chain}. Supported values are: ${Object.keys(chains).join(', ')}`
+    )
     chain = await Promise.resolve(getChain(config))
   }
   if (config.agentName) {
@@ -69,7 +73,7 @@ export class ConnectContext extends Fadroma.Deployment {
   showChains = async () => {
     const log = new ConnectConsole(console, 'Fadroma.ConnectCommands')
     log.supportedChains()
-    log.selectedChain((await connect()).config.chain)
+    log.selectedChain(this.config.chain)
   }
 }
 

@@ -40,24 +40,6 @@ import * as FS from 'fs'
 import YAML from 'js-yaml'
 export { YAML }
 
-export async function deploy (
-  config: DeployConfig|Partial<DeployConfig> = {},
-  build?: Build.BuildCommands
-) {
-  const { chain, agent } = await Connect.connect(config)
-  config = new DeployConfig(process.env, process.cwd(), config)
-  if (!agent) {
-    new DeployConsole(console, 'Fadroma Deploy').warnNoAgent()
-  }
-  return new DeployCommands({
-    name: 'deploy',
-    config: config as DeployConfig,
-    chain,
-    agent,
-    build
-  })
-}
-
 export class DeployConfig extends Connect.ConnectConfig {
   constructor (
     readonly env: Konfizi.Env = {},
@@ -131,6 +113,17 @@ export class DeployConsole extends ClientConsole {
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
 export class DeployCommands extends Deployment {
+
+  static async init (
+    options: DeployConfig|Partial<DeployConfig> = {},
+    build?:  Build.BuildCommands
+  ) {
+    const name = 'deploy'
+    const config = new DeployConfig(process.env, process.cwd(), options) as DeployConfig
+    const { chain, agent } = await Connect.connect(options)
+    if (!agent) new DeployConsole(console, 'Fadroma Deploy').warnNoAgent()
+    return new this({ name, config, chain, agent, build })
+  }
 
   log = new DeployConsole(console, 'Fadroma.DeployCommands')
 
@@ -614,3 +607,5 @@ export class UploadReceipt extends Kabinet.JSONFile<{
   }
 
 }
+
+export default DeployCommands.create
