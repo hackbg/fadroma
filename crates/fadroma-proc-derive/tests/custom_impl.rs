@@ -18,7 +18,7 @@ pub mod string_component {
         }
 
         #[handle_guard]
-        fn guard(_msg: &HandleMsg) -> StdResult<()> {
+        fn guard(_msg: &ExecuteMsg) -> StdResult<()> {
             Ok(())
         }
 
@@ -49,9 +49,9 @@ impl string_component::StringComponent for CustomStringImpl {
     }
 
     #[handle_guard]
-    fn guard(msg: &string_component::HandleMsg) -> StdResult<()> {
+    fn guard(msg: &string_component::ExecuteMsg) -> StdResult<()> {
         match msg  {
-            string_component::HandleMsg::SetString { string } => {
+            string_component::ExecuteMsg::SetString { string } => {
                 if string.is_empty() {
                     return Err(StdError::generic_err("String cannot be empty."));
                 }
@@ -88,21 +88,21 @@ pub trait CustomImplContract {
 
 #[test]
 fn uses_custom_impl() {
-    let ref mut deps = mock_dependencies();
+    let mut deps = mock_dependencies();
     let env = mock_env();
 
-    let msg = InitMsg {
+    let msg = InstantiateMsg {
         string: String::from("test")
     };
 
-    init(deps.as_mut(), env.clone(), mock_info("sender", &[]), msg, DefaultImpl).unwrap();
+    instantiate(deps.as_mut(), env.clone(), mock_info("sender", &[]), msg, DefaultImpl).unwrap();
 
-    let err = handle(
+    let err = execute(
         deps.as_mut(),
-        env,
+        env.clone(),
         mock_info("sender", &[]),
-        HandleMsg::StringComponent(
-            string_component::HandleMsg::SetString { string: String::new() }
+        ExecuteMsg::StringComponent(
+            string_component::ExecuteMsg::SetString { string: String::new() }
         ),
         DefaultImpl
     ).unwrap_err();

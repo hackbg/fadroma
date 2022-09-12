@@ -41,7 +41,7 @@ pub fn init(
 ) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_fn_args(&mut ast, true);
+    add_fn_args(&mut ast, true, false, false);
 
     let result = quote! {
         #ast
@@ -57,7 +57,7 @@ pub fn handle(
 ) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_fn_args(&mut ast, true);
+    add_fn_args(&mut ast, true, false, false);
 
     let result = quote! {
         #ast
@@ -73,7 +73,36 @@ pub fn query(
 ) -> proc_macro::TokenStream {
     let mut ast = parse_macro_input!(func as TraitItemMethod);
 
-    add_fn_args(&mut ast, false);
+    add_fn_args(&mut ast, false, false, false);
+
+    let result = quote! {
+        #ast
+    };
+
+    proc_macro::TokenStream::from(result)
+}
+
+#[proc_macro_attribute]
+pub fn handle_guard(
+    _args: proc_macro::TokenStream,
+    func: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    let mut ast = parse_macro_input!(func as TraitItemMethod);
+
+    if ast.sig.inputs.len() != 1 {
+        let err = syn::Error::new(
+            ast.sig.paren_token.span,
+            format!(
+                "Expecting one parameter with the type: &{}",
+                contract::HANDLE_MSG
+            ),
+        )
+        .to_compile_error();
+
+        return proc_macro::TokenStream::from(err);
+    }
+
+    add_fn_args(&mut ast, true, true, true);
 
     let result = quote! {
         #ast
@@ -122,17 +151,27 @@ fn generate_contract(
     proc_macro::TokenStream::from(result)
 }
 
-fn add_fn_args(func: &mut TraitItemMethod, is_tx: bool) {
+fn add_fn_args(func: &mut TraitItemMethod, is_tx: bool, ref_env: bool, ref_info: bool) {
     func.sig.inputs.insert(0, parse_quote!(&self));
 
     if is_tx {
         func.sig
             .inputs
             .push(parse_quote!(deps: cosmwasm_std::DepsMut));
-        func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
-        func.sig
-            .inputs
-            .push(parse_quote!(info: cosmwasm_std::MessageInfo));
+        if ref_env {
+            func.sig.inputs.push(parse_quote!(env: &cosmwasm_std::Env));
+        } else {
+            func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
+        }
+        if ref_info {
+            func.sig
+                .inputs
+                .push(parse_quote!(info: &cosmwasm_std::MessageInfo));
+        } else {
+            func.sig
+                .inputs
+                .push(parse_quote!(info: cosmwasm_std::MessageInfo));
+        }
     } else {
         func.sig.inputs.push(parse_quote!(deps: cosmwasm_std::Deps));
         func.sig.inputs.push(parse_quote!(env: cosmwasm_std::Env));
