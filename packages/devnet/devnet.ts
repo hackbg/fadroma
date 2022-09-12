@@ -18,7 +18,7 @@ import { fileURLToPath }                        from 'url'
 export const devnetPackage = dirname(fileURLToPath(import.meta.url)) // resource finder
 
 /** Module-specific log. */
-const log = new CustomConsole(console, 'Fadroma Devnet')
+const log = new CustomConsole('Fadroma Devnet')
 
 /** Gets devnet settings from environment. */
 export class DevnetConfig extends EnvConfig {

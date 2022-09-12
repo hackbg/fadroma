@@ -1356,7 +1356,7 @@ export abstract class Uploader {
 
   abstract upload (template: Contract<any>): Promise<Contract<any>>
 
-  abstract uploadMany (template: SparseArray<Contract<any>>): Promise<SparseArray<Contract<any>>>
+  abstract uploadMany (templates: Contract<any>[]): Promise<Contract<any>[]>
 
 }
 

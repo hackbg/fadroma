@@ -17,7 +17,7 @@ import { fileURLToPath }      from 'url'
 export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
 export const fixture   = x => resolve(here, 'fixtures', x)
-export const log       = new CustomConsole(console, 'Fadroma Testing')
+export const log       = new CustomConsole('Fadroma Testing')
 ```
 
 ### Example mnemonics

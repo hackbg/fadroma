@@ -24,7 +24,7 @@ import {
   randomBase64
 } from '@hackbg/formati'
 
-const log = new CustomConsole(console, 'Fadroma Tokens')
+const log = new CustomConsole('Fadroma Tokens')
 
 export type Tokens = Record<string, Snip20|Token>
 /** # Token descriptors. */

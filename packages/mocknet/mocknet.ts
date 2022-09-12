@@ -2,7 +2,7 @@ import { CustomConsole, bold } from '@hackbg/konzola'
 import * as Fadroma from '@fadroma/client'
 import * as Formati from '@hackbg/formati'
 
-const log = new CustomConsole(console, 'Fadroma Mocknet')
+const log = new CustomConsole('Fadroma Mocknet')
 
 /** Hosts MocknetContract instances. */
 export class MocknetBackend {
