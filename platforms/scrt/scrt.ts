@@ -21,7 +21,8 @@ import * as Formati  from '@hackbg/formati'
 import * as SecretJS from 'secretjs'
 
 import { randomBytes } from '@hackbg/formati'
-import { EnvConfig }   from '@hackbg/konfizi'
+import { EnvConfig } from '@hackbg/konfizi'
+import { CustomConsole, CustomError } from '@hackbg/konzola'
 import structuredClone from '@ungap/structured-clone'
 
 /// # CORE SECRET NETWORK DEFINITIONS /////////////////////////////////////////////////////////////
@@ -86,7 +87,7 @@ export abstract class ScrtAgent extends Fadroma.Agent {
 
   static async create (chain: Scrt, options: Partial<ScrtAgentOpts> = {}): Promise<ScrtAgent> {
     if (options?.legacy) {
-      throw Errors.UseOtherLib()
+      throw new ScrtError.UseAmino()
     } else {
       return await ScrtGrpcAgent.create(chain, options) as ScrtAgent
     }
@@ -311,12 +312,12 @@ export class ScrtGrpcAgent extends ScrtAgent {
       if (mnemonic) {
         wallet = new SecretJS.Wallet(mnemonic)
       } else {
-        throw Errors.WalletMnemonic()
+        throw new ScrtError.NoWalletOrMnemonic()
       }
     }
 
     if (keyPair) {
-      Warnings.IgnoringKeyPair()
+      log.warnIgnoringKeyPair()
       delete options.keyPair
     }
 
@@ -338,8 +339,8 @@ export class ScrtGrpcAgent extends ScrtAgent {
 
   constructor (chain: ScrtGrpc, options: Partial<ScrtGrpcAgentOpts>) {
     super(chain as Fadroma.Chain, options)
-    if (!options.wallet) throw Errors.NoWallet()
-    if (!options.api)    throw Errors.NoAPI()
+    if (!options.wallet) throw new ScrtError.NoWallet()
+    if (!options.api)    throw new ScrtError.NoApi()
     this.wallet  = options.wallet
     this.api     = options.api
     this.address = this.wallet?.address
@@ -444,8 +445,8 @@ export class ScrtGrpcAgent extends ScrtAgent {
   ): Promise<Fadroma.Contract<any>> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
-    if (chainId !== this.chain.id) throw Errors.AnotherChain()
-    if (isNaN(Number(codeId)))     throw Errors.NoCodeId()
+    if (chainId !== this.chain.id) throw new ScrtError.WrongChain()
+    if (isNaN(Number(codeId)))     throw new ScrtError.NoCodeId()
     const sender   = this.address
     const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
     const gasLimit = Number(Scrt.defaultFees.init.amount[0].amount)
@@ -470,7 +471,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
-    if (memo) Warnings.NoMemos()
+    if (memo) log.warnNoMemos()
     const result = await this.api.tx.compute.executeContract({
       sender:          this.address,
       contractAddress: address!,
@@ -520,7 +521,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   }
 
   async encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message) {
-    if (!codeHash) throw Errors.EncryptNoCodeHash()
+    if (!codeHash) throw new ScrtError.NoCodeHash()
     const { encryptionUtils } = await this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
     return Formati.Encoding.toBase64(encrypted)
@@ -784,45 +785,37 @@ export class ViewingKeyClient extends Fadroma.Client {
 
 }
 
-const Errors = {
-  UseOtherLib () {
-    return new Error('Use @fadroma/scrt-amino')
-  },
-  WalletMnemonic () {
-    return new Error('ScrtGrpcAgent: Can only be created from mnemonic or wallet+address')
-  },
-  AnotherChain () {
-    return new Error('ScrtGrpcAgent: Tried to instantiate a contract that is uploaded to another chain')
-  },
-  NoWallet () {
-    return new Error('ScrtGrpcAgent: no wallet')
-  },
-  NoAPI () {
-    return new Error('ScrtGrpcAgent: no api')
-  },
-  NoAPIUrl () {
-    return new Error('ScrtGrpc: no gRPC API URL')
-  },
-  NoCodeId () {
-    return new Error("ScrtGrpcAgent: need code ID to instantiate contract")
-  },
-  EncryptNoCodeHash: () => new Error('Missing code hash'),
+export class ScrtError extends CustomError {
+  static UseAmino = this.define('UseAmino',
+    () => 'Use @fadroma/scrt-amino for the legacy API')
+  static NoWalletOrMnemonic = this.define('NoWalletOrMnemonic',
+    () => 'This Agent can only be created from mnemonic or wallet+address')
+  static WrongChain = this.define('WrongChain',
+    () => 'Tried to instantiate a contract that is uploaded to another chain')
+  static NoWallet = this.define('NoWallet',
+    () => 'Missing wallet')
+  static NoApi = this.define('NoApi',
+    () => 'Missing API interface object')
+  static NoApiUrl = this.define('NoApiUrl',
+    () => 'Missing gRPC API URL')
+  static NoCodeId = this.define('NoCodeId',
+    () => 'Need code ID to instantiate contract')
+  static NoCodeHash = this.define('NoCodeHash',
+    () => 'Missing code hash')
 }
 
-const Warnings = {
-  IgnoringKeyPair () {
-    console.warn('ScrtGrpcAgent: Created from mnemonic, ignoring keyPair')
-  },
-  NoMemos () {
-    console.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
-  },
-  NoDefaultAmino (envVar: string) {
-    console.warn(
-      "getScrtConfig: no default API endpoints are provided for legacy Amino mode." +
-      (envVar ? `\nSet ${envVar} to provide yout known API endpoint.` : '')
-    )
-  }
+export class ScrtConsole extends CustomConsole {
+
+  name = '@fadroma/scrt'
+
+  warnIgnoringKeyPair = () =>
+    this.warn('ScrtGrpcAgent: Created from mnemonic, ignoring keyPair')
+  warnNoMemos = () =>
+    this.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
+
 }
+
+const log = new ScrtConsole()
 
 /** Allow Scrt clients to be implemented with just `@fadroma/scrt` */
 export * from '@fadroma/client'

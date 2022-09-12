@@ -22,20 +22,6 @@ import * as Formati  from '@hackbg/formati'
 import { backOff }   from 'exponential-backoff'
 import { default as Axios, AxiosInstance } from 'axios'
 
-export const ScrtAminoErrors = {
-  ZeroRecipients:     () => new Error('Tried to send to 0 recipients'),
-  TemplateNoCodeHash: () => new Error('Template must contain codeHash'),
-  EncryptNoCodeHash:  () => new Error('Missing code hash'),
-  UploadBinary:       () => new Error('The upload method takes a Uint8Array'),
-  NoAPIUrl:           () => new Error('ScrtAmino: no Amino API URL')
-}
-
-export const ScrtAminoWarnings = {
-  Keypair () {
-    console.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
-  },
-}
-
 export const privKeyToMnemonic = (privKey: Uint8Array) =>
   (Formati.Crypto.Bip39.encode(privKey) as any).data
 
@@ -145,7 +131,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
       case !!mnemonic:
         // if keypair doesnt correspond to the mnemonic, delete the keypair
         if (keyPair && mnemonic !== privKeyToMnemonic(keyPair.privkey)) {
-          ScrtAminoWarnings.Keypair()
+          log.warnKeypair()
           keyPair = null
         }
         break
@@ -236,7 +222,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
   }
 
   async sendMany (outputs: any, opts?: any) {
-    if (outputs.length < 0) throw ScrtAminoErrors.ZeroRecipients()
+    if (outputs.length < 0) throw new ScrtAminoError.NoRecipients()
     const from_address = this.address
     //const {accountNumber, sequence} = await this.api.getNonce(from_address)
     let accountNumber: number
@@ -256,7 +242,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
   }
 
   async upload (data: Uint8Array): Promise<Fadroma.Contract<any>> {
-    if (!(data instanceof Uint8Array)) throw ScrtAminoErrors.UploadBinary()
+    if (!(data instanceof Uint8Array)) throw new ScrtAminoError.NoUploadBinary()
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
     if (codeId === "-1") codeId = uploadResult.logs[0].events[0].attributes[3].value
@@ -275,7 +261,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     msg:      Fadroma.Message,
     funds = []
   ): Promise<Fadroma.Contract<any>> {
-    if (!template.codeHash) throw ScrtAminoErrors.TemplateNoCodeHash()
+    if (!template.codeHash) throw new ScrtAminoError.NoCodeHashInTemplate()
     let { codeId, codeHash } = template
     const { api } = this
     //@ts-ignore
@@ -320,7 +306,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
   }
 
   async encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message) {
-    if (!codeHash) throw ScrtAminoErrors.EncryptNoCodeHash()
+    if (!codeHash) throw new ScrtAminoError.NoCodeHash()
     const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg as object)
     return Formati.Encoding.toBase64(encrypted)
   }
@@ -712,6 +698,28 @@ export interface ScrtNonce {
   accountNumber: number
   sequence:      number
 }
+
+export class ScrtAminoError extends Fadroma.ScrtError {
+  static NoRecipients = this.define('NoRecipients',
+    () => 'Tried to send to 0 recipients')
+  static NoCodeHashInTemplate = this.define('NoCodeHashInTemplate',
+    () => "Can't instantiate a template with no codeHash")
+  static NoUploadBinary = this.define('NoUploadBinary',
+    () => 'The upload method takes a Uint8Array')
+  static NoApiUrl = this.define('NoApiUrl',
+    () => 'ScrtAmino: no Amino API URL')
+}
+
+export class ScrtAminoConsole extends Fadroma.ScrtConsole {
+
+  name = '@fadroma/scrt-amino'
+
+  warnKeypair = () =>
+    this.warn(`ScrtAgent: Keypair doesn't match mnemonic, ignoring keypair`)
+
+}
+
+const log = new ScrtAminoConsole()
 
 export * from '@fadroma/scrt'
 export { SecretJS }
