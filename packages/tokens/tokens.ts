@@ -241,7 +241,7 @@ export class TokenRegistry extends Deployment {
       contract.prefix = this.name
       this.add(symbol, contract)
       const init = Snip20.init(name, symbol, decimals, admin, config)
-      return contract.deploy(init)
+      return contract
     } else {
       throw new Error(`Token ${symbol}: not found`)
     }
@@ -265,7 +265,7 @@ export class TokenRegistry extends Deployment {
     // then instantiate the contract
     const contracts = await this.template!.deployMany(inits)
     // then construct the clients
-    const clients   = contracts.map(contract=>contract.client(Snip20))
+    const clients   = await Promise.all(contracts.map(contract=>contract.intoClient(Snip20)))
     for (const i in clients) {
       // populate metadata for free since we just created them
       clients[i].tokenName = tokens[i as any].name

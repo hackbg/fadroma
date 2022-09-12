@@ -18,7 +18,7 @@ export class ExampleDeployment extends Deployment {
       dependency: (await this.echo).asLink
     }))
 
-  all = this.subtask(()=>Promise.all([
+  all = this.task(()=>Promise.all([
     this.echo,
     this.kv
   ]))
