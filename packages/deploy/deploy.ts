@@ -610,4 +610,4 @@ export class UploadReceipt extends Kabinet.JSONFile<{
 
 }
 
-export default DeployCommands.create
+export default DeployCommands.init
