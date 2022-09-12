@@ -155,9 +155,15 @@ fn add_fn_args(func: &mut TraitItemMethod, is_tx: bool, ref_env: bool, ref_info:
     func.sig.inputs.insert(0, parse_quote!(&self));
 
     if is_tx {
-        func.sig
-            .inputs
-            .push(parse_quote!(deps: cosmwasm_std::DepsMut));
+        if func.default.is_none() {
+            func.sig
+                .inputs
+                .push(parse_quote!(deps: cosmwasm_std::DepsMut));
+        } else {
+            func.sig
+                .inputs
+                .push(parse_quote!(mut deps: cosmwasm_std::DepsMut));
+        }
         if ref_env {
             func.sig.inputs.push(parse_quote!(env: &cosmwasm_std::Env));
         } else {
