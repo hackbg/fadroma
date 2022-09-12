@@ -52,7 +52,7 @@ export type ChainRegistry = Record<string, (config: any)=>Chain|Promise<Chain>>
 /** Represents a particular chain. */
 export abstract class Chain {
 
-  log = new ClientConsole(console, 'Fadroma.Chain')
+  log = new ClientConsole('Fadroma.Chain')
 
   /** Async functions that return Chain instances in different modes.
     * Values for `FADROMA_CHAIN` environment variable. */
@@ -275,7 +275,7 @@ export class Fee implements IFee {
   * which can perform transactions as the authenticated identity. */
 export abstract class Agent {
 
-  log = new ClientConsole(console, 'Fadroma.Agent')
+  log = new ClientConsole('Fadroma.Agent')
 
   static create (chain: Chain, options: AgentOpts = {}): Promise<Agent> {
     //@ts-ignore
@@ -416,7 +416,7 @@ export interface AgentFees {
   * */
 export abstract class Bundle extends Agent {
 
-  log = new ClientConsole(console, 'Fadroma.Bundle')
+  log = new ClientConsole('Fadroma.Bundle')
 
   constructor (readonly agent: Agent) {
     if (!agent) throw new ClientError.NoBundleAgent()
@@ -583,7 +583,7 @@ export interface NewClient<C extends Client> {
   * Subclass this to add the contract's methods. */
 export class Client {
 
-  log = new ClientConsole(console, 'Fadroma.Client')
+  log = new ClientConsole('Fadroma.Client')
 
   static RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
 
@@ -753,7 +753,7 @@ export interface NewContract<C extends Client> {
 
 export class Contract<C extends Client> extends Client {
 
-  log = new ClientConsole(console, 'Fadroma.Contract')
+  log = new ClientConsole('Fadroma.Contract')
 
   constructor (
     specifier?:  Partial<Contract<C>>,
