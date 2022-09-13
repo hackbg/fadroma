@@ -8,7 +8,7 @@ const VIEWING_KEYS: &[u8] = b"XXzo7ZXRJ2";
 #[contract]
 pub trait VkAuth {
     #[handle]
-    fn create_viewing_key(entropy: String, _padding: Option<String>) -> StdResult<HandleResponse> {
+    fn create_viewing_key(entropy: String, _padding: Option<String>) -> StdResult<Response> {
         let prng_seed = [ 
             env.block.time.to_be_bytes(),
             env.block.height.to_be_bytes() 
@@ -18,9 +18,9 @@ pub trait VkAuth {
         let address = deps.api.canonical_address(&env.message.sender)?;
         save_viewing_key(deps, address.as_slice(), &key)?;
 
-        Ok(HandleResponse {
+        Ok(Response {
             messages: vec![],
-            log: vec![],
+            attributes: vec![],
             data: Some(to_binary(&AuthHandleAnswer::CreateViewingKey {
                 key
             })?)
@@ -28,14 +28,14 @@ pub trait VkAuth {
     }
 
     #[handle]
-    fn set_viewing_key(key: String, _padding: Option<String>) -> StdResult<HandleResponse> {
+    fn set_viewing_key(key: String, _padding: Option<String>) -> StdResult<Response> {
         let key = ViewingKey(key);
         let address = deps.api.canonical_address(&env.message.sender)?;
         save_viewing_key(deps, address.as_slice(), &key)?;
 
-        Ok(HandleResponse {
+        Ok(Response {
             messages: vec![],
-            log: vec![],
+            attributes: vec![],
             data: Some(to_binary(&AuthHandleAnswer::SetViewingKey {
                 status: AuthResponseStatus::Success }
             )?),
@@ -65,8 +65,8 @@ pub enum AuthResponseStatus {
 }
 
 #[inline]
-pub fn save_viewing_key<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+pub fn save_viewing_key(
+    deps: DepsMut,
     key: &[u8],
     viewing_key: &ViewingKey
 ) -> StdResult<()> {
@@ -74,8 +74,8 @@ pub fn save_viewing_key<S: Storage, A: Api, Q: Querier>(
 }
 
 #[inline]
-pub fn load_viewing_key<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
+pub fn load_viewing_key(
+    deps: Deps,
     key: &[u8],
 ) -> StdResult<Option<ViewingKey>> {
     ns_load(&deps.storage, VIEWING_KEYS, key)
@@ -103,20 +103,21 @@ pub fn authenticate(
 mod tests {
     use super::*;
     use cosmwasm_std::{from_binary, Addr};
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
 
     #[test]
     fn test_handle() {
-        let ref mut deps = mock_dependencies(10, &[]);
+        let ref mut deps = mock_dependencies();
 
-        let sender = Addr("sender".into());
+        let sender = Addr::unchecked("sender".into());
         let sender_canonical = deps.api.canonical_address(&sender).unwrap();
-        let env = mock_env(sender, &[]);
+        let env = mock_env();
 
-        let result = handle(
+        let result = execute(
             deps,
             env.clone(),
-            HandleMsg::CreateViewingKey { entropy: "123".into(), padding: None },
+            mock_info(sender, &[]),
+            ExecuteMsg::CreateViewingKey { entropy: "123".into(), padding: None },
             DefaultImpl
         ).unwrap();
 
@@ -138,10 +139,11 @@ mod tests {
 
         let new_key = String::from("new_key");
 
-        handle(
+        execute(
             deps,
             env.clone(),
-            HandleMsg::SetViewingKey { key: new_key.clone(), padding: None },
+            mock_info(sender, &[]),
+            ExecuteMsg::SetViewingKey { key: new_key.clone(), padding: None },
             DefaultImpl
         ).unwrap();
 

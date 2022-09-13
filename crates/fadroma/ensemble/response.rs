@@ -2,13 +2,13 @@ use std::iter::Iterator;
 
 use crate::{
     prelude::ContractLink,
-    cosmwasm_std::{Addr, Binary, InitResponse, HandleResponse, Coin}
+    cosmwasm_std::{Addr, Binary, Response, Coin}
 };
 
 use serde::{Serialize, Deserialize};
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum Response {
+pub enum ResponseVariants {
     Instantiate(InstantiateResponse),
     Execute(ExecuteResponse),
     Bank(BankResponse),
@@ -24,9 +24,9 @@ pub struct InstantiateResponse {
     /// The init message that was sent.
     pub msg: Binary,
     /// The init response returned by the contract.
-    pub response: InitResponse,
+    pub response: Response,
     /// The responses for any messages that the instantiated contract initiated.
-    pub sent: Vec<Response>
+    pub sent: Vec<ResponseVariants>
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -38,9 +38,9 @@ pub struct ExecuteResponse {
     /// The execute message that was sent.
     pub msg: Binary,
     /// The execute response returned by the contract.
-    pub response: HandleResponse,
+    pub response: Response,
     /// The responses for any messages that the executed contract initiated.
-    pub sent: Vec<Response>
+    pub sent: Vec<ResponseVariants>
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -327,7 +327,7 @@ mod tests {
         if let Response::Bank(bank) = iter.next().unwrap() {
             assert_eq!(bank.sender, "C".into());
             assert_eq!(bank.receiver, "B".into());
-            assert_eq!(bank.coins[0].amount, Uint128(800));
+            assert_eq!(bank.coins[0].amount, Uint128::new(800));
         } else {
             panic!()
         }
@@ -379,7 +379,7 @@ mod tests {
             sender: sender.into(),
             target: target.into(),
             msg: Binary::from(format!("message_{}", index).as_bytes()),
-            response: HandleResponse::default(),
+            response: Response::default(),
             sent: vec![]
         };
 
@@ -395,7 +395,7 @@ mod tests {
             sender: sender.into(),
             instance: ContractLink::default(),
             msg: Binary::from(format!("message_{}", index).as_bytes()),
-            response: InitResponse::default(),
+            response: Response::default(),
             sent: vec![]
         };
 
@@ -412,7 +412,7 @@ mod tests {
             receiver: to.into(),
             coins: vec![Coin {
                 denom: "uscrt".into(),
-                amount: Uint128(100 * index as u128)
+                amount: Uint128::new(100 * index as u128)
             }]
         }
     }

@@ -31,7 +31,7 @@ impl Storage for Revertable<TestStorage> {
         start: Option<&[u8]>,
         end: Option<&[u8]>,
         order: Order,
-    ) -> Box<dyn Iterator<Item = KV> + 'a> {
+    ) -> Box<dyn Iterator<Item = Record> + 'a> {
         self.readable().range(start, end, order)
     }
 }
@@ -59,7 +59,7 @@ impl Storage for TestStorage {
         start: Option<&[u8]>,
         end: Option<&[u8]>,
         order: Order,
-    ) -> Box<dyn Iterator<Item = KV> + 'a> {
+    ) -> Box<dyn Iterator<Item = Record> + 'a> {
         let bounds = range_bounds(start, end);
 
         // BTreeMap.range panics if range is start > end.
@@ -88,7 +88,7 @@ fn range_bounds(start: Option<&[u8]>, end: Option<&[u8]>) -> impl RangeBounds<Ve
 
 type BTreeMapPairRef<'a, T = Vec<u8>> = (&'a Vec<u8>, &'a T);
 
-fn clone_item<T: Clone>(item_ref: BTreeMapPairRef<T>) -> KV<T> {
+fn clone_item<T: Clone>(item_ref: BTreeMapPairRef<T>) -> Record<T> {
     let (key, value) = item_ref;
     (key.clone(), value.clone())
 }

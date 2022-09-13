@@ -24,16 +24,17 @@ pub trait Killswitch {
         level: ContractStatusLevel,
         reason: String,
         new_address: Option<Addr>
-    ) -> StdResult<HandleResponse> {
+    ) -> StdResult<Response> {
         set_status(deps, env, level, reason, new_address)?;
 
-        Ok(HandleResponse {
+        Ok(Response {
             messages: vec![],
-            log: vec![
-                log("action", "set_status"),
-                log("level", level)
+            attributes: vec![
+                attr("action", "set_status"),
+                attr("level", level)
             ],
-            data: None
+            data: None,
+            events: vec![],
         })
     }
 
@@ -49,17 +50,17 @@ pub trait Killswitch {
 #[macro_export] macro_rules! with_status {
     // by default, assumes the handle msg enum is called `HandleMsg` and imported
     ($deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {
-        with_status!(HandleMsg, $deps, $env, match $msg { $($rest)* })
+        with_status!(ExecuteMsg, $deps, $env, match $msg { $($rest)* })
     };
     // but an alternative name can be passed
     ($HandleMsg:ty, $deps:ident, $env:ident, match $msg:ident { $($rest:tt)* }) => {
-        if let HandleMsg::SetStatus { level, reason, new_address } = $msg {
+        if let ExecuteMsg::SetStatus { level, reason, new_address } = $msg {
             fadroma::killswitch::set_status($deps, $env, level, reason, new_address)?;
-            Ok(HandleResponse::default())
+            Ok(Response::default())
         } else {
             fadroma::killswitch::is_operational(&$deps)?;
             match $msg {
-                HandleMsg::SetStatus { .. } => unreachable!(),
+                ExecuteMsg::SetStatus { .. } => unreachable!(),
                 $($rest)*
             }
         }
@@ -135,34 +136,32 @@ impl<A> Default for ContractStatus<A> {
 }
 
 /// Return the current contract status. Defaults to operational if nothing was stored.
-pub fn get_status <S: Storage, A: Api, Q: Querier> (
-    deps: &Extern<S, A, Q>
+pub fn get_status(
+    deps: Deps,
 ) -> StdResult<ContractStatus<Addr>> {
     load(&deps.storage)?.humanize(&deps.api)
 }
 
 /// Fail if the current contract status level is other than `Operational`.
-pub fn is_operational <S: Storage, A: Api, Q: Querier> (
-    deps: &Extern<S, A, Q>
+pub fn is_operational(
+    deps: Deps,
 ) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = get_status(deps)?;
 
     match level {
         ContractStatusLevel::Operational => Ok(()),
         ContractStatusLevel::Paused => Err(StdError::GenericErr {
-            backtrace: None,
             msg: migration_message!(paused: reason)
         }),
         ContractStatusLevel::Migrating => Err(StdError::GenericErr {
-            backtrace: None,
             msg: migration_message!(migration: reason, new_address.clone())
         }),
     }
 }
 
 /// Fail if trying to return from `Migrating` status.
-pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
-    deps: &Extern<S, A, Q>,
+pub fn can_set_status(
+    deps: Deps,
     to_level: ContractStatusLevel
 ) -> StdResult<()> {
     let ContractStatus { level, reason, new_address } = get_status(deps)?;
@@ -175,7 +174,6 @@ pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
             ContractStatusLevel::Migrating => Ok(()),
             // but prevent reverting from migration status
             _ => Err(StdError::GenericErr {
-                backtrace: None,
                 msg: migration_message!(migration: reason, new_address.clone())
             })
         }
@@ -184,8 +182,8 @@ pub fn can_set_status <S: Storage, A: Api, Q: Querier>  (
 
 /// Store a new contract status. Requires the admin component in order to check for admin.
 #[require_admin]
-pub fn set_status <S: Storage, A: Api, Q: Querier> (
-    deps: &mut Extern<S, A, Q>,
+pub fn set_status(
+    deps: DepsMut,
     env: Env,
     level: ContractStatusLevel,
     reason: String,
@@ -203,15 +201,15 @@ pub fn set_status <S: Storage, A: Api, Q: Querier> (
 mod tests {
     use super::*;
 
-    use crate::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use crate::scrt::cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
     use crate::admin::{self, Admin};
 
     #[test]
     fn test_migrate() {
-        let ref mut deps = mock_dependencies(20, &[]);
+        let ref mut deps = mock_dependencies();
         let admin = "admin";
 
-        admin::DefaultImpl.new(Some(admin.into()), deps, mock_env(admin, &[])).unwrap();
+        admin::DefaultImpl.new(Some(admin.into()), deps, mock_env(), mock_info(admin, &[])).unwrap();
 
         let current = get_status(deps).unwrap();
         assert_eq!(current.level, ContractStatusLevel::Operational);
@@ -222,11 +220,12 @@ mod tests {
         is_operational(deps).unwrap();
 
         let reason = String::from("Reason");
-        let new_address = Addr("new_address".into());
+        let new_address = Addr::unchecked("new_address".into());
 
         let err = set_status(
             deps,
-            mock_env("not_admin", &[]),
+            mock_env(),
+            mock_info("not_admin", &[]),
             ContractStatusLevel::Paused,
             "Test reason".into(),
             None
@@ -236,7 +235,8 @@ mod tests {
 
         set_status(
             deps,
-            mock_env(admin, &[]),
+            mock_env(),
+            mock_info(admin, &[]),
             ContractStatusLevel::Paused,
             reason.clone(),
             None

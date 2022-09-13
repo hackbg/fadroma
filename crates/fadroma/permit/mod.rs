@@ -62,9 +62,9 @@ impl<P: Permission> Permit<P> {
         self.params.permissions.contains(permission)
     }
 
-    pub fn validate_with_permissions<S: Storage, A: Api, Q: Querier>(
+    pub fn validate_with_permissions(
         &self,
-        deps: &Extern<S, A, Q>,
+        deps: Deps,
         current_contract_addr: Addr,
         expected_permissions: Vec<P>
     ) -> StdResult<Addr> {
@@ -80,9 +80,9 @@ impl<P: Permission> Permit<P> {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn validate<S: Storage, A: Api, Q: Querier>(
+    pub fn validate(
         &self,
-        deps: &Extern<S, A, Q>,
+        deps: Deps,
         current_contract_addr: Addr
     ) -> StdResult<Addr> {
         if !self.check_token(&current_contract_addr) {
@@ -283,7 +283,7 @@ impl Fee {
     pub fn new() -> Self {
         Self {
             amount: vec![Coin::new()],
-            gas: Uint128(1)
+            gas: Uint128::new(1)
         }
     }
 }
@@ -362,7 +362,7 @@ mod tests {
             Two
         }
 
-        let ref mut deps = mock_dependencies(20, &[]);
+        let ref mut deps = mock_dependencies();
 
         let contract_addr = Addr::unchecked("contract");
         let permissions = vec![ Permission::One ];

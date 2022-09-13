@@ -1,8 +1,8 @@
 //! *Feature flag: `admin`*
 //! Transaction authentication by pre-configured admin address.
 
-use crate::prelude::*;
 use crate::derive_contract::*;
+use crate::prelude::*;
 
 pub use fadroma_proc_auth::*;
 
@@ -12,7 +12,7 @@ const PENDING_ADMIN_KEY: &[u8] = b"b5QaJXDibK";
 #[contract]
 pub trait Admin {
     #[init]
-    fn new(admin: Option<Addr>) -> StdResult<InitResponse> {
+    fn new(admin: Option<Addr>) -> StdResult<Response> {
         let admin = if let Some(addr) = admin {
             addr
         } else {
@@ -21,36 +21,36 @@ pub trait Admin {
 
         save_admin(deps, &admin)?;
 
-        Ok(InitResponse::default())
+        Ok(Response::default())
     }
 
     #[handle]
-    fn change_admin(address: Addr) -> StdResult<HandleResponse> {
+    fn change_admin(address: Addr) -> StdResult<Response> {
         assert_admin(deps, &env)?;
         save_pending_admin(deps, &address)?;
-    
-        Ok(HandleResponse {
+
+        Ok(Response {
             messages: vec![],
-            log: vec![log("pending_admin", address)],
-            data: None
+            attributes: vec![attr("pending_admin", address)],
+            data: None,
         })
     }
 
     #[handle]
-    fn accept_admin() -> StdResult<HandleResponse> {
+    fn accept_admin() -> StdResult<Response> {
         let pending = load_pending_admin(deps)?;
 
         if pending != env.message.sender {
-            return Err(StdError::unauthorized())
+            return Err(StdError::unauthorized());
         }
 
         save_admin(deps, &pending)?;
         deps.storage.remove(PENDING_ADMIN_KEY);
 
-        Ok(HandleResponse {
+        Ok(Response {
             messages: vec![],
-            log: vec![log("new_admin", env.message.sender)],
-            data: None
+            attributes: vec![attr("new_admin", env.message.sender)],
+            data: None,
         })
     }
 
@@ -62,9 +62,7 @@ pub trait Admin {
     }
 }
 
-pub fn load_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
-) -> StdResult<Addr> {
+pub fn load_admin(deps: Deps) -> StdResult<Addr> {
     let result = deps.storage.get(ADMIN_KEY);
 
     match result {
@@ -72,27 +70,19 @@ pub fn load_admin<S: Storage, A: Api, Q: Querier>(
             let admin = CanonicalAddr::unchecked(bytes);
 
             deps.api.human_address(&admin)
-        },
-        None => {
-            Ok(Addr::default())
         }
+        None => Ok(Addr::default()),
     }
 }
 
-pub fn save_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    address: &Addr
-) -> StdResult<()> {
+pub fn save_admin(deps: DepsMut, address: &Addr) -> StdResult<()> {
     let admin = deps.api.canonical_address(address)?;
     deps.storage.set(ADMIN_KEY, &admin.as_slice());
 
     Ok(())
 }
 
-
-pub fn load_pending_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>
-) -> StdResult<Addr> {
+pub fn load_pending_admin(deps: DepsMut) -> StdResult<Addr> {
     let result = deps.storage.get(PENDING_ADMIN_KEY);
 
     match result {
@@ -100,27 +90,19 @@ pub fn load_pending_admin<S: Storage, A: Api, Q: Querier>(
             let admin = CanonicalAddr::unchecked(bytes);
 
             deps.api.human_address(&admin)
-        },
-        None => {
-            Err(StdError::generic_err("New admin not set."))
         }
+        None => Err(StdError::generic_err("New admin not set.")),
     }
 }
 
-pub fn save_pending_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    address: &Addr
-) -> StdResult<()> {
+pub fn save_pending_admin(deps: DepsMut, address: &Addr) -> StdResult<()> {
     let admin = deps.api.canonical_address(address)?;
     deps.storage.set(PENDING_ADMIN_KEY, &admin.as_slice());
 
     Ok(())
 }
 
-pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    env: &Env
-) -> StdResult<()> {
+pub fn assert_admin(deps: Deps, env: &Env) -> StdResult<()> {
     let admin = load_admin(deps)?;
 
     if admin == env.message.sender {
@@ -134,94 +116,100 @@ pub fn assert_admin<S: Storage, A: Api, Q: Querier>(
 mod tests {
     use super::*;
     use fadroma_platform_scrt::cosmwasm_std::{
-        Storage, from_binary,
-        testing::{mock_dependencies, mock_env}
+        from_binary,
+        testing::{mock_dependencies, mock_env, mock_info},
+        Storage,
     };
 
     #[test]
     fn test_handle() {
-        let ref mut deps = mock_dependencies(10, &[]);
+        let ref mut deps = mock_dependencies();
 
         let admin = "admin";
         save_admin(deps, &Addr::unchecked(admin)).unwrap();
 
-        let msg = HandleMsg::ChangeAdmin { 
-            address: Addr::unchecked("will fail")
+        let msg = ExecuteMsg::ChangeAdmin {
+            address: Addr::unchecked("will fail"),
         };
 
-        let result = handle(
+        let result = execute(
             deps,
-            mock_env("unauthorized", &[]),
+            mock_env(),
+            mock_info("unauthorized", &[]),
             msg,
-            DefaultImpl
-        ).unwrap_err();
-        
+            DefaultImpl,
+        )
+        .unwrap_err();
+
         match result {
-            StdError::Unauthorized { .. } => { },
-            _ => panic!("Expected \"StdError::Unauthorized\"")
+            StdError::Unauthorized { .. } => {}
+            _ => panic!("Expected \"StdError::Unauthorized\""),
         };
 
         let new_admin = Addr::unchecked("new_admin");
 
-        let result = handle(
+        let result = execute(
             deps,
-            mock_env(new_admin.clone(), &[]),
-            HandleMsg::AcceptAdmin {},
-            DefaultImpl
-        ).unwrap_err();
+            mock_env(),
+            mock_info(new_admin.clone(), &[]),
+            ExecuteMsg::AcceptAdmin {},
+            DefaultImpl,
+        )
+        .unwrap_err();
 
         match result {
             StdError::GenericErr { msg, .. } => {
                 assert_eq!(msg, "New admin not set.")
-            },
-            _ => panic!("Expected \"StdError::GenericErr\"")
+            }
+            _ => panic!("Expected \"StdError::GenericErr\""),
         };
 
-        let msg = HandleMsg::ChangeAdmin { 
-            address: new_admin.clone()
+        let msg = ExecuteMsg::ChangeAdmin {
+            address: new_admin.clone(),
         };
 
-        handle(
-            deps,
-            mock_env(admin, &[]),
-            msg,
-            DefaultImpl
-        ).unwrap();
+        execute(deps, mock_env(), mock_info(admin, &[]), msg, DefaultImpl).unwrap();
 
         assert_eq!(load_pending_admin(deps).unwrap(), new_admin);
 
-        let result = handle(
+        let result = execute(
             deps,
-            mock_env("unauthorized", &[]),
-            HandleMsg::AcceptAdmin {},
-            DefaultImpl
-        ).unwrap_err();
+            mock_env(),
+            mock_info("unauthorized", &[]),
+            ExecuteMsg::AcceptAdmin {},
+            DefaultImpl,
+        )
+        .unwrap_err();
 
         match result {
-            StdError::Unauthorized { .. } => { },
-            _ => panic!("Expected \"StdError::Unauthorized\"")
+            StdError::Unauthorized { .. } => {}
+            _ => panic!("Expected \"StdError::Unauthorized\""),
         };
 
-        let result = handle(
+        let result = execute(
             deps,
-            mock_env(admin, &[]),
-            HandleMsg::AcceptAdmin {},
-            DefaultImpl
-        ).unwrap_err();
+            mock_env(),
+            mock_info(admin, &[]),
+            ExecuteMsg::AcceptAdmin {},
+            DefaultImpl,
+        )
+        .unwrap_err();
 
         match result {
-            StdError::Unauthorized { .. } => { },
-            _ => panic!("Expected \"StdError::Unauthorized\"")
+            StdError::Unauthorized { .. } => {}
+            _ => panic!("Expected \"StdError::Unauthorized\""),
         };
 
         assert_eq!(load_admin(deps).unwrap(), Addr::unchecked(admin));
 
-        handle(
+        execute(
             deps,
-            mock_env(new_admin.clone(), &[]),
-            HandleMsg::AcceptAdmin {},
-            DefaultImpl
-        ).unwrap();
+            mock_env(),
+            mock_info(new_admin.clone(), &[]),
+            ExecuteMsg::AcceptAdmin {},
+            DefaultImpl,
+        )
+        .unwrap();
 
         assert_eq!(load_admin(deps).unwrap(), new_admin);
         assert!(deps.storage.get(PENDING_ADMIN_KEY).is_none())
@@ -229,9 +217,9 @@ mod tests {
 
     #[test]
     fn test_query() {
-        let ref mut deps = mock_dependencies(10, &[]);
+        let ref mut deps = mock_dependencies();
 
-        let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
+        let result = query(deps, mock_env(), QueryMsg::Admin {}, DefaultImpl).unwrap();
 
         let address: Addr = from_binary(&result).unwrap();
         assert!(address == Addr::default());
@@ -239,7 +227,7 @@ mod tests {
         let admin = Addr::unchecked("admin");
         save_admin(deps, &admin).unwrap();
 
-        let result = query(deps, QueryMsg::Admin {}, DefaultImpl).unwrap();
+        let result = query(deps, mock_env(), QueryMsg::Admin {}, DefaultImpl).unwrap();
         let address: Addr = from_binary(&result).unwrap();
         assert!(address == admin);
     }

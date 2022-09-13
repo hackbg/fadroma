@@ -1,5 +1,5 @@
-use crate::prelude::{*, testing::MockQuerier};
 use super::ensemble::Context;
+use crate::prelude::{testing::MockQuerier, *};
 
 pub struct EnsembleQuerier {
     // NOTE: raw pointer to crate::ensemble::ContractEnsemble::ctx
@@ -53,6 +53,7 @@ impl Querier for EnsembleQuerier {
 
                     todo!()
                 }
+                _ => unimplemented!(),
             },
             QueryRequest::Bank(query) => match query {
                 BankQuery::AllBalances { address } => {
@@ -67,44 +68,63 @@ impl Querier for EnsembleQuerier {
                         amount: amount.into_iter().next().unwrap(),
                     }))
                 }
+                _ => unimplemented!(),
             },
             QueryRequest::Staking(query) => match query {
                 StakingQuery::AllDelegations { delegator } => {
                     let delegations = ctx.delegations.all_delegations(&delegator);
 
                     Ok(to_binary(&AllDelegationsResponse { delegations }))
-                },
+                }
                 StakingQuery::BondedDenom {} => {
                     let denom = ctx.delegations.bonded_denom();
 
-                    Ok(to_binary(&BondedDenomResponse { denom: denom.to_string() }))
-                },
-                StakingQuery::Delegation { delegator, validator } => {
+                    Ok(to_binary(&BondedDenomResponse {
+                        denom: denom.to_string(),
+                    }))
+                }
+                StakingQuery::Delegation {
+                    delegator,
+                    validator,
+                } => {
                     let delegation = ctx.delegations.delegation(&delegator, &validator);
 
                     Ok(to_binary(&delegation))
-                },
-                StakingQuery::UnbondingDelegations { delegator } => {
-                    let delegations = ctx.delegations.unbonding_delegations(&delegator);
+                }
+                // TODO: is this removed?
+                // StakingQuery::UnbondingDelegations { delegator } => {
+                //     let delegations = ctx.delegations.unbonding_delegations(&delegator);
 
-                    Ok(to_binary(&UnbondingDelegationsResponse { delegations }))
-                },
-                StakingQuery::Validators {} => {
+                //     Ok(to_binary(&UnbondingDelegationsResponse { delegations }))
+                // },
+                StakingQuery::AllValidators {} => {
                     let validators = ctx.delegations.validators();
 
-                    Ok(to_binary(&ValidatorsResponse { validators: validators.to_vec() }))
-                },
-            },
-            QueryRequest::Dist(query) => match query {
-                DistQuery::Rewards { delegator } => {
-                    let rewards = ctx.delegations.rewards(&delegator);
+                    Ok(to_binary(&AllValidatorsResponse {
+                        validators: validators.to_vec(),
+                    }))
+                }
+                StakingQuery::Validator { address } => {
+                    let validator = ctx
+                        .delegations
+                        .validators()
+                        .iter()
+                        .filter(|validator| validator.address == address)
+                        .collect();
 
-                    Ok(to_binary(&rewards))
-                },
+                    Ok(to_binary(&ValidatorResponse { validator }))
+                }
+                _ => unimplemented!(),
             },
-            _ => {
-                Ok(self.base.query(&request))
-            },
+            // TODO: is this removed?
+            // QueryRequest::Dist(query) => match query {
+            //     DistQuery::Rewards { delegator } => {
+            //         let rewards = ctx.delegations.rewards(&delegator);
+
+            //         Ok(to_binary(&rewards))
+            //     }
+            // },
+            _ => Ok(self.base.query(&request)),
         }
     }
 }
