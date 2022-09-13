@@ -7,7 +7,6 @@
   "scripts": {
     "@hackbg/konzola": "^2",
     "@hackbg/komandi": "^5",
-    "@hackbg/konfizi": "^5",
     "test":        "ganesha-node client.spec.ts.md",
     "ts:check":    "tsc --noEmit",
     "release:dry": "npm run ts:check && izomorf dry",
