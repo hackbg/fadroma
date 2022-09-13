@@ -15,12 +15,12 @@ importers:
       '@fadroma/tokens': workspace:^4
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/formati': ^3.0.1
-      '@hackbg/izomorf': ^4.2.4
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^5
       '@hackbg/konfizi': ^2
       '@hackbg/konzola': ^2
       '@hackbg/runspec': ^2.3.1
+      '@hackbg/ubik': ^1.1.1
       '@types/dockerode': ^3.3.9
       '@types/js-yaml': ^4.0.5
       '@types/node': ^16.11.55
@@ -54,8 +54,8 @@ importers:
       '@hackbg/konzola': link:toolbox/konzola
     devDependencies:
       '@hackbg/ensuite': 1.0.2
-      '@hackbg/izomorf': link:toolbox/izomorf
       '@hackbg/runspec': link:toolbox/runspec
+      '@hackbg/ubik': link:toolbox/ubik
       '@types/dockerode': 3.3.9
       '@types/js-yaml': 4.0.5
       '@types/node': 16.11.55
@@ -249,12 +249,12 @@ importers:
     specifiers:
       '@hackbg/dokeres': workspace:^4.1.2
       '@hackbg/formati': workspace:^3.0.1
-      '@hackbg/izomorf': workspace:latest
       '@hackbg/kabinet': workspace:^3.1.1
       '@hackbg/komandi': workspace:^5
       '@hackbg/konzola': workspace:^2
       '@hackbg/portali': workspace:^1.2.3
       '@hackbg/runspec': workspace:^2.3.1
+      '@hackbg/ubik': workspace:latest
       '@types/node': latest
       bech32: ^2.0.0
       concurrently: 7.2.2
@@ -277,7 +277,7 @@ importers:
       rimraf: 3.0.2
       signal-exit: 3.0.7
     devDependencies:
-      '@hackbg/izomorf': link:izomorf
+      '@hackbg/ubik': link:ubik
       '@types/node': 18.7.17
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.7.4
@@ -323,20 +323,6 @@ importers:
       '@waiting/base64': 4.2.9
       bech32: 2.0.0
       secure-random: 1.1.2
-
-  toolbox/izomorf:
-    specifiers:
-      boxen: ^7.0.0
-      concurrently: 7.2.2
-      node-fetch: ^2
-      recast: ^0.21.2
-      rimraf: ^3.0.2
-    dependencies:
-      boxen: 7.0.0
-      concurrently: 7.2.2
-      node-fetch: 2.6.7
-      recast: 0.21.2
-      rimraf: 3.0.2
 
   toolbox/kabinet:
     specifiers:
@@ -417,6 +403,26 @@ importers:
 
   toolbox/runspec:
     specifiers: {}
+
+  toolbox/ubik:
+    specifiers:
+      boxen: ^7.0.0
+      concurrently: 7.2.2
+      node-fetch: ^2
+      recast: ^0.21.2
+      rimraf: ^3.0.2
+    dependencies:
+      boxen: 7.0.0
+      concurrently: 7.2.2
+      node-fetch: 2.6.7
+      recast: 0.21.2
+      rimraf: 3.0.2
+
+  toolbox/ubik/example:
+    specifiers:
+      '@hackbg/ubik': workspace:..
+    devDependencies:
+      '@hackbg/ubik': link:..
 
 packages:
 

@@ -9,8 +9,8 @@
   "scripts": {
     "test":        "ganesha-node build.spec.ts.md",
     "ts:check":    "tsc --noEmit",
-    "release:dry": "npm test && npm run ts:check && izomorf dry",
-    "release:wet": "npm test && npm run ts:check && izomorf wet --access=public"
+    "release:dry": "npm test && npm run ts:check && ubik dry",
+    "release:wet": "npm test && npm run ts:check && ubik wet --access=public"
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5"

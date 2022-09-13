@@ -8,8 +8,8 @@
   "description": "Spawn local instance of blockchain for smart contract development.",
   "scripts": {
     "ts:check": "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "release:dry": "pnpm ts:check && ubik dry",
+    "release:wet": "pnpm ts:check && ubik wet --access=public"
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5"

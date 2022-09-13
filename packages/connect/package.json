@@ -8,8 +8,8 @@
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
     "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "release:dry": "pnpm ts:check && ubik dry",
+    "release:wet": "pnpm ts:check && ubik wet --access=public"
   },
   "dependencies": {
     "@fadroma/client":     "workspace:^5",
