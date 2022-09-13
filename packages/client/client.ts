@@ -754,9 +754,9 @@ export class Contract<C extends Client> extends Client {
   builder?: string|Builder = undefined
 
   /** Throw appropriate error if not buildable. */
-  assertBuildable (builder: typeof this.builder = this.builder): Builder {
+  assertBuildable (builder: string|Builder|undefined = this.builder): Builder {
     if (!this.crate) throw new ClientError.NoCrate()
-    if (!builder)    throw new ClientError.NoBuilder()
+    if (!builder) throw new ClientError.NoBuilder()
     if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
     return builder
   }
@@ -782,11 +782,12 @@ export class Contract<C extends Client> extends Client {
   }
 
   /** Object containing upload logic. */
-  uploader?: Uploader = undefined
+  uploader?: string|Uploader = undefined
 
   /** Return the Uploader for this Template or throw. */
-  assertUploader (uploader: typeof this.uploader = this.uploader): Uploader {
-    if (!uploader)       throw new ClientError.NoUploader()
+  assertUploader (uploader: string|Uploader|undefined = this.uploader): Uploader {
+    if (!uploader) throw new ClientError.NoUploader()
+    if (typeof uploader === 'string') throw new ClientError.ProvideUploader(uploader)
     if (!uploader.agent) throw new ClientError.NoUploaderAgent()
     return uploader
   }
@@ -898,12 +899,12 @@ export class Contract<C extends Client> extends Client {
   /** Async wrapper around getClientSync.
     * @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
-  getClient = async ($Client: typeof this.client = this.client): Promise<C> =>
+  getClient = async ($Client: NewClient<C> = this.client): Promise<C> =>
     this.getClientSync($Client)
 
   /** @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
-  getClientSync ($Client: typeof this.client = this.client): C {
+  getClientSync ($Client: NewClient<C> = this.client): C {
     const client = this.getClientOrNull($Client)
     if (client) return client
     throw new ClientError.NotFound($Client.name, this.name, this.deployment?.name)
@@ -911,7 +912,7 @@ export class Contract<C extends Client> extends Client {
 
   /** @returns a Client instance pointing to this contract, or null if
     * the contract address could not be determined */
-  getClientOrNull = ($Client: typeof this.client = this.client): C|null => {
+  getClientOrNull = ($Client: NewClient<C> = this.client): C|null => {
     if (this.address) {
       return new this.client(this.agent, this.address, this.codeHash)
     }
@@ -924,7 +925,7 @@ export class Contract<C extends Client> extends Client {
 
   /** Upload compiled source code to the selected chain. */
   upload = async (
-    uploader: typeof this.uploader = this.uploader
+    _uploader: Uploader|string|undefined = this.uploader
   ): Promise<Contract<C>> => {
     if (this.chainId && this.codeId) {
       return this.codeHash
@@ -935,7 +936,7 @@ export class Contract<C extends Client> extends Client {
         `upload contract ${this.getSourceSpecifier()}`,
         async function uploadContract (this: Contract<C>): Promise<Contract<C>> {
           // Otherwise we're gonna need an uploader
-          const uploader = this.assertUploader()
+          const uploader = this.assertUploader(_uploader)
           // And if we still can't determine the chain ID, bail
           const {
             chainId = uploader.chain?.id ?? uploader.agent?.chain?.id ?? this.agent?.chain?.id
