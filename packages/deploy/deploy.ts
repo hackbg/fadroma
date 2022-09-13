@@ -287,7 +287,7 @@ export class Deployments extends Kabinet.YAMLDirectory<Client[]> {
   get (name: string): Deployment|null {
     const path = resolve(this.path, `${name}.yml`)
     if (!FS.existsSync(path)) return null
-    return new YAMLDeployment(path)
+    return new YAMLDeployment(path) as unknown as Deployment
   }
 
   /** List the deployments in the deployments directory. */
