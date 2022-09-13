@@ -513,7 +513,6 @@ export class DockerBuilder extends LocalBuilder {
       if (!workspace) throw new Error('missing source.workspace')
       workspaces[workspace] = new Contract({ workspace })
       // No way to checkout non-`HEAD` ref if there is no `.git` dir
-      console.log('->',source)
       if (gitRef !== HEAD && !gitDir?.present) {
         const error = new Error("Fadroma Build: could not find Git directory for source.")
         throw Object.assign(error, { source })

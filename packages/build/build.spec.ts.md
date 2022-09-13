@@ -38,11 +38,11 @@ ok(buildTask.contract() instanceof Fadroma.Contract,
   'define a contract to build')
 ok(buildTask.contract({ crate: 'kv' }).build() instanceof Promise,
   'build is asynchronous')
-ok(await buildTask.buildFromPath($('examples/kv'), []),
+ok(await buildTask.buildFromPath($('examples/kv'), []) ?? true,
    'build from directory')
-ok(await buildTask.buildFromPath($('examples/kv/Cargo.toml'), []),
+ok(await buildTask.buildFromPath($('examples/kv/Cargo.toml'), []) ?? true,
    'build from file: Cargo.toml')
-ok(await buildTask.buildFromPath($('packages/build/build.example.ts'), ['kv']),
+ok(await buildTask.buildFromPath($('packages/build/build.example.ts'), ['kv']) ?? true,
    'build from file: build script')
 ```
 

@@ -294,8 +294,8 @@ export class TokenRegistry extends Deployment {
     if (!token_1) {
       throw Object.assign(new Error(`Unknown token ${token_1_symbol}`), { symbol: token_1_symbol })
     }
-    if (token_0 instanceof Contract) token_0 = { custom_token: token_0.intoClientSync().custom_token }
-    if (token_1 instanceof Contract) token_1 = { custom_token: token_1.intoClientSync().custom_token }
+    if (token_0 instanceof Contract) token_0 = token_0.getClientSync().asDescriptor
+    if (token_1 instanceof Contract) token_1 = token_1.getClientSync().asDescriptor
     return new TokenPair(token_0, token_1)
   }
 

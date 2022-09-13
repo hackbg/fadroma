@@ -91,6 +91,7 @@ importers:
       '@fadroma/client': workspace:^5
       '@hackbg/dokeres': workspace:^4.4.1
       '@hackbg/formati': ^3.0.1
+      '@hackbg/ganesha': ^2.2.5
       '@hackbg/kabinet': ^3.1.2
       '@hackbg/komandi': ^5
       '@hackbg/konfizi': ^2
@@ -107,6 +108,8 @@ importers:
       '@hackbg/konzola': link:../../toolbox/konzola
       dotenv: 16.0.1
       simple-git: 3.10.0
+    devDependencies:
+      '@hackbg/ganesha': 2.3.0
 
   packages/client:
     specifiers:

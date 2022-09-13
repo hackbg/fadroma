@@ -298,9 +298,6 @@ deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agen
 rejects(()=>new Contract('Name').get(),
   'naming a contract that is not in the deployment throws')
 
-ok(await new Contract(options).getOr(()=>true),
-  'use getOr to provide alternate value if contract is not in deployment')
-
 ok(agent.getClient(Client),
   'get a contract client from the agent')
 ```

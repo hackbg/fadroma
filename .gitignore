@@ -21,3 +21,5 @@ yarn.lock
 *.dist.*
 doc/typedoc
 docs
+WORKSPACE
+empty.wasm.json

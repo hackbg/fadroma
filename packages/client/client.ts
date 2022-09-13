@@ -574,7 +574,7 @@ export class Client {
     public address?:    Address,
     /** Code hash confirming the contract's integrity. */
     public codeHash?:   CodeHash,
-    /** Code hash confirming the contract's integrity. */
+    /** Deployment to which this contract belongs. */
     public deployment?: Deployment,
     /** Name by which the deployment refers to this contract. */
     public name?:       Name
@@ -676,32 +676,6 @@ export class Client {
     this.assertAddress().assertAgent()
     opt.fee = opt.fee || this.getFee(msg)
     return await this.agent!.execute(this, msg, opt)
-  }
-
-  async expect (message: string = `Contract not found: ${this.name}`): Promise<this> {
-    if (this.address) return this
-    if (this.deployment && this.name && this.deployment.has(this.name)) {
-      const { address, codeHash } = this.deployment.get(this.name) ?? {}
-      return new (this.constructor as NewClient<this>)(this.agent, address, codeHash)
-    }
-    throw new ClientError(message)
-  }
-
-}
-
-export class Clients<C extends Client> {
-
-  constructor (
-    public $Client:     NewClient<C> = Client as unknown as NewClient<C>,
-    public deployment?: Deployment
-  ) {}
-
-  async select (predicate: (key: string, val: { name?: string }) => boolean): Promise<C[]> {
-    if (!this.deployment) throw new ClientError.NoDeployment()
-    const { agent } = this.deployment
-    return Object.entries(this.deployment.state)
-      .filter(([key, val])=>predicate(key, val))
-      .map(([name, { address, codeHash }])=>new this.$Client(agent, address, codeHash))
   }
 
 }
@@ -878,7 +852,22 @@ export class Contract<C extends Client> extends Client {
     this.suffix = suffix
   }
 
-  /** Fetch the label by the address. */
+  /** Fetch the label, code ID, and code hash from the Chain.
+    * You can override this method to populate custom contract info from the chain
+    * for your client, e.g. fetch the symbol and decimals of a token contract.
+    * @returns the same instance of Contract, with `label`, `codeId` and `codeHash` populated. */
+  async populate (): Promise<this> {
+    this.assertAddress().assertAgent()
+    await Promise.all([
+      this.fetchLabel(),
+      this.fetchCodeId(),
+      this.fetchCodeHash()
+    ])
+    return this
+  }
+
+  /** Fetch the label by the address.
+    * @returns the same instance of Contract, but with `label` populated. */
   async fetchLabel (expected?: CodeHash): Promise<this> {
     const label = await this.assertAddress().assertAgent().getLabel(this.address!)
     if (!!expected) this.validate('label', expected, label)
@@ -886,36 +875,43 @@ export class Contract<C extends Client> extends Client {
     return this
   }
 
-  /** Fetch the label, code ID, and code hash from the Chain.
-    * You can override this method to populate custom contract info from the chain on your client,
-    * e.g. fetch the symbol and decimals of a token contract. */
-  async populate (): Promise<this> {
-    this.assertAddress().assertAgent()
-    await Promise.all([this.fetchLabel(), this.fetchCodeId(), this.fetchCodeHash()])
-    return this
-  }
-
+  /** Retrieves the code ID corresponding to this contract's code hash.
+    * @returns the same instance of Contract, but with `codeId` populated. */
   async fetchCodeId (expected?: CodeHash): Promise<this> {
-    const codeId = await this.assertAddress().assertAgent().getCodeId(this.codeHash!)
+    const codeId = await this.assertAgent().getCodeId(this.codeHash!)
     if (!!expected) this.validate('codeId', expected, codeId)
     this.codeId = codeId
     return this
   }
 
+  /** The Client subclass that exposes the contract's methods.
+    * @default the base Client class. */
   client: NewClient<C> = Client as unknown as NewClient<C>
 
-  intoClient ($Client: typeof this.client = this.client): Promise<C> {
-    return this.address
-      ? Promise.resolve(new $Client(this.agent, this.address, this.codeHash))
-      : Promise.reject(new ClientError.NotFound($Client.name, this.name, this.deployment?.name))
-  }
+  /** Lazily get a contract from the deployment.
+    * @returns a Lazy invocation of getClient, or a Promise if not in task context */
+  get = async (): Promise<C> => this.task(
+    `get ${this.name??'contract'}`,
+    async function getContractClient () { return await this.getClient() }
+  )
 
-  intoClientSync ($Client: typeof this.client = this.client): C {
-    if (this.address) return new $Client(this.agent, this.address, this.codeHash)
+  /** Async wrapper around getClientSync.
+    * @returns a Client instance pointing to this contract
+    * @throws if the contract address could not be determined */
+  getClient = async ($Client: typeof this.client = this.client): Promise<C> =>
+    this.getClientSync($Client)
+
+  /** @returns a Client instance pointing to this contract
+    * @throws if the contract address could not be determined */
+  getClientSync ($Client: typeof this.client = this.client): C {
+    const client = this.getClientOrNull($Client)
+    if (client) return client
     throw new ClientError.NotFound($Client.name, this.name, this.deployment?.name)
   }
 
-  getClientOrNull = (): C|null => {
+  /** @returns a Client instance pointing to this contract, or null if
+    * the contract address could not be determined */
+  getClientOrNull = ($Client: typeof this.client = this.client): C|null => {
     if (this.address) {
       return new this.client(this.agent, this.address, this.codeHash)
     }
@@ -925,17 +921,6 @@ export class Contract<C extends Client> extends Client {
     }
     return null
   }
-
-  get = async (message: string = `Contract not found: ${this.name}`): Promise<C> => {
-    const client = this.getClientOrNull()
-    if (!client) throw new Error(message)
-    return client
-  }
-
-  getOr = async (getter: ()=>Promise<C>): Promise<C> => this.task(
-    `get or provide ${this.name??'contract'}`,
-    async function getContractOr () { return await Promise.resolve(getter()) }
-  )
 
   /** Upload compiled source code to the selected chain. */
   upload = async (
@@ -966,6 +951,7 @@ export class Contract<C extends Client> extends Client {
     }
   }
 
+  /** Deploy the contract, or retrieve it if it's already deployed. */
   deploy = async (
     initMsg: IntoMessage|undefined = this.initMsg
   ): Promise<C> => this.getClientOrNull() ?? this.task(
@@ -983,6 +969,7 @@ export class Contract<C extends Client> extends Client {
       })
     })
 
+  /** Deploy multiple instances of the same code. */
   deployMany = async (
     inits: (DeployArgs[])|(()=>DeployArgs[])|(()=>Promise<DeployArgs[]>)
   ): Promise<C[]> => this.task(
@@ -993,15 +980,31 @@ export class Contract<C extends Client> extends Client {
       return this.upload().then(async (contract: Contract<C>)=>{
         if (typeof inits === 'function') inits = await Promise.resolve(inits())
         try {
-          return await Promise.all(
-            (await agent.instantiateMany(contract, inits)).map(c=>c.intoClient())
-          ) as C[]
+          const instances = (await agent.instantiateMany(contract, inits)).map(c=>c.getClient())
+          return await Promise.all(instances)
         } catch (e) {
           this.log.deployManyFailed(contract, inits, e as Error)
           throw e
         }
       })
     })
+
+}
+
+export class Contracts<C extends Client> {
+
+  constructor (
+    public $Client:     NewClient<C> = Client as unknown as NewClient<C>,
+    public deployment?: Deployment
+  ) {}
+
+  async select (predicate: (key: string, val: { name?: string }) => boolean): Promise<C[]> {
+    if (!this.deployment) throw new ClientError.NoDeployment()
+    const { agent } = this.deployment
+    return Object.entries(this.deployment.state)
+      .filter(([key, val])=>predicate(key, val))
+      .map(([name, { address, codeHash }])=>new this.$Client(agent, address, codeHash))
+  }
 
 }
 
@@ -1109,7 +1112,7 @@ export class Deployment extends CommandContext {
   }
 
   /** Specify a contract with optional client class and metadata.
-    * @returns a Contract instance with the specified parameters. 
+    * @returns a Contract instance with the specified parameters.
     *
     * When defined as part of a Deployment, the methods of the Contract instance
     * are lazy and only execute when awaited:
@@ -1338,7 +1341,7 @@ export class ClientError extends CustomError {
   static NoArtifact = this.define('NoArtifact', () => "No code id and no artifact to upload")
   static NoArtifactURL = this.define('NoArtifactUrl', () => "Still no artifact URL")
   static NoBuilder = this.define('NoBuilder', () => `No builder specified.`)
-  static NoBuilderNamed = this.define('NoBuilderNamed', (id: string) => 
+  static NoBuilderNamed = this.define('NoBuilderNamed', (id: string) =>
     `No builder installed with id "${id}". Make sure @fadroma/build is imported`)
   static NoChainId = this.define('NoChainId', () => "No chain ID specified")
   static NoCodeHash = this.define('NoCodeHash', () => "No code hash")
@@ -1355,8 +1358,9 @@ export class ClientError extends CustomError {
     "Tried to create Contract with nullish template")
   static NoUploader = this.define('NoUploader', () => "No uploader specified")
   static NoUploaderAgent  = this.define('NoUploaderAgent', () => "No uploader agent specified")
-  static NotFound = this.define('NotFound', (kind: string, name: string, deployment: string) =>
-    (`${kind} "${name}" not found in ${deployment}`))
+  static NotFound = this.define('NotFound',
+    (kind: string, name: string, deployment: string, message: string = '') =>
+      (`${kind} "${name}" not found in ${deployment}. ${message}`))
   static ProvideBuilder = this.define('ProvideBuilder',
     (id: string) => `Provide a "${id}" builder`)
   static ProvideUploader = this.define('ProvideUploader',

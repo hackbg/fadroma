@@ -7,9 +7,10 @@
   "description": "Build smart contracts with or without container.",
   "bin": { "fadroma-build": "build.cli.cjs" },
   "scripts": {
+    "test":        "ganesha-node build.spec.ts.md",
     "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "release:dry": "npm test && npm run ts:check && izomorf dry",
+    "release:wet": "npm test && npm run ts:check && izomorf wet --access=public"
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5"
@@ -27,5 +28,8 @@
     "@hackbg/konfizi": "^2",
     "dotenv":     "^16.0.1",
     "simple-git": "^3.7.1"
+  },
+  "devDependencies": {
+    "@hackbg/ganesha": "^2.2.5"
   }
 }

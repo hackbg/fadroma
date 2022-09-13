@@ -44,7 +44,7 @@ let config: DeployConfig = new DeployConfig({}, '')
 ## Deploy context
 
 ```typescript
-import { deploy, DeployCommands, DeployConfig } from '.'
+import deploy, { DeployCommands, DeployConfig } from '.'
 let context: DeployCommands = await deploy({ chain: 'Mocknet', mnemonic })
 ok(context            instanceof DeployCommands)
 ok(context.uploader   instanceof Uploader)
@@ -228,7 +228,7 @@ await Testing.inTmpDeployment(async deployment => {
 
   const deployed = await contract.deploy(initMsg, contract => contract.client())
   ok(deployed instanceof Client)
-  equal(deployed.name, name)
+  equal(deployed.name,  name)
   equal(deployed.label, label)
 
   const loaded = deployment.get(name)
