@@ -16,7 +16,7 @@
     "@fadroma/devnet":     "workspace:^1",
     "@fadroma/scrt":       "workspace:^2",
     "@fadroma/scrt-amino": "workspace:^2",
-    "@fadroma/mocknet":    "workspace:*",
+    "@fadroma/mocknet":    "workspace:^2",
     "@hackbg/komandi":     "workspace:^5",
     "@hackbg/konfizi":     "workspace:^2"
   },
