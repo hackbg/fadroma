@@ -189,7 +189,9 @@ throws(()=>new Client().assertAddress())
 
 throws(()=>new Client().assertAgent())
 
-ok(new Client(agent, { address: 'some-address' }).assertAddress().assertAgent() instanceof Agent)
+ok(typeof new Client(agent, { address: 'some-address' }).assertAddress() === 'string')
+
+ok(new Client(agent, { address: 'some-address' }).assertAgent() instanceof Agent)
 ```
 
 ### Contract

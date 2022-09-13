@@ -404,6 +404,8 @@ const bold = Konzola.bold
   * allows for uploaded contracts to be reused. */
 export class FSUploader extends Uploader {
 
+  id  = 'fs'
+
   log = new DeployConsole('Fadroma.FSUploader')
 
   /** This defines the default path for the upload receipt cache. */

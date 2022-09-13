@@ -36,7 +36,7 @@ buildTask.project = '.'
 
 ok(buildTask.contract() instanceof Fadroma.Contract,
   'define a contract to build')
-ok(buildTask.contract({ crate: 'kv' }).build() instanceof Promise,
+ok(buildTask.contract({ crate: 'kv', builderId: 'local' }).build() instanceof Promise,
   'build is asynchronous')
 ok(await buildTask.buildFromPath($('examples/kv'), []) ?? true,
    'build from directory')

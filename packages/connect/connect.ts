@@ -11,8 +11,8 @@ import { Mocknet }   from '@fadroma/mocknet'
 
 export { Mocknet, ScrtGrpc, ScrtAmino, Devnet }
 
-/** Populate `Fadroma.Chain.Variants` with catalog of possible connections. */
-Object.assign(Fadroma.Chain.Variants as Fadroma.ChainRegistry, {
+/** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
+Object.assign(Fadroma.Chain.variants as Fadroma.ChainRegistry, {
 
   // Support for Mocknet.
   // TODO switch this out and give each chain implementation its own Mocknet subclass
@@ -89,7 +89,7 @@ export class ConnectConfig extends EnvConfig {
     this.override(defaults)
   }
 
-  chains = Fadroma.Chain.Variants
+  chains = Fadroma.Chain.variants
 
   /** Name of chain to use. */
   chain?: keyof Fadroma.ChainRegistry
@@ -113,7 +113,7 @@ export class ConnectConsole extends Fadroma.ClientConsole {
 
   name = 'Fadroma Connect'
 
-  supportedChains = (supportedChains: object = Fadroma.Chain.Variants) => {
+  supportedChains = (supportedChains: object = Fadroma.Chain.variants) => {
     this.log()
     this.info('Known chain names:')
     for (const chain of Object.keys(supportedChains).sort()) {
