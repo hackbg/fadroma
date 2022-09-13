@@ -586,21 +586,6 @@ export class Client {
     if (!codeHash) this.log.warnNoCodeHash(this.constructor.name)
   }
 
-  withDeployment (deployment: Deployment|undefined = this.deployment): this {
-    if (deployment === this.deployment) return this
-    return new (this.constructor as NewClient<this>)(
-      this.agent, this.address, this.codeHash, deployment, this.name
-    )
-  }
-
-  /** Return a copy of this object with redefined name. */
-  withName (name: Name): this {
-    if (this.name === name) return this
-    return new (this.constructor as NewClient<this>)(
-      this.agent, this.address, this.codeHash, this.deployment, name
-    )
-  }
-
   /** The chain on which this contract exists. */
   get chain () {
     return this.agent?.chain
@@ -643,19 +628,17 @@ export class Client {
   }
 
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  as (agent: Agent): this {
-    const Self = this.constructor as NewClient<typeof this>
-    return new Self(agent, this.address, this.codeHash)
-  }
+  as = (agent: Agent|undefined = this.agent): this =>
+    (!agent || agent === this.agent)
+      ? this
+      : new (this.constructor as NewClient<typeof this>)(agent, this.address, this.codeHash)
 
-  asClient <C extends Client> (client: NewClient<C>): C {
-    return new client(this.agent, this.address, this.codeHash)
-  }
+  asClient = <C extends Client> (client: NewClient<C>): C =>
+    new client(this.agent, this.address, this.codeHash)
 
   /** Execute a query on the specified contract as the specified Agent. */
-  async query <U> (msg: Message): Promise<U> {
-    return await this.assertAgent().query(this, msg)
-  }
+  query = <U> (msg: Message): Promise<U> =>
+    this.assertAgent().query(this, msg)
 
   /** Default fee for all contract transactions. */
   fee?: IFee = undefined
@@ -680,8 +663,8 @@ export class Client {
   /** Create a copy of this Client with all transaction fees set to the provided value.
     * If the fee is undefined, returns a copy of the client with unmodified fee config. */
   withFee (fee: IFee|undefined): this {
-    const Self = this.constructor as NewClient<this>
     if (fee) {
+      const Self = this.constructor as NewClient<this>
       return Object.assign(new Self(this.agent, this.address, this.codeHash), { fee, fees: {} })
     } else {
       return this
@@ -760,27 +743,14 @@ export class Contract<C extends Client> extends Client {
   }
 
   /** Wrap the method in a lazy task if this.task is set. */
-  task <T> (name: string, callback: (this: typeof this)=>Promise<T>): Promise<T> {
-    if (this.deployment) {
-      callback = callback.bind(this)
-      Object.defineProperty(callback, 'name', { value: name })
-      return this.deployment.task(callback)
-    } else {
-      Object.defineProperty(callback, 'name', { value: name })
-      return callback.call(this)
-    }
-  }
+  task = <T> (name: string, callback: (this: typeof this)=>Promise<T>): Promise<T> =>
+    this.deployment
+      ? this.deployment.task(Object.defineProperty(callback.bind(this), 'name', { value: name }))
+      : Object.defineProperty(callback, 'name', { value: name }).call(this)
 
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  as (agent?: Agent): this {
-    if (!agent || (agent === this.agent)) return this
-    return this.define({ agent })
-  }
-
-  withDeployment (deployment: Deployment|undefined = this.deployment): this {
-    if (deployment === this.deployment) return this
-    return this.define({ deployment })
-  }
+  as = (agent?: Agent): this =>
+    (!agent || (agent === this.agent)) ? this : this.define({ agent })
 
   /** URL to local or remote Git repository containing the source code. */
   gitRepo?:   string|URL = undefined

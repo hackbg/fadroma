@@ -1,8 +1,11 @@
+---
+literate: typescript
+---
 # Fadroma Client Spec
 
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
-import assert, { ok, equal, deepEqual, throws, rejects } from 'assert'
+import assert, { ok, equal, deepEqual, notEqual, throws, rejects } from 'assert'
 ```
 
 ## Chain
@@ -199,12 +202,21 @@ import { Contract, Builder, Uploader } from '.'
 let builder:  Builder  = Symbol()
 let uploader: Uploader = Symbol()
 let contract: Contract = new Contract({ builder, uploader })
-equal(contract.builder,  builder,  'builder is set')
-equal(contract.uploader, uploader, 'uploader is set')
+equal(contract.builder,  builder,
+  'builder is set')
+equal(contract.uploader, uploader,
+  'uploader is set')
+equal(contract, contract.as(),
+  'contract.as returns copy')
+notEqual(contract, contract.as(agent),
+  'contract.as returns copy')
 contract = contract.as(agent)
-equal(contract.builder,  builder,  'builder still set')
-equal(contract.uploader, uploader, 'uploader still set')
-equal(contract.agent,    agent,    'agent also set')
+equal(contract.builder,  builder,
+  'builder still set')
+equal(contract.uploader, uploader,
+  'uploader still set')
+equal(contract.agent,    agent,
+  'agent also set')
 ```
 
 ### Deployment
@@ -258,23 +270,23 @@ const options = {
   agent,
   builder,
   uploader,
-  deployment: { has () {}, get () {}, add () {} }
+  deployment: new Deployment()
 }
 
 ok(new Contract(options).deploy(),
-   'deploying without init msg?')
+  'deploying without init msg?')
 
 ok(await new Contract(options).deploy({ init: 'arg' })
-   'deploy pre-configured contract with init msg')
+  'deploy pre-configured contract with init msg')
 
 ok(await new Contract(options).deploy(()=>({ init: 'arg' })),
-   'deploy pre-configured contract with lazy init msg')
+  'deploy pre-configured contract with lazy init msg')
 
 ok(await new Contract(options).deploy(async ()=>({ init: 'arg' })),
-   'deploy pre-configured contract with laziest init msg')
+  'deploy pre-configured contract with laziest init msg')
 
 ok(await new Contract({ ...options, crate: 'crate', ref: 'ref' }).deploy([]),
-   'deploy from source')
+  'deploy from source')
 ```
 
 ### Connecting to a smart contract
@@ -283,14 +295,14 @@ The `Client` class allows you to transact with a specific smart contract
 deployed on a specific [Chain](./Chain.spec.ts.md), as a specific [Agent](./Agent.spec.ts.md).
 
 ```typescript
-throws(()=>new Contract('Name').get(),
-       'naming a contract that is not in the deployment throws')
+rejects(()=>new Contract('Name').get(),
+  'naming a contract that is not in the deployment throws')
 
 ok(await new Contract(options).getOr(()=>true),
-   'use getOr to provide alternate value if contract is not in deployment')
+  'use getOr to provide alternate value if contract is not in deployment')
 
 ok(agent.getClient(Client),
-   'get a contract client from the agent')
+  'get a contract client from the agent')
 ```
 
 ### `ClientError`: contract error conditions

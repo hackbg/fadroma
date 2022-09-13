@@ -8,8 +8,12 @@
     "@hackbg/konzola": "^2",
     "@hackbg/komandi": "^5",
     "@hackbg/konfizi": "^5",
+    "test":        "ganesha-node client.spec.ts.md",
     "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "release:dry": "npm run ts:check && izomorf dry",
+    "release:wet": "npm run ts:check && izomorf wet --access=public"
+  },
+  "devDependencies": {
+    "@hackbg/ganesha": "^2.2.5"
   }
 }
