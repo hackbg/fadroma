@@ -1313,9 +1313,6 @@ export abstract class Uploader {
 
 }
 
-/** A sparse array. Implementation detail of FSUploader in @fadroma/deploy. */
-export type SparseArray<T> = (T | undefined)[]
-
 /** A transaction hash, uniquely identifying an executed transaction on a chain. */
 export type TxHash       = string
 

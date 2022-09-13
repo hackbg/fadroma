@@ -23,16 +23,30 @@ import * as Konfizi from '@hackbg/konfizi'
 import * as Kabinet from '@hackbg/kabinet'
 import $ from '@hackbg/kabinet'
 
-import * as Build   from '@fadroma/build'
-import * as Connect from '@fadroma/connect'
 import {
-  Chain, Agent,
-  Builder, Uploader,
-  Contract, Client, IntoClient, NewClient,
-  Deployment, DeployArgs,
-  Name, Label, Message,
-  SparseArray, ClientConsole
+  Agent,
+  Builder,
+  Chain,
+  Client,
+  ClientConsole,
+  Contract,
+  DeployArgs,
+  Deployment,
+  IntoClient,
+  Label,
+  Message,
+  Name,
+  NewClient,
+  Uploader,
 } from '@fadroma/client'
+import {
+  BuildCommands,
+  codeHashForPath
+} from '@fadroma/build'
+import {
+  ConnectConfig,
+  connect
+} from '@fadroma/connect'
 
 import { basename, resolve, dirname, relative, extname } from 'path'
 import * as FS from 'fs'
@@ -40,7 +54,7 @@ import * as FS from 'fs'
 import YAML from 'js-yaml'
 export { YAML }
 
-export class DeployConfig extends Connect.ConnectConfig {
+export class DeployConfig extends ConnectConfig {
   constructor (
     readonly env: Konfizi.Env = {},
     readonly cwd: string = '',
@@ -118,11 +132,11 @@ export class DeployCommands extends Deployment {
 
   static async init (
     options: DeployConfig|Partial<DeployConfig> = {},
-    build?:  Build.BuildCommands
+    build?:  BuildCommands
   ) {
     const name = 'deploy'
     const config = new DeployConfig(process.env, process.cwd(), options) as DeployConfig
-    const { chain, agent } = await Connect.connect(options)
+    const { chain, agent } = await connect(options)
     if (!agent) new DeployConsole('Fadroma Deploy').warnNoAgent()
     const deployments = chain ? Deployments.init(chain.id, config.project) : null
     return new this({ name, config, chain, agent, build, deployments })
@@ -146,7 +160,7 @@ export class DeployCommands extends Deployment {
     this.uploader = FSUploader.fromConfig(this.agent!, this.build?.config?.project)
   }
 
-  build?:      Build.BuildCommands
+  build?:      BuildCommands
 
   config:      DeployConfig
 
@@ -457,7 +471,7 @@ export class FSUploader extends Uploader {
   /** Upload multiple templates from the filesystem.
     * TODO: Optionally bundle multiple templates in one transaction,
     * if they add up to less than the max API request size (which is defined... where?) */
-  async uploadMany (inputs: SparseArray<Contract<any>>): Promise<SparseArray<Contract<any>>> {
+  async uploadMany (inputs: Array<Contract<any>>): Promise<Array<Contract<any>>> {
 
     if (!this.cache) return this.uploadManySansCache(inputs)
 
@@ -532,8 +546,8 @@ export class FSUploader extends Uploader {
   }
 
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
-  async uploadManySansCache (inputs: SparseArray<Contract<any>>): Promise<SparseArray<Contract<any>>> {
-    const outputs: SparseArray<Contract<any>> = []
+  async uploadManySansCache (inputs: Array<Contract<any>>): Promise<Array<Contract<any>>> {
+    const outputs: Array<Contract<any>> = []
     for (const i in inputs) {
       const input = inputs[i]
       if (input?.artifact) {
@@ -555,7 +569,7 @@ export class FSUploader extends Uploader {
       const artifact = $(input.artifact!)
       this.log.warn('No code hash in artifact', bold(artifact.shortPath))
       try {
-        const codeHash = Build.codeHashForPath($(input.artifact!).path)
+        const codeHash = codeHashForPath($(input.artifact!).path)
         this.log.warn('Computed code hash:', bold(input.codeHash!))
         input = new Contract({ ...input,  codeHash })
       } catch (e: any) {
