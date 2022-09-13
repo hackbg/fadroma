@@ -7,17 +7,17 @@
 * TODO use `fetch` instead of Node FS API
 
 ```typescript
-import { Console, bold }    from '.'
-import $                    from '@hackbg/kabinet'
-import { resolve, dirname } from 'path'
-import { fileURLToPath }    from 'url'
+import { CustomConsole, bold } from '@hackbg/konzola'
+import $                      from '@hackbg/kabinet'
+import { resolve, dirname }   from 'path'
+import { fileURLToPath }      from 'url'
 ```
 
 ```typescript
 export const here      = dirname(fileURLToPath(import.meta.url))
 export const workspace = resolve(here)
 export const fixture   = x => resolve(here, 'fixtures', x)
-export const console   = Console('Fadroma Testing')
+export const log       = new CustomConsole('Fadroma Testing')
 ```
 
 ### Example mnemonics
@@ -63,6 +63,43 @@ function example (name, wasm, hash) {
 
 ## Mocks
 
+### Mock agent
+
+```typescript
+import { Agent, Chain, Uploader, Contract, Client } from '@fadroma/client'
+export const mockAgent = () => new class MockAgent extends Agent {
+
+  chain = new (class MockChain extends Chain {
+    uploads = new class MockUploader extends Uploader {
+      resolve = () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+      make = () => new class MockFile {
+        resolve = () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
+      }
+    }
+  })('mock')
+
+  async upload () { return {} }
+
+  instantiate (template, label, initMsg) {
+    return new Contract({ ...template, label, initMsg, address: 'some address' })
+  }
+
+  async instantiateMany (contract, configs) {
+    const receipts = {}
+    for (const [{codeId}, name] of configs) {
+      let label = name
+      receipts[name] = { codeId, label }
+    }
+    return receipts
+  }
+
+  async getHash () {
+    return 'sha256'
+  }
+
+}
+```
+
 ### Mock of Secret Network 1.2 HTTP API
 
 > Not to be confused with the [Mocknet](./Mocknet.ts.md)
@@ -79,7 +116,7 @@ import { randomHex } from '@hackbg/formati'
 export async function withMockAPIEndpoint (cb) {
   const endpoint = await mockAPIEndpoint()
   try       { await Promise.resolve(cb(endpoint)) }
-  catch (e) { console.warn(e) throw e }
+  catch (e) { log.warn(e) throw e }
   finally   { endpoint.close() }
 }
 
@@ -90,7 +127,7 @@ export async function mockAPIEndpoint (port) {
   const app = new Express()
   app.use(bodyParser.json())
   /*app.use((req, res, next)=>{
-    console.debug(`${req.method} ${req.url}`)
+    log.debug(`${req.method} ${req.url}`)
     next()
   })*/
   const respond = (fn) => (req, res, next) => Promise.resolve(fn(req.params, req.body))
@@ -215,13 +252,13 @@ export async function mockAPIEndpoint (port) {
     }
     for (const {type, value} of msg) {
       const mockHandler = mockHandlers[type]
-      if (mockHandler) { mockHandler(value) } else { console.warn(type, value) }
+      if (mockHandler) { mockHandler(value) } else { log.warn(type, value) }
     }
     return { txhash }
   }))
   app.get('/txs/:txhash', respond(({txhash})=>{
     const response = state.txs[txhash]
-    console.debug('response', response)
+    log.debug('response', response)
     if (response) { return response } else { throw 404 }
   }))
   app.get('/wasm/code/:id/hash', respond(()=>({
@@ -247,7 +284,7 @@ export async function mockAPIEndpoint (port) {
     port,
     state,
     close () {
-      //console.trace(`Closing mock Amino endpoint:`, bold(url))
+      //log.trace(`Closing mock Amino endpoint:`, bold(url))
       clearInterval(blockIncrement)
       server.close()
     }
@@ -265,22 +302,21 @@ async function echoQuery ({query}) {
     const encrypted = query
     const nonce = encrypted.slice(0, 32)
     const step1 = fromHex(responseData.result.smart)
-    console.debug(1,{step1_fromHex:step1})
+    log.debug(1,{step1_fromHex:step1})
     const step2 = await this.enigmautils.decrypt(step1, nonce)
-    console.debug(2,{step2_decrypt:step2})
+    log.debug(2,{step2_decrypt:step2})
     const step3 = fromUtf8(step2)
-    console.debug(3,{step3_fromutf8:step3})
+    log.debug(3,{step3_fromutf8:step3})
     query = query2
     */
-    console.log(1, query);           query = fromHex(query)
-    console.log(2, query.toString());query = fromUtf8(query)
-    console.log(3, query.toString());query = fromBase64(query)
-    console.log(4, query.toString());query = query.slice(64)
-    console.log(5, query.toString());query = toBase64(query)
-    console.log(6, query.toString());return { result: { smart: query } }
+    log.log(1, query);           query = fromHex(query)
+    log.log(2, query.toString());query = fromUtf8(query)
+    log.log(3, query.toString());query = fromBase64(query)
+    log.log(4, query.toString());query = query.slice(64)
+    log.log(5, query.toString());query = toBase64(query)
+    log.log(6, query.toString());return { result: { smart: query } }
   } catch (e) {
-    console.error(e)
-    process.exit(123)
+    log.error(e)
   }
 }
 ```
@@ -324,4 +360,18 @@ export function mockEnv () {
     contract_code_hash: ""
   }
 }
+```
+
+### Mock deployment
+
+```typescript
+import { YAMLDeployment } from './packages/deploy'
+import { withTmpFile } from '@hackbg/kabinet'
+import { equal } from 'assert'
+import { basename } from 'path'
+export const inTmpDeployment = cb => withTmpFile(f=>{
+  const d = new YAMLDeployment(f, mockAgent())
+  equal(d.name, basename(f))
+  return cb(d)
+})
 ```

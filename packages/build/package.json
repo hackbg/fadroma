@@ -1,33 +1,35 @@
 {
   "name":    "@fadroma/build",
-  "version": "1.0.7",
+  "version": "2.0.0",
   "type":    "module",
   "main":    "./build.ts",
   "files":   [ "build.ts", "build.impl.mjs" ],
   "description": "Build smart contracts with or without container.",
   "bin": { "fadroma-build": "build.cli.cjs" },
   "scripts": {
+    "test":        "ganesha-node build.spec.ts.md",
     "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "release:dry": "npm test && npm run ts:check && izomorf dry",
+    "release:wet": "npm test && npm run ts:check && izomorf wet --access=public"
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5"
   },
   "peerDependenciesMeta": {
-    "@hackbg/ganesha": {
-      "optional": true,
-      "description": "For fadroma-build command."
-    }
+    "@hackbg/ganesha": { "optional": true, "description": "For fadroma-build command." }
   },
   "dependencies": {
-    "@fadroma/client": "workspace:^4",
-    "@hackbg/dokeres": "^4.4.1",
-    "@hackbg/formati": "^1.1.2",
+    "@fadroma/client": "workspace:^5",
+    "@hackbg/dokeres": "workspace:^4.4.1",
+    "@hackbg/formati": "^3.0.1",
     "@hackbg/kabinet": "^3.1.2",
-    "@hackbg/konzola": "^1.1.2",
-    "@hackbg/komandi": "^4.2.8",
+    "@hackbg/konzola": "^2",
+    "@hackbg/komandi": "^5",
+    "@hackbg/konfizi": "^2",
     "dotenv":     "^16.0.1",
     "simple-git": "^3.7.1"
+  },
+  "devDependencies": {
+    "@hackbg/ganesha": "^2.2.5"
   }
 }

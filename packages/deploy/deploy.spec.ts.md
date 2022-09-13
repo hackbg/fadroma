@@ -2,208 +2,95 @@
 
 ```typescript
 import * as Testing from '../../TESTING.ts.md'
-import assert, { ok, equal, deepEqual } from 'assert'
-```
-
-```typescript
-import { Chain, Agent } from '@fadroma/client'
-let chain: Chain
-let agent: Agent
-let chainId, codeId, codeHash, txHash, template, result, artifact
-```
-
-## Upload
-
-```typescript
-import { Uploader, FSUploader, CachingFSUploader } from '.'
-let uploader: Uploader
-```
-
-* Basic uploader
-
-```typescript
+import assert, { ok, equal, deepEqual, throws } from 'assert'
 import { pathToFileURL } from 'url'
-const emptyContract = pathToFileURL(Testing.fixture('empty.wasm'))
-chainId  = 'test-uploads'
-agent    = { chain: { id: chainId }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
-uploader = new FSUploader(agent)
-artifact = { url: emptyContract }
-template = { chainId: Symbol(), codeId: Symbol(), codeHash: Symbol(), transactionHash: Symbol() }
-result   = await uploader.upload(artifact)
-
-deepEqual(result, template)
-ok(uploader.agent === agent)
-
-artifact = { url: emptyContract }
-template = Symbol()
-agent    = { chain: { id: Symbol() }, upload: async (artifact) => template, nextBlock: Promise.resolve() }
-uploader = new FSUploader(agent)
-const results = await uploader.uploadMany([
-  null,
-  artifact,
-  undefined,
-  artifact,
-  artifact,
-  false
-])
-console.log(results)
-deepEqual(results, [
-  undefined,
-  template,
-  undefined,
-  template,
-  template,
-  undefined,
-])
 ```
 
-* Caching uploader
-
 ```typescript
-import { Path, JSONDirectory, withTmpFile, withTmpDir } from '@hackbg/kabinet'
-import { CachingFSUploader, Uploads } from '.'
-import { resolve } from 'path'
-
-const mockAgent = () => ({
-  async upload () { return {} }
-  chain: {
-    uploads: {
-      resolve: () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
-      make: () => ({
-        resolve: () => `/tmp/fadroma-test-upload-${Math.floor(Math.random()*1000000)}`
-      })
-    }
-  },
-  instantiate ({ codeId }, label, msg) {
-    return { codeId, label }
-  },
-  instantiateMany (configs, prefix) {
-    const receipts = {}
-    for (const [{codeId}, name] of configs) {
-      let label = name
-      if (prefix) label = `${prefix}/${label}`
-      receipts[name] = { codeId, label }
-    }
-    return receipts
-  }
-})
-
-// 'add CachingFSUploader to operation context' ({ ok }) {
-agent = { chain: { uploads: Symbol() } }
-const cache = Symbol()
-uploader = new CachingFSUploader(agent, cache)
-ok(uploader.agent === agent)
-
-// async 'upload 1 artifact with CachingFSUploader#upload' ({ ok }) {
-await withTmpDir(async cacheDir=>{
-  const agent    = mockAgent()
-  const cache    = new Path(cacheDir).in('uploads').as(JSONDirectory)
-  const uploader = new CachingFSUploader(agent, cache)
-  await withTmpFile(async location=>{
-    const url = pathToFileURL(location)
-    ok(await uploader.upload({url}))
-  })
-})
-
-// async 'upload any number of artifacts with CachingFSUploader#uploadMany' ({ ok }) {
-await withTmpDir(async cacheDir=>{
-  const agent    = mockAgent()
-  const cache    = new Path(cacheDir).in('uploads').as(JSONDirectory)
-  const uploader = new CachingFSUploader(agent, cache)
-  ok(await uploader.uploadMany())
-  ok(await uploader.uploadMany([]))
-  await withTmpFile(async location=>{
-    const url = pathToFileURL(location)
-    ok(await uploader.uploadMany([Testing.examples['KV']]))
-    ok(await uploader.uploadMany([Testing.examples['KV'], Testing.examples['Echo']]))
-  })
-})
+import { ChainId, Chain, Agent, Contract, Builder, Uploader, Deployment } from '@fadroma/client'
+let chainId:  ChainId  = 'mocknet'
+let chain:    Chain    = null
+let agent:    Agent    = Testing.mockAgent()
+let mnemonic: string   = 'utility omit strong obey sail rotate icon disease usage scene olive youth clog poverty parade'
+let template: Contract = null
+let artifact: URL      = pathToFileURL(Testing.fixture('empty.wasm'))
+let codeId, codeHash, txHash, result
 ```
 
-## Deploy
+## Deploy events
 
 ```typescript
+import { DeployConsole } from '.'
+const log = new DeployConsole({
+  log: () => {}, info: () => {}, warn: () => {}, error: () => {}
+})
+log.deployment({})
+log.deployment({ deployment: { name: '', state: {} } })
+log.deployment({ deployment: { name: '', state: { x: { address: 'x' } } } })
+log.receipt('', '')
+log.deployFailed(new Error(), {}, '', '')
+log.deployManyFailed({}, [], new Error())
+log.deployManyFailed({}, [['name', 'init']], new Error())
+log.deployFailedContract()
+```
+
+## Deploy config
+
+```typescript
+import { DeployConfig } from '.'
+let config: DeployConfig = new DeployConfig({}, '')
+```
+
+## Deploy context
+
+```typescript
+import deploy, { DeployCommands, DeployConfig } from '.'
+let context: DeployCommands = await deploy({ chain: 'Mocknet', mnemonic })
+ok(context            instanceof DeployCommands)
+ok(context.uploader   instanceof Uploader)
+ok(context.contract() instanceof Contract)
+```
+
+## `Deployment` classes
+
+```typescript
+import { Client, Deployment } from '@fadroma/client'
+import { connect } from '@fadroma/connect'
+import * as Dokeres from '@hackbg/dokeres'
+import { BuildCommands, getBuilder } from '@fadroma/build'
+import { deploy, DeployCommands, YAMLDeployment } from '.'
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
-import { Deployment } from '.'
+import { ExampleDeployment } from './deploy.example'
 
-// save/load deployment data
-await withTmpFile(f=>{
-  const d = new Deployment(f)
-  equal(d.prefix, basename(f))
-  deepEqual(d.receipts, {})
-  equal(d, d.save('test', JSON.stringify({ foo: 1 }))
-  equal(d, d.add('test1', { test1: 1 }))
-  ok(!d.load())
-  equal(d, d.set('test2', { test2: 2 }))
-  equal(d, d.setMany({test3: {test:3}, test4: {test:4}}))
-  equal(d.get('missing'), null)
-})
+ok(await deploy() instanceof DeployCommands
+   'deploy() returns a deploy context')
 
-// init contract from uploaded template
-await withTmpFile(async f=>{
-  const agent      = mockAgent()
-  const deployment = new Deployment(f)
-  const codeId     = 0
-  const template   = { codeId }
-  const initMsg    = Symbol()
-  const name       = 'contract'
-  const label      = `${basename(f)}/${name}`
-  deepEqual(await deployment.init(agent, template, name, initMsg), { codeId, label })
-  deepEqual(deployment.get(name), { name, codeId, label })
-})
+ok(new YAMLDeployment() instanceof Deployment,
+   'deployments can be loaded/saved in yaml')
 
-// init many contracts from the same template
-await withTmpFile(async f=>{
-  const agent      = mockAgent()
-  const deployment = new Deployment(f)
-  const codeId     = 1
-  const template   = { codeId }
-  const initMsg    = Symbol()
-  const configs    = [['contract1', Symbol()], ['contract2', Symbol()]]
-  const receipts   = await deployment.initMany(agent, template, configs)
-  deepEqual(receipts, [
-    { codeId, label: `${basename(f)}/contract1` },
-    { codeId, label: `${basename(f)}/contract2` },
-  ])
-  deepEqual(deployment.get('contract1'), {
-    name: 'contract1',
-    label: `${basename(f)}/contract1`,
-    codeId,
-  })
-  deepEqual(deployment.get('contract2'), {
-    name: 'contract2',
-    label: `${basename(f)}/contract2`,
-    codeId,
-  })
-})
-
-// init many contracts from different templates
-await withTmpFile(async f=>{
-  const agent      = mockAgent()
-  const deployment = new Deployment(f)
-  const templateA  = { codeId: 2 }
-  const templateB  = { codeId: 3 }
-  const configs    = [[templateA, 'contractA', Symbol()], [templateB, 'contractB', Symbol()]]
-  const receipts   = await deployment.initVarious(agent, configs)
-  deepEqual(receipts, [
-    { codeId: 2, label: `${basename(f)}/contractA`, },
-    { codeId: 3, label: `${basename(f)}/contractB`, },
-  ])
-  deepEqual(deployment.get('contractA'), {
-    name: 'contractA',
-    label: `${basename(f)}/contractA`,
-    codeId: 2
-  })
-  deepEqual(deployment.get('contractB'), {
-    name: 'contractB',
-    label: `${basename(f)}/contractB`,
-    codeId: 3
-  })
-})
+/*await Testing.inTmpDeployment(async deployment=>{
+  context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildCommands())
+  context.build.builder = getBuilder({
+    docker:     Dokeres.Engine.mock(),
+    dockerfile: '/path/to/a/Dockerfile',
+    image:      'my-custom/build-image:version'
+  }),
+  context.build.builder.build = x => Object.assign(x, { artifact: x.name })
+  context.build.builder.codeHashForPath = () => 'codehash'
+  context.deployment = deployment
+  delete context.uploader.cache
+  const op = new ExampleDeployment(context)
+  op.task = {}
+  context.agent = Testing.mockAgent()
+  result = await op.run()
+  assert(result    instanceof Array)
+  assert(result[0] instanceof Contract)
+  assert(result[1] instanceof Contract)
+})*/
 ```
 
-### Deployments directory
+## `Deployments` directory
 
 ```typescript
 import { Deployments, Deploy } from '.'
@@ -224,43 +111,161 @@ await withTmpDir(async dir=>{
 })
 ```
 
-### Deploy classes
+## `FSUploader`: uploading local files
 
 ```typescript
-import { DeployTask } from './deploy'
-class DeployMyContracts extends DeployTask<Promise<{
-  contract1: Client
-  contract2: Client
-}>> {
-  constructor (context, ...args) {
-    super(context, async () => [await this.contract1, await this.contract2])
-  }
-  contract1 = this.contract('Contract1').getOrDeploy('contract-1', {})
-  contract2 = this.contract('Contract2').getOrDeploy('contract-2', async () => ({
-    dependency: (await this.contract1).asLink
-  }))
+import { FSUploader } from '.'
+let uploader: Uploader
+uploader = new FSUploader(agent, new JSONDirectory())
+ok(uploader.agent === agent)
+await uploader.upload(new Contract({ artifact }))
+await uploader.uploadMany([])
+
+const testUpload = async (cb) => {
+  const { template, uploader, uploaded } = await cb()
+  ok(uploaded !== template)
+  ok(uploaded.artifact?.toString() === template.artifact.toString())
+  //ok(uploaded.uploader === uploader)
 }
+
+await testUpload(async () => {
+  const template = new Contract({ artifact })
+  const uploaded = await uploader.upload(template)
+  return { template, uploader, uploaded }
+})
+
+await testUpload(async () => {
+  const template = new Contract({ artifact })
+  const uploaded = await uploader.upload(template)
+  return { template, uploader, uploaded }
+})
+
+await testUpload(async () => {
+  const template = new Contract({ artifact, uploader })
+  const uploaded = await template.upload()
+  return { template, uploader, uploaded }
+})
+
+await testUpload(async () => {
+  const template = new Contract({ artifact }, { uploader })
+  const uploaded = await template.upload()
+  return { template, uploader, uploaded }
+})
+```
+
+* Caching uploader
+
+```typescript
+import { Path, JSONDirectory, withTmpFile, withTmpDir } from '@hackbg/kabinet'
+import { Uploads } from '.'
+import { resolve } from 'path'
+}
+
+// 'add FSUploader to operation context' ({ ok }) {
+
+// async 'upload 1 artifact with FSUploader#upload' ({ ok }) {
+await withTmpDir(async cacheDir=>{
+  const agent    = Testing.mockAgent()
+  const cache    = new Path(cacheDir).in('uploads').as(JSONDirectory)
+  const uploader = new FSUploader(agent, cache)
+  await withTmpFile(async location=>{
+    const url = pathToFileURL(location)
+    ok(await uploader.upload(new Contract({artifact})))
+  })
+})
+
+// async 'upload any number of artifacts with FSUploader#uploadMany' ({ ok }) {
+await withTmpDir(async cacheDir=>{
+  const agent    = Testing.mockAgent()
+  const cache    = new Path(cacheDir).in('uploads').as(JSONDirectory)
+  const uploader = new FSUploader(agent, cache)
+  ok(await uploader.uploadMany())
+  ok(await uploader.uploadMany([]))
+  await withTmpFile(async location=>{
+    const url = pathToFileURL(location)
+    ok(await uploader.uploadMany([Testing.examples['KV']]))
+    ok(await uploader.uploadMany([Testing.examples['KV'], Testing.examples['Echo']]))
+  })
+})
+```
+
+## `Deployment`, `Deployments`: keeping track of deployed contracts
+
+```typescript
+
+import { Deployments } from '.'
+new Deployments()
 ```
 
 ```typescript
-import { getAgentContext, getChainContext } from '@fadroma/connect'
-import { getDeployContext } from './deploy'
-const context = await getDeployContext(await getAgentContext(await getChainContext({
-  config: { chain: 'Mocknet' }
-  deployment: {
-    has () { return true }
-    get (name) { return { address: name, codeHash: name } }
-  },
-  workspace: {},
-  builder:   {},
-  uploader:  {}
-})))
-```
 
-```typescript
-import { Client } from '@fadroma/client'
-result = await DeployMyContracts.run(context)
-assert(result instanceof Array)
-assert(result[0] instanceof Client)
-assert(result[1] instanceof Client)
+await Testing.inTmpDeployment(async d => {
+  deepEqual(d.state, {})
+  equal(d, d.save('test', JSON.stringify({ foo: 1 })))
+  equal(d, d.add('test1', { test1: 1 }))
+  ok(!d.load())
+  equal(d, d.set('test2', { test2: 2 }))
+  equal(d, d.setMany({test3: {test:3}, test4: {test:4}}))
+  equal(d.get('missing'), null)
+})
+
+// init contract from uploaded template
+await Testing.inTmpDeployment(async deployment => {
+
+  const codeId   = 1
+  const template = new Contract({ chainId, codeId })
+  const initMsg  = Symbol()
+  const name  = 'contract'
+  const label = `${deployment.name}/${name}`
+  const crate = 'foo'
+
+  deployment.builder  = { build: x => x }
+  deployment.uploader = { upload: x => x, agent }
+
+  const contract = deployment.contract({ template, name, crate })
+  ok(contract instanceof Contract)
+  equal(contract.deployment, deployment)
+
+  const deployed = await contract.deploy(initMsg, contract => contract.client())
+  ok(deployed instanceof Client)
+  equal(deployed.name,  name)
+  equal(deployed.label, label)
+
+  const loaded = deployment.get(name)
+  ok(loaded)
+  ok(loaded instanceof Contract)
+  equal(loaded.deployment, deployment)
+  equal(loaded.name, name)
+  //equal(loaded.chainId, chainId)
+  //equal(loaded.codeId, codeId)
+  equal(loaded.label, label)
+
+})
+
+// init many contracts from the same template
+await Testing.inTmpDeployment(async deployment=>{
+  const codeId   = 2
+  const template = new Contract({ agent, chainId, codeId })
+  const initMsg  = Symbol()
+  const configs  = [['contract1', Symbol()], ['contract2', Symbol()]]
+  const receipts = await deployment.contract(template).deployMany(configs)
+  /*for (const [name] of configs) {
+    equal(deployment.get(name).name,   name)
+    equal(deployment.get(name).label,  `${basename(deployment.file.name)}/${name}`)
+    equal(deployment.get(name).codeId, codeId)
+  }*/
+})
+
+// init many contracts from different templates
+/*await Testing.inTmpDeployment(async deployment=>{
+  const templateA  = { codeId: 2 }
+  const templateB  = { codeId: 3 }
+  const configs    = [[templateA, 'contractA', Symbol()], [templateB, 'contractB', Symbol()]]
+  const receipts   = await deployment.initVarious(configs)
+  for (const [template, name] of configs) {
+    equal(deployment.get(name).name,   name)
+    equal(deployment.get(name).label,  `${basename(deployment.file.name)}/${name}`)
+    equal(deployment.get(name).codeId, template.codeId)
+  }
+})*/
 ```

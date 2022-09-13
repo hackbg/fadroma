@@ -5,13 +5,20 @@ import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual } from 'assert'
 ```
 
-* The devnet is a temporary self-hosted instance of the selected blockchain network,
-  with a user-specified chain id.
+The devnet is a temporary self-hosted instance of the selected blockchain network,
+with a user-specified chain id.
 
 ```typescript
 import { Devnet } from '.'
 let devnet:  Devnet
 let chainId: string
+```
+
+* Devnet config
+
+```typescript
+import { DevnetConfig } from '.'
+let config: DevnetConfig = new DevnetConfig({}, '')
 ```
 
 * Constructing a devnet:
@@ -36,12 +43,12 @@ equal(devnet.port, 9091)
 
 ```typescript
 import { JSONFile, BaseDirectory, withTmpDir } from '@hackbg/kabinet'
-import { Dokeres } from '@hackbg/dokeres'
+import * as Dokeres from '@hackbg/dokeres'
 import { DockerDevnet } from '.'
 // save/load Devnet state
 withTmpDir(async stateRoot=>{
   const chainId = 'fadroma-devnet'
-  const devnet = DockerDevnet.getOrCreate('scrt_1.3', Dokeres.mock())
+  const devnet = DockerDevnet.getOrCreate('scrt_1.3', Dokeres.Engine.mock())
   devnet.stateRoot.path = stateRoot
   ok(devnet.nodeState instanceof JSONFile)
   ok(devnet.stateRoot instanceof BaseDirectory)

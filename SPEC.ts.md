@@ -20,6 +20,12 @@ export default spec
 subSpec('Client', () => import('./packages/client/client.spec.ts.md').then(console.log))
 ```
 
+## [Tokens](./packages/tokens/tokens.spec.ts.md)
+
+```typescript
+subSpec('Tokens', () => import('./packages/tokens/tokens.spec.ts.md').then(console.log))
+```
+
 ## [Connecting to chains](./packages/connect/connect.spec.ts.md')
 
 ```typescript
@@ -44,8 +50,8 @@ subSpec('Deploy', () => import('./packages/deploy/deploy.spec.ts.md').then(conso
 subSpec('Devnet', () => import('./packages/devnet/devnet.spec.ts.md').then(console.log))
 ```
 
-## [Mocknet](./packages/mocknet/mocknet.spec.ts.md)
+## [Mocknet](./platforms/mocknet/mocknet.spec.ts.md)
 
 ```typescript
-subSpec('Mocknet', () => import('./packages/mocknet/mocknet.spec.ts.md').then(console.log))
+subSpec('Mocknet', () => import('./platforms/mocknet/mocknet.spec.ts.md').then(console.log))
 ```

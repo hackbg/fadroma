@@ -1,13 +1,12 @@
 {
   "name":    "@fadroma/scrt-amino",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "type":    "module",
   "main":    "scrt-amino.ts",
   "files": [ "scrt-amino.ts" ],
   "dependencies": {
-    "@fadroma/scrt":   "workspace:^1",
-    "@hackbg/konfizi": "^1.0.4",
-    "@hackbg/formati": "^1.2.0",
+    "@fadroma/scrt":   "workspace:^2",
+    "@hackbg/formati": "workspace:^3.0.1",
 
     "secretjs":             "0.17.5",
     "exponential-backoff":  "^3.1.0",

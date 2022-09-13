@@ -1,3 +1,7 @@
+//import * as Komandi from '@hackbg/komandi'
+//import * as Fadroma from '@hackbg/fadroma'
+//export default new Fadroma.Commands()
+
 // TODO create project
 
   //1. npm init

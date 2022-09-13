@@ -18,63 +18,66 @@
 
 **/
 
-import * as Komandi          from '@hackbg/komandi'
-import * as FadromaBuild     from '@fadroma/build'
-import * as FadromaDeploy    from '@fadroma/deploy'
-import * as FadromaDevnet    from '@fadroma/devnet'
-import * as FadromaConnect   from '@fadroma/connect'
-import * as FadromaScrtGrpc  from '@fadroma/scrt'
-import * as FadromaScrtAmino from '@fadroma/scrt-amino'
+import * as Konfizi   from '@hackbg/konfizi'
+import * as Komandi   from '@hackbg/komandi'
+import * as Konzola   from '@hackbg/konzola'
+import * as Fadroma   from '@fadroma/client'
+import * as Build     from '@fadroma/build'
+import * as Connect   from '@fadroma/connect'
+import * as Deploy    from '@fadroma/deploy'
+import * as Devnet    from '@fadroma/devnet'
 
-/** Complete environment configuration of Fadroma as flat namespace. */
-export type FadromaConfig =
-  & FadromaBuild.BuilderConfig
-  & FadromaConnect.ChainConfig
-  & FadromaDeploy.DeployConfig
-  & FadromaDevnet.DevnetConfig
-  & FadromaScrtGrpc.ScrtGrpcConfig
-  & FadromaScrtAmino.ScrtAminoConfig
+/** A collection of functions that return Chain instances. */
+export type ChainRegistry = Record<string, (config: any)=>Fadroma.Chain|Promise<Fadroma.Chain>>
 
-/** Get the combined Fadroma config for all modules from the runtime environment. */
-export function getFadromaConfig (cwd: string, env = {}): FadromaConfig {
-  return {
-    ...FadromaBuild.getBuilderConfig(cwd, env),
-    ...FadromaConnect.getChainConfig(cwd, env),
-    ...FadromaDeploy.getDeployConfig(cwd, env),
-    ...FadromaDevnet.getDevnetConfig(cwd, env),
-    ...FadromaScrtGrpc.ScrtGrpc.getConfig(cwd, env),
-    ...FadromaScrtAmino.ScrtAmino.getConfig(cwd, env),
-  }
+/** Complete environment configuration of all Fadroma subsystems. */
+export class Config extends Konfizi.EnvConfig {
+  /** Path to root of project. Defaults to current working directory. */
+  project: string = this.getString('FADROMA_PROJECT', ()=>this.cwd)
+  build     = new Build.BuilderConfig(this.env, this.cwd)
+  connect   = new Connect.ConnectConfig(this.env, this.cwd)
+  deploy    = new Deploy.DeployConfig(this.env, this.cwd)
+  devnet    = new Devnet.DevnetConfig(this.env, this.cwd)
+  scrtGrpc  = new Connect.ScrtGrpc.Config(this.env, this.cwd)
+  scrtAmino = new Connect.ScrtAmino.Config(this.env, this.cwd)
 }
 
 /** Context for Fadroma commands. */
-export type Context =
-  & Komandi.CommandContext
-  & { config: FadromaConfig }
-  & FadromaBuild.BuildContext
-  & FadromaDeploy.DeployContext
+export class Commands extends Komandi.CommandContext {
+  constructor (
+    config: Config,
+    /** The selected blockhain to connect to. */
+    public chain?: Fadroma.Chain,
+    /** The selected agent to operate as. */
+    public agent?: Fadroma.Agent
+  ) {
+    super('Fadroma')
+  }
+  config  = new Config(this.env, this.cwd)
+  project = this.config.project
+  build   = new Build.BuildCommands({
+    name: 'build',  config: this.config.build,
+  })
+  connect = new Connect.ConnectContext(this.config.connect)
+  deploy  = new Deploy.DeployCommands({
+    name: 'deploy', config: this.config.deploy, build: this.build
+  })
+}
 
-// Reexport the entirety of the Fadroma suite.
-export * from '@fadroma/build'
-export * from '@fadroma/client'
-export * from '@fadroma/connect'
-export * from '@fadroma/deploy'
-export * from '@fadroma/mocknet'
-export * from '@fadroma/tokens'
-//export * from '@fadroma/schema' // not updated yet
-
-// Platform support:
-export * from '@fadroma/scrt'
-export { SecretJS } from '@fadroma/scrt'
-export * from '@fadroma/scrt-amino'
-export { SecretJS as SecretJSAmino } from '@fadroma/scrt-amino'
-
-// Reexport some toolbox utilities:
-export * from '@hackbg/komandi'
+export const Console = Fadroma.ClientConsole
 export * from '@hackbg/konzola'
+export * from '@hackbg/komandi'
+export * from '@hackbg/konfizi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
-
-// There's apparently also a decimal in @iov/encoding?
-// Gotta see if it's compatible.
+export * from '@fadroma/client'
 export type { Decimal } from '@fadroma/client'
+export * from '@fadroma/build'
+export * from '@fadroma/deploy'
+export * from '@fadroma/devnet'
+export * from '@fadroma/connect'
+export * from '@fadroma/mocknet'
+export * from '@fadroma/tokens'
+export * as ScrtGrpc  from '@fadroma/scrt'
+export * as ScrtAmino from '@fadroma/scrt-amino'
+export { connect } from '@fadroma/connect'

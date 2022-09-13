@@ -1,11 +1,14 @@
 {
   "name":    "@fadroma/mocknet",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "type":    "module",
   "main":    "./mocknet.ts",
   "files":   [ "mocknet.ts" ],
   "description": "Test smart contracts without the overhead of spawning a real chain.",
   "dependencies": {
+    "@hackbg/konzola": "workspace:^2",
+    "@hackbg/formati": "workspace:^3.0.1",
+    "@fadroma/client": "workspace:^5"
   },
   "scripts": {
     "ts:check":    "tsc --noEmit",

@@ -84,7 +84,7 @@ steps.
 * Don't forget to `export default commands`, otherwise Fadroma will not be able to find the commands.
 * Fadroma uses [`@hackbg/komandi`](https://github.com/hackbg/toolbox/blob/main/komandi/komandi.ts)
   to parse commands. This is a simple and loose command parser which does not support flags.
-  Arguments to a command are available in `context.cmdArgs` so you can define your own flags.
+  Arguments to a command are available in `context.args` so you can define your own flags.
 :::
 
 ## How to deploy contracts
@@ -174,7 +174,7 @@ Sometimes it is useful to deploy multiple contracts in a single transaction.
 More complex deployments (such as that of a whole subsystem consisting of multiple contracts)
 can be expressed as classes, by inheriting from `Fadroma.DeployTask`.
 
-The semantics of class-based deployments approach a declarative workflow: by using `this.subtask`
+The semantics of class-based deployments approach a declarative workflow: by using `this.task`
 to wrap the individual stages of the deployment and awaiting the result of the deployment in the
 main function defined in the constructor, the structure of the deployment procedure becomes a
 directed acyclic graph.
