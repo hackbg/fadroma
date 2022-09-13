@@ -1,4 +1,3 @@
-import { Overridable } from '@hackbg/konfizi'
 import { CustomError, bold, timestamp } from '@hackbg/konzola'
 import { CommandContext, CommandsConsole } from '@hackbg/komandi'
 
@@ -18,9 +17,7 @@ interface Hashed { code_hash?: CodeHash, codeHash?: CodeHash }
 export function codeHashOf ({ code_hash, codeHash }: Hashed): CodeHash {
   if (typeof code_hash === 'string') code_hash = code_hash.toLowerCase()
   if (typeof codeHash  === 'string') codeHash  = codeHash.toLowerCase()
-  if (code_hash && codeHash && code_hash !== codeHash) {
-    throw new Error('Passed an object with codeHash and code_hash both different')
-  }
+  if (code_hash && codeHash && code_hash !== codeHash) throw new ClientError.DifferentHashes()
   const result = code_hash ?? codeHash
   if (!result) throw new ClientError.NoCodeHash()
   return result
@@ -64,9 +61,7 @@ export abstract class Chain {
     readonly id: ChainId,
     options: Partial<ChainOpts> = {}
   ) {
-    if (!id) {
-      throw new Error('Chain: need to pass chain id')
-    }
+    if (!id) throw new ClientError.NoChainId()
     this.id   = id
     this.mode = options.mode!
     if (options.url) {
@@ -137,24 +132,17 @@ export abstract class Chain {
   abstract getHash (address: Address|number): Promise<CodeHash>
 
   /** Get the code hash of a smart contract. */
-  async checkHash (address: Address, codeHash?: CodeHash) {
+  async checkHash (address: Address, expectedCodeHash?: CodeHash) {
     // Soft code hash checking for now
-    const realCodeHash = await this.getHash(address)
-    if (!codeHash) {
-      this.log.warn(
-        'Code hash not provided for address:', address,
-        '  Code hash on chain:', realCodeHash
-      )
-    } if (codeHash !== realCodeHash) {
-      this.log.warn(
-        'Code hash mismatch for address:', address,
-        '  Expected code hash:',           codeHash,
-        '  Code hash on chain:',           realCodeHash
-      )
+    const fetchedCodeHash = await this.getHash(address)
+    if (!expectedCodeHash) {
+      this.log.warnNoCodeHashProvided(address, fetchedCodeHash)
+    } if (expectedCodeHash !== fetchedCodeHash) {
+      this.log.warnCodeHashMismatch(address, expectedCodeHash, fetchedCodeHash)
     } else {
-      this.log.info(`Code hash of ${address}:`, realCodeHash)
+      this.log.confirmCodeHash(address, fetchedCodeHash)
     }
-    return realCodeHash
+    return fetchedCodeHash
   }
 
   /** Get the current block height. */
@@ -162,7 +150,7 @@ export abstract class Chain {
 
   /** Wait for the block height to increment. */
   get nextBlock (): Promise<number> {
-    this.log.info('Waiting for next block...')
+    this.log.waitingForNextBlock()
     return new Promise((resolve, reject)=>{
       this.height.then(async startingHeight=>{
         try {
@@ -187,11 +175,8 @@ export abstract class Chain {
   ): Promise<A> {
     if (this.node) await this.node.respawn()
     if (!options.mnemonic && options.name) {
-      if (this.node) {
-        options = await this.node.getGenesisAccount(options.name)
-      } else {
-        throw new Error('Chain#getAgent: getting agent by name only supported for devnets')
-      }
+      if (!this.node) throw new ClientError.NameOutsideDevnet()
+      options = await this.node.getGenesisAccount(options.name)
     }
     const agent = await _Agent.create(this, options) as A
     return agent
@@ -305,11 +290,8 @@ export abstract class Agent {
 
   /** Get the balance of this or another address. */
   getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {
-    if (address) {
-      return this.chain.getBalance(denom, address)
-    } else {
-      throw new Error('Agent#getBalance: what address?')
-    }
+    if (!address) throw new ClientError.BalanceNoAddress()
+    return this.chain.getBalance(denom, address)
   }
 
   /** This agent's balance in the chain's native token. */
@@ -442,30 +424,28 @@ export abstract class Bundle extends Agent {
     return this.agent.checkHash(address, codeHash)
   }
 
-  get balance () {
-    throw new Error("don't query inside bundle")
-    return Promise.resolve('0')
+  get balance (): Promise<string> {
+    throw new ClientError.NotInBundle("query balance")
   }
 
-  async getBalance (denom: string) {
-    throw new Error("can't get balance in bundle")
-    return Promise.resolve(denom)
+  async getBalance (denom: string): Promise<string> {
+    throw new ClientError.NotInBundle("query balance")
   }
 
   get height (): Promise<number> {
-    throw new Error("don't query block height inside bundle")
+    throw new ClientError.NotInBundle("query block height inside bundle")
   }
 
   get nextBlock (): Promise<number> {
-    throw new Error("can't wait for next block inside bundle")
+    throw new ClientError.NotInBundle("wait for next block")
   }
 
   async send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown> {
-    throw new Error("Bundle#send: not implemented")
+    throw new ClientError.NotInBundle("send")
   }
 
   async sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
-    throw new Error("Bundle#sendMany: not implemented")
+    throw new ClientError.NotInBundle("send")
   }
 
   async instantiate (
@@ -491,21 +471,21 @@ export abstract class Bundle extends Agent {
     * the bundle is ultimately submitted as a single transaction and
     * it doesn't make sense to query state in the middle of that. */
   async query <U> (contract: Client, msg: Message): Promise<never> {
-    throw new Error("don't query inside bundle")
+    throw new ClientError.NotInBundle("query")
   }
 
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async upload (code: Uint8Array): Promise<never> {
-    throw new Error("don't upload inside bundle")
+    throw new ClientError.NotInBundle("upload")
   }
 
   /** Uploads are disallowed in the middle of a bundle because
     * it's easy to go over the max request size, and
     * difficult to know what that is in advance. */
   async uploadMany (code: Uint8Array[] = []): Promise<never> {
-    throw new Error("don't upload inside bundle")
+    throw new ClientError.NotInBundle("upload")
   }
 
   depth  = 0
@@ -552,7 +532,7 @@ export abstract class Bundle extends Agent {
   }
 
   assertCanSubmit (): true {
-    if (this.msgs.length < 1) throw new Error('Trying to submit bundle with no messages')
+    if (this.msgs.length < 1) throw new ClientError.EmptyBundle()
     return true
   }
 
@@ -627,13 +607,13 @@ export class Client {
   }
 
   protected assertAddress (): this {
-    if (!this.address) throw new ClientError.AssertAddressFailed(this.constructor.name)
+    if (!this.address) throw new ClientError.ExpectedAddress(this.constructor.name)
     return this
   }
 
   /** Throw if trying to do something with no agent or address. */
   protected assertAgent (): Agent {
-    if (!this.agent) throw new ClientError.AssertAgentFailed(this.constructor.name)
+    if (!this.agent) throw new ClientError.ExpectedAgent(this.constructor.name)
     return this.agent
   }
 
@@ -657,8 +637,8 @@ export class Client {
 
   /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
   get asLink (): ContractLink {
-    if (!this.address)  throw new Error("Can't link to contract with no address")
-    if (!this.codeHash) throw new Error("Can't link to contract with no code hash")
+    if (!this.address)  throw new ClientError.LinkNoAddress()
+    if (!this.codeHash) throw new ClientError.LinkNoCodeHash()
     return { address: this.address, code_hash: this.codeHash }
   }
 
@@ -691,9 +671,7 @@ export class Client {
       return fees[msg] || defaultFee
     } else if (typeof msg === 'object') {
       const keys = Object.keys(msg)
-      if (keys.length !== 1) {
-        throw new Error('Client#getFee: messages must have exactly 1 root key')
-      }
+      if (keys.length !== 1) throw new ClientError.InvalidMessage()
       return fees[keys[0]] || defaultFee
     }
     return this.fee || defaultFee
@@ -723,7 +701,7 @@ export class Client {
       const { address, codeHash } = this.deployment.get(this.name) ?? {}
       return new (this.constructor as NewClient<this>)(this.agent, address, codeHash)
     }
-    throw new Error(message)
+    throw new ClientError(message)
   }
 
 }
@@ -736,7 +714,7 @@ export class Clients<C extends Client> {
   ) {}
 
   async select (predicate: (key: string, val: { name?: string }) => boolean): Promise<C[]> {
-    if (!this.deployment) throw new Error('Clients: no deployment')
+    if (!this.deployment) throw new ClientError.NoDeployment()
     const { agent } = this.deployment
     return Object.entries(this.deployment.state)
       .filter(([key, val])=>predicate(key, val))
@@ -959,12 +937,12 @@ export class Contract<C extends Client> extends Client {
   intoClient ($Client: typeof this.client = this.client): Promise<C> {
     return this.address
       ? Promise.resolve(new $Client(this.agent, this.address, this.codeHash))
-      : Promise.reject(new Error(`${$Client.name} "${this.name}" not found.`))
+      : Promise.reject(new ClientError.NotFound($Client.name, this.name, this.deployment?.name))
   }
 
   intoClientSync ($Client: typeof this.client = this.client): C {
     if (this.address) return new $Client(this.agent, this.address, this.codeHash)
-    throw new Error(`${$Client.name} "${this.name}" not found.`)
+    throw new ClientError.NotFound($Client.name, this.name, this.deployment?.name)
   }
 
   getClientOrNull = (): C|null => {
@@ -1090,8 +1068,8 @@ export interface IntoLink extends Hashed {
 }
 
 export function addressOf (instance?: { address?: Address }): Address {
-  if (!instance)         throw new Error("Can't create an inter-contract link without a target")
-  if (!instance.address) throw new Error("Can't create an inter-contract link without an address")
+  if (!instance)         throw new ClientError.LinkNoTarget()
+  if (!instance.address) throw new ClientError.LinkNoAddress()
   return instance.address
 }
 
@@ -1153,17 +1131,20 @@ export class Deployment extends CommandContext {
   /** Upload implementation. Can't upload to chain if missing. */
   uploader?: Uploader
 
-  /** Upload multiple contracts to the chain. */
+  /** Upload multiple contracts to the chain.
+    * @returns the same contracts, but with `chainId`, `codeId` and `codeHash` populated. */
   uploadMany = async (contracts: Contract<any>[]): Promise<Contract<any>[]> => {
     if (!this.uploader) throw new ClientError.NoUploader()
     return this.uploader.uploadMany(contracts)
   }
 
   /** Specify a contract with optional client class and metadata.
+    * @returns a Contract instance with the specified parameters. 
     *
     * When defined as part of a Deployment, the methods of the Contract instance
     * are lazy and only execute when awaited:
     *
+    * @example
     *   class ADeployment {
     *     aContract = this.contract({...}).deploy()
     *     bContract = this.contract({...}).deploy(async()=>({ init: await this.aContract.address }))
@@ -1175,18 +1156,22 @@ export class Deployment extends CommandContext {
     * Use the methods of the returned Contract instance
     * to define what is to be done with the contract:
     *
+    * @example
     *   // This will either return a Client to ExternalContract,
     *   // or bail if ExternalContract is not in the deployment:
     *   await this.contract({ name: 'ExternalContract' })
     *
+    * @example
     *   // This will only deploy OwnContract if it's not already in the deployment.
     *   // Otherwise it will return a Client to the existing instance.
     *   await this.contract({ name: 'OwnContract' }).deploy(init?, callback?)
     *
+    * @example
     *   // This will deploy multiple instances of the same contract,
     *   // returning an array of Client instances.
     *   await this.contract({ name: 'OwnContract' }).deployMany(inits?)
     *
+    * @example
     *   // This will upload the contract code but not instantiate it,
     *   // and will therefore return a Contract.
     *   await this.contract({ name: 'OwnContractTemplate' }).upload()
@@ -1208,12 +1193,13 @@ export class Deployment extends CommandContext {
     return new Contract(options)
   }
 
+  /** Specify multiple contracts.
+    * @returns an array of Contract instances matching the specified predicate. */
   contracts (
     predicate: (key: string, val: { name?: string }) => boolean
   ): Promise<Client[]>
   contracts <C extends Client> (
-    predicate: (key: string, val: { name?: string }) => boolean,
-    Client: NewClient<C>
+    predicate: (key: string, val: { name?: string }) => boolean, Client: NewClient<C>
   ): Promise<C[]>
   contracts <C extends Client> (...args: Array<unknown>) {
     if (args.length > 1) {
@@ -1224,6 +1210,13 @@ export class Deployment extends CommandContext {
       const predicate = args[0] as (key: string, val: { name?: string }) => boolean
       return Promise.all(this.filter(predicate).map((receipt: object)=>this.contract(receipt)))
     }
+  }
+
+  /** @returns Contract instances matching the provided predicate. */
+  filter (predicate: (key: string, val: { name?: string }) => boolean): Contract<any>[] {
+    return Object.entries(this.state)
+      .filter(([key, val])=>predicate(key, val))
+      .map(([name, data])=>new Contract({ name, ...data }))
   }
 
   /** Number of contracts in deployment. */
@@ -1246,12 +1239,6 @@ export class Deployment extends CommandContext {
     const receipt = this.state[name]
     if (!receipt) return null
     return new Contract({ ...receipt, deployment: this })
-  }
-
-  filter (predicate: (key: string, val: { name?: string }) => boolean): Contract<any>[] {
-    return Object.entries(this.state)
-      .filter(([key, val])=>predicate(key, val))
-      .map(([name, data])=>new Contract({ name, ...data }))
   }
 
   /** Chainable. Add entry to deployment, replacing existing receipt. */
@@ -1280,7 +1267,7 @@ export class VersionedDeployment<V> extends Deployment {
     public version: V|undefined = (options as any)?.version
   ) {
     super(options as Partial<Deployment>)
-    if (!this.version) throw new Error(`${this.constructor.name}: specify version`)
+    if (!this.version) throw new ClientError.NoVersion(this.constructor.name)
   }
 }
 
@@ -1293,7 +1280,7 @@ export type IntoBuilder = string|NewBuilder|Partial<Builder>
 export type IntoSource = string|Contract<any>
 
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
-export abstract class Builder extends Overridable {
+export abstract class Builder {
 
   /** Populated by @fadroma/build */
   static Variants: Record<string, Builder> = {}
@@ -1302,14 +1289,10 @@ export abstract class Builder extends Overridable {
   static get (specifier: IntoBuilder = '', options: Partial<Builder> = {}) {
     if (typeof specifier === 'string') {
       const B = Builder.Variants[specifier]
-      if (!B) {
-        throw new Error(`No "${specifier}" builder installed. Make sure @fadroma/build is imported`)
-      }
+      if (!B) throw new ClientError.NoBuilderNamed(specifier)
       return new (B as any)(options)
     } else if (typeof specifier === 'function') {
-      if (!options.id) {
-        throw new Error(`No builder specified.`)
-      }
+      if (!options.id) throw new ClientError.NoBuilder()
       return new (specifier as NewBuilder)(options)
     } else {
       const B = Builder.Variants[specifier?.id as string]
@@ -1375,131 +1358,85 @@ export type Moment   = number
 /** A period of time. */
 export type Duration = number
 
-/// # Error types
-
+/** Error kinds. */
 export class ClientError extends CustomError {
-
+  static DifferentHashes = this.define('DifferentHashes',
+    () => 'Passed an object with codeHash and code_hash both different')
   static DeployManyFailed = this.define('DeployManyFailed',
     (e: any) => 'Deploy of multiple contracts failed. ' + e?.message??'')
-
-  static InvalidLabel     = this.define('InvalidLabel',
+  static InvalidLabel = this.define('InvalidLabel',
     (label: string) => `Can't set invalid label: ${label}`)
-
-  static InvalidSource    = this.define('InvalidSource',
-    (specifier: any) => `Can't create source from: ${specifier}`)
-
-  static InvalidTemplate  = this.define('InvalidTemplate',
-    (specifier: any) => `Can't create source from: ${specifier}`)
-
-  static InvalidSpecifier = this.define('InvalidSpecifier',
-    (specifier: unknown) => `Can't create from: ${specifier}`)
-
-  static InvalidValue     = this.define("InvalidContractValue",
-    () => "Value is not Client and not a name.")
-
-  static NoAgent          = this.define('NoAgent',
-    () => "Missing agent.")
-
-  static NoBundleAgent    = this.define('NoBundleAgent',
-    () => "Missing agent for bundle.")
-
-  static NoArtifact       = this.define('NoArtifact',
-    () => "No code id and no artifact to upload")
-
-  static NoArtifactURL    = this.define('NoArtifactUrl',
-    () => "Still no artifact URL")
-
-  static NoBuilder        = this.define('NoBuilder',
-    () => `No builder selected.`)
-
-  static NoChainId        = this.define('NoChainId',
-    () => "No chain ID specified")
-
-  static NoCodeHash       = this.define('NoCodeHash',
-    () => "No code hash")
-
-  static NoContext        = this.define('NoUploadInitContext',
-    () => "Missing deploy context.")
-
-  static NoCrate          = this.define('NoCrate',
-    () => `No crate specified for building`)
-
-  static NoCreator        = this.define('NoContractCreator',
-    () => "Missing creator.")
-
-  static NoDeployment     = this.define("NoDeployment",
-    (name?: string) => name
-      ? `No deployment, can't find contract by name: ${name}`
-      : "Missing deployment")
-
-  static NoInitMessage    = this.define('NoInitMessage',
-    () => "Missing init message")
-
-  static NoName           = this.define("NoContractName",
-    () => "No name.")
-
-  static NoSource         = this.define('NoSource',
-    () => "No artifact and no source to build")
-
-  static NoTemplate       = this.define('NoTemplate',
-    () => "Tried to create Contract with nullish template")
-
-  static NoUploader       = this.define('NoUploader',
-    () => "No uploader specified")
-
-  static NoUploaderAgent  = this.define('NoUploaderAgent',
-    () => "No uploader agent specified")
-
-  static NotFound         = this.define('NotFound',
-    (prefix: string, name: string) => `Contract ${name} not found in deployment ${prefix}`)
-
-  static NotFound2        = this.define('NotFound2',
-    () => "Contract not found. Try .getOrDeploy(template, init)")
-
-  static ProvideBuilder   = this.define('ProvideBuilder',
+  static NoAgent = this.define('NoAgent', () => "Missing agent.")
+  static NoBundleAgent = this.define('NoBundleAgent', () => "Missing agent for bundle.")
+  static NoArtifact = this.define('NoArtifact', () => "No code id and no artifact to upload")
+  static NoArtifactURL = this.define('NoArtifactUrl', () => "Still no artifact URL")
+  static NoBuilder = this.define('NoBuilder', () => `No builder specified.`)
+  static NoBuilderNamed = this.define('NoBuilderNamed', (id: string) => 
+    `No builder installed with id "${id}". Make sure @fadroma/build is imported`)
+  static NoChainId = this.define('NoChainId', () => "No chain ID specified")
+  static NoCodeHash = this.define('NoCodeHash', () => "No code hash")
+  static NoContext = this.define('NoUploadInitContext', () => "Missing deploy context.")
+  static NoCrate = this.define('NoCrate', () => `No crate specified for building`)
+  static NoCreator = this.define('NoContractCreator', () => "Missing creator.")
+  static NoDeployment = this.define("NoDeployment", (name?: string) =>
+    name ? `No deployment, can't find contract by name: ${name}`
+         : "Missing deployment")
+  static NoInitMessage = this.define('NoInitMessage', () => "Missing init message")
+  static NoName = this.define("NoContractName", () => "No name.")
+  static NoSource = this.define('NoSource', () => "No artifact and no source to build")
+  static NoTemplate = this.define('NoTemplate', () =>
+    "Tried to create Contract with nullish template")
+  static NoUploader = this.define('NoUploader', () => "No uploader specified")
+  static NoUploaderAgent  = this.define('NoUploaderAgent', () => "No uploader agent specified")
+  static NotFound = this.define('NotFound', (kind: string, name: string, deployment: string) =>
+    (`${kind} "${name}" not found in ${deployment}`))
+  static ProvideBuilder = this.define('ProvideBuilder',
     (id: string) => `Provide a "${id}" builder`)
-
-  static ProvideUploader  = this.define('ProvideUploader',
+  static ProvideUploader = this.define('ProvideUploader',
     (id: string) => `Provide a "${id}" uploader`)
-
-  static Unpopulated      = this.define('Unpopulated',
+  static Unpopulated = this.define('Unpopulated',
     () => "template.codeId and template.codeHash must be defined to use template.asLink")
-
-  static AssertAddressFailed = this.define('AssertAddressFailed',
-    (name: string) => `${name} has no address and can't operate.` +
-                      ` Pass an address with "new ${name}(agent, address)" ` +
-                      ` or "new ${name}({ address })"`)
-
-  static AssertAgentFailed = this.define('AssertAgentFailed',
-    (name: string) => `${name} has no agent and can't operate. `+
-                      `Pass an address when calling "new ${name}(agent, addr)"`)
-
+  static ExpectedAddress = this.define('ExpectedAddress', (name: string) =>
+    `${name} has no address and can't operate.` +
+    ` Pass an address with "new ${name}(agent, address)" ` +
+    ` or "new ${name}({ address })"`)
+  static ExpectedAgent = this.define('ExpectedAgent', (name: string) =>
+    `${name} has no agent and can't operate. `+
+    `Pass an address when calling "new ${name}(agent, addr)"`)
   static ValidationFailed = this.define('ValidationFailed',
     (kind: string, name: string, expected: any, actual: any) =>
       `Wrong ${kind}: ${name} was passed ${expected} but fetched ${actual}`)
-
+  static NameOutsideDevnet = this.define('NameOutsideDevnet',
+    () => 'Chain#getAgent: getting agent by name only supported for devnets')
+  static BalanceNoAddress = this.define('BalanceNoAddress',
+    () => 'Agent#getBalance: what address?')
+  static NotInBundle = this.define('NotInBundle',
+    (op: string) => `Operation disallowed inside bundle: ${op}`)
+  static EmptyBundle = this.define('EmptyBundle',
+    () => 'Trying to submit bundle with no messages')
+  static LinkNoTarget = this.define('LinkNoTarget',
+    () => "Can't create inter-contract link with no target")
+  static LinkNoAddress = this.define('LinkNoAddress',
+    () => "Can't link to contract with no address")
+  static LinkNoCodeHash = this.define('LinkNoCodeHash',
+    () => "Can't link to contract with no code hash")
+  static InvalidMessage = this.define('InvalidMessage',
+    () => 'Messages must have exactly 1 root key')
+  static NoVersion = this.define('NoVersion', (name: string) => `${name}: specify version`)
 }
 
-/// # Logging
-
+/** Logging. */
 export class ClientConsole extends CommandsConsole {
-
-  beforeDeploy (template: Contract<any>, label: Label) {
-    this.info(
-      'Deploy   ', bold(label),
-      'from code id', bold(String(template.codeId  ||'(unknown)')),
-      'hash', bold(String(template.codeHash||'(unknown)'))
-    )
-  }
-
-  afterDeploy (contract: Partial<Contract<any>>) {
-    this.info(
-      'Deployed ', bold(contract.name!), 'is', bold(contract.address!),
-      'from code id', bold(contract.codeId!)
-    )
-  }
-
-  deployFailed (e: Error, template: Contract<any>, name: Label, msg: Message) {
+  beforeDeploy = (template: Contract<any>, label: Label) => this.info(
+    'Deploy   ', bold(label),
+    'from code id', bold(String(template.codeId ||'(unknown)')),
+    'hash', bold(String(template.codeHash||'(unknown)'))
+  )
+  afterDeploy = (contract: Partial<Contract<any>>) => this.info(
+    'Deployed ', bold(contract.name!), 'is', bold(contract.address!),
+    'from code id', bold(contract.codeId!)
+  )
+  deployFailed = (e: Error, template: Contract<any>, name: Label, msg: Message) => {
     this.error()
     this.error(`  Deploy of ${bold(name)} failed:`)
     this.error(`    ${e.message}`)
@@ -1509,19 +1446,11 @@ export class ClientConsole extends CommandsConsole {
     this.error(`    ${JSON.stringify(msg)}`)
     this.error()
   }
-
-  deployManyFailed (template: Contract<any>, contracts: DeployArgs[] = [], e: Error) {
+  deployManyFailed = (template: Contract<any>, contracts: DeployArgs[] = [], e: Error) => {
     this.error()
     this.error(`  Deploy of multiple contracts failed:`)
     this.error(`    ${e.message}`)
-    if (template) {
-      this.error(`  Contract:   `)
-      this.error(`    Chain ID: `, bold(template.chainId ||''))
-      this.error(`    Code ID:  `, bold(template.codeId  ||''))
-      this.error(`    Code hash:`, bold(template.codeHash||''))
-    } else {
-      this.error(`  No template was providede.`)
-    }
+    this.deployFailedContract(template)
     this.error()
     this.error(`  Configs: `)
     for (const [name, init] of contracts) {
@@ -1529,56 +1458,43 @@ export class ClientConsole extends CommandsConsole {
     }
     this.error()
   }
-
-  deployFailedContract (template?: Contract<any>) {
+  deployFailedContract = (template?: Contract<any>) => {
     this.error()
-    if (template) {
-      this.error(`  Contract:   `)
-      this.error(`    Chain ID: `, bold(template.chainId ||''))
-      this.error(`    Code ID:  `, bold(template.codeId  ||''))
-      this.error(`    Code hash:`, bold(template.codeHash||''))
-    } else {
-      this.error(`  No template was providede.`)
-    }
+    if (!template) return this.error(`  No template was provided.`)
+    this.error(`  Contract:   `)
+    this.error(`    Chain ID: `, bold(template.chainId ||''))
+    this.error(`    Code ID:  `, bold(template.codeId  ||''))
+    this.error(`    Code hash:`, bold(template.codeHash||''))
   }
-
   chainStatus = ({ chain, deployments }: {
-    chain?: Chain,
-    deployments?: { active?: { name: string }, list (): string[] }
+    chain?: Chain, deployments?: { active?: { name: string }, list (): string[] }
   }) => {
-    if (!chain) {
-      this.info('│ No active chain.')
-    } else {
-      this.info('│ Chain type: ', bold(chain.constructor.name))
-      this.info('│ Chain mode: ', bold(chain.mode))
-      this.info('│ Chain ID:   ', bold(chain.id))
-      this.info('│ Chain URL:  ', bold(chain.url.toString()))
-      this.info('│ Deployments:', bold(String(deployments?.list().length)))
-      if (deployments?.active) {
-        this.info('│ Deployment: ', bold(String(deployments?.active?.name)))
-      } else {
-        this.info('│ No active deployment.')
-      }
-    }
+    if (!chain) return this.info('│ No active chain.')
+    this.info('│ Chain type: ', bold(chain.constructor.name))
+    this.info('│ Chain mode: ', bold(chain.mode))
+    this.info('│ Chain ID:   ', bold(chain.id))
+    this.info('│ Chain URL:  ', bold(chain.url.toString()))
+    this.info('│ Deployments:', bold(String(deployments?.list().length)))
+    if (!deployments?.active) return this.info('│ No active deployment.')
+    this.info('│ Deployment: ', bold(String(deployments?.active?.name)))
   }
-
-  warnUrlOverride = (a: any, b: any) => this.warn(
-    `node.url "${a}" overrides chain.url "${b}"`
-  )
-  warnIdOverride = (a: any, b: any) => this.warn(
-    `node.chainId "${a}" overrides chain.id "${b}"`
-  )
-  warnNodeNonDevnet = () => this.warn(
-    `"node" option is only applicable to devnets`
-  )
-  warnNoAgent = (name: string) => this.warn(
-    `${name}: no agent; actions will fail until agent is set`
-  )
-  warnNoAddress = (name: string) => this.warn(
-    `${name}: no address; actions will fail until address is set`
-  )
-  warnNoCodeHash = (name: string) => this.warn(
-    `${name}: no codeHash; actions may be slow until code hash is set`
-  )
-
+  warnUrlOverride = (a: any, b: any) =>
+    this.warn(`node.url "${a}" overrides chain.url "${b}"`)
+  warnIdOverride = (a: any, b: any) =>
+    this.warn(`node.chainId "${a}" overrides chain.id "${b}"`)
+  warnNodeNonDevnet = () =>
+    this.warn(`"node" option is only applicable to devnets`)
+  warnNoAgent = (name: string) =>
+    this.warn(`${name}: no agent; actions will fail until agent is set`)
+  warnNoAddress = (name: string) =>
+    this.warn(`${name}: no address; actions will fail until address is set`)
+  warnNoCodeHash = (name: string) =>
+    this.warn(`${name}: no codeHash; actions may be slow until code hash is set`)
+  warnNoCodeHashProvided = (address: string, realCodeHash: string) =>
+    this.warn(`Code hash not provided for ${address}. Fetched: ${realCodeHash}`)
+  warnCodeHashMismatch = (address: string, expected: string|undefined, fetched: string) =>
+    this.warn(`Code hash mismatch for ${address}: expected ${expected}, fetched ${fetched}`)
+  confirmCodeHash = (address: string, codeHash: string) =>
+    this.info(`Confirmed code hash of ${address}: ${codeHash}`)
+  waitingForNextBlock = () => this.info('Waiting for next block...')
 }
