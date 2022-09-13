@@ -123,12 +123,12 @@ export class DeployCommands extends Deployment {
     const name = 'deploy'
     const config = new DeployConfig(process.env, process.cwd(), options) as DeployConfig
     const { chain, agent } = await Connect.connect(options)
-    if (!agent) new DeployConsole(console, 'Fadroma Deploy').warnNoAgent()
+    if (!agent) new DeployConsole('Fadroma Deploy').warnNoAgent()
     const deployments = chain ? Deployments.init(chain.id, config.project) : null
     return new this({ name, config, chain, agent, build, deployments })
   }
 
-  log = new DeployConsole(console, 'Fadroma.DeployCommands')
+  log = new DeployConsole('Fadroma.DeployCommands')
 
   constructor (options: Partial<DeployCommands> = {}) {
     super(options as Partial<Deployment>)
@@ -390,7 +390,7 @@ const bold = Konzola.bold
   * allows for uploaded contracts to be reused. */
 export class FSUploader extends Uploader {
 
-  log = new DeployConsole(console, 'Fadroma.FSUploader')
+  log = new DeployConsole('Fadroma.FSUploader')
 
   /** This defines the default path for the upload receipt cache. */
   static fromConfig (

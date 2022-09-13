@@ -33,7 +33,7 @@ export async function connect (
   config: Partial<ConnectConfig> = new ConnectConfig()
 ): Promise<ConnectContext> {
   config = new ConnectConfig(process.env, process.cwd(), config)
-  const log = new ConnectConsole(console, 'Fadroma.connect')
+  const log = new ConnectConsole('Fadroma.connect')
   const { chains = {} } = config
   let chain: Fadroma.Chain|null = null
   let agent: Fadroma.AgentOpts = {}
@@ -71,7 +71,7 @@ export class ConnectContext extends Fadroma.Deployment {
   }
   config: ConnectConfig
   showChains = async () => {
-    const log = new ConnectConsole(console, 'Fadroma.ConnectCommands')
+    const log = new ConnectConsole('Fadroma.ConnectCommands')
     log.supportedChains()
     log.selectedChain(this.config.chain)
   }

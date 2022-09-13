@@ -197,7 +197,7 @@ export class BuildCommands extends Deployment {
     return true
   }
 
-  log = new BuildConsole(console, 'Fadroma.BuildCommands')
+  log = new BuildConsole('Fadroma.BuildCommands')
 
 }
 
@@ -294,7 +294,11 @@ export abstract class LocalBuilder extends Builder {
 
   constructor (options: Partial<LocalBuilder> = {}) {
     super()
-    this.override(options)
+    this.script        = options.script ?? this.script
+    this.noFetch       = options.noFetch ?? this.noFetch
+    this.outputDirName = options.outputDirName ?? this.outputDirName
+    this.toolchain     = options.toolchain ?? this.toolchain
+    this.verbose       = options.verbose ?? this.verbose
   }
 
   /** The build script. */
@@ -343,7 +347,7 @@ export class RawBuilder extends LocalBuilder {
 
   readonly id = 'raw-local'
 
-  log = new BuildConsole(console, 'Fadroma.RawBuilder')
+  log = new BuildConsole('Fadroma.RawBuilder')
 
   runtime = process.argv[0]
 
@@ -463,7 +467,7 @@ export class DockerBuilder extends LocalBuilder {
     this.script     ??= opts.script!
   }
 
-  log = new BuildConsole(console, 'Fadroma.DockerBuilder')
+  log = new BuildConsole('Fadroma.DockerBuilder')
 
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'
@@ -781,7 +785,7 @@ export class DotGit extends Kabinet.Path {
 
   }
 
-  log = new BuildConsole(console, 'Fadroma.DotGit')
+  log = new BuildConsole('Fadroma.DotGit')
 
   readonly present:     boolean
 
