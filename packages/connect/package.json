@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/connect",
-  "version": "1.0.5",
+  "version": "2.0.0",
   "type":    "module",
   "main":    "./connect.ts",
   "files":   [ "connect.ts" ],
@@ -14,11 +14,11 @@
   "dependencies": {
     "@fadroma/client":     "workspace:^5",
     "@fadroma/devnet":     "workspace:^1",
-    "@fadroma/scrt":       "workspace:*",
-    "@fadroma/scrt-amino": "workspace:*",
+    "@fadroma/scrt":       "workspace:^2",
+    "@fadroma/scrt-amino": "workspace:^2",
     "@fadroma/mocknet":    "workspace:*",
-    "@hackbg/komandi":     "^5",
-    "@hackbg/konfizi":     "^2"
+    "@hackbg/komandi":     "workspace:^5",
+    "@hackbg/konfizi":     "workspace:^2"
   },
   "peerDependencies": {
     "@fadroma/devnet": "workspace:^1.0.3",

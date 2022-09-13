@@ -4,14 +4,14 @@ importers:
 
   .:
     specifiers:
-      '@fadroma/build': workspace:^1
+      '@fadroma/build': workspace:^2
       '@fadroma/client': workspace:^5
-      '@fadroma/connect': workspace:^1
-      '@fadroma/deploy': workspace:^1
+      '@fadroma/connect': workspace:^2
+      '@fadroma/deploy': workspace:^2
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^1
-      '@fadroma/scrt': workspace:^1
-      '@fadroma/scrt-amino': workspace:^1
+      '@fadroma/scrt': workspace:^2
+      '@fadroma/scrt-amino': workspace:^2
       '@fadroma/tokens': workspace:^3
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/formati': ^3.0.1
@@ -114,6 +114,11 @@ importers:
   packages/client:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
+      '@hackbg/komandi': ^5
+      '@hackbg/konzola': ^2
+    dependencies:
+      '@hackbg/komandi': link:../../toolbox/komandi
+      '@hackbg/konzola': link:../../toolbox/konzola
     devDependencies:
       '@hackbg/ganesha': 2.3.0
 
@@ -122,10 +127,10 @@ importers:
       '@fadroma/client': workspace:^5
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:*
-      '@fadroma/scrt': workspace:*
-      '@fadroma/scrt-amino': workspace:*
-      '@hackbg/komandi': ^5
-      '@hackbg/konfizi': ^2
+      '@fadroma/scrt': workspace:^2
+      '@fadroma/scrt-amino': workspace:^2
+      '@hackbg/komandi': workspace:^5
+      '@hackbg/konfizi': workspace:^2
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/devnet': link:../devnet
@@ -137,16 +142,16 @@ importers:
 
   packages/deploy:
     specifiers:
-      '@fadroma/build': ^1
-      '@fadroma/client': ^5
-      '@fadroma/connect': ^1
+      '@fadroma/build': workspace:^2
+      '@fadroma/client': workspace:^5
+      '@fadroma/connect': workspace:^2
       '@hackbg/dokeres': workspace:^4.4.1
-      '@hackbg/formati': ^3.0.1
-      '@hackbg/kabinet': ^3.1.2
-      '@hackbg/komandi': ^5
-      '@hackbg/konfizi': ^2
-      '@hackbg/konzola': ^2
-      '@hackbg/portali': ^1.2.4
+      '@hackbg/formati': workspace:^3.0.1
+      '@hackbg/kabinet': workspace:^3.1.2
+      '@hackbg/komandi': workspace:^5
+      '@hackbg/konfizi': workspace:^2
+      '@hackbg/konzola': workspace:^2
+      '@hackbg/portali': workspace:^1.2.4
       dotenv: ^16.0.1
       js-yaml: ^4.1.0
     dependencies:
@@ -167,12 +172,12 @@ importers:
   packages/devnet:
     specifiers:
       '@fadroma/client': workspace:^5
-      '@hackbg/dokeres': ^4.4.1
-      '@hackbg/formati': ^3.0.1
-      '@hackbg/kabinet': ^3.1.2
-      '@hackbg/komandi': ^5
+      '@hackbg/dokeres': workspace:^4.4.1
+      '@hackbg/formati': workspace:^3.0.1
+      '@hackbg/kabinet': workspace:^3.1.2
+      '@hackbg/komandi': workspace:^5
       '@hackbg/konfizi': workspace:*
-      '@hackbg/portali': ^1.2.4
+      '@hackbg/portali': workspace:^1.2.4
     dependencies:
       '@fadroma/client': link:../client
       '@hackbg/dokeres': link:../../toolbox/dokeres
@@ -184,9 +189,9 @@ importers:
 
   packages/mocknet:
     specifiers:
-      '@fadroma/client': ^5
-      '@hackbg/formati': ^3.0.1
-      '@hackbg/konzola': ^2
+      '@fadroma/client': workspace:^5
+      '@hackbg/formati': workspace:^3.0.1
+      '@hackbg/konzola': workspace:^2
     dependencies:
       '@fadroma/client': link:../client
       '@hackbg/formati': link:../../toolbox/formati
@@ -195,9 +200,9 @@ importers:
   packages/tokens:
     specifiers:
       '@fadroma/client': workspace:^5
-      '@fadroma/scrt': workspace:^1
-      '@hackbg/formati': ^3.0.1
-      '@hackbg/konzola': ^2
+      '@fadroma/scrt': workspace:^2
+      '@hackbg/formati': workspace:^3.0.1
+      '@hackbg/konzola': workspace:^2
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/scrt': link:../../platforms/scrt
@@ -207,9 +212,9 @@ importers:
   platforms/scrt:
     specifiers:
       '@fadroma/client': workspace:^5
-      '@hackbg/formati': ^3.0.1
-      '@hackbg/konfizi': ^2
-      '@hackbg/konzola': ^2
+      '@hackbg/formati': workspace:^3.0.1
+      '@hackbg/konfizi': workspace:^2
+      '@hackbg/konzola': workspace:^2
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
       secretjs: 1.4.0-alpha.4
@@ -225,8 +230,8 @@ importers:
 
   platforms/scrt-amino:
     specifiers:
-      '@fadroma/scrt': workspace:^1
-      '@hackbg/formati': ^3.0.1
+      '@fadroma/scrt': workspace:^2
+      '@hackbg/formati': workspace:^3.0.1
       axios: 0.26.0
       exponential-backoff: ^3.1.0
       secretjs: 0.17.5

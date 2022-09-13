@@ -5,12 +5,14 @@
   "main":    "client.ts",
   "files": [ "client.ts" ],
   "scripts": {
-    "@hackbg/konzola": "^2",
-    "@hackbg/komandi": "^5",
     "test":        "ganesha-node client.spec.ts.md",
     "ts:check":    "tsc --noEmit",
     "release:dry": "npm run ts:check && izomorf dry",
     "release:wet": "npm run ts:check && izomorf wet --access=public"
+  },
+  "dependencies": {
+    "@hackbg/konzola": "^2",
+    "@hackbg/komandi": "^5"
   },
   "devDependencies": {
     "@hackbg/ganesha": "^2.2.5"

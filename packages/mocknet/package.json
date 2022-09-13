@@ -6,9 +6,9 @@
   "files":   [ "mocknet.ts" ],
   "description": "Test smart contracts without the overhead of spawning a real chain.",
   "dependencies": {
-    "@hackbg/konzola": "^2",
-    "@hackbg/formati": "^3.0.1",
-    "@fadroma/client": "^5"
+    "@hackbg/konzola": "workspace:^2",
+    "@hackbg/formati": "workspace:^3.0.1",
+    "@fadroma/client": "workspace:^5"
   },
   "scripts": {
     "ts:check":    "tsc --noEmit",

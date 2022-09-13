@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/build",
-  "version": "1.0.7",
+  "version": "2.0.0",
   "type":    "module",
   "main":    "./build.ts",
   "files":   [ "build.ts", "build.impl.mjs" ],
