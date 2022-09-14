@@ -24,6 +24,6 @@
     "@hackbg/kabinet": "workspace:^3.1.2",
     "@hackbg/komandi": "workspace:^5",
     "@hackbg/konfizi": "workspace:*",
-    "@hackbg/formati": "workspace:^3.0.1"
+    "@hackbg/formati": "workspace:^3.0.2"
   }
 }

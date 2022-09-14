@@ -23,7 +23,7 @@
     "@fadroma/client":  "workspace:^5",
     "@fadroma/connect": "workspace:^2",
     "@fadroma/build":   "workspace:^2",
-    "@hackbg/formati":  "workspace:^3.0.1",
+    "@hackbg/formati":  "workspace:^3.0.2",
     "@hackbg/kabinet":  "workspace:^3.1.2",
     "@hackbg/konzola":  "workspace:^2",
     "@hackbg/konfizi":  "workspace:^2",

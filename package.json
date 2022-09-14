@@ -54,7 +54,7 @@
     "@fadroma/devnet":     "workspace:^1",
     "@fadroma/scrt":       "workspace:^2",
     "@fadroma/scrt-amino": "workspace:^2",
-    "@hackbg/formati":  "^3.0.1",
+    "@hackbg/formati":  "^3.0.2",
     "@hackbg/kabinet":  "^3.1.2",
     "@hackbg/komandi":  "^5",
     "@hackbg/konfizi":  "^2",

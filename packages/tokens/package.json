@@ -8,7 +8,7 @@
     "@fadroma/client": "workspace:^5",
     "@fadroma/scrt":   "workspace:^2",
     "@hackbg/konzola": "workspace:^2",
-    "@hackbg/formati": "workspace:^3.0.1"
+    "@hackbg/formati": "workspace:^3.0.2"
   },
   "scripts": {
     "ts:check":    "tsc --noEmit",

@@ -38,7 +38,7 @@ if (!process.env.FadromaDeploy) {
   // Call the default export of the deploy script
   const script = process.argv[2]
   if (!script) exit.noScript()
-  console.info('\nDeploy script:', script)
+  console.log()
   const scriptPath = require('path').resolve(process.cwd(), script)
   import(scriptPath).then(
     async ({ default: entrypoint })=>{

@@ -6,7 +6,7 @@
   "files": [ "scrt.ts" ],
   "dependencies": {
     "@fadroma/client": "workspace:^5",
-    "@hackbg/formati": "workspace:^3.0.1",
+    "@hackbg/formati": "workspace:^3.0.2",
     "@hackbg/konzola": "workspace:^2",
     "@hackbg/konfizi": "workspace:^2",
 
