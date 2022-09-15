@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@hackbg/konzola": "^2",
-    "@hackbg/komandi": "^5.0.2"
+    "@hackbg/komandi": "^6"
   },
   "devDependencies": {
     "@hackbg/ganesha": "^2.2.5"

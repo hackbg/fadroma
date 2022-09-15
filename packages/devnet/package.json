@@ -22,7 +22,7 @@
     "@hackbg/dokeres": "workspace:^4.4.1",
     "@hackbg/portali": "workspace:^1.2.4",
     "@hackbg/kabinet": "workspace:^3.1.2",
-    "@hackbg/komandi": "workspace:^5.0.2",
+    "@hackbg/komandi": "workspace:^6",
     "@hackbg/konfizi": "workspace:*",
     "@hackbg/konzola": "workspace:^2",
     "@hackbg/formati": "workspace:^3.0.2"
