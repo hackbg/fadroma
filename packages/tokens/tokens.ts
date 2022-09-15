@@ -167,36 +167,29 @@ export type TokenSymbol = string
 
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
 export class TokenRegistry extends Deployment {
-
   constructor (options: object & { template?: Contract<any> } = {}) {
     super(options as Partial<Deployment>)
     this.template = options.template ?? this.template
   }
-
   /** Collection of known tokens, keyed by symbol. */
   tokens: Record<TokenSymbol, Contract<Snip20>> = {}
-
   /** Template for deploying new tokens. */
   template?: Contract<any>
-
   /** Default token config. */
   defaultConfig: Snip20InitConfig = {
     public_total_supply: true,
     enable_mint:         true
   }
-
   /** Get a token by symbol. */
   getToken (symbol: TokenSymbol): Contract<Snip20> {
     if (!symbol) throw new TokenError.NoSymbol()
     if (!this.hasToken(symbol)) throw new TokenError.NotFound(symbol)
     return this.tokens[symbol]!
   }
-
   /** See if this symbol is registered. */
   hasToken (symbol: TokenSymbol): boolean {
     return Object.keys(this.tokens).includes(symbol)
   }
-
   /** Add a token to the registry, failing if invalid. */
   addToken (symbol: TokenSymbol, token?: Contract<Snip20>): this {
     if (!token) throw new TokenError.PassToken()
@@ -205,7 +198,8 @@ export class TokenRegistry extends Deployment {
     // TODO compare and don't throw if it's the same token
     return this.setToken(symbol, token)
   }
-
+  /** Set an entry in the token registry.
+    * If setting to a falsy value, delete the entry. */
   setToken (symbol: TokenSymbol, token?: Contract<Snip20>): this {
     if (token) {
       this.tokens[symbol] = token
@@ -214,12 +208,11 @@ export class TokenRegistry extends Deployment {
       return this.delToken(symbol)
     }
   }
-
+  /** Delete an entry from the token registry. */
   delToken (symbol: TokenSymbol): this {
     delete this.tokens[symbol]
     return this
   }
-
   /** Get or deploy a Snip20 token and add it to the registry. */
   token (
     symbol:  TokenSymbol,

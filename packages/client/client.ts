@@ -941,8 +941,7 @@ export class Contract<C extends Client> extends ContractMetadata {
     * @returns a Lazy invocation of getClient, or a Promise if not in task context */
   get = (): Promise<C> => this.task(
     `get ${this.name??'contract'}`,
-    async function getContractClient () { return await this.getClient() }
-  )
+    async function getContractClient () { return await this.getClient() })
   /** Async wrapper around getClientSync.
     * @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
@@ -1045,8 +1044,8 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Wrap a method in a lazy task.
     * @returns A Lazy or Promise containing a task. */
-  task = <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this.deployment, T> =>
-    new Task(name, cb, this.deployment)
+  task = <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> =>
+    new Task(name, cb, this)
 }
 
 export interface ContractInfo {
@@ -1214,16 +1213,18 @@ export class Deployment extends CommandContext {
     predicate: (key: string, val: { name?: string }) => boolean
   ): Promise<Client[]>
   contracts <C extends Client> (
-    predicate: (key: string, val: { name?: string }) => boolean, Client: NewClient<C>
+    predicate: (key: string, val: { name?: string }) => boolean,
+    Client:    NewClient<C>
   ): Promise<C[]>
   contracts <C extends Client> (...args: Array<unknown>) {
+    const predicate = args[0] as (key: string, val: { name?: string }) => boolean
     if (args.length > 1) {
-      const predicate = args[0] as (key: string, val: { name?: string }) => boolean
-      const Client    = args[1] as NewClient<C>
-      return this.contracts(predicate).then(clients=>clients.map(x=>x.asClient(Client)))
+      const Client = args[1] as NewClient<C>
+      return Promise.all(this.filter(predicate).map((receipt: object)=>
+        this.contract(receipt).getClientOrNull(Client)))
     } else {
-      const predicate = args[0] as (key: string, val: { name?: string }) => boolean
-      return Promise.all(this.filter(predicate).map((receipt: object)=>this.contract(receipt)))
+      return Promise.all(this.filter(predicate).map((receipt: object)=>
+        this.contract(receipt)))
     }
   }
 
@@ -1423,7 +1424,7 @@ export class ClientError extends CustomError {
   static NoUploaderAgent  = this.define('NoUploaderAgent', () => "No uploader agent specified")
   static NotFound = this.define('NotFound',
     (kind: string, name: string, deployment: string, message: string = '') =>
-      (`${kind} "${name}" not found in ${deployment}. ${message}`))
+      (`${kind} "${name}" not found in deployment "${deployment}". ${message}`))
   static ProvideBuilder = this.define('ProvideBuilder',
     (id: string) => `Provide a "${id}" builder`)
   static ProvideUploader = this.define('ProvideUploader',

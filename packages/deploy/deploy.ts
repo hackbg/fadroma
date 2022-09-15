@@ -151,24 +151,23 @@ export class DeployConsole extends Komandi.CommandsConsole {
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export class DeployCommands extends Deployment {
+export class DeployCommands extends Komandi.CommandContext {
 
   static async init (
-    options: DeployConfig|Partial<DeployConfig> = {},
+    options: Partial<DeployCommands>|DeployConfig|Partial<DeployConfig> = {},
     build?:  BuildCommands
   ) {
     const name = 'deploy'
-    const config = new DeployConfig(process.env, process.cwd(), options) as DeployConfig
-    const { chain, agent } = await connect(options)
+    const config = new DeployConfig(process.env, process.cwd(), options as Partial<DeployConfig>) as DeployConfig
+    const { chain, agent } = await connect(options as Partial<DeployConfig>)
     if (!agent) new DeployConsole('Fadroma Deploy').warnNoAgent()
     const deployments = chain ? Deployments.init(chain.id, config.project) : null
-    return new this({ name, config, chain, agent, build, deployments })
+    options = { name, config, chain, agent, build, deployments }
+    return new this(options)
   }
 
-  log = new DeployConsole('Fadroma.DeployCommands')
-
   constructor (options: Partial<DeployCommands> = {}) {
-    super(options as Partial<Deployment>)
+    super('deploy', 'deployment commands')
     if (!this.agent) this.log.warnNoDeployAgent()
     this.config      = options.config ?? new DeployConfig(process.env, process.cwd())
     this.build       = options.build
@@ -176,9 +175,17 @@ export class DeployCommands extends Deployment {
     this.uploader    = FSUploader.fromConfig(this.agent!, this.build?.config?.project)
   }
 
-  build?:      BuildCommands
+  log = new DeployConsole('Fadroma.DeployCommands')
 
   config:      DeployConfig
+
+  build?:      BuildCommands
+
+  /** Chain on which operations are executed. */
+  chain?:      Chain
+
+  /** Agent to use when deploying contracts. */
+  agent?:      Agent
 
   uploader?:   Uploader
 
@@ -186,7 +193,9 @@ export class DeployCommands extends Deployment {
   deployments: Deployments|null = null
 
   /** Currently selected deployment. */
-  deployment:  Deployment|null  = this.deployments?.active || null
+  get deployment (): Deployment|null {
+    return this.deployments?.active || null
+  }
 
   /** Print a list of deployments on the selected chain. */
   list = this.command('deployments', `print a list of all deployments on this chain`,
@@ -359,7 +368,6 @@ export class YAMLDeployment extends Deployment {
       if (!receipt.name) continue
       const [contractName, _version] = receipt.name.split('+')
       const contract = this.state[contractName] = new Contract({}, receipt)
-      console.log(receipt, '->', contract)
     }
 
     // TODO: Automatically convert receipts to Client subclasses
@@ -444,7 +452,7 @@ export class FSUploader extends Uploader {
       const name = this.getUploadReceiptName(template)
       receipt = this.cache.at(name).as(UploadReceipt)
       if (receipt.exists()) {
-        this.log.info('Reuse    ', bold(this.cache.at(name).shortPath))
+        this.log.info('Found    ', bold(this.cache.at(name).shortPath))
         return receipt.toContract()
       }
     }
