@@ -44,14 +44,9 @@ export async function connect (
     )
     chain = await Promise.resolve(getChain(config))
   }
-  if (config.agentName) {
-    if (!chain?.isDevnet) {
-      log.warn('Agent name only supported for devnet')
-    } else {
-      agent.name = config.agentName
-    }
-  }
-  if (config.mnemonic) {
+  if (chain?.isDevnet) {
+    agent.name = config.agentName
+  } else {
     agent.mnemonic = config.mnemonic
   }
   return new ConnectContext(

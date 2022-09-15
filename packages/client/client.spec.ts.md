@@ -212,6 +212,7 @@ equal(contract, contract.as(),
   'contract.as returns copy')
 notEqual(contract, contract.as(agent),
   'contract.as returns copy')
+
 contract = contract.as(agent)
 equal(contract.builder,  builder,
   'builder still set')

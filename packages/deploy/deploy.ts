@@ -28,7 +28,6 @@ import {
   Builder,
   Chain,
   Client,
-  ClientConsole,
   Contract,
   DeployArgs,
   Deployment,
@@ -71,7 +70,7 @@ export class DeployConfig extends ConnectConfig {
   multisig: boolean = this.getBoolean('FADROMA_MULTISIG', () => false)
 }
 
-export class DeployConsole extends ClientConsole {
+export class DeployConsole extends Komandi.CommandsConsole {
 
   name = 'Fadroma Deploy'
 
@@ -102,7 +101,7 @@ export class DeployConsole extends ClientConsole {
       const codeId  = String(receipt.codeId||'n/a').padStart(6)
       this.info('│', name, address, codeId)
     } else {
-      this.warn('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+      this.info('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
   }
 
@@ -120,6 +119,30 @@ export class DeployConsole extends ClientConsole {
   warnNoDeployAgent = () => this.warn(
     'No deploy agent. Deployments will not be possible.'
   )
+
+  deploymentList = (chainId: string, deployments: Deployments) => {
+    const list = deployments.list()
+    if (list.length > 0) {
+      this.info(`Deployments on chain ${bold(chainId)}:`)
+      let maxLength = 0
+      for (let name of list) {
+        if (name === deployments.KEY) continue
+        maxLength = Math.max(name.length, maxLength)
+      }
+      for (let name of list) {
+        if (name === deployments.KEY) continue
+        const deployment = deployments.get(name)!
+        const count = Object.keys(deployment.state).length
+        let info = `${bold(name.padEnd(maxLength))}`
+        if (deployments.active && deployments.active.name === name) info = `${bold(name)} (selected)`
+        info = `${info} (${deployment.size} contracts)`
+        this.info(` `, info)
+      }
+    } else {
+      this.info(`No deployments on chain ${bold(chainId)}`)
+    }
+    this.br()
+  }
 
 }
 
@@ -150,14 +173,7 @@ export class DeployCommands extends Deployment {
     this.config      = options.config ?? new DeployConfig(process.env, process.cwd())
     this.build       = options.build
     this.deployments = options.deployments ?? null
-    this
-      .command('list',    'print a list of all deployments', this.list)
-      .command('select',  'select a new active deployment',  this.select)
-      .command('new',     'create a new empty deployment',   this.create)
-      .command('status',  'show the current deployment',     this.status)
-      .command('nothing', 'check that the script runs', () => this.log.info('So far so good'))
-    // Populate the uploader
-    this.uploader = FSUploader.fromConfig(this.agent!, this.build?.config?.project)
+    this.uploader    = FSUploader.fromConfig(this.agent!, this.build?.config?.project)
   }
 
   build?:      BuildCommands
@@ -173,64 +189,54 @@ export class DeployCommands extends Deployment {
   deployment:  Deployment|null  = this.deployments?.active || null
 
   /** Print a list of deployments on the selected chain. */
-  list = async (): Promise<void> => {
-    const deployments = this.expectEnabled()
-    const { chain = { id: '(unspecified)' } } = this
-    const list = deployments.list()
-    if (list.length > 0) {
-      this.log.info(`Deployments on chain ${bold(chain.id)}:`)
-      for (let name of list) {
-        if (name === deployments.KEY) continue
-        const deployment = deployments.get(name)!
-        const count = Object.keys(deployment.state).length
-        let info = `${bold(name)}`
-        if (deployments.active && deployments.active.name === name) info = `${bold(name)} (selected)`
-        info = `${info} (${deployment.size} contracts)`
-        this.log.info(` `, info)
-      }
-    } else {
-      this.log.info(`No deployments on chain`, bold(chain.id))
-    }
-  }
+  list = this.addCommand('deployments', `print a list of all deployments on this chain`,
+    (): Deployments => {
+      const deployments = this.expectEnabled()
+      this.log.deploymentList(this.chain?.id??'(unspecified)', deployments)
+      return deployments
+    })
 
   /** Make a new deployment the active one. */
-  select = async (id?: string): Promise<void> => {
-    const deployments = this.expectEnabled()
-    const list = deployments.list()
-    if (list.length < 1) {
-      this.log.info('\nNo deployments. Create one with `deploy new`')
-    }
-    if (id) {
-      this.log.info(bold(`Selecting deployment:`), id)
-      await deployments.select(id)
-    }
-    if (list.length > 0) {
-      this.list()
-    }
-    if (deployments.active) {
-      this.log.info(`Currently selected deployment:`, bold(deployments.active.name))
-    } else {
-      this.log.info(`No selected deployment.`)
-    }
-  }
+  select = this.addCommand('select', `select another deployment on this chain`,
+    async (id?: string): Promise<void> => {
+      const deployments = this.expectEnabled()
+      const list = deployments.list()
+      if (list.length < 1) {
+        this.log.info('\nNo deployments. Create one with `deploy new`')
+      }
+      if (id) {
+        this.log.info(bold(`Selecting deployment:`), id)
+        await deployments.select(id)
+      }
+      if (list.length > 0) {
+        this.list()
+      }
+      if (deployments.active) {
+        this.log.info(`Currently selected deployment:`, bold(deployments.active.name))
+      } else {
+        this.log.info(`No selected deployment.`)
+      }
+    })
 
   /** Create a new deployment and add it to the command context. */
-  create = async (name: string = this.timestamp): Promise<void> => {
-    const deployments = this.expectEnabled()
-    await deployments?.create(name)
-    await deployments?.select(name)
-  }
+  create = this.addCommand('create', `create a new empty deployment on this chain`, 
+    async (name: string = this.timestamp): Promise<void> => {
+      const deployments = this.expectEnabled()
+      await deployments?.create(name)
+      await deployments?.select(name)
+    })
 
   /** Print the status of a deployment. */
-  status = async (id?: string): Promise<void> => {
-    const deployments = this.expectEnabled()
-    const deployment  = id ? deployments.get(id) : deployments.active
-    if (deployment) {
-      this.log.deployment({ deployment })
-    } else {
-      this.log.info('No selected deployment on chain:', bold(this.chain?.id??'(no chain)'))
-    }
-  }
+  status = this.addCommand('status', 'show the current deployment',
+    async (id?: string): Promise<void> => {
+      const deployments = this.expectEnabled()
+      const deployment  = id ? deployments.get(id) : deployments.active
+      if (deployment) {
+        this.log.deployment({ deployment })
+      } else {
+        this.log.info('No selected deployment on chain:', bold(this.chain?.id??'(no chain)'))
+      }
+    })
 
   private expectEnabled = (): Deployments => {
     if (!(this.deployments instanceof Deployments)) {
@@ -352,7 +358,8 @@ export class YAMLDeployment extends Deployment {
     for (const receipt of receipts) {
       if (!receipt.name) continue
       const [contractName, _version] = receipt.name.split('+')
-      this.state[contractName] = new Contract(receipt)
+      const contract = this.state[contractName] = new Contract({}, receipt)
+      console.log(receipt, '->', contract)
     }
 
     // TODO: Automatically convert receipts to Client subclasses

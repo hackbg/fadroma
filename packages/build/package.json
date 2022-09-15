@@ -24,7 +24,7 @@
     "@hackbg/formati": "^3.0.2",
     "@hackbg/kabinet": "^3.1.2",
     "@hackbg/konzola": "^2",
-    "@hackbg/komandi": "^5",
+    "@hackbg/komandi": "^5.0.2",
     "@hackbg/konfizi": "^2",
     "dotenv":     "^16.0.1",
     "simple-git": "^3.7.1"

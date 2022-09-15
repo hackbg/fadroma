@@ -27,7 +27,7 @@
     "@hackbg/kabinet":  "workspace:^3.1.2",
     "@hackbg/konzola":  "workspace:^2",
     "@hackbg/konfizi":  "workspace:^2",
-    "@hackbg/komandi":  "workspace:^5",
+    "@hackbg/komandi":  "workspace:^5.0.2",
     "@hackbg/portali":  "workspace:^1.2.4",
     "dotenv":  "^16.0.1",
     "js-yaml": "^4.1.0"

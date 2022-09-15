@@ -274,7 +274,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
 
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
-    log.info('Constructing devnet with', bold('@hackbg/dokeres'))
+    log.trace('Constructing devnet with', bold('@hackbg/dokeres'))
     this.identities  ??= this.stateRoot.in('identities').as(Kabinet.JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!

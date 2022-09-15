@@ -247,7 +247,7 @@ export async function mockAPIEndpoint (port) {
         ]}]}])
       }
       'wasm/MsgExecuteContract' () {
-        throw 'TODO'
+        //throw 'TODO'
       }
     }
     for (const {type, value} of msg) {
