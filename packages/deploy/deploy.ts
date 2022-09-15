@@ -189,7 +189,7 @@ export class DeployCommands extends Deployment {
   deployment:  Deployment|null  = this.deployments?.active || null
 
   /** Print a list of deployments on the selected chain. */
-  list = this.addCommand('deployments', `print a list of all deployments on this chain`,
+  list = this.command('deployments', `print a list of all deployments on this chain`,
     (): Deployments => {
       const deployments = this.expectEnabled()
       this.log.deploymentList(this.chain?.id??'(unspecified)', deployments)
@@ -197,7 +197,7 @@ export class DeployCommands extends Deployment {
     })
 
   /** Make a new deployment the active one. */
-  select = this.addCommand('select', `select another deployment on this chain`,
+  select = this.command('select', `select another deployment on this chain`,
     async (id?: string): Promise<void> => {
       const deployments = this.expectEnabled()
       const list = deployments.list()
@@ -219,7 +219,7 @@ export class DeployCommands extends Deployment {
     })
 
   /** Create a new deployment and add it to the command context. */
-  create = this.addCommand('create', `create a new empty deployment on this chain`, 
+  create = this.command('create', `create a new empty deployment on this chain`,
     async (name: string = this.timestamp): Promise<void> => {
       const deployments = this.expectEnabled()
       await deployments?.create(name)
@@ -227,7 +227,7 @@ export class DeployCommands extends Deployment {
     })
 
   /** Print the status of a deployment. */
-  status = this.addCommand('status', 'show the current deployment',
+  status = this.command('status', 'show the current deployment',
     async (id?: string): Promise<void> => {
       const deployments = this.expectEnabled()
       const deployment  = id ? deployments.get(id) : deployments.active
