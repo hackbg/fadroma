@@ -75,6 +75,8 @@ export abstract class Chain {
     readonly id: ChainId,
     options: Partial<ChainOpts> = {}
   ) {
+    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
+    Object.defineProperty(this, 'Agent', { writable: true, enumerable: false })
     if (!id) throw new ClientError.NoChainId()
     this.id   = id
     this.mode = options.mode!

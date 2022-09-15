@@ -35,8 +35,8 @@ export async function connect (
   config = new ConnectConfig(process.env, process.cwd(), config)
   const log = new ConnectConsole('Fadroma.connect')
   const { chains = {} } = config
+
   let chain: Fadroma.Chain|null = null
-  let agent: Fadroma.AgentOpts = {}
   if (config.chain) {
     const getChain = chains[config.chain]
     if (!getChain) throw new Error(
@@ -44,27 +44,29 @@ export async function connect (
     )
     chain = await Promise.resolve(getChain(config))
   }
+
+  let agentOpts: Fadroma.AgentOpts = {}
   if (chain?.isDevnet) {
-    agent.name = config.agentName
+    agentOpts.name = config.agentName
   } else {
-    agent.mnemonic = config.mnemonic
+    agentOpts.mnemonic = config.mnemonic
   }
-  return new ConnectContext(
-    config, chain!, chain ? await chain!.getAgent(agent) : undefined
-  )
+  const agent = await chain?.getAgent(agentOpts) ?? null
+
+  const context = new ConnectContext(config, chain!, agent)
+  return context
 }
 
-export class ConnectContext extends Fadroma.Deployment {
+export class ConnectContext extends Komandi.CommandContext {
   constructor (
-    config: Partial<ConnectConfig> = new ConnectConfig(),
-    chain?: Fadroma.Chain,
-    agent?: Fadroma.Agent,
+    public config: Partial<ConnectConfig> = new ConnectConfig(),
+    public chain?: Fadroma.Chain|null,
+    public agent?: Fadroma.Agent|null,
   ) {
-    super({ chain, agent })
+    super('connect', 'connection manager')
     this.config = new ConnectConfig(this.env, this.cwd, config)
     this.command('chains', 'print a list of all known chains', this.showChains)
   }
-  config: ConnectConfig
   showChains = async () => {
     const log = new ConnectConsole('Fadroma.ConnectCommands')
     log.supportedChains()

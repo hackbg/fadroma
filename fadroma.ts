@@ -44,24 +44,46 @@ export class Config extends Konfizi.EnvConfig {
 
 /** Context for Fadroma commands. */
 export class Commands extends Komandi.CommandContext {
+
+  static async run (argv: string[]) {
+    return (await this.init()).run(argv)
+  }
+
+  static async init (name: string = 'Fadroma') {
+    const config = new Config(process.env, process.cwd())
+    const connection = await Connect.connect(config.connect)
+    const { chain, agent } = connection
+    if (!agent) new Deploy.DeployConsole('Fadroma').warnNoAgent()
+    const deployments = chain ? Deploy.Deployments.init(chain.id, config.project) : null
+    const build = new Build.BuildCommands({
+      name: `${name} Build`, config: config.build
+    })
+    const deploy = await Deploy.DeployCommands.init(config.deploy, build)
+    return new this(
+      config,
+      chain,
+      agent,
+      config.project,
+      build,
+      connection,
+      deploy
+    )
+  }
+
   constructor (
-    config: Config,
+    public config:   Config,
     /** The selected blockhain to connect to. */
-    public chain?: Fadroma.Chain,
+    public chain?:   Fadroma.Chain,
     /** The selected agent to operate as. */
-    public agent?: Fadroma.Agent
+    public agent?:   Fadroma.Agent,
+    public project?: string,
+    public build?:   Build.BuildCommands,
+    public connect?: Connect.ConnectContext,
+    public deploy?:  Deploy.DeployCommands
   ) {
     super('Fadroma')
   }
-  config  = new Config(this.env, this.cwd)
-  project = this.config.project
-  build   = new Build.BuildCommands({
-    name: 'build',  config: this.config.build,
-  })
-  connect = new Connect.ConnectContext(this.config.connect)
-  deploy  = new Deploy.DeployCommands({
-    name: 'deploy', config: this.config.deploy, build: this.build
-  })
+
 }
 
 export const Console = Fadroma.ClientConsole

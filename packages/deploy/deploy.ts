@@ -168,11 +168,13 @@ export class DeployCommands extends Komandi.CommandContext {
 
   constructor (options: Partial<DeployCommands> = {}) {
     super('deploy', 'deployment commands')
-    if (!this.agent) this.log.warnNoDeployAgent()
     this.config      = options.config ?? new DeployConfig(process.env, process.cwd())
     this.build       = options.build
-    this.deployments = options.deployments ?? null
+    this.chain       = options.chain ?? this.chain
+    this.agent       = options.agent ?? this.agent
     this.uploader    = FSUploader.fromConfig(this.agent!, this.build?.config?.project)
+    this.deployments = options.deployments ?? null
+    if (!this.agent) this.log.warnNoDeployAgent()
   }
 
   log = new DeployConsole('Fadroma.DeployCommands')
@@ -182,10 +184,10 @@ export class DeployCommands extends Komandi.CommandContext {
   build?:      BuildCommands
 
   /** Chain on which operations are executed. */
-  chain?:      Chain
+  chain?:      Chain|null
 
   /** Agent to use when deploying contracts. */
-  agent?:      Agent
+  agent?:      Agent|null
 
   uploader?:   Uploader
 
