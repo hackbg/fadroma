@@ -25,16 +25,15 @@ pub struct InitialAllowance {
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct InitMsg {
+pub struct InstantiateMsg {
     pub name: String,
-    pub admin: Option<Addr>,
+    pub admin: Option<String>,
     pub symbol: String,
     pub decimals: u8,
     pub initial_balances: Option<Vec<InitialBalance>>,
-    pub initial_allowances: Option<Vec<InitialAllowance>>,
     pub prng_seed: Binary,
     pub config: Option<InitConfig>,
-    pub callback: Option<Callback<Addr>>
+    pub callback: Option<Callback<String>>
 }
 
 /// This type represents optional configuration values which can be overridden.
@@ -150,7 +149,7 @@ impl InitConfigBuilder {
 #[derive(Serialize, Deserialize, JsonSchema, Clone, Debug)]
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
-pub enum HandleMsg {
+pub enum ExecuteMsg {
     // Native coin interactions
     Redeem {
         amount: Uint128,
@@ -163,13 +162,13 @@ pub enum HandleMsg {
 
     // Base ERC-20 stuff
     Transfer {
-        recipient: Addr,
+        recipient: String,
         amount: Uint128,
         memo: Option<String>,
         padding: Option<String>,
     },
     Send {
-        recipient: Addr,
+        recipient: String,
         recipient_code_hash: Option<String>,
         amount: Uint128,
         msg: Option<Binary>,
@@ -204,27 +203,27 @@ pub enum HandleMsg {
 
     // Allowance
     IncreaseAllowance {
-        spender: Addr,
+        spender: String,
         amount: Uint128,
         expiration: Option<u64>,
         padding: Option<String>,
     },
     DecreaseAllowance {
-        spender: Addr,
+        spender: String,
         amount: Uint128,
         expiration: Option<u64>,
         padding: Option<String>,
     },
     TransferFrom {
-        owner: Addr,
-        recipient: Addr,
+        owner: String,
+        recipient: String,
         amount: Uint128,
         memo: Option<String>,
         padding: Option<String>,
     },
     SendFrom {
-        owner: Addr,
-        recipient: Addr,
+        owner: String,
+        recipient: String,
         recipient_code_hash: Option<String>,
         amount: Uint128,
         msg: Option<Binary>,
@@ -240,7 +239,7 @@ pub enum HandleMsg {
         padding: Option<String>,
     },
     BurnFrom {
-        owner: Addr,
+        owner: String,
         amount: Uint128,
         memo: Option<String>,
         padding: Option<String>,
@@ -252,7 +251,7 @@ pub enum HandleMsg {
 
     // Mint
     Mint {
-        recipient: Addr,
+        recipient: String,
         amount: Uint128,
         memo: Option<String>,
         padding: Option<String>,
@@ -262,21 +261,21 @@ pub enum HandleMsg {
         padding: Option<String>,
     },
     AddMinters {
-        minters: Vec<Addr>,
+        minters: Vec<String>,
         padding: Option<String>,
     },
     RemoveMinters {
-        minters: Vec<Addr>,
+        minters: Vec<String>,
         padding: Option<String>,
     },
     SetMinters {
-        minters: Vec<Addr>,
+        minters: Vec<String>,
         padding: Option<String>,
     },
 
     // Admin
     ChangeAdmin {
-        address: Addr,
+        address: String,
         padding: Option<String>,
     },
     SetContractStatus {
@@ -294,7 +293,7 @@ pub enum HandleMsg {
 #[derive(Serialize, Deserialize, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
-pub enum HandleAnswer {
+pub enum ExecuteAnswer {
     // Native
     Deposit {
         status: ResponseStatus,

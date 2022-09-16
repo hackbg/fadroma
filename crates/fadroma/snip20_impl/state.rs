@@ -1,30 +1,14 @@
-use crate::{prelude::{*, cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage}}};
-use secret_toolkit::storage::{TypedStore, TypedStoreMut};
+use crate::prelude::*;
 
-use std::any::type_name;
-use std::convert::TryFrom;
+use super::msg::ContractStatusLevel;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use serde::de::DeserializeOwned;
-use super::msg::{status_level_to_u8, u8_to_status_level, ContractStatusLevel};
 
 pub const PREFIX_TXS: &[u8] = b"YteGsgSZyO";
-
-pub const KEY_CONSTANTS: &[u8] = b"N3QP0mNoPG";
-pub const KEY_TOTAL_SUPPLY: &[u8] = b"bx98UUOWYa";
-pub const KEY_CONTRACT_STATUS: &[u8] = b"EhYS9rzai1";
-pub const KEY_MINTERS: &[u8] = b"wpitCjS7wB";
-pub const KEY_TX_COUNT: &[u8] = b"n8BHFWp7eT";
-pub const KEY_SELF: &[u8] = b"Qdfh7Fshg2";
-
-pub const PREFIX_CONFIG: &[u8] = b"YywNU6aiTV";
-pub const PREFIX_BALANCES: &[u8] = b"DyCKbmlEL8";
+const KEY_ADMIN: &[u8] = b"9Fk1xtMbGg";
 pub const PREFIX_ALLOWANCES: &[u8] = b"eXDXajOxRG";
-pub const PREFIX_VIEW_KEY: &[u8] = b"MLRCoHCV8x";
-pub const PREFIX_RECEIVERS: &[u8] = b"V1SJqXtGju";
 
 // Config
-
 #[derive(Serialize, Debug, Deserialize, Clone, PartialEq, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Constants {
@@ -45,364 +29,258 @@ pub struct Constants {
     pub burn_is_enabled: bool,
 }
 
-pub struct ReadonlyConfig<'a, S: Storage> {
-    storage: ReadonlyPrefixedStorage<'a, S>,
-}
-
-impl<'a, S: Storage> ReadonlyConfig<'a, S> {
-    pub fn from_storage(storage: &'a S) -> Self {
-        Self {
-            storage: ReadonlyPrefixedStorage::new(PREFIX_CONFIG, storage),
-        }
-    }
-
-    fn as_readonly(&self) -> ReadonlyConfigImpl<ReadonlyPrefixedStorage<S>> {
-        ReadonlyConfigImpl(&self.storage)
-    }
-
-    pub fn constants(&self) -> StdResult<Constants> {
-        self.as_readonly().constants()
-    }
-
-    pub fn self_address(&self) -> StdResult<Addr> {
-        self.as_readonly().self_address()
-    }
-
-    pub fn total_supply(&self) -> u128 {
-        self.as_readonly().total_supply()
-    }
-
-    pub fn contract_status(&self) -> ContractStatusLevel {
-        self.as_readonly().contract_status()
-    }
-
-    pub fn minters(&self) -> Vec<Addr> {
-        self.as_readonly().minters()
-    }
-
-    pub fn tx_count(&self) -> u64 {
-        self.as_readonly().tx_count()
-    }
-}
-
-fn ser_bin_data<T: Serialize>(obj: &T) -> StdResult<Vec<u8>> {
-    bincode2::serialize(&obj).map_err(|e| StdError::serialize_err(type_name::<T>(), e))
-}
-
-fn deser_bin_data<T: DeserializeOwned>(data: &[u8]) -> StdResult<T> {
-    bincode2::deserialize::<T>(&data).map_err(|e| StdError::serialize_err(type_name::<T>(), e))
-}
-
-fn set_bin_data<T: Serialize, S: Storage>(storage: &mut S, key: &[u8], data: &T) -> StdResult<()> {
-    let bin_data = ser_bin_data(data)?;
-
-    storage.set(key, &bin_data);
-    Ok(())
-}
-
-fn get_bin_data<T: DeserializeOwned, S: Storage>(storage: &S, key: &[u8]) -> StdResult<T> {
-    let bin_data = storage.get(key);
-
-    match bin_data {
-        None => Err(StdError::not_found("Key not found in storage")),
-        Some(bin_data) => Ok(deser_bin_data(&bin_data)?),
-    }
-}
-
-pub struct Config<'a, S: Storage> {
-    storage: PrefixedStorage<'a, S>,
-}
-
-impl<'a, S: Storage> Config<'a, S> {
-    pub fn from_storage(storage: &'a mut S) -> Self {
-        Self {
-            storage: PrefixedStorage::new(PREFIX_CONFIG, storage),
-        }
-    }
-
-    fn as_readonly(&self) -> ReadonlyConfigImpl<PrefixedStorage<S>> {
-        ReadonlyConfigImpl(&self.storage)
-    }
-
-    pub fn constants(&self) -> StdResult<Constants> {
-        self.as_readonly().constants()
-    }
-
-    pub fn set_constants(&mut self, constants: &Constants) -> StdResult<()> {
-        set_bin_data(&mut self.storage, KEY_CONSTANTS, constants)
-    }
-
-    pub fn set_self_address(&mut self, address: &Addr) -> StdResult<()> {
-        set_bin_data(&mut self.storage, KEY_SELF, address)
-    }
-
-    pub fn total_supply(&self) -> u128 {
-        self.as_readonly().total_supply()
-    }
-
-    pub fn set_total_supply(&mut self, supply: u128) {
-        self.storage.set(KEY_TOTAL_SUPPLY, &supply.to_be_bytes());
-    }
-
-    pub fn contract_status(&self) -> ContractStatusLevel {
-        self.as_readonly().contract_status()
-    }
-
-    pub fn set_contract_status(&mut self, status: ContractStatusLevel) {
-        let status_u8 = status_level_to_u8(status);
-        self.storage
-            .set(KEY_CONTRACT_STATUS, &status_u8.to_be_bytes());
-    }
-
-    pub fn set_minters(&mut self, minters_to_set: Vec<Addr>) -> StdResult<()> {
-        set_bin_data(&mut self.storage, KEY_MINTERS, &minters_to_set)
-    }
-
-    pub fn add_minters(&mut self, minters_to_add: Vec<Addr>) -> StdResult<()> {
-        let mut minters = self.minters();
-        minters.extend(minters_to_add);
-
-        self.set_minters(minters)
-    }
-
-    pub fn remove_minters(&mut self, minters_to_remove: Vec<Addr>) -> StdResult<()> {
-        let mut minters = self.minters();
-
-        for minter in minters_to_remove {
-            minters.retain(|x| x != &minter);
-        }
-
-        self.set_minters(minters)
-    }
-
-    pub fn minters(&mut self) -> Vec<Addr> {
-        self.as_readonly().minters()
-    }
-
-    pub fn tx_count(&self) -> u64 {
-        self.as_readonly().tx_count()
-    }
-
-    pub fn set_tx_count(&mut self, count: u64) -> StdResult<()> {
-        set_bin_data(&mut self.storage, KEY_TX_COUNT, &count)
-    }
-}
-
-/// This struct refactors out the readonly methods that we need for `Config` and `ReadonlyConfig`
-/// in a way that is generic over their mutability.
-///
-/// This was the only way to prevent code duplication of these methods because of the way
-/// that `ReadonlyPrefixedStorage` and `PrefixedStorage` are implemented in `cosmwasm-std`
-struct ReadonlyConfigImpl<'a, S: Storage>(&'a S);
-
-impl<'a, S: Storage> ReadonlyConfigImpl<'a, S> {
-    fn constants(&self) -> StdResult<Constants> {
-        let consts_bytes = self
-            .0
-            .get(KEY_CONSTANTS)
-            .ok_or_else(|| StdError::generic_err("no constants stored in configuration"))?;
-        bincode2::deserialize::<Constants>(&consts_bytes)
-            .map_err(|e| StdError::serialize_err(type_name::<Constants>(), e))
-    }
-
-    fn total_supply(&self) -> u128 {
-        let supply_bytes = self
-            .0
-            .get(KEY_TOTAL_SUPPLY)
-            .expect("no total supply stored in config");
-        // This unwrap is ok because we know we stored things correctly
-        slice_to_u128(&supply_bytes).unwrap()
-    }
-
-    fn self_address(&self) -> StdResult<Addr> {
-        let bytes = self
-            .0
-            .get(KEY_SELF)
-            .ok_or_else(|| StdError::generic_err("no constants stored in configuration"))?;
-
-        bincode2::deserialize::<Addr>(&bytes)
-            .map_err(|e| StdError::serialize_err(type_name::<Addr>(), e))
-    }
-
-    fn contract_status(&self) -> ContractStatusLevel {
-        let supply_bytes = self
-            .0
-            .get(KEY_CONTRACT_STATUS)
-            .expect("no contract status stored in config");
-
-        // These unwraps are ok because we know we stored things correctly
-        let status = slice_to_u8(&supply_bytes).unwrap();
-        u8_to_status_level(status).unwrap()
-    }
-
-    fn minters(&self) -> Vec<Addr> {
-        get_bin_data(self.0, KEY_MINTERS).unwrap()
-    }
-
-    pub fn tx_count(&self) -> u64 {
-        get_bin_data(self.0, KEY_TX_COUNT).unwrap_or_default()
-    }
-}
-
-// Balances
-
-pub struct ReadonlyBalances<'a, S: Storage> {
-    storage: ReadonlyPrefixedStorage<'a, S>,
-}
-
-impl<'a, S: Storage> ReadonlyBalances<'a, S> {
-    pub fn from_storage(storage: &'a S) -> Self {
-        Self {
-            storage: ReadonlyPrefixedStorage::new(PREFIX_BALANCES, storage),
-        }
-    }
-
-    fn as_readonly(&self) -> ReadonlyBalancesImpl<ReadonlyPrefixedStorage<S>> {
-        ReadonlyBalancesImpl(&self.storage)
-    }
-
-    pub fn account_amount(&self, account: &CanonicalAddr) -> u128 {
-        self.as_readonly().account_amount(account)
-    }
-}
-
-pub struct Balances<'a, S: Storage> {
-    storage: PrefixedStorage<'a, S>,
-}
-
-impl<'a, S: Storage> Balances<'a, S> {
-    pub fn from_storage(storage: &'a mut S) -> Self {
-        Self {
-            storage: PrefixedStorage::new(PREFIX_BALANCES, storage),
-        }
-    }
-
-    fn as_readonly(&self) -> ReadonlyBalancesImpl<PrefixedStorage<S>> {
-        ReadonlyBalancesImpl(&self.storage)
-    }
-
-    pub fn balance(&self, account: &CanonicalAddr) -> u128 {
-        self.as_readonly().account_amount(account)
-    }
-
-    pub fn set_account_balance(&mut self, account: &CanonicalAddr, amount: u128) {
-        self.storage.set(account.as_slice(), &amount.to_be_bytes())
-    }
-}
-
-/// This struct refactors out the readonly methods that we need for `Balances` and `ReadonlyBalances`
-/// in a way that is generic over their mutability.
-///
-/// This was the only way to prevent code duplication of these methods because of the way
-/// that `ReadonlyPrefixedStorage` and `PrefixedStorage` are implemented in `cosmwasm-std`
-struct ReadonlyBalancesImpl<'a, S: Storage>(&'a S);
-
-impl<'a, S: Storage> ReadonlyBalancesImpl<'a, S> {
-    pub fn account_amount(&self, account: &CanonicalAddr) -> u128 {
-        let account_bytes = account.as_slice();
-        let result = self.0.get(account_bytes);
-        match result {
-            // This unwrap is ok because we know we stored things correctly
-            Some(balance_bytes) => slice_to_u128(&balance_bytes).unwrap(),
-            None => 0,
-        }
-    }
-}
-
-// Allowances
-
 #[derive(Serialize, Debug, Deserialize, Clone, PartialEq, Default, JsonSchema)]
-#[serde(deny_unknown_fields)]
 pub struct Allowance {
-    pub amount: u128,
+    pub amount: Uint128,
     pub expiration: Option<u64>,
 }
 
 impl Allowance {
     pub fn is_expired_at(&self, block: &BlockInfo) -> bool {
         match self.expiration {
-            Some(time) => block.time >= time,
+            Some(time) => block.time.seconds() >= time,
             None => false, // allowance has no expiration
         }
     }
 }
 
-pub fn read_allowance<S: Storage>(
-    store: &S,
-    owner: &CanonicalAddr,
-    spender: &CanonicalAddr,
-) -> StdResult<Allowance> {
-    let owner_store =
-        ReadonlyPrefixedStorage::multilevel(&[PREFIX_ALLOWANCES, owner.as_slice()], store);
-    let owner_store = TypedStore::attach(&owner_store);
-    let allowance = owner_store.may_load(spender.as_slice());
-    allowance.map(Option::unwrap_or_default)
-}
+pub fn get_admin(deps: Deps) -> StdResult<Addr> {
+    let result: Option<CanonicalAddr> = load(deps.storage, KEY_ADMIN)?;
 
-pub fn write_allowance<S: Storage>(
-    store: &mut S,
-    owner: &CanonicalAddr,
-    spender: &CanonicalAddr,
-    allowance: &Allowance,
-) -> StdResult<()> {
-    let mut owner_store =
-        PrefixedStorage::multilevel(&[PREFIX_ALLOWANCES, owner.as_slice()], store);
-    let mut owner_store = TypedStoreMut::attach(&mut owner_store);
-
-    owner_store.store(spender.as_slice(), allowance)
-}
-
-// Viewing Keys
-
-pub fn write_viewing_key<S: Storage>(store: &mut S, owner: &CanonicalAddr, key: &ViewingKey) {
-    let mut balance_store = PrefixedStorage::new(PREFIX_VIEW_KEY, store);
-    balance_store.set(owner.as_slice(), &key.to_hashed());
-}
-
-pub fn read_viewing_key<S: Storage>(store: &S, owner: &CanonicalAddr) -> Option<Vec<u8>> {
-    let balance_store = ReadonlyPrefixedStorage::new(PREFIX_VIEW_KEY, store);
-    balance_store.get(owner.as_slice())
-}
-
-// Receiver Interface
-
-pub fn get_receiver_hash<S: Storage>(
-    store: &S,
-    account: &Addr,
-) -> Option<StdResult<String>> {
-    let store = ReadonlyPrefixedStorage::new(PREFIX_RECEIVERS, store);
-    store.get(account.as_str().as_bytes()).map(|data| {
-        String::from_utf8(data)
-            .map_err(|_err| StdError::invalid_utf8("stored code hash was not a valid String"))
-    })
-}
-
-pub fn set_receiver_hash<S: Storage>(store: &mut S, account: &Addr, code_hash: String) {
-    let mut store = PrefixedStorage::new(PREFIX_RECEIVERS, store);
-    store.set(account.as_str().as_bytes(), code_hash.as_bytes());
-}
-
-// Helpers
-
-/// Converts 16 bytes value into u128
-/// Errors if data found that is not 16 bytes
-fn slice_to_u128(data: &[u8]) -> StdResult<u128> {
-    match <[u8; 16]>::try_from(data) {
-        Ok(bytes) => Ok(u128::from_be_bytes(bytes)),
-        Err(_) => Err(StdError::generic_err(
-            "Corrupted data found. 16 byte expected.",
-        )),
+    match result {
+        Some(admin) => deps.api.addr_humanize(&admin),
+        None => Err(StdError::generic_err("No admin is set in storage.")),
     }
 }
 
-/// Converts 1 byte value into u8
-/// Errors if data found that is not 1 byte
-fn slice_to_u8(data: &[u8]) -> StdResult<u8> {
-    if data.len() == 1 {
-        Ok(data[0])
-    } else {
-        Err(StdError::generic_err(
-            "Corrupted data found. 1 byte expected.",
-        ))
+pub fn set_admin(storage: &mut dyn Storage, admin: &CanonicalAddr) -> StdResult<()> {
+    save(storage, KEY_ADMIN, admin)
+}
+
+pub struct Config;
+
+impl Config {
+    pub const KEY_CONSTANTS: &'static [u8] = b"N3QP0mNoPG";
+    pub const KEY_TOTAL_SUPPLY: &'static [u8] = b"bx98UUOWYa";
+    pub const KEY_CONTRACT_STATUS: &'static [u8] = b"EhYS9rzai1";
+    pub const KEY_MINTERS: &'static [u8] = b"wpitCjS7wB";
+    pub const KEY_TX_COUNT: &'static [u8] = b"n8BHFWp7eT";
+
+    pub fn set_constants(storage: &mut dyn Storage, constants: &Constants) -> StdResult<()> {
+        save(storage, Self::KEY_CONSTANTS, constants)
+    }
+
+    pub fn get_constants(storage: &dyn Storage) -> StdResult<Constants> {
+        load(storage, Self::KEY_CONSTANTS)?
+            .ok_or_else(|| StdError::generic_err("No constants stored in configuration"))
+    }
+
+    pub fn get_total_supply(storage: &dyn Storage) -> StdResult<Uint128> {
+        let result: Uint128 = load(storage, Self::KEY_TOTAL_SUPPLY)?.unwrap_or_default();
+
+        Ok(result)
+    }
+
+    pub fn increase_total_supply(storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
+        let total_supply = Self::get_total_supply(storage)?;
+
+        if let Ok(new_total) = total_supply.checked_add(amount) {
+            Self::set_total_supply(storage, new_total)
+        } else {
+            Err(StdError::generic_err(
+                "This operation would overflow the currency's total supply.",
+            ))
+        }
+    }
+
+    pub fn decrease_total_supply(storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
+        let total_supply = Self::get_total_supply(storage)?;
+
+        if let Ok(new_total) = total_supply.checked_sub(amount) {
+            Self::set_total_supply(storage, new_total)
+        } else {
+            Err(StdError::generic_err(
+                "This operation would underflow the currency's total supply.",
+            ))
+        }
+    }
+
+    #[inline]
+    pub fn set_total_supply(storage: &mut dyn Storage, supply: Uint128) -> StdResult<()> {
+        save(storage, Self::KEY_TOTAL_SUPPLY, &supply)
+    }
+
+    pub fn get_contract_status(storage: &dyn Storage) -> StdResult<ContractStatusLevel> {
+        load(storage, Self::KEY_CONTRACT_STATUS)?
+            .ok_or_else(|| StdError::generic_err("No contract status stored in configuration"))
+    }
+
+    pub fn set_contract_status(
+        storage: &mut dyn Storage,
+        status: ContractStatusLevel,
+    ) -> StdResult<()> {
+        save(storage, Self::KEY_CONTRACT_STATUS, &status)
+    }
+
+    pub fn get_minters(deps: Deps) -> StdResult<Vec<Addr>> {
+        let minters: Vec<CanonicalAddr> = load(deps.storage, Self::KEY_MINTERS)?.unwrap_or(vec![]);
+
+        minters.humanize(deps.api)
+    }
+
+    pub fn set_minters(storage: &mut dyn Storage, minters: Vec<CanonicalAddr>) -> StdResult<()> {
+        save(storage, Self::KEY_MINTERS, &minters)
+    }
+
+    pub fn add_minters(
+        storage: &mut dyn Storage,
+        new_minters: Vec<CanonicalAddr>,
+    ) -> StdResult<()> {
+        let mut minters: Vec<CanonicalAddr> = load(storage, Self::KEY_MINTERS)?.unwrap_or(vec![]);
+
+        minters.extend(new_minters);
+
+        save(storage, Self::KEY_MINTERS, &minters)
+    }
+
+    pub fn remove_minters(
+        storage: &mut dyn Storage,
+        to_remove: Vec<CanonicalAddr>,
+    ) -> StdResult<()> {
+        let mut minters: Vec<CanonicalAddr> = load(storage, Self::KEY_MINTERS)?.unwrap_or(vec![]);
+
+        for minter in to_remove {
+            minters.retain(|x| *x != minter);
+        }
+
+        save(storage, Self::KEY_MINTERS, &minters)
+    }
+
+    pub fn increment_tx_count(storage: &mut dyn Storage) -> StdResult<u64> {
+        let current: u64 = load(storage, Self::KEY_TX_COUNT)?.unwrap_or(0);
+
+        let new = current + 1;
+        save(storage, Self::KEY_TX_COUNT, &new)?;
+
+        Ok(new)
+    }
+}
+
+pub struct Account {
+    addr: CanonicalAddr,
+}
+
+impl Account {
+    const NS_BALANCES: &'static [u8] = b"DyCKbmlEL8";
+    const NS_VIEWING_KEY: &'static [u8] = b"MLRCoHCV8x";
+    const NS_RECEIVERS: &'static [u8] = b"V1SJqXtGju";
+    const PREFIX_ALLOWANCES: &'static [u8] = b"eXDXajOxRG";
+
+    pub fn of(addr: CanonicalAddr) -> Self {
+        Self { addr }
+    }
+
+    pub fn addr(&self) -> &CanonicalAddr {
+        &self.addr
+    }
+
+    pub fn get_balance(&self, storage: &dyn Storage) -> StdResult<Uint128> {
+        let result: Option<Uint128> = ns_load(storage, Self::NS_BALANCES, self.addr.as_slice())?;
+
+        Ok(match result {
+            Some(amount) => amount,
+            None => Uint128::zero(),
+        })
+    }
+
+    pub fn add_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
+        let account_balance = self.get_balance(storage)?;
+
+        if let Ok(new_balance) = account_balance.checked_add(amount) {
+            self.set_balance(storage, new_balance)
+        } else {
+            Err(StdError::generic_err(
+                "This deposit would overflow your balance",
+            ))
+        }
+    }
+
+    pub fn subtract_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
+        let account_balance = self.get_balance(storage)?;
+
+        if let Ok(new_balance) = account_balance.checked_sub(amount) {
+            self.set_balance(storage, new_balance)
+        } else {
+            Err(StdError::generic_err(format!(
+                "insufficient funds: balance={}, required={}",
+                account_balance, amount
+            )))
+        }
+    }
+
+    pub fn update_allowance<F>(
+        &self,
+        storage: &mut dyn Storage,
+        spender: &CanonicalAddr,
+        func: F,
+    ) -> StdResult<Allowance>
+    where
+        F: FnOnce(&mut Allowance) -> StdResult<()>,
+    {
+        let ns = self.create_allowance_ns();
+
+        let mut allowance = ns_load(storage, &ns, spender.as_slice())?.unwrap_or_default();
+
+        func(&mut allowance)?;
+        ns_save(storage, &ns, spender.as_slice(), &allowance)?;
+
+        Ok(allowance)
+    }
+
+    pub fn get_allowance(
+        &self,
+        storage: &dyn Storage,
+        spender: &CanonicalAddr,
+    ) -> StdResult<Allowance> {
+        let ns = self.create_allowance_ns();
+
+        let result: Option<Allowance> = ns_load(storage, &ns, spender.as_slice())?;
+
+        Ok(result.unwrap_or_default())
+    }
+
+    pub fn get_viewing_key(&self, storage: &dyn Storage) -> StdResult<Option<Vec<u8>>> {
+        ns_load(storage, Self::NS_VIEWING_KEY, self.addr.as_slice())
+    }
+
+    pub fn set_viewing_key(&self, storage: &mut dyn Storage, key: &ViewingKey) -> StdResult<()> {
+        ns_save(
+            storage,
+            Self::NS_VIEWING_KEY,
+            self.addr.as_slice(),
+            &key.to_hashed(),
+        )
+    }
+
+    pub fn get_receiver_hash(&self, storage: &dyn Storage) -> StdResult<Option<String>> {
+        ns_load(storage, Self::NS_RECEIVERS, self.addr.as_slice())
+    }
+
+    pub fn set_receiver_hash(&self, storage: &mut dyn Storage, code_hash: String) -> StdResult<()> {
+        ns_save(
+            storage,
+            Self::NS_RECEIVERS,
+            self.addr.as_slice(),
+            &code_hash,
+        )
+    }
+
+    #[inline]
+    fn set_balance(&self, storage: &mut dyn Storage, amount: Uint128) -> StdResult<()> {
+        ns_save(storage, Self::NS_BALANCES, self.addr.as_slice(), &amount)
+    }
+
+    fn create_allowance_ns(&self) -> Vec<u8> {
+        [Self::PREFIX_ALLOWANCES, self.addr.as_slice()].concat()
     }
 }

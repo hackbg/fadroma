@@ -1,79 +1,67 @@
 #![cfg(test)]
 
-use crate::scrt::cosmwasm_std::{
-    Extern, Storage, Api, Querier, Env, StdResult, ContractInfo,
-    StdError, Addr, WasmMsg, Uint128, InitResponse, Coin,
-    HandleResponse, CosmosMsg, QueryResponse, BlockInfo, Binary,
-    MessageInfo, to_binary, from_binary, log,
-    testing::{
-        MockStorage, MockApi, MockQuerier,
-        mock_dependencies, mock_env, MOCK_CONTRACT_ADDR
-    }
-};
 use crate::vk::{ViewingKey, VIEWING_KEY_SIZE};
-
-use std::any::Any;
-use super::{
-    snip20_handle, snip20_init, snip20_query, DefaultSnip20Impl,
-    SymbolValidation, assert_valid_symbol,
-    receiver::Snip20ReceiveMsg,
-    batch,
-    state::{
-        get_receiver_hash, read_allowance, read_viewing_key,
-        ReadonlyBalances, ReadonlyConfig
+use crate::{
+    ensemble::ResponseVariants,
+    scrt::cosmwasm_std::{
+        attr, from_binary,
+        testing::{
+            mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage,
+            MOCK_CONTRACT_ADDR,
+        },
+        to_binary, Addr, Binary, BlockInfo, Coin, ContractInfo, CosmosMsg, Deps, DepsMut, Env,
+        MessageInfo, QueryResponse, Response, StdError, StdResult, Uint128, WasmMsg,
     },
-    msg::{*, ContractStatusLevel}
 };
+use fadroma_platform_scrt::cosmwasm_std::OwnedDeps;
 
-use super::msg::{InitMsg, HandleMsg, QueryMsg};
+use super::{
+    assert_valid_symbol, batch,
+    msg::{ContractStatusLevel, *},
+    receiver::Snip20ReceiveMsg,
+    snip20_execute, snip20_instantiate, snip20_query,
+    state::*,
+    DefaultSnip20Impl, SymbolValidation,
+};
+use std::any::Any;
 
-fn init<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: InitMsg,
-) -> StdResult<InitResponse> {
-    snip20_init(deps, env, msg, DefaultSnip20Impl)
+use super::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+
+fn init(deps: DepsMut, env: Env, info: MessageInfo, msg: InstantiateMsg) -> StdResult<Response> {
+    crate::snip20_impl::snip20_instantiate(deps, env, info, msg, DefaultSnip20Impl)
 }
 
-fn handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
-    env: Env,
-    msg: HandleMsg,
-) -> StdResult<HandleResponse> {
-    snip20_handle(deps, env, msg, DefaultSnip20Impl)
+fn handle(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
+    crate::snip20_impl::snip20_execute(deps, env, info, msg, DefaultSnip20Impl)
 }
 
-fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: QueryMsg,
-) -> StdResult<Binary> {
-    snip20_query(deps, msg, DefaultSnip20Impl)
+fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    crate::snip20_impl::snip20_query(deps, env, msg, DefaultSnip20Impl)
 }
 
 // Helper functions
-
 fn init_helper(
-    initial_balances: Vec<InitialBalance>
+    initial_balances: Vec<InitialBalance>,
 ) -> (
-    StdResult<InitResponse>,
-    Extern<MockStorage, MockApi, MockQuerier>,
+    StdResult<Response>,
+    OwnedDeps<MockStorage, MockApi, MockQuerier>,
 ) {
-    let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("instantiator", &[]);
+    let mut deps = mock_dependencies();
+    let env = mock_env();
+    let info = mock_info("instantiator", &[]);
 
-    let init_msg = InitMsg {
+    let init_msg = InstantiateMsg {
         name: "sec-sec".to_string(),
-        admin: Some(Addr("admin".to_string())),
+        admin: Some("admin".to_string()),
         symbol: "SECSEC".to_string(),
         decimals: 8,
         initial_balances: Some(initial_balances),
-        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: None,
-        callback: None
+        callback: None,
     };
 
-    (init(&mut deps, env, init_msg), deps)
+    (init(deps.as_mut(), env, info, init_msg), deps)
 }
 
 fn init_helper_with_config(
@@ -84,18 +72,14 @@ fn init_helper_with_config(
     enable_burn: bool,
     contract_bal: u128,
 ) -> (
-    StdResult<InitResponse>,
-    Extern<MockStorage, MockApi, MockQuerier>,
+    StdResult<Response>,
+    OwnedDeps<MockStorage, MockApi, MockQuerier>,
 ) {
-    let mut deps = mock_dependencies(
-        20,
-        &[Coin {
-            denom: "uscrt".to_string(),
-            amount: Uint128(contract_bal),
-        }],
-    );
+    let mut deps = mock_dependencies();
 
-    let env = mock_env("instantiator", &[]);
+    let env = mock_env();
+    let info = mock_info("instantiator", &[]);
+
     let init_config: InitConfig = from_binary(&Binary::from(
         format!(
             "{{\"public_total_supply\":false,
@@ -108,26 +92,27 @@ fn init_helper_with_config(
         .as_bytes(),
     ))
     .unwrap();
-    let init_msg = InitMsg {
+
+    let init_msg = InstantiateMsg {
         name: "sec-sec".to_string(),
-        admin: Some(Addr("admin".to_string())),
+        admin: Some("admin".to_string()),
         symbol: "SECSEC".to_string(),
         decimals: 8,
         initial_balances: Some(initial_balances),
-        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
-        callback: None
+        callback: None,
     };
 
-    (init(&mut deps, env, init_msg), deps)
+    (init(deps.as_mut(), env, info, init_msg), deps)
 }
 
 /// Will return a ViewingKey only for the first account in `initial_balances`
 fn _auth_query_helper(
     initial_balances: Vec<InitialBalance>,
-) -> (ViewingKey, Extern<MockStorage, MockApi, MockQuerier>) {
+) -> (ViewingKey, OwnedDeps<MockStorage, MockApi, MockQuerier>) {
     let (init_result, mut deps) = init_helper(initial_balances.clone());
+
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -135,19 +120,26 @@ fn _auth_query_helper(
     );
 
     let account = initial_balances[0].address.clone();
-    let create_vk_msg = HandleMsg::CreateViewingKey {
+    let create_vk_msg = ExecuteMsg::CreateViewingKey {
         entropy: "42".to_string(),
         padding: None,
     };
-    let handle_response = handle(&mut deps, mock_env(account.0, &[]), create_vk_msg).unwrap();
+
+    let handle_response = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(&account, &[]),
+        create_vk_msg,
+    )
+    .unwrap();
+
     let vk = match from_binary(&handle_response.data.unwrap()).unwrap() {
-        HandleAnswer::CreateViewingKey { key } => key,
+        ExecuteAnswer::CreateViewingKey { key } => key,
         _ => panic!("Unexpected result from handle"),
     };
 
     (vk, deps)
 }
-
 fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
     match error {
         Ok(response) => {
@@ -166,30 +158,30 @@ fn extract_error_msg<T: Any>(error: StdResult<T>) -> String {
     }
 }
 
-fn ensure_success(handle_result: HandleResponse) -> bool {
-    let handle_result: HandleAnswer = from_binary(&handle_result.data.unwrap()).unwrap();
+fn ensure_success(handle_result: Response) -> bool {
+    let handle_result: ExecuteAnswer = from_binary(&handle_result.data.unwrap()).unwrap();
 
     match handle_result {
-        HandleAnswer::Deposit { status }
-        | HandleAnswer::Redeem { status }
-        | HandleAnswer::Transfer { status }
-        | HandleAnswer::Send { status }
-        | HandleAnswer::Burn { status }
-        | HandleAnswer::RegisterReceive { status }
-        | HandleAnswer::SetViewingKey { status }
-        | HandleAnswer::TransferFrom { status }
-        | HandleAnswer::SendFrom { status }
-        | HandleAnswer::BurnFrom { status }
-        | HandleAnswer::Mint { status }
-        | HandleAnswer::ChangeAdmin { status }
-        | HandleAnswer::SetContractStatus { status }
-        | HandleAnswer::SetMinters { status }
-        | HandleAnswer::AddMinters { status }
-        | HandleAnswer::RemoveMinters { status } => {
+        ExecuteAnswer::Deposit { status }
+        | ExecuteAnswer::Redeem { status }
+        | ExecuteAnswer::Transfer { status }
+        | ExecuteAnswer::Send { status }
+        | ExecuteAnswer::Burn { status }
+        | ExecuteAnswer::RegisterReceive { status }
+        | ExecuteAnswer::SetViewingKey { status }
+        | ExecuteAnswer::TransferFrom { status }
+        | ExecuteAnswer::SendFrom { status }
+        | ExecuteAnswer::BurnFrom { status }
+        | ExecuteAnswer::Mint { status }
+        | ExecuteAnswer::ChangeAdmin { status }
+        | ExecuteAnswer::SetContractStatus { status }
+        | ExecuteAnswer::SetMinters { status }
+        | ExecuteAnswer::AddMinters { status }
+        | ExecuteAnswer::RemoveMinters { status } => {
             matches!(status, ResponseStatus::Success { .. })
         }
         _ => panic!(
-            "HandleAnswer not supported for success extraction: {:?}",
+            "ExecuteAnswer not supported for success extraction: {:?}",
             handle_result
         ),
     }
@@ -200,29 +192,29 @@ fn ensure_success(handle_result: HandleResponse) -> bool {
 #[test]
 fn test_init_sanity() {
     let (init_result, deps) = init_helper(vec![InitialBalance {
-        address: Addr("lebron".to_string()),
-        amount: Uint128(5000),
+        address: Addr::unchecked("lebron".to_string()),
+        amount: Uint128::new(5000),
     }]);
-    assert_eq!(init_result.unwrap(), InitResponse {
-        messages: vec![],
-        log: vec![
-            log("token_address", "cosmos2contract"),
-            log("token_code_hash", "")
-        ]
-    });
+    assert_eq!(
+        init_result.unwrap(),
+        Response::new()
+            .add_attribute("token_address", "cosmos2contract")
+            .add_attribute("token_code_hash", "")
+    );
 
-    let config = ReadonlyConfig::from_storage(&deps.storage);
-    let constants = config.constants().unwrap();
-    assert_eq!(config.total_supply(), 5000);
-    assert_eq!(config.contract_status(), ContractStatusLevel::NormalRun);
+    let storage = deps.as_ref().storage();
+    let constants = Config::get_constants(storage).unwrap();
+
+    assert_eq!(Config::get_total_supply(storage).unwrap(), 5000);
+    assert_eq!(
+        Config::get_contract_status(storage).unwrap(),
+        ContractStatusLevel::NormalRun
+    );
     assert_eq!(constants.name, "sec-sec".to_string());
-    assert_eq!(constants.admin, Addr("admin".to_string()));
+    assert_eq!(constants.admin, Addr::unchecked("admin".to_string()));
     assert_eq!(constants.symbol, "SECSEC".to_string());
     assert_eq!(constants.decimals, 8);
-    assert_eq!(
-        constants.prng_seed,
-        Vec::from("lolz fun yay")
-    );
+    assert_eq!(constants.prng_seed, Vec::from("lolz fun yay"));
     assert_eq!(constants.total_supply_is_public, false);
 }
 
@@ -230,8 +222,8 @@ fn test_init_sanity() {
 fn test_init_with_config_sanity() {
     let (init_result, deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("lebron".to_string()),
-            amount: Uint128(5000),
+            address: Addr::unchecked("lebron".to_string()),
+            amount: Uint128::new(5000),
         }],
         true,
         true,
@@ -239,26 +231,25 @@ fn test_init_with_config_sanity() {
         true,
         0,
     );
-    assert_eq!(init_result.unwrap(), InitResponse {
-        messages: vec![],
-        log: vec![
-            log("token_address", "cosmos2contract"),
-            log("token_code_hash", "")
-        ]
-    });
+    assert_eq!(
+        init_result.unwrap(),
+        Response::new()
+            .add_attribute("token_address", "cosmos2contract")
+            .add_attribute("token_code_hash", "")
+    );
 
-    let config = ReadonlyConfig::from_storage(&deps.storage);
-    let constants = config.constants().unwrap();
-    assert_eq!(config.total_supply(), 5000);
-    assert_eq!(config.contract_status(), ContractStatusLevel::NormalRun);
+    let storage = deps.as_ref().storage;
+    let constants = Config::get_constants(storage).unwrap();
+    assert_eq!(Config::get_total_supply(storage).unwrap(), 5000);
+    assert_eq!(
+        Config::get_contract_status(storage).unwrap(),
+        ContractStatusLevel::NormalRun
+    );
     assert_eq!(constants.name, "sec-sec".to_string());
-    assert_eq!(constants.admin, Addr("admin".to_string()));
+    assert_eq!(constants.admin, Addr::unchecked("admin".to_string()));
     assert_eq!(constants.symbol, "SECSEC".to_string());
     assert_eq!(constants.decimals, 8);
-    assert_eq!(
-        constants.prng_seed,
-        Vec::from("lolz fun yay")
-    );
+    assert_eq!(constants.prng_seed, Vec::from("lolz fun yay"));
     assert_eq!(constants.total_supply_is_public, false);
     assert_eq!(constants.deposit_is_enabled, true);
     assert_eq!(constants.redeem_is_enabled, true);
@@ -269,8 +260,8 @@ fn test_init_with_config_sanity() {
 #[test]
 fn test_total_supply_overflow() {
     let (init_result, _deps) = init_helper(vec![InitialBalance {
-        address: Addr("lebron".to_string()),
-        amount: Uint128(u128::max_value()),
+        address: Addr::unchecked("lebron".to_string()),
+        amount: Uint128::new(u128::max_value()),
     }]);
     assert!(
         init_result.is_ok(),
@@ -280,12 +271,12 @@ fn test_total_supply_overflow() {
 
     let (init_result, _deps) = init_helper(vec![
         InitialBalance {
-            address: Addr("lebron".to_string()),
-            amount: Uint128(u128::max_value()),
+            address: Addr::unchecked("lebron".to_string()),
+            amount: Uint128::new(u128::max_value()),
         },
         InitialBalance {
-            address: Addr("giannis".to_string()),
-            amount: Uint128(1),
+            address: Addr::unchecked("giannis".to_string()),
+            amount: Uint128::new(1),
         },
     ]);
     let error = extract_error_msg(init_result);
@@ -300,8 +291,8 @@ fn test_total_supply_overflow() {
 #[test]
 fn test_handle_transfer() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -309,43 +300,43 @@ fn test_handle_transfer() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::Transfer {
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(1000),
+    let handle_msg = ExecuteMsg::Transfer {
+        recipient: "alice".to_string(),
+        amount: Uint128::new(1000),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
-    let bob_canonical = deps
-        .api
-        .canonical_address(&Addr("bob".to_string()))
-        .unwrap();
-    let alice_canonical = deps
-        .api
-        .canonical_address(&Addr("alice".to_string()))
-        .unwrap();
-    let balances = ReadonlyBalances::from_storage(&deps.storage);
-    assert_eq!(5000 - 1000, balances.account_amount(&bob_canonical));
-    assert_eq!(1000, balances.account_amount(&alice_canonical));
 
-    let handle_msg = HandleMsg::Transfer {
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(10000),
+    let storage = deps.as_ref().storage;
+
+    let acc_bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
+    let acc_alice = Account::of(deps.api.addr_canonicalize("alice").unwrap());
+
+    assert_eq!(5000 - 1000, acc_bob.get_balance(storage).unwrap().u128());
+    assert_eq!(1000, acc_alice.get_balance(storage).unwrap().u128());
+
+    let handle_msg = ExecuteMsg::Transfer {
+        recipient: "alice".to_string(),
+        amount: Uint128::new(10000),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
+
     assert!(error.contains("insufficient funds"));
 }
 
 #[test]
 fn test_handle_send() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -353,46 +344,55 @@ fn test_handle_send() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::RegisterReceive {
+    let handle_msg = ExecuteMsg::RegisterReceive {
         code_hash: "this_is_a_hash_of_a_code".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("contract", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("contract", &[]),
+        handle_msg,
+    );
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
-    let handle_msg = HandleMsg::Send {
-        recipient: Addr("contract".to_string()),
+    let handle_msg = ExecuteMsg::Send {
+        recipient: "contract".to_string(),
         recipient_code_hash: None,
-        amount: Uint128(100),
+        amount: Uint128::new(100),
         memo: Some("my memo".to_string()),
         padding: None,
         msg: Some(to_binary("hey hey you you").unwrap()),
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result.clone()));
-    assert!(result.messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: Addr("contract".to_string()),
-        callback_code_hash: "this_is_a_hash_of_a_code".to_string(),
+
+    let messages: Vec<CosmosMsg> = result.messages.into_iter().map(|x| x.msg).collect();
+
+    assert!(messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: "contract".to_string(),
+        code_hash: "this_is_a_hash_of_a_code".to_string(),
         msg: Snip20ReceiveMsg::new(
-            Addr("bob".to_string()),
-            Addr("bob".to_string()),
-            Uint128(100),
+            Addr::unchecked("bob"),
+            Addr::unchecked("bob"),
+            Uint128::new(100),
             Some("my memo".to_string()),
             Some(to_binary("hey hey you you").unwrap())
         )
         .into_binary()
         .unwrap(),
-        send: vec![]
+        funds: vec![]
     })));
 }
 
 #[test]
 fn test_handle_send_with_code_hash() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: Addr::unchecked("bob".to_string()),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -402,38 +402,38 @@ fn test_handle_send_with_code_hash() {
 
     let code_hash = "code_hash_of_recipient";
 
-    let handle_msg = HandleMsg::Send {
-        recipient: Addr("contract".to_string()),
+    let handle_msg = ExecuteMsg::Send {
+        recipient: Addr::unchecked("contract".to_string()),
         recipient_code_hash: Some(code_hash.into()),
-        amount: Uint128(100),
+        amount: Uint128::new(100),
         memo: Some("my memo".to_string()),
         padding: None,
         msg: Some(to_binary("hey hey you you").unwrap()),
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result.clone()));
     assert!(result.messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: Addr("contract".to_string()),
-        callback_code_hash: code_hash.into(),
+        contract_addr: Addr::unchecked("contract".to_string()),
+        code_hash: code_hash.into(),
         msg: Snip20ReceiveMsg::new(
-            Addr("bob".to_string()),
-            Addr("bob".to_string()),
-            Uint128(100),
+            Addr::unchecked("bob".to_string()),
+            Addr::unchecked("bob".to_string()),
+            Uint128::new(100),
             Some("my memo".to_string()),
             Some(to_binary("hey hey you you").unwrap())
         )
         .into_binary()
         .unwrap(),
-        send: vec![]
+        funds: vec![]
     })));
 }
 
 #[test]
 fn test_handle_register_receive() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -441,25 +441,35 @@ fn test_handle_register_receive() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::RegisterReceive {
+    let handle_msg = ExecuteMsg::RegisterReceive {
         code_hash: "this_is_a_hash_of_a_code".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("contract", &[]), handle_msg);
+
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("contract", &[]),
+        handle_msg,
+    );
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
-    let hash = get_receiver_hash(&deps.storage, &Addr("contract".to_string()))
+    let account = Account::of(deps.api.addr_canonicalize("contract").unwrap());
+
+    let hash = account
+        .get_receiver_hash(deps.as_ref().storage)
         .unwrap()
         .unwrap();
+
     assert_eq!(hash, "this_is_a_hash_of_a_code".to_string());
 }
 
 #[test]
 fn test_handle_create_viewing_key() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -467,35 +477,34 @@ fn test_handle_create_viewing_key() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::CreateViewingKey {
+    let handle_msg = ExecuteMsg::CreateViewingKey {
         entropy: "".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
-    let answer: HandleAnswer = from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
+    let answer: ExecuteAnswer = from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
 
     let key = match answer {
-        HandleAnswer::CreateViewingKey { key } => key,
+        ExecuteAnswer::CreateViewingKey { key } => key,
         _ => panic!("NOPE"),
     };
-    let bob_canonical = deps
-        .api
-        .canonical_address(&Addr("bob".to_string()))
-        .unwrap();
-    let saved_vk = read_viewing_key(&deps.storage, &bob_canonical).unwrap();
+
+    let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
+
+    let saved_vk = bob.get_viewing_key(deps.as_ref().storage).unwrap().unwrap();
     assert!(key.check_viewing_key(saved_vk.as_slice()));
 }
 
 #[test]
 fn test_handle_set_viewing_key() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -504,16 +513,16 @@ fn test_handle_set_viewing_key() {
     );
 
     // Set VK
-    let handle_msg = HandleMsg::SetViewingKey {
+    let handle_msg = ExecuteMsg::SetViewingKey {
         key: "hi lol".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
-    let unwrapped_result: HandleAnswer =
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let unwrapped_result: ExecuteAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&HandleAnswer::SetViewingKey {
+        to_binary(&ExecuteAnswer::SetViewingKey {
             status: ResponseStatus::Success
         })
         .unwrap(),
@@ -521,30 +530,32 @@ fn test_handle_set_viewing_key() {
 
     // Set valid VK
     let actual_vk = ViewingKey("x".to_string().repeat(VIEWING_KEY_SIZE));
-    let handle_msg = HandleMsg::SetViewingKey {
+    let handle_msg = ExecuteMsg::SetViewingKey {
         key: actual_vk.0.clone(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
-    let unwrapped_result: HandleAnswer =
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let unwrapped_result: ExecuteAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&HandleAnswer::SetViewingKey { status: ResponseStatus::Success }).unwrap(),
+        to_binary(&ExecuteAnswer::SetViewingKey {
+            status: ResponseStatus::Success
+        })
+        .unwrap(),
     );
-    let bob_canonical = deps
-        .api
-        .canonical_address(&Addr("bob".to_string()))
-        .unwrap();
-    let saved_vk = read_viewing_key(&deps.storage, &bob_canonical).unwrap();
+
+    let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
+
+    let saved_vk = bob.get_viewing_key(deps.as_ref().storage).unwrap().unwrap();
     assert!(actual_vk.check_viewing_key(&saved_vk));
 }
 
 #[test]
 fn test_handle_transfer_from() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -553,112 +564,108 @@ fn test_handle_transfer_from() {
     );
 
     // Transfer before allowance
-    let handle_msg = HandleMsg::TransferFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(2500),
-        memo: None,
-        padding: None,
-    };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
-    let error = extract_error_msg(handle_result);
-    assert!(error.contains("insufficient allowance"));
-
-    // Transfer more than allowance
-    let handle_msg = HandleMsg::IncreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(2000),
-        padding: None,
-        expiration: Some(1_571_797_420),
-    };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
-    assert!(
-        handle_result.is_ok(),
-        "handle() failed: {}",
-        handle_result.err().unwrap()
-    );
-    let handle_msg = HandleMsg::TransferFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(2500),
-        memo: None,
-        padding: None,
-    };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
-    let error = extract_error_msg(handle_result);
-    assert!(error.contains("insufficient allowance"));
-
-    // Transfer after allowance expired
-    let handle_msg = HandleMsg::TransferFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::TransferFrom {
+        owner: "bob".to_string(),
+        recipient: "alice".to_string(),
+        amount: Uint128::new(2500),
         memo: None,
         padding: None,
     };
     let handle_result = handle(
-        &mut deps,
-        Env {
-            block: BlockInfo {
-                height: 12_345,
-                time: 1_571_797_420,
-                chain_id: "cosmos-testnet-14002".to_string(),
-            },
-            message: MessageInfo {
-                sender: Addr("bob".to_string()),
-                sent_funds: vec![],
-            },
-            contract: ContractInfo {
-                address: Addr::unchecked(MOCK_CONTRACT_ADDR),
-            },
-            contract_key: Some("".to_string()),
-            contract_code_hash: "".to_string(),
-        },
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
         handle_msg,
     );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 
-    // Sanity check
-    let handle_msg = HandleMsg::TransferFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(2000),
-        memo: None,
+    // Transfer more than allowance
+    let handle_msg = ExecuteMsg::IncreaseAllowance {
+        spender: "alice".to_string(),
+        amount: Uint128::new(2000),
         padding: None,
+        expiration: Some(1_571_797_420),
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
-    let bob_canonical = deps
-        .api
-        .canonical_address(&Addr("bob".to_string()))
-        .unwrap();
-    let alice_canonical = deps
-        .api
-        .canonical_address(&Addr("alice".to_string()))
-        .unwrap();
-    let bob_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
-        .account_amount(&bob_canonical);
-    let alice_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
-        .account_amount(&alice_canonical);
-    assert_eq!(bob_balance, 5000 - 2000);
-    assert_eq!(alice_balance, 2000);
-    let total_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
-    assert_eq!(total_supply, 5000);
-
-    // Second send more than allowance
-    let handle_msg = HandleMsg::TransferFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(1),
+    let handle_msg = ExecuteMsg::TransferFrom {
+        owner: "bob".to_string(),
+        recipient: "alice".to_string(),
+        amount: Uint128::new(2500),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
+    let error = extract_error_msg(handle_result);
+    assert!(error.contains("insufficient allowance"));
+
+    // Transfer after allowance expired
+    let handle_msg = ExecuteMsg::TransferFrom {
+        owner: "bob".to_string(),
+        recipient: "alice".to_string(),
+        amount: Uint128::new(2000),
+        memo: None,
+        padding: None,
+    };
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let error = extract_error_msg(handle_result);
+    assert!(error.contains("insufficient allowance"));
+
+    // Sanity check
+    let handle_msg = ExecuteMsg::TransferFrom {
+        owner: "bob".to_string(),
+        recipient: "alice".to_string(),
+        amount: Uint128::new(2000),
+        memo: None,
+        padding: None,
+    };
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
+    assert!(
+        handle_result.is_ok(),
+        "handle() failed: {}",
+        handle_result.err().unwrap()
+    );
+    let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
+    let alice = Account::of(deps.api.addr_canonicalize("alice").unwrap());
+
+    let bob_balance = bob.get_balance(deps.as_ref().storage).unwrap().u128();
+    let alice_balance = alice.get_balance(deps.as_ref().storage).unwrap().u128();
+
+    assert_eq!(bob_balance, 5000 - 2000);
+    assert_eq!(alice_balance, 2000);
+
+    let total_supply = Config::get_total_supply(deps.as_ref().storage).unwrap();
+    assert_eq!(total_supply.u128(), 5000);
+
+    // Second send more than allowance
+    let handle_msg = ExecuteMsg::TransferFrom {
+        owner: "bob".to_string(),
+        recipient: "alice".to_string(),
+        amount: Uint128::new(1),
+        memo: None,
+        padding: None,
+    };
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 }
@@ -666,8 +673,8 @@ fn test_handle_transfer_from() {
 #[test]
 fn test_handle_send_from() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -676,51 +683,66 @@ fn test_handle_send_from() {
     );
 
     // Send before allowance
-    let handle_msg = HandleMsg::SendFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("alice".to_string()),
+    let handle_msg = ExecuteMsg::SendFrom {
+        owner: "bob".to_string(),
+        recipient: "alice".to_string(),
         recipient_code_hash: None,
-        amount: Uint128(2500),
+        amount: Uint128::new(2500),
         memo: None,
         msg: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 
     // Send more than allowance
-    let handle_msg = HandleMsg::IncreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::IncreaseAllowance {
+        spender: "alice".to_string(),
+        amount: Uint128::new(2000),
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
-    let handle_msg = HandleMsg::SendFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("alice".to_string()),
+    let handle_msg = ExecuteMsg::SendFrom {
+        owner: "bob".to_string(),
+        recipient: "alice".to_string(),
         recipient_code_hash: None,
-        amount: Uint128(2500),
+        amount: Uint128::new(2500),
         memo: None,
         msg: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 
     // Sanity check
-    let handle_msg = HandleMsg::RegisterReceive {
+    let handle_msg = ExecuteMsg::RegisterReceive {
         code_hash: "lolz".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("contract", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("contract", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
@@ -728,60 +750,72 @@ fn test_handle_send_from() {
     );
     let send_msg = Binary::from(r#"{ "some_msg": { "some_key": "some_val" } }"#.as_bytes());
     let snip20_msg = Snip20ReceiveMsg::new(
-        Addr("alice".to_string()),
-        Addr("bob".to_string()),
-        Uint128(2000),
+        Addr::unchecked("alice"),
+        Addr::unchecked("bob"),
+        Uint128::new(2000),
         Some("my memo".to_string()),
         Some(send_msg.clone()),
     );
-    let handle_msg = HandleMsg::SendFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("contract".to_string()),
+    let handle_msg = ExecuteMsg::SendFrom {
+        owner: "bob".to_string(),
+        recipient: "contract".to_string(),
         recipient_code_hash: None,
-        amount: Uint128(2000),
+        amount: Uint128::new(2000),
         memo: Some("my memo".to_string()),
         msg: Some(send_msg),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
-    assert!(handle_result.unwrap().messages.contains(
+
+    let messages: Vec<CosmosMsg> = handle_result
+        .unwrap()
+        .messages
+        .into_iter()
+        .map(|x| x.msg)
+        .collect();
+    assert!(messages.contains(
         &snip20_msg
-            .into_cosmos_msg("lolz".to_string(), Addr("contract".to_string()))
+            .into_cosmos_msg("lolz".to_string(), "contract".to_string())
             .unwrap()
     ));
-    let bob_canonical = deps
-        .api
-        .canonical_address(&Addr("bob".to_string()))
-        .unwrap();
-    let contract_canonical = deps
-        .api
-        .canonical_address(&Addr("contract".to_string()))
-        .unwrap();
-    let bob_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
-        .account_amount(&bob_canonical);
-    let contract_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
-        .account_amount(&contract_canonical);
+    let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
+    let contract = Account::of(deps.api.addr_canonicalize("contract").unwrap());
+
+    let bob_balance = bob.get_balance(deps.as_ref().storage).unwrap().u128();
+    let contract_balance = contract.get_balance(deps.as_ref().storage).unwrap().u128();
     assert_eq!(bob_balance, 5000 - 2000);
     assert_eq!(contract_balance, 2000);
-    let total_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
+    let total_supply = Config::get_total_supply(deps.as_ref().storage)
+        .unwrap()
+        .u128();
     assert_eq!(total_supply, 5000);
 
     // Second send more than allowance
-    let handle_msg = HandleMsg::SendFrom {
-        owner: Addr("bob".to_string()),
-        recipient: Addr("alice".to_string()),
+    let handle_msg = ExecuteMsg::SendFrom {
+        owner: "bob".to_string(),
+        recipient: "alice".to_string(),
         recipient_code_hash: None,
-        amount: Uint128(1),
+        amount: Uint128::new(1),
         memo: None,
         msg: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 }
@@ -789,8 +823,8 @@ fn test_handle_send_from() {
 #[test]
 fn test_handle_send_from_with_code_hash() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: Addr::unchecked("bob".to_string()),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -798,13 +832,13 @@ fn test_handle_send_from_with_code_hash() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::IncreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::IncreaseAllowance {
+        spender: Addr::unchecked("alice".to_string()),
+        amount: Uint128::new(2000),
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
@@ -813,31 +847,36 @@ fn test_handle_send_from_with_code_hash() {
 
     let code_hash = "code_hash_of_recipient";
 
-    let handle_msg = HandleMsg::SendFrom {
+    let handle_msg = ExecuteMsg::SendFrom {
         owner: "bob".into(),
-        recipient: Addr("contract".to_string()),
+        recipient: Addr::unchecked("contract".to_string()),
         recipient_code_hash: Some(code_hash.into()),
-        amount: Uint128(2000),
+        amount: Uint128::new(2000),
         memo: Some("my memo".to_string()),
         padding: None,
         msg: Some(to_binary("hey hey you you").unwrap()),
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let result = handle_result.unwrap();
     assert!(ensure_success(result.clone()));
     assert!(result.messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: Addr("contract".to_string()),
-        callback_code_hash: code_hash.into(),
+        contract_addr: Addr::unchecked("contract".to_string()),
+        code_hash: code_hash.into(),
         msg: Snip20ReceiveMsg::new(
-            Addr("alice".to_string()),
+            Addr::unchecked("alice".to_string()),
             "bob".into(),
-            Uint128(2000),
+            Uint128::new(2000),
             Some("my memo".to_string()),
             Some(to_binary("hey hey you you").unwrap())
         )
         .into_binary()
         .unwrap(),
-        send: vec![]
+        funds: vec![]
     })));
 }
 
@@ -845,8 +884,8 @@ fn test_handle_send_from_with_code_hash() {
 fn test_handle_burn_from() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("bob".to_string()),
-            amount: Uint128(10000),
+            address: "bob".to_string(),
+            amount: Uint128::new(10000),
         }],
         false,
         false,
@@ -861,8 +900,8 @@ fn test_handle_burn_from() {
     );
 
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(10000),
+        address: "bob".to_string(),
+        amount: Uint128::new(10000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -870,81 +909,106 @@ fn test_handle_burn_from() {
         init_result_for_failure.err().unwrap()
     );
     // test when burn disabled
-    let handle_msg = HandleMsg::BurnFrom {
-        owner: Addr("bob".to_string()),
-        amount: Uint128(2500),
+    let handle_msg = ExecuteMsg::BurnFrom {
+        owner: "bob".to_string(),
+        amount: Uint128::new(2500),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps_for_failure, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Burn functionality is not enabled for this token."));
 
     // Burn before allowance
-    let handle_msg = HandleMsg::BurnFrom {
-        owner: Addr("bob".to_string()),
-        amount: Uint128(2500),
+    let handle_msg = ExecuteMsg::BurnFrom {
+        owner: "bob".to_string(),
+        amount: Uint128::new(2500),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 
     // Burn more than allowance
-    let handle_msg = HandleMsg::IncreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::IncreaseAllowance {
+        spender: "alice".to_string(),
+        amount: Uint128::new(2000),
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
-    let handle_msg = HandleMsg::BurnFrom {
-        owner: Addr("bob".to_string()),
-        amount: Uint128(2500),
+    let handle_msg = ExecuteMsg::BurnFrom {
+        owner: "bob".to_string(),
+        amount: Uint128::new(2500),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 
     // Sanity check
-    let handle_msg = HandleMsg::BurnFrom {
-        owner: Addr("bob".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::BurnFrom {
+        owner: "bob".to_string(),
+        amount: Uint128::new(2000),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
-    let bob_canonical = deps
-        .api
-        .canonical_address(&Addr("bob".to_string()))
-        .unwrap();
-    let bob_balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
-        .account_amount(&bob_canonical);
+    let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
+
+    let bob_balance = bob.get_balance(deps.as_ref().storage).unwrap().u128();
     assert_eq!(bob_balance, 10000 - 2000);
-    let total_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
+
+    let total_supply = Config::get_total_supply(deps.as_ref().storage)
+        .unwrap()
+        .u128();
     assert_eq!(total_supply, 10000 - 2000);
 
     // Second burn more than allowance
-    let handle_msg = HandleMsg::BurnFrom {
-        owner: Addr("bob".to_string()),
-        amount: Uint128(1),
+    let handle_msg = ExecuteMsg::BurnFrom {
+        owner: "bob".to_string(),
+        amount: Uint128::new(1),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 }
@@ -954,16 +1018,16 @@ fn test_handle_batch_burn_from() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![
             InitialBalance {
-                address: Addr("bob".to_string()),
-                amount: Uint128(10000),
+                address: "bob".to_string(),
+                amount: Uint128::new(10000),
             },
             InitialBalance {
-                address: Addr("jerry".to_string()),
-                amount: Uint128(10000),
+                address: "jerry".to_string(),
+                amount: Uint128::new(10000),
             },
             InitialBalance {
-                address: Addr("mike".to_string()),
-                amount: Uint128(10000),
+                address: "mike".to_string(),
+                amount: Uint128::new(10000),
             },
         ],
         false,
@@ -979,8 +1043,8 @@ fn test_handle_batch_burn_from() {
     );
 
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(10000),
+        address: "bob".to_string(),
+        amount: Uint128::new(10000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -991,50 +1055,61 @@ fn test_handle_batch_burn_from() {
     let actions: Vec<_> = ["bob", "jerry", "mike"]
         .iter()
         .map(|name| batch::BurnFromAction {
-            owner: Addr(name.to_string()),
-            amount: Uint128(2500),
+            owner: name.to_string(),
+            amount: Uint128::new(2500),
             memo: None,
         })
         .collect();
-    let handle_msg = HandleMsg::BatchBurnFrom {
+    let handle_msg = ExecuteMsg::BatchBurnFrom {
         actions,
         padding: None,
     };
     let handle_result = handle(
-        &mut deps_for_failure,
-        mock_env("alice", &[]),
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
         handle_msg.clone(),
     );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Burn functionality is not enabled for this token."));
 
     // Burn before allowance
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 
     // Burn more than allowance
     let allowance_size = 2000;
     for name in &["bob", "jerry", "mike"] {
-        let handle_msg = HandleMsg::IncreaseAllowance {
-            spender: Addr("alice".to_string()),
-            amount: Uint128(allowance_size),
+        let handle_msg = ExecuteMsg::IncreaseAllowance {
+            spender: "alice".to_string(),
+            amount: Uint128::new(allowance_size),
             padding: None,
             expiration: None,
         };
-        let handle_result = handle(&mut deps, mock_env(*name, &[]), handle_msg);
+        let handle_result = handle(deps.as_mut(), mock_env(), mock_info(*name, &[]), handle_msg);
         assert!(
             handle_result.is_ok(),
             "handle() failed: {}",
             handle_result.err().unwrap()
         );
-        let handle_msg = HandleMsg::BurnFrom {
-            owner: Addr(name.to_string()),
-            amount: Uint128(2500),
+        let handle_msg = ExecuteMsg::BurnFrom {
+            owner: name.to_string(),
+            amount: Uint128::new(2500),
             memo: None,
             padding: None,
         };
-        let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+        let handle_result = handle(
+            deps.as_mut(),
+            mock_env(),
+            mock_info("alice", &[]),
+            handle_msg,
+        );
         let error = extract_error_msg(handle_result);
         assert!(error.contains("insufficient allowance"));
     }
@@ -1043,80 +1118,94 @@ fn test_handle_batch_burn_from() {
     let actions: Vec<_> = [("bob", 200_u128), ("jerry", 300), ("mike", 400)]
         .iter()
         .map(|(name, amount)| batch::BurnFromAction {
-            owner: Addr(name.to_string()),
-            amount: Uint128(*amount),
+            owner: name.to_string(),
+            amount: Uint128::new(*amount),
             memo: None,
         })
         .collect();
 
-    let handle_msg = HandleMsg::BatchBurnFrom {
+    let handle_msg = ExecuteMsg::BatchBurnFrom {
         actions,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
     for (name, amount) in &[("bob", 200_u128), ("jerry", 300), ("mike", 400)] {
-        let name_canon = deps
-            .api
-            .canonical_address(&Addr(name.to_string()))
-            .unwrap();
-        let balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
-            .account_amount(&name_canon);
+        let account = Account::of(deps.api.addr_canonicalize(&name).unwrap());
+
+        let balance = account.get_balance(deps.as_ref().storage).unwrap().u128();
         assert_eq!(balance, 10000 - amount);
     }
-    let total_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
+
+    let total_supply = Config::get_total_supply(deps.as_ref().storage)
+        .unwrap()
+        .u128();
     assert_eq!(total_supply, 10000 * 3 - (200 + 300 + 400));
 
     // Burn the rest of the allowance
     let actions: Vec<_> = [("bob", 200_u128), ("jerry", 300), ("mike", 400)]
         .iter()
         .map(|(name, amount)| batch::BurnFromAction {
-            owner: Addr(name.to_string()),
-            amount: Uint128(allowance_size - *amount),
+            owner: name.to_string(),
+            amount: Uint128::new(allowance_size - *amount),
             memo: None,
         })
         .collect();
 
-    let handle_msg = HandleMsg::BatchBurnFrom {
+    let handle_msg = ExecuteMsg::BatchBurnFrom {
         actions,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
     for name in &["bob", "jerry", "mike"] {
-        let name_canon = deps
-            .api
-            .canonical_address(&Addr(name.to_string()))
-            .unwrap();
-        let balance = super::state::ReadonlyBalances::from_storage(&deps.storage)
-            .account_amount(&name_canon);
+        let account = Account::of(deps.api.addr_canonicalize(&name).unwrap());
+
+        let balance = account.get_balance(deps.as_ref().storage).unwrap().u128();
         assert_eq!(balance, 10000 - allowance_size);
     }
-    let total_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
+    let total_supply = Config::get_total_supply(deps.as_ref().storage)
+        .unwrap()
+        .u128();
     assert_eq!(total_supply, 3 * (10000 - allowance_size));
 
     // Second burn more than allowance
     let actions: Vec<_> = ["bob", "jerry", "mike"]
         .iter()
         .map(|name| batch::BurnFromAction {
-            owner: Addr(name.to_string()),
-            amount: Uint128(1),
+            owner: name.to_string(),
+            amount: Uint128::new(1),
             memo: None,
         })
         .collect();
-    let handle_msg = HandleMsg::BatchBurnFrom {
+    let handle_msg = ExecuteMsg::BatchBurnFrom {
         actions,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("alice", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("alice", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 }
@@ -1124,8 +1213,8 @@ fn test_handle_batch_burn_from() {
 #[test]
 fn test_handle_decrease_allowance() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -1133,68 +1222,66 @@ fn test_handle_decrease_allowance() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::DecreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::DecreaseAllowance {
+        spender: "alice".to_string(),
+        amount: Uint128::new(2000),
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let bob_canonical = deps
-        .api
-        .canonical_address(&Addr("bob".to_string()))
-        .unwrap();
-    let alice_canonical = deps
-        .api
-        .canonical_address(&Addr("alice".to_string()))
-        .unwrap();
+    let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
+    let alice_canonical = deps.api.addr_canonicalize("alice").unwrap();
 
-    let allowance = read_allowance(&deps.storage, &bob_canonical, &alice_canonical).unwrap();
+    let allowance = bob
+        .get_allowance(deps.as_ref().storage, &alice_canonical)
+        .unwrap();
     assert_eq!(
         allowance,
         super::state::Allowance {
-            amount: 0,
+            amount: Uint128::zero(),
             expiration: None
         }
     );
 
-    let handle_msg = HandleMsg::IncreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::IncreaseAllowance {
+        spender: "alice".to_string(),
+        amount: Uint128::new(2000),
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::DecreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(50),
+    let handle_msg = ExecuteMsg::DecreaseAllowance {
+        spender: "alice".to_string(),
+        amount: Uint128::new(50),
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let allowance = read_allowance(&deps.storage, &bob_canonical, &alice_canonical).unwrap();
+    let allowance = bob
+        .get_allowance(deps.as_ref().storage, &alice_canonical)
+        .unwrap();
     assert_eq!(
         allowance,
         super::state::Allowance {
-            amount: 1950,
+            amount: Uint128::new(1950),
             expiration: None
         }
     );
@@ -1203,8 +1290,8 @@ fn test_handle_decrease_allowance() {
 #[test]
 fn test_handle_increase_allowance() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -1212,55 +1299,54 @@ fn test_handle_increase_allowance() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::IncreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::IncreaseAllowance {
+        spender: "alice".to_string(),
+        amount: Uint128::new(2000),
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let bob_canonical = deps
-        .api
-        .canonical_address(&Addr("bob".to_string()))
-        .unwrap();
-    let alice_canonical = deps
-        .api
-        .canonical_address(&Addr("alice".to_string()))
+    let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
+    let alice_canonical = deps.api.addr_canonicalize("alice").unwrap();
+
+    let allowance = bob
+        .get_allowance(deps.as_ref().storage, &alice_canonical)
         .unwrap();
 
-    let allowance = read_allowance(&deps.storage, &bob_canonical, &alice_canonical).unwrap();
     assert_eq!(
         allowance,
         super::state::Allowance {
-            amount: 2000,
+            amount: Uint128::new(2000),
             expiration: None
         }
     );
 
-    let handle_msg = HandleMsg::IncreaseAllowance {
-        spender: Addr("alice".to_string()),
-        amount: Uint128(2000),
+    let handle_msg = ExecuteMsg::IncreaseAllowance {
+        spender: "alice".to_string(),
+        amount: Uint128::new(2000),
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let allowance = read_allowance(&deps.storage, &bob_canonical, &alice_canonical).unwrap();
+    let allowance = bob
+        .get_allowance(deps.as_ref().storage, &alice_canonical)
+        .unwrap();
     assert_eq!(
         allowance,
         super::state::Allowance {
-            amount: 4000,
+            amount: Uint128::new(4000),
             expiration: None
         }
     );
@@ -1269,8 +1355,8 @@ fn test_handle_increase_allowance() {
 #[test]
 fn test_handle_change_admin() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -1278,29 +1364,31 @@ fn test_handle_change_admin() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::ChangeAdmin {
-        address: Addr("bob".to_string()),
+    let handle_msg = ExecuteMsg::ChangeAdmin {
+        address: "bob".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let admin = ReadonlyConfig::from_storage(&deps.storage)
-        .constants()
-        .unwrap()
-        .admin;
-    assert_eq!(admin, Addr("bob".to_string()));
+    let admin = get_admin(deps.as_ref()).unwrap();
+    assert_eq!(admin, Addr::unchecked("bob"));
 }
 
 #[test]
 fn test_handle_set_contract_status() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("admin".to_string()),
-        amount: Uint128(5000),
+        address: "admin".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -1308,18 +1396,23 @@ fn test_handle_set_contract_status() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::SetContractStatus {
+    let handle_msg = ExecuteMsg::SetContractStatus {
         level: ContractStatusLevel::StopAll,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let contract_status = ReadonlyConfig::from_storage(&deps.storage).contract_status();
+    let contract_status = Config::get_contract_status(deps.as_ref().storage).unwrap();
     assert!(matches!(
         contract_status,
         ContractStatusLevel::StopAll { .. }
@@ -1330,8 +1423,8 @@ fn test_handle_set_contract_status() {
 fn test_handle_redeem() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("butler".to_string()),
-            amount: Uint128(5000),
+            address: "butler".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         true,
@@ -1347,8 +1440,8 @@ fn test_handle_redeem() {
 
     let (init_result_no_reserve, mut deps_no_reserve) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("butler".to_string()),
-            amount: Uint128(5000),
+            address: "butler".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         true,
@@ -1363,8 +1456,8 @@ fn test_handle_redeem() {
     );
 
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("butler".to_string()),
-        amount: Uint128(5000),
+        address: "butler".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -1372,53 +1465,66 @@ fn test_handle_redeem() {
         init_result_for_failure.err().unwrap()
     );
     // test when redeem disabled
-    let handle_msg = HandleMsg::Redeem {
-        amount: Uint128(1000),
+    let handle_msg = ExecuteMsg::Redeem {
+        amount: Uint128::new(1000),
         denom: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps_for_failure, mock_env("butler", &[]), handle_msg);
+    let handle_result = handle(
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info("butler", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Redeem functionality is not enabled for this token."));
 
     // try to redeem when contract has 0 balance
-    let handle_msg = HandleMsg::Redeem {
-        amount: Uint128(1000),
+    let handle_msg = ExecuteMsg::Redeem {
+        amount: Uint128::new(1000),
         denom: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps_no_reserve, mock_env("butler", &[]), handle_msg);
+    let handle_result = handle(
+        deps_no_reserve.as_mut(),
+        mock_env(),
+        mock_info("butler", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains(
         "You are trying to redeem for more SCRT than the token has in its deposit reserve."
     ));
 
-    let handle_msg = HandleMsg::Redeem {
-        amount: Uint128(1000),
+    let handle_msg = ExecuteMsg::Redeem {
+        amount: Uint128::new(1000),
         denom: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("butler", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("butler", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let balances = ReadonlyBalances::from_storage(&deps.storage);
-    let canonical = deps
-        .api
-        .canonical_address(&Addr("butler".to_string()))
-        .unwrap();
-    assert_eq!(balances.account_amount(&canonical), 4000)
+    let butler = Account::of(deps.api.addr_canonicalize("butler").unwrap());
+
+    let balance = butler.get_balance(deps.as_ref().storage).unwrap().u128();
+    assert_eq!(balance, 4000)
 }
 
 #[test]
 fn test_handle_deposit() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("lebron".to_string()),
-            amount: Uint128(5000),
+            address: "lebron".to_string(),
+            amount: Uint128::new(5000),
         }],
         true,
         false,
@@ -1433,8 +1539,8 @@ fn test_handle_deposit() {
     );
 
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("lebron".to_string()),
-        amount: Uint128(5000),
+        address: "lebron".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -1442,14 +1548,15 @@ fn test_handle_deposit() {
         init_result_for_failure.err().unwrap()
     );
     // test when deposit disabled
-    let handle_msg = HandleMsg::Deposit { padding: None };
+    let handle_msg = ExecuteMsg::Deposit { padding: None };
     let handle_result = handle(
-        &mut deps_for_failure,
-        mock_env(
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info(
             "lebron",
             &[Coin {
                 denom: "uscrt".to_string(),
-                amount: Uint128(1000),
+                amount: Uint128::new(1000),
             }],
         ),
         handle_msg,
@@ -1457,14 +1564,15 @@ fn test_handle_deposit() {
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Deposit functionality is not enabled for this token."));
 
-    let handle_msg = HandleMsg::Deposit { padding: None };
+    let handle_msg = ExecuteMsg::Deposit { padding: None };
     let handle_result = handle(
-        &mut deps,
-        mock_env(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(
             "lebron",
             &[Coin {
                 denom: "uscrt".to_string(),
-                amount: Uint128(1000),
+                amount: Uint128::new(1000),
             }],
         ),
         handle_msg,
@@ -1475,20 +1583,18 @@ fn test_handle_deposit() {
         handle_result.err().unwrap()
     );
 
-    let balances = ReadonlyBalances::from_storage(&deps.storage);
-    let canonical = deps
-        .api
-        .canonical_address(&Addr("lebron".to_string()))
-        .unwrap();
-    assert_eq!(balances.account_amount(&canonical), 6000)
+    let butler = Account::of(deps.api.addr_canonicalize("lebron").unwrap());
+
+    let balance = butler.get_balance(deps.as_ref().storage).unwrap().u128();
+    assert_eq!(balance, 6000)
 }
 
 #[test]
 fn test_handle_burn() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("lebron".to_string()),
-            amount: Uint128(5000),
+            address: "lebron".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         false,
@@ -1503,8 +1609,8 @@ fn test_handle_burn() {
     );
 
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("lebron".to_string()),
-        amount: Uint128(5000),
+        address: "lebron".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -1512,30 +1618,44 @@ fn test_handle_burn() {
         init_result_for_failure.err().unwrap()
     );
     // test when burn disabled
-    let handle_msg = HandleMsg::Burn {
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Burn {
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps_for_failure, mock_env("lebron", &[]), handle_msg);
+    let handle_result = handle(
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info("lebron", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Burn functionality is not enabled for this token."));
 
-    let supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
+    let supply = Config::get_total_supply(deps.as_ref().storage)
+        .unwrap()
+        .u128();
     let burn_amount: u128 = 100;
-    let handle_msg = HandleMsg::Burn {
-        amount: Uint128(burn_amount),
+    let handle_msg = ExecuteMsg::Burn {
+        amount: Uint128::new(burn_amount),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("lebron", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("lebron", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
         handle_result.err().unwrap()
     );
 
-    let new_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
+    let new_supply = Config::get_total_supply(deps.as_ref().storage)
+        .unwrap()
+        .u128();
     assert_eq!(new_supply, supply - burn_amount);
 }
 
@@ -1543,8 +1663,8 @@ fn test_handle_burn() {
 fn test_handle_mint() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("lebron".to_string()),
-            amount: Uint128(5000),
+            address: "lebron".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         false,
@@ -1558,8 +1678,8 @@ fn test_handle_mint() {
         init_result.err().unwrap()
     );
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("lebron".to_string()),
-        amount: Uint128(5000),
+        address: "lebron".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -1568,32 +1688,46 @@ fn test_handle_mint() {
     );
     // try to mint when mint is disabled
     let mint_amount: u128 = 100;
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("lebron".to_string()),
-        amount: Uint128(mint_amount),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "lebron".to_string(),
+        amount: Uint128::new(mint_amount),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps_for_failure, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Mint functionality is not enabled for this token"));
 
-    let supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
+    let supply = Config::get_total_supply(deps.as_ref().storage)
+        .unwrap()
+        .u128();
     let mint_amount: u128 = 100;
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("lebron".to_string()),
-        amount: Uint128(mint_amount),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "lebron".to_string(),
+        amount: Uint128::new(mint_amount),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
         handle_result.err().unwrap()
     );
 
-    let new_supply = ReadonlyConfig::from_storage(&deps.storage).total_supply();
+    let new_supply = Config::get_total_supply(deps.as_ref().storage)
+        .unwrap()
+        .u128();
     assert_eq!(new_supply, supply + mint_amount);
 }
 
@@ -1602,8 +1736,8 @@ fn test_handle_admin_commands() {
     let admin_err = "Admin commands can only be run from admin address".to_string();
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("lebron".to_string()),
-            amount: Uint128(5000),
+            address: "lebron".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         false,
@@ -1617,43 +1751,68 @@ fn test_handle_admin_commands() {
         init_result.err().unwrap()
     );
 
-    let pause_msg = HandleMsg::SetContractStatus {
+    let pause_msg = ExecuteMsg::SetContractStatus {
         level: ContractStatusLevel::StopAllButRedeems,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("not_admin", &[]), pause_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("not_admin", &[]),
+        pause_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains(&admin_err.clone()));
 
-    let mint_msg = HandleMsg::AddMinters {
-        minters: vec![Addr("not_admin".to_string())],
+    let mint_msg = ExecuteMsg::AddMinters {
+        minters: vec!["not_admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("not_admin", &[]), mint_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("not_admin", &[]),
+        mint_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains(&admin_err.clone()));
 
-    let mint_msg = HandleMsg::RemoveMinters {
-        minters: vec![Addr("admin".to_string())],
+    let mint_msg = ExecuteMsg::RemoveMinters {
+        minters: vec!["admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("not_admin", &[]), mint_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("not_admin", &[]),
+        mint_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains(&admin_err.clone()));
 
-    let mint_msg = HandleMsg::SetMinters {
-        minters: vec![Addr("not_admin".to_string())],
+    let mint_msg = ExecuteMsg::SetMinters {
+        minters: vec!["not_admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("not_admin", &[]), mint_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("not_admin", &[]),
+        mint_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains(&admin_err.clone()));
 
-    let change_admin_msg = HandleMsg::ChangeAdmin {
-        address: Addr("not_admin".to_string()),
+    let change_admin_msg = ExecuteMsg::ChangeAdmin {
+        address: "not_admin".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("not_admin", &[]), change_admin_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("not_admin", &[]),
+        change_admin_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains(&admin_err.clone()));
 }
@@ -1662,8 +1821,8 @@ fn test_handle_admin_commands() {
 fn test_handle_pause_with_withdrawals() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("lebron".to_string()),
-            amount: Uint128(5000),
+            address: "lebron".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         true,
@@ -1677,37 +1836,47 @@ fn test_handle_pause_with_withdrawals() {
         init_result.err().unwrap()
     );
 
-    let pause_msg = HandleMsg::SetContractStatus {
+    let pause_msg = ExecuteMsg::SetContractStatus {
         level: ContractStatusLevel::StopAllButRedeems,
         padding: None,
     };
 
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), pause_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        pause_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
         handle_result.err().unwrap()
     );
 
-    let send_msg = HandleMsg::Transfer {
-        recipient: Addr("account".to_string()),
-        amount: Uint128(123),
+    let send_msg = ExecuteMsg::Transfer {
+        recipient: "account".to_string(),
+        amount: Uint128::new(123),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), send_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("admin", &[]), send_msg);
     let error = extract_error_msg(handle_result);
     assert_eq!(
         error,
         "This contract is stopped and this action is not allowed".to_string()
     );
 
-    let withdraw_msg = HandleMsg::Redeem {
-        amount: Uint128(5000),
+    let withdraw_msg = ExecuteMsg::Redeem {
+        amount: Uint128::new(5000),
         denom: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("lebron", &[]), withdraw_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("lebron", &[]),
+        withdraw_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "Withdraw failed: {}",
@@ -1718,8 +1887,8 @@ fn test_handle_pause_with_withdrawals() {
 #[test]
 fn test_handle_pause_all() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("lebron".to_string()),
-        amount: Uint128(5000),
+        address: "lebron".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -1727,37 +1896,47 @@ fn test_handle_pause_all() {
         init_result.err().unwrap()
     );
 
-    let pause_msg = HandleMsg::SetContractStatus {
+    let pause_msg = ExecuteMsg::SetContractStatus {
         level: ContractStatusLevel::StopAll,
         padding: None,
     };
 
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), pause_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        pause_msg,
+    );
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
         handle_result.err().unwrap()
     );
 
-    let send_msg = HandleMsg::Transfer {
-        recipient: Addr("account".to_string()),
-        amount: Uint128(123),
+    let send_msg = ExecuteMsg::Transfer {
+        recipient: "account".to_string(),
+        amount: Uint128::new(123),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), send_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("admin", &[]), send_msg);
     let error = extract_error_msg(handle_result);
     assert_eq!(
         error,
         "This contract is stopped and this action is not allowed".to_string()
     );
 
-    let withdraw_msg = HandleMsg::Redeem {
-        amount: Uint128(5000),
+    let withdraw_msg = ExecuteMsg::Redeem {
+        amount: Uint128::new(5000),
         denom: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("lebron", &[]), withdraw_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("lebron", &[]),
+        withdraw_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert_eq!(
         error,
@@ -1769,8 +1948,8 @@ fn test_handle_pause_all() {
 fn test_handle_set_minters() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("bob".to_string()),
-            amount: Uint128(5000),
+            address: "bob".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         false,
@@ -1784,8 +1963,8 @@ fn test_handle_set_minters() {
         init_result.err().unwrap()
     );
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -1793,45 +1972,60 @@ fn test_handle_set_minters() {
         init_result_for_failure.err().unwrap()
     );
     // try when mint disabled
-    let handle_msg = HandleMsg::SetMinters {
-        minters: vec![Addr("bob".to_string())],
+    let handle_msg = ExecuteMsg::SetMinters {
+        minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps_for_failure, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Mint functionality is not enabled for this token"));
 
-    let handle_msg = HandleMsg::SetMinters {
-        minters: vec![Addr("bob".to_string())],
+    let handle_msg = ExecuteMsg::SetMinters {
+        minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Admin commands can only be run from admin address"));
 
-    let handle_msg = HandleMsg::SetMinters {
-        minters: vec![Addr("bob".to_string())],
+    let handle_msg = ExecuteMsg::SetMinters {
+        minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("allowed to minter accounts only"));
 }
@@ -1840,8 +2034,8 @@ fn test_handle_set_minters() {
 fn test_handle_add_minters() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("bob".to_string()),
-            amount: Uint128(5000),
+            address: "bob".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         false,
@@ -1855,8 +2049,8 @@ fn test_handle_add_minters() {
         init_result.err().unwrap()
     );
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -1864,45 +2058,60 @@ fn test_handle_add_minters() {
         init_result_for_failure.err().unwrap()
     );
     // try when mint disabled
-    let handle_msg = HandleMsg::AddMinters {
-        minters: vec![Addr("bob".to_string())],
+    let handle_msg = ExecuteMsg::AddMinters {
+        minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps_for_failure, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Mint functionality is not enabled for this token"));
 
-    let handle_msg = HandleMsg::AddMinters {
-        minters: vec![Addr("bob".to_string())],
+    let handle_msg = ExecuteMsg::AddMinters {
+        minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Admin commands can only be run from admin address"));
 
-    let handle_msg = HandleMsg::AddMinters {
-        minters: vec![Addr("bob".to_string())],
+    let handle_msg = ExecuteMsg::AddMinters {
+        minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(ensure_success(handle_result.unwrap()));
 }
 
@@ -1910,8 +2119,8 @@ fn test_handle_add_minters() {
 fn test_handle_remove_minters() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("bob".to_string()),
-            amount: Uint128(5000),
+            address: "bob".to_string(),
+            amount: Uint128::new(5000),
         }],
         false,
         false,
@@ -1925,8 +2134,8 @@ fn test_handle_remove_minters() {
         init_result.err().unwrap()
     );
     let (init_result_for_failure, mut deps_for_failure) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result_for_failure.is_ok(),
@@ -1934,74 +2143,99 @@ fn test_handle_remove_minters() {
         init_result_for_failure.err().unwrap()
     );
     // try when mint disabled
-    let handle_msg = HandleMsg::RemoveMinters {
-        minters: vec![Addr("bob".to_string())],
+    let handle_msg = ExecuteMsg::RemoveMinters {
+        minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps_for_failure, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps_for_failure.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Mint functionality is not enabled for this token"));
 
-    let handle_msg = HandleMsg::RemoveMinters {
-        minters: vec![Addr("admin".to_string())],
+    let handle_msg = ExecuteMsg::RemoveMinters {
+        minters: vec!["admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Admin commands can only be run from admin address"));
 
-    let handle_msg = HandleMsg::RemoveMinters {
-        minters: vec![Addr("admin".to_string())],
+    let handle_msg = ExecuteMsg::RemoveMinters {
+        minters: vec!["admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("allowed to minter accounts only"));
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("allowed to minter accounts only"));
 
     // Removing another extra time to ensure nothing funky happens
-    let handle_msg = HandleMsg::RemoveMinters {
-        minters: vec![Addr("admin".to_string())],
+    let handle_msg = ExecuteMsg::RemoveMinters {
+        minters: vec!["admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("allowed to minter accounts only"));
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     let error = extract_error_msg(handle_result);
     assert!(error.contains("allowed to minter accounts only"));
 }
@@ -2011,8 +2245,8 @@ fn test_handle_remove_minters() {
 #[test]
 fn test_authenticated_queries() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("giannis".to_string()),
-        amount: Uint128(5000),
+        address: "giannis".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -2021,43 +2255,49 @@ fn test_authenticated_queries() {
     );
 
     let no_vk_yet_query_msg = QueryMsg::Balance {
-        address: Addr("giannis".to_string()),
+        address: "giannis".to_string(),
         key: "no_vk_yet".to_string(),
     };
-    let query_result = query(&deps, no_vk_yet_query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), no_vk_yet_query_msg);
     let error = extract_error_msg(query_result);
     assert_eq!(
         error,
         "Wrong viewing key for this address or viewing key not set".to_string()
     );
 
-    let create_vk_msg = HandleMsg::CreateViewingKey {
+    let create_vk_msg = ExecuteMsg::CreateViewingKey {
         entropy: "34".to_string(),
         padding: None,
     };
-    let handle_response = handle(&mut deps, mock_env("giannis", &[]), create_vk_msg).unwrap();
+    let handle_response = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("giannis", &[]),
+        create_vk_msg,
+    )
+    .unwrap();
     let vk = match from_binary(&handle_response.data.unwrap()).unwrap() {
-        HandleAnswer::CreateViewingKey { key } => key,
+        ExecuteAnswer::CreateViewingKey { key } => key,
         _ => panic!("Unexpected result from handle"),
     };
 
     let query_balance_msg = QueryMsg::Balance {
-        address: Addr("giannis".to_string()),
+        address: "giannis".to_string(),
         key: vk.0,
     };
 
-    let query_response = query(&deps, query_balance_msg).unwrap();
+    let query_response = query(deps.as_ref(), mock_env(), query_balance_msg).unwrap();
     let balance = match from_binary(&query_response).unwrap() {
         QueryAnswer::Balance { amount } => amount,
         _ => panic!("Unexpected result from query"),
     };
-    assert_eq!(balance, Uint128(5000));
+    assert_eq!(balance, Uint128::new(5000));
 
     let wrong_vk_query_msg = QueryMsg::Balance {
-        address: Addr("giannis".to_string()),
+        address: "giannis".to_string(),
         key: "wrong_vk".to_string(),
     };
-    let query_result = query(&deps, wrong_vk_query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), wrong_vk_query_msg);
     let error = extract_error_msg(query_result);
     assert_eq!(
         error,
@@ -2068,32 +2308,31 @@ fn test_authenticated_queries() {
 #[test]
 fn test_query_token_info() {
     let init_name = "sec-sec".to_string();
-    let init_admin = Addr("admin".to_string());
+    let init_admin = "admin".to_string();
     let init_symbol = "SECSEC".to_string();
     let init_decimals = 8;
     let init_config: InitConfig = from_binary(&Binary::from(
         r#"{ "public_total_supply": true }"#.as_bytes(),
     ))
     .unwrap();
-    let init_supply = Uint128(5000);
+    let init_supply = Uint128::new(5000);
 
-    let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("instantiator", &[]);
-    let init_msg = InitMsg {
+    let mut deps = mock_dependencies();
+    let info = mock_info("instantiator", &[]);
+    let init_msg = InstantiateMsg {
         name: init_name.clone(),
         admin: Some(init_admin.clone()),
         symbol: init_symbol.clone(),
         decimals: init_decimals.clone(),
         initial_balances: Some(vec![InitialBalance {
-            address: Addr("giannis".to_string()),
+            address: "giannis".to_string(),
             amount: init_supply,
         }]),
-        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
-        callback: None
+        callback: None,
     };
-    let init_result = init(&mut deps, env, init_msg);
+    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2101,7 +2340,7 @@ fn test_query_token_info() {
     );
 
     let query_msg = QueryMsg::TokenInfo {};
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     assert!(
         query_result.is_ok(),
         "Init failed: {}",
@@ -2118,7 +2357,7 @@ fn test_query_token_info() {
             assert_eq!(name, init_name);
             assert_eq!(symbol, init_symbol);
             assert_eq!(decimals, init_decimals);
-            assert_eq!(total_supply, Some(Uint128(5000)));
+            assert_eq!(total_supply, Some(Uint128::new(5000)));
         }
         _ => panic!("unexpected"),
     }
@@ -2128,14 +2367,14 @@ fn test_query_token_info() {
 fn test_query_exchange_rate() {
     // test more dec than SCRT
     let init_name = "sec-sec".to_string();
-    let init_admin = Addr("admin".to_string());
+    let init_admin = "admin".to_string();
     let init_symbol = "SECSEC".to_string();
     let init_decimals = 8;
 
-    let init_supply = Uint128(5000);
+    let init_supply = Uint128::new(5000);
 
-    let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("instantiator", &[]);
+    let mut deps = mock_dependencies();
+    let info = mock_info("instantiator", &[]);
     let init_config: InitConfig = from_binary(&Binary::from(
         format!(
             "{{\"public_total_supply\":{},
@@ -2148,21 +2387,20 @@ fn test_query_exchange_rate() {
         .as_bytes(),
     ))
     .unwrap();
-    let init_msg = InitMsg {
+    let init_msg = InstantiateMsg {
         name: init_name.clone(),
         admin: Some(init_admin.clone()),
         symbol: init_symbol.clone(),
         decimals: init_decimals.clone(),
         initial_balances: Some(vec![InitialBalance {
-            address: Addr("giannis".to_string()),
+            address: "giannis".to_string(),
             amount: init_supply,
         }]),
-        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
-        callback: None
+        callback: None,
     };
-    let init_result = init(&mut deps, env, init_msg);
+    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2170,7 +2408,7 @@ fn test_query_exchange_rate() {
     );
 
     let query_msg = QueryMsg::ExchangeRate {};
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     assert!(
         query_result.is_ok(),
         "Init failed: {}",
@@ -2179,7 +2417,7 @@ fn test_query_exchange_rate() {
     let query_answer: QueryAnswer = from_binary(&query_result.unwrap()).unwrap();
     match query_answer {
         QueryAnswer::ExchangeRate { rate, denom } => {
-            assert_eq!(rate, Uint128(100));
+            assert_eq!(rate, Uint128::new(100));
             assert_eq!(denom, "SCRT");
         }
         _ => panic!("unexpected"),
@@ -2187,14 +2425,14 @@ fn test_query_exchange_rate() {
 
     // test same number of decimals as SCRT
     let init_name = "sec-sec".to_string();
-    let init_admin = Addr("admin".to_string());
+    let init_admin = "admin".to_string();
     let init_symbol = "SECSEC".to_string();
     let init_decimals = 6;
 
-    let init_supply = Uint128(5000);
+    let init_supply = Uint128::new(5000);
 
-    let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("instantiator", &[]);
+    let mut deps = mock_dependencies();
+    let info = mock_info("instantiator", &[]);
     let init_config: InitConfig = from_binary(&Binary::from(
         format!(
             "{{\"public_total_supply\":{},
@@ -2207,21 +2445,20 @@ fn test_query_exchange_rate() {
         .as_bytes(),
     ))
     .unwrap();
-    let init_msg = InitMsg {
+    let init_msg = InstantiateMsg {
         name: init_name.clone(),
         admin: Some(init_admin.clone()),
         symbol: init_symbol.clone(),
         decimals: init_decimals.clone(),
         initial_balances: Some(vec![InitialBalance {
-            address: Addr("giannis".to_string()),
+            address: "giannis".to_string(),
             amount: init_supply,
         }]),
-        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
-        callback: None
+        callback: None,
     };
-    let init_result = init(&mut deps, env, init_msg);
+    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2229,7 +2466,7 @@ fn test_query_exchange_rate() {
     );
 
     let query_msg = QueryMsg::ExchangeRate {};
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     assert!(
         query_result.is_ok(),
         "Init failed: {}",
@@ -2238,7 +2475,7 @@ fn test_query_exchange_rate() {
     let query_answer: QueryAnswer = from_binary(&query_result.unwrap()).unwrap();
     match query_answer {
         QueryAnswer::ExchangeRate { rate, denom } => {
-            assert_eq!(rate, Uint128(1));
+            assert_eq!(rate, Uint128::new(1));
             assert_eq!(denom, "SCRT");
         }
         _ => panic!("unexpected"),
@@ -2246,14 +2483,14 @@ fn test_query_exchange_rate() {
 
     // test less decimal places than SCRT
     let init_name = "sec-sec".to_string();
-    let init_admin = Addr("admin".to_string());
+    let init_admin = "admin".to_string();
     let init_symbol = "SECSEC".to_string();
     let init_decimals = 3;
 
-    let init_supply = Uint128(5000);
+    let init_supply = Uint128::new(5000);
 
-    let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("instantiator", &[]);
+    let mut deps = mock_dependencies();
+    let info = mock_info("instantiator", &[]);
     let init_config: InitConfig = from_binary(&Binary::from(
         format!(
             "{{\"public_total_supply\":{},
@@ -2266,21 +2503,23 @@ fn test_query_exchange_rate() {
         .as_bytes(),
     ))
     .unwrap();
-    let init_msg = InitMsg {
+
+    let init_msg = InstantiateMsg {
         name: init_name.clone(),
         admin: Some(init_admin.clone()),
         symbol: init_symbol.clone(),
         decimals: init_decimals.clone(),
         initial_balances: Some(vec![InitialBalance {
-            address: Addr("giannis".to_string()),
+            address: "giannis".to_string(),
             amount: init_supply,
         }]),
-        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: Some(init_config),
-        callback: None
+        callback: None,
     };
-    let init_result = init(&mut deps, env, init_msg);
+
+    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
+
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2288,7 +2527,7 @@ fn test_query_exchange_rate() {
     );
 
     let query_msg = QueryMsg::ExchangeRate {};
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     assert!(
         query_result.is_ok(),
         "Init failed: {}",
@@ -2297,7 +2536,7 @@ fn test_query_exchange_rate() {
     let query_answer: QueryAnswer = from_binary(&query_result.unwrap()).unwrap();
     match query_answer {
         QueryAnswer::ExchangeRate { rate, denom } => {
-            assert_eq!(rate, Uint128(1000));
+            assert_eq!(rate, Uint128::new(1000));
             assert_eq!(denom, "SECSEC");
         }
         _ => panic!("unexpected"),
@@ -2305,29 +2544,28 @@ fn test_query_exchange_rate() {
 
     // test depost/redeem not enabled
     let init_name = "sec-sec".to_string();
-    let init_admin = Addr("admin".to_string());
+    let init_admin = "admin".to_string();
     let init_symbol = "SECSEC".to_string();
     let init_decimals = 3;
 
-    let init_supply = Uint128(5000);
+    let init_supply = Uint128::new(5000);
 
-    let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env("instantiator", &[]);
-    let init_msg = InitMsg {
+    let mut deps = mock_dependencies();
+    let info = mock_info("instantiator", &[]);
+    let init_msg = InstantiateMsg {
         name: init_name.clone(),
         admin: Some(init_admin.clone()),
         symbol: init_symbol.clone(),
         decimals: init_decimals.clone(),
         initial_balances: Some(vec![InitialBalance {
-            address: Addr("giannis".to_string()),
+            address: "giannis".to_string(),
             amount: init_supply,
         }]),
-        initial_allowances: None,
         prng_seed: Binary::from("lolz fun yay".as_bytes()),
         config: None,
-        callback: None
+        callback: None,
     };
-    let init_result = init(&mut deps, env, init_msg);
+    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2335,7 +2573,7 @@ fn test_query_exchange_rate() {
     );
 
     let query_msg = QueryMsg::ExchangeRate {};
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     assert!(
         query_result.is_ok(),
         "Init failed: {}",
@@ -2344,7 +2582,7 @@ fn test_query_exchange_rate() {
     let query_answer: QueryAnswer = from_binary(&query_result.unwrap()).unwrap();
     match query_answer {
         QueryAnswer::ExchangeRate { rate, denom } => {
-            assert_eq!(rate, Uint128(0));
+            assert_eq!(rate, Uint128::new(0));
             assert_eq!(denom, String::new());
         }
         _ => panic!("unexpected"),
@@ -2353,46 +2591,43 @@ fn test_query_exchange_rate() {
 
 #[test]
 fn test_query_allowance() {
-    const ADMIN:   &str = "giannis";
-    const OWNER:   &str = "kobe";
-    const SPENDER: &str = "lebron";
+    let (init_result, mut deps) = init_helper(vec![InitialBalance {
+        address: "giannis".to_string(),
+        amount: Uint128::new(5000),
+    }]);
+    assert!(
+        init_result.is_ok(),
+        "Init failed: {}",
+        init_result.err().unwrap()
+    );
 
-    let mut deps = mock_dependencies(20, &[]);
-    let env = mock_env(ADMIN, &[]);
-
-    let init_msg = InitMsg {
-        name: "sec-sec".to_string(),
-        admin: Some(Addr("admin".to_string())),
-        symbol: "SECSEC".to_string(),
-        decimals: 8,
-        initial_balances: Some(vec![InitialBalance {
-            address: Addr(ADMIN.to_string()),
-            amount: Uint128(5000),
-        }]),
-        initial_allowances: Some(vec![
-            InitialAllowance {
-                owner: OWNER.into(),
-                spender: SPENDER.into(),
-                amount: Uint128(2000),
-                expiration: None
-            }
-        ]),
-        prng_seed: Binary::from("lolz fun yay".as_bytes()),
-        config: None,
-        callback: None
+    let handle_msg = ExecuteMsg::IncreaseAllowance {
+        spender: "lebron".to_string(),
+        amount: Uint128::new(2000),
+        padding: None,
+        expiration: None,
     };
-
-    init(&mut deps, env, init_msg).unwrap();
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("giannis", &[]),
+        handle_msg,
+    );
+    assert!(
+        handle_result.is_ok(),
+        "handle() failed: {}",
+        handle_result.err().unwrap()
+    );
 
     let vk1 = ViewingKey("key1".to_string());
     let vk2 = ViewingKey("key2".to_string());
 
     let query_msg = QueryMsg::Allowance {
-        owner: Addr(OWNER.to_string()),
-        spender: Addr(SPENDER.to_string()),
+        owner: "giannis".to_string(),
+        spender: "lebron".to_string(),
         key: vk1.0.clone(),
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     assert!(
         query_result.is_ok(),
         "Query failed: {}",
@@ -2401,79 +2636,88 @@ fn test_query_allowance() {
     let error = extract_error_msg(query_result);
     assert!(error.contains("Wrong viewing key"));
 
-    let handle_msg = HandleMsg::SetViewingKey {
+    let handle_msg = ExecuteMsg::SetViewingKey {
         key: vk1.0.clone(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env(SPENDER, &[]), handle_msg);
-    let unwrapped_result: HandleAnswer =
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("lebron", &[]),
+        handle_msg,
+    );
+    let unwrapped_result: ExecuteAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&HandleAnswer::SetViewingKey {
+        to_binary(&ExecuteAnswer::SetViewingKey {
             status: ResponseStatus::Success
         })
         .unwrap(),
     );
 
-    let handle_msg = HandleMsg::SetViewingKey {
+    let handle_msg = ExecuteMsg::SetViewingKey {
         key: vk2.0.clone(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env(OWNER, &[]), handle_msg);
-    let unwrapped_result: HandleAnswer =
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("giannis", &[]),
+        handle_msg,
+    );
+    let unwrapped_result: ExecuteAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&HandleAnswer::SetViewingKey {
+        to_binary(&ExecuteAnswer::SetViewingKey {
             status: ResponseStatus::Success
         })
         .unwrap(),
     );
 
     let query_msg = QueryMsg::Allowance {
-        owner: Addr(OWNER.to_string()),
-        spender: Addr(SPENDER.to_string()),
+        owner: "giannis".to_string(),
+        spender: "lebron".to_string(),
         key: vk1.0.clone(),
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let allowance = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::Allowance { allowance, .. } => allowance,
         _ => panic!("Unexpected"),
     };
-    assert_eq!(allowance, Uint128(2000));
-    println!("{}", &allowance);
+    assert_eq!(allowance, Uint128::new(2000));
 
     let query_msg = QueryMsg::Allowance {
-        owner: Addr(OWNER.to_string()),
-        spender: Addr(SPENDER.to_string()),
+        owner: "giannis".to_string(),
+        spender: "lebron".to_string(),
         key: vk2.0.clone(),
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let allowance = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::Allowance { allowance, .. } => allowance,
         _ => panic!("Unexpected"),
     };
-    assert_eq!(allowance, Uint128(2000));
+    assert_eq!(allowance, Uint128::new(2000));
 
     let query_msg = QueryMsg::Allowance {
-        owner: Addr(SPENDER.to_string()),
-        spender: Addr(OWNER.to_string()),
+        owner: "lebron".to_string(),
+        spender: "giannis".to_string(),
         key: vk2.0.clone(),
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let allowance = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::Allowance { allowance, .. } => allowance,
         _ => panic!("Unexpected"),
     };
-    assert_eq!(allowance, Uint128(0));
+    assert_eq!(allowance, Uint128::zero());
 }
 
 #[test]
 fn test_query_balance() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -2481,46 +2725,46 @@ fn test_query_balance() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::SetViewingKey {
+    let handle_msg = ExecuteMsg::SetViewingKey {
         key: "key".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
-    let unwrapped_result: HandleAnswer =
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let unwrapped_result: ExecuteAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
         to_binary(&unwrapped_result).unwrap(),
-        to_binary(&HandleAnswer::SetViewingKey {
+        to_binary(&ExecuteAnswer::SetViewingKey {
             status: ResponseStatus::Success
         })
         .unwrap(),
     );
 
     let query_msg = QueryMsg::Balance {
-        address: Addr("bob".to_string()),
+        address: "bob".to_string(),
         key: "wrong_key".to_string(),
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let error = extract_error_msg(query_result);
     assert!(error.contains("Wrong viewing key"));
 
     let query_msg = QueryMsg::Balance {
-        address: Addr("bob".to_string()),
+        address: "bob".to_string(),
         key: "key".to_string(),
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let balance = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::Balance { amount } => amount,
         _ => panic!("Unexpected"),
     };
-    assert_eq!(balance, Uint128(5000));
+    assert_eq!(balance, Uint128::new(5000));
 }
 
 #[test]
 fn test_query_transfer_history() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr("bob".to_string()),
-        amount: Uint128(5000),
+        address: "bob".to_string(),
+        amount: Uint128::new(5000),
     }]);
     assert!(
         init_result.is_ok(),
@@ -2528,48 +2772,48 @@ fn test_query_transfer_history() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::SetViewingKey {
+    let handle_msg = ExecuteMsg::SetViewingKey {
         key: "key".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Transfer {
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(1000),
+    let handle_msg = ExecuteMsg::Transfer {
+        recipient: "alice".to_string(),
+        amount: Uint128::new(1000),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
-    let handle_msg = HandleMsg::Transfer {
-        recipient: Addr("banana".to_string()),
-        amount: Uint128(500),
+    let handle_msg = ExecuteMsg::Transfer {
+        recipient: "banana".to_string(),
+        amount: Uint128::new(500),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
-    let handle_msg = HandleMsg::Transfer {
-        recipient: Addr("mango".to_string()),
-        amount: Uint128(2500),
+    let handle_msg = ExecuteMsg::Transfer {
+        recipient: "mango".to_string(),
+        amount: Uint128::new(2500),
         memo: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
     let query_msg = QueryMsg::TransferHistory {
-        address: Addr("bob".to_string()),
+        address: "bob".to_string(),
         key: "key".to_string(),
         page: None,
         page_size: 0,
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     // let a: QueryAnswer = from_binary(&query_result.unwrap()).unwrap();
     // println!("{:?}", a);
     let transfers = match from_binary(&query_result.unwrap()).unwrap() {
@@ -2579,12 +2823,12 @@ fn test_query_transfer_history() {
     assert!(transfers.is_empty());
 
     let query_msg = QueryMsg::TransferHistory {
-        address: Addr("bob".to_string()),
+        address: "bob".to_string(),
         key: "key".to_string(),
         page: None,
         page_size: 10,
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let transfers = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::TransferHistory { txs, .. } => txs,
         _ => panic!("Unexpected"),
@@ -2592,12 +2836,12 @@ fn test_query_transfer_history() {
     assert_eq!(transfers.len(), 3);
 
     let query_msg = QueryMsg::TransferHistory {
-        address: Addr("bob".to_string()),
+        address: "bob".to_string(),
         key: "key".to_string(),
         page: None,
         page_size: 2,
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let transfers = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::TransferHistory { txs, .. } => txs,
         _ => panic!("Unexpected"),
@@ -2605,12 +2849,12 @@ fn test_query_transfer_history() {
     assert_eq!(transfers.len(), 2);
 
     let query_msg = QueryMsg::TransferHistory {
-        address: Addr("bob".to_string()),
+        address: "bob".to_string(),
         key: "key".to_string(),
         page: Some(1),
         page_size: 2,
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let transfers = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::TransferHistory { txs, .. } => txs,
         _ => panic!("Unexpected"),
@@ -2622,8 +2866,8 @@ fn test_query_transfer_history() {
 fn test_query_transaction_history() {
     let (init_result, mut deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr("bob".to_string()),
-            amount: Uint128(10000),
+            address: "bob".to_string(),
+            amount: Uint128::new(10000),
         }],
         true,
         true,
@@ -2637,54 +2881,60 @@ fn test_query_transaction_history() {
         init_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::SetViewingKey {
+    let handle_msg = ExecuteMsg::SetViewingKey {
         key: "key".to_string(),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Burn {
-        amount: Uint128(1),
+    let handle_msg = ExecuteMsg::Burn {
+        amount: Uint128::new(1),
         memo: Some("my burn message".to_string()),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
         handle_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::Redeem {
-        amount: Uint128(1000),
+    let handle_msg = ExecuteMsg::Redeem {
+        amount: Uint128::new(1000),
         denom: None,
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "handle() failed: {}",
         handle_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::Mint {
-        recipient: Addr("bob".to_string()),
-        amount: Uint128(100),
+    let handle_msg = ExecuteMsg::Mint {
+        recipient: "bob".to_string(),
+        amount: Uint128::new(100),
         memo: Some("my mint message".to_string()),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("admin", &[]), handle_msg);
+    let handle_result = handle(
+        deps.as_mut(),
+        mock_env(),
+        mock_info("admin", &[]),
+        handle_msg,
+    );
     assert!(ensure_success(handle_result.unwrap()));
 
-    let handle_msg = HandleMsg::Deposit { padding: None };
+    let handle_msg = ExecuteMsg::Deposit { padding: None };
     let handle_result = handle(
-        &mut deps,
-        mock_env(
+        deps.as_mut(),
+        mock_env(),
+        mock_info(
             "bob",
             &[Coin {
                 denom: "uscrt".to_string(),
-                amount: Uint128(1000),
+                amount: Uint128::new(1000),
             }],
         ),
         handle_msg,
@@ -2695,43 +2945,43 @@ fn test_query_transaction_history() {
         handle_result.err().unwrap()
     );
 
-    let handle_msg = HandleMsg::Transfer {
-        recipient: Addr("alice".to_string()),
-        amount: Uint128(1000),
+    let handle_msg = ExecuteMsg::Transfer {
+        recipient: "alice".to_string(),
+        amount: Uint128::new(1000),
         memo: Some("my transfer message #1".to_string()),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
-    let handle_msg = HandleMsg::Transfer {
-        recipient: Addr("banana".to_string()),
-        amount: Uint128(500),
+    let handle_msg = ExecuteMsg::Transfer {
+        recipient: "banana".to_string(),
+        amount: Uint128::new(500),
         memo: Some("my transfer message #2".to_string()),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
-    let handle_msg = HandleMsg::Transfer {
-        recipient: Addr("mango".to_string()),
-        amount: Uint128(2500),
+    let handle_msg = ExecuteMsg::Transfer {
+        recipient: "mango".to_string(),
+        amount: Uint128::new(2500),
         memo: Some("my transfer message #3".to_string()),
         padding: None,
     };
-    let handle_result = handle(&mut deps, mock_env("bob", &[]), handle_msg);
+    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
     let query_msg = QueryMsg::TransferHistory {
-        address: Addr("bob".to_string()),
+        address: "bob".to_string(),
         key: "key".to_string(),
         page: None,
         page_size: 10,
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let transfers = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::TransferHistory { txs, .. } => txs,
         _ => panic!("Unexpected"),
@@ -2739,12 +2989,12 @@ fn test_query_transaction_history() {
     assert_eq!(transfers.len(), 3);
 
     let query_msg = QueryMsg::TransactionHistory {
-        address: Addr("bob".to_string()),
+        address: "bob".to_string(),
         key: "key".to_string(),
         page: None,
         page_size: 10,
     };
-    let query_result = query(&deps, query_msg);
+    let query_result = query(deps.as_ref(), mock_env(), query_msg);
     let transfers = match from_binary(&query_result.unwrap()).unwrap() {
         QueryAnswer::TransactionHistory { txs, .. } => txs,
         other => panic!("Unexpected: {:?}", other),
@@ -2755,13 +3005,13 @@ fn test_query_transaction_history() {
         RichTx {
             id: 8,
             action: TxAction::Transfer {
-                from: Addr("bob".to_string()),
-                sender: Addr("bob".to_string()),
-                recipient: Addr("mango".to_string()),
+                from: Addr::unchecked("bob"),
+                sender: Addr::unchecked("bob"),
+                recipient: Addr::unchecked("mango"),
             },
             coins: Coin {
                 denom: "SECSEC".to_string(),
-                amount: Uint128(2500),
+                amount: Uint128::new(2500),
             },
             memo: Some("my transfer message #3".to_string()),
             block_time: 1571797419,
@@ -2770,13 +3020,13 @@ fn test_query_transaction_history() {
         RichTx {
             id: 7,
             action: TxAction::Transfer {
-                from: Addr("bob".to_string()),
-                sender: Addr("bob".to_string()),
-                recipient: Addr("banana".to_string()),
+                from: Addr::unchecked("bob"),
+                sender: Addr::unchecked("bob"),
+                recipient: Addr::unchecked("banana"),
             },
             coins: Coin {
                 denom: "SECSEC".to_string(),
-                amount: Uint128(500),
+                amount: Uint128::new(500),
             },
             memo: Some("my transfer message #2".to_string()),
             block_time: 1571797419,
@@ -2785,13 +3035,13 @@ fn test_query_transaction_history() {
         RichTx {
             id: 6,
             action: TxAction::Transfer {
-                from: Addr("bob".to_string()),
-                sender: Addr("bob".to_string()),
-                recipient: Addr("alice".to_string()),
+                from: Addr::unchecked("bob"),
+                sender: Addr::unchecked("bob"),
+                recipient: Addr::unchecked("alice"),
             },
             coins: Coin {
                 denom: "SECSEC".to_string(),
-                amount: Uint128(1000),
+                amount: Uint128::new(1000),
             },
             memo: Some("my transfer message #1".to_string()),
             block_time: 1571797419,
@@ -2802,7 +3052,7 @@ fn test_query_transaction_history() {
             action: TxAction::Deposit {},
             coins: Coin {
                 denom: "uscrt".to_string(),
-                amount: Uint128(1000),
+                amount: Uint128::new(1000),
             },
             memo: None,
             block_time: 1571797419,
@@ -2811,12 +3061,12 @@ fn test_query_transaction_history() {
         RichTx {
             id: 4,
             action: TxAction::Mint {
-                minter: Addr("admin".to_string()),
-                recipient: Addr("bob".to_string()),
+                minter: Addr::unchecked("admin"),
+                recipient: Addr::unchecked("bob"),
             },
             coins: Coin {
                 denom: "SECSEC".to_string(),
-                amount: Uint128(100),
+                amount: Uint128::new(100),
             },
             memo: Some("my mint message".to_string()),
             block_time: 1571797419,
@@ -2827,7 +3077,7 @@ fn test_query_transaction_history() {
             action: TxAction::Redeem {},
             coins: Coin {
                 denom: "SECSEC".to_string(),
-                amount: Uint128(1000),
+                amount: Uint128::new(1000),
             },
             memo: None,
             block_time: 1571797419,
@@ -2836,12 +3086,12 @@ fn test_query_transaction_history() {
         RichTx {
             id: 2,
             action: TxAction::Burn {
-                burner: Addr("bob".to_string()),
-                owner: Addr("bob".to_string()),
+                burner: Addr::unchecked("bob"),
+                owner: Addr::unchecked("bob"),
             },
             coins: Coin {
                 denom: "SECSEC".to_string(),
-                amount: Uint128(1),
+                amount: Uint128::new(1),
             },
             memo: Some("my burn message".to_string()),
             block_time: 1571797419,
@@ -2850,12 +3100,12 @@ fn test_query_transaction_history() {
         RichTx {
             id: 1,
             action: TxAction::Mint {
-                minter: Addr("admin".to_string()),
-                recipient: Addr("bob".to_string()),
+                minter: Addr::unchecked("admin"),
+                recipient: Addr::unchecked("bob"),
             },
             coins: Coin {
                 denom: "SECSEC".to_string(),
-                amount: Uint128(10000),
+                amount: Uint128::new(10000),
             },
 
             memo: Some("Initial Balance".to_string()),
@@ -2874,7 +3124,7 @@ fn test_symbol_validation() {
         allow_upper: true,
         allow_lower: false,
         allow_numeric: false,
-        allowed_special: None
+        allowed_special: None,
     };
 
     assert_valid_symbol("TOKENA", config.clone()).unwrap();
@@ -2890,7 +3140,7 @@ fn test_symbol_validation() {
         allow_upper: true,
         allow_lower: true,
         allow_numeric: false,
-        allowed_special: None
+        allowed_special: None,
     };
 
     assert_valid_symbol("TOKena", config.clone()).unwrap();
@@ -2900,7 +3150,7 @@ fn test_symbol_validation() {
         allow_upper: false,
         allow_lower: true,
         allow_numeric: true,
-        allowed_special: None
+        allowed_special: None,
     };
 
     assert_valid_symbol("t0k3n", config.clone()).unwrap();
@@ -2911,7 +3161,7 @@ fn test_symbol_validation() {
         allow_upper: true,
         allow_lower: false,
         allow_numeric: true,
-        allowed_special: Some(vec![ b'-', b'@' ])
+        allowed_special: Some(vec![b'-', b'@']),
     };
 
     assert_valid_symbol("T@K3N-", config.clone()).unwrap();
