@@ -84,6 +84,13 @@ export class Commands extends Komandi.CommandContext {
     super('Fadroma')
   }
 
+  subsystem = <X extends Fadroma.Deployment>(
+    name: string,
+    info: string,
+    ctor: { new (d: Fadroma.Deployment|null|undefined, ...args: unknown[]): X },
+    ...args: unknown[]
+  ): X => this.commands(name, info, new ctor(this.deploy?.deployment, ...args)) as X
+
 }
 
 export const Console = Fadroma.ClientConsole
