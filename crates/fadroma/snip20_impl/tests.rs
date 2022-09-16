@@ -1,25 +1,18 @@
 #![cfg(test)]
 
-use crate::vk::{ViewingKey, VIEWING_KEY_SIZE};
-use crate::{
-    ensemble::ResponseVariants,
-    scrt::cosmwasm_std::{
-        attr, from_binary,
-        testing::{
-            mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage,
-            MOCK_CONTRACT_ADDR,
-        },
-        to_binary, Addr, Binary, BlockInfo, Coin, ContractInfo, CosmosMsg, Deps, DepsMut, Env,
-        MessageInfo, QueryResponse, Response, StdError, StdResult, Uint128, WasmMsg,
-    },
+use crate::scrt::cosmwasm_std::{
+    from_binary,
+    testing::{mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage},
+    to_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryResponse,
+    Response, StdError, StdResult, Uint128, WasmMsg,
 };
+use crate::vk::{ViewingKey, VIEWING_KEY_SIZE};
 use fadroma_platform_scrt::cosmwasm_std::OwnedDeps;
 
 use super::{
     assert_valid_symbol, batch,
     msg::{ContractStatusLevel, *},
     receiver::Snip20ReceiveMsg,
-    snip20_execute, snip20_instantiate, snip20_query,
     state::*,
     DefaultSnip20Impl, SymbolValidation,
 };

@@ -225,7 +225,7 @@ impl TryInto<Uint128> for Uint256 {
     type Error = StdError;
 
     fn try_into(self) -> Result<Uint128, Self::Error> {
-        self.clamp_u128().map(|x| Uint128(x))
+        self.clamp_u128().map(|x| Uint128::new(x))
     }
 }
 
