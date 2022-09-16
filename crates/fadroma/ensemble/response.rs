@@ -100,7 +100,7 @@ impl ExecuteResponse {
     }
 }
 
-impl Response {
+impl ResponseVariants {
     #[inline]
     pub fn is_instantiate(&self) -> bool {
         matches!(&self, Self::Instantiate(_))
