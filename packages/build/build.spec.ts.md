@@ -25,8 +25,8 @@ These are similar to the deploy tasks but don't need access to any chain
 (because they don't upload or instantiate).
 
 ```typescript
-import { BuildCommands } from '.'
-const buildTask: BuildCommands = new BuildCommands()
+import { BuildContext } from '.'
+const buildTask: BuildContext = new BuildContext()
 ok(buildTask.builder instanceof Fadroma.Builder)
 
 // mock out:

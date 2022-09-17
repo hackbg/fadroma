@@ -1,13 +1,12 @@
-import $, { JSONFile } from '@hackbg/kabinet'
+import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
 import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
 import { EnvConfig } from '@hackbg/konfizi'
+import { CommandContext } from '@hackbg/komandi'
 import { freePort, waitPort, Endpoint } from '@hackbg/portali'
 import { randomHex } from '@hackbg/formati'
-
-import * as Kabinet from '@hackbg/kabinet'
-import * as Komandi from '@hackbg/komandi'
 import * as Dokeres from '@hackbg/dokeres'
 import * as Fadroma from '@fadroma/client'
+import { AgentOpts, DevnetHandle, Chain, ChainMode, ClientConsole } from '@fadroma/client'
 
 import { resolve, relative, basename, dirname } from 'path'
 import { cwd }                                  from 'process'
@@ -68,7 +67,7 @@ export interface DevnetState {
   port:         number|string
 }
 
-export abstract class Devnet implements Fadroma.DevnetHandle {
+export abstract class Devnet implements DevnetHandle {
 
   /** Default connection type to expose on the devnets. */
   static defaultPort: Record<DevnetKind, DevnetPortMode> = {
@@ -89,7 +88,7 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
     }
   }
 
-  static async reset ({ chain }: { chain: Fadroma.Chain }) {
+  static async reset ({ chain }: { chain: Chain }) {
     if (!chain) {
       log.info('No active chain.')
     } else if (!chain.isDevnet || !chain.node) {
@@ -100,11 +99,11 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
   }
 
   static define (
-    Chain: { new(...args:any[]): Fadroma.Chain },
+    Chain: { new(...args:any[]): Chain },
     version: DevnetKind
   ) {
     return async <T> (config: T) => {
-      const mode = Fadroma.ChainMode.Devnet
+      const mode = ChainMode.Devnet
       const node = await Devnet.get(version)
       const id   = node.chainId
       const url  = node.url.toString()
@@ -135,8 +134,8 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
       this.genesisAccounts = identities
     }
     stateRoot      = stateRoot || resolve(cwd(), 'receipts', this.chainId)
-    this.stateRoot = $(stateRoot).as(Kabinet.OpaqueDirectory)
-    this.nodeState = this.stateRoot.at('node.json').as(Kabinet.JSONFile) as Kabinet.JSONFile<DevnetState>
+    this.stateRoot = $(stateRoot).as(OpaqueDirectory)
+    this.nodeState = this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
   }
 
   /** Whether to destroy this devnet on exit. */
@@ -164,7 +163,7 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
   }
 
   /** This directory is created to remember the state of the devnet setup. */
-  stateRoot: Kabinet.OpaqueDirectory
+  stateRoot: OpaqueDirectory
 
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
@@ -214,7 +213,7 @@ export abstract class Devnet implements Fadroma.DevnetHandle {
   }
 
   /** Retrieve an identity */
-  abstract getGenesisAccount (name: string): Promise<Fadroma.AgentOpts>
+  abstract getGenesisAccount (name: string): Promise<AgentOpts>
 
   /** Start the node. */
   abstract spawn (): Promise<this>
@@ -248,7 +247,7 @@ export type DevnetKind = 'scrt_1.2'|'scrt_1.3'
 
 /** Fadroma can spawn a devnet in a container using Dockerode.
   * This requires an image name and a handle to Dockerode. */
-export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
+export class DockerDevnet extends Devnet implements DevnetHandle {
 
   static dockerfiles: Record<DevnetKind, string> = {
     'scrt_1.2': resolve(devnetPackage, 'scrt_1_2.Dockerfile'),
@@ -275,7 +274,7 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
   constructor (options: DockerDevnetOpts = {}) {
     super(options)
     log.trace('Constructing devnet with', bold('@hackbg/dokeres'))
-    this.identities  ??= this.stateRoot.in('identities').as(Kabinet.JSONDirectory)
+    this.identities  ??= this.stateRoot.in('identities').as(JSONDirectory)
     this.image       ??= options.image!
     this.initScript  ??= options.initScript!
     this.readyPhrase ??= options.readyPhrase!
@@ -297,11 +296,11 @@ export class DockerDevnet extends Devnet implements Fadroma.DevnetHandle {
   initScript: string
 
   /** Mounted out of devnet container to persist keys of genesis wallets. */
-  identities: Kabinet.JSONDirectory<unknown>
+  identities: JSONDirectory<unknown>
 
   /** Gets the info for a genesis account, including the mnemonic */
-  async getGenesisAccount (name: string): Promise<Fadroma.AgentOpts> {
-    return this.identities.at(`${name}.json`).as(JSONFile).load() as Fadroma.AgentOpts
+  async getGenesisAccount (name: string): Promise<AgentOpts> {
+    return this.identities.at(`${name}.json`).as(JSONFile).load() as AgentOpts
   }
 
   /** Once this phrase is encountered in the log output
@@ -552,7 +551,7 @@ export type RemoteDevnetOpts = DevnetOpts & {
 /** When running in docker-compose, Fadroma needs to request
   * from the devnet container to spawn a chain node with the
   * given chain id and identities via a HTTP API. */
-export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
+export class RemoteDevnet extends Devnet implements DevnetHandle {
 
   static managerScriptName = 'devnet-manager.mjs'
 
@@ -660,7 +659,7 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
     }
   }
 
-  async getGenesisAccount (name: string): Promise<Fadroma.AgentOpts> {
+  async getGenesisAccount (name: string): Promise<AgentOpts> {
     const identity = await this.manager.get('/identity', { name })
     if (identity.error) {
       throw new Error(`RemoteDevnet#getGenesisAccount: failed to get ${name}: ${identity.error}`)
@@ -678,23 +677,19 @@ export class RemoteDevnet extends Devnet implements Fadroma.DevnetHandle {
 
 }
 
-export default class DevnetCommands extends Fadroma.Deployment {
+export default class DevnetCommands extends CommandContext {
 
-  constructor (options: Partial<DevnetCommands> = {}) {
-    options.name ??= 'devnet'
-    super(options as Partial<Fadroma.Deployment>)
-    this
-      .command('status', 'print the status of the current devnet', this.status)
-      .command('reset',  'print the status of the current devnet', this.reset)
+  constructor (public chain?: Chain) {
+    super('Fadroma Devnet')
   }
 
-  status = () => {
-    new Fadroma.ClientConsole('Fadroma Devnet').chainStatus(this)
-  }
+  status = this.command('status', 'print the status of the current devnet', () => {
+    new ClientConsole('Fadroma Devnet').chainStatus(this)
+  })
 
-  reset = () => {
+  reset = this.command('reset', 'erase the current devnet', () => {
     if (this.chain) return Devnet.reset({ chain: this.chain })
-  }
+  })
 
 }
 

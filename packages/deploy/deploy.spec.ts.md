@@ -57,7 +57,7 @@ ok(context.contract() instanceof Contract)
 import { Client, Deployment } from '@fadroma/client'
 import { connect } from '@fadroma/connect'
 import * as Dokeres from '@hackbg/dokeres'
-import { BuildCommands, getBuilder } from '@fadroma/build'
+import { BuildContext, getBuilder } from '@fadroma/build'
 import { deploy, DeployCommands, YAMLDeployment } from '.'
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
@@ -70,7 +70,7 @@ ok(new YAMLDeployment() instanceof Deployment,
    'deployments can be loaded/saved in yaml')
 
 /*await Testing.inTmpDeployment(async deployment=>{
-  context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildCommands())
+  context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildContext())
   context.build.builder = getBuilder({
     docker:     Dokeres.Engine.mock(),
     dockerfile: '/path/to/a/Dockerfile',

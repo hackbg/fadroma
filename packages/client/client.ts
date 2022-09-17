@@ -595,9 +595,9 @@ export class Client {
   ) {
     Object.defineProperty(this, 'log', { writable: true, enumerable: false })
     Object.defineProperty(this, 'deployment', { writable: true, enumerable: false })
-    if (!agent)    this.log.warnNoAgent(this.constructor.name)
-    if (!address)  this.log.warnNoAddress(this.constructor.name)
-    if (!codeHash) this.log.warnNoCodeHash(this.constructor.name)
+    //if (!agent)    this.log.warnNoAgent(this.constructor.name)
+    //if (!address)  this.log.warnNoAddress(this.constructor.name)
+    //if (!codeHash) this.log.warnNoCodeHash(this.constructor.name)
   }
 
   /** The chain on which this contract exists. */
@@ -1102,6 +1102,7 @@ export class Deployment extends CommandContext {
     this.builder  = options.builder  ?? this.builder
     this.uploader = options.uploader ?? this.uploader
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
+    Object.defineProperty(this, 'state', { enumerable: false, writable: true })
   }
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
@@ -1363,14 +1364,14 @@ export abstract class Uploader {
   /** Unique identifier of this uploader implementation. */
   abstract id: string
 
-  constructor (public agent: Agent) {}
+  constructor (public agent?: Agent|null) {}
 
   get chain () {
-    return this.agent.chain
+    return this.agent?.chain
   }
 
   async getHash (id: CodeId): Promise<CodeHash> {
-    return await this.agent.getHash(Number(id))
+    return await this.agent!.getHash(Number(id))
   }
 
   abstract upload (template: Contract<any>): Promise<Contract<any>>
@@ -1535,3 +1536,6 @@ export class ClientConsole extends CommandsConsole {
     this.info(`Confirmed code hash of ${address}: ${codeHash}`)
   waitingForNextBlock = () => this.info('Waiting for next block...')
 }
+
+/** The default Git ref when not specified. */
+export const HEAD = 'HEAD'

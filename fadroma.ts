@@ -18,82 +18,74 @@
 
 **/
 
-import * as Konfizi   from '@hackbg/konfizi'
-import * as Komandi   from '@hackbg/komandi'
-import * as Konzola   from '@hackbg/konzola'
-import * as Fadroma   from '@fadroma/client'
-import * as Build     from '@fadroma/build'
-import * as Connect   from '@fadroma/connect'
-import * as Deploy    from '@fadroma/deploy'
-import * as Devnet    from '@fadroma/devnet'
+import { BuilderConfig, BuildContext } from '@fadroma/build'
+import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
+import { DeployConfig, DeployContext } from '@fadroma/deploy'
+import { DevnetConfig } from '@fadroma/devnet'
+
+import { Chain, Agent, Deployment, ClientConsole } from '@fadroma/client'
 
 /** A collection of functions that return Chain instances. */
-export type ChainRegistry = Record<string, (config: any)=>Fadroma.Chain|Promise<Fadroma.Chain>>
+export type ChainRegistry = Record<string, (config: any)=>Chain|Promise<Chain>>
 
 /** Complete environment configuration of all Fadroma subsystems. */
-export class Config extends Konfizi.EnvConfig {
+export class Config extends DeployConfig {
   /** Path to root of project. Defaults to current working directory. */
   project: string = this.getString('FADROMA_PROJECT', ()=>this.cwd)
-  build     = new Build.BuilderConfig(this.env, this.cwd)
-  connect   = new Connect.ConnectConfig(this.env, this.cwd)
-  deploy    = new Deploy.DeployConfig(this.env, this.cwd)
-  devnet    = new Devnet.DevnetConfig(this.env, this.cwd)
-  scrtGrpc  = new Connect.ScrtGrpc.Config(this.env, this.cwd)
-  scrtAmino = new Connect.ScrtAmino.Config(this.env, this.cwd)
+  build     = new BuilderConfig(this.env, this.cwd, { project: this.project })
+  devnet    = new DevnetConfig(this.env, this.cwd)
+  scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
+  scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
 }
 
 /** Context for Fadroma commands. */
-export class Commands extends Komandi.CommandContext {
+export default class Fadroma extends DeployContext {
 
-  static async run (argv: string[]) {
-    return (await this.init()).run(argv)
+  static run (name: string = 'Fadroma') {
+    const self = this
+    return (argv: string[]) => self.init(name).then(context=>context.run(argv))
   }
 
   static async init (name: string = 'Fadroma') {
     const config = new Config(process.env, process.cwd())
-    const connection = await Connect.connect(config.connect)
-    const { chain, agent } = connection
-    if (!agent) new Deploy.DeployConsole('Fadroma').warnNoAgent()
-    const deployments = chain ? Deploy.Deployments.init(chain.id, config.project) : null
-    const build = new Build.BuildCommands({
-      name: `${name} Build`, config: config.build
-    })
-    const deploy = await Deploy.DeployCommands.init(config.deploy, build)
+    const { chain, agent, deployments, uploader } = await config.connect()
+    const build = config.build.getBuildContext()
     return new this(
+      name,
       config,
       chain,
       agent,
       config.project,
       build,
-      connection,
-      deploy
     )
   }
 
   constructor (
+    /** Used by logger. */
+    public name:     string,
+    /** System configuration. */
     public config:   Config,
     /** The selected blockhain to connect to. */
-    public chain?:   Fadroma.Chain,
+    public chain?:   Chain|null,
     /** The selected agent to operate as. */
-    public agent?:   Fadroma.Agent,
+    public agent?:   Agent|null,
     public project?: string,
-    public build?:   Build.BuildCommands,
-    public connect?: Connect.ConnectContext,
-    public deploy?:  Deploy.DeployCommands
+    public build?:   BuildContext,
   ) {
-    super('Fadroma')
+    super({ name })
+    this.log.name = name
   }
 
-  subsystem = <X extends Fadroma.Deployment>(
+  subsystem = <X extends Deployment>(
     name: string,
     info: string,
-    ctor: { new (d: Fadroma.Deployment|null|undefined, ...args: unknown[]): X },
+    ctor: { new (d: Deployment|null|undefined, ...args: unknown[]): X },
     ...args: unknown[]
-  ): X => this.commands(name, info, new ctor(this.deploy?.deployment, ...args)) as X
+  ): X => this.commands(name, info, new ctor(this.deployment, ...args)) as X
 
 }
 
-export const Console = Fadroma.ClientConsole
+export const Console = ClientConsole
 export * from '@hackbg/konzola'
 export * from '@hackbg/komandi'
 export * from '@hackbg/konfizi'
