@@ -1,7 +1,8 @@
-import { Builder, Contract } from '@fadroma/client'
+import { Builder, Contract, HEAD } from '@fadroma/client'
 import { CommandsConsole } from '@hackbg/komandi'
 import { bold } from '@hackbg/konzola'
 import $, { Path } from '@hackbg/kabinet'
+import { Encoding, Crypto } from '@hackbg/formati'
 
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -112,3 +113,7 @@ export class BuildConsole extends CommandsConsole {
     this.info()
   }
 }
+
+export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize(ref)}.wasm`
+
+export const sanitize = (ref: string) => ref.replace(/\//g, '_')

@@ -1,6 +1,14 @@
-import { LocalBuilder, BuildConsole, buildPackage } from './build-base'
+import { LocalBuilder, BuildConsole, buildPackage, artifactName, sanitize } from './build-base'
 import type { LocalBuilderOptions } from './build-base'
+import { getGitDir } from './build-history'
+
 import * as Dokeres from '@hackbg/dokeres'
+import { bold } from '@hackbg/konzola'
+import $, { OpaqueDirectory } from '@hackbg/kabinet'
+
+import { Contract, HEAD } from '@fadroma/client'
+
+import { default as simpleGit } from 'simple-git'
 
 export interface DockerBuilderOptions extends LocalBuilderOptions {
   /** Path to Docker API endpoint. */
@@ -154,7 +162,7 @@ export class DockerBuilder extends LocalBuilder {
     outputDir: string = $(root, subdir, this.outputDirName).path,
   ): Promise<(Contract<any>|null)[]> {
     // Create output directory as user if it does not exist
-    $(outputDir).as(Kabinet.OpaqueDirectory).make()
+    $(outputDir).as(OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
     const templates:   (Contract<any>|null)[] = crates.map(()=>null)
@@ -296,3 +304,5 @@ export class DockerBuilder extends LocalBuilder {
   }
 
 }
+
+export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]

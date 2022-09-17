@@ -38,51 +38,51 @@ export class Config extends DeployConfig {
   scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
 }
 
+export type Entrypoint = (argv: string[]) => Promise<unknown>
+
 /** Context for Fadroma commands. */
 export default class Fadroma extends DeployContext {
-
-  static run (name: string = 'Fadroma') {
+  /** Returns a function that runs the defined commands. */
+  static run (name: string = 'Fadroma'): Entrypoint {
     const self = this
     return (argv: string[]) => self.init(name).then(context=>context.run(argv))
   }
-
-  static async init (name: string = 'Fadroma') {
-    const config = new Config(process.env, process.cwd())
+  /** Constructs a populated instance of the Fadroma context. */
+  static async init (
+    name:    string = 'Fadroma',
+    options: Partial<Config> = {}
+  ): Promise<Fadroma> {
+    const config = new Config(process.env, process.cwd(), options)
     const { chain, agent, deployments, uploader } = await config.connect()
     const build = config.build.getBuildContext()
-    return new this(
-      name,
-      config,
-      chain,
-      agent,
-      config.project,
-      build,
-    )
+    return new this(name, config, build, chain, agent)
   }
-
   constructor (
     /** Used by logger. */
-    public name:     string,
+    public name:   string,
     /** System configuration. */
-    public config:   Config,
-    /** The selected blockhain to connect to. */
-    public chain?:   Chain|null,
-    /** The selected agent to operate as. */
-    public agent?:   Agent|null,
-    public project?: string,
-    public build?:   BuildContext,
+    public config: Config,
+    /** Build context. */
+    public build?: BuildContext,
+    /** Represents the blockchain to which we will connect. */
+    public chain?: Chain|null,
+    /** Represents the identity which will perform operations on the chain. */
+    public agent?: Agent|null,
   ) {
     super({ name })
     this.log.name = name
+    this.project = config.project
   }
-
+  /** Path to root of project directory. */
+  public project?: string
+  /** Attach an instance of the DeployContext `ctor`, created with arguments `[this, ...args]`,
+    * to the command tree under `name`, with usage description `info`. */
   subsystem = <X extends Deployment>(
     name: string,
     info: string,
-    ctor: { new (d: Deployment|null|undefined, ...args: unknown[]): X },
+    ctor: { new (d: DeployContext|unknown, ...args: unknown[]): X },
     ...args: unknown[]
-  ): X => this.commands(name, info, new ctor(this.deployment, ...args)) as X
-
+  ): X => this.commands(name, info, new ctor(this, ...args)) as X
 }
 
 export const Console = ClientConsole
@@ -92,6 +92,7 @@ export * from '@hackbg/konfizi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
 export * from '@fadroma/client'
+export { override } from '@fadroma/client'
 export type { Decimal } from '@fadroma/client'
 export * from '@fadroma/build'
 export * from '@fadroma/deploy'

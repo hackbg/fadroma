@@ -216,10 +216,6 @@ export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()
 
 export default new BuildContext()
 
-/** The Git reference pointing to the currently checked out working tree */
-export const artifactName = (crate: string, ref: string) => `${crate}@${sanitize(ref)}.wasm`
-export const sanitize = (ref: string) => ref.replace(/\//g, '_')
-export const distinct = <T> (x: T[]): T[] => [...new Set(x) as any]
 export { getGitDir, DotGit } from './build-history'
 export { codeHashForPath, codeHashForBlob } from './build-base'
 export { LocalBuilder, RawBuilder, DockerBuilder, BuildConsole, buildPackage }

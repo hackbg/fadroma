@@ -1,4 +1,10 @@
-import { LocalBuilder, BuildConsole } from './build-base'
+import { LocalBuilder, BuildConsole, artifactName, sanitize } from './build-base'
+import { getGitDir } from './build-history'
+import { Contract, HEAD } from '@fadroma/client'
+import $ from '@hackbg/kabinet'
+import { bold } from '@hackbg/konzola'
+import { spawn } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
 
 /** This build mode looks for a Rust toolchain in the same environment
   * as the one in which the script is running, i.e. no build container. */
@@ -39,8 +45,8 @@ export class RawBuilder extends LocalBuilder {
       }
       // Create a temporary Git directory. The build script will copy the Git history
       // and modify the refs in order to be able to do a fresh checkout with submodules
-      tmpGit   = $(mkdtempSync($(tmpdir(), 'fadroma-git-').path))
-      tmpBuild = $(mkdtempSync($(tmpdir(), 'fadroma-build-').path))
+      tmpGit   = $.tmpDir('fadroma-git-')
+      tmpBuild = $.tmpDir('fadroma-build-')
       Object.assign(env, {
         _GIT_ROOT:   gitDir.path,
         _GIT_SUBDIR: gitDir.isSubmodule ? gitDir.submoduleDir : '',
@@ -96,5 +102,3 @@ export class RawBuilder extends LocalBuilder {
   }
 
 }
-
-

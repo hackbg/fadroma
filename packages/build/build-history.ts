@@ -1,8 +1,9 @@
-import { fileURLToPath } from 'url'
 import $, { Path, TextFile } from '@hackbg/kabinet'
 import { bold } from '@hackbg/konzola'
 import type { Contract } from '@fadroma/client'
 import { BuildConsole } from './build-base'
+
+import { fileURLToPath } from 'node:url'
 
 export function getGitDir ({ gitRepo }: Partial<Contract<any>> = {}): DotGit {
   if (!gitRepo) throw new Error('Contract: no path when trying to access gitDir')

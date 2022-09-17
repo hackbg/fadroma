@@ -22,14 +22,13 @@ export class DeployConfig extends ConnectConfig {
   reupload: boolean = this.getBoolean('FADROMA_REUPLOAD',     () => false)
   /** Directory to store the receipts for the deployed contracts. */
   uploads:  string  = this.getString ('FADROMA_UPLOAD_STATE', () =>
-    $(this.project).in('receipts').in(this.chain!.id).in('uploads').path)
+    $(this.project).in('receipts').in(this.chainId).in('uploads').path)
   /** Directory to store the receipts for the deployed contracts. */
-  receipts: string  = this.getString ('FADROMA_DEPLOY_STATE', () =>
-    $(this.project).in('receipts').in(this.chain!.id).in('deployments').path)
-
+  deploys:  string  = this.getString ('FADROMA_DEPLOY_STATE', () =>
+    $(this.project).in('receipts').in(this.chainId).in('deployments').path)
   async connect (): Promise<DeployContext> {
     const { chain, agent } = await super.connect()
-    const deployments = new Deployments(this.receipts)
+    const deployments = new Deployments(this.deploys)
     const uploader    = new FSUploader(this.uploads)
     return new DeployContext({
       config: this,

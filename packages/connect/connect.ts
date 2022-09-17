@@ -3,16 +3,18 @@ import * as Komandi  from '@hackbg/komandi'
 import { EnvConfig } from '@hackbg/konfizi'
 import type { Env }  from '@hackbg/konfizi'
 
-import * as Fadroma  from '@fadroma/client'
-import { Devnet }    from '@fadroma/devnet'
-import { ScrtGrpc }  from '@fadroma/scrt'
+import {
+  Agent, AgentOpts, Chain, ChainId, ChainOpts, ChainRegistry, ClientConsole
+} from '@fadroma/client'
+import { Devnet } from '@fadroma/devnet'
+import { Scrt, ScrtGrpc } from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
-import { Mocknet }   from '@fadroma/mocknet'
+import { Mocknet } from '@fadroma/mocknet'
 
 export { Mocknet, ScrtGrpc, ScrtAmino, Devnet }
 
 /** Populate `Fadroma.Chain.variants` with catalog of possible connections. */
-Object.assign(Fadroma.Chain.variants as Fadroma.ChainRegistry, {
+Object.assign(Chain.variants as ChainRegistry, {
 
   // Support for Mocknet.
   // TODO switch this out and give each chain implementation its own Mocknet subclass
@@ -38,6 +40,7 @@ export async function connect (
 
 /** Connection and identity configuration from environment variables. */
 export class ConnectConfig extends EnvConfig {
+
   constructor (
     readonly env: Env    = {},
     readonly cwd: string = '',
@@ -47,22 +50,44 @@ export class ConnectConfig extends EnvConfig {
     this.override(defaults)
     Object.defineProperty(this, 'mnemonic', { enumerable: false, writable: true })
   }
-  chains = Fadroma.Chain.variants
+
   /** Name of chain to use. */
-  chain?: keyof Fadroma.ChainRegistry
+  chain?: keyof ChainRegistry
     = this.getString('FADROMA_CHAIN',   ()=> undefined)
+
+  /** Get a chain ID corresponding to the value of FADROMA_CHAIN.
+    * Used to generated default paths for receipts in DeployConfig. */
+  get chainId (): ChainId {
+    if (!this.chain) throw new Error('No chain ID. Set FADROMA_CHAIN')
+    const result = {
+      Mocknet: 'mocknet',
+      ScrtGrpcMainnet:  Scrt.defaultMainnetChainId,
+      ScrtGrpcTestnet:  Scrt.defaultTestnetChainId,
+      ScrtGrpcDevnet:   'fadroma-devnet',
+      ScrtAminoMainnet: Scrt.defaultMainnetChainId,
+      ScrtAminoTestnet: Scrt.defaultMainnetChainId,
+      ScrtAminoDevnet:  'fadroma-devnet',
+    }[this.chain]
+    if (!result) throw new Error('No chain ID. Set FADROMA_CHAIN')
+    return result
+  }
+
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   agentName: string
     = this.getString('FADROMA_AGENT',   ()=>
       this.getString('SCRT_AGENT_NAME', ()=> 'ADMIN'))
+
   /** Mnemonic to use for authentication. Hidden by default. */
   mnemonic?: string
     = this.getString('FADROMA_MNEMONIC',    ()=>
       this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
 
+  /** Create a `ConnectContext` containing instances of `Chain` and `Agent`
+    * as specified by the configuration and return a `ConnectContext with them. */
   async connect (): Promise<ConnectContext> {
-    const chains = Fadroma.Chain.variants
-    let chain: Fadroma.Chain|null = null
+
+    const chains = Chain.variants
+    let chain: Chain|null = null
     if (this.chain) {
       const getChain = chains[this.chain]
       if (!getChain) throw new Error(
@@ -70,13 +95,15 @@ export class ConnectConfig extends EnvConfig {
       )
       chain = await Promise.resolve(getChain(this))
     }
-    let agentOpts: Fadroma.AgentOpts = {}
+
+    let agentOpts: AgentOpts = {}
     if (chain?.isDevnet) {
       agentOpts.name = this.agentName
     } else {
       agentOpts.mnemonic = this.mnemonic
     }
     const agent = await chain?.getAgent(agentOpts) ?? null
+
     const context = new ConnectContext(this, chain!, agent)
     return context
   }
@@ -84,15 +111,16 @@ export class ConnectConfig extends EnvConfig {
 
 export class ConnectContext extends Komandi.CommandContext {
   constructor (
-    public config: Partial<ConnectConfig> = new ConnectConfig(),
+    config: Partial<ConnectConfig> = new ConnectConfig(),
     /** Chain to connect to. */
-    public chain?: Fadroma.Chain|null,
+    public chain?: Chain|null,
     /** Agent to identify as. */
-    public agent?: Fadroma.Agent|null,
+    public agent?: Agent|null,
   ) {
     super('connect', 'connection manager')
     this.config = new ConnectConfig(this.env, this.cwd, config)
   }
+  config: ConnectConfig
   log = new ConnectConsole('Fadroma Connect')
   showChains = this.command('chains', 'print a list of all known chains', async () => {
     this.log.supportedChains()
@@ -100,9 +128,9 @@ export class ConnectContext extends Komandi.CommandContext {
   })
 }
 
-export class ConnectConsole extends Fadroma.ClientConsole {
+export class ConnectConsole extends ClientConsole {
   name = 'Fadroma Connect'
-  supportedChains = (supportedChains: object = Fadroma.Chain.variants) => {
+  supportedChains = (supportedChains: object = Chain.variants) => {
     this.log()
     this.info('Known chain names:')
     for (const chain of Object.keys(supportedChains).sort()) {
