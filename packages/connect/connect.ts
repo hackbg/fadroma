@@ -6,7 +6,7 @@ import type { Env }  from '@hackbg/konfizi'
 import {
   Agent, AgentOpts, Chain, ChainId, ChainOpts, ChainRegistry, ClientConsole
 } from '@fadroma/client'
-import { Devnet } from '@fadroma/devnet'
+import { Devnet, defineDevnet } from '@fadroma/devnet'
 import { Scrt, ScrtGrpc } from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 import { Mocknet } from '@fadroma/mocknet'
@@ -23,11 +23,11 @@ Object.assign(Chain.variants as ChainRegistry, {
 
   // Support for current Secret Network
   ...ScrtGrpc.Chains,
-  ScrtGrpcDevnet:  Devnet.define(ScrtGrpc,  'scrt_1.3' /** TODO use image name directly here */),
+  ScrtGrpcDevnet:  defineDevnet(ScrtGrpc,  'scrt_1.3' /** TODO use image name directly here */),
 
   // Support for Secret Network legacy amino API
   ...ScrtAmino.Chains,
-  ScrtAminoDevnet: Devnet.define(ScrtAmino, 'scrt_1.2'),
+  ScrtAminoDevnet: defineDevnet(ScrtAmino, 'scrt_1.2'),
 
 })
 

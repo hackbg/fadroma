@@ -15,24 +15,13 @@ export class UploadConsole extends CustomConsole {
   * allows for uploaded contracts to be reused. */
 export class FSUploader extends Uploader {
 
-  /** This defines the default path for the upload receipt cache. */
-  static fromConfig (
-    agent:        Agent,
-    projectRoot?: string|Path|false,
-    cacheRoot?:   string|Path|false
-  ) {
-    if (projectRoot) {
-      cacheRoot ??= $(projectRoot).in('receipts').in(agent.chain.id).in('uploads').as(Uploads)
-    }
-    return new this(agent, cacheRoot ? $(cacheRoot).as(Uploads) : undefined)
-  }
-
   constructor (
     /** Agent that will sign the upload transactions(s). */
     readonly agent?: Agent|null,
     /** If present, upload receipts are stored in it and reused to save reuploads. */
-    readonly cache?: Uploads
+    readonly cache?: string|Uploads
   ) {
+    if (typeof cache === 'string') cache = $(cache).as(Uploads)
     super(agent)
   }
 

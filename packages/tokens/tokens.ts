@@ -272,7 +272,7 @@ export class TokenRegistry extends Deployment {
 
   /** Say that we're deploying a token. */
   private logToken = (name: string, symbol: TokenSymbol, decimals: number) => this.log.info(
-    `Deploying token ${bold(name)}: ${symbol} (${decimals} decimals)`
+    //`Deploying token ${bold(name)}: ${symbol} (${decimals} decimals)`
   )
 
   /** Get a TokenPair object from a string like "SYMBOL1-SYMBOL2"

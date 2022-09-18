@@ -1,61 +1,34 @@
 import { Env } from '@hackbg/konfizi'
 import { bold } from '@hackbg/konzola'
 import $ from '@hackbg/kabinet'
+import { CommandContext } from '@hackbg/komandi'
 import { ConnectConfig, ConnectConsole, ConnectContext } from '@fadroma/connect'
-import { Deployment, Uploader, override } from '@fadroma/client'
+import { Chain, Agent, Deployment, Uploader, override } from '@fadroma/client'
 import { FSUploader } from './upload'
-
-export class DeployConfig extends ConnectConfig {
-  constructor (
-    readonly env: Env = {},
-    readonly cwd: string = '',
-    defaults: Partial<DeployConfig> = {}
-  ) {
-    super(env, cwd)
-    this.override(defaults)
-  }
-  /** Project root. Defaults to current working directory. */
-  project:  string  = this.getString ('FADROMA_PROJECT',      () => this.cwd)
-  /** Whether to generate unsigned transactions for manual multisig signing. */
-  multisig: boolean = this.getBoolean('FADROMA_MULTISIG',     () => false)
-  /** Whether to always upload contracts, ignoring upload receipts that match. */
-  reupload: boolean = this.getBoolean('FADROMA_REUPLOAD',     () => false)
-  /** Directory to store the receipts for the deployed contracts. */
-  uploads:  string  = this.getString ('FADROMA_UPLOAD_STATE', () =>
-    $(this.project).in('receipts').in(this.chainId).in('uploads').path)
-  /** Directory to store the receipts for the deployed contracts. */
-  deploys:  string  = this.getString ('FADROMA_DEPLOY_STATE', () =>
-    $(this.project).in('receipts').in(this.chainId).in('deployments').path)
-  async connect (): Promise<DeployContext> {
-    const { chain, agent } = await super.connect()
-    const deployments = new Deployments(this.deploys)
-    const uploader    = new FSUploader(this.uploads)
-    return new DeployContext({
-      config: this,
-      chain,
-      agent,
-      deployments
-    })
-  }
-}
+import { DeployConfig } from './deploy-config'
 
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export class DeployContext extends ConnectContext {
-  constructor (options: Partial<DeployContext> = {}) {
-    super(options.config as ConnectConfig, options.chain, options.agent)
-    override(this, options)
-    if (!this.agent) this.log.warnNoDeployAgent()
+export class DeployContext extends CommandContext {
+  constructor (
+    config: Partial<DeployConfig> = new DeployConfig(),
+    /** Chain to connect to. */
+    public chain:       Chain|null       = null,
+    /** Agent to identify as. */
+    public agent:       Agent|null       = null,
+    /** Contains available deployments for the current chain. */
+    public deployments: Deployments|null = null,
+    /** Implements uploading and upload reuse. */
+    public uploader:    Uploader|null    = null,
+  ) {
+    super('connect', 'connection manager')
+    this.config = new DeployConfig(this.env, this.cwd, config)
   }
+  /** Configuration. */
+  config: DeployConfig
   /** Logger. */
   log = new DeployConsole('Fadroma Deploy')
-  /** Configuration. */
-  declare config:    DeployConfig
-  /** Implements uploading and upload reuse. */
-  uploader?:         Uploader
-  /** Contains available deployments for the current chain. */
-  deployments:       Deployments|null = null
   /** Currently selected deployment. */
   get deployment (): Deployment|null {
     return this.deployments?.active || null

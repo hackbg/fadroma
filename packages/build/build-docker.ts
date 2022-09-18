@@ -8,6 +8,8 @@ import $, { OpaqueDirectory } from '@hackbg/kabinet'
 
 import { Contract, HEAD } from '@fadroma/client'
 
+import { homedir } from 'node:os'
+
 import { default as simpleGit } from 'simple-git'
 
 export interface DockerBuilderOptions extends LocalBuilderOptions {
@@ -188,9 +190,9 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Define the mounts and environment variables of the build container
-    const buildScript   = `/${basename(this.script)}`
+    const buildScript   = $(`/`, $(this.script).name).path
     const safeRef       = sanitize(gitRef)
-    const knownHosts    = $(`${homedir()}/.ssh/known_hosts`)
+    const knownHosts    = $(homedir()).in('.ssh').at('known_hosts')
     const etcKnownHosts = $(`/etc/ssh/ssh_known_hosts`)
     const readonly = {
       // The script that will run in the container
@@ -269,8 +271,7 @@ export class DockerBuilder extends LocalBuilder {
     logs.pipe(process.stdout)
 
     // Run the build container
-    const rootName       = sanitize(basename(root))
-    const buildName      = `fadroma-build-${rootName}@${gitRef}`
+    const buildName      = `fadroma-build-${sanitize($(root).name)}@${gitRef}`
     const buildContainer = await this.image.run(buildName, options, command, '/usr/bin/env', logs)
     const {Error: err, StatusCode: code} = await buildContainer.wait()
 
