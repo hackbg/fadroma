@@ -1,3 +1,4 @@
+import { timestamp } from '@hackbg/konzola'
 import { Deployment } from '@fadroma/client'
 import { Deployments } from './deploy-base'
 import $, { Path, JSONDirectory } from '@hackbg/kabinet'
@@ -13,6 +14,22 @@ export class JSONDeployments_v1 extends Deployments {
   }
 
   store: JSONDirectory<unknown>
+
+  async create (name: string = timestamp()): Promise<Deployment> {
+    throw new Error('Not implemented')
+  }
+
+  async select (name: string): Promise<Deployment> {
+    throw new Error('Not implemented')
+  }
+
+  get (name: string): Deployment|null {
+    throw new Error('Not implemented')
+  }
+
+  list (): string[] {
+    throw new Error('Not implemented')
+  }
 
 }
 
