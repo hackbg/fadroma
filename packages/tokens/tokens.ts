@@ -322,7 +322,7 @@ export class TokenManager extends CommandContext {
     if (args.includes('--can-burn'))    config.enable_burn    = true
     if (args.includes('--can-deposit')) config.enable_deposit = true
     if (args.includes('--can-redeem'))  config.enable_redeem  = true
-    return await this.define(symbol, { name, decimals, admin, template })
+    return await this.deploy(symbol, { name, decimals, admin, template })
   })
 
 }
