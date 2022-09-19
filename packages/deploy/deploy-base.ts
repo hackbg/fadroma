@@ -84,6 +84,7 @@ export class DeployContext extends CommandContext {
         this.log.info('No selected deployment on chain:', bold(this.chain?.id??'(no chain)'))
       }
     })
+  /** Throws is deployment store is missing. */
   private expectEnabled = (): Deployments => {
     if (!(this.deployments instanceof Deployments)) {
       //this.log.error('context.deployments was not populated')
@@ -93,13 +94,23 @@ export class DeployContext extends CommandContext {
     return this.deployments
   }
   /** Attach an instance of the DeployContext `ctor`, created with arguments `[this, ...args]`,
-    * to the command tree under `name`, with usage description `info`. */
+    * to the command tree under `name`, with usage description `info`. See the documentation
+    * of `interface Subsystem` for more info.
+    * @returns an instance of `ctor` */
   subsystem = <X extends Deployment>(
     name: string,
     info: string,
-    ctor: { new (d: DeployContext|unknown, ...args: unknown[]): X },
+    ctor: Subsystem<X>,
     ...args: unknown[]
   ): X => this.commands(name, info, new ctor(this, ...args)) as X
+}
+
+/** A Subsystem is any class which extends Deployment (thus being able to manage Contracts),
+  * and whose constructor takes a DeployContext as first argument, as well as any number of
+  * other arguments. This interface can be used to connect the main project class to individual
+  * deployer classes that operate in the same context. */
+export interface Subsystem<X extends Deployment> {
+  new (d: DeployContext|unknown, ...args: unknown[]): X
 }
 
 export abstract class Deployments {
