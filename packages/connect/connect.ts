@@ -23,7 +23,7 @@ Object.assign(Chain.variants as ChainRegistry, {
 
   // Support for current Secret Network
   ...ScrtGrpc.Chains,
-  ScrtGrpcDevnet:  defineDevnet(ScrtGrpc,  'scrt_1.3' /** TODO use image name directly here */),
+  ScrtGrpcDevnet:  defineDevnet(ScrtGrpc,  'scrt_1.4'),
 
   // Support for Secret Network legacy amino API
   ...ScrtAmino.Chains,

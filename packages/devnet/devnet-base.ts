@@ -5,6 +5,12 @@ import $, { OpaqueDirectory, JSONFile } from '@hackbg/kabinet'
 import { Chain, ClientConsole } from '@fadroma/client'
 import type { AgentOpts, DevnetHandle } from '@fadroma/client'
 
+/** Supported devnet variants. */
+export type DevnetPlatform = 'scrt_1.2'|'scrt_1.3'|'scrt_1.4'
+
+/** Supported connection types. */
+export type DevnetPortMode = 'lcp'|'grpcWeb'
+
 /** Gets devnet settings from environment. */
 export class DevnetConfig extends EnvConfig {
   /** URL to the devnet manager endpoint, if used. */
@@ -44,16 +50,11 @@ export interface DevnetState {
   port:         number|string
 }
 
-/** Supported devnet variants. */
-export type DevnetPlatform = 'scrt_1.2'|'scrt_1.3'
-
-/** Supported connection types. */
-export type DevnetPortMode = 'lcp'|'grpcWeb'
-
 /** Default connection type to expose on each devnet variant. */
 export const devnetPortModes: Record<DevnetPlatform, DevnetPortMode> = {
   'scrt_1.2': 'lcp',
-  'scrt_1.3': 'grpcWeb'
+  'scrt_1.3': 'grpcWeb',
+  'scrt_1.4': 'grpcWeb'
 }
 
 /** An ephemeral private instance of a network. */

@@ -10,7 +10,7 @@ const {
   FADROMA_QUIET =
     false,
   FADROMA_DEVNET_INIT_SCRIPT =
-    '/devnet-init.mjs',
+    '/devnet.init.mjs',
   FADROMA_DEVNET_READY_PHRASE =
     'indexed block'
 } = process.env

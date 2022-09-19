@@ -74,15 +74,19 @@ export class DockerBuilder extends LocalBuilder {
   async buildMany (inputs: Contract<any>[]): Promise<Contract<any>[]> {
 
     const longestCrateName = inputs
-      .map(source=>source.crate?.length||0)
+      .map(contract=>contract.crate?.length||0)
       .reduce((x,y)=>Math.max(x,y),0)
 
-    for (const source of inputs) {
-      const { workspace, revision, crate } = source
+    for (const contract of inputs) {
+      const { workspace, revision, crate } = contract
       if (!workspace) throw new Error("Workspace not set, can't build")
       const outputDir = $(workspace).resolve(this.outputDirName)
       const prebuilt  = this.prebuild(outputDir, crate, revision)
-      this.log.buildingOne(source, prebuilt)
+      this.log.buildingOne(contract, prebuilt)
+      if (prebuilt) {
+        contract.artifact   = prebuilt.artifact
+        contract.codeHash ??= prebuilt.codeHash
+      }
     }
 
     // Collect a mapping of workspace path -> Workspace object

@@ -429,12 +429,14 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
     const chainId    = this.chain.id
-    return Object.assign(new Fadroma.Contract(), {
+    const contract   = new Fadroma.Contract({
+      agent: this,
       codeHash,
       chainId,
       codeId,
       uploadTx: result.transactionHash
     })
+    return contract
   }
 
   async instantiate (

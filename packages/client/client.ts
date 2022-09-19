@@ -1024,7 +1024,7 @@ export class Contract<C extends Client> extends ContractMetadata {
         // If we have chain ID and code ID, try to get code hash
         if (this.codeId) this.codeHash = await this.fetchCodeHashByCodeId()
         // Replace with built and return uploaded
-        if (!this.artifact) return this.build().then(contract=>uploader.upload(contract))
+        if (!this.artifact) return this.build().then(uploader.upload.bind(uploader))
         return uploader.upload(this)
       })
     }

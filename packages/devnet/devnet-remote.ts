@@ -17,7 +17,7 @@ export type RemoteDevnetOpts = DevnetOpts & {
   * given chain id and identities via a HTTP API. */
 export class RemoteDevnet extends Devnet implements DevnetHandle {
 
-  static managerScriptName = 'devnet-manager.mjs'
+  static managerScriptName = 'devnet.server.mjs'
 
   /** Get a handle to a remote devnet. If there isn't one,
     * create one. If there already is one, reuse it. */

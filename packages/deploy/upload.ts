@@ -31,49 +31,49 @@ export class FSUploader extends Uploader {
   cache?: Uploads
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (template: Contract<any>): Promise<Contract<any>> {
+  async upload (contract: Contract<any>): Promise<Contract<any>> {
     let receipt: UploadReceipt|null = null
     if (this.cache) {
-      const name = this.getUploadReceiptName(template)
+      const name = this.getUploadReceiptName(contract)
       receipt = this.cache.at(name).as(UploadReceipt)
       if (receipt.exists()) {
         this.log.info('Found    ', bold(this.cache.at(name).shortPath))
         return receipt.toContract()
       }
     }
-    if (!template.artifact) {
-      throw new Error('No artifact specified in template')
-    }
-    const data = $(template.artifact).as(BinaryFile).load()
-    const result = await this.agent.upload(data)
-    if (template.codeHash && result.codeHash && template.codeHash !== result.codeHash) {
+    if (!contract.artifact) throw new Error('No artifact to upload')
+    if (!this.agent) throw new Error('No upload agent')
+    const result = await this.agent.upload($(contract.artifact).as(BinaryFile).load())
+    if (contract.codeHash && result.codeHash && contract.codeHash !== result.codeHash) {
       throw new Error(
-        `Code hash mismatch when uploading ${template.artifact?.toString()}: ` +
-        `${template.codeHash} vs ${result.codeHash}`
+        `Code hash mismatch when uploading ${contract.artifact?.toString()}: ` +
+        `${contract.codeHash} vs ${result.codeHash}`
       )
     }
-    template = new Contract(template, result)
+    contract = new Contract(contract, result)
     if (receipt) {
-      receipt.save(template)
+      receipt.save(contract)
     }
     //await this.agent.nextBlock
-    return template
+    return contract
   }
 
-  getUploadReceiptName (template: Contract<any>): string {
-    return `${$(template.artifact!).name}.json`
+  getUploadReceiptName (contract: Contract<any>): string {
+    return `${$(contract.artifact!).name}.json`
   }
 
-  getUploadReceiptPath (template: Contract<any>): string {
-    const receiptName = `${this.getUploadReceiptName(template)}`
+  getUploadReceiptPath (contract: Contract<any>): string {
+    const receiptName = `${this.getUploadReceiptName(contract)}`
     const receiptPath = this.cache!.resolve(receiptName)
     return receiptPath
   }
 
-  /** Upload multiple templates from the filesystem.
-    * TODO: Optionally bundle multiple templates in one transaction,
-    * if they add up to less than the max API request size (which is defined... where?) */
+  /** Upload multiple contracts from the filesystem. */
   async uploadMany (inputs: Array<Contract<any>>): Promise<Array<Contract<any>>> {
+
+    // TODO: Optionally bundle the upload messages in one transaction -
+    //       this will only work if they add up to less than the max API request size
+    //       (which is defined who knows where) */
 
     if (!this.cache) return this.uploadManySansCache(inputs)
 

@@ -35,15 +35,17 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
 
   static dockerfiles: Record<DevnetPlatform, string> = {
     'scrt_1.2': $(devnetPackage, 'scrt_1_2.Dockerfile').path,
-    'scrt_1.3': $(devnetPackage, 'scrt_1_3.Dockerfile').path
+    'scrt_1.3': $(devnetPackage, 'scrt_1_3.Dockerfile').path,
+    'scrt_1.4': $(devnetPackage, 'scrt_1_4.Dockerfile').path
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {
     'scrt_1.2': 'fadroma/scrt-devnet:1.2',
     'scrt_1.3': 'fadroma/scrt-devnet:1.3',
+    'scrt_1.4': 'fadroma/scrt-devnet:1.4',
   }
 
-  static initScriptMount = 'devnet-init.mjs'
+  static initScriptMount = 'devnet.init.mjs'
 
   static getOrCreate (kind: DevnetPlatform, dokeres = new Dokeres.Engine()) {
     const portMode    = devnetPortModes[kind]
