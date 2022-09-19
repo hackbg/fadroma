@@ -21,24 +21,20 @@
 import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
 import { BuilderConfig, BuildContext } from '@fadroma/build'
 import { DeployConfig, DeployContext } from '@fadroma/deploy'
-import type { Deployments }            from '@fadroma/deploy'
-import { DevnetConfig }                from '@fadroma/devnet'
-import { ScrtGrpc, ScrtAmino }         from '@fadroma/connect'
-
-/** A collection of functions that return Chain instances. */
-export type ChainRegistry = Record<string, (config: any)=>Chain|Promise<Chain>>
+import type { Deployments } from '@fadroma/deploy'
+import { DevnetConfig } from '@fadroma/devnet'
+import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
+import { TokenManager } from '@fadroma/tokens'
 
 /** Configuration for the Fadroma environment. */
 export class Config extends DeployConfig {
   build = new BuilderConfig(this.env, this.cwd, { project: this.project })
 }
 
-export type Entrypoint = (argv: string[]) => Promise<unknown>
-
 /** Context for Fadroma commands. */
 export default class Fadroma extends DeployContext {
-  /** Returns a function that runs a requested command. */
-  static run (name: string = 'Fadroma'): Entrypoint {
+  /** @returns a function that runs a requested command. */
+  static run (name: string = 'Fadroma'): AsyncEntrypoint {
     const self = this
     return (argv: string[]) => self.init(name).then(context=>context.run(argv))
   }
@@ -72,6 +68,8 @@ export default class Fadroma extends DeployContext {
     this.config = new Config(this.env, this.cwd, config)
     this.build ??= this.config.build.getBuildContext()
     this.workspace = config.project
+    this.tokens = this.commands('tokens', 'Fadroma Token Manager',
+      new TokenManager(()=>this.deployment))
   }
   /** The current configuration. */
   config: Config
@@ -82,7 +80,13 @@ export default class Fadroma extends DeployContext {
   /** The workspace from which to build contracts.
     * Defaults to project root. */
   workspace?: string
+  /** The token manager API. */
+  tokens: TokenManager
 }
+
+/** Asynchronous function that takes an array of command arguments
+  * and returns an unspecified value. */
+export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
 
 export const Console = ClientConsole
 export * from '@hackbg/konzola'

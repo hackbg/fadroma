@@ -7,7 +7,8 @@ import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/k
 export class YAMLDeployments_v2 extends Deployments {
 
   constructor (
-    storePath: string|Path|YAMLDirectory<unknown>
+    storePath: string|Path|YAMLDirectory<unknown>,
+    public defaults: Partial<Deployment> = {},
   ) {
     super()
     this.store = $(storePath).as(YAMLDirectory)

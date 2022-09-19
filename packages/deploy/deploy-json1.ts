@@ -7,7 +7,8 @@ import $, { Path, JSONDirectory } from '@hackbg/kabinet'
 export class JSONDeployments_v1 extends Deployments {
 
   constructor (
-    storePath: string|Path|JSONDirectory<unknown>
+    storePath: string|Path|JSONDirectory<unknown>,
+    public defaults: Partial<Deployment> = {}
   ) {
     super()
     this.store = $(storePath).as(JSONDirectory)

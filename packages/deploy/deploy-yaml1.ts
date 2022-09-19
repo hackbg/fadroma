@@ -1,8 +1,12 @@
 import { loadAll, dump } from 'js-yaml'
 import { timestamp } from '@hackbg/konzola'
-import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/kabinet'
+import $, {
+  Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML, OpaqueDirectory
+} from '@hackbg/kabinet'
 import { Agent, Contract, Client, Deployment } from '@fadroma/client'
 import { Deployments } from './deploy-base'
+
+import { basename } from 'node:path'
 
 import * as FS from 'node:fs' // TODO replace with calls to @hackbg/kabinet
 
@@ -13,7 +17,8 @@ import * as FS from 'node:fs' // TODO replace with calls to @hackbg/kabinet
 export class YAMLDeployments_v1 extends Deployments {
 
   constructor (
-    storePath: string|Path|YAMLDirectory<unknown>
+    storePath: string|Path|YAMLDirectory<unknown>,
+    public defaults: Partial<Deployment> = {},
   ) {
     super()
     this.store = $(storePath).as(YAMLDirectory)
@@ -43,23 +48,20 @@ export class YAMLDeployments_v1 extends Deployments {
     const active = this.store.at(`${this.KEY}.yml`).as(YAMLFile)
     try { active.delete() } catch (e) {}
     await FS.symlinkSync(selection.path, active.path)
-    return null
+    return new Deployment(active)
   }
 
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   get (name: string): Deployment|null {
-    const path = resolve(this.store.path, `${name}.yml`)
-    if (!FS.existsSync(path)) return null
-    return new Deployment(new YAMLDeployment_v1(path))
+    const path = this.store.at(`${name}.yml`)
+    if (!path.exists()) return new Deployment(this.defaults)
+    return new Deployment(new YAMLDeployment_v1(path.path))
   }
 
   /** List the deployments in the deployments directory. */
-  list () {
-    if (!FS.existsSync(this.store.path)) return []
-    return FS.readdirSync(this.store.path)
-      .filter(x=>x!=this.KEY)
-      .filter(x=>x.endsWith('.yml'))
-      .map(x=>basename(x,'.yml'))
+  list (): string[] {
+    const list = this.store.as(OpaqueDirectory).list() ?? []
+    return list.filter(x=>x.endsWith('.yml')).map(x=>basename(x, '.yml')).filter(x=>x!=this.KEY)
   }
 
 }

@@ -41,8 +41,8 @@ export class DeployConfig extends EnvConfig {
     if (!chain) throw new Error('Missing chain')
     const Deployments = DeployStores[this.deployStore]
     if (!Deployments) throw new Error('Missing deployment store constructor')
-    const deployments = new Deployments(this.deploys)
     const uploader    = new FSUploader(agent, this.uploads)
+    const deployments = new Deployments(this.deploys, { chain, agent, uploader })
     return new DeployContext(this, chain, agent, deployments, uploader)
   }
 }

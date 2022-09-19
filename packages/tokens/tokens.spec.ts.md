@@ -6,7 +6,7 @@ import {
   TokenKind, getTokenKind, getTokenId, isTokenDescriptor,
   nativeToken, customToken, isNativeToken, isCustomToken,
   TokenAmount, TokenPair, TokenPairAmount,
-  TokenRegistry,
+  TokenManager,
   Snip20, createPermitMsg,
   TokenError,
 } from './tokens'
@@ -51,7 +51,7 @@ new TokenPairAmount(new TokenPair(native, custom), "100", "200").asNativeBalance
 new TokenPairAmount(new TokenPair(custom, native), "100", "200").asNativeBalance
 new TokenPairAmount(new TokenPair(native, native), "100", "200").asNativeBalance
 
-const registry = new TokenRegistry()
+const registry = new TokenManager()
 throws(()=>registry.getToken())
 throws(()=>registry.getToken('UNKNOWN'))
 const token = Symbol()
