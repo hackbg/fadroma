@@ -838,10 +838,11 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
 
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
-  as = (agent?: Agent): Contract<C> =>
-    (!agent || (agent === this.agent))
+  as (agent?: Agent): Contract<C> {
+    return (!agent || (agent === this.agent))
       ? this
       : new (this.constructor as NewContract<C>)(this, { agent })
+  }
 
   /** Returns a string in the format `crate[@ref][+flag][+flag]...` */
   getSourceSpecifier (): string {
@@ -910,39 +911,46 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Retrieves the code ID corresponding to this contract's code hash.
     * @returns CodeId. */
-  fetchCodeId = (expected?: CodeHash): Promise<CodeId> =>
-    this.assertAgent().getCodeId(this.codeHash!).then(codeId=>{
+  fetchCodeId (expected?: CodeHash): Promise<CodeId> {
+    return this.assertAgent().getCodeId(this.codeHash!).then(codeId=>{
       if (!!expected) this.validate('codeId', expected, codeId)
       this.codeId = codeId
       return codeId
     })
+  }
   /** Fetch code hash from address.
     * @returns code hash corresponding to `this.address` */
-  fetchCodeHashByAddress = (expected: CodeHash|undefined = this.codeHash): Promise<CodeHash> =>
-    this.assertAgent().getHash(this.assertAddress()).then(codeHash=>{
+  fetchCodeHashByAddress (expected: CodeHash|undefined = this.codeHash): Promise<CodeHash> {
+    return this.assertAgent().getHash(this.assertAddress()).then(codeHash=>{
       if (!!expected) this.validate('codeHash', expected, codeHash)
       this.codeHash = codeHash
       return codeHash
     })
+  }
   /** Fetch code hash from code id.
     * @returns code hash corresponding to `this.codeId`  */
-  fetchCodeHashByCodeId = (expected: CodeHash|undefined = this.codeHash): Promise<CodeHash> =>
-    this.assertAgent().getHash(this.codeId!).then(codeHash=>{
+  fetchCodeHashByCodeId (expected: CodeHash|undefined = this.codeHash): Promise<CodeHash> {
+    return this.assertAgent().getHash(this.codeId!).then(codeHash=>{
       if (!!expected) this.validate('codeHash', expected, codeHash)
       this.codeHash = codeHash
       return codeHash
     })
+  }
 
   /** Lazily get a contract from the deployment.
     * @returns a Lazy invocation of getClient, or a Promise if not in task context */
-  get = (): Promise<C> => this.task(
-    `get ${this.name??'contract'}`,
-    async function getContractClient () { return await this.getClient() })
+  get (): Promise<C> {
+    return this.task(
+      `get ${this.name??'contract'}`,
+      async function getContractClient () { return await this.getClient() }
+    )
+  }
   /** Async wrapper around getClientSync.
     * @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
-  getClient = async ($Client: NewClient<C> = this.client): Promise<C> =>
-    this.getClientSync($Client)
+  getClient ($Client: NewClient<C> = this.client): Promise<C> {
+    return Promise.resolve(this.getClientSync($Client))
+  }
   /** @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
   getClientSync ($Client: NewClient<C> = this.client): C {
@@ -952,7 +960,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** @returns a Client instance pointing to this contract, or null if
     * the contract address could not be determined */
-  getClientOrNull = ($Client: NewClient<C> = this.client): C|null => {
+  getClientOrNull ($Client: NewClient<C> = this.client): C|null {
     if (this.address) {
       return new this.client(this.agent, this.address, this.codeHash, this.asMetadata)
     }
@@ -963,9 +971,9 @@ export class Contract<C extends Client> extends ContractMetadata {
     return null
   }
   /** Deploy the contract, or retrieve it if it's already deployed. */
-  deploy = (
+  deploy (
     initMsg: IntoMessage|undefined = this.initMsg
-  ): Promise<C> => {
+  ): Promise<C> {
     const existing = this.getClientOrNull()
     if (existing) return Promise.resolve(existing)
     const name = `deploy ${this.name ?? 'contract'}`
@@ -983,9 +991,9 @@ export class Contract<C extends Client> extends ContractMetadata {
     })
   }
   /** Deploy multiple instances of the same code. */
-  deployMany = (
+  deployMany (
     inits: (DeployArgs[])|(()=>DeployArgs[])|(()=>Promise<DeployArgs[]>)
-  ): Promise<C[]> => {
+  ): Promise<C[]> {
     const name = `deploy ${this.name ?? 'contract'} (${inits.length} instances)`
     return this.task(name, function getOrDeployContracts (this: Contract<C>): Promise<C[]> {
       const agent = this.agent
@@ -1004,9 +1012,9 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Upload compiled source code to the selected chain.
     * @returns this with chainId and codeId populated. */
-  upload = (
+  upload (
     _uploader: Uploader|undefined = this.uploader
-  ): Promise<Contract<C>> => {
+  ): Promise<Contract<C>> {
     if (this.chainId && this.codeId) {
       return this.codeHash
         ? Promise.resolve(this)
@@ -1031,7 +1039,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Compile the source using the selected builder.
     * @returns this */
-  build = (builder: Builder = this.assertBuildable()): Promise<Contract<C>> => {
+  build (builder: Builder = this.assertBuildable()): Promise<Contract<C>> {
     const name = 'build ' + this.getSourceSpecifier()
     return this.task(name, async function buildContract (this: Contract<C>): Promise<Contract<C>> {
       if (this.artifact) return this
@@ -1040,7 +1048,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Wrap a method in a lazy task.
     * @returns A Lazy or Promise containing a task. */
-  task = <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> => {
+  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> {
     const task = new Task(name, cb, this)
     const [_, head, ...body] = (task.stack ?? '').split('\n')
     task.stack = '\n' + head + '\n' + body.slice(3).join('\n')

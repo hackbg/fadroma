@@ -230,45 +230,36 @@ export class TokenManager extends CommandContext {
   }
 
   /** Get or deploy a Snip20 token and add it to the registry. */
-  define (
+  deploy (
     symbol:  TokenSymbol,
-    options?: {
+    options: {
       template?: Partial<Contract<Snip20>>
       name:      string
       decimals:  number
       admin:     Address,
       config?:   Snip20InitConfig
     }
-  ): Contract<Snip20> {
-
-    // Return existing token
-    if (this.has(symbol)) return this.get(symbol)
-
-    // Deploy non-existent token
-    if (options) {
-      const deployment = this.getDeployment()
-      if (!deployment) throw new Error('Token manager: no deployment')
-      const { name, decimals, admin, config } = options
-      this.logToken(name, symbol, decimals)
-      const token = deployment.contract(options?.template ?? this.template)
-      token.name   = name
-      token.prefix = deployment.name
-      this.add(symbol, token)
-      const init = Snip20.init(name, symbol, decimals, admin, config)
-      return token
-    }
-
-    throw new Error(`Token ${symbol}: not found`)
-
+  ): Promise<Snip20> {
+    const deployment = this.getDeployment()
+    if (!deployment) throw new Error('Token manager: no deployment')
+    const { name, decimals, admin, config } = options
+    this.logToken(name, symbol, decimals)
+    const token = deployment.contract(options?.template ?? this.template)
+    token.name   = name
+    token.prefix = deployment.name
+    this.add(symbol, token)
+    return token.deploy(Snip20.init(name, symbol, decimals, admin, config))
   }
 
   /** Deploy multiple Snip20 tokens in one transaction and add them to the registry. */
-  async getOrDeployTokens (
+  async deployMany (
     tokens:   Snip20BaseConfig[]   = [],
     config:   Snip20InitConfig     = this.defaultConfig,
     template: any = this.template!,
     admin:    Address      = this.getDeployment()?.agent?.address!,
   ): Promise<Snip20[]> {
+    const deployment = this.getDeployment()
+    if (!deployment) throw new Error('Token manager: no deployment')
     tokens.forEach(({name, symbol, decimals})=>this.logToken(name, symbol, decimals))
     // to deploy multiple contracts of the same type in 1 tx:
     const toDeployArgs = ({name, symbol, decimals}: Snip20BaseConfig): DeployArgs => [
