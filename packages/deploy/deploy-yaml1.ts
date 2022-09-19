@@ -46,16 +46,11 @@ export class YAMLDeployments_v1 extends Deployments {
     return null
   }
 
-  /** Get the contents of the active deployment, or null if there isn't one. */
-  get active (): Deployment|null {
-    return this.get(this.KEY)
-  }
-
   /** Get the contents of the named deployment, or null if it doesn't exist. */
   get (name: string): Deployment|null {
     const path = resolve(this.store.path, `${name}.yml`)
     if (!FS.existsSync(path)) return null
-    return new Deployment(new YAMLDeployment(path))
+    return new Deployment(new YAMLDeployment_v1(path))
   }
 
   /** List the deployments in the deployments directory. */
@@ -88,31 +83,22 @@ export class YAMLDeployment_v1 extends Deployment {
   resolve (...fragments: Array<string>) {
     // Expect path to be present
     if (!this.file) throw new Error('Deployment: no path to resolve by')
-    return resolve(this.file.path, ...fragments)
+    return $(this.file, ...fragments).path
   }
 
   /** Load deployment state from YAML file. */
   load (file?: Path|string) {
-
     // Expect path to be present
     file ??= this.file
     if (!file) throw new Error('Deployment: no path to load from')
-
     // Resolve symbolic links
-    if (!(typeof file === 'string')) file = file.path
-    while (FS.lstatSync(file).isSymbolicLink()) {
-      file = resolve(dirname(file), FS.readlinkSync(file))
-    }
-
+    file = $(file).real
     // Load the receipt data
-    const data = FS.readFileSync(file, 'utf8')
-    const receipts = loadAll(data) as Partial<Contract<any>>[]
-    for (const receipt of receipts) {
+    for (const receipt of file.as(YAMLFile).loadAll() as Partial<Contract<any>>[]) {
       if (!receipt.name) continue
       const [contractName, _version] = receipt.name.split('+')
       const contract = this.state[contractName] = new Contract({}, receipt)
     }
-
     // TODO: Automatically convert receipts to Client subclasses
     // by means of an identifier shared between the deploy and client libraries
   }
