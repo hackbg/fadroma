@@ -71,6 +71,7 @@ export default class Fadroma extends DeployContext {
     this.log.name = name
     this.config = new Config(this.env, this.cwd, config)
     this.build ??= this.config.build.getBuildContext()
+    this.workspace = config.project
   }
   /** The current configuration. */
   config: Config
@@ -78,6 +79,9 @@ export default class Fadroma extends DeployContext {
   get builder (): Builder|null {
     return this.build?.builder ?? null
   }
+  /** The workspace from which to build contracts.
+    * Defaults to project root. */
+  workspace?: string
 }
 
 export const Console = ClientConsole

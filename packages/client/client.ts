@@ -708,70 +708,59 @@ export class ContractMetadata {
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
   }
 
-  /** URL to local or remote Git repository containing the source code. */
+  /** URL pointing to Git repository containing the source code. */
   repository?: string|URL = undefined
-
-  /** Git ref (branch or tag) pointing to source commit. */
+  /** Branch/tag pointing to the source commit. */
   revision?:   string     = 'HEAD'
-
-  /** Path to Cargo workspace. */
+  /** Whether there were any uncommitted changes at build time. */
+  dirty?:      boolean    = undefined
+  /** Path to local Cargo workspace. */
   workspace?:  string     = undefined
-
-  /** Name of crate. Used to find contract crate in workspace repos. */
+  /** Name of crate in workspace. */
   crate?:      string     = undefined
-
   /** List of crate features to enable during build. */
   features:    string[]   = []
-
   /** Builder implementation that produces a Contract from the Source. */
   builderId?:  string     = undefined
-
   /** URL to the compiled code. */
   artifact?:   string|URL = undefined
-
   /** Code hash uniquely identifying the compiled code. */
   codeHash?:   CodeHash   = undefined
-
   /** Object containing upload logic. */
   uploaderId?: string     = undefined
-
   /** Code ID representing the identity of the contract's code on a specific chain. */
   codeId?:     CodeId     = undefined
-
   /** TXID of transaction that performed the upload. */
   uploadTx?:   TxHash     = undefined
-
   /** ID of chain on which this contract is uploaded. */
   chainId?:    ChainId    = undefined
-
   /** Address of agent that performed the upload. */
   uploadedBy?: Address    = undefined
-
   /** Address of agent that performed the init tx. */
   initBy?:     Address    = undefined
-
   /** TXID of transaction that performed the init. */
   initTx?:     TxHash     = undefined
-
   /** The message used to instantiate the contract. */
   initMsg?:    Message    = undefined
-
-  /** Label of this contract instance. Unique per chain. */
-  label?:      Label      = undefined
-
-  /** Friendly name of the contract. Used for looking it up in the deployment,
-    * and for generating the label. */
-  name?:       Name       = undefined
-
-  /** Deployment prefix of the contract. If present, label becomes `prefix/name` */
-  prefix?:     Name       = undefined
-
-  /** Deduplication suffix.  If present, label becomes `name+suffix` */
-  suffix?:     Name       = undefined
-
   /** Address of this contract instance. Unique per chain. */
   address?:    Address    = undefined
+  /** Label of this contract instance. Unique per chain. */
+  label?:      Label      = undefined
+  /** Friendly name of the contract.
+    * Contracts are stored in a Deployment under this name.
+    * When deploying, this name is used as the basis for the unique contract label. */
+  name?:       Name       = undefined
+  /** Deployment prefix of the contract.
+    * Identifies which deployment this contract belongs to.
+    * If defined, the label used during deployment becomes `prefix/name`. */
+  prefix?:     Name       = undefined
+  /** Deduplication suffix.
+    * Set this when you already have a contract with a given name in a deployment,
+    * and you want to deploy a new instance which replaces the old one.
+    * If defined, label becomes `name+suffix` */
+  suffix?:     Name       = undefined
 
+  /** Parse a label into prefix, name, and suffix. */
   static parseLabel = (label: Label): LabelFormat => {
     const matches = label.match(RE_LABEL)
     if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
@@ -780,6 +769,7 @@ export class ContractMetadata {
     return { name, prefix, suffix }
   }
 
+  /** Construct a label from prefix, name, and suffix. */
   static writeLabel = ({ name, prefix, suffix }: LabelFormat): Label => {
     if (!name) throw new ClientError.NoName()
     let label = name
@@ -787,14 +777,16 @@ export class ContractMetadata {
     if (suffix) label = `${label}+${suffix}`
     return label
   }
+
 }
 
 /** RegExp for parsing labels of the format `prefix/name+suffix` */
 export const RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
 
+/** The output of parsing a label of the format `prefix/name+suffix` */
 export interface LabelFormat {
-  name?:   Name
   prefix?: Name
+  name?:   Name
   suffix?: Name
 }
 
@@ -1101,36 +1093,42 @@ export class Deployment extends CommandContext {
 
   constructor (options: Partial<Deployment> & any = {}) {
     super(options.name ?? 'Deployment')
-    this.name     = options.name     ?? this.name
-    this.state    = options.state    ?? this.state
-    this.agent    = options.agent    ?? this.agent
-    this.chain    = options.agent?.chain ?? options.chain ?? this.chain
-    this.builder  = options.builder  ?? this.builder
-    this.uploader = options.uploader ?? this.uploader
+    this.name      = options.name         ?? this.name
+    this.state     = options.state        ?? this.state
+    this.agent     = options.agent        ?? this.agent
+    this.chain     = options.agent?.chain ?? options.chain ?? this.chain
+    this.builder   = options.builder      ?? this.builder
+    this.uploader  = options.uploader     ?? this.uploader
+    this.workspace = options.workspace    ?? this.workspace
+    this.revision  = options.revision     ?? this.revision
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
     Object.defineProperty(this, 'state', { enumerable: false, writable: true })
   }
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:      string = timestamp()
+  name:       string = timestamp()
 
   /** Mapping of names to contract instances. */
-  state:     Record<string, Partial<Contract<any>>> = {}
+  state:      Record<string, Partial<Contract<any>>> = {}
 
-  /** Default Git ref from which contracts would be built if needed. */
-  revision:  string = 'HEAD'
+  /** Default Cargo workspace from which contracts will be built if needed. */
+  workspace?: string = undefined
 
-  /** Build implementation. Can't build from source if missing. */
-  builder?:  Builder
+  /** Default Git ref from which contracts will be built if needed. */
+  revision?:  string = 'HEAD'
+
+  /** Build implementation. Contracts can't be built from source if this is missing. */
+  builder?:   Builder
 
   /** Agent to use when deploying contracts. */
-  agent?:    Agent
+  agent?:     Agent
 
   /** Chain on which operations are executed. */
-  chain?:    Chain
+  chain?:     Chain
 
-  /** Upload implementation. Can't upload to chain if missing. */
-  uploader?: Uploader
+  /** Upload implementation. Contracts can't be uploaded if this is missing --
+    * except by using `agent.upload` directly, which does not cache or log uploads. */
+  uploader?:  Uploader
 
   /** True if the chain is a devnet or mocknet */
   get devMode   (): boolean { return this.chain?.devMode   ?? false }
@@ -1209,6 +1207,7 @@ export class Deployment extends CommandContext {
       uploader:   this.uploader,
       agent:      this.agent,
       revision:   this.revision,
+      workspace:  this.workspace,
       ...((typeof arg === 'string') ? { name: arg } : arg)
     }
     if (options.name && this.has(options.name)) Object.assign(options, this.get(options.name))

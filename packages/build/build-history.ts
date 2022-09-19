@@ -5,9 +5,9 @@ import { BuildConsole } from './build-base'
 
 import { fileURLToPath } from 'node:url'
 
-export function getGitDir ({ repository }: Partial<Contract<any>> = {}): DotGit {
-  if (!repository) throw new Error('Contract: no path when trying to access gitDir')
-  return new DotGit(repository)
+export function getGitDir ({ workspace }: Partial<Contract<any>> = {}): DotGit {
+  if (!workspace) throw new Error("No workspace specified; can't find gitDir")
+  return new DotGit(workspace)
 }
 
 /** Represents the real location of the Git data directory.

@@ -32,7 +32,6 @@ export class FSUploader extends Uploader {
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (template: Contract<any>): Promise<Contract<any>> {
-    console.trace(template)
     let receipt: UploadReceipt|null = null
     if (this.cache) {
       const name = this.getUploadReceiptName(template)
