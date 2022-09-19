@@ -10,7 +10,7 @@ use super::{
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct InitialBalance {
-    pub address: Addr,
+    pub address: String,
     pub amount: Uint128,
 }
 
@@ -397,22 +397,22 @@ pub enum QueryMsg {
     ContractStatus {},
     ExchangeRate {},
     Allowance {
-        owner: Addr,
-        spender: Addr,
+        owner: String,
+        spender: String,
         key: String,
     },
     Balance {
-        address: Addr,
+        address: String,
         key: String,
     },
     TransferHistory {
-        address: Addr,
+        address: String,
         key: String,
         page: Option<u32>,
         page_size: u32,
     },
     TransactionHistory {
-        address: Addr,
+        address: String,
         key: String,
         page: Option<u32>,
         page_size: u32,
@@ -464,7 +464,7 @@ pub enum QueryPermission {
 }
 
 impl QueryMsg {
-    pub fn get_validation_params(&self) -> (Vec<&Addr>, ViewingKey) {
+    pub fn get_validation_params(&self) -> (Vec<&String>, ViewingKey) {
         match self {
             Self::Balance { address, key } => (vec![address], ViewingKey(key.clone())),
             Self::TransferHistory { address, key, .. } => (vec![address], ViewingKey(key.clone())),

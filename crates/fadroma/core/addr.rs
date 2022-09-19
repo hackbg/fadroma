@@ -1,26 +1,28 @@
 //! `Addr`<->`CanonicalAddr` conversion
 
+use fadroma_platform_scrt::cosmwasm_std::{Delegation, Validator};
+
 use crate::cosmwasm_std::{
-    self, Api, Binary, BlockInfo, CanonicalAddr, Coin, ContractInfo, Decimal, Empty, Addr,
+    self, Addr, Api, Binary, BlockInfo, CanonicalAddr, Coin, ContractInfo, Decimal, Empty,
     MessageInfo, StdResult, Uint128,
 };
 
 pub trait Canonize {
     type Output: Humanize;
 
-    fn canonize(self, api: &impl Api) -> StdResult<Self::Output>;
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output>;
 }
 
 pub trait Humanize {
     type Output: Canonize;
 
-    fn humanize(self, api: &impl Api) -> StdResult<Self::Output>;
+    fn humanize(self, api: &dyn Api) -> StdResult<Self::Output>;
 }
 
 /// Attempting to canonicalize an empty address will fail.
 /// This function skips calling `canonical_address` if the input is empty
 /// and returns `CanonicalAddr::default()` instead.
-pub fn canonize_maybe_empty(api: &impl Api, addr: &Addr) -> StdResult<CanonicalAddr> {
+pub fn canonize_maybe_empty(api: &dyn Api, addr: &Addr) -> StdResult<CanonicalAddr> {
     Ok(if addr.as_str() == "" {
         CanonicalAddr(Binary(Vec::new()))
     } else {
@@ -31,7 +33,7 @@ pub fn canonize_maybe_empty(api: &impl Api, addr: &Addr) -> StdResult<CanonicalA
 /// Attempting to humanize an empty address will fail.
 /// This function skips calling `human_address` if the input is empty
 /// and returns `Addr::default()` instead.
-pub fn humanize_maybe_empty(api: &impl Api, addr: &CanonicalAddr) -> StdResult<Addr> {
+pub fn humanize_maybe_empty(api: &dyn Api, addr: &CanonicalAddr) -> StdResult<Addr> {
     Ok(if *addr == CanonicalAddr(Binary(Vec::new())) {
         Addr::unchecked("")
     } else {
@@ -39,10 +41,18 @@ pub fn humanize_maybe_empty(api: &impl Api, addr: &CanonicalAddr) -> StdResult<A
     })
 }
 
+/// Helper function that validates a collection of expected address strings.
+pub fn validate_addresses(api: &dyn Api, mut addresses: Vec<String>) -> StdResult<Vec<Addr>> {
+    addresses
+        .drain(..)
+        .map(|x| api.addr_validate(&x))
+        .collect::<StdResult<Vec<Addr>>>()
+}
+
 impl Humanize for CanonicalAddr {
     type Output = Addr;
 
-    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
+    fn humanize(self, api: &dyn Api) -> StdResult<Self::Output> {
         humanize_maybe_empty(api, &self)
     }
 }
@@ -50,7 +60,7 @@ impl Humanize for CanonicalAddr {
 impl Canonize for Addr {
     type Output = CanonicalAddr;
 
-    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
         canonize_maybe_empty(api, &self)
     }
 }
@@ -58,7 +68,7 @@ impl Canonize for Addr {
 impl Humanize for &CanonicalAddr {
     type Output = Addr;
 
-    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
+    fn humanize(self, api: &dyn Api) -> StdResult<Self::Output> {
         humanize_maybe_empty(api, self)
     }
 }
@@ -66,7 +76,7 @@ impl Humanize for &CanonicalAddr {
 impl Canonize for &Addr {
     type Output = CanonicalAddr;
 
-    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
         canonize_maybe_empty(api, self)
     }
 }
@@ -74,7 +84,7 @@ impl Canonize for &Addr {
 impl<T: Humanize> Humanize for Vec<T> {
     type Output = Vec<T::Output>;
 
-    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
+    fn humanize(self, api: &dyn Api) -> StdResult<Self::Output> {
         self.into_iter().map(|x| x.humanize(api)).collect()
     }
 }
@@ -82,7 +92,7 @@ impl<T: Humanize> Humanize for Vec<T> {
 impl<T: Canonize> Canonize for Vec<T> {
     type Output = Vec<T::Output>;
 
-    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
         self.into_iter().map(|x| x.canonize(api)).collect()
     }
 }
@@ -90,7 +100,7 @@ impl<T: Canonize> Canonize for Vec<T> {
 impl<T: Humanize> Humanize for Option<T> {
     type Output = Option<T::Output>;
 
-    fn humanize(self, api: &impl Api) -> StdResult<Self::Output> {
+    fn humanize(self, api: &dyn Api) -> StdResult<Self::Output> {
         match self {
             Some(item) => Ok(Some(item.humanize(api)?)),
             None => Ok(None),
@@ -101,7 +111,7 @@ impl<T: Humanize> Humanize for Option<T> {
 impl<T: Canonize> Canonize for Option<T> {
     type Output = Option<T::Output>;
 
-    fn canonize(self, api: &impl Api) -> StdResult<Self::Output> {
+    fn canonize(self, api: &dyn Api) -> StdResult<Self::Output> {
         match self {
             Some(item) => Ok(Some(item.canonize(api)?)),
             None => Ok(None),
@@ -118,7 +128,7 @@ macro_rules! impl_canonize_default {
             #[inline(always)]
             fn humanize(
                 self,
-                _api: &impl cosmwasm_std::Api,
+                _api: &dyn cosmwasm_std::Api,
             ) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(self)
             }
@@ -130,7 +140,7 @@ macro_rules! impl_canonize_default {
             #[inline(always)]
             fn canonize(
                 self,
-                _api: &impl cosmwasm_std::Api,
+                _api: &dyn cosmwasm_std::Api,
             ) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(self)
             }
@@ -165,3 +175,5 @@ impl_canonize_default!(BlockInfo);
 impl_canonize_default!(ContractInfo);
 impl_canonize_default!(MessageInfo);
 impl_canonize_default!(Empty);
+impl_canonize_default!(Validator);
+impl_canonize_default!(Delegation);

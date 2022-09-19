@@ -1,4 +1,7 @@
-use crate::prelude::*;
+use crate::prelude::{
+    cosmwasm_std, load, ns_load, ns_save, save, Addr, BlockInfo, CanonicalAddr, Canonize, Deps,
+    StdError, StdResult, Storage, Uint128, Humanize, ViewingKey,
+};
 
 use super::msg::ContractStatusLevel;
 use schemars::JsonSchema;
@@ -13,7 +16,6 @@ pub const PREFIX_ALLOWANCES: &[u8] = b"eXDXajOxRG";
 #[serde(deny_unknown_fields)]
 pub struct Constants {
     pub name: String,
-    pub admin: Addr,
     pub symbol: String,
     pub decimals: u8,
     pub prng_seed: Vec<u8>,

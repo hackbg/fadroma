@@ -34,7 +34,7 @@ fn generate_trait_impls(strukt: &ItemStruct, humanized: &Ident) -> proc_macro2::
         impl fadroma::prelude::Canonize for #humanized {
             type Output = #canonized;
 
-            fn canonize(self, api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
+            fn canonize(self, api: &dyn cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(#canonized #fields)
             }
         }
@@ -45,7 +45,7 @@ fn generate_trait_impls(strukt: &ItemStruct, humanized: &Ident) -> proc_macro2::
         impl fadroma::prelude::Humanize for #canonized {
             type Output = #humanized;
 
-            fn humanize(self, api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
+            fn humanize(self, api: &dyn cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(#humanized #fields)
             }
         }

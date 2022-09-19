@@ -24,7 +24,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
         impl fadroma::prelude::Canonize for #ident<cosmwasm_std::Addr> {
             type Output = #ident<cosmwasm_std::CanonicalAddr>;
 
-            fn canonize(self, api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
+            fn canonize(self, api: &dyn cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(match self {
                     #canonize_impl
                 })
@@ -34,7 +34,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
         impl fadroma::prelude::Humanize for #ident<cosmwasm_std::CanonicalAddr> {
             type Output = #ident<cosmwasm_std::Addr>;
 
-            fn humanize(self, api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
+            fn humanize(self, api: &dyn cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(match self {
                     #humanize_impl
                 })

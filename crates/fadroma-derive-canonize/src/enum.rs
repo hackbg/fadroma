@@ -37,7 +37,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
         impl fadroma::prelude::Canonize for #humanized {
             type Output = #canonized;
 
-            fn canonize(self, api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
+            fn canonize(self, api: &dyn cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(match self {
                     #canonized_impls
                 })
@@ -46,7 +46,7 @@ pub fn generate(mut input: ItemEnum) -> proc_macro::TokenStream {
         impl fadroma::prelude::Humanize for #canonized {
             type Output = #humanized;
 
-            fn humanize(self, api: &impl cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
+            fn humanize(self, api: &dyn cosmwasm_std::Api) -> cosmwasm_std::StdResult<Self::Output> {
                 Ok(match self {
                     #humanized_impls
                 })

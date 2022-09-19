@@ -7,7 +7,7 @@ use crate::scrt::cosmwasm_std::{
     Response, StdError, StdResult, Uint128, WasmMsg,
 };
 use crate::vk::{ViewingKey, VIEWING_KEY_SIZE};
-use fadroma_platform_scrt::cosmwasm_std::OwnedDeps;
+use fadroma_platform_scrt::cosmwasm_std::{Api, OwnedDeps, ReplyOn, SubMsg};
 
 use super::{
     assert_valid_symbol, batch,
@@ -185,7 +185,7 @@ fn ensure_success(handle_result: Response) -> bool {
 #[test]
 fn test_init_sanity() {
     let (init_result, deps) = init_helper(vec![InitialBalance {
-        address: Addr::unchecked("lebron".to_string()),
+        address: "lebron".into(),
         amount: Uint128::new(5000),
     }]);
     assert_eq!(
@@ -195,16 +195,15 @@ fn test_init_sanity() {
             .add_attribute("token_code_hash", "")
     );
 
-    let storage = deps.as_ref().storage();
+    let storage = deps.as_ref().storage;
     let constants = Config::get_constants(storage).unwrap();
 
-    assert_eq!(Config::get_total_supply(storage).unwrap(), 5000);
+    assert_eq!(Config::get_total_supply(storage).unwrap().u128(), 5000);
     assert_eq!(
         Config::get_contract_status(storage).unwrap(),
         ContractStatusLevel::NormalRun
     );
     assert_eq!(constants.name, "sec-sec".to_string());
-    assert_eq!(constants.admin, Addr::unchecked("admin".to_string()));
     assert_eq!(constants.symbol, "SECSEC".to_string());
     assert_eq!(constants.decimals, 8);
     assert_eq!(constants.prng_seed, Vec::from("lolz fun yay"));
@@ -215,7 +214,7 @@ fn test_init_sanity() {
 fn test_init_with_config_sanity() {
     let (init_result, deps) = init_helper_with_config(
         vec![InitialBalance {
-            address: Addr::unchecked("lebron".to_string()),
+            address: "lebron".into(),
             amount: Uint128::new(5000),
         }],
         true,
@@ -233,13 +232,12 @@ fn test_init_with_config_sanity() {
 
     let storage = deps.as_ref().storage;
     let constants = Config::get_constants(storage).unwrap();
-    assert_eq!(Config::get_total_supply(storage).unwrap(), 5000);
+    assert_eq!(Config::get_total_supply(storage).unwrap().u128(), 5000);
     assert_eq!(
         Config::get_contract_status(storage).unwrap(),
         ContractStatusLevel::NormalRun
     );
     assert_eq!(constants.name, "sec-sec".to_string());
-    assert_eq!(constants.admin, Addr::unchecked("admin".to_string()));
     assert_eq!(constants.symbol, "SECSEC".to_string());
     assert_eq!(constants.decimals, 8);
     assert_eq!(constants.prng_seed, Vec::from("lolz fun yay"));
@@ -253,7 +251,7 @@ fn test_init_with_config_sanity() {
 #[test]
 fn test_total_supply_overflow() {
     let (init_result, _deps) = init_helper(vec![InitialBalance {
-        address: Addr::unchecked("lebron".to_string()),
+        address: "lebron".into(),
         amount: Uint128::new(u128::max_value()),
     }]);
     assert!(
@@ -264,11 +262,11 @@ fn test_total_supply_overflow() {
 
     let (init_result, _deps) = init_helper(vec![
         InitialBalance {
-            address: Addr::unchecked("lebron".to_string()),
+            address: "lebron".into(),
             amount: Uint128::new(u128::max_value()),
         },
         InitialBalance {
-            address: Addr::unchecked("giannis".to_string()),
+            address: "giannis".into(),
             amount: Uint128::new(1),
         },
     ]);
@@ -384,7 +382,7 @@ fn test_handle_send() {
 #[test]
 fn test_handle_send_with_code_hash() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr::unchecked("bob".to_string()),
+        address: "bob".into(),
         amount: Uint128::new(5000),
     }]);
     assert!(
@@ -396,7 +394,7 @@ fn test_handle_send_with_code_hash() {
     let code_hash = "code_hash_of_recipient";
 
     let handle_msg = ExecuteMsg::Send {
-        recipient: Addr::unchecked("contract".to_string()),
+        recipient: "contract".into(),
         recipient_code_hash: Some(code_hash.into()),
         amount: Uint128::new(100),
         memo: Some("my memo".to_string()),
@@ -406,20 +404,30 @@ fn test_handle_send_with_code_hash() {
     let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result.clone()));
-    assert!(result.messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: Addr::unchecked("contract".to_string()),
-        code_hash: code_hash.into(),
-        msg: Snip20ReceiveMsg::new(
-            Addr::unchecked("bob".to_string()),
-            Addr::unchecked("bob".to_string()),
-            Uint128::new(100),
-            Some("my memo".to_string()),
-            Some(to_binary("hey hey you you").unwrap())
-        )
-        .into_binary()
-        .unwrap(),
-        funds: vec![]
-    })));
+    let id = 0;
+    assert!(result.messages.contains(&SubMsg {
+        id,
+        msg: CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: "contract".to_string(),
+            code_hash: "this_is_a_hash_of_a_code".to_string(),
+            msg: Snip20ReceiveMsg::new(
+                Addr::unchecked("bob".to_string()),
+                Addr::unchecked("bob".to_string()),
+                Uint128::new(100),
+                Some("my memo".to_string()),
+                Some(to_binary("hey hey you you").unwrap())
+            )
+            .into_binary()
+            .unwrap(),
+            funds: vec![],
+        })
+        .into(),
+        reply_on: match id {
+            0 => ReplyOn::Never,
+            _ => ReplyOn::Always,
+        },
+        gas_limit: None,
+    }));
 }
 
 #[test]
@@ -816,7 +824,7 @@ fn test_handle_send_from() {
 #[test]
 fn test_handle_send_from_with_code_hash() {
     let (init_result, mut deps) = init_helper(vec![InitialBalance {
-        address: Addr::unchecked("bob".to_string()),
+        address: "bob".into(),
         amount: Uint128::new(5000),
     }]);
     assert!(
@@ -826,7 +834,7 @@ fn test_handle_send_from_with_code_hash() {
     );
 
     let handle_msg = ExecuteMsg::IncreaseAllowance {
-        spender: Addr::unchecked("alice".to_string()),
+        spender: "alice".into(),
         amount: Uint128::new(2000),
         padding: None,
         expiration: None,
@@ -842,7 +850,7 @@ fn test_handle_send_from_with_code_hash() {
 
     let handle_msg = ExecuteMsg::SendFrom {
         owner: "bob".into(),
-        recipient: Addr::unchecked("contract".to_string()),
+        recipient: "contract".into(),
         recipient_code_hash: Some(code_hash.into()),
         amount: Uint128::new(2000),
         memo: Some("my memo".to_string()),
@@ -857,20 +865,30 @@ fn test_handle_send_from_with_code_hash() {
     );
     let result = handle_result.unwrap();
     assert!(ensure_success(result.clone()));
-    assert!(result.messages.contains(&CosmosMsg::Wasm(WasmMsg::Execute {
-        contract_addr: Addr::unchecked("contract".to_string()),
-        code_hash: code_hash.into(),
-        msg: Snip20ReceiveMsg::new(
-            Addr::unchecked("alice".to_string()),
-            "bob".into(),
-            Uint128::new(2000),
-            Some("my memo".to_string()),
-            Some(to_binary("hey hey you you").unwrap())
-        )
-        .into_binary()
-        .unwrap(),
-        funds: vec![]
-    })));
+    let id = 0;
+    assert!(result.messages.contains(&SubMsg {
+        id,
+        msg: CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: "contract".into(),
+            code_hash: code_hash.into(),
+            msg: Snip20ReceiveMsg::new(
+                Addr::unchecked("alice".to_string()),
+                Addr::unchecked("bob".to_string()),
+                Uint128::new(2000),
+                Some("my memo".to_string()),
+                Some(to_binary("hey hey you you").unwrap())
+            )
+            .into_binary()
+            .unwrap(),
+            funds: vec![]
+        })
+        .into(),
+        reply_on: match id {
+            0 => ReplyOn::Never,
+            _ => ReplyOn::Always,
+        },
+        gas_limit: None,
+    }));
 }
 
 #[test]
