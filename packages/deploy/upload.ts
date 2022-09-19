@@ -2,7 +2,6 @@ import { bold } from '@hackbg/konzola'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
 import { Agent, Contract, Uploader } from '@fadroma/client'
 import { CustomConsole } from '@hackbg/konzola'
-import { codeHashForPath } from '@fadroma/build'
 
 export class UploadConsole extends CustomConsole {
   constructor (name = 'Fadroma Upload') {
@@ -17,17 +16,19 @@ export class FSUploader extends Uploader {
 
   constructor (
     /** Agent that will sign the upload transactions(s). */
-    readonly agent?: Agent|null,
+    public agent?: Agent|null,
     /** If present, upload receipts are stored in it and reused to save reuploads. */
-    readonly cache?: string|Uploads
+    cache?: string|Path|Uploads
   ) {
-    if (typeof cache === 'string') cache = $(cache).as(Uploads)
     super(agent)
+    if (cache) this.cache = $(cache).as(Uploads)
   }
 
   readonly id = 'fs'
 
   log = new UploadConsole('Fadroma.FSUploader')
+
+  cache?: Uploads
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (template: Contract<any>): Promise<Contract<any>> {
@@ -171,7 +172,7 @@ export class FSUploader extends Uploader {
       const artifact = $(input.artifact!)
       this.log.warn('No code hash in artifact', bold(artifact.shortPath))
       try {
-        const codeHash = codeHashForPath($(input.artifact!).path)
+        const codeHash = this.hashPath(artifact)
         this.log.warn('Computed code hash:', bold(input.codeHash!))
         input = new Contract({ ...input,  codeHash })
       } catch (e: any) {
@@ -180,6 +181,8 @@ export class FSUploader extends Uploader {
     }
     return input
   }
+
+  private hashPath = (path: string|Path) => $(path).as(BinaryFile).sha256
 
   /** Panic if the code hash returned by the upload
     * doesn't match the one specified in the Contract. */
@@ -202,14 +205,13 @@ export class Uploads extends JSONDirectory<UploadReceipt> {}
 
 /** Class that convert itself to a Contract, from which contracts can be instantiated. */
 export class UploadReceipt extends JSONFile<UploadReceiptFormat> {
-
+  /** Create a Contract object with the data from the receipt. */
   toContract (defaultChainId?: string) {
     let { chainId, codeId, codeHash, uploadTx, artifact } = this.load()
     chainId ??= defaultChainId
     codeId  = String(codeId)
     return new Contract({ artifact, codeHash, chainId, codeId, uploadTx })
   }
-
 }
 
 /** Fields in the upload receipt. */

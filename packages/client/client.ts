@@ -709,10 +709,10 @@ export class ContractMetadata {
   }
 
   /** URL to local or remote Git repository containing the source code. */
-  gitRepo?:    string|URL = undefined
+  repository?: string|URL = undefined
 
   /** Git ref (branch or tag) pointing to source commit. */
-  gitRef?:     string     = 'HEAD'
+  revision?:   string     = 'HEAD'
 
   /** Path to Cargo workspace. */
   workspace?:  string     = undefined
@@ -814,13 +814,13 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
 
   /** The agent instance that will be used to upload and instantiate this contract. */
-  agent?:      Agent
+  agent?:      Agent      = undefined
 
   /** Build procedure implementation. */
-  builder?:    Builder
+  builder?:    Builder    = undefined
 
   /** Upload procedure implementation. */
-  uploader?:   Uploader
+  uploader?:   Uploader   = undefined
 
   /** Deployment that this contract is a part of. */
   deployment?: Deployment = undefined
@@ -853,9 +853,9 @@ export class Contract<C extends Client> extends ContractMetadata {
 
   /** Returns a string in the format `crate[@ref][+flag][+flag]...` */
   getSourceSpecifier (): string {
-    const { crate, gitRef, features } = this
+    const { crate, revision, features } = this
     let result = crate ?? ''
-    if (this.gitRef !== 'HEAD') result = `${result}@${gitRef}`
+    if (this.revision !== 'HEAD') result = `${result}@${revision}`
     if (features && features.length > 0) result = `${result}+${features.join('+')}`
     return result
   }
@@ -1048,8 +1048,12 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Wrap a method in a lazy task.
     * @returns A Lazy or Promise containing a task. */
-  task = <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> =>
-    new Task(name, cb, this)
+  task = <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> => {
+    const task = new Task(name, cb, this)
+    const [_, head, ...body] = (task.stack ?? '').split('\n')
+    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+    return task
+  }
 }
 
 export interface ContractInfo {
@@ -1114,7 +1118,7 @@ export class Deployment extends CommandContext {
   state:     Record<string, Partial<Contract<any>>> = {}
 
   /** Default Git ref from which contracts would be built if needed. */
-  gitRef:    string = 'HEAD'
+  revision:  string = 'HEAD'
 
   /** Build implementation. Can't build from source if missing. */
   builder?:  Builder
@@ -1204,7 +1208,7 @@ export class Deployment extends CommandContext {
       builder:    this.builder,
       uploader:   this.uploader,
       agent:      this.agent,
-      gitRef:     this.gitRef,
+      revision:   this.revision,
       ...((typeof arg === 'string') ? { name: arg } : arg)
     }
     if (options.name && this.has(options.name)) Object.assign(options, this.get(options.name))

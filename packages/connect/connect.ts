@@ -6,7 +6,7 @@ import type { Env }  from '@hackbg/konfizi'
 import {
   Agent, AgentOpts, Chain, ChainId, ChainOpts, ChainRegistry, ClientConsole
 } from '@fadroma/client'
-import { Devnet, defineDevnet } from '@fadroma/devnet'
+import { Devnet, DevnetConfig, defineDevnet } from '@fadroma/devnet'
 import { Scrt, ScrtGrpc } from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 import { Mocknet } from '@fadroma/mocknet'
@@ -81,6 +81,10 @@ export class ConnectConfig extends EnvConfig {
   mnemonic?: string
     = this.getString('FADROMA_MNEMONIC',    ()=>
       this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
+
+  devnet    = new DevnetConfig(this.env, this.cwd)
+  scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
+  scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
 
   /** Create a `ConnectContext` containing instances of `Chain` and `Agent`
     * as specified by the configuration and return a `ConnectContext with them. */

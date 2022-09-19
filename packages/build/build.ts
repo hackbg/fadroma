@@ -37,15 +37,15 @@ import { DockerBuilder } from './build-docker'
 
 export async function build (
   crates:  string[]               = [],
-  gitRef:  string                 = HEAD,
+  revision:  string                 = HEAD,
   config:  Partial<BuilderConfig> = new BuilderConfig(),
   builder: Builder                = getBuilder(config)
 ) {
   return await builder.buildMany(crates.map(crate=>new Contract({
-    gitRepo:   config.project,
-    workspace: config.project,
+    repository: config.project,
+    workspace:  config.project,
     crate,
-    gitRef
+    revision
   })))
 }
 
@@ -99,22 +99,22 @@ export class BuildContext extends CommandContext {
   }
 
   /** Setting for the build context. */
-  config?:   BuilderConfig
+  config?:    BuilderConfig
 
   /** Knows how to build contracts for a target. */
-  builder?:  Builder
+  builder?:   Builder
 
   /** Path to Cargo workspace. */
-  workspace: string = process.cwd()
+  workspace:  string = process.cwd()
 
   /** Path to local Git repository. */
-  gitRepo:   string = this.workspace
+  repository: string = this.workspace
 
   /** Git reference from which to build sources. */
-  gitRef:    string = HEAD
+  revision:   string = HEAD
 
   /** Path to `.git` directory. */
-  gitDir:    string = `${this.gitRepo}/.git`
+  gitDir:     string = `${this.repository}/.git`
 
   buildFromPath = this.command('one', 'build one crate from working tree', (
     path: string|Path = process.argv[2],
@@ -149,12 +149,12 @@ export class BuildContext extends CommandContext {
 
   buildFromCargoToml = async (
     cargoToml: CargoTOML,
-    gitRepo      = process.env.FADROMA_BUILD_REPO_ROOT      || cargoToml.parent,
+    repository      = process.env.FADROMA_BUILD_REPO_ROOT      || cargoToml.parent,
     workspace = process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
   ) => {
     this.log.buildingFromCargoToml(cargoToml)
     const source = new Contract({
-      gitRepo,
+      repository,
       workspace,
       crate: (cargoToml.as(TOMLFile).load() as any).package.name
     })
@@ -217,5 +217,4 @@ export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()
 export default new BuildContext()
 
 export { getGitDir, DotGit } from './build-history'
-export { codeHashForPath, codeHashForBlob } from './build-base'
 export { LocalBuilder, RawBuilder, DockerBuilder, BuildConsole, buildPackage }

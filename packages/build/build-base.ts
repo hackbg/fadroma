@@ -1,7 +1,7 @@
 import { Builder, Contract, HEAD } from '@fadroma/client'
 import { CommandsConsole } from '@hackbg/komandi'
 import { bold } from '@hackbg/konzola'
-import $, { Path } from '@hackbg/kabinet'
+import $, { Path, BinaryFile } from '@hackbg/kabinet'
 import { Encoding, Crypto } from '@hackbg/formati'
 
 import { dirname } from 'node:path'
@@ -11,10 +11,6 @@ import { readFileSync } from 'node:fs'
 /** Path to this package. Used to find the build script, dockerfile, etc. */
 //@ts-ignore
 export const buildPackage = dirname(fileURLToPath(import.meta.url))
-
-export const codeHashForPath = (location: string)=>codeHashForBlob(readFileSync(location))
-
-export const codeHashForBlob = (blob: Uint8Array)=>Encoding.toHex(new Crypto.Sha256(blob).digest())
 
 export interface LocalBuilderOptions {
   /** Script that implements the actual build procedure. */
@@ -65,20 +61,20 @@ export abstract class LocalBuilder extends Builder {
   /** Check if artifact exists in local artifacts cache directory.
     * If it does, don't rebuild it but return it from there. */
   protected prebuild (
-    outputDir: string, crate?: string, gitRef: string = HEAD
+    outputDir: string, crate?: string, revision: string = HEAD
   ): Contract<any>|null {
     if (this.caching && crate) {
-      const location = $(outputDir, artifactName(crate, gitRef))
+      const location = $(outputDir, artifactName(crate, revision))
       if (location.exists()) {
         const artifact = location.url
-        const codeHash = this.codeHashForPath(location.path)
-        return new Contract({ crate, gitRef, artifact, codeHash })
+        const codeHash = this.hashPath(location)
+        return new Contract({ crate, revision, artifact, codeHash })
       }
     }
     return null
   }
 
-  codeHashForPath = codeHashForPath
+  hashPath = (location: string|Path) => $(location).as(BinaryFile).sha256
 
 }
 
@@ -101,9 +97,9 @@ export class BuildConsole extends CommandsConsole {
     if (prebuilt) {
       this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
     } else {
-      const { crate = '(unknown)', gitRef = 'HEAD' } = source
+      const { crate = '(unknown)', revision = 'HEAD' } = source
       this.info('Building', bold(crate), ...
-        (gitRef === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(gitRef)])
+        (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
     }
   }
   buildingMany (sources: Contract<any>[]) {

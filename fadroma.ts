@@ -18,31 +18,26 @@
 
 **/
 
+import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
 import { BuilderConfig, BuildContext } from '@fadroma/build'
-import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
 import { DeployConfig, DeployContext } from '@fadroma/deploy'
-import { DevnetConfig } from '@fadroma/devnet'
-
-import { Chain, Agent, Deployment, ClientConsole } from '@fadroma/client'
+import type { Deployments }            from '@fadroma/deploy'
+import { DevnetConfig }                from '@fadroma/devnet'
+import { ScrtGrpc, ScrtAmino }         from '@fadroma/connect'
 
 /** A collection of functions that return Chain instances. */
 export type ChainRegistry = Record<string, (config: any)=>Chain|Promise<Chain>>
 
-/** Complete environment configuration of all Fadroma subsystems. */
+/** Configuration for the Fadroma environment. */
 export class Config extends DeployConfig {
-  /** Path to root of project. Defaults to current working directory. */
-  project: string = this.getString('FADROMA_PROJECT', ()=>this.cwd)
-  build     = new BuilderConfig(this.env, this.cwd, { project: this.project })
-  devnet    = new DevnetConfig(this.env, this.cwd)
-  scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
-  scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
+  build = new BuilderConfig(this.env, this.cwd, { project: this.project })
 }
 
 export type Entrypoint = (argv: string[]) => Promise<unknown>
 
 /** Context for Fadroma commands. */
 export default class Fadroma extends DeployContext {
-  /** Returns a function that runs the defined commands. */
+  /** Returns a function that runs a requested command. */
   static run (name: string = 'Fadroma'): Entrypoint {
     const self = this
     return (argv: string[]) => self.init(name).then(context=>context.run(argv))
@@ -53,36 +48,36 @@ export default class Fadroma extends DeployContext {
     options: Partial<Config> = {}
   ): Promise<Fadroma> {
     const config = new Config(process.env, process.cwd(), options)
-    const { chain, agent, deployments, uploader } = await config.connect()
-    const build = config.build.getBuildContext()
-    return new this(name, config, build, chain, agent)
+    const { chain, agent, deployments, uploader } = await config.init()
+    return new this(name, config, chain, agent, deployments, uploader)
   }
   constructor (
     /** Used by logger. */
-    public name:   string,
-    /** System configuration. */
-    public config: Config,
-    /** Build context. */
-    public build?: BuildContext,
+    public name:        string,
+    /** Configuration. */
+    config:             Partial<Config>   = new Config(),
     /** Represents the blockchain to which we will connect. */
-    public chain?: Chain|null,
+    public chain:       Chain|null        = null,
     /** Represents the identity which will perform operations on the chain. */
-    public agent?: Agent|null,
+    public agent:       Agent|null        = null,
+    /** Contains available deployments for the current chain. */
+    public deployments: Deployments|null  = null,
+    /** Implements uploading and upload reuse. */
+    public uploader:    Uploader|null     = null,
+    /** Build context. */
+    public build:       BuildContext|null = null
   ) {
-    super({ name })
+    super(config, chain, agent)
     this.log.name = name
-    this.project = config.project
+    this.config = new Config(this.env, this.cwd, config)
+    this.build ??= this.config.build.getBuildContext()
   }
-  /** Path to root of project directory. */
-  public project?: string
-  /** Attach an instance of the DeployContext `ctor`, created with arguments `[this, ...args]`,
-    * to the command tree under `name`, with usage description `info`. */
-  subsystem = <X extends Deployment>(
-    name: string,
-    info: string,
-    ctor: { new (d: DeployContext|unknown, ...args: unknown[]): X },
-    ...args: unknown[]
-  ): X => this.commands(name, info, new ctor(this, ...args)) as X
+  /** The current configuration. */
+  config: Config
+  /** The currently configured builder, or null. */
+  get builder (): Builder|null {
+    return this.build?.builder ?? null
+  }
 }
 
 export const Console = ClientConsole

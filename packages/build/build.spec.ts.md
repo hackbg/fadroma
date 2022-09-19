@@ -58,11 +58,11 @@ log.buildingFromCargoToml('foo')
 log.buildingFromBuildScript('foo')
 log.buildingFromWorkspace('foo')
 log.buildingOne(contract.define({ crate: 'bar' }))
-log.buildingOne(contract.define({ crate: 'bar', gitRef: 'commit' }))
-log.buildingOne(contract.define({ crate: 'bar', gitRef: 'commit' }), contract)
+log.buildingOne(contract.define({ crate: 'bar', revision: 'commit' }))
+log.buildingOne(contract.define({ crate: 'bar', revision: 'commit' }), contract)
 log.buildingMany([
   contract.define({ crate: 'bar' }),
-  contract.define({ crate: 'bar', gitRef: 'commit' })
+  contract.define({ crate: 'bar', revision: 'commit' })
 ])
 ```
 
@@ -72,9 +72,9 @@ The `Contract` class has the following properties for specifying the source.
 Use `contract.define({ key: value })` to define their values.
 This returns a new copy of `contract` without modifying the original one.
 
-* `contract.gitRepo: Path|URL` points to the Git repository containing the contract sources.
+* `contract.repository: Path|URL` points to the Git repository containing the contract sources.
   * This is all you need if your smart contract is a single crate.
-* `contract.gitRef: string` can points to a Git reference (branch or tag).
+* `contract.revision: string` can points to a Git reference (branch or tag).
   * This defaults to `HEAD`, i.e. the currently checked out working tree
   * If set to something else, the builder will check out and build a past commit.
 * `contract.workspace: Path|URL` points to the Cargo workspace containing the contract sources.
@@ -86,22 +86,22 @@ This returns a new copy of `contract` without modifying the original one.
 ```typescript
 import { HEAD } from '.'
 const contractWithSource = contract.define({
-  gitRepo:   'REPO',
-  gitRef:    'REF',
-  workspace: 'WORKSPACE'
-  crate:     'CRATE'
+  repository: 'REPO',
+  revision:   'REF',
+  workspace:  'WORKSPACE'
+  crate:      'CRATE'
 })
-equal(contractWithSource.gitRepo,   'REPO')
-equal(contractWithSource.gitRef,    'REF')
-equal(contractWithSource.workspace, 'WORKSPACE')
-equal(contractWithSource.crate,     'CRATE')
-equal(contract.gitRef, 'HEAD')
+equal(contractWithSource.repository, 'REPO')
+equal(contractWithSource.revision,   'REF')
+equal(contractWithSource.workspace,  'WORKSPACE')
+equal(contractWithSource.crate,      'CRATE')
+equal(contract.revision, 'HEAD')
 ```
 
 ### The `.git` directory
 
 If `.git` directory is present, builders can check out and build a past commits of the repo,
-as specifier by `contract.gitRef`.
+as specifier by `contract.revision`.
 
 ```typescript
 import { getGitDir, DotGit } from '.'
@@ -176,14 +176,14 @@ const builders = [
 ]
 
 // mock out code hash function
-builders[0].codeHashForPath = () => 'sha256'
-builders[1].codeHashForPath = () => 'sha256'
+builders[0].hashPath = () => 'sha256'
+builders[1].hashPath = () => 'sha256'
 
 // mock out runtime in raw builder
 import { execSync } from 'child_process'
 builders[1].runtime = String(execSync('which true')).trim()
 
-const contractFromHead = contractWithSource.define({ gitRef: 'HEAD' })
+const contractFromHead = contractWithSource.define({ revision: 'HEAD' })
 
 for (const builder of builders) {
   const source   = contractFromHead.define({ crate: 'foo' })

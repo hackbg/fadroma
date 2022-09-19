@@ -77,7 +77,7 @@ ok(new YAMLDeployment() instanceof Deployment,
     image:      'my-custom/build-image:version'
   }),
   context.build.builder.build = x => Object.assign(x, { artifact: x.name })
-  context.build.builder.codeHashForPath = () => 'codehash'
+  context.build.builder.hashPath = () => 'codehash'
   context.deployment = deployment
   delete context.uploader.cache
   const op = new ExampleDeployment(context)

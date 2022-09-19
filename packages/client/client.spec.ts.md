@@ -239,12 +239,12 @@ equal(contract.agent,      agent)
 
 ```typescript
 contract = new Contract({ crate: 'crate' })
-equal(contract.crate,  'crate')
-equal(contract.gitRef, 'HEAD')
+equal(contract.crate,    'crate')
+equal(contract.revision, 'HEAD')
 
-contract = new Contract({ crate: 'crate', gitRef: 'ref' })
-equal(contract.crate,  'crate')
-equal(contract.gitRef, 'ref')
+contract = new Contract({ crate: 'crate', revision: 'ref' })
+equal(contract.crate,    'crate')
+equal(contract.revision, 'ref')
 
 builder = new class TestBuilder extends Builder {
   async build (source: Source): Promise<Contract> { return new Contract(source) }

@@ -18,7 +18,7 @@ export class RawBuilder extends LocalBuilder {
 
   /** Build a Source into a Template */
   async build (source: Contract<any>): Promise<Contract<any>> {
-    const { workspace, gitRef = HEAD, crate } = source
+    const { workspace, revision = HEAD, crate } = source
     if (!workspace) throw new Error('no workspace')
     if (!crate)     throw new Error('no crate')
 
@@ -35,7 +35,7 @@ export class RawBuilder extends LocalBuilder {
       _TOOLCHAIN: this.toolchain,
     }
 
-    if ((gitRef ?? HEAD) !== HEAD) {
+    if ((revision ?? HEAD) !== HEAD) {
       const gitDir = getGitDir(source)
       // Provide the build script with the config values that ar
       // needed to make a temporary checkout of another commit
@@ -57,12 +57,12 @@ export class RawBuilder extends LocalBuilder {
     }
 
     // Run the build script
-    const cmd = [this.runtime, this.script, 'phase1', gitRef, crate ]
+    const cmd = [this.runtime, this.script, 'phase1', revision, crate ]
     const opts = { cwd: source.workspace, env: { ...process.env, ...env }, stdio: 'inherit' }
     const sub  = spawn(cmd.shift() as string, cmd, opts as any)
     await new Promise<void>((resolve, reject)=>{
       sub.on('exit', (code: number, signal: any) => {
-        const build = `Build of ${source.crate} from ${$(source.workspace!).shortPath} @ ${source.gitRef}`
+        const build = `Build of ${source.crate} from ${$(source.workspace!).shortPath} @ ${source.revision}`
         if (code === 0) {
           resolve()
         } else if (code !== null) {
@@ -83,11 +83,11 @@ export class RawBuilder extends LocalBuilder {
     if (tmpBuild && tmpBuild.exists()) tmpBuild.delete()
 
     // Create an artifact for the build result
-    const location = $(env._OUTPUT, artifactName(crate, sanitize(gitRef)))
+    const location = $(env._OUTPUT, artifactName(crate, sanitize(revision)))
     this.log.info('Build ok:', bold(location.shortPath))
     return Object.assign(new Contract(source), {
       artifact: pathToFileURL(location.path),
-      codeHash: this.codeHashForPath(location.path)
+      codeHash: this.hashPath(location.path)
     })
   }
 

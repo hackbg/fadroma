@@ -12,23 +12,28 @@ import { DeployConfig } from './deploy-config'
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
 export class DeployContext extends CommandContext {
   constructor (
-    config: Partial<DeployConfig> = new DeployConfig(),
+    config:             Partial<DeployConfig> = new DeployConfig(),
     /** Chain to connect to. */
-    public chain:       Chain|null       = null,
+    public chain:       Chain|null            = null,
     /** Agent to identify as. */
-    public agent:       Agent|null       = null,
+    public agent:       Agent|null            = null,
     /** Contains available deployments for the current chain. */
-    public deployments: Deployments|null = null,
+    public deployments: Deployments|null      = null,
     /** Implements uploading and upload reuse. */
-    public uploader:    Uploader|null    = null,
+    public uploader:    Uploader|null         = null,
   ) {
     super('connect', 'connection manager')
     this.config = new DeployConfig(this.env, this.cwd, config)
+    Object.defineProperty(this, 'log', { enumerable: false, writable: true })
   }
-  /** Configuration. */
-  config: DeployConfig
   /** Logger. */
   log = new DeployConsole('Fadroma Deploy')
+  /** Configuration. */
+  config: DeployConfig
+  /** Path to root of project directory. */
+  get project (): string|undefined {
+    return this.config?.project
+  }
   /** Currently selected deployment. */
   get deployment (): Deployment|null {
     return this.deployments?.active || null
@@ -87,6 +92,14 @@ export class DeployContext extends CommandContext {
     }
     return this.deployments
   }
+  /** Attach an instance of the DeployContext `ctor`, created with arguments `[this, ...args]`,
+    * to the command tree under `name`, with usage description `info`. */
+  subsystem = <X extends Deployment>(
+    name: string,
+    info: string,
+    ctor: { new (d: DeployContext|unknown, ...args: unknown[]): X },
+    ...args: unknown[]
+  ): X => this.commands(name, info, new ctor(this, ...args)) as X
 }
 
 export abstract class Deployments {
