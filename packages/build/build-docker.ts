@@ -1,4 +1,5 @@
-import { LocalBuilder, BuildConsole, buildPackage, artifactName, sanitize } from './build-base'
+import { LocalBuilder, buildPackage, artifactName, sanitize } from './build-base'
+import { BuildConsole } from './build-events'
 import type { LocalBuilderOptions } from './build-base'
 import { getGitDir } from './build-history'
 

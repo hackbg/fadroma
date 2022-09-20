@@ -31,15 +31,16 @@ import { homedir, tmpdir              } from 'os'
 import { pathToFileURL, fileURLToPath } from 'url'
 import { readFileSync, mkdtempSync    } from 'fs'
 
-import { BuildConsole, LocalBuilder, buildPackage } from './build-base'
+import { LocalBuilder, buildPackage } from './build-base'
+import { BuildConsole }  from './build-events'
 import { RawBuilder }    from './build-raw'
 import { DockerBuilder } from './build-docker'
 
 export async function build (
-  crates:  string[]               = [],
-  revision:  string                 = HEAD,
-  config:  Partial<BuilderConfig> = new BuilderConfig(),
-  builder: Builder                = getBuilder(config)
+  crates:   string[]               = [],
+  revision: string                 = HEAD,
+  config:   Partial<BuilderConfig> = new BuilderConfig(),
+  builder:  Builder                = getBuilder(config)
 ) {
   return await builder.buildMany(crates.map(crate=>new Contract({
     repository: config.project,
@@ -61,25 +62,31 @@ export class BuilderConfig extends EnvConfig {
   }
 
   /** Project root. Defaults to current working directory. */
-  project:    string  = this.getString ('FADROMA_PROJECT',          ()=>this.cwd)
+  project:    string  = this.getString ('FADROMA_PROJECT',   ()=>this.cwd)
+
   /** Whether to bypass Docker and use the toolchain from the environment. */
-  buildRaw:   boolean = this.getBoolean('FADROMA_BUILD_RAW',        ()=>false)
+  buildRaw:   boolean = this.getBoolean('FADROMA_BUILD_RAW', ()=>false)
+
   /** Whether to ignore existing build artifacts and rebuild contracts. */
-  rebuild:    boolean = this.getBoolean('FADROMA_REBUILD',          ()=>false)
+  rebuild:    boolean = this.getBoolean('FADROMA_REBUILD',   ()=>false)
+
   /** Whether not to run `git fetch` during build. */
-  noFetch:    boolean = this.getBoolean('FADROMA_NO_FETCH',         ()=>false)
+  noFetch:    boolean = this.getBoolean('FADROMA_NO_FETCH',  ()=>false)
+
   /** Which version of the Rust toolchain to use, e.g. `1.59.0` */
-  toolchain:  string  = this.getString ('FADROMA_RUST',             ()=>'')
+  toolchain:  string  = this.getString ('FADROMA_RUST',      ()=>'')
 
   /** Script that runs the actual build, e.g. build.impl.mjs */
-  script:     string  = this.getString ('FADROMA_BUILD_SCRIPT',     ()=>
-                                        resolve(buildPackage, 'build.impl.mjs'))
+  script:     string  = this.getString ('FADROMA_BUILD_SCRIPT',
+    ()=>resolve(buildPackage, 'build.impl.mjs'))
+
   /** Docker image to use for dockerized builds. */
-  image:      string  = this.getString ('FADROMA_BUILD_IMAGE',      ()=>
-                                        'ghcr.io/hackbg/fadroma:unstable')
+  image:      string  = this.getString ('FADROMA_BUILD_IMAGE',
+    ()=>'ghcr.io/hackbg/fadroma:unstable')
+
   /** Dockerfile to build the build image if not downloadable. */
-  dockerfile: string  = this.getString ('FADROMA_BUILD_DOCKERFILE', ()=>
-                                        resolve(buildPackage, 'build.Dockerfile'))
+  dockerfile: string  = this.getString ('FADROMA_BUILD_DOCKERFILE',
+    ()=>resolve(buildPackage, 'build.Dockerfile'))
 
   getBuildContext (): BuildContext {
     return new BuildContext(this)
@@ -100,62 +107,59 @@ export class BuildContext extends CommandContext {
 
   /** Setting for the build context. */
   config?:    BuilderConfig
-
   /** Knows how to build contracts for a target. */
   builder?:   Builder
-
   /** Path to Cargo workspace. */
   workspace:  string = process.cwd()
-
   /** Path to local Git repository. */
   repository: string = this.workspace
-
   /** Git reference from which to build sources. */
   revision:   string = HEAD
-
   /** Path to `.git` directory. */
   gitDir:     string = `${this.repository}/.git`
 
-  buildFromPath = this.command('one', 'build one crate from working tree', (
+  /** Similar to Deployment#contract, but only has the builder populated,
+    * so it can only be built. */
+  contract (name?: string): Contract<Client>
+  contract <C extends Client> (options?: Partial<Contract<C>>): Contract<C>
+  contract <C extends Client> (arg?: string|Partial<Contract<C>>) {
+    const options = {
+      prefix:     this.name,
+      builder:    this.builder,
+      revision:   this.revision,
+      workspace:  this.workspace,
+      ...((typeof arg === 'string') ? { name: arg } : arg)
+    }
+    const contract = new Contract(options)
+    return contract
+  }
+
+  /** Pass this a Cargo.toml or a directory containing one */
+  buildOne = this.command('one', 'build one crate from working tree', (
     path: string|Path = process.argv[2],
-    args: string[]            = process.argv.slice(3)
+    args: string[]    = process.argv.slice(3)
   ) => {
     path = $(path)
     if (path.isDirectory()) {
-      return this.buildFromDirectory(path.as(OpaqueDirectory))
-    } else if (path.isFile()) {
-      return this.buildFromFile(path.as(OpaqueFile), args)
-    } else {
-      return this.printUsage()
+      path = path.at('Cargo.toml').as(TOMLFile)
     }
+    if (path.exists() && path.isFile()) {
+      return this.buildFromCargoToml(path as CargoTOML)
+    }
+    return this.printUsage()
   })
 
-  buildFromDirectory = (dir: OpaqueDirectory) => {
-    const cargoToml = dir.at('Cargo.toml').as(TOMLFile)
-    if (cargoToml.exists()) {
-      return this.buildFromCargoToml(cargoToml as CargoTOML)
-    } else {
-      this.printUsage()
-    }
-  }
-
-  buildFromFile = async (file: TOMLFile<unknown>|OpaqueFile, args: string[]) => {
-    if (file.name === 'Cargo.toml') {
-      return this.buildFromCargoToml(file as CargoTOML)
-    } else {
-      return this.buildFromModule(file as OpaqueFile, args)
-    }
-  }
-
   buildFromCargoToml = async (
-    cargoToml: CargoTOML,
-    repository      = process.env.FADROMA_BUILD_REPO_ROOT      || cargoToml.parent,
-    workspace = process.env.FADROMA_BUILD_WORKSPACE_ROOT || cargoToml.parent
+    cargoToml:   CargoTOML,
+    repository?: string|Path,
+    workspace?:  string|Path
   ) => {
+    repository = $(repository ?? process.env.FADROMA_BUILD_REPO_ROOT      ?? cargoToml.parent)
+    workspace  = $(workspace  ?? process.env.FADROMA_BUILD_WORKSPACE_ROOT ?? cargoToml.parent)
     this.log.buildingFromCargoToml(cargoToml)
     const source = new Contract({
-      repository,
-      workspace,
+      repository: repository.path,
+      workspace:  workspace.path,
       crate: (cargoToml.as(TOMLFile).load() as any).package.name
     })
     try {
@@ -216,5 +220,6 @@ export function getBuilder (config: Partial<BuilderConfig> = new BuilderConfig()
 
 export default new BuildContext()
 
+export { BuildConsole, LocalBuilder, RawBuilder, DockerBuilder, buildPackage }
+
 export { getGitDir, DotGit } from './build-history'
-export { LocalBuilder, RawBuilder, DockerBuilder, BuildConsole, buildPackage }

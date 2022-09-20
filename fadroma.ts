@@ -21,7 +21,7 @@
 import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
 import { BuilderConfig, BuildContext } from '@fadroma/build'
 import { DeployConfig, DeployContext } from '@fadroma/deploy'
-import type { Deployments } from '@fadroma/deploy'
+import type { DeployStore } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
 import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
@@ -57,7 +57,7 @@ export default class Fadroma extends DeployContext {
     /** Represents the identity which will perform operations on the chain. */
     public agent:       Agent|null        = null,
     /** Contains available deployments for the current chain. */
-    public deployments: Deployments|null  = null,
+    public deployments: DeployStore|null  = null,
     /** Implements uploading and upload reuse. */
     public uploader:    Uploader|null     = null,
     /** Build context. */
@@ -95,7 +95,7 @@ export * from '@hackbg/konfizi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
 export * from '@fadroma/client'
-export { override } from '@fadroma/client'
+export { override, Overridable } from '@fadroma/client'
 export type { Decimal } from '@fadroma/client'
 export * from '@fadroma/build'
 export * from '@fadroma/deploy'

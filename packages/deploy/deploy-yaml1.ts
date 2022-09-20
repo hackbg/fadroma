@@ -4,7 +4,7 @@ import $, {
   Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML, OpaqueDirectory
 } from '@hackbg/kabinet'
 import { Agent, Contract, Client, Deployment } from '@fadroma/client'
-import { Deployments } from './deploy-base'
+import { DeployStore } from './deploy-base'
 
 import { basename } from 'node:path'
 
@@ -14,7 +14,7 @@ import * as FS from 'node:fs' // TODO replace with calls to @hackbg/kabinet
   * Each deployment is represented by 1 multi-document YAML file, where every
   * document is delimited by the `\n---\n` separator and represents a deployed
   * smart contract. */
-export class YAMLDeployments_v1 extends Deployments {
+export class YAMLDeployments_v1 extends DeployStore {
 
   constructor (
     storePath: string|Path|YAMLDirectory<unknown>,

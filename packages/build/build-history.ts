@@ -1,7 +1,7 @@
 import $, { Path, TextFile } from '@hackbg/kabinet'
 import { bold } from '@hackbg/konzola'
 import type { Contract } from '@fadroma/client'
-import { BuildConsole } from './build-base'
+import { BuildConsole } from './build-events'
 
 import { fileURLToPath } from 'node:url'
 

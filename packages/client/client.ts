@@ -642,13 +642,13 @@ export class Client {
   }
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   as (agent: Agent|undefined = this.agent): this {
-    return (!agent || agent === this.agent)
-      ? this
-      : new (this.constructor as ClientClass<typeof this>)(agent, this.address, this.codeHash)
+    if (!agent || agent === this.agent) return this
+    const Client = this.constructor as ClientClass<typeof this>
+    return new Client(agent, this.address, this.codeHash) as this
   }
   /** Creates another Client instance pointing to the same contract. */
   asClient <C extends Client> (client: ClientClass<C>): C {
-    return new client(this.agent, this.address, this.codeHash, this.meta)
+    return new client(this.agent, this.address, this.codeHash, this.meta) as C
   }
   /** Execute a query on the specified contract as the specified Agent. */
   query <U> (msg: Message): Promise<U> {

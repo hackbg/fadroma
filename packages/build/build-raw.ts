@@ -1,4 +1,5 @@
-import { LocalBuilder, BuildConsole, artifactName, sanitize } from './build-base'
+import { LocalBuilder, artifactName, sanitize } from './build-base'
+import { BuildConsole } from './build-events'
 import { getGitDir } from './build-history'
 import { Contract, HEAD } from '@fadroma/client'
 import $ from '@hackbg/kabinet'

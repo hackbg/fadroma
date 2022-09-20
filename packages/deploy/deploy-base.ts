@@ -1,24 +1,67 @@
 import { Env } from '@hackbg/konfizi'
 import { bold } from '@hackbg/konzola'
 import $ from '@hackbg/kabinet'
+import type { Path } from '@hackbg/kabinet'
 import { CommandContext } from '@hackbg/komandi'
 import { ConnectConfig, ConnectConsole, ConnectContext } from '@fadroma/connect'
 import { Chain, Agent, Deployment, Uploader, override } from '@fadroma/client'
+import type { Class } from '@fadroma/client'
 import { FSUploader } from './upload'
 import { DeployConfig } from './deploy-config'
+import { DeployConsole } from './deploy-events'
+
+/** We support several of those:
+  *  - YAML1 is how the latest @fadroma/deploy stores data
+  *  - YAML2 is how @aakamenov's custom Rust-based deployer stores data
+  *  - JSON1 is the intended target format for the next major version;
+  *    JSON can generally be parsed with fewer dependencies, and can be
+  *    natively embedded in the API client library distribution,
+  *    in order to enable a standard subset of receipt data
+  *    (such as the up-to-date addresses and code hashes for your production deployment)
+  *    to be delivered alongside your custom Client subclasses,
+  *    making your API client immediately usable with no further steps necessary. */
+export type DeploymentFormat = 'YAML1'|'YAML2'|'JSON1'
+
+/** Constructor for the different varieties of DeployStore. */
+export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
+  /** Path to where the receipts are stored. */
+  string|Path,
+  /** Defaults when creating Deployment instances from the store */
+  Partial<Deployment>|undefined
+]> {}
+
+/** A deploy store collects receipts corresponding to individual instances of Deployment,
+  * and can create Deployment objects with the data from the receipts. */ 
+export abstract class DeployStore {
+  /** Name of symlink marking active deployment. */
+  KEY = '.active'
+  /** Create a new deployment. */
+  abstract create (name?: string): Promise<Deployment>
+  /** Get a deployment by name, or null if such doesn't exist. */
+  abstract get    (name: string):  Deployment|null
+  /** Get the names of all stored deployments. */
+  abstract list   ():              string[]
+  /** Activate a new deployment, or throw if such doesn't exist. */
+  abstract select (name: string):  Promise<Deployment>
+  /** Get the active deployment, or null if there isn't one. */
+  get active (): Deployment|null {
+    return this.get(this.KEY)
+  }
+}
 
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
 export class DeployContext extends CommandContext {
   constructor (
+    /** A whole DeployConfig object, or just relevant options. */
     config:             Partial<DeployConfig> = new DeployConfig(),
     /** Chain to connect to. */
     public chain:       Chain|null            = null,
     /** Agent to identify as. */
     public agent:       Agent|null            = null,
     /** Contains available deployments for the current chain. */
-    public deployments: Deployments|null      = null,
+    public deployments: DeployStore|null      = null,
     /** Implements uploading and upload reuse. */
     public uploader:    Uploader|null         = null,
   ) {
@@ -31,16 +74,14 @@ export class DeployContext extends CommandContext {
   /** Configuration. */
   config: DeployConfig
   /** Path to root of project directory. */
-  get project (): string|undefined {
-    return this.config?.project
+  get project (): Path|undefined {
+    return this.config?.project ? $(this.config.project) : undefined
   }
   /** Currently selected deployment. */
-  get deployment (): Deployment|null {
-    return this.deployments?.active || null
-  }
+  get deployment (): Deployment|null { return this.deployments?.active || null }
   /** Print a list of deployments on the selected chain. */
   list = this.command('deployments', `print a list of all deployments on this chain`,
-    (): Deployments => {
+    (): DeployStore => {
       const deployments = this.expectEnabled()
       this.log.deploymentList(this.chain?.id??'(unspecified)', deployments)
       return deployments
@@ -85,11 +126,11 @@ export class DeployContext extends CommandContext {
       }
     })
   /** Throws is deployment store is missing. */
-  private expectEnabled = (): Deployments => {
-    if (!(this.deployments instanceof Deployments)) {
+  private expectEnabled = (): DeployStore => {
+    if (!(this.deployments instanceof DeployStore)) {
       //this.log.error('context.deployments was not populated')
       //this.log.log(context)
-      throw new Error('Deployments were not enabled')
+      throw new Error('Deployment strore not found')
     }
     return this.deployments
   }
@@ -108,92 +149,9 @@ export class DeployContext extends CommandContext {
 /** A Subsystem is any class which extends Deployment (thus being able to manage Contracts),
   * and whose constructor takes a DeployContext as first argument, as well as any number of
   * other arguments. This interface can be used to connect the main project class to individual
-  * deployer classes that operate in the same context. */
-export interface Subsystem<X extends Deployment> {
-  new (d: DeployContext|unknown, ...args: unknown[]): X
-}
-
-export abstract class Deployments {
-  /** Name of symlink marking active deployment. */
-  KEY = '.active'
-  /** Create a new deployment. */
-  abstract create (name?: string): Promise<Deployment>
-  /** Get a deployment by name, or null if such doesn't exist. */
-  abstract get    (name: string):  Deployment|null
-  /** Get the names of all stored deployments. */
-  abstract list   ():              string[]
-  /** Activate a new deployment, or throw if such doesn't exist. */
-  abstract select (name: string):  Promise<Deployment>
-  /** Get the active deployment, or null if there isn't one. */
-  get active (): Deployment|null {
-    return this.get(this.KEY)
-  }
-}
-
-export class DeployConsole extends ConnectConsole {
-  name = 'Fadroma Deploy'
-  deployment = ({ deployment }: { deployment: Deployment }) => {
-    if (deployment) {
-      const { state = {}, name } = deployment
-      let contracts: string|number = Object.values(state).length
-      contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      const len = Math.min(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
-      this.info('│ Active deployment:'.padEnd(len+2), bold($(deployment.name).shortPath), contracts)
-      const count = Object.values(state).length
-      if (count > 0) {
-        for (const name of Object.keys(state)) {
-          this.receipt(name, state[name], len)
-        }
-      } else {
-        this.info('│ This deployment is empty.')
-      }
-    } else {
-      this.info('│ There is no selected deployment.')
-    }
-  }
-  receipt = (name: string, receipt: any, len = 35) => {
-    name = bold(name.padEnd(len))
-    if (receipt.address) {
-      const address = `${receipt.address}`.padStart(45)
-      const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      this.info('│', name, address, codeId)
-    } else {
-      this.info('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
-    }
-  }
-  warnNoDeployment = () => this.warn(
-    'No active deployment. Most commands will fail. ' +
-    'You can create a deployment using `fadroma-deploy new` ' +
-    'or select a deployment using `fadroma-deploy select` ' +
-    'among the ones listed by `fadroma-deploy list`.'
-  )
-  warnNoAgent = () => this.warn(
-    'No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'
-  )
-  warnNoDeployAgent = () => this.warn(
-    'No deploy agent. Deployments will not be possible.'
-  )
-  deploymentList = (chainId: string, deployments: Deployments) => {
-    const list = deployments.list()
-    if (list.length > 0) {
-      this.info(`Deployments on chain ${bold(chainId)}:`)
-      let maxLength = 0
-      for (let name of list) {
-        if (name === deployments.KEY) continue
-        maxLength = Math.max(name.length, maxLength)
-      }
-      for (let name of list) {
-        if (name === deployments.KEY) continue
-        const deployment = deployments.get(name)!
-        const count = Object.keys(deployment.state).length
-        let info = `${bold(name.padEnd(maxLength))}`
-        if (deployments.active && deployments.active.name === name) info = `${bold(name)} (selected)`
-        info = `${info} (${deployment.size} contracts)`
-        this.info(` `, info)
-      }
-    } else {
-      this.info(`No deployments on chain ${bold(chainId)}`)
-    }
-    this.br()
-  }
-}
+  * deployer classes for different parts of the project, enabling them to operate in the same
+  * context (chain, agent, builder, uploader, etc). */
+export interface Subsystem<D extends Deployment> extends Class<D, [
+  DeployContext|unknown,
+  ...unknown[]
+]> {}
