@@ -5,10 +5,9 @@
   "main":    "client.ts",
   "files": [ "client.ts" ],
   "scripts": {
-    "test":        "ganesha-node client.spec.ts.md",
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "npm run ts:check && ubik dry",
-    "release:wet": "npm run ts:check && ubik wet --access=public"
+    "test":  "ganesha-node client.spec.ts.md",
+    "check": "tsc --noEmit",
+    "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
     "@hackbg/konzola": "^2.1",

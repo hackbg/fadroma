@@ -11,8 +11,7 @@
     "@hackbg/formati": "workspace:^3.0.2"
   },
   "scripts": {
-    "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && ubik dry",
-    "release:wet": "pnpm ts:check && ubik wet --access=public"
+    "check": "tsc --noEmit",
+    "ubik":  "npm run check && ubik"
   }
 }

@@ -480,7 +480,7 @@ export abstract class Bundle extends Agent {
     }
   }
   /** Throws if the bundle is invalid. */
-  assertMessages (): typeof this.msgs {
+  assertMessages (): any[] {
     if (this.msgs.length < 1) throw new ClientError.EmptyBundle()
     return this.msgs
   }
@@ -1023,7 +1023,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Wrap a method in a lazy task.
     * @returns A Lazy or Promise containing a task. */
-  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> {
+  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<Contract<C>, T> {
     const task = new Task(name, cb, this)
     const [_, head, ...body] = (task.stack ?? '').split('\n')
     task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
