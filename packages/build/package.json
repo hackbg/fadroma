@@ -25,7 +25,7 @@
     "@hackbg/kabinet": "workspace:^3.1.2",
     "@hackbg/konzola": "workspace:^2.0.1",
     "@hackbg/komandi": "workspace:^6",
-    "@hackbg/konfizi": "workspace:^2",
+    "@hackbg/konfizi": "workspace:^3",
     "dotenv":     "^16.0.1",
     "simple-git": "^3.7.1"
   },

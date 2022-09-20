@@ -8,7 +8,7 @@
     "@fadroma/client": "workspace:^6",
     "@hackbg/formati": "workspace:^3.0.2",
     "@hackbg/konzola": "workspace:^2.0.1",
-    "@hackbg/konfizi": "workspace:^2",
+    "@hackbg/konfizi": "workspace:^3",
 
     "secretjs": "1.4.0-alpha.4",
 
