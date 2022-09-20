@@ -62,7 +62,7 @@ export type ChainId = string
 /** A collection of functions that return Chain instances. */
 export type ChainRegistry = Record<string, (config: any)=>Chain|Promise<Chain>>
 
-export interface ChainCtor<O extends ChainOpts> { new (id: ChainId, options?: Partial<O>) }
+export interface ChainCtor<O extends ChainOpts> { new (id: ChainId, options?: Partial<O>): Chain }
 
 /** Represents a particular chain. */
 export abstract class Chain {

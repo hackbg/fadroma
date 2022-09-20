@@ -21,5 +21,14 @@
     "ts:check":    "tsc --noEmit",
     "release:dry": "pnpm ts:check && ubik dry",
     "release:wet": "pnpm ts:check && ubik wet --access=public"
+  },
+  "peerDependencies": {
+    "@fadroma/scrt-amino": "workspace:^2"
+  },
+  "peerDependenciesMeta": {
+    "@fadroma/scrt-amino": {
+      "optional":    true,
+      "description": "For ScrtAgent.create({ legacy: true })"
+    }
   }
 }
