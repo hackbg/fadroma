@@ -12,18 +12,18 @@ import assert, { ok, equal, deepEqual } from 'assert'
 * `Scrt`: creates secretjs@beta based agent using grpc
 
 ```typescript
-import { Scrt } from '@fadroma/scrt'
+import { ScrtGrpc } from '@fadroma/scrt'
 import { ScrtAmino } from '@fadroma/scrt-amino'
 
 const supportedChains = [
-  Scrt,
+  ScrtGrpc,
   ScrtAmino
 ]
 
 for (const Chain of supportedChains) {
   const chain = new Chain('test')
   const agent = await chain.getAgent({ mnemonic: Testing.mnemonics[0] })
-  assert(agent instanceof Chain.Agent, `${Chain.name}#getAgent returns Promise<${Chain.Agent.name}>`)
+  assert(agent instanceof Chain.Agent)
 }
 
 for (const Chain of supportedChains) {

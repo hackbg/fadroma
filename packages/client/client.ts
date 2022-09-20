@@ -402,6 +402,7 @@ export interface AgentOpts {
   mnemonic?: string
   address?:  Address
   fees?:     AgentFees
+  [key: string]: unknown
 }
 
 export interface AgentFees {

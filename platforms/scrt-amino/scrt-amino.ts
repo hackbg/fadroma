@@ -106,8 +106,9 @@ export class ScrtAmino extends Fadroma.Scrt {
     options: Partial<ScrtAminoAgentOpts> = {},
     _Agent:  Fadroma.AgentClass<ScrtAminoAgent> = this.Agent
   ): Promise<ScrtAminoAgent> {
-    const { chain, name = 'Anonymous', ...args } = options
+    const { name = 'Anonymous', ...args } = options
     let   { mnemonic, keyPair } = options
+    // select authentication method
     switch (true) {
       case !!mnemonic:
         // if keypair doesnt correspond to the mnemonic, delete the keypair
@@ -125,14 +126,17 @@ export class ScrtAmino extends Fadroma.Scrt {
         keyPair  = SecretJS.EnigmaUtils.GenerateNewKeyPair()
         mnemonic = privKeyToMnemonic(keyPair.privkey)
     }
-    return new ScrtAminoAgent({
+    // construct options object
+    options = {
       ...args,
-      chain,
+      chain: this,
       name,
       mnemonic,
       pen: await SecretJS.Secp256k1Pen.fromMnemonic(mnemonic!),
       keyPair
-    })
+    }
+    // construct agent
+    return await super.getAgent(options, _Agent) as ScrtAminoAgent
   }
 }
 

@@ -189,9 +189,9 @@ throws(()=>new Client().assertAddress())
 
 throws(()=>new Client().assertAgent())
 
-ok(typeof new Client(agent, { address: 'some-address' }).assertAddress() === 'string')
+ok(typeof new Client(agent, 'some-address').assertAddress() === 'string')
 
-ok(new Client(agent, { address: 'some-address' }).assertAgent() instanceof Agent)
+ok(new Client(agent, 'some-address').assertAgent() instanceof Agent)
 ```
 
 ### Contract
@@ -258,7 +258,7 @@ const artifact = new URL('file:///tmp/artifact.wasm')
 equal(new Contract({ artifact }).artifact, artifact)
 agent = new (class TestAgent extends Agent {
   instantiate (source: Contract): Promise<Client> { return new Client(source) }
-})({ id: 'chain' })
+})({ chain: { id: 'chain' } })
 uploader = new (class TestUploader extends Uploader {
   upload (template: Contract): Promise<Contract> { return new Contract(template) }
 })(agent)
