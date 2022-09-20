@@ -4,7 +4,7 @@ import { EnvConfig } from '@hackbg/konfizi'
 import type { Env }  from '@hackbg/konfizi'
 
 import {
-  Agent, AgentOpts, Chain, ChainId, ChainOpts, ChainRegistry, ClientConsole
+  Agent, AgentOpts, Chain, ChainId, ChainOpts, ChainRegistry, ClientConsole, ClientError
 } from '@fadroma/client'
 import { Devnet, DevnetConfig, defineDevnet } from '@fadroma/devnet'
 import { Scrt, ScrtGrpc } from '@fadroma/scrt'
@@ -54,8 +54,22 @@ export class ConnectConfig extends EnvConfig {
   /** Name of chain to use. */
   chain?: keyof ChainRegistry
     = this.getString('FADROMA_CHAIN',   ()=> undefined)
+  /** Name of stored mnemonic to use for authentication (currently devnet only) */
+  agentName: string
+    = this.getString('FADROMA_AGENT',   ()=>
+      this.getString('SCRT_AGENT_NAME', ()=> 'ADMIN'))
+  /** Mnemonic to use for authentication. Hidden by default. */
+  mnemonic?: string
+    = this.getString('FADROMA_MNEMONIC',    ()=>
+      this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
+  /** Devnet configuration. */
+  devnet    = new DevnetConfig(this.env, this.cwd)
+  /** Secret Network configuration for gRPC API */
+  scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
+  /** Secret Network configuration for legacy Amino API */
+  scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
 
-  /** Get a chain ID corresponding to the value of FADROMA_CHAIN.
+  /** Get a chain ID corresponding to the value of `this.chain`.
     * Used to generated default paths for receipts in DeployConfig. */
   get chainId (): ChainId {
     if (!this.chain) throw new Error('No chain ID. Set FADROMA_CHAIN')
@@ -71,43 +85,30 @@ export class ConnectConfig extends EnvConfig {
     if (!result) throw new Error('No chain ID. Set FADROMA_CHAIN')
     return result
   }
-
-  /** Name of stored mnemonic to use for authentication (currently devnet only) */
-  agentName: string
-    = this.getString('FADROMA_AGENT',   ()=>
-      this.getString('SCRT_AGENT_NAME', ()=> 'ADMIN'))
-
-  /** Mnemonic to use for authentication. Hidden by default. */
-  mnemonic?: string
-    = this.getString('FADROMA_MNEMONIC',    ()=>
-      this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
-
-  devnet    = new DevnetConfig(this.env, this.cwd)
-  scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
-  scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
-
   /** Create a `ConnectContext` containing instances of `Chain` and `Agent`
     * as specified by the configuration and return a `ConnectContext with them. */
   async connect (): Promise<ConnectContext> {
-
+    // Create the Chain instance as specified by the configuration.
     const chains = Chain.variants
-    let chain: Chain|null = null
+    let chain: Chain
     if (this.chain) {
       const getChain = chains[this.chain]
       if (!getChain) throw new Error(
         `Unknown chain ${this.chain}. Supported values are: ${Object.keys(chains).join(', ')}`
       )
       chain = await Promise.resolve(getChain(this))
+    } else {
+      throw new ClientError.NoChain()
     }
-
-    let agentOpts: AgentOpts = {}
+    // Create the Agent instance as identified by the configuration.
+    let agentOpts: AgentOpts = { chain }
     if (chain?.isDevnet) {
       agentOpts.name = this.agentName
     } else {
       agentOpts.mnemonic = this.mnemonic
     }
     const agent = await chain?.getAgent(agentOpts) ?? null
-
+    // Create the ConnectContext holding both and exposing them to commands.
     const context = new ConnectContext(this, chain!, agent)
     return context
   }

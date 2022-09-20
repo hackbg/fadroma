@@ -12,10 +12,10 @@
     "release:wet": "pnpm ts:check && ubik wet --access=public"
   },
   "dependencies": {
-    "@fadroma/client":     "workspace:^5",
+    "@fadroma/client":     "workspace:^6",
     "@fadroma/devnet":     "workspace:^1",
-    "@fadroma/scrt":       "workspace:^2",
-    "@fadroma/scrt-amino": "workspace:^2",
+    "@fadroma/scrt":       "workspace:^3",
+    "@fadroma/scrt-amino": "workspace:^3",
     "@fadroma/mocknet":    "workspace:^2",
     "@hackbg/komandi":     "workspace:^6",
     "@hackbg/konfizi":     "workspace:^2"

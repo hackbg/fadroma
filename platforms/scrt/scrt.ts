@@ -34,10 +34,10 @@ import { ScrtError, ScrtConsole } from './scrt-events'
 /** Base class for both implementations of Secret Network API (gRPC and Amino).
   * Represents the Secret Network in general. */
 export abstract class Scrt extends Fadroma.Chain {
-  static Config                = ScrtConfig
-  static defaultMainnetChainId = this.Config.defaultMainnetChainId
-  static defaultTestnetChainId = this.Config.defaultTestnetChainId
-  static Agent:           Fadroma.AgentCtor<ScrtAgent> // set below
+  static Config                   = ScrtConfig
+  static defaultMainnetChainId    = this.Config.defaultMainnetChainId
+  static defaultTestnetChainId    = this.Config.defaultTestnetChainId
+  static Agent:           Fadroma.AgentClass<ScrtAgent> // set below
   static isSecretNetwork: boolean = true
   static defaultDenom:    string  = 'uscrt'
   static gas (amount: Fadroma.Uint128|number) { return new Fadroma.Fee(amount, this.defaultDenom) }
@@ -47,9 +47,10 @@ export abstract class Scrt extends Fadroma.Chain {
     exec:   this.gas(1000000),
     send:   this.gas( 500000),
   }
-  Agent:           Fadroma.AgentCtor<ScrtAgent> = Scrt.Agent
-  isSecretNetwork: boolean                      = true
-  defaultDenom:    string                       = Scrt.defaultDenom
+
+  Agent: Fadroma.AgentClass<ScrtAgent> = Scrt.Agent
+  isSecretNetwork: boolean = Scrt.isSecretNetwork
+  defaultDenom:    string  = Scrt.defaultDenom
 }
 
 /** Agent configuration options that are common betweeen
@@ -62,35 +63,11 @@ export interface ScrtAgentOpts extends Fadroma.AgentOpts {
 /** Base class for both implementations of Secret Network API (gRPC and Amino).
   * Represents a connection to the Secret Network authenticated as a specific address. */
 export abstract class ScrtAgent extends Fadroma.Agent {
-  static Bundle: Fadroma.BundleCtor<ScrtBundle>
-  static create = createScrtAgent
+  static Bundle: Fadroma.BundleClass<ScrtBundle>
   fees = Scrt.defaultFees
-  Bundle: Fadroma.BundleCtor<ScrtBundle> = ScrtAgent.Bundle
+  Bundle: Fadroma.BundleClass<ScrtBundle> = ScrtAgent.Bundle
   abstract getNonce (): Promise<{ accountNumber: number, sequence: number }>
   abstract encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message): Promise<string>
-}
-
-/** Create a `ScrtAgent` on the specified `chain`.
-  * This will be a `ScrtAminoAgent` if `options.legacy` is set
-  * and `@fadroma/scrt-amino` is installed as a peer dependency,
-  * otherwise it will be a `ScrtGrpcAgent`. */
-export async function createScrtAgent (
-  chain:   Scrt,
-  options: Partial<ScrtAgentOpts> = {}
-): Promise<ScrtAgent> {
-  interface ScrtAgentCtor {
-    create (...args: Parameters<typeof createScrtAgent>): Promise<ScrtAgent>
-  }
-  let Agent: ScrtAgentCtor = ScrtGrpcAgent
-  if (options?.legacy) {
-    try {
-      const amino = await import('@fadroma/scrt-amino')
-      Agent = amino.ScrtAminoAgent
-    } catch (e) {
-      throw new ScrtError.UseAmino()
-    }
-  }
-  return await Agent.create(chain, options) as ScrtAgent
 }
 
 /** Base class for transaction-bundling Agent for both Secret Network implementations. */
@@ -123,7 +100,7 @@ export abstract class ScrtBundle extends Fadroma.Bundle {
     // Output signing instructions to the console
     log.bundleSigningCommand(
       String(Math.floor(+ new Date()/1000)),
-      this.agent.address!, this.agent.chain.id,
+      this.agent.address!, this.agent.assertChain.id,
       accountNumber, sequence, unsigned
     )
     return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
@@ -172,8 +149,8 @@ export abstract class ScrtBundle extends Fadroma.Bundle {
 
 }
 
-Scrt.Agent        = ScrtAgent  as unknown as Fadroma.AgentCtor<ScrtAgent>
-Scrt.Agent.Bundle = ScrtBundle as unknown as Fadroma.BundleCtor<ScrtBundle>
+Scrt.Agent        = ScrtAgent  as unknown as Fadroma.AgentClass<ScrtAgent>
+Scrt.Agent.Bundle = ScrtBundle as unknown as Fadroma.BundleClass<ScrtBundle>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 /// # FADROMA CLIENT IMPLEMENTATION FOR SECRET NETWORK GRPC API ///////////////////////////////////
@@ -185,7 +162,7 @@ export class ScrtGrpc extends Scrt {
   static Config = ScrtGrpcConfig
   static defaultMainnetGrpcUrl = this.Config.defaultMainnetGrpcUrl
   static defaultTestnetGrpcUrl = this.Config.defaultTestnetGrpcUrl
-  static Agent: Fadroma.AgentCtor<ScrtGrpcAgent>
+  static Agent: Fadroma.AgentClass<ScrtGrpcAgent>
   /** Values of FADROMA_CHAIN provided by the ScrtGrpc implementation.
     * Devnets and mocknets are defined downstream in @fadroma/connect */
   static Chains = {
@@ -212,7 +189,7 @@ export class ScrtGrpc extends Scrt {
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
   /** The Agent class that this instance's getAgent method will instantiate. */
-  Agent: Fadroma.AgentCtor<ScrtGrpcAgent> = ScrtGrpc.Agent
+  Agent: Fadroma.AgentClass<ScrtGrpcAgent> = ScrtGrpc.Agent
   /** The SecretJS implementation used by this instance. */
   SecretJS = ScrtGrpc.SecretJS
   /** A fresh instance of the anonymous read-only API client. Memoize yourself. */
@@ -257,50 +234,50 @@ export class ScrtGrpc extends Scrt {
   get height () {
     return this.block.then(block=>Number(block.block?.header?.height))
   }
-}
 
-export async function createScrtGrpcAgent(
-  /** Only ScrtGrpc is actually valid here. */
-  chain:   Scrt,
-  /** Settings for the client. */
-  options: Partial<ScrtGrpcAgentOpts> = {}
-): Promise<ScrtGrpcAgent> {
-  // keypair option not supported
-  if (options.keyPair) {
-    log.warnIgnoringKeyPair()
-    delete options.keyPair
-  }
-  // use selected secretjs implementation
-  const _SecretJS = (chain as ScrtGrpc).SecretJS ?? SecretJS
-  // unwrap
-  const { mnemonic, keyPair, address } = options
-  // create wallet from mnemonic if not passed
-  let { wallet } = options
-  if (!wallet) {
-    if (mnemonic) {
-      wallet = new _SecretJS.Wallet(mnemonic)
-    } else {
-      throw new ScrtError.NoWalletOrMnemonic()
+  /** Create a `ScrtGrpcAgent` on this `chain`.
+    * You can optionally pass a compatible subclass as a second argument. */
+  async getAgent (
+    options: Partial<ScrtGrpcAgentOpts> = {},
+    _Agent:  Fadroma.AgentClass<ScrtGrpcAgent> = this.Agent
+  ): Promise<ScrtGrpcAgent> {
+    // keypair option not supported
+    if (options.keyPair) {
+      log.warnIgnoringKeyPair()
+      delete options.keyPair
     }
-  } else if (wallet) {
-    log.warnIgnoringMnemonic()
-    delete options.mnemonic
-  }
-  // construct options object
-  options = {
-    legacy: false,
-    ...options,
-    SecretJS: _SecretJS,
-    wallet,
-    api: await (chain as ScrtGrpc).getApi({
-      chainId:    chain.id,
-      grpcWebUrl: chain.url,
+    // use selected secretjs implementation
+    const _SecretJS = this.SecretJS ?? SecretJS
+    // unwrap
+    const { mnemonic, keyPair, address } = options
+    // create wallet from mnemonic if not passed
+    let { wallet } = options
+    if (!wallet) {
+      if (mnemonic) {
+        wallet = new _SecretJS.Wallet(mnemonic)
+      } else {
+        throw new ScrtError.NoWalletOrMnemonic()
+      }
+    } else if (wallet) {
+      log.warnIgnoringMnemonic()
+      delete options.mnemonic
+    }
+    // construct options object
+    options = {
+      legacy: false,
+      ...options,
+      SecretJS: _SecretJS,
       wallet,
-      walletAddress: wallet.address || address
-    })
+      api: await this.getApi({
+        chainId:    this.id,
+        grpcWebUrl: this.url,
+        wallet,
+        walletAddress: wallet.address || address
+      })
+    }
+    // construct agent
+    return await super.getAgent(options, _Agent) as ScrtGrpcAgent
   }
-  // construct agent
-  return new ScrtGrpcAgent(chain as ScrtGrpc, options)
 }
 
 /** gRPC-specific configuration options. */
@@ -315,11 +292,10 @@ export interface ScrtGrpcAgentOpts extends ScrtAgentOpts {
 export type ScrtGrpcTxResult = SecretJS.Tx
 
 export class ScrtGrpcAgent extends ScrtAgent {
-  static Bundle: Fadroma.BundleCtor<ScrtBundle> // populated below with ScrtGrpcBundle
+  static Bundle: Fadroma.BundleClass<ScrtBundle> // populated below with ScrtGrpcBundle
   static SecretJS = ScrtGrpc.SecretJS
-  static create   = createScrtGrpcAgent
-  constructor (chain: ScrtGrpc, options: Partial<ScrtGrpcAgentOpts>) {
-    super(chain as Fadroma.Chain, options)
+  constructor (options: Partial<ScrtGrpcAgentOpts>) {
+    super(options)
     if (!options.wallet) throw new ScrtError.NoWallet()
     if (!options.api)    throw new ScrtError.NoApi()
     this.wallet  = options.wallet
@@ -328,7 +304,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     if (options.SecretJS) this.SecretJS = options.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
-  Bundle: Fadroma.BundleCtor<ScrtBundle> = ScrtGrpcAgent.Bundle
+  Bundle: Fadroma.BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
   SecretJS = ScrtGrpcAgent.SecretJS
   wallet:  SecretJS.Wallet
   api:     SecretJS.SecretNetworkClient
@@ -599,7 +575,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
 
 }
 
-export interface ScrtBundleCtor <B extends ScrtBundle> {
+export interface ScrtBundleClass <B extends ScrtBundle> {
   new (agent: ScrtAgent): B
 }
 
@@ -618,8 +594,8 @@ export interface ScrtBundleResult {
   label?:    Fadroma.Label
 }
 
-ScrtGrpc.Agent        = ScrtGrpcAgent  as unknown as Fadroma.AgentCtor<ScrtGrpcAgent>
-ScrtGrpc.Agent.Bundle = ScrtGrpcBundle as unknown as Fadroma.BundleCtor<ScrtGrpcBundle>
+ScrtGrpc.Agent        = ScrtGrpcAgent  as unknown as Fadroma.AgentClass<ScrtGrpcAgent>
+ScrtGrpc.Agent.Bundle = ScrtGrpcBundle as unknown as Fadroma.BundleClass<ScrtGrpcBundle>
 Object.defineProperty(ScrtGrpcAgent,  'SecretJS', { enumerable: false, writable: true })
 Object.defineProperty(ScrtGrpcBundle, 'SecretJS', { enumerable: false, writable: true })
 

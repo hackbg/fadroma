@@ -21,7 +21,7 @@ import { Env, EnvConfig } from '@hackbg/konfizi'
 import { CommandContext } from '@hackbg/komandi'
 import $, { Path, OpaqueFile, OpaqueDirectory, TOMLFile, TextFile } from '@hackbg/kabinet'
 
-import { Client, NewClient, Contract, Builder, Deployment, HEAD } from '@fadroma/client'
+import { Client, Contract, Builder, Deployment, HEAD } from '@fadroma/client'
 
 import { default as simpleGit } from 'simple-git'
 

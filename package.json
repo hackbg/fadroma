@@ -45,20 +45,20 @@
     "docs:vp:serve": "vitepress serve"
   },
   "dependencies": {
-    "@fadroma/client":     "workspace:^5",
+    "@fadroma/client":     "workspace:^6",
     "@fadroma/connect":    "workspace:^2",
     "@fadroma/mocknet":    "workspace:^2",
-    "@fadroma/tokens":     "workspace:^4",
+    "@fadroma/tokens":     "workspace:^5",
     "@fadroma/build":      "workspace:^2",
     "@fadroma/deploy":     "workspace:^2",
     "@fadroma/devnet":     "workspace:^1",
-    "@fadroma/scrt":       "workspace:^2",
-    "@fadroma/scrt-amino": "workspace:^2",
+    "@fadroma/scrt":       "workspace:^3",
+    "@fadroma/scrt-amino": "workspace:^3",
     "@hackbg/formati":  "^3.0.2",
     "@hackbg/kabinet":  "^3.1.2",
     "@hackbg/komandi":  "^6",
     "@hackbg/konfizi":  "^2",
-    "@hackbg/konzola":  "^2"
+    "@hackbg/konzola":  "^2.0.1"
   },
   "peerDependencies": {
     "dotenv":              "^16.0.1",

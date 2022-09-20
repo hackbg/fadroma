@@ -21,12 +21,12 @@
     "@fadroma/build":  { "optional": true, "description": "For building from deployment scripts." }
   },
   "dependencies": {
-    "@fadroma/client":  "workspace:^5",
+    "@fadroma/client":  "workspace:^6",
     "@fadroma/connect": "workspace:^2",
     "@fadroma/build":   "workspace:^2",
     "@hackbg/formati":  "workspace:^3.0.2",
     "@hackbg/kabinet":  "workspace:^3.1.2",
-    "@hackbg/konzola":  "workspace:^2",
+    "@hackbg/konzola":  "workspace:^2.0.1",
     "@hackbg/konfizi":  "workspace:^2",
     "@hackbg/komandi":  "workspace:^6",
     "@hackbg/portali":  "workspace:^1.2.4",
