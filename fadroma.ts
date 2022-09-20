@@ -44,7 +44,7 @@ export default class Fadroma extends DeployContext {
     options: Partial<Config> = {}
   ): Promise<Fadroma> {
     const config = new Config(process.env, process.cwd(), options)
-    const { chain, agent, deployments, uploader } = await config.init()
+    const { chain, agent, deployments, uploader } = await config.getDeployContext()
     return new this(name, config, chain, agent, deployments, uploader)
   }
   constructor (

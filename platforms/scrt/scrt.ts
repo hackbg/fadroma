@@ -73,8 +73,7 @@ export abstract class Scrt extends Chain {
 /** Agent configuration options that are common betweeen
   * gRPC and Amino implementations of Secret Network. */
 export interface ScrtAgentOpts extends AgentOpts {
-  legacy:  boolean
-  keyPair: unknown
+  keyPair?: unknown
 }
 
 /** Base class for both implementations of Secret Network API (gRPC and Amino).
@@ -283,7 +282,6 @@ export class ScrtGrpc extends Scrt {
     }
     // construct options object
     options = {
-      legacy: false,
       ...options,
       SecretJS: _SecretJS,
       wallet,

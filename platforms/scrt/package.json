@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "scrt.ts" ],
@@ -20,14 +20,5 @@
   "scripts": {
     "check": "tsc --noEmit",
     "ubik":  "npm run check && ubik"
-  },
-  "peerDependencies": {
-    "@fadroma/scrt-amino": "workspace:^2"
-  },
-  "peerDependenciesMeta": {
-    "@fadroma/scrt-amino": {
-      "optional":    true,
-      "description": "For ScrtAgent.create({ legacy: true })"
-    }
   }
 }
