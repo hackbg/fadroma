@@ -115,7 +115,7 @@ for (const Chain of supportedChains) {
 
 ```typescript
 import { ConnectConfig } from '.'
-const config = new ConnectConfig({ FADROMA_CHAIN: '' }, '')
+const config = new ConnectConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
 ```
 
 ## Connect context
@@ -125,7 +125,7 @@ import { ConnectContext, connect } from '.'
 let context: ConnectContext
 //context = connect()
 //context = connect({ config: { chain: 'id' } })
-context = connect({ config: { chain: 'id' }, chains: { async id () { return {} } } })
+context = await config.connect()
 ```
 
 ## Connect events

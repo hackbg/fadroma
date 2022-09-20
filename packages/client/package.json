@@ -11,8 +11,8 @@
     "release:wet": "npm run ts:check && ubik wet --access=public"
   },
   "dependencies": {
-    "@hackbg/konzola": "^2.0.1",
-    "@hackbg/komandi": "^6"
+    "@hackbg/konzola": "^2.1",
+    "@hackbg/komandi": "^6.1.2"
   },
   "devDependencies": {
     "@hackbg/ganesha": "^2.2.5"

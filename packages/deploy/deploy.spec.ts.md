@@ -38,14 +38,14 @@ log.deployFailedContract()
 
 ```typescript
 import { DeployConfig } from '.'
-let config: DeployConfig = new DeployConfig({}, '')
+let config: DeployConfig = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
 ```
 
 ## Deploy context
 
 ```typescript
-import { DeployContext, DeployConfig } from '.'
-let context: DeployContext = await deploy({ chain: 'Mocknet', mnemonic })
+import { DeployContext } from '.'
+let context: DeployContext = await config.getDeployContext()
 ok(context            instanceof DeployContext)
 ok(context.uploader   instanceof Uploader)
 ok(context.contract() instanceof Contract)

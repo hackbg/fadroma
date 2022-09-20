@@ -21,11 +21,16 @@ export class DeployConfig extends EnvConfig {
     defaults: Partial<DeployConfig> = {}
   ) {
     super(env, cwd)
+    this.connection = new ConnectConfig(env, cwd)
+    this.uploads = this.getString ('FADROMA_UPLOAD_STATE',
+      () => $(this.project).in('receipts').in(this.connection.chainId).in('uploads').path)
+    this.deploys = this.getString ('FADROMA_DEPLOY_STATE',
+      () => $(this.project).in('receipts').in(this.connection.chainId).in('deployments').path)
     this.override(defaults)
   }
 
   /** Connection settings. */
-  connection:  ConnectConfig = new ConnectConfig(this.env, this.cwd)
+  connection:  ConnectConfig
 
   /** Project root. Defaults to current working directory. */
   project:     string        = this.getString ('FADROMA_PROJECT',
@@ -40,12 +45,10 @@ export class DeployConfig extends EnvConfig {
     () => false)
 
   /** Directory to store the receipts for the deployed contracts. */
-  uploads:     string        = this.getString ('FADROMA_UPLOAD_STATE',
-    () => $(this.project).in('receipts').in(this.connection.chainId).in('uploads').path)
+  uploads:     string
 
   /** Directory to store the receipts for the deployed contracts. */
-  deploys:     string        = this.getString ('FADROMA_DEPLOY_STATE',
-    () => $(this.project).in('receipts').in(this.connection.chainId).in('deployments').path)
+  deploys:     string
 
   /** Which implementation of the receipt store to use. */
   deploymentFormat: DeploymentFormat =
@@ -58,7 +61,7 @@ export class DeployConfig extends EnvConfig {
 
   /** Create a new populated DeployContext, with the specified DeployStore.
     * @returns DeployContext */
-  async init (): Promise<DeployContext> {
+  async getDeployContext (): Promise<DeployContext> {
     const { chain, agent } = await this.connection.connect()
     if (!chain) throw new Error('Missing chain')
     if (!this.DeployStore) throw new Error('Missing deployment store constructor')

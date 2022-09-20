@@ -421,7 +421,7 @@ export abstract class Bundle extends Agent {
 
   constructor (readonly agent: Agent) {
     if (!agent) throw new ClientError.NoBundleAgent()
-    super(agent.chain)
+    super({ chain: agent.chain })
     this.address = this.agent.address
     this.name    = `${this.agent.name}@BUNDLE`
     this.fees    = this.agent.fees
