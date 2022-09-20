@@ -6,7 +6,7 @@ import {
   TokenKind, getTokenKind, getTokenId, isTokenDescriptor,
   nativeToken, customToken, isNativeToken, isCustomToken,
   TokenAmount, TokenPair, TokenPairAmount,
-  TokenRegistry,
+  TokenManager,
   Snip20, createPermitMsg,
   TokenError,
 } from './tokens'
@@ -51,18 +51,18 @@ new TokenPairAmount(new TokenPair(native, custom), "100", "200").asNativeBalance
 new TokenPairAmount(new TokenPair(custom, native), "100", "200").asNativeBalance
 new TokenPairAmount(new TokenPair(native, native), "100", "200").asNativeBalance
 
-const registry = new TokenRegistry()
-throws(()=>registry.getToken())
-throws(()=>registry.getToken('UNKNOWN'))
+const registry = new TokenManager()
+throws(()=>registry.get())
+throws(()=>registry.get('UNKNOWN'))
 const token = Symbol()
-ok(registry.addToken('KNOWN', token))
-throws(()=>registry.addToken('KNOWN', token))
-ok(registry.hasToken('KNOWN'))
-equal(registry.getToken('KNOWN'), token)
-ok(registry.setToken('KNOWN', null))
-throws(()=>registry.getToken('KNOWN'))
-ok(registry.addToken('KNOWN', token))
-equal(registry.getToken('KNOWN'), token)
+ok(registry.add('KNOWN', token))
+throws(()=>registry.add('KNOWN', token))
+ok(registry.has('KNOWN'))
+equal(registry.get('KNOWN'), token)
+ok(registry.set('KNOWN', null))
+throws(()=>registry.get('KNOWN'))
+ok(registry.add('KNOWN', token))
+equal(registry.get('KNOWN'), token)
 
 new Snip20()
 new TokenError()

@@ -5,22 +5,22 @@ importers:
   .:
     specifiers:
       '@fadroma/build': workspace:^2
-      '@fadroma/client': workspace:^5
+      '@fadroma/client': workspace:^6
       '@fadroma/connect': workspace:^2
       '@fadroma/deploy': workspace:^2
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
-      '@fadroma/scrt': workspace:^2
-      '@fadroma/scrt-amino': workspace:^2
-      '@fadroma/tokens': workspace:^4
+      '@fadroma/scrt': workspace:^3
+      '@fadroma/scrt-amino': workspace:^3
+      '@fadroma/tokens': workspace:^5
       '@hackbg/ensuite': ^1.0.2
-      '@hackbg/formati': ^3.0.1
-      '@hackbg/izomorf': ^4.2.4
-      '@hackbg/kabinet': ^3.1.2
-      '@hackbg/komandi': ^5
-      '@hackbg/konfizi': ^2
-      '@hackbg/konzola': ^2
+      '@hackbg/formati': workspace:^3.0.3
+      '@hackbg/kabinet': workspace:^3.2
+      '@hackbg/komandi': workspace:^6.1.2
+      '@hackbg/konfizi': workspace:^3.0.1
+      '@hackbg/konzola': workspace:^2.1
       '@hackbg/runspec': ^2.3.1
+      '@hackbg/ubik': ^1.1.1
       '@types/dockerode': ^3.3.9
       '@types/js-yaml': ^4.0.5
       '@types/node': ^16.11.55
@@ -54,8 +54,8 @@ importers:
       '@hackbg/konzola': link:toolbox/konzola
     devDependencies:
       '@hackbg/ensuite': 1.0.2
-      '@hackbg/izomorf': link:toolbox/izomorf
       '@hackbg/runspec': link:toolbox/runspec
+      '@hackbg/ubik': link:toolbox/ubik
       '@types/dockerode': 3.3.9
       '@types/js-yaml': 4.0.5
       '@types/node': 16.11.55
@@ -88,14 +88,14 @@ importers:
 
   packages/build:
     specifiers:
-      '@fadroma/client': workspace:^5
-      '@hackbg/dokeres': workspace:^4.4.1
-      '@hackbg/formati': ^3.0.1
+      '@fadroma/client': workspace:^6
+      '@hackbg/dokeres': workspace:^4.4.2
+      '@hackbg/formati': workspace:^3.0.2
       '@hackbg/ganesha': ^2.2.5
-      '@hackbg/kabinet': ^3.1.2
-      '@hackbg/komandi': ^5
-      '@hackbg/konfizi': ^2
-      '@hackbg/konzola': ^2
+      '@hackbg/kabinet': workspace:^3.1.2
+      '@hackbg/komandi': workspace:^6.1.2
+      '@hackbg/konfizi': workspace:^3.0.1
+      '@hackbg/konzola': workspace:^2.1
       dotenv: ^16.0.1
       simple-git: ^3.7.1
     dependencies:
@@ -114,8 +114,8 @@ importers:
   packages/client:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
-      '@hackbg/komandi': ^5
-      '@hackbg/konzola': ^2
+      '@hackbg/komandi': ^6.1.2
+      '@hackbg/konzola': ^2.1
     dependencies:
       '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/konzola': link:../../toolbox/konzola
@@ -124,13 +124,13 @@ importers:
 
   packages/connect:
     specifiers:
-      '@fadroma/client': workspace:^5
+      '@fadroma/client': workspace:^6
       '@fadroma/devnet': workspace:^1
       '@fadroma/mocknet': workspace:^2
-      '@fadroma/scrt': workspace:^2
-      '@fadroma/scrt-amino': workspace:^2
-      '@hackbg/komandi': workspace:^5
-      '@hackbg/konfizi': workspace:^2
+      '@fadroma/scrt': workspace:^3
+      '@fadroma/scrt-amino': workspace:^3
+      '@hackbg/komandi': workspace:^6.1.2
+      '@hackbg/konfizi': workspace:^3.0.1
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/devnet': link:../devnet
@@ -143,14 +143,15 @@ importers:
   packages/deploy:
     specifiers:
       '@fadroma/build': workspace:^2
-      '@fadroma/client': workspace:^5
+      '@fadroma/client': workspace:^6
       '@fadroma/connect': workspace:^2
-      '@hackbg/dokeres': workspace:^4.4.1
-      '@hackbg/formati': workspace:^3.0.1
+      '@hackbg/dokeres': workspace:^4.4.2
+      '@hackbg/formati': workspace:^3.0.2
+      '@hackbg/ganesha': ^2.2.5
       '@hackbg/kabinet': workspace:^3.1.2
-      '@hackbg/komandi': workspace:^5
-      '@hackbg/konfizi': workspace:^2
-      '@hackbg/konzola': workspace:^2
+      '@hackbg/komandi': workspace:^6.1.2
+      '@hackbg/konfizi': workspace:^3.0.1
+      '@hackbg/konzola': workspace:^2.1
       '@hackbg/portali': workspace:^1.2.4
       dotenv: ^16.0.1
       js-yaml: ^4.1.0
@@ -168,15 +169,17 @@ importers:
       js-yaml: 4.1.0
     devDependencies:
       '@hackbg/dokeres': link:../../toolbox/dokeres
+      '@hackbg/ganesha': 2.3.0
 
   packages/devnet:
     specifiers:
-      '@fadroma/client': workspace:^5
-      '@hackbg/dokeres': workspace:^4.4.1
-      '@hackbg/formati': workspace:^3.0.1
+      '@fadroma/client': workspace:^6
+      '@hackbg/dokeres': workspace:^4.4.2
+      '@hackbg/formati': workspace:^3.0.2
       '@hackbg/kabinet': workspace:^3.1.2
-      '@hackbg/komandi': workspace:^5
-      '@hackbg/konfizi': workspace:*
+      '@hackbg/komandi': workspace:^6.1.2
+      '@hackbg/konfizi': workspace:^3.0.1
+      '@hackbg/konzola': workspace:^2.1
       '@hackbg/portali': workspace:^1.2.4
     dependencies:
       '@fadroma/client': link:../client
@@ -185,14 +188,15 @@ importers:
       '@hackbg/kabinet': link:../../toolbox/kabinet
       '@hackbg/komandi': link:../../toolbox/komandi
       '@hackbg/konfizi': link:../../toolbox/konfizi
+      '@hackbg/konzola': link:../../toolbox/konzola
       '@hackbg/portali': link:../../toolbox/portali
 
   packages/tokens:
     specifiers:
-      '@fadroma/client': workspace:^5
-      '@fadroma/scrt': workspace:^2
-      '@hackbg/formati': workspace:^3.0.1
-      '@hackbg/konzola': workspace:^2
+      '@fadroma/client': workspace:^6
+      '@fadroma/scrt': workspace:^3
+      '@hackbg/formati': workspace:^3.0.2
+      '@hackbg/konzola': workspace:^2.1
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/scrt': link:../../platforms/scrt
@@ -201,9 +205,9 @@ importers:
 
   platforms/mocknet:
     specifiers:
-      '@fadroma/client': workspace:^5
-      '@hackbg/formati': workspace:^3.0.1
-      '@hackbg/konzola': workspace:^2
+      '@fadroma/client': workspace:^6
+      '@hackbg/formati': workspace:^3.0.2
+      '@hackbg/konzola': workspace:^2.1
     dependencies:
       '@fadroma/client': link:../../packages/client
       '@hackbg/formati': link:../../toolbox/formati
@@ -211,10 +215,10 @@ importers:
 
   platforms/scrt:
     specifiers:
-      '@fadroma/client': workspace:^5
-      '@hackbg/formati': workspace:^3.0.1
-      '@hackbg/konfizi': workspace:^2
-      '@hackbg/konzola': workspace:^2
+      '@fadroma/client': workspace:^6
+      '@hackbg/formati': workspace:^3.0.2
+      '@hackbg/konfizi': workspace:^3.0.1
+      '@hackbg/konzola': workspace:^2.1
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
       secretjs: 1.4.0-alpha.4
@@ -230,8 +234,8 @@ importers:
 
   platforms/scrt-amino:
     specifiers:
-      '@fadroma/scrt': workspace:^2
-      '@hackbg/formati': workspace:^3.0.1
+      '@fadroma/scrt': workspace:^3
+      '@hackbg/formati': workspace:^3.0.2
       axios: 0.26.0
       exponential-backoff: ^3.1.0
       secretjs: 0.17.5
@@ -247,14 +251,14 @@ importers:
 
   toolbox:
     specifiers:
-      '@hackbg/dokeres': workspace:^4.1.2
-      '@hackbg/formati': workspace:^3.0.1
-      '@hackbg/izomorf': workspace:latest
-      '@hackbg/kabinet': workspace:^3.1.1
-      '@hackbg/komandi': workspace:^5
+      '@hackbg/dokeres': workspace:^4
+      '@hackbg/formati': workspace:^3
+      '@hackbg/kabinet': workspace:^3
+      '@hackbg/komandi': workspace:^6
       '@hackbg/konzola': workspace:^2
-      '@hackbg/portali': workspace:^1.2.3
-      '@hackbg/runspec': workspace:^2.3.1
+      '@hackbg/portali': workspace:^1
+      '@hackbg/runspec': workspace:^2
+      '@hackbg/ubik': workspace:^1.2
       '@types/node': latest
       bech32: ^2.0.0
       concurrently: 7.2.2
@@ -277,8 +281,8 @@ importers:
       rimraf: 3.0.2
       signal-exit: 3.0.7
     devDependencies:
-      '@hackbg/izomorf': link:izomorf
-      '@types/node': 18.7.17
+      '@hackbg/ubik': link:ubik
+      '@types/node': 18.7.18
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.7.4
       typescript: 4.7.4
@@ -286,7 +290,7 @@ importers:
 
   toolbox/dokeres:
     specifiers:
-      '@hackbg/konzola': workspace:^2
+      '@hackbg/konzola': workspace:^2.1
       '@types/dockerode': ^3.3.8
       colors: 1.4.0
       dockerode: ^3.3.1
@@ -324,24 +328,11 @@ importers:
       bech32: 2.0.0
       secure-random: 1.1.2
 
-  toolbox/izomorf:
-    specifiers:
-      boxen: ^7.0.0
-      concurrently: 7.2.2
-      node-fetch: ^2
-      recast: ^0.21.2
-      rimraf: ^3.0.2
-    dependencies:
-      boxen: 7.0.0
-      concurrently: 7.2.2
-      node-fetch: 2.6.7
-      recast: 0.21.2
-      rimraf: 3.0.2
-
   toolbox/kabinet:
     specifiers:
+      '@hackbg/formati': workspace:^3.0.3
       '@hackbg/ganesha': ^2.0.3
-      '@hackbg/konzola': workspace:^2
+      '@hackbg/konzola': workspace:^2.1
       '@hackbg/runspec': workspace:*
       '@types/js-yaml': ^4.0.5
       '@types/mkdirp': ^1.0.2
@@ -356,6 +347,7 @@ importers:
       tmp: ^0.2.1
       toml: ^3
     dependencies:
+      '@hackbg/formati': link:../formati
       '@hackbg/konzola': link:../konzola
       js-yaml: 4.1.0
       mkdirp: 1.0.4
@@ -379,10 +371,8 @@ importers:
   toolbox/komandi:
     specifiers:
       '@hackbg/ganesha': ^2.2.5
-      '@hackbg/konfizi': workspace:^2
-      '@hackbg/konzola': workspace:^2
+      '@hackbg/konzola': workspace:^2.1
     dependencies:
-      '@hackbg/konfizi': link:../konfizi
       '@hackbg/konzola': link:../konzola
     devDependencies:
       '@hackbg/ganesha': 2.3.0
@@ -417,6 +407,28 @@ importers:
 
   toolbox/runspec:
     specifiers: {}
+
+  toolbox/ubik:
+    specifiers:
+      babylon: 7.0.0-beta.47
+      boxen: ^7.0.0
+      concurrently: 7.2.2
+      node-fetch: ^2
+      recast: ^0.21.2
+      rimraf: ^3.0.2
+    dependencies:
+      babylon: 7.0.0-beta.47
+      boxen: 7.0.0
+      concurrently: 7.2.2
+      node-fetch: 2.6.7
+      recast: 0.21.2
+      rimraf: 3.0.2
+
+  toolbox/ubik/example:
+    specifiers:
+      '@hackbg/ubik': workspace:..
+    devDependencies:
+      '@hackbg/ubik': link:..
 
 packages:
 
@@ -973,8 +985,8 @@ packages:
     resolution: {integrity: sha512-6bbDaETVi8oyIARulOE9qF1/Qdi/23z6emrUh0fNJRUmjznqrixD4MpGDdgOFk5Xb0m2H6Xu42JGdvAxaJR/wA==}
     dev: false
 
-  /@types/node/18.7.17:
-    resolution: {integrity: sha512-0UyfUnt02zIuqp7yC8RYtDkp/vo8bFaQ13KkSEvUAohPOAlnVNbj5Fi3fgPSuwzakS+EvvnnZ4x9y7i6ASaSPQ==}
+  /@types/node/18.7.18:
+    resolution: {integrity: sha512-m+6nTEOadJZuTPkKR/SYK3A2d7FZrgElol9UP1Kae90VVU4a6mxnPuLiIW1m4Cq4gZ/nWb9GrdVXJCoCazDAbg==}
     dev: true
 
   /@types/prettyjson/0.0.30:
@@ -1361,6 +1373,12 @@ packages:
     dependencies:
       '@babel/types': 7.18.13
     dev: true
+
+  /babylon/7.0.0-beta.47:
+    resolution: {integrity: sha512-+rq2cr4GDhtToEzKFD6KZZMDBXhjFAr9JjPw9pAppZACeEWqNM294j+NdBzkSHYXwzzBmVjZ3nEVJlOhbR2gOQ==}
+    engines: {node: '>=6.0.0'}
+    hasBin: true
+    dev: false
 
   /balanced-match/1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}

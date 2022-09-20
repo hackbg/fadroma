@@ -16,45 +16,48 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import * as Fadroma  from '@fadroma/client'
-import * as Formati  from '@hackbg/formati'
+import type {
+  Address,
+  AgentClass,
+  AgentOpts,
+  BundleClass,
+  ChainClass,
+  ChainId,
+  CodeHash,
+  CodeId,
+  DeployArgs,
+  ExecOpts,
+  ICoin,
+  IFee,
+  Label,
+  Message,
+  TxHash,
+  Uint128,
+} from '@fadroma/client'
+import { Agent, Bundle, Chain, Client, Contract, Fee } from '@fadroma/client'
 import * as SecretJS from 'secretjs'
 
-import { randomBytes } from '@hackbg/formati'
-import { EnvConfig } from '@hackbg/konfizi'
+import { Encoding, randomBytes } from '@hackbg/formati'
 import { CustomConsole, CustomError } from '@hackbg/konzola'
 import structuredClone from '@ungap/structured-clone'
 
-/// # CORE SECRET NETWORK DEFINITIONS /////////////////////////////////////////////////////////////
+import { ScrtConfig, ScrtGrpcConfig } from './scrt-config'
+import { ScrtError, ScrtConsole } from './scrt-events'
 
-export type ScrtGrpcTxResult = SecretJS.Tx
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// # BASE DEFINITIONS FOR ALL SECRET NETWORK API IMPLEMENTATIONS /////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** Environment settings for Secret Network API
-  * that are common between gRPC and Amino implementations. */
-export class ScrtConfig extends EnvConfig {
-  scrtAgentName:      string|null
-    = this.getString('SCRT_AGENT_NAME',       ()=>null)
-  scrtAgentAddress:   string|null
-    = this.getString('SCRT_AGENT_ADDRESS',    ()=>null)
-  scrtAgentMnemonic:  string|null
-    = this.getString('SCRT_AGENT_MNEMONIC',   ()=>null)
-  scrtMainnetChainId: string
-    = this.getString('SCRT_MAINNET_CHAIN_ID', ()=>Scrt.defaultMainnetChainId)
-  scrtTestnetChainId: string
-    = this.getString('SCRT_TESTNET_CHAIN_ID', ()=>Scrt.defaultTestnetChainId)
-}
-
-/** Base class for both implementations of Secret Network API (gRPC and Amino) */
-export abstract class Scrt extends Fadroma.Chain {
-
-  static Config = ScrtConfig
-  static Agent: Fadroma.AgentCtor<ScrtAgent>
-
-  static defaultMainnetChainId: string = 'secret-4'
-  static defaultTestnetChainId: string = 'pulsar-2'
-  static defaultDenom:          string = 'uscrt'
-
-  static gas = (amount: Fadroma.Uint128|number) => new Fadroma.Fee(amount, this.defaultDenom)
+/** Base class for both implementations of Secret Network API (gRPC and Amino).
+  * Represents the Secret Network in general. */
+export abstract class Scrt extends Chain {
+  static Config                   = ScrtConfig
+  static defaultMainnetChainId    = this.Config.defaultMainnetChainId
+  static defaultTestnetChainId    = this.Config.defaultTestnetChainId
+  static Agent:           AgentClass<ScrtAgent> // set below
+  static isSecretNetwork: boolean = true
+  static defaultDenom:    string  = 'uscrt'
+  static gas (amount: Uint128|number) { return new Fee(amount, this.defaultDenom) }
   static defaultFees  = {
     upload: this.gas(4000000),
     init:   this.gas(1000000),
@@ -62,327 +65,281 @@ export abstract class Scrt extends Fadroma.Chain {
     send:   this.gas( 500000),
   }
 
-  defaultDenom
-    = Scrt.defaultDenom
-  isSecretNetwork
-    = true
-  Agent: Fadroma.AgentCtor<ScrtAgent>
-    = Scrt.Agent
-
+  Agent: AgentClass<ScrtAgent> = Scrt.Agent
+  isSecretNetwork: boolean = Scrt.isSecretNetwork
+  defaultDenom:    string  = Scrt.defaultDenom
 }
 
-/** May contain configuration options that are common betweeen gRPC and Amino implementations. */
-export interface ScrtAgentOpts extends Fadroma.AgentOpts {
+/** Agent configuration options that are common betweeen
+  * gRPC and Amino implementations of Secret Network. */
+export interface ScrtAgentOpts extends AgentOpts {
   legacy:  boolean
   keyPair: unknown
 }
 
-/** Base class for both implementations of Secret Network API (gRPC and Amino) */
-export abstract class ScrtAgent extends Fadroma.Agent {
-
+/** Base class for both implementations of Secret Network API (gRPC and Amino).
+  * Represents a connection to the Secret Network authenticated as a specific address. */
+export abstract class ScrtAgent extends Agent {
+  static Bundle: BundleClass<ScrtBundle>
   fees = Scrt.defaultFees
-
-  static Bundle: Fadroma.BundleCtor<ScrtBundle>
-         Bundle: Fadroma.BundleCtor<ScrtBundle> = ScrtAgent.Bundle
-
-  static async create (chain: Scrt, options: Partial<ScrtAgentOpts> = {}): Promise<ScrtAgent> {
-    if (options?.legacy) {
-      throw new ScrtError.UseAmino()
-    } else {
-      return await ScrtGrpcAgent.create(chain, options) as ScrtAgent
-    }
-  }
-
+  Bundle: BundleClass<ScrtBundle> =
+    (this.constructor as AgentClass<Agent>).Bundle as BundleClass<ScrtBundle>
   abstract getNonce (): Promise<{ accountNumber: number, sequence: number }>
-
-  abstract encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message): Promise<string>
-
+  abstract encrypt (codeHash: CodeHash, msg: Message): Promise<string>
 }
 
-//@ts-ignore
-Scrt.Agent = ScrtAgent
-
 /** Base class for transaction-bundling Agent for both Secret Network implementations. */
-export abstract class ScrtBundle extends Fadroma.Bundle {
-
-  declare agent: ScrtAgent
-
+export abstract class ScrtBundle extends Bundle {
   static bundleCounter: number = 0
-
+  declare agent: ScrtAgent
   /** Format the messages for API v1beta1 like secretcli and generate a multisig-ready
     * unsigned transaction bundle; don't execute it, but save it in
     * `receipts/$CHAIN_ID/transactions` and output a signing command for it to the console. */
   async save (name?: string) {
-
     // Number of bundle, just for identification in console
     const N = ++ScrtBundle.bundleCounter
     name ??= name || `TX.${N}.${+new Date()}`
-
     // Get signer's account number and sequence via the canonical API
     const { accountNumber, sequence } = await this.agent.getNonce()//this.chain.url, this.agent.address)
-
     // Print the body of the bundle
-    console.info(`\nMessages in bundle`, `#${N}:`)
-    console.log()
-    console.log(JSON.stringify(this.msgs, null, 2))
-    console.log()
-
+    log.bundleMessages(this.msgs, N)
     // The base Bundle class stores messages as (immediately resolved) promises
     const messages = await Promise.all(this.msgs.map(({init, exec})=>{
       // Encrypt init message
-      if (init) return this.agent.encrypt(init.codeHash, init.msg).then((encrypted: unknown) => ({
-        "@type":            "/secret.compute.v1beta1.MsgInstantiateContract",
-        callback_code_hash: '',
-        callback_sig:       null,
-        sender:             init.sender,
-        code_id:     String(init.codeId),
-        init_funds:         init.funds,
-        label:              init.label,
-        init_msg:           encrypted,
-      }))
+      if (init) return this.encryptInit(init)
       // Encrypt exec/handle message
-      if (exec) return this.agent.encrypt(exec.codeHash, exec.msg).then((encrypted: unknown) => ({
-        "@type":            '/secret.compute.v1beta1.MsgExecuteContract',
-        callback_code_hash: '',
-        callback_sig:       null,
-        sender:             exec.sender,
-        contract:           exec.contract,
-        sent_funds:         exec.funds,
-        msg:                encrypted,
-      }))
+      if (exec) return this.encryptInit(init)
       // Anything in the messages array that does not have init or exec key is ignored
     }))
-
     // Print the body of the bundle
-    console.info(`\nEncrypted messages in bundle`, `#${N}:`)
-    console.log()
-    console.log(JSON.stringify(messages, null, 2))
-    console.log()
-
-    const fee     = Scrt.gas(10000000)
-    const gas     = fee.gas
-    const payer   = ""
-    const granter = ""
-    const finalUnsignedTx = JSON.stringify({
-      auth_info:  { signer_infos: [], fee: { ...fee, gas, payer, granter }, },
-      signatures: [],
-      body: {
-        messages,
-        memo:                           name,
-        timeout_height:                 "0",
-        extension_options:              [],
-        non_critical_extension_options: []
-      },
-    })
-
-    console.log(`Run the following command to sign the bundle:\n`)
-
-    const t = Math.floor(+ new Date()/1000)
-    console.log(`secretcli tx sign /dev/stdin --output-document=${t}.signed.json \\
---offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${this.agent.address} \\
---chain-id=${this.agent.chain.id} --account-number=${accountNumber} --sequence=${sequence} \\
-<<< ${shellescape([finalUnsignedTx])}\n`)
-
-    console.log(`Bundle as JSON:\n`)
-    console.log(finalUnsignedTx + '\n')
-
-    return { N, name, accountNumber, sequence, unsignedTxBody: finalUnsignedTx }
-
-    function shellescape(a: string[]) {
-      const ret: string[] = [];
-      a.forEach(function(s: string) {
-        if (/[^A-Za-z0-9_\/:=-]/.test(s)) {
-          s = "'"+s.replace(/'/g,"'\\''")+"'";
-          s = s.replace(/^(?:'')+/g, '') // unduplicate single-quote at the beginning
-            .replace(/\\'''/g, "\\'" ); // remove non-escaped single-quote if there are enclosed between 2 escaped
-        }
-        ret.push(s);
-      });
-      return ret.join(' ');
+    log.bundleMessagesEncrypted(messages, N)
+    // Compose the plaintext
+    const unsigned = this.composeUnsignedTx(messages)
+    // Output signing instructions to the console
+    log.bundleSigningCommand(
+      String(Math.floor(+ new Date()/1000)),
+      this.agent.address!, this.agent.assertChain().id,
+      accountNumber, sequence, unsigned
+    )
+    return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
+  }
+  private async encryptInit (init: any): Promise<any> {
+    const encrypted = await this.agent.encrypt(init.codeHash, init.msg)
+    return {
+      "@type":            "/secret.compute.v1beta1.MsgInstantiateContract",
+      callback_code_hash: '',
+      callback_sig:       null,
+      sender:             init.sender,
+      code_id:     String(init.codeId),
+      init_funds:         init.funds,
+      label:              init.label,
+      init_msg:           encrypted,
     }
-
-
+  }
+  private async encryptExec (exec: any): Promise<any> {
+    const encrypted = await this.agent.encrypt(exec.codeHash, exec.msg)
+    return {
+      "@type":            '/secret.compute.v1beta1.MsgExecuteContract',
+      callback_code_hash: '',
+      callback_sig:       null,
+      sender:             exec.sender,
+      contract:           exec.contract,
+      sent_funds:         exec.funds,
+      msg:                encrypted,
+    }
+  }
+  private composeUnsignedTx (encryptedMessages: any[]): any {
+    const fee = Scrt.gas(10000000)
+    const gas = fee.gas
+    const payer = ""
+    const granter = ""
+    const auth_info = { signer_infos: [], fee: { ...fee, gas, payer, granter }, }
+    const signatures: any[] = []
+    const body = {
+      messages:                       encryptedMessages,
+      memo:                           name,
+      timeout_height:                 "0",
+      extension_options:              [],
+      non_critical_extension_options: []
+    }
+    return { auth_info, signatures, body }
   }
 
 }
 
-//@ts-ignore
-Scrt.Agent.Bundle = ScrtBundle
+Scrt.Agent        = ScrtAgent  as unknown as AgentClass<ScrtAgent>
+Scrt.Agent.Bundle = ScrtBundle as unknown as BundleClass<ScrtBundle>
 
-/// # GRPC API ////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+/// # FADROMA CLIENT IMPLEMENTATION FOR SECRET NETWORK GRPC API ///////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** gRPC-specific Secret Network settings. */
-export class ScrtGrpcConfig extends ScrtConfig {
-  scrtMainnetGrpcUrl: string|null
-    = this.getString('SCRT_MAINNET_GRPC_URL',  ()=>ScrtGrpc.defaultMainnetGrpcUrl)
-  scrtTestnetGrpcUrl: string|null
-    = this.getString('SCRT_TESTNET_GRPC_URL',  ()=>ScrtGrpc.defaultTestnetGrpcUrl)
-}
-
-/** The Secret Network, accessed via gRPC API. */
+/** Represents the Secret Network, accessed via gRPC API. */
 export class ScrtGrpc extends Scrt {
-
-  static defaultMainnetGrpcUrl: string = 'https://secret-4.api.trivium.network:9091'
-  static defaultTestnetGrpcUrl: string = 'https://grpc.testnet.secretsaturn.net'
-
+  static SecretJS: typeof SecretJS = SecretJS
   static Config = ScrtGrpcConfig
-
+  static defaultMainnetGrpcUrl = this.Config.defaultMainnetGrpcUrl
+  static defaultTestnetGrpcUrl = this.Config.defaultTestnetGrpcUrl
+  static Agent: AgentClass<ScrtGrpcAgent>
   /** Values of FADROMA_CHAIN provided by the ScrtGrpc implementation.
     * Devnets and mocknets are defined downstream in @fadroma/connect */
   static Chains = {
     async 'ScrtGrpcMainnet' (config: ScrtGrpcConfig) {
-      const mode = Fadroma.ChainMode.Mainnet
+      const mode = Chain.Mode.Mainnet
       const id   = config.scrtMainnetChainId ?? Scrt.defaultMainnetChainId
       const url  = config.scrtMainnetGrpcUrl || ScrtGrpc.defaultMainnetGrpcUrl
       return new ScrtGrpc(id, { url, mode })
     },
     async 'ScrtGrpcTestnet' (config: ScrtGrpcConfig) {
-      const mode = Fadroma.ChainMode.Testnet
+      const mode = Chain.Mode.Testnet
       const id   = config.scrtTestnetChainId ?? Scrt.defaultTestnetChainId
       const url  = config.scrtTestnetGrpcUrl || ScrtGrpc.defaultTestnetGrpcUrl
       return new ScrtGrpc(id, { url, mode })
     },
   }
-
-  static Agent: Fadroma.AgentCtor<ScrtGrpcAgent>
-  Agent: Fadroma.AgentCtor<ScrtGrpcAgent> = ScrtGrpc.Agent
-
-  api: Promise<SecretJS.SecretNetworkClient> =
-    SecretJS.SecretNetworkClient.create({ chainId: this.id, grpcWebUrl: this.url })
-
-  async getBalance (denom = this.defaultDenom, address: Fadroma.Address) {
-    const response = await (await this.api).query.bank.balance({ address, denom })
+  constructor (...args: ConstructorParameters<typeof Scrt>) {
+    super(...args)
+    // Allow a different API-compatible version of SecretJS to be passed
+    if (!!args[1] && typeof args[1] === 'object') {
+      const {SecretJS: _SecretJS} = args[1] as {SecretJS: typeof SecretJS}
+      this.SecretJS = _SecretJS ?? this.SecretJS
+    }
+    Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
+  }
+  /** The Agent class that this instance's getAgent method will instantiate. */
+  Agent: AgentClass<ScrtGrpcAgent> =
+    (this.constructor as ChainClass<Chain>).Agent as AgentClass<ScrtGrpcAgent>
+  /** The SecretJS implementation used by this instance. */
+  SecretJS = ScrtGrpc.SecretJS
+  /** A fresh instance of the anonymous read-only API client. Memoize yourself. */
+  get api () {
+    return this.getApi()
+  }
+  async getBalance (denom = this.defaultDenom, address: Address) {
+    const api = await this.api
+    const response = await api.query.bank.balance({ address, denom })
     return response.balance!.amount
   }
-
   async getLabel (address: string): Promise<string> {
-    const { ContractInfo: { label } } = await (await this.api).query.compute.contractInfo(address)
+    const api = await this.api
+    const { ContractInfo: { label } } = await api.query.compute.contractInfo(address)
     return label
   }
-
   async getCodeId (address: string): Promise<string> {
-    const { ContractInfo: { codeId } } = await (await this.api).query.compute.contractInfo(address)
+    const api = await this.api
+    const { ContractInfo: { codeId } } = await api.query.compute.contractInfo(address)
     return codeId
   }
-
   async getHash (address: string|number): Promise<string> {
+    const api = await this.api
     if (typeof address === 'number') {
-      return await (await this.api).query.compute.codeHash(address)
+      return await api.query.compute.codeHash(address)
     } else {
-      return await (await this.api).query.compute.contractCodeHash(address)
+      return await api.query.compute.contractCodeHash(address)
     }
   }
-
-  async query <U> (instance: Partial<Fadroma.Client>, query: Fadroma.Message): Promise<U> {
+  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
     throw new Error('TODO: Scrt#query: use same method on agent')
   }
-
   get block () {
     return this.api.then(api=>api.query.tendermint.getLatestBlock({}))
   }
-
   get height () {
     return this.block.then(block=>Number(block.block?.header?.height))
   }
 
+  /** @returns a fresh instance of the anonymous read-only API client. */
+  async getApi (options: object = {}): Promise<SecretJS.SecretNetworkClient> {
+    return await this.SecretJS.SecretNetworkClient.create({
+      chainId: this.id, grpcWebUrl: this.url, ...options
+    })
+  }
+  /** Create a `ScrtGrpcAgent` on this `chain`.
+    * You can optionally pass a compatible subclass as a second argument. */
+  async getAgent (
+    options: Partial<ScrtGrpcAgentOpts> = {},
+    _Agent:  AgentClass<ScrtGrpcAgent> = this.Agent
+  ): Promise<ScrtGrpcAgent> {
+    // keypair option not supported
+    if (options.keyPair) {
+      log.warnIgnoringKeyPair()
+      delete options.keyPair
+    }
+    // use selected secretjs implementation
+    const _SecretJS = this.SecretJS ?? SecretJS
+    // unwrap
+    const { mnemonic, keyPair, address } = options
+    // create wallet from mnemonic if not passed
+    let { wallet } = options
+    if (!wallet) {
+      if (mnemonic) {
+        wallet = new _SecretJS.Wallet(mnemonic)
+      } else {
+        throw new ScrtError.NoWalletOrMnemonic()
+      }
+    } else if (wallet) {
+      log.warnIgnoringMnemonic()
+      delete options.mnemonic
+    }
+    // construct options object
+    options = {
+      legacy: false,
+      ...options,
+      SecretJS: _SecretJS,
+      wallet,
+      api: await this.getApi({
+        chainId:    this.id,
+        grpcWebUrl: this.url,
+        wallet,
+        walletAddress: wallet.address || address
+      })
+    }
+    // construct agent
+    return await super.getAgent(options, _Agent) as ScrtGrpcAgent
+  }
 }
 
 /** gRPC-specific configuration options. */
 export interface ScrtGrpcAgentOpts extends ScrtAgentOpts {
-  wallet:  SecretJS.Wallet
-  url:     string
-  api:     SecretJS.SecretNetworkClient
+  wallet:    SecretJS.Wallet
+  url:       string
+  api:       SecretJS.SecretNetworkClient
+  // Allow a different version of SecretJS to be passed
+  SecretJS?: typeof SecretJS
 }
 
+export type ScrtGrpcTxResult = SecretJS.Tx
+
 export class ScrtGrpcAgent extends ScrtAgent {
-
-  static Bundle: Fadroma.BundleCtor<ScrtBundle>
-         Bundle: Fadroma.BundleCtor<ScrtBundle> = ScrtGrpcAgent.Bundle
-
-  static async create (
-    chain:   Scrt,
-    options: Partial<ScrtGrpcAgentOpts>
-  ): Promise<ScrtGrpcAgent> {
-
-    const { mnemonic, keyPair, address } = options
-
-    let { wallet } = options
-
-    if (!wallet) {
-      if (mnemonic) {
-        wallet = new SecretJS.Wallet(mnemonic)
-      } else {
-        throw new ScrtError.NoWalletOrMnemonic()
-      }
-    }
-
-    if (keyPair) {
-      log.warnIgnoringKeyPair()
-      delete options.keyPair
-    }
-
-    const api = await SecretJS.SecretNetworkClient.create({
-      chainId:    chain.id,
-      grpcWebUrl: chain.url || "http://rpc.pulsar.griptapejs.com:9091",
-      wallet,
-      walletAddress: wallet.address || address
-    })
-
-    return new ScrtGrpcAgent(chain as ScrtGrpc, {
-      legacy: false,
-      ...options,
-      wallet,
-      api,
-    })
-
-  }
-
-  constructor (chain: ScrtGrpc, options: Partial<ScrtGrpcAgentOpts>) {
-    super(chain as Fadroma.Chain, options)
+  static Bundle: BundleClass<ScrtBundle> // populated below with ScrtGrpcBundle
+  static SecretJS = ScrtGrpc.SecretJS
+  constructor (options: Partial<ScrtGrpcAgentOpts>) {
+    super(options)
     if (!options.wallet) throw new ScrtError.NoWallet()
     if (!options.api)    throw new ScrtError.NoApi()
     this.wallet  = options.wallet
     this.api     = options.api
     this.address = this.wallet?.address
+    if (options.SecretJS) this.SecretJS = options.SecretJS
+    Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
-
-  async instantiateMany (template: Fadroma.Contract<any>, configs: Fadroma.DeployArgs[]) {
-    // instantiate multiple contracts in a bundle:
-    const instances = await this.bundle().wrap(async bundle=>{
-      await bundle.instantiateMany(template, configs)
-    })
-    // add code hashes to them:
-    for (const i in configs) {
-      const instance = instances[i]
-      if (instance) {
-        instance.codeId   = template.codeId
-        instance.codeHash = template.codeHash
-        instance.label    = configs[i][0]
-      }
-    }
-    return instances
-  }
-
+  Bundle: BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
+  SecretJS = ScrtGrpcAgent.SecretJS
   wallet:  SecretJS.Wallet
-
   api:     SecretJS.SecretNetworkClient
-
   get account () {
     if (!this.address) throw new Error("No address")
     return this.api.query.auth.account({ address: this.address })
   }
-
   get balance () {
     if (!this.address) throw new Error("No address")
     return this.getBalance(this.defaultDenom, this.address)
   }
-
-  async getBalance (denom = this.defaultDenom, address: Fadroma.Address) {
+  async getBalance (denom = this.defaultDenom, address: Address) {
     const response = await this.api.query.bank.balance({ address, denom })
     return response.balance!.amount
   }
-
-  async send (to: Fadroma.Address, amounts: Fadroma.ICoin[], opts?: any) {
+  async send (to: Address, amounts: ICoin[], opts?: any) {
     if (!this.address) throw new Error("No address")
     return this.api.tx.bank.send({
       fromAddress: this.address,
@@ -392,33 +349,42 @@ export class ScrtGrpcAgent extends ScrtAgent {
       gasLimit: opts?.gas?.gas
     })
   }
-
   async sendMany (outputs: never, opts: never) {
     throw new Error('ScrtAgent#sendMany: not implemented')
   }
-
   async getLabel (address: string): Promise<string> {
     const { ContractInfo: { label } } = await this.api.query.compute.contractInfo(address)
     return label
   }
-
   async getCodeId (address: string): Promise<string> {
     const { ContractInfo: { codeId } } = await this.api.query.compute.contractInfo(address)
     return codeId
   }
-
   async getHash (address: string): Promise<string> {
     return await this.api.query.compute.contractCodeHash(address)
   }
-
-  async query <U> (instance: Partial<Fadroma.Client>, query: Fadroma.Message): Promise<U> {
+  async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
+    if (!this.address) throw new Error("No address")
+    const { account } =
+      (await this.api.query.auth.account({ address: this.address, }))
+      ?? (()=>{throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`,)})()
+    const { accountNumber, sequence } =
+      account as { accountNumber: string, sequence: string }
+    return { accountNumber: Number(accountNumber), sequence: Number(sequence) }
+  }
+  async encrypt (codeHash: CodeHash, msg: Message) {
+    if (!codeHash) throw new ScrtError.NoCodeHash()
+    const { encryptionUtils } = await this.api as any
+    const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
+    return Encoding.toBase64(encrypted)
+  }
+  async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
     const { address: contractAddress, codeHash } = instance
     const args = { contractAddress, codeHash, query: query as Record<string, unknown> }
     // @ts-ignore
     return await this.api.query.compute.queryContract(args) as U
   }
-
-  async upload (data: Uint8Array): Promise<Fadroma.Contract<any>> {
+  async upload (data: Uint8Array): Promise<Contract<any>> {
     type Log = { type: string, key: string }
     if (!this.address) throw new Error("No address")
     const sender     = this.address
@@ -428,24 +394,25 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const findCodeId = (log: Log) => log.type === "message" && log.key === "code_id"
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
-    const chainId    = this.chain.id
-    return Object.assign(new Fadroma.Contract(), {
+    const chainId    = this.assertChain().id
+    const contract   = new Contract({
+      agent: this,
       codeHash,
       chainId,
       codeId,
       uploadTx: result.transactionHash
     })
+    return contract
   }
-
   async instantiate (
-    template: Fadroma.Contract<any>,
-    label:    Fadroma.Label,
-    initMsg:  Fadroma.Message,
+    template: Contract<any>,
+    label:    Label,
+    initMsg:  Message,
     initFunds = []
-  ): Promise<Fadroma.Contract<any>> {
+  ): Promise<Contract<any>> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
-    if (chainId !== this.chain.id) throw new ScrtError.WrongChain()
+    if (chainId !== this.assertChain().id) throw new ScrtError.WrongChain()
     if (isNaN(Number(codeId)))     throw new ScrtError.NoCodeId()
     const sender   = this.address
     const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
@@ -462,11 +429,26 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
     const address  = result.arrayLog.find(findAddr)?.value!
     const initTx   = result.transactionHash
-    return Object.assign(new Fadroma.Contract(template), { address })
+    return Object.assign(new Contract(template), { address })
   }
-
+  async instantiateMany (template: Contract<any>, configs: DeployArgs[]) {
+    // instantiate multiple contracts in a bundle:
+    const instances = await this.bundle().wrap(async bundle=>{
+      await bundle.instantiateMany(template, configs)
+    })
+    // add code hashes to them:
+    for (const i in configs) {
+      const instance = instances[i]
+      if (instance) {
+        instance.codeId   = template.codeId
+        instance.codeHash = template.codeHash
+        instance.label    = configs[i][0]
+      }
+    }
+    return instances
+  }
   async execute (
-    instance: Partial<Fadroma.Client>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
+    instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
   ): Promise<ScrtGrpcTxResult> {
     if (!this.address) throw new Error("No address")
     const { address, codeHash } = instance
@@ -509,24 +491,6 @@ export class ScrtGrpcAgent extends ScrtAgent {
     }
     return result as ScrtGrpcTxResult
   }
-
-  async getNonce (): Promise<{ accountNumber: number, sequence: number }> {
-    if (!this.address) throw new Error("No address")
-    const { account } =
-      (await this.api.query.auth.account({ address: this.address, }))
-      ?? (()=>{throw new Error(`Cannot find account "${this.address}", make sure it has a balance.`,)})()
-    const { accountNumber, sequence } =
-      account as { accountNumber: string, sequence: string }
-    return { accountNumber: Number(accountNumber), sequence: Number(sequence) }
-  }
-
-  async encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message) {
-    if (!codeHash) throw new ScrtError.NoCodeHash()
-    const { encryptionUtils } = await this.api as any
-    const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
-    return Formati.Encoding.toBase64(encrypted)
-  }
-
 }
 
 /** Used to decode Uint8Array-represented UTF8 strings in TX responses. */
@@ -546,36 +510,20 @@ const tryDecode = (data: Uint8Array): string|Symbol => {
 
 export class ScrtGrpcBundle extends ScrtBundle {
 
+  static SecretJS = ScrtGrpcAgent.SecretJS
+
+  constructor (agent: ScrtAgent) {
+    super(agent)
+    this.SecretJS = (agent as ScrtGrpcAgent).SecretJS ?? this.SecretJS
+    Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
+  }
+
   declare agent: ScrtGrpcAgent
 
-  /** Format the messages for API v1 like secretjs and encrypt them. */
-  private get conformedMsgs () {
-    return Promise.all(this.msgs.map(async ({init, exec})=>{
-      if (init) return new SecretJS.MsgInstantiateContract({
-        sender:          init.sender,
-        codeId:          init.codeId,
-        codeHash:        init.codeHash,
-        label:           init.label,
-        initMsg:         init.msg,
-        initFunds:       init.funds,
-      })
-      if (exec) return new SecretJS.MsgExecuteContract({
-        sender:          exec.sender,
-        contractAddress: exec.contract,
-        codeHash:        exec.codeHash,
-        msg:             exec.msg,
-        sentFunds:       exec.funds,
-      })
-      throw 'unreachable'
-    }))
-  }
-
-  async simulate () {
-    return await this.agent.api.tx.simulate(await this.conformedMsgs)
-  }
+  SecretJS = ScrtGrpcBundle.SecretJS
 
   async submit (memo = ""): Promise<ScrtBundleResult[]> {
-    this.assertCanSubmit()
+    const chainId = this.assertChain().id
     const results: ScrtBundleResult[] = []
     const msgs  = await this.conformedMsgs
     const limit = Number(Scrt.defaultFees.exec.amount[0].amount)
@@ -592,8 +540,8 @@ export class ScrtGrpcBundle extends ScrtBundle {
         const result: Partial<ScrtBundleResult> = {}
         result.sender  = this.address
         result.tx      = txResult.transactionHash
-        result.chainId = this.chain.id
-        if (msg instanceof SecretJS.MsgInstantiateContract) {
+        result.chainId = chainId
+        if (msg instanceof this.SecretJS.MsgInstantiateContract) {
           type Log = { msg: number, type: string, key: string }
           const findAddr = ({msg, type, key}: Log) =>
             msg  ==  Number(i) &&
@@ -604,7 +552,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
           result.label   = msg.label
           result.address = txResult.arrayLog?.find(findAddr)?.value
         }
-        if (msg instanceof SecretJS.MsgExecuteContract) {
+        if (msg instanceof this.SecretJS.MsgExecuteContract) {
           result.type    = 'wasm/MsgExecuteContract'
           result.address = msg.contractAddress
         }
@@ -617,13 +565,36 @@ export class ScrtGrpcBundle extends ScrtBundle {
     return results
   }
 
+  async simulate () {
+    const { api } = this.agent as ScrtGrpcAgent
+    return await api.tx.simulate(await this.conformedMsgs)
+  }
+
+  /** Format the messages for API v1 like secretjs and encrypt them. */
+  private get conformedMsgs () {
+    return Promise.all(this.assertMessages().map(async ({init, exec})=>{
+      if (init) return new this.SecretJS.MsgInstantiateContract({
+        sender:          init.sender,
+        codeId:          init.codeId,
+        codeHash:        init.codeHash,
+        label:           init.label,
+        initMsg:         init.msg,
+        initFunds:       init.funds,
+      })
+      if (exec) return new this.SecretJS.MsgExecuteContract({
+        sender:          exec.sender,
+        contractAddress: exec.contract,
+        codeHash:        exec.codeHash,
+        msg:             exec.msg,
+        sentFunds:       exec.funds,
+      })
+      throw 'unreachable'
+    }))
+  }
+
 }
 
-ScrtGrpc.Agent = ScrtGrpcAgent as unknown as Fadroma.AgentCtor<ScrtGrpcAgent>
-
-ScrtGrpcAgent.Bundle = ScrtGrpcBundle
-
-export interface ScrtBundleCtor <B extends ScrtBundle> {
+export interface ScrtBundleClass <B extends ScrtBundle> {
   new (agent: ScrtAgent): B
 }
 
@@ -632,15 +603,20 @@ export type ScrtBundleMessage =
   |SecretJS.MsgExecuteContract<object>
 
 export interface ScrtBundleResult {
-  sender?:   Fadroma.Address
-  tx:        Fadroma.TxHash
+  sender?:   Address
+  tx:        TxHash
   type:      'wasm/MsgInstantiateContract'|'wasm/MsgExecuteContract'
-  chainId:   Fadroma.ChainId
-  codeId?:   Fadroma.CodeId
-  codeHash?: Fadroma.CodeHash
-  address?:  Fadroma.Address
-  label?:    Fadroma.Label
+  chainId:   ChainId
+  codeId?:   CodeId
+  codeHash?: CodeHash
+  address?:  Address
+  label?:    Label
 }
+
+ScrtGrpc.Agent        = ScrtGrpcAgent  as unknown as AgentClass<ScrtGrpcAgent>
+ScrtGrpc.Agent.Bundle = ScrtGrpcBundle as unknown as BundleClass<ScrtGrpcBundle>
+Object.defineProperty(ScrtGrpcAgent,  'SecretJS', { enumerable: false, writable: true })
+Object.defineProperty(ScrtGrpcBundle, 'SecretJS', { enumerable: false, writable: true })
 
 /** Data used for creating a signature as per the SNIP-24 spec:
   * https://github.com/SecretFoundation/SNIPs/blob/master/SNIP-24.md#permit-content---stdsigndoc
@@ -652,7 +628,7 @@ export interface SignDoc {
   /** Always 0. */
   readonly sequence:       string;
   /** Always 0 uscrt + 1 gas */
-  readonly fee:            Fadroma.IFee;
+  readonly fee:            IFee;
   /** Always 1 message of type query_permit */
   readonly msgs:           readonly AminoMsg[];
   /** Always empty. */
@@ -660,7 +636,7 @@ export interface SignDoc {
 }
 
 export function createSignDoc <T> (
-  chain_id:   Fadroma.ChainId,
+  chain_id:   ChainId,
   permit_msg: T
 ) {
   return {
@@ -682,8 +658,8 @@ export function createSignDoc <T> (
 }
 
 export interface Signer {
-  chain_id: Fadroma.ChainId
-  address:  Fadroma.Address
+  chain_id: ChainId
+  address:  Address
   sign <T> (permit_msg: PermitAminoMsg<T>): Promise<Permit<T>>
 }
 
@@ -691,10 +667,10 @@ export class KeplrSigner implements Signer {
 
   constructor (
     /** The id of the chain which permits will be signed for. */
-    readonly chain_id: Fadroma.ChainId,
+    readonly chain_id: ChainId,
     /** The address which will do the signing and
       * which will be the address used by the contracts. */
-    readonly address:  Fadroma.Address,
+    readonly address:  Address,
     /** Must be a pre-configured instance. */
     readonly keplr:    KeplrSigningHandle<any>
   ) {}
@@ -727,8 +703,8 @@ export class KeplrSigner implements Signer {
 
 export interface KeplrSigningHandle <T> {
   signAmino (
-    chain_id: Fadroma.ChainId,
-    address:  Fadroma.Address,
+    chain_id: ChainId,
+    address:  Address,
     signDoc:  SignDoc,
     options: { preferNoSetFee: boolean, preferNoSetMemo: boolean }
   ): Promise<Permit<T>>
@@ -737,7 +713,7 @@ export interface KeplrSigningHandle <T> {
 export interface Permit<T> {
   params: {
     permit_name:    string,
-    allowed_tokens: Fadroma.Address[]
+    allowed_tokens: Address[]
     chain_id:       string,
     permissions:    T[]
   },
@@ -764,13 +740,13 @@ export interface AminoMsg {
 /** Used as the `value` field of the {@link AminoMsg} type. */
 export interface PermitAminoMsg<T> {
   permit_name:    string,
-  allowed_tokens: Fadroma.Address[],
+  allowed_tokens: Address[],
   permissions:    T[],
 }
 
 export type ViewingKey = string
 
-export class ViewingKeyClient extends Fadroma.Client {
+export class ViewingKeyClient extends Client {
 
   async create (entropy = randomBytes(32).toString("hex")) {
     const msg    = { create_viewing_key: { entropy, padding: null } }
@@ -785,38 +761,17 @@ export class ViewingKeyClient extends Fadroma.Client {
 
 }
 
-export class ScrtError extends CustomError {
-  static UseAmino = this.define('UseAmino',
-    () => 'Use @fadroma/scrt-amino for the legacy API')
-  static NoWalletOrMnemonic = this.define('NoWalletOrMnemonic',
-    () => 'This Agent can only be created from mnemonic or wallet+address')
-  static WrongChain = this.define('WrongChain',
-    () => 'Tried to instantiate a contract that is uploaded to another chain')
-  static NoWallet = this.define('NoWallet',
-    () => 'Missing wallet')
-  static NoApi = this.define('NoApi',
-    () => 'Missing API interface object')
-  static NoApiUrl = this.define('NoApiUrl',
-    () => 'Missing gRPC API URL')
-  static NoCodeId = this.define('NoCodeId',
-    () => 'Need code ID to instantiate contract')
-  static NoCodeHash = this.define('NoCodeHash',
-    () => 'Missing code hash')
-}
-
-export class ScrtConsole extends CustomConsole {
-
-  name = '@fadroma/scrt'
-
-  warnIgnoringKeyPair = () =>
-    this.warn('ScrtGrpcAgent: Created from mnemonic, ignoring keyPair')
-  warnNoMemos = () =>
-    this.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
-
-}
-
 const log = new ScrtConsole()
 
 /** Allow Scrt clients to be implemented with just `@fadroma/scrt` */
 export * from '@fadroma/client'
+
+/** Expose default version of secretjs */
 export { SecretJS }
+
+/** Expose configuration objects. */
+export { ScrtConfig, ScrtGrpcConfig }
+
+/** Expose console and error objects */
+
+export { ScrtError, ScrtConsole }

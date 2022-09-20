@@ -147,9 +147,9 @@ equal(bundle.id, 1)
 
 ```typescript
 bundle = new Bundle(agent)
-throws(()=>bundle.assertCanSubmit())
+throws(()=>bundle.assertMessages())
 bundle.msgs.push(null)
-ok(bundle.assertCanSubmit())
+ok(bundle.assertMessages())
 ```
 
 ```typescript
@@ -189,9 +189,9 @@ throws(()=>new Client().assertAddress())
 
 throws(()=>new Client().assertAgent())
 
-ok(typeof new Client(agent, { address: 'some-address' }).assertAddress() === 'string')
+ok(typeof new Client(agent, 'some-address').assertAddress() === 'string')
 
-ok(new Client(agent, { address: 'some-address' }).assertAgent() instanceof Agent)
+ok(new Client(agent, 'some-address').assertAgent() instanceof Agent)
 ```
 
 ### Contract
@@ -212,6 +212,7 @@ equal(contract, contract.as(),
   'contract.as returns copy')
 notEqual(contract, contract.as(agent),
   'contract.as returns copy')
+
 contract = contract.as(agent)
 equal(contract.builder,  builder,
   'builder still set')
@@ -238,12 +239,12 @@ equal(contract.agent,      agent)
 
 ```typescript
 contract = new Contract({ crate: 'crate' })
-equal(contract.crate,  'crate')
-equal(contract.gitRef, 'HEAD')
+equal(contract.crate,    'crate')
+equal(contract.revision, 'HEAD')
 
-contract = new Contract({ crate: 'crate', gitRef: 'ref' })
-equal(contract.crate,  'crate')
-equal(contract.gitRef, 'ref')
+contract = new Contract({ crate: 'crate', revision: 'ref' })
+equal(contract.crate,    'crate')
+equal(contract.revision, 'ref')
 
 builder = new class TestBuilder extends Builder {
   async build (source: Source): Promise<Contract> { return new Contract(source) }
@@ -257,7 +258,7 @@ const artifact = new URL('file:///tmp/artifact.wasm')
 equal(new Contract({ artifact }).artifact, artifact)
 agent = new (class TestAgent extends Agent {
   instantiate (source: Contract): Promise<Client> { return new Client(source) }
-})({ id: 'chain' })
+})({ chain: { id: 'chain' } })
 uploader = new (class TestUploader extends Uploader {
   upload (template: Contract): Promise<Contract> { return new Contract(template) }
 })(agent)

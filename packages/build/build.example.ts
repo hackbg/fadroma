@@ -1,10 +1,10 @@
-import { BuildCommands } from '@fadroma/build'
+import { BuildContext } from '@fadroma/build'
 import $ from '@hackbg/kabinet'
 
-export default class ExampleBuild extends BuildCommands {
+export default class ExampleBuild extends BuildContext {
 
   constructor (options: Partial<ExampleBuild> = {}) {
-    super(options as Partial<BuildCommands>)
+    super(options as Partial<BuildContext>)
     this.command('echo', 'build echo contract', this.echo)
     this.command('kv',   'build kv contract',   this.kv)
     this.command('all',  'build all contracts', this.all)

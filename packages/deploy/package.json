@@ -7,32 +7,34 @@
   "bin": { "fadroma-deploy": "deploy.cli.cjs" },
   "description": "Upload and instantiate smart contracts.",
   "scripts": {
+    "test":        "ganesha-node deploy.spec.ts.md",
     "ts:check":    "tsc --noEmit",
-    "release:dry": "pnpm ts:check && izomorf dry",
-    "release:wet": "pnpm ts:check && izomorf wet --access=public"
+    "release:dry": "npm test && npm run ts:check && ubik dry",
+    "release:wet": "npm test && npm run ts:check && ubik wet --access=public"
   },
   "peerDependencies": {
     "@hackbg/ganesha": "^2.2.5",
-    "@fadroma/build":  "workspace:^1.0.3"
+    "@fadroma/build":  "workspace:^2"
   },
   "peerDependenciesMeta": {
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-deploy command." },
     "@fadroma/build":  { "optional": true, "description": "For building from deployment scripts." }
   },
   "dependencies": {
-    "@fadroma/client":  "workspace:^5",
+    "@fadroma/client":  "workspace:^6",
     "@fadroma/connect": "workspace:^2",
     "@fadroma/build":   "workspace:^2",
-    "@hackbg/formati":  "workspace:^3.0.1",
+    "@hackbg/formati":  "workspace:^3.0.2",
     "@hackbg/kabinet":  "workspace:^3.1.2",
-    "@hackbg/konzola":  "workspace:^2",
-    "@hackbg/konfizi":  "workspace:^2",
-    "@hackbg/komandi":  "workspace:^5",
+    "@hackbg/konzola":  "workspace:^2.1",
+    "@hackbg/konfizi":  "workspace:^3.0.1",
+    "@hackbg/komandi":  "workspace:^6.1.2",
     "@hackbg/portali":  "workspace:^1.2.4",
     "dotenv":  "^16.0.1",
     "js-yaml": "^4.1.0"
   },
   "devDependencies": {
-    "@hackbg/dokeres": "workspace:^4.4.1"
+    "@hackbg/ganesha": "^2.2.5",
+    "@hackbg/dokeres": "workspace:^4.4.2"
   }
 }

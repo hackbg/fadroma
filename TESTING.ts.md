@@ -247,7 +247,7 @@ export async function mockAPIEndpoint (port) {
         ]}]}])
       }
       'wasm/MsgExecuteContract' () {
-        throw 'TODO'
+        //throw 'TODO'
       }
     }
     for (const {type, value} of msg) {
@@ -325,8 +325,8 @@ async function echoQuery ({query}) {
 
 ```typescript
 import { spawn } from 'child_process'
-const devnetManager = resolve(here, '../packages/devnet/devnet-manager.mjs')
-const devnetInitScript = resolve(here, '_mock-devnet-init.mjs')
+const devnetManager = resolve(here, '../packages/devnet/devnet.server.mjs')
+const devnetInitScript = resolve(here, '_mock-devnet.init.mjs')
 export async function mockDevnetManager (port) {
   port = port || await freePort(10000 + Math.floor(Math.random()*10000))
   const manager = spawn(process.argv[0], [devnetManager], {
@@ -365,12 +365,12 @@ export function mockEnv () {
 ### Mock deployment
 
 ```typescript
-import { YAMLDeployment } from './packages/deploy'
+import { Deployment } from './packages/client'
 import { withTmpFile } from '@hackbg/kabinet'
 import { equal } from 'assert'
 import { basename } from 'path'
 export const inTmpDeployment = cb => withTmpFile(f=>{
-  const d = new YAMLDeployment(f, mockAgent())
+  const d = new Deployment(f, mockAgent())
   equal(d.name, basename(f))
   return cb(d)
 })

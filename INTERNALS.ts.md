@@ -22,7 +22,7 @@ await Testing.withMockAPIEndpoint(async endpoint => {
   ok(address, 'init tx returns contract address')
   return
   console.debug(`test q ${address}`)
-  throw 'TODO - how to decrypt/reencrypt query?'
+  throw new Error('TODO - how to decrypt/reencrypt query?')
   const queryResult = await agent.query({ address }, 'status')
   equal(queryResult, 'status')
   console.debug(`test tx ${address}`)
@@ -201,7 +201,7 @@ await Deploy.status(context)
 import { getScrtDevnet } from '@hackbg/fadroma'
 for (const version of ['1.2', '1.3']) {
   continue
-  throw 'TODO'
+  throw new Error('TODO')
   const dokeres = new Dokeres(mockDockerode(({ createContainer })=>{
     if (createContainer) {
       const stream = {

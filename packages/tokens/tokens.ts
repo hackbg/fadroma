@@ -16,15 +16,18 @@ import {
   ViewingKeyClient
 } from '@fadroma/scrt'
 import {
-  CustomConsole,
   CustomError,
   bold
 } from '@hackbg/konzola'
 import {
   randomBase64
 } from '@hackbg/formati'
+import {
+  CommandContext,
+  CommandsConsole,
+} from '@hackbg/komandi'
 
-const log = new CustomConsole('Fadroma Tokens')
+const log = new CommandsConsole('Fadroma Tokens')
 
 export type Tokens = Record<string, Snip20|Token>
 /** # Token descriptors. */
@@ -166,94 +169,97 @@ export class TokenPairAmount {
 export type TokenSymbol = string
 
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
-export class TokenRegistry extends Deployment {
+export class TokenManager extends CommandContext {
 
-  constructor (options: object & { template?: Contract<any> } = {}) {
-    super(options as Partial<Deployment>)
-    this.template = options.template ?? this.template
+  constructor (
+    /** Function that returns the active deployment. */
+    public getDeployment: () => Deployment|null,
+    /** Template for deploying new tokens. */
+    public template?: Contract<any>,
+    /** Default token config. */
+    public defaultConfig: Snip20InitConfig = {
+      public_total_supply: true,
+      enable_mint:         true
+    }
+  ) {
+    super('tokens', 'token manager')
+    Object.defineProperty(this, 'log', { enumerable: false, writable: true })
   }
+
+  log = new CommandsConsole('Fadroma Tokens')
 
   /** Collection of known tokens, keyed by symbol. */
   tokens: Record<TokenSymbol, Contract<Snip20>> = {}
 
-  /** Template for deploying new tokens. */
-  template?: Contract<any>
-
-  /** Default token config. */
-  defaultConfig: Snip20InitConfig = {
-    public_total_supply: true,
-    enable_mint:         true
-  }
-
   /** Get a token by symbol. */
-  getToken (symbol: TokenSymbol): Contract<Snip20> {
+  get (symbol: TokenSymbol): Contract<Snip20> {
     if (!symbol) throw new TokenError.NoSymbol()
-    if (!this.hasToken(symbol)) throw new TokenError.NotFound(symbol)
+    if (!this.has(symbol)) throw new TokenError.NotFound(symbol)
     return this.tokens[symbol]!
   }
 
   /** See if this symbol is registered. */
-  hasToken (symbol: TokenSymbol): boolean {
+  has (symbol: TokenSymbol): boolean {
     return Object.keys(this.tokens).includes(symbol)
   }
 
   /** Add a token to the registry, failing if invalid. */
-  addToken (symbol: TokenSymbol, token?: Contract<Snip20>): this {
+  add (symbol: TokenSymbol, token?: Contract<Snip20>): this {
     if (!token) throw new TokenError.PassToken()
     if (!symbol) throw new TokenError.CantRegister()
-    if (this.hasToken(symbol)) throw new TokenError.AlreadyRegistered(symbol)
+    if (this.has(symbol)) throw new TokenError.AlreadyRegistered(symbol)
     // TODO compare and don't throw if it's the same token
-    return this.setToken(symbol, token)
+    return this.set(symbol, token)
   }
 
-  setToken (symbol: TokenSymbol, token?: Contract<Snip20>): this {
+  /** Set an entry in the token registry.
+    * If setting to a falsy value, delete the entry. */
+  set (symbol: TokenSymbol, token?: Contract<Snip20>): this {
     if (token) {
       this.tokens[symbol] = token
       return this
     } else {
-      return this.delToken(symbol)
+      return this.del(symbol)
     }
   }
 
-  delToken (symbol: TokenSymbol): this {
+  /** Delete an entry from the token registry. */
+  del (symbol: TokenSymbol): this {
     delete this.tokens[symbol]
     return this
   }
 
   /** Get or deploy a Snip20 token and add it to the registry. */
-  token (
+  deploy (
     symbol:  TokenSymbol,
-    options?: {
-      template?: any
+    options: {
+      template?: Partial<Contract<Snip20>>
       name:      string
       decimals:  number
       admin:     Address,
       config?:   Snip20InitConfig
     }
-  ): Contract<Snip20> {
-    if (this.hasToken(symbol)) {
-      return this.getToken(symbol)
-    } else if (options) {
-      const { name, decimals, admin, config } = options
-      this.logToken(name, symbol, decimals)
-      const contract = this.contract(this.template)
-      contract.name   = name
-      contract.prefix = this.name
-      this.add(symbol, contract)
-      const init = Snip20.init(name, symbol, decimals, admin, config)
-      return contract
-    } else {
-      throw new Error(`Token ${symbol}: not found`)
-    }
+  ): Promise<Snip20> {
+    const deployment = this.getDeployment()
+    if (!deployment) throw new Error('Token manager: no deployment')
+    const { name, decimals, admin, config } = options
+    this.logToken(name, symbol, decimals)
+    const token = deployment.contract(options?.template ?? this.template)
+    token.name   = name
+    token.prefix = deployment.name
+    this.add(symbol, token)
+    return token.deploy(Snip20.init(name, symbol, decimals, admin, config))
   }
 
   /** Deploy multiple Snip20 tokens in one transaction and add them to the registry. */
-  async getOrDeployTokens (
+  async deployMany (
     tokens:   Snip20BaseConfig[]   = [],
     config:   Snip20InitConfig     = this.defaultConfig,
     template: any = this.template!,
-    admin:    Address      = this.agent?.address!,
+    admin:    Address      = this.getDeployment()?.agent?.address!,
   ): Promise<Snip20[]> {
+    const deployment = this.getDeployment()
+    if (!deployment) throw new Error('Token manager: no deployment')
     tokens.forEach(({name, symbol, decimals})=>this.logToken(name, symbol, decimals))
     // to deploy multiple contracts of the same type in 1 tx:
     const toDeployArgs = ({name, symbol, decimals}: Snip20BaseConfig): DeployArgs => [
@@ -279,7 +285,7 @@ export class TokenRegistry extends Deployment {
 
   /** Say that we're deploying a token. */
   private logToken = (name: string, symbol: TokenSymbol, decimals: number) => this.log.info(
-    `Deploying token ${bold(name)}: ${symbol} (${decimals} decimals)`
+    //`Deploying token ${bold(name)}: ${symbol} (${decimals} decimals)`
   )
 
   /** Get a TokenPair object from a string like "SYMBOL1-SYMBOL2"
@@ -302,13 +308,13 @@ export class TokenRegistry extends Deployment {
   /** Command step: Deploy a single Snip20 token.
     * Exposed below as the "deploy token" command.
     * Invocation is "pnpm run deploy token $name $symbol $decimals [$admin] [$crate]" */
-  async deployToken (
-    name:      string = this.args[0]??'MockToken',
-    symbol:    string = this.args[1]??'MOCK',
-    decimals:  number = Number(this.args[2]??6),
-    admin:     Address|undefined = this.args[3]??this.agent?.address,
-    template:  any = this.args[4]??'amm-snip20'
-  ) {
+  deployToken = this.command('deploy', 'deploy a token', async (
+    name:      string            = this.args[0]??'MockToken',
+    symbol:    string            = this.args[1]??'MOCK',
+    decimals:  number            = Number(this.args[2]??6),
+    admin:     Address|undefined = this.args[3]??this.getDeployment()?.agent?.address,
+    template:  any               = this.args[4]??'amm-snip20'
+  ) => {
     const args   = this.args.slice(5)
     const config = structuredClone(this.defaultConfig)
     if (args.includes('--no-public-total-supply')) delete config.public_total_supply
@@ -316,8 +322,8 @@ export class TokenRegistry extends Deployment {
     if (args.includes('--can-burn'))    config.enable_burn    = true
     if (args.includes('--can-deposit')) config.enable_deposit = true
     if (args.includes('--can-redeem'))  config.enable_redeem  = true
-    return await new TokenRegistry(this).token(symbol, { name, decimals, admin, template })
-  }
+    return await this.deploy(symbol, { name, decimals, admin, template })
+  })
 
 }
 

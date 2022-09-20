@@ -18,59 +18,84 @@
 
 **/
 
-import * as Konfizi   from '@hackbg/konfizi'
-import * as Komandi   from '@hackbg/komandi'
-import * as Konzola   from '@hackbg/konzola'
-import * as Fadroma   from '@fadroma/client'
-import * as Build     from '@fadroma/build'
-import * as Connect   from '@fadroma/connect'
-import * as Deploy    from '@fadroma/deploy'
-import * as Devnet    from '@fadroma/devnet'
+import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
+import { BuilderConfig, BuildContext } from '@fadroma/build'
+import { DeployConfig, DeployContext } from '@fadroma/deploy'
+import type { DeployStore } from '@fadroma/deploy'
+import { DevnetConfig } from '@fadroma/devnet'
+import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
+import { TokenManager } from '@fadroma/tokens'
 
-/** A collection of functions that return Chain instances. */
-export type ChainRegistry = Record<string, (config: any)=>Fadroma.Chain|Promise<Fadroma.Chain>>
-
-/** Complete environment configuration of all Fadroma subsystems. */
-export class Config extends Konfizi.EnvConfig {
-  /** Path to root of project. Defaults to current working directory. */
-  project: string = this.getString('FADROMA_PROJECT', ()=>this.cwd)
-  build     = new Build.BuilderConfig(this.env, this.cwd)
-  connect   = new Connect.ConnectConfig(this.env, this.cwd)
-  deploy    = new Deploy.DeployConfig(this.env, this.cwd)
-  devnet    = new Devnet.DevnetConfig(this.env, this.cwd)
-  scrtGrpc  = new Connect.ScrtGrpc.Config(this.env, this.cwd)
-  scrtAmino = new Connect.ScrtAmino.Config(this.env, this.cwd)
+/** Configuration for the Fadroma environment. */
+export class Config extends DeployConfig {
+  build = new BuilderConfig(this.env, this.cwd, { project: this.project })
 }
 
 /** Context for Fadroma commands. */
-export class Commands extends Komandi.CommandContext {
-  constructor (
-    config: Config,
-    /** The selected blockhain to connect to. */
-    public chain?: Fadroma.Chain,
-    /** The selected agent to operate as. */
-    public agent?: Fadroma.Agent
-  ) {
-    super('Fadroma')
+export default class Fadroma extends DeployContext {
+  /** @returns a function that runs a requested command. */
+  static run (name: string = 'Fadroma'): AsyncEntrypoint {
+    const self = this
+    return (argv: string[]) => self.init(name).then(context=>context.run(argv))
   }
-  config  = new Config(this.env, this.cwd)
-  project = this.config.project
-  build   = new Build.BuildCommands({
-    name: 'build',  config: this.config.build,
-  })
-  connect = new Connect.ConnectContext(this.config.connect)
-  deploy  = new Deploy.DeployCommands({
-    name: 'deploy', config: this.config.deploy, build: this.build
-  })
+  /** Constructs a populated instance of the Fadroma context. */
+  static async init (
+    name:    string = 'Fadroma',
+    options: Partial<Config> = {}
+  ): Promise<Fadroma> {
+    const config = new Config(process.env, process.cwd(), options)
+    const { chain, agent, deployments, uploader } = await config.init()
+    return new this(name, config, chain, agent, deployments, uploader)
+  }
+  constructor (
+    /** Used by logger. */
+    public name:        string,
+    /** Configuration. */
+    config:             Partial<Config>   = new Config(),
+    /** Represents the blockchain to which we will connect. */
+    public chain:       Chain|null        = null,
+    /** Represents the identity which will perform operations on the chain. */
+    public agent:       Agent|null        = null,
+    /** Contains available deployments for the current chain. */
+    public deployments: DeployStore|null  = null,
+    /** Implements uploading and upload reuse. */
+    public uploader:    Uploader|null     = null,
+    /** Build context. */
+    public build:       BuildContext|null = null
+  ) {
+    super(config, chain, agent)
+    this.log.name = name
+    this.config = new Config(this.env, this.cwd, config)
+    this.build ??= this.config.build.getBuildContext()
+    this.workspace = config.project
+    this.tokens = this.commands('tokens', 'Fadroma Token Manager',
+      new TokenManager(()=>this.deployment))
+  }
+  /** The current configuration. */
+  config: Config
+  /** The currently configured builder, or null. */
+  get builder (): Builder|null {
+    return this.build?.builder ?? null
+  }
+  /** The workspace from which to build contracts.
+    * Defaults to project root. */
+  workspace?: string
+  /** The token manager API. */
+  tokens: TokenManager
 }
 
-export const Console = Fadroma.ClientConsole
+/** Asynchronous function that takes an array of command arguments
+  * and returns an unspecified value. */
+export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
+
+export const Console = ClientConsole
 export * from '@hackbg/konzola'
 export * from '@hackbg/komandi'
 export * from '@hackbg/konfizi'
 export * from '@hackbg/kabinet'
 export * from '@hackbg/formati'
 export * from '@fadroma/client'
+export { override, Overridable } from '@fadroma/client'
 export type { Decimal } from '@fadroma/client'
 export * from '@fadroma/build'
 export * from '@fadroma/deploy'
