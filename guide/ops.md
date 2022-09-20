@@ -21,22 +21,23 @@ deployment system, Fadroma Ops.
 #!/usr/bin/env fadroma-deploy
 import Fadroma from '@hackbg/fadroma'
 
-export default new Fadroma.DeployCommands('deploy')
-  .command('deploy', 'deploy an instance of my-contract', deployMyContract)
-  .command('status', 'print status of deployed contract', statusOfContract)
+export class Project extends Fadroma {
 
-const console = Fadroma.Console('MyDeploy')
+  deploy = this.command('deploy', 'deploy an instance of my-contract', async () => {
+    this.log.info('Deploying...')
+    await this.context.contract('MyContract').deploy('my-contract')
+  })
 
-async function deployMyContract (context) {
-  console.info('Deploying...')
-  await context.contract('MyContract').deploy('my-contract')
+  status = this.command('status', 'print status of deployed contract', async () => {
+    this.log.info('Querying status...')
+    const contract = await context.contract('MyContract').get('Deploy the contract first.').populate()
+    console.debug(contract)
+  })
+
 }
 
-async function statusOfContract (context) {
-  console.info('Querying status...')
-  const contract = await context.contract('MyContract').get('Deploy the contract first.').populate()
-  console.debug(contract)
-}
+export default Project.run()
+
 /** add more commands here */
 ```
 

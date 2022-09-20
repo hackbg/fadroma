@@ -44,11 +44,11 @@ const exit = {
     console.error(
       `${script} has no default export.\n` +
       `Export a default function to serve as entrypoint to your deploy script, e.g.:\n\n`+
-      `  import DeployCommands from '@fadroma/deploy'\n`+
-      `  export default async () => (await MyDeployment.init()).entrypoint(import.meta.url)\n`+
-      `  class MyDeployment extends DeployCommands {\n` +
+      `  import { DeployContext } from '@fadroma/deploy'\n`+
+      `  class MyDeployment extends DeployContext {\n` +
       `    /* ... implementation ... */\n` +
-      `  }`
+      `  }` +
+      `  export default MyDeployment.run()`
     )
     process.exit(4)
   },

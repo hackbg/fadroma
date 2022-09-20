@@ -44,9 +44,9 @@ let config: DeployConfig = new DeployConfig({}, '')
 ## Deploy context
 
 ```typescript
-import deploy, { DeployCommands, DeployConfig } from '.'
-let context: DeployCommands = await deploy({ chain: 'Mocknet', mnemonic })
-ok(context            instanceof DeployCommands)
+import { DeployContext, DeployConfig } from '.'
+let context: DeployContext = await deploy({ chain: 'Mocknet', mnemonic })
+ok(context            instanceof DeployContext)
 ok(context.uploader   instanceof Uploader)
 ok(context.contract() instanceof Contract)
 ```
@@ -58,16 +58,14 @@ import { Client, Deployment } from '@fadroma/client'
 import { connect } from '@fadroma/connect'
 import * as Dokeres from '@hackbg/dokeres'
 import { BuildContext, getBuilder } from '@fadroma/build'
-import { deploy, DeployCommands, YAMLDeployment } from '.'
+import { DeployConfig, DeployContext } from '.'
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
 import { ExampleDeployment } from './deploy.example'
 
-ok(await deploy() instanceof DeployCommands
-   'deploy() returns a deploy context')
-
-ok(new YAMLDeployment() instanceof Deployment,
-   'deployments can be loaded/saved in yaml')
+ok(await new DeployConfig({
+  FADROMA_CHAIN: 'Mocknet'
+}).getDeployContext() instanceof DeployContext)
 
 /*await Testing.inTmpDeployment(async deployment=>{
   context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildContext())
@@ -90,16 +88,17 @@ ok(new YAMLDeployment() instanceof Deployment,
 })*/
 ```
 
-## `Deployments` directory
+## Deploy store
 
 ```typescript
-import { Deployments, Deploy } from '.'
+import { DeployStore, YAMLDeployments_v1, Deploy } from '.'
 import { withTmpDir } from '@hackbg/kabinet'
 import { existsSync } from 'fs'
 
 // deployments
 await withTmpDir(async dir=>{
-  const deployments = new Deployments(dir)
+  const deployments = new YAMLDeployments_1(dir)
+  ok(YAMLDeployments_1 instanceof DeployStore)
   await deployments.create('test-deployment-1')
   await deployments.create('test-deployment-2')
   await deployments.select('test-deployment-1')
@@ -189,13 +188,7 @@ await withTmpDir(async cacheDir=>{
 })
 ```
 
-## `Deployment`, `Deployments`: keeping track of deployed contracts
-
-```typescript
-
-import { Deployments } from '.'
-new Deployments()
-```
+## `Deployment`: collection of contracts
 
 ```typescript
 

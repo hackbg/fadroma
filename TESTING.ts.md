@@ -365,12 +365,12 @@ export function mockEnv () {
 ### Mock deployment
 
 ```typescript
-import { YAMLDeployment } from './packages/deploy'
+import { Deployment } from './packages/client'
 import { withTmpFile } from '@hackbg/kabinet'
 import { equal } from 'assert'
 import { basename } from 'path'
 export const inTmpDeployment = cb => withTmpFile(f=>{
-  const d = new YAMLDeployment(f, mockAgent())
+  const d = new Deployment(f, mockAgent())
   equal(d.name, basename(f))
   return cb(d)
 })

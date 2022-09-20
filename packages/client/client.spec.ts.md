@@ -147,9 +147,9 @@ equal(bundle.id, 1)
 
 ```typescript
 bundle = new Bundle(agent)
-throws(()=>bundle.assertCanSubmit())
+throws(()=>bundle.assertMessages())
 bundle.msgs.push(null)
-ok(bundle.assertCanSubmit())
+ok(bundle.assertMessages())
 ```
 
 ```typescript

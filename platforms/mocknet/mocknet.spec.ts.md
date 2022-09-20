@@ -76,8 +76,9 @@ assert.rejects(client.query("get"))
 ## Mocknet backend
 
 ```typescript
-import { MocknetBackend } from '.'
-let contract: MocknetBackend.Contract
+import { MocknetBackend, MocknetContract } from './mocknet-backend'
+let backend:  MocknetBackend
+let contract: MocknetContract
 let response: { Ok: any, Err: any }
 ```
 
@@ -134,7 +135,7 @@ deepEqual(response.Err, { generic_err: { msg: 'this query always fails' } })
   * These functions are used by the mocknet code to encode/decode the base64.
 
 ```typescript
-import { b64toUtf8, utf8toB64 } from '.'
+import { b64toUtf8, utf8toB64 } from './mocknet-backend'
 
 equal(b64toUtf8('IkVjaG8i'), '"Echo"')
 equal(utf8toB64('"Echo"'), 'IkVjaG8i')
