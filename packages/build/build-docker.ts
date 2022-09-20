@@ -194,6 +194,7 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Define the mounts and environment variables of the build container
+    if (!this.script) throw new Error('Build script not set.')
     const buildScript   = $(`/`, $(this.script).name).path
     const safeRef       = sanitize(revision)
     const knownHosts    = $(homedir()).in('.ssh').at('known_hosts')

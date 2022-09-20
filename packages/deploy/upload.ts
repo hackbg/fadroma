@@ -1,6 +1,6 @@
 import { bold } from '@hackbg/konzola'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
-import { Agent, Contract, Uploader } from '@fadroma/client'
+import { Agent, Contract, Uploader, ClientError } from '@fadroma/client'
 import { CustomConsole } from '@hackbg/konzola'
 
 export class UploadConsole extends CustomConsole {
@@ -29,6 +29,11 @@ export class FSUploader extends Uploader {
   log = new UploadConsole('Fadroma.FSUploader')
 
   cache?: Uploads
+
+  assertAgent (): Agent {
+    if (!this.agent) throw new ClientError.NoAgent()
+    return this.agent
+  }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
   async upload (contract: Contract<any>): Promise<Contract<any>> {
@@ -149,6 +154,7 @@ export class FSUploader extends Uploader {
 
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
   async uploadManySansCache (inputs: Array<Contract<any>>): Promise<Array<Contract<any>>> {
+    const agent = this.assertAgent()
     const outputs: Array<Contract<any>> = []
     for (const i in inputs) {
       const input = inputs[i]
@@ -156,7 +162,7 @@ export class FSUploader extends Uploader {
         const path = $(input.artifact!)
         const data = path.as(BinaryFile).load()
         this.log.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
-        const output = new Contract({ ...input, ...await this.agent.upload(data) })
+        const output = new Contract({ ...input, ...await agent.upload(data) })
         this.checkLocalCodeHash(input, output)
         outputs[i] = output
       } else {

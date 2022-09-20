@@ -58,7 +58,7 @@ export class RawBuilder extends LocalBuilder {
     }
 
     // Run the build script
-    const cmd = [this.runtime, this.script, 'phase1', revision, crate ]
+    const cmd = [this.runtime!, this.script!, 'phase1', revision, crate ]
     const opts = { cwd: source.workspace, env: { ...process.env, ...env }, stdio: 'inherit' }
     const sub  = spawn(cmd.shift() as string, cmd, opts as any)
     await new Promise<void>((resolve, reject)=>{

@@ -100,7 +100,7 @@ export abstract class ScrtBundle extends Fadroma.Bundle {
     // Output signing instructions to the console
     log.bundleSigningCommand(
       String(Math.floor(+ new Date()/1000)),
-      this.agent.address!, this.agent.assertChain.id,
+      this.agent.address!, this.agent.assertChain().id,
       accountNumber, sequence, unsigned
     )
     return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
@@ -375,7 +375,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const findCodeId = (log: Log) => log.type === "message" && log.key === "code_id"
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
-    const chainId    = this.chain.id
+    const chainId    = this.assertChain().id
     const contract   = new Fadroma.Contract({
       agent: this,
       codeHash,
@@ -393,7 +393,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   ): Promise<Fadroma.Contract<any>> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
-    if (chainId !== this.chain.id) throw new ScrtError.WrongChain()
+    if (chainId !== this.assertChain().id) throw new ScrtError.WrongChain()
     if (isNaN(Number(codeId)))     throw new ScrtError.NoCodeId()
     const sender   = this.address
     const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
@@ -504,7 +504,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
   SecretJS = ScrtGrpcBundle.SecretJS
 
   async submit (memo = ""): Promise<ScrtBundleResult[]> {
-    this.assertCanSubmit()
+    const chainId = this.assertChain().id
     const results: ScrtBundleResult[] = []
     const msgs  = await this.conformedMsgs
     const limit = Number(Scrt.defaultFees.exec.amount[0].amount)
@@ -521,7 +521,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
         const result: Partial<ScrtBundleResult> = {}
         result.sender  = this.address
         result.tx      = txResult.transactionHash
-        result.chainId = this.chain.id
+        result.chainId = chainId
         if (msg instanceof this.SecretJS.MsgInstantiateContract) {
           type Log = { msg: number, type: string, key: string }
           const findAddr = ({msg, type, key}: Log) =>
@@ -553,7 +553,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
 
   /** Format the messages for API v1 like secretjs and encrypt them. */
   private get conformedMsgs () {
-    return Promise.all(this.msgs.map(async ({init, exec})=>{
+    return Promise.all(this.assertMessages().map(async ({init, exec})=>{
       if (init) return new this.SecretJS.MsgInstantiateContract({
         sender:          init.sender,
         codeId:          init.codeId,

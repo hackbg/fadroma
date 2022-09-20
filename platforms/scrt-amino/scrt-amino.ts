@@ -178,7 +178,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
       throw new Error("No address, can't get API")
     }
     return new this.API(
-      this.assertChain.url,
+      this.assertChain().url,
       this.address,
       this.sign,
       this.seed,
@@ -225,7 +225,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     const msg = await Promise.all(outputs.map(toMsg))
     const memo      = opts?.memo
     const fee       = opts?.fee || Fadroma.Scrt.gas(500000 * outputs.length)
-    const chainId   = this.assertChain.id
+    const chainId   = this.assertChain().id
     const signBytes = SecretJS.makeSignBytes(msg, fee, chainId, memo, accountNumber!, sequence!)
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
@@ -237,7 +237,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     return Object.assign(new Fadroma.Contract(), {
       artifact: undefined,
       codeHash: uploadResult.originalChecksum,
-      chainId:  this.assertChain.id,
+      chainId:  this.assertChain().id,
       codeId,
       uploadTx: uploadResult.transactionHash
     })
@@ -296,7 +296,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     return await this.api.signAdapter(
       msgs,
       gas,
-      this.assertChain.id,
+      this.assertChain().id,
       memo,
       accountNumber,
       sequence
@@ -312,11 +312,10 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
   declare agent: ScrtAminoAgent
   get nonce () {
     if (!this.agent || !this.agent.address) throw new Error("Missing address, can't get nonce")
-    return getNonce(this.assertChain.url, this.agent.address)
+    return getNonce(this.assertChain().url, this.agent.address)
   }
   async submit (memo = "") {
     const results: any[] = []
-    this.assertCanSubmit()
     /** Format the messages for API v1 like secretjs and encrypt them. */
     const init1 = (
       sender: Fadroma.Address, code_id: any, label: any, init_msg: any, init_funds: any
@@ -330,7 +329,7 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
       "type": 'wasm/MsgExecuteContract',
       value: { sender, contract, msg, sent_funds }
     })
-    const msgs = await Promise.all(this.msgs.map(({init, exec})=>{
+    const msgs = await Promise.all(this.assertMessages().map(({init, exec})=>{
       if (init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         const toMsg = (msg: unknown)=>init1(sender, String(codeId), label, msg, funds)
@@ -353,7 +352,7 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
           sender:  this.address,
           tx:      txResult.transactionHash,
           type:    msgs[i].type,
-          chainId: this.assertChain.id
+          chainId: this.assertChain().id
         }
         if (msgs[i].type === 'wasm/MsgInstantiateContract') {
           type Attrs = { contract_address: Fadroma.Address, code_id: unknown }

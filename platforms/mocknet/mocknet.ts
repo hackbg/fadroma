@@ -58,7 +58,7 @@ class MocknetAgent extends Fadroma.Agent {
   address: Fadroma.Address = Formati.randomBech32(MOCKNET_ADDRESS_PREFIX)
 
   get defaultDenom () {
-    return this.assertChain.defaultDenom
+    return this.assertChain().defaultDenom
   }
   get backend (): MocknetBackend {
     return (this.chain as unknown as Mocknet).backend
@@ -80,7 +80,7 @@ class MocknetAgent extends Fadroma.Agent {
     return await this.backend.execute(this.address, instance, msg, opts.send, opts.memo, opts.fee)
   }
   async query <R> (instance: Fadroma.Client, msg: Fadroma.Message): Promise<R> {
-    return await this.assertChain.query(instance, msg)
+    return await this.assertChain().query(instance, msg)
   }
   get account () {
     return Promise.resolve({})

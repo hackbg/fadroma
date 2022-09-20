@@ -305,15 +305,15 @@ export abstract class Agent {
   /** The Bundle subclass to use. */
   Bundle:   BundleClass<Bundle> =
     (this.constructor as AgentClass<typeof this>).Bundle
-  /** @returns this.chain if set
-    * @throws NoChainClientError if not set */
-  get assertChain (): Chain {
-    if (!this.chain) throw new ClientError.NoChain()
-    return this.chain
-  }
   /** The default denomination in which the agent operates. */
   get defaultDenom () {
-    return this.assertChain.defaultDenom
+    return this.assertChain().defaultDenom
+  }
+  /** @returns this.chain if set
+    * @throws NoChainClientError if not set */
+  assertChain (): Chain {
+    if (!this.chain) throw new ClientError.NoChain()
+    return this.chain
   }
   /** Get the balance of this or another address. */
   getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {
@@ -327,31 +327,31 @@ export abstract class Agent {
   }
   /** The chain's current block height. */
   get height (): Promise<number> {
-    return this.assertChain.height
+    return this.assertChain().height
   }
   /** Wait until the block height increments. */
   get nextBlock () {
-    return this.assertChain.nextBlock
+    return this.assertChain().nextBlock
   }
   /** Get the code ID of a contract. */
   getCodeId (address: Address) {
-    return this.assertChain.getCodeId(address)
+    return this.assertChain().getCodeId(address)
   }
   /** Get the label of a contract. */
   getLabel (address: Address) {
-    return this.assertChain.getLabel(address)
+    return this.assertChain().getLabel(address)
   }
   /** Get the code hash of a contract or template. */
   getHash (address: Address|number) {
-    return this.assertChain.getHash(address)
+    return this.assertChain().getHash(address)
   }
   /** Check the code hash of a contract at an address against an expected value. */
   checkHash (address: Address, codeHash?: CodeHash) {
-    return this.assertChain.checkHash(address, codeHash)
+    return this.assertChain().checkHash(address, codeHash)
   }
   /** Query a contract on the chain. */
   query <R> (contract: Client, msg: Message): Promise<R> {
-    return this.assertChain.query(contract, msg)
+    return this.assertChain().query(contract, msg)
   }
   /** Send native tokens to 1 recipient. */
   abstract send     (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown>
@@ -479,9 +479,9 @@ export abstract class Bundle extends Agent {
     }
   }
   /** Throws if the bundle is invalid. */
-  assertCanSubmit (): this {
+  assertMessages (): typeof this.msgs {
     if (this.msgs.length < 1) throw new ClientError.EmptyBundle()
-    return this
+    return this.msgs
   }
   /** This doesnt change over time so it's allowed when building bundles. */
   getCodeId (address: Address) {

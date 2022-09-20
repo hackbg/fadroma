@@ -31,7 +31,7 @@ export abstract class LocalBuilder extends Builder {
 
   constructor (options: Partial<LocalBuilder> = {}) {
     super()
-    this.script        = options.script ?? this.script
+    if (options.script) this.script = options.script
     this.noFetch       = options.noFetch ?? this.noFetch
     this.outputDirName = options.outputDirName ?? this.outputDirName
     this.toolchain     = options.toolchain ?? this.toolchain
@@ -39,7 +39,7 @@ export abstract class LocalBuilder extends Builder {
   }
 
   /** The build script. */
-  script:        string
+  script?:       string
 
   /** Whether to set _NO_FETCH=1 in build script's environment and skip "git fetch" calls */
   noFetch:       boolean     = false

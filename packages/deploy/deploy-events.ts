@@ -5,7 +5,9 @@ import type { Deployment } from '@fadroma/client'
 import type { DeployStore } from './deploy-base'
 
 export class DeployConsole extends ConnectConsole {
+
   name = 'Fadroma Deploy'
+
   deployment = ({ deployment }: { deployment: Deployment }) => {
     if (deployment) {
       const { state = {}, name } = deployment
@@ -25,6 +27,7 @@ export class DeployConsole extends ConnectConsole {
       this.info('│ There is no selected deployment.')
     }
   }
+
   receipt = (name: string, receipt: any, len = 35) => {
     name = bold(name.padEnd(len))
     if (receipt.address) {
@@ -35,18 +38,22 @@ export class DeployConsole extends ConnectConsole {
       this.info('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
   }
+
   warnNoDeployment = () => this.warn(
     'No active deployment. Most commands will fail. ' +
     'You can create a deployment using `fadroma-deploy new` ' +
     'or select a deployment using `fadroma-deploy select` ' +
     'among the ones listed by `fadroma-deploy list`.'
   )
+
   warnNoAgent = () => this.warn(
     'No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'
   )
+
   warnNoDeployAgent = () => this.warn(
     'No deploy agent. Deployments will not be possible.'
   )
+
   deploymentList = (chainId: string, deployments: DeployStore) => {
     const list = deployments.list()
     if (list.length > 0) {
