@@ -1,13 +1,18 @@
 #![cfg(test)]
 
-use crate::scrt::cosmwasm_std::{
-    from_binary,
-    testing::{mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage},
-    to_binary, Addr, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, QueryResponse,
-    Response, StdError, StdResult, Uint128, WasmMsg,
-};
 use crate::vk::{ViewingKey, VIEWING_KEY_SIZE};
-use fadroma_platform_scrt::cosmwasm_std::{Api, OwnedDeps, ReplyOn, SubMsg};
+use crate::{
+    math::sha_256,
+    scrt::cosmwasm_std::{
+        from_binary,
+        testing::{
+            mock_dependencies, mock_dependencies_with_balance, mock_env, mock_info, MockApi,
+            MockQuerier, MockStorage,
+        },
+        to_binary, Addr, Api, Binary, Coin, CosmosMsg, Deps, DepsMut, Env, MessageInfo, OwnedDeps,
+        QueryResponse, ReplyOn, Response, StdError, StdResult, SubMsg, Uint128, WasmMsg,
+    },
+};
 
 use super::{
     assert_valid_symbol, batch,
@@ -20,11 +25,16 @@ use std::any::Any;
 
 use super::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
-fn init(deps: DepsMut, env: Env, info: MessageInfo, msg: InstantiateMsg) -> StdResult<Response> {
+fn instantiate(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: InstantiateMsg,
+) -> StdResult<Response> {
     crate::snip20_impl::snip20_instantiate(deps, env, info, msg, DefaultSnip20Impl)
 }
 
-fn handle(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
+fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> StdResult<Response> {
     crate::snip20_impl::snip20_execute(deps, env, info, msg, DefaultSnip20Impl)
 }
 
@@ -54,7 +64,7 @@ fn init_helper(
         callback: None,
     };
 
-    (init(deps.as_mut(), env, info, init_msg), deps)
+    (instantiate(deps.as_mut(), env, info, init_msg), deps)
 }
 
 fn init_helper_with_config(
@@ -68,7 +78,10 @@ fn init_helper_with_config(
     StdResult<Response>,
     OwnedDeps<MockStorage, MockApi, MockQuerier>,
 ) {
-    let mut deps = mock_dependencies();
+    let mut deps = mock_dependencies_with_balance(&[Coin {
+        denom: "uscrt".to_string(),
+        amount: Uint128::new(contract_bal),
+    }]);
 
     let env = mock_env();
     let info = mock_info("instantiator", &[]);
@@ -97,7 +110,7 @@ fn init_helper_with_config(
         callback: None,
     };
 
-    (init(deps.as_mut(), env, info, init_msg), deps)
+    (instantiate(deps.as_mut(), env, info, init_msg), deps)
 }
 
 /// Will return a ViewingKey only for the first account in `initial_balances`
@@ -118,7 +131,7 @@ fn _auth_query_helper(
         padding: None,
     };
 
-    let handle_response = handle(
+    let handle_response = execute(
         deps.as_mut(),
         mock_env(),
         mock_info(&account, &[]),
@@ -206,7 +219,10 @@ fn test_init_sanity() {
     assert_eq!(constants.name, "sec-sec".to_string());
     assert_eq!(constants.symbol, "SECSEC".to_string());
     assert_eq!(constants.decimals, 8);
-    assert_eq!(constants.prng_seed, Vec::from("lolz fun yay"));
+    assert_eq!(
+        constants.prng_seed,
+        sha_256("lolz fun yay".to_owned().as_bytes())
+    );
     assert_eq!(constants.total_supply_is_public, false);
 }
 
@@ -240,7 +256,10 @@ fn test_init_with_config_sanity() {
     assert_eq!(constants.name, "sec-sec".to_string());
     assert_eq!(constants.symbol, "SECSEC".to_string());
     assert_eq!(constants.decimals, 8);
-    assert_eq!(constants.prng_seed, Vec::from("lolz fun yay"));
+    assert_eq!(
+        constants.prng_seed,
+        sha_256("lolz fun yay".to_owned().as_bytes())
+    );
     assert_eq!(constants.total_supply_is_public, false);
     assert_eq!(constants.deposit_is_enabled, true);
     assert_eq!(constants.redeem_is_enabled, true);
@@ -297,7 +316,7 @@ fn test_handle_transfer() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
 
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
@@ -317,7 +336,7 @@ fn test_handle_transfer() {
         padding: None,
     };
 
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
 
     assert!(error.contains("insufficient funds"));
@@ -339,7 +358,7 @@ fn test_handle_send() {
         code_hash: "this_is_a_hash_of_a_code".to_string(),
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("contract", &[]),
@@ -357,7 +376,7 @@ fn test_handle_send() {
         msg: Some(to_binary("hey hey you you").unwrap()),
     };
 
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result.clone()));
 
@@ -401,7 +420,7 @@ fn test_handle_send_with_code_hash() {
         padding: None,
         msg: Some(to_binary("hey hey you you").unwrap()),
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result.clone()));
     let id = 0;
@@ -409,7 +428,7 @@ fn test_handle_send_with_code_hash() {
         id,
         msg: CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: "contract".to_string(),
-            code_hash: "this_is_a_hash_of_a_code".to_string(),
+            code_hash: code_hash.into(),
             msg: Snip20ReceiveMsg::new(
                 Addr::unchecked("bob".to_string()),
                 Addr::unchecked("bob".to_string()),
@@ -447,7 +466,7 @@ fn test_handle_register_receive() {
         padding: None,
     };
 
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("contract", &[]),
@@ -482,10 +501,10 @@ fn test_handle_create_viewing_key() {
         entropy: "".to_string(),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     let answer: ExecuteAnswer = from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
@@ -518,7 +537,7 @@ fn test_handle_set_viewing_key() {
         key: "hi lol".to_string(),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let unwrapped_result: ExecuteAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
@@ -535,7 +554,7 @@ fn test_handle_set_viewing_key() {
         key: actual_vk.0.clone(),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let unwrapped_result: ExecuteAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
@@ -572,7 +591,7 @@ fn test_handle_transfer_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -588,10 +607,10 @@ fn test_handle_transfer_from() {
         padding: None,
         expiration: Some(1_571_797_420),
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     let handle_msg = ExecuteMsg::TransferFrom {
@@ -601,7 +620,7 @@ fn test_handle_transfer_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -618,7 +637,7 @@ fn test_handle_transfer_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("insufficient allowance"));
 
@@ -630,7 +649,7 @@ fn test_handle_transfer_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -638,7 +657,7 @@ fn test_handle_transfer_from() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
@@ -661,7 +680,7 @@ fn test_handle_transfer_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -693,7 +712,7 @@ fn test_handle_send_from() {
         msg: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -709,10 +728,10 @@ fn test_handle_send_from() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     let handle_msg = ExecuteMsg::SendFrom {
@@ -724,7 +743,7 @@ fn test_handle_send_from() {
         msg: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -738,7 +757,7 @@ fn test_handle_send_from() {
         code_hash: "lolz".to_string(),
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("contract", &[]),
@@ -746,7 +765,7 @@ fn test_handle_send_from() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     let send_msg = Binary::from(r#"{ "some_msg": { "some_key": "some_val" } }"#.as_bytes());
@@ -766,7 +785,7 @@ fn test_handle_send_from() {
         msg: Some(send_msg),
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -774,7 +793,7 @@ fn test_handle_send_from() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -811,7 +830,7 @@ fn test_handle_send_from() {
         msg: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -839,10 +858,10 @@ fn test_handle_send_from_with_code_hash() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -857,7 +876,7 @@ fn test_handle_send_from_with_code_hash() {
         padding: None,
         msg: Some(to_binary("hey hey you you").unwrap()),
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -926,7 +945,7 @@ fn test_handle_burn_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -942,7 +961,7 @@ fn test_handle_burn_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -958,10 +977,10 @@ fn test_handle_burn_from() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     let handle_msg = ExecuteMsg::BurnFrom {
@@ -970,7 +989,7 @@ fn test_handle_burn_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -986,7 +1005,7 @@ fn test_handle_burn_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -994,7 +1013,7 @@ fn test_handle_burn_from() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     let bob = Account::of(deps.api.addr_canonicalize("bob").unwrap());
@@ -1014,7 +1033,7 @@ fn test_handle_burn_from() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -1075,7 +1094,7 @@ fn test_handle_batch_burn_from() {
         actions,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -1085,7 +1104,7 @@ fn test_handle_batch_burn_from() {
     assert!(error.contains("Burn functionality is not enabled for this token."));
 
     // Burn before allowance
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -1103,10 +1122,10 @@ fn test_handle_batch_burn_from() {
             padding: None,
             expiration: None,
         };
-        let handle_result = handle(deps.as_mut(), mock_env(), mock_info(*name, &[]), handle_msg);
+        let handle_result = execute(deps.as_mut(), mock_env(), mock_info(*name, &[]), handle_msg);
         assert!(
             handle_result.is_ok(),
-            "handle() failed: {}",
+            "execute() failed: {}",
             handle_result.err().unwrap()
         );
         let handle_msg = ExecuteMsg::BurnFrom {
@@ -1115,7 +1134,7 @@ fn test_handle_batch_burn_from() {
             memo: None,
             padding: None,
         };
-        let handle_result = handle(
+        let handle_result = execute(
             deps.as_mut(),
             mock_env(),
             mock_info("alice", &[]),
@@ -1139,7 +1158,7 @@ fn test_handle_batch_burn_from() {
         actions,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -1147,7 +1166,7 @@ fn test_handle_batch_burn_from() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     for (name, amount) in &[("bob", 200_u128), ("jerry", 300), ("mike", 400)] {
@@ -1176,7 +1195,7 @@ fn test_handle_batch_burn_from() {
         actions,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -1184,7 +1203,7 @@ fn test_handle_batch_burn_from() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
     for name in &["bob", "jerry", "mike"] {
@@ -1211,7 +1230,7 @@ fn test_handle_batch_burn_from() {
         actions,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("alice", &[]),
@@ -1239,10 +1258,10 @@ fn test_handle_decrease_allowance() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1266,10 +1285,10 @@ fn test_handle_decrease_allowance() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1279,10 +1298,10 @@ fn test_handle_decrease_allowance() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1316,10 +1335,10 @@ fn test_handle_increase_allowance() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1344,10 +1363,10 @@ fn test_handle_increase_allowance() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1379,7 +1398,7 @@ fn test_handle_change_admin() {
         address: "bob".to_string(),
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -1387,7 +1406,7 @@ fn test_handle_change_admin() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1411,7 +1430,7 @@ fn test_handle_set_contract_status() {
         level: ContractStatusLevel::StopAll,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -1419,7 +1438,7 @@ fn test_handle_set_contract_status() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1481,7 +1500,7 @@ fn test_handle_redeem() {
         denom: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("butler", &[]),
@@ -1496,7 +1515,7 @@ fn test_handle_redeem() {
         denom: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_no_reserve.as_mut(),
         mock_env(),
         mock_info("butler", &[]),
@@ -1512,7 +1531,7 @@ fn test_handle_redeem() {
         denom: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("butler", &[]),
@@ -1520,7 +1539,7 @@ fn test_handle_redeem() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1560,7 +1579,7 @@ fn test_handle_deposit() {
     );
     // test when deposit disabled
     let handle_msg = ExecuteMsg::Deposit { padding: None };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info(
@@ -1576,7 +1595,7 @@ fn test_handle_deposit() {
     assert!(error.contains("Deposit functionality is not enabled for this token."));
 
     let handle_msg = ExecuteMsg::Deposit { padding: None };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info(
@@ -1590,7 +1609,7 @@ fn test_handle_deposit() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -1634,7 +1653,7 @@ fn test_handle_burn() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("lebron", &[]),
@@ -1652,7 +1671,7 @@ fn test_handle_burn() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("lebron", &[]),
@@ -1705,7 +1724,7 @@ fn test_handle_mint() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -1724,7 +1743,7 @@ fn test_handle_mint() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -1766,7 +1785,7 @@ fn test_handle_admin_commands() {
         level: ContractStatusLevel::StopAllButRedeems,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("not_admin", &[]),
@@ -1779,7 +1798,7 @@ fn test_handle_admin_commands() {
         minters: vec!["not_admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("not_admin", &[]),
@@ -1792,7 +1811,7 @@ fn test_handle_admin_commands() {
         minters: vec!["admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("not_admin", &[]),
@@ -1805,7 +1824,7 @@ fn test_handle_admin_commands() {
         minters: vec!["not_admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("not_admin", &[]),
@@ -1818,7 +1837,7 @@ fn test_handle_admin_commands() {
         address: "not_admin".to_string(),
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("not_admin", &[]),
@@ -1852,7 +1871,7 @@ fn test_handle_pause_with_withdrawals() {
         padding: None,
     };
 
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -1870,7 +1889,7 @@ fn test_handle_pause_with_withdrawals() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("admin", &[]), send_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("admin", &[]), send_msg);
     let error = extract_error_msg(handle_result);
     assert_eq!(
         error,
@@ -1882,7 +1901,7 @@ fn test_handle_pause_with_withdrawals() {
         denom: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("lebron", &[]),
@@ -1912,7 +1931,7 @@ fn test_handle_pause_all() {
         padding: None,
     };
 
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -1930,7 +1949,7 @@ fn test_handle_pause_all() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("admin", &[]), send_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("admin", &[]), send_msg);
     let error = extract_error_msg(handle_result);
     assert_eq!(
         error,
@@ -1942,7 +1961,7 @@ fn test_handle_pause_all() {
         denom: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("lebron", &[]),
@@ -1987,7 +2006,7 @@ fn test_handle_set_minters() {
         minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2000,7 +2019,7 @@ fn test_handle_set_minters() {
         minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Admin commands can only be run from admin address"));
 
@@ -2008,7 +2027,7 @@ fn test_handle_set_minters() {
         minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2022,7 +2041,7 @@ fn test_handle_set_minters() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = ExecuteMsg::Mint {
@@ -2031,7 +2050,7 @@ fn test_handle_set_minters() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2073,7 +2092,7 @@ fn test_handle_add_minters() {
         minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2086,7 +2105,7 @@ fn test_handle_add_minters() {
         minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Admin commands can only be run from admin address"));
 
@@ -2094,7 +2113,7 @@ fn test_handle_add_minters() {
         minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2108,7 +2127,7 @@ fn test_handle_add_minters() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = ExecuteMsg::Mint {
@@ -2117,7 +2136,7 @@ fn test_handle_add_minters() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2158,7 +2177,7 @@ fn test_handle_remove_minters() {
         minters: vec!["bob".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps_for_failure.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2171,7 +2190,7 @@ fn test_handle_remove_minters() {
         minters: vec!["admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("Admin commands can only be run from admin address"));
 
@@ -2179,7 +2198,7 @@ fn test_handle_remove_minters() {
         minters: vec!["admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2193,7 +2212,7 @@ fn test_handle_remove_minters() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("allowed to minter accounts only"));
 
@@ -2203,7 +2222,7 @@ fn test_handle_remove_minters() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2217,7 +2236,7 @@ fn test_handle_remove_minters() {
         minters: vec!["admin".to_string()],
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2231,7 +2250,7 @@ fn test_handle_remove_minters() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let error = extract_error_msg(handle_result);
     assert!(error.contains("allowed to minter accounts only"));
 
@@ -2241,7 +2260,7 @@ fn test_handle_remove_minters() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2280,7 +2299,7 @@ fn test_authenticated_queries() {
         entropy: "34".to_string(),
         padding: None,
     };
-    let handle_response = handle(
+    let handle_response = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("giannis", &[]),
@@ -2343,7 +2362,7 @@ fn test_query_token_info() {
         config: Some(init_config),
         callback: None,
     };
-    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
+    let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2411,7 +2430,7 @@ fn test_query_exchange_rate() {
         config: Some(init_config),
         callback: None,
     };
-    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
+    let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2469,7 +2488,7 @@ fn test_query_exchange_rate() {
         config: Some(init_config),
         callback: None,
     };
-    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
+    let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2529,7 +2548,7 @@ fn test_query_exchange_rate() {
         callback: None,
     };
 
-    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
+    let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
 
     assert!(
         init_result.is_ok(),
@@ -2576,7 +2595,7 @@ fn test_query_exchange_rate() {
         config: None,
         callback: None,
     };
-    let init_result = init(deps.as_mut(), mock_env(), info, init_msg);
+    let init_result = instantiate(deps.as_mut(), mock_env(), info, init_msg);
     assert!(
         init_result.is_ok(),
         "Init failed: {}",
@@ -2618,7 +2637,7 @@ fn test_query_allowance() {
         padding: None,
         expiration: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("giannis", &[]),
@@ -2626,7 +2645,7 @@ fn test_query_allowance() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -2651,7 +2670,7 @@ fn test_query_allowance() {
         key: vk1.0.clone(),
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("lebron", &[]),
@@ -2671,7 +2690,7 @@ fn test_query_allowance() {
         key: vk2.0.clone(),
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("giannis", &[]),
@@ -2740,7 +2759,7 @@ fn test_query_balance() {
         key: "key".to_string(),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let unwrapped_result: ExecuteAnswer =
         from_binary(&handle_result.unwrap().data.unwrap()).unwrap();
     assert_eq!(
@@ -2787,7 +2806,7 @@ fn test_query_transfer_history() {
         key: "key".to_string(),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = ExecuteMsg::Transfer {
@@ -2796,7 +2815,7 @@ fn test_query_transfer_history() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
     let handle_msg = ExecuteMsg::Transfer {
@@ -2805,7 +2824,7 @@ fn test_query_transfer_history() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
     let handle_msg = ExecuteMsg::Transfer {
@@ -2814,7 +2833,7 @@ fn test_query_transfer_history() {
         memo: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
@@ -2896,7 +2915,7 @@ fn test_query_transaction_history() {
         key: "key".to_string(),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = ExecuteMsg::Burn {
@@ -2904,7 +2923,7 @@ fn test_query_transaction_history() {
         memo: Some("my burn message".to_string()),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
         "Pause handle failed: {}",
@@ -2916,10 +2935,10 @@ fn test_query_transaction_history() {
         denom: None,
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -2929,7 +2948,7 @@ fn test_query_transaction_history() {
         memo: Some("my mint message".to_string()),
         padding: None,
     };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info("admin", &[]),
@@ -2938,7 +2957,7 @@ fn test_query_transaction_history() {
     assert!(ensure_success(handle_result.unwrap()));
 
     let handle_msg = ExecuteMsg::Deposit { padding: None };
-    let handle_result = handle(
+    let handle_result = execute(
         deps.as_mut(),
         mock_env(),
         mock_info(
@@ -2952,7 +2971,7 @@ fn test_query_transaction_history() {
     );
     assert!(
         handle_result.is_ok(),
-        "handle() failed: {}",
+        "execute() failed: {}",
         handle_result.err().unwrap()
     );
 
@@ -2962,7 +2981,7 @@ fn test_query_transaction_history() {
         memo: Some("my transfer message #1".to_string()),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
@@ -2972,7 +2991,7 @@ fn test_query_transaction_history() {
         memo: Some("my transfer message #2".to_string()),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 
@@ -2982,7 +3001,7 @@ fn test_query_transaction_history() {
         memo: Some("my transfer message #3".to_string()),
         padding: None,
     };
-    let handle_result = handle(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
+    let handle_result = execute(deps.as_mut(), mock_env(), mock_info("bob", &[]), handle_msg);
     let result = handle_result.unwrap();
     assert!(ensure_success(result));
 

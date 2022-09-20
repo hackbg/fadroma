@@ -484,12 +484,12 @@ pub trait Snip20 {
     fn register_receive(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         code_hash: String,
     ) -> StdResult<Response> {
         Account::of(deps.api.addr_canonicalize(info.sender.as_str())?)
-            .set_receiver_hash(deps.storage, code_hash);
+            .set_receiver_hash(deps.storage, code_hash)?;
 
         Ok(Response::new()
             .add_attribute("register_status", "success")
@@ -501,7 +501,7 @@ pub trait Snip20 {
     fn set_viewing_key(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         key: String,
     ) -> StdResult<Response> {
@@ -759,7 +759,7 @@ pub trait Snip20 {
     fn change_admin(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         address: String,
     ) -> StdResult<Response> {
@@ -777,7 +777,7 @@ pub trait Snip20 {
     fn set_contract_status(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         status_level: ContractStatusLevel,
     ) -> StdResult<Response> {
@@ -795,7 +795,7 @@ pub trait Snip20 {
     fn add_minters(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         minters_to_add: Vec<String>,
     ) -> StdResult<Response> {
@@ -822,7 +822,7 @@ pub trait Snip20 {
     fn remove_minters(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         minters_to_remove: Vec<String>,
     ) -> StdResult<Response> {
@@ -849,7 +849,7 @@ pub trait Snip20 {
     fn set_minters(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         minters_to_set: Vec<String>,
     ) -> StdResult<Response> {
@@ -876,7 +876,7 @@ pub trait Snip20 {
     // SNIP22 Handle
     fn batch_transfer(
         &self,
-        deps: DepsMut,
+        mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
         actions: Vec<batch::TransferAction>,
@@ -905,7 +905,7 @@ pub trait Snip20 {
 
     fn batch_send(
         &self,
-        deps: DepsMut,
+        mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
         actions: Vec<batch::SendAction>,
@@ -940,7 +940,7 @@ pub trait Snip20 {
 
     fn batch_transfer_from(
         &self,
-        deps: DepsMut,
+        mut deps: DepsMut,
         env: Env,
         info: MessageInfo,
         actions: Vec<batch::TransferFromAction>,
@@ -1125,7 +1125,7 @@ pub trait Snip20 {
     fn revoke_permit(
         &self,
         deps: DepsMut,
-        env: Env,
+        _env: Env,
         info: MessageInfo,
         permit_name: String,
     ) -> StdResult<Response> {
@@ -1296,7 +1296,7 @@ pub fn perform_transfer(
 
 #[allow(clippy::too_many_arguments)]
 pub fn send_impl(
-    deps: DepsMut,
+    mut deps: DepsMut,
     sender: &Account,
     recipient: &Account,
     recipient_code_hash: Option<String>,
@@ -1592,15 +1592,13 @@ fn viewing_keys_queries(
         } else if key.check_viewing_key(expected_key.unwrap().as_slice()) {
             return match msg {
                 // Base
-                QueryMsg::Balance { address, .. } => snip20.query_balance(deps, env, account),
+                QueryMsg::Balance { .. } => snip20.query_balance(deps, env, account),
                 QueryMsg::TransferHistory {
-                    address,
                     page,
                     page_size,
                     ..
                 } => snip20.query_transfers(deps, env, account, page.unwrap_or(0), page_size),
                 QueryMsg::TransactionHistory {
-                    address,
                     page,
                     page_size,
                     ..
@@ -1628,7 +1626,7 @@ fn permit_queries(
     permit: Permit<QueryPermission>,
     query: QueryWithPermit,
 ) -> Result<Binary, StdError> {
-    let validated_addr = permit.validate(deps, env.contract.address)?;
+    let validated_addr = permit.validate(deps, env.contract.address.clone().into(), None)?;
     let account = Account::of(deps.api.addr_canonicalize(validated_addr.as_str())?);
 
     match query {
@@ -1683,13 +1681,6 @@ fn permit_queries(
             snip20.query_allowance(deps, env, owner, spender)
         }
     }
-}
-
-fn insufficient_allowance(allowance: u128, required: u128) -> StdError {
-    StdError::generic_err(format!(
-        "insufficient allowance: allowance={}, required={}",
-        allowance, required
-    ))
 }
 
 fn canonize_addresses(api: &dyn Api, addresses: Vec<String>) -> StdResult<Vec<CanonicalAddr>> {

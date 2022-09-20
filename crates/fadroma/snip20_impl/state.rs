@@ -1,6 +1,6 @@
 use crate::prelude::{
-    cosmwasm_std, load, ns_load, ns_save, save, Addr, BlockInfo, CanonicalAddr, Canonize, Deps,
-    StdError, StdResult, Storage, Uint128, Humanize, ViewingKey,
+    load, ns_load, ns_save, save, Addr, BlockInfo, CanonicalAddr, Deps, Humanize, StdError,
+    StdResult, Storage, Uint128, ViewingKey,
 };
 
 use super::msg::ContractStatusLevel;
