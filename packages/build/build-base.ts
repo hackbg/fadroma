@@ -1,6 +1,5 @@
 import { Builder, Contract, HEAD } from '@fadroma/client'
 import $, { Path, BinaryFile } from '@hackbg/kabinet'
-import { Encoding, Crypto } from '@hackbg/formati'
 
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'

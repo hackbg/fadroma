@@ -7,7 +7,7 @@
   "description": "Test smart contracts without the overhead of spawning a real chain.",
   "dependencies": {
     "@hackbg/konzola": "workspace:^2.1",
-    "@hackbg/formati": "workspace:^3.0.2",
+    "@hackbg/formati": "workspace:^3.2",
     "@fadroma/client": "workspace:^6"
   },
   "scripts": {

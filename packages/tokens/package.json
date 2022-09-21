@@ -1,14 +1,14 @@
 {
   "name":    "@fadroma/tokens",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "type":    "module",
   "main":    "tokens.ts",
   "files": [ "tokens.ts" ],
   "dependencies": {
     "@fadroma/client": "workspace:^6",
-    "@fadroma/scrt":   "workspace:^3",
+    "@fadroma/scrt":   "workspace:^3.0.2",
     "@hackbg/konzola": "workspace:^2.1",
-    "@hackbg/formati": "workspace:^3.0.2"
+    "@hackbg/formati": "workspace:^3.2"
   },
   "scripts": {
     "check": "tsc --noEmit",
