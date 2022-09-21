@@ -22,16 +22,16 @@ pub fn require_admin(_attr: TokenStream, func: TokenStream) -> TokenStream {
 
 fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
     let mut deps: Option<PatIdent> = None;
-    let mut env: Option<PatIdent> = None;
+    let mut info: Option<PatIdent> = None;
 
     for arg in args {
         match arg {
             FnArg::Typed(item) => {
                 match item.ty.as_ref() {
                     Type::Path(type_path) => {
-                        let env_arg = type_path.path.segments.iter()
+                        let info_arg = type_path.path.segments.iter()
                             .find(|i| {
-                                if i.ident.to_string() == "Env" {
+                                if i.ident.to_string() == "MessageInfo" {
                                     return true
                                 }
                     
@@ -53,9 +53,9 @@ fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
                             }
                         }
                 
-                        if let Some(_) = env_arg {
+                        if let Some(_) = info_arg {
                             if let Pat::Ident(ident) = item.pat.as_ref() {
-                                env = Some(ident.clone())
+                                info = Some(ident.clone())
                             }
                         }
                     }
@@ -68,13 +68,13 @@ fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
     
     return (
         deps.unwrap_or_else(|| panic!("Couldn't find argument of type \"Deps or DepsMut\"")),
-        env.unwrap_or_else(|| panic!("Couldn't find arguments of type \"Env\""))
+        info.unwrap_or_else(|| panic!("Couldn't find arguments of type \"MessageInfo\""))
     );
 }
 
-fn create_require_admin_stmt(deps: PatIdent, env: PatIdent) -> Stmt {
+fn create_require_admin_stmt(deps: PatIdent, info: PatIdent) -> Stmt {
     let code = quote! {
-        assert_admin(#deps, &#env)?;
+        assert_admin(#deps.as_ref(), &#info)?;
     };
 
     parse_quote!(#code)
