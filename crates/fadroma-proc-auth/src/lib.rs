@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use syn::{FnArg, ItemFn, PathArguments, Stmt, Type, parse_macro_input, parse_quote, Pat, PatIdent};
+use syn::{FnArg, ItemFn, Stmt, Type, parse_macro_input, parse_quote, Pat, PatIdent};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use quote::quote;
@@ -28,31 +28,8 @@ fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
         match arg {
             FnArg::Typed(item) => {
                 match item.ty.as_ref() {
-                    Type::Reference(reference) => {
-                        match reference.elem.as_ref() {
-                            Type::Path(type_path) => {
-                                let result = type_path.path.segments.iter()
-                                    .find(|i| {
-                                        if let PathArguments::AngleBracketed(_) = i.arguments {
-                                            if i.ident.to_string() == "Extern" {
-                                                return true
-                                            }
-                                        }
-
-                                        false
-                                    });
-
-                                if let Some(_) = result {
-                                    if let Pat::Ident(ident) = item.pat.as_ref() {
-                                        deps = Some(ident.clone())
-                                    }
-                                }
-                            },
-                            _ => continue
-                        }
-                    },
                     Type::Path(type_path) => {
-                        let result = type_path.path.segments.iter()
+                        let env_arg = type_path.path.segments.iter()
                             .find(|i| {
                                 if i.ident.to_string() == "Env" {
                                     return true
@@ -60,8 +37,23 @@ fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
                     
                                 false
                             });
+
+                        let deps_arg = type_path.path.segments.iter().find(|i| {
+                            let ident = i.ident.to_string();
+                            if ident == "Deps" || ident == "DepsMut" {
+                                return true;
+                            }
+
+                            false
+                        });
+
+                        if let Some(_) = deps_arg {
+                            if let Pat::Ident(ident) = item.pat.as_ref() {
+                                deps = Some(ident.clone())
+                            }
+                        }
                 
-                        if let Some(_) = result {
+                        if let Some(_) = env_arg {
                             if let Pat::Ident(ident) = item.pat.as_ref() {
                                 env = Some(ident.clone())
                             }
@@ -75,7 +67,7 @@ fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
     }
     
     return (
-        deps.unwrap_or_else(|| panic!("Couldn't find argument of type \"Extern<Storage, Api, Querier>\"")),
+        deps.unwrap_or_else(|| panic!("Couldn't find argument of type \"Deps or DepsMut\"")),
         env.unwrap_or_else(|| panic!("Couldn't find arguments of type \"Env\""))
     );
 }
