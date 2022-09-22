@@ -260,25 +260,27 @@ export class ScrtGrpc extends Scrt {
     _Agent:  AgentClass<ScrtGrpcAgent> = this.Agent
   ): Promise<ScrtGrpcAgent> {
     // keypair option not supported
-    if (options.keyPair) {
-      log.warnIgnoringKeyPair()
-      delete options.keyPair
-    }
+    if (options.keyPair) log.warnIgnoringKeyPair()
+    // support creating agent for other Chain instance
+    const chain: ScrtGrpc = (options.chain ?? this) as ScrtGrpc
     // use selected secretjs implementation
-    const _SecretJS = this.SecretJS ?? SecretJS
+    const _SecretJS = chain.SecretJS ?? SecretJS
     // unwrap
-    const { mnemonic, keyPair, address } = options
+    let { name, address, mnemonic, keyPair, wallet } = options
     // create wallet from mnemonic if not passed
-    let { wallet } = options
     if (!wallet) {
+      if (name && chain.isDevnet && chain.node) {
+        mnemonic = (await chain.node.getGenesisAccount(name)).mnemonic
+      }
       if (mnemonic) {
         wallet = new _SecretJS.Wallet(mnemonic)
       } else {
         throw new ScrtError.NoWalletOrMnemonic()
       }
-    } else if (wallet) {
-      log.warnIgnoringMnemonic()
-      delete options.mnemonic
+    } else {
+      if (mnemonic) {
+        log.warnIgnoringMnemonic()
+      }
     }
     // construct options object
     options = {
@@ -286,8 +288,8 @@ export class ScrtGrpc extends Scrt {
       SecretJS: _SecretJS,
       wallet,
       api: await this.getApi({
-        chainId:    this.id,
-        grpcWebUrl: this.url,
+        chainId:    chain.id,
+        grpcWebUrl: chain.url,
         wallet,
         walletAddress: wallet.address || address
       })
@@ -557,8 +559,8 @@ export class ScrtGrpcBundle extends ScrtBundle {
         results[Number(i)] = result as ScrtBundleResult
       }
     } catch (err) {
-      console.error('Submitting bundle failed:', (err as Error).message)
-      console.error('Decrypting gRPC bundle errors is not implemented.')
+      log.submittingBundleFailed(err)
+      throw err
     }
     return results
   }

@@ -59,6 +59,10 @@ export class ScrtConsole extends CustomConsole {
     this.log(txdata)
     this.br()
   }
+  submittingBundleFailed ({ message }: Error) {
+    this.error('Submitting bundle failed:', message)
+    this.error('Decrypting gRPC bundle errors is not implemented.')
+  }
 }
 
 function shellescape(a: string[]) {
