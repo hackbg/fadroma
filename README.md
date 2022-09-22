@@ -28,26 +28,6 @@ build your dApp with Fadroma.
 
 ---
 
-Fadroma models the domain of interacting with Cosmos-like APIs
-in 3 layers of value objects:
-
-* API connection and transactions:
-  * [`Chain`](./fadroma.client.spec.ts.md#Chain)
-  * [`Agent`](./fadroma.client.spec.ts.md#Agent)
-  * [`Bundle`](./fadroma.client.spec.ts.md#Bundle)
-
-* Contract lifecycle:
-  * [`Source`](./fadroma.contract.spec.ts.md#Source)
-  * [`Template`](./fadroma.contract.spec.ts.md#Template)
-  * [`Client`](././fadroma.contract.spec.ts.md#Client)
-
-* Contract lifecycle transformers:
-  * [`Builder`](./client.spec.ts.md#Builder)
-  * [`Uploader`](./client.spec.ts.md#Uploader)
-  * [`Contract`](./client.spec.ts.md#Contract)
-
----
-
 ```
 "The reasonable man adapts himself to the world;
  the unreasonable one persists in trying to adapt the world to himself.
