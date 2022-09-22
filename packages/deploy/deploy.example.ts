@@ -1,5 +1,4 @@
-import { Deployment } from '@hackbg/fadroma'
-import $ from '@hackbg/kabinet'
+import { Deployment } from '@fadroma/client'
 
 export class ExampleDeployment extends Deployment {
 
