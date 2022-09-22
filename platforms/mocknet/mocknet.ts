@@ -1,6 +1,6 @@
 import { CustomConsole, bold } from '@hackbg/konzola'
 import * as Fadroma from '@fadroma/client'
-import * as Formati from '@hackbg/formati'
+import { randomBech32 } from '@hackbg/formati'
 import { MocknetBackend, MOCKNET_ADDRESS_PREFIX } from './mocknet-backend'
 
 const log = new CustomConsole('Fadroma Mocknet')
@@ -55,7 +55,7 @@ class MocknetAgent extends Fadroma.Agent {
 
   name:    string          = 'MocknetAgent'
 
-  address: Fadroma.Address = Formati.randomBech32(MOCKNET_ADDRESS_PREFIX)
+  address: Fadroma.Address = randomBech32(MOCKNET_ADDRESS_PREFIX)
 
   get defaultDenom () {
     return this.assertChain().defaultDenom

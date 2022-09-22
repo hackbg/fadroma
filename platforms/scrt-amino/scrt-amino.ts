@@ -18,15 +18,15 @@
 
 import * as SecretJS from 'secretjs' // this implementation uses secretjs 0.17.5
 import * as Fadroma  from '@fadroma/scrt'
-import * as Formati  from '@hackbg/formati'
-import { backOff }   from 'exponential-backoff'
+import { utf8, base64, bip39, bip39EN }  from '@hackbg/formati'
+import { backOff } from 'exponential-backoff'
 import { ScrtAminoError, ScrtAminoConsole } from './scrt-amino-events'
 import { PatchedSigningCosmWasmClient_1_2 } from './scrt-amino-patch'
 
 const log = new ScrtAminoConsole()
 
-export const privKeyToMnemonic = (privKey: Uint8Array) =>
-  (Formati.Crypto.Bip39.encode(privKey) as any).data
+export const privKeyToMnemonic = (privKey: Uint8Array): string =>
+  bip39.entropyToMnemonic(privKey, bip39EN)
 
 /** Amino-specific Secret Network settings. */
 export class ScrtAminoConfig extends Fadroma.ScrtConfig {
@@ -293,7 +293,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
   async encrypt (codeHash: Fadroma.CodeHash, msg: Fadroma.Message) {
     if (!codeHash) throw new ScrtAminoError.NoCodeHash()
     const encrypted = await this.api.restClient.enigmautils.encrypt(codeHash, msg as object)
-    return Formati.Encoding.toBase64(encrypted)
+    return base64.encode(encrypted)
   }
   async signTx (msgs: any[], gas: Fadroma.IFee, memo: string = '') {
     const { accountNumber, sequence } = await this.api.getNonce()
@@ -372,35 +372,30 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
         }
         results[Number(i)] = result
       }
-    } catch (err) {
+    } catch (e) {
+      const err = e as Error
+      const oldMessage = err.message
       try {
-        console.error('Submitting bundle failed:', (err as Error).message)
+        console.error('Submitting bundle failed:', oldMessage)
         console.error('Trying to decrypt...')
-        const errorMessageRgx
-          = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
-        const rgxMatches
-          = errorMessageRgx.exec((err as Error).message);
-        if (rgxMatches == null || rgxMatches.length != 3)
-          throw err
-        const errorCipherB64
-          = rgxMatches[1]
-        const errorCipherBz
-          = Formati.Encoding.fromBase64(errorCipherB64)
-        const msgIndex
-          = Number(rgxMatches[2])
-        const msg
-          = await this.msgs[msgIndex]
-        const nonce
-          = Formati.Encoding.fromBase64(msg.value.msg).slice(0, 32)
-        const errorPlainBz
-          = await this.agent.api.restClient.enigmautils.decrypt(errorCipherBz, nonce)
-        ;(err as Error).message = (err as Error).message
-          .replace(errorCipherB64, Formati.Encoding.fromUtf8(errorPlainBz))
+        const errorMessageRgx = /failed to execute message; message index: (\d+): encrypted: (.+?): (?:instantiate|execute|query) contract failed/g;
+        const rgxMatches = errorMessageRgx.exec(oldMessage);
+        if (rgxMatches == null || rgxMatches.length != 3) throw err
+        const errorCipherB64 = rgxMatches[1]
+        const errorCipherBz  = base64.decode(errorCipherB64)
+        const msgIndex       = Number(rgxMatches[2])
+        const msg            = await this.msgs[msgIndex]
+        const nonce          = base64.decode(msg.value.msg).slice(0, 32)
+        const enigmaUtils    = this.agent.api.restClient.enigmautils
+        const errorPlainBz   = await enigmaUtils.decrypt(errorCipherBz, nonce)
+        const newMessage     = oldMessage.replace(errorCipherB64, utf8.decode(errorPlainBz))
+        err.message = newMessage
       } catch (decryptionError) {
+        const { message } = decryptionError as Error
         console.error('Failed to decrypt :(')
         throw new Error(
-          `Failed to decrypt the following error message: ${(err as Error).message}. `+
-          `Decryption error of the error message: ${(decryptionError as Error).message}`
+          `Failed to decrypt the following error message: ${oldMessage}. `+
+          `Decryption error of the error message: ${message}`
         )
       }
       throw err

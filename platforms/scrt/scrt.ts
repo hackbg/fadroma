@@ -37,7 +37,7 @@ import type {
 import { Agent, Bundle, Chain, Client, Contract, Fee } from '@fadroma/client'
 import * as SecretJS from 'secretjs'
 
-import { Encoding, randomBytes } from '@hackbg/formati'
+import { base64, randomBytes } from '@hackbg/formati'
 import { CustomConsole, CustomError } from '@hackbg/konzola'
 import structuredClone from '@ungap/structured-clone'
 
@@ -374,7 +374,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     if (!codeHash) throw new ScrtError.NoCodeHash()
     const { encryptionUtils } = await this.api as any
     const encrypted = await encryptionUtils.encrypt(codeHash, msg as object)
-    return Encoding.toBase64(encrypted)
+    return base64.encode(encrypted)
   }
   async query <U> (instance: Partial<Client>, query: Message): Promise<U> {
     const { address: contractAddress, codeHash } = instance

@@ -1,5 +1,5 @@
 import * as Fadroma from '@fadroma/client'
-import { Bech32, Crypto, Encoding, randomBech32 } from '@hackbg/formati'
+import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import { CustomConsole, bold } from '@hackbg/konzola'
 
 const log = new CustomConsole('Fadroma Mocknet Backend')
@@ -326,7 +326,7 @@ class MocknetContract {
         canonicalize_address (srcPtr, dstPtr) {
           const exports = getExports()
           const human   = readUtf8(exports, srcPtr)
-          const canon   = Bech32.bech32.fromWords(Bech32.bech32.decode(human).words)
+          const canon   = bech32.fromWords(bech32.decode(human).words)
           const dst     = region(exports.memory.buffer, dstPtr)
           trace(bold(contract.address), `canonize:`, human, '->', `${canon}`)
           writeToRegion(exports, dstPtr, canon)
@@ -335,7 +335,7 @@ class MocknetContract {
         humanize_address (srcPtr, dstPtr) {
           const exports = getExports()
           const canon   = readBuffer(exports, srcPtr)
-          const human   = Bech32.bech32.encode(MOCKNET_ADDRESS_PREFIX, Bech32.bech32.toWords(canon))
+          const human   = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
           const dst     = region(exports.memory.buffer, dstPtr)
           trace(bold(contract.address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(exports, dstPtr, human)
@@ -505,5 +505,4 @@ export function bufferToUtf8 (buf: Buffer) {
   return buf.toString('utf8')
 }
 
-const codeHashForBlob = (blob: Uint8Array) => Encoding.toHex(
-  new Crypto.Sha256(blob).digest())
+const codeHashForBlob = (blob: Uint8Array) => base16.encode(sha256(blob))
