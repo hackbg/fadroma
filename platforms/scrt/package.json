@@ -1,11 +1,11 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
   "dependencies": {
-    "@fadroma/client": "workspace:^6",
+    "@fadroma/client": "workspace:^6.0.1",
     "@hackbg/formati": "workspace:^5.1.1",
     "@hackbg/konzola": "workspace:^2.1",
     "@hackbg/konfizi": "workspace:^3.0.1",
