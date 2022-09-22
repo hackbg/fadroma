@@ -27,9 +27,11 @@ import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
 
 /** Configuration for the Fadroma environment. */
-export class Config extends DeployConfig {
+class FadromaConfig extends DeployConfig {
   build = new BuilderConfig(this.env, this.cwd, { project: this.project })
 }
+
+export { FadromaConfig as Config }
 
 /** Context for Fadroma commands. */
 export default class Fadroma extends DeployContext {
@@ -41,9 +43,9 @@ export default class Fadroma extends DeployContext {
   /** Constructs a populated instance of the Fadroma context. */
   static async init (
     name:    string = 'Fadroma',
-    options: Partial<Config> = {}
+    options: Partial<FadromaConfig> = {}
   ): Promise<Fadroma> {
-    const config = new Config(process.env, process.cwd(), options)
+    const config = new FadromaConfig(process.env, process.cwd(), options)
     const { chain, agent, deployments, uploader } = await config.getDeployContext()
     return new this(name, config, chain, agent, deployments, uploader)
   }
@@ -51,28 +53,28 @@ export default class Fadroma extends DeployContext {
     /** Used by logger. */
     public name:        string,
     /** Configuration. */
-    config:             Partial<Config>   = new Config(),
+    config:             Partial<FadromaConfig> = new FadromaConfig(),
     /** Represents the blockchain to which we will connect. */
-    public chain:       Chain|null        = null,
+    public chain:       Chain|null             = null,
     /** Represents the identity which will perform operations on the chain. */
-    public agent:       Agent|null        = null,
+    public agent:       Agent|null             = null,
     /** Contains available deployments for the current chain. */
-    public deployments: DeployStore|null  = null,
+    public deployments: DeployStore|null       = null,
     /** Implements uploading and upload reuse. */
-    public uploader:    Uploader|null     = null,
+    public uploader:    Uploader|null          = null,
     /** Build context. */
-    public build:       BuildContext|null = null
+    public build:       BuildContext|null      = null
   ) {
     super(config, chain, agent)
     this.log.name = name
-    this.config = new Config(this.env, this.cwd, config)
+    this.config = new FadromaConfig(this.env, this.cwd, config)
     this.build ??= this.config.build.getBuildContext()
     this.workspace = config.project
     this.tokens = this.commands('tokens', 'Fadroma Token Manager',
       new TokenManager(()=>this.deployment))
   }
   /** The current configuration. */
-  config: Config
+  config: FadromaConfig
   /** The currently configured builder, or null. */
   get builder (): Builder|null {
     return this.build?.builder ?? null

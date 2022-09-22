@@ -57,7 +57,7 @@ export class FSUploader extends Uploader {
     }
     contract = new Contract(contract, result)
     if (receipt) {
-      receipt.save(contract)
+      receipt.save(contract.asMetadata)
     }
     //await this.agent.nextBlock
     return contract
@@ -141,7 +141,7 @@ export class FSUploader extends Uploader {
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const receiptName = this.getUploadReceiptName(toUpload[i])
-        $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i])
+        $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i].asMetadata)
         outputs[i] = uploaded[i] as Contract<any>
       }
     } else {
