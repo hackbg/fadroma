@@ -1,9 +1,9 @@
 {
   "name":    "@fadroma/client",
-  "version": "6.0.0",
+  "version": "6.0.1",
   "type":    "module",
   "main":    "client.ts",
-  "files": [ "client.ts" ],
+  "files": [ "*.ts" ],
   "scripts": {
     "test":  "ganesha-node client.spec.ts.md",
     "check": "tsc --noEmit",
