@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50.58% </span>
+                <span class="strong">50.7% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>392/775</span>
+                <span class='fraction'>394/777</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">55.55% </span>
+                <span class="strong">47.61% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>10/18</span>
+                <span class='fraction'>10/21</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">50.58% </span>
+                <span class="strong">50.7% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>392/775</span>
+                <span class='fraction'>394/777</span>
             </div>
         
             
@@ -838,7 +838,9 @@
 <a name='L773'></a><a href='#L773'>773</a>
 <a name='L774'></a><a href='#L774'>774</a>
 <a name='L775'></a><a href='#L775'>775</a>
-<a name='L776'></a><a href='#L776'>776</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<a name='L776'></a><a href='#L776'>776</a>
+<a name='L777'></a><a href='#L777'>777</a>
+<a name='L778'></a><a href='#L778'>778</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-yes">1x</span>
@@ -1101,10 +1103,6 @@
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
 <span class="cline-any cline-yes">3x</span>
@@ -1117,6 +1115,12 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1875,25 +1879,27 @@ export class ScrtGrpc extends Scrt {
     _Agent:  AgentClass&lt;ScrtGrpcAgent&gt; = this.Agent
   ): Promise&lt;ScrtGrpcAgent&gt; {
     // keypair option not supported
-    if (options.keyPair) <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
-<span class="cstat-no" title="statement not covered" >      log.warnIgnoringKeyPair()</span>
-<span class="cstat-no" title="statement not covered" >      delete options.keyPair</span>
-<span class="cstat-no" title="statement not covered" >    }</span>
+    if (options.keyPair) <span class="branch-0 cbranch-no" title="branch not covered" >log.warnIgnoringKeyPair()</span>
+    // support creating agent for other Chain instance
+    const chain: ScrtGrpc = (options.chain ?? this) as ScrtGrpc
     // use selected secretjs implementation
-    const _SecretJS = this.SecretJS<span class="branch-0 cbranch-no" title="branch not covered" > ?? SecretJS</span>
+    const _SecretJS = chain.SecretJS<span class="branch-0 cbranch-no" title="branch not covered" > ?? SecretJS</span>
     // unwrap
-    const { mnemonic, keyPair, address } = options
+    let { name, address, mnemonic, keyPair, wallet } = options
     // create wallet from mnemonic if not passed
-    let { wallet } = options
     if (!wallet) {
+      if (name<span class="branch-0 cbranch-no" title="branch not covered" > &amp;&amp; chain.isDevnet<span class="branch-0 cbranch-no" title="branch not covered" > </span>&amp;&amp; chain.node)</span> <span class="branch-0 cbranch-no" title="branch not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >        mnemonic = (await chain.node.getGenesisAccount(name)).mnemonic</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
       if (mnemonic) {
         wallet = new _SecretJS.Wallet(mnemonic)
       }<span class="branch-0 cbranch-no" title="branch not covered" > else {</span>
 <span class="cstat-no" title="statement not covered" >        throw new ScrtError.NoWalletOrMnemonic()</span>
 <span class="cstat-no" title="statement not covered" >      }</span>
-    }<span class="branch-0 cbranch-no" title="branch not covered" > else if (wallet) {</span>
-<span class="cstat-no" title="statement not covered" >      log.warnIgnoringMnemonic()</span>
-<span class="cstat-no" title="statement not covered" >      delete options.mnemonic</span>
+    }<span class="branch-0 cbranch-no" title="branch not covered" > else {</span>
+<span class="cstat-no" title="statement not covered" >      if (mnemonic) {</span>
+<span class="cstat-no" title="statement not covered" >        log.warnIgnoringMnemonic()</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
     // construct options object
     options = {
@@ -1901,8 +1907,8 @@ export class ScrtGrpc extends Scrt {
       SecretJS: _SecretJS,
       wallet,
       api: await this.getApi({
-        chainId:    this.id,
-        grpcWebUrl: this.url,
+        chainId:    chain.id,
+        grpcWebUrl: chain.url,
         wallet,
         walletAddress: wallet.address<span class="branch-0 cbranch-no" title="branch not covered" > || address</span>
       })
@@ -2172,8 +2178,8 @@ export class ScrtGrpcBundle extends ScrtBundle {
 <span class="cstat-no" title="statement not covered" >        results[Number(i)] = result as ScrtBundleResult</span>
 <span class="cstat-no" title="statement not covered" >      }</span>
 <span class="cstat-no" title="statement not covered" >    } catch (err) {</span>
-<span class="cstat-no" title="statement not covered" >      console.error('Submitting bundle failed:', (err as Error).message)</span>
-<span class="cstat-no" title="statement not covered" >      console.error('Decrypting gRPC bundle errors is not implemented.')</span>
+<span class="cstat-no" title="statement not covered" >      log.submittingBundleFailed(err)</span>
+<span class="cstat-no" title="statement not covered" >      throw err</span>
 <span class="cstat-no" title="statement not covered" >    }</span>
 <span class="cstat-no" title="statement not covered" >    return results</span>
 <span class="cstat-no" title="statement not covered" >  }</span>
@@ -2395,7 +2401,7 @@ export { ScrtError, ScrtConsole }
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2022-09-22T17:10:07.723Z
+                at 2022-09-22T17:17:13.496Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
