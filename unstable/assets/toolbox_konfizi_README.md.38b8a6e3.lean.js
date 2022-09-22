@@ -1,0 +1,1 @@
+import{_ as s,c as n,o as a,a as l}from"./app.b18454ba.js";const i=JSON.parse('{"title":"Konfizi","description":"","frontmatter":{},"headers":[],"relativePath":"toolbox/konfizi/README.md","lastUpdated":null}'),p={name:"toolbox/konfizi/README.md"},o=l("",5),e=[o];function t(c,r,D,y,F,C){return a(),n("div",null,e)}const d=s(p,[["render",t]]);export{i as __pageData,d as default};
