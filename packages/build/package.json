@@ -19,7 +19,7 @@
     "@hackbg/ganesha": { "optional": true, "description": "For fadroma-build command." }
   },
   "dependencies": {
-    "@fadroma/client": "workspace:^6",
+    "@fadroma/client": "workspace:^6.0.1",
     "@hackbg/dokeres": "workspace:^4.4.2",
     "@hackbg/formati": "workspace:^5.1.1",
     "@hackbg/kabinet": "workspace:^3.2.6",

@@ -49,7 +49,10 @@ export class FSUploader extends Uploader {
     if (!contract.artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
     const result = await this.agent.upload($(contract.artifact).as(BinaryFile).load())
-    if (contract.codeHash && result.codeHash && contract.codeHash !== result.codeHash) {
+    if (
+      contract.codeHash && result.codeHash &&
+      contract.codeHash.toUpperCase() !== result.codeHash.toUpperCase()
+    ) {
       throw new Error(
         `Code hash mismatch when uploading ${contract.artifact?.toString()}: ` +
         `${contract.codeHash} vs ${result.codeHash}`

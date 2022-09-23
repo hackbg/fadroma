@@ -242,6 +242,8 @@ export interface ExecOpts {
   send?: ICoin[]
   /** A transaction memo. */
   memo?: string
+  /** Allow extra options. */
+  [k: string]: unknown
 }
 
 /** A 128-bit integer. */

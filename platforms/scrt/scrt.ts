@@ -270,6 +270,7 @@ export class ScrtGrpc extends Scrt {
     // create wallet from mnemonic if not passed
     if (!wallet) {
       if (name && chain.isDevnet && chain.node) {
+        await chain.node.respawn()
         mnemonic = (await chain.node.getGenesisAccount(name)).mnemonic
       }
       if (mnemonic) {
@@ -473,8 +474,8 @@ export class ScrtGrpcAgent extends ScrtAgent {
         get () { return original }
       })
       // decode the values in the result
-      //@ts-ignore
-      result.txBytes = tryDecode(result.txBytes)
+      const txBytes = tryDecode(result.txBytes)
+      Object.assign(result, { txBytes })
       for (const i in result.tx.signatures) {
         //@ts-ignore
         result.tx.signatures[i] = tryDecode(result.tx.signatures[i])
