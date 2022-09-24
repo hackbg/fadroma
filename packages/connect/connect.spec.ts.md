@@ -121,8 +121,8 @@ const config = new ConnectConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
 ## Connect context
 
 ```typescript
-import { ConnectContext, connect } from '.'
-let context: ConnectContext
+import { Connector, connect } from '.'
+let context: Connector
 //context = connect()
 //context = connect({ config: { chain: 'id' } })
 context = await config.connect()

@@ -74,7 +74,7 @@ The **Commands#command(name, info, ...steps)** method declares commands.
   * **info** is a short help description
   * **...steps** is one or more synchronous or asynchronous functions that constitute the command.
 
-**Steps** are run sequentially. The first argument to each step is a `context: DeployContext`.
+**Steps** are run sequentially. The first argument to each step is a `context: Deployer`.
 If a step returns an `Object`, the object's entries are added to the `context` for subsequent
 steps.
 

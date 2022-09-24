@@ -3,7 +3,7 @@ import type { Env } from '@hackbg/konfizi'
 import { ConnectConfig } from '@fadroma/connect'
 import $ from '@hackbg/kabinet'
 import type { Path } from '@hackbg/kabinet'
-import { DeployContext } from './deploy-base'
+import { Deployer } from './deploy-base'
 import type { DeploymentFormat, DeployStoreClass, DeployStore } from './deploy-base'
 import { YAMLDeployments_v1 } from './deploy-yaml1'
 import { YAMLDeployments_v2 } from './deploy-yaml2'
@@ -59,16 +59,16 @@ export class DeployConfig extends EnvConfig {
     return DeployStores[this.deploymentFormat]
   }
 
-  /** Create a new populated DeployContext, with the specified DeployStore.
-    * @returns DeployContext */
-  async getDeployContext (): Promise<DeployContext> {
+  /** Create a new populated Deployer, with the specified DeployStore.
+    * @returns Deployer */
+  async getDeployer (): Promise<Deployer> {
     const { chain, agent } = await this.connection.connect()
     if (!chain) throw new Error('Missing chain')
     if (!this.DeployStore) throw new Error('Missing deployment store constructor')
     const uploader    = new FSUploader(agent, this.uploads)
     const defaults    = { chain, agent: agent??undefined/*l8r*/, uploader }
     const deployments = new this.DeployStore(this.deploys, defaults)
-    return new DeployContext(this, chain, agent, deployments, uploader)
+    return new Deployer(this, chain, agent, deployments, uploader)
   }
 
 }

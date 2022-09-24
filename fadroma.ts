@@ -20,7 +20,7 @@
 
 import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
 import { BuilderConfig, BuildContext } from '@fadroma/build'
-import { DeployConfig, DeployContext } from '@fadroma/deploy'
+import { DeployConfig, Deployer } from '@fadroma/deploy'
 import type { DeployStore } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
 import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
@@ -34,24 +34,24 @@ class FadromaConfig extends DeployConfig {
 export { FadromaConfig as Config }
 
 /** Context for Fadroma commands. */
-export default class Fadroma extends DeployContext {
+export default class Fadroma extends Deployer {
   /** @returns a function that runs a requested command. */
-  static run (name: string = 'Fadroma'): AsyncEntrypoint {
+  static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
     const self = this
-    return (argv: string[]) => self.init(name).then(context=>context.run(argv))
+    return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
   }
   /** Constructs a populated instance of the Fadroma context. */
   static async init (
-    name:    string = 'Fadroma',
-    options: Partial<FadromaConfig> = {}
+    projectName: string = 'Fadroma',
+    options:     Partial<FadromaConfig> = {}
   ): Promise<Fadroma> {
     const config = new FadromaConfig(process.env, process.cwd(), options)
-    const { chain, agent, deployments, uploader } = await config.getDeployContext()
-    return new this(name, config, chain, agent, deployments, uploader)
+    const { chain, agent, deployments, uploader } = await config.getDeployer()
+    return new this(projectName, config, chain, agent, deployments, uploader)
   }
   constructor (
     /** Used by logger. */
-    public name:        string,
+    public projectName: string,
     /** Configuration. */
     config:             Partial<FadromaConfig> = new FadromaConfig(),
     /** Represents the blockchain to which we will connect. */
@@ -66,7 +66,7 @@ export default class Fadroma extends DeployContext {
     public build:       BuildContext|null      = null
   ) {
     super(config, chain, agent)
-    this.log.name = name
+    this.log.name = projectName
     this.config = new FadromaConfig(this.env, this.cwd, config)
     this.build ??= this.config.build.getBuildContext()
     this.workspace = config.project

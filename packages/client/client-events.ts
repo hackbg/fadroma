@@ -1,6 +1,6 @@
 import { CommandsConsole } from '@hackbg/komandi'
 import { bold } from '@hackbg/konzola'
-import type { Contract, Label, DeployArgs, Message, Chain } from './client'
+import type { Contract, Label, DeployArgs, Message, Chain, ContractMetadata } from './client'
 import { CustomError } from '@hackbg/konzola'
 
 /** Error kinds. */
@@ -94,6 +94,14 @@ export class ClientError extends CustomError {
 
 /** Logging. */
 export class ClientConsole extends CommandsConsole {
+  contract = (meta: ContractMetadata) => {
+    let report = '---'
+    for (const x in meta) {
+      const v = meta[x as keyof typeof meta]
+      report += `\n` + `${x}:`.padEnd(15) + ' ' + (v ? bold(v.toString().split('\n')[0]) : '')
+    }
+    console.trace(report)
+  }
   beforeDeploy = (template: Contract<any>, label: Label) => this.info(
     'Deploy   ', bold(label),
     'from code id', bold(String(template.codeId ||'(unknown)')),

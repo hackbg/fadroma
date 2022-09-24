@@ -44,8 +44,8 @@ const exit = {
     console.error(
       `${script} has no default export.\n` +
       `Export a default function to serve as entrypoint to your deploy script, e.g.:\n\n`+
-      `  import { DeployContext } from '@fadroma/deploy'\n`+
-      `  class MyDeployment extends DeployContext {\n` +
+      `  import { Deployer } from '@fadroma/deploy'\n`+
+      `  class MyDeployment extends Deployer {\n` +
       `    /* ... implementation ... */\n` +
       `  }` +
       `  export default MyDeployment.run()`

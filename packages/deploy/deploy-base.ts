@@ -3,7 +3,7 @@ import { bold } from '@hackbg/konzola'
 import $ from '@hackbg/kabinet'
 import type { Path } from '@hackbg/kabinet'
 import { CommandContext } from '@hackbg/komandi'
-import { ConnectConfig, ConnectConsole, ConnectContext } from '@fadroma/connect'
+import { ConnectConfig, ConnectConsole } from '@fadroma/connect'
 import { Chain, Agent, Deployment, Uploader, override } from '@fadroma/client'
 import type { Class } from '@fadroma/client'
 import { FSUploader } from './upload'
@@ -52,7 +52,7 @@ export abstract class DeployStore {
 /** Command runner. Instantiate one in your script then use the
   * **.command(name, info, ...steps)**. Export it as default and
   * run the script with `npm exec fadroma my-script.ts` for a CLI. */
-export class DeployContext extends CommandContext {
+export class Deployer extends CommandContext {
   constructor (
     /** A whole DeployConfig object, or just relevant options. */
     config:             Partial<DeployConfig> = new DeployConfig(),
@@ -115,7 +115,7 @@ export class DeployContext extends CommandContext {
       await deployments?.select(name)
     })
   /** Print the status of a deployment. */
-  status = this.command('status', 'show the current deployment',
+  status = this.command('list contracts', 'show the current deployment',
     async (id?: string): Promise<void> => {
       const deployments = this.expectEnabled()
       const deployment  = id ? deployments.get(id) : deployments.active
@@ -134,7 +134,7 @@ export class DeployContext extends CommandContext {
     }
     return this.deployments
   }
-  /** Attach an instance of the DeployContext `ctor`, created with arguments `[this, ...args]`,
+  /** Attach an instance of the Deployer `ctor`, created with arguments `[this, ...args]`,
     * to the command tree under `name`, with usage description `info`. See the documentation
     * of `interface Subsystem` for more info.
     * @returns an instance of `ctor` */
@@ -147,11 +147,11 @@ export class DeployContext extends CommandContext {
 }
 
 /** A Subsystem is any class which extends Deployment (thus being able to manage Contracts),
-  * and whose constructor takes a DeployContext as first argument, as well as any number of
+  * and whose constructor takes a Deployer as first argument, as well as any number of
   * other arguments. This interface can be used to connect the main project class to individual
   * deployer classes for different parts of the project, enabling them to operate in the same
   * context (chain, agent, builder, uploader, etc). */
 export interface Subsystem<D extends Deployment> extends Class<D, [
-  DeployContext|unknown,
+  Deployer|unknown,
   ...unknown[]
 ]> {}

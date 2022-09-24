@@ -1,4 +1,4 @@
-import { timestamp } from '@hackbg/konzola'
+import { timestamp, bold } from '@hackbg/konzola'
 import { Task, CommandContext } from '@hackbg/komandi'
 import { ClientConsole, ClientError } from './client-events'
 
@@ -917,10 +917,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   /** Lazily get a contract from the deployment.
     * @returns a Lazy invocation of getClient, or a Promise if not in task context */
   get (): Promise<C> {
-    return this.task(
-      `get ${this.name??'contract'}`,
-      async function getContractClient () { return await this.getClient() }
-    )
+    return this.task(`get ${this.name??'contract'}`, () => this.getClient())
   }
   /** Async wrapper around getClientSync.
     * @returns a Client instance pointing to this contract
@@ -954,10 +951,11 @@ export class Contract<C extends Client> extends ContractMetadata {
     const existing = this.getClientOrNull()
     if (existing) return Promise.resolve(existing)
     const name = `deploy ${this.name ?? 'contract'}`
-    return this.task(name, function getOrDeployContract (this: Contract<C>): Promise<C> {
+    return this.task(name, () => {
       if (!this.agent) throw new ClientError.NoCreator(this.name)
       this.label = ContractMetadata.writeLabel(this)
       return this.upload().then(async template=>{
+        this.log.warn(this === template)
         this.log.beforeDeploy(this, this.label!)
         if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
         const contract = await this.agent!.instantiate(template, this.label!, initMsg as Message)
@@ -972,7 +970,7 @@ export class Contract<C extends Client> extends ContractMetadata {
     inits: (DeployArgs[])|(()=>DeployArgs[])|(()=>Promise<DeployArgs[]>)
   ): Promise<C[]> {
     const name = `deploy ${this.name ?? 'contract'} (${inits.length} instances)`
-    return this.task(name, function getOrDeployContracts (this: Contract<C>): Promise<C[]> {
+    return this.task(name, (): Promise<C[]> => {
       const agent = this.agent
       if (!agent) throw new ClientError.NoCreator(this.name)
       return this.upload().then(async (contract: Contract<C>)=>{
@@ -993,12 +991,14 @@ export class Contract<C extends Client> extends ContractMetadata {
     _uploader: Uploader|undefined = this.uploader
   ): Promise<Contract<C>> {
     if (this.chainId && this.codeId) {
-      return this.codeHash
-        ? Promise.resolve(this)
-        : this.fetchCodeHashByCodeId().then(codeHash=>Object.assign(this, { codeHash }))
+      if (this.codeHash) {
+        return Promise.resolve(this)
+      } else {
+        return this.fetchCodeHashByCodeId().then(codeHash=>Object.assign(this, { codeHash }))
+      }
     } else {
       const name = `upload contract ${this.getSourceSpecifier()}`
-      return this.task(name, async function uploadContract (this: Contract<C>): Promise<Contract<C>> {
+      return this.task(name, async (): Promise<Contract<C>> => {
         // Otherwise we're gonna need an uploader
         const uploader = this.assertUploader(_uploader)
         // And if we still can't determine the chain ID, bail
@@ -1018,7 +1018,7 @@ export class Contract<C extends Client> extends ContractMetadata {
     * @returns this */
   build (builder: Builder = this.assertBuildable()): Promise<Contract<C>> {
     const name = 'build ' + this.getSourceSpecifier()
-    return this.task(name, async function buildContract (this: Contract<C>): Promise<Contract<C>> {
+    return this.task(name, async (): Promise<Contract<C>> => {
       if (this.artifact) return this
       return builder.build(this)
     })

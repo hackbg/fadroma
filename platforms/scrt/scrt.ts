@@ -430,7 +430,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
     const address  = result.arrayLog.find(findAddr)?.value!
     const initTx   = result.transactionHash
-    return Object.assign(new Contract(template), { address })
+    return Object.assign(template, { address })
   }
   async instantiateMany (template: Contract<any>, configs: DeployArgs[]) {
     // instantiate multiple contracts in a bundle:

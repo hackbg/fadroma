@@ -33,7 +33,7 @@ Object.assign(Chain.variants as ChainRegistry, {
 
 export async function connect (
   config: Partial<ConnectConfig> = new ConnectConfig()
-): Promise<ConnectContext> {
+): Promise<Connector> {
   config = new ConnectConfig(undefined, undefined, config)
   return await config.connect!()
 }
@@ -85,9 +85,9 @@ export class ConnectConfig extends EnvConfig {
     if (!result) throw new Error('No chain ID. Set FADROMA_CHAIN')
     return result
   }
-  /** Create a `ConnectContext` containing instances of `Chain` and `Agent`
-    * as specified by the configuration and return a `ConnectContext with them. */
-  async connect (): Promise<ConnectContext> {
+  /** Create a `Connector` containing instances of `Chain` and `Agent`
+    * as specified by the configuration and return a `Connector with them. */
+  async connect (): Promise<Connector> {
     // Create the Chain instance as specified by the configuration.
     const chains = Chain.variants
     let chain: Chain
@@ -108,13 +108,13 @@ export class ConnectConfig extends EnvConfig {
       agentOpts.mnemonic = this.mnemonic
     }
     const agent = await chain?.getAgent(agentOpts) ?? null
-    // Create the ConnectContext holding both and exposing them to commands.
-    const context = new ConnectContext(this, chain!, agent)
+    // Create the Connector holding both and exposing them to commands.
+    const context = new Connector(this, chain!, agent)
     return context
   }
 }
 
-export class ConnectContext extends Komandi.CommandContext {
+export class Connector extends Komandi.CommandContext {
   constructor (
     config: Partial<ConnectConfig> = new ConnectConfig(),
     /** Chain to connect to. */

@@ -44,9 +44,9 @@ let config: DeployConfig = new DeployConfig({ FADROMA_CHAIN: 'Mocknet' }, '')
 ## Deploy context
 
 ```typescript
-import { DeployContext } from '.'
-let context: DeployContext = await config.getDeployContext()
-ok(context            instanceof DeployContext)
+import { Deployer } from '.'
+let context: Deployer = await config.getDeployer()
+ok(context            instanceof Deployer)
 ok(context.uploader   instanceof Uploader)
 ok(context.contract() instanceof Contract)
 ```
@@ -58,14 +58,14 @@ import { Client, Deployment } from '@fadroma/client'
 import { connect } from '@fadroma/connect'
 import * as Dokeres from '@hackbg/dokeres'
 import { BuildContext, getBuilder } from '@fadroma/build'
-import { DeployConfig, DeployContext } from '.'
+import { DeployConfig, Deployer } from '.'
 import { basename } from 'path'
 import { withTmpFile } from '@hackbg/kabinet'
 import { ExampleDeployment } from './deploy.example'
 
 ok(await new DeployConfig({
   FADROMA_CHAIN: 'Mocknet'
-}).getDeployContext() instanceof DeployContext)
+}).getDeployer() instanceof Deployer)
 
 /*await Testing.inTmpDeployment(async deployment=>{
   context = await deploy({ chain: 'Mocknet', mnemonic }, new BuildContext())

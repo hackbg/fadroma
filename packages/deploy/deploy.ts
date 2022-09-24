@@ -27,7 +27,7 @@ DeployStores['YAML2'] = YAML2.YAMLDeployments_v2
 DeployStores['JSON1'] = JSON1.JSONDeployments_v1
 
 export { YAML, DeployStores, YAML1, YAML2, JSON1 }
-export { DeployContext, DeployStore } from './deploy-base'
+export { Deployer, DeployStore } from './deploy-base'
 export { DeployConsole } from './deploy-events'
 export { DeployConfig } from './deploy-config'
 export * from './upload'
