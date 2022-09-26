@@ -66,7 +66,7 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     this.readyPhrase ??= options.readyPhrase!
   }
 
-  log = new CustomConsole('Fadroma.DockerDevnet')
+  log = new CustomConsole('Fadroma Devnet')
 
   /** Handle to Docker API if configured. */
   get dokeres (): Dokeres.Engine|null {

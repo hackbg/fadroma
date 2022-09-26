@@ -49,7 +49,7 @@ export class DockerBuilder extends LocalBuilder {
     this.script     ??= opts.script!
   }
 
-  log = new BuildConsole('Fadroma.DockerBuilder')
+  log = new BuildConsole('Fadroma Builder')
 
   /** Used to launch build container. */
   socketPath: string  = '/var/run/docker.sock'
