@@ -129,7 +129,11 @@ export class YAMLDeployment_v1 extends Deployment {
       output += '---\n'
       name ??= data.name!
       if (!name) throw new Error('Deployment: no name')
-      data = JSON.parse(JSON.stringify({ ...data, name, deployment: undefined }))
+      data = JSON.parse(JSON.stringify({
+        ...new Contract(data).asMetadata,
+        name,
+        deployment: undefined
+      }))
       const daDump = dump(data, { noRefs: true })
       output += alignYAML(daDump)
     }

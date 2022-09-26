@@ -59,11 +59,10 @@ export default class Fadroma extends Deployer {
     public build:       BuildContext|undefined = undefined
   ) {
     super(config, agent, chain)
-    this.log.name = projectName
-    this.config = new Config(this.env, this.cwd, config)
-    this.build   ??= this.config?.build?.getBuildContext()
-    this.builder ??= this.build?.builder
+    this.log.name  = projectName
+    this.config    = new Config(this.env, this.cwd, config)
     this.workspace = config.project
+    this.builder ??= this.config?.build?.getBuilder()
   }
   /** The current configuration. */
   config: Config

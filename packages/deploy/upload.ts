@@ -73,7 +73,10 @@ export class FSUploader extends Uploader {
     }
     const { codeId, codeHash, uploadTx } = result
     Object.assign(contract, { codeId, codeHash, uploadTx })
-    if (receipt) receipt.save(contract.asMetadata)
+    if (receipt && !this.agent?.chain?.isMocknet) {
+      // don't save receipts for mocknet because it's not stateful yet
+      receipt.save(contract.asMetadata)
+    }
     //await this.agent.nextBlock
     return contract as Contract<any> & {
       artifact: URL, codeHash: CodeHash, codeId: CodeId

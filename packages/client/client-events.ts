@@ -141,19 +141,23 @@ export class ClientConsole extends CommandsConsole {
   beforeDeploy (
     template: Contract<any>,
     label:    Label,
-    codeId:   CodeId   = template?.codeId   ? bold(String(template.codeId)) : colors.red('(missing code id!)'),
-    codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(missing code hash!)')
+    codeId:   CodeId   = template?.codeId   ? bold(String(template.codeId)) : colors.red('(no code id!)'),
+    codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)')
   ) {
     label = label ? bold(label) : colors.red('(missing label!)')
     this.log('Deploying', bold(label), 'from code id', codeId)
     this.log('Code hash', codeHash)
   }
   afterDeploy (contract: Partial<Contract<any>>) {
-    this.log(
-      colors.green('Deployed:'), bold(colors.green(contract.name!)),
-      'in', bold(colors.green(contract.deployment?.name!)),
-      'is now', bold(colors.green(contract.address!)),
-    )
+    const { red, green } = colors
+    const name = contract.name
+      ? bold(green(contract.name))
+      : bold(red('(missing name)'))
+    const deployment = contract.deployment?.name
+      ? bold(green(contract.deployment.name))
+      : bold(red('(missing deployment)'))
+    const address = bold(colors.green(contract.address!))
+    this.log(colors.green('Deployed:'), name, 'in', deployment, 'is now', address)
   }
   deployFailed (e: Error, template: Contract<any>, name: Label, msg: Message) {
     this.error()
