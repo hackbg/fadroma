@@ -110,9 +110,9 @@ export class BuildContext extends CommandContext {
   /** Knows how to build contracts for a target. */
   builder?:   Builder
   /** Path to Cargo workspace from which contracts are built by crate name. */
-  workspace:  string = this.config?.project ?? process.cwd()
+  workspace:  string|undefined = this.config?.project
   /** Path to local Git repository. */
-  repository: string = this.workspace
+  repository: string|undefined = this.workspace
   /** Git reference from which to build sources. */
   revision:   string = HEAD
   /** Path to `.git` directory. */
