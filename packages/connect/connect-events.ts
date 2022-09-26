@@ -1,12 +1,13 @@
 import { Chain, ClientConsole, ClientError } from '@fadroma/client'
+import { bold } from '@hackbg/konzola'
 
 export class ConnectConsole extends ClientConsole {
   name = 'Fadroma Connect'
   supportedChains (supportedChains: Record<string, unknown> = Chain.variants) {
-    this.log()
+    this.br()
     this.info('Known chain names:')
     for (const chain of Object.keys(supportedChains).sort()) {
-      this.info(`  ${chain}`)
+      this.info(`  ${bold(chain)}`)
     }
   }
   noName (chains: Record<string, unknown>) {
@@ -15,13 +16,14 @@ export class ConnectConsole extends ClientConsole {
     return 1
   }
   selectedChain (chain?: string) {
-    this.log()
+    this.br()
     if (chain) {
       this.info('Selected chain:')
-      this.info(`  ${chain}`)
+      this.info(`  ${bold(chain)}`)
     } else {
       this.info('No selected chain. Set FADROMA_CHAIN in .env or shell environment.')
     }
+    this.br()
   }
 }
 

@@ -1,6 +1,6 @@
 import { LocalBuilder, buildPackage, artifactName, sanitize } from './build-base'
 import { BuildConsole } from './build-events'
-import type { LocalBuilderOptions } from './build-base'
+import type { BuilderConfig } from './build-base'
 import { getGitDir } from './build-history'
 
 import * as Dokeres from '@hackbg/dokeres'
@@ -8,39 +8,32 @@ import { bold } from '@hackbg/konzola'
 import $, { OpaqueDirectory } from '@hackbg/kabinet'
 
 import { Contract, HEAD } from '@fadroma/client'
+import type { Builder } from '@fadroma/client'
 
 import { homedir } from 'node:os'
 
 import { default as simpleGit } from 'simple-git'
-
-export interface DockerBuilderOptions extends LocalBuilderOptions {
-  /** Path to Docker API endpoint. */
-  socketPath: string
-  /** Docker API client instance. */
-  docker:     Dokeres.Engine
-  /** Build image. */
-  image:      string|Dokeres.Image
-  /** Dockerfile for building the build image. */
-  dockerfile: string
-}
 
 /** This builder launches a one-off build container using Dockerode. */
 export class DockerBuilder extends LocalBuilder {
 
   readonly id = 'docker-local'
 
-  constructor (opts: Partial<DockerBuilderOptions> = {}) {
+  constructor (opts: Partial<BuilderConfig & { docker?: Dokeres.Engine }> = {}) {
     super(opts)
+    const { docker, dockerSocket, dockerImage } = opts
     // Set up Docker API handle
-    if (opts.socketPath) {
-      this.docker = new Dokeres.Engine(this.socketPath = opts.socketPath)
-    } else if (opts.docker) {
-      this.docker = opts.docker
+    if (dockerSocket) {
+      this.docker = new Dokeres.Engine(dockerSocket)
+    } else if (docker) {
+      this.docker = docker
+    } else {
+      this.docker = new Dokeres.Engine()
     }
-    if (opts.image instanceof Dokeres.Image) {
-      this.image = opts.image
-    } else if (opts.image) {
-      this.image = new Dokeres.Image(this.docker, opts.image)
+    if ((dockerImage as unknown) instanceof Dokeres.Image) {
+      this.image = opts.dockerImage as unknown as Dokeres.Image
+    } else if (opts.dockerImage) {
+      this.image = new Dokeres.Image(this.docker, opts.dockerImage)
     } else {
       this.image = new Dokeres.Image(this.docker, 'ghcr.io/hackbg/fadroma:unstable')
     }
@@ -48,82 +41,42 @@ export class DockerBuilder extends LocalBuilder {
     this.dockerfile ??= opts.dockerfile!
     this.script     ??= opts.script!
   }
-
-  log = new BuildConsole('Fadroma Builder')
-
+  /** Logger */
+  log = new BuildConsole('Builder: Docker')
   /** Used to launch build container. */
-  socketPath: string  = '/var/run/docker.sock'
-
-  /** Used to launch build container. */
-  docker:     Dokeres.Engine = new Dokeres.Engine(this.socketPath)
-
+  docker: Dokeres.Engine
   /** Tag of the docker image for the build container. */
-  image:      Dokeres.Image
-
+  image:  Dokeres.Image
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
-
-  /** Build a Source into a Template */
-  async build (source: Contract<any>): Promise<Contract<any>> {
-    return (await this.buildMany([source]))[0]
+  /** Build a Source into a Template. */
+  async build (contract: Contract<any>): Promise<Contract<any>> {
+    return (await this.buildMany([contract]))[0]
   }
 
   /** This implementation groups the passed source by workspace and ref,
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (inputs: Contract<any>[]): Promise<Contract<any>[]> {
-
-    const longestCrateName = inputs
-      .map(contract=>contract.crate?.length||0)
-      .reduce((x,y)=>Math.max(x,y),0)
-
-    for (const contract of inputs) {
-      const { workspace, revision, crate } = contract
-      if (!workspace) throw new Error("Workspace not set, can't build")
-      const outputDir = $(workspace).resolve(this.outputDirName)
-      const prebuilt  = this.prebuild(outputDir, crate, revision)
-      this.log.buildingOne(contract, prebuilt)
-      if (prebuilt) {
-        contract.artifact   = prebuilt.artifact
-        contract.codeHash ??= prebuilt.codeHash
+  async buildMany (contracts: Contract<any>[]): Promise<Contract<any>[]> {
+    const roots      = new Set<string>()
+    const revisions  = new Set<string>()
+    let longestCrateName = 0
+    for (const contract of contracts) {
+      contract.builder = this as Builder
+      roots.add(contract.workspace!)
+      revisions.add(contract.revision!)
+      if (contract.crate && contract.crate.length > longestCrateName) {
+        longestCrateName = contract.crate.length
       }
+      this.populatePrebuilt(contract)
     }
-
-    // Collect a mapping of workspace path -> Workspace object
-    const workspaces: Record<string, Contract<any>> = {}
-    for (const source of inputs) {
-      const { revision, workspace } = source
-      const gitDir = getGitDir(source)
-      if (!workspace) throw new Error("Workspace not set, can't build")
-      workspaces[workspace] = new Contract({ workspace })
-      // No way to checkout non-`HEAD` ref if there is no `.git` dir
-      if (revision !== HEAD && !gitDir?.present) {
-        const error = new Error(`Git directory not found, can't build "${revision}"`)
-        throw Object.assign(error, { source })
-      }
-    }
-
-    // Here we will collect the build outputs
-    const outputs: Contract<any>[] = inputs.map(input=>new Contract({ ...input, builder: this }))
-
-    // Get the distinct workspaces and refs by which to group the crate builds
-    const roots:     string[] = distinct(inputs.map(source=>source.workspace!))
-    const revisions: string[] = distinct(inputs.map(source=>source.revision??HEAD))
-
     // For each workspace/ref pair
     for (const path of roots) for (const revision of revisions) {
-      await buildFor.call(this, path, revision)
-    }
-
-    return outputs
-
-    const self = this
-    async function buildFor (this: typeof self, path: string, revision: string) {
       let mounted = $(path)
       if (this.verbose) this.log.buildingFromWorkspace(mounted, revision)
       if (revision !== HEAD) {
-        const gitDir = getGitDir(workspaces[path])
+        const gitDir = getGitDir({ workspace: path })
         mounted = gitDir.rootRepo
         //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
         await simpleGit(gitDir.path)
@@ -133,8 +86,8 @@ export class DockerBuilder extends LocalBuilder {
       // along with their indices in the input and output arrays
       // of this function.
       const crates: [number, string][] = []
-      for (let index = 0; index < inputs.length; index++) {
-        const source = inputs[index]
+      for (let index = 0; index < contracts.length; index++) {
+        const source = contracts[index]
         if (source.workspace === path && source.revision === revision) {
           crates.push([index, source.crate!])
         }
@@ -148,15 +101,27 @@ export class DockerBuilder extends LocalBuilder {
         revision,
         crates,
         (revision !== HEAD)
-          ? (gitDir=>gitDir.isSubmodule?gitDir.submoduleDir:'')(getGitDir(workspaces[path]))
+          ? (gitDir=>gitDir.isSubmodule?gitDir.submoduleDir:'')(getGitDir({ workspace: path }))
           : ''
       )
       for (const index in results) {
         if (!results[index]) continue
-        outputs[index] = new Contract({ ...results[index], ...inputs[index] })
+        contracts[index].artifact = results[index]!.artifact
+        contracts[index].codeHash = results[index]!.codeHash
       }
     }
+    return contracts
+  }
 
+  private populatePrebuilt (contract: Contract<any>): void {
+    const { workspace, revision, crate } = contract
+    if (!workspace) throw new Error("Workspace not set, can't build")
+    const prebuilt  = this.prebuild(this.outputDir.path, crate, revision)
+    this.log.buildingOne(contract, prebuilt)
+    if (prebuilt) {
+      contract.artifact = prebuilt.artifact
+      contract.codeHash = prebuilt.codeHash
+    }
   }
 
   protected async runBuildContainer (
@@ -165,7 +130,7 @@ export class DockerBuilder extends LocalBuilder {
     revision:  string,
     crates:    [number, string][],
     gitSubdir: string = '',
-    outputDir: string = $(root, subdir, this.outputDirName).path,
+    outputDir: string = this.outputDir.path
   ): Promise<(Contract<any>|null)[]> {
     // Create output directory as user if it does not exist
     $(outputDir).as(OpaqueDirectory).make()
@@ -271,7 +236,7 @@ export class DockerBuilder extends LocalBuilder {
     //console.debug('Building in a container with this configuration:', options)
     // Prepare the log output stream
     const buildLogPrefix = `[${revision}]`.padEnd(16)
-    const transformLine  = (line:string)=>`[Fadroma Build] ${buildLogPrefix} ${line}`
+    const transformLine  = (line:string)=>`${bold('BUILD')} @ ${revision} │ ${line}`
     const logs = new Dokeres.LineTransformStream(transformLine)
     logs.pipe(process.stdout)
 

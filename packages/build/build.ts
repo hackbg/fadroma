@@ -63,23 +63,17 @@ export class BuilderConfig extends EnvConfig {
 
   /** Project root. Defaults to current working directory. */
   project:    string  = this.getString ('FADROMA_PROJECT',   ()=>this.cwd)
-
   /** Whether to bypass Docker and use the toolchain from the environment. */
   buildRaw:   boolean = this.getBoolean('FADROMA_BUILD_RAW', ()=>false)
-
   /** Whether to ignore existing build artifacts and rebuild contracts. */
   rebuild:    boolean = this.getBoolean('FADROMA_REBUILD',   ()=>false)
-
   /** Whether not to run `git fetch` during build. */
   noFetch:    boolean = this.getBoolean('FADROMA_NO_FETCH',  ()=>false)
-
   /** Which version of the Rust toolchain to use, e.g. `1.59.0` */
   toolchain:  string  = this.getString ('FADROMA_RUST',      ()=>'')
-
   /** Script that runs the actual build, e.g. build.impl.mjs */
   script:     string  = this.getString ('FADROMA_BUILD_SCRIPT',
     ()=>resolve(buildPackage, 'build.impl.mjs'))
-
   /** Docker image to use for dockerized builds. */
   image:      string  = this.getString ('FADROMA_BUILD_IMAGE',
     ()=>'ghcr.io/hackbg/fadroma:unstable')

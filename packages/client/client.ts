@@ -1,6 +1,9 @@
 import { timestamp, bold } from '@hackbg/konzola'
 import { Task, CommandContext } from '@hackbg/komandi'
+
 import { ClientConsole, ClientError } from './client-events'
+
+import { strictEqual } from 'node:assert'
 
 /// # DRAMATIS PERSONAE ///////////////////////////////////////////////////////////////////////////
 
@@ -948,17 +951,21 @@ export class Contract<C extends Client> extends ContractMetadata {
   deploy (
     initMsg: IntoMessage|undefined = this.initMsg
   ): Promise<C> {
-    const existing = this.getClientOrNull()
-    if (existing) return Promise.resolve(existing)
+    const deployed = this.getClientOrNull()
+    if (deployed) {
+      return Promise.resolve(deployed)
+    }
     const name = `deploy ${this.name ?? 'contract'}`
     return this.task(name, () => {
       if (!this.agent) throw new ClientError.NoCreator(this.name)
       this.label = ContractMetadata.writeLabel(this)
+      if (!this.label) throw new ClientError.NoInitLabel(this.name)
       return this.upload().then(async template=>{
-        this.log.warn(this === template)
+        strictEqual(this, template, 'bug: uploader returned different instance')
+        if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
         this.log.beforeDeploy(this, this.label!)
         if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-        const contract = await this.agent!.instantiate(template, this.label!, initMsg as Message)
+        const contract = await this.agent!.instantiate(this, this.label!, initMsg as Message)
         this.log.afterDeploy(contract)
         if (this.deployment) this.deployment.add(this.name!, contract)
         return this.get()
@@ -974,6 +981,7 @@ export class Contract<C extends Client> extends ContractMetadata {
       const agent = this.agent
       if (!agent) throw new ClientError.NoCreator(this.name)
       return this.upload().then(async (contract: Contract<C>)=>{
+        if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
         if (typeof inits === 'function') inits = await Promise.resolve(inits())
         try {
           const instances = (await agent.instantiateMany(contract, inits)).map(c=>c.getClient())
@@ -1020,7 +1028,8 @@ export class Contract<C extends Client> extends ContractMetadata {
     const name = 'build ' + this.getSourceSpecifier()
     return this.task(name, async (): Promise<Contract<C>> => {
       if (this.artifact) return this
-      return builder.build(this)
+      const result = await builder.build(this)
+      return result
     })
   }
   /** Wrap a method in a lazy task.
@@ -1031,6 +1040,7 @@ export class Contract<C extends Client> extends ContractMetadata {
     task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
     return task
   }
+
 }
 
 export interface ContractInfo {
@@ -1091,24 +1101,26 @@ export class Deployment extends CommandContext {
   }
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:       string = timestamp()
+  name:        string = timestamp()
   /** Mapping of names to contract instances. */
-  state:      Record<string, Partial<Contract<any>>> = {}
+  state:       Record<string, Partial<Contract<any>>> = {}
   /** Number of contracts in deployment. */
   get size () { return Object.keys(this.state).length }
-  /** Default Cargo workspace from which contracts will be built if needed. */
-  workspace?: string = undefined
   /** Default Git ref from which contracts will be built if needed. */
-  revision?:  string = 'HEAD'
+  repository?: string = undefined
+  /** Default Cargo workspace from which contracts will be built if needed. */
+  workspace?:  string = undefined
+  /** Default Git ref from which contracts will be built if needed. */
+  revision?:   string = 'HEAD'
   /** Build implementation. Contracts can't be built from source if this is missing. */
-  builder?:   Builder
+  builder?:    Builder
   /** Agent to use when deploying contracts. */
-  agent?:     Agent
+  agent?:      Agent
   /** Chain on which operations are executed. */
-  chain?:     Chain
+  chain?:      Chain
   /** Upload implementation. Contracts can't be uploaded if this is missing --
     * except by using `agent.upload` directly, which does not cache or log uploads. */
-  uploader?:  Uploader
+  uploader?:   Uploader
   /** True if the chain is a devnet or mocknet */
   get devMode   (): boolean { return this.chain?.devMode   ?? false }
   /** = chain.isMainnet */
@@ -1180,6 +1192,7 @@ export class Deployment extends CommandContext {
       builder:    this.builder,
       uploader:   this.uploader,
       agent:      this.agent,
+      repository: this.repository,
       revision:   this.revision,
       workspace:  this.workspace,
       ...((typeof arg === 'string') ? { name: arg } : arg)
@@ -1290,7 +1303,7 @@ export type IntoBuilder = string|BuilderClass<Builder>|Partial<Builder>
 export type IntoSource = string|Contract<any>
 
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
-export abstract class Builder {
+export abstract class Builder extends CommandContext {
   /** Populated by @fadroma/build */
   static variants: Record<string, BuilderClass<Builder>> = {}
   /** Get a Builder from a specifier and optional overrides. */

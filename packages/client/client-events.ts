@@ -1,6 +1,8 @@
 import { CommandsConsole } from '@hackbg/komandi'
-import { bold } from '@hackbg/konzola'
-import type { Contract, Label, DeployArgs, Message, Chain, ContractMetadata } from './client'
+import { bold, colors } from '@hackbg/konzola'
+import type {
+  Contract, CodeId, CodeHash, Label, DeployArgs, Message, Chain, ContractMetadata
+} from './client'
 import { CustomError } from '@hackbg/konzola'
 
 /** Error kinds. */
@@ -41,8 +43,14 @@ export class ClientError extends CustomError {
     (name?: string) => name
       ? `No deployment, can't find contract by name: ${name}`
       : "Missing deployment")
+
+  static NoInitCodeId = this.define('NoInitCodeId',
+    () => "Missing init code id")
+  static NoInitLabel = this.define('NoInitLabel',
+    () => "Missing init label")
   static NoInitMessage = this.define('NoInitMessage',
     () => "Missing init message")
+
   static NoName = this.define("NoContractName",
     () => "No name.")
   static NoSource = this.define('NoSource',
@@ -94,16 +102,21 @@ export class ClientError extends CustomError {
 
 /** Logging. */
 export class ClientConsole extends CommandsConsole {
+  constructor (name: string = 'Fadroma') {
+    super(name)
+    this.name = name
+  }
   object (obj?: Object) {
     let report = `---`
     if (obj) {
-      report += `\n${obj?.constructor?.name??Object}`
+      report += `\n${bold(obj?.constructor?.name??Object)}:`
       for (const x in obj) {
+        let k: any = colors.dim(`${x}:`.padEnd(15))
         let v: any = obj[x as keyof typeof obj]
         if (typeof v === 'function') {
           v = bold(v.name ? `[function ${v.name}]` : `[function]`)
         } if (v instanceof Array && v.length === 0) {
-          v = '[empty array]'
+          v = colors.gray('[empty array]')
         } else if (v && typeof v.toString === 'function') {
           v = bold(v.toString())
         } else if (v) {
@@ -113,9 +126,9 @@ export class ClientConsole extends CommandsConsole {
             v = bold('[something]')
           }
         } else {
-          v = '[empty]'
+          v = colors.gray('[empty]')
         }
-        report += `\n  ` + `${x}:`.padEnd(15) + ' ' + v
+        report += `\n  ` + k + ' ' + v
       }
     } else {
       report += `\n[empty]`
@@ -125,16 +138,19 @@ export class ClientConsole extends CommandsConsole {
   contract (meta: ContractMetadata) {
     this.object(meta)
   }
-  beforeDeploy (template: Contract<any>, label: Label) {
-    return this.info(
-      'Deploy   ', bold(label),
-      'from code id', bold(String(template.codeId ||'(unknown)')),
-      'hash', bold(String(template.codeHash||'(unknown)'))
-    )
+  beforeDeploy (
+    template: Contract<any>,
+    label:    Label,
+    codeId:   CodeId   = template?.codeId   ? bold(String(template.codeId)) : colors.red('(missing code id!)'),
+    codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(missing code hash!)')
+  ) {
+    label = label ? bold(label) : colors.red('(missing label!)')
+    this.info('Deploying', bold(label), 'from code id', codeId)
+    this.info('Code hash', codeHash)
   }
   afterDeploy (contract: Partial<Contract<any>>) {
-    return this.info(
-      'Deployed ', bold(contract.name!), 'is', bold(contract.address!),
+    this.info(
+      'Deployed:', bold(contract.name!), 'is', bold(contract.address!),
       'from code id', bold(contract.codeId!)
     )
   }

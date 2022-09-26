@@ -86,7 +86,7 @@ export class RawBuilder extends LocalBuilder {
     // Create an artifact for the build result
     const location = $(env._OUTPUT, artifactName(crate, sanitize(revision)))
     this.log.info('Build ok:', bold(location.shortPath))
-    return Object.assign(new Contract(source), {
+    return Object.assign(source, {
       artifact: pathToFileURL(location.path),
       codeHash: this.hashPath(location.path)
     })

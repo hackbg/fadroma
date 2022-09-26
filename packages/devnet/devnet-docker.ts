@@ -247,21 +247,28 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
     }
 
     // ...and try to make sure it dies when the Node process dies
-    process.on('beforeExit', () => {
-      if (this.ephemeral) {
-        this.container!.kill()
-      } else {
-        this.log.br()
-        this.log.info(
-          'Devnet is running on port', bold(String(this.port)),
-          'from container', bold(this.container!.id.slice(0,8))
-        )
-      }
-    })
+    if (!this.exitHandlerSet) {
+      process.on('beforeExit', () => {
+        if (this.ephemeral) {
+          this.container!.kill()
+        } else {
+          this.log.br()
+          this.log.info(
+            `Devnet is running on port ${bold(String(this.port))}`,
+            `from container ${bold(this.container!.id.slice(0,8))}.`
+          )
+          this.log.info('Use this command to reset it:')
+          this.log.info(`  docker kill ${this.container!.id.slice(0,8)} && sudo rm -rf receipts/fadroma-devnet`)
+        }
+      })
+      this.exitHandlerSet = true
+    }
 
     return this
 
   }
+
+  private exitHandlerSet = false
 
   /** Kill the container, if necessary find it first */
   async kill () {

@@ -106,16 +106,16 @@ export class Deployer extends Connector {
         this.log.info('\nNo deployments. Create one with `deploy new`')
       }
       if (id) {
-        this.log.info(bold(`Selecting deployment:`), id)
+        this.log.log(bold(`Selecting deployment:`), id)
         await deployments.select(id)
       }
       if (list.length > 0) {
         this.list()
       }
       if (deployments.active) {
-        this.log.info(`Currently selected deployment:`, bold(deployments.active.name))
+        this.log.log(`Currently selected deployment:`, bold(deployments.active.name))
       } else {
-        this.log.info(`No selected deployment.`)
+        this.log.log(`No selected deployment.`)
       }
     })
   /** Create a new deployment and add it to the command context. */

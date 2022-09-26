@@ -27,7 +27,7 @@ import {
   CommandContext,
 } from '@hackbg/komandi'
 
-const log = new ClientConsole('Fadroma Tokens')
+const log = new ClientConsole('Fadroma.TokenManager')
 
 export type Tokens = Record<string, Snip20|Token>
 /** # Token descriptors. */

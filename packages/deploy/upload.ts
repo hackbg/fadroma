@@ -1,12 +1,11 @@
 import { bold } from '@hackbg/konzola'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
-import { Agent, Contract, ContractMetadata, ClientConsole, Uploader, ClientError } from '@fadroma/client'
+import { ContractMetadata, ClientConsole, Uploader, ClientError } from '@fadroma/client'
+import type { Agent, Contract, CodeHash, CodeId } from '@fadroma/client'
 import { CustomConsole } from '@hackbg/konzola'
 
 export class UploadConsole extends ClientConsole {
-  constructor (name = 'Fadroma Upload') {
-    super(name)
-  }
+  name = 'Fadroma.Uploader'
 }
 
 /** Uploads contracts from the local filesystem, with optional caching:
@@ -26,7 +25,7 @@ export class FSUploader extends Uploader {
 
   readonly id = 'fs'
 
-  log = new UploadConsole('Fadroma.FSUploader')
+  log = new UploadConsole()
 
   cache?: Uploads
 
@@ -36,23 +35,32 @@ export class FSUploader extends Uploader {
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (contract: Contract<any>): Promise<Contract<any>> {
+  async upload (contract: Contract<any> & { artifact: URL }): Promise<Contract<any> & {
+    artifact: URL,
+    codeHash: CodeHash,
+    codeId:   CodeId
+  }> {
     let receipt: UploadReceipt|null = null
     if (this.cache) {
       const name = this.getUploadReceiptName(contract)
       receipt = this.cache.at(name).as(UploadReceipt)
       if (receipt.exists()) {
-        this.log.contract(contract)
         this.log.info('Found    ', bold(this.cache.at(name).shortPath))
-        const { chainId, codeId, codeHash, uploadTx, artifact } = receipt.toContractMetadata()
-        this.log.contract({ chainId, codeId, codeHash, uploadTx, artifact })
-        Object.assign(contract, { chainId, codeId, codeHash, uploadTx, artifact })
-        this.log.contract(contract)
-        return contract
+        const {
+          chainId = this.agent?.chain?.id,
+          codeId,
+          codeHash,
+          uploadTx,
+        } = receipt.toContractMetadata()
+        const props = { chainId, codeId, codeHash, uploadTx }
+        return Object.assign(contract, props) as Contract<any> & {
+          artifact: URL, codeHash: CodeHash, codeId: CodeId
+        }
       }
     }
     if (!contract.artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
+    this.log.info('Uploading', bold($(contract.artifact).shortPath), contract.label)
     const result = await this.agent.upload($(contract.artifact).as(BinaryFile).load())
     if (
       contract.codeHash && result.codeHash &&
@@ -63,12 +71,13 @@ export class FSUploader extends Uploader {
         `${contract.codeHash} vs ${result.codeHash}`
       )
     }
-    Object.assign(contract, result)
-    if (receipt) {
-      receipt.save(contract.asMetadata)
-    }
+    const { codeId, codeHash, uploadTx } = result
+    Object.assign(contract, { codeId, codeHash, uploadTx })
+    if (receipt) receipt.save(contract.asMetadata)
     //await this.agent.nextBlock
-    return contract
+    return contract as Contract<any> & {
+      artifact: URL, codeHash: CodeHash, codeId: CodeId
+    }
   }
 
   getUploadReceiptName (contract: Contract<any>): string {
@@ -149,7 +158,8 @@ export class FSUploader extends Uploader {
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const receiptName = this.getUploadReceiptName(toUpload[i])
-        $(this.cache, receiptName).as(UploadReceipt).save(uploaded[i].asMetadata)
+        const meta = { ...uploaded[i].asMetadata, artifact: uploaded[i].artifact?.toString() }
+        $(this.cache, receiptName).as(UploadReceipt).save(meta)
         outputs[i] = uploaded[i] as Contract<any>
       }
     } else {

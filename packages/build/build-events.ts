@@ -6,26 +6,26 @@ import { HEAD } from '@fadroma/client'
 import type { Contract } from '@fadroma/client'
 
 export class BuildConsole extends CommandsConsole {
-  name = 'Fadroma Build'
+  name = 'Fadroma.Builder'
   buildingFromCargoToml (file: Path|string) {
-    this.info('Building from', bold($(file).shortPath))
+    this.log('Building from', bold($(file).shortPath))
   }
   buildingFromBuildScript (file: Path, args: string[] = []) {
-    this.info('Build script:', bold(file.shortPath))
-    this.info('Build args:  ', bold(args.join(' ') || '(none)'))
+    this.log('Build script:', bold(file.shortPath))
+    this.log('Build args:  ', bold(args.join(' ') || '(none)'))
   }
   buildingFromWorkspace (mounted: Path|string, ref: string = HEAD) {
-    this.info(
+    this.log(
       `Building contracts from workspace:`, bold(`${$(mounted).shortPath}/`),
       `@`, bold(ref)
     )
   }
   buildingOne (source: Contract<any>, prebuilt: Contract<any>|null = null) {
     if (prebuilt) {
-      this.info('Reuse    ', bold($(prebuilt.artifact!).shortPath))
+      this.log('Found    ', bold($(prebuilt.artifact!).shortPath))
     } else {
       const { crate = '(unknown)', revision = 'HEAD' } = source
-      this.info('Building', bold(crate), ...
+      this.log('Building ', bold(crate), ...
         (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
     }
   }
@@ -33,7 +33,5 @@ export class BuildConsole extends CommandsConsole {
     for (const source of sources) {
       this.buildingOne(source, null)
     }
-    this.info()
   }
 }
-
