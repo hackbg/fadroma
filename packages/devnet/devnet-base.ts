@@ -1,6 +1,6 @@
 import { EnvConfig } from '@hackbg/konfizi'
 import { CommandContext } from '@hackbg/komandi'
-import { CustomConsole, CustomError } from '@hackbg/konzola'
+import { CustomError } from '@hackbg/konzola'
 import $, { OpaqueDirectory, JSONFile } from '@hackbg/kabinet'
 import { Chain, ClientConsole } from '@fadroma/client'
 import type { AgentOpts, DevnetHandle } from '@fadroma/client'
@@ -87,39 +87,30 @@ export abstract class Devnet implements DevnetHandle {
     this.nodeState = this.stateRoot.at('node.json').as(JSONFile) as JSONFile<DevnetState>
   }
 
-  log = new CustomConsole('Fadroma.Devnet')
-
+  /** Logger. */
+  log       = log
   /** Whether to destroy this devnet on exit. */
   ephemeral = false
-
   /** The chain ID that will be passed to the devnet node. */
   chainId  = 'fadroma-devnet'
-
   /** The protocol of the API URL without the trailing colon. */
   protocol = 'http'
-
   /** The hostname of the API URL. */
   host     = 'localhost'
-
   /** The port of the API URL. If `null`, `freePort` will be used to obtain a random port. */
   port     = 9091
-
   /** Which service does the API URL port correspond to. */
   portMode: DevnetPortMode
-
   /** The API URL that can be used to talk to the devnet. */
   get url (): URL {
     const url = `${this.protocol}://${this.host}:${this.port}`
     return new URL(url)
   }
-
   /** This directory is created to remember the state of the devnet setup. */
   stateRoot: OpaqueDirectory
-
   /** List of genesis accounts that will be given an initial balance
     * when creating the devnet container for the first time. */
   genesisAccounts: Array<string> = ['ADMIN', 'ALICE', 'BOB', 'CHARLIE', 'MALLORY']
-
   /** This file contains the id of the current devnet container.
     * TODO store multiple containers */
   nodeState: JSONFile<DevnetState>
@@ -178,6 +169,8 @@ export abstract class Devnet implements DevnetHandle {
 
 }
 
+const log = new ClientConsole('Fadroma.Devnet')
+
 export default class DevnetCommands extends CommandContext {
 
   constructor (public chain?: Chain) {
@@ -185,7 +178,7 @@ export default class DevnetCommands extends CommandContext {
   }
 
   status = this.command('status', 'print the status of the current devnet', () => {
-    new ClientConsole('Fadroma Devnet').chainStatus(this)
+    log.chainStatus(this)
   })
 
   reset = this.command('reset', 'erase the current devnet', () => {
@@ -196,9 +189,9 @@ export default class DevnetCommands extends CommandContext {
 
 export async function resetDevnet ({ chain }: { chain: Chain }) {
   if (!chain) {
-    new ClientConsole('Fadroma Devnet').info('No active chain.')
+    log.info('No active chain.')
   } else if (!chain.isDevnet || !chain.node) {
-    new ClientConsole('Fadroma Devnet').info('This command is only valid for devnets.')
+    log.error('This command is only valid for devnets.')
   } else {
     await chain.node.terminate()
   }

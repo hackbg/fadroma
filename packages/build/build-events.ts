@@ -1,7 +1,7 @@
 import { CommandsConsole } from '@hackbg/komandi'
 import $ from '@hackbg/kabinet'
 import type { Path } from '@hackbg/kabinet'
-import { bold } from '@hackbg/konzola'
+import { colors, bold } from '@hackbg/konzola'
 import { HEAD } from '@fadroma/client'
 import type { Contract } from '@fadroma/client'
 
@@ -22,7 +22,7 @@ export class BuildConsole extends CommandsConsole {
   }
   buildingOne (source: Contract<any>, prebuilt: Contract<any>|null = null) {
     if (prebuilt) {
-      this.log('Found    ', bold($(prebuilt.artifact!).shortPath))
+      this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
     } else {
       const { crate = '(unknown)', revision = 'HEAD' } = source
       this.log('Building ', bold(crate), ...

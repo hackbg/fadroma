@@ -1005,7 +1005,7 @@ export class Contract<C extends Client> extends ContractMetadata {
         return this.fetchCodeHashByCodeId().then(codeHash=>Object.assign(this, { codeHash }))
       }
     } else {
-      const name = `upload contract ${this.getSourceSpecifier()}`
+      const name = `upload ${this.getSourceSpecifier()}`
       return this.task(name, async (): Promise<Contract<C>> => {
         // Otherwise we're gonna need an uploader
         const uploader = this.assertUploader(_uploader)
@@ -1246,9 +1246,14 @@ export class Deployment extends CommandContext {
     if (!receipt) return null
     return new Contract({ ...receipt, deployment: this })
   }
+  /** Chainable. Add entry to deployment, merging into existing receipts. */
+  add (name: string, data: any): this {
+    return this.set(name, { ...this.state[name] || {}, ...data, name })
+  }
   /** Chainable. Add entry to deployment, replacing existing receipt. */
   set (name: string, data: Partial<Client> & any): this {
     this.state[name] = { name, ...data }
+    if (this.save) this.save()
     return this
   }
   /** Chainable. Add multiple entries to the deployment, replacing existing receipts. */
@@ -1256,12 +1261,11 @@ export class Deployment extends CommandContext {
     for (const [name, receipt] of Object.entries(receipts)) {
       this.state[name] = receipt
     }
+    if (this.save) this.save()
     return this
   }
-  /** Chainable. Add entry to deployment, merging into existing receipts. */
-  add (name: string, data: any): this {
-    return this.set(name, { ...this.state[name] || {}, ...data, name })
-  }
+  /** Provided by @fadroma/deploy to allow saving deployment data. */
+  save?: ()=>void
 
   /** Create an instance of `new ctor(this, ...args)` and attach it
     * to the command tree under `name`, with usage description `info`.
@@ -1273,7 +1277,9 @@ export class Deployment extends CommandContext {
     ctor: Subsystem<X>,
     ...args: unknown[]
   ): X {
-    return this.commands(name, info, new ctor(this, ...args)) as X
+    const sub = this.commands(name, info, new ctor(this, ...args)) as X
+    if (this.save) sub.save = this.save
+    return sub
   }
 
 }

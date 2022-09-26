@@ -413,7 +413,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   ): Promise<Contract<any>> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
-    if (chainId !== this.assertChain().id) throw new ScrtError.WrongChain()
+    if (chainId && chainId !== this.assertChain().id) throw new ScrtError.WrongChain()
     if (isNaN(Number(codeId)))     throw new ScrtError.NoCodeId()
     const sender   = this.address
     const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }

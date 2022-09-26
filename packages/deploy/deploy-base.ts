@@ -6,7 +6,7 @@ import type { Env } from '@hackbg/konfizi'
 
 import { Connector, ConnectConfig } from '@fadroma/connect'
 import { Chain, Agent, Deployment, Uploader, override } from '@fadroma/client'
-import type { Class } from '@fadroma/client'
+import type { Class, Client, Contract } from '@fadroma/client'
 
 import { FSUploader } from './upload'
 import { DeployConsole } from './deploy-events'
@@ -93,27 +93,27 @@ export class Deployer extends Connector {
   /** Print a list of deployments on the selected chain. */
   list = this.command('deployments', `print a list of all deployments on this chain`,
     (): DeployStore => {
-      const deployments = this.expectStore()
-      this.log.deploymentList(this.chain?.id??'(unspecified)', deployments)
-      return deployments
+      const store = this.expectStore()
+      this.log.deploymentList(this.chain?.id??'(unspecified)', store)
+      return store
     })
   /** Make a new deployment the active one. */
   select = this.command('select', `select another deployment on this chain`,
     async (id?: string): Promise<void> => {
-      const deployments = this.expectStore()
-      const list = deployments.list()
+      const store = this.expectStore()
+      const list = store.list()
       if (list.length < 1) {
         this.log.info('\nNo deployments. Create one with `deploy new`')
       }
       if (id) {
         this.log.log(bold(`Selecting deployment:`), id)
-        await deployments.select(id)
+        await store.select(id)
       }
       if (list.length > 0) {
         this.list()
       }
-      if (deployments.active) {
-        this.log.log(`Currently selected deployment:`, bold(deployments.active.name))
+      if (store.active) {
+        this.log.log(`Currently selected deployment:`, bold(store.active.name))
       } else {
         this.log.log(`No selected deployment.`)
       }
@@ -121,15 +121,15 @@ export class Deployer extends Connector {
   /** Create a new deployment and add it to the command context. */
   create = this.command('create', `create a new empty deployment on this chain`,
     async (name: string = this.timestamp): Promise<void> => {
-      const deployments = this.expectStore()
-      await deployments?.create(name)
-      await deployments?.select(name)
+      const store = this.expectStore()
+      await store?.create(name)
+      await store?.select(name)
     })
   /** Print the status of a deployment. */
   status = this.command('status', 'show the current deployment',
     async (id?: string): Promise<void> => {
-      const deployments = this.expectStore()
-      const deployment  = id ? deployments.get(id) : deployments.active
+      const store = this.expectStore()
+      const deployment  = id ? store.get(id) : store.active
       if (deployment) {
         this.log.deployment({ deployment })
       } else {
@@ -144,6 +144,10 @@ export class Deployer extends Connector {
       throw new Error('Deployment strore not found')
     }
     return this.deployments
+  }
+  save = () => {
+    const store = this.expectStore()
+    store.update(this.name, this.state)
   }
 }
 
@@ -185,6 +189,8 @@ export abstract class DeployStore {
   abstract list   ():              string[]
   /** Activate a new deployment, or throw if such doesn't exist. */
   abstract select (name: string):  Promise<Deployment>
+  /** Update a deployment. */
+  abstract update (name: string, state?: Record<string, Partial<Contract<any>>>): void
   /** Get the active deployment, or null if there isn't one. */
   get active (): Deployment|null {
     return this.get(this.KEY)

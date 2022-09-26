@@ -66,6 +66,15 @@ export class YAMLDeployments_v1 extends DeployStore {
     }
   }
 
+  update (name: string, state: Record<string, Partial<Contract<any>>> = {}) {
+    this.store.make()
+    const path = this.store.at(`${name}.yml`).path
+    $(path).as(YAMLFile).make()
+    const file = new YAMLDeployment_v1(path)
+    Object.assign(file.state, state)
+    file.save(path)
+  }
+
 }
 
 export class YAMLDeployment_v1 extends Deployment {

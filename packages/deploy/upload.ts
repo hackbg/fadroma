@@ -1,4 +1,4 @@
-import { bold } from '@hackbg/konzola'
+import { colors, bold } from '@hackbg/konzola'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
 import { ContractMetadata, ClientConsole, Uploader, ClientError } from '@fadroma/client'
 import type { Agent, Contract, CodeHash, CodeId } from '@fadroma/client'
@@ -45,7 +45,7 @@ export class FSUploader extends Uploader {
       const name = this.getUploadReceiptName(contract)
       receipt = this.cache.at(name).as(UploadReceipt)
       if (receipt.exists()) {
-        this.log.info('Found    ', bold(this.cache.at(name).shortPath))
+        this.log.log(`${colors.green('Found:')}   `, bold(colors.green(this.cache.at(name).shortPath)))
         const {
           chainId = this.agent?.chain?.id,
           codeId,
@@ -60,7 +60,7 @@ export class FSUploader extends Uploader {
     }
     if (!contract.artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
-    this.log.info('Uploading', bold($(contract.artifact).shortPath), contract.label)
+    this.log.log('Uploading', bold($(contract.artifact).shortPath), contract.label)
     const result = await this.agent.upload($(contract.artifact).as(BinaryFile).load())
     if (
       contract.codeHash && result.codeHash &&
@@ -163,7 +163,7 @@ export class FSUploader extends Uploader {
         outputs[i] = uploaded[i] as Contract<any>
       }
     } else {
-      this.log.info('No artifacts were uploaded.')
+      this.log.log('No artifacts were uploaded.')
     }
 
     return outputs
@@ -179,7 +179,7 @@ export class FSUploader extends Uploader {
       if (input?.artifact) {
         const path = $(input.artifact!)
         const data = path.as(BinaryFile).load()
-        this.log.info('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
+        this.log.log('Uploading', bold(path.shortPath), `(${data.length} bytes uncompressed)`)
         const output = Object.assign(input, await agent.upload(data))
         this.checkLocalCodeHash(input, output)
         outputs[i] = output

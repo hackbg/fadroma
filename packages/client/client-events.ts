@@ -145,13 +145,14 @@ export class ClientConsole extends CommandsConsole {
     codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(missing code hash!)')
   ) {
     label = label ? bold(label) : colors.red('(missing label!)')
-    this.info('Deploying', bold(label), 'from code id', codeId)
-    this.info('Code hash', codeHash)
+    this.log('Deploying', bold(label), 'from code id', codeId)
+    this.log('Code hash', codeHash)
   }
   afterDeploy (contract: Partial<Contract<any>>) {
-    this.info(
-      'Deployed:', bold(contract.name!), 'is', bold(contract.address!),
-      'from code id', bold(contract.codeId!)
+    this.log(
+      colors.green('Deployed:'), bold(colors.green(contract.name!)),
+      'in', bold(colors.green(contract.deployment?.name!)),
+      'is now', bold(colors.green(contract.address!)),
     )
   }
   deployFailed (e: Error, template: Contract<any>, name: Label, msg: Message) {
