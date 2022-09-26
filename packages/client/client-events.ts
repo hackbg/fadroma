@@ -94,7 +94,7 @@ export class ClientError extends CustomError {
 
 /** Logging. */
 export class ClientConsole extends CommandsConsole {
-  contract = (meta: ContractMetadata) => {
+  contract (meta: ContractMetadata) {
     let report = '---'
     for (const x in meta) {
       const v = meta[x as keyof typeof meta]
@@ -102,16 +102,20 @@ export class ClientConsole extends CommandsConsole {
     }
     console.trace(report)
   }
-  beforeDeploy = (template: Contract<any>, label: Label) => this.info(
-    'Deploy   ', bold(label),
-    'from code id', bold(String(template.codeId ||'(unknown)')),
-    'hash', bold(String(template.codeHash||'(unknown)'))
-  )
-  afterDeploy = (contract: Partial<Contract<any>>) => this.info(
-    'Deployed ', bold(contract.name!), 'is', bold(contract.address!),
-    'from code id', bold(contract.codeId!)
-  )
-  deployFailed = (e: Error, template: Contract<any>, name: Label, msg: Message) => {
+  beforeDeploy (template: Contract<any>, label: Label) {
+    return this.info(
+      'Deploy   ', bold(label),
+      'from code id', bold(String(template.codeId ||'(unknown)')),
+      'hash', bold(String(template.codeHash||'(unknown)'))
+    )
+  }
+  afterDeploy (contract: Partial<Contract<any>>) {
+    return this.info(
+      'Deployed ', bold(contract.name!), 'is', bold(contract.address!),
+      'from code id', bold(contract.codeId!)
+    )
+  }
+  deployFailed (e: Error, template: Contract<any>, name: Label, msg: Message) {
     this.error()
     this.error(`  Deploy of ${bold(name)} failed:`)
     this.error(`    ${e.message}`)
@@ -121,7 +125,7 @@ export class ClientConsole extends CommandsConsole {
     this.error(`    ${JSON.stringify(msg)}`)
     this.error()
   }
-  deployManyFailed = (template: Contract<any>, contracts: DeployArgs[] = [], e: Error) => {
+  deployManyFailed (template: Contract<any>, contracts: DeployArgs[] = [], e: Error) {
     this.error()
     this.error(`  Deploy of multiple contracts failed:`)
     this.error(`    ${e.message}`)
@@ -133,7 +137,7 @@ export class ClientConsole extends CommandsConsole {
     }
     this.error()
   }
-  deployFailedContract = (template?: Contract<any>) => {
+  deployFailedContract (template?: Contract<any>) {
     this.error()
     if (!template) return this.error(`  No template was provided.`)
     this.error(`  Contract:   `)
@@ -141,9 +145,9 @@ export class ClientConsole extends CommandsConsole {
     this.error(`    Code ID:  `, bold(template.codeId  ||''))
     this.error(`    Code hash:`, bold(template.codeHash||''))
   }
-  chainStatus = ({ chain, deployments }: {
+  chainStatus ({ chain, deployments }: {
     chain?: Chain, deployments?: { active?: { name: string }, list (): string[] }
-  }) => {
+  }) {
     if (!chain) return this.info('│ No active chain.')
     this.info('│ Chain type: ', bold(chain.constructor.name))
     this.info('│ Chain mode: ', bold(chain.mode))
@@ -153,23 +157,34 @@ export class ClientConsole extends CommandsConsole {
     if (!deployments?.active) return this.info('│ No active deployment.')
     this.info('│ Deployment: ', bold(String(deployments?.active?.name)))
   }
-  warnUrlOverride = (a: any, b: any) =>
+  warnUrlOverride (a: any, b: any) {
     this.warn(`node.url "${a}" overrides chain.url "${b}"`)
-  warnIdOverride = (a: any, b: any) =>
+  }
+  warnIdOverride (a: any, b: any) {
     this.warn(`node.chainId "${a}" overrides chain.id "${b}"`)
-  warnNodeNonDevnet = () =>
+  }
+  warnNodeNonDevnet () {
     this.warn(`"node" option is only applicable to devnets`)
-  warnNoAgent = (name: string) =>
+  }
+  warnNoAgent (name: string) {
     this.warn(`${name}: no agent; actions will fail until agent is set`)
-  warnNoAddress = (name: string) =>
+  }
+  warnNoAddress (name: string) {
     this.warn(`${name}: no address; actions will fail until address is set`)
-  warnNoCodeHash = (name: string) =>
+  }
+  warnNoCodeHash (name: string) {
     this.warn(`${name}: no codeHash; actions may be slow until code hash is set`)
-  warnNoCodeHashProvided = (address: string, realCodeHash: string) =>
+  }
+  warnNoCodeHashProvided (address: string, realCodeHash: string) {
     this.warn(`Code hash not provided for ${address}. Fetched: ${realCodeHash}`)
-  warnCodeHashMismatch = (address: string, expected: string|undefined, fetched: string) =>
+  }
+  warnCodeHashMismatch (address: string, expected: string|undefined, fetched: string) {
     this.warn(`Code hash mismatch for ${address}: expected ${expected}, fetched ${fetched}`)
-  confirmCodeHash = (address: string, codeHash: string) =>
+  }
+  confirmCodeHash (address: string, codeHash: string) {
     this.info(`Confirmed code hash of ${address}: ${codeHash}`)
-  waitingForNextBlock = () => this.info('Waiting for next block...')
+  }
+  waitingForNextBlock () {
+    this.info('Waiting for next block...')
+  }
 }

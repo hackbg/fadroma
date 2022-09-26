@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/client",
-  "version": "6.0.1",
+  "version": "6.1.0",
   "type":    "module",
   "main":    "client.ts",
   "files": [ "*.ts" ],

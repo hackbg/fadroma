@@ -1071,7 +1071,7 @@ export function addressOf (instance?: { address?: Address }): Address {
   return instance.address
 }
 
-/** Group of contracts sharing the same prefix.
+/** Group of interrelated contracts sharing the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
 export class Deployment extends CommandContext {
@@ -1249,7 +1249,26 @@ export class Deployment extends CommandContext {
   add (name: string, data: any): this {
     return this.set(name, { ...this.state[name] || {}, ...data, name })
   }
+
+  /** Create an instance of `new ctor(this, ...args)` and attach it
+    * to the command tree under `name`, with usage description `info`.
+    * See the documentation of `interface Subsystem` for more info.
+    * @returns an instance of `ctor` */
+  subsystem = <X extends Deployment>(
+    name: string,
+    info: string,
+    ctor: Subsystem<X>,
+    ...args: unknown[]
+  ): X => this.commands(name, info, new ctor(this, ...args)) as X
+
 }
+
+/** A Subsystem is any class which extends Deployment (thus being able to manage Contracts),
+  * and whose constructor takes a Deployer as first argument, as well as any number of
+  * other arguments. This interface can be used to connect the main project class to individual
+  * deployer classes for different parts of the project, enabling them to operate in the same
+  * context (chain, agent, builder, uploader, etc). */
+export interface Subsystem<D extends Deployment> extends Class<D, [Deployment, ...unknown[]]> {}
 
 export class VersionedDeployment<V> extends Deployment {
   constructor (
