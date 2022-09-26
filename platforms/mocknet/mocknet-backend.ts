@@ -2,7 +2,7 @@ import * as Fadroma from '@fadroma/client'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import { CustomConsole, bold } from '@hackbg/konzola'
 
-const log = new CustomConsole('Fadroma Mocknet Backend')
+const log = new CustomConsole('Fadroma Mocknet')
 
 /** Hosts MocknetContract instances. */
 export class MocknetBackend {

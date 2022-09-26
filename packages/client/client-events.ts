@@ -94,13 +94,36 @@ export class ClientError extends CustomError {
 
 /** Logging. */
 export class ClientConsole extends CommandsConsole {
-  contract (meta: ContractMetadata) {
-    let report = '---'
-    for (const x in meta) {
-      const v = meta[x as keyof typeof meta]
-      report += `\n` + `${x}:`.padEnd(15) + ' ' + (v ? bold(v.toString().split('\n')[0]) : '')
+  object (obj?: Object) {
+    let report = `---`
+    if (obj) {
+      report += `\n${obj?.constructor?.name??Object}`
+      for (const x in obj) {
+        let v: any = obj[x as keyof typeof obj]
+        if (typeof v === 'function') {
+          v = bold(v.name ? `[function ${v.name}]` : `[function]`)
+        } if (v instanceof Array && v.length === 0) {
+          v = '[empty array]'
+        } else if (v && typeof v.toString === 'function') {
+          v = bold(v.toString())
+        } else if (v) {
+          try {
+            v = bold(v)
+          } catch (e) {
+            v = bold('[something]')
+          }
+        } else {
+          v = '[empty]'
+        }
+        report += `\n  ` + `${x}:`.padEnd(15) + ' ' + v
+      }
+    } else {
+      report += `\n[empty]`
     }
-    console.trace(report)
+    console.log(report)
+  }
+  contract (meta: ContractMetadata) {
+    this.object(meta)
   }
   beforeDeploy (template: Contract<any>, label: Label) {
     return this.info(

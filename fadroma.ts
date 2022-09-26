@@ -64,13 +64,13 @@ export default class Fadroma extends Deployer {
     this.build   ??= this.config?.build?.getBuildContext()
     this.builder ??= this.build?.builder
     this.workspace = config.project
-    this.tokens = this.commands('tokens', 'Fadroma Token Manager',
-      new TokenManager(()=>this.deployment))
   }
   /** The current configuration. */
   config: Config
   /** The token manager API. */
-  tokens: TokenManager
+  tokens: TokenManager = this.commands(
+    'tokens', 'Fadroma Token Manager', new TokenManager(()=>this as Deployment)
+  )
 }
 
 /** Configuration for the Fadroma environment. */

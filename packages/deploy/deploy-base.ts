@@ -89,7 +89,7 @@ export class Deployer extends Connector {
     return this.config?.project ? $(this.config.project) : undefined
   }
   /** Currently selected deployment. */
-  get deployment (): Deployment|null { return this.deployments?.active || null }
+  //get deployment (): Deployment|null { return this.deployments?.active || null }
   /** Print a list of deployments on the selected chain. */
   list = this.command('deployments', `print a list of all deployments on this chain`,
     (): DeployStore => {
@@ -126,7 +126,7 @@ export class Deployer extends Connector {
       await deployments?.select(name)
     })
   /** Print the status of a deployment. */
-  status = this.command('list contracts', 'show the current deployment',
+  status = this.command('status', 'show the current deployment',
     async (id?: string): Promise<void> => {
       const deployments = this.expectStore()
       const deployment  = id ? deployments.get(id) : deployments.active

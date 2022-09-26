@@ -1254,12 +1254,14 @@ export class Deployment extends CommandContext {
     * to the command tree under `name`, with usage description `info`.
     * See the documentation of `interface Subsystem` for more info.
     * @returns an instance of `ctor` */
-  subsystem = <X extends Deployment>(
+  subsystem <X extends Deployment>(
     name: string,
     info: string,
     ctor: Subsystem<X>,
     ...args: unknown[]
-  ): X => this.commands(name, info, new ctor(this, ...args)) as X
+  ): X {
+    return this.commands(name, info, new ctor(this, ...args)) as X
+  }
 
 }
 
