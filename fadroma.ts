@@ -26,13 +26,6 @@ import { DevnetConfig } from '@fadroma/devnet'
 import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
 
-/** Configuration for the Fadroma environment. */
-class FadromaConfig extends DeployConfig {
-  build = new BuilderConfig(this.env, this.cwd, { project: this.project })
-}
-
-export { FadromaConfig as Config }
-
 /** Context for Fadroma commands. */
 export default class Fadroma extends Deployer {
   /** @returns a function that runs a requested command. */
@@ -43,9 +36,9 @@ export default class Fadroma extends Deployer {
   /** Constructs a populated instance of the Fadroma context. */
   static async init (
     projectName: string = 'Fadroma',
-    options:     Partial<FadromaConfig> = {}
+    options:     Partial<Config> = {}
   ): Promise<Fadroma> {
-    const config = new FadromaConfig(process.env, process.cwd(), options)
+    const config = new Config(process.env, process.cwd(), options)
     const { chain, agent, deployments, uploader } = await config.getDeployer()
     return new this(projectName, config, chain, agent, deployments, uploader)
   }
@@ -53,41 +46,39 @@ export default class Fadroma extends Deployer {
     /** Used by logger. */
     public projectName: string,
     /** Configuration. */
-    config:             Partial<FadromaConfig> = new FadromaConfig(),
+    config:             Partial<Config> = new Config(),
     /** Represents the blockchain to which we will connect. */
-    public chain:       Chain|null             = null,
+    public chain:       Chain|undefined        = undefined,
     /** Represents the identity which will perform operations on the chain. */
-    public agent:       Agent|null             = null,
+    public agent:       Agent|undefined        = undefined,
     /** Contains available deployments for the current chain. */
-    public deployments: DeployStore|null       = null,
+    public deployments: DeployStore|undefined  = undefined,
     /** Implements uploading and upload reuse. */
-    public uploader:    Uploader|null          = null,
+    public uploader:    Uploader|undefined     = undefined,
     /** Build context. */
-    public build:       BuildContext|null      = null
+    public build:       BuildContext|undefined = undefined
   ) {
-    super(config, chain, agent)
+    super(config, agent, chain)
     this.log.name = projectName
-    this.config = new FadromaConfig(this.env, this.cwd, config)
-    this.build ??= this.config.build.getBuildContext()
+    this.config = new Config(this.env, this.cwd, config)
+    this.build   ??= this.config?.build?.getBuildContext()
+    this.builder ??= this.build?.builder
     this.workspace = config.project
     this.tokens = this.commands('tokens', 'Fadroma Token Manager',
       new TokenManager(()=>this.deployment))
   }
   /** The current configuration. */
-  config: FadromaConfig
-  /** The currently configured builder, or null. */
-  get builder (): Builder|null {
-    return this.build?.builder ?? null
-  }
-  /** The workspace from which to build contracts.
-    * Defaults to project root. */
-  workspace?: string
+  config: Config
   /** The token manager API. */
   tokens: TokenManager
 }
 
-/** Asynchronous function that takes an array of command arguments
-  * and returns an unspecified value. */
+/** Configuration for the Fadroma environment. */
+export class Config extends DeployConfig {
+  build = new BuilderConfig(this.env, this.cwd, { project: this.project })
+}
+
+/** Default export of command module. */
 export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
 
 export const Console = ClientConsole
