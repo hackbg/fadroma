@@ -1135,12 +1135,20 @@ export class Deployment extends CommandContext {
   /** Build multiple contracts. */
   async buildMany (contracts: (string|Contract<any>)[]): Promise<Contract<any>[]> {
     if (!this.builder) throw new ClientError.NoBuilder()
+    contracts = contracts.map(contract=>{
+      if (typeof contract === 'string') return this.contract({ crate: contract })
+      return contract
+    })
     return await this.builder.buildMany(contracts)
   }
   /** Upload multiple contracts to the chain.
     * @returns the same contracts, but with `chainId`, `codeId` and `codeHash` populated. */
   async uploadMany (contracts: Contract<any>[]): Promise<Contract<any>[]> {
     if (!this.uploader) throw new ClientError.NoUploader()
+    contracts = contracts.map(contract=>{
+      if (typeof contract === 'string') return this.contract({ crate: contract })
+      return contract
+    })
     return this.uploader.uploadMany(contracts)
   }
 

@@ -123,7 +123,7 @@ export class FSUploader extends Uploader {
       const receiptPath  = this.getUploadReceiptPath(input)
       const relativePath = $(receiptPath).shortPath
       if (!$(receiptPath).exists()) {
-        this.log.warn(bold(`No receipt:`), `${relativePath}; uploading...`)
+        this.log.log(`No receipt found for ${bold(relativePath)}; uploading...`)
         toUpload[i] = input
         continue
       }
@@ -132,7 +132,7 @@ export class FSUploader extends Uploader {
       const receiptData = $(receiptPath).as(UploadReceipt).load()
       const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
       if (!receiptCodeHash) {
-        this.log.warn(bold(`No code hash in receipt:`), `${relativePath}; reuploading...`)
+        this.log.warn(`No code hash in receipt: ${bold(relativePath)}; uploading...`)
         toUpload[i] = input
         continue
       }
@@ -140,7 +140,7 @@ export class FSUploader extends Uploader {
       // If there's a local upload receipt and it contains a different code hash
       // from the one computed earlier, time to reupload.
       if (receiptCodeHash !== input.codeHash) {
-        this.log.warn(bold(`Different code hash from receipt:`), `${relativePath}; reuploading...`)
+        this.log.warn(`Different code hash from receipt: ${bold(relativePath)}; reuploading...`)
         toUpload[i] = input
         continue
       }

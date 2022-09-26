@@ -152,12 +152,13 @@ export class ClientConsole extends CommandsConsole {
     const { red, green } = colors
     const name = contract.name
       ? bold(green(contract.name))
-      : bold(red('(missing name)'))
+      : bold(red('(no name)'))
     const deployment = contract.deployment?.name
       ? bold(green(contract.deployment.name))
-      : bold(red('(missing deployment)'))
+      : bold(red('(no deployment)'))
     const address = bold(colors.green(contract.address!))
     this.log(colors.green('Deployed:'), name, 'in', deployment, 'is now', address)
+    this.br()
   }
   deployFailed (e: Error, template: Contract<any>, name: Label, msg: Message) {
     this.error()

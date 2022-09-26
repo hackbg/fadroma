@@ -174,7 +174,7 @@ export class TokenManager extends CommandContext {
     /** Function that returns the active deployment. */
     public getContext: () => Deployment,
     /** Template for deploying new tokens. */
-    public template?: Contract<any>,
+    public template?: Contract<Snip20>,
     /** Default token config. */
     public defaultConfig: Snip20InitConfig = {
       public_total_supply: true,
@@ -268,10 +268,10 @@ export class TokenManager extends CommandContext {
   })
   /** Deploy multiple Snip20 tokens in one transaction and add them to the registry. */
   async deployMany (
-    tokens:   Snip20BaseConfig[]   = [],
-    config:   Snip20InitConfig     = this.defaultConfig,
-    template: any = this.template!,
-    admin:    Address      = this.getContext()?.agent?.address!,
+    tokens:   Snip20BaseConfig[] = [],
+    config:   Snip20InitConfig   = this.defaultConfig,
+    template: Contract<Snip20>   = this.template,
+    admin:    Address            = this.getContext()?.agent?.address!,
   ): Promise<Snip20[]> {
     const deployment = this.getContext()
     if (!deployment) throw new Error('Token manager: no deployment')
@@ -286,7 +286,7 @@ export class TokenManager extends CommandContext {
     // then instantiate the contract
     const contracts = await this.template!.deployMany(inits)
     // then construct the clients
-    const clients   = await Promise.all(contracts.map(contract=>contract.intoClient(Snip20)))
+    const clients   = contracts //await Promise.all(contracts.map(contract=>contract.getClient(Snip20)))
     for (const i in clients) {
       // populate metadata for free since we just created them
       clients[i].tokenName = tokens[i as any].name
@@ -298,8 +298,8 @@ export class TokenManager extends CommandContext {
     return clients // array of `Snip20` handles corresponding to input `TokenConfig`s
   }
   /** Say that we're deploying a token. */
-  private logToken = (name: string, symbol: TokenSymbol, decimals: number) => this.log.info(
-    //`Deploying token ${bold(name)}: ${symbol} (${decimals} decimals)`
+  private logToken = (name: string, symbol: TokenSymbol, decimals: number) => this.log.log(
+    `Defining token ${bold(name)}: ${symbol} (${decimals} decimals)`
   )
   /** Get a TokenPair object from a string like "SYMBOL1-SYMBOL2"
     * where both symbols are registered */

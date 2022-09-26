@@ -241,6 +241,7 @@ export class DockerBuilder extends LocalBuilder {
     logs.pipe(process.stdout)
 
     // Run the build container
+    this.log.log(`Building from ${$(root).shortPath} @ ${revision}:`, cratesToBuild.map(x=>bold(x)).join(', '))
     const buildName      = `fadroma-build-${sanitize($(root).name)}@${revision}`
     const buildContainer = await this.image.run(buildName, options, command, '/usr/bin/env', logs)
     const {Error: err, StatusCode: code} = await buildContainer.wait()
