@@ -40,9 +40,9 @@ export class DockerDevnet extends Devnet implements DevnetHandle {
   }
 
   static dockerTags: Record<DevnetPlatform, string> = {
-    'scrt_1.2': 'fadroma/scrt-devnet:1.2',
-    'scrt_1.3': 'fadroma/scrt-devnet:1.3',
-    'scrt_1.4': 'fadroma/scrt-devnet:1.4',
+    'scrt_1.2': 'hackbg/fadroma-devnet:scrt-1.2',
+    'scrt_1.3': 'hackbg/fadroma-devnet:scrt-1.3',
+    'scrt_1.4': 'hackbg/fadroma-devnet:scrt-1.4',
   }
 
   static initScriptMount = 'devnet.init.mjs'
