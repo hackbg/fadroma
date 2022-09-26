@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "type":    "module",
   "main":    "./connect.ts",
-  "files":   [ "connect.ts" ],
+  "files":   [ "*.ts", "*.cli.cjs" ],
   "bin": { "fadroma-connect": "connect.cli.cjs" },
   "description": "Catalog of platforms that Fadroma can operate on.",
   "scripts": {
