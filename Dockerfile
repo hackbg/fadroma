@@ -3,7 +3,7 @@ RUN apt update && apt install -y nodejs npm curl wget binaryen git clang && ls -
 RUN npm i -g n && n i 18
 RUN npm i -g pnpm@^7.5 && pnpm --version
 RUN rustup default 1.59 && rustup target add wasm32-unknown-unknown && rustup toolchain list && rustup target list
-RUN rustup component add llvm-tools-preview && cargo install grcov
+#RUN rustup component add llvm-tools-preview && cargo install grcov
 ENV LLVM_PROFILE_FILE="%p-%m.profraw"
 
 ##Old:
