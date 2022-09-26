@@ -5,6 +5,7 @@ import $, {
 } from '@hackbg/kabinet'
 import { Agent, Contract, Client, Deployment } from '@fadroma/client'
 import { DeployStore } from './deploy-base'
+import { DeployError, log } from './deploy-events'
 
 import { basename } from 'node:path'
 
@@ -32,27 +33,23 @@ export class YAMLDeployments_v1 extends DeployStore {
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()): Promise<Deployment> {
     const path = this.store.at(`${name}.yml`)
-    if (path.exists()) {
-      throw new Error(`${name} already exists`)
-    }
+    if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
     path.makeParent().as(YAMLFile).save(undefined)
-    return new Deployment(new YAMLDeployment_v1(path.path))
+    return this.get(name)
   }
 
   /** Make the specified deployment be the active deployment. */
   async select (name: string): Promise<Deployment> {
-    const selection = this.store.at(`${name}.yml`)
-    if (!selection.exists) {
-      throw new Error(`Deployment ${name} does not exist`)
-    }
+    const selected = this.store.at(`${name}.yml`)
+    if (!selected.exists) throw new DeployError.DeploymentDoesNotExist(name)
     const active = this.store.at(`${this.KEY}.yml`).as(YAMLFile)
     try { active.delete() } catch (e) {}
-    await FS.symlinkSync(selection.path, active.path)
-    return new Deployment(active)
+    await FS.symlinkSync(selected.path, active.path)
+    return this.get(name)
   }
 
   /** Get the contents of the named deployment, or null if it doesn't exist. */
-  get (name: string): Deployment|null {
+  get (name: string): Deployment {
     const path = this.store.at(`${name}.yml`)
     if (!path.exists()) return new Deployment(this.defaults)
     return new Deployment(new YAMLDeployment_v1(path.path))
@@ -60,8 +57,13 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   /** List the deployments in the deployments directory. */
   list (): string[] {
-    const list = this.store.as(OpaqueDirectory).list() ?? []
-    return list.filter(x=>x.endsWith('.yml')).map(x=>basename(x, '.yml')).filter(x=>x!=this.KEY)
+    if (this.store.exists()) {
+      const list = this.store.as(OpaqueDirectory).list() ?? []
+      return list.filter(x=>x.endsWith('.yml')).map(x=>basename(x, '.yml')).filter(x=>x!=this.KEY)
+    } else {
+      log.deployStoreDoesNotExist(this.store.shortPath)
+      return []
+    }
   }
 
 }
@@ -89,9 +91,8 @@ export class YAMLDeployment_v1 extends Deployment {
   }
 
   /** Load deployment state from YAML file. */
-  load (file?: Path|string) {
+  load (file: Path|string|undefined = this.file) {
     // Expect path to be present
-    file ??= this.file
     if (!file) throw new Error('Deployment: no path to load from')
     // Resolve symbolic links
     file = $(file).real

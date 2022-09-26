@@ -1,14 +1,11 @@
-import { ConnectConsole } from '@fadroma/connect'
+import { ConnectConsole, ConnectError } from '@fadroma/connect'
 import $ from '@hackbg/kabinet'
 import { bold } from '@hackbg/konzola'
 import type { Deployment } from '@fadroma/client'
 import type { DeployStore } from './deploy-base'
 
 export class DeployConsole extends ConnectConsole {
-
-  name = 'Fadroma Deploy'
-
-  deployment = ({ deployment }: { deployment: Deployment }) => {
+  deployment ({ deployment }: { deployment: Deployment }) {
     if (deployment) {
       const { state = {}, name } = deployment
       let contracts: string|number = Object.values(state).length
@@ -27,8 +24,7 @@ export class DeployConsole extends ConnectConsole {
       this.info('│ There is no selected deployment.')
     }
   }
-
-  receipt = (name: string, receipt: any, len = 35) => {
+  receipt (name: string, receipt: any, len = 35) {
     name = bold(name.padEnd(len))
     if (receipt.address) {
       const address = `${receipt.address}`.padStart(45)
@@ -38,23 +34,23 @@ export class DeployConsole extends ConnectConsole {
       this.info('│ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
     }
   }
-
-  warnNoDeployment = () => this.warn(
-    'No active deployment. Most commands will fail. ' +
-    'You can create a deployment using `fadroma-deploy new` ' +
-    'or select a deployment using `fadroma-deploy select` ' +
-    'among the ones listed by `fadroma-deploy list`.'
-  )
-
-  warnNoAgent = () => this.warn(
-    'No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'
-  )
-
-  warnNoDeployAgent = () => this.warn(
-    'No deploy agent. Deployments will not be possible.'
-  )
-
-  deploymentList = (chainId: string, deployments: DeployStore) => {
+  warnNoDeployment () {
+    return this.warn(
+      'No active deployment. Most commands will fail. ' +
+      'You can create a deployment using `fadroma-deploy new` ' +
+      'or select a deployment using `fadroma-deploy select` ' +
+      'among the ones listed by `fadroma-deploy list`.'
+    )
+  }
+  warnNoAgent (name?: string) {
+    return this.warn(
+      'No agent. Authenticate by exporting FADROMA_MNEMONIC in your shell.'
+    )
+  }
+  warnNoDeployAgent () {
+    return this.warn('No deploy agent. Deployments will not be possible.')
+  }
+  deploymentList (chainId: string, deployments: DeployStore) {
     const list = deployments.list()
     if (list.length > 0) {
       this.info(`Deployments on chain ${bold(chainId)}:`)
@@ -77,4 +73,20 @@ export class DeployConsole extends ConnectConsole {
     }
     this.br()
   }
+  deployStoreDoesNotExist (path: string) {
+    log.warn(`Deployment store "${path}" does not exist.`)
+  }
+}
+
+export const log = new DeployConsole('Fadroma Deploy')
+
+export class DeployError extends ConnectError {
+  static DeploymentAlreadyExists = this.define(
+    'DeploymentAlreadyExists',
+    (name: string)=>`Deployment "${name}" already exists`
+  )
+  static DeploymentDoesNotExist = this.define(
+    'DeploymentDoesNotExist',
+    (name: string)=>`Deployment "${name}" does not exist`
+  )
 }

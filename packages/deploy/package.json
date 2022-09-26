@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "type":    "module",
   "main":    "./deploy.ts",
-  "files":   [ "deploy.ts" ],
+  "files":   [ "*.ts", "*.cli.cjs" ],
   "bin": { "fadroma-deploy": "deploy.cli.cjs" },
   "description": "Upload and instantiate smart contracts.",
   "scripts": {
