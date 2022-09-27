@@ -287,7 +287,7 @@ export class TokenManager extends CommandContext {
       if (deployment.has(token.name)) {
         const meta = deployment.get(token.name)!
         const { address, codeHash } = meta
-        this.log.info('Found: ', token.name, 'is', address)
+        this.log.log('Found:   ', bold(address!), 'is', bold(token.name))
         existing[i] = new Snip20(deployment.agent, address, codeHash)
         existing[i].tokenName = token.name
         existing[i].symbol    = token.symbol
@@ -297,11 +297,11 @@ export class TokenManager extends CommandContext {
       }
       return true
     }).map(({name, symbol, decimals}: Snip20BaseConfig): DeployArgs => [
-      deployment ? `${deployment.name}/${name}` : name,
+      name,
       Snip20.init(name, symbol, decimals, admin, config)
     ]))
     for (const i in deployed) {
-      this.log.info('Deployed: ', bold(colors.green(deployed[i].address!)), 'is', bold(colors.green(tokens[i].name)))
+      this.log.log('Deployed:', bold(colors.green(deployed[i].address!)), 'is', bold(colors.green(tokens[i].name)))
       // populate metadata for free since we just created them
       deployed[i].tokenName = tokens[i].name
       deployed[i].symbol    = tokens[i].symbol

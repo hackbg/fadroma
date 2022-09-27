@@ -595,12 +595,13 @@ export class Client {
     /** Code hash confirming the contract's integrity. */
     public codeHash?: CodeHash,
     /** Contract class containing deployment metadata. */
-    public meta:      ContractMetadata = new ContractMetadata({
-      address, codeHash, chainId: agent?.chain?.id
-    }),
+    public meta:      ContractMetadata = new ContractMetadata()
   ) {
     Object.defineProperty(this, 'log', { writable: true, enumerable: false })
     Object.defineProperty(this, 'deployment', { writable: true, enumerable: false })
+    meta.address  ??= address
+    meta.codeHash ??= codeHash
+    meta.chainId  ??= agent?.chain?.id
     //if (!agent)    this.log.warnNoAgent(this.constructor.name)
     //if (!address)  this.log.warnNoAddress(this.constructor.name)
     //if (!codeHash) this.log.warnNoCodeHash(this.constructor.name)
@@ -993,12 +994,24 @@ export class Contract<C extends Client> extends ContractMetadata {
       const agent = this.agent
       if (!agent) throw new ClientError.NoCreator(this.name)
       return this.upload().then(async (contract: Contract<C>)=>{
+        // at this point we should have a code id
         if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
+        // get the inits if passed lazily
         if (typeof inits === 'function') inits = await Promise.resolve(inits())
+        // add deployment prefix
+        const prefixedInits = inits.map(([label, msg])=>[
+          this.deployment ? `${this.deployment.name}/${label}` : label,
+          msg
+        ] as [Label, Message])
         try {
-          const responses = await agent.instantiateMany(contract, inits)
+          const responses = await agent.instantiateMany(contract, prefixedInits)
           const clients = responses.map(({ address })=>
             new this.client(this.agent, address, this.codeHash, this.asMetadata))
+          if (this.deployment) {
+            for (const i in inits) {
+              this.deployment.add(inits[i][0], clients[i].meta)
+            }
+          }
           return clients
         } catch (e) {
           this.log.deployManyFailed(contract, inits, e as Error)

@@ -119,6 +119,7 @@ export class Deployer extends Connector {
   createDeployment = this.command('create', `create a new empty deployment on this chain`,
     async (name: string = this.timestamp): Promise<void> => {
       const store = this.expectStore()
+      this.log.info('Creating new deployment', bold(name))
       await store?.create(name)
       await store?.select(name)
     })
