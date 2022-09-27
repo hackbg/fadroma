@@ -6,7 +6,7 @@ import type { Env }  from '@hackbg/konfizi'
 import {
   Agent, AgentOpts,
   Class,
-  Chain, ChainId, ChainOpts, ChainRegistry,
+  Chain, ChainClass, ChainId, ChainOpts, ChainRegistry,
   ClientConsole, ClientError,
   Deployment,
 } from '@fadroma/client'
@@ -71,10 +71,13 @@ export class ConnectConfig extends EnvConfig {
 
   /** Secret Network configuration for gRPC API */
   scrtGrpc  = new ScrtGrpc.Config(this.env, this.cwd)
+
   /** Secret Network configuration for legacy Amino API */
   scrtAmino = new ScrtAmino.Config(this.env, this.cwd)
+
   /** Devnets configuration. */
   devnet = new DevnetConfig(this.env, this.cwd)
+
   /** Name of stored mnemonic to use for authentication (currently devnet only) */
   devnetAgentName: string
     = this.getString('FADROMA_AGENT',   ()=>
@@ -85,50 +88,61 @@ export class ConnectConfig extends EnvConfig {
     = this.getString('FADROMA_MNEMONIC',    ()=>
       this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
 
+  // Create the Chain instance specified by the configuration.
+  async getChain <C extends Chain> (
+    getChain?: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]
+  ): Promise<C> {
+    if (!getChain) { // default to configured
+      getChain = this.chain
+      if (!getChain) throw new ClientError.NoChain()
+    }
+    if (typeof getChain === 'string') { // allow name to be passed
+      getChain = Chain.variants[getChain]
+    }
+    if (!getChain) { // if still unspecified, throw
+      throw new ConnectError.UnknownChainSelected(this.chain, Chain.variants)
+    }
+    return await Promise.resolve(getChain(this)) as C // create Chain object
+  }
+
+  async getAgent <A extends Agent> (chain: Chain): Promise<A> {
+    // Create the Agent instance as identified by the configuration.
+    let agentOpts: AgentOpts = { chain }
+    if (chain.isDevnet) {
+      // On devnet, agent can be created from genesis account
+      agentOpts.name = this.devnetAgentName
+    } else {
+      // Otherwise it's created from mnemonic
+      agentOpts.mnemonic = this.mnemonic
+    }
+    return await chain.getAgent(agentOpts) as A
+  }
+
   /** Create a `Connector` containing instances of `Chain` and `Agent`
     * as specified by the configuration and return a `Connector with them. */
   async getConnector <C extends Connector> (
     $C: ConnectorClass<C> = Connector as ConnectorClass<C>
   ): Promise<C> {
-    // Create the Chain instance as specified by the configuration.
-    if (!this.chain) throw new ClientError.NoChain()
-    const chains = Chain.variants
-    const getChain = chains[this.chain]
-    if (!getChain) throw new ConnectError.UnknownChainSelected(this.chain, chains)
-    const chain = await Promise.resolve(getChain(this))
-    // Create the Agent instance as identified by the configuration.
-    let agentOpts: AgentOpts = { chain }
-    // On devnet, agent can be created from genesis account
-    if (chain?.isDevnet) {
-      agentOpts.name = this.devnetAgentName
-    } else {
-      agentOpts.mnemonic = this.mnemonic
-    }
-    const agent = await chain?.getAgent(agentOpts) ?? null
+    // Create chain and agent
+    const chain = await this.getChain()
+    const agent = await this.getAgent(chain)
     strictEqual(agent.chain, chain, 'agent.chain propagated incorrectly')
     // Create the Connector holding both and exposing them to commands.
-    const context = new $C(this, agent)
-    return context as C
+    return new $C({ agent, config: this }) as C
   }
 }
 
 /** Constructor for a subclass of Connector that
   * maintains the original constructor signature. */
 export interface ConnectorClass<C extends Connector> extends Class<C, [
-  Partial<ConnectConfig>, Agent?, Chain?
+  Partial<Connector>
 ]>{}
 
 /** A Deployment with associated Agent and awareness of other chains. */
 export class Connector extends Deployment {
-  constructor (
-    config: Partial<ConnectConfig> = new ConnectConfig(),
-    /** Agent to identify as. */
-    public agent?: Agent,
-    /** Chain to connect to. */
-    public chain:  Chain|undefined = agent?.chain,
-  ) {
-    super({ chain, agent })
-    this.config = new ConnectConfig(this.env, this.cwd, config)
+  constructor (options: Partial<Connector> = { config: new ConnectConfig() }) {
+    super(options)
+    this.config = new ConnectConfig(this.env, this.cwd, options?.config)
   }
   /** Logger */
   log = log

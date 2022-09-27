@@ -32,3 +32,5 @@ export { YAML, YAML1, YAML2, JSON1 }
 export { DeployConfig, Deployer, DeployStore } from './deploy-base'
 export { DeployConsole } from './deploy-events'
 export * from './upload'
+
+export type { DeployerClass } from './deploy-base'

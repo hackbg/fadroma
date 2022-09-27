@@ -60,7 +60,7 @@ export class FSUploader extends Uploader {
     }
     if (!contract.artifact) throw new Error('No artifact to upload')
     if (!this.agent) throw new Error('No upload agent')
-    this.log.log('Uploading', bold($(contract.artifact).shortPath), contract.label)
+    this.log.log('Uploading', bold($(contract.artifact).shortPath))
     const result = await this.agent.upload($(contract.artifact).as(BinaryFile).load())
     if (
       contract.codeHash && result.codeHash &&
@@ -123,7 +123,6 @@ export class FSUploader extends Uploader {
       const receiptPath  = this.getUploadReceiptPath(input)
       const relativePath = $(receiptPath).shortPath
       if (!$(receiptPath).exists()) {
-        this.log.log(`No receipt found for ${bold(relativePath)}; uploading...`)
         toUpload[i] = input
         continue
       }
@@ -132,7 +131,7 @@ export class FSUploader extends Uploader {
       const receiptData = $(receiptPath).as(UploadReceipt).load()
       const receiptCodeHash = receiptData.codeHash || receiptData.originalChecksum
       if (!receiptCodeHash) {
-        this.log.warn(`No code hash in receipt: ${bold(relativePath)}; uploading...`)
+        this.log.warn(`No code hash in ${bold(relativePath)}; uploading...`)
         toUpload[i] = input
         continue
       }
@@ -140,7 +139,7 @@ export class FSUploader extends Uploader {
       // If there's a local upload receipt and it contains a different code hash
       // from the one computed earlier, time to reupload.
       if (receiptCodeHash !== input.codeHash) {
-        this.log.warn(`Different code hash from receipt: ${bold(relativePath)}; reuploading...`)
+        this.log.warn(`Different code hash from ${bold(relativePath)}; reuploading...`)
         toUpload[i] = input
         continue
       }

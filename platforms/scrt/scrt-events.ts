@@ -1,5 +1,5 @@
 import type { Address, ChainId } from '@fadroma/client'
-import { CustomConsole, CustomError } from '@hackbg/konzola'
+import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
 
 export class ScrtError extends CustomError {
   static UseAmino = this.define('UseAmino',
@@ -50,6 +50,7 @@ export class ScrtConsole extends CustomConsole {
   ) => {
     const output = `${name}.signed.json`
     const txdata = shellescape([JSON.stringify(finalUnsignedTx)])
+    this.br()
     this.log(`Run the following command to sign the bundle:\n`)
     this.log(`secretcli tx sign /dev/stdin --output-document=${output} \\
 --offline --from=YOUR_MULTISIG_MEMBER_ACCOUNT_NAME_HERE --multisig=${multisig} \\
@@ -60,8 +61,10 @@ export class ScrtConsole extends CustomConsole {
     this.br()
   }
   submittingBundleFailed ({ message }: Error) {
-    this.error('Submitting bundle failed:', message)
-    this.error('Decrypting gRPC bundle errors is not implemented.')
+    this.br()
+    this.error('Submitting bundle failed:')
+    this.error(bold(message))
+    this.warn('Decrypting gRPC bundle errors is not implemented.')
   }
 }
 

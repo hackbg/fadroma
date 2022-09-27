@@ -59,10 +59,10 @@ export abstract class Scrt extends Chain {
   static defaultDenom:    string  = 'uscrt'
   static gas (amount: Uint128|number) { return new Fee(amount, this.defaultDenom) }
   static defaultFees  = {
-    upload: this.gas(4000000),
-    init:   this.gas(1000000),
-    exec:   this.gas(1000000),
-    send:   this.gas( 500000),
+    upload: this.gas(10000000),
+    init:   this.gas(10000000),
+    exec:   this.gas(10000000),
+    send:   this.gas(10000000),
   }
 
   Agent: AgentClass<ScrtAgent> = Scrt.Agent
@@ -533,7 +533,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
       const agent = this.agent as unknown as ScrtGrpcAgent
       const txResult = await agent.api.tx.broadcast(msgs, { gasLimit: gas })
       if (txResult.code !== 0) {
-        const error = `ScrtBundle#execute: gRPC error ${txResult.code}: ${txResult.rawLog}`
+        const error = `(in bundle): gRPC error ${txResult.code}: ${txResult.rawLog}`
         throw Object.assign(new Error(error), txResult)
       }
       for (const i in msgs) {

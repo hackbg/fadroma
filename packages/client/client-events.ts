@@ -145,7 +145,7 @@ export class ClientConsole extends CommandsConsole {
     codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)')
   ) {
     label = label ? bold(label) : colors.red('(missing label!)')
-    this.log('Deploying', bold(label), 'from code id', codeId)
+    this.log('Instantiate code id', bold(codeId), 'as:', bold(label))
     this.log('Code hash', codeHash)
   }
   afterDeploy (contract: Partial<Contract<any>>) {
@@ -161,34 +161,34 @@ export class ClientConsole extends CommandsConsole {
     this.br()
   }
   deployFailed (e: Error, template: Contract<any>, name: Label, msg: Message) {
-    this.error()
-    this.error(`  Deploy of ${bold(name)} failed:`)
-    this.error(`    ${e.message}`)
+    this.br()
+    this.error(`Deploy of ${bold(name)} failed:`)
+    this.error(`${e.message}`)
     this.deployFailedContract(template)
-    this.error()
-    this.error(`  Init message: `)
-    this.error(`    ${JSON.stringify(msg)}`)
-    this.error()
+    this.error(`Init message: `)
+    this.error(`  ${JSON.stringify(msg)}`)
+    this.br()
   }
   deployManyFailed (template: Contract<any>, contracts: DeployArgs[] = [], e: Error) {
+    this.br()
+    this.error(`Deploy of multiple contracts failed:`)
+    this.error(bold(e?.message))
     this.error()
-    this.error(`  Deploy of multiple contracts failed:`)
-    this.error(`    ${e.message}`)
     this.deployFailedContract(template)
-    this.error()
-    this.error(`  Configs: `)
     for (const [name, init] of contracts) {
-      this.error(`    ${bold(name)}: `, JSON.stringify(init))
+      this.br()
+      this.error(`${bold(name)}: `)
+      for (const key in init as object) {
+        this.error(`  ${bold((key+':').padEnd(18))}`, init[key as keyof typeof init])
+      }
     }
-    this.error()
+    this.br()
   }
   deployFailedContract (template?: Contract<any>) {
-    this.error()
     if (!template) return this.error(`  No template was provided.`)
-    this.error(`  Contract:   `)
-    this.error(`    Chain ID: `, bold(template.chainId ||''))
-    this.error(`    Code ID:  `, bold(template.codeId  ||''))
-    this.error(`    Code hash:`, bold(template.codeHash||''))
+    this.error(`Chain ID: `, bold(template.chainId ||''))
+    this.error(`Code ID:  `, bold(template.codeId  ||''))
+    this.error(`Code hash:`, bold(template.codeHash||''))
   }
   chainStatus ({ chain, deployments }: {
     chain?: Chain, deployments?: { active?: { name: string }, list (): string[] }
@@ -231,5 +231,8 @@ export class ClientConsole extends CommandsConsole {
   }
   waitingForNextBlock () {
     this.info('Waiting for next block...')
+  }
+  warnEmptyBundle () {
+    this.warn('Tried to submit bundle with no messages')
   }
 }

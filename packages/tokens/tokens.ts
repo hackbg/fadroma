@@ -12,13 +12,17 @@ import {
   Label,
   Uint128,
 } from '@fadroma/client'
+import type {
+  ContractMetadata
+} from '@fadroma/client'
 import {
   Permit,
   ViewingKeyClient
 } from '@fadroma/scrt'
 import {
   CustomError,
-  bold
+  bold,
+  colors
 } from '@hackbg/konzola'
 import {
   randomBase64
@@ -186,20 +190,20 @@ export class TokenManager extends CommandContext {
   }
   /* Logger. */
   log = log
-  /** Collection of known tokens, keyed by symbol. */
-  tokens: Record<TokenSymbol, Contract<Snip20>> = {}
+  /** Collection of known tokens in descriptor format, keyed by symbol. */
+  tokens: Record<TokenSymbol, Token> = {}
   /** Get a token by symbol. */
-  get (symbol: TokenSymbol): Contract<Snip20> {
+  get (symbol: TokenSymbol): Token {
     if (!symbol) throw new TokenError.NoSymbol()
     if (!this.has(symbol)) throw new TokenError.NotFound(symbol)
-    return this.tokens[symbol]!
+    return this.tokens[symbol]
   }
   /** See if this symbol is registered. */
   has (symbol: TokenSymbol): boolean {
     return Object.keys(this.tokens).includes(symbol)
   }
   /** Add a token to the registry, failing if invalid. */
-  add (symbol: TokenSymbol, token?: Contract<Snip20>): this {
+  add (symbol: TokenSymbol, token?: Token): this {
     if (!token) throw new TokenError.PassToken()
     if (!symbol) throw new TokenError.CantRegister()
     if (this.has(symbol)) throw new TokenError.AlreadyRegistered(symbol)
@@ -208,7 +212,7 @@ export class TokenManager extends CommandContext {
   }
   /** Set an entry in the token registry.
     * If setting to a falsy value, delete the entry. */
-  set (symbol: TokenSymbol, token?: Contract<Snip20>): this {
+  set (symbol: TokenSymbol, token?: Token): this {
     if (token) {
       this.tokens[symbol] = token
       return this
@@ -235,13 +239,14 @@ export class TokenManager extends CommandContext {
     const deployment = this.getContext()
     if (!deployment) throw new Error('Token manager: no deployment')
     const { name, decimals, admin, config } = options
-    this.logToken(name, symbol, decimals)
     const template = options?.template ?? this.template
     const token    = deployment.contract(template)
     token.name     = name
     token.prefix   = deployment.name
-    this.add(symbol, token)
-    return token.deploy(Snip20.init(name, symbol, decimals, admin, config))
+    return token.deploy(Snip20.init(name, symbol, decimals, admin, config)).then(result=>{
+      this.add(symbol, result.asDescriptor)
+      return result
+    })
   }
   /** Command step: Deploy a single Snip20 token.
     * Exposed below as the "deploy token" command.
@@ -266,56 +271,56 @@ export class TokenManager extends CommandContext {
     if (typeof template === 'string') template = this.getContext().contract({ crate: template })
     return await this.deploy(symbol, { name, decimals, admin, template })
   })
-  /** Deploy multiple Snip20 tokens in one transaction and add them to the registry. */
+  /** Deploy multiple Snip20 tokens in one transaction and add them to the registry.
+    * @warning return values not guaranteed to be in the same order (FIXME) */
   async deployMany (
-    tokens:   Snip20BaseConfig[] = [],
-    config:   Snip20InitConfig   = this.defaultConfig,
-    template: Contract<Snip20>   = this.template,
-    admin:    Address            = this.getContext()?.agent?.address!,
+    tokens:   Snip20BaseConfig[]         = [],
+    config:   Snip20InitConfig           = this.defaultConfig,
+    template: Contract<Snip20>|undefined = this.template,
+    admin:    Address                    = this.getContext()?.agent?.address!,
   ): Promise<Snip20[]> {
+    if (!template) throw new Error('Token manager: no template')
     const deployment = this.getContext()
     if (!deployment) throw new Error('Token manager: no deployment')
-    tokens.forEach(({name, symbol, decimals})=>this.logToken(name, symbol, decimals))
-    // to deploy multiple contracts of the same type in 1 tx:
-    const toDeployArgs = ({name, symbol, decimals}: Snip20BaseConfig): DeployArgs => [
-      name,
+    const existing: Snip20[] = []
+    const deployed = await template!.deployMany(tokens.filter((token, i)=>{
+      if (deployment.has(token.name)) {
+        const meta = deployment.get(token.name)!
+        const { address, codeHash } = meta
+        this.log.info('Found: ', token.name, 'is', address)
+        existing[i] = new Snip20(deployment.agent, address, codeHash)
+        existing[i].tokenName = token.name
+        existing[i].symbol    = token.symbol
+        existing[i].decimals  = token.decimals
+        this.add(token.symbol, existing[i].asDescriptor)
+        return false
+      }
+      return true
+    }).map(({name, symbol, decimals}: Snip20BaseConfig): DeployArgs => [
+      deployment ? `${deployment.name}/${name}` : name,
       Snip20.init(name, symbol, decimals, admin, config)
-    ]
-    // first generate all the [name, init message] pairs
-    const inits     = tokens.map(toDeployArgs)
-    // then instantiate the contract
-    const contracts = await this.template!.deployMany(inits)
-    // then construct the clients
-    const clients   = contracts //await Promise.all(contracts.map(contract=>contract.getClient(Snip20)))
-    for (const i in clients) {
+    ]))
+    for (const i in deployed) {
+      this.log.info('Deployed: ', bold(colors.green(deployed[i].address!)), 'is', bold(colors.green(tokens[i].name)))
       // populate metadata for free since we just created them
-      clients[i].tokenName = tokens[i as any].name
-      clients[i].symbol    = tokens[i as any].symbol
-      clients[i].decimals  = tokens[i as any].decimals
+      deployed[i].tokenName = tokens[i].name
+      deployed[i].symbol    = tokens[i].symbol
+      deployed[i].decimals  = tokens[i].decimals
       // add to registry
-      this.add(tokens[i as any].symbol, clients[i])
+      const descriptor = new Snip20(undefined, deployed[i].address, deployed[i].codeHash).asDescriptor
+      this.add(tokens[i].symbol, descriptor)
     }
-    return clients // array of `Snip20` handles corresponding to input `TokenConfig`s
+    return [...existing, ...deployed] // array of `Snip20` handles corresponding to input `TokenConfig`s
   }
   /** Say that we're deploying a token. */
-  private logToken = (name: string, symbol: TokenSymbol, decimals: number) => this.log.log(
+  private logToken = (name: string, symbol: TokenSymbol, decimals: number) => this.log.info(
     `Defining token ${bold(name)}: ${symbol} (${decimals} decimals)`
   )
   /** Get a TokenPair object from a string like "SYMBOL1-SYMBOL2"
     * where both symbols are registered */
   pair (name: string): TokenPair {
     const [token_0_symbol, token_1_symbol] = name.split('-')
-    let token_0: Token|Contract<Snip20> = this.tokens[token_0_symbol]
-    let token_1: Token|Contract<Snip20> = this.tokens[token_1_symbol]
-    if (!token_0) {
-      throw Object.assign(new Error(`Unknown token ${token_0_symbol}`), { symbol: token_0_symbol })
-    }
-    if (!token_1) {
-      throw Object.assign(new Error(`Unknown token ${token_1_symbol}`), { symbol: token_1_symbol })
-    }
-    if (token_0 instanceof Contract) token_0 = token_0.getClientSync().asDescriptor
-    if (token_1 instanceof Contract) token_1 = token_1.getClientSync().asDescriptor
-    return new TokenPair(token_0, token_1)
+    return new TokenPair(this.get(token_0_symbol), this.get(token_1_symbol))
   }
 }
 

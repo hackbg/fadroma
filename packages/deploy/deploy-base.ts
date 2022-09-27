@@ -47,86 +47,56 @@ export class DeployConfig extends ConnectConfig {
     const { chain, agent } = await super.getConnector()
     if (!chain) throw new Error('Missing chain')
     if (!this.DeployStore) throw new Error('Missing deployment store constructor')
-    const uploader    = new FSUploader(agent, this.uploads)
-    const defaults    = { chain, agent: agent??undefined/*l8r*/, uploader }
-    const deployments = new this.DeployStore(this.deploys, defaults)
-    return new Deployer(this, agent, chain, deployments, uploader)
+    const uploader = new FSUploader(agent, this.uploads)
+    const defaults = { chain, agent: agent??undefined/*l8r*/, uploader }
+    const store    = new this.DeployStore(this.deploys, defaults)
+    const name     = store.active?.name
+    const state    = store.active?.state
+    return new $D({ config: this, agent, uploader, store, name, state })
   }
 }
 
 /** Constructor for a subclass of Deployer that
   * maintains the original constructor signature. */
 export interface DeployerClass<D extends Deployer> extends Class<D, [
-  Partial<DeployConfig>, Agent?, Chain?, DeployStore?, Uploader?
+  Partial<Deployer>
 ]>{}
 
 /** A deployment with associated agent and storage.
   * Can switch to another set of receipts to represent
   * another group of contracts with the same relations. */
 export class Deployer extends Connector {
-  constructor (
-    /** A whole DeployConfig object, or just relevant options. */
-    config:             Partial<DeployConfig> = new DeployConfig(),
-    /** Agent to identify as. */
-    public agent:       Agent|undefined       = undefined,
-    /** Chain to connect to. */
-    public chain:       Chain|undefined       = agent?.chain,
-    /** Contains available deployments for the current chain. */
-    public deployments: DeployStore|undefined = undefined,
-    /** Implements uploading and upload reuse. */
-    public uploader:    Uploader|undefined    = undefined,
-  ) {
-    super(config, agent, chain)
-    this.config = new DeployConfig(this.env, this.cwd, config)
+  constructor (options: Partial<Deployer> = { config: new DeployConfig() }) {
+    const { store } = options
+    if (store && store.active?.name) options.name = store.active.name
+    super(options as Partial<Connector>)
+    this.config = new DeployConfig(this.env, this.cwd, options.config)
+    this.store  = options.store ?? this.store
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
   }
   /** Logger. */
   log = new DeployConsole('Fadroma Deploy')
   /** Configuration. */
   config: DeployConfig
+  /** Where the receipts are stored. */
+  store?: DeployStore
+  /** Throws is deployment store is missing. */
+  private expectStore (): DeployStore {
+    if (!this.store) {
+      throw new Error('Deployment store not found')
+    }
+    return this.store
+  }
+  save = () => {
+    const store = this.expectStore()
+    store.set(this.name, this.state)
+  }
   /** Path to root of project directory. */
   get project (): Path|undefined {
     return this.config?.project ? $(this.config.project) : undefined
   }
-  /** Currently selected deployment. */
-  //get deployment (): Deployment|null { return this.deployments?.active || null }
-  /** Print a list of deployments on the selected chain. */
-  list = this.command('deployments', `print a list of all deployments on this chain`,
-    (): DeployStore => {
-      const store = this.expectStore()
-      this.log.deploymentList(this.chain?.id??'(unspecified)', store)
-      return store
-    })
-  /** Make a new deployment the active one. */
-  select = this.command('select', `select another deployment on this chain`,
-    async (id?: string): Promise<void> => {
-      const store = this.expectStore()
-      const list = store.list()
-      if (list.length < 1) {
-        this.log.info('\nNo deployments. Create one with `deploy new`')
-      }
-      if (id) {
-        this.log.log(bold(`Selecting deployment:`), id)
-        await store.select(id)
-      }
-      if (list.length > 0) {
-        this.list()
-      }
-      if (store.active) {
-        this.log.log(`Currently selected deployment:`, bold(store.active.name))
-      } else {
-        this.log.log(`No selected deployment.`)
-      }
-    })
-  /** Create a new deployment and add it to the command context. */
-  create = this.command('create', `create a new empty deployment on this chain`,
-    async (name: string = this.timestamp): Promise<void> => {
-      const store = this.expectStore()
-      await store?.create(name)
-      await store?.select(name)
-    })
   /** Print the status of a deployment. */
-  status = this.command('status', 'show the current deployment',
+  listContracts = this.command('contracts', 'show the contracts in the current deployment',
     async (id?: string): Promise<void> => {
       const store = this.expectStore()
       const deployment  = id ? store.get(id) : store.active
@@ -136,19 +106,43 @@ export class Deployer extends Connector {
         this.log.info('No selected deployment on chain:', bold(this.chain?.id??'(no chain)'))
       }
     })
-  /** Throws is deployment store is missing. */
-  private expectStore = (): DeployStore => {
-    if (!(this.deployments instanceof DeployStore)) {
-      //this.log.error('context.deployments was not populated')
-      //this.log.log(context)
-      throw new Error('Deployment strore not found')
-    }
-    return this.deployments
-  }
-  save = () => {
-    const store = this.expectStore()
-    store.update(this.name, this.state)
-  }
+  /** Currently selected deployment. */
+  //get deployment (): Deployment|null { return this.store?.active || null }
+  /** Print a list of deployments on the selected chain. */
+  listDeployments = this.command('deployments', `print a list of all deployments on this chain`,
+    (): DeployStore => {
+      const store = this.expectStore()
+      this.log.deploymentList(this.chain?.id??'(unspecified)', store)
+      return store
+    })
+  /** Create a new deployment and add it to the command context. */
+  createDeployment = this.command('create', `create a new empty deployment on this chain`,
+    async (name: string = this.timestamp): Promise<void> => {
+      const store = this.expectStore()
+      await store?.create(name)
+      await store?.select(name)
+    })
+  /** Make a new deployment the active one. */
+  selectDeployment = this.command('select', `select another deployment on this chain`,
+    async (id?: string): Promise<void> => {
+      const store = this.expectStore()
+      const list = store.list()
+      if (list.length < 1) {
+        this.log.info('\nNo deployments. Create one with `deploy new`')
+      }
+      if (id) {
+        this.log.log(`Selecting deployment:`, bold(id))
+        await store.select(id)
+      }
+      if (list.length > 0) {
+        this.listDeployments()
+      }
+      if (store.active) {
+        this.log.log(`Currently selected deployment:`, bold(store.active.name))
+      } else {
+        this.log.log(`No selected deployment.`)
+      }
+    })
 }
 
 /** We support several of those:
@@ -181,16 +175,16 @@ export abstract class DeployStore {
   static variants: DeployStores = {}
   /** Name of symlink marking active deployment. */
   KEY = '.active'
-  /** Create a new deployment. */
-  abstract create (name?: string): Promise<Deployment>
-  /** Get a deployment by name, or null if such doesn't exist. */
-  abstract get    (name: string):  Deployment|null
   /** Get the names of all stored deployments. */
   abstract list   ():              string[]
+  /** Get a deployment by name, or null if such doesn't exist. */
+  abstract get    (name: string):  Deployment|null
+  /** Update a deployment's data. */
+  abstract set    (name: string, state?: Record<string, Partial<Contract<any>>>): void
+  /** Create a new deployment. */
+  abstract create (name?: string): Promise<Deployment>
   /** Activate a new deployment, or throw if such doesn't exist. */
   abstract select (name: string):  Promise<Deployment>
-  /** Update a deployment. */
-  abstract update (name: string, state?: Record<string, Partial<Contract<any>>>): void
   /** Get the active deployment, or null if there isn't one. */
   get active (): Deployment|null {
     return this.get(this.KEY)

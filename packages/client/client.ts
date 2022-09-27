@@ -1,4 +1,4 @@
-import { timestamp, bold } from '@hackbg/konzola'
+import { timestamp, bold, colors } from '@hackbg/konzola'
 import { Task, CommandContext } from '@hackbg/komandi'
 
 import { ClientConsole, ClientError } from './client-events'
@@ -486,7 +486,7 @@ export abstract class Bundle extends Agent {
   }
   /** Throws if the bundle is invalid. */
   assertMessages (): any[] {
-    if (this.msgs.length < 1) throw new ClientError.EmptyBundle()
+    if (this.msgs.length < 1) throw this.log.warnEmptyBundle()
     return this.msgs
   }
   /** This doesnt change over time so it's allowed when building bundles. */
@@ -793,8 +793,7 @@ export class Contract<C extends Client> extends ContractMetadata {
     overrides:  Partial<Contract<C>> = {}
   ) {
     super()
-    const options = { ...specifier??{}, ...overrides??{} }
-    override<Contract<C>>(this, options)
+    override<Contract<C>>(this, { ...specifier??{}, ...overrides??{} })
     if (this.builderId)  this.builder  = Builder.get(this.builderId)
     if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
   }
@@ -813,7 +812,9 @@ export class Contract<C extends Client> extends ContractMetadata {
     * @default the base Client class. */
   client: ClientClass<C> = Client as unknown as ClientClass<C>
   /** @returns the contract's metadata */
-  get asMetadata (): ContractMetadata { return new ContractMetadata(this) }
+  get asMetadata (): ContractMetadata {
+    return new ContractMetadata(this)
+  }
   /** Throw if trying to do something with no agent. */
   assertAgent (): Agent {
     if (!this.agent) throw new ClientError.ExpectedAgent(this.constructor.name)
@@ -920,7 +921,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   /** Lazily get a contract from the deployment.
     * @returns a Lazy invocation of getClient, or a Promise if not in task context */
   get (): Promise<C> {
-    return this.task(`get ${this.name??'contract'}`, () => this.getClient())
+    return this.task(`get    ${this.name??'contract'}`, () => this.getClient())
   }
   /** Async wrapper around getClientSync.
     * @returns a Client instance pointing to this contract
@@ -953,6 +954,12 @@ export class Contract<C extends Client> extends ContractMetadata {
   ): Promise<C> {
     const deployed = this.getClientOrNull()
     if (deployed) {
+      this.log.log(
+        colors.green('Found:   '),
+        bold(colors.green(deployed.address!)),
+        'is',
+        bold(colors.green(this.name!)),
+      )
       return Promise.resolve(deployed)
     }
     const name = `deploy ${this.name ?? 'contract'}`
@@ -976,16 +983,23 @@ export class Contract<C extends Client> extends ContractMetadata {
   deployMany (
     inits: (DeployArgs[])|(()=>DeployArgs[])|(()=>Promise<DeployArgs[]>)
   ): Promise<C[]> {
-    const name = `deploy ${this.name ?? 'contract'} (${inits.length} instances)`
+    let name = this.name
+      ?? (this.codeId && `code id ${this.codeId}`)
+      ?? (this.crate  && `crate ${this.crate}`)
+      ?? 'a contract'
+    name = `deploy ${name} (${inits.length} instances)`
     return this.task(name, (): Promise<C[]> => {
+      if (inits.length === 0) return Promise.resolve([])
       const agent = this.agent
       if (!agent) throw new ClientError.NoCreator(this.name)
       return this.upload().then(async (contract: Contract<C>)=>{
         if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
         if (typeof inits === 'function') inits = await Promise.resolve(inits())
         try {
-          const instances = (await agent.instantiateMany(contract, inits)).map(c=>c.getClient())
-          return await Promise.all(instances)
+          const responses = await agent.instantiateMany(contract, inits)
+          const clients = responses.map(({ address })=>
+            new this.client(this.agent, address, this.codeHash, this.asMetadata))
+          return clients
         } catch (e) {
           this.log.deployManyFailed(contract, inits, e as Error)
           throw e
@@ -1025,7 +1039,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   /** Compile the source using the selected builder.
     * @returns this */
   build (builder: Builder = this.assertBuildable()): Promise<Contract<C>> {
-    const name = 'build ' + this.getSourceSpecifier()
+    const name = 'build  ' + this.getSourceSpecifier()
     return this.task(name, async (): Promise<Contract<C>> => {
       if (this.artifact) return this
       const result = await builder.build(this)
@@ -1099,7 +1113,6 @@ export class Deployment extends CommandContext {
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
     Object.defineProperty(this, 'state', { enumerable: false, writable: true })
   }
-
   /** Name of deployment. Used as label prefix of deployed contracts. */
   name:        string = timestamp()
   /** Mapping of names to contract instances. */
@@ -1194,7 +1207,7 @@ export class Deployment extends CommandContext {
   contract (name?: string): Contract<Client>
   contract <C extends Client> (options?: Partial<Contract<C>>): Contract<C>
   contract <C extends Client> (arg?: string|Partial<Contract<C>>) {
-    const options = {
+    let options = {
       deployment: this,
       prefix:     this.name,
       builder:    this.builder,
@@ -1205,7 +1218,10 @@ export class Deployment extends CommandContext {
       workspace:  this.workspace,
       ...((typeof arg === 'string') ? { name: arg } : arg)
     }
-    if (options.name && this.has(options.name)) Object.assign(options, this.get(options.name))
+    if (options.name && this.has(options.name)) {
+      const existing = this.get(options.name)
+      options = { ...existing, ...options }
+    }
     const contract = new Contract(options)
     return contract
   }
@@ -1249,10 +1265,10 @@ export class Deployment extends CommandContext {
     throw new ClientError(message)
   }
   /** Get the receipt for a contract, containing its address, codeHash, etc. */
-  get (name: string): Contract<any>|null {
+  get (name: string): Partial<Contract<any>>|null {
     const receipt = this.state[name]
     if (!receipt) return null
-    return new Contract({ ...receipt, deployment: this })
+    return { ...receipt, deployment: this }
   }
   /** Chainable. Add entry to deployment, merging into existing receipts. */
   add (name: string, data: any): this {

@@ -19,9 +19,9 @@
 **/
 
 import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
-import { BuilderConfig, BuildContext } from '@fadroma/build'
+import { BuilderConfig } from '@fadroma/build'
 import { DeployConfig, Deployer } from '@fadroma/deploy'
-import type { DeployStore } from '@fadroma/deploy'
+import type { DeployStore, DeployerClass } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
 import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
@@ -39,31 +39,16 @@ export default class Fadroma extends Deployer {
     options:     Partial<Config> = {}
   ): Promise<Fadroma> {
     const config = new Config(process.env, process.cwd(), options)
-    const { chain, agent, deployments, uploader } = await config.getDeployer()
-    return new this(projectName, config, chain, agent, deployments, uploader)
+    return config.getDeployer(this as DeployerClass<Deployer>) as unknown as Fadroma
   }
-  constructor (
-    /** Used by logger. */
-    public projectName: string,
-    /** Configuration. */
-    config:             Partial<Config> = new Config(),
-    /** Represents the blockchain to which we will connect. */
-    public chain:       Chain|undefined        = undefined,
-    /** Represents the identity which will perform operations on the chain. */
-    public agent:       Agent|undefined        = undefined,
-    /** Contains available deployments for the current chain. */
-    public deployments: DeployStore|undefined  = undefined,
-    /** Implements uploading and upload reuse. */
-    public uploader:    Uploader|undefined     = undefined,
-    /** Build context. */
-    public build:       BuildContext|undefined = undefined
-  ) {
-    super(config, agent, chain)
-    this.log.name  = projectName
-    this.config    = new Config(this.env, this.cwd, config)
-    this.workspace = config.project
+  constructor (options: Partial<Fadroma> = { config: new Config() }) {
+    super(options as Partial<Deployer>)
+    this.log.name  = this.projectName
+    this.config    = new Config(this.env, this.cwd, options.config)
+    this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()
   }
+  projectName: string = 'Fadroma'
   /** The current configuration. */
   config: Config
   /** The token manager API. */

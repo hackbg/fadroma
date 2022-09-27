@@ -66,8 +66,10 @@ export class DeployConsole extends ConnectConsole {
         const deployment = deployments.get(name)!
         const count = Object.keys(deployment.state).length
         let info = `${bold(name.padEnd(maxLength))}`
-        if (deployments.active && deployments.active.name === name) info = `${bold(name)} (selected)`
         info = `${info} (${deployment.size} contracts)`
+        if (deployments.active && deployments.active.name === name) {
+          info = `${info} ${bold('selected')}`
+        }
         this.info(` `, info)
       }
     } else {
