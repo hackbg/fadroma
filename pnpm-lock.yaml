@@ -193,8 +193,8 @@ importers:
 
   packages/tokens:
     specifiers:
-      '@fadroma/client': workspace:^6.1.1
-      '@fadroma/scrt': workspace:^3.2
+      '@fadroma/client': workspace:^6.1.2
+      '@fadroma/scrt': workspace:^3.2.1
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/konzola': workspace:^2.1
     dependencies:
@@ -215,7 +215,7 @@ importers:
 
   platforms/scrt:
     specifiers:
-      '@fadroma/client': workspace:^6.1.1
+      '@fadroma/client': workspace:^6.1.2
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/konfizi': workspace:^3.0.1
       '@hackbg/konzola': workspace:^2.1
@@ -234,7 +234,7 @@ importers:
 
   platforms/scrt-amino:
     specifiers:
-      '@fadroma/scrt': workspace:^3.2
+      '@fadroma/scrt': workspace:^3.2.1
       '@hackbg/formati': workspace:^5.1.1
       axios: 0.26.0
       exponential-backoff: ^3.1.0
