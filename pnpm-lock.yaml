@@ -93,7 +93,7 @@ importers:
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/ganesha': ^2.2.5
       '@hackbg/kabinet': workspace:^3.2.6
-      '@hackbg/komandi': workspace:^6.1.2
+      '@hackbg/komandi': workspace:^6.1.3
       '@hackbg/konfizi': workspace:^3.0.1
       '@hackbg/konzola': workspace:^2.1
       dotenv: ^16.0.1
@@ -215,7 +215,7 @@ importers:
 
   platforms/scrt:
     specifiers:
-      '@fadroma/client': workspace:^6.0.1
+      '@fadroma/client': workspace:^6.1.1
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/konfizi': workspace:^3.0.1
       '@hackbg/konzola': workspace:^2.1
@@ -234,7 +234,7 @@ importers:
 
   platforms/scrt-amino:
     specifiers:
-      '@fadroma/scrt': workspace:^3.0.8
+      '@fadroma/scrt': workspace:^3.1.2
       '@hackbg/formati': workspace:^5.1.1
       axios: 0.26.0
       exponential-backoff: ^3.1.0
@@ -282,7 +282,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.7.21
+      '@types/node': 18.7.23
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.7.4
       typescript: 4.7.4
@@ -993,8 +993,8 @@ packages:
     resolution: {integrity: sha512-m+6nTEOadJZuTPkKR/SYK3A2d7FZrgElol9UP1Kae90VVU4a6mxnPuLiIW1m4Cq4gZ/nWb9GrdVXJCoCazDAbg==}
     dev: false
 
-  /@types/node/18.7.21:
-    resolution: {integrity: sha512-rLFzK5bhM0YPyCoTC8bolBjMk7bwnZ8qeZUBslBfjZQou2ssJdWslx9CZ8DGM+Dx7QXQiiTVZ/6QO6kwtHkZCA==}
+  /@types/node/18.7.23:
+    resolution: {integrity: sha512-DWNcCHolDq0ZKGizjx2DZjR/PqsYwAcYUJmfMWqtVU2MBMG5Mo+xFZrhGId5r/O5HOuMPyQEcM6KUBp5lBZZBg==}
     dev: true
 
   /@types/prettyjson/0.0.30:

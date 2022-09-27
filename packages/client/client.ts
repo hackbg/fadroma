@@ -674,15 +674,11 @@ export class Client {
     }
     return this.fee || defaultFee
   }
-  /** Create a copy of this Client with all transaction fees set to the provided value.
-    * If the fee is undefined, returns a copy of the client with unmodified fee config. */
-  withFee (fee: IFee|undefined): this {
-    if (fee) {
-      const Self = this.constructor as ClientClass<this>
-      return Object.assign(new Self(this.agent, this.address, this.codeHash), { fee, fees: {} })
-    } else {
-      return this
-    }
+  /** Use the specified fee for all transactions by this Client. */
+  withFee (fee: IFee): this {
+    this.fee  = fee
+    this.fees = {}
+    return this
   }
   /** Execute a transaction on the specified contract as the specified Agent. */
   async execute (msg: Message, opt: ExecOpts = {}): Promise<void|unknown> {
