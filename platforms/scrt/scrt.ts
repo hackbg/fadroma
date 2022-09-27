@@ -330,7 +330,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   SecretJS = ScrtGrpcAgent.SecretJS
   wallet:    SecretJS.Wallet
   api:       SecretJS.SecretNetworkClient
-  simulate?: boolean = true
+  simulate:  boolean = false
   get account () {
     if (!this.address) throw new Error("No address")
     return this.api.query.auth.account({ address: this.address })
