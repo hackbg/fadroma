@@ -470,8 +470,20 @@ export class ScrtGrpcAgent extends ScrtAgent {
     }
     if (this.simulate) {
       this.log.info('Simulating transaction...')
-      const simResult = await this.api.tx.compute.executeContract.simulate(tx, txOpts)
-      this.log.info('Simulation result of', { tx, txOpts }, 'from', this, 'is', simResult)
+      let simResult
+      try {
+        simResult = await this.api.tx.compute.executeContract.simulate(tx, txOpts)
+      } catch (e) {
+        this.log.error(e)
+        this.log.warn('TX simulation failed:', tx, 'from', this)
+      }
+      if (simResult?.gasInfo?.gasUsed) {
+        this.log.info('Simulation used gas:', simResult.gasInfo.gasUsed)
+        const gas = Math.ceil(Number(simResult.gasInfo.gasUsed) * 1.1)
+        // Adjust gasLimit up by 10% to account for gas estimation error
+        this.log.info('Setting gas to 110% of that:', gas)
+        txOpts.gasLimit = gas
+      }
     }
     const result = await this.api.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
