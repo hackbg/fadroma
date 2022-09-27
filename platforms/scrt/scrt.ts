@@ -305,6 +305,7 @@ export interface ScrtGrpcAgentOpts extends ScrtAgentOpts {
   wallet:    SecretJS.Wallet
   url:       string
   api:       SecretJS.SecretNetworkClient
+  simulate?: boolean
   // Allow a different version of SecretJS to be passed
   SecretJS?: typeof SecretJS
 }
@@ -318,16 +319,18 @@ export class ScrtGrpcAgent extends ScrtAgent {
     super(options)
     if (!options.wallet) throw new ScrtError.NoWallet()
     if (!options.api)    throw new ScrtError.NoApi()
-    this.wallet  = options.wallet
-    this.api     = options.api
-    this.address = this.wallet?.address
+    this.wallet   = options.wallet
+    this.api      = options.api
+    this.address  = this.wallet?.address
+    this.simulate = options.simulate ?? this.simulate
     if (options.SecretJS) this.SecretJS = options.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
   Bundle: BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
   SecretJS = ScrtGrpcAgent.SecretJS
-  wallet:  SecretJS.Wallet
-  api:     SecretJS.SecretNetworkClient
+  wallet:    SecretJS.Wallet
+  api:       SecretJS.SecretNetworkClient
+  simulate?: boolean = true
   get account () {
     if (!this.address) throw new Error("No address")
     return this.api.query.auth.account({ address: this.address })
@@ -455,15 +458,22 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const { address, codeHash } = instance
     const { send, memo, fee = this.fees.exec } = opts
     if (memo) log.warnNoMemos()
-    const result = await this.api.tx.compute.executeContract({
+    const tx = {
       sender:          this.address,
       contractAddress: address!,
       codeHash,
       msg:             msg as Record<string, unknown>,
       sentFunds:       send
-    }, {
+    }
+    const txOpts = {
       gasLimit: Number(fee.amount[0].amount)
-    })
+    }
+    if (this.simulate) {
+      this.log.info('Simulating transaction...')
+      const simResult = await this.api.tx.compute.executeContract.simulate(tx, txOpts)
+      this.log.info('Simulation result of', { tx, txOpts }, 'from', this, 'is', simResult)
+    }
+    const result = await this.api.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
     if (result.code !== 0) {
       const error = `ScrtAgent#execute: gRPC error ${result.code}: ${result.rawLog}`
