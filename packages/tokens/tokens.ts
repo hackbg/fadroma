@@ -210,6 +210,14 @@ export class TokenManager extends CommandContext {
     // TODO compare and don't throw if it's the same token
     return this.set(symbol, token)
   }
+  /** Lazily add a token to the registry from the
+    * Contract or ContractMetadata object that represents it. */
+  addContract (symbol: TokenSymbol, contract: Contract<Snip20>) {
+    Object.defineProperty(this.tokens, symbol, {
+      enumerable: true,
+      get () { return contract.getClientSync().asDescriptor }
+    })
+  }
   /** Set an entry in the token registry.
     * If setting to a falsy value, delete the entry. */
   set (symbol: TokenSymbol, token?: Token): this {
@@ -243,10 +251,8 @@ export class TokenManager extends CommandContext {
     const token    = deployment.contract(template)
     token.name     = name
     token.prefix   = deployment.name
-    return token.deploy(Snip20.init(name, symbol, decimals, admin, config)).then(result=>{
-      this.add(symbol, result.asDescriptor)
-      return result
-    })
+    this.addContract(symbol, token)
+    return token.deploy(Snip20.init(name, symbol, decimals, admin, config))
   }
   /** Command step: Deploy a single Snip20 token.
     * Exposed below as the "deploy token" command.
