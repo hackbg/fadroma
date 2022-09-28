@@ -40,7 +40,7 @@ The first thing any NPM package needs is a `package.json`.
   "type": "module",
   "main": "MyContract.js",
   "dependencies": {
-    "@fadroma/client": "^3"
+    "@fadroma/client": "^6.1"
   }
 }
 ```

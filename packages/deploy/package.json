@@ -21,7 +21,7 @@
     "@fadroma/build":  { "optional": true, "description": "For building from deployment scripts." }
   },
   "dependencies": {
-    "@fadroma/client":  "workspace:^6.0.1",
+    "@fadroma/client":  "workspace:^6.1",
     "@fadroma/connect": "workspace:^2",
     "@fadroma/build":   "workspace:^2",
     "@hackbg/formati":  "workspace:^5.1.1",
