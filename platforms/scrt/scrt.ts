@@ -466,7 +466,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
       sentFunds:       send
     }
     const txOpts = {
-      gasLimit: Number(fee.amount[0].amount)
+      gasLimit: Number(fee.gas)
     }
     if (this.simulate) {
       this.log.info('Simulating transaction...')
