@@ -3,8 +3,6 @@ import { Task, CommandContext } from '@hackbg/komandi'
 
 import { ClientConsole, ClientError } from './client-events'
 
-import { strictEqual } from 'node:assert'
-
 /// # DRAMATIS PERSONAE ///////////////////////////////////////////////////////////////////////////
 
 /** A class constructor. */
@@ -965,7 +963,7 @@ export class Contract<C extends Client> extends ContractMetadata {
       this.label = ContractMetadata.writeLabel(this)
       if (!this.label) throw new ClientError.NoInitLabel(this.name)
       return this.upload().then(async template=>{
-        strictEqual(this, template, 'bug: uploader returned different instance')
+        if (this !== template) this.log.warn('bug: uploader returned different instance')
         if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
         this.log.beforeDeploy(this, this.label!)
         if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
