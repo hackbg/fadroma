@@ -119,9 +119,8 @@ export class Deployer extends Connector {
   createDeployment = this.command('create', `create a new empty deployment on this chain`,
     async (name: string = this.timestamp): Promise<void> => {
       const store = this.expectStore()
-      this.log.info('Creating new deployment', bold(name))
-      await store?.create(name)
-      await store?.select(name)
+      await store.create(name)
+      await this.selectDeployment(name)
     })
   /** Make a new deployment the active one. */
   selectDeployment = this.command('select', `select another deployment on this chain`,
@@ -132,16 +131,9 @@ export class Deployer extends Connector {
         this.log.info('\nNo deployments. Create one with `deploy new`')
       }
       if (id) {
-        this.log.log(`Selecting deployment:`, bold(id))
-        await store.select(id)
-      }
-      if (list.length > 0) {
-        this.listDeployments()
-      }
-      if (store.active) {
-        this.log.log(`Currently selected deployment:`, bold(store.active.name))
-      } else {
-        this.log.log(`No selected deployment.`)
+        const { name, state } = await store.select(id)
+        this.name  = name
+        this.state = state
       }
     })
 }

@@ -1230,6 +1230,19 @@ export class Deployment extends CommandContext {
       options = { ...existing, ...options }
     }
     const contract = new Contract(options)
+    const self = this
+    const setPrefix = (contract: Contract<C>, value: string) =>
+      Object.defineProperty(contract, 'prefix', {
+        enumerable: true,
+        get () { return contract.deployment?.name },
+        set (v: string) {
+          if (v !== contract.deployment?.name) (this.log??self.log).warn(
+            `Overriding prefix of contract from deployment "${contract.deployment?.name}" to be "${v}"`
+          )
+          setPrefix(contract, v)
+        }
+      })
+    setPrefix(contract, self.name)
     return contract
   }
 
@@ -1310,6 +1323,11 @@ export class Deployment extends CommandContext {
   ): X {
     const sub = this.commands(name, info, new ctor(this, ...args)) as X
     if (this.save) sub.save = this.save
+    const context = this
+    Object.defineProperty(sub, 'name', {
+      enumerable: true,
+      get () { return context.name }
+    })
     return sub
   }
 

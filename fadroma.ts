@@ -20,7 +20,7 @@
 
 import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
 import { BuilderConfig } from '@fadroma/build'
-import { DeployConfig, Deployer } from '@fadroma/deploy'
+import { DeployConfig, Deployer, DeployConsole } from '@fadroma/deploy'
 import type { DeployStore, DeployerClass } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
 import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
@@ -65,7 +65,10 @@ export class Config extends DeployConfig {
 /** Default export of command module. */
 export type AsyncEntrypoint = (argv: string[]) => Promise<unknown>
 
-export const Console = ClientConsole
+export class Console extends DeployConsole {
+  constructor (name = 'Fadroma') { super(name) }
+}
+
 export * from '@hackbg/konzola'
 export * from '@hackbg/komandi'
 export * from '@hackbg/konfizi'

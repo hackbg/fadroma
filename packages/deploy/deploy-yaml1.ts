@@ -5,7 +5,7 @@ import $, {
 } from '@hackbg/kabinet'
 import { Agent, Contract, Client, Deployment } from '@fadroma/client'
 import { DeployStore } from './deploy-base'
-import { DeployError, log } from './deploy-events'
+import { DeployConsole, DeployError, log } from './deploy-events'
 
 import { basename } from 'node:path'
 
@@ -27,24 +27,29 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   root: YAMLDirectory<unknown>
 
+  log = new DeployConsole('Fadroma Deploy (YAML1)')
+
   /** Name of symlink pointing to active deployment, without extension. */
   KEY = '.active'
 
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()): Promise<Deployment> {
+    this.log.log('Creating new deployment', bold(name))
     const path = this.root.at(`${name}.yml`)
     if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
+    this.log.log('Stored at', bold(path.shortPath))
     path.makeParent().as(YAMLFile).save(undefined)
     return this.get(name)!
   }
 
   /** Make the specified deployment be the active deployment. */
   async select (name: string): Promise<Deployment> {
+    this.log.log('Selecting deployment', bold(name))
     const selected = this.root.at(`${name}.yml`)
     if (!selected.exists) throw new DeployError.DeploymentDoesNotExist(name)
     const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
     try { active.delete() } catch (e) {}
-    await FS.symlinkSync(selected.path, active.path)
+    active.pointTo(selected)
     return this.get(name)!
   }
 

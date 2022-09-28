@@ -1,39 +1,59 @@
 import { ConnectConsole, ConnectError } from '@fadroma/connect'
 import $ from '@hackbg/kabinet'
-import { bold } from '@hackbg/konzola'
+import { bold, colors } from '@hackbg/konzola'
 import type { Deployment } from '@fadroma/client'
 import type { DeployStore } from './deploy-base'
 
 export class DeployConsole extends ConnectConsole {
+  constructor (public name = 'Fadroma Deploy') { super(name) }
   deployment ({ deployment }: { deployment: Deployment }) {
     this.br()
     if (deployment) {
       const { state = {}, name } = deployment
       let contracts: string|number = Object.values(state).length
       contracts = contracts === 0 ? `(empty)` : `(${contracts} contracts)`
-      const len = Math.min(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
+      const len = Math.max(40, Object.keys(state).reduce((x,r)=>Math.max(x,r.length),0))
       this.info('Active deployment:'.padEnd(len+2), bold($(deployment.name).shortPath), contracts)
       const count = Object.values(state).length
       if (count > 0) {
+        this.br()
+        this.info('Contracts in this deployment:')
         for (const name of Object.keys(state)) {
           this.receipt(name, state[name], len)
         }
       } else {
-        this.info('This deployment is empty.')
+        this.info('No contracts in this deployment.')
       }
     } else {
       this.info('There is no selected deployment.')
     }
     this.br()
   }
-  receipt (name: string, receipt: any, len = 35) {
+  receipt (name: string, receipt?: any, len?: number) {
+    name    ||= '(unnamed)'
+    receipt ||= {}
+    len     ??= 35
+    let {
+      address    = colors.gray('(unspecified address)'),
+      codeHash   = colors.gray('(unspecified code hash)'),
+      codeId     = colors.gray('(unspecified code id)'.padEnd(len)),
+      crate      = colors.gray('(unspecified crate)'.padEnd(len)),
+      repository = colors.gray('(unspecified source)'.padEnd(len))
+    } = receipt
     name = bold(name.padEnd(len))
-    if (receipt.address) {
-      const address = `${receipt.address}`.padStart(45)
-      const codeId  = String(receipt.codeId||'n/a').padStart(6)
-      this.info(' │', name, address, codeId)
+    if (this.indent + len + 64 < this.width - 4) {
+      codeId = bold(codeId.padEnd(len))
+      crate  = bold(crate.padEnd(len))
+      this.info()
+      this.info(name,   '│', address)
+      this.info(codeId, '│', codeHash)
+      if (receipt.crate || receipt.repository) this.info(crate, repository)
     } else {
-      this.info(' │ (non-standard receipt)'.padStart(45), 'n/a'.padEnd(6), name)
+      this.info()
+      this.info(name)
+      this.info(address)
+      this.info(codeHash)
+      this.info(codeId)
     }
   }
   warnNoDeployment () {

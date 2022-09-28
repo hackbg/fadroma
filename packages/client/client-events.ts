@@ -153,8 +153,8 @@ export class ClientConsole extends CommandsConsole {
     const name = contract.name
       ? bold(green(contract.name))
       : bold(red('(no name)'))
-    const deployment = contract.deployment?.name
-      ? bold(green(contract.deployment.name))
+    const deployment = contract.prefix
+      ? bold(green(contract.prefix))
       : bold(red('(no deployment)'))
     const address = bold(colors.green(contract.address!))
     this.log(colors.green('Deployed:'), name, 'in', deployment, 'is now', address)
