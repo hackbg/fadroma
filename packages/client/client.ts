@@ -33,6 +33,12 @@ export interface BuilderClass<B extends Builder> extends Overridable<Builder, In
 /** A constructor for an Uploader subclass. */
 export interface UploaderClass<U extends Uploader> extends Overridable<Uploader, IntoUploader> {
 }
+/** Constructor for the different varieties of DeployStore. */
+export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
+  /** Defaults when hydrating Deployment instances from the store. */
+  Partial<Deployment>|undefined,
+  ...unknown[]
+]> {}
 /** Inheritance helper for extensible value objects. */
 export function override <T extends object> (
   self:    T,
@@ -458,7 +464,8 @@ export abstract class Bundle extends Agent {
     *   await agent.bundle().wrap(async bundle=>{
     *     client1.as(bundle).doThing()
     *     bundle.getClient(SomeClient, address, codeHash).doAnotherThing()
-    *   }) */ 
+    *   })
+    * */
   async wrap (
     cb:   BundleCallback<this>,
     opts: ExecOpts = { memo: "" },
@@ -1237,7 +1244,7 @@ export class Deployment extends CommandContext {
         get () { return contract.deployment?.name },
         set (v: string) {
           if (v !== contract.deployment?.name) (this.log??self.log).warn(
-            `Overriding prefix of contract from deployment "${contract.deployment?.name}" to be "${v}"`
+            `BUG: Overriding prefix of contract from deployment "${contract.deployment?.name}" to be "${v}"`
           )
           setPrefix(contract, v)
         }
@@ -1297,7 +1304,7 @@ export class Deployment extends CommandContext {
   /** Chainable. Add entry to deployment, replacing existing receipt. */
   set (name: string, data: Partial<Client> & any): this {
     this.state[name] = { name, ...data }
-    if (this.save) this.save()
+    this.save()
     return this
   }
   /** Chainable. Add multiple entries to the deployment, replacing existing receipts. */
@@ -1305,11 +1312,12 @@ export class Deployment extends CommandContext {
     for (const [name, receipt] of Object.entries(receipts)) {
       this.state[name] = receipt
     }
-    if (this.save) this.save()
+    this.save()
     return this
   }
-  /** Provided by @fadroma/deploy to allow saving deployment data. */
-  save?: ()=>void
+  /** Overridden by Deployer subclass in @fadroma/deploy
+    * to allow saving deployment data to the DeployStore. */
+  save () { /*nop*/ }
 
   /** Create an instance of `new ctor(this, ...args)` and attach it
     * to the command tree under `name`, with usage description `info`.
@@ -1321,12 +1329,17 @@ export class Deployment extends CommandContext {
     ctor: Subsystem<X>,
     ...args: unknown[]
   ): X {
-    const sub = this.commands(name, info, new ctor(this, ...args)) as X
-    if (this.save) sub.save = this.save
     const context = this
+    const sub = this.commands(name, info, new ctor(this, ...args)) as X
     Object.defineProperty(sub, 'name', {
       enumerable: true,
       get () { return context.name }
+    })
+    Object.defineProperty(sub, 'state', {
+      get () { return context.state }
+    })
+    Object.defineProperty(sub, 'save', {
+      get () { return context.save.bind(context) }
     })
     return sub
   }
@@ -1350,7 +1363,7 @@ export class VersionedDeployment<V> extends Deployment {
   }
 }
 
-/// ACT IV. ABSTRACT BUILDER, ABSTRACT UPLOADER ///////////////////////////////////////////////////
+/// ACT IV. ABSTRACT BUILDER, ABSTRACT UPLOADER, ABSTRACT DEPLOY STORE ////////////////////////////
 
 /** Builders can be specified as ids, class names, or objects. */
 export type IntoBuilder = string|BuilderClass<Builder>|Partial<Builder>
@@ -1440,3 +1453,37 @@ export type Duration = number
 export const HEAD = 'HEAD'
 
 export { ClientConsole, ClientError }
+
+/** Transitional support for several of these:
+  *  - YAML1 is how the latest @fadroma/deploy stores data
+  *  - YAML2 is how @aakamenov's custom Rust-based deployer stores data
+  *  - JSON1 is the intended target format for the next major version;
+  *    JSON can generally be parsed with fewer dependencies, and can be
+  *    natively embedded in the API client library distribution,
+  *    in order to enable a standard subset of receipt data
+  *    (such as the up-to-date addresses and code hashes for your production deployment)
+  *    to be delivered alongside your custom Client subclasses,
+  *    making your API client immediately usable with no further steps necessary. */
+export type DeploymentFormat = 'YAML1'|'YAML2'|'JSON1'
+
+/** Mapping from deployment format ids to deployment store constructors. */
+export type DeployStores = Partial<Record<DeploymentFormat, DeployStoreClass<DeployStore>>>
+
+/** A deploy store collects receipts corresponding to individual instances of Deployment,
+  * and can create Deployment objects with the data from the receipts. */
+export abstract class DeployStore {
+  /** Populated in deploy.ts with the constructor for each subclass. */
+  static variants: DeployStores = {}
+  /** Get the names of all stored deployments. */
+  abstract list   ():              string[]
+  /** Get a deployment by name, or null if such doesn't exist. */
+  abstract get    (name: string):  Deployment|null
+  /** Update a deployment's data. */
+  abstract set    (name: string, state?: Record<string, Partial<Contract<any>>>): void
+  /** Create a new deployment. */
+  abstract create (name?: string): Promise<Deployment>
+  /** Activate a new deployment, or throw if such doesn't exist. */
+  abstract select (name: string):  Promise<Deployment>
+  /** Get the active deployment, or null if there isn't one. */
+  abstract get active (): Deployment|null
+}

@@ -5,8 +5,8 @@ import { EnvConfig } from '@hackbg/konfizi'
 import type { Env } from '@hackbg/konfizi'
 
 import { Connector, ConnectConfig } from '@fadroma/connect'
-import { Chain, Agent, Deployment, Uploader, override } from '@fadroma/client'
-import type { Class, Client, Contract } from '@fadroma/client'
+import { Chain, Agent, Deployment, Uploader, DeployStore, override } from '@fadroma/client'
+import type { Class, Client, Contract, DeploymentFormat, DeployStoreClass } from '@fadroma/client'
 
 import { FSUploader } from './upload'
 import { DeployConsole } from './deploy-events'
@@ -49,7 +49,7 @@ export class DeployConfig extends ConnectConfig {
     if (!this.DeployStore) throw new Error('Missing deployment store constructor')
     const uploader = new FSUploader(agent, this.uploads)
     const defaults = { chain, agent: agent??undefined/*l8r*/, uploader }
-    const store    = new this.DeployStore(this.deploys, defaults)
+    const store    = new this.DeployStore(defaults, this.deploys)
     const name     = store.active?.name
     const state    = store.active?.state
     return new $D({ config: this, agent, uploader, store, name, state })
@@ -87,25 +87,17 @@ export class Deployer extends Connector {
     }
     return this.store
   }
-  save = () => {
+  save () {
     const store = this.expectStore()
+    //this.log.log('Saving:  ', bold(this.name))
+    //this.log.log(Object.keys(this.state).join(', '))
+    //this.log.br()
     store.set(this.name, this.state)
   }
   /** Path to root of project directory. */
   get project (): Path|undefined {
     return this.config?.project ? $(this.config.project) : undefined
   }
-  /** Print the status of a deployment. */
-  listContracts = this.command('contracts', 'show the contracts in the current deployment',
-    async (id?: string): Promise<void> => {
-      const store = this.expectStore()
-      const deployment  = id ? store.get(id) : store.active
-      if (deployment) {
-        this.log.deployment({ deployment })
-      } else {
-        this.log.info('No selected deployment on chain:', bold(this.chain?.id??'(no chain)'))
-      }
-    })
   /** Currently selected deployment. */
   //get deployment (): Deployment|null { return this.store?.active || null }
   /** Print a list of deployments on the selected chain. */
@@ -123,12 +115,12 @@ export class Deployer extends Connector {
       await this.selectDeployment(name)
     })
   /** Make a new deployment the active one. */
-  selectDeployment = this.command('select', `select another deployment on this chain`,
+  selectDeployment = this.command('switch', `select another deployment on this chain`,
     async (id?: string): Promise<void> => {
       const store = this.expectStore()
       const list = store.list()
       if (list.length < 1) {
-        this.log.info('\nNo deployments. Create one with `deploy new`')
+        this.log.info('No deployments.')
       }
       if (id) {
         const { name, state } = await store.select(id)
@@ -136,50 +128,15 @@ export class Deployer extends Connector {
         this.state = state
       }
     })
-}
-
-/** We support several of those:
-  *  - YAML1 is how the latest @fadroma/deploy stores data
-  *  - YAML2 is how @aakamenov's custom Rust-based deployer stores data
-  *  - JSON1 is the intended target format for the next major version;
-  *    JSON can generally be parsed with fewer dependencies, and can be
-  *    natively embedded in the API client library distribution,
-  *    in order to enable a standard subset of receipt data
-  *    (such as the up-to-date addresses and code hashes for your production deployment)
-  *    to be delivered alongside your custom Client subclasses,
-  *    making your API client immediately usable with no further steps necessary. */
-export type DeploymentFormat = 'YAML1'|'YAML2'|'JSON1'
-
-/** Mapping from deployment format ids to deployment store constructors. */
-export type DeployStores = Partial<Record<DeploymentFormat, DeployStoreClass<DeployStore>>>
-
-/** Constructor for the different varieties of DeployStore. */
-export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
-  /** Path to where the receipts are stored. */
-  string|Path,
-  /** Defaults when creating Deployment instances from the store */
-  Partial<Deployment>|undefined
-]> {}
-
-/** A deploy store collects receipts corresponding to individual instances of Deployment,
-  * and can create Deployment objects with the data from the receipts. */ 
-export abstract class DeployStore {
-  /** Populated in deploy.ts with the constructor for each subclass. */
-  static variants: DeployStores = {}
-  /** Name of symlink marking active deployment. */
-  KEY = '.active'
-  /** Get the names of all stored deployments. */
-  abstract list   ():              string[]
-  /** Get a deployment by name, or null if such doesn't exist. */
-  abstract get    (name: string):  Deployment|null
-  /** Update a deployment's data. */
-  abstract set    (name: string, state?: Record<string, Partial<Contract<any>>>): void
-  /** Create a new deployment. */
-  abstract create (name?: string): Promise<Deployment>
-  /** Activate a new deployment, or throw if such doesn't exist. */
-  abstract select (name: string):  Promise<Deployment>
-  /** Get the active deployment, or null if there isn't one. */
-  get active (): Deployment|null {
-    return this.get(this.KEY)
-  }
+  /** Print the contracts contained in a of a deployment. */
+  listContracts = this.command('contracts', 'show the contracts in the current deployment',
+    async (id?: string): Promise<void> => {
+      const store = this.expectStore()
+      const deployment  = id ? store.get(id) : store.active
+      if (deployment) {
+        this.log.deployment({ deployment })
+      } else {
+        this.log.info('No selected deployment.')
+      }
+    })
 }

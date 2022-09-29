@@ -371,7 +371,12 @@ export class Snip20 extends Client implements CustomToken {
 
   /** Convert to plain CustomToken. */
   get asDescriptor () {
-    return { custom_token: this.custom_token }
+    return Object.defineProperty({
+      custom_token: this.custom_token,
+      client:       this
+    }, 'fadroma_client', {
+      enumerable: false
+    })
   }
 
   /** Create a SNIP20 token client from a Token descriptor. */

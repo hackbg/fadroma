@@ -145,8 +145,7 @@ export class ClientConsole extends CommandsConsole {
     codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)')
   ) {
     label = label ? bold(label) : colors.red('(missing label!)')
-    this.log('Instantiate code id', bold(codeId), 'as:', bold(label))
-    this.log('Code hash', codeHash)
+    this.log('Init:    ', 'code id', bold(codeId), 'as', bold(label))
   }
   afterDeploy (contract: Partial<Contract<any>>) {
     const { red, green } = colors
@@ -157,7 +156,9 @@ export class ClientConsole extends CommandsConsole {
       ? bold(green(contract.prefix))
       : bold(red('(no deployment)'))
     const address = bold(colors.green(contract.address!))
-    this.log(colors.green('Deployed:'), name, 'in', deployment, 'is now', address)
+    this.info('Deployed:', name, 'in', deployment)
+    this.info('Address: ', address)
+    this.info('Code hash', contract.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
     this.br()
   }
   deployFailed (e: Error, template: Contract<any>, name: Label, msg: Message) {

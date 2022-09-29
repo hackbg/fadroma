@@ -3,8 +3,7 @@ import { timestamp, bold } from '@hackbg/konzola'
 import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
 } from '@hackbg/kabinet'
-import { Agent, Contract, Client, Deployment } from '@fadroma/client'
-import { DeployStore } from './deploy-base'
+import { Agent, Contract, Client, Deployment, DeployStore } from '@fadroma/client'
 import { DeployConsole, DeployError, log } from './deploy-events'
 
 import { basename } from 'node:path'
@@ -18,8 +17,8 @@ import * as FS from 'node:fs' // TODO replace with calls to @hackbg/kabinet
 export class YAMLDeployments_v1 extends DeployStore {
 
   constructor (
-    storePath: string|Path|YAMLDirectory<unknown>,
     public defaults: Partial<Deployment> = {},
+    storePath: string|Path|YAMLDirectory<unknown>,
   ) {
     super()
     this.root = $(storePath).as(YAMLDirectory)
@@ -44,13 +43,18 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   /** Make the specified deployment be the active deployment. */
   async select (name: string): Promise<Deployment> {
-    this.log.log('Selecting deployment', bold(name))
+    this.log.log('Switching to deployment', bold(name))
     const selected = this.root.at(`${name}.yml`)
     if (!selected.exists) throw new DeployError.DeploymentDoesNotExist(name)
     const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
     try { active.delete() } catch (e) {}
     active.pointTo(selected)
     return this.get(name)!
+  }
+
+  // FIXME turn this into a getDeployment(name) factory?
+  get active () {
+    return this.get(this.KEY)
   }
 
   /** Get the contents of the named deployment, or null if it doesn't exist. */
