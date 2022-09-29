@@ -369,12 +369,13 @@ export class Snip20 extends Client implements CustomToken {
     }
   }
 
-  /** Convert to plain CustomToken. */
+  /** Convert to a plain CustomToken with a *hidden (from serialization!)*
+    * reference to the Client which produced it. */
   get asDescriptor () {
     return Object.defineProperty({
       custom_token: this.custom_token,
       client:       this
-    }, 'fadroma_client', {
+    }, 'client', {
       enumerable: false
     })
   }
