@@ -424,9 +424,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
     if (!result.arrayLog) {
       throw Object.assign(
-        new Error(`SecretRPCAgent#instantiate: ${result.rawLog}`), {
-          jsonLog: result.jsonLog
-        }
+        new Error(`${result.rawLog}`), { jsonLog: result.jsonLog }
       )
     }
     type Log = { type: string, key: string }
@@ -488,7 +486,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const result = await this.api.tx.compute.executeContract(tx, txOpts)
     // check error code as per https://grpc.github.io/grpc/core/md_doc_statuscodes.html
     if (result.code !== 0) {
-      const error = `ScrtAgent#execute: gRPC error ${result.code}: ${result.rawLog}`
+      const error = `TX failed with gRPC error ${result.code}: ${result.rawLog}`
       // make the original result available on request
       const original = structuredClone(result)
       Object.defineProperty(result, "original", {

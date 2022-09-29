@@ -954,30 +954,32 @@ export class Contract<C extends Client> extends ContractMetadata {
   deploy (
     initMsg: IntoMessage|undefined = this.initMsg
   ): Promise<C> {
-    const deployed = this.getClientOrNull()
-    if (deployed) {
-      this.log.log(
-        colors.green('Found:   '),
-        bold(colors.green(deployed.address!)),
-        'is',
-        bold(colors.green(this.name!)),
-      )
-      return Promise.resolve(deployed)
-    }
-    const name = `deploy ${this.name ?? 'contract'}`
-    return this.task(name, () => {
-      if (!this.agent) throw new ClientError.NoCreator(this.name)
-      this.label = ContractMetadata.writeLabel(this)
-      if (!this.label) throw new ClientError.NoInitLabel(this.name)
-      return this.upload().then(async template=>{
-        if (this !== template) this.log.warn('bug: uploader returned different instance')
-        if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
-        this.log.beforeDeploy(this, this.label!)
-        if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-        const contract = await this.agent!.instantiate(this, this.label!, initMsg as Message)
-        this.log.afterDeploy(contract)
-        if (this.deployment) this.deployment.add(this.name!, contract)
-        return this.get()
+    return this.task(`get or deploy ${this.name ?? 'contract'}`, () => {
+      const deployed = this.getClientOrNull()
+      if (deployed) {
+        this.log.log(
+          colors.green('Found:   '),
+          bold(colors.green(deployed.address!)),
+          'is',
+          bold(colors.green(this.name!)),
+        )
+        return Promise.resolve(deployed)
+      }
+      const name = `deploy ${this.name ?? 'contract'}`
+      return this.task(name, () => {
+        if (!this.agent) throw new ClientError.NoCreator(this.name)
+        this.label = ContractMetadata.writeLabel(this)
+        if (!this.label) throw new ClientError.NoInitLabel(this.name)
+        return this.upload().then(async template=>{
+          if (this !== template) this.log.warn('bug: uploader returned different instance')
+          if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
+          this.log.beforeDeploy(this, this.label!)
+          if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
+          const contract = await this.agent!.instantiate(this, this.label!, initMsg as Message)
+          this.log.afterDeploy(contract)
+          if (this.deployment) this.deployment.add(this.name!, contract)
+          return this.get()
+        })
       })
     })
   }

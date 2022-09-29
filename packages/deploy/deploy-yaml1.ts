@@ -42,7 +42,7 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()): Promise<Deployment> {
-    this.log.log('Creating new deployment', bold(name))
+    this.log.log('Creating:', bold(name))
     const path = this.root.at(`${name}.yml`)
     if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
     this.log.log('Receipt:', bold(path.shortPath))
@@ -58,7 +58,7 @@ export class YAMLDeployments_v1 extends DeployStore {
       if (name === this.KEY) name = active.real.name
       name = basename(name, '.yml')
       active.relLink(`${name}.yml`)
-      this.log.log('Activate:', bold(selected.name), bold(selected.real.name), bold(active.name))
+      this.log.log('Activate:', bold(selected.real.name))
       return this.get(name)!
     } else if (name === this.KEY) {
       const d = await this.create()
