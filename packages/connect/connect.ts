@@ -88,7 +88,20 @@ export class ConnectConfig extends EnvConfig {
     = this.getString('FADROMA_MNEMONIC',    ()=>
       this.getString('SCRT_AGENT_MNEMONIC', ()=> undefined))
 
-  // Create the Chain instance specified by the configuration.
+  /** Create a `Connector` containing instances of `Chain` and `Agent`
+    * as specified by the configuration and return a `Connector with them. */
+  async getConnector <C extends Connector> (
+    $C: ConnectorClass<C> = Connector as ConnectorClass<C>
+  ): Promise<C> {
+    // Create chain and agent
+    const chain = await this.getChain()
+    const agent = await this.getAgent(chain)
+    strictEqual(agent.chain, chain, 'agent.chain propagated incorrectly')
+    // Create the Connector holding both and exposing them to commands.
+    return new $C({ agent, config: this }) as C
+  }
+
+  /** Create the Chain instance specified by the configuration. */
   async getChain <C extends Chain> (
     getChain?: keyof ChainRegistry|ChainRegistry[keyof ChainRegistry]
   ): Promise<C> {
@@ -106,6 +119,7 @@ export class ConnectConfig extends EnvConfig {
   }
 
   async getAgent <A extends Agent> (chain: Chain): Promise<A> {
+    chain ??= await this.getChain()
     // Create the Agent instance as identified by the configuration.
     let agentOpts: AgentOpts = { chain }
     if (chain.isDevnet) {
@@ -118,18 +132,6 @@ export class ConnectConfig extends EnvConfig {
     return await chain.getAgent(agentOpts) as A
   }
 
-  /** Create a `Connector` containing instances of `Chain` and `Agent`
-    * as specified by the configuration and return a `Connector with them. */
-  async getConnector <C extends Connector> (
-    $C: ConnectorClass<C> = Connector as ConnectorClass<C>
-  ): Promise<C> {
-    // Create chain and agent
-    const chain = await this.getChain()
-    const agent = await this.getAgent(chain)
-    strictEqual(agent.chain, chain, 'agent.chain propagated incorrectly')
-    // Create the Connector holding both and exposing them to commands.
-    return new $C({ agent, config: this }) as C
-  }
 }
 
 /** Constructor for a subclass of Connector that

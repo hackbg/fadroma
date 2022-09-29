@@ -1,12 +1,21 @@
-import { loadAll, dump } from 'js-yaml'
-import { timestamp, bold } from '@hackbg/konzola'
+import {
+  loadAll, dump
+} from 'js-yaml'
+import {
+  timestamp, bold
+} from '@hackbg/konzola'
 import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
 } from '@hackbg/kabinet'
-import { Agent, Contract, Client, Deployment, DeployStore } from '@fadroma/client'
-import { DeployConsole, DeployError, log } from './deploy-events'
-
-import { basename } from 'node:path'
+import {
+  Agent, Contract, Client, Deployment, DeployStore
+} from '@fadroma/client'
+import {
+  DeployConsole, DeployError, log
+} from './deploy-events'
+import {
+  basename
+} from 'node:path'
 
 import * as FS from 'node:fs' // TODO replace with calls to @hackbg/kabinet
 
@@ -36,20 +45,28 @@ export class YAMLDeployments_v1 extends DeployStore {
     this.log.log('Creating new deployment', bold(name))
     const path = this.root.at(`${name}.yml`)
     if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
-    this.log.log('Stored at', bold(path.shortPath))
+    this.log.log('Receipt:', bold(path.shortPath))
     path.makeParent().as(YAMLFile).save(undefined)
     return this.get(name)!
   }
 
   /** Make the specified deployment be the active deployment. */
-  async select (name: string): Promise<Deployment> {
-    this.log.log('Switching to deployment', bold(name))
-    const selected = this.root.at(`${name}.yml`)
-    if (!selected.exists) throw new DeployError.DeploymentDoesNotExist(name)
-    const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
-    try { active.delete() } catch (e) {}
-    active.pointTo(selected)
-    return this.get(name)!
+  async select (name: string = this.KEY): Promise<Deployment> {
+    let selected = this.root.at(`${name}.yml`)
+    if (selected.exists()) {
+      const active = this.root.at(`${this.KEY}.yml`).as(YAMLFile)
+      if (name === this.KEY) name = active.real.name
+      name = basename(name, '.yml')
+      active.relLink(`${name}.yml`)
+      this.log.log('Activate:', bold(selected.name), bold(selected.real.name), bold(active.name))
+      return this.get(name)!
+    } else if (name === this.KEY) {
+      const d = await this.create()
+      const name = d.name
+      return this.select(name)
+    } else {
+      throw new DeployError.DeploymentDoesNotExist(name)
+    }
   }
 
   // FIXME turn this into a getDeployment(name) factory?
@@ -61,8 +78,7 @@ export class YAMLDeployments_v1 extends DeployStore {
   get (name: string): Deployment|null {
     let file = this.root.at(`${name}.yml`)
     if (!file.exists()) return null
-    file = file.real
-    name = basename(file.name, '.yml')
+    name = basename(file.real.name, '.yml')
     const deployment = new Deployment({ ...this.defaults, name })
     for (const receipt of file.as(YAMLFile).loadAll() as Partial<Contract<any>>[]) {
       if (!receipt.name) continue

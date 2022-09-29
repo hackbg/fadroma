@@ -1331,6 +1331,8 @@ export class Deployment extends CommandContext {
   ): X {
     const context = this
     const sub = this.commands(name, info, new ctor(this, ...args)) as X
+    // The subsystem's `name`, `state` and `save` properties
+    // are made to inherit those of the parent Deployment.
     Object.defineProperty(sub, 'name', {
       enumerable: true,
       get () { return context.name }
@@ -1486,4 +1488,6 @@ export abstract class DeployStore {
   abstract select (name: string):  Promise<Deployment>
   /** Get the active deployment, or null if there isn't one. */
   abstract get active (): Deployment|null
+
+  defaults: Partial<Deployment> = {}
 }
