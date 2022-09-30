@@ -8,6 +8,13 @@ const mnemonic = bip39.generateMnemonic(bip39EN)
 
 ## Overriding the SecretJS implementation
 
+By default the static property `ScrtGrpc.SecretJS` points to the SecretJS module from the
+dependencies of `@fadroma/scrt` (see [`package.json`](./package.json) for version info.)
+
+This module contains the `Wallet` and `SecretNetworkClient` classes,
+instances of which are provided to `ScrtGrpcAgent` by `ScrtGrpc#getAgent`,
+so that the agent can interact with the chain.
+
 ```typescript
 import { ScrtGrpc } from '@fadroma/scrt'
 
@@ -17,7 +24,17 @@ assert.equal(
   raw.SecretJS,
   ScrtGrpc.SecretJS
 )
+```
 
+To use a different version of SecretJS with `@fadroma/scrt`, install that version in your
+package (next to `@fadroma/scrt`) and import it (`import * as SecretJS from 'secretjs'`).
+
+By setting `ScrtGrpc.SecretJS` to a custom implementation, all subsequently created `ScrtGrpc`
+instances will use that implementation. You can also override it for a specific `ScrtGrpc`
+instance, in order to use multiple versions of the platform client side by side.
+
+```typescript
+// import * as SecretJS from 'secretjs'
 const SecretJS = {
   SecretNetworkClient: class { static async create () { return new this () } }
   Wallet:              class { /* mock */ }
@@ -28,6 +45,10 @@ const mod = new ScrtGrpc('mod', { SecretJS })
 assert.equal(
   mod.SecretJS,
   SecretJS
+)
+assert.notEqual(
+  mod.SecretJS,
+  raw.SecretJS
 )
 assert.ok(
   (await mod.getAgent({ mnemonic })).wallet instanceof SecretJS.Wallet
