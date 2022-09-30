@@ -25,16 +25,20 @@ assert.equal(
 To use a different version of SecretJS with `@fadroma/scrt`, install that version in your
 package (next to `@fadroma/scrt`) and import it (`import * as SecretJS from 'secretjs'`).
 
-By setting `ScrtGrpc.SecretJS` to a custom implementation, all subsequently created `ScrtGrpc`
-instances will use that implementation. You can also override it for a specific `ScrtGrpc`
-instance, in order to use multiple versions of the platform client side by side.
-
 ```typescript
 // import * as SecretJS from 'secretjs'
 const SecretJS = {
   SecretNetworkClient: class { static async create () { return new this () } }
   Wallet:              class { /* mock */ }
 }
+ScrtGrpc.SecretJS = SecretJS
+```
+
+By setting `ScrtGrpc.SecretJS` to a custom implementation, all subsequently created `ScrtGrpc`
+instances will use that implementation. You can also override it for a specific `ScrtGrpc`
+instance, in order to use multiple versions of the platform client side by side.
+
+```typescript
 
 const mod = new ScrtGrpc('mod', { SecretJS })
 
@@ -66,20 +70,19 @@ import { ScrtGrpcAgent } from '@fadroma/scrt'
 const encryptionUtils = Symbol() // use window.getEnigmaUtils(chainId) to get this
 ```
 
-* **Preferred:** override from `ScrtGrpc#getAgent`.
+* **Preferred:** override from `ScrtGrpc#getAgent`:
 
 ```typescript
 const agent1 = await raw.getAgent({ mnemonic, encryptionUtils })
-
 assert.equal(agent1.api.encryptionUtils, encryptionUtils)
 ```
 
 * **Fallback:** override through `ScrtGrpcAgent` constructor.
-  You shouldn't need to do this. Just use `ScrtGrpc#getAgent` to pass
-  `encryptionUtils` to `new SecretNetworkClient` at construction time
-  like the SecretJS API expects.
 
 ```typescript
+// You shouldn't need to do this. Just use `ScrtGrpc#getAgent` to pass
+// `encryptionUtils` to `new SecretNetworkClient` at construction time
+// like the SecretJS API normally expects.
 const agent2 = new ScrtGrpcAgent({ api: {}, wallet: {}, encryptionUtils })
 assert.equal(agent2.api.encryptionUtils, encryptionUtils)
 ```
@@ -88,3 +91,7 @@ assert.equal(agent2.api.encryptionUtils, encryptionUtils)
   to bypass TSC warning about accessing a private member and manually override
   the `encryptionUtils` property of the `SecretNetworkClient` instance used
   by your `ScrtGrpcAgent`.
+
+```typescript
+// not showing you how to do this :D
+```
