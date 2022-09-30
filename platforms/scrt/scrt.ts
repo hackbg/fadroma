@@ -17,28 +17,17 @@
 **/
 
 import type {
-  Address,
-  AgentClass,
-  AgentOpts,
+  Address, CodeHash, CodeId, TxHash, Uint128,
+  AgentClass, AgentOpts,
   BundleClass,
-  ChainClass,
-  ChainId,
-  CodeHash,
-  CodeId,
-  DeployArgs,
-  ExecOpts,
-  ICoin,
-  IFee,
-  Label,
-  Message,
-  TxHash,
-  Uint128,
+  ChainClass, ChainOpts, ChainId,
+  DeployArgs, Label, Message,
+  ExecOpts, ICoin, IFee,
 } from '@fadroma/client'
 import { Agent, Bundle, Chain, Client, Contract, Fee } from '@fadroma/client'
 import * as SecretJS from 'secretjs'
 
 import { base64, randomBytes } from '@hackbg/formati'
-import { CustomConsole, CustomError } from '@hackbg/konzola'
 import structuredClone from '@ungap/structured-clone'
 
 import { ScrtConfig, ScrtGrpcConfig } from './scrt-config'
@@ -80,9 +69,9 @@ export interface ScrtAgentOpts extends AgentOpts {
   * Represents a connection to the Secret Network authenticated as a specific address. */
 export abstract class ScrtAgent extends Agent {
   static Bundle: BundleClass<ScrtBundle>
-  fees = Scrt.defaultFees
   Bundle: BundleClass<ScrtBundle> =
-    (this.constructor as AgentClass<Agent>).Bundle as BundleClass<ScrtBundle>
+    ((this.constructor as AgentClass<Agent>).Bundle) as BundleClass<ScrtBundle>
+  fees = Scrt.defaultFees
   abstract getNonce (): Promise<{ accountNumber: number, sequence: number }>
   abstract encrypt (codeHash: CodeHash, msg: Message): Promise<string>
 }
@@ -196,13 +185,10 @@ export class ScrtGrpc extends Scrt {
       return new ScrtGrpc(id, { url, mode })
     },
   }
-  constructor (...args: ConstructorParameters<typeof Scrt>) {
-    super(...args)
-    // Allow a different API-compatible version of SecretJS to be passed
-    if (!!args[1] && typeof args[1] === 'object') {
-      const {SecretJS: _SecretJS} = args[1] as {SecretJS: typeof SecretJS}
-      this.SecretJS = _SecretJS ?? this.SecretJS
-    }
+  constructor (id: ChainId, options: Partial<ScrtGrpcOpts> = {}) {
+    super(id, options)
+    // Optional: Allow a different API-compatible version of SecretJS to be passed
+    this.SecretJS = options.SecretJS ?? this.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
   /** The Agent class that this instance's getAgent method will instantiate. */
@@ -248,9 +234,13 @@ export class ScrtGrpc extends Scrt {
   }
 
   /** @returns a fresh instance of the anonymous read-only API client. */
-  async getApi (options: object = {}): Promise<SecretJS.SecretNetworkClient> {
+  async getApi (
+    options: Partial<SecretJS.CreateClientOptions> = {}
+  ): Promise<SecretJS.SecretNetworkClient> {
     return await this.SecretJS.SecretNetworkClient.create({
-      chainId: this.id, grpcWebUrl: this.url, ...options
+      chainId:    this.id,
+      grpcWebUrl: this.url,
+      ...options
     })
   }
   /** Create a `ScrtGrpcAgent` on this `chain`.
@@ -259,15 +249,15 @@ export class ScrtGrpc extends Scrt {
     options: Partial<ScrtGrpcAgentOpts> = {},
     _Agent:  AgentClass<ScrtGrpcAgent> = this.Agent
   ): Promise<ScrtGrpcAgent> {
-    // keypair option not supported
+    // Not supported: passing a keypair like scrt-amino
     if (options.keyPair) log.warnIgnoringKeyPair()
-    // support creating agent for other Chain instance
+    // Support creating agent for other Chain instance; TODO remove?
     const chain: ScrtGrpc = (options.chain ?? this) as ScrtGrpc
-    // use selected secretjs implementation
+    // Use selected secretjs implementation
     const _SecretJS = chain.SecretJS ?? SecretJS
-    // unwrap
+    // Unwrap base options
     let { name, address, mnemonic, keyPair, wallet } = options
-    // create wallet from mnemonic if not passed
+    // Create wallet from mnemonic if a wallet is not passed
     if (!wallet) {
       if (name && chain.isDevnet && chain.node) {
         await chain.node.respawn()
@@ -283,62 +273,76 @@ export class ScrtGrpc extends Scrt {
         log.warnIgnoringMnemonic()
       }
     }
-    // construct options object
+    // Construct final options object
     options = {
       ...options,
       SecretJS: _SecretJS,
       wallet,
       api: await this.getApi({
-        chainId:    chain.id,
-        grpcWebUrl: chain.url,
+        chainId:         chain.id,
+        grpcWebUrl:      chain.url,
         wallet,
-        walletAddress: wallet.address || address
+        walletAddress:   wallet.address || address,
+        encryptionUtils: options.encryptionUtils
       })
     }
-    // construct agent
+    // Don't pass this down to the agent options because the API should already have it
+    delete options.encryptionUtils
+    // Construct agent
     return await super.getAgent(options, _Agent) as ScrtGrpcAgent
   }
 }
 
+export interface ScrtGrpcOpts extends ChainOpts {
+  /** You can set this to a compatible version of the SecretJS module
+    * in order to use it instead of the one bundled with this package.
+    * This setting is per-chain, i.e. all ScrtGrpcAgent instances
+    * constructed by the configured ScrtGrpc instance's getAgent method
+    * will use the non-default SecretJS module. */
+  SecretJS: typeof SecretJS
+}
+
 /** gRPC-specific configuration options. */
 export interface ScrtGrpcAgentOpts extends ScrtAgentOpts {
-  wallet:    SecretJS.Wallet
-  url:       string
-  api:       SecretJS.SecretNetworkClient
+  /** Instance of the underlying platform API provided by `secretjs`. */
+  api:             SecretJS.SecretNetworkClient
+  /** This agent's identity on the chain. */
+  wallet:          SecretJS.Wallet
   /** Whether to simulate each execution first to get a more accurate gas estimate. */
-  simulate?: boolean
-  /** You can set this to a compatible version of the SecretJS module
-    * in order to use it instead of the one bundled with this package. */
-  SecretJS?: typeof SecretJS
+  simulate:        boolean
   /** Set this to override the instance of the Enigma encryption utilities,
-    * e.g. the one provided by Keplr. */
-  encryptionUtils?: unknown
+    * e.g. the one provided by Keplr. Since this is provided by Keplr on a
+    * per-identity basis, this override is specific to each individual
+    * ScrtGrpcAgent instance. */
+  encryptionUtils: SecretJS.EncryptionUtils
 }
 
 export type ScrtGrpcTxResult = SecretJS.Tx
 
 export class ScrtGrpcAgent extends ScrtAgent {
   static Bundle: BundleClass<ScrtBundle> // populated below with ScrtGrpcBundle
-  static SecretJS = ScrtGrpc.SecretJS
   constructor (options: Partial<ScrtGrpcAgentOpts>) {
     super(options)
+    // Required: SecretJS.SecretNetworkClient instance
+    if (!options.api) throw new ScrtError.NoApi()
+    this.api = options.api
+    // Required: SecretJS.Wallet instance
     if (!options.wallet) throw new ScrtError.NoWallet()
     this.wallet  = options.wallet
     this.address = this.wallet?.address
-    if (!options.api) throw new ScrtError.NoApi()
-    this.api = options.api
+    // Optional: override api.encryptionUtils (e.g. with the ones from Keplr).
+    // Redundant if agent is constructed with ScrtGrpc#getAgent
+    // (which applies the override that the time of SecretNetworkClient construction)
     if (options.encryptionUtils) {
       Object.assign(this.api, { encryptionUtils: options.encryptionUtils })
     }
+    // Optional: enable simulation to establish gas amounts
     this.simulate = options.simulate ?? this.simulate
-    if (options.SecretJS) this.SecretJS = options.SecretJS
-    Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
-  Bundle: BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
-  SecretJS = ScrtGrpcAgent.SecretJS
-  wallet:    SecretJS.Wallet
-  api:       SecretJS.SecretNetworkClient
-  simulate:  boolean = false
+  Bundle:   BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
+  wallet:   SecretJS.Wallet
+  api:      SecretJS.SecretNetworkClient
+  simulate: boolean = false
   get account () {
     if (!this.address) throw new Error("No address")
     return this.api.query.auth.account({ address: this.address })
@@ -541,17 +545,18 @@ const tryDecode = (data: Uint8Array): string|Symbol => {
 
 export class ScrtGrpcBundle extends ScrtBundle {
 
-  static SecretJS = ScrtGrpcAgent.SecretJS
-
-  constructor (agent: ScrtAgent) {
+  constructor (agent: ScrtGrpcAgent) {
     super(agent)
-    this.SecretJS = (agent as ScrtGrpcAgent).SecretJS ?? this.SecretJS
+    // Optional: override SecretJS implementation
+    this.SecretJS = (agent?.chain as ScrtGrpc).SecretJS ?? this.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
   }
 
+  /** The agent which will broadcast the bundle. */
   declare agent: ScrtGrpcAgent
 
-  SecretJS = ScrtGrpcBundle.SecretJS
+  /** The SecretJS module from which message objects are created. */
+  private SecretJS = ScrtGrpc.SecretJS
 
   async submit (memo = ""): Promise<ScrtBundleResult[]> {
     const chainId = this.assertChain().id

@@ -49,7 +49,7 @@
     "@fadroma/build":      "workspace:^2",
     "@fadroma/deploy":     "workspace:^2",
     "@fadroma/devnet":     "workspace:^1",
-    "@fadroma/scrt":       "workspace:^3",
+    "@fadroma/scrt":       "workspace:^4",
     "@fadroma/scrt-amino": "workspace:^3",
     "@hackbg/formati": "workspace:^5.1.1",
     "@hackbg/kabinet": "workspace:^3.2.6",
