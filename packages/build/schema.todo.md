@@ -1,3 +1,24 @@
+```json
+{
+  "name":    "@fadroma/schema",
+  "version": "1.0.0-beta.0",
+  "type":    "module",
+  "main":    "./schema.ts",
+  "description": "Generate JSON schema and TypeScript types from smart contract source.",
+  "dependencies": {
+    "json-schema-to-typescript": "^10.1.5",
+    "toml":       "^3.0.0"
+  },
+  "scripts": {
+    "ts:check":    "tsc --noEmit",
+    "release:dry": "pnpm ts:check && ubik dry",
+    "release:wet": "pnpm ts:check && ubik wet --access=public"
+  }
+}
+
+```
+
+```typescript
 import { resolve, dirname, basename }               from 'path'
 import { readFileSync, readdirSync, writeFileSync } from 'fs'
 import { execFileSync }                             from 'child_process'
@@ -42,3 +63,4 @@ export function schemaToTypes (...schemas: Array<string>) {
       //console.info(`Generated ${output}`)
     })))
 }
+```
