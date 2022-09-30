@@ -305,9 +305,14 @@ export interface ScrtGrpcAgentOpts extends ScrtAgentOpts {
   wallet:    SecretJS.Wallet
   url:       string
   api:       SecretJS.SecretNetworkClient
+  /** Whether to simulate each execution first to get a more accurate gas estimate. */
   simulate?: boolean
-  // Allow a different version of SecretJS to be passed
+  /** You can set this to a compatible version of the SecretJS module
+    * in order to use it instead of the one bundled with this package. */
   SecretJS?: typeof SecretJS
+  /** Set this to override the instance of the Enigma encryption utilities,
+    * e.g. the one provided by Keplr. */
+  encryptionUtils?: unknown
 }
 
 export type ScrtGrpcTxResult = SecretJS.Tx
@@ -318,10 +323,13 @@ export class ScrtGrpcAgent extends ScrtAgent {
   constructor (options: Partial<ScrtGrpcAgentOpts>) {
     super(options)
     if (!options.wallet) throw new ScrtError.NoWallet()
-    if (!options.api)    throw new ScrtError.NoApi()
-    this.wallet   = options.wallet
-    this.api      = options.api
-    this.address  = this.wallet?.address
+    this.wallet  = options.wallet
+    this.address = this.wallet?.address
+    if (!options.api) throw new ScrtError.NoApi()
+    this.api = options.api
+    if (options.encryptionUtils) {
+      Object.assign(this.api, { encryptionUtils: options.encryptionUtils })
+    }
     this.simulate = options.simulate ?? this.simulate
     if (options.SecretJS) this.SecretJS = options.SecretJS
     Object.defineProperty(this, 'SecretJS', { enumerable: false, writable: true })
