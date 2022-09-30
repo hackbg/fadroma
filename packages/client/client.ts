@@ -742,7 +742,7 @@ export class ContractMetadata {
   /** Name of crate in workspace. */
   crate?:      string     = undefined
   /** List of crate features to enable during build. */
-  features:    string[]   = []
+  features?:   string[]   = undefined
   /** Builder implementation that produces a Contract from the Source. */
   builderId?:  string     = undefined
   /** URL to the compiled code. */
@@ -784,8 +784,7 @@ export class ContractMetadata {
   async fetchCodeId (
     expected: CodeId|undefined, agent: Agent
   ): Promise<this & { codeId: CodeId }> {
-    const codeHash = this.codeHash ?? (await this.fetchCodeHash(undefined, agent)).codeHash
-    const codeId   = await agent.getCodeId(this.codeHash!)
+    const codeId   = await agent.getCodeId(this.assertAddress())
     if (!!expected) this.validate('codeId', expected, codeId)
     this.codeId = codeId
     return Object.assign(this, { codeId })
