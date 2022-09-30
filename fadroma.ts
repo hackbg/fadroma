@@ -19,12 +19,16 @@
 **/
 
 import { Chain, Agent, Deployment, ClientConsole, Builder, Uploader } from '@fadroma/client'
+import type { DeployStore } from '@fadroma/client'
 import { BuilderConfig } from '@fadroma/build'
 import { DeployConfig, Deployer, DeployConsole } from '@fadroma/deploy'
-import type { DeployStore, DeployerClass } from '@fadroma/deploy'
+import type { DeployerClass } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
 import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
+
+import repl from 'node:repl'
+import { createContext } from 'node:vm'
 
 /** Context for Fadroma commands. */
 export default class Fadroma extends Deployer {
@@ -51,6 +55,13 @@ export default class Fadroma extends Deployer {
   projectName: string = 'Fadroma'
   /** The current configuration. */
   config: Config
+  repl = this.command('repl', 'interact with this project from a Node.js REPL',
+    async function startREPL () {
+      setTimeout(()=>{
+        const r = repl.start({ prompt: '\nFadroma> ' })
+        Object.assign(r, { context: createContext(this) }) // da ne mrunka
+      })
+    })
   /** The token manager API. */
   tokens: TokenManager = this.commands(
     'tokens', 'Fadroma Token Manager', new TokenManager(()=>this as Deployment)
