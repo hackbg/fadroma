@@ -2,13 +2,14 @@ import * as Fadroma from '@fadroma/client'
 import { bech32, randomBech32, sha256, base16 } from '@hackbg/formati'
 import { CustomConsole, bold } from '@hackbg/konzola'
 
-const log = new CustomConsole('Fadroma Mocknet')
+const log = new CustomConsole('Fadroma.Mocknet')
 
 /** Hosts MocknetContract instances. */
 export class MocknetBackend {
   constructor (readonly chainId: string) {}
   codeId  = 0
   uploads: Record<Fadroma.CodeId, unknown> = {}
+  codeIds: Record<Fadroma.CodeHash, Fadroma.CodeId> = {}
   getCode (codeId: Fadroma.CodeId) {
     const code = this.uploads[codeId]
     if (!code) {
@@ -21,6 +22,7 @@ export class MocknetBackend {
     const codeId   = ++this.codeId
     const content  = this.uploads[codeId] = blob
     const codeHash = codeHashForBlob(blob)
+    this.codeIds[codeHash] = String(codeId)
     return new Fadroma.Contract({ codeHash, codeId: String(codeId) })
   }
   instances: Record<Fadroma.Address, MocknetContract> = {}
@@ -230,13 +232,14 @@ class MocknetContract {
     readonly address:   Fadroma.Address     = randomBech32(MOCKNET_ADDRESS_PREFIX),
     readonly codeHash?: Fadroma.CodeHash
   ) {
-    trace('Instantiating', bold(address))
+    log.log('Instantiating', bold(address))
   }
   instance?: WebAssembly.Instance<ContractExports>
   async load (code: unknown) {
-    const { instance } = await WebAssembly.instantiate(code, this.makeImports())
-    this.instance = instance
-    return this
+    return Object.assign(this, {
+      instance: (await WebAssembly.instantiate(code, this.makeImports())).instance,
+      codeHash: codeHashForBlob(code as Buffer)
+    })
   }
   init (env: unknown, msg: Fadroma.Message) {
     debug(`${bold(this.address)} init:`, msg)

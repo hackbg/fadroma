@@ -42,10 +42,10 @@ export class YAMLDeployments_v1 extends DeployStore {
 
   /** Create a deployment with a specific name. */
   async create (name: string = timestamp()): Promise<Deployment> {
-    this.log.log('Creating:', bold(name))
+    this.log.log('Creating: deployment', bold(name))
     const path = this.root.at(`${name}.yml`)
     if (path.exists()) throw new DeployError.DeploymentAlreadyExists(name)
-    this.log.log('Receipt:', bold(path.shortPath))
+    this.log.log('Receipt: ', bold(path.shortPath))
     path.makeParent().as(YAMLFile).save(undefined)
     return this.get(name)!
   }

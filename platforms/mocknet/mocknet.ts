@@ -24,11 +24,13 @@ export class Mocknet extends Fadroma.Chain {
   async query <T, U> (contract: Partial<Fadroma.Client>, msg: T): Promise<U> {
     return this.backend.query(contract, msg as Fadroma.Message)
   }
-  async getHash (_: any) {
-    return Promise.resolve("SomeCodeHash")
+  async getHash (arg: Fadroma.Address) {
+    return this.backend.instances[arg].codeHash as Fadroma.CodeHash
   }
-  async getCodeId (_: any) {
-    return Promise.resolve("1")
+  async getCodeId (arg: any) {
+    const codeId = this.backend.codeIds[arg]
+    if (!codeId) throw new Error(`No code id for hash ${arg}`)
+    return Promise.resolve(codeId)
   }
   async getLabel (address: Fadroma.Address) {
     return "SomeLabel"
@@ -69,10 +71,8 @@ class MocknetAgent extends Fadroma.Agent {
   async instantiate (
     template: Fadroma.Contract<any>, label: string, msg: Fadroma.Message, send = []
   ): Promise<Fadroma.Contract<any>> {
-    return new Fadroma.Contract({
-      agent: this,
-      ...await this.backend.instantiate(this.address, template, label, msg, send)
-    })
+    const result = await this.backend.instantiate(this.address, template, label, msg, send)
+    return Object.assign(template, { agent: this, ...result })
   }
   async execute <R> (
     instance: Partial<Fadroma.Client>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
@@ -96,14 +96,15 @@ class MocknetAgent extends Fadroma.Agent {
 class MocknetBundle extends Fadroma.Bundle {
   declare agent: MocknetAgent
   async submit (memo = "") {
+    log.info('Submitting mocknet bundle...')
     const results = []
     for (const { init, exec } of this.msgs) {
-      if (init) {
+      if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
         const template = new Fadroma.Contract({ codeHash, codeId: String(codeId) })
         //@ts-ignore
         results.push(await this.agent.instantiate(template, label, msg, funds))
-      } else if (exec) {
+      } else if (!!exec) {
         const { sender, contract, codeHash, msg, funds } = exec
         results.push(await this.agent.execute({ address: contract, codeHash }, msg, { send: funds }))
       } else {
