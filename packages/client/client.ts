@@ -374,10 +374,27 @@ export abstract class Agent {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
   /** Create a new smart contract from a code id, label and init message. */
-  abstract instantiate (template: Contract<any>, label: Label, msg: Message): Promise<Contract<any>>
+  abstract instantiate (template: Contract<any>, label: Label, initMsg: Message):
+    Promise<Contract<any>>
   /** Create multiple smart contracts from a list of code id/label/init message triples. */
-  instantiateMany (template: Contract<any>, configs: DeployArgs[]): Promise<Contract<any>[]> {
-    return Promise.all(configs.map(config=>this.instantiate(template, ...config)))
+  instantiateMany (template: Contract<any>, instances: Record<string, DeployArgs>):
+    Promise<Record<string, Contract<any>>>
+  instantiateMany (template: Contract<any>, instances: DeployArgs[]):
+    Promise<Contract<any>[]>
+  async instantiateMany <C, D> (template: Contract<any>, instances: C): Promise<D> {
+    const inits:   [string, DeployArgs][] =
+      Object.entries(instances)
+    const results: Contract<any>[] =
+      await Promise.all(inits.map(([key, [label, initMsg]])=>
+        this.instantiate(new Contract(template), label, initMsg)))
+    const outputs: any =
+      ((instances instanceof Array) ? [] : {}) as C
+    for (const i in inits) {
+      const [key]  = inits[i]
+      const result = results[i]
+      outputs[key] = result
+    }
+    return outputs as D
   }
   /** Call a transaction method on a smart contract. */
   abstract execute (
@@ -705,10 +722,19 @@ export class ContractMetadata {
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
   }
 
+  /** Throw if fetched metadata differs from configured. */
+  protected validate (kind: string, expected: any, actual: any) {
+    const name = this.constructor.name
+    expected = expected.toLowerCase()
+    actual   = actual.toLowerCase()
+    if (expected !== actual) throw new ClientError.ValidationFailed(kind, name, expected, actual)
+    return this
+  }
+
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL = undefined
   /** Branch/tag pointing to the source commit. */
-  revision?:   string     = 'HEAD'
+  revision?:   string     = undefined
   /** Whether there were any uncommitted changes at build time. */
   dirty?:      boolean    = undefined
   /** Path to local Cargo workspace. */
@@ -723,10 +749,47 @@ export class ContractMetadata {
   artifact?:   string|URL = undefined
   /** Code hash uniquely identifying the compiled code. */
   codeHash?:   CodeHash   = undefined
+  /** Fetch the code hash by id and by address, and compare them. */
+  async fetchCodeHash (
+    expected: CodeHash|undefined, agent: Agent
+  ): Promise<this & { codeHash: CodeHash }> {
+    let codeHashByAddress: CodeHash|undefined = undefined
+    let codeHashByCodeId:  CodeHash|undefined = undefined
+    if (!this.address && !this.codeId && !this.codeHash) {
+      throw new ClientError('Unable to fetch code hash: no address or code id.')
+    }
+    if (this.address) {
+      codeHashByAddress = await agent.getHash(this.address)
+      if (!!expected) this.validate('codeHashByAddress', expected, codeHashByAddress)
+    }
+    if (this.codeId) {
+      codeHashByCodeId = await agent.getHash(this.codeId)
+      if (!!expected) this.validate('codeHashByCodeId', expected, codeHashByCodeId)
+    }
+    if (codeHashByAddress && codeHashByCodeId && codeHashByAddress !== codeHashByCodeId) {
+      throw new ClientError('Validation failed: different code hashes fetched by address and by code id.')
+    }
+    if (!codeHashByAddress && !codeHashByCodeId) {
+      throw new ClientError('Code hash unavailable.')
+    }
+    const codeHash = codeHashByAddress! ?? codeHashByCodeId!
+    return Object.assign(this, { codeHash })
+  }
   /** Object containing upload logic. */
   uploaderId?: string     = undefined
   /** Code ID representing the identity of the contract's code on a specific chain. */
   codeId?:     CodeId     = undefined
+  /** Retrieves the code ID corresponding to this contract's code hash.
+    * @returns `this` but with `codeId` populated. */
+  async fetchCodeId (
+    expected: CodeId|undefined, agent: Agent
+  ): Promise<this & { codeId: CodeId }> {
+    const codeHash = this.codeHash ?? (await this.fetchCodeHash(undefined, agent)).codeHash
+    const codeId   = await agent.getCodeId(this.codeHash!)
+    if (!!expected) this.validate('codeId', expected, codeId)
+    this.codeId = codeId
+    return Object.assign(this, { codeId })
+  }
   /** TXID of transaction that performed the upload. */
   uploadTx?:   TxHash     = undefined
   /** ID of chain on which this contract is uploaded. */
@@ -741,8 +804,20 @@ export class ContractMetadata {
   initMsg?:    Message    = undefined
   /** Address of this contract instance. Unique per chain. */
   address?:    Address    = undefined
+  /** Throw if trying to do something with no address. */
+  assertAddress (): Address {
+    if (!this.address) throw new ClientError.ExpectedAddress(this.constructor.name)
+    return this.address
+  }
   /** Label of this contract instance. Unique per chain. */
   label?:      Label      = undefined
+  /** Fetch the label from the chain. */
+  async fetchLabel (expected: Label|undefined, agent: Agent): Promise<this & { label: Label }> {
+    const label = await agent.getLabel(this.assertAddress())
+    if (!!expected) this.validate('label', expected, label)
+    const { name, prefix, suffix } = ContractMetadata.parseLabel(label)
+    return Object.assign(this, { label, name, prefix, suffix })
+  }
   /** Friendly name of the contract.
     * Contracts are stored in a Deployment under this name.
     * When deploying, this name is used as the basis for the unique contract label. */
@@ -756,7 +831,6 @@ export class ContractMetadata {
     * and you want to deploy a new instance which replaces the old one.
     * If defined, label becomes `name+suffix` */
   suffix?:     Name       = undefined
-
   /** Parse a label into prefix, name, and suffix. */
   static parseLabel = (label: Label): LabelFormat => {
     const matches = label.match(RE_LABEL)
@@ -789,7 +863,6 @@ export interface LabelFormat {
 /// # ACT III. CONTRACT, DEPLOYMENT ///////////////////////////////////////////////////////////////
 
 export class Contract<C extends Client> extends ContractMetadata {
-
   constructor (
     specifier?: Partial<Contract<C>>,
     overrides:  Partial<Contract<C>> = {}
@@ -799,17 +872,8 @@ export class Contract<C extends Client> extends ContractMetadata {
     if (this.builderId)  this.builder  = Builder.get(this.builderId)
     if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
   }
-
   /** Logger */
   log = new ClientConsole('Fadroma.Contract')
-  /** The agent instance that will be used to upload and instantiate this contract. */
-  agent?:      Agent      = undefined
-  /** Build procedure implementation. */
-  builder?:    Builder    = undefined
-  /** Upload procedure implementation. */
-  uploader?:   Uploader   = undefined
-  /** Deployment that this contract is a part of. */
-  deployment?: Deployment = undefined
   /** The Client subclass that exposes the contract's methods.
     * @default the base Client class. */
   client: ClientClass<C> = Client as unknown as ClientClass<C>
@@ -817,15 +881,12 @@ export class Contract<C extends Client> extends ContractMetadata {
   get asMetadata (): ContractMetadata {
     return new ContractMetadata(this)
   }
+  /** The agent instance that will be used to upload and instantiate this contract. */
+  agent?:      Agent      = undefined
   /** Throw if trying to do something with no agent. */
   assertAgent (): Agent {
     if (!this.agent) throw new ClientError.ExpectedAgent(this.constructor.name)
     return this.agent
-  }
-  /** Throw if trying to do something with no address. */
-  assertAddress (): Address {
-    if (!this.address) throw new ClientError.ExpectedAddress(this.constructor.name)
-    return this.address
   }
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   as (agent?: Agent): Contract<C> {
@@ -833,6 +894,26 @@ export class Contract<C extends Client> extends ContractMetadata {
       ? this
       : new (this.constructor as NewContract<C>)(this, { agent })
   }
+  /** Build procedure implementation. */
+  builder?:    Builder    = undefined
+  /** Throw appropriate error if not buildable. */
+  assertBuildable (builder: Builder|undefined = this.builder): Builder {
+    if (!this.crate) throw new ClientError.NoCrate()
+    if (!builder) throw new ClientError.NoBuilder()
+    //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
+    return builder
+  }
+  /** Upload procedure implementation. */
+  uploader?:   Uploader   = undefined
+  /** Return the Uploader for this Template or throw. */
+  assertUploader (uploader: Uploader|undefined = this.uploader): Uploader {
+    if (!uploader) throw new ClientError.NoUploader()
+    //if (typeof uploader === 'string') throw new ClientError.ProvideUploader(uploader)
+    if (!uploader.agent) throw new ClientError.NoUploaderAgent()
+    return uploader
+  }
+  /** Deployment that this contract is a part of. */
+  deployment?: Deployment = undefined
   /** Returns a string in the format `crate[@ref][+flag][+flag]...` */
   getSourceSpecifier (): string {
     const { crate, revision, features } = this
@@ -841,26 +922,6 @@ export class Contract<C extends Client> extends ContractMetadata {
     if (features && features.length > 0) result = `${result}+${features.join('+')}`
     return result
   }
-  /** Throw appropriate error if not buildable. */
-  assertBuildable (builder: Builder|undefined = this.builder): Builder {
-    if (!this.crate) throw new ClientError.NoCrate()
-    if (!builder) throw new ClientError.NoBuilder()
-    //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
-    return builder
-  }
-  /** Return the Uploader for this Template or throw. */
-  assertUploader (uploader: Uploader|undefined = this.uploader): Uploader {
-    if (!uploader) throw new ClientError.NoUploader()
-    //if (typeof uploader === 'string') throw new ClientError.ProvideUploader(uploader)
-    if (!uploader.agent) throw new ClientError.NoUploaderAgent()
-    return uploader
-  }
-  /** Throw if fetched metadata differs from configured. */
-  protected validate (kind: string, expected: any, actual: any) {
-    const name = this.constructor.name
-    if (expected !== actual) throw new ClientError.ValidationFailed(kind, name, expected, actual)
-    return this
-  }
   /** Uploaded templates can be passed to factory contracts in this format: */
   get asInfo (): ContractInfo {
     if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
@@ -868,39 +929,20 @@ export class Contract<C extends Client> extends ContractMetadata {
     }
     return templateStruct(this)
   }
-  /** Fetch the label, code ID, and code hash from the Chain.
-    * You can override this method to populate custom contract info from the chain
-    * for your client, e.g. fetch the symbol and decimals of a token contract.
-    * @returns the same instance of Contract, with `label`, `codeId` and `codeHash` populated. */
-  async populate (): Promise<this> {
-    this.assertAddress()
-    this.assertAgent()
-    await Promise.all([
-      this.fetchLabel(),
-      this.fetchCodeId(),
-      this.fetchCodeHashByAddress()
-    ])
-    return this
-  }
   /** Fetch the label by the address.
     * @returns `this`, but with `label`, `name`, `prefix`, `suffix` populated. */
-  async fetchLabel (expected?: CodeHash): Promise<this> {
-    const label = await this.assertAgent().getLabel(this.assertAddress())
-    if (!!expected) this.validate('label', expected, label)
-    const { name, prefix, suffix } = ContractMetadata.parseLabel(label)
-    this.name   = name
-    this.prefix = prefix
-    this.suffix = suffix
-    return this
+  async fetchLabel (expected?: Label): Promise<this & { label: Label }> {
+    return await super.fetchLabel(expected, this.assertAgent())
   }
-  /** Retrieves the code ID corresponding to this contract's code hash.
-    * @returns CodeId. */
-  fetchCodeId (expected?: CodeHash): Promise<CodeId> {
-    return this.assertAgent().getCodeId(this.codeHash!).then(codeId=>{
-      if (!!expected) this.validate('codeId', expected, codeId)
-      this.codeId = codeId
-      return codeId
-    })
+  /** Fetch the code hash by address and/or code id.
+    * @returns `this`, but with `codeHash` populated. */
+  async fetchCodeHash (expected?: CodeHash): Promise<this & { codeHash: CodeHash }> {
+    return await super.fetchCodeHash(expected, this.assertAgent())
+  }
+  /** Fetch the code hash by address and/or code id.
+    * @returns `this`, but with `codeId` populated. */
+  async fetchCodeId (expected?: CodeId): Promise<this & { codeId: CodeId }> {
+    return await super.fetchCodeId(expected, this.assertAgent())
   }
   /** Fetch code hash from address.
     * @returns code hash corresponding to `this.address` */
@@ -1311,9 +1353,7 @@ export class Deployment extends CommandContext {
   }
   /** Chainable. Add multiple entries to the deployment, replacing existing receipts. */
   setMany (receipts: Record<string, any>): this {
-    for (const [name, receipt] of Object.entries(receipts)) {
-      this.state[name] = receipt
-    }
+    for (const [name, receipt] of Object.entries(receipts)) this.state[name] = receipt
     this.save()
     return this
   }
