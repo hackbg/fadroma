@@ -1032,33 +1032,33 @@ export class Contract<C extends Client> extends ContractMetadata {
       ?? (this.codeId && `code id ${this.codeId}`)
       ?? (this.crate  && `crate ${this.crate}`)
       ?? 'a contract'
-    name = `deploy ${name} (${inits.length} instances)`
-    return this.task(name, (): Promise<C[]> => {
+    name = `deploy ${name}`
+    return this.task(name, async (): Promise<C[]> => {
+      // get the inits if passed lazily
+      if (typeof inits === 'function') inits = await Promise.resolve(inits())
       if (inits.length === 0) return Promise.resolve([])
       const agent = this.agent
       if (!agent) throw new ClientError.NoCreator(this.name)
       return this.upload().then(async (contract: Contract<C>)=>{
         // at this point we should have a code id
         if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
-        // get the inits if passed lazily
-        if (typeof inits === 'function') inits = await Promise.resolve(inits())
         // add deployment prefix
-        const prefixedInits = inits.map(([label, msg])=>[
+        const prefixedInits = (inits as DeployArgs[]).map(([label, msg])=>[
           this.deployment ? `${this.deployment.name}/${label}` : label,
           msg
-        ] as [Label, Message])
+        ] as DeployArgs)
         try {
           const responses = await agent.instantiateMany(contract, prefixedInits)
           const clients = responses.map(({ address })=>
             new this.client(this.agent, address, this.codeHash, this.asMetadata))
           if (this.deployment) {
-            for (const i in inits) {
-              this.deployment.add(inits[i][0], clients[i].meta)
+            for (const i in (inits as DeployArgs[])) {
+              this.deployment.add((inits as DeployArgs[])[i][0], clients[i].meta)
             }
           }
           return clients
         } catch (e) {
-          this.log.deployManyFailed(contract, inits, e as Error)
+          this.log.deployManyFailed(contract, (inits as DeployArgs[]), e as Error)
           throw e
         }
       })
