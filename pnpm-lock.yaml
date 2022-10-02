@@ -194,7 +194,7 @@ importers:
   packages/tokens:
     specifiers:
       '@fadroma/client': workspace:^6.1.2
-      '@fadroma/scrt': workspace:^4
+      '@fadroma/scrt': workspace:^4.0.1
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/konzola': workspace:^2.1
     dependencies:
@@ -222,31 +222,31 @@ importers:
       '@hackbg/konzola': workspace:^2.1
       '@types/ungap__structured-clone': ^0.3.0
       '@ungap/structured-clone': ^1.0.1
-      secretjs: 1.4.1
+      secretjs: 1.4.3
     dependencies:
       '@fadroma/client': link:../../packages/client
       '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/konfizi': link:../../toolbox/konfizi
       '@hackbg/konzola': link:../../toolbox/konzola
       '@ungap/structured-clone': 1.0.1
-      secretjs: 1.4.1
+      secretjs: 1.4.3
     devDependencies:
       '@hackbg/ensuite': 1.0.2
       '@types/ungap__structured-clone': 0.3.0
 
   platforms/scrt-amino:
     specifiers:
-      '@fadroma/scrt': workspace:^4.0
+      '@fadroma/scrt': workspace:^4.0.1
       '@hackbg/formati': workspace:^5.1.1
       axios: 0.26.0
       exponential-backoff: ^3.1.0
-      secretjs: 0.17.5
+      secretjs-old: 0.17.8
     dependencies:
       '@fadroma/scrt': link:../scrt
       '@hackbg/formati': link:../../toolbox/formati
       axios: 0.26.0
       exponential-backoff: 3.1.0
-      secretjs: 0.17.5
+      secretjs-old: 0.17.8
 
   shim:
     specifiers: {}
@@ -991,13 +991,8 @@ packages:
     resolution: {integrity: sha512-46yIhxSe5xEaJZXWdIBP7GU4HDTG8/eo0qd9atdiL+lFpA03y8KS+lkTN834TWJj5767GbWv4n/P6efyTFt1Dw==}
     dev: true
 
-  /@types/node/18.7.18:
-    resolution: {integrity: sha512-m+6nTEOadJZuTPkKR/SYK3A2d7FZrgElol9UP1Kae90VVU4a6mxnPuLiIW1m4Cq4gZ/nWb9GrdVXJCoCazDAbg==}
-    dev: false
-
   /@types/node/18.7.23:
     resolution: {integrity: sha512-DWNcCHolDq0ZKGizjx2DZjR/PqsYwAcYUJmfMWqtVU2MBMG5Mo+xFZrhGId5r/O5HOuMPyQEcM6KUBp5lBZZBg==}
-    dev: true
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}
@@ -2912,7 +2907,7 @@ packages:
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
       '@types/long': 4.0.2
-      '@types/node': 18.7.18
+      '@types/node': 18.7.23
       long: 4.0.0
     dev: false
 
@@ -3168,8 +3163,8 @@ packages:
   /safer-buffer/2.1.2:
     resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
 
-  /secretjs/0.17.5:
-    resolution: {integrity: sha512-sf0+Je9KIEMQr/wJOgeqyBOV0ruiMNHSwP4L2vXiJbtzJWQqyVHyPkpavAhruNZ+91XlSzAFP2X5MPxqPBC9fQ==}
+  /secretjs-old/0.17.8:
+    resolution: {integrity: sha512-m4R+6T7jC0k3xBqY0wldV/rFnHvkUSMJQ9UXKNEJfU5Cge/BXe0e3bZMsR/eBCJjSQi8MtJmcfkpf/mmqhiQng==}
     dependencies:
       '@iov/crypto': 2.1.0
       '@iov/encoding': 2.1.0
@@ -3186,8 +3181,8 @@ packages:
       - debug
     dev: false
 
-  /secretjs/1.4.1:
-    resolution: {integrity: sha512-/+7GpnI7QczcpATx/REDvbvlhfIPAR06vQvclfawo7B1FSZZ6uz8qd+DhULZJJ1JMlIL419qsLtTuN222tU+ag==}
+  /secretjs/1.4.3:
+    resolution: {integrity: sha512-IDhoPWg1Nra7ji3FU07ZHbxkp1S5uQnbLsDNj/t6Q9M9wysxv/BZafHnoEkAcB7FYYwOkxs5RxnSAZ2oiJORPw==}
     dependencies:
       '@cosmjs/encoding': 0.27.1
       '@cosmjs/math': 0.27.1

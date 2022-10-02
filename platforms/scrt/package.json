@@ -1,6 +1,6 @@
 {
   "name":    "@fadroma/scrt",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "type":    "module",
   "main":    "scrt.ts",
   "files": [ "*.ts" ],
@@ -10,7 +10,7 @@
     "@hackbg/konzola": "workspace:^2.1",
     "@hackbg/konfizi": "workspace:^3.0.1",
 
-    "secretjs": "1.4.1",
+    "secretjs": "1.4.3",
 
     "@ungap/structured-clone": "^1.0.1"
   },

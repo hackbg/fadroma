@@ -1,4 +1,4 @@
-import * as SecretJS from 'secretjs' // this implementation uses secretjs 0.17.x
+import * as SecretJS from 'secretjs-old' // this implementation uses secretjs 0.17.x
 import { default as Axios, AxiosInstance } from 'axios'
 
 /** This is the latest version of the SigningCosmWasmClient async broadcast/retry patch. */

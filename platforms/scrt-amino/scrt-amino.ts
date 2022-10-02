@@ -16,7 +16,7 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import * as SecretJS from 'secretjs' // this implementation uses secretjs 0.17.5
+import * as SecretJS from 'secretjs-old' // this implementation uses secretjs 0.17
 import * as Fadroma  from '@fadroma/scrt'
 import { utf8, base64, bip39, bip39EN }  from '@hackbg/formati'
 import { backOff } from 'exponential-backoff'
