@@ -235,8 +235,8 @@ export class TokenManager extends CommandContext {
   }
   /** Get or deploy a Snip20 token and add it to the registry. */
   deploy (
-    symbol:  TokenSymbol,
-    options: {
+    symbol:   TokenSymbol,
+    options?: {
       template?: Partial<Contract<Snip20>>
       name:      string
       decimals:  number
@@ -246,7 +246,12 @@ export class TokenManager extends CommandContext {
   ): Promise<Snip20> {
     const deployment = this.getContext()
     if (!deployment) throw new Error('Token manager: no deployment')
-    const { name, decimals, admin, config } = options
+    const {
+      name     = symbol,
+      decimals = 8,
+      admin    = deployment.agent!.address!,
+      config
+    } = options ?? {}
     const template = options?.template ?? this.template
     const token    = deployment.contract(template)
     token.name     = name

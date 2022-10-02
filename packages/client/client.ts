@@ -749,6 +749,12 @@ export class ContractMetadata {
   artifact?:   string|URL = undefined
   /** Code hash uniquely identifying the compiled code. */
   codeHash?:   CodeHash   = undefined
+  /** Return the code hash.
+    * @throws LinkNoCodeHash if missing. */
+  assertCodeHash (): CodeHash {
+    if (!this.codeHash) throw new ClientError.LinkNoCodeHash()
+    return this.codeHash
+  }
   /** Fetch the code hash by id and by address, and compare them. */
   async fetchCodeHash (
     expected: CodeHash|undefined, agent: Agent
@@ -807,6 +813,13 @@ export class ContractMetadata {
   assertAddress (): Address {
     if (!this.address) throw new ClientError.ExpectedAddress(this.constructor.name)
     return this.address
+  }
+  /** Get link to this contract in Fadroma ICC format. */
+  get asLink (): ContractLink {
+    return {
+      address:   this.assertAddress(),
+      code_hash: this.assertCodeHash()
+    }
   }
   /** Label of this contract instance. Unique per chain. */
   label?:      Label      = undefined
@@ -963,7 +976,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Lazily get a contract from the deployment.
     * @returns a Lazy invocation of getClient, or a Promise if not in task context */
-  get (): Promise<C> {
+  get (): Task<Contract<C>, C> {
     return this.task(`get    ${this.name??'contract'}`, () => this.getClient())
   }
   /** Async wrapper around getClientSync.
@@ -991,10 +1004,27 @@ export class Contract<C extends Client> extends ContractMetadata {
     }
     return null
   }
+  getMany (
+    /** Filter predicate for selecting specific contracts. */
+    predicate: (meta: Partial<ContractMetadata>)=>boolean|undefined,
+    info: string = `get all contracts matching specified predicate`
+  ): Task<Contract<C>, C[]> {
+    const deployment = this.deployment
+    if (!deployment) throw new ClientError.NoDeployment()
+    return this.task(info, () => {
+      const clients: C[] = []
+      for (const meta of Object.values(deployment.state)) {
+        if (predicate(meta)) {
+          clients.push(new Contract(this, meta).getClientSync())
+        }
+      }
+      return Promise.resolve(clients)
+    })
+  }
   /** Deploy the contract, or retrieve it if it's already deployed. */
   deploy (
     initMsg: IntoMessage|undefined = this.initMsg
-  ): Promise<C> {
+  ): Task<Contract<C>, C> {
     return this.task(`get or deploy ${this.name ?? 'contract'}`, () => {
       const deployed = this.getClientOrNull()
       if (deployed) {
@@ -1027,7 +1057,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   /** Deploy multiple instances of the same code. */
   deployMany (
     inits: (DeployArgs[])|(()=>DeployArgs[])|(()=>Promise<DeployArgs[]>)
-  ): Promise<C[]> {
+  ): Task<Contract<C>, C[]> {
     let name = this.name
       ?? (this.codeId && `code id ${this.codeId}`)
       ?? (this.crate  && `crate ${this.crate}`)
@@ -1095,7 +1125,7 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Compile the source using the selected builder.
     * @returns this */
-  build (builder: Builder = this.assertBuildable()): Promise<Contract<C>> {
+  build (builder: Builder = this.assertBuildable()) {
     const name = 'build  ' + this.getSourceSpecifier()
     return this.task(name, async (): Promise<Contract<C>> => {
       if (this.artifact) return this
@@ -1152,10 +1182,12 @@ export function addressOf (instance?: { address?: Address }): Address {
   return instance.address
 }
 
-/** Group of interrelated contracts sharing the same prefix.
+export type DeploymentState = Record<string, Partial<Contract<any>>>
+
+/** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
-export class Deployment extends CommandContext {
+export class Deployment extends CommandContext implements Set<Contract<any>> {
 
   constructor (options: Partial<Deployment> & any = {}) {
     super(options.name ?? 'Deployment')
@@ -1169,13 +1201,20 @@ export class Deployment extends CommandContext {
     this.revision  = options.revision     ?? this.revision
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
     Object.defineProperty(this, 'state', { enumerable: false, writable: true })
+
+    this.addCommand('build', 'build all required contracts',
+                    () => this.buildMany([]))
+    this.addCommand('upload', 'upload all required contracts',
+                    () => this.buildMany([]).then(this.uploadMany))
   }
+
   /** Name of deployment. Used as label prefix of deployed contracts. */
   name:        string = timestamp()
   /** Mapping of names to contract instances. */
-  state:       Record<string, Partial<Contract<any>>> = {}
+  state:       DeploymentState = {}
   /** Number of contracts in deployment. */
   get size () { return Object.keys(this.state).length }
+
   /** Default Git ref from which contracts will be built if needed. */
   repository?: string = undefined
   /** Default Cargo workspace from which contracts will be built if needed. */
@@ -1184,13 +1223,30 @@ export class Deployment extends CommandContext {
   revision?:   string = 'HEAD'
   /** Build implementation. Contracts can't be built from source if this is missing. */
   builder?:    Builder
+  /** Build multiple contracts. */
+  async buildMany (contracts: (string|Contract<any>)[]): Promise<Contract<any>[]> {
+    if (!this.builder) throw new ClientError.NoBuilder()
+    if (contracts.length === 0) return Promise.resolve([])
+    contracts = contracts.map(contract=>{
+      if (typeof contract === 'string') return this.contract({ crate: contract })
+      return contract
+    })
+    const count = (contracts.length > 1)
+      ? `${contracts.length} contract: `
+      : `${contracts.length} contracts:`
+    const sources = (contracts as Contract<any>[])
+      .map(contract=>`${contract.crate}@${contract.revision}`)
+      .join(', ')
+    return this.task(`build ${count} ${sources}`, () => {
+      if (!this.builder) throw new ClientError.NoBuilder()
+      return this.builder.buildMany(contracts)
+    })
+  }
+
   /** Agent to use when deploying contracts. */
   agent?:      Agent
   /** Chain on which operations are executed. */
   chain?:      Chain
-  /** Upload implementation. Contracts can't be uploaded if this is missing --
-    * except by using `agent.upload` directly, which does not cache or log uploads. */
-  uploader?:   Uploader
   /** True if the chain is a devnet or mocknet */
   get devMode   (): boolean { return this.chain?.devMode   ?? false }
   /** = chain.isMainnet */
@@ -1202,24 +1258,26 @@ export class Deployment extends CommandContext {
   /** = chain.isMocknet */
   get isMocknet (): boolean { return this.chain?.isMocknet ?? false }
 
-  /** Build multiple contracts. */
-  async buildMany (contracts: (string|Contract<any>)[]): Promise<Contract<any>[]> {
-    if (!this.builder) throw new ClientError.NoBuilder()
-    contracts = contracts.map(contract=>{
-      if (typeof contract === 'string') return this.contract({ crate: contract })
-      return contract
-    })
-    return await this.builder.buildMany(contracts)
-  }
+  /** Upload implementation. Contracts can't be uploaded if this is missing --
+    * except by using `agent.upload` directly, which does not cache or log uploads. */
+  uploader?:   Uploader
+
   /** Upload multiple contracts to the chain.
     * @returns the same contracts, but with `chainId`, `codeId` and `codeHash` populated. */
   async uploadMany (contracts: Contract<any>[]): Promise<Contract<any>[]> {
     if (!this.uploader) throw new ClientError.NoUploader()
+    if (contracts.length === 0) return Promise.resolve([])
     contracts = contracts.map(contract=>{
       if (typeof contract === 'string') return this.contract({ crate: contract })
       return contract
     })
-    return this.uploader.uploadMany(contracts)
+    const count = (contracts.length > 1)
+      ? `${contracts.length} contract: `
+      : `${contracts.length} contracts:`
+    return this.task(`upload ${count} artifacts`, () => {
+      if (!this.uploader) throw new ClientError.NoUploader()
+      return this.uploader.uploadMany(contracts)
+    })
   }
 
   /** Specify a contract with optional client class and metadata.
@@ -1367,24 +1425,29 @@ export class Deployment extends CommandContext {
   subsystem <X extends Deployment>(
     name: string,
     info: string,
-    ctor: Subsystem<X>,
+    ctor: Subsystem<X, typeof this>,
     ...args: unknown[]
   ): X {
+    return this.attach(new ctor(this, ...args) as X, name, info)
+  }
+
+  attach <X extends Deployment> (
+    inst: X,
+    name: string = inst.constructor.name,
+    info: string = `(undocumented)`,
+  ) {
     const context = this
-    const sub = this.commands(name, info, new ctor(this, ...args)) as X
-    // The subsystem's `name`, `state` and `save` properties
-    // are made to inherit those of the parent Deployment.
-    Object.defineProperty(sub, 'name', {
+    Object.defineProperty(inst, 'name', {
       enumerable: true,
       get () { return context.name }
     })
-    Object.defineProperty(sub, 'state', {
+    Object.defineProperty(inst, 'state', {
       get () { return context.state }
     })
-    Object.defineProperty(sub, 'save', {
+    Object.defineProperty(inst, 'save', {
       get () { return context.save.bind(context) }
     })
-    return sub
+    return inst
   }
 
 }
@@ -1394,7 +1457,9 @@ export class Deployment extends CommandContext {
   * other arguments. This interface can be used to connect the main project class to individual
   * deployer classes for different parts of the project, enabling them to operate in the same
   * context (chain, agent, builder, uploader, etc). */
-export interface Subsystem<D extends Deployment> extends Class<D, [Deployment, ...unknown[]]> {}
+export interface Subsystem<D extends Deployment, E extends Deployment> extends Class<D, [
+  E, ...unknown[]
+]> {}
 
 export class VersionedDeployment<V> extends Deployment {
   constructor (

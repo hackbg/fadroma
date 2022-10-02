@@ -32,11 +32,13 @@ import { createContext } from 'node:vm'
 
 /** Context for Fadroma commands. */
 export default class Fadroma extends Deployer {
+
   /** @returns a function that runs a requested command. */
   static run (projectName: string = 'Fadroma'): AsyncEntrypoint {
     const self = this
     return (argv: string[]) => self.init(projectName).then(context=>context.run(argv))
   }
+
   /** Constructs a populated instance of the Fadroma context. */
   static async init (
     projectName: string = 'Fadroma',
@@ -45,27 +47,59 @@ export default class Fadroma extends Deployer {
     const config = new Config(process.env, process.cwd(), options)
     return config.getDeployer(this as DeployerClass<Deployer>) as unknown as Fadroma
   }
+
   constructor (options: Partial<Fadroma> = { config: new Config() }) {
     super(options as Partial<Deployer>)
     this.log.name  = this.projectName
     this.config    = new Config(this.env, this.cwd, options.config)
     this.workspace = this.config.project
     this.builder ??= this.config?.build?.getBuilder()
+    this.addCommand('repl',   'interact with this project from a Node.js REPL',
+                    () => this.startREPL())
+    this.addCommand('update', 'update the current deployment',
+                    () => this.selectDeployment().then(()=>this.update()))
+    this.addCommand('deploy', 'create a new deployment of this project',
+                    () => this.deploy())
   }
+
+  /** Override this to set your project name. */
   projectName: string = 'Fadroma'
+
   /** The current configuration. */
   config: Config
-  repl = this.command('repl', 'interact with this project from a Node.js REPL',
-    async function startREPL () {
-      setTimeout(()=>{
-        const r = repl.start({ prompt: '\nFadroma> ' })
-        Object.assign(r, { context: createContext(this) }) // da ne mrunka
-      })
-    })
+
   /** The token manager API. */
   tokens: TokenManager = this.commands(
     'tokens', 'Fadroma Token Manager', new TokenManager(()=>this as Deployment)
   )
+
+  token (symbol: string) {
+    return this.tokens.deploy(symbol, {})
+  }
+
+  /** Override this to implement your pre-deploy procedure. */
+  async deploy () {
+    await this.createDeployment()
+    await this.update()
+  }
+
+  /** Override this to implement your deploy/update procedure. */
+  async update () {
+    this.log.info('Fadroma#update: override this method with your deploy/update procedure.')
+  }
+
+  /** Start an interactive REPL. */
+  async startREPL () {
+    setTimeout(()=>Object.assign(
+      repl.start({ prompt: '\nFadroma> ' }),
+      { context: this.replContext() }
+    ))
+  }
+
+  protected replContext () {
+    return createContext(this)
+  }
+
 }
 
 /** Configuration for the Fadroma environment. */
