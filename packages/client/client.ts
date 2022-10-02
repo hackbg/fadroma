@@ -1141,7 +1141,31 @@ export class Contract<C extends Client> extends ContractMetadata {
     task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
     return task
   }
-
+  /** Provide parameters for an existing contract.
+    * @returns the modified contract. */
+  provide (options: Partial<Contract<C>>): Contract<C> {
+    // Apply property overrides
+    override<Contract<C>>(this, { ...options })
+    // If this Contract is now part of a Deployment,
+    // inherit the prefix from the deployment.
+    if (this.deployment) {
+      const self = this
+      const setPrefix = (contract: Contract<C>, value: string) =>
+        Object.defineProperty(contract, 'prefix', {
+          enumerable: true,
+          get () { return contract.deployment?.name },
+          set (v: string) {
+            if (v !== contract.deployment?.name) (this.log??self.log).warn(
+              `BUG: Overriding prefix of contract from deployment "${contract.deployment?.name}" to be "${v}"`
+            )
+            setPrefix(contract, v)
+          }
+        })
+      setPrefix(this, this.deployment.name)
+    }
+    // Return the modified Contract
+    return this
+  }
 }
 
 export interface ContractInfo {
@@ -1187,7 +1211,7 @@ export type DeploymentState = Record<string, Partial<Contract<any>>>
 /** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
-export class Deployment extends CommandContext implements Set<Contract<any>> {
+export class Deployment extends CommandContext implements Map<Name, Contract<any>> {
 
   constructor (options: Partial<Deployment> & any = {}) {
     super(options.name ?? 'Deployment')
@@ -1333,25 +1357,13 @@ export class Deployment extends CommandContext implements Set<Contract<any>> {
       workspace:  this.workspace,
       ...((typeof arg === 'string') ? { name: arg } : arg)
     }
+    // If a contract with this name exists in the deploymet,
+    // inherit properties from it. TODO just return the same contract
     if (options.name && this.has(options.name)) {
       const existing = this.get(options.name)
       options = { ...existing, ...options }
     }
-    const contract = new Contract(options)
-    const self = this
-    const setPrefix = (contract: Contract<C>, value: string) =>
-      Object.defineProperty(contract, 'prefix', {
-        enumerable: true,
-        get () { return contract.deployment?.name },
-        set (v: string) {
-          if (v !== contract.deployment?.name) (this.log??self.log).warn(
-            `BUG: Overriding prefix of contract from deployment "${contract.deployment?.name}" to be "${v}"`
-          )
-          setPrefix(contract, v)
-        }
-      })
-    setPrefix(contract, self.name)
-    return contract
+    return new Contract().provide(options as Partial<Contract<Client>>)
   }
 
   /** Specify multiple contracts.
