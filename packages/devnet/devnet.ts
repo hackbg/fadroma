@@ -1,5 +1,5 @@
 import $, { JSONFile, JSONDirectory, OpaqueDirectory } from '@hackbg/kabinet'
-import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
+import { CustomError, bold } from '@hackbg/konzola'
 import { EnvConfig } from '@hackbg/konfizi'
 import { CommandContext } from '@hackbg/komandi'
 import { freePort, waitPort, Endpoint } from '@hackbg/portali'

@@ -26,6 +26,7 @@ import type { DeployerClass } from '@fadroma/deploy'
 import { DevnetConfig } from '@fadroma/devnet'
 import { ScrtGrpc, ScrtAmino } from '@fadroma/connect'
 import { TokenManager } from '@fadroma/tokens'
+import type { TokenOptions, Snip20 } from '@fadroma/tokens'
 
 import repl from 'node:repl'
 import { createContext } from 'node:vm'
@@ -70,12 +71,8 @@ export default class Fadroma extends Deployer {
 
   /** The token manager API. */
   tokens: TokenManager = this.commands(
-    'tokens', 'Fadroma Token Manager', new TokenManager(()=>this as Deployment)
+    'tokens', 'Fadroma Token Manager', new TokenManager(this as Deployment)
   )
-
-  token (symbol: string) {
-    return this.tokens.deploy(symbol, {})
-  }
 
   /** Override this to implement your pre-deploy procedure. */
   async deploy () {

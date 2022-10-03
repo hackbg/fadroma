@@ -382,13 +382,11 @@ export abstract class Agent {
   instantiateMany (template: Contract<any>, instances: DeployArgs[]):
     Promise<Contract<any>[]>
   async instantiateMany <C, D> (template: Contract<any>, instances: C): Promise<D> {
-    const inits:   [string, DeployArgs][] =
-      Object.entries(instances)
+    const inits: [string, DeployArgs][] = Object.entries(instances)
     const results: Contract<any>[] =
       await Promise.all(inits.map(([key, [label, initMsg]])=>
         this.instantiate(new Contract(template), label, initMsg)))
-    const outputs: any =
-      ((instances instanceof Array) ? [] : {}) as C
+    const outputs: any = ((instances instanceof Array) ? [] : {}) as D
     for (const i in inits) {
       const [key]  = inits[i]
       const result = results[i]
@@ -709,6 +707,11 @@ export class Client {
     opt.fee = opt.fee || this.getFee(msg)
     return await this.agent!.execute(this, msg, opt)
   }
+
+  /** Create a Contract object from this client. */
+  get asContract (): Contract<typeof this> {
+    return new Contract({...this.meta, client: this.constructor as ClientClass<typeof this>})
+  }
 }
 
 export interface NewContract<C extends Client> {
@@ -943,18 +946,18 @@ export class Contract<C extends Client> extends ContractMetadata {
   }
   /** Fetch the label by the address.
     * @returns `this`, but with `label`, `name`, `prefix`, `suffix` populated. */
-  async fetchLabel (expected?: Label): Promise<this & { label: Label }> {
-    return await super.fetchLabel(expected, this.assertAgent())
+  async fetchLabel (expected?: Label, agent = this.assertAgent()): Promise<this & { label: Label }> {
+    return await super.fetchLabel(expected, agent)
   }
   /** Fetch the code hash by address and/or code id.
     * @returns `this`, but with `codeHash` populated. */
-  async fetchCodeHash (expected?: CodeHash): Promise<this & { codeHash: CodeHash }> {
-    return await super.fetchCodeHash(expected, this.assertAgent())
+  async fetchCodeHash (expected?: CodeHash, agent = this.assertAgent()): Promise<this & { codeHash: CodeHash }> {
+    return await super.fetchCodeHash(expected, agent)
   }
   /** Fetch the code hash by address and/or code id.
     * @returns `this`, but with `codeId` populated. */
-  async fetchCodeId (expected?: CodeId): Promise<this & { codeId: CodeId }> {
-    return await super.fetchCodeId(expected, this.assertAgent())
+  async fetchCodeId (expected?: CodeId, agent = this.assertAgent()): Promise<this & { codeId: CodeId }> {
+    return await super.fetchCodeId(expected, agent)
   }
   /** Fetch code hash from address.
     * @returns code hash corresponding to `this.address` */
@@ -1393,6 +1396,7 @@ export class Deployment extends CommandContext implements Map<Name, Contract<any
       .filter(([key, val])=>predicate(key, val))
       .map(([name, data])=>new Contract({ name, ...data }))
   }
+
   /** Check if the deployment contains a certain entry. */
   has (name: string): boolean {
     return !!this.state[name]
