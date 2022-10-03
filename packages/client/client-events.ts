@@ -71,9 +71,7 @@ export class ClientError extends CustomError {
   static Unpopulated = this.define('Unpopulated',
     () => "template.codeId and template.codeHash must be defined to use template.asLink")
   static ExpectedAddress = this.define('ExpectedAddress', (name: string) =>
-    `${name} has no address and can't operate.` +
-    ` Pass an address with "new ${name}(agent, address)" ` +
-    ` or "new ${name}({ address })"`)
+    `${name} has no address and can't operate.`)
   static ExpectedAgent = this.define('ExpectedAgent', (name: string) =>
     `${name} has no agent and can't operate. `+
     `Pass an address when calling "new ${name}(agent, addr)"`)
