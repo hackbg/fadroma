@@ -27,8 +27,10 @@ export class ClientError extends CustomError {
     (id: string) => `No builder with id "${id}". Make sure @fadroma/build is imported`)
   static NoUploaderNamed = this.define('NoUploaderNamed',
     (id: string) => `No uploader with id "${id}". Make sure @fadroma/deploy is imported`)
+  static NoAddress = this.define('NoAddress',
+    () => 'No address provided')
   static NoChain = this.define('NoChain',
-    () => "This agent has no chain")
+    () => "No chain specified")
   static NoChainId = this.define('NoChainId',
     () => "No chain ID specified")
   static NoCodeHash = this.define('NoCodeHash',

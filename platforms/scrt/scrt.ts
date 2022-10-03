@@ -47,13 +47,14 @@ export abstract class Scrt extends Chain {
   static isSecretNetwork: boolean = true
   static defaultDenom:    string  = 'uscrt'
   static gas (amount: Uint128|number) { return new Fee(amount, this.defaultDenom) }
-  static defaultFees  = {
-    upload: this.gas(10000000),
-    init:   this.gas(10000000),
-    exec:   this.gas(10000000),
-    send:   this.gas(10000000),
+  static defaultFees = {
+    upload: this.gas(1000000),
+    init:   this.gas(1000000),
+    exec:   this.gas(1000000),
+    send:   this.gas(1000000),
   }
 
+  log = new ScrtConsole('Scrt')
   Agent: AgentClass<ScrtAgent> = Scrt.Agent
   isSecretNetwork: boolean = Scrt.isSecretNetwork
   defaultDenom:    string  = Scrt.defaultDenom
@@ -68,6 +69,7 @@ export interface ScrtAgentOpts extends AgentOpts {
 /** Base class for both implementations of Secret Network API (gRPC and Amino).
   * Represents a connection to the Secret Network authenticated as a specific address. */
 export abstract class ScrtAgent extends Agent {
+  log = new ScrtConsole('ScrtAgent')
   static Bundle: BundleClass<ScrtBundle>
   Bundle: BundleClass<ScrtBundle> =
     ((this.constructor as AgentClass<Agent>).Bundle) as BundleClass<ScrtBundle>
@@ -256,7 +258,7 @@ export class ScrtGrpc extends Scrt {
     // Use selected secretjs implementation
     const _SecretJS = chain.SecretJS ?? SecretJS
     // Unwrap base options
-    let { name, address, mnemonic, keyPair, wallet } = options
+    let { name, address, mnemonic, wallet, fees } = options
     // Create wallet from mnemonic if a wallet is not passed
     if (!wallet) {
       if (name && chain.isDevnet && chain.node) {
@@ -268,24 +270,35 @@ export class ScrtGrpc extends Scrt {
       } else {
         throw new ScrtError.NoWalletOrMnemonic()
       }
-    } else {
-      if (mnemonic) {
-        log.warnIgnoringMnemonic()
+    } else if (mnemonic) {
+      log.warnIgnoringMnemonic()
+    }
+    // Construct the API client
+    const api = await this.getApi({
+      chainId:         chain.id,
+      grpcWebUrl:      chain.url,
+      wallet,
+      walletAddress:   wallet.address || address,
+      encryptionUtils: options.encryptionUtils
+    })
+    // If fees are not specified, get default fees from API
+    if (!fees) {
+      fees = Scrt.defaultFees
+      try {
+        const { param } = await api.query.params.params({ subspace: "baseapp", key: "BlockParams" })
+        const { max_bytes, max_gas } = JSON.parse(param?.value??'{}')
+        fees = {
+          upload: Scrt.gas(max_gas),
+          init:   Scrt.gas(max_gas),
+          exec:   Scrt.gas(max_gas),
+          send:   Scrt.gas(max_gas),
+        }
+      } catch (e) {
+        this.log.warnCouldNotFetchBlockLimit(Object.values(fees))
       }
     }
     // Construct final options object
-    options = {
-      ...options,
-      SecretJS: _SecretJS,
-      wallet,
-      api: await this.getApi({
-        chainId:         chain.id,
-        grpcWebUrl:      chain.url,
-        wallet,
-        walletAddress:   wallet.address || address,
-        encryptionUtils: options.encryptionUtils
-      })
-    }
+    options = { name, address, mnemonic, api, wallet, fees }
     // Don't pass this down to the agent options because the API should already have it
     delete options.encryptionUtils
     // Construct agent
@@ -339,26 +352,24 @@ export class ScrtGrpcAgent extends ScrtAgent {
     // Optional: enable simulation to establish gas amounts
     this.simulate = options.simulate ?? this.simulate
   }
-  Bundle:   BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
-  wallet:   SecretJS.Wallet
-  api:      SecretJS.SecretNetworkClient
+  log = new ScrtConsole('ScrtGrpcAgent')
+  Bundle: BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
+  wallet: SecretJS.Wallet
+  api: SecretJS.SecretNetworkClient
   simulate: boolean = false
   get account () {
-    if (!this.address) throw new Error("No address")
-    return this.api.query.auth.account({ address: this.address })
+    return this.api.query.auth.account({ address: this.assertAddress() })
   }
   get balance () {
-    if (!this.address) throw new Error("No address")
-    return this.getBalance(this.defaultDenom, this.address)
+    return this.getBalance(this.defaultDenom, this.assertAddress())
   }
   async getBalance (denom = this.defaultDenom, address: Address) {
     const response = await this.api.query.bank.balance({ address, denom })
     return response.balance!.amount
   }
   async send (to: Address, amounts: ICoin[], opts?: any) {
-    if (!this.address) throw new Error("No address")
     return this.api.tx.bank.send({
-      fromAddress: this.address,
+      fromAddress: this.assertAddress(),
       toAddress:   to,
       amount:      amounts
     }, {

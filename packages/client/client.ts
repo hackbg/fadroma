@@ -299,8 +299,20 @@ export abstract class Agent {
   log = new ClientConsole('Fadroma.Agent')
   /** The chain on which this agent operates. */
   chain?:   Chain
+  /** @returns this.chain if set
+    * @throws NoChainClientError if not set */
+  assertChain (): Chain {
+    if (!this.chain) throw new ClientError.NoChain()
+    return this.chain
+  }
   /** The address from which transactions are signed and sent. */
   address?: Address
+  /** @returns this.address if set
+    * @throws NoChainClientError if not set */
+  assertAddress (): Address {
+    if (!this.address) throw new ClientError.NoAddress()
+    return this.address
+  }
   /** The friendly name of the agent. */
   name?:    string
   /** Default fee maximums for send, upload, init, and execute. */
@@ -311,12 +323,6 @@ export abstract class Agent {
   /** The default denomination in which the agent operates. */
   get defaultDenom () {
     return this.assertChain().defaultDenom
-  }
-  /** @returns this.chain if set
-    * @throws NoChainClientError if not set */
-  assertChain (): Chain {
-    if (!this.chain) throw new ClientError.NoChain()
-    return this.chain
   }
   /** Get the balance of this or another address. */
   getBalance (denom = this.defaultDenom, address = this.address): Promise<string> {

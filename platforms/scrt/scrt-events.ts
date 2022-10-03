@@ -1,7 +1,10 @@
-import type { Address, ChainId } from '@fadroma/client'
-import { CustomConsole, CustomError, bold } from '@hackbg/konzola'
+import type { Address, ChainId, Fee } from '@fadroma/client'
+import { ClientConsole } from '@fadroma/client'
+import { CustomError, bold } from '@hackbg/konzola'
 
 export class ScrtError extends CustomError {
+  static NoAddress = this.define('NoAddress',
+    () => 'No address provided')
   static UseAmino = this.define('UseAmino',
     () => 'Use @fadroma/scrt-amino for the legacy API')
   static NoWalletOrMnemonic = this.define('NoWalletOrMnemonic',
@@ -20,7 +23,7 @@ export class ScrtError extends CustomError {
     () => 'Missing code hash')
 }
 
-export class ScrtConsole extends CustomConsole {
+export class ScrtConsole extends ClientConsole {
   name = '@fadroma/scrt'
   warnIgnoringKeyPair = () =>
     this.warn('ScrtGrpcAgent: Ignoring keyPair (only supported by ScrtAminoAgent)')
@@ -28,6 +31,9 @@ export class ScrtConsole extends CustomConsole {
     this.warn('ScrtGrpcAgent: Created from wallet, ignoring mnemonic')
   warnNoMemos = () =>
     this.warn("ScrtGrpcAgent: Transaction memos are not supported in SecretJS RPC API")
+  warnCouldNotFetchBlockLimit = (fees: Fee[]) =>
+    this.warn("ScrtGrpc: Could not fetch block gas limit, defaulting to:",
+      fees.map(fee=>fee.gas).join('/'))
   bundleMessages = (msgs: any, N: number) => {
     this.info(`\nMessages in bundle`, `#${N}:`)
     this.br()
