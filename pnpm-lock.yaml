@@ -193,8 +193,8 @@ importers:
 
   packages/tokens:
     specifiers:
-      '@fadroma/client': workspace:^6.1.2
-      '@fadroma/scrt': workspace:^4.0.1
+      '@fadroma/client': workspace:^6.2
+      '@fadroma/scrt': workspace:^4.1
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/konzola': workspace:^2.1
     dependencies:
@@ -215,7 +215,7 @@ importers:
 
   platforms/scrt:
     specifiers:
-      '@fadroma/client': workspace:^6.1.2
+      '@fadroma/client': workspace:^6.2.0
       '@hackbg/ensuite': ^1.0.2
       '@hackbg/formati': workspace:^5.1.1
       '@hackbg/konfizi': workspace:^3.0.1
@@ -284,7 +284,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.7.23
+      '@types/node': 18.8.0
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.7.4
       typescript: 4.7.4
@@ -993,6 +993,11 @@ packages:
 
   /@types/node/18.7.23:
     resolution: {integrity: sha512-DWNcCHolDq0ZKGizjx2DZjR/PqsYwAcYUJmfMWqtVU2MBMG5Mo+xFZrhGId5r/O5HOuMPyQEcM6KUBp5lBZZBg==}
+    dev: false
+
+  /@types/node/18.8.0:
+    resolution: {integrity: sha512-u+h43R6U8xXDt2vzUaVP3VwjjLyOJk6uEciZS8OSyziUQGOwmk+l+4drxcsDboHXwyTaqS1INebghmWMRxq3LA==}
+    dev: true
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}

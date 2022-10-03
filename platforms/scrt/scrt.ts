@@ -27,7 +27,7 @@ import type {
 import { Agent, Bundle, Chain, Client, Contract, Fee } from '@fadroma/client'
 import * as SecretJS from 'secretjs'
 
-import { base64, randomBytes } from '@hackbg/formati'
+import { base64, randomBytes, bip39, bip39EN } from '@hackbg/formati'
 import structuredClone from '@ungap/structured-clone'
 
 import { ScrtConfig, ScrtGrpcConfig } from './scrt-config'
@@ -187,7 +187,13 @@ export class ScrtGrpc extends Scrt {
       return new ScrtGrpc(id, { url, mode })
     },
   }
-  constructor (id: ChainId, options: Partial<ScrtGrpcOpts> = {}) {
+  constructor (
+    id: ChainId = Scrt.defaultMainnetChainId,
+    options: Partial<ScrtGrpcOpts> = {
+      url:  ScrtGrpc.defaultMainnetGrpcUrl,
+      mode: Chain.Mode.Mainnet
+    }
+  ) {
     super(id, options)
     // Optional: Allow a different API-compatible version of SecretJS to be passed
     this.SecretJS = options.SecretJS ?? this.SecretJS
@@ -265,11 +271,11 @@ export class ScrtGrpc extends Scrt {
         await chain.node.respawn()
         mnemonic = (await chain.node.getGenesisAccount(name)).mnemonic
       }
-      if (mnemonic) {
-        wallet = new _SecretJS.Wallet(mnemonic)
-      } else {
-        throw new ScrtError.NoWalletOrMnemonic()
+      if (!mnemonic) {
+        mnemonic = bip39.generateMnemonic(bip39EN)
+        this.log.warnGeneratedMnemonic(mnemonic)
       }
+      wallet = new _SecretJS.Wallet(mnemonic)
     } else if (mnemonic) {
       log.warnIgnoringMnemonic()
     }
@@ -294,11 +300,12 @@ export class ScrtGrpc extends Scrt {
           send:   Scrt.gas(max_gas),
         }
       } catch (e) {
+        this.log.warn(e)
         this.log.warnCouldNotFetchBlockLimit(Object.values(fees))
       }
     }
     // Construct final options object
-    options = { name, address, mnemonic, api, wallet, fees }
+    options = { ...options, name, address, mnemonic, api, wallet, fees }
     // Don't pass this down to the agent options because the API should already have it
     delete options.encryptionUtils
     // Construct agent
@@ -336,6 +343,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
   static Bundle: BundleClass<ScrtBundle> // populated below with ScrtGrpcBundle
   constructor (options: Partial<ScrtGrpcAgentOpts>) {
     super(options)
+    this.fees = options.fees ?? this.fees
     // Required: SecretJS.SecretNetworkClient instance
     if (!options.api) throw new ScrtError.NoApi()
     this.api = options.api

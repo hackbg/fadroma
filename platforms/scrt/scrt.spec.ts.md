@@ -2,8 +2,6 @@
 
 ```typescript
 import assert from 'node:assert'
-import { bip39, bip39EN } from '@hackbg/formati'
-const mnemonic = bip39.generateMnemonic(bip39EN)
 ```
 
 ## Overriding the SecretJS implementation
@@ -32,8 +30,20 @@ instance, in order to use multiple versions of the platform client side by side.
 ```typescript
 // import * as SecretJS from 'secretjs'
 const SecretJS = {
-  SecretNetworkClient: class { static async create () { return new this () } }
-  Wallet:              class { /* mock */ }
+
+  SecretNetworkClient: class {
+    static async create () { return new this () }
+    query = {
+      params: {
+        params: () => ({param:{value:'{"max_gas":"1","max_bytes":"2"}'}})
+      }
+    }
+  },
+
+  Wallet: class {
+    /* mock */
+  }
+
 }
 
 const mod = new ScrtGrpc('mod', { SecretJS })
@@ -48,7 +58,7 @@ whose instances are provided to `ScrtGrpcAgent` by `ScrtGrpc#getAgent`, so that 
 can interact with the chain by signing and broadcasting transactions.
 
 ```typescript
-const agent = await mod.getAgent({ mnemonic })
+const agent = await mod.getAgent()
 
 assert.ok(agent.wallet instanceof SecretJS.Wallet)
 
@@ -69,7 +79,7 @@ const encryptionUtils = Symbol() // use window.getEnigmaUtils(chainId) to get th
 * **Preferred:** override from `ScrtGrpc#getAgent`.
 
 ```typescript
-const agent1 = await raw.getAgent({ mnemonic, encryptionUtils })
+const agent1 = await raw.getAgent({ encryptionUtils })
 
 assert.equal(agent1.api.encryptionUtils, encryptionUtils)
 ```
@@ -88,3 +98,23 @@ assert.equal(agent2.api.encryptionUtils, encryptionUtils)
   to bypass TSC warning about accessing a private member and manually override
   the `encryptionUtils` property of the `SecretNetworkClient` instance used
   by your `ScrtGrpcAgent`.
+
+## Fetching the default gas limit from the chain
+
+By default, the `Scrt` class exposes a conservative gas limit of 1 000 000 units.
+
+```typescript
+import { Scrt } from '@fadroma/scrt'
+
+assert.equal(Scrt.defaultFees.send.gas,   1000000)
+assert.equal(Scrt.defaultFees.upload.gas, 1000000)
+assert.equal(Scrt.defaultFees.init.gas,   1000000)
+assert.equal(Scrt.defaultFees.exec.gas,   1000000)
+```
+
+When constructing a `ScrtGrpcAgent` using `ScrtGrpc#getAgent`,
+Fadroma tries to fetch the block limit from the chain:
+
+```typescript
+console.log((await new ScrtGrpc().getAgent()).fees)
+```

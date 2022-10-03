@@ -101,7 +101,7 @@ export abstract class Chain {
     readonly id: ChainId,
     options: Partial<ChainOpts> = {}
   ) {
-    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
+    Object.defineProperty(this, 'log',   { writable: true, enumerable: false })
     Object.defineProperty(this, 'Agent', { writable: true, enumerable: false })
     if (!id) throw new ClientError.NoChainId()
     this.id   = id
@@ -415,10 +415,10 @@ export interface AgentOpts {
 }
 
 export interface AgentFees {
-  send?:   IFee
-  upload?: IFee
-  init?:   IFee
-  exec?:   IFee
+  send:   IFee
+  upload: IFee
+  init:   IFee
+  exec:   IFee
 }
 
 /** Bundle is an alternate executor that collects collects messages to broadcast

@@ -34,6 +34,8 @@ export class ScrtConsole extends ClientConsole {
   warnCouldNotFetchBlockLimit = (fees: Fee[]) =>
     this.warn("ScrtGrpc: Could not fetch block gas limit, defaulting to:",
       fees.map(fee=>fee.gas).join('/'))
+  warnGeneratedMnemonic = (mnemonic: string) =>
+    this.warn("ScrtGrpcAgent: No mnemonic passed, generated this one:", mnemonic)
   bundleMessages = (msgs: any, N: number) => {
     this.info(`\nMessages in bundle`, `#${N}:`)
     this.br()
