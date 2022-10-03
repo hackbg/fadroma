@@ -445,21 +445,23 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const initTx   = result.transactionHash
     return Object.assign(template, { address })
   }
-  async instantiateMany (template: Contract<any>, configs: DeployArgs[]) {
+  async instantiateMany <C, D> (template: Contract<any>, instances: C): Promise<D> {
+    const inits: [string, DeployArgs][] = Object.entries(instances)
     // instantiate multiple contracts in a bundle:
-    const instances = await this.bundle().wrap(async bundle=>{
-      await bundle.instantiateMany(template, configs)
+    const results = await this.bundle().wrap(async bundle=>{
+      await bundle.instantiateMany(template, inits.map(([key, config])=>config))
     })
+    const outputs: D = ((instances instanceof Array) ? [] : {}) as D
     // add code hashes to them:
-    for (const i in configs) {
-      const instance = instances[i]
+    for (const i in inits) {
+      const instance = results[i]
       if (instance) {
         instance.codeId   = template.codeId
         instance.codeHash = template.codeHash
-        instance.label    = configs[i][0]
+        instance.label    = inits[i][0]
       }
     }
-    return instances
+    return outputs
   }
   async execute (
     instance: Partial<Client>, msg: Message, opts: ExecOpts = {}
