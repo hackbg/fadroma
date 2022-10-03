@@ -77,11 +77,11 @@ export class DeployConsole extends ConnectConsole {
       this.info(`Deployments on chain ${bold(chainId)}:`)
       let maxLength = 0
       for (let name of list) {
-        if (name === deployments.KEY) continue
+        if (name === (deployments as any).KEY) continue
         maxLength = Math.max(name.length, maxLength)
       }
       for (let name of list) {
-        if (name === deployments.KEY) continue
+        if (name === (deployments as any).KEY) continue
         const deployment = deployments.get(name)!
         const count = Object.keys(deployment.state).length
         let info = `${bold(name.padEnd(maxLength))}`

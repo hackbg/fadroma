@@ -109,7 +109,7 @@ export class ClientConsole extends CommandsConsole {
   object (obj?: Object) {
     let report = `---`
     if (obj) {
-      report += `\n${bold(obj?.constructor?.name??Object)}:`
+      report += `\n${bold(obj?.constructor?.name??'Object')}:`
       for (const x in obj) {
         let k: any = colors.dim(`${x}:`.padEnd(15))
         let v: any = obj[x as keyof typeof obj]

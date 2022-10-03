@@ -1214,7 +1214,7 @@ export type DeploymentState = Record<string, Partial<Contract<any>>>
 /** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
-export class Deployment extends CommandContext implements Map<Name, Contract<any>> {
+export class Deployment extends CommandContext {
 
   constructor (options: Partial<Deployment> & any = {}) {
     super(options.name ?? 'Deployment')
@@ -1614,3 +1614,5 @@ export abstract class DeployStore {
 
   defaults: Partial<Deployment> = {}
 }
+
+export { Task }
