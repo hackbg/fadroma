@@ -1,5 +1,5 @@
 import { timestamp } from '@hackbg/konzola'
-import { Deployment, DeployStore } from '@fadroma/client'
+import { Contract, Deployment, DeployStore } from '@fadroma/client'
 import $, { Path, JSONDirectory } from '@hackbg/kabinet'
 
 /** JSON receipts. Importable from client libraries. */
@@ -28,6 +28,14 @@ export class JSONDeployments_v1 extends DeployStore {
   }
 
   list (): string[] {
+    throw new Error('Not implemented')
+  }
+
+  get active (): Deployment|null {
+    throw new Error('Not implemented')
+  }
+
+  set (name: string, state: Record<string, Partial<Contract<any>>> = {}) {
     throw new Error('Not implemented')
   }
 

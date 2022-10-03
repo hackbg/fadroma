@@ -1,5 +1,5 @@
 import { timestamp } from '@hackbg/konzola'
-import { Deployment, DeployStore } from '@fadroma/client'
+import { Contract, Deployment, DeployStore } from '@fadroma/client'
 import { } from './deploy-base'
 import $, { Path, YAMLDirectory, YAMLFile, JSONFile, alignYAML } from '@hackbg/kabinet'
 
@@ -29,6 +29,14 @@ export class YAMLDeployments_v2 extends DeployStore {
   }
 
   list (): string[] {
+    throw new Error('Not implemented')
+  }
+
+  get active (): Deployment|null {
+    throw new Error('Not implemented')
+  }
+
+  set (name: string, state: Record<string, Partial<Contract<any>>> = {}) {
     throw new Error('Not implemented')
   }
 

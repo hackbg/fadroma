@@ -205,6 +205,11 @@ export class TokenManager extends CommandContext {
   has (symbol: TokenSymbol): boolean {
     return Object.keys(this.tokens).includes(symbol)
   }
+  /** Return token or throw */
+  get (symbol: TokenSymbol): Contract<Snip20> {
+    if (!this.has(symbol)) throw new Error(`No token "${symbol}"`)
+    return this.tokens[symbol]
+  }
   add (symbol: TokenSymbol, token: Contract<Snip20>): Contract<Snip20> {
     return this.tokens[symbol] = token
   }
@@ -299,7 +304,10 @@ export class TokenManager extends CommandContext {
     * where both symbols are registered */
   pair (name: string): TokenPair {
     const [token_0_symbol, token_1_symbol] = name.split('-')
-    return new TokenPair(this.get(token_0_symbol), this.get(token_1_symbol))
+    return new TokenPair(
+      this.get(token_0_symbol).getClientSync().asDescriptor,
+      this.get(token_1_symbol).getClientSync().asDescriptor
+    )
   }
 }
 

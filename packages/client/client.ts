@@ -1463,6 +1463,7 @@ export class Deployment extends CommandContext implements Map<Name, Contract<any
     Object.defineProperty(inst, 'save', {
       get () { return context.save.bind(context) }
     })
+    this.addCommands(name, info, inst as any) // TODO
     return inst
   }
 
