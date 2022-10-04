@@ -45,15 +45,15 @@ impl Bank {
     
             match balance {
                 Some(amount) => {
-                    if amount.0 >= coin.amount.0 {
-                        amount.0 -= coin.amount.0;
+                    if *amount >= coin.amount {
+                        *amount -= coin.amount;
                     } else {
                         return Err(StdError::generic_err(format!(
                             "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}", 
                             address,
                             coin.denom,
-                            amount.0,
-                            coin.amount.0,
+                            amount,
+                            coin.amount
                         )))
                     }
                 },
@@ -63,7 +63,7 @@ impl Bank {
                         address,
                         coin.denom,
                         Uint128::zero(),
-                        coin.amount.0,
+                        coin.amount
                     )))
                 }
             }
@@ -107,7 +107,7 @@ impl Bank {
                     ))
                 })?;
 
-            amount.0 = amount.0.checked_sub(coin.amount.0).ok_or_else(|| {
+            *amount = amount.checked_sub(coin.amount).map_err(|_| {
                 StdError::generic_err(format!(
                     "Insufficient balance: sender: {}, denom: {}, balance: {}, required: {}",
                     from, coin.denom, amount, coin.amount
@@ -128,13 +128,13 @@ impl Bank {
                 Some(denom) => {
                     let amount = account.get(&denom);
 
-                    vec![coin(amount.cloned().unwrap_or_default().0, &denom)]
+                    vec![coin(amount.cloned().unwrap_or_default().u128(), &denom)]
                 }
                 None => {
                     let mut result = Vec::new();
 
                     for (k, v) in account.iter() {
-                        result.push(coin(v.0, &k));
+                        result.push(coin(v.u128(), k));
                     }
 
                     result
@@ -158,9 +158,8 @@ fn add_balance(balances: &mut Balances, coin: Coin) {
     let balance = balances.get_mut(&coin.denom);
 
     if let Some(amount) = balance {
-        amount.0 += coin.amount.0;
+        *amount += coin.amount;
     } else {
         balances.insert(coin.denom, coin.amount);
     }
 }
-

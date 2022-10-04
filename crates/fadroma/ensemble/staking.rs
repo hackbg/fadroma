@@ -29,7 +29,7 @@ impl Into<Delegation> for DelegationWithUnbonding {
     fn into(self) -> Delegation {
         Delegation {
             delegator: self.delegator,
-            validator: self.validator,
+            validator: self.validator.into_string(),
             amount: self.amount,
         }
     }
@@ -39,10 +39,10 @@ impl Into<FullDelegation> for DelegationWithUnbonding {
     fn into(self) -> FullDelegation {
         FullDelegation {
             delegator: self.delegator,
-            validator: self.validator,
+            validator: self.validator.into_string(),
             amount: self.amount,
             can_redelegate: self.can_redelegate,
-            accumulated_rewards: self.accumulated_rewards,
+            accumulated_rewards: vec![self.accumulated_rewards],
         }
     }
 }
@@ -82,7 +82,7 @@ impl Delegations {
                 if delegation.unbonding_amount.amount > Uint128::zero() {
                     unbondings.push(Delegation {
                         delegator: delegation.delegator.clone(),
-                        validator: delegation.validator.clone(),
+                        validator: delegation.validator.to_string(),
                         amount: delegation.unbonding_amount.clone()
                     });
                 }
@@ -132,7 +132,7 @@ impl Delegations {
                     let delegation = delegation_pair.1;
                     return_delegations.push(Delegation {
                         delegator: delegation.delegator.clone(),
-                        validator: delegation.validator.clone(),
+                        validator: delegation.validator.to_string(),
                         amount: delegation.unbonding_amount.clone(),
                     });    
                 }
@@ -251,7 +251,7 @@ impl Delegations {
 
                 let mut new_can_redelegate = delegation.can_redelegate.clone();
                 if delegation.can_redelegate.amount + amount.amount > delegation.amount.amount {
-                    new_can_redelegate.amount = (delegation.amount.amount - amount.amount).unwrap();
+                    new_can_redelegate.amount = delegation.amount.amount - amount.amount;
                 }
 
                 let new_delegation = DelegationWithUnbonding {
@@ -259,7 +259,7 @@ impl Delegations {
                     validator: validator.clone(),
                     amount: Coin {
                         denom: self.bonded_denom.clone(),
-                        amount: (delegation.amount.amount - amount.amount).unwrap(),
+                        amount: delegation.amount.amount - amount.amount,
                     },
                     unbonding_amount: Coin {
                         denom: self.bonded_denom.clone(),
@@ -341,12 +341,12 @@ impl Delegations {
                     validator: src_validator.clone(),
                     amount: Coin {
                         denom: self.bonded_denom.clone(),
-                        amount: (delegation.amount.amount - amount.amount).unwrap(),
+                        amount: delegation.amount.amount - amount.amount,
                     },
                     unbonding_amount: delegation.unbonding_amount,
                     can_redelegate: Coin {
                         denom: self.bonded_denom.clone(),
-                        amount: (delegation.can_redelegate.amount - amount.amount).unwrap(),
+                        amount: delegation.can_redelegate.amount - amount.amount,
                     },
                     accumulated_rewards: delegation.accumulated_rewards,
                 };

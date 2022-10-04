@@ -1,5 +1,11 @@
 use super::ensemble::Context;
-use crate::prelude::{testing::MockQuerier, *};
+use crate::cosmwasm_std::{
+    Addr, Querier, QueryRequest, WasmQuery, BankQuery, StakingQuery, QuerierResult,
+    SystemResult, SystemError, ContractResult, Empty, AllBalanceResponse, BalanceResponse,
+    ValidatorResponse, AllValidatorsResponse, AllDelegationsResponse, BondedDenomResponse,
+    from_slice, to_binary,
+    testing::MockQuerier
+};
 
 pub struct EnsembleQuerier {
     // NOTE: raw pointer to crate::ensemble::ContractEnsemble::ctx
@@ -16,12 +22,25 @@ impl EnsembleQuerier {
     }
 }
 
+macro_rules! querier_result {
+    ($x:expr) => {
+        {
+            let result = match $x {
+                Ok(bin) => ContractResult::Ok(bin),
+                Err(err) => ContractResult::Err(err.to_string())
+            };
+        
+            SystemResult::Ok(result)
+        }
+    };
+}
+
 impl Querier for EnsembleQuerier {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         let request: QueryRequest<Empty> = match from_slice(bin_request) {
             Ok(v) => v,
             Err(e) => {
-                return Err(SystemError::InvalidRequest {
+                return SystemResult::Err(SystemError::InvalidRequest {
                     error: format!("Parsing query request: {}", e),
                     request: bin_request.into(),
                 })
@@ -36,18 +55,22 @@ impl Querier for EnsembleQuerier {
                 WasmQuery::Smart {
                     contract_addr, msg, ..
                 } => {
+                    let contract_addr = Addr::unchecked(contract_addr);
+
                     if !ctx.instances.contains_key(&contract_addr) {
-                        return Err(SystemError::NoSuchContract {
-                            addr: contract_addr,
+                        return SystemResult::Err(SystemError::NoSuchContract {
+                            addr: contract_addr.into_string()
                         });
                     }
 
-                    Ok(ctx.query(contract_addr, msg))
+                    querier_result!(ctx.query(contract_addr, msg))
                 }
                 WasmQuery::Raw { contract_addr, .. } => {
+                    let contract_addr = Addr::unchecked(contract_addr);
+
                     if !ctx.instances.contains_key(&contract_addr) {
-                        return Err(SystemError::NoSuchContract {
-                            addr: contract_addr,
+                        return SystemResult::Err(SystemError::NoSuchContract {
+                            addr: contract_addr.into_string()
                         });
                     }
 
@@ -57,39 +80,45 @@ impl Querier for EnsembleQuerier {
             },
             QueryRequest::Bank(query) => match query {
                 BankQuery::AllBalances { address } => {
+                    let address = Addr::unchecked(address);
                     let amount = ctx.bank.readable().query_balances(&address, None);
 
-                    Ok(to_binary(&AllBalanceResponse { amount }))
+                    querier_result!(to_binary(&AllBalanceResponse { amount }))
                 }
                 BankQuery::Balance { address, denom } => {
+                    let address = Addr::unchecked(address);
                     let amount = ctx.bank.readable().query_balances(&address, Some(denom));
 
-                    Ok(to_binary(&BalanceResponse {
-                        amount: amount.into_iter().next().unwrap(),
+                    querier_result!(to_binary(&BalanceResponse {
+                        amount: amount.into_iter().next().unwrap()
                     }))
                 }
                 _ => unimplemented!(),
             },
             QueryRequest::Staking(query) => match query {
                 StakingQuery::AllDelegations { delegator } => {
+                    let delegator = Addr::unchecked(delegator);
                     let delegations = ctx.delegations.all_delegations(&delegator);
 
-                    Ok(to_binary(&AllDelegationsResponse { delegations }))
+                    querier_result!(to_binary(&AllDelegationsResponse { delegations }))
                 }
                 StakingQuery::BondedDenom {} => {
                     let denom = ctx.delegations.bonded_denom();
 
-                    Ok(to_binary(&BondedDenomResponse {
+                    querier_result!(to_binary(&BondedDenomResponse {
                         denom: denom.to_string(),
                     }))
                 }
                 StakingQuery::Delegation {
                     delegator,
-                    validator,
+                    validator
                 } => {
+                    let delegator = Addr::unchecked(delegator);
+                    let validator = Addr::unchecked(validator);
+
                     let delegation = ctx.delegations.delegation(&delegator, &validator);
 
-                    Ok(to_binary(&delegation))
+                    querier_result!(to_binary(&delegation))
                 }
                 // TODO: is this removed?
                 // StakingQuery::UnbondingDelegations { delegator } => {
@@ -100,7 +129,7 @@ impl Querier for EnsembleQuerier {
                 StakingQuery::AllValidators {} => {
                     let validators = ctx.delegations.validators();
 
-                    Ok(to_binary(&AllValidatorsResponse {
+                    querier_result!(to_binary(&AllValidatorsResponse {
                         validators: validators.to_vec(),
                     }))
                 }
@@ -110,9 +139,10 @@ impl Querier for EnsembleQuerier {
                         .validators()
                         .iter()
                         .filter(|validator| validator.address == address)
-                        .collect();
+                        .next()
+                        .cloned();
 
-                    Ok(to_binary(&ValidatorResponse { validator }))
+                    querier_result!(to_binary(&ValidatorResponse { validator }))
                 }
                 _ => unimplemented!(),
             },
@@ -124,7 +154,7 @@ impl Querier for EnsembleQuerier {
             //         Ok(to_binary(&rewards))
             //     }
             // },
-            _ => Ok(self.base.query(&request)),
+            _ => self.base.handle_query(&request)
         }
     }
 }
