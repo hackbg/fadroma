@@ -182,7 +182,7 @@ export interface TokenOptions {
 export class TokenManager extends CommandContext {
   constructor (
     /** Function that returns the active deployment. */
-    public context:   Deployment,
+    public context: Deployment,
     /** Template for deploying new tokens. */
     public template?: Contract<Snip20>,
     /** Default token config. */
@@ -242,7 +242,7 @@ export class TokenManager extends CommandContext {
       const bundle = this.context.agent!.bundle()
       for (let [symbol, options] of Object.entries(definitions)) {
         if (this.has(symbol)) {
-          tokens[symbol] = this.tokens[symbol].get()
+          tokens[symbol] = this.tokens[symbol]
         } else {
           options          ??= {}
           options.name     ??= symbol
@@ -260,7 +260,9 @@ export class TokenManager extends CommandContext {
           results[symbol] = await client
         }
         const entries  = Object.entries(deploy)
-        const deployed = await this.template!.deployMany(entries.map(x=>x[1]))
+        const deployed = await this.context
+          .contracts(this.template!)
+          .provide({ inits: entries.map(x=>x[1]) })
         for (const i in entries) {
           const [symbol] = entries[i]
           const  client = deployed[i]

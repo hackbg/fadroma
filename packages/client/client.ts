@@ -812,30 +812,20 @@ export class Metadata {
   provide (options: Partial<this>): this {
     return override(this, options)
   }
+}
 
-  /** Define a subtask
-    * @returns A lazily-evaluated Promise. */
-  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> {
-    const task = new Task(name, cb, this)
-    const [_, head, ...body] = (task.stack ?? '').split('\n')
-    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
-    return task
+/** Throw if fetched metadata differs from configured. */
+export function validateField <T> (kind: string, value: T, expected?: T): T {
+  if (typeof value === 'string' && typeof expected === 'string') {
+    value = value.toLowerCase() as unknown as T
   }
-
-  /** Throw if fetched metadata differs from configured. */
-  static validateField <T> (kind: string, value: T, expected?: T): T {
-    const name = this.constructor.name
-    if (typeof value === 'string' && typeof expected === 'string') {
-      value = value.toLowerCase() as unknown as T
-    }
-    if (typeof expected === 'string') {
-      expected = expected.toLowerCase() as unknown as T
-    }
-    if (typeof expected !== 'undefined' && expected !== value) {
-      throw new ClientError.ValidationFailed(kind, name, expected, value)
-    }
-    return value
+  if (typeof expected === 'string') {
+    expected = expected.toLowerCase() as unknown as T
   }
+  if (typeof expected !== 'undefined' && expected !== value) {
+    throw new ClientError.ValidationFailed(kind, '', expected, value)
+  }
+  return value
 }
 
 export class ContractTemplate extends Metadata {
@@ -885,30 +875,29 @@ export class ContractTemplate extends Metadata {
   build (builder?: Builder): Promise<typeof this> {
     return build(this, builder)
   }
+}
 
-  /** Throw appropriate error if not buildable. */
-  static assertBuilder ({ builder }: { builder?: Builder }): Builder {
-    //if (!this.crate) throw new ClientError.NoCrate()
-    if (!builder) throw new ClientError.NoBuilder()
-    //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
-    return builder
-  }
+/** Throw appropriate error if not buildable. */
+export function assertBuilder ({ builder }: { builder?: Builder }): Builder {
+  //if (!this.crate) throw new ClientError.NoCrate()
+  if (!builder) throw new ClientError.NoBuilder()
+  //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
+  return builder
+}
 
-  /** Returns a string in the format `crate[@ref][+flag][+flag]...` */
-  static getSourceSpecifier <C extends ContractTemplate> (meta: C): string {
-    const { crate, revision, features } = meta
-    let result = crate ?? ''
-    if (revision !== 'HEAD') result = `${result}@${revision}`
-    if (features && features.length > 0) result = `${result}+${features.join('+')}`
-    return result
-  }
+/** Returns a string in the format `crate[@ref][+flag][+flag]...` */
+export function getSourceSpecifier <C extends ContractTemplate> (meta: C): string {
+  const { crate, revision, features } = meta
+  let result = crate ?? ''
+  if (revision !== 'HEAD') result = `${result}@${revision}`
+  if (features && features.length > 0) result = `${result}+${features.join('+')}`
+  return result
 }
 
 export function build <T extends ContractTemplate> (
   source:   T,
   builder?: Builder
 ): PromiseLike<T> {
-  const { assertBuilder, getSourceSpecifier } = source.constructor as typeof ContractTemplate
   builder ??= assertBuilder(source)
   const name = 'build  ' + getSourceSpecifier(source)
   return source.task(name, async (): Promise<T> => {
@@ -931,7 +920,6 @@ export function upload <T extends ContractTemplate> (
     return template.fetchCodeHashByCodeId().then(codeHash=>Object.assign(template, { codeHash }))
   }
   // If the chain ID or code hash is missing though, it means we need to upload
-  const { getSourceSpecifier } = template.constructor as typeof ContractInstance
   // Name the task
   const name = `upload ${getSourceSpecifier(template)}`
   return template.task(name, async (): Promise<T> => {
@@ -998,12 +986,10 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
         return this.fetchCodeHashByCodeId().then(codeHash=>Object.assign(this, { codeHash }))
       }
     } else {
-      const { getSourceSpecifier } = this.constructor as typeof ContractInstance
       const name = `upload ${getSourceSpecifier(this)}`
       const self = this
       return this.task(name, async (): Promise<typeof self> => {
         // Otherwise we're gonna need the uploader
-        const { assertUploader } = this.constructor as typeof Contract<C>
         uploader ??= assertUploader(this)
         // And if we still can't determine the chain ID, bail
         const chainId =
@@ -1019,70 +1005,70 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
       })
     }
   }
+}
 
-  /** Retrieves the code ID corresponding to this contract's code hash.
-    * @returns `this` but with `codeId` populated. */
-  static async fetchCodeId <C extends ContractInstance> (
-    meta: C, agent: Agent, expected?: CodeId,
-  ): Promise<C & { codeId: CodeId }> {
-    return Object.assign(meta, {
-      codeId: this.validateField('codeId', await agent.getCodeId(assertAddress(meta)), expected)
-    })
+/** Retrieves the code ID corresponding to this contract's code hash.
+  * @returns `this` but with `codeId` populated. */
+export async function fetchCodeId <C extends ContractInstance> (
+  meta: C, agent: Agent, expected?: CodeId,
+): Promise<C & { codeId: CodeId }> {
+  return Object.assign(meta, {
+    codeId: validateField('codeId', await agent.getCodeId(assertAddress(meta)), expected)
+  })
+}
+
+/** Fetch the code hash by id and by address, and compare them. */
+export async function fetchCodeHash <C extends ContractInstance> (
+  meta: C, agent: Agent, expected?: CodeHash,
+): Promise<C & { codeHash: CodeHash }> {
+  if (!meta.address && !meta.codeId && !meta.codeHash) {
+    throw new ClientError('Unable to fetch code hash: no address or code id.')
   }
-
-  /** Fetch the code hash by id and by address, and compare them. */
-  static async fetchCodeHash <C extends ContractInstance> (
-    meta: C, agent: Agent, expected?: CodeHash,
-  ): Promise<C & { codeHash: CodeHash }> {
-    if (!meta.address && !meta.codeId && !meta.codeHash) {
-      throw new ClientError('Unable to fetch code hash: no address or code id.')
-    }
-    const codeHashByAddress = meta.address
-      ? this.validateField('codeHashByAddress', await agent.getHash(meta.address), expected)
-      : undefined
-    const codeHashByCodeId  = meta.codeId
-      ? this.validateField('codeHashByCodeId',  await agent.getHash(meta.codeId),  expected)
-      : undefined
-    if (codeHashByAddress && codeHashByCodeId && codeHashByAddress !== codeHashByCodeId) {
-      throw new ClientError('Validation failed: different code hashes fetched by address and by code id.')
-    }
-    if (!codeHashByAddress && !codeHashByCodeId) {
-      throw new ClientError('Code hash unavailable.')
-    }
-    const codeHash = codeHashByAddress! ?? codeHashByCodeId!
-    return Object.assign(meta, { codeHash })
+  const codeHashByAddress = meta.address
+    ? validateField('codeHashByAddress', await agent.getHash(meta.address), expected)
+    : undefined
+  const codeHashByCodeId  = meta.codeId
+    ? validateField('codeHashByCodeId',  await agent.getHash(meta.codeId),  expected)
+    : undefined
+  if (codeHashByAddress && codeHashByCodeId && codeHashByAddress !== codeHashByCodeId) {
+    throw new ClientError('Validation failed: different code hashes fetched by address and by code id.')
   }
-
-  /** Fetch the label from the chain. */
-  static async fetchLabel <C extends ContractInstance> (
-    meta: C, agent: Agent, expected?: Label
-  ): Promise<C & { label: Label }> {
-    const label = await agent.getLabel(assertAddress(meta))
-    if (!!expected) this.validateField('label', expected, label)
-    const { name, prefix, suffix } = this.parseLabel(label)
-    return Object.assign(meta, { label, name, prefix, suffix })
+  if (!codeHashByAddress && !codeHashByCodeId) {
+    throw new ClientError('Code hash unavailable.')
   }
+  const codeHash = codeHashByAddress! ?? codeHashByCodeId!
+  return Object.assign(meta, { codeHash })
+}
 
-  /** RegExp for parsing labels of the format `prefix/name+suffix` */
-  static RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
+/** Fetch the label from the chain. */
+export async function fetchLabel <C extends ContractInstance> (
+  meta: C, agent: Agent, expected?: Label
+): Promise<C & { label: Label }> {
+  const label = await agent.getLabel(assertAddress(meta))
+  if (!!expected) validateField('label', expected, label)
+  const { name, prefix, suffix } = parseLabel(label)
+  return Object.assign(meta, { label, name, prefix, suffix })
+}
 
-  /** Parse a label into prefix, name, and suffix. */
-  static parseLabel (label: Label): StructuredLabel {
-    const matches = label.match(this.RE_LABEL)
-    if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
-    const { name, prefix, suffix } = matches.groups
-    if (!name) throw new ClientError.InvalidLabel(label)
-    return { label, name, prefix, suffix }
-  }
+/** RegExp for parsing labels of the format `prefix/name+suffix` */
+export const RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
 
-  /** Construct a label from prefix, name, and suffix. */
-  static writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
-    if (!name) throw new ClientError.NoName()
-    let label = name
-    if (prefix) label = `${prefix}/${label}`
-    if (suffix) label = `${label}+${suffix}`
-    return label
-  }
+/** Parse a label into prefix, name, and suffix. */
+export function parseLabel (label: Label): StructuredLabel {
+  const matches = label.match(RE_LABEL)
+  if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
+  const { name, prefix, suffix } = matches.groups
+  if (!name) throw new ClientError.InvalidLabel(label)
+  return { label, name, prefix, suffix }
+}
+
+/** Construct a label from prefix, name, and suffix. */
+export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
+  if (!name) throw new ClientError.NoName()
+  let label = name
+  if (prefix) label = `${prefix}/${label}`
+  if (suffix) label = `${label}+${suffix}`
+  return label
 }
 
 export interface StructuredLabel { label?: string, name?: string, prefix?: string, suffix?: string }
@@ -1152,13 +1138,23 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
   then <D, E> (
     onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
     onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
-  ): PromiseLike<D|E> {
-    return this.deploy().then(onfulfilled, onrejected)
+  ): Task<this, D|E> {
+    return this.task(`get or deploy ${this.name ?? 'contract'}`,
+      () => this.deploy().then(onfulfilled, onrejected))
+  }
+
+  /** Define a subtask
+    * @returns A lazily-evaluated Promise. */
+  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> {
+    const task = new Task(name, cb, this)
+    const [_, head, ...body] = (task.stack ?? '').split('\n')
+    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+    return task
   }
 
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
-  deploy (initMsg: IntoMessage|undefined = this.initMsg): PromiseLike<C> {
+  deploy (initMsg: IntoMessage|undefined = this.initMsg): Task<this, C> {
     return this.task(`get or deploy ${this.name ?? 'contract'}`, () => {
       const deployed = this.getClientOrNull()
       if (deployed) {
@@ -1168,7 +1164,6 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
       const name = `deploy ${this.name ?? 'contract'}`
       return this.task(name, () => {
         if (!this.agent) throw new ClientError.NoCreator(this.name)
-        const { writeLabel } = this.constructor as typeof ContractInstance
         this.label = writeLabel(this)
         if (!this.label) throw new ClientError.NoInitLabel(this.name)
         return this.upload().then(async template=>{
