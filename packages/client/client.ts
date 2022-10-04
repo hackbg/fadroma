@@ -68,8 +68,9 @@ export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): Cod
   * @returns the passed contract object but with codeHash set
   * @throws if unable to establish the code hash */
 export async function fetchCodeHash <C extends ContractTemplate & { address?: Address }> (
-  meta: C, agent: Agent, expected?: CodeHash,
+  meta: C, agent?: Agent|null|undefined, expected?: CodeHash,
 ): Promise<CodeHash> {
+  if (!agent) throw new ClientError.NoAgent()
   if (!meta.address && !meta.codeId && !meta.codeHash) {
     throw new ClientError('Unable to fetch code hash: no address or code id.')
   }
@@ -391,9 +392,6 @@ export type Address     = string
 
 /** A transaction message that can be sent to a contract. */
 export type Message     = string|Record<string, unknown>
-
-/** A message or a function that returns one. */
-export type IntoMessage = Message|(()=>Message|Promise<Message>)
 
 export type DeployArgsTriple = [Contract<any>, Name, Message]
 
@@ -849,11 +847,6 @@ export class Client {
     opt.fee = opt.fee || this.getFee(msg)
     return await assertAgent(this).execute(this, msg, opt)
   }
-
-  /** Create a Contract object from this client. */
-  get asContract (): Contract<typeof this> {
-    return new Contract({...this.meta, client: this.constructor as ClientClass<typeof this>})
-  }
 }
 
 export interface ContractInfo {
@@ -985,6 +978,15 @@ export class ContractTemplate extends Metadata {
     super(options as Partial<Metadata>)
   }
 
+  /** Define a subtask
+    * @returns A lazily-evaluated Promise. */
+  task <T> (name: string, cb: (this: typeof this)=>PromiseLike<T>): Task<typeof this, T> {
+    const task = new Task(name, cb, this)
+    const [_, head, ...body] = (task.stack ?? '').split('\n')
+    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+    return task
+  }
+
   /** Uploaded templates can be passed to factory contracts in this format. */
   get asInfo (): ContractInfo {
     if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
@@ -999,15 +1001,6 @@ export class ContractTemplate extends Metadata {
     return build(this, builder)
   }
 
-  /** Define a subtask
-    * @returns A lazily-evaluated Promise. */
-  task <T> (name: string, cb: (this: typeof this)=>PromiseLike<T>): Task<typeof this, T> {
-    const task = new Task(name, cb, this)
-    const [_, head, ...body] = (task.stack ?? '').split('\n')
-    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
-    return task
-  }
-
   upload (uploader?: Uploader, agent: Agent|null|undefined = uploader?.agent) {
     return upload(this, uploader, agent)
   }
@@ -1015,31 +1008,31 @@ export class ContractTemplate extends Metadata {
 
 export class ContractInstance extends ContractTemplate implements StructuredLabel {
   /** Address of agent that performed the init tx. */
-  initBy?:  Address = undefined
+  initBy?:  Address       = undefined
   /** Address of agent that performed the init tx. */
-  initMsg?: Message = undefined
+  initMsg?: Into<Message> = undefined
   /** TXID of transaction that performed the init. */
-  initTx?:  TxHash  = undefined
+  initTx?:  TxHash        = undefined
   /** Address of this contract instance. Unique per chain. */
-  address?: Address = undefined
+  address?: Address       = undefined
   /** Full label of the instance. Unique for a given Chain. */
-  label?:   Label   = undefined
+  label?:   Label         = undefined
   /** Prefix of the instance.
     * Identifies which Deployment the instance belongs to, if any.
     * Prepended to contract label with a `/`: `PREFIX/NAME...` */
-  prefix?:  Name    = undefined
+  prefix?:  Name          = undefined
   /** Proper name of the instance.
     * If the instance is not part of a Deployment, this is equal to the label.
     * If the instance is part of a Deployment, this is used as storage key.
     * You are encouraged to store application-specific versioning info in this field. */
-  name?:    Name    = undefined
+  name?:    Name          = undefined
   /** Deduplication suffix.
     * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
     * This field has sometimes been used to redeploy an new instance
     * within the same Deployment, taking the place of the old one.
     * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
     *       is "the real one" (see https://stackoverflow.com/a/54427214. */
-  suffix?:  Name    = undefined
+  suffix?:  Name          = undefined
 
   constructor (options: Partial<ContractInstance> = {}) {
     super(options as Partial<ContractTemplate>)
@@ -1129,7 +1122,7 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
 
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
-  deploy (initMsg: IntoMessage|undefined = this.initMsg): Task<this, C> {
+  deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
     return this.task(`get or deploy ${this.name ?? 'contract'}`, () => {
       const deployed = this.getClientOrNull()
       if (deployed) {
@@ -1145,7 +1138,7 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
           if (this !== template) this.log.warn('bug: uploader returned different instance')
           if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
           this.log.beforeDeploy(this, this.label!)
-          if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
+          initMsg = await into(initMsg)
           const contract = await this.agent!.instantiate(this, this.label!, initMsg as Message)
           this.log.afterDeploy(contract)
           if (this.deployment) this.deployment.add(this.name!, contract)
@@ -1182,6 +1175,8 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
   }
 }
 
+export type MatchPredicate = (meta: Partial<ContractInstance>) => boolean|undefined
+
 export class Contracts<C extends Client> extends ContractTemplate implements PromiseLike<C[]> {
   log = new ClientConsole('Fadroma.Contract')
   /** Deployment that this contract is a part of. */
@@ -1198,19 +1193,10 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
   /** A list of [Label, InitMsg] pairs that are used to instantiate the contracts. */
   inits?:      IntoArray<DeployArgs> = undefined
   /** A filter predicate for recognizing deployed contracts. */
-  match?:      (meta: Partial<ContractInstance>) => boolean|undefined
+  match?:      MatchPredicate
 
   constructor (options: Partial<Contracts<C>> = {}) {
-    super()
-    override(this, options)
-  }
-
-  get asTemplate (): ContractTemplate {
-    return new ContractTemplate(this)
-  }
-
-  instance (options: Partial<Contract<C>> = {}): Contract<C> {
-    return new Contract(this.asTemplate as Partial<Contract<C>>).provide(options)
+    super(options)
   }
 
   /** Evaluate this Contract, asynchronously returning a Client.
@@ -1219,75 +1205,81 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
     *      if necessary and possible)
     * @returns an instance of `this.client` */
   then <D, E> (
-    onfulfilled?: ((client: C[]) => D|PromiseLike<D>) | null,
-    onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
+    resolved?: ((clients: C[]) => D|PromiseLike<D>) | null,
+    rejected?: ((failure: any) => E|PromiseLike<E>) | null
   ): PromiseLike<D|E> {
-    return this.task(`get or deploy contracts`,
-      () => this.deploy().then(onfulfilled, onrejected))
+    return this.task(`get or deploy contracts`, () => this.deploy().then(resolved, rejected))
   }
 
-  /** Define a subtask
-    * @returns A lazily-evaluated Promise. */
-  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> {
-    const task = new Task(name, cb, this)
-    const [_, head, ...body] = (task.stack ?? '').split('\n')
-    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
-    return task
+  /** Get all contracts that match the specified predicate. */
+  get (match: MatchPredicate|undefined = this.match) {
+    if (!match) throw new ClientError.NoPredicate()
+    const info = match.name
+      ? `get all contracts matching predicate: ${match.name}`
+      : `get all contracts matching specified predicate`
+    return this.task(info, () => {
+      if (!this.deployment) throw new ClientError.NoDeployment()
+      const clients: C[] = []
+      for (const info of Object.values(this.deployment!.state)) {
+        if (!match(info)) continue
+        clients.push(new Contract(this.asTemplate as Partial<Contract<C>>).provide(info).getClientSync())
+      }
+      return Promise.resolve(clients)
+    })
   }
 
-  /** Deploy multiple instances of the same code. */
+  /** Deploy multiple instances of the same template. */
   deploy (inits: IntoArray<DeployArgs> = this.inits ?? []) {
-    let name = undefined
-      ?? (this.codeId && `code id ${this.codeId}`)
-      ?? (this.crate  && `crate ${this.crate}`)
-      ?? 'a contract'
-    name = `deploy ${name}`
-    return this.task(name, async (): Promise<C[]> => {
+    return this.task(this.deployTaskName, async (): Promise<C[]> => {
+      // need an agent to proceed
+      const agent = assertAgent(this)
       // get the inits if passed lazily
       const inits = await intoArray(this.inits??[], this.deployment)
       // if deploying 0 contracts we're already done
       if (inits.length === 0) return Promise.resolve([])
-      const agent = assertAgent(this)
+      // upload then instantiate (upload may be a no-op if cached)
       return this.upload().then(async (template: ContractTemplate)=>{
         // at this point we should have a code id
         if (!this.codeId) throw new ClientError.NoInitCodeId(name)
-        // add deployment prefix
-        const prefixedInits = (inits as DeployArgs[]).map(([label, msg])=>[
-          this.deployment ? `${this.deployment.name}/${label}` : label,
-          msg
-        ] as DeployArgs)
+        // if operating in a Deployment, add prefix to each name (should be passed unprefixed)
+        const prefix = this.deployment?.name
+        const prefixedInits: DeployArgs[] = inits.map(
+          ([label, msg])=>[ writeLabel({ name: label, prefix }), msg ])
         try {
+          // run a bundled transaction creating each instance
           const responses = await agent.instantiateMany(this, prefixedInits)
-          const clients = responses.map(({ address })=>this.instance({ address }).getClientSync())
+          // get a Contract object representing each
+          const contracts = responses.map(({ address })=>this.instance({ address }))
+          // get a Client from each Contract
+          const clients   = contracts.map(contract=>contract.getClientSync())
+          // if operating in a Deployment, save each instance to the receipt
           if (this.deployment) {
-            for (const i in (inits as DeployArgs[])) {
-              this.deployment.add((inits as DeployArgs[])[i][0], clients[i].meta)
-            }
+            for (const i in inits) this.deployment.add(inits[i][0], contracts[i])
           }
+          // return the battle-ready clients
           return clients
         } catch (e) {
-          this.log.deployManyFailed(this, (inits as DeployArgs[]), e as Error)
+          this.log.deployManyFailed(this, inits, e as Error)
           throw e
         }
       })
     })
   }
 
-  get () {
-    const { deployment, match } = this
-    if (!deployment) throw new ClientError.NoDeployment()
-    if (!match) throw new ClientError.NoPredicate()
-    const info = match.name
-      ? `get all contracts matching predicate: ${match.name}`
-      : `get all contracts matching specified predicate`
-    return this.task(info, () => {
-      const clients: C[] = []
-      for (const info of Object.values(deployment.state)) {
-        if (!match(info)) continue
-        clients.push(new Contract(this.asTemplate as Partial<Contract<C>>).provide(info).getClientSync())
-      }
-      return Promise.resolve(clients)
-    })
+  protected get deployTaskName (): string {
+    return undefined
+      ?? (this.codeId && `deploy multiple instances of code id ${this.codeId})`)
+      ?? (this.crate  && `deploy multiple instances of crate ${this.crate})`)
+      ?? 'deploy multiple instances'
+  }
+
+  instance (options: Partial<ContractInstance> = {}): Contract<C> {
+    return new Contract(this.asTemplate as Partial<Contract<C>>)
+      .provide(options as Partial<Contract<C>>)
+  }
+
+  get asTemplate (): ContractTemplate {
+    return new ContractTemplate(this)
   }
 }
 
