@@ -1,7 +1,7 @@
 import { CommandsConsole } from '@hackbg/komandi'
 import { bold, colors } from '@hackbg/konzola'
 import type {
-  Contract, CodeId, CodeHash, Label, DeployArgs, Message, Chain, ContractMetadata
+  Address, Name, Contract, CodeId, CodeHash, Label, DeployArgs, Message, Chain,
 } from './client'
 import { CustomError } from '@hackbg/konzola'
 
@@ -133,8 +133,13 @@ export class ClientConsole extends CommandsConsole {
     }
     console.log(report)
   }
-  contract (meta: ContractMetadata) {
-    this.object(meta)
+  foundDeployedContract (address: Address, name: Name) {
+    this.log(
+      colors.green('Found:   '),
+      bold(colors.green(address)),
+      'is',
+      bold(colors.green(name)),
+    )
   }
   beforeDeploy (
     template: Contract<any>,

@@ -12,9 +12,6 @@ import {
   Label,
   Uint128,
 } from '@fadroma/client'
-import type {
-  ContractMetadata
-} from '@fadroma/client'
 import {
   Permit,
   ViewingKeyClient

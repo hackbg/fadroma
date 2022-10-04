@@ -61,19 +61,56 @@ export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): Cod
   return codeHash
 }
 
+/** @returns the uploader of the thing
+  * @throws  NoUploader if missing or NoUploaderAgent if the uploader has no agent. */
+export function assertUploader ({ uploader }: { uploader?: Uploader }): Uploader {
+  if (!uploader) throw new ClientError.NoUploader()
+  //if (typeof uploader === 'string') throw new ClientError.ProvideUploader(uploader)
+  if (!uploader.agent) throw new ClientError.NoUploaderAgent()
+  return uploader
+}
+
 /** Implements some degree of controlled extensibility for the value object pattern used below.
   * @todo ..... underlay (converse function which provides defaults for defined properties
   * but leaves untouched ones that are already set rather than overriding them) */
 export function override <T extends object> (
   self:    T,
   options: Partial<T>
-) {
+): T {
   for (const [key, val] of Object.entries(options)) {
     if (val === undefined) continue
-    const exists = key in self
-    const writable = Object.getOwnPropertyDescriptor(self, key)?.writable ?? true
-    if (exists && writable) Object.assign(self, { [key]: val })
+    const exists     = key in self
+    const writable   = Object.getOwnPropertyDescriptor(self, key)?.writable ?? true
+    const isFunction = (typeof self[key as keyof T] !== 'function')
+    if (exists && writable && !isFunction) Object.assign(self, { [key]: val })
   }
+  return self
+}
+
+/** A lazily provided value. The value can't be a Function. */
+export type Into<X> =
+  | X
+  | PromiseLike<X>
+  | (()=>X)
+  | (()=>PromiseLike<X>)
+
+/** Resolve a lazily provided value. */
+export async function into <X, Y> (specifier: Into<X>, context?: Y): Promise<X> {
+  if (typeof specifier === 'function') {
+    if (context) specifier = specifier.bind(context)
+    return await Promise.resolve((specifier as Function)())
+  }
+  return await Promise.resolve(specifier)
+}
+
+export type IntoArray<X> = Into<Array<Into<X>>>
+
+export async function intoArray <X, Y> (specifier: IntoArray<X>, context?: Y): Promise<X[]> {
+  if (typeof specifier === 'function') {
+    if (context) specifier = specifier.bind(context)
+    specifier = await Promise.resolve((specifier as Function)())
+  }
+  return await Promise.all((specifier as Array<Into<X>>).map(x=>into(x, context)))
 }
 
 /// # ACT I. CHAIN, AGENT, BUNDLE /////////////////////////////////////////////////////////////////
@@ -636,7 +673,7 @@ export class Client {
     /** Code hash confirming the contract's integrity. */
     public codeHash?: CodeHash,
     /** Contract class containing deployment metadata. */
-    public meta:      ContractMetadata = new ContractMetadata()
+    public meta:      ContractInstance = new ContractInstance()
   ) {
     Object.defineProperty(this, 'log', { writable: true, enumerable: false })
     Object.defineProperty(this, 'deployment', { writable: true, enumerable: false })
@@ -724,56 +761,9 @@ export class Client {
   }
 }
 
-export interface NewContract<C extends Client> {
-  new (...args: ConstructorParameters<typeof Contract<C>>): Contract<C>
-}
-
 /** A contract name with optional prefix and suffix, implementing namespacing
   * for append-only platforms where labels have to be globally unique. */
 export class StructuredLabel {
-  /** Full label of the instance. Unique for a given Chain. */
-  label?:  Label = undefined
-  /** Prefix of the instance.
-    * Identifies which Deployment the instance belongs to, if any.
-    * Prepended to contract label with a `/`: `PREFIX/NAME...` */
-  prefix?: Name  = undefined
-  /** Proper name of the instance.
-    * If the instance is not part of a Deployment, this is equal to the label.
-    * If the instance is part of a Deployment, this is used as storage key.
-    * You are encouraged to store application-specific versioning info in this field. */
-  name?:   Name  = undefined
-  /** Deduplication suffix.
-    * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
-    * This field has sometimes been used to redeploy an new instance
-    * within the same Deployment, taking the place of the old one.
-    * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
-    *       is "the real one" (see https://stackoverflow.com/a/54427214. */
-  suffix?: Name  = undefined
-
-  constructor (options: Partial<StructuredLabel> = {}) {
-    override(this, options)
-  }
-
-  /** RegExp for parsing labels of the format `prefix/name+suffix` */
-  static RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
-
-  /** Parse a label into prefix, name, and suffix. */
-  static parseLabel (label: Label): StructuredLabel {
-    const matches = label.match(this.RE_LABEL)
-    if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
-    const { name, prefix, suffix } = matches.groups
-    if (!name) throw new ClientError.InvalidLabel(label)
-    return new StructuredLabel({ label, name, prefix, suffix })
-  }
-
-  /** Construct a label from prefix, name, and suffix. */
-  static writeLabel ({ name, prefix, suffix }: Partial<StructuredLabel>): Label {
-    if (!name) throw new ClientError.NoName()
-    let label = name
-    if (prefix) label = `${prefix}/${label}`
-    if (suffix) label = `${label}+${suffix}`
-    return label
-  }
 }
 
 /** The output of parsing a label of the format `prefix/name+suffix` */
@@ -783,7 +773,72 @@ export interface LabelFormat {
   suffix?: Name
 }
 
-export class ContractMetadata extends StructuredLabel {
+export interface ContractInfo {
+  id:        number,
+  code_hash: string
+}
+
+/** `{ id, codeHash }` -> `{ id, code_hash }`; nothing else */
+export const templateStruct = (template: any): ContractInfo => ({
+  id:        Number(template.codeId),
+  code_hash: codeHashOf(template)
+})
+
+/** Reference to an instantiated smart contract in the format of Fadroma ICC. */
+export interface ContractLink {
+  readonly address:   Address
+  readonly code_hash: CodeHash
+}
+
+/** Convert Fadroma.Instance to address/hash struct (ContractLink) */
+export const linkStruct = (instance: IntoLink): ContractLink => ({
+  address:   assertAddress(instance),
+  code_hash: codeHashOf(instance)
+})
+
+/** Objects that have an address and code hash.
+  * Pass to linkTuple or linkStruct to get either format of link. */
+export interface IntoLink extends Hashed {
+  address: Address
+}
+
+export class Metadata {
+  constructor (options: Partial<Metadata> = {}) {
+    this.provide(options as object)
+  }
+
+  /** Provide parameters for an existing contract.
+    * @returns the modified contract. */
+  provide (options: Partial<this>): this {
+    return override(this, options)
+  }
+
+  /** Define a subtask
+    * @returns A lazily-evaluated Promise. */
+  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> {
+    const task = new Task(name, cb, this)
+    const [_, head, ...body] = (task.stack ?? '').split('\n')
+    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+    return task
+  }
+
+  /** Throw if fetched metadata differs from configured. */
+  static validateField <T> (kind: string, value: T, expected?: T): T {
+    const name = this.constructor.name
+    if (typeof value === 'string' && typeof expected === 'string') {
+      value = value.toLowerCase() as unknown as T
+    }
+    if (typeof expected === 'string') {
+      expected = expected.toLowerCase() as unknown as T
+    }
+    if (typeof expected !== 'undefined' && expected !== value) {
+      throw new ClientError.ValidationFailed(kind, name, expected, value)
+    }
+    return value
+  }
+}
+
+export class ContractTemplate extends Metadata {
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL = undefined
   /** Branch/tag pointing to the source commit. */
@@ -812,25 +867,11 @@ export class ContractMetadata extends StructuredLabel {
   uploadTx?:   TxHash     = undefined
   /** Code ID representing the identity of the contract's code on a specific chain. */
   codeId?:     CodeId     = undefined
-  /** Address of agent that performed the init tx. */
-  initBy?:     Address    = undefined
-  /** Address of agent that performed the init tx. */
-  initMsg?:    Message    = undefined
-  /** TXID of transaction that performed the init. */
-  initTx?:     TxHash     = undefined
-  /** Address of this contract instance. Unique per chain. */
-  address?:    Address    = undefined
 
-  constructor (options: Partial<ContractMetadata> = {}) {
-    super()
-    override(this, options)
-    Object.defineProperty(this, 'log', { enumerable: false, writable: true })
+  constructor (options: Partial<ContractTemplate> = {}) {
+    super(options as Partial<Metadata>)
   }
 
-  /** Get link to this contract in Fadroma ICC format. */
-  get asLink (): ContractLink {
-    return { address: assertAddress(this), code_hash: assertCodeHash(this) }
-  }
   /** Uploaded templates can be passed to factory contracts in this format. */
   get asInfo (): ContractInfo {
     if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
@@ -839,24 +880,149 @@ export class ContractMetadata extends StructuredLabel {
     return templateStruct(this)
   }
 
-  /** Throw if fetched metadata differs from configured. */
-  static validateField <T> (kind: string, value: T, expected?: T): T {
-    const name = this.constructor.name
-    if (typeof value === 'string' && typeof expected === 'string') {
-      value = value.toLowerCase() as unknown as T
+  /** Compile the source using the selected builder.
+    * @returns this */
+  build (builder?: Builder): Promise<typeof this> {
+    return build(this, builder)
+  }
+
+  /** Throw appropriate error if not buildable. */
+  static assertBuilder ({ builder }: { builder?: Builder }): Builder {
+    //if (!this.crate) throw new ClientError.NoCrate()
+    if (!builder) throw new ClientError.NoBuilder()
+    //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
+    return builder
+  }
+
+  /** Returns a string in the format `crate[@ref][+flag][+flag]...` */
+  static getSourceSpecifier <C extends ContractTemplate> (meta: C): string {
+    const { crate, revision, features } = meta
+    let result = crate ?? ''
+    if (revision !== 'HEAD') result = `${result}@${revision}`
+    if (features && features.length > 0) result = `${result}+${features.join('+')}`
+    return result
+  }
+}
+
+export function build <T extends ContractTemplate> (
+  source:   T,
+  builder?: Builder
+): PromiseLike<T> {
+  const { assertBuilder, getSourceSpecifier } = source.constructor as typeof ContractTemplate
+  builder ??= assertBuilder(source)
+  const name = 'build  ' + getSourceSpecifier(source)
+  return source.task(name, async (): Promise<T> => {
+    if (source.artifact) return source
+    const result = await builder!.build(source)
+    return result
+  })
+}
+
+export function upload <T extends ContractTemplate> (
+  template:  T,
+  uploader?: Uploader,
+  agent?:    Agent
+): PromiseLike<T> {
+  // If the object already contains chain ID and code ID, that means it's uploaded
+  if (template.chainId && template.codeId) {
+    // If it also has the code hash, we're good to go
+    if (template.codeHash) return Promise.resolve(template)
+    // If it has no code hash, fetch it from the chain by the code id and that's it
+    return template.fetchCodeHashByCodeId().then(codeHash=>Object.assign(template, { codeHash }))
+  }
+  // If the chain ID or code hash is missing though, it means we need to upload
+  const { getSourceSpecifier } = template.constructor as typeof ContractInstance
+  // Name the task
+  const name = `upload ${getSourceSpecifier(template)}`
+  return template.task(name, async (): Promise<T> => {
+    // Otherwise we're gonna need the uploader
+    uploader ??= assertUploader(template)
+    // And if we still can't determine the chain ID, bail
+    const chainId = undefined
+      ?? uploader.chain?.id
+      ?? uploader.agent?.chain?.id
+      ?? (template as any)?.agent?.chain?.id
+    if (!chainId) throw new ClientError.NoChainId()
+    // If we have chain ID and code ID, try to get code hash
+    if (template.codeId) template.codeHash = await template.fetchCodeHashByCodeId()
+    // Replace with built and return uploaded
+    if (!template.artifact) await template.build()
+    return uploader.upload(template)
+  })
+}
+
+export class ContractInstance extends ContractTemplate implements StructuredLabel {
+  /** Address of agent that performed the init tx. */
+  initBy?:  Address = undefined
+  /** Address of agent that performed the init tx. */
+  initMsg?: Message = undefined
+  /** TXID of transaction that performed the init. */
+  initTx?:  TxHash  = undefined
+  /** Address of this contract instance. Unique per chain. */
+  address?: Address = undefined
+  /** Full label of the instance. Unique for a given Chain. */
+  label?:   Label   = undefined
+  /** Prefix of the instance.
+    * Identifies which Deployment the instance belongs to, if any.
+    * Prepended to contract label with a `/`: `PREFIX/NAME...` */
+  prefix?:  Name    = undefined
+  /** Proper name of the instance.
+    * If the instance is not part of a Deployment, this is equal to the label.
+    * If the instance is part of a Deployment, this is used as storage key.
+    * You are encouraged to store application-specific versioning info in this field. */
+  name?:    Name    = undefined
+  /** Deduplication suffix.
+    * Appended to the contract label with a `+`: `...NAME+SUFFIX`.
+    * This field has sometimes been used to redeploy an new instance
+    * within the same Deployment, taking the place of the old one.
+    * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
+    *       is "the real one" (see https://stackoverflow.com/a/54427214. */
+  suffix?:  Name    = undefined
+
+  constructor (options: Partial<ContractInstance> = {}) {
+    super(options as Partial<ContractTemplate>)
+  }
+
+  /** Get link to this contract in Fadroma ICC format. */
+  get asLink (): ContractLink {
+    return { address: assertAddress(this), code_hash: assertCodeHash(this) }
+  }
+
+  /** Upload compiled source code to the selected chain.
+    * @returns this with chainId and codeId populated. */
+  upload (uploader?: Uploader): Promise<typeof this> {
+    if (this.chainId && this.codeId) {
+      if (this.codeHash) {
+        return Promise.resolve(this)
+      } else {
+        return this.fetchCodeHashByCodeId().then(codeHash=>Object.assign(this, { codeHash }))
+      }
+    } else {
+      const { getSourceSpecifier } = this.constructor as typeof ContractInstance
+      const name = `upload ${getSourceSpecifier(this)}`
+      const self = this
+      return this.task(name, async (): Promise<typeof self> => {
+        // Otherwise we're gonna need the uploader
+        const { assertUploader } = this.constructor as typeof Contract<C>
+        uploader ??= assertUploader(this)
+        // And if we still can't determine the chain ID, bail
+        const chainId =
+          uploader.chain?.id        ??
+          uploader.agent?.chain?.id ??
+          this.agent?.chain?.id
+        if (!chainId) throw new ClientError.NoChainId()
+        // If we have chain ID and code ID, try to get code hash
+        if (this.codeId) this.codeHash = await this.fetchCodeHashByCodeId()
+        // Replace with built and return uploaded
+        if (!this.artifact) return this.build().then(uploader.upload.bind(uploader))
+        return uploader.upload(this)
+      })
     }
-    if (typeof expected === 'string') {
-      expected = expected.toLowerCase() as unknown as T
-    }
-    if (typeof expected !== 'undefined' && expected !== value) {
-      throw new ClientError.ValidationFailed(kind, name, expected, value)
-    }
-    return value
   }
 
   /** Retrieves the code ID corresponding to this contract's code hash.
     * @returns `this` but with `codeId` populated. */
-  static async fetchCodeId <C extends ContractMetadata> (
+  static async fetchCodeId <C extends ContractInstance> (
     meta: C, agent: Agent, expected?: CodeId,
   ): Promise<C & { codeId: CodeId }> {
     return Object.assign(meta, {
@@ -865,7 +1031,7 @@ export class ContractMetadata extends StructuredLabel {
   }
 
   /** Fetch the code hash by id and by address, and compare them. */
-  static async fetchCodeHash <C extends ContractMetadata> (
+  static async fetchCodeHash <C extends ContractInstance> (
     meta: C, agent: Agent, expected?: CodeHash,
   ): Promise<C & { codeHash: CodeHash }> {
     if (!meta.address && !meta.codeId && !meta.codeHash) {
@@ -888,7 +1054,7 @@ export class ContractMetadata extends StructuredLabel {
   }
 
   /** Fetch the label from the chain. */
-  static async fetchLabel <C extends ContractMetadata> (
+  static async fetchLabel <C extends ContractInstance> (
     meta: C, agent: Agent, expected?: Label
   ): Promise<C & { label: Label }> {
     const label = await agent.getLabel(assertAddress(meta))
@@ -897,37 +1063,45 @@ export class ContractMetadata extends StructuredLabel {
     return Object.assign(meta, { label, name, prefix, suffix })
   }
 
-  /** Returns a string in the format `crate[@ref][+flag][+flag]...` */
-  static getSourceSpecifier <C extends ContractMetadata> (meta: C): string {
-    const { crate, revision, features } = meta
-    let result = crate ?? ''
-    if (revision !== 'HEAD') result = `${result}@${revision}`
-    if (features && features.length > 0) result = `${result}+${features.join('+')}`
-    return result
+  /** RegExp for parsing labels of the format `prefix/name+suffix` */
+  static RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
+
+  /** Parse a label into prefix, name, and suffix. */
+  static parseLabel (label: Label): StructuredLabel {
+    const matches = label.match(this.RE_LABEL)
+    if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
+    const { name, prefix, suffix } = matches.groups
+    if (!name) throw new ClientError.InvalidLabel(label)
+    return { label, name, prefix, suffix }
   }
 
+  /** Construct a label from prefix, name, and suffix. */
+  static writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
+    if (!name) throw new ClientError.NoName()
+    let label = name
+    if (prefix) label = `${prefix}/${label}`
+    if (suffix) label = `${label}+${suffix}`
+    return label
+  }
 }
+
+export interface StructuredLabel { label?: string, name?: string, prefix?: string, suffix?: string }
 
 /// # ACT III. CONTRACT, DEPLOYMENT ///////////////////////////////////////////////////////////////
 
-export class Contract<C extends Client> extends Task<Deployment, Contract<C>> {
+export class Contract<C extends Client> extends ContractInstance implements PromiseLike<C> {
   log = new ClientConsole('Fadroma.Contract')
+  /** Deployment that this contract is a part of. */
+  deployment?: Deployment     = undefined
+  /** The agent that will upload and instantiate this contract. */
+  agent?:      Agent          = this.deployment?.agent
+  /** Build procedure implementation. */
+  builder?:    Builder        = this.deployment?.builder
+  /** Upload procedure implementation. */
+  uploader?:   Uploader       = this.deployment?.uploader
   /** The Client subclass that exposes the contract's methods.
     * @default the base Client class. */
   client:      ClientClass<C> = Client as unknown as ClientClass<C>
-  /** The agent instance that will be used to upload and instantiate this contract. */
-  agent?:      Agent          = undefined
-  /** Build procedure implementation. */
-  builder?:    Builder        = undefined
-  /** Upload procedure implementation. */
-  uploader?:   Uploader       = undefined
-  /** Deployment that this contract is a part of. */
-  deployment?: Deployment     = undefined
-
-  /** @returns the contract's metadata */
-  get asMetadata (): ContractMetadata {
-    return new ContractMetadata(this)
-  }
 
   constructor (
     specifier?: Partial<Contract<C>>,
@@ -939,210 +1113,15 @@ export class Contract<C extends Client> extends Task<Deployment, Contract<C>> {
     if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
   }
 
-  /** Fetch the label by the address.
-    * @returns `this`, but with `label`, `name`, `prefix`, `suffix` populated. */
-  async fetchLabel (expected?: Label, agent = assertAgent(this)) {
-    const { fetchLabel } = this.constructor as typeof ContractMetadata
-    return await fetchLabel(this, agent, expected)
+  /** @returns the contract's metadata */
+  get meta (): ContractInstance {
+    return new ContractInstance(this)
   }
-  /** Fetch the code hash by address and/or code id.
-    * @returns `this`, but with `codeHash` populated. */
-  async fetchCodeHash (expected?: CodeHash, agent = assertAgent(this)) {
-    const { fetchCodeHash } = this.constructor as typeof ContractMetadata
-    return await fetchCodeHash(this, agent, expected)
-  }
-  /** Fetch the code hash by address and/or code id.
-    * @returns `this`, but with `codeId` populated. */
-  async fetchCodeId (expected?: CodeId, agent = assertAgent(this)) {
-    const { fetchCodeId } = this.constructor as typeof ContractMetadata
-    return await fetchCodeId(this, agent, expected)
-  }
-  /** Fetch code hash from address.
-    * @returns code hash corresponding to `this.address` */
-  fetchCodeHashByAddress (expected?: CodeHash): Promise<CodeHash> {
-    const { validateField } = this.constructor as typeof ContractMetadata
-    return assertAgent(this).getHash(assertAddress(this)).then(codeHash=>{
-      return this.codeHash = validateField('codeHash', codeHash, expected ?? this.codeHash)
-    })
-  }
-  /** Fetch code hash from code id.
-    * @returns code hash corresponding to `this.codeId`  */
-  fetchCodeHashByCodeId (expected?: CodeHash): Promise<CodeHash> {
-    const { validateField } = this.constructor as typeof ContractMetadata
-    return assertAgent(this).getHash(this.codeId!).then(codeHash=>{
-      if (!!expected) validateField('codeHash', codeHash, expected ?? this.codeHash)
-      this.codeHash = codeHash
-      return codeHash
-    })
-  }
-  /** Lazily get a contract from the deployment.
-    * @returns a Lazy invocation of getClient, or a Promise if not in task context */
-  get (): Task<Contract<C>, C> {
-    return this.task(`get    ${this.name??'contract'}`, () => this.getClient())
-  }
-  /** Async wrapper around getClientSync.
-    * @returns a Client instance pointing to this contract
-    * @throws if the contract address could not be determined */
-  getClient ($Client: ClientClass<C> = this.client): Promise<C> {
-    return Promise.resolve(this.getClientSync($Client))
-  }
-  /** @returns a Client instance pointing to this contract
-    * @throws if the contract address could not be determined */
-  getClientSync ($Client: ClientClass<C> = this.client): C {
-    const client = this.getClientOrNull($Client)
-    if (client) return client
-    throw new ClientError.NotFound($Client.name, this.name, this.deployment?.name)
-  }
-  /** @returns a Client instance pointing to this contract, or null if
-    * the contract address could not be determined */
-  getClientOrNull ($Client: ClientClass<C> = this.client): C|null {
-    if (this.address) {
-      return new this.client(this.agent, this.address, this.codeHash, this.asMetadata)
-    }
-    if (this.deployment && this.name && this.deployment.has(this.name)) {
-      const { address, codeHash } = this.deployment.get(this.name)!
-      return new this.client(this.agent, address, codeHash, this.asMetadata)
-    }
-    return null
-  }
-  getMany (
-    /** Filter predicate for selecting specific contracts. */
-    predicate: (meta: Partial<ContractMetadata>)=>boolean|undefined,
-    info: string = `get all contracts matching specified predicate`
-  ): Task<Contract<C>, C[]> {
-    const deployment = this.deployment
-    if (!deployment) throw new ClientError.NoDeployment()
-    return this.task(info, () => {
-      const clients: C[] = []
-      for (const meta of Object.values(deployment.state)) {
-        if (predicate(meta)) {
-          clients.push(new Contract(this, meta).getClientSync())
-        }
-      }
-      return Promise.resolve(clients)
-    })
-  }
-  /** Deploy the contract, or retrieve it if it's already deployed. */
-  deploy (
-    initMsg: IntoMessage|undefined = this.initMsg
-  ): Task<Contract<C>, C> {
-    return this.task(`get or deploy ${this.name ?? 'contract'}`, () => {
-      const deployed = this.getClientOrNull()
-      if (deployed) {
-        this.log.log(
-          colors.green('Found:   '),
-          bold(colors.green(deployed.address!)),
-          'is',
-          bold(colors.green(this.name!)),
-        )
-        return Promise.resolve(deployed)
-      }
-      const name = `deploy ${this.name ?? 'contract'}`
-      return this.task(name, () => {
-        if (!this.agent) throw new ClientError.NoCreator(this.name)
-        this.label = ContractMetadata.writeLabel(this)
-        if (!this.label) throw new ClientError.NoInitLabel(this.name)
-        return this.upload().then(async template=>{
-          if (this !== template) this.log.warn('bug: uploader returned different instance')
-          if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
-          this.log.beforeDeploy(this, this.label!)
-          if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
-          const contract = await this.agent!.instantiate(this, this.label!, initMsg as Message)
-          this.log.afterDeploy(contract)
-          if (this.deployment) this.deployment.add(this.name!, contract)
-          return this.get()
-        })
-      })
-    })
-  }
-  /** Deploy multiple instances of the same code. */
-  deployMany (
-    inits: (DeployArgs[])|(()=>DeployArgs[])|(()=>Promise<DeployArgs[]>)
-  ): Task<Contract<C>, C[]> {
-    let name = this.name
-      ?? (this.codeId && `code id ${this.codeId}`)
-      ?? (this.crate  && `crate ${this.crate}`)
-      ?? 'a contract'
-    name = `deploy ${name}`
-    return this.task(name, async (): Promise<C[]> => {
-      // get the inits if passed lazily
-      if (typeof inits === 'function') inits = await Promise.resolve(inits())
-      if (inits.length === 0) return Promise.resolve([])
-      const agent = this.agent
-      if (!agent) throw new ClientError.NoCreator(this.name)
-      return this.upload().then(async (contract: Contract<C>)=>{
-        // at this point we should have a code id
-        if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
-        // add deployment prefix
-        const prefixedInits = (inits as DeployArgs[]).map(([label, msg])=>[
-          this.deployment ? `${this.deployment.name}/${label}` : label,
-          msg
-        ] as DeployArgs)
-        try {
-          const responses = await agent.instantiateMany(contract, prefixedInits)
-          const clients = responses.map(({ address })=>
-            new this.client(this.agent, address, this.codeHash, this.asMetadata))
-          if (this.deployment) {
-            for (const i in (inits as DeployArgs[])) {
-              this.deployment.add((inits as DeployArgs[])[i][0], clients[i].meta)
-            }
-          }
-          return clients
-        } catch (e) {
-          this.log.deployManyFailed(contract, (inits as DeployArgs[]), e as Error)
-          throw e
-        }
-      })
-    })
-  }
-  /** Upload compiled source code to the selected chain.
-    * @returns this with chainId and codeId populated. */
-  upload (uploader?: Uploader): Promise<Contract<C>> {
-    if (this.chainId && this.codeId) {
-      if (this.codeHash) {
-        return Promise.resolve(this)
-      } else {
-        return this.fetchCodeHashByCodeId().then(codeHash=>Object.assign(this, { codeHash }))
-      }
-    } else {
-      const { getSourceSpecifier } = this.constructor as typeof ContractMetadata
-      const name = `upload ${getSourceSpecifier(this)}`
-      return this.task(name, async (): Promise<Contract<C>> => {
-        // Otherwise we're gonna need the uploader
-        const { assertUploader } = this.constructor as typeof Contract<C>
-        uploader ??= assertUploader(this)
-        // And if we still can't determine the chain ID, bail
-        const chainId =
-          uploader.chain?.id        ??
-          uploader.agent?.chain?.id ??
-          this.agent?.chain?.id
-        if (!chainId) throw new ClientError.NoChainId()
-        // If we have chain ID and code ID, try to get code hash
-        if (this.codeId) this.codeHash = await this.fetchCodeHashByCodeId()
-        // Replace with built and return uploaded
-        if (!this.artifact) return this.build().then(uploader.upload.bind(uploader))
-        return uploader.upload(this)
-      })
-    }
-  }
-  /** Compile the source using the selected builder.
-    * @returns this */
-  build (builder?: Builder) {
-    const { assertBuilder } = this.constructor as typeof Contract<C>
-    builder ??= assertBuilder(this)
-    const { getSourceSpecifier } = this.constructor as typeof ContractMetadata
-    const name = 'build  ' + getSourceSpecifier(this)
-    return this.task(name, async (): Promise<Contract<C>> => {
-      if (this.artifact) return this
-      const result = await builder!.build(this)
-      return result
-    })
-  }
+
   /** Provide parameters for an existing contract.
     * @returns the modified contract. */
-  provide (options: Partial<Contract<C>>): Contract<C> {
-    // Apply property overrides
-    override<Contract<C>>(this, { ...options })
+  provide (options: Partial<typeof this>): this {
+    super.provide(options)
     // If this Contract is now part of a Deployment,
     // inherit the prefix from the deployment.
     if (this.deployment) {
@@ -1164,58 +1143,173 @@ export class Contract<C extends Client> extends Task<Deployment, Contract<C>> {
     return this
   }
 
-  /** Throw appropriate error if not buildable. */
-  static assertBuilder ({ builder }: { builder?: Builder }): Builder {
-    //if (!this.crate) throw new ClientError.NoCrate()
-    if (!builder) throw new ClientError.NoBuilder()
-    //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
-    return builder
+  /** Evaluate this Contract, asynchronously returning a Client.
+    * 1. try to get the contract from storage (if the deploy store is available)
+    * 2. if that fails, try to deploy the contract (building and uploading it,
+    *    if necessary and possible)
+    * @returns promise of instance of `this.client`
+    * @throws  if not found and not deployable  */
+  then <D, E> (
+    onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
+    onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
+  ): PromiseLike<D|E> {
+    return this.deploy().then(onfulfilled, onrejected)
   }
-  /** Return the Uploader for this Template or throw. */
-  static assertUploader ({ uploader }: { uploader?: Uploader }): Uploader {
-    if (!uploader) throw new ClientError.NoUploader()
-    //if (typeof uploader === 'string') throw new ClientError.ProvideUploader(uploader)
-    if (!uploader.agent) throw new ClientError.NoUploaderAgent()
-    return uploader
+
+  /** Deploy the contract, or retrieve it if it's already deployed.
+    * @returns promise of instance of `this.client`  */
+  deploy (initMsg: IntoMessage|undefined = this.initMsg): PromiseLike<C> {
+    return this.task(`get or deploy ${this.name ?? 'contract'}`, () => {
+      const deployed = this.getClientOrNull()
+      if (deployed) {
+        this.log.foundDeployedContract(deployed.address!, this.name!)
+        return Promise.resolve(deployed)
+      }
+      const name = `deploy ${this.name ?? 'contract'}`
+      return this.task(name, () => {
+        if (!this.agent) throw new ClientError.NoCreator(this.name)
+        const { writeLabel } = this.constructor as typeof ContractInstance
+        this.label = writeLabel(this)
+        if (!this.label) throw new ClientError.NoInitLabel(this.name)
+        return this.upload().then(async template=>{
+          if (this !== template) this.log.warn('bug: uploader returned different instance')
+          if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
+          this.log.beforeDeploy(this, this.label!)
+          if (initMsg instanceof Function) initMsg = await Promise.resolve(initMsg())
+          const contract = await this.agent!.instantiate(this, this.label!, initMsg as Message)
+          this.log.afterDeploy(contract)
+          if (this.deployment) this.deployment.add(this.name!, contract)
+          return this.getClient()
+        })
+      })
+    })
+  }
+
+  /** Async wrapper around getClientSync.
+    * @returns a Client instance pointing to this contract
+    * @throws if the contract address could not be determined */
+  getClient ($Client: ClientClass<C> = this.client): Promise<C> {
+    return Promise.resolve(this.getClientSync($Client))
+  }
+  /** @returns a Client instance pointing to this contract
+    * @throws if the contract address could not be determined */
+  getClientSync ($Client: ClientClass<C> = this.client): C {
+    const client = this.getClientOrNull($Client)
+    if (!client) throw new ClientError.NotFound($Client.name, this.name, this.deployment?.name)
+    return client
+  }
+  /** @returns a Client instance pointing to this contract, or null if
+    * the contract address could not be determined */
+  getClientOrNull ($Client: ClientClass<C> = this.client): C|null {
+    if (this.address) {
+      return new this.client(this.agent, this.address, this.codeHash, this.meta)
+    }
+    if (this.deployment && this.name && this.deployment.has(this.name)) {
+      const { address, codeHash } = this.deployment.get(this.name)!
+      return new this.client(this.agent, address, codeHash, this.meta)
+    }
+    return null
   }
 }
 
-export interface ContractInfo {
-  id:        number,
-  code_hash: string
+export class Contracts<C extends Client> extends ContractTemplate implements PromiseLike<C[]> {
+  log = new ClientConsole('Fadroma.Contract')
+  /** Deployment that this contract is a part of. */
+  deployment?: Deployment     = undefined
+  /** The agent that will upload and instantiate these contracts. */
+  agent?:      Agent          = this.deployment?.agent
+  /** Build procedure implementation. */
+  builder?:    Builder        = this.deployment?.builder
+  /** Upload procedure implementation. */
+  uploader?:   Uploader       = this.deployment?.uploader
+  /** The Client subclass that exposes the contract's methods.
+    * @default the base Client class. */
+  client:      ClientClass<C> = Client as unknown as ClientClass<C>
+  /** A list of [Label, InitMsg] pairs that are used to instantiate the contracts. */
+  inits?:      IntoArray<DeployArgs> = undefined
+  /** A filter predicate for recognizing deployed contracts. */
+  match?:      (meta: Partial<ContractInstance>) => boolean|undefined
+
+  constructor (options: Partial<Contracts<C>> = {}) {
+    super()
+    override(this, options)
+  }
+
+  get asTemplate (): ContractTemplate {
+    return new ContractTemplate(this)
+  }
+
+  /** Evaluate this Contract, asynchronously returning a Client.
+    *   1. try to get the contract from storage (if the deploy store is available)
+    *   2. if that fails, try to deploy the contract (building and uploading it,
+    *      if necessary and possible)
+    * @returns an instance of `this.client` */
+  then <D, E> (
+    onfulfilled?: ((client: C[]) => D|PromiseLike<D>) | null,
+    onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
+  ): PromiseLike<D|E> {
+    return this.deploy().then(onfulfilled, onrejected)
+  }
+
+  /** Deploy multiple instances of the same code. */
+  deploy () {
+    let name = undefined
+      ?? (this.codeId && `code id ${this.codeId}`)
+      ?? (this.crate  && `crate ${this.crate}`)
+      ?? 'a contract'
+    name = `deploy ${name}`
+    return this.task(name, async (): Promise<C[]> => {
+      // get the inits if passed lazily
+      const inits = await intoArray(this.inits??[], this.deployment)
+      // if deploying 0 contracts we're already done
+      if (inits.length === 0) return Promise.resolve([])
+      const agent = assertAgent(this)
+      return this.upload().then(async (contract: Contract<C>)=>{
+        // at this point we should have a code id
+        if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
+        // add deployment prefix
+        const prefixedInits = (inits as DeployArgs[]).map(([label, msg])=>[
+          this.deployment ? `${this.deployment.name}/${label}` : label,
+          msg
+        ] as DeployArgs)
+        try {
+          const responses = await agent.instantiateMany(contract, prefixedInits)
+          const clients = responses.map(({ address })=>
+            new this.client(this.agent, address, this.codeHash, this.meta))
+          if (this.deployment) {
+            for (const i in (inits as DeployArgs[])) {
+              this.deployment.add((inits as DeployArgs[])[i][0], clients[i].meta)
+            }
+          }
+          return clients
+        } catch (e) {
+          this.log.deployManyFailed(contract, (inits as DeployArgs[]), e as Error)
+          throw e
+        }
+      })
+    })
+  }
+
+  get () {
+    const { deployment, match } = this
+    if (!deployment) throw new ClientError.NoDeployment()
+    if (!match) throw new ClientError.NoPredicate()
+    const info = match.name
+      ? `get all contracts matching predicate: ${match.name}`
+      : `get all contracts matching specified predicate`
+    return this.task(info, () => {
+      const clients: C[] = []
+      for (const info of Object.values(deployment.state)) {
+        if (!match(info)) continue
+        clients.push(new Contract(this.asTemplate as Partial<Contract<C>>).provide(info).getClientSync())
+      }
+      return Promise.resolve(clients)
+    })
+  }
 }
 
-/** `{ id, codeHash }` -> `{ id, code_hash }`; nothing else */
-export const templateStruct = (template: any): ContractInfo => ({
-  id:        Number(template.codeId),
-  code_hash: codeHashOf(template)
-})
-
-export type IntoClient = Name|Partial<Client>|undefined
-
-
-/** Reference to an instantiated smart contract in the format of Fadroma ICC. */
-export interface ContractLink {
-  readonly address:   Address
-  readonly code_hash: CodeHash
-}
-
-/** Convert Fadroma.Instance to address/hash struct (ContractLink) */
-export const linkStruct = (instance: IntoLink): ContractLink => ({
-  address:   addressOf(instance),
-  code_hash: codeHashOf(instance)
-})
-
-/** Objects that have an address and code hash.
-  * Pass to linkTuple or linkStruct to get either format of link. */
-export interface IntoLink extends Hashed {
-  address: Address
-}
-
-export function addressOf (instance?: { address?: Address }): Address {
-  if (!instance)         throw new ClientError.LinkNoTarget()
-  if (!instance.address) throw new ClientError.LinkNoAddress()
-  return instance.address
+export interface NewContract<C extends Client> {
+  new (...args: ConstructorParameters<typeof Contract<C>>): Contract<C>
 }
 
 export type DeploymentState = Record<string, Partial<Contract<any>>>
@@ -1355,10 +1449,8 @@ export class Deployment extends CommandContext {
     *   await this.contract({ name: 'OwnContractTemplate' }).upload()
     *
     **/
-  contract (name?: string): Contract<Client>
-  contract <C extends Client> (options?: Partial<Contract<C>>): Contract<C>
-  contract <C extends Client> (arg?: string|Partial<Contract<C>>) {
-    let options = {
+  contract <C extends Client> (options?: Partial<Contract<C>>): Contract<C> {
+    options = {
       deployment: this,
       prefix:     this.name,
       builder:    this.builder,
@@ -1367,7 +1459,7 @@ export class Deployment extends CommandContext {
       repository: this.repository,
       revision:   this.revision,
       workspace:  this.workspace,
-      ...((typeof arg === 'string') ? { name: arg } : arg)
+      ...options
     }
     // If a contract with this name exists in the deploymet,
     // inherit properties from it. TODO just return the same contract
@@ -1375,35 +1467,13 @@ export class Deployment extends CommandContext {
       const existing = this.get(options.name)
       options = { ...existing, ...options }
     }
-    return new Contract().provide(options as Partial<Contract<Client>>)
+    return new Contract<C>().provide(options)
   }
 
   /** Specify multiple contracts.
     * @returns an array of Contract instances matching the specified predicate. */
-  contracts (
-    predicate: (key: string, val: { name?: string }) => boolean
-  ): Promise<Client[]>
-  contracts <C extends Client> (
-    predicate: (key: string, val: { name?: string }) => boolean,
-    Client:    ClientClass<C>
-  ): Promise<C[]>
-  contracts <C extends Client> (...args: Array<unknown>) {
-    const predicate = args[0] as (key: string, val: { name?: string }) => boolean
-    if (args.length > 1) {
-      const Client = args[1] as ClientClass<C>
-      return Promise.all(this.filter(predicate).map((receipt: object)=>
-        this.contract(receipt).getClientOrNull(Client)))
-    } else {
-      return Promise.all(this.filter(predicate).map((receipt: object)=>
-        this.contract(receipt)))
-    }
-  }
-
-  /** @returns Contract instances matching the provided predicate. */
-  filter (predicate: (key: string, val: { name?: string }) => boolean): Contract<any>[] {
-    return Object.entries(this.state)
-      .filter(([key, val])=>predicate(key, val))
-      .map(([name, data])=>new Contract({ name, ...data }))
+  contracts <C extends Client> (options: Partial<Contracts<C>>): Contracts<C> {
+    return new Contracts({ ...options, deployment: this })
   }
 
   /** Check if the deployment contains a certain entry. */
@@ -1566,9 +1636,9 @@ export abstract class Uploader {
   /** Unique identifier of this uploader implementation. */
   abstract id: string
   /** Upload a contract. */
-  abstract upload (template: Contract<any>): Promise<Contract<any>>
+  abstract upload <T extends ContractTemplate> (template: T): Promise<T>
   /** Upload multiple contracts. */
-  abstract uploadMany (templates: Contract<any>[]): Promise<Contract<any>[]>
+  abstract uploadMany (templates: ContractTemplate[]): Promise<ContractTemplate[]>
 }
 
 /** A transaction hash, uniquely identifying an executed transaction on a chain. */

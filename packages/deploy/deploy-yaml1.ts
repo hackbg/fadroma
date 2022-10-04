@@ -109,7 +109,7 @@ export class YAMLDeployments_v1 extends DeployStore {
       if (!name) throw new Error('Deployment: no name')
       data = JSON.parse(JSON.stringify({
         name,
-        ...new Contract(data).asMetadata,
+        ...new Contract(data).meta,
         deployment: undefined
       }))
       const daDump = dump(data, { noRefs: true })
