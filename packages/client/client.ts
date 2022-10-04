@@ -40,18 +40,21 @@ export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
   ...unknown[]
 ]> {}
 
-/** @returns the agent of the thing
-  * @throws  ExpectedAgent if missing. */
-export function assertAgent <A extends Agent> (thing: { agent?: A } = {}): A {
-  if (!thing.agent) throw new ClientError.ExpectedAgent(thing.constructor?.name)
-  return thing.agent
+/** Returns a string in the format `crate[@ref][+flag][+flag]...` */
+export function getSourceSpecifier <C extends ContractTemplate> (meta: C): string {
+  const { crate, revision, features } = meta
+  let result = crate ?? ''
+  if (revision !== 'HEAD') result = `${result}@${revision}`
+  if (features && features.length > 0) result = `${result}+${features.join('+')}`
+  return result
 }
 
-/** @returns the address of the thing
-  * @throws  LinkNoAddress if missing. */
-export function assertAddress ({ address }: { address?: Address } = {}): Address {
-  if (!address) throw new ClientError.LinkNoAddress()
-  return address
+/** Throw appropriate error if not buildable. */
+export function assertBuilder ({ builder }: { builder?: Builder }): Builder {
+  //if (!this.crate) throw new ClientError.NoCrate()
+  if (!builder) throw new ClientError.NoBuilder()
+  //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
+  return builder
 }
 
 /** @returns the code hash of the thing
@@ -61,6 +64,30 @@ export function assertCodeHash ({ codeHash }: { codeHash?: CodeHash } = {}): Cod
   return codeHash
 }
 
+/** Fetch the code hash by id and by address, and compare them.
+  * @returns the passed contract object but with codeHash set
+  * @throws if unable to establish the code hash */
+export async function fetchCodeHash <C extends ContractTemplate & { address?: Address }> (
+  meta: C, agent: Agent, expected?: CodeHash,
+): Promise<CodeHash> {
+  if (!meta.address && !meta.codeId && !meta.codeHash) {
+    throw new ClientError('Unable to fetch code hash: no address or code id.')
+  }
+  const codeHashByAddress = meta.address
+    ? validateField('codeHashByAddress', await agent.getHash(meta.address), expected)
+    : undefined
+  const codeHashByCodeId  = meta.codeId
+    ? validateField('codeHashByCodeId',  await agent.getHash(meta.codeId),  expected)
+    : undefined
+  if (codeHashByAddress && codeHashByCodeId && codeHashByAddress !== codeHashByCodeId) {
+    throw new ClientError('Validation failed: different code hashes fetched by address and by code id.')
+  }
+  if (!codeHashByAddress && !codeHashByCodeId) {
+    throw new ClientError('Code hash unavailable.')
+  }
+  return codeHashByAddress! ?? codeHashByCodeId!
+}
+
 /** @returns the uploader of the thing
   * @throws  NoUploader if missing or NoUploaderAgent if the uploader has no agent. */
 export function assertUploader ({ uploader }: { uploader?: Uploader }): Uploader {
@@ -68,6 +95,61 @@ export function assertUploader ({ uploader }: { uploader?: Uploader }): Uploader
   //if (typeof uploader === 'string') throw new ClientError.ProvideUploader(uploader)
   if (!uploader.agent) throw new ClientError.NoUploaderAgent()
   return uploader
+}
+
+/** @returns the agent of the thing
+  * @throws  ExpectedAgent if missing. */
+export function assertAgent <A extends Agent> (thing: { agent?: A } = {}): A {
+  if (!thing.agent) throw new ClientError.ExpectedAgent(thing.constructor?.name)
+  return thing.agent
+}
+
+/** Retrieves the code ID corresponding to this contract's code hash.
+  * @returns `this` but with `codeId` populated. */
+export async function fetchCodeId <C extends ContractInstance> (
+  meta: C, agent: Agent, expected?: CodeId,
+): Promise<C & { codeId: CodeId }> {
+  return Object.assign(meta, {
+    codeId: validateField('codeId', await agent.getCodeId(assertAddress(meta)), expected)
+  })
+}
+
+/** @returns the address of the thing
+  * @throws  LinkNoAddress if missing. */
+export function assertAddress ({ address }: { address?: Address } = {}): Address {
+  if (!address) throw new ClientError.LinkNoAddress()
+  return address
+}
+
+/** Fetch the label from the chain. */
+export async function fetchLabel <C extends ContractInstance> (
+  meta: C, agent: Agent, expected?: Label
+): Promise<C & { label: Label }> {
+  const label = await agent.getLabel(assertAddress(meta))
+  if (!!expected) validateField('label', expected, label)
+  const { name, prefix, suffix } = parseLabel(label)
+  return Object.assign(meta, { label, name, prefix, suffix })
+}
+
+/** RegExp for parsing labels of the format `prefix/name+suffix` */
+export const RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
+
+/** Parse a label into prefix, name, and suffix. */
+export function parseLabel (label: Label): StructuredLabel {
+  const matches = label.match(RE_LABEL)
+  if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
+  const { name, prefix, suffix } = matches.groups
+  if (!name) throw new ClientError.InvalidLabel(label)
+  return { label, name, prefix, suffix }
+}
+
+/** Construct a label from prefix, name, and suffix. */
+export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
+  if (!name) throw new ClientError.NoName()
+  let label = name
+  if (prefix) label = `${prefix}/${label}`
+  if (suffix) label = `${label}+${suffix}`
+  return label
 }
 
 /** Implements some degree of controlled extensibility for the value object pattern used below.
@@ -81,10 +163,24 @@ export function override <T extends object> (
     if (val === undefined) continue
     const exists     = key in self
     const writable   = Object.getOwnPropertyDescriptor(self, key)?.writable ?? true
-    const isFunction = (typeof self[key as keyof T] !== 'function')
+    const isFunction = (typeof self[key as keyof T] === 'function')
     if (exists && writable && !isFunction) Object.assign(self, { [key]: val })
   }
   return self
+}
+
+/** Throw if fetched metadata differs from configured. */
+export function validateField <T> (kind: string, value: T, expected?: T): T {
+  if (typeof value === 'string' && typeof expected === 'string') {
+    value = value.toLowerCase() as unknown as T
+  }
+  if (typeof expected === 'string') {
+    expected = expected.toLowerCase() as unknown as T
+  }
+  if (typeof expected !== 'undefined' && expected !== value) {
+    throw new ClientError.ValidationFailed(kind, '', expected, value)
+  }
+  return value
 }
 
 /** A lazily provided value. The value can't be a Function. */
@@ -433,15 +529,15 @@ export abstract class Agent {
   abstract instantiate (template: Contract<any>, label: Label, initMsg: Message):
     Promise<Contract<any>>
   /** Create multiple smart contracts from a list of code id/label/init message triples. */
-  instantiateMany (template: Contract<any>, instances: Record<string, DeployArgs>):
+  instantiateMany (template: ContractTemplate, instances: Record<string, DeployArgs>):
     Promise<Record<string, Contract<any>>>
-  instantiateMany (template: Contract<any>, instances: DeployArgs[]):
+  instantiateMany (template: ContractTemplate, instances: DeployArgs[]):
     Promise<Contract<any>[]>
-  async instantiateMany <C, D> (template: Contract<any>, instances: C): Promise<D> {
+  async instantiateMany <C, D> (template: ContractTemplate, instances: C): Promise<D> {
     const inits: [string, DeployArgs][] = Object.entries(instances)
     const results: Contract<any>[] =
       await Promise.all(inits.map(([key, [label, initMsg]])=>
-        this.instantiate(new Contract(template), label, initMsg)))
+        this.instantiate(new Contract(template as Partial<Contract<any>>), label, initMsg)))
     const outputs: any = ((instances instanceof Array) ? [] : {}) as D
     for (const i in inits) {
       const [key]  = inits[i]
@@ -701,9 +797,7 @@ export class Client {
   /** Fetch code hash from address. */
   async fetchCodeHash (expected: CodeHash|undefined = this.codeHash): Promise<this> {
     const codeHash = await assertAgent(this).getHash(assertAddress(this))
-    if (!!expected) this.validate('codeHash', expected, codeHash)
-    this.codeHash = codeHash
-    return this
+    return Object.assign(this, { codeHash: validateField('codeHash', codeHash, expected) })
   }
   /** Legacy, use fetchCodeHash instead. */
   async populate (): Promise<this> {
@@ -711,9 +805,10 @@ export class Client {
   }
   /** The contract represented in Fadroma ICC format (`{address, code_hash}`) */
   get asLink (): ContractLink {
-    if (!this.address)  throw new ClientError.LinkNoAddress()
-    if (!this.codeHash) throw new ClientError.LinkNoCodeHash()
-    return { address: this.address, code_hash: this.codeHash }
+    return this.meta.asLink
+  }
+  get asInfo (): ContractInfo {
+    return this.meta.asInfo
   }
   /** Create a copy of this Client that will execute the transactions as a different Agent. */
   as (agent: Agent|undefined = this.agent): this {
@@ -761,18 +856,6 @@ export class Client {
   }
 }
 
-/** A contract name with optional prefix and suffix, implementing namespacing
-  * for append-only platforms where labels have to be globally unique. */
-export class StructuredLabel {
-}
-
-/** The output of parsing a label of the format `prefix/name+suffix` */
-export interface LabelFormat {
-  prefix?: Name
-  name?:   Name
-  suffix?: Name
-}
-
 export interface ContractInfo {
   id:        number,
   code_hash: string
@@ -802,6 +885,60 @@ export interface IntoLink extends Hashed {
   address: Address
 }
 
+/** A contract name with optional prefix and suffix, implementing namespacing
+  * for append-only platforms where labels have to be globally unique. */
+export interface StructuredLabel {
+  label?:  Label,
+  name?:   Name,
+  prefix?: Name,
+  suffix?: Name
+}
+
+export function build <T extends ContractTemplate & { builder?: Builder }> (
+  source:   T,
+  builder?: Builder
+): PromiseLike<T> {
+  builder ??= assertBuilder(source)
+  const name = 'build  ' + getSourceSpecifier(source)
+  return source.task(name, async (): Promise<T> => {
+    if (source.artifact) return source
+    const result = await builder!.build(source)
+    return result
+  })
+}
+
+export function upload <T extends ContractTemplate & { uploader?: Uploader, codeHash?: CodeHash }> (
+  template:  T,
+  uploader?: Uploader,
+  agent:     Agent|null|undefined = uploader?.agent
+): PromiseLike<T> {
+  // If the object already contains chain ID and code ID, that means it's uploaded
+  if (template.chainId && template.codeId) {
+    // If it also has the code hash, we're good to go
+    if (template.codeHash) return Promise.resolve(template)
+    // If it has no code hash, fetch it from the chain by the code id and that's it
+    return fetchCodeHash(template, agent).then(codeHash=>Object.assign(template, { codeHash }))
+  }
+  // If the chain ID or code hash is missing though, it means we need to upload
+  // Name the task
+  const name = `upload ${getSourceSpecifier(template)}`
+  return template.task(name, async (): Promise<T> => {
+    // Otherwise we're gonna need the uploader
+    uploader ??= assertUploader(template)
+    // And if we still can't determine the chain ID, bail
+    const chainId = undefined
+      ?? uploader.chain?.id
+      ?? uploader.agent?.chain?.id
+      ?? (template as any)?.agent?.chain?.id
+    if (!chainId) throw new ClientError.NoChainId()
+    // If we have chain ID and code ID, try to get code hash
+    if (template.codeId) template.codeHash = await fetchCodeHash(template, agent)
+    // Replace with built and return uploaded
+    if (!template.artifact) await template.build()
+    return uploader.upload(template)
+  })
+}
+
 export class Metadata {
   constructor (options: Partial<Metadata> = {}) {
     this.provide(options as object)
@@ -812,20 +949,6 @@ export class Metadata {
   provide (options: Partial<this>): this {
     return override(this, options)
   }
-}
-
-/** Throw if fetched metadata differs from configured. */
-export function validateField <T> (kind: string, value: T, expected?: T): T {
-  if (typeof value === 'string' && typeof expected === 'string') {
-    value = value.toLowerCase() as unknown as T
-  }
-  if (typeof expected === 'string') {
-    expected = expected.toLowerCase() as unknown as T
-  }
-  if (typeof expected !== 'undefined' && expected !== value) {
-    throw new ClientError.ValidationFailed(kind, '', expected, value)
-  }
-  return value
 }
 
 export class ContractTemplate extends Metadata {
@@ -872,71 +995,22 @@ export class ContractTemplate extends Metadata {
 
   /** Compile the source using the selected builder.
     * @returns this */
-  build (builder?: Builder): Promise<typeof this> {
+  build (builder?: Builder): PromiseLike<typeof this> {
     return build(this, builder)
   }
-}
 
-/** Throw appropriate error if not buildable. */
-export function assertBuilder ({ builder }: { builder?: Builder }): Builder {
-  //if (!this.crate) throw new ClientError.NoCrate()
-  if (!builder) throw new ClientError.NoBuilder()
-  //if (typeof builder === 'string') throw new ClientError.ProvideBuilder(builder)
-  return builder
-}
-
-/** Returns a string in the format `crate[@ref][+flag][+flag]...` */
-export function getSourceSpecifier <C extends ContractTemplate> (meta: C): string {
-  const { crate, revision, features } = meta
-  let result = crate ?? ''
-  if (revision !== 'HEAD') result = `${result}@${revision}`
-  if (features && features.length > 0) result = `${result}+${features.join('+')}`
-  return result
-}
-
-export function build <T extends ContractTemplate> (
-  source:   T,
-  builder?: Builder
-): PromiseLike<T> {
-  builder ??= assertBuilder(source)
-  const name = 'build  ' + getSourceSpecifier(source)
-  return source.task(name, async (): Promise<T> => {
-    if (source.artifact) return source
-    const result = await builder!.build(source)
-    return result
-  })
-}
-
-export function upload <T extends ContractTemplate> (
-  template:  T,
-  uploader?: Uploader,
-  agent?:    Agent
-): PromiseLike<T> {
-  // If the object already contains chain ID and code ID, that means it's uploaded
-  if (template.chainId && template.codeId) {
-    // If it also has the code hash, we're good to go
-    if (template.codeHash) return Promise.resolve(template)
-    // If it has no code hash, fetch it from the chain by the code id and that's it
-    return template.fetchCodeHashByCodeId().then(codeHash=>Object.assign(template, { codeHash }))
+  /** Define a subtask
+    * @returns A lazily-evaluated Promise. */
+  task <T> (name: string, cb: (this: typeof this)=>PromiseLike<T>): Task<typeof this, T> {
+    const task = new Task(name, cb, this)
+    const [_, head, ...body] = (task.stack ?? '').split('\n')
+    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+    return task
   }
-  // If the chain ID or code hash is missing though, it means we need to upload
-  // Name the task
-  const name = `upload ${getSourceSpecifier(template)}`
-  return template.task(name, async (): Promise<T> => {
-    // Otherwise we're gonna need the uploader
-    uploader ??= assertUploader(template)
-    // And if we still can't determine the chain ID, bail
-    const chainId = undefined
-      ?? uploader.chain?.id
-      ?? uploader.agent?.chain?.id
-      ?? (template as any)?.agent?.chain?.id
-    if (!chainId) throw new ClientError.NoChainId()
-    // If we have chain ID and code ID, try to get code hash
-    if (template.codeId) template.codeHash = await template.fetchCodeHashByCodeId()
-    // Replace with built and return uploaded
-    if (!template.artifact) await template.build()
-    return uploader.upload(template)
-  })
+
+  upload (uploader?: Uploader, agent: Agent|null|undefined = uploader?.agent) {
+    return upload(this, uploader, agent)
+  }
 }
 
 export class ContractInstance extends ContractTemplate implements StructuredLabel {
@@ -978,100 +1052,10 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
 
   /** Upload compiled source code to the selected chain.
     * @returns this with chainId and codeId populated. */
-  upload (uploader?: Uploader): Promise<typeof this> {
-    if (this.chainId && this.codeId) {
-      if (this.codeHash) {
-        return Promise.resolve(this)
-      } else {
-        return this.fetchCodeHashByCodeId().then(codeHash=>Object.assign(this, { codeHash }))
-      }
-    } else {
-      const name = `upload ${getSourceSpecifier(this)}`
-      const self = this
-      return this.task(name, async (): Promise<typeof self> => {
-        // Otherwise we're gonna need the uploader
-        uploader ??= assertUploader(this)
-        // And if we still can't determine the chain ID, bail
-        const chainId =
-          uploader.chain?.id        ??
-          uploader.agent?.chain?.id ??
-          this.agent?.chain?.id
-        if (!chainId) throw new ClientError.NoChainId()
-        // If we have chain ID and code ID, try to get code hash
-        if (this.codeId) this.codeHash = await this.fetchCodeHashByCodeId()
-        // Replace with built and return uploaded
-        if (!this.artifact) return this.build().then(uploader.upload.bind(uploader))
-        return uploader.upload(this)
-      })
-    }
+  upload (uploader?: Uploader): PromiseLike<this> {
+    return upload(this, uploader, uploader?.agent)
   }
 }
-
-/** Retrieves the code ID corresponding to this contract's code hash.
-  * @returns `this` but with `codeId` populated. */
-export async function fetchCodeId <C extends ContractInstance> (
-  meta: C, agent: Agent, expected?: CodeId,
-): Promise<C & { codeId: CodeId }> {
-  return Object.assign(meta, {
-    codeId: validateField('codeId', await agent.getCodeId(assertAddress(meta)), expected)
-  })
-}
-
-/** Fetch the code hash by id and by address, and compare them. */
-export async function fetchCodeHash <C extends ContractInstance> (
-  meta: C, agent: Agent, expected?: CodeHash,
-): Promise<C & { codeHash: CodeHash }> {
-  if (!meta.address && !meta.codeId && !meta.codeHash) {
-    throw new ClientError('Unable to fetch code hash: no address or code id.')
-  }
-  const codeHashByAddress = meta.address
-    ? validateField('codeHashByAddress', await agent.getHash(meta.address), expected)
-    : undefined
-  const codeHashByCodeId  = meta.codeId
-    ? validateField('codeHashByCodeId',  await agent.getHash(meta.codeId),  expected)
-    : undefined
-  if (codeHashByAddress && codeHashByCodeId && codeHashByAddress !== codeHashByCodeId) {
-    throw new ClientError('Validation failed: different code hashes fetched by address and by code id.')
-  }
-  if (!codeHashByAddress && !codeHashByCodeId) {
-    throw new ClientError('Code hash unavailable.')
-  }
-  const codeHash = codeHashByAddress! ?? codeHashByCodeId!
-  return Object.assign(meta, { codeHash })
-}
-
-/** Fetch the label from the chain. */
-export async function fetchLabel <C extends ContractInstance> (
-  meta: C, agent: Agent, expected?: Label
-): Promise<C & { label: Label }> {
-  const label = await agent.getLabel(assertAddress(meta))
-  if (!!expected) validateField('label', expected, label)
-  const { name, prefix, suffix } = parseLabel(label)
-  return Object.assign(meta, { label, name, prefix, suffix })
-}
-
-/** RegExp for parsing labels of the format `prefix/name+suffix` */
-export const RE_LABEL = /((?<prefix>.+)\/)?(?<name>[^+]+)(\+(?<suffix>.+))?/
-
-/** Parse a label into prefix, name, and suffix. */
-export function parseLabel (label: Label): StructuredLabel {
-  const matches = label.match(RE_LABEL)
-  if (!matches || !matches.groups) throw new ClientError.InvalidLabel(label)
-  const { name, prefix, suffix } = matches.groups
-  if (!name) throw new ClientError.InvalidLabel(label)
-  return { label, name, prefix, suffix }
-}
-
-/** Construct a label from prefix, name, and suffix. */
-export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
-  if (!name) throw new ClientError.NoName()
-  let label = name
-  if (prefix) label = `${prefix}/${label}`
-  if (suffix) label = `${label}+${suffix}`
-  return label
-}
-
-export interface StructuredLabel { label?: string, name?: string, prefix?: string, suffix?: string }
 
 /// # ACT III. CONTRACT, DEPLOYMENT ///////////////////////////////////////////////////////////////
 
@@ -1141,15 +1125,6 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
   ): Task<this, D|E> {
     return this.task(`get or deploy ${this.name ?? 'contract'}`,
       () => this.deploy().then(onfulfilled, onrejected))
-  }
-
-  /** Define a subtask
-    * @returns A lazily-evaluated Promise. */
-  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> {
-    const task = new Task(name, cb, this)
-    const [_, head, ...body] = (task.stack ?? '').split('\n')
-    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
-    return task
   }
 
   /** Deploy the contract, or retrieve it if it's already deployed.
@@ -1234,6 +1209,10 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
     return new ContractTemplate(this)
   }
 
+  instance (options: Partial<Contract<C>> = {}): Contract<C> {
+    return new Contract(this.asTemplate as Partial<Contract<C>>).provide(options)
+  }
+
   /** Evaluate this Contract, asynchronously returning a Client.
     *   1. try to get the contract from storage (if the deploy store is available)
     *   2. if that fails, try to deploy the contract (building and uploading it,
@@ -1243,11 +1222,21 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
     onfulfilled?: ((client: C[]) => D|PromiseLike<D>) | null,
     onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
   ): PromiseLike<D|E> {
-    return this.deploy().then(onfulfilled, onrejected)
+    return this.task(`get or deploy contracts`,
+      () => this.deploy().then(onfulfilled, onrejected))
+  }
+
+  /** Define a subtask
+    * @returns A lazily-evaluated Promise. */
+  task <T> (name: string, cb: (this: typeof this)=>Promise<T>): Task<typeof this, T> {
+    const task = new Task(name, cb, this)
+    const [_, head, ...body] = (task.stack ?? '').split('\n')
+    task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+    return task
   }
 
   /** Deploy multiple instances of the same code. */
-  deploy () {
+  deploy (inits: IntoArray<DeployArgs> = this.inits ?? []) {
     let name = undefined
       ?? (this.codeId && `code id ${this.codeId}`)
       ?? (this.crate  && `crate ${this.crate}`)
@@ -1259,18 +1248,17 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
       // if deploying 0 contracts we're already done
       if (inits.length === 0) return Promise.resolve([])
       const agent = assertAgent(this)
-      return this.upload().then(async (contract: Contract<C>)=>{
+      return this.upload().then(async (template: ContractTemplate)=>{
         // at this point we should have a code id
-        if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
+        if (!this.codeId) throw new ClientError.NoInitCodeId(name)
         // add deployment prefix
         const prefixedInits = (inits as DeployArgs[]).map(([label, msg])=>[
           this.deployment ? `${this.deployment.name}/${label}` : label,
           msg
         ] as DeployArgs)
         try {
-          const responses = await agent.instantiateMany(contract, prefixedInits)
-          const clients = responses.map(({ address })=>
-            new this.client(this.agent, address, this.codeHash, this.meta))
+          const responses = await agent.instantiateMany(this, prefixedInits)
+          const clients = responses.map(({ address })=>this.instance({ address }).getClientSync())
           if (this.deployment) {
             for (const i in (inits as DeployArgs[])) {
               this.deployment.add((inits as DeployArgs[])[i][0], clients[i].meta)
@@ -1278,7 +1266,7 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
           }
           return clients
         } catch (e) {
-          this.log.deployManyFailed(contract, (inits as DeployArgs[]), e as Error)
+          this.log.deployManyFailed(this, (inits as DeployArgs[]), e as Error)
           throw e
         }
       })
@@ -1389,7 +1377,7 @@ export class Deployment extends CommandContext {
 
   /** Upload multiple contracts to the chain.
     * @returns the same contracts, but with `chainId`, `codeId` and `codeHash` populated. */
-  async uploadMany (contracts: Contract<any>[]): Promise<Contract<any>[]> {
+  async uploadMany (contracts: ContractTemplate[]): Promise<ContractTemplate[]> {
     if (!this.uploader) throw new ClientError.NoUploader()
     if (contracts.length === 0) return Promise.resolve([])
     contracts = contracts.map(contract=>{
@@ -1567,7 +1555,7 @@ export class VersionedDeployment<V> extends Deployment {
 /** Builders can be specified as ids, class names, or objects. */
 export type IntoBuilder = string|BuilderClass<Builder>|Partial<Builder>
 
-export type IntoSource = string|Contract<any>
+export type IntoSource = string|ContractTemplate
 
 /** Builder: turns `Source` into `Contract`, providing `artifact` and `codeHash` */
 export abstract class Builder extends CommandContext {
@@ -1630,8 +1618,12 @@ export abstract class Uploader {
   }
   /** Unique identifier of this uploader implementation. */
   abstract id: string
-  /** Upload a contract. */
-  abstract upload <T extends ContractTemplate> (template: T): Promise<T>
+  /** Upload a contract.
+    * @returns the contract with populated codeId and codeHash */
+  abstract upload <T extends ContractTemplate> (template: T): Promise<T & {
+    codeId:   CodeId
+    codeHash: CodeHash,
+  }>
   /** Upload multiple contracts. */
   abstract uploadMany (templates: ContractTemplate[]): Promise<ContractTemplate[]>
 }

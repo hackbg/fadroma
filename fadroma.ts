@@ -81,8 +81,10 @@ export default class Fadroma extends Deployer {
   }
 
   /** Override this to implement your deploy/update procedure. */
-  async update () {
-    this.log.info('Fadroma#update: override this method with your deploy/update procedure.')
+  async update (overridden: boolean = false) {
+    if (!overridden) {
+      this.log.info('Fadroma#update: override this method with your deploy/update procedure.')
+    }
   }
 
   /** Start an interactive REPL. */

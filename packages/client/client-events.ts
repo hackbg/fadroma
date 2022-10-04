@@ -1,7 +1,16 @@
 import { CommandsConsole } from '@hackbg/komandi'
 import { bold, colors } from '@hackbg/konzola'
 import type {
-  Address, Name, Contract, CodeId, CodeHash, Label, DeployArgs, Message, Chain,
+  Address,
+  Chain,
+  CodeHash,
+  CodeId,
+  ContractInstance,
+  ContractTemplate,
+  DeployArgs,
+  Label,
+  Message,
+  Name,
 } from './client'
 import { CustomError } from '@hackbg/konzola'
 
@@ -61,6 +70,8 @@ export class ClientError extends CustomError {
     () => "No uploader specified")
   static NoUploaderAgent  = this.define('NoUploaderAgent',
     () => "No uploader agent specified")
+  static NoPredicate  = this.define('NoPredicate',
+    () => "No match predicate specified")
   static NotFound = this.define('NotFound',
     (kind: string, name: string, deployment: string, message: string = '') =>
       (`${kind} "${name}" not found in deployment "${deployment}". ${message}`))
@@ -142,7 +153,7 @@ export class ClientConsole extends CommandsConsole {
     )
   }
   beforeDeploy (
-    template: Contract<any>,
+    template: ContractTemplate,
     label:    Label,
     codeId:   CodeId   = template?.codeId   ? bold(String(template.codeId)) : colors.red('(no code id!)'),
     codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)')
@@ -150,7 +161,7 @@ export class ClientConsole extends CommandsConsole {
     label = label ? bold(label) : colors.red('(missing label!)')
     this.log('Init:    ', 'code id', bold(codeId), 'as', bold(label))
   }
-  afterDeploy (contract: Partial<Contract<any>>) {
+  afterDeploy (contract: Partial<ContractInstance>) {
     const { red, green } = colors
     const name = contract.name
       ? bold(green(contract.name))
@@ -164,7 +175,7 @@ export class ClientConsole extends CommandsConsole {
     this.info('Code hash', contract.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
     this.br()
   }
-  deployFailed (e: Error, template: Contract<any>, name: Label, msg: Message) {
+  deployFailed (e: Error, template: ContractTemplate, name: Label, msg: Message) {
     this.br()
     this.error(`Deploy of ${bold(name)} failed:`)
     this.error(`${e.message}`)
@@ -173,7 +184,7 @@ export class ClientConsole extends CommandsConsole {
     this.error(`  ${JSON.stringify(msg)}`)
     this.br()
   }
-  deployManyFailed (template: Contract<any>, contracts: DeployArgs[] = [], e: Error) {
+  deployManyFailed (template: ContractTemplate, contracts: DeployArgs[] = [], e: Error) {
     this.br()
     this.error(`Deploy of multiple contracts failed:`)
     this.error(bold(e?.message))
@@ -188,7 +199,7 @@ export class ClientConsole extends CommandsConsole {
     }
     this.br()
   }
-  deployFailedContract (template?: Contract<any>) {
+  deployFailedContract (template?: ContractTemplate) {
     if (!template) return this.error(`  No template was provided.`)
     this.error(`Chain ID: `, bold(template.chainId ||''))
     this.error(`Code ID:  `, bold(template.codeId  ||''))

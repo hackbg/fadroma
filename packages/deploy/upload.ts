@@ -35,10 +35,9 @@ export class FSUploader extends Uploader {
   }
 
   /** Upload an artifact from the filesystem if an upload receipt for it is not present. */
-  async upload (contract: ContractTemplate & { artifact: URL }): Promise<ContractTemplate & {
-    artifact: URL,
-    codeHash: CodeHash,
+  async upload <T extends ContractTemplate> (contract: T): Promise<T & {
     codeId:   CodeId
+    codeHash: CodeHash,
   }> {
     let receipt: UploadReceipt|null = null
     if (this.cache) {
@@ -53,7 +52,7 @@ export class FSUploader extends Uploader {
           uploadTx,
         } = receipt.toContract()
         const props = { chainId, codeId, codeHash, uploadTx }
-        return Object.assign(contract, props) as ContractTemplate & {
+        return Object.assign(contract, props) as T & {
           artifact: URL, codeHash: CodeHash, codeId: CodeId
         }
       }
@@ -75,12 +74,10 @@ export class FSUploader extends Uploader {
     Object.assign(contract, { codeId, codeHash, uploadTx })
     if (receipt && !this.agent?.chain?.isMocknet) {
       // don't save receipts for mocknet because it's not stateful yet
-      receipt.save(contract.meta)
+      receipt.save(contract)
     }
     //await this.agent.nextBlock
-    return contract as ContractTemplate & {
-      artifact: URL, codeHash: CodeHash, codeId: CodeId
-    }
+    return contract as T & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
   }
 
   getUploadReceiptName (contract: ContractTemplate): string {
@@ -160,7 +157,7 @@ export class FSUploader extends Uploader {
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
         const receiptName = this.getUploadReceiptName(toUpload[i])
-        const meta = { ...uploaded[i].meta, artifact: uploaded[i].artifact?.toString() }
+        const meta = { ...uploaded[i], artifact: uploaded[i].artifact?.toString() }
         $(this.cache, receiptName).as(UploadReceipt).save(meta)
         outputs[i] = uploaded[i] as ContractTemplate
       }

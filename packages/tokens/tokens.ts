@@ -215,66 +215,64 @@ export class TokenManager extends CommandContext {
     return this.context.contract(this.template).provide(options)
   }
   /** Define a Snip20 token, get/deploy it, and add it to the registry. */
-  define (symbol: TokenSymbol, options?: Partial<TokenOptions>):
-    Task<Contract<Snip20>, Snip20>
-  /** Define multiple Snip20 tokens, keyed by symbol. */
-  define (tokens: Record<TokenSymbol, Partial<TokenOptions>>):
-    Task<Deployment, Record<TokenSymbol, Snip20>>
-  define (...args: unknown[]): Promise<unknown> {
+  define (symbol: TokenSymbol, options?: Partial<TokenOptions>): Contract<Snip20> {
 
-    if (typeof args[0] === 'string') {
-
-      const [symbol, options] = args as [TokenSymbol, Partial<TokenOptions>|undefined]
-      if (this.has(symbol)) return Promise.resolve(this.tokens[symbol])
-      return this.add(symbol, this.contract({ name: options?.name })).deploy(Snip20.init(
+    if (typeof symbol === 'string') {
+      //const [symbol, options] = args as [TokenSymbol, Partial<TokenOptions>|undefined]
+      if (this.has(symbol)) return this.tokens[symbol]
+      const contract = this.contract({ name: options?.name, client: Snip20 })
+      contract.initMsg = Snip20.init(
         options?.name     ?? symbol,
         symbol,
         options?.decimals ?? 8,
         options?.admin    ?? this.context.agent!.address!,
         options?.config
-      ))
-
-    } else if (typeof args[0] === 'object') {
-
-      const definitions = args[0] as Record<TokenSymbol, Partial<TokenOptions>>
-      const tokens: Record<TokenSymbol, Task<Contract<Snip20>, Snip20>> = {}
-      const deploy: Record<TokenSymbol, DeployArgs> = {}
-      const bundle = this.context.agent!.bundle()
-      for (let [symbol, options] of Object.entries(definitions)) {
-        if (this.has(symbol)) {
-          tokens[symbol] = this.tokens[symbol]
-        } else {
-          options          ??= {}
-          options.name     ??= symbol
-          options.decimals ??= 8
-          options.admin    ??= this.context.agent!.address!
-          deploy[symbol] = [
-            options.name,
-            Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
-          ]
-        }
-      }
-      return this.context.task(`deploy ${Object.keys(deploy).length} tokens`, async () => {
-        const results: Record<string, Snip20> = {}
-        for (const [symbol, client] of Object.entries(tokens)) {
-          results[symbol] = await client
-        }
-        const entries  = Object.entries(deploy)
-        const deployed = await this.context
-          .contracts(this.template!)
-          .provide({ inits: entries.map(x=>x[1]) })
-        for (const i in entries) {
-          const [symbol] = entries[i]
-          const  client = deployed[i]
-          results[symbol] = client
-          this.add(symbol, client.asContract.provide({ deployment: this.context }))
-        }
-        return { ...tokens, ...results }
-      })
-
-    } else {
-      throw new Error('Tokens#define: invalid invocation')
+      )
+      this.add(symbol, contract)
+      return contract
     }
+
+    //} else if (typeof args[0] === 'object') {
+
+      //const definitions = args[0] as Record<TokenSymbol, Partial<TokenOptions>>
+      //const tokens: Record<TokenSymbol, Task<Contract<Snip20>, Snip20>> = {}
+      //const deploy: Record<TokenSymbol, DeployArgs> = {}
+      //const bundle = this.context.agent!.bundle()
+      //for (let [symbol, options] of Object.entries(definitions)) {
+        //if (this.has(symbol)) {
+          //tokens[symbol] = this.tokens[symbol]
+        //} else {
+          //options          ??= {}
+          //options.name     ??= symbol
+          //options.decimals ??= 8
+          //options.admin    ??= this.context.agent!.address!
+          //deploy[symbol] = [
+            //options.name,
+            //Snip20.init(options.name, symbol, options.decimals, options.admin, options.config)
+          //]
+        //}
+      //}
+      //return this.context.task(`deploy ${Object.keys(deploy).length} tokens`, async () => {
+        //const results: Record<string, Snip20> = {}
+        //for (const [symbol, client] of Object.entries(tokens)) {
+          //results[symbol] = await client
+        //}
+        //const entries  = Object.entries(deploy)
+        //const deployed = await this.context
+          //.contracts(this.template!)
+          //.provide({ inits: entries.map(x=>x[1]) })
+        //for (const i in entries) {
+          //const [symbol] = entries[i]
+          //const  client = deployed[i]
+          //results[symbol] = client
+          //this.add(symbol, client.asContract.provide({ deployment: this.context }))
+        //}
+        //return { ...tokens, ...results }
+      //})
+
+    //} else {
+      //throw new Error('Tokens#define: invalid invocation')
+    //}
   }
   /** Command step: Deploy a single Snip20 token.
     * Exposed below as the "deploy token" command.
