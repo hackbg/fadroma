@@ -10,9 +10,9 @@ pub struct MockEnv {
 
 impl MockEnv {
     /// Default values are what `cosmwasm_std::testing::mock_env` returns.
-    pub fn new(sender: impl Into<Addr>, contract: ContractLink<Addr>) -> Self {
+    pub fn new(sender: impl Into<String>, contract: ContractLink<Addr>) -> Self {
         Self {
-            sender: sender.into(),
+            sender: Addr::unchecked(sender.into()),
             contract,
             sent_funds: vec![]
         }

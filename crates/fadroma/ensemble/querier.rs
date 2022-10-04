@@ -1,9 +1,8 @@
 use super::ensemble::Context;
 use crate::cosmwasm_std::{
-    Addr, Querier, QueryRequest, WasmQuery, BankQuery, StakingQuery, QuerierResult,
-    SystemResult, SystemError, ContractResult, Empty, AllBalanceResponse, BalanceResponse,
-    ValidatorResponse, AllValidatorsResponse, AllDelegationsResponse, BondedDenomResponse,
-    from_slice, to_binary,
+    Querier, QueryRequest, WasmQuery, BankQuery, StakingQuery, QuerierResult, SystemResult,
+    SystemError, ContractResult, Empty, AllBalanceResponse, BalanceResponse, ValidatorResponse,
+    AllValidatorsResponse, AllDelegationsResponse, BondedDenomResponse, from_slice, to_binary,
     testing::MockQuerier
 };
 
@@ -55,22 +54,18 @@ impl Querier for EnsembleQuerier {
                 WasmQuery::Smart {
                     contract_addr, msg, ..
                 } => {
-                    let contract_addr = Addr::unchecked(contract_addr);
-
                     if !ctx.instances.contains_key(&contract_addr) {
                         return SystemResult::Err(SystemError::NoSuchContract {
-                            addr: contract_addr.into_string()
+                            addr: contract_addr
                         });
                     }
 
-                    querier_result!(ctx.query(contract_addr, msg))
+                    querier_result!(ctx.query(&contract_addr, msg))
                 }
                 WasmQuery::Raw { contract_addr, .. } => {
-                    let contract_addr = Addr::unchecked(contract_addr);
-
                     if !ctx.instances.contains_key(&contract_addr) {
                         return SystemResult::Err(SystemError::NoSuchContract {
-                            addr: contract_addr.into_string()
+                            addr: contract_addr
                         });
                     }
 
@@ -80,13 +75,11 @@ impl Querier for EnsembleQuerier {
             },
             QueryRequest::Bank(query) => match query {
                 BankQuery::AllBalances { address } => {
-                    let address = Addr::unchecked(address);
                     let amount = ctx.bank.readable().query_balances(&address, None);
 
                     querier_result!(to_binary(&AllBalanceResponse { amount }))
                 }
                 BankQuery::Balance { address, denom } => {
-                    let address = Addr::unchecked(address);
                     let amount = ctx.bank.readable().query_balances(&address, Some(denom));
 
                     querier_result!(to_binary(&BalanceResponse {
@@ -97,7 +90,6 @@ impl Querier for EnsembleQuerier {
             },
             QueryRequest::Staking(query) => match query {
                 StakingQuery::AllDelegations { delegator } => {
-                    let delegator = Addr::unchecked(delegator);
                     let delegations = ctx.delegations.all_delegations(&delegator);
 
                     querier_result!(to_binary(&AllDelegationsResponse { delegations }))
@@ -113,9 +105,6 @@ impl Querier for EnsembleQuerier {
                     delegator,
                     validator
                 } => {
-                    let delegator = Addr::unchecked(delegator);
-                    let validator = Addr::unchecked(validator);
-
                     let delegation = ctx.delegations.delegation(&delegator, &validator);
 
                     querier_result!(to_binary(&delegation))

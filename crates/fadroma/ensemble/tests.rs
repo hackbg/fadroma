@@ -215,8 +215,8 @@ fn init(
     let counter = ensemble.register(Box::new(Counter));
     let multiplier = ensemble.register(Box::new(Multiplier));
 
-    let admin = Addr::unchecked("admin");
-    ensemble.add_funds(admin.clone(), vec![coin(SEND_AMOUNT, SEND_DENOM)]);
+    let admin = "admin";
+    ensemble.add_funds(admin, vec![coin(SEND_AMOUNT, SEND_DENOM)]);
 
     let counter = ensemble
         .instantiate(
@@ -347,17 +347,17 @@ fn test_removes_instances_on_failed_init() {
 
 #[test]
 fn test_reverts_state_on_fail() {
-    let sender = Addr::unchecked("sender");
+    let sender = "sender";
 
     let mut ensemble = ContractEnsemble::new();
-    ensemble.add_funds(sender.clone(), vec![coin(SEND_AMOUNT * 2, SEND_DENOM)]);
+    ensemble.add_funds(sender, vec![coin(SEND_AMOUNT * 2, SEND_DENOM)]);
 
     let result = init(&mut ensemble, false, false).unwrap();
 
     ensemble
         .execute(
             &CounterHandle::Increment,
-            MockEnv::new(sender.clone(), result.counter.clone()),
+            MockEnv::new(sender, result.counter.clone()),
         )
         .unwrap();
 
@@ -375,7 +375,7 @@ fn test_reverts_state_on_fail() {
     ensemble
         .execute(
             &CounterHandle::IncrementAndMultiply { by: 2 },
-            MockEnv::new(sender.clone(), result.counter.clone())
+            MockEnv::new(sender, result.counter.clone())
                 .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
         )
         .unwrap();
@@ -453,17 +453,17 @@ fn test_reverts_state_on_fail() {
     expected = "Insufficient balance: sender: sender, denom: uscrt, balance: 0, required: 100"
 )]
 fn insufficient_balance() {
-    let sender = Addr::unchecked("sender");
+    let sender = "sender";
 
     let mut ensemble = ContractEnsemble::new();
-    ensemble.add_funds(sender.clone(), vec![coin(SEND_AMOUNT * 2, SEND_DENOM)]);
+    ensemble.add_funds(sender, vec![coin(SEND_AMOUNT * 2, SEND_DENOM)]);
 
     let result = init(&mut ensemble, false, false).unwrap();
 
     ensemble
         .execute(
             &CounterHandle::Increment,
-            MockEnv::new(sender.clone(), result.counter.clone())
+            MockEnv::new(sender, result.counter.clone())
                 .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
         )
         .unwrap();
@@ -482,7 +482,7 @@ fn insufficient_balance() {
 
 #[test]
 fn exact_increment() {
-    let admin = Addr::unchecked("admin");
+    let admin = "admin";
 
     let mut ensemble = ContractEnsemble::new();
     ensemble.block_mut().exact_increments(10, 7);
@@ -496,7 +496,7 @@ fn exact_increment() {
             block_height_contract.id,
             &Empty {},
             MockEnv::new(
-                admin.clone(),
+                admin,
                 ContractLink {
                     address: Addr::unchecked("block_height"),
                     code_hash: block_height_contract.code_hash,
@@ -510,7 +510,7 @@ fn exact_increment() {
         .execute(
             &BlockHeightHandle::Set,
             MockEnv::new(
-                admin.clone(),
+                admin,
                 block_height.clone()
             ),
         )
@@ -549,7 +549,7 @@ fn exact_increment() {
 
 #[test]
 fn random_increment() {
-    let admin = Addr::unchecked("Admin");
+    let admin = "admin";
 
     let mut ensemble = ContractEnsemble::new();
     ensemble.block_mut().random_increments(1..11, 1..9);
@@ -561,7 +561,7 @@ fn random_increment() {
             block_height_contract.id,
             &Empty {},
             MockEnv::new(
-                admin.clone(),
+                admin,
                 ContractLink {
                     address: Addr::unchecked("block_height"),
                     code_hash: block_height_contract.code_hash,
@@ -574,7 +574,7 @@ fn random_increment() {
     ensemble
         .execute(
             &BlockHeightHandle::Set,
-            MockEnv::new(admin.clone(), block_height.clone()),
+            MockEnv::new(admin, block_height.clone()),
         )
         .unwrap();
 
@@ -602,7 +602,7 @@ fn random_increment() {
 
 #[test]
 fn block_freeze() {
-    let admin = Addr::unchecked("Admin");
+    let admin = "admin";
 
     let mut ensemble = ContractEnsemble::new();
 
@@ -617,7 +617,7 @@ fn block_freeze() {
             block_height_contract.id,
             &Empty {},
             MockEnv::new(
-                admin.clone(),
+                admin,
                 ContractLink {
                     address: Addr::unchecked("block_height"),
                     code_hash: block_height_contract.code_hash,
@@ -630,7 +630,7 @@ fn block_freeze() {
     ensemble
         .execute(
             &BlockHeightHandle::Set,
-            MockEnv::new(admin.clone(), block_height.clone()),
+            MockEnv::new(admin, block_height.clone()),
         )
         .unwrap();
 
@@ -652,7 +652,7 @@ fn block_freeze() {
     ensemble
         .execute(
             &BlockHeightHandle::Set,
-            MockEnv::new(admin.clone(), block_height.clone()),
+            MockEnv::new(admin, block_height.clone()),
         )
         .unwrap();
 
@@ -667,9 +667,9 @@ fn block_freeze() {
 #[test]
 fn remove_funds() {
     let mut ensemble = ContractEnsemble::new();
-    let addr = Addr::unchecked("address".to_string());
+    let addr = "address";
 
-    ensemble.add_funds(addr.clone(), vec![Coin::new(1000u128, "uscrt")]);
+    ensemble.add_funds(addr, vec![Coin::new(1000u128, "uscrt")]);
     assert_eq!(
         ensemble
             .ctx
@@ -680,7 +680,7 @@ fn remove_funds() {
     );
 
     ensemble
-        .remove_funds(addr.clone(), vec![Coin::new(500u128, "uscrt")])
+        .remove_funds(addr, vec![Coin::new(500u128, "uscrt")])
         .unwrap();
     assert_eq!(
         ensemble
@@ -691,7 +691,7 @@ fn remove_funds() {
         vec![Coin::new(500u128, "uscrt")],
     );
 
-    match ensemble.remove_funds(addr.clone(), vec![Coin::new(600u128, "uscrt")]) {
+    match ensemble.remove_funds(addr, vec![Coin::new(600u128, "uscrt")]) {
         Err(error) => match error {
             StdError::GenericErr { msg, .. } => assert_eq!(
                 msg,
@@ -702,7 +702,7 @@ fn remove_funds() {
         _ => panic!("No error message"),
     };
 
-    match ensemble.remove_funds(addr.clone(), vec![Coin::new(300u128, "notscrt")]) {
+    match ensemble.remove_funds(addr, vec![Coin::new(300u128, "notscrt")]) {
         Err(error) => match error {
             StdError::GenericErr { msg, .. } => assert_eq!(
                 msg,
@@ -714,7 +714,7 @@ fn remove_funds() {
     };
 
     match ensemble.remove_funds(
-        Addr::unchecked("address2".to_string()),
+        "address2",
         vec![Coin::new(300u128, "uscrt")],
     ) {
         Err(error) => match error {
@@ -738,12 +738,12 @@ fn staking() {
     let mut ensemble = ContractEnsemble::new();
     assert_eq!(ensemble.ctx.delegations.bonded_denom(), "uscrt");
 
-    let addr1 = Addr::unchecked("addr1".to_string());
-    let addr2 = Addr::unchecked("addr2".to_string());
+    let addr1 = "addr1";
+    let addr2 = "addr2";
 
-    let val_addr_1 = Addr::unchecked("validator1".to_string());
-    let val_addr_2 = Addr::unchecked("validator2".to_string());
-    let val_addr_3 = Addr::unchecked("validator3".to_string());
+    let val_addr_1 = "validator1";
+    let val_addr_2 = "validator2";
+    let val_addr_3 = "validator3";
 
     let validator1 = Validator {
         address: val_addr_1.to_string(),
@@ -778,8 +778,8 @@ fn staking() {
         .remove_funds(&addr1, vec![Coin::new(1000u128, "uscrt")])
         .unwrap();
     match ensemble.ctx.delegations.delegate(
-        addr1.clone(),
-        val_addr_1.clone(),
+        addr1.to_string(),
+        val_addr_1.to_string(),
         Coin::new(1000u128, "uscrt"),
     ) {
         Ok(result) => Ok(result),
@@ -798,8 +798,8 @@ fn staking() {
         .remove_funds(&addr1, vec![Coin::new(314159u128, "notscrt")])
         .unwrap();
     match ensemble.ctx.delegations.delegate(
-        addr1.clone(),
-        val_addr_1.clone(),
+        addr1.to_string(),
+        val_addr_1.to_string(),
         Coin::new(314159u128, "notscrt"),
     ) {
         Err(error) => {
@@ -822,7 +822,7 @@ fn staking() {
     match ensemble
         .ctx
         .delegations
-        .delegate(addr1.clone(), val_addr_3, Coin::new(100u128, "uscrt"))
+        .delegate(addr1.to_string(), val_addr_3.into(), Coin::new(100u128, "uscrt"))
     {
         Err(error) => {
             ensemble.ctx.bank.revert();
@@ -839,7 +839,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_1.to_string(),
                 amount: Coin::new(1000u128, "uscrt"),
                 can_redelegate: Coin::new(1000u128, "uscrt"),
@@ -862,8 +862,8 @@ fn staking() {
         .ctx
         .delegations
         .undelegate(
-            addr1.clone(),
-            val_addr_1.clone(),
+            addr1.to_string(),
+            val_addr_1.to_string(),
             Coin::new(500u128, "uscrt"),
         )
         .unwrap();
@@ -871,7 +871,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_1.to_string(),
                 amount: Coin::new(500u128, "uscrt"),
                 can_redelegate: Coin::new(500u128, "uscrt"),
@@ -881,8 +881,8 @@ fn staking() {
         None => panic!("Delegation not found"),
     };
     match ensemble.ctx.delegations.undelegate(
-        addr1.clone(),
-        val_addr_2.clone(),
+        addr1.to_string(),
+        val_addr_2.to_string(),
         Coin::new(300u128, "uscrt"),
     ) {
         Err(error) => match error {
@@ -892,8 +892,8 @@ fn staking() {
         _ => panic!("Invalid undelegation error improperly caught"),
     };
     match ensemble.ctx.delegations.undelegate(
-        addr1.clone(),
-        val_addr_1.clone(),
+        addr1.to_string(),
+        val_addr_1.to_string(),
         Coin::new(600u128, "uscrt"),
     ) {
         Err(error) => match error {
@@ -905,7 +905,7 @@ fn staking() {
     assert_eq!(
         ensemble.ctx.delegations.unbonding_delegations(&addr1),
         vec![Delegation {
-            delegator: addr1.clone(),
+            delegator: Addr::unchecked(addr1.to_string()),
             validator: val_addr_1.to_string(),
             amount: Coin::new(500u128, "uscrt"),
         }],
@@ -916,9 +916,9 @@ fn staking() {
         .ctx
         .delegations
         .redelegate(
-            addr1.clone(),
-            val_addr_1.clone(),
-            val_addr_2.clone(),
+            addr1.to_string(),
+            val_addr_1.to_string(),
+            val_addr_2.to_string(),
             Coin::new(300u128, "uscrt"),
         )
         .unwrap();
@@ -926,7 +926,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_1.to_string(),
                 amount: Coin::new(200u128, "uscrt"),
                 can_redelegate: Coin::new(200u128, "uscrt"),
@@ -939,7 +939,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.clone()),
                 validator: val_addr_2.to_string(),
                 amount: Coin::new(300u128, "uscrt"),
                 can_redelegate: Coin::new(0u128, "uscrt"),
@@ -955,12 +955,13 @@ fn staking() {
         .writable()
         .remove_funds(&addr1, vec![Coin::new(100u128, "uscrt")])
         .unwrap();
+
     ensemble
         .ctx
         .delegations
         .delegate(
-            addr1.clone(),
-            val_addr_2.clone(),
+            addr1.to_string(),
+            val_addr_2.to_string(),
             Coin::new(100u128, "uscrt"),
         )
         .unwrap();
@@ -970,9 +971,9 @@ fn staking() {
         .ctx
         .delegations
         .redelegate(
-            addr1.clone(),
-            val_addr_2.clone(),
-            val_addr_1.clone(),
+            addr1.to_string(),
+            val_addr_2.to_string(),
+            val_addr_1.to_string(),
             Coin::new(50u128, "uscrt"),
         )
         .unwrap();
@@ -980,8 +981,8 @@ fn staking() {
         .ctx
         .delegations
         .undelegate(
-            addr1.clone(),
-            val_addr_2.clone(),
+            addr1.to_string(),
+            val_addr_2.to_string(),
             Coin::new(325u128, "uscrt"),
         )
         .unwrap();
@@ -989,7 +990,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_1.to_string(),
                 amount: Coin::new(250u128, "uscrt"),
                 can_redelegate: Coin::new(200u128, "uscrt"),
@@ -1002,7 +1003,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_2.to_string(),
                 amount: Coin::new(25u128, "uscrt"),
                 can_redelegate: Coin::new(25u128, "uscrt"),
@@ -1018,7 +1019,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_1.to_string(),
                 amount: Coin::new(250u128, "uscrt"),
                 can_redelegate: Coin::new(200u128, "uscrt"),
@@ -1031,7 +1032,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_2.to_string(),
                 amount: Coin::new(25u128, "uscrt"),
                 can_redelegate: Coin::new(25u128, "uscrt"),
@@ -1059,14 +1060,14 @@ fn staking() {
     ensemble
         .ctx
         .delegations
-        .withdraw(addr1.clone(), val_addr_1.clone())
+        .withdraw(addr1.to_string(), val_addr_1.to_string())
         .unwrap();
 
     match ensemble.ctx.delegations.delegation(&addr1, &val_addr_1) {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_1.to_string(),
                 amount: Coin::new(250u128, "uscrt"),
                 can_redelegate: Coin::new(200u128, "uscrt"),
@@ -1095,11 +1096,11 @@ fn staking() {
         RewardsResponse {
             rewards: vec![
                 ValidatorRewards {
-                    validator_address: val_addr_1.clone(),
+                    validator_address: val_addr_1.to_string(),
                     reward: vec![Coin::new(0u128, "uscrt")],
                 },
                 ValidatorRewards {
-                    validator_address: val_addr_2.clone(),
+                    validator_address: val_addr_2.to_string(),
                     reward: vec![Coin::new(50u128, "uscrt")],
                 }
             ],
@@ -1113,7 +1114,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_1.to_string(),
                 amount: Coin::new(250u128, "uscrt"),
                 can_redelegate: Coin::new(250u128, "uscrt"),
@@ -1126,7 +1127,7 @@ fn staking() {
         Some(delegation) => assert_eq!(
             delegation,
             FullDelegation {
-                delegator: addr1.clone(),
+                delegator: Addr::unchecked(addr1.to_string()),
                 validator: val_addr_2.to_string(),
                 amount: Coin::new(25u128, "uscrt"),
                 can_redelegate: Coin::new(25u128, "uscrt"),

@@ -45,7 +45,7 @@ pub struct ContractEnsemble {
 }
 
 pub(crate) struct Context {
-    pub(crate) instances: HashMap<Addr, ContractInstance>,
+    pub(crate) instances: HashMap<String, ContractInstance>,
     pub(crate) contracts: Vec<Box<dyn ContractHarness>>,
     pub(crate) bank: Revertable<Bank>,
     pub(crate) delegations: Delegations,
@@ -97,38 +97,38 @@ impl ContractEnsemble {
     }
 
     #[inline]
-    pub fn add_funds(&mut self, address: impl Into<Addr>, coins: Vec<Coin>) {
-        self.ctx.bank.current.add_funds(&address.into(), coins);
+    pub fn add_funds(&mut self, address: impl AsRef<str>, coins: Vec<Coin>) {
+        self.ctx.bank.current.add_funds(address.as_ref(), coins);
     }
 
     #[inline]
-    pub fn remove_funds(&mut self, address: impl Into<Addr>, coins: Vec<Coin>) -> StdResult<()> {
-        self.ctx.bank.current.remove_funds(&address.into(), coins)
+    pub fn remove_funds(&mut self, address: impl AsRef<str>, coins: Vec<Coin>) -> StdResult<()> {
+        self.ctx.bank.current.remove_funds(address.as_ref(), coins)
     }
 
     #[inline]
-    pub fn balances(&self, address: impl Into<Addr>) -> Option<&Balances> {
-        self.ctx.bank.current.0.get(&address.into())
+    pub fn balances(&self, address: impl AsRef<str>) -> Option<&Balances> {
+        self.ctx.bank.current.0.get(address.as_ref())
     }
 
     #[inline]
-    pub fn balances_mut(&mut self, address: impl Into<Addr>) -> Option<&mut Balances> {
-        self.ctx.bank.current.0.get_mut(&address.into())
+    pub fn balances_mut(&mut self, address: impl AsRef<str>) -> Option<&mut Balances> {
+        self.ctx.bank.current.0.get_mut(address.as_ref())
     }
 
     #[inline]
-    pub fn delegations(&self, address: impl Into<Addr>) -> Vec<Delegation> {
-        self.ctx.delegations.all_delegations(&address.into())
+    pub fn delegations(&self, address: impl AsRef<str>) -> Vec<Delegation> {
+        self.ctx.delegations.all_delegations(address.as_ref())
     }
 
     pub fn delegation(
         &self,
-        delegator: impl Into<Addr>,
-        validator: impl Into<Addr>,
+        delegator: impl AsRef<str>,
+        validator: impl AsRef<str>,
     ) -> Option<FullDelegation> {
         self.ctx
             .delegations
-            .delegation(&delegator.into(), &validator.into())
+            .delegation(delegator.as_ref(), validator.as_ref())
     }
 
     #[inline]
@@ -145,11 +145,15 @@ impl ContractEnsemble {
     /// Re-allow redelegating and deposit unbondings
     pub fn fast_forward_delegation_waits(&mut self) {
         let unbondings = self.ctx.delegations.fast_forward_waits();
+
         for unbonding in unbondings {
             self.ctx
                 .bank
                 .current
-                .add_funds(&unbonding.delegator, vec![unbonding.amount]);
+                .add_funds(
+                    unbonding.delegator.as_str(),
+                    vec![unbonding.amount]
+                );
         }
     }
 
@@ -159,13 +163,13 @@ impl ContractEnsemble {
     // a non-existent address is provided. So returning nothing or bool is bad here.
 
     /// Returns an `Err` if the contract with `address` wasn't found.
-    pub fn deps<F>(&self, address: impl Into<Addr>, borrow: F) -> Result<(), String>
+    pub fn deps<F>(&self, address: impl AsRef<str>, borrow: F) -> Result<(), String>
     where
         F: FnOnce(&MockDeps),
     {
-        let address = address.into();
+        let address = address.as_ref();
 
-        if let Some(instance) = self.ctx.instances.get(&address) {
+        if let Some(instance) = self.ctx.instances.get(address) {
             borrow(&instance.deps);
 
             return Ok(());
@@ -175,13 +179,13 @@ impl ContractEnsemble {
     }
 
     /// Returns an `Err` if the contract with `address` wasn't found.
-    pub fn deps_mut<F>(&mut self, address: impl Into<Addr>, mutate: F) -> Result<(), String>
+    pub fn deps_mut<F>(&mut self, address: impl AsRef<str>, mutate: F) -> Result<(), String>
     where
         F: FnOnce(&mut MockDeps),
     {
-        let address = address.into();
+        let address = address.as_ref();
 
-        if let Some(instance) = self.ctx.instances.get_mut(&address) {
+        if let Some(instance) = self.ctx.instances.get_mut(address) {
             mutate(&mut instance.deps);
 
             instance.deps.storage.commit();
@@ -232,10 +236,10 @@ impl ContractEnsemble {
     #[inline]
     pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
         &self,
-        address: impl Into<Addr>,
+        address: impl AsRef<str>,
         msg: &T,
     ) -> StdResult<R> {
-        let result = self.ctx.query(address.into(), to_binary(msg)?)?;
+        let result = self.ctx.query(address.as_ref(), to_binary(msg)?)?;
 
         from_binary(&result)
     }
@@ -291,7 +295,7 @@ impl Context {
         let instance = ContractInstance::new(id, &self);
 
         let contract_info = env.contract.clone();
-        if self.instances.contains_key(&contract_info.address) {
+        if self.instances.contains_key(contract_info.address.as_str()) {
             panic!(
                 "Trying to instantiate an already existing address: {}.",
                 contract_info.address
@@ -299,16 +303,16 @@ impl Context {
         }
 
         self.bank.writable().transfer(
-            &env.sender,
-            &contract_info.address,
+            env.sender.as_str(),
+            contract_info.address.as_str(),
             env.sent_funds.clone(),
         )?;
-        self.instances .insert(contract_info.address.clone(), instance);
+        self.instances.insert(contract_info.address.to_string(), instance);
 
         let (env, msg_info) = self.create_msg_deps(env);
         let sender = msg_info.sender.clone();
 
-        let instance = self.instances.get_mut(&contract_info.address).unwrap();
+        let instance = self.instances.get_mut(contract_info.address.as_str()).unwrap();
         let result = contract.instantiate(&mut instance.deps, env, msg_info, msg.clone());
 
         match result {
@@ -320,21 +324,21 @@ impl Context {
 
                 match result {
                     Ok(sent) => Ok(InstantiateResponse {
-                        sender,
+                        sender: sender.into_string(),
                         instance: contract_info,
                         msg,
                         response: msgs,
                         sent,
                     }),
                     Err(err) => {
-                        self.instances.remove(&contract_info.address);
+                        self.instances.remove(contract_info.address.as_str());
 
                         Err(err)
                     }
                 }
             }
             Err(err) => {
-                self.instances.remove(&contract_info.address);
+                self.instances.remove(contract_info.address.as_str());
 
                 Err(err)
             }
@@ -348,12 +352,15 @@ impl Context {
 
         let instance = self
             .instances
-            .get_mut(&address)
+            .get_mut(address.as_str())
             .expect(&format!("Contract address doesn't exist: {}", address));
 
-        self.bank
-            .writable()
-            .transfer(&sender, &address, msg_info.funds.clone())?;
+        self.bank.writable()
+            .transfer(
+                sender.as_str(),
+                address.as_str(),
+                msg_info.funds.clone()
+            )?;
 
         let contract = self.contracts.get(instance.index).unwrap();
 
@@ -362,8 +369,8 @@ impl Context {
         let sent = self.execute_messages(result.messages.clone(), address.clone())?;
 
         let res = ExecuteResponse {
-            sender,
-            target: address,
+            sender: sender.into_string(),
+            target: address.into_string(),
             msg,
             response: result,
             sent,
@@ -372,10 +379,10 @@ impl Context {
         Ok(res)
     }
 
-    pub(crate) fn query(&self, address: Addr, msg: Binary) -> StdResult<Binary> {
+    pub(crate) fn query(&self, address: &str, msg: Binary) -> StdResult<Binary> {
         let instance = self
             .instances
-            .get(&address)
+            .get(address)
             .expect(&format!("Contract address doesn't exist: {}", address));
 
         let contract = self.contracts.get(instance.index).unwrap();
@@ -439,11 +446,13 @@ impl Context {
                         to_address,
                         amount,
                     } => {
-                        let to_address = Addr::unchecked(to_address);
-
                         let res = self.bank
                             .writable()
-                            .transfer(&sender, &to_address, amount)?;
+                            .transfer(
+                                sender.as_str(),
+                                &to_address,
+                                amount
+                            )?;
 
                         responses.push(ResponseVariants::Bank(res));
                     },
@@ -453,11 +462,11 @@ impl Context {
                     StakingMsg::Delegate { validator, amount } => {
                         self.bank
                             .writable()
-                            .remove_funds(&sender, vec![amount.clone()])?;
+                            .remove_funds(sender.as_str(), vec![amount.clone()])?;
 
                         let res = self.delegations.delegate(
-                            sender.clone(),
-                            Addr::unchecked(validator),
+                            sender.to_string(),
+                            validator,
                             amount
                         );
 
@@ -469,8 +478,8 @@ impl Context {
                     }
                     StakingMsg::Undelegate { validator, amount } => {
                         let res = self.delegations.undelegate(
-                            sender.clone(),
-                            Addr::unchecked(validator),
+                            sender.to_string(),
+                            validator,
                             amount.clone(),
                         )?;
 
@@ -482,9 +491,9 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.redelegate(
-                            sender.clone(),
-                            Addr::unchecked(src_validator),
-                            Addr::unchecked(dst_validator),
+                            sender.to_string(),
+                            src_validator,
+                            dst_validator,
                             amount,
                         )?;
 
@@ -494,19 +503,17 @@ impl Context {
                 },
                 CosmosMsg::Distribution(msg) => match msg {
                     DistributionMsg::WithdrawDelegatorReward { validator } => {
-                        let validator = Addr::unchecked(validator);
-
                         // Query accumulated rewards so bank transaction can take place first
-                        let withdraw_amount = match self.delegations.delegation(&sender, &validator) {
+                        let withdraw_amount = match self.delegations.delegation(sender.as_str(), &validator) {
                             Some(amount) => amount.accumulated_rewards,
                             None => return Err(StdError::generic_err("Delegation not found")),
                         };
 
                         self.bank
                             .writable()
-                            .add_funds(&sender, withdraw_amount);
+                            .add_funds(sender.as_str(), withdraw_amount);
 
-                        let withdraw_res = self.delegations.withdraw(sender.clone(), validator)?;
+                        let withdraw_res = self.delegations.withdraw(sender.to_string(), validator)?;
 
                         responses.push(ResponseVariants::Staking(withdraw_res));
                     },

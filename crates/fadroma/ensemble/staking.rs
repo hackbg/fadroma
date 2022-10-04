@@ -5,15 +5,15 @@ use super::response::{StakingResponse, RewardsResponse, ValidatorRewards};
 
 #[derive(Clone, Debug)]
 pub(crate) struct DelegationWithUnbonding {
-    delegator: Addr,
-    validator: Addr,
+    delegator: String,
+    validator: String,
     amount: Coin,
     unbonding_amount: Coin,
     can_redelegate: Coin,
     accumulated_rewards: Coin,
 }
 
-pub(crate) type Delegator = HashMap<Addr, DelegationWithUnbonding>;
+pub(crate) type Delegator = HashMap<String, DelegationWithUnbonding>;
 
 #[derive(Debug)]
 pub(crate) struct Delegations {
@@ -22,14 +22,14 @@ pub(crate) struct Delegations {
     /// List of all valid validators
     validators: Vec<Validator>,
     /// Doubly hashed array of delegations for easy access
-    delegators: HashMap<Addr, Delegator>,
+    delegators: HashMap<String, Delegator>,
 }
 
 impl Into<Delegation> for DelegationWithUnbonding {
     fn into(self) -> Delegation {
         Delegation {
-            delegator: self.delegator,
-            validator: self.validator.into_string(),
+            delegator: Addr::unchecked(self.delegator),
+            validator: self.validator,
             amount: self.amount,
         }
     }
@@ -38,8 +38,8 @@ impl Into<Delegation> for DelegationWithUnbonding {
 impl Into<FullDelegation> for DelegationWithUnbonding {
     fn into(self) -> FullDelegation {
         FullDelegation {
-            delegator: self.delegator,
-            validator: self.validator.into_string(),
+            delegator: Addr::unchecked(self.delegator),
+            validator: self.validator,
             amount: self.amount,
             can_redelegate: self.can_redelegate,
             accumulated_rewards: vec![self.accumulated_rewards],
@@ -81,7 +81,7 @@ impl Delegations {
                 delegation.can_redelegate = delegation.amount.clone();
                 if delegation.unbonding_amount.amount > Uint128::zero() {
                     unbondings.push(Delegation {
-                        delegator: delegation.delegator.clone(),
+                        delegator: Addr::unchecked(delegation.delegator.clone()),
                         validator: delegation.validator.to_string(),
                         amount: delegation.unbonding_amount.clone()
                     });
@@ -96,7 +96,7 @@ impl Delegations {
         &self.bonded_denom
     }
 
-    pub fn all_delegations(&self, delegator: &Addr) -> Vec<Delegation> {
+    pub fn all_delegations(&self, delegator: &str) -> Vec<Delegation> {
         match self.delegators.get(delegator) {
             Some(delegations) => {
                 let mut return_delegations: Vec<Delegation> = vec![];
@@ -111,8 +111,8 @@ impl Delegations {
 
     pub fn delegation(
         &self, 
-        delegator: &Addr, 
-        validator: &Addr
+        delegator: &str, 
+        validator: &str
     ) -> Option<FullDelegation> {
         match self.get_delegation(delegator, validator) {
             Some(delegation) => Some(delegation.into()),
@@ -124,14 +124,14 @@ impl Delegations {
         &self.validators
     }
 
-    pub fn unbonding_delegations(&self, delegator: &Addr) -> Vec<Delegation> {
+    pub fn unbonding_delegations(&self, delegator: &str) -> Vec<Delegation> {
         match self.delegators.get(delegator) {
             Some(delegations) => {
                 let mut return_delegations: Vec<Delegation> = vec![];
                 for delegation_pair in delegations {
                     let delegation = delegation_pair.1;
                     return_delegations.push(Delegation {
-                        delegator: delegation.delegator.clone(),
+                        delegator: Addr::unchecked(delegation.delegator.clone()),
                         validator: delegation.validator.to_string(),
                         amount: delegation.unbonding_amount.clone(),
                     });    
@@ -142,7 +142,7 @@ impl Delegations {
         }
     }
 
-    pub fn rewards(&self, delegator: &Addr) -> RewardsResponse {
+    pub fn rewards(&self, delegator: &str) -> RewardsResponse {
         match self.delegators.get(delegator) {
             Some(delegations) => {
                 let mut total = 0u128;
@@ -175,8 +175,8 @@ impl Delegations {
     // Validator transaction messages 
     pub fn delegate(
         &mut self, 
-        delegator: Addr, 
-        validator: Addr, 
+        delegator: String, 
+        validator: String, 
         amount: Coin
     ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
@@ -235,8 +235,8 @@ impl Delegations {
 
     pub fn undelegate(
         &mut self,
-        delegator: Addr,
-        validator: Addr,
+        delegator: String,
+        validator: String,
         amount: Coin
     ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
@@ -283,8 +283,8 @@ impl Delegations {
 
     pub fn withdraw(
         &mut self,
-        delegator: Addr,
-        validator: Addr,
+        delegator: String,
+        validator: String,
     ) -> StdResult<StakingResponse> { 
         match self.get_delegation(&delegator, &validator) {
             Some(delegation) => {
@@ -313,9 +313,9 @@ impl Delegations {
 
     pub fn redelegate(
         &mut self,
-        delegator: Addr,
-        src_validator: Addr,
-        dst_validator: Addr,
+        delegator: String,
+        src_validator: String,
+        dst_validator: String,
         amount: Coin
         ) -> StdResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
@@ -397,12 +397,12 @@ impl Delegations {
     // Helper methods
     fn get_delegation(
         &self, 
-        delegator: &Addr, 
-        validator: &Addr,
+        delegator: &str, 
+        validator: &str,
     ) -> Option<DelegationWithUnbonding> {
-        match self.delegators.get(&delegator) {
+        match self.delegators.get(delegator) {
             Some(cur_delegator) => {
-                match cur_delegator.get(&validator).clone() {
+                match cur_delegator.get(validator).clone() {
                     Some(ref delegation) => Some((*delegation).clone()),
                     _ => None,
                 }
@@ -413,8 +413,8 @@ impl Delegations {
 
     fn insert_delegation(
         &mut self,
-        delegator: Addr,
-        validator: Addr,
+        delegator: String,
+        validator: String,
         new_delegation: DelegationWithUnbonding
     ) -> Option<DelegationWithUnbonding> {
         match self.delegators.get_mut(&delegator) {
@@ -430,7 +430,7 @@ impl Delegations {
         }
     }
 
-    fn validate_validator(&self, validator: &Addr) -> bool {
+    fn validate_validator(&self, validator: &str) -> bool {
         for real_validator in self.validators.iter() {
             if real_validator.address == *validator {
                 return true;

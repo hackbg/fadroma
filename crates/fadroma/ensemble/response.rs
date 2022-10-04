@@ -18,7 +18,7 @@ pub enum ResponseVariants {
 #[derive(Clone, PartialEq, Debug)]
 pub struct InstantiateResponse {
     /// The address that triggered the instantiation.
-    pub sender: Addr,
+    pub sender: String,
     /// The address and code hash of the new instance.
     pub instance: ContractLink<Addr>,
     /// The init message that was sent.
@@ -32,9 +32,9 @@ pub struct InstantiateResponse {
 #[derive(Clone, PartialEq, Debug)]
 pub struct ExecuteResponse {
     /// The address that triggered the instantiation.
-    pub sender: Addr,
+    pub sender: String,
     /// The contract that was called.
-    pub target: Addr,
+    pub target: String,
     /// The execute message that was sent.
     pub msg: Binary,
     /// The execute response returned by the contract.
@@ -46,9 +46,9 @@ pub struct ExecuteResponse {
 #[derive(Clone, PartialEq, Debug)]
 pub struct BankResponse {
     /// The address that sent the funds.
-    pub sender: Addr,
+    pub sender: String,
     /// The address that the funds were sent to.
-    pub receiver: Addr,
+    pub receiver: String,
     /// The funds that were sent.
     pub coins: Vec<Coin>
 }
@@ -56,9 +56,9 @@ pub struct BankResponse {
 #[derive(Clone, PartialEq, Debug)]
 pub struct StakingResponse {
     /// The address that delegated the funds.
-    pub sender: Addr,
+    pub sender: String,
     /// The address of the validator where the funds were sent.
-    pub validator: Addr,
+    pub validator: String,
     /// The funds that were sent.
     pub amount: Coin,
 }
@@ -74,7 +74,7 @@ pub struct RewardsResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ValidatorRewards {
-    pub validator_address: Addr,
+    pub validator_address: String,
     pub reward: Vec<Coin>
 }
 
@@ -376,8 +376,8 @@ mod tests {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         let resp = ExecuteResponse {
-            sender: Addr::unchecked(sender),
-            target: Addr::unchecked(target),
+            sender: sender.into(),
+            target: target.into(),
             msg: Binary::from(format!("message_{}", index).as_bytes()),
             response: Response::default(),
             sent: vec![]
@@ -392,7 +392,7 @@ mod tests {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         let resp = InstantiateResponse {
-            sender: Addr::unchecked(sender),
+            sender: sender.into(),
             instance: ContractLink {
                 address: Addr::unchecked(""),
                 code_hash: String::new()
@@ -411,8 +411,8 @@ mod tests {
         let index = MSG_INDEX.with(|x| x.borrow().clone());
 
         BankResponse {
-            sender: Addr::unchecked(sender),
-            receiver: Addr::unchecked(to),
+            sender: sender.into(),
+            receiver: to.into(),
             coins: vec![Coin {
                 denom: "uscrt".into(),
                 amount: Uint128::new(100 * index as u128)

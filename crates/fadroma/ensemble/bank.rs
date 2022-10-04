@@ -6,10 +6,10 @@ use super::response::BankResponse;
 pub type Balances = HashMap<String, Uint128>;
 
 #[derive(Clone, Default, Debug)]
-pub(crate) struct Bank(pub(crate) HashMap<Addr, Balances>);
+pub(crate) struct Bank(pub(crate) HashMap<String, Balances>);
 
 impl Bank {
-    pub fn add_funds(&mut self, address: &Addr, coins: Vec<Coin>) {
+    pub fn add_funds(&mut self, address: &str, coins: Vec<Coin>) {
         if coins.is_empty() {
             return;
         }
@@ -25,13 +25,13 @@ impl Bank {
 
     pub fn remove_funds(
         &mut self, 
-        address: &Addr, 
+        address: &str, 
         coins: Vec<Coin>
     ) -> StdResult<()> {
         if coins.is_empty() {
             return Ok(());
         }
-        
+
         if !self.0.contains_key(address) {
             return Err(StdError::not_found(
                 format!("Account {} does not exist for remove balance", address)
@@ -74,13 +74,13 @@ impl Bank {
 
     pub fn transfer(
         &mut self,
-        from: &Addr,
-        to: &Addr,
+        from: &str,
+        to: &str,
         coins: Vec<Coin>,
     ) -> StdResult<BankResponse> {
         let res = BankResponse {
-            sender: from.clone(),
-            receiver: to.clone(),
+            sender: from.to_string(),
+            receiver: to.to_string(),
             coins: coins.clone()
         };
 
@@ -120,7 +120,7 @@ impl Bank {
         Ok(res)
     }
 
-    pub fn query_balances(&self, address: &Addr, denom: Option<String>) -> Vec<Coin> {
+    pub fn query_balances(&self, address: &str, denom: Option<String>) -> Vec<Coin> {
         let account = self.0.get(address);
 
         match account {
@@ -147,9 +147,9 @@ impl Bank {
         }
     }
 
-    fn assert_account_exists(&mut self, address: &Addr) {
+    fn assert_account_exists(&mut self, address: &str) {
         if !self.0.contains_key(address) {
-            self.0.insert(address.clone(), Default::default());
+            self.0.insert(address.to_string(), Default::default());
         }
     }
 }
