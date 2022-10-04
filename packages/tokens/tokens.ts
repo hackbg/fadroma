@@ -240,13 +240,13 @@ export class TokenManager extends CommandContext {
   ): Task<Deployment, Record<TokenSymbol, Snip20>> {
     // Find out which tokens to deploy and which already exist
     // (at the point of time where the task is defined)
-    const existing: Record<TokenSymbol, Snip20>     = {}
-    const deployed: Record<TokenSymbol, DeployArgs> = {}
+    const existing: Record<TokenSymbol, Contract<Snip20>> = {}
+    const deployed: Record<TokenSymbol, DeployArgs>       = {}
     const bundle = this.context.agent!.bundle()
     // Collect existing and undeployed tokens in separate bins
     for (let [symbol, options] of Object.entries(definitions)) {
       if (this.has(symbol)) {
-        existing[symbol] = this.tokens[symbol].getClientSync()
+        existing[symbol] = this.tokens[symbol]
       } else {
         deployed[symbol] = [
           options.name ?? symbol,
@@ -278,7 +278,7 @@ export class TokenManager extends CommandContext {
         results[symbol] = client as Snip20
         this.add(symbol, contracts.instance(client as Partial<ContractInstance>))
       }
-      return { ...existing, ...results }
+      return results
     })
   }
   /** Command step: Deploy a single Snip20 token.
