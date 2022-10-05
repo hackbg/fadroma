@@ -12,6 +12,10 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
+    "test":  "ganesha-node deploy.spec.ts.md",
     "ubik":  "npm run check && ubik"
+  },
+  "devDependencies": {
+    "@hackbg/ganesha": "^2.2.5"
   }
 }

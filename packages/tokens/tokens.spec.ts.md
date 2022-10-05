@@ -2,58 +2,77 @@
 
 ```typescript
 import { ok, equal, deepEqual, throws } from 'assert'
+```
+
+## Token descriptors
+
+```typescript
 import {
   TokenKind, getTokenKind, getTokenId, isTokenDescriptor,
   nativeToken, customToken, isNativeToken, isCustomToken,
-  TokenAmount, TokenPair, TokenPairAmount,
-  TokenManager,
-  Snip20, createPermitMsg,
-  TokenError,
-} from './tokens'
+  TokenAmount,
+} from '.'
 
-const native = nativeToken('scrt')
+const native    = nativeToken('scrt')
+const native100 = new TokenAmount(native, '100')
 ok(isTokenDescriptor(native))
 ok(isNativeToken(native))
 ok(!isCustomToken(native))
 equal(getTokenKind(native), TokenKind.Native)
 equal(getTokenId(native), 'native')
+equal(custom100.asNativeBalance, undefined)
 
-const custom = customToken('addr', 'hash')
+const custom    = customToken('addr', 'hash')
+const custom100 = new TokenAmount(custom, 100)
 ok(isTokenDescriptor(custom))
 ok(isCustomToken(custom))
 ok(!isNativeToken(custom))
 equal(getTokenKind(custom), TokenKind.Custom)
 equal(getTokenId(custom), 'addr')
 throws(()=>getTokenId(customToken()))
+deepEqual(native100.asNativeBalance, [{denom: "scrt", amount: "100"}])
+```
 
-deepEqual(Snip20.fromDescriptor(null, custom).asDescriptor, custom)
+## Token pair descriptors
 
-new TokenAmount()
-equal(
-  new TokenAmount(customToken('addr', 'hash'), '100').asNativeBalance, undefined
-)
-deepEqual(
-  new TokenAmount(nativeToken('scrt'), '100').asNativeBalance, [{denom: "scrt", amount: "100"}]
-)
+```typescript
+import { TokenPair, TokenPairAmount } from '.'
 
-new TokenPair()
 deepEqual(
   new TokenPair(native, custom).reverse,
   new TokenPair(custom, native)
 )
 
-new TokenPairAmount()
 deepEqual(
   new TokenPairAmount(new TokenPair(native, custom), "100", "200").reverse,
   new TokenPairAmount(new TokenPair(custom, native), "200", "100")
 )
+
 new TokenPairAmount(new TokenPair(native, custom), "100", "200").asNativeBalance
 new TokenPairAmount(new TokenPair(custom, native), "100", "200").asNativeBalance
 new TokenPairAmount(new TokenPair(native, native), "100", "200").asNativeBalance
+```
+
+## Token contract client
+
+```typescript
+import { Snip20, createPermitMsg } from '.'
+
+new Snip20()
+deepEqual(Snip20.fromDescriptor(null, custom).asDescriptor, custom)
+
+createPermitMsg()
+```
+
+## Token manager
+
+```typescript
+import { TokenManager, TokenError } from '.'
 
 const registry = new TokenManager()
 throws(()=>registry.get())
 throws(()=>registry.get('UNKNOWN'))
+
 const token = Symbol()
 ok(registry.add('KNOWN', token))
 throws(()=>registry.add('KNOWN', token))
@@ -64,7 +83,5 @@ throws(()=>registry.get('KNOWN'))
 ok(registry.add('KNOWN', token))
 equal(registry.get('KNOWN'), token)
 
-new Snip20()
 new TokenError()
-createPermitMsg()
 ```
