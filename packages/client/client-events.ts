@@ -111,10 +111,12 @@ export class ClientError extends CustomError {
 
 /** Logging. */
 export class ClientConsole extends CommandsConsole {
+
   constructor (name: string = 'Fadroma') {
     super(name)
     this.name = name
   }
+
   object (obj?: Object) {
     let report = `---`
     if (obj) {
@@ -144,6 +146,7 @@ export class ClientConsole extends CommandsConsole {
     }
     console.log(report)
   }
+
   foundDeployedContract (address: Address, name: Name) {
     this.log(
       colors.green('Found:   '),
@@ -152,8 +155,9 @@ export class ClientConsole extends CommandsConsole {
       bold(colors.green(name)),
     )
   }
-  beforeDeploy (
-    template: ContractTemplate,
+
+  beforeDeploy <T extends ContractTemplate> (
+    template: T,
     label:    Label,
     codeId:   CodeId   = template?.codeId   ? bold(String(template.codeId)) : colors.red('(no code id!)'),
     codeHash: CodeHash = template?.codeHash ? bold(template.codeHash)       : colors.red('(no code hash!)')
@@ -161,6 +165,7 @@ export class ClientConsole extends CommandsConsole {
     label = label ? bold(label) : colors.red('(missing label!)')
     this.log('Init:    ', 'code id', bold(codeId), 'as', bold(label))
   }
+
   afterDeploy (contract: Partial<ContractInstance>) {
     const { red, green } = colors
     const name = contract.name
@@ -175,6 +180,7 @@ export class ClientConsole extends CommandsConsole {
     this.info('Code hash', contract.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
     this.br()
   }
+
   deployFailed (e: Error, template: ContractTemplate, name: Label, msg: Message) {
     this.br()
     this.error(`Deploy of ${bold(name)} failed:`)
@@ -184,6 +190,7 @@ export class ClientConsole extends CommandsConsole {
     this.error(`  ${JSON.stringify(msg)}`)
     this.br()
   }
+
   deployManyFailed (template: ContractTemplate, contracts: DeployArgs[] = [], e: Error) {
     this.br()
     this.error(`Deploy of multiple contracts failed:`)
@@ -199,12 +206,14 @@ export class ClientConsole extends CommandsConsole {
     }
     this.br()
   }
+
   deployFailedContract (template?: ContractTemplate) {
     if (!template) return this.error(`  No template was provided.`)
     this.error(`Chain ID: `, bold(template.chainId ||''))
     this.error(`Code ID:  `, bold(template.codeId  ||''))
     this.error(`Code hash:`, bold(template.codeHash||''))
   }
+
   chainStatus ({ chain, deployments }: {
     chain?: Chain, deployments?: { active?: { name: string }, list (): string[] }
   }) {
@@ -217,37 +226,49 @@ export class ClientConsole extends CommandsConsole {
     if (!deployments?.active) return this.info('│ No active deployment.')
     this.info('│ Deployment: ', bold(String(deployments?.active?.name)))
   }
+
   warnUrlOverride (a: any, b: any) {
     this.warn(`node.url "${a}" overrides chain.url "${b}"`)
   }
+
   warnIdOverride (a: any, b: any) {
     this.warn(`node.chainId "${a}" overrides chain.id "${b}"`)
   }
+
   warnNodeNonDevnet () {
     this.warn(`"node" option is only applicable to devnets`)
   }
+
   warnNoAgent (name: string) {
     this.warn(`${name}: no agent; actions will fail until agent is set`)
   }
+
   warnNoAddress (name: string) {
     this.warn(`${name}: no address; actions will fail until address is set`)
   }
+
   warnNoCodeHash (name: string) {
     this.warn(`${name}: no codeHash; actions may be slow until code hash is set`)
   }
+
   warnNoCodeHashProvided (address: string, realCodeHash: string) {
     this.warn(`Code hash not provided for ${address}. Fetched: ${realCodeHash}`)
   }
+
   warnCodeHashMismatch (address: string, expected: string|undefined, fetched: string) {
     this.warn(`Code hash mismatch for ${address}: expected ${expected}, fetched ${fetched}`)
   }
+
   confirmCodeHash (address: string, codeHash: string) {
     this.info(`Confirmed code hash of ${address}: ${codeHash}`)
   }
+
   waitingForNextBlock () {
     this.info('Waiting for next block...')
   }
+
   warnEmptyBundle () {
     this.warn('Tried to submit bundle with no messages')
   }
+
 }

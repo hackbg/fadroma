@@ -8,47 +8,84 @@ import * as Testing from '../../TESTING.ts.md'
 import assert, { ok, equal, deepEqual, notEqual, throws, rejects } from 'assert'
 ```
 
-## Chain
+## `chain: Chain`
 
-User selects chain by instantiating a `Chain` object.
+This package provides the abstract base class, `Chain`.
+
+To interact with a chain, select it by instantiating
+a corresponding subclass provided by e.g. `@fadroma/connect`,
+using the following syntax:
 
 ```typescript
 import { Chain } from '.'
-let chain: Chain = new Chain('any', { url: 'example.com' })
-assert.equal(chain.id,  'any')
+let chain: Chain = new Chain('id', { url: 'example.com' })
+assert.equal(chain.id,  'id')
 assert.equal(chain.url, 'example.com')
-chain = new Chain('any', { mode: Chain.Mode.Mocknet })
-assert(chain.isMocknet && chain.devMode)
-chain = new Chain('any', { mode: Chain.Mode.Devnet })
-assert(chain.isDevnet  && chain.devMode)
-chain = new Chain('any', { mode: Chain.Mode.Testnet })
-assert(chain.isTestnet && !chain.devMode)
-chain = new Chain('any', { mode: Chain.Mode.Mainnet })
-assert(chain.isMainnet && !chain.devMode)
 ```
+
+### `chain.mode: ChainMode`
+
+`ChainMode` a.k.a. `Chain.Mode` is an enumeration of the
+different kinds of chains connection modes that are supported:
+
+* **Mocknet** is a fast, nodeless way of executing contract code
+  in the local JS WASM runtime.
+* **Devnet** uses a real chain node, booted up temporarily in
+  a local environment.
+* **Testnet** is a persistent remote chain used for testing.
+* **Mainnet** is the production chain where value is stored.
+
+```typescript
+assert(new Chain('any', { mode: Chain.Mode.Mocknet }).isMocknet)
+assert(new Chain('any', { mode: Chain.Mode.Devnet  }).isDevnet)
+assert(new Chain('any', { mode: Chain.Mode.Testnet }).isTestnet)
+assert(new Chain('any', { mode: Chain.Mode.Mainnet }).isMainnet)
+```
+
+### `chain.devMode: boolean`
+
+The `devMode` flag corresponds to whether you can reset the chain
+and start over. This is true for mocknet and devnet, but not for
+testnet or mainnet.
+
+```typescript
+assert(new Chain('any', { mode: Chain.Mode.Mocknet }).devMode)
+assert(new Chain('any', { mode: Chain.Mode.Devnet  }).devMode)
+assert(!new Chain('any', { mode: Chain.Mode.Testnet }).devMode)
+assert(!new Chain('any', { mode: Chain.Mode.Mainnet }).devMode)
+```
+
+`devMode` can be used to determine whether e.g.
+to deploy mocks of 3rd party contracts or use the official
+testnet and mainnet deployments of those.
 
 ## Agent
 
-User authenticates (=authorizes agent)
-by obtaining an `Agent` instance from the `Chain`.
-* Pass it a `mnemonic` to authenticate.
-* This is asynchronous to allow for async crypto functions to run,
-  as required by platform APIs.
+To transact on the chain, you need to select an identity (wallet).
+In Fadroma, you do this by obtaining an `Agent` from the `Chain` object.
+
+* To authenticate as a specific address, pass a `mnemonic` to the `getAgent` call.
+  If you don't a random mnemonic and address will be generated.
 
 ```typescript
 import { Agent } from '.'
-let agent: Agent = await chain.getAgent({ mnemonic: undefined })
+let agent: Agent = await chain.getAgent()
+
 assert(agent instanceof Agent)
+assert(agent.chain === chain)
 ```
 
-### Getting an `Agent` from a `Devnet`'s genesis account
+Getting an Agent is an asynchronous operation because of the
+underlying platform APIs being async.
 
-When using devnet, you can also get an agent from a named genesis account:
+### Genesis accounts
+
+On devnet, Fadroma creates named genesis accounts for you,
+which you can use by passing `name` to `getAgent`:
 
 ```typescript
-import type { DevnetHandle } from '.'
-const node: DevnetHandle = { getGenesisAccount () { return {} }, respawn () {} }
-chain = new Chain('devnet', { mode: Chain.Mode.Devnet, node })
+const mockNode = { getGenesisAccount () { return {} }, respawn () {} }
+chain = new Chain('id', { mode: Chain.Mode.Devnet, node: mockNode })
 assert(await chain.getAgent({ name: 'Alice' }) instanceof Agent)
 ```
 
@@ -69,6 +106,7 @@ agent = new class TestAgent1 extends Agent {
     return Promise.resolve(balances[denom] || '0')
   }
 }
+
 equal(await agent.balance,           '1')
 equal(await agent.getBalance(),      '1')
 equal(await agent.getBalance('foo'), '1')
@@ -96,10 +134,13 @@ agent = new class TestAgent5 extends Agent { async query () { return {} } }
 assert.ok(await agent.query())
 ```
 
-### Bundle
+### `agent.bundle(): Bundle extends Agent`
 
-Create one with `Agent#getBundle()` then use with `Client`
-to combine various messages in a single transaction.
+To submit multiple messages as a single transaction, you can
+use Bundles. A `Bundle` is a special kind of `Agent` that
+does not broadcast messages immediately. Instead, messages
+are collected inside the bundle until the caller explicitly
+submits them (or saves them for manual multisig signing).
 
 ```typescript
 import { Bundle } from '.'
@@ -110,15 +151,22 @@ class TestBundle extends Bundle {
 }
 ```
 
-```typescript
-equal(await new TestBundle(agent).wrap(async()=>{}), 'submitted')
-equal(await new TestBundle(agent).wrap(async()=>{}, undefined, true), 'saved')
-```
+Bundles implement the same overall APIs as Agents.
+Some operations, however, don't make sense in the context of
+a Bundle. Most importantly, querying any state from the chain
+must be done either before or after the bundle.
 
 ```typescript
 import { Client } from '.'
 bundle = new Bundle({ chain: {}, checkHash () { return 'hash' } })
 ok(bundle.getClient(Client, '') instanceof Client)
+equal(await bundle.execute({}), bundle)
+equal(bundle.id, 1)
+ok(await bundle.instantiateMany({}, []))
+ok(await bundle.instantiateMany({}, [['label', 'init']]))
+ok(await bundle.instantiate({}, 'label', 'init'))
+equal(await bundle.checkHash(), 'hash')
+
 rejects(()=>bundle.query())
 rejects(()=>bundle.upload())
 rejects(()=>bundle.uploadMany())
@@ -128,12 +176,19 @@ rejects(()=>bundle.getBalance())
 throws(()=>bundle.height)
 throws(()=>bundle.nextBlock)
 throws(()=>bundle.balance)
-equal(await bundle.execute({}), bundle)
-equal(bundle.id, 1)
-ok(await bundle.instantiateMany(new Contract(), []))
-ok(await bundle.instantiateMany(new Contract(), [['label', 'init']]))
-ok(await bundle.instantiate(new Contract(), 'label', 'init'))
-equal(await bundle.checkHash(), 'hash')
+```
+
+To create and submit a bundle in a single expression,
+you can use `bundle.wrap(async (bundle) => { ... })`:
+
+```typescript
+equal(await new TestBundle(agent).wrap(async bundle=>{
+  assert(bundle instanceof TestBundle)
+}), 'submitted')
+
+equal(await new TestBundle(agent).wrap(async bundle=>{
+  assert(bundle instanceof TestBundle)
+}, undefined, true), 'saved')
 ```
 
 ```typescript
@@ -163,12 +218,10 @@ equal(await bundle.run(), null)
 ```
 
 ```typescript
-console.info('get bundle from agent')
 agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
 bundle = agent.bundle()
 ok(bundle instanceof Bundle)
 
-console.info('auto use bundle in agent for instantiateMany')
 agent = new class TestAgent extends Agent { Bundle = class TestBundle extends Bundle {} }
 await agent.instantiateMany(new Contract(), [])
 await agent.instantiateMany(new Contract(), [], 'prefix')

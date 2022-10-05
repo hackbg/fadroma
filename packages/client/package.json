@@ -5,7 +5,8 @@
   "main":    "client.ts",
   "files": [ "*.ts" ],
   "scripts": {
-    "test":  "true || ganesha-node client.spec.ts.md",
+    "test":  "ganesha-node client.spec.ts.md",
+    "cov":   "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages -n platforms -n toolbox ensuite SPEC.ts.md",
     "check": "tsc --noEmit",
     "ubik":  "npm run check && npm test && ubik"
   },
