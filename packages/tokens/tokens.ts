@@ -15,164 +15,15 @@ import {
   Label,
   Uint128,
 } from '@fadroma/client'
-import {
-  Permit,
-  ViewingKeyClient
-} from '@fadroma/scrt'
-import {
-  CustomError,
-  bold,
-  colors
-} from '@hackbg/konzola'
-import {
-  Task,
-  CommandContext,
-} from '@hackbg/komandi'
-import {
-  Snip20,
-} from './tokens-snip20'
-import type {
-  Snip20InitConfig
-} from './tokens-snip20'
+import { Permit, ViewingKeyClient } from '@fadroma/scrt'
+import { CustomError, bold, colors } from '@hackbg/konzola'
+import { Task, CommandContext } from '@hackbg/komandi'
+import { Snip20 } from './tokens-snip20'
+import type { Snip20InitConfig } from './tokens-snip20'
+import type { Token } from './tokens-desc'
+import { TokenPair } from './tokens-desc'
 
 const log = new ClientConsole('Fadroma.TokenManager')
-
-export type Tokens = Record<string, Snip20|Token>
-/** # Token descriptors. */
-
-/** There are two kinds of token supported:
-  * - the chain's native token, in a specific denomination
-  * - contract-based custom tokens. */
-export enum TokenKind {
-  Native = "TokenKind.Native",
-  Custom = "TokenKind.Custom"
-}
-
-/** Return the kind of a token specified in the passed token descriptor. */
-export function getTokenKind (token: Token): TokenKind {
-  return (token.hasOwnProperty('native_token')) ? TokenKind.Native : TokenKind.Custom
-}
-
-/** Extract some comparable id from the token type:
-  * - the string "native" if it's the chain's native token
-  * - the address of the token, if it's a custom token */
-export function getTokenId (token: Token): string {
-  if ((token as NativeToken).native_token) {
-    return "native";
-  }
-  const address = (token as CustomToken).custom_token?.contract_addr;
-  if (!address) {
-    throw new Error("Token descriptor is not correct, missing address");
-  }
-  return address;
-}
-
-/** Token descriptor. Specifies kind (native or custom) and identity of token (denom/addr+hash) */
-export type Token = NativeToken | CustomToken;
-
-export function isTokenDescriptor (obj: any): obj is Token {
-  return isNativeToken(obj) || isCustomToken(obj)
-}
-
-/** Native token. Supported natively by the underlying blockchain. */
-export interface NativeToken {
-  native_token: {
-    denom: string
-  }
-}
-
-export function isNativeToken (obj: any): obj is NativeToken {
-  return (
-    typeof obj === 'object' &&
-    typeof obj.native_token === 'object' &&
-    typeof obj.native_token.denom === 'string'
-  )
-}
-
-export function nativeToken (denom: string) {
-  return { native_token: { denom } }
-}
-
-/** Custom token. Implemented as a smart contract in the blockchain's compute module. */
-export interface CustomToken {
-  custom_token: {
-    contract_addr:    Address
-    token_code_hash?: string
-  }
-}
-
-export function isCustomToken (obj: any): obj is CustomToken {
-  return (
-    typeof obj                              === 'object' &&
-    typeof obj.custom_token                 === 'object' &&
-    typeof obj.custom_token.contract_addr   === 'string' &&
-    typeof obj.custom_token.token_code_hash === 'string'
-  )
-}
-
-export function customToken (contract_addr: Address, token_code_hash?: CodeHash) {
-  return { custom_token: { contract_addr, token_code_hash } }
-}
-
-export interface NativeToken {
-  native_token: {
-    denom: string
-  }
-}
-
-/** Token amount descriptor. Specifies a particular amount of a particular token. */
-export class TokenAmount {
-  constructor (
-    readonly token:  Token,
-    readonly amount: Uint128
-  ) {}
-  /** Pass this to 'send' field of ExecOpts */
-  get asNativeBalance (): ICoin[]|undefined {
-    let result: ICoin[] | undefined = []
-    if (getTokenKind(this.token) == TokenKind.Native) {
-      result.push(new Coin(this.amount, (this.token as NativeToken).native_token.denom))
-    } else {
-      result = undefined
-    }
-    return result
-  }
-}
-
-/** A pair of two token descriptors. */
-export class TokenPair {
-  constructor (readonly token_0: Token, readonly token_1: Token) {}
-  get reverse (): TokenPair { return new TokenPair(this.token_1, this.token_0) }
-}
-
-/** A pair of two token descriptors, and amounts of each token, such as when specifying a swap. */
-export class TokenPairAmount {
-
-  constructor (
-    readonly pair:     TokenPair,
-    readonly amount_0: Uint128,
-    readonly amount_1: Uint128
-  ) {}
-
-  get reverse () {
-    return new TokenPairAmount(this.pair.reverse, this.amount_1, this.amount_0)
-  }
-
-  /** Pass this to 'send' field of ExecOpts */
-  get asNativeBalance () {
-    let result: ICoin[] | undefined = []
-    if (getTokenKind(this.pair.token_0) == TokenKind.Native) {
-      const {native_token:{denom}} = this.pair.token_0 as NativeToken
-      result.push(new Coin(this.amount_0, denom))
-    } else if (getTokenKind(this.pair.token_1) == TokenKind.Native) {
-      const {native_token:{denom}} = this.pair.token_1 as NativeToken
-      result.push(new Coin(this.amount_1, denom))
-    } else {
-      result = undefined
-    }
-    return result
-  }
-
-}
 
 export type TokenSymbol = string
 
@@ -183,6 +34,8 @@ export interface TokenOptions {
   admin:     Address,
   config?:   Snip20InitConfig
 }
+
+export type Tokens = Record<string, Snip20|Token>
 
 /** Keeps track of real and mock tokens using during stackable deployment procedures. */
 export class TokenManager extends CommandContext {
@@ -218,14 +71,16 @@ export class TokenManager extends CommandContext {
   }
   /** Define a Snip20 token. */
   contract (options: Partial<Contract<Snip20>>): Contract<Snip20> {
-    return this.context.contract<Snip20>(this.template as Partial<Contract<Snip20>>).provide(options)
+    const template = this.template! as Partial<Contract<Snip20>>
+    return this.context.contract<Snip20>(template).provide(options)
   }
   /** Define a Snip20 token, get/deploy it, and add it to the registry. */
   define (symbol: TokenSymbol, options?: Partial<TokenOptions>): Contract<Snip20> {
     if (this.has(symbol)) return this.tokens[symbol]
-    const contract = this.contract({ name: options?.name, client: Snip20 })
+    const name     = options?.name ?? symbol
+    const contract = this.contract({ name, client: Snip20 })
     contract.initMsg = Snip20.init(
-      options?.name     ?? symbol,
+      name,
       symbol,
       options?.decimals ?? 8,
       options?.admin    ?? this.context.agent!.address!,
@@ -274,7 +129,8 @@ export class TokenManager extends CommandContext {
       const contracts = this.context.contracts<Snip20>(template).provide({ inits })
       const clients   = await contracts
       for (const i in entries) {
-        const [symbol] = entries[i], client = clients[i]
+        const [symbol] = entries[i]
+        const client = clients[i]
         results[symbol] = client as Snip20
         this.add(symbol, contracts.instance(client as Partial<ContractInstance>))
       }
@@ -328,4 +184,5 @@ export class TokenError extends CustomError {
     (symbol: string) => 'Token already in registry: ')
 }
 
+export * from './tokens-desc'
 export * from './tokens-snip20'
