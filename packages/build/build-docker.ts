@@ -7,7 +7,7 @@ import * as Dokeres from '@hackbg/dokeres'
 import { bold } from '@hackbg/konzola'
 import $, { OpaqueDirectory } from '@hackbg/kabinet'
 
-import { Contract, HEAD } from '@fadroma/client'
+import { Contract, ContractTemplate, HEAD } from '@fadroma/client'
 import type { Builder } from '@fadroma/client'
 
 import { homedir } from 'node:os'
@@ -50,15 +50,16 @@ export class DockerBuilder extends LocalBuilder {
   /** Path to the dockerfile to build the build container if missing. */
   dockerfile: string
   /** Build a Source into a Template. */
-  async build (contract: Contract<any>): Promise<Contract<any>> {
-    return (await this.buildMany([contract]))[0]
+  async build (contract: ContractTemplate): Promise<ContractTemplate> {
+    const [result] = await this.buildMany([contract])
+    return result
   }
 
   /** This implementation groups the passed source by workspace and ref,
     * in order to launch one build container per workspace/ref combination
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
-  async buildMany (contracts: Contract<any>[]): Promise<Contract<any>[]> {
+  async buildMany (contracts: ContractTemplate[]): Promise<ContractTemplate[]> {
     const roots      = new Set<string>()
     const revisions  = new Set<string>()
     let longestCrateName = 0
@@ -79,8 +80,13 @@ export class DockerBuilder extends LocalBuilder {
         const gitDir = getGitDir({ workspace: path })
         mounted = gitDir.rootRepo
         //console.info(`Using history from Git directory: `, bold(`${mounted.shortPath}/`))
-        await simpleGit(gitDir.path)
-          .fetch(process.env.FADROMA_PREFERRED_REMOTE || 'origin')
+        const remote = process.env.FADROMA_PREFERRED_REMOTE || 'origin'
+        try {
+          await simpleGit(gitDir.path).fetch(remote)
+        } catch (e) {
+          console.warn(`Git fetch from remote ${remote} failed. Build may fail or produce an outdated result.`)
+          console.warn(e)
+        }
       }
       // Create a list of sources for the container to build,
       // along with their indices in the input and output arrays
@@ -113,11 +119,11 @@ export class DockerBuilder extends LocalBuilder {
     return contracts
   }
 
-  private populatePrebuilt (contract: Contract<any>): void {
+  private populatePrebuilt (contract: ContractTemplate): void {
     const { workspace, revision, crate } = contract
     if (!workspace) throw new Error("Workspace not set, can't build")
-    const prebuilt  = this.prebuild(this.outputDir.path, crate, revision)
-    this.log.buildingOne(contract, prebuilt)
+    const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
+    this.log.buildingOne(contract, prebuilt as unknown as ContractTemplate)
     if (prebuilt) {
       contract.artifact = prebuilt.artifact
       contract.codeHash = prebuilt.codeHash
@@ -131,12 +137,12 @@ export class DockerBuilder extends LocalBuilder {
     crates:    [number, string][],
     gitSubdir: string = '',
     outputDir: string = this.outputDir.path
-  ): Promise<(Contract<any>|null)[]> {
+  ): Promise<(ContractTemplate|null)[]> {
     // Create output directory as user if it does not exist
     $(outputDir).as(OpaqueDirectory).make()
 
     // Output slots. Indices should correspond to those of the input to buildMany
-    const templates:   (Contract<any>|null)[] = crates.map(()=>null)
+    const templates:   (ContractTemplate|null)[] = crates.map(()=>null)
 
     // Whether any crates should be built, and at what indices they are in the input and output.
     const shouldBuild: Record<string, number> = {}

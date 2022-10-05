@@ -16,20 +16,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 **/
 
-import { bold } from '@hackbg/konzola'
-import { Env, EnvConfig } from '@hackbg/konfizi'
-import { CommandContext } from '@hackbg/komandi'
-import $, { Path, OpaqueFile, OpaqueDirectory, TOMLFile, TextFile } from '@hackbg/kabinet'
-
-import { Client, Contract, Builder, Deployment, HEAD } from '@fadroma/client'
-
-import { default as simpleGit } from 'simple-git'
-
-import { spawn                        } from 'child_process'
-import { basename, resolve, dirname   } from 'path'
-import { homedir, tmpdir              } from 'os'
-import { pathToFileURL, fileURLToPath } from 'url'
-import { readFileSync, mkdtempSync    } from 'fs'
+import type { TOMLFile } from '@hackbg/kabinet'
+import { Contract, Builder, HEAD } from '@fadroma/client'
 
 import { BuilderConfig, LocalBuilder, buildPackage } from './build-base'
 import { BuildConsole }  from './build-events'

@@ -3,7 +3,7 @@ import $ from '@hackbg/kabinet'
 import type { Path } from '@hackbg/kabinet'
 import { colors, bold } from '@hackbg/konzola'
 import { HEAD } from '@fadroma/client'
-import type { Contract } from '@fadroma/client'
+import type { ContractTemplate } from '@fadroma/client'
 
 export class BuildConsole extends CommandsConsole {
   name = 'Fadroma.Builder'
@@ -20,7 +20,7 @@ export class BuildConsole extends CommandsConsole {
       `@`, bold(ref)
     )
   }
-  buildingOne (source: Contract<any>, prebuilt: Contract<any>|null = null) {
+  buildingOne (source: ContractTemplate, prebuilt: ContractTemplate|null = null) {
     if (prebuilt) {
       this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
     } else {
@@ -29,7 +29,7 @@ export class BuildConsole extends CommandsConsole {
         (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
     }
   }
-  buildingMany (sources: Contract<any>[]) {
+  buildingMany (sources: ContractTemplate[]) {
     for (const source of sources) {
       this.buildingOne(source, null)
     }

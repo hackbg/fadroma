@@ -1,5 +1,5 @@
 import { Env, EnvConfig } from '@hackbg/konfizi'
-import { Builder, Contract, HEAD } from '@fadroma/client'
+import { Builder, Contract, ContractTemplate, HEAD } from '@fadroma/client'
 import { bold } from '@hackbg/konzola'
 import type { Class, Client } from '@fadroma/client'
 import $, { Path, BinaryFile, TOMLFile, OpaqueFile, OpaqueDirectory } from '@hackbg/kabinet'
@@ -103,19 +103,17 @@ export abstract class LocalBuilder extends Builder {
   /** Defines a contract, outputting a new `Contract` instance:
     * works the same as Deployment#contract, but only populates
     * the `builder` property because we don't have chain or agent in build context. */
-  contract (name?: string): Contract<Client>
-  contract <C extends Client> (options?: Partial<Contract<C>>): Contract<C>
-  contract <C extends Client> (arg?: string|Partial<Contract<C>>) {
-    const options = {
+  contract (name?: string): ContractTemplate
+  contract <C extends Client> (options?: Partial<ContractTemplate>): ContractTemplate
+  contract <C extends Client> (arg?: string|Partial<ContractTemplate>) {
+    return new ContractTemplate({
       builder:    this,
       revision:   this.revision,
       workspace:  this.config.project,
       repository: this.config.project,
       gitDir:     `${this.config.project}/.git`,
       ...((typeof arg === 'string') ? { name: arg } : arg)
-    }
-    const contract = new Contract(options)
-    return contract
+    })
   }
 
   /** Pass this a Cargo.toml or a directory containing one */
