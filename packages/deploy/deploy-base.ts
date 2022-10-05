@@ -45,10 +45,12 @@ export class DeployConfig extends ConnectConfig {
     const { chain, agent } = await super.getConnector()
     if (!chain) throw new Error('Missing chain')
     const uploader = new FSUploader(agent, this.uploads)
-    const defaults = { chain, agent: agent??undefined/*l8r*/, uploader }
     if (!$D) throw new Error('Missing deployment store constructor')
-    const store = new $D(defaults, this.deploys)
-    return store
+    return new $D(this.deploys, {
+      chain,
+      agent: agent??undefined/*l8r*/,
+      uploader
+    })
   }
   /** Create a new populated Deployer, with the specified DeployStore.
     * @returns Deployer */
@@ -60,10 +62,7 @@ export class DeployConfig extends ConnectConfig {
     const { name, state } = store.active ?? {}
     if (!chain) throw new Error('Missing chain')
     const defaults = { chain, agent: agent??undefined/*l8r*/, uploader }
-    return new $D({
-      config: this, agent, uploader,
-      //store, name, state
-    })
+    return new $D({ config: this, agent, uploader, store })
   }
 }
 
@@ -84,6 +83,15 @@ export class Deployer extends Connector {
     this.config = new DeployConfig(this.env, this.cwd, options.config)
     this.store  = options.store ?? this.store
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
+    this
+      .addCommand('deployments', 'print a list of all deployments on this chain',
+                  this.listDeployments.bind(this))
+      .addCommand('create', `create a new empty deployment on this chain`,
+                  this.createDeployment.bind(this))
+      .addCommand('switch', `select another deployment on this chain`,
+                  this.selectDeployment.bind(this))
+      .addCommand('contracts', 'show the contracts in the current deployment',
+                  this.listContracts.bind(this))
   }
   /** Logger. */
   log = new DeployConsole('Fadroma Deploy')
@@ -114,52 +122,48 @@ export class Deployer extends Connector {
   }
   async save () {
     const store = await this.provideStore()
-    //this.log.log('Saving:  ', bold(this.name))
-    //this.log.log(Object.keys(this.state).join(', '))
-    //this.log.br()
+    this.log.saving(this.name, this.state)
     store.set(this.name, this.state)
   }
   /** Path to root of project directory. */
   get project (): Path|undefined {
-    return this.config?.project ? $(this.config.project) : undefined
+    if (typeof this.config.project !== 'string') return undefined
+    return $(this.config.project)
   }
   /** Currently selected deployment. */
   //get deployment (): Deployment|null { return this.store?.active || null }
   /** Print a list of deployments on the selected chain. */
-  listDeployments = this.command('deployments', `print a list of all deployments on this chain`,
-    async (): Promise<DeployStore> => {
-      const store = await this.provideStore()
-      this.log.deploymentList(this.chain?.id??'(unspecified)', store)
-      return store
-    })
+  async listDeployments (): Promise<DeployStore> {
+    const store = await this.provideStore()
+    this.log.deploymentList(this.chain?.id??'(unspecified)', store)
+    return store
+  }
   /** Create a new deployment and add it to the command context. */
-  createDeployment = this.command('create', `create a new empty deployment on this chain`,
-    async (name: string = this.timestamp): Promise<void> => {
-      const store = this.store ??= await this.config.getDeployStore()
-      await store.create(name)
-      await this.selectDeployment(name)
-    })
+  async createDeployment (name: string = this.timestamp): Promise<Deployer> {
+    const store = this.store ??= await this.config.getDeployStore()
+    await store.create(name)
+    return await this.selectDeployment(name)
+  }
   /** Make a new deployment the active one. */
-  selectDeployment = this.command('switch', `select another deployment on this chain`,
-    async (id?: string): Promise<void> => {
-      const store = await this.provideStore()
-      const list  = store.list()
-      if (list.length < 1) this.log.info('No deployments.')
-      const deployment = await store.select(id)
-      if (deployment) {
-        this.name  = deployment.name
-        this.state = deployment.state
-      }
+  async selectDeployment (id: string): Promise<Deployer> {
+    const store = await this.provideStore()
+    const list  = store.list()
+    if (list.length < 1) this.log.info('No deployments.')
+    const deployment = await store.select(id)
+    if (deployment) Object.assign(this, {
+      name:  deployment.name,
+      state: deployment.state
     })
-  /** Print the contracts contained in a of a deployment. */
-  listContracts = this.command('contracts', 'show the contracts in the current deployment',
-    async (id?: string): Promise<void> => {
-      const store      = await this.provideStore()
-      const deployment = id ? store.get(id) : store.active
-      if (deployment) {
-        this.log.deployment({ deployment })
-      } else {
-        this.log.info('No selected deployment.')
-      }
-    })
+    return this
+  }
+  /** Print the contracts contained in a deployment receipt. */
+  async listContracts (id?: string): Promise<void> {
+    const store      = await this.provideStore()
+    const deployment = id ? store.get(id) : store.active
+    if (deployment) {
+      this.log.deployment({ deployment })
+    } else {
+      this.log.info('No selected deployment.')
+    }
+  }
 }

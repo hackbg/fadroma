@@ -36,8 +36,8 @@ export interface UploaderClass<U extends Uploader> extends Overridable<Uploader,
 /** Constructor for the different varieties of DeployStore. */
 export interface DeployStoreClass<D extends DeployStore> extends Class<D, [
   /** Defaults when hydrating Deployment instances from the store. */
+  unknown,
   Partial<Deployment>|undefined,
-  ...unknown[]
 ]> {}
 
 /** Returns a string in the format `crate[@ref][+flag][+flag]...` */
@@ -517,25 +517,25 @@ export abstract class Agent {
   /** Send native tokens to multiple recipients. */
   abstract sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown>
   /** Upload code, generating a new code id/hash pair. */
-  abstract upload (blob: Uint8Array): Promise<Contract<any>>
+  abstract upload (blob: Uint8Array): Promise<ContractTemplate>
   /** Upload multiple pieces of code, generating multiple CodeID/CodeHash pairs.
     * @returns Contract[] */
-  uploadMany (blobs: Uint8Array[] = []): Promise<Contract<any>[]> {
+  uploadMany (blobs: Uint8Array[] = []): Promise<ContractTemplate[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
   /** Create a new smart contract from a code id, label and init message. */
-  abstract instantiate (template: Contract<any>, label: Label, initMsg: Message):
-    Promise<Contract<any>>
+  abstract instantiate (template: ContractTemplate, label: Label, initMsg: Message):
+    Promise<ContractInstance>
   /** Create multiple smart contracts from a list of code id/label/init message triples. */
   instantiateMany (template: ContractTemplate, instances: Record<string, DeployArgs>):
-    Promise<Record<string, Contract<any>>>
+    Promise<Record<string, ContractInstance>>
   instantiateMany (template: ContractTemplate, instances: DeployArgs[]):
-    Promise<Contract<any>[]>
+    Promise<ContractInstance[]>
   async instantiateMany <C, D> (template: ContractTemplate, instances: C): Promise<D> {
     const inits: [string, DeployArgs][] = Object.entries(instances)
-    const results: Contract<any>[] =
-      await Promise.all(inits.map(([key, [label, initMsg]])=>
-        this.instantiate(new Contract(template as Partial<Contract<any>>), label, initMsg)))
+    const results: ContractInstance[] = await Promise.all(
+      inits.map(([key, [label, initMsg]])=>this.instantiate(template, label, initMsg))
+    )
     const outputs: any = ((instances instanceof Array) ? [] : {}) as D
     for (const i in inits) {
       const [key]  = inits[i]
@@ -887,24 +887,22 @@ export interface StructuredLabel {
   suffix?: Name
 }
 
-export function build <T extends ContractTemplate & { builder?: Builder }> (
+export function build <T extends ContractTemplate & {
+  builder?: Builder
+}> (
   source:   T,
   builder?: Builder
-): PromiseLike<T> {
-  builder ??= assertBuilder(source)
-  const name = 'build  ' + getSourceSpecifier(source)
-  return source.task(name, async (): Promise<T> => {
-    if (source.artifact) return source
-    const result = await builder!.build(source)
-    return result
-  })
+): Promise<T> {
 }
 
-export function upload <T extends ContractTemplate & { uploader?: Uploader, codeHash?: CodeHash }> (
+export function upload <T extends ContractTemplate & {
+  uploader?: Uploader,
+  codeHash?: CodeHash
+}> (
   template:  T,
   uploader?: Uploader,
   agent:     Agent|null|undefined = uploader?.agent
-): PromiseLike<T> {
+): Promise<T> {
   // If the object already contains chain ID and code ID, that means it's uploaded
   if (template.chainId && template.codeId) {
     // If it also has the code hash, we're good to go
@@ -944,6 +942,8 @@ export class Metadata {
   }
 }
 
+/** All info about a contract, expect instance-specific fields.
+  * Multiple instances can correspond to this data. */
 export class ContractTemplate extends Metadata {
   /** URL pointing to Git repository containing the source code. */
   repository?: string|URL = undefined
@@ -974,6 +974,11 @@ export class ContractTemplate extends Metadata {
   /** Code ID representing the identity of the contract's code on a specific chain. */
   codeId?:     CodeId     = undefined
 
+  /** Build procedure implementation. */
+  builder?:    Builder    = undefined
+  /** Upload procedure implementation. */
+  uploader?:   Uploader   = undefined
+
   constructor (options: Partial<ContractTemplate> = {}) {
     super(options as Partial<Metadata>)
   }
@@ -986,23 +991,28 @@ export class ContractTemplate extends Metadata {
     task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
     return task
   }
-
+  /** Compile the source using the selected builder.
+    * @returns this */
+  async build (builder?: Builder) {
+    const source = this
+    builder ??= assertBuilder(source)
+    const name = 'build  ' + getSourceSpecifier(source)
+    return source.task(name, (): Promise<T> => {
+      if (source.artifact) return Promise.resolve(source)
+      return builder!.build(source) as Promise<T>
+    })
+  }
+  /** Upload the compiled code to the specified chain using the selected uploader.
+    * @returns this */
+  async upload (uploader?: Uploader, agent: Agent|null|undefined = uploader?.agent) {
+    return await upload(this, uploader, agent)
+  }
   /** Uploaded templates can be passed to factory contracts in this format. */
   get asInfo (): ContractInfo {
     if (!this.codeId || isNaN(Number(this.codeId)) || !this.codeHash) {
       throw new ClientError.Unpopulated()
     }
     return templateStruct(this)
-  }
-
-  /** Compile the source using the selected builder.
-    * @returns this */
-  build (builder?: Builder): PromiseLike<typeof this> {
-    return build(this, builder)
-  }
-
-  upload (uploader?: Uploader, agent: Agent|null|undefined = uploader?.agent) {
-    return upload(this, uploader, agent)
   }
 }
 
@@ -1058,10 +1068,6 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
   deployment?: Deployment     = undefined
   /** The agent that will upload and instantiate this contract. */
   agent?:      Agent          = this.deployment?.agent
-  /** Build procedure implementation. */
-  builder?:    Builder        = this.deployment?.builder
-  /** Upload procedure implementation. */
-  uploader?:   Uploader       = this.deployment?.uploader
   /** The Client subclass that exposes the contract's methods.
     * @default the base Client class. */
   client:      ClientClass<C> = Client as unknown as ClientClass<C>
@@ -1115,35 +1121,37 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
   then <D, E> (
     onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
     onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
-  ): Task<this, D|E> {
-    return this.task(`get or deploy ${this.name ?? 'contract'}`,
-      () => this.deploy().then(onfulfilled, onrejected))
+  ): Promise<D|E> {
+    return this.deployed.then(onfulfilled, onrejected)
   }
+
+  /** One-shot deployment task. */
+  deployed = this.task(`get or deploy ${this.name ?? 'contract'}`, async () => {
+    const deployed = this.getClientOrNull()
+    if (deployed) {
+      this.log.foundDeployedContract(deployed.address!, this.name!)
+      return await Promise.resolve(deployed)
+    } else {
+      return await this.deploy()
+    }
+  })
 
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
-    return this.task(`get or deploy ${this.name ?? 'contract'}`, () => {
-      const deployed = this.getClientOrNull()
-      if (deployed) {
-        this.log.foundDeployedContract(deployed.address!, this.name!)
-        return Promise.resolve(deployed)
-      }
-      const name = `deploy ${this.name ?? 'contract'}`
-      return this.task(name, () => {
-        if (!this.agent) throw new ClientError.NoCreator(this.name)
-        this.label = writeLabel(this)
-        if (!this.label) throw new ClientError.NoInitLabel(this.name)
-        return this.upload().then(async template=>{
-          if (this !== template) this.log.warn('bug: uploader returned different instance')
-          if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
-          this.log.beforeDeploy(this, this.label!)
-          initMsg = await into(initMsg)
-          const contract = await this.agent!.instantiate(this, this.label!, initMsg as Message)
-          this.log.afterDeploy(contract)
-          if (this.deployment) this.deployment.add(this.name!, contract)
-          return this.getClient()
-        })
+    return this.task(`deploy ${this.name ?? 'contract'}`, () => {
+      if (!this.agent) throw new ClientError.NoCreator(this.name)
+      this.label = writeLabel(this)
+      if (!this.label) throw new ClientError.NoInitLabel(this.name)
+      return this.upload().then(async template=>{
+        if (this !== template) this.log.warn('bug: uploader returned different instance')
+        if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
+        this.log.beforeDeploy(this, this.label!)
+        initMsg = await into(initMsg)
+        const contract = await this.agent!.instantiate(this, this.label!, initMsg as Message)
+        this.log.afterDeploy(contract)
+        if (this.deployment) this.deployment.add(this.name!, contract)
+        return this.getClient()
       })
     })
   }
@@ -1207,9 +1215,11 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
   then <D, E> (
     resolved?: ((clients: C[]) => D|PromiseLike<D>) | null,
     rejected?: ((failure: any) => E|PromiseLike<E>) | null
-  ): PromiseLike<D|E> {
-    return this.task(`get or deploy contracts`, () => this.deploy().then(resolved, rejected))
+  ): Promise<D|E> {
+    return this.deployed.then(resolved, rejected)
   }
+
+  deployed = this.task(`get or deploy contracts`, () => this.deploy())
 
   /** Get all contracts that match the specified predicate. */
   get (match: MatchPredicate|undefined = this.match) {
@@ -1572,10 +1582,10 @@ export abstract class Builder extends CommandContext {
   /** Up to the implementation.
     * `@fadroma/build` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
-  abstract build (source: IntoSource, ...args: any[]): Promise<Contract<any>>
+  abstract build (source: IntoSource, ...args: any[]): Promise<ContractTemplate>
   /** Default implementation of buildMany is parallel.
     * Builder implementations override this, though. */
-  buildMany (sources: IntoSource[], ...args: unknown[]): Promise<Contract<any>[]> {
+  buildMany (sources: IntoSource[], ...args: unknown[]): Promise<ContractTemplate[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
 }

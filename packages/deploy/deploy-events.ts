@@ -99,6 +99,11 @@ export class DeployConsole extends ConnectConsole {
   deployStoreDoesNotExist (path: string) {
     log.warn(`Deployment store "${path}" does not exist.`)
   }
+  saving (name: string, state: object) {
+    //this.log.log('Saving:  ', bold(name))
+    //this.log.log(Object.keys(state).join(', '))
+    //this.log.br()
+  }
 }
 
 export const log = new DeployConsole('Fadroma Deploy')

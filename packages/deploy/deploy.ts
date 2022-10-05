@@ -28,7 +28,7 @@ Object.assign(DeployStore.variants, {
   'JSON1': JSON1.JSONDeployments_v1
 })
 
-export { YAML, YAML1, YAML2, JSON1 }
+export { DeployStore, YAML, YAML1, YAML2, JSON1 }
 export { DeployConfig, Deployer } from './deploy-base'
 export { DeployConsole } from './deploy-events'
 export * from './upload'

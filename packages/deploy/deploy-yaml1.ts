@@ -26,8 +26,8 @@ import * as FS from 'node:fs' // TODO replace with calls to @hackbg/kabinet
 export class YAMLDeployments_v1 extends DeployStore {
 
   constructor (
-    public defaults: Partial<Deployment> = {},
     storePath: string|Path|YAMLDirectory<unknown>,
+    public defaults: Partial<Deployment> = {},
   ) {
     super()
     this.root = $(storePath).as(YAMLDirectory)
