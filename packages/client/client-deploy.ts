@@ -48,7 +48,7 @@ export class Deployment extends CommandContext {
   /** Build implementation. Contracts can't be built from source if this is missing. */
   builder?:    Builder
   /** Build multiple contracts. */
-  async buildMany (contracts: (string|Contract<any>)[]): Promise<Contract<any>[]> {
+  async buildMany (contracts: (string|ContractTemplate)[]): Promise<ContractTemplate[]> {
     if (!this.builder) throw new ClientError.NoBuilder()
     if (contracts.length === 0) return Promise.resolve([])
     contracts = contracts.map(contract=>{
@@ -58,7 +58,7 @@ export class Deployment extends CommandContext {
     const count = (contracts.length > 1)
       ? `${contracts.length} contract: `
       : `${contracts.length} contracts:`
-    const sources = (contracts as Contract<any>[])
+    const sources = (contracts as ContractTemplate[])
       .map(contract=>`${contract.crate}@${contract.revision}`)
       .join(', ')
     return this.task(`build ${count} ${sources}`, () => {

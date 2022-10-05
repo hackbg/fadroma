@@ -16,22 +16,18 @@ export class Metadata {
   constructor (options: Partial<Metadata> = {}) {
     this.provide(options as object)
   }
-
   /** Provide parameters for an existing contract.
     * @returns the modified contract. */
-  provide <T extends this> (options: Partial<T>): this {
-    return override(this, options)
+  provide (options: Partial<this>): this {
+    return override(this, options as object)
   }
 }
 
 /** Implements some degree of controlled extensibility for the value object pattern used below.
   * @todo ..... underlay (converse function which provides defaults for defined properties
   * but leaves untouched ones that are already set rather than overriding them) */
-export function override <T extends object> (
-  self:    T,
-  options: Partial<T>
-): T {
-  for (const [key, val] of Object.entries(options||{})) {
+export function override <T extends object> (self: T, options: Partial<T> = {}): T {
+  for (const [key, val] of Object.entries(options)) {
     if (val === undefined) continue
     const exists     = key in self
     const writable   = Object.getOwnPropertyDescriptor(self, key)?.writable ?? true

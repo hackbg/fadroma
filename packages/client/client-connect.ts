@@ -498,8 +498,8 @@ export abstract class Bundle extends Agent {
     const sender   = this.address
     const msg      = initMsg
     this.add({ init: { codeId, codeHash, label, funds, msg, sender } })
-    const contract = new Contract(template).provide({ codeId, codeHash, label, initMsg })
-    return contract
+    return new Contract(template as Partial<Contract<any>>)
+      .provide({ codeId, codeHash, label, initMsg })
   }
   /** Add an exec message to the bundle. */
   async execute (

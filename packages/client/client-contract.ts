@@ -106,7 +106,7 @@ export class ContractTemplate extends Metadata {
   uploader?:   Uploader   = undefined
 
   constructor (options: Partial<ContractTemplate> = {}) {
-    super(options as Partial<Metadata>)
+    super(options as object)
   }
 
   /** Define a subtask
@@ -140,6 +140,7 @@ export class ContractTemplate extends Metadata {
     }
     return templateStruct(this)
   }
+
 }
 
 export interface ContractInfo {
@@ -294,7 +295,7 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
 
   /** Provide parameters for an existing contract.
     * @returns the modified contract. */
-  provide (options: Partial<typeof this>): this {
+  provide (options: Partial<this>): this {
     super.provide(options)
     // If this Contract is now part of a Deployment,
     // inherit the prefix from the deployment.
