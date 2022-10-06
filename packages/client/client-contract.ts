@@ -127,12 +127,20 @@ export class ContractSource extends ContractBase {
     return new ContractSource(this)
   }
 
-  //then <D, E> (
-    //ok?: ((result: this) => D|PromiseLike<D>) | null,
-    //no?: ((reason: any)  => E|PromiseLike<E>) | null
-  //): Promise<D|E> {
-    //return this.compiled.then(()=>ok ? ok(this) : this as unknown as D, no)
-  //}
+  get asReceipt (): Partial<this> {
+    return {
+      repository: this.repository,
+      revision:   this.revision,
+      dirty:      this.dirty,
+      workspace:  this.workspace,
+      crate:      this.crate,
+      features:   this.features?.join(', '),
+      builder:    undefined,
+      builderId:  this.builder?.id,
+      artifact:   this.artifact?.toString(),
+      codeHash:   this.codeHash
+    } as Partial<this>
+  }
 }
 
 /** @returns a string in the format `crate[@ref][+flag][+flag]...` */
@@ -199,12 +207,17 @@ export class ContractTemplate extends ContractSource {
     return templateStruct(this)
   }
 
-  //then <D, E> (
-    //ok?: ((result: this) => D|PromiseLike<D>) | null,
-    //no?: ((reason: any)  => E|PromiseLike<E>) | null
-  //): Promise<D|E> {
-    //return this.uploaded.then(()=>ok ? ok(this) : this as unknown as D, no)
-  //}
+  get asReceipt (): Partial<this> {
+    return {
+      ...super.asReceipt,
+      chainId:    this.chainId,
+      uploaderId: this.uploader?.id,
+      uploader:   undefined,
+      uploadBy:   this.uploadBy,
+      uploadTx:   this.uploadTx,
+      codeId:     this.codeId
+    } as Partial<this>
+  }
 }
 
 export interface ContractInfo {
@@ -254,6 +267,20 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
   /** Get link to this contract in Fadroma ICC format. */
   get asLink (): ContractLink {
     return { address: assertAddress(this), code_hash: assertCodeHash(this) }
+  }
+
+  get asReceipt (): Partial<this> {
+    return {
+      ...super.asReceipt,
+      initBy:  this.initBy,
+      initMsg: this.initMsg,
+      initTx:  this.initTx,
+      address: this.address,
+      label:   this.label,
+      prefix:  this.prefix,
+      name:    this.name,
+      suffix:  this.suffix
+    } as Partial<this>
   }
 }
 
@@ -415,9 +442,7 @@ export class Contract<C extends Client> extends ContractInstance {
     return this.task(`deploy ${this.name ?? 'contract'}`, async () => {
       if (!this.agent) throw new ClientError.NoCreator(this.name)
 
-      console.log(20, this)
-      console.log({ name: this.name })
-      this.label = writeLabel({ name: this.name })
+      this.label = writeLabel(this)
       if (!this.label) throw new ClientError.NoInitLabel(this.name)
 
       await this.uploaded

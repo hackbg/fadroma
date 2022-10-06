@@ -447,7 +447,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const initTx   = result.transactionHash
     return new ContractInstance(template).provide({ address, initTx, initBy: this.address })
   }
-  async instantiateMany <C, D> (template: Contract<any>, instances: C): Promise<D> {
+  async instantiateMany <C, D> (template: ContractTemplate, instances: C): Promise<D> {
     const inits: [string, DeployArgs][] = Object.entries(instances)
     // instantiate multiple contracts in a bundle:
     const results = await this.bundle().wrap(async bundle=>{

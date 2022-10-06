@@ -77,20 +77,9 @@ export class FSUploader extends Uploader {
     }
     const { codeId, codeHash, uploadTx } = result
     Object.assign(contract, { codeId, codeHash, uploadTx })
+    // don't save receipts for mocknet because it's not stateful yet
     if (receipt && !this.agent?.chain?.isMocknet) {
-      // don't save receipts for mocknet because it's not stateful yet
-      console.log(contract.asTemplate)
-      const template = contract.asTemplate
-      receipt.save({
-        ...template,
-        builder:    undefined,
-        builderId:  template.builder?.id,
-        artifact:   template.artifact?.toString(),
-        compiled:   undefined,
-        uploader:   undefined,
-        uploaderId: template.uploader?.id,
-        uploaded:   undefined
-      })
+      receipt.save((contract as ContractTemplate).asTemplate.asReceipt)
     }
     //await this.agent.nextBlock
     return contract as T & { artifact: URL, codeHash: CodeHash, codeId: CodeId }
