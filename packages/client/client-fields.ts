@@ -29,10 +29,13 @@ export class Metadata {
 
 /** Check if `obj` has a writable, non-method property of name `key` */
 export function hasField <T extends object> (obj: T, key: keyof typeof obj): boolean {
-  const exists     = key in obj
-  const writable   = Object.getOwnPropertyDescriptor(obj, key)?.writable ?? true
+  const exists = key in obj
+  const descriptor = Object.getOwnPropertyDescriptor(obj, key) ??
+    Object.getOwnPropertyDescriptor(Object.getPrototypeOf(obj), key)
+  const isWritable = descriptor?.writable ?? true
+  const isGetter   = descriptor?.get ?? false
   const isFunction = (typeof obj[key as keyof T] === 'function') && !((obj[key as keyof T] as unknown as Function).prototype)
-  return exists && writable && !isFunction
+  return exists && isWritable && !isFunction && !isGetter
 }
 
 /** Set fields of first argument to values from second argument,
@@ -98,16 +101,16 @@ export async function intoArray <X, Y> (specifier: IntoArray<X>, context?: Y): P
 }
 
 /** A lazily provided record of lazily provided values. */
-export type IntoRecord<X> = Into<Record<RecordKey, Into<X>>>
+export type IntoRecord<X extends string|number|symbol, Y> = Into<Record<X, Into<Y>>>
 
 /** Resolve a lazy record. */
-export async function intoRecord <X, Y> (
-  specifier: IntoRecord<X>, context?: Y
-): Promise<Record<RecordKey, X>> {
+export async function intoRecord <X extends string|number|symbol, Y, Z> (
+  specifier: IntoRecord<X, Y>, context?: Z
+): Promise<Record<X, Y>> {
   specifier = await into(specifier)
-  const entries: [RecordKey, Into<X>][] = Object.entries(specifier)
-  const resolved: X[] = await Promise.all(entries.map(entry=>into(entry[1])))
-  const results: Record<RecordKey, X> = {}
+  const entries:  [X, Into<Y>][] = Object.entries(specifier) as [X, Into<Y>][]
+  const resolved: Y[]            = await Promise.all(entries.map(entry=>into(entry[1])))
+  const results:  Record<X, Y>   = {} as Record<X, Y>
   for (const index in resolved) {
     const [key] = entries[index]
     const result = resolved[index]
@@ -115,5 +118,3 @@ export async function intoRecord <X, Y> (
   }
   return results
 }
-
-type RecordKey = string|number|symbol

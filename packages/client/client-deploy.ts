@@ -61,24 +61,26 @@ export class Deployment extends CommandContext {
 
   /** Build multiple contracts. */
   async buildMany (contracts: (string|ContractSource)[]): Promise<ContractSource[]> {
-    if (!this.builder) throw new ClientError.NoBuilder()
-    if (contracts.length === 0) return Promise.resolve([])
-    contracts = contracts.map(contract=>{
-      if (typeof contract === 'string') {
-        return this.contract({ crate: contract }) as ContractSource
-      } else {
-        return contract
-      }
-    })
-    const count = (contracts.length > 1)
-      ? `${contracts.length} contract: `
-      : `${contracts.length} contracts:`
-    const sources = (contracts as ContractTemplate[])
-      .map(contract=>`${contract.crate}@${contract.revision}`)
-      .join(', ')
-    return this.task(`build ${count} ${sources}`, () => {
+    return this.task(`build ${contracts.length} contracts`, async () => {
       if (!this.builder) throw new ClientError.NoBuilder()
-      return this.builder.buildMany(contracts as ContractSource[])
+      if (contracts.length === 0) return Promise.resolve([])
+      contracts = contracts.map(contract=>{
+        if (typeof contract === 'string') {
+          return this.contract({ crate: contract }) as ContractSource
+        } else {
+          return contract
+        }
+      })
+      const count = (contracts.length > 1)
+        ? `${contracts.length} contract: `
+        : `${contracts.length} contracts:`
+      const sources = (contracts as ContractTemplate[])
+        .map(contract=>`${contract.crate}@${contract.revision}`)
+        .join(', ')
+      return this.task(`build ${count} ${sources}`, () => {
+        if (!this.builder) throw new ClientError.NoBuilder()
+        return this.builder.buildMany(contracts as ContractSource[])
+      })
     })
   }
 
@@ -103,22 +105,20 @@ export class Deployment extends CommandContext {
 
   /** Upload multiple contracts to the chain.
     * @returns the same contracts, but with `chainId`, `codeId` and `codeHash` populated. */
-  async uploadMany (contracts: ContractTemplate[]): Promise<ContractTemplate[]> {
-    if (!this.uploader) throw new ClientError.NoUploader()
-    if (contracts.length === 0) return Promise.resolve([])
-    contracts = contracts.map(contract=>{
-      if (typeof contract === 'string') {
-        return this.contract({ crate: contract }) as ContractTemplate
-      } else {
-        return contract
-      }
-    })
-    const count = (contracts.length > 1)
-      ? `${contracts.length} contract: `
-      : `${contracts.length} contracts:`
-    return this.task(`upload ${count} artifacts`, () => {
+  async uploadMany (contracts: ContractSource[]): Promise<ContractTemplate[]> {
+    return this.task(`upload ${contracts.length} contracts`, async () => {
       if (!this.uploader) throw new ClientError.NoUploader()
-      return this.uploader.uploadMany(contracts)
+      if (contracts.length === 0) return Promise.resolve([])
+      contracts = contracts
+        .map(contract=>(typeof contract === 'string')?this.contract({ crate: contract }):contract)
+        .map(contract=>contract.asSource)
+      const count = (contracts.length > 1)
+        ? `${contracts.length} contract: `
+        : `${contracts.length} contracts:`
+      return this.task(`upload ${count} artifacts`, () => {
+        if (!this.uploader) throw new ClientError.NoUploader()
+        return this.uploader.uploadMany(contracts)
+      })
     })
   }
 
@@ -345,12 +345,12 @@ export abstract class Uploader {
   abstract id: string
   /** Upload a contract.
     * @returns the contract with populated codeId and codeHash */
-  abstract upload <T extends ContractTemplate> (template: T): Promise<T & {
+  abstract upload <T extends ContractSource> (template: T): Promise<T & {
     codeId:   CodeId
     codeHash: CodeHash,
   }>
   /** Upload multiple contracts. */
-  abstract uploadMany (templates: ContractTemplate[]): Promise<ContractTemplate[]>
+  abstract uploadMany (templates: ContractSource[]): Promise<ContractTemplate[]>
 }
 
 /** Pair of name and init message. Used when instantiating multiple contracts from one template. */

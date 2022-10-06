@@ -209,9 +209,9 @@ export class ClientConsole extends CommandsConsole {
 
   deployFailedContract (template?: ContractTemplate) {
     if (!template) return this.error(`  No template was provided.`)
+    this.error(`Code hash:`, bold(template.codeHash||''))
     this.error(`Chain ID: `, bold(template.chainId ||''))
     this.error(`Code ID:  `, bold(template.codeId  ||''))
-    this.error(`Code hash:`, bold(template.codeHash||''))
   }
 
   chainStatus ({ chain, deployments }: {

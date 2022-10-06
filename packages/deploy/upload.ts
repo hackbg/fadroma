@@ -1,7 +1,8 @@
 import { colors, bold } from '@hackbg/konzola'
+import { Task } from '@hackbg/komandi'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
-import { Contract, ClientConsole, Uploader, ClientError } from '@fadroma/client'
-import type { Agent, ContractTemplate, CodeHash, CodeId } from '@fadroma/client'
+import { Contract, ContractTemplate, ClientConsole, Uploader, ClientError } from '@fadroma/client'
+import type { Agent, CodeHash, CodeId } from '@fadroma/client'
 import { CustomConsole } from '@hackbg/konzola'
 
 export class UploadConsole extends ClientConsole {
@@ -161,9 +162,11 @@ export class FSUploader extends Uploader {
       const uploaded = await this.uploadManySansCache(toUpload)
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
+        const template = new ContractTemplate(uploaded[i])
         $(this.cache, this.getUploadReceiptName(toUpload[i]))
-          .as(UploadReceipt).save(uploaded[i].asTemplate.asReceipt)
-        outputs[i] = uploaded[i]
+          .as(UploadReceipt)
+          .save(template.asReceipt)
+        outputs[i] = template
       }
     }
 
