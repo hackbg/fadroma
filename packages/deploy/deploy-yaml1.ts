@@ -8,7 +8,7 @@ import $, {
   Path, YAMLDirectory, YAMLFile, TextFile, alignYAML, OpaqueDirectory
 } from '@hackbg/kabinet'
 import {
-  Agent, Contract, Client, Deployment, DeployStore
+  Agent, Contract, ContractInstance, Client, Deployment, DeployStore
 } from '@fadroma/client'
 import {
   DeployConsole, DeployError, log
@@ -107,9 +107,16 @@ export class YAMLDeployments_v1 extends DeployStore {
       output += '---\n'
       name ??= data.name!
       if (!name) throw new Error('Deployment: no name')
+      const receipt = new ContractInstance(data as Partial<ContractInstance>).asReceipt
       data = JSON.parse(JSON.stringify({
         name,
-        ...new Contract(data).meta,
+        label:    receipt.label,
+        address:  receipt.address,
+        codeHash: receipt.codeHash,
+        codeId:   receipt.label,
+        crate:    receipt.crate,
+        revision: receipt.revision,
+        ...receipt,
         deployment: undefined
       }))
       const daDump = dump(data, { noRefs: true })
