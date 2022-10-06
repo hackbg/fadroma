@@ -108,8 +108,10 @@ export class ContractSource extends ContractBase {
 
   compiled: Task<ContractSource, ContractSource> = this.task(
     `compile ${this.crate ?? 'contract'}`, async () => {
+      console.log(1)
       if (!this.artifact) await this.build()
-      return this as ContractSource
+      console.log(2)
+      return this.asSource
     })
 
   /** Compile the source using the selected builder.
@@ -168,7 +170,7 @@ export class ContractTemplate extends ContractSource {
       console.log(1, this)
       if (!this.codeId) await this.upload()
       console.log(2, this)
-      return this as ContractTemplate
+      return this.asTemplate
     })
 
   /** Upload compiled source code to the selected chain.
@@ -282,6 +284,7 @@ export function parseLabel (label: Label): StructuredLabel {
 
 /** Construct a label from prefix, name, and suffix. */
 export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
+  console.log({ name, prefix, suffix })
   if (!name) throw new ClientError.NoName()
   let label = name
   if (prefix) label = `${prefix}/${label}`
@@ -355,6 +358,7 @@ export class Contract<C extends Client> extends ContractInstance {
     onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
     onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
   ): Promise<D|E> {
+    console.log(30, this)
     return this.deployed.then(onfulfilled, onrejected)
   }
 
@@ -392,6 +396,7 @@ export class Contract<C extends Client> extends ContractInstance {
   deployed: Task<this, C> = this.task(
     `get or deploy ${this.name ?? 'contract'}`, async () => {
       const deployed = this.getClientOrNull()
+      console.log(10, this)
       if (deployed) {
         this.log.foundDeployedContract(deployed.address!, this.name!)
         return await Promise.resolve(deployed)
@@ -406,10 +411,13 @@ export class Contract<C extends Client> extends ContractInstance {
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
+    console.trace()
     return this.task(`deploy ${this.name ?? 'contract'}`, async () => {
       if (!this.agent) throw new ClientError.NoCreator(this.name)
 
-      this.label = writeLabel(this)
+      console.log(20, this)
+      console.log({ name: this.name })
+      this.label = writeLabel({ name: this.name })
       if (!this.label) throw new ClientError.NoInitLabel(this.name)
 
       await this.uploaded
@@ -526,8 +534,10 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
         if (!this.codeId) throw new ClientError.NoInitCodeId(name)
         // if operating in a Deployment, add prefix to each name (should be passed unprefixed)
         const prefix = this.deployment?.name
-        const prefixedInits: DeployArgs[] = inits.map(
-          ([label, msg])=>[ writeLabel({ name: label, prefix }), msg ])
+        const prefixedInits: DeployArgs[] = inits.map(([label, msg])=>[
+          writeLabel({ name: label, prefix }),
+          msg
+        ])
         try {
           // run a bundled transaction creating each instance
           const responses = await agent.instantiateMany(this, prefixedInits)

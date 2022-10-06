@@ -17,14 +17,12 @@
 **/
 
 import type {
-  Address, CodeHash, CodeId, TxHash, Uint128,
-  AgentClass, AgentOpts,
-  BundleClass,
-  ChainClass, ChainOpts, ChainId,
-  DeployArgs, Label, Message,
-  ExecOpts, ICoin, IFee,
+  Address, CodeHash, CodeId, TxHash, Uint128, AgentClass, AgentOpts, BundleClass,
+  ChainClass, ChainOpts, ChainId, DeployArgs, Label, Message, ExecOpts, ICoin, IFee,
 } from '@fadroma/client'
-import { Agent, Bundle, Chain, Client, Contract, Fee } from '@fadroma/client'
+import {
+  Agent, Bundle, Chain, Client, Contract, ContractTemplate, ContractInstance, Fee, assertChain
+} from '@fadroma/client'
 import * as SecretJS from 'secretjs'
 
 import { base64, randomBytes } from '@hackbg/formati'
@@ -106,7 +104,7 @@ export abstract class ScrtBundle extends Bundle {
     // Output signing instructions to the console
     log.bundleSigningCommand(
       String(Math.floor(+ new Date()/1000)),
-      this.agent.address!, this.agent.assertChain().id,
+      this.agent.address!, assertChain(this.agent).id,
       accountNumber, sequence, unsigned
     )
     return { N, name, accountNumber, sequence, unsignedTxBody: JSON.stringify(unsigned) }
@@ -404,7 +402,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     // @ts-ignore
     return await this.api.query.compute.queryContract(args) as U
   }
-  async upload (data: Uint8Array): Promise<Contract<any>> {
+  async upload (data: Uint8Array): Promise<ContractTemplate> {
     type Log = { type: string, key: string }
     if (!this.address) throw new Error("No address")
     const sender     = this.address
@@ -414,25 +412,25 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const findCodeId = (log: Log) => log.type === "message" && log.key === "code_id"
     const codeId     = result.arrayLog?.find(findCodeId)?.value
     const codeHash   = await this.api.query.compute.codeHash(Number(codeId))
-    const chainId    = this.assertChain().id
-    const contract   = new Contract({
-      agent: this,
+    const chainId    = assertChain(this).id
+    const template   = new ContractTemplate({
       codeHash,
       chainId,
       codeId,
-      uploadTx: result.transactionHash
+      uploadTx: result.transactionHash,
+      uploadBy: this.address
     })
-    return contract
+    return template
   }
   async instantiate (
-    template: Contract<any>,
+    template: ContractTemplate,
     label:    Label,
     initMsg:  Message,
     initFunds = []
-  ): Promise<Contract<any>> {
+  ): Promise<ContractInstance> {
     if (!this.address) throw new Error("No address")
     const { chainId, codeId, codeHash } = template
-    if (chainId && chainId !== this.assertChain().id) throw new ScrtError.WrongChain()
+    if (chainId && chainId !== assertChain(this).id) throw new ScrtError.WrongChain()
     if (isNaN(Number(codeId)))     throw new ScrtError.NoCodeId()
     const sender   = this.address
     const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
@@ -447,7 +445,7 @@ export class ScrtGrpcAgent extends ScrtAgent {
     const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
     const address  = result.arrayLog.find(findAddr)?.value!
     const initTx   = result.transactionHash
-    return Object.assign(template, { address })
+    return new ContractInstance(template).provide({ address, initTx, initBy: this.address })
   }
   async instantiateMany <C, D> (template: Contract<any>, instances: C): Promise<D> {
     const inits: [string, DeployArgs][] = Object.entries(instances)
@@ -563,7 +561,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
   private SecretJS = ScrtGrpc.SecretJS
 
   async submit (memo = ""): Promise<ScrtBundleResult[]> {
-    const chainId = this.assertChain().id
+    const chainId = assertChain(this).id
     const results: ScrtBundleResult[] = []
     const msgs  = await this.conformedMsgs
     const limit = Number(Scrt.defaultFees.exec.amount[0].amount)

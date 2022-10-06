@@ -280,7 +280,7 @@ export class DockerBuilder extends LocalBuilder {
     }
 
     // Return a sparse array of the resulting artifacts
-    return outputWasms.map(this.locationToContract)
+    return outputWasms.map(x=>this.locationToContract(x))
 
   }
 
