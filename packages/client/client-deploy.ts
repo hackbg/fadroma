@@ -1,17 +1,19 @@
 import { timestamp } from '@hackbg/konzola'
 import { CommandContext } from '@hackbg/komandi'
+import { hide } from './client-fields'
 import type { Class, Overridable } from './client-fields'
-import { ClientError } from './client-events'
+import { ClientError, ClientConsole } from './client-events'
 import type { Agent, Chain, Message } from './client-connect'
-import { Contract, Contracts, fetchCodeHash, getSourceSpecifier } from './client-contract'
-import type { ContractSource, ContractTemplate, Client, CodeHash, CodeId, Name } from './client-contract'
+import { Contract, Contracts, ContractTemplate, ContractInstance, fetchCodeHash, getSourceSpecifier } from './client-contract'
+import type { ContractSource, Client, CodeHash, CodeId, Name } from './client-contract'
 
-export type DeploymentState = Record<string, Partial<Contract<any>>>
+export type DeploymentState = Record<string, Partial<ContractInstance>>
 
 /** A set of interrelated contracts, deployed under the same prefix.
   * - Extend this class in client library to define how the contracts are found.
   * - Extend this class in deployer script to define how the contracts are deployed. */
 export class Deployment extends CommandContext {
+  log = new ClientConsole('Fadroma.Deployment')
 
   constructor (options: Partial<Deployment> & any = {}) {
     super(options.name ?? 'Deployment')
@@ -23,33 +25,40 @@ export class Deployment extends CommandContext {
     this.uploader  = options.uploader     ?? this.uploader
     this.workspace = options.workspace    ?? this.workspace
     this.revision  = options.revision     ?? this.revision
-    for (const hide of [
+
+    this.log.name = this.name ?? this.log.name
+
+    hide(this, [
       'log', 'state', 'name', 'description', 'timestamp',
       'commandTree', 'currentCommand',
       'args', 'task', 'before'
-    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
+    ])
 
-    this.addCommand('build', 'build all required contracts',
-                    () => this.buildMany([]))
-    this.addCommand('upload', 'upload all required contracts',
-                    () => this.buildMany([]).then(sources=>this.uploadMany(sources)))
+    this
+      .addCommand('build', 'build all required contracts', () =>
+        this.buildMany([]))
+      .addCommand('upload', 'upload all required contracts', async () => {
+        const sources = await this.buildMany([])
+        this.uploadMany(sources.map(source=>new ContractTemplate(source)))
+      })
   }
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
-  name:        string = timestamp()
+  name: string = timestamp()
   /** Mapping of names to contract instances. */
-  state:       DeploymentState = {}
+  state: DeploymentState = {}
   /** Number of contracts in deployment. */
   get size () { return Object.keys(this.state).length }
 
   /** Default Git ref from which contracts will be built if needed. */
   repository?: string = undefined
   /** Default Cargo workspace from which contracts will be built if needed. */
-  workspace?:  string = undefined
+  workspace?: string = undefined
   /** Default Git ref from which contracts will be built if needed. */
-  revision?:   string = 'HEAD'
+  revision?: string = 'HEAD'
   /** Build implementation. Contracts can't be built from source if this is missing. */
-  builder?:    Builder
+  builder?: Builder
+
   /** Build multiple contracts. */
   async buildMany (contracts: (string|ContractSource)[]): Promise<ContractSource[]> {
     if (!this.builder) throw new ClientError.NoBuilder()
@@ -74,9 +83,9 @@ export class Deployment extends CommandContext {
   }
 
   /** Agent to use when deploying contracts. */
-  agent?:      Agent
+  agent?: Agent
   /** Chain on which operations are executed. */
-  chain?:      Chain
+  chain?: Chain
   /** True if the chain is a devnet or mocknet */
   get devMode   (): boolean { return this.chain?.devMode   ?? false }
   /** = chain.isMainnet */
@@ -152,32 +161,19 @@ export class Deployment extends CommandContext {
     *   await this.contract({ name: 'OwnContractTemplate' }).upload()
     *
     **/
-  contract <C extends Client> (options?: Partial<Contract<C>>): Contract<C> {
-    options = {
-      log:        this.log as any,
-      deployment: this,
-      prefix:     this.name,
-      builder:    this.builder,
-      uploader:   this.uploader,
-      agent:      this.agent,
-      repository: this.repository,
-      revision:   this.revision,
-      workspace:  this.workspace,
-      ...options
-    }
-    // If a contract with this name exists in the deploymet,
+  contract <C extends Client> (options: Partial<Contract<C>> = {}): Contract<C> {
+    // If a contract with this name exists in the deploymemt,
     // inherit properties from it. TODO just return the same contract
-    if (options.name && this.has(options.name)) {
-      const existing = this.get(options.name)
-      options = { ...existing, ...options }
-    }
-    return new Contract<C>().provide(options)
+    return new Contract<C>({
+      ...options,
+      ...(options.name && this.has(options.name)) ? this.get(options.name) : {}
+    }).attach(this)
   }
 
   /** Specify multiple contracts.
     * @returns an array of Contract instances matching the specified predicate. */
   contracts <C extends Client> (options: Partial<Contracts<C>>): Contracts<C> {
-    return new Contracts({ ...options, deployment: this })
+    return new Contracts({...options}).attach(this)
   }
 
   /** Check if the deployment contains a certain entry. */
@@ -195,7 +191,7 @@ export class Deployment extends CommandContext {
   get (name: string): Partial<Contract<any>>|null {
     const receipt = this.state[name]
     if (!receipt) return null
-    return { ...receipt, deployment: this }
+    return { ...receipt, context: this }
   }
   /** Chainable. Add entry to deployment, merging into existing receipts. */
   add (name: string, data: any): this {

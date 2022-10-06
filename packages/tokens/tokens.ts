@@ -76,7 +76,9 @@ export class TokenManager extends CommandContext {
   /** Define a Snip20 token. */
   contract (options: Partial<Contract<Snip20>>): Contract<Snip20> {
     const template = this.template! as Partial<Contract<Snip20>>
-    return this.context.contract<Snip20>(template).provide(options)
+    return this.context
+      .contract<Snip20>({ client: Snip20, ...template })
+      .provide(options)
   }
   /** Define a Snip20 token, get/deploy it, and add it to the registry. */
   define (symbol: TokenSymbol, options?: Partial<TokenOptions>): Contract<Snip20> {

@@ -3,6 +3,10 @@ import type { Agent } from './client-connect'
 import type { ContractTemplate, ContractInstance, StructuredLabel } from './client-contract'
 import type { Builder, Uploader } from './client-deploy'
 
+export function hide (self: object, keys: string[]) {
+  for (const key of keys) Object.defineProperty(self, key, { enumerable: false, writable: true })
+}
+
 /** A class constructor. */
 export interface Class<T, U extends Array<unknown>> {
   new (...args: U): T
@@ -23,18 +27,35 @@ export class Metadata {
   }
 }
 
-/** Implements some degree of controlled extensibility for the value object pattern used below.
-  * @todo ..... underlay (converse function which provides defaults for defined properties
-  * but leaves untouched ones that are already set rather than overriding them) */
-export function override <T extends object> (self: T, options: Partial<T> = {}): T {
+/** Check if `obj` has a writable, non-method property of name `key` */
+export function hasField <T extends object> (obj: T, key: keyof typeof obj): boolean {
+  const exists     = key in obj
+  const writable   = Object.getOwnPropertyDescriptor(obj, key)?.writable ?? true
+  const isFunction = (typeof obj[key as keyof T] === 'function') && !((obj[key as keyof T] as unknown as Function).prototype)
+  return exists && writable && !isFunction
+}
+
+/** Set fields of first argument to values from second argument,
+  * intelligently avoiding non-existent, read-only and method fields.
+  * Opposite of `fallback`. */
+export function override <T extends object> (obj: T, options: Partial<T> = {}): T {
   for (const [key, val] of Object.entries(options)) {
     if (val === undefined) continue
-    const exists     = key in self
-    const writable   = Object.getOwnPropertyDescriptor(self, key)?.writable ?? true
-    const isFunction = (typeof self[key as keyof T] === 'function')
-    if (exists && writable && !isFunction) Object.assign(self, { [key]: val })
+    if (hasField(obj, key as keyof T)) Object.assign(obj, { [key]: val })
   }
-  return self
+  return obj
+}
+
+/** Sets fields of first argument to values from second argument,
+  * intelligently avoiding non-existent, read-only and method fields -
+  * but only if the field is not already set. Opposite of `override`. */
+export function fallback <T extends object> (obj: T, options: Partial<T> = {}): T {
+  for (const [key, val] of Object.entries(options)) {
+    if (val === undefined) continue
+    const val2 = obj[key as keyof T] as any
+    if (hasField(obj, key as keyof T)) Object.assign(obj, { [key]: val2 })
+  }
+  return obj
 }
 
 /** Throw if fetched metadata differs from configured. */
@@ -67,12 +88,32 @@ export async function into <X, Y> (specifier: Into<X>, context?: Y): Promise<X> 
   return await Promise.resolve(specifier)
 }
 
+/** A lazily provided array of lazily provided values. */
 export type IntoArray<X> = Into<Array<Into<X>>>
 
+/** Resolve a lazy array. */
 export async function intoArray <X, Y> (specifier: IntoArray<X>, context?: Y): Promise<X[]> {
-  if (typeof specifier === 'function') {
-    if (context) specifier = specifier.bind(context)
-    specifier = await Promise.resolve((specifier as Function)())
-  }
+  specifier = await into(specifier)
   return await Promise.all((specifier as Array<Into<X>>).map(x=>into(x, context)))
 }
+
+/** A lazily provided record of lazily provided values. */
+export type IntoRecord<X> = Into<Record<RecordKey, Into<X>>>
+
+/** Resolve a lazy record. */
+export async function intoRecord <X, Y> (
+  specifier: IntoRecord<X>, context?: Y
+): Promise<Record<RecordKey, X>> {
+  specifier = await into(specifier)
+  const entries: [RecordKey, Into<X>][] = Object.entries(specifier)
+  const resolved: X[] = await Promise.all(entries.map(entry=>into(entry[1])))
+  const results: Record<RecordKey, X> = {}
+  for (const index in resolved) {
+    const [key] = entries[index]
+    const result = resolved[index]
+    results[key] = result
+  }
+  return results
+}
+
+type RecordKey = string|number|symbol

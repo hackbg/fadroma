@@ -161,13 +161,10 @@ export class FSUploader extends Uploader {
       const uploaded = await this.uploadManySansCache(toUpload)
       for (const i in uploaded) {
         if (!uploaded[i]) continue // skip empty ones, preserving index
-        const receiptName = this.getUploadReceiptName(toUpload[i])
-        const meta = { ...uploaded[i], artifact: uploaded[i].artifact?.toString() }
-        $(this.cache, receiptName).as(UploadReceipt).save(meta)
-        outputs[i] = uploaded[i] as ContractTemplate
+        $(this.cache, this.getUploadReceiptName(toUpload[i]))
+          .as(UploadReceipt).save(uploaded[i].asTemplate.asReceipt)
+        outputs[i] = uploaded[i]
       }
-    } else {
-      this.log.log('No artifacts were uploaded.')
     }
 
     return outputs
