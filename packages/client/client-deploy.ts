@@ -3,8 +3,8 @@ import { CommandContext } from '@hackbg/komandi'
 import type { Class, Overridable } from './client-fields'
 import { ClientError } from './client-events'
 import type { Agent, Chain, Message } from './client-connect'
-import { Contract, Contracts, fetchCodeHash } from './client-contract'
-import type { ContractTemplate, Client, CodeHash, CodeId, Name } from './client-contract'
+import { Contract, Contracts, fetchCodeHash, getSourceSpecifier } from './client-contract'
+import type { ContractSource, ContractTemplate, Client, CodeHash, CodeId, Name } from './client-contract'
 
 export type DeploymentState = Record<string, Partial<Contract<any>>>
 
@@ -266,8 +266,6 @@ export class VersionedDeployment<V> extends Deployment {
 /** Builders can be specified as ids, class names, or objects. */
 export type IntoBuilder = string|BuilderClass<Builder>|Partial<Builder>
 
-export type IntoSource = string|ContractTemplate
-
 /** A constructor for a Builder subclass. */
 export interface BuilderClass<B extends Builder> extends Overridable<Builder, IntoBuilder> {
 }
@@ -295,7 +293,7 @@ export abstract class Builder extends CommandContext {
   /** Up to the implementation.
     * `@fadroma/build` implements dockerized and non-dockerized
     * variants on top of the `build.impl.mjs` script. */
-  abstract build (source: IntoSource, ...args: any[]): Promise<ContractTemplate>
+  abstract build <S extends ContractSource> (source: S, ...args: any[]): Promise<S>
   /** Default implementation of buildMany is parallel.
     * Builder implementations override this, though. */
   buildMany (sources: IntoSource[], ...args: unknown[]): Promise<ContractTemplate[]> {
@@ -400,15 +398,6 @@ export abstract class DeployStore {
   abstract get active (): Deployment|null
 
   defaults: Partial<Deployment> = {}
-}
-
-/** @returns a string in the format `crate[@ref][+flag][+flag]...` */
-export function getSourceSpecifier <C extends ContractTemplate> (meta: C): string {
-  const { crate, revision, features } = meta
-  let result = crate ?? ''
-  if (revision !== 'HEAD') result = `${result}@${revision}`
-  if (features && features.length > 0) result = `${result}+${features.join('+')}`
-  return result
 }
 
 /** Throw appropriate error if not buildable. */

@@ -18,8 +18,8 @@ export class Metadata {
   }
   /** Provide parameters for an existing contract.
     * @returns the modified contract. */
-  provide (options: Partial<this>): this {
-    return override(this, options as object)
+  provide <T extends this> (options: Partial<T>): T {
+    return override(this, options as object) as T
   }
 }
 
