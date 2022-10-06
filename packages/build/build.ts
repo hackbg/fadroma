@@ -25,8 +25,8 @@ import { RawBuilder }    from './build-raw'
 import { DockerBuilder } from './build-docker'
 
 Object.assign(Builder.variants, {
-  'local-docker': DockerBuilder,
-  'local-raw':    RawBuilder
+  'docker-local': DockerBuilder,
+  'raw-local':    RawBuilder
 })
 
 export async function buildCrates (

@@ -59,7 +59,6 @@ export class DeployConfig extends ConnectConfig {
   ): Promise<D> {
     const store = await this.getDeployStore()
     const { chain, agent, uploader } = store.defaults
-    const { name, state } = store.active ?? {}
     if (!chain) throw new Error('Missing chain')
     const defaults = { chain, agent: agent??undefined/*l8r*/, uploader }
     return new $D({ config: this, agent, uploader, store })
@@ -78,7 +77,6 @@ export interface DeployerClass<D extends Deployer> extends Class<D, [
 export class Deployer extends Connector {
   constructor (options: Partial<Deployer> = { config: new DeployConfig() }) {
     const { store } = options
-    if (store && store.active?.name) options.name = store.active.name
     super(options as Partial<Connector>)
     this.config = new DeployConfig(this.env, this.cwd, options.config)
     this.store  = options.store ?? this.store

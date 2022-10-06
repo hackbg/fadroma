@@ -154,6 +154,7 @@ export class Deployment extends CommandContext {
     **/
   contract <C extends Client> (options?: Partial<Contract<C>>): Contract<C> {
     options = {
+      log:        this.log as any,
       deployment: this,
       prefix:     this.name,
       builder:    this.builder,

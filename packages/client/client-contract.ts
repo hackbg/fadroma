@@ -75,8 +75,10 @@ export class ContractBase extends Metadata {
     const task = new Task(name, cb, this as unknown as T)
     const [_, head, ...body] = (task.stack ?? '').split('\n')
     task.stack = '\n' + head + '\n' + body.slice(3).join('\n')
+    task.log = this.log ?? task.log
     return task as Task<T, U>
   }
+  log = new ClientConsole(this.constructor.name)
 }
 
 export class ContractSource extends ContractBase {
@@ -102,17 +104,16 @@ export class ContractSource extends ContractBase {
   codeHash?:   CodeHash   = undefined
 
   constructor (options: Partial<ContractSource> = {}) {
-    super({})
+    super(options)
     this.provide(options as object)
   }
 
-  compiled: Task<ContractSource, ContractSource> = this.task(
-    `compile ${this.crate ?? 'contract'}`, async () => {
-      console.log(1)
-      if (!this.artifact) await this.build()
-      console.log(2)
-      return this.asSource
-    })
+  compiled: Task<ContractSource, ContractSource> = this.artifact
+    ? Task.done(`use compiled contract: ${this.artifact.toString()}`, this.asSource)
+    : this.task(`compile ${this.crate ?? 'contract'}`, async () => {
+        if (!this.artifact) await this.build()
+        return this.asSource
+      })
 
   /** Compile the source using the selected builder.
     * @returns this */
@@ -169,15 +170,13 @@ export class ContractTemplate extends ContractSource {
   codeId?:     CodeId   = undefined
 
   constructor (options: Partial<ContractTemplate> = {}) {
-    super({})
+    super(options)
     this.provide(options as object)
   }
 
   uploaded: Task<ContractTemplate, ContractTemplate> = this.task(
     `upload ${this.artifact ?? 'contract'}`, async () => {
-      console.log(1, this)
       if (!this.codeId) await this.upload()
-      console.log(2, this)
       return this.asTemplate
     })
 
@@ -258,9 +257,12 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
     * TODO: implement this field's semantics: last result of **alphanumeric** sort of suffixes
     *       is "the real one" (see https://stackoverflow.com/a/54427214. */
   suffix?:  Name          = undefined
+  /** The Client subclass that exposes the contract's methods.
+    * @default the base Client class. */
+  client?:  ClientClass<Client> = undefined
 
   constructor (options: Partial<ContractInstance> = {}) {
-    super({})
+    super(options)
     this.provide(options as object)
   }
 
@@ -311,7 +313,6 @@ export function parseLabel (label: Label): StructuredLabel {
 
 /** Construct a label from prefix, name, and suffix. */
 export function writeLabel ({ name, prefix, suffix }: StructuredLabel = {}): Label {
-  console.log({ name, prefix, suffix })
   if (!name) throw new ClientError.NoName()
   let label = name
   if (prefix) label = `${prefix}/${label}`
@@ -356,18 +357,14 @@ export class Contract<C extends Client> extends ContractInstance {
   /** The agent that will upload and instantiate this contract. */
   agent?: Agent = this.deployment?.agent
 
-  /** The Client subclass that exposes the contract's methods.
-    * @default the base Client class. */
-  client: ClientClass<C> = Client as unknown as ClientClass<C>
-
   constructor (
     specifier?: Partial<Contract<C>>,
     overrides:  Partial<Contract<C>> = {}
   ) {
     super()
     override<Contract<C>>(this, { ...specifier??{}, ...overrides??{} })
-    if (this.builderId) this.builder  = Builder.get(this.builderId)
-    if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
+    //if (this.builderId) this.builder  = Builder.get(this.builderId)
+    //if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
     for (const hide of [
       'log',
     ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
@@ -385,7 +382,6 @@ export class Contract<C extends Client> extends ContractInstance {
     onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
     onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
   ): Promise<D|E> {
-    console.log(30, this)
     return this.deployed.then(onfulfilled, onrejected)
   }
 
@@ -423,7 +419,6 @@ export class Contract<C extends Client> extends ContractInstance {
   deployed: Task<this, C> = this.task(
     `get or deploy ${this.name ?? 'contract'}`, async () => {
       const deployed = this.getClientOrNull()
-      console.log(10, this)
       if (deployed) {
         this.log.foundDeployedContract(deployed.address!, this.name!)
         return await Promise.resolve(deployed)
@@ -438,7 +433,6 @@ export class Contract<C extends Client> extends ContractInstance {
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
-    console.trace()
     return this.task(`deploy ${this.name ?? 'contract'}`, async () => {
       if (!this.agent) throw new ClientError.NoCreator(this.name)
 
