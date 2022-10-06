@@ -20,18 +20,14 @@ export class BuildConsole extends CommandsConsole {
       `@`, bold(ref)
     )
   }
-  buildingOne (source: ContractTemplate, prebuilt: ContractTemplate|null = null) {
-    if (prebuilt) {
-      this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
-    } else {
-      const { crate = '(unknown)', revision = 'HEAD' } = source
-      this.log('Building ', bold(crate), ...
-        (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
-    }
+  buildingOne ({ crate = '(unknown)', revision = 'HEAD' }: Partial<ContractTemplate>) {
+    this.log('Building ', bold(crate), ...
+      (revision === 'HEAD') ? ['from working tree'] : ['from Git reference', bold(revision)])
   }
   buildingMany (sources: ContractTemplate[]) {
-    for (const source of sources) {
-      this.buildingOne(source, null)
-    }
+    for (const source of sources) this.buildingOne(source)
+  }
+  prebuilt (prebuilt: ContractTemplate) {
+    this.log(`${colors.green('Found:')}   `, bold(colors.green($(prebuilt.artifact!).shortPath)))
   }
 }

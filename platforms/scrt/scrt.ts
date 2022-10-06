@@ -338,6 +338,10 @@ export class ScrtGrpcAgent extends ScrtAgent {
     }
     // Optional: enable simulation to establish gas amounts
     this.simulate = options.simulate ?? this.simulate
+    Object.defineProperties(this, {
+      api:    { enumerable: false, writable: true },
+      wallet: { enumerable: false, writable: true },
+    })
   }
   Bundle:   BundleClass<ScrtBundle> = ScrtGrpcAgent.Bundle
   wallet:   SecretJS.Wallet

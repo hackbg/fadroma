@@ -102,7 +102,8 @@ export class ContractSource extends ContractBase {
   codeHash?:   CodeHash   = undefined
 
   constructor (options: Partial<ContractSource> = {}) {
-    super(options as object)
+    super({})
+    this.provide(options as object)
   }
 
   compiled: Task<ContractSource, ContractSource> = this.task(
@@ -115,7 +116,13 @@ export class ContractSource extends ContractBase {
     * @returns this */
   async build (builder?: Builder): Promise<ContractSource> {
     builder ??= assertBuilder(this)
-    return builder!.build(this)
+    const result = await builder!.build(this.asSource)
+    this.provide(result as Partial<this>)
+    return result
+  }
+
+  get asSource (): ContractSource {
+    return new ContractSource(this)
   }
 
   //then <D, E> (
@@ -139,25 +146,28 @@ export function getSourceSpecifier <C extends ContractSource> (meta: C): string 
   * Multiple instances can correspond to this data. */
 export class ContractTemplate extends ContractSource {
   /** ID of chain on which this contract is uploaded. */
-  chainId?:    ChainId    = undefined
+  chainId?:    ChainId  = undefined
   /** Object containing upload logic. */
-  uploaderId?: string     = undefined
+  uploaderId?: string   = undefined
   /** Upload procedure implementation. */
-  uploader?:   Uploader   = undefined
+  uploader?:   Uploader = undefined
   /** Address of agent that performed the upload. */
-  uploadBy?:   Address    = undefined
+  uploadBy?:   Address  = undefined
   /** TXID of transaction that performed the upload. */
-  uploadTx?:   TxHash     = undefined
+  uploadTx?:   TxHash   = undefined
   /** Code ID representing the identity of the contract's code on a specific chain. */
-  codeId?:     CodeId     = undefined
+  codeId?:     CodeId   = undefined
 
   constructor (options: Partial<ContractTemplate> = {}) {
-    super(options as object)
+    super({})
+    this.provide(options as object)
   }
 
   uploaded: Task<ContractTemplate, ContractTemplate> = this.task(
     `upload ${this.artifact ?? 'contract'}`, async () => {
+      console.log(1, this)
       if (!this.codeId) await this.upload()
+      console.log(2, this)
       return this as ContractTemplate
     })
 
@@ -165,12 +175,18 @@ export class ContractTemplate extends ContractSource {
     * @returns this with chainId and codeId populated. */
   async upload (uploader?: Uploader): Promise<ContractTemplate> {
     await this.compiled
-    return await upload(this, uploader, uploader?.agent)
+    const result = await upload(this.asTemplate, uploader, uploader?.agent)
+    this.provide(result as Partial<this>)
+    return result
   }
 
   async instantiate (agent: Agent, label: Label, initMsg: Message): Promise<ContractInstance> {
     await this.uploaded
     return new ContractInstance(this)
+  }
+
+  get asTemplate (): ContractTemplate {
+    return new ContractTemplate(this)
   }
 
   /** Uploaded templates can be passed to factory contracts in this format. */
@@ -229,7 +245,8 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
   suffix?:  Name          = undefined
 
   constructor (options: Partial<ContractInstance> = {}) {
-    super(options as Partial<ContractTemplate>)
+    super({})
+    this.provide(options as object)
   }
 
   /** Get link to this contract in Fadroma ICC format. */
@@ -306,9 +323,6 @@ export interface ContractLink {
 export class Contract<C extends Client> extends ContractInstance {
   log = new ClientConsole('Fadroma.Contract')
 
-  /** Deployment that this contract is a part of. */
-  deployment?: Deployment = undefined
-
   /** The agent that will upload and instantiate this contract. */
   agent?: Agent = this.deployment?.agent
 
@@ -322,9 +336,14 @@ export class Contract<C extends Client> extends ContractInstance {
   ) {
     super()
     override<Contract<C>>(this, { ...specifier??{}, ...overrides??{} })
-    if (this.builderId)  this.builder  = Builder.get(this.builderId)
+    if (this.builderId) this.builder  = Builder.get(this.builderId)
     if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
+    for (const hide of [
+      'log',
+    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
   }
+
+  get [Symbol.toStringTag]() { return `${this.name??'-'} ${this.address??'-'} ${this.crate??'-'} @ ${this.revision??'HEAD'}` }
 
   /** Evaluate this Contract, asynchronously returning a Client.
     * 1. try to get the contract from storage (if the deploy store is available)
@@ -380,6 +399,9 @@ export class Contract<C extends Client> extends ContractInstance {
         return await this.deploy()
       }
     })
+
+  /** Deployment that this contract is a part of. */
+  deployment?: Deployment = undefined
 
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */

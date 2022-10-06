@@ -80,6 +80,7 @@ export abstract class LocalBuilder extends Builder {
     this.verbose   = options.verbose   ?? this.verbose
     this.outputDir = $(options.outputDir!).as(OpaqueDirectory)
     if (options.script) this.script = options.script
+    this.command('one', 'build one crate from working tree', this.buildOne.bind(this))
   }
   /** Logger. */
   log = new BuildConsole('Local Builder')
@@ -117,10 +118,10 @@ export abstract class LocalBuilder extends Builder {
   }
 
   /** Pass this a Cargo.toml or a directory containing one */
-  buildOne = this.command('one', 'build one crate from working tree', (
+  buildOne (
     path: string|Path = process.argv[2],
     args: string[]    = process.argv.slice(3)
-  ) => {
+  ) {
     path = $(path)
     if (path.isDirectory()) {
       path = path.at('Cargo.toml').as(TOMLFile)
@@ -129,13 +130,13 @@ export abstract class LocalBuilder extends Builder {
       return this.buildFromCargoToml(path as CargoTOML)
     }
     return this.printUsage()
-  })
+  }
 
-  buildFromCargoToml = async (
+  async buildFromCargoToml (
     cargoToml:   CargoTOML,
     repository?: string|Path,
     workspace?:  string|Path
-  ) => {
+  ) {
     repository = $(repository ?? process.env.FADROMA_BUILD_REPO_ROOT      ?? cargoToml.parent)
     workspace  = $(workspace  ?? process.env.FADROMA_BUILD_WORKSPACE_ROOT ?? cargoToml.parent)
     this.log.buildingFromCargoToml(cargoToml)
@@ -159,7 +160,7 @@ export abstract class LocalBuilder extends Builder {
     }
   }
 
-  buildFromModule = async (script: OpaqueFile, args: string[]) => {
+  async buildFromModule (script: OpaqueFile, args: string[]) {
     this.log.buildingFromBuildScript(script, args)
     const {default: BuildContext} = await import(script.path)
     const commands = new BuildContext(this)
@@ -177,7 +178,7 @@ export abstract class LocalBuilder extends Builder {
     }
   }
 
-  printUsage = () => {
+  printUsage () {
     this.log.info(`
       Usage:
         fadroma-build path/to/crate
@@ -193,19 +194,21 @@ export abstract class LocalBuilder extends Builder {
     * If it does, don't rebuild it but return it from there. */
   protected prebuild (
     outputDir: string, crate?: string, revision: string = HEAD
-  ): Contract<any>|null {
+  ): ContractTemplate|null {
     if (this.caching && crate) {
       const location = $(outputDir, artifactName(crate, revision))
       if (location.exists()) {
         const artifact = location.url
         const codeHash = this.hashPath(location)
-        return new Contract({ crate, revision, artifact, codeHash })
+        return new ContractTemplate({ crate, revision, artifact, codeHash })
       }
     }
     return null
   }
 
-  hashPath = (location: string|Path) => $(location).as(BinaryFile).sha256
+  hashPath (location: string|Path) {
+    return $(location).as(BinaryFile).sha256
+  }
 
 }
 

@@ -40,6 +40,11 @@ export class DockerBuilder extends LocalBuilder {
     // Set up Docker image
     this.dockerfile ??= opts.dockerfile!
     this.script     ??= opts.script!
+    for (const hide of [
+      'log', 'name', 'description', 'timestamp',
+      'commandTree', 'currentCommand',
+      'args', 'task', 'before'
+    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
   }
   /** Logger */
   log = new BuildConsole('Builder: Docker')
@@ -60,17 +65,20 @@ export class DockerBuilder extends LocalBuilder {
     * and have it build all the crates from that combination in sequence,
     * reusing the container's internal intermediate build cache. */
   async buildMany (contracts: ContractTemplate[]): Promise<ContractTemplate[]> {
-    const roots      = new Set<string>()
-    const revisions  = new Set<string>()
+    const roots     = new Set<string>()
+    const revisions = new Set<string>()
     let longestCrateName = 0
+    // For each contract, collect built info and populate it if found in the cache
     for (const contract of contracts) {
-      contract.builder = this as Builder
-      roots.add(contract.workspace!)
-      revisions.add(contract.revision!)
       if (contract.crate && contract.crate.length > longestCrateName) {
         longestCrateName = contract.crate.length
       }
-      this.populatePrebuilt(contract)
+      if (!this.prebuilt(contract)) {
+        this.log.buildingOne(contract)
+        contract.builder = this as Builder
+        roots.add(contract.workspace!)
+        revisions.add(contract.revision!)
+      }
     }
     // For each workspace/ref pair
     for (const path of roots) for (const revision of revisions) {
@@ -119,15 +127,17 @@ export class DockerBuilder extends LocalBuilder {
     return contracts
   }
 
-  private populatePrebuilt (contract: ContractTemplate): void {
+  private prebuilt (contract: ContractTemplate): boolean {
     const { workspace, revision, crate } = contract
     if (!workspace) throw new Error("Workspace not set, can't build")
     const prebuilt = this.prebuild(this.outputDir.path, crate, revision)
-    this.log.buildingOne(contract, prebuilt as unknown as ContractTemplate)
     if (prebuilt) {
+      this.log.prebuilt(prebuilt)
       contract.artifact = prebuilt.artifact
       contract.codeHash = prebuilt.codeHash
+      return true
     }
+    return false
   }
 
   protected async runBuildContainer (
@@ -274,12 +284,14 @@ export class DockerBuilder extends LocalBuilder {
 
   }
 
-  private locationToContract = (location: any) => {
+  private locationToContract (location: any) {
     if (location === null) return null
     const artifact = $(location).url
     const codeHash = this.hashPath(location)
     return new Contract({ artifact, codeHash })
   }
+
+  get [Symbol.toStringTag]() { return `${this.image?.name??'-'} -> ${this.outputDir?.shortPath??'-'}` }
 
 }
 

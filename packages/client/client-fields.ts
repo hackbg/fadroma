@@ -16,9 +16,9 @@ export class Metadata {
   constructor (options: Partial<Metadata> = {}) {
     this.provide(options as object)
   }
-  /** Provide parameters for an existing contract.
-    * @returns the modified contract. */
-  provide <T extends this> (options: Partial<T>): T {
+  /** Provide parameters for an existing instance.
+    * @returns self with overrides from options */
+  provide <T extends this> (options: Partial<T> = {}): T {
     return override(this, options as object) as T
   }
 }

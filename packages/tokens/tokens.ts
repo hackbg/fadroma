@@ -51,7 +51,11 @@ export class TokenManager extends CommandContext {
     }
   ) {
     super('tokens', 'token manager')
-    Object.defineProperty(this, 'log', { enumerable: false, writable: true })
+    for (const hide of [
+      'log', 'name', 'description', 'timestamp',
+      'commandTree', 'currentCommand',
+      'args', 'task', 'before'
+    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
   }
   /* Logger. */
   log = log

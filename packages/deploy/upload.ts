@@ -21,9 +21,14 @@ export class FSUploader extends Uploader {
   ) {
     super(agent)
     if (cache) this.cache = $(cache).as(Uploads)
+    for (const hide of [
+      'log',
+    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
   }
 
-  readonly id = 'fs'
+  get [Symbol.toStringTag] () { return this.cache?.shortPath ?? '-' }
+
+  get id () { return 'fs' }
 
   log = new UploadConsole()
 
@@ -204,7 +209,9 @@ export class FSUploader extends Uploader {
     return input
   }
 
-  private hashPath = (path: string|Path) => $(path).as(BinaryFile).sha256
+  private hashPath (path: string|Path) {
+    return $(path).as(BinaryFile).sha256
+  }
 
   /** Panic if the code hash returned by the upload
     * doesn't match the one specified in the Contract. */

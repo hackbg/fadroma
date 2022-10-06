@@ -103,8 +103,6 @@ export abstract class Chain {
     readonly id: ChainId,
     options: Partial<ChainOpts> = {}
   ) {
-    Object.defineProperty(this, 'log', { writable: true, enumerable: false })
-    Object.defineProperty(this, 'Agent', { writable: true, enumerable: false })
     if (!id) throw new ClientError.NoChainId()
     this.id   = id
     this.mode = options.mode!
@@ -126,7 +124,16 @@ export abstract class Chain {
         this.log.warnNodeNonDevnet()
       }
     }
+    Object.defineProperties(this, {
+      'id':    { enumerable: false, writable: true },
+      'url':   { enumerable: false, writable: true },
+      'mode':  { enumerable: false, writable: true },
+      'log':   { enumerable: false, writable: true },
+      'Agent': { enumerable: false, writable: true },
+    })
   }
+
+  get [Symbol.toStringTag]() { return `${this.mode}: ${this.id} @ ${this.url}` }
 
   /** Defined as true on Secret Network-specific subclasses. */
   isSecretNetwork = false
@@ -238,9 +245,15 @@ export abstract class Agent {
     this.chain = options.chain ?? this.chain
     this.name  = options.name  ?? this.name
     this.fees  = options.fees  ?? this.fees
-    Object.defineProperty(this, 'chain', { enumerable: false })
-    Object.defineProperty(this, 'log',   { enumerable: false })
+    Object.defineProperties(this, {
+      'chain':   { enumerable: false, writable: true },
+      'address': { enumerable: false, writable: true },
+      'log':     { enumerable: false, writable: true },
+      'Bundle':  { enumerable: false, writable: true }
+    })
   }
+
+  get [Symbol.toStringTag]() { return `${this.chain?.id??'-'}: ${this.address}` }
 
   /** Logger. */
   log = new ClientConsole('Fadroma.Agent')
@@ -535,6 +548,8 @@ export abstract class Bundle extends Agent {
 
   /** Save a bundle for manual broadcast. */
   abstract save   (name: string): Promise<unknown>
+
+  get [Symbol.toStringTag]() { return `(${this.msgs.length}) [${this.address}]` }
 
 }
 

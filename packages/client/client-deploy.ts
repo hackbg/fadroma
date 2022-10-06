@@ -23,13 +23,16 @@ export class Deployment extends CommandContext {
     this.uploader  = options.uploader     ?? this.uploader
     this.workspace = options.workspace    ?? this.workspace
     this.revision  = options.revision     ?? this.revision
-    Object.defineProperty(this, 'log', { enumerable: false, writable: true })
-    Object.defineProperty(this, 'state', { enumerable: false, writable: true })
+    for (const hide of [
+      'log', 'state', 'name', 'description', 'timestamp',
+      'commandTree', 'currentCommand',
+      'args', 'task', 'before'
+    ]) Object.defineProperty(this, hide, { enumerable: false, writable: true })
 
     this.addCommand('build', 'build all required contracts',
                     () => this.buildMany([]))
     this.addCommand('upload', 'upload all required contracts',
-                    () => this.buildMany([]).then(this.uploadMany))
+                    () => this.buildMany([]).then(sources=>this.uploadMany(sources)))
   }
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
@@ -48,12 +51,15 @@ export class Deployment extends CommandContext {
   /** Build implementation. Contracts can't be built from source if this is missing. */
   builder?:    Builder
   /** Build multiple contracts. */
-  async buildMany (contracts: (string|ContractTemplate)[]): Promise<ContractTemplate[]> {
+  async buildMany (contracts: (string|ContractSource)[]): Promise<ContractSource[]> {
     if (!this.builder) throw new ClientError.NoBuilder()
     if (contracts.length === 0) return Promise.resolve([])
     contracts = contracts.map(contract=>{
-      if (typeof contract === 'string') return this.contract({ crate: contract })
-      return contract
+      if (typeof contract === 'string') {
+        return this.contract({ crate: contract }) as ContractSource
+      } else {
+        return contract
+      }
     })
     const count = (contracts.length > 1)
       ? `${contracts.length} contract: `
@@ -63,7 +69,7 @@ export class Deployment extends CommandContext {
       .join(', ')
     return this.task(`build ${count} ${sources}`, () => {
       if (!this.builder) throw new ClientError.NoBuilder()
-      return this.builder.buildMany(contracts)
+      return this.builder.buildMany(contracts as ContractSource[])
     })
   }
 
@@ -92,8 +98,11 @@ export class Deployment extends CommandContext {
     if (!this.uploader) throw new ClientError.NoUploader()
     if (contracts.length === 0) return Promise.resolve([])
     contracts = contracts.map(contract=>{
-      if (typeof contract === 'string') return this.contract({ crate: contract })
-      return contract
+      if (typeof contract === 'string') {
+        return this.contract({ crate: contract }) as ContractTemplate
+      } else {
+        return contract
+      }
     })
     const count = (contracts.length > 1)
       ? `${contracts.length} contract: `
@@ -240,6 +249,8 @@ export class Deployment extends CommandContext {
     return inst
   }
 
+  get [Symbol.toStringTag]() { return `${this.name??'-'}` }
+
 }
 
 /** A Subsystem is any class which extends Deployment (thus being able to manage Contracts),
@@ -296,7 +307,7 @@ export abstract class Builder extends CommandContext {
   abstract build <S extends ContractSource> (source: S, ...args: any[]): Promise<S>
   /** Default implementation of buildMany is parallel.
     * Builder implementations override this, though. */
-  buildMany (sources: IntoSource[], ...args: unknown[]): Promise<ContractTemplate[]> {
+  buildMany (sources: ContractSource[], ...args: unknown[]): Promise<ContractSource[]> {
     return Promise.all(sources.map(source=>this.build(source, ...args)))
   }
 }

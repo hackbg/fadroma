@@ -119,4 +119,6 @@ export class YAMLDeployments_v1 extends DeployStore {
     return this
   }
 
+  get [Symbol.toStringTag]() { return `${this.root?.shortPath??'-'}` }
+
 };
