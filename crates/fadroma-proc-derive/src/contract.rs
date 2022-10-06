@@ -495,14 +495,14 @@ impl Contract {
             mod wasm {
                 use super::cosmwasm_std::{
                     do_execute, do_instantiate, do_query, QueryResponse, to_binary,
-                    StdResult, Response, Env, MessageInfo, Deps, DepsMut
+                    StdResult, Response, Env, MessageInfo, Deps, DepsMut,
                 };
 
                 fn entry_init(
                     deps: DepsMut,
                     env: Env,
                     info: MessageInfo,
-                    msg: super::#init_msg,
+                    msg: #init_msg,
                 ) -> StdResult<Response> {
                     super::#init_fn(deps, env, info, msg, super::DefaultImpl)
                 }
@@ -511,7 +511,7 @@ impl Contract {
                     deps: DepsMut,
                     env: Env,
                     info: MessageInfo,
-                    msg: super::#handle_msg,
+                    msg: #handle_msg,
                 ) -> StdResult<Response> {
                     super::#handle_fn(deps, env, info, msg, super::DefaultImpl)
                 }
@@ -519,7 +519,7 @@ impl Contract {
                 fn entry_query(
                     deps: Deps,
                     env: Env,
-                    msg: super::#query_msg
+                    msg: #query_msg
                 ) -> StdResult<QueryResponse> {
                     let result = super::#query_fn(deps, env, msg, super::DefaultImpl)?;
 
@@ -527,12 +527,12 @@ impl Contract {
                 }
 
                 #[no_mangle]
-                extern "C" fn init(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+                extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
                     do_instantiate(&entry_init, env_ptr, info_ptr, msg_ptr)
                 }
 
                 #[no_mangle]
-                extern "C" fn handle(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+                extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
                     do_execute(&entry_handle, env_ptr, info_ptr, msg_ptr)
                 }
 
