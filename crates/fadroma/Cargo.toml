@@ -82,7 +82,7 @@ math = [
   # Features
   "scrt",
   # Dependencies
-  "primitive-types", "rand_core", "rand_chacha", "subtle", "sha2"
+  "rand_core", "rand_chacha", "subtle", "sha2"
 ]
 
 snip20-client = [
