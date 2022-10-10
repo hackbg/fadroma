@@ -5,11 +5,12 @@ import { CustomConsole, bold } from '@hackbg/konzola'
 const log = new CustomConsole('Fadroma.Mocknet')
 
 /** Hosts MocknetContract instances. */
-export class MocknetBackend {
+export default class MocknetBackend {
   constructor (readonly chainId: string) {}
   codeId  = 0
   uploads: Record<Fadroma.CodeId, unknown> = {}
-  codeIds: Record<Fadroma.CodeHash, Fadroma.CodeId> = {}
+  codeIdForCodeHash: Record<Fadroma.CodeHash, Fadroma.CodeId> = {}
+  codeIdForAddress:  Record<Fadroma.Address, Fadroma.CodeId> = {}
   getCode (codeId: Fadroma.CodeId) {
     const code = this.uploads[codeId]
     if (!code) {
@@ -22,7 +23,7 @@ export class MocknetBackend {
     const codeId   = ++this.codeId
     const content  = this.uploads[codeId] = blob
     const codeHash = codeHashForBlob(blob)
-    this.codeIds[codeHash] = String(codeId)
+    this.codeIdForCodeHash[codeHash] = String(codeId)
     return new Fadroma.ContractTemplate({ codeHash, codeId: String(codeId) })
   }
   instances: Record<Fadroma.Address, MocknetContract> = {}
@@ -44,11 +45,12 @@ export class MocknetBackend {
     const initMsg  = await Fadroma.into(instance.initMsg)
     const chainId  = this.chainId
     const code     = this.getCode(instance.codeId!)
-    const contract = await new MocknetBackend.Contract(this).load(code)
+    const contract = await new MocknetBackend.Contract(this).load(code, instance.codeId)
     const env      = this.makeEnv(sender, contract.address, instance.codeHash)
     const response = contract.init(env, initMsg!)
     const initResponse = parseResult(response, 'instantiate', contract.address)
     this.instances[contract.address] = contract
+    this.codeIdForAddress[contract.address] = instance.codeId!
     await this.passCallbacks(contract.address, initResponse.messages)
     return {
       address:  contract.address,
@@ -111,17 +113,13 @@ export class MocknetBackend {
       }
       const { instantiate, execute } = wasm
       if (instantiate) {
-        const { code_id, callback_code_hash, label, msg, send } = instantiate
-        const instance = await this.instantiate(
-          sender, /* who is sender? */
-          new Fadroma.Contract({ codeHash: callback_code_hash, codeId: code_id }),
-          label,
-          JSON.parse(b64toUtf8(msg)),
-          send
-        )
+        const { code_id: codeId, callback_code_hash: codeHash, label, msg, send } = instantiate
+        const instance = await this.instantiate(sender, new Fadroma.ContractInstance({
+          codeHash, codeId, label, initMsg: JSON.parse(b64toUtf8(msg)),
+        }))
         trace(
           `Callback from ${bold(sender)}: instantiated contract`, bold(label),
-          'from code id', bold(code_id), 'with hash', bold(callback_code_hash),
+          'from code id', bold(codeId), 'with hash', bold(codeHash),
           'at address', bold(instance.address!)
         )
       } else if (execute) {
@@ -167,82 +165,25 @@ export class MocknetBackend {
 
 }
 
-const decoder = new TextDecoder()
-const encoder = new TextEncoder()
-declare class TextDecoder { decode (data: any): string }
-declare class TextEncoder { encode (data: string): any }
-declare namespace WebAssembly {
-  class Memory {
-    constructor ({ initial, maximum }: { initial: number, maximum: number })
-    buffer: Buffer
-  }
-  class Instance<T> {
-    exports: T
-  }
-  function instantiate (code: unknown, world: unknown): {
-    instance: WebAssembly.Instance<ContractExports>
-  }
-}
-export type ErrCode = number
-export type Ptr     = number
-export type Size    = number
-/** Memory region as allocated by CosmWasm */
-export type Region = [Ptr, Size, Size, Uint32Array?]
-/** Heap with allocator for talking to WASM-land */
-export interface IOExports {
-  memory:                           WebAssembly.Memory
-  allocate    (len: Size):          Ptr
-  deallocate? (ptr: Ptr):           void
-}
-/** Contract's raw API methods, taking and returning heap pointers. */
-export interface ContractExports extends IOExports {
-  init        (env: Ptr, msg: Ptr): Ptr
-  handle      (env: Ptr, msg: Ptr): Ptr
-  query       (msg: Ptr):           Ptr
-}
-export interface ContractImports {
-  memory: WebAssembly.Memory
-  env: {
-    db_read              (key: Ptr):           Ptr
-    db_write             (key: Ptr, val: Ptr): void
-    db_remove            (key: Ptr):           void
-    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
-    humanize_address     (src: Ptr, dst: Ptr): ErrCode
-    query_chain          (req: Ptr):           Ptr
-  }
-}
-
-export const MOCKNET_ADDRESS_PREFIX = 'mocked'
-
-// TODO move this env var to global config
-const trace = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
-  log.info(...args)
-  log.log()
-}) : (...args: any[]) => {}
-
-const debug = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
-  log.debug(...args)
-  log.log()
-}) : (...args: any[]) => {}
-
 class MocknetContract {
   constructor (
     readonly backend:   MocknetBackend|null = null,
-    readonly address:   Fadroma.Address     = randomBech32(MOCKNET_ADDRESS_PREFIX),
+    readonly address:   Fadroma.Address     = randomBech32(ADDRESS_PREFIX),
     readonly codeHash?: Fadroma.CodeHash,
+    readonly codeId?:   Fadroma.CodeId,
   ) {
-    log.log('Instantiating', bold(address))
+    log.trace('Instantiating', bold(address))
   }
   instance?: WebAssembly.Instance<ContractExports>
-  async load (code: unknown) {
+  async load (code: unknown, codeId?: Fadroma.CodeId) {
     return Object.assign(this, {
+      codeId:   this.codeId,
       instance: (await WebAssembly.instantiate(code, this.makeImports())).instance,
       codeHash: codeHashForBlob(code as Buffer)
     })
   }
   init (env: unknown, msg: Fadroma.Message) {
     debug(`${bold(this.address)} init:`, msg)
-    console.log({env, msg})
     try {
       const envBuf  = this.pass(env)
       const msgBuf  = this.pass(msg)
@@ -338,7 +279,7 @@ class MocknetContract {
         humanize_address (srcPtr, dstPtr) {
           const exports = getExports()
           const canon   = readBuffer(exports, srcPtr)
-          const human   = bech32.encode(MOCKNET_ADDRESS_PREFIX, bech32.toWords(canon))
+          const human   = bech32.encode(ADDRESS_PREFIX, bech32.toWords(canon))
           const dst     = region(exports.memory.buffer, dstPtr)
           trace(bold(contract.address), `humanize:`, canon, '->', human)
           writeToRegionUtf8(exports, dstPtr, human)
@@ -389,6 +330,66 @@ class MocknetContract {
 }
 
 MocknetBackend.Contract = MocknetContract
+
+const decoder = new TextDecoder()
+const encoder = new TextEncoder()
+declare class TextDecoder { decode (data: any): string }
+declare class TextEncoder { encode (data: string): any }
+declare namespace WebAssembly {
+  class Memory {
+    constructor ({ initial, maximum }: { initial: number, maximum: number })
+    buffer: Buffer
+  }
+  class Instance<T> {
+    exports: T
+  }
+  function instantiate (code: unknown, world: unknown): {
+    instance: WebAssembly.Instance<ContractExports>
+  }
+}
+
+export type ErrCode = number
+export type Ptr     = number
+export type Size    = number
+/** Memory region as allocated by CosmWasm */
+export type Region = [Ptr, Size, Size, Uint32Array?]
+/** Heap with allocator for talking to WASM-land */
+export interface IOExports {
+  memory:                           WebAssembly.Memory
+  allocate    (len: Size):          Ptr
+  deallocate? (ptr: Ptr):           void
+}
+/** Contract's raw API methods, taking and returning heap pointers. */
+export interface ContractExports extends IOExports {
+  init        (env: Ptr, msg: Ptr): Ptr
+  handle      (env: Ptr, msg: Ptr): Ptr
+  query       (msg: Ptr):           Ptr
+}
+export interface ContractImports {
+  memory: WebAssembly.Memory
+  env: {
+    db_read              (key: Ptr):           Ptr
+    db_write             (key: Ptr, val: Ptr): void
+    db_remove            (key: Ptr):           void
+    canonicalize_address (src: Ptr, dst: Ptr): ErrCode
+    humanize_address     (src: Ptr, dst: Ptr): ErrCode
+    query_chain          (req: Ptr):           Ptr
+  }
+}
+
+export const ADDRESS_PREFIX = 'mocked'
+
+// TODO move this env var to global config
+const trace = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
+  log.info(...args)
+  log.log()
+}) : (...args: any[]) => {}
+
+const debug = process.env.FADROMA_MOCKNET_DEBUG ? ((...args: any[]) => {
+  log.debug(...args)
+  log.log()
+}) : (...args: any[]) => {}
+
 
 export function parseResult (
   response: { Ok: any, Err: any },
@@ -509,3 +510,5 @@ export function bufferToUtf8 (buf: Buffer) {
 }
 
 const codeHashForBlob = (blob: Uint8Array) => base16.encode(sha256(blob))
+
+export { MocknetBackend, MocknetContract }

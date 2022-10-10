@@ -112,7 +112,10 @@ export async function fetchCodeId <C extends ContractInstance> (
   meta: C, agent: Agent, expected?: CodeId,
 ): Promise<C & { codeId: CodeId }> {
   return Object.assign(meta, {
-    codeId: validated('codeId', await agent.getCodeId(assertAddress(meta)), expected)
+    codeId: validated('codeId',
+      String(await agent.getCodeId(assertAddress(meta))),
+      String(expected)
+    )
   })
 }
 

@@ -1,7 +1,7 @@
 import { CustomConsole, bold } from '@hackbg/konzola'
 import * as Fadroma from '@fadroma/client'
 import { randomBech32 } from '@hackbg/formati'
-import { MocknetBackend, MOCKNET_ADDRESS_PREFIX } from './mocknet-backend'
+import MocknetBackend, { ADDRESS_PREFIX } from './mocknet-backend'
 
 const log = new CustomConsole('Fadroma Mocknet')
 
@@ -28,7 +28,7 @@ export class Mocknet extends Fadroma.Chain {
     return this.backend.instances[arg].codeHash as Fadroma.CodeHash
   }
   async getCodeId (arg: any) {
-    const codeId = this.backend.codeIds[arg] ?? this.backend.instances[arg]?.codeId
+    const codeId = this.backend.codeIdForCodeHash[arg] ?? this.backend.codeIdForAddress[arg]
     if (!codeId) throw new Error(`No code id for hash ${arg}`)
     return Promise.resolve(codeId)
   }
@@ -57,7 +57,7 @@ class MocknetAgent extends Fadroma.Agent {
 
   name:    string          = 'MocknetAgent'
 
-  address: Fadroma.Address = randomBech32(MOCKNET_ADDRESS_PREFIX)
+  address: Fadroma.Address = randomBech32(ADDRESS_PREFIX)
 
   get defaultDenom () {
     return Fadroma.assertChain(this).defaultDenom
@@ -69,7 +69,6 @@ class MocknetAgent extends Fadroma.Agent {
     return await this.backend.upload(blob)
   }
   async instantiate (instance: Fadroma.ContractInstance): Promise<Fadroma.ContractInstance> {
-    console.trace({instance})
     instance.initMsg = await Fadroma.into(instance.initMsg)
     const result = await this.backend.instantiate(this.address, instance,)
     return instance.provide({ agent: this, ...result })
@@ -103,12 +102,12 @@ class MocknetBundle extends Fadroma.Bundle {
     for (const { init, exec } of this.msgs) {
       if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
-        console.trace({init})
-        const template = new Fadroma.Contract({ codeHash, codeId: String(codeId), label, initMsg: msg })
-        results.push(await this.agent.instantiate(template))
+        results.push(await this.agent.instantiate(new Fadroma.ContractInstance({
+          codeId: String(codeId), initMsg: msg, codeHash, label,
+        })))
       } else if (!!exec) {
-        const { sender, contract, codeHash, msg, funds } = exec
-        results.push(await this.agent.execute({ address: contract, codeHash }, msg, { send: funds }))
+        const { sender, contract: address, codeHash, msg, funds: send } = exec
+        results.push(await this.agent.execute({ address, codeHash }, msg, { send }))
       } else {
         log.warn('MocknetBundle#submit: found unknown message in bundle, ignoring')
         results.push(null)
@@ -123,3 +122,5 @@ class MocknetBundle extends Fadroma.Bundle {
 
 Mocknet.Agent        = MocknetAgent  as Fadroma.AgentClass<MocknetAgent>
 Mocknet.Agent.Bundle = MocknetBundle as Fadroma.BundleClass<MocknetBundle>
+
+export { ADDRESS_PREFIX }
