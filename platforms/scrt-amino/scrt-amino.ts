@@ -229,38 +229,33 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     const msg = await Promise.all(outputs.map(toMsg))
     const memo      = opts?.memo
     const fee       = opts?.fee || Fadroma.Scrt.gas(500000 * outputs.length)
-    const chainId   = this.assertChain().id
+    const chainId   = Fadroma.assertChain(this).id
     const signBytes = SecretJS.makeSignBytes(msg, fee, chainId, memo, accountNumber!, sequence!)
     return this.api.postTx({ msg, memo, fee, signatures: [await this.sign(signBytes)] })
   }
-  async upload (data: Uint8Array): Promise<Fadroma.Contract<any>> {
+  async upload (data: Uint8Array): Promise<Fadroma.ContractTemplate> {
     if (!(data instanceof Uint8Array)) throw new ScrtAminoError.NoUploadBinary()
     const uploadResult = await this.api.upload(data, {})
     let codeId = String(uploadResult.codeId)
     if (codeId === "-1") codeId = uploadResult.logs[0].events[0].attributes[3].value
-    return Object.assign(new Fadroma.Contract(), {
+    return new Fadroma.ContractTemplate({
       artifact: undefined,
       codeHash: uploadResult.originalChecksum,
-      chainId:  this.assertChain().id,
+      chainId:  Fadroma.assertChain(this).id,
       codeId,
       uploadTx: uploadResult.transactionHash
     })
   }
-  async instantiate (
-    template: Fadroma.Contract<any>,
-    label:    string,
-    msg:      Fadroma.Message,
-    funds = []
-  ): Promise<Fadroma.Contract<any>> {
-    if (!template.codeHash) throw new ScrtAminoError.NoCodeHashInTemplate()
-    let { codeId, codeHash } = template
+  async instantiate (instance: Fadroma.ContractInstance): Promise<Fadroma.ContractInstance> {
+    if (!instance.codeHash) throw new ScrtAminoError.NoCodeHashInTemplate()
+    let { codeId, codeHash } = instance
     const { api } = this
     //@ts-ignore
-    const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, funds)
+    const { logs, transactionHash } = await api.instantiate(Number(codeId), msg, label, [])
     const address = logs![0].events[0].attributes[4].value
     codeId = String(codeId)
     const initTx = transactionHash
-    return Object.assign(new Fadroma.Contract(template), { address, codeHash })
+    return instance.provide({ address, codeHash })
   }
   async getHash (idOrAddr: number|string): Promise<Fadroma.CodeHash> {
     const { api } = this

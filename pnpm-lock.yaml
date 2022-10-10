@@ -196,12 +196,15 @@ importers:
       '@fadroma/client': workspace:^6.1.2
       '@fadroma/scrt': workspace:^4.0.1
       '@hackbg/formati': workspace:^5.1.1
+      '@hackbg/ganesha': ^2.2.5
       '@hackbg/konzola': workspace:^2.1
     dependencies:
       '@fadroma/client': link:../client
       '@fadroma/scrt': link:../../platforms/scrt
       '@hackbg/formati': link:../../toolbox/formati
       '@hackbg/konzola': link:../../toolbox/konzola
+    devDependencies:
+      '@hackbg/ganesha': 2.3.0
 
   platforms/mocknet:
     specifiers:
@@ -284,7 +287,7 @@ importers:
       signal-exit: 3.0.7
     devDependencies:
       '@hackbg/ubik': link:ubik
-      '@types/node': 18.7.23
+      '@types/node': 18.8.3
       concurrently: 7.2.2
       typedoc: 0.23.0-beta.7_typescript@4.7.4
       typescript: 4.7.4
@@ -993,6 +996,11 @@ packages:
 
   /@types/node/18.7.23:
     resolution: {integrity: sha512-DWNcCHolDq0ZKGizjx2DZjR/PqsYwAcYUJmfMWqtVU2MBMG5Mo+xFZrhGId5r/O5HOuMPyQEcM6KUBp5lBZZBg==}
+    dev: false
+
+  /@types/node/18.8.3:
+    resolution: {integrity: sha512-0os9vz6BpGwxGe9LOhgP/ncvYN5Tx1fNcd2TM3rD/aCGBkysb+ZWpXEocG24h6ZzOi13+VB8HndAQFezsSOw1w==}
+    dev: true
 
   /@types/prettyjson/0.0.30:
     resolution: {integrity: sha512-BQ15wnnSvzlvDAVvd4t+zXjd9o6QAcfBeEUlZcinDYeb0A1xTfRBc0s8nxHlctojnsxDrbiG7amTqLWbXsiK7Q==}

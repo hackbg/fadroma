@@ -7,7 +7,6 @@ import type {
   CodeId,
   ContractInstance,
   ContractTemplate,
-  DeployArgs,
   Label,
   Message,
   Name,
@@ -191,7 +190,7 @@ export class ClientConsole extends CommandsConsole {
     this.br()
   }
 
-  deployManyFailed (template: ContractTemplate, contracts: DeployArgs[] = [], e: Error) {
+  deployManyFailed (template: ContractTemplate, contracts: any[] = [], e: Error) {
     this.br()
     this.error(`Deploy of multiple contracts failed:`)
     this.error(bold(e?.message))

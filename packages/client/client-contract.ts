@@ -5,7 +5,7 @@ import type { Class, Into, IntoArray, IntoRecord } from './client-fields'
 import { assertAddress, assertAgent } from './client-connect'
 import type { ChainId, Address, TxHash, Agent, Message, IFee, ExecOpts } from './client-connect'
 import { Builder, Uploader, assertBuilder, upload } from './client-deploy'
-import type { Deployment, DeployArgs } from './client-deploy'
+import type { Deployment } from './client-deploy'
 
 /** The friendly name of a contract, or another part of the label (prefix, suffix).
   * Names are user-specified and are used as the keys of `deployment.store`.
@@ -232,14 +232,8 @@ export class ContractTemplate extends ContractSource {
     this.provide(options as object)
   }
 
-  /** One-shot deployment task. */
-  get uploaded (): Promise<ContractTemplate> {
-    if (this.codeId) return Promise.resolve(this)
-    return this.upload()
-  }
-
   /** Upload compiled source code to the selected chain.
-    * @returns this with chainId and codeId populated. */
+    * @returns task performing the upload */
   async upload (uploader?: Uploader): Promise<ContractTemplate> {
     return this.task(`upload ${this.artifact ?? this.crate ?? 'contract'}`, async () => {
       await this.compiled
@@ -249,9 +243,34 @@ export class ContractTemplate extends ContractSource {
     })
   }
 
-  async instantiate (agent: Agent, label: Label, initMsg: Message): Promise<ContractInstance> {
-    await this.uploaded
-    return new ContractInstance(this)
+  /** One-shot deployment task. */
+  get uploaded (): Promise<ContractTemplate> {
+    if (this.codeId) return Promise.resolve(this)
+    const uploading = this.upload()
+    Object.defineProperty(this, 'uploaded', { get () { return uploading } })
+    return uploading
+  }
+
+  instance (options: Partial<ContractInstance>): ContractInstance {
+    return new ContractInstance(this).provide(options)
+  }
+
+  instances <C extends Client> (inputs: Record<Name, Partial<ContractInstance>>):
+    Record<Name, ContractInstance>
+  {
+    return Object.fromEntries(Object.entries(inputs).map(
+      ([name, options])=>[name, new ContractInstance(this).provide(options)]))
+  }
+
+  contract <C extends Client> (options: Partial<ContractInstance>): Contract<C> {
+    return new Contract<C>(this).provide(options)
+  }
+
+  contracts <C extends Client> (inputs: Record<Name, Partial<ContractInstance>>):
+    Record<Name, Contract<C>>
+  {
+    return Object.fromEntries(Object.entries(inputs).map(
+      ([name, options])=>[name, new Contract<C>(this).provide(options)]))
   }
 
   /** @returns a new ContractTemplate with data from this object. */
@@ -447,22 +466,24 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
       this.log.foundDeployedContract(client.address!, this.name!)
       return Promise.resolve(client)
     }
-    return this.deploy()
+    const deploying = this.deploy()
+    Object.defineProperty(this, 'deployed', { get () { return deploying } })
+    return deploying
   }
 
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
     return this.task(`deploy ${this.name ?? 'contract'}`, async () => {
-      if (!this.agent) throw new ClientError.NoCreator(this.name)
+      if (!this.agent) throw new ClientError.NoAgent(this.name)
       if (!this.name) throw new ClientError.NoName(this.name)
       this.label = writeLabel(this)
       if (!this.label) throw new ClientError.NoInitLabel(this.name)
       await this.uploaded
       if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
-      const msg = await into(initMsg) as Message
+      this.initMsg = await into(initMsg) as Message
       this.log.beforeDeploy(this.asTemplate, this.label!)
-      const contract = await this.agent!.instantiate(this.asTemplate, this.label!, msg)
+      const contract = await this.agent!.instantiate(this.asInstance)
       this.provide(contract as Partial<this>)
       this.log.afterDeploy(this)
       if (this.context) this.context.add(this.name!, contract)
@@ -495,11 +516,11 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
     $Client: ClientClass<C>|undefined = this.client as ClientClass<C>
   ): C|null {
     if (this.address) {
-      return new this.client(this.agent, this.address, this.codeHash, this) as C
+      return new $Client(this.agent, this.address, this.codeHash, this) as C
     }
     if (this.context && this.name && this.context.has(this.name)) {
       const { address, codeHash } = this.context.get(this.name)!
-      return new this.client(this.agent, address, codeHash, this) as C
+      return new $Client(this.agent, address, codeHash, this) as C
     }
     return null
   }
@@ -527,16 +548,16 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
     * Prepended to contract label with a `/`: `PREFIX/NAME...` */
   prefix?: Name = undefined
   /** A list of [Label, InitMsg] pairs that are used to instantiate the contracts. */
-  inits?:  IntoRecord<Name, DeployArgs> = undefined
+  inits?:  IntoRecord<Name, Partial<ContractInstance>> = undefined
   /** A filter predicate for recognizing deployed contracts. */
   match?:  MatchPredicate = meta => Object.keys(this.inits??{}).includes(meta.name!)
 
   constructor (
-    options: Partial<Contracts<C>> = {},
+    options: Partial<ContractInstance> = {},
     /** The group of contracts that contract belongs to. */
-    public context: Deployment|undefined = options?.context,
+    public context?: Deployment,
     /** The agent that will upload and instantiate this contract. */
-    public agent:   Agent     |undefined = options?.agent
+    public agent:    Agent     |undefined = context?.agent
   ) {
     super(options)
     this.provide(options as object)
@@ -548,39 +569,28 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
 
   /** One-shot deployment task. */
   get deployed (): Promise<Record<Name, C>> {
-    const contracts: Record<Name, Contract<C>> = {}
-    const clients:   Record<Name, C> = {}
-    return into(this.inits).then(async inits=>{
-      for (const [name, init] of Object.entries(this.inits)) {
+    const clients: Record<Name, C> = {}
+    return intoRecord(this.inits!).then(async inits=>{
+      // Collect separately the contracts that already exist
+      for (const [name, args] of Object.entries(inits)) {
         const contract = this.contract({ name })
         const client = contract.getClientOrNull()
         if (client) {
-          clients[name] = client
-        } else {
-          contracts[name] = contract
+          this.log.foundDeployedContract(client.address!, name)
+          clients[name] = client as C
+          delete inits[name]
         }
       }
-      if (Object.keys(contracts).length > 0) {
-        Object.assign(clients, await this.deploy(contracts))
+      // If there are any left to deploy, deploy em
+      if (Object.keys(inits).length > 0) {
+        Object.assign(clients, await this.deploy(inits))
       }
+      return clients
     })
-    const client = this.getClientOrNull()
-    if (client) {
-      this.log.foundDeployedContract(client.address!, this.name!)
-      return Promise.resolve(client)
-    }
-    return this.deploy()
-  }
-
-  contract (options: Partial<ContractInstance> = {}): Contract<C> {
-    const contract = new Contract(this.asTemplate as Partial<Contract<C>>)
-    contract.provide(options as Partial<Contract<C>>)
-    if (this.context) contract.attach(this.context)
-    return contract
   }
 
   /** Deploy multiple instances of the same template. */
-  deploy (inits: IntoRecord<Name, DeployArgs> = this.inits ?? {}): Promise<Record<Name, C>> {
+  deploy (inits: IntoRecord<Name, ContractInstance> = this.inits ?? {}): Promise<Record<Name, C>> {
     const count = `${Object.keys(inits).length} instance(s)`
     const name = undefined
         ?? (this.codeId && `deploy ${count} of code id ${this.codeId}`)
@@ -599,31 +609,30 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
       if (!this.codeId) throw new ClientError.NoInitCodeId(name)
       // if operating in a Deployment, add prefix to each name (should be passed unprefixed)
       const prefix = this.context?.name
-      const prefixedInits: Record<Name, DeployArgs> = {}
-      for (const [name, [label, msg]] of Object.entries(resolvedInits)) {
-        prefixedInits[name] = [writeLabel({ name: label, prefix }), msg]
+      const prefixedInits: Record<Name, ContractInstance> = {}
+      for (const [name, { label, initMsg }] of Object.entries(resolvedInits)) {
+        prefixedInits[name] = [writeLabel({ name: label, prefix }), await into(initMsg)]
       }
       try {
         // run a bundled transaction creating each instance
         const responses = await agent.instantiateMany(this, prefixedInits)
         // get a Contract object representing each
-        const contracts = responses.map(({ address })=>this.instance({ address }))
+        const contracts = Object.values(responses).map(({address})=>this.contract({address}))
         // get a Client from each Contract
-        const clients   = contracts.map(contract=>contract.getClientSync())
+        const clients   = Object.fromEntries(contracts.map(contract=>[contract.name, contract.getClientSync()]))
         // if operating in a Deployment, save each instance to the receipt
         if (this.context) {
-          for (const i in inits) this.context.add(inits[i][0], contracts[i])
+          for (const i in inits) {
+            this.context.add(inits[i as Name].name, contracts[i])
+          }
         }
         // return the battle-ready clients
         return clients
       } catch (e) {
-        this.log.deployManyFailed(this, inits, e as Error)
+        this.log.deployManyFailed(this, Object.values(inits), e as Error)
         throw e
       }
     })
-  }
-
-  protected get deployTaskName (): string {
   }
 
   /** Get all contracts that match the specified predicate. */
@@ -634,10 +643,10 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
       : `get all contracts matching specified predicate`
     return this.task(info, () => {
       if (!this.context) throw new ClientError.NoDeployment()
-      const clients: C[] = []
+      const clients: Record<Name, C> = {}
       for (const info of Object.values(this.context!.state)) {
         if (!match(info as Partial<ContractInstance>)) continue
-        clients.push(new Contract(this.asTemplate as Partial<Contract<C>>).provide(info).getClientSync())
+        clients[info.name!] = this.asTemplate.contract<C>(info).getClientSync()
       }
       return Promise.resolve(clients)
     })

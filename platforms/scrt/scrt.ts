@@ -18,10 +18,11 @@
 
 import type {
   Address, CodeHash, CodeId, TxHash, Uint128, AgentClass, AgentOpts, BundleClass,
-  ChainClass, ChainOpts, ChainId, DeployArgs, Label, Message, ExecOpts, ICoin, IFee,
+  ChainClass, ChainOpts, ChainId, Label, Message, ExecOpts, ICoin, IFee,
 } from '@fadroma/client'
 import {
-  Agent, Bundle, Chain, Client, Contract, ContractTemplate, ContractInstance, Fee, assertChain
+  Agent, Bundle, Chain, Client, Contract, ContractTemplate, ContractInstance, Fee,
+  assertChain, into
 } from '@fadroma/client'
 import * as SecretJS from 'secretjs'
 
@@ -422,48 +423,25 @@ export class ScrtGrpcAgent extends ScrtAgent {
     })
     return template
   }
-  async instantiate (
-    template: ContractTemplate,
-    label:    Label,
-    initMsg:  Message,
-    initFunds = []
-  ): Promise<ContractInstance> {
+  async instantiate (instance: ContractInstance): Promise<ContractInstance> {
     if (!this.address) throw new Error("No address")
-    const { chainId, codeId, codeHash } = template
+    const { chainId, codeId, codeHash } = instance
     if (chainId && chainId !== assertChain(this).id) throw new ScrtError.WrongChain()
-    if (isNaN(Number(codeId)))     throw new ScrtError.NoCodeId()
+    if (isNaN(Number(codeId))) throw new ScrtError.NoCodeId()
     const sender   = this.address
-    const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds }
+    const label    = instance.label!
+    const initMsg  = await into(instance.initMsg)
+    const args     = { sender, codeId: Number(codeId), codeHash, initMsg, label, initFunds: [] }
     const gasLimit = Number(Scrt.defaultFees.init.amount[0].amount)
     const result   = await this.api.tx.compute.instantiateContract(args, { gasLimit })
-    if (!result.arrayLog) {
-      throw Object.assign(
-        new Error(`${result.rawLog}`), { jsonLog: result.jsonLog }
-      )
-    }
+    if (!result.arrayLog) throw Object.assign(new Error(`${result.rawLog}`), {
+      jsonLog: result.jsonLog
+    })
     type Log = { type: string, key: string }
     const findAddr = (log: Log) => log.type === "message" && log.key === "contract_address"
     const address  = result.arrayLog.find(findAddr)?.value!
     const initTx   = result.transactionHash
-    return new ContractInstance(template).provide({ address, initTx, initBy: this.address })
-  }
-  async instantiateMany <C, D> (template: ContractTemplate, instances: C): Promise<D> {
-    const inits: [string, DeployArgs][] = Object.entries(instances)
-    // instantiate multiple contracts in a bundle:
-    const results = await this.bundle().wrap(async bundle=>{
-      await bundle.instantiateMany(template, inits.map(([key, config])=>config))
-    })
-    const outputs: D = ((instances instanceof Array) ? [] : {}) as D
-    // add code hashes to them:
-    for (const i in inits) {
-      const instance = results[i]
-      if (instance) {
-        instance.codeId   = template.codeId
-        instance.codeHash = template.codeHash
-        instance.label    = inits[i][0]
-      }
-    }
-    return outputs
+    return instance.provide({ address, initTx, initBy: this.address })
   }
   async execute (
     instance: Partial<Client>, msg: Message, opts: ExecOpts = {}

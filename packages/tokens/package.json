@@ -12,7 +12,7 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test":  "ganesha-node deploy.spec.ts.md",
+    "test":  "ganesha-node tokens.spec.ts.md",
     "ubik":  "npm run check && ubik"
   },
   "devDependencies": {

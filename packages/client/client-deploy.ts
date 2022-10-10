@@ -173,7 +173,7 @@ export class Deployment extends CommandContext {
   /** Specify multiple contracts.
     * @returns an array of Contract instances matching the specified predicate. */
   contracts <C extends Client> (options: Partial<Contracts<C>>): Contracts<C> {
-    return new Contracts({...options}).attach(this)
+    return new Contracts<C>({...options}).attach(this)
   }
 
   /** Check if the deployment contains a certain entry. */
@@ -352,9 +352,6 @@ export abstract class Uploader {
   /** Upload multiple contracts. */
   abstract uploadMany (templates: ContractSource[]): Promise<ContractTemplate[]>
 }
-
-/** Pair of name and init message. Used when instantiating multiple contracts from one template. */
-export type DeployArgs = [Name, Message]
 
 /** A moment in time. */
 export type Moment   = number

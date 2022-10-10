@@ -1,10 +1,11 @@
 import { ClientError, ClientConsole } from './client-events'
+import type { Into } from './client-fields'
+import { into } from './client-fields'
 import type { Class } from './client-fields'
-import { Contract } from './client-contract'
+import { Contract, ContractInstance } from './client-contract'
 import type {
-  CodeId, CodeHash, Client, ClientClass, ContractTemplate, ContractInstance, Label
+  Name, CodeId, CodeHash, Client, ClientClass, ContractTemplate, Label
 } from './client-contract'
-import type { DeployArgs } from './client-deploy'
 import type { Uint128 } from './client-math'
 
 /** A chain can be in one of the following modes: */
@@ -21,59 +22,13 @@ export type ChainId = string
 /** A collection of functions that return Chain instances. */
 export type ChainRegistry = Record<string, (config: any)=>Chain|Promise<Chain>>
 
-/** An address on a chain. */
-export type Address = string
-
-/** @returns the address of the thing
-  * @throws  LinkNoAddress if missing. */
-export function assertAddress ({ address }: { address?: Address } = {}): Address {
-  if (!address) throw new ClientError.LinkNoAddress()
-  return address
-}
-
-/** A transaction message that can be sent to a contract. */
-export type Message = string|Record<string, unknown>
-
-/** A transaction hash, uniquely identifying an executed transaction on a chain. */
-export type TxHash = string
-
-/** Options for a compute transaction. */
-export interface ExecOpts {
-  /** The maximum fee. */
-  fee?:  IFee
-  /** A list of native tokens to send alongside the transaction. */
-  send?: ICoin[]
-  /** A transaction memo. */
-  memo?: string
-  /** Allow extra options. */
-  [k: string]: unknown
-}
-
-/** A gas fee, payable in native tokens. */
-export interface IFee { amount: readonly ICoin[], gas: Uint128 }
-
-/** Represents some amount of native token. */
-export interface ICoin { amount: Uint128, denom: string }
-
-/** A constructable gas fee in native tokens. */
-export class Fee implements IFee {
-  readonly amount: readonly ICoin[]
-  constructor (amount: Uint128|number, denom: string, readonly gas: string = String(amount)) {
-    this.amount = [{ amount: String(amount), denom }]
-  }
-}
-
-/** Represents some amount of native token. */
-export class Coin implements ICoin {
-  readonly amount: string
-  constructor (amount: number|string, readonly denom: string) {
-    this.amount = String(amount)
-  }
-}
-
+/** Options for connecting to a chain. */
 export interface ChainOpts {
+  /** API URL to use. */
   url:  string
+  /** Whether this is a mainnet/testnet/devnet/mocknet. */
   mode: ChainMode
+  /** Interface to devnet, if applicable. */
   node: DevnetHandle
 }
 
@@ -90,7 +45,7 @@ export interface ChainClass<C> extends Class<C, [ChainId, ConstructorParameters<
   Agent: AgentClass<Agent> // static
 }
 
-/** @returns the chain of the thing
+/** @returns the chain of a thing
   * @throws  ExpectedChain if missing. */
 export function assertChain <C extends Chain> (thing: { chain?: C } = {}): C {
   if (!thing.chain) throw new ClientError.NoChain(thing.constructor?.name)
@@ -226,12 +181,38 @@ export abstract class Chain {
   static Agent: AgentClass<Agent> // populated below
 }
 
+/** An address on a chain. */
+export type Address = string
+
+/** @returns the address of a thing
+  * @throws  LinkNoAddress if missing. */
+export function assertAddress ({ address }: { address?: Address } = {}): Address {
+  if (!address) throw new ClientError.LinkNoAddress()
+  return address
+}
+
 /** A constructor for an Agent subclass. */
 export interface AgentClass<A extends Agent> extends Class<A, ConstructorParameters<typeof Agent>>{
   Bundle: BundleClass<Bundle> // static
 }
 
-/** @returns the agent of the thing
+export interface AgentOpts {
+  chain:     Chain
+  name?:     string
+  mnemonic?: string
+  address?:  Address
+  fees?:     AgentFees
+  [key: string]: unknown
+}
+
+export interface AgentFees {
+  send?:   IFee
+  upload?: IFee
+  init?:   IFee
+  exec?:   IFee
+}
+
+/** @returns the agent of a thing
   * @throws  ExpectedAgent if missing. */
 export function assertAgent <A extends Agent> (thing: { agent?: A } = {}): A {
   if (!thing.agent) throw new ClientError.ExpectedAgent(thing.constructor?.name)
@@ -310,7 +291,7 @@ export abstract class Agent {
     return assertChain(this).query(contract, msg)
   }
   /** Send native tokens to 1 recipient. */
-  abstract send     (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown>
+  abstract send (to: Address, amounts: ICoin[], opts?: ExecOpts): Promise<void|unknown>
   /** Send native tokens to multiple recipients. */
   abstract sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown>
   /** Upload code, generating a new code id/hash pair. */
@@ -320,26 +301,40 @@ export abstract class Agent {
   uploadMany (blobs: Uint8Array[] = []): Promise<ContractTemplate[]> {
     return Promise.all(blobs.map(blob=>this.upload(blob)))
   }
-  /** Create a new smart contract from a code id, label and init message. */
-  abstract instantiate (template: ContractTemplate, label: Label, initMsg: Message):
-    PromiseLike<ContractInstance>
-  /** Create multiple smart contracts from a list of code id/label/init message triples. */
-  instantiateMany (template: ContractTemplate, instances: Record<string, DeployArgs>):
-    Promise<Record<string, ContractInstance>>
-  instantiateMany (template: ContractTemplate, instances: DeployArgs[]):
+  /** Create a new smart contract from a code id, label and init message.
+    * @example
+    *   await agent.instantiate(template.provide({ label, initMsg })
+    * @returns
+    *   ContractInstance with no `address` populated yet.
+    *   This will be populated after executing the bundle. */
+  abstract instantiate (instance: ContractInstance): PromiseLike<ContractInstance>
+  /** Create multiple smart contracts from a ContractTemplate (providing code id)
+    * and a list or map of label/initmsg pairs.
+    * Uses this agent's Bundle class to instantiate them in a single transaction.
+    * @example
+    *   await agent.instantiateMany(template.instances({
+    *     One: { label, initMsg },
+    *     Two: { label, initMsg },
+    *   }))
+    *   await agent.instantiateMany({
+    *     One: template1.instance({ label, initMsg }),
+    *     Two: template2.instance({ label, initMsg }),
+    *   }))
+    * @returns
+    *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
+    *   depending on what is passed as inputs. */
+  instantiateMany (inputs: Record<Name, ContractInstance>):
+    Promise<Record<Name, ContractInstance>>
+  instantiateMany (inputs: ContractInstance[]):
     Promise<ContractInstance[]>
-  async instantiateMany <C, D> (template: ContractTemplate, instances: C): Promise<D> {
-    const inits: [string, DeployArgs][] = Object.entries(instances)
-    const results: ContractInstance[] = await Promise.all(
-      inits.map(([key, [label, initMsg]])=>this.instantiate(template, label, initMsg))
-    )
-    const outputs: any = ((instances instanceof Array) ? [] : {}) as D
-    for (const i in inits) {
-      const [key]  = inits[i]
-      const result = results[i]
-      outputs[key] = result
-    }
-    return outputs as D
+  async instantiateMany <C> (inputs: C): Promise<C> {
+    console.log('instantiateMany', inputs)
+    process.exit(123)
+    let result: C
+    await this.bundle().wrap(async bundle=>{
+      result = await bundle.instantiateMany(inputs)
+    })
+    return result!
   }
   /** Call a transaction method on a smart contract. */
   abstract execute (
@@ -367,23 +362,47 @@ export abstract class Agent {
   static Bundle: BundleClass<Bundle> // populated below
 }
 
+/** A transaction message that can be sent to a contract. */
+export type Message = string|Record<string, unknown>
+
+/** A transaction hash, uniquely identifying an executed transaction on a chain. */
+export type TxHash = string
+
+/** Options for a compute transaction. */
+export interface ExecOpts {
+  /** The maximum fee. */
+  fee?:  IFee
+  /** A list of native tokens to send alongside the transaction. */
+  send?: ICoin[]
+  /** A transaction memo. */
+  memo?: string
+  /** Allow extra options. */
+  [k: string]: unknown
+}
+
+/** A gas fee, payable in native tokens. */
+export interface IFee { amount: readonly ICoin[], gas: Uint128 }
+
+/** Represents some amount of native token. */
+export interface ICoin { amount: Uint128, denom: string }
+
+/** A constructable gas fee in native tokens. */
+export class Fee implements IFee {
+  readonly amount: readonly ICoin[]
+  constructor (amount: Uint128|number, denom: string, readonly gas: string = String(amount)) {
+    this.amount = [{ amount: String(amount), denom }]
+  }
+}
+
+/** Represents some amount of native token. */
+export class Coin implements ICoin {
+  readonly amount: string
+  constructor (amount: number|string, readonly denom: string) {
+    this.amount = String(amount)
+  }
+}
+
 Chain.Agent = Agent as AgentClass<Agent>
-
-export interface AgentOpts {
-  chain:     Chain
-  name?:     string
-  mnemonic?: string
-  address?:  Address
-  fees?:     AgentFees
-  [key: string]: unknown
-}
-
-export interface AgentFees {
-  send?:   IFee
-  upload?: IFee
-  init?:   IFee
-  exec?:   IFee
-}
 
 /** A constructor for a Bundle subclass. */
 export interface BundleClass<B extends Bundle> extends Class<B, ConstructorParameters<typeof Bundle>>{
@@ -502,17 +521,44 @@ export abstract class Bundle extends Agent {
   async sendMany (outputs: [Address, ICoin[]][], opts?: ExecOpts): Promise<void|unknown> {
     throw new ClientError.NotInBundle("send")
   }
-  /** Add an init message to the bundle. */
-  instantiate (
-    template: ContractTemplate, label: Label, initMsg: Message, funds = []
-  ): PromiseLike<ContractInstance> {
-    const codeId   = String(template.codeId)
-    const codeHash = template.codeHash
+  /** Add an init message to the bundle.
+    * @example
+    *   await agent.instantiate(template.provide({ label, initMsg })
+    * @returns
+    *   ContractInstance with no `address` populated yet.
+    *   This will be populated after executing the bundle. */
+  async instantiate (instance: ContractInstance): Promise<ContractInstance> {
+    const label    = instance.label
+    const codeId   = String(instance.codeId)
+    const codeHash = instance.codeHash
     const sender   = this.address
-    const msg      = initMsg
-    this.add({ init: { codeId, codeHash, label, funds, msg, sender } })
-    return new Contract(template as Partial<Contract<any>>)
-      .provide({ codeId, codeHash, label, initMsg })
+    const msg      = await into(instance.initMsg)
+    this.add({ init: { codeId, codeHash, label, msg, sender, funds: [] } })
+    return instance
+  }
+  /** Add multiple init messages to the bundle.
+    * @example
+    *   await agent.bundle().wrap(async bundle=>{
+    *     await bundle.instantiateMany(template.instances({
+    *       One: { label, initMsg },
+    *       Two: { label, initMsg },
+    *     }))
+    *     await agent.instantiateMany({
+    *       One: template1.instance({ label, initMsg }),
+    *       Two: template2.instance({ label, initMsg }),
+    *     })
+    *   })
+    * @returns
+    *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
+    *   depending on what is passed as inputs. */
+  async instantiateMany <C> (inputs: C): Promise<C> {
+    type Entry = [Name, ContractInstance]
+    const inits: Entry[] = Object.entries(inputs)
+    const toInit = ([key, instance]: Entry)=>this.instantiate(instance)
+    const results: ContractInstance[] = await Promise.all(inits.map(toInit))
+    const outputs: any = (inputs instanceof Array) ? [] : {}
+    inits.forEach(([key], i)=>outputs[key] = results[i])
+    return outputs as C
   }
   /** Add an exec message to the bundle. */
   async execute (
