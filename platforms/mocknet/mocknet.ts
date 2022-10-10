@@ -33,7 +33,7 @@ export class Mocknet extends Fadroma.Chain {
     return Promise.resolve(codeId)
   }
   async getLabel (address: Fadroma.Address) {
-    return "SomeLabel"
+    return this.backend.labelForAddress[address]
   }
   async getBalance (address: Fadroma.Address) {
     return this.balances[address] || '0'

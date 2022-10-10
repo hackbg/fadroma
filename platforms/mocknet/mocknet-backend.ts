@@ -10,7 +10,8 @@ export default class MocknetBackend {
   codeId  = 0
   uploads: Record<Fadroma.CodeId, unknown> = {}
   codeIdForCodeHash: Record<Fadroma.CodeHash, Fadroma.CodeId> = {}
-  codeIdForAddress:  Record<Fadroma.Address, Fadroma.CodeId> = {}
+  codeIdForAddress:  Record<Fadroma.Address,  Fadroma.CodeId> = {}
+  labelForAddress:   Record<Fadroma.Address,  Fadroma.Label>  = {}
   getCode (codeId: Fadroma.CodeId) {
     const code = this.uploads[codeId]
     if (!code) {
@@ -49,8 +50,9 @@ export default class MocknetBackend {
     const env      = this.makeEnv(sender, contract.address, instance.codeHash)
     const response = contract.init(env, initMsg!)
     const initResponse = parseResult(response, 'instantiate', contract.address)
-    this.instances[contract.address] = contract
+    this.instances[contract.address]        = contract
     this.codeIdForAddress[contract.address] = instance.codeId!
+    this.labelForAddress[contract.address]  = label!
     await this.passCallbacks(contract.address, initResponse.messages)
     return {
       address:  contract.address,

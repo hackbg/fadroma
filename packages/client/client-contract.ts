@@ -438,6 +438,9 @@ export function attachContract <C extends Client, T extends Contract<C>|Contract
   * retrieving it from the deployment if known, or deploying it if not found.
   * @implements PromiseLike */
 export class Contract<C extends Client> extends ContractInstance {
+
+  declare client?: ClientClass<C>
+
   log = new ClientConsole('Fadroma.Contract')
   /** Construct a new contract slot. */
   constructor (
@@ -454,14 +457,12 @@ export class Contract<C extends Client> extends ContractInstance {
     //if (this.builderId) this.builder  = Builder.get(this.builderId)
     //if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
   }
-
   /** Attach this contract to a Deployment. */
   attach (context: Deployment): this {
     attachContract<C, this>(this, context)
     if (this.name && context.has(this.name)) this.provide(context.get(this.name) as Partial<this>)
     return this
   }
-
   /** One-shot deployment task. */
   get deployed (): Promise<C> {
     const client = this.getClientOrNull()
@@ -473,7 +474,6 @@ export class Contract<C extends Client> extends ContractInstance {
     Object.defineProperty(this, 'deployed', { get () { return deploying } })
     return deploying
   }
-
   /** Deploy the contract, or retrieve it if it's already deployed.
     * @returns promise of instance of `this.client`  */
   deploy (initMsg: Into<Message>|undefined = this.initMsg): Task<this, C> {
@@ -494,7 +494,6 @@ export class Contract<C extends Client> extends ContractInstance {
       return this.getClient()
     })
   }
-
   /** Async wrapper around getClientSync.
     * @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
@@ -503,7 +502,6 @@ export class Contract<C extends Client> extends ContractInstance {
   ): Promise<C> {
     return Promise.resolve(this.getClientSync($Client))
   }
-
   /** @returns a Client instance pointing to this contract
     * @throws if the contract address could not be determined */
   getClientSync (
@@ -513,7 +511,6 @@ export class Contract<C extends Client> extends ContractInstance {
     if (!client) throw new ClientError.NotFound($Client.name, this.name, this.context?.name)
     return client
   }
-
   /** @returns a Client instance pointing to this contract, or null if
     * the contract address could not be determined */
   getClientOrNull (
@@ -528,7 +525,6 @@ export class Contract<C extends Client> extends ContractInstance {
     }
     return null
   }
-
   /** Evaluate this Contract, asynchronously returning a Client.
     * 1. try to get the contract from storage (if the deploy store is available)
     * 2. if that fails, try to deploy the contract (building and uploading it,
@@ -545,14 +541,14 @@ export class Contract<C extends Client> extends ContractInstance {
 
 export type MatchPredicate = (meta: Partial<ContractInstance>) => boolean|undefined
 
-export class Contracts<C extends Client> extends ContractTemplate implements PromiseLike<C[]> {
+export class Contracts<C extends Client> extends ContractTemplate {
   log = new ClientConsole('Fadroma.Contract')
   /** Prefix of the instance.
     * Identifies which Deployment the instance belongs to, if any.
     * Prepended to contract label with a `/`: `PREFIX/NAME...` */
   prefix?: Name = undefined
-  /** A list of [Label, InitMsg] pairs that are used to instantiate the contracts. */
-  inits?:  IntoRecord<Name, Partial<ContractInstance>> = undefined
+  /** A mapping of Names (unprefixed Labels) to init configurations for the respective contracts. */
+  inits?:  IntoRecord<Name, ContractInstance> = undefined
   /** A filter predicate for recognizing deployed contracts. */
   match?:  MatchPredicate = meta => Object.keys(this.inits??{}).includes(meta.name!)
 
@@ -574,9 +570,8 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
   /** One-shot deployment task. */
   get deployed (): Promise<Record<Name, C>> {
     const clients: Record<Name, C> = {}
-    console.log(this)
     if (!this.inits) throw new ClientError.NoInitMessage()
-    return intoRecord(this.inits!).then(async inits=>{
+    return into(this.inits!).then(async inits=>{
       // Collect separately the contracts that already exist
       for (const [name, args] of Object.entries(inits)) {
         const contract = this.contract({ name })
@@ -596,8 +591,8 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
   }
 
   /** Deploy multiple instances of the same template. */
-  deploy (inits: IntoRecord<Name, ContractInstance> = this.inits ?? {}): Promise<Record<Name, C>> {
-    const count = `${Object.keys(inits).length} instance(s)`
+  deploy (inputs: IntoRecord<Name, ContractInstance> = this.inits ?? {}): Promise<Record<Name, C>> {
+    const count = `${Object.keys(inputs).length} instance(s)`
     const name = undefined
         ?? (this.codeId && `deploy ${count} of code id ${this.codeId}`)
         ?? (this.crate  && `deploy ${count} of crate ${this.crate}`)
@@ -606,32 +601,29 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
       // need an agent to proceed
       const agent = assertAgent(this)
       // get the inits if passed lazily
-      const resolvedInits = await intoRecord(inits, this.context)
+      const inits = await intoRecord(inputs, this.context)
       // if deploying 0 contracts we're already done
-      if (Object.keys(resolvedInits).length === 0) return Promise.resolve({})
+      if (Object.keys(inits).length === 0) return Promise.resolve({})
       // upload then instantiate (upload may be a no-op if cached)
       const template = await this.uploaded
       // at this point we should have a code id
       if (!this.codeId) throw new ClientError.NoInitCodeId(name)
-      // if operating in a Deployment, add prefix to each name (should be passed unprefixed)
-      const prefix = this.context?.name
-      const prefixedInits: Record<Name, ContractInstance> = {}
-      for (const [name, { label, initMsg }] of Object.entries(resolvedInits)) {
-        prefixedInits[name] = [writeLabel({ name: label, prefix }), await into(initMsg)]
+      // prepare each instance
+      for (const [name, instance] of Object.entries(inits)) {
+        // if operating in a Deployment, add prefix to each name (should be passed unprefixed)
+        instance.label   = writeLabel({ name, prefix: this.context?.name })
+        // resolve all init messages
+        instance.initMsg = await into(instance.initMsg)
       }
       try {
         // run a bundled transaction creating each instance
-        const responses = await agent.instantiateMany(this, prefixedInits)
+        const responses = await agent.instantiateMany(inits)
         // get a Contract object representing each
-        const contracts = Object.values(responses).map(({address})=>this.contract({address}))
+        const contracts = Object.values(responses).map(response=>this.contract(response))
         // get a Client from each Contract
         const clients   = Object.fromEntries(contracts.map(contract=>[contract.name, contract.getClientSync()]))
         // if operating in a Deployment, save each instance to the receipt
-        if (this.context) {
-          for (const i in inits) {
-            this.context.add(inits[i as Name].name, contracts[i])
-          }
-        }
+        if (this.context) Object.keys(inits).forEach(name=>this.context!.add(name, responses[name]))
         // return the battle-ready clients
         return clients
       } catch (e) {
@@ -660,13 +652,6 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
 
   get asTemplate (): ContractTemplate {
     return new ContractTemplate(this)
-  }
-
-  then <D, E> (
-    resolved?: ((clients: C[]) => D|PromiseLike<D>) | null,
-    rejected?: ((failure: any) => E|PromiseLike<E>) | null
-  ): Promise<D|E> {
-    return this.deployed.then(resolved, rejected)
   }
 }
 
