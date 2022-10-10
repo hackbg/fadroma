@@ -17,13 +17,13 @@ export class MocknetBackend {
     }
     return code
   }
-  upload (blob: Uint8Array): Fadroma.Contract<any> {
+  upload (blob: Uint8Array) {
     const chainId  = this.chainId
     const codeId   = ++this.codeId
     const content  = this.uploads[codeId] = blob
     const codeHash = codeHashForBlob(blob)
     this.codeIds[codeHash] = String(codeId)
-    return new Fadroma.Contract({ codeHash, codeId: String(codeId) })
+    return new Fadroma.ContractTemplate({ codeHash, codeId: String(codeId) })
   }
   instances: Record<Fadroma.Address, MocknetContract> = {}
   getInstance (address?: Fadroma.Address) {
@@ -37,25 +37,24 @@ export class MocknetBackend {
     return instance
   }
   async instantiate (
-    sender: Fadroma.Address,
-    { codeId, codeHash }: Partial<Fadroma.Contract<any>>,
-    label: string,
-    msg:   Fadroma.Message,
-    funds = []
-  ): Promise<Partial<Fadroma.Contract<any>>> {
+    sender:   Fadroma.Address,
+    instance: Fadroma.ContractInstance
+  ): Promise<Partial<Fadroma.ContractInstance>> {
+    const label    = instance.label
+    const initMsg  = await Fadroma.into(instance.initMsg)
     const chainId  = this.chainId
-    const code     = this.getCode(codeId!)
+    const code     = this.getCode(instance.codeId!)
     const contract = await new MocknetBackend.Contract(this).load(code)
-    const env      = this.makeEnv(sender, contract.address, codeHash)
-    const response = contract.init(env, msg)
+    const env      = this.makeEnv(sender, contract.address, instance.codeHash)
+    const response = contract.init(env, initMsg!)
     const initResponse = parseResult(response, 'instantiate', contract.address)
     this.instances[contract.address] = contract
     await this.passCallbacks(contract.address, initResponse.messages)
     return {
-      address: contract.address,
+      address:  contract.address,
       chainId,
-      codeId,
-      codeHash,
+      codeId:   instance.codeId,
+      codeHash: instance.codeHash,
       label
     }
   }
@@ -230,7 +229,7 @@ class MocknetContract {
   constructor (
     readonly backend:   MocknetBackend|null = null,
     readonly address:   Fadroma.Address     = randomBech32(MOCKNET_ADDRESS_PREFIX),
-    readonly codeHash?: Fadroma.CodeHash
+    readonly codeHash?: Fadroma.CodeHash,
   ) {
     log.log('Instantiating', bold(address))
   }
@@ -243,6 +242,7 @@ class MocknetContract {
   }
   init (env: unknown, msg: Fadroma.Message) {
     debug(`${bold(this.address)} init:`, msg)
+    console.log({env, msg})
     try {
       const envBuf  = this.pass(env)
       const msgBuf  = this.pass(msg)

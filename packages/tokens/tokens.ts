@@ -13,6 +13,7 @@ import {
   ICoin,
   Label,
   Uint128,
+  writeLabel
 } from '@fadroma/client'
 import { Permit, ViewingKeyClient } from '@fadroma/scrt'
 import { CustomError, bold, colors } from '@hackbg/konzola'
@@ -116,6 +117,7 @@ export class TokenManager extends CommandContext {
     return this.add(symbol, this.template.contract({
       name,
       client:  Snip20,
+      label:   writeLabel({ prefix: this.context.name, name }),
       initMsg: Snip20.init(
         name,
         symbol,

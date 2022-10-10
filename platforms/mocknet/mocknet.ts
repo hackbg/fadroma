@@ -28,7 +28,7 @@ export class Mocknet extends Fadroma.Chain {
     return this.backend.instances[arg].codeHash as Fadroma.CodeHash
   }
   async getCodeId (arg: any) {
-    const codeId = this.backend.codeIds[arg]
+    const codeId = this.backend.codeIds[arg] ?? this.backend.instances[arg]?.codeId
     if (!codeId) throw new Error(`No code id for hash ${arg}`)
     return Promise.resolve(codeId)
   }
@@ -60,7 +60,7 @@ class MocknetAgent extends Fadroma.Agent {
   address: Fadroma.Address = randomBech32(MOCKNET_ADDRESS_PREFIX)
 
   get defaultDenom () {
-    return this.assertChain().defaultDenom
+    return Fadroma.assertChain(this).defaultDenom
   }
   get backend (): MocknetBackend {
     return (this.chain as unknown as Mocknet).backend
@@ -68,19 +68,21 @@ class MocknetAgent extends Fadroma.Agent {
   async upload (blob: Uint8Array) {
     return await this.backend.upload(blob)
   }
-  async instantiate (
-    template: Fadroma.Contract<any>, label: string, msg: Fadroma.Message, send = []
-  ): Promise<Fadroma.Contract<any>> {
-    const result = await this.backend.instantiate(this.address, template, label, msg, send)
-    return Object.assign(template, { agent: this, ...result })
+  async instantiate (instance: Fadroma.ContractInstance): Promise<Fadroma.ContractInstance> {
+    console.trace({instance})
+    instance.initMsg = await Fadroma.into(instance.initMsg)
+    const result = await this.backend.instantiate(this.address, instance,)
+    return instance.provide({ agent: this, ...result })
   }
   async execute <R> (
-    instance: Partial<Fadroma.Client>, msg: Fadroma.Message, opts: Fadroma.ExecOpts = {}
+    instance: Partial<Fadroma.Client>,
+    msg:      Fadroma.Message,
+    opts:     Fadroma.ExecOpts = {}
   ): Promise<R> {
     return await this.backend.execute(this.address, instance, msg, opts.send, opts.memo, opts.fee)
   }
   async query <R> (instance: Fadroma.Client, msg: Fadroma.Message): Promise<R> {
-    return await this.assertChain().query(instance, msg)
+    return await Fadroma.assertChain(this).query(instance, msg)
   }
   get account () {
     return Promise.resolve({})
@@ -101,9 +103,9 @@ class MocknetBundle extends Fadroma.Bundle {
     for (const { init, exec } of this.msgs) {
       if (!!init) {
         const { sender, codeId, codeHash, label, msg, funds } = init
-        const template = new Fadroma.Contract({ codeHash, codeId: String(codeId) })
-        //@ts-ignore
-        results.push(await this.agent.instantiate(template, label, msg, funds))
+        console.trace({init})
+        const template = new Fadroma.Contract({ codeHash, codeId: String(codeId), label, initMsg: msg })
+        results.push(await this.agent.instantiate(template))
       } else if (!!exec) {
         const { sender, contract, codeHash, msg, funds } = exec
         results.push(await this.agent.execute({ address: contract, codeHash }, msg, { send: funds }))

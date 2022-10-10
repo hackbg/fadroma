@@ -323,18 +323,29 @@ export abstract class Agent {
     * @returns
     *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
     *   depending on what is passed as inputs. */
-  instantiateMany (inputs: Record<Name, ContractInstance>):
+  instantiateMany (instances: Record<Name, ContractInstance>):
     Promise<Record<Name, ContractInstance>>
-  instantiateMany (inputs: ContractInstance[]):
+  instantiateMany (instances: ContractInstance[]):
     Promise<ContractInstance[]>
-  async instantiateMany <C> (inputs: C): Promise<C> {
-    console.log('instantiateMany', inputs)
-    process.exit(123)
-    let result: C
-    await this.bundle().wrap(async bundle=>{
-      result = await bundle.instantiateMany(inputs)
+  async instantiateMany <C> (instances: C): Promise<C> {
+    // Returns an array of TX results.
+    const response = await this.bundle().wrap(async bundle=>{
+      await bundle.instantiateMany(instances)
     })
-    return result!
+    // Populate instances with resulting addresses
+    for (const instance of Object.values(instances)) {
+      if (instance.address) continue
+      // Find result corresponding to instance
+      const found = response.find(({ label })=>label===instance.label)
+      if (found) {
+        const { address, tx, sender } = found // FIXME: implementation dependent
+        instance.provide({ address, initTx: tx, initBy: sender })
+      } else {
+        this.log.warn(`Failed to find address for ${instance.label}.`)
+        continue
+      }
+    }
+    return instances
   }
   /** Call a transaction method on a smart contract. */
   abstract execute (
@@ -525,14 +536,13 @@ export abstract class Bundle extends Agent {
     * @example
     *   await agent.instantiate(template.provide({ label, initMsg })
     * @returns
-    *   ContractInstance with no `address` populated yet.
-    *   This will be populated after executing the bundle. */
+    *   the unmodified input. */
   async instantiate (instance: ContractInstance): Promise<ContractInstance> {
     const label    = instance.label
     const codeId   = String(instance.codeId)
     const codeHash = instance.codeHash
     const sender   = this.address
-    const msg      = await into(instance.initMsg)
+    const msg = instance.initMsg = await into(instance.initMsg)
     this.add({ init: { codeId, codeHash, label, msg, sender, funds: [] } })
     return instance
   }
@@ -549,16 +559,15 @@ export abstract class Bundle extends Agent {
     *     })
     *   })
     * @returns
-    *   either an Array<ContractInstance> or a Record<string, ContractInstance>,
-    *   depending on what is passed as inputs. */
+    *   the unmodified inputs. */
   async instantiateMany <C> (inputs: C): Promise<C> {
-    type Entry = [Name, ContractInstance]
-    const inits: Entry[] = Object.entries(inputs)
-    const toInit = ([key, instance]: Entry)=>this.instantiate(instance)
-    const results: ContractInstance[] = await Promise.all(inits.map(toInit))
     const outputs: any = (inputs instanceof Array) ? [] : {}
-    inits.forEach(([key], i)=>outputs[key] = results[i])
-    return outputs as C
+    await Promise.all(Object.entries(inputs).map(
+      async ([key, instance]: [Name, ContractInstance])=>{
+        outputs[key] = instance.address
+          ? instance
+          : await this.instantiate(instance) }))
+    return outputs
   }
   /** Add an exec message to the bundle. */
   async execute (

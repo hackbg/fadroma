@@ -3,7 +3,11 @@ import type { Agent } from './client-connect'
 import type { ContractTemplate, ContractInstance, StructuredLabel } from './client-contract'
 import type { Builder, Uploader } from './client-deploy'
 
-export function hide (self: object, keys: string[]) {
+export function getMaxLength (strings: string[]): number {
+  return Math.max(...strings.map(string=>string.length))
+}
+
+export function hide (self: object, keys: string[]): void {
   for (const key of keys) Object.defineProperty(self, key, { enumerable: false, writable: true })
 }
 

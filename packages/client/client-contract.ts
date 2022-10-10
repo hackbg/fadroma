@@ -346,6 +346,10 @@ export class ContractInstance extends ContractTemplate implements StructuredLabe
     this.provide(options as object)
   }
 
+  get [Symbol.toStringTag]() {
+    return `${this.name??'-'} ${this.address??'-'} ${this.crate??'-'} @ ${this.revision??'HEAD'}`
+  }
+
   /** Get link to this contract in Fadroma ICC format. */
   get asLink (): ContractLink {
     return { address: assertAddress(this), code_hash: assertCodeHash(this) }
@@ -430,7 +434,7 @@ export function attachContract <C extends Client, T extends Contract<C>|Contract
 /** Contract slot. `await` an instance of this to get a client for it,
   * retrieving it from the deployment if known, or deploying it if not found.
   * @implements PromiseLike */
-export class Contract<C extends Client> extends ContractInstance implements PromiseLike<C> {
+export class Contract<C extends Client> extends ContractInstance {
   log = new ClientConsole('Fadroma.Contract')
   /** Construct a new contract slot. */
   constructor (
@@ -446,10 +450,6 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
     if (context) this.attach(context)
     //if (this.builderId) this.builder  = Builder.get(this.builderId)
     //if (this.uploaderId) this.uploader = Uploader.get(this.uploader)
-  }
-
-  get [Symbol.toStringTag]() {
-    return `${this.name??'-'} ${this.address??'-'} ${this.crate??'-'} @ ${this.revision??'HEAD'}`
   }
 
   /** Attach this contract to a Deployment. */
@@ -479,6 +479,7 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
       if (!this.name) throw new ClientError.NoName(this.name)
       this.label = writeLabel(this)
       if (!this.label) throw new ClientError.NoInitLabel(this.name)
+      if (!this.initMsg) throw new ClientError.NoInitMessage(this.name)
       await this.uploaded
       if (!this.codeId) throw new ClientError.NoInitCodeId(this.name)
       this.initMsg = await into(initMsg) as Message
@@ -531,12 +532,12 @@ export class Contract<C extends Client> extends ContractInstance implements Prom
     *    if necessary and possible)
     * @returns promise of instance of `this.client`
     * @throws  if not found and not deployable  */
-  then <D, E> (
-    onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
-    onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
-  ): Promise<D|E> {
-    return this.deployed.then(onfulfilled, onrejected)
-  }
+  //then <D, E> (
+    //onfulfilled?: ((client: C)   => D|PromiseLike<D>) | null,
+    //onrejected?:  ((reason: any) => E|PromiseLike<E>) | null
+  //): Promise<D|E> {
+    //return this.deployed.then(onfulfilled, onrejected)
+  //}
 }
 
 export type MatchPredicate = (meta: Partial<ContractInstance>) => boolean|undefined
@@ -570,6 +571,8 @@ export class Contracts<C extends Client> extends ContractTemplate implements Pro
   /** One-shot deployment task. */
   get deployed (): Promise<Record<Name, C>> {
     const clients: Record<Name, C> = {}
+    console.log(this)
+    if (!this.inits) throw new ClientError.NoInitMessage()
     return intoRecord(this.inits!).then(async inits=>{
       // Collect separately the contracts that already exist
       for (const [name, args] of Object.entries(inits)) {
