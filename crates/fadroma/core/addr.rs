@@ -1,10 +1,8 @@
 //! `Addr`<->`CanonicalAddr` conversion
 
-use fadroma_platform_scrt::cosmwasm_std::{Delegation, Validator};
-
 use crate::cosmwasm_std::{
-    self, Addr, Api, Binary, BlockInfo, CanonicalAddr, Coin, ContractInfo, Decimal, Empty,
-    MessageInfo, StdResult, Uint128,
+    self, Addr, Api, Binary, BlockInfo, CanonicalAddr, Coin, Empty,
+    StdResult, Uint64, Uint128, Uint256, Uint512, Decimal, Decimal256,
 };
 
 pub trait Canonize {
@@ -153,8 +151,12 @@ impl_canonize_default!(u16);
 impl_canonize_default!(u32);
 impl_canonize_default!(u64);
 impl_canonize_default!(u128);
+impl_canonize_default!(Uint64);
 impl_canonize_default!(Uint128);
+impl_canonize_default!(Uint256);
+impl_canonize_default!(Uint512);
 impl_canonize_default!(Decimal);
+impl_canonize_default!(Decimal256);
 
 impl_canonize_default!(i8);
 impl_canonize_default!(i16);
@@ -172,8 +174,4 @@ impl_canonize_default!(&str);
 impl_canonize_default!(Binary);
 impl_canonize_default!(Coin);
 impl_canonize_default!(BlockInfo);
-impl_canonize_default!(ContractInfo);
-impl_canonize_default!(MessageInfo);
 impl_canonize_default!(Empty);
-impl_canonize_default!(Validator);
-impl_canonize_default!(Delegation);

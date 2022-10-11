@@ -25,11 +25,12 @@ pub trait Killswitch {
         reason: String,
         new_address: Option<Addr>,
     ) -> StdResult<Response> {
-        set_status(deps, env, info, level, reason, new_address)?;
+        set_status(deps, info, level, reason, new_address)?;
 
         Ok(Response::new()
             .add_attribute("action", "set_status")
-            .add_attribute("level", format!("{}", level)))
+            .add_attribute("level", format!("{}", level))
+        )
     }
 
     #[query]
@@ -183,7 +184,6 @@ pub fn can_set_status(deps: Deps, to_level: ContractStatusLevel) -> StdResult<()
 #[require_admin]
 pub fn set_status(
     deps: DepsMut,
-    _env: Env,
     info: MessageInfo,
     level: ContractStatusLevel,
     reason: String,
@@ -238,7 +238,6 @@ mod tests {
 
         let err = set_status(
             deps.as_mut(),
-            mock_env(),
             mock_info("not_admin", &[]),
             ContractStatusLevel::Paused,
             "Test reason".into(),
@@ -250,7 +249,6 @@ mod tests {
 
         set_status(
             deps.as_mut(),
-            mock_env(),
             mock_info(admin, &[]),
             ContractStatusLevel::Paused,
             reason.clone(),
@@ -275,7 +273,6 @@ mod tests {
 
         set_status(
             deps.as_mut(),
-            mock_env(),
             mock_info(admin, &[]),
             ContractStatusLevel::Migrating,
             reason.clone(),
@@ -300,7 +297,6 @@ mod tests {
 
         set_status(
             deps.as_mut(),
-            mock_env(),
             mock_info("admin", &[]),
             ContractStatusLevel::Migrating,
             reason.clone(),

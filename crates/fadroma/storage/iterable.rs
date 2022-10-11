@@ -21,7 +21,7 @@ impl<'a, T: DeserializeOwned + Serialize> IterableStorage<'a, T> {
     /// The following namespaces are reserved by `IterableStorage`:
     ///  * `ns` + "index"
     ///  * `ns` + N - where N is a number
-    pub fn new(ns: &'a [u8]) -> Self {
+    pub const fn new(ns: &'a [u8]) -> Self {
         Self {
             ns,
             len: None,

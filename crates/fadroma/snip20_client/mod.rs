@@ -6,7 +6,7 @@ use crate::{
     cosmwasm_std::{Addr, Binary, CosmosMsg, QuerierWrapper, StdResult, Uint128},
     scrt::BLOCK_SIZE,
 };
-use secret_toolkit::snip20;
+use secret_toolkit_snip20 as snip20;
 
 #[derive(Clone, Debug)]
 pub struct ISnip20 {
