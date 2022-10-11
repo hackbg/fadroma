@@ -5,6 +5,8 @@ use crate::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[cfg(target_arch = "wasm32")]
+use bech32::ToBase32;
+#[cfg(target_arch = "wasm32")]
 use fadroma_platform_scrt::cosmwasm_std::CanonicalAddr;
 #[cfg(target_arch = "wasm32")]
 use ripemd160::{Digest, Ripemd160};
@@ -58,7 +60,12 @@ impl<P: Permission> Permit<P> {
 
     #[inline]
     pub fn check_token(&self, token: &String) -> bool {
-        self.params.allowed_tokens.contains(token)
+        self.params
+            .allowed_tokens
+            .iter()
+            .map(|t| t.as_str())
+            .find(|t| t == token)
+            .is_some()
     }
 
     #[inline]
@@ -88,62 +95,79 @@ impl<P: Permission> Permit<P> {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn validate(&self, deps: Deps, current_contract_addr: String, _hrp: Option<&str>) -> StdResult<String> {
+    pub fn validate(
+        &self,
+        deps: Deps,
+        current_contract_addr: String,
+        _hrp: Option<&str>,
+    ) -> StdResult<String> {
+        // Should already be validated.
         if !self.check_token(&current_contract_addr) {
             return Err(StdError::generic_err(
                 self.check_token_err(current_contract_addr),
             ));
         }
 
-        Self::assert_not_revoked(deps.storage, &self.address, &self.params.permit_name)?;
+        Self::assert_not_revoked(
+            deps.storage,
+            &current_contract_addr,
+            &self.params.permit_name,
+        )?;
 
-        Ok(self.address.clone())
+        Ok(current_contract_addr)
     }
 
     #[cfg(target_arch = "wasm32")]
     pub fn validate(
         &self,
         deps: Deps,
-        current_token_address: String,
+        current_contract_addr: String,
         hrp: Option<&str>,
     ) -> StdResult<String> {
         let account_hrp = hrp.unwrap_or("secret");
-
-        if !self.check_token_err(&current_token_address) {
-            return Err(StdError::generic_err(format!(
-                "Permit doesn't apply to token {:?}, allowed tokens: {:?}",
-                current_token_address.as_str(),
-                self.params
-                    .allowed_tokens
-                    .iter()
-                    .map(|a| a.as_str())
-                    .collect::<Vec<&str>>()
-            )));
+        if !self.check_token(&current_contract_addr) {
+            return Err(StdError::generic_err(
+                self.check_token_err(current_contract_addr),
+            ));
         }
 
         // Derive account from pubkey
         let pubkey = &self.signature.pub_key.value;
-
         let base32_addr = self.pubkey_to_account(pubkey).0.as_slice().to_base32();
-        let account: String = bech32::encode(account_hrp, &base32_addr, Variant::Bech32).unwrap();
+        let account: String =
+            bech32::encode(account_hrp, &base32_addr, bech32::Variant::Bech32).unwrap();
 
-        // Validate permit_name
         Self::assert_not_revoked(deps.storage, &account, &self.params.permit_name)?;
 
         // Validate signature, reference: https://github.com/enigmampc/SecretNetwork/blob/f591ed0cb3af28608df3bf19d6cfb733cca48100/cosmwasm/packages/wasmi-runtime/src/crypto/secp256k1.rs#L49-L82
         let signed_bytes = to_binary(&SignedPermit::from_params(&self.params))?;
-        let signed_bytes_hash = sha_256(signed_bytes.as_slice());
+        let signed_bytes_hash = Sha256::digest(signed_bytes.as_slice());
 
-        let verified = deps
-            .api
-            .secp256k1_verify(&signed_bytes_hash, &self.signature.signature.0, &pubkey.0)
-            .map_err(|err| StdError::generic_err(err.to_string()))?;
+        let secp256k1_msg =
+            secp256k1::Message::from_slice(signed_bytes_hash.as_slice()).map_err(|err| {
+                StdError::generic_err(format!(
+                    "Failed to create a secp256k1 message from signed_bytes: {:?}",
+                    err
+                ))
+            })?;
 
-        if !verified {
-            return Err(StdError::generic_err(
-                "Failed to verify signatures for the given permit",
-            ));
-        }
+        let secp256k1_verifier = Secp256k1::verification_only();
+
+        let secp256k1_signature =
+            secp256k1::Signature::from_compact(&self.signature.signature.0)
+                .map_err(|err| StdError::generic_err(format!("Malformed signature: {:?}", err)))?;
+
+        let secp256k1_pubkey = secp256k1::PublicKey::from_slice(pubkey.0.as_slice())
+            .map_err(|err| StdError::generic_err(format!("Malformed pubkey: {:?}", err)))?;
+
+        secp256k1_verifier
+            .verify(&secp256k1_msg, &secp256k1_signature, &secp256k1_pubkey)
+            .map_err(|err| {
+                StdError::generic_err(format!(
+                    "Failed to verify signatures for the given permit: {:?}",
+                    err
+                ))
+            })?;
 
         Ok(account)
     }
@@ -167,12 +191,7 @@ impl<P: Permission> Permit<P> {
     }
 
     pub fn revoke(storage: &mut dyn Storage, account: &Addr, permit_name: &str) {
-        let key = [
-            Self::NS_PERMITS,
-            account.to_string().as_bytes(),
-            permit_name.as_bytes(),
-        ]
-        .concat();
+        let key = [Self::NS_PERMITS, account.as_bytes(), permit_name.as_bytes()].concat();
 
         storage.set(&key, &[])
     }
@@ -209,7 +228,7 @@ impl<P: Permission> Permit<P> {
     #[cfg(target_arch = "wasm32")]
     fn pubkey_to_account(&self, pubkey: &Binary) -> CanonicalAddr {
         let mut hasher = Ripemd160::new();
-        hasher.update(sha_256(&pubkey.0));
+        hasher.update(Sha256::digest(&pubkey.0));
         CanonicalAddr(Binary(hasher.finalize().to_vec()))
     }
 }
@@ -383,7 +402,12 @@ mod tests {
 
         let wrong_contract = Addr::unchecked("wrong_contract");
         let err = permit
-            .validate_with_permissions(deps.as_ref(), wrong_contract.clone().into(), None, permissions.clone())
+            .validate_with_permissions(
+                deps.as_ref(),
+                wrong_contract.clone().into(),
+                None,
+                permissions.clone(),
+            )
             .unwrap_err();
 
         match err {
@@ -425,7 +449,12 @@ mod tests {
         }
 
         let result = permit
-            .validate_with_permissions(deps.as_ref(), contract_addr.into(), None,  permissions.clone())
+            .validate_with_permissions(
+                deps.as_ref(),
+                contract_addr.into(),
+                None,
+                permissions.clone(),
+            )
             .unwrap();
 
         assert_eq!(result, sender);

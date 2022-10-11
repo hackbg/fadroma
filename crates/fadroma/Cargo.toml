@@ -46,7 +46,7 @@ permit = [
   # Features
   "scrt",
   # Dependencies
-  "ripemd160", "secp256k1", "sha2", "remain",
+  "ripemd160", "secp256k1", "sha2", "remain", "bech32"
 ]
 
 vk = [
@@ -143,6 +143,7 @@ remain          = { optional = true, version = "0.2.2"  }
 schemars        = { optional = true, version = "0.8.10"    }
 ripemd160       = { optional = true, version = "0.9.1"  }
 secp256k1       = { optional = true, version = "0.20.3" }
+bech32          = { optional = true, version = "0.8.1" }
 secret-toolkit = { optional = true, git = "https://github.com/scrtlabs/secret-toolkit", branch = "cosmwasm-v1.0", features = [
   "snip20",
   "snip721",
