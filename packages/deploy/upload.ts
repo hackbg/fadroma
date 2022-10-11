@@ -1,7 +1,9 @@
 import { colors, bold } from '@hackbg/konzola'
 import { Task } from '@hackbg/komandi'
 import $, { Path, JSONFile, JSONDirectory, BinaryFile } from '@hackbg/kabinet'
-import { Contract, ContractTemplate, ClientConsole, Uploader, ClientError } from '@fadroma/client'
+import {
+  Contract, ContractTemplate, ClientConsole, Uploader, ClientError, assertAgent
+} from '@fadroma/client'
 import type { Agent, CodeHash, CodeId } from '@fadroma/client'
 import { CustomConsole } from '@hackbg/konzola'
 
@@ -176,7 +178,7 @@ export class FSUploader extends Uploader {
 
   /** Ignores the cache. Supports "holes" in artifact array to preserve order of non-uploads. */
   async uploadManySansCache (inputs: Array<ContractTemplate>): Promise<Array<ContractTemplate>> {
-    const agent = this.assertAgent()
+    const agent = assertAgent(this)
     const outputs: Array<ContractTemplate> = []
     for (const i in inputs) {
       const input = inputs[i]

@@ -182,7 +182,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
       throw new Error("No address, can't get API")
     }
     return new this.API(
-      this.assertChain().url,
+      Fadroma.assertChain(this).url,
       this.address,
       this.sign,
       this.seed,
@@ -295,7 +295,7 @@ export class ScrtAminoAgent extends Fadroma.ScrtAgent {
     return await this.api.signAdapter(
       msgs,
       gas,
-      this.assertChain().id,
+      Fadroma.assertChain(this).id,
       memo,
       accountNumber,
       sequence
@@ -311,7 +311,7 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
   declare agent: ScrtAminoAgent
   get nonce () {
     if (!this.agent || !this.agent.address) throw new Error("Missing address, can't get nonce")
-    return getNonce(this.assertChain().url, this.agent.address)
+    return getNonce(Fadroma.assertChain(this).url, this.agent.address)
   }
   async submit (memo = "") {
     const results: any[] = []
@@ -351,7 +351,7 @@ class ScrtAminoBundle extends Fadroma.ScrtBundle {
           sender:  this.address,
           tx:      txResult.transactionHash,
           type:    msgs[i].type,
-          chainId: this.assertChain().id
+          chainId: Fadroma.assertChain(this).id
         }
         if (msgs[i].type === 'wasm/MsgInstantiateContract') {
           type Attrs = { contract_address: Fadroma.Address, code_id: unknown }

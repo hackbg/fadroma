@@ -47,7 +47,7 @@ export interface ChainClass<C> extends Class<C, [ChainId, ConstructorParameters<
 
 /** @returns the chain of a thing
   * @throws  ExpectedChain if missing. */
-export function assertChain <C extends Chain> (thing: { chain?: C } = {}): C {
+export function assertChain <C extends Chain> (thing: { chain?: C|null } = {}): C {
   if (!thing.chain) throw new ClientError.NoChain(thing.constructor?.name)
   return thing.chain
 }
@@ -186,7 +186,7 @@ export type Address = string
 
 /** @returns the address of a thing
   * @throws  LinkNoAddress if missing. */
-export function assertAddress ({ address }: { address?: Address } = {}): Address {
+export function assertAddress ({ address }: { address?: Address|null } = {}): Address {
   if (!address) throw new ClientError.LinkNoAddress()
   return address
 }
@@ -214,7 +214,7 @@ export interface AgentFees {
 
 /** @returns the agent of a thing
   * @throws  ExpectedAgent if missing. */
-export function assertAgent <A extends Agent> (thing: { agent?: A } = {}): A {
+export function assertAgent <A extends Agent> (thing: { agent?: A|null } = {}): A {
   if (!thing.agent) throw new ClientError.ExpectedAgent(thing.constructor?.name)
   return thing.agent
 }
