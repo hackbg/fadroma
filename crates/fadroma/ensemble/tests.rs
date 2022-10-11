@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+use anyhow::{Result as AnyResult, bail};
+
 use super::response::{RewardsResponse, ValidatorRewards};
 use super::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
 use crate::prelude::*;
-use serde::{Deserialize, Serialize};
 
 const SEND_AMOUNT: u128 = 100;
 const SEND_DENOM: &str = "uscrt";
@@ -38,7 +40,7 @@ impl ContractHarness for Counter {
         env: Env,
         _info: MessageInfo,
         msg: Binary,
-    ) -> StdResult<Response> {
+    ) -> AnyResult<Response> {
         let msg: CounterInit = from_binary(&msg)?;
 
         save(
@@ -51,7 +53,7 @@ impl ContractHarness for Counter {
         )?;
 
         if msg.fail {
-            return Err(StdError::generic_err("Failed at Counter."));
+            bail!("Failed at Counter.");
         }
 
         Ok(Response::new().add_message(WasmMsg::Instantiate {
@@ -78,7 +80,7 @@ impl ContractHarness for Counter {
         _env: Env,
         info: MessageInfo,
         msg: Binary,
-    ) -> StdResult<Response> {
+    ) -> AnyResult<Response> {
         let msg: CounterHandle = from_binary(&msg)?;
 
         match msg {
@@ -110,21 +112,23 @@ impl ContractHarness for Counter {
         Ok(Response::default())
     }
 
-    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary> {
+    fn query(&self, deps: &MockDeps, msg: Binary) -> AnyResult<Binary> {
         let msg: CounterQuery = from_binary(&msg)?;
 
-        match msg {
+        let bin = match msg {
             CounterQuery::Number => {
                 let number: u8 = load(&deps.storage, b"num")?.unwrap_or_default();
 
-                to_binary(&number)
+                to_binary(&number)?
             }
             CounterQuery::Multiplier => {
                 let multiplier: ContractLink<Addr> = load(&deps.storage, b"mul")?.unwrap();
 
-                to_binary(&multiplier)
+                to_binary(&multiplier)?
             }
-        }
+        };
+
+        Ok(bin)
     }
 }
 
@@ -160,11 +164,11 @@ impl ContractHarness for Multiplier {
         _env: Env,
         _info: MessageInfo,
         msg: Binary,
-    ) -> StdResult<Response> {
+    ) -> AnyResult<Response> {
         let msg: MultiplierInit = from_binary(&msg)?;
 
         if msg.fail {
-            return Err(StdError::generic_err("Failed at Multiplier."));
+            bail!("Failed at Multiplier.");
         }
 
         Ok(Response::new().add_message(WasmMsg::Execute {
@@ -181,7 +185,7 @@ impl ContractHarness for Multiplier {
         _env: Env,
         _info: MessageInfo,
         msg: Binary,
-    ) -> StdResult<Response> {
+    ) -> AnyResult<Response> {
         let msg: MultiplierHandle = from_binary(&msg)?;
 
         let result = msg
@@ -194,10 +198,11 @@ impl ContractHarness for Multiplier {
         Ok(Response::default())
     }
 
-    fn query(&self, deps: &MockDeps, _msg: Binary) -> StdResult<Binary> {
+    fn query(&self, deps: &MockDeps, _msg: Binary) -> AnyResult<Binary> {
         let last: u8 = load(&deps.storage, b"last")?.unwrap();
+        let result = to_binary(&last)?;
 
-        to_binary(&last)
+        Ok(result)
     }
 }
 
@@ -211,7 +216,7 @@ fn init(
     ensemble: &mut ContractEnsemble,
     fail_counter: bool,
     fail_multiplier: bool,
-) -> StdResult<InitResult> {
+) -> AnyResult<InitResult> {
     let counter = ensemble.register(Box::new(Counter));
     let multiplier = ensemble.register(Box::new(Multiplier));
 
@@ -261,7 +266,7 @@ struct Block {
 }
 
 impl ContractHarness for BlockHeight {
-    fn instantiate(&self, deps: &mut MockDeps, env: Env, _info: MessageInfo, _msg: Binary) -> StdResult<Response> {
+    fn instantiate(&self, deps: &mut MockDeps, env: Env, _info: MessageInfo, _msg: Binary) -> AnyResult<Response> {
         save(
             &mut deps.storage,
             b"block",
@@ -280,7 +285,7 @@ impl ContractHarness for BlockHeight {
         env: Env,
         _info: MessageInfo,
         msg: Binary,
-    ) -> StdResult<Response> {
+    ) -> AnyResult<Response> {
         let msg: BlockHeightHandle = from_binary(&msg)?;
         match msg {
             BlockHeightHandle::Set => {
@@ -298,9 +303,11 @@ impl ContractHarness for BlockHeight {
         Ok(Response::default())
     }
 
-    fn query(&self, deps: &MockDeps, _msg: Binary) -> StdResult<Binary> {
+    fn query(&self, deps: &MockDeps, _msg: Binary) -> AnyResult<Binary> {
         let block: Block = load(&deps.storage, b"block")?.unwrap();
-        to_binary(&block)
+        let result = to_binary(&block)?;
+
+        Ok(result)
     }
 }
 
@@ -331,15 +338,15 @@ fn test_removes_instances_on_failed_init() {
 
     let mut ensemble = ContractEnsemble::new();
     let result = init(&mut ensemble, true, false).unwrap_err();
-    assert_eq!(result, StdError::generic_err("Failed at Counter."));
+    assert_eq!(result.to_string(), "Failed at Counter.");
     assert_eq!(ensemble.ctx.contracts.len(), 2);
     assert_eq!(ensemble.ctx.instances.len(), 0);
 
     let mut ensemble = ContractEnsemble::new();
     let result = init(&mut ensemble, false, true);
     assert_eq!(
-        result.unwrap_err(),
-        StdError::generic_err("Failed at Multiplier.")
+        result.unwrap_err().to_string(),
+        "Failed at Multiplier."
     );
     assert_eq!(ensemble.ctx.contracts.len(), 2);
     assert_eq!(ensemble.ctx.instances.len(), 0);
@@ -404,7 +411,10 @@ fn test_reverts_state_on_fail() {
         )
         .unwrap_err();
 
-    assert_eq!(err, StdError::generic_err("Mul overflow."));
+    assert_eq!(
+        err.downcast::<StdError>().unwrap(),
+        StdError::generic_err("Mul overflow.")
+    );
 
     let number: u8 = ensemble
         .query(result.counter.address.clone(), &CounterQuery::Number)

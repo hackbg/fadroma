@@ -5,6 +5,7 @@ use std::{
 };
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use anyhow::{Result as AnyResult, bail};
 
 use crate::{
     prelude::{ContractInstantiationInfo, ContractLink},
@@ -31,11 +32,11 @@ use super::{
 pub type MockDeps = OwnedDeps<Revertable<TestStorage>, MockApi, EnsembleQuerier>;
 
 pub trait ContractHarness {
-    fn instantiate(&self, deps: &mut MockDeps, env: Env, info: MessageInfo, msg: Binary) -> StdResult<Response>;
+    fn instantiate(&self, deps: &mut MockDeps, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
 
-    fn execute(&self, deps: &mut MockDeps, env: Env, info: MessageInfo, msg: Binary) -> StdResult<Response>;
+    fn execute(&self, deps: &mut MockDeps, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
 
-    fn query(&self, deps: &MockDeps, msg: Binary) -> StdResult<Binary>;
+    fn query(&self, deps: &MockDeps, msg: Binary) -> AnyResult<Binary>;
 }
 
 #[derive(Debug)]
@@ -202,7 +203,7 @@ impl ContractEnsemble {
         id: u64,
         msg: &T,
         env: MockEnv,
-    ) -> StdResult<InstantiateResponse> {
+    ) -> AnyResult<InstantiateResponse> {
         let result = self.ctx.instantiate(id as usize, to_binary(msg)?, env);
 
         if result.is_ok() {
@@ -220,7 +221,7 @@ impl ContractEnsemble {
         &mut self,
         msg: &T,
         env: MockEnv,
-    ) -> StdResult<ExecuteResponse> {
+    ) -> AnyResult<ExecuteResponse> {
         let result = self.ctx.execute(to_binary(msg)?, env);
 
         if result.is_ok() {
@@ -238,10 +239,11 @@ impl ContractEnsemble {
         &self,
         address: impl AsRef<str>,
         msg: &T,
-    ) -> StdResult<R> {
+    ) -> AnyResult<R> {
         let result = self.ctx.query(address.as_ref(), to_binary(msg)?)?;
+        let result = from_binary(&result)?;
 
-        from_binary(&result)
+        Ok(result)
     }
 }
 
@@ -286,7 +288,7 @@ impl Context {
         id: usize,
         msg: Binary,
         env: MockEnv,
-    ) -> StdResult<InstantiateResponse> {
+    ) -> AnyResult<InstantiateResponse> {
         let contract = self
             .contracts
             .get(id)
@@ -345,7 +347,7 @@ impl Context {
         }
     }
 
-    fn execute(&mut self, msg: Binary, env: MockEnv) -> StdResult<ExecuteResponse> {
+    fn execute(&mut self, msg: Binary, env: MockEnv) -> AnyResult<ExecuteResponse> {
         let address = env.contract.address.clone();
         let (env, msg_info) = self.create_msg_deps(env);
         let sender = msg_info.sender.clone();
@@ -379,7 +381,7 @@ impl Context {
         Ok(res)
     }
 
-    pub(crate) fn query(&self, address: &str, msg: Binary) -> StdResult<Binary> {
+    pub(crate) fn query(&self, address: &str, msg: Binary) -> AnyResult<Binary> {
         let instance = self
             .instances
             .get(address)
@@ -394,7 +396,7 @@ impl Context {
         &mut self,
         messages: Vec<SubMsg>,
         sender: Addr,
-    ) -> StdResult<Vec<ResponseVariants>> {
+    ) -> AnyResult<Vec<ResponseVariants>> {
         let mut responses = vec![];
 
         for sub_msg in messages {
@@ -506,7 +508,7 @@ impl Context {
                         // Query accumulated rewards so bank transaction can take place first
                         let withdraw_amount = match self.delegations.delegation(sender.as_str(), &validator) {
                             Some(amount) => amount.accumulated_rewards,
-                            None => return Err(StdError::generic_err("Delegation not found")),
+                            None => bail!(StdError::generic_err("Delegation not found")),
                         };
 
                         self.bank
