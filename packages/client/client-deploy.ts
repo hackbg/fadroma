@@ -35,12 +35,12 @@ export class Deployment extends CommandContext {
     ])
 
     this
-      .addCommand('build', 'build all required contracts', () =>
-        this.buildMany([]))
-      .addCommand('upload', 'upload all required contracts', async () => {
-        const sources = await this.buildMany([])
-        this.uploadMany(sources.map(source=>new ContractTemplate(source)))
-      })
+      .addCommand('build',  'build all required contracts',
+                  this.buildMany.bind(this))
+      .addCommand('upload', 'upload all required contracts',
+                  this.uploadMany.bind(this))
+      .addCommand('status', 'show the status of this deployment',
+                  this.showStatus.bind(this))
   }
 
   /** Name of deployment. Used as label prefix of deployed contracts. */
@@ -58,6 +58,10 @@ export class Deployment extends CommandContext {
   revision?: string = 'HEAD'
   /** Build implementation. Contracts can't be built from source if this is missing. */
   builder?: Builder
+
+  async showStatus () {
+    this.log.deployment(this)
+  }
 
   /** Build multiple contracts. */
   async buildMany (contracts: (string|ContractSource)[]): Promise<ContractSource[]> {

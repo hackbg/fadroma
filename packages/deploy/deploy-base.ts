@@ -9,7 +9,7 @@ import { Chain, Agent, Deployment, Uploader, DeployStore, override } from '@fadr
 import type { Class, Client, Contract, DeploymentFormat, DeployStoreClass } from '@fadroma/client'
 
 import { FSUploader } from './upload'
-import { DeployConsole } from './deploy-events'
+import { DeployError, DeployConsole } from './deploy-events'
 
 /** Deployment system configuration and Deployer factory. */
 export class DeployConfig extends ConnectConfig {
@@ -77,19 +77,24 @@ export interface DeployerClass<D extends Deployer> extends Class<D, [
 export class Deployer extends Connector {
   constructor (options: Partial<Deployer> = { config: new DeployConfig() }) {
     const { store } = options
+    if (store && store.active?.name) options.name = store.active.name
     super(options as Partial<Connector>)
     this.config = new DeployConfig(this.env, this.cwd, options.config)
     this.store  = options.store ?? this.store
     Object.defineProperty(this, 'log', { enumerable: false, writable: true })
+    const chain = this.chain?.id ? bold(this.chain.id) : 'this chain'
+    const name  = this.name ? bold(this.name) : 'this deployment'
     this
-      .addCommand('deployments', 'print a list of all deployments on this chain',
+      .addCommand('deployments', `print a list of all deployments on ${chain}`,
                   this.listDeployments.bind(this))
-      .addCommand('create', `create a new empty deployment on this chain`,
+      .addCommand('create',      `create a new empty deployment on ${chain}`,
                   this.createDeployment.bind(this))
-      .addCommand('switch', `select another deployment on this chain`,
+      .addCommand('switch',      `activate another deployment on ${chain}`,
                   this.selectDeployment.bind(this))
-      .addCommand('contracts', 'show the contracts in the current deployment',
+      .addCommand('status',      `list all contracts in ${name}`,
                   this.listContracts.bind(this))
+      .addCommand('export',      `export current deployment to ${name}.json`,
+                  this.exportContracts.bind(this))
   }
   /** Logger. */
   log = new DeployConsole('Fadroma Deploy')
@@ -159,9 +164,21 @@ export class Deployer extends Connector {
     const store      = await this.provideStore()
     const deployment = id ? store.get(id) : store.active
     if (deployment) {
-      this.log.deployment({ deployment })
+      this.log.deployment(deployment)
     } else {
       this.log.info('No selected deployment.')
     }
+  }
+  async exportContracts () {
+    const deployment = (await this.provideStore()).active
+    if (!deployment) throw new DeployError.NoDeployment()
+    const state: Record<string, any> = JSON.parse(JSON.stringify(deployment.state))
+    for (const [name, contract] of Object.entries(state)) {
+      delete contract.log
+      delete contract.initMsg
+      delete contract.builderId
+      delete contract.uploaderId
+    }
+    console.log(state)
   }
 }
