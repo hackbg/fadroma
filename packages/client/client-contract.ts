@@ -266,14 +266,15 @@ export class ContractTemplate extends ContractSource {
   }
 
   contract <C extends Client> (options: Partial<ContractInstance>): Contract<C> {
-    return new Contract<C>(this).provide(options)
+    return new Contract<C>(this as Partial<Contract<C>>).provide(options as Partial<Contract<C>>)
   }
 
   contracts <C extends Client> (inputs: Record<Name, Partial<ContractInstance>>):
     Record<Name, Contract<C>>
   {
-    return Object.fromEntries(Object.entries(inputs).map(
-      ([name, options])=>[name, new Contract<C>(this).provide(options)]))
+    return Object.fromEntries(Object.entries(inputs).map(([name, options])=>[
+      name, new Contract<C>(this as Partial<Contract<C>>).provide(options as Partial<Contract<C>>)
+    ]))
   }
 
   /** @returns a new ContractTemplate with data from this object. */

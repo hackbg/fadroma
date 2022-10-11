@@ -1,5 +1,5 @@
 import { bold } from '@hackbg/konzola'
-import $ from '@hackbg/kabinet'
+import $, { JSONFile } from '@hackbg/kabinet'
 import type { Path } from '@hackbg/kabinet'
 import { EnvConfig } from '@hackbg/konfizi'
 import type { Env } from '@hackbg/konfizi'
@@ -169,16 +169,21 @@ export class Deployer extends Connector {
       this.log.info('No selected deployment.')
     }
   }
-  async exportContracts () {
+  async exportContracts (path?: string) {
     const deployment = (await this.provideStore()).active
     if (!deployment) throw new DeployError.NoDeployment()
     const state: Record<string, any> = JSON.parse(JSON.stringify(deployment.state))
     for (const [name, contract] of Object.entries(state)) {
+      delete contract.workspace
+      delete contract.artifact
       delete contract.log
       delete contract.initMsg
       delete contract.builderId
       delete contract.uploaderId
     }
-    console.log(state)
+    const file = $(path??'').at(`${deployment.name}.json`).as(JSONFile<typeof state>)
+    file.save(state)
+    this.log.info('Wrote', Object.keys(state).length, 'contracts to', bold(file.shortPath))
+    this.log.br()
   }
 }

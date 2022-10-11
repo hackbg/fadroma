@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-
 const exit = {
   ok () {
     process.exit(0)
@@ -40,12 +39,6 @@ const exit = {
 }
 
 if (process.env.Fadroma) {
-  main()
-} else {
-  trampoline()
-}
-
-async function main () {
   // Call the default export of the deploy script
   const script = process.argv[2]
   if (!script) exit.noScript()
@@ -58,16 +51,9 @@ async function main () {
     },
     e => exit.importError(scriptPath, e)
   )
-}
-
-async function trampoline () {
-  // Modification to process.env persists in child process
+} else {
+  // Trampoline to the entry point of Komandi, which then trampolines
+  // back to this script with TypeScript support enabled by Ganesha
   process.env.Fadroma = true
-  if (process.env.Fadroma_Debug) {
-    process.env.Ganesha_NoSourceMap = "1" 
-    process.env.NODE_OPTIONS = "--inspect"
-  }
-  // Run the entry point of Komandi, which relaunches the process
-  // with Ganesha enabled for TypeScript support
   require('@hackbg/komandi/komandi.cli.cjs')
 }

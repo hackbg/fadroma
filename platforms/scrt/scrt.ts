@@ -575,7 +575,7 @@ export class ScrtGrpcBundle extends ScrtBundle {
         results[Number(i)] = result as ScrtBundleResult
       }
     } catch (err) {
-      log.submittingBundleFailed(err)
+      log.submittingBundleFailed(err as Error)
       throw err
     }
     return results
