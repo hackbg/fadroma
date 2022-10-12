@@ -1,8 +1,11 @@
 use serde::{Deserialize, Serialize};
 use anyhow::{Result as AnyResult, bail};
 
-use super::response::{RewardsResponse, ValidatorRewards};
-use super::{ContractEnsemble, ContractHarness, MockDeps, MockEnv};
+use super::{
+    ContractEnsemble, ContractHarness, MockDeps,
+    MockEnv, EnsembleResult, EnsembleError,
+    response::{RewardsResponse, ValidatorRewards}
+};
 use crate::prelude::*;
 
 const SEND_AMOUNT: u128 = 100;
@@ -112,7 +115,7 @@ impl ContractHarness for Counter {
         Ok(Response::default())
     }
 
-    fn query(&self, deps: &MockDeps, msg: Binary) -> AnyResult<Binary> {
+    fn query(&self, deps: &MockDeps, _env: Env, msg: Binary) -> AnyResult<Binary> {
         let msg: CounterQuery = from_binary(&msg)?;
 
         let bin = match msg {
@@ -198,7 +201,7 @@ impl ContractHarness for Multiplier {
         Ok(Response::default())
     }
 
-    fn query(&self, deps: &MockDeps, _msg: Binary) -> AnyResult<Binary> {
+    fn query(&self, deps: &MockDeps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
         let last: u8 = load(&deps.storage, b"last")?.unwrap();
         let result = to_binary(&last)?;
 
@@ -216,7 +219,7 @@ fn init(
     ensemble: &mut ContractEnsemble,
     fail_counter: bool,
     fail_multiplier: bool,
-) -> AnyResult<InitResult> {
+) -> EnsembleResult<InitResult> {
     let counter = ensemble.register(Box::new(Counter));
     let multiplier = ensemble.register(Box::new(Multiplier));
 
@@ -225,7 +228,7 @@ fn init(
 
     let counter = ensemble
         .instantiate(
-            counter.id,
+            counter,
             &CounterInit {
                 info: multiplier.clone(),
                 fail: fail_counter,
@@ -233,10 +236,7 @@ fn init(
             },
             MockEnv::new(
                 admin,
-                ContractLink {
-                    address: Addr::unchecked("counter"),
-                    code_hash: counter.code_hash.clone(),
-                },
+                "counter"
             )
             .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
         )?
@@ -303,7 +303,7 @@ impl ContractHarness for BlockHeight {
         Ok(Response::default())
     }
 
-    fn query(&self, deps: &MockDeps, _msg: Binary) -> AnyResult<Binary> {
+    fn query(&self, deps: &MockDeps, _env: Env, _msg: Binary) -> AnyResult<Binary> {
         let block: Block = load(&deps.storage, b"block")?.unwrap();
         let result = to_binary(&block)?;
 
@@ -343,9 +343,9 @@ fn test_removes_instances_on_failed_init() {
     assert_eq!(ensemble.ctx.instances.len(), 0);
 
     let mut ensemble = ContractEnsemble::new();
-    let result = init(&mut ensemble, false, true);
+    let result = init(&mut ensemble, false, true).unwrap_err();
     assert_eq!(
-        result.unwrap_err().to_string(),
+        result.to_string(),
         "Failed at Multiplier."
     );
     assert_eq!(ensemble.ctx.contracts.len(), 2);
@@ -364,12 +364,12 @@ fn test_reverts_state_on_fail() {
     ensemble
         .execute(
             &CounterHandle::Increment,
-            MockEnv::new(sender, result.counter.clone()),
+            MockEnv::new(sender, result.counter.address.clone()),
         )
         .unwrap();
 
     let number: u8 = ensemble
-        .query(result.counter.address.clone(), &CounterQuery::Number)
+        .query(&result.counter.address, &CounterQuery::Number)
         .unwrap();
     assert_eq!(number, 1);
 
@@ -382,7 +382,7 @@ fn test_reverts_state_on_fail() {
     ensemble
         .execute(
             &CounterHandle::IncrementAndMultiply { by: 2 },
-            MockEnv::new(sender, result.counter.clone())
+            MockEnv::new(sender, result.counter.address.clone())
                 .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
         )
         .unwrap();
@@ -394,30 +394,30 @@ fn test_reverts_state_on_fail() {
     );
 
     let number: u8 = ensemble
-        .query(result.counter.address.clone(), &CounterQuery::Number)
+        .query(&result.counter.address, &CounterQuery::Number)
         .unwrap();
     assert_eq!(number, 3);
 
     let number: u8 = ensemble
-        .query(result.multiplier.address.clone(), &Empty {})
+        .query(&result.multiplier.address, &Empty {})
         .unwrap();
     assert_eq!(number, 6);
 
     let err = ensemble
         .execute(
             &CounterHandle::IncrementAndMultiply { by: 100 },
-            MockEnv::new(sender, result.counter.clone())
+            MockEnv::new(sender, result.counter.address.clone())
                 .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
         )
         .unwrap_err();
 
     assert_eq!(
-        err.downcast::<StdError>().unwrap(),
+        err.unwrap_contract_error().downcast::<StdError>().unwrap(),
         StdError::generic_err("Mul overflow.")
     );
 
     let number: u8 = ensemble
-        .query(result.counter.address.clone(), &CounterQuery::Number)
+        .query(&result.counter.address, &CounterQuery::Number)
         .unwrap();
     assert_eq!(number, 3);
 
@@ -473,7 +473,7 @@ fn insufficient_balance() {
     ensemble
         .execute(
             &CounterHandle::Increment,
-            MockEnv::new(sender, result.counter.clone())
+            MockEnv::new(sender, result.counter.address.clone())
                 .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
         )
         .unwrap();
@@ -484,7 +484,7 @@ fn insufficient_balance() {
     ensemble
         .execute(
             &CounterHandle::Increment,
-            MockEnv::new(sender, result.counter.clone())
+            MockEnv::new(sender, result.counter.address.clone())
                 .sent_funds(vec![coin(SEND_AMOUNT, SEND_DENOM)]),
         )
         .unwrap();
@@ -503,14 +503,11 @@ fn exact_increment() {
 
     let block_height = ensemble
         .instantiate(
-            block_height_contract.id,
+            block_height_contract,
             &Empty {},
             MockEnv::new(
                 admin,
-                ContractLink {
-                    address: Addr::unchecked("block_height"),
-                    code_hash: block_height_contract.code_hash,
-                },
+                "block_height"
             ),
         )
         .unwrap()
@@ -521,13 +518,13 @@ fn exact_increment() {
             &BlockHeightHandle::Set,
             MockEnv::new(
                 admin,
-                block_height.clone()
+                block_height.address.clone()
             ),
         )
         .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), &Empty {})
+        .query(&block_height.address, &Empty {})
         .unwrap();
 
     assert_eq!(
@@ -541,12 +538,12 @@ fn exact_increment() {
     ensemble
         .execute(
             &BlockHeightHandle::Set,
-            MockEnv::new(admin, block_height.clone()),
+            MockEnv::new(admin, block_height.address.clone()),
         )
         .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), &Empty {})
+        .query(&block_height.address, &Empty {})
         .unwrap();
     assert_eq!(
         res,
@@ -568,14 +565,11 @@ fn random_increment() {
 
     let block_height = ensemble
         .instantiate(
-            block_height_contract.id,
+            block_height_contract,
             &Empty {},
             MockEnv::new(
                 admin,
-                ContractLink {
-                    address: Addr::unchecked("block_height"),
-                    code_hash: block_height_contract.code_hash,
-                },
+                "block_height"
             ),
         )
         .unwrap()
@@ -584,12 +578,12 @@ fn random_increment() {
     ensemble
         .execute(
             &BlockHeightHandle::Set,
-            MockEnv::new(admin, block_height.clone()),
+            MockEnv::new(admin, block_height.address.clone()),
         )
         .unwrap();
 
     let block: Block = ensemble
-        .query(block_height.address.clone(), &Empty {})
+        .query(&block_height.address, &Empty {})
         .unwrap();
 
     assert!(block.height > 0);
@@ -598,12 +592,12 @@ fn random_increment() {
     ensemble
         .execute(
             &BlockHeightHandle::Set,
-            MockEnv::new(admin, block_height.clone()),
+            MockEnv::new(admin, block_height.address.clone()),
         )
         .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), &Empty {})
+        .query(&block_height.address, &Empty {})
         .unwrap();
 
     assert!(block.height < res.height);
@@ -624,15 +618,9 @@ fn block_freeze() {
     let block_height_contract = ensemble.register(Box::new(BlockHeight));
     let block_height = ensemble
         .instantiate(
-            block_height_contract.id,
+            block_height_contract,
             &Empty {},
-            MockEnv::new(
-                admin,
-                ContractLink {
-                    address: Addr::unchecked("block_height"),
-                    code_hash: block_height_contract.code_hash,
-                },
-            ),
+            MockEnv::new(admin, "block_height")
         )
         .unwrap()
         .instance;
@@ -640,12 +628,12 @@ fn block_freeze() {
     ensemble
         .execute(
             &BlockHeightHandle::Set,
-            MockEnv::new(admin, block_height.clone()),
+            MockEnv::new(admin, block_height.address.clone()),
         )
         .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), &Empty {})
+        .query(&block_height.address, &Empty {})
         .unwrap();
 
     assert_eq!(
@@ -662,12 +650,12 @@ fn block_freeze() {
     ensemble
         .execute(
             &BlockHeightHandle::Set,
-            MockEnv::new(admin, block_height.clone()),
+            MockEnv::new(admin, block_height.address.clone()),
         )
         .unwrap();
 
     let res: Block = ensemble
-        .query(block_height.address.clone(), &Empty {})
+        .query(&block_height.address, &Empty {})
         .unwrap();
 
     assert!(res.height > old_height);
@@ -703,7 +691,7 @@ fn remove_funds() {
 
     match ensemble.remove_funds(addr, vec![Coin::new(600u128, "uscrt")]) {
         Err(error) => match error {
-            StdError::GenericErr { msg, .. } => assert_eq!(
+            EnsembleError::Bank(msg) => assert_eq!(
                 msg,
                 "Insufficient balance: account: address, denom: uscrt, balance: 500, required: 600"
             ),
@@ -714,7 +702,7 @@ fn remove_funds() {
 
     match ensemble.remove_funds(addr, vec![Coin::new(300u128, "notscrt")]) {
         Err(error) => match error {
-            StdError::GenericErr { msg, .. } => assert_eq!(
+            EnsembleError::Bank(msg) => assert_eq!(
                 msg,
                 "Insufficient balance: account: address, denom: notscrt, balance: 0, required: 300"
             ),
@@ -728,8 +716,8 @@ fn remove_funds() {
         vec![Coin::new(300u128, "uscrt")],
     ) {
         Err(error) => match error {
-            StdError::NotFound { kind, .. } => {
-                assert_eq!(kind, "Account address2 does not exist for remove balance")
+            EnsembleError::Bank(msg) => {
+                assert_eq!(msg, "Account address2 does not exist for remove balance")
             }
             _ => panic!("Wrong error message"),
         },
@@ -815,7 +803,7 @@ fn staking() {
         Err(error) => {
             ensemble.ctx.bank.revert();
             match error {
-                StdError::GenericErr { msg, .. } => assert_eq!("Incorrect coin denom", msg),
+                EnsembleError::Staking(msg) => assert_eq!("Incorrect coin denom", msg),
                 _ => panic!("Wrong denom error improperly caught"),
             };
         }
@@ -837,7 +825,7 @@ fn staking() {
         Err(error) => {
             ensemble.ctx.bank.revert();
             match error {
-                StdError::NotFound { kind, .. } => assert_eq!("Validator not found", kind),
+                EnsembleError::Staking(msg) => assert_eq!("Validator not found", msg),
                 _ => panic!("Invalid validator error improperly caught"),
             };
         }
@@ -896,7 +884,7 @@ fn staking() {
         Coin::new(300u128, "uscrt"),
     ) {
         Err(error) => match error {
-            StdError::NotFound { kind, .. } => assert_eq!("Delegation not found", kind),
+            EnsembleError::Staking(msg) => assert_eq!("Delegation not found", msg),
             _ => panic!("Invalid undelegation error improperly caught"),
         },
         _ => panic!("Invalid undelegation error improperly caught"),
@@ -907,7 +895,7 @@ fn staking() {
         Coin::new(600u128, "uscrt"),
     ) {
         Err(error) => match error {
-            StdError::GenericErr { msg, .. } => assert_eq!("Insufficient funds", msg),
+            EnsembleError::Staking(msg) => assert_eq!("Insufficient funds", msg),
             _ => panic!("Undelegate too much error improperly caught"),
         },
         _ => panic!("Undelegate too much error improperly caught"),

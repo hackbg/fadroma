@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use crate::prelude::*;
-use super::response::{StakingResponse, RewardsResponse, ValidatorRewards};
+use super::{
+    EnsembleResult, EnsembleError,
+    response::{StakingResponse, RewardsResponse, ValidatorRewards}
+};
 
 #[derive(Clone, Debug)]
 pub(crate) struct DelegationWithUnbonding {
@@ -178,12 +181,12 @@ impl Delegations {
         delegator: String, 
         validator: String, 
         amount: Coin
-    ) -> StdResult<StakingResponse> {
+    ) -> EnsembleResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
-            return Err(StdError::generic_err("Incorrect coin denom"));
+            return Err(EnsembleError::Staking("Incorrect coin denom".into()));
         }
         if !self.validate_validator(&validator) {
-            return Err(StdError::not_found("Validator not found"));
+            return Err(EnsembleError::Staking("Validator not found".into()));
         }
        
         let mut new_delegation = DelegationWithUnbonding {
@@ -238,15 +241,15 @@ impl Delegations {
         delegator: String,
         validator: String,
         amount: Coin
-    ) -> StdResult<StakingResponse> {
+    ) -> EnsembleResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
-            return Err(StdError::generic_err("Incorrect coin denom"));
+            return Err(EnsembleError::Staking("Incorrect coin denom".into()));
         }
 
         match self.get_delegation(&delegator, &validator) {
             Some(delegation) => {
                 if amount.amount > delegation.amount.amount {
-                    return Err(StdError::generic_err("Insufficient funds"));
+                    return Err(EnsembleError::Staking("Insufficient funds".into()));
                 }
 
                 let mut new_can_redelegate = delegation.can_redelegate.clone();
@@ -277,7 +280,7 @@ impl Delegations {
                     amount
                 })
             },
-            None => Err(StdError::not_found("Delegation not found"))
+            None => Err(EnsembleError::Staking("Delegation not found".into()))
         }
     }
 
@@ -285,7 +288,7 @@ impl Delegations {
         &mut self,
         delegator: String,
         validator: String,
-    ) -> StdResult<StakingResponse> { 
+    ) -> EnsembleResult<StakingResponse> { 
         match self.get_delegation(&delegator, &validator) {
             Some(delegation) => {
                 let new_delegation = DelegationWithUnbonding {
@@ -307,7 +310,7 @@ impl Delegations {
                     amount: delegation.accumulated_rewards,
                 })
             },
-            None => Err(StdError::not_found("Delegation not found"))
+            None => Err(EnsembleError::Staking("Delegation not found".into()))
         }
     }
 
@@ -317,23 +320,23 @@ impl Delegations {
         src_validator: String,
         dst_validator: String,
         amount: Coin
-        ) -> StdResult<StakingResponse> {
+        ) -> EnsembleResult<StakingResponse> {
         if amount.denom != self.bonded_denom {
-            return Err(StdError::generic_err("Incorrect coin denom"));
+            return Err(EnsembleError::Staking("Incorrect coin denom".into()));
         }
 
         match self.get_delegation(&delegator, &src_validator) {
             Some(delegation) => {
                 if amount.amount > delegation.amount.amount {
-                    return Err(StdError::generic_err("Insufficient funds"));
+                    return Err(EnsembleError::Staking("Insufficient funds".into()));
                 }
 
                 if amount.amount > delegation.can_redelegate.amount {
-                    return Err(StdError::generic_err("Insufficient funds to redelegate"));
+                    return Err(EnsembleError::Staking("Insufficient funds to redelegate".into()));
                 }
 
                 if !self.validate_validator(&dst_validator) {
-                    return Err(StdError::not_found("Destination validator does not exist"));
+                    return Err(EnsembleError::Staking("Destination validator does not exist".into()));
                 }
 
                 let new_src_delegation = DelegationWithUnbonding {
@@ -389,7 +392,7 @@ impl Delegations {
                     amount
                 })
             },
-            None => Err(StdError::not_found("Delegation not found"))
+            None => Err(EnsembleError::Staking("Delegation not found".into()))
         }
 
     }

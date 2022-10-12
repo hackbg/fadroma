@@ -46,7 +46,6 @@ impl Querier for EnsembleQuerier {
             }
         };
 
-        // NOTE: This is safe to dereference due it being 'boxed' in crate::ensemble::ContractEnsemble
         let ctx = unsafe { &*(self.ctx) };
 
         match request {
@@ -109,12 +108,6 @@ impl Querier for EnsembleQuerier {
 
                     querier_result!(to_binary(&delegation))
                 }
-                // TODO: is this removed?
-                // StakingQuery::UnbondingDelegations { delegator } => {
-                //     let delegations = ctx.delegations.unbonding_delegations(&delegator);
-
-                //     Ok(to_binary(&UnbondingDelegationsResponse { delegations }))
-                // },
                 StakingQuery::AllValidators {} => {
                     let validators = ctx.delegations.validators();
 
@@ -135,14 +128,6 @@ impl Querier for EnsembleQuerier {
                 }
                 _ => unimplemented!(),
             },
-            // TODO: is this removed?
-            // QueryRequest::Dist(query) => match query {
-            //     DistQuery::Rewards { delegator } => {
-            //         let rewards = ctx.delegations.rewards(&delegator);
-
-            //         Ok(to_binary(&rewards))
-            //     }
-            // },
             _ => self.base.handle_query(&request)
         }
     }

@@ -1,19 +1,20 @@
-use crate::prelude::*;
 use serde::{Deserialize, Serialize};
+use crate::schemars::{self, JsonSchema};
+use crate::cosmwasm_std::{Addr, Coin};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MockEnv {
     pub(crate) sender: Addr,
-    pub(crate) contract: ContractLink<Addr>,
+    pub(crate) contract: Addr,
     pub(crate) sent_funds: Vec<Coin>
 }
 
 impl MockEnv {
     /// Default values are what `cosmwasm_std::testing::mock_env` returns.
-    pub fn new(sender: impl Into<String>, contract: ContractLink<Addr>) -> Self {
+    pub fn new(sender: impl Into<String>, contract: impl Into<String>) -> Self {
         Self {
             sender: Addr::unchecked(sender.into()),
-            contract,
+            contract: Addr::unchecked(contract.into()),
             sent_funds: vec![]
         }
     }

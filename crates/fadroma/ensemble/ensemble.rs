@@ -1,19 +1,17 @@
 use std::{
     collections::HashMap,
     marker::PhantomData,
-    fmt::Debug
+    fmt::{Debug, Display}
 };
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use anyhow::{Result as AnyResult, bail};
 
 use crate::{
     prelude::{ContractInstantiationInfo, ContractLink},
     cosmwasm_std::{
-        SubMsg, OwnedDeps, Env, StdResult, StdError, Response, MessageInfo, Binary,
-        Uint128, Coin, FullDelegation, Validator, Delegation, CosmosMsg, WasmMsg,
-        BlockInfo, ContractInfo, StakingMsg, BankMsg, DistributionMsg, Timestamp,
-        Addr, from_binary, to_binary,
+        SubMsg, OwnedDeps, Env, StdError, Response, MessageInfo, Binary, Uint128, Coin,
+        FullDelegation, Validator, Delegation, CosmosMsg, WasmMsg, BlockInfo, ContractInfo,
+        StakingMsg, BankMsg, DistributionMsg, Timestamp, Addr, from_binary, to_binary,
         testing::MockApi
     }
 };
@@ -29,6 +27,8 @@ use super::{
     storage::TestStorage,
 };
 
+pub type AnyResult<T> = anyhow::Result<T>;
+pub type EnsembleResult<T> = core::result::Result<T, EnsembleError>;
 pub type MockDeps = OwnedDeps<Revertable<TestStorage>, MockApi, EnsembleQuerier>;
 
 pub trait ContractHarness {
@@ -36,27 +36,39 @@ pub trait ContractHarness {
 
     fn execute(&self, deps: &mut MockDeps, env: Env, info: MessageInfo, msg: Binary) -> AnyResult<Response>;
 
-    fn query(&self, deps: &MockDeps, msg: Binary) -> AnyResult<Binary>;
+    fn query(&self, deps: &MockDeps, env: Env, msg: Binary) -> AnyResult<Binary>;
+}
+
+#[derive(Debug)]
+pub enum EnsembleError {
+    ContractError(anyhow::Error),
+    ContractNotFound(String),
+    ContractDuplicateAddress(String),
+    ContractIdNotFound(u64),
+    InvalidCodeHash(String),
+    Bank(String),
+    Staking(String),
+    Std(StdError)
 }
 
 #[derive(Debug)]
 pub struct ContractEnsemble {
-    // NOTE: Box required to ensure the pointer address remains the same and the raw pointer in EnsembleQuerier is safe to dereference.
     pub(crate) ctx: Box<Context>
 }
 
 pub(crate) struct Context {
-    pub(crate) instances: HashMap<String, ContractInstance>,
-    pub(crate) contracts: Vec<Box<dyn ContractHarness>>,
-    pub(crate) bank: Revertable<Bank>,
-    pub(crate) delegations: Delegations,
+    pub instances: HashMap<String, ContractInstance>,
+    pub contracts: Vec<Box<dyn ContractHarness>>,
+    pub bank: Revertable<Bank>,
+    pub delegations: Delegations,
     block: Block,
     chain_id: String
 }
 
 pub(crate) struct ContractInstance {
-    pub(crate) deps: MockDeps,
-    index: usize,
+    pub deps: MockDeps,
+    code_hash: String,
+    index: usize
 }
 
 impl ContractEnsemble {
@@ -78,7 +90,7 @@ impl ContractEnsemble {
 
         ContractInstantiationInfo {
             id,
-            code_hash: format!("test_contract_{}", id),
+            code_hash: format!("test_contract_{}", id)
         }
     }
 
@@ -103,7 +115,7 @@ impl ContractEnsemble {
     }
 
     #[inline]
-    pub fn remove_funds(&mut self, address: impl AsRef<str>, coins: Vec<Coin>) -> StdResult<()> {
+    pub fn remove_funds(&mut self, address: impl AsRef<str>, coins: Vec<Coin>) -> EnsembleResult<()> {
         self.ctx.bank.current.remove_funds(address.as_ref(), coins)
     }
 
@@ -164,7 +176,7 @@ impl ContractEnsemble {
     // a non-existent address is provided. So returning nothing or bool is bad here.
 
     /// Returns an `Err` if the contract with `address` wasn't found.
-    pub fn deps<F>(&self, address: impl AsRef<str>, borrow: F) -> Result<(), String>
+    pub fn deps<F>(&self, address: impl AsRef<str>, borrow: F) -> EnsembleResult<()>
     where
         F: FnOnce(&MockDeps),
     {
@@ -176,11 +188,11 @@ impl ContractEnsemble {
             return Ok(());
         }
 
-        Err(format!("Contract not found: {}", address))
+        Err(EnsembleError::ContractNotFound(address.into()))
     }
 
     /// Returns an `Err` if the contract with `address` wasn't found.
-    pub fn deps_mut<F>(&mut self, address: impl AsRef<str>, mutate: F) -> Result<(), String>
+    pub fn deps_mut<F>(&mut self, address: impl AsRef<str>, mutate: F) -> EnsembleResult<()>
     where
         F: FnOnce(&mut MockDeps),
     {
@@ -194,17 +206,17 @@ impl ContractEnsemble {
             return Ok(());
         }
 
-        Err(format!("Contract not found: {}", address))
+        Err(EnsembleError::ContractNotFound(address.into()))
     }
 
     /// Returned address and code hash correspond to the values in `env`.
     pub fn instantiate<T: Serialize>(
         &mut self,
-        id: u64,
+        info: ContractInstantiationInfo,
         msg: &T,
         env: MockEnv,
-    ) -> AnyResult<InstantiateResponse> {
-        let result = self.ctx.instantiate(id as usize, to_binary(msg)?, env);
+    ) -> EnsembleResult<InstantiateResponse> {
+        let result = self.ctx.instantiate(info, to_binary(msg)?, env);
 
         if result.is_ok() {
             self.ctx.commit();
@@ -221,7 +233,7 @@ impl ContractEnsemble {
         &mut self,
         msg: &T,
         env: MockEnv,
-    ) -> AnyResult<ExecuteResponse> {
+    ) -> EnsembleResult<ExecuteResponse> {
         let result = self.ctx.execute(to_binary(msg)?, env);
 
         if result.is_ok() {
@@ -239,7 +251,7 @@ impl ContractEnsemble {
         &self,
         address: impl AsRef<str>,
         msg: &T,
-    ) -> AnyResult<R> {
+    ) -> EnsembleResult<R> {
         let result = self.ctx.query(address.as_ref(), to_binary(msg)?)?;
         let result = from_binary(&result)?;
 
@@ -248,7 +260,7 @@ impl ContractEnsemble {
 }
 
 impl ContractInstance {
-    fn new(index: usize, ctx: &Context) -> Self {
+    fn new(info: ContractInstantiationInfo, ctx: &Context) -> Self {
         Self {
             deps: OwnedDeps {
                 storage: Revertable::<TestStorage>::default(),
@@ -256,7 +268,8 @@ impl ContractInstance {
                 querier: EnsembleQuerier::new(ctx),
                 custom_query_type: PhantomData,
             },
-            index,
+            code_hash: info.code_hash,
+            index: info.id as usize
         }
     }
 
@@ -285,84 +298,97 @@ impl Context {
 
     fn instantiate(
         &mut self,
-        id: usize,
+        info: ContractInstantiationInfo,
         msg: Binary,
         env: MockEnv,
-    ) -> AnyResult<InstantiateResponse> {
+    ) -> EnsembleResult<InstantiateResponse> {
         let contract = self
             .contracts
-            .get(id)
-            .expect(&format!("Contract with id \"{}\" doesn't exist.", id));
+            .get(info.id as usize)
+            .ok_or_else(|| EnsembleError::ContractIdNotFound(info.id))?;
 
-        let instance = ContractInstance::new(id, &self);
+        let code_hash = info.code_hash.clone();
+        let instance = ContractInstance::new(info, &self);
 
-        let contract_info = env.contract.clone();
-        if self.instances.contains_key(contract_info.address.as_str()) {
-            panic!(
-                "Trying to instantiate an already existing address: {}.",
-                contract_info.address
-            )
+        if self.instances.contains_key(env.contract.as_str()) {
+            return Err(EnsembleError::ContractDuplicateAddress(env.contract.into_string()));
         }
 
         self.bank.writable().transfer(
             env.sender.as_str(),
-            contract_info.address.as_str(),
+            env.contract.as_str(),
             env.sent_funds.clone(),
         )?;
-        self.instances.insert(contract_info.address.to_string(), instance);
+        self.instances.insert(env.contract.to_string(), instance);
 
-        let (env, msg_info) = self.create_msg_deps(env);
+        let contract_address = env.contract.clone();
+        let (env, msg_info) = self.create_msg_deps(
+            env,
+            code_hash.clone()
+        );
         let sender = msg_info.sender.clone();
 
-        let instance = self.instances.get_mut(contract_info.address.as_str()).unwrap();
+        let instance = self.instances
+            .get_mut(contract_address.as_str())
+            .ok_or_else(|| EnsembleError::ContractNotFound(contract_address.to_string()))?;
+
         let result = contract.instantiate(&mut instance.deps, env, msg_info, msg.clone());
 
         match result {
             Ok(msgs) => {
                 let result = self.execute_messages(
                     msgs.messages.clone(),
-                    contract_info.address.clone()
+                    contract_address.clone()
                 );
 
                 match result {
                     Ok(sent) => Ok(InstantiateResponse {
                         sender: sender.into_string(),
-                        instance: contract_info,
+                        instance: ContractLink {
+                            address: contract_address,
+                            code_hash
+                        },
                         msg,
                         response: msgs,
                         sent,
                     }),
                     Err(err) => {
-                        self.instances.remove(contract_info.address.as_str());
+                        self.instances.remove(contract_address.as_str());
 
-                        Err(err)
+                        Err(EnsembleError::from(err))
                     }
                 }
             }
             Err(err) => {
-                self.instances.remove(contract_info.address.as_str());
+                self.instances.remove(contract_address.as_str());
 
-                Err(err)
+                Err(EnsembleError::from(err))
             }
         }
     }
 
-    fn execute(&mut self, msg: Binary, env: MockEnv) -> AnyResult<ExecuteResponse> {
-        let address = env.contract.address.clone();
-        let (env, msg_info) = self.create_msg_deps(env);
-        let sender = msg_info.sender.clone();
+    fn execute(&mut self, msg: Binary, env: MockEnv) -> EnsembleResult<ExecuteResponse> {
+        let address = env.contract.clone();
 
-        let instance = self
-            .instances
+        let code_hash = self.instances
             .get_mut(address.as_str())
-            .expect(&format!("Contract address doesn't exist: {}", address));
+            .ok_or_else(|| EnsembleError::ContractNotFound(address.to_string()))?
+            .code_hash
+            .clone();
 
+        let (env, msg_info) = self.create_msg_deps(env, code_hash);
+        let sender = msg_info.sender.clone();
+        
         self.bank.writable()
             .transfer(
                 sender.as_str(),
                 address.as_str(),
                 msg_info.funds.clone()
             )?;
+
+        let instance = self.instances
+            .get_mut(env.contract.address.as_str())
+            .unwrap();
 
         let contract = self.contracts.get(instance.index).unwrap();
 
@@ -381,22 +407,28 @@ impl Context {
         Ok(res)
     }
 
-    pub(crate) fn query(&self, address: &str, msg: Binary) -> AnyResult<Binary> {
+    pub(crate) fn query(&self, address: &str, msg: Binary) -> EnsembleResult<Binary> {
         let instance = self
             .instances
             .get(address)
-            .expect(&format!("Contract address doesn't exist: {}", address));
+            .ok_or_else(|| EnsembleError::ContractNotFound(address.into()))?;
 
         let contract = self.contracts.get(instance.index).unwrap();
+        let env = self.create_env(ContractLink {
+            address: Addr::unchecked(address),
+            code_hash: instance.code_hash.clone()
+        });
 
-        contract.query(&instance.deps, msg)
+        let result = contract.query(&instance.deps, env, msg)?;
+
+        Ok(result)
     }
 
     fn execute_messages(
         &mut self,
         messages: Vec<SubMsg>,
         sender: Addr,
-    ) -> AnyResult<Vec<ResponseVariants>> {
+    ) -> EnsembleResult<Vec<ResponseVariants>> {
         let mut responses = vec![];
 
         for sub_msg in messages {
@@ -408,12 +440,17 @@ impl Context {
                         funds,
                         code_hash,
                     } => {
+
+                        let instance = self.instances.get(&contract_addr)
+                            .ok_or_else(|| EnsembleError::ContractNotFound(contract_addr.to_string()))?;
+
+                        if instance.code_hash != code_hash {
+                            return Err(EnsembleError::InvalidCodeHash(code_hash));
+                        }
+
                         let env = MockEnv::new(
                             sender.clone(),
-                            ContractLink {
-                                address: Addr::unchecked(contract_addr),
-                                code_hash,
-                            },
+                            contract_addr,
                         )
                         .sent_funds(funds);
 
@@ -428,15 +465,15 @@ impl Context {
                     } => {
                         let env = MockEnv::new(
                             sender.clone(),
-                            ContractLink {
-                                address: Addr::unchecked(label),
-                                code_hash,
-                            },
+                            label
                         )
                         .sent_funds(funds);
 
                         responses.push(ResponseVariants::Instantiate(self.instantiate(
-                            code_id as usize,
+                            ContractInstantiationInfo {
+                                code_hash,
+                                id: code_id
+                            },
                             msg,
                             env,
                         )?));
@@ -508,7 +545,7 @@ impl Context {
                         // Query accumulated rewards so bank transaction can take place first
                         let withdraw_amount = match self.delegations.delegation(sender.as_str(), &validator) {
                             Some(amount) => amount.accumulated_rewards,
-                            None => bail!(StdError::generic_err("Delegation not found")),
+                            None => return Err(EnsembleError::Staking("Delegation not found".into())),
                         };
 
                         self.bank
@@ -528,8 +565,23 @@ impl Context {
         Ok(responses)
     }
 
-    fn create_msg_deps(&self, env: MockEnv) -> (Env, MessageInfo) {
-        (Env {
+    #[inline]
+    fn create_msg_deps(&self, env: MockEnv, code_hash: String) -> (Env, MessageInfo) {
+        (
+            self.create_env(ContractLink {
+                address: env.contract,
+                code_hash
+            }),
+            MessageInfo {
+                sender: env.sender,
+                funds: env.sent_funds
+            }
+        )
+    }
+
+    #[inline]
+    fn create_env(&self, contract: ContractLink<Addr>) -> Env {
+        Env {
             block: BlockInfo {
                 height: self.block.height,
                 time: Timestamp::from_seconds(self.block.time),
@@ -537,14 +589,10 @@ impl Context {
             },
             transaction: None,
             contract: ContractInfo {
-                address: env.contract.address,
-                code_hash: env.contract.code_hash,
+                address: contract.address,
+                code_hash: contract.code_hash,
             },
-        },
-        MessageInfo {
-            sender: env.sender,
-            funds: env.sent_funds
-        })
+        }
     }
 
     fn commit(&mut self) {
@@ -561,6 +609,48 @@ impl Context {
         }
 
         self.bank.revert();
+    }
+}
+
+impl EnsembleError {
+    #[inline]
+    pub fn unwrap_contract_error(self) -> anyhow::Error {
+        match self {
+            Self::ContractError(err) => err,
+            _ => panic!("called EnsembleError::unwrap_contract_error() on a non EnsembleError::ContractError")
+        }
+    }
+
+    #[inline]
+    pub fn is_contract_error(&self) -> bool {
+        matches!(self, EnsembleError::ContractError(_))
+    }
+}
+
+impl From<StdError> for EnsembleError {
+    fn from(err: StdError) -> Self {
+        Self::Std(err)
+    }
+}
+
+impl From<anyhow::Error> for EnsembleError {
+    fn from(err: anyhow::Error) -> Self {
+        Self::ContractError(err)
+    }
+}
+
+impl Display for EnsembleError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Bank(msg) => f.write_fmt(format_args!("Ensemble error - Bank: {}", msg)),
+            Self::Staking(msg) => f.write_fmt(format_args!("Ensemble error - Staking: {}", msg)),
+            Self::ContractNotFound(address) => f.write_fmt(format_args!("Ensemble error - Contract not found: {}", address)),
+            Self::ContractDuplicateAddress(address) => f.write_fmt(format_args!("Ensemble error - Contract instance with address {} already exists", address)),
+            Self::ContractIdNotFound(id) => f.write_fmt(format_args!("Ensemble error - Contract id not found: {}", id)),
+            Self::InvalidCodeHash(hash) => f.write_fmt(format_args!("Ensemble error - Contract code hash is invalid: {}", hash)),
+            Self::Std(err) => Display::fmt(err, f),
+            Self::ContractError(err) => Display::fmt(err, f)
+        }
     }
 }
 

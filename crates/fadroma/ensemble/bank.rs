@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
-use crate::prelude::*;
-use super::response::BankResponse;
+use crate::cosmwasm_std::{Uint128, Coin, coin};
+use super::{
+    EnsembleResult, EnsembleError,
+    response::BankResponse
+};
 
 pub type Balances = HashMap<String, Uint128>;
 
@@ -27,13 +30,13 @@ impl Bank {
         &mut self, 
         address: &str, 
         coins: Vec<Coin>
-    ) -> StdResult<()> {
+    ) -> EnsembleResult<()> {
         if coins.is_empty() {
             return Ok(());
         }
 
         if !self.0.contains_key(address) {
-            return Err(StdError::not_found(
+            return Err(EnsembleError::Bank(
                 format!("Account {} does not exist for remove balance", address)
             ))
         }
@@ -48,7 +51,7 @@ impl Bank {
                     if *amount >= coin.amount {
                         *amount -= coin.amount;
                     } else {
-                        return Err(StdError::generic_err(format!(
+                        return Err(EnsembleError::Bank(format!(
                             "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}", 
                             address,
                             coin.denom,
@@ -58,7 +61,7 @@ impl Bank {
                     }
                 },
                 None => {
-                    return Err(StdError::generic_err(format!(
+                    return Err(EnsembleError::Bank(format!(
                         "Insufficient balance: account: {}, denom: {}, balance: {}, required: {}",
                         address,
                         coin.denom,
@@ -77,7 +80,7 @@ impl Bank {
         from: &str,
         to: &str,
         coins: Vec<Coin>,
-    ) -> StdResult<BankResponse> {
+    ) -> EnsembleResult<BankResponse> {
         let res = BankResponse {
             sender: from.to_string(),
             receiver: to.to_string(),
@@ -98,7 +101,7 @@ impl Bank {
                 .unwrap()
                 .get_mut(&coin.denom)
                 .ok_or_else(|| {
-                    StdError::generic_err(format!(
+                    EnsembleError::Bank(format!(
                         "Insufficient balance: sender: {}, denom: {}, balance: {}, required: {}",
                         from,
                         coin.denom,
@@ -108,7 +111,7 @@ impl Bank {
                 })?;
 
             *amount = amount.checked_sub(coin.amount).map_err(|_| {
-                StdError::generic_err(format!(
+                EnsembleError::Bank(format!(
                     "Insufficient balance: sender: {}, denom: {}, balance: {}, required: {}",
                     from, coin.denom, amount, coin.amount
                 ))
