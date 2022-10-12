@@ -109,21 +109,18 @@ macro_rules! entrypoint {
         #[cfg(target_arch = "wasm32")]
         mod wasm {
             use $($fadroma)::+::{scrt::cosmwasm_std::{
-                do_init,
-                do_handle,
-                do_query,
-                ExternalStorage as EStorage,
-                ExternalApi     as EApi,
-                ExternalQuerier as EQuerier,
+                do_instantiate,
+                do_execute,
+                do_query
             }};
-            #[no_mangle] extern "C" fn init(env_ptr: u32, msg_ptr: u32) -> u32 {
-                do_init(&super::$($init)::+::<EStorage, EApi, EQuerier>, env_ptr, msg_ptr)
+            #[no_mangle] extern "C" fn instantiate(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+                do_instantiate(&super::$($init)::+, env_ptr, info_ptr, msg_ptr)
             }
-            #[no_mangle] extern "C" fn handle(env_ptr: u32, msg_ptr: u32) -> u32 {
-                do_handle(&super::$($handle)::+::<EStorage, EApi, EQuerier>, env_ptr, msg_ptr)
+            #[no_mangle] extern "C" fn execute(env_ptr: u32, info_ptr: u32, msg_ptr: u32) -> u32 {
+                do_execute(&super::$($handle)::+, env_ptr, info_ptr, msg_ptr)
             }
-            #[no_mangle] extern "C" fn query(msg_ptr: u32) -> u32 {
-                do_query(&super::$($query)::+::<EStorage, EApi, EQuerier>, msg_ptr)
+            #[no_mangle] extern "C" fn query(env_ptr: u32, msg_ptr: u32) -> u32 {
+                do_query(&super::$($query)::+, env_ptr, msg_ptr)
             }
         }
     }
