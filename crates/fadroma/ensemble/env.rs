@@ -13,8 +13,8 @@ impl MockEnv {
     /// Default values are what `cosmwasm_std::testing::mock_env` returns.
     pub fn new(sender: impl Into<String>, contract: impl Into<String>) -> Self {
         Self {
-            sender: Addr::unchecked(sender.into()),
-            contract: Addr::unchecked(contract.into()),
+            sender: Addr::unchecked(sender),
+            contract: Addr::unchecked(contract),
             sent_funds: vec![]
         }
     }

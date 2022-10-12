@@ -134,6 +134,7 @@ impl ContractEnsemble {
         self.ctx.delegations.all_delegations(address.as_ref())
     }
 
+    #[inline]
     pub fn delegation(
         &self,
         delegator: impl AsRef<str>,
@@ -214,7 +215,7 @@ impl ContractEnsemble {
         &mut self,
         info: ContractInstantiationInfo,
         msg: &T,
-        env: MockEnv,
+        env: MockEnv
     ) -> EnsembleResult<InstantiateResponse> {
         let result = self.ctx.instantiate(info, to_binary(msg)?, env);
 
@@ -232,7 +233,7 @@ impl ContractEnsemble {
     pub fn execute<T: Serialize + ?Sized>(
         &mut self,
         msg: &T,
-        env: MockEnv,
+        env: MockEnv
     ) -> EnsembleResult<ExecuteResponse> {
         let result = self.ctx.execute(to_binary(msg)?, env);
 
@@ -250,7 +251,7 @@ impl ContractEnsemble {
     pub fn query<T: Serialize + ?Sized, R: DeserializeOwned>(
         &self,
         address: impl AsRef<str>,
-        msg: &T,
+        msg: &T
     ) -> EnsembleResult<R> {
         let result = self.ctx.query(address.as_ref(), to_binary(msg)?)?;
         let result = from_binary(&result)?;
@@ -307,11 +308,13 @@ impl Context {
             .get(info.id as usize)
             .ok_or_else(|| EnsembleError::ContractIdNotFound(info.id))?;
 
+        let address = env.contract.to_string();
         let code_hash = info.code_hash.clone();
+
         let instance = ContractInstance::new(info, &self);
 
-        if self.instances.contains_key(env.contract.as_str()) {
-            return Err(EnsembleError::ContractDuplicateAddress(env.contract.into_string()));
+        if self.instances.contains_key(&address) {
+            return Err(EnsembleError::ContractDuplicateAddress(address));
         }
 
         self.bank.writable().transfer(
@@ -319,18 +322,17 @@ impl Context {
             env.contract.as_str(),
             env.sent_funds.clone(),
         )?;
-        self.instances.insert(env.contract.to_string(), instance);
+        self.instances.insert(address.clone(), instance);
 
-        let contract_address = env.contract.clone();
         let (env, msg_info) = self.create_msg_deps(
             env,
             code_hash.clone()
         );
-        let sender = msg_info.sender.clone();
+        let sender = msg_info.sender.to_string();
 
         let instance = self.instances
-            .get_mut(contract_address.as_str())
-            .ok_or_else(|| EnsembleError::ContractNotFound(contract_address.to_string()))?;
+            .get_mut(&address)
+            .ok_or_else(|| EnsembleError::ContractNotFound(address.to_string()))?;
 
         let result = contract.instantiate(&mut instance.deps, env, msg_info, msg.clone());
 
@@ -338,14 +340,14 @@ impl Context {
             Ok(msgs) => {
                 let result = self.execute_messages(
                     msgs.messages.clone(),
-                    contract_address.clone()
+                    address.clone()
                 );
 
                 match result {
                     Ok(sent) => Ok(InstantiateResponse {
-                        sender: sender.into_string(),
+                        sender,
                         instance: ContractLink {
-                            address: contract_address,
+                            address: Addr::unchecked(address),
                             code_hash
                         },
                         msg,
@@ -353,14 +355,14 @@ impl Context {
                         sent,
                     }),
                     Err(err) => {
-                        self.instances.remove(contract_address.as_str());
+                        self.instances.remove(&address);
 
                         Err(EnsembleError::from(err))
                     }
                 }
             }
             Err(err) => {
-                self.instances.remove(contract_address.as_str());
+                self.instances.remove(&address);
 
                 Err(EnsembleError::from(err))
             }
@@ -368,43 +370,39 @@ impl Context {
     }
 
     fn execute(&mut self, msg: Binary, env: MockEnv) -> EnsembleResult<ExecuteResponse> {
-        let address = env.contract.clone();
-
+        let address = env.contract.to_string();
         let code_hash = self.instances
-            .get_mut(address.as_str())
+            .get(&address)
             .ok_or_else(|| EnsembleError::ContractNotFound(address.to_string()))?
             .code_hash
             .clone();
 
         let (env, msg_info) = self.create_msg_deps(env, code_hash);
-        let sender = msg_info.sender.clone();
+        let sender = msg_info.sender.to_string();
         
         self.bank.writable()
             .transfer(
-                sender.as_str(),
-                address.as_str(),
+                &sender,
+                &address,
                 msg_info.funds.clone()
             )?;
 
         let instance = self.instances
-            .get_mut(env.contract.address.as_str())
+            .get_mut(&address)
             .unwrap();
 
-        let contract = self.contracts.get(instance.index).unwrap();
-
+        let contract = &self.contracts[instance.index];
         let result = contract.execute(&mut instance.deps, env, msg_info, msg.clone())?;
 
         let sent = self.execute_messages(result.messages.clone(), address.clone())?;
 
-        let res = ExecuteResponse {
-            sender: sender.into_string(),
-            target: address.into_string(),
+        Ok(ExecuteResponse {
+            sender,
+            target: address,
             msg,
             response: result,
             sent,
-        };
-
-        Ok(res)
+        })
     }
 
     pub(crate) fn query(&self, address: &str, msg: Binary) -> EnsembleResult<Binary> {
@@ -413,7 +411,7 @@ impl Context {
             .get(address)
             .ok_or_else(|| EnsembleError::ContractNotFound(address.into()))?;
 
-        let contract = self.contracts.get(instance.index).unwrap();
+        let contract = &self.contracts[instance.index];
         let env = self.create_env(ContractLink {
             address: Addr::unchecked(address),
             code_hash: instance.code_hash.clone()
@@ -427,7 +425,7 @@ impl Context {
     fn execute_messages(
         &mut self,
         messages: Vec<SubMsg>,
-        sender: Addr,
+        sender: String,
     ) -> EnsembleResult<Vec<ResponseVariants>> {
         let mut responses = vec![];
 
@@ -440,7 +438,6 @@ impl Context {
                         funds,
                         code_hash,
                     } => {
-
                         let instance = self.instances.get(&contract_addr)
                             .ok_or_else(|| EnsembleError::ContractNotFound(contract_addr.to_string()))?;
 
@@ -448,11 +445,8 @@ impl Context {
                             return Err(EnsembleError::InvalidCodeHash(code_hash));
                         }
 
-                        let env = MockEnv::new(
-                            sender.clone(),
-                            contract_addr,
-                        )
-                        .sent_funds(funds);
+                        let env = MockEnv::new(sender.clone(), contract_addr)
+                            .sent_funds(funds);
 
                         responses.push(ResponseVariants::Execute(self.execute(msg, env)?));
                     }
@@ -463,11 +457,8 @@ impl Context {
                         label,
                         code_hash,
                     } => {
-                        let env = MockEnv::new(
-                            sender.clone(),
-                            label
-                        )
-                        .sent_funds(funds);
+                        let env = MockEnv::new(sender.clone(), label)
+                            .sent_funds(funds);
 
                         responses.push(ResponseVariants::Instantiate(self.instantiate(
                             ContractInstantiationInfo {
@@ -488,7 +479,7 @@ impl Context {
                         let res = self.bank
                             .writable()
                             .transfer(
-                                sender.as_str(),
+                                &sender,
                                 &to_address,
                                 amount
                             )?;
@@ -501,10 +492,10 @@ impl Context {
                     StakingMsg::Delegate { validator, amount } => {
                         self.bank
                             .writable()
-                            .remove_funds(sender.as_str(), vec![amount.clone()])?;
+                            .remove_funds(&sender, vec![amount.clone()])?;
 
                         let res = self.delegations.delegate(
-                            sender.to_string(),
+                            sender.clone(),
                             validator,
                             amount
                         );
@@ -517,7 +508,7 @@ impl Context {
                     }
                     StakingMsg::Undelegate { validator, amount } => {
                         let res = self.delegations.undelegate(
-                            sender.to_string(),
+                            sender.clone(),
                             validator,
                             amount.clone(),
                         )?;
@@ -530,7 +521,7 @@ impl Context {
                         amount,
                     } => {
                         let res = self.delegations.redelegate(
-                            sender.to_string(),
+                            sender.clone(),
                             src_validator,
                             dst_validator,
                             amount,
@@ -543,16 +534,16 @@ impl Context {
                 CosmosMsg::Distribution(msg) => match msg {
                     DistributionMsg::WithdrawDelegatorReward { validator } => {
                         // Query accumulated rewards so bank transaction can take place first
-                        let withdraw_amount = match self.delegations.delegation(sender.as_str(), &validator) {
+                        let withdraw_amount = match self.delegations.delegation(&sender, &validator) {
                             Some(amount) => amount.accumulated_rewards,
                             None => return Err(EnsembleError::Staking("Delegation not found".into())),
                         };
 
                         self.bank
                             .writable()
-                            .add_funds(sender.as_str(), withdraw_amount);
+                            .add_funds(&sender, withdraw_amount);
 
-                        let withdraw_res = self.delegations.withdraw(sender.to_string(), validator)?;
+                        let withdraw_res = self.delegations.withdraw(sender.clone(), validator)?;
 
                         responses.push(ResponseVariants::Staking(withdraw_res));
                     },
@@ -591,7 +582,7 @@ impl Context {
             contract: ContractInfo {
                 address: contract.address,
                 code_hash: contract.code_hash,
-            },
+            }
         }
     }
 

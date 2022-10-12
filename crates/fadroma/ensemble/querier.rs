@@ -7,7 +7,6 @@ use crate::cosmwasm_std::{
 };
 
 pub struct EnsembleQuerier {
-    // NOTE: raw pointer to crate::ensemble::ContractEnsemble::ctx
     ctx: *const Context,
     base: MockQuerier,
 }
