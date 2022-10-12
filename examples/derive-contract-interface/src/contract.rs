@@ -9,59 +9,60 @@ use interface::StateResponse;
 #[contract_impl(entry, path = "interface")]
 pub trait Contract {
     #[init]
-    fn new(initial_value: u64) -> StdResult<InitResponse> {
+    fn new(initial_value: u64) -> StdResult<Response> {
         State::save_state(
-            &mut deps.storage,
+            deps.storage,
             &State {
                 value: initial_value,
             },
         )?;
-        Ok(InitResponse::default())
+
+        Ok(Response::default())
     }
 
     #[handle]
-    fn add(value: u64) -> StdResult<HandleResponse> {
-        let mut state = State::load_state(&deps.storage)?;
+    fn add(value: u64) -> StdResult<Response> {
+        let mut state = State::load_state(deps.storage)?;
 
         state.value += value;
-        State::save_state(&mut deps.storage, &state)?;
+        State::save_state(deps.storage, &state)?;
 
-        Ok(HandleResponse::default())
+        Ok(Response::default())
     }
 
     #[handle]
-    fn sub(value: u64) -> StdResult<HandleResponse> {
-        let mut state = State::load_state(&deps.storage)?;
+    fn sub(value: u64) -> StdResult<Response> {
+        let mut state = State::load_state(deps.storage)?;
 
         state.value -= value;
-        State::save_state(&mut deps.storage, &state)?;
+        State::save_state(deps.storage, &state)?;
 
-        Ok(HandleResponse::default())
+        Ok(Response::default())
     }
 
     #[handle]
-    fn mul(value: u64) -> StdResult<HandleResponse> {
-        let mut state = State::load_state(&deps.storage)?;
+    fn mul(value: u64) -> StdResult<Response> {
+        let mut state = State::load_state(deps.storage)?;
 
         state.value *= value;
-        State::save_state(&mut deps.storage, &state)?;
+        State::save_state(deps.storage, &state)?;
 
-        Ok(HandleResponse::default())
+        Ok(Response::default())
     }
 
     #[handle]
-    fn div(value: u64) -> StdResult<HandleResponse> {
-        let mut state = State::load_state(&deps.storage)?;
+    fn div(value: u64) -> StdResult<Response> {
+        let mut state = State::load_state(deps.storage)?;
 
         state.value /= value;
-        State::save_state(&mut deps.storage, &state)?;
+        State::save_state(deps.storage, &state)?;
 
-        Ok(HandleResponse::default())
+        Ok(Response::default())
     }
 
     #[query]
     fn state() -> StdResult<StateResponse> {
-        let state = State::load_state(&deps.storage)?;
+        let state = State::load_state(deps.storage)?;
 
         Ok(StateResponse { value: state.value })
     }

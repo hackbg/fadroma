@@ -20,27 +20,40 @@ use fadroma::prelude::*;
     Fail
 }
 
-pub fn init<S: Storage, A: Api, Q: Querier>(
-    _deps: &mut Extern<S, A, Q>, _env: Env, msg: InitMsg,
-) -> StdResult<InitResponse> {
+pub fn instantiate(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: InitMsg
+) -> StdResult<Response> {
     if !msg.fail {
-        InitResponse::default().log("Echo", &to_binary(&msg)?.to_base64())
+        Ok(Response::default().add_attribute("Echo", &to_binary(&msg)?.to_base64()))
     } else {
         Err(StdError::generic_err("caller requested the init to fail"))
     }
 }
 
-pub fn handle<S: Storage, A: Api, Q: Querier>(
-    _deps: &mut Extern<S, A, Q>, _env: Env, msg: HandleMsg,
-) -> StdResult<HandleResponse> {
+pub fn execute(
+    _deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: HandleMsg
+) -> StdResult<Response> {
     match msg {
-        HandleMsg::Echo => HandleResponse::default().data(&msg),
+        HandleMsg::Echo => {
+            let mut resp = Response::default();
+            resp.data = Some(to_binary(&msg)?);
+
+            Ok(resp)
+        },
         HandleMsg::Fail => Err(StdError::generic_err("this transaction always fails"))
     }
 }
 
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    _deps: &Extern<S, A, Q>, msg: QueryMsg,
+pub fn query(
+    _deps: Deps,
+    _env: Env,
+    msg: QueryMsg
 ) -> StdResult<Binary> {
     match msg {
         QueryMsg::Echo => to_binary(&msg),
@@ -48,4 +61,4 @@ pub fn query<S: Storage, A: Api, Q: Querier>(
     }
 }
 
-fadroma::entrypoint!(fadroma, init, handle, query);
+fadroma::entrypoint!(fadroma, instantiate, execute, query);
