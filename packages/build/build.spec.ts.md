@@ -1,8 +1,7 @@
 # Fadroma Build Specification
 
-This package implements **reproducible compilation** of
-the contracts specified using the primitives
-defined in [Fadroma Core](../client/README.md)
+This package implements **reproducible compilation** of contracts.
+What to compile is specified using the primitives defined in [Fadroma Core](../client/README.md).
 
 > Run tests with `pnpm test`.
 > Measure coverage with `pnpm cov`.[^1]
