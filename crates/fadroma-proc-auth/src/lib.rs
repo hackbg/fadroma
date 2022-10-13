@@ -73,6 +73,9 @@ fn find_extern_arg(args: &Punctuated<FnArg, Comma>) -> (PatIdent, PatIdent) {
 }
 
 fn create_require_admin_stmt(deps: PatIdent, info: PatIdent) -> Stmt {
+    let ref deps = deps.ident;
+    let ref info = info.ident;
+
     let code = quote! {
         assert_admin(#deps.as_ref(), &#info)?;
     };
