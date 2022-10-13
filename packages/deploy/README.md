@@ -1,7 +1,12 @@
+<div align="center">
+
 # Fadroma Deploy
 
-This package implements the logic for keeping track of contracts
-deployed with the core deploy logic defined in `@fadroma/client`.
+[![](https://img.shields.io/npm/v/@fadroma/deploy?color=%2365b34c&label=%40fadroma%2Fdeploy&style=for-the-badge)](https://www.npmjs.com/package/@fadroma/deploy)
 
-See the [executable specification](./deploy.spec.ts.md) for
-details and usage examples.
+This package implements the storage logic for
+keeping track of contracts deployed with `@fadroma/client`.
+
+For usage info see the [**Specification**](./deploy.spec.ts.md).
+
+</div>
