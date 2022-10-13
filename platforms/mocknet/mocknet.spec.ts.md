@@ -146,3 +146,27 @@ import { b64toUtf8, utf8toB64 } from './mocknet-backend'
 equal(b64toUtf8('IkVjaG8i'), '"Echo"')
 equal(utf8toB64('"Echo"'), 'IkVjaG8i')
 ```
+
+### Mock of mocknet environment
+
+When testing your own contracts with Fadroma Mocknet, you are responsible
+for providing the value of the `env` struct seen by the contracts.
+Since here we test the mocknet itself, we use this pre-defined value:
+
+```typescript
+import { randomBech32 } from '@hackbg/formati'
+export function mockEnv () {
+  const height   = 0
+  const time     = 0
+  const chain_id = "mock"
+  const sender   = randomBech32('mocked')
+  const address  = randomBech32('mocked')
+  return {
+    block:    { height, time, chain_id }
+    message:  { sender: sender, sent_funds: [] },
+    contract: { address },
+    contract_key: "",
+    contract_code_hash: ""
+  }
+}
+```

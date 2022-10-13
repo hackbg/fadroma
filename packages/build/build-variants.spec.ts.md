@@ -21,6 +21,44 @@ equal(builder.dockerfile, DockerBuilder.dockerfile)
 
 import * as Dokeres from '@hackbg/dokeres'
 ok(builder.docker instanceof Dokeres.Engine)
+
+import { Dokeres, DokeresImage, mockDockerode } from '@hackbg/dokeres'
+import { Transform } from 'stream'
+class TestDockerBuilder extends DockerBuilder {
+  prebuild (source) { return false }
+}
+class TestDokeresImage extends DokeresImage {
+  async ensure () { return theImage }
+}
+const theImage  = Symbol()
+source    = { workspace, crate }
+ran       = []
+const docker    = mockDockerode(({ run: [image, cmd, buildLogs, args] }) {
+  equal(image, theImage)
+  equal(cmd, `bash /build.sh HEAD empty`)
+  ok(buildLogs instanceof Transform)
+  equal(args.Tty, true)
+  equal(args.AttachStdin: true)
+  deepEqual(args.Entrypoint, [ '/bin/sh', '-c' ])
+  ok(args.HostConfig.Binds instanceof Array)
+  equal(args.HostConfig.AutoRemove, true)
+})
+image     = new Dokeres(docker).image(' ')
+const script    = "build.sh"
+const options   = { docker, image, script }
+builder   = new TestDockerBuilder(options)
+
+// build one
+artifact  = await builder.build({ workspace, crate })
+equal(artifact.location, resolve(workspace, 'artifacts/empty@HEAD.wasm'))
+equal(artifact.codeHash, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855')
+
+// build many
+artifacts = await builder.buildMany([
+  { workspace, crate: 'crate1' }
+  { workspace, ref: 'HEAD', crate: 'crate2' }
+  { workspace, ref: 'asdf', crate: 'crate3' }
+])
 ```
 
 ## Raw Builder
@@ -33,6 +71,21 @@ ok(builder.docker instanceof Dokeres.Engine)
 ```typescript
 import { RawBuilder } from '@fadroma/build'
 ok(getBuilder({ buildRaw: true }) instanceof RawBuilder)
+let ran
+class TestRawBuilder Fadroma.RawBuilder { run = (...args) => ran.push(args) }
+const buildScript    = Symbol()
+const checkoutScript = Symbol()
+builder = new TestRawBuilder(buildScript, checkoutScript)
+const crate = 'empty'
+const ref   = 'ref'
+ran = []
+const sourceFromHead   = { workspace, crate }
+const templateFromHead = await builder.build(sourceFromHead)
+deepEqual(ran, [[buildScript, []]])
+ran = []
+const sourceFromRef   = { workspace, crate, ref }
+const templateFromRef = await builder.build(sourceFromRef)
+deepEqual(ran, [[checkoutScript, [ref]], [buildScript, []]])
 ```
 
 # Getting and configuring builders
@@ -138,4 +191,3 @@ builder = new class TestLocalBuilder extends LocalBuilder {
 //await assert.throws(()=>builder.prebuild({}))
 equal(builder.prebuild('', 'empty'), null)
 ```
-

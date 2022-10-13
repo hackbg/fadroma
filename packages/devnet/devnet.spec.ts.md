@@ -62,3 +62,75 @@ withTmpDir(async stateRoot=>{
   await devnet.erase()
 })
 ```
+
+* Dockerized devnet
+
+```typescript
+import { DockerDevnet } from '@hackbg/fadroma'
+import { withTmpFile } from '@hackbg/kabinet'
+import { Dokeres, mockDockerode } from '@hackbg/dokeres'
+import { resolve, basename } from 'path'
+const readyPhrase = "I'm Freddy"
+
+// construct dockerode devnet
+await withTmpDir(stateRoot=>{
+  const docker      = mockDockerode()
+  const imageName   = Symbol()
+  const image       = new Dokeres(docker).image(imageName)
+  const initScript  = Symbol()
+  const devnet = new DockerDevnet({ stateRoot, docker, image, initScript, readyPhrase })
+  equal(devnet.identities.path, resolve(stateRoot, 'identities'))
+  equal(devnet.image,           image)
+  equal(devnet.image.dockerode, docker)
+  equal(devnet.image.name,      imageName)
+  equal(devnet.initScript,      initScript)
+  equal(devnet.readyPhrase,     readyPhrase)
+})
+
+// spawn dockerode devnet
+await withTmpDir(async stateRoot => {
+  await withTmpFile(async initScript => {
+    const docker = mockDockerode(({ createContainer }) => {
+      if (createContainer) {
+        const stream = {
+          on (arg, cb) {
+            if (arg === 'data') {
+              cb(readyPhrase)
+            }
+          },
+          off (arg, cb) {},
+          destroy () {},
+        }
+        return [ null, stream ]
+      }
+    })
+    class TestDockerDevnet extends DockerDevnet {
+      waitSeconds = 0.5
+      waitPort = () => Promise.resolve()
+    }
+    const devnet = new TestDockerDevnet({
+      stateRoot,
+      docker,
+      image: new Dokeres(docker).image(basename(stateRoot)),
+      initScript,
+      readyPhrase,
+      portMode: 'lcp' // or 'grpcWeb'
+    })
+    equal(await devnet.spawn(), devnet)
+  })
+})
+
+// pass names of accounts to prefund on genesis
+const identities  = [ 'FOO', 'BAR' ]
+devnet = new Devnet({ identities })
+equal(devnet.genesisAccounts, identities)
+image = {
+  name: Symbol(),
+  run (name, options, command, entrypoint) {
+    equal(name, image.name)
+    equal(options.env.GenesisAccounts, 'FOO BAR')
+  }
+}
+const dockerDevnet = new DockerDevnet({ identities, initScript: '', image })
+equal(dockerDevnet.genesisAccounts, identities)
+```
