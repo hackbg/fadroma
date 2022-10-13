@@ -29,8 +29,8 @@
     "ts:clean":         "rm -rf *.cjs.js *.esm.js *.d.ts packages/*/dist packages/*/types",
     "ts:check":         "time tsc --noEmit",
     "ts:test":          "time ensuite SPEC.ts.md",
-    "ts:test:cov":      "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages -n platforms -n toolbox ensuite SPEC.ts.md",
-    "ts:test:lcov":     "Ganesha_NoSourceMap=1 time npx c8 -r lcov -n packages -n platforms -n toolbox ensuite SPEC.ts.md",
+    "ts:test:cov":      "time ensuite-cov -r text -n packages -n platforms -n toolbox -- SPEC.ts.md",
+    "ts:test:lcov":     "time ensuite-cov -r lcov -n packages -n platforms -n toolbox -- SPEC.ts.md",
     "ts:test:build":    "./packages/build/build.ts",
     "ts:test:build:kv": "./packages/build/build.ts examples/kv",
 

@@ -7,7 +7,8 @@
   "scripts": {
     "check": "tsc --noEmit",
     "test":  "ensuite client.spec.ts.md",
-    "cov":   "Ganesha_NoSourceMap=1 time npx c8 -r text -n packages -n platforms -n toolbox ensuite SPEC.ts.md",
+    "cov":   "ensuite-cov -r text -- client.spec.ts.md",
+    "lcov":  "ensuite-cov -r lcov -- client.spec.ts.md",
     "ubik":  "npm run check && npm test && ubik"
   },
   "dependencies": {
@@ -15,6 +16,6 @@
     "@hackbg/komandi": "^6.1.2"
   },
   "devDependencies": {
-    "@hackbg/ensuite": "^1"
+    "@hackbg/ensuite": "^1.1"
   }
 }

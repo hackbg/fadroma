@@ -28,7 +28,7 @@ export class ClientError extends CustomError {
     () => "Missing agent for bundle.")
   static NoArtifact = this.define('NoArtifact',
     () => "No code id and no artifact to upload")
-  static NoArtifactURL = this.define('NoArtifactUrl',
+  static NoArtifactURL = this.define('NoArtifactURL',
     () => "Still no artifact URL")
   static NoBuilder = this.define('NoBuilder',
     () => `No builder specified.`)
@@ -42,7 +42,7 @@ export class ClientError extends CustomError {
     () => "No chain ID specified")
   static NoCodeHash = this.define('NoCodeHash',
     () => "No code hash")
-  static NoContext = this.define('NoUploadInitContext',
+  static NoContext = this.define('NoContext',
     () => "Missing deploy context.")
   static NoCrate = this.define('NoCrate',
     () => `No crate specified for building`)
@@ -60,7 +60,7 @@ export class ClientError extends CustomError {
   static NoInitMessage = this.define('NoInitMessage',
     () => "Missing init message")
 
-  static NoName = this.define("NoContractName",
+  static NoName = this.define("NoName",
     () => "No name.")
   static NoSource = this.define('NoSource',
     () => "No artifact and no source to build")
@@ -147,7 +147,7 @@ export class ClientConsole extends CommandsConsole {
     console.log(report)
   }
 
-  deployment (deployment: Deployment, name = deployment.name) {
+  deployment (deployment: Deployment, name = deployment?.name) {
     this.br()
     if (deployment) {
       const { state = {}, name } = deployment
@@ -220,23 +220,23 @@ export class ClientConsole extends CommandsConsole {
 
   afterDeploy (contract: Partial<ContractInstance>) {
     const { red, green } = colors
-    const name = contract.name
+    const name = contract?.name
       ? bold(green(contract.name))
       : bold(red('(no name)'))
-    const deployment = contract.prefix
+    const deployment = contract?.prefix
       ? bold(green(contract.prefix))
       : bold(red('(no deployment)'))
-    const address = bold(colors.green(contract.address!))
+    const address = bold(colors.green(contract?.address!))
     this.info('Deployed:', name, 'in', deployment)
     this.info('Address: ', address)
-    this.info('Code hash', contract.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
+    this.info('Code hash', contract?.codeHash?colors.green(contract.codeHash):colors.red('(n/a)'))
     this.br()
   }
 
   deployFailed (e: Error, template: ContractTemplate, name: Label, msg: Message) {
     this.br()
     this.error(`Deploy of ${bold(name)} failed:`)
-    this.error(`${e.message}`)
+    this.error(`${e?.message}`)
     this.deployFailedContract(template)
     this.error(`Init message: `)
     this.error(`  ${JSON.stringify(msg)}`)
@@ -268,7 +268,7 @@ export class ClientConsole extends CommandsConsole {
 
   chainStatus ({ chain, deployments }: {
     chain?: Chain, deployments?: { active?: { name: string }, list (): string[] }
-  }) {
+  } = {}) {
     if (!chain) return this.info('│ No active chain.')
     this.info('│ Chain type: ', bold(chain.constructor.name))
     this.info('│ Chain mode: ', bold(chain.mode))
