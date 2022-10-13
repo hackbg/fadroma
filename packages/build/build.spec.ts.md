@@ -46,5 +46,5 @@ import './build-docker.spec.ts.md'
   * **pinning versions** for predictability during automated one-step deployments.
 
 ```typescript
-import './build-histry.spec.ts.md'
+import './build-history.spec.ts.md'
 ```
